@@ -84,6 +84,17 @@ struct NodeTableDeleteState final : TableDeleteState {
 class StorageManager;
 class NodeTable final : public Table {
 public:
+    class NodeGroupIterator : public NodeGroup::NodeGroupBaseIterator {
+    public:
+        NodeGroupIterator(NodeTable* table, common::node_group_idx_t nodeGroupIdx,
+            common::row_idx_t startRow, common::row_idx_t numRows, common::transaction_t commitTS);
+
+        void initRollbackInsert(const transaction::Transaction* transaction) override;
+
+    private:
+        NodeTable* table;
+    };
+
     static std::vector<common::LogicalType> getNodeTableColumnTypes(const NodeTable& table) {
         std::vector<common::LogicalType> types;
         for (auto i = 0u; i < table.getNumColumns(); i++) {
@@ -176,8 +187,8 @@ public:
 
     TableStats getStats(const transaction::Transaction* transaction) const;
 
-    const transaction::rollback_insert_func_t& getRollbackInsertFunc() const {
-        return rollbackInsertFunc;
+    const chunked_group_iterator_construct_t& getIteratorConstructFunc() const {
+        return iteratorConstructFunc;
     }
 
 private:
@@ -199,7 +210,7 @@ private:
     std::unique_ptr<NodeGroupCollection> nodeGroups;
     common::column_id_t pkColumnID;
     std::unique_ptr<PrimaryKeyIndex> pkIndex;
-    transaction::rollback_insert_func_t rollbackInsertFunc;
+    chunked_group_iterator_construct_t iteratorConstructFunc;
 };
 
 } // namespace storage

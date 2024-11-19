@@ -4,8 +4,7 @@
 
 #include "common/constants.h"
 #include "common/types/types.h"
-#include "storage/enums/csr_node_group_scan_source.h"
-#include "transaction/transaction.h"
+#include "storage/store/node_group.h"
 
 namespace kuzu {
 namespace catalog {
@@ -88,13 +87,10 @@ public:
     void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
     void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry,
         const catalog::SequenceRollbackData& data);
-    void createInsertInfo(NodeGroupCollection* nodeGroups, common::node_group_idx_t nodeGroupIdx,
-        common::row_idx_t startRow, common::row_idx_t numRows,
-        storage::CSRNodeGroupScanSource source = CSRNodeGroupScanSource::NONE,
-        const transaction::rollback_insert_func_t* rollbackInsertFunc = nullptr);
-    void createDeleteInfo(NodeGroupCollection* nodeGroups, common::node_group_idx_t nodeGroupIdx,
-        common::row_idx_t startRow, common::row_idx_t numRows,
-        storage::CSRNodeGroupScanSource source);
+    void createInsertInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+        common::row_idx_t numRows, const chunked_group_iterator_construct_t* iteratorConstructFunc);
+    void createDeleteInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+        common::row_idx_t numRows, const chunked_group_iterator_construct_t* iteratorConstructFunc);
     void createVectorUpdateInfo(UpdateInfo* updateInfo, common::idx_t vectorIdx,
         VectorUpdateInfo* vectorUpdateInfo);
 
@@ -106,11 +102,9 @@ public:
 private:
     uint8_t* createUndoRecord(uint64_t size);
 
-    void createVersionInfo(UndoRecordType recordType, NodeGroupCollection* nodeGroupCollection,
-        common::row_idx_t startRow, common::row_idx_t numRows,
-        common::node_group_idx_t nodeGroupIdx = 0,
-        storage::CSRNodeGroupScanSource source = CSRNodeGroupScanSource::NONE,
-        const transaction::rollback_insert_func_t* rollbackInsertFunc = nullptr);
+    void createVersionInfo(UndoRecordType recordType, common::row_idx_t startRow,
+        common::row_idx_t numRows, const chunked_group_iterator_construct_t* iteratorConstructFunc,
+        common::node_group_idx_t nodeGroupIdx = 0);
 
     void commitRecord(UndoRecordType recordType, const uint8_t* record,
         common::transaction_t commitTS) const;

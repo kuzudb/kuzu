@@ -25,6 +25,21 @@ RelTableData::RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* sh
     multiplicity = tableEntry->constCast<RelTableCatalogEntry>().getMultiplicity(direction);
     initCSRHeaderColumns();
     initPropertyColumns(tableEntry);
+
+    inMemIteratorConstructFunc = [this](common::row_idx_t startRow, common::row_idx_t numRows_,
+                                     common::node_group_idx_t nodeGroupIdx_,
+                                     common::transaction_t commitTS) {
+        return std::make_unique<NodeGroup::NodeGroupBaseIterator>(nodeGroups.get(), nodeGroupIdx_,
+            startRow, numRows_, commitTS);
+    };
+
+    persistentIteratorConstructFunc = [this](common::row_idx_t startRow, common::row_idx_t numRows_,
+                                          common::node_group_idx_t nodeGroupIdx_,
+                                          common::transaction_t commitTS) {
+        return std::make_unique<CSRNodeGroup::PersistentIterator>(nodeGroups.get(), nodeGroupIdx_,
+            startRow, numRows_, commitTS);
+    };
+
     nodeGroups = std::make_unique<NodeGroupCollection>(*mm, getColumnTypes(), enableCompression,
         dataFH, deSer);
 }
@@ -98,7 +113,11 @@ bool RelTableData::delete_(Transaction* transaction, ValueVector& boundNodeIDVec
     auto& csrNodeGroup = getNodeGroup(nodeGroupIdx)->cast<CSRNodeGroup>();
     bool isDeleted = csrNodeGroup.delete_(transaction, source, rowIdx);
     if (isDeleted && transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushDeleteInfo(nodeGroups.get(), nodeGroupIdx, rowIdx, 1, source);
+        const auto* constructIteratorFunc =
+            (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) ?
+                &persistentIteratorConstructFunc :
+                &inMemIteratorConstructFunc;
+        transaction->pushDeleteInfo(nodeGroupIdx, rowIdx, 1, constructIteratorFunc);
     }
     return isDeleted;
 }
@@ -192,11 +211,13 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction,
 
 void RelTableData::pushInsertInfo(transaction::Transaction* transaction,
     const CSRNodeGroup& nodeGroup, common::row_idx_t numRows_, CSRNodeGroupScanSource source) {
-    const auto startRow = (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) ?
-                              nodeGroup.getNumPersistentRows() :
-                              nodeGroup.getNumRows();
+    const auto [startRow, constructIteratorFunc] =
+        (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) ?
+            std::make_pair(nodeGroup.getNumPersistentRows(), &persistentIteratorConstructFunc) :
+            std::make_pair(nodeGroup.getNumRows(), &inMemIteratorConstructFunc);
+
     nodeGroups->pushInsertInfo(transaction, nodeGroup.getNodeGroupIdx(), startRow, numRows_,
-        source);
+        constructIteratorFunc);
 }
 
 void RelTableData::checkpoint(const std::vector<column_id_t>& columnIDs) {

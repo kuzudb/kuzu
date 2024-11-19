@@ -17,7 +17,7 @@ class NodeGroupCollection {
 public:
     NodeGroupCollection(MemoryManager& memoryManager, const std::vector<common::LogicalType>& types,
         bool enableCompression, FileHandle* dataFH = nullptr, common::Deserializer* deSer = nullptr,
-        const transaction::rollback_insert_func_t* rollbackInsertFunc = nullptr);
+        const chunked_group_iterator_construct_t* iteratorConstructFunc = nullptr);
 
     void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors);
@@ -51,7 +51,8 @@ public:
         return nodeGroups.getGroup(lock, groupIdx);
     }
     NodeGroup* getOrCreateNodeGroup(transaction::Transaction* transaction,
-        common::node_group_idx_t groupIdx, NodeGroupDataFormat format);
+        common::node_group_idx_t groupIdx, NodeGroupDataFormat format,
+        const chunked_group_iterator_construct_t* constructIteratorFunc_);
 
     void setNodeGroup(const common::node_group_idx_t nodeGroupIdx,
         std::unique_ptr<NodeGroup> group) {
@@ -59,19 +60,7 @@ public:
         nodeGroups.replaceGroup(lock, nodeGroupIdx, std::move(group));
     }
 
-    void commitInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
-        common::node_group_idx_t nodeGroupIdx, common::transaction_t commitTS,
-        CSRNodeGroupScanSource source = CSRNodeGroupScanSource::NONE);
-    void commitDelete(common::row_idx_t startRow, common::row_idx_t numRows_,
-        common::node_group_idx_t nodeGroupIdx, common::transaction_t commitTS,
-        CSRNodeGroupScanSource source = CSRNodeGroupScanSource::NONE);
-
-    void rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
-        common::node_group_idx_t nodeGroupIdx,
-        CSRNodeGroupScanSource source = CSRNodeGroupScanSource::NONE);
-    void rollbackDelete(common::row_idx_t startRow, common::row_idx_t numRows_,
-        common::node_group_idx_t nodeGroupIdx,
-        CSRNodeGroupScanSource source = CSRNodeGroupScanSource::NONE);
+    void rollbackInsert(common::row_idx_t numRows_, bool updateNumRows = true);
 
     void clear() {
         const auto lock = nodeGroups.lock();
@@ -93,11 +82,13 @@ public:
 
     void pushInsertInfo(const transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
-        common::row_idx_t numRows, storage::CSRNodeGroupScanSource source);
+        common::row_idx_t numRows,
+        const chunked_group_iterator_construct_t* constructIteratorFunc_);
 
 private:
     void pushInsertInfo(const transaction::Transaction* transaction, NodeGroup* nodeGroup,
-        common::row_idx_t numRows, CSRNodeGroupScanSource source = CSRNodeGroupScanSource::NONE);
+        common::row_idx_t numRows,
+        const chunked_group_iterator_construct_t* constructIteratorFunc_ = nullptr);
 
     bool enableCompression;
     // Num rows in the collection regardless of deletions.
@@ -106,7 +97,7 @@ private:
     GroupCollection<NodeGroup> nodeGroups;
     FileHandle* dataFH;
     TableStats stats;
-    const transaction::rollback_insert_func_t* rollbackInsertFunc;
+    const chunked_group_iterator_construct_t* iteratorConstructFunc;
 };
 
 } // namespace storage

@@ -55,8 +55,8 @@ public:
     }
     NodeGroup* getOrCreateNodeGroup(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx) const {
-        return nodeGroups->getOrCreateNodeGroup(transaction, nodeGroupIdx,
-            NodeGroupDataFormat::CSR);
+        return nodeGroups->getOrCreateNodeGroup(transaction, nodeGroupIdx, NodeGroupDataFormat::CSR,
+            &persistentIteratorConstructFunc);
     }
 
     common::RelMultiplicity getMultiplicity() const { return multiplicity; }
@@ -113,6 +113,9 @@ private:
 
     CSRHeaderColumns csrHeaderColumns;
     std::vector<std::unique_ptr<Column>> columns;
+
+    chunked_group_iterator_construct_t inMemIteratorConstructFunc;
+    chunked_group_iterator_construct_t persistentIteratorConstructFunc;
 };
 
 } // namespace storage

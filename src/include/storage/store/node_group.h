@@ -5,6 +5,7 @@
 #include "common/uniq_lock.h"
 #include "storage/enums/csr_node_group_scan_source.h"
 #include "storage/enums/residency_state.h"
+#include "storage/store/chunked_group_undo_iterator.h"
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/group_collection.h"
 
@@ -18,6 +19,8 @@ class MemoryManager;
 
 struct TableAddColumnState;
 class NodeGroup;
+class NodeGroupCollection;
+
 struct NodeGroupScanState {
     // Index of committed but not yet checkpointed chunked group to scan.
     common::idx_t chunkedGroupIdx = 0;
@@ -80,6 +83,18 @@ static auto NODE_GROUP_SCAN_EMMPTY_RESULT = NodeGroupScanResult{};
 struct TableScanState;
 class NodeGroup {
 public:
+    class NodeGroupBaseIterator : public ChunkedGroupUndoIterator {
+    public:
+        NodeGroupBaseIterator(NodeGroupCollection* nodeGroups,
+            common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+            common::row_idx_t numRows, common::transaction_t commitTS);
+        void iterate(chunked_group_undo_op_t undoFunc) override;
+        void finalizeRollbackInsert() override;
+
+    protected:
+        NodeGroup* nodeGroup;
+    };
+
     NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
         std::vector<common::LogicalType> dataTypes,
         common::row_idx_t capacity = common::StorageConstants::NODE_GROUP_SIZE,
@@ -150,15 +165,7 @@ public:
 
     void flush(transaction::Transaction* transaction, FileHandle& dataFH);
 
-    void commitInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
-        common::transaction_t commitTS, CSRNodeGroupScanSource source);
-    void commitDelete(common::row_idx_t startRow, common::row_idx_t numRows_,
-        common::transaction_t commitTS, CSRNodeGroupScanSource source);
-
-    void rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
-        CSRNodeGroupScanSource source);
-    void rollbackDelete(common::row_idx_t startRow, common::row_idx_t numRows_,
-        CSRNodeGroupScanSource source);
+    void rollbackInsert(common::row_idx_t startRow);
 
     virtual void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
 
@@ -197,13 +204,6 @@ public:
 protected:
     static constexpr auto INVALID_CHUNKED_GROUP_IDX = UINT32_MAX;
     static constexpr auto INVALID_START_ROW_IDX = UINT64_MAX;
-
-    using chunked_group_transaction_operation_t = void (
-        ChunkedNodeGroup::*)(common::row_idx_t, common::row_idx_t, common::transaction_t);
-    virtual std::pair<common::idx_t, common::row_idx_t> actionOnChunkedGroups(
-        const common::UniqLock& lock, common::row_idx_t startRow, common::row_idx_t numRows_,
-        common::transaction_t commitTS, CSRNodeGroupScanSource source,
-        chunked_group_transaction_operation_t operation);
 
 private:
     std::pair<common::idx_t, common::row_idx_t> findChunkedGroupIdxFromRowIdxNoLock(

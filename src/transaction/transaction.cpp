@@ -173,18 +173,16 @@ void Transaction::pushSequenceChange(SequenceCatalogEntry* sequenceEntry, int64_
     }
 }
 
-void Transaction::pushInsertInfo(storage::NodeGroupCollection* nodeGroups,
-    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
-    storage::CSRNodeGroupScanSource source,
-    const transaction::rollback_insert_func_t* rollbackInsertCallback) const {
-    undoBuffer->createInsertInfo(nodeGroups, nodeGroupIdx, startRow, numRows, source,
-        rollbackInsertCallback);
+void Transaction::pushInsertInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+    common::row_idx_t numRows,
+    const chunked_group_iterator_construct_t* constructIteratorFunc) const {
+    undoBuffer->createInsertInfo(nodeGroupIdx, startRow, numRows, constructIteratorFunc);
 }
 
-void Transaction::pushDeleteInfo(storage::NodeGroupCollection* nodeGroups,
-    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
-    storage::CSRNodeGroupScanSource source) const {
-    undoBuffer->createDeleteInfo(nodeGroups, nodeGroupIdx, startRow, numRows, source);
+void Transaction::pushDeleteInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+    common::row_idx_t numRows,
+    const chunked_group_iterator_construct_t* constructIteratorFunc) const {
+    undoBuffer->createDeleteInfo(nodeGroupIdx, startRow, numRows, constructIteratorFunc);
 }
 
 void Transaction::pushVectorUpdateInfo(storage::UpdateInfo& updateInfo,

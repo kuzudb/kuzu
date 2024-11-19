@@ -12,6 +12,25 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
+CSRNodeGroup::PersistentIterator::PersistentIterator(NodeGroupCollection* nodeGroups,
+    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
+    common::transaction_t commitTS)
+    : ChunkedGroupUndoIterator(nodeGroups, startRow, numRows, commitTS), nodeGroup(nullptr) {
+    if (nodeGroupIdx < nodeGroups->getNumNodeGroups()) {
+        nodeGroup = ku_dynamic_cast<CSRNodeGroup*>(nodeGroups->getNodeGroupNoLock(nodeGroupIdx));
+    }
+}
+
+void CSRNodeGroup::PersistentIterator::iterate(chunked_group_undo_op_t undoFunc) {
+    if (nodeGroup && nodeGroup->persistentChunkGroup) {
+        std::invoke(undoFunc, *nodeGroup->persistentChunkGroup, startRow, numRows, commitTS);
+    }
+}
+
+void CSRNodeGroup::PersistentIterator::finalizeRollbackInsert() {
+    nodeGroups->rollbackInsert(numRows, false);
+}
+
 bool CSRNodeGroupScanState::tryScanCachedTuples(RelTableScanState& tableScanState) {
     if (numCachedRows == 0 ||
         tableScanState.currBoundNodeIdx >= tableScanState.cachedBoundNodeSelVector.getSelSize()) {
@@ -953,22 +972,6 @@ void CSRNodeGroup::finalizeCheckpoint(const UniqLock& lock) {
     // Set `numRows` back to 0 is to reflect that the in mem part of the node group is empty.
     numRows = 0;
     csrIndex.reset();
-}
-
-std::pair<idx_t, row_idx_t> CSRNodeGroup::actionOnChunkedGroups(const common::UniqLock& lock,
-    common::row_idx_t startRow, common::row_idx_t numRows_, common::transaction_t commitTS,
-    CSRNodeGroupScanSource source, chunked_group_transaction_operation_t operation) {
-    if (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) {
-        KU_ASSERT(persistentChunkGroup || (numRows_ == 0));
-        if (persistentChunkGroup) {
-            std::invoke(operation, *persistentChunkGroup, startRow, numRows_, commitTS);
-        }
-        return {INVALID_CHUNKED_GROUP_IDX, INVALID_START_ROW_IDX};
-    } else {
-        KU_ASSERT(source == CSRNodeGroupScanSource::COMMITTED_IN_MEMORY);
-        return NodeGroup::actionOnChunkedGroups(lock, startRow, numRows_, commitTS, source,
-            operation);
-    }
 }
 
 common::row_idx_t CSRNodeGroup::getNumPersistentRows() const {

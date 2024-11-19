@@ -4,7 +4,6 @@
 
 #include "common/enums/statement_type.h"
 #include "common/types/types.h"
-#include "storage/enums/csr_node_group_scan_source.h"
 
 namespace kuzu {
 namespace catalog {
@@ -25,14 +24,15 @@ class UpdateInfo;
 struct VectorUpdateInfo;
 class NodeGroupCollection;
 class ChunkedNodeGroup;
+class ChunkedGroupUndoIterator;
 } // namespace storage
 namespace transaction {
 class TransactionManager;
 class Transaction;
 
-using rollback_insert_func_t =
-    std::function<void(const transaction::Transaction*, common::row_idx_t, common::row_idx_t,
-        common::node_group_idx_t, storage::CSRNodeGroupScanSource)>;
+using chunked_group_iterator_construct_t =
+    std::function<std::unique_ptr<storage::ChunkedGroupUndoIterator>(common::row_idx_t,
+        common::row_idx_t, common::node_group_idx_t, common::transaction_t commitTS)>;
 
 enum class TransactionType : uint8_t { READ_ONLY, WRITE, CHECKPOINT, DUMMY, RECOVERY };
 
@@ -122,15 +122,12 @@ public:
         bool skipLoggingToWAL = false) const;
     void pushSequenceChange(catalog::SequenceCatalogEntry* sequenceEntry, int64_t kCount,
         const catalog::SequenceRollbackData& data) const;
-    void pushInsertInfo(storage::NodeGroupCollection* nodeGroups,
-        common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+    void pushInsertInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
         common::row_idx_t numRows,
-        storage::CSRNodeGroupScanSource source = storage::CSRNodeGroupScanSource::NONE,
-        const transaction::rollback_insert_func_t* rollbackInsertCallback = nullptr) const;
-    void pushDeleteInfo(storage::NodeGroupCollection* nodeGroups,
-        common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+        const chunked_group_iterator_construct_t* constructIteratorFunc = nullptr) const;
+    void pushDeleteInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
         common::row_idx_t numRows,
-        storage::CSRNodeGroupScanSource source = storage::CSRNodeGroupScanSource::NONE) const;
+        const chunked_group_iterator_construct_t* constructIteratorFunc) const;
     void pushVectorUpdateInfo(storage::UpdateInfo& updateInfo, common::idx_t vectorIdx,
         storage::VectorUpdateInfo& vectorUpdateInfo) const;
 

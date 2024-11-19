@@ -15,9 +15,9 @@ namespace storage {
 
 NodeGroupCollection::NodeGroupCollection(MemoryManager& memoryManager,
     const std::vector<LogicalType>& types, const bool enableCompression, FileHandle* dataFH,
-    Deserializer* deSer, const transaction::rollback_insert_func_t* rollbackInsertFunc)
+    Deserializer* deSer, const chunked_group_iterator_construct_t* iteratorConstructFunc)
     : enableCompression{enableCompression}, numTotalRows{0}, types{LogicalType::copy(types)},
-      dataFH{dataFH}, rollbackInsertFunc(rollbackInsertFunc) {
+      dataFH{dataFH}, iteratorConstructFunc(iteratorConstructFunc) {
     if (deSer) {
         deserialize(*deSer, memoryManager);
     }
@@ -55,6 +55,7 @@ void NodeGroupCollection::append(const Transaction* transaction,
         lastNodeGroup->moveNextRowToAppend(numToAppendInNodeGroup);
         pushInsertInfo(transaction, lastNodeGroup, numToAppendInNodeGroup);
         lastNodeGroup->append(transaction, vectors, numRowsAppended, numToAppendInNodeGroup);
+        numTotalRows += numToAppendInNodeGroup;
         numRowsAppended += numToAppendInNodeGroup;
     }
     stats.incrementCardinality(numRowsAppended);
@@ -96,6 +97,7 @@ void NodeGroupCollection::append(const Transaction* transaction, NodeGroup& node
             pushInsertInfo(transaction, lastNodeGroup, numToAppendInBatch);
             lastNodeGroup->append(transaction, *chunkedGroupToAppend, numRowsAppendedInChunkedGroup,
                 numToAppendInBatch);
+            numTotalRows += numToAppendInBatch;
             numRowsAppendedInChunkedGroup += numToAppendInBatch;
         }
         numChunkedGroupsAppended++;
@@ -130,6 +132,7 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         directFlushWhenAppend =
             numToAppend == numRowsLeftInLastNodeGroup && lastNodeGroup->getNumRows() == 0;
         pushInsertInfo(transaction, lastNodeGroup, numToAppend);
+        numTotalRows += numToAppend;
         if (!directFlushWhenAppend) {
             // TODO(Guodong): Furthur optimize on this. Should directly figure out startRowIdx to
             // start appending into the node group and pass in as param.
@@ -152,7 +155,8 @@ row_idx_t NodeGroupCollection::getNumTotalRows() {
 }
 
 NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(transaction::Transaction* transaction,
-    node_group_idx_t groupIdx, NodeGroupDataFormat format) {
+    node_group_idx_t groupIdx, NodeGroupDataFormat format,
+    const chunked_group_iterator_construct_t* constructIteratorFunc_) {
     const auto lock = nodeGroups.lock();
     while (groupIdx >= nodeGroups.getNumGroups(lock)) {
         const auto currentGroupIdx = nodeGroups.getNumGroups(lock);
@@ -163,8 +167,7 @@ NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(transaction::Transaction* t
                                              enableCompression, LogicalType::copy(types)));
         // push an insert of size 0 so that we can rollback the creation of this node group if
         // needed
-        pushInsertInfo(transaction, nodeGroups.getLastGroup(lock), 0,
-            CSRNodeGroupScanSource::COMMITTED_PERSISTENT);
+        pushInsertInfo(transaction, nodeGroups.getLastGroup(lock), 0, constructIteratorFunc_);
     }
     KU_ASSERT(groupIdx < nodeGroups.getNumGroups(lock));
     return nodeGroups.getGroup(lock, groupIdx);
@@ -205,67 +208,32 @@ static idx_t getNumEmptyTrailingGroups(const GroupCollection<NodeGroup>& nodeGro
         nodeGroupVector.rbegin());
 }
 
-void NodeGroupCollection::rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
-    common::node_group_idx_t nodeGroupIdx, CSRNodeGroupScanSource source) {
+void NodeGroupCollection::rollbackInsert(common::row_idx_t numRows_, bool updateNumRows) {
     const auto lock = nodeGroups.lock();
-    // skip the rollback if all newly created node groups have already been deleted
-    if (!nodeGroups.isEmpty(lock) || nodeGroupIdx > 0) {
-        KU_ASSERT(nodeGroupIdx < nodeGroups.getNumGroups(lock));
-        auto* nodeGroup = nodeGroups.getGroup(lock, nodeGroupIdx);
-        if (nodeGroup) {
-            KU_ASSERT(startRow <= nodeGroup->getNumRows());
-            nodeGroup->rollbackInsert(startRow, numRows_, source);
 
-            // remove any empty trailing node groups after the rollback
-            const auto numGroupsToRemove = getNumEmptyTrailingGroups(nodeGroups, lock);
-            nodeGroups.removeTrailingGroups(lock, numGroupsToRemove);
-        }
-    }
+    // remove any empty trailing node groups after the rollback
+    const auto numGroupsToRemove = getNumEmptyTrailingGroups(nodeGroups, lock);
+    nodeGroups.removeTrailingGroups(lock, numGroupsToRemove);
 
-    if (source != CSRNodeGroupScanSource::COMMITTED_PERSISTENT) {
+    if (updateNumRows) {
         KU_ASSERT(numRows_ <= numTotalRows);
         numTotalRows -= numRows_;
     }
 }
 
-void NodeGroupCollection::rollbackDelete(common::row_idx_t startRow, common::row_idx_t numRows_,
-    common::node_group_idx_t nodeGroupIdx, CSRNodeGroupScanSource source) {
-    const auto lock = nodeGroups.lock();
-    KU_ASSERT(nodeGroupIdx < nodeGroups.getNumGroups(lock));
-    nodeGroups.getGroup(lock, nodeGroupIdx)->rollbackDelete(startRow, numRows_, source);
-}
-
-void NodeGroupCollection::commitInsert(row_idx_t startRow, row_idx_t numRows_,
-    node_group_idx_t nodeGroupIdx, common::transaction_t commitTS, CSRNodeGroupScanSource source) {
-    if (numRows_ == 0) {
-        return;
-    }
-    const auto lock = nodeGroups.lock();
-    nodeGroups.getGroup(lock, nodeGroupIdx)->commitInsert(startRow, numRows_, commitTS, source);
-}
-
-void NodeGroupCollection::commitDelete(row_idx_t startRow, row_idx_t numRows_,
-    node_group_idx_t nodeGroupIdx, common::transaction_t commitTS, CSRNodeGroupScanSource source) {
-    const auto lock = nodeGroups.lock();
-    nodeGroups.getGroup(lock, nodeGroupIdx)->commitDelete(startRow, numRows_, commitTS, source);
-}
-
 void NodeGroupCollection::pushInsertInfo(const transaction::Transaction* transaction,
-    NodeGroup* nodeGroup, common::row_idx_t numRows, CSRNodeGroupScanSource source) {
+    NodeGroup* nodeGroup, common::row_idx_t numRows,
+    const chunked_group_iterator_construct_t* constructIteratorFunc_) {
     pushInsertInfo(transaction, nodeGroup->getNodeGroupIdx(), nodeGroup->getNumRows(), numRows,
-        source);
+        constructIteratorFunc_ ? constructIteratorFunc_ : iteratorConstructFunc);
 };
 
 void NodeGroupCollection::pushInsertInfo(const transaction::Transaction* transaction,
     common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
-    storage::CSRNodeGroupScanSource source) {
+    const chunked_group_iterator_construct_t* constructIteratorFunc_) {
     // we only append to the undo buffer if the node group collection is persistent
     if (dataFH && transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushInsertInfo(this, nodeGroupIdx, startRow, numRows, source,
-            rollbackInsertFunc);
-    }
-    if (source != CSRNodeGroupScanSource::COMMITTED_PERSISTENT) {
-        numTotalRows += numRows;
+        transaction->pushInsertInfo(nodeGroupIdx, startRow, numRows, constructIteratorFunc_);
     }
 }
 

@@ -21,6 +21,16 @@ using namespace kuzu::evaluator;
 namespace kuzu {
 namespace storage {
 
+NodeTable::NodeGroupIterator::NodeGroupIterator(NodeTable* table, node_group_idx_t nodeGroupidx,
+    common::row_idx_t startRow, common::row_idx_t numRows, common::transaction_t commitTS)
+    : NodeGroup::NodeGroupBaseIterator(table->nodeGroups.get(), nodeGroupidx, startRow, numRows,
+          commitTS),
+      table(table) {}
+
+void NodeTable::NodeGroupIterator::initRollbackInsert(const transaction::Transaction* transaction) {
+    table->rollbackInsert(transaction, startRow, numRows, nodeGroup->getNodeGroupIdx());
+}
+
 bool NodeTableScanState::scanNext(Transaction* transaction, offset_t startOffset,
     offset_t numNodes) {
     KU_ASSERT(columns.size() == outputVectors.size());
@@ -220,15 +230,16 @@ NodeTable::NodeTable(const StorageManager* storageManager,
             dataFH, memoryManager, shadowFile, enableCompression);
     }
 
-    rollbackInsertFunc = [this](const transaction::Transaction* transaction,
-                             common::row_idx_t startRow, common::row_idx_t numRows_,
-                             common::node_group_idx_t nodeGroupIdx_, CSRNodeGroupScanSource) {
-        return rollbackInsert(transaction, startRow, numRows_, nodeGroupIdx_);
+    iteratorConstructFunc = [this](common::row_idx_t startRow, common::row_idx_t numRows_,
+                                common::node_group_idx_t nodeGroupIdx_,
+                                common::transaction_t commitTS) {
+        return std::make_unique<NodeGroupIterator>(this, nodeGroupIdx_, startRow, numRows_,
+            commitTS);
     };
 
     nodeGroups =
         std::make_unique<NodeGroupCollection>(*memoryManager, getNodeTableColumnTypes(*this),
-            enableCompression, storageManager->getDataFH(), deSer, &rollbackInsertFunc);
+            enableCompression, storageManager->getDataFH(), deSer, &iteratorConstructFunc);
     initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
         storageManager->isReadOnly(), vfs, context);
 }
@@ -444,7 +455,7 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
             nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
         isDeleted = nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
         if (transaction->shouldAppendToUndoBuffer()) {
-            transaction->pushDeleteInfo(nodeGroups.get(), nodeGroupIdx, rowIdxInGroup, 1);
+            transaction->pushDeleteInfo(nodeGroupIdx, rowIdxInGroup, 1, &iteratorConstructFunc);
         }
     }
     if (isDeleted) {
@@ -530,8 +541,8 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
                         nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
                     KU_ASSERT(isDeleted);
                     if (transaction->shouldAppendToUndoBuffer()) {
-                        transaction->pushDeleteInfo(nodeGroups.get(), nodeGroupIdx, rowIdxInGroup,
-                            1);
+                        transaction->pushDeleteInfo(nodeGroupIdx, rowIdxInGroup, 1,
+                            &iteratorConstructFunc);
                     }
                 }
             }

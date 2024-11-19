@@ -85,6 +85,7 @@ static void appendNewChunkedGroup(transaction::Transaction* transaction,
     const CSRNodeGroupScanSource source = isNewNodeGroup ?
                                               CSRNodeGroupScanSource::COMMITTED_PERSISTENT :
                                               CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
+    // TODO this may need to be atomic
     relTable.pushInsertInfo(transaction, direction, nodeGroup, chunkedGroup.getNumRows(), source);
     if (isNewNodeGroup) {
         auto flushedChunkedGroup =

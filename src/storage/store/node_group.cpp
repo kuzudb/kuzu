@@ -4,6 +4,7 @@
 #include "common/constants.h"
 #include "common/types/types.h"
 #include "common/uniq_lock.h"
+#include "common/utils.h"
 #include "main/client_context.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/enums/residency_state.h"
@@ -20,6 +21,40 @@ using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace storage {
+
+NodeGroup::NodeGroupBaseIterator::NodeGroupBaseIterator(NodeGroupCollection* nodeGroups,
+    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
+    transaction_t commitTS)
+    : ChunkedGroupUndoIterator(nodeGroups, startRow, numRows, commitTS),
+      nodeGroup(nodeGroups->getNodeGroupNoLock(nodeGroupIdx)) {}
+
+void NodeGroup::NodeGroupBaseIterator::iterate(chunked_group_undo_op_t undoFunc) {
+    auto lock = nodeGroup->chunkedGroups.lock();
+    const auto [chunkedGroupIdx, startRowInChunkedGroup] =
+        nodeGroup->findChunkedGroupIdxFromRowIdxNoLock(startRow);
+    if (chunkedGroupIdx != INVALID_CHUNKED_GROUP_IDX) {
+        auto curChunkedGroupIdx = chunkedGroupIdx;
+        auto curStartRowIdxInChunk = startRowInChunkedGroup;
+
+        auto numRowsLeft = numRows;
+        while (
+            numRowsLeft > 0 && curChunkedGroupIdx < nodeGroup->chunkedGroups.getNumGroups(lock)) {
+            auto* chunkedGroup = nodeGroup->chunkedGroups.getGroup(lock, curChunkedGroupIdx);
+            const auto numRowsForGroup =
+                std::min(numRowsLeft, chunkedGroup->getNumRows() - curStartRowIdxInChunk);
+            std::invoke(undoFunc, *chunkedGroup, curStartRowIdxInChunk, numRowsForGroup, commitTS);
+
+            ++curChunkedGroupIdx;
+            numRowsLeft -= numRowsForGroup;
+            curStartRowIdxInChunk = 0;
+        }
+    }
+}
+
+void NodeGroup::NodeGroupBaseIterator::finalizeRollbackInsert() {
+    nodeGroup->rollbackInsert(startRow);
+    nodeGroups->rollbackInsert(numRows);
+}
 
 row_idx_t NodeGroup::append(const Transaction* transaction, ChunkedNodeGroup& chunkedGroup,
     row_idx_t startRowIdx, row_idx_t numRowsToAppend) {
@@ -353,69 +388,20 @@ void NodeGroup::flush(Transaction* transaction, FileHandle& dataFH) {
     chunkedGroups.resize(lock, 1);
 }
 
-std::pair<idx_t, row_idx_t> NodeGroup::actionOnChunkedGroups(const common::UniqLock& lock,
-    common::row_idx_t startRow, common::row_idx_t numRows_, common::transaction_t commitTS,
-    CSRNodeGroupScanSource, chunked_group_transaction_operation_t operation) {
-    const auto [startChunkedGroupIdx, startRowIdxInChunk] =
-        findChunkedGroupIdxFromRowIdxNoLock(startRow);
-    if (startChunkedGroupIdx != INVALID_CHUNKED_GROUP_IDX) {
-        auto curChunkedGroupIdx = startChunkedGroupIdx;
-        auto curStartRowIdxInChunk = startRowIdxInChunk;
-
-        auto numRowsLeft = numRows_;
-        while (numRowsLeft > 0 && curChunkedGroupIdx < chunkedGroups.getNumGroups(lock)) {
-            auto* chunkedGroup = chunkedGroups.getGroup(lock, curChunkedGroupIdx);
-            const auto numRowsForGroup =
-                std::min(numRowsLeft, chunkedGroup->getNumRows() - curStartRowIdxInChunk);
-            std::invoke(operation, *chunkedGroup, curStartRowIdxInChunk, numRowsForGroup, commitTS);
-
-            ++curChunkedGroupIdx;
-            numRowsLeft -= numRowsForGroup;
-            curStartRowIdxInChunk = 0;
-        }
-    }
-
-    return {startChunkedGroupIdx, startRowIdxInChunk};
+static idx_t getNumEmptyTrailingGroups(const GroupCollection<ChunkedNodeGroup>& nodeGroups,
+    const common::UniqLock& lock) {
+    const auto& chunkedGroupVector = nodeGroups.getAllGroups(lock);
+    return safeIntegerConversion<idx_t>(
+        std::find_if(chunkedGroupVector.rbegin(), chunkedGroupVector.rend(),
+            [](const auto& chunkedGroup) { return (chunkedGroup->getNumRows() != 0); }) -
+        chunkedGroupVector.rbegin());
 }
 
-static constexpr common::transaction_t UNUSED_COMMIT_TS = INVALID_TRANSACTION;
-
-void NodeGroup::rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
-    CSRNodeGroupScanSource source) {
+void NodeGroup::rollbackInsert(common::row_idx_t startRow) {
     const auto lock = chunkedGroups.lock();
-    const auto [startChunkedGroupIdx, startRowIdxInChunk] = actionOnChunkedGroups(lock, startRow,
-        numRows_, UNUSED_COMMIT_TS, source, &ChunkedNodeGroup::rollbackInsert);
-    if (startChunkedGroupIdx != INVALID_CHUNKED_GROUP_IDX) {
-        const auto numChunkedGroups = chunkedGroups.getNumGroups(lock);
-        KU_ASSERT(startChunkedGroupIdx < numChunkedGroups);
-        const bool shouldRemoveStartChunk = (startRowIdxInChunk == 0);
-        const auto numChunksToRemove =
-            numChunkedGroups - startChunkedGroupIdx - (shouldRemoveStartChunk ? 0 : 1);
-        chunkedGroups.removeTrailingGroups(lock, numChunksToRemove);
-
-        numRows = startRow;
-    }
-}
-
-void NodeGroup::rollbackDelete(common::row_idx_t startRow, common::row_idx_t numRows_,
-    CSRNodeGroupScanSource source) {
-    const auto lock = chunkedGroups.lock();
-    actionOnChunkedGroups(lock, startRow, numRows_, UNUSED_COMMIT_TS, source,
-        &ChunkedNodeGroup::rollbackDelete);
-}
-
-void NodeGroup::commitInsert(row_idx_t startRow, row_idx_t numRows_, common::transaction_t commitTS,
-    CSRNodeGroupScanSource source) {
-    const auto lock = chunkedGroups.lock();
-    actionOnChunkedGroups(lock, startRow, numRows_, commitTS, source,
-        &ChunkedNodeGroup::commitInsert);
-}
-
-void NodeGroup::commitDelete(row_idx_t startRow, row_idx_t numRows_, common::transaction_t commitTS,
-    CSRNodeGroupScanSource source) {
-    const auto lock = chunkedGroups.lock();
-    actionOnChunkedGroups(lock, startRow, numRows_, commitTS, source,
-        &ChunkedNodeGroup::commitDelete);
+    const auto numEmptyTrailingGroups = getNumEmptyTrailingGroups(chunkedGroups, lock);
+    chunkedGroups.removeTrailingGroups(lock, numEmptyTrailingGroups);
+    numRows = startRow;
 }
 
 void NodeGroup::checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state) {

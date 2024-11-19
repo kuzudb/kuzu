@@ -38,12 +38,10 @@ struct NodeBatchInsertRecord {
 };
 
 struct VersionRecord {
-    NodeGroupCollection* nodeGroupCollection;
     row_idx_t startRow;
     row_idx_t numRows;
     node_group_idx_t nodeGroupIdx;
-    const transaction::rollback_insert_func_t* rollbackInsertCallback;
-    CSRNodeGroupScanSource source;
+    const chunked_group_iterator_construct_t* iteratorConstructFunc;
 };
 
 struct VectorUpdateRecord {
@@ -113,30 +111,27 @@ void UndoBuffer::createSequenceChange(SequenceCatalogEntry& sequenceEntry,
     *reinterpret_cast<SequenceEntryRecord*>(buffer) = sequenceEntryRecord;
 }
 
-void UndoBuffer::createInsertInfo(NodeGroupCollection* nodeGroups, node_group_idx_t nodeGroupIdx,
-    row_idx_t startRow, row_idx_t numRows, storage::CSRNodeGroupScanSource source,
-    const transaction::rollback_insert_func_t* rollbackInsertFunc) {
-    createVersionInfo(UndoRecordType::INSERT_INFO, nodeGroups, startRow, numRows, nodeGroupIdx,
-        source, rollbackInsertFunc);
+void UndoBuffer::createInsertInfo(node_group_idx_t nodeGroupIdx, row_idx_t startRow,
+    row_idx_t numRows, const chunked_group_iterator_construct_t* iteratorConstructFunc) {
+    createVersionInfo(UndoRecordType::INSERT_INFO, startRow, numRows, iteratorConstructFunc,
+        nodeGroupIdx);
 }
 
-void UndoBuffer::createDeleteInfo(NodeGroupCollection* nodeGroups,
-    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
-    storage::CSRNodeGroupScanSource source) {
-    createVersionInfo(UndoRecordType::DELETE_INFO, nodeGroups, startRow, numRows, nodeGroupIdx,
-        source);
+void UndoBuffer::createDeleteInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+    common::row_idx_t numRows, const chunked_group_iterator_construct_t* iteratorConstructFunc) {
+    createVersionInfo(UndoRecordType::DELETE_INFO, startRow, numRows, iteratorConstructFunc,
+        nodeGroupIdx);
 }
 
-void UndoBuffer::createVersionInfo(const UndoRecordType recordType,
-    NodeGroupCollection* nodeGroupCollection, row_idx_t startRow, row_idx_t numRows,
-    node_group_idx_t nodeGroupIdx, storage::CSRNodeGroupScanSource source,
-    const transaction::rollback_insert_func_t* rollbackInsertFunc) {
+void UndoBuffer::createVersionInfo(const UndoRecordType recordType, row_idx_t startRow,
+    row_idx_t numRows, const chunked_group_iterator_construct_t* iteratorConstructFunc,
+    node_group_idx_t nodeGroupIdx) {
     auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(VersionRecord));
     const UndoRecordHeader recordHeader{recordType, sizeof(VersionRecord)};
     *reinterpret_cast<UndoRecordHeader*>(buffer) = recordHeader;
     buffer += sizeof(UndoRecordHeader);
-    *reinterpret_cast<VersionRecord*>(buffer) = VersionRecord{nodeGroupCollection, startRow,
-        numRows, nodeGroupIdx, rollbackInsertFunc, source};
+    *reinterpret_cast<VersionRecord*>(buffer) =
+        VersionRecord{startRow, numRows, nodeGroupIdx, iteratorConstructFunc};
 }
 
 void UndoBuffer::createVectorUpdateInfo(UpdateInfo* updateInfo, const idx_t vectorIdx,
@@ -221,12 +216,14 @@ void UndoBuffer::commitVersionInfo(UndoRecordType recordType, const uint8_t* rec
     const auto& undoRecord = *reinterpret_cast<VersionRecord const*>(record);
     switch (recordType) {
     case UndoRecordType::INSERT_INFO: {
-        undoRecord.nodeGroupCollection->commitInsert(undoRecord.startRow, undoRecord.numRows,
-            undoRecord.nodeGroupIdx, commitTS, undoRecord.source);
+        auto it = (*undoRecord.iteratorConstructFunc)(undoRecord.startRow, undoRecord.numRows,
+            undoRecord.nodeGroupIdx, commitTS);
+        it->iterate(&ChunkedNodeGroup::commitInsert);
     } break;
     case UndoRecordType::DELETE_INFO: {
-        undoRecord.nodeGroupCollection->commitDelete(undoRecord.startRow, undoRecord.numRows,
-            undoRecord.nodeGroupIdx, commitTS, undoRecord.source);
+        auto it = (*undoRecord.iteratorConstructFunc)(undoRecord.startRow, undoRecord.numRows,
+            undoRecord.nodeGroupIdx, commitTS);
+        it->iterate(&ChunkedNodeGroup::commitDelete);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -299,19 +296,21 @@ void UndoBuffer::rollbackSequenceEntry(const uint8_t* entry) {
 
 void UndoBuffer::rollbackVersionInfo(const transaction::Transaction* transaction,
     UndoRecordType recordType, const uint8_t* record) {
+    static constexpr transaction_t UNUSED_COMMIT_TS = INVALID_TRANSACTION;
+
     auto& undoRecord = *reinterpret_cast<VersionRecord const*>(record);
     switch (recordType) {
     case UndoRecordType::INSERT_INFO: {
-        if (undoRecord.rollbackInsertCallback) {
-            (*undoRecord.rollbackInsertCallback)(transaction, undoRecord.startRow,
-                undoRecord.numRows, undoRecord.nodeGroupIdx, undoRecord.source);
-        }
-        undoRecord.nodeGroupCollection->rollbackInsert(undoRecord.startRow, undoRecord.numRows,
-            undoRecord.nodeGroupIdx, undoRecord.source);
+        auto it = (*undoRecord.iteratorConstructFunc)(undoRecord.startRow, undoRecord.numRows,
+            undoRecord.nodeGroupIdx, UNUSED_COMMIT_TS);
+        it->initRollbackInsert(transaction);
+        it->iterate(&ChunkedNodeGroup::rollbackInsert);
+        it->finalizeRollbackInsert();
     } break;
     case UndoRecordType::DELETE_INFO: {
-        undoRecord.nodeGroupCollection->rollbackDelete(undoRecord.startRow, undoRecord.numRows,
-            undoRecord.nodeGroupIdx, undoRecord.source);
+        auto it = (*undoRecord.iteratorConstructFunc)(undoRecord.startRow, undoRecord.numRows,
+            undoRecord.nodeGroupIdx, UNUSED_COMMIT_TS);
+        it->iterate(&ChunkedNodeGroup::rollbackDelete);
     } break;
     default: {
         KU_UNREACHABLE;

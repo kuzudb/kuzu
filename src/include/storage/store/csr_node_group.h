@@ -165,6 +165,18 @@ static constexpr common::column_id_t REL_ID_COLUMN_ID = 1;
 struct RelTableScanState;
 class CSRNodeGroup final : public NodeGroup {
 public:
+    class PersistentIterator : public ChunkedGroupUndoIterator {
+    public:
+        PersistentIterator(NodeGroupCollection* nodeGroups, common::node_group_idx_t nodeGroupIdx,
+            common::row_idx_t startRow, common::row_idx_t numRows, common::transaction_t commitTS);
+
+        void iterate(chunked_group_undo_op_t undoFunc) override;
+        void finalizeRollbackInsert() override;
+
+    private:
+        CSRNodeGroup* nodeGroup;
+    };
+
     static constexpr PackedCSRInfo DEFAULT_PACKED_CSR_INFO{};
 
     CSRNodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
@@ -215,10 +227,6 @@ public:
     void serialize(common::Serializer& serializer) override;
 
 private:
-    std::pair<common::idx_t, common::row_idx_t> actionOnChunkedGroups(const common::UniqLock& lock,
-        common::row_idx_t startRow, common::row_idx_t numRows_, common::transaction_t commitTS,
-        CSRNodeGroupScanSource source, chunked_group_transaction_operation_t operation) override;
-
     void initScanForCommittedPersistent(const transaction::Transaction* transaction,
         RelTableScanState& relScanState, CSRNodeGroupScanState& nodeGroupScanState) const;
     void initScanForCommittedInMem(RelTableScanState& relScanState,
