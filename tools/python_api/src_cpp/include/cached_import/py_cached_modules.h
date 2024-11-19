@@ -94,6 +94,9 @@ public:
 
 class PolarsCachedItem : public PythonCachedItem {
 public:
+    static constexpr const char* name_ = "polars";
+
+public:
     PolarsCachedItem() : PythonCachedItem("polars"), DataFrame("DataFrame", this) {}
 
     PythonCachedItem DataFrame;
