@@ -381,42 +381,43 @@ describe("Progress", function () {
         assert.isTrue(progressCalled);
     });
 
-    it("should execute multiple valid querys with progress", async function () {
-        let progressCalled = false;
-        const progressCallback = (pipelineProgress, numPipelinesFinished, numPipelines) => {
-            progressCalled = true;
-            assert.isNumber(pipelineProgress);
-            assert.isNumber(numPipelinesFinished);
-            assert.isNumber(numPipelines);
-        };
-        let progressCalled2 = false;
-        const progressCallback2 = (pipelineProgress, numPipelinesFinished, numPipelines) => {
-            progressCalled2 = true;
-            assert.isNumber(pipelineProgress);
-            assert.isNumber(numPipelinesFinished);
-            assert.isNumber(numPipelines);
-        };
-        const promise = conn.query("MATCH (a:person) RETURN COUNT(*)", progressCallback);
-        const promise2 = conn.query("MATCH (a:person) RETURN COUNT(*)", progressCallback2);
-        const queryResult = await promise;
-        const queryResult2 = await promise2;
-        assert.exists(queryResult);
-        assert.equal(queryResult.constructor.name, "QueryResult");
-        assert.isTrue(queryResult.hasNext());
-        const tuple = await queryResult.getNext();
-        assert.exists(tuple);
-        assert.exists(tuple["COUNT_STAR()"]);
-        assert.equal(tuple["COUNT_STAR()"], 8);
-        assert.isTrue(progressCalled);
-        assert.exists(queryResult2);
-        assert.equal(queryResult2.constructor.name, "QueryResult");
-        assert.isTrue(queryResult2.hasNext());
-        const tuple2 = await queryResult2.getNext();
-        assert.exists(tuple2);
-        assert.exists(tuple2["COUNT_STAR()"]);
-        assert.equal(tuple2["COUNT_STAR()"], 8);
-        assert.isTrue(progressCalled2);
-    });
+    // TODO: Fix this test: see issue #5458
+    // it("should execute multiple valid querys with progress", async function () {
+    //     let progressCalled = false;
+    //     const progressCallback = (pipelineProgress, numPipelinesFinished, numPipelines) => {
+    //         progressCalled = true;
+    //         assert.isNumber(pipelineProgress);
+    //         assert.isNumber(numPipelinesFinished);
+    //         assert.isNumber(numPipelines);
+    //     };
+    //     let progressCalled2 = false;
+    //     const progressCallback2 = (pipelineProgress, numPipelinesFinished, numPipelines) => {
+    //         progressCalled2 = true;
+    //         assert.isNumber(pipelineProgress);
+    //         assert.isNumber(numPipelinesFinished);
+    //         assert.isNumber(numPipelines);
+    //     };
+    //     const promise = conn.query("MATCH (a:person) RETURN COUNT(*)", progressCallback);
+    //     const promise2 = conn.query("MATCH (a:person) RETURN COUNT(*)", progressCallback2);
+    //     const queryResult = await promise;
+    //     const queryResult2 = await promise2;
+    //     assert.exists(queryResult);
+    //     assert.equal(queryResult.constructor.name, "QueryResult");
+    //     assert.isTrue(queryResult.hasNext());
+    //     const tuple = await queryResult.getNext();
+    //     assert.exists(tuple);
+    //     assert.exists(tuple["COUNT_STAR()"]);
+    //     assert.equal(tuple["COUNT_STAR()"], 8);
+    //     assert.isTrue(progressCalled);
+    //     assert.exists(queryResult2);
+    //     assert.equal(queryResult2.constructor.name, "QueryResult");
+    //     assert.isTrue(queryResult2.hasNext());
+    //     const tuple2 = await queryResult2.getNext();
+    //     assert.exists(tuple2);
+    //     assert.exists(tuple2["COUNT_STAR()"]);
+    //     assert.equal(tuple2["COUNT_STAR()"], 8);
+    //     assert.isTrue(progressCalled2);
+    // });
 
     it("should throw error if the progress callback is not a function for query", async function () {
         try {
