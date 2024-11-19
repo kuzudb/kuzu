@@ -59,18 +59,13 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
             // check if struct type can be cast
             auto errorMsg = stringFormat("Unsupported casting function from {} to {}.",
                 inputType->toString(), resultType->toString());
-            // check if two struct has the same
-            if (StructType::getNumFields(*inputType) != StructType::getNumFields(*resultType)) {
+            auto inputTypeNames = StructType::getFieldNames(*inputType);
+            auto resultTypeNames = StructType::getFieldNames(*resultType);
+            if (inputTypeNames.size() != resultTypeNames.size()) {
                 throw ConversionException{errorMsg};
             }
-            
-            auto inputTypes = StructType::getFieldTypes(*inputType);
-            auto resultTypes = StructType::getFieldTypes(*resultType);
-
-            
-
-            for (auto i = 0u; i < inputTypes.size(); i++) {
-                if (inputTypes[i]->getLogicalTypeID() != resultTypes[i]->getLogicalTypeID()) {
+            for (auto i = 0u; i < inputTypeNames.size(); i++) {
+                if (inputTypeNames[i] != resultTypeNames[i]) {
                     throw ConversionException{errorMsg};
                 }
             }
