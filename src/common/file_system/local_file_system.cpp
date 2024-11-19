@@ -213,6 +213,7 @@ void LocalFileSystem::copyFile(const std::string& from, const std::string& to) {
 }
 
 void LocalFileSystem::createDir(const std::string& dir) const {
+    std::cout<<"CREATE:"<<dir<<std::endl;
     try {
         if (std::filesystem::exists(dir)) {
             // LCOV_EXCL_START
