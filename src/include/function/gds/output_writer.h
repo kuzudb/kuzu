@@ -171,8 +171,7 @@ protected:
         // For single/all shortest path computations, we do not output any results from source to
         // source. We also do not output any results if a destination node has not been reached.
         return dstNodeID == pathsOutputs->sourceNodeID ||
-               nullptr == pathsOutputs->bfsGraph.getCurFixedParentPtrs()[dstNodeID.offset].load(
-                              std::memory_order_relaxed);
+               nullptr == pathsOutputs->bfsGraph.getParentListHead(dstNodeID.offset);
     }
 };
 
