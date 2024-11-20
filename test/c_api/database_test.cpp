@@ -1,6 +1,8 @@
 #include "c_api/kuzu.h"
 #include "graph_test/api_graph_test.h"
 #include "gtest/gtest.h"
+#include "common/file_system/virtual_file_system.h"
+#include "common/exception/io.h"
 
 using namespace kuzu::main;
 using namespace kuzu::testing;
@@ -100,3 +102,51 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     std::filesystem::remove_all(homePath + "/ku_test.db");
 }
 #endif
+
+TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFiles) {
+    std::string homeDir = "/tmp/dbHome/";
+    kuzu::common::VirtualFileSystem vfs(homeDir);
+    std::filesystem::create_directories("/tmp/test1");
+    std::filesystem::create_directories("/tmp/dbHome/test1");
+
+    // Attempt to delete files outside the home directory (should error)
+    try {
+        vfs.removeFileIfExists("/tmp/test1");
+    } catch (const kuzu::common::IOException& e) {
+        // Expected behavior
+        EXPECT_STREQ(e.what(), "IO exception: Error: Path /tmp/test1 is not within the allowed home directory /tmp/dbHome/");
+    }
+
+    vfs.removeFileIfExists("/tmp/dbHome/test1");
+
+    ASSERT_TRUE(std::filesystem::exists("/tmp/test1"));
+    ASSERT_FALSE(std::filesystem::exists("/tmp/dbHome/test1"));
+
+    // Cleanup: Remove directories after the test
+    std::filesystem::remove_all("/tmp/test1");
+    std::filesystem::remove_all("/tmp/dbHome/test1");
+}
+
+TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesEdge) {
+    std::string homeDir = "/tmp/dbHome/";
+    kuzu::common::VirtualFileSystem vfs(homeDir);
+    std::filesystem::create_directories("/tmp/dbHome/../test1");
+    std::filesystem::create_directories("/tmp/dbHome/test1");
+
+    // Attempt to delete files outside the home directory (should error)
+    try {
+        vfs.removeFileIfExists("/tmp/test1");
+    } catch (const kuzu::common::IOException& e) {
+        // Expected behavior
+        EXPECT_STREQ(e.what(), "IO exception: Error: Path /tmp/test1 is not within the allowed home directory /tmp/dbHome/");
+    }
+
+    vfs.removeFileIfExists("/tmp/dbHome/test1");
+
+    ASSERT_TRUE(std::filesystem::exists("/tmp/test1"));
+    ASSERT_FALSE(std::filesystem::exists("/tmp/dbHome/test1"));
+
+    // Cleanup: Remove directories after the test
+    std::filesystem::remove_all("/tmp/test1");
+    std::filesystem::remove_all("/tmp/dbHome/test1");
+}
