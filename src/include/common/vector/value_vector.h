@@ -4,6 +4,7 @@
 
 #include "common/assert.h"
 #include "common/cast.h"
+#include "common/constants.h"
 #include "common/copy_constructors.h"
 #include "common/data_chunk/data_chunk_state.h"
 #include "common/null_mask.h"
@@ -34,6 +35,32 @@ public:
 
     DELETE_COPY_AND_MOVE(ValueVector);
     ~ValueVector() = default;
+
+    template<class Func>
+    void forEachNonNull(Func&& func) const {
+        if (hasNoNullsGuarantee()) {
+            state->getSelVector().forEach(func);
+        } else {
+            state->getSelVector().forEach([&](auto i) {
+                if (!isNull(i)) {
+                    func(i);
+                }
+            });
+        }
+    }
+
+    uint32_t countNonNull() const {
+        if (hasNoNullsGuarantee()) {
+            return state->getSelVector().getSelSize();
+        } else if (state->getSelVector().isUnfiltered() &&
+                   state->getSelVector().getSelSize() == DEFAULT_VECTOR_CAPACITY) {
+            return nullMask.countNulls();
+        } else {
+            uint32_t count = 0;
+            forEachNonNull([&](auto) { count++; });
+            return count;
+        }
+    }
 
     void setState(const std::shared_ptr<DataChunkState>& state_);
 

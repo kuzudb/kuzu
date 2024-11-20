@@ -52,7 +52,7 @@ public:
         KU_ASSERT(startPos + size <= capacity);
         selectedPositions = const_cast<sel_t*>(INCREMENTAL_SELECTED_POS.data()) + startPos;
         selectedSize = size;
-        continuous = true;
+        state = State::STATIC_FILTERED;
     }
 
     // Set to filtered is not very accurate. It sets selectedPositions to a mutable array.
