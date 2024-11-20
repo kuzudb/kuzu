@@ -247,23 +247,25 @@ void LocalFileSystem::createDir(const std::string& dir) const {
     }
 }
 
-bool isSubdirectory(const std::string& base, const std::string& sub) {
-    // Resolve paths to absolute and normalize them
-    auto basePath = std::filesystem::absolute(base).lexically_normal();
-    auto subPath = std::filesystem::absolute(sub).lexically_normal();
+bool isSubdirectory(const std::filesystem::path& base, const std::filesystem::path& sub) {
+    try {
+        // Resolve paths to their canonical form
+        auto canonicalBase = std::filesystem::canonical(base);
+        auto canonicalSub = std::filesystem::canonical(sub);
 
-    // Convert paths to generic strings for consistent comparison
-    auto baseStr = basePath.generic_string();
-    auto subStr = subPath.generic_string();
-
-    // Ensure baseStr represents a directory with a trailing slash for proper boundary matching
-    if (!baseStr.empty() && baseStr.back() != '/') {
-        baseStr += '/';
+        // Traverse the sub path upward to check if it matches the base path
+        for (auto current = canonicalSub; !current.empty(); current = current.parent_path()) {
+            if (current == canonicalBase) {
+                return true;
+            }
+        }
+    } catch (const std::filesystem::filesystem_error& e) {
+        // Handle errors, e.g., if paths don't exist
+        std::cerr << "Filesystem error: " << e.what() << std::endl;
+        return false;
     }
 
-    // Check if subStr starts with baseStr and ensure proper boundaries
-    return subStr.starts_with(baseStr) &&
-           (subStr.size() == baseStr.size() || subStr[baseStr.size()-1] == '/');
+    return false;
 }
 
 void LocalFileSystem::removeFileIfExists(const std::string& path) {
