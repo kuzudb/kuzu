@@ -135,10 +135,10 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesEdge) {
 
     // Attempt to delete files outside the home directory (should error)
     try {
-        vfs.removeFileIfExists("/tmp/test1");
+        vfs.removeFileIfExists("/tmp/dbHome/../test1");
     } catch (const kuzu::common::IOException& e) {
         // Expected behavior
-        EXPECT_STREQ(e.what(), "IO exception: Error: Path /tmp/test1 is not within the allowed home directory /tmp/dbHome/");
+        EXPECT_STREQ(e.what(), "IO exception: Error: Path /tmp/dbHome/../test1 is not within the allowed home directory /tmp/dbHome/");
     }
 
     vfs.removeFileIfExists("/tmp/dbHome/test1");
