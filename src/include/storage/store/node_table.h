@@ -213,7 +213,8 @@ private:
 
     visible_func getVisibleFunc(const transaction::Transaction* transaction) const;
     common::DataChunk constructDataChunkForPKColumn() const;
-    void scanPKColumn(const transaction::Transaction* transaction, PKColumnScanHelper& scanHelper);
+    void scanPKColumn(const transaction::Transaction* transaction, PKColumnScanHelper& scanHelper,
+        NodeGroupCollection& nodeGroups_);
 
 private:
     std::vector<std::unique_ptr<Column>> columns;
