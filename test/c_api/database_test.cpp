@@ -130,26 +130,26 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFiles) {
 TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesEdge) {
     std::string homeDir = "/tmp/dbHome/";
     kuzu::common::VirtualFileSystem vfs(homeDir);
-    std::filesystem::create_directories("/tmp/dbHome/../test1");
-    std::filesystem::create_directories("/tmp/dbHome/test1");
+    std::filesystem::create_directories("/tmp/dbHome/../test2");
+    std::filesystem::create_directories("/tmp/dbHome/test2");
 
-    std::cout << "Resolved Path: " << std::filesystem::absolute("/tmp/dbHome/../test1") << std::endl;
-    std::cout << "Exists: " << std::filesystem::exists("/tmp/test1") << std::endl;
+    std::cout << "Resolved Path: " << std::filesystem::absolute("/tmp/dbHome/../test2") << std::endl;
+    std::cout << "Exists: " << std::filesystem::exists("/tmp/test2") << std::endl;
 
     // Attempt to delete files outside the home directory (should error)
     try {
-        vfs.removeFileIfExists("/tmp/dbHome/../test1");
+        vfs.removeFileIfExists("/tmp/dbHome/../test2");
     } catch (const kuzu::common::IOException& e) {
         // Expected behavior
-        EXPECT_STREQ(e.what(), "IO exception: Error: Path /tmp/dbHome/../test1 is not within the allowed home directory /tmp/dbHome/");
+        EXPECT_STREQ(e.what(), "IO exception: Error: Path /tmp/dbHome/../test2 is not within the allowed home directory /tmp/dbHome/");
     }
 
-    vfs.removeFileIfExists("/tmp/dbHome/test1");
+    vfs.removeFileIfExists("/tmp/dbHome/test2");
 
-    ASSERT_TRUE(std::filesystem::exists("/tmp/test1"));
-    ASSERT_FALSE(std::filesystem::exists("/tmp/dbHome/test1"));
+    ASSERT_TRUE(std::filesystem::exists("/tmp/test2"));
+    ASSERT_FALSE(std::filesystem::exists("/tmp/dbHome/test2"));
 
     // Cleanup: Remove directories after the test
-    std::filesystem::remove_all("/tmp/test1");
-    std::filesystem::remove_all("/tmp/dbHome/test1");
+    std::filesystem::remove_all("/tmp/test2");
+    std::filesystem::remove_all("/tmp/dbHome/test2");
 }
