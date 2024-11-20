@@ -53,8 +53,8 @@ void NodeGroupCollection::append(const Transaction* transaction,
             std::min(numRowsToAppend - numRowsAppended, lastNodeGroup->getNumRowsLeftToAppend());
         lastNodeGroup->moveNextRowToAppend(numToAppendInNodeGroup);
         pushInsertInfo(transaction, lastNodeGroup, numToAppendInNodeGroup);
-        lastNodeGroup->append(transaction, vectors, numRowsAppended, numToAppendInNodeGroup);
         numTotalRows += numToAppendInNodeGroup;
+        lastNodeGroup->append(transaction, vectors, numRowsAppended, numToAppendInNodeGroup);
         numRowsAppended += numToAppendInNodeGroup;
     }
     stats.incrementCardinality(numRowsAppended);
@@ -94,9 +94,9 @@ void NodeGroupCollection::append(const Transaction* transaction, NodeGroup& node
                     lastNodeGroup->getNumRowsLeftToAppend());
             lastNodeGroup->moveNextRowToAppend(numToAppendInBatch);
             pushInsertInfo(transaction, lastNodeGroup, numToAppendInBatch);
+            numTotalRows += numToAppendInBatch;
             lastNodeGroup->append(transaction, *chunkedGroupToAppend, numRowsAppendedInChunkedGroup,
                 numToAppendInBatch);
-            numTotalRows += numToAppendInBatch;
             numRowsAppendedInChunkedGroup += numToAppendInBatch;
         }
         numChunkedGroupsAppended++;
@@ -213,9 +213,9 @@ void NodeGroupCollection::rollbackInsert(common::row_idx_t numRows_, bool update
 
 void NodeGroupCollection::pushInsertInfo(const transaction::Transaction* transaction,
     NodeGroup* nodeGroup, common::row_idx_t numRows,
-    const chunked_group_iterator_construct_t* constructIteratorFunc_) {
+    const chunked_group_iterator_construct_t* constructIteratorOverrideFunc) {
     pushInsertInfo(transaction, nodeGroup->getNodeGroupIdx(), nodeGroup->getNumRows(), numRows,
-        constructIteratorFunc_ ? constructIteratorFunc_ : iteratorConstructFunc);
+        constructIteratorOverrideFunc ? constructIteratorOverrideFunc : iteratorConstructFunc);
 };
 
 void NodeGroupCollection::pushInsertInfo(const transaction::Transaction* transaction,

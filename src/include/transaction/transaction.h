@@ -22,7 +22,6 @@ class WAL;
 class VersionInfo;
 class UpdateInfo;
 struct VectorUpdateInfo;
-class NodeGroupCollection;
 class ChunkedNodeGroup;
 class ChunkedGroupUndoIterator;
 } // namespace storage

@@ -974,12 +974,5 @@ void CSRNodeGroup::finalizeCheckpoint(const UniqLock& lock) {
     csrIndex.reset();
 }
 
-common::row_idx_t CSRNodeGroup::getNumPersistentRows() const {
-    if (!persistentChunkGroup) {
-        return 0;
-    }
-    return persistentChunkGroup->getNumRows();
-}
-
 } // namespace storage
 } // namespace kuzu

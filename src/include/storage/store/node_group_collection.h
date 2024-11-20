@@ -87,7 +87,7 @@ public:
 private:
     void pushInsertInfo(const transaction::Transaction* transaction, NodeGroup* nodeGroup,
         common::row_idx_t numRows,
-        const chunked_group_iterator_construct_t* constructIteratorFunc_ = nullptr);
+        const chunked_group_iterator_construct_t* constructIteratorOverrideFunc = nullptr);
 
     bool enableCompression;
     // Num rows in the collection regardless of deletions.

@@ -98,9 +98,9 @@ struct PKColumnScanHelper {
 class StorageManager;
 class NodeTable final : public Table {
 public:
-    class NodeGroupIterator : public NodeGroup::NodeGroupBaseIterator {
+    class ChunkedGroupIterator : public NodeGroup::ChunkedGroupIterator {
     public:
-        NodeGroupIterator(NodeTable* table, common::node_group_idx_t nodeGroupIdx,
+        ChunkedGroupIterator(NodeTable* table, common::node_group_idx_t nodeGroupIdx,
             common::row_idx_t startRow, common::row_idx_t numRows, common::transaction_t commitTS);
 
         void initRollbackInsert(const transaction::Transaction* transaction) override;

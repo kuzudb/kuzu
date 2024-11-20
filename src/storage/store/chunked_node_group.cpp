@@ -429,7 +429,12 @@ bool ChunkedNodeGroup::hasUpdates() const {
     return false;
 }
 
-void ChunkedNodeGroup::rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
+void ChunkedNodeGroup::commitInsert(row_idx_t startRow, row_idx_t numRowsToCommit,
+    transaction_t commitTS) {
+    versionInfo->commitInsert(startRow, numRowsToCommit, commitTS);
+}
+
+void ChunkedNodeGroup::rollbackInsert(row_idx_t startRow, row_idx_t numRows_,
     common::transaction_t) {
     if (startRow == 0) {
         setNumRows(0);
@@ -442,11 +447,6 @@ void ChunkedNodeGroup::rollbackInsert(common::row_idx_t startRow, common::row_id
     }
     versionInfo->rollbackInsert(startRow, numRows_);
     numRows = startRow;
-}
-
-void ChunkedNodeGroup::commitInsert(row_idx_t startRow, row_idx_t numRowsToCommit,
-    transaction_t commitTS) {
-    versionInfo->commitInsert(startRow, numRowsToCommit, commitTS);
 }
 
 void ChunkedNodeGroup::commitDelete(row_idx_t startRow, row_idx_t numRows_,

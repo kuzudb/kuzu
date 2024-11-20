@@ -217,7 +217,6 @@ public:
 
     bool isEmpty() const override { return !persistentChunkGroup && NodeGroup::isEmpty(); }
 
-    common::row_idx_t getNumPersistentRows() const;
     ChunkedNodeGroup* getPersistentChunkedGroup() const { return persistentChunkGroup.get(); }
     void setPersistentChunkedGroup(std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup) {
         KU_ASSERT(chunkedNodeGroup->getFormat() == NodeGroupDataFormat::CSR);

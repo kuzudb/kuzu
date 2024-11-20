@@ -21,13 +21,15 @@ using namespace kuzu::evaluator;
 namespace kuzu {
 namespace storage {
 
-NodeTable::NodeGroupIterator::NodeGroupIterator(NodeTable* table, node_group_idx_t nodeGroupidx,
-    common::row_idx_t startRow, common::row_idx_t numRows, common::transaction_t commitTS)
-    : NodeGroup::NodeGroupBaseIterator(table->nodeGroups.get(), nodeGroupidx, startRow, numRows,
+NodeTable::ChunkedGroupIterator::ChunkedGroupIterator(NodeTable* table,
+    node_group_idx_t nodeGroupidx, common::row_idx_t startRow, common::row_idx_t numRows,
+    common::transaction_t commitTS)
+    : NodeGroup::ChunkedGroupIterator(table->nodeGroups.get(), nodeGroupidx, startRow, numRows,
           commitTS),
       table(table) {}
 
-void NodeTable::NodeGroupIterator::initRollbackInsert(const transaction::Transaction* transaction) {
+void NodeTable::ChunkedGroupIterator::initRollbackInsert(
+    const transaction::Transaction* transaction) {
     table->rollbackInsert(transaction, startRow, numRows, nodeGroup->getNodeGroupIdx());
 }
 
@@ -163,42 +165,6 @@ bool RollbackPKDeleter::processScanOutput(const transaction::Transaction* transa
 }
 } // namespace
 
-std::unique_ptr<NodeTableScanState> PKColumnScanHelper::initPKScanState(DataChunk& dataChunk,
-    column_id_t pkColumnID, const std::vector<std::unique_ptr<Column>>& columns) {
-    std::vector<column_id_t> columnIDs{pkColumnID};
-    auto scanState = std::make_unique<NodeTableScanState>(tableID, columnIDs);
-    for (auto& vector : dataChunk.valueVectors) {
-        scanState->outputVectors.push_back(vector.get());
-    }
-    scanState->outState = dataChunk.state.get();
-    for (const auto& column : columns) {
-        scanState->columns.push_back(column.get());
-    }
-    return scanState;
-}
-
-void NodeTable::scanPKColumn(const Transaction* transaction, PKColumnScanHelper& scanHelper,
-    NodeGroupCollection& nodeGroups_) {
-    auto dataChunk = constructDataChunkForPKColumn();
-    auto scanState = scanHelper.initPKScanState(dataChunk, pkColumnID, columns);
-
-    node_group_idx_t nodeGroupToScan = 0u;
-    while (nodeGroupToScan < nodeGroups_.getNumNodeGroups()) {
-        scanState->nodeGroup = nodeGroups_.getNodeGroup(nodeGroupToScan);
-        scanState->nodeGroupIdx = nodeGroupToScan;
-        KU_ASSERT(scanState->nodeGroup);
-        scanState->nodeGroup->initializeScanState(transaction, *scanState);
-        while (true) {
-            auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
-            if (!scanHelper.processScanOutput(transaction, scanResult,
-                    *scanState->outputVectors[0])) {
-                break;
-            }
-        }
-        nodeGroupToScan++;
-    }
-}
-
 bool NodeTableScanState::scanNext(Transaction* transaction) {
     KU_ASSERT(columns.size() == outputVectors.size());
     if (source == TableScanSource::NONE) {
@@ -238,7 +204,7 @@ NodeTable::NodeTable(const StorageManager* storageManager,
     iteratorConstructFunc = [this](common::row_idx_t startRow, common::row_idx_t numRows_,
                                 common::node_group_idx_t nodeGroupIdx_,
                                 common::transaction_t commitTS) {
-        return std::make_unique<NodeGroupIterator>(this, nodeGroupIdx_, startRow, numRows_,
+        return std::make_unique<ChunkedGroupIterator>(this, nodeGroupIdx_, startRow, numRows_,
             commitTS);
     };
 
@@ -639,6 +605,42 @@ bool NodeTable::lookupPK(const Transaction* transaction, ValueVector* keyVector,
     }
     return pkIndex->lookup(transaction, keyVector, vectorPos, result,
         [&](offset_t offset) { return isVisibleNoLock(transaction, offset); });
+}
+
+void NodeTable::scanPKColumn(const Transaction* transaction, PKColumnScanHelper& scanHelper,
+    NodeGroupCollection& nodeGroups_) {
+    auto dataChunk = constructDataChunkForPKColumn();
+    auto scanState = scanHelper.initPKScanState(dataChunk, pkColumnID, columns);
+
+    node_group_idx_t nodeGroupToScan = 0u;
+    while (nodeGroupToScan < nodeGroups_.getNumNodeGroups()) {
+        scanState->nodeGroup = nodeGroups_.getNodeGroup(nodeGroupToScan);
+        scanState->nodeGroupIdx = nodeGroupToScan;
+        KU_ASSERT(scanState->nodeGroup);
+        scanState->nodeGroup->initializeScanState(transaction, *scanState);
+        while (true) {
+            auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
+            if (!scanHelper.processScanOutput(transaction, scanResult,
+                    *scanState->outputVectors[0])) {
+                break;
+            }
+        }
+        nodeGroupToScan++;
+    }
+}
+
+std::unique_ptr<NodeTableScanState> PKColumnScanHelper::initPKScanState(DataChunk& dataChunk,
+    column_id_t pkColumnID, const std::vector<std::unique_ptr<Column>>& columns) {
+    std::vector<column_id_t> columnIDs{pkColumnID};
+    auto scanState = std::make_unique<NodeTableScanState>(tableID, columnIDs);
+    for (auto& vector : dataChunk.valueVectors) {
+        scanState->outputVectors.push_back(vector.get());
+    }
+    scanState->outState = dataChunk.state.get();
+    for (const auto& column : columns) {
+        scanState->columns.push_back(column.get());
+    }
+    return scanState;
 }
 
 } // namespace storage

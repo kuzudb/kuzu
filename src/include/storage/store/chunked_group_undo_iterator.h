@@ -18,9 +18,8 @@ class ChunkedGroupUndoIterator;
 using chunked_group_undo_op_t = void (
     ChunkedNodeGroup::*)(common::row_idx_t, common::row_idx_t, common::transaction_t);
 
-using chunked_group_iterator_construct_t =
-    std::function<std::unique_ptr<ChunkedGroupUndoIterator>(common::row_idx_t, common::row_idx_t,
-        common::node_group_idx_t, common::transaction_t commitTS)>;
+using chunked_group_iterator_construct_t = std::function<std::unique_ptr<ChunkedGroupUndoIterator>(
+    common::row_idx_t, common::row_idx_t, common::node_group_idx_t, common::transaction_t)>;
 
 // Note: these iterators are not necessarily thread-safe when used on their own
 class ChunkedGroupUndoIterator {

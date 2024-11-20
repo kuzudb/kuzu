@@ -5,6 +5,7 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog/catalog_set.h"
 #include "storage/store/update_info.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -294,20 +295,18 @@ void UndoBuffer::rollbackSequenceEntry(const uint8_t* entry) {
 
 void UndoBuffer::rollbackVersionInfo(const transaction::Transaction* transaction,
     UndoRecordType recordType, const uint8_t* record) {
-    static constexpr transaction_t UNUSED_COMMIT_TS = INVALID_TRANSACTION;
-
     auto& undoRecord = *reinterpret_cast<VersionRecord const*>(record);
     switch (recordType) {
     case UndoRecordType::INSERT_INFO: {
         auto it = (*undoRecord.iteratorConstructFunc)(undoRecord.startRow, undoRecord.numRows,
-            undoRecord.nodeGroupIdx, UNUSED_COMMIT_TS);
+            undoRecord.nodeGroupIdx, transaction->getCommitTS());
         it->initRollbackInsert(transaction);
         it->iterate(&ChunkedNodeGroup::rollbackInsert);
         it->finalizeRollbackInsert();
     } break;
     case UndoRecordType::DELETE_INFO: {
         auto it = (*undoRecord.iteratorConstructFunc)(undoRecord.startRow, undoRecord.numRows,
-            undoRecord.nodeGroupIdx, UNUSED_COMMIT_TS);
+            undoRecord.nodeGroupIdx, transaction->getCommitTS());
         it->iterate(&ChunkedNodeGroup::rollbackDelete);
     } break;
     default: {

@@ -29,7 +29,7 @@ RelTableData::RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* sh
     inMemIteratorConstructFunc = [this](common::row_idx_t startRow, common::row_idx_t numRows_,
                                      common::node_group_idx_t nodeGroupIdx_,
                                      common::transaction_t commitTS) {
-        return std::make_unique<NodeGroup::NodeGroupBaseIterator>(nodeGroups.get(), nodeGroupIdx_,
+        return std::make_unique<NodeGroup::ChunkedGroupIterator>(nodeGroups.get(), nodeGroupIdx_,
             startRow, numRows_, commitTS);
     };
 
@@ -211,9 +211,15 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction,
 
 void RelTableData::pushInsertInfo(transaction::Transaction* transaction,
     const CSRNodeGroup& nodeGroup, common::row_idx_t numRows_, CSRNodeGroupScanSource source) {
+    // we shouldn't be appending directly to the to the persistent data
+    // unless we are performing batch insert and the persistent chunked group is empty
+    KU_ASSERT(source != CSRNodeGroupScanSource::COMMITTED_PERSISTENT ||
+              !nodeGroup.getPersistentChunkedGroup() ||
+              nodeGroup.getPersistentChunkedGroup()->getNumRows() == 0);
+
     const auto [startRow, constructIteratorFunc] =
         (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) ?
-            std::make_pair(nodeGroup.getNumPersistentRows(), &persistentIteratorConstructFunc) :
+            std::make_pair(static_cast<row_idx_t>(0), &persistentIteratorConstructFunc) :
             std::make_pair(nodeGroup.getNumRows(), &inMemIteratorConstructFunc);
 
     nodeGroups->pushInsertInfo(transaction, nodeGroup.getNodeGroupIdx(), startRow, numRows_,

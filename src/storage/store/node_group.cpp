@@ -21,7 +21,7 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-NodeGroup::NodeGroupBaseIterator::NodeGroupBaseIterator(NodeGroupCollection* nodeGroups,
+NodeGroup::ChunkedGroupIterator::ChunkedGroupIterator(NodeGroupCollection* nodeGroups,
     common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
     transaction_t commitTS)
     : ChunkedGroupUndoIterator(nodeGroups, startRow, numRows, commitTS),
@@ -30,7 +30,7 @@ NodeGroup::NodeGroupBaseIterator::NodeGroupBaseIterator(NodeGroupCollection* nod
     KU_ASSERT(startRow <= nodeGroup->getNumRows());
 }
 
-void NodeGroup::NodeGroupBaseIterator::iterate(chunked_group_undo_op_t undoFunc) {
+void NodeGroup::ChunkedGroupIterator::iterate(chunked_group_undo_op_t undoFunc) {
     auto lock = nodeGroup->chunkedGroups.lock();
     const auto [chunkedGroupIdx, startRowInChunkedGroup] =
         nodeGroup->findChunkedGroupIdxFromRowIdxNoLock(startRow);
@@ -53,7 +53,7 @@ void NodeGroup::NodeGroupBaseIterator::iterate(chunked_group_undo_op_t undoFunc)
     }
 }
 
-void NodeGroup::NodeGroupBaseIterator::finalizeRollbackInsert() {
+void NodeGroup::ChunkedGroupIterator::finalizeRollbackInsert() {
     nodeGroup->rollbackInsert(startRow);
     nodeGroups->rollbackInsert(numRowsToRollback);
 }
@@ -136,8 +136,8 @@ void NodeGroup::merge(Transaction*, std::unique_ptr<ChunkedNodeGroup> chunkedGro
         KU_ASSERT(chunkedGroup->getColumnChunk(i).getDataType().getPhysicalType() ==
                   dataTypes[i].getPhysicalType());
     }
-    numRows += chunkedGroup->getNumRows();
     const auto lock = chunkedGroups.lock();
+    numRows += chunkedGroup->getNumRows();
     chunkedGroups.appendGroup(lock, std::move(chunkedGroup));
 }
 
