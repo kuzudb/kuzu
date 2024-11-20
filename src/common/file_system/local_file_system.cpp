@@ -253,12 +253,12 @@ bool isSubdirectory(const std::filesystem::path& base, const std::filesystem::pa
         auto canonicalBase = std::filesystem::canonical(base);
         auto canonicalSub = std::filesystem::canonical(sub);
 
-        // Traverse the sub path upward to check if it matches the base path
-        for (auto current = canonicalSub; !current.empty(); current = current.parent_path()) {
-            if (current == canonicalBase) {
-                return true;
-            }
-        }
+        
+        std::string relative = std::filesystem::relative(canonicalSub, canonicalBase);
+        // Size check for a "." result.
+        // If the path starts with "..", it's not a subdirectory.
+        return !relative.empty() && !(relative.starts_with(".."));
+        
     } catch (const std::filesystem::filesystem_error& e) {
         // Handle errors, e.g., if paths don't exist
         std::cerr << "Filesystem error: " << e.what() << std::endl;
@@ -267,6 +267,7 @@ bool isSubdirectory(const std::filesystem::path& base, const std::filesystem::pa
 
     return false;
 }
+
 
 void LocalFileSystem::removeFileIfExists(const std::string& path) {
     if (!fileOrPathExists(path)) {
