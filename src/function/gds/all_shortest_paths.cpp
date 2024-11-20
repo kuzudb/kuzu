@@ -47,8 +47,8 @@ public:
         curPtr[nodeID.offset].fetch_add(multiplicity);
     }
 
-    void incrementTargetMultiplicity(common::offset_t nodeIDOffset, uint64_t multiplicity) {
-        getCurTargetMultiplicities()[nodeIDOffset].fetch_add(multiplicity);
+    void incrementTargetMultiplicity(common::offset_t offset, uint64_t multiplicity) {
+        getCurTargetMultiplicities()[offset].fetch_add(multiplicity);
     }
 
     uint64_t getBoundMultiplicity(common::offset_t nodeOffset) {
@@ -110,7 +110,7 @@ public:
     };
 
     void beginWritingOutputsForDstNodesInTable(table_id_t tableID) override {
-        pathLengths->fixCurFrontierNodeTable(tableID);
+        pathLengths->pinCurFrontierTableID(tableID);
         multiplicities.fixTargetNodeTable(tableID);
     }
 
@@ -127,7 +127,7 @@ public:
     void write(FactorizedTable& fTable, nodeID_t dstNodeID,
         processor::GDSOutputCounter* counter) override {
         auto outputs = rjOutputs->ptrCast<AllSPDestinationsOutputs>();
-        auto length = outputs->pathLengths->getMaskValueFromCurFrontierFixedMask(dstNodeID.offset);
+        auto length = outputs->pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset);
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
         lengthVector->setValue<uint16_t>(0, length);
         auto multiplicity = outputs->multiplicities.getTargetMultiplicity(dstNodeID.offset);
@@ -155,13 +155,13 @@ public:
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNodeID, auto /*edgeID*/) {
             auto nbrVal =
-                frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrNodeID.offset);
+                frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNodeID.offset);
             // We should update the nbrID's multiplicity in 2 cases: 1) if nbrID is being visited
             // for the first time, i.e., when its value in the pathLengths frontier is
             // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this
             // iteration, so it's value is curIter + 1.
-            auto shouldUpdate = nbrVal == PathLengths::UNVISITED ||
-                                nbrVal == frontierPair->pathLengths->getCurIter();
+            auto shouldUpdate =
+                nbrVal == PathLengths::UNVISITED || nbrVal == frontierPair->getCurrentIter();
             if (shouldUpdate) {
                 // Note: This is safe because curNodeID is in the current frontier, so its
                 // shortest paths multiplicity is guaranteed to not change in the current iteration.
@@ -195,20 +195,19 @@ public:
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNodeID, auto edgeID) {
             auto nbrLen =
-                frontierPair->pathLengths->getMaskValueFromNextFrontierFixedMask(nbrNodeID.offset);
-            // We should update the nbrID's multiplicity in 2 cases: 1) if nbrID is being visited
+                frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNodeID.offset);
+            // We should update in 2 cases: 1) if nbrID is being visited
             // for the first time, i.e., when its value in the pathLengths frontier is
             // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this
             // iteration, so it's value is curIter + 1.
-            auto shouldUpdate = nbrLen == PathLengths::UNVISITED ||
-                                nbrLen == frontierPair->pathLengths->getCurIter();
+            auto shouldUpdate =
+                nbrLen == PathLengths::UNVISITED || nbrLen == frontierPair->getCurrentIter();
             if (shouldUpdate) {
                 if (!parentListBlock->hasSpace()) {
                     parentListBlock = bfsGraph->addNewBlock();
                 }
-                bfsGraph->addParent(frontierPair->curIter.load(std::memory_order_relaxed),
-                    parentListBlock, nbrNodeID /* child */, boundNodeID /* parent */, edgeID,
-                    fwdEdge);
+                bfsGraph->addParent(frontierPair->getCurrentIter(), parentListBlock,
+                    nbrNodeID /* child */, boundNodeID /* parent */, edgeID, fwdEdge);
             }
             if (nbrLen == PathLengths::UNVISITED) {
                 activeNodes.push_back(nbrNodeID);
