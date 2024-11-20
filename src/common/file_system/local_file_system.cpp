@@ -250,8 +250,8 @@ void LocalFileSystem::createDir(const std::string& dir) const {
 bool isSubdirectory(const std::filesystem::path& base, const std::filesystem::path& sub) {
     try {
         // Resolve paths to their canonical form
-        auto canonicalBase = std::filesystem::canonical(base);
-        auto canonicalSub = std::filesystem::canonical(sub);
+        auto canonicalBase = std::filesystem::canonical(base).string();
+        auto canonicalSub = std::filesystem::canonical(sub).string();
 
         
         std::string relative = std::filesystem::relative(canonicalSub, canonicalBase);
