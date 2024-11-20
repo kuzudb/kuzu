@@ -256,9 +256,14 @@ bool isSubdirectory(const std::string& base, const std::string& sub) {
     auto baseStr = basePath.generic_string();
     auto subStr = subPath.generic_string();
 
+    // Ensure baseStr represents a directory with a trailing slash for proper boundary matching
+    if (!baseStr.empty() && baseStr.back() != '/') {
+        baseStr += '/';
+    }
+
     // Check if subStr starts with baseStr and ensure proper boundaries
     return subStr.starts_with(baseStr) &&
-           (subStr.size() == baseStr.size() || subStr[baseStr.size()] == '/');
+           (subStr.size() == baseStr.size() || subStr[baseStr.size()-1] == '/');
 }
 
 void LocalFileSystem::removeFileIfExists(const std::string& path) {
