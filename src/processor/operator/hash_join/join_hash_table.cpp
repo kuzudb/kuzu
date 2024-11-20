@@ -64,8 +64,7 @@ static void sortSelectedPos(ValueVector* nodeIDVector) {
     auto size = selVector.getSelSize();
     auto buffer = selVector.getMutableBuffer();
     if (selVector.isUnfiltered()) {
-        std::memcpy(buffer.data(), &SelectionVector::INCREMENTAL_SELECTED_POS,
-            size * sizeof(sel_t));
+        std::memcpy(buffer.data(), selVector.getSelectedPositions().data(), size * sizeof(sel_t));
         selVector.setToFiltered();
     }
     std::sort(buffer.begin(), buffer.begin() + size, [nodeIDVector](sel_t left, sel_t right) {
