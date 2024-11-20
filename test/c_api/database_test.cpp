@@ -133,6 +133,9 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesEdge) {
     std::filesystem::create_directories("/tmp/dbHome/../test1");
     std::filesystem::create_directories("/tmp/dbHome/test1");
 
+    std::cout << "Resolved Path: " << std::filesystem::absolute("/tmp/dbHome/../test1") << std::endl;
+    std::cout << "Exists: " << std::filesystem::exists("/tmp/test1") << std::endl;
+
     // Attempt to delete files outside the home directory (should error)
     try {
         vfs.removeFileIfExists("/tmp/dbHome/../test1");
