@@ -105,11 +105,6 @@ void CopyTest::BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg) {
 
     for (int i = 0;; i++) {
         ASSERT_LT(i, 20);
-
-        const auto queryString = common::stringFormat(
-            "COPY account FROM \"{}/dataset/snap/twitter/csv/twitter-nodes.csv\"",
-            KUZU_ROOT_DIRECTORY);
-
         auto result = cfg.executeFunc(conn.get(), i);
         if (!result->isSuccess()) {
             if (cfg.earlyExitOnFailureFunc(result.get())) {
@@ -130,7 +125,7 @@ void CopyTest::BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg) {
         auto result = cfg.checkFunc(conn.get());
         ASSERT_TRUE(result->isSuccess()) << result->getErrorMessage();
         ASSERT_TRUE(result->hasNext());
-        ASSERT_EQ(result->getNext()->getValue(0)->getValue<int64_t>(), cfg.checkResult);
+        ASSERT_EQ(cfg.checkResult, result->getNext()->getValue(0)->getValue<int64_t>());
     }
 }
 
@@ -214,6 +209,35 @@ TEST_F(CopyTest, NodeInsertBMExceptionDuringCommitRecovery) {
         .checkFunc =
             [](main::Connection* conn) { return conn->query("MATCH (a:account) RETURN COUNT(*)"); },
         .checkResult = numValues};
+    BMExceptionRecoveryTest(cfg);
+}
+
+TEST_F(CopyTest, RelInsertBMExceptionDuringCommitRecovery) {
+    static constexpr auto numNodes = 10000;
+    BMExceptionRecoveryTestConfig cfg{.canFailDuringExecute = false,
+        .canFailDuringCheckpoint = false,
+        .initFunc =
+            [this](main::Connection* conn) {
+                failureFrequency = 128;
+                conn->query("CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID))");
+                conn->query("CREATE REL TABLE follows(FROM account TO account);");
+                const auto queryString = common::stringFormat(
+                    "UNWIND RANGE(1,{}) AS i CREATE (a:account {ID:i})", numNodes);
+                ASSERT_TRUE(conn->query(queryString)->isSuccess());
+            },
+        .executeFunc =
+            [](main::Connection* conn, int) {
+                return conn->query(common::stringFormat(
+                    "UNWIND RANGE(1,{}) AS i MATCH (a:account), (b:account) WHERE a.ID = i AND "
+                    "b.ID = i + 1 CREATE (a)-[f:follows]->(b)",
+                    numNodes));
+            },
+        .earlyExitOnFailureFunc = [](main::QueryResult*) { return false; },
+        .checkFunc =
+            [](main::Connection* conn) {
+                return conn->query("MATCH (a)-[f:follows]->(b) RETURN COUNT(*)");
+            },
+        .checkResult = numNodes - 1};
     BMExceptionRecoveryTest(cfg);
 }
 
