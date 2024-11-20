@@ -120,6 +120,12 @@ bool HashIndex<T>::rollbackInMemory() {
 }
 
 template<typename T>
+void HashIndex<T>::rollbackCheckpoint() {
+    pSlots->rollbackInMemoryIfNecessary();
+    oSlots->rollbackInMemoryIfNecessary();
+}
+
+template<typename T>
 void HashIndex<T>::splitSlots(const Transaction* transaction, HashIndexHeader& header,
     slot_id_t numSlotsToSplit) {
     auto originalSlotIterator = pSlots->iter_mut();
@@ -425,7 +431,7 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
                                       vfs, context)},
       dbFileIDAndName{dbFileIDAndName}, shadowFile{*shadowFile} {
     KU_ASSERT(!(inMemMode && readOnly));
-    bool newIndex = fileHandle->getNumPages() == 0;
+    bool newIndex = (fileHandle->getNumPages() == 0);
 
     if (newIndex) {
         fileHandle->addNewPages(INDEX_HEADER_PAGES);
@@ -564,15 +570,25 @@ void PrimaryKeyIndex::writeHeaders() {
 }
 
 void PrimaryKeyIndex::checkpoint() {
-    bool indexChanged = false;
-    for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-        if (hashIndices[i]->checkpoint()) {
-            indexChanged = true;
+    try {
+        bool indexChanged = false;
+        for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
+            if (hashIndices[i]->checkpoint()) {
+                indexChanged = true;
+            }
         }
-    }
-    if (indexChanged) {
-        writeHeaders();
-        hashIndexDiskArrays->checkpoint();
+        if (indexChanged) {
+            writeHeaders();
+            hashIndexDiskArrays->checkpoint();
+        }
+    } catch (std::exception& e) {
+        for (idx_t i = 0; i < NUM_HASH_INDEXES; ++i) {
+            hashIndices[i]->rollbackCheckpoint();
+            hashIndexDiskArrays->rollbackCheckpoint();
+            hashIndexHeadersForWriteTrx.assign(hashIndexHeadersForReadTrx.begin(),
+                hashIndexHeadersForReadTrx.end());
+        }
+        std::rethrow_exception(std::current_exception());
     }
     if (overflowFile) {
         overflowFile->checkpoint();
