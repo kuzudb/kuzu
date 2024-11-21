@@ -87,29 +87,12 @@ std::unique_ptr<storage::BufferManager> Database::initBufferManager(const Databa
         db.dbConfig.bufferPoolSize, db.dbConfig.maxDBSize, db.vfs.get(), db.dbConfig.readOnly);
 }
 
-std::string expandPath(main::ClientContext* context, const std::string& path) {
-    if (DBConfig::isDBPathInMemory(path)) {
-        return path;
-    }
-    auto fullPath = path;
-    // Handle '~' for home directory expansion
-    if (path.starts_with('~')) {
-        fullPath =
-            context->getCurrentSetting(main::HomeDirectorySetting::name).getValue<std::string>() +
-            fullPath.substr(1);
-    }
-    // Normalize the path to resolve '.' and '..'
-    std::filesystem::path normalizedPath = std::filesystem::absolute(fullPath).lexically_normal();
-    return normalizedPath.string();
-    
-}
-
 void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFunc) {
     // To expand a path with home directory(~), we have to pass in a dummy clientContext which
     // handles the home directory expansion.
     const auto dbPathStr = std::string(dbPath);
     auto clientContext = ClientContext(this);
-    databasePath = expandPath(&clientContext, dbPathStr);
+    databasePath = StorageUtils::expandPath(&clientContext, dbPathStr);
 
     vfs = std::make_unique<VirtualFileSystem>(databasePath);
 
