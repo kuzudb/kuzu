@@ -220,7 +220,11 @@ void LocalFileSystem::createDir(const std::string& dir) const {
             // LCOV_EXCL_STOP
         }
         auto directoryToCreate = dir;
-        if (directoryToCreate.ends_with('/') || directoryToCreate.ends_with('\\')) {
+        if (directoryToCreate.ends_with('/')
+#if defined(_WIN32)
+        || directoryToCreate.ends_with('\\')
+#endif
+        ) {
             // This is a known issue with std::filesystem::create_directories. (link:
             // https://github.com/llvm/llvm-project/issues/60634). We have to manually remove the
             // last '/' if the path ends with '/'. (Added the second one for windows)
@@ -269,6 +273,7 @@ bool isSubdirectory(const std::filesystem::path& base, const std::filesystem::pa
 
 
 void LocalFileSystem::removeFileIfExists(const std::string& path) {
+    std::cout<<"home:"<<<<"path:"<<canonicalSub<<std::endl;
     if (!fileOrPathExists(path)) {
         return;
     }
