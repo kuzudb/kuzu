@@ -257,3 +257,33 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWindowsPaths) {
     std::filesystem::remove_all("C:\\Desktop\\dir\\test1");
 }
 #endif
+
+TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWildcardNoRemoval) {
+    // Test Home Directory
+    std::string homeDir = "/tmp/dbHome_wildcard/";
+    kuzu::common::VirtualFileSystem vfs(homeDir);
+
+    // Setup files and directories
+    std::filesystem::create_directories("/tmp/dbHome_wildcard/test1_wildcard");
+    std::filesystem::create_directories("/tmp/dbHome_wildcard/test2_wildcard");
+    std::filesystem::create_directories("/tmp/dbHome_wildcard/nested_wildcard");
+    std::ofstream("/tmp/dbHome_wildcard/nested_wildcard/file1.txt").close();
+    std::ofstream("/tmp/dbHome_wildcard/nested_wildcard/file2.test").close();
+
+    // Attempt to remove files with wildcard pattern
+    try {
+        vfs.removeFileIfExists("/tmp/dbHome_wildcard/test*");
+    } catch (const kuzu::common::IOException& e) {
+        // Verify the exception is thrown for unsupported wildcard
+        EXPECT_STREQ(e.what(), "Error: Wildcard patterns are not supported in paths.");
+    }
+
+    // Verify files and directories still exist
+    ASSERT_TRUE(std::filesystem::exists("/tmp/dbHome_wildcard/test1_wildcard"));
+    ASSERT_TRUE(std::filesystem::exists("/tmp/dbHome_wildcard/test2_wildcard"));
+    ASSERT_TRUE(std::filesystem::exists("/tmp/dbHome_wildcard/nested_wildcard/file1.txt"));
+    ASSERT_TRUE(std::filesystem::exists("/tmp/dbHome_wildcard/nested_wildcard/file2.test"));
+
+    // Cleanup
+    std::filesystem::remove_all("/tmp/dbHome_wildcard");
+}

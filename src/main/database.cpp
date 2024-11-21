@@ -2,7 +2,6 @@
 
 #include "main/client_context.h"
 #include "main/database_manager.h"
-#include "main/settings.h"
 #include "storage/buffer_manager/buffer_manager.h"
 
 #if defined(_WIN32)
