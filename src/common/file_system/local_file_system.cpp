@@ -273,7 +273,6 @@ bool isSubdirectory(const std::filesystem::path& base, const std::filesystem::pa
 
 
 void LocalFileSystem::removeFileIfExists(const std::string& path) {
-    std::cout<<"home:"<<<<"path:"<<canonicalSub<<std::endl;
     if (!fileOrPathExists(path)) {
         return;
     }
