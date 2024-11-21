@@ -210,7 +210,7 @@ CatalogEntrySet CatalogSet::getEntries(const Transaction* transaction) {
 }
 
 void CatalogSet::iterateEntriesOfType(const Transaction* transaction, CatalogEntryType type,
-    const std::function<void(CatalogEntry*)>& func) {
+    const std::function<void(const CatalogEntry*)>& func) {
     std::shared_lock lck{mtx};
     for (auto& [_, entry] : entries) {
         if (entry->getType() != CatalogEntryType::DUMMY_ENTRY && entry->getType() != type) {

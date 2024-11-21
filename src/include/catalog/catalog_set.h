@@ -36,7 +36,7 @@ public:
 
     CatalogEntrySet getEntries(const transaction::Transaction* transaction);
     void iterateEntriesOfType(const transaction::Transaction* transaction, CatalogEntryType type,
-        const std::function<void(CatalogEntry*)>& func);
+        const std::function<void(const CatalogEntry*)>& func);
     CatalogEntry* getEntryOfOID(const transaction::Transaction* transaction, common::oid_t oid);
 
     void serialize(common::Serializer serializer) const;
