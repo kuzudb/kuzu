@@ -587,6 +587,7 @@ void PrimaryKeyIndex::checkpoint() {
             hashIndexDiskArrays->rollbackCheckpoint();
             hashIndexHeadersForWriteTrx.assign(hashIndexHeadersForReadTrx.begin(),
                 hashIndexHeadersForReadTrx.end());
+            overflowFile->rollbackInMemory();
         }
         std::rethrow_exception(std::current_exception());
     }
