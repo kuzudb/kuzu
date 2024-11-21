@@ -188,6 +188,11 @@ public:
             } else {
                 iter.slot->header.setEntryInvalid(*deletedPos);
             }
+
+            if (newIter.slot->header.numEntries() == 0) {
+                reclaimOverflowSlots(SlotIterator(slotId, this));
+            }
+
             return true;
         }
         return false;
@@ -196,18 +201,9 @@ public:
 private:
     SlotIterator getLastValidEntry(const SlotIterator& startIter) {
         auto curIter = startIter;
-        auto newIter = startIter;
-        while (nextChainedSlot(curIter)) {
-            if (curIter.slotInfo.slotId == SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
-                break;
-            }
-            if (curIter.slot->header.numEntries() == 0) {
-                // if the current overflow slot is empty if last valid entry is in the previous slot
-                break;
-            }
-            newIter = curIter;
-        }
-        return newIter;
+        while (curIter.slot->header.nextOvfSlotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID &&
+               nextChainedSlot(curIter)) {}
+        return curIter;
     }
 
     // Assumes that space has already been allocated for the entry
