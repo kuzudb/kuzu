@@ -27,7 +27,6 @@ struct LocalFileInfo : public FileInfo {
 
 class KUZU_API LocalFileSystem final : public FileSystem {
 public:
-    LocalFileSystem() = default;
     explicit LocalFileSystem(std::string homeDir) : FileSystem(std::move(homeDir)) {}
 
     std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,

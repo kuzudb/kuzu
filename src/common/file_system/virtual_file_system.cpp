@@ -8,7 +8,7 @@ namespace kuzu {
 namespace common {
 
 VirtualFileSystem::VirtualFileSystem() {
-    defaultFS = std::make_unique<LocalFileSystem>();
+    defaultFS = std::make_unique<LocalFileSystem>("");
 }
 
 VirtualFileSystem::VirtualFileSystem(std::string homeDir) {
