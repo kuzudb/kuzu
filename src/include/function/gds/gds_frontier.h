@@ -323,6 +323,11 @@ public:
     // Note: If the implementing class stores 2 frontierPair, this function should swap them.
     virtual void beginNewIterationInternalNoLock() {}
 
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<TARGET*>(this);
+    }
+
 protected:
     std::mutex mtx;
     // curIter is the iteration number of the algorithm and starts from 0.
@@ -418,9 +423,8 @@ public:
         if (expectedComponentID < actualComponentID) {
             updated = true;
             nextFrontier->ptrCast<WCCFrontier>()->setActive(nbrNodeID);
-            while (!nbrComponentID.compare_exchange_weak(actualComponentID, expectedComponentID,
+            while (!nbrComponentID.compare_exchange_strong(actualComponentID, expectedComponentID,
                 std::memory_order_relaxed, std::memory_order_relaxed)) {
-                actualComponentID = nbrComponentID.load(std::memory_order_relaxed);
             }
             return true;
         }

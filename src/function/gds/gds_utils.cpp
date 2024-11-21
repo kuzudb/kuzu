@@ -47,7 +47,7 @@ void GDSUtils::scheduleFrontierTask(table_id_t relTableID, graph::Graph* graph,
 void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context,
     RJCompState& rjCompState, graph::Graph* graph, ExtendDirection extendDirection,
     uint64_t maxIters) {
-    auto& frontierPair = rjCompState.frontierPair;
+    auto frontierPair = rjCompState.frontierPair.get();
     processor::NodeOffsetMaskMap* outputNodeMask = nullptr;
     if (rjCompState.outputWriter != nullptr) {
         outputNodeMask = rjCompState.outputWriter->getOutputNodeMask();
