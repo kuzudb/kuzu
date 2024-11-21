@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string.h>
+
 #include <memory>
 
 #include "common/constants.h"
@@ -56,6 +58,13 @@ public:
         KU_ASSERT(size <= capacity && selectedPositionsBuffer);
         setToFiltered();
         selectedSize = size;
+    }
+
+    // Copies the data in selectedPositions into selectedPositionsBuffer
+    void makeDynamic() {
+        memcpy(selectedPositionsBuffer.get(), selectedPositions, selectedSize * sizeof(sel_t));
+        state = State::DYNAMIC;
+        selectedPositions = selectedPositionsBuffer.get();
     }
 
     std::span<sel_t> getMutableBuffer() const {
