@@ -100,6 +100,11 @@ void VectorVersionInfo::getSelVectorForScan(const transaction_t startTS,
             selVector.setToFiltered(numSelected);
         }
     } else if (insertionStatus != InsertionStatus::NO_INSERTED) {
+        // If there were no deleted values up to this point the selVector may be unfiltered but have
+        // non-zero size, and the mutable buffer may have arbitrary contents
+        if (selVector.isUnfiltered()) {
+            selVector.makeDynamic();
+        }
         for (auto i = 0u; i < numRows; i++) {
             if (const auto rowIdx = startRow + i; isInserted(startTS, transactionID, rowIdx) &&
                                                   !isDeleted(startTS, transactionID, rowIdx)) {
