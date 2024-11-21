@@ -7,10 +7,10 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/null_mask.h"
 #include "common/types/types.h"
-#include "storage/db_file_id.h"
-#include "main/db_config.h"
 #include "main/client_context.h"
+#include "main/db_config.h"
 #include "main/settings.h"
+#include "storage/db_file_id.h"
 
 namespace kuzu {
 namespace storage {
@@ -145,12 +145,13 @@ public:
         auto fullPath = path;
         // Handle '~' for home directory expansion
         if (path.starts_with('~')) {
-            fullPath =
-                context->getCurrentSetting(main::HomeDirectorySetting::name).getValue<std::string>() +
-                fullPath.substr(1);
+            fullPath = context->getCurrentSetting(main::HomeDirectorySetting::name)
+                           .getValue<std::string>() +
+                       fullPath.substr(1);
         }
         // Normalize the path to resolve '.' and '..'
-        std::filesystem::path normalizedPath = std::filesystem::absolute(fullPath).lexically_normal();
+        std::filesystem::path normalizedPath =
+            std::filesystem::absolute(fullPath).lexically_normal();
         return normalizedPath.string();
     }
 

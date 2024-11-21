@@ -1,9 +1,10 @@
+#include <fstream>
+
 #include "c_api/kuzu.h"
+#include "common/exception/io.h"
+#include "common/file_system/virtual_file_system.h"
 #include "graph_test/api_graph_test.h"
 #include "gtest/gtest.h"
-#include "common/file_system/virtual_file_system.h"
-#include "common/exception/io.h"
-#include <fstream>
 
 using namespace kuzu::main;
 using namespace kuzu::testing;
@@ -115,7 +116,8 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFiles) {
         vfs.removeFileIfExists("/tmp/test1");
     } catch (const kuzu::common::IOException& e) {
         // Expected behavior
-        EXPECT_STREQ(e.what(), "IO exception: Error: Path /tmp/test1 is not within the allowed home directory /tmp/dbHome/");
+        EXPECT_STREQ(e.what(), "IO exception: Error: Path /tmp/test1 is not within the allowed "
+                               "home directory /tmp/dbHome/");
     }
 
     vfs.removeFileIfExists("/tmp/dbHome/test1");
@@ -140,7 +142,8 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWithHome) {
         vfs.removeFileIfExists("~/tmp/test1");
     } catch (const kuzu::common::IOException& e) {
         // Expected behavior
-        EXPECT_STREQ(e.what(), "IO exception: Error: Path ~/tmp/test1 is not within the allowed home directory ~/tmp/dbHome/");
+        EXPECT_STREQ(e.what(), "IO exception: Error: Path ~/tmp/test1 is not within the allowed "
+                               "home directory ~/tmp/dbHome/");
     }
 
     // Attempt to delete files outside the home directory (should error)
@@ -148,7 +151,8 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWithHome) {
         vfs.removeFileIfExists("~");
     } catch (const kuzu::common::IOException& e) {
         // Expected behavior
-        EXPECT_STREQ(e.what(), "IO exception: Error: Path ~ is not within the allowed home directory ~/tmp/dbHome/");
+        EXPECT_STREQ(e.what(),
+            "IO exception: Error: Path ~ is not within the allowed home directory ~/tmp/dbHome/");
     }
 
     vfs.removeFileIfExists("~/tmp/dbHome/test1");
@@ -174,42 +178,48 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesEdgeCases) {
         vfs.removeFileIfExists("/tmp/dbHome/../test2");
     } catch (const kuzu::common::IOException& e) {
         // Expected behavior
-        EXPECT_STREQ(e.what(), "IO exception: Error: Path /tmp/dbHome/../test2 is not within the allowed home directory /tmp/dbHome/");
+        EXPECT_STREQ(e.what(), "IO exception: Error: Path /tmp/dbHome/../test2 is not within the "
+                               "allowed home directory /tmp/dbHome/");
     }
 
     try {
         vfs.removeFileIfExists("/tmp");
     } catch (const kuzu::common::IOException& e) {
         // Expected behavior
-        EXPECT_STREQ(e.what(), "IO exception: Error: Path /tmp is not within the allowed home directory /tmp/dbHome/");
+        EXPECT_STREQ(e.what(),
+            "IO exception: Error: Path /tmp is not within the allowed home directory /tmp/dbHome/");
     }
 
     try {
         vfs.removeFileIfExists("/tmp/");
     } catch (const kuzu::common::IOException& e) {
         // Expected behavior
-        EXPECT_STREQ(e.what(), "IO exception: Error: Path /tmp/ is not within the allowed home directory /tmp/dbHome/");
+        EXPECT_STREQ(e.what(), "IO exception: Error: Path /tmp/ is not within the allowed home "
+                               "directory /tmp/dbHome/");
     }
 
     try {
         vfs.removeFileIfExists("/tmp//////////////////");
     } catch (const kuzu::common::IOException& e) {
         // Expected behavior
-        EXPECT_STREQ(e.what(), "IO exception: Error: Path /tmp////////////////// is not within the allowed home directory /tmp/dbHome/");
+        EXPECT_STREQ(e.what(), "IO exception: Error: Path /tmp////////////////// is not within the "
+                               "allowed home directory /tmp/dbHome/");
     }
 
     try {
         vfs.removeFileIfExists("/tmp/./.././");
     } catch (const kuzu::common::IOException& e) {
         // Expected behavior
-        EXPECT_STREQ(e.what(), "IO exception: Error: Path /tmp/./.././ is not within the allowed home directory /tmp/dbHome/");
+        EXPECT_STREQ(e.what(), "IO exception: Error: Path /tmp/./.././ is not within the allowed "
+                               "home directory /tmp/dbHome/");
     }
 
     try {
         vfs.removeFileIfExists("/");
     } catch (const kuzu::common::IOException& e) {
         // Expected behavior
-        EXPECT_STREQ(e.what(), "IO exception: Error: Path / is not within the allowed home directory /tmp/dbHome/");
+        EXPECT_STREQ(e.what(),
+            "IO exception: Error: Path / is not within the allowed home directory /tmp/dbHome/");
     }
 
     vfs.removeFileIfExists("/tmp/dbHome/test2");
@@ -240,7 +250,8 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWindowsPaths) {
         vfs.removeFileIfExists("C:\\test1");
         FAIL() << "Expected exception for path outside home directory.";
     } catch (const kuzu::common::IOException& e) {
-        EXPECT_STREQ(e.what(), "IO exception: Error: Path C:\\test1 is not within the allowed home directory C:\\Desktop\\dir");
+        EXPECT_STREQ(e.what(), "IO exception: Error: Path C:\\test1 is not within the allowed home "
+                               "directory C:\\Desktop\\dir");
     }
 
     // Attempt to delete file inside the home directory with mixed separators (should succeed)

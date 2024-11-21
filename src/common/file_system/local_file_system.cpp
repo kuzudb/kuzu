@@ -222,7 +222,7 @@ void LocalFileSystem::createDir(const std::string& dir) const {
         auto directoryToCreate = dir;
         if (directoryToCreate.ends_with('/')
 #if defined(_WIN32)
-        || directoryToCreate.ends_with('\\')
+            || directoryToCreate.ends_with('\\')
 #endif
         ) {
             // This is a known issue with std::filesystem::create_directories. (link:
@@ -261,7 +261,7 @@ bool isSubdirectory(const std::filesystem::path& base, const std::filesystem::pa
         // Size check for a "." result.
         // If the path starts with "..", it's not a subdirectory.
         return !relative.empty() && !(relative.starts_with(".."));
-        
+
     } catch (const std::filesystem::filesystem_error& e) {
         // Handle errors, e.g., if paths don't exist
         std::cerr << "Filesystem error: " << e.what() << std::endl;
@@ -270,7 +270,6 @@ bool isSubdirectory(const std::filesystem::path& base, const std::filesystem::pa
 
     return false;
 }
-
 
 void LocalFileSystem::removeFileIfExists(const std::string& path) {
     if (!fileOrPathExists(path)) {
