@@ -180,12 +180,11 @@ jobs:
         run: make javatest
 
       - name: Rust test with pre-built library
-        working-directory: tools/rust_api
         env:
           KUZU_SHARED: 1
           KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
           KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
-        run: cargo test --profile=relwithdebinfo --locked --features arrow -- --test-threads=12
+        run: make rusttest
 
   gcc-build-test-in-mem-vector-size:
     name: gcc build & test in-mem only with various vector size
@@ -316,8 +315,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Rust test
-        working-directory: tools/rust_api
-        run: cargo test --profile=relwithdebinfo --locked --features arrow -- --test-threads=12
+        run: make rusttest
 
       - name: Rust example
         working-directory: examples/rust
@@ -420,12 +418,11 @@ jobs:
         run: make javatest
 
       - name: Rust test with pre-built library
-        working-directory: tools/rust_api
         env:
           KUZU_SHARED: 1
           KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
           KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
-        run: cargo test --profile=relwithdebinfo --locked --features arrow -- --test-threads=12
+        run: make rusttest
 
   clang-build-test-various-page-sizes:
     strategy:
@@ -555,12 +552,9 @@ jobs:
 
       - name: Rust test
         shell: cmd
-        working-directory: tools/rust_api
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          set CFLAGS=/MD
-          set CXXFLAGS=/MD /std:c++20
-          cargo test --profile=relwithdebinfo --locked -- --test-threads=12
+          make rusttest
 
       - name: Java test
         shell: cmd
@@ -569,7 +563,6 @@ jobs:
           make javatest
 
       - name: Rust test with pre-built library
-        working-directory: tools/rust_api
         env:
           KUZU_SHARED: 1
           KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
@@ -578,7 +571,7 @@ jobs:
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           set PATH=%PATH%;${{ github.workspace }}/build/release/src
-          cargo test --profile=relwithdebinfo --locked --features arrow -- --test-threads=12
+          make rusttest
 
   sanity-checks:
     name: sanity checks
