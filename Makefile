@@ -137,17 +137,6 @@ python:
 python-debug:
 	$(call run-cmake-debug, -DBUILD_PYTHON=TRUE)
 
-rust:
-ifeq ($(OS),Windows_NT)
-	set CFLAGS=/MDd
-	set CXXFLAGS=/MDd /std:c++20 /Zc:__cplusplus
-	set CARGO_BUILD_JOBS=$(NUM_THREADS)
-else
-	export CARGO_BUILD_JOBS=$(NUM_THREADS)
-endif
-	cd tools/rust_api && cargo build --all-features
-
-
 # Language API tests
 javatest:
 ifeq ($(OS),Windows_NT)
@@ -167,9 +156,17 @@ pytest: python
 pytest-debug: python-debug
 	cmake -E env PYTHONPATH=tools/python_api/build python3 -m pytest -vv tools/python_api/test
 
-rusttest: rust
+rusttest:
+ifeq ($(OS),Windows_NT)
+	set CARGO_BUILD_JOBS=$(NUM_THREADS)
+else
+	export CARGO_BUILD_JOBS=$(NUM_THREADS)
+endif
+	export CARGO_BUILD_JOBS=$(NUM_THREADS)
+	# Note that the number of test threads has a hard limit (unlike with ctest)
+	# since they are all run in the same process and most tests create a database
+	# (requiring mmapping 8TB of virtual memory). This quickly exhausts the process' virtual memory.
 	cd tools/rust_api && cargo test --profile=relwithdebinfo --locked --all-features -- --test-threads=12
-
 
 wasmtest:
 	mkdir -p build/wasm && cd build/wasm &&\

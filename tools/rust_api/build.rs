@@ -10,11 +10,7 @@ fn link_mode() -> &'static str {
 }
 
 fn get_target() -> String {
-    if cfg!(windows) && std::env::var("CXXFLAGS").is_err() {
-        "release".to_string()
-    } else {
-        env::var("PROFILE").unwrap()
-    }
+    env::var("PROFILE").unwrap()
 }
 
 fn link_libraries() {
