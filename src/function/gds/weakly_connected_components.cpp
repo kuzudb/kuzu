@@ -69,8 +69,8 @@ private:
 class WCCVertexCompute : public VertexCompute {
 public:
     WCCVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState,
-        const WCCFrontierPair* frontierPair)
-        : mm{mm}, sharedState{sharedState}, frontierPair{frontierPair}, outputWriter{mm} {
+        const RJCompState& compState)
+        : mm{mm}, sharedState{sharedState}, compState{compState}, outputWriter{mm} {
         localFT = sharedState->claimLocalTable(mm);
     }
     ~WCCVertexCompute() override { sharedState->returnLocalTable(localFT); }
@@ -78,18 +78,19 @@ public:
     bool beginOnTable(common::table_id_t) override { return true; }
 
     void vertexCompute(common::nodeID_t curNodeID) override {
+        const auto& frontierPair = compState.frontierPair->ptrCast<WCCFrontierPair>();
         auto id = frontierPair->getComponentID(curNodeID);
         outputWriter.materialize(curNodeID, id, *localFT);
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<WCCVertexCompute>(mm, sharedState, frontierPair);
+        return std::make_unique<WCCVertexCompute>(mm, sharedState, compState);
     }
 
 private:
     storage::MemoryManager* mm;
     processor::GDSCallSharedState* sharedState;
-    const WCCFrontierPair* frontierPair;
+    const RJCompState& compState;
     WCCOutputWriter outputWriter;
     processor::FactorizedTable* localFT;
 };
@@ -144,11 +145,11 @@ public:
         // algorithms can also use RunUntilConvergence. A solution could be to have a general
         // CompState class which RJCompState derives from.
         auto computeState =
-            RJCompState(frontierPair.get(), std::move(edgeCompute), nullptr, nullptr);
+            RJCompState(std::move(frontierPair), std::move(edgeCompute), nullptr, nullptr);
         GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::FWD,
             10);
         auto vertexCompute = std::make_unique<WCCVertexCompute>(clientContext->getMemoryManager(),
-            sharedState.get(), frontierPair.get());
+            sharedState.get(), computeState);
         GDSUtils::runVertexComputeIteration(context, sharedState->graph.get(), *vertexCompute);
         sharedState->mergeLocalTables();
     }

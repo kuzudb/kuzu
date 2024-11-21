@@ -60,15 +60,15 @@ struct RJBindData final : public GDSBindData {
 // Wrapper around the data that needs to be stored during the computation of a recursive joins
 // computation from one source. Also contains several initialization functions.
 struct RJCompState {
-    FrontierPair* frontierPair;
+    std::unique_ptr<function::FrontierPair> frontierPair;
     std::unique_ptr<function::EdgeCompute> edgeCompute;
     std::unique_ptr<RJOutputs> outputs;
     std::unique_ptr<RJOutputWriter> outputWriter;
 
-    RJCompState(FrontierPair* frontierPair,
+    RJCompState(std::unique_ptr<function::FrontierPair> frontierPair,
         std::unique_ptr<function::EdgeCompute> edgeCompute, std::unique_ptr<RJOutputs> outputs,
         std::unique_ptr<RJOutputWriter> outputWriter)
-        : frontierPair{frontierPair}, edgeCompute{std::move(edgeCompute)},
+        : frontierPair{std::move(frontierPair)}, edgeCompute{std::move(edgeCompute)},
           outputs{std::move(outputs)}, outputWriter{std::move(outputWriter)} {}
 
     void initSource(common::nodeID_t sourceNodeID) const {
