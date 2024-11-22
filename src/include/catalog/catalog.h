@@ -126,6 +126,7 @@ public:
         std::string indexName) const;
     bool containsIndex(const transaction::Transaction* transaction, common::table_id_t tableID,
         std::string indexName) const;
+    void dropAllIndexes(transaction::Transaction* transaction, common::table_id_t tableID);
     void dropIndex(transaction::Transaction* transaction, common::table_id_t tableID,
         std::string indexName) const;
 

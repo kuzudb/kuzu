@@ -202,6 +202,7 @@ table_id_t Catalog::createTableSchema(Transaction* transaction, const BoundCreat
 
 void Catalog::dropTableEntry(Transaction* transaction, const std::string& name) {
     const auto tableID = getTableID(transaction, name);
+    dropAllIndexes(transaction, tableID);
     dropTableEntry(transaction, tableID);
 }
 
@@ -228,6 +229,23 @@ void Catalog::dropTableEntry(Transaction* transaction, table_id_t tableID) {
 }
 
 void Catalog::alterTableEntry(Transaction* transaction, const BoundAlterInfo& info) {
+    auto& tableEntry =
+        tables->getEntry(transaction, info.tableName)->constCast<TableCatalogEntry>();
+    switch (info.alterType) {
+    case AlterType::DROP_PROPERTY: {
+        auto dropPropertyInfo = info.extraInfo->constCast<BoundExtraDropPropertyInfo>();
+        auto columnID = tableEntry.getColumnID(dropPropertyInfo.propertyName);
+        for (auto& [name, catalogEntry] : indexes->getEntries(transaction)) {
+            auto& indexCatalogEntry = catalogEntry->constCast<IndexCatalogEntry>();
+            if (indexCatalogEntry.getTableID() == tableEntry.getTableID() &&
+                indexCatalogEntry.indexOnColumn(columnID)) {
+
+            }
+        }
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
     tables->alterEntry(transaction, info);
 }
 
@@ -318,6 +336,15 @@ IndexCatalogEntry* Catalog::getIndex(const Transaction* transaction, common::tab
 bool Catalog::containsIndex(const transaction::Transaction* transaction, common::table_id_t tableID,
     std::string indexName) const {
     return indexes->containsEntry(transaction, common::stringFormat("{}_{}", tableID, indexName));
+}
+
+void Catalog::dropAllIndexes(transaction::Transaction* transaction, common::table_id_t tableID) {
+    for (auto catalogEntry : indexes->getEntries(transaction)) {
+        auto& indexCatalogEntry = catalogEntry.second->constCast<IndexCatalogEntry>();
+        if (indexCatalogEntry.getTableID() == tableID) {
+            indexes->dropEntry(transaction, catalogEntry.first, catalogEntry.second->getOID());
+        }
+    }
 }
 
 void Catalog::dropIndex(transaction::Transaction* transaction, common::table_id_t tableID,
