@@ -517,7 +517,9 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
         return queryResultWithError(e.what());
     }
 
-    if (this->transactionContext->isAutoTransaction()) {
+    if (this->transactionContext->isAutoTransaction() &&
+        this->transactionContext->hasActiveTransaction() &&
+        this->transactionContext->getActiveTransaction()->isWriteTransaction()) {
         try {
             this->transactionContext->autoCheckpointIfNeeded();
         } catch (std::exception& e) {
