@@ -495,6 +495,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     auto executingTimer = TimeMetric(true /* enable */);
     executingTimer.start();
     std::shared_ptr<FactorizedTable> resultFT;
+    bool shouldCheckpoint = false;
     try {
         if (preparedStatement->isTransactionStatement()) {
             resultFT =
@@ -505,6 +506,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
                 localDatabase->queryProcessor->execute(physicalPlan.get(), executionContext.get());
             if (this->transactionContext->isAutoTransaction()) {
                 this->transactionContext->commit(true);
+                shouldCheckpoint = true;
             }
         }
     } catch (std::exception& e) {
@@ -515,9 +517,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
         return queryResultWithError(e.what());
     }
 
-    if (this->transactionContext->isAutoTransaction() &&
-        this->transactionContext->hasActiveTransaction() &&
-        this->transactionContext->getActiveTransaction()->isWriteTransaction()) {
+    if (shouldCheckpoint) {
         try {
             this->transactionContext->autoCheckpointIfNeeded();
         } catch (std::exception& e) {
