@@ -13,6 +13,7 @@
 #include "main/db_config.h"
 #include "optimizer/optimizer.h"
 #include "parser/parser.h"
+#include "parser/visitor/standalone_call_rewriter.h"
 #include "parser/visitor/statement_read_write_analyzer.h"
 #include "planner/operator/logical_plan_util.h"
 #include "planner/planner.h"
@@ -325,7 +326,8 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
             throw ConnectionException("COPY FROM is only supported in auto transaction mode.");
         }
         if (parsedStatement->requireTx()) {
-            if (transactionContext->isAutoTransaction()) {
+            if (!transactionContext->hasActiveTransaction() &&
+                transactionContext->isAutoTransaction()) {
                 transactionContext->beginAutoTransaction(preparedStatement->readOnly);
             } else {
                 transactionContext->validateManualTransaction(preparedStatement->readOnly);
@@ -390,7 +392,18 @@ std::vector<std::shared_ptr<Statement>> ClientContext::parseQuery(std::string_vi
         transactionContext->beginAutoTransaction(true /* readOnlyStatement */);
     }
     try {
-        statements = Parser::parseQuery(query, this);
+        auto parsedStatements = Parser::parseQuery(query, this);
+        StandaloneCallRewriter standaloneCallAnalyzer{this};
+        for (auto i = 0u; i < parsedStatements.size(); i++) {
+            auto rewriteQuery = standaloneCallAnalyzer.getRewriteQuery(*parsedStatements[i]);
+            if (!rewriteQuery.empty()) {
+                auto rewrittenStatements = Parser::parseQuery(rewriteQuery, this);
+                for (auto& statement : rewrittenStatements) {
+                    statements.push_back(statement);
+                }
+            }
+            statements.push_back(parsedStatements[i]);
+        }
     } catch (std::exception& exception) {
         if (startNewTrx) {
             transactionContext->rollback();

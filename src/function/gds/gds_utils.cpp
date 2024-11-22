@@ -13,14 +13,24 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace function {
 
-static void scheduleFrontierTask(table_id_t relTableID, graph::Graph* graph,
-    ExtendDirection extendDirection, RJCompState& rjCompState,
-    processor::ExecutionContext* context) {
+GDSComputeState::GDSComputeState(std::unique_ptr<function::FrontierPair> frontierPair,
+    std::unique_ptr<function::EdgeCompute> edgeCompute)
+    : frontierPair{std::move(frontierPair)}, edgeCompute{std::move(edgeCompute)} {}
+
+GDSComputeState::~GDSComputeState() = default;
+
+void GDSUtils::scheduleFrontierTask(table_id_t relTableID, graph::Graph* graph,
+    ExtendDirection extendDirection, GDSComputeState& gdsComputeState,
+    processor::ExecutionContext* context, std::optional<uint64_t> numThreads,
+    std::optional<common::idx_t> edgePropertyIdx) {
     auto clientContext = context->clientContext;
-    auto info = FrontierTaskInfo(relTableID, graph, extendDirection, *rjCompState.edgeCompute);
-    auto sharedState = std::make_shared<FrontierTaskSharedState>(*rjCompState.frontierPair);
-    auto maxThreads =
-        clientContext->getCurrentSetting(main::ThreadsSetting::name).getValue<uint64_t>();
+    auto info = FrontierTaskInfo(relTableID, graph, extendDirection, *gdsComputeState.edgeCompute,
+        edgePropertyIdx);
+    auto sharedState = std::make_shared<FrontierTaskSharedState>(*gdsComputeState.frontierPair);
+    uint64_t maxThreads =
+        numThreads ?
+            numThreads.value() :
+            clientContext->getCurrentSetting(main::ThreadsSetting::name).getValue<uint64_t>();
     auto task = std::make_shared<FrontierTask>(maxThreads, info, sharedState);
     // GDSUtils::runFrontiersUntilConvergence is called from a GDSCall operator, which is
     // already executed by a worker thread Tm of the task scheduler. So this function is
@@ -76,22 +86,30 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
     }
 }
 
+void GDSUtils::runVertexComputeOnTable(common::table_id_t tableID, graph::Graph* graph,
+    std::shared_ptr<VertexComputeTaskSharedState> sharedState, const VertexComputeTaskInfo& info,
+    processor::ExecutionContext& context) {
+    auto maxThreads =
+        context.clientContext->getCurrentSetting(main::ThreadsSetting::name).getValue<uint64_t>();
+    sharedState->morselDispatcher.init(tableID,
+        graph->getNumNodes(context.clientContext->getTx(), tableID));
+    auto task = std::make_shared<VertexComputeTask>(maxThreads, info, sharedState);
+    context.clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, &context,
+        true /* launchNewWorkerThread */);
+}
+
 void GDSUtils::runVertexComputeIteration(processor::ExecutionContext* executionContext,
-    graph::Graph* graph, VertexCompute& vc) {
+    graph::Graph* graph, VertexCompute& vc, std::vector<std::string> propertiesToScan) {
     auto clientContext = executionContext->clientContext;
     auto maxThreads =
         clientContext->getCurrentSetting(main::ThreadsSetting::name).getValue<uint64_t>();
-    auto info = VertexComputeTaskInfo(vc);
+    auto info = VertexComputeTaskInfo(vc, propertiesToScan);
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads, graph);
     for (auto& tableID : graph->getNodeTableIDs()) {
         if (!vc.beginOnTable(tableID)) {
             continue;
         }
-        auto numNodes = graph->getNumNodes(clientContext->getTx(), tableID);
-        sharedState->morselDispatcher.init(tableID, numNodes);
-        auto task = std::make_shared<VertexComputeTask>(maxThreads, info, sharedState);
-        clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, executionContext,
-            true /* launchNewWorkerThread */);
+        runVertexComputeOnTable(tableID, graph, sharedState, info, *executionContext);
     }
 }
 

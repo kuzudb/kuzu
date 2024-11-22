@@ -47,8 +47,8 @@ struct CallTableFuncBindData : TableFuncBindData {
 
 struct StandaloneTableFuncBindData : public CallTableFuncBindData {
     StandaloneTableFuncBindData()
-        : CallTableFuncBindData{std::vector<common::LogicalType>{}, std::vector<std::string>{}, 1} {
-    }
+        : CallTableFuncBindData{std::vector<common::LogicalType>{}, std::vector<std::string>{},
+              0 /* maxOffset */} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<StandaloneTableFuncBindData>();

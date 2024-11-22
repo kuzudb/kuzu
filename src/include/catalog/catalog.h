@@ -43,6 +43,7 @@ class RelTableCatalogEntry;
 class RelGroupCatalogEntry;
 class FunctionCatalogEntry;
 class SequenceCatalogEntry;
+class IndexCatalogEntry;
 
 class KUZU_API Catalog {
     friend class main::AttachedKuzuDatabase;
@@ -117,6 +118,16 @@ public:
     common::LogicalType getType(const transaction::Transaction*, const std::string& name) const;
     bool containsType(const transaction::Transaction* transaction,
         const std::string& typeName) const;
+
+    // ----------------------------- Indexes ----------------------------
+    void createIndex(transaction::Transaction* transaction,
+        std::unique_ptr<IndexCatalogEntry> indexCatalogEntry);
+    IndexCatalogEntry* getIndex(const transaction::Transaction*, common::table_id_t tableID,
+        std::string indexName) const;
+    bool containsIndex(const transaction::Transaction* transaction, common::table_id_t tableID,
+        std::string indexName) const;
+    void dropIndex(transaction::Transaction* transaction, common::table_id_t tableID,
+        std::string indexName) const;
 
     // ----------------------------- Functions ----------------------------
     void addFunction(transaction::Transaction* transaction, CatalogEntryType entryType,
@@ -193,6 +204,7 @@ private:
     std::unique_ptr<CatalogSet> sequences;
     std::unique_ptr<CatalogSet> functions;
     std::unique_ptr<CatalogSet> types;
+    std::unique_ptr<CatalogSet> indexes;
 };
 
 } // namespace catalog

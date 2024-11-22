@@ -1,6 +1,7 @@
 #include "common/types/types.h"
 
 #include "catalog/catalog.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/cast.h"
 #include "common/constants.h"
 #include "common/exception/binder.h"
@@ -180,6 +181,16 @@ struct_field_idx_t StructType::getFieldIdx(const LogicalType& type, const std::s
     KU_ASSERT(type.getPhysicalType() == PhysicalTypeID::STRUCT);
     auto structTypeInfo = type.extraTypeInfo->constPtrCast<StructTypeInfo>();
     return structTypeInfo->getStructFieldIdx(key);
+}
+
+LogicalType StructType::getNodeType(const catalog::NodeTableCatalogEntry& entry) {
+    std::vector<StructField> nodeFields;
+    nodeFields.emplace_back(InternalKeyword::ID, LogicalType::INTERNAL_ID());
+    nodeFields.emplace_back(InternalKeyword::LABEL, LogicalType::STRING());
+    for (auto& property : entry.getProperties()) {
+        nodeFields.emplace_back(property.getName(), property.getType().copy());
+    }
+    return LogicalType::NODE(std::make_unique<StructTypeInfo>(std::move(nodeFields)));
 }
 
 const LogicalType& MapType::getKeyType(const LogicalType& type) {

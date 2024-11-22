@@ -86,7 +86,7 @@ private:
     common::offset_t nextOffset = common::INVALID_OFFSET;
 };
 
-class FrontierMorselDispatcher {
+class KUZU_API FrontierMorselDispatcher {
     static constexpr uint64_t MIN_FRONTIER_MORSEL_SIZE = 512;
     // Note: MIN_NUMBER_OF_FRONTIER_MORSELS is the minimum number of morsels we aim to have but we
     // can have fewer than this. See the beginFrontierComputeBetweenTables to see the actual
@@ -167,7 +167,7 @@ protected:
  *
  * However, this is not necessary and the caller can also use this to represent a single frontier.
  */
-class PathLengths : public GDSFrontier {
+class KUZU_API PathLengths : public GDSFrontier {
     friend class SingleSPDestinationsEdgeCompute;
     using frontier_entry_t = std::atomic<uint16_t>;
 
@@ -242,7 +242,7 @@ private:
  *
  * All functions supported in this base interface are thread-safe.
  */
-class FrontierPair {
+class KUZU_API FrontierPair {
     friend class FrontierTask;
 
 public:
@@ -305,7 +305,7 @@ private:
     std::shared_ptr<PathLengths> pathLengths;
 };
 
-class DoublePathLengthsFrontierPair : public FrontierPair {
+class KUZU_API DoublePathLengthsFrontierPair : public FrontierPair {
 public:
     DoublePathLengthsFrontierPair(std::shared_ptr<PathLengths> curFrontier,
         std::shared_ptr<PathLengths> nextFrontier, uint64_t maxThreadsForExec)

@@ -1,0 +1,28 @@
+-DATASET CSV empty
+
+--
+
+-CASE stem_function
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
+---- ok
+-STATEMENT RETURN STEM('knows', 'english')
+---- 1
+know
+-STATEMENT RETURN STEM('knows', 'arabic')
+---- 1
+knows
+-STATEMENT RETURN STEM('knows', 'none')
+---- 1
+knows
+-STATEMENT RETURN STEM('knows', 'wrong')
+---- error
+Runtime exception: Unrecognized stemmer 'wrong'. Supported stemmers are: ['arabic, basque, catalan, danish, dutch, english, finnish, french, german, greek, hindi, hungarian, indonesian, irish, italian, lithuanian, nepali, norwegian, porter, portuguese, romanian, russian, serbian, spanish, swedish, tamil, turkish'], or use 'none' for no stemming.
+-STATEMENT RETURN STEM('中文', 'english')
+---- 1
+中文
+-STATEMENT RETURN STEM('中文', 'none')
+---- 1
+中文
+-STATEMENT RETURN STEM('kitaplar', 'turkish')
+---- 1
+kitap

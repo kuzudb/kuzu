@@ -90,6 +90,9 @@ public:
     std::vector<common::table_id_t> getTableIDs() const { return nodeTableIDs; }
 
     binder::expression_vector getProperties() const { return properties; }
+    void addProperty(std::shared_ptr<binder::Expression> expr) {
+        properties.push_back(std::move(expr));
+    }
     void setPropertyPredicates(std::vector<storage::ColumnPredicateSet> predicates) {
         propertyPredicates = std::move(predicates);
     }

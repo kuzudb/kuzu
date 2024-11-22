@@ -13,13 +13,16 @@ struct FrontierTaskInfo {
     graph::Graph* graph;
     common::ExtendDirection direction;
     EdgeCompute& edgeCompute;
+    std::optional<common::idx_t> edgePropertyIdx;
 
     FrontierTaskInfo(common::table_id_t tableID, graph::Graph* graph,
-        common::ExtendDirection direction, EdgeCompute& edgeCompute)
-        : relTableIDToScan{tableID}, graph{graph}, direction{direction}, edgeCompute{edgeCompute} {}
+        common::ExtendDirection direction, EdgeCompute& edgeCompute,
+        std::optional<common::idx_t> edgePropertyIdx)
+        : relTableIDToScan{tableID}, graph{graph}, direction{direction}, edgeCompute{edgeCompute},
+          edgePropertyIdx{edgePropertyIdx} {}
     FrontierTaskInfo(const FrontierTaskInfo& other)
         : relTableIDToScan{other.relTableIDToScan}, graph{other.graph}, direction{other.direction},
-          edgeCompute{other.edgeCompute} {}
+          edgeCompute{other.edgeCompute}, edgePropertyIdx{other.edgePropertyIdx} {}
 };
 
 struct FrontierTaskSharedState {
@@ -52,9 +55,12 @@ struct VertexComputeTaskSharedState {
 
 struct VertexComputeTaskInfo {
     VertexCompute& vc;
+    std::vector<std::string> propertiesToScan;
 
-    explicit VertexComputeTaskInfo(VertexCompute& vc) : vc{vc} {}
-    VertexComputeTaskInfo(const VertexComputeTaskInfo& other) : vc{other.vc} {}
+    explicit VertexComputeTaskInfo(VertexCompute& vc, std::vector<std::string> propertiesToScan)
+        : vc{vc}, propertiesToScan{std::move(propertiesToScan)} {}
+    VertexComputeTaskInfo(const VertexComputeTaskInfo& other)
+        : vc{other.vc}, propertiesToScan{other.propertiesToScan} {}
 };
 
 class VertexComputeTask : public common::Task {

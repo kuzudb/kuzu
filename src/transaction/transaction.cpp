@@ -140,8 +140,9 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
             const auto sequenceCatalogEntry = catalogEntry.constPtrCast<SequenceCatalogEntry>();
             wal->logDropCatalogEntryRecord(sequenceCatalogEntry->getOID(), catalogEntry.getType());
         } break;
+        case CatalogEntryType::INDEX_ENTRY:
         case CatalogEntryType::SCALAR_FUNCTION_ENTRY: {
-            // DO NOTHING. We don't persistent function entries.
+            // DO NOTHING. We don't persistent index/function entries.
         } break;
         case CatalogEntryType::SCALAR_MACRO_ENTRY:
         case CatalogEntryType::TYPE_ENTRY:
@@ -152,8 +153,9 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
         }
         }
     } break;
-    case CatalogEntryType::SCALAR_FUNCTION_ENTRY: {
-        // DO NOTHING. We don't persistent function entries.
+    case CatalogEntryType::SCALAR_FUNCTION_ENTRY:
+    case CatalogEntryType::INDEX_ENTRY: {
+        // DO NOTHING. We don't persistent function/index entries.
     } break;
     default: {
         throw common::RuntimeException(

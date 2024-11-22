@@ -36,6 +36,8 @@ void TableFunctionCall::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
         localState.funcOutput.dataChunk = DataChunk(info.outPosV.size(), state);
         for (auto i = 0u; i < info.outPosV.size(); ++i) {
             localState.funcOutput.dataChunk.insert(i, resultSet->getValueVector(info.outPosV[i]));
+            localState.funcOutput.vectors.push_back(
+                resultSet->getValueVector(info.outPosV[i]).get());
         }
     } break;
     case TableScanOutputType::MULTI_DATA_CHUNK: {
@@ -51,7 +53,7 @@ void TableFunctionCall::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
     localState.funcState = info.function.initLocalStateFunc(tableFunctionInitInput,
         sharedState->funcState.get(), context->clientContext->getMemoryManager());
     localState.funcInput = function::TableFuncInput{info.bindData.get(), localState.funcState.get(),
-        sharedState->funcState.get(), context->clientContext};
+        sharedState->funcState.get(), context};
 }
 
 void TableFunctionCall::initGlobalStateInternal(ExecutionContext* ctx) {
