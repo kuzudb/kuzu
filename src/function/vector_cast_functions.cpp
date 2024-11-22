@@ -57,23 +57,23 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
         } else if (inputType->getLogicalTypeID() == LogicalTypeID::STRUCT &&
                    resultType->getLogicalTypeID() == LogicalTypeID::STRUCT) {
             // check if struct type can be cast
-            auto errorMsg = stringFormat("Unsupported casting function from {} to {}.",
-                inputType->toString(), resultType->toString());
-            // check if two struct has the same
-            if (StructType::getNumFields(*inputType) != StructType::getNumFields(*resultType)) {
-                throw ConversionException{errorMsg};
-            }
+            // auto errorMsg = stringFormat("Unsupported casting function from {} to {}.",
+            //     inputType->toString(), resultType->toString());
+            // // check if two struct has the same
+            // if (StructType::getNumFields(*inputType) != StructType::getNumFields(*resultType)) {
+            //     throw ConversionException{errorMsg};
+            // }
 
-            auto inputTypes = StructType::getFieldTypes(*inputType);
-            auto resultTypes = StructType::getFieldTypes(*resultType);
+            // auto inputTypes = StructType::getFieldTypes(*inputType);
+            // auto resultTypes = StructType::getFieldTypes(*resultType);
 
-            for (auto i = 0u; i < inputTypes.size(); i++) {
-                LogicalTypeID srcType = inputTypes[i]->getLogicalTypeID();
-                LogicalTypeID dstType = resultTypes[i]->getLogicalTypeID();
-                if (BuiltInFunctionsUtils::getCastCost(srcType, dstType) == UNDEFINED_CAST_COST) {
-                    throw ConversionException{errorMsg};
-                }
-            }
+            // for (auto i = 0u; i < inputTypes.size(); i++) {
+            //     LogicalTypeID srcType = inputTypes[i]->getLogicalTypeID();
+            //     LogicalTypeID dstType = resultTypes[i]->getLogicalTypeID();
+            //     if (BuiltInFunctionsUtils::getCastCost(srcType, dstType) == UNDEFINED_CAST_COST) {
+            //         throw ConversionException{errorMsg};
+            //     }
+            // }
             
             // copy data and nullmask from input
             memcpy(resultVector->getData(), inputVector->getData(),
