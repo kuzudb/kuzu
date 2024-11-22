@@ -1,4 +1,4 @@
-#include "function/fts.h"
+#include "function/query_fts_gds.h"
 
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
@@ -22,7 +22,7 @@ namespace fts_extension {
 
 using namespace function;
 
-struct FTSGDSBindData final : public function::GDSBindData {
+struct QFTSGDSBindData final : public function::GDSBindData {
     std::shared_ptr<binder::Expression> terms;
     // k: parameter controls the influence of term frequency saturation. It limits the effect of
     // additional occurrences of a term within a document.
@@ -33,12 +33,12 @@ struct FTSGDSBindData final : public function::GDSBindData {
     uint64_t numDocs;
     double_t avgDocLen;
 
-    FTSGDSBindData(std::shared_ptr<binder::Expression> terms,
+    QFTSGDSBindData(std::shared_ptr<binder::Expression> terms,
         std::shared_ptr<binder::Expression> docs, double_t k, double_t b, uint64_t numDocs,
         double_t avgDocLen)
         : GDSBindData{std::move(docs)}, terms{std::move(terms)}, k{k}, b{b}, numDocs{numDocs},
           avgDocLen{avgDocLen} {}
-    FTSGDSBindData(const FTSGDSBindData& other)
+    QFTSGDSBindData(const QFTSGDSBindData& other)
         : GDSBindData{other}, terms{other.terms}, k{other.k}, b{other.b}, numDocs{other.numDocs},
           avgDocLen{other.avgDocLen} {}
 
@@ -46,7 +46,7 @@ struct FTSGDSBindData final : public function::GDSBindData {
     std::shared_ptr<binder::Expression> getNodeInput() const override { return terms; }
 
     std::unique_ptr<GDSBindData> copy() const override {
-        return std::make_unique<FTSGDSBindData>(*this);
+        return std::make_unique<QFTSGDSBindData>(*this);
     }
 };
 
@@ -66,12 +66,12 @@ struct ScoreInfo {
     void addEdge(uint64_t df, uint64_t tf) { scoreData.emplace_back(df, tf); }
 };
 
-struct FTSEdgeCompute : public EdgeCompute {
+struct QFTSEdgeCompute : public EdgeCompute {
     DoublePathLengthsFrontierPair* termsFrontier;
     common::node_id_map_t<ScoreInfo>* scores;
     common::node_id_map_t<uint64_t>* dfs;
 
-    FTSEdgeCompute(DoublePathLengthsFrontierPair* termsFrontier,
+    QFTSEdgeCompute(DoublePathLengthsFrontierPair* termsFrontier,
         common::node_id_map_t<ScoreInfo>* scores, common::node_id_map_t<uint64_t>* dfs)
         : termsFrontier{termsFrontier}, scores{scores}, dfs{dfs} {}
 
@@ -79,11 +79,11 @@ struct FTSEdgeCompute : public EdgeCompute {
         bool) override;
 
     std::unique_ptr<EdgeCompute> copy() override {
-        return std::make_unique<FTSEdgeCompute>(termsFrontier, scores, dfs);
+        return std::make_unique<QFTSEdgeCompute>(termsFrontier, scores, dfs);
     }
 };
 
-std::vector<nodeID_t> FTSEdgeCompute::edgeCompute(nodeID_t boundNodeID,
+std::vector<nodeID_t> QFTSEdgeCompute::edgeCompute(nodeID_t boundNodeID,
     graph::NbrScanState::Chunk& resultChunk, bool) {
     KU_ASSERT(dfs->contains(boundNodeID));
     std::vector<nodeID_t> activeNodes;
@@ -98,29 +98,30 @@ std::vector<nodeID_t> FTSEdgeCompute::edgeCompute(nodeID_t boundNodeID,
     return activeNodes;
 }
 
-struct FTSOutput {
+struct QFTSOutput {
     common::node_id_map_t<ScoreInfo> scores;
 
-    FTSOutput() = default;
-    virtual ~FTSOutput() = default;
+    QFTSOutput() = default;
+    virtual ~QFTSOutput() = default;
 };
 
-struct FTSState : public function::GDSComputeState {
-    void initTerms(processor::GDSCallSharedState& sharedState, RoaringBitmapSemiMask& termsMask,
-        transaction::Transaction* tx, common::table_id_t termsTableID) const;
+struct QFTSState : public function::GDSComputeState {
+    void initFirstFrontierWithTerms(processor::GDSCallSharedState& sharedState,
+        RoaringBitmapSemiMask& termsMask, transaction::Transaction* tx,
+        common::table_id_t termsTableID) const;
 
-    FTSState(std::unique_ptr<function::FrontierPair> frontierPair,
+    QFTSState(std::unique_ptr<function::FrontierPair> frontierPair,
         std::unique_ptr<function::EdgeCompute> edgeCompute, common::table_id_t termsTableID);
 };
 
-FTSState::FTSState(std::unique_ptr<function::FrontierPair> frontierPair,
+QFTSState::QFTSState(std::unique_ptr<function::FrontierPair> frontierPair,
     std::unique_ptr<function::EdgeCompute> edgeCompute, common::table_id_t termsTableID)
     : function::GDSComputeState{std::move(frontierPair), std::move(edgeCompute)} {
-    this->frontierPair->getNextFrontierUnsafe().ptrCast<PathLengths>()->fixNextFrontierNodeTable(
+    this->frontierPair->getNextFrontierUnsafe().ptrCast<PathLengths>()->pinNextFrontierTableID(
         termsTableID);
 }
 
-void FTSState::initTerms(processor::GDSCallSharedState& sharedState,
+void QFTSState::initFirstFrontierWithTerms(processor::GDSCallSharedState& sharedState,
     RoaringBitmapSemiMask& termsMask, transaction::Transaction* tx,
     common::table_id_t termsTableID) const {
     auto termNodeID = nodeID_t{INVALID_OFFSET, termsTableID};
@@ -134,41 +135,41 @@ void FTSState::initTerms(processor::GDSCallSharedState& sharedState,
     }
 }
 
-void runFrontiersOnce(processor::ExecutionContext* executionContext, FTSState& ftsState,
+void runFrontiersOnce(processor::ExecutionContext* executionContext, QFTSState& qFtsState,
     graph::Graph* graph, common::idx_t tfPropertyIdx) {
-    auto frontierPair = ftsState.frontierPair.get();
+    auto frontierPair = qFtsState.frontierPair.get();
     frontierPair->beginNewIteration();
     auto relTableIDInfos = graph->getRelTableIDInfos();
     auto& appearsInTableInfo = relTableIDInfos[0];
     frontierPair->beginFrontierComputeBetweenTables(appearsInTableInfo.fromNodeTableID,
         appearsInTableInfo.toNodeTableID);
     GDSUtils::scheduleFrontierTask(appearsInTableInfo.relTableID, graph, ExtendDirection::FWD,
-        ftsState, executionContext, FTSAlgorithm::NUM_THREADS_FOR_EXECUTION, tfPropertyIdx);
+        qFtsState, executionContext, 1 /* numThreads */, tfPropertyIdx);
 }
 
-class FTSOutputWriter {
+class QFTSOutputWriter {
 public:
-    FTSOutputWriter(storage::MemoryManager* mm, FTSOutput* ftsOutput,
-        const FTSGDSBindData& bindData);
+    QFTSOutputWriter(storage::MemoryManager* mm, QFTSOutput* qFTSOutput,
+        const QFTSGDSBindData& bindData);
 
     void write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len);
 
-    std::unique_ptr<FTSOutputWriter> copy();
+    std::unique_ptr<QFTSOutputWriter> copy();
 
 private:
-    FTSOutput* ftsOutput;
+    QFTSOutput* qFTSOutput;
     common::ValueVector termsVector;
     common::ValueVector docsVector;
     common::ValueVector scoreVector;
     std::vector<common::ValueVector*> vectors;
     common::idx_t pos;
     storage::MemoryManager* mm;
-    const FTSGDSBindData& bindData;
+    const QFTSGDSBindData& bindData;
 };
 
-FTSOutputWriter::FTSOutputWriter(storage::MemoryManager* mm, FTSOutput* ftsOutput,
-    const FTSGDSBindData& bindData)
-    : ftsOutput{std::move(ftsOutput)}, termsVector{LogicalType::INTERNAL_ID(), mm},
+QFTSOutputWriter::QFTSOutputWriter(storage::MemoryManager* mm, QFTSOutput* qFTSOutput,
+    const QFTSGDSBindData& bindData)
+    : qFTSOutput{std::move(qFTSOutput)}, termsVector{LogicalType::INTERNAL_ID(), mm},
       docsVector{LogicalType::INTERNAL_ID(), mm}, scoreVector{LogicalType::UINT64(), mm}, mm{mm},
       bindData{bindData} {
     auto state = DataChunkState::getSingleValueDataChunkState();
@@ -181,8 +182,9 @@ FTSOutputWriter::FTSOutputWriter(storage::MemoryManager* mm, FTSOutput* ftsOutpu
     vectors.push_back(&scoreVector);
 }
 
-void FTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len) {
-    bool hasScore = ftsOutput->scores.contains(docNodeID);
+void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID,
+    uint64_t len) {
+    bool hasScore = qFTSOutput->scores.contains(docNodeID);
     termsVector.setNull(pos, !hasScore);
     docsVector.setNull(pos, !hasScore);
     scoreVector.setNull(pos, !hasScore);
@@ -190,7 +192,7 @@ void FTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNod
     auto k = bindData.k;
     auto b = bindData.b;
     if (hasScore) {
-        auto scoreInfo = ftsOutput->scores.at(docNodeID);
+        auto scoreInfo = qFTSOutput->scores.at(docNodeID);
         double score = 0;
         for (auto& scoreData : scoreInfo.scoreData) {
             auto numDocs = bindData.numDocs;
@@ -207,34 +209,34 @@ void FTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNod
     scoreFT.append(vectors);
 }
 
-std::unique_ptr<FTSOutputWriter> FTSOutputWriter::copy() {
-    return std::make_unique<FTSOutputWriter>(mm, ftsOutput, bindData);
+std::unique_ptr<QFTSOutputWriter> QFTSOutputWriter::copy() {
+    return std::make_unique<QFTSOutputWriter>(mm, qFTSOutput, bindData);
 }
 
-class FTSVertexCompute : public VertexCompute {
+class QFTSVertexCompute : public VertexCompute {
 public:
-    explicit FTSVertexCompute(storage::MemoryManager* mm,
-        processor::GDSCallSharedState* sharedState, std::unique_ptr<FTSOutputWriter> writer)
+    explicit QFTSVertexCompute(storage::MemoryManager* mm,
+        processor::GDSCallSharedState* sharedState, std::unique_ptr<QFTSOutputWriter> writer)
         : mm{mm}, sharedState{sharedState}, writer{std::move(writer)} {
         scoreFT = sharedState->claimLocalTable(mm);
     }
 
-    ~FTSVertexCompute() override { sharedState->returnLocalTable(scoreFT); }
+    ~QFTSVertexCompute() override { sharedState->returnLocalTable(scoreFT); }
 
     void vertexCompute(const graph::VertexScanState::Chunk& chunk) override;
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<FTSVertexCompute>(mm, sharedState, writer->copy());
+        return std::make_unique<QFTSVertexCompute>(mm, sharedState, writer->copy());
     }
 
 private:
     storage::MemoryManager* mm;
     processor::GDSCallSharedState* sharedState;
     processor::FactorizedTable* scoreFT;
-    std::unique_ptr<FTSOutputWriter> writer;
+    std::unique_ptr<QFTSOutputWriter> writer;
 };
 
-void FTSVertexCompute::vertexCompute(const graph::VertexScanState::Chunk& chunk) {
+void QFTSVertexCompute::vertexCompute(const graph::VertexScanState::Chunk& chunk) {
     auto docLens = chunk.getProperties<uint64_t>(0);
     for (auto i = 0u; i < chunk.getNodeIDs().size(); i++) {
         writer->write(*scoreFT, chunk.getNodeIDs()[i], docLens[i]);
@@ -247,52 +249,54 @@ void runVertexComputeIteration(processor::ExecutionContext* executionContext, gr
                           .getValue<uint64_t>();
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads, graph);
     auto docsTableID = graph->getNodeTableIDs()[1];
-    auto info = VertexComputeTaskInfo(vc, {FTSAlgorithm::DOC_LEN_PROP_NAME});
+    auto info = VertexComputeTaskInfo(vc, {QFTSAlgorithm::DOC_LEN_PROP_NAME});
     GDSUtils::runVertexComputeOnTable(docsTableID, graph, sharedState, info, *executionContext);
 }
 
-void FTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
+void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto termsTableID = sharedState->graph->getNodeTableIDs()[0];
     KU_ASSERT(sharedState->getInputNodeMaskMap()->containsTableID(termsTableID));
-    auto inputNodeMasks = sharedState->getInputNodeMaskMap();
-    auto termsMask = inputNodeMasks->getOffsetMask(termsTableID);
-    auto output = std::make_unique<FTSOutput>();
+    auto termsMask = sharedState->getInputNodeMaskMap()->getOffsetMask(termsTableID);
+    auto output = std::make_unique<QFTSOutput>();
 
     // Do edge compute to extend terms -> docs and save the term frequency and document frequency
     // for each term-doc pair. The reason why we store the term frequency and document frequency
     // is that: we need the `len` property from the docs table which is only available during the
     // vertex compute.
-    auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(
-        sharedState->graph->getNumNodesMap(executionContext->clientContext->getTx()),
-        FTSAlgorithm::NUM_THREADS_FOR_EXECUTION,
+    auto numNodes = sharedState->graph->getNumNodesMap(executionContext->clientContext->getTx());
+    auto currentFrontier = std::make_shared<PathLengths>(numNodes,
         executionContext->clientContext->getMemoryManager());
-    auto edgeCompute = std::make_unique<FTSEdgeCompute>(frontierPair.get(), &output->scores,
+    auto nextFrontier = std::make_shared<PathLengths>(numNodes,
+        executionContext->clientContext->getMemoryManager());
+    auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier,
+        nextFrontier, 1 /* numThreads */);
+    auto edgeCompute = std::make_unique<QFTSEdgeCompute>(frontierPair.get(), &output->scores,
         sharedState->nodeProp);
-    FTSState ftsState = FTSState{std::move(frontierPair), std::move(edgeCompute), termsTableID};
-    ftsState.initTerms(*sharedState, *termsMask, executionContext->clientContext->getTx(),
-        termsTableID);
+    QFTSState qFTSState = QFTSState{std::move(frontierPair), std::move(edgeCompute), termsTableID};
+    qFTSState.initFirstFrontierWithTerms(*sharedState, *termsMask,
+        executionContext->clientContext->getTx(), termsTableID);
 
-    runFrontiersOnce(executionContext, ftsState, sharedState->graph.get(),
+    runFrontiersOnce(executionContext, qFTSState, sharedState->graph.get(),
         executionContext->clientContext->getCatalog()
             ->getTableCatalogEntry(executionContext->clientContext->getTx(),
                 sharedState->graph->getRelTableIDs()[0])
-            ->getPropertyIdx(FTSAlgorithm::TERM_FREQUENCY_PROP_NAME));
+            ->getPropertyIdx(QFTSAlgorithm::TERM_FREQUENCY_PROP_NAME));
 
     // Do vertex compute to calculate the score for doc with the length property.
-    FTSOutputWriter outputWriter{executionContext->clientContext->getMemoryManager(), output.get(),
-        *bindData->ptrCast<FTSGDSBindData>()};
+    QFTSOutputWriter outputWriter{executionContext->clientContext->getMemoryManager(), output.get(),
+        *bindData->ptrCast<QFTSGDSBindData>()};
     auto writerVC =
-        std::make_unique<FTSVertexCompute>(executionContext->clientContext->getMemoryManager(),
+        std::make_unique<QFTSVertexCompute>(executionContext->clientContext->getMemoryManager(),
             sharedState.get(), outputWriter.copy());
     runVertexComputeIteration(executionContext, sharedState->graph.get(), *writerVC);
     sharedState->mergeLocalTables();
 }
 
 static std::shared_ptr<Expression> getScoreColumn(Binder* binder) {
-    return binder->createVariable(FTSAlgorithm::SCORE_PROP_NAME, LogicalType::DOUBLE());
+    return binder->createVariable(QFTSAlgorithm::SCORE_PROP_NAME, LogicalType::DOUBLE());
 }
 
-binder::expression_vector FTSAlgorithm::getResultColumns(binder::Binder* binder) const {
+binder::expression_vector QFTSAlgorithm::getResultColumns(binder::Binder* binder) const {
     expression_vector columns;
     auto& termsNode = bindData->getNodeInput()->constCast<NodeExpression>();
     columns.push_back(termsNode.getInternalID());
@@ -302,7 +306,7 @@ binder::expression_vector FTSAlgorithm::getResultColumns(binder::Binder* binder)
     return columns;
 }
 
-void FTSAlgorithm::bind(const binder::expression_vector& params, binder::Binder* binder,
+void QFTSAlgorithm::bind(const binder::expression_vector& params, binder::Binder* binder,
     graph::GraphEntry& graphEntry) {
     KU_ASSERT(params.size() == 6);
     auto termNode = params[1];
@@ -311,12 +315,12 @@ void FTSAlgorithm::bind(const binder::expression_vector& params, binder::Binder*
     auto numDocs = ExpressionUtil::getLiteralValue<uint64_t>(*params[4]);
     auto avgDocLen = ExpressionUtil::getLiteralValue<double>(*params[5]);
     auto nodeOutput = bindNodeOutput(binder, graphEntry);
-    bindData = std::make_unique<FTSGDSBindData>(termNode, nodeOutput, k, b, numDocs, avgDocLen);
+    bindData = std::make_unique<QFTSGDSBindData>(termNode, nodeOutput, k, b, numDocs, avgDocLen);
 }
 
-function::function_set FTSFunction::getFunctionSet() {
+function::function_set QFTSFunction::getFunctionSet() {
     function_set result;
-    auto algo = std::make_unique<FTSAlgorithm>();
+    auto algo = std::make_unique<QFTSAlgorithm>();
     result.push_back(
         std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
     return result;

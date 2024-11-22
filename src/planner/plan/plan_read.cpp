@@ -142,7 +142,7 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
             auto gdsCall = getGDSCall(call.getInfo());
             gdsCall->computeFactorizedSchema();
             probePlan.setLastOperator(gdsCall);
-            if (gdsCall->constPtrCast<LogicalGDSCall>()->getInfo().func.name == "FTS") {
+            if (gdsCall->constPtrCast<LogicalGDSCall>()->getInfo().func.name == "QFTS") {
                 auto op = plan->getLastOperator()->getChild(0)->getChild(0)->getChild(1);
                 auto prop =
                     bindData->getNodeInput()->constCast<NodeExpression>().getPropertyExpression(

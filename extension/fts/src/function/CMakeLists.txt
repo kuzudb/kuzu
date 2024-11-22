@@ -4,7 +4,7 @@ add_library(kuzu_fts_function
         create_fts_index.cpp
         query_fts_index.cpp
         drop_fts_index.cpp
-        fts.cpp
+        query_fts_gds.cpp
         fts_utils.cpp)
 
 set(FTS_OBJECT_FILES

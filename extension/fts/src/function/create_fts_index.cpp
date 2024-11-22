@@ -70,7 +70,6 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
 
 std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData& bindData) {
     auto ftsBindData = bindData.constPtrCast<CreateFTSBindData>();
-
     // TODO(Ziyi): Copy statement can't be wrapped in manual transaction, so we can't wrap all
     // statements in a single transaction there.
     // Create the tokenize macro.
@@ -90,7 +89,7 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
         stopWordsTableName);
     for (auto i = 0u; i < FTSExtension::NUM_STOP_WORDS; i++) {
         query += common::stringFormat("CREATE (s:`{}` {sw: \"{}\"});", stopWordsTableName,
-            FTSExtension::STOP_WORDS[i]);
+            FTSExtension::EN_STOP_WORDS[i]);
     }
 
     // Create the terms_in_doc table which servers as a temporary table to store the relationship

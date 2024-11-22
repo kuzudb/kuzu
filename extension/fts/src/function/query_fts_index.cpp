@@ -71,10 +71,10 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
         auto avgDocLen = bindData->entry.getAvgDocLen();
         auto query = common::stringFormat("PROJECT GRAPH PK (`{}`, `{}`, `{}`) "
                                           "UNWIND tokenize('{}') AS tk "
-                                          "WITH collect(stem(tk, 'porter')) AS tokens "
+                                          "WITH collect(stem(tk, 'porter')) AS keywords "
                                           "MATCH (a:`{}`) "
-                                          "WHERE list_contains(tokens, a.term) "
-                                          "CALL FTS(PK, a, 1.2, 0.75, cast({} as UINT64), {}) "
+                                          "WHERE list_contains(keywords, a.term) "
+                                          "CALL QFTS(PK, a, 1.2, 0.75, cast({} as UINT64), {}) "
                                           "MATCH (p:`{}`) "
                                           "WHERE _node.docID = offset(id(p)) "
                                           "RETURN p, score",
