@@ -25,15 +25,8 @@ std::unique_ptr<BoundStatement> Binder::bindStandaloneCallFunction(
         throw common::BinderException(
             "Only standalone table functions can be called without return statement.");
     }
-    auto bindInput = function::ScanTableFuncBindInput();
-    // TODO(Ziyi): We currently doesn't have any standalone call function that takes parameters.
-    KU_ASSERT(funcExpr.getNumChildren() == 0);
-    auto func = function::BuiltInFunctionsUtils::matchFunction(funcName, {}, entry);
-    auto tableFunc = func->constPtrCast<function::TableFunction>();
-    auto bindData = tableFunc->bindFunc(clientContext, &bindInput);
-    auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
-        std::string(InternalKeyword::ROW_OFFSET));
-    BoundTableFunction boundTableFunction{*tableFunc, std::move(bindData), std::move(offset)};
+    expression_vector columns;
+    auto boundTableFunction = bindTableFunc(funcName, funcExpr, columns);
     return std::make_unique<BoundStandaloneCallFunction>(std::move(boundTableFunction));
 }
 

@@ -156,14 +156,14 @@ std::string ExtensionUtils::getLocalPathForSharedLib(main::ClientContext* contex
 }
 
 void ExtensionUtils::registerFunctionSet(main::Database& database, std::string name,
-    function::function_set functionSet) {
+    function::function_set functionSet, catalog::CatalogEntryType functionType) {
     auto catalog = database.getCatalog();
     if (catalog->getFunctions(&transaction::DUMMY_TRANSACTION)
             ->containsEntry(&transaction::DUMMY_TRANSACTION, name)) {
         return;
     }
-    catalog->addFunction(&transaction::DUMMY_TRANSACTION,
-        catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY, std::move(name), std::move(functionSet));
+    catalog->addFunction(&transaction::DUMMY_TRANSACTION, functionType, std::move(name),
+        std::move(functionSet));
 }
 
 bool ExtensionUtils::isOfficialExtension(const std::string& extension) {

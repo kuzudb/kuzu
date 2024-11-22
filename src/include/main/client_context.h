@@ -139,10 +139,10 @@ public:
 
     void cleanUP();
 
-private:
     std::unique_ptr<QueryResult> queryInternal(std::string_view query, std::string_view encodedJoin,
         bool enumerateAllPlans = true, std::optional<uint64_t> queryID = std::nullopt);
 
+private:
     std::unique_ptr<QueryResult> queryResultWithError(std::string_view errMsg);
 
     std::unique_ptr<PreparedStatement> preparedStatementWithError(std::string_view errMsg);

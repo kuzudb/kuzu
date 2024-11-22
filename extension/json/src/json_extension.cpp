@@ -15,27 +15,27 @@ namespace kuzu {
 namespace json_extension {
 
 static void addJsonCreationFunction(main::Database& db) {
-    ADD_FUNC(ToJsonFunction);
-    ADD_FUNC_ALIAS(JsonQuoteFunction);
-    ADD_FUNC_ALIAS(ArrayToJsonFunction);
-    ADD_FUNC_ALIAS(RowToJsonFunction);
-    ADD_FUNC_ALIAS(CastToJsonFunction);
-    ADD_FUNC(JsonArrayFunction);
-    ADD_FUNC(JsonObjectFunction);
-    ADD_FUNC(JsonMergePatchFunction);
+    ADD_SCALAR_FUNC(ToJsonFunction);
+    ADD_SCALAR_FUNC_ALIAS(JsonQuoteFunction);
+    ADD_SCALAR_FUNC_ALIAS(ArrayToJsonFunction);
+    ADD_SCALAR_FUNC_ALIAS(RowToJsonFunction);
+    ADD_SCALAR_FUNC_ALIAS(CastToJsonFunction);
+    ADD_SCALAR_FUNC(JsonArrayFunction);
+    ADD_SCALAR_FUNC(JsonObjectFunction);
+    ADD_SCALAR_FUNC(JsonMergePatchFunction);
 }
 
 static void addJsonExtractFunction(main::Database& db) {
-    ADD_FUNC(JsonExtractFunction);
+    ADD_SCALAR_FUNC(JsonExtractFunction);
 }
 
 static void addJsonScalarFunction(main::Database& db) {
-    ADD_FUNC(JsonArrayLengthFunction);
-    ADD_FUNC(JsonContainsFunction);
-    ADD_FUNC(JsonKeysFunction);
-    ADD_FUNC(JsonStructureFunction);
-    ADD_FUNC(JsonValidFunction);
-    ADD_FUNC(MinifyJsonFunction);
+    ADD_SCALAR_FUNC(JsonArrayLengthFunction);
+    ADD_SCALAR_FUNC(JsonContainsFunction);
+    ADD_SCALAR_FUNC(JsonKeysFunction);
+    ADD_SCALAR_FUNC(JsonStructureFunction);
+    ADD_SCALAR_FUNC(JsonValidFunction);
+    ADD_SCALAR_FUNC(MinifyJsonFunction);
 }
 
 void JsonExtension::load(main::ClientContext* context) {
@@ -45,7 +45,7 @@ void JsonExtension::load(main::ClientContext* context) {
     addJsonCreationFunction(db);
     addJsonExtractFunction(db);
     addJsonScalarFunction(db);
-    ADD_FUNC(JsonExportFunction);
+    ADD_SCALAR_FUNC(JsonExportFunction);
     extension::ExtensionUtils::registerTableFunction(db, JsonScan::getFunction());
 }
 

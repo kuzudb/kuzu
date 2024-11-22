@@ -1,0 +1,78 @@
+-DATASET CSV ms-passage
+
+--
+
+# These ground truth numbers were obtained from DuckDB and we double checked that
+# our results and DuckDB's results is within three decimal places.
+-CASE MS_passage_search
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'contentIdx', ['content'])
+---- ok
+-LOG QueryKeywords
+-STATEMENT CALL query_fts_index('doc', 'contentIdx', 'dispossessed meaning') RETURN node.id, score order by score, node.id;
+-CHECK_ORDER
+---- 9
+389|1.773149
+432|1.773149
+437|1.801364
+199|1.815286
+202|1.875433
+429|1.891667
+134|1.923814
+109|1.957072
+390|2.937742
+-LOG QuerySingleKeyWord
+-STATEMENT CALL query_fts_index('doc', 'contentIdx', 'normality') RETURN node.id, score order by score, node.id;
+-CHECK_ORDER
+---- 7
+50|1.794529
+158|1.821783
+135|1.849878
+132|2.004437
+129|2.073742
+137|2.187176
+57|2.269955
+-LOG QueryShortQuestion
+-STATEMENT CALL query_fts_index('doc', 'contentIdx', 'what is piroxicam used to treat') RETURN node.id, score order by score, node.id;
+-CHECK_ORDER
+---- 2
+67|1.848853
+476|2.684744
+-LOG QueryLongQuestion
+-STATEMENT CALL query_fts_index('doc', 'contentIdx', 'how long does it take to recover from top wisdom teeth removal') RETURN node.id, score order by score, node.id;
+-CHECK_ORDER
+---- 31
+62|0.794823
+472|1.104458
+96|1.129603
+418|1.343764
+12|1.350185
+90|1.507030
+244|1.530271
+459|1.554240
+437|1.578972
+169|1.604503
+229|1.668606
+230|1.668606
+314|1.668606
+231|1.693569
+430|1.715457
+54|1.773149
+436|1.801364
+370|1.828295
+57|1.877770
+47|1.883829
+236|1.891667
+87|1.973758
+249|1.973758
+240|2.051795
+410|2.063448
+435|2.163641
+207|2.181402
+438|2.211869
+176|2.261988
+4|2.519607
+456|2.618953
+-STATEMENT CALL DROP_FTS_INDEX('doc', 'contentIdx')
+---- ok

@@ -26,6 +26,8 @@ enum class CatalogEntryType : uint8_t {
     SEQUENCE_ENTRY = 40,
     // UDT entries
     TYPE_ENTRY = 41,
+    // Index entries
+    INDEX_ENTRY = 42,
     // Dummy entry
     DUMMY_ENTRY = 100,
 };

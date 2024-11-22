@@ -10,7 +10,7 @@ class Transaction;
 namespace catalog {
 
 class CatalogSet;
-class NodeTableCatalogEntry final : public TableCatalogEntry {
+class KUZU_API NodeTableCatalogEntry final : public TableCatalogEntry {
     static constexpr CatalogEntryType entryType_ = CatalogEntryType::NODE_TABLE_ENTRY;
 
 public:

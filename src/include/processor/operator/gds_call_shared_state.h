@@ -3,6 +3,7 @@
 #include <stack>
 
 #include "common/mask.h"
+#include "common/types/internal_id_util.h"
 #include "graph/graph.h"
 #include "processor/result/factorized_table.h"
 
@@ -78,15 +79,16 @@ private:
     std::atomic<common::offset_t> counter;
 };
 
-struct GDSCallSharedState {
+struct KUZU_API GDSCallSharedState {
     std::mutex mtx;
     std::shared_ptr<FactorizedTable> fTable;
     std::unique_ptr<graph::Graph> graph;
     std::unique_ptr<GDSOutputCounter> counter = nullptr;
+    common::node_id_map_t<uint64_t>* nodeProp;
 
     GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable, std::unique_ptr<graph::Graph> graph,
         common::offset_t limitNumber)
-        : fTable{fTable}, graph{std::move(graph)} {
+        : fTable{fTable}, graph{std::move(graph)}, nodeProp{nullptr} {
         if (limitNumber != common::INVALID_LIMIT) {
             counter = std::make_unique<GDSOutputCounter>(limitNumber);
         }

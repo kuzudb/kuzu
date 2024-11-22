@@ -119,6 +119,12 @@ void Database::addTableFunction(std::string name, function::function_set functio
         std::move(functionSet));
 }
 
+void Database::addStandaloneCallFunction(std::string name,
+    std::vector<std::unique_ptr<function::Function>> functionSet) {
+    catalog->addBuiltInFunction(CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY, std::move(name),
+        std::move(functionSet));
+}
+
 void Database::registerFileSystem(std::unique_ptr<FileSystem> fs) {
     vfs->registerFileSystem(std::move(fs));
 }

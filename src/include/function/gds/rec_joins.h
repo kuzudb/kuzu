@@ -4,6 +4,7 @@
 #include "common/enums/path_semantic.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_frontier.h"
+#include "function/gds/gds_utils.h"
 #include "output_writer.h"
 
 namespace kuzu {
@@ -59,16 +60,14 @@ struct RJBindData final : public GDSBindData {
 
 // Wrapper around the data that needs to be stored during the computation of a recursive joins
 // computation from one source. Also contains several initialization functions.
-struct RJCompState {
-    std::unique_ptr<function::FrontierPair> frontierPair;
-    std::unique_ptr<function::EdgeCompute> edgeCompute;
+struct RJCompState : public GDSComputeState {
     std::unique_ptr<RJOutputs> outputs;
     std::unique_ptr<RJOutputWriter> outputWriter;
 
     RJCompState(std::unique_ptr<function::FrontierPair> frontierPair,
         std::unique_ptr<function::EdgeCompute> edgeCompute, std::unique_ptr<RJOutputs> outputs,
         std::unique_ptr<RJOutputWriter> outputWriter)
-        : frontierPair{std::move(frontierPair)}, edgeCompute{std::move(edgeCompute)},
+        : GDSComputeState{std::move(frontierPair), std::move(edgeCompute)},
           outputs{std::move(outputs)}, outputWriter{std::move(outputWriter)} {}
 
     void initSource(common::nodeID_t sourceNodeID) const {

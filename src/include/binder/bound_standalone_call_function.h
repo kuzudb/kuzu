@@ -1,7 +1,7 @@
 #pragma once
 
 #include "binder/bound_statement.h"
-#include "bound_table_function_data.h"
+#include "bound_table_function.h"
 
 namespace kuzu {
 namespace binder {
@@ -13,7 +13,7 @@ public:
               BoundStatementResult::createEmptyResult()},
           tableFunc{std::move(tableFunc)} {}
 
-    function::TableFunction getTableFunction() const { return tableFunc.tableFunction; }
+    const function::TableFunction& getTableFunction() const { return *tableFunc.tableFunction; }
 
     function::TableFuncBindData* getBindData() const { return tableFunc.bindData.get(); }
 

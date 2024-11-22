@@ -18,7 +18,7 @@ void FrontierTask::run() {
     FrontierMorsel frontierMorsel;
     auto numActiveNodes = 0u;
     auto graph = info.graph;
-    auto scanState = graph->prepareScan(info.relTableIDToScan);
+    auto scanState = graph->prepareScan(info.relTableIDToScan, info.edgePropertyIdx);
     auto localEc = info.edgeCompute.copy();
     while (sharedState->frontierPair.getNextRangeMorsel(frontierMorsel)) {
         while (frontierMorsel.hasNextOffset()) {
@@ -51,9 +51,8 @@ void FrontierTask::run() {
 void VertexComputeTask::run() {
     FrontierMorsel frontierMorsel;
     auto graph = sharedState->graph;
-    std::vector<std::string> propertiesToScan;
     auto scanState =
-        graph->prepareVertexScan(sharedState->morselDispatcher.getTableID(), propertiesToScan);
+        graph->prepareVertexScan(sharedState->morselDispatcher.getTableID(), info.propertiesToScan);
     auto localVc = info.vc.copy();
     while (sharedState->morselDispatcher.getNextRangeMorsel(frontierMorsel)) {
         for (auto chunk : graph->scanVertices(frontierMorsel.getBeginOffset(),

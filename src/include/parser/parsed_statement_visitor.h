@@ -3,6 +3,9 @@
 #include "statement.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
 namespace parser {
 
 class SingleQuery;
