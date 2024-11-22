@@ -60,28 +60,15 @@ bool TestRunner::testStatement(TestStatement* statement, Connection& conn,
     replaceEnv(statement->query, "AWS_S3_ACCESS_KEY_ID");
     replaceEnv(statement->query, "AWS_S3_SECRET_ACCESS_KEY");
     replaceEnv(statement->query, "RUN_ID");
-    auto parsedStatements = std::vector<std::shared_ptr<parser::Statement>>();
-    try {
-        parsedStatements = conn.getClientContext()->parseQuery(statement->query);
-    } catch (std::exception& exception) {
-        auto errorPreparedStatement = conn.preparedStatementWithError(exception.what());
-        return checkLogicalPlan(errorPreparedStatement, statement, 0, conn, 0);
+    std::unique_ptr<PreparedStatement> parsedStatement;
+    if (statement->encodedJoin.empty()) {
+        preparedStatement = conn.prepareInternal(statement->query, statement->enumerate, "");
+    } else {
+        preparedStatement = conn.prepareInternal(statement->query, true, statement->encodedJoin);
     }
-    if (parsedStatements.empty()) {
-        auto errorPreparedStatement =
-            conn.preparedStatementWithError("Connection Exception: Query is empty.");
-        return checkLogicalPlan(errorPreparedStatement, statement, 0, conn, 0);
-    }
-
-    size_t numParsed = parsedStatements.size();
-    for (size_t i = 0; i < numParsed; i++) {
-        auto parsedStatement = std::move(parsedStatements[i]);
-        if (statement->encodedJoin.empty()) {
-            preparedStatement = conn.prepareNoLock(parsedStatement, statement->enumerate);
-        } else {
-            preparedStatement = conn.prepareNoLock(parsedStatement, true, statement->encodedJoin);
-        }
-        // Check for wrong statements
+    // Check for wrong statements
+    auto numResults = statement->result.size();
+    for (auto i = 0u; i < numResults; i++) {
         ResultType resultType = statement->result[i].type;
         if (resultType != ResultType::ERROR_MSG && resultType != ResultType::ERROR_REGEX &&
             !preparedStatement->isSuccess()) {

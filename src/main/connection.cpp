@@ -48,18 +48,9 @@ std::unique_ptr<QueryResult> Connection::query(std::string_view query, std::stri
     return clientContext->queryInternal(query, encodedJoin, enumerateAllPlans);
 }
 
-std::unique_ptr<QueryResult> Connection::queryResultWithError(std::string_view errMsg) {
-    return clientContext->queryResultWithError(errMsg);
-}
-
-std::unique_ptr<PreparedStatement> Connection::preparedStatementWithError(std::string_view errMsg) {
-    return clientContext->preparedStatementWithError(errMsg);
-}
-
-std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
-    std::shared_ptr<Statement> parsedStatement, bool enumerateAllPlans,
-    std::string_view encodedJoin) {
-    return clientContext->prepareNoLock(parsedStatement, enumerateAllPlans, encodedJoin);
+std::unique_ptr<PreparedStatement> Connection::prepareInternal(std::string_view query,
+    bool enumerateAllPlans, std::string_view joinOrder) {
+    return clientContext->prepareInternal(query, enumerateAllPlans, joinOrder);
 }
 
 void Connection::interrupt() {
@@ -68,6 +59,10 @@ void Connection::interrupt() {
 
 void Connection::setQueryTimeOut(uint64_t timeoutInMS) {
     clientContext->setQueryTimeOut(timeoutInMS);
+}
+
+uint64_t Connection::getQueryTimeOut() const {
+    return clientContext->getQueryTimeOut();
 }
 
 std::unique_ptr<QueryResult> Connection::executeWithParams(PreparedStatement* preparedStatement,

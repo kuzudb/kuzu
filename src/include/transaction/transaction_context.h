@@ -41,6 +41,7 @@ public:
     void beginAutoTransaction(bool readOnlyStatement);
     void beginRecoveryTransaction();
     void validateManualTransaction(bool readOnlyStatement) const;
+    void setAutoReadTransactionToWrite();
 
     void commit();
     void rollback();

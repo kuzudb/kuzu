@@ -102,6 +102,25 @@ void TransactionManager::checkpoint(main::ClientContext& clientContext) {
     checkpointNoLock(clientContext);
 }
 
+void TransactionManager::setTransactionToWrite(main::ClientContext& clientContext,
+    transaction::Transaction* transaction) {
+    KU_ASSERT(transaction->getType() == TransactionType::READ_ONLY);
+    {
+        common::UniqLock lck{mtxForSerializingPublicFunctionCalls};
+        if (!clientContext.getDBConfig()->enableMultiWrites && hasActiveWriteTransactionNoLock()) {
+            throw TransactionManagerException(
+                "Cannot start a new write transaction in the system. "
+                "Only one write transaction at a time is allowed in the system.");
+        }
+        activeReadOnlyTransactions.erase(transaction->getID());
+        activeWriteTransactions.insert(transaction->getID());
+        if (transaction->shouldLogToWAL()) {
+            clientContext.getStorageManager()->getWAL().logBeginTransaction();
+        }
+    }
+    transaction->setToWrite();
+}
+
 common::UniqLock TransactionManager::stopNewTransactionsAndWaitUntilAllTransactionsLeave() {
     common::UniqLock startTransactionLock{mtxForStartingNewTransactions};
     uint64_t numTimesWaited = 0;

@@ -128,6 +128,8 @@ private:
         std::unordered_map<common::table_id_t, common::offset_t> minUncommittedNodeOffsets,
         std::unordered_map<common::table_id_t, common::offset_t> maxCommittedNodeOffsets);
 
+    void setToWrite() { type = TransactionType::WRITE; }
+
 private:
     TransactionType type;
     common::transaction_t ID;

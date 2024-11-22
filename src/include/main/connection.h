@@ -88,6 +88,12 @@ public:
      */
     KUZU_API void setQueryTimeOut(uint64_t timeoutInMS);
 
+    /*
+     * @brief gets the query timeout value of the current connection.
+     * @return the query timeout value of the current connection.
+     * */
+    KUZU_API uint64_t getQueryTimeOut() const;
+
     // Note: this function throws exception if creating scalar function fails.
     template<typename TR, typename... Args>
     void createScalarFunction(std::string name, TR (*udfFunc)(Args...)) {
@@ -127,13 +133,8 @@ private:
     std::unique_ptr<QueryResult> query(std::string_view query, std::string_view encodedJoin,
         bool enumerateAllPlans = true);
 
-    std::unique_ptr<QueryResult> queryResultWithError(std::string_view errMsg);
-
-    std::unique_ptr<PreparedStatement> preparedStatementWithError(std::string_view errMsg);
-
-    std::unique_ptr<PreparedStatement> prepareNoLock(
-        std::shared_ptr<parser::Statement> parsedStatement, bool enumerateAllPlans = false,
-        std::string_view joinOrder = std::string_view());
+    std::unique_ptr<PreparedStatement> prepareInternal(std::string_view query,
+        bool enumerateAllPlans, std::string_view joinOrder);
 
     template<typename T, typename... Args>
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
