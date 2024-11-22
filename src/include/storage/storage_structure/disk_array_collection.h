@@ -59,8 +59,6 @@ public:
 
     size_t addDiskArray();
 
-    common::page_idx_t getNumHeaderPagesOnDisk() const { return headerPagesOnDisk; }
-
 private:
     FileHandle& fileHandle;
     DBFileID dbFileID;

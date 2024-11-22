@@ -42,8 +42,10 @@ public:
     void beginRecoveryTransaction();
     void validateManualTransaction(bool readOnlyStatement) const;
 
-    void commit();
+    void commit(bool skipCheckpoint = false);
+    void autoCheckpointIfNeeded();
     void rollback();
+    void rollbackCheckpoint();
 
     TransactionMode getTransactionMode() const { return mode; }
     bool hasActiveTransaction() const { return activeTransaction != nullptr; }

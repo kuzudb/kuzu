@@ -29,6 +29,7 @@ public:
         main::ClientContext* context);
 
     void checkpoint(main::ClientContext& clientContext);
+    void rollbackCheckpoint(main::ClientContext& clientContext);
 
     PrimaryKeyIndex* getPKIndex(common::table_id_t tableID);
 
