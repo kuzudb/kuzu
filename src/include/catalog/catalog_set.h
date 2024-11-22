@@ -1,7 +1,7 @@
 #pragma once
 
 #include <functional>
-#include <mutex>
+#include <shared_mutex>
 
 #include "catalog_entry/catalog_entry.h"
 #include "common/case_insensitive_map.h"
@@ -36,7 +36,7 @@ public:
 
     CatalogEntrySet getEntries(const transaction::Transaction* transaction);
     void iterateEntriesOfType(const transaction::Transaction* transaction, CatalogEntryType type,
-        const std::function<void(CatalogEntry*)>& func);
+        const std::function<void(const CatalogEntry*)>& func);
     CatalogEntry* getEntryOfOID(const transaction::Transaction* transaction, common::oid_t oid);
 
     void serialize(common::Serializer serializer) const;
@@ -68,7 +68,7 @@ private:
     static CatalogEntry* getCommittedEntryNoLock(CatalogEntry* entry);
 
 private:
-    std::mutex mtx;
+    std::shared_mutex mtx;
     common::oid_t nextOID = 0;
     common::case_insensitive_map_t<std::unique_ptr<CatalogEntry>> entries;
 };
