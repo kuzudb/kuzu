@@ -491,6 +491,12 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
             }
         },
         [&](auto) { KU_UNREACHABLE; });
+
+    if (newIndex) {
+        // checkpoint the creation of the index so that we rollback to an empty index (instead of a
+        // half-constructed one)
+        checkpoint(true);
+    }
 }
 
 bool PrimaryKeyIndex::lookup(const Transaction* trx, ValueVector* keyVector, uint64_t vectorPos,
@@ -569,27 +575,28 @@ void PrimaryKeyIndex::writeHeaders() {
     KU_ASSERT(headerIdx == NUM_HASH_INDEXES);
 }
 
-void PrimaryKeyIndex::checkpoint() {
-    try {
-        bool indexChanged = false;
-        for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-            if (hashIndices[i]->checkpoint()) {
-                indexChanged = true;
-            }
+void PrimaryKeyIndex::rollbackCheckpoint() {
+    for (idx_t i = 0; i < NUM_HASH_INDEXES; ++i) {
+        hashIndices[i]->rollbackCheckpoint();
+    }
+    hashIndexDiskArrays->rollbackCheckpoint();
+    hashIndexHeadersForWriteTrx.assign(hashIndexHeadersForReadTrx.begin(),
+        hashIndexHeadersForReadTrx.end());
+    if (overflowFile) {
+        overflowFile->rollbackInMemory();
+    }
+}
+
+void PrimaryKeyIndex::checkpoint(bool force) {
+    bool indexChanged = false;
+    for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
+        if (hashIndices[i]->checkpoint()) {
+            indexChanged = true;
         }
-        if (indexChanged) {
-            writeHeaders();
-            hashIndexDiskArrays->checkpoint();
-        }
-    } catch (std::exception& e) {
-        for (idx_t i = 0; i < NUM_HASH_INDEXES; ++i) {
-            hashIndices[i]->rollbackCheckpoint();
-            hashIndexDiskArrays->rollbackCheckpoint();
-            hashIndexHeadersForWriteTrx.assign(hashIndexHeadersForReadTrx.begin(),
-                hashIndexHeadersForReadTrx.end());
-            overflowFile->rollbackInMemory();
-        }
-        std::rethrow_exception(std::current_exception());
+    }
+    if (indexChanged || force) {
+        writeHeaders();
+        hashIndexDiskArrays->checkpoint();
     }
     if (overflowFile) {
         overflowFile->checkpoint();

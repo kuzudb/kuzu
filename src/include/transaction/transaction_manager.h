@@ -32,12 +32,13 @@ public:
     std::unique_ptr<Transaction> beginTransaction(main::ClientContext& clientContext,
         TransactionType type);
 
-    void commit(main::ClientContext& clientContext);
+    void commit(main::ClientContext& clientContext, bool skipCheckpoint = false);
     void rollback(main::ClientContext& clientContext, const Transaction* transaction);
+    void rollbackCheckpoint(main::ClientContext& clientContext);
     void checkpoint(main::ClientContext& clientContext);
+    bool canAutoCheckpoint(const main::ClientContext& clientContext) const;
 
 private:
-    bool canAutoCheckpoint(const main::ClientContext& clientContext) const;
     bool canCheckpointNoLock() const;
     void checkpointNoLock(main::ClientContext& clientContext);
     // This functions locks the mutex to start new transactions.

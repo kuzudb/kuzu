@@ -380,9 +380,11 @@ public:
     void delete_(common::ValueVector* keyVector);
 
     void checkpointInMemory();
-    void checkpoint();
+    void checkpoint(bool force = false);
     FileHandle* getFileHandle() const { return fileHandle; }
     OverflowFile* getOverflowFile() const { return overflowFile.get(); }
+
+    void rollbackCheckpoint();
 
     common::PhysicalTypeID keyTypeID() const { return keyDataTypeID; }
 
