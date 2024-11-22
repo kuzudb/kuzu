@@ -506,7 +506,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
             resultFT =
                 localDatabase->queryProcessor->execute(physicalPlan.get(), executionContext.get());
             if (this->transactionContext->isAutoTransaction()) {
-                this->transactionContext->commit();
+                this->transactionContext->commit(true);
             }
         }
     } catch (std::exception& e) {
@@ -516,6 +516,19 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
         progressBar->endProgress(executionContext->queryID);
         return queryResultWithError(e.what());
     }
+
+    if (this->transactionContext->isAutoTransaction()) {
+        try {
+            this->transactionContext->autoCheckpointIfNeeded();
+        } catch (std::exception& e) {
+            this->transactionContext->rollbackCheckpoint();
+            getMemoryManager()->getBufferManager()->getSpillerOrSkip(
+                [](auto& spiller) { spiller.clearFile(); });
+            progressBar->endProgress(executionContext->queryID);
+            return queryResultWithError(e.what());
+        }
+    }
+
     getMemoryManager()->getBufferManager()->getSpillerOrSkip(
         [](auto& spiller) { spiller.clearFile(); });
     executingTimer.stop();

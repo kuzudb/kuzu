@@ -48,7 +48,7 @@ std::unique_ptr<Transaction> TransactionManager::beginTransaction(
     return transaction;
 }
 
-void TransactionManager::commit(main::ClientContext& clientContext) {
+void TransactionManager::commit(main::ClientContext& clientContext, bool skipCheckpoint) {
     std::unique_lock<std::mutex> lck{mtxForSerializingPublicFunctionCalls};
     clientContext.cleanUP();
     const auto transaction = clientContext.getTx();
@@ -62,7 +62,8 @@ void TransactionManager::commit(main::ClientContext& clientContext) {
         transaction->commitTS = lastTimestamp;
         transaction->commit(&wal);
         activeWriteTransactions.erase(transaction->getID());
-        if (transaction->shouldForceCheckpoint() || canAutoCheckpoint(clientContext)) {
+        if (!skipCheckpoint &&
+            (transaction->shouldForceCheckpoint() || canAutoCheckpoint(clientContext))) {
             checkpointNoLock(clientContext);
         }
     } break;
@@ -92,6 +93,15 @@ void TransactionManager::rollback(main::ClientContext& clientContext,
         throw TransactionManagerException("Invalid transaction type to rollback.");
     }
     }
+}
+
+void TransactionManager::rollbackCheckpoint(main::ClientContext& clientContext) {
+    std::unique_lock<std::mutex> lck{mtxForSerializingPublicFunctionCalls};
+    if (main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())) {
+        return;
+    }
+    auto lockForStartingTransaction = stopNewTransactionsAndWaitUntilAllTransactionsLeave();
+    clientContext.getStorageManager()->rollbackCheckpoint(clientContext);
 }
 
 void TransactionManager::checkpoint(main::ClientContext& clientContext) {
