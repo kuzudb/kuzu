@@ -162,8 +162,9 @@ private:
     std::vector<T*> getTableCatalogEntries(transaction::Transaction* transaction,
         CatalogEntryType catalogType) const {
         std::vector<T*> result;
-        tables->iterateEntriesOfType(transaction, catalogType,
-            [&](CatalogEntry* entry) { result.push_back(common::ku_dynamic_cast<T*>(entry)); });
+        tables->iterateEntriesOfType(transaction, catalogType, [&](const CatalogEntry* entry) {
+            result.push_back(const_cast<T*>(common::ku_dynamic_cast<const T*>(entry)));
+        });
         return result;
     }
 
