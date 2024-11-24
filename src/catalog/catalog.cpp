@@ -489,6 +489,7 @@ void Catalog::readFromFile(const std::string& directory, VirtualFileSystem* fs,
     sequences = CatalogSet::deserialize(deserializer);
     functions = CatalogSet::deserialize(deserializer);
     types = CatalogSet::deserialize(deserializer);
+    indexes = std::make_unique<CatalogSet>();
 }
 
 void Catalog::registerBuiltInFunctions() {
