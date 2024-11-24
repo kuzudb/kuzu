@@ -18,7 +18,6 @@ public:
           tableID{tableID}, indexName{std::move(indexName)} {}
 
     common::table_id_t getTableID() const { return tableID; }
-    std::string getName() const { return name; }
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization
