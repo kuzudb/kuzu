@@ -27,20 +27,8 @@ struct MinMaxFunction {
         storage::MemoryManager* memoryManager) {
         KU_ASSERT(!input->state->isFlat());
         auto* state = reinterpret_cast<MinMaxState*>(state_);
-        auto& inputSelVector = input->state->getSelVector();
-        if (input->hasNoNullsGuarantee()) {
-            for (auto i = 0u; i < inputSelVector.getSelSize(); ++i) {
-                auto pos = inputSelVector[i];
-                updateSingleValue<OP>(state, input, pos, memoryManager);
-            }
-        } else {
-            for (auto i = 0u; i < inputSelVector.getSelSize(); ++i) {
-                auto pos = inputSelVector[i];
-                if (!input->isNull(pos)) {
-                    updateSingleValue<OP>(state, input, pos, memoryManager);
-                }
-            }
-        }
+        input->forEachNonNull(
+            [&](auto pos) { updateSingleValue<OP>(state, input, pos, memoryManager); });
     }
 
     template<class OP>

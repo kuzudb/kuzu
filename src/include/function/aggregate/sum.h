@@ -26,20 +26,8 @@ struct SumFunction {
         storage::MemoryManager* /*memoryManager*/) {
         KU_ASSERT(!input->state->isFlat());
         auto* state = reinterpret_cast<SumState<RESULT_TYPE>*>(state_);
-        auto& inputSelVector = input->state->getSelVector();
-        if (input->hasNoNullsGuarantee()) {
-            for (auto i = 0u; i < inputSelVector.getSelSize(); ++i) {
-                auto pos = inputSelVector[i];
-                updateSingleValue(state, input, pos, multiplicity);
-            }
-        } else {
-            for (auto i = 0u; i < inputSelVector.getSelSize(); ++i) {
-                auto pos = inputSelVector[i];
-                if (!input->isNull(pos)) {
-                    updateSingleValue(state, input, pos, multiplicity);
-                }
-            }
-        }
+        input->forEachNonNull(
+            [&](auto pos) { updateSingleValue(state, input, pos, multiplicity); });
     }
 
     static void updatePos(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,

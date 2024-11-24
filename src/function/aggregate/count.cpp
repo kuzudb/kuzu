@@ -14,18 +14,7 @@ namespace function {
 void CountFunction::updateAll(uint8_t* state_, ValueVector* input, uint64_t multiplicity,
     MemoryManager* /*memoryManager*/) {
     auto state = reinterpret_cast<CountState*>(state_);
-    if (input->hasNoNullsGuarantee()) {
-        for (auto i = 0u; i < input->state->getSelVector().getSelSize(); ++i) {
-            state->count += multiplicity;
-        }
-    } else {
-        for (auto i = 0u; i < input->state->getSelVector().getSelSize(); ++i) {
-            auto pos = input->state->getSelVector()[i];
-            if (!input->isNull(pos)) {
-                state->count += multiplicity;
-            }
-        }
-    }
+    state->count += multiplicity * input->countNonNull();
 }
 
 void CountFunction::paramRewriteFunc(binder::expression_vector& arguments) {

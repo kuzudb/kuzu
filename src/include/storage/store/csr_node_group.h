@@ -119,7 +119,7 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
     // boundNodes.
     std::unique_ptr<ChunkedCSRHeader> header;
 
-    std::bitset<common::DEFAULT_VECTOR_CAPACITY> cachedScannedVectorsSelBitset;
+    std::optional<std::bitset<common::DEFAULT_VECTOR_CAPACITY>> cachedScannedVectorsSelBitset;
     // The total number of rows (i.e., rels) in the current node group.
     common::row_idx_t numTotalRows;
     // The number of rows (i.e., rels) that have been scanned so far in current node group.
@@ -139,7 +139,6 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
           source{CSRNodeGroupScanSource::COMMITTED_PERSISTENT} {
         header = std::make_unique<ChunkedCSRHeader>(mm, false,
             common::StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
-        cachedScannedVectorsSelBitset.set();
     }
 
     bool tryScanCachedTuples(RelTableScanState& tableScanState);
