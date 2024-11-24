@@ -47,19 +47,8 @@ struct AvgFunction {
         storage::MemoryManager* /*memoryManager*/) {
         auto* state = reinterpret_cast<AvgState<RESULT_TYPE>*>(state_);
         KU_ASSERT(!input->state->isFlat());
-        if (input->hasNoNullsGuarantee()) {
-            for (auto i = 0u; i < input->state->getSelVector().getSelSize(); ++i) {
-                auto pos = input->state->getSelVector()[i];
-                updateSingleValue(state, input, pos, multiplicity);
-            }
-        } else {
-            for (auto i = 0u; i < input->state->getSelVector().getSelSize(); ++i) {
-                auto pos = input->state->getSelVector()[i];
-                if (!input->isNull(pos)) {
-                    updateSingleValue(state, input, pos, multiplicity);
-                }
-            }
-        }
+        input->forEachNonNull(
+            [&](auto pos) { updateSingleValue(state, input, pos, multiplicity); });
     }
 
     static void updatePos(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,

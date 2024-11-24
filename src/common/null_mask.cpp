@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "common/assert.h"
+#include <bit>
 
 namespace kuzu {
 namespace common {
@@ -220,6 +221,16 @@ std::pair<bool, bool> NullMask::getMinMax(const uint64_t* nullEntries, uint64_t 
         }
     }
     return std::make_pair(min, max);
+}
+
+uint64_t NullMask::countNulls() const {
+    // If capacity % 64 != 0 then there may be unused bits at the end of the last entry,
+    // but these should always be 0.
+    uint64_t sum = 0;
+    for (auto entry : data) {
+        sum += std::popcount(entry);
+    }
+    return sum;
 }
 
 } // namespace common

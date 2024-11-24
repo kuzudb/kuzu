@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 
 #include <span>
@@ -100,6 +101,7 @@ public:
     }
 
     inline bool hasNoNullsGuarantee() const { return !mayContainNulls; }
+    uint64_t countNulls() const;
 
     static void setNull(uint64_t* nullEntries, uint32_t pos, bool isNull);
     inline void setNull(uint32_t pos, bool isNull) {
