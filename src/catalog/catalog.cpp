@@ -234,17 +234,15 @@ void Catalog::alterTableEntry(Transaction* transaction, const BoundAlterInfo& in
     switch (info.alterType) {
     case AlterType::DROP_PROPERTY: {
         auto dropPropertyInfo = info.extraInfo->constCast<BoundExtraDropPropertyInfo>();
-        auto columnID = tableEntry.getColumnID(dropPropertyInfo.propertyName);
         for (auto& [name, catalogEntry] : indexes->getEntries(transaction)) {
             auto& indexCatalogEntry = catalogEntry->constCast<IndexCatalogEntry>();
-            if (indexCatalogEntry.getTableID() == tableEntry.getTableID() &&
-                indexCatalogEntry.indexOnColumn(columnID)) {
-
+            if (indexCatalogEntry.getTableID() == tableEntry.getTableID()) {
+                throw CatalogException{"Cannot drop a property in a table with indexes."};
             }
         }
     } break;
     default:
-        KU_UNREACHABLE;
+        break;
     }
     tables->alterEntry(transaction, info);
 }

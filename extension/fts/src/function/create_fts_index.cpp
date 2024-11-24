@@ -21,16 +21,11 @@ using namespace kuzu::common;
 using namespace kuzu::main;
 using namespace kuzu::function;
 
-struct PropertyInfo {
-    std::string propertyName;
-    common::column_id_t columnID;
-};
-
 struct CreateFTSBindData final : public FTSBindData {
-    std::vector<PropertyInfo> properties;
+    std::vector<std::string> properties;
 
     CreateFTSBindData(std::string tableName, common::table_id_t tableID, std::string indexName,
-        std::vector<PropertyInfo> properties)
+        std::vector<std::string> properties)
         : FTSBindData{std::move(tableName), tableID, std::move(indexName)},
           properties{std::move(properties)} {}
 
@@ -39,16 +34,16 @@ struct CreateFTSBindData final : public FTSBindData {
     }
 };
 
-static std::vector<PropertyInfo> bindProperties(const catalog::NodeTableCatalogEntry& entry,
+static std::vector<std::string> bindProperties(const catalog::NodeTableCatalogEntry& entry,
     const common::Value& properties) {
-    std::vector<PropertyInfo> result;
+    std::vector<std::string> result;
     for (auto i = 0u; i < properties.getChildrenSize(); i++) {
         auto propertyName = NestedVal::getChildVal(&properties, i)->toString();
         if (!entry.containsProperty(propertyName)) {
             throw BinderException{common::stringFormat("Property: {} does not exist in table {}.",
                 propertyName, entry.getName())};
         }
-        result.emplace_back(std::move(propertyName), entry.getPropertyIdx(propertyName));
+        result.push_back(std::move(propertyName));
     }
     return result;
 }
@@ -105,7 +100,7 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
                              "key(ID));",
             appearsInfoTableName);
     auto tableName = ftsBindData->tableName;
-    for (auto& [property, _] : ftsBindData->properties) {
+    for (auto& property : ftsBindData->properties) {
         query += common::stringFormat("COPY `{}` FROM "
                                       "(MATCH (b:`{}`) "
                                       "WITH tokenize(b.{}) AS tk, OFFSET(ID(b)) AS id "
@@ -197,12 +192,9 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& /*outp
         std::vector<std::string>{CreateFTSFunction::DOC_LEN_PROP_NAME});
     auto numDocs = sharedState.numDocs.load();
     auto avgDocLen = numDocs == 0 ? 0 : (double)sharedState.totalLen.load() / numDocs;
-    std::unordered_set<column_id_t> columnIDs;
-    std::for_each(createFTSBindData.properties.begin(), createFTSBindData.properties.end(),
-        [&columnIDs](const PropertyInfo& info) { columnIDs.insert(info.columnID); });
     context.clientContext->getCatalog()->createIndex(context.clientContext->getTx(),
         std::make_unique<fts_extension::FTSIndexCatalogEntry>(createFTSBindData.tableID,
-            createFTSBindData.indexName, numDocs, avgDocLen, std::move(columnIDs)));
+            createFTSBindData.indexName, numDocs, avgDocLen));
     return 0;
 }
 

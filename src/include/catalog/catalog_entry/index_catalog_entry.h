@@ -19,9 +19,6 @@ public:
 
     common::table_id_t getTableID() const { return tableID; }
     std::string getName() const { return name; }
-    virtual void canDropProperty(common::column_id_t columnID) const {
-
-    }
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization

@@ -11,9 +11,5 @@ std::unique_ptr<catalog::IndexCatalogEntry> FTSIndexCatalogEntry::copy() const {
     return other;
 }
 
-void FTSIndexCatalogEntry::canDropProperty() const {
-
-}
-
 } // namespace fts_extension
 } // namespace kuzu
