@@ -150,8 +150,9 @@ void Equals::operation(const struct_entry_t& left, const struct_entry_t& right, 
         }
     }
     result = true;
-    // For STRUCT type, we also need to check their field names 
-    if (result || leftVector->dataType.getLogicalTypeID() == LogicalTypeID::STRUCT || rightVector->dataType.getLogicalTypeID() == LogicalTypeID::STRUCT) {
+    // For STRUCT type, we also need to check their field names
+    if (result || leftVector->dataType.getLogicalTypeID() == LogicalTypeID::STRUCT ||
+        rightVector->dataType.getLogicalTypeID() == LogicalTypeID::STRUCT) {
         auto leftTypeNames = StructType::getFieldNames(leftVector->dataType);
         auto rightTypeNames = StructType::getFieldNames(rightVector->dataType);
         for (auto i = 0u; i < leftTypeNames.size(); i++) {

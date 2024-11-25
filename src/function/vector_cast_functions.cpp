@@ -61,7 +61,7 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
                 inputType->toString(), resultType->toString());
             // Check if two structs have the same number of fields
             if (StructType::getNumFields(*inputType) != StructType::getNumFields(*resultType)) {
-                 throw ConversionException{errorMsg};
+                throw ConversionException{errorMsg};
             }
 
             // Check if two structs have the same field names
@@ -73,7 +73,7 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
                     throw ConversionException{errorMsg};
                 }
             }
-            
+
             // copy data and nullmask from input
             memcpy(resultVector->getData(), inputVector->getData(),
                 numOfEntries * resultVector->getNumBytesPerValue());
@@ -1045,7 +1045,7 @@ function_set CastToUInt8Function::getFunctionSet() {
 
 // TODO(Xiyang): I think it is better to create a new grammar/syntax for casting operations.
 //  E.g. Instead of reusing the function grammar (cast(3, 'string')), i think it is better to
-//  provide the user with a new grammar: cast(3 as string) similar to duckdb. 
+//  provide the user with a new grammar: cast(3 as string) similar to duckdb.
 // TODO(Sterling): I Think the above TODO is already finished? Could it be removed?
 static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input) {
     KU_ASSERT(input.arguments.size() == 2);
@@ -1074,11 +1074,14 @@ static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input)
         }
     }
     // For STRUCT type, we will need to check its field name in later stage
-    // Otherwise, there will be bug for: RETURN cast({'a': 12, 'b': 12} AS struct(c int64, d int64)); being allowed.
-    if (targetType == input.arguments[0]->getDataType() && targetType.getLogicalTypeID() != LogicalTypeID::STRUCT) { // No need to cast. 
+    // Otherwise, there will be bug for: RETURN cast({'a': 12, 'b': 12} AS struct(c int64, d
+    // int64)); being allowed.
+    if (targetType == input.arguments[0]->getDataType() &&
+        targetType.getLogicalTypeID() != LogicalTypeID::STRUCT) { // No need to cast.
         return nullptr;
     }
-    if (ExpressionUtil::canCastStatically(*input.arguments[0], targetType) && targetType.getLogicalTypeID() != LogicalTypeID::STRUCT) {
+    if (ExpressionUtil::canCastStatically(*input.arguments[0], targetType) &&
+        targetType.getLogicalTypeID() != LogicalTypeID::STRUCT) {
         input.arguments[0]->cast(targetType);
         return nullptr;
     }

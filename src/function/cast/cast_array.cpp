@@ -10,8 +10,8 @@ bool CastArrayHelper::checkCompatibleNestedTypes(LogicalTypeID sourceTypeID,
     LogicalTypeID targetTypeID) {
     switch (sourceTypeID) {
     case LogicalTypeID::ANY: {
-            return true;
-        }
+        return true;
+    }
     case LogicalTypeID::LIST: {
         if (targetTypeID == LogicalTypeID::ARRAY || targetTypeID == LogicalTypeID::LIST) {
             return true;
