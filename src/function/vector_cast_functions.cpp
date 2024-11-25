@@ -644,6 +644,7 @@ static std::unique_ptr<ScalarFunction> bindCastBetweenNested(const std::string& 
     case LogicalTypeID::LIST:
     case LogicalTypeID::MAP:
     case LogicalTypeID::STRUCT:
+    case LogicalTypeID::ANY:
     case LogicalTypeID::ARRAY: {
         // todo: compile time checking of nested types
         if (CastArrayHelper::checkCompatibleNestedTypes(sourceType.getLogicalTypeID(),

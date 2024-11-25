@@ -9,6 +9,9 @@ namespace function {
 bool CastArrayHelper::checkCompatibleNestedTypes(LogicalTypeID sourceTypeID,
     LogicalTypeID targetTypeID) {
     switch (sourceTypeID) {
+    case LogicalTypeID::ANY: {
+            return true;
+        }
     case LogicalTypeID::LIST: {
         if (targetTypeID == LogicalTypeID::ARRAY || targetTypeID == LogicalTypeID::LIST) {
             return true;
