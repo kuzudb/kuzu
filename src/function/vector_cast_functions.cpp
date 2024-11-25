@@ -70,7 +70,6 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
 
             for (auto i = 0u; i < inputTypeNames.size(); i++) {
                 if (inputTypeNames[i] != resultTypeNames[i]) {
-                    errorMsg += "elements in source struct don't match up with elements in target struct";
                     throw ConversionException{errorMsg};
                 }
             }
