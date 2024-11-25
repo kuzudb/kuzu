@@ -1044,7 +1044,8 @@ function_set CastToUInt8Function::getFunctionSet() {
 
 // TODO(Xiyang): I think it is better to create a new grammar/syntax for casting operations.
 //  E.g. Instead of reusing the function grammar (cast(3, 'string')), i think it is better to
-//  provide the user with a new grammar: cast(3 as string) similar to duckdb.
+//  provide the user with a new grammar: cast(3 as string) similar to duckdb. 
+// TODO(Sterling): I Think the above TODO is already finished? Could it be removed?
 static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input) {
     KU_ASSERT(input.arguments.size() == 2);
     // Bind target type.
@@ -1071,10 +1072,12 @@ static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input)
             // we use the default casting function.
         }
     }
-    if (targetType == input.arguments[0]->getDataType()) { // No need to cast.
+    // For STRUCT type, we will need to check its field name in later stage
+    // Otherwise, there will be bug for: RETURN cast({'a': 12, 'b': 12} AS struct(c int64, d int64)); being allowed.
+    if (targetType == input.arguments[0]->getDataType() && targetType.getLogicalTypeID() != LogicalTypeID::STRUCT) { // No need to cast. 
         return nullptr;
     }
-    if (ExpressionUtil::canCastStatically(*input.arguments[0], targetType)) {
+    if (ExpressionUtil::canCastStatically(*input.arguments[0], targetType) && targetType.getLogicalTypeID() != LogicalTypeID::STRUCT) {
         input.arguments[0]->cast(targetType);
         return nullptr;
     }
