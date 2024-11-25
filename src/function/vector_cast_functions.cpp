@@ -56,24 +56,24 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
             resultType = &resultVector->dataType;
         } else if (inputType->getLogicalTypeID() == LogicalTypeID::STRUCT &&
                    resultType->getLogicalTypeID() == LogicalTypeID::STRUCT) {
-            // check if struct type can be cast
-            // auto errorMsg = stringFormat("Unsupported casting function from {} to {}.",
-            //     inputType->toString(), resultType->toString());
-            // // check if two struct has the same
-            // if (StructType::getNumFields(*inputType) != StructType::getNumFields(*resultType)) {
-            //     throw ConversionException{errorMsg};
-            // }
+            // Check if struct type can be cast
+            auto errorMsg = stringFormat("Unsupported casting function from {} to {}.",
+                inputType->toString(), resultType->toString());
+            // Check if two structs have the same number of fields
+            if (StructType::getNumFields(*inputType) != StructType::getNumFields(*resultType)) {
+                 throw ConversionException{errorMsg};
+            }
 
-            // auto inputTypes = StructType::getFieldTypes(*inputType);
-            // auto resultTypes = StructType::getFieldTypes(*resultType);
+            // Check if two structs have the same field names
+            auto inputTypeNames = StructType::getFieldNames(*inputType);
+            auto resultTypeNames = StructType::getFieldNames(*resultType);
 
-            // for (auto i = 0u; i < inputTypes.size(); i++) {
-            //     LogicalTypeID srcType = inputTypes[i]->getLogicalTypeID();
-            //     LogicalTypeID dstType = resultTypes[i]->getLogicalTypeID();
-            //     if (BuiltInFunctionsUtils::getCastCost(srcType, dstType) == UNDEFINED_CAST_COST) {
-            //         throw ConversionException{errorMsg};
-            //     }
-            // }
+            for (auto i = 0u; i < inputTypeNames.size(); i++) {
+                if (inputTypeNames[i] != resultTypeNames[i]) {
+                    errorMsg += "elements in source struct don't match up with elements in target struct";
+                    throw ConversionException{errorMsg};
+                }
+            }
             
             // copy data and nullmask from input
             memcpy(resultVector->getData(), inputVector->getData(),

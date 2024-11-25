@@ -737,7 +737,8 @@ Conversion exception: Unsupported casting function from INT8 to STRUCT.
 ---- error
 Conversion exception: Unsupported casting function from STRUCT(a STRING, b STRING) to INT8.
 -STATEMENT RETURN cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING)"), "STRUCT(c INT128, b INT128)");
----- ok
+---- error
+Conversion exception: Unsupported casting function from STRUCT(a STRING, b STRING) to STRUCT(c INT128, b INT128).
 -STATEMENT RETURN cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING)"), "MAP(STRING, STRING)");
 ---- error
 Conversion exception: Unsupported casting function from STRUCT to MAP.
