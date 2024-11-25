@@ -151,7 +151,7 @@ public:
         // CompState class which RJCompState derives from.
         auto computeState =
             RJCompState(std::move(frontierPair), std::move(edgeCompute), nullptr, nullptr);
-        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::FWD,
+        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH,
             10);
         auto vertexCompute = std::make_unique<WCCVertexCompute>(clientContext->getMemoryManager(),
             sharedState.get(), computeState);
