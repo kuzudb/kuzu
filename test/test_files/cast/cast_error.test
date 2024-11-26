@@ -812,3 +812,17 @@ Catalog exception:  is neither an internal type nor a user defined type.
 -STATEMENT RETURN cast("nop", "STRUCT(a: INT, b MAP(INT, STRING, INT))");
 ---- error
 Catalog exception: STRING, INT is neither an internal type nor a user defined type.
+-STATEMENT RETURN cast({'a':12, 'b':24} as struct (c int64, d int64));
+---- error
+Conversion exception: Unsupported casting function from STRUCT(a INT64, b INT64) to STRUCT(c INT64, d INT64).
+-STATEMENT RETURN cast({'a':12, 'b':24} as struct (c int64, d int32));
+---- error
+Conversion exception: Unsupported casting function from STRUCT(a INT64, b INT64) to STRUCT(c INT64, d INT32).
+-STATEMENT RETURN cast({'a':12, 'b':24} as struct (a int16, b int16));
+---- ok
+-STATEMENT RETURN {'a':12, 'b':24} = {'a':12, 'b':24};
+---- 1
+True
+-STATEMENT RETURN {'a':12, 'b':24} = {'c':12, 'd':24};
+---- 1
+False

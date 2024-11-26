@@ -56,14 +56,18 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
             resultType = &resultVector->dataType;
         } else if (inputType->getLogicalTypeID() == LogicalTypeID::STRUCT &&
                    resultType->getLogicalTypeID() == LogicalTypeID::STRUCT) {
-            // check if struct type can be cast
+            // Check if struct type can be cast
             auto errorMsg = stringFormat("Unsupported casting function from {} to {}.",
                 inputType->toString(), resultType->toString());
-            auto inputTypeNames = StructType::getFieldNames(*inputType);
-            auto resultTypeNames = StructType::getFieldNames(*resultType);
-            if (inputTypeNames.size() != resultTypeNames.size()) {
+            // Check if two structs have the same number of fields
+            if (StructType::getNumFields(*inputType) != StructType::getNumFields(*resultType)) {
                 throw ConversionException{errorMsg};
             }
+
+            // Check if two structs have the same field names
+            auto inputTypeNames = StructType::getFieldNames(*inputType);
+            auto resultTypeNames = StructType::getFieldNames(*resultType);
+
             for (auto i = 0u; i < inputTypeNames.size(); i++) {
                 if (inputTypeNames[i] != resultTypeNames[i]) {
                     throw ConversionException{errorMsg};
@@ -640,6 +644,7 @@ static std::unique_ptr<ScalarFunction> bindCastBetweenNested(const std::string& 
     case LogicalTypeID::LIST:
     case LogicalTypeID::MAP:
     case LogicalTypeID::STRUCT:
+    case LogicalTypeID::ANY:
     case LogicalTypeID::ARRAY: {
         // todo: compile time checking of nested types
         if (CastArrayHelper::checkCompatibleNestedTypes(sourceType.getLogicalTypeID(),
@@ -1038,9 +1043,6 @@ function_set CastToUInt8Function::getFunctionSet() {
     return result;
 }
 
-// TODO(Xiyang): I think it is better to create a new grammar/syntax for casting operations.
-//  E.g. Instead of reusing the function grammar (cast(3, 'string')), i think it is better to
-//  provide the user with a new grammar: cast(3 as string) similar to duckdb.
 static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input) {
     KU_ASSERT(input.arguments.size() == 2);
     // Bind target type.
@@ -1067,10 +1069,15 @@ static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input)
             // we use the default casting function.
         }
     }
-    if (targetType == input.arguments[0]->getDataType()) { // No need to cast.
+    // For STRUCT type, we will need to check its field name in later stage
+    // Otherwise, there will be bug for: RETURN cast({'a': 12, 'b': 12} AS struct(c int64, d
+    // int64)); being allowed.
+    if (targetType == input.arguments[0]->getDataType() &&
+        targetType.getLogicalTypeID() != LogicalTypeID::STRUCT) { // No need to cast.
         return nullptr;
     }
-    if (ExpressionUtil::canCastStatically(*input.arguments[0], targetType)) {
+    if (ExpressionUtil::canCastStatically(*input.arguments[0], targetType) &&
+        targetType.getLogicalTypeID() != LogicalTypeID::STRUCT) {
         input.arguments[0]->cast(targetType);
         return nullptr;
     }
