@@ -185,7 +185,7 @@ bool SniffCSVNameAndTypeDriver::done(uint64_t rowNum) {
     auto& csvOption = reader->getCSVOption();
     bool finished = (csvOption.hasHeader ? 1 : 0) + csvOption.sampleSize <= rowNum;
     // if the csv only has one row
-    if (finished && rowNum == 0 && csvOption.autoDetection && !csvOption.setHeader) {
+    if (finished && rowNum <= 1 && csvOption.autoDetection && !csvOption.setHeader) {
         for (auto columnIdx = 0u; columnIdx < firstRow.size(); ++columnIdx) {
             std::string columnName = std::string(firstRow[columnIdx]);
             LogicalType columnType = function::inferMinimalTypeFromString(firstRow[columnIdx]);

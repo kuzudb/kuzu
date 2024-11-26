@@ -31,6 +31,15 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/too
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/union-no-conversion.csv on line 2: Conversion exception: Could not convert to union type UNION(u UINT8, s INT8): a. Line/record containing the error: 'a'
 
+# Test for issue 4531 (sniff wrong type when sample_size = 1)
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/sniff_first_row.csv" (ignore_errors=false, sample_size=1) RETURN *;
+---- error
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/sniff_first_row.csv on line 3: Conversion exception: Cast failed. Could not convert " Eliz" to INT64. Line/record containing the error: 'Eliz, Eliz'
+
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/sniff_first_row.csv" (ignore_errors=false, sample_size=2) RETURN *;
+---- error
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/sniff_first_row.csv on line 3: Conversion exception: Cast failed. Could not convert " Eliz" to INT64. Line/record containing the error: 'Eliz, Eliz'
+
 # Test that errors in serial mode don't hang the database.
 # File is large so the window for the race is large enough.
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/large-conversion-failure.csv" (HEADER=TRUE, PARALLEL=FALSE, AUTO_DETECT=false) RETURN *
