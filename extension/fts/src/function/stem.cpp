@@ -1,5 +1,6 @@
 #include "function/stem.h"
 
+#include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
@@ -59,6 +60,20 @@ function::function_set StemFunction::getFunctionSet() {
         LogicalTypeID::STRING,
         ScalarFunction::BinaryStringExecFunction<ku_string_t, ku_string_t, ku_string_t, Stem>));
     return result;
+}
+
+void StemFunction::validateStemmer(const std::string& stemmer) {
+    if (stemmer == "none") {
+        return;
+    }
+    struct sb_stemmer* sbStemmer =
+        sb_stemmer_new(reinterpret_cast<const char*>(stemmer.c_str()), "UTF_8");
+    if (sbStemmer == nullptr) {
+        throw common::BinderException(
+            common::stringFormat("Unrecognized stemmer '{}'. Supported stemmers are: ['{}'], or "
+                                 "use 'none' for no stemming.",
+                stemmer, getStemmerList()));
+    }
 }
 
 } // namespace fts_extension

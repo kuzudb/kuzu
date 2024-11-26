@@ -23,13 +23,14 @@ using namespace kuzu::function;
 struct QueryFTSBindData final : public FTSBindData {
     std::string query;
     const FTSIndexCatalogEntry& entry;
+    QueryFTSConfig config;
 
     QueryFTSBindData(std::string tableName, common::table_id_t tableID, std::string indexName,
         std::string query, const FTSIndexCatalogEntry& entry, std::vector<LogicalType> returnTypes,
-        std::vector<std::string> returnColumnNames)
+        std::vector<std::string> returnColumnNames, QueryFTSConfig config)
         : FTSBindData{std::move(tableName), tableID, std::move(indexName), std::move(returnTypes),
               std::move(returnColumnNames)},
-          query{std::move(query)}, entry{entry} {}
+          query{std::move(query)}, entry{entry}, config{std::move(config)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<QueryFTSBindData>(*this);
@@ -56,9 +57,10 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     columnNames.push_back("node");
     columnTypes.push_back(LogicalType::DOUBLE());
     columnNames.push_back("score");
+    QueryFTSConfig config{input->optionalParams};
     return std::make_unique<QueryFTSBindData>(tableEntry.getName(), tableEntry.getTableID(),
         std::move(indexName), std::move(query), ftsCatalogEntry->constCast<FTSIndexCatalogEntry>(),
-        std::move(columnTypes), std::move(columnNames));
+        std::move(columnTypes), std::move(columnNames), std::move(config));
 }
 
 static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output) {
@@ -71,16 +73,17 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
         auto avgDocLen = bindData->entry.getAvgDocLen();
         auto query = common::stringFormat("PROJECT GRAPH PK (`{}`, `{}`, `{}`) "
                                           "UNWIND tokenize('{}') AS tk "
-                                          "WITH collect(stem(tk, 'porter')) AS keywords "
+                                          "WITH collect(stem(tk, '{}')) AS keywords "
                                           "MATCH (a:`{}`) "
                                           "WHERE list_contains(keywords, a.term) "
-                                          "CALL QFTS(PK, a, 1.2, 0.75, cast({} as UINT64), {}) "
+                                          "CALL QFTS(PK, a, {}, {}, cast({} as UINT64), {}) "
                                           "MATCH (p:`{}`) "
                                           "WHERE _node.docID = offset(id(p)) "
                                           "RETURN p, score",
             bindData->getTermsTableName(), bindData->getDocsTableName(),
-            bindData->getAppearsInTableName(), bindData->query, bindData->getTermsTableName(),
-            numDocs, avgDocLen, bindData->tableName);
+            bindData->getAppearsInTableName(), bindData->query,
+            bindData->entry.getFTSConfig().stemmer, bindData->getTermsTableName(),
+            bindData->config.k, bindData->config.b, numDocs, avgDocLen, bindData->tableName);
         localState->result = data.context->clientContext->queryInternal(query, "", false,
             std::nullopt /* queryID */);
     }
