@@ -64,7 +64,7 @@
 []
 
 -LOG MapExtractStruct
--STATEMENT RETURN map_extract(map([{a: 5, b: {length: 30, age: 20, size: [20, 10]}}, {a: 7, b: {length: 22, age: 145, size: [20,15, 10]}}], [30 ,50]), {a: 7, b: {length1: 22, age1: 145, size: [20,15, 10]}})
+-STATEMENT RETURN map_extract(map([{a: 5, b: {length: 30, age: 20, size: [20, 10]}}, {a: 7, b: {length: 22, age: 145, size: [20,15, 10]}}], [30 ,50]), {a: 7, b: {length: 22, age: 145, size: [20,15, 10]}})
 ---- 1
 [50]
 

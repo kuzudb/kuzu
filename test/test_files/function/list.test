@@ -2286,7 +2286,7 @@ False
 True
 -STATEMENT RETURN list_has_all([{a: 5, b:3}, {c: 2, d: 4}], [{c:2, e:4}])
 ---- 1
-FALSE
+False
 -STATEMENT RETURN list_has_all([5,6,12], [null])
 ---- 1
 True
