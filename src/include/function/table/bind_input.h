@@ -31,7 +31,7 @@ struct ScanTableFuncBindInput {
 
     ScanTableFuncBindInput() : context(nullptr), tableFunction(nullptr) {}
     explicit ScanTableFuncBindInput(common::ReaderConfig config)
-        : config{std::move(config)}, context(nullptr), tableFunction(nullptr) {};
+        : config{std::move(config)}, context(nullptr), tableFunction(nullptr){};
     ScanTableFuncBindInput(common::ReaderConfig config,
         std::vector<std::string> expectedColumnNames,
         std::vector<common::LogicalType> expectedColumnTypes, main::ClientContext* context,
