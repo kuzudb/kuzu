@@ -14,7 +14,6 @@ class ExpressionEvaluator;
 
 namespace catalog {
 class NodeTableCatalogEntry;
-class Property;
 } // namespace catalog
 
 namespace transaction {
