@@ -1043,10 +1043,6 @@ function_set CastToUInt8Function::getFunctionSet() {
     return result;
 }
 
-// TODO(Xiyang): I think it is better to create a new grammar/syntax for casting operations.
-//  E.g. Instead of reusing the function grammar (cast(3, 'string')), i think it is better to
-//  provide the user with a new grammar: cast(3 as string) similar to duckdb.
-// TODO(Sterling): I Think the above TODO is already finished? Could it be removed?
 static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input) {
     KU_ASSERT(input.arguments.size() == 2);
     // Bind target type.
