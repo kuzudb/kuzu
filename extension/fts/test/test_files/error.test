@@ -61,3 +61,25 @@ Binder exception: CREATE_FTS_INDEX is only supported in auto transaction mode.
 -STATEMENT CALL DROP_FTS_INDEX('person1', 'contentIdx')
 ---- error
 Binder exception: DROP_FTS_INDEX is only supported in auto transaction mode.
+
+-CASE DropTableWithIndexes
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
+---- ok
+-STATEMENT CREATE NODE TABLE STUDENT (ID INT64, name string, age INT64, PRIMARY KEY(ID))
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('STUDENT', 'sIdx', ['name'])
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('STUDENT', 'sIdx1', ['name'])
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('STUDENT', 'sIdx', 'test') RETURN *
+---- 0
+-STATEMENT ALTER TABLE STUDENT DROP name;
+---- error
+Catalog exception: Cannot drop a property in a table with indexes.
+-STATEMENT ALTER TABLE STUDENT ADD length int64;
+---- ok
+-STATEMENT DROP TABLE STUDENT
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('STUDENT', 'sIdx', 'test') RETURN *
+---- error
+Binder exception: Table STUDENT does not exist.

@@ -191,7 +191,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& /*outp
     GDSUtils::runVertexComputeIteration(&context, &graph, lenCompute,
         std::vector<std::string>{CreateFTSFunction::DOC_LEN_PROP_NAME});
     auto numDocs = sharedState.numDocs.load();
-    auto avgDocLen = (double)sharedState.totalLen.load() / numDocs;
+    auto avgDocLen = numDocs == 0 ? 0 : (double)sharedState.totalLen.load() / numDocs;
     context.clientContext->getCatalog()->createIndex(context.clientContext->getTx(),
         std::make_unique<fts_extension::FTSIndexCatalogEntry>(createFTSBindData.tableID,
             createFTSBindData.indexName, numDocs, avgDocLen));
