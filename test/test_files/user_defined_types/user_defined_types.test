@@ -169,7 +169,7 @@ abc|{l: 5, h: 32}
 [2,5,6]
 [1,3,4]
 [4,5,8]
--STATEMENT CREATE TYPE person_info AS STRUCT(year LENGTH, usedName string);
+-STATEMENT CREATE TYPE person_info AS STRUCT(age LENGTH, name string);
 ---- ok
 -STATEMENT MATCH (p:person) RETURN cast(p.info as person_info)
 ---- 3
