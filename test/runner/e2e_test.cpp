@@ -117,6 +117,10 @@ void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = 
         auto bufferPoolSize = testGroup->bufferPoolSize;
         auto checkpointWaitTimeout = testGroup->checkpointWaitTimeout;
         for (auto& [testCaseName, testStatements] : testCases) {
+            // Check for invalid characters in the case name (see ISSUE 4510)
+            if (testCaseName.find('-') != std::string::npos) {
+                throw TestException("Invalid test case name containing '-': " + testCaseName);
+            }
             if (generateTestList) {
                 std::ofstream testList(TestHelper::getTestListFile(), std::ios_base::app);
                 testList << testGroup->group + "." + testCaseName + " " + path + "\n";
