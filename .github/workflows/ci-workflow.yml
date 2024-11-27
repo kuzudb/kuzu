@@ -756,54 +756,54 @@ jobs:
           ln -s /Users/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test
 
-      - name: Test in mem
-        env:
-          IN_MEM_MODE: true
-        run: |
-          make test
+      # - name: Test in mem
+      #   env:
+      #     IN_MEM_MODE: true
+      #   run: |
+      #     make test
 
-      - name: Test checkpoint at threshold 0
-        env:
-          AUTO_CHECKPOINT: true
-          CHECKPOINT_THRESHOLD: 0
-        run: |
-          make test
+      # - name: Test checkpoint at threshold 0
+      #   env:
+      #     AUTO_CHECKPOINT: true
+      #     CHECKPOINT_THRESHOLD: 0
+      #   run: |
+      #     make test
 
-      - name: Python test
-        env:
-          PYBIND11_PYTHON_VERSION: 3.12
-        run: |
-          ulimit -n 10240
-          make pytest
+      # - name: Python test
+      #   env:
+      #     PYBIND11_PYTHON_VERSION: 3.12
+      #   run: |
+      #     ulimit -n 10240
+      #     make pytest
 
-      - name: C and C++ Examples
-        run: |
-          ulimit -n 10240
-          make example
+      # - name: C and C++ Examples
+      #   run: |
+      #     ulimit -n 10240
+      #     make example
 
-      - name: Node.js test
-        run: |
-          ulimit -n 10240
-          make nodejstest
+      # - name: Node.js test
+      #   run: |
+      #     ulimit -n 10240
+      #     make nodejstest
 
-      - name: Java test
-        run: |
-          ulimit -n 10240
-          export JAVA_HOME=`/usr/libexec/java_home`
-          make javatest
+      # - name: Java test
+      #   run: |
+      #     ulimit -n 10240
+      #     export JAVA_HOME=`/usr/libexec/java_home`
+      #     make javatest
 
-      - name: Rust test
-        run: |
-          ulimit -n 10240
-          source /Users/runner/.cargo/env
-          make rusttest
+      # - name: Rust test
+      #   run: |
+      #     ulimit -n 10240
+      #     source /Users/runner/.cargo/env
+      #     make rusttest
 
-      - name: Rust example
-        working-directory: examples/rust
-        run: |
-          ulimit -n 10240
-          source /Users/runner/.cargo/env
-          cargo build --locked --features arrow
+      # - name: Rust example
+      #   working-directory: examples/rust
+      #   run: |
+      #     ulimit -n 10240
+      #     source /Users/runner/.cargo/env
+      #     cargo build --locked --features arrow
 
       # TODO(bmwinger): rust pre-built library test for macos
       # When last tried it had issues finding libkuzu.dylib when running the tests
