@@ -54,13 +54,11 @@ if (${BUILD_EXTENSION_TESTS})
     include_directories(${CMAKE_SOURCE_DIR}/third_party/spdlog)
     add_definitions(-DTEST_FILES_DIR="extension")
     # Check if we have built test
-    if (NOT TARGET GTest::GTest)
-        add_subdirectory(${CMAKE_SOURCE_DIR}/test/gtest ${CMAKE_CURRENT_BINARY_DIR}/test/gtest EXCLUDE_FROM_ALL)
-        # Make gtest available to subdirectories.
-        add_library(GTest::GTest INTERFACE IMPORTED)
-        target_link_libraries(GTest::GTest INTERFACE gtest_main)
-        target_link_libraries(GTest::GTest INTERFACE gmock_main)
-    endif ()
+    add_subdirectory(${CMAKE_SOURCE_DIR}/test/gtest ${CMAKE_CURRENT_BINARY_DIR}/test/gtest EXCLUDE_FROM_ALL)
+    # Make gtest available to subdirectories.
+    add_library(GTest::GTest INTERFACE IMPORTED)
+    target_link_libraries(GTest::GTest INTERFACE gtest_main)
+    target_link_libraries(GTest::GTest INTERFACE gmock_main)
     enable_testing()
     # Avoid duplicate test targets
     if (NOT TARGET test_helper)
