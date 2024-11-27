@@ -22,6 +22,7 @@ add_library(duckdb_extension
         src/duckdb_catalog.cpp
         src/duckdb_table_catalog_entry.cpp
         src/duckdb_functions.cpp
+        src/duckdb_secret_manager.cpp
         ${PROJECT_SOURCE_DIR}/extension/httpfs/src/s3_download_options.cpp
         ${DUCKDB_OBJECT_FILES})
 

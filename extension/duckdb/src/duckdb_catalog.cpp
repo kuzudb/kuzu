@@ -46,7 +46,8 @@ void DuckDBCatalog::init() {
         return;
     }
     duckdb_conversion_func_t conversionFunc;
-    getDuckDBVectorConversionFunc(common::PhysicalTypeID::STRING, conversionFunc);
+    DuckDBResultConverter::getDuckDBVectorConversionFunc(common::PhysicalTypeID::STRING,
+        conversionFunc);
     conversionFunc(resultChunk->data[0], tableNamesVector, resultChunk->size());
     for (auto i = 0u; i < resultChunk->size(); i++) {
         auto tableName = tableNamesVector.getValue<common::ku_string_t>(i).getAsString();
