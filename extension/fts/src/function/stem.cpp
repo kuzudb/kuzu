@@ -74,6 +74,7 @@ void StemFunction::validateStemmer(const std::string& stemmer) {
                                  "use 'none' for no stemming.",
                 stemmer, getStemmerList()));
     }
+    sb_stemmer_delete(sbStemmer);
 }
 
 } // namespace fts_extension
