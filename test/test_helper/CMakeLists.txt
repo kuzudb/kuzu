@@ -14,6 +14,22 @@ if (NOT TARGET test_helper)
         target_link_libraries(test_helper PUBLIC kuzu)
 endif()
 
+if (NOT TARGET extension_test_helper)
+        add_library(
+                extension_test_helper
+                OBJECT
+                test_helper.cpp
+        )
+
+        target_include_directories(
+                extension_test_helper
+                PUBLIC
+                ../include/
+        )
+
+        target_link_libraries(extension_test_helper PUBLIC kuzu)
+endif()
+
 
 
 if (NOT TARGET api_test_helper)
