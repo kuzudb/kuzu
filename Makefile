@@ -182,13 +182,13 @@ example:
 	$(call run-cmake-release, -DBUILD_EXAMPLES=TRUE)
 
 extension-test-build:
-	$(call run-cmake-release, \
+	$(call run-cmake-relwithdebinfo, \
 		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts" \
 		-DBUILD_EXTENSION_TESTS=TRUE \
 	)
 
 extension-json-test-build:
-	$(call run-cmake-release, \
+	$(call run-cmake-relwithdebinfo, \
 		-DBUILD_EXTENSIONS="json" \
 		-DBUILD_EXTENSION_TESTS=TRUE \
 		-DENABLE_ADDRESS_SANITIZER=TRUE \
