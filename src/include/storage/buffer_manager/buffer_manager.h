@@ -7,6 +7,8 @@
 #include <vector>
 
 #include "common/types/types.h"
+#include "storage/buffer_manager/memory_manager.h"
+#include "storage/buffer_manager/page_state.h"
 #include "storage/enums/page_read_policy.h"
 #include "storage/file_handle.h"
 
@@ -222,10 +224,19 @@ private:
     // The function assumes that the requested page is already pinned.
     void unpin(FileHandle& fileHandle, common::page_idx_t pageIdx);
     uint8_t* getFrame(FileHandle& fileHandle, common::page_idx_t pageIdx) const {
+#if BM_MALLOC
+        return fileHandle.getPageState(pageIdx)->getPage();
+#else
         return vmRegions[fileHandle.getPageSizeClass()]->getFrame(fileHandle.getFrameIdx(pageIdx));
+#endif
     }
-    common::frame_group_idx_t addNewFrameGroup(common::PageSizeClass pageSizeClass) {
+    common::frame_group_idx_t addNewFrameGroup(
+        common::PageSizeClass pageSizeClass [[maybe_unused]]) {
+#if BM_MALLOC
+        return 0;
+#else
         return vmRegions[pageSizeClass]->addNewFrameGroup();
+#endif
     }
     void removePageFromFrameIfNecessary(FileHandle& fileHandle, common::page_idx_t pageIdx);
 
@@ -242,8 +253,13 @@ private:
 
     uint64_t freeUsedMemory(uint64_t size);
 
-    void releaseFrameForPage(FileHandle& fileHandle, common::page_idx_t pageIdx) {
+    void releaseFrameForPage(FileHandle& fileHandle [[maybe_unused]],
+        common::page_idx_t pageIdx [[maybe_unused]]) {
+#if BM_MALLOC
+        // Page is freed instead in PageState::resetToEvicted
+#else
         vmRegions[fileHandle.getPageSizeClass()]->releaseFrame(fileHandle.getFrameIdx(pageIdx));
+#endif
     }
 
     uint64_t evictPages();
@@ -257,7 +273,7 @@ private:
     std::atomic<uint64_t> nonEvictableMemory;
     // Each VMRegion corresponds to a virtual memory region of a specific page size. Currently, we
     // hold two sizes of REGULAR_PAGE and TEMP_PAGE.
-    std::vector<std::unique_ptr<VMRegion>> vmRegions;
+    std::array<std::unique_ptr<VMRegion>, 2> vmRegions;
     std::vector<std::unique_ptr<FileHandle>> fileHandles;
     std::unique_ptr<Spiller> spiller;
     common::VirtualFileSystem* vfs;

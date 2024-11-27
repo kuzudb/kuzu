@@ -4,6 +4,13 @@
 
 #include "common/assert.h"
 
+// Alternative variant of the buffer manager which doesn't rely on MADV_DONTNEED (on Unix) for
+// evicting pages (which is unavailable in Webassembly runtimes)
+#define BM_MALLOC __WASM__
+#if BM_MALLOC
+#include <memory>
+#endif
+
 namespace kuzu {
 namespace storage {
 
@@ -74,12 +81,28 @@ public:
     bool isDirty() const { return stateAndVersion & DIRTY_MASK; }
     uint64_t getStateAndVersion() const { return stateAndVersion.load(); }
 
-    void resetToEvicted() { stateAndVersion.store(EVICTED << NUM_BITS_TO_SHIFT_FOR_STATE); }
+    void resetToEvicted() {
+        stateAndVersion.store(EVICTED << NUM_BITS_TO_SHIFT_FOR_STATE);
+#if BM_MALLOC
+        page.reset();
+#endif
+    }
+
+#if BM_MALLOC
+    uint8_t* getPage() const { return page.get(); }
+    uint8_t* allocatePage(uint64_t pageSize) {
+        page = std::make_unique<uint8_t[]>(pageSize);
+        return page.get();
+    }
+#endif
 
 private:
     // Highest 1 bit is dirty bit, and the rest are page state and version bits.
     // In the rest bits, the lowest 1 byte is state, and the rest are version.
     std::atomic<uint64_t> stateAndVersion;
+#if BM_MALLOC
+    std::unique_ptr<uint8_t[]> page;
+#endif
 };
 
 } // namespace storage

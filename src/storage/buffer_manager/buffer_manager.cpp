@@ -84,9 +84,10 @@ BufferManager::BufferManager(const std::string& databasePath, const std::string&
     : bufferPoolSize{bufferPoolSize}, evictionQueue{bufferPoolSize / KUZU_PAGE_SIZE},
       usedMemory{evictionQueue.getCapacity() * sizeof(EvictionCandidate)}, vfs{vfs} {
     verifySizeParams(bufferPoolSize, maxDBSize);
-    vmRegions.resize(2);
+#if !BM_MALLOC
     vmRegions[0] = std::make_unique<VMRegion>(REGULAR_PAGE, maxDBSize);
     vmRegions[1] = std::make_unique<VMRegion>(TEMP_PAGE, bufferPoolSize);
+#endif
 
     // TODO(bmwinger): It may be better to spill to disk in a different location for remote file
     // systems, or even in general.
@@ -141,7 +142,12 @@ uint8_t* BufferManager::pin(FileHandle& fileHandle, page_idx_t pageIdx,
                     throw BufferManagerException(
                         "Eviction queue is full! This should be impossible.");
                 }
+#if BM_MALLOC
+                KU_ASSERT(pageState->getPage());
+                return pageState->getPage();
+#else
                 return getFrame(fileHandle, pageIdx);
+#endif
             }
         } break;
         case PageState::UNLOCKED:
@@ -193,12 +199,19 @@ void handleAccessViolation(unsigned int exceptionCode, PEXCEPTION_POINTERS excep
 
 // Returns true if the function completes successfully
 inline bool try_func(const std::function<void(uint8_t*)>& func, uint8_t* frame,
-    const std::vector<std::unique_ptr<VMRegion>>& vmRegions, PageSizeClass pageSizeClass) {
-#if defined(_WIN32)
+    const std::array<std::unique_ptr<VMRegion>, 2>& vmRegions [[maybe_unused]],
+    PageSizeClass pageSizeClass [[maybe_unused]]) {
+#if BM_MALLOC
+    if (frame == nullptr) {
+        return false;
+    }
+#endif
+
+#if defined(_WIN32) && !BM_MALLOC
     try {
 #endif
         func(frame);
-#if defined(_WIN32)
+#if defined(_WIN32) && !BM_MALLOC
     } catch (AccessViolation& exc) {
         // If we encounter an acess violation within the VM region,
         // the page was decomitted by another thread
@@ -209,9 +222,6 @@ inline bool try_func(const std::function<void(uint8_t*)>& func, uint8_t* frame,
             throw EXCEPTION_ACCESS_VIOLATION;
         }
     }
-#else
-    (void)pageSizeClass;
-    (void)vmRegions;
 #endif
     return true;
 }
@@ -309,8 +319,7 @@ bool BufferManager::claimAFrame(FileHandle& fileHandle, page_idx_t pageIdx,
     if (!reserve(pageSizeToClaim)) {
         return false;
     }
-#ifdef _WIN32
-    // We need to commit memory explicitly on Windows.
+#if _WIN32 && !BM_MALLOC
     // Committing in this context means reserving physical memory/page file space for a segment of
     // virtual memory. On Linux/Unix this is automatic when you write to the memory address.
     auto result =
@@ -408,9 +417,16 @@ void BufferManager::cachePageIntoFrame(FileHandle& fileHandle, page_idx_t pageId
     PageReadPolicy pageReadPolicy) {
     auto pageState = fileHandle.getPageState(pageIdx);
     pageState->clearDirty();
+#if BM_MALLOC
+    pageState->allocatePage(fileHandle.getPageSize());
+    if (pageReadPolicy == PageReadPolicy::READ_PAGE) {
+        fileHandle.readPageFromDisk(pageState->getPage(), pageIdx);
+    }
+#else
     if (pageReadPolicy == PageReadPolicy::READ_PAGE) {
         fileHandle.readPageFromDisk(getFrame(fileHandle, pageIdx), pageIdx);
     }
+#endif
 }
 
 void BufferManager::removeFilePagesFromFrames(FileHandle& fileHandle) {
