@@ -236,7 +236,7 @@ public:
 
     KUZU_API static std::unique_ptr<Value> deserialize(Deserializer& deserializer);
 
-    void validateType(common::LogicalTypeID targetTypeID) const;
+    KUZU_API void validateType(common::LogicalTypeID targetTypeID) const;
 
     bool hasNoneNullChildren() const;
     bool allowTypeChange() const;
