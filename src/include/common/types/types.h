@@ -83,7 +83,6 @@ using relID_t = internalID_t;
 
 using cardinality_t = uint64_t;
 constexpr offset_t INVALID_LIMIT = UINT64_MAX;
-
 // System representation for internalID.
 struct KUZU_API internalID_t {
     offset_t offset;
