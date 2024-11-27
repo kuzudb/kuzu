@@ -2,6 +2,7 @@ add_library(kuzu_fts_function
         OBJECT
         stem.cpp
         create_fts_index.cpp
+        fts_config.cpp
         query_fts_index.cpp
         drop_fts_index.cpp
         query_fts_gds.cpp

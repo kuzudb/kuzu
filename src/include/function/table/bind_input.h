@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "common/case_insensitive_map.h"
 #include "common/copier_config/reader_config.h"
 #include "common/types/value/value.h"
 
@@ -10,7 +11,13 @@ namespace main {
 class ClientContext;
 }
 
+namespace common {
+class Value;
+}
+
 namespace function {
+
+using optional_params_t = common::case_insensitive_map_t<common::Value>;
 
 struct TableFunction;
 struct ScanTableFuncBindInput {
@@ -20,6 +27,7 @@ struct ScanTableFuncBindInput {
     std::vector<common::LogicalType> expectedColumnTypes;
     main::ClientContext* context;
     function::TableFunction* tableFunction;
+    optional_params_t optionalParams;
 
     ScanTableFuncBindInput() : context(nullptr), tableFunction(nullptr) {}
     explicit ScanTableFuncBindInput(common::ReaderConfig config)
@@ -40,7 +48,8 @@ private:
         : inputs{other.inputs}, config{other.config.copy()},
           expectedColumnNames{other.expectedColumnNames},
           expectedColumnTypes{common::LogicalType::copy(other.expectedColumnTypes)},
-          context{other.context}, tableFunction{other.tableFunction} {}
+          context{other.context}, tableFunction{other.tableFunction},
+          optionalParams{other.optionalParams} {}
 };
 
 } // namespace function

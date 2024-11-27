@@ -1,6 +1,7 @@
 #pragma once
 
 #include "catalog/catalog_entry/index_catalog_entry.h"
+#include "function/fts_config.h"
 
 namespace kuzu {
 namespace fts_extension {
@@ -12,15 +13,16 @@ public:
     //===--------------------------------------------------------------------===//
     FTSIndexCatalogEntry() = default;
     FTSIndexCatalogEntry(common::table_id_t tableID, std::string indexName, common::idx_t numDocs,
-        double avgDocLen)
+        double avgDocLen, const FTSConfig& config)
         : catalog::IndexCatalogEntry{tableID, std::move(indexName)}, numDocs{numDocs},
-          avgDocLen{avgDocLen} {}
+          avgDocLen{avgDocLen}, config{std::move(config)} {}
 
     //===--------------------------------------------------------------------===//
     // getters & setters
     //===--------------------------------------------------------------------===//
     common::idx_t getNumDocs() const { return numDocs; }
     double getAvgDocLen() const { return avgDocLen; }
+    const FTSConfig& getFTSConfig() const { return config; }
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization
@@ -30,6 +32,7 @@ public:
 private:
     common::idx_t numDocs = 0;
     double avgDocLen = 0;
+    FTSConfig config;
 };
 
 } // namespace fts_extension
