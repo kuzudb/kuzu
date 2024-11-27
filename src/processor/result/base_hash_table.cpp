@@ -5,6 +5,7 @@
 #include "common/null_buffer.h"
 #include "common/type_utils.h"
 #include "common/utils.h"
+#include "common/vector/value_vector.h"
 #include "function/comparison/comparison_functions.h"
 #include "function/hash/vector_hash_functions.h"
 
@@ -18,7 +19,6 @@ BaseHashTable::BaseHashTable(storage::MemoryManager& memoryManager, logical_type
     : maxNumHashSlots{0}, bitmask{0}, numSlotsPerBlockLog2{0}, slotIdxInBlockMask{0},
       memoryManager{memoryManager}, keyTypes{std::move(keyTypes)} {
     initCompareFuncs();
-    initTmpHashVector();
 }
 
 void BaseHashTable::setMaxNumHashSlots(uint64_t newSize) {
@@ -26,14 +26,15 @@ void BaseHashTable::setMaxNumHashSlots(uint64_t newSize) {
     bitmask = maxNumHashSlots - 1;
 }
 
-void BaseHashTable::computeAndCombineVecHash(const std::vector<ValueVector*>& unFlatKeyVectors,
-    uint32_t startVecIdx) {
+void computeAndCombineVecHash(std::unique_ptr<ValueVector>& hashVector,
+    const std::vector<ValueVector*>& unFlatKeyVectors, uint32_t startVecIdx) {
+    // TODO(bmwinger): investigate why combineHash doesn't work properly here when hashVector is the
+    // result as well as one of the inputs Ideally we use a single shared tmpHashResultVector and do
+    // work in-place in the HashVector instead of creating two new ValueVectors every time
     for (; startVecIdx < unFlatKeyVectors.size(); startVecIdx++) {
         auto keyVector = unFlatKeyVectors[startVecIdx];
-        auto tmpHashResultVector =
-            std::make_unique<ValueVector>(LogicalType::HASH(), &memoryManager);
-        auto tmpHashCombineResultVector =
-            std::make_unique<ValueVector>(LogicalType::HASH(), &memoryManager);
+        auto tmpHashResultVector = std::make_unique<ValueVector>(LogicalType::HASH());
+        auto tmpHashCombineResultVector = std::make_unique<ValueVector>(LogicalType::HASH());
         tmpHashResultVector->state = keyVector->state;
         tmpHashCombineResultVector->state = keyVector->state;
         VectorHashFunction::computeHash(*keyVector, keyVector->state->getSelVector(),
@@ -47,22 +48,28 @@ void BaseHashTable::computeAndCombineVecHash(const std::vector<ValueVector*>& un
     }
 }
 
-void BaseHashTable::computeVectorHashes(const std::vector<ValueVector*>& flatKeyVectors,
+std::unique_ptr<ValueVector> BaseHashTable::computeVectorHashes(
+    const std::vector<ValueVector*>& flatKeyVectors,
     const std::vector<ValueVector*>& unFlatKeyVectors) {
+    auto hashState = std::make_shared<DataChunkState>();
+    hashState->setToFlat();
+    auto hashVector = std::make_unique<ValueVector>(LogicalType::HASH());
+    hashVector->state = hashState;
     if (!flatKeyVectors.empty()) {
         hashVector->state = flatKeyVectors[0]->state;
         VectorHashFunction::computeHash(*flatKeyVectors[0],
             flatKeyVectors[0]->state->getSelVector(), *hashVector.get(),
             hashVector->state->getSelVector());
-        computeAndCombineVecHash(flatKeyVectors, 1 /* startVecIdx */);
-        computeAndCombineVecHash(unFlatKeyVectors, 0 /* startVecIdx */);
+        computeAndCombineVecHash(hashVector, flatKeyVectors, 1 /* startVecIdx */);
+        computeAndCombineVecHash(hashVector, unFlatKeyVectors, 0 /* startVecIdx */);
     } else {
         hashVector->state = unFlatKeyVectors[0]->state;
         VectorHashFunction::computeHash(*unFlatKeyVectors[0],
             unFlatKeyVectors[0]->state->getSelVector(), *hashVector.get(),
             hashVector->state->getSelVector());
-        computeAndCombineVecHash(unFlatKeyVectors, 1 /* startVecIdx */);
+        computeAndCombineVecHash(hashVector, unFlatKeyVectors, 1 /* startVecIdx */);
     }
+    return hashVector;
 }
 
 template<typename T>
@@ -197,13 +204,6 @@ void BaseHashTable::initCompareFuncs() {
     for (auto i = 0u; i < keyTypes.size(); ++i) {
         compareEntryFuncs.push_back(getCompareEntryFunc(keyTypes[i].getPhysicalType()));
     }
-}
-
-void BaseHashTable::initTmpHashVector() {
-    hashState = std::make_shared<DataChunkState>();
-    hashState->setToFlat();
-    hashVector = std::make_unique<ValueVector>(LogicalType::HASH(), &memoryManager);
-    hashVector->state = hashState;
 }
 
 } // namespace processor

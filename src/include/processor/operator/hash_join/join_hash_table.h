@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+
+#include "common/vector/value_vector.h"
 #include "processor/result/base_hash_table.h"
 #include "storage/buffer_manager/memory_manager.h"
 
@@ -58,7 +61,8 @@ private:
     uint8_t* insertEntry(uint8_t* tuple) const;
 
     // Join hash table assumes all keys to be flat.
-    void computeVectorHashes(std::vector<common::ValueVector*> keyVectors);
+    [[nodiscard("Pure function")]] std::unique_ptr<common::ValueVector> computeVectorHashes(
+        std::vector<common::ValueVector*> keyVectors);
 
     common::offset_t getHashValueColOffset() const;
 

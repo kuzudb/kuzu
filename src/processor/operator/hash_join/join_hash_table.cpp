@@ -1,6 +1,9 @@
 #include "processor/operator/hash_join/join_hash_table.h"
 
+#include <memory>
+
 #include "common/utils.h"
+#include "common/vector/value_vector.h"
 #include "function/hash/vector_hash_functions.h"
 
 using namespace kuzu::common;
@@ -37,7 +40,7 @@ uint64_t JoinHashTable::appendVectors(const std::vector<ValueVector*>& keyVector
     discardNullFromKeys(keyVectors);
     auto numTuplesToAppend = keyState->getSelVector().getSelSize();
     auto appendInfos = factorizedTable->allocateFlatTupleBlocks(numTuplesToAppend);
-    computeVectorHashes(keyVectors);
+    auto hashVector = computeVectorHashes(keyVectors);
     auto colIdx = 0u;
     for (auto& vector : keyVectors) {
         appendVector(vector, appendInfos, colIdx++);
@@ -89,7 +92,7 @@ uint64_t JoinHashTable::appendVectorWithSorting(ValueVector* keyVector,
     KU_ASSERT(appendInfos.size() == 1);
     auto colIdx = 0u;
     std::vector<ValueVector*> keyVectors = {keyVector};
-    computeVectorHashes(keyVectors);
+    auto hashVector = computeVectorHashes(keyVectors);
     factorizedTable->copyVectorToColumn(*keyVector, appendInfos[0], numTuplesToAppend, colIdx++);
     for (auto& vector : payloadVectors) {
         factorizedTable->copyVectorToColumn(*vector, appendInfos[0], numTuplesToAppend, colIdx++);
@@ -200,9 +203,10 @@ uint8_t* JoinHashTable::insertEntry(uint8_t* tuple) const {
     return prevPtr;
 }
 
-void JoinHashTable::computeVectorHashes(std::vector<common::ValueVector*> keyVectors) {
+std::unique_ptr<ValueVector> JoinHashTable::computeVectorHashes(
+    std::vector<common::ValueVector*> keyVectors) {
     std::vector<ValueVector*> dummyUnFlatKeyVectors;
-    BaseHashTable::computeVectorHashes(keyVectors, dummyUnFlatKeyVectors);
+    return BaseHashTable::computeVectorHashes(keyVectors, dummyUnFlatKeyVectors);
 }
 
 offset_t JoinHashTable::getHashValueColOffset() const {

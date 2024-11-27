@@ -34,8 +34,8 @@ PatternCreationInfo PatternCreationInfoTable::getPatternCreationInfo(
         return PatternCreationInfo{tuple, hasCreated};
     } else {
         resizeHashTableIfNecessary(1);
-        computeVectorHashes(keyVectors, std::vector<common::ValueVector*>{});
-        findHashSlots(keyVectors, std::vector<common::ValueVector*>{},
+        auto hashVector = computeVectorHashes(keyVectors, std::vector<common::ValueVector*>{});
+        findHashSlots(*hashVector, keyVectors, std::vector<common::ValueVector*>{},
             std::vector<common::ValueVector*>{}, keyVectors[0]->state.get());
         hasCreated = tuple != nullptr;
         auto idTuple = tuple == nullptr ?

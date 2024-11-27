@@ -1,6 +1,7 @@
 #include "processor/operator/aggregate/aggregate_hash_table.h"
 
 #include "common/utils.h"
+#include "common/vector/value_vector.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -37,9 +38,10 @@ uint64_t AggregateHashTable::append(const std::vector<ValueVector*>& flatKeyVect
     const std::vector<AggregateInput>& aggregateInputs, uint64_t resultSetMultiplicity) {
     const auto numFlatTuples = leadingState->getSelVector().getSelSize();
     resizeHashTableIfNecessary(numFlatTuples);
-    computeVectorHashes(flatKeyVectors, unFlatKeyVectors);
-    findHashSlots(flatKeyVectors, unFlatKeyVectors, dependentKeyVectors, leadingState);
-    updateAggStates(flatKeyVectors, unFlatKeyVectors, aggregateInputs, resultSetMultiplicity);
+    auto hashVector = computeVectorHashes(flatKeyVectors, unFlatKeyVectors);
+    findHashSlots(*hashVector, flatKeyVectors, unFlatKeyVectors, dependentKeyVectors, leadingState);
+    updateAggStates(*hashVector, flatKeyVectors, unFlatKeyVectors, aggregateInputs,
+        resultSetMultiplicity);
     return numFlatTuples;
 }
 
@@ -50,7 +52,8 @@ bool AggregateHashTable::isAggregateValueDistinctForGroupByKeys(
         distinctKeyVectors[i] = groupByFlatKeyVectors[i];
     }
     distinctKeyVectors[groupByFlatKeyVectors.size()] = aggregateVector;
-    computeVectorHashes(distinctKeyVectors, std::vector<ValueVector*>() /* unFlatKeyVectors */);
+    auto hashVector =
+        computeVectorHashes(distinctKeyVectors, std::vector<ValueVector*>() /* unFlatKeyVectors */);
     auto hash = hashVector->getValue<hash_t>(hashVector->state->getSelVector()[0]);
     auto distinctHTEntry = findEntryInDistinctHT(distinctKeyVectors, hash);
     if (distinctHTEntry == nullptr) {
@@ -82,9 +85,10 @@ void AggregateHashTable::merge(AggregateHashTable& other) {
         groupByNonHashVectors[i] = nonHashKeyVec.get();
         nonHashKeyVectors[i] = std::move(nonHashKeyVec);
     }
-    hashVector->state = vectorsToScanState;
-    hashVector->setAllNonNull();
-    vectorsToScan.emplace_back(hashVector.get());
+    ValueVector hashVector(LogicalType::HASH());
+    hashVector.state = vectorsToScanState;
+    hashVector.setAllNonNull();
+    vectorsToScan.emplace_back(&hashVector);
 
     std::vector<uint32_t> colIdxesToScan(vectorsToScan.size() - 1);
     iota(colIdxesToScan.begin(), colIdxesToScan.end(), 0);
@@ -95,8 +99,8 @@ void AggregateHashTable::merge(AggregateHashTable& other) {
         auto numTuplesToScan = std::min(other.factorizedTable->getNumTuples() - startTupleIdx,
             DEFAULT_VECTOR_CAPACITY);
         other.factorizedTable->scan(vectorsToScan, startTupleIdx, numTuplesToScan, colIdxesToScan);
-        findHashSlots(std::vector<ValueVector*>(), groupByHashVectors, groupByNonHashVectors,
-            vectorsToScanState.get());
+        findHashSlots(hashVector, std::vector<ValueVector*>(), groupByHashVectors,
+            groupByNonHashVectors, vectorsToScanState.get());
         auto aggregateStateOffset = aggStateColOffsetInFT;
         for (auto& aggregateFunction : aggregateFunctions) {
             for (auto i = 0u; i < numTuplesToScan; i++) {
@@ -211,7 +215,8 @@ uint64_t AggregateHashTable::matchFTEntries(const std::vector<ValueVector*>& fla
     return numNoMatches;
 }
 
-void AggregateHashTable::initializeFTEntries(const std::vector<ValueVector*>& flatKeyVectors,
+void AggregateHashTable::initializeFTEntries(const ValueVector& hashVector,
+    const std::vector<ValueVector*>& flatKeyVectors,
     const std::vector<ValueVector*>& unFlatKeyVectors,
     const std::vector<ValueVector*>& dependentKeyVectors, uint64_t numFTEntriesToInitialize) {
     auto colIdx = 0u;
@@ -234,7 +239,7 @@ void AggregateHashTable::initializeFTEntries(const std::vector<ValueVector*>& fl
         fillEntryWithInitialNullAggregateState(entry);
         // Fill the hashValue in the ftEntry.
         factorizedTable->updateFlatCellNoNull(entry, hashColIdxInFT,
-            hashVector->getData() + hashVector->getNumBytesPerValue() * entryIdx);
+            hashVector.getData() + hashVector.getNumBytesPerValue() * entryIdx);
     }
 }
 
@@ -392,19 +397,19 @@ void AggregateHashTable::increaseSlotIdx(uint64_t& slotIdx) const {
     }
 }
 
-void AggregateHashTable::initTmpHashSlotsAndIdxes() {
-    auto& hashSelVector = hashVector->state->getSelVector();
+void AggregateHashTable::initTmpHashSlotsAndIdxes(const ValueVector& hashVector) {
+    auto& hashSelVector = hashVector.state->getSelVector();
     if (hashSelVector.isUnfiltered()) {
         for (auto i = 0u; i < hashSelVector.getSelSize(); i++) {
             tmpValueIdxes[i] = i;
-            tmpSlotIdxes[i] = getSlotIdxForHash(hashVector->getValue<hash_t>(i));
+            tmpSlotIdxes[i] = getSlotIdxForHash(hashVector.getValue<hash_t>(i));
             hashSlotsToUpdateAggState[i] = getHashSlot(tmpSlotIdxes[i]);
         }
     } else {
         for (auto i = 0u; i < hashSelVector.getSelSize(); i++) {
             auto pos = hashSelVector[i];
             tmpValueIdxes[i] = pos;
-            tmpSlotIdxes[pos] = getSlotIdxForHash(hashVector->getValue<hash_t>(pos));
+            tmpSlotIdxes[pos] = getSlotIdxForHash(hashVector.getValue<hash_t>(pos));
             hashSlotsToUpdateAggState[pos] = getHashSlot(tmpSlotIdxes[pos]);
         }
     }
@@ -418,10 +423,11 @@ void AggregateHashTable::increaseHashSlotIdxes(uint64_t numNoMatches) {
     }
 }
 
-void AggregateHashTable::findHashSlots(const std::vector<ValueVector*>& flatKeyVectors,
+void AggregateHashTable::findHashSlots(const ValueVector& hashVector,
+    const std::vector<ValueVector*>& flatKeyVectors,
     const std::vector<ValueVector*>& unFlatKeyVectors,
     const std::vector<ValueVector*>& dependentKeyVectors, DataChunkState* leadingState) {
-    initTmpHashSlotsAndIdxes();
+    initTmpHashSlotsAndIdxes(hashVector);
     auto numEntriesToFindHashSlots = leadingState->getSelVector().getSelSize();
     while (numEntriesToFindHashSlots > 0) {
         uint64_t numFTEntriesToUpdate = 0;
@@ -429,7 +435,7 @@ void AggregateHashTable::findHashSlots(const std::vector<ValueVector*>& flatKeyV
         uint64_t numNoMatches = 0;
         for (auto i = 0u; i < numEntriesToFindHashSlots; i++) {
             auto idx = tmpValueIdxes[i];
-            auto hash = hashVector->getValue<hash_t>(idx);
+            auto hash = hashVector.getValue<hash_t>(idx);
             auto slot = hashSlotsToUpdateAggState[idx];
             if (slot->entry == nullptr) {
                 entryIdxesToInitialize[numFTEntriesToUpdate++] = idx;
@@ -441,7 +447,7 @@ void AggregateHashTable::findHashSlots(const std::vector<ValueVector*>& flatKeyV
                 noMatchIdxes[numNoMatches++] = idx;
             }
         }
-        initializeFTEntries(flatKeyVectors, unFlatKeyVectors, dependentKeyVectors,
+        initializeFTEntries(hashVector, flatKeyVectors, unFlatKeyVectors, dependentKeyVectors,
             numFTEntriesToUpdate);
         numNoMatches =
             matchFTEntries(flatKeyVectors, unFlatKeyVectors, numMayMatches, numNoMatches);
@@ -451,7 +457,8 @@ void AggregateHashTable::findHashSlots(const std::vector<ValueVector*>& flatKeyV
     }
 }
 
-void AggregateHashTable::updateDistinctAggState(const std::vector<ValueVector*>& flatKeyVectors,
+void AggregateHashTable::updateDistinctAggState(const ValueVector& /*hashVector*/,
+    const std::vector<ValueVector*>& flatKeyVectors,
     const std::vector<ValueVector*>& /*unFlatKeyVectors*/, AggregateFunction& aggregateFunction,
     ValueVector* aggregateVector, uint64_t /*multiplicity*/, uint32_t colIdx,
     uint32_t aggStateOffset) {
@@ -474,15 +481,16 @@ void AggregateHashTable::updateDistinctAggState(const std::vector<ValueVector*>&
     }
 }
 
-void AggregateHashTable::updateAggState(const std::vector<ValueVector*>& flatKeyVectors,
+void AggregateHashTable::updateAggState(const ValueVector& hashVector,
+    const std::vector<ValueVector*>& flatKeyVectors,
     const std::vector<ValueVector*>& unFlatKeyVectors, AggregateFunction& aggregateFunction,
     ValueVector* aggVector, uint64_t multiplicity, uint32_t /*colIdx*/, uint32_t aggStateOffset) {
     if (!aggVector) {
         updateNullAggVectorState(flatKeyVectors, unFlatKeyVectors, aggregateFunction, multiplicity,
             aggStateOffset);
     } else if (aggVector->state->isFlat() && unFlatKeyVectors.empty()) {
-        updateBothFlatAggVectorState(flatKeyVectors, aggregateFunction, aggVector, multiplicity,
-            aggStateOffset);
+        updateBothFlatAggVectorState(hashVector, flatKeyVectors, aggregateFunction, aggVector,
+            multiplicity, aggStateOffset);
     } else if (aggVector->state->isFlat()) {
         updateFlatUnFlatKeyFlatAggVectorState(flatKeyVectors, unFlatKeyVectors, aggregateFunction,
             aggVector, multiplicity, aggStateOffset);
@@ -498,7 +506,8 @@ void AggregateHashTable::updateAggState(const std::vector<ValueVector*>& flatKey
     }
 }
 
-void AggregateHashTable::updateAggStates(const std::vector<ValueVector*>& flatKeyVectors,
+void AggregateHashTable::updateAggStates(const ValueVector& hashVector,
+    const std::vector<ValueVector*>& flatKeyVectors,
     const std::vector<ValueVector*>& unFlatKeyVectors,
     const std::vector<AggregateInput>& aggregateInputs, uint64_t resultSetMultiplicity) {
     auto aggregateStateOffset = aggStateColOffsetInFT;
@@ -507,7 +516,7 @@ void AggregateHashTable::updateAggStates(const std::vector<ValueVector*>& flatKe
         for (auto& dataChunk : aggregateInputs[i].multiplicityChunks) {
             multiplicity *= dataChunk->state->getSelVector().getSelSize();
         }
-        updateAggFuncs[i](this, flatKeyVectors, unFlatKeyVectors, aggregateFunctions[i],
+        updateAggFuncs[i](this, hashVector, flatKeyVectors, unFlatKeyVectors, aggregateFunctions[i],
             aggregateInputs[i].aggregateVector, multiplicity, i, aggregateStateOffset);
         aggregateStateOffset += aggregateFunctions[i].getAggregateStateSize();
     }
@@ -575,13 +584,13 @@ void AggregateHashTable::updateNullAggVectorState(const std::vector<ValueVector*
     }
 }
 
-void AggregateHashTable::updateBothFlatAggVectorState(
+void AggregateHashTable::updateBothFlatAggVectorState(const ValueVector& hashVector,
     const std::vector<ValueVector*>& /*flatKeyVectors*/, AggregateFunction& aggregateFunction,
     ValueVector* aggVector, uint64_t multiplicity, uint32_t aggStateOffset) {
     auto aggPos = aggVector->state->getSelVector()[0];
     if (!aggVector->isNull(aggPos)) {
         aggregateFunction.updatePosState(
-            hashSlotsToUpdateAggState[hashVector->state->getSelVector()[0]]->entry + aggStateOffset,
+            hashSlotsToUpdateAggState[hashVector.state->getSelVector()[0]]->entry + aggStateOffset,
             aggVector, multiplicity, aggPos, &memoryManager);
     }
 }

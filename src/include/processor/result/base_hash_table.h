@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/types/types.h"
+#include "common/vector/value_vector.h"
 #include "processor/result/factorized_table.h"
 #include "storage/buffer_manager/memory_manager.h"
 
@@ -15,22 +16,21 @@ public:
 
     virtual ~BaseHashTable() = default;
 
+    [[nodiscard("Pure function")]] static std::unique_ptr<common::ValueVector> computeVectorHashes(
+        const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors);
+
 protected:
     static constexpr uint64_t HASH_BLOCK_SIZE = common::TEMP_PAGE_SIZE;
 
     uint64_t getSlotIdxForHash(common::hash_t hash) const { return hash & bitmask; }
     void setMaxNumHashSlots(uint64_t newSize);
-    void computeAndCombineVecHash(const std::vector<common::ValueVector*>& unFlatKeyVectors,
-        uint32_t startVecIdx);
-    void computeVectorHashes(const std::vector<common::ValueVector*>& flatKeyVectors,
-        const std::vector<common::ValueVector*>& unFlatKeyVectors);
     void initSlotConstant(uint64_t numSlotsPerBlock);
     bool matchFlatVecWithEntry(const std::vector<common::ValueVector*>& keyVectors,
         const uint8_t* entry);
 
 private:
     void initCompareFuncs();
-    void initTmpHashVector();
 
 protected:
     uint64_t maxNumHashSlots;
@@ -42,10 +42,6 @@ protected:
     std::unique_ptr<FactorizedTable> factorizedTable;
     std::vector<compare_function_t> compareEntryFuncs;
     std::vector<common::LogicalType> keyTypes;
-    // Temporary arrays to hold intermediate results for appending.
-    std::shared_ptr<common::DataChunkState> hashState;
-    std::unique_ptr<common::ValueVector> hashVector;
-    common::SelectionVector hashSelVec;
 };
 
 } // namespace processor

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "aggregate_input.h"
+#include "common/vector/value_vector.h"
 #include "function/aggregate_function.h"
 #include "processor/result/base_hash_table.h"
 #include "storage/buffer_manager/memory_manager.h"
@@ -33,9 +34,10 @@ enum class HashTableType : uint8_t { AGGREGATE_HASH_TABLE = 0, MARK_HASH_TABLE =
  *
  */
 class AggregateHashTable;
-using update_agg_function_t = std::function<void(AggregateHashTable*,
-    const std::vector<common::ValueVector*>&, const std::vector<common::ValueVector*>&,
-    function::AggregateFunction&, common::ValueVector*, uint64_t, uint32_t, uint32_t)>;
+using update_agg_function_t =
+    std::function<void(AggregateHashTable*, const common::ValueVector& hashVector,
+        const std::vector<common::ValueVector*>&, const std::vector<common::ValueVector*>&,
+        function::AggregateFunction&, common::ValueVector*, uint64_t, uint32_t, uint32_t)>;
 
 class AggregateHashTable : public BaseHashTable {
 public:
@@ -92,7 +94,8 @@ protected:
         const std::vector<common::ValueVector*>& unFlatKeyVectors, uint64_t numMayMatches,
         uint64_t numNoMatches);
 
-    void initializeFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
+    void initializeFTEntries(const common::ValueVector& hashVector,
+        const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
         const std::vector<common::ValueVector*>& dependentKeyVectors,
         uint64_t numFTEntriesToInitialize);
@@ -105,7 +108,8 @@ protected:
 
     void resizeHashTableIfNecessary(uint32_t maxNumDistinctHashKeys);
 
-    void findHashSlots(const std::vector<common::ValueVector*>& flatKeyVectors,
+    void findHashSlots(const common::ValueVector& hashVector,
+        const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
         const std::vector<common::ValueVector*>& dependentKeyVectors,
         common::DataChunkState* leadingState);
@@ -134,21 +138,24 @@ private:
 
     void increaseSlotIdx(uint64_t& slotIdx) const;
 
-    void initTmpHashSlotsAndIdxes();
+    void initTmpHashSlotsAndIdxes(const common::ValueVector& hashVector);
 
     void increaseHashSlotIdxes(uint64_t numNoMatches);
 
-    void updateDistinctAggState(const std::vector<common::ValueVector*>& flatKeyVectors,
+    void updateDistinctAggState(const common::ValueVector& hashVector,
+        const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
         function::AggregateFunction& aggregateFunction, common::ValueVector* aggregateVector,
         uint64_t multiplicity, uint32_t colIdx, uint32_t aggStateOffset);
 
-    void updateAggState(const std::vector<common::ValueVector*>& flatKeyVectors,
+    void updateAggState(const common::ValueVector& hashVector,
+        const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
         function::AggregateFunction& aggregateFunction, common::ValueVector* aggVector,
         uint64_t multiplicity, uint32_t colIdx, uint32_t aggStateOffset);
 
-    void updateAggStates(const std::vector<common::ValueVector*>& flatKeyVectors,
+    void updateAggStates(const common::ValueVector& hashVector,
+        const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
         const std::vector<AggregateInput>& aggregateInputs, uint64_t resultSetMultiplicity);
 
@@ -174,7 +181,8 @@ private:
         function::AggregateFunction& aggregateFunction, uint64_t multiplicity,
         uint32_t aggStateOffset);
 
-    void updateBothFlatAggVectorState(const std::vector<common::ValueVector*>& flatKeyVectors,
+    void updateBothFlatAggVectorState(const common::ValueVector& hashVector,
+        const std::vector<common::ValueVector*>& flatKeyVectors,
         function::AggregateFunction& aggregateFunction, common::ValueVector* aggVector,
         uint64_t multiplicity, uint32_t aggStateOffset);
 
