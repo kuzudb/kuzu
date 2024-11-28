@@ -9,7 +9,7 @@ namespace processor {
 
 ProcessorTask::ProcessorTask(Sink* sink, ExecutionContext* executionContext)
     : Task{executionContext->clientContext->getCurrentSetting(main::ThreadsSetting::name)
-              .getValue<uint64_t>()},
+               .getValue<uint64_t>()},
       sharedStateInitialized{false}, sink{sink}, executionContext{executionContext} {}
 
 void ProcessorTask::run() {
