@@ -264,6 +264,18 @@ function(add_kuzu_api_test TEST_NAME)
     gtest_discover_tests(${TEST_NAME})
 endfunction()
 
+function(add_kuzu_extension_test TEST_NAME)
+    set(SRCS ${ARGN})
+    add_executable(${TEST_NAME} ${SRCS})
+    target_link_libraries(${TEST_NAME} PRIVATE api_graph_test api_test_helper)
+    if (ENABLE_BACKTRACES)
+        target_link_libraries(${TEST_NAME} PRIVATE register_backtrace_signal_handler)
+    endif()
+    target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include)
+    include(GoogleTest)
+    gtest_discover_tests(${TEST_NAME})
+endfunction()
+
 # Windows doesn't support dynamic lookup, so we have to link extensions against kuzu.
 if (MSVC AND (NOT BUILD_EXTENSIONS EQUAL ""))
     set(BUILD_KUZU TRUE)
