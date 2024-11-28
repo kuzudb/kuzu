@@ -53,7 +53,6 @@ endif ()
 if (${BUILD_EXTENSION_TESTS})
     include_directories(${CMAKE_SOURCE_DIR}/third_party/spdlog)
     add_definitions(-DTEST_FILES_DIR="extension")
-    # Check if we have built test
     add_subdirectory(${CMAKE_SOURCE_DIR}/test/gtest ${CMAKE_CURRENT_BINARY_DIR}/test/gtest EXCLUDE_FROM_ALL)
     # Make gtest available to subdirectories.
     add_library(GTest::GTest INTERFACE IMPORTED)

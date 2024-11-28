@@ -10,9 +10,9 @@ if (NOT TARGET test_helper)
                 PUBLIC
                 ../include/
         )
-
+        target_link_libraries(test_helper PUBLIC kuzu)
 endif()
-target_link_libraries(test_helper PUBLIC kuzu)
+
 
 if (NOT TARGET api_test_helper)
         add_library(
@@ -26,5 +26,6 @@ if (NOT TARGET api_test_helper)
                 PUBLIC
                 ../include/
         )
+        target_link_libraries(api_test_helper PUBLIC kuzu_shared)
 endif()
-target_link_libraries(api_test_helper PUBLIC kuzu_shared)
+
