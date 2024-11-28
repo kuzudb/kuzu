@@ -755,6 +755,7 @@ jobs:
           ulimit -n 10240
           ln -s /Users/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test
+          make extension-test-build
 
       # - name: Test in mem
       #   env:
@@ -931,7 +932,6 @@ jobs:
         run: | 
           make extension-test-build
           make release
-          make test
 
       - name: Extension test
         run: |
