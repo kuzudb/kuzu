@@ -928,7 +928,10 @@ jobs:
 
       # shell needs to be built first to generate the dataset provided by the server
       - name: Extension test build
-        run: make extension-test-build
+        run: | 
+          make extension-test-build
+          make release
+          make test
 
       - name: Extension test
         run: |
