@@ -1,11 +1,11 @@
 if (NOT ${BUILD_EXTENSION_TESTS})
     add_kuzu_test(e2e_test e2e_test.cpp)
 else()
-    add_kuzu_extension_test(e2e_test_extension e2e_test.cpp)
+    add_kuzu_extension_test(e2e_test e2e_test.cpp)
 endif()
 
 if (NOT ${BUILD_EXTENSION_TESTS})
     add_kuzu_test(cleanup_test cleanup_test.cpp)
 else()
-    add_kuzu_extension_test(cleanup_test_extension cleanup_test.cpp)
+    add_kuzu_extension_test(cleanup_test cleanup_test.cpp)
 endif()
