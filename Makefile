@@ -185,6 +185,7 @@ extension-test-build:
 	$(call run-cmake-relwithdebinfo, \
 		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts" \
 		-DBUILD_EXTENSION_TESTS=TRUE \
+		-DBUILD_TESTS=FALSE \
 	)
 
 extension-json-test-build:
