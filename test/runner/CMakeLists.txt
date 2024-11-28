@@ -1,10 +1,10 @@
-if (NOT TARGET e2e_test)
+if (NOT ${BUILD_EXTENSION_TESTS})
     add_kuzu_test(e2e_test e2e_test.cpp)
 else()
     add_kuzu_extension_test(e2e_test e2e_test.cpp)
 endif()
 
-if (NOT TARGET cleanup_test)
+if (NOT ${BUILD_EXTENSION_TESTS})
     add_kuzu_test(cleanup_test cleanup_test.cpp)
 else()
     add_kuzu_extension_test(cleanup_test cleanup_test.cpp)

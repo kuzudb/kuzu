@@ -10,8 +10,8 @@ if (NOT TARGET graph_test)
                 PUBLIC
                 ../include/
         )
-        target_link_libraries(graph_test PUBLIC GTest::GTest kuzu)
 endif()
+target_link_libraries(graph_test PUBLIC GTest::GTest kuzu)
 
 if (NOT TARGET api_graph_test)
         add_library(
@@ -24,6 +24,6 @@ if (NOT TARGET api_graph_test)
                 PUBLIC
                 ../include/
         )
-        target_link_libraries(api_graph_test PUBLIC GTest::GTest kuzu_shared)
 endif()
+target_link_libraries(api_graph_test PUBLIC GTest::GTest kuzu_shared)
 
