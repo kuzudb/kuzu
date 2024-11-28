@@ -1,4 +1,4 @@
-if (NOT TARGET test_runner)
+# if (NOT TARGET test_runner)
         add_library(
                 test_runner
                 OBJECT
@@ -15,10 +15,11 @@ if (NOT TARGET test_runner)
                 ../include/
         )
 
-        target_link_libraries(test_runner PUBLIC GTest::GTest kuzu)
-endif()
+# endif()
 
-if (NOT TARGET extension_test_runner)
+target_link_libraries(test_runner PUBLIC GTest::GTest kuzu)
+
+# if (NOT TARGET extension_test_runner)
         add_library(
                 extension_test_runner
                 OBJECT
@@ -34,6 +35,6 @@ if (NOT TARGET extension_test_runner)
                 PUBLIC
                 ../include/
         )
+# endif()
 
-        target_link_libraries(extension_test_runner PUBLIC GTest::GTest kuzu)
-endif()
+target_link_libraries(extension_test_runner PUBLIC GTest::GTest kuzu)

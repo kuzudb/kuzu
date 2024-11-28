@@ -1,4 +1,4 @@
-if (NOT TARGET graph_test)
+# if (NOT TARGET graph_test)
         add_library(
                 graph_test
                 OBJECT
@@ -10,27 +10,11 @@ if (NOT TARGET graph_test)
                 PUBLIC
                 ../include/
         )
+# endif()
 
-        target_link_libraries(graph_test PUBLIC GTest::GTest kuzu)
-endif()
+target_link_libraries(graph_test PUBLIC GTest::GTest kuzu)
 
-if (NOT TARGET extension_graph_test)
-        add_library(
-                extension_graph_test
-                OBJECT
-                base_graph_test.cpp
-                graph_test.cpp)
-
-        target_include_directories(
-                extension_graph_test
-                PUBLIC
-                ../include/
-        )
-
-        target_link_libraries(extension_graph_test PUBLIC GTest::GTest kuzu)
-endif()
-
-if (NOT TARGET api_graph_test)
+# if (NOT TARGET api_graph_test)
         add_library(
                 api_graph_test
                 OBJECT
@@ -41,6 +25,6 @@ if (NOT TARGET api_graph_test)
                 PUBLIC
                 ../include/
         )
+# endif()
 
-        target_link_libraries(api_graph_test PUBLIC GTest::GTest kuzu_shared)
-endif()
+target_link_libraries(api_graph_test PUBLIC GTest::GTest kuzu_shared)
