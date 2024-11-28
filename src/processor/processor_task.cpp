@@ -9,7 +9,7 @@ namespace processor {
 
 ProcessorTask::ProcessorTask(Sink* sink, ExecutionContext* executionContext)
     : Task{executionContext->clientContext->getCurrentSetting(main::ThreadsSetting::name)
-               .getValue<uint64_t>()},
+              .getValue<uint64_t>()},
       sharedStateInitialized{false}, sink{sink}, executionContext{executionContext} {}
 
 void ProcessorTask::run() {
@@ -29,8 +29,6 @@ void ProcessorTask::run() {
 }
 
 void ProcessorTask::finalizeIfNecessary() {
-    auto resultSet = populateResultSet(sink, executionContext->clientContext->getMemoryManager());
-    sink->initLocalState(resultSet.get(), executionContext);
     executionContext->clientContext->getProgressBar()->finishPipeline(executionContext->queryID);
     sink->finalize(executionContext);
 }
