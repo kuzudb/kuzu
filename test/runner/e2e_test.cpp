@@ -190,19 +190,22 @@ void checkGtestParams(int argc, char** argv) {
 }
 
 int main(int argc, char** argv) {
+    // Print all command-line arguments
+    std::cout << "e2e_test received the following arguments:" << std::endl;
+    for (int i = 0; i < argc; ++i) {
+        std::cout << "  argv[" << i << "]: " << argv[i] << std::endl;
+    }
+    
     std::string test_dir;
     char* env_test_dir = std::getenv("E2E_TEST_FILES_DIRECTORY");
+    // If no provide env, we run main test
     if (env_test_dir != nullptr) {
         test_dir = env_test_dir;
     } else {
-        // Handle the case where the environment variable is not set
-        // You can set a default value or throw an error
-        test_dir = "default/test/dir"; // Replace with your default directory
+        test_dir = "test/test_files";
     }
     TestHelper::setE2ETestFilesDirectory(test_dir);
-    std::cout << "E2E_TEST_FILES_DIRECTORY: " << TestHelper::E2E_TEST_FILES_DIRECTORY << std::endl;
-    std::cout << "FULL_PATH_E2E_TEST_FILES_DIRECTORY: "
-              << TestHelper::appendKuzuRootPath(TestHelper::E2E_TEST_FILES_DIRECTORY) << std::endl;
+
     checkGtestParams(argc, argv);
     testing::InitGoogleTest(&argc, argv);
 

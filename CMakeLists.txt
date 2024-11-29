@@ -254,6 +254,7 @@ function(add_kuzu_test TEST_NAME)
         DISCOVERY_TIMEOUT 600
         DISCOVERY_MODE PRE_TEST
         TEST_PREFIX e2e_test_
+        EXTRA_ARGS "extension"
     )
 endfunction()
 
@@ -328,10 +329,8 @@ include_directories(src/include)
 
 add_subdirectory(src)
 if (${BUILD_TESTS})
-    #add_definitions(-DTEST_FILES_DIR="test/test_files")
     add_subdirectory(test)
 elseif (${BUILD_BENCHMARK})
-    #add_definitions(-DTEST_FILES_DIR="test/test_files")
     add_subdirectory(test/test_helper)
 endif ()
 add_subdirectory(tools)
