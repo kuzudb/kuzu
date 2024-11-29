@@ -201,7 +201,8 @@ int main(int argc, char** argv) {
     }
     TestHelper::setE2ETestFilesDirectory(test_dir);
     std::cout << "E2E_TEST_FILES_DIRECTORY: " << TestHelper::E2E_TEST_FILES_DIRECTORY << std::endl;
-    std::cout << "FULL_PATH_E2E_TEST_FILES_DIRECTORY: " << TestHelper::appendKuzuRootPath(TestHelper::E2E_TEST_FILES_DIRECTORY) << std::endl;
+    std::cout << "FULL_PATH_E2E_TEST_FILES_DIRECTORY: "
+              << TestHelper::appendKuzuRootPath(TestHelper::E2E_TEST_FILES_DIRECTORY) << std::endl;
     checkGtestParams(argc, argv);
     testing::InitGoogleTest(&argc, argv);
 
