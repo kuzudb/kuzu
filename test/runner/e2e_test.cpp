@@ -190,23 +190,16 @@ void checkGtestParams(int argc, char** argv) {
 }
 
 int main(int argc, char** argv) {
-    // Debug: Print all received arguments
-    std::cout << "Received arguments: ";
-    for (int i = 0; i < argc; ++i) {
-        std::cout << argv[i] << " ";
+    std::string test_dir;
+    char* env_test_dir = std::getenv("E2E_TEST_FILES_DIRECTORY");
+    if (env_test_dir != nullptr) {
+        test_dir = env_test_dir;
+    } else {
+        // Handle the case where the environment variable is not set
+        // You can set a default value or throw an error
+        test_dir = "default/test/dir"; // Replace with your default directory
     }
-    std::cout << std::endl;
-
-    // Use --test-dir argument to find TEST FILE DIRECTORY
-    std::string e2eTestFilesDir = "default_path";
-    for (int i = 1; i < argc; ++i) {
-        std::string arg(argv[i]);
-        if (arg.rfind("--test-dir=", 0) == 0) { // Check if the argument starts with "--test-dir="
-            e2eTestFilesDir = arg.substr(11);   // Extract the directory path
-            break;
-        }
-    }
-    TestHelper::setE2ETestFilesDirectory(e2eTestFilesDir);
+    TestHelper::setE2ETestFilesDirectory(test_dir);
     std::cout << "E2E_TEST_FILES_DIRECTORY: " << TestHelper::E2E_TEST_FILES_DIRECTORY<< std::endl;
 
     checkGtestParams(argc, argv);

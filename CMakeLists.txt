@@ -253,7 +253,6 @@ function(add_kuzu_test TEST_NAME)
     gtest_discover_tests(${TEST_NAME}
         DISCOVERY_TIMEOUT 600
         DISCOVERY_MODE PRE_TEST
-        EXTRA_ARGS --test-dir=${CMAKE_BINARY_DIR}/test
     )
 endfunction()
 
