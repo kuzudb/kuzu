@@ -196,7 +196,7 @@ extension-json-test-build:
 	)
 
 extension-test: extension-test-build
-	ctest --test-dir build/relwithdebinfo/extension --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}"
+	E2E_TEST_FILES_DIRECTORY=extension ctest --test-dir build/relwithdebinfo/extension --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}"
 	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
 
 extension-json-test: extension-json-test-build
