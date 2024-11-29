@@ -253,7 +253,7 @@ function(add_kuzu_test TEST_NAME)
     gtest_discover_tests(${TEST_NAME}
         DISCOVERY_TIMEOUT 600
         DISCOVERY_MODE PRE_TEST
-        TEST_PREFIX e2e
+        TEST_PREFIX e2e_test_
     )
 endfunction()
 
