@@ -253,11 +253,10 @@ function(add_kuzu_test TEST_NAME)
     gtest_discover_tests(${TEST_NAME}
         DISCOVERY_TIMEOUT 600
         DISCOVERY_MODE PRE_TEST
+        EXTRA_ARGS --test-dir=${CMAKE_BINARY_DIR}/test
     )
-
-    # Store the test name for deferred property setting
-    set_property(GLOBAL APPEND PROPERTY TEST_LIST "${TEST_NAME}")
 endfunction()
+
 
 
 function(add_kuzu_api_test TEST_NAME)
@@ -345,16 +344,3 @@ if (${BUILD_EXAMPLES})
     add_subdirectory(examples/c)
     add_subdirectory(examples/cpp)
 endif()
-
-# Apply properties to all tests after registration
-function(set_test_properties_for_all_tests)
-    get_property(TEST_LIST GLOBAL PROPERTY TEST_LIST)
-    foreach(TEST_NAME IN LISTS TEST_LIST)
-        set_tests_properties(${TEST_NAME}
-            PROPERTIES ENVIRONMENT "TEST_DIR=${CMAKE_BINARY_DIR}/test"
-        )
-    endforeach()
-endfunction()
-
-# Call this function at the end of all test additions
-set_test_properties_for_all_tests()
