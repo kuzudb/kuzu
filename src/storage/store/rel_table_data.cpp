@@ -17,7 +17,7 @@ namespace kuzu {
 namespace storage {
 
 std::unique_ptr<VersionRecordHandler>
-RelTableVersionRecordHandlerData::constructVersionRecordHandler(common::row_idx_t startRow,
+RelTableVersionRecordHandlerSelector::constructVersionRecordHandler(common::row_idx_t startRow,
     common::row_idx_t numRows, common::transaction_t commitTS,
     common::node_group_idx_t nodeGroupIdx) const {
     return relTableData->constructVersionRecordHandler(source, nodeGroupIdx, startRow, numRows,
@@ -30,8 +30,8 @@ RelTableData::RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* sh
     : dataFH{dataFH}, tableID{tableEntry->getTableID()}, tableName{tableEntry->getName()},
       memoryManager{mm}, shadowFile{shadowFile}, enableCompression{enableCompression},
       direction{direction},
-      persistentVersionRecordHandlerData(this, CSRNodeGroupScanSource::COMMITTED_PERSISTENT),
-      inMemoryVersionRecordHandlerData(this, CSRNodeGroupScanSource::COMMITTED_IN_MEMORY) {
+      persistentVersionRecordHandlerSelector(this, CSRNodeGroupScanSource::COMMITTED_PERSISTENT),
+      inMemoryVersionRecordHandlerSelector(this, CSRNodeGroupScanSource::COMMITTED_IN_MEMORY) {
     multiplicity = tableEntry->constCast<RelTableCatalogEntry>().getMultiplicity(direction);
     initCSRHeaderColumns();
     initPropertyColumns(tableEntry);
@@ -109,7 +109,8 @@ bool RelTableData::delete_(Transaction* transaction, ValueVector& boundNodeIDVec
     auto& csrNodeGroup = getNodeGroup(nodeGroupIdx)->cast<CSRNodeGroup>();
     bool isDeleted = csrNodeGroup.delete_(transaction, source, rowIdx);
     if (isDeleted && transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushDeleteInfo(nodeGroupIdx, rowIdx, 1, getVersionRecordHandlerData(source));
+        transaction->pushDeleteInfo(nodeGroupIdx, rowIdx, 1,
+            getVersionRecordHandlerSelector(source));
     }
     return isDeleted;
 }
@@ -214,7 +215,7 @@ void RelTableData::pushInsertInfo(transaction::Transaction* transaction,
                               nodeGroup.getNumRows();
 
     nodeGroups->pushInsertInfo(transaction, nodeGroup.getNodeGroupIdx(), startRow, numRows_,
-        getVersionRecordHandlerData(source));
+        getVersionRecordHandlerSelector(source));
 }
 
 void RelTableData::checkpoint(const std::vector<column_id_t>& columnIDs) {
@@ -247,18 +248,18 @@ std::unique_ptr<VersionRecordHandler> RelTableData::constructVersionRecordHandle
             startRow, numRows, commitTS);
     } else {
         KU_ASSERT(source == CSRNodeGroupScanSource::COMMITTED_IN_MEMORY);
-        return std::make_unique<NodeGroup::ChunkedGroupIterator>(nodeGroups.get(), nodeGroupIdx,
-            startRow, numRows, commitTS);
+        return std::make_unique<NodeGroup::NodeGroupVersionRecordHandler>(nodeGroups.get(),
+            nodeGroupIdx, startRow, numRows, commitTS);
     }
 }
 
-const RelTableVersionRecordHandlerData* RelTableData::getVersionRecordHandlerData(
+const RelTableVersionRecordHandlerSelector* RelTableData::getVersionRecordHandlerSelector(
     CSRNodeGroupScanSource source) {
     if (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) {
-        return &persistentVersionRecordHandlerData;
+        return &persistentVersionRecordHandlerSelector;
     } else {
         KU_ASSERT(source == CSRNodeGroupScanSource::COMMITTED_IN_MEMORY);
-        return &inMemoryVersionRecordHandlerData;
+        return &inMemoryVersionRecordHandlerSelector;
     }
 }
 

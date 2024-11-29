@@ -96,9 +96,9 @@ struct PKColumnScanHelper {
     PrimaryKeyIndex* pkIndex;
 };
 
-class NodeTableVersionRecordHandlerData : public VersionRecordHandlerData {
+class NodeTableVersionRecordHandlerSelector : public VersionRecordHandlerSelector {
 public:
-    explicit NodeTableVersionRecordHandlerData(NodeTable* nodeTable) : nodeTable(nodeTable) {}
+    explicit NodeTableVersionRecordHandlerSelector(NodeTable* nodeTable) : nodeTable(nodeTable) {}
 
     std::unique_ptr<VersionRecordHandler> constructVersionRecordHandler(common::row_idx_t startRow,
         common::row_idx_t numRows, common::transaction_t commitTS,
@@ -111,12 +111,12 @@ private:
 class StorageManager;
 class NodeTable final : public Table {
 public:
-    class ChunkedGroupIterator : public NodeGroup::ChunkedGroupIterator {
+    class ChunkedGroupIterator : public NodeGroup::NodeGroupVersionRecordHandler {
     public:
         ChunkedGroupIterator(NodeTable* table, common::node_group_idx_t nodeGroupIdx,
             common::row_idx_t startRow, common::row_idx_t numRows, common::transaction_t commitTS);
 
-        void initRollbackInsert(const transaction::Transaction* transaction) override;
+        void rollbackInsert(const transaction::Transaction* transaction) override;
 
     private:
         NodeTable* table;
@@ -230,7 +230,7 @@ private:
     std::unique_ptr<NodeGroupCollection> nodeGroups;
     common::column_id_t pkColumnID;
     std::unique_ptr<PrimaryKeyIndex> pkIndex;
-    NodeTableVersionRecordHandlerData versionRecordHandlerData;
+    NodeTableVersionRecordHandlerSelector versionRecordHandlerSelector;
 };
 
 } // namespace storage

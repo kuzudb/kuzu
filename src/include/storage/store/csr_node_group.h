@@ -171,7 +171,7 @@ public:
             common::row_idx_t startRow, common::row_idx_t numRows, common::transaction_t commitTS);
 
         void applyFuncToChunkedGroups(version_record_handler_op_t func) override;
-        void finalizeRollbackInsert() override;
+        void rollbackInsert(const transaction::Transaction* transaction) override;
 
     private:
         CSRNodeGroup* nodeGroup;

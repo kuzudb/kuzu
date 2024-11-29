@@ -175,14 +175,14 @@ void Transaction::pushSequenceChange(SequenceCatalogEntry* sequenceEntry, int64_
 
 void Transaction::pushInsertInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
     common::row_idx_t numRows,
-    const storage::VersionRecordHandlerData* versionRecordHandlerData) const {
-    undoBuffer->createInsertInfo(nodeGroupIdx, startRow, numRows, versionRecordHandlerData);
+    const storage::VersionRecordHandlerSelector* versionRecordHandlerSelector) const {
+    undoBuffer->createInsertInfo(nodeGroupIdx, startRow, numRows, versionRecordHandlerSelector);
 }
 
 void Transaction::pushDeleteInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
     common::row_idx_t numRows,
-    const storage::VersionRecordHandlerData* versionRecordHandlerData) const {
-    undoBuffer->createDeleteInfo(nodeGroupIdx, startRow, numRows, versionRecordHandlerData);
+    const storage::VersionRecordHandlerSelector* versionRecordHandlerSelector) const {
+    undoBuffer->createDeleteInfo(nodeGroupIdx, startRow, numRows, versionRecordHandlerSelector);
 }
 
 void Transaction::pushVectorUpdateInfo(storage::UpdateInfo& updateInfo,

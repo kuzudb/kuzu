@@ -21,9 +21,9 @@ struct CSRHeaderColumns {
     std::unique_ptr<Column> length;
 };
 
-class RelTableVersionRecordHandlerData : public VersionRecordHandlerData {
+class RelTableVersionRecordHandlerSelector : public VersionRecordHandlerSelector {
 public:
-    RelTableVersionRecordHandlerData(RelTableData* relTableData, CSRNodeGroupScanSource source)
+    RelTableVersionRecordHandlerSelector(RelTableData* relTableData, CSRNodeGroupScanSource source)
         : relTableData(relTableData), source(source) {}
 
     std::unique_ptr<VersionRecordHandler> constructVersionRecordHandler(common::row_idx_t startRow,
@@ -71,7 +71,7 @@ public:
     NodeGroup* getOrCreateNodeGroup(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx) const {
         return nodeGroups->getOrCreateNodeGroup(transaction, nodeGroupIdx, NodeGroupDataFormat::CSR,
-            &persistentVersionRecordHandlerData);
+            &persistentVersionRecordHandlerSelector);
     }
 
     common::RelMultiplicity getMultiplicity() const { return multiplicity; }
@@ -118,7 +118,7 @@ private:
         return types;
     }
 
-    const RelTableVersionRecordHandlerData* getVersionRecordHandlerData(
+    const RelTableVersionRecordHandlerSelector* getVersionRecordHandlerSelector(
         CSRNodeGroupScanSource source);
 
 private:
@@ -137,8 +137,8 @@ private:
     CSRHeaderColumns csrHeaderColumns;
     std::vector<std::unique_ptr<Column>> columns;
 
-    RelTableVersionRecordHandlerData persistentVersionRecordHandlerData;
-    RelTableVersionRecordHandlerData inMemoryVersionRecordHandlerData;
+    RelTableVersionRecordHandlerSelector persistentVersionRecordHandlerSelector;
+    RelTableVersionRecordHandlerSelector inMemoryVersionRecordHandlerSelector;
 };
 
 } // namespace storage

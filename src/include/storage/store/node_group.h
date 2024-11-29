@@ -4,9 +4,9 @@
 
 #include "common/uniq_lock.h"
 #include "storage/enums/residency_state.h"
-#include "storage/store/chunked_group_undo_iterator.h"
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/group_collection.h"
+#include "storage/store/version_record_handler.h"
 
 namespace kuzu {
 namespace transaction {
@@ -82,16 +82,15 @@ static auto NODE_GROUP_SCAN_EMMPTY_RESULT = NodeGroupScanResult{};
 struct TableScanState;
 class NodeGroup {
 public:
-    class ChunkedGroupIterator : public VersionRecordHandler {
+    class NodeGroupVersionRecordHandler : public VersionRecordHandler {
     public:
-        ChunkedGroupIterator(NodeGroupCollection* nodeGroups, common::node_group_idx_t nodeGroupIdx,
-            common::row_idx_t startRow, common::row_idx_t numRows, common::transaction_t commitTS);
+        NodeGroupVersionRecordHandler(NodeGroupCollection* nodeGroups,
+            common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+            common::row_idx_t numRows, common::transaction_t commitTS);
         void applyFuncToChunkedGroups(version_record_handler_op_t func) override;
-        void finalizeRollbackInsert() override;
 
     protected:
         NodeGroup* nodeGroup;
-        common::row_idx_t numRowsToRollback;
     };
 
     NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,

@@ -24,7 +24,7 @@ class UpdateInfo;
 struct VectorUpdateInfo;
 class ChunkedNodeGroup;
 class VersionRecordHandler;
-class VersionRecordHandlerData;
+class VersionRecordHandlerSelector;
 } // namespace storage
 namespace transaction {
 class TransactionManager;
@@ -120,10 +120,10 @@ public:
         const catalog::SequenceRollbackData& data) const;
     void pushInsertInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
         common::row_idx_t numRows,
-        const storage::VersionRecordHandlerData* versionRecordHandlerData) const;
+        const storage::VersionRecordHandlerSelector* versionRecordHandlerSelector) const;
     void pushDeleteInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
         common::row_idx_t numRows,
-        const storage::VersionRecordHandlerData* versionRecordHandlerData) const;
+        const storage::VersionRecordHandlerSelector* versionRecordHandlerSelector) const;
     void pushVectorUpdateInfo(storage::UpdateInfo& updateInfo, common::idx_t vectorIdx,
         storage::VectorUpdateInfo& vectorUpdateInfo) const;
 

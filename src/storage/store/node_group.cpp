@@ -21,16 +21,16 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-NodeGroup::ChunkedGroupIterator::ChunkedGroupIterator(NodeGroupCollection* nodeGroups,
-    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
-    transaction_t commitTS)
+NodeGroup::NodeGroupVersionRecordHandler::NodeGroupVersionRecordHandler(
+    NodeGroupCollection* nodeGroups, common::node_group_idx_t nodeGroupIdx,
+    common::row_idx_t startRow, common::row_idx_t numRows, transaction_t commitTS)
     : VersionRecordHandler(nodeGroups, startRow, numRows, commitTS),
-      nodeGroup(nodeGroups->getNodeGroupNoLock(nodeGroupIdx)),
-      numRowsToRollback(std::min(numRows, nodeGroup->getNumRows() - startRow)) {
+      nodeGroup(nodeGroups->getNodeGroupNoLock(nodeGroupIdx)) {
     KU_ASSERT(startRow <= nodeGroup->getNumRows());
 }
 
-void NodeGroup::ChunkedGroupIterator::applyFuncToChunkedGroups(version_record_handler_op_t func) {
+void NodeGroup::NodeGroupVersionRecordHandler::applyFuncToChunkedGroups(
+    version_record_handler_op_t func) {
     auto lock = nodeGroup->chunkedGroups.lock();
     const auto [chunkedGroupIdx, startRowInChunkedGroup] =
         nodeGroup->findChunkedGroupIdxFromRowIdxNoLock(startRow);
@@ -51,11 +51,6 @@ void NodeGroup::ChunkedGroupIterator::applyFuncToChunkedGroups(version_record_ha
             curStartRowIdxInChunk = 0;
         }
     }
-}
-
-void NodeGroup::ChunkedGroupIterator::finalizeRollbackInsert() {
-    nodeGroup->rollbackInsert(startRow);
-    nodeGroups->rollbackInsert(numRowsToRollback);
 }
 
 row_idx_t NodeGroup::append(const Transaction* transaction, ChunkedNodeGroup& chunkedGroup,

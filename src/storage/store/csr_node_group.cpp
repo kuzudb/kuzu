@@ -27,7 +27,8 @@ void CSRNodeGroup::PersistentIterator::applyFuncToChunkedGroups(version_record_h
     }
 }
 
-void CSRNodeGroup::PersistentIterator::finalizeRollbackInsert() {
+void CSRNodeGroup::PersistentIterator::rollbackInsert(const transaction::Transaction* transaction) {
+    VersionRecordHandler::rollbackInsert(transaction);
     nodeGroups->rollbackInsert(numRows, false);
 }
 
