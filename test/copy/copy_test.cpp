@@ -218,7 +218,7 @@ TEST_F(CopyTest, RelInsertBMExceptionDuringCommitRecovery) {
         .canFailDuringCheckpoint = false,
         .initFunc =
             [this](main::Connection* conn) {
-                failureFrequency = 128;
+                failureFrequency = 32;
                 conn->query("CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID))");
                 conn->query("CREATE REL TABLE follows(FROM account TO account);");
                 const auto queryString = common::stringFormat(
