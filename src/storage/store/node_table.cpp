@@ -21,6 +21,14 @@ using namespace kuzu::evaluator;
 namespace kuzu {
 namespace storage {
 
+std::unique_ptr<VersionRecordHandler>
+NodeTableVersionRecordHandlerData::constructVersionRecordHandler(common::row_idx_t startRow,
+    common::row_idx_t numRows, common::transaction_t commitTS,
+    common::node_group_idx_t nodeGroupIdx) const {
+    return std::make_unique<NodeTable::ChunkedGroupIterator>(nodeTable, nodeGroupIdx, startRow,
+        numRows, commitTS);
+}
+
 NodeTable::ChunkedGroupIterator::ChunkedGroupIterator(NodeTable* table,
     node_group_idx_t nodeGroupidx, common::row_idx_t startRow, common::row_idx_t numRows,
     common::transaction_t commitTS)
@@ -189,7 +197,8 @@ NodeTable::NodeTable(const StorageManager* storageManager,
     const NodeTableCatalogEntry* nodeTableEntry, MemoryManager* memoryManager,
     VirtualFileSystem* vfs, main::ClientContext* context, Deserializer* deSer)
     : Table{nodeTableEntry, storageManager, memoryManager},
-      pkColumnID{nodeTableEntry->getColumnID(nodeTableEntry->getPrimaryKeyName())} {
+      pkColumnID{nodeTableEntry->getColumnID(nodeTableEntry->getPrimaryKeyName())},
+      versionRecordHandlerData(this) {
     const auto maxColumnID = nodeTableEntry->getMaxColumnID();
     columns.resize(maxColumnID + 1);
     for (auto i = 0u; i < nodeTableEntry->getNumProperties(); i++) {
@@ -201,16 +210,8 @@ NodeTable::NodeTable(const StorageManager* storageManager,
             dataFH, memoryManager, shadowFile, enableCompression);
     }
 
-    iteratorConstructFunc = [this](common::row_idx_t startRow, common::row_idx_t numRows_,
-                                common::node_group_idx_t nodeGroupIdx_,
-                                common::transaction_t commitTS) {
-        return std::make_unique<ChunkedGroupIterator>(this, nodeGroupIdx_, startRow, numRows_,
-            commitTS);
-    };
-
-    nodeGroups =
-        std::make_unique<NodeGroupCollection>(*memoryManager, getNodeTableColumnTypes(*this),
-            enableCompression, storageManager->getDataFH(), deSer, &iteratorConstructFunc);
+    nodeGroups = std::make_unique<NodeGroupCollection>(*memoryManager,
+        getNodeTableColumnTypes(*this), enableCompression, storageManager->getDataFH(), deSer);
     initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
         storageManager->isReadOnly(), vfs, context);
 }
@@ -427,7 +428,7 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
             nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
         isDeleted = nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
         if (transaction->shouldAppendToUndoBuffer()) {
-            transaction->pushDeleteInfo(nodeGroupIdx, rowIdxInGroup, 1, &iteratorConstructFunc);
+            transaction->pushDeleteInfo(nodeGroupIdx, rowIdxInGroup, 1, &versionRecordHandlerData);
         }
     }
     if (isDeleted) {
@@ -499,7 +500,7 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
                     KU_ASSERT(isDeleted);
                     if (transaction->shouldAppendToUndoBuffer()) {
                         transaction->pushDeleteInfo(nodeGroupIdx, rowIdxInGroup, 1,
-                            &iteratorConstructFunc);
+                            &versionRecordHandlerData);
                     }
                 }
             }

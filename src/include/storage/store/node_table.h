@@ -21,6 +21,7 @@ class Transaction;
 } // namespace transaction
 
 namespace storage {
+class NodeTable;
 
 struct NodeTableScanState final : TableScanState {
     // Scan state for un-committed data.
@@ -93,6 +94,18 @@ struct PKColumnScanHelper {
 
     common::table_id_t tableID;
     PrimaryKeyIndex* pkIndex;
+};
+
+class NodeTableVersionRecordHandlerData : public VersionRecordHandlerData {
+public:
+    explicit NodeTableVersionRecordHandlerData(NodeTable* nodeTable) : nodeTable(nodeTable) {}
+
+    std::unique_ptr<VersionRecordHandler> constructVersionRecordHandler(common::row_idx_t startRow,
+        common::row_idx_t numRows, common::transaction_t commitTS,
+        common::node_group_idx_t nodeGroupIdx) const override;
+
+private:
+    NodeTable* nodeTable;
 };
 
 class StorageManager;
@@ -201,10 +214,6 @@ public:
 
     TableStats getStats(const transaction::Transaction* transaction) const;
 
-    const chunked_group_iterator_construct_t& getIteratorConstructFunc() const {
-        return iteratorConstructFunc;
-    }
-
 private:
     void validatePkNotExists(const transaction::Transaction* transaction,
         common::ValueVector* pkVector);
@@ -221,7 +230,7 @@ private:
     std::unique_ptr<NodeGroupCollection> nodeGroups;
     common::column_id_t pkColumnID;
     std::unique_ptr<PrimaryKeyIndex> pkIndex;
-    chunked_group_iterator_construct_t iteratorConstructFunc;
+    NodeTableVersionRecordHandlerData versionRecordHandlerData;
 };
 
 } // namespace storage

@@ -24,13 +24,13 @@ namespace storage {
 NodeGroup::ChunkedGroupIterator::ChunkedGroupIterator(NodeGroupCollection* nodeGroups,
     common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
     transaction_t commitTS)
-    : ChunkedGroupUndoIterator(nodeGroups, startRow, numRows, commitTS),
+    : VersionRecordHandler(nodeGroups, startRow, numRows, commitTS),
       nodeGroup(nodeGroups->getNodeGroupNoLock(nodeGroupIdx)),
       numRowsToRollback(std::min(numRows, nodeGroup->getNumRows() - startRow)) {
     KU_ASSERT(startRow <= nodeGroup->getNumRows());
 }
 
-void NodeGroup::ChunkedGroupIterator::iterate(chunked_group_undo_op_t undoFunc) {
+void NodeGroup::ChunkedGroupIterator::applyFuncToChunkedGroups(version_record_handler_op_t func) {
     auto lock = nodeGroup->chunkedGroups.lock();
     const auto [chunkedGroupIdx, startRowInChunkedGroup] =
         nodeGroup->findChunkedGroupIdxFromRowIdxNoLock(startRow);
@@ -44,7 +44,7 @@ void NodeGroup::ChunkedGroupIterator::iterate(chunked_group_undo_op_t undoFunc) 
             auto* chunkedGroup = nodeGroup->chunkedGroups.getGroup(lock, curChunkedGroupIdx);
             const auto numRowsForGroup =
                 std::min(numRowsLeft, chunkedGroup->getNumRows() - curStartRowIdxInChunk);
-            std::invoke(undoFunc, *chunkedGroup, curStartRowIdxInChunk, numRowsForGroup, commitTS);
+            std::invoke(func, *chunkedGroup, curStartRowIdxInChunk, numRowsForGroup, commitTS);
 
             ++curChunkedGroupIdx;
             numRowsLeft -= numRowsForGroup;

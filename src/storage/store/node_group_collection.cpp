@@ -14,9 +14,9 @@ namespace storage {
 
 NodeGroupCollection::NodeGroupCollection(MemoryManager& memoryManager,
     const std::vector<LogicalType>& types, const bool enableCompression, FileHandle* dataFH,
-    Deserializer* deSer, const chunked_group_iterator_construct_t* iteratorConstructFunc)
+    Deserializer* deSer, const VersionRecordHandlerData* versionRecordHandlerData)
     : enableCompression{enableCompression}, numTotalRows{0}, types{LogicalType::copy(types)},
-      dataFH{dataFH}, iteratorConstructFunc(iteratorConstructFunc) {
+      dataFH{dataFH}, versionRecordHandlerData(versionRecordHandlerData) {
     if (deSer) {
         deserialize(*deSer, memoryManager);
     }
@@ -155,7 +155,7 @@ row_idx_t NodeGroupCollection::getNumTotalRows() {
 
 NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(transaction::Transaction* transaction,
     node_group_idx_t groupIdx, NodeGroupDataFormat format,
-    const chunked_group_iterator_construct_t* constructIteratorFunc_) {
+    const VersionRecordHandlerData* versionRecordHandlerData) {
     const auto lock = nodeGroups.lock();
     while (groupIdx >= nodeGroups.getNumGroups(lock)) {
         const auto currentGroupIdx = nodeGroups.getNumGroups(lock);
@@ -166,7 +166,7 @@ NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(transaction::Transaction* t
                                              enableCompression, LogicalType::copy(types)));
         // push an insert of size 0 so that we can rollback the creation of this node group if
         // needed
-        pushInsertInfo(transaction, nodeGroups.getLastGroup(lock), 0, constructIteratorFunc_);
+        pushInsertInfo(transaction, nodeGroups.getLastGroup(lock), 0, versionRecordHandlerData);
     }
     KU_ASSERT(groupIdx < nodeGroups.getNumGroups(lock));
     return nodeGroups.getGroup(lock, groupIdx);
@@ -213,17 +213,19 @@ void NodeGroupCollection::rollbackInsert(common::row_idx_t numRows_, bool update
 
 void NodeGroupCollection::pushInsertInfo(const transaction::Transaction* transaction,
     NodeGroup* nodeGroup, common::row_idx_t numRows,
-    const chunked_group_iterator_construct_t* constructIteratorOverrideFunc) {
+    const VersionRecordHandlerData* overridedVersionRecordHandlerData) {
     pushInsertInfo(transaction, nodeGroup->getNodeGroupIdx(), nodeGroup->getNumRows(), numRows,
-        constructIteratorOverrideFunc ? constructIteratorOverrideFunc : iteratorConstructFunc);
+        overridedVersionRecordHandlerData ? overridedVersionRecordHandlerData :
+                                            versionRecordHandlerData);
 };
 
 void NodeGroupCollection::pushInsertInfo(const transaction::Transaction* transaction,
     common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
-    const chunked_group_iterator_construct_t* constructIteratorFunc_) {
+    const VersionRecordHandlerData* overridedVersionRecordHandlerData) {
     // we only append to the undo buffer if the node group collection is persistent
     if (dataFH && transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushInsertInfo(nodeGroupIdx, startRow, numRows, constructIteratorFunc_);
+        transaction->pushInsertInfo(nodeGroupIdx, startRow, numRows,
+            overridedVersionRecordHandlerData);
     }
 }
 

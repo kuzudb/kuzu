@@ -15,15 +15,15 @@ namespace storage {
 CSRNodeGroup::PersistentIterator::PersistentIterator(NodeGroupCollection* nodeGroups,
     common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
     common::transaction_t commitTS)
-    : ChunkedGroupUndoIterator(nodeGroups, startRow, numRows, commitTS), nodeGroup(nullptr) {
+    : VersionRecordHandler(nodeGroups, startRow, numRows, commitTS), nodeGroup(nullptr) {
     if (nodeGroupIdx < nodeGroups->getNumNodeGroups()) {
         nodeGroup = ku_dynamic_cast<CSRNodeGroup*>(nodeGroups->getNodeGroupNoLock(nodeGroupIdx));
     }
 }
 
-void CSRNodeGroup::PersistentIterator::iterate(chunked_group_undo_op_t undoFunc) {
+void CSRNodeGroup::PersistentIterator::applyFuncToChunkedGroups(version_record_handler_op_t func) {
     if (nodeGroup && nodeGroup->persistentChunkGroup) {
-        std::invoke(undoFunc, *nodeGroup->persistentChunkGroup, startRow, numRows, commitTS);
+        std::invoke(func, *nodeGroup->persistentChunkGroup, startRow, numRows, commitTS);
     }
 }
 

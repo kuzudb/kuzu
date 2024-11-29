@@ -14,10 +14,25 @@ class Transaction;
 }
 namespace storage {
 class MemoryManager;
+class RelTableData;
 
 struct CSRHeaderColumns {
     std::unique_ptr<Column> offset;
     std::unique_ptr<Column> length;
+};
+
+class RelTableVersionRecordHandlerData : public VersionRecordHandlerData {
+public:
+    RelTableVersionRecordHandlerData(RelTableData* relTableData, CSRNodeGroupScanSource source)
+        : relTableData(relTableData), source(source) {}
+
+    std::unique_ptr<VersionRecordHandler> constructVersionRecordHandler(common::row_idx_t startRow,
+        common::row_idx_t numRows, common::transaction_t commitTS,
+        common::node_group_idx_t nodeGroupIdx) const override;
+
+private:
+    RelTableData* relTableData;
+    CSRNodeGroupScanSource source;
 };
 
 class RelTableData {
@@ -56,7 +71,7 @@ public:
     NodeGroup* getOrCreateNodeGroup(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx) const {
         return nodeGroups->getOrCreateNodeGroup(transaction, nodeGroupIdx, NodeGroupDataFormat::CSR,
-            &persistentIteratorConstructFunc);
+            &persistentVersionRecordHandlerData);
     }
 
     common::RelMultiplicity getMultiplicity() const { return multiplicity; }
@@ -69,6 +84,11 @@ public:
         common::row_idx_t numRows_, CSRNodeGroupScanSource source);
 
     void serialize(common::Serializer& serializer) const;
+
+    std::unique_ptr<VersionRecordHandler> constructVersionRecordHandler(
+        CSRNodeGroupScanSource source, common::node_group_idx_t nodeGroupIdx,
+        common::row_idx_t startRow, common::row_idx_t numRows,
+        common::transaction_t commitTS) const;
 
 private:
     void initCSRHeaderColumns();
@@ -98,6 +118,9 @@ private:
         return types;
     }
 
+    const RelTableVersionRecordHandlerData* getVersionRecordHandlerData(
+        CSRNodeGroupScanSource source);
+
 private:
     FileHandle* dataFH;
     common::table_id_t tableID;
@@ -114,8 +137,8 @@ private:
     CSRHeaderColumns csrHeaderColumns;
     std::vector<std::unique_ptr<Column>> columns;
 
-    chunked_group_iterator_construct_t inMemIteratorConstructFunc;
-    chunked_group_iterator_construct_t persistentIteratorConstructFunc;
+    RelTableVersionRecordHandlerData persistentVersionRecordHandlerData;
+    RelTableVersionRecordHandlerData inMemoryVersionRecordHandlerData;
 };
 
 } // namespace storage

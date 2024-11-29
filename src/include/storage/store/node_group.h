@@ -82,11 +82,11 @@ static auto NODE_GROUP_SCAN_EMMPTY_RESULT = NodeGroupScanResult{};
 struct TableScanState;
 class NodeGroup {
 public:
-    class ChunkedGroupIterator : public ChunkedGroupUndoIterator {
+    class ChunkedGroupIterator : public VersionRecordHandler {
     public:
         ChunkedGroupIterator(NodeGroupCollection* nodeGroups, common::node_group_idx_t nodeGroupIdx,
             common::row_idx_t startRow, common::row_idx_t numRows, common::transaction_t commitTS);
-        void iterate(chunked_group_undo_op_t undoFunc) override;
+        void applyFuncToChunkedGroups(version_record_handler_op_t func) override;
         void finalizeRollbackInsert() override;
 
     protected:

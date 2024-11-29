@@ -165,12 +165,12 @@ static constexpr common::column_id_t REL_ID_COLUMN_ID = 1;
 struct RelTableScanState;
 class CSRNodeGroup final : public NodeGroup {
 public:
-    class PersistentIterator : public ChunkedGroupUndoIterator {
+    class PersistentIterator : public VersionRecordHandler {
     public:
         PersistentIterator(NodeGroupCollection* nodeGroups, common::node_group_idx_t nodeGroupIdx,
             common::row_idx_t startRow, common::row_idx_t numRows, common::transaction_t commitTS);
 
-        void iterate(chunked_group_undo_op_t undoFunc) override;
+        void applyFuncToChunkedGroups(version_record_handler_op_t func) override;
         void finalizeRollbackInsert() override;
 
     private:

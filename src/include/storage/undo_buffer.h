@@ -88,9 +88,11 @@ public:
     void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry,
         const catalog::SequenceRollbackData& data);
     void createInsertInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
-        common::row_idx_t numRows, const chunked_group_iterator_construct_t* iteratorConstructFunc);
+        common::row_idx_t numRows,
+        const storage::VersionRecordHandlerData* versionRecordHandlerData);
     void createDeleteInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
-        common::row_idx_t numRows, const chunked_group_iterator_construct_t* iteratorConstructFunc);
+        common::row_idx_t numRows,
+        const storage::VersionRecordHandlerData* versionRecordHandlerData);
     void createVectorUpdateInfo(UpdateInfo* updateInfo, common::idx_t vectorIdx,
         VectorUpdateInfo* vectorUpdateInfo);
 
@@ -103,7 +105,8 @@ private:
     uint8_t* createUndoRecord(uint64_t size);
 
     void createVersionInfo(UndoRecordType recordType, common::row_idx_t startRow,
-        common::row_idx_t numRows, const chunked_group_iterator_construct_t* iteratorConstructFunc,
+        common::row_idx_t numRows,
+        const storage::VersionRecordHandlerData* versionRecordHandlerData,
         common::node_group_idx_t nodeGroupIdx = 0);
 
     void commitRecord(UndoRecordType recordType, const uint8_t* record,

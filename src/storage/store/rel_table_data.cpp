@@ -16,29 +16,25 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
+std::unique_ptr<VersionRecordHandler>
+RelTableVersionRecordHandlerData::constructVersionRecordHandler(common::row_idx_t startRow,
+    common::row_idx_t numRows, common::transaction_t commitTS,
+    common::node_group_idx_t nodeGroupIdx) const {
+    return relTableData->constructVersionRecordHandler(source, nodeGroupIdx, startRow, numRows,
+        commitTS);
+}
+
 RelTableData::RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
     const TableCatalogEntry* tableEntry, RelDataDirection direction, bool enableCompression,
     Deserializer* deSer)
     : dataFH{dataFH}, tableID{tableEntry->getTableID()}, tableName{tableEntry->getName()},
       memoryManager{mm}, shadowFile{shadowFile}, enableCompression{enableCompression},
-      direction{direction} {
+      direction{direction},
+      persistentVersionRecordHandlerData(this, CSRNodeGroupScanSource::COMMITTED_PERSISTENT),
+      inMemoryVersionRecordHandlerData(this, CSRNodeGroupScanSource::COMMITTED_IN_MEMORY) {
     multiplicity = tableEntry->constCast<RelTableCatalogEntry>().getMultiplicity(direction);
     initCSRHeaderColumns();
     initPropertyColumns(tableEntry);
-
-    inMemIteratorConstructFunc = [this](common::row_idx_t startRow, common::row_idx_t numRows_,
-                                     common::node_group_idx_t nodeGroupIdx_,
-                                     common::transaction_t commitTS) {
-        return std::make_unique<NodeGroup::ChunkedGroupIterator>(nodeGroups.get(), nodeGroupIdx_,
-            startRow, numRows_, commitTS);
-    };
-
-    persistentIteratorConstructFunc = [this](common::row_idx_t startRow, common::row_idx_t numRows_,
-                                          common::node_group_idx_t nodeGroupIdx_,
-                                          common::transaction_t commitTS) {
-        return std::make_unique<CSRNodeGroup::PersistentIterator>(nodeGroups.get(), nodeGroupIdx_,
-            startRow, numRows_, commitTS);
-    };
 
     nodeGroups = std::make_unique<NodeGroupCollection>(*mm, getColumnTypes(), enableCompression,
         dataFH, deSer);
@@ -113,11 +109,7 @@ bool RelTableData::delete_(Transaction* transaction, ValueVector& boundNodeIDVec
     auto& csrNodeGroup = getNodeGroup(nodeGroupIdx)->cast<CSRNodeGroup>();
     bool isDeleted = csrNodeGroup.delete_(transaction, source, rowIdx);
     if (isDeleted && transaction->shouldAppendToUndoBuffer()) {
-        const auto* constructIteratorFunc =
-            (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) ?
-                &persistentIteratorConstructFunc :
-                &inMemIteratorConstructFunc;
-        transaction->pushDeleteInfo(nodeGroupIdx, rowIdx, 1, constructIteratorFunc);
+        transaction->pushDeleteInfo(nodeGroupIdx, rowIdx, 1, getVersionRecordHandlerData(source));
     }
     return isDeleted;
 }
@@ -217,13 +209,12 @@ void RelTableData::pushInsertInfo(transaction::Transaction* transaction,
               !nodeGroup.getPersistentChunkedGroup() ||
               nodeGroup.getPersistentChunkedGroup()->getNumRows() == 0);
 
-    const auto [startRow, constructIteratorFunc] =
-        (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) ?
-            std::make_pair(static_cast<row_idx_t>(0), &persistentIteratorConstructFunc) :
-            std::make_pair(nodeGroup.getNumRows(), &inMemIteratorConstructFunc);
+    const auto startRow = (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) ?
+                              static_cast<row_idx_t>(0) :
+                              nodeGroup.getNumRows();
 
     nodeGroups->pushInsertInfo(transaction, nodeGroup.getNodeGroupIdx(), startRow, numRows_,
-        constructIteratorFunc);
+        getVersionRecordHandlerData(source));
 }
 
 void RelTableData::checkpoint(const std::vector<column_id_t>& columnIDs) {
@@ -246,6 +237,29 @@ void RelTableData::checkpoint(const std::vector<column_id_t>& columnIDs) {
 
 void RelTableData::serialize(Serializer& serializer) const {
     nodeGroups->serialize(serializer);
+}
+
+std::unique_ptr<VersionRecordHandler> RelTableData::constructVersionRecordHandler(
+    CSRNodeGroupScanSource source, common::node_group_idx_t nodeGroupIdx,
+    common::row_idx_t startRow, common::row_idx_t numRows, common::transaction_t commitTS) const {
+    if (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) {
+        return std::make_unique<CSRNodeGroup::PersistentIterator>(nodeGroups.get(), nodeGroupIdx,
+            startRow, numRows, commitTS);
+    } else {
+        KU_ASSERT(source == CSRNodeGroupScanSource::COMMITTED_IN_MEMORY);
+        return std::make_unique<NodeGroup::ChunkedGroupIterator>(nodeGroups.get(), nodeGroupIdx,
+            startRow, numRows, commitTS);
+    }
+}
+
+const RelTableVersionRecordHandlerData* RelTableData::getVersionRecordHandlerData(
+    CSRNodeGroupScanSource source) {
+    if (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) {
+        return &persistentVersionRecordHandlerData;
+    } else {
+        KU_ASSERT(source == CSRNodeGroupScanSource::COMMITTED_IN_MEMORY);
+        return &inMemoryVersionRecordHandlerData;
+    }
 }
 
 } // namespace storage

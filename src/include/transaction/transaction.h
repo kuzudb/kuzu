@@ -23,15 +23,12 @@ class VersionInfo;
 class UpdateInfo;
 struct VectorUpdateInfo;
 class ChunkedNodeGroup;
-class ChunkedGroupUndoIterator;
+class VersionRecordHandler;
+class VersionRecordHandlerData;
 } // namespace storage
 namespace transaction {
 class TransactionManager;
 class Transaction;
-
-using chunked_group_iterator_construct_t =
-    std::function<std::unique_ptr<storage::ChunkedGroupUndoIterator>(common::row_idx_t,
-        common::row_idx_t, common::node_group_idx_t, common::transaction_t commitTS)>;
 
 enum class TransactionType : uint8_t { READ_ONLY, WRITE, CHECKPOINT, DUMMY, RECOVERY };
 
@@ -123,10 +120,10 @@ public:
         const catalog::SequenceRollbackData& data) const;
     void pushInsertInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
         common::row_idx_t numRows,
-        const chunked_group_iterator_construct_t* constructIteratorFunc = nullptr) const;
+        const storage::VersionRecordHandlerData* versionRecordHandlerData) const;
     void pushDeleteInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
         common::row_idx_t numRows,
-        const chunked_group_iterator_construct_t* constructIteratorFunc) const;
+        const storage::VersionRecordHandlerData* versionRecordHandlerData) const;
     void pushVectorUpdateInfo(storage::UpdateInfo& updateInfo, common::idx_t vectorIdx,
         storage::VectorUpdateInfo& vectorUpdateInfo) const;
 
