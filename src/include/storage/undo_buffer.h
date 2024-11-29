@@ -66,8 +66,6 @@ private:
 class UpdateInfo;
 class VersionInfo;
 struct VectorUpdateInfo;
-class RelTableData;
-class NodeTable;
 class WAL;
 // This class is not thread safe, as it is supposed to be accessed by a single thread.
 class UndoBuffer {

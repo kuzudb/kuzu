@@ -22,11 +22,9 @@ class UpdateInfo;
 struct VectorUpdateInfo;
 class ChunkedNodeGroup;
 class VersionRecordHandler;
-class VersionRecordHandlerSelector;
 } // namespace storage
 namespace transaction {
 class TransactionManager;
-class Transaction;
 
 enum class TransactionType : uint8_t { READ_ONLY, WRITE, CHECKPOINT, DUMMY, RECOVERY };
 

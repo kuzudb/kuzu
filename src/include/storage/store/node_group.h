@@ -18,7 +18,6 @@ class MemoryManager;
 
 struct TableAddColumnState;
 class NodeGroup;
-class NodeGroupCollection;
 
 struct NodeGroupScanState {
     // Index of committed but not yet checkpointed chunked group to scan.
