@@ -127,10 +127,10 @@ typedef struct {
     //  (8TB) under 64-bit environment and 1GB under 32-bit one (see `DEFAULT_VM_REGION_MAX_SIZE`).
     uint64_t max_db_size;
     // If true, the database will automatically checkpoint when the size of
-    // the WAL file exceeds the checkpoint threshold.bool auto_checkpoint;
+    // the WAL file exceeds the checkpoint threshold.
     bool auto_checkpoint;
     // The threshold of the WAL file size in bytes. When the size of the
-    // WAL file exceeds this threshold, the database will checkpoint if autoCheckpoint is true.
+    // WAL file exceeds this threshold, the database will checkpoint if auto_checkpoint is true.
     uint64_t checkpoint_threshold;
 } kuzu_system_config;
 
