@@ -189,32 +189,36 @@ void checkGtestParams(int argc, char** argv) {
     }
 }
 
-#include <cstdlib> // For std::getenv
-#include <iostream>
-#include <string>
-#include <filesystem>
-#include "TestHelper.h"
-
 int main(int argc, char** argv) {
+    // Debug: Print all received arguments
+    std::cout << "Received arguments: ";
+    for (int i = 0; i < argc; ++i) {
+        std::cout << argv[i] << " ";
+    }
+    std::cout << std::endl;
 
-    // Get the test directory from the environment variable
-    const char* testDirEnv = std::getenv("TEST_DIR");
-    std::string e2eTestFilesDir = testDirEnv ? std::string(testDirEnv) : "default_path";
-    std::cout << "TEST_DIR FROM ENV: " << TestHelper::getE2ETestFilesDirectory() << std::endl;
+    // Use --test-dir argument to find TEST FILE DIRECTORY
+    std::string e2eTestFilesDir = "default_path";
+    for (int i = 1; i < argc; ++i) {
+        std::string arg(argv[i]);
+        if (arg.rfind("--test-dir=", 0) == 0) { // Check if the argument starts with "--test-dir="
+            e2eTestFilesDir = arg.substr(11);   // Extract the directory path
+            break;
+        }
+    }
     TestHelper::setE2ETestFilesDirectory(e2eTestFilesDir);
-    std::cout << "E2E_TEST_FILES_DIRECTORY: " << TestHelper::getE2ETestFilesDirectory() << std::endl;
+    std::cout << "E2E_TEST_FILES_DIRECTORY: " << TestHelper::E2E_TEST_FILES_DIRECTORY<< std::endl;
 
     checkGtestParams(argc, argv);
     testing::InitGoogleTest(&argc, argv);
-
+    
     if (argc > 1) {
         auto path = TestHelper::appendKuzuRootPath(
-            (std::filesystem::path(TestHelper::getE2ETestFilesDirectory()) / argv[1]).string());
+            (std::filesystem::path(TestHelper::E2E_TEST_FILES_DIRECTORY) / argv[1]).string());
         if (!std::filesystem::exists(path)) {
-            throw TestException("Test path does not exist [" + path + "].");
+            throw TestException("Test path not exists [" + path + "].");
         }
         scanTestFiles(path);
     }
     return RUN_ALL_TESTS();
 }
-
