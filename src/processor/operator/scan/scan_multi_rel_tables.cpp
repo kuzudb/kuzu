@@ -22,12 +22,12 @@ bool DirectionInfo::needFlip(RelDataDirection relDataDirection) const {
 
 bool RelTableCollectionScanner::scan(Transaction* transaction) {
     while (true) {
-        const auto& relInfo = relInfos[currentTableIdx];
+        const auto& relInfo = *activationRelInfos[currentTableIdx];
         auto& scanState = *relInfo.scanState;
         if (relInfo.table->scan(transaction, scanState)) {
             if (directionVector != nullptr) {
                 for (auto i = 0u; i < scanState.outState->getSelVector().getSelSize(); ++i) {
-                    directionVector->setValue<bool>(i, directionValues[currentTableIdx]);
+                    directionVector->setValue<bool>(i, activationDirectionValues[currentTableIdx]);
                 }
             }
             if (scanState.outState->getSelVector().getSelSize() > 0) {
@@ -36,12 +36,12 @@ bool RelTableCollectionScanner::scan(Transaction* transaction) {
         } else {
             currentTableIdx = nextTableIdx;
             if (currentTableIdx == 0) {
-                for (auto tableIdx = 0u; tableIdx < relInfos.size(); ++tableIdx) {
-                    relInfos[tableIdx].table->initScanState(transaction,
-                        *relInfos[tableIdx].scanState);
+                for (auto tableIdx = 0u; tableIdx < activationRelInfos.size(); ++tableIdx) {
+                    activationRelInfos[tableIdx]->table->initScanState(transaction,
+                        *activationRelInfos[tableIdx]->scanState);
                 }
             }
-            if (currentTableIdx == relInfos.size()) {
+            if (currentTableIdx == activationRelInfos.size()) {
                 return false;
             }
             nextTableIdx++;
@@ -72,7 +72,7 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
             if (directionInfo.directionPos.isValid()) {
                 scanner.directionVector =
                     resultSet->getValueVector(directionInfo.directionPos).get();
-                scanner.directionValues.push_back(directionInfo.needFlip(relInfo.direction));
+                scanner.addDirectionValue(directionInfo.needFlip(relInfo.direction));
             }
         }
     }

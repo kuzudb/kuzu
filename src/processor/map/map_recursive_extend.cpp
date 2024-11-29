@@ -23,6 +23,46 @@ static std::shared_ptr<RecursiveJoinSharedState> createSharedState(const NodeExp
     return std::make_shared<RecursiveJoinSharedState>(std::move(semiMasks));
 }
 
+static ScanMultiRelTable* getScanMultiRelTable(PhysicalOperator* op) {
+    if (op->getOperatorType() == PhysicalOperatorType::SCAN_REL_TABLE) {
+        return dynamic_cast<ScanMultiRelTable*>(op);
+    }
+    KU_ASSERT(op->getNumChildren() == 1);
+    return getScanMultiRelTable(op->getChild(0));
+}
+
+static std::vector<common::table_id_map_t<std::vector<size_t>>> createStepActivationRelInfos(
+    RecursiveInfo* recursiveInfo, PhysicalOperator* recursiveRoot) {
+    auto scanMultiRelTable = getScanMultiRelTable(recursiveRoot);
+    if (!scanMultiRelTable) {
+        return {};
+    }
+
+    // key:rel tableID,value:{rel index in vector,rel src tableID}
+    common::table_id_map_t<std::vector<std::pair<size_t, common::table_id_t>>> temp;
+    for (const auto& item : scanMultiRelTable->getScanners()) {
+        auto srcTableID = item.first;
+
+        auto& relInfos = item.second.getRelInfos();
+        for (auto i = 0u; i < relInfos.size(); ++i) {
+            auto tableID = relInfos.at(i).table->getTableID();
+            temp[tableID].push_back({i, srcTableID});
+        }
+    }
+
+    std::vector<common::table_id_map_t<std::vector<size_t>>> stepActivationRelInfos;
+    for (const auto& vector : recursiveInfo->stepActivationRelInfos) {
+        common::table_id_map_t<std::vector<size_t>> relTableScannerIndex;
+        for (const auto& relTableID : vector) {
+            for (const auto& [index, srcTableID] : temp.at(relTableID)) {
+                relTableScannerIndex[srcTableID].push_back(index);
+            }
+        }
+        stepActivationRelInfos.emplace_back(relTableScannerIndex);
+    }
+    return stepActivationRelInfos;
+}
+
 std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(LogicalOperator* logicalOperator) {
     auto extend = logicalOperator->constPtrCast<LogicalRecursiveExtend>();
     auto boundNode = extend->getBoundNode();
@@ -74,6 +114,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(LogicalOperator
     info.joinType = extend->getJoinType();
     info.direction = extend->getDirection();
     info.extendFromSource = extend->extendFromSourceNode();
+    auto scanMultiRelTable = getScanMultiRelTable(recursiveRoot.get());
+    if (scanMultiRelTable) {
+        info.stepActivationRelInfos =
+            createStepActivationRelInfos(recursiveInfo, recursiveRoot.get());
+    }
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto printInfo = std::make_unique<OPPrintInfo>();
     return std::make_unique<RecursiveJoin>(std::move(info), sharedState, std::move(prevOperator),
