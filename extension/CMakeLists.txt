@@ -52,7 +52,7 @@ endif ()
 
 if (${BUILD_EXTENSION_TESTS})
     include_directories(${CMAKE_SOURCE_DIR}/third_party/spdlog)
-    add_definitions(-DTEST_FILES_DIR="extension")
+    #add_definitions(-DTEST_FILES_DIR="extension")
     add_subdirectory(${CMAKE_SOURCE_DIR}/test/gtest ${CMAKE_CURRENT_BINARY_DIR}/test/gtest EXCLUDE_FROM_ALL)
     # Make gtest available to subdirectories.
     if (NOT TARGET GTest::GTest)

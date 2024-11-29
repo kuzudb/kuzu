@@ -23,12 +23,16 @@ struct TestQueryConfig {
 
 class TestHelper {
 public:
-    static constexpr char E2E_TEST_FILES_DIRECTORY[] = TEST_FILES_DIR;
+    inline static std::string E2E_TEST_FILES_DIRECTORY = "default_path";
     static constexpr char SCHEMA_FILE_NAME[] = "schema.cypher";
     static constexpr char COPY_FILE_NAME[] = "copy.cypher";
     static constexpr char TEST_ANSWERS_PATH[] = "test/answers";
     static constexpr char TEST_STATEMENTS_PATH[] = "test/statements";
     static constexpr char DEFAULT_CONN_NAME[] = "conn_default";
+
+    static void setE2ETestFilesDirectory(const std::string& directory) {
+        E2E_TEST_FILES_DIRECTORY = directory;
+    }
 
     static std::vector<std::unique_ptr<TestQueryConfig>> parseTestFile(const std::string& path,
         bool checkOutputOrder = false);

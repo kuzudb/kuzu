@@ -1,4 +1,4 @@
-if (NOT TARGET test_helper)
+#if (NOT TARGET test_helper)
         add_library(
                 test_helper
                 OBJECT
@@ -11,10 +11,10 @@ if (NOT TARGET test_helper)
                 ../include/
         )
         target_link_libraries(test_helper PUBLIC kuzu)
-endif()
+#endif()
 
 
-if (NOT TARGET api_test_helper)
+#if (NOT TARGET api_test_helper)
         add_library(
                 api_test_helper
                 OBJECT
@@ -27,5 +27,5 @@ if (NOT TARGET api_test_helper)
                 ../include/
         )
         target_link_libraries(api_test_helper PUBLIC kuzu_shared)
-endif()
+#endif()
 
