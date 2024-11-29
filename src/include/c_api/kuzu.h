@@ -131,7 +131,7 @@ typedef struct {
     bool auto_checkpoint;
     // The threshold of the WAL file size in bytes. When the size of the
     // WAL file exceeds this threshold, the database will checkpoint if autoCheckpoint is true.
-    uint64_t check_point_threshold;
+    uint64_t checkpoint_threshold;
 } kuzu_system_config;
 
 /**
