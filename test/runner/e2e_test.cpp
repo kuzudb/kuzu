@@ -190,8 +190,6 @@ void checkGtestParams(int argc, char** argv) {
 }
 
 int main(int argc, char** argv) {
-    checkGtestParams(argc, argv);
-    testing::InitGoogleTest(&argc, argv);
     // Use --test-dir argument to find TEST FILE DIRECTORY
     std::string e2eTestFilesDir = "default_path";
     for (int i = 1; i < argc; ++i) {
@@ -204,6 +202,9 @@ int main(int argc, char** argv) {
     TestHelper::setE2ETestFilesDirectory(e2eTestFilesDir);
     std::cout << "E2E_TEST_FILES_DIRECTORY: " << TestHelper::E2E_TEST_FILES_DIRECTORY<< std::endl;
 
+    checkGtestParams(argc, argv);
+    testing::InitGoogleTest(&argc, argv);
+    
     if (argc > 1) {
         auto path = TestHelper::appendKuzuRootPath(
             (std::filesystem::path(TestHelper::E2E_TEST_FILES_DIRECTORY) / argv[1]).string());
