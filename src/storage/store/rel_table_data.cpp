@@ -53,6 +53,7 @@ void InMemoryVersionRecordHandler::rollbackInsert(const transaction::Transaction
     common::row_idx_t numRows) const {
     VersionRecordHandler::rollbackInsert(transaction, nodeGroupIdx, startRow, numRows);
     auto* nodeGroup = relTableData->getNodeGroupNoLock(nodeGroupIdx);
+    nodeGroup->rollbackInsert(startRow);
     const auto numRowsToRollback = std::min(numRows, nodeGroup->getNumRows() - startRow);
     relTableData->rollbackGroupCollectionInsert(numRowsToRollback, false);
 }
