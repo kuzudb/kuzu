@@ -57,9 +57,9 @@ bool NodeTableScanState::scanNext(Transaction* transaction, offset_t startOffset
 
 namespace {
 
-struct CommittedPKInserter : public PKColumnScanHelper {
+struct UncommittedPKInserter : public PKColumnScanHelper {
 public:
-    CommittedPKInserter(row_idx_t startNodeOffset, table_id_t tableID, PrimaryKeyIndex* pkIndex,
+    UncommittedPKInserter(row_idx_t startNodeOffset, table_id_t tableID, PrimaryKeyIndex* pkIndex,
         visible_func isVisible)
         : PKColumnScanHelper(pkIndex, tableID), startNodeOffset(startNodeOffset),
           nodeIDVector(LogicalType::INTERNAL_ID()), isVisible(std::move(isVisible)) {}
@@ -111,7 +111,7 @@ void insertPK(const Transaction* transaction, const ValueVector& nodeIDVector,
     }
 }
 
-std::unique_ptr<NodeTableScanState> CommittedPKInserter::initPKScanState(DataChunk& dataChunk,
+std::unique_ptr<NodeTableScanState> UncommittedPKInserter::initPKScanState(DataChunk& dataChunk,
     column_id_t pkColumnID, const std::vector<std::unique_ptr<Column>>& columns) {
     auto scanState = PKColumnScanHelper::initPKScanState(dataChunk, pkColumnID, columns);
     nodeIDVector.setState(dataChunk.state);
@@ -119,7 +119,7 @@ std::unique_ptr<NodeTableScanState> CommittedPKInserter::initPKScanState(DataChu
     return scanState;
 }
 
-bool CommittedPKInserter::processScanOutput(const transaction::Transaction* transaction,
+bool UncommittedPKInserter::processScanOutput(const transaction::Transaction* transaction,
     NodeGroupScanResult scanResult, const common::ValueVector& scannedVector) {
     if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
         return false;
@@ -508,11 +508,11 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
     }
 
     // 3. Scan pk column for newly inserted tuples that are not deleted and insert into pk index.
-    CommittedPKInserter scanHelper{startNodeOffset, tableID, pkIndex.get(),
+    UncommittedPKInserter pkInserter{startNodeOffset, tableID, pkIndex.get(),
         getVisibleFunc(transaction)};
     // We need to scan from local storage here because some tuples in local node groups might
     // have been deleted.
-    scanPKColumn(transaction, scanHelper, localNodeTable.getNodeGroups());
+    scanPKColumn(transaction, pkInserter, localNodeTable.getNodeGroups());
 
     // 4. Clear local table.
     localTable->clear();
@@ -558,8 +558,8 @@ void NodeTable::rollbackInsert(const transaction::Transaction* transaction,
         startNodeOffset += nodeGroups->getNodeGroupNoLock(i)->getNumRows();
     }
 
-    RollbackPKDeleter scanHelper{startNodeOffset, numRows_, tableID, pkIndex.get()};
-    scanPKColumn(transaction, scanHelper, *nodeGroups);
+    RollbackPKDeleter pkDeleter{startNodeOffset, numRows_, tableID, pkIndex.get()};
+    scanPKColumn(transaction, pkDeleter, *nodeGroups);
 }
 
 TableStats NodeTable::getStats(const Transaction* transaction) const {

@@ -488,7 +488,7 @@ std::unique_ptr<VersionInfo> NodeGroup::checkpointVersionInfo(const UniqLock& lo
             // TODO(Guodong): Optimize the for loop here to directly acess the version info.
             for (auto i = 0u; i < chunkedGroup->getNumRows(); i++) {
                 if (chunkedGroup->isDeleted(transaction, i)) {
-                    checkpointVersionInfo->delete_(transaction, currRow + i);
+                    checkpointVersionInfo->delete_(transaction->getID(), currRow + i);
                 }
             }
         }

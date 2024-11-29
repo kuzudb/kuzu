@@ -95,7 +95,7 @@ public:
         VectorUpdateInfo* vectorUpdateInfo);
 
     void commit(common::transaction_t commitTS) const;
-    void rollback(const transaction::Transaction* transaction);
+    void rollback();
 
     uint64_t getMemUsage() const;
 

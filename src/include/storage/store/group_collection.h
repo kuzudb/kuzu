@@ -25,7 +25,9 @@ public:
             [&](common::Deserializer& deser) { return T::deserialize(memoryManager, deser); });
     }
 
-    void removeTrailingGroups(const common::UniqLock&, common::idx_t numGroupsToRemove) {
+    void removeTrailingGroups([[maybe_unused]] const common::UniqLock& lock,
+        common::idx_t numGroupsToRemove) {
+        KU_ASSERT(lock.isLocked());
         KU_ASSERT(numGroupsToRemove <= groups.size());
         groups.erase(groups.end() - numGroupsToRemove, groups.end());
     }

@@ -166,7 +166,7 @@ void UndoBuffer::commit(transaction_t commitTS) const {
     });
 }
 
-void UndoBuffer::rollback(const transaction::Transaction* transaction) {
+void UndoBuffer::rollback() {
     UndoBufferIterator iterator{*this};
     iterator.reverseIterate([&](UndoRecordType entryType, uint8_t const* entry) {
         rollbackRecord(transaction, entryType, entry);

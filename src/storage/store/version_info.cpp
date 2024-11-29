@@ -352,7 +352,7 @@ VectorVersionInfo* VersionInfo::getVectorVersionInfo(idx_t vectorIdx) const {
     return vectorsInfo[vectorIdx].get();
 }
 
-void VersionInfo::append(const transaction::Transaction* transaction, const row_idx_t startRow,
+void VersionInfo::append(transaction_t transactionID, const row_idx_t startRow,
     const row_idx_t numRows) {
     if (numRows == 0) {
         return;
@@ -367,11 +367,11 @@ void VersionInfo::append(const transaction::Transaction* transaction, const row_
         const auto endRowIdx =
             vectorIdx == endVectorIdx ? endRowIdxInVector : DEFAULT_VECTOR_CAPACITY - 1;
         const auto numRowsInVector = endRowIdx - startRowIdx + 1;
-        vectorVersionInfo.append(transaction->getID(), startRowIdx, numRowsInVector);
+        vectorVersionInfo.append(transactionID, startRowIdx, numRowsInVector);
     }
 }
 
-bool VersionInfo::delete_(const transaction::Transaction* transaction, const row_idx_t rowIdx) {
+bool VersionInfo::delete_(transaction_t transactionID, const row_idx_t rowIdx) {
     auto [vectorIdx, rowIdxInVector] =
         StorageUtils::getQuotientRemainder(rowIdx, DEFAULT_VECTOR_CAPACITY);
     auto& vectorVersionInfo = getOrCreateVersionInfo(vectorIdx);
@@ -381,7 +381,7 @@ bool VersionInfo::delete_(const transaction::Transaction* transaction, const row
         // ALWAYS_INSERTED to avoid checking the version in the future.
         vectorVersionInfo.insertionStatus = VectorVersionInfo::InsertionStatus::ALWAYS_INSERTED;
     }
-    return vectorVersionInfo.delete_(transaction->getID(), rowIdxInVector);
+    return vectorVersionInfo.delete_(transactionID, rowIdxInVector);
 }
 
 void VersionInfo::getSelVectorToScan(const transaction_t startTS, const transaction_t transactionID,
