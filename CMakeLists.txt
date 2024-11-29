@@ -248,13 +248,19 @@ function(add_kuzu_test TEST_NAME)
         target_link_libraries(${TEST_NAME} PRIVATE register_backtrace_signal_handler)
     endif()
     target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include)
+
     include(GoogleTest)
-    gtest_discover_tests(${TEST_NAME} 
-                        DISCOVERY_TIMEOUT 600 
-                        DISCOVERY_MODE PRE_TEST 
-                        EXTRA_ARGS --test-dir=$<TARGET_FILE_DIR:${TEST_NAME}>
+    gtest_discover_tests(${TEST_NAME}
+        DISCOVERY_TIMEOUT 600
+        DISCOVERY_MODE PRE_TEST
+    )
+
+    # Set TEST_DIR environment variable for the test
+    set_tests_properties(${TEST_NAME}
+        PROPERTIES ENVIRONMENT "TEST_DIR=${CMAKE_BINARY_DIR}/test"
     )
 endfunction()
+
 
 function(add_kuzu_api_test TEST_NAME)
     set(SRCS ${ARGN})
