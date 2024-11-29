@@ -14,9 +14,9 @@ namespace storage {
 
 NodeGroupCollection::NodeGroupCollection(MemoryManager& memoryManager,
     const std::vector<LogicalType>& types, const bool enableCompression, FileHandle* dataFH,
-    Deserializer* deSer, const VersionRecordHandlerSelector* versionRecordHandlerSelector)
+    Deserializer* deSer, const VersionRecordHandler* versionRecordHandler)
     : enableCompression{enableCompression}, numTotalRows{0}, types{LogicalType::copy(types)},
-      dataFH{dataFH}, versionRecordHandlerSelector(versionRecordHandlerSelector) {
+      dataFH{dataFH}, versionRecordHandler(versionRecordHandler) {
     if (deSer) {
         deserialize(*deSer, memoryManager);
     }
@@ -155,7 +155,7 @@ row_idx_t NodeGroupCollection::getNumTotalRows() {
 
 NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(transaction::Transaction* transaction,
     node_group_idx_t groupIdx, NodeGroupDataFormat format,
-    const VersionRecordHandlerSelector* versionRecordHandlerSelector) {
+    const VersionRecordHandler* versionRecordHandler) {
     const auto lock = nodeGroups.lock();
     while (groupIdx >= nodeGroups.getNumGroups(lock)) {
         const auto currentGroupIdx = nodeGroups.getNumGroups(lock);
@@ -166,7 +166,7 @@ NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(transaction::Transaction* t
                                              enableCompression, LogicalType::copy(types)));
         // push an insert of size 0 so that we can rollback the creation of this node group if
         // needed
-        pushInsertInfo(transaction, nodeGroups.getLastGroup(lock), 0, versionRecordHandlerSelector);
+        pushInsertInfo(transaction, nodeGroups.getLastGroup(lock), 0, versionRecordHandler);
     }
     KU_ASSERT(groupIdx < nodeGroups.getNumGroups(lock));
     return nodeGroups.getGroup(lock, groupIdx);
@@ -213,19 +213,17 @@ void NodeGroupCollection::rollbackInsert(common::row_idx_t numRows_, bool update
 
 void NodeGroupCollection::pushInsertInfo(const transaction::Transaction* transaction,
     NodeGroup* nodeGroup, common::row_idx_t numRows,
-    const VersionRecordHandlerSelector* overridedVersionRecordHandlerSelector) {
+    const VersionRecordHandler* overridedVersionRecordHandler) {
     pushInsertInfo(transaction, nodeGroup->getNodeGroupIdx(), nodeGroup->getNumRows(), numRows,
-        overridedVersionRecordHandlerSelector ? overridedVersionRecordHandlerSelector :
-                                                versionRecordHandlerSelector);
+        overridedVersionRecordHandler ? overridedVersionRecordHandler : versionRecordHandler);
 };
 
 void NodeGroupCollection::pushInsertInfo(const transaction::Transaction* transaction,
     common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
-    const VersionRecordHandlerSelector* overridedVersionRecordHandlerSelector) {
+    const VersionRecordHandler* overridedVersionRecordHandler) {
     // we only append to the undo buffer if the node group collection is persistent
     if (dataFH && transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushInsertInfo(nodeGroupIdx, startRow, numRows,
-            overridedVersionRecordHandlerSelector);
+        transaction->pushInsertInfo(nodeGroupIdx, startRow, numRows, overridedVersionRecordHandler);
     }
 }
 

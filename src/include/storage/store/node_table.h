@@ -96,32 +96,25 @@ struct PKColumnScanHelper {
     PrimaryKeyIndex* pkIndex;
 };
 
-class NodeTableVersionRecordHandlerSelector : public VersionRecordHandlerSelector {
+class NodeTableVersionRecordHandler : public VersionRecordHandler {
 public:
-    explicit NodeTableVersionRecordHandlerSelector(NodeTable* nodeTable) : nodeTable(nodeTable) {}
+    explicit NodeTableVersionRecordHandler(NodeTable* table);
 
-    std::unique_ptr<VersionRecordHandler> constructVersionRecordHandler(common::row_idx_t startRow,
-        common::row_idx_t numRows, common::transaction_t commitTS,
-        common::node_group_idx_t nodeGroupIdx) const override;
+    void applyFuncToChunkedGroups(version_record_handler_op_t func,
+        common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+        common::row_idx_t numRows, common::transaction_t commitTS) const override;
+    void rollbackInsert(const transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+        common::row_idx_t numRows) const override;
 
 private:
-    NodeTable* nodeTable;
+    NodeTable* table;
 };
 
 class StorageManager;
+
 class NodeTable final : public Table {
 public:
-    class ChunkedGroupIterator : public NodeGroup::NodeGroupVersionRecordHandler {
-    public:
-        ChunkedGroupIterator(NodeTable* table, common::node_group_idx_t nodeGroupIdx,
-            common::row_idx_t startRow, common::row_idx_t numRows, common::transaction_t commitTS);
-
-        void rollbackInsert(const transaction::Transaction* transaction) override;
-
-    private:
-        NodeTable* table;
-    };
-
     static std::vector<common::LogicalType> getNodeTableColumnTypes(const NodeTable& table) {
         std::vector<common::LogicalType> types;
         for (auto i = 0u; i < table.getNumColumns(); i++) {
@@ -194,8 +187,10 @@ public:
     void commit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) override;
 
-    void rollbackInsert(const transaction::Transaction* transaction, common::row_idx_t startRow,
-        common::row_idx_t numRows_, common::node_group_idx_t nodeGroupIdx);
+    void rollbackPKIndexInsert(const transaction::Transaction* transaction,
+        common::row_idx_t startRow, common::row_idx_t numRows_,
+        common::node_group_idx_t nodeGroupIdx);
+    void rollbackGroupCollectionInsert(common::row_idx_t numRows_);
 
     common::node_group_idx_t getNumCommittedNodeGroups() const {
         return nodeGroups->getNumNodeGroups();
@@ -230,7 +225,7 @@ private:
     std::unique_ptr<NodeGroupCollection> nodeGroups;
     common::column_id_t pkColumnID;
     std::unique_ptr<PrimaryKeyIndex> pkIndex;
-    NodeTableVersionRecordHandlerSelector versionRecordHandlerSelector;
+    NodeTableVersionRecordHandler versionRecordHandler;
 };
 
 } // namespace storage

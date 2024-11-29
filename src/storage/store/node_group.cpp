@@ -21,38 +21,6 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-NodeGroup::NodeGroupVersionRecordHandler::NodeGroupVersionRecordHandler(
-    NodeGroupCollection* nodeGroups, common::node_group_idx_t nodeGroupIdx,
-    common::row_idx_t startRow, common::row_idx_t numRows, transaction_t commitTS)
-    : VersionRecordHandler(nodeGroups, startRow, numRows, commitTS),
-      nodeGroup(nodeGroups->getNodeGroupNoLock(nodeGroupIdx)) {
-    KU_ASSERT(startRow <= nodeGroup->getNumRows());
-}
-
-void NodeGroup::NodeGroupVersionRecordHandler::applyFuncToChunkedGroups(
-    version_record_handler_op_t func) {
-    auto lock = nodeGroup->chunkedGroups.lock();
-    const auto [chunkedGroupIdx, startRowInChunkedGroup] =
-        nodeGroup->findChunkedGroupIdxFromRowIdxNoLock(startRow);
-    if (chunkedGroupIdx != INVALID_CHUNKED_GROUP_IDX) {
-        auto curChunkedGroupIdx = chunkedGroupIdx;
-        auto curStartRowIdxInChunk = startRowInChunkedGroup;
-
-        auto numRowsLeft = numRows;
-        while (
-            numRowsLeft > 0 && curChunkedGroupIdx < nodeGroup->chunkedGroups.getNumGroups(lock)) {
-            auto* chunkedGroup = nodeGroup->chunkedGroups.getGroup(lock, curChunkedGroupIdx);
-            const auto numRowsForGroup =
-                std::min(numRowsLeft, chunkedGroup->getNumRows() - curStartRowIdxInChunk);
-            std::invoke(func, *chunkedGroup, curStartRowIdxInChunk, numRowsForGroup, commitTS);
-
-            ++curChunkedGroupIdx;
-            numRowsLeft -= numRowsForGroup;
-            curStartRowIdxInChunk = 0;
-        }
-    }
-}
-
 row_idx_t NodeGroup::append(const Transaction* transaction, ChunkedNodeGroup& chunkedGroup,
     row_idx_t startRowIdx, row_idx_t numRowsToAppend) {
     KU_ASSERT(numRowsToAppend <= chunkedGroup.getNumRows());
@@ -682,6 +650,31 @@ bool NodeGroup::isInserted(const Transaction* transaction, offset_t offsetInGrou
     const auto lock = chunkedGroups.lock();
     const auto* chunkedGroup = findChunkedGroupFromRowIdx(lock, offsetInGroup);
     return chunkedGroup->isInserted(transaction, offsetInGroup - chunkedGroup->getStartRowIdx());
+}
+
+void NodeGroup::applyFuncToChunkedGroups(version_record_handler_op_t func,
+    common::row_idx_t startRow, common::row_idx_t numRows, common::transaction_t commitTS) const {
+    KU_ASSERT(startRow <= getNumRows());
+
+    auto lock = chunkedGroups.lock();
+    const auto [chunkedGroupIdx, startRowInChunkedGroup] =
+        findChunkedGroupIdxFromRowIdxNoLock(startRow);
+    if (chunkedGroupIdx != INVALID_CHUNKED_GROUP_IDX) {
+        auto curChunkedGroupIdx = chunkedGroupIdx;
+        auto curStartRowIdxInChunk = startRowInChunkedGroup;
+
+        auto numRowsLeft = numRows;
+        while (numRowsLeft > 0 && curChunkedGroupIdx < chunkedGroups.getNumGroups(lock)) {
+            auto* chunkedGroup = chunkedGroups.getGroup(lock, curChunkedGroupIdx);
+            const auto numRowsForGroup =
+                std::min(numRowsLeft, chunkedGroup->getNumRows() - curStartRowIdxInChunk);
+            std::invoke(func, *chunkedGroup, curStartRowIdxInChunk, numRowsForGroup, commitTS);
+
+            ++curChunkedGroupIdx;
+            numRowsLeft -= numRowsForGroup;
+            curStartRowIdxInChunk = 0;
+        }
+    }
 }
 
 } // namespace storage

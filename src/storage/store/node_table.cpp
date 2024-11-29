@@ -21,27 +21,24 @@ using namespace kuzu::evaluator;
 namespace kuzu {
 namespace storage {
 
-std::unique_ptr<VersionRecordHandler>
-NodeTableVersionRecordHandlerSelector::constructVersionRecordHandler(common::row_idx_t startRow,
-    common::row_idx_t numRows, common::transaction_t commitTS,
-    common::node_group_idx_t nodeGroupIdx) const {
-    return std::make_unique<NodeTable::ChunkedGroupIterator>(nodeTable, nodeGroupIdx, startRow,
-        numRows, commitTS);
+NodeTableVersionRecordHandler::NodeTableVersionRecordHandler(NodeTable* table) : table(table) {}
+
+void NodeTableVersionRecordHandler::applyFuncToChunkedGroups(version_record_handler_op_t func,
+    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
+    common::transaction_t commitTS) const {
+    auto* nodeGroup = table->getNodeGroupNoLock(nodeGroupIdx);
+    nodeGroup->applyFuncToChunkedGroups(func, startRow, numRows, commitTS);
 }
 
-NodeTable::ChunkedGroupIterator::ChunkedGroupIterator(NodeTable* table,
-    node_group_idx_t nodeGroupidx, common::row_idx_t startRow, common::row_idx_t numRows,
-    common::transaction_t commitTS)
-    : NodeGroup::NodeGroupVersionRecordHandler(table->nodeGroups.get(), nodeGroupidx, startRow,
-          numRows, commitTS),
-      table(table) {}
+void NodeTableVersionRecordHandler::rollbackInsert(const transaction::Transaction* transaction,
+    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+    common::row_idx_t numRows) const {
+    table->rollbackPKIndexInsert(transaction, startRow, numRows, nodeGroupIdx);
 
-void NodeTable::ChunkedGroupIterator::rollbackInsert(const transaction::Transaction* transaction) {
-    table->rollbackInsert(transaction, startRow, numRows, nodeGroup->getNodeGroupIdx());
-    NodeGroup::NodeGroupVersionRecordHandler::rollbackInsert(transaction);
-    nodeGroup->rollbackInsert(startRow);
+    VersionRecordHandler::rollbackInsert(transaction, nodeGroupIdx, startRow, numRows);
+    auto* nodeGroup = table->getNodeGroupNoLock(nodeGroupIdx);
     const auto numRowsToRollback = std::min(numRows, nodeGroup->getNumRows() - startRow);
-    nodeGroups->rollbackInsert(numRowsToRollback);
+    table->rollbackGroupCollectionInsert(numRowsToRollback);
 }
 
 bool NodeTableScanState::scanNext(Transaction* transaction, offset_t startOffset,
@@ -201,7 +198,7 @@ NodeTable::NodeTable(const StorageManager* storageManager,
     VirtualFileSystem* vfs, main::ClientContext* context, Deserializer* deSer)
     : Table{nodeTableEntry, storageManager, memoryManager},
       pkColumnID{nodeTableEntry->getColumnID(nodeTableEntry->getPrimaryKeyName())},
-      versionRecordHandlerSelector(this) {
+      versionRecordHandler(this) {
     const auto maxColumnID = nodeTableEntry->getMaxColumnID();
     columns.resize(maxColumnID + 1);
     for (auto i = 0u; i < nodeTableEntry->getNumProperties(); i++) {
@@ -215,7 +212,7 @@ NodeTable::NodeTable(const StorageManager* storageManager,
 
     nodeGroups =
         std::make_unique<NodeGroupCollection>(*memoryManager, getNodeTableColumnTypes(*this),
-            enableCompression, storageManager->getDataFH(), deSer, &versionRecordHandlerSelector);
+            enableCompression, storageManager->getDataFH(), deSer, &versionRecordHandler);
     initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
         storageManager->isReadOnly(), vfs, context);
 }
@@ -432,8 +429,7 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
             nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
         isDeleted = nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
         if (transaction->shouldAppendToUndoBuffer()) {
-            transaction->pushDeleteInfo(nodeGroupIdx, rowIdxInGroup, 1,
-                &versionRecordHandlerSelector);
+            transaction->pushDeleteInfo(nodeGroupIdx, rowIdxInGroup, 1, &versionRecordHandler);
         }
     }
     if (isDeleted) {
@@ -505,7 +501,7 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
                     KU_ASSERT(isDeleted);
                     if (transaction->shouldAppendToUndoBuffer()) {
                         transaction->pushDeleteInfo(nodeGroupIdx, rowIdxInGroup, 1,
-                            &versionRecordHandlerSelector);
+                            &versionRecordHandler);
                     }
                 }
             }
@@ -556,7 +552,7 @@ void NodeTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
     serialize(ser);
 }
 
-void NodeTable::rollbackInsert(const transaction::Transaction* transaction,
+void NodeTable::rollbackPKIndexInsert(const transaction::Transaction* transaction,
     common::row_idx_t startRow, common::row_idx_t numRows_,
     common::node_group_idx_t nodeGroupIdx_) {
     row_idx_t startNodeOffset = startRow;
@@ -566,6 +562,10 @@ void NodeTable::rollbackInsert(const transaction::Transaction* transaction,
 
     RollbackPKDeleter pkDeleter{startNodeOffset, numRows_, tableID, pkIndex.get()};
     scanPKColumn(transaction, pkDeleter, *nodeGroups);
+}
+
+void NodeTable::rollbackGroupCollectionInsert(common::row_idx_t numRows_) {
+    nodeGroups->rollbackInsert(numRows_);
 }
 
 TableStats NodeTable::getStats(const Transaction* transaction) const {

@@ -21,18 +21,34 @@ struct CSRHeaderColumns {
     std::unique_ptr<Column> length;
 };
 
-class RelTableVersionRecordHandlerSelector : public VersionRecordHandlerSelector {
+class PersistentVersionRecordHandler : public VersionRecordHandler {
 public:
-    RelTableVersionRecordHandlerSelector(RelTableData* relTableData, CSRNodeGroupScanSource source)
-        : relTableData(relTableData), source(source) {}
+    explicit PersistentVersionRecordHandler(RelTableData* relTableData);
 
-    std::unique_ptr<VersionRecordHandler> constructVersionRecordHandler(common::row_idx_t startRow,
-        common::row_idx_t numRows, common::transaction_t commitTS,
-        common::node_group_idx_t nodeGroupIdx) const override;
+    void applyFuncToChunkedGroups(version_record_handler_op_t func,
+        common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+        common::row_idx_t numRows, common::transaction_t commitTS) const override;
+    void rollbackInsert(const transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+        common::row_idx_t numRows) const override;
 
 private:
     RelTableData* relTableData;
-    CSRNodeGroupScanSource source;
+};
+
+class InMemoryVersionRecordHandler : public VersionRecordHandler {
+public:
+    explicit InMemoryVersionRecordHandler(RelTableData* relTableData);
+
+    void applyFuncToChunkedGroups(version_record_handler_op_t func,
+        common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+        common::row_idx_t numRows, common::transaction_t commitTS) const override;
+    void rollbackInsert(const transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+        common::row_idx_t numRows) const override;
+
+private:
+    RelTableData* relTableData;
 };
 
 class RelTableData {
@@ -71,7 +87,7 @@ public:
     NodeGroup* getOrCreateNodeGroup(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx) const {
         return nodeGroups->getOrCreateNodeGroup(transaction, nodeGroupIdx, NodeGroupDataFormat::CSR,
-            &persistentVersionRecordHandlerSelector);
+            &persistentVersionRecordHandler);
     }
 
     common::RelMultiplicity getMultiplicity() const { return multiplicity; }
@@ -85,10 +101,11 @@ public:
 
     void serialize(common::Serializer& serializer) const;
 
-    std::unique_ptr<VersionRecordHandler> constructVersionRecordHandler(
-        CSRNodeGroupScanSource source, common::node_group_idx_t nodeGroupIdx,
-        common::row_idx_t startRow, common::row_idx_t numRows,
-        common::transaction_t commitTS) const;
+    NodeGroup* getNodeGroupNoLock(common::node_group_idx_t nodeGroupIdx) const {
+        return nodeGroups->getNodeGroupNoLock(nodeGroupIdx);
+    }
+
+    void rollbackGroupCollectionInsert(common::row_idx_t numRows_, bool isPersistent);
 
 private:
     void initCSRHeaderColumns();
@@ -118,8 +135,7 @@ private:
         return types;
     }
 
-    const RelTableVersionRecordHandlerSelector* getVersionRecordHandlerSelector(
-        CSRNodeGroupScanSource source);
+    const VersionRecordHandler* getVersionRecordHandler(CSRNodeGroupScanSource source);
 
 private:
     FileHandle* dataFH;
@@ -137,8 +153,8 @@ private:
     CSRHeaderColumns csrHeaderColumns;
     std::vector<std::unique_ptr<Column>> columns;
 
-    RelTableVersionRecordHandlerSelector persistentVersionRecordHandlerSelector;
-    RelTableVersionRecordHandlerSelector inMemoryVersionRecordHandlerSelector;
+    PersistentVersionRecordHandler persistentVersionRecordHandler;
+    InMemoryVersionRecordHandler inMemoryVersionRecordHandler;
 };
 
 } // namespace storage

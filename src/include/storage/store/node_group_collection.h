@@ -16,7 +16,7 @@ class NodeGroupCollection {
 public:
     NodeGroupCollection(MemoryManager& memoryManager, const std::vector<common::LogicalType>& types,
         bool enableCompression, FileHandle* dataFH = nullptr, common::Deserializer* deSer = nullptr,
-        const VersionRecordHandlerSelector* versionRecordHandlerSelector = nullptr);
+        const VersionRecordHandler* versionRecordHandler = nullptr);
 
     void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors);
@@ -51,7 +51,7 @@ public:
     }
     NodeGroup* getOrCreateNodeGroup(transaction::Transaction* transaction,
         common::node_group_idx_t groupIdx, NodeGroupDataFormat format,
-        const VersionRecordHandlerSelector* versionRecordHandlerSelector);
+        const VersionRecordHandler* versionRecordHandler);
 
     void setNodeGroup(const common::node_group_idx_t nodeGroupIdx,
         std::unique_ptr<NodeGroup> group) {
@@ -81,13 +81,12 @@ public:
 
     void pushInsertInfo(const transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
-        common::row_idx_t numRows,
-        const VersionRecordHandlerSelector* overridedVersionRecordHandlerSelector);
+        common::row_idx_t numRows, const VersionRecordHandler* overridedVersionRecordHandler);
 
 private:
     void pushInsertInfo(const transaction::Transaction* transaction, NodeGroup* nodeGroup,
         common::row_idx_t numRows,
-        const VersionRecordHandlerSelector* overridedVersionRecordHandlerSelector = nullptr);
+        const VersionRecordHandler* overridedVersionRecordHandler = nullptr);
 
     bool enableCompression;
     // Num rows in the collection regardless of deletions.
@@ -96,7 +95,7 @@ private:
     GroupCollection<NodeGroup> nodeGroups;
     FileHandle* dataFH;
     TableStats stats;
-    const VersionRecordHandlerSelector* versionRecordHandlerSelector;
+    const VersionRecordHandler* versionRecordHandler;
 };
 
 } // namespace storage

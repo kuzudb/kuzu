@@ -12,26 +12,6 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-CSRNodeGroup::PersistentIterator::PersistentIterator(NodeGroupCollection* nodeGroups,
-    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
-    common::transaction_t commitTS)
-    : VersionRecordHandler(nodeGroups, startRow, numRows, commitTS), nodeGroup(nullptr) {
-    if (nodeGroupIdx < nodeGroups->getNumNodeGroups()) {
-        nodeGroup = ku_dynamic_cast<CSRNodeGroup*>(nodeGroups->getNodeGroupNoLock(nodeGroupIdx));
-    }
-}
-
-void CSRNodeGroup::PersistentIterator::applyFuncToChunkedGroups(version_record_handler_op_t func) {
-    if (nodeGroup && nodeGroup->persistentChunkGroup) {
-        std::invoke(func, *nodeGroup->persistentChunkGroup, startRow, numRows, commitTS);
-    }
-}
-
-void CSRNodeGroup::PersistentIterator::rollbackInsert(const transaction::Transaction* transaction) {
-    VersionRecordHandler::rollbackInsert(transaction);
-    nodeGroups->rollbackInsert(numRows, false);
-}
-
 bool CSRNodeGroupScanState::tryScanCachedTuples(RelTableScanState& tableScanState) {
     if (numCachedRows == 0 ||
         tableScanState.currBoundNodeIdx >= tableScanState.cachedBoundNodeSelVector.getSelSize()) {

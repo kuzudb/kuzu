@@ -82,17 +82,6 @@ static auto NODE_GROUP_SCAN_EMMPTY_RESULT = NodeGroupScanResult{};
 struct TableScanState;
 class NodeGroup {
 public:
-    class NodeGroupVersionRecordHandler : public VersionRecordHandler {
-    public:
-        NodeGroupVersionRecordHandler(NodeGroupCollection* nodeGroups,
-            common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
-            common::row_idx_t numRows, common::transaction_t commitTS);
-        void applyFuncToChunkedGroups(version_record_handler_op_t func) override;
-
-    protected:
-        NodeGroup* nodeGroup;
-    };
-
     NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
         std::vector<common::LogicalType> dataTypes,
         common::row_idx_t capacity = common::StorageConstants::NODE_GROUP_SIZE,
@@ -163,6 +152,8 @@ public:
 
     void flush(transaction::Transaction* transaction, FileHandle& dataFH);
 
+    void applyFuncToChunkedGroups(version_record_handler_op_t func, common::row_idx_t startRow,
+        common::row_idx_t numRows, common::transaction_t commitTS) const;
     void rollbackInsert(common::row_idx_t startRow);
 
     virtual void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);

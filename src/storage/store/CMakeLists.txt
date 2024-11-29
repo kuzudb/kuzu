@@ -29,7 +29,9 @@ add_library(kuzu_storage_store
         struct_column.cpp
         table.cpp
         update_info.cpp
-        version_info.cpp)
+        version_info.cpp
+        version_record_handler.cpp
+)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_storage_store>
