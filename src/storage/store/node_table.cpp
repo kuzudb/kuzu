@@ -37,8 +37,8 @@ void NodeTableVersionRecordHandler::rollbackInsert(const transaction::Transactio
 
     VersionRecordHandler::rollbackInsert(transaction, nodeGroupIdx, startRow, numRows);
     auto* nodeGroup = table->getNodeGroupNoLock(nodeGroupIdx);
-    nodeGroup->rollbackInsert(startRow);
     const auto numRowsToRollback = std::min(numRows, nodeGroup->getNumRows() - startRow);
+    nodeGroup->rollbackInsert(startRow);
     table->rollbackGroupCollectionInsert(numRowsToRollback);
 }
 
