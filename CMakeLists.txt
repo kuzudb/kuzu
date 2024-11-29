@@ -254,7 +254,6 @@ function(add_kuzu_test TEST_NAME)
         DISCOVERY_TIMEOUT 600
         DISCOVERY_MODE PRE_TEST
         TEST_PREFIX e2e_test_
-        EXTRA_ARGS "extension"
     )
 endfunction()
 
