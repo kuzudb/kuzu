@@ -200,11 +200,11 @@ int main(int argc, char** argv) {
         test_dir = "default/test/dir"; // Replace with your default directory
     }
     TestHelper::setE2ETestFilesDirectory(test_dir);
-    std::cout << "E2E_TEST_FILES_DIRECTORY: " << TestHelper::E2E_TEST_FILES_DIRECTORY<< std::endl;
+    std::cout << "E2E_TEST_FILES_DIRECTORY: " << TestHelper::E2E_TEST_FILES_DIRECTORY << std::endl;
 
     checkGtestParams(argc, argv);
     testing::InitGoogleTest(&argc, argv);
-    
+
     if (argc > 1) {
         auto path = TestHelper::appendKuzuRootPath(
             (std::filesystem::path(TestHelper::E2E_TEST_FILES_DIRECTORY) / argv[1]).string());
