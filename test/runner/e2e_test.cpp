@@ -190,6 +190,13 @@ void checkGtestParams(int argc, char** argv) {
 }
 
 int main(int argc, char** argv) {
+    // Debug: Print all received arguments
+    std::cout << "Received arguments: ";
+    for (int i = 0; i < argc; ++i) {
+        std::cout << argv[i] << " ";
+    }
+    std::cout << std::endl;
+
     // Use --test-dir argument to find TEST FILE DIRECTORY
     std::string e2eTestFilesDir = "default_path";
     for (int i = 1; i < argc; ++i) {
