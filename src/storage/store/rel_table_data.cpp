@@ -69,8 +69,11 @@ RelTableData::RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* sh
     initCSRHeaderColumns();
     initPropertyColumns(tableEntry);
 
+    // default to using the persistent version record handler
+    // if we want to use the in-memory handler we will explicitly pass it into
+    // nodeGroups.pushInsertInfo()
     nodeGroups = std::make_unique<NodeGroupCollection>(*mm, getColumnTypes(), enableCompression,
-        dataFH, deSer);
+        dataFH, deSer, &persistentVersionRecordHandler);
 }
 
 void RelTableData::initCSRHeaderColumns() {
@@ -242,12 +245,13 @@ void RelTableData::pushInsertInfo(transaction::Transaction* transaction,
               !nodeGroup.getPersistentChunkedGroup() ||
               nodeGroup.getPersistentChunkedGroup()->getNumRows() == 0);
 
-    const auto startRow = (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) ?
-                              static_cast<row_idx_t>(0) :
-                              nodeGroup.getNumRows();
+    const auto [startRow, shouldIncrementNumRows] =
+        (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) ?
+            std::make_pair(static_cast<row_idx_t>(0), false) :
+            std::make_pair(nodeGroup.getNumRows(), true);
 
     nodeGroups->pushInsertInfo(transaction, nodeGroup.getNodeGroupIdx(), startRow, numRows_,
-        getVersionRecordHandler(source));
+        getVersionRecordHandler(source), shouldIncrementNumRows);
 }
 
 void RelTableData::checkpoint(const std::vector<column_id_t>& columnIDs) {

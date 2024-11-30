@@ -50,8 +50,7 @@ public:
         return nodeGroups.getGroup(lock, groupIdx);
     }
     NodeGroup* getOrCreateNodeGroup(transaction::Transaction* transaction,
-        common::node_group_idx_t groupIdx, NodeGroupDataFormat format,
-        const VersionRecordHandler* versionRecordHandler);
+        common::node_group_idx_t groupIdx, NodeGroupDataFormat format);
 
     void setNodeGroup(const common::node_group_idx_t nodeGroupIdx,
         std::unique_ptr<NodeGroup> group) {
@@ -81,12 +80,12 @@ public:
 
     void pushInsertInfo(const transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
-        common::row_idx_t numRows, const VersionRecordHandler* overridedVersionRecordHandler);
+        common::row_idx_t numRows, const VersionRecordHandler* versionRecordHandler,
+        bool incrementNumTotalRows);
 
 private:
     void pushInsertInfo(const transaction::Transaction* transaction, NodeGroup* nodeGroup,
-        common::row_idx_t numRows,
-        const VersionRecordHandler* overridedVersionRecordHandler = nullptr);
+        common::row_idx_t numRows);
 
     bool enableCompression;
     // Num rows in the collection regardless of deletions.

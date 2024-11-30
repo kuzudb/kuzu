@@ -86,8 +86,8 @@ public:
     }
     NodeGroup* getOrCreateNodeGroup(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx) const {
-        return nodeGroups->getOrCreateNodeGroup(transaction, nodeGroupIdx, NodeGroupDataFormat::CSR,
-            &persistentVersionRecordHandler);
+        return nodeGroups->getOrCreateNodeGroup(transaction, nodeGroupIdx,
+            NodeGroupDataFormat::CSR);
     }
 
     common::RelMultiplicity getMultiplicity() const { return multiplicity; }
