@@ -7,7 +7,7 @@
 #include "frontier_scanner.h"
 #include "planner/operator/extend/recursive_join_type.h"
 #include "processor/operator/physical_operator.h"
-
+#include "processor/operator/scan/scan_multi_rel_tables.h"
 namespace kuzu {
 namespace processor {
 
@@ -89,6 +89,7 @@ struct RecursiveJoinInfo {
     planner::RecursiveJoinType joinType{};
     common::ExtendDirection direction{};
     bool extendFromSource = true;
+    std::vector<common::table_id_map_t<std::vector<size_t>>> stepActivationRelInfos;
 
     RecursiveJoinInfo() = default;
     EXPLICIT_COPY_DEFAULT_MOVE(RecursiveJoinInfo);
@@ -102,6 +103,7 @@ private:
         joinType = other.joinType;
         direction = other.direction;
         extendFromSource = other.extendFromSource;
+        stepActivationRelInfos = other.stepActivationRelInfos;
     }
 };
 
@@ -114,7 +116,8 @@ public:
         std::unique_ptr<PhysicalOperator> recursiveRoot, std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           info{std::move(info)}, sharedState{std::move(sharedState)},
-          recursiveRoot{std::move(recursiveRoot)}, recursiveSource{nullptr} {}
+          recursiveRoot{std::move(recursiveRoot)}, recursiveSource{nullptr},
+          recursiveScanMultiRelTable{nullptr} {}
 
     std::vector<common::RoaringBitmapSemiMask*> getSemiMask() const;
 
@@ -139,6 +142,8 @@ private:
 
     void updateVisitedNodes(common::nodeID_t boundNodeID);
 
+    void setActivationRelInfo();
+
 private:
     RecursiveJoinInfo info;
     std::shared_ptr<RecursiveJoinSharedState> sharedState;
@@ -147,6 +152,7 @@ private:
     std::unique_ptr<ResultSet> localResultSet;
     std::unique_ptr<PhysicalOperator> recursiveRoot;
     OffsetScanNodeTable* recursiveSource;
+    ScanMultiRelTable* recursiveScanMultiRelTable;
 
     std::unique_ptr<RecursiveJoinVectors> vectors;
     std::unique_ptr<BaseBFSState> bfsState;

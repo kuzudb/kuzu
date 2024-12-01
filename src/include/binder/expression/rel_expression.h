@@ -2,6 +2,7 @@
 
 #include "common/constants.h"
 #include "common/enums/query_rel_type.h"
+#include "common/types/types.h"
 #include "node_expression.h"
 
 namespace kuzu {
@@ -51,6 +52,8 @@ struct RecursiveInfo {
     std::shared_ptr<Expression> pathNodeIDsExpr;
     std::shared_ptr<Expression> pathEdgeIDsExpr;
     std::shared_ptr<Expression> pathEdgeDirectionsExpr;
+
+    std::vector<std::vector<common::table_id_t>> stepActivationRelInfos;
 };
 
 class RelExpression : public NodeOrRelExpression {
@@ -98,6 +101,7 @@ public:
         recursiveInfo = std::move(recursiveInfo_);
     }
     const RecursiveInfo* getRecursiveInfo() const { return recursiveInfo.get(); }
+    RecursiveInfo* getRecursiveInfo() { return recursiveInfo.get(); }
     size_t getLowerBound() const { return recursiveInfo->lowerBound; }
     size_t getUpperBound() const { return recursiveInfo->upperBound; }
     std::shared_ptr<Expression> getLengthExpression() const {
