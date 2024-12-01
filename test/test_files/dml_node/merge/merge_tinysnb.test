@@ -195,7 +195,7 @@ h
 -STATEMENT CREATE NODE TABLE person1 (id int64, primary key(id))
 ---- ok
 -STATEMENT UNWIND [11,20,20,11,32,41,32] as x merge (a:person {ID: x}), (b:person1 {id: x}) on match set b.id = x + 20, a.ID = x+100;
----- error
+---- ok
 -STATEMENT MATCH (p:person) RETURN p.ID;
 ---- 17
 0
