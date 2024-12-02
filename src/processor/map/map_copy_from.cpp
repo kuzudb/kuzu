@@ -63,7 +63,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
         DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(children));
 }
 
-physical_op_vector_t PlanMapper::mapCopyHNSWIndexFrom(planner::LogicalOperator* logicalOperator) {
+physical_op_vector_t PlanMapper::mapCopyHNSWIndexFrom(LogicalOperator* logicalOperator) {
     auto& copyFrom = logicalOperator->cast<LogicalCopyFrom>();
     auto copyFromInfo = copyFrom.getInfo();
     auto tableFuncCallOp = mapOperator(copyFrom.getChild(0).get());
@@ -75,22 +75,20 @@ physical_op_vector_t PlanMapper::mapCopyHNSWIndexFrom(planner::LogicalOperator* 
     const auto storageManager = clientContext->getStorageManager();
     auto nodeTable =
         storageManager->getTable(copyFromInfo->tableEntry->getTableID())->ptrCast<NodeTable>();
-    auto upperRelTableEntry =
-        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(),
-            storage::HNSWIndexUtils::getUpperGraphTableName(tableFuncSharedState->name));
+    auto upperRelTableEntry = clientContext->getCatalog()->getTableCatalogEntry(
+        clientContext->getTx(), HNSWIndexUtils::getUpperGraphTableName(tableFuncSharedState->name));
     auto upperRelTable =
         storageManager->getTable(upperRelTableEntry->getTableID())->ptrCast<RelTable>();
-    auto lowerRelTableEntry =
-        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(),
-            storage::HNSWIndexUtils::getLowerGraphTableName(tableFuncSharedState->name));
+    auto lowerRelTableEntry = clientContext->getCatalog()->getTableCatalogEntry(
+        clientContext->getTx(), HNSWIndexUtils::getLowerGraphTableName(tableFuncSharedState->name));
     auto lowerRelTable =
         storageManager->getTable(lowerRelTableEntry->getTableID())->ptrCast<RelTable>();
     const auto partitionerSharedState = tableFuncSharedState->partitionerSharedState;
     partitionerSharedState->setTables(nodeTable, upperRelTable);
-    common::logical_type_vec_t callColumnTypes;
-    callColumnTypes.push_back(common::LogicalType::INTERNAL_ID());
-    callColumnTypes.push_back(common::LogicalType::INTERNAL_ID());
-    callColumnTypes.push_back(common::LogicalType::INTERNAL_ID());
+    logical_type_vec_t callColumnTypes;
+    callColumnTypes.push_back(LogicalType::INTERNAL_ID());
+    callColumnTypes.push_back(LogicalType::INTERNAL_ID());
+    callColumnTypes.push_back(LogicalType::INTERNAL_ID());
     tableFuncSharedState->partitionerSharedState->initialize(callColumnTypes, clientContext);
 
     std::vector<LogicalType> columnTypes;

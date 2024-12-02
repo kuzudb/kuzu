@@ -109,8 +109,6 @@ public:
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    void initGlobalStateInternal(ExecutionContext* context) override;
-
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     void finalizeInternal(ExecutionContext* context) override;

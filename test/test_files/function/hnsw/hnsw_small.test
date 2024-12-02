@@ -10,14 +10,155 @@
 Binder exception: HNSW_INDEX only supports FLOAT ARRAY columns.
 
 -CASE QueryHNSWError
+-STATEMENT CREATE NODE TABLE embeddings (id SERIAL, vec FLOAT[960], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings(vec) FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-960-1k.csv" (deLim=',');
+---- ok
 -STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec');
 ---- ok
 -STATEMENT CALL QUERY_HNSW_INDEX('e_hnsw_index', 'embeddings', CAST([0.0459,0.0439,0.0251], 'FLOAT[3]'), 10) RETURN *;
 ---- error
 Binder exception: Query vector dimension does not match index dimension.
 
--CASE CreateSmallHNSW
+-CASE CreateSmallHNSW8DimL2
+-STATEMENT CREATE NODE TABLE embeddings (id SERIAL, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings(vec) FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+-PARALLELISM 1
+---- ok
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', distFunc := 'l2');
+---- ok
+-STATEMENT CALL QUERY_HNSW_INDEX('e_hnsw_index', 'embeddings', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 10) RETURN *;
+-CHECK_ORDER
+---- 10
+0:333|0.344015
+0:444|0.353626
+0:133|0.363592
+0:598|0.385397
+0:225|0.389638
+0:495|0.401482
+0:964|0.404032
+0:186|0.406667
+0:629|0.433801
+0:146|0.464967
+
+-CASE CreateSmallHNSW8DimCosine
+-STATEMENT CREATE NODE TABLE embeddings (id SERIAL, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings(vec) FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+-PARALLELISM 1
+---- ok
 -STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec');
+---- ok
+-STATEMENT CALL QUERY_HNSW_INDEX('e_hnsw_index', 'embeddings', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 10) RETURN *;
+-CHECK_ORDER
+---- 10
+0:333|0.032290
+0:444|0.032300
+0:146|0.032556
+0:225|0.033982
+0:598|0.036166
+0:133|0.036283
+0:495|0.036960
+0:964|0.040782
+0:603|0.043084
+0:588|0.043483
+
+-CASE CreateSmallHNSW8DimEfsEfc
+-STATEMENT CREATE NODE TABLE embeddings (id SERIAL, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings(vec) FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+-PARALLELISM 1
+---- ok
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', efc := 20);
+---- ok
+-STATEMENT CALL QUERY_HNSW_INDEX('e_hnsw_index', 'embeddings', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 10, efs := 20) RETURN *;
+-CHECK_ORDER
+---- 10
+0:333|0.032290
+0:444|0.032300
+0:146|0.032556
+0:225|0.033982
+0:598|0.036166
+0:133|0.036283
+0:495|0.036960
+0:964|0.040782
+0:603|0.043084
+0:588|0.043483
+
+-CASE CreateSmallHNSW8DimMuMl
+-STATEMENT CREATE NODE TABLE embeddings (id SERIAL, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings(vec) FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+-PARALLELISM 1
+---- ok
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', mu := 16, ml := 32);
+---- ok
+-STATEMENT CALL QUERY_HNSW_INDEX('e_hnsw_index', 'embeddings', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 10) RETURN *;
+-CHECK_ORDER
+---- 10
+0:333|0.032290
+0:444|0.032300
+0:146|0.032556
+0:225|0.033982
+0:598|0.036166
+0:133|0.036283
+0:495|0.036960
+0:964|0.040782
+0:603|0.043084
+0:588|0.043483
+
+-CASE CreateSmallHNSW8DimPlAlpha
+-STATEMENT CREATE NODE TABLE embeddings (id SERIAL, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings(vec) FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+-PARALLELISM 1
+---- ok
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', pl := 0.9, alpha := 2.1);
+---- ok
+-STATEMENT CALL QUERY_HNSW_INDEX('e_hnsw_index', 'embeddings', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 10) RETURN *;
+-CHECK_ORDER
+---- 10
+0:333|0.032290
+0:444|0.032300
+0:146|0.032556
+0:225|0.033982
+0:598|0.036166
+0:133|0.036283
+0:495|0.036960
+0:964|0.040782
+0:603|0.043084
+0:588|0.043483
+
+-CASE CreateSmallHNSW8DimDotProduct
+-STATEMENT CREATE NODE TABLE embeddings (id SERIAL, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings(vec) FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+-PARALLELISM 1
+---- ok
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', distFunc := 'dotproduct');
+---- ok
+-STATEMENT CALL QUERY_HNSW_INDEX('e_hnsw_index', 'embeddings', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 10) RETURN *;
+-CHECK_ORDER
+---- 10
+0:499|0.516378
+0:581|0.542726
+0:58|0.614133
+0:93|0.625494
+0:28|0.642188
+0:90|0.686051
+0:0|0.726249
+0:344|0.737137
+0:263|0.751722
+0:386|0.756400
+
+-CASE CreateSmallHNSW960Dim
+-STATEMENT CREATE NODE TABLE embeddings (id SERIAL, vec FLOAT[960], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings(vec) FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-960-1k.csv" (deLim=',');
+-PARALLELISM 1
+---- ok
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', distFunc := 'l2');
 ---- ok
 -STATEMENT CALL show_tables() return *;
 ---- 3
@@ -28,12 +169,12 @@ Binder exception: Query vector dimension does not match index dimension.
 -CHECK_ORDER
 ---- 10
 0:0|0.000000
-0:454|1.266935
-0:6|1.470690
-0:1|1.524163
+0:454|1.266934
+0:6|1.470691
+0:1|1.524164
 0:358|1.531957
 0:259|1.554472
-0:22|1.558213
+0:22|1.558214
 0:848|1.558478
 0:815|1.592770
 0:242|1.605694

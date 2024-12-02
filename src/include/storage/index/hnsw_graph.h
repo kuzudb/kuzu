@@ -1,5 +1,6 @@
 #pragma once
 
+#include "hnsw_config.h"
 #include "processor/operator/partitioner.h"
 #include "storage/store/column_chunk_data.h"
 
@@ -74,9 +75,10 @@ struct NodeWithDistance {
 
 class HNSWGraph {
 public:
-    HNSWGraph(common::offset_t numNodes, common::length_t maxDegree, EmbeddingColumn* embeddings)
+    HNSWGraph(common::offset_t numNodes, common::length_t maxDegree, EmbeddingColumn* embeddings,
+        DistFuncType distFunc)
         : entryPoint{common::INVALID_OFFSET}, numNodes{numNodes}, maxDegree{maxDegree},
-          embeddings{embeddings} {}
+          embeddings{embeddings}, distFunc{distFunc} {}
     virtual ~HNSWGraph() = default;
 
     virtual common::offset_vec_t getNeighbors(common::offset_t node,
@@ -99,6 +101,7 @@ protected:
     common::offset_t numNodes;
     common::length_t maxDegree;
     EmbeddingColumn* embeddings;
+    DistFuncType distFunc;
 };
 
 // TODO: There should be a derived SparseInMemHNSWGraph, which is optimized for the upper graph of
@@ -108,11 +111,9 @@ protected:
 // keeps only forward directed relationships.
 class InMemHNSWGraph final : public HNSWGraph {
 public:
-    static constexpr double ALPHA = 1.10;
-
-    InMemHNSWGraph(common::offset_t numNodes, common::length_t maxDegree,
-        common::length_t shrinkThreshold, EmbeddingColumn* embeddings)
-        : HNSWGraph{numNodes, maxDegree, embeddings}, shrinkThreshold{shrinkThreshold} {
+    InMemHNSWGraph(common::offset_t numNodes, common::length_t maxDegree, common::length_t degree,
+        EmbeddingColumn* embeddings, DistFuncType distFunc, double alpha)
+        : HNSWGraph{numNodes, maxDegree, embeddings, distFunc}, degree{degree}, alpha{alpha} {
         csrLengths = std::make_unique<uint16_t[]>(numNodes);
         dstNodes = std::make_unique<common::offset_t[]>(numNodes * maxDegree);
         resetCSRLengthAndDstNodes();
@@ -143,7 +144,8 @@ private:
     // the system.
     std::unique_ptr<uint16_t[]> csrLengths;
     std::unique_ptr<common::offset_t[]> dstNodes;
-    common::length_t shrinkThreshold;
+    common::length_t degree;
+    double alpha;
 
     std::vector<common::length_t> numRelsPerNodeGroup;
 };
@@ -152,7 +154,7 @@ struct RelTableScanState;
 class OnDiskHNSWGraph final : public HNSWGraph {
 public:
     OnDiskHNSWGraph(main::ClientContext* context, common::length_t maxDegree, NodeTable& nodeTable,
-        RelTable& relTable, EmbeddingColumn* embeddings);
+        RelTable& relTable, EmbeddingColumn* embeddings, DistFuncType distFunc);
 
     common::offset_vec_t getNeighbors(common::offset_t offset,
         transaction::Transaction* transaction) const override;

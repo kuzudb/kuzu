@@ -15,17 +15,19 @@ struct CreateHNSWIndexBindData final : StandaloneTableFuncBindData {
     storage::NodeTable* table;
     common::column_id_t columnID;
 
+    storage::HNSWIndexConfig config;
+
     CreateHNSWIndexBindData(main::ClientContext* context, std::string indexName,
         catalog::TableCatalogEntry* tableEntry, storage::NodeTable* table,
-        common::column_id_t columnID, common::offset_t numNodes)
+        common::column_id_t columnID, common::offset_t numNodes, storage::HNSWIndexConfig config)
         : context{context}, indexName{std::move(indexName)}, tableEntry{tableEntry}, table{table},
-          columnID{columnID} {
+          columnID{columnID}, config{std::move(config)} {
         this->maxOffset = numNodes > 0 ? numNodes - 1 : 0;
     }
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, table,
-            columnID, maxOffset);
+            columnID, maxOffset, config);
     }
 };
 
@@ -37,7 +39,7 @@ struct CreateHNSWSharedState final : CallFuncSharedState {
     explicit CreateHNSWSharedState(const CreateHNSWIndexBindData& bindData)
         : CallFuncSharedState{bindData.maxOffset}, name{bindData.indexName} {
         hnswIndex = std::make_unique<storage::InMemHNSWIndex>(bindData.context, *bindData.table,
-            bindData.columnID);
+            bindData.columnID, bindData.config);
         partitionerSharedState = std::make_shared<storage::HNSWIndexPartitionerSharedState>(
             *bindData.context->getMemoryManager());
     }

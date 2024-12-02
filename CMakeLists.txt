@@ -141,8 +141,9 @@ if(MSVC)
     add_compile_options($<$<CONFIG:Release>:/W0>)
 else()
     add_compile_options(-Wall -Wextra)
-    # Disable warnings for unknown pragmas, which is used by several third-party libraries
+    # Disable warnings for unknown pragmas and warning options, which are used by several third-party libraries
     add_compile_options(-Wno-unknown-pragmas)
+    add_compile_options(-Wno-unknown-warning-option)
 endif()
 
 if(BUILD_WASM)
@@ -299,6 +300,7 @@ include_directories(third_party/httplib)
 include_directories(third_party/pcg)
 include_directories(third_party/lz4)
 include_directories(third_party/roaring_bitmap)
+include_directories(third_party/simsimd/include)
 
 add_subdirectory(third_party)
 

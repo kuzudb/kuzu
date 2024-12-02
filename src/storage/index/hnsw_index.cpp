@@ -23,18 +23,20 @@ void HNSWIndexPartitionerSharedState::setTables(NodeTable* nodeTable, RelTable* 
 }
 
 std::vector<NodeWithDistance> HNSWIndex::searchLowerLayer(const float* queryVector,
-    common::offset_t entryNode, common::length_t k, transaction::Transaction* transaction) const {
+    common::offset_t entryNode, common::length_t k, uint64_t configuredEfs,
+    transaction::Transaction* transaction) const {
     min_node_priority_queue_t candidates;
     max_node_priority_queue_t result;
     // TODO: This use of std::vector<bool> is a temp solution for now. Consider roaring bitmap.
     std::vector<bool> visited;
     visited.resize(lowerGraph->getNumNodes(), false);
     // Initialize the search.
-    auto dist = HNSWIndexUtils::computeDistance(*embeddings, queryVector, entryNode, transaction);
+    auto dist = HNSWIndexUtils::computeDistance(config.distFunc, *embeddings, queryVector,
+        entryNode, transaction);
     candidates.push({entryNode, dist});
     result.push({entryNode, dist});
     visited[entryNode] = true;
-    const auto efs = std::max(k, DEFAULT_EFS);
+    const auto efs = std::max(k, configuredEfs);
     // Start the search.
     while (!candidates.empty()) {
         auto [nodeOffset, distance] = candidates.top();
@@ -49,7 +51,8 @@ std::vector<NodeWithDistance> HNSWIndex::searchLowerLayer(const float* queryVect
                 continue;
             }
             visited[neighbor] = true;
-            dist = HNSWIndexUtils::computeDistance(*embeddings, queryVector, neighbor, transaction);
+            dist = HNSWIndexUtils::computeDistance(config.distFunc, *embeddings, queryVector,
+                neighbor, transaction);
             if (result.size() < efs) {
                 result.push({neighbor, dist});
                 candidates.push({neighbor, dist});
@@ -87,7 +90,7 @@ common::offset_t HNSWIndex::searchUpperLayer(const float* queryVector,
         return common::INVALID_OFFSET;
     }
     double lastMinDist = std::numeric_limits<float>::max();
-    auto minDist = HNSWIndexUtils::computeDistance(*embeddings, queryVector,
+    auto minDist = HNSWIndexUtils::computeDistance(config.distFunc, *embeddings, queryVector,
         upperGraph->getEntryPoint(), transaction);
     KU_ASSERT(lastMinDist >= 0);
     KU_ASSERT(minDist >= 0);
@@ -96,8 +99,8 @@ common::offset_t HNSWIndex::searchUpperLayer(const float* queryVector,
         lastMinDist = minDist;
         auto neighbors = upperGraph->getNeighbors(currentNode, transaction);
         for (const auto neighbor : neighbors) {
-            const auto dist =
-                HNSWIndexUtils::computeDistance(*embeddings, queryVector, neighbor, transaction);
+            const auto dist = HNSWIndexUtils::computeDistance(config.distFunc, *embeddings,
+                queryVector, neighbor, transaction);
             if (dist < minDist) {
                 minDist = dist;
                 currentNode = neighbor;
@@ -107,8 +110,13 @@ common::offset_t HNSWIndex::searchUpperLayer(const float* queryVector,
     return currentNode;
 }
 
+static uint64_t getMaxDegree(common::length_t degree) {
+    return std::ceil(degree * 1.25);
+}
+
 InMemHNSWIndex::InMemHNSWIndex(main::ClientContext* context, NodeTable& table,
-    common::column_id_t columnID) {
+    common::column_id_t columnID, HNSWIndexConfig config)
+    : HNSWIndex{std::move(config)} {
     auto& columnType = table.getColumn(columnID).getDataType();
     KU_ASSERT(columnType.getLogicalTypeID() == common::LogicalTypeID::ARRAY);
     const auto extraInfo = columnType.getExtraTypeInfo()->constPtrCast<common::ArrayTypeInfo>();
@@ -116,17 +124,18 @@ InMemHNSWIndex::InMemHNSWIndex(main::ClientContext* context, NodeTable& table,
     embeddings = std::make_unique<InMemEmbeddings>(*context->getMemoryManager(),
         std::move(typeInfo), table.getNumTotalRows(context->getTx()), columnType);
     lowerGraph = std::make_unique<InMemHNSWGraph>(table.getNumTotalRows(context->getTx()),
-        LOWER_MAX_DEGREE, LOWER_SHRINK_THRESHOLD, embeddings.get());
+        getMaxDegree(config.degreeInLowerLayer), config.degreeInLowerLayer, embeddings.get(),
+        config.distFunc, config.alpha);
     upperGraph = std::make_unique<InMemHNSWGraph>(table.getNumTotalRows(context->getTx()),
-        UPPER_MAX_DEGREE, UPPER_SHRINK_THRESHOLD, embeddings.get());
+        getMaxDegree(config.degreeInUpperLayer), config.degreeInUpperLayer, embeddings.get(),
+        config.distFunc, config.alpha);
 }
 
 // TODO: Not consider the case that a embedding is NULL.
 void InMemHNSWIndex::insert(common::offset_t offset, transaction::Transaction* transaction) {
     const auto entryNode = insertToLowerLayer(offset, transaction);
-    const auto probToInsertUpperLayer =
-        randomEngine.nextRandomInteger(INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND);
-    if (probToInsertUpperLayer >= INSERT_TO_UPPER_LAYER_PROB_THRESHOLD) {
+    const auto rand = randomEngine.nextRandomInteger(INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND);
+    if (rand <= INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND * config.upperLayerNodePct) {
         insertToUpperLayer(offset, entryNode, transaction);
     }
 }
@@ -157,8 +166,8 @@ common::offset_t InMemHNSWIndex::insertToLowerLayer(common::offset_t offset,
         lowerEntryPoint = lowerGraph->getEntryPoint();
     }
     // Search from lower layer and create edges in lower layer.
-    const auto nbrs =
-        searchLowerLayer(vector, lowerEntryPoint, lowerGraph->getMaxDegree(), transaction);
+    const auto nbrs = searchLowerLayer(vector, lowerEntryPoint, lowerGraph->getMaxDegree(),
+        config.efc, transaction);
     for (auto [nodeOffset, distance] : nbrs) {
         lowerGraph->createDirectedEdge(offset, nodeOffset, transaction);
         lowerGraph->createDirectedEdge(nodeOffset, offset, transaction);
@@ -186,7 +195,9 @@ void InMemHNSWIndex::finalize(MemoryManager& mm,
 }
 
 OnDiskHNSWIndex::OnDiskHNSWIndex(main::ClientContext* context, NodeTable& nodeTable,
-    common::column_id_t columnID, RelTable& upperRelTable, RelTable& lowerRelTable) {
+    common::column_id_t columnID, RelTable& upperRelTable, RelTable& lowerRelTable,
+    HNSWIndexConfig config)
+    : HNSWIndex{std::move(config)} {
     const auto& indexColumnType = nodeTable.getColumn(columnID).getDataType();
     KU_ASSERT(indexColumnType.getLogicalTypeID() == common::LogicalTypeID::ARRAY);
     const auto extraTypeInfo =
@@ -195,19 +206,20 @@ OnDiskHNSWIndex::OnDiskHNSWIndex(main::ClientContext* context, NodeTable& nodeTa
         extraTypeInfo->getNumElements()};
     embeddings = std::make_unique<OnDiskEmbeddings>(context->getMemoryManager(),
         std::move(indexColumnTypeInfo), nodeTable, columnID);
-    lowerGraph = std::make_unique<OnDiskHNSWGraph>(context, LOWER_MAX_DEGREE, nodeTable,
-        lowerRelTable, embeddings.get());
-    upperGraph = std::make_unique<OnDiskHNSWGraph>(context, UPPER_MAX_DEGREE, nodeTable,
-        upperRelTable, embeddings.get());
+    lowerGraph = std::make_unique<OnDiskHNSWGraph>(context, config.degreeInLowerLayer, nodeTable,
+        lowerRelTable, embeddings.get(), config.distFunc);
+    upperGraph = std::make_unique<OnDiskHNSWGraph>(context, config.degreeInUpperLayer, nodeTable,
+        upperRelTable, embeddings.get(), config.distFunc);
 }
 
 std::vector<NodeWithDistance> OnDiskHNSWIndex::search(const std::vector<float>& queryVector,
-    common::length_t k, transaction::Transaction* transaction) const {
+    common::length_t k, const QueryHNSWConfig& config,
+    transaction::Transaction* transaction) const {
     auto entryPoint = searchUpperLayer(&queryVector[0], transaction);
     if (entryPoint == common::INVALID_OFFSET) {
         entryPoint = lowerGraph->getEntryPoint();
     }
-    return searchLowerLayer(&queryVector[0], entryPoint, k, transaction);
+    return searchLowerLayer(&queryVector[0], entryPoint, k, config.efs, transaction);
 }
 } // namespace storage
 } // namespace kuzu

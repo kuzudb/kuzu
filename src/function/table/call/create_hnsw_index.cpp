@@ -21,7 +21,7 @@ static void validateIndexNotExist(const main::ClientContext& context, common::ta
     }
 }
 
-// TODO(Guodong/Ziyi): Chagne bindFunc input to const *.
+// TODO(Guodong/Ziyi): Change bindFunc input to const *.
 // NOLINTNEXTLINE(readability-non-const-parameter)
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     ScanTableFuncBindInput* input) {
@@ -34,12 +34,13 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     storage::HNSWIndexUtils::validateTableAndColumnType(*tableEntry, columnName);
     auto& table = context->getStorageManager()->getTable(tableID)->cast<storage::NodeTable>();
     auto columnID = tableEntry->getColumnID(columnName);
+    auto config = storage::HNSWIndexConfig{input->optionalParams};
     auto boundData = std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry,
-        &table, columnID, table.getStats(context->getTx()).getCardinality());
+        &table, columnID, table.getStats(context->getTx()).getCardinality(), std::move(config));
     return boundData;
 }
 
-// TODO(Guodong/Ziyi): Chagne initSharedState input to const &.
+// TODO(Guodong/Ziyi): Change initSharedState input to const &.
 // NOLINTNEXTLINE(readability-non-const-parameter)
 static std::unique_ptr<TableFuncSharedState> initHNSWSharedState(TableFunctionInitInput& input) {
     const auto bindData = input.bindData->constPtrCast<CreateHNSWIndexBindData>();
@@ -49,7 +50,7 @@ static std::unique_ptr<TableFuncSharedState> initHNSWSharedState(TableFunctionIn
     return sharedState;
 }
 
-// TODO(Guodong/Ziyi): Chagne tableFunc input to const &.
+// TODO(Guodong/Ziyi): Change tableFunc input to const &.
 // NOLINTNEXTLINE(readability-non-const-parameter)
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput&) {
     const auto bindData = input.bindData->constPtrCast<CreateHNSWIndexBindData>();
@@ -76,7 +77,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput&) {
         std::make_unique<catalog::HNSWIndexCatalogEntry>(bindData->tableEntry->getTableID(),
             bindData->indexName, bindData->table->getColumn(bindData->columnID).getName(),
             upperRelTableID, lowerRelTableID, hnswIndex->getUpperEntryPoint(),
-            hnswIndex->getLowerEntryPoint()));
+            hnswIndex->getLowerEntryPoint(), bindData->config));
     return 0;
 }
 

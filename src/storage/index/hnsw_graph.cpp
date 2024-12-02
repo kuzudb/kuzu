@@ -96,13 +96,14 @@ void InMemHNSWGraph::shrinkNbrs(common::offset_t offset, transaction::Transactio
 
 void InMemHNSWGraph::shrinkToThreshold(common::offset_t offset,
     transaction::Transaction* transaction) {
-    if (csrLengths[offset] <= shrinkThreshold) {
+    if (csrLengths[offset] <= degree) {
         return;
     }
     std::vector<NodeWithDistance> nbrs;
     const auto vector = embeddings->getEmebdding(offset, transaction);
     for (const auto nbr : getNeighbors(offset, transaction)) {
-        const auto dist = HNSWIndexUtils::computeDistance(*embeddings, vector, nbr, transaction);
+        const auto dist =
+            HNSWIndexUtils::computeDistance(distFunc, *embeddings, vector, nbr, transaction);
         nbrs.push_back({nbr, dist});
     }
     std::ranges::sort(nbrs, [](const NodeWithDistance& l, const NodeWithDistance& r) {
@@ -113,9 +114,9 @@ void InMemHNSWGraph::shrinkToThreshold(common::offset_t offset,
         bool keepNbr = true;
         for (auto j = i + 1; j < nbrs.size(); j++) {
             const auto nbrVector = embeddings->getEmebdding(nbrs[i].nodeOffset, transaction);
-            const auto dist = HNSWIndexUtils::computeDistance(*embeddings, nbrVector,
+            const auto dist = HNSWIndexUtils::computeDistance(distFunc, *embeddings, nbrVector,
                 nbrs[j].nodeOffset, transaction);
-            if (ALPHA * dist < nbrs[i].distance) {
+            if (alpha * dist < nbrs[i].distance) {
                 keepNbr = false;
                 break;
             }
@@ -123,7 +124,7 @@ void InMemHNSWGraph::shrinkToThreshold(common::offset_t offset,
         if (keepNbr) {
             dstNodes[newSize++] = nbrs[i].nodeOffset;
         }
-        if (newSize == shrinkThreshold) {
+        if (newSize == degree) {
             break;
         }
     }
@@ -178,9 +179,9 @@ void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, common::node_group_idx
     nbrColumnChunk.cast<InternalIDChunkData>().setTableID(dstNodeTableID);
     relIDColumnChunk.cast<InternalIDChunkData>().setTableID(relTableID);
     for (auto i = 0u; i < numNodesInGroup; i++) {
-        const auto csrOffset = i * maxDegree;
-        const auto csrLen = csrLengths[startNodeOffset + i];
         const auto currNodeOffset = startNodeOffset + i;
+        const auto csrLen = csrLengths[currNodeOffset];
+        const auto csrOffset = currNodeOffset * maxDegree;
         for (auto j = 0u; j < csrLen; j++) {
             boundColumnChunk.setValue<common::offset_t>(currNodeOffset, currNumRels);
             relIDColumnChunk.setValue<common::offset_t>(currNumRels, currNumRels);
@@ -231,8 +232,8 @@ void InMemHNSWGraph::resetCSRLengthAndDstNodes() {
 }
 
 OnDiskHNSWGraph::OnDiskHNSWGraph(main::ClientContext* context, common::length_t maxDegree,
-    NodeTable& nodeTable, RelTable& relTable, EmbeddingColumn* embeddings)
-    : HNSWGraph{nodeTable.getNumTotalRows(context->getTx()), maxDegree, embeddings},
+    NodeTable& nodeTable, RelTable& relTable, EmbeddingColumn* embeddings, DistFuncType distFunc)
+    : HNSWGraph{nodeTable.getNumTotalRows(context->getTx()), maxDegree, embeddings, distFunc},
       nodeTable{nodeTable}, relTable{relTable} {
     // TODO(Guodong): Only scan committed data here. We need to scan local data as well.
     auto columnIDs = std::vector{NBR_ID_COLUMN_ID};

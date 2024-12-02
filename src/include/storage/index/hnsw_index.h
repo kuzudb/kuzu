@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/random_engine.h"
+#include "storage/index/hnsw_config.h"
 #include "storage/index/hnsw_graph.h"
 
 namespace kuzu {
@@ -47,6 +48,7 @@ struct HNSWIndexPartitionerSharedState {
 
 class HNSWIndex {
 public:
+    explicit HNSWIndex(HNSWIndexConfig config) : config{std::move(config)} {}
     virtual ~HNSWIndex() = default;
 
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
@@ -63,7 +65,7 @@ public:
 
 protected:
     std::vector<NodeWithDistance> searchLowerLayer(const float* queryVector,
-        common::offset_t entryNode, common::length_t k,
+        common::offset_t entryNode, common::length_t k, uint64_t configuredEfs,
         transaction::Transaction* transaction) const;
     common::offset_t searchUpperLayer(const float* queryVector,
         transaction::Transaction* transaction) const;
@@ -71,20 +73,16 @@ protected:
         common::length_t k);
 
 protected:
-    static constexpr uint64_t DEFAULT_EFS = 200;
-    static constexpr uint64_t UPPER_MAX_DEGREE = 40;
-    static constexpr uint64_t LOWER_MAX_DEGREE = 80;
-    static constexpr uint64_t UPPER_SHRINK_THRESHOLD = 30;
-    static constexpr uint64_t LOWER_SHRINK_THRESHOLD = 60;
-
     std::unique_ptr<EmbeddingColumn> embeddings;
     std::unique_ptr<HNSWGraph> lowerGraph;
     std::unique_ptr<HNSWGraph> upperGraph;
+    HNSWIndexConfig config;
 };
 
 class InMemHNSWIndex final : public HNSWIndex {
 public:
-    InMemHNSWIndex(main::ClientContext* context, NodeTable& table, common::column_id_t columnID);
+    InMemHNSWIndex(main::ClientContext* context, NodeTable& table, common::column_id_t columnID,
+        HNSWIndexConfig config);
 
     // Note that the input is only `offset`, as we assume embeddings are already cached in memory.
     void insert(common::offset_t offset, transaction::Transaction* transaction);
@@ -108,10 +106,11 @@ private:
 class OnDiskHNSWIndex final : public HNSWIndex {
 public:
     OnDiskHNSWIndex(main::ClientContext* context, NodeTable& nodeTable,
-        common::column_id_t columnID, RelTable& upperRelTable, RelTable& lowerRelTable);
+        common::column_id_t columnID, RelTable& upperRelTable, RelTable& lowerRelTable,
+        HNSWIndexConfig config);
 
     std::vector<NodeWithDistance> search(const std::vector<float>& queryVector, common::length_t k,
-        transaction::Transaction* transaction) const;
+        const QueryHNSWConfig& config, transaction::Transaction* transaction) const;
 };
 
 } // namespace storage

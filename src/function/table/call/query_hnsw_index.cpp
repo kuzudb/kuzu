@@ -20,21 +20,23 @@ struct QueryHNSWIndexBindData final : CallTableFuncBindData {
     common::column_id_t columnID;
     storage::RelTable& upperRelTable;
     storage::RelTable& lowerRelTable;
+    storage::QueryHNSWConfig config;
 
     QueryHNSWIndexBindData(std::vector<common::LogicalType> columnTypes,
         std::vector<std::string> columnNames, common::table_id_t indexTableID,
         catalog::HNSWIndexCatalogEntry* indexEntry, std::vector<float> queryVector, uint64_t k,
         storage::NodeTable& nodeTable, common::column_id_t columnID,
-        storage::RelTable& upperRelTable, storage::RelTable& lowerRelTable)
+        storage::RelTable& upperRelTable, storage::RelTable& lowerRelTable,
+        storage::QueryHNSWConfig config)
         : CallTableFuncBindData{std::move(columnTypes), std::move(columnNames), 1 /*maxOffset*/},
           indexTableID{indexTableID}, indexEntry{indexEntry}, queryVector{std::move(queryVector)},
           k{k}, nodeTable{nodeTable}, columnID{columnID}, upperRelTable{upperRelTable},
-          lowerRelTable{lowerRelTable} {}
+          lowerRelTable{lowerRelTable}, config{std::move(config)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<QueryHNSWIndexBindData>(common::LogicalType::copy(columnTypes),
             columnNames, indexTableID, indexEntry, queryVector, k, nodeTable, columnID,
-            upperRelTable, lowerRelTable);
+            upperRelTable, lowerRelTable, config);
     }
 };
 
@@ -44,12 +46,6 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const auto indexName = input->inputs[0].getValue<std::string>();
     const auto tableName = input->inputs[1].getValue<std::string>();
     const auto& queryVal = input->inputs[2];
-    std::vector<float> queryVector;
-    KU_ASSERT(queryVal.getChildrenSize() > 0);
-    queryVector.resize(queryVal.getChildrenSize());
-    for (auto i = 0u; i < queryVector.size(); i++) {
-        queryVector[i] = common::NestedVal::getChildVal(&queryVal, i)->getValue<float>();
-    }
     const auto k = input->inputs[3].getValue<int64_t>();
 
     const auto nodeTableEntry =
@@ -62,6 +58,13 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         indexColumnType.getExtraTypeInfo()->constPtrCast<common::ArrayTypeInfo>()->getNumElements();
     storage::HNSWIndexUtils::validateQueryVector(queryVal.getDataType(), dimension);
 
+    std::vector<float> queryVector;
+    KU_ASSERT(queryVal.getChildrenSize() > 0);
+    queryVector.resize(queryVal.getChildrenSize());
+    for (auto i = 0u; i < queryVector.size(); i++) {
+        queryVector[i] = common::NestedVal::getChildVal(&queryVal, i)->getValue<float>();
+    }
+
     auto& nodeTable = context->getStorageManager()
                           ->getTable(nodeTableEntry->getTableID())
                           ->cast<storage::NodeTable>();
@@ -71,17 +74,15 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto& lowerRelTable = context->getStorageManager()
                               ->getTable(indexEntry->getLowerRelTableID())
                               ->cast<storage::RelTable>();
-
     std::vector<common::LogicalType> columnTypes;
     columnTypes.push_back(common::LogicalType::INTERNAL_ID());
     columnTypes.push_back(common::LogicalType::FLOAT());
     std::vector<std::string> columnNames = {"nn", "_distance"};
-    auto boundData = std::make_unique<QueryHNSWIndexBindData>(std::move(columnTypes),
-        std::move(columnNames), nodeTableEntry->getTableID(), indexEntry, std::move(queryVector), k,
-        nodeTable, nodeTableEntry->getColumnID(indexEntry->getIndexColumnName()), upperRelTable,
-        lowerRelTable);
-    boundData->columnID = nodeTableEntry->getColumnID(indexEntry->getIndexColumnName());
-    return boundData;
+    auto config = storage::QueryHNSWConfig{input->optionalParams};
+    return std::make_unique<QueryHNSWIndexBindData>(std::move(columnTypes), std::move(columnNames),
+        nodeTableEntry->getTableID(), indexEntry, std::move(queryVector), k, nodeTable,
+        nodeTableEntry->getColumnID(indexEntry->getIndexColumnName()), upperRelTable, lowerRelTable,
+        std::move(config));
 }
 
 struct QueryHNSWLocalState final : TableFuncLocalState {
@@ -96,10 +97,10 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     if (!localState->result.has_value()) {
         const auto index = std::make_unique<storage::OnDiskHNSWIndex>(input.context->clientContext,
             bindData->nodeTable, bindData->columnID, bindData->upperRelTable,
-            bindData->lowerRelTable);
+            bindData->lowerRelTable, bindData->indexEntry->getConfig());
         index->setUpperEntryPoint(bindData->indexEntry->getUpperEntryPoint());
         index->setLowerEntryPoint(bindData->indexEntry->getLowerEntryPoint());
-        localState->result = index->search(bindData->queryVector, bindData->k,
+        localState->result = index->search(bindData->queryVector, bindData->k, bindData->config,
             input.context->clientContext->getTx());
     }
     KU_ASSERT(localState->result.has_value());

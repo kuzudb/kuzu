@@ -1,5 +1,6 @@
 #pragma once
 
+#include "hnsw_config.h"
 #include "storage/store/list_chunk_data.h"
 
 namespace kuzu {
@@ -30,8 +31,8 @@ struct HNSWIndexUtils {
         return &listChunk.getDataColumnChunk()->getData<T>()[offset * dimension];
     }
 
-    static float computeDistance(const EmbeddingColumn& embeddings, const float* left,
-        common::offset_t right, transaction::Transaction* transaction);
+    static double computeDistance(DistFuncType funcType, const EmbeddingColumn& embeddings,
+        const float* left, common::offset_t rightOffset, transaction::Transaction* transaction);
 
 private:
     static void validateColumnType(const common::LogicalType& type);
