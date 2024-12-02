@@ -156,7 +156,6 @@ jobs:
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test
-          make extension-test
 
       - name: Test in mem
         env:
@@ -756,7 +755,6 @@ jobs:
           ulimit -n 10240
           ln -s /Users/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test
-          make extension-test
 
       # - name: Test in mem
       #   env:
@@ -868,11 +866,10 @@ jobs:
       - name: Extension test build
         run: | 
           make extension-test-build
-          make release
 
       - name: Extension test
         run: |
-          python3 scripts/generate-tinysnb.py
+          python3 scripts/generate-tinysnb.py relwithdebinfo
           cd scripts/ && python3 http-server.py &
           make extension-test
 
@@ -936,7 +933,7 @@ jobs:
 
       - name: Extension test
         run: |
-          python3 scripts/generate-tinysnb.py
+          python3 scripts/generate-tinysnb.py relwithdebinfo
           cd scripts/ && python3 http-server.py &
           make extension-test
 
@@ -997,7 +994,7 @@ jobs:
         shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          python3 scripts/generate-tinysnb.py
+          python3 scripts/generate-tinysnb.py relwithdebinfo
           if %errorlevel% neq 0 exit /b %errorlevel%
           cd scripts/ && start /b python http-server.py && cd ..
           make extension-test
