@@ -32,7 +32,7 @@ jobs:
           python3 package_tar.py kuzu.tar.gz
 
       - name: Build wheels for Apple Silicon
-        uses: pypa/cibuildwheel@v2.19.1
+        uses: pypa/cibuildwheel@v2.22
         env:
           CIBW_SKIP: pp*
           CIBW_ARCHS_MACOS: arm64
@@ -67,7 +67,7 @@ jobs:
           python3 package_tar.py kuzu.tar.gz
 
       - name: Build wheels for Intel
-        uses: pypa/cibuildwheel@v2.19.1
+        uses: pypa/cibuildwheel@v2.22
         env:
           CIBW_SKIP: pp* cp36*
           CIBW_ARCHS_MACOS: x86_64
