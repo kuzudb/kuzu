@@ -6,6 +6,7 @@
 #include "common/serializer/serializer.h"
 #include "common/types/types.h"
 #include "common/uniq_lock.h"
+#include "common/utils.h"
 
 namespace kuzu {
 namespace storage {
@@ -22,6 +23,13 @@ public:
         auto lockGuard = lock();
         deSer.deserializeVectorOfPtrs<T>(groups,
             [&](common::Deserializer& deser) { return T::deserialize(memoryManager, deser); });
+    }
+
+    void removeTrailingGroups([[maybe_unused]] const common::UniqLock& lock,
+        common::idx_t numGroupsToRemove) {
+        KU_ASSERT(lock.isLocked());
+        KU_ASSERT(numGroupsToRemove <= groups.size());
+        groups.erase(groups.end() - numGroupsToRemove, groups.end());
     }
 
     void serializeGroups(common::Serializer& ser) {
@@ -109,6 +117,14 @@ public:
         KU_ASSERT(lock.isLocked());
         KU_UNUSED(lock);
         groups.clear();
+    }
+
+    common::idx_t getNumEmptyTrailingGroups(const common::UniqLock& lock) {
+        const auto& groupsVector = getAllGroups(lock);
+        return common::safeIntegerConversion<common::idx_t>(
+            std::find_if(groupsVector.rbegin(), groupsVector.rend(),
+                [](const auto& group) { return (group->getNumRows() != 0); }) -
+            groupsVector.rbegin());
     }
 
 private:

@@ -59,7 +59,7 @@ std::unique_ptr<ColumnChunkData> StringColumn::flushChunkData(const ColumnChunkD
     return flushedChunkData;
 }
 
-void StringColumn::scan(Transaction* transaction, const ChunkState& state,
+void StringColumn::scan(const Transaction* transaction, const ChunkState& state,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
     uint64_t offsetInVector) const {
     nullColumn->scan(transaction, *state.nullState, startOffsetInGroup, endOffsetInGroup,
@@ -68,7 +68,7 @@ void StringColumn::scan(Transaction* transaction, const ChunkState& state,
         resultVector, offsetInVector);
 }
 
-void StringColumn::scan(Transaction* transaction, const ChunkState& state,
+void StringColumn::scan(const Transaction* transaction, const ChunkState& state,
     ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) const {
     KU_ASSERT(state.nullState);
     Column::scan(transaction, state, columnChunk, startOffset, endOffset);
@@ -82,7 +82,7 @@ void StringColumn::scan(Transaction* transaction, const ChunkState& state,
     dictionary.scan(transaction, state, stringColumnChunk.getDictionaryChunk());
 }
 
-void StringColumn::lookupInternal(Transaction* transaction, const ChunkState& state,
+void StringColumn::lookupInternal(const Transaction* transaction, const ChunkState& state,
     offset_t nodeOffset, ValueVector* resultVector, uint32_t posInVector) const {
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
     string_index_t index = 0;
@@ -141,7 +141,7 @@ void StringColumn::scanInternal(Transaction* transaction, const ChunkState& stat
     }
 }
 
-void StringColumn::scanUnfiltered(Transaction* transaction, const ChunkState& state,
+void StringColumn::scanUnfiltered(const Transaction* transaction, const ChunkState& state,
     offset_t startOffsetInChunk, offset_t numValuesToRead, ValueVector* resultVector,
     sel_t startPosInVector) const {
     // TODO: Replace indices with ValueVector to avoid maintaining `scan` interface from

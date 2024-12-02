@@ -4,6 +4,7 @@
 #include <bitset>
 
 #include "common/data_chunk/data_chunk.h"
+#include "storage/enums/csr_node_group_scan_source.h"
 #include "storage/store/csr_chunked_node_group.h"
 #include "storage/store/node_group.h"
 
@@ -19,13 +20,6 @@ using row_idx_vec_t = std::vector<common::row_idx_t>;
 struct csr_list_t {
     common::row_idx_t startRow = common::INVALID_ROW_IDX;
     common::length_t length = 0;
-};
-
-enum class CSRNodeGroupScanSource : uint8_t {
-    COMMITTED_PERSISTENT = 0,
-    COMMITTED_IN_MEMORY = 1,
-    UNCOMMITTED = 2,
-    NONE = 10
 };
 
 // Store rows of a CSR list.
@@ -187,9 +181,9 @@ public:
         }
     }
 
-    void initializeScanState(transaction::Transaction* transaction,
+    void initializeScanState(const transaction::Transaction* transaction,
         TableScanState& state) const override;
-    NodeGroupScanResult scan(transaction::Transaction* transaction,
+    NodeGroupScanResult scan(const transaction::Transaction* transaction,
         TableScanState& state) const override;
 
     void appendChunkedCSRGroup(const transaction::Transaction* transaction,
@@ -220,7 +214,7 @@ public:
     void serialize(common::Serializer& serializer) override;
 
 private:
-    void initScanForCommittedPersistent(transaction::Transaction* transaction,
+    void initScanForCommittedPersistent(const transaction::Transaction* transaction,
         RelTableScanState& relScanState, CSRNodeGroupScanState& nodeGroupScanState) const;
     void initScanForCommittedInMem(RelTableScanState& relScanState,
         CSRNodeGroupScanState& nodeGroupScanState) const;
@@ -237,11 +231,11 @@ private:
         const transaction::Transaction* transaction, RelTableScanState& tableState,
         CSRNodeGroupScanState& nodeGroupScanState) const;
 
-    NodeGroupScanResult scanCommittedInMem(transaction::Transaction* transaction,
+    NodeGroupScanResult scanCommittedInMem(const transaction::Transaction* transaction,
         RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
     NodeGroupScanResult scanCommittedInMemSequential(const transaction::Transaction* transaction,
         const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
-    NodeGroupScanResult scanCommittedInMemRandom(transaction::Transaction* transaction,
+    NodeGroupScanResult scanCommittedInMemRandom(const transaction::Transaction* transaction,
         const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
 
     void checkpointInMemOnly(const common::UniqLock& lock, NodeGroupCheckpointState& state);

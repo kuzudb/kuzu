@@ -104,7 +104,7 @@ void NodeGroup::merge(Transaction*, std::unique_ptr<ChunkedNodeGroup> chunkedGro
     chunkedGroups.appendGroup(lock, std::move(chunkedGroup));
 }
 
-void NodeGroup::initializeScanState(Transaction* transaction, TableScanState& state) const {
+void NodeGroup::initializeScanState(const Transaction* transaction, TableScanState& state) const {
     const auto lock = chunkedGroups.lock();
     initializeScanState(transaction, lock, state);
 }
@@ -129,7 +129,7 @@ static void initializeScanStateForChunkedGroup(const TableScanState& state,
     }
 }
 
-void NodeGroup::initializeScanState(Transaction*, const UniqLock& lock,
+void NodeGroup::initializeScanState(const Transaction*, const UniqLock& lock,
     TableScanState& state) const {
     auto& nodeGroupScanState = *state.nodeGroupScanState;
     nodeGroupScanState.chunkedGroupIdx = 0;
@@ -167,7 +167,7 @@ void applySemiMaskFilter(const TableScanState& state, row_idx_t numRowsToScan,
     }
 }
 
-NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& state) const {
+NodeGroupScanResult NodeGroup::scan(const Transaction* transaction, TableScanState& state) const {
     // TODO(Guodong): Move the locked part of figuring out the chunked group to initScan.
     const auto lock = chunkedGroups.lock();
     auto& nodeGroupScanState = *state.nodeGroupScanState;
@@ -185,6 +185,7 @@ NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& st
     }
     const auto& chunkedGroupToScan =
         *chunkedGroups.getGroup(lock, nodeGroupScanState.chunkedGroupIdx);
+    KU_ASSERT(nodeGroupScanState.nextRowToScan >= chunkedGroupToScan.getStartRowIdx());
     const auto rowIdxInChunkToScan =
         nodeGroupScanState.nextRowToScan - chunkedGroupToScan.getStartRowIdx();
     const auto numRowsToScan =
@@ -239,7 +240,7 @@ NodeGroupScanResult NodeGroup::scanInternal(const common::UniqLock& lock, Transa
     auto& nodeGroupScanState = *state.nodeGroupScanState;
     nodeGroupScanState.nextRowToScan = startOffsetInGroup;
 
-    auto newChunkedGroupIdx = findChunkedGroupIdxFromRowIdx(lock, startOffsetInGroup);
+    auto [newChunkedGroupIdx, _] = findChunkedGroupIdxFromRowIdxNoLock(startOffsetInGroup);
 
     const auto* chunkedGroupToScan = chunkedGroups.getGroup(lock, newChunkedGroupIdx);
     if (newChunkedGroupIdx != nodeGroupScanState.chunkedGroupIdx) {
@@ -353,6 +354,13 @@ void NodeGroup::flush(Transaction* transaction, FileHandle& dataFH) {
     chunkedGroups.resize(lock, 1);
 }
 
+void NodeGroup::rollbackInsert(common::row_idx_t startRow) {
+    const auto lock = chunkedGroups.lock();
+    const auto numEmptyTrailingGroups = chunkedGroups.getNumEmptyTrailingGroups(lock);
+    chunkedGroups.removeTrailingGroups(lock, numEmptyTrailingGroups);
+    numRows = startRow;
+}
+
 void NodeGroup::checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state) {
     // We don't need to consider deletions here, as they are flushed separately as metadata.
     // TODO(Guodong): A special case can be all rows are deleted or rollbacked, then we can skip
@@ -444,7 +452,7 @@ std::unique_ptr<VersionInfo> NodeGroup::checkpointVersionInfo(const UniqLock& lo
             // TODO(Guodong): Optimize the for loop here to directly acess the version info.
             for (auto i = 0u; i < chunkedGroup->getNumRows(); i++) {
                 if (chunkedGroup->isDeleted(transaction, i)) {
-                    checkpointVersionInfo->delete_(transaction, nullptr, currRow + i);
+                    checkpointVersionInfo->delete_(transaction->getID(), currRow + i);
                 }
             }
         }
@@ -526,33 +534,37 @@ std::unique_ptr<NodeGroup> NodeGroup::deserialize(MemoryManager& memoryManager,
     }
 }
 
-idx_t NodeGroup::findChunkedGroupIdxFromRowIdx(const UniqLock& lock, row_idx_t rowIdx) const {
-    KU_ASSERT(!chunkedGroups.isEmpty(lock));
-    const auto numRowsInFirstGroup = chunkedGroups.getFirstGroup(lock)->getNumRows();
+std::pair<idx_t, row_idx_t> NodeGroup::findChunkedGroupIdxFromRowIdxNoLock(row_idx_t rowIdx) const {
+    if (chunkedGroups.getNumGroupsNoLock() == 0) {
+        return {INVALID_CHUNKED_GROUP_IDX, INVALID_START_ROW_IDX};
+    }
+    const auto numRowsInFirstGroup = chunkedGroups.getFirstGroupNoLock()->getNumRows();
     if (rowIdx < numRowsInFirstGroup) {
-        return 0;
+        return {0, rowIdx};
     }
     rowIdx -= numRowsInFirstGroup;
-    return rowIdx / ChunkedNodeGroup::CHUNK_CAPACITY + 1;
+    const auto chunkedGroupIdx = rowIdx / ChunkedNodeGroup::CHUNK_CAPACITY + 1;
+    const auto rowIdxInChunk = rowIdx % ChunkedNodeGroup::CHUNK_CAPACITY;
+    if (chunkedGroupIdx >= chunkedGroups.getNumGroupsNoLock()) {
+        return {INVALID_CHUNKED_GROUP_IDX, INVALID_START_ROW_IDX};
+    }
+    return {chunkedGroupIdx, rowIdxInChunk};
 }
 
 ChunkedNodeGroup* NodeGroup::findChunkedGroupFromRowIdx(const UniqLock& lock,
     row_idx_t rowIdx) const {
-    auto chunkedGroupIdx = findChunkedGroupIdxFromRowIdx(lock, rowIdx);
-    if (chunkedGroupIdx >= chunkedGroups.getNumGroups(lock)) {
+    const auto [chunkedGroupIdx, rowIdxInChunkedGroup] =
+        findChunkedGroupIdxFromRowIdxNoLock(rowIdx);
+    if (chunkedGroupIdx == INVALID_CHUNKED_GROUP_IDX) {
         return nullptr;
     }
     return chunkedGroups.getGroup(lock, chunkedGroupIdx);
 }
 
 ChunkedNodeGroup* NodeGroup::findChunkedGroupFromRowIdxNoLock(row_idx_t rowIdx) const {
-    const auto numRowsInFirstGroup = chunkedGroups.getFirstGroupNoLock()->getNumRows();
-    if (rowIdx < numRowsInFirstGroup) {
-        return chunkedGroups.getFirstGroupNoLock();
-    }
-    rowIdx -= numRowsInFirstGroup;
-    const auto chunkedGroupIdx = rowIdx / ChunkedNodeGroup::CHUNK_CAPACITY + 1;
-    if (chunkedGroupIdx >= chunkedGroups.getNumGroupsNoLock()) {
+    const auto [chunkedGroupIdx, rowIdxInChunkedGroup] =
+        findChunkedGroupIdxFromRowIdxNoLock(rowIdx);
+    if (chunkedGroupIdx == INVALID_CHUNKED_GROUP_IDX) {
         return nullptr;
     }
     return chunkedGroups.getGroupNoLock(chunkedGroupIdx);
@@ -639,6 +651,31 @@ bool NodeGroup::isInserted(const Transaction* transaction, offset_t offsetInGrou
     const auto lock = chunkedGroups.lock();
     const auto* chunkedGroup = findChunkedGroupFromRowIdx(lock, offsetInGroup);
     return chunkedGroup->isInserted(transaction, offsetInGroup - chunkedGroup->getStartRowIdx());
+}
+
+void NodeGroup::applyFuncToChunkedGroups(version_record_handler_op_t func,
+    common::row_idx_t startRow, common::row_idx_t numRows, common::transaction_t commitTS) const {
+    KU_ASSERT(startRow <= getNumRows());
+
+    auto lock = chunkedGroups.lock();
+    const auto [chunkedGroupIdx, startRowInChunkedGroup] =
+        findChunkedGroupIdxFromRowIdxNoLock(startRow);
+    if (chunkedGroupIdx != INVALID_CHUNKED_GROUP_IDX) {
+        auto curChunkedGroupIdx = chunkedGroupIdx;
+        auto curStartRowIdxInChunk = startRowInChunkedGroup;
+
+        auto numRowsLeft = numRows;
+        while (numRowsLeft > 0 && curChunkedGroupIdx < chunkedGroups.getNumGroups(lock)) {
+            auto* chunkedGroup = chunkedGroups.getGroup(lock, curChunkedGroupIdx);
+            const auto numRowsForGroup =
+                std::min(numRowsLeft, chunkedGroup->getNumRows() - curStartRowIdxInChunk);
+            std::invoke(func, *chunkedGroup, curStartRowIdxInChunk, numRowsForGroup, commitTS);
+
+            ++curChunkedGroupIdx;
+            numRowsLeft -= numRowsForGroup;
+            curStartRowIdxInChunk = 0;
+        }
+    }
 }
 
 } // namespace storage

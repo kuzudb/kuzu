@@ -17,17 +17,17 @@ TEST(LocalHashIndexTests, LocalInserts) {
     auto hashIndex =
         std::make_unique<LocalHashIndex>(PhysicalTypeID::INT64, overflowFileHandle.get());
 
-    for (int64_t i = 0u; i < 100; i++) {
+    for (int64_t i = 0u; i < 100000; i++) {
         ASSERT_TRUE(hashIndex->insert(i, i * 2, isVisible));
     }
-    for (int64_t i = 0u; i < 100; i++) {
+    for (int64_t i = 0u; i < 100000; i++) {
         ASSERT_FALSE(hashIndex->insert(i, i, isVisible));
     }
 
-    for (int64_t i = 0u; i < 100; i++) {
+    for (int64_t i = 0u; i < 100000; i++) {
         hashIndex->delete_(i);
     }
-    for (int64_t i = 0u; i < 100; i++) {
+    for (int64_t i = 0u; i < 100000; i++) {
         ASSERT_TRUE(hashIndex->insert(i, i, isVisible));
     }
 }

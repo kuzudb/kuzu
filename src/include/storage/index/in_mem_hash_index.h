@@ -134,9 +134,11 @@ public:
 
     // Leaves the slot pointer pointing at the last slot to make it easier to add a new one
     bool nextChainedSlot(SlotIterator& iter) const {
-        iter.slotInfo.slotId = iter.slot->header.nextOvfSlotId;
-        iter.slotInfo.slotType = SlotType::OVF;
+        KU_ASSERT(iter.slotInfo.slotType == SlotType::PRIMARY ||
+                  iter.slotInfo.slotId != iter.slot->header.nextOvfSlotId);
         if (iter.slot->header.nextOvfSlotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
+            iter.slotInfo.slotId = iter.slot->header.nextOvfSlotId;
+            iter.slotInfo.slotType = SlotType::OVF;
             iter.slot = getSlot(iter.slotInfo);
             return true;
         }
@@ -159,14 +161,13 @@ public:
         auto fingerprint = HashIndexUtils::getFingerprintForHash(hashValue);
         auto slotId = HashIndexUtils::getPrimarySlotIdForHash(this->indexHeader, hashValue);
         SlotIterator iter(slotId, this);
-        std::optional<entry_pos_t> deletedPos = 0;
+        std::optional<entry_pos_t> deletedPos;
         do {
             for (auto entryPos = 0u; entryPos < getSlotCapacity<T>(); entryPos++) {
                 if (iter.slot->header.isEntryValid(entryPos) &&
                     iter.slot->header.fingerprints[entryPos] == fingerprint &&
                     equals(key, iter.slot->entries[entryPos].key)) {
                     deletedPos = entryPos;
-                    iter.slot->header.setEntryInvalid(entryPos);
                     break;
                 }
             }
@@ -182,12 +183,21 @@ public:
                 ;
             if (newIter.slotInfo != iter.slotInfo ||
                 *deletedPos != newIter.slot->header.numEntries() - 1) {
-                auto lastEntryPos = newIter.slot->header.numEntries();
+                KU_ASSERT(newIter.slot->header.numEntries() > 0);
+                auto lastEntryPos = newIter.slot->header.numEntries() - 1;
                 iter.slot->entries[*deletedPos] = newIter.slot->entries[lastEntryPos];
                 iter.slot->header.setEntryValid(*deletedPos,
                     newIter.slot->header.fingerprints[lastEntryPos]);
                 newIter.slot->header.setEntryInvalid(lastEntryPos);
+            } else {
+                iter.slot->header.setEntryInvalid(*deletedPos);
             }
+
+            if (newIter.slot->header.numEntries() == 0) {
+                reclaimOverflowSlots(SlotIterator(slotId, this));
+            }
+
+            return true;
         }
         return false;
     }

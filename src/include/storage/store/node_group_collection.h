@@ -3,6 +3,7 @@
 #include "storage/stats/table_stats.h"
 #include "storage/store/group_collection.h"
 #include "storage/store/node_group.h"
+#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace transaction {
@@ -13,14 +14,14 @@ class MemoryManager;
 
 class NodeGroupCollection {
 public:
-    explicit NodeGroupCollection(MemoryManager& memoryManager,
-        const std::vector<common::LogicalType>& types, bool enableCompression,
-        FileHandle* dataFH = nullptr, common::Deserializer* deSer = nullptr);
+    NodeGroupCollection(MemoryManager& memoryManager, const std::vector<common::LogicalType>& types,
+        bool enableCompression, FileHandle* dataFH = nullptr, common::Deserializer* deSer = nullptr,
+        const VersionRecordHandler* versionRecordHandler = nullptr);
 
     void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors);
     void append(const transaction::Transaction* transaction, NodeGroupCollection& other);
-    void appned(const transaction::Transaction* transaction, NodeGroup& nodeGroup);
+    void append(const transaction::Transaction* transaction, NodeGroup& nodeGroup);
 
     // This function only tries to append data into the last node group, and if the last node group
     // is not enough to hold all the data, it will append partially and return the number of rows
@@ -36,6 +37,7 @@ public:
         return nodeGroups.getNumGroups(lock);
     }
     NodeGroup* getNodeGroupNoLock(const common::node_group_idx_t groupIdx) {
+        KU_ASSERT(nodeGroups.getGroupNoLock(groupIdx)->getNodeGroupIdx() == groupIdx);
         return nodeGroups.getGroupNoLock(groupIdx);
     }
     NodeGroup* getNodeGroup(const common::node_group_idx_t groupIdx,
@@ -44,15 +46,19 @@ public:
         if (mayOutOfBound && groupIdx >= nodeGroups.getNumGroups(lock)) {
             return nullptr;
         }
+        KU_ASSERT(nodeGroups.getGroupNoLock(groupIdx)->getNodeGroupIdx() == groupIdx);
         return nodeGroups.getGroup(lock, groupIdx);
     }
-    NodeGroup* getOrCreateNodeGroup(common::node_group_idx_t groupIdx, NodeGroupDataFormat format);
+    NodeGroup* getOrCreateNodeGroup(transaction::Transaction* transaction,
+        common::node_group_idx_t groupIdx, NodeGroupDataFormat format);
 
     void setNodeGroup(const common::node_group_idx_t nodeGroupIdx,
         std::unique_ptr<NodeGroup> group) {
         const auto lock = nodeGroups.lock();
         nodeGroups.replaceGroup(lock, nodeGroupIdx, std::move(group));
     }
+
+    void rollbackInsert(common::row_idx_t numRows_, bool updateNumRows = true);
 
     void clear() {
         const auto lock = nodeGroups.lock();
@@ -72,7 +78,15 @@ public:
     void serialize(common::Serializer& ser);
     void deserialize(common::Deserializer& deSer, MemoryManager& memoryManager);
 
+    void pushInsertInfo(const transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+        common::row_idx_t numRows, const VersionRecordHandler* versionRecordHandler,
+        bool incrementNumTotalRows);
+
 private:
+    void pushInsertInfo(const transaction::Transaction* transaction, NodeGroup* nodeGroup,
+        common::row_idx_t numRows);
+
     bool enableCompression;
     // Num rows in the collection regardless of deletions.
     common::row_idx_t numTotalRows;
@@ -80,6 +94,7 @@ private:
     GroupCollection<NodeGroup> nodeGroups;
     FileHandle* dataFH;
     TableStats stats;
+    const VersionRecordHandler* versionRecordHandler;
 };
 
 } // namespace storage

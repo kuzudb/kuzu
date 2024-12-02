@@ -83,7 +83,7 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
 }
 
 template<ResidencyState SCAN_RESIDENCY_STATE>
-void ColumnChunk::scanCommitted(Transaction* transaction, ChunkState& chunkState,
+void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chunkState,
     ColumnChunk& output, row_idx_t startRow, row_idx_t numRows) const {
     if (numRows == INVALID_ROW_IDX) {
         numRows = getNumValues();
@@ -111,9 +111,9 @@ void ColumnChunk::scanCommitted(Transaction* transaction, ChunkState& chunkState
     }
 }
 
-template void ColumnChunk::scanCommitted<ResidencyState::ON_DISK>(Transaction* transaction,
+template void ColumnChunk::scanCommitted<ResidencyState::ON_DISK>(const Transaction* transaction,
     ChunkState& chunkState, ColumnChunk& output, row_idx_t startRow, row_idx_t numRows) const;
-template void ColumnChunk::scanCommitted<ResidencyState::IN_MEMORY>(Transaction* transaction,
+template void ColumnChunk::scanCommitted<ResidencyState::IN_MEMORY>(const Transaction* transaction,
     ChunkState& chunkState, ColumnChunk& output, row_idx_t startRow, row_idx_t numRows) const;
 
 bool ColumnChunk::hasUpdates(const Transaction* transaction, row_idx_t startRow,
@@ -160,8 +160,8 @@ void ColumnChunk::scanCommittedUpdates(const Transaction* transaction, ColumnChu
     }
 }
 
-void ColumnChunk::lookup(Transaction* transaction, const ChunkState& state, offset_t rowInChunk,
-    ValueVector& output, sel_t posInOutputVector) const {
+void ColumnChunk::lookup(const Transaction* transaction, const ChunkState& state,
+    offset_t rowInChunk, ValueVector& output, sel_t posInOutputVector) const {
     switch (getResidencyState()) {
     case ResidencyState::IN_MEMORY: {
         data->lookup(rowInChunk, output, posInOutputVector);

@@ -99,7 +99,10 @@ void InMemHashIndex<T>::splitSlot(HashIndexHeader& header) {
                 if (newSlotPos >= getSlotCapacity<T>()) {
                     auto newOvfSlotId = allocateAOSlot();
                     newSlot.slot->header.nextOvfSlotId = newOvfSlotId;
-                    nextChainedSlot(newSlot);
+                    if (newSlot.slot->header.nextOvfSlotId !=
+                        SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
+                        nextChainedSlot(newSlot);
+                    }
                     newSlotPos = 0;
                 }
                 newSlot.slot->entries[newSlotPos] = entry;
@@ -114,7 +117,10 @@ void InMemHashIndex<T>::splitSlot(HashIndexHeader& header) {
                     entryPosToInsert++;
                     if (entryPosToInsert >= getSlotCapacity<T>()) {
                         entryPosToInsert = 0;
-                        nextChainedSlot(originalSlotForInsert);
+                        if (originalSlotForInsert.slot->header.nextOvfSlotId !=
+                            SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
+                            nextChainedSlot(originalSlotForInsert);
+                        }
                     }
                 }
                 originalSlotForInsert.slot->entries[entryPosToInsert] = entry;
@@ -141,6 +147,7 @@ void InMemHashIndex<T>::reclaimOverflowSlots(SlotIterator iter) {
         while (iter.slot->header.numEntries() > 0 || iter.slotInfo.slotType == SlotType::PRIMARY) {
             lastNonEmptySlot = iter.slot;
             if (!nextChainedSlot(iter)) {
+                iter.slotInfo = HashIndexUtils::INVALID_OVF_INFO;
                 break;
             }
         }

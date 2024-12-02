@@ -6,6 +6,7 @@
 #include "storage/enums/residency_state.h"
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/group_collection.h"
+#include "storage/store/version_record_handler.h"
 
 namespace kuzu {
 namespace transaction {
@@ -17,6 +18,7 @@ class MemoryManager;
 
 struct TableAddColumnState;
 class NodeGroup;
+
 struct NodeGroupScanState {
     // Index of committed but not yet checkpointed chunked group to scan.
     common::idx_t chunkedGroupIdx = 0;
@@ -125,11 +127,11 @@ public:
     void merge(transaction::Transaction* transaction,
         std::unique_ptr<ChunkedNodeGroup> chunkedGroup);
 
-    virtual void initializeScanState(transaction::Transaction* transaction,
+    virtual void initializeScanState(const transaction::Transaction* transaction,
         TableScanState& state) const;
-    void initializeScanState(transaction::Transaction* transaction, const common::UniqLock& lock,
-        TableScanState& state) const;
-    virtual NodeGroupScanResult scan(transaction::Transaction* transaction,
+    void initializeScanState(const transaction::Transaction* transaction,
+        const common::UniqLock& lock, TableScanState& state) const;
+    virtual NodeGroupScanResult scan(const transaction::Transaction* transaction,
         TableScanState& state) const;
 
     virtual NodeGroupScanResult scan(transaction::Transaction* transaction, TableScanState& state,
@@ -148,6 +150,10 @@ public:
         TableAddColumnState& addColumnState, FileHandle* dataFH);
 
     void flush(transaction::Transaction* transaction, FileHandle& dataFH);
+
+    void applyFuncToChunkedGroups(version_record_handler_op_t func, common::row_idx_t startRow,
+        common::row_idx_t numRows, common::transaction_t commitTS) const;
+    void rollbackInsert(common::row_idx_t startRow);
 
     virtual void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
 
@@ -181,8 +187,14 @@ public:
     bool isDeleted(const transaction::Transaction* transaction, common::offset_t offsetInGroup);
     bool isInserted(const transaction::Transaction* transaction, common::offset_t offsetInGroup);
 
+    common::node_group_idx_t getNodeGroupIdx() const { return nodeGroupIdx; }
+
+protected:
+    static constexpr auto INVALID_CHUNKED_GROUP_IDX = UINT32_MAX;
+    static constexpr auto INVALID_START_ROW_IDX = UINT64_MAX;
+
 private:
-    common::idx_t findChunkedGroupIdxFromRowIdx(const common::UniqLock& lock,
+    std::pair<common::idx_t, common::row_idx_t> findChunkedGroupIdxFromRowIdxNoLock(
         common::row_idx_t rowIdx) const;
     ChunkedNodeGroup* findChunkedGroupFromRowIdx(const common::UniqLock& lock,
         common::row_idx_t rowIdx) const;

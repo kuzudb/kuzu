@@ -14,10 +14,41 @@ class Transaction;
 }
 namespace storage {
 class MemoryManager;
+class RelTableData;
 
 struct CSRHeaderColumns {
     std::unique_ptr<Column> offset;
     std::unique_ptr<Column> length;
+};
+
+class PersistentVersionRecordHandler : public VersionRecordHandler {
+public:
+    explicit PersistentVersionRecordHandler(RelTableData* relTableData);
+
+    void applyFuncToChunkedGroups(version_record_handler_op_t func,
+        common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+        common::row_idx_t numRows, common::transaction_t commitTS) const override;
+    void rollbackInsert(const transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+        common::row_idx_t numRows) const override;
+
+private:
+    RelTableData* relTableData;
+};
+
+class InMemoryVersionRecordHandler : public VersionRecordHandler {
+public:
+    explicit InMemoryVersionRecordHandler(RelTableData* relTableData);
+
+    void applyFuncToChunkedGroups(version_record_handler_op_t func,
+        common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+        common::row_idx_t numRows, common::transaction_t commitTS) const override;
+    void rollbackInsert(const transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+        common::row_idx_t numRows) const override;
+
+private:
+    RelTableData* relTableData;
 };
 
 class RelTableData {
@@ -30,7 +61,7 @@ public:
         const common::ValueVector& relIDVector, common::column_id_t columnID,
         const common::ValueVector& dataVector) const;
     bool delete_(transaction::Transaction* transaction, common::ValueVector& boundNodeIDVector,
-        const common::ValueVector& relIDVector) const;
+        const common::ValueVector& relIDVector);
     void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState);
 
     bool checkIfNodeHasRels(transaction::Transaction* transaction,
@@ -53,17 +84,10 @@ public:
     NodeGroup* getNodeGroup(common::node_group_idx_t nodeGroupIdx) const {
         return nodeGroups->getNodeGroup(nodeGroupIdx, true /*mayOutOfBound*/);
     }
-    NodeGroup* getOrCreateNodeGroup(common::node_group_idx_t nodeGroupIdx) const {
-        return nodeGroups->getOrCreateNodeGroup(nodeGroupIdx, NodeGroupDataFormat::CSR);
-    }
-
-    common::row_idx_t getNumRows() const {
-        common::row_idx_t numRows = 0;
-        const auto numGroups = nodeGroups->getNumNodeGroups();
-        for (auto nodeGroupIdx = 0u; nodeGroupIdx < numGroups; nodeGroupIdx++) {
-            numRows += nodeGroups->getNodeGroup(nodeGroupIdx)->getNumRows();
-        }
-        return numRows;
+    NodeGroup* getOrCreateNodeGroup(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx) const {
+        return nodeGroups->getOrCreateNodeGroup(transaction, nodeGroupIdx,
+            NodeGroupDataFormat::CSR);
     }
 
     common::RelMultiplicity getMultiplicity() const { return multiplicity; }
@@ -72,7 +96,16 @@ public:
 
     void checkpoint(const std::vector<common::column_id_t>& columnIDs);
 
+    void pushInsertInfo(transaction::Transaction* transaction, const CSRNodeGroup& nodeGroup,
+        common::row_idx_t numRows_, CSRNodeGroupScanSource source);
+
     void serialize(common::Serializer& serializer) const;
+
+    NodeGroup* getNodeGroupNoLock(common::node_group_idx_t nodeGroupIdx) const {
+        return nodeGroups->getNodeGroupNoLock(nodeGroupIdx);
+    }
+
+    void rollbackGroupCollectionInsert(common::row_idx_t numRows_, bool isPersistent);
 
 private:
     void initCSRHeaderColumns();
@@ -102,6 +135,8 @@ private:
         return types;
     }
 
+    const VersionRecordHandler* getVersionRecordHandler(CSRNodeGroupScanSource source);
+
 private:
     FileHandle* dataFH;
     common::table_id_t tableID;
@@ -117,6 +152,9 @@ private:
 
     CSRHeaderColumns csrHeaderColumns;
     std::vector<std::unique_ptr<Column>> columns;
+
+    PersistentVersionRecordHandler persistentVersionRecordHandler;
+    InMemoryVersionRecordHandler inMemoryVersionRecordHandler;
 };
 
 } // namespace storage

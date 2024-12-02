@@ -42,14 +42,14 @@ void NullColumn::scan(Transaction* transaction, const ChunkState& state,
     scanInternal(transaction, state, startOffsetInChunk, numValuesToScan, resultVector);
 }
 
-void NullColumn::scan(Transaction* transaction, const ChunkState& state,
+void NullColumn::scan(const Transaction* transaction, const ChunkState& state,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
     uint64_t offsetInVector) const {
     Column::scan(transaction, state, startOffsetInGroup, endOffsetInGroup, resultVector,
         offsetInVector);
 }
 
-void NullColumn::scan(Transaction* transaction, const ChunkState& state,
+void NullColumn::scan(const Transaction* transaction, const ChunkState& state,
     ColumnChunkData* columnChunk, offset_t startOffset, offset_t endOffset) const {
     Column::scan(transaction, state, columnChunk, startOffset, endOffset);
 }

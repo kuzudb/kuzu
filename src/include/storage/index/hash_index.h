@@ -343,7 +343,7 @@ public:
         KU_ASSERT(keyDataTypeID == common::TypeUtils::getPhysicalTypeIDForType<T>());
         return getTypedHashIndex(key)->insertInternal(transaction, key, value, isVisible);
     }
-    bool insert(const transaction::Transaction* transaction, common::ValueVector* keyVector,
+    bool insert(const transaction::Transaction* transaction, const common::ValueVector* keyVector,
         uint64_t vectorPos, common::offset_t value, visible_func isVisible);
 
     // Appends the buffer to the index. Returns the number of values successfully inserted.

@@ -137,7 +137,7 @@ uint64_t ChunkedNodeGroup::append(const Transaction* transaction,
         if (!versionInfo) {
             versionInfo = std::make_unique<VersionInfo>();
         }
-        versionInfo->append(transaction, this, numRows, numRowsToAppendInChunk);
+        versionInfo->append(transaction->getID(), numRows, numRowsToAppendInChunk);
     }
     numRows += numRowsToAppendInChunk;
     return numRowsToAppendInChunk;
@@ -168,7 +168,7 @@ offset_t ChunkedNodeGroup::append(const Transaction* transaction,
         if (!versionInfo) {
             versionInfo = std::make_unique<VersionInfo>();
         }
-        versionInfo->append(transaction, this, numRows, numToAppendInChunkedGroup);
+        versionInfo->append(transaction->getID(), numRows, numToAppendInChunkedGroup);
     }
     numRows += numToAppendInChunkedGroup;
     return numToAppendInChunkedGroup;
@@ -292,7 +292,7 @@ std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> ChunkedNod
     return getColumnChunk(columnID).scanUpdates(transaction);
 }
 
-bool ChunkedNodeGroup::lookup(Transaction* transaction, const TableScanState& state,
+bool ChunkedNodeGroup::lookup(const Transaction* transaction, const TableScanState& state,
     NodeGroupScanState& nodeGroupScanState, offset_t rowIdxInChunk, sel_t posInOutput) const {
     KU_ASSERT(rowIdxInChunk + 1 <= numRows);
     std::unique_ptr<SelectionVector> selVector = nullptr;
@@ -334,7 +334,7 @@ bool ChunkedNodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxI
     if (!versionInfo) {
         versionInfo = std::make_unique<VersionInfo>();
     }
-    return versionInfo->delete_(transaction, this, rowIdxInChunk);
+    return versionInfo->delete_(transaction->getID(), rowIdxInChunk);
 }
 
 void ChunkedNodeGroup::addColumn(Transaction* transaction,
@@ -396,7 +396,7 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flushAsNewChunkedNodeGroup(
         std::make_unique<ChunkedNodeGroup>(std::move(flushedChunks), 0 /*startRowIdx*/);
     flushedChunkedGroup->versionInfo = std::make_unique<VersionInfo>();
     KU_ASSERT(flushedChunkedGroup->getNumRows() == numRows);
-    flushedChunkedGroup->versionInfo->append(transaction, flushedChunkedGroup.get(), 0, numRows);
+    flushedChunkedGroup->versionInfo->append(transaction->getID(), 0, numRows);
     return flushedChunkedGroup;
 }
 
@@ -434,7 +434,8 @@ void ChunkedNodeGroup::commitInsert(row_idx_t startRow, row_idx_t numRowsToCommi
     versionInfo->commitInsert(startRow, numRowsToCommit, commitTS);
 }
 
-void ChunkedNodeGroup::rollbackInsert(row_idx_t startRow, row_idx_t numRows_) {
+void ChunkedNodeGroup::rollbackInsert(row_idx_t startRow, row_idx_t numRows_,
+    common::transaction_t) {
     if (startRow == 0) {
         setNumRows(0);
         versionInfo.reset();
@@ -453,7 +454,8 @@ void ChunkedNodeGroup::commitDelete(row_idx_t startRow, row_idx_t numRows_,
     versionInfo->commitDelete(startRow, numRows_, commitTS);
 }
 
-void ChunkedNodeGroup::rollbackDelete(row_idx_t startRow, row_idx_t numRows_) {
+void ChunkedNodeGroup::rollbackDelete(row_idx_t startRow, row_idx_t numRows_,
+    common::transaction_t) {
     versionInfo->rollbackDelete(startRow, numRows_);
 }
 
