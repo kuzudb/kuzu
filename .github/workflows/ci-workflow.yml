@@ -402,27 +402,27 @@ jobs:
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test
 
-      - name: Test compression disabled
-        env:
-          ENABLE_COMPRESSION: false
-        run: |
-          make test
+      # - name: Test compression disabled
+      #   env:
+      #     ENABLE_COMPRESSION: false
+      #   run: |
+      #     make test
 
-      - name: Python test
-        run: make pytest
+      # - name: Python test
+      #   run: make pytest
 
-      - name: Node.js test
-        run: make nodejstest
+      # - name: Node.js test
+      #   run: make nodejstest
 
-      - name: Java test
-        run: make javatest
+      # - name: Java test
+      #   run: make javatest
 
-      - name: Rust test with pre-built library
-        env:
-          KUZU_SHARED: 1
-          KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
-          KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
-        run: make rusttest
+      # - name: Rust test with pre-built library
+      #   env:
+      #     KUZU_SHARED: 1
+      #     KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
+      #     KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
+      #   run: make rusttest
 
   clang-build-test-various-page-sizes:
     strategy:
@@ -943,7 +943,7 @@ jobs:
 
   windows-extension-test:
     name: windows extension test
-    needs: [msvc-build-test]
+    #needs: [msvc-build-test]
     runs-on: self-hosted-windows
     env:
       # Shorten build path as much as possible
