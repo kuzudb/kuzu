@@ -203,7 +203,6 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     probePlan.setCost(plan.getCardinality());
     auto extensionRate =
         cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
-    probePlan.setCost(plan.getCardinality());
     probePlan.setCardinality(cardinalityEstimator.estimateExtend(extensionRate, plan));
 
     // Join with input node

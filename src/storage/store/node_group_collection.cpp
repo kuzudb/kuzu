@@ -56,7 +56,6 @@ void NodeGroupCollection::append(const Transaction* transaction,
         lastNodeGroup->append(transaction, vectors, numRowsAppended, numToAppendInNodeGroup);
         numRowsAppended += numToAppendInNodeGroup;
     }
-    numTotalRows += numRowsAppended;
     stats.update(vectors);
 }
 
@@ -69,7 +68,6 @@ void NodeGroupCollection::append(const Transaction* transaction, NodeGroupCollec
 }
 
 void NodeGroupCollection::append(const Transaction* transaction, NodeGroup& nodeGroup) {
-    const auto numRowsToAppend = nodeGroup.getNumRows();
     KU_ASSERT(nodeGroup.getDataTypes().size() == types.size());
     const auto lock = nodeGroups.lock();
     if (nodeGroups.isEmpty(lock)) {
@@ -102,7 +100,6 @@ void NodeGroupCollection::append(const Transaction* transaction, NodeGroup& node
         }
         numChunkedGroupsAppended++;
     }
-    numTotalRows += numRowsToAppend;
 }
 
 std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlushWhenFull(
