@@ -111,7 +111,7 @@ alldebug:
 test:
 	python3 dataset/ldbc-1/download_data.py
 	$(call run-cmake-relwithdebinfo, -DBUILD_TESTS=TRUE -DENABLE_BACKTRACES=TRUE)
-	E2E_TEST_FILES_DIRECTORY=test/test_files ctest --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS}
+	ctest --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS}
 
 lcov:
 	python3 dataset/ldbc-1/download_data.py
@@ -196,7 +196,11 @@ extension-json-test-build:
 	)
 
 extension-test: extension-test-build
-	E2E_TEST_FILES_DIRECTORY=extension ctest --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}" -R e2e_test
+	ifeq ($(OS),Windows_NT)
+		set E2E_TEST_FILES_DIRECTORY=extension && ctest --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}" -R e2e_test
+	else
+		E2E_TEST_FILES_DIRECTORY=extension ctest --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}" -R e2e_test
+	endif
 	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
 
 extension-json-test: extension-json-test-build
