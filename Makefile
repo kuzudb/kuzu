@@ -202,8 +202,7 @@ extension-json-test-build:
 
 extension-test: extension-test-build
 ifeq ($(OS),Windows_NT)
-# set E2E_TEST_FILES_DIRECTORY=extension && ctest --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}" -R e2e_test
-	cmake -E env E2E_TEST_FILES_DIRECTORY=extension ctest --test-dir build/relwithdebinfo/test --output-on-failure -j $(TEST_JOBS) --exclude-regex "$(EXTENSION_TEST_EXCLUDE_FILTER)" -R e2e_test
+	set E2E_TEST_FILES_DIRECTORY=extension && ctest --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}" -R e2e_test
 else
 	E2E_TEST_FILES_DIRECTORY=extension ctest --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}" -R e2e_test
 endif
