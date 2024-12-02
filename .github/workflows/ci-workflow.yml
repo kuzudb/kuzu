@@ -156,6 +156,7 @@ jobs:
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test
+          make extension-test
 
       - name: Test in mem
         env:
