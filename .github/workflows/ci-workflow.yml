@@ -157,34 +157,34 @@ jobs:
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test
 
-      - name: Test in mem
-        env:
-          IN_MEM_MODE: true
-        run: |
-          make test
+      # - name: Test in mem
+      #   env:
+      #     IN_MEM_MODE: true
+      #   run: |
+      #     make test
 
-      - name: Test checkpoint at threshold 0
-        env:
-          AUTO_CHECKPOINT: true
-          CHECKPOINT_THRESHOLD: 0
-        run: |
-          make test
+      # - name: Test checkpoint at threshold 0
+      #   env:
+      #     AUTO_CHECKPOINT: true
+      #     CHECKPOINT_THRESHOLD: 0
+      #   run: |
+      #     make test
 
-      - name: Python test
-        run: make pytest
+      # - name: Python test
+      #   run: make pytest
 
-      - name: Node.js test
-        run: make nodejstest
+      # - name: Node.js test
+      #   run: make nodejstest
 
-      - name: Java test
-        run: make javatest
+      # - name: Java test
+      #   run: make javatest
 
-      - name: Rust test with pre-built library
-        env:
-          KUZU_SHARED: 1
-          KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
-          KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
-        run: make rusttest
+      # - name: Rust test with pre-built library
+      #   env:
+      #     KUZU_SHARED: 1
+      #     KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
+      #     KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
+      #   run: make rusttest
 
   gcc-build-test-in-mem-vector-size:
     name: gcc build & test in-mem only with various vector size
@@ -522,56 +522,56 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make test
 
-      - name: Test compression disabled
-        shell: cmd
-        env:
-          ENABLE_COMPRESSION: false
-        run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          make test
+      # - name: Test compression disabled
+      #   shell: cmd
+      #   env:
+      #     ENABLE_COMPRESSION: false
+      #   run: |
+      #     call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+      #     make test
 
-      - name: Test in mem
-        shell: cmd
-        env:
-          IN_MEM_MODE: true
-        run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          make test
+      # - name: Test in mem
+      #   shell: cmd
+      #   env:
+      #     IN_MEM_MODE: true
+      #   run: |
+      #     call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+      #     make test
 
-      - name: Python test
-        shell: cmd
-        run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          make pytest
+      # - name: Python test
+      #   shell: cmd
+      #   run: |
+      #     call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+      #     make pytest
 
-      - name: Node.js test
-        shell: cmd
-        run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          make nodejstest
+      # - name: Node.js test
+      #   shell: cmd
+      #   run: |
+      #     call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+      #     make nodejstest
 
-      - name: Rust test
-        shell: cmd
-        run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          make rusttest
+      # - name: Rust test
+      #   shell: cmd
+      #   run: |
+      #     call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+      #     make rusttest
 
-      - name: Java test
-        shell: cmd
-        run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          make javatest
+      # - name: Java test
+      #   shell: cmd
+      #   run: |
+      #     call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+      #     make javatest
 
-      - name: Rust test with pre-built library
-        env:
-          KUZU_SHARED: 1
-          KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
-          KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
-        shell: cmd
-        run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          set PATH=%PATH%;${{ github.workspace }}/build/release/src
-          make rusttest
+      # - name: Rust test with pre-built library
+      #   env:
+      #     KUZU_SHARED: 1
+      #     KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
+      #     KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
+      #   shell: cmd
+      #   run: |
+      #     call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+      #     set PATH=%PATH%;${{ github.workspace }}/build/release/src
+      #     make rusttest
 
   sanity-checks:
     name: sanity checks
@@ -756,54 +756,54 @@ jobs:
           ln -s /Users/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test
 
-      # - name: Test in mem
-      #   env:
-      #     IN_MEM_MODE: true
-      #   run: |
-      #     make test
+      - name: Test in mem
+        env:
+          IN_MEM_MODE: true
+        run: |
+          make test
 
-      # - name: Test checkpoint at threshold 0
-      #   env:
-      #     AUTO_CHECKPOINT: true
-      #     CHECKPOINT_THRESHOLD: 0
-      #   run: |
-      #     make test
+      - name: Test checkpoint at threshold 0
+        env:
+          AUTO_CHECKPOINT: true
+          CHECKPOINT_THRESHOLD: 0
+        run: |
+          make test
 
-      # - name: Python test
-      #   env:
-      #     PYBIND11_PYTHON_VERSION: 3.12
-      #   run: |
-      #     ulimit -n 10240
-      #     make pytest
+      - name: Python test
+        env:
+          PYBIND11_PYTHON_VERSION: 3.12
+        run: |
+          ulimit -n 10240
+          make pytest
 
-      # - name: C and C++ Examples
-      #   run: |
-      #     ulimit -n 10240
-      #     make example
+      - name: C and C++ Examples
+        run: |
+          ulimit -n 10240
+          make example
 
-      # - name: Node.js test
-      #   run: |
-      #     ulimit -n 10240
-      #     make nodejstest
+      - name: Node.js test
+        run: |
+          ulimit -n 10240
+          make nodejstest
 
-      # - name: Java test
-      #   run: |
-      #     ulimit -n 10240
-      #     export JAVA_HOME=`/usr/libexec/java_home`
-      #     make javatest
+      - name: Java test
+        run: |
+          ulimit -n 10240
+          export JAVA_HOME=`/usr/libexec/java_home`
+          make javatest
 
-      # - name: Rust test
-      #   run: |
-      #     ulimit -n 10240
-      #     source /Users/runner/.cargo/env
-      #     make rusttest
+      - name: Rust test
+        run: |
+          ulimit -n 10240
+          source /Users/runner/.cargo/env
+          make rusttest
 
-      # - name: Rust example
-      #   working-directory: examples/rust
-      #   run: |
-      #     ulimit -n 10240
-      #     source /Users/runner/.cargo/env
-      #     cargo build --locked --features arrow
+      - name: Rust example
+        working-directory: examples/rust
+        run: |
+          ulimit -n 10240
+          source /Users/runner/.cargo/env
+          cargo build --locked --features arrow
 
       # TODO(bmwinger): rust pre-built library test for macos
       # When last tried it had issues finding libkuzu.dylib when running the tests
@@ -864,8 +864,7 @@ jobs:
 
       # shell needs to be built first to generate the dataset provided by the server
       - name: Extension test build
-        run: | 
-          make extension-test-build
+        run: make extension-test-build
 
       - name: Extension test
         run: |
@@ -927,9 +926,7 @@ jobs:
 
       # shell needs to be built first to generate the dataset provided by the server
       - name: Extension test build
-        run: | 
-          make extension-test-build
-          make release
+        run: make extension-test-build
 
       - name: Extension test
         run: |

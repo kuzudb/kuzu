@@ -118,6 +118,11 @@ lcov:
 	$(call run-cmake-release, -DBUILD_TESTS=TRUE -DBUILD_LCOV=TRUE)
 	ctest --test-dir build/release/test --output-on-failure -j ${TEST_JOBS}
 
+extension-lcov:
+	python3 dataset/ldbc-1/download_data.py
+	$(call run-cmake-release, -DBUILD_TESTS=TRUE -DBUILD_EXTENSION_TESTS=TRUE -DBUILD_LCOV=TRUE)
+	E2E_TEST_FILES_DIRECTORY=extension ctest --test-dir build/release/test --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}" -R e2e_test
+
 
 # Language APIs
 
