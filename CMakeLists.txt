@@ -273,7 +273,7 @@ function(add_kuzu_api_test TEST_NAME)
     endif()
     target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include)
     include(GoogleTest)
-    gtest_discover_tests (${TEST_NAME})
+    gtest_discover_tests(${TEST_NAME})
 endfunction()
 
 # Windows doesn't support dynamic lookup, so we have to link extensions against kuzu.
