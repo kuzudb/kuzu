@@ -249,11 +249,19 @@ function(add_kuzu_test TEST_NAME)
     endif()
     target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include)
     include(GoogleTest)
-    gtest_discover_tests(${TEST_NAME}
-        DISCOVERY_TIMEOUT 600
-        DISCOVERY_MODE PRE_TEST
-        TEST_PREFIX e2e_test_
-    )
+    
+    if (TEST_NAME STREQUAL "e2e_test")
+        gtest_discover_tests(${TEST_NAME}
+            DISCOVERY_TIMEOUT 600
+            DISCOVERY_MODE PRE_TEST
+            TEST_PREFIX e2e_test_
+        )
+    else()
+        gtest_discover_tests(${TEST_NAME}
+            DISCOVERY_TIMEOUT 600
+            DISCOVERY_MODE PRE_TEST
+        )
+    endif()
 endfunction()
 
 function(add_kuzu_api_test TEST_NAME)
