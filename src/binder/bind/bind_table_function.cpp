@@ -4,6 +4,7 @@
 #include "binder/expression/literal_expression.h"
 #include "catalog/catalog.h"
 #include "function/built_in_function_utils.h"
+#include "function/table/hnsw/hnsw_index_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -11,7 +12,7 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace binder {
 
-static void validateParameterType(expression_vector positionalParams) {
+static void validateParameterType(const expression_vector& positionalParams) {
     for (auto& param : positionalParams) {
         ExpressionUtil::validateExpressionType(*param,
             {ExpressionType::LITERAL, ExpressionType::PARAMETER});
@@ -51,8 +52,20 @@ BoundTableFunction Binder::bindTableFunc(std::string tableFuncName,
     bindInput.params = std::move(positionalParams);
     bindInput.optionalParams = std::move(optionalParams);
     bindInput.binder = this;
+    if (StringUtils::getUpper(func->name) == QueryHNSWIndexFunction::name) {
+        auto nodeTableName = bindInput.getLiteralVal<std::string>(1);
+        auto nodeTableEntry = clientContext->getCatalog()->getTableCatalogEntry(
+            clientContext->getTx(), nodeTableName);
+        bindInput.nodeExpression = createQueryNode("nn", std::vector{nodeTableEntry});
+        addToScope(bindInput.nodeExpression->toString(), bindInput.nodeExpression);
+    }
     auto bindData = tableFunc->bindFunc(clientContext, &bindInput);
     columns = bindData->columns;
+    if (StringUtils::getUpper(func->name) == QueryHNSWIndexFunction::name) {
+        auto id = bindInput.nodeExpression->getInternalID();
+        columns.push_back(id);
+    }
+
     auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         std::string(InternalKeyword::ROW_OFFSET));
     return BoundTableFunction{tableFunc->copy(), std::move(bindData), std::move(offset)};

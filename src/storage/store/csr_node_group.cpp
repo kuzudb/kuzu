@@ -60,7 +60,7 @@ void CSRNodeGroup::initializeScanState(const Transaction* transaction,
     auto& relScanState = state.cast<RelTableScanState>();
     KU_ASSERT(relScanState.nodeGroupScanState);
     auto& nodeGroupScanState = relScanState.nodeGroupScanState->cast<CSRNodeGroupScanState>();
-    if (relScanState.nodeGroupIdx != nodeGroupIdx) {
+    if (relScanState.nodeGroupIdx != nodeGroupIdx || relScanState.randomLookup) {
         relScanState.nodeGroupIdx = nodeGroupIdx;
         if (persistentChunkGroup) {
             initScanForCommittedPersistent(transaction, relScanState, nodeGroupScanState);
@@ -99,12 +99,24 @@ void CSRNodeGroup::initScanForCommittedPersistent(const Transaction* transaction
         chunk.initializeScanState(nodeGroupScanState.chunkStates[i], relScanState.columns[i]);
     }
     KU_ASSERT(csrHeader.offset->getNumValues() == csrHeader.length->getNumValues());
-    auto numBoundNodes = csrHeader.offset->getNumValues();
-    csrHeader.offset->scanCommitted<ResidencyState::ON_DISK>(transaction, offsetState,
-        *nodeGroupScanState.header->offset);
-    csrHeader.length->scanCommitted<ResidencyState::ON_DISK>(transaction, lengthState,
-        *nodeGroupScanState.header->length);
-    nodeGroupScanState.numTotalRows = nodeGroupScanState.header->getStartCSROffset(numBoundNodes);
+    if (relScanState.randomLookup) {
+        auto nodeOffset = relScanState.nodeIDVector->readNodeOffset(0);
+        auto offsetInGroup = nodeOffset % StorageConstants::NODE_GROUP_SIZE;
+        auto offsetToScanFrom = offsetInGroup == 0 ? 0 : offsetInGroup - 1;
+        csrHeader.offset->scanCommitted<ResidencyState::ON_DISK>(transaction, offsetState,
+            *nodeGroupScanState.header->offset, offsetToScanFrom, offsetInGroup + 1);
+        csrHeader.length->scanCommitted<ResidencyState::ON_DISK>(transaction, lengthState,
+            *nodeGroupScanState.header->length, offsetInGroup, offsetInGroup + 1);
+    } else {
+        auto numBoundNodes = csrHeader.offset->getNumValues();
+        csrHeader.offset->scanCommitted<ResidencyState::ON_DISK>(transaction, offsetState,
+            *nodeGroupScanState.header->offset);
+        csrHeader.length->scanCommitted<ResidencyState::ON_DISK>(transaction, lengthState,
+            *nodeGroupScanState.header->length);
+        nodeGroupScanState.numTotalRows =
+            nodeGroupScanState.header->getStartCSROffset(numBoundNodes);
+    }
+    nodeGroupScanState.header->randomLookup = relScanState.randomLookup;
 }
 
 void CSRNodeGroup::initScanForCommittedInMem(RelTableScanState& relScanState,

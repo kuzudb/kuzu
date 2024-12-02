@@ -22,6 +22,7 @@ T TableFuncBindInput::getLiteralVal(common::idx_t idx) const {
 
 template KUZU_API std::string TableFuncBindInput::getLiteralVal<std::string>(
     common::idx_t idx) const;
+template KUZU_API int64_t TableFuncBindInput::getLiteralVal<int64_t>(common::idx_t idx) const;
 template KUZU_API uint64_t TableFuncBindInput::getLiteralVal<uint64_t>(common::idx_t idx) const;
 template KUZU_API uint32_t TableFuncBindInput::getLiteralVal<uint32_t>(common::idx_t idx) const;
 template KUZU_API uint8_t* TableFuncBindInput::getLiteralVal<uint8_t*>(common::idx_t idx) const;

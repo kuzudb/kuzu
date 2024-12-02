@@ -33,6 +33,8 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
     loadTables(catalog, vfs, context);
 }
 
+StorageManager::~StorageManager() = default;
+
 FileHandle* StorageManager::initFileHandle(const std::string& fileName, VirtualFileSystem* vfs,
     main::ClientContext* context) const {
     if (main::DBConfig::isDBPathInMemory(databasePath)) {
@@ -96,18 +98,15 @@ void StorageManager::createNodeTable(table_id_t tableID, NodeTableCatalogEntry* 
         context->getVFSUnsafe(), context);
 }
 
-void StorageManager::createRelTable(table_id_t tableID, RelTableCatalogEntry* relTableEntry,
-    const Catalog*, Transaction*) {
+void StorageManager::createRelTable(table_id_t tableID, RelTableCatalogEntry* relTableEntry) {
     tables[tableID] = std::make_unique<RelTable>(relTableEntry, this, &memoryManager);
 }
 
 void StorageManager::createRelTableGroup(table_id_t, const RelGroupCatalogEntry* tableSchema,
     const Catalog* catalog, Transaction* transaction) {
     for (const auto relTableID : tableSchema->getRelTableIDs()) {
-        createRelTable(relTableID,
-            ku_dynamic_cast<RelTableCatalogEntry*>(
-                catalog->getTableCatalogEntry(transaction, relTableID)),
-            catalog, transaction);
+        createRelTable(relTableID, ku_dynamic_cast<RelTableCatalogEntry*>(
+                                       catalog->getTableCatalogEntry(transaction, relTableID)));
     }
 }
 
@@ -120,8 +119,7 @@ void StorageManager::createTable(table_id_t tableID, const Catalog* catalog,
         createNodeTable(tableID, tableEntry->ptrCast<NodeTableCatalogEntry>(), context);
     } break;
     case TableType::REL: {
-        createRelTable(tableID, tableEntry->ptrCast<RelTableCatalogEntry>(), catalog,
-            context->getTx());
+        createRelTable(tableID, tableEntry->ptrCast<RelTableCatalogEntry>());
     } break;
     case TableType::REL_GROUP: {
         createRelTableGroup(tableID, tableEntry->ptrCast<RelGroupCatalogEntry>(), catalog,
@@ -131,14 +129,6 @@ void StorageManager::createTable(table_id_t tableID, const Catalog* catalog,
         KU_UNREACHABLE;
     }
     }
-}
-
-PrimaryKeyIndex* StorageManager::getPKIndex(table_id_t tableID) {
-    std::lock_guard lck{mtx};
-    KU_ASSERT(tables.contains(tableID));
-    KU_ASSERT(tables.at(tableID)->getTableType() == TableType::NODE);
-    const auto table = ku_dynamic_cast<NodeTable*>(tables.at(tableID).get());
-    return table->getPKIndex();
 }
 
 WAL& StorageManager::getWAL() const {
@@ -189,8 +179,6 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
     writer->sync();
     shadowFile->flushAll();
 }
-
-StorageManager::~StorageManager() = default;
 
 } // namespace storage
 } // namespace kuzu

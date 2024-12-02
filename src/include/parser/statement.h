@@ -14,7 +14,7 @@ public:
 
     common::StatementType getStatementType() const { return statementType; }
 
-    bool requireTx() {
+    bool requireTx() const {
         switch (statementType) {
         case common::StatementType::TRANSACTION:
             return false;
@@ -35,6 +35,8 @@ public:
     const TARGET* constPtrCast() const {
         return common::ku_dynamic_cast<const TARGET*>(this);
     }
+
+    bool isRewritten = false;
 
 private:
     common::StatementType statementType;

@@ -24,6 +24,7 @@ struct TableScanState {
     common::DataChunkState* outState;
     std::vector<common::column_id_t> columnIDs;
     common::RoaringBitmapSemiMask* semiMask;
+    bool randomLookup = false;
 
     // Only used when scan from persistent data.
     std::vector<const Column*> columns;
@@ -176,7 +177,8 @@ public:
 
     MemoryManager& getMemoryManager() const { return *memoryManager; }
 
-    common::DataChunk constructDataChunk(std::vector<common::LogicalType> types) const;
+    static common::DataChunk constructDataChunk(MemoryManager* mm,
+        std::vector<common::LogicalType> types);
 
 protected:
     virtual bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) = 0;

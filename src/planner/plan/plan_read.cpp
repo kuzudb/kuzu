@@ -4,7 +4,10 @@
 #include "binder/query/reading_clause/bound_match_clause.h"
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "common/enums/join_type.h"
+#include "function/table/hnsw/hnsw_index_functions.h"
 #include "planner/operator/logical_gds_call.h"
+#include "planner/operator/logical_hash_join.h"
+#include "planner/operator/logical_table_function_call.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
 #include "planner/operator/sip/logical_property_collector.h"
 #include "planner/planner.h"
@@ -118,12 +121,30 @@ void Planner::planTableFunctionCall(const BoundReadingClause& readingClause,
     splitPredicates(call.getColumns(), call.getConjunctivePredicates(), predicatesToPull,
         predicatesToPush);
     for (auto& plan : plans) {
-
         auto op = getTableFunctionCall(readingClause);
-
+        op->computeFactorizedSchema();
         planReadOp(getTableFunctionCall(readingClause), predicatesToPush, *plan);
         if (!predicatesToPull.empty()) {
             appendFilters(predicatesToPull, *plan);
+        }
+        auto callOp = op->ptrCast<LogicalTableFunctionCall>();
+        if (StringUtils::getUpper(callOp->getTableFunc().name) ==
+            function::QueryHNSWIndexFunction::name) {
+            auto bindData = callOp->getBindData()->constPtrCast<function::QueryHNSWIndexBindData>();
+            auto node = bindData->outputNode;
+            cardinalityEstimator.addNodeIDDomAndStats(clientContext->getTx(),
+                *node->getInternalID(), node->getTableIDs());
+            auto scanPlan = LogicalPlan();
+            expression_vector scanExpressions;
+            // TODO(Xiyang/Guodong): The scan expressions are hacked for now. Should be pushed down.
+            scanExpressions.push_back(node->getPropertyExpression("id"));
+            appendScanNodeTable(node->getInternalID(), node->getTableIDs(), scanExpressions,
+                scanPlan);
+            expression_vector joinConditions;
+            joinConditions.push_back(node->getInternalID());
+            appendHashJoin(joinConditions, JoinType::INNER, scanPlan, *plan, *plan);
+            plan->getLastOperator()->cast<LogicalHashJoin>().getSIPInfoUnsafe().direction =
+                SIPDirection::FORCE_BUILD_TO_PROBE;
         }
     }
 }
@@ -164,6 +185,8 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
         }
     } else {
         for (auto& plan : plans) {
+            auto gdsCall = getGDSCall(call.getInfo());
+            gdsCall->computeFactorizedSchema();
             planReadOp(getGDSCall(call.getInfo()), predicatesToPush, *plan);
         }
     }
@@ -200,6 +223,7 @@ void Planner::planLoadFrom(const BoundReadingClause& readingClause,
         predicatesToPull, predicatesToPush);
     for (auto& plan : plans) {
         auto op = getTableFunctionCall(*loadFrom.getInfo());
+        op->computeFactorizedSchema();
         planReadOp(std::move(op), predicatesToPush, *plan);
         if (!predicatesToPull.empty()) {
             appendFilters(predicatesToPull, *plan);

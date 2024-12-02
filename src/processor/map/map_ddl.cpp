@@ -3,6 +3,7 @@
 #include "planner/operator/ddl/logical_create_table.h"
 #include "planner/operator/ddl/logical_create_type.h"
 #include "planner/operator/ddl/logical_drop.h"
+#include "processor/expression_mapper.h"
 #include "processor/operator/ddl/alter.h"
 #include "processor/operator/ddl/create_sequence.h"
 #include "processor/operator/ddl/create_table.h"

@@ -7,11 +7,13 @@
 #include "binder/bound_standalone_call_function.h"
 #include "binder/bound_transaction_statement.h"
 #include "binder/bound_use_database.h"
+#include "binder/copy/bound_copy_from.h"
 #include "binder/ddl/bound_alter.h"
 #include "binder/ddl/bound_create_sequence.h"
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_create_type.h"
 #include "binder/ddl/bound_drop.h"
+#include "function/table/hnsw/hnsw_index_functions.h"
 #include "planner/operator/ddl/logical_alter.h"
 #include "planner/operator/ddl/logical_create_sequence.h"
 #include "planner/operator/ddl/logical_create_table.h"
@@ -22,6 +24,7 @@
 #include "planner/operator/logical_standalone_call.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/operator/logical_transaction.h"
+#include "planner/operator/persistent/logical_copy_from.h"
 #include "planner/operator/simple/logical_attach_database.h"
 #include "planner/operator/simple/logical_detach_database.h"
 #include "planner/operator/simple/logical_extension.h"
@@ -79,12 +82,28 @@ void Planner::appendStandaloneCall(const BoundStatement& statement, LogicalPlan&
     plan.setLastOperator(std::move(op));
 }
 
+static bool isCreateHNSWIndexFunc(const std::string& funcName) {
+    auto name = funcName;
+    common::StringUtils::toUpper(name);
+    return funcName == function::CreateHNSWIndexFunction::name;
+}
+
 void Planner::appendStandaloneCallFunction(const BoundStatement& statement, LogicalPlan& plan) {
     auto& standaloneCallFunctionClause = statement.constCast<BoundStandaloneCallFunction>();
-    auto op =
+    std::shared_ptr<planner::LogicalOperator> op =
         std::make_shared<LogicalTableFunctionCall>(standaloneCallFunctionClause.getTableFunction(),
             standaloneCallFunctionClause.getBindData()->copy(), binder::expression_vector{},
             standaloneCallFunctionClause.getOffset());
+    if (isCreateHNSWIndexFunc(standaloneCallFunctionClause.getTableFunction().name)) {
+        // Rework the plan of create hnsw index to tableFuncCall + CopyFrom.
+        // TODO(Xiyang): Is the following line necessary?
+        op->computeFactorizedSchema();
+        auto bindData = standaloneCallFunctionClause.getBindData()
+                            ->constPtrCast<function::CreateHNSWIndexBindData>();
+        auto indexCopyInfo = BoundCopyFromInfo(bindData->tableEntry);
+        op = std::make_shared<planner::LogicalCopyFrom>(std::move(indexCopyInfo),
+            binder::expression_vector{}, std::move(op));
+    }
     plan.setLastOperator(std::move(op));
 }
 

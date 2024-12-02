@@ -244,7 +244,7 @@ std::string ClientContext::getEnvVariable(const std::string& name) {
 }
 
 std::unique_ptr<PreparedStatement> ClientContext::prepare(std::string_view query) {
-    std::unique_lock<std::mutex> lck{mtx};
+    std::unique_lock lck{mtx};
     auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
     try {
         parsedStatements = parseQuery(query);
@@ -275,10 +275,13 @@ std::unique_ptr<QueryResult> ClientContext::queryInternal(std::string_view query
     }
     std::unique_ptr<QueryResult> queryResult;
     QueryResult* lastResult = nullptr;
-    for (auto& statement : parsedStatements) {
+    for (const auto& statement : parsedStatements) {
         auto preparedStatement = prepareNoLock(statement,
             enumerateAllPlans /* enumerate all plans */, encodedJoin, false /*requireNewTx*/);
         auto currentQueryResult = executeNoLock(preparedStatement.get(), 0u, queryID);
+        if (statement->isRewritten) {
+            continue;
+        }
         if (!lastResult) {
             // first result of the query
             queryResult = std::move(currentQueryResult);
@@ -401,12 +404,13 @@ std::vector<std::shared_ptr<Statement>> ClientContext::parseQuery(std::string_vi
             if (!rewriteQuery.empty()) {
                 auto rewrittenStatements = Parser::parseQuery(rewriteQuery, this);
                 for (auto& statement : rewrittenStatements) {
+                    statement->isRewritten = true;
                     statements.push_back(statement);
                 }
             }
             statements.push_back(parsedStatements[i]);
         }
-    } catch (std::exception& exception) {
+    } catch (std::exception&) {
         if (startNewTrx) {
             transactionContext->rollback();
         }
@@ -422,7 +426,7 @@ void ClientContext::setDefaultDatabase(AttachedKuzuDatabase* defaultDatabase_) {
     remoteDatabase = defaultDatabase_;
 }
 
-bool ClientContext::hasDefaultDatabase() {
+bool ClientContext::hasDefaultDatabase() const {
     return remoteDatabase != nullptr;
 }
 
@@ -529,7 +533,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
 
 // If there is an active transaction in the context, we execute the function in current active
 // transaction. If there is no active transaction, we start an auto commit transaction.
-void ClientContext::runFuncInTransaction(const std::function<void(void)>& fun) {
+void ClientContext::runFuncInTransaction(const std::function<void()>& fun) {
     // check if we are on AutoCommit. In this case we should start a transaction
     bool startNewTrx = !transactionContext->hasActiveTransaction();
     if (startNewTrx) {
@@ -559,7 +563,7 @@ void ClientContext::removeScalarFunction(std::string name) {
     runFuncInTransaction([&]() { localDatabase->catalog->dropFunction(getTx(), std::move(name)); });
 }
 
-bool ClientContext::canExecuteWriteQuery() {
+bool ClientContext::canExecuteWriteQuery() const {
     if (dbConfig.readOnly) {
         return false;
     }
@@ -574,11 +578,11 @@ bool ClientContext::canExecuteWriteQuery() {
     return true;
 }
 
-processor::WarningContext& ClientContext::getWarningContextUnsafe() {
+WarningContext& ClientContext::getWarningContextUnsafe() {
     return warningContext;
 }
 
-const processor::WarningContext& ClientContext::getWarningContext() const {
+const WarningContext& ClientContext::getWarningContext() const {
     return warningContext;
 }
 

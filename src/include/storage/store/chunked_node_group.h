@@ -157,9 +157,9 @@ public:
     TARGET& cast() {
         return common::ku_dynamic_cast<TARGET&>(*this);
     }
-    template<class TARGETT>
-    const TARGETT& cast() const {
-        return common::ku_dynamic_cast<const TARGETT&>(*this);
+    template<class TARGET>
+    const TARGET& cast() const {
+        return common::ku_dynamic_cast<const TARGET&>(*this);
     }
 
     // Also marks the chunks as in-use

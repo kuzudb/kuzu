@@ -1,5 +1,6 @@
 #include "catalog/catalog_entry/catalog_entry.h"
 
+#include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
@@ -50,6 +51,10 @@ std::unique_ptr<CatalogEntry> CatalogEntry::deserialize(common::Deserializer& de
     } break;
     case CatalogEntryType::TYPE_ENTRY: {
         entry = TypeCatalogEntry::deserialize(deserializer);
+    } break;
+    case CatalogEntryType::INDEX_ENTRY: {
+        // TODO(Ziyi/Guodong): This should be reworked. Hack for now for HNSW only.
+        entry = HNSWIndexCatalogEntry::deserialize(deserializer);
     } break;
     default:
         KU_UNREACHABLE;

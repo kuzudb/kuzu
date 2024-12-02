@@ -3,7 +3,6 @@
 #include "catalog/catalog.h"
 #include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
-#include "main/client_context.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/standalone_call_function.h"
 

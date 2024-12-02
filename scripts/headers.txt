@@ -1,5 +1,7 @@
 # Please keep this list sorted. All headers should be relative to the root of the repository
 src/include/binder/expression/expression.h
+src/include/binder/expression/node_expression.h
+src/include/binder/expression/node_rel_expression.h
 src/include/common/api.h
 src/include/common/array_utils.h
 src/include/common/arrow/arrow.h
