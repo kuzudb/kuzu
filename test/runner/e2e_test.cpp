@@ -195,7 +195,7 @@ int main(int argc, char** argv) {
         std::string test_dir;
         char* env_test_dir = std::getenv("E2E_TEST_FILES_DIRECTORY");
         if (env_test_dir != nullptr) {
-            test_dir = env_test_dir;
+            test_dir = "extension";
         } else {
             test_dir = "test/test_files";
         }
