@@ -15,12 +15,14 @@ class ClientContext;
 
 namespace testing {
 class DBTest;
+class FlakyBufferManager;
 } // namespace testing
 
 namespace transaction {
 
 class TransactionManager {
     friend class testing::DBTest;
+    friend class testing::FlakyBufferManager;
 
 public:
     // Timestamp starts from 1. 0 is reserved for the dummy system transaction.

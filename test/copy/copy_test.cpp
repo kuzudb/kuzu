@@ -3,13 +3,19 @@
 #include "graph_test/base_graph_test.h"
 #include "graph_test/graph_test.h"
 #include "main/database.h"
-
-#define private public
 #include "storage/buffer_manager/buffer_manager.h"
 #include "transaction/transaction_manager.h"
 
 namespace kuzu {
 namespace testing {
+
+class CopyTestHelper {
+public:
+    static std::vector<std::unique_ptr<storage::FileHandle>>& getBMFileHandles(
+        storage::BufferManager* bm) {
+        return bm->fileHandles;
+    }
+};
 
 class FlakyBufferManager : public storage::BufferManager {
 public:
@@ -176,7 +182,7 @@ TEST_F(CopyTest, RelCopyBMExceptionRecoverySameConnection) {
         .earlyExitOnFailureFunc =
             [this](main::QueryResult*) {
                 // clear the BM so that the failure frequency isn't messed with by cached pages
-                for (auto& fh : currentBM->fileHandles) {
+                for (auto& fh : CopyTestHelper::getBMFileHandles(currentBM)) {
                     currentBM->removeFilePagesFromFrames(*fh);
                 }
                 return false;

@@ -1,12 +1,13 @@
 #pragma once
 
 #include "common/types/types.h"
-#include "storage/store/chunked_node_group.h"
 #include "transaction/transaction.h"
 
 namespace kuzu {
 
 namespace storage {
+
+class ChunkedNodeGroup;
 
 using version_record_handler_op_t = void (
     ChunkedNodeGroup::*)(common::row_idx_t, common::row_idx_t, common::transaction_t);

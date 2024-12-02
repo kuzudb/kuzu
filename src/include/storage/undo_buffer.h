@@ -4,7 +4,6 @@
 
 #include "common/constants.h"
 #include "common/types/types.h"
-#include "storage/store/node_group.h"
 
 namespace kuzu {
 namespace catalog {
@@ -21,6 +20,7 @@ namespace main {
 class ClientContext;
 }
 namespace storage {
+class VersionRecordHandler;
 
 // TODO(Guodong): This should be reworked to use MemoryManager for memory allocaiton.
 //                For now, we use malloc to get around the limitation of 256KB from MM.
@@ -86,9 +86,9 @@ public:
     void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry,
         const catalog::SequenceRollbackData& data);
     void createInsertInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
-        common::row_idx_t numRows, const storage::VersionRecordHandler* versionRecordHandler);
+        common::row_idx_t numRows, const VersionRecordHandler* versionRecordHandler);
     void createDeleteInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
-        common::row_idx_t numRows, const storage::VersionRecordHandler* versionRecordHandler);
+        common::row_idx_t numRows, const VersionRecordHandler* versionRecordHandler);
     void createVectorUpdateInfo(UpdateInfo* updateInfo, common::idx_t vectorIdx,
         VectorUpdateInfo* vectorUpdateInfo);
 
@@ -101,7 +101,7 @@ private:
     uint8_t* createUndoRecord(uint64_t size);
 
     void createVersionInfo(UndoRecordType recordType, common::row_idx_t startRow,
-        common::row_idx_t numRows, const storage::VersionRecordHandler* versionRecordHandler,
+        common::row_idx_t numRows, const VersionRecordHandler* versionRecordHandler,
         common::node_group_idx_t nodeGroupIdx = 0);
 
     void commitRecord(UndoRecordType recordType, const uint8_t* record,
