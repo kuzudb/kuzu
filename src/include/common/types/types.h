@@ -56,6 +56,7 @@ constexpr node_group_idx_t INVALID_NODE_GROUP_IDX = UINT64_MAX;
 using partition_idx_t = uint64_t;
 constexpr partition_idx_t INVALID_PARTITION_IDX = UINT64_MAX;
 using length_t = uint64_t;
+constexpr length_t INVALID_LENGTH = UINT64_MAX;
 using list_size_t = uint32_t;
 using sequence_id_t = uint64_t;
 using oid_t = uint64_t;
@@ -83,6 +84,7 @@ using relID_t = internalID_t;
 
 using cardinality_t = uint64_t;
 constexpr offset_t INVALID_LIMIT = UINT64_MAX;
+using offset_vec_t = std::vector<offset_t>;
 // System representation for internalID.
 struct KUZU_API internalID_t {
     offset_t offset;

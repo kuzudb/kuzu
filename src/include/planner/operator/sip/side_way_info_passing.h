@@ -15,7 +15,7 @@ enum class SemiMaskPosition : uint8_t {
 
 /*
  * If semi mask is present, scan pipelines needs to be constructed before semi mask pipelines.
- * SIPDependecy instructs whether probe or build should be constructed first.
+ * SIPDependency instructs whether probe or build should be constructed first.
  */
 enum class SIPDependency : uint8_t {
     NONE = 0,
@@ -32,6 +32,8 @@ enum class SIPDirection {
     NONE = 0,
     PROBE_TO_BUILD = 1,
     BUILD_TO_PROBE = 2,
+    // TODO(Xiyang/Guodong): Temp hack to allow vector index search to pass semi mask.
+    FORCE_BUILD_TO_PROBE = 3,
 };
 
 /*

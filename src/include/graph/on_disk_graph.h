@@ -27,9 +27,9 @@ public:
     OnDiskGraphNbrScanState(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
         const GraphEntry& graphEntry);
     OnDiskGraphNbrScanState(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
-        const GraphEntry& graphEntry, const std::string& propertyName);
+        const GraphEntry& graphEntry, const std::string& propertyName, bool randomLookup = false);
 
-    NbrScanState::Chunk getChunk() override {
+    Chunk getChunk() override {
         return createChunk(currentIter->getNbrNodes(), currentIter->getEdges(),
             currentIter->getSelVectorUnsafe(), propertyVector.get());
     }
@@ -49,16 +49,15 @@ public:
                 KU_ASSERT(
                     getSelVector().getSelectedPositions()[i] < common::DEFAULT_VECTOR_CAPACITY);
             });
-            return std::span<const common::nodeID_t>(
-                &dstVector().getValue<const common::nodeID_t>(0), common::DEFAULT_VECTOR_CAPACITY);
+            return std::span(&dstVector().getValue<const common::nodeID_t>(0),
+                common::DEFAULT_VECTOR_CAPACITY);
         }
         std::span<const common::nodeID_t> getEdges() const {
             RUNTIME_CHECK(for (size_t i = 0; i < getSelVector().getSelSize(); i++) {
                 KU_ASSERT(
                     getSelVector().getSelectedPositions()[i] < common::DEFAULT_VECTOR_CAPACITY);
             });
-            return std::span<const common::nodeID_t>(
-                &relIDVector().getValue<const common::nodeID_t>(0),
+            return std::span(&relIDVector().getValue<const common::nodeID_t>(0),
                 common::DEFAULT_VECTOR_CAPACITY);
         }
 
@@ -96,7 +95,7 @@ private:
     InnerIterator* currentIter = nullptr;
 };
 
-class OnDiskGraphVertexScanState : public VertexScanState {
+class OnDiskGraphVertexScanState final : public VertexScanState {
 public:
     OnDiskGraphVertexScanState(main::ClientContext& context, catalog::TableCatalogEntry* tableEntry,
         const std::vector<std::string>& propertyNames);
@@ -124,7 +123,7 @@ private:
 
 class KUZU_API OnDiskGraph final : public Graph {
 public:
-    OnDiskGraph(main::ClientContext* context, const GraphEntry& entry);
+    OnDiskGraph(main::ClientContext* context, GraphEntry entry);
 
     GraphEntry* getGraphEntry() override { return &graphEntry; }
 
@@ -144,9 +143,12 @@ public:
         const std::string& property) override;
     std::unique_ptr<VertexScanState> prepareVertexScan(catalog::TableCatalogEntry* tableEntry,
         const std::vector<std::string>& propertiesToScan) override;
+    // This is used for few random lookups in the relationship table. Internally we skip caching the
+    // CSR header during scan.
+    std::unique_ptr<NbrScanState> prepareRelLookup(catalog::TableCatalogEntry* tableEntry) const;
 
-    Graph::EdgeIterator scanFwd(common::nodeID_t nodeID, NbrScanState& state) override;
-    Graph::EdgeIterator scanBwd(common::nodeID_t nodeID, NbrScanState& state) override;
+    EdgeIterator scanFwd(common::nodeID_t nodeID, NbrScanState& state) override;
+    EdgeIterator scanBwd(common::nodeID_t nodeID, NbrScanState& state) override;
 
     VertexIterator scanVertices(common::offset_t beginOffset, common::offset_t endOffsetExclusive,
         VertexScanState& state) override;

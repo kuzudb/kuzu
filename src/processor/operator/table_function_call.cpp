@@ -56,11 +56,6 @@ void TableFunctionCall::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
         sharedState->funcState.get(), context};
 }
 
-void TableFunctionCall::initGlobalStateInternal(ExecutionContext* ctx) {
-    function::TableFunctionInitInput tableFunctionInitInput{info.bindData.get(), ctx->queryID};
-    sharedState->funcState = info.function.initSharedStateFunc(tableFunctionInitInput);
-}
-
 bool TableFunctionCall::getNextTuplesInternal(ExecutionContext*) {
     localState.funcOutput.dataChunk.state->getSelVectorUnsafe().setSelSize(0);
     localState.funcOutput.dataChunk.resetAuxiliaryBuffer();

@@ -1,4 +1,5 @@
 #include "planner/operator/logical_projection.h"
+#include "processor/expression_mapper.h"
 #include "processor/operator/projection.h"
 #include "processor/plan_mapper.h"
 

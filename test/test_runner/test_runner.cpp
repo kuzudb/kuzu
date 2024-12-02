@@ -193,18 +193,24 @@ bool TestRunner::checkResultNumeric(QueryResult& queryResult, const TestStatemen
             switch (dataTypes[i].getLogicalTypeID()) {
             case LogicalTypeID::FLOAT: {
                 if (!precisionEqual(curValue->getValue<float>(), std::stof(testTuple[i]))) {
+                    spdlog::error("Mismatched float value. Actual value: {}, Expected value: {}",
+                        curValue->getValue<float>(), std::stof(testTuple[i]));
                     return false;
                 }
                 break;
             }
             case LogicalTypeID::DOUBLE: {
                 if (!precisionEqual(curValue->getValue<double>(), std::stod(testTuple[i]))) {
+                    spdlog::error("Mismatched double value. Actual value: {}, Expected value: {}",
+                        curValue->getValue<double>(), std::stod(testTuple[i]));
                     return false;
                 }
                 break;
             }
             default: {
                 if (curValue->toString() != testTuple[i]) {
+                    spdlog::error("Mismatched value. Actual value: {}, Expected value: {}",
+                        curValue->toString(), testTuple[i]);
                     return false;
                 }
                 break;

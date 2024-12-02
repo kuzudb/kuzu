@@ -2,11 +2,11 @@
 
 #include "binder/expression/expression_util.h"
 #include "catalog/catalog.h"
-#include "fts_extension.h"
 #include "function/fts_bind_data.h"
 #include "function/fts_utils.h"
 #include "function/table/bind_input.h"
 #include "processor/execution_context.h"
+#include "storage/index/index_utils.h"
 
 namespace kuzu {
 namespace fts_extension {
@@ -17,11 +17,10 @@ using namespace kuzu::function;
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     const TableFuncBindInput* input) {
-    FTSUtils::validateAutoTrx(*context, DropFTSFunction::name);
+    storage::IndexUtils::validateAutoTransaction(*context, DropFTSFunction::name);
     auto indexName = input->getLiteralVal<std::string>(1);
-    auto& tableEntry = FTSUtils::bindTable(input->getLiteralVal<std::string>(0), context, indexName,
-        FTSUtils::IndexOperation::DROP);
-    FTSUtils::validateIndexExistence(*context, tableEntry.getTableID(), indexName);
+    const auto& tableEntry = storage::IndexUtils::bindTable(*context,
+        input->getLiteralVal<std::string>(0), indexName, storage::IndexOperation::DROP);
     return std::make_unique<FTSBindData>(tableEntry.getName(), tableEntry.getTableID(), indexName,
         binder::expression_vector{});
 }

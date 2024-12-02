@@ -1,5 +1,7 @@
 #include "catalog/catalog_entry/index_catalog_entry.h"
 
+#include <catalog/catalog_entry/hnsw_index_catalog_entry.h>
+
 namespace kuzu {
 namespace catalog {
 
@@ -25,6 +27,9 @@ std::unique_ptr<IndexCatalogEntry> IndexCatalogEntry::deserialize(
     indexEntry->auxBuffer = std::make_unique<uint8_t[]>(auxBufferSize);
     indexEntry->auxBufferSize = auxBufferSize;
     deserializer.read(indexEntry->auxBuffer.get(), auxBufferSize);
+    if (type == HNSWIndexCatalogEntry::TYPE_NAME) {
+        return HNSWIndexCatalogEntry::deserializeAuxInfo(indexEntry.get());
+    }
     return indexEntry;
 }
 

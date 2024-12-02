@@ -4,7 +4,6 @@
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "catalog/fts_index_catalog_entry.h"
-#include "common/exception/runtime.h"
 #include "common/task_system/task_scheduler.h"
 #include "common/types/internal_id_util.h"
 #include "function/fts_utils.h"
@@ -18,6 +17,7 @@
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
 #include "re2.h"
+#include "storage/index/index_utils.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -294,8 +294,8 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
 
     // Do vertex compute to get the terms
     auto termsTableEntry = graphEntry->nodeEntries[0];
-    const graph::GraphEntry tmpGraphEntry{{termsTableEntry}, {} /* relTableEntries */};
-    graph::OnDiskGraph graph(executionContext->clientContext, tmpGraphEntry);
+    graph::GraphEntry tmpGraphEntry{{termsTableEntry}, {} /* relTableEntries */};
+    graph::OnDiskGraph graph(executionContext->clientContext, std::move(tmpGraphEntry));
     auto termsComputeSharedState =
         TermsComputeSharedState{bindData->ptrCast<QueryFTSBindData>()->terms};
     TermsVertexCompute termsCompute{&termsComputeSharedState};
@@ -374,9 +374,8 @@ void QueryFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& con
     auto indexName = getParamVal(input, 1);
     auto query = getParamVal(input, 2);
 
-    auto& tableEntry =
-        FTSUtils::bindTable(inputTableName, &context, indexName, FTSUtils::IndexOperation::QUERY);
-    FTSUtils::validateIndexExistence(context, tableEntry.getTableID(), indexName);
+    auto& tableEntry = storage::IndexUtils::bindTable(context, inputTableName, indexName,
+        storage::IndexOperation::QUERY);
     auto& ftsIndexEntry =
         context.getCatalog()
             ->getIndex(context.getTransaction(), tableEntry.getTableID(), indexName)
