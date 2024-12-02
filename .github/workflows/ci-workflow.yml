@@ -157,34 +157,34 @@ jobs:
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test
 
-      # - name: Test in mem
-      #   env:
-      #     IN_MEM_MODE: true
-      #   run: |
-      #     make test
+      - name: Test in mem
+        env:
+          IN_MEM_MODE: true
+        run: |
+          make test
 
-      # - name: Test checkpoint at threshold 0
-      #   env:
-      #     AUTO_CHECKPOINT: true
-      #     CHECKPOINT_THRESHOLD: 0
-      #   run: |
-      #     make test
+      - name: Test checkpoint at threshold 0
+        env:
+          AUTO_CHECKPOINT: true
+          CHECKPOINT_THRESHOLD: 0
+        run: |
+          make test
 
-      # - name: Python test
-      #   run: make pytest
+      - name: Python test
+        run: make pytest
 
-      # - name: Node.js test
-      #   run: make nodejstest
+      - name: Node.js test
+        run: make nodejstest
 
-      # - name: Java test
-      #   run: make javatest
+      - name: Java test
+        run: make javatest
 
-      # - name: Rust test with pre-built library
-      #   env:
-      #     KUZU_SHARED: 1
-      #     KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
-      #     KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
-      #   run: make rusttest
+      - name: Rust test with pre-built library
+        env:
+          KUZU_SHARED: 1
+          KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
+          KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
+        run: make rusttest
 
   gcc-build-test-in-mem-vector-size:
     name: gcc build & test in-mem only with various vector size
@@ -402,27 +402,27 @@ jobs:
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test
 
-      # - name: Test compression disabled
-      #   env:
-      #     ENABLE_COMPRESSION: false
-      #   run: |
-      #     make test
+      - name: Test compression disabled
+        env:
+          ENABLE_COMPRESSION: false
+        run: |
+          make test
 
-      # - name: Python test
-      #   run: make pytest
+      - name: Python test
+        run: make pytest
 
-      # - name: Node.js test
-      #   run: make nodejstest
+      - name: Node.js test
+        run: make nodejstest
 
-      # - name: Java test
-      #   run: make javatest
+      - name: Java test
+        run: make javatest
 
-      # - name: Rust test with pre-built library
-      #   env:
-      #     KUZU_SHARED: 1
-      #     KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
-      #     KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
-      #   run: make rusttest
+      - name: Rust test with pre-built library
+        env:
+          KUZU_SHARED: 1
+          KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
+          KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
+        run: make rusttest
 
   clang-build-test-various-page-sizes:
     strategy:
@@ -522,56 +522,56 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make test
 
-      # - name: Test compression disabled
-      #   shell: cmd
-      #   env:
-      #     ENABLE_COMPRESSION: false
-      #   run: |
-      #     call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-      #     make test
+      - name: Test compression disabled
+        shell: cmd
+        env:
+          ENABLE_COMPRESSION: false
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          make test
 
-      # - name: Test in mem
-      #   shell: cmd
-      #   env:
-      #     IN_MEM_MODE: true
-      #   run: |
-      #     call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-      #     make test
+      - name: Test in mem
+        shell: cmd
+        env:
+          IN_MEM_MODE: true
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          make test
 
-      # - name: Python test
-      #   shell: cmd
-      #   run: |
-      #     call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-      #     make pytest
+      - name: Python test
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          make pytest
 
-      # - name: Node.js test
-      #   shell: cmd
-      #   run: |
-      #     call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-      #     make nodejstest
+      - name: Node.js test
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          make nodejstest
 
-      # - name: Rust test
-      #   shell: cmd
-      #   run: |
-      #     call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-      #     make rusttest
+      - name: Rust test
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          make rusttest
 
-      # - name: Java test
-      #   shell: cmd
-      #   run: |
-      #     call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-      #     make javatest
+      - name: Java test
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          make javatest
 
-      # - name: Rust test with pre-built library
-      #   env:
-      #     KUZU_SHARED: 1
-      #     KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
-      #     KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
-      #   shell: cmd
-      #   run: |
-      #     call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-      #     set PATH=%PATH%;${{ github.workspace }}/build/release/src
-      #     make rusttest
+      - name: Rust test with pre-built library
+        env:
+          KUZU_SHARED: 1
+          KUZU_INCLUDE_DIR: ${{ github.workspace }}/build/release/src
+          KUZU_LIBRARY_DIR: ${{ github.workspace }}/build/release/src
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          set PATH=%PATH%;${{ github.workspace }}/build/release/src
+          make rusttest
 
   sanity-checks:
     name: sanity checks
