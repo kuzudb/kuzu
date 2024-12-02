@@ -827,7 +827,7 @@ jobs:
 
   linux-extension-test:
     name: linux extension test
-    needs: [gcc-build-test, clang-build-test]
+    #needs: [gcc-build-test, clang-build-test]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -943,7 +943,7 @@ jobs:
 
   windows-extension-test:
     name: windows extension test
-    needs: [msvc-build-test]
+    #needs: [msvc-build-test]
     runs-on: self-hosted-windows
     env:
       # Shorten build path as much as possible
