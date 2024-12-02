@@ -133,6 +133,8 @@ public:
         processor::GDSOutputCounter* counter) override;
 
 private:
+    bool isNextViable(const std::vector<ParentList*>& path, ParentList* next) const;
+
     bool checkPathNodeMask(const std::vector<ParentList*>& path) const;
     bool checkSemantic(const std::vector<ParentList*>& path) const;
     bool isTrail(const std::vector<ParentList*>& path) const;

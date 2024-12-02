@@ -81,6 +81,10 @@ static void setLength(ValueVector* vector, uint16_t length) {
     vector->setValue<uint16_t>(0, length);
 }
 
+static ParentList* getTop(const std::vector<ParentList*>& path) {
+    return path[path.size() - 1];
+}
+
 void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
     GDSOutputCounter* counter) {
     auto output = rjOutputs->ptrCast<PathsOutputs>();
@@ -126,27 +130,13 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
             backtracking = true;
         }
         if (backtracking) {
-            // This code checks if we should switch from backtracking to forward-tracking, i.e.,
-            // moving forward in the DFS logic to find paths. We switch from backtracking if:
-            // (i) the current top element in the stack has a nextPtr, i.e., the top node has
-            // more parent edges in the BFS graph AND:
-            // (ii.1) if this is the first element in the stack (curPath.size() == 1), i.e., we
-            // are enumerating the parents of the destination, then we should switch to
-            // forward-tracking if the next parent has visited the destination at a length
-            // that's greater than or equal to the lower bound of the recursive join. Otherwise,
-            // we'll enumerate paths that are smaller than the lower; OR
-            // (ii.2) if this is not the first element in the stack, i.e., then we should switch
-            // to forward tracking only if the next parent of the top node in the stack has the
-            // same iter value as the current parent. That's because the levels/iter need to
-            // decrease by 1 each time we add a new node in the stack.
-            if (top->getNextPtr() != nullptr &&
-                ((curPath.size() == 1 && top->getNextPtr()->getIter() >= info.lowerBound) ||
-                    top->getNextPtr()->getIter() == top->getIter())) {
-                curPath[curPath.size() - 1] = top->getNextPtr();
-                backtracking = false;
+            auto next = getTop(curPath)->getNextPtr();
+            if (isNextViable(curPath, next)) {
+                curPath[curPath.size() - 1] = next;
                 if (curPath.size() == 1) {
                     setLength(lengthVector.get(), curPath[0]->getIter());
                 }
+                backtracking = false;
             } else {
                 curPath.pop_back();
             }
@@ -160,6 +150,30 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
         }
     }
     return;
+}
+
+bool PathsOutputWriter::isNextViable(const std::vector<ParentList*>& path, ParentList* next) const {
+    if (next == nullptr) {
+        return false;
+    }
+    auto nextIter = next->getIter();
+    // (1) if this is the first element in the stack (curPath.size() == 1), i.e., we
+    // are enumerating the parents of the destination, then we should switch to
+    // forward-tracking if the next parent has visited the destination at a length
+    // that's greater than or equal to the lower bound of the recursive join. Otherwise, we would
+    // enumerate paths that are smaller than the lower bound from the start element, so we can stop
+    // here.; OR
+    if (path.size() == 1) {
+        return nextIter >= info.lowerBound;
+    }
+    // (2) if this is not the first element in the stack, i.e., then we should switch
+    // to forward tracking only if the next parent of the top node in the stack has the
+    // same iter value as the current parent. That's because the levels/iter need to
+    // decrease by 1 each time we add a new node in the stack.
+    if (nextIter == getTop(path)->getIter()) {
+        return true;
+    }
+    return false;
 }
 
 bool PathsOutputWriter::checkPathNodeMask(const std::vector<ParentList*>& path) const {
