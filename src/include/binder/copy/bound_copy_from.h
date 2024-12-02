@@ -20,6 +20,8 @@ struct ExtraBoundCopyFromInfo {
 };
 
 struct BoundCopyFromInfo {
+    enum class CopyFromType : uint8_t { TABLE = 0, HNSW_INDEX = 1 };
+
     // Table entry to copy into.
     catalog::TableCatalogEntry* tableEntry;
     // Data source
@@ -29,20 +31,33 @@ struct BoundCopyFromInfo {
     expression_vector columnExprs;
     std::vector<common::ColumnEvaluateType> columnEvaluateTypes;
     std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo;
+    CopyFromType type;
 
+    BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry)
+        : tableEntry{tableEntry}, source{nullptr}, offset{nullptr}, extraInfo{nullptr},
+          type{CopyFromType::HNSW_INDEX} {}
     BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry,
         std::unique_ptr<BoundBaseScanSource> source, std::shared_ptr<Expression> offset,
         expression_vector columnExprs, std::vector<common::ColumnEvaluateType> columnEvaluateTypes,
         std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
         : tableEntry{tableEntry}, source{std::move(source)}, offset{offset},
           columnExprs{std::move(columnExprs)}, columnEvaluateTypes{std::move(columnEvaluateTypes)},
-          extraInfo{std::move(extraInfo)} {}
+          extraInfo{std::move(extraInfo)}, type{CopyFromType::TABLE} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundCopyFromInfo);
+
+    expression_vector getSourceColumns() const {
+        return source ? source->getColumns() : expression_vector{};
+    }
+    common::column_id_t getNumWarningColumns() const {
+        return source ? source->getNumWarningDataColumns() : 0;
+    }
+    bool getIgnoreErrorsOption() const { return source ? source->getIgnoreErrorsOption() : false; }
 
 private:
     BoundCopyFromInfo(const BoundCopyFromInfo& other)
-        : tableEntry{other.tableEntry}, source{other.source->copy()}, offset{other.offset},
-          columnExprs{other.columnExprs}, columnEvaluateTypes{other.columnEvaluateTypes} {
+        : tableEntry{other.tableEntry}, offset{other.offset}, columnExprs{other.columnExprs},
+          columnEvaluateTypes{other.columnEvaluateTypes}, type{other.type} {
+        source = other.source ? other.source->copy() : nullptr;
         if (other.extraInfo) {
             extraInfo = other.extraInfo->copy();
         }

@@ -82,6 +82,7 @@ using table_func_init_shared_t =
 using table_func_init_local_t = std::function<std::unique_ptr<TableFuncLocalState>(
     TableFunctionInitInput&, TableFuncSharedState*, storage::MemoryManager*)>;
 using table_func_can_parallel_t = std::function<bool()>;
+using table_func_is_sink_t = std::function<bool>();
 using table_func_progress_t = std::function<double(TableFuncSharedState* sharedState)>;
 using table_func_finalize_t =
     std::function<void(processor::ExecutionContext*, TableFuncSharedState*, TableFuncLocalState*)>;

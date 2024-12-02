@@ -246,7 +246,7 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
 
 row_idx_t NodeTable::getNumTotalRows(const Transaction* transaction) {
     auto numLocalRows = 0u;
-    if (auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
+    if (const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
             LocalStorage::NotExistAction::RETURN_NULL)) {
         numLocalRows = localTable->getNumTotalRows();
     }
@@ -304,7 +304,7 @@ bool NodeTable::lookup(Transaction* transaction, const TableScanState& scanState
         return false;
     }
     const auto nodeOffset = scanState.nodeIDVector->readNodeOffset(nodeIDPos);
-    offset_t rowIdxInGroup =
+    const offset_t rowIdxInGroup =
         transaction->isUnCommitted(tableID, nodeOffset) ?
             transaction->getLocalRowIdx(tableID, nodeOffset) -
                 StorageUtils::getStartOffsetOfNodeGroup(scanState.nodeGroupIdx) :
@@ -331,7 +331,7 @@ offset_t NodeTable::validateUniquenessConstraint(const Transaction* transaction,
     return INVALID_OFFSET;
 }
 
-void NodeTable::validatePkNotExists(const Transaction* transaction, ValueVector* pkVector) {
+void NodeTable::validatePkNotExists(const Transaction* transaction, ValueVector* pkVector) const {
     offset_t dummyOffset = INVALID_OFFSET;
     auto& selVector = pkVector->state->getSelVector();
     KU_ASSERT(selVector.getSelSize() == 1);
@@ -355,7 +355,7 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
     }
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::CREATE);
-    validatePkNotExists(transaction, (ValueVector*)&nodeInsertState.pkVector);
+    validatePkNotExists(transaction, const_cast<ValueVector*>(&nodeInsertState.pkVector));
     localTable->insert(transaction, insertState);
     if (transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
@@ -470,7 +470,7 @@ std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(Transaction* tran
 common::DataChunk NodeTable::constructDataChunkForPKColumn() const {
     std::vector<LogicalType> types;
     types.push_back(columns[pkColumnID]->getDataType().copy());
-    return constructDataChunk(std::move(types));
+    return constructDataChunk(memoryManager, std::move(types));
 }
 
 void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
@@ -485,7 +485,7 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
-         localNodeGroupIdx++) {
+        localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
         if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by

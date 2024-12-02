@@ -1,0 +1,1 @@
+CREATE NODE TABLE embeddings (id SERIAL, vec FLOAT[960], PRIMARY KEY (id));

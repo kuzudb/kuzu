@@ -7,14 +7,17 @@ namespace catalog {
 
 class KUZU_API IndexCatalogEntry : public CatalogEntry {
 public:
+    static std::string getInternalIndexName(common::table_id_t tableID, std::string indexName) {
+        return common::stringFormat("{}_{}", tableID, indexName);
+    }
+
     //===--------------------------------------------------------------------===//
     // constructors
     //===--------------------------------------------------------------------===//
     IndexCatalogEntry() = default;
 
     IndexCatalogEntry(common::table_id_t tableID, std::string indexName)
-        : CatalogEntry{CatalogEntryType::INDEX_ENTRY,
-              common::stringFormat("{}_{}", tableID, indexName)},
+        : CatalogEntry{CatalogEntryType::INDEX_ENTRY, getInternalIndexName(tableID, indexName)},
           tableID{tableID}, indexName{std::move(indexName)} {}
 
     common::table_id_t getTableID() const { return tableID; }
@@ -22,6 +25,8 @@ public:
     //===--------------------------------------------------------------------===//
     // serialization & deserialization
     //===--------------------------------------------------------------------===//
+    // TODO(Ziyi): Why don't we serialize index to disk?
+
     void serialize(common::Serializer& /*serializer*/) const override {}
     // TODO(Ziyi/Guodong) : If the database fails with loaded extensions, should we restart the db
     // and reload previously loaded extensions? Currently, we don't have the mechanism to reload

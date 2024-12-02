@@ -3,7 +3,6 @@
 #include "catalog/catalog.h"
 #include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
-#include "main/client_context.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/standalone_call_function.h"
 
@@ -12,6 +11,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace binder {
 
+// TODO: Is standalone call part of table function? what's the relationship between the two?
 std::unique_ptr<BoundStatement> Binder::bindStandaloneCallFunction(
     const parser::Statement& statement) {
     auto& callStatement = statement.constCast<parser::StandaloneCallFunction>();

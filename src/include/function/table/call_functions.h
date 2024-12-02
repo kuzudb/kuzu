@@ -21,6 +21,7 @@ struct CallFuncMorsel {
     }
 };
 
+// TODO(Xiyang/Ziyi): Should this be CallTableFuncSharedState?
 struct CallFuncSharedState : TableFuncSharedState {
     common::offset_t maxOffset;
     common::offset_t curOffset;
@@ -45,6 +46,7 @@ struct CallTableFuncBindData : TableFuncBindData {
     }
 };
 
+// TODO(Xiyang/Ziyi): Should this be StandaloneCallTableFuncBindData?
 struct StandaloneTableFuncBindData : public CallTableFuncBindData {
     StandaloneTableFuncBindData()
         : CallTableFuncBindData{std::vector<common::LogicalType>{}, std::vector<std::string>{},
@@ -129,6 +131,18 @@ struct ShowAttachedDatabasesFunction final : CallFunction {
 
 struct ShowFunctionsFunction : public CallFunction {
     static constexpr const char* name = "SHOW_FUNCTIONS";
+
+    static function_set getFunctionSet();
+};
+
+struct CreateHNSWIndexFunction : public CallFunction {
+    static constexpr const char* name = "CREATE_HNSW_INDEX";
+
+    static function_set getFunctionSet();
+};
+
+struct QueryHNSWIndexFunction : public CallFunction {
+    static constexpr const char* name = "QUERY_HNSW_INDEX";
 
     static function_set getFunctionSet();
 };

@@ -77,6 +77,8 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const BoundStatement& statemen
     case StatementType::ALTER: {
         appendAlter(statement, *plan);
     } break;
+        // TODO(Xiyang/Ziyi): What's the difference between STANDALONE_CALL and
+        // STANDALONE_CALL_FUNCTION?
     case StatementType::STANDALONE_CALL: {
         appendStandaloneCall(statement, *plan);
     } break;

@@ -101,6 +101,8 @@ public:
 
     TableFunctionCallSharedState* getSharedState() { return sharedState.get(); }
 
+    const TableFunctionCallInfo& getInfo() const { return info; }
+
     bool isSource() const override { return true; }
 
     bool isParallel() const override { return info.function.canParallelFunc(); }
