@@ -49,13 +49,13 @@ env:
   PIP_BREAK_SYSTEM_PACKAGES: 1
 
 jobs:
-  get-version:
+  get-nightly-version:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Update nightly version
-        if: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
         run: |
           python3 -m pip install packaging
           python3 update-nightly-build-version.py | grep "New Python dev version:" | awk -F'New Python dev version: ' '{print $2}' | sed 's/\.$//' > version.txt
