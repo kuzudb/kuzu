@@ -134,9 +134,11 @@ public:
 
     // Leaves the slot pointer pointing at the last slot to make it easier to add a new one
     bool nextChainedSlot(SlotIterator& iter) const {
-        iter.slotInfo.slotId = iter.slot->header.nextOvfSlotId;
-        iter.slotInfo.slotType = SlotType::OVF;
+        KU_ASSERT(iter.slotInfo.slotType == SlotType::PRIMARY ||
+                  iter.slotInfo.slotId != iter.slot->header.nextOvfSlotId);
         if (iter.slot->header.nextOvfSlotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
+            iter.slotInfo.slotId = iter.slot->header.nextOvfSlotId;
+            iter.slotInfo.slotType = SlotType::OVF;
             iter.slot = getSlot(iter.slotInfo);
             return true;
         }
@@ -176,7 +178,9 @@ public:
 
         if (deletedPos.has_value()) {
             // Find the last valid entry and move it into the deleted position
-            auto newIter = getLastValidEntry(iter);
+            auto newIter = iter;
+            while (nextChainedSlot(newIter))
+                ;
             if (newIter.slotInfo != iter.slotInfo ||
                 *deletedPos != newIter.slot->header.numEntries() - 1) {
                 KU_ASSERT(newIter.slot->header.numEntries() > 0);
@@ -199,13 +203,6 @@ public:
     }
 
 private:
-    SlotIterator getLastValidEntry(const SlotIterator& startIter) {
-        auto curIter = startIter;
-        while (curIter.slot->header.nextOvfSlotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID &&
-               nextChainedSlot(curIter)) {}
-        return curIter;
-    }
-
     // Assumes that space has already been allocated for the entry
     bool appendInternal(Key key, common::offset_t value, common::hash_t hash,
         visible_func isVisible) {

@@ -141,6 +141,7 @@ void InMemHashIndex<T>::reclaimOverflowSlots(SlotIterator iter) {
         while (iter.slot->header.numEntries() > 0 || iter.slotInfo.slotType == SlotType::PRIMARY) {
             lastNonEmptySlot = iter.slot;
             if (!nextChainedSlot(iter)) {
+                iter.slotInfo = HashIndexUtils::INVALID_OVF_INFO;
                 break;
             }
         }
