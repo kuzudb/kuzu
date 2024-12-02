@@ -51,10 +51,10 @@ public:
     void scan(const transaction::Transaction* transaction, const ChunkState& state,
         common::ValueVector& output, common::offset_t offsetInChunk, common::length_t length) const;
     template<ResidencyState SCAN_RESIDENCY_STATE>
-    void scanCommitted(transaction::Transaction* transaction, ChunkState& chunkState,
+    void scanCommitted(const transaction::Transaction* transaction, ChunkState& chunkState,
         ColumnChunk& output, common::row_idx_t startRow = 0,
         common::row_idx_t numRows = common::INVALID_ROW_IDX) const;
-    void lookup(transaction::Transaction* transaction, const ChunkState& state,
+    void lookup(const transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t rowInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const;
     void update(const transaction::Transaction* transaction, common::offset_t offsetInChunk,

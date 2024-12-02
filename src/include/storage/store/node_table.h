@@ -21,6 +21,7 @@ class Transaction;
 } // namespace transaction
 
 namespace storage {
+class NodeTable;
 
 struct NodeTableScanState final : TableScanState {
     // Scan state for un-committed data.
@@ -81,7 +82,37 @@ struct NodeTableDeleteState final : TableDeleteState {
         : nodeIDVector{nodeIDVector}, pkVector{pkVector} {}
 };
 
+struct PKColumnScanHelper {
+    explicit PKColumnScanHelper(PrimaryKeyIndex* pkIndex, common::table_id_t tableID)
+        : tableID(tableID), pkIndex(pkIndex) {}
+    virtual ~PKColumnScanHelper() = default;
+
+    virtual std::unique_ptr<NodeTableScanState> initPKScanState(common::DataChunk& dataChunk,
+        common::column_id_t pkColumnID, const std::vector<std::unique_ptr<Column>>& columns);
+    virtual bool processScanOutput(const transaction::Transaction* transaction,
+        NodeGroupScanResult scanResult, const common::ValueVector& scannedVector) = 0;
+
+    common::table_id_t tableID;
+    PrimaryKeyIndex* pkIndex;
+};
+
+class NodeTableVersionRecordHandler : public VersionRecordHandler {
+public:
+    explicit NodeTableVersionRecordHandler(NodeTable* table);
+
+    void applyFuncToChunkedGroups(version_record_handler_op_t func,
+        common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+        common::row_idx_t numRows, common::transaction_t commitTS) const override;
+    void rollbackInsert(const transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+        common::row_idx_t numRows) const override;
+
+private:
+    NodeTable* table;
+};
+
 class StorageManager;
+
 class NodeTable final : public Table {
 public:
     static std::vector<common::LogicalType> getNodeTableColumnTypes(const NodeTable& table) {
@@ -156,6 +187,11 @@ public:
     void commit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) override;
 
+    void rollbackPKIndexInsert(const transaction::Transaction* transaction,
+        common::row_idx_t startRow, common::row_idx_t numRows_,
+        common::node_group_idx_t nodeGroupIdx);
+    void rollbackGroupCollectionInsert(common::row_idx_t numRows_);
+
     common::node_group_idx_t getNumCommittedNodeGroups() const {
         return nodeGroups->getNumNodeGroups();
     }
@@ -174,18 +210,22 @@ public:
     TableStats getStats(const transaction::Transaction* transaction) const;
 
 private:
-    void insertPK(const transaction::Transaction* transaction,
-        const common::ValueVector& nodeIDVector, const common::ValueVector& pkVector) const;
     void validatePkNotExists(const transaction::Transaction* transaction,
         common::ValueVector* pkVector);
 
     void serialize(common::Serializer& serializer) const override;
+
+    visible_func getVisibleFunc(const transaction::Transaction* transaction) const;
+    common::DataChunk constructDataChunkForPKColumn() const;
+    void scanPKColumn(const transaction::Transaction* transaction, PKColumnScanHelper& scanHelper,
+        NodeGroupCollection& nodeGroups_);
 
 private:
     std::vector<std::unique_ptr<Column>> columns;
     std::unique_ptr<NodeGroupCollection> nodeGroups;
     common::column_id_t pkColumnID;
     std::unique_ptr<PrimaryKeyIndex> pkIndex;
+    NodeTableVersionRecordHandler versionRecordHandler;
 };
 
 } // namespace storage

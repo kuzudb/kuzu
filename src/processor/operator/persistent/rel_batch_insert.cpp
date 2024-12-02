@@ -66,14 +66,35 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
             // No more partitions left in the partitioning buffer.
             break;
         }
-        // TODO(Guodong): We need to handle the concurrency between COPY and other insertions into
-        // the same node group.
-        auto& nodeGroup =
-            relTable->getOrCreateNodeGroup(relLocalState->nodeGroupIdx, relInfo->direction)
-                ->cast<CSRNodeGroup>();
+        // TODO(Guodong): We need to handle the concurrency between COPY and other insertions
+        // into the same node group.
+        auto& nodeGroup = relTable
+                              ->getOrCreateNodeGroup(context->clientContext->getTx(),
+                                  relLocalState->nodeGroupIdx, relInfo->direction)
+                              ->cast<CSRNodeGroup>();
         appendNodeGroup(context->clientContext->getTx(), nodeGroup, *relInfo, *relLocalState,
             *sharedState, *partitionerSharedState);
         updateProgress(context);
+    }
+}
+
+static void appendNewChunkedGroup(transaction::Transaction* transaction,
+    ChunkedCSRNodeGroup& chunkedGroup, RelTable& relTable, CSRNodeGroup& nodeGroup,
+    RelDataDirection direction) {
+    const bool isNewNodeGroup = nodeGroup.isEmpty();
+    const CSRNodeGroupScanSource source = isNewNodeGroup ?
+                                              CSRNodeGroupScanSource::COMMITTED_PERSISTENT :
+                                              CSRNodeGroupScanSource::COMMITTED_IN_MEMORY;
+    // since each thread operates on distinct node groups
+    // We don't need a lock here (to ensure the insert info and append agree on the number of rows
+    // in the node group)
+    relTable.pushInsertInfo(transaction, direction, nodeGroup, chunkedGroup.getNumRows(), source);
+    if (isNewNodeGroup) {
+        auto flushedChunkedGroup =
+            chunkedGroup.flushAsNewChunkedNodeGroup(transaction, *relTable.getDataFH());
+        nodeGroup.setPersistentChunkedGroup(std::move(flushedChunkedGroup));
+    } else {
+        nodeGroup.appendChunkedCSRGroup(transaction, chunkedGroup);
     }
 }
 
@@ -93,10 +114,9 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
     // This will be used to set the num of values of the node group.
     const auto numNodes = std::min(StorageConstants::NODE_GROUP_SIZE,
         partitionerSharedState.maxNodeOffsets[relInfo.partitioningIdx] - startNodeOffset + 1);
-    const auto isNewNodeGroup = nodeGroup.isEmpty();
     // We optimistically flush new node group directly to disk in gapped CSR format.
     // There is no benefit of leaving gaps for existing node groups, which is kept in memory.
-    const auto leaveGaps = isNewNodeGroup;
+    const auto leaveGaps = nodeGroup.isEmpty();
     populateCSRHeaderAndRowIdx(*partitioningBuffer, startNodeOffset, relInfo, localState, numNodes,
         leaveGaps);
     const auto& csrHeader = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader();
@@ -122,14 +142,11 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
     }
     KU_ASSERT(localState.chunkedGroup->getNumRows() == maxSize);
     localState.chunkedGroup->finalize();
-    if (isNewNodeGroup) {
-        auto flushedChunkedGroup = localState.chunkedGroup->flushAsNewChunkedNodeGroup(transaction,
-            *sharedState.table->getDataFH());
-        nodeGroup.setPersistentChunkedGroup(std::move(flushedChunkedGroup));
-    } else {
-        nodeGroup.appendChunkedCSRGroup(transaction,
-            localState.chunkedGroup->cast<ChunkedCSRNodeGroup>());
-    }
+
+    auto* relTable = sharedState.table->ptrCast<RelTable>();
+    appendNewChunkedGroup(transaction, localState.chunkedGroup->cast<ChunkedCSRNodeGroup>(),
+        *relTable, nodeGroup, relInfo.direction);
+
     localState.chunkedGroup->resetToEmpty();
 }
 

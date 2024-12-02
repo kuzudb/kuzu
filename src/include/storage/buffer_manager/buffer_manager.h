@@ -18,8 +18,9 @@ namespace common {
 class VirtualFileSystem;
 };
 namespace testing {
-class EmptyBufferManagerTest;
-};
+class FlakyBufferManager;
+class CopyTestHelper;
+}; // namespace testing
 namespace storage {
 class ChunkedNodeGroup;
 class Spiller;
@@ -177,6 +178,9 @@ private:
  * https://github.com/fabubaker/kuzu/blob/umbra-bm/final_project_report.pdf.
  */
 class BufferManager {
+    friend class testing::FlakyBufferManager;
+    friend class testing::CopyTestHelper;
+
     friend class FileHandle;
     friend class MemoryManager;
 

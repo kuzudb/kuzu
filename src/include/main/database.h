@@ -142,8 +142,8 @@ private:
     void initMembers(std::string_view dbPath, construct_bm_func_t initBmFunc = initBufferManager);
 
     // factory method only to be used for tests
-    static std::unique_ptr<Database> construct(std::string_view databasePath,
-        SystemConfig systemConfig, construct_bm_func_t constructFunc);
+    Database(std::string_view databasePath, SystemConfig systemConfig,
+        construct_bm_func_t constructBMFunc);
 
     void openLockFile();
     void initAndLockDBDir();
