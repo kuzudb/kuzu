@@ -211,8 +211,10 @@ uint64_t FactorizedTable::getNumFlatTuples(ft_tuple_idx_t tupleIdx) const {
 uint8_t* FactorizedTable::getTuple(ft_tuple_idx_t tupleIdx) const {
     KU_ASSERT(tupleIdx < numTuples);
     auto [blockIdx, tupleIdxInBlock] = getBlockIdxAndTupleIdxInBlock(tupleIdx);
-    return flatTupleBlockCollection->getBlock(blockIdx)->getData() +
-           tupleIdxInBlock * tableSchema.getNumBytesPerTuple();
+    auto buffer = flatTupleBlockCollection->getBlock(blockIdx)->getSizedData();
+    // Check that the end of the block doesn't overflow the buffer
+    KU_ASSERT((tupleIdxInBlock + 1) * tableSchema.getNumBytesPerTuple() <= buffer.size());
+    return buffer.data() + tupleIdxInBlock * tableSchema.getNumBytesPerTuple();
 }
 
 void FactorizedTable::updateFlatCell(uint8_t* tuplePtr, ft_col_idx_t colIdx,
