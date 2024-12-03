@@ -1,31 +1,54 @@
 #pragma once
 
+#include <sys/types.h>
+
+#include <cstdint>
+#include <memory>
+
 #include "aggregate_hash_table.h"
+#include "common/copy_constructors.h"
+#include "common/mpsc_queue.h"
+#include "common/vector/value_vector.h"
 #include "processor/operator/aggregate/base_aggregate.h"
+#include "processor/result/factorized_table.h"
+#include "processor/result/factorized_table_schema.h"
 
 namespace kuzu {
 namespace processor {
+
+struct HashAggregateInfo;
 
 // NOLINTNEXTLINE(cppcoreguidelines-virtual-class-destructor): This is a final class.
 class HashAggregateSharedState final : public BaseAggregateSharedState {
 
 public:
     explicit HashAggregateSharedState(
-        const std::vector<function::AggregateFunction>& aggregateFunctions)
-        : BaseAggregateSharedState{aggregateFunctions}, limitCounter{0},
-          limitNumber{common::INVALID_LIMIT} {}
+        const std::vector<function::AggregateFunction>& aggregateFunctions);
 
-    void appendAggregateHashTable(std::unique_ptr<AggregateHashTable> aggregateHashTable);
+    void initPartitions(main::ClientContext* context, std::vector<common::LogicalType> keyDataTypes,
+        std::vector<common::LogicalType> payloadDataTypes, HashAggregateInfo& info,
+        std::vector<common::LogicalType> types);
 
-    void combineAggregateHashTable(storage::MemoryManager& memoryManager);
+    // Will return either the original factorized table for reuse, or a nullptr if the
+    std::unique_ptr<FactorizedTable> mergeTable(uint8_t partitionIdx,
+        std::unique_ptr<FactorizedTable> aggregateHashTable);
 
     void finalizeAggregateHashTable();
 
     std::pair<uint64_t, uint64_t> getNextRangeToRead() override;
 
-    inline uint8_t* getRow(uint64_t idx) { return globalAggregateHashTable->getEntry(idx); }
+    /* TODO(bmwinger): These should be rewritten into a scan function as they no longer are relevant
+     * to the current implementation It might be a good idea to free the factorizedTables after
+     * scanning from them to keep memory usage down. So we would need to store some sort of state to
+     * determine which row the index corresponds to
+     * TODO(bmwinger): maybe also merge this with scan to scan the entries into a vector
+     */
 
-    FactorizedTable* getFactorizedTable() { return globalAggregateHashTable->getFactorizedTable(); }
+    void scan(std::span<uint8_t*> entries, std::vector<common::ValueVector*>& keyVectors,
+        common::offset_t startOffset, common::offset_t numRowsToScan,
+        std::vector<uint32_t>& columnIndices);
+
+    uint64_t getNumTuples() const;
 
     uint64_t getCurrentOffset() const { return currentOffset; }
 
@@ -34,11 +57,33 @@ public:
 
     void setLimitNumber(uint64_t num) { limitNumber = num; }
 
+    const FactorizedTableSchema& getTableSchema() const {
+        return *globalPartitions[0].hashTable->getFactorizedTable()->getTableSchema();
+    }
+
+    void setThreadFinishedProducing() { numThreadsFinishedProducing++; }
+    bool allThreadsFinishedProducing() const { return numThreadsFinishedProducing == numThreads; }
+
+    void registerThread() { numThreads++; }
+
+    void assertFinalized() const;
+
+protected:
+    std::tuple<const FactorizedTable*, common::offset_t, common::idx_t> getPartitionForOffset(
+        common::offset_t offset) const;
+
 private:
-    std::vector<std::unique_ptr<AggregateHashTable>> localAggregateHashTables;
-    std::unique_ptr<AggregateHashTable> globalAggregateHashTable;
+    struct Partition {
+        std::unique_ptr<AggregateHashTable> hashTable;
+        std::mutex mtx;
+        common::MPSCQueue<std::unique_ptr<FactorizedTable>> queuedTuples;
+        bool finalized = false;
+    };
+    std::array<Partition, PartitioningAggregateHashTable::NUM_PARTITIONS> globalPartitions;
     std::atomic_uint64_t limitCounter;
     uint64_t limitNumber;
+    std::atomic<uint64_t> numThreadsFinishedProducing;
+    size_t numThreads;
 };
 
 struct HashAggregateInfo {
@@ -57,13 +102,13 @@ struct HashAggregateLocalState {
     std::vector<common::ValueVector*> unFlatKeyVectors;
     std::vector<common::ValueVector*> dependentKeyVectors;
     common::DataChunkState* leadingState = nullptr;
-    std::unique_ptr<AggregateHashTable> aggregateHashTable;
+    std::unique_ptr<PartitioningAggregateHashTable> aggregateHashTable;
 
-    void init(ResultSet& resultSet, main::ClientContext* context, HashAggregateInfo& info,
+    void init(HashAggregateSharedState* sharedState, ResultSet& resultSet,
+        main::ClientContext* context, HashAggregateInfo& info,
         std::vector<function::AggregateFunction>& aggregateFunctions,
         std::vector<common::LogicalType> types);
-    uint64_t append(const std::vector<AggregateInput>& aggregateInputs,
-        uint64_t multiplicity) const;
+    uint64_t append(const std::vector<AggregateInput>& aggregateInputs, uint64_t multiplicity);
 };
 
 struct HashAggregatePrintInfo final : OPPrintInfo {

@@ -33,7 +33,7 @@ void NodeBatchInsertSharedState::initPKIndex(const ExecutionContext* context) {
         numRows = scanSharedState->getNumRows();
     } else {
         KU_ASSERT(distinctSharedState);
-        numRows = distinctSharedState->getFactorizedTable()->getNumTuples();
+        numRows = distinctSharedState->getNumTuples();
     }
     auto* nodeTable = ku_dynamic_cast<NodeTable*>(table);
     nodeTable->getPKIndex()->bulkReserve(numRows);

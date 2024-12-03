@@ -1,7 +1,15 @@
 #include "processor/operator/aggregate/hash_aggregate.h"
 
+#include <thread>
+
 #include "binder/expression/expression_util.h"
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/types/types.h"
 #include "common/utils.h"
+#include "main/client_context.h"
+#include "processor/operator/aggregate/aggregate_hash_table.h"
+#include "processor/result/factorized_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -23,26 +31,20 @@ std::string HashAggregatePrintInfo::toString() const {
     }
     return result;
 }
+HashAggregateSharedState::HashAggregateSharedState(
+    const std::vector<function::AggregateFunction>& aggregateFunctions)
+    : BaseAggregateSharedState{aggregateFunctions}, limitCounter{0},
+      limitNumber{common::INVALID_LIMIT}, numThreads{0} {}
 
-void HashAggregateSharedState::appendAggregateHashTable(
-    std::unique_ptr<AggregateHashTable> aggregateHashTable) {
-    std::unique_lock lck{mtx};
-    localAggregateHashTables.push_back(std::move(aggregateHashTable));
-}
-
-void HashAggregateSharedState::combineAggregateHashTable(MemoryManager& /*memoryManager*/) {
-    std::unique_lock lck{mtx};
-    if (localAggregateHashTables.size() == 1) {
-        globalAggregateHashTable = std::move(localAggregateHashTables[0]);
-    } else {
-        auto numEntries = 0u;
-        for (auto& ht : localAggregateHashTables) {
-            numEntries += ht->getNumEntries();
-        }
-        localAggregateHashTables[0]->resize(nextPowerOfTwo(numEntries));
-        globalAggregateHashTable = std::move(localAggregateHashTables[0]);
-        for (auto i = 1u; i < localAggregateHashTables.size(); i++) {
-            globalAggregateHashTable->merge(*localAggregateHashTables[i]);
+void HashAggregateSharedState::initPartitions(main::ClientContext* context,
+    std::vector<LogicalType> keyDataTypes, std::vector<LogicalType> payloadDataTypes,
+    HashAggregateInfo& info, std::vector<common::LogicalType> types) {
+    for (auto& partition : globalPartitions) {
+        if (!partition.hashTable && partition.mtx.try_lock()) {
+            partition.hashTable = std::make_unique<AggregateHashTable>(*context->getMemoryManager(),
+                LogicalType::copy(keyDataTypes), LogicalType::copy(payloadDataTypes),
+                aggregateFunctions, types, 0, info.tableSchema.copy());
+            partition.mtx.unlock();
         }
     }
 }
@@ -55,19 +57,18 @@ bool HashAggregateSharedState::increaseAndCheckLimitCount(uint64_t num) {
     }
 }
 
-void HashAggregateSharedState::finalizeAggregateHashTable() {
-    std::unique_lock lck{mtx};
-    globalAggregateHashTable->finalizeAggregateStates();
-}
-
 std::pair<uint64_t, uint64_t> HashAggregateSharedState::getNextRangeToRead() {
     std::unique_lock lck{mtx};
-    if (currentOffset >= globalAggregateHashTable->getNumEntries()) {
-        return std::make_pair(currentOffset, currentOffset);
-    }
     auto startOffset = currentOffset;
-    auto range = std::min(DEFAULT_VECTOR_CAPACITY,
-        globalAggregateHashTable->getNumEntries() - currentOffset);
+    auto numTuples = getNumTuples();
+    if (startOffset >= numTuples) {
+        return std::make_pair(startOffset, startOffset);
+    }
+    // FactorizedTable::lookup resets the ValueVector and writes to the beginning,
+    // so we can't support scanning from multiple partitions at once
+    auto* table = std::get<0>(getPartitionForOffset(startOffset));
+    auto range =
+        std::min(std::min(DEFAULT_VECTOR_CAPACITY, numTuples - startOffset), table->getNumTuples());
     currentOffset += range;
     return std::make_pair(startOffset, startOffset + range);
 }
@@ -82,8 +83,9 @@ HashAggregateInfo::HashAggregateInfo(const HashAggregateInfo& other)
     : flatKeysPos{other.flatKeysPos}, unFlatKeysPos{other.unFlatKeysPos},
       dependentKeysPos{other.dependentKeysPos}, tableSchema{other.tableSchema.copy()} {}
 
-void HashAggregateLocalState::init(ResultSet& resultSet, main::ClientContext* context,
-    HashAggregateInfo& info, std::vector<function::AggregateFunction>& aggregateFunctions,
+void HashAggregateLocalState::init(HashAggregateSharedState* sharedState, ResultSet& resultSet,
+    main::ClientContext* context, HashAggregateInfo& info,
+    std::vector<function::AggregateFunction>& aggregateFunctions,
     std::vector<common::LogicalType> types) {
     std::vector<LogicalType> keyDataTypes;
     for (auto& pos : info.flatKeysPos) {
@@ -105,13 +107,17 @@ void HashAggregateLocalState::init(ResultSet& resultSet, main::ClientContext* co
     leadingState = unFlatKeyVectors.empty() ? flatKeyVectors[0]->state.get() :
                                               unFlatKeyVectors[0]->state.get();
 
-    aggregateHashTable = std::make_unique<AggregateHashTable>(*context->getMemoryManager(),
-        std::move(keyDataTypes), std::move(payloadDataTypes), aggregateFunctions, std::move(types),
-        0, std::move(info.tableSchema));
+    sharedState->initPartitions(context, LogicalType::copy(keyDataTypes),
+        LogicalType::copy(payloadDataTypes), info, LogicalType::copy(types));
+    sharedState->registerThread();
+
+    aggregateHashTable = std::make_unique<PartitioningAggregateHashTable>(sharedState,
+        *context->getMemoryManager(), std::move(keyDataTypes), std::move(payloadDataTypes),
+        aggregateFunctions, std::move(types), std::move(info.tableSchema));
 }
 
 uint64_t HashAggregateLocalState::append(const std::vector<AggregateInput>& aggregateInputs,
-    uint64_t multiplicity) const {
+    uint64_t multiplicity) {
     return aggregateHashTable->append(flatKeyVectors, unFlatKeyVectors, dependentKeyVectors,
         leadingState, aggregateInputs, multiplicity);
 }
@@ -122,8 +128,8 @@ void HashAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     for (auto& info : aggInfos) {
         distinctAggKeyTypes.push_back(info.distinctAggKeyType.copy());
     }
-    localState.init(*resultSet, context->clientContext, hashInfo, aggregateFunctions,
-        std::move(distinctAggKeyTypes));
+    localState.init(sharedState.get(), *resultSet, context->clientContext, hashInfo,
+        aggregateFunctions, std::move(distinctAggKeyTypes));
 }
 
 void HashAggregate::executeInternal(ExecutionContext* context) {
@@ -135,12 +141,96 @@ void HashAggregate::executeInternal(ExecutionContext* context) {
             break;
         }
     }
-    sharedState->appendAggregateHashTable(std::move(localState.aggregateHashTable));
+    localState.aggregateHashTable->mergeAll();
+    sharedState->setThreadFinishedProducing();
+    while (!sharedState->allThreadsFinishedProducing()) {
+        std::this_thread::sleep_for(std::chrono::microseconds(500));
+    }
+    sharedState->finalizeAggregateHashTable();
 }
 
-void HashAggregate::finalizeInternal(ExecutionContext* context) {
-    sharedState->combineAggregateHashTable(*context->clientContext->getMemoryManager());
-    sharedState->finalizeAggregateHashTable();
+void HashAggregate::finalizeInternal(ExecutionContext*) {
+    sharedState->assertFinalized();
+}
+
+uint64_t HashAggregateSharedState::getNumTuples() const {
+    uint64_t numTuples = 0;
+    for (auto& partition : globalPartitions) {
+        numTuples += partition.hashTable->getNumEntries();
+    }
+    return numTuples;
+}
+
+std::unique_ptr<FactorizedTable> HashAggregateSharedState::mergeTable(uint8_t partitionIdx,
+    std::unique_ptr<FactorizedTable> localPartition) {
+    auto& partition = globalPartitions[partitionIdx];
+    if (partition.mtx.try_lock()) {
+        partition.hashTable->merge(*localPartition);
+        // TODO(bmwinger): clear does allocations. This should ideally re-use the existing data
+        // structures
+        localPartition->clear();
+        std::unique_ptr<FactorizedTable> partitionToMerge;
+        while (partition.queuedTuples.pop(partitionToMerge)) {
+            partition.hashTable->merge(*partitionToMerge);
+        }
+        partition.mtx.unlock();
+    } else {
+        partition.queuedTuples.push(std::move(localPartition));
+        localPartition = nullptr;
+    }
+    return localPartition;
+}
+
+void HashAggregateSharedState::finalizeAggregateHashTable() {
+    for (auto& partition : globalPartitions) {
+        if (partition.mtx.try_lock()) {
+            std::unique_ptr<FactorizedTable> partitionToMerge;
+            while (partition.queuedTuples.pop(partitionToMerge)) {
+                partition.hashTable->merge(*partitionToMerge);
+            }
+            partition.hashTable->finalizeAggregateStates();
+            partition.finalized = true;
+            partition.mtx.unlock();
+        }
+    }
+}
+
+std::tuple<const FactorizedTable*, offset_t, idx_t> HashAggregateSharedState::getPartitionForOffset(
+    offset_t offset) const {
+    auto factorizedTableStartOffset = 0;
+    auto partitionIdx = 0;
+    auto* factorizedTable = globalPartitions[partitionIdx].hashTable->getFactorizedTable();
+    while (factorizedTableStartOffset + factorizedTable->getNumTuples() <= offset) {
+        factorizedTableStartOffset += factorizedTable->getNumTuples();
+        factorizedTable = globalPartitions[++partitionIdx].hashTable->getFactorizedTable();
+    }
+    return std::make_tuple(factorizedTable, factorizedTableStartOffset, partitionIdx);
+}
+
+void HashAggregateSharedState::scan(std::span<uint8_t*> entries,
+    std::vector<common::ValueVector*>& keyVectors, offset_t startOffset, offset_t numTuplesToScan,
+    std::vector<uint32_t>& columnIndices) {
+    auto [factorizedTable, factorizedTableStartOffset, partitionIdx] =
+        getPartitionForOffset(startOffset);
+    // Due to the way FactorizedTable::lookup works, it's necessary to read one partition
+    // at a time.
+    KU_ASSERT(startOffset - factorizedTableStartOffset + numTuplesToScan <=
+              factorizedTable->getNumTuples());
+    auto numTuplesToScanInPartition = std::min(numTuplesToScan, factorizedTable->getNumTuples());
+    for (size_t pos = 0; pos < numTuplesToScanInPartition; pos++) {
+        auto posInTable = startOffset + pos - factorizedTableStartOffset;
+        entries[pos] = factorizedTable->getTuple(posInTable);
+    }
+    factorizedTable->lookup(keyVectors, columnIndices, entries.data(),
+        startOffset - factorizedTableStartOffset, numTuplesToScanInPartition);
+    KU_ASSERT(true);
+}
+
+void HashAggregateSharedState::assertFinalized() const {
+    RUNTIME_CHECK(for (const auto& partition
+                       : globalPartitions) {
+        KU_ASSERT(partition.finalized && partition.queuedTuples.approxSize() == 0);
+    });
 }
 
 } // namespace processor
