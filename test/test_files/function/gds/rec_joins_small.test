@@ -110,23 +110,35 @@
 -STATEMENT MATCH p = (a:person1)-[e:knows11*1..4 (r, n | WHERE n.age < 15)]->(b:person1)
         WHERE a.ID = 0
         HINT (a JOIN e) JOIN b
-        RETURN  a.ID, b.ID, properties(nodes(e),'age')
+        RETURN  a.ID, b.ID, properties(nodes(p),'age')
 ---- 2
-0|1|[]
-0|2|[10]
+0|1|[0,10]
+0|2|[0,10,20]
 
 ---- ok
 -STATEMENT MATCH p = (a:person1)-[e:knows11*1..4 (r, n | WHERE n.age < 35)]->(b:person1)
         WHERE a.ID = 0
         HINT (a JOIN e) JOIN b
-        RETURN  a.ID, b.ID, properties(nodes(e),'age')
+        RETURN  a.ID, b.ID, properties(nodes(p),'age')
 ---- 6
-0|1|[]
-0|2|[10]
-0|3|[10,20]
-0|4|[10,20,30]
-0|4|[10,20]
-0|4|[10,20]
+0|1|[0,10]
+0|2|[0,10,20]
+0|3|[0,10,20,30]
+0|4|[0,10,20,30,40]
+0|4|[0,10,20,40]
+0|4|[0,10,20,40]
+
+-STATEMENT MATCH p = (a:person1)-[e:knows11*1..4 (r, n | WHERE n.age < 35)]->(b:person1)
+        WHERE a.ID = 0
+        HINT a JOIN (e JOIN b)
+        RETURN  a.ID, b.ID, properties(nodes(p),'age')
+---- 6
+0|1|[0,10]
+0|2|[0,10,20]
+0|3|[0,10,20,30]
+0|4|[0,10,20,30,40]
+0|4|[0,10,20,40]
+0|4|[0,10,20,40]
 
 -STATEMENT MATCH p = (a:person1)-[e:knows11*1..4 (r, n | WHERE r.score  < 1)]->(b:person1)
         WHERE a.ID = 0
