@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "function/hash/hash_functions.h"
+#include "processor/result/factorized_table.h"
 
 using namespace kuzu::common;
 
@@ -45,7 +46,7 @@ void Intersect::probeHTs() {
     for (auto i = 0u; i < probeKeyVectors.size(); i++) {
         KU_ASSERT(probeKeyVectors[i]->state->isFlat());
         probedFlatTuples[i].clear();
-        if (sharedHTs[i]->getHashTable()->getNumTuples() == 0) {
+        if (sharedHTs[i]->getHashTable()->getNumEntries() == 0) {
             continue;
         }
         auto key =

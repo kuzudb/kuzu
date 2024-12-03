@@ -4,6 +4,7 @@
 #include "common/mask.h"
 #include "storage/predicate/column_predicate.h"
 #include "storage/store/column.h"
+#include "storage/store/column_chunk_data.h"
 #include "storage/store/node_group.h"
 
 namespace kuzu {

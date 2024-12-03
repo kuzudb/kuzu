@@ -41,6 +41,7 @@ private:
     std::vector<common::ValueVector*> groupByKeyVectors;
     std::shared_ptr<HashAggregateSharedState> sharedState;
     std::vector<uint32_t> groupByKeyVectorsColIdxes;
+    std::vector<uint8_t*> entries;
 };
 
 } // namespace processor

@@ -4,6 +4,7 @@
 
 #include "common/null_buffer.h"
 #include "common/type_utils.h"
+#include "common/types/ku_list.h"
 #include "common/utils.h"
 #include "function/comparison/comparison_functions.h"
 #include "function/hash/vector_hash_functions.h"
@@ -16,7 +17,7 @@ namespace processor {
 
 BaseHashTable::BaseHashTable(storage::MemoryManager& memoryManager, logical_type_vec_t keyTypes)
     : maxNumHashSlots{0}, bitmask{0}, numSlotsPerBlockLog2{0}, slotIdxInBlockMask{0},
-      memoryManager{memoryManager}, keyTypes{std::move(keyTypes)} {
+      memoryManager{&memoryManager}, keyTypes{std::move(keyTypes)} {
     initCompareFuncs();
     initTmpHashVector();
 }
@@ -66,6 +67,14 @@ static bool compareEntry(common::ValueVector* vector, uint32_t vectorPos, const 
     uint8_t result = 0;
     auto key = vector->getData() + vectorPos * vector->getNumBytesPerValue();
     function::Equals::operation(*(T*)key, *(T*)entry, result, nullptr /* leftVector */,
+        nullptr /* rightVector */);
+    return result != 0;
+}
+
+template<typename T>
+static bool rawCompareEntry(const uint8_t* entry1, const uint8_t* entry2) {
+    uint8_t result = 0;
+    function::Equals::operation(*(T*)entry1, *(T*)entry2, result, nullptr /* leftVector */,
         nullptr /* rightVector */);
     return result != 0;
 }
@@ -155,6 +164,13 @@ static compare_function_t getCompareEntryFunc(PhysicalTypeID type) {
     return func;
 }
 
+static raw_compare_function_t getRawCompareEntryFunc(PhysicalTypeID type) {
+    raw_compare_function_t func;
+    TypeUtils::visit(
+        type, [&]<HashableTypes T>(T) { func = rawCompareEntry<T>; }, [](auto) { KU_UNREACHABLE; });
+    return func;
+}
+
 void BaseHashTable::initSlotConstant(uint64_t numSlotsPerBlock) {
     numSlotsPerBlockLog2 = std::log2(numSlotsPerBlock);
     slotIdxInBlockMask =
@@ -171,8 +187,9 @@ bool BaseHashTable::matchFlatVecWithEntry(const std::vector<common::ValueVector*
         KU_ASSERT(keyVector->state->getSelVector().getSelSize() == 1);
         auto pos = keyVector->state->getSelVector()[0];
         auto isKeyVectorNull = keyVector->isNull(pos);
-        auto isEntryKeyNull = factorizedTable->isNonOverflowColNull(
-            entry + factorizedTable->getTableSchema()->getNullMapOffset(), i);
+        // FIXME: Move this somewhere
+        auto isEntryKeyNull = !getTableSchema()->getColumn(i)->hasNoNullGuarantee() &&
+                              NullBuffer::isNull(entry + getTableSchema()->getNullMapOffset(), i);
         // If either key or entry is null, we shouldn't compare the value of keyVector and
         // entry.
         if (isKeyVectorNull && isEntryKeyNull) {
@@ -180,8 +197,7 @@ bool BaseHashTable::matchFlatVecWithEntry(const std::vector<common::ValueVector*
         } else if (isKeyVectorNull != isEntryKeyNull) {
             return false;
         }
-        if (!compareEntryFuncs[i](keyVector, pos,
-                entry + factorizedTable->getTableSchema()->getColOffset(i))) {
+        if (!compareEntryFuncs[i](keyVector, pos, entry + getTableSchema()->getColOffset(i))) {
             return false;
         }
     }
@@ -192,16 +208,17 @@ void BaseHashTable::initCompareFuncs() {
     compareEntryFuncs.reserve(keyTypes.size());
     for (auto i = 0u; i < keyTypes.size(); ++i) {
         compareEntryFuncs.push_back(getCompareEntryFunc(keyTypes[i].getPhysicalType()));
+        rawCompareEntryFuncs.push_back(getRawCompareEntryFunc(keyTypes[i].getPhysicalType()));
     }
 }
 
 void BaseHashTable::initTmpHashVector() {
     hashState = std::make_shared<DataChunkState>();
     hashState->setToFlat();
-    hashVector = std::make_unique<ValueVector>(LogicalType::HASH(), &memoryManager);
+    hashVector = std::make_unique<ValueVector>(LogicalType::HASH(), memoryManager);
     hashVector->state = hashState;
-    tmpHashResultVector = std::make_unique<ValueVector>(LogicalType::HASH(), &memoryManager);
-    tmpHashCombineResultVector = std::make_unique<ValueVector>(LogicalType::HASH(), &memoryManager);
+    tmpHashResultVector = std::make_unique<ValueVector>(LogicalType::HASH(), memoryManager);
+    tmpHashCombineResultVector = std::make_unique<ValueVector>(LogicalType::HASH(), memoryManager);
 }
 
 } // namespace processor
