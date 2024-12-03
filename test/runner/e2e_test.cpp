@@ -199,8 +199,7 @@ int main(int argc, char** argv) {
         } else {
             test_dir = "test/test_files";
         }
-        std::string TestHelper::E2E_TEST_FILES_DIRECTORY = test_dir;
-        //TestHelper::setE2ETestFilesDirectory(test_dir);
+        TestHelper::setE2ETestFilesDirectory(test_dir);
 
         checkGtestParams(argc, argv);
         testing::InitGoogleTest(&argc, argv);
