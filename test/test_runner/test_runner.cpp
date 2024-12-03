@@ -137,6 +137,8 @@ void TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
     default: {
         ASSERT_TRUE(preparedStatement->success)
             << "Query compilation failed with error: " << preparedStatement->getErrorMessage();
+        ASSERT_TRUE(result->isSuccess())
+            << "Unexpected error for query: " << result->getErrorMessage();
         auto planStr = preparedStatement->logicalPlans[planIdx]->toString();
         checkPlanResult(result, statement, resultIdx, planStr, planIdx);
         break;
