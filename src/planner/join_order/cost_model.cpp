@@ -24,7 +24,7 @@ uint64_t CostModel::computeHashJoinCost(const binder::expression_vector& joinNod
     const LogicalPlan& probe, const LogicalPlan& build) {
     KU_ASSERT(probe.getCardinality() >= 1);
     KU_ASSERT(build.getCardinality() >= 1);
-    auto cost = 0ul;
+    uint64_t cost = 0ul;
     cost += probe.getCost();
     cost += build.getCost();
     cost += probe.getCardinality();
@@ -41,7 +41,7 @@ uint64_t CostModel::computeMarkJoinCost(const binder::expression_vector& joinNod
 uint64_t CostModel::computeIntersectCost(const kuzu::planner::LogicalPlan& probePlan,
     const std::vector<std::unique_ptr<LogicalPlan>>& buildPlans) {
     KU_ASSERT(probePlan.getCardinality() >= 1);
-    auto cost = 0ul;
+    uint64_t cost = 0ul;
     cost += probePlan.getCost();
     // TODO(Xiyang): think of how to calculate intersect cost such that it will be picked in worst
     // case.
