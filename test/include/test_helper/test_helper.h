@@ -23,7 +23,7 @@ struct TestQueryConfig {
 
 class TestHelper {
 public:
-    inline static std::string E2E_TEST_FILES_DIRECTORY = "test/test_files";
+    static std::string E2E_TEST_FILES_DIRECTORY = "test/test_files";
     static constexpr char SCHEMA_FILE_NAME[] = "schema.cypher";
     static constexpr char COPY_FILE_NAME[] = "copy.cypher";
     static constexpr char TEST_ANSWERS_PATH[] = "test/answers";

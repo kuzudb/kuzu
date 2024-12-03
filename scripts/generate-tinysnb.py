@@ -8,10 +8,10 @@ KUZU_ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 os.chdir(KUZU_ROOT)
 
 # Define the build type from input
-if len(sys.argv) > 1 and sys.argv[1].lower() == "relwithdebinfo":
-    build_type = "relwithdebinfo"
-else:
+if len(sys.argv) > 1 and sys.argv[1].lower() == "release":
     build_type = "release"
+else:
+    build_type = "relwithdebinfo"
 
 # Change the current working directory
 if os.path.exists(f"{KUZU_ROOT}/dataset/databases/tinysnb"):

@@ -868,7 +868,7 @@ jobs:
 
       - name: Extension test
         run: |
-          python3 scripts/generate-tinysnb.py relwithdebinfo
+          python3 scripts/generate-tinysnb.py
           cd scripts/ && python3 http-server.py &
           make extension-test
 
@@ -930,7 +930,7 @@ jobs:
 
       - name: Extension test
         run: |
-          python3 scripts/generate-tinysnb.py relwithdebinfo
+          python3 scripts/generate-tinysnb.py
           cd scripts/ && python3 http-server.py &
           make extension-test
 
@@ -991,7 +991,7 @@ jobs:
         shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          python3 scripts/generate-tinysnb.py relwithdebinfo
+          python3 scripts/generate-tinysnb.py
           if %errorlevel% neq 0 exit /b %errorlevel%
           cd scripts/ && start /b python http-server.py && cd ..
           make extension-test
@@ -1003,7 +1003,7 @@ jobs:
           HTTP_CACHE_FILE: false
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          python3 scripts/generate-tinysnb.py relwithdebinfo
+          python3 scripts/generate-tinysnb.py
           if %errorlevel% neq 0 exit /b %errorlevel%
           cd scripts/ && start /b python http-server.py && cd ..
           make extension-test
