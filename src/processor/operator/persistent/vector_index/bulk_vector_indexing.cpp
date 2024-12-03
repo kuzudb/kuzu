@@ -114,11 +114,12 @@ namespace kuzu {
 
             // TODO: Fix this to make it parallel!!
             printf("Running quantization!!\n");
-            sharedState->headerPerPartition->getQuantizer()->batch_train(
-                    sharedState->tempStorage->vectors, sharedState->tempStorage->numVectors);
-            sharedState->headerPerPartition->getQuantizer()->encode(
-                    sharedState->tempStorage->vectors, sharedState->headerPerPartition->getQuantizedVectors(),
-                    sharedState->tempStorage->numVectors);
+            // Skip the quantization for now
+//            sharedState->headerPerPartition->getQuantizer()->batch_train(
+//                    sharedState->tempStorage->vectors, sharedState->tempStorage->numVectors);
+//            sharedState->headerPerPartition->getQuantizer()->encode(
+//                    sharedState->tempStorage->vectors, sharedState->headerPerPartition->getQuantizedVectors(),
+//                    sharedState->tempStorage->numVectors);
 
             // Free the memory of the graph
             sharedState->graph.reset();
@@ -126,6 +127,7 @@ namespace kuzu {
             sharedState->builder.reset();
             sharedState->compressedStorage.reset();
 
+            // Update the updated tables
             context->clientContext->getStorageManager()->getWAL().addToUpdatedTables(
                     sharedState->header->getNodeTableId());
         }
