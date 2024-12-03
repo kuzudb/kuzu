@@ -101,8 +101,8 @@ public:
     RJAlgorithm() = default;
     RJAlgorithm(const RJAlgorithm& other) : GDSAlgorithm{other} {}
 
-    void exec(processor::ExecutionContext* executionContext) override;
-    virtual RJCompState getRJCompState(processor::ExecutionContext* executionContext,
+    void exec(processor::ExecutionContext* context) override;
+    virtual RJCompState getRJCompState(processor::ExecutionContext* context,
         common::nodeID_t sourceNodeID) = 0;
     void setToNoPath();
     binder::expression_vector getResultColumnsNoPath();
@@ -112,6 +112,8 @@ protected:
 
     binder::expression_vector getBaseResultColumns() const;
     void bindColumnExpressions(binder::Binder* binder) const;
+
+    std::unique_ptr<BFSGraph> getBFSGraph(processor::ExecutionContext* context);
 };
 
 class SPAlgorithm : public RJAlgorithm {

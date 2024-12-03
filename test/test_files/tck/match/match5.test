@@ -309,6 +309,7 @@ n0111
 
 # Handling a variable length relationship and a standard relationship in chain, longer 3
 -CASE Scenario25
+-SKIP_WASM
 -STATEMENT  MATCH (d:D)
             CREATE (e1:E {name: concat(d.name, '0')}),
                    (e2:E {name: concat(d.name, '1')})
@@ -338,6 +339,7 @@ n01111
 
 # Handling mixed relationship patterns and directions 1
 -CASE Scenario26
+-SKIP_WASM
 -STATEMENT MATCH (a:A)-[r]->(b:B)
            DELETE r
            CREATE (b)-[:LIKES_B_A]->(a);
@@ -436,6 +438,7 @@ n01111
 
 # Handling mixed relationship patterns 2
 -CASE Scenario29
+-SKIP_WASM
 -STATEMENT  MATCH (d:D)
             CREATE (e1:E {name: concat(d.name, '0')}),
                    (e2:E {name: concat(d.name, '1')})

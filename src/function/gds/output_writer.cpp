@@ -9,15 +9,9 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace function {
 
-SPOutputs::SPOutputs(common::table_id_map_t<common::offset_t> numNodesMap, nodeID_t sourceNodeID,
-    storage::MemoryManager* mm)
-    : RJOutputs(sourceNodeID) {
-    pathLengths = std::make_shared<PathLengths>(numNodesMap, mm);
-}
-
 void PathsOutputs::beginWritingOutputsForDstNodesInTable(common::table_id_t tableID) {
     pathLengths->pinCurFrontierTableID(tableID);
-    bfsGraph.pinNodeTable(tableID);
+    bfsGraph->pinTableID(tableID);
 }
 
 RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
@@ -87,7 +81,7 @@ static ParentList* getTop(const std::vector<ParentList*>& path) {
 void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
     GDSOutputCounter* counter) {
     auto output = rjOutputs->ptrCast<PathsOutputs>();
-    auto& bfsGraph = output->bfsGraph;
+    auto& bfsGraph = *output->bfsGraph;
     auto sourceNodeID = output->sourceNodeID;
     dstNodeIDVector->setValue<common::nodeID_t>(0, dstNodeID);
     auto firstParent = findFirstParent(dstNodeID.offset, bfsGraph);

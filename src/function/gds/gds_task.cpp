@@ -51,15 +51,23 @@ void FrontierTask::run() {
 void VertexComputeTask::run() {
     FrontierMorsel frontierMorsel;
     auto graph = sharedState->graph;
-    auto scanState =
-        graph->prepareVertexScan(sharedState->morselDispatcher.getTableID(), info.propertiesToScan);
     auto localVc = info.vc.copy();
-    while (sharedState->morselDispatcher.getNextRangeMorsel(frontierMorsel)) {
-        for (auto chunk : graph->scanVertices(frontierMorsel.getBeginOffset(),
-                 frontierMorsel.getEndOffsetExclusive(), *scanState)) {
-            localVc->vertexCompute(chunk);
+    auto tableID = sharedState->morselDispatcher.getTableID();
+    if (info.hasPropertiesToScan()) {
+        auto scanState =
+            graph->prepareVertexScan(tableID, info.propertiesToScan);
+        while (sharedState->morselDispatcher.getNextRangeMorsel(frontierMorsel)) {
+            for (auto chunk : graph->scanVertices(frontierMorsel.getBeginOffset(),
+                     frontierMorsel.getEndOffsetExclusive(), *scanState)) {
+                localVc->vertexCompute(chunk);
+            }
+        }
+    } else {
+        while (sharedState->morselDispatcher.getNextRangeMorsel(frontierMorsel)) {
+            localVc->vertexCompute(frontierMorsel.getBeginOffset(), frontierMorsel.getEndOffsetExclusive(), tableID);
         }
     }
 }
+
 } // namespace function
 } // namespace kuzu

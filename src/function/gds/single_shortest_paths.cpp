@@ -17,9 +17,8 @@ namespace kuzu {
 namespace function {
 
 struct SingleSPDestinationsOutputs : public SPOutputs {
-    SingleSPDestinationsOutputs(common::table_id_map_t<common::offset_t> numNodesMap,
-        common::nodeID_t sourceNodeID, MemoryManager* mm = nullptr)
-        : SPOutputs(numNodesMap, sourceNodeID, mm) {}
+    SingleSPDestinationsOutputs(nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths)
+        : SPOutputs(sourceNodeID, pathLengths) {}
     // Note: We do not fix the node table for pathLengths, because PathLengths is a
     // FrontierPair implementation and RJCompState will call beginFrontierComputeBetweenTables
     // on FrontierPair (and RJOutputs). That's why this function is empty.
@@ -106,9 +105,9 @@ public:
 private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
+        auto frontier = getPathLengthsFrontier(context);
         auto output = std::make_unique<SingleSPDestinationsOutputs>(
-            sharedState->graph->getNumNodesMap(clientContext->getTx()), sourceNodeID,
-            clientContext->getMemoryManager());
+            sourceNodeID, frontier);
         auto outputWriter = std::make_unique<DestinationsOutputWriter>(clientContext, output.get(),
             sharedState->getOutputNodeMaskMap());
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
@@ -139,9 +138,9 @@ public:
 private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
-        auto output = std::make_unique<PathsOutputs>(
-            sharedState->graph->getNumNodesMap(clientContext->getTx()), sourceNodeID,
-            clientContext->getMemoryManager());
+        auto frontier = getPathLengthsFrontier(context);
+        auto bfsGraph = getBFSGraph(context);
+        auto output = std::make_unique<PathsOutputs>(sourceNodeID, frontier, std::move(bfsGraph));
         auto rjBindData = bindData->ptrCast<RJBindData>();
         auto writerInfo = rjBindData->getPathWriterInfo();
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
@@ -150,7 +149,7 @@ private:
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute =
-            std::make_unique<SingleSPPathsEdgeCompute>(frontierPair.get(), &output->bfsGraph);
+            std::make_unique<SingleSPPathsEdgeCompute>(frontierPair.get(), output->bfsGraph.get());
         return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),
             std::move(outputWriter));
     }
