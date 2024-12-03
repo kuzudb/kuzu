@@ -49,6 +49,25 @@ env:
   PIP_BREAK_SYSTEM_PACKAGES: 1
 
 jobs:
+  get-nightly-version:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update nightly version
+        run: |
+          python3 -m pip install packaging
+          python3 update-nightly-build-version.py | grep "New Python dev version:" | awk -F'New Python dev version: ' '{print $2}' | sed 's/\.$//' > version.txt
+          cat version.txt
+        working-directory: scripts
+      
+      - name: Upload version
+        uses: actions/upload-artifact@v4
+        with:
+          name: version
+          path: scripts/version.txt
+
   build-extension:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipExtensions != 'true' }}
     uses: ./.github/workflows/build-and-deploy-extension.yml

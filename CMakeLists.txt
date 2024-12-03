@@ -168,6 +168,11 @@ if(BUILD_WASM)
     add_compile_definitions(__WASM__)
 endif()
 
+if(CMAKE_ANDROID_NDK_VERSION)
+    message(STATUS "Android NDK version: ${CMAKE_ANDROID_NDK_VERSION}")
+    add_compile_definitions(__ANDROID__)
+endif()
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     add_compile_options(-Wno-restrict) # no restrict until https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105651 is fixed
 endif()
