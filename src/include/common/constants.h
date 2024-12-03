@@ -81,6 +81,8 @@ struct BufferPoolConstants {
 // The default max size for a VMRegion.
 #ifdef __32BIT__
     static constexpr uint64_t DEFAULT_VM_REGION_MAX_SIZE = (uint64_t)1 << 30; // (1GB)
+#elif defined(__ANDROID__)
+    static constexpr uint64_t DEFAULT_VM_REGION_MAX_SIZE = (uint64_t)1 << 38; // (256GB)
 #else
     static constexpr uint64_t DEFAULT_VM_REGION_MAX_SIZE = static_cast<uint64_t>(1) << 43; // (8TB)
 #endif
