@@ -133,7 +133,6 @@ public:
         processor::GDSOutputCounter* counter) override;
 
 private:
-
     ParentList* findFirstParent(common::offset_t dstOffset, BFSGraph& bfsGraph) const;
 
     bool checkPathNodeMask(ParentList* element) const;

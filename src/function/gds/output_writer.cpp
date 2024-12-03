@@ -85,8 +85,8 @@ static ParentList* getTop(const std::vector<ParentList*>& path) {
     return path[path.size() - 1];
 }
 
-
-void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID, GDSOutputCounter* counter) {
+void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
+    GDSOutputCounter* counter) {
     auto output = rjOutputs->ptrCast<PathsOutputs>();
     auto& bfsGraph = output->bfsGraph;
     auto sourceNodeID = output->sourceNodeID;
@@ -191,7 +191,8 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
                     backtracking = true;
                     break;
                 }
-                if (parent->getIter() == top->getIter() - 1 && checkPathNodeMask(parent) && checkAppendSemantic(curPath, parent)) {
+                if (parent->getIter() == top->getIter() - 1 && checkPathNodeMask(parent) &&
+                    checkAppendSemantic(curPath, parent)) {
                     // A forward tracking candidate should decrease the iteration by one and also
                     // pass node predicate checking.
                     curPath.push_back(parent);
@@ -257,7 +258,8 @@ bool PathsOutputWriter::checkPathNodeMask(ParentList* element) const {
     return info.pathNodeMask->valid(element->getNodeID());
 }
 
-bool PathsOutputWriter::checkAppendSemantic(const std::vector<ParentList*>& path, ParentList* candidate) const {
+bool PathsOutputWriter::checkAppendSemantic(const std::vector<ParentList*>& path,
+    ParentList* candidate) const {
     switch (info.semantic) {
     case PathSemantic::WALK:
         return true;
@@ -270,7 +272,8 @@ bool PathsOutputWriter::checkAppendSemantic(const std::vector<ParentList*>& path
     }
 }
 
-bool PathsOutputWriter::checkReplaceTopSemantic(const std::vector<ParentList*>& path, ParentList* candidate) const {
+bool PathsOutputWriter::checkReplaceTopSemantic(const std::vector<ParentList*>& path,
+    ParentList* candidate) const {
     switch (info.semantic) {
     case PathSemantic::WALK:
         return true;
@@ -283,7 +286,8 @@ bool PathsOutputWriter::checkReplaceTopSemantic(const std::vector<ParentList*>& 
     }
 }
 
-bool PathsOutputWriter::isAppendTrail(const std::vector<ParentList*>& path, ParentList* candidate) const {
+bool PathsOutputWriter::isAppendTrail(const std::vector<ParentList*>& path,
+    ParentList* candidate) const {
     for (auto& element : path) {
         if (candidate->getEdgeID() == element->getEdgeID()) {
             return false;
@@ -292,7 +296,8 @@ bool PathsOutputWriter::isAppendTrail(const std::vector<ParentList*>& path, Pare
     return true;
 }
 
-bool PathsOutputWriter::isAppendAcyclic(const std::vector<ParentList*>& path, ParentList* candidate) const {
+bool PathsOutputWriter::isAppendAcyclic(const std::vector<ParentList*>& path,
+    ParentList* candidate) const {
     // Skip dst for semantic checking
     for (auto i = 1u; i < path.size() - 1; ++i) {
         if (candidate->getNodeID() == path[i]->getNodeID()) {
@@ -302,7 +307,8 @@ bool PathsOutputWriter::isAppendAcyclic(const std::vector<ParentList*>& path, Pa
     return true;
 }
 
-bool PathsOutputWriter::isReplaceTopTrail(const std::vector<ParentList*>& path, ParentList* candidate) const {
+bool PathsOutputWriter::isReplaceTopTrail(const std::vector<ParentList*>& path,
+    ParentList* candidate) const {
     for (auto i = 0u; i < path.size() - 1; ++i) {
         if (candidate->getEdgeID() == path[i]->getEdgeID()) {
             return false;
@@ -311,7 +317,8 @@ bool PathsOutputWriter::isReplaceTopTrail(const std::vector<ParentList*>& path, 
     return true;
 }
 
-bool PathsOutputWriter::isReplaceTopAcyclic(const std::vector<ParentList*>& path, ParentList* candidate) const {
+bool PathsOutputWriter::isReplaceTopAcyclic(const std::vector<ParentList*>& path,
+    ParentList* candidate) const {
     // Skip dst for semantic checking
     for (auto i = 1u; i < path.size() - 1; ++i) {
         if (candidate->getNodeID() == path[i]->getNodeID()) {
