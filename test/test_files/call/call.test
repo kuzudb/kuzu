@@ -262,4 +262,4 @@ Binder exception: a.fName has type PROPERTY but LITERAL was expected.
 -LOG BMInfo
 -STATEMENT CALL bm_info() RETURN mem_limit
 ---- 1
-67108864
+268435456

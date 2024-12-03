@@ -16,9 +16,8 @@ void BaseAggregateScan::initLocalStateInternal(ResultSet* resultSet,
 
 void BaseAggregateScan::writeAggregateResultToVector(ValueVector& vector, uint64_t pos,
     AggregateState* aggregateState) {
-    if (aggregateState->isNull) {
-        vector.setNull(pos, true);
-    } else {
+    vector.setNull(pos, aggregateState->isNull);
+    if (!aggregateState->isNull) {
         aggregateState->moveResultToVector(&vector, pos);
     }
 }
