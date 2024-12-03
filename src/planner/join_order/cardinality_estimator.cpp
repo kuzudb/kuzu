@@ -17,11 +17,11 @@ namespace planner {
 
 void CardinalityEstimator::initNodeIDDom(const Transaction* transaction,
     const QueryGraph& queryGraph) {
-    for (auto i = 0u; i < queryGraph.getNumQueryNodes(); ++i) {
+    for (uint64_t i = 0u; i < queryGraph.getNumQueryNodes(); ++i) {
         auto node = queryGraph.getQueryNode(i).get();
         addNodeIDDomAndStats(transaction, *node->getInternalID(), node->getTableIDs());
     }
-    for (auto i = 0u; i < queryGraph.getNumQueryRels(); ++i) {
+    for (uint64_t i = 0u; i < queryGraph.getNumQueryRels(); ++i) {
         auto rel = queryGraph.getQueryRel(i);
         if (QueryRelTypeUtils::isRecursive(rel->getRelType())) {
             auto node = rel->getRecursiveInfo()->node.get();
@@ -33,7 +33,7 @@ void CardinalityEstimator::initNodeIDDom(const Transaction* transaction,
 void CardinalityEstimator::addNodeIDDomAndStats(const Transaction* transaction,
     const binder::Expression& nodeID, const std::vector<common::table_id_t>& tableIDs) {
     auto key = nodeID.getUniqueName();
-    auto numNodes = 0u;
+    cardinality_t numNodes = 0u;
     for (auto tableID : tableIDs) {
         auto stats =
             context->getStorageManager()->getTable(tableID)->cast<storage::NodeTable>().getStats(
@@ -60,7 +60,7 @@ cardinality_t CardinalityEstimator::estimateExtend(double extensionRate,
 
 uint64_t CardinalityEstimator::estimateHashJoin(const expression_vector& joinKeys,
     const LogicalPlan& probePlan, const LogicalPlan& buildPlan) {
-    auto denominator = 1u;
+    cardinality_t denominator = 1u;
     for (auto& joinKey : joinKeys) {
         // TODO(Xiyang): we should be able to estimate non-ID-based joins as well.
         if (nodeIDName2dom.contains(joinKey->getUniqueName())) {
@@ -83,7 +83,7 @@ uint64_t CardinalityEstimator::estimateIntersect(const expression_vector& joinNo
     uint64_t estCardinality1 =
         probePlan.estCardinality * PlannerKnobs::NON_EQUALITY_PREDICATE_SELECTIVITY;
     // Formula 2: assume independence on join conditions.
-    auto denominator = 1u;
+    cardinality_t denominator = 1u;
     for (auto& joinNodeID : joinNodeIDs) {
         denominator *= getNodeIDDom(joinNodeID->getUniqueName());
     }
@@ -147,7 +147,7 @@ uint64_t CardinalityEstimator::estimateFilter(const LogicalPlan& childPlan,
 
 uint64_t CardinalityEstimator::getNumNodes(const Transaction*,
     const std::vector<table_id_t>& tableIDs) {
-    auto numNodes = 0u;
+    cardinality_t numNodes = 0u;
     for (auto& tableID : tableIDs) {
         KU_ASSERT(nodeTableStats.contains(tableID));
         numNodes += nodeTableStats.at(tableID).getTableCard();
@@ -157,7 +157,7 @@ uint64_t CardinalityEstimator::getNumNodes(const Transaction*,
 
 uint64_t CardinalityEstimator::getNumRels(const Transaction* transaction,
     const std::vector<table_id_t>& tableIDs) {
-    auto numRels = 0u;
+    cardinality_t numRels = 0u;
     for (auto tableID : tableIDs) {
         numRels += context->getStorageManager()->getTable(tableID)->getNumTotalRows(transaction);
     }
