@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <<algorithm>
 
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
