@@ -879,10 +879,10 @@ jobs:
         run: |
           make extension-test && make clean
 
-      # TODO(Royi) there is currently a known memory leak issue in the DuckDB postgres/delta extension so we avoid running the postgres/delta extension tests with Leak Sanitizer
+      # TODO(Royi) there is currently a known memory leak issue in the DuckDB postgres/delta/iceberg extension so we avoid running the postgres/delta extension tests with Leak Sanitizer
       - name: Extension test with asan
         run: |
-          make clean && make extension-test ASAN=1 WERROR=0 EXTENSION_TEST_EXCLUDE_FILTER="(delta|postgres)" && make clean
+          make clean && make extension-test ASAN=1 WERROR=0 EXTENSION_TEST_EXCLUDE_FILTER="(delta|postgres|iceberg)" && make clean
 
   macos-extension-test:
     name: macos extension test
