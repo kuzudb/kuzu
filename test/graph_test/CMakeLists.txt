@@ -12,7 +12,6 @@ target_include_directories(
 
 target_link_libraries(graph_test PUBLIC GTest::GTest kuzu)
 
-
 add_library(
         api_graph_test
         OBJECT

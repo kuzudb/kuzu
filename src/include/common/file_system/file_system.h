@@ -36,6 +36,10 @@ class KUZU_API FileSystem {
     friend struct FileInfo;
 
 public:
+    FileSystem() = default;
+
+    explicit FileSystem(std::string homeDir) : homeDir(std::move(homeDir)) {}
+
     virtual ~FileSystem() = default;
 
     virtual std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,
@@ -92,6 +96,8 @@ protected:
     virtual void truncate(FileInfo& fileInfo, uint64_t size) const;
 
     virtual uint64_t getFileSize(const FileInfo& fileInfo) const = 0;
+
+    std::string homeDir;
 };
 
 } // namespace common

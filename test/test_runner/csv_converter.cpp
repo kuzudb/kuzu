@@ -14,7 +14,7 @@ namespace kuzu {
 namespace testing {
 
 void CSVConverter::copySchemaFile() {
-    LocalFileSystem localFileSystem;
+    LocalFileSystem localFileSystem("");
     auto csvSchemaFile =
         localFileSystem.joinPath(csvDatasetPath, std::string(TestHelper::SCHEMA_FILE_NAME));
     auto outputSchemaFile =
@@ -173,7 +173,7 @@ void CSVConverter::convertCSVFiles() {
 }
 
 void CSVConverter::convertCSVDataset() {
-    LocalFileSystem localFileSystem;
+    LocalFileSystem localFileSystem("");
     if (!localFileSystem.fileOrPathExists(outputDatasetPath)) {
         localFileSystem.createDir(outputDatasetPath);
     }

@@ -7,6 +7,9 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/null_mask.h"
 #include "common/types/types.h"
+#include "main/client_context.h"
+#include "main/db_config.h"
+#include "main/settings.h"
 #include "storage/db_file_id.h"
 
 namespace kuzu {
@@ -133,6 +136,23 @@ public:
     static std::string getLockFilePath(common::VirtualFileSystem* vfs,
         const std::string& directory) {
         return vfs->joinPath(directory, common::StorageConstants::LOCK_FILE_NAME);
+    }
+
+    static std::string expandPath(main::ClientContext* context, const std::string& path) {
+        if (main::DBConfig::isDBPathInMemory(path)) {
+            return path;
+        }
+        auto fullPath = path;
+        // Handle '~' for home directory expansion
+        if (path.starts_with('~')) {
+            fullPath = context->getCurrentSetting(main::HomeDirectorySetting::name)
+                           .getValue<std::string>() +
+                       fullPath.substr(1);
+        }
+        // Normalize the path to resolve '.' and '..'
+        std::filesystem::path normalizedPath =
+            std::filesystem::absolute(fullPath).lexically_normal();
+        return normalizedPath.string();
     }
 
     // Note: This is a relatively slow function because of division and mod and making std::pair.
