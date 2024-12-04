@@ -520,12 +520,15 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     if (autoCommitTriggered) {
         try {
             this->transactionContext->autoCheckpointIfNeeded();
-        } catch (std::exception& e) {
+        } catch (common::CheckpointException& e) {
             auto& checkpointException = ku_dynamic_cast<common::CheckpointException&>(e);
             const auto& locks = checkpointException.getLocks();
             KU_ASSERT(locks.size() == 2);
             this->transactionContext->rollbackCheckpoint(locks[0], locks[1]);
 
+            return handleFailedExecute(executionContext.get(), e);
+        } catch (std::exception& e) {
+            // exception was before checkpoint started, no need to rollback checkpoint
             return handleFailedExecute(executionContext.get(), e);
         }
     }
