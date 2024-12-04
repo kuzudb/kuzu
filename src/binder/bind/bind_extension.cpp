@@ -26,7 +26,7 @@ static void bindLoadExtension(const ExtensionStatement* extensionStatement) {
     if (ExtensionUtils::isOfficialExtension(extensionStatement->getPath())) {
         return;
     }
-    auto localFileSystem = common::LocalFileSystem();
+    auto localFileSystem = common::LocalFileSystem("");
     if (!localFileSystem.fileOrPathExists(extensionStatement->getPath(),
             nullptr /* clientContext */)) {
         throw common::BinderException(
