@@ -31,11 +31,11 @@ void Alter::executeDDLInternal(ExecutionContext* context) {
         if (skipAlter(info.onConflict, [&]() {
                 return catalog->getTableCatalogEntry(transaction, info.tableName)
                     ->containsProperty(info.extraInfo->constCast<BoundExtraAddPropertyInfo>()
-                                           .propertyDefinition.getName());
+                            .propertyDefinition.getName());
             })) {
             return;
         }
-    }
+    } break;
     case common::AlterType::DROP_PROPERTY: {
         if (skipAlter(info.onConflict, [&]() {
                 return !catalog->getTableCatalogEntry(transaction, info.tableName)
@@ -45,7 +45,7 @@ void Alter::executeDDLInternal(ExecutionContext* context) {
             })) {
             return;
         }
-    }
+    } break;
     default:
         break;
     }
