@@ -214,7 +214,7 @@ void InMemHNSWGraph::createDirectedEdge(common::offset_t srcNode, common::offset
 
 common::offset_vec_t InMemHNSWGraph::getNeighbors(common::offset_t node,
     transaction::Transaction*) const {
-    std::vector<common::offset_t> neighbors;
+    common::offset_vec_t neighbors;
     neighbors.reserve(csrLengths[node]);
     for (common::offset_t i = 0; i < csrLengths[node]; i++) {
         neighbors.push_back(dstNodes[node * maxDegree + i]);

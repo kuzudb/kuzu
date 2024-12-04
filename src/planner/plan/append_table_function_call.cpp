@@ -1,7 +1,5 @@
-#include "binder/copy/bound_copy_from.h"
 #include "binder/copy/bound_table_scan_info.h"
 #include "binder/query/reading_clause/bound_table_function_call.h"
-#include "function/table/call/create_hnsw_index.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/planner.h"
 

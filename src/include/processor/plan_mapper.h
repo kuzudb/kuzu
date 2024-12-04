@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/enums/rel_direction.h"
-#include "expression_mapper.h"
 #include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_plan.h"
 #include "processor/operator/result_collector.h"

@@ -14,8 +14,6 @@ class Schema;
 }
 namespace graph {
 
-// TODO: Why isn't this class under catalog?
-
 // Organize projected graph similar to CatalogEntry. When we want to share projected graph across
 // statements, we need to migrate this class to catalog (or client context).
 struct GraphEntry {

@@ -33,7 +33,7 @@ struct BoundCopyFromInfo {
     std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo;
     CopyFromType type;
 
-    BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry)
+    explicit BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry)
         : tableEntry{tableEntry}, source{nullptr}, offset{nullptr}, extraInfo{nullptr},
           type{CopyFromType::HNSW_INDEX} {}
     BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry,

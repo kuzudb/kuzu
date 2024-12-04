@@ -1,7 +1,5 @@
 #include "storage/index/hnsw_index.h"
 
-#include <queue>
-
 #include "function/array/functions/array_distance.h"
 #include "main/client_context.h"
 #include "storage/index/hnsw_index_utils.h"

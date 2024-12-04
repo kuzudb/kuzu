@@ -107,7 +107,7 @@ HNSWIndexConfig HNSWIndexConfig::deserialize(common::Deserializer& deSer) {
     deSer.validateDebuggingInfo(debugginInfo, "degreeInLowerLayer");
     deSer.deserializeValue(config.degreeInLowerLayer);
     deSer.validateDebuggingInfo(debugginInfo, "distFunc");
-    uint8_t distFunc;
+    uint8_t distFunc = 0;
     deSer.deserializeValue(distFunc);
     config.distFunc = static_cast<DistFuncType>(distFunc);
     deSer.validateDebuggingInfo(debugginInfo, "alpha");

@@ -10,6 +10,8 @@
 namespace kuzu {
 namespace storage {
 
+// TODO(Ziyi/Guodong): Should also move these functions as array functions.
+
 static void dotProductDistance(const float* left, const float* right, common::length_t size,
     double* result) {
     simsimd_dot_f32(left, right, size, result);

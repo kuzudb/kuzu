@@ -1,4 +1,5 @@
 #include "planner/operator/scan/logical_dummy_scan.h"
+#include "processor/expression_mapper.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::common;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <queue>
+
 #include "common/random_engine.h"
 #include "storage/index/hnsw_config.h"
 #include "storage/index/hnsw_graph.h"

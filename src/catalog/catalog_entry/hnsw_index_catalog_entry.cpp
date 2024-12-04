@@ -29,11 +29,11 @@ void HNSWIndexCatalogEntry::serialize(common::Serializer& ser) const {
 std::unique_ptr<IndexCatalogEntry> HNSWIndexCatalogEntry::deserialize(common::Deserializer& deSer) {
     common::table_id_t tableID;
     std::string indexName;
-    common::table_id_t upperRelTableID;
-    common::table_id_t lowerRelTableID;
+    common::table_id_t upperRelTableID = common::INVALID_TABLE_ID;
+    common::table_id_t lowerRelTableID = common::INVALID_TABLE_ID;
     std::string columnName;
-    common::offset_t upperEntryPoint;
-    common::offset_t lowerEntryPoint;
+    common::offset_t upperEntryPoint = common::INVALID_OFFSET;
+    common::offset_t lowerEntryPoint = common::INVALID_OFFSET;
     std::string debuggingInfo;
     deSer.validateDebuggingInfo(debuggingInfo, "tableID");
     deSer.deserializeValue(tableID);

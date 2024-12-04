@@ -41,13 +41,13 @@ CSRRegion CSRRegion::upgradeLevel(const std::vector<CSRRegion>& leafRegions,
     const idx_t leftLeafRegionIdx = newRegion.getLeftLeafRegionIdx();
     const idx_t rightLeafRegionIdx = newRegion.getRightLeafRegionIdx();
     for (auto leafRegionIdx = leftLeafRegionIdx; leafRegionIdx <= rightLeafRegionIdx;
-         leafRegionIdx++) {
+        leafRegionIdx++) {
         KU_ASSERT(leafRegionIdx < leafRegions.size());
         newRegion.sizeChange += leafRegions[leafRegionIdx].sizeChange;
         newRegion.hasPersistentDeletions |= leafRegions[leafRegionIdx].hasPersistentDeletions;
         newRegion.hasInsertions |= leafRegions[leafRegionIdx].hasInsertions;
         for (auto columnID = 0u; columnID < leafRegions[leafRegionIdx].hasUpdates.size();
-             columnID++) {
+            columnID++) {
             newRegion.hasUpdates[columnID] =
                 static_cast<bool>(newRegion.hasUpdates[columnID]) ||
                 static_cast<bool>(leafRegions[leafRegionIdx].hasUpdates[columnID]);
@@ -143,11 +143,11 @@ void ChunkedCSRHeader::fillDefaultValues(const offset_t newNumValues) const {
         offset->getNumValues() >= newNumValues && length->getNumValues() == offset->getNumValues());
 }
 
-std::vector<offset_t> ChunkedCSRHeader::populateStartCSROffsetsFromLength(bool leaveGaps) const {
+offset_vec_t ChunkedCSRHeader::populateStartCSROffsetsFromLength(bool leaveGaps) const {
     const auto numNodes = length->getNumValues();
     const auto numLeafRegions = getNumRegions();
     offset_t leftCSROffset = 0;
-    std::vector<offset_t> rightCSROffsetOfRegions;
+    offset_vec_t rightCSROffsetOfRegions;
     rightCSROffsetOfRegions.reserve(numLeafRegions);
     for (auto regionIdx = 0u; regionIdx < numLeafRegions; regionIdx++) {
         CSRRegion region{regionIdx, 0 /* level*/};
@@ -179,7 +179,7 @@ void ChunkedCSRHeader::populateEndCSROffsetFromStartAndLength() const {
 }
 
 void ChunkedCSRHeader::finalizeCSRRegionEndOffsets(
-    const std::vector<offset_t>& rightCSROffsetOfRegions) const {
+    const offset_vec_t& rightCSROffsetOfRegions) const {
     const auto numNodes = length->getNumValues();
     const auto numLeafRegions = getNumRegions();
     KU_ASSERT(numLeafRegions == rightCSROffsetOfRegions.size());
@@ -216,7 +216,7 @@ void ChunkedCSRHeader::populateRegionCSROffsets(const CSRRegion& region,
     csrOffsets[rightNodeOffset] = oldRightCSROffset;
 }
 
-void ChunkedCSRHeader::populateEndCSROffsets(const std::vector<offset_t>& gaps) const {
+void ChunkedCSRHeader::populateEndCSROffsets(const offset_vec_t& gaps) const {
     const auto csrOffsets = reinterpret_cast<offset_t*>(offset->getData().getData());
     KU_ASSERT(offset->getNumValues() == length->getNumValues());
     KU_ASSERT(offset->getNumValues() == gaps.size());

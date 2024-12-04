@@ -3,6 +3,7 @@
 #include "function/table/call/create_hnsw_index.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
+#include "processor/expression_mapper.h"
 #include "processor/operator/aggregate/hash_aggregate_scan.h"
 #include "processor/operator/index_lookup.h"
 #include "processor/operator/partitioner.h"
