@@ -129,8 +129,6 @@ void TransactionManager::checkpoint(main::ClientContext& clientContext) {
     } catch (common::CheckpointException& e) {
         e.addLock(std::move(lck));
         std::rethrow_exception(std::current_exception());
-    } catch (...) {
-        KU_UNREACHABLE;
     }
 }
 
