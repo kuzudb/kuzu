@@ -118,7 +118,6 @@ lcov:
 	$(call run-cmake-release, -DBUILD_TESTS=TRUE -DBUILD_LCOV=TRUE)
 	ctest --test-dir build/release/test --output-on-failure -j ${TEST_JOBS}
 
-
 # Language APIs
 
 # Required for clangd-related tools.
@@ -182,24 +181,29 @@ example:
 	$(call run-cmake-release, -DBUILD_EXAMPLES=TRUE)
 
 extension-test-build:
-	$(call run-cmake-release, \
+	$(call run-cmake-relwithdebinfo, \
 		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta" \
 		-DBUILD_EXTENSION_TESTS=TRUE \
+		-DBUILD_TESTS=TRUE \
 	)
 
 extension-json-test-build:
-	$(call run-cmake-release, \
+	$(call run-cmake-relwithdebinfo, \
 		-DBUILD_EXTENSIONS="json" \
 		-DBUILD_EXTENSION_TESTS=TRUE \
 		-DENABLE_ADDRESS_SANITIZER=TRUE \
 	)
 
 extension-test: extension-test-build
-	ctest --test-dir build/release/extension --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}"
+ifeq ($(OS),Windows_NT)
+	set "E2E_TEST_FILES_DIRECTORY=extension" && ctest -R "e2e_test" --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}"
+else
+	E2E_TEST_FILES_DIRECTORY=extension ctest --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}" -R e2e_test
+endif
 	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
 
 extension-json-test: extension-json-test-build
-	ctest --test-dir build/release/extension --output-on-failure -j ${TEST_JOBS} -R json
+	ctest --test-dir build/relwithdebinfo/extension --output-on-failure -j ${TEST_JOBS} -R json
 	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
 
 extension-debug:
