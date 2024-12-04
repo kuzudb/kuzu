@@ -3,11 +3,11 @@
 #include <atomic>
 #include <mutex>
 
+#include "common/types/internal_id_util.h"
 #include "common/types/types.h"
 #include "graph/graph.h"
 #include "processor/operator/gds_call_shared_state.h"
 #include "storage/buffer_manager/memory_manager.h"
-#include "common/types/internal_id_util.h"
 
 namespace kuzu {
 namespace function {
@@ -149,9 +149,7 @@ class LocalFrontierSample {
 public:
     bool enabled() const { return enabled_; }
 
-    const std::unordered_set<common::offset_t>& getOffsetSet() const {
-        return offsetSet;
-    }
+    const std::unordered_set<common::offset_t>& getOffsetSet() const { return offsetSet; }
 
     bool empty() const { return offsetSet.empty(); }
 
@@ -173,30 +171,23 @@ private:
  * If enabled, this frontier represents a complete global frontier.
  * Otherwise, complete global frontier is larger than this sparse frontier.
  * */
-class SparseFrontier  {
+class SparseFrontier {
 public:
-    SparseFrontier() : enabled_{true}, curTableID{common::INVALID_TABLE_ID}, curOffsetSet{nullptr} {}
+    SparseFrontier()
+        : enabled_{true}, curTableID{common::INVALID_TABLE_ID}, curOffsetSet{nullptr} {}
 
-    void disable() {
-        enabled_ = false;
-    }
+    void disable() { enabled_ = false; }
     void resetState() {
         enabled_ = true;
         curOffsetSet = nullptr;
         tableIDToOffsetMap.clear();
     }
-    bool enabled() const {
-        return enabled_;
-    }
+    bool enabled() const { return enabled_; }
 
     void pinTableID(common::table_id_t tableID);
 
-    common::table_id_t getTableID() const {
-        return curTableID;
-    }
-    const std::unordered_set<common::offset_t>& getOffsetSet() const {
-        return *curOffsetSet;
-    }
+    common::table_id_t getTableID() const { return curTableID; }
+    const std::unordered_set<common::offset_t>& getOffsetSet() const { return *curOffsetSet; }
 
     void addNode(common::nodeID_t nodeID);
     void mergeLocalFrontier(const LocalFrontierSample& localFrontier);
@@ -205,7 +196,7 @@ public:
 private:
     std::mutex mtx;
     bool enabled_;
-    std::unordered_map<common::table_id_t, std::unordered_set<common::offset_t >> tableIDToOffsetMap;
+    std::unordered_map<common::table_id_t, std::unordered_set<common::offset_t>> tableIDToOffsetMap;
     common::table_id_t curTableID;
     std::unordered_set<common::offset_t>* curOffsetSet;
 };

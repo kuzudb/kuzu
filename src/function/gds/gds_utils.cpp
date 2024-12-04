@@ -119,19 +119,18 @@ void GDSUtils::runVertexComputeIteration(processor::ExecutionContext* executionC
     }
 }
 
-void GDSUtils::runVertexComputeSparse(SparseFrontier& sparseFrontier, graph::Graph* graph, VertexCompute& vc) {
+void GDSUtils::runVertexComputeSparse(SparseFrontier& sparseFrontier, graph::Graph* graph,
+    VertexCompute& vc) {
     std::vector<std::string> propertiesToScan;
     for (auto& tableID : graph->getNodeTableIDs()) {
         if (!vc.beginOnTable(tableID)) {
             continue;
         }
         sparseFrontier.pinTableID(tableID);
-        auto scanState =
-            graph->prepareVertexScan(tableID, propertiesToScan);
+        auto scanState = graph->prepareVertexScan(tableID, propertiesToScan);
         auto localVc = vc.copy();
         for (auto& offset : sparseFrontier.getOffsetSet()) {
-            for (auto chunk : graph->scanVertices(offset,
-                     offset+1, *scanState)) {
+            for (auto chunk : graph->scanVertices(offset, offset + 1, *scanState)) {
                 localVc->vertexCompute(chunk);
             }
         }
