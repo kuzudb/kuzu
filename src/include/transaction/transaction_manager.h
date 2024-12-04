@@ -34,7 +34,9 @@ public:
 
     void commit(main::ClientContext& clientContext, bool skipCheckpoint = false);
     void rollback(main::ClientContext& clientContext, const Transaction* transaction);
-    void rollbackCheckpoint(main::ClientContext& clientContext);
+    void rollbackCheckpoint(main::ClientContext& clientContext,
+        const common::UniqLock& lockForSerializingPublicFunctionCalls,
+        const common::UniqLock& lockForStartingTransactions);
     void checkpoint(main::ClientContext& clientContext);
     bool canAutoCheckpoint(const main::ClientContext& clientContext) const;
 
