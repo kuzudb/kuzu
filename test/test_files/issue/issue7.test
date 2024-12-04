@@ -2,6 +2,27 @@
 
 --
 
+-CASE FlatSelect
+-STATEMENT create node table person (name string, id string, primary key(name));
+---- ok
+-STATEMENT create (p:person {name: 'Alice', id: 'cf5083c1-730c-4dad-be97-18f65d657420'});
+---- ok
+-STATEMENT create (p:person {name: 'bob', id: '7f72f9fb-a757-405b-98ca-da077d01beba'});
+---- ok
+-STATEMENT create rel table friend (from person to person);
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person)
+          WHERE p1.name = 'Alice' AND p2.name = 'bob'
+          CREATE (p1)-[:friend]->(p2)
+---- ok
+-STATEMENT MATCH (p1:person)
+           WITH COUNT { MATCH (p1)<-[:friend]-(p2:person) } as indegree, p1 as p1
+           WHERE p1.id IN ["cf5083c1-730c-4dad-be97-18f65d657420", "7f72f9fb-a757-405b-98ca-da077d01beba"]
+           RETURN p1.id as id, p1.name as name, indegree
+---- 2
+cf5083c1-730c-4dad-be97-18f65d657420|Alice|0
+7f72f9fb-a757-405b-98ca-da077d01beba|bob|1
+
 -CASE issue3607
 -STATEMENT CREATE NODE TABLE as (id UUID, PRIMARY KEY (id));
 ---- ok
