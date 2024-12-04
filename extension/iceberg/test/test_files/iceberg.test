@@ -9,13 +9,30 @@
 ---- ok
 
 -LOG LocalIcebergTable
--STATEMENT CALL ICEBERG_SCAN('${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg') RETURN l_linenumber| l_quantity| l_shipdate| l_shipinstruct LIMIT 5;
+-STATEMENT CALL ICEBERG_SCAN('${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg') RETURN l_linenumber, l_quantity, l_shipdate, l_shipinstruct LIMIT 5;
 ---- 5
 1|17|1996-03-13|DELIVER IN PERSON
 2|36|1996-04-12|TAKE BACK RETURN
 3|8|1996-01-29|TAKE BACK RETURN
 4|28|1996-04-21|NONE
 5|24|1996-03-30|NONE
+
+-STATEMENT CALL ICEBERG_SCAN('${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/person_table') RETURN *
+---- 5
+Alice|25|1000.500000|1999-01-15 05:00:00+00
+Bob|30|1500.750000|1994-06-25 04:00:00+00
+Charlie|35|2000.000000|1988-12-05 05:00:00+00
+Diana|40|2500.300000|1983-07-20 04:00:00+00
+Ethan|28|1800.600000|1996-03-10 05:00:00+00
+
+-STATEMENT CALL ICEBERG_SCAN('${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/university') RETURN *
+---- 6
+Cambridge|5|280.200000
+Harvard|1|210.500000
+MIT|3|170.000000
+Oxford|4|300.000000
+Stanford|2|250.300000
+Yale|6|190.700000
 
 -LOG S3IcebergTable
 -STATEMENT CALL s3_access_key_id='${UW_S3_ACCESS_KEY_ID}'
@@ -28,7 +45,7 @@
 ---- ok
 -STATEMENT CALL s3_region='US'
 ---- ok
--STATEMENT CALL ICEBERG_SCAN('s3://kuzu-test/iceberg') RETURN l_linenumber| l_quantity| l_shipdate| l_shipinstruct LIMIT 5;
+-STATEMENT CALL ICEBERG_SCAN('s3://kuzu-test/iceberg') RETURN l_linenumber, l_quantity, l_shipdate, l_shipinstruct LIMIT 5;
 ---- 5
 1|17|1996-03-13|DELIVER IN PERSON
 2|36|1996-04-12|TAKE BACK RETURN
@@ -37,25 +54,23 @@
 5|24|1996-03-30|NONE
 
 -LOG TableOfDifferentTypes
--STATEMENT CALL ICEBERG_SCAN('${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg') RETURN l_extendedprice| l_discount| l_shipdate| l_comment LIMIT 5;
+-STATEMENT CALL ICEBERG_SCAN('${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/student') RETURN *
 ---- 3
-67033.59|0.00|1997-09-29|ould affix 
-45227.98|0.05|1997-09-02|lites cajole carefully 
-75544.55|0.03|1996-09-17|slyly slyly blithe sheaves
-33972.24|0.02|1996-11-21|as; blithely ironic requ
-58813.88|0.04|1998-05-30| slyly bold re
+Alice|[52,24,31]|True|2020-05-17 00:00:00|{age: 25, gender: female}
+Bob|[15,66,72]|False|2011-03-22 00:00:00|{age: 22, gender: male}
+Carol|[29,24,11]||2001-04-15 00:00:00|{age: 33, gender: female}
 
 -LOG InvalidIcebergPath
 -STATEMENT CALL ICEBERG_SCAN('${KUZU_ROOT_DIRECTORY}/student') RETURN *
 ---- error
-IO Error: Hit IcebergKernel FFI error (from: get_engine_interface_builder for path ${KUZU_ROOT_DIRECTORY}/student/): Hit error: 27 (InvalidTableLocation) with message (Invalid table location: Path does not exist: "${KUZU_ROOT_DIRECTORY}/student/".)
+IO Error: Cannot open file "${KUZU_ROOT_DIRECTORY}/student/metadata/version-hint.text": No such file or directory
 
 -LOG InvalidIcebergPath
 -STATEMENT CALL ICEBERG_SCAN('${KUZU_ROOT_DIRECTORY}/student') RETURN *
 ---- error
-IO Error: Hit IcebergKernel FFI error (from: get_engine_interface_builder for path ${KUZU_ROOT_DIRECTORY}/student/): Hit error: 27 (InvalidTableLocation) with message (Invalid table location: Path does not exist: "${KUZU_ROOT_DIRECTORY}/student/".)
+IO Error: Cannot open file "${KUZU_ROOT_DIRECTORY}/student/metadata/version-hint.text": No such file or directory
 
 -LOG InvalidIcebergTable
 -STATEMENT CALL ICEBERG_SCAN('${KUZU_ROOT_DIRECTORY}/src') RETURN *
 ---- error
-IO Error: Hit IcebergKernel FFI error (from: While trying to read from iceberg table: '${KUZU_ROOT_DIRECTORY}/src/'): Hit error: 15 (MissingVersionError) with message (No table version found.)
+IO Error: Cannot open file "${KUZU_ROOT_DIRECTORY}/src/metadata/version-hint.text": No such file or directory
