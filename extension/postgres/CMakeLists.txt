@@ -13,11 +13,11 @@ add_library(postgres_extension
         ${PROJECT_SOURCE_DIR}/extension/duckdb/src/duckdb_table_catalog_entry.cpp
         ${PROJECT_SOURCE_DIR}/extension/duckdb/src/duckdb_type_converter.cpp
         ${PROJECT_SOURCE_DIR}/extension/duckdb/src/duckdb_functions.cpp
-        ${PROJECT_SOURCE_DIR}/extension/duckdb/src/connector/duckdb_connector.cpp
         ${PROJECT_SOURCE_DIR}/extension/duckdb/src/connector/duckdb_result_converter.cpp
         src/postgres_extension.cpp
         src/postgres_storage.cpp
-        src/postgres_connector.cpp)
+        src/postgres_connector.cpp
+        src/duckdb_connector.cpp)
 
 include_directories(
         src/include
