@@ -76,7 +76,7 @@ std::vector<std::string> nodeTableNames;
 std::vector<std::string> relTableNames;
 std::unordered_map<std::string, std::vector<std::string>> tableColumnNames;
 
-std::vector<std::string> functionNames;
+std::vector<std::string> functionAndTypeNames;
 std::vector<std::string> tableFunctionNames;
 
 bool continueLine = false;
@@ -113,15 +113,19 @@ void EmbeddedShell::updateTableNames() {
     }
 }
 
-void EmbeddedShell::updateFunctionNames() {
-    functionNames.clear();
+void EmbeddedShell::updateFunctionAndTypeNames() {
+    functionAndTypeNames.clear();
     auto function = database->catalog->getFunctions(&transaction::DUMMY_TRANSACTION);
     for (auto& [_, entry] : function->getEntries(&transaction::DUMMY_TRANSACTION)) {
         if (entry->getType() == catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY) {
             tableFunctionNames.push_back(entry->getName());
         } else {
-            functionNames.push_back(entry->getName());
+            functionAndTypeNames.push_back(entry->getName());
         }
+    }
+    auto typeNames = LogicalTypeUtils::getAllValidLogicTypeIDs();
+    for (auto& type : typeNames) {
+        functionAndTypeNames.push_back(LogicalTypeUtils::toString(type));
     }
 }
 
@@ -301,7 +305,7 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
         keywordCompletion(buf, prefix, keyword, lc);
     }
 
-    for (std::string function : functionNames) {
+    for (std::string function : functionAndTypeNames) {
         keywordCompletion(buf, prefix, function, lc);
     }
 }
@@ -394,7 +398,7 @@ EmbeddedShell::EmbeddedShell(std::shared_ptr<Database> database, std::shared_ptr
     drawingCharacters = std::move(shellConfig.drawingCharacters);
     stats = shellConfig.stats;
     updateTableNames();
-    updateFunctionNames();
+    updateFunctionAndTypeNames();
     auto sigResult = std::signal(SIGINT, interruptHandler);
     if (sigResult == SIG_ERR) {
         throw std::runtime_error("Error: Failed to set signal handler");
