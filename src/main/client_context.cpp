@@ -1,6 +1,7 @@
 #include "main/client_context.h"
 
 #include "binder/binder.h"
+#include "common/exception/checkpoint_exception.h"
 #include "common/exception/connection.h"
 #include "common/exception/runtime.h"
 #include "common/random_engine.h"
@@ -495,7 +496,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     auto executingTimer = TimeMetric(true /* enable */);
     executingTimer.start();
     std::shared_ptr<FactorizedTable> resultFT;
-    bool shouldCheckpoint = false;
+    bool autoCommitTriggered = false;
     try {
         if (preparedStatement->isTransactionStatement()) {
             resultFT =
@@ -506,7 +507,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
                 localDatabase->queryProcessor->execute(physicalPlan.get(), executionContext.get());
             if (this->transactionContext->isAutoTransaction()) {
                 this->transactionContext->commit(true);
-                shouldCheckpoint = true;
+                autoCommitTriggered = true;
             }
         }
     } catch (std::exception& e) {
@@ -517,11 +518,15 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
         return queryResultWithError(e.what());
     }
 
-    if (shouldCheckpoint) {
+    if (autoCommitTriggered) {
         try {
             this->transactionContext->autoCheckpointIfNeeded();
         } catch (std::exception& e) {
-            this->transactionContext->rollbackCheckpoint();
+            auto& checkpointException = ku_dynamic_cast<common::CheckpointException&>(e);
+            const auto& locks = checkpointException.getLocks();
+            KU_ASSERT(locks.size() == 2);
+            this->transactionContext->rollbackCheckpoint(locks[0], locks[1]);
+
             getMemoryManager()->getBufferManager()->getSpillerOrSkip(
                 [](auto& spiller) { spiller.clearFile(); });
             progressBar->endProgress(executionContext->queryID);

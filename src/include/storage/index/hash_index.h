@@ -380,7 +380,7 @@ public:
     void delete_(common::ValueVector* keyVector);
 
     void checkpointInMemory();
-    void checkpoint(bool force = false);
+    void checkpoint(bool forceCheckpointAll = false);
     FileHandle* getFileHandle() const { return fileHandle; }
     OverflowFile* getOverflowFile() const { return overflowFile.get(); }
 
