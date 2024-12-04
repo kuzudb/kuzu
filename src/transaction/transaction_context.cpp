@@ -68,11 +68,7 @@ void TransactionContext::autoCheckpointIfNeeded() {
     if (!hasActiveTransaction()) {
         return;
     }
-    if ((activeTransaction->shouldForceCheckpoint() ||
-            clientContext.getDatabase()->transactionManager->canAutoCheckpoint(clientContext)) &&
-        (activeTransaction->isWriteTransaction() || activeTransaction->isRecovery())) {
-        clientContext.getDatabase()->transactionManager->checkpoint(clientContext);
-    }
+    clientContext.getDatabase()->transactionManager->autoCheckpointIfNeeded(clientContext);
     clearTransaction();
 }
 

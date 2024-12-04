@@ -514,10 +514,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
         }
     } catch (std::exception& e) {
         transactionContext->rollback();
-        getMemoryManager()->getBufferManager()->getSpillerOrSkip(
-            [](auto& spiller) { spiller.clearFile(); });
-        progressBar->endProgress(executionContext->queryID);
-        return queryResultWithError(e.what());
+        return handleFailedExecute(executionContext.get(), e);
     }
 
     if (autoCommitTriggered) {
@@ -529,10 +526,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
             KU_ASSERT(locks.size() == 2);
             this->transactionContext->rollbackCheckpoint(locks[0], locks[1]);
 
-            getMemoryManager()->getBufferManager()->getSpillerOrSkip(
-                [](auto& spiller) { spiller.clearFile(); });
-            progressBar->endProgress(executionContext->queryID);
-            return queryResultWithError(e.what());
+            return handleFailedExecute(executionContext.get(), e);
         }
     }
 
@@ -545,6 +539,14 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     queryResult->initResultTableAndIterator(std::move(resultFT));
 
     return queryResult;
+}
+
+std::unique_ptr<QueryResult> ClientContext::handleFailedExecute(ExecutionContext* executionContext,
+    std::exception& e) {
+    getMemoryManager()->getBufferManager()->getSpillerOrSkip(
+        [](auto& spiller) { spiller.clearFile(); });
+    progressBar->endProgress(executionContext->queryID);
+    return queryResultWithError(e.what());
 }
 
 // If there is an active transaction in the context, we execute the function in current active
