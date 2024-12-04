@@ -383,23 +383,43 @@ std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& stateme
         throw BinderException("Table: " + newName + " already exists.");
     }
     auto boundExtraInfo = std::make_unique<BoundExtraRenameTableInfo>(newName);
-    auto boundInfo = BoundAlterInfo(AlterType::RENAME_TABLE, tableName, std::move(boundExtraInfo));
+    auto boundInfo = BoundAlterInfo(AlterType::RENAME_TABLE, tableName, std::move(boundExtraInfo),
+        info->onConflict);
     return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 
-static void validatePropertyExist(TableCatalogEntry* tableEntry, const std::string& propertyName) {
-    if (!tableEntry->containsProperty(propertyName)) {
-        throw BinderException(
-            tableEntry->getName() + " table does not have property " + propertyName + ".");
+using on_conflict_throw_action = std::function<void()>;
+
+static void validateProperty(common::ConflictAction action, on_conflict_throw_action throwAction) {
+    switch (action) {
+    case common::ConflictAction::ON_CONFLICT_THROW: {
+        throwAction();
+    } break;
+    case common::ConflictAction::ON_CONFLICT_DO_NOTHING:
+        break;
+    default:
+        KU_UNREACHABLE;
     }
 }
 
-static void validatePropertyNotExist(TableCatalogEntry* tableEntry,
+static void validatePropertyExist(common::ConflictAction action, TableCatalogEntry* tableEntry,
     const std::string& propertyName) {
-    if (tableEntry->containsProperty(propertyName)) {
-        throw BinderException(
-            tableEntry->getName() + " table already has property " + propertyName + ".");
-    }
+    validateProperty(action, [&tableEntry, &propertyName]() {
+        if (!tableEntry->containsProperty(propertyName)) {
+            throw BinderException(
+                tableEntry->getName() + " table does not have property " + propertyName + ".");
+        }
+    });
+}
+
+static void validatePropertyNotExist(common::ConflictAction action, TableCatalogEntry* tableEntry,
+    const std::string& propertyName) {
+    validateProperty(action, [&tableEntry, &propertyName] {
+        if (tableEntry->containsProperty(propertyName)) {
+            throw BinderException(
+                tableEntry->getName() + " table already has property " + propertyName + ".");
+        }
+    });
 }
 
 static void validatePropertyDDLOnTable(TableCatalogEntry* tableEntry,
@@ -430,7 +450,7 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     validateTableExist(tableName);
     auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTx(), tableName);
     validatePropertyDDLOnTable(tableEntry, "add");
-    validatePropertyNotExist(tableEntry, propertyName);
+    validatePropertyNotExist(info->onConflict, tableEntry, propertyName);
     auto defaultValue = std::move(extraInfo->defaultValue);
     auto boundDefault = expressionBinder.implicitCastIfNecessary(
         expressionBinder.bindExpression(*defaultValue), dataType);
@@ -453,7 +473,8 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
         PropertyDefinition(std::move(columnDefinition), std::move(defaultValue));
     auto boundExtraInfo = std::make_unique<BoundExtraAddPropertyInfo>(std::move(propertyDefinition),
         std::move(boundDefault));
-    auto boundInfo = BoundAlterInfo(AlterType::ADD_PROPERTY, tableName, std::move(boundExtraInfo));
+    auto boundInfo = BoundAlterInfo(AlterType::ADD_PROPERTY, tableName, std::move(boundExtraInfo),
+        info->onConflict);
     return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 
@@ -467,13 +488,14 @@ std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statem
     auto catalog = clientContext->getCatalog();
     auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTx(), tableName);
     validatePropertyDDLOnTable(tableEntry, "drop");
-    validatePropertyExist(tableEntry, propertyName);
+    validatePropertyExist(info->onConflict, tableEntry, propertyName);
     if (tableEntry->getTableType() == TableType::NODE &&
         tableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName() == propertyName) {
         throw BinderException("Cannot drop primary key of a node table.");
     }
     auto boundExtraInfo = std::make_unique<BoundExtraDropPropertyInfo>(propertyName);
-    auto boundInfo = BoundAlterInfo(AlterType::DROP_PROPERTY, tableName, std::move(boundExtraInfo));
+    auto boundInfo = BoundAlterInfo(AlterType::DROP_PROPERTY, tableName, std::move(boundExtraInfo),
+        info->onConflict);
     return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 
@@ -488,11 +510,11 @@ std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& stat
     auto catalog = clientContext->getCatalog();
     auto tableSchema = catalog->getTableCatalogEntry(clientContext->getTx(), tableName);
     validatePropertyDDLOnTable(tableSchema, "rename");
-    validatePropertyExist(tableSchema, propertyName);
-    validatePropertyNotExist(tableSchema, newName);
+    validatePropertyExist(common::ConflictAction::ON_CONFLICT_THROW, tableSchema, propertyName);
+    validatePropertyNotExist(common::ConflictAction::ON_CONFLICT_THROW, tableSchema, newName);
     auto boundExtraInfo = std::make_unique<BoundExtraRenamePropertyInfo>(newName, propertyName);
-    auto boundInfo =
-        BoundAlterInfo(AlterType::RENAME_PROPERTY, tableName, std::move(boundExtraInfo));
+    auto boundInfo = BoundAlterInfo(AlterType::RENAME_PROPERTY, tableName,
+        std::move(boundExtraInfo), info->onConflict);
     return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 
@@ -504,7 +526,8 @@ std::unique_ptr<BoundStatement> Binder::bindCommentOn(const Statement& statement
     auto comment = extraInfo->comment;
     validateTableExist(tableName);
     auto boundExtraInfo = std::make_unique<BoundExtraCommentInfo>(comment);
-    auto boundInfo = BoundAlterInfo(AlterType::COMMENT, tableName, std::move(boundExtraInfo));
+    auto boundInfo =
+        BoundAlterInfo(AlterType::COMMENT, tableName, std::move(boundExtraInfo), info->onConflict);
     return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 

@@ -10,9 +10,45 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace processor {
 
+using skip_alter_on_conflict = std::function<bool()>;
+
+bool skipAlter(common::ConflictAction action, skip_alter_on_conflict skipAlterOnConflict) {
+    switch (action) {
+    case common::ConflictAction::ON_CONFLICT_THROW:
+        return false;
+    case common::ConflictAction::ON_CONFLICT_DO_NOTHING:
+        return skipAlterOnConflict();
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
 void Alter::executeDDLInternal(ExecutionContext* context) {
     auto catalog = context->clientContext->getCatalog();
     auto transaction = context->clientContext->getTx();
+    switch (info.alterType) {
+    case common::AlterType::ADD_PROPERTY: {
+        if (skipAlter(info.onConflict, [&]() {
+                return catalog->getTableCatalogEntry(transaction, info.tableName)
+                    ->containsProperty(info.extraInfo->constCast<BoundExtraAddPropertyInfo>()
+                            .propertyDefinition.getName());
+            })) {
+            return;
+        }
+    }
+    case common::AlterType::DROP_PROPERTY: {
+        if (skipAlter(info.onConflict, [&]() {
+                return !catalog->getTableCatalogEntry(transaction, info.tableName)
+                            ->containsProperty(
+                                info.extraInfo->constCast<BoundExtraDropPropertyInfo>()
+                                    .propertyName);
+            })) {
+            return;
+        }
+    }
+    default:
+        break;
+    }
     const auto storageManager = context->clientContext->getStorageManager();
     catalog->alterTableEntry(transaction, info);
     if (info.alterType == common::AlterType::ADD_PROPERTY) {
