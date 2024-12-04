@@ -247,6 +247,36 @@ TEST_F(CopyTest, RelInsertBMExceptionDuringCommitRecovery) {
     BMExceptionRecoveryTest(cfg);
 }
 
+TEST_F(CopyTest, NodeCopyBMExceptionDuringCheckpointRecovery) {
+    static constexpr bool canFailDuringExecute = false;
+    static constexpr bool canFailDuringCheckpoint = true;
+    BMExceptionRecoveryTestConfig cfg{.canFailDuringExecute = canFailDuringExecute,
+        .canFailDuringCheckpoint = canFailDuringCheckpoint,
+        .initFunc =
+            [this](main::Connection* conn) {
+                conn->query("CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID))");
+                failureFrequency = 512;
+            },
+        .executeFunc =
+            [](main::Connection* conn, int) {
+                const auto queryString = common::stringFormat(
+                    "COPY account FROM \"{}/dataset/snap/twitter/csv/twitter-nodes.csv\"",
+                    KUZU_ROOT_DIRECTORY);
+
+                return conn->query(queryString);
+            },
+        .earlyExitOnFailureFunc =
+            [this](main::QueryResult*) {
+                // make sure the checkpoint when closing the DB doesn't fail
+                failureFrequency = UINT64_MAX;
+                return true;
+            },
+        .checkFunc =
+            [](main::Connection* conn) { return conn->query("MATCH (a:account) RETURN COUNT(*)"); },
+        .checkResult = 81306};
+    BMExceptionRecoveryTest(cfg);
+}
+
 TEST_F(CopyTest, OutOfMemoryRecovery) {
     if (inMemMode) {
         GTEST_SKIP();
@@ -282,52 +312,6 @@ TEST_F(CopyTest, OutOfMemoryRecovery) {
         ASSERT_TRUE(result->isSuccess()) << result->getErrorMessage();
         ASSERT_TRUE(result->hasNext());
         ASSERT_EQ(result->getNext()->getValue(0)->getValue<int64_t>(), 2420766);
-    }
-}
-
-TEST_F(CopyTest, RelCopyBMExceptionRecovery) {
-    if (inMemMode) {
-        GTEST_SKIP();
-    }
-    resetDB(64 * 1024 * 1024);
-    conn->query("CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID))");
-    conn->query("CREATE REL TABLE follows(FROM account TO account);");
-    {
-        auto result = conn->query(common::stringFormat(
-            "COPY account FROM \"{}/dataset/snap/twitter/csv/twitter-nodes.csv\"",
-            KUZU_ROOT_DIRECTORY));
-        ASSERT_TRUE(result->isSuccess()) << result->toString();
-    }
-    for (int i = 0;; i++) {
-        ASSERT_LT(i, 20);
-
-        resetDBFlaky();
-        resetDBFlaky();
-        auto result = conn->query(common::stringFormat(
-            "COPY follows FROM '{}/dataset/snap/twitter/csv/twitter-edges.csv' (DELIM=' ')",
-            KUZU_ROOT_DIRECTORY));
-        if (!result->isSuccess()) {
-            ASSERT_EQ(result->getErrorMessage(), "Buffer manager exception: Unable to allocate "
-                                                 "memory! The buffer pool is full and no "
-                                                 "memory could be freed!");
-        } else {
-            // the copy shouldn't succeed first try
-            ASSERT_GT(i, 0);
-            break;
-        }
-    }
-    // Try opening then closing the database
-    resetDB(256 * 1024 * 1024);
-    // Try again with a larger buffer pool size
-    resetDB(256 * 1024 * 1024);
-    {
-        // If BM exception happens during checkpoint the values from the COPY actually persist in
-        // the table So we just test to see that there are >0 tuples in the table and no
-        // crashes/assertion failures occur
-        auto result = conn->query("MATCH (a:account)-[:follows]->(b:account) RETURN COUNT(*)");
-        ASSERT_TRUE(result->isSuccess()) << result->getErrorMessage();
-        ASSERT_TRUE(result->hasNext());
-        ASSERT_GT(result->getNext()->getValue(0)->getValue<int64_t>(), 0);
     }
 }
 
