@@ -6,6 +6,8 @@
 namespace kuzu {
 namespace duckdb_extension {
 
+class DuckDBConnector;
+
 class AttachedDuckDBDatabase final : public main::AttachedDatabase {
 public:
     AttachedDuckDBDatabase(std::string dbName, std::string dbType,

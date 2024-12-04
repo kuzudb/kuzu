@@ -13,12 +13,13 @@ include_directories(
 
 add_library(sqlite_extension
         SHARED
-        ../duckdb/src/duckdb_scan.cpp
-        ../duckdb/src/duckdb_catalog.cpp
-        ../duckdb/src/duckdb_table_catalog_entry.cpp
-        ../duckdb/src/duckdb_type_converter.cpp
-        ../duckdb/src/duckdb_functions.cpp
-        ../duckdb/src/connector/duckdb_connector.cpp
+        ${PROJECT_SOURCE_DIR}/extension/duckdb/src/duckdb_scan.cpp
+        ${PROJECT_SOURCE_DIR}/extension/duckdb/src/duckdb_catalog.cpp
+        ${PROJECT_SOURCE_DIR}/extension/duckdb/src/duckdb_table_catalog_entry.cpp
+        ${PROJECT_SOURCE_DIR}/extension/duckdb/src/duckdb_type_converter.cpp
+        ${PROJECT_SOURCE_DIR}/extension/duckdb/src/duckdb_functions.cpp
+        ${PROJECT_SOURCE_DIR}/extension/duckdb/src/connector/duckdb_connector.cpp
+        ${PROJECT_SOURCE_DIR}/extension/duckdb/src/connector/duckdb_result_converter.cpp
         src/sqlite_extension.cpp
         src/sqlite_storage.cpp
         src/sqlite_connector.cpp)

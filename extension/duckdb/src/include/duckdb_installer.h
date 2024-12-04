@@ -4,7 +4,7 @@
 namespace kuzu {
 namespace duckdb_extension {
 
-class DuckDBInstaller : public extension::ExtensionInstaller {
+class KUZU_API DuckDBInstaller : public extension::ExtensionInstaller {
 public:
     explicit DuckDBInstaller(const std::string extensionName)
         : ExtensionInstaller{std::move(extensionName)} {}
