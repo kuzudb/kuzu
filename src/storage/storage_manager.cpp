@@ -198,11 +198,7 @@ void StorageManager::rollbackCheckpoint(main::ClientContext& clientContext) {
     const auto nodeTableEntries =
         clientContext.getCatalog()->getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
     for (const auto tableEntry : nodeTableEntries) {
-        if (!tables.contains(tableEntry->getTableID())) {
-            throw RuntimeException(
-                stringFormat("Checkpoint failed: table {} not found in storage manager.",
-                    tableEntry->getName()));
-        }
+        KU_ASSERT(tables.contains(tableEntry->getTableID()));
         tables.at(tableEntry->getTableID())->rollbackCheckpoint();
     }
 }

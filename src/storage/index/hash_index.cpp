@@ -493,8 +493,8 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
         [&](auto) { KU_UNREACHABLE; });
 
     if (newIndex && !inMemMode) {
-        // checkpoint the creation of the index so that we rollback to an empty index (instead of a
-        // half-constructed one)
+        // checkpoint the creation of the index so that if we need to rollback it will be to a
+        // well-defined state (an empty index with the disk arrays initialized)
         checkpoint(true);
     }
 }
