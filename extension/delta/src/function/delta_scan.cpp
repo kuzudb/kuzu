@@ -3,7 +3,7 @@
 #include "connector/connector_factory.h"
 #include "connector/delta_connector.h"
 #include "connector/duckdb_result_converter.h"
-#include "duckdb_type_converter.h"
+#include "connector/duckdb_type_converter.h"
 
 namespace kuzu {
 namespace delta_extension {
