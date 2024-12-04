@@ -57,4 +57,4 @@ IO Error: Hit DeltaKernel FFI error (from: get_engine_interface_builder for path
 -LOG InvalidDeltaTable
 -STATEMENT CALL DELTA_SCAN('${KUZU_ROOT_DIRECTORY}/src') RETURN *
 ---- error
-IO Error: Hit DeltaKernel FFI error (from: While trying to read from delta table: '/Users/z473chen/Desktop/code/kuzu/src/'): Hit error: 15 (MissingVersionError) with message (No table version found.)
+IO Error: Hit DeltaKernel FFI error (from: While trying to read from delta table: '${KUZU_ROOT_DIRECTORY}/src/'): Hit error: 15 (MissingVersionError) with message (No table version found.)
