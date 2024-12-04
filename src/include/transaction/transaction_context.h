@@ -5,6 +5,10 @@
 #include "transaction.h"
 
 namespace kuzu {
+namespace common {
+struct UniqLock;
+}
+
 namespace main {
 class ClientContext;
 }
@@ -45,7 +49,9 @@ public:
     void commit(bool skipCheckpoint = false);
     void autoCheckpointIfNeeded();
     void rollback();
-    void rollbackCheckpoint();
+    // we must still hold the locks from the checkpoint to rollback
+    void rollbackCheckpoint(const common::UniqLock& lockForSerializingPublicFunctionCalls,
+        const common::UniqLock& lockForStartingTransactions);
 
     TransactionMode getTransactionMode() const { return mode; }
     bool hasActiveTransaction() const { return activeTransaction != nullptr; }

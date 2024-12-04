@@ -587,14 +587,14 @@ void PrimaryKeyIndex::rollbackCheckpoint() {
     }
 }
 
-void PrimaryKeyIndex::checkpoint(bool force) {
+void PrimaryKeyIndex::checkpoint(bool forceCheckpointAll) {
     bool indexChanged = false;
     for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
         if (hashIndices[i]->checkpoint()) {
             indexChanged = true;
         }
     }
-    if (indexChanged || force) {
+    if (indexChanged || forceCheckpointAll) {
         writeHeaders();
         hashIndexDiskArrays->checkpoint();
     }
