@@ -1,5 +1,6 @@
 #include "s3_download_options.h"
 
+#include "extension/extension.h"
 #include "main/client_context.h"
 #include "main/database.h"
 
@@ -7,9 +8,6 @@ namespace kuzu {
 namespace httpfs {
 
 using namespace common;
-
-#define ADD_EXTENSION_OPTION(OPTION)                                                               \
-    db->addExtensionOption(OPTION::NAME, OPTION::TYPE, OPTION::getDefaultValue())
 
 void S3DownloadOptions::registerExtensionOptions(main::Database* db) {
     ADD_EXTENSION_OPTION(S3AccessKeyID);
