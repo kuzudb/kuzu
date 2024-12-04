@@ -6,8 +6,6 @@
 #include "common/uniq_lock.h"
 
 namespace kuzu::common {
-// Takes ownership of locks during checkpoint so that we can wait until after the exception is
-// handled before unlocking
 class CheckpointException : public Exception {
 public:
     explicit CheckpointException(std::exception& e) : Exception(e.what()) {}

@@ -74,6 +74,18 @@ void TransactionManager::commit(main::ClientContext& clientContext, bool skipChe
     }
 }
 
+void TransactionManager::autoCheckpointIfNeeded(main::ClientContext& clientContext) {
+    const auto* transaction = clientContext.getTx();
+    const auto transactionType = transaction->getType();
+    const bool transactionTypeCanCheckpoint =
+        (transactionType == TransactionType::WRITE || transactionType == TransactionType::RECOVERY);
+    const bool canAutoCheckpointPermitted =
+        transaction->shouldForceCheckpoint() || canAutoCheckpoint(clientContext);
+    if (canAutoCheckpointPermitted && transactionTypeCanCheckpoint) {
+        checkpoint(clientContext);
+    }
+}
+
 // Note: We take in additional `transaction` here is due to that `transactionContext` might be
 // destructed when a transaction throws exception, while we need to rollback the active transaction
 // still.
@@ -196,6 +208,9 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
         StorageUtils::removeWALVersionFiles(clientContext.getDatabasePath(),
             clientContext.getVFSUnsafe());
     } catch (std::exception& e) {
+        // since we want to rollback the checkpoint atomically
+        // we maintain ownership of the locks (which we will release when we are done handling the
+        // exception)
         common::CheckpointException checkpointException(e);
         checkpointException.addLock(std::move(lockForStartingTransaction));
         throw std::move(checkpointException);
