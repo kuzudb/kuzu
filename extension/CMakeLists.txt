@@ -54,6 +54,10 @@ if ("delta" IN_LIST BUILD_EXTENSIONS)
     add_subdirectory(delta)
 endif ()
 
+if ("iceberg" IN_LIST BUILD_EXTENSIONS)
+    add_subdirectory(iceberg)
+endif ()
+
 if (${BUILD_EXTENSION_TESTS})
     include_directories(${CMAKE_SOURCE_DIR}/third_party/spdlog)
     add_definitions(-DTEST_FILES_DIR="extension")
