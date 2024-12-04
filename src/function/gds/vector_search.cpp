@@ -250,7 +250,7 @@ namespace kuzu {
             }
 
             void searchNNOnUpperLevel(ExecutionContext *context, VectorIndexHeaderPerPartition *header,
-                                      const float *query, L2DistanceComputer *dc,
+                                      const float *query, CosineDistanceComputer *dc,
                                       QuantizedDistanceComputer<float, uint8_t> *qdc,
                                       vector_id_t &nearest,
                                       double &nearestDist) {
@@ -278,7 +278,7 @@ namespace kuzu {
             }
 
             void findEntrypointUsingUpperLayer(ExecutionContext *context, VectorIndexHeaderPerPartition *header,
-                                               const float *query, L2DistanceComputer *dc,
+                                               const float *query, CosineDistanceComputer *dc,
                                                QuantizedDistanceComputer<float, uint8_t> *qdc, vector_id_t &entrypoint,
                                                double *entrypointDist) {
                 uint8_t entrypointLevel;
@@ -473,7 +473,7 @@ namespace kuzu {
 
             void dynamicTwoHopFilteredSearch(processor::ExecutionContext *context, const float *query,
                                              const table_id_t tableId, const int maxK, Graph *graph,
-                                             L2DistanceComputer *dc, QuantizedDistanceComputer<float, uint8_t> *qdc,
+                                             CosineDistanceComputer *dc, QuantizedDistanceComputer<float, uint8_t> *qdc,
                                              NodeOffsetLevelSemiMask *filterMask,
                                              GraphScanState &state, const vector_id_t entrypoint,
                                              const double entrypointDist,
@@ -601,7 +601,7 @@ namespace kuzu {
                 bool isFilteredSearch = filterMask->isEnabled();
                 auto quantizedDc = header->getQuantizer()->get_asym_distance_computer(L2_SQ);
 
-                auto dc = std::make_unique<L2DistanceComputer>(query, indexHeader->getDim(), header->getNumVectors());
+                auto dc = std::make_unique<CosineDistanceComputer>(query, indexHeader->getDim(), header->getNumVectors());
                 dc->setQuery(query);
 
                 // Find closest entrypoint using the above layer!!
