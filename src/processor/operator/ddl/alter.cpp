@@ -31,7 +31,7 @@ void Alter::executeDDLInternal(ExecutionContext* context) {
         if (skipAlter(info.onConflict, [&]() {
                 return catalog->getTableCatalogEntry(transaction, info.tableName)
                     ->containsProperty(info.extraInfo->constCast<BoundExtraAddPropertyInfo>()
-                            .propertyDefinition.getName());
+                                           .propertyDefinition.getName());
             })) {
             return;
         }
