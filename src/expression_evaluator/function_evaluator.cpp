@@ -48,7 +48,8 @@ bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
                 auto pos = resultVector->state->getSelVector()[i];
                 auto selectedPosBuffer = selVector.getMutableBuffer();
                 selectedPosBuffer[numSelectedValues] = pos;
-                numSelectedValues += resultVector->isNull(pos) ? 0 : resultVector->getValue<bool>(pos);
+                numSelectedValues +=
+                    resultVector->isNull(pos) ? 0 : resultVector->getValue<bool>(pos);
             }
             selVector.setSelSize(numSelectedValues);
             return numSelectedValues > 0;
@@ -59,7 +60,8 @@ bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
             // So we forget about selectedPos and directly return true/false. This doesn't change
             // the correctness, because when all children are flat the check is done on tuple.
             auto pos = resultVector->state->getSelVector()[0];
-            return resultVector->isNull(pos) ? 0 : resultVector->getValue<bool>(pos);;
+            return resultVector->isNull(pos) ? 0 : resultVector->getValue<bool>(pos);
+            ;
         }
     }
     return function->selectFunc(parameters, selVector);
