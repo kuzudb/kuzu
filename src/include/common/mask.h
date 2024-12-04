@@ -17,6 +17,7 @@ public:
     virtual ~RoaringBitmapSemiMask() = default;
 
     virtual void mask(common::offset_t nodeOffset) = 0;
+    virtual void maskRange(common::offset_t startNodeOffset, common::offset_t endNodeOffset) = 0;
 
     virtual bool isMasked(common::offset_t startNodeOffset) = 0;
 
@@ -44,6 +45,9 @@ public:
     }
 
     void mask(common::offset_t nodeOffset) override { roaring->add(nodeOffset); }
+    void maskRange(common::offset_t startNodeOffset, common::offset_t endNodeOffset) override {
+        roaring->addRange(startNodeOffset, endNodeOffset);
+    }
 
     bool isMasked(common::offset_t startNodeOffset) override {
         return roaring->contains(startNodeOffset);
@@ -76,6 +80,9 @@ public:
           roaring(std::make_shared<roaring::Roaring64Map>()) {}
 
     void mask(common::offset_t nodeOffset) override { roaring->add(nodeOffset); }
+    void maskRange(common::offset_t startNodeOffset, common::offset_t endNodeOffset) override {
+        roaring->addRange(startNodeOffset, endNodeOffset);
+    }
 
     bool isMasked(common::offset_t startNodeOffset) override {
         return roaring->contains(startNodeOffset);

@@ -500,7 +500,7 @@ bool PrimaryKeyIndex::lookup(const Transaction* trx, ValueVector* keyVector, uin
     return retVal;
 }
 
-bool PrimaryKeyIndex::insert(const Transaction* transaction, ValueVector* keyVector,
+bool PrimaryKeyIndex::insert(const Transaction* transaction, const ValueVector* keyVector,
     uint64_t vectorPos, offset_t value, visible_func isVisible) {
     bool result = false;
     TypeUtils::visit(

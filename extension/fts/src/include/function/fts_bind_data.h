@@ -22,7 +22,7 @@ struct FTSBindData : public function::CallTableFuncBindData {
     std::string getTablePrefix() const { return common::stringFormat("{}_{}", tableID, indexName); }
 
     std::string getStopWordsTableName() const {
-        return common::stringFormat("{}_stopwords", getTablePrefix());
+        return common::stringFormat("default_english_stopwords");
     }
 
     std::string getDocsTableName() const {

@@ -28,7 +28,7 @@ DictionaryColumn::DictionaryColumn(const std::string& name, FileHandle* dataFH, 
         shadowFile, enableCompression, false /*requireNullColumn*/);
 }
 
-void DictionaryColumn::scan(Transaction* transaction, const ChunkState& state,
+void DictionaryColumn::scan(const Transaction* transaction, const ChunkState& state,
     DictionaryChunk& dictChunk) const {
     auto& dataMetadata =
         StringColumn::getChildState(state, StringColumn::ChildStateIndex::DATA).metadata;
@@ -51,7 +51,7 @@ void DictionaryColumn::scan(Transaction* transaction, const ChunkState& state,
         StringColumn::getChildState(state, StringColumn::ChildStateIndex::OFFSET), offsetChunk);
 }
 
-void DictionaryColumn::scan(Transaction* transaction, const ChunkState& offsetState,
+void DictionaryColumn::scan(const Transaction* transaction, const ChunkState& offsetState,
     const ChunkState& dataState, std::vector<std::pair<string_index_t, uint64_t>>& offsetsToScan,
     ValueVector* resultVector, const ColumnChunkMetadata& indexMeta) const {
     string_index_t firstOffsetToScan = 0, lastOffsetToScan = 0;
@@ -108,7 +108,7 @@ string_index_t DictionaryColumn::append(const DictionaryChunk& dictChunk, ChunkS
         reinterpret_cast<const uint8_t*>(&startOffset), nullptr /*nullChunkData*/, 1 /*numValues*/);
 }
 
-void DictionaryColumn::scanOffsets(Transaction* transaction, const ChunkState& state,
+void DictionaryColumn::scanOffsets(const Transaction* transaction, const ChunkState& state,
     DictionaryChunk::string_offset_t* offsets, uint64_t index, uint64_t numValues,
     uint64_t dataSize) const {
     // We either need to read the next value, or store the maximum string offset at the end.
@@ -121,9 +121,9 @@ void DictionaryColumn::scanOffsets(Transaction* transaction, const ChunkState& s
     }
 }
 
-void DictionaryColumn::scanValueToVector(Transaction* transaction, const ChunkState& dataState,
-    uint64_t startOffset, uint64_t endOffset, ValueVector* resultVector,
-    uint64_t offsetInVector) const {
+void DictionaryColumn::scanValueToVector(const Transaction* transaction,
+    const ChunkState& dataState, uint64_t startOffset, uint64_t endOffset,
+    ValueVector* resultVector, uint64_t offsetInVector) const {
     KU_ASSERT(endOffset >= startOffset);
     // Add string to vector first and read directly into the vector
     auto& kuString =

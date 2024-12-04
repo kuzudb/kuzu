@@ -1,6 +1,5 @@
 #include "function/gds/output_writer.h"
 
-#include "common/types/internal_id_util.h"
 #include "function/gds/gds_frontier.h"
 #include "main/client_context.h"
 
@@ -81,15 +80,19 @@ static void setLength(ValueVector* vector, uint16_t length) {
     vector->setValue<uint16_t>(0, length);
 }
 
+static ParentList* getTop(const std::vector<ParentList*>& path) {
+    return path[path.size() - 1];
+}
+
 void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
     GDSOutputCounter* counter) {
     auto output = rjOutputs->ptrCast<PathsOutputs>();
     auto& bfsGraph = output->bfsGraph;
     auto sourceNodeID = output->sourceNodeID;
     dstNodeIDVector->setValue<common::nodeID_t>(0, dstNodeID);
-    auto firstParent = bfsGraph.getParentListHead(dstNodeID.offset);
+    auto firstParent = findFirstParent(dstNodeID.offset, bfsGraph);
     if (firstParent == nullptr) {
-        if (sourceNodeID == dstNodeID) {
+        if (sourceNodeID == dstNodeID && info.lowerBound == 0) {
             // We still output a path from src to src if required path length is 0.
             // This case should only run for variable length joins.
             setLength(lengthVector.get(), 0);
@@ -108,12 +111,12 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
     std::vector<ParentList*> curPath;
     curPath.push_back(firstParent);
     auto backtracking = false;
-    while (!curPath.empty()) {
-        auto top = curPath[curPath.size() - 1];
-        auto topNodeID = top->getNodeID();
-        if (top->getIter() == 1) {
-            // check path
-            if (checkPathNodeMask(curPath) && checkSemantic(curPath)) {
+    if (!info.hasNodeMask() && info.semantic == common::PathSemantic::WALK) {
+        // Fast path when there is no node predicate or semantic check
+        while (!curPath.empty()) {
+            auto top = curPath[curPath.size() - 1];
+            auto topNodeID = top->getNodeID();
+            if (top->getIter() == 1) {
                 writePath(curPath);
                 fTable.append(vectors);
                 if (counter != nullptr) {
@@ -122,93 +125,204 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
                         return;
                     }
                 }
+                backtracking = true;
+            }
+            if (backtracking) {
+                auto next = getTop(curPath)->getNextPtr();
+                if (isNextViable(next, curPath)) {
+                    curPath[curPath.size() - 1] = next;
+                    if (curPath.size() == 1) {
+                        setLength(lengthVector.get(), curPath[0]->getIter());
+                    }
+                    backtracking = false;
+                } else {
+                    curPath.pop_back();
+                }
+            } else {
+                auto parent = bfsGraph.getParentListHead(topNodeID);
+                while (parent->getIter() != top->getIter() - 1) {
+                    parent = parent->getNextPtr();
+                }
+                curPath.push_back(parent);
+                backtracking = false;
+            }
+        }
+        return;
+    }
+    while (!curPath.empty()) {
+        if (getTop(curPath)->getIter() == 1) {
+            writePath(curPath);
+            fTable.append(vectors);
+            if (counter != nullptr) {
+                counter->increase(1);
+                if (counter->exceedLimit()) {
+                    return;
+                }
             }
             backtracking = true;
         }
         if (backtracking) {
-            // This code checks if we should switch from backtracking to forward-tracking, i.e.,
-            // moving forward in the DFS logic to find paths. We switch from backtracking if:
-            // (i) the current top element in the stack has a nextPtr, i.e., the top node has
-            // more parent edges in the BFS graph AND:
-            // (ii.1) if this is the first element in the stack (curPath.size() == 1), i.e., we
-            // are enumerating the parents of the destination, then we should switch to
-            // forward-tracking if the next parent has visited the destination at a length
-            // that's greater than or equal to the lower bound of the recursive join. Otherwise,
-            // we'll enumerate paths that are smaller than the lower; OR
-            // (ii.2) if this is not the first element in the stack, i.e., then we should switch
-            // to forward tracking only if the next parent of the top node in the stack has the
-            // same iter value as the current parent. That's because the levels/iter need to
-            // decrease by 1 each time we add a new node in the stack.
-            if (top->getNextPtr() != nullptr &&
-                ((curPath.size() == 1 && top->getNextPtr()->getIter() >= info.lowerBound) ||
-                    top->getNextPtr()->getIter() == top->getIter())) {
-                curPath[curPath.size() - 1] = top->getNextPtr();
-                backtracking = false;
+            auto next = getTop(curPath)->getNextPtr();
+            while (true) {
+                if (!isNextViable(next, curPath)) {
+                    curPath.pop_back();
+                    break;
+                }
+                // Further check next against path node mask (predicate).
+                if (!checkPathNodeMask(next) || !checkReplaceTopSemantic(curPath, next)) {
+                    next = next->getNextPtr();
+                    continue;
+                }
+                // Next is a valid path element. Push into stack and switch to forward track.
+                curPath[curPath.size() - 1] = next;
                 if (curPath.size() == 1) {
                     setLength(lengthVector.get(), curPath[0]->getIter());
                 }
-            } else {
-                curPath.pop_back();
+                backtracking = false;
+                break;
             }
         } else {
-            auto parent = bfsGraph.getParentListHead(topNodeID);
-            while (parent->getIter() != top->getIter() - 1) {
+            auto top = getTop(curPath);
+            auto parent = bfsGraph.getParentListHead(top->getNodeID());
+            while (true) {
+                if (parent == nullptr) {
+                    // No more forward tracking candidates. Switch to backward tracking.
+                    backtracking = true;
+                    break;
+                }
+                if (parent->getIter() == top->getIter() - 1 && checkPathNodeMask(parent) &&
+                    checkAppendSemantic(curPath, parent)) {
+                    // A forward tracking candidate should decrease the iteration by one and also
+                    // pass node predicate checking.
+                    curPath.push_back(parent);
+                    backtracking = false;
+                    break;
+                }
                 parent = parent->getNextPtr();
             }
-            curPath.push_back(parent);
-            backtracking = false;
         }
     }
     return;
 }
 
-bool PathsOutputWriter::checkPathNodeMask(const std::vector<ParentList*>& path) const {
-    if (!info.hasNodeMask()) {
-        return true;
+ParentList* PathsOutputWriter::findFirstParent(offset_t dstOffset, BFSGraph& bfsGraph) const {
+    auto result = bfsGraph.getParentListHead(dstOffset);
+    if (!info.hasNodeMask() && info.semantic == PathSemantic::WALK) {
+        // Fast path when there is no node predicate or semantic check
+        return result;
     }
-    // Path node predicate should only be applied to intermediate node. So we exclude dst node.
-    for (auto i = 0u; i < path.size() - 1; ++i) {
-        if (!info.pathNodeMask->valid(path[i]->getNodeID())) {
-            return false;
+    while (result) {
+        // A valid parent should
+        // (1) satisfies path node semi mask (i.e. path node predicate)
+        // (2) since first parent has the largest iteration number which decides path length, we
+        //     also need to check if path length is greater than lower bound.
+        if (checkPathNodeMask(result) && result->getIter() >= info.lowerBound) {
+            break;
         }
+        result = result->getNextPtr();
     }
-    return true;
+    return result;
 }
 
-// TODO(Xiyang): apply semantic check during DFS backtracking.
-bool PathsOutputWriter::checkSemantic(const std::vector<ParentList*>& path) const {
+// This code checks if we should switch from backtracking to forward-tracking, i.e.,
+// moving forward in the DFS logic to find paths. We switch from backtracking if:
+bool PathsOutputWriter::isNextViable(ParentList* next, const std::vector<ParentList*>& path) const {
+    if (next == nullptr) {
+        return false;
+    }
+    auto nextIter = next->getIter();
+    // (1) if this is the first element in the stack (curPath.size() == 1), i.e., we
+    // are enumerating the parents of the destination, then we should switch to
+    // forward-tracking if the next parent has visited the destination at a length
+    // that's greater than or equal to the lower bound of the recursive join. Otherwise, we would
+    // enumerate paths that are smaller than the lower bound from the start element, so we can stop
+    // here.; OR
+    if (path.size() == 1) {
+        return nextIter >= info.lowerBound;
+    }
+    // (2) if this is not the first element in the stack, i.e., then we should switch
+    // to forward tracking only if the next parent of the top node in the stack has the
+    // same iter value as the current parent. That's because the levels/iter need to
+    // decrease by 1 each time we add a new node in the stack.
+    if (nextIter == getTop(path)->getIter()) {
+        return true;
+    }
+    return false;
+}
+
+bool PathsOutputWriter::checkPathNodeMask(ParentList* element) const {
+    if (!info.hasNodeMask() || element->getIter() == 1) {
+        return true;
+    }
+    return info.pathNodeMask->valid(element->getNodeID());
+}
+
+bool PathsOutputWriter::checkAppendSemantic(const std::vector<ParentList*>& path,
+    ParentList* candidate) const {
     switch (info.semantic) {
     case PathSemantic::WALK:
         return true;
     case PathSemantic::TRAIL:
-        return isTrail(path);
+        return isAppendTrail(path, candidate);
     case PathSemantic::ACYCLIC:
-        return isAcyclic(path);
+        return isAppendAcyclic(path, candidate);
     default:
         KU_UNREACHABLE;
     }
 }
 
-bool PathsOutputWriter::isTrail(const std::vector<ParentList*>& path) const {
-    rel_id_set_t set;
-    for (auto i = 0u; i < path.size(); ++i) {
-        auto edgeID = path[i]->getEdgeID();
-        if (set.contains(edgeID)) {
+bool PathsOutputWriter::checkReplaceTopSemantic(const std::vector<ParentList*>& path,
+    ParentList* candidate) const {
+    switch (info.semantic) {
+    case PathSemantic::WALK:
+        return true;
+    case PathSemantic::TRAIL:
+        return isReplaceTopTrail(path, candidate);
+    case PathSemantic::ACYCLIC:
+        return isReplaceTopAcyclic(path, candidate);
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
+bool PathsOutputWriter::isAppendTrail(const std::vector<ParentList*>& path,
+    ParentList* candidate) const {
+    for (auto& element : path) {
+        if (candidate->getEdgeID() == element->getEdgeID()) {
             return false;
         }
-        set.insert(edgeID);
     }
     return true;
 }
 
-bool PathsOutputWriter::isAcyclic(const std::vector<ParentList*>& path) const {
-    node_id_set_t set;
-    for (auto i = 0u; i < path.size() - 1; ++i) {
-        auto nodeID = path[i]->getNodeID();
-        if (set.contains(nodeID)) {
+bool PathsOutputWriter::isAppendAcyclic(const std::vector<ParentList*>& path,
+    ParentList* candidate) const {
+    // Skip dst for semantic checking
+    for (auto i = 1u; i < path.size() - 1; ++i) {
+        if (candidate->getNodeID() == path[i]->getNodeID()) {
             return false;
         }
-        set.insert(nodeID);
+    }
+    return true;
+}
+
+bool PathsOutputWriter::isReplaceTopTrail(const std::vector<ParentList*>& path,
+    ParentList* candidate) const {
+    for (auto i = 0u; i < path.size() - 1; ++i) {
+        if (candidate->getEdgeID() == path[i]->getEdgeID()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool PathsOutputWriter::isReplaceTopAcyclic(const std::vector<ParentList*>& path,
+    ParentList* candidate) const {
+    // Skip dst for semantic checking
+    for (auto i = 1u; i < path.size() - 1; ++i) {
+        if (candidate->getNodeID() == path[i]->getNodeID()) {
+            return false;
+        }
     }
     return true;
 }

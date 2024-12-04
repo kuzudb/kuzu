@@ -16,17 +16,64 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
+PersistentVersionRecordHandler::PersistentVersionRecordHandler(RelTableData* relTableData)
+    : relTableData(relTableData) {}
+
+void PersistentVersionRecordHandler::applyFuncToChunkedGroups(version_record_handler_op_t func,
+    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
+    common::transaction_t commitTS) const {
+    if (nodeGroupIdx < relTableData->getNumNodeGroups()) {
+        auto& nodeGroup = relTableData->getNodeGroupNoLock(nodeGroupIdx)->cast<CSRNodeGroup>();
+        auto* persistentChunkedGroup = nodeGroup.getPersistentChunkedGroup();
+        if (persistentChunkedGroup) {
+            std::invoke(func, *persistentChunkedGroup, startRow, numRows, commitTS);
+        }
+    }
+}
+
+void PersistentVersionRecordHandler::rollbackInsert(const transaction::Transaction* transaction,
+    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+    common::row_idx_t numRows) const {
+    VersionRecordHandler::rollbackInsert(transaction, nodeGroupIdx, startRow, numRows);
+    relTableData->rollbackGroupCollectionInsert(numRows, true);
+}
+
+InMemoryVersionRecordHandler::InMemoryVersionRecordHandler(RelTableData* relTableData)
+    : relTableData(relTableData) {}
+
+void InMemoryVersionRecordHandler::applyFuncToChunkedGroups(version_record_handler_op_t func,
+    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
+    common::transaction_t commitTS) const {
+    auto* nodeGroup = relTableData->getNodeGroupNoLock(nodeGroupIdx);
+    nodeGroup->applyFuncToChunkedGroups(func, startRow, numRows, commitTS);
+}
+
+void InMemoryVersionRecordHandler::rollbackInsert(const transaction::Transaction* transaction,
+    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+    common::row_idx_t numRows) const {
+    VersionRecordHandler::rollbackInsert(transaction, nodeGroupIdx, startRow, numRows);
+    auto* nodeGroup = relTableData->getNodeGroupNoLock(nodeGroupIdx);
+    const auto numRowsToRollback = std::min(numRows, nodeGroup->getNumRows() - startRow);
+    nodeGroup->rollbackInsert(startRow);
+    relTableData->rollbackGroupCollectionInsert(numRowsToRollback, false);
+}
+
 RelTableData::RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
     const TableCatalogEntry* tableEntry, RelDataDirection direction, bool enableCompression,
     Deserializer* deSer)
     : dataFH{dataFH}, tableID{tableEntry->getTableID()}, tableName{tableEntry->getName()},
       memoryManager{mm}, shadowFile{shadowFile}, enableCompression{enableCompression},
-      direction{direction} {
+      direction{direction}, persistentVersionRecordHandler(this),
+      inMemoryVersionRecordHandler(this) {
     multiplicity = tableEntry->constCast<RelTableCatalogEntry>().getMultiplicity(direction);
     initCSRHeaderColumns();
     initPropertyColumns(tableEntry);
+
+    // default to using the persistent version record handler
+    // if we want to use the in-memory handler we will explicitly pass it into
+    // nodeGroups.pushInsertInfo()
     nodeGroups = std::make_unique<NodeGroupCollection>(*mm, getColumnTypes(), enableCompression,
-        dataFH, deSer);
+        dataFH, deSer, &persistentVersionRecordHandler);
 }
 
 void RelTableData::initCSRHeaderColumns() {
@@ -83,7 +130,7 @@ bool RelTableData::update(Transaction* transaction, ValueVector& boundNodeIDVect
 }
 
 bool RelTableData::delete_(Transaction* transaction, ValueVector& boundNodeIDVector,
-    const ValueVector& relIDVector) const {
+    const ValueVector& relIDVector) {
     const auto boundNodePos = boundNodeIDVector.state->getSelVector()[0];
     const auto relIDPos = relIDVector.state->getSelVector()[0];
     if (boundNodeIDVector.isNull(boundNodePos) || relIDVector.isNull(relIDPos)) {
@@ -96,7 +143,11 @@ bool RelTableData::delete_(Transaction* transaction, ValueVector& boundNodeIDVec
     const auto boundNodeOffset = boundNodeIDVector.getValue<nodeID_t>(boundNodePos).offset;
     const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(boundNodeOffset);
     auto& csrNodeGroup = getNodeGroup(nodeGroupIdx)->cast<CSRNodeGroup>();
-    return csrNodeGroup.delete_(transaction, source, rowIdx);
+    bool isDeleted = csrNodeGroup.delete_(transaction, source, rowIdx);
+    if (isDeleted && transaction->shouldAppendToUndoBuffer()) {
+        transaction->pushDeleteInfo(nodeGroupIdx, rowIdx, 1, getVersionRecordHandler(source));
+    }
+    return isDeleted;
 }
 
 void RelTableData::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
@@ -186,6 +237,23 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction,
     return false;
 }
 
+void RelTableData::pushInsertInfo(transaction::Transaction* transaction,
+    const CSRNodeGroup& nodeGroup, common::row_idx_t numRows_, CSRNodeGroupScanSource source) {
+    // we shouldn't be appending directly to the to the persistent data
+    // unless we are performing batch insert and the persistent chunked group is empty
+    KU_ASSERT(source != CSRNodeGroupScanSource::COMMITTED_PERSISTENT ||
+              !nodeGroup.getPersistentChunkedGroup() ||
+              nodeGroup.getPersistentChunkedGroup()->getNumRows() == 0);
+
+    const auto [startRow, shouldIncrementNumRows] =
+        (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) ?
+            std::make_pair(static_cast<row_idx_t>(0), false) :
+            std::make_pair(nodeGroup.getNumRows(), true);
+
+    nodeGroups->pushInsertInfo(transaction, nodeGroup.getNodeGroupIdx(), startRow, numRows_,
+        getVersionRecordHandler(source), shouldIncrementNumRows);
+}
+
 void RelTableData::checkpoint(const std::vector<column_id_t>& columnIDs) {
     std::vector<std::unique_ptr<Column>> checkpointColumns;
     for (auto i = 0u; i < columnIDs.size(); i++) {
@@ -206,6 +274,19 @@ void RelTableData::checkpoint(const std::vector<column_id_t>& columnIDs) {
 
 void RelTableData::serialize(Serializer& serializer) const {
     nodeGroups->serialize(serializer);
+}
+
+const VersionRecordHandler* RelTableData::getVersionRecordHandler(CSRNodeGroupScanSource source) {
+    if (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) {
+        return &persistentVersionRecordHandler;
+    } else {
+        KU_ASSERT(source == CSRNodeGroupScanSource::COMMITTED_IN_MEMORY);
+        return &inMemoryVersionRecordHandler;
+    }
+}
+
+void RelTableData::rollbackGroupCollectionInsert(common::row_idx_t numRows_, bool isPersistent) {
+    nodeGroups->rollbackInsert(numRows_, !isPersistent);
 }
 
 } // namespace storage

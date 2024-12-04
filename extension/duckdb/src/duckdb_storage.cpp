@@ -3,7 +3,6 @@
 #include <filesystem>
 
 #include "attached_duckdb_database.h"
-#include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
 #include "connector/connector_factory.h"

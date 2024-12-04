@@ -86,10 +86,9 @@ class VersionInfo {
 public:
     VersionInfo() {}
 
-    void append(const transaction::Transaction* transaction, ChunkedNodeGroup* chunkedNodeGroup,
-        common::row_idx_t startRow, common::row_idx_t numRows);
-    bool delete_(const transaction::Transaction* transaction, ChunkedNodeGroup* chunkedNodeGroup,
-        common::row_idx_t rowIdx);
+    void append(common::transaction_t transactionID, common::row_idx_t startRow,
+        common::row_idx_t numRows);
+    bool delete_(common::transaction_t transactionID, common::row_idx_t rowIdx);
 
     void getSelVectorToScan(common::transaction_t startTS, common::transaction_t transactionID,
         common::SelectionVector& selVector, common::row_idx_t startRow,

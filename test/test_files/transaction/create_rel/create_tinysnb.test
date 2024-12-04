@@ -34,6 +34,21 @@
 ---- error
 Runtime exception: Node(nodeOffset: 7) has more than one neighbour in table marries in the bwd direction, which violates the rel multiplicity constraint.
 
+# Retry
+-STATEMENT MATCH (a:person)-[m:marries]->(b:person) RETURN a.ID, b.ID
+---- 3
+0|2
+3|5
+7|8
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 9 AND b.ID = 10 CREATE (a)-[:marries]->(b)
+---- ok
+-STATEMENT MATCH (a:person)-[m:marries]->(b:person) RETURN a.ID, b.ID
+---- 4
+0|2
+3|5
+7|8
+9|10
+
 -LOG Bwd
 -STATEMENT BEGIN TRANSACTION
 ---- ok

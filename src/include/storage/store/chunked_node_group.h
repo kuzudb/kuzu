@@ -103,7 +103,7 @@ public:
     std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> scanUpdates(
         transaction::Transaction* transaction, common::column_id_t columnID);
 
-    bool lookup(transaction::Transaction* transaction, const TableScanState& state,
+    bool lookup(const transaction::Transaction* transaction, const TableScanState& state,
         NodeGroupScanState& nodeGroupScanState, common::offset_t rowIdxInChunk,
         common::sel_t posInOutput) const;
 
@@ -139,10 +139,12 @@ public:
 
     void commitInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
         common::transaction_t commitTS);
-    void rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_);
+    void rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
+        common::transaction_t commitTS);
     void commitDelete(common::row_idx_t startRow, common::row_idx_t numRows_,
         common::transaction_t commitTS);
-    void rollbackDelete(common::row_idx_t startRow, common::row_idx_t numRows_);
+    void rollbackDelete(common::row_idx_t startRow, common::row_idx_t numRows_,
+        common::transaction_t commitTS);
 
     uint64_t getEstimatedMemoryUsage() const;
 
