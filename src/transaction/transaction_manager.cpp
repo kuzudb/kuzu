@@ -109,11 +109,11 @@ void TransactionManager::rollback(main::ClientContext& clientContext,
 }
 
 void TransactionManager::rollbackCheckpoint(main::ClientContext& clientContext,
-    [[maybe_unused]] const std::vector<common::UniqLock>& locks) {
+    [[maybe_unused]] std::span<const common::UniqLock*> locks) {
     // should hold lockForSerializingPublicFunctionCalls and lockForStartingTransactions
     KU_ASSERT(locks.size() == 2);
     KU_ASSERT(std::all_of(locks.begin(), locks.end(),
-        [](const common::UniqLock& lock) { return lock.isLocked(); }));
+        [](const common::UniqLock* lock) { return lock->isLocked(); }));
     if (main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())) {
         return;
     }
