@@ -360,8 +360,7 @@ private:
 class DoubleFrontierPair : public FrontierPair {
 public:
     DoubleFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-        std::shared_ptr<GDSFrontier> nextFrontier,
-        uint64_t maxThreadsForExec);
+        std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreadsForExec);
 };
 
 class DoublePathLengthsFrontierPair : public DoubleFrontierPair {
