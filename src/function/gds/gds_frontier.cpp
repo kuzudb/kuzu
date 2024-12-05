@@ -90,8 +90,7 @@ void SinglePathLengthsFrontierPair::initRJFromSource(nodeID_t source) {
     pathLengths->setActive(source);
 }
 
-DoubleFrontierPair::DoubleFrontierPair(
-    std::shared_ptr<GDSFrontier> curFrontier,
+DoubleFrontierPair::DoubleFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
     std::shared_ptr<GDSFrontier> nextFrontier, uint64_t initialActiveNodes,
     uint64_t maxThreadsForExec)
     : FrontierPair(curFrontier, nextFrontier, maxThreadsForExec) {}
@@ -108,27 +107,26 @@ void DoublePathLengthsFrontierPair::initRJFromSource(nodeID_t source) {
     nextFrontier->ptrCast<PathLengths>()->setActive(source);
 }
 
-WCCFrontierPair::WCCFrontierPair(
-    common::table_id_map_t<common::offset_t> numNodesMap, uint64_t totalNumNodes, uint64_t maxThreadsForExec,
-    storage::MemoryManager* mm):
-    DoubleFrontierPair(nullptr, nullptr, 0, maxThreadsForExec), numNodes{totalNumNodes} {
-        uint64_t componentIDCounter = 0;
-        updated = true;
-        for (const auto& [tableID, curNumNodes] : numNodesMap) {
-            numNodesMap[tableID] = curNumNodes;
-            auto memBuffer = mm->allocateBuffer(false, curNumNodes * sizeof(std::atomic<uint64_t>));
-            std::atomic<uint64_t>* memBufferPtr =
-                reinterpret_cast<std::atomic<uint64_t>*>(memBuffer.get()->getData());
-            // Cast a unique number to each node
-            for (uint64_t i = 0; i < curNumNodes; ++i) {
-                memBufferPtr[i].store(componentIDCounter, std::memory_order_relaxed);
-                componentIDCounter++;
-            }
-            vertexValues.insert({tableID, std::move(memBuffer)});
+WCCFrontierPair::WCCFrontierPair(common::table_id_map_t<common::offset_t> numNodesMap,
+    uint64_t totalNumNodes, uint64_t maxThreadsForExec, storage::MemoryManager* mm)
+    : DoubleFrontierPair(nullptr, nullptr, 0, maxThreadsForExec), numNodes{totalNumNodes} {
+    uint64_t componentIDCounter = 0;
+    updated = true;
+    for (const auto& [tableID, curNumNodes] : numNodesMap) {
+        numNodesMap[tableID] = curNumNodes;
+        auto memBuffer = mm->allocateBuffer(false, curNumNodes * sizeof(std::atomic<uint64_t>));
+        std::atomic<uint64_t>* memBufferPtr =
+            reinterpret_cast<std::atomic<uint64_t>*>(memBuffer.get()->getData());
+        // Cast a unique number to each node
+        for (uint64_t i = 0; i < curNumNodes; ++i) {
+            memBufferPtr[i].store(componentIDCounter, std::memory_order_relaxed);
+            componentIDCounter++;
         }
-        curFrontier = std::make_shared<WCCFrontier>(numNodesMap, mm, true);
-        nextFrontier = std::make_shared<WCCFrontier>(numNodesMap, mm, false);
-        setActiveNodesForNextIter();
+        vertexValues.insert({tableID, std::move(memBuffer)});
+    }
+    curFrontier = std::make_shared<WCCFrontier>(numNodesMap, mm, true);
+    nextFrontier = std::make_shared<WCCFrontier>(numNodesMap, mm, false);
+    setActiveNodesForNextIter();
 }
 
 static constexpr uint64_t EARLY_TERM_NUM_NODES_THRESHOLD = 100;
