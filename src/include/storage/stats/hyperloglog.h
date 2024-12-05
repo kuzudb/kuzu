@@ -1,3 +1,7 @@
+// This HyperLogLog implementation is taken from duckdb.
+// Source code:
+// https://github.com/duckdb/duckdb/blob/main/src/include/duckdb/common/types/hyperloglog.hpp
+
 #pragma once
 
 #include <array>
