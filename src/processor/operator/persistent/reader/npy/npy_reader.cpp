@@ -330,8 +330,7 @@ static std::unique_ptr<function::TableFuncSharedState> initSharedState(
     return std::make_unique<NpyScanSharedState>(bindData->config.copy(), reader->getNumRows());
 }
 
-static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* /*sharedState*/,
-    TableFuncLocalState*) {
+static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* /*sharedState*/) {
     ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
 }
 

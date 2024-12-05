@@ -881,8 +881,7 @@ static double progressFunc(TableFuncSharedState* /*state*/) {
     return 0;
 }
 
-static void finalizeFunc(processor::ExecutionContext* ctx, TableFuncSharedState* sharedState,
-    TableFuncLocalState*) {
+static void finalizeFunc(processor::ExecutionContext* ctx, TableFuncSharedState* sharedState) {
     auto* jsonSharedState = sharedState->ptrCast<JSONScanSharedState>();
 
     jsonSharedState->sharedErrorHandler.throwCachedErrorsIfNeeded();

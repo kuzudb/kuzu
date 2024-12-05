@@ -84,7 +84,7 @@ using table_func_init_local_t = std::function<std::unique_ptr<TableFuncLocalStat
 using table_func_can_parallel_t = std::function<bool()>;
 using table_func_progress_t = std::function<double(TableFuncSharedState* sharedState)>;
 using table_func_finalize_t =
-    std::function<void(processor::ExecutionContext*, TableFuncSharedState*, TableFuncLocalState*)>;
+    std::function<void(processor::ExecutionContext*, TableFuncSharedState*)>;
 using table_func_rewrite_t =
     std::function<std::string(main::ClientContext&, const TableFuncBindData& bindData)>;
 
@@ -95,7 +95,7 @@ struct KUZU_API TableFunction : public Function {
     table_func_init_local_t initLocalStateFunc;
     table_func_can_parallel_t canParallelFunc = [] { return true; };
     table_func_progress_t progressFunc = [](TableFuncSharedState*) { return 0.0; };
-    table_func_finalize_t finalizeFunc = [](auto, auto, auto) {};
+    table_func_finalize_t finalizeFunc = [](auto, auto) {};
     table_func_rewrite_t rewriteFunc;
 
     TableFunction()
