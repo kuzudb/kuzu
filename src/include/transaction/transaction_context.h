@@ -50,8 +50,7 @@ public:
     void autoCheckpointIfNeeded();
     void rollback();
     // we must still hold the locks from the checkpoint to rollback
-    void rollbackCheckpoint(const common::UniqLock& lockForSerializingPublicFunctionCalls,
-        const common::UniqLock& lockForStartingTransactions);
+    void rollbackCheckpoint(const std::vector<common::UniqLock>& locks);
 
     TransactionMode getTransactionMode() const { return mode; }
     bool hasActiveTransaction() const { return activeTransaction != nullptr; }

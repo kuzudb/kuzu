@@ -81,14 +81,11 @@ void TransactionContext::rollback() {
     clearTransaction();
 }
 
-void TransactionContext::rollbackCheckpoint(
-    const common::UniqLock& lockForSerializingPublicFunctionCalls,
-    const common::UniqLock& lockForStartingTransactions) {
+void TransactionContext::rollbackCheckpoint(const std::vector<common::UniqLock>& locks) {
     if (!hasActiveTransaction()) {
         return;
     }
-    clientContext.getDatabase()->transactionManager->rollbackCheckpoint(clientContext,
-        lockForSerializingPublicFunctionCalls, lockForStartingTransactions);
+    clientContext.getDatabase()->transactionManager->rollbackCheckpoint(clientContext, locks);
     clearTransaction();
 }
 
