@@ -521,7 +521,8 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
         try {
             this->transactionContext->autoCheckpointIfNeeded();
         } catch (common::CheckpointException& e) {
-            this->transactionContext->rollbackCheckpoint(e.getLocks());
+            auto locks = e.getLocks();
+            this->transactionContext->rollbackCheckpoint(locks);
             return handleFailedExecute(executionContext.get(), e);
         } catch (std::exception& e) {
             // exception was before checkpoint started, no need to rollback checkpoint
