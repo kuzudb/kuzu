@@ -98,16 +98,17 @@ public:
 
 void CopyTest::BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg) {
     if (inMemMode) {
-        GTEST_SKIP();
+        failureFrequency = UINT64_MAX;
+        resetDBFlaky(cfg.canFailDuringExecute, cfg.canFailDuringCheckpoint);
+    } else {
+        createDBAndConn();
     }
-    static constexpr uint64_t dbSize = 64 * 1024 * 1024;
-    resetDB(dbSize);
+
     cfg.initFunc(conn.get());
 
-    // this test only checks robustness during the transaction
-    // we don't want to trigger BM exceptions during checkpoint
-    // TODO(Royi) fix checkpointing so this test passes even if BM fails during checkpoint
-    resetDBFlaky(cfg.canFailDuringExecute, cfg.canFailDuringCheckpoint);
+    if (!inMemMode) {
+        resetDBFlaky(cfg.canFailDuringExecute, cfg.canFailDuringCheckpoint);
+    }
 
     for (int i = 0;; i++) {
         ASSERT_LT(i, 20);
@@ -124,8 +125,12 @@ void CopyTest::BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg) {
         }
     }
 
-    // Reopen the DB so no spurious errors occur during the query
-    resetDB(dbSize);
+    if (inMemMode) {
+        failureFrequency = UINT64_MAX;
+    } else {
+        // Reopen the DB so no spurious errors occur during the query
+        resetDB(common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
+    }
     {
         // Test that the table copied as expected after the query
         auto result = cfg.checkFunc(conn.get());
@@ -136,6 +141,9 @@ void CopyTest::BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg) {
 }
 
 TEST_F(CopyTest, NodeCopyBMExceptionRecoverySameConnection) {
+    if (inMemMode) {
+        GTEST_SKIP();
+    }
     BMExceptionRecoveryTestConfig cfg{.canFailDuringExecute = true,
         .canFailDuringCheckpoint = false,
         .initFunc =
@@ -158,6 +166,9 @@ TEST_F(CopyTest, NodeCopyBMExceptionRecoverySameConnection) {
 }
 
 TEST_F(CopyTest, RelCopyBMExceptionRecoverySameConnection) {
+    if (inMemMode) {
+        GTEST_SKIP();
+    }
     BMExceptionRecoveryTestConfig cfg{.canFailDuringExecute = true,
         .canFailDuringCheckpoint = false,
         .initFunc =
@@ -201,8 +212,8 @@ TEST_F(CopyTest, NodeInsertBMExceptionDuringCommitRecovery) {
         .canFailDuringCheckpoint = false,
         .initFunc =
             [this](main::Connection* conn) {
-                failureFrequency = 128;
                 conn->query("CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID))");
+                failureFrequency = 128;
             },
         .executeFunc =
             [](main::Connection* conn, int) {
@@ -224,12 +235,12 @@ TEST_F(CopyTest, RelInsertBMExceptionDuringCommitRecovery) {
         .canFailDuringCheckpoint = false,
         .initFunc =
             [this](main::Connection* conn) {
-                failureFrequency = 32;
                 conn->query("CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID))");
                 conn->query("CREATE REL TABLE follows(FROM account TO account);");
                 const auto queryString = common::stringFormat(
                     "UNWIND RANGE(1,{}) AS i CREATE (a:account {ID:i})", numNodes);
                 ASSERT_TRUE(conn->query(queryString)->isSuccess());
+                failureFrequency = 32;
             },
         .executeFunc =
             [](main::Connection* conn, int) {
@@ -248,6 +259,9 @@ TEST_F(CopyTest, RelInsertBMExceptionDuringCommitRecovery) {
 }
 
 TEST_F(CopyTest, NodeCopyBMExceptionDuringCheckpointRecovery) {
+    if (inMemMode) {
+        GTEST_SKIP();
+    }
     static constexpr bool canFailDuringExecute = false;
     static constexpr bool canFailDuringCheckpoint = true;
     BMExceptionRecoveryTestConfig cfg{.canFailDuringExecute = canFailDuringExecute,
@@ -274,6 +288,37 @@ TEST_F(CopyTest, NodeCopyBMExceptionDuringCheckpointRecovery) {
         .checkFunc =
             [](main::Connection* conn) { return conn->query("MATCH (a:account) RETURN COUNT(*)"); },
         .checkResult = 81306};
+    BMExceptionRecoveryTest(cfg);
+}
+
+TEST_F(CopyTest, NodeInsertBMExceptionDuringCheckpointRecovery) {
+    if (inMemMode) {
+        GTEST_SKIP();
+    }
+    static constexpr uint64_t numValues = 200000;
+    static constexpr bool canFailDuringExecute = false;
+    static constexpr bool canFailDuringCheckpoint = true;
+    BMExceptionRecoveryTestConfig cfg{.canFailDuringExecute = canFailDuringExecute,
+        .canFailDuringCheckpoint = canFailDuringCheckpoint,
+        .initFunc =
+            [this](main::Connection* conn) {
+                failureFrequency = 512;
+                conn->query("CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID))");
+            },
+        .executeFunc =
+            [](main::Connection* conn, int) {
+                return conn->query(common::stringFormat(
+                    "UNWIND RANGE(1,{}) AS i CREATE (a:account {ID:i})", numValues));
+            },
+        .earlyExitOnFailureFunc =
+            [this](main::QueryResult*) {
+                // make sure the checkpoint when closing the DB doesn't fail
+                failureFrequency = UINT64_MAX;
+                return true;
+            },
+        .checkFunc =
+            [](main::Connection* conn) { return conn->query("MATCH (a:account) RETURN COUNT(*)"); },
+        .checkResult = numValues};
     BMExceptionRecoveryTest(cfg);
 }
 
