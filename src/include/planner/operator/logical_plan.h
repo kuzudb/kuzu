@@ -19,6 +19,10 @@ public:
     bool isEmpty() const { return lastOperator == nullptr; }
 
     std::shared_ptr<LogicalOperator> getLastOperator() const { return lastOperator; }
+    LogicalOperator& getLastOperatorRef() const {
+        KU_ASSERT(lastOperator);
+        return *lastOperator;
+    }
     Schema* getSchema() const { return lastOperator->getSchema(); }
 
     cardinality_t getCardinality() const {

@@ -27,15 +27,17 @@ public:
     void addNodeIDDomAndStats(const transaction::Transaction* transaction,
         const binder::Expression& nodeID, const std::vector<common::table_id_t>& tableIDs);
 
-    cardinality_t estimateScanNode(LogicalOperator* op);
-    cardinality_t estimateExtend(double extensionRate, const LogicalPlan& childPlan);
+    cardinality_t estimateScanNode(const LogicalOperator& op);
+    cardinality_t estimateExtend(double extensionRate, const LogicalOperator& childOp);
     cardinality_t estimateHashJoin(const binder::expression_vector& joinKeys,
-        const LogicalPlan& probePlan, const LogicalPlan& buildPlan);
-    cardinality_t estimateCrossProduct(const LogicalPlan& probePlan, const LogicalPlan& buildPlan);
+        const LogicalOperator& probeOp, const LogicalOperator& buildOp);
+    cardinality_t estimateCrossProduct(const LogicalOperator& probeOp,
+        const LogicalOperator& buildOp);
     cardinality_t estimateIntersect(const binder::expression_vector& joinNodeIDs,
-        const LogicalPlan& probePlan, const std::vector<std::unique_ptr<LogicalPlan>>& buildPlans);
-    cardinality_t estimateFlatten(const LogicalPlan& childPlan, f_group_pos groupPosToFlatten);
-    cardinality_t estimateFilter(const LogicalPlan& childPlan, const binder::Expression& predicate);
+        const LogicalOperator& probeOp, const std::vector<LogicalOperator*>& buildOps);
+    cardinality_t estimateFlatten(const LogicalOperator& childOp, f_group_pos groupPosToFlatten);
+    cardinality_t estimateFilter(const LogicalOperator& childOp,
+        const binder::Expression& predicate);
 
     double getExtensionRate(const binder::RelExpression& rel,
         const binder::NodeExpression& boundNode, const transaction::Transaction* transaction);

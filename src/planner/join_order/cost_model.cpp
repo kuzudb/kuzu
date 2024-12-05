@@ -28,8 +28,8 @@ uint64_t CostModel::computeHashJoinCost(const binder::expression_vector& joinNod
     cost += probe.getCost();
     cost += build.getCost();
     cost += probe.getCardinality();
-    cost +=
-        PlannerKnobs::BUILD_PENALTY * JoinOrderUtil::getJoinKeysFlatCardinality(joinNodeIDs, build);
+    cost += PlannerKnobs::BUILD_PENALTY *
+            JoinOrderUtil::getJoinKeysFlatCardinality(joinNodeIDs, build.getLastOperatorRef());
     return cost;
 }
 

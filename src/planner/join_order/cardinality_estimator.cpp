@@ -52,18 +52,18 @@ void CardinalityEstimator::addNodeIDDomAndStats(const Transaction* transaction,
     }
 }
 
-uint64_t CardinalityEstimator::estimateScanNode(LogicalOperator* op) {
-    auto& scan = op->constCast<LogicalScanNodeTable>();
+uint64_t CardinalityEstimator::estimateScanNode(const LogicalOperator& op) {
+    const auto& scan = op.constCast<const LogicalScanNodeTable&>();
     return atLeastOne(getNodeIDDom(scan.getNodeID()->getUniqueName()));
 }
 
 cardinality_t CardinalityEstimator::estimateExtend(double extensionRate,
-    const LogicalPlan& childPlan) {
-    return atLeastOne(extensionRate * childPlan.getCardinality());
+    const LogicalOperator& childOp) {
+    return atLeastOne(extensionRate * childOp.getCardinality());
 }
 
 uint64_t CardinalityEstimator::estimateHashJoin(const expression_vector& joinKeys,
-    const LogicalPlan& probePlan, const LogicalPlan& buildPlan) {
+    const LogicalOperator& probeOp, const LogicalOperator& buildOp) {
     cardinality_t denominator = 1u;
     for (auto& joinKey : joinKeys) {
         // TODO(Xiyang): we should be able to estimate non-ID-based joins as well.
@@ -71,39 +71,39 @@ uint64_t CardinalityEstimator::estimateHashJoin(const expression_vector& joinKey
             denominator *= getNodeIDDom(joinKey->getUniqueName());
         }
     }
-    return atLeastOne(probePlan.getCardinality() *
-                      JoinOrderUtil::getJoinKeysFlatCardinality(joinKeys, buildPlan) /
+    return atLeastOne(probeOp.getCardinality() *
+                      JoinOrderUtil::getJoinKeysFlatCardinality(joinKeys, buildOp) /
                       atLeastOne(denominator));
 }
 
-uint64_t CardinalityEstimator::estimateCrossProduct(const LogicalPlan& probePlan,
-    const LogicalPlan& buildPlan) {
-    return atLeastOne(probePlan.getCardinality() * buildPlan.getCardinality());
+uint64_t CardinalityEstimator::estimateCrossProduct(const LogicalOperator& probeOp,
+    const LogicalOperator& buildOp) {
+    return atLeastOne(probeOp.getCardinality() * buildOp.getCardinality());
 }
 
 uint64_t CardinalityEstimator::estimateIntersect(const expression_vector& joinNodeIDs,
-    const LogicalPlan& probePlan, const std::vector<std::unique_ptr<LogicalPlan>>& buildPlans) {
+    const LogicalOperator& probeOp, const std::vector<LogicalOperator*>& buildOps) {
     // Formula 1: treat intersect as a Filter on probe side.
     uint64_t estCardinality1 =
-        probePlan.getCardinality() * PlannerKnobs::NON_EQUALITY_PREDICATE_SELECTIVITY;
+        probeOp.getCardinality() * PlannerKnobs::NON_EQUALITY_PREDICATE_SELECTIVITY;
     // Formula 2: assume independence on join conditions.
     cardinality_t denominator = 1u;
     for (auto& joinNodeID : joinNodeIDs) {
         denominator *= getNodeIDDom(joinNodeID->getUniqueName());
     }
-    auto numerator = probePlan.getCardinality();
-    for (auto& buildPlan : buildPlans) {
-        numerator *= buildPlan->getCardinality();
+    auto numerator = probeOp.getCardinality();
+    for (auto& buildOp : buildOps) {
+        numerator *= buildOp->getCardinality();
     }
     auto estCardinality2 = numerator / atLeastOne(denominator);
     // Pick minimum between the two formulas.
     return atLeastOne(std::min<uint64_t>(estCardinality1, estCardinality2));
 }
 
-uint64_t CardinalityEstimator::estimateFlatten(const LogicalPlan& childPlan,
+uint64_t CardinalityEstimator::estimateFlatten(const LogicalOperator& childOp,
     f_group_pos groupPosToFlatten) {
-    auto group = childPlan.getSchema()->getGroup(groupPosToFlatten);
-    return atLeastOne(childPlan.getCardinality() * group->cardinalityMultiplier);
+    auto group = childOp.getSchema()->getGroup(groupPosToFlatten);
+    return atLeastOne(childOp.getCardinality() * group->cardinalityMultiplier);
 }
 
 static bool isPrimaryKey(const Expression& expression) {
@@ -139,7 +139,7 @@ static std::optional<cardinality_t> getTableStatsIfPossible(main::ClientContext*
     return {};
 }
 
-uint64_t CardinalityEstimator::estimateFilter(const LogicalPlan& childPlan,
+uint64_t CardinalityEstimator::estimateFilter(const LogicalOperator& childPlan,
     const Expression& predicate) {
     if (predicate.expressionType == ExpressionType::EQUALS) {
         if (isPrimaryKey(*predicate.getChild(0)) || isPrimaryKey(*predicate.getChild(1))) {

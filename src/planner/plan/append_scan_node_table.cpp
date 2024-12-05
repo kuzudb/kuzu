@@ -26,7 +26,7 @@ void Planner::appendScanNodeTable(std::shared_ptr<Expression> nodeID,
         propertiesToScan_);
     scan->computeFactorizedSchema();
     // TODO(Guodong): Should remove cardinality from Plan.
-    scan->setCardinality(cardinalityEstimator.estimateScanNode(scan.get()));
+    scan->setCardinality(cardinalityEstimator.estimateScanNode(*scan));
     plan.setLastOperator(std::move(scan));
 }
 
