@@ -13,7 +13,7 @@ add_library(kuzu_json_extension
 
 add_subdirectory(third_party)
 
-set_extension_properties(kuzu_json_extension json)
+set_extension_properties(kuzu_json_extension json json)
 
 target_link_libraries(kuzu_json_extension
         PRIVATE
