@@ -211,7 +211,7 @@ public:
 
 private:
     void validatePkNotExists(const transaction::Transaction* transaction,
-        common::ValueVector* pkVector);
+        common::ValueVector* pkVector) const;
 
     void serialize(common::Serializer& serializer) const override;
 

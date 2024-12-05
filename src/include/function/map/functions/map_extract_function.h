@@ -15,7 +15,7 @@ struct MapExtract {
         auto mapKeyValues = common::MapVector::getMapKeys(&listVector, listEntry);
         auto mapValVector = common::MapVector::getValueVector(&listVector);
         auto mapValPos = listEntry.offset;
-        std::vector<common::offset_t> mapValPoses;
+        common::offset_vec_t mapValPoses;
         uint8_t comparisonResult = 0;
         for (auto i = 0u; i < listEntry.size; i++) {
             Equals::operation(*reinterpret_cast<T*>(mapKeyValues), key, comparisonResult,

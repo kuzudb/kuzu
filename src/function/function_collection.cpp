@@ -216,10 +216,12 @@ FunctionCollection* FunctionCollection::getFunctions() {
         TABLE_FUNCTION(TableInfoFunction), TABLE_FUNCTION(ShowConnectionFunction),
         TABLE_FUNCTION(StatsInfoFunction), TABLE_FUNCTION(StorageInfoFunction),
         TABLE_FUNCTION(ShowAttachedDatabasesFunction), TABLE_FUNCTION(ShowSequencesFunction),
-        TABLE_FUNCTION(ShowFunctionsFunction),
+        TABLE_FUNCTION(ShowFunctionsFunction), TABLE_FUNCTION(QueryHNSWIndexFunction),
 
         // Standalone Table functions
         STANDALONE_TABLE_FUNCTION(ClearWarningsFunction),
+        // TODO(Guodong): Move this from builtin to extension.
+        STANDALONE_TABLE_FUNCTION(CreateHNSWIndexFunction),
 
         // Scan functions
         TABLE_FUNCTION(ParquetScanFunction), TABLE_FUNCTION(NpyScanFunction),

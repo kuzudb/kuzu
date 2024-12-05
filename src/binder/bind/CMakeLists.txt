@@ -17,6 +17,7 @@ add_library(
         bind_query.cpp
         bind_reading_clause.cpp
         bind_standalone_call.cpp
+        bind_table_function.cpp
         bind_transaction.cpp
         bind_updating_clause.cpp
         bind_extension.cpp

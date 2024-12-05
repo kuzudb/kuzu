@@ -1,12 +1,14 @@
 add_library(kuzu_table_call
         OBJECT
+        clear_warnings.cpp
+        create_hnsw_index.cpp
         current_setting.cpp
         db_version.cpp
+        query_hnsw_index.cpp
         show_connection.cpp
         show_attached_databases.cpp
         show_tables.cpp
         show_warnings.cpp
-        clear_warnings.cpp
         stats_info.cpp
         storage_info.cpp
         table_info.cpp

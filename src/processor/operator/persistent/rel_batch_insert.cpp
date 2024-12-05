@@ -5,8 +5,6 @@
 #include "common/string_format.h"
 #include "common/task_system/progress_bar.h"
 #include "processor/result/factorized_table_util.h"
-#include "storage/buffer_manager/memory_manager.h"
-#include "storage/buffer_manager/spiller.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/rel_table.h"

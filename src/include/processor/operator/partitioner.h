@@ -34,6 +34,7 @@ struct PartitioningBuffer {
 
 // NOTE: Currently, Partitioner is tightly coupled with RelBatchInsert. We should generalize it
 // later when necessary. Here, each partition is essentially a node group.
+// TODO(Guodong): Move the partitioner shared state to a seperate header file.
 struct BatchInsertSharedState;
 struct PartitioningInfo;
 struct PartitionerDataInfo;
@@ -57,7 +58,8 @@ struct PartitionerSharedState {
     std::vector<std::unique_ptr<PartitioningBuffer>> partitioningBuffers;
     std::atomic<common::partition_idx_t> nextPartitionIdx;
 
-    void initialize(const PartitionerDataInfo& dataInfo, main::ClientContext* clientContext);
+    void initialize(const common::logical_type_vec_t& columnTypes,
+        main::ClientContext* clientContext);
 
     common::partition_idx_t getNextPartition(common::idx_t partitioningIdx,
         RelBatchInsertProgressSharedState& progressSharedState);
@@ -171,7 +173,7 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override;
 
-    static void initializePartitioningStates(const PartitionerDataInfo& dataInfo,
+    static void initializePartitioningStates(const common::logical_type_vec_t& columnTypes,
         std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers,
         const std::array<common::partition_idx_t, PartitionerSharedState::DIRECTIONS>&
             numPartitions);

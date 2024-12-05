@@ -7,14 +7,17 @@ namespace catalog {
 
 class KUZU_API IndexCatalogEntry : public CatalogEntry {
 public:
+    static std::string getInternalIndexName(common::table_id_t tableID, std::string indexName) {
+        return common::stringFormat("{}_{}", tableID, std::move(indexName));
+    }
+
     //===--------------------------------------------------------------------===//
     // constructors
     //===--------------------------------------------------------------------===//
     IndexCatalogEntry() = default;
 
     IndexCatalogEntry(common::table_id_t tableID, std::string indexName)
-        : CatalogEntry{CatalogEntryType::INDEX_ENTRY,
-              common::stringFormat("{}_{}", tableID, indexName)},
+        : CatalogEntry{CatalogEntryType::INDEX_ENTRY, getInternalIndexName(tableID, indexName)},
           tableID{tableID}, indexName{std::move(indexName)} {}
 
     common::table_id_t getTableID() const { return tableID; }

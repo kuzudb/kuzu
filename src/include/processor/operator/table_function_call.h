@@ -101,13 +101,13 @@ public:
 
     TableFunctionCallSharedState* getSharedState() { return sharedState.get(); }
 
+    const TableFunctionCallInfo& getInfo() const { return info; }
+
     bool isSource() const override { return true; }
 
     bool isParallel() const override { return info.function.canParallelFunc(); }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
-
-    void initGlobalStateInternal(ExecutionContext* context) override;
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 

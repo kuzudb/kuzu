@@ -328,7 +328,7 @@ OnDiskGraphVertexScanState::OnDiskGraphVertexScanState(ClientContext& context,
         columns.push_back(&nodeTable.getColumn(columnID));
         types.push_back(columns.back()->getDataType().copy());
     }
-    propertyVectors = nodeTable.constructDataChunk(std::move(types));
+    propertyVectors = Table::constructDataChunk(context.getMemoryManager(), std::move(types));
     nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(),
         context.getMemoryManager(), propertyVectors.state);
     tableScanState = std::make_unique<NodeTableScanState>(tableID, std::move(propertyColumnIDs),

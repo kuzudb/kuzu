@@ -7,7 +7,6 @@
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
-#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -36,13 +35,14 @@ static partition_idx_t getNumPartitions(offset_t maxOffset) {
     return (maxOffset + StorageConstants::NODE_GROUP_SIZE) / StorageConstants::NODE_GROUP_SIZE;
 }
 
-void PartitionerSharedState::initialize(const PartitionerDataInfo& dataInfo,
+// TODO(Guodong): Enable partitioning for one direction only.
+void PartitionerSharedState::initialize(const common::logical_type_vec_t& columnTypes,
     main::ClientContext* clientContext) {
     maxNodeOffsets[0] = srcNodeTable->getNumTotalRows(clientContext->getTx());
     maxNodeOffsets[1] = dstNodeTable->getNumTotalRows(clientContext->getTx());
     numPartitions[0] = getNumPartitions(maxNodeOffsets[0]);
     numPartitions[1] = getNumPartitions(maxNodeOffsets[1]);
-    Partitioner::initializePartitioningStates(dataInfo, partitioningBuffers, numPartitions);
+    Partitioner::initializePartitioningStates(columnTypes, partitioningBuffers, numPartitions);
 }
 
 partition_idx_t PartitionerSharedState::getNextPartition(idx_t partitioningIdx,
@@ -90,12 +90,12 @@ Partitioner::Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescripto
 }
 
 void Partitioner::initGlobalStateInternal(ExecutionContext* context) {
-    sharedState->initialize(dataInfo, context->clientContext);
+    sharedState->initialize(dataInfo.columnTypes, context->clientContext);
 }
 
 void Partitioner::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     localState = std::make_unique<PartitionerLocalState>();
-    initializePartitioningStates(dataInfo, localState->partitioningBuffers,
+    initializePartitioningStates(dataInfo.columnTypes, localState->partitioningBuffers,
         sharedState->numPartitions);
     for (const auto& evaluator : dataInfo.columnEvaluators) {
         evaluator->init(*resultSet, context->clientContext);
@@ -112,7 +112,7 @@ DataChunk Partitioner::constructDataChunk(const std::shared_ptr<DataChunkState>&
     return dataChunk;
 }
 
-void Partitioner::initializePartitioningStates(const PartitionerDataInfo& dataInfo,
+void Partitioner::initializePartitioningStates(const common::logical_type_vec_t& columnTypes,
     std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers,
     const std::array<partition_idx_t, PartitionerSharedState::DIRECTIONS>& numPartitions) {
     partitioningBuffers.resize(numPartitions.size());
@@ -122,8 +122,7 @@ void Partitioner::initializePartitioningStates(const PartitionerDataInfo& dataIn
         partitioningBuffer->partitions.reserve(numPartition);
         for (auto i = 0u; i < numPartition; i++) {
             partitioningBuffer->partitions.push_back(
-                std::make_unique<InMemChunkedNodeGroupCollection>(
-                    LogicalType::copy(dataInfo.columnTypes)));
+                std::make_unique<InMemChunkedNodeGroupCollection>(LogicalType::copy(columnTypes)));
         }
         partitioningBuffers[partitioningIdx] = std::move(partitioningBuffer);
     }

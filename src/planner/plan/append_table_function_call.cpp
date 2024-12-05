@@ -29,8 +29,9 @@ std::shared_ptr<LogicalOperator> Planner::getTableFunctionCall(
 std::shared_ptr<LogicalOperator> Planner::getTableFunctionCall(
     const BoundReadingClause& readingClause) {
     auto& call = readingClause.constCast<BoundTableFunctionCall>();
-    return std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(),
+    auto result = std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(),
         call.getBindData()->copy(), call.getColumns(), call.getOffset());
+    return result;
 }
 
 } // namespace planner
