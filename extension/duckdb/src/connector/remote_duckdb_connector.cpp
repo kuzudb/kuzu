@@ -1,7 +1,7 @@
 #include "connector/remote_duckdb_connector.h"
 
 #include "common/case_insensitive_map.h"
-#include "duckdb_secret_manager.h"
+#include "connector/duckdb_secret_manager.h"
 #include "main/client_context.h"
 
 namespace kuzu {
