@@ -176,6 +176,12 @@ protected:
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }
+
+    virtual void visitCrossProduct(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitCrossProductReplace(
+        std::shared_ptr<planner::LogicalOperator> op) {
+        return op;
+    }
 };
 
 } // namespace optimizer

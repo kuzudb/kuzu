@@ -323,6 +323,8 @@ public:
 
     void appendDistinct(const binder::expression_vector& keys, LogicalPlan& plan);
 
+    const CardinalityEstimator& getCardinalityEstimator() const { return cardinalityEstimator; }
+
     // Get operators
     std::shared_ptr<LogicalOperator> getTableFunctionCall(
         const binder::BoundTableScanSourceInfo& info);

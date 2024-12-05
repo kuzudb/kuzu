@@ -52,18 +52,18 @@ void CardinalityEstimator::addNodeIDDomAndStats(const Transaction* transaction,
     }
 }
 
-uint64_t CardinalityEstimator::estimateScanNode(const LogicalOperator& op) {
+uint64_t CardinalityEstimator::estimateScanNode(const LogicalOperator& op) const {
     const auto& scan = op.constCast<const LogicalScanNodeTable&>();
     return atLeastOne(getNodeIDDom(scan.getNodeID()->getUniqueName()));
 }
 
 cardinality_t CardinalityEstimator::estimateExtend(double extensionRate,
-    const LogicalOperator& childOp) {
+    const LogicalOperator& childOp) const {
     return atLeastOne(extensionRate * childOp.getCardinality());
 }
 
 uint64_t CardinalityEstimator::estimateHashJoin(const expression_vector& joinKeys,
-    const LogicalOperator& probeOp, const LogicalOperator& buildOp) {
+    const LogicalOperator& probeOp, const LogicalOperator& buildOp) const {
     cardinality_t denominator = 1u;
     for (auto& joinKey : joinKeys) {
         // TODO(Xiyang): we should be able to estimate non-ID-based joins as well.
@@ -77,12 +77,12 @@ uint64_t CardinalityEstimator::estimateHashJoin(const expression_vector& joinKey
 }
 
 uint64_t CardinalityEstimator::estimateCrossProduct(const LogicalOperator& probeOp,
-    const LogicalOperator& buildOp) {
+    const LogicalOperator& buildOp) const {
     return atLeastOne(probeOp.getCardinality() * buildOp.getCardinality());
 }
 
 uint64_t CardinalityEstimator::estimateIntersect(const expression_vector& joinNodeIDs,
-    const LogicalOperator& probeOp, const std::vector<LogicalOperator*>& buildOps) {
+    const LogicalOperator& probeOp, const std::vector<LogicalOperator*>& buildOps) const {
     // Formula 1: treat intersect as a Filter on probe side.
     uint64_t estCardinality1 =
         probeOp.getCardinality() * PlannerKnobs::NON_EQUALITY_PREDICATE_SELECTIVITY;
@@ -101,7 +101,7 @@ uint64_t CardinalityEstimator::estimateIntersect(const expression_vector& joinNo
 }
 
 uint64_t CardinalityEstimator::estimateFlatten(const LogicalOperator& childOp,
-    f_group_pos groupPosToFlatten) {
+    f_group_pos groupPosToFlatten) const {
     auto group = childOp.getSchema()->getGroup(groupPosToFlatten);
     return atLeastOne(childOp.getCardinality() * group->cardinalityMultiplier);
 }
@@ -140,7 +140,7 @@ static std::optional<cardinality_t> getTableStatsIfPossible(main::ClientContext*
 }
 
 uint64_t CardinalityEstimator::estimateFilter(const LogicalOperator& childPlan,
-    const Expression& predicate) {
+    const Expression& predicate) const {
     if (predicate.expressionType == ExpressionType::EQUALS) {
         if (isPrimaryKey(*predicate.getChild(0)) || isPrimaryKey(*predicate.getChild(1))) {
             return 1;
@@ -160,7 +160,7 @@ uint64_t CardinalityEstimator::estimateFilter(const LogicalOperator& childPlan,
 }
 
 uint64_t CardinalityEstimator::getNumNodes(const Transaction*,
-    const std::vector<table_id_t>& tableIDs) {
+    const std::vector<table_id_t>& tableIDs) const {
     cardinality_t numNodes = 0u;
     for (auto& tableID : tableIDs) {
         KU_ASSERT(nodeTableStats.contains(tableID));
@@ -170,7 +170,7 @@ uint64_t CardinalityEstimator::getNumNodes(const Transaction*,
 }
 
 uint64_t CardinalityEstimator::getNumRels(const Transaction* transaction,
-    const std::vector<table_id_t>& tableIDs) {
+    const std::vector<table_id_t>& tableIDs) const {
     cardinality_t numRels = 0u;
     for (auto tableID : tableIDs) {
         numRels += context->getStorageManager()->getTable(tableID)->getNumTotalRows(transaction);
@@ -179,7 +179,7 @@ uint64_t CardinalityEstimator::getNumRels(const Transaction* transaction,
 }
 
 double CardinalityEstimator::getExtensionRate(const RelExpression& rel,
-    const NodeExpression& boundNode, const Transaction* transaction) {
+    const NodeExpression& boundNode, const Transaction* transaction) const {
     auto numBoundNodes = static_cast<double>(getNumNodes(transaction, boundNode.getTableIDs()));
     auto numRels = static_cast<double>(getNumRels(transaction, rel.getTableIDs()));
     KU_ASSERT(numBoundNodes > 0);

@@ -1,6 +1,7 @@
 #include "optimizer/factorization_rewriter.h"
 
 #include "binder/expression_visitor.h"
+#include "planner/join_order/cardinality_estimator.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/operator/logical_accumulate.h"
@@ -190,7 +191,7 @@ std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattenIf
     if (op->getSchema()->getGroup(groupPos)->isFlat()) {
         return op;
     }
-    // TODO(Royi) correctly set the cardinality here
+    // we set the cardinalities in a separate pass
     auto flatten = std::make_shared<LogicalFlatten>(groupPos, std::move(op), 0 /* cardinality */);
     flatten->computeFactorizedSchema();
     return flatten;
