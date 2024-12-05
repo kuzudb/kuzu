@@ -12,7 +12,7 @@ class LogicalPlan {
     friend class CostModel;
 
 public:
-    LogicalPlan() : estCardinality{1}, cost{0} {}
+    LogicalPlan() : cost{0} {}
 
     void setLastOperator(std::shared_ptr<LogicalOperator> op) { lastOperator = std::move(op); }
 
@@ -21,8 +21,10 @@ public:
     std::shared_ptr<LogicalOperator> getLastOperator() const { return lastOperator; }
     Schema* getSchema() const { return lastOperator->getSchema(); }
 
-    void setCardinality(cardinality_t cardinality) { estCardinality = cardinality; }
-    cardinality_t getCardinality() const { return estCardinality; }
+    cardinality_t getCardinality() const {
+        KU_ASSERT(lastOperator);
+        return lastOperator->getCardinality();
+    }
 
     void setCost(uint64_t cost_) {
         KU_ASSERT(cost_ >= 1);
@@ -41,7 +43,6 @@ public:
 
 private:
     std::shared_ptr<LogicalOperator> lastOperator;
-    cardinality_t estCardinality;
     uint64_t cost;
 };
 

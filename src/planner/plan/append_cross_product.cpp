@@ -35,7 +35,6 @@ void Planner::appendCrossProduct(AccumulateType accumulateType, std::shared_ptr<
     crossProduct->computeFactorizedSchema();
     // update cost
     resultPlan.setCost(probePlan.getCardinality() + buildPlan.getCardinality());
-    resultPlan.setCardinality(crossProduct->getCardinality());
     resultPlan.setLastOperator(std::move(crossProduct));
 }
 

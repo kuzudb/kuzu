@@ -71,29 +71,29 @@ uint64_t CardinalityEstimator::estimateHashJoin(const expression_vector& joinKey
             denominator *= getNodeIDDom(joinKey->getUniqueName());
         }
     }
-    return atLeastOne(probePlan.estCardinality *
+    return atLeastOne(probePlan.getCardinality() *
                       JoinOrderUtil::getJoinKeysFlatCardinality(joinKeys, buildPlan) /
                       atLeastOne(denominator));
 }
 
 uint64_t CardinalityEstimator::estimateCrossProduct(const LogicalPlan& probePlan,
     const LogicalPlan& buildPlan) {
-    return atLeastOne(probePlan.estCardinality * buildPlan.estCardinality);
+    return atLeastOne(probePlan.getCardinality() * buildPlan.getCardinality());
 }
 
 uint64_t CardinalityEstimator::estimateIntersect(const expression_vector& joinNodeIDs,
     const LogicalPlan& probePlan, const std::vector<std::unique_ptr<LogicalPlan>>& buildPlans) {
     // Formula 1: treat intersect as a Filter on probe side.
     uint64_t estCardinality1 =
-        probePlan.estCardinality * PlannerKnobs::NON_EQUALITY_PREDICATE_SELECTIVITY;
+        probePlan.getCardinality() * PlannerKnobs::NON_EQUALITY_PREDICATE_SELECTIVITY;
     // Formula 2: assume independence on join conditions.
     cardinality_t denominator = 1u;
     for (auto& joinNodeID : joinNodeIDs) {
         denominator *= getNodeIDDom(joinNodeID->getUniqueName());
     }
-    auto numerator = probePlan.estCardinality;
+    auto numerator = probePlan.getCardinality();
     for (auto& buildPlan : buildPlans) {
-        numerator *= buildPlan->estCardinality;
+        numerator *= buildPlan->getCardinality();
     }
     auto estCardinality2 = numerator / atLeastOne(denominator);
     // Pick minimum between the two formulas.
@@ -103,7 +103,7 @@ uint64_t CardinalityEstimator::estimateIntersect(const expression_vector& joinNo
 uint64_t CardinalityEstimator::estimateFlatten(const LogicalPlan& childPlan,
     f_group_pos groupPosToFlatten) {
     auto group = childPlan.getSchema()->getGroup(groupPosToFlatten);
-    return atLeastOne(childPlan.estCardinality * group->cardinalityMultiplier);
+    return atLeastOne(childPlan.getCardinality() * group->cardinalityMultiplier);
 }
 
 static bool isPrimaryKey(const Expression& expression) {
@@ -151,11 +151,11 @@ uint64_t CardinalityEstimator::estimateFilter(const LogicalPlan& childPlan,
                 return atLeastOne(childPlan.getCardinality() / numDistinctValues.value());
             }
             return atLeastOne(
-                childPlan.estCardinality * PlannerKnobs::EQUALITY_PREDICATE_SELECTIVITY);
+                childPlan.getCardinality() * PlannerKnobs::EQUALITY_PREDICATE_SELECTIVITY);
         }
     } else {
         return atLeastOne(
-            childPlan.estCardinality * PlannerKnobs::NON_EQUALITY_PREDICATE_SELECTIVITY);
+            childPlan.getCardinality() * PlannerKnobs::NON_EQUALITY_PREDICATE_SELECTIVITY);
     }
 }
 

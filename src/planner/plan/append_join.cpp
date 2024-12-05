@@ -39,7 +39,6 @@ void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType join
     hashJoin->setCardinality(
         cardinalityEstimator.estimateHashJoin(joinNodeIDs, probePlan, buildPlan));
     resultPlan.setCost(CostModel::computeHashJoinCost(joinNodeIDs, probePlan, buildPlan));
-    resultPlan.setCardinality(hashJoin->getCardinality());
     resultPlan.setLastOperator(std::move(hashJoin));
 }
 
@@ -100,7 +99,6 @@ void Planner::appendIntersect(const std::shared_ptr<Expression>& intersectNodeID
     intersect->setCardinality(
         cardinalityEstimator.estimateIntersect(boundNodeIDs, probePlan, buildPlans));
     probePlan.setCost(CostModel::computeIntersectCost(probePlan, buildPlans));
-    probePlan.setCardinality(intersect->getCardinality());
     probePlan.setLastOperator(std::move(intersect));
 }
 
