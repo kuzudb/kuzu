@@ -94,27 +94,8 @@ DoubleFrontierPair::DoubleFrontierPair(
     std::shared_ptr<GDSFrontier> curFrontier,
     std::shared_ptr<GDSFrontier> nextFrontier, uint64_t initialActiveNodes,
     uint64_t maxThreadsForExec)
-    : FrontierPair(curFrontier, nextFrontier, initialActiveNodes, maxThreadsForExec) {
-        morselDispatcher = std::make_unique<FrontierMorselDispatcher>(maxThreadsForExec);
-}
+    : FrontierPair(curFrontier, nextFrontier, maxThreadsForExec) {}
 
-DoublePathLengthsFrontierPair::DoublePathLengthsFrontierPair(
-    common::table_id_map_t<common::offset_t> numNodesMap, uint64_t maxThreadsForExec,
-    storage::MemoryManager* mm)
-    : DoubleFrontierPair(std::make_shared<PathLengths>(numNodesMap, mm),
-          std::make_shared<PathLengths>(numNodesMap, mm), 1 /* initial num active nodes */,
-          maxThreadsForExec) { }
-
-bool DoubleFrontierPair::getNextRangeMorsel(FrontierMorsel& frontierMorsel) {
-    return morselDispatcher->getNextRangeMorsel(frontierMorsel);
-}
-
-void DoublePathLengthsFrontierPair::beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
-    table_id_t nextFrontierTableID) {
-    curFrontier->ptrCast<PathLengths>()->fixCurFrontierNodeTable(curFrontierTableID);
-    nextFrontier->ptrCast<PathLengths>()->fixNextFrontierNodeTable(nextFrontierTableID);
-    morselDispatcher->init(curFrontierTableID,
-        curFrontier->ptrCast<PathLengths>()->getNumNodesInCurFrontierFixedNodeTable());
 void DoublePathLengthsFrontierPair::beginFrontierComputeBetweenTables(table_id_t curTableID,
     table_id_t nextTableID) {
     curFrontier->ptrCast<PathLengths>()->pinCurFrontierTableID(curTableID);
@@ -147,9 +128,8 @@ WCCFrontierPair::WCCFrontierPair(
         }
         curFrontier = std::make_shared<WCCFrontier>(numNodesMap, mm, true);
         nextFrontier = std::make_shared<WCCFrontier>(numNodesMap, mm, false);
-        numApproxActiveNodesForCurIter.store(totalNumNodes);
-        numApproxActiveNodesForNextIter.store(totalNumNodes);
-    }
+        setActiveNodesForNextIter();
+}
 
 static constexpr uint64_t EARLY_TERM_NUM_NODES_THRESHOLD = 100;
 

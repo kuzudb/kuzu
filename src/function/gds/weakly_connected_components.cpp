@@ -84,7 +84,7 @@ public:
 
     void vertexCompute(const graph::VertexScanState::Chunk& chunk) override {
         for (auto nodeID : chunk.getNodeIDs()) {
-            outputWriter.materialize(nodeID, frontier, *localFT);
+            outputWriter.materialize(nodeID, compState.frontierPair->ptrCast<WCCFrontierPair>()->getComponentID(nodeID), *localFT);
         }
     }
 
