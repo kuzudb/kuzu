@@ -1,0 +1,4 @@
+-NAME recursive-join-path
+-QUERY MATCH (a:Person)-[e:knows * 4..4]->(b:Person) WHERE a.ID = 933 WITH e RETURN COUNT(*);
+---- 1
+21425849
