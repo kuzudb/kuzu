@@ -36,7 +36,7 @@ struct WCCEdgeCompute : public EdgeCompute {
 
     void resetSingleThreadState() override { return; }
 
-    bool terminate(processor::NodeOffsetMaskMap& maskMap) override { return false; }
+    bool terminate(processor::NodeOffsetMaskMap& /* maskMap */) override { return false; }
 
     std::unique_ptr<EdgeCompute> copy() override {
         return std::make_unique<WCCEdgeCompute>(frontierPair);
