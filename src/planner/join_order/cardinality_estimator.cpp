@@ -21,6 +21,7 @@ static cardinality_t atLeastOne(uint64_t x) {
 
 void CardinalityEstimator::initNodeIDDom(const Transaction* transaction,
     const QueryGraph& queryGraph) {
+    nodeIDName2domOverride.clear();
     for (uint64_t i = 0u; i < queryGraph.getNumQueryNodes(); ++i) {
         auto node = queryGraph.getQueryNode(i).get();
         addNodeIDDomAndStats(transaction, *node->getInternalID(), node->getTableIDs());
@@ -52,18 +53,39 @@ void CardinalityEstimator::addNodeIDDomAndStats(const Transaction* transaction,
     }
 }
 
-uint64_t CardinalityEstimator::estimateScanNode(LogicalOperator* op) {
-    auto& scan = op->constCast<LogicalScanNodeTable>();
-    return atLeastOne(getNodeIDDom(scan.getNodeID()->getUniqueName()));
+void CardinalityEstimator::addNodeIDDomOverride(const binder::Expression& nodeID,
+    cardinality_t numNodes) {
+    const auto key = nodeID.getUniqueName();
+    if (!nodeIDName2domOverride.contains(key)) {
+        nodeIDName2domOverride.insert({key, numNodes});
+    }
+}
+
+cardinality_t CardinalityEstimator::getNodeIDDom(const std::string& nodeIDName) const {
+    if (nodeIDName2domOverride.contains(nodeIDName)) {
+        return nodeIDName2domOverride.at(nodeIDName);
+    }
+    KU_ASSERT(nodeIDName2dom.contains(nodeIDName));
+    return nodeIDName2dom.at(nodeIDName);
+}
+
+uint64_t CardinalityEstimator::estimateScanNode(const LogicalOperator& op) const {
+    const auto& scan = op.constCast<const LogicalScanNodeTable&>();
+    switch (scan.getScanType()) {
+    case LogicalScanNodeTableType::PRIMARY_KEY_SCAN:
+        return 1;
+    default:
+        return atLeastOne(getNodeIDDom(scan.getNodeID()->getUniqueName()));
+    }
 }
 
 cardinality_t CardinalityEstimator::estimateExtend(double extensionRate,
-    const LogicalPlan& childPlan) {
-    return atLeastOne(extensionRate * childPlan.getCardinality());
+    const LogicalOperator& childOp) const {
+    return atLeastOne(extensionRate * childOp.getCardinality());
 }
 
 uint64_t CardinalityEstimator::estimateHashJoin(const expression_vector& joinKeys,
-    const LogicalPlan& probePlan, const LogicalPlan& buildPlan) {
+    const LogicalOperator& probeOp, const LogicalOperator& buildOp) const {
     cardinality_t denominator = 1u;
     for (auto& joinKey : joinKeys) {
         // TODO(Xiyang): we should be able to estimate non-ID-based joins as well.
@@ -71,39 +93,39 @@ uint64_t CardinalityEstimator::estimateHashJoin(const expression_vector& joinKey
             denominator *= getNodeIDDom(joinKey->getUniqueName());
         }
     }
-    return atLeastOne(probePlan.estCardinality *
-                      JoinOrderUtil::getJoinKeysFlatCardinality(joinKeys, buildPlan) /
+    return atLeastOne(probeOp.getCardinality() *
+                      JoinOrderUtil::getJoinKeysFlatCardinality(joinKeys, buildOp) /
                       atLeastOne(denominator));
 }
 
-uint64_t CardinalityEstimator::estimateCrossProduct(const LogicalPlan& probePlan,
-    const LogicalPlan& buildPlan) {
-    return atLeastOne(probePlan.estCardinality * buildPlan.estCardinality);
+uint64_t CardinalityEstimator::estimateCrossProduct(const LogicalOperator& probeOp,
+    const LogicalOperator& buildOp) const {
+    return atLeastOne(probeOp.getCardinality() * buildOp.getCardinality());
 }
 
 uint64_t CardinalityEstimator::estimateIntersect(const expression_vector& joinNodeIDs,
-    const LogicalPlan& probePlan, const std::vector<std::unique_ptr<LogicalPlan>>& buildPlans) {
+    const LogicalOperator& probeOp, const std::vector<LogicalOperator*>& buildOps) const {
     // Formula 1: treat intersect as a Filter on probe side.
     uint64_t estCardinality1 =
-        probePlan.estCardinality * PlannerKnobs::NON_EQUALITY_PREDICATE_SELECTIVITY;
+        probeOp.getCardinality() * PlannerKnobs::NON_EQUALITY_PREDICATE_SELECTIVITY;
     // Formula 2: assume independence on join conditions.
     cardinality_t denominator = 1u;
     for (auto& joinNodeID : joinNodeIDs) {
         denominator *= getNodeIDDom(joinNodeID->getUniqueName());
     }
-    auto numerator = probePlan.estCardinality;
-    for (auto& buildPlan : buildPlans) {
-        numerator *= buildPlan->estCardinality;
+    auto numerator = probeOp.getCardinality();
+    for (auto& buildOp : buildOps) {
+        numerator *= buildOp->getCardinality();
     }
     auto estCardinality2 = numerator / atLeastOne(denominator);
     // Pick minimum between the two formulas.
     return atLeastOne(std::min<uint64_t>(estCardinality1, estCardinality2));
 }
 
-uint64_t CardinalityEstimator::estimateFlatten(const LogicalPlan& childPlan,
-    f_group_pos groupPosToFlatten) {
-    auto group = childPlan.getSchema()->getGroup(groupPosToFlatten);
-    return atLeastOne(childPlan.estCardinality * group->cardinalityMultiplier);
+uint64_t CardinalityEstimator::estimateFlatten(const LogicalOperator& childOp,
+    f_group_pos groupPosToFlatten) const {
+    auto group = childOp.getSchema()->getGroup(groupPosToFlatten);
+    return atLeastOne(childOp.getCardinality() * group->cardinalityMultiplier);
 }
 
 static bool isPrimaryKey(const Expression& expression) {
@@ -139,8 +161,8 @@ static std::optional<cardinality_t> getTableStatsIfPossible(main::ClientContext*
     return {};
 }
 
-uint64_t CardinalityEstimator::estimateFilter(const LogicalPlan& childPlan,
-    const Expression& predicate) {
+uint64_t CardinalityEstimator::estimateFilter(const LogicalOperator& childPlan,
+    const Expression& predicate) const {
     if (predicate.expressionType == ExpressionType::EQUALS) {
         if (isPrimaryKey(*predicate.getChild(0)) || isPrimaryKey(*predicate.getChild(1))) {
             return 1;
@@ -151,16 +173,16 @@ uint64_t CardinalityEstimator::estimateFilter(const LogicalPlan& childPlan,
                 return atLeastOne(childPlan.getCardinality() / numDistinctValues.value());
             }
             return atLeastOne(
-                childPlan.estCardinality * PlannerKnobs::EQUALITY_PREDICATE_SELECTIVITY);
+                childPlan.getCardinality() * PlannerKnobs::EQUALITY_PREDICATE_SELECTIVITY);
         }
     } else {
         return atLeastOne(
-            childPlan.estCardinality * PlannerKnobs::NON_EQUALITY_PREDICATE_SELECTIVITY);
+            childPlan.getCardinality() * PlannerKnobs::NON_EQUALITY_PREDICATE_SELECTIVITY);
     }
 }
 
 uint64_t CardinalityEstimator::getNumNodes(const Transaction*,
-    const std::vector<table_id_t>& tableIDs) {
+    const std::vector<table_id_t>& tableIDs) const {
     cardinality_t numNodes = 0u;
     for (auto& tableID : tableIDs) {
         KU_ASSERT(nodeTableStats.contains(tableID));
@@ -170,7 +192,7 @@ uint64_t CardinalityEstimator::getNumNodes(const Transaction*,
 }
 
 uint64_t CardinalityEstimator::getNumRels(const Transaction* transaction,
-    const std::vector<table_id_t>& tableIDs) {
+    const std::vector<table_id_t>& tableIDs) const {
     cardinality_t numRels = 0u;
     for (auto tableID : tableIDs) {
         numRels += context->getStorageManager()->getTable(tableID)->getNumTotalRows(transaction);
@@ -179,7 +201,7 @@ uint64_t CardinalityEstimator::getNumRels(const Transaction* transaction,
 }
 
 double CardinalityEstimator::getExtensionRate(const RelExpression& rel,
-    const NodeExpression& boundNode, const Transaction* transaction) {
+    const NodeExpression& boundNode, const Transaction* transaction) const {
     auto numBoundNodes = static_cast<double>(getNumNodes(transaction, boundNode.getTableIDs()));
     auto numRels = static_cast<double>(getNumRels(transaction, rel.getTableIDs()));
     KU_ASSERT(numBoundNodes > 0);

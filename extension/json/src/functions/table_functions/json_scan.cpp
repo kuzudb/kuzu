@@ -689,7 +689,7 @@ struct JsonScanBindData : public ScanBindData {
         std::vector<std::string> columnNames, column_id_t numWarningDataColumns,
         ReaderConfig config, main::ClientContext* ctx, case_insensitive_map_t<idx_t> colNameToIdx,
         JsonScanFormat format)
-        : ScanBindData(std::move(columnTypes), std::move(columnNames), std::move(config), ctx,
+        : ScanBindData(std::move(columnTypes), std::move(columnNames), std::move(config), ctx, 0,
               numWarningDataColumns),
           colNameToIdx{std::move(colNameToIdx)}, format{format} {}
 

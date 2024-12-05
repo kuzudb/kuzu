@@ -16,9 +16,8 @@ void Planner::appendFlattenIfNecessary(f_group_pos groupPos, LogicalPlan& plan) 
         return;
     }
     auto flatten = make_shared<LogicalFlatten>(groupPos, plan.getLastOperator(),
-        cardinalityEstimator.estimateFlatten(plan, groupPos));
+        cardinalityEstimator.estimateFlatten(plan.getLastOperatorRef(), groupPos));
     flatten->computeFactorizedSchema();
-    plan.setCardinality(flatten->getCardinality());
     plan.setLastOperator(std::move(flatten));
 }
 

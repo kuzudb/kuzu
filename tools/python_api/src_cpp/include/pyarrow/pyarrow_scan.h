@@ -36,21 +36,19 @@ struct PyArrowTableScanSharedState final : public function::BaseScanSharedStateW
 struct PyArrowTableScanFunctionData final : public function::TableFuncBindData {
     std::shared_ptr<ArrowSchemaWrapper> schema;
     std::vector<std::shared_ptr<ArrowArrayWrapper>> arrowArrayBatches;
-    uint64_t numRows;
 
     PyArrowTableScanFunctionData(std::vector<common::LogicalType> columnTypes,
         std::shared_ptr<ArrowSchemaWrapper> schema, std::vector<std::string> columnNames,
         std::vector<std::shared_ptr<ArrowArrayWrapper>> arrowArrayBatches, uint64_t numRows)
-        : TableFuncBindData{std::move(columnTypes), std::move(columnNames),
-              0 /* numWarningColumns */},
-          schema{std::move(schema)}, arrowArrayBatches{arrowArrayBatches}, numRows{numRows} {}
+        : TableFuncBindData{std::move(columnTypes), std::move(columnNames), numRows},
+          schema{std::move(schema)}, arrowArrayBatches{arrowArrayBatches} {}
 
     ~PyArrowTableScanFunctionData() override {}
 
 private:
     PyArrowTableScanFunctionData(const PyArrowTableScanFunctionData& other)
         : TableFuncBindData{other}, schema{other.schema},
-          arrowArrayBatches{other.arrowArrayBatches}, numRows{other.numRows} {}
+          arrowArrayBatches{other.arrowArrayBatches} {}
 
 public:
     std::unique_ptr<function::TableFuncBindData> copy() const override {

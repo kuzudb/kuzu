@@ -28,7 +28,8 @@ class LogicalCopyTo final : public LogicalOperator {
 public:
     LogicalCopyTo(std::unique_ptr<function::ExportFuncBindData> bindData,
         function::ExportFunction exportFunc, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::COPY_TO, std::move(child)},
+        : LogicalOperator{LogicalOperatorType::COPY_TO, std::move(child),
+              std::optional<common::cardinality_t>(0)},
           bindData{std::move(bindData)}, exportFunc{std::move(exportFunc)} {}
 
     f_group_pos_set getGroupsPosToFlatten();

@@ -352,7 +352,7 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
         }
         // optimizing
         for (auto& plan : plans) {
-            optimizer::Optimizer::optimize(plan.get(), this);
+            optimizer::Optimizer::optimize(plan.get(), this, planner.getCardinalityEstimator());
         }
         if (!encodedJoin.empty()) {
             std::unique_ptr<LogicalPlan> match;

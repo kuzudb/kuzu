@@ -252,8 +252,10 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const column_id_t numWarningDataColumns = BaseCSVReader::appendWarningDataColumns(
         resultColumnNames, resultColumnTypes, scanInput->config);
 
+    // we currently have no way to estimate the number of rows in a CSV
     return std::make_unique<ScanBindData>(std::move(resultColumnTypes),
-        std::move(resultColumnNames), scanInput->config.copy(), context, numWarningDataColumns);
+        std::move(resultColumnNames), scanInput->config.copy(), context, 0 /* estCardinality */,
+        numWarningDataColumns);
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitInput& input) {

@@ -36,10 +36,9 @@ void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType join
         hashJoin->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT_PROBE_TO_BUILD;
     }
     // Update cost
-    hashJoin->setCardinality(
-        cardinalityEstimator.estimateHashJoin(joinNodeIDs, probePlan, buildPlan));
+    hashJoin->setCardinality(cardinalityEstimator.estimateHashJoin(joinNodeIDs,
+        probePlan.getLastOperatorRef(), buildPlan.getLastOperatorRef()));
     resultPlan.setCost(CostModel::computeHashJoinCost(joinNodeIDs, probePlan, buildPlan));
-    resultPlan.setCardinality(hashJoin->getCardinality());
     resultPlan.setLastOperator(std::move(hashJoin));
 }
 
@@ -97,10 +96,13 @@ void Planner::appendIntersect(const std::shared_ptr<Expression>& intersectNodeID
     }
     intersect->computeFactorizedSchema();
     // update cost
-    intersect->setCardinality(
-        cardinalityEstimator.estimateIntersect(boundNodeIDs, probePlan, buildPlans));
+    std::vector<LogicalOperator*> buildOps;
+    for (const auto& plan : buildPlans) {
+        buildOps.push_back(plan->getLastOperator().get());
+    }
+    intersect->setCardinality(cardinalityEstimator.estimateIntersect(boundNodeIDs,
+        probePlan.getLastOperatorRef(), buildOps));
     probePlan.setCost(CostModel::computeIntersectCost(probePlan, buildPlans));
-    probePlan.setCardinality(intersect->getCardinality());
     probePlan.setLastOperator(std::move(intersect));
 }
 

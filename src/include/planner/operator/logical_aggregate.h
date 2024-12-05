@@ -27,14 +27,16 @@ class LogicalAggregate final : public LogicalOperator {
     static constexpr LogicalOperatorType operatorType_ = LogicalOperatorType::AGGREGATE;
 
 public:
+    // TODO(Royi) make sure cardinality is being set correctly
     LogicalAggregate(binder::expression_vector keys, binder::expression_vector aggregates,
         std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{operatorType_, std::move(child)}, keys{std::move(keys)},
-          aggregates{std::move(aggregates)} {}
+        : LogicalOperator{operatorType_, std::move(child), aggregates.size()},
+          keys{std::move(keys)}, aggregates{std::move(aggregates)} {}
     LogicalAggregate(binder::expression_vector keys, binder::expression_vector dependentKeys,
         binder::expression_vector aggregates, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{operatorType_, std::move(child)}, keys{std::move(keys)},
-          dependentKeys{std::move(dependentKeys)}, aggregates{std::move(aggregates)} {}
+        : LogicalOperator{operatorType_, std::move(child), aggregates.size()},
+          keys{std::move(keys)}, dependentKeys{std::move(dependentKeys)},
+          aggregates{std::move(aggregates)} {}
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;

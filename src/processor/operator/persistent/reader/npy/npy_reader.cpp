@@ -320,8 +320,11 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
         }
         reader->validate(resultColumnTypes[i], numRows);
     }
-    return std::make_unique<function::ScanBindData>(std::move(resultColumnTypes),
+    const row_idx_t numTotalRows = numRows * config.getNumFiles();
+    auto bindData = std::make_unique<function::ScanBindData>(std::move(resultColumnTypes),
         std::move(resultColumnNames), scanInput->config.copy(), context);
+    bindData->cardinality = numTotalRows;
+    return bindData;
 }
 
 static std::unique_ptr<function::TableFuncSharedState> initSharedState(
