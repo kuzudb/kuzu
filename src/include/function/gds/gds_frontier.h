@@ -432,7 +432,6 @@ private:
     uint64_t numNodes;
     bool updated = false;
     common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> vertexValues;
-
 };
 
 class SPEdgeCompute : public EdgeCompute {
