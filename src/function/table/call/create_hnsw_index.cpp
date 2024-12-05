@@ -47,38 +47,49 @@ static std::unique_ptr<TableFuncSharedState> initHNSWSharedState(TableFunctionIn
     auto sharedState = std::make_unique<CreateHNSWSharedState>(*bindData);
     // TODO(Guodong): Find a way to parallel the scan of the initial caching.
     sharedState->hnswIndex->initialize(bindData->context, *bindData->table, bindData->columnID);
+    sharedState->bindData = bindData;
     return sharedState;
 }
 
 // TODO(Guodong/Ziyi): Change tableFunc input to const &.
 // NOLINTNEXTLINE(readability-non-const-parameter)
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput&) {
-    const auto bindData = input.bindData->constPtrCast<CreateHNSWIndexBindData>();
-    auto& context = *input.context->clientContext;
+    const auto& context = *input.context->clientContext;
     const auto sharedState = input.sharedState->ptrCast<CreateHNSWSharedState>();
-    // TODO(Guodong): Parallel the insert here.
+    const auto morsel = sharedState->getMorsel();
+    if (morsel.isInvalid()) {
+        return 0;
+    }
     const auto& hnswIndex = sharedState->hnswIndex;
-    for (auto i = 0u; i <= bindData->maxOffset; i++) {
+    for (auto i = morsel.startOffset; i < morsel.endOffset; i++) {
         hnswIndex->insert(i, context.getTx());
     }
+    return morsel.endOffset - morsel.startOffset;
+}
 
+// NOLINTNEXTLINE(readability-non-const-parameter)
+static void finalizeFunc(processor::ExecutionContext* context, TableFuncSharedState* sharedState,
+    TableFuncLocalState*) {
     // This is the non-perallel execution part.
     const auto hnswSharedState = sharedState->ptrCast<CreateHNSWSharedState>();
-    hnswIndex->shrink(context.getTx());
+    hnswSharedState->hnswIndex->shrink(context->clientContext->getTx());
     // TODO(Guodong): Parallel the population here.
     // Populate partitioning buffers for index graphs.
-    hnswIndex->finalize(*context.getMemoryManager(), *hnswSharedState->partitionerSharedState);
+    hnswSharedState->hnswIndex->finalize(*context->clientContext->getMemoryManager(),
+        *hnswSharedState->partitionerSharedState);
 
-    auto upperRelTableID = context.getCatalog()->getTableID(context.getTx(),
-        storage::HNSWIndexUtils::getUpperGraphTableName(bindData->indexName));
-    auto lowerRelTableID = context.getCatalog()->getTableID(context.getTx(),
-        storage::HNSWIndexUtils::getLowerGraphTableName(bindData->indexName));
-    context.getCatalog()->createIndex(context.getTx(),
+    const auto bindData = hnswSharedState->bindData->constPtrCast<CreateHNSWIndexBindData>();
+    auto upperRelTableID =
+        context->clientContext->getCatalog()->getTableID(context->clientContext->getTx(),
+            storage::HNSWIndexUtils::getUpperGraphTableName(bindData->indexName));
+    auto lowerRelTableID =
+        context->clientContext->getCatalog()->getTableID(context->clientContext->getTx(),
+            storage::HNSWIndexUtils::getLowerGraphTableName(bindData->indexName));
+    context->clientContext->getCatalog()->createIndex(context->clientContext->getTx(),
         std::make_unique<catalog::HNSWIndexCatalogEntry>(bindData->tableEntry->getTableID(),
             bindData->indexName, bindData->table->getColumn(bindData->columnID).getName(),
-            upperRelTableID, lowerRelTableID, hnswIndex->getUpperEntryPoint(),
-            hnswIndex->getLowerEntryPoint(), bindData->config));
-    return 0;
+            upperRelTableID, lowerRelTableID, hnswSharedState->hnswIndex->getUpperEntryPoint(),
+            hnswSharedState->hnswIndex->getLowerEntryPoint(), bindData->config));
 }
 
 static std::string createHNSWIndexTables(main::ClientContext&, const TableFuncBindData& bindData) {
@@ -98,9 +109,8 @@ function_set CreateHNSWIndexFunction::getFunctionSet() {
     std::vector inputTypes{common::LogicalTypeID::STRING, common::LogicalTypeID::STRING,
         common::LogicalTypeID::STRING};
     auto func = std::make_unique<TableFunction>(name, tableFunc, bindFunc, initHNSWSharedState,
-        initEmptyLocalState, inputTypes);
+        initEmptyLocalState, inputTypes, finalizeFunc);
     func->rewriteFunc = createHNSWIndexTables;
-    func->canParallelFunc = [] { return false; };
     functionSet.push_back(std::move(func));
     return functionSet;
 }

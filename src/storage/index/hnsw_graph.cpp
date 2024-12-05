@@ -87,21 +87,19 @@ float* OnDiskEmbeddings::getEmebdding(common::offset_t offset,
     return reinterpret_cast<float*>(dataVector->getData());
 }
 
-void InMemHNSWGraph::shrinkNbrs(common::offset_t offset, transaction::Transaction* transaction) {
-    if (csrLengths[offset] <= maxDegree) {
-        return;
-    }
-    shrinkToThreshold(offset, transaction);
+void InMemHNSWGraph::shrink(common::offset_t nodeOffset, transaction::Transaction* transaction) {
+    const auto numNbrs = getCSRLength(nodeOffset);
+    shrinkToThreshold(nodeOffset, numNbrs, transaction);
 }
 
-void InMemHNSWGraph::shrinkToThreshold(common::offset_t offset,
+void InMemHNSWGraph::shrinkToThreshold(common::offset_t nodeOffset, common::length_t numNbrs,
     transaction::Transaction* transaction) {
-    if (csrLengths[offset] <= degree) {
+    if (numNbrs <= degreeToShrink) {
         return;
     }
     std::vector<NodeWithDistance> nbrs;
-    const auto vector = embeddings->getEmebdding(offset, transaction);
-    for (const auto nbr : getNeighbors(offset, transaction)) {
+    const auto vector = embeddings->getEmebdding(nodeOffset, transaction);
+    for (const auto nbr : getNeighbors(nodeOffset, numNbrs, transaction)) {
         const auto dist =
             HNSWIndexUtils::computeDistance(distFunc, *embeddings, vector, nbr, transaction);
         nbrs.push_back({nbr, dist});
@@ -109,7 +107,7 @@ void InMemHNSWGraph::shrinkToThreshold(common::offset_t offset,
     std::ranges::sort(nbrs, [](const NodeWithDistance& l, const NodeWithDistance& r) {
         return l.distance < r.distance;
     });
-    uint64_t newSize = 0;
+    uint16_t newSize = 0;
     for (auto i = 1u; i < nbrs.size(); i++) {
         bool keepNbr = true;
         for (auto j = i + 1; j < nbrs.size(); j++) {
@@ -124,11 +122,11 @@ void InMemHNSWGraph::shrinkToThreshold(common::offset_t offset,
         if (keepNbr) {
             dstNodes[newSize++] = nbrs[i].nodeOffset;
         }
-        if (newSize == degree) {
+        if (newSize == degreeToShrink) {
             break;
         }
     }
-    csrLengths[offset] = newSize;
+    setCSRLength(nodeOffset, newSize);
 }
 
 void InMemHNSWGraph::finalize(MemoryManager& mm,
@@ -144,7 +142,7 @@ void InMemHNSWGraph::finalize(MemoryManager& mm,
         const auto numNodesInGroup =
             std::min(common::StorageConstants::NODE_GROUP_SIZE, numNodes - startNodeOffset);
         for (auto i = 0u; i < numNodesInGroup; i++) {
-            numRels += csrLengths.operator[](startNodeOffset + i);
+            numRels += getCSRLength(startNodeOffset + i);
         }
         numRelsPerNodeGroup[nodeGroupIdx] = numRels;
     }
@@ -180,7 +178,7 @@ void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, common::node_group_idx
     relIDColumnChunk.cast<InternalIDChunkData>().setTableID(relTableID);
     for (auto i = 0u; i < numNodesInGroup; i++) {
         const auto currNodeOffset = startNodeOffset + i;
-        const auto csrLen = csrLengths[currNodeOffset];
+        const auto csrLen = getCSRLength(currNodeOffset);
         const auto csrOffset = currNodeOffset * maxDegree;
         for (auto j = 0u; j < csrLen; j++) {
             boundColumnChunk.setValue<common::offset_t>(currNodeOffset, currNumRels);
@@ -204,27 +202,38 @@ void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, common::node_group_idx
 
 void InMemHNSWGraph::createDirectedEdge(common::offset_t srcNode, common::offset_t dstNode,
     transaction::Transaction* transaction) {
-    if (csrLengths[srcNode] >= maxDegree) {
-        shrinkNbrs(srcNode, transaction);
+    const auto currentLen = incrementCSRLength(srcNode);
+    if (currentLen >= maxDegree) {
+        shrinkToThreshold(srcNode, currentLen, transaction);
+    } else {
+        KU_ASSERT(dstNode < numNodes);
+        dstNodes[srcNode * maxDegree + currentLen] = dstNode;
     }
-    dstNodes[srcNode * maxDegree + csrLengths[srcNode]] = dstNode;
-    KU_ASSERT(dstNode < numNodes);
-    csrLengths[srcNode]++;
 }
 
-common::offset_vec_t InMemHNSWGraph::getNeighbors(common::offset_t node,
-    transaction::Transaction*) const {
+common::offset_vec_t InMemHNSWGraph::getNeighbors(common::offset_t nodeOffset,
+    transaction::Transaction* transaction) const {
+    const auto numNbrs = getCSRLength(nodeOffset);
+    return getNeighbors(nodeOffset, numNbrs, transaction);
+}
+
+common::offset_vec_t InMemHNSWGraph::getNeighbors(common::offset_t nodeOffset,
+    common::length_t numNbrs, transaction::Transaction*) const {
     common::offset_vec_t neighbors;
-    neighbors.reserve(csrLengths[node]);
-    for (common::offset_t i = 0; i < csrLengths[node]; i++) {
-        neighbors.push_back(dstNodes[node * maxDegree + i]);
+    neighbors.reserve(numNbrs);
+    for (common::offset_t i = 0; i < numNbrs; i++) {
+        auto nbr = dstNodes[nodeOffset * maxDegree + i];
+        if (nbr == common::INVALID_OFFSET) {
+            continue;
+        }
+        neighbors.push_back(nbr);
     }
     return neighbors;
 }
 
 void InMemHNSWGraph::resetCSRLengthAndDstNodes() {
     for (common::offset_t i = 0; i < numNodes; i++) {
-        csrLengths[i] = 0;
+        csrLengths[i].store(0);
     }
     for (common::offset_t i = 0; i < numNodes * maxDegree; i++) {
         dstNodes[i] = common::INVALID_OFFSET;
@@ -255,9 +264,9 @@ OnDiskHNSWGraph::OnDiskHNSWGraph(main::ClientContext* context, common::length_t 
     scanState->rowIdxVector->state = dstNodeIDVector->state;
 }
 
-common::offset_vec_t OnDiskHNSWGraph::getNeighbors(common::offset_t offset,
+common::offset_vec_t OnDiskHNSWGraph::getNeighbors(common::offset_t nodeOffset,
     transaction::Transaction* transaction) const {
-    scanState->nodeIDVector->setValue(0, common::internalID_t{offset, nodeTable.getTableID()});
+    scanState->nodeIDVector->setValue(0, common::internalID_t{nodeOffset, nodeTable.getTableID()});
     scanState->nodeIDVector->state->getSelVectorUnsafe().setToUnfiltered(1);
     scanState->outState->getSelVectorUnsafe().setSelSize(0);
     relTable.initScanState(transaction, *scanState);
@@ -271,6 +280,11 @@ common::offset_vec_t OnDiskHNSWGraph::getNeighbors(common::offset_t offset,
         }
     }
     return result;
+}
+
+common::offset_vec_t OnDiskHNSWGraph::getNeighbors(common::offset_t nodeOffset, common::length_t,
+    transaction::Transaction* transaction) const {
+    return getNeighbors(nodeOffset, transaction);
 }
 
 } // namespace storage

@@ -22,9 +22,8 @@ std::unique_ptr<TableFuncSharedState> CallFunction::initSharedState(TableFunctio
     return std::make_unique<CallFuncSharedState>(callTableFuncBindData->maxOffset);
 }
 
-std::unique_ptr<TableFuncLocalState> CallFunction::initEmptyLocalState(
-    kuzu::function::TableFunctionInitInput&, kuzu::function::TableFuncSharedState*,
-    storage::MemoryManager*) {
+std::unique_ptr<TableFuncLocalState> CallFunction::initEmptyLocalState(TableFunctionInitInput&,
+    TableFuncSharedState*, storage::MemoryManager*) {
     return std::make_unique<TableFuncLocalState>();
 }
 

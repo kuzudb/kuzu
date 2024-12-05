@@ -78,7 +78,7 @@ HNSWIndexConfig::HNSWIndexConfig(const function::optional_params_t& optionalPara
             Alpha::validate(alpha);
         } else if (Efc::NAME == lowerCaseName) {
             value.validateType(Efc::TYPE);
-            efc = value.getValue<uint64_t>();
+            efc = value.getValue<int64_t>();
             Efc::validate(efc);
         } else {
             throw common::BinderException{"Unrecognized optional parameter: " + name};
@@ -139,7 +139,7 @@ QueryHNSWConfig::QueryHNSWConfig(const function::optional_params_t& optionalPara
         auto lowerCaseName = common::StringUtils::getLower(name);
         if (Efs::NAME == lowerCaseName) {
             value.validateType(Efs::TYPE);
-            efs = value.getValue<uint64_t>();
+            efs = value.getValue<int64_t>();
             Efs::validate(efs);
         } else {
             throw common::BinderException{"Unrecognized optional parameter: " + name};

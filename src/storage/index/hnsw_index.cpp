@@ -141,10 +141,10 @@ void InMemHNSWIndex::insert(common::offset_t offset, transaction::Transaction* t
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
 void InMemHNSWIndex::shrink(transaction::Transaction* transaction) {
     for (auto i = 0u; i < upperGraph->getNumNodes(); i++) {
-        upperGraph->shrinkToThreshold(i, transaction);
+        upperGraph->shrink(i, transaction);
     }
     for (auto i = 0u; i < lowerGraph->getNumNodes(); i++) {
-        lowerGraph->shrinkToThreshold(i, transaction);
+        lowerGraph->shrink(i, transaction);
     }
 }
 
@@ -153,16 +153,21 @@ common::offset_t InMemHNSWIndex::insertToLowerLayer(common::offset_t offset,
     transaction::Transaction* transaction) {
     const auto vector = embeddings->getEmebdding(offset, nullptr);
     const auto upperEntryPoint = searchUpperLayer(vector, transaction);
-    common::offset_t lowerEntryPoint = upperEntryPoint;
-    if (upperEntryPoint == common::INVALID_OFFSET) {
+    if (upperEntryPoint == common::INVALID_OFFSET &&
+        lowerGraph->getEntryPoint() == common::INVALID_OFFSET) {
         // The upper graph is empty.
-        if (lowerGraph->getEntryPoint() == common::INVALID_OFFSET) {
-            // The lower graph is also empty. No edges need to be created.
-            lowerGraph->setEntryPoint(0);
-            return common::INVALID_OFFSET;
-        }
+        // The lower graph is also empty. No edges need to be created.
+        lowerGraph->setEntryPoint(0);
+        return common::INVALID_OFFSET;
+    }
+    if (lowerGraph->getEntryPoint() == common::INVALID_OFFSET) {
+        lowerGraph->setEntryPoint(0);
+    }
+    common::offset_t lowerEntryPoint = upperEntryPoint;
+    if (lowerEntryPoint == common::INVALID_OFFSET) {
         lowerEntryPoint = lowerGraph->getEntryPoint();
     }
+    KU_ASSERT(lowerEntryPoint != common::INVALID_OFFSET);
     // Search from lower layer and create edges in lower layer.
     const auto nbrs = searchLowerLayer(vector, lowerEntryPoint, lowerGraph->getMaxDegree(),
         config.efc, transaction);
@@ -217,6 +222,7 @@ std::vector<NodeWithDistance> OnDiskHNSWIndex::search(const std::vector<float>& 
     if (entryPoint == common::INVALID_OFFSET) {
         entryPoint = lowerGraph->getEntryPoint();
     }
+    KU_ASSERT(entryPoint != common::INVALID_OFFSET);
     return searchLowerLayer(&queryVector[0], entryPoint, k, config.efs, transaction);
 }
 } // namespace storage

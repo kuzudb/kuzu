@@ -19,6 +19,10 @@ struct CallFuncMorsel {
     static CallFuncMorsel createInvalidMorsel() {
         return CallFuncMorsel{common::INVALID_OFFSET, common::INVALID_OFFSET};
     }
+
+    bool isInvalid() const {
+        return startOffset == common::INVALID_OFFSET && endOffset == common::INVALID_OFFSET;
+    }
 };
 
 // TODO(Xiyang/Ziyi): Should this be CallTableFuncSharedState?

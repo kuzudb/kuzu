@@ -62,6 +62,7 @@ private:
     NodeTable& nodeTable;
     common::column_id_t columnID;
 
+    // TODO(Guodong): Should move these to local state.
     // Cacheed data structures used to read from table.
     common::DataChunk propertyVectors;
     std::unique_ptr<common::ValueVector> nodeIDVector;
@@ -83,10 +84,12 @@ public:
 
     virtual common::offset_vec_t getNeighbors(common::offset_t node,
         transaction::Transaction* transaction) const = 0;
+    virtual common::offset_vec_t getNeighbors(common::offset_t node, common::length_t numNbrs,
+        transaction::Transaction* transaction) const = 0;
 
-    void setEntryPoint(common::offset_t entryPoint_) { this->entryPoint = entryPoint_; }
+    void setEntryPoint(common::offset_t entryPoint_) { entryPoint.store(entryPoint_); }
 
-    common::offset_t getEntryPoint() const { return entryPoint; }
+    common::offset_t getEntryPoint() const { return entryPoint.load(); }
     common::offset_t getNumNodes() const { return numNodes; }
     common::length_t getMaxDegree() const { return maxDegree; }
 
@@ -94,10 +97,13 @@ public:
         KU_UNREACHABLE;
     }
     virtual void finalize(MemoryManager&, processor::PartitionerSharedState&) { KU_UNREACHABLE; }
-    virtual void shrinkToThreshold(common::offset_t, transaction::Transaction*) { KU_UNREACHABLE; }
+    virtual void shrink(common::offset_t, transaction::Transaction*) { KU_UNREACHABLE; }
+    virtual void shrinkToThreshold(common::offset_t, common::length_t, transaction::Transaction*) {
+        KU_UNREACHABLE;
+    }
 
 protected:
-    common::offset_t entryPoint;
+    std::atomic<common::offset_t> entryPoint;
     common::offset_t numNodes;
     common::length_t maxDegree;
     EmbeddingColumn* embeddings;
@@ -106,26 +112,30 @@ protected:
 
 // TODO: There should be a derived SparseInMemHNSWGraph, which is optimized for the upper graph of
 // the index.
-// TODO: Not thread-safe for now.
 // Note: This is a special directed graph structure optimized for HNSW index. It is in-memory and
 // keeps only forward directed relationships.
 class InMemHNSWGraph final : public HNSWGraph {
 public:
-    InMemHNSWGraph(common::offset_t numNodes, common::length_t maxDegree, common::length_t degree,
-        EmbeddingColumn* embeddings, DistFuncType distFunc, double alpha)
-        : HNSWGraph{numNodes, maxDegree, embeddings, distFunc}, degree{degree}, alpha{alpha} {
-        csrLengths = std::make_unique<uint16_t[]>(numNodes);
+    InMemHNSWGraph(common::offset_t numNodes, common::length_t maxDegree,
+        common::length_t degreeToShrink, EmbeddingColumn* embeddings, DistFuncType distFunc,
+        double alpha)
+        : HNSWGraph{numNodes, maxDegree, embeddings, distFunc}, degreeToShrink{degreeToShrink},
+          alpha{alpha} {
+        csrLengths = std::make_unique<std::atomic<uint16_t>[]>(numNodes);
         dstNodes = std::make_unique<common::offset_t[]>(numNodes * maxDegree);
         resetCSRLengthAndDstNodes();
     }
 
-    common::offset_vec_t getNeighbors(common::offset_t node,
+    common::offset_vec_t getNeighbors(common::offset_t nodeOffset,
+        transaction::Transaction* transaction) const override;
+    common::offset_vec_t getNeighbors(common::offset_t nodeOffset, common::length_t numNbrs,
         transaction::Transaction* transaction) const override;
 
     void createDirectedEdge(common::offset_t srcNode, common::offset_t dstNode,
         transaction::Transaction* transaction) override;
-    void shrinkNbrs(common::offset_t offset, transaction::Transaction* transaction);
-    void shrinkToThreshold(common::offset_t offset, transaction::Transaction* transaction) override;
+    void shrink(common::offset_t nodeOffset, transaction::Transaction* transaction) override;
+    void shrinkToThreshold(common::offset_t nodeOffset, common::length_t numNbrs,
+        transaction::Transaction* transaction) override;
 
     void finalize(MemoryManager& mm,
         processor::PartitionerSharedState& partitionerSharedState) override;
@@ -137,14 +147,22 @@ private:
         common::table_id_t srcNodeTableID, common::table_id_t dstNodeTableID,
         common::table_id_t relTableID, InMemChunkedNodeGroupCollection& partition) const;
 
+    void setCSRLength(common::offset_t nodeOffset, uint16_t length) {
+        csrLengths[nodeOffset].store(length);
+    }
+    uint16_t incrementCSRLength(common::offset_t nodeOffset) {
+        return csrLengths[nodeOffset].fetch_add(1);
+    }
+    uint16_t getCSRLength(common::offset_t nodeOffset) const {
+        return csrLengths[nodeOffset].load();
+    }
+
 private:
-    // TODO: We can relax uint16_t here to uint32_t if we allow maxDegree to be larger than 65535.
-    // TODO: We can also dynamically change offset_t to smaller type if numNodes is smaller.
     // TODO: Should make use of MemoryBuffer to store these, so the used memory here is trackable in
     // the system.
-    std::unique_ptr<uint16_t[]> csrLengths;
+    std::unique_ptr<std::atomic<uint16_t>[]> csrLengths;
     std::unique_ptr<common::offset_t[]> dstNodes;
-    common::length_t degree;
+    common::length_t degreeToShrink;
     double alpha;
 
     std::vector<common::length_t> numRelsPerNodeGroup;
@@ -156,13 +174,16 @@ public:
     OnDiskHNSWGraph(main::ClientContext* context, common::length_t maxDegree, NodeTable& nodeTable,
         RelTable& relTable, EmbeddingColumn* embeddings, DistFuncType distFunc);
 
-    common::offset_vec_t getNeighbors(common::offset_t offset,
+    common::offset_vec_t getNeighbors(common::offset_t nodeOffset,
+        transaction::Transaction* transaction) const override;
+    common::offset_vec_t getNeighbors(common::offset_t nodeOffset, common::length_t numNbrs,
         transaction::Transaction* transaction) const override;
 
 private:
     NodeTable& nodeTable;
     RelTable& relTable;
 
+    // TODO(Guodong): Should move these to local state.
     // Cached data to read from the table.
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
     std::unique_ptr<common::ValueVector> dstNodeIDVector;

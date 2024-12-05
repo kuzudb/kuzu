@@ -22,7 +22,7 @@ struct CreateHNSWIndexBindData final : StandaloneTableFuncBindData {
         common::column_id_t columnID, common::offset_t numNodes, storage::HNSWIndexConfig config)
         : context{context}, indexName{std::move(indexName)}, tableEntry{tableEntry}, table{table},
           columnID{columnID}, config{std::move(config)} {
-        this->maxOffset = numNodes > 0 ? numNodes - 1 : 0;
+        this->maxOffset = numNodes;
     }
 
     std::unique_ptr<TableFuncBindData> copy() const override {
@@ -35,6 +35,7 @@ struct CreateHNSWSharedState final : CallFuncSharedState {
     std::string name;
     std::unique_ptr<storage::InMemHNSWIndex> hnswIndex;
     std::shared_ptr<storage::HNSWIndexPartitionerSharedState> partitionerSharedState;
+    const CreateHNSWIndexBindData* bindData = nullptr;
 
     explicit CreateHNSWSharedState(const CreateHNSWIndexBindData& bindData)
         : CallFuncSharedState{bindData.maxOffset}, name{bindData.indexName} {
