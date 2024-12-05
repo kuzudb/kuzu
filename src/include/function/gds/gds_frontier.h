@@ -190,7 +190,7 @@ public:
     }
 
     void setActive(std::span<const common::nodeID_t> nodeIDs) override {
-        auto frontierMask = getNextFrontierFixedMask();
+        auto frontierMask = getNextFrontier();
         for (const auto nodeID : nodeIDs) {
             frontierMask[nodeID.offset].store(getCurIter(), std::memory_order_relaxed);
         }
@@ -318,13 +318,13 @@ public:
     GDSFrontier& getCurrentFrontierUnsafe() const { return *curFrontier; }
     GDSFrontier& getNextFrontierUnsafe() { return *nextFrontier; }
 
-protected:
-    virtual void beginNewIterationInternalNoLock() {}
-
     template<class TARGET>
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<TARGET*>(this);
     }
+
+protected:
+    virtual void beginNewIterationInternalNoLock() {}
 
 protected:
     std::mutex mtx;
@@ -363,17 +363,13 @@ public:
     DoubleFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
     std::shared_ptr<GDSFrontier> nextFrontier, uint64_t initialActiveNodes,
     uint64_t maxThreadsForExec);
-
-    bool getNextRangeMorsel(FrontierMorsel& frontierMorsel) override;
-
-protected:
-    std::unique_ptr<FrontierMorselDispatcher> morselDispatcher;
 };
 
 class DoublePathLengthsFrontierPair : public DoubleFrontierPair {
 public:
-    DoublePathLengthsFrontierPair(common::table_id_map_t<common::offset_t> numNodesMap,
-        uint64_t maxThreadsForExec, storage::MemoryManager* mm);
+    DoublePathLengthsFrontierPair(std::shared_ptr<PathLengths> curFrontier,
+        std::shared_ptr<PathLengths> nextFrontier, uint64_t maxThreadsForExec)
+        : DoubleFrontierPair{curFrontier, nextFrontier, 0, maxThreadsForExec} {}
 
     void initRJFromSource(common::nodeID_t source) override;
 
@@ -398,16 +394,12 @@ public:
         return;
     };
 
-    bool hasActiveNodesForNextLevel() override {
-        return updated;
-    }
-
     uint64_t getComponentID(common::nodeID_t nodeID) const {
         return getComponentIDAtomic(nodeID).load(std::memory_order_relaxed);
     }
 
     void beginFrontierComputeBetweenTables(common::table_id_t curTableID, common::table_id_t) override {
-        morselDispatcher->init(curTableID, numNodes);
+        morselDispatcher.init(curTableID, numNodes);
     }
 
     bool update(common::nodeID_t boundNodeID, common::nodeID_t nbrNodeID) {
