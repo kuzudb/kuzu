@@ -262,7 +262,7 @@ public:
 
     uint64_t getNumNodes() { return numNodes; }
 
-    void setActive(common::nodeID_t nodeID) { setCurActive(nodeID); }
+    void setActive(common::nodeID_t nodeID) override { setCurActive(nodeID); }
 
     // pinTableID and isActive is not used, most likely needs refactoring
     void pinTableID(common::table_id_t) override {}
@@ -360,7 +360,7 @@ private:
 class DoubleFrontierPair : public FrontierPair {
 public:
     DoubleFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-        std::shared_ptr<GDSFrontier> nextFrontier, uint64_t initialActiveNodes,
+        std::shared_ptr<GDSFrontier> nextFrontier,
         uint64_t maxThreadsForExec);
 };
 
@@ -368,7 +368,7 @@ class DoublePathLengthsFrontierPair : public DoubleFrontierPair {
 public:
     DoublePathLengthsFrontierPair(std::shared_ptr<PathLengths> curFrontier,
         std::shared_ptr<PathLengths> nextFrontier, uint64_t maxThreadsForExec)
-        : DoubleFrontierPair{curFrontier, nextFrontier, 0, maxThreadsForExec} {}
+        : DoubleFrontierPair{curFrontier, nextFrontier, maxThreadsForExec} {}
 
     void initRJFromSource(common::nodeID_t source) override;
 

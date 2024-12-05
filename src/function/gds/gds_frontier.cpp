@@ -91,7 +91,7 @@ void SinglePathLengthsFrontierPair::initRJFromSource(nodeID_t source) {
 }
 
 DoubleFrontierPair::DoubleFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-    std::shared_ptr<GDSFrontier> nextFrontier, uint64_t initialActiveNodes,
+    std::shared_ptr<GDSFrontier> nextFrontier,
     uint64_t maxThreadsForExec)
     : FrontierPair(curFrontier, nextFrontier, maxThreadsForExec) {}
 
