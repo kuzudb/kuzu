@@ -21,11 +21,11 @@ add_library(iceberg_extension
         ${ICEBERG_OBJECT_FILES}
         src/iceberg_extension.cpp
         ${PROJECT_SOURCE_DIR}/extension/delta/src/connector/delta_connector.cpp
-        ${PROJECT_SOURCE_DIR}/extension/duckdb/src/duckdb_secret_manager.cpp
+        ${PROJECT_SOURCE_DIR}/extension/duckdb/src/connector/duckdb_secret_manager.cpp
         ${PROJECT_SOURCE_DIR}/extension/duckdb/src/connector/duckdb_connector.cpp
         ${PROJECT_SOURCE_DIR}/extension/httpfs/src/s3_download_options.cpp)
 
-set_extension_properties(iceberg_extension iceberg)
+set_extension_properties(iceberg_extension iceberg iceberg)
 
 target_link_libraries(iceberg_extension
         PRIVATE
@@ -36,12 +36,12 @@ if (NOT WIN32)
     add_library(iceberg_installer
             SHARED
             src/iceberg_install_func.cpp
-            ../duckdb/src/duckdb_installer.cpp)
+            ../duckdb/src/installer/duckdb_installer.cpp)
     add_library(iceberg_loader
             SHARED
-            ../duckdb/src/duckdb_loader.cpp)
-    set_extension_properties(iceberg_installer iceberg_installer)
-    set_extension_properties(iceberg_loader iceberg_loader)
+            ../duckdb/src/loader/duckdb_loader.cpp)
+    set_extension_properties(iceberg_installer iceberg_installer iceberg)
+    set_extension_properties(iceberg_loader iceberg_loader iceberg)
 endif ()
 
 if (WIN32)

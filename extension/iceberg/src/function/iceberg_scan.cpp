@@ -1,10 +1,10 @@
 #include "function/iceberg_scan.h"
 #include "function/delta_scan.h"
-#include "delta_extension.h"
+#include "main/delta_extension.h"
 
 #include "connector/connector_factory.h"
 #include "connector/duckdb_result_converter.h"
-#include "duckdb_type_converter.h"
+#include "connector/duckdb_type_converter.h"
 
 namespace kuzu {
 namespace iceberg_extension {

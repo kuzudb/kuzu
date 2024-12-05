@@ -1,4 +1,4 @@
-#include "duckdb_installer.h"
+#include "installer/duckdb_installer.h"
 
 extern "C" {
 // Because we link against the static library on windows, we implicitly inherit KUZU_STATIC_DEFINE,

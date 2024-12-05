@@ -1,6 +1,6 @@
 #include "iceberg_extension.h"
 
-#include "duckdb_scan.h"
+#include "function/duckdb_scan.h"
 #include "function/iceberg_scan.h"
 #include "main/client_context.h"
 #include "main/database.h"
