@@ -3,6 +3,7 @@
 #include "binder/ddl/property_definition.h"
 #include "binder/expression/expression.h"
 #include "common/enums/alter_type.h"
+#include "common/enums/conflict_action.h"
 
 namespace kuzu {
 namespace binder {
@@ -26,10 +27,13 @@ struct BoundAlterInfo {
     common::AlterType alterType;
     std::string tableName;
     std::unique_ptr<BoundExtraAlterInfo> extraInfo;
+    common::ConflictAction onConflict;
 
     BoundAlterInfo(common::AlterType alterType, std::string tableName,
-        std::unique_ptr<BoundExtraAlterInfo> extraInfo)
-        : alterType{alterType}, tableName{std::move(tableName)}, extraInfo{std::move(extraInfo)} {}
+        std::unique_ptr<BoundExtraAlterInfo> extraInfo,
+        common::ConflictAction onConflict = common::ConflictAction::ON_CONFLICT_THROW)
+        : alterType{alterType}, tableName{std::move(tableName)}, extraInfo{std::move(extraInfo)},
+          onConflict{std::move(onConflict)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundAlterInfo);
 
     std::string toString() const;
@@ -37,7 +41,7 @@ struct BoundAlterInfo {
 private:
     BoundAlterInfo(const BoundAlterInfo& other)
         : alterType{other.alterType}, tableName{other.tableName},
-          extraInfo{other.extraInfo->copy()} {}
+          extraInfo{other.extraInfo->copy()}, onConflict{other.onConflict} {}
 };
 
 struct BoundExtraRenameTableInfo : public BoundExtraAlterInfo {

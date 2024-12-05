@@ -54,9 +54,13 @@ Table university has been dropped.
 -STATEMENT ALTER TABLE person DROP fName
 ---- 1
 Table person altered.
+-STATEMENT ALTER TABLE person DROP if exists fName
+---- ok
 -STATEMENT ALTER TABLE knows DROP date
 ---- 1
 Table knows altered.
+-STATEMENT ALTER TABLE knows DROP if exists date
+---- ok
 
 -CASE CreateRelGroup
 -STATEMENT CREATE REL TABLE GROUP likes (FROM person TO person, FROM person TO organisation, since INT64);
@@ -138,6 +142,16 @@ Binder exception: Table knows does not exist.
 ---- 1
 215489
 
+-LOG AddNodePropertyIfNotExists
+-STATEMENT alter table Comment add IF NOT EXISTS id int64 default 1;
+---- ok
+
+-STATEMENT CALL TABLE_INFO('Comment') RETURN *;
+---- 3
+0|id|INT64|NULL|True
+1|propx|INT64|NULL|False
+2|propy|INT64|1|False
+
 -CASE AddRelProperty
 -STATEMENT create node table Comment (id int64, PRIMARY KEY (id));
 ---- ok
@@ -157,6 +171,15 @@ Binder exception: Table knows does not exist.
 -STATEMENT MATCH (c:Comment)-[r:replyOf]->(c2:Comment) RETURN SUM(r.propy);
 ---- 1
 108027
+
+-LOG AddRelPropertyIfNotExists
+-STATEMENT alter table replyOf add if not exists propy int64 default 1;
+---- ok
+
+-STATEMENT CALL TABLE_INFO('replyOf') RETURN *;
+---- 2
+1|propx|INT64|NULL
+2|propy|INT64|1
 
 -CASE DropNodeTablePropertyNormalExecution
 -STATEMENT ALTER TABLE person DROP gender
