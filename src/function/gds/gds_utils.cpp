@@ -65,7 +65,7 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
                 rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID,
                     relTableIDInfo.toNodeTableID);
                 scheduleFrontierTask(relTableIDInfo.relTableID, graph, ExtendDirection::FWD,
-                    rjCompState, context);          
+                    rjCompState, context);
             } break;
             case ExtendDirection::BWD: {
                 rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.toNodeTableID,

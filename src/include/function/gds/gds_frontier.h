@@ -237,7 +237,8 @@ private:
 
 class WCCFrontier : public GDSFrontier {
 public:
-    WCCFrontier(const common::table_id_map_t<common::offset_t>& numNodesMap_, storage::MemoryManager* mm, bool inital_bool)
+    WCCFrontier(const common::table_id_map_t<common::offset_t>& numNodesMap_,
+        storage::MemoryManager* mm, bool inital_bool)
         : GDSFrontier{numNodesMap_} {
         for (const auto& [tableID, curNumNodes] : numNodesMap_) {
             numNodesMap[tableID] = curNumNodes;
@@ -259,9 +260,7 @@ public:
         }
     }
 
-    uint64_t getNumNodes() {
-        return numNodes;
-    }
+    uint64_t getNumNodes() { return numNodes; }
 
     void setActive(common::nodeID_t nodeID) { setCurActive(nodeID); }
 
@@ -361,8 +360,8 @@ private:
 class DoubleFrontierPair : public FrontierPair {
 public:
     DoubleFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-    std::shared_ptr<GDSFrontier> nextFrontier, uint64_t initialActiveNodes,
-    uint64_t maxThreadsForExec);
+        std::shared_ptr<GDSFrontier> nextFrontier, uint64_t initialActiveNodes,
+        uint64_t maxThreadsForExec);
 };
 
 class DoublePathLengthsFrontierPair : public DoubleFrontierPair {
@@ -384,10 +383,10 @@ public:
 
 class WCCFrontierPair : public DoubleFrontierPair {
 public:
-    WCCFrontierPair(common::table_id_map_t<common::offset_t> numNodesMap, uint64_t totalNumNodes, uint64_t maxThreadsForExec, storage::MemoryManager* mm);
+    WCCFrontierPair(common::table_id_map_t<common::offset_t> numNodesMap, uint64_t totalNumNodes,
+        uint64_t maxThreadsForExec, storage::MemoryManager* mm);
 
-    void initRJFromSource(common::nodeID_t /* source */) override {
-        return; };
+    void initRJFromSource(common::nodeID_t /* source */) override { return; };
 
     void beginNewIterationInternalNoLock() override {
         updated = false;
@@ -398,7 +397,8 @@ public:
         return getComponentIDAtomic(nodeID).load(std::memory_order_relaxed);
     }
 
-    void beginFrontierComputeBetweenTables(common::table_id_t curTableID, common::table_id_t) override {
+    void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
+        common::table_id_t) override {
         morselDispatcher.init(curTableID, numNodes);
     }
 
@@ -414,8 +414,7 @@ public:
             updated = true;
             nextFrontier->ptrCast<WCCFrontier>()->setActive(nbrNodeID);
             while (!nbrComponentID.compare_exchange_strong(actualComponentID, expectedComponentID,
-                std::memory_order_relaxed, std::memory_order_relaxed)) {
-            }
+                std::memory_order_relaxed, std::memory_order_relaxed)) {}
             return true;
         }
         return false;

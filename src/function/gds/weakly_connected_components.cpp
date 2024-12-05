@@ -23,7 +23,8 @@ struct WCCEdgeCompute : public EdgeCompute {
 
     explicit WCCEdgeCompute(WCCFrontierPair* frontierPair) : frontierPair{frontierPair} {}
 
-    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk, bool) override {
+    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
+        bool) override {
         std::vector<nodeID_t> result;
         chunk.forEach([&](auto nbrNodeID, auto) {
             if (frontierPair->update(boundNodeID, nbrNodeID)) {
@@ -35,9 +36,7 @@ struct WCCEdgeCompute : public EdgeCompute {
 
     void resetSingleThreadState() override { return; }
 
-    bool terminate(processor::NodeOffsetMaskMap& maskMap) override {
-        return false;
-    }
+    bool terminate(processor::NodeOffsetMaskMap& maskMap) override { return false; }
 
     std::unique_ptr<EdgeCompute> copy() override {
         return std::make_unique<WCCEdgeCompute>(frontierPair);
@@ -84,7 +83,9 @@ public:
 
     void vertexCompute(const graph::VertexScanState::Chunk& chunk) override {
         for (auto nodeID : chunk.getNodeIDs()) {
-            outputWriter.materialize(nodeID, compState.frontierPair->ptrCast<WCCFrontierPair>()->getComponentID(nodeID), *localFT);
+            outputWriter.materialize(nodeID,
+                compState.frontierPair->ptrCast<WCCFrontierPair>()->getComponentID(nodeID),
+                *localFT);
         }
     }
 
@@ -143,7 +144,8 @@ public:
         for (auto& nodeTableID : nodeTableIDs) {
             totalNumNodes += graph->getNumNodes(clientContext->getTx(), nodeTableID);
         }
-        auto frontierPair = std::make_unique<WCCFrontierPair>(graph->getNumNodesMap(clientContext->getTx()), totalNumNodes,
+        auto frontierPair = std::make_unique<WCCFrontierPair>(
+            graph->getNumNodesMap(clientContext->getTx()), totalNumNodes,
             clientContext->getMaxNumThreadForExec(), clientContext->getMemoryManager());
         auto edgeCompute = std::make_unique<WCCEdgeCompute>(frontierPair.get());
         // GDS::Utils::RunUntilConvergence shouldn't explicitly call RJCompState since other
@@ -162,7 +164,6 @@ public:
     std::unique_ptr<GDSAlgorithm> copy() const override {
         return std::make_unique<WeaklyConnectedComponent>(*this);
     }
-
 };
 
 function_set WeaklyConnectedComponentsFunction::getFunctionSet() {
