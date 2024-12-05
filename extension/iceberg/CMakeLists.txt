@@ -29,7 +29,6 @@ set_extension_properties(iceberg_extension iceberg iceberg)
 
 target_link_libraries(iceberg_extension
         PRIVATE
-        delta_extension
         ${DuckDB_LIBRARIES})
 
 if (NOT WIN32)
