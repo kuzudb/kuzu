@@ -245,8 +245,7 @@ static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInpu
     return std::make_unique<TableFuncLocalState>();
 }
 
-static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedState,
-    TableFuncLocalState*) {
+static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedState) {
     auto state = ku_dynamic_cast<SerialCSVScanSharedState*>(sharedState);
     state->finalizeReader(ctx->clientContext);
 }

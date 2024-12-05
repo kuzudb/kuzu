@@ -587,6 +587,7 @@ bool JSONScanLocalState::readNextBuffer() {
             isLast = false;
         }
         KU_ASSERT(!currentBufferHandle);
+        errorHandler->finalize();
         return false;
     }
 
@@ -880,12 +881,9 @@ static double progressFunc(TableFuncSharedState* /*state*/) {
     return 0;
 }
 
-static void finalizeFunc(processor::ExecutionContext* ctx, TableFuncSharedState* sharedState,
-    TableFuncLocalState* localState) {
+static void finalizeFunc(processor::ExecutionContext* ctx, TableFuncSharedState* sharedState) {
     auto* jsonSharedState = sharedState->ptrCast<JSONScanSharedState>();
-    auto* jsonLocalState = localState->ptrCast<JSONScanLocalState>();
 
-    jsonLocalState->errorHandler->finalize();
     jsonSharedState->sharedErrorHandler.throwCachedErrorsIfNeeded();
     ctx->clientContext->getWarningContextUnsafe().populateWarnings(ctx->queryID,
         jsonSharedState->populateErrorFunc);

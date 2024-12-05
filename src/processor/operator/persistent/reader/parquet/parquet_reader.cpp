@@ -713,7 +713,7 @@ static double progressFunc(TableFuncSharedState* sharedState) {
     return static_cast<double>(totalReadSize) / state->totalRowsGroups;
 }
 
-static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState*, TableFuncLocalState*) {
+static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState*) {
     ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
 }
 
