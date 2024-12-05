@@ -73,7 +73,7 @@ public:
 
     void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
 
-    TableStats getStats() {
+    TableStats getStats() const {
         auto lock = nodeGroups.lock();
         return stats.copy();
     }

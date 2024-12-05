@@ -15,6 +15,10 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace planner {
 
+static cardinality_t atLeastOne(uint64_t x) {
+    return x == 0 ? 1 : x;
+}
+
 void CardinalityEstimator::initNodeIDDom(const Transaction* transaction,
     const QueryGraph& queryGraph) {
     for (uint64_t i = 0u; i < queryGraph.getNumQueryNodes(); ++i) {
@@ -116,25 +120,35 @@ static bool isSingleLabelledProperty(const Expression& expression) {
     return expression.constCast<PropertyExpression>().isSingleLabel();
 }
 
+static std::optional<cardinality_t> getTableStatsIfPossible(main::ClientContext* context,
+    const Expression& predicate,
+    const std::unordered_map<common::table_id_t, storage::TableStats>& nodeTableStats) {
+    KU_ASSERT(predicate.getNumChildren() >= 1);
+    if (isSingleLabelledProperty(*predicate.getChild(0))) {
+        auto& propertyExpr = predicate.getChild(0)->cast<PropertyExpression>();
+        auto tableID = propertyExpr.getSingleTableID();
+        if (nodeTableStats.contains(tableID)) {
+            auto columnID = propertyExpr.getColumnID(
+                *context->getCatalog()->getTableCatalogEntry(context->getTx(), tableID));
+            if (columnID != INVALID_COLUMN_ID && columnID != ROW_IDX_COLUMN_ID) {
+                auto& stats = nodeTableStats.at(tableID);
+                return atLeastOne(stats.getNumDistinctValues(columnID));
+            }
+        }
+    }
+    return {};
+}
+
 uint64_t CardinalityEstimator::estimateFilter(const LogicalPlan& childPlan,
     const Expression& predicate) {
     if (predicate.expressionType == ExpressionType::EQUALS) {
         if (isPrimaryKey(*predicate.getChild(0)) || isPrimaryKey(*predicate.getChild(1))) {
             return 1;
         } else {
-            KU_ASSERT(predicate.getNumChildren() >= 1);
-            if (isSingleLabelledProperty(*predicate.getChild(0))) {
-                auto& propertyExpr = predicate.getChild(0)->cast<PropertyExpression>();
-                auto tableID = propertyExpr.getSingleTableID();
-                if (nodeTableStats.contains(tableID)) {
-                    auto columnID = propertyExpr.getColumnID(
-                        *context->getCatalog()->getTableCatalogEntry(context->getTx(), tableID));
-                    if (columnID != INVALID_COLUMN_ID && columnID != ROW_IDX_COLUMN_ID) {
-                        auto& stats = nodeTableStats.at(tableID);
-                        auto numDistinctValues = atLeastOne(stats.getNumDistinctValues(columnID));
-                        return atLeastOne(childPlan.estCardinality / numDistinctValues);
-                    }
-                }
+            const auto numDistinctValues =
+                getTableStatsIfPossible(context, predicate, nodeTableStats);
+            if (numDistinctValues.has_value()) {
+                return atLeastOne(childPlan.getCardinality() / numDistinctValues.value());
             }
             return atLeastOne(
                 childPlan.estCardinality * PlannerKnobs::EQUALITY_PREDICATE_SELECTIVITY);

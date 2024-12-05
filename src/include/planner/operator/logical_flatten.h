@@ -9,9 +9,8 @@ class LogicalFlatten final : public LogicalOperator {
 public:
     LogicalFlatten(f_group_pos groupPos, std::shared_ptr<LogicalOperator> child,
         common::cardinality_t cardinality)
-        : LogicalOperator{LogicalOperatorType::FLATTEN, std::move(child)}, groupPos{groupPos} {
-        this->cardinality = cardinality;
-    }
+        : LogicalOperator{LogicalOperatorType::FLATTEN, std::move(child), cardinality},
+          groupPos{groupPos} {}
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
@@ -21,8 +20,7 @@ public:
     inline f_group_pos getGroupPos() const { return groupPos; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        auto op = make_unique<LogicalFlatten>(groupPos, children[0]->copy(), cardinality);
-        return op;
+        return make_unique<LogicalFlatten>(groupPos, children[0]->copy(), cardinality);
     }
 
 private:

@@ -17,10 +17,8 @@ class LogicalFilter final : public LogicalOperator {
 public:
     LogicalFilter(std::shared_ptr<binder::Expression> expression,
         std::shared_ptr<LogicalOperator> child, common::cardinality_t cardinality = 0)
-        : LogicalOperator{LogicalOperatorType::FILTER, std::move(child)},
-          expression{std::move(expression)} {
-        this->cardinality = cardinality;
-    }
+        : LogicalOperator{LogicalOperatorType::FILTER, std::move(child), cardinality},
+          expression{std::move(expression)} {}
 
     inline void computeFactorizedSchema() override { copyChildSchema(0); }
     inline void computeFlatSchema() override { copyChildSchema(0); }
@@ -38,8 +36,7 @@ public:
     }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        auto op = make_unique<LogicalFilter>(expression, children[0]->copy(), cardinality);
-        return op;
+        return make_unique<LogicalFilter>(expression, children[0]->copy(), cardinality);
     }
 
 private:

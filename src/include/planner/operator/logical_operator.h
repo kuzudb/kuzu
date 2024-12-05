@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "common/cast.h"
 #include "planner/operator/operator_print_info.h"
 #include "planner/operator/schema.h"
@@ -75,7 +77,8 @@ public:
     explicit LogicalOperator(LogicalOperatorType operatorType)
         : operatorType{operatorType}, cardinality{0} {}
     explicit LogicalOperator(LogicalOperatorType operatorType,
-        std::shared_ptr<LogicalOperator> child);
+        std::shared_ptr<LogicalOperator> child,
+        std::optional<common::cardinality_t> cardinality = {});
     explicit LogicalOperator(LogicalOperatorType operatorType,
         std::shared_ptr<LogicalOperator> left, std::shared_ptr<LogicalOperator> right);
     explicit LogicalOperator(LogicalOperatorType operatorType, const logical_op_vector_t& children);
