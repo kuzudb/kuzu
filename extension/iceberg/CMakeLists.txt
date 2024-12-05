@@ -10,22 +10,26 @@ include_directories(
         src/include
         ${PROJECT_SOURCE_DIR}/extension/duckdb/src/include
         ${PROJECT_SOURCE_DIR}/extension/httpfs/src/include
+        ${PROJECT_SOURCE_DIR}/extension/delta/src/include
         ${DuckDB_INCLUDE_DIRS}
 )
 
-add_subdirectory(src/connector)
 add_subdirectory(src/function)
 
 add_library(iceberg_extension
         SHARED
         ${ICEBERG_OBJECT_FILES}
         src/iceberg_extension.cpp
+        ${PROJECT_SOURCE_DIR}/extension/delta/src/connector/delta_connector.cpp
+        ${PROJECT_SOURCE_DIR}/extension/duckdb/src/duckdb_secret_manager.cpp
+        ${PROJECT_SOURCE_DIR}/extension/duckdb/src/connector/duckdb_connector.cpp
         ${PROJECT_SOURCE_DIR}/extension/httpfs/src/s3_download_options.cpp)
 
 set_extension_properties(iceberg_extension iceberg)
 
 target_link_libraries(iceberg_extension
         PRIVATE
+        delta_extension
         ${DuckDB_LIBRARIES})
 
 if (NOT WIN32)

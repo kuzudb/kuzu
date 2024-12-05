@@ -10,8 +10,14 @@ void DeltaConnector::connect(const std::string& /*dbPath*/, const std::string& /
     // Creates an in-memory duckdb instance, then install httpfs and attach postgres.
     instance = std::make_unique<duckdb::DuckDB>(nullptr);
     connection = std::make_unique<duckdb::Connection>(*instance);
-    executeQuery("install delta;");
-    executeQuery("load delta;");
+    // Install the Desired Extension on DuckDB
+    if (format == "DELTA") {
+        executeQuery("install delta;");
+        executeQuery("load delta;");
+    } else if (format == "ICEBERG") {
+        executeQuery("install iceberg;");
+        executeQuery("load iceberg;");
+    }
     executeQuery("install httpfs;");
     executeQuery("load httpfs;");
     executeQuery(duckdb_extension::DuckDBSecretManager::getS3Secret(context));
