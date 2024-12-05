@@ -7,6 +7,7 @@
 #include "graph/graph.h"
 #include "processor/operator/gds_call_shared_state.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include <span>
 
 namespace kuzu {
 namespace function {
@@ -234,6 +235,62 @@ private:
     std::atomic<frontier_entry_t*> nextFrontier;
 };
 
+class KCoreFrontier : public GDSFrontier {
+public:
+    KCoreFrontier(const common::table_id_map_t<common::offset_t>& numNodesMap_, storage::MemoryManager* mm, bool inital_bool)
+    : GDSFrontier{numNodesMap_} {
+        for (const auto& [tableID, curNumNodes] : numNodesMap_) {
+            numNodesMap[tableID] = curNumNodes;
+            auto curActiveMemBuffer = mm->allocateBuffer(false, curNumNodes * sizeof(std::atomic<bool>));
+            std::atomic<bool>* curActiveMemBufferPtr = reinterpret_cast<std::atomic<bool>*>(curActiveMemBuffer.get()->getData());
+            for (uint64_t i = 0; i < curNumNodes; ++i) {
+                curActiveMemBufferPtr[i].store(inital_bool, std::memory_order_relaxed);
+            }
+            curActiveNodes.insert({tableID, std::move(curActiveMemBuffer)});
+        }
+    }
+
+    void setActive(std::span<const common::nodeID_t> nodeIDs) override {
+        for(auto& nodeID : nodeIDs) {
+            setCurActive(nodeID);
+        }
+    }
+
+    uint64_t getNumNodes() {
+        return numNodes;
+    }
+
+    void setActive(common::nodeID_t nodeID) {
+        setCurActive(nodeID); 
+    }
+
+    void pinTableID(common::table_id_t) override {};
+
+    bool isActive(common::offset_t) override {
+        return true;
+    }
+
+    bool isActive(common::nodeID_t nodeID) {
+        auto& memBuffer = curActiveNodes.find(nodeID.tableID)->second;
+        std::atomic<bool>* memBufferPtr = reinterpret_cast<std::atomic<bool>*>(memBuffer->getData());
+        return memBufferPtr[nodeID.offset].load(std::memory_order_relaxed);
+    }
+
+    void incrementCurIter() {
+        return;
+    }
+
+private:
+    void setCurActive(common::nodeID_t nodeID) {
+        auto& memBuffer = curActiveNodes.find(nodeID.tableID)->second;
+        std::atomic<bool>* memBufferPtr = reinterpret_cast<std::atomic<bool>*>(memBuffer->getData());
+    }
+
+private:
+    uint64_t numNodes;
+    common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> curActiveNodes;
+}
+
 /**
  * Base class for maintaining a current and a next GDSFrontier of nodes for GDS algorithms. At any
  * point in time, maintains the current iteration curIter the algorithm is in and the number of
@@ -317,6 +374,78 @@ public:
         common::table_id_t nextTableID) override;
 
     void beginNewIterationInternalNoLock() override;
+};
+
+class KUZU_API KCoreFrontierPair : public FrontierPair {
+public:
+    KCoreFrontierPair(common::table_id_map_t<common::offset_t> numNodesMap, uint64_t totalNumNodes, uint64_t maxThreadsForExec, storage::MemoryManager* mm)
+    : FrontierPair{nullptr, nullptr, maxThreadsForExec} {}
+
+    void initRJFromSource(common::nodeID_t source) override {};
+
+    void beginFrontierComputeBetweenTables(common::table_id_t curTableID, common::table_id_t nextTableID) override;
+
+    void beginNewIterationInternalNoLock() override;  
+
+    uint64_t addToVertexDegree(common::nodeID_t nodeID, uint64_t degreeToAdd) {
+        return getVertexDegreeAtomic(nodeID).fetch_add(degreeToAdd, std::memory_order_relaxed);
+    }
+
+    uint64_t removeFromVertex(common::nodeID_t nodeID) {
+        return getVertexDegreeAtomic(nodeID).fetch_sub(1, std::memory_order_relaxed);
+    }
+
+    uint64_t getVertexDegree(common::nodeID_t nodeID) const {
+        return getVertexDegreeAtomic(nodeID).load(std::memory_order_relaxed);
+    }
+
+    bool isActive(common::nodeID_t nodeID) const {
+        return curFrontier->isActive(nodeID);
+    }
+
+    void updateNextSmallestDegree(uint64_t degree) {
+        uint64_t current = nextSmallestDegree.load(std::memory_order_relaxed);
+        while (degree < current) {
+            if (nextSmallestDegree.compare_exchange_strong(current, degree, std::memory_order_relaxed)) {
+                break;
+            }
+        }
+    }
+
+    void updateCurSmallestDegree(uint64_t degree) {
+        uint64_t current = curSmallestDegree.load(std::memory_order_relaxed);
+        while (degree < current) {
+            if (curSmallestDegree.compare_exchange_strong(current, degree, std::memory_order_relaxed)) {
+                break;
+            }
+        }
+    }
+
+    uint64_t getSmallestDegree() {
+        return curSmallestDegree.load(std::memory_order_relaxed);
+    }
+
+    void setKValue(common::nodeID_t nodeID, uint64_t k) {
+        auto& memBuffer = kValue.find(nodeID.tableID)->second;
+        std::atomic<uint64_t>* memBufferPtr = reinterpret_cast<std::atomic<uint64_t>*>(memBuffer->getData());
+        auto& nodeKValue = memBufferPtr[nodeID.offset];
+        auto currentK = nodeKValue.load(std::memory_order_relaxed);
+        nodeKValue.compare_exchange_strong(currentK, k, std::memory_order_relaxed);
+    }
+
+private:
+    std::atomic<uint64_t>& getVertexDegreeAtomic(common::nodeID_t nodeID) const {
+        auto& memBuffer = curVertexValues.find(nodeID.tableID)->second;
+        std::atomic<uint64_t>* memBufferPtr = reinterpret_cast<std::atomic<uint64_t>*>(memBuffer->getData());
+        return memBufferPtr[nodeID.offset];
+    }
+    uint64_t numNodes;
+    bool updated = false;
+    std::atomic<uint64_t> curSmallestDegree{UINT64_MAX};
+    std::atomic<uint64_t> nextSmallestDegree{UINT64_MAX};
+    common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> kValue;
+    common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> curVertexValues;
+    common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> nextVertexValues;
 };
 
 class SPEdgeCompute : public EdgeCompute {
