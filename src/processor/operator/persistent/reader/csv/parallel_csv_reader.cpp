@@ -298,8 +298,7 @@ static double progressFunc(TableFuncSharedState* sharedState) {
     return static_cast<double>(totalReadSize) / state->totalSize;
 }
 
-static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedState,
-    TableFuncLocalState* /*localState*/) {
+static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedState) {
     auto state = ku_dynamic_cast<ParallelCSVScanSharedState*>(sharedState);
     for (idx_t i = 0; i < state->readerConfig.getNumFiles(); ++i) {
         state->errorHandlers[i].throwCachedErrorsIfNeeded();

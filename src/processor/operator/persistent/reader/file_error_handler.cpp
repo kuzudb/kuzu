@@ -221,8 +221,10 @@ void LocalFileErrorHandler::finalize(bool canThrowCachedError) {
 
 void LocalFileErrorHandler::flushCachedErrors(bool canThrowCachedError) {
     if (!linesPerBlock.empty()) {
-        sharedErrorHandler->updateLineNumberInfo(linesPerBlock, canThrowCachedError);
-        linesPerBlock.clear();
+        // clear linesPerBlock first so that it is empty even if updateLineNumberInfo() throws
+        decltype(linesPerBlock) oldLinesPerBlock;
+        oldLinesPerBlock.swap(linesPerBlock);
+        sharedErrorHandler->updateLineNumberInfo(oldLinesPerBlock, canThrowCachedError);
     }
 
     if (!cachedErrors.empty()) {

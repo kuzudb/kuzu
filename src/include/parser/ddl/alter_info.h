@@ -4,6 +4,7 @@
 
 #include "common/copy_constructors.h"
 #include "common/enums/alter_type.h"
+#include "common/enums/conflict_action.h"
 #include "parser/expression/parsed_expression.h"
 
 namespace kuzu {
@@ -26,10 +27,13 @@ struct AlterInfo {
     common::AlterType type;
     std::string tableName;
     std::unique_ptr<ExtraAlterInfo> extraInfo;
+    common::ConflictAction onConflict;
 
     AlterInfo(common::AlterType type, std::string tableName,
-        std::unique_ptr<ExtraAlterInfo> extraInfo)
-        : type{type}, tableName{std::move(tableName)}, extraInfo{std::move(extraInfo)} {}
+        std::unique_ptr<ExtraAlterInfo> extraInfo,
+        common::ConflictAction onConflict = common::ConflictAction::ON_CONFLICT_THROW)
+        : type{type}, tableName{std::move(tableName)}, extraInfo{std::move(extraInfo)},
+          onConflict{std::move(onConflict)} {}
     DELETE_COPY_DEFAULT_MOVE(AlterInfo);
 };
 

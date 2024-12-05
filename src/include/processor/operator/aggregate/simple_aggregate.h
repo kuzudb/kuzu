@@ -62,7 +62,9 @@ public:
 
     void finalizeInternal(ExecutionContext* /*context*/) override {
         sharedState->finalizeAggregateStates();
-        metrics->numOutputTuple.incrementByOne();
+        if (metrics) {
+            metrics->numOutputTuple.incrementByOne();
+        }
     }
 
     inline std::unique_ptr<PhysicalOperator> clone() override {

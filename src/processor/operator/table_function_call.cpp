@@ -74,7 +74,7 @@ bool TableFunctionCall::getNextTuplesInternal(ExecutionContext*) {
 }
 
 void TableFunctionCall::finalizeInternal(ExecutionContext* context) {
-    info.function.finalizeFunc(context, sharedState->funcState.get(), localState.funcState.get());
+    info.function.finalizeFunc(context, sharedState->funcState.get());
 }
 
 double TableFunctionCall::getProgress(ExecutionContext* /*context*/) const {

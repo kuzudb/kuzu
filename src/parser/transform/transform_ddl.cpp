@@ -225,17 +225,25 @@ std::unique_ptr<Statement> Transformer::transformAddProperty(
     }
     auto extraInfo = std::make_unique<ExtraAddPropertyInfo>(std::move(propertyName),
         std::move(dataType), std::move(defaultValue));
-    auto info = AlterInfo(AlterType::ADD_PROPERTY, tableName, std::move(extraInfo));
+    ConflictAction action = ConflictAction::ON_CONFLICT_THROW;
+    if (addPropertyCtx->kU_IfNotExists()) {
+        action = ConflictAction::ON_CONFLICT_DO_NOTHING;
+    }
+    auto info = AlterInfo(AlterType::ADD_PROPERTY, tableName, std::move(extraInfo), action);
     return std::make_unique<Alter>(std::move(info));
 }
 
 std::unique_ptr<Statement> Transformer::transformDropProperty(
     CypherParser::KU_AlterTableContext& ctx) {
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
-    auto propertyName =
-        transformPropertyKeyName(*ctx.kU_AlterOptions()->kU_DropProperty()->oC_PropertyKeyName());
+    auto dropProperty = ctx.kU_AlterOptions()->kU_DropProperty();
+    auto propertyName = transformPropertyKeyName(*dropProperty->oC_PropertyKeyName());
     auto extraInfo = std::make_unique<ExtraDropPropertyInfo>(std::move(propertyName));
-    auto info = AlterInfo(AlterType::DROP_PROPERTY, tableName, std::move(extraInfo));
+    common::ConflictAction action = common::ConflictAction::ON_CONFLICT_THROW;
+    if (dropProperty->kU_IfExists()) {
+        action = common::ConflictAction::ON_CONFLICT_DO_NOTHING;
+    }
+    auto info = AlterInfo(AlterType::DROP_PROPERTY, tableName, std::move(extraInfo), action);
     return std::make_unique<Alter>(std::move(info));
 }
 

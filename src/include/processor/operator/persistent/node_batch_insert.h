@@ -140,6 +140,13 @@ private:
         common::offset_t startIndexInGroup) const;
 
     void copyToNodeGroup(transaction::Transaction* transaction, storage::MemoryManager* mm) const;
+
+    NodeBatchInsertErrorHandler createErrorHandler(ExecutionContext* context);
+
+    void writeAndResetNodeGroup(transaction::Transaction* transaction,
+        std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
+        std::optional<IndexBuilder>& indexBuilder, storage::MemoryManager* mm,
+        NodeBatchInsertErrorHandler& errorHandler) const;
 };
 
 } // namespace processor

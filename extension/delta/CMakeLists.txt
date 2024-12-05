@@ -15,29 +15,23 @@ include_directories(
 
 add_subdirectory(src/connector)
 add_subdirectory(src/function)
+add_subdirectory(src/main)
 
 add_library(delta_extension
         SHARED
-        ${DELTA_OBJECT_FILES}
-        src/delta_extension.cpp
-        ${PROJECT_SOURCE_DIR}/extension/httpfs/src/s3_download_options.cpp)
+        ${DELTA_EXTENSION_OBJECT_FILES})
 
-set_extension_properties(delta_extension delta)
+set_extension_properties(delta_extension delta delta)
 
 target_link_libraries(delta_extension
         PRIVATE
         ${DuckDB_LIBRARIES})
 
 if (NOT WIN32)
-    add_library(delta_installer
-            SHARED
-            src/delta_install_func.cpp
-            ../duckdb/src/duckdb_installer.cpp)
     add_library(delta_loader
             SHARED
-            ../duckdb/src/duckdb_loader.cpp)
-    set_extension_properties(delta_installer delta_installer)
-    set_extension_properties(delta_loader delta_loader)
+            ${PROJECT_SOURCE_DIR}/extension/duckdb/src/loader/duckdb_loader.cpp)
+    set_extension_properties(delta_loader delta_loader delta)
 endif ()
 
 if (WIN32)
@@ -48,5 +42,4 @@ endif ()
 if (APPLE)
     set_apple_dynamic_lookup(delta_extension)
     set_apple_dynamic_lookup(delta_loader)
-    set_apple_dynamic_lookup(delta_installer)
 endif ()

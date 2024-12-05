@@ -15,7 +15,7 @@ target_link_libraries(fts_extension
         PRIVATE
         snowball)
 
-set_extension_properties(fts_extension fts)
+set_extension_properties(fts_extension fts fts)
 
 if (WIN32)
     # See comment in extension/httpfs/CMakeLists.txt

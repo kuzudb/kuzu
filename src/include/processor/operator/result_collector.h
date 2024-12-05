@@ -84,6 +84,8 @@ public:
 private:
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 
+    void initNecessaryLocalState(ResultSet* resultSet, ExecutionContext* context);
+
 private:
     ResultCollectorInfo info;
     std::shared_ptr<ResultCollectorSharedState> sharedState;

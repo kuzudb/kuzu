@@ -7,6 +7,7 @@ bazel-*
 .ccls-cache
 .bazelrc
 **/test/test_files/test_list
+extension/test_list
 mm-256KB
 history.txt
 

@@ -1,6 +1,6 @@
 #include "connector/delta_connector.h"
 
-#include "duckdb_secret_manager.h"
+#include "connector/duckdb_secret_manager.h"
 
 namespace kuzu {
 namespace delta_extension {
