@@ -35,7 +35,7 @@ public:
     void commit(main::ClientContext& clientContext, bool skipCheckpoint = false);
     void rollback(main::ClientContext& clientContext, const Transaction* transaction);
     void rollbackCheckpoint(main::ClientContext& clientContext,
-        const std::vector<common::UniqLock>& locks);
+        std::span<const common::UniqLock*> locks);
     void checkpoint(main::ClientContext& clientContext);
     void autoCheckpointIfNeeded(main::ClientContext& clientContext);
 

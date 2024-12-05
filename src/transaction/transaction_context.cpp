@@ -81,7 +81,7 @@ void TransactionContext::rollback() {
     clearTransaction();
 }
 
-void TransactionContext::rollbackCheckpoint(const std::vector<common::UniqLock>& locks) {
+void TransactionContext::rollbackCheckpoint(std::span<const common::UniqLock*> locks) {
     if (!hasActiveTransaction()) {
         return;
     }
