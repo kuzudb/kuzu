@@ -944,6 +944,7 @@ public:
     antlr4::tree::TerminalNode* SP(size_t i);
     OC_PropertyKeyNameContext *oC_PropertyKeyName();
     KU_DataTypeContext *kU_DataType();
+    KU_IfNotExistsContext *kU_IfNotExists();
     KU_DefaultContext *kU_Default();
 
    
@@ -969,8 +970,10 @@ public:
     KU_DropPropertyContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *DROP();
-    antlr4::tree::TerminalNode *SP();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
     OC_PropertyKeyNameContext *oC_PropertyKeyName();
+    KU_IfExistsContext *kU_IfExists();
 
    
   };

@@ -372,13 +372,13 @@ kU_AlterOptions
         | kU_RenameProperty;
 
 kU_AddProperty
-    : ADD SP oC_PropertyKeyName SP kU_DataType ( SP kU_Default )? ;
+    : ADD SP (kU_IfNotExists SP)? oC_PropertyKeyName SP kU_DataType ( SP kU_Default )? ;
 
 kU_Default
     : DEFAULT SP oC_Expression ;
 
 kU_DropProperty
-    : DROP SP oC_PropertyKeyName ;
+    : DROP SP (kU_IfExists SP)? oC_PropertyKeyName ;
 
 kU_RenameTable
     : RENAME SP TO SP oC_SchemaName ;
