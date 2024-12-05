@@ -32,6 +32,8 @@ private:
     void visitIntersect(planner::LogicalOperator* op) override;
     void visitFlatten(planner::LogicalOperator* op) override;
     void visitFilter(planner::LogicalOperator* op) override;
+    void visitAggregate(planner::LogicalOperator* op) override;
+    void visitLimit(planner::LogicalOperator* op) override;
 
     const planner::CardinalityEstimator& cardinalityEstimator;
     const transaction::Transaction* transaction;

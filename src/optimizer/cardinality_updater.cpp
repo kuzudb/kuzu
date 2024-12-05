@@ -2,10 +2,12 @@
 
 #include "planner/join_order/cardinality_estimator.h"
 #include "planner/operator/extend/logical_extend.h"
+#include "planner/operator/logical_aggregate.h"
 #include "planner/operator/logical_filter.h"
 #include "planner/operator/logical_flatten.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_intersect.h"
+#include "planner/operator/logical_limit.h"
 #include "planner/operator/logical_plan.h"
 
 namespace kuzu::optimizer {
@@ -50,10 +52,16 @@ void CardinalityUpdater::visitOperatorSwitchWithDefault(planner::LogicalOperator
         visitFilter(op);
         break;
     }
+    case planner::LogicalOperatorType::LIMIT: {
+        visitLimit(op);
+        break;
+    }
+    case planner::LogicalOperatorType::AGGREGATE: {
+        visitAggregate(op);
+        break;
+    }
     // TODO(Royi) handle the below operators as well
-    case planner::LogicalOperatorType::AGGREGATE:
     case planner::LogicalOperatorType::ACCUMULATE:
-    case planner::LogicalOperatorType::LIMIT:
     default: {
         visitOperatorDefault(op);
         break;
@@ -114,4 +122,15 @@ void CardinalityUpdater::visitFilter(planner::LogicalOperator* op) {
     filter.setCardinality(
         cardinalityEstimator.estimateFilter(*filter.getChild(0), *filter.getPredicate()));
 }
+
+void CardinalityUpdater::visitLimit(planner::LogicalOperator* op) {
+    auto& limit = op->cast<planner::LogicalLimit&>();
+    limit.setCardinality(limit.getLimitNum());
+}
+
+void CardinalityUpdater::visitAggregate(planner::LogicalOperator* op) {
+    auto& aggregate = op->cast<planner::LogicalAggregate&>();
+    aggregate.setCardinality(aggregate.getAggregates().size());
+}
+
 } // namespace kuzu::optimizer
