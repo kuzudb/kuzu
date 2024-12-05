@@ -109,7 +109,7 @@ void DoublePathLengthsFrontierPair::initRJFromSource(nodeID_t source) {
 
 WCCFrontierPair::WCCFrontierPair(common::table_id_map_t<common::offset_t> numNodesMap,
     uint64_t totalNumNodes, uint64_t maxThreadsForExec, storage::MemoryManager* mm)
-    : DoubleFrontierPair(nullptr, nullptr, 0, maxThreadsForExec), numNodes{totalNumNodes} {
+    : DoubleFrontierPair(nullptr, nullptr, maxThreadsForExec), numNodes{totalNumNodes} {
     uint64_t componentIDCounter = 0;
     updated = true;
     for (const auto& [tableID, curNumNodes] : numNodesMap) {
