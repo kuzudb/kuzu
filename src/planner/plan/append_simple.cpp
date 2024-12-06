@@ -13,7 +13,7 @@
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_create_type.h"
 #include "binder/ddl/bound_drop.h"
-#include "function/table/call/create_hnsw_index.h"
+#include "function/table/hnsw/hnsw_index_functions.h"
 #include "planner/operator/ddl/logical_alter.h"
 #include "planner/operator/ddl/logical_create_sequence.h"
 #include "planner/operator/ddl/logical_create_table.h"

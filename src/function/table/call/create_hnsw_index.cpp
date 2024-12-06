@@ -1,13 +1,14 @@
-#include "function/table/call/create_hnsw_index.h"
-
 #include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "function/table/call_functions.h"
+#include "function/table/hnsw/hnsw_index_functions.h"
 #include "processor/execution_context.h"
 #include "storage/index/hnsw_index_utils.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
+
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace function {
@@ -95,8 +96,7 @@ static std::string createHNSWIndexTables(main::ClientContext&, const TableFuncBi
 
 function_set CreateHNSWIndexFunction::getFunctionSet() {
     function_set functionSet;
-    std::vector inputTypes{common::LogicalTypeID::STRING, common::LogicalTypeID::STRING,
-        common::LogicalTypeID::STRING};
+    std::vector inputTypes{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING};
     auto func = std::make_unique<TableFunction>(name, tableFunc, bindFunc, initHNSWSharedState,
         initEmptyLocalState, inputTypes);
     func->rewriteFunc = createHNSWIndexTables;

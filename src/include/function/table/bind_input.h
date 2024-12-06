@@ -5,6 +5,7 @@
 #include "common/case_insensitive_map.h"
 #include "common/copier_config/reader_config.h"
 #include "common/types/value/value.h"
+#include "binder/expression/node_expression.h"
 
 namespace kuzu {
 namespace main {
@@ -29,6 +30,8 @@ struct ScanTableFuncBindInput {
     function::TableFunction* tableFunction;
     optional_params_t optionalParams;
 
+    std::shared_ptr<binder::NodeExpression> nodeExpression;
+
     ScanTableFuncBindInput() : context(nullptr), tableFunction(nullptr) {}
     explicit ScanTableFuncBindInput(common::ReaderConfig config)
         : config{std::move(config)}, context(nullptr), tableFunction(nullptr){};
@@ -49,7 +52,7 @@ private:
           expectedColumnNames{other.expectedColumnNames},
           expectedColumnTypes{common::LogicalType::copy(other.expectedColumnTypes)},
           context{other.context}, tableFunction{other.tableFunction},
-          optionalParams{other.optionalParams} {}
+          optionalParams{other.optionalParams}, nodeExpression{other.nodeExpression} {}
 };
 
 } // namespace function
