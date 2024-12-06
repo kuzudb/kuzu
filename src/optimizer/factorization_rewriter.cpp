@@ -1,7 +1,6 @@
 #include "optimizer/factorization_rewriter.h"
 
 #include "binder/expression_visitor.h"
-#include "planner/join_order/cardinality_estimator.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/operator/logical_accumulate.h"

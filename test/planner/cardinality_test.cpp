@@ -113,7 +113,7 @@ TEST_F(CardinalityTest, TestPopulatedAfterOptimizations) {
     std::function<void(planner::LogicalOperator*)> checkFunc;
     checkFunc = [&checkFunc](planner::LogicalOperator* op) {
         EXPECT_GT(op->getCardinality(), 0);
-        for (uint i = 0; i < op->getNumChildren(); ++i) {
+        for (uint32_t i = 0; i < op->getNumChildren(); ++i) {
             checkFunc(op->getChild(i).get());
         }
     };

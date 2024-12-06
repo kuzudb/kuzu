@@ -104,7 +104,7 @@ void CardinalityUpdater::visitIntersect(planner::LogicalOperator* op) {
     auto& intersect = op->cast<planner::LogicalIntersect&>();
     KU_ASSERT(intersect.getNumChildren() >= 2);
     std::vector<planner::LogicalOperator*> buildOps;
-    for (uint i = 1; i < intersect.getNumChildren(); ++i) {
+    for (uint32_t i = 1; i < intersect.getNumChildren(); ++i) {
         buildOps.push_back(intersect.getChild(i).get());
     }
     intersect.setCardinality(cardinalityEstimator.estimateIntersect(intersect.getKeyNodeIDs(),
