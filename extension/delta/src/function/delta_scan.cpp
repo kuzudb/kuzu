@@ -41,11 +41,11 @@ std::unique_ptr<TableFuncBindData> bindFuncInternal(main::ClientContext* context
     std::vector<LogicalType> returnTypes;
     std::vector<std::string> returnColumnNames;
 
-    for (auto& type : result->types) {
+    for (auto type : result->types) {
         returnTypes.push_back(
             duckdb_extension::DuckDBTypeConverter::convertDuckDBType(type.ToString()));
     }
-    for (auto& name : result->names) {
+    for (auto name : result->names) {
         returnColumnNames.push_back(name);
     }
 
