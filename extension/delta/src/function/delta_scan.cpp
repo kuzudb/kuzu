@@ -10,7 +10,8 @@ using namespace common;
 DeltaScanBindData::DeltaScanBindData(std::string query, std::shared_ptr<DeltaConnector> connector,
     duckdb_extension::DuckDBResultConverter converter, std::vector<LogicalType> returnTypes,
     std::vector<std::string> returnColumnNames)
-    : CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), 1 /* maxOffset */},
+    : CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames),
+          1 /* maxOffset */},
       query{std::move(query)}, connector{std::move(connector)}, converter{std::move(converter)} {}
 
 // Method implementation for copying
@@ -18,7 +19,8 @@ std::unique_ptr<TableFuncBindData> DeltaScanBindData::copy() const {
     return std::make_unique<DeltaScanBindData>(*this);
 }
 
-// This bindFunc now is sharing between delta_scan and iceberg_scan, maybe we can have a common template for them later. 
+// This bindFunc now is sharing between delta_scan and iceberg_scan, maybe we can have a common
+// template for them later.
 std::unique_ptr<TableFuncBindData> bindFuncInternal(main::ClientContext* context,
     ScanTableFuncBindInput* input, const std::string& scanFuncName) {
     input->inputs[0].validateType(LogicalTypeID::STRING);
@@ -31,10 +33,10 @@ std::unique_ptr<TableFuncBindData> bindFuncInternal(main::ClientContext* context
     std::string query;
     if (scanFuncName == "ICEBERG") {
         query = common::stringFormat("SELECT * FROM {}('{}', allow_moved_paths = true)",
-                                    "ICEBERG_SCAN", input->inputs[0].getValue<std::string>());
+            "ICEBERG_SCAN", input->inputs[0].getValue<std::string>());
     } else if (scanFuncName == "DELTA") {
-        query = common::stringFormat("SELECT * FROM {}('{}')",
-                                    "DELTA_SCAN", input->inputs[0].getValue<std::string>());
+        query = common::stringFormat("SELECT * FROM {}('{}')", "DELTA_SCAN",
+            input->inputs[0].getValue<std::string>());
     }
 
     auto result = connector->executeQuery(query + " LIMIT 1");
@@ -61,7 +63,6 @@ std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     // Default to "DELTA".
     return bindFuncInternal(context, input, "DELTA");
 }
-
 
 struct DeltaScanSharedState : public function::TableFuncSharedState {
     explicit DeltaScanSharedState(std::unique_ptr<duckdb::MaterializedQueryResult> queryResult)

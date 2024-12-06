@@ -1,10 +1,10 @@
 #include "function/iceberg_scan.h"
-#include "function/delta_scan.h"
-#include "main/delta_extension.h"
 
 #include "connector/connector_factory.h"
 #include "connector/duckdb_result_converter.h"
 #include "connector/duckdb_type_converter.h"
+#include "function/delta_scan.h"
+#include "main/delta_extension.h"
 
 namespace kuzu {
 namespace iceberg_extension {
@@ -18,16 +18,9 @@ function_set IcebergScanFunction::getFunctionSet() {
     auto icebergBindFunc = [](main::ClientContext* context, ScanTableFuncBindInput* input) {
         return delta_extension::bindFuncInternal(context, input, "ICEBERG");
     };
-    functionSet.push_back(
-        std::make_unique<TableFunction>(
-            name, 
-            delta_extension::tableFunc,
-            icebergBindFunc,
-            delta_extension::initDeltaScanSharedState,
-            initEmptyLocalState, 
-            std::vector<LogicalTypeID>{LogicalTypeID::STRING}
-        )
-    );
+    functionSet.push_back(std::make_unique<TableFunction>(name, delta_extension::tableFunc,
+        icebergBindFunc, delta_extension::initDeltaScanSharedState, initEmptyLocalState,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
     return functionSet;
 }
 
