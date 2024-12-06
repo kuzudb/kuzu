@@ -91,7 +91,8 @@ void CardinalityUpdater::visitExtend(planner::LogicalOperator* op) {
 void CardinalityUpdater::visitHashJoin(planner::LogicalOperator* op) {
     auto& hashJoin = op->cast<planner::LogicalHashJoin&>();
     KU_ASSERT(hashJoin.getNumChildren() >= 2);
-    hashJoin.setCardinality(cardinalityEstimator.estimateHashJoin(hashJoin.getJoinNodeIDs(),
+    hashJoin.setCardinality(cardinalityEstimator.estimateHashJoin(
+        hashJoin.isNodeIDOnlyJoin() ? hashJoin.getJoinNodeIDs() : binder::expression_vector{},
         *hashJoin.getChild(0), *hashJoin.getChild(1)));
 }
 
