@@ -13,7 +13,7 @@ uint64_t JoinOrderUtil::getJoinKeysFlatCardinality(const binder::expression_vect
             unFlatGroupsPos.insert(groupPos);
         }
     }
-    auto cardinality = buildPlan.getCardinality();
+    auto cardinality = buildPlan.getLastOperator()->getCardinality();
     for (auto groupPos : unFlatGroupsPos) {
         cardinality *= schema->getGroup(groupPos)->getMultiplier();
     }

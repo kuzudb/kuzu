@@ -17,9 +17,11 @@ class LogicalHashJoin final : public LogicalOperator {
 public:
     LogicalHashJoin(std::vector<join_condition_t> joinConditions, common::JoinType joinType,
         std::shared_ptr<binder::Expression> mark, std::shared_ptr<LogicalOperator> probeChild,
-        std::shared_ptr<LogicalOperator> buildChild)
+        std::shared_ptr<LogicalOperator> buildChild, common::cardinality_t cardinality = 0)
         : LogicalOperator{type_, std::move(probeChild), std::move(buildChild)},
-          joinConditions(std::move(joinConditions)), joinType{joinType}, mark{std::move(mark)} {}
+          joinConditions(std::move(joinConditions)), joinType{joinType}, mark{std::move(mark)} {
+        this->cardinality = cardinality;
+    }
 
     f_group_pos_set getGroupsPosToFlattenOnProbeSide();
     f_group_pos_set getGroupsPosToFlattenOnBuildSide();

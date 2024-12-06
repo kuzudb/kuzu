@@ -12,12 +12,14 @@ class LogicalIntersect final : public LogicalOperator {
 public:
     LogicalIntersect(std::shared_ptr<binder::Expression> intersectNodeID,
         binder::expression_vector keyNodeIDs, std::shared_ptr<LogicalOperator> probeChild,
-        std::vector<std::shared_ptr<LogicalOperator>> buildChildren)
+        std::vector<std::shared_ptr<LogicalOperator>> buildChildren,
+        common::cardinality_t cardinality = 0)
         : LogicalOperator{type_, std::move(probeChild)},
           intersectNodeID{std::move(intersectNodeID)}, keyNodeIDs{std::move(keyNodeIDs)} {
         for (auto& child : buildChildren) {
             children.push_back(std::move(child));
         }
+        this->cardinality = cardinality;
     }
 
     f_group_pos_set getGroupsPosToFlattenOnProbeSide();

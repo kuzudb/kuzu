@@ -16,6 +16,7 @@
 #include "storage/compression/compression.h"
 #include "storage/compression/float_compression.h"
 #include "storage/file_handle.h"
+#include "storage/stats/column_stats.h"
 #include "storage/store/column.h"
 #include "storage/store/column_chunk_metadata.h"
 #include "storage/store/compression_flush_buffer.h"
@@ -456,7 +457,7 @@ void ColumnChunkData::resizeWithoutPreserve(uint64_t newCapacity) {
 }
 
 void ColumnChunkData::populateWithDefaultVal(ExpressionEvaluator& defaultEvaluator,
-    uint64_t& numValues_) {
+    uint64_t& numValues_, ColumnStats* newColumnStats) {
     auto numValuesAppended = 0u;
     const auto numValuesToPopulate = numValues_;
     while (numValuesAppended < numValuesToPopulate) {
@@ -467,6 +468,9 @@ void ColumnChunkData::populateWithDefaultVal(ExpressionEvaluator& defaultEvaluat
         auto resultVector = defaultEvaluator.resultVector.get();
         KU_ASSERT(resultVector->state->getSelVector().getSelSize() == numValuesToAppend);
         append(resultVector, resultVector->state->getSelVector());
+        if (newColumnStats) {
+            newColumnStats->update(resultVector);
+        }
         numValuesAppended += numValuesToAppend;
     }
 }

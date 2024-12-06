@@ -25,6 +25,7 @@ class Column;
 struct TableScanState;
 struct TableAddColumnState;
 struct NodeGroupScanState;
+class ColumnStats;
 
 enum class NodeGroupDataFormat : uint8_t { REGULAR = 0, CSR = 1 };
 
@@ -113,7 +114,7 @@ public:
     bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdxInChunk);
 
     void addColumn(transaction::Transaction* transaction, const TableAddColumnState& addColumnState,
-        bool enableCompression, FileHandle* dataFH);
+        bool enableCompression, FileHandle* dataFH, ColumnStats* newColumnStats);
 
     bool isDeleted(const transaction::Transaction* transaction, common::row_idx_t rowInChunk) const;
     bool isInserted(const transaction::Transaction* transaction,
