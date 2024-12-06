@@ -70,23 +70,23 @@ Alice|0
 Bob|0
 Carol|0
 Dan|0
-Elizabeth|1
-Farooq|1
-Greg|1
-Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2
+Elizabeth|4
+Farooq|4
+Greg|4
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 -STATEMENT PROJECT GRAPH PK (person, organisation, knows, workAt) CALL weakly_connected_component(PK) RETURN _node.fName, _node.name, group_id;
 ---- 11
-Alice||0
-Bob||0
-Carol||0
-Dan||0
+Alice||1
+Bob||1
+Carol||1
+Dan||1
 Elizabeth||1
 Farooq||1
 Greg||1
-Hubert Blaine Wolfeschlegelsteinhausenbergerdorff||2
-|ABFsUni|3
-|CsWork|0
-|DEsWork|0
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff||10
+|ABFsUni|0
+|CsWork|1
+|DEsWork|1
 -STATEMENT PROJECT GRAPH PK (person, knows) CALL page_rank(PK) RETURN _node.fName, rank;
 ---- 8
 Alice|0.125000

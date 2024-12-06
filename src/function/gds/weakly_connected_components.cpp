@@ -1,10 +1,11 @@
 #include "binder/binder.h"
-#include "common/types/internal_id_util.h"
 #include "common/types/types.h"
+#include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
+#include "function/gds/gds_utils.h"
+#include "function/gds/rec_joins.h"
 #include "function/gds_function.h"
 #include "graph/graph.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
 
@@ -17,35 +18,87 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-class WeaklyConnectedComponentOutputWriter {
-public:
-    explicit WeaklyConnectedComponentOutputWriter(main::ClientContext* context) {
-        auto mm = context->getMemoryManager();
-        nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
-        groupVector = std::make_unique<ValueVector>(LogicalType::INT64(), mm);
-        nodeIDVector->state = DataChunkState::getSingleValueDataChunkState();
-        groupVector->state = DataChunkState::getSingleValueDataChunkState();
-        vectors.push_back(nodeIDVector.get());
-        vectors.push_back(groupVector.get());
+struct WCCEdgeCompute : public EdgeCompute {
+    WCCFrontierPair* frontierPair;
+
+    explicit WCCEdgeCompute(WCCFrontierPair* frontierPair) : frontierPair{frontierPair} {}
+
+    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
+        bool) override {
+        std::vector<nodeID_t> result;
+        chunk.forEach([&](auto nbrNodeID, auto) {
+            if (frontierPair->update(boundNodeID, nbrNodeID)) {
+                result.push_back(nbrNodeID);
+            }
+        });
+        return result;
     }
 
-    void materialize(main::ClientContext* context, graph::Graph* graph,
-        const common::node_id_map_t<int64_t>& visitedMap, FactorizedTable& table) const {
-        for (auto tableID : graph->getNodeTableIDs()) {
-            for (auto offset = 0u; offset < graph->getNumNodes(context->getTx(), tableID);
-                 ++offset) {
-                auto nodeID = nodeID_t{offset, tableID};
-                nodeIDVector->setValue<nodeID_t>(0, nodeID);
-                groupVector->setValue<int64_t>(0, visitedMap.at(nodeID));
-                table.append(vectors);
-            }
-        }
+    void resetSingleThreadState() override { return; }
+
+    bool terminate(processor::NodeOffsetMaskMap& /* maskMap */) override { return false; }
+
+    std::unique_ptr<EdgeCompute> copy() override {
+        return std::make_unique<WCCEdgeCompute>(frontierPair);
+    }
+};
+
+class WCCOutputWriter {
+public:
+    explicit WCCOutputWriter(storage::MemoryManager* mm) {
+        nodeIDVector = getVector(LogicalType::INTERNAL_ID(), mm);
+        componentIDVector = getVector(LogicalType::UINT64(), mm);
+    }
+
+    void materialize(nodeID_t nodeID, uint64_t componentID, FactorizedTable& table) const {
+        nodeIDVector->setValue<nodeID_t>(0, nodeID);
+        componentIDVector->setValue<uint64_t>(0, componentID);
+        table.append(vectors);
+    }
+
+private:
+    std::unique_ptr<ValueVector> getVector(const LogicalType& type, storage::MemoryManager* mm) {
+        auto vector = std::make_unique<ValueVector>(type.copy(), mm);
+        vector->state = DataChunkState::getSingleValueDataChunkState();
+        vectors.push_back(vector.get());
+        return vector;
     }
 
 private:
     std::unique_ptr<ValueVector> nodeIDVector;
-    std::unique_ptr<ValueVector> groupVector;
+    std::unique_ptr<ValueVector> componentIDVector;
     std::vector<ValueVector*> vectors;
+};
+
+class WCCVertexCompute : public VertexCompute {
+public:
+    WCCVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState,
+        const RJCompState& compState)
+        : mm{mm}, sharedState{sharedState}, compState{compState}, outputWriter{mm} {
+        localFT = sharedState->claimLocalTable(mm);
+    }
+    ~WCCVertexCompute() override { sharedState->returnLocalTable(localFT); }
+
+    bool beginOnTable(common::table_id_t) override { return true; }
+
+    void vertexCompute(const graph::VertexScanState::Chunk& chunk) override {
+        for (auto nodeID : chunk.getNodeIDs()) {
+            outputWriter.materialize(nodeID,
+                compState.frontierPair->ptrCast<WCCFrontierPair>()->getComponentID(nodeID),
+                *localFT);
+        }
+    }
+
+    std::unique_ptr<VertexCompute> copy() override {
+        return std::make_unique<WCCVertexCompute>(mm, sharedState, compState);
+    }
+
+private:
+    storage::MemoryManager* mm;
+    processor::GDSCallSharedState* sharedState;
+    const RJCompState& compState;
+    WCCOutputWriter outputWriter;
+    processor::FactorizedTable* localFT;
 };
 
 class WeaklyConnectedComponent final : public GDSAlgorithm {
@@ -83,49 +136,34 @@ public:
         bindData = std::make_unique<GDSBindData>(nodeOutput);
     }
 
-    void initLocalState(main::ClientContext* context) override {
-        localState = std::make_unique<WeaklyConnectedComponentOutputWriter>(context);
-    }
-
     void exec(processor::ExecutionContext* context) override {
+        auto clientContext = context->clientContext;
         auto graph = sharedState->graph.get();
-        localState = std::make_unique<WeaklyConnectedComponentOutputWriter>(context->clientContext);
-        visitedMap.clear();
-        auto groupID = 0;
         auto nodeTableIDs = graph->getNodeTableIDs();
-        auto scanState = graph->prepareMultiTableScanFwd(nodeTableIDs);
-        for (auto tableID : nodeTableIDs) {
-            for (auto offset = 0u;
-                 offset < graph->getNumNodes(context->clientContext->getTx(), tableID); ++offset) {
-                auto nodeID = nodeID_t{offset, tableID};
-                if (visitedMap.contains(nodeID)) {
-                    continue;
-                }
-                findConnectedComponent(nodeID, groupID++, *scanState);
-            }
+        uint64_t totalNumNodes = 0;
+        for (auto& nodeTableID : nodeTableIDs) {
+            totalNumNodes += graph->getNumNodes(clientContext->getTx(), nodeTableID);
         }
-        localState->materialize(context->clientContext, graph, visitedMap, *sharedState->fTable);
+        auto frontierPair = std::make_unique<WCCFrontierPair>(
+            graph->getNumNodesMap(clientContext->getTx()), totalNumNodes,
+            clientContext->getMaxNumThreadForExec(), clientContext->getMemoryManager());
+        auto edgeCompute = std::make_unique<WCCEdgeCompute>(frontierPair.get());
+        // GDS::Utils::RunUntilConvergence shouldn't explicitly call RJCompState since other
+        // algorithms can also use RunUntilConvergence. A solution could be to have a general
+        // CompState class which RJCompState derives from.
+        auto computeState =
+            RJCompState(std::move(frontierPair), std::move(edgeCompute), nullptr, nullptr);
+        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH,
+            10);
+        auto vertexCompute = std::make_unique<WCCVertexCompute>(clientContext->getMemoryManager(),
+            sharedState.get(), computeState);
+        GDSUtils::runVertexComputeIteration(context, sharedState->graph.get(), *vertexCompute);
+        sharedState->mergeLocalTables();
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
         return std::make_unique<WeaklyConnectedComponent>(*this);
     }
-
-private:
-    void findConnectedComponent(common::nodeID_t nodeID, int64_t groupID, NbrScanState& scanState) {
-        KU_ASSERT(!visitedMap.contains(nodeID));
-        visitedMap.insert({nodeID, groupID});
-        // Collect the nodes so that the recursive scan doesn't begin until this scan is done
-        for (auto& nbr : sharedState->graph->scanFwd(nodeID, scanState).collectNbrNodes()) {
-            if (!visitedMap.contains(nbr)) {
-                findConnectedComponent(nbr, groupID, scanState);
-            }
-        }
-    }
-
-private:
-    common::node_id_map_t<int64_t> visitedMap;
-    std::unique_ptr<WeaklyConnectedComponentOutputWriter> localState;
 };
 
 function_set WeaklyConnectedComponentsFunction::getFunctionSet() {
