@@ -32,6 +32,12 @@ void GDSUtils::scheduleFrontierTask(table_id_t relTableID, graph::Graph* graph,
             numThreads.value() :
             clientContext->getCurrentSetting(main::ThreadsSetting::name).getValue<uint64_t>();
     auto task = std::make_shared<FrontierTask>(maxThreads, info, sharedState);
+
+    if (gdsComputeState.frontierPair->isCurFrontierSparse()) {
+        task->runSparse();
+        return;
+    }
+
     // GDSUtils::runFrontiersUntilConvergence is called from a GDSCall operator, which is
     // already executed by a worker thread Tm of the task scheduler. So this function is
     // executed by Tm. Because this function will monitor the task and wait for it to
@@ -50,7 +56,7 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
     auto frontierPair = rjCompState.frontierPair.get();
     auto outputNodeMask = rjCompState.outputWriter->getOutputNodeMask();
     rjCompState.edgeCompute->resetSingleThreadState();
-    while (frontierPair->hasActiveNodesForNextIter() && frontierPair->getNextIter() <= maxIters) {
+    while (frontierPair->continueNextIter(maxIters)) {
         frontierPair->beginNewIteration();
         if (outputNodeMask->enabled() && rjCompState.edgeCompute->terminate(*outputNodeMask)) {
             break;
@@ -110,6 +116,24 @@ void GDSUtils::runVertexComputeIteration(processor::ExecutionContext* executionC
             continue;
         }
         runVertexComputeOnTable(tableID, graph, sharedState, info, *executionContext);
+    }
+}
+
+void GDSUtils::runVertexComputeSparse(SparseFrontier& sparseFrontier, graph::Graph* graph,
+    VertexCompute& vc) {
+    std::vector<std::string> propertiesToScan;
+    for (auto& tableID : graph->getNodeTableIDs()) {
+        if (!vc.beginOnTable(tableID)) {
+            continue;
+        }
+        sparseFrontier.pinTableID(tableID);
+        auto scanState = graph->prepareVertexScan(tableID, propertiesToScan);
+        auto localVc = vc.copy();
+        for (auto& offset : sparseFrontier.getOffsetSet()) {
+            for (auto chunk : graph->scanVertices(offset, offset + 1, *scanState)) {
+                localVc->vertexCompute(chunk);
+            }
+        }
     }
 }
 
