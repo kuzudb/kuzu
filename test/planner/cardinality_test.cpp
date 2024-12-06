@@ -41,17 +41,17 @@ TEST_F(CardinalityTest, TestOperators) {
     {
         auto plan = getRoot("MATCH (p1: person) WHERE p1.gender=1 RETURN p1.ID");
         auto [parent, source] = getSource(plan->getLastOperator().get());
-        ASSERT_EQ(planner::LogicalOperatorType::SCAN_NODE_TABLE, source->getOperatorType());
-        ASSERT_EQ(8, source->getCardinality());
-        ASSERT_EQ(planner::LogicalOperatorType::FILTER, parent->getOperatorType());
-        ASSERT_EQ(4, parent->getCardinality());
+        EXPECT_EQ(planner::LogicalOperatorType::SCAN_NODE_TABLE, source->getOperatorType());
+        EXPECT_EQ(8, source->getCardinality());
+        EXPECT_EQ(planner::LogicalOperatorType::FILTER, parent->getOperatorType());
+        EXPECT_EQ(4, parent->getCardinality());
     }
 
     // Limit
     {
         auto plan = getRoot("MATCH (p1: person) RETURN p1.ID LIMIT 2");
-        ASSERT_EQ(planner::LogicalOperatorType::LIMIT, plan->getLastOperator()->getOperatorType());
-        ASSERT_EQ(2, plan->getLastOperator()->getCardinality());
+        EXPECT_EQ(planner::LogicalOperatorType::LIMIT, plan->getLastOperator()->getOperatorType());
+        EXPECT_EQ(2, plan->getLastOperator()->getCardinality());
     }
 
     // Aggregate
@@ -69,7 +69,7 @@ TEST_F(CardinalityTest, TestOperators) {
         auto* productOp = getOpWithType(plan->getLastOperator().get(),
             planner::LogicalOperatorType::CROSS_PRODUCT);
         ASSERT_NE(nullptr, productOp);
-        ASSERT_EQ(64, productOp->getCardinality());
+        EXPECT_EQ(64, productOp->getCardinality());
     }
 
     // Extend + Hash Join
@@ -79,12 +79,12 @@ TEST_F(CardinalityTest, TestOperators) {
             getOpWithType(plan->getLastOperator().get(), planner::LogicalOperatorType::EXTEND);
         ASSERT_NE(nullptr, extendOp);
         static constexpr auto numRelsInKnows = 14;
-        ASSERT_EQ(numRelsInKnows, extendOp->getCardinality());
+        EXPECT_EQ(numRelsInKnows, extendOp->getCardinality());
 
         auto* joinOp =
             getOpWithType(plan->getLastOperator().get(), planner::LogicalOperatorType::HASH_JOIN);
         ASSERT_NE(nullptr, joinOp);
-        ASSERT_GT(joinOp->getCardinality(), 0);
+        EXPECT_GT(joinOp->getCardinality(), 0);
     }
 
     // Intersect + Flatten
@@ -96,12 +96,19 @@ TEST_F(CardinalityTest, TestOperators) {
         auto* intersect =
             getOpWithType(plan->getLastOperator().get(), planner::LogicalOperatorType::INTERSECT);
         ASSERT_NE(nullptr, intersect);
-        ASSERT_GT(intersect->getCardinality(), 0);
+        EXPECT_GT(intersect->getCardinality(), 0);
 
         auto* flatten =
             getOpWithType(plan->getLastOperator().get(), planner::LogicalOperatorType::FLATTEN);
         ASSERT_NE(nullptr, intersect);
-        ASSERT_GT(flatten->getCardinality(), 0);
+        EXPECT_GT(flatten->getCardinality(), 0);
+    }
+
+    // Load From
+    {
+        auto plan = getRoot(common::stringFormat(
+            "LOAD FROM \"{}/dataset/demo-db/parquet/user.parquet\" RETURN *", KUZU_ROOT_DIRECTORY));
+        EXPECT_GT(plan->getCardinality(), 0);
     }
 }
 

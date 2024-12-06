@@ -19,15 +19,18 @@ struct TableFuncBindData {
     // the last {numWarningDataColumns} columns are for temporary internal use
     common::column_id_t numWarningDataColumns;
 
-    TableFuncBindData() : numWarningDataColumns{common::INVALID_COLUMN_ID} {}
+    common::cardinality_t estCardinality;
+
+    TableFuncBindData() : numWarningDataColumns{common::INVALID_COLUMN_ID}, estCardinality(0) {}
     TableFuncBindData(std::vector<common::LogicalType> columnTypes,
-        std::vector<std::string> columnNames, common::column_id_t numWarningDataColumns = 0)
+        std::vector<std::string> columnNames, common::row_idx_t estNumRows = 0,
+        common::column_id_t numWarningDataColumns = 0)
         : columnTypes{std::move(columnTypes)}, columnNames{std::move(columnNames)},
-          numWarningDataColumns(numWarningDataColumns) {}
+          numWarningDataColumns(numWarningDataColumns), estCardinality(estNumRows) {}
     TableFuncBindData(const TableFuncBindData& other)
         : columnTypes{common::LogicalType::copy(other.columnTypes)}, columnNames{other.columnNames},
-          numWarningDataColumns(other.numWarningDataColumns), columnSkips{other.columnSkips},
-          columnPredicates{copyVector(other.columnPredicates)} {}
+          numWarningDataColumns(other.numWarningDataColumns), estCardinality(other.estCardinality),
+          columnSkips{other.columnSkips}, columnPredicates{copyVector(other.columnPredicates)} {}
     virtual ~TableFuncBindData() = default;
 
     common::idx_t getNumColumns() const { return columnTypes.size(); }
@@ -58,9 +61,10 @@ struct ScanBindData : public TableFuncBindData {
     main::ClientContext* context;
 
     ScanBindData(std::vector<common::LogicalType> columnTypes, std::vector<std::string> columnNames,
-        common::ReaderConfig config, main::ClientContext* context,
+        common::ReaderConfig config, main::ClientContext* context, common::row_idx_t estNumRows = 0,
         common::column_id_t numWarningDataColumns = 0)
-        : TableFuncBindData{std::move(columnTypes), std::move(columnNames), numWarningDataColumns},
+        : TableFuncBindData{std::move(columnTypes), std::move(columnNames), estNumRows,
+              numWarningDataColumns},
           config{std::move(config)}, context{context} {}
     ScanBindData(const ScanBindData& other)
         : TableFuncBindData{other}, config{other.config.copy()}, context{other.context} {}
