@@ -89,8 +89,7 @@ void WCCFrontier::setActive(std::span<const common::nodeID_t> nodeIDs) {
 
 void WCCFrontier::setCurActive(common::nodeID_t nodeID) {
     auto& memBuffer = curActiveNodes.find(nodeID.tableID)->second;
-    std::atomic<bool>* memBufferPtr =
-        reinterpret_cast<std::atomic<bool>*>(memBuffer->getData());
+    std::atomic<bool>* memBufferPtr = reinterpret_cast<std::atomic<bool>*>(memBuffer->getData());
     memBufferPtr[nodeID.offset].store(static_cast<bool>(true), std::memory_order_relaxed);
 }
 
