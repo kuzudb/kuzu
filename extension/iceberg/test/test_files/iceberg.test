@@ -64,9 +64,9 @@ Yale|6|190.700000
 -LOG InvalidIcebergPath
 -STATEMENT CALL ICEBERG_SCAN('${KUZU_ROOT_DIRECTORY}/student') RETURN *
 ---- error(regex)
-IO Error: Cannot open file ".*(?:\\|/)metadata(?:\\|/)version-hint\.text": (The system cannot find the path specified|No such file or directory)\.
+IO Error: Cannot open file ".*metadata[/\\]version-hint\.text": (The system cannot find the path specified|No such file or directory)
 
 -LOG InvalidIcebergTable
 -STATEMENT CALL ICEBERG_SCAN('${KUZU_ROOT_DIRECTORY}/src') RETURN *
 ---- error(regex)
-IO Error: Cannot open file ".*(?:\\|/)metadata(?:\\|/)version-hint\.text": (The system cannot find the path specified|No such file or directory)\.
+IO Error: Cannot open file ".*metadata[/\\]version-hint\.text": (The system cannot find the path specified|No such file or directory)
