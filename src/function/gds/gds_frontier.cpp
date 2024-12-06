@@ -90,11 +90,6 @@ void SinglePathLengthsFrontierPair::initRJFromSource(nodeID_t source) {
     pathLengths->setActive(source);
 }
 
-DoubleFrontierPair::DoubleFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-    std::shared_ptr<GDSFrontier> nextFrontier,
-    uint64_t maxThreadsForExec)
-    : FrontierPair(curFrontier, nextFrontier, maxThreadsForExec) {}
-
 void DoublePathLengthsFrontierPair::beginFrontierComputeBetweenTables(table_id_t curTableID,
     table_id_t nextTableID) {
     curFrontier->ptrCast<PathLengths>()->pinCurFrontierTableID(curTableID);
@@ -107,9 +102,15 @@ void DoublePathLengthsFrontierPair::initRJFromSource(nodeID_t source) {
     nextFrontier->ptrCast<PathLengths>()->setActive(source);
 }
 
+void DoublePathLengthsFrontierPair::beginNewIterationInternalNoLock() {
+    std::swap(curFrontier, nextFrontier);
+    curFrontier->ptrCast<PathLengths>()->incrementCurIter();
+    nextFrontier->ptrCast<PathLengths>()->incrementCurIter();
+}
+
 WCCFrontierPair::WCCFrontierPair(common::table_id_map_t<common::offset_t> numNodesMap,
     uint64_t totalNumNodes, uint64_t maxThreadsForExec, storage::MemoryManager* mm)
-    : DoubleFrontierPair(nullptr, nullptr, maxThreadsForExec), numNodes{totalNumNodes} {
+    : FrontierPair(nullptr, nullptr, maxThreadsForExec), numNodes{totalNumNodes} {
     uint64_t componentIDCounter = 0;
     updated = true;
     for (const auto& [tableID, curNumNodes] : numNodesMap) {

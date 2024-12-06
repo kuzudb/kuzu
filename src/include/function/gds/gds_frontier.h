@@ -357,31 +357,21 @@ private:
     std::shared_ptr<PathLengths> pathLengths;
 };
 
-class DoubleFrontierPair : public FrontierPair {
-public:
-    DoubleFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-        std::shared_ptr<GDSFrontier> nextFrontier,
-        uint64_t maxThreadsForExec);
-};
-
-class DoublePathLengthsFrontierPair : public DoubleFrontierPair {
+class DoublePathLengthsFrontierPair : public FrontierPair {
 public:
     DoublePathLengthsFrontierPair(std::shared_ptr<PathLengths> curFrontier,
         std::shared_ptr<PathLengths> nextFrontier, uint64_t maxThreadsForExec)
-        : DoubleFrontierPair{curFrontier, nextFrontier, maxThreadsForExec} {}
+        : FrontierPair{curFrontier, nextFrontier, maxThreadsForExec} {}
 
     void initRJFromSource(common::nodeID_t source) override;
 
     void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
         common::table_id_t nextTableID) override;
 
-    void beginNewIterationInternalNoLock() override {
-        curFrontier->ptrCast<PathLengths>()->incrementCurIter();
-        nextFrontier->ptrCast<PathLengths>()->incrementCurIter();
-    }
+    void beginNewIterationInternalNoLock() override;
 };
 
-class WCCFrontierPair : public DoubleFrontierPair {
+class WCCFrontierPair : public FrontierPair {
 public:
     WCCFrontierPair(common::table_id_map_t<common::offset_t> numNodesMap, uint64_t totalNumNodes,
         uint64_t maxThreadsForExec, storage::MemoryManager* mm);
