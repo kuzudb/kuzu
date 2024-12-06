@@ -64,6 +64,36 @@ void PathLengths::pinNextFrontierTableID(common::table_id_t tableID) {
     nextFrontier.store(getMaskData(tableID), std::memory_order_relaxed);
 }
 
+WCCFrontier::WCCFrontier(const common::table_id_map_t<common::offset_t>& numNodesMap_,
+    storage::MemoryManager* mm, bool inital_bool)
+    : GDSFrontier{numNodesMap_} {
+    for (const auto& [tableID, curNumNodes] : numNodesMap_) {
+        numNodesMap[tableID] = curNumNodes;
+        auto curActiveMemBuffer =
+            mm->allocateBuffer(false, curNumNodes * sizeof(std::atomic<bool>));
+        std::atomic<bool>* curActiveMemBufferPtr =
+            reinterpret_cast<std::atomic<bool>*>(curActiveMemBuffer.get()->getData());
+        // Cast a unique number to each node
+        for (uint64_t i = 0; i < curNumNodes; ++i) {
+            curActiveMemBufferPtr[i].store(inital_bool, std::memory_order_relaxed);
+        }
+        curActiveNodes.insert({tableID, std::move(curActiveMemBuffer)});
+    }
+}
+
+void WCCFrontier::setActive(std::span<const common::nodeID_t> nodeIDs) {
+    for (auto& nodeID : nodeIDs) {
+        setCurActive(nodeID);
+    }
+}
+
+void WCCFrontier::setCurActive(common::nodeID_t nodeID) {
+    auto& memBuffer = curActiveNodes.find(nodeID.tableID)->second;
+    std::atomic<bool>* memBufferPtr =
+        reinterpret_cast<std::atomic<bool>*>(memBuffer->getData());
+    memBufferPtr[nodeID.offset].store(static_cast<bool>(true), std::memory_order_relaxed);
+}
+
 FrontierPair::FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
     std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreadsForExec)
     : curFrontier{curFrontier}, nextFrontier{nextFrontier}, morselDispatcher{maxThreadsForExec} {
@@ -128,6 +158,44 @@ WCCFrontierPair::WCCFrontierPair(common::table_id_map_t<common::offset_t> numNod
     curFrontier = std::make_shared<WCCFrontier>(numNodesMap, mm, true);
     nextFrontier = std::make_shared<WCCFrontier>(numNodesMap, mm, false);
     setActiveNodesForNextIter();
+}
+
+void WCCFrontierPair::beginNewIterationInternalNoLock() {
+    updated = false;
+};
+
+uint64_t WCCFrontierPair::getComponentID(common::nodeID_t nodeID) const {
+    return getComponentIDAtomic(nodeID).load(std::memory_order_relaxed);
+}
+
+void WCCFrontierPair::beginFrontierComputeBetweenTables(common::table_id_t curTableID,
+    common::table_id_t) {
+    morselDispatcher.init(curTableID, numNodes);
+}
+
+bool WCCFrontierPair::update(common::nodeID_t boundNodeID, common::nodeID_t nbrNodeID) {
+    auto& boundComponentID = getComponentIDAtomic(boundNodeID);
+    auto& nbrComponentID = getComponentIDAtomic(nbrNodeID);
+
+    auto expectedComponentID = boundComponentID.load(std::memory_order_relaxed);
+    auto actualComponentID = nbrComponentID.load(std::memory_order_relaxed);
+
+    // If needs changing
+    if (expectedComponentID < actualComponentID) {
+        updated = true;
+        nextFrontier->ptrCast<WCCFrontier>()->setActive(nbrNodeID);
+        while (!nbrComponentID.compare_exchange_strong(actualComponentID, expectedComponentID,
+            std::memory_order_relaxed, std::memory_order_relaxed)) {}
+        return true;
+    }
+    return false;
+}
+
+std::atomic<uint64_t>& WCCFrontierPair::getComponentIDAtomic(common::nodeID_t nodeID) const {
+    auto& memBuffer = vertexValues.find(nodeID.tableID)->second;
+    std::atomic<uint64_t>* memBufferPtr =
+        reinterpret_cast<std::atomic<uint64_t>*>(memBuffer->getData());
+    return memBufferPtr[nodeID.offset];
 }
 
 static constexpr uint64_t EARLY_TERM_NUM_NODES_THRESHOLD = 100;
