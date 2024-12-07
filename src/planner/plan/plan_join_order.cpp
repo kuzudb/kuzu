@@ -234,7 +234,7 @@ void Planner::planCorrelatedExpressionsScan(const QueryGraphPlanningInfo& info) 
     }
     auto plan = std::make_unique<LogicalPlan>();
     appendExpressionsScan(corrExprs, *plan);
-    plan->setCardinality(info.corrExprsCard);
+    plan->getLastOperator()->setCardinality(info.corrExprsCard);
     auto predicates = getNewlyMatchedExprs(context.getEmptySubqueryGraph(), newSubgraph,
         context.getWhereExpressions());
     appendFilters(predicates, *plan);
@@ -265,7 +265,7 @@ void Planner::planNodeIDScan(uint32_t nodePos, const QueryGraphPlanningInfo& inf
     // later in the optimization stage. So we can assume the cardinality will not exceed outer
     // plan cardinality.
     if (plan->getCardinality() > info.corrExprsCard) {
-        plan->setCardinality(info.corrExprsCard);
+        plan->getLastOperator()->setCardinality(info.corrExprsCard);
     }
     context.addPlan(newSubgraph, std::move(plan));
 }

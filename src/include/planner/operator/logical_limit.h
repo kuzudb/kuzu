@@ -8,10 +8,8 @@ namespace planner {
 class LogicalLimit final : public LogicalOperator {
 public:
     LogicalLimit(uint64_t skipNum, uint64_t limitNum, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::LIMIT, std::move(child)}, skipNum{skipNum},
-          limitNum{limitNum} {
-        cardinality = limitNum;
-    }
+        : LogicalOperator{LogicalOperatorType::LIMIT, std::move(child), limitNum}, skipNum{skipNum},
+          limitNum{limitNum} {}
 
     f_group_pos_set getGroupsPosToFlatten();
 
