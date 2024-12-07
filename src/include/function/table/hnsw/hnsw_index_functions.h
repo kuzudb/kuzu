@@ -1,10 +1,10 @@
 #pragma once
 
+#include "binder/expression/node_expression.h"
+#include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
 #include "function/table/call_functions.h"
 #include "storage/index/hnsw_index.h"
 #include "storage/store/node_table.h"
-#include "binder/expression/node_expression.h"
-#include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
 
 namespace kuzu {
 namespace function {
@@ -22,8 +22,9 @@ struct CreateHNSWIndexBindData final : CallTableFuncBindData {
     CreateHNSWIndexBindData(main::ClientContext* context, std::string indexName,
         catalog::TableCatalogEntry* tableEntry, storage::NodeTable* table,
         common::column_id_t columnID, common::offset_t numNodes, storage::HNSWIndexConfig config)
-        : CallTableFuncBindData{numNodes > 0 ? numNodes - 1 : 0}, context{context}, indexName{std::move(indexName)}, tableEntry{tableEntry}, table{table},
-          columnID{columnID}, config{std::move(config)} {}
+        : CallTableFuncBindData{numNodes > 0 ? numNodes - 1 : 0}, context{context},
+          indexName{std::move(indexName)}, tableEntry{tableEntry}, table{table}, columnID{columnID},
+          config{std::move(config)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, table,
@@ -35,6 +36,8 @@ struct CreateHNSWSharedState final : CallFuncSharedState {
     std::string name;
     std::unique_ptr<storage::InMemHNSWIndex> hnswIndex;
     std::shared_ptr<storage::HNSWIndexPartitionerSharedState> partitionerSharedState;
+
+    const CreateHNSWIndexBindData* bindData = nullptr;
 
     explicit CreateHNSWSharedState(const CreateHNSWIndexBindData& bindData)
         : CallFuncSharedState{bindData.maxOffset}, name{bindData.indexName} {
@@ -67,7 +70,8 @@ struct QueryHNSWIndexBindData final : CallTableFuncBindData {
         : CallTableFuncBindData{std::move(columnTypes), std::move(columnNames), 1 /*maxOffset*/},
           indexTableID{indexTableID}, indexEntry{indexEntry}, queryVector{std::move(queryVector)},
           k{k}, nodeTable{nodeTable}, columnID{columnID}, upperRelTable{upperRelTable},
-          lowerRelTable{lowerRelTable}, config{std::move(config)}, outputNode{std::move(outputNode)} {}
+          lowerRelTable{lowerRelTable}, config{std::move(config)},
+          outputNode{std::move(outputNode)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<QueryHNSWIndexBindData>(common::LogicalType::copy(columnTypes),

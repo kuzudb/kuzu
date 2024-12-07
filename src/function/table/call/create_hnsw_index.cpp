@@ -1,5 +1,4 @@
 #include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
-#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "function/table/call_functions.h"
 #include "function/table/hnsw/hnsw_index_functions.h"
@@ -14,11 +13,11 @@ namespace kuzu {
 namespace function {
 
 // TODO(Guodong): Should abstract this common logic with fts into index entry binding.
-static void validateIndexNotExist(const main::ClientContext& context, common::table_id_t tableID,
+static void validateIndexNotExist(const main::ClientContext& context, table_id_t tableID,
     const std::string& indexName) {
     if (context.getCatalog()->containsIndex(context.getTx(), tableID, indexName)) {
-        throw common::BinderException{common::stringFormat("Index: {} already exists in table: {}.",
-            indexName, context.getCatalog()->getTableName(context.getTx(), tableID))};
+        throw BinderException{stringFormat("Index: {} already exists in table: {}.", indexName,
+            context.getCatalog()->getTableName(context.getTx(), tableID))};
     }
 }
 
@@ -54,7 +53,7 @@ static std::unique_ptr<TableFuncSharedState> initHNSWSharedState(TableFunctionIn
 
 // TODO(Guodong/Ziyi): Change tableFunc input to const &.
 // NOLINTNEXTLINE(readability-non-const-parameter)
-static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput&) {
+static offset_t tableFunc(TableFuncInput& input, TableFuncOutput&) {
     const auto& context = *input.context->clientContext;
     const auto sharedState = input.sharedState->ptrCast<CreateHNSWSharedState>();
     const auto morsel = sharedState->getMorsel();
@@ -96,10 +95,10 @@ static void finalizeFunc(processor::ExecutionContext* context, TableFuncSharedSt
 static std::string createHNSWIndexTables(main::ClientContext&, const TableFuncBindData& bindData) {
     const auto hnswBindData = bindData.constPtrCast<CreateHNSWIndexBindData>();
     std::string query = "";
-    query += common::stringFormat("CREATE REL TABLE {} (FROM {} TO {});",
+    query += stringFormat("CREATE REL TABLE {} (FROM {} TO {});",
         storage::HNSWIndexUtils::getUpperGraphTableName(hnswBindData->indexName),
         hnswBindData->tableEntry->getName(), hnswBindData->tableEntry->getName());
-    query += common::stringFormat("CREATE REL TABLE {} (FROM {} TO {});",
+    query += stringFormat("CREATE REL TABLE {} (FROM {} TO {});",
         storage::HNSWIndexUtils::getLowerGraphTableName(hnswBindData->indexName),
         hnswBindData->tableEntry->getName(), hnswBindData->tableEntry->getName());
     return query;

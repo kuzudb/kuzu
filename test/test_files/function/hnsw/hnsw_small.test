@@ -3,16 +3,16 @@
 --
 
 -CASE CreateHNSWError
--STATEMENT CREATE NODE TABLE test(id serial primary key, vec double[90]);
+-STATEMENT CREATE NODE TABLE test(id int64 primary key, vec double[90]);
 ---- ok
 -STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'test', 'vec');
 ---- error
 Binder exception: HNSW_INDEX only supports FLOAT ARRAY columns.
 
 -CASE QueryHNSWError
--STATEMENT CREATE NODE TABLE embeddings (id SERIAL, vec FLOAT[960], PRIMARY KEY (id));
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[960], PRIMARY KEY (id));
 ---- ok
--STATEMENT COPY embeddings(vec) FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-960-1k.csv" (deLim=',');
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-960-1k.csv" (deLim=',');
 ---- ok
 -STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec');
 ---- ok
@@ -21,10 +21,9 @@ Binder exception: HNSW_INDEX only supports FLOAT ARRAY columns.
 Binder exception: Query vector dimension does not match index dimension.
 
 -CASE CreateSmallHNSW8DimL2
--STATEMENT CREATE NODE TABLE embeddings (id SERIAL, vec FLOAT[8], PRIMARY KEY (id));
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
--STATEMENT COPY embeddings(vec) FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
--PARALLELISM 1
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
 -STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', distFunc := 'l2');
 ---- ok
@@ -43,10 +42,9 @@ Binder exception: Query vector dimension does not match index dimension.
 146|0.464967
 
 -CASE CreateSmallHNSW8DimCosine
--STATEMENT CREATE NODE TABLE embeddings (id SERIAL, vec FLOAT[8], PRIMARY KEY (id));
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
--STATEMENT COPY embeddings(vec) FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
--PARALLELISM 1
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
 -STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec');
 ---- ok
@@ -65,10 +63,9 @@ Binder exception: Query vector dimension does not match index dimension.
 588|0.043483
 
 -CASE CreateSmallHNSW8DimEfsEfc
--STATEMENT CREATE NODE TABLE embeddings (id SERIAL, vec FLOAT[8], PRIMARY KEY (id));
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
--STATEMENT COPY embeddings(vec) FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
--PARALLELISM 1
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
 -STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', efc := 40);
 ---- ok
@@ -87,10 +84,9 @@ Binder exception: Query vector dimension does not match index dimension.
 588|0.043483
 
 -CASE CreateSmallHNSW8DimMuMl
--STATEMENT CREATE NODE TABLE embeddings (id SERIAL, vec FLOAT[8], PRIMARY KEY (id));
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
--STATEMENT COPY embeddings(vec) FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
--PARALLELISM 1
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
 -STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', mu := 16, ml := 32);
 ---- ok
@@ -109,10 +105,9 @@ Binder exception: Query vector dimension does not match index dimension.
 588|0.043483
 
 -CASE CreateSmallHNSW8DimPlAlpha
--STATEMENT CREATE NODE TABLE embeddings (id SERIAL, vec FLOAT[8], PRIMARY KEY (id));
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
--STATEMENT COPY embeddings(vec) FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
--PARALLELISM 1
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
 -STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', pl := 0.9, alpha := 2.1);
 ---- ok
@@ -131,10 +126,9 @@ Binder exception: Query vector dimension does not match index dimension.
 588|0.043483
 
 -CASE CreateSmallHNSW8DimDotProduct
--STATEMENT CREATE NODE TABLE embeddings (id SERIAL, vec FLOAT[8], PRIMARY KEY (id));
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
--STATEMENT COPY embeddings(vec) FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
--PARALLELISM 1
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
 -STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', distFunc := 'dotproduct');
 ---- ok
@@ -153,10 +147,9 @@ Binder exception: Query vector dimension does not match index dimension.
 386|0.756400
 
 -CASE CreateSmallHNSW960Dim
--STATEMENT CREATE NODE TABLE embeddings (id SERIAL, vec FLOAT[960], PRIMARY KEY (id));
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[960], PRIMARY KEY (id));
 ---- ok
--STATEMENT COPY embeddings(vec) FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-960-1k.csv" (deLim=',');
--PARALLELISM 1
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-960-1k.csv" (deLim=',');
 ---- ok
 -STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', distFunc := 'l2');
 ---- ok
