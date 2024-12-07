@@ -49,8 +49,8 @@ struct VertexComputeTaskSharedState {
     FrontierMorselDispatcher morselDispatcher;
     graph::Graph* graph;
 
-    explicit VertexComputeTaskSharedState(uint64_t maxThreadsForExecution, graph::Graph* graph)
-        : morselDispatcher{maxThreadsForExecution}, graph{graph} {}
+    VertexComputeTaskSharedState(uint64_t maxNumThreads, graph::Graph* graph)
+        : morselDispatcher{maxNumThreads}, graph{graph} {}
 };
 
 struct VertexComputeTaskInfo {
@@ -61,6 +61,8 @@ struct VertexComputeTaskInfo {
         : vc{vc}, propertiesToScan{std::move(propertiesToScan)} {}
     VertexComputeTaskInfo(const VertexComputeTaskInfo& other)
         : vc{other.vc}, propertiesToScan{other.propertiesToScan} {}
+
+    bool hasPropertiesToScan() const { return !propertiesToScan.empty(); }
 };
 
 class VertexComputeTask : public common::Task {
@@ -69,11 +71,16 @@ public:
         std::shared_ptr<VertexComputeTaskSharedState> sharedState)
         : common::Task{maxNumThreads}, info{info}, sharedState{std::move(sharedState)} {};
 
+    void init(common::table_id_t tableID, common::offset_t numNodes) {
+        sharedState->morselDispatcher.init(tableID, numNodes);
+    }
+
     void run() override;
 
 private:
     VertexComputeTaskInfo info;
     std::shared_ptr<VertexComputeTaskSharedState> sharedState;
 };
+
 } // namespace function
 } // namespace kuzu

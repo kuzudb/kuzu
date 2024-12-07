@@ -18,6 +18,7 @@ struct ExecutionContext;
 
 namespace function {
 
+class PathLengths;
 // Struct maintaining GDS specific information that needs to be obtained at compile time.
 struct GDSBindData {
     std::shared_ptr<binder::Expression> nodeOutput;
@@ -105,6 +106,8 @@ protected:
 protected:
     std::shared_ptr<binder::Expression> bindNodeOutput(binder::Binder* binder,
         const graph::GraphEntry& graphEntry);
+
+    std::shared_ptr<PathLengths> getPathLengthsFrontier(processor::ExecutionContext* context);
 
 protected:
     std::unique_ptr<GDSBindData> bindData;

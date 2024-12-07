@@ -243,16 +243,6 @@ void QFTSVertexCompute::vertexCompute(const graph::VertexScanState::Chunk& chunk
     }
 }
 
-void runVertexComputeIteration(processor::ExecutionContext* executionContext, graph::Graph* graph,
-    VertexCompute& vc) {
-    auto maxThreads = executionContext->clientContext->getCurrentSetting(main::ThreadsSetting::name)
-                          .getValue<uint64_t>();
-    auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads, graph);
-    auto docsTableID = graph->getNodeTableIDs()[1];
-    auto info = VertexComputeTaskInfo(vc, {QFTSAlgorithm::DOC_LEN_PROP_NAME});
-    GDSUtils::runVertexComputeOnTable(docsTableID, graph, sharedState, info, *executionContext);
-}
-
 void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto termsTableID = sharedState->graph->getNodeTableIDs()[0];
     KU_ASSERT(sharedState->getInputNodeMaskMap()->containsTableID(termsTableID));
@@ -263,11 +253,8 @@ void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     // for each term-doc pair. The reason why we store the term frequency and document frequency
     // is that: we need the `len` property from the docs table which is only available during the
     // vertex compute.
-    auto numNodes = sharedState->graph->getNumNodesMap(executionContext->clientContext->getTx());
-    auto currentFrontier = std::make_shared<PathLengths>(numNodes,
-        executionContext->clientContext->getMemoryManager());
-    auto nextFrontier = std::make_shared<PathLengths>(numNodes,
-        executionContext->clientContext->getMemoryManager());
+    auto currentFrontier = getPathLengthsFrontier(executionContext);
+    auto nextFrontier = getPathLengthsFrontier(executionContext);
     auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier,
         nextFrontier, 1 /* numThreads */);
     auto edgeCompute = std::make_unique<QFTSEdgeCompute>(frontierPair.get(), &output->scores,
@@ -288,7 +275,9 @@ void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto writerVC =
         std::make_unique<QFTSVertexCompute>(executionContext->clientContext->getMemoryManager(),
             sharedState.get(), outputWriter.copy());
-    runVertexComputeIteration(executionContext, sharedState->graph.get(), *writerVC);
+    auto docsTableID = sharedState->graph->getNodeTableIDs()[1];
+    GDSUtils::runVertexCompute(executionContext, sharedState->graph.get(), *writerVC, docsTableID,
+        {QFTSAlgorithm::DOC_LEN_PROP_NAME});
     sharedState->mergeLocalTables();
 }
 

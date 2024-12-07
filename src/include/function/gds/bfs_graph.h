@@ -1,5 +1,6 @@
 #pragma once
 
+#include "compute.h"
 #include "gds_object_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
 
@@ -52,6 +53,7 @@ private:
 };
 
 class BFSGraph {
+    friend class BFSGraphInitVertexCompute;
     static constexpr uint64_t ALL_PATHS_BLOCK_SIZE = (std::uint64_t)1 << 19;
     // Data type that is allocated to max num nodes per node table.
     using parent_entry_t = std::atomic<ParentList*>;
@@ -61,13 +63,6 @@ public:
         : mm{mm} {
         for (auto& [tableID, numNodes] : numNodesMap) {
             parentArray.allocate(tableID, numNodes, mm);
-            auto data = parentArray.getData(tableID);
-            for (uint64_t i = 0; i < numNodes; ++i) {
-                // Note: We are using memory_order_relaxed here because we are assuming that
-                // this code is running by a master thread which will run a memory barrier
-                // before worker threads start.
-                data[i].store(nullptr, std::memory_order_relaxed);
-            }
         }
     }
 
@@ -122,7 +117,7 @@ public:
         }
     }
 
-    void pinNodeTable(common::table_id_t tableID) {
+    void pinTableID(common::table_id_t tableID) {
         KU_ASSERT(parentArray.contains(tableID));
         currParentPtrs.store(parentArray.getData(tableID), std::memory_order_relaxed);
     }
@@ -133,6 +128,32 @@ private:
     ObjectArraysMap<parent_entry_t> parentArray;
     std::atomic<parent_entry_t*> currParentPtrs;
     std::vector<std::unique_ptr<ObjectBlock<ParentList>>> blocks;
+};
+
+class BFSGraphInitVertexCompute : public VertexCompute {
+public:
+    explicit BFSGraphInitVertexCompute(BFSGraph& bfsGraph) : bfsGraph{bfsGraph} {}
+
+    bool beginOnTable(common::table_id_t tableID) override {
+        bfsGraph.pinTableID(tableID);
+        return true;
+    }
+
+    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset,
+        common::table_id_t) override {
+        auto array = bfsGraph.currParentPtrs.load(std::memory_order_relaxed);
+        KU_ASSERT(array != nullptr);
+        for (auto i = startOffset; i < endOffset; ++i) {
+            array[i].store(nullptr);
+        }
+    }
+
+    std::unique_ptr<VertexCompute> copy() override {
+        return std::make_unique<BFSGraphInitVertexCompute>(bfsGraph);
+    }
+
+private:
+    BFSGraph& bfsGraph;
 };
 
 } // namespace function
