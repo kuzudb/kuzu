@@ -35,6 +35,8 @@ struct CallFuncSharedState : TableFuncSharedState {
 struct CallTableFuncBindData : TableFuncBindData {
     common::offset_t maxOffset;
 
+    CallTableFuncBindData(common::offset_t maxOffset)
+        : TableFuncBindData{std::vector<common::LogicalType>{}, std::vector<std::string>{}, 0}, maxOffset{maxOffset} {}
     CallTableFuncBindData(std::vector<common::LogicalType> columnTypes,
         std::vector<std::string> returnColumnNames, common::offset_t maxOffset)
         : TableFuncBindData{std::move(columnTypes), std::move(returnColumnNames), 0},
@@ -46,16 +48,6 @@ struct CallTableFuncBindData : TableFuncBindData {
     }
 };
 
-// TODO(Xiyang/Ziyi): Should this be StandaloneCallTableFuncBindData?
-struct StandaloneTableFuncBindData : public CallTableFuncBindData {
-    StandaloneTableFuncBindData()
-        : CallTableFuncBindData{std::vector<common::LogicalType>{}, std::vector<std::string>{},
-              0 /* maxOffset */} {}
-
-    std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<StandaloneTableFuncBindData>();
-    }
-};
 
 struct KUZU_API CallFunction {
     static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitInput& input);
@@ -135,17 +127,7 @@ struct ShowFunctionsFunction : public CallFunction {
     static function_set getFunctionSet();
 };
 
-struct CreateHNSWIndexFunction : public CallFunction {
-    static constexpr const char* name = "CREATE_HNSW_INDEX";
 
-    static function_set getFunctionSet();
-};
-
-struct QueryHNSWIndexFunction : public CallFunction {
-    static constexpr const char* name = "QUERY_HNSW_INDEX";
-
-    static function_set getFunctionSet();
-};
 
 } // namespace function
 } // namespace kuzu
