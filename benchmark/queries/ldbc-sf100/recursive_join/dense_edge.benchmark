@@ -1,0 +1,4 @@
+-NAME recursive-join-dense
+-QUERY MATCH (a:Person)-[e:knows * 3..3]-(b:Person) WHERE a.ID = 933 RETURN COUNT(*);
+---- 1
+1866415
