@@ -1,8 +1,8 @@
 #pragma once
 
+#include "compute.h"
 #include "gds_object_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
-#include "compute.h"
 
 namespace kuzu {
 namespace function {
@@ -139,7 +139,8 @@ public:
         return true;
     }
 
-    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset, common::table_id_t) override {
+    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset,
+        common::table_id_t) override {
         auto array = bfsGraph.currParentPtrs.load(std::memory_order_relaxed);
         KU_ASSERT(array != nullptr);
         for (auto i = startOffset; i < endOffset; ++i) {

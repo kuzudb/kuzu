@@ -4,7 +4,6 @@
 #include <mutex>
 
 #include "compute.h"
-
 #include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
@@ -100,7 +99,6 @@ protected:
     common::table_id_map_t<common::offset_t> numNodesMap;
 };
 
-
 /**
  * A GDSFrontier implementation that keeps the lengths of the paths from a source node to
  * destination nodes. This is a light-weight implementation that can keep lengths up to and
@@ -194,7 +192,8 @@ public:
 
     bool beginOnTable(common::table_id_t tableID) override;
 
-    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset, common::table_id_t) override;
+    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset,
+        common::table_id_t) override;
 
     std::unique_ptr<VertexCompute> copy() override {
         return std::make_unique<PathLengthsInitVertexCompute>(pathLengths);

@@ -54,8 +54,7 @@ void VertexComputeTask::run() {
     auto localVc = info.vc.copy();
     auto tableID = sharedState->morselDispatcher.getTableID();
     if (info.hasPropertiesToScan()) {
-        auto scanState =
-            graph->prepareVertexScan(tableID, info.propertiesToScan);
+        auto scanState = graph->prepareVertexScan(tableID, info.propertiesToScan);
         while (sharedState->morselDispatcher.getNextRangeMorsel(frontierMorsel)) {
             for (auto chunk : graph->scanVertices(frontierMorsel.getBeginOffset(),
                      frontierMorsel.getEndOffsetExclusive(), *scanState)) {
@@ -64,7 +63,8 @@ void VertexComputeTask::run() {
         }
     } else {
         while (sharedState->morselDispatcher.getNextRangeMorsel(frontierMorsel)) {
-            localVc->vertexCompute(frontierMorsel.getBeginOffset(), frontierMorsel.getEndOffsetExclusive(), tableID);
+            localVc->vertexCompute(frontierMorsel.getBeginOffset(),
+                frontierMorsel.getEndOffsetExclusive(), tableID);
         }
     }
 }

@@ -54,5 +54,5 @@ public:
     virtual std::unique_ptr<VertexCompute> copy() = 0;
 };
 
-}
-}
+} // namespace function
+} // namespace kuzu

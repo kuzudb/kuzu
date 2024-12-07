@@ -41,7 +41,8 @@ public:
 };
 
 struct PathsOutputs : public SPOutputs {
-    PathsOutputs(common::nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths, std::unique_ptr<BFSGraph> bfsGraph)
+    PathsOutputs(common::nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths,
+        std::unique_ptr<BFSGraph> bfsGraph)
         : SPOutputs(sourceNodeID, std::move(pathLengths)), bfsGraph{std::move(bfsGraph)} {}
 
     void beginFrontierComputeBetweenTables(common::table_id_t,

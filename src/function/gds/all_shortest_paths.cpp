@@ -248,7 +248,8 @@ private:
         auto numNodesMap = sharedState->graph->getNumNodesMap(clientContext->getTx());
         auto mm = clientContext->getMemoryManager();
         auto multiplicities = std::make_shared<PathMultiplicities>(numNodesMap, mm);
-        auto output = std::make_unique<AllSPDestinationsOutputs>(sourceNodeID, frontier, multiplicities);
+        auto output =
+            std::make_unique<AllSPDestinationsOutputs>(sourceNodeID, frontier, multiplicities);
         auto outputWriter = std::make_unique<AllSPDestinationsOutputWriter>(clientContext,
             output.get(), sharedState->getOutputNodeMaskMap());
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,

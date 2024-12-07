@@ -43,15 +43,14 @@ public:
         uint64_t maxIters);
 
     // Run vertex compute without property scan
-    static void runVertexCompute(processor::ExecutionContext* context,
-        graph::Graph* graph, VertexCompute& vc);
+    static void runVertexCompute(processor::ExecutionContext* context, graph::Graph* graph,
+        VertexCompute& vc);
     // Run vertex compute with property scan
-    static void runVertexCompute(processor::ExecutionContext* context,
-        graph::Graph* graph, VertexCompute& vc, std::vector<std::string> propertiesToScan);
+    static void runVertexCompute(processor::ExecutionContext* context, graph::Graph* graph,
+        VertexCompute& vc, std::vector<std::string> propertiesToScan);
     // Run vertex compute on specific table with property scan
-    static void runVertexCompute(processor::ExecutionContext* context,
-        graph::Graph* graph, VertexCompute& vc, common::table_id_t tableID,
-        std::vector<std::string> propertiesToScan);
+    static void runVertexCompute(processor::ExecutionContext* context, graph::Graph* graph,
+        VertexCompute& vc, common::table_id_t tableID, std::vector<std::string> propertiesToScan);
 };
 
 } // namespace function

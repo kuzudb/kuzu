@@ -21,7 +21,8 @@ GDSComputeState::GDSComputeState(std::unique_ptr<function::FrontierPair> frontie
 GDSComputeState::~GDSComputeState() = default;
 
 static uint64_t getNumThreads(processor::ExecutionContext& context) {
-    return context.clientContext->getCurrentSetting(main::ThreadsSetting::name).getValue<uint64_t>();
+    return context.clientContext->getCurrentSetting(main::ThreadsSetting::name)
+        .getValue<uint64_t>();
 }
 
 void GDSUtils::scheduleFrontierTask(table_id_t relTableID, graph::Graph* graph,
@@ -88,15 +89,16 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
     }
 }
 
-static void runVertexComputeInternal(common::table_id_t tableID, graph::Graph* graph, std::shared_ptr<VertexComputeTask> task, processor::ExecutionContext* context) {
+static void runVertexComputeInternal(common::table_id_t tableID, graph::Graph* graph,
+    std::shared_ptr<VertexComputeTask> task, processor::ExecutionContext* context) {
     auto numNodes = graph->getNumNodes(context->clientContext->getTx(), tableID);
     task->init(tableID, numNodes);
     context->clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context,
         true /* launchNewWorkerThread */);
 }
 
-void GDSUtils::runVertexCompute(processor::ExecutionContext* context,
-    graph::Graph* graph, VertexCompute& vc, std::vector<std::string> propertiesToScan) {
+void GDSUtils::runVertexCompute(processor::ExecutionContext* context, graph::Graph* graph,
+    VertexCompute& vc, std::vector<std::string> propertiesToScan) {
     auto maxThreads = getNumThreads(*context);
     auto info = VertexComputeTaskInfo(vc, propertiesToScan);
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads, graph);

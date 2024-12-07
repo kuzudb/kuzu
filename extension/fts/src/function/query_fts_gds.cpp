@@ -276,7 +276,8 @@ void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
         std::make_unique<QFTSVertexCompute>(executionContext->clientContext->getMemoryManager(),
             sharedState.get(), outputWriter.copy());
     auto docsTableID = sharedState->graph->getNodeTableIDs()[1];
-    GDSUtils::runVertexCompute(executionContext, sharedState->graph.get(), *writerVC, docsTableID, {QFTSAlgorithm::DOC_LEN_PROP_NAME});
+    GDSUtils::runVertexCompute(executionContext, sharedState->graph.get(), *writerVC, docsTableID,
+        {QFTSAlgorithm::DOC_LEN_PROP_NAME});
     sharedState->mergeLocalTables();
 }
 

@@ -149,7 +149,8 @@ public:
         return true;
     }
 
-    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset, common::table_id_t tableID) override {
+    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset,
+        common::table_id_t tableID) override {
         for (auto i = startOffset; i < endOffset; ++i) {
             if (sharedState->exceedLimit()) {
                 return;

@@ -65,7 +65,8 @@ bool PathLengthsInitVertexCompute::beginOnTable(common::table_id_t tableID) {
     return true;
 }
 
-void PathLengthsInitVertexCompute::vertexCompute(common::offset_t startOffset, common::offset_t endOffset, common::table_id_t) {
+void PathLengthsInitVertexCompute::vertexCompute(common::offset_t startOffset,
+    common::offset_t endOffset, common::table_id_t) {
     auto frontier = pathLengths.getCurFrontier();
     for (auto i = startOffset; i < endOffset; ++i) {
         frontier[i].store(PathLengths::UNVISITED);

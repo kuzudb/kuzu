@@ -62,9 +62,7 @@ struct VertexComputeTaskInfo {
     VertexComputeTaskInfo(const VertexComputeTaskInfo& other)
         : vc{other.vc}, propertiesToScan{other.propertiesToScan} {}
 
-    bool hasPropertiesToScan() const {
-        return !propertiesToScan.empty();
-    }
+    bool hasPropertiesToScan() const { return !propertiesToScan.empty(); }
 };
 
 class VertexComputeTask : public common::Task {

@@ -106,8 +106,7 @@ private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
         auto frontier = getPathLengthsFrontier(context);
-        auto output = std::make_unique<SingleSPDestinationsOutputs>(
-            sourceNodeID, frontier);
+        auto output = std::make_unique<SingleSPDestinationsOutputs>(sourceNodeID, frontier);
         auto outputWriter = std::make_unique<DestinationsOutputWriter>(clientContext, output.get(),
             sharedState->getOutputNodeMaskMap());
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,

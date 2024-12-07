@@ -1,9 +1,9 @@
 #include "function/gds/gds.h"
 
 #include "binder/binder.h"
+#include "function/gds/gds_frontier.h"
 #include "function/gds/gds_utils.h"
 #include "processor/execution_context.h"
-#include "function/gds/gds_frontier.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::main;
@@ -20,7 +20,8 @@ std::shared_ptr<Expression> GDSAlgorithm::bindNodeOutput(Binder* binder,
     return node;
 }
 
-std::shared_ptr<PathLengths> GDSAlgorithm::getPathLengthsFrontier(processor::ExecutionContext* context) {
+std::shared_ptr<PathLengths> GDSAlgorithm::getPathLengthsFrontier(
+    processor::ExecutionContext* context) {
     auto tx = context->clientContext->getTx();
     auto mm = context->clientContext->getMemoryManager();
     auto graph = sharedState->graph.get();
