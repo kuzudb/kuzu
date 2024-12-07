@@ -70,7 +70,6 @@ void CardinalityUpdater::visitOperatorSwitchWithDefault(planner::LogicalOperator
 }
 
 void CardinalityUpdater::visitOperatorDefault(planner::LogicalOperator* op) {
-    KU_ASSERT(op->getNumChildren() <= 1);
     if (op->getNumChildren() == 1) {
         op->setCardinality(op->getChild(0)->getCardinality());
     }
