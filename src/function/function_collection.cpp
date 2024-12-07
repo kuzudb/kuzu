@@ -29,6 +29,7 @@
 #include "processor/operator/persistent/reader/npy/npy_reader.h"
 #include "processor/operator/persistent/reader/parquet/parquet_reader.h"
 #include "processor/operator/table_scan/ftable_scan_function.h"
+#include "function/table/hnsw/hnsw_index_functions.h"
 
 using namespace kuzu::processor;
 

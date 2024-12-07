@@ -4,6 +4,7 @@
 #include "binder/expression/literal_expression.h"
 #include "catalog/catalog.h"
 #include "function/built_in_function_utils.h"
+#include "function/table/hnsw/hnsw_index_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -45,10 +46,26 @@ BoundTableFunction Binder::bindTableFunc(std::string tableFuncName,
     auto bindInput = function::ScanTableFuncBindInput();
     bindInput.inputs = std::move(inputValues);
     bindInput.optionalParams = std::move(optionalParams);
-    auto bindData = tableFunc->bindFunc(clientContext, &bindInput);
-    for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
-        columns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
+    if (StringUtils::getUpper(func->name) == function::QueryHNSWIndexFunction::name) {
+        auto nodeTableName = bindInput.inputs[1].getValue<std::string>();
+        auto nodeTableEntry = clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(), nodeTableName);
+        bindInput.nodeExpression = createQueryNode("nn", std::vector<catalog::TableCatalogEntry*>{nodeTableEntry});
+        addToScope(bindInput.nodeExpression->toString(), bindInput.nodeExpression);
     }
+    auto bindData = tableFunc->bindFunc(clientContext, &bindInput);
+    if (StringUtils::getUpper(func->name) == function::QueryHNSWIndexFunction::name) {
+        auto id = bindInput.nodeExpression->getInternalID();
+//        scope.addExpression(id->toString(), id);
+        columns.push_back(id);
+        for (auto i = 1u; i < bindData->columnTypes.size(); i++) {
+            columns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
+        }
+    } else {
+        for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
+            columns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
+        }
+    }
+
     auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         std::string(InternalKeyword::ROW_OFFSET));
     return BoundTableFunction{tableFunc->copy(), std::move(bindData), std::move(offset)};
