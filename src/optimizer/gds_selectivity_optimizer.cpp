@@ -88,16 +88,40 @@ namespace kuzu {
             auto probeSide = hashJoin->getChild(0);
             auto buildSide = hashJoin->getChild(1);
             bool buildSideNeeded = isBuildSideNeeded(buildSide);
-            if (buildSideNeeded) {
+            bool probeSideNeeded = isProbeSideNeeded(probeSide);
+
+            if (buildSideNeeded && probeSideNeeded) {
                 return op;
+            }
+            RemoveAccumulate remover;
+            if (!buildSideNeeded) {
+                // Remove the hash join as well as build side
+                // TODO: Remove TABLE_FUNCTION_CALL and replace with source of RESULT_COLLECTOR
+                remover.rewrite(probeSide);
+                return probeSide;
             }
 
             // Remove the hash join as well as build side
-            // TODO: Remove TABLE_FUNCTION_CALL and replace with source of RESULT_COLLECTOR
-            RemoveAccumulate remover;
-            remover.rewrite(probeSide);
-            return probeSide;
+            remover.rewrite(buildSide);
+            return buildSide;
         }
+
+        bool RemoveUnusedNodes::isProbeSideNeeded(const std::shared_ptr<planner::LogicalOperator> &op) const {
+            // For pattern SEMI_MASKER -> SCAN_NODE_TABLE
+            if (op->getOperatorType() == LogicalOperatorType::FLATTEN &&
+                op->getChild(0)->getOperatorType() == LogicalOperatorType::SCAN_NODE_TABLE) {
+                auto scan = op->getChild(0)->ptrCast<LogicalScanNodeTable>();
+                for (auto &prop: scan->getProperties()) {
+                    if (used_properties.find(prop) != used_properties.end()) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            // All other cases, we need the probe side
+            return true;
+        }
+
 
         bool RemoveUnusedNodes::isBuildSideNeeded(const std::shared_ptr<planner::LogicalOperator> &op) const {
             // For pattern SEMI_MASKER -> SCAN_NODE_TABLE

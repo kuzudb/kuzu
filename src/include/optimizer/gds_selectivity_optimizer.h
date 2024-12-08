@@ -69,6 +69,8 @@ private:
 
     bool isBuildSideNeeded(const std::shared_ptr<planner::LogicalOperator>& op) const;
 
+    bool isProbeSideNeeded(const std::shared_ptr<planner::LogicalOperator>& op) const;
+
 public:
     expression_set used_properties;
     std::vector<LookupProperty> lookup_properties;
