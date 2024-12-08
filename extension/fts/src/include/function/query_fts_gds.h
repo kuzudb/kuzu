@@ -31,7 +31,8 @@ public:
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
         return {common::LogicalTypeID::ANY, common::LogicalTypeID::NODE,
             common::LogicalTypeID::DOUBLE, common::LogicalTypeID::DOUBLE,
-            common::LogicalTypeID::UINT64, common::LogicalTypeID::DOUBLE};
+            common::LogicalTypeID::UINT64, common::LogicalTypeID::DOUBLE,
+            common::LogicalTypeID::INT64, common::LogicalTypeID::BOOL};
     }
 
     void exec(processor::ExecutionContext* executionContext) override;
