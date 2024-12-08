@@ -2,6 +2,7 @@
 
 #include <thread>
 
+#include "common/exception/checkpoint_exception.h"
 #include "common/exception/transaction_manager.h"
 #include "main/client_context.h"
 #include "main/db_config.h"
@@ -48,7 +49,7 @@ std::unique_ptr<Transaction> TransactionManager::beginTransaction(
     return transaction;
 }
 
-void TransactionManager::commit(main::ClientContext& clientContext) {
+void TransactionManager::commit(main::ClientContext& clientContext, bool skipCheckpoint) {
     std::unique_lock<std::mutex> lck{mtxForSerializingPublicFunctionCalls};
     clientContext.cleanUP();
     const auto transaction = clientContext.getTx();
@@ -62,13 +63,26 @@ void TransactionManager::commit(main::ClientContext& clientContext) {
         transaction->commitTS = lastTimestamp;
         transaction->commit(&wal);
         activeWriteTransactions.erase(transaction->getID());
-        if (transaction->shouldForceCheckpoint() || canAutoCheckpoint(clientContext)) {
+        if (!skipCheckpoint &&
+            (transaction->shouldForceCheckpoint() || canAutoCheckpoint(clientContext))) {
             checkpointNoLock(clientContext);
         }
     } break;
     default: {
         throw TransactionManagerException("Invalid transaction type to commit.");
     }
+    }
+}
+
+void TransactionManager::autoCheckpointIfNeeded(main::ClientContext& clientContext) {
+    const auto* transaction = clientContext.getTx();
+    const auto transactionType = transaction->getType();
+    const bool transactionTypeCanCheckpoint =
+        (transactionType == TransactionType::WRITE || transactionType == TransactionType::RECOVERY);
+    const bool canAutoCheckpointPermitted =
+        transaction->shouldForceCheckpoint() || canAutoCheckpoint(clientContext);
+    if (canAutoCheckpointPermitted && transactionTypeCanCheckpoint) {
+        checkpoint(clientContext);
     }
 }
 
@@ -94,12 +108,29 @@ void TransactionManager::rollback(main::ClientContext& clientContext,
     }
 }
 
-void TransactionManager::checkpoint(main::ClientContext& clientContext) {
-    std::unique_lock<std::mutex> lck{mtxForSerializingPublicFunctionCalls};
+void TransactionManager::rollbackCheckpoint(main::ClientContext& clientContext,
+    [[maybe_unused]] std::span<const common::UniqLock*> locks) {
+    // should hold lockForSerializingPublicFunctionCalls and lockForStartingTransactions
+    KU_ASSERT(locks.size() == 2);
+    KU_ASSERT(std::all_of(locks.begin(), locks.end(),
+        [](const common::UniqLock* lock) { return lock->isLocked(); }));
     if (main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())) {
         return;
     }
-    checkpointNoLock(clientContext);
+    clientContext.getStorageManager()->rollbackCheckpoint(clientContext);
+}
+
+void TransactionManager::checkpoint(main::ClientContext& clientContext) {
+    common::UniqLock lck{mtxForSerializingPublicFunctionCalls};
+    if (main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())) {
+        return;
+    }
+    try {
+        checkpointNoLock(clientContext);
+    } catch (common::CheckpointException& e) {
+        e.addLock(std::move(lck));
+        std::rethrow_exception(std::current_exception());
+    }
 }
 
 common::UniqLock TransactionManager::stopNewTransactionsAndWaitUntilAllTransactionsLeave() {
@@ -152,28 +183,37 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
     // query stop working on the tasks of the query and these tasks are removed from the
     // query.
     auto lockForStartingTransaction = stopNewTransactionsAndWaitUntilAllTransactionsLeave();
-    // Checkpoint node/relTables, which writes the updated/newly-inserted pages and metadata to
-    // disk.
-    clientContext.getStorageManager()->checkpoint(clientContext);
-    // Checkpoint catalog, which serializes a snapshot of the catalog to disk.
-    clientContext.getCatalog()->checkpoint(clientContext.getDatabasePath(),
-        clientContext.getVFSUnsafe());
-    // Log the checkpoint to the WAL and flush WAL. This indicates that all shadow pages and files(
-    // snapshots of catalog and metadata) have been written to disk. The part is not done is replace
-    // them with the original pages or catalog and metadata files.
-    // If the system crashes before this point, the WAL can still be used to recover the system to a
-    // state where the checkpoint can be redo.
-    wal.logAndFlushCheckpoint();
-    // Replace the original pages and catalog and metadata files with the updated/newly-created
-    // ones.
-    StorageUtils::overwriteWALVersionFiles(clientContext.getDatabasePath(),
-        clientContext.getVFSUnsafe());
-    clientContext.getStorageManager()->getShadowFile().replayShadowPageRecords(clientContext);
-    // Clear the wal, and also shadowing files.
-    wal.clearWAL();
-    clientContext.getStorageManager()->getShadowFile().clearAll(clientContext);
-    StorageUtils::removeWALVersionFiles(clientContext.getDatabasePath(),
-        clientContext.getVFSUnsafe());
+    try {
+        // Checkpoint node/relTables, which writes the updated/newly-inserted pages and metadata to
+        // disk.
+        clientContext.getStorageManager()->checkpoint(clientContext);
+        // Checkpoint catalog, which serializes a snapshot of the catalog to disk.
+        clientContext.getCatalog()->checkpoint(clientContext.getDatabasePath(),
+            clientContext.getVFSUnsafe());
+        // Log the checkpoint to the WAL and flush WAL. This indicates that all shadow pages and
+        // files( snapshots of catalog and metadata) have been written to disk. The part is not done
+        // is replace them with the original pages or catalog and metadata files. If the system
+        // crashes before this point, the WAL can still be used to recover the system to a state
+        // where the checkpoint can be redo.
+        wal.logAndFlushCheckpoint();
+        // Replace the original pages and catalog and metadata files with the updated/newly-created
+        // ones.
+        StorageUtils::overwriteWALVersionFiles(clientContext.getDatabasePath(),
+            clientContext.getVFSUnsafe());
+        clientContext.getStorageManager()->getShadowFile().replayShadowPageRecords(clientContext);
+        // Clear the wal, and also shadowing files.
+        wal.clearWAL();
+        clientContext.getStorageManager()->getShadowFile().clearAll(clientContext);
+        StorageUtils::removeWALVersionFiles(clientContext.getDatabasePath(),
+            clientContext.getVFSUnsafe());
+    } catch (std::exception& e) {
+        // since we want to rollback the checkpoint atomically
+        // we maintain ownership of the locks (which we will release when we are done handling the
+        // exception)
+        common::CheckpointException checkpointException(e);
+        checkpointException.addLock(std::move(lockForStartingTransaction));
+        throw std::move(checkpointException);
+    }
 }
 
 } // namespace transaction

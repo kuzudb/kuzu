@@ -54,11 +54,21 @@ void TransactionContext::validateManualTransaction(bool readOnlyStatement) const
     }
 }
 
-void TransactionContext::commit() {
+void TransactionContext::commit(bool skipCheckpoint) {
     if (!hasActiveTransaction()) {
         return;
     }
-    clientContext.getDatabase()->transactionManager->commit(clientContext);
+    clientContext.getDatabase()->transactionManager->commit(clientContext, skipCheckpoint);
+    if (!skipCheckpoint) {
+        clearTransaction();
+    }
+}
+
+void TransactionContext::autoCheckpointIfNeeded() {
+    if (!hasActiveTransaction()) {
+        return;
+    }
+    clientContext.getDatabase()->transactionManager->autoCheckpointIfNeeded(clientContext);
     clearTransaction();
 }
 
@@ -68,6 +78,14 @@ void TransactionContext::rollback() {
     }
     clientContext.getDatabase()->transactionManager->rollback(clientContext,
         activeTransaction.get());
+    clearTransaction();
+}
+
+void TransactionContext::rollbackCheckpoint(std::span<const common::UniqLock*> locks) {
+    if (!hasActiveTransaction()) {
+        return;
+    }
+    clientContext.getDatabase()->transactionManager->rollbackCheckpoint(clientContext, locks);
     clearTransaction();
 }
 
