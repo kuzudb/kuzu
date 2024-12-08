@@ -89,6 +89,7 @@ namespace kuzu {
             auto buildSide = hashJoin->getChild(1);
             bool buildSideNeeded = isBuildSideNeeded(buildSide);
             bool probeSideNeeded = isProbeSideNeeded(probeSide);
+            printf("Build side needed: %d, Probe side needed: %d\n", buildSideNeeded, probeSideNeeded);
 
             if (buildSideNeeded && probeSideNeeded) {
                 return op;
@@ -111,6 +112,15 @@ namespace kuzu {
             if (op->getOperatorType() == LogicalOperatorType::FLATTEN &&
                 op->getChild(0)->getOperatorType() == LogicalOperatorType::SCAN_NODE_TABLE) {
                 auto scan = op->getChild(0)->ptrCast<LogicalScanNodeTable>();
+                for (auto &prop: scan->getProperties()) {
+                    if (used_properties.find(prop) != used_properties.end()) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            if (op->getOperatorType() == LogicalOperatorType::SCAN_NODE_TABLE) {
+                auto scan = op->ptrCast<LogicalScanNodeTable>();
                 for (auto &prop: scan->getProperties()) {
                     if (used_properties.find(prop) != used_properties.end()) {
                         return true;
