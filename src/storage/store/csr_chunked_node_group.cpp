@@ -67,9 +67,12 @@ ChunkedCSRHeader::ChunkedCSRHeader(MemoryManager& memoryManager, bool enableComp
 offset_t ChunkedCSRHeader::getStartCSROffset(offset_t nodeOffset) const {
     // TODO(Guodong): I think we can simplify the check here by getting rid of some of the
     // conditions.
-    auto numValues = offset->getNumValues();
+    const auto numValues = offset->getNumValues();
     if (nodeOffset == 0 || numValues == 0) {
         return 0;
+    }
+    if (randomLookup) {
+        return offset->getData().getValue<offset_t>(0);
     }
     return offset->getData().getValue<offset_t>(
         nodeOffset >= numValues ? (numValues - 1) : nodeOffset - 1);
@@ -78,19 +81,24 @@ offset_t ChunkedCSRHeader::getStartCSROffset(offset_t nodeOffset) const {
 offset_t ChunkedCSRHeader::getEndCSROffset(offset_t nodeOffset) const {
     // TODO(Guodong): I think we can simplify the check here by getting rid of some of the
     // conditions.
-    auto numValues = offset->getNumValues();
+    const auto numValues = offset->getNumValues();
     if (numValues == 0) {
         return 0;
+    }
+    if (randomLookup) {
+        return offset->getData().getValue<offset_t>(nodeOffset == 0 ? 0 : 1);
     }
     return offset->getData().getValue<offset_t>(
         nodeOffset >= numValues ? (numValues - 1) : nodeOffset);
 }
 
 length_t ChunkedCSRHeader::getCSRLength(offset_t nodeOffset) const {
+    if (randomLookup) {
+        return length->getData().getValue<length_t>(0);
+    }
     if (nodeOffset >= offset->getNumValues()) {
         return 0;
     }
-    KU_ASSERT(nodeOffset < length->getNumValues());
     return length->getData().getValue<length_t>(nodeOffset);
 }
 
