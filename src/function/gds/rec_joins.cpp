@@ -145,7 +145,7 @@ public:
         if (!sharedState->inNbrTableIDs(tableID)) {
             return false;
         }
-        writer->beginWritingForDstNodesInTable(tableID);
+        writer->pinTableID(tableID);
         return true;
     }
 

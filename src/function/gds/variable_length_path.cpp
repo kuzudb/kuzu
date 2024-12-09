@@ -125,7 +125,7 @@ public:
 private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
-        auto frontier = getPathLengthsFrontier(context);
+        auto frontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto bfsGraph = getBFSGraph(context);
         auto output = std::make_unique<PathsOutputs>(sourceNodeID, frontier, std::move(bfsGraph));
         auto rjBindData = bindData->ptrCast<RJBindData>();
@@ -133,14 +133,14 @@ private:
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
         auto outputWriter = std::make_unique<VarLenPathsOutputWriter>(clientContext, output.get(),
             sharedState->getOutputNodeMaskMap(), std::move(writerInfo));
-        auto currentFrontier = getPathLengthsFrontier(context);
-        auto nextFrontier = getPathLengthsFrontier(context);
+        auto currentFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
+        auto nextFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier,
             nextFrontier, clientContext->getMaxNumThreadForExec());
         auto edgeCompute =
             std::make_unique<VarLenJoinsEdgeCompute>(frontierPair.get(), output->bfsGraph.get());
-        return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),
-            std::move(outputWriter));
+        return RJCompState(std::move(frontierPair), std::move(edgeCompute), sharedState->getOutputNodeMaskMap(),
+            std::move(output), std::move(outputWriter));
     }
 };
 

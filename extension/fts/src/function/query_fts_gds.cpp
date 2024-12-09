@@ -119,7 +119,7 @@ struct QFTSState : public function::GDSComputeState {
 
 QFTSState::QFTSState(std::unique_ptr<function::FrontierPair> frontierPair,
     std::unique_ptr<function::EdgeCompute> edgeCompute, common::table_id_t termsTableID)
-    : function::GDSComputeState{std::move(frontierPair), std::move(edgeCompute)} {
+    : function::GDSComputeState{std::move(frontierPair), std::move(edgeCompute), nullptr /* outputNodeMask */} {
     this->frontierPair->pinNextFrontier(termsTableID);
 }
 
@@ -266,8 +266,8 @@ void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     // for each term-doc pair. The reason why we store the term frequency and document frequency
     // is that: we need the `len` property from the docs table which is only available during the
     // vertex compute.
-    auto currentFrontier = getPathLengthsFrontier(executionContext);
-    auto nextFrontier = getPathLengthsFrontier(executionContext);
+    auto currentFrontier = getPathLengthsFrontier(executionContext, PathLengths::UNVISITED);
+    auto nextFrontier = getPathLengthsFrontier(executionContext, PathLengths::UNVISITED);
     auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier,
         nextFrontier, 1 /* numThreads */);
     auto edgeCompute = std::make_unique<QFTSEdgeCompute>(frontierPair.get(), &output->scores,
