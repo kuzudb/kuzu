@@ -24,6 +24,7 @@ struct TableScanState {
     common::DataChunkState* outState;
     std::vector<common::column_id_t> columnIDs;
     common::RoaringBitmapSemiMask* semiMask;
+    bool randomLookup = false;
 
     // Only used when scan from persistent data.
     std::vector<const Column*> columns;
