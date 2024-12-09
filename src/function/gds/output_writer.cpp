@@ -1,5 +1,6 @@
 #include "function/gds/output_writer.h"
 
+#include "common/exception/interrupt.h"
 #include "function/gds/gds_frontier.h"
 #include "main/client_context.h"
 
@@ -114,6 +115,9 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
     if (!info.hasNodeMask() && info.semantic == common::PathSemantic::WALK) {
         // Fast path when there is no node predicate or semantic check
         while (!curPath.empty()) {
+            if (context->interrupted()) {
+                throw InterruptException{};
+            }
             auto top = curPath[curPath.size() - 1];
             auto topNodeID = top->getNodeID();
             if (top->getIter() == 1) {
@@ -150,6 +154,9 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
         return;
     }
     while (!curPath.empty()) {
+        if (context->interrupted()) {
+            throw InterruptException{};
+        }
         if (getTop(curPath)->getIter() == 1) {
             writePath(curPath);
             fTable.append(vectors);
