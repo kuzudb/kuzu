@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
         for (int i = 0; i < warmupTimes; i++) {
             printf("Warmup started %d\n", i);
             auto start = std::chrono::high_resolution_clock::now();
-            for (int j = 0; j < queries.size(); i++) {
+            for (int j = 0; j < queries.size(); j++) {
                 conn.query(queries[j]);
             }
             // Get the current time after the function call
