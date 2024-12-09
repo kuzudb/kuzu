@@ -29,7 +29,7 @@ struct FileTypeUtils {
 };
 
 struct ReaderConfig {
-    static constexpr const char* FILE_FORMAT_OPTION_NAME = "FORMAT";
+    static constexpr const char* FILE_FORMAT_OPTION_NAME = "FILE_FORMAT";
 
     FileTypeInfo fileTypeInfo;
     std::vector<std::string> filePaths;

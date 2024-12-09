@@ -1,7 +1,6 @@
 #include "common/copier_config/reader_config.h"
 
 #include "common/assert.h"
-#include "common/exception/binder.h"
 #include "common/string_utils.h"
 
 namespace kuzu {

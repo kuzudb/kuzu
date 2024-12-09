@@ -227,7 +227,7 @@ function::TableFunction Binder::getScanFunction(FileTypeInfo typeInfo, const Rea
         } catch (...) {
             if (typeInfo.fileTypeStr == "") {
                 throw common::BinderException{"Cannot infer the format of the given file. Please "
-                                              "set the file format explicitly by (format=<type>)."};
+                                              "set the file format explicitly by (file_format=<type>)."};
             }
             throw common::BinderException{
                 common::stringFormat("Cannot load from file type {}.", typeInfo.fileTypeStr)};
