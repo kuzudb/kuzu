@@ -2,6 +2,7 @@
 
 #include "common/assert.h"
 #include "common/exception/binder.h"
+#include "common/string_utils.h"
 
 namespace kuzu {
 namespace common {
@@ -15,15 +16,6 @@ FileType FileTypeUtils::getFileTypeFromExtension(std::string_view extension) {
     }
     if (extension == ".npy") {
         return FileType::NPY;
-    }
-    if (extension == ".ttl") {
-        return FileType::TURTLE;
-    }
-    if (extension == ".nq") {
-        return FileType::NQUADS;
-    }
-    if (extension == ".nt") {
-        return FileType::NTRIPLES;
     }
     return FileType::UNKNOWN;
 }
@@ -42,15 +34,6 @@ std::string FileTypeUtils::toString(FileType fileType) {
     case FileType::NPY: {
         return "NPY";
     }
-    case FileType::TURTLE: {
-        return "TURTLE";
-    }
-    case FileType::NQUADS: {
-        return "NQUADS";
-    }
-    case FileType::NTRIPLES: {
-        return "NTRIPLES";
-    }
     default: {
         KU_UNREACHABLE;
     }
@@ -58,6 +41,7 @@ std::string FileTypeUtils::toString(FileType fileType) {
 }
 
 FileType FileTypeUtils::fromString(std::string fileType) {
+    fileType = common::StringUtils::getUpper(fileType);
     if (fileType == "CSV") {
         return FileType::CSV;
     } else if (fileType == "PARQUET") {
@@ -65,7 +49,8 @@ FileType FileTypeUtils::fromString(std::string fileType) {
     } else if (fileType == "NPY") {
         return FileType::NPY;
     } else {
-        throw BinderException(stringFormat("Unsupported file type: {}.", fileType));
+        return FileType::UNKNOWN;
+        // throw BinderException(stringFormat("Unsupported file type: {}.", fileType));
     }
 }
 

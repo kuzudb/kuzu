@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "common/case_insensitive_map.h"
 #include "common/copy_constructors.h"
 #include "common/types/value/value.h"
 
@@ -14,9 +15,6 @@ enum class FileType : uint8_t {
     CSV = 1,
     PARQUET = 2,
     NPY = 3,
-    TURTLE = 4,   // Terse triples http://www.w3.org/TR/turtle
-    NQUADS = 5,   // Line-based quads http://www.w3.org/TR/n-quads/
-    NTRIPLES = 6, // Line-based triples http://www.w3.org/TR/n-triples/
 };
 
 struct FileTypeInfo {
@@ -31,9 +29,11 @@ struct FileTypeUtils {
 };
 
 struct ReaderConfig {
+    static constexpr const char* FILE_FORMAT_OPTION_NAME = "FORMAT";
+
     FileTypeInfo fileTypeInfo;
     std::vector<std::string> filePaths;
-    std::unordered_map<std::string, Value> options;
+    case_insensitive_map_t<Value> options;
 
     ReaderConfig() : fileTypeInfo{FileType::UNKNOWN, ""} {}
     ReaderConfig(FileTypeInfo fileTypeInfo, std::vector<std::string> filePaths)

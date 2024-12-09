@@ -147,7 +147,7 @@ public:
         const std::vector<std::string>& columnNames,
         const std::vector<common::LogicalType>& columnTypes);
 
-    std::unordered_map<std::string, common::Value> bindParsingOptions(
+    common::case_insensitive_map_t<common::Value> bindParsingOptions(
         const parser::options_t& parsingOptions);
     common::FileTypeInfo bindFileTypeInfo(const std::vector<std::string>& filePaths);
     std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths);

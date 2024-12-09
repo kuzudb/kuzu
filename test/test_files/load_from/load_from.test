@@ -17,6 +17,11 @@
 [1,2,3]
 [4,5,6]
 [7,8,9]
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_double.jpy"(FORMAT='npy') RETURN * ORDER BY column0 LIMIT 5;
+---- 3
+1.000000
+2.000000
+3.000000
 
 -CASE LoadFromParquetTest
 -STATEMENT LOAD WITH HEADERS (id INT64) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k_0.parquet" RETURN *;
@@ -31,6 +36,13 @@ Binder exception: Number of columns mismatch. Expected 1 but got 10.
 ---- error
 Binder exception: doubleColumn has data type DOUBLE but INT64 was expected.
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k_0.parquet" RETURN * ORDER BY id LIMIT 5;
+---- 5
+0|73|3.258507|True|1994-01-12|FrPZkcHFuepVxcAiMwyAsRqDlRtQx|[65,25]|[4deQc5]|[[163,237],[28,60,77,31,137],[286,186,249,206]]|{id: 764, name: CwFRaCoEp}
+1|17|45.692842|False|2077-04-16|La|[64,41]|[Yq029g79TUAiq9VA,5h5ozRjtfsxbtCeb,2WLnSHVZojagYe,3HsiFD7b7DRk6n]|[[189,84,16],[143,135],[284,182,219,45],[250,143,195,210,244],[31,85]]|{id: 461, name: PmAvlzC0MVN2kr5}
+2|30|13.397253|True|2015-01-06|uQJCBEePLuGkoAp|[47,27,57,46]|[INx9T8cF,fQds,GVbSmwovuURxXiRQ6vI3]|[[89,232],[186,224],[278,106,154]]|{id: 275, name: LeJHI4vdgjFDl}
+3|4|3.174669|True|2104-03-14|fjyKxMjhXXgCkZmwBACpRrjNHlhrDtkQPl|[58,77,66,48]|[SUFT8NmyhMQ,DaTDnzkotQ2pjvdCN]|[[44]]|{id: 545, name: 0jhUkRv7R8}
+4|99|17.608944|True|2089-10-27||[78,93,50,3]|[7Jyqki,Y0FQsTGx,7LqWTypucemvMYm,t5spe07tWSCJ]|[[267,172,283],[74,37],[148,62,96,47],[277,95]]|{id: 460, name: 1e6nIx}
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k_0.par"(format='parquet') RETURN * ORDER BY id LIMIT 5;
 ---- 5
 0|73|3.258507|True|1994-01-12|FrPZkcHFuepVxcAiMwyAsRqDlRtQx|[65,25]|[4deQc5]|[[163,237],[28,60,77,31,137],[286,186,249,206]]|{id: 764, name: CwFRaCoEp}
 1|17|45.692842|False|2077-04-16|La|[64,41]|[Yq029g79TUAiq9VA,5h5ozRjtfsxbtCeb,2WLnSHVZojagYe,3HsiFD7b7DRk6n]|[[189,84,16],[143,135],[284,182,219,45],[250,143,195,210,244],[31,85]]|{id: 461, name: PmAvlzC0MVN2kr5}
@@ -97,6 +109,12 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv
 -STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv"  WITH * WHERE fname = 'Alice' RETURN concat(id, 'aa'), fname;
 ---- 1
 0aa|Alice
+-STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.tsv"  WITH * WHERE fname = 'Alice' RETURN concat(id, 'aa'), fname;
+---- error
+Binder exception: Cannot load from file type tsv.
+-STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.tsv" (format='csv')   WITH * WHERE fname = 'Alice' RETURN concat(id, 'aa'), fname;
+---- 1
+0aa|Alice
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv"  WITH *
             MATCH (a:person) WHERE a.ID <= 2
             RETURN COUNT(*);
@@ -149,3 +167,24 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv
 ---- 2
 1|1
 2|2
+
+-CASE LoadFromErrorTest
+# Fix after fixing issue #4610
+#-LOG LoadFromIncorrectPath
+#-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset' (format='csv') RETURN *;
+#---- error
+
+-LOG LoadFromNotExistPath
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/1.parquet' (format='csv') RETURN *;
+---- error
+Binder exception: No file found that matches the pattern: ${KUZU_ROOT_DIRECTORY}/dataset/1.parquet.
+
+-LOG LoadFromIncorrectFileFormat
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_double.npy" (format='csv') RETURN *;
+---- error (regex)
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_double.npy on line 2: quote should be followed by end of file, end of value, end of row or another quote. Line/record containing the error: '
+
+-LOG LoadFromIncorrectFormat
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_double.npy" (format='npyd') RETURN *;
+---- error (regex)
+Binder exception: Cannot load from file type npyd.

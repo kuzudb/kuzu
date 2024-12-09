@@ -4,6 +4,7 @@
 #include "connector/delta_connector.h"
 #include "connector/duckdb_result_converter.h"
 #include "connector/duckdb_type_converter.h"
+#include "function/table/scan_functions.h"
 
 namespace kuzu {
 namespace delta_extension {
@@ -11,16 +12,16 @@ namespace delta_extension {
 using namespace function;
 using namespace common;
 
-struct DeltaScanBindData : public CallTableFuncBindData {
+struct DeltaScanBindData : public ScanBindData {
     std::string query;
     std::shared_ptr<DeltaConnector> connector;
     duckdb_extension::DuckDBResultConverter converter;
 
     DeltaScanBindData(std::string query, std::shared_ptr<DeltaConnector> connector,
         duckdb_extension::DuckDBResultConverter converter, std::vector<LogicalType> returnTypes,
-        std::vector<std::string> returnColumnNames)
-        : CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames),
-              1 /* maxOffset */},
+        std::vector<std::string> returnColumnNames, ReaderConfig config, main::ClientContext* ctx)
+        : ScanBindData{std::move(returnTypes), std::move(returnColumnNames), std::move(config),
+              ctx},
           query{std::move(query)}, connector{std::move(connector)},
           converter{std::move(converter)} {}
 
@@ -38,27 +39,30 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         input->inputs[0].getValue<std::string>());
     auto result = connector->executeQuery(query + " LIMIT 1");
     std::vector<LogicalType> returnTypes;
-    std::vector<std::string> returnColumnNames;
+    std::vector<std::string> returnColumnNames = input->expectedColumnNames;
     for (auto type : result->types) {
         returnTypes.push_back(
             duckdb_extension::DuckDBTypeConverter::convertDuckDBType(type.ToString()));
     }
 
-    for (auto name : result->names) {
-        returnColumnNames.push_back(name);
+    if (input->expectedColumnNames.empty()) {
+        for (auto name : result->names) {
+            returnColumnNames.push_back(name);
+        }
     }
     KU_ASSERT(returnTypes.size() == returnColumnNames.size());
     return std::make_unique<DeltaScanBindData>(std::move(query), connector,
         duckdb_extension::DuckDBResultConverter{returnTypes}, copyVector(returnTypes),
-        std::move(returnColumnNames));
+        std::move(returnColumnNames), ReaderConfig{}, context);
 }
 
-struct DeltaScanSharedState : public function::TableFuncSharedState {
+struct DeltaScanSharedState : public BaseScanSharedState {
     explicit DeltaScanSharedState(std::unique_ptr<duckdb::MaterializedQueryResult> queryResult)
-        : queryResult{std::move(queryResult)} {}
+        : BaseScanSharedState{}, queryResult{std::move(queryResult)} {}
+
+    uint64_t getNumRows() const override { return queryResult->RowCount(); }
 
     std::unique_ptr<duckdb::MaterializedQueryResult> queryResult;
-    std::mutex lock;
 };
 
 std::unique_ptr<TableFuncSharedState> initDeltaScanSharedState(TableFunctionInitInput& input) {
