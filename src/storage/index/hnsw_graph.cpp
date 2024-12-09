@@ -120,7 +120,7 @@ void InMemHNSWGraph::shrinkToThreshold(common::offset_t nodeOffset, common::leng
             }
         }
         if (keepNbr) {
-            dstNodes[newSize++] = nbrs[i].nodeOffset;
+            setDstNode(newSize++, nbrs[i].nodeOffset);
         }
         if (newSize == degreeToShrink) {
             break;
@@ -183,7 +183,7 @@ void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, common::node_group_idx
         for (auto j = 0u; j < csrLen; j++) {
             boundColumnChunk.setValue<common::offset_t>(currNodeOffset, currNumRels);
             relIDColumnChunk.setValue<common::offset_t>(currNumRels, currNumRels);
-            const auto nbrOffset = dstNodes.operator[](csrOffset + j);
+            const auto nbrOffset = getDstNode(csrOffset + j);
             KU_ASSERT(nbrOffset < numNodes);
             nbrColumnChunk.setValue<common::offset_t>(nbrOffset, currNumRels);
             currNumRels++;
@@ -207,7 +207,7 @@ void InMemHNSWGraph::createDirectedEdge(common::offset_t srcNode, common::offset
         shrinkToThreshold(srcNode, currentLen, transaction);
     } else {
         KU_ASSERT(dstNode < numNodes);
-        dstNodes[srcNode * maxDegree + currentLen] = dstNode;
+        setDstNode(srcNode * maxDegree + currentLen, dstNode);
     }
 }
 
@@ -222,7 +222,7 @@ common::offset_vec_t InMemHNSWGraph::getNeighbors(common::offset_t nodeOffset,
     common::offset_vec_t neighbors;
     neighbors.reserve(numNbrs);
     for (common::offset_t i = 0; i < numNbrs; i++) {
-        auto nbr = dstNodes[nodeOffset * maxDegree + i];
+        auto nbr = getDstNode(nodeOffset * maxDegree + i);
         if (nbr == common::INVALID_OFFSET) {
             continue;
         }
@@ -233,10 +233,10 @@ common::offset_vec_t InMemHNSWGraph::getNeighbors(common::offset_t nodeOffset,
 
 void InMemHNSWGraph::resetCSRLengthAndDstNodes() {
     for (common::offset_t i = 0; i < numNodes; i++) {
-        csrLengths[i].store(0);
+        setCSRLength(i, 0);
     }
     for (common::offset_t i = 0; i < numNodes * maxDegree; i++) {
-        dstNodes[i] = common::INVALID_OFFSET;
+        setDstNode(i, common::INVALID_OFFSET);
     }
 }
 

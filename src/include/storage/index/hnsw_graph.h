@@ -122,7 +122,7 @@ public:
         : HNSWGraph{numNodes, maxDegree, embeddings, distFunc}, degreeToShrink{degreeToShrink},
           alpha{alpha} {
         csrLengths = std::make_unique<std::atomic<uint16_t>[]>(numNodes);
-        dstNodes = std::make_unique<common::offset_t[]>(numNodes * maxDegree);
+        dstNodes = std::make_unique<std::atomic<common::offset_t>[]>(numNodes * maxDegree);
         resetCSRLengthAndDstNodes();
     }
 
@@ -157,11 +157,18 @@ private:
         return csrLengths[nodeOffset].load();
     }
 
+    void setDstNode(common::offset_t csrOffset, common::offset_t dstNode) {
+        dstNodes[csrOffset].store(dstNode);
+    }
+    common::offset_t getDstNode(common::offset_t csrOffset) const {
+        return dstNodes[csrOffset].load();
+    }
+
 private:
     // TODO: Should make use of MemoryBuffer to store these, so the used memory here is trackable in
     // the system.
     std::unique_ptr<std::atomic<uint16_t>[]> csrLengths;
-    std::unique_ptr<common::offset_t[]> dstNodes;
+    std::unique_ptr<std::atomic<common::offset_t>[]> dstNodes;
     common::length_t degreeToShrink;
     double alpha;
 
