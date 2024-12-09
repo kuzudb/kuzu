@@ -24,6 +24,10 @@ namespace binder {
 FileTypeInfo bindSingleFileType(main::ClientContext* context, const std::string& filePath) {
     std::filesystem::path fileName(filePath);
     auto extension = context->getVFSUnsafe()->getFileExtension(fileName);
+    if (extension.empty()) {
+        throw common::BinderException{
+                common::stringFormat("Cannot load from file without extension name.")};
+    }
     return FileTypeInfo{FileTypeUtils::getFileTypeFromExtension(extension), extension.substr(1)};
 }
 
