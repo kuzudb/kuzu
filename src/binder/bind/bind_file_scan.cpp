@@ -26,7 +26,7 @@ FileTypeInfo bindSingleFileType(main::ClientContext* context, const std::string&
     auto extension = context->getVFSUnsafe()->getFileExtension(fileName);
     if (extension.empty()) {
         throw common::BinderException{
-                common::stringFormat("Cannot load from file without extension name.")};
+            common::stringFormat("Cannot load from file without extension name.")};
     }
     return FileTypeInfo{FileTypeUtils::getFileTypeFromExtension(extension), extension.substr(1)};
 }
