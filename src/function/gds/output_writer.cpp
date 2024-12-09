@@ -1,8 +1,8 @@
 #include "function/gds/output_writer.h"
 
+#include "common/exception/interrupt.h"
 #include "function/gds/gds_frontier.h"
 #include "main/client_context.h"
-#include "common/exception/interrupt.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;
