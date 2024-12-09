@@ -467,7 +467,7 @@ namespace kuzu {
                     }
                     // TODO: Add backup loop
                 }
-                printf("Total get nbrs: %d, total dist: %d\n", totalGetNbrs, totalDist);
+//                printf("Total get nbrs: %d, total dist: %d\n", totalGetNbrs, totalDist);
             }
 
 
@@ -580,7 +580,7 @@ namespace kuzu {
 //                    }
                     // TODO: Add backup loop
                 }
-                printf("Total get nbrs: %d, total dist: %d\n", totalGetNbrs, totalDist);
+//                printf("Total get nbrs: %d, total dist: %d\n", totalGetNbrs, totalDist);
             }
 
             void exec(ExecutionContext *context) override {
@@ -623,7 +623,7 @@ namespace kuzu {
                                        entrypoint,
                                        entrypointDist, results, visited.get(), header, efSearch);
                     } else {
-                        printf("doing dynamic two hop search\n");
+//                        printf("doing dynamic two hop search\n");
                         dynamicTwoHopFilteredSearch(context, query, nodeTableId, filterMaxK, graph, dc.get(), quantizedDc.get(),
                                                     filterMask,
                                                     *state.get(), entrypoint, entrypointDist, results,

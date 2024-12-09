@@ -89,7 +89,7 @@ namespace kuzu {
             auto buildSide = hashJoin->getChild(1);
             bool buildSideNeeded = isBuildSideNeeded(buildSide);
             bool probeSideNeeded = isProbeSideNeeded(probeSide);
-            printf("Build side needed: %d, Probe side needed: %d\n", buildSideNeeded, probeSideNeeded);
+//            printf("Build side needed: %d, Probe side needed: %d\n", buildSideNeeded, probeSideNeeded);
 
             if (buildSideNeeded && probeSideNeeded) {
                 return op;
