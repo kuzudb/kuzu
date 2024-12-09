@@ -64,6 +64,7 @@ int main(int argc, char **argv) {
     std::string queryPath = input.getCmdOption("-queriesPath");
     std::string gtPath = input.getCmdOption("-gtPath");
     int warmupTimes = stoi(input.getCmdOption("-warmup"));
+    int actualTimes = stoi(input.getCmdOption("-actual"));
     int k = stoi(input.getCmdOption("-k"));
 //    int runSelectivityQueries = stoi(input.getCmdOption("-runSelectivityQueries"));
 
@@ -127,20 +128,27 @@ int main(int argc, char **argv) {
         loadFromFile(gtPath, reinterpret_cast<uint8_t *>(gtVecs), queryNumVectors * k * sizeof(vector_id_t));
 
         // Randomly select warmupTimes queries from the queries
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<> dis(0, queries.size() - 1);
-        printf("Warmup started\n");
-        auto start = std::chrono::high_resolution_clock::now();
+//        std::random_device rd;
+//        std::mt19937 gen(rd());
+//        std::uniform_int_distribution<> dis(0, queries.size() - 1);
         for (int i = 0; i < warmupTimes; i++) {
-            conn.query(queries[dis(gen)]);
+            printf("Warmup started %d\n", i);
+            auto start = std::chrono::high_resolution_clock::now();
+            for (int j = 0; j < queries.size(); i++) {
+                conn.query(queries[j]);
+            }
+            // Get the current time after the function call
+            auto end = std::chrono::high_resolution_clock::now();
+            // Calculate the duration of the function execution
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            printf("Warmup finished\n");
+            printf("Warmup time %d: %lld ms\n", i, duration);
         }
-        // Get the current time after the function call
+
+        // initialize the timer
+        auto start = std::chrono::high_resolution_clock::now();
         auto end = std::chrono::high_resolution_clock::now();
-        // Calculate the duration of the function execution
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-        printf("Warmup finished\n");
-        printf("Warmup time: %lld\n", duration);
 
         // Run all queries and print avg latency
         printf("Benchmark started\n");
