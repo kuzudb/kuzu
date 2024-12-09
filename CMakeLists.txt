@@ -175,7 +175,7 @@ option(BUILD_SINGLE_FILE_HEADER "Build single file header. Requires Python >= 3.
 option(BUILD_TESTS "Build C++ tests." FALSE)
 option(BUILD_EXTENSION_TESTS "Build C++ extension tests." FALSE)
 option(BUILD_KUZU "Build Kuzu." TRUE)
-option(ENABLE_BACKTRACES "Enable backtrace printing for exceptions and segfaults" TRUE)
+option(ENABLE_BACKTRACES "Enable backtrace printing for exceptions and segfaults" FALSE)
 
 option(BUILD_LCOV "Build coverage report." FALSE)
 if(${BUILD_LCOV})
