@@ -25,16 +25,22 @@ static uint64_t getNumThreads(processor::ExecutionContext& context) {
         .getValue<uint64_t>();
 }
 
-void GDSUtils::scheduleFrontierTask(table_id_t relTableID, graph::Graph* graph,
-    ExtendDirection extendDirection, GDSComputeState& gdsComputeState,
+void GDSUtils::scheduleFrontierTask(table_id_t nbrTableID, table_id_t relTableID,
+    graph::Graph* graph, ExtendDirection extendDirection, GDSComputeState& gdsComputeState,
     processor::ExecutionContext* context, std::optional<uint64_t> numThreads,
     std::optional<common::idx_t> edgePropertyIdx) {
     auto clientContext = context->clientContext;
-    auto info = FrontierTaskInfo(relTableID, graph, extendDirection, *gdsComputeState.edgeCompute,
-        edgePropertyIdx);
+    auto info = FrontierTaskInfo(nbrTableID, relTableID, graph, extendDirection,
+        *gdsComputeState.edgeCompute, edgePropertyIdx);
     auto sharedState = std::make_shared<FrontierTaskSharedState>(*gdsComputeState.frontierPair);
     uint64_t maxThreads = numThreads ? numThreads.value() : getNumThreads(*context);
     auto task = std::make_shared<FrontierTask>(maxThreads, info, sharedState);
+
+    if (gdsComputeState.frontierPair->isCurFrontierSparse()) {
+        task->runSparse();
+        return;
+    }
+
     // GDSUtils::runFrontiersUntilConvergence is called from a GDSCall operator, which is
     // already executed by a worker thread Tm of the task scheduler. So this function is
     // executed by Tm. Because this function will monitor the task and wait for it to
@@ -53,7 +59,7 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
     auto frontierPair = rjCompState.frontierPair.get();
     auto outputNodeMask = rjCompState.outputWriter->getOutputNodeMask();
     rjCompState.edgeCompute->resetSingleThreadState();
-    while (frontierPair->hasActiveNodesForNextIter() && frontierPair->getNextIter() <= maxIters) {
+    while (frontierPair->continueNextIter(maxIters)) {
         frontierPair->beginNewIteration();
         if (outputNodeMask->enabled() && rjCompState.edgeCompute->terminate(*outputNodeMask)) {
             break;
@@ -63,24 +69,24 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
             case ExtendDirection::FWD: {
                 rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID,
                     relTableIDInfo.toNodeTableID);
-                scheduleFrontierTask(relTableIDInfo.relTableID, graph, ExtendDirection::FWD,
-                    rjCompState, context);
+                scheduleFrontierTask(relTableIDInfo.toNodeTableID, relTableIDInfo.relTableID, graph,
+                    ExtendDirection::FWD, rjCompState, context);
             } break;
             case ExtendDirection::BWD: {
                 rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.toNodeTableID,
                     relTableIDInfo.fromNodeTableID);
-                scheduleFrontierTask(relTableIDInfo.relTableID, graph, ExtendDirection::BWD,
-                    rjCompState, context);
+                scheduleFrontierTask(relTableIDInfo.fromNodeTableID, relTableIDInfo.relTableID,
+                    graph, ExtendDirection::BWD, rjCompState, context);
             } break;
             case ExtendDirection::BOTH: {
                 rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID,
                     relTableIDInfo.toNodeTableID);
-                scheduleFrontierTask(relTableIDInfo.relTableID, graph, ExtendDirection::FWD,
-                    rjCompState, context);
+                scheduleFrontierTask(relTableIDInfo.toNodeTableID, relTableIDInfo.relTableID, graph,
+                    ExtendDirection::FWD, rjCompState, context);
                 rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.toNodeTableID,
                     relTableIDInfo.fromNodeTableID);
-                scheduleFrontierTask(relTableIDInfo.relTableID, graph, ExtendDirection::BWD,
-                    rjCompState, context);
+                scheduleFrontierTask(relTableIDInfo.fromNodeTableID, relTableIDInfo.relTableID,
+                    graph, ExtendDirection::BWD, rjCompState, context);
             } break;
             default:
                 KU_UNREACHABLE;
@@ -125,6 +131,21 @@ void GDSUtils::runVertexCompute(ExecutionContext* context, Graph* graph, VertexC
     }
     auto task = std::make_shared<VertexComputeTask>(maxThreads, info, sharedState);
     runVertexComputeInternal(tableID, graph, task, context);
+}
+
+void GDSUtils::runVertexComputeSparse(SparseFrontier& sparseFrontier, graph::Graph* graph,
+    VertexCompute& vc) {
+    std::vector<std::string> propertiesToScan;
+    for (auto& tableID : graph->getNodeTableIDs()) {
+        if (!vc.beginOnTable(tableID)) {
+            continue;
+        }
+        sparseFrontier.pinTableID(tableID);
+        auto localVc = vc.copy();
+        for (auto& offset : sparseFrontier.getOffsetSet()) {
+            localVc->vertexCompute(offset, offset + 1, tableID);
+        }
+    }
 }
 
 } // namespace function

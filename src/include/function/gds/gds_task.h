@@ -9,20 +9,22 @@ namespace kuzu {
 namespace function {
 
 struct FrontierTaskInfo {
-    common::table_id_t relTableIDToScan;
+    common::table_id_t nbrTableID;
+    common::table_id_t relTableID;
     graph::Graph* graph;
     common::ExtendDirection direction;
     EdgeCompute& edgeCompute;
     std::optional<common::idx_t> edgePropertyIdx;
 
-    FrontierTaskInfo(common::table_id_t tableID, graph::Graph* graph,
-        common::ExtendDirection direction, EdgeCompute& edgeCompute,
+    FrontierTaskInfo(common::table_id_t nbrTableID, common::table_id_t relTableID,
+        graph::Graph* graph, common::ExtendDirection direction, EdgeCompute& edgeCompute,
         std::optional<common::idx_t> edgePropertyIdx)
-        : relTableIDToScan{tableID}, graph{graph}, direction{direction}, edgeCompute{edgeCompute},
-          edgePropertyIdx{edgePropertyIdx} {}
+        : nbrTableID{nbrTableID}, relTableID{relTableID}, graph{graph}, direction{direction},
+          edgeCompute{edgeCompute}, edgePropertyIdx{edgePropertyIdx} {}
     FrontierTaskInfo(const FrontierTaskInfo& other)
-        : relTableIDToScan{other.relTableIDToScan}, graph{other.graph}, direction{other.direction},
-          edgeCompute{other.edgeCompute}, edgePropertyIdx{other.edgePropertyIdx} {}
+        : nbrTableID{other.nbrTableID}, relTableID{other.relTableID}, graph{other.graph},
+          direction{other.direction}, edgeCompute{other.edgeCompute},
+          edgePropertyIdx{other.edgePropertyIdx} {}
 };
 
 struct FrontierTaskSharedState {
@@ -39,6 +41,8 @@ public:
         : common::Task{maxNumThreads}, info{info}, sharedState{std::move(sharedState)} {}
 
     void run() override;
+
+    void runSparse();
 
 private:
     FrontierTaskInfo info;
