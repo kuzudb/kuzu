@@ -13,7 +13,7 @@ namespace kuzu {
 struct PyArrowScanConfig {
     uint64_t skipNum;
     uint64_t limitNum;
-    explicit PyArrowScanConfig(const std::unordered_map<std::string, common::Value>& options);
+    explicit PyArrowScanConfig(const common::case_insensitive_map_t<common::Value>& options);
 };
 
 struct PyArrowTableScanLocalState final : public function::TableFuncLocalState {

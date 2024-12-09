@@ -18,7 +18,7 @@ enum class FileType : uint8_t {
 };
 
 struct FileTypeInfo {
-    FileType fileType;
+    FileType fileType = FileType::UNKNOWN;
     std::string fileTypeStr;
 };
 
