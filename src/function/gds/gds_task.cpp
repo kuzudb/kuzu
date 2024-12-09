@@ -34,8 +34,8 @@ void FrontierTask::run() {
                 }
                 nodeID_t nodeID = {offset, morsel.getTableID()};
                 for (auto chunk : graph->scanFwd(nodeID, *scanState)) {
-                    numActiveNodes += runEdgeCompute(nodeID, chunk,
-                        *localEc, sharedState->frontierPair, true, localFrontier);
+                    numActiveNodes += runEdgeCompute(nodeID, chunk, *localEc,
+                        sharedState->frontierPair, true, localFrontier);
                 }
             }
         }
@@ -48,8 +48,8 @@ void FrontierTask::run() {
                 }
                 nodeID_t nodeID = {offset, morsel.getTableID()};
                 for (auto chunk : graph->scanBwd(nodeID, *scanState)) {
-                    numActiveNodes += runEdgeCompute(nodeID, chunk,
-                        *localEc, sharedState->frontierPair, false, localFrontier);
+                    numActiveNodes += runEdgeCompute(nodeID, chunk, *localEc,
+                        sharedState->frontierPair, false, localFrontier);
                 }
             }
         }
@@ -76,8 +76,8 @@ void FrontierTask::runSparse() {
         for (auto& offset : curFrontier.getOffsetSet()) {
             auto nodeID = nodeID_t{offset, curFrontier.getTableID()};
             for (auto chunk : graph->scanFwd(nodeID, *scanState)) {
-                numActiveNodes += runEdgeCompute(nodeID, chunk,
-                    *localEc, sharedState->frontierPair, true, localFrontier);
+                numActiveNodes += runEdgeCompute(nodeID, chunk, *localEc, sharedState->frontierPair,
+                    true, localFrontier);
             }
         }
     } break;
@@ -85,8 +85,8 @@ void FrontierTask::runSparse() {
         for (auto& offset : curFrontier.getOffsetSet()) {
             auto nodeID = nodeID_t{offset, curFrontier.getTableID()};
             for (auto chunk : graph->scanBwd(nodeID, *scanState)) {
-                numActiveNodes += runEdgeCompute(nodeID, chunk,
-                    *localEc, sharedState->frontierPair, false, localFrontier);
+                numActiveNodes += runEdgeCompute(nodeID, chunk, *localEc, sharedState->frontierPair,
+                    false, localFrontier);
             }
         }
     } break;
@@ -107,15 +107,14 @@ void VertexComputeTask::run() {
     if (info.hasPropertiesToScan()) {
         auto scanState = graph->prepareVertexScan(tableID, info.propertiesToScan);
         while (sharedState->morselDispatcher.getNextRangeMorsel(morsel)) {
-            for (auto chunk : graph->scanVertices(morsel.getBeginOffset(),
-                     morsel.getEndOffset(), *scanState)) {
+            for (auto chunk :
+                graph->scanVertices(morsel.getBeginOffset(), morsel.getEndOffset(), *scanState)) {
                 localVc->vertexCompute(chunk);
             }
         }
     } else {
         while (sharedState->morselDispatcher.getNextRangeMorsel(morsel)) {
-            localVc->vertexCompute(morsel.getBeginOffset(),
-                morsel.getEndOffset(), tableID);
+            localVc->vertexCompute(morsel.getBeginOffset(), morsel.getEndOffset(), tableID);
         }
     }
 }

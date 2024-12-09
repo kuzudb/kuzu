@@ -96,30 +96,23 @@ protected:
  * If enabled, this frontier represents a complete frontier.
  * Otherwise, complete frontier is larger than this sparse frontier.
  * */
-class KUZU_API SparseFrontier  {
+class KUZU_API SparseFrontier {
 public:
-    SparseFrontier() : enabled_{true}, curTableID{common::INVALID_TABLE_ID}, curOffsetSet{nullptr} {}
+    SparseFrontier()
+        : enabled_{true}, curTableID{common::INVALID_TABLE_ID}, curOffsetSet{nullptr} {}
 
-    void disable() {
-        enabled_ = false;
-    }
+    void disable() { enabled_ = false; }
     void resetState() {
         enabled_ = true;
         curOffsetSet = nullptr;
         tableIDToOffsetMap.clear();
     }
-    bool enabled() const {
-        return enabled_;
-    }
+    bool enabled() const { return enabled_; }
 
     void pinTableID(common::table_id_t tableID);
 
-    common::table_id_t getTableID() const {
-        return curTableID;
-    }
-    const std::unordered_set<common::offset_t>& getOffsetSet() const {
-        return *curOffsetSet;
-    }
+    common::table_id_t getTableID() const { return curTableID; }
+    const std::unordered_set<common::offset_t>& getOffsetSet() const { return *curOffsetSet; }
 
     void addNode(common::nodeID_t nodeID);
     void addNodes(const std::vector<common::nodeID_t> nodeIDs);
@@ -133,7 +126,7 @@ private:
 
     std::mutex mtx;
     bool enabled_;
-    std::unordered_map<common::table_id_t, std::unordered_set<common::offset_t >> tableIDToOffsetMap;
+    std::unordered_map<common::table_id_t, std::unordered_set<common::offset_t>> tableIDToOffsetMap;
     common::table_id_t curTableID;
     std::unordered_set<common::offset_t>* curOffsetSet;
 };

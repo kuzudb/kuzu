@@ -147,8 +147,9 @@ void runFrontiersOnce(processor::ExecutionContext* executionContext, QFTSState& 
     auto& appearsInTableInfo = relTableIDInfos[0];
     frontierPair->beginFrontierComputeBetweenTables(appearsInTableInfo.fromNodeTableID,
         appearsInTableInfo.toNodeTableID);
-    GDSUtils::scheduleFrontierTask(appearsInTableInfo.toNodeTableID, appearsInTableInfo.relTableID, graph, ExtendDirection::FWD,
-        qFtsState, executionContext, 1 /* numThreads */, tfPropertyIdx);
+    GDSUtils::scheduleFrontierTask(appearsInTableInfo.toNodeTableID, appearsInTableInfo.relTableID,
+        graph, ExtendDirection::FWD, qFtsState, executionContext, 1 /* numThreads */,
+        tfPropertyIdx);
 }
 
 class QFTSOutputWriter {
