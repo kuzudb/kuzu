@@ -60,7 +60,7 @@ Carol|[29,24,11]||2001-04-15 00:00:00|{age: 33, gender: female}
 -LOG InvalidDeltaPath
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/student'(file_format='delta') RETURN *
 ---- error
-Binder exception: No file found that matches the pattern: /Users/z473chen/Desktop/code/kuzu/student.
+Binder exception: No file found that matches the pattern: ${KUZU_ROOT_DIRECTORY}/student.
 
 -LOG InvalidDeltaTable
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/src' (file_format='delta') RETURN *
