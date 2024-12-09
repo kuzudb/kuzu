@@ -24,7 +24,10 @@ public:
     void setCardinality(cardinality_t cardinality) { estCardinality = cardinality; }
     cardinality_t getCardinality() const { return estCardinality; }
 
-    void setCost(uint64_t cost_) { cost = cost_; }
+    void setCost(uint64_t cost_) {
+        KU_ASSERT(cost_ >= 1);
+        cost = cost_;
+    }
     uint64_t getCost() const { return cost; }
 
     std::string toString() const { return lastOperator->toString(); }

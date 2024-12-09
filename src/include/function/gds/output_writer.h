@@ -33,29 +33,29 @@ public:
 
 struct SPOutputs : public RJOutputs {
 public:
-    SPOutputs(common::table_id_map_t<common::offset_t> numNodesMap, common::nodeID_t sourceNodeID,
-        storage::MemoryManager* mm);
+    SPOutputs(common::nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths)
+        : RJOutputs{sourceNodeID}, pathLengths{std::move(pathLengths)} {}
 
 public:
     std::shared_ptr<PathLengths> pathLengths;
 };
 
 struct PathsOutputs : public SPOutputs {
-    PathsOutputs(common::table_id_map_t<common::offset_t> numNodesMap,
-        common::nodeID_t sourceNodeID, storage::MemoryManager* mm = nullptr)
-        : SPOutputs(numNodesMap, sourceNodeID, mm), bfsGraph{numNodesMap, mm} {}
+    PathsOutputs(common::nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths,
+        std::unique_ptr<BFSGraph> bfsGraph)
+        : SPOutputs(sourceNodeID, std::move(pathLengths)), bfsGraph{std::move(bfsGraph)} {}
 
     void beginFrontierComputeBetweenTables(common::table_id_t,
         common::table_id_t nextFrontierTableID) override {
         // Note: We do not fix the node table for pathLengths, which is inherited from AllSPOutputs.
         // See the comment in SingleSPOutputs::beginFrontierComputeBetweenTables() for details.
-        bfsGraph.pinNodeTable(nextFrontierTableID);
+        bfsGraph->pinTableID(nextFrontierTableID);
     };
 
     void beginWritingOutputsForDstNodesInTable(common::table_id_t tableID) override;
 
 public:
-    BFSGraph bfsGraph;
+    std::unique_ptr<BFSGraph> bfsGraph;
 };
 
 class RJOutputWriter {
@@ -179,7 +179,7 @@ protected:
         // For single/all shortest path computations, we do not output any results from source to
         // source. We also do not output any results if a destination node has not been reached.
         return dstNodeID == pathsOutputs->sourceNodeID ||
-               nullptr == pathsOutputs->bfsGraph.getParentListHead(dstNodeID.offset);
+               nullptr == pathsOutputs->bfsGraph->getParentListHead(dstNodeID.offset);
     }
 };
 

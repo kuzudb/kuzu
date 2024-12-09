@@ -25,9 +25,9 @@ class PathMultiplicities {
     using multiplicity_entry_t = std::atomic<uint64_t>;
 
 public:
-    PathMultiplicities(std::unordered_map<common::table_id_t, uint64_t> nodeTableIDAndNumNodes,
+    PathMultiplicities(std::unordered_map<common::table_id_t, uint64_t> numNodesMap,
         storage::MemoryManager* mm) {
-        for (auto& [tableID, numNodes] : nodeTableIDAndNumNodes) {
+        for (auto& [tableID, numNodes] : numNodesMap) {
             multiplicityArray.allocate(tableID, numNodes, mm);
             // Question to Trevor: Do I need to use atomics? If so, why?
             auto data = multiplicityArray.getData(tableID);
@@ -92,30 +92,29 @@ private:
 
 struct AllSPDestinationsOutputs : public SPOutputs {
 public:
-    AllSPDestinationsOutputs(std::unordered_map<table_id_t, uint64_t> nodeTableIDAndNumNodes,
-        nodeID_t sourceNodeID, MemoryManager* mm = nullptr)
-        : SPOutputs(nodeTableIDAndNumNodes, sourceNodeID, mm),
-          multiplicities{nodeTableIDAndNumNodes, mm} {}
+    AllSPDestinationsOutputs(nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths,
+        std::shared_ptr<PathMultiplicities> multiplicities)
+        : SPOutputs{sourceNodeID, pathLengths}, multiplicities{multiplicities} {}
 
     void initRJFromSource(nodeID_t source) override {
-        multiplicities.incrementMultiplicity(source, 1);
+        multiplicities->incrementMultiplicity(source, 1);
     }
 
     void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
         table_id_t nextFrontierTableID) override {
         // Note: We do not fix the node table for pathLengths, which is inherited from AllSPOutputs.
         // See the comment in SingleSPOutputs::beginFrontierComputeBetweenTables() for details.
-        multiplicities.fixBoundNodeTable(curFrontierTableID);
-        multiplicities.fixTargetNodeTable(nextFrontierTableID);
+        multiplicities->fixBoundNodeTable(curFrontierTableID);
+        multiplicities->fixTargetNodeTable(nextFrontierTableID);
     };
 
     void beginWritingOutputsForDstNodesInTable(table_id_t tableID) override {
         pathLengths->pinCurFrontierTableID(tableID);
-        multiplicities.fixTargetNodeTable(tableID);
+        multiplicities->fixTargetNodeTable(tableID);
     }
 
 public:
-    PathMultiplicities multiplicities;
+    std::shared_ptr<PathMultiplicities> multiplicities;
 };
 
 class AllSPDestinationsOutputWriter : public DestinationsOutputWriter {
@@ -130,7 +129,7 @@ public:
         auto length = outputs->pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset);
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
         lengthVector->setValue<uint16_t>(0, length);
-        auto multiplicity = outputs->multiplicities.getTargetMultiplicity(dstNodeID.offset);
+        auto multiplicity = outputs->multiplicities->getTargetMultiplicity(dstNodeID.offset);
         for (auto i = 0u; i < multiplicity; ++i) {
             fTable.append(vectors);
         }
@@ -245,15 +244,18 @@ public:
 private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
-        auto output = std::make_unique<AllSPDestinationsOutputs>(
-            sharedState->graph->getNumNodesMap(clientContext->getTx()), sourceNodeID,
-            clientContext->getMemoryManager());
+        auto frontier = getPathLengthsFrontier(context);
+        auto numNodesMap = sharedState->graph->getNumNodesMap(clientContext->getTx());
+        auto mm = clientContext->getMemoryManager();
+        auto multiplicities = std::make_shared<PathMultiplicities>(numNodesMap, mm);
+        auto output =
+            std::make_unique<AllSPDestinationsOutputs>(sourceNodeID, frontier, multiplicities);
         auto outputWriter = std::make_unique<AllSPDestinationsOutputWriter>(clientContext,
             output.get(), sharedState->getOutputNodeMaskMap());
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute = std::make_unique<AllSPDestinationsEdgeCompute>(frontierPair.get(),
-            &output->multiplicities);
+            output->multiplicities.get());
         return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),
             std::move(outputWriter));
     }
@@ -279,9 +281,9 @@ public:
 private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
-        auto output = std::make_unique<PathsOutputs>(
-            sharedState->graph->getNumNodesMap(clientContext->getTx()), sourceNodeID,
-            clientContext->getMemoryManager());
+        auto frontier = getPathLengthsFrontier(context);
+        auto bfsGraph = getBFSGraph(context);
+        auto output = std::make_unique<PathsOutputs>(sourceNodeID, frontier, std::move(bfsGraph));
         auto rjBindData = bindData->ptrCast<RJBindData>();
         auto writerInfo = rjBindData->getPathWriterInfo();
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
@@ -290,7 +292,7 @@ private:
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute =
-            std::make_unique<AllSPPathsEdgeCompute>(frontierPair.get(), &output->bfsGraph);
+            std::make_unique<AllSPPathsEdgeCompute>(frontierPair.get(), output->bfsGraph.get());
         return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),
             std::move(outputWriter));
     }

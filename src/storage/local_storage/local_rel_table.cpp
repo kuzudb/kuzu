@@ -107,7 +107,8 @@ bool LocalRelTable::delete_(Transaction* transaction, TableDeleteState& state) {
 }
 
 bool LocalRelTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
-    localNodeGroup->addColumn(transaction, addColumnState, nullptr /* FileHandle */);
+    localNodeGroup->addColumn(transaction, addColumnState, nullptr /* FileHandle */,
+        nullptr /* newColumnStats */);
     return true;
 }
 

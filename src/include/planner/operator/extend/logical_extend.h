@@ -13,10 +13,13 @@ public:
     LogicalExtend(std::shared_ptr<binder::NodeExpression> boundNode,
         std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
         common::ExtendDirection direction, bool extendFromSource,
-        binder::expression_vector properties, std::shared_ptr<LogicalOperator> child)
+        binder::expression_vector properties, std::shared_ptr<LogicalOperator> child,
+        common::cardinality_t cardinality = 0)
         : BaseLogicalExtend{type_, std::move(boundNode), std::move(nbrNode), std::move(rel),
               direction, extendFromSource, std::move(child)},
-          scanNbrID{true}, properties{std::move(properties)} {}
+          scanNbrID{true}, properties{std::move(properties)} {
+        this->cardinality = cardinality;
+    }
 
     f_group_pos_set getGroupsPosToFlatten() override { return f_group_pos_set{}; }
     void computeFactorizedSchema() override;

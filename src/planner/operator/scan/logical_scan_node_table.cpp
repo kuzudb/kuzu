@@ -10,6 +10,7 @@ LogicalScanNodeTable::LogicalScanNodeTable(const LogicalScanNodeTable& other)
     if (other.extraInfo != nullptr) {
         setExtraInfo(other.extraInfo->copy());
     }
+    this->cardinality = other.cardinality;
 }
 
 void LogicalScanNodeTable::computeFactorizedSchema() {

@@ -47,10 +47,6 @@ PathLengths::PathLengths(const common::table_id_map_t<common::offset_t>& numNode
     curIter.store(0);
     for (const auto& [tableID, numNodes] : numNodesMap_) {
         auto memBuffer = mm->allocateBuffer(false, numNodes * sizeof(frontier_entry_t));
-        auto memBufferPtr = reinterpret_cast<frontier_entry_t*>(memBuffer.get()->getData());
-        for (uint64_t i = 0; i < numNodes; ++i) {
-            memBufferPtr[i].store(UNVISITED, std::memory_order_relaxed);
-        }
         masks.insert({tableID, std::move(memBuffer)});
     }
 }
@@ -91,6 +87,19 @@ void WCCFrontier::setCurActive(common::nodeID_t nodeID) {
     auto& memBuffer = curActiveNodes.find(nodeID.tableID)->second;
     std::atomic<bool>* memBufferPtr = reinterpret_cast<std::atomic<bool>*>(memBuffer->getData());
     memBufferPtr[nodeID.offset].store(static_cast<bool>(true), std::memory_order_relaxed);
+}
+
+bool PathLengthsInitVertexCompute::beginOnTable(common::table_id_t tableID) {
+    pathLengths.pinTableID(tableID);
+    return true;
+}
+
+void PathLengthsInitVertexCompute::vertexCompute(common::offset_t startOffset,
+    common::offset_t endOffset, common::table_id_t) {
+    auto frontier = pathLengths.getCurFrontier();
+    for (auto i = startOffset; i < endOffset; ++i) {
+        frontier[i].store(PathLengths::UNVISITED);
+    }
 }
 
 FrontierPair::FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,

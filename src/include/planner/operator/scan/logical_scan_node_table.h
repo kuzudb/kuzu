@@ -71,9 +71,12 @@ class LogicalScanNodeTable final : public LogicalOperator {
 
 public:
     LogicalScanNodeTable(std::shared_ptr<binder::Expression> nodeID,
-        std::vector<common::table_id_t> nodeTableIDs, binder::expression_vector properties)
+        std::vector<common::table_id_t> nodeTableIDs, binder::expression_vector properties,
+        common::cardinality_t cardinality = 0)
         : LogicalOperator{type_}, scanType{defaultScanType}, nodeID{std::move(nodeID)},
-          nodeTableIDs{std::move(nodeTableIDs)}, properties{std::move(properties)} {}
+          nodeTableIDs{std::move(nodeTableIDs)}, properties{std::move(properties)} {
+        this->cardinality = cardinality;
+    }
     LogicalScanNodeTable(const LogicalScanNodeTable& other);
 
     void computeFactorizedSchema() override;

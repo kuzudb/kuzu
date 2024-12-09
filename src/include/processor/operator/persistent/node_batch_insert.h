@@ -8,6 +8,7 @@
 #include "processor/operator/persistent/index_builder.h"
 #include "processor/operator/table_function_call.h"
 #include "storage/store/chunked_node_group.h"
+#include <storage/stats/table_stats.h>
 
 namespace kuzu {
 namespace storage {
@@ -97,6 +98,13 @@ struct NodeBatchInsertLocalState final : BatchInsertLocalState {
 
     std::shared_ptr<common::DataChunkState> columnState;
     std::vector<common::ValueVector*> columnVectors;
+
+    storage::TableStats stats;
+
+    explicit NodeBatchInsertLocalState(std::span<common::LogicalType> outputDataTypes)
+        : stats{outputDataTypes} {}
+
+    void append();
 };
 
 class NodeBatchInsert final : public BatchInsert {
@@ -125,8 +133,8 @@ public:
             resultSetDescriptor->copy(), children[0]->clone(), id, printInfo->copy());
     }
 
-    // The node group will be reset so that the only values remaining are the ones which were not
-    // written
+    // The node group will be reset so that the only values remaining are the ones which were
+    // not written
     void writeAndResetNodeGroup(transaction::Transaction* transaction,
         std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
         std::optional<IndexBuilder>& indexBuilder, storage::MemoryManager* mm) const;

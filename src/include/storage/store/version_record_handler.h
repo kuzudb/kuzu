@@ -12,7 +12,7 @@ class ChunkedNodeGroup;
 using version_record_handler_op_t = void (
     ChunkedNodeGroup::*)(common::row_idx_t, common::row_idx_t, common::transaction_t);
 
-// Note: these iterators are not necessarily thread-safe when used on their own
+// Note: these handlers are not safe to use in multi-threaded contexts without external locking
 class VersionRecordHandler {
 public:
     virtual ~VersionRecordHandler() = default;

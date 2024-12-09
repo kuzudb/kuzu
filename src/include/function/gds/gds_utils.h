@@ -41,11 +41,16 @@ public:
     static void runFrontiersUntilConvergence(processor::ExecutionContext* executionContext,
         RJCompState& rjCompState, graph::Graph* graph, common::ExtendDirection extendDirection,
         uint64_t maxIters);
-    static void runVertexComputeOnTable(common::table_id_t tableID, graph::Graph* graph,
-        std::shared_ptr<VertexComputeTaskSharedState> sharedState,
-        const VertexComputeTaskInfo& info, processor::ExecutionContext& context);
-    static void runVertexComputeIteration(processor::ExecutionContext* executionContext,
-        graph::Graph* graph, VertexCompute& vc, std::vector<std::string> propertiesToScan = {});
+
+    // Run vertex compute without property scan
+    static void runVertexCompute(processor::ExecutionContext* context, graph::Graph* graph,
+        VertexCompute& vc);
+    // Run vertex compute with property scan
+    static void runVertexCompute(processor::ExecutionContext* context, graph::Graph* graph,
+        VertexCompute& vc, std::vector<std::string> propertiesToScan);
+    // Run vertex compute on specific table with property scan
+    static void runVertexCompute(processor::ExecutionContext* context, graph::Graph* graph,
+        VertexCompute& vc, common::table_id_t tableID, std::vector<std::string> propertiesToScan);
 };
 
 } // namespace function

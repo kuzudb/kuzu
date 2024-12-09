@@ -73,7 +73,19 @@ public:
 
     void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
 
-    TableStats getStats() const { return stats.copy(); }
+    TableStats getStats() const {
+        auto lock = nodeGroups.lock();
+        return stats.copy();
+    }
+    TableStats getStats(const common::UniqLock& lock) const {
+        KU_ASSERT(lock.isLocked());
+        KU_UNUSED(lock);
+        return stats.copy();
+    }
+    void mergeStats(const TableStats& stats) {
+        auto lock = nodeGroups.lock();
+        this->stats.merge(stats);
+    }
 
     void serialize(common::Serializer& ser);
     void deserialize(common::Deserializer& deSer, MemoryManager& memoryManager);

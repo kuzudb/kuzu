@@ -120,8 +120,9 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitCrossProductRepla
     if (joinConditions.empty()) { // Nothing to push down. Terminate.
         return finishPushDown(op);
     }
+    // we don't need cardinality after planning is complete
     auto hashJoin = std::make_shared<LogicalHashJoin>(joinConditions, JoinType::INNER,
-        nullptr /* mark */, op->getChild(0), op->getChild(1));
+        nullptr /* mark */, op->getChild(0), op->getChild(1), 0 /* cardinality */);
     // For non-id based joins, we disable side way information passing.
     hashJoin->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT;
     hashJoin->computeFlatSchema();
