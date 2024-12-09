@@ -3,6 +3,7 @@
 #include "main/client_context.h"
 #include "optimizer/acc_hash_join_optimizer.h"
 #include "optimizer/agg_key_dependency_optimizer.h"
+#include "optimizer/cardinality_updater.h"
 #include "optimizer/correlated_subquery_unnest_solver.h"
 #include "optimizer/factorization_rewriter.h"
 #include "optimizer/filter_push_down_optimizer.h"
@@ -11,11 +12,13 @@
 #include "optimizer/remove_factorization_rewriter.h"
 #include "optimizer/remove_unnecessary_join_optimizer.h"
 #include "optimizer/top_k_optimizer.h"
+#include "planner/join_order/cardinality_estimator.h"
 
 namespace kuzu {
 namespace optimizer {
 
-void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* context) {
+void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* context,
+    const planner::CardinalityEstimator& cardinalityEstimator) {
     // Factorization structure should be removed before further optimization can be applied.
     auto removeFactorizationRewriter = RemoveFactorizationRewriter();
     removeFactorizationRewriter.rewrite(plan);
@@ -52,6 +55,9 @@ void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* contex
     // FactorizationRewriter.
     auto aggKeyDependencyOptimizer = AggKeyDependencyOptimizer();
     aggKeyDependencyOptimizer.rewrite(plan);
+
+    auto cardinalityUpdater = CardinalityUpdater(cardinalityEstimator, context->getTx());
+    cardinalityUpdater.rewrite(plan);
 }
 
 } // namespace optimizer

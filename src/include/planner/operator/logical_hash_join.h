@@ -54,8 +54,9 @@ public:
     // flattening probe key, instead duplicating keys as in vectorized processing if necessary.
     bool requireFlatProbeKeys();
 
-private:
     bool isNodeIDOnlyJoin() const;
+
+private:
     bool isJoinKeyUniqueOnBuildSide(const binder::Expression& joinNodeID);
 
 private:

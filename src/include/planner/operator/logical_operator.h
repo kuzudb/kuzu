@@ -75,7 +75,7 @@ struct LogicalOperatorUtils {
 class LogicalOperator {
 public:
     explicit LogicalOperator(LogicalOperatorType operatorType)
-        : operatorType{operatorType}, cardinality{0} {}
+        : operatorType{operatorType}, cardinality{1} {}
     explicit LogicalOperator(LogicalOperatorType operatorType,
         std::shared_ptr<LogicalOperator> child,
         std::optional<common::cardinality_t> cardinality = {});
