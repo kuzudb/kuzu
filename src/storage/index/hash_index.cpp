@@ -599,7 +599,7 @@ void PrimaryKeyIndex::checkpoint(bool forceCheckpointAll) {
         hashIndexDiskArrays->checkpoint();
     }
     if (overflowFile) {
-        overflowFile->checkpoint();
+        overflowFile->checkpoint(forceCheckpointAll);
     }
     // Make sure that changes which bypassed the WAL are written.
     // There is no other mechanism for enforcing that they are flushed
