@@ -5,9 +5,9 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/copier_config/csv_reader_config.h"
 #include "common/exception/binder.h"
+#include "common/file_system/local_file_system.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
-#include "common/file_system/local_file_system.h"
 #include "function/built_in_function_utils.h"
 #include "function/table_functions.h"
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
@@ -206,11 +206,14 @@ function::TableFunction Binder::getScanFunction(FileTypeInfo typeInfo, const Rea
     std::vector<LogicalType> inputTypes;
     inputTypes.push_back(LogicalType::STRING());
     auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
-    // If we defined a certain FileType, we have to ensure the path is a file, not something else (e.g. an existed directory)
+    // If we defined a certain FileType, we have to ensure the path is a file, not something else
+    // (e.g. an existed directory)
     if (typeInfo.fileType != FileType::UNKNOWN) {
         for (const auto& filePath : config.filePaths) {
-            if (!common::LocalFileSystem::fileExists(filePath) && common::LocalFileSystem::isLocalPath(filePath)) {
-                throw common::BinderException{common::stringFormat("Provided path is not a file: {}." , filePath)};
+            if (!common::LocalFileSystem::fileExists(filePath) &&
+                common::LocalFileSystem::isLocalPath(filePath)) {
+                throw common::BinderException{
+                    common::stringFormat("Provided path is not a file: {}.", filePath)};
             }
         }
     }
