@@ -7,6 +7,7 @@
 #pragma GCC diagnostic pop
 
 #include "common/exception/parser.h"
+#include "common/string_utils.h"
 #include "main/client_context.h"
 #include "parser/antlr_parser/kuzu_cypher_parser.h"
 #include "parser/antlr_parser/parser_error_listener.h"
@@ -28,7 +29,16 @@ std::vector<std::shared_ptr<Statement>> Parser::parseQuery(std::string_view quer
             "Cannot parse empty query. This should be handled in connection.");
     }
     // LCOV_EXCL_STOP
-    auto inputStream = ANTLRInputStream(query);
+    auto queryStr = std::string(query);
+    auto validCharPos = 0u;
+    for (; validCharPos < queryStr.size(); validCharPos++) {
+        if (!common::StringUtils::isSpace(queryStr[validCharPos]) &&
+            !common::StringUtils::characterIsNewLine(queryStr[validCharPos])) {
+            break;
+        }
+    }
+    queryStr = queryStr.substr(validCharPos);
+    auto inputStream = ANTLRInputStream(queryStr);
     auto parserErrorListener = ParserErrorListener();
 
     auto cypherLexer = CypherLexer(&inputStream);
