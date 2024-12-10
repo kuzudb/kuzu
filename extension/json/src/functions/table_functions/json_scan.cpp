@@ -49,10 +49,10 @@ struct JsonScanConfig {
     int64_t breadth = JsonConstant::DEFAULT_JSON_DETECT_BREADTH;
     bool autoDetect = JsonConstant::DEFAULT_AUTO_DETECT_VALUE;
 
-    explicit JsonScanConfig(const std::unordered_map<std::string, Value>& options);
+    explicit JsonScanConfig(const common::case_insensitive_map_t<Value>& options);
 };
 
-JsonScanConfig::JsonScanConfig(const std::unordered_map<std::string, Value>& options) {
+JsonScanConfig::JsonScanConfig(const common::case_insensitive_map_t<Value>& options) {
     for (const auto& i : options) {
         if (i.first == "FORMAT") {
             if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::STRING) {

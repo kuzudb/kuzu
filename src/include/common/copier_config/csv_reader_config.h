@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/case_insensitive_map.h"
 #include "common/constants.h"
 #include "common/copy_constructors.h"
 #include "common/types/value/value.h"
@@ -95,7 +96,7 @@ struct CSVReaderConfig {
     CSVReaderConfig() : option{}, parallel{CopyConstants::DEFAULT_CSV_PARALLEL} {}
     EXPLICIT_COPY_DEFAULT_MOVE(CSVReaderConfig);
 
-    static CSVReaderConfig construct(const std::unordered_map<std::string, common::Value>& options);
+    static CSVReaderConfig construct(const case_insensitive_map_t<common::Value>& options);
 
 private:
     CSVReaderConfig(const CSVReaderConfig& other)

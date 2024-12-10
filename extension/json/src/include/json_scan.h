@@ -6,7 +6,7 @@ namespace kuzu {
 namespace json_extension {
 
 struct JsonScan {
-    static constexpr const char* name = common::SCAN_JSON_FUNC_NAME;
+    static constexpr const char* name = "JSON_SCAN";
 
     static std::unique_ptr<function::TableFunction> getFunction();
 };

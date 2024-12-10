@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/case_insensitive_map.h"
 #include "common/types/value/value.h"
 #include "function/function.h"
 
@@ -51,7 +52,7 @@ struct ExportFuncBindData {
 struct ExportFuncBindInput {
     std::vector<std::string> columnNames;
     std::string filePath;
-    std::unordered_map<std::string, common::Value> parsingOptions;
+    common::case_insensitive_map_t<common::Value> parsingOptions;
 };
 
 using export_bind_t =

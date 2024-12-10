@@ -309,6 +309,11 @@ std::string LocalFileSystem::expandPath(main::ClientContext* context,
     return fullPath;
 }
 
+bool LocalFileSystem::isLocalPath(const std::string& path) {
+    return path.rfind("s3://", 0) != 0 && path.rfind("http://", 0) != 0 &&
+           path.rfind("https://", 0) != 0;
+}
+
 void LocalFileSystem::readFromFile(FileInfo& fileInfo, void* buffer, uint64_t numBytes,
     uint64_t position) const {
     auto localFileInfo = fileInfo.constPtrCast<LocalFileInfo>();

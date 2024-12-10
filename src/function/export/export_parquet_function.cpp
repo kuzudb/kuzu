@@ -16,7 +16,7 @@ struct ParquetOptions {
     kuzu_parquet::format::CompressionCodec::type codec =
         kuzu_parquet::format::CompressionCodec::SNAPPY;
 
-    explicit ParquetOptions(std::unordered_map<std::string, common::Value> parsingOptions) {
+    explicit ParquetOptions(case_insensitive_map_t<common::Value> parsingOptions) {
         for (auto& [name, value] : parsingOptions) {
             if (name == "COMPRESSION") {
                 setCompression(value);
