@@ -1,4 +1,5 @@
 #include "graph_test/graph_test.h"
+#include "planner/operator/logical_filter.h"
 #include "planner/operator/logical_plan_util.h"
 #include "test_runner/test_runner.h"
 
@@ -111,6 +112,27 @@ TEST_F(OptimizerTest, FilterDifferentPropertiesTest) {
     auto q1 = "MATCH (a:person {gender:1})-[f]->(b:person {age: 30}) RETURN b;";
     auto ans = getEncodedPlan(q1);
     ASSERT_STREQ(ans.c_str(), "HJ(a._ID){E(a)Filter()S(b)}{Filter()S(a)}");
+}
+
+TEST_F(OptimizerTest, SingleNodeTwoHopJoins) {
+#if defined(WIN32)
+    // Skip on windows as we don't generate consistent plan as on other platforms.
+    // TODO(Guodong/Xiyang): We should make sure the plan is consistent on all platforms.
+    GTEST_SKIP();
+#else
+    auto q1 =
+        "MATCH (a:person)-[e:knows]->(b:person)-[e2:knows]->(c:person) WHERE b.ID=0 RETURN a,b,c;";
+    ASSERT_STREQ(getEncodedPlan(q1).c_str(),
+        "HJ(c._ID){Filter()S(c)}{HJ(a._ID){S(a)}{E(c)E(a)IndexScan(b)}}");
+    auto q2 = "MATCH (a:person)-[e:knows]->(b:person)-[e2:knows]->(c:person) WHERE a.ID=0 "
+              "RETURN a,b,c;";
+    ASSERT_STREQ(getEncodedPlan(q2).c_str(),
+        "HJ(c._ID){S(c)}{HJ(b._ID){E(c)S(b)}{E(b)IndexScan(a)}}");
+    auto q3 = "MATCH (a:person)-[e:knows]->(b:person)-[e2:knows]->(c:person) WHERE c.ID=0 "
+              "RETURN a,b,c;";
+    ASSERT_STREQ(getEncodedPlan(q3).c_str(),
+        "HJ(a._ID){S(a)}{HJ(b._ID){E(a)S(b)}{E(b)IndexScan(c)}}");
+#endif
 }
 
 } // namespace testing
