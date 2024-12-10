@@ -50,6 +50,9 @@ QueryFTSConfig::QueryFTSConfig(const function::optional_params_t& optionalParams
             value.validateType(B::TYPE);
             b = value.getValue<double>();
             B::validate(b);
+        } else if (Conjunctive::NAME == lowerCaseName) {
+            value.validateType(Conjunctive::TYPE);
+            isConjunctive = value.getValue<bool>();
         } else {
             throw common::BinderException{"Unrecognized optional parameter: " + name};
         }
