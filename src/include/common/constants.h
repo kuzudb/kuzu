@@ -245,7 +245,5 @@ static constexpr char LOCAL_DB_NAME[] = "local(kuzu)";
 
 constexpr auto DECIMAL_PRECISION_LIMIT = 38;
 
-static constexpr char SCAN_JSON_FUNC_NAME[] = "READ_JSON";
-
 } // namespace common
 } // namespace kuzu

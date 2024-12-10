@@ -5,6 +5,7 @@
 #include "common/exception/binder.h"
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
+#include "common/file_system/local_file_system.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
@@ -24,7 +25,8 @@ namespace binder {
 FileTypeInfo bindSingleFileType(main::ClientContext* context, const std::string& filePath) {
     std::filesystem::path fileName(filePath);
     auto extension = context->getVFSUnsafe()->getFileExtension(fileName);
-    return FileTypeInfo{FileTypeUtils::getFileTypeFromExtension(extension), extension.substr(1)};
+    return FileTypeInfo{FileTypeUtils::getFileTypeFromExtension(extension),
+        extension.substr(std::min<uint64_t>(1, extension.length()))};
 }
 
 FileTypeInfo Binder::bindFileTypeInfo(const std::vector<std::string>& filePaths) {
@@ -43,6 +45,14 @@ FileTypeInfo Binder::bindFileTypeInfo(const std::vector<std::string>& filePaths)
 std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& filePaths) {
     std::vector<std::string> boundFilePaths;
     for (auto& filePath : filePaths) {
+        // This is a temporary workaround because we use duckdb to read from iceberg/delta.
+        // When we read delta/iceberg tables from s3/httpfs, we don't have the httpfs extension
+        // loaded meaning that we cannot handle remote paths. So we pass the file path to duckdb
+        // for validation when we bindFileScanSource.
+        if (!LocalFileSystem::isLocalPath(filePath)) {
+            boundFilePaths.push_back(filePath);
+            continue;
+        }
         auto globbedFilePaths = clientContext->getVFSUnsafe()->glob(clientContext, filePath);
         if (globbedFilePaths.empty()) {
             throw BinderException{
@@ -55,9 +65,8 @@ std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& f
     return boundFilePaths;
 }
 
-std::unordered_map<std::string, Value> Binder::bindParsingOptions(
-    const parser::options_t& parsingOptions) {
-    std::unordered_map<std::string, Value> options;
+case_insensitive_map_t<Value> Binder::bindParsingOptions(const parser::options_t& parsingOptions) {
+    case_insensitive_map_t<Value> options;
     for (auto& option : parsingOptions) {
         auto name = option.first;
         common::StringUtils::toUpper(name);
@@ -92,9 +101,17 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     const std::vector<LogicalType>& columnTypes) {
     auto fileSource = scanSource.constPtrCast<FileScanSource>();
     auto filePaths = bindFilePaths(fileSource->filePaths);
-    auto fileTypeInfo = bindFileTypeInfo(filePaths);
+    auto parsingOptions = bindParsingOptions(options);
+    FileTypeInfo fileTypeInfo;
+    if (parsingOptions.contains(ReaderConfig::FILE_FORMAT_OPTION_NAME)) {
+        auto fileFormat = parsingOptions.at(ReaderConfig::FILE_FORMAT_OPTION_NAME).toString();
+        fileTypeInfo = FileTypeInfo{FileTypeUtils::fromString(fileFormat), fileFormat};
+        parsingOptions.erase(ReaderConfig::FILE_FORMAT_OPTION_NAME);
+    } else {
+        fileTypeInfo = bindFileTypeInfo(filePaths);
+    }
     auto config = std::make_unique<ReaderConfig>(std::move(fileTypeInfo), std::move(filePaths));
-    config->options = bindParsingOptions(options);
+    config->options = std::move(parsingOptions);
     auto func = getScanFunction(config->fileTypeInfo, *config);
     auto bindInput = std::make_unique<ScanTableFuncBindInput>(config->copy(), columnNames,
         LogicalType::copy(columnTypes), clientContext, &func);

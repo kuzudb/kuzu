@@ -110,7 +110,7 @@ static bool isValidBooleanOptionValue(const Value& value, const std::string& nam
 }
 
 CSVReaderConfig CSVReaderConfig::construct(
-    const std::unordered_map<std::string, common::Value>& options) {
+    const common::case_insensitive_map_t<common::Value>& options) {
     auto config = CSVReaderConfig();
     for (auto& op : options) {
         auto name = op.first;

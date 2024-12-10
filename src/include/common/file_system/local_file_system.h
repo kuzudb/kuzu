@@ -52,6 +52,8 @@ public:
 
     void cleanUP(main::ClientContext* /*context*/) override {};
 
+    static bool isLocalPath(const std::string& path);
+
 protected:
     void readFromFile(FileInfo& fileInfo, void* buffer, uint64_t numBytes,
         uint64_t position) const override;
