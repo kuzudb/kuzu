@@ -9,8 +9,7 @@ namespace kuzu {
 namespace planner {
 
 uint64_t CostModel::computeExtendCost(const LogicalPlan& childPlan) {
-    KU_ASSERT(childPlan.estCardinality >= 1);
-    return childPlan.estCardinality;
+    return childPlan.getCost() + childPlan.estCardinality;
 }
 
 uint64_t CostModel::computeRecursiveExtendCost(uint8_t upperBound, double extensionRate,
