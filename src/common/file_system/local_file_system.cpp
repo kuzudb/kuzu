@@ -10,6 +10,7 @@
 #include "main/settings.h"
 
 #if defined(_WIN32)
+#include "common/windows_utils.h"
 #include <fileapi.h>
 #include <io.h>
 #include <windows.h>
@@ -297,6 +298,35 @@ void LocalFileSystem::removeFileIfExists(const std::string& path) {
 bool LocalFileSystem::fileOrPathExists(const std::string& path, main::ClientContext* /*context*/) {
     return std::filesystem::exists(path);
 }
+
+#ifndef _WIN32
+bool LocalFileSystem::fileExists(const std::string& filename) {
+    if (!filename.empty()) {
+        if (access(filename.c_str(), 0) == 0) {
+            struct stat status = {};
+            stat(filename.c_str(), &status);
+            if (S_ISREG(status.st_mode)) {
+                return true;
+            }
+        }
+    }
+    // if any condition fails
+    return false;
+}
+#else
+bool LocalFileSystem::fileExists(const std::string& filename) {
+    auto unicode_path = WindowsUtils::utf8ToUnicode(filename.c_str());
+    const wchar_t* wpath = unicode_path.c_str();
+    if (_waccess(wpath, 0) == 0) {
+        struct _stati64 status = {};
+        _wstati64(wpath, &status);
+        if (status.st_mode & S_IFREG) {
+            return true;
+        }
+    }
+    return false;
+}
+#endif
 
 std::string LocalFileSystem::expandPath(main::ClientContext* context,
     const std::string& path) const {
