@@ -664,7 +664,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
 
 std::unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
     CypherParser::OC_DoubleLiteralContext& ctx) {
-    auto text = ctx.ExponentDecimalReal() ? ctx.ExponentDecimalReal()->getText() : ctx.RegularDecimalReal()->getText();
+    auto text = ctx.ExponentDecimalReal() ? ctx.ExponentDecimalReal()->getText() :
+                                            ctx.RegularDecimalReal()->getText();
     ku_string_t literal{text.c_str(), text.length()};
     double result = 0;
     function::CastString::operation(literal, result);
