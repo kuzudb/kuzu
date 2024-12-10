@@ -1,0 +1,83 @@
+{
+  "format-version" : 2,
+  "table-uuid" : "f2de2ab3-5ac3-4c26-af2f-99524f0d032c",
+  "location" : "/home/sterling/Desktop/iceberg_warehouse/person_table",
+  "last-sequence-number" : 1,
+  "last-updated-ms" : 1733347688316,
+  "last-column-id" : 4,
+  "current-schema-id" : 0,
+  "schemas" : [ {
+    "type" : "struct",
+    "schema-id" : 0,
+    "fields" : [ {
+      "id" : 1,
+      "name" : "name",
+      "required" : false,
+      "type" : "string"
+    }, {
+      "id" : 2,
+      "name" : "age",
+      "required" : false,
+      "type" : "long"
+    }, {
+      "id" : 3,
+      "name" : "salary",
+      "required" : false,
+      "type" : "double"
+    }, {
+      "id" : 4,
+      "name" : "dob",
+      "required" : false,
+      "type" : "timestamptz"
+    } ]
+  } ],
+  "default-spec-id" : 0,
+  "partition-specs" : [ {
+    "spec-id" : 0,
+    "fields" : [ ]
+  } ],
+  "last-partition-id" : 999,
+  "default-sort-order-id" : 0,
+  "sort-orders" : [ {
+    "order-id" : 0,
+    "fields" : [ ]
+  } ],
+  "properties" : {
+    "owner" : "sterling",
+    "write.parquet.compression-codec" : "zstd"
+  },
+  "current-snapshot-id" : 8850465027937152731,
+  "refs" : {
+    "main" : {
+      "snapshot-id" : 8850465027937152731,
+      "type" : "branch"
+    }
+  },
+  "snapshots" : [ {
+    "sequence-number" : 1,
+    "snapshot-id" : 8850465027937152731,
+    "timestamp-ms" : 1733347688316,
+    "summary" : {
+      "operation" : "append",
+      "spark.app.id" : "local-1733347685152",
+      "added-data-files" : "5",
+      "added-records" : "5",
+      "added-files-size" : "6004",
+      "changed-partition-count" : "1",
+      "total-records" : "5",
+      "total-files-size" : "6004",
+      "total-data-files" : "5",
+      "total-delete-files" : "0",
+      "total-position-deletes" : "0",
+      "total-equality-deletes" : "0"
+    },
+    "manifest-list" : "/home/sterling/Desktop/iceberg_warehouse/person_table/metadata/snap-8850465027937152731-1-5469a644-c797-4cf9-9c98-c2dfa17a7dd7.avro",
+    "schema-id" : 0
+  } ],
+  "statistics" : [ ],
+  "snapshot-log" : [ {
+    "timestamp-ms" : 1733347688316,
+    "snapshot-id" : 8850465027937152731
+  } ],
+  "metadata-log" : [ ]
+}
