@@ -120,12 +120,12 @@ void PathLengthsInitVertexCompute::vertexCompute(common::offset_t startOffset,
 }
 
 FrontierPair::FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-    std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreadsForExec)
-    : curDenseFrontier{curFrontier}, nextDenseFrontier{nextFrontier},
-      morselDispatcher{maxThreadsForExec} {
-    curSparseFrontier = std::make_shared<SparseFrontier>();
-    nextSparseFrontier = std::make_shared<SparseFrontier>();
-    vertexComputeCandidates = std::make_shared<SparseFrontier>();
+    std::shared_ptr<GDSFrontier> nextFrontier, bool enableSparse, uint64_t numThreads)
+    : curDenseFrontier{curFrontier}, nextDenseFrontier{nextFrontier}, enableSparse{enableSparse},
+      morselDispatcher{numThreads} {
+    curSparseFrontier = std::make_shared<SparseFrontier>(enableSparse);
+    nextSparseFrontier = std::make_shared<SparseFrontier>(enableSparse);
+    vertexComputeCandidates = std::make_shared<SparseFrontier>(enableSparse);
     hasActiveNodesForNextIter_.store(false);
     curIter.store(0u);
 }
@@ -136,7 +136,7 @@ void FrontierPair::beginNewIteration() {
     hasActiveNodesForNextIter_.store(false);
     vertexComputeCandidates->mergeSparseFrontier(*nextSparseFrontier);
     std::swap(curSparseFrontier, nextSparseFrontier);
-    nextSparseFrontier->resetState();
+    nextSparseFrontier->resetState(enableSparse);
     beginNewIterationInternalNoLock();
 }
 

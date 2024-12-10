@@ -99,12 +99,12 @@ protected:
  * */
 class KUZU_API SparseFrontier {
 public:
-    SparseFrontier()
-        : enabled_{true}, curTableID{common::INVALID_TABLE_ID}, curOffsetSet{nullptr} {}
+    SparseFrontier(bool enabled_)
+        : enabled_{enabled_}, curTableID{common::INVALID_TABLE_ID}, curOffsetSet{nullptr} {}
 
     void disable() { enabled_ = false; }
-    void resetState() {
-        enabled_ = true;
+    void resetState(bool enabled) {
+        enabled_ = enabled;
         curOffsetSet = nullptr;
         tableIDToOffsetMap.clear();
     }
@@ -250,7 +250,7 @@ private:
 class KUZU_API FrontierPair {
 public:
     FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-        std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreads);
+        std::shared_ptr<GDSFrontier> nextFrontier, bool enableSparse, uint64_t maxThreads);
 
     virtual ~FrontierPair() = default;
 
@@ -267,8 +267,12 @@ public:
     virtual void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
         common::table_id_t nextTableID);
 
-    virtual void pinCurrFrontier(common::table_id_t tableID) = 0;
-    virtual void pinNextFrontier(common::table_id_t tableID) = 0;
+    virtual void pinCurrFrontier(common::table_id_t tableID) {
+        curSparseFrontier->pinTableID(tableID);
+    }
+    virtual void pinNextFrontier(common::table_id_t tableID) {
+        curDenseFrontier->pinTableID(tableID);
+    }
 
     uint16_t getCurrentIter() { return curIter.load(std::memory_order_relaxed); }
 
@@ -305,6 +309,7 @@ protected:
     std::shared_ptr<GDSFrontier> curDenseFrontier;
     std::shared_ptr<GDSFrontier> nextDenseFrontier;
     // Sparse frontiers
+    bool enableSparse;
     std::shared_ptr<SparseFrontier> curSparseFrontier;
     std::shared_ptr<SparseFrontier> nextSparseFrontier;
     std::shared_ptr<SparseFrontier> vertexComputeCandidates;
@@ -314,10 +319,10 @@ protected:
 
 class SinglePathLengthsFrontierPair : public FrontierPair {
 public:
-    SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths,
-        uint64_t maxThreadsForExec)
+    SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths, bool enableSparse,
+        uint64_t numThreads)
         : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */,
-              maxThreadsForExec),
+              enableSparse, numThreads),
           pathLengths{pathLengths} {}
 
     PathLengths* getPathLengths() const { return pathLengths.get(); }
@@ -325,12 +330,12 @@ public:
     void initRJFromSource(common::nodeID_t source) override;
 
     void pinCurrFrontier(common::table_id_t tableID) override {
+        FrontierPair::pinCurrFrontier(tableID);
         pathLengths->pinCurFrontierTableID(tableID);
-        curSparseFrontier->pinTableID(tableID);
     }
     void pinNextFrontier(common::table_id_t tableID) override {
+        FrontierPair::pinNextFrontier(tableID);
         pathLengths->pinNextFrontierTableID(tableID);
-        nextSparseFrontier->pinTableID(tableID);
     }
 
     void beginNewIterationInternalNoLock() override { pathLengths->incrementCurIter(); }
@@ -342,18 +347,18 @@ private:
 class DoublePathLengthsFrontierPair : public FrontierPair {
 public:
     DoublePathLengthsFrontierPair(std::shared_ptr<PathLengths> curFrontier,
-        std::shared_ptr<PathLengths> nextFrontier, uint64_t maxThreadsForExec)
-        : FrontierPair{curFrontier, nextFrontier, maxThreadsForExec} {}
+        std::shared_ptr<PathLengths> nextFrontier, bool enableSparse, uint64_t numThreads)
+        : FrontierPair{curFrontier, nextFrontier, enableSparse, numThreads} {}
 
     void initRJFromSource(common::nodeID_t source) override;
 
     void pinCurrFrontier(common::table_id_t tableID) override {
+        FrontierPair::pinCurrFrontier(tableID);
         curDenseFrontier->ptrCast<PathLengths>()->pinCurFrontierTableID(tableID);
-        curSparseFrontier->pinTableID(tableID);
     }
     void pinNextFrontier(common::table_id_t tableID) override {
+        FrontierPair::pinNextFrontier(tableID);
         nextDenseFrontier->ptrCast<PathLengths>()->pinNextFrontierTableID(tableID);
-        nextSparseFrontier->pinTableID(tableID);
     }
 
     void beginNewIterationInternalNoLock() override;

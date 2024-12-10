@@ -8,6 +8,7 @@
 namespace kuzu {
 namespace processor {
 struct ExecutionContext;
+class NodeOffsetMaskMap;
 }
 
 namespace graph {
@@ -28,9 +29,15 @@ struct KUZU_API GDSComputeState {
     std::unique_ptr<function::FrontierPair> frontierPair;
     std::unique_ptr<function::EdgeCompute> edgeCompute;
 
+    processor::NodeOffsetMaskMap* outputNodeMask = nullptr;
+
+//    GDSComputeState(std::unique_ptr<function::FrontierPair> frontierPair,
+//        std::unique_ptr<function::EdgeCompute> edgeCompute);
     GDSComputeState(std::unique_ptr<function::FrontierPair> frontierPair,
-        std::unique_ptr<function::EdgeCompute> edgeCompute);
-    ~GDSComputeState();
+        std::unique_ptr<function::EdgeCompute> edgeCompute, processor::NodeOffsetMaskMap* outputNodeMask);
+    virtual ~GDSComputeState();
+
+    virtual void beginFrontierComputeBetweenTables(common::table_id_t currTableID, common::table_id_t nextTableID);
 };
 
 class KUZU_API GDSUtils {
@@ -40,7 +47,7 @@ public:
         processor::ExecutionContext* context, std::optional<uint64_t> numThreads = std::nullopt,
         std::optional<common::idx_t> edgePropertyIdx = std::nullopt);
     static void runFrontiersUntilConvergence(processor::ExecutionContext* context,
-        RJCompState& rjCompState, graph::Graph* graph, common::ExtendDirection extendDirection,
+        GDSComputeState& rjCompState, graph::Graph* graph, common::ExtendDirection extendDirection,
         uint64_t maxIters);
     // Run vertex compute without property scan
     static void runVertexCompute(processor::ExecutionContext* context, graph::Graph* graph,

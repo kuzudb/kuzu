@@ -116,7 +116,7 @@ public:
     }
 
     std::unique_ptr<WCCOutputWriter> copy() const {
-        return std::make_unique<WCCOutputWriter>()
+        return std::make_unique<WCCOutputWriter>(context, outputNodeMask, frontierPair);
     }
 
 private:
@@ -127,37 +127,30 @@ private:
 
 class WCCVertexCompute : public VertexCompute {
 public:
-    WCCVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState)
-        : mm{mm}, sharedState{sharedState}, outputWriter{mm} {
+    WCCVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState,
+        std::unique_ptr<WCCOutputWriter> outputWriter)
+        : mm{mm}, sharedState{sharedState}, outputWriter{std::move(outputWriter)} {
         localFT = sharedState->claimLocalTable(mm);
     }
     ~WCCVertexCompute() override { sharedState->returnLocalTable(localFT); }
 
     bool beginOnTable(common::table_id_t tableID) override {
-        outputWriter.pinTableID(tableID);
+        outputWriter->pinTableID(tableID);
         return true;
     }
 
-    void vertexCompute(const graph::VertexScanState::Chunk& chunk) override {
-        for (auto nodeID : chunk.getNodeIDs()) {
-            outputWriter.materialize(nodeID,
-                compState.frontierPair->ptrCast<WCCFrontierPair>()->getComponentID(nodeID),
-                *localFT);
-        }
-    }
-
-    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset, common::table_id_t) override {
-
+    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset, common::table_id_t tableID) override {
+        outputWriter -> materialize(startOffset, endOffset, tableID, *localFT);
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<WCCVertexCompute>(mm, sharedState, compState);
+        return std::make_unique<WCCVertexCompute>(mm, sharedState, outputWriter->copy());
     }
 
 private:
     storage::MemoryManager* mm;
     processor::GDSCallSharedState* sharedState;
-    std::shared_ptr<WCCOutputWriter> outputWriter;
+    std::unique_ptr<WCCOutputWriter> outputWriter;
     processor::FactorizedTable* localFT;
 };
 
@@ -201,25 +194,19 @@ public:
         auto graph = sharedState->graph.get();
         auto numNodesMap = graph->getNumNodesMap(clientContext->getTx());
         auto numThreads = clientContext->getMaxNumThreadForExec();
-//        auto nodeTableIDs = graph->getNodeTableIDs();
-//        uint64_t totalNumNodes = 0;
-//        for (auto& nodeTableID : nodeTableIDs) {
-//            totalNumNodes += graph->getNumNodes(clientContext->getTx(), nodeTableID);
-//        }
         auto currentFrontier = getPathLengthsFrontier(context, 0);
         auto nextFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto frontierPair = std::make_unique<WCCFrontierPair>(currentFrontier,
             nextFrontier, numThreads, numNodesMap, clientContext->getMemoryManager());
+        frontierPair->setActiveNodesForNextIter();
         auto edgeCompute = std::make_unique<WCCEdgeCompute>(*frontierPair.get());
-        // GDS::Utils::RunUntilConvergence shouldn't explicitly call RJCompState since other
-        // algorithms can also use RunUntilConvergence. A solution could be to have a general
-        // CompState class which RJCompState derives from.
-        auto computeState = GDSComputeState(std::move(frontierPair), std::move(edgeCompute));
+        auto writer = std::make_unique<WCCOutputWriter>(clientContext, sharedState->getOutputNodeMaskMap(), frontierPair.get());
+        auto computeState = GDSComputeState(std::move(frontierPair), std::move(edgeCompute), sharedState->getOutputNodeMaskMap());
         GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH,
             10);
         auto vertexCompute = std::make_unique<WCCVertexCompute>(clientContext->getMemoryManager(),
-            sharedState.get(), computeState);
-        GDSUtils::runVertexComputeIteration(context, sharedState->graph.get(), *vertexCompute);
+            sharedState.get(), std::move(writer));
+        GDSUtils::runVertexCompute(context, sharedState->graph.get(), *vertexCompute);
         sharedState->mergeLocalTables();
     }
 

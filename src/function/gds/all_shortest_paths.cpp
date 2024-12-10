@@ -244,7 +244,7 @@ public:
 private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
-        auto frontier = getPathLengthsFrontier(context);
+        auto frontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto numNodesMap = sharedState->graph->getNumNodesMap(clientContext->getTx());
         auto mm = clientContext->getMemoryManager();
         auto multiplicities = std::make_shared<PathMultiplicities>(numNodesMap, mm);
@@ -256,8 +256,8 @@ private:
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute = std::make_unique<AllSPDestinationsEdgeCompute>(frontierPair.get(),
             output->multiplicities.get());
-        return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),
-            std::move(outputWriter));
+        return RJCompState(std::move(frontierPair), std::move(edgeCompute), sharedState->getOutputNodeMaskMap(),
+            std::move(output), std::move(outputWriter));
     }
 };
 
@@ -281,7 +281,7 @@ public:
 private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
-        auto frontier = getPathLengthsFrontier(context);
+        auto frontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto bfsGraph = getBFSGraph(context);
         auto output = std::make_unique<PathsOutputs>(sourceNodeID, frontier, std::move(bfsGraph));
         auto rjBindData = bindData->ptrCast<RJBindData>();
@@ -293,8 +293,8 @@ private:
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute =
             std::make_unique<AllSPPathsEdgeCompute>(frontierPair.get(), output->bfsGraph.get());
-        return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),
-            std::move(outputWriter));
+        return RJCompState(std::move(frontierPair), std::move(edgeCompute), sharedState->getOutputNodeMaskMap(),
+            std::move(output), std::move(outputWriter));
     }
 };
 
