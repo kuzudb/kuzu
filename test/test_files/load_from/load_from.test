@@ -172,7 +172,7 @@ Binder exception: Cannot load from file type tsv.
 -LOG LoadFromIncorrectPath
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset' (file_format='csv') RETURN *;
 ---- error
-Binder exception: No file found that matches the pattern: ${KUZU_ROOT_DIRECTORY}/dataset.
+Error: Binder exception: Provided path is not a file: ${KUZU_ROOT_DIRECTORY}/dataset.
 
 -LOG LoadFromNotExistPath
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/1.parquet' (file_format='csv') RETURN *;
