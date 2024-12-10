@@ -13,6 +13,7 @@
 #include <fileapi.h>
 #include <io.h>
 #include <windows.h>
+#include "common/windows_utils.h"
 #else
 #include "sys/stat.h"
 #include <unistd.h>
@@ -314,7 +315,7 @@ bool LocalFileSystem::fileExists(const std::string& filename) {
 }
 #else
 bool LocalFileSystem::fileExists(const std::string& filename) {
-	auto unicode_path = WindowsUtil::UTF8ToUnicode(filename.c_str());
+	auto unicode_path = WindowsUtils::utf8ToUnicode(filename.c_str());
 	const wchar_t *wpath = unicode_path.c_str();
 	if (_waccess(wpath, 0) == 0) {
 		struct _stati64 status = {};
