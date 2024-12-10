@@ -268,7 +268,7 @@ TEST_F(CopyTest, NodeCopyBMExceptionDuringCheckpointRecovery) {
         .canFailDuringCheckpoint = canFailDuringCheckpoint,
         .initFunc =
             [this](main::Connection* conn) {
-                conn->query("CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID))");
+                conn->query("CREATE NODE TABLE account(ID STRING, PRIMARY KEY(ID))");
                 failureFrequency = 512;
             },
         .executeFunc =
