@@ -659,7 +659,12 @@ ZeroDigit
     : '0' ;
 
 oC_DoubleLiteral
-    : RegularDecimalReal ;
+    : ExponentDecimalReal
+        | RegularDecimalReal
+        ;
+
+ExponentDecimalReal
+    : ( ( Digit )+ | ( ( Digit )+ '.' ( Digit )+ ) | ( '.' ( Digit )+ ) ) ( 'E' | 'e' ) '-'? ( Digit )+ ;
 
 RegularDecimalReal
     : ( Digit )* '.' ( Digit )+ ;
