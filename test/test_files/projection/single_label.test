@@ -20,6 +20,14 @@ abc|1
 2|person
 2|person
 
+-LOG ReturnEDecimal
+-STATEMENT RETURN -9.13e-02
+---- 1
+-0.091300
+-STATEMENT RETURN -9.13e-02 + 1
+---- 1
+0.908700
+
 -LOG ReturnNullLiteral
 -STATEMENT RETURN (NULL = NULL) IS NOT NULL, NULL, NULL = NULL
 ---- 1
