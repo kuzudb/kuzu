@@ -4,6 +4,18 @@
 
 -CASE CallSetGetConfig
 
+-LOG SetGetEnablePlanOptimizer
+-STATEMENT CALL enable_plan_optimizer=false
+---- ok
+-STATEMENT CALL current_setting('enable_plan_optimizer') RETURN *
+---- 1
+False
+-STATEMENT CALL enable_plan_optimizer=true
+---- ok
+-STATEMENT CALL current_setting('enable_plan_optimizer') RETURN *
+---- 1
+True
+
 -LOG SetGetThread
 -STATEMENT CALL THREADS=4
 ---- ok
