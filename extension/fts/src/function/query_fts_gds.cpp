@@ -32,15 +32,18 @@ struct QFTSGDSBindData final : public function::GDSBindData {
     double_t b;
     uint64_t numDocs;
     double_t avgDocLen;
+    uint64_t numTermsInQuery;
+    bool isConjunctive;
 
     QFTSGDSBindData(std::shared_ptr<binder::Expression> terms,
         std::shared_ptr<binder::Expression> docs, double_t k, double_t b, uint64_t numDocs,
-        double_t avgDocLen)
+        double_t avgDocLen, uint64_t numTermsInQuery, bool isConjunctive)
         : GDSBindData{std::move(docs)}, terms{std::move(terms)}, k{k}, b{b}, numDocs{numDocs},
-          avgDocLen{avgDocLen} {}
+          avgDocLen{avgDocLen}, numTermsInQuery{numTermsInQuery}, isConjunctive{isConjunctive} {}
     QFTSGDSBindData(const QFTSGDSBindData& other)
         : GDSBindData{other}, terms{other.terms}, k{other.k}, b{other.b}, numDocs{other.numDocs},
-          avgDocLen{other.avgDocLen} {}
+          avgDocLen{other.avgDocLen}, numTermsInQuery{other.numTermsInQuery},
+          isConjunctive{other.isConjunctive} {}
 
     bool hasNodeInput() const override { return true; }
     std::shared_ptr<binder::Expression> getNodeInput() const override { return terms; }
@@ -199,6 +202,11 @@ void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNo
     if (hasScore) {
         auto scoreInfo = qFTSOutput->scores.at(docNodeID);
         double score = 0;
+        // If the query is conjunctive, the numbers of distinct terms in the doc and the number of
+        // distinct terms in the query must be equal to each other.
+        if (bindData.isConjunctive && scoreInfo.scoreData.size() != bindData.numTermsInQuery) {
+            return;
+        }
         for (auto& scoreData : scoreInfo.scoreData) {
             auto numDocs = bindData.numDocs;
             auto avgDocLen = bindData.avgDocLen;
@@ -302,14 +310,17 @@ binder::expression_vector QFTSAlgorithm::getResultColumns(binder::Binder* binder
 
 void QFTSAlgorithm::bind(const binder::expression_vector& params, binder::Binder* binder,
     graph::GraphEntry& graphEntry) {
-    KU_ASSERT(params.size() == 6);
+    KU_ASSERT(params.size() == 8);
     auto termNode = params[1];
     auto k = ExpressionUtil::getLiteralValue<double>(*params[2]);
     auto b = ExpressionUtil::getLiteralValue<double>(*params[3]);
     auto numDocs = ExpressionUtil::getLiteralValue<uint64_t>(*params[4]);
     auto avgDocLen = ExpressionUtil::getLiteralValue<double>(*params[5]);
+    auto numTermsInQuery = ExpressionUtil::getLiteralValue<int64_t>(*params[6]);
+    auto isConjunctive = ExpressionUtil::getLiteralValue<bool>(*params[7]);
     auto nodeOutput = bindNodeOutput(binder, graphEntry);
-    bindData = std::make_unique<QFTSGDSBindData>(termNode, nodeOutput, k, b, numDocs, avgDocLen);
+    bindData = std::make_unique<QFTSGDSBindData>(termNode, nodeOutput, k, b, numDocs, avgDocLen,
+        numTermsInQuery, isConjunctive);
 }
 
 function::function_set QFTSFunction::getFunctionSet() {
