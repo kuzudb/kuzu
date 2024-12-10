@@ -209,7 +209,7 @@ function::TableFunction Binder::getScanFunction(FileTypeInfo typeInfo, const Rea
     // If we defined a certain FileType, we have to ensure the path is a file, not something else (e.g. an existed directory)
     if (typeInfo.fileType != FileType::UNKNOWN) {
         for (const auto& filePath : config.filePaths) {
-            if (!common::LocalFileSystem::fileExists(filePath)) {
+            if (!common::LocalFileSystem::fileExists(filePath) && common::LocalFileSystem::isLocalPath(filePath)) {
                 throw common::BinderException{common::stringFormat("Provided path is not a file: {}." , filePath)};
             }
         }
