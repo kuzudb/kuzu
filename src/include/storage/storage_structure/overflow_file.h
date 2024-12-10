@@ -97,7 +97,7 @@ public:
     OverflowFile(OverflowFile&& other) = delete;
 
     void rollbackInMemory();
-    void checkpoint();
+    void checkpoint(bool forceUpdateHeader);
     void checkpointInMemory();
 
     OverflowFileHandle* addHandle() {

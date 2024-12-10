@@ -3,8 +3,13 @@
 #include <mutex>
 
 #include "transaction.h"
+#include <span>
 
 namespace kuzu {
+namespace common {
+struct UniqLock;
+}
+
 namespace main {
 class ClientContext;
 }
@@ -42,8 +47,11 @@ public:
     void beginRecoveryTransaction();
     void validateManualTransaction(bool readOnlyStatement) const;
 
-    void commit();
+    void commit(bool skipCheckpoint = false);
+    void autoCheckpointIfNeeded();
     void rollback();
+    // we must still hold the locks from the checkpoint to rollback
+    void rollbackCheckpoint(std::span<const common::UniqLock*> locks);
 
     TransactionMode getTransactionMode() const { return mode; }
     bool hasActiveTransaction() const { return activeTransaction != nullptr; }
