@@ -250,7 +250,7 @@ private:
 class KUZU_API FrontierPair {
 public:
     FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-        std::shared_ptr<GDSFrontier> nextFrontier, bool enableSparse, uint64_t maxThreads);
+        std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreads);
 
     virtual ~FrontierPair() = default;
 
@@ -309,7 +309,6 @@ protected:
     std::shared_ptr<GDSFrontier> curDenseFrontier;
     std::shared_ptr<GDSFrontier> nextDenseFrontier;
     // Sparse frontiers
-    bool enableSparse;
     std::shared_ptr<SparseFrontier> curSparseFrontier;
     std::shared_ptr<SparseFrontier> nextSparseFrontier;
     std::shared_ptr<SparseFrontier> vertexComputeCandidates;
@@ -319,10 +318,10 @@ protected:
 
 class SinglePathLengthsFrontierPair : public FrontierPair {
 public:
-    SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths, bool enableSparse,
+    SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths,
         uint64_t numThreads)
         : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */,
-              enableSparse, numThreads),
+              numThreads),
           pathLengths{pathLengths} {}
 
     PathLengths* getPathLengths() const { return pathLengths.get(); }
@@ -347,8 +346,8 @@ private:
 class DoublePathLengthsFrontierPair : public FrontierPair {
 public:
     DoublePathLengthsFrontierPair(std::shared_ptr<PathLengths> curFrontier,
-        std::shared_ptr<PathLengths> nextFrontier, bool enableSparse, uint64_t numThreads)
-        : FrontierPair{curFrontier, nextFrontier, enableSparse, numThreads} {}
+        std::shared_ptr<PathLengths> nextFrontier, uint64_t numThreads)
+        : FrontierPair{curFrontier, nextFrontier, numThreads} {}
 
     void initRJFromSource(common::nodeID_t source) override;
 

@@ -52,6 +52,14 @@ public:
         pinVertexValues(nextTableID);
     }
 
+    void beginNewIterationInternalNoLock() override {
+        std::swap(curDenseFrontier, nextDenseFrontier);
+        curDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();
+        nextDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();
+        auto vc = std::make_unique<PathLengthsInitVertexCompute>(*pathLengths, val);
+        GDSUtils::runVertexCompute(context, graph, *vc);
+    }
+
     bool update(common::nodeID_t boundNodeID, common::nodeID_t nbrNodeID) {
         auto boundValue = vertexValues[boundNodeID.offset].load(std::memory_order_relaxed);
         auto tmp = vertexValues[nbrNodeID.offset].load(std::memory_order_relaxed);
