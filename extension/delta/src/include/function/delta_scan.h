@@ -1,11 +1,10 @@
 #pragma once
 
-#include "function/table/call_functions.h"
-
 #include "connector/connector_factory.h"
 #include "connector/delta_connector.h"
 #include "connector/duckdb_result_converter.h"
 #include "connector/duckdb_type_converter.h"
+#include "function/table/call_functions.h"
 
 namespace kuzu {
 namespace delta_extension {
@@ -32,10 +31,11 @@ struct DeltaScanBindData : public function::CallTableFuncBindData {
 };
 
 // Functions and structs exposed for use
-std::unique_ptr<function::TableFuncBindData> bindFuncInternal(
-    main::ClientContext* context, function::ScanTableFuncBindInput* input, const std::string& scanFuncName);
+std::unique_ptr<function::TableFuncBindData> bindFuncInternal(main::ClientContext* context,
+    function::ScanTableFuncBindInput* input, const std::string& scanFuncName);
 
-std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context, ScanTableFuncBindInput* input);
+std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
+    ScanTableFuncBindInput* input);
 
 std::unique_ptr<TableFuncSharedState> initDeltaScanSharedState(TableFunctionInitInput& input);
 
