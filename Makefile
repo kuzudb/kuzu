@@ -106,6 +106,12 @@ alldebug:
 		-DBUILD_TESTS=TRUE \
 	)
 
+tempdebug:
+	$(call run-cmake-debug, \
+		-DBUILD_SHELL=TRUE \
+		-DBUILD_KUZU=TRUE \
+		-DBUILD_EXTENSIONS="delta;iceberg" \
+	)
 
 # Main tests
 test:
@@ -181,13 +187,8 @@ example:
 	$(call run-cmake-release, -DBUILD_EXAMPLES=TRUE)
 
 extension-test-build:
-<<<<<<< HEAD
 	$(call run-cmake-relwithdebinfo, \
 		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta" \
-=======
-	$(call run-cmake-release, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg" \
->>>>>>> 58fdc3ab2 (add iceberg scan extension)
 		-DBUILD_EXTENSION_TESTS=TRUE \
 		-DBUILD_TESTS=TRUE \
 	)
