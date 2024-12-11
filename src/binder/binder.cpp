@@ -206,17 +206,6 @@ function::TableFunction Binder::getScanFunction(FileTypeInfo typeInfo, const Rea
     std::vector<LogicalType> inputTypes;
     inputTypes.push_back(LogicalType::STRING());
     auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
-    // If we defined a certain FileType, we have to ensure the path is a file, not something else
-    // (e.g. an existed directory)
-    if (typeInfo.fileType != FileType::UNKNOWN) {
-        for (const auto& filePath : config.filePaths) {
-            if (!common::LocalFileSystem::fileExists(filePath) &&
-                common::LocalFileSystem::isLocalPath(filePath)) {
-                throw common::BinderException{
-                    common::stringFormat("Provided path is not a file: {}.", filePath)};
-            }
-        }
-    }
     switch (typeInfo.fileType) {
     case FileType::PARQUET: {
         func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
