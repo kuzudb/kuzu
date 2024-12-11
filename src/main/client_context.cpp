@@ -1,7 +1,6 @@
 #include "main/client_context.h"
 
 #include "binder/binder.h"
-#include "common/exception/checkpoint_exception.h"
 #include "common/exception/connection.h"
 #include "common/exception/runtime.h"
 #include "common/random_engine.h"
@@ -520,12 +519,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     if (autoCommitTriggered) {
         try {
             this->transactionContext->autoCheckpointIfNeeded();
-        } catch (common::CheckpointException& e) {
-            auto locks = e.getLocks();
-            this->transactionContext->rollbackCheckpoint(locks);
-            return handleFailedExecute(executionContext.get(), e);
         } catch (std::exception& e) {
-            // exception was before checkpoint started, no need to rollback checkpoint
             return handleFailedExecute(executionContext.get(), e);
         }
     }

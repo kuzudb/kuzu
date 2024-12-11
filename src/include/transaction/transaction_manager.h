@@ -34,8 +34,7 @@ public:
 
     void commit(main::ClientContext& clientContext, bool skipCheckpoint = false);
     void rollback(main::ClientContext& clientContext, const Transaction* transaction);
-    void rollbackCheckpoint(main::ClientContext& clientContext,
-        std::span<const common::UniqLock*> locks);
+
     void checkpoint(main::ClientContext& clientContext);
     void autoCheckpointIfNeeded(main::ClientContext& clientContext);
 
@@ -43,6 +42,8 @@ private:
     bool canAutoCheckpoint(const main::ClientContext& clientContext) const;
     bool canCheckpointNoLock() const;
     void checkpointNoLock(main::ClientContext& clientContext);
+    void rollbackCheckpoint(main::ClientContext& clientContext);
+
     // This functions locks the mutex to start new transactions.
     common::UniqLock stopNewTransactionsAndWaitUntilAllTransactionsLeave();
 
