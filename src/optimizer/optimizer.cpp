@@ -10,21 +10,11 @@
 #include "optimizer/projection_push_down_optimizer.h"
 #include "optimizer/remove_factorization_rewriter.h"
 #include "optimizer/remove_unnecessary_join_optimizer.h"
+#include "optimizer/schema_populator.h"
 #include "optimizer/top_k_optimizer.h"
 
 namespace kuzu {
 namespace optimizer {
-
-static void populateSchemaRecursive(planner::LogicalOperator* op) {
-    for (auto i = 0u; i < op->getNumChildren(); ++i) {
-        populateSchemaRecursive(op->getChild(i).get());
-    }
-    op->computeFactorizedSchema();
-}
-
-static void populateSchema(planner::LogicalPlan* plan) {
-    populateSchemaRecursive(plan->getLastOperator().get());
-}
 
 void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* context) {
     if (context->getClientConfig()->enablePlanOptimizer) {
@@ -67,7 +57,8 @@ void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* contex
     } else {
         // we still need to compute the schema for each operator even if we have optimizations
         // disabled
-        populateSchema(plan);
+        auto schemaPopulator = SchemaPopulator{};
+        schemaPopulator.rewrite(plan);
     }
 }
 
