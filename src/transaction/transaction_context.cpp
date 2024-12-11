@@ -68,8 +68,12 @@ void TransactionContext::autoCheckpointIfNeeded() {
     if (!hasActiveTransaction()) {
         return;
     }
+
+    // we want to clear the active transaction regardless of whether the checkpoint succeeds
+    static constexpr auto clearFunc = [](TransactionContext* ctx) { ctx->clearTransaction(); };
+    std::unique_ptr<TransactionContext, decltype(clearFunc)> clearer{this, clearFunc};
+
     clientContext.getDatabase()->transactionManager->autoCheckpointIfNeeded(clientContext);
-    clearTransaction();
 }
 
 void TransactionContext::rollback() {
@@ -78,14 +82,6 @@ void TransactionContext::rollback() {
     }
     clientContext.getDatabase()->transactionManager->rollback(clientContext,
         activeTransaction.get());
-    clearTransaction();
-}
-
-void TransactionContext::rollbackCheckpoint(std::span<const common::UniqLock*> locks) {
-    if (!hasActiveTransaction()) {
-        return;
-    }
-    clientContext.getDatabase()->transactionManager->rollbackCheckpoint(clientContext, locks);
     clearTransaction();
 }
 

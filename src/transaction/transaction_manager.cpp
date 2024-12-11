@@ -2,7 +2,6 @@
 
 #include <thread>
 
-#include "common/exception/checkpoint_exception.h"
 #include "common/exception/transaction_manager.h"
 #include "main/client_context.h"
 #include "main/db_config.h"
@@ -108,12 +107,7 @@ void TransactionManager::rollback(main::ClientContext& clientContext,
     }
 }
 
-void TransactionManager::rollbackCheckpoint(main::ClientContext& clientContext,
-    [[maybe_unused]] std::span<const common::UniqLock*> locks) {
-    // should hold lockForSerializingPublicFunctionCalls and lockForStartingTransactions
-    KU_ASSERT(locks.size() == 2);
-    KU_ASSERT(std::all_of(locks.begin(), locks.end(),
-        [](const common::UniqLock* lock) { return lock->isLocked(); }));
+void TransactionManager::rollbackCheckpoint(main::ClientContext& clientContext) {
     if (main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())) {
         return;
     }
@@ -125,12 +119,7 @@ void TransactionManager::checkpoint(main::ClientContext& clientContext) {
     if (main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())) {
         return;
     }
-    try {
-        checkpointNoLock(clientContext);
-    } catch (common::CheckpointException& e) {
-        e.addLock(std::move(lck));
-        std::rethrow_exception(std::current_exception());
-    }
+    checkpointNoLock(clientContext);
 }
 
 common::UniqLock TransactionManager::stopNewTransactionsAndWaitUntilAllTransactionsLeave() {
@@ -207,12 +196,8 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
         StorageUtils::removeWALVersionFiles(clientContext.getDatabasePath(),
             clientContext.getVFSUnsafe());
     } catch (std::exception& e) {
-        // since we want to rollback the checkpoint atomically
-        // we maintain ownership of the locks (which we will release when we are done handling the
-        // exception)
-        common::CheckpointException checkpointException(e);
-        checkpointException.addLock(std::move(lockForStartingTransaction));
-        throw std::move(checkpointException);
+        rollbackCheckpoint(clientContext);
+        std::rethrow_exception(std::current_exception());
     }
 }
 
