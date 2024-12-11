@@ -6,6 +6,7 @@
 #include "compute.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include <span>
+#include <algorithm>
 
 namespace kuzu {
 namespace function {
@@ -259,6 +260,10 @@ public:
         }
     }
 
+    void setInActive(common::nodeID_t nodeID) {
+        setCurInActive(nodeID);
+    }
+
     uint64_t getNumNodes() {
         return numNodes;
     }
@@ -273,7 +278,7 @@ public:
         return true;
     }
 
-    bool isActive(common::nodeID_t nodeID) {
+    bool isNodeActive(common::nodeID_t nodeID) {
         auto& memBuffer = curActiveNodes.find(nodeID.tableID)->second;
         std::atomic<bool>* memBufferPtr = reinterpret_cast<std::atomic<bool>*>(memBuffer->getData());
         return memBufferPtr[nodeID.offset].load(std::memory_order_relaxed);
@@ -287,12 +292,19 @@ private:
     void setCurActive(common::nodeID_t nodeID) {
         auto& memBuffer = curActiveNodes.find(nodeID.tableID)->second;
         std::atomic<bool>* memBufferPtr = reinterpret_cast<std::atomic<bool>*>(memBuffer->getData());
+        memBufferPtr[nodeID.offset].store(static_cast<bool>(true), std::memory_order_relaxed);
+    }
+
+    void setCurInActive(common::nodeID_t nodeID) {
+        auto& memBuffer = curActiveNodes.find(nodeID.tableID)->second;
+        std::atomic<bool>* memBufferPtr = reinterpret_cast<std::atomic<bool>*>(memBuffer->getData());
+        memBufferPtr[nodeID.offset].store(static_cast<bool>(false), std::memory_order_relaxed);
     }
 
 private:
     uint64_t numNodes;
     common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> curActiveNodes;
-}
+};
 
 /**
  * Base class for maintaining a current and a next GDSFrontier of nodes for GDS algorithms. At any
@@ -345,6 +357,11 @@ public:
     void mergeLocalFrontier(const SparseFrontier& localFrontier);
 
     bool isCurFrontierSparse();
+
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<TARGET*>(this);
+    }
 
     template<class TARGET>
     TARGET* ptrCast() {
@@ -418,8 +435,7 @@ public:
 
 class KUZU_API KCoreFrontierPair : public FrontierPair {
 public:
-    KCoreFrontierPair(common::table_id_map_t<common::offset_t> numNodesMap, uint64_t totalNumNodes, uint64_t maxThreadsForExec, storage::MemoryManager* mm)
-    : FrontierPair{nullptr, nullptr, maxThreadsForExec} {}
+    KCoreFrontierPair(common::table_id_map_t<common::offset_t> numNodesMap, uint64_t totalNumNodes, uint64_t maxThreadsForExec, storage::MemoryManager* mm);
 
     void initRJFromSource(common::nodeID_t source) override {};
 
@@ -432,45 +448,44 @@ public:
     }
 
     uint64_t removeFromVertex(common::nodeID_t nodeID) {
-        return getVertexDegreeAtomic(nodeID).fetch_sub(1, std::memory_order_relaxed);
+        int curSmallest = curSmallestDegree.load(std::memory_order_relaxed);
+        int curVertexDegree = getVertexDegree(nodeID);
+        if (curVertexDegree > curSmallest) {
+            return getVertexDegreeAtomic(nodeID).fetch_sub(1, std::memory_order_relaxed);
+        }
+        return curVertexDegree;
     }
 
     uint64_t getVertexDegree(common::nodeID_t nodeID) const {
         return getVertexDegreeAtomic(nodeID).load(std::memory_order_relaxed);
     }
 
-    bool isActive(common::nodeID_t nodeID) const {
-        return curFrontier->isActive(nodeID);
+    bool isNodeActive(common::nodeID_t nodeID) const {
+        return curFrontier->ptrCast<KCoreFrontier>()->isNodeActive(nodeID);
     }
 
-    void updateNextSmallestDegree(uint64_t degree) {
-        uint64_t current = nextSmallestDegree.load(std::memory_order_relaxed);
-        while (degree < current) {
-            if (nextSmallestDegree.compare_exchange_strong(current, degree, std::memory_order_relaxed)) {
-                break;
+    void setNodeInActive(common::nodeID_t nodeID) const {
+        nextFrontier->ptrCast<KCoreFrontier>()->setInActive(nodeID);
+    }
+
+    void updateSmallestDegree() {
+        uint64_t curSmallest = UINT64_MAX;
+        for (const auto& [tableID, curNumNodes] : numNodesMap) {
+            for (uint64_t offset = 0; offset < curNumNodes; ++offset) {
+                common::nodeID_t curNode;
+                curNode.tableID = tableID;
+                curNode.offset = offset;
+                if (curFrontier->ptrCast<KCoreFrontier>()->isNodeActive(curNode)) {
+                    curSmallest = std::min(curSmallest, getVertexDegree(curNode));
+                }
             }
         }
-    }
-
-    void updateCurSmallestDegree(uint64_t degree) {
         uint64_t current = curSmallestDegree.load(std::memory_order_relaxed);
-        while (degree < current) {
-            if (curSmallestDegree.compare_exchange_strong(current, degree, std::memory_order_relaxed)) {
-                break;
-            }
-        }
+        curSmallestDegree.compare_exchange_strong(current, curSmallest, std::memory_order_relaxed);
     }
 
     uint64_t getSmallestDegree() {
         return curSmallestDegree.load(std::memory_order_relaxed);
-    }
-
-    void setKValue(common::nodeID_t nodeID, uint64_t k) {
-        auto& memBuffer = kValue.find(nodeID.tableID)->second;
-        std::atomic<uint64_t>* memBufferPtr = reinterpret_cast<std::atomic<uint64_t>*>(memBuffer->getData());
-        auto& nodeKValue = memBufferPtr[nodeID.offset];
-        auto currentK = nodeKValue.load(std::memory_order_relaxed);
-        nodeKValue.compare_exchange_strong(currentK, k, std::memory_order_relaxed);
     }
 
 private:
@@ -482,10 +497,8 @@ private:
     uint64_t numNodes;
     bool updated = false;
     std::atomic<uint64_t> curSmallestDegree{UINT64_MAX};
-    std::atomic<uint64_t> nextSmallestDegree{UINT64_MAX};
-    common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> kValue;
+    common::table_id_map_t<common::offset_t> numNodesMap;
     common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> curVertexValues;
-    common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> nextVertexValues;
 };
 
 class SPEdgeCompute : public EdgeCompute {

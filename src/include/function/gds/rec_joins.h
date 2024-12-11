@@ -85,10 +85,12 @@ struct RJCompState : public GDSComputeState {
     // extensions are be given to the data structures of the computation, e.g., FrontierPairs and
     // RJOutputs, to possibly avoid them doing lookups of S and T-related data structures,
     // e.g., maps, internally.
-    void beginFrontierComputeBetweenTables(common::table_id_t currTableID,
-        common::table_id_t nextTableID) override {
-        GDSComputeState::beginFrontierComputeBetweenTables(currTableID, nextTableID);
-        outputs->beginFrontierComputeBetweenTables(currTableID, nextTableID);
+    void beginFrontierComputeBetweenTables(common::table_id_t curFrontierTableID,
+        common::table_id_t nextFrontierTableID) const {
+        frontierPair->beginFrontierComputeBetweenTables(curFrontierTableID, nextFrontierTableID);
+        if (outputs) {
+            outputs->beginFrontierComputeBetweenTables(curFrontierTableID, nextFrontierTableID);
+        }
     }
 };
 
