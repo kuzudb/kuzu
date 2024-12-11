@@ -60,8 +60,6 @@ void CardinalityUpdater::visitOperatorSwitchWithDefault(planner::LogicalOperator
         visitAggregate(op);
         break;
     }
-    // TODO(Royi) handle the below operators as well
-    case planner::LogicalOperatorType::ACCUMULATE:
     default: {
         visitOperatorDefault(op);
         break;

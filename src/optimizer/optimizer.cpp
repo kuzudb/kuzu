@@ -14,6 +14,7 @@
 #include "optimizer/schema_populator.h"
 #include "optimizer/top_k_optimizer.h"
 #include "planner/join_order/cardinality_estimator.h"
+#include "planner/operator/logical_explain.h"
 
 namespace kuzu {
 namespace optimizer {
@@ -58,8 +59,16 @@ void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* contex
         auto aggKeyDependencyOptimizer = AggKeyDependencyOptimizer();
         aggKeyDependencyOptimizer.rewrite(plan);
 
-        auto cardinalityUpdater = CardinalityUpdater(cardinalityEstimator, context->getTx());
-        cardinalityUpdater.rewrite(plan);
+        // for EXPLAIN LOGICAL we need to update the cardinalities for the optimized plan
+        // we don't need to do this otherwise as we don't use the cardinalities after planning
+        if (plan->getLastOperatorRef().getOperatorType() == planner::LogicalOperatorType::EXPLAIN) {
+            const auto& explain = plan->getLastOperatorRef().cast<planner::LogicalExplain>();
+            if (explain.getExplainType() == common::ExplainType::LOGICAL_PLAN) {
+                auto cardinalityUpdater =
+                    CardinalityUpdater(cardinalityEstimator, context->getTx());
+                cardinalityUpdater.rewrite(plan);
+            }
+        }
     } else {
         // we still need to compute the schema for each operator even if we have optimizations
         // disabled
