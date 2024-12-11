@@ -121,6 +121,12 @@ struct StatsInfoFunction final : CallFunction {
     static function_set getFunctionSet();
 };
 
+struct BMInfoFunction final : CallFunction {
+    static constexpr const char* name = "BM_INFO";
+
+    static function_set getFunctionSet();
+};
+
 struct ShowAttachedDatabasesFunction final : CallFunction {
     static constexpr const char* name = "SHOW_ATTACHED_DATABASES";
 
