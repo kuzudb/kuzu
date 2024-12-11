@@ -36,7 +36,7 @@ struct CallTableFuncBindData : TableFuncBindData {
 
     CallTableFuncBindData(std::vector<common::LogicalType> columnTypes,
         std::vector<std::string> returnColumnNames, common::offset_t maxOffset)
-        : TableFuncBindData{std::move(columnTypes), std::move(returnColumnNames), 0},
+        : TableFuncBindData{std::move(columnTypes), std::move(returnColumnNames)},
           maxOffset{maxOffset} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {

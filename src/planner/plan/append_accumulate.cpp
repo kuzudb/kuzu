@@ -36,6 +36,7 @@ void Planner::appendAccumulate(AccumulateType accumulateType, const expression_v
     appendFlattens(op->getGroupPositionsToFlatten(), plan);
     op->setChild(0, plan.getLastOperator());
     op->computeFactorizedSchema();
+    // TODO(Royi) set the cardinality here
     plan.setLastOperator(std::move(op));
 }
 

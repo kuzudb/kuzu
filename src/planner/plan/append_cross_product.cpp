@@ -31,11 +31,11 @@ void Planner::appendCrossProduct(AccumulateType accumulateType, std::shared_ptr<
     const LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
     auto crossProduct = make_shared<LogicalCrossProduct>(accumulateType, mark,
         probePlan.getLastOperator(), buildPlan.getLastOperator(),
-        cardinalityEstimator.estimateCrossProduct(probePlan, buildPlan));
+        cardinalityEstimator.estimateCrossProduct(probePlan.getLastOperatorRef(),
+            buildPlan.getLastOperatorRef()));
     crossProduct->computeFactorizedSchema();
     // update cost
     resultPlan.setCost(probePlan.getCardinality() + buildPlan.getCardinality());
-    resultPlan.setCardinality(crossProduct->getCardinality());
     resultPlan.setLastOperator(std::move(crossProduct));
 }
 
