@@ -10,6 +10,7 @@ enum class JoinType : uint8_t {
     LEFT = 1,
     MARK = 2,
     COUNT = 3,
+    ANTI = 4,
 };
 
 } // namespace common

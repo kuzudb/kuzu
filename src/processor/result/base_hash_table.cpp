@@ -168,7 +168,7 @@ void BaseHashTable::initSlotConstant(uint64_t numSlotsPerBlock) {
 // ! This function will only be used by distinct aggregate and hashJoin, which assumes that all
 // keyVectors are flat.
 bool BaseHashTable::matchFlatVecWithEntry(const std::vector<common::ValueVector*>& keyVectors,
-    const uint8_t* entry) {
+    const uint8_t* entry, bool match) {
     for (auto i = 0u; i < keyVectors.size(); i++) {
         auto keyVector = keyVectors[i];
         KU_ASSERT(keyVector->state->isFlat());
@@ -180,12 +180,21 @@ bool BaseHashTable::matchFlatVecWithEntry(const std::vector<common::ValueVector*
         // If either key or entry is null, we shouldn't compare the value of keyVector and
         // entry.
         if (isKeyVectorNull && isEntryKeyNull) {
-            continue;
+            if (match) {
+                continue;
+            } else {
+                return false;
+            }
         } else if (isKeyVectorNull != isEntryKeyNull) {
-            return false;
+            if (match) {
+                return false;
+            } else {
+                continue;
+            }
         }
-        if (!compareEntryFuncs[i](keyVector, pos,
-                entry + factorizedTable->getTableSchema()->getColOffset(i))) {
+        auto result = compareEntryFuncs[i](keyVector, pos,
+            entry + factorizedTable->getTableSchema()->getColOffset(i));
+        if (match != result) {
             return false;
         }
     }

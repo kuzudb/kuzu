@@ -102,7 +102,14 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitCrossProductRepla
     auto buildSchema = op->getChild(1)->getSchema();
     expression_vector predicates;
     std::vector<join_condition_t> joinConditions;
-    for (auto& predicate : remainingPSet.equalityPredicates) {
+
+    JoinType type =
+        remainingPSet.equalityPredicates.empty() && remainingPSet.nonEqualityPredicates.empty() ?
+            common::JoinType::ANTI :
+            common::JoinType::INNER;
+    auto& predSet = type == common::JoinType::ANTI ? remainingPSet.unEqualityPredicates :
+                                                     remainingPSet.equalityPredicates;
+    for (auto& predicate : predSet) {
         auto left = predicate->getChild(0);
         auto right = predicate->getChild(1);
         // TODO(Xiyang): this can only rewrite left = right, we should also be able to do
@@ -120,12 +127,14 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitCrossProductRepla
     if (joinConditions.empty()) { // Nothing to push down. Terminate.
         return finishPushDown(op);
     }
-    auto hashJoin = std::make_shared<LogicalHashJoin>(joinConditions, JoinType::INNER,
+    auto hashJoin = std::make_shared<LogicalHashJoin>(joinConditions, type,
         nullptr /* mark */, op->getChild(0), op->getChild(1), 0 /* cardinality */);
     // For non-id based joins, we disable side way information passing.
     hashJoin->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT;
     hashJoin->computeFlatSchema();
     // Apply remaining predicates.
+    predicates.insert(predicates.end(), remainingPSet.unEqualityPredicates.begin(),
+        remainingPSet.unEqualityPredicates.end());
     predicates.insert(predicates.end(), remainingPSet.nonEqualityPredicates.begin(),
         remainingPSet.nonEqualityPredicates.end());
     if (predicates.empty()) {
@@ -276,6 +285,8 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::appendFilter(
 void PredicateSet::addPredicate(std::shared_ptr<Expression> predicate) {
     if (predicate->expressionType == ExpressionType::EQUALS) {
         equalityPredicates.push_back(std::move(predicate));
+    } else if (predicate->expressionType == ExpressionType::NOT_EQUALS) {
+        unEqualityPredicates.push_back(std::move(predicate));
     } else {
         nonEqualityPredicates.push_back(std::move(predicate));
     }
@@ -323,6 +334,7 @@ std::shared_ptr<Expression> PredicateSet::popNodePKEqualityComparison(const Expr
 expression_vector PredicateSet::getAllPredicates() {
     expression_vector result;
     result.insert(result.end(), equalityPredicates.begin(), equalityPredicates.end());
+    result.insert(result.end(), unEqualityPredicates.begin(), unEqualityPredicates.end());
     result.insert(result.end(), nonEqualityPredicates.begin(), nonEqualityPredicates.end());
     return result;
 }

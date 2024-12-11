@@ -10,14 +10,19 @@ namespace optimizer {
 
 struct PredicateSet {
     binder::expression_vector equalityPredicates;
+    binder::expression_vector unEqualityPredicates;
     binder::expression_vector nonEqualityPredicates;
 
     PredicateSet() = default;
     EXPLICIT_COPY_DEFAULT_MOVE(PredicateSet);
 
-    bool isEmpty() const { return equalityPredicates.empty() && nonEqualityPredicates.empty(); }
+    bool isEmpty() const {
+        return equalityPredicates.empty() && unEqualityPredicates.empty() &&
+               nonEqualityPredicates.empty();
+    }
     void clear() {
         equalityPredicates.clear();
+        unEqualityPredicates.clear();
         nonEqualityPredicates.clear();
     }
 
@@ -29,6 +34,7 @@ struct PredicateSet {
 private:
     PredicateSet(const PredicateSet& other)
         : equalityPredicates{other.equalityPredicates},
+          unEqualityPredicates{other.unEqualityPredicates},
           nonEqualityPredicates{other.nonEqualityPredicates} {}
 };
 

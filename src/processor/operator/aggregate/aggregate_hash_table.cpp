@@ -174,7 +174,7 @@ uint8_t* AggregateHashTable::findEntryInDistinctHT(
         auto slot = (HashSlot*)getHashSlot(slotIdx);
         if (slot->entry == nullptr) {
             return nullptr;
-        } else if ((slot->hash == hash) && matchFlatVecWithEntry(groupByKeyVectors, slot->entry)) {
+        } else if ((slot->hash == hash) && matchFlatVecWithEntry(groupByKeyVectors, slot->entry, true)) {
             return slot->entry;
         }
         increaseSlotIdx(slotIdx);

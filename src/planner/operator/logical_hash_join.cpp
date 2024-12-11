@@ -38,7 +38,8 @@ void LogicalHashJoin::computeFactorizedSchema() {
     switch (joinType) {
     case JoinType::INNER:
     case JoinType::LEFT:
-    case JoinType::COUNT: {
+    case JoinType::COUNT:
+    case JoinType::ANTI: {
         // Populate group position mapping
         std::unordered_map<f_group_pos, f_group_pos> buildToProbeKeyGroupPositionMap;
         for (auto& [probeKey, buildKey] : joinConditions) {
@@ -95,7 +96,8 @@ void LogicalHashJoin::computeFlatSchema() {
     switch (joinType) {
     case JoinType::INNER:
     case JoinType::LEFT:
-    case JoinType::COUNT: {
+    case JoinType::COUNT:
+    case JoinType::ANTI: {
         for (auto& expression : buildSchema->getExpressionsInScope()) {
             // Join key may repeat for internal ID based joins.
             schema->insertToGroupAndScopeMayRepeat(expression, 0);
@@ -123,7 +125,8 @@ binder::expression_vector LogicalHashJoin::getExpressionsToMaterialize() const {
     switch (joinType) {
     case JoinType::INNER:
     case JoinType::LEFT:
-    case JoinType::COUNT: {
+    case JoinType::COUNT:
+    case JoinType::ANTI: {
         return children[1]->getSchema()->getExpressionsInScope();
     }
     case JoinType::MARK: {

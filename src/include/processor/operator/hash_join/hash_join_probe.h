@@ -102,7 +102,7 @@ private:
     // We can probe a batch of input tuples if we know they have at most one match.
     bool getMatchedTuplesForUnFlatKey(ExecutionContext* context);
 
-    inline uint64_t getInnerJoinResult() {
+    uint64_t getInnerJoinResult() {
         return flatProbe ? getInnerJoinResultForFlatKey() : getInnerJoinResultForUnFlatKey();
     }
     uint64_t getInnerJoinResultForFlatKey();

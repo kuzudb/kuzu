@@ -26,7 +26,7 @@ protected:
         const std::vector<common::ValueVector*>& unFlatKeyVectors);
     void initSlotConstant(uint64_t numSlotsPerBlock);
     bool matchFlatVecWithEntry(const std::vector<common::ValueVector*>& keyVectors,
-        const uint8_t* entry);
+        const uint8_t* entry, bool match);
 
 private:
     void initCompareFuncs();

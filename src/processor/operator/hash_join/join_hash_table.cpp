@@ -152,7 +152,7 @@ void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors, ValueVect
 }
 
 sel_t JoinHashTable::matchFlatKeys(const std::vector<ValueVector*>& keyVectors,
-    uint8_t** probedTuples, uint8_t** matchedTuples) {
+    uint8_t** probedTuples, uint8_t** matchedTuples, bool match) {
     auto numMatchedTuples = 0;
     while (probedTuples[0]) {
         if (numMatchedTuples == DEFAULT_VECTOR_CAPACITY) {
@@ -160,21 +160,21 @@ sel_t JoinHashTable::matchFlatKeys(const std::vector<ValueVector*>& keyVectors,
         }
         auto currentTuple = probedTuples[0];
         matchedTuples[numMatchedTuples] = currentTuple;
-        numMatchedTuples += matchFlatVecWithEntry(keyVectors, currentTuple);
+        numMatchedTuples += matchFlatVecWithEntry(keyVectors, currentTuple, match);
         probedTuples[0] = *getPrevTuple(currentTuple);
     }
     return numMatchedTuples;
 }
 
 sel_t JoinHashTable::matchUnFlatKey(ValueVector* keyVector, uint8_t** probedTuples,
-    uint8_t** matchedTuples, SelectionVector& matchedTuplesSelVector) {
+    uint8_t** matchedTuples, SelectionVector& matchedTuplesSelVector, bool match) {
     auto numMatchedTuples = 0;
     for (auto i = 0u; i < keyVector->state->getSelVector().getSelSize(); ++i) {
         auto pos = keyVector->state->getSelVector()[i];
         while (probedTuples[i]) {
             auto currentTuple = probedTuples[i];
             auto entryCompareResult = compareEntryFuncs[0](keyVector, pos, currentTuple);
-            if (entryCompareResult) {
+            if (match == entryCompareResult) {
                 matchedTuples[numMatchedTuples] = currentTuple;
                 matchedTuplesSelVector[numMatchedTuples] = pos;
                 numMatchedTuples++;
