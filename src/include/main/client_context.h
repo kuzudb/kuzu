@@ -35,6 +35,10 @@ namespace processor {
 class ImportDB;
 }
 
+namespace graph {
+class GraphEntrySet;
+}
+
 namespace main {
 struct DBConfig;
 class Database;
@@ -137,6 +141,8 @@ public:
     processor::WarningContext& getWarningContextUnsafe();
     const processor::WarningContext& getWarningContext() const;
 
+    graph::GraphEntrySet& getGraphEntrySetUnsafe();
+
     void cleanUP();
 
     std::unique_ptr<QueryResult> queryInternal(std::string_view query, std::string_view encodedJoin,
@@ -199,6 +205,8 @@ private:
     std::unique_ptr<common::ProgressBar> progressBar;
     // Warning information
     processor::WarningContext warningContext;
+    // Graph entries
+    std::unique_ptr<graph::GraphEntrySet> graphEntrySet;
     std::mutex mtx;
 };
 

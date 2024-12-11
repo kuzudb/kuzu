@@ -23,6 +23,7 @@
 #include "storage/buffer_manager/spiller.h"
 #include "storage/storage_manager.h"
 #include "transaction/transaction_context.h"
+#include "graph/graph_entry.h"
 
 #if defined(_WIN32)
 #include "common/windows_utils.h"
@@ -51,6 +52,7 @@ ClientContext::ClientContext(Database* database)
     transactionContext = std::make_unique<TransactionContext>(*this);
     randomEngine = std::make_unique<RandomEngine>();
     remoteDatabase = nullptr;
+    graphEntrySet = std::make_unique<graph::GraphEntrySet>();
 #if defined(_WIN32)
     clientConfig.homeDirectory = getEnvVariable("USERPROFILE");
 #else
@@ -579,5 +581,10 @@ processor::WarningContext& ClientContext::getWarningContextUnsafe() {
 const processor::WarningContext& ClientContext::getWarningContext() const {
     return warningContext;
 }
+
+graph::GraphEntrySet& ClientContext::getGraphEntrySetUnsafe() {
+    return *graphEntrySet;
+}
+
 } // namespace main
 } // namespace kuzu

@@ -86,6 +86,14 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
         std::move(columnTypes), std::move(columnNames), std::move(config));
 }
 
+static std::unique_ptr<QueryResult> runQuery(main::ClientContext* context, std::string query) {
+    auto result = context->queryInternal(query, "", false /* enumerateAllPlans*/, std::nullopt /* queryID*/);
+    if (!result->isSuccess()) {
+        throw RuntimeException(result->getErrorMessage());
+    }
+    return result;
+}
+
 static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output) {
     // TODO(Xiyang/Ziyi): Currently we don't have a dedicated planner for queryFTS, so
     //  we need a wrapper call function to CALL the actual GDS function.
@@ -97,14 +105,17 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
         auto avgDocLen = bindData.entry.getAvgDocLen();
         auto query = common::stringFormat("UNWIND tokenize('{}') AS tk RETURN COUNT(DISTINCT tk);",
             actualQuery);
-        auto numTermsInQuery = data.context->clientContext
-                                   ->queryInternal(query, "" /* encodedJoin */,
-                                       false /* enumerateAllPlans */, std::nullopt /* queryID */)
-                                   ->getNext()
-                                   ->getValue(0)
-                                   ->toString();
-        query = common::stringFormat("PROJECT GRAPH PK (`{}`, `{}`, `{}`) "
-                                     "UNWIND tokenize('{}') AS tk "
+        auto clientContext = data.context->clientContext;
+        auto result = runQuery(clientContext, query);
+        auto numTermsInQuery = result->getNext()->getValue(0)->toString();
+        // Project graph
+        query = stringFormat("CALL create_project_graph('PK', ['{}', '{}'], ['{}'])",
+            bindData.getTermsTableName(),
+            bindData.getDocsTableName(),
+            bindData.getAppearsInTableName());
+        runQuery(clientContext, query);
+        // Compute score
+        query = common::stringFormat("UNWIND tokenize('{}') AS tk "
                                      "WITH collect(stem(tk, '{}')) AS keywords "
                                      "MATCH (a:`{}`) "
                                      "WHERE list_contains(keywords, a.term) "
@@ -112,12 +123,13 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
                                      "MATCH (p:`{}`) "
                                      "WHERE _node.docID = offset(id(p)) "
                                      "RETURN p, score",
-            bindData.getTermsTableName(), bindData.getDocsTableName(),
-            bindData.getAppearsInTableName(), actualQuery, bindData.entry.getFTSConfig().stemmer,
+            actualQuery, bindData.entry.getFTSConfig().stemmer,
             bindData.getTermsTableName(), bindData.config.k, bindData.config.b, numDocs, avgDocLen,
             numTermsInQuery, bindData.config.isConjunctive ? "true" : "false", bindData.tableName);
-        localState->result = data.context->clientContext->queryInternal(query, "", false,
-            std::nullopt /* queryID */);
+        localState->result = runQuery(clientContext, query);
+        // Remove project graph
+        query = stringFormat("CALL drop_project_graph('PK')");
+        runQuery(clientContext, query);
     }
     if (localState->numRowsOutput >= localState->result->getNumTuples()) {
         return 0;

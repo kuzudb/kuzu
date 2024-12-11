@@ -7,7 +7,6 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/copier_config/reader_config.h"
 #include "common/enums/table_type.h"
-#include "graph/graph_entry.h"
 #include "parser/ddl/parsed_property_definition.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 #include "parser/query/regular_query.h"
@@ -16,7 +15,6 @@ namespace kuzu {
 namespace parser {
 struct CreateTableInfo;
 struct BaseScanSource;
-class ProjectGraph;
 struct JoinHintNode;
 } // namespace parser
 
@@ -29,10 +27,6 @@ class Catalog;
 namespace extension {
 struct ExtensionOptions;
 } // namespace extension
-
-namespace graph {
-struct GraphEntry;
-}
 
 namespace main {
 class ClientContext;
@@ -68,7 +62,7 @@ class Binder {
 
 public:
     explicit Binder(main::ClientContext* clientContext)
-        : lastExpressionId{0}, scope{}, graphEntrySet{}, expressionBinder{this, clientContext},
+        : lastExpressionId{0}, scope{}, expressionBinder{this, clientContext},
           clientContext{clientContext} {}
 
     std::unique_ptr<BoundStatement> bind(const parser::Statement& statement);
@@ -156,8 +150,6 @@ public:
     std::unique_ptr<BoundRegularQuery> bindQuery(const parser::RegularQuery& regularQuery);
     NormalizedSingleQuery bindSingleQuery(const parser::SingleQuery& singleQuery);
     NormalizedQueryPart bindQueryPart(const parser::QueryPart& queryPart);
-
-    graph::GraphEntry bindProjectGraph(const parser::ProjectGraph& projectGraph);
 
     /*** bind standalone call ***/
     std::unique_ptr<BoundStatement> bindStandaloneCall(const parser::Statement& statement);
@@ -306,9 +298,8 @@ public:
     ExpressionBinder* getExpressionBinder() { return &expressionBinder; }
 
 private:
-    uint32_t lastExpressionId;
+    common::idx_t lastExpressionId;
     BinderScope scope;
-    graph::GraphEntrySet graphEntrySet;
     ExpressionBinder expressionBinder;
     main::ClientContext* clientContext;
 };

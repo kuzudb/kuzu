@@ -37,7 +37,9 @@ struct TableFuncBindInput {
     TableFuncBindInput() = default;
 
     void addLiteralParam(common::Value value);
+
     std::shared_ptr<binder::Expression> getParam(common::idx_t idx) const { return params[idx]; }
+    common::Value getValue(common::idx_t idx) const;
     template<typename T>
     T getLiteralVal(common::idx_t idx) const;
 };

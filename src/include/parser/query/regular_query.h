@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/types/types.h"
-#include "parser/project_graph.h"
 #include "parser/statement.h"
 #include "single_query.h"
 
@@ -29,16 +28,9 @@ public:
 
     std::vector<bool> getIsUnionAll() const { return isUnionAll; }
 
-    void setProjectGraph(std::unique_ptr<ProjectGraph> projectGraph_) {
-        projectGraph = std::move(projectGraph_);
-    }
-    bool hasProjectGraph() const { return projectGraph != nullptr; }
-    const ProjectGraph* getProjectGraph() const { return projectGraph.get(); }
-
 private:
     std::vector<SingleQuery> singleQueries;
     std::vector<bool> isUnionAll;
-    std::unique_ptr<ProjectGraph> projectGraph;
 };
 
 } // namespace parser

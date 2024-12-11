@@ -7,7 +7,6 @@ add_library(
         OBJECT
         bind_attach_database.cpp
         bind_create_macro.cpp
-        bind_project_graph.cpp
         bind_ddl.cpp
         bind_detach_database.cpp
         bind_explain.cpp

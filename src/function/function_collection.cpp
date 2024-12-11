@@ -219,7 +219,8 @@ FunctionCollection* FunctionCollection::getFunctions() {
         TABLE_FUNCTION(ShowFunctionsFunction), TABLE_FUNCTION(BMInfoFunction),
 
         // Standalone Table functions
-        STANDALONE_TABLE_FUNCTION(ClearWarningsFunction),
+        STANDALONE_TABLE_FUNCTION(ClearWarningsFunction), STANDALONE_TABLE_FUNCTION(CreateProjectGraphFunction),
+        STANDALONE_TABLE_FUNCTION(DropProjectGraphFunction),
 
         // Scan functions
         TABLE_FUNCTION(ParquetScanFunction), TABLE_FUNCTION(NpyScanFunction),
