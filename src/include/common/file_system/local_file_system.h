@@ -54,6 +54,8 @@ public:
 
     static bool isLocalPath(const std::string& path);
 
+    static bool fileExists(const std::string& filename);
+
 protected:
     void readFromFile(FileInfo& fileInfo, void* buffer, uint64_t numBytes,
         uint64_t position) const override;
