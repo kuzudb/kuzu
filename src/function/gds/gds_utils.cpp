@@ -7,6 +7,8 @@
 #include "graph/graph.h"
 #include "main/settings.h"
 
+#include <iostream>
+
 using namespace kuzu::common;
 using namespace kuzu::function;
 
@@ -18,6 +20,19 @@ GDSComputeState::GDSComputeState(std::unique_ptr<function::FrontierPair> frontie
     : frontierPair{std::move(frontierPair)}, edgeCompute{std::move(edgeCompute)} {}
 
 GDSComputeState::~GDSComputeState() = default;
+
+void GDSUtils::initKCore(processor::ExecutionContext* context, RJCompState& rjCompState, graph::Graph* graph, std::unique_ptr<EdgeCompute> initEdgeCompute) {
+    auto frontierPair = rjCompState.frontierPair.get();
+    std::swap(rjCompState.edgeCompute, initEdgeCompute);
+    frontierPair = rjCompState.frontierPair.get();
+    for (auto& relTableIDInfo : graph->getRelTableIDInfos()) {
+        rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID, relTableIDInfo.toNodeTableID);
+        scheduleFrontierTask(relTableIDInfo.relTableID, graph, ExtendDirection::FWD, rjCompState, context);
+        rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.toNodeTableID, relTableIDInfo.fromNodeTableID);
+        scheduleFrontierTask(relTableIDInfo.relTableID, graph, ExtendDirection::BWD, rjCompState, context);
+    }
+    std::swap(rjCompState.edgeCompute, initEdgeCompute);
+}
 
 void GDSUtils::scheduleFrontierTask(table_id_t relTableID, graph::Graph* graph,
     ExtendDirection extendDirection, GDSComputeState& gdsComputeState,
@@ -48,13 +63,15 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
     RJCompState& rjCompState, graph::Graph* graph, ExtendDirection extendDirection,
     uint64_t maxIters) {
     auto frontierPair = rjCompState.frontierPair.get();
-    auto outputNodeMask = rjCompState.outputWriter->getOutputNodeMask();
+    if (rjCompState.outputWriter) {
+        auto outputNodeMask = rjCompState.outputWriter->getOutputNodeMask();
+    }
     rjCompState.edgeCompute->resetSingleThreadState();
     while (frontierPair->hasActiveNodesForNextIter() && frontierPair->getNextIter() <= maxIters) {
         frontierPair->beginNewIteration();
-        if (outputNodeMask->enabled() && rjCompState.edgeCompute->terminate(*outputNodeMask)) {
-            break;
-        }
+        // if (rjCompState.outputWriter && outputNodeMask->enabled() && rjCompState.edgeCompute->terminate(*outputNodeMask)) {
+        //     break;
+        // }
         for (auto& relTableIDInfo : graph->getRelTableIDInfos()) {
             switch (extendDirection) {
             case ExtendDirection::FWD: {

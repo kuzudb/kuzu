@@ -111,21 +111,17 @@ void DoublePathLengthsFrontierPair::beginNewIterationInternalNoLock() {
 KCoreFrontierPair::KCoreFrontierPair(
     common::table_id_map_t<common::offset_t> numNodesMap, uint64_t totalNumNodes, uint64_t maxThreadsForExec,
     storage::MemoryManager* mm):
-    FrontierPair{nullptr, nullptr, maxThreadsForExec} {
+    FrontierPair(nullptr, nullptr, maxThreadsForExec), numNodesMap{numNodesMap} {
         for (const auto& [tableID, curNumNodes] : numNodesMap) {
             numNodesMap[tableID] = curNumNodes;
             auto curMemBuffer = mm->allocateBuffer(false, curNumNodes * sizeof(std::atomic<uint64_t>));
-            auto nextMemBuffer = mm->allocateBuffer(false, curNumNodes * sizeof(std::atomic<uint64_t>));
             std::atomic<uint64_t>* curMemBufferPtr =
                 reinterpret_cast<std::atomic<uint64_t>*>(curMemBuffer.get()->getData());
-            std::atomic<uint64_t>* nextMemBufferPtr = 
-                reinterpret_cast<std::atomic<uint64_t>*>(nextMemBuffer.get()->getData());
             // Cast a unique number to each node
             for (uint64_t i = 0; i < curNumNodes; ++i) {
                 curMemBufferPtr[i].store(0, std::memory_order_relaxed);
             }
             curVertexValues.insert({tableID, std::move(curMemBuffer)});
-            nextVertexValues.insert({tableID, std::move(nextMemBuffer)});
         }
         curFrontier = std::make_shared<KCoreFrontier>(numNodesMap, mm, true);
         nextFrontier = std::make_shared<KCoreFrontier>(numNodesMap, mm, false);
@@ -137,12 +133,16 @@ void KCoreFrontierPair::beginFrontierComputeBetweenTables(table_id_t curTableID,
 
 void KCoreFrontierPair::beginNewIterationInternalNoLock() {
     std::swap(curFrontier, nextFrontier);
-    uint64_t currentDegree = curSmallestDegree.load(std::memory_order_relaxed);
-    uint64_t nextDegree = nextSmallestDegree.load(std::memory_order_relaxed);
-    curSmallestDegree.compare_exchange_strong(currentDegree, nextDegree, std::memory_order_relaxed);
-    nextSmallestDegree.compare_exchange_strong(nextDegree, UINT64_MAX, std::memory_order_relaxed);
+    updateSmallestDegree();
     curFrontier->ptrCast<KCoreFrontier>()->incrementCurIter();
     nextFrontier->ptrCast<KCoreFrontier>()->incrementCurIter();
+    for (const auto& [tableID, curNumNodes] : numNodesMap) {
+        for (uint64_t i = 0; i < curNumNodes; ++i) {
+            common::nodeID_t curNode;
+            curNode.offset = i;
+            curNode.tableID = tableID;
+        }
+    }
 }
 
 static constexpr uint64_t EARLY_TERM_NUM_NODES_THRESHOLD = 100;
