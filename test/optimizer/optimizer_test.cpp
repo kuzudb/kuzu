@@ -81,6 +81,36 @@ TEST_F(OptimizerTest, CrossJoinWithFilterWithoutPushDownTest) {
     ASSERT_STREQ(getEncodedPlan(q3).c_str(), "HJ(a.fName=b.fName){Filter()S(a)}{S(b)}");
 }
 
+TEST_F(OptimizerTest, DisableOptimizerTest) {
+    conn->query("CALL enable_plan_optimizer=false");
+
+    auto q1 = "MATCH (a:person)-[e]->(b) "
+              "WHERE a.ID < 0 AND a.fName='Alice' "
+              "RETURN a.gender;";
+    {
+        ASSERT_STREQ(getEncodedPlan(q1).c_str(), "HJ(b._ID){E(b)Filter()Filter()S(a)}{S(b)}");
+        // sanity check to see if the plan still outputs the correct result
+        auto result = conn->query(q1);
+        ASSERT_EQ(result->getNumTuples(), 0);
+    }
+
+    auto q2 = "MATCH (a:person)-[e:knows]->(b:person) "
+              "HINT (a JOIN e) JOIN b "
+              "RETURN e.date;";
+    {
+        ASSERT_STREQ(getEncodedPlan(q2).c_str(), "HJ(b._ID){E(b)S(a)}{S(b)}");
+        auto result = conn->query(q2);
+        ASSERT_EQ(result->getNumTuples(), 14);
+    }
+
+    conn->query("CALL enable_plan_optimizer=true");
+    {
+        ASSERT_STREQ(getEncodedPlan(q2).c_str(), "E(b)S(a)");
+        auto result = conn->query(q2);
+        ASSERT_EQ(result->getNumTuples(), 14);
+    }
+}
+
 TEST_F(OptimizerTest, FilterPushDownTest) {
     auto q1 = "MATCH (a:person)-[e]->(b) "
               "WHERE a.ID < 0 AND a.fName='Alice' "

@@ -21,6 +21,7 @@ struct ClientConfigDefault {
     static constexpr uint32_t RECURSIVE_PATTERN_FACTOR = 100;
     static constexpr bool DISABLE_MAP_KEY_CHECK = true;
     static constexpr uint64_t WARNING_LIMIT = 8 * 1024;
+    static constexpr bool ENABLE_PLAN_OPTIMIZER = true;
 };
 
 struct ClientConfig {
@@ -51,6 +52,7 @@ struct ClientConfig {
     // maximum number of cached warnings
     uint64_t warningLimit = ClientConfigDefault::WARNING_LIMIT;
     bool disableMapKeyCheck = ClientConfigDefault::DISABLE_MAP_KEY_CHECK;
+    bool enablePlanOptimizer = ClientConfigDefault::ENABLE_PLAN_OPTIMIZER;
 };
 
 } // namespace main

@@ -9,6 +9,7 @@ add_library(kuzu_optimizer
         logical_operator_visitor.cpp
         optimizer.cpp
         projection_push_down_optimizer.cpp
+        schema_populator.cpp
         remove_factorization_rewriter.cpp
         remove_unnecessary_join_optimizer.cpp
         top_k_optimizer.cpp
