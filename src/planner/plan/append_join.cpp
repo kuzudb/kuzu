@@ -36,7 +36,7 @@ void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType join
         hashJoin->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT_PROBE_TO_BUILD;
     }
     // Update cost
-    hashJoin->setCardinality(cardinalityEstimator.estimateHashJoin(joinNodeIDs,
+    hashJoin->setCardinality(cardinalityEstimator.estimateHashJoin(joinConditions,
         probePlan.getLastOperatorRef(), buildPlan.getLastOperatorRef()));
     resultPlan.setCost(CostModel::computeHashJoinCost(joinNodeIDs, probePlan, buildPlan));
     resultPlan.setLastOperator(std::move(hashJoin));
@@ -68,6 +68,7 @@ void Planner::appendMarkJoin(const expression_vector& joinNodeIDs,
     hashJoin->setChild(1, buildPlan.getLastOperator());
     hashJoin->computeFactorizedSchema();
     // update cost. Mark join does not change cardinality.
+    hashJoin->setCardinality(probePlan.getCardinality());
     probePlan.setCost(CostModel::computeMarkJoinCost(joinNodeIDs, probePlan, buildPlan));
     probePlan.setLastOperator(std::move(hashJoin));
 }

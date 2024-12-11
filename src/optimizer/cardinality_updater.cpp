@@ -88,8 +88,7 @@ void CardinalityUpdater::visitExtend(planner::LogicalOperator* op) {
 void CardinalityUpdater::visitHashJoin(planner::LogicalOperator* op) {
     auto& hashJoin = op->cast<planner::LogicalHashJoin&>();
     KU_ASSERT(hashJoin.getNumChildren() >= 2);
-    hashJoin.setCardinality(cardinalityEstimator.estimateHashJoin(
-        hashJoin.isNodeIDOnlyJoin() ? hashJoin.getJoinNodeIDs() : binder::expression_vector{},
+    hashJoin.setCardinality(cardinalityEstimator.estimateHashJoin(hashJoin.getJoinConditions(),
         *hashJoin.getChild(0), *hashJoin.getChild(1)));
 }
 
@@ -128,7 +127,7 @@ void CardinalityUpdater::visitLimit(planner::LogicalOperator* op) {
 
 void CardinalityUpdater::visitAggregate(planner::LogicalOperator* op) {
     auto& aggregate = op->cast<planner::LogicalAggregate&>();
-    aggregate.setCardinality(aggregate.getAggregates().size());
+    aggregate.setCardinality(cardinalityEstimator.estimateAggregate(aggregate));
 }
 
 } // namespace kuzu::optimizer

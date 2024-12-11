@@ -3,6 +3,8 @@
 #include "binder/expression/property_expression.h"
 #include "main/client_context.h"
 #include "planner/join_order/join_order_util.h"
+#include "planner/operator/logical_aggregate.h"
+#include "planner/operator/logical_hash_join.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
@@ -79,23 +81,38 @@ uint64_t CardinalityEstimator::estimateScanNode(const LogicalOperator& op) const
     }
 }
 
+uint64_t CardinalityEstimator::estimateAggregate(const LogicalAggregate& op) const {
+    // TODO(Royi) we can use HLL to better estimate the number of distinct keys here
+    return op.getKeys().empty() ? 1 : op.getChild(0)->getCardinality();
+}
+
 cardinality_t CardinalityEstimator::estimateExtend(double extensionRate,
     const LogicalOperator& childOp) const {
     return atLeastOne(extensionRate * childOp.getCardinality());
 }
 
-uint64_t CardinalityEstimator::estimateHashJoin(const expression_vector& joinKeys,
-    const LogicalOperator& probeOp, const LogicalOperator& buildOp) const {
-    cardinality_t denominator = 1u;
-    for (auto& joinKey : joinKeys) {
-        // TODO(Xiyang): we should be able to estimate non-ID-based joins as well.
-        if (nodeIDName2dom.contains(joinKey->getUniqueName())) {
-            denominator *= getNodeIDDom(joinKey->getUniqueName());
+uint64_t CardinalityEstimator::estimateHashJoin(
+    const std::vector<binder::expression_pair>& joinConditions, const LogicalOperator& probeOp,
+    const LogicalOperator& buildOp) const {
+    if (planner::LogicalHashJoin::isNodeIDOnlyJoin(joinConditions)) {
+        cardinality_t denominator = 1u;
+        auto joinKeys = planner::LogicalHashJoin::getJoinNodeIDs(joinConditions);
+        for (auto& joinKey : joinKeys) {
+            if (nodeIDName2dom.contains(joinKey->getUniqueName())) {
+                denominator *= getNodeIDDom(joinKey->getUniqueName());
+            }
         }
+        return atLeastOne(probeOp.getCardinality() *
+                          JoinOrderUtil::getJoinKeysFlatCardinality(joinKeys, buildOp) /
+                          atLeastOne(denominator));
+    } else {
+        // Naively estimate the cardinality if the join is non-ID based
+        cardinality_t estCardinality = probeOp.getCardinality() * buildOp.getCardinality();
+        for (size_t i = 0; i < joinConditions.size(); ++i) {
+            estCardinality *= PlannerKnobs::EQUALITY_PREDICATE_SELECTIVITY;
+        }
+        return atLeastOne(estCardinality);
     }
-    return atLeastOne(probeOp.getCardinality() *
-                      JoinOrderUtil::getJoinKeysFlatCardinality(joinKeys, buildOp) /
-                      atLeastOne(denominator));
 }
 
 uint64_t CardinalityEstimator::estimateCrossProduct(const LogicalOperator& probeOp,

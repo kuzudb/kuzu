@@ -15,6 +15,8 @@ class Transaction;
 
 namespace planner {
 
+class LogicalAggregate;
+
 class CardinalityEstimator {
 public:
     CardinalityEstimator() : context{nullptr} {};
@@ -30,7 +32,7 @@ public:
 
     cardinality_t estimateScanNode(const LogicalOperator& op) const;
     cardinality_t estimateExtend(double extensionRate, const LogicalOperator& childOp) const;
-    cardinality_t estimateHashJoin(const binder::expression_vector& joinKeys,
+    cardinality_t estimateHashJoin(const std::vector<binder::expression_pair>& joinConditions,
         const LogicalOperator& probeOp, const LogicalOperator& buildOp) const;
     cardinality_t estimateCrossProduct(const LogicalOperator& probeOp,
         const LogicalOperator& buildOp) const;
@@ -40,6 +42,7 @@ public:
         f_group_pos groupPosToFlatten) const;
     cardinality_t estimateFilter(const LogicalOperator& childOp,
         const binder::Expression& predicate) const;
+    cardinality_t estimateAggregate(const LogicalAggregate& op) const;
 
     double getExtensionRate(const binder::RelExpression& rel,
         const binder::NodeExpression& boundNode, const transaction::Transaction* transaction) const;
