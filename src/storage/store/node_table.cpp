@@ -593,7 +593,7 @@ bool NodeTable::isVisible(const Transaction* transaction, offset_t offset) const
 
 bool NodeTable::isVisibleNoLock(const Transaction* transaction, offset_t offset) const {
     auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
-    if (nodeGroupIdx >= nodeGroups->getNumNodeGroups()) {
+    if (nodeGroupIdx >= nodeGroups->getNumNodeGroupsNoLock()) {
         return false;
     }
     auto* nodeGroup = getNodeGroupNoLock(nodeGroupIdx);
