@@ -36,6 +36,9 @@ public:
         const auto lock = nodeGroups.lock();
         return nodeGroups.getNumGroups(lock);
     }
+    common::node_group_idx_t getNumNodeGroupsNoLock() const {
+        return nodeGroups.getNumGroupsNoLock();
+    }
     NodeGroup* getNodeGroupNoLock(const common::node_group_idx_t groupIdx) {
         KU_ASSERT(nodeGroups.getGroupNoLock(groupIdx)->getNodeGroupIdx() == groupIdx);
         return nodeGroups.getGroupNoLock(groupIdx);
