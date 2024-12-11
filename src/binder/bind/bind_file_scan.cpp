@@ -110,7 +110,6 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     } else {
         fileTypeInfo = bindFileTypeInfo(filePaths);
     }
-    auto config = std::make_unique<ReaderConfig>(std::move(fileTypeInfo), std::move(filePaths));
     // If we defined a certain FileType, we have to ensure the path is a file, not something else
     // (e.g. an existed directory)
     if (fileTypeInfo.fileType != FileType::UNKNOWN) {
@@ -122,6 +121,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
             }
         }
     }
+    auto config = std::make_unique<ReaderConfig>(std::move(fileTypeInfo), std::move(filePaths));
     config->options = std::move(parsingOptions);
     auto func = getScanFunction(config->fileTypeInfo, *config);
     auto bindInput = std::make_unique<ScanTableFuncBindInput>(config->copy(), columnNames,
