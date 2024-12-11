@@ -146,7 +146,14 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
             gdsCall->computeFactorizedSchema();
             probePlan.setLastOperator(gdsCall);
             if (gdsCall->constPtrCast<LogicalGDSCall>()->getInfo().func.name == "QFTS") {
-                auto op = plan->getLastOperator()->getChild(0);
+                // Hack to deal with join ordering
+                auto scanParent = plan->getLastOperator();
+                KU_ASSERT(scanParent->getNumChildren() >= 2);
+                idx_t scanChildIdx = (scanParent->getChild(1)->getOperatorType() ==
+                                         LogicalOperatorType::SCAN_NODE_TABLE) ?
+                                         1 :
+                                         0;
+                auto op = scanParent->getChild(scanChildIdx);
                 auto prop =
                     bindData->getNodeInput()->constCast<NodeExpression>().getPropertyExpression(
                         "df");

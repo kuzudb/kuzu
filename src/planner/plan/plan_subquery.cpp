@@ -1,6 +1,7 @@
 #include "binder/expression/expression_util.h"
 #include "binder/expression/subquery_expression.h"
 #include "binder/expression_visitor.h"
+#include "planner/join_order/cost_model.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/planner.h"
 
@@ -164,6 +165,17 @@ void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection
     }
 }
 
+template<std::invocable<LogicalPlan&, LogicalPlan&, LogicalPlan&> AppendJoinFunc,
+    std::invocable<LogicalPlan&, LogicalPlan&> EstimateJoinCostFunc>
+static void planRegularMatchJoinOrder(LogicalPlan& leftPlan, LogicalPlan& rightPlan,
+    const AppendJoinFunc& appendJoinFunc, const EstimateJoinCostFunc& estimateJoinCostFunc) {
+    if (estimateJoinCostFunc(leftPlan, rightPlan) <= estimateJoinCostFunc(rightPlan, leftPlan)) {
+        appendJoinFunc(leftPlan, rightPlan, leftPlan);
+    } else {
+        appendJoinFunc(rightPlan, leftPlan, leftPlan);
+    }
+}
+
 void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
     const expression_vector& predicates, LogicalPlan& leftPlan) {
     expression_vector predicatesToPushDown, predicatesToPullUp;
@@ -188,7 +200,15 @@ void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
         if (leftPlan.hasUpdate()) {
             appendCrossProduct(*rightPlan, leftPlan, leftPlan);
         } else {
-            appendCrossProduct(leftPlan, *rightPlan, leftPlan);
+            planRegularMatchJoinOrder(
+                leftPlan, *rightPlan,
+                [this](LogicalPlan& leftPlan, LogicalPlan& rightPlan, LogicalPlan& resultPlan) {
+                    appendCrossProduct(leftPlan, rightPlan, resultPlan);
+                },
+                [](LogicalPlan&, LogicalPlan& rightPlan) {
+                    // we want to minimize the cardinality of the build plan
+                    return rightPlan.getCardinality();
+                });
         }
     } else {
         // TODO(Xiyang): there is a question regarding if we want to plan as a correlated subquery
@@ -201,7 +221,16 @@ void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
         if (leftPlan.hasUpdate()) {
             appendHashJoin(joinNodeIDs, JoinType::INNER, *rightPlan, leftPlan, leftPlan);
         } else {
-            appendHashJoin(joinNodeIDs, JoinType::INNER, leftPlan, *rightPlan, leftPlan);
+            planRegularMatchJoinOrder(
+                leftPlan, *rightPlan,
+                [this, &joinNodeIDs](LogicalPlan& leftPlan, LogicalPlan& rightPlan,
+                    LogicalPlan& resultPlan) {
+                    appendHashJoin(joinNodeIDs, JoinType::INNER, leftPlan, rightPlan, resultPlan);
+                },
+                [&joinNodeIDs](LogicalPlan& leftPlan, LogicalPlan& rightPlan) {
+                    return CostModel::computeHashJoinCost(joinNodeIDs, leftPlan, rightPlan);
+                });
+            // appendHashJoin(joinNodeIDs, JoinType::INNER, leftPlan, *rightPlan, leftPlan);
         }
     }
     for (auto& predicate : predicatesToPullUp) {

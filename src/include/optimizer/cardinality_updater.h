@@ -27,6 +27,7 @@ private:
     void visitOperatorDefault(planner::LogicalOperator* op);
     void visitScanNodeTable(planner::LogicalOperator* op) override;
     void visitExtend(planner::LogicalOperator* op) override;
+    void visitRecursiveExtend(planner::LogicalOperator* op) override;
     void visitHashJoin(planner::LogicalOperator* op) override;
     void visitCrossProduct(planner::LogicalOperator* op) override;
     void visitIntersect(planner::LogicalOperator* op) override;
