@@ -9,7 +9,7 @@ namespace kuzu {
 namespace processor {
 struct ExecutionContext;
 class NodeOffsetMaskMap;
-}
+} // namespace processor
 
 namespace graph {
 class Graph;
@@ -32,10 +32,12 @@ struct KUZU_API GDSComputeState {
     processor::NodeOffsetMaskMap* outputNodeMask = nullptr;
 
     GDSComputeState(std::unique_ptr<function::FrontierPair> frontierPair,
-        std::unique_ptr<function::EdgeCompute> edgeCompute, processor::NodeOffsetMaskMap* outputNodeMask);
+        std::unique_ptr<function::EdgeCompute> edgeCompute,
+        processor::NodeOffsetMaskMap* outputNodeMask);
     virtual ~GDSComputeState();
 
-    virtual void beginFrontierComputeBetweenTables(common::table_id_t currTableID, common::table_id_t nextTableID);
+    virtual void beginFrontierComputeBetweenTables(common::table_id_t currTableID,
+        common::table_id_t nextTableID);
 };
 
 class KUZU_API GDSUtils {

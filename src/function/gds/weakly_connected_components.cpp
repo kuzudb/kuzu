@@ -2,13 +2,13 @@
 #include "common/types/types.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
+#include "function/gds/gds_object_manager.h"
 #include "function/gds/gds_utils.h"
+#include "function/gds/output_writer.h"
 #include "function/gds_function.h"
 #include "graph/graph.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
-#include "function/gds/gds_object_manager.h"
-#include "function/gds/output_writer.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -104,7 +104,8 @@ struct WCCEdgeCompute : public EdgeCompute {
 
 class WCCOutputWriter : public GDSOutputWriter {
 public:
-    WCCOutputWriter(main::ClientContext* context, processor::NodeOffsetMaskMap* outputNodeMask, WCCFrontierPair* frontierPair)
+    WCCOutputWriter(main::ClientContext* context, processor::NodeOffsetMaskMap* outputNodeMask,
+        WCCFrontierPair* frontierPair)
         : GDSOutputWriter{context, outputNodeMask}, frontierPair{frontierPair} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID(), context->getMemoryManager());
         componentIDVector = createVector(LogicalType::UINT64(), context->getMemoryManager());
@@ -115,7 +116,8 @@ public:
         frontierPair->pinVertexValues(tableID);
     }
 
-    void materialize(offset_t startOffset, offset_t endOffset, table_id_t tableID, FactorizedTable& table) const {
+    void materialize(offset_t startOffset, offset_t endOffset, table_id_t tableID,
+        FactorizedTable& table) const {
         for (auto i = startOffset; i < endOffset; ++i) {
             auto nodeID = nodeID_t{i, tableID};
             nodeIDVector->setValue<nodeID_t>(0, nodeID);
@@ -148,7 +150,8 @@ public:
         return true;
     }
 
-    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset, common::table_id_t tableID) override {
+    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset,
+        common::table_id_t tableID) override {
         outputWriter->materialize(startOffset, endOffset, tableID, *localFT);
     }
 
@@ -199,8 +202,6 @@ public:
         bindData = std::make_unique<GDSBindData>(nodeOutput);
     }
 
-
-
     void exec(processor::ExecutionContext* context) override {
         auto clientContext = context->clientContext;
         auto graph = sharedState->graph.get();
@@ -208,15 +209,17 @@ public:
         auto numThreads = clientContext->getMaxNumThreadForExec();
         auto currentFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto nextFrontier = getPathLengthsFrontier(context, 0);
-        auto frontierPair = std::make_unique<WCCFrontierPair>(currentFrontier,
-            nextFrontier, numThreads, numNodesMap, clientContext->getMemoryManager());
+        auto frontierPair = std::make_unique<WCCFrontierPair>(currentFrontier, nextFrontier,
+            numThreads, numNodesMap, clientContext->getMemoryManager());
         // Initialize starting nodes in the next frontier.
         // When beginNewIteration, next frontier will become current frontier
         frontierPair->setActiveNodesForNextIter();
         frontierPair->getNextSparseFrontier().disable();
         auto edgeCompute = std::make_unique<WCCEdgeCompute>(*frontierPair.get());
-        auto writer = std::make_unique<WCCOutputWriter>(clientContext, sharedState->getOutputNodeMaskMap(), frontierPair.get());
-        auto computeState = GDSComputeState(std::move(frontierPair), std::move(edgeCompute), sharedState->getOutputNodeMaskMap());
+        auto writer = std::make_unique<WCCOutputWriter>(clientContext,
+            sharedState->getOutputNodeMaskMap(), frontierPair.get());
+        auto computeState = GDSComputeState(std::move(frontierPair), std::move(edgeCompute),
+            sharedState->getOutputNodeMaskMap());
         GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH,
             MAX_ITERATION);
         auto vertexCompute = std::make_unique<WCCVertexCompute>(clientContext->getMemoryManager(),

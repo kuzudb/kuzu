@@ -119,7 +119,8 @@ struct QFTSState : public function::GDSComputeState {
 
 QFTSState::QFTSState(std::unique_ptr<function::FrontierPair> frontierPair,
     std::unique_ptr<function::EdgeCompute> edgeCompute, common::table_id_t termsTableID)
-    : function::GDSComputeState{std::move(frontierPair), std::move(edgeCompute), nullptr /* outputNodeMask */} {
+    : function::GDSComputeState{std::move(frontierPair), std::move(edgeCompute),
+          nullptr /* outputNodeMask */} {
     this->frontierPair->pinNextFrontier(termsTableID);
 }
 

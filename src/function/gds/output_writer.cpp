@@ -15,7 +15,8 @@ void PathsOutputs::beginWritingOutputsForDstNodesInTable(common::table_id_t tabl
     bfsGraph->pinTableID(tableID);
 }
 
-std::unique_ptr<common::ValueVector> GDSOutputWriter::createVector(const LogicalType& type, storage::MemoryManager* mm) {
+std::unique_ptr<common::ValueVector> GDSOutputWriter::createVector(const LogicalType& type,
+    storage::MemoryManager* mm) {
     auto vector = std::make_unique<ValueVector>(type.copy(), mm);
     vector->state = DataChunkState::getSingleValueDataChunkState();
     vectors.push_back(vector.get());

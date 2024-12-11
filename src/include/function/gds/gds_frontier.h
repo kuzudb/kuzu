@@ -237,7 +237,6 @@ private:
     PathLengths& pathLengths;
     uint16_t val;
 };
-  
 
 /**
  * Base class for maintaining a current and a next GDSFrontier of nodes for GDS algorithms. At any
@@ -318,10 +317,8 @@ protected:
 
 class SinglePathLengthsFrontierPair : public FrontierPair {
 public:
-    SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths,
-        uint64_t numThreads)
-        : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */,
-              numThreads),
+    SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths, uint64_t numThreads)
+        : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */, numThreads),
           pathLengths{pathLengths} {}
 
     PathLengths* getPathLengths() const { return pathLengths.get(); }

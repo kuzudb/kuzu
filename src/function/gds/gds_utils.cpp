@@ -14,12 +14,15 @@ namespace kuzu {
 namespace function {
 
 GDSComputeState::GDSComputeState(std::unique_ptr<function::FrontierPair> frontierPair,
-    std::unique_ptr<function::EdgeCompute> edgeCompute, processor::NodeOffsetMaskMap* outputNodeMask)
-    : frontierPair{std::move(frontierPair)}, edgeCompute{std::move(edgeCompute)}, outputNodeMask{outputNodeMask} {}
+    std::unique_ptr<function::EdgeCompute> edgeCompute,
+    processor::NodeOffsetMaskMap* outputNodeMask)
+    : frontierPair{std::move(frontierPair)}, edgeCompute{std::move(edgeCompute)},
+      outputNodeMask{outputNodeMask} {}
 
 GDSComputeState::~GDSComputeState() = default;
 
-void GDSComputeState::beginFrontierComputeBetweenTables(common::table_id_t currTableID, common::table_id_t nextTableID) {
+void GDSComputeState::beginFrontierComputeBetweenTables(common::table_id_t currTableID,
+    common::table_id_t nextTableID) {
     frontierPair->beginFrontierComputeBetweenTables(currTableID, nextTableID);
 }
 
@@ -70,22 +73,26 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
         for (auto& info : graph->getRelTableIDInfos()) {
             switch (extendDirection) {
             case ExtendDirection::FWD: {
-                compState.beginFrontierComputeBetweenTables(info.fromNodeTableID, info.toNodeTableID);
+                compState.beginFrontierComputeBetweenTables(info.fromNodeTableID,
+                    info.toNodeTableID);
                 scheduleFrontierTask(info.toNodeTableID, info.relTableID, graph,
                     ExtendDirection::FWD, compState, context);
             } break;
             case ExtendDirection::BWD: {
-                compState.beginFrontierComputeBetweenTables(info.toNodeTableID, info.fromNodeTableID);
-                scheduleFrontierTask(info.fromNodeTableID, info.relTableID,
-                    graph, ExtendDirection::BWD, compState, context);
+                compState.beginFrontierComputeBetweenTables(info.toNodeTableID,
+                    info.fromNodeTableID);
+                scheduleFrontierTask(info.fromNodeTableID, info.relTableID, graph,
+                    ExtendDirection::BWD, compState, context);
             } break;
             case ExtendDirection::BOTH: {
-                compState.beginFrontierComputeBetweenTables(info.fromNodeTableID, info.toNodeTableID);
+                compState.beginFrontierComputeBetweenTables(info.fromNodeTableID,
+                    info.toNodeTableID);
                 scheduleFrontierTask(info.toNodeTableID, info.relTableID, graph,
                     ExtendDirection::FWD, compState, context);
-                compState.beginFrontierComputeBetweenTables(info.toNodeTableID, info.fromNodeTableID);
-                scheduleFrontierTask(info.fromNodeTableID, info.relTableID,
-                    graph, ExtendDirection::BWD, compState, context);
+                compState.beginFrontierComputeBetweenTables(info.toNodeTableID,
+                    info.fromNodeTableID);
+                scheduleFrontierTask(info.fromNodeTableID, info.relTableID, graph,
+                    ExtendDirection::BWD, compState, context);
             } break;
             default:
                 KU_UNREACHABLE;

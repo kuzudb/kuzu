@@ -139,8 +139,8 @@ private:
             nextFrontier, clientContext->getMaxNumThreadForExec());
         auto edgeCompute =
             std::make_unique<VarLenJoinsEdgeCompute>(frontierPair.get(), output->bfsGraph.get());
-        return RJCompState(std::move(frontierPair), std::move(edgeCompute), sharedState->getOutputNodeMaskMap(),
-            std::move(output), std::move(outputWriter));
+        return RJCompState(std::move(frontierPair), std::move(edgeCompute),
+            sharedState->getOutputNodeMaskMap(), std::move(output), std::move(outputWriter));
     }
 };
 
