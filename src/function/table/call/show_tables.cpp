@@ -1,6 +1,6 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
-#include "function/table/call_functions.h"
+#include "function/table/simple_table_functions.h"
 #include "main/database_manager.h"
 
 using namespace kuzu::common;
@@ -22,12 +22,12 @@ struct TableInfo {
           databaseName{std::move(databaseName)}, comment{std::move(comment)} {}
 };
 
-struct ShowTablesBindData : public CallTableFuncBindData {
+struct ShowTablesBindData : public SimpleTableFuncBindData {
     std::vector<TableInfo> tables;
 
     ShowTablesBindData(std::vector<TableInfo> tables, std::vector<LogicalType> returnTypes,
         std::vector<std::string> returnColumnNames, offset_t maxOffset)
-        : CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
+        : SimpleTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
           tables{std::move(tables)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
@@ -38,7 +38,7 @@ struct ShowTablesBindData : public CallTableFuncBindData {
 
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto sharedState = input.sharedState->ptrCast<CallFuncSharedState>();
+    auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
     auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;

@@ -4,7 +4,7 @@
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "function/table/bind_input.h"
-#include "function/table/call_functions.h"
+#include "function/table/simple_table_functions.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -13,14 +13,14 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace function {
 
-struct ShowConnectionBindData : public CallTableFuncBindData {
+struct ShowConnectionBindData : public SimpleTableFuncBindData {
     ClientContext* context;
     TableCatalogEntry* tableEntry;
 
     ShowConnectionBindData(ClientContext* context, TableCatalogEntry* tableEntry,
         std::vector<LogicalType> columnTypes, std::vector<std::string> columnNames,
         offset_t maxOffset)
-        : CallTableFuncBindData{std::move(columnTypes), std::move(columnNames), maxOffset},
+        : SimpleTableFuncBindData{std::move(columnTypes), std::move(columnNames), maxOffset},
           context{context}, tableEntry{tableEntry} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() const override {
@@ -54,7 +54,7 @@ static void outputRelTableConnection(DataChunk& outputDataChunk, uint64_t output
 
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto morsel = input.sharedState->ptrCast<CallFuncSharedState>()->getMorsel();
+    auto morsel = input.sharedState->ptrCast<SimpleTableFuncSharedState>()->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }

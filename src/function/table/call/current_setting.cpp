@@ -1,5 +1,5 @@
 #include "function/table/bind_input.h"
-#include "function/table/call_functions.h"
+#include "function/table/simple_table_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;
@@ -7,12 +7,12 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace function {
 
-struct CurrentSettingBindData final : public CallTableFuncBindData {
+struct CurrentSettingBindData final : public SimpleTableFuncBindData {
     std::string result;
 
     CurrentSettingBindData(std::string result, std::vector<LogicalType> returnTypes,
         std::vector<std::string> returnColumnNames, offset_t maxOffset)
-        : CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
+        : SimpleTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
           result{std::move(result)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
@@ -23,7 +23,7 @@ struct CurrentSettingBindData final : public CallTableFuncBindData {
 
 static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto sharedState = data.sharedState->ptrCast<CallFuncSharedState>();
+    auto sharedState = data.sharedState->ptrCast<SimpleTableFuncSharedState>();
     auto& outputVector = dataChunk.getValueVectorMutable(0);
     if (!sharedState->getMorsel().hasMoreToOutput()) {
         return 0;
