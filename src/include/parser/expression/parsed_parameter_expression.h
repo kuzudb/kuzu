@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace parser {
 
-class KUZU_API ParsedParameterExpression : public ParsedExpression {
+class ParsedParameterExpression : public ParsedExpression {
 public:
     explicit ParsedParameterExpression(std::string parameterName, std::string raw)
         : ParsedExpression{common::ExpressionType::PARAMETER, std::move(raw)},

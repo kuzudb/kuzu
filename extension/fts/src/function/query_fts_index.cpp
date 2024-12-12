@@ -6,7 +6,6 @@
 #include "catalog/catalog.h"
 #include "catalog/fts_index_catalog_entry.h"
 #include "common/exception/binder.h"
-#include "expression_evaluator/literal_evaluator.h"
 #include "fts_extension.h"
 #include "function/fts_bind_data.h"
 #include "function/fts_utils.h"
@@ -24,43 +23,44 @@ using namespace kuzu::main;
 using namespace kuzu::function;
 
 struct QueryFTSBindData final : public FTSBindData {
-    evaluator::LiteralExpressionEvaluator query;
+    std::shared_ptr<binder::Expression> query;
     const FTSIndexCatalogEntry& entry;
     QueryFTSConfig config;
 
     QueryFTSBindData(std::string tableName, common::table_id_t tableID, std::string indexName,
-        evaluator::LiteralExpressionEvaluator query, const FTSIndexCatalogEntry& entry,
+        std::shared_ptr<binder::Expression> query, const FTSIndexCatalogEntry& entry,
         std::vector<LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
         QueryFTSConfig config)
         : FTSBindData{std::move(tableName), tableID, std::move(indexName), std::move(returnTypes),
               std::move(returnColumnNames)},
           query{std::move(query)}, entry{entry}, config{std::move(config)} {}
 
+    std::string getQuery() const;
+
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<QueryFTSBindData>(*this);
     }
 };
 
-struct QueryFTSLocalState : public TableFuncLocalState {
-    std::unique_ptr<QueryResult> result = nullptr;
-    uint64_t numRowsOutput = 0;
-};
-
-static evaluator::LiteralExpressionEvaluator bindParameter(
-    std::shared_ptr<binder::Expression> expression) {
-    auto value = Value::createDefaultValue(expression->dataType);
-    switch (expression->expressionType) {
+std::string QueryFTSBindData::getQuery() const {
+    auto value = Value::createDefaultValue(query->dataType);
+    switch (query->expressionType) {
     case ExpressionType::LITERAL: {
-        value = expression->constCast<binder::LiteralExpression>().getValue();
+        value = query->constCast<binder::LiteralExpression>().getValue();
     } break;
     case ExpressionType::PARAMETER: {
-        value = expression->constCast<binder::ParameterExpression>().getValue();
+        value = query->constCast<binder::ParameterExpression>().getValue();
     } break;
     default:
         KU_UNREACHABLE;
     }
-    return evaluator::LiteralExpressionEvaluator(expression, std::move(value));
+    return value.getValue<std::string>();
 }
+
+struct QueryFTSLocalState : public TableFuncLocalState {
+    std::unique_ptr<QueryResult> result = nullptr;
+    uint64_t numRowsOutput = 0;
+};
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     TableFuncBindInput* input) {
@@ -72,7 +72,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     auto& tableEntry = FTSUtils::bindTable(
         binder::ExpressionUtil::getLiteralValue<std::string>(*input->getParam(0)), context,
         indexName, FTSUtils::IndexOperation::QUERY);
-    auto query = bindParameter(input->getParam(2));
+    auto query = input->getParam(2);
     FTSUtils::validateIndexExistence(*context, tableEntry.getTableID(), indexName);
     auto ftsCatalogEntry =
         context->getCatalog()->getIndex(context->getTx(), tableEntry.getTableID(), indexName);
@@ -92,7 +92,7 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
     auto localState = data.localState->ptrCast<QueryFTSLocalState>();
     if (localState->result == nullptr) {
         auto bindData = data.bindData->cast<QueryFTSBindData>();
-        auto actualQuery = bindData.query.getValue().toString();
+        auto actualQuery = bindData.getQuery();
         auto numDocs = bindData.entry.getNumDocs();
         auto avgDocLen = bindData.entry.getAvgDocLen();
         auto query = common::stringFormat("UNWIND tokenize('{}') AS tk RETURN COUNT(DISTINCT tk);",
