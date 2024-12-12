@@ -53,7 +53,7 @@ private:
 
     void updateTableNames();
 
-    void updateFunctionNames();
+    void updateFunctionAndTypeNames();
 
     void setMaxRows(const std::string& maxRowsString);
 
