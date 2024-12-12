@@ -180,6 +180,10 @@ public:
 
     uint8_t* pin(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
         PageReadPolicy pageReadPolicy = PageReadPolicy::READ_PAGE);
+
+    void optimisticBatchRead(BMFileHandle &fileHandle, common::page_idx_t pageIdx, uint64_t numPages,
+                             const std::function<void(const uint8_t *)> &batchFunc);
+
     void optimisticRead(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& func);
     // The function assumes that the requested page is already pinned.

@@ -190,6 +190,18 @@ void ListColumn::scanInternal(Transaction* transaction, const ChunkState& state,
     }
 }
 
+void ListColumn::fastLookup(Transaction *transaction, ChunkState &readState,
+                            common::offset_t nodeOffset, fast_compute_on_values_func_t &computeFunc) {
+    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+    KU_ASSERT(readState.nodeGroupIdx == nodeGroupIdx);
+    auto nodeOffsetInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+    auto listEndOffset = readOffset(transaction, readState, nodeOffsetInGroup);
+    auto size = readSize(transaction, readState, nodeOffsetInGroup);
+    auto listStartOffset = listEndOffset - size;
+    dataColumn->fastScan(transaction, readState.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
+                     listStartOffset, listEndOffset, computeFunc);
+}
+
 void ListColumn::lookupValue(Transaction* transaction, ChunkState& readState, offset_t nodeOffset,
     ValueVector* resultVector, uint32_t posInVector) {
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);

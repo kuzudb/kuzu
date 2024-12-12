@@ -64,6 +64,9 @@ public:
         ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
 
+    void fastLookup(transaction::Transaction *transaction, ChunkState &state, common::offset_t nodeOffset,
+                    fast_compute_on_values_func_t &computeFunc) override;
+
     Column* getDataColumn() const { return dataColumn.get(); }
 
 protected:

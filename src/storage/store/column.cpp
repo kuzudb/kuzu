@@ -215,6 +215,25 @@ void Column::scan(Transaction* transaction, const ChunkState& state, idx_t vecto
     scanInternal(transaction, state, vectorIdx, numValuesToScan, nodeIDVector, resultVector);
 }
 
+void Column::fastScan(transaction::Transaction *transaction, const kuzu::storage::Column::ChunkState &state,
+                      common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
+                      fast_compute_on_values_func_t &computeFunc) {
+    // TODO: fix for null column
+    auto pageCursor = getPageCursorForOffsetInGroup(startOffsetInGroup, state);
+    const auto numValuesToScan = endOffsetInGroup - startOffsetInGroup;
+    auto chunkMeta = state.metadata;
+    const auto numValuesPerPage =
+            state.metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+    auto startPageIdx = pageCursor.pageIdx;
+    auto startPosInPage = pageCursor.elemPosInPage;
+    KU_ASSERT(isPageIdxValid(pageCursor.pageIdx, chunkMeta));
+    auto numPagesToRead =
+            std::ceil((float)std::max((int)(numValuesToScan - (numValuesPerPage - startPosInPage)), 0) / numValuesPerPage) + 1;
+    readFromPages(transaction, startPageIdx, numPagesToRead, [&](const uint8_t *frame) -> void {
+        computeFunc(frame, startPosInPage, numValuesToScan);
+    });
+}
+
 void Column::scan(Transaction* transaction, const ChunkState& state, offset_t startOffsetInGroup,
     offset_t endOffsetInGroup, ValueVector* resultVector, uint64_t offsetInVector) {
     if (nullColumn) {
@@ -344,6 +363,11 @@ void Column::scanFiltered(Transaction* transaction, PageCursor& pageCursor,
     }
 }
 
+void Column::fastLookup(Transaction *transaction, ChunkState &state, common::offset_t nodeOffset,
+                        fast_compute_on_values_func_t &computeFunc) {
+    throw std::runtime_error("Not implemented");
+}
+
 void Column::lookup(Transaction* transaction, ChunkState& readState,
     const ValueVector* nodeIDVector, ValueVector* resultVector) {
     if (nullColumn) {
@@ -375,6 +399,13 @@ void Column::lookupValue(Transaction* transaction, ChunkState& readState, offset
         readToVectorFunc(frame, cursor, resultVector, posInVector, 1 /* numValuesToRead */,
             readState.metadata.compMeta);
     });
+}
+
+void Column::readFromPages(transaction::Transaction *transaction, common::page_idx_t pageIdx, int numPages,
+                           const std::function<void(const uint8_t *)> &func) {
+    auto [fileHandleToPin, pageIdxToPin] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
+            *dataFH, pageIdx, *wal, transaction->getType());
+    bufferManager->optimisticBatchRead(*fileHandleToPin, pageIdxToPin, numPages, func);
 }
 
 void Column::readFromPage(Transaction* transaction, page_idx_t pageIdx,

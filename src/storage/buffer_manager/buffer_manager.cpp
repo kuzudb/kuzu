@@ -201,6 +201,54 @@ inline bool try_func(const std::function<void(uint8_t*)>& func, uint8_t* frame,
     return true;
 }
 
+void BufferManager::optimisticBatchRead(kuzu::storage::BMFileHandle &fileHandle, common::page_idx_t pageIdx,
+                                        uint64_t numPages, const std::function<void(const uint8_t *)> &batchFunc) {
+    std::vector<PageState*> pageStates;
+    for (auto i = 0u; i < numPages; i++) {
+        pageStates.push_back(fileHandle.getPageState(pageIdx + i));
+    }
+    std::vector<uint64_t> currStateAndVersions;
+
+    while (true) {
+        // Get state and version of all pages
+        currStateAndVersions.clear();
+        for (auto i = 0u; i < numPages; i++) {
+            currStateAndVersions.push_back(pageStates[i]->getStateAndVersion());
+        }
+        // Check if all unlocked
+        bool allUnlocked = true;
+        for (auto i = 0u; i < numPages; i++) {
+            if (PageState::getState(currStateAndVersions[i]) != PageState::UNLOCKED) {
+                allUnlocked = false;
+                break;
+            }
+        }
+
+        if (allUnlocked) {
+            // This function has to idempotent otherwise we might read the same page multiple times!
+            batchFunc(getFrame(fileHandle, pageIdx));
+            // TODO: check if state and version is still same for all pages that we read!
+            return;
+        }
+
+        // Try to unlock all marked pages
+        for (auto i = 0u; i < numPages; i++) {
+            if (PageState::getState(currStateAndVersions[i]) == PageState::MARKED) {
+                pageStates[i]->tryClearMark(currStateAndVersions[i]);
+            }
+        }
+
+        // Try to unlock all evicted pages
+        for (auto i = 0u; i < numPages; i++) {
+            if (PageState::getState(currStateAndVersions[i]) == PageState::EVICTED) {
+                pin(fileHandle, pageIdx + i, PageReadPolicy::READ_PAGE);
+                unpin(fileHandle, pageIdx + i);
+            }
+        }
+        // Continue spinning if any page is locked
+    }
+}
+
 void BufferManager::optimisticRead(BMFileHandle& fileHandle, page_idx_t pageIdx,
     const std::function<void(uint8_t*)>& func) {
     auto pageState = fileHandle.getPageState(pageIdx);

@@ -104,9 +104,9 @@ namespace kuzu {
                 // TODO: Rerank the results if using some even lower quantization like bitQ
 
                 // Remove elements until we have k elements
-//                while (results.size() > k) {
-//                    results.popMin();
-//                }
+                while (results.size() > k) {
+                    results.popMin();
+                }
 
                 std::priority_queue<NodeDistFarther> reversed;
                 while (results.size() > 0) {
@@ -226,6 +226,27 @@ namespace kuzu {
 //                return ListVector::getDataVector(resultVector)->getData();
 //            }
 
+            inline void computeDistance(processor::ExecutionContext *context, vector_id_t id, CosineDistanceComputer *dc,
+                                      double *dist) {
+                auto searchLocalState =
+                        ku_dynamic_cast<GDSLocalState *, VectorSearchLocalState *>(localState.get());
+                auto embeddingColumn = searchLocalState->embeddingColumn;
+                auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(id);
+
+                // Initialize the read state
+                auto readState = searchLocalState->readStates[nodeGroupIdx].get();
+                embeddingColumn->initChunkState(context->clientContext->getTx(), nodeGroupIdx, *readState);
+
+                // Fast compute on embedding
+                // TODO: Add support for batch computation using io uring
+                embeddingColumn->fastLookup(context->clientContext->getTx(), *readState, id,
+                                            [dc, dist](const uint8_t *frame, uint16_t posInFrame,
+                                                       uint32_t numValuesToRead) {
+                                                auto embedding = reinterpret_cast<const float *>(frame);
+                                                dc->computeDistance(embedding + posInFrame, dist);
+                                            });
+            }
+
             const float *getEmbedding(processor::ExecutionContext *context, vector_id_t id) {
                 auto searchLocalState =
                         ku_dynamic_cast<GDSLocalState *, VectorSearchLocalState *>(localState.get());
@@ -264,8 +285,9 @@ namespace kuzu {
                             break;
                         }
                         double dist;
-                        auto embedding = getCompressedEmbedding(header, header->getActualId(neighbor));
-                        qdc->compute_distance(query, embedding, &dist);
+//                        auto embedding = getCompressedEmbedding(header, header->getActualId(neighbor));
+//                        qdc->compute_distance(query, embedding, &dist);
+                        computeDistance(context, header->getActualId(neighbor), dc, &dist);
                         if (dist < nearestDist) {
                             nearest = neighbor;
                             nearestDist = dist;
@@ -284,13 +306,15 @@ namespace kuzu {
                 uint8_t entrypointLevel;
                 header->getEntrypoint(entrypoint, entrypointLevel);
                 if (entrypointLevel == 1) {
-                    auto embedding = getCompressedEmbedding(header, header->getActualId(entrypoint));
-                    qdc->compute_distance(query, embedding, entrypointDist);
+//                    auto embedding = getCompressedEmbedding(header, header->getActualId(entrypoint));
+//                    qdc->compute_distance(query, embedding, entrypointDist);
+                    computeDistance(context, header->getActualId(entrypoint), dc, entrypointDist);
                     searchNNOnUpperLevel(context, header, query, dc, qdc, entrypoint, *entrypointDist);
                     entrypoint = header->getActualId(entrypoint);
                 } else {
-                    auto embedding = getCompressedEmbedding(header, entrypoint);
-                    qdc->compute_distance(query, embedding, entrypointDist);
+//                    auto embedding = getCompressedEmbedding(header, entrypoint);
+//                    qdc->compute_distance(query, embedding, entrypointDist);
+                    computeDistance(context, entrypoint, dc, entrypointDist);
                 }
             }
 
@@ -307,8 +331,8 @@ namespace kuzu {
                 results = std::move(reranked);
             }
 
-            void unfilteredSearch(const float *query, const table_id_t tableId, Graph *graph,
-                                  QuantizedDistanceComputer<float, uint8_t> *dc,
+            void unfilteredSearch(processor::ExecutionContext *context, const float *query, const table_id_t tableId, Graph *graph,
+                                  CosineDistanceComputer *dc, QuantizedDistanceComputer<float, uint8_t> *qdc,
                                   GraphScanState &state, const vector_id_t entrypoint, const double entrypointDist,
                                   BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
                                   VectorIndexHeaderPerPartition *header, const int efSearch) {
@@ -332,8 +356,9 @@ namespace kuzu {
                         }
                         visited->set_bit(neighbor.offset);
                         double dist;
-                        auto embedding = getCompressedEmbedding(header, neighbor.offset);
-                        dc->compute_distance(query, embedding, &dist);
+//                        auto embedding = getEmbedding(context, neighbor.offset);
+//                        dc->computeDistance(embedding, &dist);
+                        computeDistance(context, neighbor.offset, dc, &dist);
                         if (results.size() < efSearch || dist < results.top()->dist) {
                             candidates.emplace(neighbor.offset, dist);
                             results.push(NodeDistFarther{neighbor.offset, dist});
@@ -343,8 +368,8 @@ namespace kuzu {
             }
 
             void filteredSearch(processor::ExecutionContext *context, const float *query, const table_id_t tableId,
-                                Graph *graph,
-                                QuantizedDistanceComputer<float, uint8_t> *dc, NodeOffsetLevelSemiMask *filterMask,
+                                Graph *graph, CosineDistanceComputer *dc,
+                                QuantizedDistanceComputer<float, uint8_t> *qdc, NodeOffsetLevelSemiMask *filterMask,
                                 GraphScanState &state, const vector_id_t entrypoint, const double entrypointDist,
                                 BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
                                 VectorIndexHeaderPerPartition *header, const int efSearch) {
@@ -370,8 +395,9 @@ namespace kuzu {
                         }
                         visited->set_bit(neighbor.offset);
                         double dist;
-                        auto embedding = getCompressedEmbedding(header, neighbor.offset);
-                        dc->compute_distance(query, embedding, &dist);
+//                        auto embedding = getCompressedEmbedding(header, neighbor.offset);
+//                        dc->compute_distance(query, embedding, &dist);
+                        computeDistance(context, neighbor.offset, dc, &dist);
                         if (results.size() < efSearch || dist < results.top()->dist) {
                             candidates.emplace(neighbor.offset, dist);
                             if (filterMask->isMasked(neighbor.offset)) {
@@ -512,8 +538,9 @@ namespace kuzu {
                             continue;
                         }
                         double dist;
-                        auto embedding = getEmbedding(context, neighbor.offset);
-                        dc->computeDistance(embedding, &dist);
+//                        auto embedding = getEmbedding(context, neighbor.offset);
+//                        dc->computeDistance(embedding, &dist);
+                        computeDistance(context, neighbor.offset, dc, &dist);
                         totalDist++;
                         nbrsToExplore.emplace(neighbor.offset, dist);
 
@@ -563,8 +590,9 @@ namespace kuzu {
                                 visited->set_bit(secondHopNeighbor.offset);
                                 double dist;
 
-                                auto embedding = getEmbedding(context, secondHopNeighbor.offset);
-                                dc->computeDistance(embedding, &dist);
+//                                auto embedding = getEmbedding(context, secondHopNeighbor.offset);
+//                                dc->computeDistance(embedding, &dist);
+                                computeDistance(context, secondHopNeighbor.offset, dc, &dist);
                                 totalDist++;
                                 if (results.size() < efSearch || dist < results.top()->dist) {
                                     candidates.emplace(secondHopNeighbor.offset, dist);
@@ -619,7 +647,7 @@ namespace kuzu {
                     }
 
                     if (selectivity > 0.4) {
-                        filteredSearch(context, query, nodeTableId, graph, quantizedDc.get(), filterMask, *state.get(),
+                        filteredSearch(context, query, nodeTableId, graph, dc.get(), quantizedDc.get(), filterMask, *state.get(),
                                        entrypoint,
                                        entrypointDist, results, visited.get(), header, efSearch);
                     } else {
@@ -632,7 +660,7 @@ namespace kuzu {
                                                     efSearch);
                     }
                 } else {
-                    unfilteredSearch(query, nodeTableId, graph, quantizedDc.get(), *state.get(), entrypoint,
+                    unfilteredSearch(context, query, nodeTableId, graph, dc.get(), quantizedDc.get(), *state.get(), entrypoint,
                                      entrypointDist, results, visited.get(), header, efSearch);
                 }
 

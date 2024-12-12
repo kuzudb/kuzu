@@ -19,6 +19,9 @@ namespace storage {
 struct CompressionMetadata;
 class DiskArrayCollection;
 
+// Only works when compression isn't enabled as of now.
+using fast_compute_on_values_func_t = const std::function<void(const uint8_t* frame, uint16_t posInFrame, uint32_t numValuesToRead)>;
+
 using read_values_to_vector_func_t =
     std::function<void(uint8_t* frame, PageCursor& pageCursor, common::ValueVector* resultVector,
         uint32_t posInVector, uint32_t numValuesToRead, const CompressionMetadata& metadata)>;
@@ -85,9 +88,17 @@ public:
     virtual void initChunkState(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, ChunkState& state);
 
+    virtual void fastScan(transaction::Transaction *transaction, const ChunkState &state,
+                          common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
+                          fast_compute_on_values_func_t &computeFunc);
+
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::idx_t vectorIdx, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
+
+    virtual void fastLookup(transaction::Transaction *transaction, ChunkState &state, common::offset_t nodeOffset,
+                              fast_compute_on_values_func_t &computeFunc);
+
     virtual void lookup(transaction::Transaction* transaction, ChunkState& state,
         const common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
 
@@ -183,6 +194,9 @@ protected:
         const common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     virtual void lookupValue(transaction::Transaction* transaction, ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* resultVector, uint32_t posInVector);
+
+    void readFromPages(transaction::Transaction *transaction, common::page_idx_t pageIdx, int numPages,
+                       const std::function<void(const uint8_t *)> &func);
 
     void readFromPage(transaction::Transaction* transaction, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& func);
