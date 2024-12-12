@@ -1,12 +1,12 @@
 #pragma once
 
+#include <algorithm>
 #include <atomic>
 #include <mutex>
 
 #include "compute.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include <span>
-#include <algorithm>
 
 namespace kuzu {
 namespace function {
@@ -368,13 +368,15 @@ public:
 
 class KUZU_API KCoreFrontierPair : public FrontierPair {
 public:
-    KCoreFrontierPair(common::table_id_map_t<common::offset_t> numNodesMap, uint64_t totalNumNodes, uint64_t maxThreadsForExec, storage::MemoryManager* mm);
+    KCoreFrontierPair(common::table_id_map_t<common::offset_t> numNodesMap, uint64_t totalNumNodes,
+        uint64_t maxThreadsForExec, storage::MemoryManager* mm);
 
     void initRJFromSource(common::nodeID_t source) override {};
 
-    void beginFrontierComputeBetweenTables(common::table_id_t curTableID, common::table_id_t nextTableID) override;
+    void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
+        common::table_id_t nextTableID) override;
 
-    void beginNewIterationInternalNoLock() override;  
+    void beginNewIterationInternalNoLock() override;
 
     uint64_t addToVertexDegree(common::nodeID_t nodeID, uint64_t degreeToAdd) {
         return getVertexDegreeAtomic(nodeID).fetch_add(degreeToAdd, std::memory_order_relaxed);
@@ -417,14 +419,13 @@ public:
         curSmallestDegree.compare_exchange_strong(current, curSmallest, std::memory_order_relaxed);
     }
 
-    uint64_t getSmallestDegree() {
-        return curSmallestDegree.load(std::memory_order_relaxed);
-    }
+    uint64_t getSmallestDegree() { return curSmallestDegree.load(std::memory_order_relaxed); }
 
 private:
     std::atomic<uint64_t>& getVertexDegreeAtomic(common::nodeID_t nodeID) const {
         auto& memBuffer = curVertexValues.find(nodeID.tableID)->second;
-        std::atomic<uint64_t>* memBufferPtr = reinterpret_cast<std::atomic<uint64_t>*>(memBuffer->getData());
+        std::atomic<uint64_t>* memBufferPtr =
+            reinterpret_cast<std::atomic<uint64_t>*>(memBuffer->getData());
         return memBufferPtr[nodeID.offset];
     }
     uint64_t numNodes;

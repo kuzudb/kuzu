@@ -1,11 +1,11 @@
 #include "function/gds/gds_utils.h"
 
+#include <iostream>
+
 #include "common/task_system/task_scheduler.h"
 #include "function/gds/gds_task.h"
 #include "graph/graph.h"
 #include "main/settings.h"
-
-#include <iostream>
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -23,15 +23,20 @@ GDSComputeState::GDSComputeState(std::unique_ptr<function::FrontierPair> frontie
 
 GDSComputeState::~GDSComputeState() = default;
 
-void GDSUtils::initKCore(processor::ExecutionContext* context, RJCompState& rjCompState, graph::Graph* graph, std::unique_ptr<EdgeCompute> initEdgeCompute) {
+void GDSUtils::initKCore(processor::ExecutionContext* context, RJCompState& rjCompState,
+    graph::Graph* graph, std::unique_ptr<EdgeCompute> initEdgeCompute) {
     auto frontierPair = rjCompState.frontierPair.get();
     std::swap(rjCompState.edgeCompute, initEdgeCompute);
     frontierPair = rjCompState.frontierPair.get();
     for (auto& relTableIDInfo : graph->getRelTableIDInfos()) {
-        rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID, relTableIDInfo.toNodeTableID);
-        scheduleFrontierTask(relTableIDInfo.relTableID, graph, ExtendDirection::FWD, rjCompState, context);
-        rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.toNodeTableID, relTableIDInfo.fromNodeTableID);
-        scheduleFrontierTask(relTableIDInfo.relTableID, graph, ExtendDirection::BWD, rjCompState, context);
+        rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID,
+            relTableIDInfo.toNodeTableID);
+        scheduleFrontierTask(relTableIDInfo.relTableID, graph, ExtendDirection::FWD, rjCompState,
+            context);
+        rjCompState.beginFrontierComputeBetweenTables(relTableIDInfo.toNodeTableID,
+            relTableIDInfo.fromNodeTableID);
+        scheduleFrontierTask(relTableIDInfo.relTableID, graph, ExtendDirection::BWD, rjCompState,
+            context);
     }
     std::swap(rjCompState.edgeCompute, initEdgeCompute);
 }
