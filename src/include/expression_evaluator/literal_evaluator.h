@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace evaluator {
 
-class KUZU_API LiteralExpressionEvaluator : public ExpressionEvaluator {
+class LiteralExpressionEvaluator : public ExpressionEvaluator {
     static constexpr EvaluatorType type_ = EvaluatorType::LITERAL;
 
 public:
@@ -15,8 +15,6 @@ public:
           value{std::move(value)} {}
 
     void evaluate() override;
-
-    const common::Value& getValue() const { return value; }
 
     bool select(common::SelectionVector& selVector) override;
 

@@ -9,7 +9,7 @@
 namespace kuzu {
 namespace processor {
 
-class KUZU_API ResultSet {
+class ResultSet {
 public:
     ResultSet() : ResultSet(0) {}
     explicit ResultSet(common::idx_t numDataChunks) : multiplicity{1}, dataChunks(numDataChunks) {}
