@@ -5,6 +5,7 @@
 #include "connector/duckdb_result_converter.h"
 #include "connector/duckdb_type_converter.h"
 #include "function/table/scan_functions.h"
+#include "binder/binder.h"
 
 namespace kuzu {
 namespace delta_extension {
@@ -18,10 +19,8 @@ struct DeltaScanBindData : public ScanBindData {
     duckdb_extension::DuckDBResultConverter converter;
 
     DeltaScanBindData(std::string query, std::shared_ptr<DeltaConnector> connector,
-        duckdb_extension::DuckDBResultConverter converter, std::vector<LogicalType> returnTypes,
-        std::vector<std::string> returnColumnNames, ReaderConfig config, main::ClientContext* ctx)
-        : ScanBindData{std::move(returnTypes), std::move(returnColumnNames), std::move(config),
-              ctx},
+        duckdb_extension::DuckDBResultConverter converter, binder::expression_vector columns, ReaderConfig config, main::ClientContext* ctx)
+        : ScanBindData{std::move(columns), std::move(config), ctx},
           query{std::move(query)}, connector{std::move(connector)},
           converter{std::move(converter)} {}
 
@@ -51,9 +50,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         }
     }
     KU_ASSERT(returnTypes.size() == returnColumnNames.size());
+    auto columns = input->binder->createVariables(returnColumnNames, returnTypes);
     return std::make_unique<DeltaScanBindData>(std::move(query), connector,
-        duckdb_extension::DuckDBResultConverter{returnTypes}, copyVector(returnTypes),
-        std::move(returnColumnNames), ReaderConfig{}, context);
+        duckdb_extension::DuckDBResultConverter{returnTypes}, columns, ReaderConfig{}, context);
 }
 
 struct DeltaScanSharedState : public BaseScanSharedState {

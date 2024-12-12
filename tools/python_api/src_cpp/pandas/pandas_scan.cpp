@@ -7,6 +7,7 @@
 #include "py_connection.h"
 #include "pyarrow/pyarrow_scan.h"
 #include "pybind11/pytypes.h"
+#include "binder/binder.h"
 
 using namespace kuzu::function;
 using namespace kuzu::common;
@@ -29,7 +30,8 @@ std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*con
     auto columns = py::list(df.attr("keys")());
     auto getFunc = df.attr("__getitem__");
     auto numRows = py::len(getFunc(columns[0]));
-    return std::make_unique<PandasScanFunctionData>(std::move(returnTypes), std::move(names), df,
+    auto returnColumns = input->binder->createVariables(names, returnTypes);
+    return std::make_unique<PandasScanFunctionData>(std::move(returnColumns), df,
         numRows, std::move(columnBindData));
 }
 
@@ -90,7 +92,7 @@ offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto numValuesToOutput =
         std::min(DEFAULT_VECTOR_CAPACITY, pandasLocalState->end - pandasLocalState->start);
     auto skips = pandasScanData->getColumnSkips();
-    for (auto i = 0u; i < pandasScanData->columnNames.size(); i++) {
+    for (auto i = 0u; i < pandasScanData->getNumColumns(); i++) {
         if (!skips[i]) {
             pandasBackendScanSwitch(pandasScanData->columnBindData[i].get(), numValuesToOutput,
                 pandasLocalState->start, &output.dataChunk.getValueVectorMutable(i));

@@ -1,5 +1,6 @@
 #include "function/table/simple_table_functions.h"
 #include "processor/warning_context.h"
+#include "binder/binder.h"
 
 using namespace kuzu::common;
 
@@ -10,14 +11,12 @@ struct ShowWarningsBindData : public SimpleTableFuncBindData {
     std::vector<processor::WarningInfo> warnings;
 
     ShowWarningsBindData(std::vector<processor::WarningInfo> warnings,
-        std::vector<LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
-        offset_t maxOffset)
-        : SimpleTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
+        binder::expression_vector columns, offset_t maxOffset)
+        : SimpleTableFuncBindData{std::move(columns), maxOffset},
           warnings{std::move(warnings)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ShowWarningsBindData>(warnings, LogicalType::copy(columnTypes),
-            columnNames, maxOffset);
+        return std::make_unique<ShowWarningsBindData>(warnings, columns, maxOffset);
     }
 };
 
@@ -42,7 +41,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-    TableFuncBindInput*) {
+    TableFuncBindInput* input) {
     std::vector<std::string> columnNames{WarningConstants::WARNING_TABLE_COLUMN_NAMES.begin(),
         WarningConstants::WARNING_TABLE_COLUMN_NAMES.end()};
     std::vector<LogicalType> columnTypes{WarningConstants::WARNING_TABLE_COLUMN_DATA_TYPES.begin(),
@@ -51,8 +50,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     for (const auto& warning : context->getWarningContext().getPopulatedWarnings()) {
         warningInfos.emplace_back(warning);
     }
-    return std::make_unique<ShowWarningsBindData>(std::move(warningInfos), std::move(columnTypes),
-        std::move(columnNames), warningInfos.size());
+    auto columns = input->binder->createVariables(columnNames, columnTypes);
+    return std::make_unique<ShowWarningsBindData>(std::move(warningInfos), columns, warningInfos.size());
 }
 
 function_set ShowWarningsFunction::getFunctionSet() {

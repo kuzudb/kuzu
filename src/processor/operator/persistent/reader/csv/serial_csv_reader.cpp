@@ -4,6 +4,7 @@
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
+#include "binder/binder.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -216,12 +217,17 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         scanInput->config.options.insert_or_assign("HEADER", Value(detectedHeader));
     }
 
+    auto resultColumns = input->binder->createVariables(resultColumnNames, resultColumnTypes);
+    std::vector<std::string> warningColumnNames;
+    std::vector<LogicalType> warningColumnTypes;
     const column_id_t numWarningDataColumns = BaseCSVReader::appendWarningDataColumns(
-        resultColumnNames, resultColumnTypes, scanInput->config);
-
-    return std::make_unique<ScanBindData>(std::move(resultColumnTypes),
-        std::move(resultColumnNames), scanInput->config.copy(), context, 0 /* estCardinality */,
-        numWarningDataColumns);
+        warningColumnNames, warningColumnTypes, scanInput->config);
+    auto warningColumns = input->binder->createInvisibleVariables(warningColumnNames, warningColumnTypes);
+    for (auto& column : warningColumns) {
+        resultColumns.push_back(column);
+    }
+    return std::make_unique<ScanBindData>(std::move(resultColumns), scanInput->config.copy(), context,
+        numWarningDataColumns, 0 /* estCardinality */);
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitInput& input) {

@@ -3,6 +3,7 @@
 #include "common/exception/runtime.h"
 #include "connector/duckdb_connector.h"
 #include "function/table/bind_input.h"
+#include "binder/binder.h"
 
 using namespace kuzu::function;
 using namespace kuzu::common;
@@ -13,8 +14,8 @@ namespace duckdb_extension {
 DuckDBScanBindData::DuckDBScanBindData(std::string query,
     std::vector<common::LogicalType> columnTypes, std::vector<std::string> columnNames,
     const DuckDBConnector& connector)
-    : TableFuncBindData{std::move(columnTypes), std::move(columnNames)}, query{std::move(query)},
-      converter{copyVector(this->columnTypes)}, connector{connector} {}
+    : TableFuncBindData{}, query{std::move(query)}, columnTypes{LogicalType::copy(columnTypes)}, columnNames{columnNames},
+      converter{columnTypes}, connector{connector} {}
 
 DuckDBScanSharedState::DuckDBScanSharedState(
     std::unique_ptr<duckdb::MaterializedQueryResult> queryResult)
@@ -47,13 +48,13 @@ std::unique_ptr<function::TableFuncSharedState> DuckDBScanFunction::initSharedSt
     auto numSkippedColumns =
         std::count_if(columnSkips.begin(), columnSkips.end(), [](auto item) { return item; });
     if (scanBindData->getNumColumns() == numSkippedColumns) {
-        columnNames = input.bindData->columnNames[0];
+        columnNames = input.bindData->constPtrCast<DuckDBScanBindData>()->columnNames[0];
     }
     for (auto i = 0u; i < scanBindData->getNumColumns(); i++) {
         if (columnSkips[i]) {
             continue;
         }
-        columnNames += input.bindData->columnNames[i];
+        columnNames += input.bindData->constPtrCast<DuckDBScanBindData>()->columnNames[i];
         columnNames += (i == scanBindData->getNumColumns() - 1) ? "" : ",";
     }
     std::string predicatesString = "";
@@ -104,8 +105,10 @@ common::offset_t DuckDBScanFunction::tableFunc(function::TableFuncInput& input,
 
 std::unique_ptr<function::TableFuncBindData> DuckDBScanFunction::bindFunc(
     DuckDBScanBindData bindData, main::ClientContext* /*clientContext*/,
-    function::TableFuncBindInput* /*input*/) {
-    return bindData.copy();
+    function::TableFuncBindInput* input) {
+    auto result = bindData.copy();
+    result->columns = input->binder->createVariables(bindData.columnNames, bindData.columnTypes);
+    return result;
 }
 
 TableFunction getScanFunction(DuckDBScanBindData bindData) {

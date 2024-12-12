@@ -1,5 +1,6 @@
 #include "catalog/catalog.h"
 #include "function/table/simple_table_functions.h"
+#include "binder/binder.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -19,14 +20,12 @@ struct FunctionInfo {
 struct ShowFunctionsBindData : public SimpleTableFuncBindData {
     std::vector<FunctionInfo> sequences;
 
-    ShowFunctionsBindData(std::vector<FunctionInfo> sequences, std::vector<LogicalType> returnTypes,
-        std::vector<std::string> returnColumnNames, offset_t maxOffset)
-        : SimpleTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
-          sequences{std::move(sequences)} {}
+    ShowFunctionsBindData(std::vector<FunctionInfo> sequences, binder::expression_vector columns,
+        offset_t maxOffset)
+        : SimpleTableFuncBindData{columns, maxOffset}, sequences{std::move(sequences)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ShowFunctionsBindData>(sequences, LogicalType::copy(columnTypes),
-            columnNames, maxOffset);
+        return std::make_unique<ShowFunctionsBindData>(sequences, columns, maxOffset);
     }
 };
 
@@ -49,7 +48,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-    TableFuncBindInput*) {
+    TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     columnNames.emplace_back("name");
@@ -67,8 +66,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
             FunctionInfos.emplace_back(function->name, type, signature);
         }
     }
-    return std::make_unique<ShowFunctionsBindData>(std::move(FunctionInfos), std::move(columnTypes),
-        std::move(columnNames), FunctionInfos.size());
+    auto columns = input->binder->createVariables(columnNames, columnTypes);
+    return std::make_unique<ShowFunctionsBindData>(std::move(FunctionInfos), columns, FunctionInfos.size());
 }
 
 function_set ShowFunctionsFunction::getFunctionSet() {

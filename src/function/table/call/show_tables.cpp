@@ -2,6 +2,7 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "function/table/simple_table_functions.h"
 #include "main/database_manager.h"
+#include "binder/binder.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -25,14 +26,11 @@ struct TableInfo {
 struct ShowTablesBindData : public SimpleTableFuncBindData {
     std::vector<TableInfo> tables;
 
-    ShowTablesBindData(std::vector<TableInfo> tables, std::vector<LogicalType> returnTypes,
-        std::vector<std::string> returnColumnNames, offset_t maxOffset)
-        : SimpleTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
-          tables{std::move(tables)} {}
+    ShowTablesBindData(std::vector<TableInfo> tables, binder::expression_vector columns, offset_t maxOffset)
+        : SimpleTableFuncBindData{std::move(columns), maxOffset}, tables{std::move(tables)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ShowTablesBindData>(tables, LogicalType::copy(columnTypes),
-            columnNames, maxOffset);
+        return std::make_unique<ShowTablesBindData>(tables, columns, maxOffset);
     }
 };
 
@@ -57,7 +55,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-    TableFuncBindInput*) {
+    TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     columnNames.emplace_back("id");
@@ -91,8 +89,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
             tableInfos.push_back(std::move(tableInfo));
         }
     }
-    return std::make_unique<ShowTablesBindData>(std::move(tableInfos), std::move(columnTypes),
-        std::move(columnNames), tableInfos.size());
+    auto columns = input->binder->createVariables(columnNames, columnTypes);
+    return std::make_unique<ShowTablesBindData>(std::move(tableInfos), std::move(columns),
+         tableInfos.size());
 }
 
 function_set ShowTablesFunction::getFunctionSet() {

@@ -9,6 +9,14 @@ void BinderScope::addExpression(const std::string& varName,
     expressions.push_back(std::move(expression));
 }
 
+void BinderScope::replaceExpression(const std::string& oldName, const std::string& newName, std::shared_ptr<Expression> expression) {
+    KU_ASSERT(nameToExprIdx.contains(oldName));
+    auto idx = nameToExprIdx.at(oldName);
+    expressions[idx] = expression;
+    nameToExprIdx.erase(oldName);
+    nameToExprIdx.insert({newName, idx});
+}
+
 void BinderScope::clear() {
     expressions.clear();
     nameToExprIdx.clear();

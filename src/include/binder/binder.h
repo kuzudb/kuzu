@@ -78,8 +78,14 @@ public:
 
     bool bindExportTableData(ExportedTableData& tableData, const catalog::TableCatalogEntry& entry,
         const catalog::Catalog& catalog, transaction::Transaction* tx);
+
+
     KUZU_API std::shared_ptr<Expression> createVariable(const std::string& name,
         const common::LogicalType& dataType);
+    KUZU_API std::shared_ptr<Expression> createInvisibleVariable(const std::string& name,
+        const common::LogicalType& dataType);
+    KUZU_API expression_vector createVariables(std::vector<std::string> names, const std::vector<common::LogicalType>& types);
+    KUZU_API expression_vector createInvisibleVariables(std::vector<std::string> names, const std::vector<common::LogicalType>& types);
 
     std::shared_ptr<Expression> bindWhereExpression(
         const parser::ParsedExpression& parsedExpression);
@@ -158,6 +164,7 @@ public:
     std::unique_ptr<BoundStatement> bindStandaloneCallFunction(const parser::Statement& statement);
 
     /*** bind table function ***/
+    // TODO: change signature
     BoundTableFunction bindTableFunc(std::string tableFuncName,
         const parser::ParsedExpression& expr, expression_vector& columns);
 

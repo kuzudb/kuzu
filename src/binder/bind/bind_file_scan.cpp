@@ -134,18 +134,10 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     extraInput->expectedColumnTypes = LogicalType::copy(columnTypes);
     extraInput->tableFunction = &func;
     bindInput.extraInput = std::move(extraInput);
+    bindInput.binder = this;
     auto bindData = func.bindFunc(clientContext, &bindInput);
-    expression_vector columns;
-    auto i = 0u;
-    for (; i < bindData->columnTypes.size() - bindData->numWarningDataColumns; ++i) {
-        columns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
-    }
-    // Warning columns are not available to user so we don't insert them into scope.
-    for (; i < bindData->columnTypes.size(); ++i) {
-        columns.push_back(expressionBinder.createVariableExpression(bindData->columnTypes[i].copy(),
-            bindData->columnNames[i]));
-    }
-    auto info = BoundTableScanSourceInfo(func, std::move(bindData), std::move(columns));
+    auto columns = bindData->columns;
+    auto info = BoundTableScanSourceInfo(func, std::move(bindData), columns);
     return std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(info));
 }
 
@@ -185,20 +177,22 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindObjectScanSource(const BaseScan
     TableFunction func;
     std::unique_ptr<TableFuncBindData> bindData;
     std::string objectName;
+    auto bindInput = TableFuncBindInput();
+    bindInput.binder = this;
     if (objectSource->objectNames.size() == 1) {
         // Bind external object as table
         objectName = objectSource->objectNames[0];
         auto replacementData = clientContext->tryReplace(objectName);
         if (replacementData != nullptr) { // Replace as python object
             func = replacementData->func;
-            auto extraInput = std::make_unique<ExtraScanTableFuncBindInput>();
-            extraInput->config.options = bindParsingOptions(options);
-            replacementData->bindInput.extraInput = std::move(extraInput);
+            auto replaceExtraInput = std::make_unique<ExtraScanTableFuncBindInput>();
+            replaceExtraInput->config.options = bindParsingOptions(options);
+            replacementData->bindInput.extraInput = std::move(replaceExtraInput);
+            replacementData->bindInput.binder = this;
             bindData = func.bindFunc(clientContext, &replacementData->bindInput);
         } else if (clientContext->getDatabaseManager()->hasDefaultDatabase()) {
             auto dbName = clientContext->getDatabaseManager()->getDefaultDatabase();
             func = getObjectScanFunc(dbName, objectSource->objectNames[0], clientContext);
-            auto bindInput = TableFuncBindInput();
             bindData = func.bindFunc(clientContext, &bindInput);
         } else {
             throw BinderException(ExceptionMessage::variableNotInScope(objectName));
@@ -208,7 +202,6 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindObjectScanSource(const BaseScan
         objectName = objectSource->objectNames[0] + "." + objectSource->objectNames[1];
         func = getObjectScanFunc(objectSource->objectNames[0], objectSource->objectNames[1],
             clientContext);
-        auto bindInput = TableFuncBindInput();
         bindData = func.bindFunc(clientContext, &bindInput);
     } else {
         // LCOV_EXCL_START
@@ -218,16 +211,16 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindObjectScanSource(const BaseScan
     }
     expression_vector columns;
     if (columnTypes.empty()) {
-        for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
-            columns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
-        }
-    } else {
-        if (bindData->columnTypes.size() != columnTypes.size()) {
+        columns = bindData->columns;
+    } else { // TODO(Ziyi): the logic below should happen in function specific bind
+        if (bindData->getNumColumns() != columnTypes.size()) {
             throw BinderException(stringFormat("{} has {} columns but {} columns were expected.",
-                objectName, bindData->columnTypes.size(), columnTypes.size()));
+                objectName, bindData->getNumColumns(), columnTypes.size()));
         }
-        for (auto i = 0u; i < bindData->columnTypes.size(); ++i) {
-            columns.push_back(createVariable(columnNames[i], bindData->columnTypes[i]));
+        for (auto i = 0u; i < bindData->getNumColumns(); ++i) {
+            auto column = createInvisibleVariable(columnNames[i], bindData->columns[i]->getDataType());
+            scope.replaceExpression(bindData->columns[i]->toString(), columnNames[i], column);
+            columns.push_back(column);
         }
     }
     auto info = BoundTableScanSourceInfo(func, std::move(bindData), columns);

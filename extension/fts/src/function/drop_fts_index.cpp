@@ -24,7 +24,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
         FTSUtils::IndexOperation::DROP);
     FTSUtils::validateIndexExistence(*context, tableEntry.getTableID(), indexName);
     return std::make_unique<FTSBindData>(tableEntry.getName(), tableEntry.getTableID(), indexName,
-        std::vector<common::LogicalType>{}, std::vector<std::string>{});
+        binder::expression_vector{});
 }
 
 std::string dropFTSIndexQuery(ClientContext& /*context*/, const TableFuncBindData& bindData) {

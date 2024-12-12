@@ -3,7 +3,6 @@
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/parameter_expression.h"
-#include "catalog/catalog.h"
 #include "catalog/fts_index_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "fts_extension.h"
@@ -14,6 +13,7 @@
 #include "processor/result/factorized_table.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
+#include "binder/binder.h"
 
 namespace kuzu {
 namespace fts_extension {
@@ -29,10 +29,9 @@ struct QueryFTSBindData final : public FTSBindData {
 
     QueryFTSBindData(std::string tableName, common::table_id_t tableID, std::string indexName,
         std::shared_ptr<binder::Expression> query, const FTSIndexCatalogEntry& entry,
-        std::vector<LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
+        binder::expression_vector columns,
         QueryFTSConfig config)
-        : FTSBindData{std::move(tableName), tableID, std::move(indexName), std::move(returnTypes),
-              std::move(returnColumnNames)},
+        : FTSBindData{std::move(tableName), tableID, std::move(indexName), columns},
           query{std::move(query)}, entry{entry}, config{std::move(config)} {}
 
     std::string getQuery() const;
@@ -80,10 +79,11 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     columnNames.push_back("node");
     columnTypes.push_back(LogicalType::DOUBLE());
     columnNames.push_back("score");
+    auto columns = input->binder->createVariables(columnNames, columnTypes);
     QueryFTSConfig config{input->optionalParams};
     return std::make_unique<QueryFTSBindData>(tableEntry.getName(), tableEntry.getTableID(),
         std::move(indexName), std::move(query), ftsCatalogEntry->constCast<FTSIndexCatalogEntry>(),
-        std::move(columnTypes), std::move(columnNames), std::move(config));
+        columns, std::move(config));
 }
 
 static std::unique_ptr<QueryResult> runQuery(main::ClientContext* context, std::string query) {
@@ -148,6 +148,7 @@ std::unique_ptr<TableFuncLocalState> initLocalState(
 
 function_set QueryFTSFunction::getFunctionSet() {
     function_set functionSet;
+
     auto func =
         std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState, initLocalState,
             std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,

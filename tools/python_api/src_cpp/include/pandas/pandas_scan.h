@@ -33,11 +33,9 @@ struct PandasScanFunctionData : public function::TableFuncBindData {
     py::handle df;
     std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData;
 
-    PandasScanFunctionData(std::vector<common::LogicalType> columnTypes,
-        std::vector<std::string> columnNames, py::handle df, uint64_t numRows,
+    PandasScanFunctionData(binder::expression_vector columns, py::handle df, uint64_t numRows,
         std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData)
-        : TableFuncBindData{std::move(columnTypes), std::move(columnNames),
-              0 /* numWarningDataColumns */, numRows},
+        : TableFuncBindData{std::move(columns), 0 /* numWarningDataColumns */, numRows},
           df{df}, columnBindData{std::move(columnBindData)} {}
 
     ~PandasScanFunctionData() override {

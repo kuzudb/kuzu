@@ -10,6 +10,7 @@
 #include "processor/operator/persistent/reader/parquet/struct_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/thrift_tools.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
+#include "binder/binder.h"
 
 using namespace kuzu_parquet::format;
 
@@ -686,8 +687,10 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
             detectedColumnNames.size());
         detectedColumnNames = scanInput->expectedColumnNames;
     }
-    auto bindData = std::make_unique<function::ScanBindData>(std::move(detectedColumnTypes),
-        std::move(detectedColumnNames), scanInput->config.copy(), context);
+
+    auto resultColumns = input->binder->createVariables(detectedColumnNames, detectedColumnTypes);
+    auto bindData = std::make_unique<function::ScanBindData>(std::move(resultColumns),
+        scanInput->config.copy(), context);
     bindData->cardinality = getNumRows(bindData.get());
     return bindData;
 }
