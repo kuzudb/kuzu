@@ -3,7 +3,7 @@
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
 #include "function/table/bind_input.h"
-#include "function/table/call_functions.h"
+#include "function/table/simple_table_functions.h"
 #include "main/database_manager.h"
 
 using namespace kuzu::catalog;
@@ -12,13 +12,13 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-struct TableInfoBindData : public CallTableFuncBindData {
+struct TableInfoBindData : public SimpleTableFuncBindData {
     std::unique_ptr<TableCatalogEntry> catalogEntry;
 
     TableInfoBindData(std::unique_ptr<TableCatalogEntry> catalogEntry,
         std::vector<LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
         offset_t maxOffset)
-        : CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
+        : SimpleTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
           catalogEntry{std::move(catalogEntry)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
@@ -29,7 +29,7 @@ struct TableInfoBindData : public CallTableFuncBindData {
 
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto sharedState = input.sharedState->ptrCast<CallFuncSharedState>();
+    auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
     auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;

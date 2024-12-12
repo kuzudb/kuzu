@@ -12,7 +12,7 @@ namespace duckdb_extension {
 
 static offset_t clearCacheTableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto sharedState = input.sharedState->ptrCast<CallFuncSharedState>();
+    auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
     auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
@@ -36,8 +36,8 @@ static std::unique_ptr<TableFuncBindData> clearCacheBindFunc(ClientContext* cont
 
 ClearCacheFunction::ClearCacheFunction()
     : TableFunction{name, clearCacheTableFunc, clearCacheBindFunc,
-          function::CallFunction::initSharedState, function::CallFunction::initEmptyLocalState,
-          std::vector<LogicalTypeID>{}} {}
+          function::SimpleTableFunction::initSharedState,
+          function::SimpleTableFunction::initEmptyLocalState, std::vector<LogicalTypeID>{}} {}
 
 } // namespace duckdb_extension
 } // namespace kuzu

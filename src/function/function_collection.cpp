@@ -19,7 +19,7 @@
 #include "function/sequence/sequence_functions.h"
 #include "function/string/vector_string_functions.h"
 #include "function/struct/vector_struct_functions.h"
-#include "function/table/call_functions.h"
+#include "function/table/simple_table_functions.h"
 #include "function/timestamp/vector_timestamp_functions.h"
 #include "function/union/vector_union_functions.h"
 #include "function/utility/vector_utility_functions.h"
