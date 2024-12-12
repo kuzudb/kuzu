@@ -65,9 +65,10 @@ struct RJCompState : public GDSComputeState {
     std::unique_ptr<RJOutputWriter> outputWriter;
 
     RJCompState(std::unique_ptr<function::FrontierPair> frontierPair,
-        std::unique_ptr<function::EdgeCompute> edgeCompute, std::unique_ptr<RJOutputs> outputs,
+        std::unique_ptr<function::EdgeCompute> edgeCompute,
+        processor::NodeOffsetMaskMap* outputNodeMask, std::unique_ptr<RJOutputs> outputs,
         std::unique_ptr<RJOutputWriter> outputWriter)
-        : GDSComputeState{std::move(frontierPair), std::move(edgeCompute)},
+        : GDSComputeState{std::move(frontierPair), std::move(edgeCompute), outputNodeMask},
           outputs{std::move(outputs)}, outputWriter{std::move(outputWriter)} {}
 
     void initSource(common::nodeID_t sourceNodeID) const {
@@ -84,12 +85,10 @@ struct RJCompState : public GDSComputeState {
     // extensions are be given to the data structures of the computation, e.g., FrontierPairs and
     // RJOutputs, to possibly avoid them doing lookups of S and T-related data structures,
     // e.g., maps, internally.
-    void beginFrontierComputeBetweenTables(common::table_id_t curFrontierTableID,
-        common::table_id_t nextFrontierTableID) const {
-        frontierPair->beginFrontierComputeBetweenTables(curFrontierTableID, nextFrontierTableID);
-        if (outputs) {
-            outputs->beginFrontierComputeBetweenTables(curFrontierTableID, nextFrontierTableID);
-        }
+    void beginFrontierComputeBetweenTables(common::table_id_t currTableID,
+        common::table_id_t nextTableID) override {
+        GDSComputeState::beginFrontierComputeBetweenTables(currTableID, nextTableID);
+        outputs->beginFrontierComputeBetweenTables(currTableID, nextTableID);
     }
 };
 
@@ -103,8 +102,8 @@ public:
     RJAlgorithm() = default;
     RJAlgorithm(const RJAlgorithm& other) : GDSAlgorithm{other} {}
 
-    void exec(processor::ExecutionContext* executionContext) override;
-    virtual RJCompState getRJCompState(processor::ExecutionContext* executionContext,
+    void exec(processor::ExecutionContext* context) override;
+    virtual RJCompState getRJCompState(processor::ExecutionContext* context,
         common::nodeID_t sourceNodeID) = 0;
     void setToNoPath();
     binder::expression_vector getResultColumnsNoPath();
@@ -114,6 +113,8 @@ protected:
 
     binder::expression_vector getBaseResultColumns() const;
     void bindColumnExpressions(binder::Binder* binder) const;
+
+    std::unique_ptr<BFSGraph> getBFSGraph(processor::ExecutionContext* context);
 };
 
 class SPAlgorithm : public RJAlgorithm {

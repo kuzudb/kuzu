@@ -205,6 +205,7 @@ public:
         return fileHandles.back().get();
     }
 
+    uint64_t getMemoryLimit() const { return bufferPoolSize; }
     uint64_t getUsedMemory() const { return usedMemory; }
 
     void getSpillerOrSkip(std::function<void(Spiller&)> func) {

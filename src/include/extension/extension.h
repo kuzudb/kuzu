@@ -26,6 +26,12 @@
 #define ADD_GDS_FUNC(FUNC_STRUCT)                                                                  \
     ADD_FUNC(FUNC_STRUCT, catalog::CatalogEntryType::GDS_FUNCTION_ENTRY)
 
+#define ADD_TABLE_FUNC(FUNC_STRUCT)                                                                \
+    ADD_FUNC(FUNC_STRUCT, catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY)
+
+#define ADD_EXTENSION_OPTION(OPTION)                                                               \
+    db->addExtensionOption(OPTION::NAME, OPTION::TYPE, OPTION::getDefaultValue())
+
 namespace kuzu {
 namespace function {
 struct TableFunction;

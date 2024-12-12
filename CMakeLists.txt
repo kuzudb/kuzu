@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(Kuzu VERSION 0.7.1 LANGUAGES CXX C)
+project(Kuzu VERSION 0.7.1.1 LANGUAGES CXX C)
 
 option(SINGLE_THREADED "Single-threaded mode" FALSE)
 if(SINGLE_THREADED)
@@ -153,7 +153,7 @@ if(BUILD_WASM)
     endif()
     add_compile_options(-s DISABLE_EXCEPTION_CATCHING=0)
     add_link_options(-sSTACK_SIZE=4MB)
-    if(BUILD_TESTS)
+    if(BUILD_TESTS OR BUILD_EXTENSION_TESTS)
         add_link_options(-sINITIAL_MEMORY=3892MB) # 3.8GB
         add_link_options(-sNODERAWFS=1)
         add_link_options(-sASSERTIONS=1)
@@ -254,7 +254,19 @@ function(add_kuzu_test TEST_NAME)
     endif()
     target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include)
     include(GoogleTest)
-    gtest_discover_tests(${TEST_NAME} DISCOVERY_TIMEOUT 600 DISCOVERY_MODE PRE_TEST)
+    
+    if (TEST_NAME STREQUAL "e2e_test")
+        gtest_discover_tests(${TEST_NAME}
+            DISCOVERY_TIMEOUT 600
+            DISCOVERY_MODE PRE_TEST
+            TEST_PREFIX e2e_test_
+        )
+    else()
+        gtest_discover_tests(${TEST_NAME}
+            DISCOVERY_TIMEOUT 600
+            DISCOVERY_MODE PRE_TEST
+        )
+    endif()
 endfunction()
 
 function(add_kuzu_api_test TEST_NAME)
@@ -288,7 +300,7 @@ include_directories(third_party/pybind11/include)
 include_directories(third_party/pyparse)
 include_directories(third_party/re2/include)
 include_directories(third_party/alp/include)
-if (${BUILD_TESTS})
+if (${BUILD_TESTS} OR ${BUILD_EXTENSION_TESTS})
     include_directories(third_party/spdlog)
 elseif (${BUILD_BENCHMARK})
     include_directories(third_party/spdlog)
@@ -312,11 +324,9 @@ add_definitions(-DKUZU_VECTOR_CAPACITY_LOG2=${VECTOR_CAPACITY_LOG2})
 include_directories(src/include)
 
 add_subdirectory(src)
-if (${BUILD_TESTS})
-    add_definitions(-DTEST_FILES_DIR="test/test_files")
+if (${BUILD_TESTS} OR ${BUILD_EXTENSION_TESTS})
     add_subdirectory(test)
 elseif (${BUILD_BENCHMARK})
-    add_definitions(-DTEST_FILES_DIR="test/test_files")
     add_subdirectory(test/test_helper)
 endif ()
 add_subdirectory(tools)

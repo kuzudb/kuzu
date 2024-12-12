@@ -220,12 +220,16 @@ function::TableFunction Binder::getScanFunction(FileTypeInfo typeInfo, const Rea
             csvConfig.parallel ? ParallelCSVScan::name : SerialCSVScan::name, inputTypes,
             functions);
     } break;
-    case FileType::TURTLE:
     case FileType::UNKNOWN: {
         try {
             func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
-                SCAN_JSON_FUNC_NAME, inputTypes, functions);
+                common::stringFormat("{}_SCAN", typeInfo.fileTypeStr), inputTypes, functions);
         } catch (...) {
+            if (typeInfo.fileTypeStr == "") {
+                throw common::BinderException{
+                    "Cannot infer the format of the given file. Please "
+                    "set the file format explicitly by (file_format=<type>)."};
+            }
             throw common::BinderException{
                 common::stringFormat("Cannot load from file type {}.", typeInfo.fileTypeStr)};
         }

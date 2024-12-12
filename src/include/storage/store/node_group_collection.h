@@ -36,6 +36,9 @@ public:
         const auto lock = nodeGroups.lock();
         return nodeGroups.getNumGroups(lock);
     }
+    common::node_group_idx_t getNumNodeGroupsNoLock() const {
+        return nodeGroups.getNumGroupsNoLock();
+    }
     NodeGroup* getNodeGroupNoLock(const common::node_group_idx_t groupIdx) {
         KU_ASSERT(nodeGroups.getGroupNoLock(groupIdx)->getNodeGroupIdx() == groupIdx);
         return nodeGroups.getGroupNoLock(groupIdx);
@@ -73,7 +76,19 @@ public:
 
     void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
 
-    TableStats getStats() const { return stats.copy(); }
+    TableStats getStats() const {
+        auto lock = nodeGroups.lock();
+        return stats.copy();
+    }
+    TableStats getStats(const common::UniqLock& lock) const {
+        KU_ASSERT(lock.isLocked());
+        KU_UNUSED(lock);
+        return stats.copy();
+    }
+    void mergeStats(const TableStats& stats) {
+        auto lock = nodeGroups.lock();
+        this->stats.merge(stats);
+    }
 
     void serialize(common::Serializer& ser);
     void deserialize(common::Deserializer& deSer, MemoryManager& memoryManager);

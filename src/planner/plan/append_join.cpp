@@ -32,15 +32,14 @@ void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType join
     hashJoin->setChild(1, buildPlan.getLastOperator());
     hashJoin->computeFactorizedSchema();
     // Check for sip
-    auto ratio = probePlan.getCardinality() / buildPlan.getCardinality();
-    if (ratio > PlannerKnobs::SIP_RATIO) {
+    if (probePlan.getCardinality() > buildPlan.getCardinality() * PlannerKnobs::SIP_RATIO) {
         hashJoin->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT_PROBE_TO_BUILD;
     }
     // Update cost
-    resultPlan.setCost(CostModel::computeHashJoinCost(joinNodeIDs, probePlan, buildPlan));
-    // Update cardinality
-    resultPlan.setCardinality(
+    hashJoin->setCardinality(
         cardinalityEstimator.estimateHashJoin(joinNodeIDs, probePlan, buildPlan));
+    resultPlan.setCost(CostModel::computeHashJoinCost(joinNodeIDs, probePlan, buildPlan));
+    resultPlan.setCardinality(hashJoin->getCardinality());
     resultPlan.setLastOperator(std::move(hashJoin));
 }
 
@@ -98,10 +97,10 @@ void Planner::appendIntersect(const std::shared_ptr<Expression>& intersectNodeID
     }
     intersect->computeFactorizedSchema();
     // update cost
-    probePlan.setCost(CostModel::computeIntersectCost(probePlan, buildPlans));
-    // update cardinality
-    probePlan.setCardinality(
+    intersect->setCardinality(
         cardinalityEstimator.estimateIntersect(boundNodeIDs, probePlan, buildPlans));
+    probePlan.setCost(CostModel::computeIntersectCost(probePlan, buildPlans));
+    probePlan.setCardinality(intersect->getCardinality());
     probePlan.setLastOperator(std::move(intersect));
 }
 

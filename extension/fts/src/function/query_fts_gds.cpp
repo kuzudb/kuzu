@@ -32,15 +32,18 @@ struct QFTSGDSBindData final : public function::GDSBindData {
     double_t b;
     uint64_t numDocs;
     double_t avgDocLen;
+    uint64_t numTermsInQuery;
+    bool isConjunctive;
 
     QFTSGDSBindData(std::shared_ptr<binder::Expression> terms,
         std::shared_ptr<binder::Expression> docs, double_t k, double_t b, uint64_t numDocs,
-        double_t avgDocLen)
+        double_t avgDocLen, uint64_t numTermsInQuery, bool isConjunctive)
         : GDSBindData{std::move(docs)}, terms{std::move(terms)}, k{k}, b{b}, numDocs{numDocs},
-          avgDocLen{avgDocLen} {}
+          avgDocLen{avgDocLen}, numTermsInQuery{numTermsInQuery}, isConjunctive{isConjunctive} {}
     QFTSGDSBindData(const QFTSGDSBindData& other)
         : GDSBindData{other}, terms{other.terms}, k{other.k}, b{other.b}, numDocs{other.numDocs},
-          avgDocLen{other.avgDocLen} {}
+          avgDocLen{other.avgDocLen}, numTermsInQuery{other.numTermsInQuery},
+          isConjunctive{other.isConjunctive} {}
 
     bool hasNodeInput() const override { return true; }
     std::shared_ptr<binder::Expression> getNodeInput() const override { return terms; }
@@ -116,9 +119,9 @@ struct QFTSState : public function::GDSComputeState {
 
 QFTSState::QFTSState(std::unique_ptr<function::FrontierPair> frontierPair,
     std::unique_ptr<function::EdgeCompute> edgeCompute, common::table_id_t termsTableID)
-    : function::GDSComputeState{std::move(frontierPair), std::move(edgeCompute)} {
-    this->frontierPair->getNextFrontierUnsafe().ptrCast<PathLengths>()->pinNextFrontierTableID(
-        termsTableID);
+    : function::GDSComputeState{std::move(frontierPair), std::move(edgeCompute),
+          nullptr /* outputNodeMask */} {
+    this->frontierPair->pinNextFrontier(termsTableID);
 }
 
 void QFTSState::initFirstFrontierWithTerms(processor::GDSCallSharedState& sharedState,
@@ -126,13 +129,18 @@ void QFTSState::initFirstFrontierWithTerms(processor::GDSCallSharedState& shared
     common::table_id_t termsTableID) const {
     auto termNodeID = nodeID_t{INVALID_OFFSET, termsTableID};
     auto numTerms = sharedState.graph->getNumNodes(tx, termsTableID);
+    SparseFrontier sparseFrontier;
+    sparseFrontier.pinTableID(termsTableID);
     for (auto offset = 0u; offset < numTerms; ++offset) {
         if (!termsMask.isMasked(offset)) {
             continue;
         }
         termNodeID.offset = offset;
-        frontierPair->getNextFrontierUnsafe().ptrCast<PathLengths>()->setActive(termNodeID);
+        frontierPair->addNodeToNextDenseFrontier(termNodeID);
+        sparseFrontier.addNode(termNodeID);
+        sparseFrontier.checkSampleSize();
     }
+    frontierPair->mergeLocalFrontier(sparseFrontier);
 }
 
 void runFrontiersOnce(processor::ExecutionContext* executionContext, QFTSState& qFtsState,
@@ -143,8 +151,9 @@ void runFrontiersOnce(processor::ExecutionContext* executionContext, QFTSState& 
     auto& appearsInTableInfo = relTableIDInfos[0];
     frontierPair->beginFrontierComputeBetweenTables(appearsInTableInfo.fromNodeTableID,
         appearsInTableInfo.toNodeTableID);
-    GDSUtils::scheduleFrontierTask(appearsInTableInfo.relTableID, graph, ExtendDirection::FWD,
-        qFtsState, executionContext, 1 /* numThreads */, tfPropertyIdx);
+    GDSUtils::scheduleFrontierTask(appearsInTableInfo.toNodeTableID, appearsInTableInfo.relTableID,
+        graph, ExtendDirection::FWD, qFtsState, executionContext, 1 /* numThreads */,
+        tfPropertyIdx);
 }
 
 class QFTSOutputWriter {
@@ -194,6 +203,11 @@ void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNo
     if (hasScore) {
         auto scoreInfo = qFTSOutput->scores.at(docNodeID);
         double score = 0;
+        // If the query is conjunctive, the numbers of distinct terms in the doc and the number of
+        // distinct terms in the query must be equal to each other.
+        if (bindData.isConjunctive && scoreInfo.scoreData.size() != bindData.numTermsInQuery) {
+            return;
+        }
         for (auto& scoreData : scoreInfo.scoreData) {
             auto numDocs = bindData.numDocs;
             auto avgDocLen = bindData.avgDocLen;
@@ -243,16 +257,6 @@ void QFTSVertexCompute::vertexCompute(const graph::VertexScanState::Chunk& chunk
     }
 }
 
-void runVertexComputeIteration(processor::ExecutionContext* executionContext, graph::Graph* graph,
-    VertexCompute& vc) {
-    auto maxThreads = executionContext->clientContext->getCurrentSetting(main::ThreadsSetting::name)
-                          .getValue<uint64_t>();
-    auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads, graph);
-    auto docsTableID = graph->getNodeTableIDs()[1];
-    auto info = VertexComputeTaskInfo(vc, {QFTSAlgorithm::DOC_LEN_PROP_NAME});
-    GDSUtils::runVertexComputeOnTable(docsTableID, graph, sharedState, info, *executionContext);
-}
-
 void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto termsTableID = sharedState->graph->getNodeTableIDs()[0];
     KU_ASSERT(sharedState->getInputNodeMaskMap()->containsTableID(termsTableID));
@@ -263,11 +267,8 @@ void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     // for each term-doc pair. The reason why we store the term frequency and document frequency
     // is that: we need the `len` property from the docs table which is only available during the
     // vertex compute.
-    auto numNodes = sharedState->graph->getNumNodesMap(executionContext->clientContext->getTx());
-    auto currentFrontier = std::make_shared<PathLengths>(numNodes,
-        executionContext->clientContext->getMemoryManager());
-    auto nextFrontier = std::make_shared<PathLengths>(numNodes,
-        executionContext->clientContext->getMemoryManager());
+    auto currentFrontier = getPathLengthsFrontier(executionContext, PathLengths::UNVISITED);
+    auto nextFrontier = getPathLengthsFrontier(executionContext, PathLengths::UNVISITED);
     auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier,
         nextFrontier, 1 /* numThreads */);
     auto edgeCompute = std::make_unique<QFTSEdgeCompute>(frontierPair.get(), &output->scores,
@@ -288,7 +289,9 @@ void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto writerVC =
         std::make_unique<QFTSVertexCompute>(executionContext->clientContext->getMemoryManager(),
             sharedState.get(), outputWriter.copy());
-    runVertexComputeIteration(executionContext, sharedState->graph.get(), *writerVC);
+    auto docsTableID = sharedState->graph->getNodeTableIDs()[1];
+    GDSUtils::runVertexCompute(executionContext, sharedState->graph.get(), *writerVC, docsTableID,
+        {QFTSAlgorithm::DOC_LEN_PROP_NAME});
     sharedState->mergeLocalTables();
 }
 
@@ -308,14 +311,17 @@ binder::expression_vector QFTSAlgorithm::getResultColumns(binder::Binder* binder
 
 void QFTSAlgorithm::bind(const binder::expression_vector& params, binder::Binder* binder,
     graph::GraphEntry& graphEntry) {
-    KU_ASSERT(params.size() == 6);
+    KU_ASSERT(params.size() == 8);
     auto termNode = params[1];
     auto k = ExpressionUtil::getLiteralValue<double>(*params[2]);
     auto b = ExpressionUtil::getLiteralValue<double>(*params[3]);
     auto numDocs = ExpressionUtil::getLiteralValue<uint64_t>(*params[4]);
     auto avgDocLen = ExpressionUtil::getLiteralValue<double>(*params[5]);
+    auto numTermsInQuery = ExpressionUtil::getLiteralValue<int64_t>(*params[6]);
+    auto isConjunctive = ExpressionUtil::getLiteralValue<bool>(*params[7]);
     auto nodeOutput = bindNodeOutput(binder, graphEntry);
-    bindData = std::make_unique<QFTSGDSBindData>(termNode, nodeOutput, k, b, numDocs, avgDocLen);
+    bindData = std::make_unique<QFTSGDSBindData>(termNode, nodeOutput, k, b, numDocs, avgDocLen,
+        numTermsInQuery, isConjunctive);
 }
 
 function::function_set QFTSFunction::getFunctionSet() {

@@ -92,11 +92,13 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
         properties_, plan.getLastOperator());
     extend->computeFactorizedSchema();
     // Update cost & cardinality. Note that extend does not change cardinality.
-    plan.setCost(CostModel::computeExtendCost(plan));
-    auto extensionRate =
+    const auto extensionRate =
         cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
+    extend->setCardinality(cardinalityEstimator.estimateExtend(extensionRate, plan));
+    plan.setCost(CostModel::computeExtendCost(plan));
     auto group = extend->getSchema()->getGroup(nbrNode->getInternalID());
     group->setMultiplier(extensionRate);
+    plan.setCardinality(extend->getCardinality());
     plan.setLastOperator(std::move(extend));
     auto nbrNodeTableIDSet = getNbrNodeTableIDSet(*rel, direction);
     if (nbrNodeTableIDSet.size() > nbrNode->getNumEntries()) {
@@ -202,12 +204,14 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     probePlan.setCost(plan.getCardinality());
     auto extensionRate =
         cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
-    probePlan.setCardinality(plan.getCardinality() * extensionRate);
+    probePlan.setCardinality(cardinalityEstimator.estimateExtend(extensionRate, plan));
+
     // Join with input node
     auto joinConditions = expression_vector{boundNode->getInternalID()};
     appendHashJoin(joinConditions, JoinType::INNER, probePlan, plan, plan);
     // Hash join above should not change the cardinality of probe plan.
-    plan.setCardinality(probePlan.getCardinality());
+    // plan.setCardinality(probePlan.getCardinality());
+    // KU_ASSERT(plan.getCardinality() == plan.getLastOperator()->getCardinality());
 }
 
 void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& boundNode,
@@ -266,6 +270,7 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     auto extensionRate =
         cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
     plan.setCost(CostModel::computeRecursiveExtendCost(rel->getUpperBound(), extensionRate, plan));
+    plan.setCardinality(cardinalityEstimator.estimateExtend(extensionRate, plan));
     // Update cardinality
     auto group = plan.getSchema()->getGroup(nbrNode->getInternalID());
     group->setMultiplier(extensionRate);

@@ -13,7 +13,7 @@ using namespace kuzu::catalog;
 
 namespace kuzu {
 
-PyArrowScanConfig::PyArrowScanConfig(const std::unordered_map<std::string, Value>& options) {
+PyArrowScanConfig::PyArrowScanConfig(const common::case_insensitive_map_t<Value>& options) {
     skipNum = 0;
     limitNum = NumericLimits<uint64_t>::maximum();
     for (const auto& i : options) {

@@ -1,6 +1,6 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/exception/binder.h"
-#include "function/table/call_functions.h"
+#include "function/table/simple_table_functions.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
 
@@ -16,14 +16,14 @@ static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInpu
     return std::make_unique<TableFuncLocalState>();
 }
 
-struct StatsInfoBindData final : CallTableFuncBindData {
+struct StatsInfoBindData final : SimpleTableFuncBindData {
     TableCatalogEntry* tableEntry;
     storage::Table* table;
     ClientContext* context;
 
     StatsInfoBindData(std::vector<LogicalType> columnTypes, std::vector<std::string> columnNames,
         TableCatalogEntry* tableEntry, storage::Table* table, ClientContext* context)
-        : CallTableFuncBindData{std::move(columnTypes), std::move(columnNames), 1 /*maxOffset*/},
+        : SimpleTableFuncBindData{std::move(columnTypes), std::move(columnNames), 1 /*maxOffset*/},
           tableEntry{tableEntry}, table{table}, context{context} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
@@ -35,7 +35,7 @@ struct StatsInfoBindData final : CallTableFuncBindData {
 static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     const auto& dataChunk = output.dataChunk;
     KU_ASSERT(dataChunk.state->getSelVector().isUnfiltered());
-    const auto morsel = input.sharedState->ptrCast<CallFuncSharedState>()->getMorsel();
+    const auto morsel = input.sharedState->ptrCast<SimpleTableFuncSharedState>()->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
@@ -45,7 +45,10 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     case TableType::NODE: {
         const auto& nodeTable = table->cast<storage::NodeTable>();
         const auto stats = nodeTable.getStats(bindData->context->getTx());
-        dataChunk.getValueVectorMutable(0).setValue<cardinality_t>(0, stats.getCardinality());
+        dataChunk.getValueVectorMutable(0).setValue<cardinality_t>(0, stats.getTableCard());
+        for (auto i = 0u; i < nodeTable.getNumColumns(); ++i) {
+            dataChunk.getValueVectorMutable(i + 1).setValue(0, stats.getNumDistinctValues(i));
+        }
         dataChunk.state->getSelVectorUnsafe().setToUnfiltered(1);
     } break;
     default: {
@@ -57,9 +60,6 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     ScanTableFuncBindInput* input) {
-    std::vector<std::string> columnNames = {"cardinality"};
-    std::vector<LogicalType> columnTypes;
-    columnTypes.push_back(LogicalType::INT64());
     const auto tableName = input->inputs[0].getValue<std::string>();
     const auto catalog = context->getCatalog();
     if (!catalog->containsTable(context->getTx(), tableName)) {
@@ -71,6 +71,14 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
         throw BinderException{
             "Stats from a non-node table " + tableName + " is not supported yet!"};
     }
+
+    std::vector<std::string> columnNames = {"cardinality"};
+    std::vector<LogicalType> columnTypes;
+    columnTypes.push_back(LogicalType::INT64());
+    for (auto& propDef : tableEntry->getProperties()) {
+        columnNames.push_back(propDef.getName() + "_distinct_count");
+        columnTypes.push_back(LogicalType::INT64());
+    }
     const auto storageManager = context->getStorageManager();
     auto table = storageManager->getTable(tableID);
     return std::make_unique<StatsInfoBindData>(std::move(columnTypes), std::move(columnNames),
@@ -80,7 +88,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
 function_set StatsInfoFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(std::make_unique<TableFunction>(name, tableFunc, bindFunc,
-        initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+        initSharedState, initLocalState, std::vector{LogicalTypeID::STRING}));
     return functionSet;
 }
 

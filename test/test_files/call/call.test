@@ -4,6 +4,18 @@
 
 -CASE CallSetGetConfig
 
+-LOG SetGetEnablePlanOptimizer
+-STATEMENT CALL enable_plan_optimizer=false
+---- ok
+-STATEMENT CALL current_setting('enable_plan_optimizer') RETURN *
+---- 1
+False
+-STATEMENT CALL enable_plan_optimizer=true
+---- ok
+-STATEMENT CALL current_setting('enable_plan_optimizer') RETURN *
+---- 1
+True
+
 -LOG SetGetThread
 -STATEMENT CALL THREADS=4
 ---- ok
@@ -258,3 +270,8 @@ Binder exception: Show connection can only be called on a rel table!
 -STATEMENT MATCH (a:person) CALL show_connection(a.fName) RETURN *
 ---- error
 Binder exception: a.fName has type PROPERTY but LITERAL was expected.
+
+-LOG BMInfo
+-STATEMENT CALL bm_info() RETURN mem_limit
+---- 1
+67108864

@@ -14,3 +14,18 @@
 -ENUMERATE
 ---- 1
 4
+
+# Check to see if intersect can differentiate between tuples with same node offset in different rows
+# We have two chains ({ID = 5})-[knows]->({ID = 8})-[studyAt]->(org {ID = 1, offset = 0})
+# and ({ID = 5})-[meets]->(person {ID = 0, offset = 0})
+# Intersect shouldn't detect this as a cycle
+-CASE MultiLabelTriangleTestIntersect
+-STATEMENT MATCH (a:person), (b:person), (c:person) WHERE a.ID = 5 AND b.ID = 0 AND c.ID = 8
+            CREATE (a)-[:meets]->(b)
+            CREATE (a)-[:knows]->(c)
+---- ok
+-STATEMENT MATCH (a:person)-[r1:knows]->(b:person)-[r2:studyAt|:meets]->(c:person:organisation), (a)-[r3:studyAt|:meets]->(c)
+ WHERE a.ID = 5
+ HINT ((a JOIN r1 JOIN b) MULTI_JOIN r2 MULTI_JOIN r3) JOIN c
+ RETURN a.ID, b.ID, c.ID
+---- 0

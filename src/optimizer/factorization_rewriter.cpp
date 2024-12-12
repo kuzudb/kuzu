@@ -48,6 +48,7 @@ void FactorizationRewriter::visitRecursiveExtend(planner::LogicalOperator* op) {
 }
 
 void FactorizationRewriter::visitHashJoin(planner::LogicalOperator* op) {
+    // TODO(Royi) correctly set the cardinality here
     auto& hashJoin = op->cast<LogicalHashJoin>();
     auto groupsPosToFlattenOnProbeSide = hashJoin.getGroupsPosToFlattenOnProbeSide();
     hashJoin.setChild(0, appendFlattens(hashJoin.getChild(0), groupsPosToFlattenOnProbeSide));
@@ -189,7 +190,8 @@ std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattenIf
     if (op->getSchema()->getGroup(groupPos)->isFlat()) {
         return op;
     }
-    auto flatten = std::make_shared<LogicalFlatten>(groupPos, std::move(op));
+    // TODO(Royi) correctly set the cardinality here
+    auto flatten = std::make_shared<LogicalFlatten>(groupPos, std::move(op), 0 /* cardinality */);
     flatten->computeFactorizedSchema();
     return flatten;
 }

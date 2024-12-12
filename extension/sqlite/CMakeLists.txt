@@ -8,37 +8,29 @@ find_package(DuckDB REQUIRED)
 include_directories(
         ${PROJECT_SOURCE_DIR}/src/include
         src/include
-        ../duckdb/src/include
+        ${PROJECT_SOURCE_DIR}/extension/duckdb/src/include
         ${DuckDB_INCLUDE_DIRS})
+
+add_subdirectory(src/connector)
+add_subdirectory(src/storage)
+add_subdirectory(src/main)
+add_subdirectory(src/installer)
 
 add_library(sqlite_extension
         SHARED
-        ../duckdb/src/duckdb_scan.cpp
-        ../duckdb/src/duckdb_catalog.cpp
-        ../duckdb/src/duckdb_table_catalog_entry.cpp
-        ../duckdb/src/duckdb_type_converter.cpp
-        ../duckdb/src/duckdb_functions.cpp
-        ../duckdb/src/connector/duckdb_connector.cpp
-        src/sqlite_extension.cpp
-        src/sqlite_storage.cpp
-        src/sqlite_connector.cpp)
+        ${SQLITE_EXTENSION_OBJECT_FILES})
 
-set_extension_properties(sqlite_extension sqlite)
+set_extension_properties(sqlite_extension sqlite sqlite)
 
 target_link_libraries(sqlite_extension
         PRIVATE
         ${DuckDB_LIBRARIES})
 
 if (NOT WIN32)
-    add_library(sqlite_installer
-            SHARED
-            src/sqlite_install_func.cpp
-            ../duckdb/src/duckdb_installer.cpp)
     add_library(sqlite_loader
             SHARED
-            ../duckdb/src/duckdb_loader.cpp)
-    set_extension_properties(sqlite_installer sqlite_installer)
-    set_extension_properties(sqlite_loader sqlite_loader)
+            ${PROJECT_SOURCE_DIR}/extension/duckdb/src/loader/duckdb_loader.cpp)
+    set_extension_properties(sqlite_loader sqlite_loader sqlite)
 endif ()
 
 if (WIN32)
@@ -49,5 +41,4 @@ endif ()
 if (APPLE)
     set_apple_dynamic_lookup(sqlite_extension)
     set_apple_dynamic_lookup(sqlite_loader)
-    set_apple_dynamic_lookup(sqlite_installer)
 endif ()

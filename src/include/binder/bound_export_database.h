@@ -21,7 +21,7 @@ class BoundExportDatabase final : public BoundStatement {
 public:
     BoundExportDatabase(std::string filePath, common::FileTypeInfo fileTypeInfo,
         std::vector<ExportedTableData> exportData,
-        std::unordered_map<std::string, common::Value> csvOption)
+        common::case_insensitive_map_t<common::Value> csvOption)
         : BoundStatement{common::StatementType::EXPORT_DATABASE,
               BoundStatementResult::createSingleStringColumnResult()},
           exportData(std::move(exportData)),
@@ -31,7 +31,7 @@ public:
 
     std::string getFilePath() const { return boundFileInfo.filePaths[0]; }
     common::FileType getFileType() const { return boundFileInfo.fileTypeInfo.fileType; }
-    std::unordered_map<std::string, common::Value> getExportOptions() const {
+    common::case_insensitive_map_t<common::Value> getExportOptions() const {
         return boundFileInfo.options;
     }
     const common::ReaderConfig* getBoundFileInfo() const { return &boundFileInfo; }

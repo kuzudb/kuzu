@@ -3,9 +3,7 @@
 #include <atomic>
 #include <mutex>
 
-#include "common/types/types.h"
-#include "graph/graph.h"
-#include "processor/operator/gds_call_shared_state.h"
+#include "compute.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include <span>
 #include <algorithm>
@@ -13,79 +11,25 @@
 namespace kuzu {
 namespace function {
 
-/**
- * Base interface for algorithms that can be implemented in Pregel-like vertex-centric manner or
- * more specifically Ligra's edgeCompute (called edgeUpdate in Ligra paper) function. Intended to be
- * passed to the helper functions in GDSUtils that parallelize such Pregel-like computations.
- */
-class EdgeCompute {
-public:
-    virtual ~EdgeCompute() = default;
-
-    // Does any work that is needed while extending the (boundNodeID, nbrNodeID, edgeID) edge.
-    // boundNodeID is the nodeID that is in the current frontier and currently executing.
-    // Returns a list of neighbors which should be put in the next frontier.
-    // So if the implementing class has access to the next frontier as a field,
-    // **do not** call setActive. Helper functions in GDSUtils will do that work.
-    virtual std::vector<common::nodeID_t> edgeCompute(common::nodeID_t boundNodeID,
-        graph::NbrScanState::Chunk& results, bool fwdEdge) = 0;
-
-    virtual void resetSingleThreadState() {}
-
-    virtual bool terminate(processor::NodeOffsetMaskMap&) { return false; }
-
-    virtual std::unique_ptr<EdgeCompute> copy() = 0;
-};
-
-class VertexCompute {
-public:
-    virtual ~VertexCompute() = default;
-
-    // This function is called once on the "main" copy of VertexCompute in the
-    // GDSUtils::runVertexComputeIteration function. runVertexComputeIteration loops through
-    // each node table T on the graph on which vertexCompute should run and then before
-    // parallelizing the computation on T calls this function.
-    virtual bool beginOnTable(common::table_id_t) { return true; }
-
-    // This function is called by each worker thread T on each node in the morsel that T grabs.
-    // Does any vertex-centric work that is needed while running on the curNodeID. This function
-    // should itself do the work of checking if any work should be done on the vertex or not. Note
-    // that this contrasts with how EdgeCompute::edgeCompute() should be implemented, where the
-    // GDSUtils helper functions call isActive on nodes to check if any work should be done for
-    // the edges of a node. Instead, here GDSUtils helper functions for VertexCompute blindly run
-    // the function on each node in a graph.
-    virtual void vertexCompute(const graph::VertexScanState::Chunk& chunk) = 0;
-
-    virtual std::unique_ptr<VertexCompute> copy() = 0;
-};
-
 class FrontierMorsel {
-    friend class FrontierMorselDispatcher;
-
 public:
-    FrontierMorsel() {}
+    FrontierMorsel() = default;
 
-    bool hasNextOffset() const { return nextOffset < endOffsetExclusive; }
-
-    common::nodeID_t getNextNodeID() { return {nextOffset++, tableID}; }
-
+    common::table_id_t getTableID() const { return tableID; }
     common::offset_t getBeginOffset() const { return beginOffset; }
-    common::offset_t getEndOffsetExclusive() const { return endOffsetExclusive; }
+    common::offset_t getEndOffset() const { return endOffsetExclusive; }
 
-protected:
-    void initMorsel(common::table_id_t _tableID, common::offset_t _beginOffset,
+    void init(common::table_id_t _tableID, common::offset_t _beginOffset,
         common::offset_t _endOffsetExclusive) {
         tableID = _tableID;
         beginOffset = _beginOffset;
         endOffsetExclusive = _endOffsetExclusive;
-        nextOffset = beginOffset;
     }
 
 private:
     common::table_id_t tableID = common::INVALID_TABLE_ID;
     common::offset_t beginOffset = common::INVALID_OFFSET;
     common::offset_t endOffsetExclusive = common::INVALID_OFFSET;
-    common::offset_t nextOffset = common::INVALID_OFFSET;
 };
 
 class KUZU_API FrontierMorselDispatcher {
@@ -96,19 +40,19 @@ class KUZU_API FrontierMorselDispatcher {
     static constexpr uint64_t MIN_NUMBER_OF_FRONTIER_MORSELS = 128;
 
 public:
-    explicit FrontierMorselDispatcher(uint64_t _maxThreadsForExec);
+    explicit FrontierMorselDispatcher(uint64_t maxThreads);
 
-    void init(common::table_id_t _tableID, common::offset_t _numOffsets);
+    void init(common::table_id_t _tableID, common::offset_t _maxOffset);
 
     bool getNextRangeMorsel(FrontierMorsel& frontierMorsel);
 
     common::table_id_t getTableID() const { return tableID; }
 
 private:
-    std::atomic<uint64_t> maxThreadsForExec;
-    std::atomic<common::table_id_t> tableID;
-    std::atomic<common::offset_t> numOffsets;
+    common::table_id_t tableID;
+    common::offset_t maxOffset;
     std::atomic<common::offset_t> nextOffset;
+    uint64_t maxThreads;
     uint64_t morselSize;
 };
 
@@ -149,6 +93,46 @@ protected:
     common::table_id_map_t<common::offset_t> numNodesMap;
 };
 
+/*
+ * Sparse frontier keeps a small frontier.
+ * If enabled, this frontier represents a complete frontier.
+ * Otherwise, complete frontier is larger than this sparse frontier.
+ * */
+class KUZU_API SparseFrontier {
+public:
+    SparseFrontier()
+        : enabled_{true}, curTableID{common::INVALID_TABLE_ID}, curOffsetSet{nullptr} {}
+
+    void disable() { enabled_ = false; }
+    void resetState() {
+        enabled_ = true;
+        curOffsetSet = nullptr;
+        tableIDToOffsetMap.clear();
+    }
+    bool enabled() const { return enabled_; }
+
+    void pinTableID(common::table_id_t tableID);
+
+    common::table_id_t getTableID() const { return curTableID; }
+    const std::unordered_set<common::offset_t>& getOffsetSet() const { return *curOffsetSet; }
+
+    void addNode(common::nodeID_t nodeID);
+    void addNodes(const std::vector<common::nodeID_t> nodeIDs);
+    void checkSampleSize();
+
+    void mergeLocalFrontier(const SparseFrontier& localFrontier);
+    void mergeSparseFrontier(const SparseFrontier& other);
+
+private:
+    static constexpr uint16_t SAMPLE_SIZE = 20;
+
+    std::mutex mtx;
+    bool enabled_;
+    std::unordered_map<common::table_id_t, std::unordered_set<common::offset_t>> tableIDToOffsetMap;
+    common::table_id_t curTableID;
+    std::unordered_set<common::offset_t>* curOffsetSet;
+};
+
 /**
  * A GDSFrontier implementation that keeps the lengths of the paths from a source node to
  * destination nodes. This is a light-weight implementation that can keep lengths up to and
@@ -170,7 +154,7 @@ protected:
  * However, this is not necessary and the caller can also use this to represent a single frontier.
  */
 class KUZU_API PathLengths : public GDSFrontier {
-    friend class SingleSPDestinationsEdgeCompute;
+    friend class PathLengthsInitVertexCompute;
     using frontier_entry_t = std::atomic<uint16_t>;
 
 public:
@@ -190,7 +174,7 @@ public:
         return getCurFrontier()[offset] == curIter.load(std::memory_order_relaxed) - 1;
     }
 
-    void setActive(const std::span<const common::nodeID_t> nodeIDs) override {
+    void setActive(std::span<const common::nodeID_t> nodeIDs) override {
         auto frontierMask = getNextFrontier();
         for (const auto nodeID : nodeIDs) {
             frontierMask[nodeID.offset].store(getCurIter(), std::memory_order_relaxed);
@@ -236,71 +220,23 @@ private:
     std::atomic<frontier_entry_t*> nextFrontier;
 };
 
-class KCoreFrontier : public GDSFrontier {
+class PathLengthsInitVertexCompute : public VertexCompute {
 public:
-    KCoreFrontier(const common::table_id_map_t<common::offset_t>& numNodesMap_, storage::MemoryManager* mm, bool inital_bool)
-    : GDSFrontier{numNodesMap_} {
-        for (const auto& [tableID, curNumNodes] : numNodesMap_) {
-            numNodesMap[tableID] = curNumNodes;
-            auto curActiveMemBuffer = mm->allocateBuffer(false, curNumNodes * sizeof(std::atomic<bool>));
-            std::atomic<bool>* curActiveMemBufferPtr = reinterpret_cast<std::atomic<bool>*>(curActiveMemBuffer.get()->getData());
-            for (uint64_t i = 0; i < curNumNodes; ++i) {
-                curActiveMemBufferPtr[i].store(inital_bool, std::memory_order_relaxed);
-            }
-            curActiveNodes.insert({tableID, std::move(curActiveMemBuffer)});
-        }
-    }
+    PathLengthsInitVertexCompute(PathLengths& pathLengths, uint16_t val)
+        : pathLengths{pathLengths}, val{val} {}
 
-    void setActive(std::span<const common::nodeID_t> nodeIDs) override {
-        for(auto& nodeID : nodeIDs) {
-            setCurActive(nodeID);
-        }
-    }
+    bool beginOnTable(common::table_id_t tableID) override;
 
-    void setInActive(common::nodeID_t nodeID) {
-        setCurInActive(nodeID);
-    }
+    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset,
+        common::table_id_t) override;
 
-    uint64_t getNumNodes() {
-        return numNodes;
-    }
-
-    void setActive(common::nodeID_t nodeID) {
-        setCurActive(nodeID); 
-    }
-
-    void pinTableID(common::table_id_t) override {};
-
-    bool isActive(common::offset_t) override {
-        return true;
-    }
-
-    bool isNodeActive(common::nodeID_t nodeID) {
-        auto& memBuffer = curActiveNodes.find(nodeID.tableID)->second;
-        std::atomic<bool>* memBufferPtr = reinterpret_cast<std::atomic<bool>*>(memBuffer->getData());
-        return memBufferPtr[nodeID.offset].load(std::memory_order_relaxed);
-    }
-
-    void incrementCurIter() {
-        return;
+    std::unique_ptr<VertexCompute> copy() override {
+        return std::make_unique<PathLengthsInitVertexCompute>(pathLengths, val);
     }
 
 private:
-    void setCurActive(common::nodeID_t nodeID) {
-        auto& memBuffer = curActiveNodes.find(nodeID.tableID)->second;
-        std::atomic<bool>* memBufferPtr = reinterpret_cast<std::atomic<bool>*>(memBuffer->getData());
-        memBufferPtr[nodeID.offset].store(static_cast<bool>(true), std::memory_order_relaxed);
-    }
-
-    void setCurInActive(common::nodeID_t nodeID) {
-        auto& memBuffer = curActiveNodes.find(nodeID.tableID)->second;
-        std::atomic<bool>* memBufferPtr = reinterpret_cast<std::atomic<bool>*>(memBuffer->getData());
-        memBufferPtr[nodeID.offset].store(static_cast<bool>(false), std::memory_order_relaxed);
-    }
-
-private:
-    uint64_t numNodes;
-    common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> curActiveNodes;
+    PathLengths& pathLengths;
+    uint16_t val;
 };
 
 /**
@@ -312,11 +248,9 @@ private:
  * All functions supported in this base interface are thread-safe.
  */
 class KUZU_API FrontierPair {
-    friend class FrontierTask;
-
 public:
     FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-        std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreadsForExec);
+        std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreads);
 
     virtual ~FrontierPair() = default;
 
@@ -325,19 +259,42 @@ public:
     }
 
     void setActiveNodesForNextIter() { hasActiveNodesForNextIter_.store(true); }
-    bool hasActiveNodesForNextIter() { return hasActiveNodesForNextIter_.load(); }
+
     void beginNewIteration();
 
     virtual void initRJFromSource(common::nodeID_t source) = 0;
 
-    virtual void beginFrontierComputeBetweenTables(common::table_id_t curFrontierTableID,
-        common::table_id_t nextFrontierTableID) = 0;
+    virtual void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
+        common::table_id_t nextTableID);
+
+    virtual void pinCurrFrontier(common::table_id_t tableID) {
+        curSparseFrontier->pinTableID(tableID);
+    }
+    virtual void pinNextFrontier(common::table_id_t tableID) {
+        nextSparseFrontier->pinTableID(tableID);
+    }
 
     uint16_t getCurrentIter() { return curIter.load(std::memory_order_relaxed); }
-    uint16_t getNextIter() { return curIter.load() + 1u; }
 
-    GDSFrontier& getCurrentFrontierUnsafe() const { return *curFrontier; }
-    GDSFrontier& getNextFrontierUnsafe() { return *nextFrontier; }
+    GDSFrontier& getCurDenseFrontier() const { return *curDenseFrontier; }
+    GDSFrontier& getNextDenseFrontier() const { return *nextDenseFrontier; }
+    SparseFrontier& getCurSparseFrontier() const { return *curSparseFrontier; }
+    SparseFrontier& getNextSparseFrontier() const { return *nextSparseFrontier; }
+    SparseFrontier& getVertexComputeCandidates() const { return *vertexComputeCandidates; }
+
+    bool continueNextIter(uint16_t maxIter);
+
+    void addNodeToNextDenseFrontier(common::nodeID_t nodeID);
+    void addNodesToNextDenseFrontier(const std::vector<common::nodeID_t>& nodeIDs);
+
+    void mergeLocalFrontier(const SparseFrontier& localFrontier);
+
+    bool isCurFrontierSparse();
+
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<TARGET*>(this);
+    }
 
     template<class TARGET>
     TARGET* ptrCast() {
@@ -352,26 +309,36 @@ protected:
     // curIter is the iteration number of the algorithm and starts from 0.
     std::atomic<uint16_t> curIter;
     std::atomic<bool> hasActiveNodesForNextIter_;
-    std::shared_ptr<GDSFrontier> curFrontier;
-    std::shared_ptr<GDSFrontier> nextFrontier;
+
+    // Dense frontiers are always updated.
+    std::shared_ptr<GDSFrontier> curDenseFrontier;
+    std::shared_ptr<GDSFrontier> nextDenseFrontier;
+    // Sparse frontiers
+    std::shared_ptr<SparseFrontier> curSparseFrontier;
+    std::shared_ptr<SparseFrontier> nextSparseFrontier;
+    std::shared_ptr<SparseFrontier> vertexComputeCandidates;
 
     FrontierMorselDispatcher morselDispatcher;
 };
 
 class SinglePathLengthsFrontierPair : public FrontierPair {
 public:
-    SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths,
-        uint64_t maxThreadsForExec)
-        : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */,
-              maxThreadsForExec),
+    SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths, uint64_t numThreads)
+        : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */, numThreads),
           pathLengths{pathLengths} {}
 
     PathLengths* getPathLengths() const { return pathLengths.get(); }
 
     void initRJFromSource(common::nodeID_t source) override;
 
-    void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
-        common::table_id_t nextTableID) override;
+    void pinCurrFrontier(common::table_id_t tableID) override {
+        FrontierPair::pinCurrFrontier(tableID);
+        pathLengths->pinCurFrontierTableID(tableID);
+    }
+    void pinNextFrontier(common::table_id_t tableID) override {
+        FrontierPair::pinNextFrontier(tableID);
+        pathLengths->pinNextFrontierTableID(tableID);
+    }
 
     void beginNewIterationInternalNoLock() override { pathLengths->incrementCurIter(); }
 
@@ -382,13 +349,19 @@ private:
 class KUZU_API DoublePathLengthsFrontierPair : public FrontierPair {
 public:
     DoublePathLengthsFrontierPair(std::shared_ptr<PathLengths> curFrontier,
-        std::shared_ptr<PathLengths> nextFrontier, uint64_t maxThreadsForExec)
-        : FrontierPair{curFrontier, nextFrontier, maxThreadsForExec} {}
+        std::shared_ptr<PathLengths> nextFrontier, uint64_t numThreads)
+        : FrontierPair{curFrontier, nextFrontier, numThreads} {}
 
     void initRJFromSource(common::nodeID_t source) override;
 
-    void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
-        common::table_id_t nextTableID) override;
+    void pinCurrFrontier(common::table_id_t tableID) override {
+        FrontierPair::pinCurrFrontier(tableID);
+        curDenseFrontier->ptrCast<PathLengths>()->pinCurFrontierTableID(tableID);
+    }
+    void pinNextFrontier(common::table_id_t tableID) override {
+        FrontierPair::pinNextFrontier(tableID);
+        nextDenseFrontier->ptrCast<PathLengths>()->pinNextFrontierTableID(tableID);
+    }
 
     void beginNewIterationInternalNoLock() override;
 };

@@ -38,9 +38,16 @@ struct B {
     static void validate(double value);
 };
 
+struct Conjunctive {
+    static constexpr const char* NAME = "conjunctive";
+    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::BOOL;
+    static constexpr bool DEFAULT_VALUE = false;
+};
+
 struct QueryFTSConfig {
     double k = K::DEFAULT_VALUE;
     double b = B::DEFAULT_VALUE;
+    bool isConjunctive = Conjunctive::DEFAULT_VALUE;
 
     QueryFTSConfig() = default;
     explicit QueryFTSConfig(const function::optional_params_t& optionalParams);

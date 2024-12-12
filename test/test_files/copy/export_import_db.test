@@ -74,10 +74,6 @@ Runtime exception: Directory ${KUZU_EXPORT_DB_DIRECTORY}_case2/demo-db2 already 
 
 -CASE ExportImportDatabaseError
 -SKIP_WASM
--STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4" (format="TURTLE")
----- error
-Binder exception: Unsupported file type: TURTLE.
-
 -STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4" (format="npy")
 ---- error
 Binder exception: Export database currently only supports csv and parquet files.

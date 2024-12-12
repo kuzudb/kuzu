@@ -83,7 +83,7 @@ allconfig:
 	$(call config-cmake-release, \
 		-DBUILD_BENCHMARK=TRUE \
 		-DBUILD_EXAMPLES=TRUE \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta" \
 		-DBUILD_JAVA=TRUE \
 		-DBUILD_NODEJS=TRUE \
 		-DBUILD_PYTHON=TRUE \
@@ -98,7 +98,7 @@ alldebug:
 	$(call run-cmake-debug, \
 		-DBUILD_BENCHMARK=TRUE \
 		-DBUILD_EXAMPLES=TRUE \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta" \
 		-DBUILD_JAVA=TRUE \
 		-DBUILD_NODEJS=TRUE \
 		-DBUILD_PYTHON=TRUE \
@@ -117,7 +117,6 @@ lcov:
 	python3 dataset/ldbc-1/download_data.py
 	$(call run-cmake-release, -DBUILD_TESTS=TRUE -DBUILD_LCOV=TRUE)
 	ctest --test-dir build/release/test --output-on-failure -j ${TEST_JOBS}
-
 
 # Language APIs
 
@@ -182,35 +181,40 @@ example:
 	$(call run-cmake-release, -DBUILD_EXAMPLES=TRUE)
 
 extension-test-build:
-	$(call run-cmake-release, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts" \
+	$(call run-cmake-relwithdebinfo, \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta" \
 		-DBUILD_EXTENSION_TESTS=TRUE \
+		-DBUILD_TESTS=TRUE \
 	)
 
 extension-json-test-build:
-	$(call run-cmake-release, \
+	$(call run-cmake-relwithdebinfo, \
 		-DBUILD_EXTENSIONS="json" \
 		-DBUILD_EXTENSION_TESTS=TRUE \
 		-DENABLE_ADDRESS_SANITIZER=TRUE \
 	)
 
 extension-test: extension-test-build
-	ctest --test-dir build/release/extension --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}"
+ifeq ($(OS),Windows_NT)
+	set "E2E_TEST_FILES_DIRECTORY=extension" && ctest -R "e2e_test" --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}"
+else
+	E2E_TEST_FILES_DIRECTORY=extension ctest --test-dir build/relwithdebinfo/test --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}" -R e2e_test
+endif
 	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
 
 extension-json-test: extension-json-test-build
-	ctest --test-dir build/release/extension --output-on-failure -j ${TEST_JOBS} -R json
+	ctest --test-dir build/relwithdebinfo/extension --output-on-failure -j ${TEST_JOBS} -R json
 	aws s3 rm s3://kuzu-dataset-us/${RUN_ID}/ --recursive
 
 extension-debug:
 	$(call run-cmake-debug, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta" \
 		-DBUILD_KUZU=FALSE \
 	)
 
 extension-release:
 	$(call run-cmake-release, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta" \
 		-DBUILD_KUZU=FALSE \
 	)
 
@@ -251,6 +255,7 @@ clean-extension:
 	cmake -E rm -rf extension/postgres/build
 	cmake -E rm -rf extension/sqlite/build
 	cmake -E rm -rf extension/fts/build
+	cmake -E rm -rf extension/delta/build
 
 clean-python-api:
 	cmake -E rm -rf tools/python_api/build

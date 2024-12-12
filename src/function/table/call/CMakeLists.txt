@@ -1,5 +1,6 @@
 add_library(kuzu_table_call
         OBJECT
+        bm_info.cpp
         current_setting.cpp
         db_version.cpp
         show_connection.cpp

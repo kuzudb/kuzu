@@ -229,5 +229,17 @@ struct SpillToDiskSetting {
     }
 };
 
+struct EnableOptimizerSetting {
+    static constexpr auto name = "enable_plan_optimizer";
+    static constexpr auto inputType = common::LogicalTypeID::BOOL;
+    static void setContext(ClientContext* context, const common::Value& parameter) {
+        parameter.validateType(inputType);
+        context->getClientConfigUnsafe()->enablePlanOptimizer = parameter.getValue<bool>();
+    }
+    static common::Value getSetting(const ClientContext* context) {
+        return common::Value::createValue(context->getClientConfig()->enablePlanOptimizer);
+    }
+};
+
 } // namespace main
 } // namespace kuzu

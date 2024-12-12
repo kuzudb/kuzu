@@ -10,6 +10,7 @@
 #include "main/settings.h"
 
 #if defined(_WIN32)
+#include "common/windows_utils.h"
 #include <fileapi.h>
 #include <io.h>
 #include <windows.h>
@@ -220,10 +221,14 @@ void LocalFileSystem::createDir(const std::string& dir) const {
             // LCOV_EXCL_STOP
         }
         auto directoryToCreate = dir;
-        if (directoryToCreate.ends_with('/')) {
+        if (directoryToCreate.ends_with('/')
+#if defined(_WIN32)
+            || directoryToCreate.ends_with('\\')
+#endif
+        ) {
             // This is a known issue with std::filesystem::create_directories. (link:
             // https://github.com/llvm/llvm-project/issues/60634). We have to manually remove the
-            // last '/' if the path ends with '/'.
+            // last '/' if the path ends with '/'. (Added the second one for windows)
             directoryToCreate = directoryToCreate.substr(0, directoryToCreate.size() - 1);
         }
         std::error_code errCode;
@@ -247,9 +252,34 @@ void LocalFileSystem::createDir(const std::string& dir) const {
     }
 }
 
+bool isSubdirectory(const std::filesystem::path& base, const std::filesystem::path& sub) {
+    try {
+        // Resolve paths to their canonical form
+        auto canonicalBase = std::filesystem::canonical(base);
+        auto canonicalSub = std::filesystem::canonical(sub);
+
+        std::string relative = std::filesystem::relative(canonicalSub, canonicalBase).string();
+        // Size check for a "." result.
+        // If the path starts with "..", it's not a subdirectory.
+        return !relative.empty() && !(relative.starts_with(".."));
+
+    } catch (const std::filesystem::filesystem_error& e) {
+        // Handle errors, e.g., if paths don't exist
+        std::cerr << "Filesystem error: " << e.what() << std::endl;
+        return false;
+    }
+
+    return false;
+}
+
 void LocalFileSystem::removeFileIfExists(const std::string& path) {
-    if (!fileOrPathExists(path))
+    if (!fileOrPathExists(path)) {
         return;
+    }
+    if (!isSubdirectory(homeDir, path)) {
+        throw IOException(stringFormat("Error: Path {} is not within the allowed home directory {}",
+            path, homeDir));
+    }
     std::error_code errCode;
     bool success = false;
     if (std::filesystem::is_directory(path)) {
@@ -269,6 +299,35 @@ bool LocalFileSystem::fileOrPathExists(const std::string& path, main::ClientCont
     return std::filesystem::exists(path);
 }
 
+#ifndef _WIN32
+bool LocalFileSystem::fileExists(const std::string& filename) {
+    if (!filename.empty()) {
+        if (access(filename.c_str(), 0) == 0) {
+            struct stat status = {};
+            stat(filename.c_str(), &status);
+            if (S_ISREG(status.st_mode)) {
+                return true;
+            }
+        }
+    }
+    // if any condition fails
+    return false;
+}
+#else
+bool LocalFileSystem::fileExists(const std::string& filename) {
+    auto unicode_path = WindowsUtils::utf8ToUnicode(filename.c_str());
+    const wchar_t* wpath = unicode_path.c_str();
+    if (_waccess(wpath, 0) == 0) {
+        struct _stati64 status = {};
+        _wstati64(wpath, &status);
+        if (status.st_mode & S_IFREG) {
+            return true;
+        }
+    }
+    return false;
+}
+#endif
+
 std::string LocalFileSystem::expandPath(main::ClientContext* context,
     const std::string& path) const {
     auto fullPath = path;
@@ -278,6 +337,11 @@ std::string LocalFileSystem::expandPath(main::ClientContext* context,
             fullPath.substr(1);
     }
     return fullPath;
+}
+
+bool LocalFileSystem::isLocalPath(const std::string& path) {
+    return path.rfind("s3://", 0) != 0 && path.rfind("http://", 0) != 0 &&
+           path.rfind("https://", 0) != 0;
 }
 
 void LocalFileSystem::readFromFile(FileInfo& fileInfo, void* buffer, uint64_t numBytes,

@@ -13,9 +13,11 @@ class LogicalCrossProduct final : public LogicalOperator {
 public:
     LogicalCrossProduct(common::AccumulateType accumulateType,
         std::shared_ptr<binder::Expression> mark, std::shared_ptr<LogicalOperator> probeChild,
-        std::shared_ptr<LogicalOperator> buildChild)
+        std::shared_ptr<LogicalOperator> buildChild, common::cardinality_t cardinality)
         : LogicalOperator{type_, std::move(probeChild), std::move(buildChild)},
-          accumulateType{accumulateType}, mark{std::move(mark)} {}
+          accumulateType{accumulateType}, mark{std::move(mark)} {
+        this->cardinality = cardinality;
+    }
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
@@ -31,7 +33,7 @@ public:
 
     std::unique_ptr<LogicalOperator> copy() override {
         auto op = make_unique<LogicalCrossProduct>(accumulateType, mark, children[0]->copy(),
-            children[1]->copy());
+            children[1]->copy(), cardinality);
         op->sipInfo = sipInfo;
         return op;
     }

@@ -27,6 +27,8 @@ struct LocalFileInfo : public FileInfo {
 
 class KUZU_API LocalFileSystem final : public FileSystem {
 public:
+    explicit LocalFileSystem(std::string homeDir) : FileSystem(std::move(homeDir)) {}
+
     std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,
         main::ClientContext* context = nullptr,
         FileLockType lock_type = FileLockType::NO_LOCK) override;
@@ -49,6 +51,10 @@ public:
     void syncFile(const FileInfo& fileInfo) const override;
 
     void cleanUP(main::ClientContext* /*context*/) override {};
+
+    static bool isLocalPath(const std::string& path);
+
+    static bool fileExists(const std::string& filename);
 
 protected:
     void readFromFile(FileInfo& fileInfo, void* buffer, uint64_t numBytes,

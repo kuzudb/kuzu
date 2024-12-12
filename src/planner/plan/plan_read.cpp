@@ -171,7 +171,7 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
     if (!properties.empty()) {
         auto& node = bindData->getNodeOutput()->constCast<NodeExpression>();
         auto scanPlan = LogicalPlan();
-        cardinalityEstimator.addNodeIDDom(clientContext->getTx(), *node.getInternalID(),
+        cardinalityEstimator.addNodeIDDomAndStats(clientContext->getTx(), *node.getInternalID(),
             node.getTableIDs());
         appendScanNodeTable(node.getInternalID(), node.getTableIDs(), properties, scanPlan);
         expression_vector joinConditions;

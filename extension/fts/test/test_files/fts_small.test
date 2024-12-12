@@ -9,118 +9,44 @@
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
 ---- ok
--LOG SingleKeyWordUpperCase
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN node.ID, score
+
+-LOG QueryFTSConjunctiveSingleKeyword
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice', conjunctive := true) RETURN node.ID, score
 ---- 2
 0|0.271133
 3|0.209476
--LOG SingleKeyWordLowerCase
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice') RETURN node.ID, score
+
+-LOG QueryFTSConjunctiveMultiKeywords
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice studying', conjunctive := true) RETURN node.ID, score
+---- 2
+0|0.326304
+3|0.268989
+
+-LOG QueryFTSConjunctiveDuplicateKeywords
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice studying alice', conjunctive := true) RETURN node.ID, score
+---- 2
+0|0.326304
+3|0.268989
+
+-LOG QueryFTSConjunctiveDuplicateSingleKeyword
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice alice', conjunctive := true) RETURN node.ID, score
 ---- 2
 0|0.271133
 3|0.209476
--LOG QueryEmptyString
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', '') RETURN node.ID, score
----- 0
--LOG QueryStopWord
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'at') RETURN node.ID, score
----- 0
--LOG QuerySingular
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'studys') RETURN node.ID, score
----- 3
-0|0.055171
-20|0.059514
-3|0.059514
--LOG QueryPresentTense
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'studying') RETURN node.ID, score
----- 3
-0|0.055171
-20|0.059514
-3|0.059514
--LOG QueryWithSpecialChar
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'study ->') RETURN node.ID, score
----- 3
-0|0.055171
-20|0.059514
-3|0.059514
--LOG MultipleIndexes
--STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx1', ['content', 'author'])
----- ok
--STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx2', ['content'])
----- ok
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'toronto') RETURN node.ID, score
----- 1
-0|0.565815
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'toronto') RETURN node.ID, score
----- 1
-0|0.400747
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx2', 'toronto') RETURN node.ID, score
----- 1
-0|0.393753
--LOG DropAndRecreate
--STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx4', ['content', 'name'])
----- ok
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx4', 'waterloo') RETURN node.ID, score
----- 2
-0|0.192034
-20|0.210752
--STATEMENT CALL DROP_FTS_INDEX('doc', 'docIdx4')
----- ok
--STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx4', ['content', 'name'])
----- ok
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx4', 'waterloo') RETURN node.ID, score
----- 2
-0|0.192034
-20|0.210752
 
--CASE FTSWithParams
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
----- ok
+-LOG QueryFTSConjunctiveNotExistSingleKeyword
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'carol', conjunctive := true) RETURN node.ID, score
+---- 0
 
--LOG StemmerOption
--STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'], stemmer := 'german1')
----- error
-Binder exception: Unrecognized stemmer 'german1'. Supported stemmers are: ['arabic, basque, catalan, danish, dutch, english, finnish, french, german, greek, hindi, hungarian, indonesian, irish, italian, lithuanian, nepali, norwegian, porter, portuguese, romanian, russian, serbian, spanish, swedish, tamil, turkish'], or use 'none' for no stemming.
--STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'], stemmer := 'araBic')
----- ok
-#Note: arabic stemmer doesn't reduce studys/studying->study
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'study') RETURN node.ID, score
+-LOG QueryFTSConjunctiveNotExistMultiKeywords
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'carol dog', conjunctive := true) RETURN node.ID, score
+---- 0
+
+-LOG QueryFTSConjunctivePartialExistKeyword
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice carol', conjunctive := true) RETURN node.ID, score
+---- 0
+
+-LOG QueryFTSConjunctivePartialExistKeyword
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice waterloo', conjunctive := true) RETURN node.ID, score
 ---- 1
-20|0.437146
--STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx1', ['content', 'author', 'name'], stemmer := 'frEnch')
----- ok
-#Note: french stemmer doesn't reduce studying->study
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'study') RETURN node.ID, score
----- 2
-0|0.194190
-20|0.209476
--STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx2', ['content', 'author', 'name'], stemmer := 'nOne')
----- ok
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx2', 'studying') RETURN node.ID, score
----- 1
-3|0.437146
--LOG CreateFTSIncorrectParam
--STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx5', ['content', 'author', 'name'], test := 'nOne')
----- error
-Binder exception: Unrecognized optional parameter: test
--LOG CreateFTSIncorrectParamType
--STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx5', ['content', 'author', 'name'], stemmer := 25)
----- error
-Binder exception: 25 has data type INT64 but STRING was expected.
--LOG QueryFTSOptionalParam
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'study', k := 0.3, B:= 0.5) RETURN node.ID, score
----- 2
-0|0.201218
-20|0.205603
--LOG QueryFTSOptionalParamError
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'study', k := 0.3, c:= 0.5) RETURN node.ID, score
----- error
-Binder exception: Unrecognized optional parameter: c
--LOG QueryFTSBOutOfRange
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'study', k := 0.3, B:= 3.88) RETURN node.ID, score
----- error
-Binder exception: BM25 model requires the Document Length Normalization(b) value to be in the range [0,1].
--LOG QueryFTSKOutOfRange
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'study', k := -5.3, B:= 0.7) RETURN node.ID, score
----- error
-Binder exception: BM25 model requires the Term Frequency Saturation(k) value to be a positive number.
+0|0.465323

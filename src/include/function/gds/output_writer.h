@@ -33,40 +33,61 @@ public:
 
 struct SPOutputs : public RJOutputs {
 public:
-    SPOutputs(common::table_id_map_t<common::offset_t> numNodesMap, common::nodeID_t sourceNodeID,
-        storage::MemoryManager* mm);
+    SPOutputs(common::nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths)
+        : RJOutputs{sourceNodeID}, pathLengths{std::move(pathLengths)} {}
 
 public:
     std::shared_ptr<PathLengths> pathLengths;
 };
 
 struct PathsOutputs : public SPOutputs {
-    PathsOutputs(common::table_id_map_t<common::offset_t> numNodesMap,
-        common::nodeID_t sourceNodeID, storage::MemoryManager* mm = nullptr)
-        : SPOutputs(numNodesMap, sourceNodeID, mm), bfsGraph{numNodesMap, mm} {}
+    PathsOutputs(common::nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths,
+        std::unique_ptr<BFSGraph> bfsGraph)
+        : SPOutputs(sourceNodeID, std::move(pathLengths)), bfsGraph{std::move(bfsGraph)} {}
 
     void beginFrontierComputeBetweenTables(common::table_id_t,
         common::table_id_t nextFrontierTableID) override {
         // Note: We do not fix the node table for pathLengths, which is inherited from AllSPOutputs.
         // See the comment in SingleSPOutputs::beginFrontierComputeBetweenTables() for details.
-        bfsGraph.pinNodeTable(nextFrontierTableID);
+        bfsGraph->pinTableID(nextFrontierTableID);
     };
 
     void beginWritingOutputsForDstNodesInTable(common::table_id_t tableID) override;
 
 public:
-    BFSGraph bfsGraph;
+    std::unique_ptr<BFSGraph> bfsGraph;
 };
 
-class RJOutputWriter {
+class GDSOutputWriter {
 public:
-    RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-        processor::NodeOffsetMaskMap* outputNodeMask);
-    virtual ~RJOutputWriter() = default;
+    GDSOutputWriter(main::ClientContext* context, processor::NodeOffsetMaskMap* outputNodeMask)
+        : context{context}, outputNodeMask{outputNodeMask} {}
+    virtual ~GDSOutputWriter() = default;
+
+    virtual void pinTableID(common::table_id_t tableID) {
+        if (outputNodeMask != nullptr) {
+            outputNodeMask->pin(tableID);
+        }
+    }
 
     processor::NodeOffsetMaskMap* getOutputNodeMask() const { return outputNodeMask; }
 
-    void beginWritingForDstNodesInTable(common::table_id_t tableID);
+protected:
+    std::unique_ptr<common::ValueVector> createVector(const common::LogicalType& type,
+        storage::MemoryManager* mm);
+
+protected:
+    main::ClientContext* context;
+    processor::NodeOffsetMaskMap* outputNodeMask;
+    std::vector<common::ValueVector*> vectors;
+};
+
+class RJOutputWriter : public GDSOutputWriter {
+public:
+    RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
+        processor::NodeOffsetMaskMap* outputNodeMask);
+
+    void pinTableID(common::table_id_t tableID) override;
 
     bool skip(common::nodeID_t dstNodeID) const;
 
@@ -77,17 +98,11 @@ public:
 
 protected:
     virtual bool skipInternal(common::nodeID_t dstNodeID) const = 0;
-    std::unique_ptr<common::ValueVector> createVector(const common::LogicalType& type,
-        storage::MemoryManager* mm);
 
 protected:
-    main::ClientContext* context;
     RJOutputs* rjOutputs;
-    processor::NodeOffsetMaskMap* outputNodeMask;
-
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
-    std::vector<common::ValueVector*> vectors;
 };
 
 class DestinationsOutputWriter : public RJOutputWriter {
@@ -179,7 +194,7 @@ protected:
         // For single/all shortest path computations, we do not output any results from source to
         // source. We also do not output any results if a destination node has not been reached.
         return dstNodeID == pathsOutputs->sourceNodeID ||
-               nullptr == pathsOutputs->bfsGraph.getParentListHead(dstNodeID.offset);
+               nullptr == pathsOutputs->bfsGraph->getParentListHead(dstNodeID.offset);
     }
 };
 

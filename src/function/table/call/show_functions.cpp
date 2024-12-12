@@ -1,5 +1,5 @@
 #include "catalog/catalog.h"
-#include "function/table/call_functions.h"
+#include "function/table/simple_table_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -16,12 +16,12 @@ struct FunctionInfo {
         : name{std::move(name)}, type{std::move(type)}, signature{std::move(signature)} {}
 };
 
-struct ShowFunctionsBindData : public CallTableFuncBindData {
+struct ShowFunctionsBindData : public SimpleTableFuncBindData {
     std::vector<FunctionInfo> sequences;
 
     ShowFunctionsBindData(std::vector<FunctionInfo> sequences, std::vector<LogicalType> returnTypes,
         std::vector<std::string> returnColumnNames, offset_t maxOffset)
-        : CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
+        : SimpleTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
           sequences{std::move(sequences)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
@@ -32,7 +32,7 @@ struct ShowFunctionsBindData : public CallTableFuncBindData {
 
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto sharedState = input.sharedState->ptrCast<CallFuncSharedState>();
+    auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
     auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;

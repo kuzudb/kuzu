@@ -326,11 +326,12 @@ bool NodeGroup::hasDeletions(const Transaction* transaction) {
 }
 
 void NodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
-    FileHandle* dataFH) {
+    FileHandle* dataFH, ColumnStats* newColumnStats) {
     dataTypes.push_back(addColumnState.propertyDefinition.getType().copy());
     const auto lock = chunkedGroups.lock();
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-        chunkedGroup->addColumn(transaction, addColumnState, enableCompression, dataFH);
+        chunkedGroup->addColumn(transaction, addColumnState, enableCompression, dataFH,
+            newColumnStats);
     }
 }
 

@@ -1,0 +1,4 @@
+-NAME recursive-join-trail
+-QUERY MATCH (a:Person)-[e:knows * TRAIL 3..3]-(b:Person) WHERE a.ID = 933 RETURN COUNT(*);
+---- 1
+1853620

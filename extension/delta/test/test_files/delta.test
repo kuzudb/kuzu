@@ -1,0 +1,85 @@
+-DATASET CSV empty
+
+--
+
+-CASE ScanDeltaTable
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/delta/build/libdelta.kuzu_extension"
+---- ok
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/delta/build/libdelta.kuzu_extension"
+---- ok
+
+-LOG LoadFromLocalDeltaTable
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/delta/test/delta_tables/person_table'(file_format='delta') RETURN *
+---- 5
+Alice|25|1000.500000|1999-01-15 00:00:00
+Bob|30|1500.750000|1994-06-25 00:00:00
+Charlie|35|2000.000000|1988-12-05 00:00:00
+Diana|40|2500.300000|1983-07-20 00:00:00
+Ethan|28|1800.600000|1996-03-10 00:00:00
+
+-LOG CopyFromLocalDeltaTable
+-STATEMENT CREATE NODE TABLE person(fname STRING, ID INT64, salary double, birth_date timestamp, PRIMARY KEY(fname));
+---- ok
+-STATEMENT COPY person FROM '${KUZU_ROOT_DIRECTORY}/extension/delta/test/delta_tables/person_table'(file_format='delta');
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.*;
+---- 5
+Alice|25|1000.500000|1999-01-15 00:00:00
+Bob|30|1500.750000|1994-06-25 00:00:00
+Charlie|35|2000.000000|1988-12-05 00:00:00
+Diana|40|2500.300000|1983-07-20 00:00:00
+Ethan|28|1800.600000|1996-03-10 00:00:00
+
+-LOG S3DeltaTable
+-STATEMENT CALL s3_access_key_id='${UW_S3_ACCESS_KEY_ID}'
+---- ok
+-STATEMENT CALL s3_secret_access_key='${UW_S3_SECRET_ACCESS_KEY}'
+---- ok
+-STATEMENT CALL s3_endpoint='rgw.cs.uwaterloo.ca'
+---- ok
+-STATEMENT CALL s3_url_style='path'
+---- ok
+-STATEMENT CALL s3_region='US'
+---- ok
+-STATEMENT LOAD FROM 's3://kuzu-test/delta/university' (file_format='delta') RETURN *
+---- 6
+Cambridge|5|280.200000
+Harvard|1|210.500000
+MIT|3|170.000000
+Oxford|4|300.000000
+Stanford|2|250.300000
+Yale|6|190.700000
+
+-LOG TableOfDifferentTypes
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/delta/test/delta_tables/student' (file_format='delta') RETURN *
+---- 3
+Alice|[52,24,31]|True|2020-05-17 00:00:00|{age: 25, gender: female}
+Bob|[15,66,72]|False|2011-03-22 00:00:00|{age: 22, gender: male}
+Carol|[29,24,11]||2001-04-15 00:00:00|{age: 33, gender: female}
+
+-LOG InvalidDeltaPath
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/student'(file_format='delta') RETURN *
+---- error
+Binder exception: No file found that matches the pattern: ${KUZU_ROOT_DIRECTORY}/student.
+
+-LOG InvalidDeltaTable
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/src' (file_format='delta') RETURN *
+---- error
+IO Error: Hit DeltaKernel FFI error (from: While trying to read from delta table: '${KUZU_ROOT_DIRECTORY}/src/'): Hit error: 15 (MissingVersionError) with message (No table version found.)
+
+-LOG LoadDeltaTableWithOutType
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/delta/test/delta_tables/person_table' RETURN *
+---- error
+Binder exception: Cannot infer the format of the given file. Please set the file format explicitly by (file_format=<type>).
+
+-LOG CopyFromInvalidPath
+-STATEMENT COPY person FROM '${KUZU_ROOT_DIRECTORY}/'(file_format='delta');
+---- error
+IO Error: Hit DeltaKernel FFI error (from: While trying to read from delta table: '${KUZU_ROOT_DIRECTORY}/'): Hit error: 15 (MissingVersionError) with message (No table version found.)
+-STATEMENT MATCH (p:person) RETURN p.*;
+---- 5
+Alice|25|1000.500000|1999-01-15 00:00:00
+Bob|30|1500.750000|1994-06-25 00:00:00
+Charlie|35|2000.000000|1988-12-05 00:00:00
+Diana|40|2500.300000|1983-07-20 00:00:00
+Ethan|28|1800.600000|1996-03-10 00:00:00

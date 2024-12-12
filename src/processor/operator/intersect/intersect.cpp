@@ -71,9 +71,9 @@ void Intersect::twoWayIntersect(nodeID_t* leftNodeIDs, SelectionVector& lSelVect
     while (leftPosition < lSelVector.getSelSize() && rightPosition < rSelVector.getSelSize()) {
         auto leftNodeID = leftNodeIDs[leftPosition];
         auto rightNodeID = rightNodeIDs[rightPosition];
-        if (leftNodeID.offset < rightNodeID.offset) {
+        if (leftNodeID < rightNodeID) {
             leftPosition++;
-        } else if (leftNodeID.offset > rightNodeID.offset) {
+        } else if (leftNodeID > rightNodeID) {
             rightPosition++;
         } else {
             leftPositionBuffer[outputValuePosition] = leftPosition;

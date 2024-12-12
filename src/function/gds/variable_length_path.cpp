@@ -22,7 +22,7 @@ public:
 
     bool skipInternal(common::nodeID_t dstNodeID) const override {
         auto pathsOutputs = rjOutputs->ptrCast<PathsOutputs>();
-        auto head = pathsOutputs->bfsGraph.getParentListHead(dstNodeID.offset);
+        auto head = pathsOutputs->bfsGraph->getParentListHead(dstNodeID.offset);
         // For variable lengths joins, we skip a destination node d in the following conditions:
         //    (i) if no path has reached d from the source, except when the lower bound is 0.
         //    (ii) the longest path that has reached d, which is stored in the iter value of the
@@ -125,22 +125,22 @@ public:
 private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
-        auto mm = clientContext->getMemoryManager();
-        auto numNodesMap = sharedState->graph->getNumNodesMap(clientContext->getTx());
-        auto output = std::make_unique<PathsOutputs>(numNodesMap, sourceNodeID, mm);
+        auto frontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
+        auto bfsGraph = getBFSGraph(context);
+        auto output = std::make_unique<PathsOutputs>(sourceNodeID, frontier, std::move(bfsGraph));
         auto rjBindData = bindData->ptrCast<RJBindData>();
         auto writerInfo = rjBindData->getPathWriterInfo();
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
         auto outputWriter = std::make_unique<VarLenPathsOutputWriter>(clientContext, output.get(),
             sharedState->getOutputNodeMaskMap(), std::move(writerInfo));
-        auto currentFrontier = std::make_shared<PathLengths>(numNodesMap, mm);
-        auto nextFrontier = std::make_shared<PathLengths>(numNodesMap, mm);
+        auto currentFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
+        auto nextFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier,
             nextFrontier, clientContext->getMaxNumThreadForExec());
         auto edgeCompute =
-            std::make_unique<VarLenJoinsEdgeCompute>(frontierPair.get(), &output->bfsGraph);
-        return RJCompState(std::move(frontierPair), std::move(edgeCompute), std::move(output),
-            std::move(outputWriter));
+            std::make_unique<VarLenJoinsEdgeCompute>(frontierPair.get(), output->bfsGraph.get());
+        return RJCompState(std::move(frontierPair), std::move(edgeCompute),
+            sharedState->getOutputNodeMaskMap(), std::move(output), std::move(outputWriter));
     }
 };
 

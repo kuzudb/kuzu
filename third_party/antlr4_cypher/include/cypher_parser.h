@@ -41,9 +41,10 @@ public:
     L_SKIP = 153, INVALID_NOT_EQUAL = 154, MINUS = 155, FACTORIAL = 156, 
     COLON = 157, StringLiteral = 158, EscapedChar = 159, DecimalInteger = 160, 
     HexLetter = 161, HexDigit = 162, Digit = 163, NonZeroDigit = 164, NonZeroOctDigit = 165, 
-    ZeroDigit = 166, RegularDecimalReal = 167, UnescapedSymbolicName = 168, 
-    IdentifierStart = 169, IdentifierPart = 170, EscapedSymbolicName = 171, 
-    SP = 172, WHITESPACE = 173, CypherComment = 174, Unknown = 175
+    ZeroDigit = 166, ExponentDecimalReal = 167, RegularDecimalReal = 168, 
+    UnescapedSymbolicName = 169, IdentifierStart = 170, IdentifierPart = 171, 
+    EscapedSymbolicName = 172, SP = 173, WHITESPACE = 174, CypherComment = 175, 
+    Unknown = 176
   };
 
   enum {
@@ -944,6 +945,7 @@ public:
     antlr4::tree::TerminalNode* SP(size_t i);
     OC_PropertyKeyNameContext *oC_PropertyKeyName();
     KU_DataTypeContext *kU_DataType();
+    KU_IfNotExistsContext *kU_IfNotExists();
     KU_DefaultContext *kU_Default();
 
    
@@ -969,8 +971,10 @@ public:
     KU_DropPropertyContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *DROP();
-    antlr4::tree::TerminalNode *SP();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
     OC_PropertyKeyNameContext *oC_PropertyKeyName();
+    KU_IfExistsContext *kU_IfExists();
 
    
   };
@@ -2787,6 +2791,7 @@ public:
   public:
     OC_DoubleLiteralContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *ExponentDecimalReal();
     antlr4::tree::TerminalNode *RegularDecimalReal();
 
    

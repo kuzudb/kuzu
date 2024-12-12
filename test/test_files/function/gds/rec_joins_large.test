@@ -276,3 +276,10 @@
 1|20
 2|40
 
+-LOG WCC
+-STATEMENT PROJECT GRAPH PK (person1, knows11)
+           CALL weakly_connected_component(PK)
+           RETURN group_id, count(*) AS size ORDER BY size LIMIT 5
+---- 1
+0|41
+

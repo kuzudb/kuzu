@@ -37,7 +37,7 @@ static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog, Tran
     return exportData;
 }
 
-FileTypeInfo getFileType(std::unordered_map<std::string, common::Value>& options) {
+FileTypeInfo getFileType(case_insensitive_map_t<common::Value>& options) {
     auto fileTypeInfo = FileTypeInfo{FileType::CSV, "CSV"};
     if (options.find("FORMAT") != options.end()) {
         auto value = options.at("FORMAT");

@@ -1,5 +1,6 @@
 #include "function/gds/output_writer.h"
 
+#include "common/exception/interrupt.h"
 #include "function/gds/gds_frontier.h"
 #include "main/client_context.h"
 
@@ -9,27 +10,12 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace function {
 
-SPOutputs::SPOutputs(common::table_id_map_t<common::offset_t> numNodesMap, nodeID_t sourceNodeID,
-    storage::MemoryManager* mm)
-    : RJOutputs(sourceNodeID) {
-    pathLengths = std::make_shared<PathLengths>(numNodesMap, mm);
-}
-
 void PathsOutputs::beginWritingOutputsForDstNodesInTable(common::table_id_t tableID) {
     pathLengths->pinCurFrontierTableID(tableID);
-    bfsGraph.pinNodeTable(tableID);
+    bfsGraph->pinTableID(tableID);
 }
 
-RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-    processor::NodeOffsetMaskMap* outputNodeMask)
-    : context{context}, rjOutputs{rjOutputs}, outputNodeMask{outputNodeMask} {
-    auto mm = context->getMemoryManager();
-    srcNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm);
-    dstNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm);
-    srcNodeIDVector->setValue<nodeID_t>(0, rjOutputs->sourceNodeID);
-}
-
-std::unique_ptr<common::ValueVector> RJOutputWriter::createVector(const LogicalType& type,
+std::unique_ptr<common::ValueVector> GDSOutputWriter::createVector(const LogicalType& type,
     storage::MemoryManager* mm) {
     auto vector = std::make_unique<ValueVector>(type.copy(), mm);
     vector->state = DataChunkState::getSingleValueDataChunkState();
@@ -37,11 +23,18 @@ std::unique_ptr<common::ValueVector> RJOutputWriter::createVector(const LogicalT
     return vector;
 }
 
-void RJOutputWriter::beginWritingForDstNodesInTable(common::table_id_t tableID) {
+RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
+    processor::NodeOffsetMaskMap* outputNodeMask)
+    : GDSOutputWriter{context, outputNodeMask}, rjOutputs{rjOutputs} {
+    auto mm = context->getMemoryManager();
+    srcNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm);
+    dstNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm);
+    srcNodeIDVector->setValue<nodeID_t>(0, rjOutputs->sourceNodeID);
+}
+
+void RJOutputWriter::pinTableID(common::table_id_t tableID) {
+    GDSOutputWriter::pinTableID(tableID);
     rjOutputs->beginWritingOutputsForDstNodesInTable(tableID);
-    if (outputNodeMask != nullptr) {
-        outputNodeMask->pin(tableID);
-    }
 }
 
 bool RJOutputWriter::skip(common::nodeID_t dstNodeID) const {
@@ -87,7 +80,7 @@ static ParentList* getTop(const std::vector<ParentList*>& path) {
 void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
     GDSOutputCounter* counter) {
     auto output = rjOutputs->ptrCast<PathsOutputs>();
-    auto& bfsGraph = output->bfsGraph;
+    auto& bfsGraph = *output->bfsGraph;
     auto sourceNodeID = output->sourceNodeID;
     dstNodeIDVector->setValue<common::nodeID_t>(0, dstNodeID);
     auto firstParent = findFirstParent(dstNodeID.offset, bfsGraph);
@@ -114,6 +107,9 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
     if (!info.hasNodeMask() && info.semantic == common::PathSemantic::WALK) {
         // Fast path when there is no node predicate or semantic check
         while (!curPath.empty()) {
+            if (context->interrupted()) {
+                throw InterruptException{};
+            }
             auto top = curPath[curPath.size() - 1];
             auto topNodeID = top->getNodeID();
             if (top->getIter() == 1) {
@@ -150,6 +146,9 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
         return;
     }
     while (!curPath.empty()) {
+        if (context->interrupted()) {
+            throw InterruptException{};
+        }
         if (getTop(curPath)->getIter() == 1) {
             writePath(curPath);
             fTable.append(vectors);

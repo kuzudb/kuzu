@@ -146,7 +146,7 @@ int main(int argc, char* argv[]) {
     }
     pathToHistory += "history.txt";
     try {
-        std::make_unique<LocalFileSystem>()->openFile(pathToHistory,
+        std::make_unique<LocalFileSystem>("")->openFile(pathToHistory,
             FileFlags::CREATE_IF_NOT_EXISTS | FileFlags::WRITE | FileFlags::READ_ONLY);
     } catch (Exception& e) {
         std::cerr << "Invalid path to directory for history file" << '\n';

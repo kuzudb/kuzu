@@ -71,19 +71,28 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
         auto bindData = data.bindData->constPtrCast<QueryFTSBindData>();
         auto numDocs = bindData->entry.getNumDocs();
         auto avgDocLen = bindData->entry.getAvgDocLen();
-        auto query = common::stringFormat("PROJECT GRAPH PK (`{}`, `{}`, `{}`) "
-                                          "UNWIND tokenize('{}') AS tk "
-                                          "WITH collect(stem(tk, '{}')) AS keywords "
-                                          "MATCH (a:`{}`) "
-                                          "WHERE list_contains(keywords, a.term) "
-                                          "CALL QFTS(PK, a, {}, {}, cast({} as UINT64), {}) "
-                                          "MATCH (p:`{}`) "
-                                          "WHERE _node.docID = offset(id(p)) "
-                                          "RETURN p, score",
+        auto query = common::stringFormat("UNWIND tokenize('{}') AS tk RETURN COUNT(DISTINCT tk);",
+            bindData->query);
+        auto numTermsInQuery = data.context->clientContext
+                                   ->queryInternal(query, "" /* encodedJoin */,
+                                       false /* enumerateAllPlans */, std::nullopt /* queryID */)
+                                   ->getNext()
+                                   ->getValue(0)
+                                   ->toString();
+        query = common::stringFormat("PROJECT GRAPH PK (`{}`, `{}`, `{}`) "
+                                     "UNWIND tokenize('{}') AS tk "
+                                     "WITH collect(stem(tk, '{}')) AS keywords "
+                                     "MATCH (a:`{}`) "
+                                     "WHERE list_contains(keywords, a.term) "
+                                     "CALL QFTS(PK, a, {}, {}, cast({} as UINT64), {}, {}, {}) "
+                                     "MATCH (p:`{}`) "
+                                     "WHERE _node.docID = offset(id(p)) "
+                                     "RETURN p, score",
             bindData->getTermsTableName(), bindData->getDocsTableName(),
             bindData->getAppearsInTableName(), bindData->query,
             bindData->entry.getFTSConfig().stemmer, bindData->getTermsTableName(),
-            bindData->config.k, bindData->config.b, numDocs, avgDocLen, bindData->tableName);
+            bindData->config.k, bindData->config.b, numDocs, avgDocLen, numTermsInQuery,
+            bindData->config.isConjunctive ? "true" : "false", bindData->tableName);
         localState->result = data.context->clientContext->queryInternal(query, "", false,
             std::nullopt /* queryID */);
     }

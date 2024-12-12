@@ -8,9 +8,9 @@ namespace processor {
 
 struct ExportDBPrintInfo final : OPPrintInfo {
     std::string filePath;
-    std::unordered_map<std::string, common::Value> options;
+    common::case_insensitive_map_t<common::Value> options;
 
-    ExportDBPrintInfo(std::string filePath, std::unordered_map<std::string, common::Value> options)
+    ExportDBPrintInfo(std::string filePath, common::case_insensitive_map_t<common::Value> options)
         : filePath{std::move(filePath)}, options{std::move(options)} {}
 
     std::string toString() const override;

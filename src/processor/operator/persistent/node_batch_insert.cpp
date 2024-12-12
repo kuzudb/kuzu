@@ -47,21 +47,17 @@ void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
 }
 
 void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
+    const auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
+    const auto numColumns = nodeInfo->columnEvaluators.size();
 
     const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
-    localState = std::make_unique<NodeBatchInsertLocalState>();
+    localState = std::make_unique<NodeBatchInsertLocalState>(
+        std::span{nodeInfo->columnTypes.begin(), nodeInfo->outputDataColumns.size()});
     const auto nodeLocalState = localState->ptrCast<NodeBatchInsertLocalState>();
     KU_ASSERT(nodeSharedState->globalIndexBuilder);
     nodeLocalState->localIndexBuilder = nodeSharedState->globalIndexBuilder->clone();
+    nodeLocalState->errorHandler = createErrorHandler(context);
 
-    auto* nodeTable = ku_dynamic_cast<NodeTable*>(sharedState->table);
-    nodeLocalState->errorHandler =
-        NodeBatchInsertErrorHandler{context, nodeSharedState->pkType.getLogicalTypeID(), nodeTable,
-            context->clientContext->getWarningContext().getIgnoreErrorsOption(),
-            sharedState->numErroredRows, &sharedState->erroredRowMutex};
-
-    const auto numColumns = nodeInfo->columnEvaluators.size();
     nodeLocalState->columnVectors.resize(numColumns);
 
     for (auto i = 0u; i < numColumns; ++i) {
@@ -79,15 +75,15 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
 void NodeBatchInsert::executeInternal(ExecutionContext* context) {
     std::optional<ProducerToken> token;
     auto nodeLocalState = localState->ptrCast<NodeBatchInsertLocalState>();
-    auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
+    const auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
     if (nodeLocalState->localIndexBuilder) {
         token = nodeLocalState->localIndexBuilder->getProducerToken();
     }
 
     while (children[0]->getNextTuple(context)) {
-        auto originalSelVector = nodeLocalState->columnState->getSelVectorShared();
+        const auto originalSelVector = nodeLocalState->columnState->getSelVectorShared();
         // Evaluate expressions if needed.
-        auto numTuples = nodeLocalState->columnState->getSelVector().getSelSize();
+        const auto numTuples = nodeLocalState->columnState->getSelVector().getSelSize();
         for (auto i = 0u; i < nodeInfo->evaluateTypes.size(); ++i) {
             switch (nodeInfo->evaluateTypes[i]) {
             case ColumnEvaluateType::DEFAULT: {
@@ -119,6 +115,7 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
         nodeLocalState->localIndexBuilder->finishedProducing(nodeLocalState->errorHandler.value());
         nodeLocalState->errorHandler->flushStoredErrors();
     }
+    sharedState->table->cast<NodeTable>().mergeStats(nodeLocalState->stats);
 }
 
 void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction,
@@ -136,7 +133,17 @@ void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction,
                 nodeLocalState->localIndexBuilder, mm);
         }
     }
+    const auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
+    nodeLocalState->stats.update(nodeLocalState->columnVectors, nodeInfo->outputDataColumns.size());
     sharedState->incrementNumRows(numAppendedTuples);
+}
+
+NodeBatchInsertErrorHandler NodeBatchInsert::createErrorHandler(ExecutionContext* context) {
+    const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
+    auto* nodeTable = ku_dynamic_cast<NodeTable*>(sharedState->table);
+    return NodeBatchInsertErrorHandler{context, nodeSharedState->pkType.getLogicalTypeID(),
+        nodeTable, context->clientContext->getWarningContext().getIgnoreErrorsOption(),
+        sharedState->numErroredRows, &sharedState->erroredRowMutex};
 }
 
 void NodeBatchInsert::clearToIndex(MemoryManager* mm, std::unique_ptr<ChunkedNodeGroup>& nodeGroup,
@@ -154,8 +161,16 @@ void NodeBatchInsert::clearToIndex(MemoryManager* mm, std::unique_ptr<ChunkedNod
 void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transaction,
     std::unique_ptr<ChunkedNodeGroup>& nodeGroup, std::optional<IndexBuilder>& indexBuilder,
     MemoryManager* mm) const {
-    const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
     const auto nodeLocalState = localState->ptrCast<NodeBatchInsertLocalState>();
+    KU_ASSERT(nodeLocalState->errorHandler.has_value());
+    writeAndResetNodeGroup(transaction, nodeGroup, indexBuilder, mm,
+        nodeLocalState->errorHandler.value());
+}
+
+void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transaction,
+    std::unique_ptr<ChunkedNodeGroup>& nodeGroup, std::optional<IndexBuilder>& indexBuilder,
+    MemoryManager* mm, NodeBatchInsertErrorHandler& errorHandler) const {
+    const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
     const auto nodeTable = ku_dynamic_cast<NodeTable*>(sharedState->table);
     auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
 
@@ -167,13 +182,12 @@ void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transacti
     nodeGroup->merge(sliceToWriteToDisk, nodeInfo->outputDataColumns);
 
     if (indexBuilder) {
-        KU_ASSERT(nodeLocalState->errorHandler.has_value());
         std::vector<ColumnChunkData*> warningChunkData;
         for (const auto warningDataColumn : nodeInfo->warningDataColumns) {
             warningChunkData.push_back(&nodeGroup->getColumnChunk(warningDataColumn).getData());
         }
         indexBuilder->insert(nodeGroup->getColumnChunk(nodeSharedState->pkColumnID).getData(),
-            warningChunkData, nodeOffset, numRowsWritten, nodeLocalState->errorHandler.value());
+            warningChunkData, nodeOffset, numRowsWritten, errorHandler);
     }
     if (numRowsWritten == nodeGroup->getNumRows()) {
         nodeGroup->resetToEmpty();
@@ -206,20 +220,19 @@ void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transa
 }
 
 void NodeBatchInsert::finalize(ExecutionContext* context) {
+    KU_ASSERT(localState == nullptr);
     const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
+    auto errorHandler = createErrorHandler(context);
     if (nodeSharedState->sharedNodeGroup) {
         while (nodeSharedState->sharedNodeGroup->getNumRows() > 0) {
             writeAndResetNodeGroup(context->clientContext->getTx(),
                 nodeSharedState->sharedNodeGroup, nodeSharedState->globalIndexBuilder,
-                context->clientContext->getMemoryManager());
+                context->clientContext->getMemoryManager(), errorHandler);
         }
     }
     if (nodeSharedState->globalIndexBuilder) {
-        auto* localNodeState = ku_dynamic_cast<NodeBatchInsertLocalState*>(localState.get());
-        KU_ASSERT(localNodeState->errorHandler.has_value());
-        nodeSharedState->globalIndexBuilder->finalize(context,
-            localNodeState->errorHandler.value());
-        localNodeState->errorHandler->flushStoredErrors();
+        nodeSharedState->globalIndexBuilder->finalize(context, errorHandler);
+        errorHandler.flushStoredErrors();
     }
 
     // we want to flush all index errors before children call finalize
