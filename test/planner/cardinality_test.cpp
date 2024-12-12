@@ -50,14 +50,14 @@ TEST_F(CardinalityTest, TestOperators) {
 
     // Limit
     {
-        auto plan = getRoot("MATCH (p1: person) RETURN p1.ID LIMIT 2");
+        auto plan = getRoot("EXPLAIN LOGICAL MATCH (p1: person) RETURN p1.ID LIMIT 2");
         EXPECT_EQ(planner::LogicalOperatorType::LIMIT, plan->getLastOperator()->getOperatorType());
         EXPECT_EQ(2, plan->getLastOperator()->getCardinality());
     }
 
     // Aggregate
     {
-        auto plan = getRoot("MATCH (p1: person) RETURN COUNT(*), MAX(p1.age)");
+        auto plan = getRoot("EXPLAIN LOGICAL MATCH (p1: person) RETURN COUNT(*), MAX(p1.age)");
         auto* aggregateOp =
             getOpWithType(plan->getLastOperator().get(), planner::LogicalOperatorType::AGGREGATE);
         ASSERT_NE(nullptr, aggregateOp);
@@ -66,7 +66,7 @@ TEST_F(CardinalityTest, TestOperators) {
 
     // Cross Product
     {
-        auto plan = getRoot("MATCH (p1: person), (p2: person) RETURN p1.ID, p2.ID");
+        auto plan = getRoot("EXPLAIN LOGICAL MATCH (p1: person), (p2: person) RETURN p1.ID, p2.ID");
         auto* productOp = getOpWithType(plan->getLastOperator().get(),
             planner::LogicalOperatorType::CROSS_PRODUCT);
         ASSERT_NE(nullptr, productOp);
@@ -85,7 +85,8 @@ TEST_F(CardinalityTest, TestOperators) {
 
     // Extend + Hash Join
     {
-        auto plan = getRoot("MATCH (p1: person)-[k:knows]->(p2: person) RETURN p1.ID, p2.ID");
+        auto plan = getRoot(
+            "EXPLAIN LOGICAL MATCH (p1: person)-[k:knows]->(p2: person) RETURN p1.ID, p2.ID");
         auto* extendOp =
             getOpWithType(plan->getLastOperator().get(), planner::LogicalOperatorType::EXTEND);
         ASSERT_NE(nullptr, extendOp);
