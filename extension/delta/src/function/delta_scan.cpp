@@ -89,8 +89,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     return output.dataChunk.state->getSelVector().getSelSize();
 }
 
-std::unique_ptr<TableFuncLocalState> initEmptyLocalState(
-    TableFunctionInitInput&, TableFuncSharedState*, storage::MemoryManager*) {
+std::unique_ptr<TableFuncLocalState> initEmptyLocalState(TableFunctionInitInput&,
+    TableFuncSharedState*, storage::MemoryManager*) {
     return std::make_unique<TableFuncLocalState>();
 }
 

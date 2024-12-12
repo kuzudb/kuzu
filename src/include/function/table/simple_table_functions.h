@@ -26,7 +26,8 @@ struct SimpleTableFuncSharedState : TableFuncSharedState {
     common::offset_t curOffset;
     std::mutex mtx;
 
-    explicit SimpleTableFuncSharedState(common::offset_t maxOffset) : maxOffset{maxOffset}, curOffset{0} {}
+    explicit SimpleTableFuncSharedState(common::offset_t maxOffset)
+        : maxOffset{maxOffset}, curOffset{0} {}
 
     KUZU_API SimpleTableFuncMorsel getMorsel();
 };
@@ -35,7 +36,8 @@ struct SimpleTableFuncBindData : TableFuncBindData {
     common::offset_t maxOffset;
 
     explicit SimpleTableFuncBindData(common::offset_t maxOffset)
-        : SimpleTableFuncBindData{std::vector<common::LogicalType>{}, std::vector<std::string>{}, maxOffset} {}
+        : SimpleTableFuncBindData{std::vector<common::LogicalType>{}, std::vector<std::string>{},
+              maxOffset} {}
     SimpleTableFuncBindData(std::vector<common::LogicalType> columnTypes,
         std::vector<std::string> returnColumnNames, common::offset_t maxOffset)
         : TableFuncBindData{std::move(columnTypes), std::move(returnColumnNames)},

@@ -36,8 +36,8 @@ static std::unique_ptr<TableFuncBindData> clearCacheBindFunc(ClientContext* cont
 
 ClearCacheFunction::ClearCacheFunction()
     : TableFunction{name, clearCacheTableFunc, clearCacheBindFunc,
-          function::SimpleTableFunction::initSharedState, function::SimpleTableFunction::initEmptyLocalState,
-          std::vector<LogicalTypeID>{}} {}
+          function::SimpleTableFunction::initSharedState,
+          function::SimpleTableFunction::initEmptyLocalState, std::vector<LogicalTypeID>{}} {}
 
 } // namespace duckdb_extension
 } // namespace kuzu

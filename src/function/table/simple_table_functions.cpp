@@ -17,7 +17,8 @@ SimpleTableFuncMorsel SimpleTableFuncSharedState::getMorsel() {
     }
 }
 
-std::unique_ptr<TableFuncSharedState> SimpleTableFunction::initSharedState(TableFunctionInitInput& input) {
+std::unique_ptr<TableFuncSharedState> SimpleTableFunction::initSharedState(
+    TableFunctionInitInput& input) {
     auto bindData = ku_dynamic_cast<SimpleTableFuncBindData*>(input.bindData);
     return std::make_unique<SimpleTableFuncSharedState>(bindData->maxOffset);
 }
