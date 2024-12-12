@@ -25,7 +25,7 @@ enum class EvaluatorType : uint8_t {
 class ExpressionEvaluator;
 using evaluator_vector_t = std::vector<std::unique_ptr<ExpressionEvaluator>>;
 
-class ExpressionEvaluator {
+class KUZU_API ExpressionEvaluator {
 public:
     explicit ExpressionEvaluator(EvaluatorType type, std::shared_ptr<binder::Expression> expression)
         : type{type}, expression{std::move(expression)} {};

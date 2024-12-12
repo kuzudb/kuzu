@@ -4,6 +4,7 @@ include_directories(
         third_party/snowball/libstemmer)
 
 add_subdirectory(src)
+add_subdirectory(test)
 
 add_library(fts_extension
         SHARED

@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include "binder/expression/expression.h"
+#include "binder/expression/literal_expression.h"
 #include "common/case_insensitive_map.h"
 #include "common/copier_config/reader_config.h"
 #include "common/types/value/value.h"
@@ -26,14 +28,16 @@ struct ExtraTableFuncBindInput {
 };
 
 struct TableFuncBindInput {
-    std::vector<common::Value> params;
+    binder::expression_vector params;
     optional_params_t optionalParams;
     std::unique_ptr<ExtraTableFuncBindInput> extraInput = nullptr;
 
     TableFuncBindInput() = default;
 
-    void addParam(common::Value value) { params.push_back(std::move(value)); }
-    const common::Value& getParam(common::idx_t idx) const { return params[idx]; }
+    void addParam(std::shared_ptr<binder::Expression> param) { params.push_back(std::move(param)); }
+    const std::shared_ptr<binder::Expression> getParam(common::idx_t idx) const {
+        return params[idx];
+    }
 };
 
 struct ExtraScanTableFuncBindInput : ExtraTableFuncBindInput {

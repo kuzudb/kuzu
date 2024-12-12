@@ -1,9 +1,12 @@
 #include "function/query_fts_index.h"
 
 #include "binder/expression/expression_util.h"
+#include "binder/expression/literal_expression.h"
+#include "binder/expression/parameter_expression.h"
 #include "catalog/catalog.h"
 #include "catalog/fts_index_catalog_entry.h"
 #include "common/exception/binder.h"
+#include "expression_evaluator/literal_evaluator.h"
 #include "fts_extension.h"
 #include "function/fts_bind_data.h"
 #include "function/fts_utils.h"
@@ -21,13 +24,14 @@ using namespace kuzu::main;
 using namespace kuzu::function;
 
 struct QueryFTSBindData final : public FTSBindData {
-    std::string query;
+    evaluator::LiteralExpressionEvaluator query;
     const FTSIndexCatalogEntry& entry;
     QueryFTSConfig config;
 
     QueryFTSBindData(std::string tableName, common::table_id_t tableID, std::string indexName,
-        std::string query, const FTSIndexCatalogEntry& entry, std::vector<LogicalType> returnTypes,
-        std::vector<std::string> returnColumnNames, QueryFTSConfig config)
+        evaluator::LiteralExpressionEvaluator query, const FTSIndexCatalogEntry& entry,
+        std::vector<LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
+        QueryFTSConfig config)
         : FTSBindData{std::move(tableName), tableID, std::move(indexName), std::move(returnTypes),
               std::move(returnColumnNames)},
           query{std::move(query)}, entry{entry}, config{std::move(config)} {}
@@ -42,14 +46,33 @@ struct QueryFTSLocalState : public TableFuncLocalState {
     uint64_t numRowsOutput = 0;
 };
 
+static evaluator::LiteralExpressionEvaluator bindParameter(
+    std::shared_ptr<binder::Expression> expression) {
+    auto value = Value::createDefaultValue(expression->dataType);
+    switch (expression->expressionType) {
+    case ExpressionType::LITERAL: {
+        value = expression->constCast<binder::LiteralExpression>().getValue();
+    } break;
+    case ExpressionType::PARAMETER: {
+        value = expression->constCast<binder::ParameterExpression>().getValue();
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
+    return evaluator::LiteralExpressionEvaluator(expression, std::move(value));
+}
+
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
-    auto indexName = input->getParam(1).toString();
-    auto& tableEntry = FTSUtils::bindTable(input->getParam(0), context, indexName,
-        FTSUtils::IndexOperation::QUERY);
-    auto query = input->getParam(2).toString();
+    // For queryFTS, the table and index name must be given at compile time while the user
+    // can give the query at runtime.
+    auto indexName = binder::ExpressionUtil::getLiteralValue<std::string>(*input->getParam(1));
+    auto& tableEntry = FTSUtils::bindTable(
+        binder::ExpressionUtil::getLiteralValue<std::string>(*input->getParam(0)), context,
+        indexName, FTSUtils::IndexOperation::QUERY);
+    auto query = bindParameter(input->getParam(2));
     FTSUtils::validateIndexExistence(*context, tableEntry.getTableID(), indexName);
     auto ftsCatalogEntry =
         context->getCatalog()->getIndex(context->getTx(), tableEntry.getTableID(), indexName);
@@ -68,11 +91,12 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
     //  we need a wrapper call function to CALL the actual GDS function.
     auto localState = data.localState->ptrCast<QueryFTSLocalState>();
     if (localState->result == nullptr) {
-        auto bindData = data.bindData->constPtrCast<QueryFTSBindData>();
-        auto numDocs = bindData->entry.getNumDocs();
-        auto avgDocLen = bindData->entry.getAvgDocLen();
+        auto bindData = data.bindData->cast<QueryFTSBindData>();
+        auto actualQuery = bindData.query.getValue().toString();
+        auto numDocs = bindData.entry.getNumDocs();
+        auto avgDocLen = bindData.entry.getAvgDocLen();
         auto query = common::stringFormat("UNWIND tokenize('{}') AS tk RETURN COUNT(DISTINCT tk);",
-            bindData->query);
+            actualQuery);
         auto numTermsInQuery = data.context->clientContext
                                    ->queryInternal(query, "" /* encodedJoin */,
                                        false /* enumerateAllPlans */, std::nullopt /* queryID */)
@@ -88,11 +112,10 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
                                      "MATCH (p:`{}`) "
                                      "WHERE _node.docID = offset(id(p)) "
                                      "RETURN p, score",
-            bindData->getTermsTableName(), bindData->getDocsTableName(),
-            bindData->getAppearsInTableName(), bindData->query,
-            bindData->entry.getFTSConfig().stemmer, bindData->getTermsTableName(),
-            bindData->config.k, bindData->config.b, numDocs, avgDocLen, numTermsInQuery,
-            bindData->config.isConjunctive ? "true" : "false", bindData->tableName);
+            bindData.getTermsTableName(), bindData.getDocsTableName(),
+            bindData.getAppearsInTableName(), actualQuery, bindData.entry.getFTSConfig().stemmer,
+            bindData.getTermsTableName(), bindData.config.k, bindData.config.b, numDocs, avgDocLen,
+            numTermsInQuery, bindData.config.isConjunctive ? "true" : "false", bindData.tableName);
         localState->result = data.context->clientContext->queryInternal(query, "", false,
             std::nullopt /* queryID */);
     }
