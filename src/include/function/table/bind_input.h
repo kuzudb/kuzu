@@ -3,12 +3,14 @@
 #include <vector>
 
 #include "binder/expression/expression.h"
-#include "binder/expression/literal_expression.h"
 #include "common/case_insensitive_map.h"
 #include "common/copier_config/reader_config.h"
 #include "common/types/value/value.h"
 
 namespace kuzu {
+namespace binder {
+class LiteralExpression;
+}
 namespace main {
 class ClientContext;
 }
@@ -34,10 +36,10 @@ struct TableFuncBindInput {
 
     TableFuncBindInput() = default;
 
-    void addParam(std::shared_ptr<binder::Expression> param) { params.push_back(std::move(param)); }
-    const std::shared_ptr<binder::Expression> getParam(common::idx_t idx) const {
-        return params[idx];
-    }
+    void addLiteralParam(common::Value value);
+    std::shared_ptr<binder::Expression> getParam(common::idx_t idx) const { return params[idx]; }
+    template<typename T>
+    T getLiteralVal(common::idx_t idx) const;
 };
 
 struct ExtraScanTableFuncBindInput : ExtraTableFuncBindInput {

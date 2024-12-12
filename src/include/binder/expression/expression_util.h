@@ -38,6 +38,8 @@ struct KUZU_API ExpressionUtil {
     static bool isEmptyList(const Expression& expression);
 
     static void validateExpressionType(const Expression& expr, common::ExpressionType expectedType);
+    static void validateExpressionType(const Expression& expr,
+        std::vector<common::ExpressionType> expectedType);
 
     // Validate data type.
     static void validateDataType(const Expression& expr, const common::LogicalType& expectedType);

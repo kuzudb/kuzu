@@ -60,7 +60,7 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     TableFuncBindInput* input) {
-    const auto tableName = input->getParam(0).getValue<std::string>();
+    const auto tableName = input->getLiteralVal<std::string>(0);
     const auto catalog = context->getCatalog();
     if (!catalog->containsTable(context->getTx(), tableName)) {
         throw BinderException{"Table " + tableName + " does not exist!"};

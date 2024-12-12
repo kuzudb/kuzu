@@ -11,6 +11,13 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace binder {
 
+static void validateParameterType(expression_vector positionalParams) {
+    for (auto& param : positionalParams) {
+        ExpressionUtil::validateExpressionType(*param,
+            {ExpressionType::LITERAL, ExpressionType::PARAMETER});
+    }
+}
+
 BoundTableFunction Binder::bindTableFunc(std::string tableFuncName,
     const parser::ParsedExpression& expr, expression_vector& columns) {
     auto entry = BuiltInFunctionsUtils::getFunctionCatalogEntry(clientContext->getTx(),
@@ -31,9 +38,7 @@ BoundTableFunction Binder::bindTableFunc(std::string tableFuncName,
         }
     }
     auto func = BuiltInFunctionsUtils::matchFunction(tableFuncName, positionalParamTypes, entry);
-    for (auto& param : positionalParams) {
-        ExpressionUtil::validateExpressionType(*param, ExpressionType::LITERAL);
-    }
+    validateParameterType(positionalParams);
     auto tableFunc = func->constPtrCast<TableFunction>();
     for (auto i = 0u; i < positionalParams.size(); ++i) {
         auto parameterTypeID = tableFunc->parameterTypeIDs[i];
