@@ -194,6 +194,43 @@ void DoublePathLengthsFrontierPair::beginNewIterationInternalNoLock() {
     nextDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();
 }
 
+KCoreFrontierPair::KCoreFrontierPair(common::table_id_map_t<common::offset_t> numNodesMap,
+    uint64_t totalNumNodes, uint64_t maxThreadsForExec, storage::MemoryManager* mm)
+    : FrontierPair(nullptr, nullptr, maxThreadsForExec), numNodesMap{numNodesMap} {
+    for (const auto& [tableID, curNumNodes] : numNodesMap) {
+        numNodesMap[tableID] = curNumNodes;
+        auto curMemBuffer = mm->allocateBuffer(false, curNumNodes * sizeof(std::atomic<uint64_t>));
+        std::atomic<uint64_t>* curMemBufferPtr =
+            reinterpret_cast<std::atomic<uint64_t>*>(curMemBuffer.get()->getData());
+        // Cast a unique number to each node
+        for (uint64_t i = 0; i < curNumNodes; ++i) {
+            curMemBufferPtr[i].store(0, std::memory_order_relaxed);
+        }
+        curVertexValues.insert({tableID, std::move(curMemBuffer)});
+    }
+    curFrontier = std::make_shared<KCoreFrontier>(numNodesMap, mm, true);
+    nextFrontier = std::make_shared<KCoreFrontier>(numNodesMap, mm, false);
+}
+
+void KCoreFrontierPair::beginFrontierComputeBetweenTables(table_id_t curTableID,
+    table_id_t nextTableID) {
+    morselDispatcher.init(curTableID, curFrontier->getNumNodes(curTableID));
+}
+
+void KCoreFrontierPair::beginNewIterationInternalNoLock() {
+    std::swap(curFrontier, nextFrontier);
+    updateSmallestDegree();
+    curFrontier->ptrCast<KCoreFrontier>()->incrementCurIter();
+    nextFrontier->ptrCast<KCoreFrontier>()->incrementCurIter();
+    for (const auto& [tableID, curNumNodes] : numNodesMap) {
+        for (uint64_t i = 0; i < curNumNodes; ++i) {
+            common::nodeID_t curNode;
+            curNode.offset = i;
+            curNode.tableID = tableID;
+        }
+    }
+}
+
 static constexpr uint64_t EARLY_TERM_NUM_NODES_THRESHOLD = 100;
 
 bool SPEdgeCompute::terminate(processor::NodeOffsetMaskMap& maskMap) {

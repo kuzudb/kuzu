@@ -120,12 +120,14 @@ struct KCoreInitEdgeCompute : public EdgeCompute {
 
     explicit KCoreInitEdgeCompute(KCoreFrontierPair* frontierPair) : frontierPair{frontierPair} {}
 
-    std::vector<common::nodeID_t> edgeCompute(common::nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk, bool) override {
-        std::cout << "init edge compute is ran" << std::endl;
+    std::vector<common::nodeID_t> edgeCompute(common::nodeID_t boundNodeID,
+        graph::NbrScanState::Chunk& chunk, bool) override {
         std::vector<common::nodeID_t> result;
         uint64_t nbrAmount = 0;
-        chunk.forEach([&](auto nbrNodeID, auto) {nbrAmount++;});
-
+        chunk.forEach([&](auto nbrNodeID, auto) {
+            nbrAmount++;
+            result.push_back(nbrNodeID);
+        });
         frontierPair->addToVertexDegree(boundNodeID, nbrAmount);
         return result;
     }
@@ -140,7 +142,8 @@ struct KCoreEdgeCompute : public EdgeCompute {
 
     explicit KCoreEdgeCompute(KCoreFrontierPair* frontierPair) : frontierPair{frontierPair} {}
 
-    std::vector<common::nodeID_t> edgeCompute(common::nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk, bool) override {
+    std::vector<common::nodeID_t> edgeCompute(common::nodeID_t boundNodeID,
+        graph::NbrScanState::Chunk& chunk, bool) override {
         std::vector<common::nodeID_t> result;
         uint64_t vertexDegree = frontierPair->getVertexValue(boundNodeID.offset);
         uint64_t smallestDegree = frontierPair->getSmallestDegree();
@@ -150,7 +153,7 @@ struct KCoreEdgeCompute : public EdgeCompute {
                     frontierPair->removeFromVertex(nbrNodeID);
                     result.push_back(nbrNodeID);
                 }
-            }); 
+            });
         }
         return result;
     }
@@ -186,6 +189,7 @@ public:
     std::unique_ptr<KCoreOutputWriter> copy() const {
         return std::make_unique<KCoreOutputWriter>(context, outputNodeMask, frontierPair);
     }
+
 private:
     std::unique_ptr<ValueVector> nodeIDVector;
     std::unique_ptr<ValueVector> kValueVector;
@@ -286,19 +290,16 @@ public:
         frontierPair->setActiveNodesForNextIter();
         frontierPair->getNextSparseFrontier().disable();
         auto edgeCompute = std::make_unique<KCoreEdgeCompute>(frontierPair.get());
-        auto initEdgeCompute = std::make_unique<KCoreInitEdgeCompute>(frontierPair.get());
-        auto writer = std::make_unique<KCoreOutputWriter>(clientContext, sharedState->getOutputNodeMaskMap(), frontierPair.get());
-        auto computeState = GDSComputeState(std::move(frontierPair), std::move(edgeCompute), sharedState->getOutputNodeMaskMap());
-        initKCore(context, computeState, graph, std::move(initEdgeCompute));
-        std::cout << "after init" << std::endl;
-        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH, 2);
-        std::cout << "after frontier" << std::endl;
-        auto vertexCompute = std::make_unique<KCoreVertexCompute>(clientContext->getMemoryManager(), sharedState.get(), std::move(writer));
-        std::cout << "checkpoint 3" << std::endl;
-        GDSUtils::runVertexCompute(context, sharedState->graph.get(), *vertexCompute);
-        std::cout << "after run vertex compute" << std::endl;
+        auto computeState =
+            RJCompState(std::move(frontierPair), std::move(edgeCompute), nullptr, nullptr);
+        GDSUtils::initKCore(context, computeState, graph, std::move(initEdgeCompute));
+        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH,
+            2);
+        auto vertexCompute = std::make_unique<KCoreVertexCompute>(clientContext->getMemoryManager(),
+            sharedState.get(), computeState);
+        GDSUtils::runVertexComputeIteration(context, sharedState->graph.get(), *vertexCompute);
         sharedState->mergeLocalTables();
-    } 
+    }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
         return std::make_unique<KCoreDecomposition>(*this);
