@@ -1,4 +1,4 @@
-#include "function/table/call_functions.h"
+#include "function/table/simple_table_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;
@@ -8,7 +8,7 @@ namespace function {
 
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto sharedState = input.sharedState->ptrCast<CallFuncSharedState>();
+    auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
     auto& outputVector = dataChunk.getValueVectorMutable(0);
     if (!sharedState->getMorsel().hasMoreToOutput()) {
         return 0;
@@ -23,7 +23,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext*, ScanTableFunc
     std::vector<LogicalType> returnTypes;
     returnColumnNames.emplace_back("version");
     returnTypes.emplace_back(LogicalType::STRING());
-    return std::make_unique<CallTableFuncBindData>(std::move(returnTypes),
+    return std::make_unique<SimpleTableFuncBindData>(std::move(returnTypes),
         std::move(returnColumnNames), 1 /* one row result */);
 }
 

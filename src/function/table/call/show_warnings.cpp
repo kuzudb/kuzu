@@ -1,4 +1,4 @@
-#include "function/table/call_functions.h"
+#include "function/table/simple_table_functions.h"
 #include "processor/warning_context.h"
 
 using namespace kuzu::common;
@@ -6,13 +6,13 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-struct ShowWarningsBindData : public CallTableFuncBindData {
+struct ShowWarningsBindData : public SimpleTableFuncBindData {
     std::vector<processor::WarningInfo> warnings;
 
     ShowWarningsBindData(std::vector<processor::WarningInfo> warnings,
         std::vector<LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
         offset_t maxOffset)
-        : CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
+        : SimpleTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
           warnings{std::move(warnings)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
@@ -23,7 +23,7 @@ struct ShowWarningsBindData : public CallTableFuncBindData {
 
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto sharedState = input.sharedState->ptrCast<CallFuncSharedState>();
+    auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
     auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;

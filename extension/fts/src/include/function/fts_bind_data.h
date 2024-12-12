@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace fts_extension {
 
-struct FTSBindData : public function::CallTableFuncBindData {
+struct FTSBindData : public function::SimpleTableFuncBindData {
     std::string tableName;
     common::table_id_t tableID;
     std::string indexName;
@@ -15,7 +15,7 @@ struct FTSBindData : public function::CallTableFuncBindData {
     FTSBindData(std::string tableName, common::table_id_t tableID, std::string indexName,
         std::vector<common::LogicalType> returnTypes = {},
         std::vector<std::string> returnColumnNames = {})
-        : function::CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames),
+        : function::SimpleTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames),
               1 /* maxOffset */},
           tableName{std::move(tableName)}, tableID{tableID}, indexName{std::move(indexName)} {}
 

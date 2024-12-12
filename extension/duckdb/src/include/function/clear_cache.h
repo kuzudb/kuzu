@@ -1,20 +1,20 @@
 #pragma once
 
 #include "common/types/types.h"
-#include "function/table/call_functions.h"
+#include "function/table/simple_table_functions.h"
 #include "function/table_functions.h"
 #include "main/database_manager.h"
 
 namespace kuzu {
 namespace duckdb_extension {
 
-struct ClearCacheBindData : public function::CallTableFuncBindData {
+struct ClearCacheBindData : public function::SimpleTableFuncBindData {
     main::DatabaseManager* databaseManager;
 
     ClearCacheBindData(main::DatabaseManager* databaseManager,
         std::vector<common::LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
         common::offset_t maxOffset)
-        : CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
+        : SimpleTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
           databaseManager{databaseManager} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {

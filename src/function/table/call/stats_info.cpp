@@ -1,6 +1,6 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/exception/binder.h"
-#include "function/table/call_functions.h"
+#include "function/table/simple_table_functions.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
 
@@ -16,14 +16,14 @@ static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInpu
     return std::make_unique<TableFuncLocalState>();
 }
 
-struct StatsInfoBindData final : CallTableFuncBindData {
+struct StatsInfoBindData final : SimpleTableFuncBindData {
     TableCatalogEntry* tableEntry;
     storage::Table* table;
     ClientContext* context;
 
     StatsInfoBindData(std::vector<LogicalType> columnTypes, std::vector<std::string> columnNames,
         TableCatalogEntry* tableEntry, storage::Table* table, ClientContext* context)
-        : CallTableFuncBindData{std::move(columnTypes), std::move(columnNames), 1 /*maxOffset*/},
+        : SimpleTableFuncBindData{std::move(columnTypes), std::move(columnNames), 1 /*maxOffset*/},
           tableEntry{tableEntry}, table{table}, context{context} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
@@ -35,7 +35,7 @@ struct StatsInfoBindData final : CallTableFuncBindData {
 static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     const auto& dataChunk = output.dataChunk;
     KU_ASSERT(dataChunk.state->getSelVector().isUnfiltered());
-    const auto morsel = input.sharedState->ptrCast<CallFuncSharedState>()->getMorsel();
+    const auto morsel = input.sharedState->ptrCast<SimpleTableFuncSharedState>()->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }

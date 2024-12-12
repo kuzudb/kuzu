@@ -1,4 +1,4 @@
-#include "function/table/call_functions.h"
+#include "function/table/simple_table_functions.h"
 #include "processor/execution_context.h"
 #include "processor/warning_context.h"
 
@@ -14,7 +14,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& /*outp
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
     ScanTableFuncBindInput*) {
-    return std::make_unique<StandaloneTableFuncBindData>();
+    return std::make_unique<SimpleTableFuncBindData>(0);
 }
 
 function_set ClearWarningsFunction::getFunctionSet() {

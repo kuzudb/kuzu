@@ -19,11 +19,15 @@ struct TableFuncBindData {
     // the last {numWarningDataColumns} columns are for temporary internal use
     common::column_id_t numWarningDataColumns;
 
-    TableFuncBindData() : numWarningDataColumns{common::INVALID_COLUMN_ID} {}
+    TableFuncBindData() : numWarningDataColumns{0} {}
     TableFuncBindData(std::vector<common::LogicalType> columnTypes,
-        std::vector<std::string> columnNames, common::column_id_t numWarningDataColumns = 0)
+        std::vector<std::string> columnNames)
         : columnTypes{std::move(columnTypes)}, columnNames{std::move(columnNames)},
-          numWarningDataColumns(numWarningDataColumns) {}
+          numWarningDataColumns(0) {}
+    TableFuncBindData(std::vector<common::LogicalType> columnTypes,
+        std::vector<std::string> columnNames, common::column_id_t numWarningDataColumns)
+        : columnTypes{std::move(columnTypes)}, columnNames{std::move(columnNames)},
+          numWarningDataColumns{numWarningDataColumns} {}
     TableFuncBindData(const TableFuncBindData& other)
         : columnTypes{common::LogicalType::copy(other.columnTypes)}, columnNames{other.columnNames},
           numWarningDataColumns(other.numWarningDataColumns), columnSkips{other.columnSkips},

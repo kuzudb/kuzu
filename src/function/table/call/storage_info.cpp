@@ -5,7 +5,7 @@
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "function/table/bind_input.h"
-#include "function/table/call_functions.h"
+#include "function/table/simple_table_functions.h"
 #include "storage/storage_manager.h"
 #include "storage/store/list_chunk_data.h"
 #include "storage/store/list_column.h"
@@ -67,14 +67,14 @@ static void collectColumns(Column* column, std::vector<Column*>& result) {
     }
 }
 
-struct StorageInfoBindData final : public CallTableFuncBindData {
+struct StorageInfoBindData final : public SimpleTableFuncBindData {
     TableCatalogEntry* tableEntry;
     storage::Table* table;
     ClientContext* context;
 
     StorageInfoBindData(std::vector<LogicalType> columnTypes, std::vector<std::string> columnNames,
         TableCatalogEntry* tableEntry, storage::Table* table, ClientContext* context)
-        : CallTableFuncBindData{std::move(columnTypes), columnNames, 1 /*maxOffset*/},
+        : SimpleTableFuncBindData{std::move(columnTypes), columnNames, 1 /*maxOffset*/},
           tableEntry{tableEntry}, table{table}, context{context} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() const override {
@@ -263,7 +263,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
             localState->currChunkIdx++;
             return numValuesToOutput;
         }
-        auto morsel = input.sharedState->ptrCast<CallFuncSharedState>()->getMorsel();
+        auto morsel = input.sharedState->ptrCast<SimpleTableFuncSharedState>()->getMorsel();
         if (!morsel.hasMoreToOutput()) {
             return 0;
         }
