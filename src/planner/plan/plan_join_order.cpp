@@ -139,6 +139,7 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraph(const Que
         auto plan = JoinPlanSolver(this).solve(joinTree);
         std::vector<std::unique_ptr<LogicalPlan>> result;
         result.push_back(plan.shallowCopy());
+        cardinalityEstimator.clearPerQueryGraphStats();
         return result;
     }
     planBaseTableScans(info);
@@ -152,6 +153,7 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraph(const Que
             appendEmptyResult(*plan);
         }
     }
+    cardinalityEstimator.clearPerQueryGraphStats();
     return plans;
 }
 
@@ -260,14 +262,13 @@ void Planner::planNodeIDScan(uint32_t nodePos, const QueryGraphPlanningInfo& inf
     auto newSubgraph = context.getEmptySubqueryGraph();
     newSubgraph.addQueryNode(nodePos);
     auto plan = std::make_unique<LogicalPlan>();
-    appendScanNodeTable(node->getInternalID(), node->getTableIDs(), {}, *plan);
+
     // NodeID will be a join condition with outer plan so very likely we will apply a semi mask
     // later in the optimization stage. So we can assume the cardinality will not exceed outer
     // plan cardinality.
-    if (plan->getCardinality() > info.corrExprsCard) {
-        plan->getLastOperator()->setCardinality(info.corrExprsCard);
-        cardinalityEstimator.addNodeIDDomOverride(*node->getInternalID(), info.corrExprsCard);
-    }
+    cardinalityEstimator.addPerQueryGraphNodeIDDom(*node->getInternalID(), info.corrExprsCard);
+
+    appendScanNodeTable(node->getInternalID(), node->getTableIDs(), {}, *plan);
     context.addPlan(newSubgraph, std::move(plan));
 }
 

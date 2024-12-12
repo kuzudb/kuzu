@@ -23,7 +23,7 @@ static cardinality_t atLeastOne(uint64_t x) {
 
 void CardinalityEstimator::initNodeIDDom(const Transaction* transaction,
     const QueryGraph& queryGraph) {
-    nodeIDName2domOverride.clear();
+    perQueryGraphNodeIDName2dom.clear();
     for (uint64_t i = 0u; i < queryGraph.getNumQueryNodes(); ++i) {
         auto node = queryGraph.getQueryNode(i).get();
         addNodeIDDomAndStats(transaction, *node->getInternalID(), node->getTableIDs());
@@ -55,20 +55,25 @@ void CardinalityEstimator::addNodeIDDomAndStats(const Transaction* transaction,
     }
 }
 
-void CardinalityEstimator::addNodeIDDomOverride(const binder::Expression& nodeID,
+void CardinalityEstimator::addPerQueryGraphNodeIDDom(const binder::Expression& nodeID,
     cardinality_t numNodes) {
     const auto key = nodeID.getUniqueName();
-    if (!nodeIDName2domOverride.contains(key)) {
-        nodeIDName2domOverride.insert({key, numNodes});
+    if (!perQueryGraphNodeIDName2dom.contains(key)) {
+        perQueryGraphNodeIDName2dom.insert({key, numNodes});
     }
 }
 
+void CardinalityEstimator::clearPerQueryGraphStats() {
+    perQueryGraphNodeIDName2dom.clear();
+}
+
 cardinality_t CardinalityEstimator::getNodeIDDom(const std::string& nodeIDName) const {
-    if (nodeIDName2domOverride.contains(nodeIDName)) {
-        return nodeIDName2domOverride.at(nodeIDName);
-    }
     KU_ASSERT(nodeIDName2dom.contains(nodeIDName));
-    return nodeIDName2dom.at(nodeIDName);
+    cardinality_t dom = nodeIDName2dom.at(nodeIDName);
+    if (perQueryGraphNodeIDName2dom.contains(nodeIDName)) {
+        dom = std::min(dom, perQueryGraphNodeIDName2dom.at(nodeIDName));
+    }
+    return dom;
 }
 
 uint64_t CardinalityEstimator::estimateScanNode(const LogicalOperator& op) const {
