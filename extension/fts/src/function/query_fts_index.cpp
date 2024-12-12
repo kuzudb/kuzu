@@ -47,8 +47,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     auto indexName = input->getParam(1).toString();
-    auto& tableEntry =
-        FTSUtils::bindTable(input->getParam(0), context, indexName, FTSUtils::IndexOperation::QUERY);
+    auto& tableEntry = FTSUtils::bindTable(input->getParam(0), context, indexName,
+        FTSUtils::IndexOperation::QUERY);
     auto query = input->getParam(2).toString();
     FTSUtils::validateIndexExistence(*context, tableEntry.getTableID(), indexName);
     auto ftsCatalogEntry =

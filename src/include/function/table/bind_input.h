@@ -33,9 +33,7 @@ struct TableFuncBindInput {
     TableFuncBindInput() = default;
 
     void addParam(common::Value value) { params.push_back(std::move(value)); }
-    const common::Value& getParam(common::idx_t idx) const {
-        return params[idx];
-    }
+    const common::Value& getParam(common::idx_t idx) const { return params[idx]; }
 };
 
 struct ExtraScanTableFuncBindInput : ExtraTableFuncBindInput {

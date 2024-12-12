@@ -62,8 +62,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     TableFuncBindInput* input) {
     FTSUtils::validateAutoTrx(*context, CreateFTSFunction::name);
     auto indexName = input->getParam(1).toString();
-    auto& nodeTableEntry =
-        FTSUtils::bindTable(input->getParam(0), context, indexName, FTSUtils::IndexOperation::CREATE);
+    auto& nodeTableEntry = FTSUtils::bindTable(input->getParam(0), context, indexName,
+        FTSUtils::IndexOperation::CREATE);
     auto properties = bindProperties(nodeTableEntry, input->getParam(2));
     validateIndexNotExist(*context, nodeTableEntry.getTableID(), indexName);
     auto createFTSConfig = FTSConfig{input->optionalParams};

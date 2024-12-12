@@ -147,8 +147,7 @@ static void bindColumnsFromFile(const ExtraScanTableFuncBindInput* bindInput, ui
     SharedFileErrorHandler sharedErrorHandler{fileIdx, nullptr};
     // We don't want to cache CSV errors encountered during sniffing, they will be re-encountered
     // when actually parsing
-    LocalFileErrorHandler errorHandler{&sharedErrorHandler, csvOption.ignoreErrors,
-        context, false};
+    LocalFileErrorHandler errorHandler{&sharedErrorHandler, csvOption.ignoreErrors, context, false};
     auto csvReader = SerialCSVReader(bindInput->config.filePaths[fileIdx], fileIdx,
         csvOption.copy(), columnInfo.copy(), context, &errorHandler, bindInput);
     sharedErrorHandler.setPopulateErrorFunc(
@@ -169,7 +168,8 @@ void SerialCSVScan::bindColumns(const ExtraScanTableFuncBindInput* bindInput,
     std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes,
     DialectOption& detectedDialect, bool& detectedHeader, main::ClientContext* context) {
     KU_ASSERT(bindInput->config.getNumFiles() > 0);
-    bindColumnsFromFile(bindInput, 0, columnNames, columnTypes, detectedDialect, detectedHeader, context);
+    bindColumnsFromFile(bindInput, 0, columnNames, columnTypes, detectedDialect, detectedHeader,
+        context);
     for (auto i = 1u; i < bindInput->config.getNumFiles(); ++i) {
         std::vector<std::string> tmpColumnNames;
         std::vector<LogicalType> tmpColumnTypes;
@@ -220,8 +220,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         resultColumnNames, resultColumnTypes, scanInput->config);
 
     return std::make_unique<ScanBindData>(std::move(resultColumnTypes),
-        std::move(resultColumnNames), scanInput->config.copy(), context,
-        numWarningDataColumns);
+        std::move(resultColumnNames), scanInput->config.copy(), context, numWarningDataColumns);
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitInput& input) {

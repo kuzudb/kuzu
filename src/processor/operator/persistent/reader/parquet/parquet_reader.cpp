@@ -635,7 +635,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 }
 
 static void bindColumns(const ExtraScanTableFuncBindInput* bindInput, uint32_t fileIdx,
-    std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes, main::ClientContext* context) {
+    std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes,
+    main::ClientContext* context) {
     auto reader = ParquetReader(bindInput->config.filePaths[fileIdx], {}, context);
     auto state = std::make_unique<processor::ParquetReaderScanState>();
     reader.initializeScan(*state, std::vector<uint64_t>{}, context->getVFSUnsafe());
@@ -646,7 +647,8 @@ static void bindColumns(const ExtraScanTableFuncBindInput* bindInput, uint32_t f
 }
 
 static void bindColumns(const ExtraScanTableFuncBindInput* bindInput,
-    std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes, main::ClientContext* context) {
+    std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes,
+    main::ClientContext* context) {
     KU_ASSERT(bindInput->config.getNumFiles() > 0);
     bindColumns(bindInput, 0 /* fileIdx */, columnNames, columnTypes, context);
     for (auto i = 1u; i < bindInput->config.getNumFiles(); ++i) {
