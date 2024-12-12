@@ -43,13 +43,13 @@ struct QueryFTSLocalState : public TableFuncLocalState {
 };
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
-    ScanTableFuncBindInput* input) {
+    TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
-    auto indexName = input->inputs[1].toString();
+    auto indexName = input->getParam(1).toString();
     auto& tableEntry =
-        FTSUtils::bindTable(input->inputs[0], context, indexName, FTSUtils::IndexOperation::QUERY);
-    auto query = input->inputs[2].toString();
+        FTSUtils::bindTable(input->getParam(0), context, indexName, FTSUtils::IndexOperation::QUERY);
+    auto query = input->getParam(2).toString();
     FTSUtils::validateIndexExistence(*context, tableEntry.getTableID(), indexName);
     auto ftsCatalogEntry =
         context->getCatalog()->getIndex(context->getTx(), tableEntry.getTableID(), indexName);

@@ -634,32 +634,33 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     } while (true);
 }
 
-static void bindColumns(const ScanTableFuncBindInput* bindInput, uint32_t fileIdx,
-    std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes) {
-    auto reader = ParquetReader(bindInput->config.filePaths[fileIdx], {}, bindInput->context);
+static void bindColumns(const ExtraScanTableFuncBindInput* bindInput, uint32_t fileIdx,
+    std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes, main::ClientContext* context) {
+    auto reader = ParquetReader(bindInput->config.filePaths[fileIdx], {}, context);
     auto state = std::make_unique<processor::ParquetReaderScanState>();
-    reader.initializeScan(*state, std::vector<uint64_t>{}, bindInput->context->getVFSUnsafe());
+    reader.initializeScan(*state, std::vector<uint64_t>{}, context->getVFSUnsafe());
     for (auto i = 0u; i < reader.getNumColumns(); ++i) {
         columnNames.push_back(reader.getColumnName(i));
         columnTypes.push_back(reader.getColumnType(i).copy());
     }
 }
 
-static void bindColumns(const ScanTableFuncBindInput* bindInput,
-    std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes) {
+static void bindColumns(const ExtraScanTableFuncBindInput* bindInput,
+    std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes, main::ClientContext* context) {
     KU_ASSERT(bindInput->config.getNumFiles() > 0);
-    bindColumns(bindInput, 0 /* fileIdx */, columnNames, columnTypes);
+    bindColumns(bindInput, 0 /* fileIdx */, columnNames, columnTypes, context);
     for (auto i = 1u; i < bindInput->config.getNumFiles(); ++i) {
         std::vector<std::string> tmpColumnNames;
         std::vector<LogicalType> tmpColumnTypes;
-        bindColumns(bindInput, i, tmpColumnNames, tmpColumnTypes);
+        bindColumns(bindInput, i, tmpColumnNames, tmpColumnTypes, context);
         ReaderBindUtils::validateNumColumns(columnTypes.size(), tmpColumnTypes.size());
         ReaderBindUtils::validateColumnTypes(columnNames, columnTypes, tmpColumnTypes);
     }
 }
 
-static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-    function::ScanTableFuncBindInput* scanInput) {
+static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* context,
+    function::TableFuncBindInput* input) {
+    auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
     if (scanInput->config.options.size() > 1 ||
         (scanInput->config.options.size() == 1 &&
             !scanInput->config.options.contains(CopyConstants::IGNORE_ERRORS_OPTION_NAME))) {
@@ -667,14 +668,14 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
     }
     std::vector<std::string> detectedColumnNames;
     std::vector<common::LogicalType> detectedColumnTypes;
-    bindColumns(scanInput, detectedColumnNames, detectedColumnTypes);
+    bindColumns(scanInput, detectedColumnNames, detectedColumnTypes, context);
     if (!scanInput->expectedColumnNames.empty()) {
         ReaderBindUtils::validateNumColumns(scanInput->expectedColumnNames.size(),
             detectedColumnNames.size());
         detectedColumnNames = scanInput->expectedColumnNames;
     }
     return std::make_unique<function::ScanBindData>(std::move(detectedColumnTypes),
-        std::move(detectedColumnNames), scanInput->config.copy(), scanInput->context);
+        std::move(detectedColumnNames), scanInput->config.copy(), context);
 }
 
 static std::unique_ptr<function::TableFuncSharedState> initSharedState(

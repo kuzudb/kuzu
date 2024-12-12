@@ -8,7 +8,7 @@ namespace function {
 
 struct ScanReplacementData {
     TableFunction func;
-    ScanTableFuncBindInput bindInput;
+    TableFuncBindInput bindInput;
 };
 
 using scan_replace_func_t = std::function<std::unique_ptr<ScanReplacementData>(const std::string&)>;

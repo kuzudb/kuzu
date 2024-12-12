@@ -42,8 +42,8 @@ BoundTableFunction Binder::bindTableFunc(std::string tableFuncName,
         auto parameterTypeID = tableFunc->parameterTypeIDs[i];
         ExpressionUtil::validateDataType(*positionalParams[i], parameterTypeID);
     }
-    auto bindInput = function::ScanTableFuncBindInput();
-    bindInput.inputs = std::move(inputValues);
+    auto bindInput = TableFuncBindInput();
+    bindInput.params = std::move(inputValues);
     bindInput.optionalParams = std::move(optionalParams);
     auto bindData = tableFunc->bindFunc(clientContext, &bindInput);
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
