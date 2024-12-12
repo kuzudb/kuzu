@@ -51,8 +51,11 @@ TEST_F(CardinalityTest, TestOperators) {
     // Limit
     {
         auto plan = getRoot("EXPLAIN LOGICAL MATCH (p1: person) RETURN p1.ID LIMIT 2");
-        EXPECT_EQ(planner::LogicalOperatorType::LIMIT, plan->getLastOperator()->getOperatorType());
-        EXPECT_EQ(2, plan->getLastOperator()->getCardinality());
+        auto* limitOp =
+            getOpWithType(plan->getLastOperator().get(), planner::LogicalOperatorType::LIMIT);
+        ASSERT_NE(nullptr, limitOp);
+        EXPECT_EQ(planner::LogicalOperatorType::LIMIT, limitOp->getOperatorType());
+        EXPECT_EQ(2, limitOp->getCardinality());
     }
 
     // Aggregate
