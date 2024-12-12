@@ -16,8 +16,8 @@ struct ExecutionContext;
 
 namespace function {
 
+struct TableFuncBindInput;
 struct TableFuncBindData;
-struct ScanTableFuncBindInput;
 
 struct TableFuncSharedState {
     virtual ~TableFuncSharedState() = default;
@@ -75,7 +75,7 @@ struct TableFunctionInitInput {
 };
 
 using table_func_bind_t = std::function<std::unique_ptr<TableFuncBindData>(main::ClientContext*,
-    function::ScanTableFuncBindInput*)>;
+    function::TableFuncBindInput*)>;
 using table_func_t = std::function<common::offset_t(TableFuncInput&, TableFuncOutput&)>;
 using table_func_init_shared_t =
     std::function<std::unique_ptr<TableFuncSharedState>(TableFunctionInitInput&)>;

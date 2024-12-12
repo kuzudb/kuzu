@@ -769,7 +769,8 @@ static JsonScanFormat autoDetect(main::ClientContext* context, const std::string
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-    ScanTableFuncBindInput* scanInput) {
+    TableFuncBindInput* input) {
+    auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
     std::vector<LogicalType> columnTypes;
     std::vector<std::string> columnNames;
     JsonScanConfig scanConfig(scanInput->config.options);

@@ -15,9 +15,9 @@ using namespace kuzu::catalog;
 namespace kuzu {
 
 std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-    ScanTableFuncBindInput* input) {
+    TableFuncBindInput* input) {
     py::gil_scoped_acquire acquire;
-    py::handle df(reinterpret_cast<PyObject*>(input->inputs[0].getValue<uint8_t*>()));
+    py::handle df(reinterpret_cast<PyObject*>(input->getParam(0).getValue<uint8_t*>()));
     std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData;
     std::vector<LogicalType> returnTypes;
     std::vector<std::string> names;
@@ -156,8 +156,8 @@ std::unique_ptr<ScanReplacementData> tryReplacePD(py::dict& dict, py::str& objec
                 initSharedState, initLocalState, progressFunc,
                 std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
         }
-        auto bindInput = ScanTableFuncBindInput();
-        bindInput.inputs.push_back(Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())));
+        auto bindInput = TableFuncBindInput();
+        bindInput.addParam(Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())));
         scanReplacementData->bindInput = std::move(bindInput);
         return scanReplacementData;
     } else {

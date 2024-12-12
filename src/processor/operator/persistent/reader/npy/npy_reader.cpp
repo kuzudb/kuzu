@@ -295,8 +295,9 @@ static void bindColumns(const common::ReaderConfig& readerConfig,
     }
 }
 
-static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-    function::ScanTableFuncBindInput* scanInput) {
+static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* context,
+    function::TableFuncBindInput* input) {
+    auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
     if (scanInput->config.options.size() > 1 ||
         (scanInput->config.options.size() == 1 &&
             !scanInput->config.options.contains(CopyConstants::IGNORE_ERRORS_OPTION_NAME))) {
@@ -320,7 +321,7 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
         reader->validate(resultColumnTypes[i], numRows);
     }
     return std::make_unique<function::ScanBindData>(std::move(resultColumnTypes),
-        std::move(resultColumnNames), scanInput->config.copy(), scanInput->context);
+        std::move(resultColumnNames), scanInput->config.copy(), context);
 }
 
 static std::unique_ptr<function::TableFuncSharedState> initSharedState(

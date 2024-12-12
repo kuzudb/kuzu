@@ -15,7 +15,7 @@ class SerialCSVReader final : public BaseCSVReader {
 public:
     SerialCSVReader(const std::string& filePath, common::idx_t fileIdx, common::CSVOption option,
         CSVColumnInfo columnInfo, main::ClientContext* context, LocalFileErrorHandler* errorHandler,
-        const function::ScanTableFuncBindInput* bindInput = nullptr);
+        const function::ExtraScanTableFuncBindInput* bindInput = nullptr);
 
     //! Sniffs CSV dialect and determines skip rows, header row, column types and column names
     std::vector<std::pair<std::string, common::LogicalType>> sniffCSV(
@@ -26,7 +26,7 @@ protected:
     bool handleQuotedNewline() override { return true; }
 
 private:
-    const function::ScanTableFuncBindInput* bindInput;
+    const function::ExtraScanTableFuncBindInput* bindInput;
     void resetReaderState();
     DialectOption detectDialect();
     bool detectHeader(std::vector<std::pair<std::string, common::LogicalType>>& detectedTypes);
@@ -58,9 +58,9 @@ struct SerialCSVScan {
     static constexpr const char* name = "READ_CSV_SERIAL";
 
     static function::function_set getFunctionSet();
-    static void bindColumns(const function::ScanTableFuncBindInput* bindInput,
+    static void bindColumns(const function::ExtraScanTableFuncBindInput* bindInput,
         std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes,
-        DialectOption& detectedDialect, bool& detectedHeader);
+        DialectOption& detectedDialect, bool& detectedHeader, main::ClientContext* context);
 };
 
 } // namespace processor

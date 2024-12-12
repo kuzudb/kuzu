@@ -56,11 +56,8 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
-    ScanTableFuncBindInput* input) {
-    std::vector<std::string> columnNames = {"cardinality"};
-    std::vector<LogicalType> columnTypes;
-    columnTypes.push_back(LogicalType::INT64());
-    const auto tableName = input->inputs[0].getValue<std::string>();
+    TableFuncBindInput* input) {
+    const auto tableName = input->getParam(0).getValue<std::string>();
     const auto catalog = context->getCatalog();
     if (!catalog->containsTable(context->getTx(), tableName)) {
         throw BinderException{"Table " + tableName + " does not exist!"};
@@ -71,6 +68,10 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
         throw BinderException{
             "Stats from a non-node table " + tableName + " is not supported yet!"};
     }
+
+    std::vector<std::string> columnNames = {"cardinality"};
+    std::vector<LogicalType> columnTypes;
+    columnTypes.push_back(LogicalType::INT64());
     const auto storageManager = context->getStorageManager();
     auto table = storageManager->getTable(tableID);
     return std::make_unique<StatsInfoBindData>(std::move(columnTypes), std::move(columnNames),

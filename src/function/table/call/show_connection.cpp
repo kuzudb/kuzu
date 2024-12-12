@@ -84,10 +84,10 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
-    ScanTableFuncBindInput* input) {
+    TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
-    auto tableName = input->inputs[0].getValue<std::string>();
+    auto tableName = input->getParam(0).getValue<std::string>();
     auto catalog = context->getCatalog();
     auto tableID = catalog->getTableID(context->getTx(), tableName);
     auto tableEntry = catalog->getTableCatalogEntry(context->getTx(), tableID);
