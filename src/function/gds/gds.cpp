@@ -21,12 +21,12 @@ std::shared_ptr<Expression> GDSAlgorithm::bindNodeOutput(Binder* binder,
 }
 
 std::shared_ptr<PathLengths> GDSAlgorithm::getPathLengthsFrontier(
-    processor::ExecutionContext* context) {
+    processor::ExecutionContext* context, uint16_t val) {
     auto tx = context->clientContext->getTx();
     auto mm = context->clientContext->getMemoryManager();
     auto graph = sharedState->graph.get();
     auto pathLengths = std::make_shared<PathLengths>(graph->getNumNodesMap(tx), mm);
-    auto vc = std::make_unique<PathLengthsInitVertexCompute>(*pathLengths);
+    auto vc = std::make_unique<PathLengthsInitVertexCompute>(*pathLengths, val);
     GDSUtils::runVertexCompute(context, graph, *vc);
     return pathLengths;
 }

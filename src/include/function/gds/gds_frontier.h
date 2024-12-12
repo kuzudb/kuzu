@@ -5,6 +5,7 @@
 
 #include "compute.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include <span>
 
 namespace kuzu {
 namespace function {
@@ -172,7 +173,7 @@ public:
         return getCurFrontier()[offset] == curIter.load(std::memory_order_relaxed) - 1;
     }
 
-    void setActive(const std::span<const common::nodeID_t> nodeIDs) override {
+    void setActive(std::span<const common::nodeID_t> nodeIDs) override {
         auto frontierMask = getNextFrontier();
         for (const auto nodeID : nodeIDs) {
             frontierMask[nodeID.offset].store(getCurIter(), std::memory_order_relaxed);
@@ -220,7 +221,8 @@ private:
 
 class PathLengthsInitVertexCompute : public VertexCompute {
 public:
-    explicit PathLengthsInitVertexCompute(PathLengths& pathLengths) : pathLengths{pathLengths} {}
+    PathLengthsInitVertexCompute(PathLengths& pathLengths, uint16_t val)
+        : pathLengths{pathLengths}, val{val} {}
 
     bool beginOnTable(common::table_id_t tableID) override;
 
@@ -228,11 +230,12 @@ public:
         common::table_id_t) override;
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<PathLengthsInitVertexCompute>(pathLengths);
+        return std::make_unique<PathLengthsInitVertexCompute>(pathLengths, val);
     }
 
 private:
     PathLengths& pathLengths;
+    uint16_t val;
 };
 
 /**
@@ -246,7 +249,7 @@ private:
 class KUZU_API FrontierPair {
 public:
     FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-        std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreadsForExec);
+        std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreads);
 
     virtual ~FrontierPair() = default;
 
@@ -260,11 +263,15 @@ public:
 
     virtual void initRJFromSource(common::nodeID_t source) = 0;
 
-    void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
+    virtual void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
         common::table_id_t nextTableID);
 
-    virtual void pinCurrFrontier(common::table_id_t tableID) = 0;
-    virtual void pinNextFrontier(common::table_id_t tableID) = 0;
+    virtual void pinCurrFrontier(common::table_id_t tableID) {
+        curSparseFrontier->pinTableID(tableID);
+    }
+    virtual void pinNextFrontier(common::table_id_t tableID) {
+        nextSparseFrontier->pinTableID(tableID);
+    }
 
     uint16_t getCurrentIter() { return curIter.load(std::memory_order_relaxed); }
 
@@ -282,6 +289,11 @@ public:
     void mergeLocalFrontier(const SparseFrontier& localFrontier);
 
     bool isCurFrontierSparse();
+
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<TARGET*>(this);
+    }
 
 protected:
     virtual void beginNewIterationInternalNoLock() {}
@@ -305,10 +317,8 @@ protected:
 
 class SinglePathLengthsFrontierPair : public FrontierPair {
 public:
-    SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths,
-        uint64_t maxThreadsForExec)
-        : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */,
-              maxThreadsForExec),
+    SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths, uint64_t numThreads)
+        : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */, numThreads),
           pathLengths{pathLengths} {}
 
     PathLengths* getPathLengths() const { return pathLengths.get(); }
@@ -316,12 +326,12 @@ public:
     void initRJFromSource(common::nodeID_t source) override;
 
     void pinCurrFrontier(common::table_id_t tableID) override {
+        FrontierPair::pinCurrFrontier(tableID);
         pathLengths->pinCurFrontierTableID(tableID);
-        curSparseFrontier->pinTableID(tableID);
     }
     void pinNextFrontier(common::table_id_t tableID) override {
+        FrontierPair::pinNextFrontier(tableID);
         pathLengths->pinNextFrontierTableID(tableID);
-        nextSparseFrontier->pinTableID(tableID);
     }
 
     void beginNewIterationInternalNoLock() override { pathLengths->incrementCurIter(); }
@@ -333,18 +343,18 @@ private:
 class KUZU_API DoublePathLengthsFrontierPair : public FrontierPair {
 public:
     DoublePathLengthsFrontierPair(std::shared_ptr<PathLengths> curFrontier,
-        std::shared_ptr<PathLengths> nextFrontier, uint64_t maxThreadsForExec)
-        : FrontierPair{curFrontier, nextFrontier, maxThreadsForExec} {}
+        std::shared_ptr<PathLengths> nextFrontier, uint64_t numThreads)
+        : FrontierPair{curFrontier, nextFrontier, numThreads} {}
 
     void initRJFromSource(common::nodeID_t source) override;
 
     void pinCurrFrontier(common::table_id_t tableID) override {
+        FrontierPair::pinCurrFrontier(tableID);
         curDenseFrontier->ptrCast<PathLengths>()->pinCurFrontierTableID(tableID);
-        curSparseFrontier->pinTableID(tableID);
     }
     void pinNextFrontier(common::table_id_t tableID) override {
+        FrontierPair::pinNextFrontier(tableID);
         nextDenseFrontier->ptrCast<PathLengths>()->pinNextFrontierTableID(tableID);
-        nextSparseFrontier->pinTableID(tableID);
     }
 
     void beginNewIterationInternalNoLock() override;

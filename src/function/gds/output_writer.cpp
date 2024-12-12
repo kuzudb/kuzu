@@ -15,16 +15,7 @@ void PathsOutputs::beginWritingOutputsForDstNodesInTable(common::table_id_t tabl
     bfsGraph->pinTableID(tableID);
 }
 
-RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-    processor::NodeOffsetMaskMap* outputNodeMask)
-    : context{context}, rjOutputs{rjOutputs}, outputNodeMask{outputNodeMask} {
-    auto mm = context->getMemoryManager();
-    srcNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm);
-    dstNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm);
-    srcNodeIDVector->setValue<nodeID_t>(0, rjOutputs->sourceNodeID);
-}
-
-std::unique_ptr<common::ValueVector> RJOutputWriter::createVector(const LogicalType& type,
+std::unique_ptr<common::ValueVector> GDSOutputWriter::createVector(const LogicalType& type,
     storage::MemoryManager* mm) {
     auto vector = std::make_unique<ValueVector>(type.copy(), mm);
     vector->state = DataChunkState::getSingleValueDataChunkState();
@@ -32,11 +23,18 @@ std::unique_ptr<common::ValueVector> RJOutputWriter::createVector(const LogicalT
     return vector;
 }
 
-void RJOutputWriter::beginWritingForDstNodesInTable(common::table_id_t tableID) {
+RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
+    processor::NodeOffsetMaskMap* outputNodeMask)
+    : GDSOutputWriter{context, outputNodeMask}, rjOutputs{rjOutputs} {
+    auto mm = context->getMemoryManager();
+    srcNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm);
+    dstNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm);
+    srcNodeIDVector->setValue<nodeID_t>(0, rjOutputs->sourceNodeID);
+}
+
+void RJOutputWriter::pinTableID(common::table_id_t tableID) {
+    GDSOutputWriter::pinTableID(tableID);
     rjOutputs->beginWritingOutputsForDstNodesInTable(tableID);
-    if (outputNodeMask != nullptr) {
-        outputNodeMask->pin(tableID);
-    }
 }
 
 bool RJOutputWriter::skip(common::nodeID_t dstNodeID) const {
