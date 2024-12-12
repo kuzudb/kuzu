@@ -31,21 +31,22 @@ struct DeltaScanBindData : public ScanBindData {
 };
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-    ScanTableFuncBindInput* input) {
+    TableFuncBindInput* input) {
+    auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
     auto connector = std::make_shared<DeltaConnector>();
     connector->connect("" /* inMemDB */, "" /* defaultCatalogName */, context);
-    input->inputs[0].validateType(LogicalTypeID::STRING);
+    input->getParam(0).validateType(LogicalTypeID::STRING);
     std::string query = common::stringFormat("SELECT * FROM DELTA_SCAN('{}')",
-        input->inputs[0].getValue<std::string>());
+        input->getParam(0).getValue<std::string>());
     auto result = connector->executeQuery(query + " LIMIT 1");
     std::vector<LogicalType> returnTypes;
-    std::vector<std::string> returnColumnNames = input->expectedColumnNames;
+    std::vector<std::string> returnColumnNames = scanInput->expectedColumnNames;
     for (auto type : result->types) {
         returnTypes.push_back(
             duckdb_extension::DuckDBTypeConverter::convertDuckDBType(type.ToString()));
     }
 
-    if (input->expectedColumnNames.empty()) {
+    if (scanInput->expectedColumnNames.empty()) {
         for (auto name : result->names) {
             returnColumnNames.push_back(name);
         }

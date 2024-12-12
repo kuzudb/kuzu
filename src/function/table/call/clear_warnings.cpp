@@ -13,7 +13,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& /*outp
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-    ScanTableFuncBindInput*) {
+    TableFuncBindInput*) {
     return std::make_unique<SimpleTableFuncBindData>(0);
 }
 

@@ -35,7 +35,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-    ScanTableFuncBindInput*) {
+    TableFuncBindInput*) {
     auto memLimit = context->getMemoryManager()->getBufferManager()->getMemoryLimit();
     auto memUsage = context->getMemoryManager()->getBufferManager()->getUsedMemory();
     std::vector<common::LogicalType> returnTypes;
