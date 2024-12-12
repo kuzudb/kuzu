@@ -15,6 +15,7 @@ void Planner::appendAggregate(const expression_vector& expressionsToGroupBy,
     appendFlattens(aggregate->getGroupsPosToFlattenForAggregate(), plan);
     aggregate->setChild(0, plan.getLastOperator());
     aggregate->computeFactorizedSchema();
+    aggregate->setCardinality(cardinalityEstimator.estimateAggregate(*aggregate));
     plan.setLastOperator(std::move(aggregate));
 }
 

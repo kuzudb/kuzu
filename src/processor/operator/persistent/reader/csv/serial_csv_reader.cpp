@@ -220,7 +220,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         resultColumnNames, resultColumnTypes, scanInput->config);
 
     return std::make_unique<ScanBindData>(std::move(resultColumnTypes),
-        std::move(resultColumnNames), scanInput->config.copy(), context, numWarningDataColumns);
+        std::move(resultColumnNames), scanInput->config.copy(), context, 0 /* estCardinality */,
+        numWarningDataColumns);
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitInput& input) {

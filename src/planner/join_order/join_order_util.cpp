@@ -4,8 +4,8 @@ namespace kuzu {
 namespace planner {
 
 uint64_t JoinOrderUtil::getJoinKeysFlatCardinality(const binder::expression_vector& joinNodeIDs,
-    const LogicalPlan& buildPlan) {
-    auto schema = buildPlan.getSchema();
+    const LogicalOperator& buildOp) {
+    auto schema = buildOp.getSchema();
     f_group_pos_set unFlatGroupsPos;
     for (auto& joinID : joinNodeIDs) {
         auto groupPos = schema->getGroupPos(*joinID);
@@ -13,7 +13,7 @@ uint64_t JoinOrderUtil::getJoinKeysFlatCardinality(const binder::expression_vect
             unFlatGroupsPos.insert(groupPos);
         }
     }
-    auto cardinality = buildPlan.getLastOperator()->getCardinality();
+    auto cardinality = buildOp.getCardinality();
     for (auto groupPos : unFlatGroupsPos) {
         cardinality *= schema->getGroup(groupPos)->getMultiplier();
     }

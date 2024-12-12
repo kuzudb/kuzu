@@ -97,7 +97,7 @@ static std::unique_ptr<function::TableFuncSharedState> initSharedState(
     PyArrowTableScanFunctionData* bindData =
         dynamic_cast<PyArrowTableScanFunctionData*>(input.bindData);
 
-    return std::make_unique<PyArrowTableScanSharedState>(bindData->numRows,
+    return std::make_unique<PyArrowTableScanSharedState>(bindData->cardinality,
         bindData->arrowArrayBatches);
 }
 

@@ -15,7 +15,9 @@ public:
         std::unique_ptr<function::TableFuncBindData> bindData, binder::expression_vector columns,
         std::shared_ptr<binder::Expression> offset)
         : LogicalOperator{operatorType_}, tableFunc{tableFunc}, bindData{std::move(bindData)},
-          columns{std::move(columns)}, offset{std::move(offset)} {}
+          columns{std::move(columns)}, offset{std::move(offset)} {
+        cardinality = this->bindData->cardinality;
+    }
 
     const function::TableFunction& getTableFunc() const { return tableFunc; }
     const function::TableFuncBindData* getBindData() const { return bindData.get(); }

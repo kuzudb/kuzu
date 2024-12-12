@@ -31,15 +31,14 @@ struct PandasScanFunction {
 
 struct PandasScanFunctionData : public function::TableFuncBindData {
     py::handle df;
-    uint64_t numRows;
     std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData;
 
     PandasScanFunctionData(std::vector<common::LogicalType> columnTypes,
         std::vector<std::string> columnNames, py::handle df, uint64_t numRows,
         std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData)
         : TableFuncBindData{std::move(columnTypes), std::move(columnNames),
-              0 /* numWarningColumns */},
-          df{df}, numRows{numRows}, columnBindData{std::move(columnBindData)} {}
+              0 /* numWarningDataColumns */, numRows},
+          df{df}, columnBindData{std::move(columnBindData)} {}
 
     ~PandasScanFunctionData() override {
         py::gil_scoped_acquire acquire;
@@ -50,7 +49,7 @@ struct PandasScanFunctionData : public function::TableFuncBindData {
 
 private:
     PandasScanFunctionData(const PandasScanFunctionData& other)
-        : TableFuncBindData{other}, df{other.df}, numRows{other.numRows} {
+        : TableFuncBindData{other}, df{other.df} {
         for (const auto& i : other.columnBindData) {
             columnBindData.push_back(i->copy());
         }

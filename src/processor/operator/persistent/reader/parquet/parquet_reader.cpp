@@ -660,6 +660,16 @@ static void bindColumns(const ExtraScanTableFuncBindInput* bindInput,
     }
 }
 
+static row_idx_t getNumRows(const ScanBindData* bindData) {
+    row_idx_t numRows = 0;
+    for (const auto& path : bindData->config.filePaths) {
+        auto reader =
+            std::make_unique<ParquetReader>(path, bindData->getColumnSkips(), bindData->context);
+        numRows += reader->getMetadata()->num_rows;
+    }
+    return numRows;
+}
+
 static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* context,
     function::TableFuncBindInput* input) {
     auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
@@ -676,20 +686,16 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
             detectedColumnNames.size());
         detectedColumnNames = scanInput->expectedColumnNames;
     }
-    return std::make_unique<function::ScanBindData>(std::move(detectedColumnTypes),
+    auto bindData = std::make_unique<function::ScanBindData>(std::move(detectedColumnTypes),
         std::move(detectedColumnNames), scanInput->config.copy(), context);
+    bindData->cardinality = getNumRows(bindData.get());
+    return bindData;
 }
 
 static std::unique_ptr<function::TableFuncSharedState> initSharedState(
     TableFunctionInitInput& input) {
     auto bindData = input.bindData->constPtrCast<ScanBindData>();
-    row_idx_t numRows = 0;
-    for (const auto& path : bindData->config.filePaths) {
-        auto reader =
-            std::make_unique<ParquetReader>(path, bindData->getColumnSkips(), bindData->context);
-        numRows += reader->getMetadata()->num_rows;
-    }
-    return std::make_unique<ParquetScanSharedState>(bindData->config.copy(), numRows,
+    return std::make_unique<ParquetScanSharedState>(bindData->config.copy(), getNumRows(bindData),
         bindData->context, bindData->getColumnSkips());
 }
 

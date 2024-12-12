@@ -9,7 +9,6 @@ void Planner::appendLimit(uint64_t skipNum, uint64_t limitNum, LogicalPlan& plan
     appendFlattens(limit->getGroupsPosToFlatten(), plan);
     limit->setChild(0, plan.getLastOperator());
     limit->computeFactorizedSchema();
-    plan.setCardinality(limitNum);
     plan.setLastOperator(std::move(limit));
 }
 
