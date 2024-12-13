@@ -121,8 +121,8 @@ lineitem_iceberg/metadata/cf3d0be5-cf70-453d-ad8f-48fdc412e608-m0.avro|1|DATA|AD
 -LOG metadata_compression_codec
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg_gz' (file_format='iceberg', allow_moved_paths=true, metadata_compression_codec = 'gzip' ) RETURN l_linenumber, l_quantity, l_shipdate, l_shipinstruct LIMIT 5;
 ---- 5
-Alice|25|1000.500000|1999-01-15 05:00:00+00
-Bob|30|1500.750000|1994-06-25 04:00:00+00
-Charlie|35|2000.000000|1988-12-05 05:00:00+00
-Diana|40|2500.300000|1983-07-20 04:00:00+00
-Ethan|28|1800.600000|1996-03-10 05:00:00+00
+1|17|1996-03-13|DELIVER IN PERSON
+2|36|1996-04-12|TAKE BACK RETURN
+3|8|1996-01-29|TAKE BACK RETURN
+4|28|1996-04-21|NONE
+5|24|1996-03-30|NONE
