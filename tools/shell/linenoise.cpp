@@ -312,7 +312,7 @@ enum class EscapeSequence {
     DOWN,
     RIGHT,
     LEFT,
-    DELETE,
+    DEL,
     SHIFT_TAB,
     ESCAPE,
     ALT_A,
@@ -1207,7 +1207,7 @@ EscapeSequence linenoiseReadEscapeSequence(int ifd) {
             case '1':
                 return EscapeSequence::HOME;
             case '3': /* Delete key. */
-                return EscapeSequence::DELETE;
+                return EscapeSequence::DEL;
             case '4':
             case '8':
                 return EscapeSequence::END;
@@ -3726,7 +3726,7 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char* buf, size_t buflen, 
             case EscapeSequence::LEFT:
                 linenoiseEditMoveLeft(&l);
                 break;
-            case EscapeSequence::DELETE:
+            case EscapeSequence::DEL:
                 linenoiseEditDelete(&l);
                 break;
             default:
