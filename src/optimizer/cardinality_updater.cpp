@@ -35,6 +35,10 @@ void CardinalityUpdater::visitOperatorSwitchWithDefault(planner::LogicalOperator
         visitExtend(op);
         break;
     }
+    case planner::LogicalOperatorType::RECURSIVE_EXTEND: {
+        visitRecursiveExtend(op);
+        break;
+    }
     case planner::LogicalOperatorType::HASH_JOIN: {
         visitHashJoin(op);
         break;

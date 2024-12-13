@@ -110,7 +110,7 @@ TEST_F(CardinalityTest, TestOperators) {
         auto* extendOp = getOpWithType(plan->getLastOperator().get(),
             planner::LogicalOperatorType::RECURSIVE_EXTEND);
         ASSERT_NE(nullptr, extendOp);
-        EXPECT_EQ(1, extendOp->getCardinality());
+        EXPECT_EQ(200, extendOp->getCardinality());
         conn->query("CALL enable_gds=true");
     }
 
