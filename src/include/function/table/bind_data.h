@@ -55,6 +55,11 @@ struct TableFuncBindData {
         return common::ku_dynamic_cast<const TARGET*>(this);
     }
 
+    template<class TARGET>
+    TARGET& cast() {
+        return *common::ku_dynamic_cast<TARGET*>(this);
+    }
+
 private:
     std::vector<bool> columnSkips;
     std::vector<storage::ColumnPredicateSet> columnPredicates;

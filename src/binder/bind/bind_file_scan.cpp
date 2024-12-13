@@ -127,7 +127,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     auto func = getScanFunction(config->fileTypeInfo, *config);
     // Bind table function
     auto bindInput = TableFuncBindInput();
-    bindInput.addParam(Value::createValue(filePaths[0]));
+    bindInput.addLiteralParam(Value::createValue(filePaths[0]));
     auto extraInput = std::make_unique<ExtraScanTableFuncBindInput>();
     extraInput->config = config->copy();
     extraInput->expectedColumnNames = columnNames;

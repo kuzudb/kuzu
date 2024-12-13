@@ -19,9 +19,9 @@ using namespace kuzu::function;
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     TableFuncBindInput* input) {
     FTSUtils::validateAutoTrx(*context, DropFTSFunction::name);
-    auto indexName = input->getParam(1).toString();
-    auto& tableEntry =
-        FTSUtils::bindTable(input->getParam(0), context, indexName, FTSUtils::IndexOperation::DROP);
+    auto indexName = input->getLiteralVal<std::string>(1);
+    auto& tableEntry = FTSUtils::bindTable(input->getLiteralVal<std::string>(0), context, indexName,
+        FTSUtils::IndexOperation::DROP);
     FTSUtils::validateIndexExistence(*context, tableEntry.getTableID(), indexName);
     return std::make_unique<FTSBindData>(tableEntry.getName(), tableEntry.getTableID(), indexName,
         std::vector<common::LogicalType>{}, std::vector<std::string>{});

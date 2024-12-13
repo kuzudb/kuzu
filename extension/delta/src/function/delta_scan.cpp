@@ -35,9 +35,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
     auto connector = std::make_shared<DeltaConnector>();
     connector->connect("" /* inMemDB */, "" /* defaultCatalogName */, context);
-    input->getParam(0).validateType(LogicalTypeID::STRING);
     std::string query = common::stringFormat("SELECT * FROM DELTA_SCAN('{}')",
-        input->getParam(0).getValue<std::string>());
+        input->getLiteralVal<std::string>(0));
     auto result = connector->executeQuery(query + " LIMIT 1");
     std::vector<LogicalType> returnTypes;
     std::vector<std::string> returnColumnNames = scanInput->expectedColumnNames;

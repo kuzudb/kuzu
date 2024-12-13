@@ -17,7 +17,7 @@ namespace kuzu {
 std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
     TableFuncBindInput* input) {
     py::gil_scoped_acquire acquire;
-    py::handle df(reinterpret_cast<PyObject*>(input->getParam(0).getValue<uint8_t*>()));
+    py::handle df(reinterpret_cast<PyObject*>(input->getLiteralVal<uint8_t*>(0)));
     std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData;
     std::vector<LogicalType> returnTypes;
     std::vector<std::string> names;
@@ -157,7 +157,7 @@ std::unique_ptr<ScanReplacementData> tryReplacePD(py::dict& dict, py::str& objec
                 std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
         }
         auto bindInput = TableFuncBindInput();
-        bindInput.addParam(Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())));
+        bindInput.addLiteralParam(Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())));
         scanReplacementData->bindInput = std::move(bindInput);
         return scanReplacementData;
     } else {
