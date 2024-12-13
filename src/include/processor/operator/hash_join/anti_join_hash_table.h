@@ -1,6 +1,5 @@
 #pragma once
 
-#include "function/hash/vector_hash_functions.h"
 #include "join_hash_table.h"
 
 namespace kuzu {
