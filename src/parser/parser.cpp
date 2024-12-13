@@ -22,14 +22,8 @@ namespace parser {
 std::vector<std::shared_ptr<Statement>> Parser::parseQuery(std::string_view query,
     main::ClientContext* context) {
     auto queryStr = std::string(query);
-    auto validCharPos = 0u;
-    for (; validCharPos < queryStr.size(); validCharPos++) {
-        if (!common::StringUtils::isSpace(queryStr[validCharPos]) &&
-            !common::StringUtils::characterIsNewLine(queryStr[validCharPos])) {
-            break;
-        }
-    }
-    queryStr = queryStr.substr(validCharPos);
+    queryStr = common::StringUtils::ltrim(queryStr);
+    queryStr = common::StringUtils::ltrimNewlines(queryStr);
     // LCOV_EXCL_START
     // We should have enforced this in connection, but I also realize empty query will cause
     // antlr to hang. So enforce a duplicate check here.
