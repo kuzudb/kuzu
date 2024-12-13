@@ -1,12 +1,12 @@
 #pragma once
 
+#include <algorithm>
 #include <atomic>
 #include <mutex>
 
 #include "compute.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include <span>
-#include <algorithm>
 
 namespace kuzu {
 namespace function {
