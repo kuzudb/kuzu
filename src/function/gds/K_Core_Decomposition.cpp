@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "binder/binder.h"
 #include "common/types/types.h"
 #include "function/gds/gds_frontier.h"
@@ -10,8 +12,6 @@
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
 
-#include <iostream>
-
 using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::processor;
@@ -23,8 +23,10 @@ namespace function {
 
 class KUZU_API KCoreFrontierPair : public FrontierPair {
 public:
-    KCoreFrontierPair(std::shared_ptr<GDSFrontier> curFrontier, std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreads, table_id_map_t<offset_t> numNodesMap, storage::MemoryManager* mm):
-    FrontierPair(curFrontier, nextFrontier, maxThreads), numNodesMap{numNodesMap} {
+    KCoreFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
+        std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreads,
+        table_id_map_t<offset_t> numNodesMap, storage::MemoryManager* mm)
+        : FrontierPair(curFrontier, nextFrontier, maxThreads), numNodesMap{numNodesMap} {
         std::cout << "begin of pair init" << std::endl;
         for (const auto& [tableID, curNumNodes] : numNodesMap) {
             curVertexValues.allocate(tableID, curNumNodes, mm);
@@ -37,9 +39,7 @@ public:
         std::cout << "after pair init" << std::endl;
     }
 
-    void initRJFromSource(common::nodeID_t source) override {
-        setActiveNodesForNextIter();
-    };
+    void initRJFromSource(common::nodeID_t source) override { setActiveNodesForNextIter(); };
 
     void pinCurrFrontier(common::table_id_t tableID) override {
         FrontierPair::pinCurrFrontier(tableID);
@@ -65,17 +65,20 @@ public:
         updateSmallestDegree();
         curDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();
         nextDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();
-    }  
+    }
 
     uint64_t addToVertexDegree(common::nodeID_t nodeID, uint64_t degreeToAdd) {
-        return curVertexValues.getData(nodeID.tableID)[nodeID.offset].fetch_add(degreeToAdd, std::memory_order_relaxed);
+        return curVertexValues.getData(nodeID.tableID)[nodeID.offset].fetch_add(degreeToAdd,
+            std::memory_order_relaxed);
     }
 
     uint64_t removeFromVertex(common::nodeID_t nodeID) {
         int curSmallest = curSmallestDegree.load(std::memory_order_relaxed);
-        int curVertexDegree = curVertexValues.getData(nodeID.tableID)[nodeID.offset].load(std::memory_order_relaxed);
+        int curVertexDegree =
+            curVertexValues.getData(nodeID.tableID)[nodeID.offset].load(std::memory_order_relaxed);
         if (curVertexDegree > curSmallest) {
-            return curVertexValues.getData(nodeID.tableID)[nodeID.offset].fetch_sub(1, std::memory_order_relaxed);
+            return curVertexValues.getData(nodeID.tableID)[nodeID.offset].fetch_sub(1,
+                std::memory_order_relaxed);
         }
         return curVertexDegree;
     }
@@ -86,7 +89,8 @@ public:
             curDenseFrontier->pinTableID(tableID);
             for (uint64_t offset = 0; offset < curNumNodes; ++offset) {
                 if (curDenseFrontier->isActive(offset)) {
-                    curSmallest = std::min(curSmallest, curVertexValues.getData(tableID)[offset].load(std::memory_order_relaxed));
+                    curSmallest = std::min(curSmallest,
+                        curVertexValues.getData(tableID)[offset].load(std::memory_order_relaxed));
                 }
             }
         }
@@ -94,9 +98,7 @@ public:
         curSmallestDegree.compare_exchange_strong(current, curSmallest, std::memory_order_relaxed);
     }
 
-    uint64_t getSmallestDegree() {
-        return curSmallestDegree.load(std::memory_order_relaxed);
-    }
+    uint64_t getSmallestDegree() { return curSmallestDegree.load(std::memory_order_relaxed); }
 
     bool isNodeActive(common::nodeID_t nodeID) const {
         return curDenseFrontier->isActive(nodeID.offset);
@@ -105,7 +107,6 @@ public:
     uint64_t getVertexValue(common::offset_t offset) {
         return vertexValues[offset].load(std::memory_order_relaxed);
     }
-
 
 private:
     bool updated = false;
@@ -120,11 +121,12 @@ struct KCoreInitEdgeCompute : public EdgeCompute {
 
     explicit KCoreInitEdgeCompute(KCoreFrontierPair* frontierPair) : frontierPair{frontierPair} {}
 
-    std::vector<common::nodeID_t> edgeCompute(common::nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk, bool) override {
+    std::vector<common::nodeID_t> edgeCompute(common::nodeID_t boundNodeID,
+        graph::NbrScanState::Chunk& chunk, bool) override {
         std::cout << "init edge compute is ran" << std::endl;
         std::vector<common::nodeID_t> result;
         uint64_t nbrAmount = 0;
-        chunk.forEach([&](auto nbrNodeID, auto) {nbrAmount++;});
+        chunk.forEach([&](auto nbrNodeID, auto) { nbrAmount++; });
 
         frontierPair->addToVertexDegree(boundNodeID, nbrAmount);
         return result;
@@ -161,10 +163,11 @@ struct KCoreEdgeCompute : public EdgeCompute {
     }
 };
 
-class KCoreOutputWriter : GDSOutputWriter{
+class KCoreOutputWriter : GDSOutputWriter {
 public:
-    explicit KCoreOutputWriter(main::ClientContext* context, processor::NodeOffsetMaskMap* outputNodeMask, KCoreFrontierPair* frontierPair)
-    : GDSOutputWriter{context, outputNodeMask}, frontierPair{frontierPair} {
+    explicit KCoreOutputWriter(main::ClientContext* context,
+        processor::NodeOffsetMaskMap* outputNodeMask, KCoreFrontierPair* frontierPair)
+        : GDSOutputWriter{context, outputNodeMask}, frontierPair{frontierPair} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID(), context->getMemoryManager());
         kValueVector = createVector(LogicalType::UINT64(), context->getMemoryManager());
     }
@@ -196,17 +199,20 @@ private:
 
 class KCoreVertexCompute : public VertexCompute {
 public:
-    KCoreVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState, std::unique_ptr<KCoreOutputWriter> outputWriter)
+    KCoreVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState,
+        std::unique_ptr<KCoreOutputWriter> outputWriter)
         : mm{mm}, sharedState{sharedState}, outputWriter{std::move(outputWriter)} {
         localFT = sharedState->claimLocalTable(mm);
     }
     ~KCoreVertexCompute() override { sharedState->returnLocalTable(localFT); }
 
-    bool beginOnTable(common::table_id_t tableID) override { 
+    bool beginOnTable(common::table_id_t tableID) override {
         outputWriter->pinTableID(tableID);
-        return true; }
+        return true;
+    }
 
-    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset, common::table_id_t tableID) override {
+    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset,
+        common::table_id_t tableID) override {
         outputWriter->materialize(startOffset, endOffset, tableID, *localFT);
     }
 
@@ -254,17 +260,22 @@ public:
         bindData = std::make_unique<GDSBindData>(nodeOutput);
     }
 
-    void initKCore(processor::ExecutionContext* context, GDSComputeState& compState, graph::Graph* graph, std::unique_ptr<EdgeCompute> initEdgeCompute) {
+    void initKCore(processor::ExecutionContext* context, GDSComputeState& compState,
+        graph::Graph* graph, std::unique_ptr<EdgeCompute> initEdgeCompute) {
         auto frontierPair = compState.frontierPair.get();
         std::swap(compState.edgeCompute, initEdgeCompute);
         compState.edgeCompute->resetSingleThreadState();
         for (auto& relTableIDInfo : graph->getRelTableIDInfos()) {
-            compState.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID, relTableIDInfo.toNodeTableID);
+            compState.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID,
+                relTableIDInfo.toNodeTableID);
             std::cout << "HERE" << std::endl;
-            GDSUtils::scheduleFrontierTask(relTableIDInfo.fromNodeTableID, relTableIDInfo.toNodeTableID, graph, ExtendDirection::FWD, compState, context);
+            GDSUtils::scheduleFrontierTask(relTableIDInfo.fromNodeTableID,
+                relTableIDInfo.toNodeTableID, graph, ExtendDirection::FWD, compState, context);
             std::cout << "THERE" << std::endl;
-            compState.beginFrontierComputeBetweenTables(relTableIDInfo.toNodeTableID, relTableIDInfo.fromNodeTableID);
-            GDSUtils::scheduleFrontierTask(relTableIDInfo.fromNodeTableID, relTableIDInfo.toNodeTableID, graph, ExtendDirection::BWD, compState, context);
+            compState.beginFrontierComputeBetweenTables(relTableIDInfo.toNodeTableID,
+                relTableIDInfo.fromNodeTableID);
+            GDSUtils::scheduleFrontierTask(relTableIDInfo.fromNodeTableID,
+                relTableIDInfo.toNodeTableID, graph, ExtendDirection::BWD, compState, context);
         }
         std::swap(compState.edgeCompute, initEdgeCompute);
     }
@@ -283,19 +294,23 @@ public:
         auto numThreads = clientContext->getMaxNumThreadForExec();
         auto currentFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto nextFrontier = getPathLengthsFrontier(context, 0);
-        auto frontierPair = std::make_unique<KCoreFrontierPair>(
-            currentFrontier, nextFrontier, numThreads, numNodesMap, clientContext->getMemoryManager());
+        auto frontierPair = std::make_unique<KCoreFrontierPair>(currentFrontier, nextFrontier,
+            numThreads, numNodesMap, clientContext->getMemoryManager());
         frontierPair->setActiveNodesForNextIter();
         frontierPair->getNextSparseFrontier().disable();
         auto edgeCompute = std::make_unique<KCoreEdgeCompute>(frontierPair.get());
         auto initEdgeCompute = std::make_unique<KCoreInitEdgeCompute>(frontierPair.get());
-        auto writer = std::make_unique<KCoreOutputWriter>(clientContext, sharedState->getOutputNodeMaskMap(), frontierPair.get());
-        auto computeState = GDSComputeState(std::move(frontierPair), std::move(edgeCompute), sharedState->getOutputNodeMaskMap());
+        auto writer = std::make_unique<KCoreOutputWriter>(clientContext,
+            sharedState->getOutputNodeMaskMap(), frontierPair.get());
+        auto computeState = GDSComputeState(std::move(frontierPair), std::move(edgeCompute),
+            sharedState->getOutputNodeMaskMap());
         initKCore(context, computeState, graph, std::move(initEdgeCompute));
         std::cout << "after init" << std::endl;
-        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH, 2);
+        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH,
+            2);
         std::cout << "after frontier" << std::endl;
-        auto vertexCompute = std::make_unique<KCoreVertexCompute>(clientContext->getMemoryManager(), sharedState.get(), std::move(writer));
+        auto vertexCompute = std::make_unique<KCoreVertexCompute>(clientContext->getMemoryManager(),
+            sharedState.get(), std::move(writer));
         std::cout << "checkpoint 3" << std::endl;
         GDSUtils::runVertexCompute(context, sharedState->graph.get(), *vertexCompute);
         std::cout << "after run vertex compute" << std::endl;
