@@ -7,6 +7,7 @@
 #pragma GCC diagnostic pop
 
 #include "common/exception/parser.h"
+#include "common/string_utils.h"
 #include "main/client_context.h"
 #include "parser/antlr_parser/kuzu_cypher_parser.h"
 #include "parser/antlr_parser/parser_error_listener.h"
@@ -20,15 +21,19 @@ namespace parser {
 
 std::vector<std::shared_ptr<Statement>> Parser::parseQuery(std::string_view query,
     main::ClientContext* context) {
+    auto queryStr = std::string(query);
+    queryStr = common::StringUtils::ltrim(queryStr);
+    queryStr = common::StringUtils::ltrimNewlines(queryStr);
     // LCOV_EXCL_START
     // We should have enforced this in connection, but I also realize empty query will cause
     // antlr to hang. So enforce a duplicate check here.
-    if (query.empty()) {
+    if (queryStr.empty()) {
         throw common::ParserException(
             "Cannot parse empty query. This should be handled in connection.");
     }
     // LCOV_EXCL_STOP
-    auto inputStream = ANTLRInputStream(query);
+
+    auto inputStream = ANTLRInputStream(queryStr);
     auto parserErrorListener = ParserErrorListener();
 
     auto cypherLexer = CypherLexer(&inputStream);
