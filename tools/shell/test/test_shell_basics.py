@@ -64,7 +64,6 @@ def test_multi_queries_one_line(temp_db) -> None:
     # two successful queries
     test = ShellTest().add_argument(temp_db).statement('RETURN "databases rule" AS a; RETURN "kuzu is cool" AS b;')
     result = test.run()
-    print(result.stdout)
     result.check_stdout("\u2502 databases rule \u2502")
     result.check_stdout("\u2502 kuzu is cool \u2502")
 
@@ -72,12 +71,7 @@ def test_multi_queries_one_line(temp_db) -> None:
     test = ShellTest().add_argument(temp_db).statement('RETURN "databases rule" AS a;      ;')
     result = test.run()
     result.check_stdout("\u2502 databases rule \u2502")
-    result.check_stdout(
-        [
-            "Error: Parser exception: mismatched input '<EOF>' expecting {ALTER, ATTACH, BEGIN, CALL, CHECKPOINT, COMMENT, COMMIT, COPY, CREATE, DELETE, DETACH, DROP, EXPORT, IMPORT, INSTALL, LOAD, MATCH, MERGE, OPTIONAL, PROJECT, RETURN, ROLLBACK, SET, UNWIND, USE, WITH} (line: 1, offset: 6)",
-            '"      "',
-        ],
-    )
+    result.check_stdout("Error: Parser exception: Cannot parse empty query. This should be handled in connection.")
 
     # two failing queries
     test = ShellTest().add_argument(temp_db).statement('RETURN "databases rule" S a;      ;')
@@ -87,8 +81,7 @@ def test_multi_queries_one_line(temp_db) -> None:
             "Error: Parser exception: Invalid input < S>: expected rule ku_Statements (line: 1, offset: 24)",
             '"RETURN "databases rule" S a"',
             "                         ^",
-            "Error: Parser exception: mismatched input '<EOF>' expecting {ALTER, ATTACH, BEGIN, CALL, CHECKPOINT, COMMENT, COMMIT, COPY, CREATE, DELETE, DETACH, DROP, EXPORT, IMPORT, INSTALL, LOAD, MATCH, MERGE, OPTIONAL, PROJECT, RETURN, ROLLBACK, SET, UNWIND, USE, WITH} (line: 1, offset: 6)",
-            '"      "',
+            "Error: Parser exception: Cannot parse empty query. This should be handled in connection.",
         ],
     )
 
@@ -160,11 +153,10 @@ def test_kuzurc(temp_db) -> None:
     # confirm that the file is read on startup
     test = ShellTest().add_argument(temp_db).statement("CALL show_tables() RETURN *;")
     result = test.run()
+    deleteIfExists(".kuzurc")
     result.check_stdout("-- Loading resources from .kuzurc")
     result.check_stdout("maxRows set as 1")
     result.check_stdout("a")
-
-    deleteIfExists(".kuzurc")
 
     # create a .kuzurc file with errors
     with open(".kuzurc", "w") as f:
@@ -176,21 +168,19 @@ def test_kuzurc(temp_db) -> None:
     # confirm that the file is read on startup
     test = ShellTest().add_argument(temp_db).statement("CALL show_tables() RETURN *;")
     result = test.run()
+    deleteIfExists(".kuzurc")
     result.check_stdout("-- Loading resources from .kuzurc")
     result.check_stdout(
         [
             "Error: Parser exception: Invalid input < S>: expected rule ku_Statements (line: 1, offset: 24)",
             '"RETURN "databases rule" S a"',
             "                         ^",
-            "Error: Parser exception: mismatched input '<EOF>' expecting {ALTER, ATTACH, BEGIN, CALL, CHECKPOINT, COMMENT, COMMIT, COPY, CREATE, DELETE, DETACH, DROP, EXPORT, IMPORT, INSTALL, LOAD, MATCH, MERGE, OPTIONAL, PROJECT, RETURN, ROLLBACK, SET, UNWIND, USE, WITH} (line: 1, offset: 6)",
-            '"      "',
+            "Error: Parser exception: Cannot parse empty query. This should be handled in connection.",
         ],
     )
     result.check_stdout("Cannot parse '' as number of rows. Expect integer.")
     result.check_stdout("mode set as table")
     result.check_stdout("b")
-
-    deleteIfExists(".kuzurc")
 
 
 def test_comments(temp_db) -> None:
