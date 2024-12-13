@@ -30,7 +30,7 @@ void AntiJoinHashTable::initProbeState(kuzu::processor::AntiJoinProbeState& prob
 void AntiJoinHashTable::probe(AntiJoinProbeState& probeState, uint8_t** probedTuples) const {
     probedTuples[0] =
         ((uint8_t**)(hashSlotsBlocks[probeState.nextHashSlotIdx >> numSlotsPerBlockLog2]
-                ->getData()))[probeState.nextHashSlotIdx & slotIdxInBlockMask];
+                         ->getData()))[probeState.nextHashSlotIdx & slotIdxInBlockMask];
     probeState.nextHashSlotIdx++;
 }
 

@@ -47,7 +47,7 @@ public:
         auto slotIdx = getSlotIdxForHash(hash);
         KU_ASSERT(slotIdx < maxNumHashSlots);
         return ((uint8_t**)(hashSlotsBlocks[slotIdx >> numSlotsPerBlockLog2]
-                ->getData()))[slotIdx & slotIdxInBlockMask];
+                                ->getData()))[slotIdx & slotIdxInBlockMask];
     }
     FactorizedTable* getFactorizedTable() { return factorizedTable.get(); }
     const FactorizedTableSchema* getTableSchema() { return factorizedTable->getTableSchema(); }
