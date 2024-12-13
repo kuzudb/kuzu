@@ -8,13 +8,16 @@ namespace parser {
 
 class Statement {
 public:
-    explicit Statement(common::StatementType statementType) : statementType{statementType} {}
+    explicit Statement(common::StatementType statementType)
+        : statementType{statementType}, skipResult_{false} {}
 
     virtual ~Statement() = default;
 
     common::StatementType getStatementType() const { return statementType; }
+    void setToSkipResult() { skipResult_ = true; }
+    bool skipResult() const { return skipResult_; }
 
-    bool requireTx() {
+    bool requireTx() const {
         switch (statementType) {
         case common::StatementType::TRANSACTION:
             return false;
@@ -38,6 +41,7 @@ public:
 
 private:
     common::StatementType statementType;
+    bool skipResult_;
 };
 
 } // namespace parser
