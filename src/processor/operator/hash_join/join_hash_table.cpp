@@ -158,14 +158,14 @@ sel_t JoinHashTable::matchFlatKeys(const std::vector<ValueVector*>& keyVectors,
 }
 
 sel_t JoinHashTable::matchUnFlatKey(ValueVector* keyVector, uint8_t** probedTuples,
-    uint8_t** matchedTuples, SelectionVector& matchedTuplesSelVector, bool match) {
+    uint8_t** matchedTuples, SelectionVector& matchedTuplesSelVector) {
     auto numMatchedTuples = 0;
     for (auto i = 0u; i < keyVector->state->getSelVector().getSelSize(); ++i) {
         auto pos = keyVector->state->getSelVector()[i];
         while (probedTuples[i]) {
             auto currentTuple = probedTuples[i];
             auto entryCompareResult = compareEntryFuncs[0](keyVector, pos, currentTuple);
-            if (match == entryCompareResult) {
+            if (entryCompareResult) {
                 matchedTuples[numMatchedTuples] = currentTuple;
                 matchedTuplesSelVector[numMatchedTuples] = pos;
                 numMatchedTuples++;

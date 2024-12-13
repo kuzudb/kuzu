@@ -29,10 +29,10 @@ public:
     // All key vectors must be flat. Thus input is a tuple, multiple matches can be found for the
     // given key tuple.
     common::sel_t matchFlatKeys(const std::vector<common::ValueVector*>& keyVectors,
-        uint8_t** probedTuples, uint8_t** matchedTuples, bool match);
+        uint8_t** probedTuples, uint8_t** matchedTuples, bool match = true);
     // Input is multiple tuples, at most one match exist for each key.
     common::sel_t matchUnFlatKey(common::ValueVector* keyVector, uint8_t** probedTuples,
-        uint8_t** matchedTuples, common::SelectionVector& matchedTuplesSelVector, bool match);
+        uint8_t** matchedTuples, common::SelectionVector& matchedTuplesSelVector);
 
     void lookup(std::vector<common::ValueVector*>& vectors, std::vector<uint32_t>& colIdxesToScan,
         uint8_t** tuplesToRead, uint64_t startPos, uint64_t numTuplesToRead) {

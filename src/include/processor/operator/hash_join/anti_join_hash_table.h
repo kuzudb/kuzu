@@ -12,11 +12,8 @@ struct AntiJoinProbeState {
     uint64_t hashSlotIdx = 0;
 
     AntiJoinProbeState() = default;
-
     void initState(uint64_t maxNumHashSlots_, uint64_t hashSlotIdx_);
-
     bool hasMoreToProbe() const;
-
     bool checkKeys() const;
 };
 

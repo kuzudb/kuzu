@@ -58,9 +58,8 @@ bool HashJoinProbe::getMatchedTuplesForFlatKey(ExecutionContext* context) {
         sharedState->getHashTable()->probe(keyVectors, *hashVector, hashSelVec, *tmpHashVector,
             probeState->probedTuples.get());
     }
-    auto numMatchedTuples =
-        sharedState->getHashTable()->matchFlatKeys(keyVectors, probeState->probedTuples.get(),
-            probeState->matchedTuples.get(), joinType != common::JoinType::ANTI);
+    auto numMatchedTuples = sharedState->getHashTable()->matchFlatKeys(keyVectors,
+        probeState->probedTuples.get(), probeState->matchedTuples.get());
     probeState->matchedSelVector.setSelSize(numMatchedTuples);
     probeState->nextMatchedTupleIdx = 0;
     return true;
@@ -76,9 +75,9 @@ bool HashJoinProbe::getMatchedTuplesForUnFlatKey(ExecutionContext* context) {
     saveSelVector(*keyVector->state);
     sharedState->getHashTable()->probe(keyVectors, *hashVector, hashSelVec, *tmpHashVector,
         probeState->probedTuples.get());
-    auto numMatchedTuples = sharedState->getHashTable()->matchUnFlatKey(keyVector,
-        probeState->probedTuples.get(), probeState->matchedTuples.get(),
-        probeState->matchedSelVector, joinType != common::JoinType::ANTI);
+    auto numMatchedTuples =
+        sharedState->getHashTable()->matchUnFlatKey(keyVector, probeState->probedTuples.get(),
+            probeState->matchedTuples.get(), probeState->matchedSelVector);
     probeState->matchedSelVector.setSelSize(numMatchedTuples);
     probeState->nextMatchedTupleIdx = 0;
     return true;
