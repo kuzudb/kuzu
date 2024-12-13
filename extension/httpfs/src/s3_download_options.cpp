@@ -18,11 +18,11 @@ void S3DownloadOptions::registerExtensionOptions(main::Database* db) {
 }
 
 void S3DownloadOptions::setEnvValue(main::ClientContext* context) {
-    auto accessKeyID = context->getEnvVariable(S3AccessKeyID::NAME);
-    auto secretAccessKey = context->getEnvVariable(S3SecretAccessKey::NAME);
-    auto endpoint = context->getEnvVariable(S3EndPoint::NAME);
-    auto urlStyle = context->getEnvVariable(S3URLStyle::NAME);
-    auto region = context->getEnvVariable(S3Region::NAME);
+    auto accessKeyID = main::ClientContext::getEnvVariable(S3AccessKeyID::NAME);
+    auto secretAccessKey = main::ClientContext::getEnvVariable(S3SecretAccessKey::NAME);
+    auto endpoint = main::ClientContext::getEnvVariable(S3EndPoint::NAME);
+    auto urlStyle = main::ClientContext::getEnvVariable(S3URLStyle::NAME);
+    auto region = main::ClientContext::getEnvVariable(S3Region::NAME);
     if (accessKeyID != "") {
         context->setExtensionOption(S3AccessKeyID::NAME, Value::createValue(accessKeyID));
     }

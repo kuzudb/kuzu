@@ -8,7 +8,7 @@
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
----- ok
+---- 0
 
 -LOG QueryFTSConjunctiveSingleKeyword
 -STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice', conjunctive := true) RETURN _node.ID, score
