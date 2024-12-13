@@ -42,7 +42,6 @@ struct KUZU_API GDSComputeState {
 
 class KUZU_API GDSUtils {
 public:
-    static void initKCore(processor::ExecutionContext* executionContext, RJCompState& rjCompState, graph::Graph* graph, std::unique_ptr<EdgeCompute> initEdgeCompute);
     static void scheduleFrontierTask(common::table_id_t nbrTableID, common::table_id_t relTableID,
         graph::Graph* graph, common::ExtendDirection extendDirection, GDSComputeState& rjCompState,
         processor::ExecutionContext* context, std::optional<uint64_t> numThreads = std::nullopt,

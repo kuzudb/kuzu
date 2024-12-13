@@ -296,11 +296,6 @@ public:
         return common::ku_dynamic_cast<TARGET*>(this);
     }
 
-    template<class TARGET>
-    TARGET* ptrCast() {
-        return common::ku_dynamic_cast<TARGET*>(this);
-    }
-
 protected:
     virtual void beginNewIterationInternalNoLock() {}
 
@@ -364,74 +359,6 @@ public:
     }
 
     void beginNewIterationInternalNoLock() override;
-};
-
-class KUZU_API KCoreFrontierPair : public FrontierPair {
-public:
-    KCoreFrontierPair(common::table_id_map_t<common::offset_t> numNodesMap, uint64_t totalNumNodes, uint64_t maxThreadsForExec, storage::MemoryManager* mm);
-
-    void initRJFromSource(common::nodeID_t source) override {};
-
-    void beginFrontierComputeBetweenTables(common::table_id_t curTableID, common::table_id_t nextTableID) override;
-
-    void beginNewIterationInternalNoLock() override;  
-
-    uint64_t addToVertexDegree(common::nodeID_t nodeID, uint64_t degreeToAdd) {
-        return getVertexDegreeAtomic(nodeID).fetch_add(degreeToAdd, std::memory_order_relaxed);
-    }
-
-    uint64_t removeFromVertex(common::nodeID_t nodeID) {
-        int curSmallest = curSmallestDegree.load(std::memory_order_relaxed);
-        int curVertexDegree = getVertexDegree(nodeID);
-        if (curVertexDegree > curSmallest) {
-            return getVertexDegreeAtomic(nodeID).fetch_sub(1, std::memory_order_relaxed);
-        }
-        return curVertexDegree;
-    }
-
-    uint64_t getVertexDegree(common::nodeID_t nodeID) const {
-        return getVertexDegreeAtomic(nodeID).load(std::memory_order_relaxed);
-    }
-
-    bool isNodeActive(common::nodeID_t nodeID) const {
-        return curFrontier->ptrCast<KCoreFrontier>()->isNodeActive(nodeID);
-    }
-
-    void setNodeInActive(common::nodeID_t nodeID) const {
-        nextFrontier->ptrCast<KCoreFrontier>()->setInActive(nodeID);
-    }
-
-    void updateSmallestDegree() {
-        uint64_t curSmallest = UINT64_MAX;
-        for (const auto& [tableID, curNumNodes] : numNodesMap) {
-            for (uint64_t offset = 0; offset < curNumNodes; ++offset) {
-                common::nodeID_t curNode;
-                curNode.tableID = tableID;
-                curNode.offset = offset;
-                if (curFrontier->ptrCast<KCoreFrontier>()->isNodeActive(curNode)) {
-                    curSmallest = std::min(curSmallest, getVertexDegree(curNode));
-                }
-            }
-        }
-        uint64_t current = curSmallestDegree.load(std::memory_order_relaxed);
-        curSmallestDegree.compare_exchange_strong(current, curSmallest, std::memory_order_relaxed);
-    }
-
-    uint64_t getSmallestDegree() {
-        return curSmallestDegree.load(std::memory_order_relaxed);
-    }
-
-private:
-    std::atomic<uint64_t>& getVertexDegreeAtomic(common::nodeID_t nodeID) const {
-        auto& memBuffer = curVertexValues.find(nodeID.tableID)->second;
-        std::atomic<uint64_t>* memBufferPtr = reinterpret_cast<std::atomic<uint64_t>*>(memBuffer->getData());
-        return memBufferPtr[nodeID.offset];
-    }
-    uint64_t numNodes;
-    bool updated = false;
-    std::atomic<uint64_t> curSmallestDegree{UINT64_MAX};
-    common::table_id_map_t<common::offset_t> numNodesMap;
-    common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> curVertexValues;
 };
 
 class SPEdgeCompute : public EdgeCompute {
