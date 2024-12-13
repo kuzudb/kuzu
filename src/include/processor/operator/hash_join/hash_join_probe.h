@@ -93,11 +93,13 @@ public:
             children[0]->clone(), id, printInfo->copy());
     }
 
-private:
-    inline bool getMatchedTuples(ExecutionContext* context) {
+protected:
+    virtual bool getMatchedTuples(ExecutionContext* context) {
         return flatProbe ? getMatchedTuplesForFlatKey(context) :
                            getMatchedTuplesForUnFlatKey(context);
     }
+
+private:
     bool getMatchedTuplesForFlatKey(ExecutionContext* context);
     // We can probe a batch of input tuples if we know they have at most one match.
     bool getMatchedTuplesForUnFlatKey(ExecutionContext* context);
@@ -112,21 +114,24 @@ private:
     uint64_t getCountJoinResult();
     uint64_t getJoinResult();
 
-private:
+protected:
     std::shared_ptr<HashJoinSharedState> sharedState;
     common::JoinType joinType;
     bool flatProbe;
 
     ProbeDataInfo probeDataInfo;
-    std::vector<common::ValueVector*> vectorsToReadInto;
-    std::vector<uint32_t> columnIdxsToReadFrom;
-    std::vector<common::ValueVector*> keyVectors;
-    common::ValueVector* markVector;
     std::unique_ptr<ProbeState> probeState;
+    std::vector<common::ValueVector*> keyVectors;
 
     std::unique_ptr<common::ValueVector> hashVector;
     std::unique_ptr<common::ValueVector> tmpHashVector;
     common::SelectionVector hashSelVec;
+
+private:
+    std::vector<common::ValueVector*> vectorsToReadInto;
+    std::vector<uint32_t> columnIdxsToReadFrom;
+
+    common::ValueVector* markVector;
 };
 
 } // namespace processor

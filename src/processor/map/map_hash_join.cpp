@@ -1,5 +1,7 @@
 #include "binder/expression/expression_util.h"
 #include "planner/operator/logical_hash_join.h"
+#include "processor/operator/hash_join/anti_join_hash_table.h"
+#include "processor/operator/hash_join/anti_join_probe.h"
 #include "processor/operator/hash_join/hash_join_build.h"
 #include "processor/operator/hash_join/hash_join_probe.h"
 #include "processor/plan_mapper.h"
@@ -58,8 +60,30 @@ std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(const Schema&
         std::move(payloadsPos), std::move(tableSchema));
 }
 
+static std::unique_ptr<JoinHashTable> getJoinHashTable(JoinType joinType, logical_type_vec_t types,
+    storage::MemoryManager& mm, FactorizedTableSchema tableSchema) {
+    std::unique_ptr<JoinHashTable> globalHashTable;
+    switch (joinType) {
+    case JoinType::ANTI: {
+        globalHashTable =
+            std::make_unique<AntiJoinHashTable>(mm, std::move(types), std::move(tableSchema));
+    } break;
+    case JoinType::INNER:
+    case JoinType::LEFT:
+    case JoinType::MARK:
+    case JoinType::COUNT: {
+        globalHashTable =
+            std::make_unique<JoinHashTable>(mm, std::move(types), std::move(tableSchema));
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+    return globalHashTable;
+};
+
 std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logicalOperator) {
-    auto hashJoin = (LogicalHashJoin*)logicalOperator;
+    auto hashJoin = logicalOperator->ptrCast<LogicalHashJoin>();
     auto outSchema = hashJoin->getSchema();
     auto buildSchema = hashJoin->getChild(1)->getSchema();
     std::unique_ptr<PhysicalOperator> probeSidePrevOperator;
@@ -83,8 +107,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logic
         ExpressionUtil::excludeExpressions(hashJoin->getExpressionsToMaterialize(), probeKeys);
     // Create build
     auto buildInfo = createHashBuildInfo(*buildSchema, buildKeys, payloads);
-    auto globalHashTable = std::make_unique<JoinHashTable>(*clientContext->getMemoryManager(),
-        LogicalType::copy(buildKeyTypes), buildInfo->getTableSchema()->copy());
+    auto globalHashTable = getJoinHashTable(hashJoin->getJoinType(), copyVector(buildKeyTypes),
+        *clientContext->getMemoryManager(), buildInfo->getTableSchema()->copy());
     auto sharedState = std::make_shared<HashJoinSharedState>(std::move(globalHashTable));
     auto buildPrintInfo = std::make_unique<HashJoinBuildPrintInfo>(buildKeys, payloads);
     auto hashJoinBuild =
@@ -109,9 +133,24 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logic
         probeDataInfo.markDataPos = DataPos::getInvalidPos();
     }
     auto probePrintInfo = std::make_unique<HashJoinProbePrintInfo>(probeKeys);
-    auto hashJoinProbe = make_unique<HashJoinProbe>(sharedState, hashJoin->getJoinType(),
-        hashJoin->requireFlatProbeKeys(), probeDataInfo, std::move(probeSidePrevOperator),
-        std::move(hashJoinBuild), getOperatorID(), probePrintInfo->copy());
+    std::unique_ptr<HashJoinProbe> hashJoinProbe;
+    switch (hashJoin->getJoinType()) {
+    case JoinType::ANTI: {
+        hashJoinProbe = make_unique<AntiJoinProbe>(sharedState, hashJoin->getJoinType(),
+            hashJoin->requireFlatProbeKeys(), probeDataInfo, std::move(probeSidePrevOperator),
+            std::move(hashJoinBuild), getOperatorID(), probePrintInfo->copy());
+    } break;
+    case JoinType::INNER:
+    case JoinType::LEFT:
+    case JoinType::MARK:
+    case JoinType::COUNT: {
+        hashJoinProbe = make_unique<HashJoinProbe>(sharedState, hashJoin->getJoinType(),
+            hashJoin->requireFlatProbeKeys(), probeDataInfo, std::move(probeSidePrevOperator),
+            std::move(hashJoinBuild), getOperatorID(), probePrintInfo->copy());
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
     if (hashJoin->getSIPInfo().direction == SIPDirection::PROBE_TO_BUILD) {
         mapSIPJoin(hashJoinProbe.get());
     }

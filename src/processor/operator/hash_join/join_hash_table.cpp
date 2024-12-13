@@ -135,16 +135,7 @@ void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors, ValueVect
     if (!discardNullFromKeys(keyVectors)) {
         return;
     }
-    hashSelVec.setSelSize(keyVectors[0]->state->getSelVector().getSelSize());
-    function::VectorHashFunction::computeHash(*keyVectors[0], keyVectors[0]->state->getSelVector(),
-        hashVector, hashSelVec);
-    for (auto i = 1u; i < keyVectors.size(); i++) {
-        hashSelVec.setSelSize(keyVectors[i]->state->getSelVector().getSelSize());
-        function::VectorHashFunction::computeHash(*keyVectors[i],
-            keyVectors[i]->state->getSelVector(), tmpHashResultVector, hashSelVec);
-        function::VectorHashFunction::combineHash(hashVector, hashSelVec, tmpHashResultVector,
-            hashSelVec, hashVector, hashSelVec);
-    }
+    computeHashValue(keyVectors, hashVector, tmpHashResultVector, hashSelVec);
     for (auto i = 0u; i < hashSelVec.getSelSize(); i++) {
         KU_ASSERT(i < DEFAULT_VECTOR_CAPACITY);
         probedTuples[i] = getTupleForHash(hashVector.getValue<hash_t>(hashSelVec[i]));
@@ -184,6 +175,21 @@ sel_t JoinHashTable::matchUnFlatKey(ValueVector* keyVector, uint8_t** probedTupl
         }
     }
     return numMatchedTuples;
+}
+
+void JoinHashTable::computeHashValue(const std::vector<common::ValueVector*>& keyVectors,
+    common::ValueVector& hashVector, common::ValueVector& tmpHashResultVector,
+    common::SelectionVector& hashSelVec) const {
+    hashSelVec.setSelSize(keyVectors[0]->state->getSelVector().getSelSize());
+    function::VectorHashFunction::computeHash(*keyVectors[0], keyVectors[0]->state->getSelVector(),
+        hashVector, hashSelVec);
+    for (auto i = 1u; i < keyVectors.size(); i++) {
+        hashSelVec.setSelSize(keyVectors[i]->state->getSelVector().getSelSize());
+        function::VectorHashFunction::computeHash(*keyVectors[i],
+            keyVectors[i]->state->getSelVector(), tmpHashResultVector, hashSelVec);
+        function::VectorHashFunction::combineHash(hashVector, hashSelVec, tmpHashResultVector,
+            hashSelVec, hashVector, hashSelVec);
+    }
 }
 
 uint8_t** JoinHashTable::findHashSlot(const uint8_t* tuple) const {

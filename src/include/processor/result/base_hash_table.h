@@ -15,6 +15,11 @@ public:
 
     virtual ~BaseHashTable() = default;
 
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const TARGET*>(this);
+    }
+
 protected:
     static constexpr uint64_t HASH_BLOCK_SIZE = common::TEMP_PAGE_SIZE;
 

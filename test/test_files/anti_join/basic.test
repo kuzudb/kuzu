@@ -1,0 +1,43 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE BasicAntiJoin
+
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID <> b.ID AND a.fName = 'Alice' RETURN a.fName, b.fName
+---- 7
+Alice|Bob
+Alice|Carol
+Alice|Dan
+Alice|Elizabeth
+Alice|Farooq
+Alice|Greg
+Alice|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID <> b.ID AND a.ID < 3 AND b.ID > 5 RETURN a.fName, b.fName
+---- 8
+Alice|Elizabeth
+Alice|Farooq
+Alice|Greg
+Alice|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+Bob|Elizabeth
+Bob|Farooq
+Bob|Greg
+Bob|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID <> b.ID RETURN COUNT(*)
+---- 1
+56
+
+-STATEMENT MATCH (a), (b) WHERE a.ID <> b.ID RETURN COUNT(*)
+---- 1
+110
+
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) , (c:person)-[e2:knows]->(d:person) WHERE a.ID = 0 AND c.ID = 2 AND e1.date <> e2.date RETURN id(e1), e1.date, id(e2), e2.date
+---- 6
+3:0|2021-06-30|3:4|1950-05-14
+3:0|2021-06-30|3:5|1950-05-14
+3:1|2021-06-30|3:4|1950-05-14
+3:1|2021-06-30|3:5|1950-05-14
+3:2|2021-06-30|3:4|1950-05-14
+3:2|2021-06-30|3:5|1950-05-14

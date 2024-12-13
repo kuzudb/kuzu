@@ -52,6 +52,11 @@ public:
     FactorizedTable* getFactorizedTable() { return factorizedTable.get(); }
     const FactorizedTableSchema* getTableSchema() { return factorizedTable->getTableSchema(); }
 
+protected:
+    void computeHashValue(const std::vector<common::ValueVector*>& keyVector,
+        common::ValueVector& hashVector, common::ValueVector& tmpHashResultVector,
+        common::SelectionVector& hashSelVec) const;
+
 private:
     uint8_t** findHashSlot(const uint8_t* tuple) const;
     // This function returns the pointer that previously stored in the same slot.
