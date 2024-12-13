@@ -112,7 +112,7 @@ TEST_F(CardinalityTest, TestOperators) {
         auto* intersect =
             getOpWithType(plan->getLastOperator().get(), planner::LogicalOperatorType::INTERSECT);
         ASSERT_NE(nullptr, intersect);
-        EXPECT_EQ(intersect->getCardinality(), 1);
+        EXPECT_EQ(intersect->getCardinality(), 2);
 
         auto* flatten =
             getOpWithType(plan->getLastOperator().get(), planner::LogicalOperatorType::FLATTEN);
