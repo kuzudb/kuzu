@@ -49,7 +49,7 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
     // Possibly look into using the pycapsule interface.
     py::gil_scoped_acquire acquire;
     py::object table(py::reinterpret_borrow<py::object>(
-        reinterpret_cast<PyObject*>(input->getParam(0).getValue<uint8_t*>())));
+        reinterpret_cast<PyObject*>(input->getLiteralVal<uint8_t*>(0))));
     if (PyConnection::isPandasDataframe(table)) {
         table = importCache->pyarrow.lib.Table.from_pandas()(table);
     } else if (moduleIsLoaded<PolarsCachedItem>() &&

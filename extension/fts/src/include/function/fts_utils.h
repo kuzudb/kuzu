@@ -15,7 +15,7 @@ struct FTSUtils {
         DROP = 2,
     };
 
-    static catalog::NodeTableCatalogEntry& bindTable(const common::Value& tableName,
+    static catalog::NodeTableCatalogEntry& bindTable(const std::string& tableName,
         main::ClientContext* context, std::string indexName, IndexOperation indexOperation);
 
     static void validateIndexExistence(const main::ClientContext& context,

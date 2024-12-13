@@ -7,14 +7,12 @@
 namespace kuzu {
 namespace fts_extension {
 
-catalog::NodeTableCatalogEntry& FTSUtils::bindTable(const common::Value& tableName,
+catalog::NodeTableCatalogEntry& FTSUtils::bindTable(const std::string& tableName,
     main::ClientContext* context, std::string indexName, IndexOperation operation) {
-    if (!context->getCatalog()->containsTable(context->getTx(), tableName.toString())) {
-        throw common::BinderException{
-            common::stringFormat("Table {} does not exist.", tableName.toString())};
+    if (!context->getCatalog()->containsTable(context->getTx(), tableName)) {
+        throw common::BinderException{common::stringFormat("Table {} does not exist.", tableName)};
     }
-    auto tableEntry =
-        context->getCatalog()->getTableCatalogEntry(context->getTx(), tableName.toString());
+    auto tableEntry = context->getCatalog()->getTableCatalogEntry(context->getTx(), tableName);
     if (tableEntry->getTableType() != common::TableType::NODE) {
         switch (operation) {
         case IndexOperation::CREATE:

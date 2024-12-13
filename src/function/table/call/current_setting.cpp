@@ -36,7 +36,7 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     TableFuncBindInput* input) {
-    auto optionName = input->getParam(0).getValue<std::string>();
+    auto optionName = input->getLiteralVal<std::string>(0);
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     columnNames.emplace_back(optionName);

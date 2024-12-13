@@ -53,7 +53,7 @@ static std::unique_ptr<function::ScanReplacementData> tryReplacePolars(py::dict&
         auto scanReplacementData = std::make_unique<function::ScanReplacementData>();
         scanReplacementData->func = PyArrowTableScanFunction::getFunction();
         auto bindInput = function::TableFuncBindInput();
-        bindInput.addParam(Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())));
+        bindInput.addLiteralParam(Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())));
         scanReplacementData->bindInput = std::move(bindInput);
         return scanReplacementData;
     } else {
@@ -71,7 +71,7 @@ static std::unique_ptr<function::ScanReplacementData> tryReplacePyArrow(py::dict
         auto scanReplacementData = std::make_unique<function::ScanReplacementData>();
         scanReplacementData->func = PyArrowTableScanFunction::getFunction();
         auto bindInput = function::TableFuncBindInput();
-        bindInput.addParam(Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())));
+        bindInput.addLiteralParam(Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())));
         scanReplacementData->bindInput = std::move(bindInput);
         return scanReplacementData;
     } else {

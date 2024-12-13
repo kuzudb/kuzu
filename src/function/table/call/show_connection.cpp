@@ -87,7 +87,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
-    auto tableName = input->getParam(0).getValue<std::string>();
+    auto tableName = input->getLiteralVal<std::string>(0);
     auto catalog = context->getCatalog();
     auto tableID = catalog->getTableID(context->getTx(), tableName);
     auto tableEntry = catalog->getTableCatalogEntry(context->getTx(), tableID);

@@ -1,6 +1,8 @@
 #include "function/query_fts_index.h"
 
 #include "binder/expression/expression_util.h"
+#include "binder/expression/literal_expression.h"
+#include "binder/expression/parameter_expression.h"
 #include "catalog/catalog.h"
 #include "catalog/fts_index_catalog_entry.h"
 #include "common/exception/binder.h"
@@ -21,21 +23,39 @@ using namespace kuzu::main;
 using namespace kuzu::function;
 
 struct QueryFTSBindData final : public FTSBindData {
-    std::string query;
+    std::shared_ptr<binder::Expression> query;
     const FTSIndexCatalogEntry& entry;
     QueryFTSConfig config;
 
     QueryFTSBindData(std::string tableName, common::table_id_t tableID, std::string indexName,
-        std::string query, const FTSIndexCatalogEntry& entry, std::vector<LogicalType> returnTypes,
-        std::vector<std::string> returnColumnNames, QueryFTSConfig config)
+        std::shared_ptr<binder::Expression> query, const FTSIndexCatalogEntry& entry,
+        std::vector<LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
+        QueryFTSConfig config)
         : FTSBindData{std::move(tableName), tableID, std::move(indexName), std::move(returnTypes),
               std::move(returnColumnNames)},
           query{std::move(query)}, entry{entry}, config{std::move(config)} {}
+
+    std::string getQuery() const;
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<QueryFTSBindData>(*this);
     }
 };
+
+std::string QueryFTSBindData::getQuery() const {
+    auto value = Value::createDefaultValue(query->dataType);
+    switch (query->expressionType) {
+    case ExpressionType::LITERAL: {
+        value = query->constCast<binder::LiteralExpression>().getValue();
+    } break;
+    case ExpressionType::PARAMETER: {
+        value = query->constCast<binder::ParameterExpression>().getValue();
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
+    return value.getValue<std::string>();
+}
 
 struct QueryFTSLocalState : public TableFuncLocalState {
     std::unique_ptr<QueryResult> result = nullptr;
@@ -46,10 +66,13 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
-    auto indexName = input->getParam(1).toString();
-    auto& tableEntry = FTSUtils::bindTable(input->getParam(0), context, indexName,
-        FTSUtils::IndexOperation::QUERY);
-    auto query = input->getParam(2).toString();
+    // For queryFTS, the table and index name must be given at compile time while the user
+    // can give the query at runtime.
+    auto indexName = binder::ExpressionUtil::getLiteralValue<std::string>(*input->getParam(1));
+    auto& tableEntry = FTSUtils::bindTable(
+        binder::ExpressionUtil::getLiteralValue<std::string>(*input->getParam(0)), context,
+        indexName, FTSUtils::IndexOperation::QUERY);
+    auto query = input->getParam(2);
     FTSUtils::validateIndexExistence(*context, tableEntry.getTableID(), indexName);
     auto ftsCatalogEntry =
         context->getCatalog()->getIndex(context->getTx(), tableEntry.getTableID(), indexName);
