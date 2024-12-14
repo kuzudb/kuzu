@@ -1,6 +1,5 @@
 #include "function/gds/gds_utils.h"
 
-#include <iostream>
 #include <optional>
 
 #include "common/task_system/task_scheduler.h"
