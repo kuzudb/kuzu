@@ -9,7 +9,7 @@
 10000
 -STATEMENT CREATE VECTOR INDEX ON embeddings.embedding (samplingProbability=0.05, alpha=1.1, numVectorsPerPartition=50000000, efConstruction=200, maxNbrsAtUpperLevel=32, maxNbrsAtLowerLevel=64);
 ---- ok
--STATEMENT UPDATE VECTOR INDEX ON dataset.embedding;
+-STATEMENT UPDATE VECTOR INDEX ON embeddings.embedding;
 ---- 1
 1
 #-STATEMENT MATCH (n1:embeddings)-[e]->(n2:embeddings) RETURN ID(n1), ID(e), ID(n2) LIMIT 10000;

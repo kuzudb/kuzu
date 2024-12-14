@@ -76,7 +76,8 @@ private:
 struct VectorTempStorage {
     explicit VectorTempStorage(uint64_t dim, uint64_t numVectors)
         : dim(dim), numVectors(numVectors) {
-        allocAligned((void**)&vectors, numVectors * dim * sizeof(float), 64);
+        vectors = static_cast<float *>(malloc(numVectors * dim * sizeof(float)));
+//        allocAligned((void**)&vectors, numVectors * dim * sizeof(float), 64);
     }
 
     ~VectorTempStorage() {
