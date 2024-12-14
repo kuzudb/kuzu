@@ -8,7 +8,6 @@ namespace binder {
 
 class BoundRegularQuery : public BoundStatement {
 
-
 public:
     explicit BoundRegularQuery(std::vector<bool> isUnionAll, BoundStatementResult statementResult)
         : BoundStatement{common::StatementType::QUERY, std::move(statementResult)},

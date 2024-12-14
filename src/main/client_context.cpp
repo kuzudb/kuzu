@@ -7,6 +7,7 @@
 #include "common/string_utils.h"
 #include "common/task_system/progress_bar.h"
 #include "extension/extension.h"
+#include "graph/graph_entry.h"
 #include "main/attached_database.h"
 #include "main/database.h"
 #include "main/database_manager.h"
@@ -23,7 +24,6 @@
 #include "storage/buffer_manager/spiller.h"
 #include "storage/storage_manager.h"
 #include "transaction/transaction_context.h"
-#include "graph/graph_entry.h"
 
 #if defined(_WIN32)
 #include "common/windows_utils.h"

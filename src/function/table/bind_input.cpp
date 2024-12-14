@@ -1,7 +1,7 @@
 #include "function/table/bind_input.h"
 
-#include "binder/expression/literal_expression.h"
 #include "binder/expression/expression_util.h"
+#include "binder/expression/literal_expression.h"
 
 namespace kuzu {
 namespace function {

@@ -55,9 +55,7 @@ public:
     void addGraph(const std::string& name, const GraphEntry& entry) {
         nameToEntry.insert({name, entry.copy()});
     }
-    void dropGraph(const std::string& name) {
-        nameToEntry.erase(name);
-    }
+    void dropGraph(const std::string& name) { nameToEntry.erase(name); }
 
 private:
     std::unordered_map<std::string, GraphEntry> nameToEntry;

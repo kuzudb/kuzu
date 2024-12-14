@@ -87,7 +87,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
 }
 
 static std::unique_ptr<QueryResult> runQuery(main::ClientContext* context, std::string query) {
-    auto result = context->queryInternal(query, "", false /* enumerateAllPlans*/, std::nullopt /* queryID*/);
+    auto result =
+        context->queryInternal(query, "", false /* enumerateAllPlans*/, std::nullopt /* queryID*/);
     if (!result->isSuccess()) {
         throw RuntimeException(result->getErrorMessage());
     }
@@ -110,8 +111,7 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
         auto numTermsInQuery = result->getNext()->getValue(0)->toString();
         // Project graph
         query = stringFormat("CALL create_project_graph('PK', ['{}', '{}'], ['{}'])",
-            bindData.getTermsTableName(),
-            bindData.getDocsTableName(),
+            bindData.getTermsTableName(), bindData.getDocsTableName(),
             bindData.getAppearsInTableName());
         runQuery(clientContext, query);
         // Compute score
@@ -123,9 +123,9 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
                                      "MATCH (p:`{}`) "
                                      "WHERE _node.docID = offset(id(p)) "
                                      "RETURN p, score",
-            actualQuery, bindData.entry.getFTSConfig().stemmer,
-            bindData.getTermsTableName(), bindData.config.k, bindData.config.b, numDocs, avgDocLen,
-            numTermsInQuery, bindData.config.isConjunctive ? "true" : "false", bindData.tableName);
+            actualQuery, bindData.entry.getFTSConfig().stemmer, bindData.getTermsTableName(),
+            bindData.config.k, bindData.config.b, numDocs, avgDocLen, numTermsInQuery,
+            bindData.config.isConjunctive ? "true" : "false", bindData.tableName);
         localState->result = runQuery(clientContext, query);
         // Remove project graph
         query = stringFormat("CALL drop_project_graph('PK')");

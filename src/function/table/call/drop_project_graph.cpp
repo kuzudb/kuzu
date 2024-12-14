@@ -1,7 +1,7 @@
-#include "function/table/simple_table_functions.h"
-#include "processor/execution_context.h"
-#include "graph/graph_entry.h"
 #include "common/exception/runtime.h"
+#include "function/table/simple_table_functions.h"
+#include "graph/graph_entry.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::common;
 
@@ -23,7 +23,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& /*outp
     auto bindData = ku_dynamic_cast<DropProjectGraphBindData*>(input.bindData);
     auto& graphEntrySet = input.context->clientContext->getGraphEntrySetUnsafe();
     if (!graphEntrySet.hasGraph(bindData->graphName)) {
-        throw RuntimeException(stringFormat("Project graph {} does not exists.",  bindData->graphName));
+        throw RuntimeException(
+            stringFormat("Project graph {} does not exists.", bindData->graphName));
     }
     graphEntrySet.dropGraph(bindData->graphName);
     return 0;
@@ -37,7 +38,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext*,
 
 function_set DropProjectGraphFunction::getFunctionSet() {
     function_set functionSet;
-    auto func = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
+    auto func =
+        std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
     func->bindFunc = bindFunc;
     func->tableFunc = tableFunc;
     func->initSharedStateFunc = initSharedState;
@@ -47,6 +49,5 @@ function_set DropProjectGraphFunction::getFunctionSet() {
     return functionSet;
 }
 
-
-}
-}
+} // namespace function
+} // namespace kuzu
