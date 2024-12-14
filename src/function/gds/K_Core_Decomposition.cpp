@@ -36,7 +36,7 @@ public:
         }
     }
 
-    void initRJFromSource(common::nodeID_t source) override { setActiveNodesForNextIter(); };
+    void initRJFromSource(common::nodeID_t /* source */) override { setActiveNodesForNextIter(); };
 
     void pinCurrFrontier(common::table_id_t tableID) override {
         FrontierPair::pinCurrFrontier(tableID);
@@ -141,7 +141,7 @@ struct KCoreInitEdgeCompute : public EdgeCompute {
         graph::NbrScanState::Chunk& chunk, bool) override {
         std::vector<common::nodeID_t> result;
         uint64_t nbrAmount = 0;
-        chunk.forEach([&](auto nbrNodeID, auto) { nbrAmount++; });
+        chunk.forEach([&](auto /* nbrNodeID */, auto) { nbrAmount++; });
         result.push_back(boundNodeID);
         frontierPair->addToVertexDegree(boundNodeID, nbrAmount);
         return result;
