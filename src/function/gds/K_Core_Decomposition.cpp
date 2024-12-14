@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "binder/binder.h"
 #include "common/types/types.h"
 #include "function/gds/gds_frontier.h"
@@ -32,9 +34,7 @@ public:
         }
     }
 
-    void initRJFromSource(common::nodeID_t source) override {
-        setActiveNodesForNextIter();
-    };
+    void initRJFromSource(common::nodeID_t source) override { setActiveNodesForNextIter(); };
 
     void pinCurrFrontier(common::table_id_t tableID) override {
         FrontierPair::pinCurrFrontier(tableID);
@@ -60,17 +60,20 @@ public:
         updateSmallestDegree();
         curDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();
         nextDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();
-    }  
+    }
 
     uint64_t addToVertexDegree(common::nodeID_t nodeID, uint64_t degreeToAdd) {
-        return curVertexValues.getData(nodeID.tableID)[nodeID.offset].fetch_add(degreeToAdd, std::memory_order_relaxed);
+        return curVertexValues.getData(nodeID.tableID)[nodeID.offset].fetch_add(degreeToAdd,
+            std::memory_order_relaxed);
     }
 
     uint64_t removeFromVertex(common::nodeID_t nodeID) {
         int curSmallest = curSmallestDegree.load(std::memory_order_relaxed);
-        int curVertexDegree = curVertexValues.getData(nodeID.tableID)[nodeID.offset].load(std::memory_order_relaxed);
+        int curVertexDegree =
+            curVertexValues.getData(nodeID.tableID)[nodeID.offset].load(std::memory_order_relaxed);
         if (curVertexDegree > curSmallest) {
-            return curVertexValues.getData(nodeID.tableID)[nodeID.offset].fetch_sub(1, std::memory_order_relaxed);
+            return curVertexValues.getData(nodeID.tableID)[nodeID.offset].fetch_sub(1,
+                std::memory_order_relaxed);
         }
         return curVertexDegree;
     }
@@ -120,7 +123,6 @@ public:
     uint64_t getVertexValue(common::offset_t offset) {
         return vertexValues[offset].load(std::memory_order_relaxed);
     }
-
 
 private:
     bool updateDegreeFlag = false;
@@ -176,10 +178,11 @@ struct KCoreEdgeCompute : public EdgeCompute {
     }
 };
 
-class KCoreOutputWriter : GDSOutputWriter{
+class KCoreOutputWriter : GDSOutputWriter {
 public:
-    explicit KCoreOutputWriter(main::ClientContext* context, processor::NodeOffsetMaskMap* outputNodeMask, KCoreFrontierPair* frontierPair)
-    : GDSOutputWriter{context, outputNodeMask}, frontierPair{frontierPair} {
+    explicit KCoreOutputWriter(main::ClientContext* context,
+        processor::NodeOffsetMaskMap* outputNodeMask, KCoreFrontierPair* frontierPair)
+        : GDSOutputWriter{context, outputNodeMask}, frontierPair{frontierPair} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID(), context->getMemoryManager());
         kValueVector = createVector(LogicalType::UINT64(), context->getMemoryManager());
     }
@@ -211,17 +214,20 @@ private:
 
 class KCoreVertexCompute : public VertexCompute {
 public:
-    KCoreVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState, std::unique_ptr<KCoreOutputWriter> outputWriter)
+    KCoreVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState,
+        std::unique_ptr<KCoreOutputWriter> outputWriter)
         : mm{mm}, sharedState{sharedState}, outputWriter{std::move(outputWriter)} {
         localFT = sharedState->claimLocalTable(mm);
     }
     ~KCoreVertexCompute() override { sharedState->returnLocalTable(localFT); }
 
-    bool beginOnTable(common::table_id_t tableID) override { 
+    bool beginOnTable(common::table_id_t tableID) override {
         outputWriter->pinTableID(tableID);
-        return true; }
+        return true;
+    }
 
-    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset, common::table_id_t tableID) override {
+    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset,
+        common::table_id_t tableID) override {
         outputWriter->materialize(startOffset, endOffset, tableID, *localFT);
     }
 
