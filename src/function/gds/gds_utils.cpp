@@ -7,7 +7,6 @@
 #include "graph/graph.h"
 #include "main/settings.h"
 
-#include <iostream>
 #include <optional>
 
 using namespace kuzu::common;
@@ -40,22 +39,17 @@ void GDSUtils::scheduleFrontierTask(table_id_t nbrTableID, table_id_t relTableID
     graph::Graph* graph, ExtendDirection extendDirection, GDSComputeState& gdsComputeState,
     processor::ExecutionContext* context, std::optional<uint64_t> numThreads,
     std::optional<common::idx_t> edgePropertyIdx) {
-    std::cout << "schedule Frontier is ran " << std::endl;
     auto clientContext = context->clientContext;
     auto info = FrontierTaskInfo(nbrTableID, relTableID, graph, extendDirection,
         *gdsComputeState.edgeCompute, edgePropertyIdx);
-    std::cout << "schedule after info" << std::endl;
     auto sharedState = std::make_shared<FrontierTaskSharedState>(*gdsComputeState.frontierPair);
     uint64_t maxThreads = numThreads ? numThreads.value() : getNumThreads(*context);
     auto task = std::make_shared<FrontierTask>(maxThreads, info, sharedState);
 
-    std::cout << "what happened here" << std::endl;
     if (gdsComputeState.frontierPair->isCurFrontierSparse()) {
-        std::cout << "here is happened" << std::endl;
         task->runSparse();
         return;
     }
-    std::cout << "can here be wrong" << std::endl;
     // GDSUtils::runFrontiersUntilConvergence is called from a GDSCall operator, which is
     // already executed by a worker thread Tm of the task scheduler. So this function is
     // executed by Tm. Because this function will monitor the task and wait for it to

@@ -10,8 +10,6 @@
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
 
-#include <iostream>
-
 using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::processor;
@@ -25,16 +23,13 @@ class KUZU_API KCoreFrontierPair : public FrontierPair {
 public:
     KCoreFrontierPair(std::shared_ptr<GDSFrontier> curFrontier, std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreads, table_id_map_t<offset_t> numNodesMap, storage::MemoryManager* mm):
     FrontierPair(curFrontier, nextFrontier, maxThreads), numNodesMap{numNodesMap} {
-        std::cout << "begin of pair init" << std::endl;
         for (const auto& [tableID, curNumNodes] : numNodesMap) {
             curVertexValues.allocate(tableID, curNumNodes, mm);
             auto data = curVertexValues.getData(tableID);
             for (auto i = 0u; i < curNumNodes; ++i) {
-                std::cout << "stored" << std::endl;
                 data[i].store(0, std::memory_order_relaxed);
             }
         }
-        std::cout << "after pair init" << std::endl;
     }
 
     void initRJFromSource(common::nodeID_t source) override {
@@ -80,12 +75,16 @@ public:
         return curVertexDegree;
     }
 
-    void updateSmallestDegree() {
+    void updateSmallestDegree(bool dontCheckOffset = false) {
+        if (updateDegreeFlag) {
+            updateDegreeFlag = false;
+            return;
+        }
         uint64_t curSmallest = UINT64_MAX;
         for (const auto& [tableID, curNumNodes] : numNodesMap) {
             curDenseFrontier->pinTableID(tableID);
             for (uint64_t offset = 0; offset < curNumNodes; ++offset) {
-                if (curDenseFrontier->isActive(offset)) {
+                if (dontCheckOffset || curDenseFrontier->isActive(offset)) {
                     curSmallest = std::min(curSmallest, curVertexValues.getData(tableID)[offset].load(std::memory_order_relaxed));
                 }
             }
@@ -94,8 +93,24 @@ public:
         curSmallestDegree.compare_exchange_strong(current, curSmallest, std::memory_order_relaxed);
     }
 
+    void setAllActive() {
+        for (const auto& [tableID, curNumNodes] : numNodesMap) {
+            curDenseFrontier->pinTableID(tableID);
+            for (uint64_t offset = 0; offset < curNumNodes; ++offset) {
+                common::nodeID_t nodeID;
+                nodeID.tableID = tableID;
+                nodeID.offset = offset;
+                curDenseFrontier->setActive(nodeID);
+            }
+        }
+    }
+
     uint64_t getSmallestDegree() {
         return curSmallestDegree.load(std::memory_order_relaxed);
+    }
+
+    void setUpdateFlag() {
+        updateDegreeFlag = true;
     }
 
     bool isNodeActive(common::nodeID_t nodeID) const {
@@ -108,6 +123,7 @@ public:
 
 
 private:
+    bool updateDegreeFlag = false;
     bool updated = false;
     std::atomic<uint64_t> curSmallestDegree{UINT64_MAX};
     common::table_id_map_t<common::offset_t> numNodesMap;
@@ -120,12 +136,11 @@ struct KCoreInitEdgeCompute : public EdgeCompute {
 
     explicit KCoreInitEdgeCompute(KCoreFrontierPair* frontierPair) : frontierPair{frontierPair} {}
 
-    std::vector<common::nodeID_t> edgeCompute(common::nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk, bool) override {
-        std::cout << "init edge compute is ran" << std::endl;
+    std::vector<common::nodeID_t> edgeCompute(common::nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk, bool) override {\
         std::vector<common::nodeID_t> result;
         uint64_t nbrAmount = 0;
         chunk.forEach([&](auto nbrNodeID, auto) {nbrAmount++;});
-
+        result.push_back(boundNodeID);
         frontierPair->addToVertexDegree(boundNodeID, nbrAmount);
         return result;
     }
@@ -254,51 +269,33 @@ public:
         bindData = std::make_unique<GDSBindData>(nodeOutput);
     }
 
-    void initKCore(processor::ExecutionContext* context, GDSComputeState& compState, graph::Graph* graph, std::unique_ptr<EdgeCompute> initEdgeCompute) {
-        auto frontierPair = compState.frontierPair.get();
-        std::swap(compState.edgeCompute, initEdgeCompute);
-        compState.edgeCompute->resetSingleThreadState();
-        for (auto& relTableIDInfo : graph->getRelTableIDInfos()) {
-            compState.beginFrontierComputeBetweenTables(relTableIDInfo.fromNodeTableID, relTableIDInfo.toNodeTableID);
-            std::cout << "HERE" << std::endl;
-            GDSUtils::scheduleFrontierTask(relTableIDInfo.fromNodeTableID, relTableIDInfo.toNodeTableID, graph, ExtendDirection::FWD, compState, context);
-            std::cout << "THERE" << std::endl;
-            compState.beginFrontierComputeBetweenTables(relTableIDInfo.toNodeTableID, relTableIDInfo.fromNodeTableID);
-            GDSUtils::scheduleFrontierTask(relTableIDInfo.fromNodeTableID, relTableIDInfo.toNodeTableID, graph, ExtendDirection::BWD, compState, context);
-        }
-        std::swap(compState.edgeCompute, initEdgeCompute);
-    }
-
     void exec(processor::ExecutionContext* context) override {
-        std::cout << "pinetree in exec" << std::endl;
         auto clientContext = context->clientContext;
         auto graph = sharedState->graph.get();
-        auto nodeTableIDs = graph->getNodeTableIDs();
-        uint64_t totalNumNodes = 0;
-        for (auto& nodeTableID : nodeTableIDs) {
-            totalNumNodes += graph->getNumNodes(clientContext->getTx(), nodeTableID);
-        }
-        std::cout << "checkpoint 1" << std::endl;
         auto numNodesMap = graph->getNumNodesMap(clientContext->getTx());
         auto numThreads = clientContext->getMaxNumThreadForExec();
         auto currentFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto nextFrontier = getPathLengthsFrontier(context, 0);
         auto frontierPair = std::make_unique<KCoreFrontierPair>(
             currentFrontier, nextFrontier, numThreads, numNodesMap, clientContext->getMemoryManager());
+
         frontierPair->setActiveNodesForNextIter();
         frontierPair->getNextSparseFrontier().disable();
-        auto edgeCompute = std::make_unique<KCoreEdgeCompute>(frontierPair.get());
+
         auto initEdgeCompute = std::make_unique<KCoreInitEdgeCompute>(frontierPair.get());
         auto writer = std::make_unique<KCoreOutputWriter>(clientContext, sharedState->getOutputNodeMaskMap(), frontierPair.get());
-        auto computeState = GDSComputeState(std::move(frontierPair), std::move(edgeCompute), sharedState->getOutputNodeMaskMap());
-        initKCore(context, computeState, graph, std::move(initEdgeCompute));
-        std::cout << "after init" << std::endl;
-        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH, 2);
-        std::cout << "after frontier" << std::endl;
+        auto computeState = GDSComputeState(std::move(frontierPair), std::move(initEdgeCompute), sharedState->getOutputNodeMaskMap());
+        
+        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH, 1);
+        auto edgeCompute = std::make_unique<KCoreEdgeCompute>(computeState.frontierPair->ptrCast<KCoreFrontierPair>());
+        computeState.edgeCompute = std::move(edgeCompute);
+        computeState.frontierPair->ptrCast<KCoreFrontierPair>()->updateSmallestDegree();
+        computeState.frontierPair->ptrCast<KCoreFrontierPair>()->setUpdateFlag();
+        computeState.frontierPair->setActiveNodesForNextIter();
+
+        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH, 100);
         auto vertexCompute = std::make_unique<KCoreVertexCompute>(clientContext->getMemoryManager(), sharedState.get(), std::move(writer));
-        std::cout << "checkpoint 3" << std::endl;
         GDSUtils::runVertexCompute(context, sharedState->graph.get(), *vertexCompute);
-        std::cout << "after run vertex compute" << std::endl;
         sharedState->mergeLocalTables();
     }
 
