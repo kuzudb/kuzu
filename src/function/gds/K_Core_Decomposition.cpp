@@ -5,6 +5,7 @@
 #include "function/gds/gds_object_manager.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds_function.h"
+#include "function/output_wrtier.h"
 #include "graph/graph.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
