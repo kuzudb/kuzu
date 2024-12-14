@@ -332,10 +332,6 @@ TestStatement* TestParser::extractStatement(TestStatement* statement,
         statement->checkPrecision = true;
         break;
     }
-    case TokenType::ENUMERATE: {
-        statement->enumerate = true;
-        break;
-    }
     case TokenType::PARALLELISM: {
         checkMinimumParams(1);
         statement->numThreads = stoi(currentToken.params[1]);

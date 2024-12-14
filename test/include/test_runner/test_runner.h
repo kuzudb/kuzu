@@ -16,11 +16,8 @@ public:
 
 private:
     static void testStatement(TestStatement* statement, main::Connection& conn,
-        std::string& databasePath);
-    static void checkLogicalPlans(std::unique_ptr<main::PreparedStatement>& preparedStatement,
-        TestStatement* statement, size_t resultIdx, main::Connection& conn);
-    static void checkLogicalPlan(std::unique_ptr<main::PreparedStatement>& preparedStatement,
-        TestStatement* statement, size_t resultIdx, main::Connection& conn, uint32_t planIdx);
+        const std::string& databasePath);
+    static void checkLogicalPlan(TestStatement* statement, main::Connection& conn);
     static bool checkResultNumeric(main::QueryResult& resultTuples, TestStatement* statement,
         size_t resultIdx);
     static std::vector<std::string> convertResultToString(main::QueryResult& queryResult,

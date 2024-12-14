@@ -44,8 +44,6 @@ struct TestStatement {
     std::string logMessage;
     std::string query;
     uint64_t numThreads = 4;
-    std::string encodedJoin;
-    bool enumerate = false;
     bool checkOutputOrder = false;
     bool checkColumnNames = false;
     bool checkPrecision = false;

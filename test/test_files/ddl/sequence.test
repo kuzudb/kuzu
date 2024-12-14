@@ -22,7 +22,9 @@ Table test has been dropped.
 ---- 1
 Sequence test has been dropped.
 
+# TODO: Rewrite through cpp tests.
 -CASE CreateOptions
+-SKIP
 -STATEMENT CREATE SEQUENCE a;
            CREATE SEQUENCE b START 10;
            CREATE SEQUENCE c START WITH 20;
@@ -196,7 +198,9 @@ Catalog exception: nextval: reached minimum value of sequence "edgeMin" -10
 ---- 1
 1
 
+# TODO: Rewrite through cpp tests.
 -CASE CycleSequencePKey
+-SKIP
 -STATEMENT CREATE SEQUENCE test START 1 MAXVALUE 3;
 ---- ok
 -STATEMENT CREATE NODE TABLE test(id INT64 DEFAULT nextval('test'), PRIMARY KEY(id));

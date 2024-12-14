@@ -5,7 +5,6 @@
 #include "binder/expression/parameter_expression.h"
 #include "catalog/catalog.h"
 #include "catalog/fts_index_catalog_entry.h"
-#include "common/exception/binder.h"
 #include "fts_extension.h"
 #include "function/fts_bind_data.h"
 #include "function/fts_utils.h"
@@ -97,12 +96,11 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
         auto avgDocLen = bindData.entry.getAvgDocLen();
         auto query = common::stringFormat("UNWIND tokenize('{}') AS tk RETURN COUNT(DISTINCT tk);",
             actualQuery);
-        auto numTermsInQuery = data.context->clientContext
-                                   ->queryInternal(query, "" /* encodedJoin */,
-                                       false /* enumerateAllPlans */, std::nullopt /* queryID */)
-                                   ->getNext()
-                                   ->getValue(0)
-                                   ->toString();
+        auto numTermsInQuery =
+            data.context->clientContext->queryInternal(query, std::nullopt /* queryID */)
+                ->getNext()
+                ->getValue(0)
+                ->toString();
         query = common::stringFormat("PROJECT GRAPH PK (`{}`, `{}`, `{}`) "
                                      "UNWIND tokenize('{}') AS tk "
                                      "WITH collect(stem(tk, '{}')) AS keywords "
@@ -116,8 +114,8 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
             bindData.getAppearsInTableName(), actualQuery, bindData.entry.getFTSConfig().stemmer,
             bindData.getTermsTableName(), bindData.config.k, bindData.config.b, numDocs, avgDocLen,
             numTermsInQuery, bindData.config.isConjunctive ? "true" : "false", bindData.tableName);
-        localState->result = data.context->clientContext->queryInternal(query, "", false,
-            std::nullopt /* queryID */);
+        localState->result =
+            data.context->clientContext->queryInternal(query, std::nullopt /* queryID */);
     }
     if (localState->numRowsOutput >= localState->result->getNumTuples()) {
         return 0;

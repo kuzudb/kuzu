@@ -20,8 +20,7 @@ void ImportDB::executeInternal(ExecutionContext* context) {
     if (context->clientContext->getTransactionContext()->hasActiveTransaction()) {
         context->clientContext->getTransactionContext()->commit();
     }
-    context->clientContext->queryInternal(query, "" /* encodedJoin */,
-        false /* enumerateAllPlans */, std::nullopt /* queryID */);
+    context->clientContext->queryInternal(query, std::nullopt /* queryID */);
 }
 
 std::string ImportDB::getOutputMsg() {

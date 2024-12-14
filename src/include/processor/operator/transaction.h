@@ -46,7 +46,8 @@ public:
     }
 
 private:
-    void validateActiveTransaction(const transaction::TransactionContext& context) const;
+    void commitActiveAutoTransaction(transaction::TransactionContext& context);
+    void validateActiveTransaction(transaction::TransactionContext& context) const;
 
 private:
     transaction::TransactionAction transactionAction;

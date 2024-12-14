@@ -22,6 +22,7 @@ bool Transaction::getNextTuplesInternal(ExecutionContext* context) {
     }
     hasExecuted = true;
     auto clientContext = context->clientContext;
+    commitActiveAutoTransaction(*clientContext->getTransactionContext());
     validateActiveTransaction(*clientContext->getTransactionContext());
     switch (transactionAction) {
     case TransactionAction::BEGIN_READ: {
@@ -46,14 +47,20 @@ bool Transaction::getNextTuplesInternal(ExecutionContext* context) {
     return true;
 }
 
-void Transaction::validateActiveTransaction(const TransactionContext& context) const {
+void Transaction::commitActiveAutoTransaction(TransactionContext& context) {
+    if (context.hasActiveTransaction() && context.isAutoTransaction()) {
+        context.commit();
+    }
+}
+
+void Transaction::validateActiveTransaction(TransactionContext& context) const {
     switch (transactionAction) {
     case TransactionAction::BEGIN_READ:
     case TransactionAction::BEGIN_WRITE: {
         if (context.hasActiveTransaction()) {
             throw TransactionManagerException(
-                "Connection already has an active transaction. Cannot start a transaction within "
-                "another one. For concurrent multiple transactions, please open other "
+                "Connection already has an active transaction. Cannot start a transaction "
+                "within another one. For concurrent multiple transactions, please open other "
                 "connections.");
         }
     } break;
