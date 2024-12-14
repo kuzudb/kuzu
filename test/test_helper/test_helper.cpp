@@ -19,7 +19,7 @@ std::vector<std::unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(const st
     if (access(path.c_str(), 0) != 0) {
         throw Exception("Test file not exists! [" + path + "].");
     }
-    struct stat status{};
+    struct stat status {};
     stat(path.c_str(), &status);
     if (status.st_mode & S_IFDIR) {
         throw Exception("Test file is a directory. [" + path + "].");
