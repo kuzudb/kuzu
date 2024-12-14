@@ -82,7 +82,7 @@ namespace kuzu {
             }
 
             // TODO: Maybe remove this!!
-            quantizedVectors.resize(quantizer->codeSize * numVectors, 0);
+//            quantizedVectors.resize(quantizer->codeSize * numVectors, 0);
         }
 
         void VectorIndexHeaderPerPartition::update(const vector_id_t *vectorIds, int numVectors,
