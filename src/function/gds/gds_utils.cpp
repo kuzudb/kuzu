@@ -8,8 +8,6 @@
 #include "graph/graph.h"
 #include "main/settings.h"
 
-#include <optional>
-
 using namespace kuzu::common;
 using namespace kuzu::function;
 using namespace kuzu::processor;

@@ -23,8 +23,10 @@ namespace function {
 
 class KUZU_API KCoreFrontierPair : public FrontierPair {
 public:
-    KCoreFrontierPair(std::shared_ptr<GDSFrontier> curFrontier, std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreads, table_id_map_t<offset_t> numNodesMap, storage::MemoryManager* mm):
-    FrontierPair(curFrontier, nextFrontier, maxThreads), numNodesMap{numNodesMap} {
+    KCoreFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
+        std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreads,
+        table_id_map_t<offset_t> numNodesMap, storage::MemoryManager* mm)
+        : FrontierPair(curFrontier, nextFrontier, maxThreads), numNodesMap{numNodesMap} {
         for (const auto& [tableID, curNumNodes] : numNodesMap) {
             curVertexValues.allocate(tableID, curNumNodes, mm);
             auto data = curVertexValues.getData(tableID);
@@ -88,7 +90,8 @@ public:
             curDenseFrontier->pinTableID(tableID);
             for (uint64_t offset = 0; offset < curNumNodes; ++offset) {
                 if (dontCheckOffset || curDenseFrontier->isActive(offset)) {
-                    curSmallest = std::min(curSmallest, curVertexValues.getData(tableID)[offset].load(std::memory_order_relaxed));
+                    curSmallest = std::min(curSmallest,
+                        curVertexValues.getData(tableID)[offset].load(std::memory_order_relaxed));
                 }
             }
         }
@@ -108,13 +111,9 @@ public:
         }
     }
 
-    uint64_t getSmallestDegree() {
-        return curSmallestDegree.load(std::memory_order_relaxed);
-    }
+    uint64_t getSmallestDegree() { return curSmallestDegree.load(std::memory_order_relaxed); }
 
-    void setUpdateFlag() {
-        updateDegreeFlag = true;
-    }
+    void setUpdateFlag() { updateDegreeFlag = true; }
 
     bool isNodeActive(common::nodeID_t nodeID) const {
         return curDenseFrontier->isActive(nodeID.offset);
@@ -138,10 +137,11 @@ struct KCoreInitEdgeCompute : public EdgeCompute {
 
     explicit KCoreInitEdgeCompute(KCoreFrontierPair* frontierPair) : frontierPair{frontierPair} {}
 
-    std::vector<common::nodeID_t> edgeCompute(common::nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk, bool) override {\
+    std::vector<common::nodeID_t> edgeCompute(common::nodeID_t boundNodeID,
+        graph::NbrScanState::Chunk& chunk, bool) override {
         std::vector<common::nodeID_t> result;
         uint64_t nbrAmount = 0;
-        chunk.forEach([&](auto nbrNodeID, auto) {nbrAmount++;});
+        chunk.forEach([&](auto nbrNodeID, auto) { nbrAmount++; });
         result.push_back(boundNodeID);
         frontierPair->addToVertexDegree(boundNodeID, nbrAmount);
         return result;
@@ -282,25 +282,31 @@ public:
         auto numThreads = clientContext->getMaxNumThreadForExec();
         auto currentFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto nextFrontier = getPathLengthsFrontier(context, 0);
-        auto frontierPair = std::make_unique<KCoreFrontierPair>(
-            currentFrontier, nextFrontier, numThreads, numNodesMap, clientContext->getMemoryManager());
+        auto frontierPair = std::make_unique<KCoreFrontierPair>(currentFrontier, nextFrontier,
+            numThreads, numNodesMap, clientContext->getMemoryManager());
 
         frontierPair->setActiveNodesForNextIter();
         frontierPair->getNextSparseFrontier().disable();
 
         auto initEdgeCompute = std::make_unique<KCoreInitEdgeCompute>(frontierPair.get());
-        auto writer = std::make_unique<KCoreOutputWriter>(clientContext, sharedState->getOutputNodeMaskMap(), frontierPair.get());
-        auto computeState = GDSComputeState(std::move(frontierPair), std::move(initEdgeCompute), sharedState->getOutputNodeMaskMap());
-        
-        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH, 1);
-        auto edgeCompute = std::make_unique<KCoreEdgeCompute>(computeState.frontierPair->ptrCast<KCoreFrontierPair>());
+        auto writer = std::make_unique<KCoreOutputWriter>(clientContext,
+            sharedState->getOutputNodeMaskMap(), frontierPair.get());
+        auto computeState = GDSComputeState(std::move(frontierPair), std::move(initEdgeCompute),
+            sharedState->getOutputNodeMaskMap());
+
+        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH,
+            1);
+        auto edgeCompute = std::make_unique<KCoreEdgeCompute>(
+            computeState.frontierPair->ptrCast<KCoreFrontierPair>());
         computeState.edgeCompute = std::move(edgeCompute);
         computeState.frontierPair->ptrCast<KCoreFrontierPair>()->updateSmallestDegree();
         computeState.frontierPair->ptrCast<KCoreFrontierPair>()->setUpdateFlag();
         computeState.frontierPair->setActiveNodesForNextIter();
 
-        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH, 100);
-        auto vertexCompute = std::make_unique<KCoreVertexCompute>(clientContext->getMemoryManager(), sharedState.get(), std::move(writer));
+        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH,
+            100);
+        auto vertexCompute = std::make_unique<KCoreVertexCompute>(clientContext->getMemoryManager(),
+            sharedState.get(), std::move(writer));
         GDSUtils::runVertexCompute(context, sharedState->graph.get(), *vertexCompute);
         sharedState->mergeLocalTables();
     }
