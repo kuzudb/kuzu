@@ -36,7 +36,7 @@ public:
         }
     }
 
-    void initRJFromSource(common::nodeID_t source) override { setActiveNodesForNextIter(); };
+    void initRJFromSource(common::nodeID_t /* source */) override { setActiveNodesForNextIter(); };
 
     void pinCurrFrontier(common::table_id_t tableID) override {
         FrontierPair::pinCurrFrontier(tableID);
