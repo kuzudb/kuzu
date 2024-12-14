@@ -21,7 +21,7 @@ class Serializer;
 class Deserializer;
 struct FileInfo;
 
-using sel_t = uint16_t;
+using sel_t = uint64_t;
 using hash_t = uint64_t;
 using page_idx_t = uint32_t;
 using frame_idx_t = page_idx_t;
@@ -34,7 +34,7 @@ constexpr property_id_t INVALID_PROPERTY_ID = UINT32_MAX;
 using column_id_t = property_id_t;
 constexpr column_id_t INVALID_COLUMN_ID = INVALID_PROPERTY_ID;
 using idx_t = uint32_t;
-const idx_t INVALID_IDX = UINT32_MAX;
+constexpr idx_t INVALID_IDX = UINT32_MAX;
 using block_idx_t = uint64_t;
 constexpr block_idx_t INVALID_BLOCK_IDX = UINT64_MAX;
 using struct_field_idx_t = uint8_t;
