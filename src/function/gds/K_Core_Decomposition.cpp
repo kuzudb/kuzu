@@ -1,12 +1,9 @@
-#include <iostream>
-
 #include "binder/binder.h"
 #include "common/types/types.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_object_manager.h"
 #include "function/gds/gds_utils.h"
-#include "function/gds/rec_joins.h"
 #include "function/gds_function.h"
 #include "graph/graph.h"
 #include "processor/execution_context.h"
