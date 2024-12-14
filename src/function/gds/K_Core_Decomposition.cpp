@@ -23,8 +23,10 @@ namespace function {
 
 class KUZU_API KCoreFrontierPair : public FrontierPair {
 public:
-    KCoreFrontierPair(std::shared_ptr<GDSFrontier> curFrontier, std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreads, table_id_map_t<offset_t> numNodesMap, storage::MemoryManager* mm):
-    FrontierPair(curFrontier, nextFrontier, maxThreads), numNodesMap{numNodesMap} {
+    KCoreFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
+        std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreads,
+        table_id_map_t<offset_t> numNodesMap, storage::MemoryManager* mm)
+        : FrontierPair(curFrontier, nextFrontier, maxThreads), numNodesMap{numNodesMap} {
         for (const auto& [tableID, curNumNodes] : numNodesMap) {
             curVertexValues.allocate(tableID, curNumNodes, mm);
             auto data = curVertexValues.getData(tableID);
@@ -88,7 +90,8 @@ public:
             curDenseFrontier->pinTableID(tableID);
             for (uint64_t offset = 0; offset < curNumNodes; ++offset) {
                 if (dontCheckOffset || curDenseFrontier->isActive(offset)) {
-                    curSmallest = std::min(curSmallest, curVertexValues.getData(tableID)[offset].load(std::memory_order_relaxed));
+                    curSmallest = std::min(curSmallest,
+                        curVertexValues.getData(tableID)[offset].load(std::memory_order_relaxed));
                 }
             }
         }
@@ -108,13 +111,9 @@ public:
         }
     }
 
-    uint64_t getSmallestDegree() {
-        return curSmallestDegree.load(std::memory_order_relaxed);
-    }
+    uint64_t getSmallestDegree() { return curSmallestDegree.load(std::memory_order_relaxed); }
 
-    void setUpdateFlag() {
-        updateDegreeFlag = true;
-    }
+    void setUpdateFlag() { updateDegreeFlag = true; }
 
     bool isNodeActive(common::nodeID_t nodeID) const {
         return curDenseFrontier->isActive(nodeID.offset);
@@ -285,8 +284,8 @@ public:
         auto numThreads = clientContext->getMaxNumThreadForExec();
         auto currentFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto nextFrontier = getPathLengthsFrontier(context, 0);
-        auto frontierPair = std::make_unique<KCoreFrontierPair>(
-            currentFrontier, nextFrontier, numThreads, numNodesMap, clientContext->getMemoryManager());
+        auto frontierPair = std::make_unique<KCoreFrontierPair>(currentFrontier, nextFrontier,
+            numThreads, numNodesMap, clientContext->getMemoryManager());
 
         frontierPair->setActiveNodesForNextIter();
         frontierPair->getNextSparseFrontier().disable();
