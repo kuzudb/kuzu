@@ -125,7 +125,6 @@ public:
 
 private:
     bool updateDegreeFlag = false;
-    bool updated = false;
     std::atomic<uint64_t> curSmallestDegree{UINT64_MAX};
     common::table_id_map_t<common::offset_t> numNodesMap;
     std::atomic<uint64_t>* vertexValues = nullptr;
