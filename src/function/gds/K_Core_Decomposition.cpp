@@ -240,7 +240,7 @@ private:
 };
 
 class KCoreDecomposition final : public GDSAlgorithm {
-    static constexpr char GROUP_ID_COLUMN_NAME[] = "group_id";
+    static constexpr char GROUP_ID_COLUMN_NAME[] = "k_degree";
 
 public:
     KCoreDecomposition() = default;
@@ -301,7 +301,7 @@ public:
         computeState.frontierPair->setActiveNodesForNextIter();
 
         GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH,
-            100);
+            UINT16_MAX);
         auto vertexCompute = std::make_unique<KCoreVertexCompute>(clientContext->getMemoryManager(),
             sharedState.get(), std::move(writer));
         GDSUtils::runVertexCompute(context, sharedState->graph.get(), *vertexCompute);
