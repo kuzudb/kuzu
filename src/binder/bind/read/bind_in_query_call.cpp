@@ -47,10 +47,10 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         }
         auto varName =
             functionExpr->getChild(0)->constPtrCast<ParsedVariableExpression>()->getVariableName();
-        if (!graphEntrySet.hasGraph(varName)) {
+        if (!clientContext->getGraphEntrySetUnsafe().hasGraph(varName)) {
             throw BinderException(stringFormat("Cannot find graph {}.", varName));
         }
-        auto graphEntry = graphEntrySet.getEntry(varName);
+        auto graphEntry = clientContext->getGraphEntrySetUnsafe().getEntry(varName);
         expression_vector children;
         std::vector<LogicalType> childrenTypes;
         children.push_back(nullptr); // placeholder for graph variable.
