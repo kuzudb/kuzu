@@ -242,7 +242,7 @@ private:
 };
 
 class KCoreDecomposition final : public GDSAlgorithm {
-    static constexpr char GROUP_ID_COLUMN_NAME[] = "group_id";
+    static constexpr char GROUP_ID_COLUMN_NAME[] = "k_degree";
 
 public:
     KCoreDecomposition() = default;
