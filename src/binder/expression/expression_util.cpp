@@ -191,6 +191,22 @@ void ExpressionUtil::validateExpressionType(const Expression& expr,
         ExpressionTypeUtil::toString(expectedType)));
 }
 
+void ExpressionUtil::validateExpressionType(const Expression& expr,
+    std::vector<common::ExpressionType> expectedType) {
+    if (std::find(expectedType.begin(), expectedType.end(), expr.expressionType) !=
+        expectedType.end()) {
+        return;
+    }
+    std::string expectedTypesStr = "";
+    std::for_each(expectedType.begin(), expectedType.end(),
+        [&expectedTypesStr](common::ExpressionType type) {
+            expectedTypesStr += expectedTypesStr.empty() ? ExpressionTypeUtil::toString(type) :
+                                                           "," + ExpressionTypeUtil::toString(type);
+        });
+    throw BinderException(stringFormat("{} has type {} but {} was expected.", expr.toString(),
+        ExpressionTypeUtil::toString(expr.expressionType), expectedTypesStr));
+}
+
 void ExpressionUtil::validateDataType(const Expression& expr, const LogicalType& expectedType) {
     if (expr.getDataType() == expectedType) {
         return;

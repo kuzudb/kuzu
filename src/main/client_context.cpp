@@ -7,6 +7,7 @@
 #include "common/string_utils.h"
 #include "common/task_system/progress_bar.h"
 #include "extension/extension.h"
+#include "graph/graph_entry.h"
 #include "main/attached_database.h"
 #include "main/database.h"
 #include "main/database_manager.h"
@@ -51,6 +52,7 @@ ClientContext::ClientContext(Database* database)
     transactionContext = std::make_unique<TransactionContext>(*this);
     randomEngine = std::make_unique<RandomEngine>();
     remoteDatabase = nullptr;
+    graphEntrySet = std::make_unique<graph::GraphEntrySet>();
 #if defined(_WIN32)
     clientConfig.homeDirectory = getEnvVariable("USERPROFILE");
 #else
@@ -352,7 +354,7 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
         }
         // optimizing
         for (auto& plan : plans) {
-            optimizer::Optimizer::optimize(plan.get(), this);
+            optimizer::Optimizer::optimize(plan.get(), this, planner.getCardinalityEstimator());
         }
         if (!encodedJoin.empty()) {
             std::unique_ptr<LogicalPlan> match;
@@ -579,5 +581,10 @@ processor::WarningContext& ClientContext::getWarningContextUnsafe() {
 const processor::WarningContext& ClientContext::getWarningContext() const {
     return warningContext;
 }
+
+graph::GraphEntrySet& ClientContext::getGraphEntrySetUnsafe() {
+    return *graphEntrySet;
+}
+
 } // namespace main
 } // namespace kuzu

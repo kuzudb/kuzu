@@ -3,6 +3,7 @@
 #include "main/client_context.h"
 #include "optimizer/acc_hash_join_optimizer.h"
 #include "optimizer/agg_key_dependency_optimizer.h"
+#include "optimizer/cardinality_updater.h"
 #include "optimizer/correlated_subquery_unnest_solver.h"
 #include "optimizer/factorization_rewriter.h"
 #include "optimizer/filter_push_down_optimizer.h"
@@ -12,11 +13,14 @@
 #include "optimizer/remove_unnecessary_join_optimizer.h"
 #include "optimizer/schema_populator.h"
 #include "optimizer/top_k_optimizer.h"
+#include "planner/join_order/cardinality_estimator.h"
+#include "planner/operator/logical_explain.h"
 
 namespace kuzu {
 namespace optimizer {
 
-void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* context) {
+void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* context,
+    const planner::CardinalityEstimator& cardinalityEstimator) {
     if (context->getClientConfig()->enablePlanOptimizer) {
         // Factorization structure should be removed before further optimization can be applied.
         auto removeFactorizationRewriter = RemoveFactorizationRewriter();
@@ -54,6 +58,17 @@ void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* contex
         // after FactorizationRewriter.
         auto aggKeyDependencyOptimizer = AggKeyDependencyOptimizer();
         aggKeyDependencyOptimizer.rewrite(plan);
+
+        // for EXPLAIN LOGICAL we need to update the cardinalities for the optimized plan
+        // we don't need to do this otherwise as we don't use the cardinalities after planning
+        if (plan->getLastOperatorRef().getOperatorType() == planner::LogicalOperatorType::EXPLAIN) {
+            const auto& explain = plan->getLastOperatorRef().cast<planner::LogicalExplain>();
+            if (explain.getExplainType() == common::ExplainType::LOGICAL_PLAN) {
+                auto cardinalityUpdater =
+                    CardinalityUpdater(cardinalityEstimator, context->getTx());
+                cardinalityUpdater.rewrite(plan);
+            }
+        }
     } else {
         // we still need to compute the schema for each operator even if we have optimizations
         // disabled

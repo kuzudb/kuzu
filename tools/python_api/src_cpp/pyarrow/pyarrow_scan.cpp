@@ -42,13 +42,14 @@ static bool moduleIsLoaded() {
 }
 
 static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-    ScanTableFuncBindInput* input) {
+    TableFuncBindInput* input) {
+    auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
     // TODO: This binding step could use some drastic improvements.
     // Particularly when scanning from pandas or polars.
     // Possibly look into using the pycapsule interface.
     py::gil_scoped_acquire acquire;
     py::object table(py::reinterpret_borrow<py::object>(
-        reinterpret_cast<PyObject*>(input->inputs[0].getValue<uint8_t*>())));
+        reinterpret_cast<PyObject*>(input->getLiteralVal<uint8_t*>(0))));
     if (PyConnection::isPandasDataframe(table)) {
         table = importCache->pyarrow.lib.Table.from_pandas()(table);
     } else if (moduleIsLoaded<PolarsCachedItem>() &&
@@ -62,7 +63,7 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
     }
     auto numRows = py::len(table);
     auto schema = Pyarrow::bind(table, returnTypes, names);
-    auto config = PyArrowScanConfig(input->config.options);
+    auto config = PyArrowScanConfig(scanInput->config.options);
     // The following python operations are zero copy as defined in pyarrow docs.
     if (config.skipNum != 0) {
         table = table.attr("slice")(config.skipNum);
@@ -96,7 +97,7 @@ static std::unique_ptr<function::TableFuncSharedState> initSharedState(
     PyArrowTableScanFunctionData* bindData =
         dynamic_cast<PyArrowTableScanFunctionData*>(input.bindData);
 
-    return std::make_unique<PyArrowTableScanSharedState>(bindData->numRows,
+    return std::make_unique<PyArrowTableScanSharedState>(bindData->cardinality,
         bindData->arrowArrayBatches);
 }
 
@@ -140,7 +141,6 @@ static double progressFunc(function::TableFuncSharedState* sharedState) {
 }
 
 function::function_set PyArrowTableScanFunction::getFunctionSet() {
-
     function_set functionSet;
     functionSet.push_back(
         std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState, initLocalState,

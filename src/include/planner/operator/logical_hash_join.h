@@ -34,6 +34,8 @@ public:
     binder::expression_vector getExpressionsToMaterialize() const;
 
     binder::expression_vector getJoinNodeIDs() const;
+    static binder::expression_vector getJoinNodeIDs(
+        const std::vector<join_condition_t>& joinConditions);
 
     std::vector<join_condition_t> getJoinConditions() const { return joinConditions; }
     common::JoinType getJoinType() const { return joinType; }
@@ -54,8 +56,9 @@ public:
     // flattening probe key, instead duplicating keys as in vectorized processing if necessary.
     bool requireFlatProbeKeys();
 
+    static bool isNodeIDOnlyJoin(const std::vector<join_condition_t>& joinConditions);
+
 private:
-    bool isNodeIDOnlyJoin() const;
     bool isJoinKeyUniqueOnBuildSide(const binder::Expression& joinNodeID);
 
 private:

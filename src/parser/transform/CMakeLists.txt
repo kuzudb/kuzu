@@ -1,7 +1,6 @@
 add_library(kuzu_parser_transform
         OBJECT
         transform_copy.cpp
-        transform_project_graph.cpp
         transform_ddl.cpp
         transform_expression.cpp
         transform_graph_pattern.cpp

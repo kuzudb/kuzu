@@ -327,7 +327,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
-    ScanTableFuncBindInput* input) {
+    TableFuncBindInput* input) {
     std::vector<std::string> columnNames = {"table_type", "node_group_id", "node_chunk_id",
         "residency", "column_name", "data_type", "start_page_idx", "num_pages", "num_values", "min",
         "max", "compression"};
@@ -344,7 +344,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     columnTypes.emplace_back(LogicalType::STRING());
     columnTypes.emplace_back(LogicalType::STRING());
     columnTypes.emplace_back(LogicalType::STRING());
-    auto tableName = input->inputs[0].getValue<std::string>();
+    auto tableName = input->getLiteralVal<std::string>(0);
     auto catalog = context->getCatalog();
     if (!catalog->containsTable(context->getTx(), tableName)) {
         throw BinderException{"Table " + tableName + " does not exist!"};

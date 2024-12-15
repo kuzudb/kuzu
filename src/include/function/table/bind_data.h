@@ -19,19 +19,22 @@ struct TableFuncBindData {
     // the last {numWarningDataColumns} columns are for temporary internal use
     common::column_id_t numWarningDataColumns;
 
-    TableFuncBindData() : numWarningDataColumns{0} {}
+    common::cardinality_t cardinality;
+
+    TableFuncBindData() : numWarningDataColumns{0}, cardinality(0) {}
     TableFuncBindData(std::vector<common::LogicalType> columnTypes,
         std::vector<std::string> columnNames)
         : columnTypes{std::move(columnTypes)}, columnNames{std::move(columnNames)},
-          numWarningDataColumns(0) {}
+          numWarningDataColumns(0), cardinality(0) {}
     TableFuncBindData(std::vector<common::LogicalType> columnTypes,
-        std::vector<std::string> columnNames, common::column_id_t numWarningDataColumns)
+        std::vector<std::string> columnNames, common::column_id_t numWarningDataColumns,
+        common::cardinality_t cardinality)
         : columnTypes{std::move(columnTypes)}, columnNames{std::move(columnNames)},
-          numWarningDataColumns{numWarningDataColumns} {}
+          numWarningDataColumns{numWarningDataColumns}, cardinality(cardinality) {}
     TableFuncBindData(const TableFuncBindData& other)
         : columnTypes{common::LogicalType::copy(other.columnTypes)}, columnNames{other.columnNames},
-          numWarningDataColumns(other.numWarningDataColumns), columnSkips{other.columnSkips},
-          columnPredicates{copyVector(other.columnPredicates)} {}
+          numWarningDataColumns(other.numWarningDataColumns), cardinality(other.cardinality),
+          columnSkips{other.columnSkips}, columnPredicates{copyVector(other.columnPredicates)} {}
     virtual ~TableFuncBindData() = default;
 
     common::idx_t getNumColumns() const { return columnTypes.size(); }
@@ -52,6 +55,11 @@ struct TableFuncBindData {
         return common::ku_dynamic_cast<const TARGET*>(this);
     }
 
+    template<class TARGET>
+    TARGET& cast() {
+        return *common::ku_dynamic_cast<TARGET*>(this);
+    }
+
 private:
     std::vector<bool> columnSkips;
     std::vector<storage::ColumnPredicateSet> columnPredicates;
@@ -63,8 +71,9 @@ struct ScanBindData : public TableFuncBindData {
 
     ScanBindData(std::vector<common::LogicalType> columnTypes, std::vector<std::string> columnNames,
         common::ReaderConfig config, main::ClientContext* context,
-        common::column_id_t numWarningDataColumns = 0)
-        : TableFuncBindData{std::move(columnTypes), std::move(columnNames), numWarningDataColumns},
+        common::row_idx_t estCardinality = 0, common::column_id_t numWarningDataColumns = 0)
+        : TableFuncBindData{std::move(columnTypes), std::move(columnNames), numWarningDataColumns,
+              estCardinality},
           config{std::move(config)}, context{context} {}
     ScanBindData(const ScanBindData& other)
         : TableFuncBindData{other}, config{other.config.copy()}, context{other.context} {}

@@ -216,8 +216,10 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     } while (true);
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-    ScanTableFuncBindInput* scanInput) {
+static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
+    TableFuncBindInput* input) {
+    auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
+
     bool detectedHeader = false;
 
     DialectOption detectedDialect;
@@ -227,7 +229,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*contex
     std::vector<std::string> detectedColumnNames;
     std::vector<LogicalType> detectedColumnTypes;
     SerialCSVScan::bindColumns(scanInput, detectedColumnNames, detectedColumnTypes, detectedDialect,
-        detectedHeader);
+        detectedHeader, context);
 
     std::vector<std::string> resultColumnNames;
     std::vector<LogicalType> resultColumnTypes;
@@ -250,8 +252,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*contex
     const column_id_t numWarningDataColumns = BaseCSVReader::appendWarningDataColumns(
         resultColumnNames, resultColumnTypes, scanInput->config);
 
+    // we currently have no way to estimate the number of rows in a CSV
     return std::make_unique<ScanBindData>(std::move(resultColumnTypes),
-        std::move(resultColumnNames), scanInput->config.copy(), scanInput->context,
+        std::move(resultColumnNames), scanInput->config.copy(), context, 0 /* estCardinality */,
         numWarningDataColumns);
 }
 

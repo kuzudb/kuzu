@@ -16,8 +16,8 @@ struct ExecutionContext;
 
 namespace function {
 
+struct TableFuncBindInput;
 struct TableFuncBindData;
-struct ScanTableFuncBindInput;
 
 struct TableFuncSharedState {
     virtual ~TableFuncSharedState() = default;
@@ -75,7 +75,7 @@ struct TableFunctionInitInput {
 };
 
 using table_func_bind_t = std::function<std::unique_ptr<TableFuncBindData>(main::ClientContext*,
-    function::ScanTableFuncBindInput*)>;
+    function::TableFuncBindInput*)>;
 using table_func_t = std::function<common::offset_t(TableFuncInput&, TableFuncOutput&)>;
 using table_func_init_shared_t =
     std::function<std::unique_ptr<TableFuncSharedState>(TableFunctionInitInput&)>;
@@ -89,10 +89,10 @@ using table_func_rewrite_t =
     std::function<std::string(main::ClientContext&, const TableFuncBindData& bindData)>;
 
 struct KUZU_API TableFunction : public Function {
-    table_func_t tableFunc;
-    table_func_bind_t bindFunc;
-    table_func_init_shared_t initSharedStateFunc;
-    table_func_init_local_t initLocalStateFunc;
+    table_func_t tableFunc = nullptr;
+    table_func_bind_t bindFunc = nullptr;
+    table_func_init_shared_t initSharedStateFunc = nullptr;
+    table_func_init_local_t initLocalStateFunc = nullptr;
     table_func_can_parallel_t canParallelFunc = [] { return true; };
     table_func_progress_t progressFunc = [](TableFuncSharedState*) { return 0.0; };
     table_func_finalize_t finalizeFunc = [](auto, auto) {};
@@ -101,6 +101,8 @@ struct KUZU_API TableFunction : public Function {
     TableFunction()
         : Function{}, tableFunc{nullptr}, bindFunc{nullptr}, initSharedStateFunc{nullptr},
           initLocalStateFunc{nullptr} {};
+    TableFunction(std::string name, std::vector<common::LogicalTypeID> inputTypes)
+        : Function{name, inputTypes} {}
     TableFunction(std::string name, table_func_t tableFunc, table_func_bind_t bindFunc,
         table_func_init_shared_t initSharedFunc, table_func_init_local_t initLocalFunc,
         std::vector<common::LogicalTypeID> inputTypes,

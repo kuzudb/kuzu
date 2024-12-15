@@ -88,6 +88,9 @@ void LogicalOperatorVisitor::visitOperatorSwitch(LogicalOperator* op) {
     case LogicalOperatorType::UNWIND: {
         visitUnwind(op);
     } break;
+    case LogicalOperatorType::CROSS_PRODUCT: {
+        visitCrossProduct(op);
+    }
     default:
         return;
     }
@@ -176,6 +179,9 @@ std::shared_ptr<LogicalOperator> LogicalOperatorVisitor::visitOperatorReplaceSwi
     }
     case LogicalOperatorType::UNWIND: {
         return visitUnwindReplace(op);
+    }
+    case LogicalOperatorType::CROSS_PRODUCT: {
+        return visitCrossProductReplace(op);
     }
     default:
         return op;

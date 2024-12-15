@@ -113,7 +113,7 @@ void LogicalHashJoin::computeFlatSchema() {
 }
 
 std::string LogicalHashJoin::getExpressionsForPrinting() const {
-    if (isNodeIDOnlyJoin()) {
+    if (isNodeIDOnlyJoin(joinConditions)) {
         return binder::ExpressionUtil::toStringOrdered(getJoinNodeIDs());
     }
     return binder::ExpressionUtil::toString(joinConditions);
@@ -141,7 +141,7 @@ std::unique_ptr<LogicalOperator> LogicalHashJoin::copy() {
     return op;
 }
 
-bool LogicalHashJoin::isNodeIDOnlyJoin() const {
+bool LogicalHashJoin::isNodeIDOnlyJoin(const std::vector<join_condition_t>& joinConditions) {
     for (auto& [probeKey, buildKey] : joinConditions) {
         if (probeKey->getUniqueName() != buildKey->getUniqueName() ||
             probeKey->getDataType().getLogicalTypeID() != common::LogicalTypeID::INTERNAL_ID) {
@@ -152,8 +152,13 @@ bool LogicalHashJoin::isNodeIDOnlyJoin() const {
 }
 
 binder::expression_vector LogicalHashJoin::getJoinNodeIDs() const {
+    return getJoinNodeIDs(joinConditions);
+}
+
+binder::expression_vector LogicalHashJoin::getJoinNodeIDs(
+    const std::vector<join_condition_t>& joinConditions) {
     binder::expression_vector result;
-    KU_ASSERT(isNodeIDOnlyJoin());
+    KU_ASSERT(isNodeIDOnlyJoin(joinConditions));
     for (auto& [probeKey, _] : joinConditions) {
         result.push_back(probeKey);
     }

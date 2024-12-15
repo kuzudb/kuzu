@@ -1,6 +1,7 @@
 #include "function/create_fts_index.h"
 
 #include "binder/expression/expression_util.h"
+#include "binder/expression/literal_expression.h"
 #include "catalog/fts_index_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/types/value/nested.h"
@@ -37,10 +38,11 @@ struct CreateFTSBindData final : public FTSBindData {
 };
 
 static std::vector<std::string> bindProperties(const catalog::NodeTableCatalogEntry& entry,
-    const common::Value& properties) {
+    std::shared_ptr<binder::Expression> properties) {
+    auto propertyValue = properties->constPtrCast<binder::LiteralExpression>()->getValue();
     std::vector<std::string> result;
-    for (auto i = 0u; i < properties.getChildrenSize(); i++) {
-        auto propertyName = NestedVal::getChildVal(&properties, i)->toString();
+    for (auto i = 0u; i < propertyValue.getChildrenSize(); i++) {
+        auto propertyName = NestedVal::getChildVal(&propertyValue, i)->toString();
         if (!entry.containsProperty(propertyName)) {
             throw BinderException{common::stringFormat("Property: {} does not exist in table {}.",
                 propertyName, entry.getName())};
@@ -59,12 +61,12 @@ static void validateIndexNotExist(const main::ClientContext& context, common::ta
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
-    ScanTableFuncBindInput* input) {
+    TableFuncBindInput* input) {
     FTSUtils::validateAutoTrx(*context, CreateFTSFunction::name);
-    auto indexName = input->inputs[1].toString();
-    auto& nodeTableEntry =
-        FTSUtils::bindTable(input->inputs[0], context, indexName, FTSUtils::IndexOperation::CREATE);
-    auto properties = bindProperties(nodeTableEntry, input->inputs[2]);
+    auto indexName = input->getLiteralVal<std::string>(1);
+    auto& nodeTableEntry = FTSUtils::bindTable(input->getLiteralVal<std::string>(0), context,
+        indexName, FTSUtils::IndexOperation::CREATE);
+    auto properties = bindProperties(nodeTableEntry, input->getParam(2));
     validateIndexNotExist(*context, nodeTableEntry.getTableID(), indexName);
     auto createFTSConfig = FTSConfig{input->optionalParams};
     return std::make_unique<CreateFTSBindData>(nodeTableEntry.getName(),

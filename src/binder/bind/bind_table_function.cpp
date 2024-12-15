@@ -11,6 +11,13 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace binder {
 
+static void validateParameterType(expression_vector positionalParams) {
+    for (auto& param : positionalParams) {
+        ExpressionUtil::validateExpressionType(*param,
+            {ExpressionType::LITERAL, ExpressionType::PARAMETER});
+    }
+}
+
 BoundTableFunction Binder::bindTableFunc(std::string tableFuncName,
     const parser::ParsedExpression& expr, expression_vector& columns) {
     auto entry = BuiltInFunctionsUtils::getFunctionCatalogEntry(clientContext->getTx(),
@@ -31,19 +38,16 @@ BoundTableFunction Binder::bindTableFunc(std::string tableFuncName,
         }
     }
     auto func = BuiltInFunctionsUtils::matchFunction(tableFuncName, positionalParamTypes, entry);
-    std::vector<Value> inputValues;
-    for (auto& param : positionalParams) {
-        ExpressionUtil::validateExpressionType(*param, ExpressionType::LITERAL);
-        auto literalExpr = param->constPtrCast<LiteralExpression>();
-        inputValues.push_back(literalExpr->getValue());
-    }
+    validateParameterType(positionalParams);
     auto tableFunc = func->constPtrCast<TableFunction>();
     for (auto i = 0u; i < positionalParams.size(); ++i) {
         auto parameterTypeID = tableFunc->parameterTypeIDs[i];
-        ExpressionUtil::validateDataType(*positionalParams[i], parameterTypeID);
+        if (positionalParams[i]->expressionType == ExpressionType::LITERAL) {
+            ExpressionUtil::validateDataType(*positionalParams[i], parameterTypeID);
+        }
     }
-    auto bindInput = function::ScanTableFuncBindInput();
-    bindInput.inputs = std::move(inputValues);
+    auto bindInput = TableFuncBindInput();
+    bindInput.params = std::move(positionalParams);
     bindInput.optionalParams = std::move(optionalParams);
     auto bindData = tableFunc->bindFunc(clientContext, &bindInput);
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {

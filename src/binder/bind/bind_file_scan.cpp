@@ -121,12 +121,20 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
             }
         }
     }
-    auto config = std::make_unique<ReaderConfig>(std::move(fileTypeInfo), std::move(filePaths));
+    // Bind file configuration
+    auto config = std::make_unique<ReaderConfig>(std::move(fileTypeInfo), filePaths);
     config->options = std::move(parsingOptions);
     auto func = getScanFunction(config->fileTypeInfo, *config);
-    auto bindInput = std::make_unique<ScanTableFuncBindInput>(config->copy(), columnNames,
-        LogicalType::copy(columnTypes), clientContext, &func);
-    auto bindData = func.bindFunc(clientContext, bindInput.get());
+    // Bind table function
+    auto bindInput = TableFuncBindInput();
+    bindInput.addLiteralParam(Value::createValue(filePaths[0]));
+    auto extraInput = std::make_unique<ExtraScanTableFuncBindInput>();
+    extraInput->config = config->copy();
+    extraInput->expectedColumnNames = columnNames;
+    extraInput->expectedColumnTypes = LogicalType::copy(columnTypes);
+    extraInput->tableFunction = &func;
+    bindInput.extraInput = std::move(extraInput);
+    auto bindData = func.bindFunc(clientContext, &bindInput);
     expression_vector columns;
     auto i = 0u;
     for (; i < bindData->columnTypes.size() - bindData->numWarningDataColumns; ++i) {
@@ -181,14 +189,16 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindObjectScanSource(const BaseScan
         // Bind external object as table
         objectName = objectSource->objectNames[0];
         auto replacementData = clientContext->tryReplace(objectName);
-        if (replacementData != nullptr) { // Replace as
+        if (replacementData != nullptr) { // Replace as python object
             func = replacementData->func;
-            replacementData->bindInput.config.options = bindParsingOptions(options);
+            auto extraInput = std::make_unique<ExtraScanTableFuncBindInput>();
+            extraInput->config.options = bindParsingOptions(options);
+            replacementData->bindInput.extraInput = std::move(extraInput);
             bindData = func.bindFunc(clientContext, &replacementData->bindInput);
         } else if (clientContext->getDatabaseManager()->hasDefaultDatabase()) {
             auto dbName = clientContext->getDatabaseManager()->getDefaultDatabase();
             func = getObjectScanFunc(dbName, objectSource->objectNames[0], clientContext);
-            auto bindInput = function::ScanTableFuncBindInput();
+            auto bindInput = TableFuncBindInput();
             bindData = func.bindFunc(clientContext, &bindInput);
         } else {
             throw BinderException(ExceptionMessage::variableNotInScope(objectName));
@@ -198,7 +208,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindObjectScanSource(const BaseScan
         objectName = objectSource->objectNames[0] + "." + objectSource->objectNames[1];
         func = getObjectScanFunc(objectSource->objectNames[0], objectSource->objectNames[1],
             clientContext);
-        auto bindInput = function::ScanTableFuncBindInput();
+        auto bindInput = TableFuncBindInput();
         bindData = func.bindFunc(clientContext, &bindInput);
     } else {
         // LCOV_EXCL_START

@@ -113,8 +113,7 @@ common::DataChunk& getDummyDataChunk() {
     return dummyChunk;
 }
 
-SniffCSVDialectDriver::SniffCSVDialectDriver(SerialCSVReader* reader,
-    const function::ScanTableFuncBindInput* /*bindInput*/)
+SniffCSVDialectDriver::SniffCSVDialectDriver(SerialCSVReader* reader)
     : SerialParsingDriver(getDummyDataChunk(), reader, DriverType::SNIFF_CSV_DIALECT) {
     auto& csvOption = reader->getCSVOption();
     columnCounts = std::vector<idx_t>(csvOption.sampleSize, 0);
@@ -170,7 +169,7 @@ void SniffCSVDialectDriver::reset() {
 }
 
 SniffCSVNameAndTypeDriver::SniffCSVNameAndTypeDriver(SerialCSVReader* reader,
-    const function::ScanTableFuncBindInput* bindInput)
+    const function::ExtraScanTableFuncBindInput* bindInput)
     : SerialParsingDriver(getDummyDataChunk(), reader, DriverType::SNIFF_CSV_NAME_AND_TYPE) {
     if (bindInput != nullptr) {
         for (auto i = 0u; i < bindInput->expectedColumnNames.size(); i++) {
@@ -255,7 +254,6 @@ bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
 }
 
 SniffCSVHeaderDriver::SniffCSVHeaderDriver(SerialCSVReader* reader,
-    const function::ScanTableFuncBindInput* /*bindInput*/,
     const std::vector<std::pair<std::string, common::LogicalType>>& typeDetected)
     : SerialParsingDriver(getDummyDataChunk(), reader, DriverType::SNIFF_CSV_HEADER) {
     for (auto i = 0u; i < typeDetected.size(); i++) {

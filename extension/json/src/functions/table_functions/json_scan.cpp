@@ -689,7 +689,7 @@ struct JsonScanBindData : public ScanBindData {
         std::vector<std::string> columnNames, column_id_t numWarningDataColumns,
         ReaderConfig config, main::ClientContext* ctx, case_insensitive_map_t<idx_t> colNameToIdx,
         JsonScanFormat format)
-        : ScanBindData(std::move(columnTypes), std::move(columnNames), std::move(config), ctx,
+        : ScanBindData(std::move(columnTypes), std::move(columnNames), std::move(config), ctx, 0,
               numWarningDataColumns),
           colNameToIdx{std::move(colNameToIdx)}, format{format} {}
 
@@ -770,7 +770,8 @@ static JsonScanFormat autoDetect(main::ClientContext* context, const std::string
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-    ScanTableFuncBindInput* scanInput) {
+    TableFuncBindInput* input) {
+    auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
     std::vector<LogicalType> columnTypes;
     std::vector<std::string> columnNames;
     JsonScanConfig scanConfig(scanInput->config.options);

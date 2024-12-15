@@ -41,12 +41,6 @@ void validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery) {
 }
 
 std::unique_ptr<BoundRegularQuery> Binder::bindQuery(const RegularQuery& regularQuery) {
-    if (regularQuery.hasProjectGraph()) {
-        auto projectGraph = regularQuery.getProjectGraph();
-        KU_ASSERT(!graphEntrySet.hasGraph(projectGraph->getGraphName()));
-        auto entry = bindProjectGraph(*projectGraph);
-        graphEntrySet.addGraph(projectGraph->getGraphName(), entry);
-    }
     std::vector<NormalizedSingleQuery> normalizedSingleQueries;
     for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
         // Don't clear scope within bindSingleQuery() yet because it is also used for subquery

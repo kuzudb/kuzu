@@ -166,3 +166,8 @@ TEST_F(ApiTest, CreateTableAfterClosingDatabase) {
                          "MATCH (a:Test) where a.name='Alice' return a.age;");
     ASSERT_TRUE(result->isSuccess()) << result->toString();
 }
+
+TEST_F(ApiTest, QueryWithHeadingNewline) {
+    createDBAndConn();
+    ASSERT_TRUE(conn->query("\n PROFILE RETURN 5; \n")->isSuccess());
+}

@@ -15,9 +15,9 @@ using namespace kuzu::catalog;
 namespace kuzu {
 
 std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-    ScanTableFuncBindInput* input) {
+    TableFuncBindInput* input) {
     py::gil_scoped_acquire acquire;
-    py::handle df(reinterpret_cast<PyObject*>(input->inputs[0].getValue<uint8_t*>()));
+    py::handle df(reinterpret_cast<PyObject*>(input->getLiteralVal<uint8_t*>(0)));
     std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData;
     std::vector<LogicalType> returnTypes;
     std::vector<std::string> names;
@@ -64,7 +64,7 @@ std::unique_ptr<function::TableFuncSharedState> initSharedState(
     }
     // LCOV_EXCL_STOP
     auto scanBindData = ku_dynamic_cast<PandasScanFunctionData*>(input.bindData);
-    return std::make_unique<PandasScanSharedState>(scanBindData->numRows);
+    return std::make_unique<PandasScanSharedState>(scanBindData->cardinality);
 }
 
 void pandasBackendScanSwitch(PandasColumnBindData* bindData, uint64_t count, uint64_t offset,
@@ -156,8 +156,8 @@ std::unique_ptr<ScanReplacementData> tryReplacePD(py::dict& dict, py::str& objec
                 initSharedState, initLocalState, progressFunc,
                 std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
         }
-        auto bindInput = ScanTableFuncBindInput();
-        bindInput.inputs.push_back(Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())));
+        auto bindInput = TableFuncBindInput();
+        bindInput.addLiteralParam(Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())));
         scanReplacementData->bindInput = std::move(bindInput);
         return scanReplacementData;
     } else {

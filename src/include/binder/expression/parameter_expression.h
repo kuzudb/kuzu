@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace binder {
 
-class ParameterExpression : public Expression {
+class KUZU_API ParameterExpression : public Expression {
     static constexpr common::ExpressionType expressionType = common::ExpressionType::PARAMETER;
 
 public:
