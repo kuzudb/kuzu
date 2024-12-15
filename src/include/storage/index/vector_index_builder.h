@@ -237,6 +237,7 @@ private:
     VectorIndexGraph* graphStorage;
     VectorTempStorage* vectorTempStorage;
     std::vector<std::mutex> locks;
+    std::atomic<uint64_t> nodeCounter;
 };
 
 } // namespace storage

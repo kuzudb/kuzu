@@ -58,7 +58,7 @@ void VectorIndexGraph::populatePartitionBuffer(processor::PartitioningBuffer& pa
 VectorIndexBuilder::VectorIndexBuilder(VectorIndexHeader* header, int partitionId, VectorIndexGraph* graphStorage,
     VectorTempStorage* vectorTempStorage)
     : header(header), graphStorage(graphStorage), vectorTempStorage(vectorTempStorage),
-      locks(std::vector<std::mutex>(vectorTempStorage->numVectors)) {
+      locks(std::vector<std::mutex>(vectorTempStorage->numVectors)), nodeCounter(0) {
     partitionHeader = header->getPartitionHeader(partitionId);
 }
 
@@ -334,6 +334,13 @@ void VectorIndexBuilder::batchInsert(const float* vectors, const vector_id_t* ve
     // first copy the vectors to the temporary storage
     vectorTempStorage->copyVectors(vectors, vectorIds, numVectors);
     partitionHeader->update(vectorIds, numVectors, upperLayerVectorIds);
+
+    // Monitoring metrics
+    nodeCounter.fetch_add(numVectors);
+    if (nodeCounter.load() > 10000000) {
+        printf("Ingested %llu nodes\n", nodeCounter.load());
+        nodeCounter.store(0);
+    }
 
     std::unordered_map<vector_id_t, vector_id_t> vectorsInUpperLayer;
     for (auto id : upperLayerVectorIds) {
