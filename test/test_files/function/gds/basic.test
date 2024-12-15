@@ -94,7 +94,7 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 #|ABFsUni|0
 #|CsWork|1
 #|DEsWork|1
--STATEMENT PROJECT GRAPH PK (person, knows) CALL k_core_decomposition(PK) RETURN _node.fName, k_degree;
+-STATEMENT CALL k_core_decomposition(PK) RETURN _node.fName, k_degree;
 ---- 8
 Alice|6
 Bob|6
