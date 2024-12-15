@@ -223,50 +223,46 @@
 0|1|[0,1]|[2:0]|[0:0]|[0:1]
 0|2|[0,1,2]|[2:0,2:1]|[0:0,0:1]|[0:1,0:2]
 
+-STATEMENT CALL create_project_graph('PK1', ['person1'], ['knows11'])
+---- ok
 -LOG VarLenJoinsUBLessThanLBError
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1)
-           CALL var_len_joins(PK, a, 2, 1, "FWD")
+-STATEMENT MATCH (a:person1)
+           CALL var_len_joins(PK1, a, 2, 1, "FWD")
            RETURN *;
 ---- error
 Runtime exception: Lower bound length of recursive join operations need to be less than or equal to upper bound. Given lower bound is: 2 and upper bound is: 1.
 
 -LOG VarLenJoinsUBTooHighError
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1)
-           CALL var_len_joins(PK, a, 1, 10000,"FWD")
+-STATEMENT MATCH (a:person1)
+           CALL var_len_joins(PK1, a, 1, 10000,"FWD")
            RETURN *;
 ---- error
 Runtime exception: Recursive join operations only works for non-positive upper bound iterations that are up to 255. Given upper bound is: 10000.
 
 -LOG VarLenJoinsLBNonPositiveError
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1)
-           CALL var_len_joins(PK, a, -1, 3, "FWD")
+-STATEMENT MATCH (a:person1)
+           CALL var_len_joins(PK1, a, -1, 3, "FWD")
            RETURN *;
 ---- error
 Runtime exception: Lower and upper bound lengths of recursive join operations need to be non-negative. Given lower bound is: -1 and upper bound is: 3.
 
 -LOG ShortestPathsJoinsUBNonPositiveError
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1)
-           CALL all_sp_paths(PK, a, -5, "FWD")
+-STATEMENT MATCH (a:person1)
+           CALL all_sp_paths(PK1, a, -5, "FWD")
            RETURN *;
 ---- error
 Runtime exception: Lower and upper bound lengths of recursive join operations need to be non-negative. Given lower bound is: 1 and upper bound is: -5.
 
 -LOG ShortestPathsJoinsUBNonPositiveError
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1)
-           CALL all_sp_paths(PK, a, 0, "FWD")
+-STATEMENT MATCH (a:person1)
+           CALL all_sp_paths(PK1, a, 0, "FWD")
            RETURN *;
 ---- error
 Runtime exception: Shortest path operations only works for positive upper bound iterations. Given upper bound is: 0.
 
 -LOG VarLenJoins
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL var_len_joins(PK, a, 1, 30, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL var_len_joins(PK1, a, 1, 30, "FWD")
            RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 6
 0|1|1|[]|[2:0]
@@ -276,9 +272,8 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4|3|[0:1,0:2]|[2:0,2:1,2:5]
 0|4|4|[0:1,0:2,0:3]|[2:0,2:1,2:2,2:3]
 
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1) WHERE a.ID = 4
-           CALL var_len_joins(PK, a, 1, 30, "BWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 4
+           CALL var_len_joins(PK1, a, 1, 30, "BWD")
            RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 10
 4|0|3|[0:2,0:1]|[2:4,2:1,2:0]
@@ -291,9 +286,8 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 4|2|1|[]|[2:5]
 4|2|2|[0:3]|[2:3,2:2]
 4|3|1|[]|[2:3]
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1) WHERE a.ID = 1
-           CALL var_len_joins(PK, a, 1, 2, "BOTH")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 1
+           CALL var_len_joins(PK1, a, 1, 2, "BOTH")
            RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs, direction;
 ---- 7
 1|0|1|[]|[2:0]|[False]
@@ -304,10 +298,11 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 1|4|2|[0:2]|[2:1,2:4]|[True,True]
 1|4|2|[0:2]|[2:1,2:5]|[True,True]
 
+-STATEMENT CALL create_project_graph('PK2', ['person1', 'person2'], ['knows12', 'knows21'])
+---- ok
 -LOG VarLenJoinsMultilabel1
--STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL var_len_joins(PK, a, 1, 30, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL var_len_joins(PK2, a, 1, 30, "FWD")
            RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 6
 0|1|1|[]|[3:0]
@@ -317,10 +312,11 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4|3|[1:1,0:2]|[3:0,4:1,3:5]
 0|4|4|[1:1,0:2,1:3]|[3:0,4:1,3:2,4:3]
 
+-STATEMENT CALL create_project_graph('PK3', ['person1', 'person2'], ['knows11', 'knows12', 'knows21', 'knows22'])
+---- ok
 -LOG VarLenJoinsMultilabel2
--STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL var_len_joins(PK, a, 1, 30, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL var_len_joins(PK3, a, 1, 30, "FWD")
            RETURN length, count(*)
 ---- 4
 1|2
@@ -329,9 +325,8 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 4|16
 
 -LOG VarLenJoinsLowerBoundZeroUpperBoundOne
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL var_len_joins(PK, a, 0, 2, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL var_len_joins(PK1, a, 0, 2, "FWD")
            RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 3
 0|0|0|[]|[]
@@ -339,17 +334,15 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|2|2|[0:1]|[2:0,2:1]
 
 -LOG VarLenJoinsLowerBoundZeroUpperBoundZero
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL var_len_joins(PK, a, 0, 0, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL var_len_joins(PK1, a, 0, 0, "FWD")
            RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 1
 0|0|0|[]|[]
 
 -LOG VarLenJoinsLowerBound1
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL var_len_joins(PK, a, 2, 3, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL var_len_joins(PK1, a, 2, 3, "FWD")
            RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 4
 0|2|2|[0:1]|[2:0,2:1]
@@ -358,25 +351,22 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4|3|[0:1,0:2]|[2:0,2:1,2:5]
 
 -LOG VarLenJoinsLowerBound2
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL var_len_joins(PK, a, 4, 30, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL var_len_joins(PK1, a, 4, 30, "FWD")
            RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 1
 0|4|4|[0:1,0:2,0:3]|[2:0,2:1,2:2,2:3]
 
 -LOG VarLenJoinsEmptyPaths
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1) WHERE a.ID = 4
-           CALL var_len_joins(PK, a, 1, 4, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 4
+           CALL var_len_joins(PK1, a, 1, 4, "FWD")
            RETURN a.ID, _node.ID, length, pathNodeIDs;
 ---- 0
 
 
 -LOG AllSPDestinations
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_destinations(PK, a, 30, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL all_sp_destinations(PK1, a, 30, "FWD")
            RETURN a.ID, _node.ID;
 ---- 5
 0|1
@@ -386,9 +376,8 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4
 
 -LOG AllSPDestinationsMultilabel1
--STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_destinations(PK, a, 30, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL all_sp_destinations(PK2, a, 30, "FWD")
            RETURN a.ID, _node.ID;
 ---- 6
 0|1
@@ -399,9 +388,8 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4
 
 -LOG AllSPDestinationsMultilabel2
--STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_destinations(PK, a, 30, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL all_sp_destinations(PK3, a, 30, "FWD")
            RETURN a.ID, _node.ID;
 ---- 30
 0|1
@@ -436,9 +424,8 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4
 
 -LOG AllSPLengths
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL ALL_SP_DESTINATIONS(PK, a, 30, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL ALL_SP_DESTINATIONS(PK1, a, 30, "FWD")
            RETURN a.ID, _node.ID, length;
 ---- 5
 0|1|1
@@ -448,9 +435,8 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4|3
 
 -LOG AllSPLengthsMultilabel1
--STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL ALL_SP_DESTINATIONS(PK, a, 30, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL ALL_SP_DESTINATIONS(PK2, a, 30, "FWD")
            RETURN a.ID, _node.ID, length;
 ---- 6
 0|1|1
@@ -461,9 +447,8 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4|4
 
 -LOG AllSPLengthsMultilabel2
--STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL ALL_SP_DESTINATIONS(PK, a, 30, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL ALL_SP_DESTINATIONS(PK3, a, 30, "FWD")
            RETURN a.ID, _node.ID, length;
 ---- 30
 0|1|1
@@ -498,9 +483,8 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4|3
 
 -LOG AllSPPaths
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_paths(PK, a, 5, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL all_sp_paths(PK1, a, 5, "FWD")
            RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 5
 0|1|1|[]|[2:0]
@@ -508,9 +492,8 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|3|3|[0:1,0:2]|[2:0,2:1,2:2]
 0|4|3|[0:1,0:2]|[2:0,2:1,2:4]
 0|4|3|[0:1,0:2]|[2:0,2:1,2:5]
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1) WHERE a.ID = 4
-           CALL all_sp_paths(PK, a, 5, "BOTH")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 4
+           CALL all_sp_paths(PK1, a, 5, "BOTH")
            RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 7
 4|0|3|[0:2,0:1]|[2:4,2:1,2:0]
@@ -522,9 +505,8 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 4|3|1|[]|[2:3]
 
 -LOG AllSPPathsMultilabel1
--STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_paths(PK, a, 30, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL all_sp_paths(PK2, a, 30, "FWD")
            RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 6
 0|1|1|[]|[3:0]
@@ -535,9 +517,8 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4|4|[1:1,0:2,1:3]|[3:0,4:1,3:2,4:3]
 
 -LOG AllSPPathsMultilabel2
--STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_paths(PK, a, 30, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL all_sp_paths(PK3, a, 30, "FWD")
            RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 30
 0|1|1|[]|[2:0]
@@ -572,9 +553,8 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4|3|[1:1,1:2]|[3:0,5:1,5:5]
 
 -LOG SingleSPDestinations
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL SINGLE_SP_DESTINATIONS(PK, a, 30, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL SINGLE_SP_DESTINATIONS(PK1, a, 30, "FWD")
            RETURN a.ID, _node.ID;
 ---- 4
 0|1
@@ -583,9 +563,8 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4
 
 -LOG SingleSPDestinationsMultilabel1
--STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL SINGLE_SP_DESTINATIONS(PK, a, 30, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL SINGLE_SP_DESTINATIONS(PK2, a, 30, "FWD")
            RETURN a.ID, _node.ID;
 ---- 5
 0|1
@@ -595,9 +574,8 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4
 
 -LOG SingleSPDestinationsMultilabel2
--STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_destinations(PK, a, 30, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL single_sp_destinations(PK3, a, 30, "FWD")
            RETURN a.ID, _node.ID
 ---- 8
 0|1
@@ -610,9 +588,8 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4
 
 -LOG SingleSPLengths
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL SINGLE_SP_DESTINATIONS(PK, a, 30, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL SINGLE_SP_DESTINATIONS(PK1, a, 30, "FWD")
            RETURN a.ID, _node.ID, length;
 ---- 4
 0|1|1
@@ -621,9 +598,8 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4|3
 
 -LOG SingleSPLengthsMultilabel1
--STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL SINGLE_SP_DESTINATIONS(PK, a, 30, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL SINGLE_SP_DESTINATIONS(PK2, a, 30, "FWD")
            RETURN a.ID, _node.ID, length;
 ---- 5
 0|1|1
@@ -633,9 +609,8 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4|4
 
 -LOG SingleSPLengthsMultilabel2
--STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL SINGLE_SP_DESTINATIONS(PK, a, 30, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL SINGLE_SP_DESTINATIONS(PK3, a, 30, "FWD")
            RETURN a.ID, _node.ID, length
 ---- 8
 0|1|1
@@ -648,18 +623,16 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4|3
 
 -LOG SingleSPPaths
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_paths(PK, a, 5, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL single_sp_paths(PK1, a, 5, "FWD")
            RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 4
 0|1|1|[]|[2:0]
 0|2|2|[0:1]|[2:0,2:1]
 0|3|3|[0:1,0:2]|[2:0,2:1,2:2]
 0|4|3|[0:1,0:2]|[2:0,2:1,2:4]
--STATEMENT PROJECT GRAPH PK (person1, knows11)
-           MATCH (a:person1) WHERE a.ID = 2
-           CALL single_sp_paths(PK, a, 5, "BOTH")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 2
+           CALL single_sp_paths(PK1, a, 5, "BOTH")
            RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 4
 2|0|2|[0:1]|[2:1,2:0]
@@ -668,9 +641,8 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 2|4|1|[]|[2:4]
 
 -LOG SingleSPPathsMultilabel1
--STATEMENT PROJECT GRAPH PK (person1, person2, knows12, knows21)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_paths(PK, a, 30, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL single_sp_paths(PK2, a, 30, "FWD")
            RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 5
 0|1|1|[]|[3:0]
@@ -680,9 +652,8 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4|4|[1:1,0:2,1:3]|[3:0,4:1,3:2,4:3]
 
 -LOG SingleSPPathsMultilabel2
--STATEMENT PROJECT GRAPH PK (person1, person2, knows11, knows12, knows21, knows22)
-           MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_paths(PK, a, 30, "FWD")
+-STATEMENT MATCH (a:person1) WHERE a.ID = 0
+           CALL single_sp_paths(PK3, a, 30, "FWD")
            RETURN length, count(*)
 ---- 3
 1|2

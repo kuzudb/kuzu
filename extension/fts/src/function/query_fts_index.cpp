@@ -86,6 +86,15 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
         std::move(columnTypes), std::move(columnNames), std::move(config));
 }
 
+static std::unique_ptr<QueryResult> runQuery(main::ClientContext* context, std::string query) {
+    auto result =
+        context->queryInternal(query, "", false /* enumerateAllPlans*/, std::nullopt /* queryID*/);
+    if (!result->isSuccess()) {
+        throw RuntimeException(result->getErrorMessage());
+    }
+    return result;
+}
+
 static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output) {
     // TODO(Xiyang/Ziyi): Currently we don't have a dedicated planner for queryFTS, so
     //  we need a wrapper call function to CALL the actual GDS function.

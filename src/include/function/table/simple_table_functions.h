@@ -130,5 +130,17 @@ struct ShowFunctionsFunction : public SimpleTableFunction {
     static function_set getFunctionSet();
 };
 
+struct CreateProjectGraphFunction : public SimpleTableFunction {
+    static constexpr const char* name = "CREATE_PROJECT_GRAPH";
+
+    static function_set getFunctionSet();
+};
+
+struct DropProjectGraphFunction : public SimpleTableFunction {
+    static constexpr const char* name = "DROP_PROJECT_GRAPH";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu
