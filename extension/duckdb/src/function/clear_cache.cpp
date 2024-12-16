@@ -1,8 +1,8 @@
 #include "function/clear_cache.h"
 
+#include "binder/binder.h"
 #include "catalog/duckdb_catalog.h"
 #include "storage/duckdb_storage.h"
-#include "binder/binder.h"
 
 using namespace kuzu::function;
 using namespace kuzu::main;
@@ -32,8 +32,8 @@ static std::unique_ptr<TableFuncBindData> clearCacheBindFunc(ClientContext* cont
     columnNames.emplace_back("message");
     columnTypes.emplace_back(LogicalType::STRING());
     auto columns = input->binder->createVariables(columnNames, columnTypes);
-    return std::make_unique<ClearCacheBindData>(context->getDatabaseManager(),
-        columns, 1 /* maxOffset */);
+    return std::make_unique<ClearCacheBindData>(context->getDatabaseManager(), columns,
+        1 /* maxOffset */);
 }
 
 ClearCacheFunction::ClearCacheFunction()

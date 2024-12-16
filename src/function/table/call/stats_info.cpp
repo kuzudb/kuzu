@@ -1,9 +1,9 @@
+#include "binder/binder.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "function/table/simple_table_functions.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
-#include "binder/binder.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -22,10 +22,10 @@ struct StatsInfoBindData final : SimpleTableFuncBindData {
     storage::Table* table;
     ClientContext* context;
 
-    StatsInfoBindData(binder::expression_vector columns,
-        TableCatalogEntry* tableEntry, storage::Table* table, ClientContext* context)
-        : SimpleTableFuncBindData{std::move(columns), 1 /*maxOffset*/},
-          tableEntry{tableEntry}, table{table}, context{context} {}
+    StatsInfoBindData(binder::expression_vector columns, TableCatalogEntry* tableEntry,
+        storage::Table* table, ClientContext* context)
+        : SimpleTableFuncBindData{std::move(columns), 1 /*maxOffset*/}, tableEntry{tableEntry},
+          table{table}, context{context} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<StatsInfoBindData>(columns, tableEntry, table, context);

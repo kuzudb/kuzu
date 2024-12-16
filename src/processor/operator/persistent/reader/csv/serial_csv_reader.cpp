@@ -1,10 +1,10 @@
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 
+#include "binder/binder.h"
 #include "function/table/bind_data.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
-#include "binder/binder.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -222,12 +222,13 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     std::vector<LogicalType> warningColumnTypes;
     const column_id_t numWarningDataColumns = BaseCSVReader::appendWarningDataColumns(
         warningColumnNames, warningColumnTypes, scanInput->config);
-    auto warningColumns = input->binder->createInvisibleVariables(warningColumnNames, warningColumnTypes);
+    auto warningColumns =
+        input->binder->createInvisibleVariables(warningColumnNames, warningColumnTypes);
     for (auto& column : warningColumns) {
         resultColumns.push_back(column);
     }
-    return std::make_unique<ScanBindData>(std::move(resultColumns), scanInput->config.copy(), context,
-        numWarningDataColumns, 0 /* estCardinality */);
+    return std::make_unique<ScanBindData>(std::move(resultColumns), scanInput->config.copy(),
+        context, numWarningDataColumns, 0 /* estCardinality */);
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitInput& input) {

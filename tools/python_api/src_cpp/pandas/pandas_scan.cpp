@@ -1,5 +1,6 @@
 #include "pandas/pandas_scan.h"
 
+#include "binder/binder.h"
 #include "cached_import/py_cached_import.h"
 #include "common/exception/runtime.h"
 #include "function/table/bind_input.h"
@@ -7,7 +8,6 @@
 #include "py_connection.h"
 #include "pyarrow/pyarrow_scan.h"
 #include "pybind11/pytypes.h"
-#include "binder/binder.h"
 
 using namespace kuzu::function;
 using namespace kuzu::common;
@@ -31,8 +31,8 @@ std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*con
     auto getFunc = df.attr("__getitem__");
     auto numRows = py::len(getFunc(columns[0]));
     auto returnColumns = input->binder->createVariables(names, returnTypes);
-    return std::make_unique<PandasScanFunctionData>(std::move(returnColumns), df,
-        numRows, std::move(columnBindData));
+    return std::make_unique<PandasScanFunctionData>(std::move(returnColumns), df, numRows,
+        std::move(columnBindData));
 }
 
 bool sharedStateNext(const TableFuncBindData* /*bindData*/, PandasScanLocalState* localState,

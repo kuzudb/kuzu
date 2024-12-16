@@ -2,6 +2,7 @@
 
 #include <regex>
 
+#include "binder/binder.h"
 #include "common/case_insensitive_map.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
@@ -15,7 +16,6 @@
 #include "processor/operator/persistent/reader/file_error_handler.h"
 #include "processor/warning_context.h"
 #include "reader/buffered_json_reader.h"
-#include "binder/binder.h"
 
 namespace kuzu {
 namespace json_extension {
@@ -805,7 +805,6 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         return scanConfig.format == JsonScanFormat::NEWLINE_DELIMITED;
     };
 
-
     auto columns = input->binder->createVariables(columnNames, columnTypes);
 
     const bool ignoreErrors = scanInput->config.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
@@ -821,13 +820,13 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
             warningColumnTypes.emplace_back(JsonConstant::JSON_WARNING_DATA_COLUMN_TYPES[i]);
         }
     }
-    auto warningColumns = input->binder->createInvisibleVariables(warningColumnNames, warningColumnTypes);
+    auto warningColumns =
+        input->binder->createInvisibleVariables(warningColumnNames, warningColumnTypes);
     for (auto& column : warningColumns) {
         columns.push_back(column);
     }
-    return std::make_unique<JsonScanBindData>(columns,
-        numWarningDataColumns, scanInput->config.copy(), context, std::move(colNameToIdx),
-        scanConfig.format);
+    return std::make_unique<JsonScanBindData>(columns, numWarningDataColumns,
+        scanInput->config.copy(), context, std::move(colNameToIdx), scanConfig.format);
 }
 
 static decltype(auto) getWarningDataVectors(const DataChunk& chunk, column_id_t numWarningColumns) {

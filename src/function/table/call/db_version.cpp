@@ -1,5 +1,5 @@
-#include "function/table/simple_table_functions.h"
 #include "binder/binder.h"
+#include "function/table/simple_table_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;

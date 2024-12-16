@@ -218,7 +218,8 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindObjectScanSource(const BaseScan
                 objectName, bindData->getNumColumns(), columnTypes.size()));
         }
         for (auto i = 0u; i < bindData->getNumColumns(); ++i) {
-            auto column = createInvisibleVariable(columnNames[i], bindData->columns[i]->getDataType());
+            auto column =
+                createInvisibleVariable(columnNames[i], bindData->columns[i]->getDataType());
             scope.replaceExpression(bindData->columns[i]->toString(), columnNames[i], column);
             columns.push_back(column);
         }

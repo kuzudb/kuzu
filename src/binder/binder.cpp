@@ -117,13 +117,15 @@ std::shared_ptr<Expression> Binder::createVariable(const std::string& name,
     return expression;
 }
 
-std::shared_ptr<Expression> Binder::createInvisibleVariable(const std::string& name, const LogicalType& dataType) {
+std::shared_ptr<Expression> Binder::createInvisibleVariable(const std::string& name,
+    const LogicalType& dataType) {
     auto expression = expressionBinder.createVariableExpression(dataType.copy(), name);
     expression->setAlias(name);
     return expression;
 }
 
-binder::expression_vector Binder::createVariables(std::vector<std::string> names, const std::vector<LogicalType>& types) {
+binder::expression_vector Binder::createVariables(std::vector<std::string> names,
+    const std::vector<LogicalType>& types) {
     KU_ASSERT(names.size() == types.size());
     expression_vector variables;
     for (auto i = 0u; i < names.size(); ++i) {
@@ -132,7 +134,8 @@ binder::expression_vector Binder::createVariables(std::vector<std::string> names
     return variables;
 }
 
-expression_vector Binder::createInvisibleVariables(std::vector<std::string> names, const std::vector<LogicalType>& types) {
+expression_vector Binder::createInvisibleVariables(std::vector<std::string> names,
+    const std::vector<LogicalType>& types) {
     KU_ASSERT(names.size() == types.size());
     expression_vector variables;
     for (auto i = 0u; i < names.size(); ++i) {

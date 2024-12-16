@@ -1,6 +1,6 @@
+#include "binder/binder.h"
 #include "catalog/catalog.h"
 #include "function/table/simple_table_functions.h"
-#include "binder/binder.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -67,7 +67,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         }
     }
     auto columns = input->binder->createVariables(columnNames, columnTypes);
-    return std::make_unique<ShowFunctionsBindData>(std::move(FunctionInfos), columns, FunctionInfos.size());
+    return std::make_unique<ShowFunctionsBindData>(std::move(FunctionInfos), columns,
+        FunctionInfos.size());
 }
 
 function_set ShowFunctionsFunction::getFunctionSet() {

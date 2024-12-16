@@ -1,5 +1,6 @@
 #include "processor/operator/persistent/reader/parquet/parquet_reader.h"
 
+#include "binder/binder.h"
 #include "common/exception/binder.h"
 #include "common/exception/copy.h"
 #include "common/file_system/virtual_file_system.h"
@@ -10,7 +11,6 @@
 #include "processor/operator/persistent/reader/parquet/struct_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/thrift_tools.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
-#include "binder/binder.h"
 
 using namespace kuzu_parquet::format;
 

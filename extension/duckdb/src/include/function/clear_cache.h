@@ -13,12 +13,11 @@ struct ClearCacheBindData : public function::SimpleTableFuncBindData {
 
     ClearCacheBindData(main::DatabaseManager* databaseManager, binder::expression_vector columns,
         common::offset_t maxOffset)
-        : SimpleTableFuncBindData{std::move(columns), maxOffset},
-          databaseManager{databaseManager} {}
+        : SimpleTableFuncBindData{std::move(columns), maxOffset}, databaseManager{databaseManager} {
+    }
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ClearCacheBindData>(databaseManager,
-            columns, maxOffset);
+        return std::make_unique<ClearCacheBindData>(databaseManager, columns, maxOffset);
     }
 };
 

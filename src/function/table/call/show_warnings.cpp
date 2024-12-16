@@ -1,6 +1,6 @@
+#include "binder/binder.h"
 #include "function/table/simple_table_functions.h"
 #include "processor/warning_context.h"
-#include "binder/binder.h"
 
 using namespace kuzu::common;
 
@@ -12,8 +12,7 @@ struct ShowWarningsBindData : public SimpleTableFuncBindData {
 
     ShowWarningsBindData(std::vector<processor::WarningInfo> warnings,
         binder::expression_vector columns, offset_t maxOffset)
-        : SimpleTableFuncBindData{std::move(columns), maxOffset},
-          warnings{std::move(warnings)} {}
+        : SimpleTableFuncBindData{std::move(columns), maxOffset}, warnings{std::move(warnings)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<ShowWarningsBindData>(warnings, columns, maxOffset);
@@ -51,7 +50,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         warningInfos.emplace_back(warning);
     }
     auto columns = input->binder->createVariables(columnNames, columnTypes);
-    return std::make_unique<ShowWarningsBindData>(std::move(warningInfos), columns, warningInfos.size());
+    return std::make_unique<ShowWarningsBindData>(std::move(warningInfos), columns,
+        warningInfos.size());
 }
 
 function_set ShowWarningsFunction::getFunctionSet() {

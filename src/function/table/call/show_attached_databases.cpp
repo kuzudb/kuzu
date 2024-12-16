@@ -1,6 +1,6 @@
+#include "binder/binder.h"
 #include "function/table/simple_table_functions.h"
 #include "main/database_manager.h"
-#include "binder/binder.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -17,8 +17,8 @@ struct ShowAttachedDatabasesBindData : public SimpleTableFuncBindData {
           attachedDatabases{std::move(attachedDatabases)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ShowAttachedDatabasesBindData>(attachedDatabases,
-            columns, maxOffset);
+        return std::make_unique<ShowAttachedDatabasesBindData>(attachedDatabases, columns,
+            maxOffset);
     }
 };
 
@@ -50,8 +50,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     columnTypes.emplace_back(LogicalType::STRING());
     auto attachedDatabases = context->getDatabaseManager()->getAttachedDatabases();
     auto columns = input->binder->createVariables(columnNames, columnTypes);
-    return std::make_unique<ShowAttachedDatabasesBindData>(attachedDatabases,
-        columns, attachedDatabases.size());
+    return std::make_unique<ShowAttachedDatabasesBindData>(attachedDatabases, columns,
+        attachedDatabases.size());
 }
 
 function_set ShowAttachedDatabasesFunction::getFunctionSet() {

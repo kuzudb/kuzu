@@ -21,8 +21,10 @@ struct TableFuncBindData {
     TableFuncBindData() : numWarningDataColumns{0}, cardinality{0} {}
     explicit TableFuncBindData(binder::expression_vector columns)
         : columns{std::move(columns)}, numWarningDataColumns{0}, cardinality{0} {}
-    TableFuncBindData(binder::expression_vector columns, common::column_id_t numWarningColumns, common::cardinality_t cardinality)
-        : columns{std::move(columns)}, numWarningDataColumns{numWarningColumns}, cardinality{cardinality} {}
+    TableFuncBindData(binder::expression_vector columns, common::column_id_t numWarningColumns,
+        common::cardinality_t cardinality)
+        : columns{std::move(columns)}, numWarningDataColumns{numWarningColumns},
+          cardinality{cardinality} {}
     TableFuncBindData(const TableFuncBindData& other)
         : columns{other.columns}, numWarningDataColumns(other.numWarningDataColumns),
           cardinality{other.cardinality}, columnSkips{other.columnSkips},
@@ -61,14 +63,13 @@ struct ScanBindData : public TableFuncBindData {
     common::ReaderConfig config;
     main::ClientContext* context;
 
-    ScanBindData(binder::expression_vector columns,
-        common::ReaderConfig config, main::ClientContext* context)
+    ScanBindData(binder::expression_vector columns, common::ReaderConfig config,
+        main::ClientContext* context)
         : TableFuncBindData{std::move(columns)}, config{std::move(config)}, context{context} {}
-    ScanBindData(binder::expression_vector columns,
-        common::ReaderConfig config, main::ClientContext* context,
-        common::column_id_t numWarningDataColumns, common::row_idx_t estCardinality)
-        : TableFuncBindData{std::move(columns), numWarningDataColumns,
-              estCardinality},
+    ScanBindData(binder::expression_vector columns, common::ReaderConfig config,
+        main::ClientContext* context, common::column_id_t numWarningDataColumns,
+        common::row_idx_t estCardinality)
+        : TableFuncBindData{std::move(columns), numWarningDataColumns, estCardinality},
           config{std::move(config)}, context{context} {}
     ScanBindData(const ScanBindData& other)
         : TableFuncBindData{other}, config{other.config.copy()}, context{other.context} {}

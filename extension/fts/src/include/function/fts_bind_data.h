@@ -13,7 +13,7 @@ struct FTSBindData : public function::SimpleTableFuncBindData {
     std::string indexName;
 
     FTSBindData(std::string tableName, common::table_id_t tableID, std::string indexName,
-         binder::expression_vector columns)
+        binder::expression_vector columns)
         : function::SimpleTableFuncBindData{std::move(columns), 1 /* maxOffset */},
           tableName{std::move(tableName)}, tableID{tableID}, indexName{std::move(indexName)} {}
 

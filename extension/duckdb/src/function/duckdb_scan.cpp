@@ -1,9 +1,9 @@
 #include "function/duckdb_scan.h"
 
+#include "binder/binder.h"
 #include "common/exception/runtime.h"
 #include "connector/duckdb_connector.h"
 #include "function/table/bind_input.h"
-#include "binder/binder.h"
 
 using namespace kuzu::function;
 using namespace kuzu::common;
@@ -14,8 +14,8 @@ namespace duckdb_extension {
 DuckDBScanBindData::DuckDBScanBindData(std::string query,
     std::vector<common::LogicalType> columnTypes, std::vector<std::string> columnNames,
     const DuckDBConnector& connector)
-    : TableFuncBindData{}, query{std::move(query)}, columnTypes{LogicalType::copy(columnTypes)}, columnNames{columnNames},
-      converter{columnTypes}, connector{connector} {}
+    : TableFuncBindData{}, query{std::move(query)}, columnTypes{LogicalType::copy(columnTypes)},
+      columnNames{columnNames}, converter{columnTypes}, connector{connector} {}
 
 DuckDBScanSharedState::DuckDBScanSharedState(
     std::unique_ptr<duckdb::MaterializedQueryResult> queryResult)

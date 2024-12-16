@@ -1,3 +1,4 @@
+#include "binder/binder.h"
 #include "common/data_chunk/data_chunk_collection.h"
 #include "common/exception/binder.h"
 #include "common/type_utils.h"
@@ -15,7 +16,6 @@
 #include "storage/store/string_column.h"
 #include "storage/store/struct_chunk_data.h"
 #include "storage/store/struct_column.h"
-#include "binder/binder.h"
 #include <concepts>
 
 using namespace kuzu::common;
@@ -73,10 +73,10 @@ struct StorageInfoBindData final : public SimpleTableFuncBindData {
     storage::Table* table;
     ClientContext* context;
 
-    StorageInfoBindData(binder::expression_vector columns,
-        TableCatalogEntry* tableEntry, storage::Table* table, ClientContext* context)
-        : SimpleTableFuncBindData{columns, 1 /*maxOffset*/},
-          tableEntry{tableEntry}, table{table}, context{context} {}
+    StorageInfoBindData(binder::expression_vector columns, TableCatalogEntry* tableEntry,
+        storage::Table* table, ClientContext* context)
+        : SimpleTableFuncBindData{columns, 1 /*maxOffset*/}, tableEntry{tableEntry}, table{table},
+          context{context} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<StorageInfoBindData>(columns, tableEntry, table, context);

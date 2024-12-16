@@ -1,5 +1,6 @@
 #include "function/query_fts_index.h"
 
+#include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/parameter_expression.h"
@@ -13,7 +14,6 @@
 #include "processor/result/factorized_table.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
-#include "binder/binder.h"
 
 namespace kuzu {
 namespace fts_extension {
@@ -29,8 +29,7 @@ struct QueryFTSBindData final : public FTSBindData {
 
     QueryFTSBindData(std::string tableName, common::table_id_t tableID, std::string indexName,
         std::shared_ptr<binder::Expression> query, const FTSIndexCatalogEntry& entry,
-        binder::expression_vector columns,
-        QueryFTSConfig config)
+        binder::expression_vector columns, QueryFTSConfig config)
         : FTSBindData{std::move(tableName), tableID, std::move(indexName), columns},
           query{std::move(query)}, entry{entry}, config{std::move(config)} {}
 

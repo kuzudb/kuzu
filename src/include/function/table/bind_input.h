@@ -11,7 +11,7 @@ namespace kuzu {
 namespace binder {
 class LiteralExpression;
 class Binder;
-}
+} // namespace binder
 namespace main {
 class ClientContext;
 }

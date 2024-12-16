@@ -1,3 +1,4 @@
+#include "binder/binder.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
@@ -5,7 +6,6 @@
 #include "common/exception/binder.h"
 #include "function/table/bind_input.h"
 #include "function/table/simple_table_functions.h"
-#include "binder/binder.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -20,12 +20,11 @@ struct ShowConnectionBindData : public SimpleTableFuncBindData {
 
     ShowConnectionBindData(ClientContext* context, TableCatalogEntry* tableEntry,
         binder::expression_vector columns, offset_t maxOffset)
-        : SimpleTableFuncBindData{std::move(columns), maxOffset},
-          context{context}, tableEntry{tableEntry} {}
+        : SimpleTableFuncBindData{std::move(columns), maxOffset}, context{context},
+          tableEntry{tableEntry} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ShowConnectionBindData>(context, tableEntry,
-            columns, maxOffset);
+        return std::make_unique<ShowConnectionBindData>(context, tableEntry, columns, maxOffset);
     }
 };
 

@@ -1,6 +1,6 @@
+#include "binder/binder.h"
 #include "function/table/bind_input.h"
 #include "function/table/simple_table_functions.h"
-#include "binder/binder.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;
@@ -11,9 +11,9 @@ namespace function {
 struct CurrentSettingBindData final : public SimpleTableFuncBindData {
     std::string result;
 
-    CurrentSettingBindData(std::string result, binder::expression_vector columns, offset_t maxOffset)
-        : SimpleTableFuncBindData{std::move(columns), maxOffset},
-          result{std::move(result)} {}
+    CurrentSettingBindData(std::string result, binder::expression_vector columns,
+        offset_t maxOffset)
+        : SimpleTableFuncBindData{std::move(columns), maxOffset}, result{std::move(result)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<CurrentSettingBindData>(result, columns, maxOffset);

@@ -3,10 +3,10 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+#include "binder/binder.h"
 #include "common/exception/binder.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
-#include "binder/binder.h"
 
 #ifdef _WIN32
 #include "common/exception/buffer_manager.h"

@@ -1,12 +1,12 @@
 #include "pyarrow/pyarrow_scan.h"
 
+#include "binder/binder.h"
 #include "cached_import/py_cached_import.h"
 #include "common/arrow/arrow_converter.h"
 #include "function/cast/functions/numeric_limits.h"
 #include "function/table/bind_input.h"
 #include "py_connection.h"
 #include "pybind11/pytypes.h"
-#include "binder/binder.h"
 
 using namespace kuzu::function;
 using namespace kuzu::common;
