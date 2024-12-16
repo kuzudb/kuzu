@@ -15,9 +15,10 @@ public:
     ColumnPredicateSet() = default;
     EXPLICIT_COPY_DEFAULT_MOVE(ColumnPredicateSet);
 
-    void addPredicate(std::unique_ptr<ColumnPredicate> predicate) {
+    void addColumnPredicate(std::unique_ptr<ColumnPredicate> predicate) {
         predicates.push_back(std::move(predicate));
     }
+    void tryAddPredicate(const binder::Expression& column, const binder::Expression& predicate);
     bool isEmpty() const { return predicates.empty(); }
 
     common::ZoneMapCheckResult checkZoneMap(const ColumnChunkStats& stats) const;
@@ -34,13 +35,14 @@ private:
 
 class KUZU_API ColumnPredicate {
 public:
-    explicit ColumnPredicate(std::string columnName) : columnName{std::move(columnName)} {}
+    ColumnPredicate(std::string columnName, common::ExpressionType expressionType)
+        : columnName{std::move(columnName)}, expressionType(expressionType) {}
 
     virtual ~ColumnPredicate() = default;
 
     virtual common::ZoneMapCheckResult checkZoneMap(const ColumnChunkStats& stats) const = 0;
 
-    virtual std::string toString() = 0;
+    virtual std::string toString();
 
     virtual std::unique_ptr<ColumnPredicate> copy() const = 0;
 
@@ -51,11 +53,7 @@ public:
 
 protected:
     std::string columnName;
-};
-
-struct ColumnPredicateUtil {
-    static std::unique_ptr<ColumnPredicate> tryConvert(const binder::Expression& column,
-        const binder::Expression& predicate);
+    common::ExpressionType expressionType;
 };
 
 } // namespace storage

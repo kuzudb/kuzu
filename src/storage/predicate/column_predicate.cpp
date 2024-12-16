@@ -3,12 +3,16 @@
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/scalar_function_expression.h"
 #include "storage/predicate/constant_predicate.h"
+#include "storage/predicate/null_predicate.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
+
+static void tryAddConjunction(const Expression& column, const Expression& predicate,
+    std::vector<std::unique_ptr<ColumnPredicate>>& predicateSetToAddTo);
 
 ZoneMapCheckResult ColumnPredicateSet::checkZoneMap(const ColumnChunkStats& stats) const {
     for (auto& predicate : predicates) {
@@ -45,9 +49,12 @@ static bool isCastedColumnRef(const Expression& expr) {
     return false;
 }
 
+static bool isSimpleExpr(const Expression& expr) {
+    return isColumnRef(expr.expressionType) || isCastedColumnRef(expr);
+}
+
 static bool isColumnRefConstantPair(const Expression& left, const Expression& right) {
-    return (isColumnRef(left.expressionType) || isCastedColumnRef(left)) &&
-           right.expressionType == ExpressionType::LITERAL;
+    return isSimpleExpr(left) && right.expressionType == ExpressionType::LITERAL;
 }
 
 static bool columnMatchesExprChild(const Expression& column, const Expression& expr) {
@@ -78,12 +85,67 @@ static std::unique_ptr<ColumnPredicate> tryConvertToConstColumnPredicate(const E
     return nullptr;
 }
 
-std::unique_ptr<ColumnPredicate> ColumnPredicateUtil::tryConvert(const Expression& property,
+static std::unique_ptr<ColumnPredicate> tryConvertToIsNull(const Expression& column,
     const Expression& predicate) {
-    if (ExpressionTypeUtil::isComparison(predicate.expressionType)) {
-        return tryConvertToConstColumnPredicate(property, predicate);
+    // we only convert simple predicates
+    if (isSimpleExpr(*predicate.getChild(0))) {
+        return std::make_unique<ColumnIsNullPredicate>(column.toString());
     }
     return nullptr;
+}
+
+static std::unique_ptr<ColumnPredicate> tryConvertToIsNotNull(const Expression& column,
+    const Expression& predicate) {
+    if (isSimpleExpr(*predicate.getChild(0))) {
+        return std::make_unique<ColumnIsNotNullPredicate>(column.toString());
+    }
+    return nullptr;
+}
+
+static void emplaceIfNotNull(std::unique_ptr<ColumnPredicate> columnPredicate,
+    std::vector<std::unique_ptr<ColumnPredicate>>& predicateSetToAddTo) {
+    if (columnPredicate) {
+        predicateSetToAddTo.emplace_back(std::move(columnPredicate));
+    }
+}
+
+static void tryAddColumnPredicate(const Expression& property, const Expression& predicate,
+    std::vector<std::unique_ptr<ColumnPredicate>>& predicateSetToAddTo) {
+    if (ExpressionTypeUtil::isComparison(predicate.expressionType)) {
+        emplaceIfNotNull(tryConvertToConstColumnPredicate(property, predicate),
+            predicateSetToAddTo);
+        return;
+    }
+    switch (predicate.expressionType) {
+    case common::ExpressionType::AND:
+        tryAddConjunction(property, predicate, predicateSetToAddTo);
+        break;
+    case common::ExpressionType::IS_NULL:
+        emplaceIfNotNull(tryConvertToIsNull(property, predicate), predicateSetToAddTo);
+        break;
+    case common::ExpressionType::IS_NOT_NULL:
+        emplaceIfNotNull(tryConvertToIsNotNull(property, predicate), predicateSetToAddTo);
+        break;
+    default:
+        break;
+    }
+    return;
+}
+
+static void tryAddConjunction(const Expression& column, const Expression& predicate,
+    std::vector<std::unique_ptr<ColumnPredicate>>& predicateSetToAddTo) {
+    KU_ASSERT(predicate.expressionType == common::ExpressionType::AND);
+    tryAddColumnPredicate(column, *predicate.getChild(0), predicateSetToAddTo);
+    tryAddColumnPredicate(column, *predicate.getChild(1), predicateSetToAddTo);
+}
+
+void ColumnPredicateSet::tryAddPredicate(const binder::Expression& column,
+    const binder::Expression& predicate) {
+    tryAddColumnPredicate(column, predicate, predicates);
+}
+
+std::string ColumnPredicate::toString() {
+    return stringFormat("{} {}", columnName, ExpressionTypeUtil::toParsableString(expressionType));
 }
 
 } // namespace storage

@@ -81,7 +81,8 @@ ColumnChunkData::ColumnChunkData(MemoryManager& mm, LogicalType dataType, uint64
     bool enableCompression, ResidencyState residencyState, bool hasNullData, bool initializeToZero)
     : residencyState{residencyState}, dataType{std::move(dataType)},
       enableCompression{enableCompression},
-      numBytesPerValue{getDataTypeSizeInChunk(this->dataType)}, capacity{capacity}, numValues{0} {
+      numBytesPerValue{getDataTypeSizeInChunk(this->dataType)}, capacity{capacity}, numValues{0},
+      inMemoryStats() {
     if (hasNullData) {
         nullData = std::make_unique<NullChunkData>(mm, capacity, enableCompression, residencyState);
     }
@@ -180,20 +181,25 @@ static void updateInMemoryStats(ColumnChunkStats& stats, const ValueVector& valu
     uint64_t offset = 0, uint64_t numValues = std::numeric_limits<uint64_t>::max()) {
     const auto physicalType = values.dataType.getPhysicalType();
     const auto numValuesToCheck = std::min(numValues, values.state->getSelSize());
-    stats.update(values.getData(), offset, numValuesToCheck, physicalType);
+    // we pessimistically set mayHaveNulls to check the entire vector instead of the selected range
+    stats.update(values.getData(), offset, numValuesToCheck, values.hasNoNullsGuarantee(),
+        physicalType);
 }
 
 static void updateInMemoryStats(ColumnChunkStats& stats, const ColumnChunkData* values,
     uint64_t offset = 0, uint64_t numValues = std::numeric_limits<uint64_t>::max()) {
     const auto physicalType = values->getDataType().getPhysicalType();
     const auto numValuesToCheck = std::min(values->getNumValues(), numValues);
-    stats.update(values->getData(), offset, numValuesToCheck, physicalType);
+    const bool mayHaveNulls = values->hasNullData() && values->getNullData().mayHaveNull();
+    stats.update(values->getData(), offset, numValuesToCheck, mayHaveNulls, physicalType);
 }
 
 ColumnChunkStats ColumnChunkData::getMergedColumnChunkStats() const {
     const CompressionMetadata& onDiskMetadata = metadata.compMeta;
     auto ret = inMemoryStats;
-    ret.update(onDiskMetadata.min, onDiskMetadata.max, getDataType().getPhysicalType());
+    const bool mayHaveNulls = nullData && nullData->mayHaveNull();
+    ret.update(onDiskMetadata.min, onDiskMetadata.max, mayHaveNulls,
+        getDataType().getPhysicalType());
     return ret;
 }
 
