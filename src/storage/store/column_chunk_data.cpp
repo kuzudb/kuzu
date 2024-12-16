@@ -182,25 +182,22 @@ static void updateInMemoryStats(ColumnChunkStats& stats, const ValueVector& valu
     const auto physicalType = values.dataType.getPhysicalType();
     const auto numValuesToCheck = std::min(numValues, values.state->getSelSize());
     // we pessimistically set mayHaveNulls to check the entire vector instead of the selected range
-    stats.update(values.getData(), offset, numValuesToCheck, values.hasNoNullsGuarantee(),
-        physicalType);
+    stats.update(values.getData(), offset, numValuesToCheck, physicalType);
 }
 
 static void updateInMemoryStats(ColumnChunkStats& stats, const ColumnChunkData* values,
     uint64_t offset = 0, uint64_t numValues = std::numeric_limits<uint64_t>::max()) {
     const auto physicalType = values->getDataType().getPhysicalType();
     const auto numValuesToCheck = std::min(values->getNumValues(), numValues);
-    const bool mayHaveNulls = values->hasNullData() && values->getNullData().mayHaveNull();
-    stats.update(values->getData(), offset, numValuesToCheck, mayHaveNulls, physicalType);
+    const auto nullMask = values->getNullMask();
+    stats.update(values->getData(), offset, numValuesToCheck, physicalType);
 }
 
-ColumnChunkStats ColumnChunkData::getMergedColumnChunkStats() const {
+MergedColumnChunkStats ColumnChunkData::getMergedColumnChunkStats() const {
     const CompressionMetadata& onDiskMetadata = metadata.compMeta;
-    auto ret = inMemoryStats;
-    const bool mayHaveNulls = nullData && nullData->mayHaveNull();
-    ret.update(onDiskMetadata.min, onDiskMetadata.max, mayHaveNulls,
-        getDataType().getPhysicalType());
-    return ret;
+    ColumnChunkStats stats = inMemoryStats;
+    stats.update(onDiskMetadata.min, onDiskMetadata.max, getDataType().getPhysicalType());
+    return MergedColumnChunkStats{stats, nullData && nullData->mayHaveNull()};
 }
 
 void ColumnChunkData::updateStats(const common::ValueVector* vector,
@@ -213,8 +210,10 @@ void ColumnChunkData::updateStats(const common::ValueVector* vector,
             [this, vector, &selVector]<StorageValueType T>(T) {
                 for (idx_t i = 0; i < selVector.getSelSize(); ++i) {
                     auto pos = selVector.getSelectedPositions()[i];
-                    auto val = vector->getValue<T>(pos);
-                    inMemoryStats.update(StorageValue{val}, getDataType().getPhysicalType());
+                    if (!vector->isNull(pos)) {
+                        const auto val = vector->getValue<T>(pos);
+                        inMemoryStats.update(StorageValue{val}, getDataType().getPhysicalType());
+                    }
                 }
             },
             []<typename T>(T) { static_assert(!StorageValueType<T>); });
@@ -668,7 +667,9 @@ void BoolChunkData::write(const ValueVector* vector, offset_t offsetInVector,
         nullData->write(vector, offsetInVector, offsetInChunk);
     }
     numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
-    inMemoryStats.update(StorageValue{valueToSet}, dataType.getPhysicalType());
+    if (!vector->isNull(offsetInVector)) {
+        inMemoryStats.update(StorageValue{valueToSet}, dataType.getPhysicalType());
+    }
 }
 
 void BoolChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,

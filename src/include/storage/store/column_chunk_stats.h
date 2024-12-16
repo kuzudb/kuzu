@@ -6,16 +6,23 @@ namespace kuzu::storage {
 struct ColumnChunkStats {
     std::optional<StorageValue> max;
     std::optional<StorageValue> min;
-    bool mayHaveNulls = false;
 
-    void update(std::optional<StorageValue> min, std::optional<StorageValue> max, bool mayHaveNulls,
+    void update(std::optional<StorageValue> min, std::optional<StorageValue> max,
         common::PhysicalTypeID dataType);
     void update(StorageValue val, common::PhysicalTypeID dataType);
-    void update(uint8_t* data, uint64_t offset, uint64_t numValues, bool mayHaveNulls,
+    void update(uint8_t* data, uint64_t offset, uint64_t numValues,
         common::PhysicalTypeID physicalType);
     void reset();
+};
 
-    void updateMayHaveNulls(bool newMayHaveNulls);
+struct MergedColumnChunkStats {
+    MergedColumnChunkStats(ColumnChunkStats stats, bool mayContainNulls)
+        : stats(stats), mayHaveNulls(mayContainNulls) {}
+
+    ColumnChunkStats stats;
+    bool mayHaveNulls;
+
+    void merge(const MergedColumnChunkStats& o, common::PhysicalTypeID dataType);
 };
 
 } // namespace kuzu::storage

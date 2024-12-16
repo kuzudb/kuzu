@@ -13,7 +13,7 @@ public:
         common::Value value)
         : ColumnPredicate{std::move(columnName), expressionType}, value{std::move(value)} {}
 
-    common::ZoneMapCheckResult checkZoneMap(const ColumnChunkStats& stats) const override;
+    common::ZoneMapCheckResult checkZoneMap(const MergedColumnChunkStats& stats) const override;
 
     std::string toString() override;
 

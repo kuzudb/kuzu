@@ -14,7 +14,7 @@ namespace storage {
 static void tryAddConjunction(const Expression& column, const Expression& predicate,
     std::vector<std::unique_ptr<ColumnPredicate>>& predicateSetToAddTo);
 
-ZoneMapCheckResult ColumnPredicateSet::checkZoneMap(const ColumnChunkStats& stats) const {
+ZoneMapCheckResult ColumnPredicateSet::checkZoneMap(const MergedColumnChunkStats& stats) const {
     for (auto& predicate : predicates) {
         if (predicate->checkZoneMap(stats) == ZoneMapCheckResult::SKIP_SCAN) {
             return ZoneMapCheckResult::SKIP_SCAN;

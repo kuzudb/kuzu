@@ -11,7 +11,7 @@ public:
     explicit ColumnIsNullPredicate(std::string columnName)
         : ColumnPredicate{std::move(columnName), common::ExpressionType::IS_NULL} {}
 
-    common::ZoneMapCheckResult checkZoneMap(const ColumnChunkStats& stats) const override;
+    common::ZoneMapCheckResult checkZoneMap(const MergedColumnChunkStats& stats) const override;
 
     std::unique_ptr<ColumnPredicate> copy() const override {
         return std::make_unique<ColumnIsNullPredicate>(columnName);
@@ -23,7 +23,7 @@ public:
     explicit ColumnIsNotNullPredicate(std::string columnName)
         : ColumnPredicate{std::move(columnName), common::ExpressionType::IS_NOT_NULL} {}
 
-    common::ZoneMapCheckResult checkZoneMap(const ColumnChunkStats& stats) const override;
+    common::ZoneMapCheckResult checkZoneMap(const MergedColumnChunkStats& stats) const override;
 
     std::unique_ptr<ColumnPredicate> copy() const override {
         return std::make_unique<ColumnIsNotNullPredicate>(columnName);

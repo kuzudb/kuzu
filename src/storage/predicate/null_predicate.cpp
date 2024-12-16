@@ -4,12 +4,13 @@
 
 namespace kuzu::storage {
 common::ZoneMapCheckResult ColumnIsNullPredicate::checkZoneMap(
-    const ColumnChunkStats& stats) const {
-    return stats.mayHaveNulls ? common::ZoneMapCheckResult::ALWAYS_SCAN :
-                                common::ZoneMapCheckResult::SKIP_SCAN;
+    const MergedColumnChunkStats& mergedStats) const {
+    return mergedStats.mayHaveNulls ? common::ZoneMapCheckResult::ALWAYS_SCAN :
+                                      common::ZoneMapCheckResult::SKIP_SCAN;
 }
 
-common::ZoneMapCheckResult ColumnIsNotNullPredicate::checkZoneMap(const ColumnChunkStats&) const {
+common::ZoneMapCheckResult ColumnIsNotNullPredicate::checkZoneMap(
+    const MergedColumnChunkStats&) const {
     return common::ZoneMapCheckResult::ALWAYS_SCAN;
 }
 } // namespace kuzu::storage

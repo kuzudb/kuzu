@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace storage {
 
-struct ColumnChunkStats;
+struct MergedColumnChunkStats;
 
 class ColumnPredicate;
 class KUZU_API ColumnPredicateSet {
@@ -21,7 +21,7 @@ public:
     void tryAddPredicate(const binder::Expression& column, const binder::Expression& predicate);
     bool isEmpty() const { return predicates.empty(); }
 
-    common::ZoneMapCheckResult checkZoneMap(const ColumnChunkStats& stats) const;
+    common::ZoneMapCheckResult checkZoneMap(const MergedColumnChunkStats& stats) const;
 
     std::string toString() const;
 
@@ -40,7 +40,7 @@ public:
 
     virtual ~ColumnPredicate() = default;
 
-    virtual common::ZoneMapCheckResult checkZoneMap(const ColumnChunkStats& stats) const = 0;
+    virtual common::ZoneMapCheckResult checkZoneMap(const MergedColumnChunkStats& stats) const = 0;
 
     virtual std::string toString();
 

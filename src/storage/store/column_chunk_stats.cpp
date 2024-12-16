@@ -5,40 +5,39 @@
 namespace kuzu {
 namespace storage {
 
-void ColumnChunkStats::update(uint8_t* data, uint64_t offset, uint64_t numValues, bool mayHaveNulls,
+void ColumnChunkStats::update(uint8_t* data, uint64_t offset, uint64_t numValues,
     common::PhysicalTypeID physicalType) {
     const bool isStorageValueType =
         common::TypeUtils::visit(physicalType, []<typename T>(T) { return StorageValueType<T>; });
     if (isStorageValueType) {
         auto [minVal, maxVal] =
             getMinMaxStorageValue(data, offset, numValues, physicalType, nullptr);
-        update(minVal, maxVal, mayHaveNulls, physicalType);
-    } else {
-        updateMayHaveNulls(mayHaveNulls);
+        update(minVal, maxVal, physicalType);
     }
 }
 
 void ColumnChunkStats::update(std::optional<StorageValue> newMin,
-    std::optional<StorageValue> newMax, bool mayHaveNulls, common::PhysicalTypeID dataType) {
+    std::optional<StorageValue> newMax, common::PhysicalTypeID dataType) {
     if (!min.has_value() || (newMin.has_value() && min->gt(*newMin, dataType))) {
         min = newMin;
     }
     if (!max.has_value() || (newMax.has_value() && newMax->gt(*max, dataType))) {
         max = newMax;
     }
-    updateMayHaveNulls(mayHaveNulls);
 }
 
 void ColumnChunkStats::update(StorageValue val, common::PhysicalTypeID dataType) {
-    update(val, val, false, dataType);
-}
-
-void ColumnChunkStats::updateMayHaveNulls(bool newMayHaveNulls) {
-    mayHaveNulls = mayHaveNulls || newMayHaveNulls;
+    update(val, val, dataType);
 }
 
 void ColumnChunkStats::reset() {
-    *this = ColumnChunkStats{};
+    *this = {};
+}
+
+void MergedColumnChunkStats::merge(const MergedColumnChunkStats& o,
+    common::PhysicalTypeID dataType) {
+    stats.update(o.stats.min, o.stats.max, dataType);
+    mayHaveNulls = mayHaveNulls || o.mayHaveNulls;
 }
 
 } // namespace storage

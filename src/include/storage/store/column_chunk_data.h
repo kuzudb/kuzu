@@ -229,7 +229,7 @@ public:
     void loadFromDisk();
     uint64_t spillToDisk();
 
-    ColumnChunkStats getMergedColumnChunkStats() const;
+    MergedColumnChunkStats getMergedColumnChunkStats() const;
 
     void updateStats(const common::ValueVector* vector, const common::SelectionVector& selVector);
 
