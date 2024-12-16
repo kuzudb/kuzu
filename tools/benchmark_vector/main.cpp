@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
         auto totalQueries = 0;
         auto totalQueriesSkipped = 0;
         long totalDuration = 0;
-        long compilationTime = 14.0;
+        long compilationTime = 17.0;
         for (auto i = 0; i < queries.size(); i++) {
             printf("====== running query %d ======\n", i);
             auto localRecall = 0;
