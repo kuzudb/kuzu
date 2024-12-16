@@ -28,6 +28,11 @@ struct TableFunction;
 
 struct ExtraTableFuncBindInput {
     virtual ~ExtraTableFuncBindInput() = default;
+
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const TARGET*>(this);
+    }
 };
 
 struct TableFuncBindInput {

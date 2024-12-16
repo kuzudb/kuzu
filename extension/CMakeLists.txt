@@ -50,6 +50,10 @@ if ("delta" IN_LIST BUILD_EXTENSIONS)
     add_subdirectory(delta)
 endif ()
 
+if ("iceberg" IN_LIST BUILD_EXTENSIONS)
+    add_subdirectory(iceberg)
+endif ()
+
 if (${BUILD_EXTENSION_TESTS})
     enable_testing()
 endif ()

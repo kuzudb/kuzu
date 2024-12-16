@@ -1,0 +1,133 @@
+-DATASET CSV empty
+
+--
+
+-CASE IcebergFunctions
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/iceberg/build/libiceberg.kuzu_extension"
+---- ok
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/iceberg/build/libiceberg.kuzu_extension"
+---- ok
+
+-LOG NOT_allow_moved_paths
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg' (file_format='iceberg', allow_moved_paths=false) RETURN *
+---- error(regex)
+IO Error: Cannot open file "lineitem_iceberg.*metadata.*snap-7635660646343998149-1-10eaca8a-1e1c-421e-ad6d-b232e5ee23d3.avro": (The system cannot find the path specified.*|No such file or directory)
+
+-LOG LocalIcebergTable
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg' (file_format='iceberg', allow_moved_paths=true) RETURN l_linenumber, l_quantity, l_shipdate, l_shipinstruct LIMIT 5;
+---- 5
+1|17|1996-03-13|DELIVER IN PERSON
+2|36|1996-04-12|TAKE BACK RETURN
+3|8|1996-01-29|TAKE BACK RETURN
+4|28|1996-04-21|NONE
+5|24|1996-03-30|NONE
+
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/person_table' (file_format='iceberg', allow_moved_paths=true) RETURN *
+---- 5
+Alice|25|1000.500000|1999-01-15 05:00:00+00
+Bob|30|1500.750000|1994-06-25 04:00:00+00
+Charlie|35|2000.000000|1988-12-05 05:00:00+00
+Diana|40|2500.300000|1983-07-20 04:00:00+00
+Ethan|28|1800.600000|1996-03-10 05:00:00+00
+
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/university' (file_format='iceberg', allow_moved_paths=true) RETURN *
+---- 6
+Cambridge|5|280.200000
+Harvard|1|210.500000
+MIT|3|170.000000
+Oxford|4|300.000000
+Stanford|2|250.300000
+Yale|6|190.700000
+
+-LOG S3IcebergTable
+-STATEMENT CALL s3_access_key_id='${UW_S3_ACCESS_KEY_ID}'
+---- ok
+-STATEMENT CALL s3_secret_access_key='${UW_S3_SECRET_ACCESS_KEY}'
+---- ok
+-STATEMENT CALL s3_endpoint='rgw.cs.uwaterloo.ca'
+---- ok
+-STATEMENT CALL s3_url_style='path'
+---- ok
+-STATEMENT CALL s3_region='US'
+---- ok
+-STATEMENT LOAD FROM 's3://kuzu-test/iceberg' (file_format='iceberg', allow_moved_paths=true) RETURN l_linenumber, l_quantity, l_shipdate, l_shipinstruct LIMIT 5;
+---- 5
+1|17|1996-03-13|DELIVER IN PERSON
+2|36|1996-04-12|TAKE BACK RETURN
+3|8|1996-01-29|TAKE BACK RETURN
+4|28|1996-04-21|NONE
+5|24|1996-03-30|NONE
+
+# TODO(Sterling): DUCKDB didn't handle nested struct in iceberg yet
+#-LOG TableOfDifferentTypes
+#-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/student' (file_format='iceberg', allow_moved_paths=true) RETURN *
+#---- 3
+#Alice|[52,24,31]|True|2020-05-17 00:00:00|{age: 25, gender: female}
+#Bob|[15,66,72]|False|2011-03-22 00:00:00|{age: 22, gender: male}
+#Carol|[29,24,11]||2001-04-15 00:00:00|{age: 33, gender: female}
+
+-LOG InvalidIcebergPath
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/student' (file_format='iceberg', allow_moved_paths=true) RETURN *
+---- error
+Binder exception: No file found that matches the pattern: ${KUZU_ROOT_DIRECTORY}/student.
+
+-LOG InvalidIcebergTable
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/src' (file_format='iceberg', allow_moved_paths=true) RETURN *
+---- error(regex)
+IO Error: Cannot open file ".*": (The system cannot find the path specified.*|No such file or directory)
+
+-LOG IcebergMetadata
+
+-STATEMENT CALL ICEBERG_METADATA('${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg', version := '2', allow_moved_paths := true) return *;
+---- 2
+lineitem_iceberg/metadata/10eaca8a-1e1c-421e-ad6d-b232e5ee23d3-m0.avro|2|DATA|DELETED|EXISTING|lineitem_iceberg/data/00000-411-0792dcfe-4e25-4ca3-8ada-175286069a47-00001.parquet|PARQUET|60175
+lineitem_iceberg/metadata/10eaca8a-1e1c-421e-ad6d-b232e5ee23d3-m1.avro|2|DATA|ADDED|EXISTING|lineitem_iceberg/data/00041-414-f3c73457-bbd6-4b92-9c15-17b241171b16-00001.parquet|PARQUET|51793
+
+-STATEMENT CALL ICEBERG_METADATA('${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg', version := '1', allow_moved_paths := true) return *;
+---- 1
+lineitem_iceberg/metadata/cf3d0be5-cf70-453d-ad8f-48fdc412e608-m0.avro|1|DATA|ADDED|EXISTING|lineitem_iceberg/data/00000-411-0792dcfe-4e25-4ca3-8ada-175286069a47-00001.parquet|PARQUET|60175
+
+-STATEMENT CALL ICEBERG_METADATA('${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/university', version := '1', allow_moved_paths := true) return *
+---- 6
+/home/sterling/Desktop/iceberg_warehouse/university/metadata/bf8fe175-30b4-4b7d-9d1d-7a3b112ab9be-m0.avro|1|DATA|ADDED|EXISTING|/home/sterling/Desktop/iceberg_warehouse/university/data/00002-2-af90fc9b-dac5-4203-a404-92990b25a11f-00001.parquet|PARQUET|1
+/home/sterling/Desktop/iceberg_warehouse/university/metadata/bf8fe175-30b4-4b7d-9d1d-7a3b112ab9be-m0.avro|1|DATA|ADDED|EXISTING|/home/sterling/Desktop/iceberg_warehouse/university/data/00005-5-af90fc9b-dac5-4203-a404-92990b25a11f-00001.parquet|PARQUET|1
+/home/sterling/Desktop/iceberg_warehouse/university/metadata/bf8fe175-30b4-4b7d-9d1d-7a3b112ab9be-m0.avro|1|DATA|ADDED|EXISTING|/home/sterling/Desktop/iceberg_warehouse/university/data/00007-7-af90fc9b-dac5-4203-a404-92990b25a11f-00001.parquet|PARQUET|1
+/home/sterling/Desktop/iceberg_warehouse/university/metadata/bf8fe175-30b4-4b7d-9d1d-7a3b112ab9be-m0.avro|1|DATA|ADDED|EXISTING|/home/sterling/Desktop/iceberg_warehouse/university/data/00010-10-af90fc9b-dac5-4203-a404-92990b25a11f-00001.parquet|PARQUET|1
+/home/sterling/Desktop/iceberg_warehouse/university/metadata/bf8fe175-30b4-4b7d-9d1d-7a3b112ab9be-m0.avro|1|DATA|ADDED|EXISTING|/home/sterling/Desktop/iceberg_warehouse/university/data/00013-13-af90fc9b-dac5-4203-a404-92990b25a11f-00001.parquet|PARQUET|1
+/home/sterling/Desktop/iceberg_warehouse/university/metadata/bf8fe175-30b4-4b7d-9d1d-7a3b112ab9be-m0.avro|1|DATA|ADDED|EXISTING|/home/sterling/Desktop/iceberg_warehouse/university/data/00015-15-af90fc9b-dac5-4203-a404-92990b25a11f-00001.parquet|PARQUET|1
+
+-STATEMENT CALL ICEBERG_METADATA('${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/university', allow_moved_paths := true) return *
+---- 6
+/home/sterling/Desktop/iceberg_warehouse/university/metadata/bf8fe175-30b4-4b7d-9d1d-7a3b112ab9be-m0.avro|1|DATA|ADDED|EXISTING|/home/sterling/Desktop/iceberg_warehouse/university/data/00002-2-af90fc9b-dac5-4203-a404-92990b25a11f-00001.parquet|PARQUET|1
+/home/sterling/Desktop/iceberg_warehouse/university/metadata/bf8fe175-30b4-4b7d-9d1d-7a3b112ab9be-m0.avro|1|DATA|ADDED|EXISTING|/home/sterling/Desktop/iceberg_warehouse/university/data/00005-5-af90fc9b-dac5-4203-a404-92990b25a11f-00001.parquet|PARQUET|1
+/home/sterling/Desktop/iceberg_warehouse/university/metadata/bf8fe175-30b4-4b7d-9d1d-7a3b112ab9be-m0.avro|1|DATA|ADDED|EXISTING|/home/sterling/Desktop/iceberg_warehouse/university/data/00007-7-af90fc9b-dac5-4203-a404-92990b25a11f-00001.parquet|PARQUET|1
+/home/sterling/Desktop/iceberg_warehouse/university/metadata/bf8fe175-30b4-4b7d-9d1d-7a3b112ab9be-m0.avro|1|DATA|ADDED|EXISTING|/home/sterling/Desktop/iceberg_warehouse/university/data/00010-10-af90fc9b-dac5-4203-a404-92990b25a11f-00001.parquet|PARQUET|1
+/home/sterling/Desktop/iceberg_warehouse/university/metadata/bf8fe175-30b4-4b7d-9d1d-7a3b112ab9be-m0.avro|1|DATA|ADDED|EXISTING|/home/sterling/Desktop/iceberg_warehouse/university/data/00013-13-af90fc9b-dac5-4203-a404-92990b25a11f-00001.parquet|PARQUET|1
+/home/sterling/Desktop/iceberg_warehouse/university/metadata/bf8fe175-30b4-4b7d-9d1d-7a3b112ab9be-m0.avro|1|DATA|ADDED|EXISTING|/home/sterling/Desktop/iceberg_warehouse/university/data/00015-15-af90fc9b-dac5-4203-a404-92990b25a11f-00001.parquet|PARQUET|1
+
+-LOG IcebergSnapshots
+-STATEMENT CALL ICEBERG_SNAPSHOTS('${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/university') return *
+---- 1
+1|3733971056689449947|2024-12-04 21:30:50.414|/home/sterling/Desktop/iceberg_warehouse/university/metadata/snap-3733971056689449947-1-bf8fe175-30b4-4b7d-9d1d-7a3b112ab9be.avro
+
+-STATEMENT CALL ICEBERG_SNAPSHOTS('${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/university', version := '1') return *
+---- 1
+1|3733971056689449947|2024-12-04 21:30:50.414|/home/sterling/Desktop/iceberg_warehouse/university/metadata/snap-3733971056689449947-1-bf8fe175-30b4-4b7d-9d1d-7a3b112ab9be.avro
+
+-STATEMENT CALL ICEBERG_SNAPSHOTS('${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg', version := '2') return *;
+---- 2
+1|3776207205136740581|2023-02-15 15:07:54.504|lineitem_iceberg/metadata/snap-3776207205136740581-1-cf3d0be5-cf70-453d-ad8f-48fdc412e608.avro
+2|7635660646343998149|2023-02-15 15:08:14.73|lineitem_iceberg/metadata/snap-7635660646343998149-1-10eaca8a-1e1c-421e-ad6d-b232e5ee23d3.avro
+
+-STATEMENT CALL ICEBERG_SNAPSHOTS('${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg', version := '1') return *;
+---- 1
+1|3776207205136740581|2023-02-15 15:07:54.504|lineitem_iceberg/metadata/snap-3776207205136740581-1-cf3d0be5-cf70-453d-ad8f-48fdc412e608.avro
+
+-LOG metadata_compression_codec
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg_gz' (file_format='iceberg', allow_moved_paths=true, metadata_compression_codec = 'gzip' ) RETURN l_linenumber, l_quantity, l_shipdate, l_shipinstruct LIMIT 5;
+---- 5
+1|17|1996-03-13|DELIVER IN PERSON
+2|36|1996-04-12|TAKE BACK RETURN
+3|8|1996-01-29|TAKE BACK RETURN
+4|28|1996-04-21|NONE
+5|24|1996-03-30|NONE
