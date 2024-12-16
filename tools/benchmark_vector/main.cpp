@@ -134,6 +134,7 @@ int main(int argc, char **argv) {
             duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
             printf("duration: %lld ms\n", duration);
             totalDuration += (duration - compilationTime);
+            printf("Number of tuples: %llu\n", res->getNumTuples());
             if (res->getNumTuples() < k) {
                 totalQueriesSkipped += 1;
                 printf("skipped query %d\n", i);
