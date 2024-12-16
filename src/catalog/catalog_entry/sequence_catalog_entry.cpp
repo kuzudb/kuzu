@@ -157,9 +157,10 @@ std::unique_ptr<SequenceCatalogEntry> SequenceCatalogEntry::deserialize(
 
 std::string SequenceCatalogEntry::toCypher(main::ClientContext* /*clientContext*/) const {
     return stringFormat(
+        "DROP SEQUENCE IF EXISTS {};\n"
         "CREATE SEQUENCE IF NOT EXISTS {} START {} INCREMENT {} MINVALUE {} MAXVALUE {} {} CYCLE;\n"
         "RETURN nextval('{}');",
-        getName(), sequenceData.currVal, sequenceData.increment, sequenceData.minValue,
+        getName(), getName(), sequenceData.currVal, sequenceData.increment, sequenceData.minValue,
         sequenceData.maxValue, sequenceData.cycle ? "" : "NO", getName());
 }
 
