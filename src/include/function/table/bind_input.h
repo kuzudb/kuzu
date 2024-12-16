@@ -35,7 +35,6 @@ struct TableFuncBindInput {
     optional_params_t optionalParams;
     std::unique_ptr<ExtraTableFuncBindInput> extraInput = nullptr;
     binder::Binder* binder = nullptr;
-    std::shared_ptr<binder::NodeExpression> nodeExpression;
 
     TableFuncBindInput() = default;
 

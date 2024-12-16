@@ -46,14 +46,17 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto& lowerRelTable =
         storageManager->getTable(indexEntry->getLowerRelTableID())->cast<storage::RelTable>();
     binder::expression_vector columns;
-    columns.push_back(input->nodeExpression);
+
+    auto outputNode = input->binder->createQueryNode("nn", {nodeTableEntry});
+    input->binder->addToScope(outputNode->toString(), outputNode);
+    columns.push_back(outputNode->getInternalID());
     columns.push_back(input->binder->createVariable("_distance", common::LogicalType::FLOAT()));
     auto config = storage::QueryHNSWConfig{input->optionalParams};
     auto numNodes = nodeTable.getStats(context->getTx()).getTableCard();
     return std::make_unique<QueryHNSWIndexBindData>(std::move(columns),
         nodeTableEntry->getTableID(), indexEntry, std::move(queryVector), k, nodeTable,
         nodeTableEntry->getColumnID(indexEntry->getIndexColumnName()), numNodes, upperRelTable,
-        lowerRelTable, std::move(config), input->nodeExpression);
+        lowerRelTable, std::move(config), outputNode);
 }
 
 // NOLINTNEXTLINE(readability-non-const-parameter)

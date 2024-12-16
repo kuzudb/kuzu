@@ -128,24 +128,41 @@ void Planner::planTableFunctionCall(const BoundReadingClause& readingClause,
             appendFilters(predicatesToPull, *plan);
         }
         auto callOp = op->ptrCast<LogicalTableFunctionCall>();
-        if (StringUtils::getUpper(callOp->getTableFunc().name) ==
-            function::QueryHNSWIndexFunction::name) {
-            auto bindData = callOp->getBindData()->constPtrCast<function::QueryHNSWIndexBindData>();
-            auto node = bindData->outputNode;
-            cardinalityEstimator.addNodeIDDomAndStats(clientContext->getTx(),
-                *node->getInternalID(), node->getTableIDs());
-            auto scanPlan = LogicalPlan();
-            expression_vector scanExpressions;
-            // TODO(Xiyang/Guodong): The scan expressions are hacked for now. Should be pushed down.
-            scanExpressions.push_back(node->getPropertyExpression("id"));
-            appendScanNodeTable(node->getInternalID(), node->getTableIDs(), scanExpressions,
-                scanPlan);
-            expression_vector joinConditions;
-            joinConditions.push_back(node->getInternalID());
-            appendHashJoin(joinConditions, JoinType::INNER, scanPlan, *plan, *plan);
-            plan->getLastOperator()->cast<LogicalHashJoin>().getSIPInfoUnsafe().direction =
-                SIPDirection::FORCE_BUILD_TO_PROBE;
+        if (!callOp->getBindData()->hasNodeOutput()) {
+            continue;
         }
+        auto& node = callOp->getBindData()->getNodeOutput()->constCast<NodeExpression>();
+        auto properties = getProperties(node);
+        if (properties.empty()) {
+            continue;
+        }
+        cardinalityEstimator.addNodeIDDomAndStats(clientContext->getTx(),
+            *node.getInternalID(), node.getTableIDs());
+        auto scanPlan = LogicalPlan();
+        appendScanNodeTable(node.getInternalID(), node.getTableIDs(), properties, scanPlan);
+        expression_vector joinConditions;
+        joinConditions.push_back(node.getInternalID());
+        appendHashJoin(joinConditions, JoinType::INNER, scanPlan, *plan, *plan);
+        plan->getLastOperator()->cast<LogicalHashJoin>().getSIPInfoUnsafe().direction =
+            SIPDirection::FORCE_BUILD_TO_PROBE;
+//        if (StringUtils::getUpper(callOp->getTableFunc().name) ==
+//            function::QueryHNSWIndexFunction::name) {
+//            auto bindData = callOp->getBindData()->constPtrCast<function::QueryHNSWIndexBindData>();
+//            auto node = bindData->outputNode;
+//            cardinalityEstimator.addNodeIDDomAndStats(clientContext->getTx(),
+//                *node->getInternalID(), node->getTableIDs());
+//            auto scanPlan = LogicalPlan();
+//            expression_vector scanExpressions;
+//            // TODO(Xiyang/Guodong): The scan expressions are hacked for now. Should be pushed down.
+//            scanExpressions.push_back(node->getPropertyExpression("id"));
+//            appendScanNodeTable(node->getInternalID(), node->getTableIDs(), scanExpressions,
+//                scanPlan);
+//            expression_vector joinConditions;
+//            joinConditions.push_back(node->getInternalID());
+//            appendHashJoin(joinConditions, JoinType::INNER, scanPlan, *plan, *plan);
+//            plan->getLastOperator()->cast<LogicalHashJoin>().getSIPInfoUnsafe().direction =
+//                SIPDirection::FORCE_BUILD_TO_PROBE;
+//        }
     }
 }
 

@@ -42,6 +42,9 @@ struct TableFuncBindData {
         return columnPredicates;
     }
 
+    bool hasNodeOutput() const { return getNodeOutput() != nullptr; }
+    virtual std::shared_ptr<binder::Expression> getNodeOutput() const { return nullptr; }
+
     virtual std::unique_ptr<TableFuncBindData> copy() const = 0;
 
     template<class TARGET>
