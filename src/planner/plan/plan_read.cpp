@@ -136,8 +136,8 @@ void Planner::planTableFunctionCall(const BoundReadingClause& readingClause,
         if (properties.empty()) {
             continue;
         }
-        cardinalityEstimator.addNodeIDDomAndStats(clientContext->getTx(),
-            *node.getInternalID(), node.getTableIDs());
+        cardinalityEstimator.addNodeIDDomAndStats(clientContext->getTx(), *node.getInternalID(),
+            node.getTableIDs());
         auto scanPlan = LogicalPlan();
         appendScanNodeTable(node.getInternalID(), node.getTableIDs(), properties, scanPlan);
         expression_vector joinConditions;
