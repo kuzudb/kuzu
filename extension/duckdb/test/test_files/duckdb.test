@@ -193,6 +193,15 @@ Catalog exception: personxx does not exist in catalog.
 -STATEMENT CALL TABLE_INFO('tinysnbxx.person') RETURN *;
 ---- error
 Runtime exception: Database: tinysnbxx doesn't exist.
+-LOG AttachWithNonDefaultSchema
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/dataset/databases/duckdb_database/tinysnb.db' as kuzu (dbtype duckdb, schema = 'kuzu');
+---- 1
+Attached database successfully.
+-STATEMENT LOAD FROM kuzu.employee RETURN *;
+---- 3
+0|alice|52
+2|carol|23
+10|dan|72
 
 -CASE InvalidDuckDBDatabase
 -STATEMENT LOAD FROM tinysnb1.person RETURN *;

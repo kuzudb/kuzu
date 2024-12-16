@@ -2,7 +2,9 @@
 
 #include <filesystem>
 
+#include "binder/bound_attach_info.h"
 #include "catalog/duckdb_catalog.h"
+#include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
 #include "connector/connector_factory.h"
@@ -24,10 +26,13 @@ std::unique_ptr<main::AttachedDatabase> attachDuckDB(std::string dbName, std::st
     if (dbName == "") {
         dbName = catalogName;
     }
+    auto schemaName =
+        DuckDBCatalog::bindSchemaName(attachOption, DuckDBStorageExtension::DEFAULT_SCHEMA_NAME);
     auto connector = DuckDBConnectorFactory::getDuckDBConnector(dbPath);
-    connector->connect(dbPath, catalogName, clientContext);
+    connector->connect(dbPath, catalogName, schemaName, clientContext);
+
     auto duckdbCatalog = std::make_unique<DuckDBCatalog>(std::move(dbPath), std::move(catalogName),
-        DuckDBStorageExtension::DEFAULT_SCHEMA_NAME, clientContext, *connector, attachOption);
+        schemaName, clientContext, *connector, attachOption);
     duckdbCatalog->init();
     return std::make_unique<AttachedDuckDBDatabase>(dbName, DuckDBStorageExtension::DB_TYPE,
         std::move(duckdbCatalog), std::move(connector));
