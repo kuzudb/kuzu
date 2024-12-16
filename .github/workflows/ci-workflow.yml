@@ -886,7 +886,7 @@ jobs:
 
   macos-extension-test:
     name: macos extension test
-    #needs: [macos-build-test]
+    needs: [macos-build-test]
     runs-on: [self-hosted, macOS]
     env:
       TEST_JOBS: 16
@@ -943,7 +943,7 @@ jobs:
 
   windows-extension-test:
     name: windows extension test
-    #needs: [msvc-build-test]
+    needs: [msvc-build-test]
     runs-on: self-hosted-windows
     env:
       # Shorten build path as much as possible
