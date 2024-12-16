@@ -7,6 +7,7 @@ add_library(kuzu_iceberg_functions
         ${PROJECT_SOURCE_DIR}/extension/duckdb/src/connector/duckdb_type_converter.cpp
         ${PROJECT_SOURCE_DIR}/extension/duckdb/src/connector/duckdb_result_converter.cpp
         ${PROJECT_SOURCE_DIR}/extension/delta/src/function/delta_scan.cpp
+        ${PROJECT_SOURCE_DIR}/extension/iceberg/src/connector/iceberg_connector.cpp
 )
 
 set(ICEBERG_OBJECT_FILES

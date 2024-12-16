@@ -15,31 +15,38 @@ include_directories(
 )
 
 add_subdirectory(src/function)
+add_subdirectory(src/connector)
 
 add_library(iceberg_extension
         SHARED
         ${ICEBERG_OBJECT_FILES}
         src/iceberg_extension.cpp
-        ${PROJECT_SOURCE_DIR}/extension/delta/src/connector/delta_connector.cpp
-        ${PROJECT_SOURCE_DIR}/extension/duckdb/src/connector/duckdb_secret_manager.cpp
-        ${PROJECT_SOURCE_DIR}/extension/duckdb/src/connector/duckdb_connector.cpp
-        ${PROJECT_SOURCE_DIR}/extension/httpfs/src/s3_download_options.cpp)
+)
+
+add_library(delta_connector
+    ${PROJECT_SOURCE_DIR}/extension/delta/src/connector/delta_connector.cpp
+    ${PROJECT_SOURCE_DIR}/extension/duckdb/src/connector/duckdb_secret_manager.cpp
+    ${PROJECT_SOURCE_DIR}/extension/duckdb/src/connector/duckdb_connector.cpp
+    ${PROJECT_SOURCE_DIR}/extension/httpfs/src/s3_download_options.cpp
+)
+
+target_include_directories(delta_connector PRIVATE
+    ${PROJECT_SOURCE_DIR}/extension/delta/src/include
+    ${PROJECT_SOURCE_DIR}/extension/duckdb/src/include
+    ${PROJECT_SOURCE_DIR}/extension/httpfs/src/include
+)
 
 set_extension_properties(iceberg_extension iceberg iceberg)
 
 target_link_libraries(iceberg_extension
         PRIVATE
-        ${DuckDB_LIBRARIES})
+        ${DuckDB_LIBRARIES}
+        delta_connector)
 
 if (NOT WIN32)
-    add_library(iceberg_installer
-            SHARED
-            src/iceberg_install_func.cpp
-            ../duckdb/src/installer/duckdb_installer.cpp)
     add_library(iceberg_loader
             SHARED
             ../duckdb/src/loader/duckdb_loader.cpp)
-    set_extension_properties(iceberg_installer iceberg_installer iceberg)
     set_extension_properties(iceberg_loader iceberg_loader iceberg)
 endif ()
 
@@ -51,5 +58,4 @@ endif ()
 if (APPLE)
     set_apple_dynamic_lookup(iceberg_extension)
     set_apple_dynamic_lookup(iceberg_loader)
-    set_apple_dynamic_lookup(iceberg_installer)
 endif ()

@@ -1,4 +1,5 @@
 #include "function/iceberg_functions.h"
+#include "common/exception/runtime.h"
 
 namespace kuzu {
 namespace iceberg_extension {
@@ -7,21 +8,26 @@ using namespace function;
 using namespace common;
 
 static std::string generateQueryOptions(const TableFuncBindInput* input,
-    const std::string& tableType) {
+    const std::string& functionName) {
     std::string query_options = "";
     auto appendOptions = [&](const auto& options) {
         for (auto& [name, value] : options) {
             auto lowerCaseName = StringUtils::getLower(name);
             auto valueStr = value.toString();
             if (lowerCaseName == "allow_moved_paths") {
+                // check data type of allow_moved_paths
+                if (value.getDataType().getLogicalTypeID() != common::LogicalTypeID::BOOL) {
+                    throw common::RuntimeException{common::stringFormat("Invalid allow_moved_paths value for {}",
+                        valueStr)};
+                }
                 query_options += common::stringFormat(", {} = {}", lowerCaseName, valueStr);
             } else {
                 query_options += common::stringFormat(", {} = '{}'", lowerCaseName, valueStr);
             }
         }
     };
-    if (tableType == "ICEBERG_SCAN") {
-        auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
+    if (functionName == "ICEBERG_SCAN") {
+        auto scanInput = input->extraInput->constPtrCast<ExtraScanTableFuncBindInput>();
         appendOptions(scanInput->config.options);
     } else {
         appendOptions(input->optionalParams);
@@ -31,20 +37,19 @@ static std::string generateQueryOptions(const TableFuncBindInput* input,
 }
 
 std::unique_ptr<TableFuncBindData> bindFuncHelper(main::ClientContext* context,
-    TableFuncBindInput* input, const std::string& tableType) {
-    auto connector = std::make_shared<delta_extension::DeltaConnector>();
-    connector->format = "ICEBERG";
+    TableFuncBindInput* input, const std::string& functionName) {
+    auto connector = std::make_shared<IcebergConnector>();
     connector->connect("" /* inMemDB */, "" /* defaultCatalogName */, context);
 
-    std::string query_options = generateQueryOptions(input, tableType);
-    std::string query = common::stringFormat("SELECT * FROM {}('{}'{})", tableType,
+    std::string query_options = generateQueryOptions(input, functionName);
+    std::string query = common::stringFormat("SELECT * FROM {}('{}'{})", functionName,
         input->getLiteralVal<std::string>(0), query_options);
     auto result = connector->executeQuery(query + " LIMIT 1");
 
     std::vector<LogicalType> returnTypes;
     std::vector<std::string> returnColumnNames;
     // only ICEBERG_SCAN uses scanInput
-    if (tableType == "ICEBERG_SCAN") {
+    if (functionName == "ICEBERG_SCAN") {
         auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
         returnColumnNames = scanInput->expectedColumnNames;
         if (scanInput->expectedColumnNames.empty()) {
@@ -57,7 +62,7 @@ std::unique_ptr<TableFuncBindData> bindFuncHelper(main::ClientContext* context,
         returnTypes.push_back(
             duckdb_extension::DuckDBTypeConverter::convertDuckDBType(type.ToString()));
     }
-    if (tableType != "ICEBERG_SCAN") {
+    if (functionName != "ICEBERG_SCAN") {
         for (auto name : result->names) {
             returnColumnNames.push_back(name);
         }

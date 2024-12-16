@@ -8,7 +8,7 @@ using namespace common;
 
 std::unique_ptr<TableFuncBindData> scanBindFunc(main::ClientContext* context,
     TableFuncBindInput* input) {
-    return bindFuncHelper(context, input, "ICEBERG_SCAN");
+    return bindFuncHelper(context, input, IcebergScanFunction::name);
 }
 
 function_set IcebergScanFunction::getFunctionSet() {

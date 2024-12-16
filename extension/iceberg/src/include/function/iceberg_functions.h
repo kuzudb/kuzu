@@ -8,6 +8,7 @@
 #include "function/delta_scan.h"
 #include "function/table/simple_table_functions.h"
 #include "main/delta_extension.h"
+#include "connector/iceberg_connector.h"
 
 namespace kuzu {
 namespace iceberg_extension {

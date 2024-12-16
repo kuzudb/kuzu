@@ -8,6 +8,11 @@
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/iceberg/build/libiceberg.kuzu_extension"
 ---- ok
 
+-LOG NOT_allow_moved_paths
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg' (file_format='iceberg', allow_moved_paths=false) RETURN *
+---- error(regex)
+IO Error: Cannot open file "lineitem_iceberg.*metadata.*snap-7635660646343998149-1-10eaca8a-1e1c-421e-ad6d-b232e5ee23d3.avro": (The system cannot find the path specified.*|No such file or directory)
+
 -LOG LocalIcebergTable
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg' (file_format='iceberg', allow_moved_paths=true) RETURN l_linenumber, l_quantity, l_shipdate, l_shipinstruct LIMIT 5;
 ---- 5
