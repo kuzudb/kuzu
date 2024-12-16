@@ -122,8 +122,8 @@ void SPAlgorithm::bind(const GDSBindInput& input, main::ClientContext&) {
     auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*input.getParam(2));
     validateSPUpperBound(upperBound);
     validateLowerUpperBound(lowerBound, upperBound);
-    auto extendDirection =
-        ExtendDirectionUtil::fromString(ExpressionUtil::getLiteralValue<std::string>(*input.getParam(3)));
+    auto extendDirection = ExtendDirectionUtil::fromString(
+        ExpressionUtil::getLiteralValue<std::string>(*input.getParam(3)));
     bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound,
         PathSemantic::WALK, extendDirection);
     bindColumnExpressions(input.binder);

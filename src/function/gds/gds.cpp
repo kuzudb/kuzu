@@ -1,10 +1,10 @@
 #include "function/gds/gds.h"
 
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_utils.h"
 #include "processor/execution_context.h"
-#include "binder/expression/expression_util.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::main;

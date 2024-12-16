@@ -161,7 +161,8 @@ public:
     QFTSOutputWriter(storage::MemoryManager* mm, QFTSOutput* qFTSOutput,
         const QFTSGDSBindData& bindData);
 
-    void write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len, int64_t docsID);
+    void write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len,
+        int64_t docsID);
 
     std::unique_ptr<QFTSOutputWriter> copy();
 
@@ -191,11 +192,12 @@ QFTSOutputWriter::QFTSOutputWriter(storage::MemoryManager* mm, QFTSOutput* qFTSO
     vectors.push_back(&termsVector);
     vectors.push_back(&docsVector);
     vectors.push_back(&scoreVector);
-    outputNodeTableID = bindData.getNodeOutput()->constCast<NodeExpression>().getSingleEntry()->getTableID();
+    outputNodeTableID =
+        bindData.getNodeOutput()->constCast<NodeExpression>().getSingleEntry()->getTableID();
 }
 
-void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID,
-    uint64_t len, int64_t docsID) {
+void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len,
+    int64_t docsID) {
     bool hasScore = qFTSOutput->scores.contains(docNodeID);
     termsVector.setNull(pos, !hasScore);
     docsVector.setNull(pos, !hasScore);
@@ -291,7 +293,8 @@ void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
 
     // Do vertex compute to calculate the score for doc with the length property.
 
-    auto writer = std::make_unique<QFTSOutputWriter>(mm, output.get(), *bindData->ptrCast<QFTSGDSBindData>());
+    auto writer =
+        std::make_unique<QFTSOutputWriter>(mm, output.get(), *bindData->ptrCast<QFTSGDSBindData>());
     auto writerVC = std::make_unique<QFTSVertexCompute>(mm, sharedState.get(), std::move(writer));
     auto docsTableID = sharedState->graph->getNodeTableIDs()[1];
     GDSUtils::runVertexCompute(executionContext, sharedState->graph.get(), *writerVC, docsTableID,
