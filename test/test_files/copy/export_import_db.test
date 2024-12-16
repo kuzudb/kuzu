@@ -181,6 +181,22 @@ Imported database successfully.
 ---- 2
 0
 1
+-STATEMENT CREATE (o:twoserial {prop: "Dan2"})
+---- ok
+-STATEMENT CREATE (o:oneserial)
+---- ok
+-STATEMENT MATCH (o:twoserial) RETURN o.*;
+---- 5
+0|Alice
+1|Bob
+2|Carol
+3|Dan
+4|Dan2
+-STATEMENT MATCH (o:oneserial) RETURN o.*;
+---- 3
+0
+1
+2
 
 -CASE DocExportImportExampleCSV
 -SKIP_WASM
