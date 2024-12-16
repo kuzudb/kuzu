@@ -120,9 +120,11 @@ int main(int argc, char **argv) {
         long totalDuration = 0;
         long compilationTime = 14.0;
         for (auto i = 0; i < queries.size(); i++) {
+            printf("====== running query %d ======\n", i);
             auto localRecall = 0;
-            start = std::chrono::high_resolution_clock::now();
             auto res = conn.query(queries[i]);
+            start = std::chrono::high_resolution_clock::now();
+            res = conn.query(queries[i]);
             end = std::chrono::high_resolution_clock::now();
             duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
             totalDuration += (duration - compilationTime);
