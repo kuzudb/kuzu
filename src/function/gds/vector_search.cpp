@@ -630,6 +630,7 @@ namespace kuzu {
                 printf("search filtered: %d\n", isFilteredSearch);
                 auto dc = std::make_unique<CosineDistanceComputer>(query, indexHeader->getDim(), header->getNumVectors());
                 dc->setQuery(query);
+                auto start = std::chrono::high_resolution_clock::now();
 
                 // Find closest entrypoint using the above layer!!
                 vector_id_t entrypoint;
@@ -664,6 +665,9 @@ namespace kuzu {
                 }
 
                 searchLocalState->materialize(graph, results, *sharedState->fTable, k);
+                auto end = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+                printf("VectorSearch time: %lld ms\n", duration.count());
             }
 
             std::unique_ptr<GDSAlgorithm> copy() const override {
