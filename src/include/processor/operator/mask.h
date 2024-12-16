@@ -72,10 +72,11 @@ public:
     // the specified `currentMaskValue`.
     // Note: blindly update mask does not parallelize well, so we minimize write by first checking
     // if the mask is set to true (mask value is equal to the expected currentMaskValue) or not.
-    void incrementMaskValue(common::offset_t offset, uint8_t currentMaskValue) {
-        if (maskData->isMasked(offset, currentMaskValue)) {
-            maskData->setMask(offset, currentMaskValue + 1);
-        }
+    inline void incrementMaskValue(common::offset_t offset, uint8_t currentMaskValue) {
+//        if (maskData->isMasked(offset, currentMaskValue)) {
+//
+//        }
+        maskData->setMask(offset, currentMaskValue + 1);
     }
 
     void incrementNumMaskedNodes(uint64_t delta) { maskData->incrementNumMaskedNodes(delta); }
@@ -130,7 +131,7 @@ public:
         maskCollection.init(maxOffset + 1);
     }
 
-    void incrementMaskValue(common::offset_t nodeOffset, uint8_t currentMaskValue) override {
+    inline void incrementMaskValue(common::offset_t nodeOffset, uint8_t currentMaskValue) override {
         maskCollection.incrementMaskValue(nodeOffset, currentMaskValue);
     }
 
@@ -151,7 +152,7 @@ public:
         maskCollection.init(MaskUtil::getVectorIdx(maxOffset) + 1);
     }
 
-    void incrementMaskValue(uint64_t nodeOffset, uint8_t currentMaskValue) override {
+    inline void incrementMaskValue(uint64_t nodeOffset, uint8_t currentMaskValue) override {
         maskCollection.incrementMaskValue(MaskUtil::getVectorIdx(nodeOffset), currentMaskValue);
     }
 
