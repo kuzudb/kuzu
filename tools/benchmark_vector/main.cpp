@@ -126,9 +126,11 @@ int main(int argc, char **argv) {
             auto res = conn.query(queries[i]);
             end = std::chrono::high_resolution_clock::now();
             duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            printf("duration: %lld ms\n", duration);
             totalDuration += (duration - compilationTime);
             if (res->getNumTuples() < k) {
                 totalQueriesSkipped += 1;
+                printf("skipped query %d\n", i);
                 continue;
             }
             assert(res->getNumTuples() >= k);
