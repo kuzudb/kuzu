@@ -1,5 +1,5 @@
-#include "function/iceberg_functions.h"
 #include "common/exception/runtime.h"
+#include "function/iceberg_functions.h"
 
 namespace kuzu {
 namespace iceberg_extension {
@@ -17,8 +17,8 @@ static std::string generateQueryOptions(const TableFuncBindInput* input,
             if (lowerCaseName == "allow_moved_paths") {
                 // check data type of allow_moved_paths
                 if (value.getDataType().getLogicalTypeID() != common::LogicalTypeID::BOOL) {
-                    throw common::RuntimeException{common::stringFormat("Invalid allow_moved_paths value for {}",
-                        valueStr)};
+                    throw common::RuntimeException{
+                        common::stringFormat("Invalid allow_moved_paths value for {}", valueStr)};
                 }
                 query_options += common::stringFormat(", {} = {}", lowerCaseName, valueStr);
             } else {
@@ -71,6 +71,6 @@ std::unique_ptr<TableFuncBindData> bindFuncHelper(main::ClientContext* context,
     auto columns = input->binder->createVariables(returnColumnNames, returnTypes);
     return std::make_unique<delta_extension::DeltaScanBindData>(std::move(query), connector,
         duckdb_extension::DuckDBResultConverter{returnTypes}, columns, ReaderConfig{}, context);
-    }
+}
 } // namespace iceberg_extension
 } // namespace kuzu
