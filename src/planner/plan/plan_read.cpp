@@ -118,6 +118,9 @@ void Planner::planTableFunctionCall(const BoundReadingClause& readingClause,
     splitPredicates(call.getColumns(), call.getConjunctivePredicates(), predicatesToPull,
         predicatesToPush);
     for (auto& plan : plans) {
+
+        auto op = getTableFunctionCall(readingClause);
+
         planReadOp(getTableFunctionCall(readingClause), predicatesToPush, *plan);
         if (!predicatesToPull.empty()) {
             appendFilters(predicatesToPull, *plan);

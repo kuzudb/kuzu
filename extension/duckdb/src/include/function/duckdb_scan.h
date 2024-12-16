@@ -14,14 +14,17 @@ using init_duckdb_conn_t = std::function<std::pair<duckdb::DuckDB, duckdb::Conne
 
 struct DuckDBScanBindData : public function::TableFuncBindData {
     std::string query;
+    std::vector<common::LogicalType> columnTypes;
+    std::vector<std::string> columnNames;
     DuckDBResultConverter converter;
     const DuckDBConnector& connector;
 
     DuckDBScanBindData(std::string query, std::vector<common::LogicalType> columnTypes,
         std::vector<std::string> columnNames, const DuckDBConnector& connector);
     DuckDBScanBindData(const DuckDBScanBindData& other)
-        : function::TableFuncBindData{other}, query{other.query}, converter{other.converter},
-          connector{other.connector} {}
+        : function::TableFuncBindData{other}, query{other.query},
+          columnTypes{copyVector(other.columnTypes)}, columnNames{other.columnNames},
+          converter{other.converter}, connector{other.connector} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<DuckDBScanBindData>(*this);

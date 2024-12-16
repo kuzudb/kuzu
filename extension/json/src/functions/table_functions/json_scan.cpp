@@ -2,6 +2,7 @@
 
 #include <regex>
 
+#include "binder/binder.h"
 #include "common/case_insensitive_map.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
@@ -684,12 +685,10 @@ struct JsonScanBindData : public ScanBindData {
     case_insensitive_map_t<idx_t> colNameToIdx;
     JsonScanFormat format;
 
-    JsonScanBindData(std::vector<common::LogicalType> columnTypes,
-        std::vector<std::string> columnNames, column_id_t numWarningDataColumns,
+    JsonScanBindData(binder::expression_vector columns, column_id_t numWarningDataColumns,
         ReaderConfig config, main::ClientContext* ctx, case_insensitive_map_t<idx_t> colNameToIdx,
         JsonScanFormat format)
-        : ScanBindData(std::move(columnTypes), std::move(columnNames), std::move(config), ctx,
-              numWarningDataColumns),
+        : ScanBindData(columns, std::move(config), ctx, numWarningDataColumns, 0),
           colNameToIdx{std::move(colNameToIdx)}, format{format} {}
 
     uint64_t getFieldIdx(const std::string& fieldName) const;
@@ -805,20 +804,28 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         return scanConfig.format == JsonScanFormat::NEWLINE_DELIMITED;
     };
 
+    auto columns = input->binder->createVariables(columnNames, columnTypes);
+
     const bool ignoreErrors = scanInput->config.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
         CopyConstants::DEFAULT_IGNORE_ERRORS);
+
+    std::vector<std::string> warningColumnNames;
+    std::vector<common::LogicalType> warningColumnTypes;
     column_id_t numWarningDataColumns = 0;
     if (ignoreErrors) {
         numWarningDataColumns = JsonConstant::JSON_WARNING_DATA_NUM_COLUMNS;
         for (idx_t i = 0; i < JsonConstant::JSON_WARNING_DATA_NUM_COLUMNS; ++i) {
-            columnNames.emplace_back(JsonConstant::JSON_WARNING_DATA_COLUMN_NAMES[i]);
-            columnTypes.emplace_back(JsonConstant::JSON_WARNING_DATA_COLUMN_TYPES[i]);
+            warningColumnNames.emplace_back(JsonConstant::JSON_WARNING_DATA_COLUMN_NAMES[i]);
+            warningColumnTypes.emplace_back(JsonConstant::JSON_WARNING_DATA_COLUMN_TYPES[i]);
         }
     }
-
-    return std::make_unique<JsonScanBindData>(std::move(columnTypes), std::move(columnNames),
-        numWarningDataColumns, scanInput->config.copy(), context, std::move(colNameToIdx),
-        scanConfig.format);
+    auto warningColumns =
+        input->binder->createInvisibleVariables(warningColumnNames, warningColumnTypes);
+    for (auto& column : warningColumns) {
+        columns.push_back(column);
+    }
+    return std::make_unique<JsonScanBindData>(columns, numWarningDataColumns,
+        scanInput->config.copy(), context, std::move(colNameToIdx), scanConfig.format);
 }
 
 static decltype(auto) getWarningDataVectors(const DataChunk& chunk, column_id_t numWarningColumns) {

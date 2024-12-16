@@ -1,3 +1,4 @@
+#include "binder/binder.h"
 #include "function/table/simple_table_functions.h"
 
 using namespace kuzu::common;
@@ -18,13 +19,13 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     return 1;
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext*, TableFuncBindInput*) {
+static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext*, TableFuncBindInput* input) {
     std::vector<std::string> returnColumnNames;
     std::vector<LogicalType> returnTypes;
     returnColumnNames.emplace_back("version");
     returnTypes.emplace_back(LogicalType::STRING());
-    return std::make_unique<SimpleTableFuncBindData>(std::move(returnTypes),
-        std::move(returnColumnNames), 1 /* one row result */);
+    auto columns = input->binder->createVariables(returnColumnNames, returnTypes);
+    return std::make_unique<SimpleTableFuncBindData>(std::move(columns), 1 /* one row result */);
 }
 
 function_set DBVersionFunction::getFunctionSet() {

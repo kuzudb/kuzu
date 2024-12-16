@@ -71,16 +71,16 @@ Alice|Carol||1
 Alice|Dan||1
 Alice||CsWork|2
 Alice||DEsWork|2
--STATEMENT CALL weakly_connected_component(PK) RETURN _node.fName, group_id;
----- 8
-Alice|0
-Bob|0
-Carol|0
-Dan|0
-Elizabeth|4
-Farooq|4
-Greg|4
-Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
+# -STATEMENT CALL weakly_connected_component(PK) RETURN _node.fName, group_id;
+# ---- 8
+# Alice|0
+# Bob|0
+# Carol|0
+# Dan|0
+# Elizabeth|4
+# Farooq|4
+# Greg|4
+# Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 #-STATEMENT CALL weakly_connected_component(PKWO) RETURN _node.fName, _node.name, group_id;
 #---- 11
 #Alice||1

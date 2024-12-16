@@ -1,3 +1,4 @@
+#include "binder/binder.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
@@ -18,14 +19,12 @@ struct ShowConnectionBindData : public SimpleTableFuncBindData {
     TableCatalogEntry* tableEntry;
 
     ShowConnectionBindData(ClientContext* context, TableCatalogEntry* tableEntry,
-        std::vector<LogicalType> columnTypes, std::vector<std::string> columnNames,
-        offset_t maxOffset)
-        : SimpleTableFuncBindData{std::move(columnTypes), std::move(columnNames), maxOffset},
-          context{context}, tableEntry{tableEntry} {}
+        binder::expression_vector columns, offset_t maxOffset)
+        : SimpleTableFuncBindData{std::move(columns), maxOffset}, context{context},
+          tableEntry{tableEntry} {}
 
-    inline std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ShowConnectionBindData>(context, tableEntry,
-            LogicalType::copy(columnTypes), columnNames, maxOffset);
+    std::unique_ptr<TableFuncBindData> copy() const override {
+        return std::make_unique<ShowConnectionBindData>(context, tableEntry, columns, maxOffset);
     }
 };
 
@@ -108,8 +107,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
         auto relGroupEntry = ku_dynamic_cast<RelGroupCatalogEntry*>(tableEntry);
         maxOffset = relGroupEntry->getRelTableIDs().size();
     }
-    return std::make_unique<ShowConnectionBindData>(context, tableEntry, std::move(columnTypes),
-        std::move(columnNames), maxOffset);
+    auto columns = input->binder->createVariables(columnNames, columnTypes);
+    return std::make_unique<ShowConnectionBindData>(context, tableEntry, columns, maxOffset);
 }
 
 function_set ShowConnectionFunction::getFunctionSet() {

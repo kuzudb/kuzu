@@ -1,3 +1,4 @@
+#include "binder/binder.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/runtime.h"
@@ -16,14 +17,12 @@ struct TableInfoBindData : public SimpleTableFuncBindData {
     std::unique_ptr<TableCatalogEntry> catalogEntry;
 
     TableInfoBindData(std::unique_ptr<TableCatalogEntry> catalogEntry,
-        std::vector<LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
-        offset_t maxOffset)
-        : SimpleTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
+        binder::expression_vector columns, offset_t maxOffset)
+        : SimpleTableFuncBindData{std::move(columns), maxOffset},
           catalogEntry{std::move(catalogEntry)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<TableInfoBindData>(catalogEntry->copy(),
-            LogicalType::copy(columnTypes), columnNames, maxOffset);
+        return std::make_unique<TableInfoBindData>(catalogEntry->copy(), columns, maxOffset);
     }
 };
 
@@ -101,8 +100,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         columnNames.emplace_back("primary key");
         columnTypes.push_back(LogicalType::BOOL());
     }
-    return std::make_unique<TableInfoBindData>(std::move(catalogEntry), std::move(columnTypes),
-        std::move(columnNames), tableEntry->getNumProperties());
+    auto columns = input->binder->createVariables(columnNames, columnTypes);
+    return std::make_unique<TableInfoBindData>(std::move(catalogEntry), columns,
+        tableEntry->getNumProperties());
 }
 
 function_set TableInfoFunction::getFunctionSet() {

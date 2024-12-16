@@ -1,3 +1,4 @@
+#include "binder/binder.h"
 #include "function/table/bind_input.h"
 #include "function/table/simple_table_functions.h"
 
@@ -10,14 +11,12 @@ namespace function {
 struct CurrentSettingBindData final : public SimpleTableFuncBindData {
     std::string result;
 
-    CurrentSettingBindData(std::string result, std::vector<LogicalType> returnTypes,
-        std::vector<std::string> returnColumnNames, offset_t maxOffset)
-        : SimpleTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
-          result{std::move(result)} {}
+    CurrentSettingBindData(std::string result, binder::expression_vector columns,
+        offset_t maxOffset)
+        : SimpleTableFuncBindData{std::move(columns), maxOffset}, result{std::move(result)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<CurrentSettingBindData>(result, LogicalType::copy(columnTypes),
-            columnNames, maxOffset);
+        return std::make_unique<CurrentSettingBindData>(result, columns, maxOffset);
     }
 };
 
@@ -41,9 +40,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     std::vector<LogicalType> columnTypes;
     columnNames.emplace_back(optionName);
     columnTypes.push_back(LogicalType::STRING());
+    auto columns = input->binder->createVariables(columnNames, columnTypes);
     return std::make_unique<CurrentSettingBindData>(
-        context->getCurrentSetting(optionName).toString(), std::move(columnTypes),
-        std::move(columnNames), 1 /* one row result */);
+        context->getCurrentSetting(optionName).toString(), columns, 1 /* one row result */);
 }
 
 function_set CurrentSettingFunction::getFunctionSet() {

@@ -10,7 +10,8 @@
 namespace kuzu {
 namespace binder {
 class LiteralExpression;
-}
+class Binder;
+} // namespace binder
 namespace main {
 class ClientContext;
 }
@@ -33,6 +34,7 @@ struct TableFuncBindInput {
     binder::expression_vector params;
     optional_params_t optionalParams;
     std::unique_ptr<ExtraTableFuncBindInput> extraInput = nullptr;
+    binder::Binder* binder = nullptr;
 
     TableFuncBindInput() = default;
 

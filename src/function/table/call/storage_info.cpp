@@ -1,3 +1,4 @@
+#include "binder/binder.h"
 #include "common/data_chunk/data_chunk_collection.h"
 #include "common/exception/binder.h"
 #include "common/type_utils.h"
@@ -72,14 +73,13 @@ struct StorageInfoBindData final : public SimpleTableFuncBindData {
     storage::Table* table;
     ClientContext* context;
 
-    StorageInfoBindData(std::vector<LogicalType> columnTypes, std::vector<std::string> columnNames,
-        TableCatalogEntry* tableEntry, storage::Table* table, ClientContext* context)
-        : SimpleTableFuncBindData{std::move(columnTypes), columnNames, 1 /*maxOffset*/},
-          tableEntry{tableEntry}, table{table}, context{context} {}
+    StorageInfoBindData(binder::expression_vector columns, TableCatalogEntry* tableEntry,
+        storage::Table* table, ClientContext* context)
+        : SimpleTableFuncBindData{columns, 1 /*maxOffset*/}, tableEntry{tableEntry}, table{table},
+          context{context} {}
 
-    inline std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<StorageInfoBindData>(common::LogicalType::copy(columnTypes),
-            columnNames, tableEntry, table, context);
+    std::unique_ptr<TableFuncBindData> copy() const override {
+        return std::make_unique<StorageInfoBindData>(columns, tableEntry, table, context);
     }
 };
 
@@ -353,8 +353,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     auto tableEntry = catalog->getTableCatalogEntry(context->getTx(), tableID);
     auto storageManager = context->getStorageManager();
     auto table = storageManager->getTable(tableID);
-    return std::make_unique<StorageInfoBindData>(std::move(columnTypes), std::move(columnNames),
-        tableEntry, table, context);
+    auto columns = input->binder->createVariables(columnNames, columnTypes);
+    return std::make_unique<StorageInfoBindData>(columns, tableEntry, table, context);
 }
 
 function_set StorageInfoFunction::getFunctionSet() {
