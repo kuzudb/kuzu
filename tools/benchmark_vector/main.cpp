@@ -106,28 +106,19 @@ int main(int argc, char **argv) {
             printf("Warmup finished\n");
             printf("Warmup time %d: %lld ms\n", i, duration);
         }
-
-        // initialize the timer
-        auto start = std::chrono::high_resolution_clock::now();
-        auto end = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
         // Run all queries and print avg latency
         printf("Benchmark started\n");
         auto recall = 0;
         auto totalQueries = 0;
         auto totalQueriesSkipped = 0;
         long totalDuration = 0;
-        long compilationTime = 17.0;
         for (auto i = 0; i < queries.size(); i++) {
             printf("====== running query %d ======\n", i);
             auto localRecall = 0;
             auto res = conn.query(queries[i]);
-            start = std::chrono::high_resolution_clock::now();
             res = conn.query(queries[i]);
-            end = std::chrono::high_resolution_clock::now();
-            duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-            totalDuration += (duration - compilationTime);
+            long duration = res->getQuerySummary()->getExecutionTime();
+            totalDuration += duration;
             if (res->getNumTuples() < k) {
                 totalQueriesSkipped += 1;
                 printf("skipped query %d\n", i);
@@ -144,7 +135,7 @@ int main(int argc, char **argv) {
                 }
             }
             printf("Recall for query %d: %d\n", i, localRecall);
-            printf("duration: %lld ms\n", duration);
+            printf("duration: %ld ms\n", duration);
             printf("====================================\n");
             totalQueries++;
         }
