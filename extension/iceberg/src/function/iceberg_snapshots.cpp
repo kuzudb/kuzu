@@ -8,7 +8,7 @@ using namespace common;
 
 static std::unique_ptr<TableFuncBindData> snapshotBindFunc(main::ClientContext* context,
     TableFuncBindInput* input) {
-    return bindFuncHelper(context, input, "ICEBERG_SNAPSHOTS");
+    return bindFuncHelper(context, input, IcebergSnapshotsFunction::name);
 }
 
 function_set IcebergSnapshotsFunction::getFunctionSet() {
