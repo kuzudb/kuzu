@@ -111,14 +111,18 @@ int main(int argc, char **argv) {
         auto recall = 0;
         auto totalQueries = 0;
         auto totalQueriesSkipped = 0;
-        long totalDuration = 0;
+        long executionTime = 0;
+        long compilationTime = 0;
+        long vectorSearchTime = 0;
         for (auto i = 0; i < queries.size(); i++) {
             printf("====== running query %d ======\n", i);
             auto localRecall = 0;
             auto res = conn.query(queries[i]);
             res = conn.query(queries[i]);
             long duration = res->getQuerySummary()->getExecutionTime();
-            totalDuration += duration;
+            executionTime += duration;
+            compilationTime += res->getQuerySummary()->getCompilingTime();
+            vectorSearchTime += res->getQuerySummary()->getVectorSearchTime();
             if (res->getNumTuples() < k) {
                 totalQueriesSkipped += 1;
                 printf("skipped query %d\n", i);
@@ -141,8 +145,9 @@ int main(int argc, char **argv) {
         }
         printf("Benchmark finished\n");
         printf("Total queries: %d\n", totalQueries);
-        printf("Benchmark time: %ld ms\n", totalDuration);
-        printf("Avg latency: %f ms\n", (double) totalDuration / totalQueries);
+        printf("Avg execution time: %f ms\n", (double) executionTime / totalQueries);
+        printf("Avg compilation time: %f ms\n", (double) compilationTime / totalQueries);
+        printf("Avg vector search time: %f ms\n", (double) vectorSearchTime / totalQueries);
         printf("Total queries skipped: %d\n", totalQueriesSkipped);
         printf("Recall: %f\n", (double) recall / (queryNumVectors * k));
 

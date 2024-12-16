@@ -31,6 +31,8 @@ public:
      */
     KUZU_API double getExecutionTime() const;
 
+    KUZU_API double getVectorSearchTime() const;
+
     void setPreparedSummary(PreparedSummary preparedSummary_);
 
     /**
@@ -40,6 +42,7 @@ public:
 
 private:
     double executionTime = 0;
+    double vectorSearchTime = 0;
     PreparedSummary preparedSummary;
 };
 

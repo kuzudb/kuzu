@@ -15,6 +15,10 @@ double QuerySummary::getExecutionTime() const {
     return executionTime;
 }
 
+double QuerySummary::getVectorSearchTime() const {
+    return vectorSearchTime;
+}
+
 void QuerySummary::setPreparedSummary(PreparedSummary preparedSummary_) {
     preparedSummary = preparedSummary_;
 }
