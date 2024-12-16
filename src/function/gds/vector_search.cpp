@@ -641,7 +641,7 @@ namespace kuzu {
 
                 if (isFilteredSearch) {
                     auto selectivity = static_cast<double>(filterMask->getNumMaskedNodes()) / header->getNumVectors();
-                    if (selectivity <= 0.005) {
+                    if (selectivity <= 0.001) {
                         printf("skipping search since selectivity too low\n");
                         return;
                     }
