@@ -277,7 +277,7 @@ std::unique_ptr<QueryResult> ClientContext::queryInternal(std::string_view query
         auto preparedStatement = prepareNoLock(statement,
             enumerateAllPlans /* enumerate all plans */, encodedJoin, false /*requireNewTx*/);
         auto currentQueryResult = executeNoLock(preparedStatement.get(), 0u, queryID);
-        if (statement->skipResult()) {
+        if (statement->isInternal()) {
             continue;
         }
         if (!lastResult) {
@@ -402,7 +402,7 @@ std::vector<std::shared_ptr<Statement>> ClientContext::parseQuery(std::string_vi
             if (!rewriteQuery.empty()) {
                 auto rewrittenStatements = Parser::parseQuery(rewriteQuery, this);
                 for (auto& statement : rewrittenStatements) {
-                    statement->setToSkipResult();
+                    statement->setToInternal();
                     statements.push_back(statement);
                 }
             }
