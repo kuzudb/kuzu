@@ -28,6 +28,8 @@ struct GDSBindInput {
     explicit GDSBindInput(const graph::GraphEntry& graphEntry) : graphEntry{graphEntry} {}
 
     std::shared_ptr<binder::Expression> getParam(common::idx_t idx) const { return params[idx]; }
+    template<typename T>
+    T getLiteralVal(common::idx_t idx) const;
     common::idx_t getNumParams() const { return params.size(); }
 };
 

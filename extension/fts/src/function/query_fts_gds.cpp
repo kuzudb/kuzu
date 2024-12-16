@@ -34,16 +34,18 @@ struct QFTSGDSBindData final : public function::GDSBindData {
     double_t avgDocLen;
     uint64_t numTermsInQuery;
     bool isConjunctive;
+    common::table_id_t outputTableID;
 
     QFTSGDSBindData(std::shared_ptr<binder::Expression> terms,
         std::shared_ptr<binder::Expression> docs, double_t k, double_t b, uint64_t numDocs,
         double_t avgDocLen, uint64_t numTermsInQuery, bool isConjunctive)
         : GDSBindData{std::move(docs)}, terms{std::move(terms)}, k{k}, b{b}, numDocs{numDocs},
-          avgDocLen{avgDocLen}, numTermsInQuery{numTermsInQuery}, isConjunctive{isConjunctive} {}
+          avgDocLen{avgDocLen}, numTermsInQuery{numTermsInQuery}, isConjunctive{isConjunctive},
+          outputTableID{nodeOutput->constCast<NodeExpression>().getSingleEntry()->getTableID()} {}
     QFTSGDSBindData(const QFTSGDSBindData& other)
         : GDSBindData{other}, terms{other.terms}, k{other.k}, b{other.b}, numDocs{other.numDocs},
           avgDocLen{other.avgDocLen}, numTermsInQuery{other.numTermsInQuery},
-          isConjunctive{other.isConjunctive} {}
+          isConjunctive{other.isConjunctive}, outputTableID{other.outputTableID} {}
 
     bool hasNodeInput() const override { return true; }
     std::shared_ptr<binder::Expression> getNodeInput() const override { return terms; }
@@ -175,8 +177,6 @@ private:
     common::idx_t pos;
     storage::MemoryManager* mm;
     const QFTSGDSBindData& bindData;
-    // TODO(Ziyi): let's discuss about this and leave a comment.
-    common::table_id_t outputNodeTableID;
 };
 
 QFTSOutputWriter::QFTSOutputWriter(storage::MemoryManager* mm, QFTSOutput* qFTSOutput,
@@ -192,8 +192,6 @@ QFTSOutputWriter::QFTSOutputWriter(storage::MemoryManager* mm, QFTSOutput* qFTSO
     vectors.push_back(&termsVector);
     vectors.push_back(&docsVector);
     vectors.push_back(&scoreVector);
-    outputNodeTableID =
-        bindData.getNodeOutput()->constCast<NodeExpression>().getSingleEntry()->getTableID();
 }
 
 void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len,
@@ -222,7 +220,7 @@ void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNo
                      ((tf * (k + 1) / (tf + k * (1 - b + b * (len / avgDocLen)))));
         }
         termsVector.setValue(pos, scoreInfo.termID);
-        docsVector.setValue(pos, nodeID_t{(common::offset_t)docsID, outputNodeTableID});
+        docsVector.setValue(pos, nodeID_t{(common::offset_t)docsID, bindData.outputTableID});
         scoreVector.setValue(pos, score);
     }
     scoreFT.append(vectors);
@@ -319,13 +317,13 @@ binder::expression_vector QFTSAlgorithm::getResultColumns(binder::Binder* binder
 void QFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& context) {
     KU_ASSERT(input.getNumParams() == 9);
     auto termNode = input.getParam(1);
-    auto k = ExpressionUtil::getLiteralValue<double>(*input.getParam(2));
-    auto b = ExpressionUtil::getLiteralValue<double>(*input.getParam(3));
-    auto numDocs = ExpressionUtil::getLiteralValue<uint64_t>(*input.getParam(4));
-    auto avgDocLen = ExpressionUtil::getLiteralValue<double>(*input.getParam(5));
-    auto numTermsInQuery = ExpressionUtil::getLiteralValue<int64_t>(*input.getParam(6));
-    auto isConjunctive = ExpressionUtil::getLiteralValue<bool>(*input.getParam(7));
-    auto inputTableName = ExpressionUtil::getLiteralValue<std::string>(*input.getParam(8));
+    auto k = input.getLiteralVal<double>(2);
+    auto b = input.getLiteralVal<double>(3);
+    auto numDocs = input.getLiteralVal<uint64_t>(4);
+    auto avgDocLen = input.getLiteralVal<double>(5);
+    auto numTermsInQuery = input.getLiteralVal<uint64_t>(6);
+    auto isConjunctive = input.getLiteralVal<bool>(7);
+    auto inputTableName = input.getLiteralVal<std::string>(8);
     auto entry = context.getCatalog()->getTableCatalogEntry(context.getTx(), inputTableName);
     auto nodeOutput = bindNodeOutput(input.binder, {entry});
     bindData = std::make_unique<QFTSGDSBindData>(termNode, nodeOutput, k, b, numDocs, avgDocLen,
