@@ -236,7 +236,7 @@ namespace kuzu {
                 // Initialize the read state
                 auto readState = searchLocalState->readStates[nodeGroupIdx].get();
                 embeddingColumn->initChunkState(context->clientContext->getTx(), nodeGroupIdx, *readState);
-
+                printf("search id: %llu, nodeGroupIdx: %llu, offsetInChunk: %llu\n", id, nodeGroupIdx, offsetInChunk);
                 // Fast compute on embedding
                 // TODO: Add support for batch computation using io uring
                 embeddingColumn->fastLookup(context->clientContext->getTx(), *readState, id,
@@ -245,6 +245,7 @@ namespace kuzu {
                                                 auto embedding = reinterpret_cast<const float *>(frame);
                                                 dc->computeDistance(embedding + posInFrame, dist);
                                             });
+                printf("dist: %f\n", *dist);
             }
 
             const float *getEmbedding(processor::ExecutionContext *context, vector_id_t id) {
@@ -628,7 +629,7 @@ namespace kuzu {
                 auto filterMask = sharedState->inputNodeOffsetMasks.at(indexHeader->getNodeTableId()).get();
                 bool isFilteredSearch = filterMask->isEnabled();
                 auto quantizedDc = header->getQuantizer()->get_asym_distance_computer(L2_SQ);
-
+                printf("search filtered: %d\n", isFilteredSearch);
                 auto dc = std::make_unique<CosineDistanceComputer>(query, indexHeader->getDim(), header->getNumVectors());
                 dc->setQuery(query);
 

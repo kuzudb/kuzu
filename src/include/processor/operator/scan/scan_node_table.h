@@ -18,6 +18,8 @@ public:
 
     void initialize(transaction::Transaction* transaction, storage::NodeTable* table);
 
+    void markNodeGroupAsFinished(storage::NodeTableScanState& scanState);
+
     void updateVectorIdx(storage::NodeTableScanState& scanState);
 
     void nextMorsel(storage::NodeTableScanState& scanState);

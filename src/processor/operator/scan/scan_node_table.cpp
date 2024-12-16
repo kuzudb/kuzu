@@ -41,6 +41,11 @@ void ScanNodeTableSharedState::updateVectorIdx(storage::NodeTableScanState& scan
     }
 }
 
+void ScanNodeTableSharedState::markNodeGroupAsFinished(storage::NodeTableScanState &scanState) {
+    std::unique_lock lck{mtx};
+    committedNodeGroupFinished[scanState.nodeGroupIdx - startNodeGroupIdx] = true;
+}
+
 void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState) {
     std::unique_lock lck{mtx};
     // First try to give separate node groups to different threads.
@@ -122,6 +127,8 @@ bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
                 }
                 sharedStates[currentTableIdx]->updateVectorIdx(scanState);
             }
+        } else {
+            sharedStates[currentTableIdx]->markNodeGroupAsFinished(scanState);
         }
         // TODO: Take care of skipScan!!
         sharedStates[currentTableIdx]->nextMorsel(scanState);

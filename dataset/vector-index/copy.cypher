@@ -1,1 +1,1 @@
-COPY dataset FROM "dataset/vector-index/embeddings.csv" (deLim=',');
+COPY embeddings FROM (LOAD FROM "/Users/gauravsehgal/work/chunk_24.parquet" RETURN cast(chunk_id as INT64) as chunk_id, cast(wiki_id as INT64) as wiki_id, cast(embedding as FLOAT[1024]) as embedding);

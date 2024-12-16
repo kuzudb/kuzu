@@ -235,11 +235,8 @@ void BufferManager::optimisticBatchRead(kuzu::storage::BMFileHandle &fileHandle,
         for (auto i = 0u; i < numPages; i++) {
             if (PageState::getState(currStateAndVersions[i]) == PageState::MARKED) {
                 pageStates[i]->tryClearMark(currStateAndVersions[i]);
+                continue;
             }
-        }
-
-        // Try to unlock all evicted pages
-        for (auto i = 0u; i < numPages; i++) {
             if (PageState::getState(currStateAndVersions[i]) == PageState::EVICTED) {
                 pin(fileHandle, pageIdx + i, PageReadPolicy::READ_PAGE);
                 unpin(fileHandle, pageIdx + i);
