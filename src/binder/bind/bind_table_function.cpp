@@ -52,20 +52,8 @@ BoundTableFunction Binder::bindTableFunc(std::string tableFuncName,
     bindInput.params = std::move(positionalParams);
     bindInput.optionalParams = std::move(optionalParams);
     bindInput.binder = this;
-    if (StringUtils::getUpper(func->name) == QueryHNSWIndexFunction::name) {
-        auto nodeTableName = bindInput.getLiteralVal<std::string>(1);
-        auto nodeTableEntry = clientContext->getCatalog()->getTableCatalogEntry(
-            clientContext->getTx(), nodeTableName);
-        bindInput.nodeExpression = createQueryNode("nn", std::vector{nodeTableEntry});
-        addToScope(bindInput.nodeExpression->toString(), bindInput.nodeExpression);
-    }
     auto bindData = tableFunc->bindFunc(clientContext, &bindInput);
     columns = bindData->columns;
-    if (StringUtils::getUpper(func->name) == QueryHNSWIndexFunction::name) {
-        auto id = bindInput.nodeExpression->getInternalID();
-        columns.push_back(id);
-    }
-
     auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
         std::string(InternalKeyword::ROW_OFFSET));
     return BoundTableFunction{tableFunc->copy(), std::move(bindData), std::move(offset)};

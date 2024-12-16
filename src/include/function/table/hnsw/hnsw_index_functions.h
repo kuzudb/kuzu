@@ -83,6 +83,10 @@ struct QueryHNSWIndexBindData final : SimpleTableFuncBindData {
           lowerRelTable{lowerRelTable}, config{std::move(config)},
           outputNode{std::move(outputNode)} {}
 
+    std::shared_ptr<binder::Expression> getNodeOutput() const override {
+        return outputNode;
+    }
+
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<QueryHNSWIndexBindData>(columns, indexTableID, indexEntry,
             queryVector, k, nodeTable, columnID, numNodes, upperRelTable, lowerRelTable, config,
