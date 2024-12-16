@@ -114,16 +114,16 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
             bindData.getAppearsInTableName());
         runQuery(clientContext, query);
         // Compute score
-        query =
-            common::stringFormat("UNWIND tokenize('{}') AS tk "
-                                 "WITH collect(stem(tk, '{}')) AS keywords "
-                                 "MATCH (a:`{}`) "
-                                 "WHERE list_contains(keywords, a.term) "
-                                 "CALL QFTS(PK, a, {}, {}, cast({} as UINT64), {}, {}, {}, '{}') "
-                                 "RETURN _node AS p, score",
-                actualQuery, bindData.entry.getFTSConfig().stemmer, bindData.getTermsTableName(),
-                bindData.config.k, bindData.config.b, numDocs, avgDocLen, numTermsInQuery,
-                bindData.config.isConjunctive ? "true" : "false", bindData.tableName);
+        query = common::stringFormat(
+            "UNWIND tokenize('{}') AS tk "
+            "WITH collect(stem(tk, '{}')) AS keywords "
+            "MATCH (a:`{}`) "
+            "WHERE list_contains(keywords, a.term) "
+            "CALL QFTS(PK, a, {}, {}, cast({} as UINT64), {}, cast({} as UINT64), {}, '{}') "
+            "RETURN _node AS p, score",
+            actualQuery, bindData.entry.getFTSConfig().stemmer, bindData.getTermsTableName(),
+            bindData.config.k, bindData.config.b, numDocs, avgDocLen, numTermsInQuery,
+            bindData.config.isConjunctive ? "true" : "false", bindData.tableName);
         localState->result = runQuery(clientContext, query);
         // Remove project graph
         query = stringFormat("CALL drop_project_graph('PK')");

@@ -1,7 +1,6 @@
 #include "function/gds/gds.h"
 
 #include "binder/binder.h"
-#include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_utils.h"
