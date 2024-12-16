@@ -236,7 +236,6 @@ namespace kuzu {
                 // Initialize the read state
                 auto readState = searchLocalState->readStates[nodeGroupIdx].get();
                 embeddingColumn->initChunkState(context->clientContext->getTx(), nodeGroupIdx, *readState);
-                printf("search id: %llu, nodeGroupIdx: %llu, offsetInChunk: %llu\n", id, nodeGroupIdx, offsetInChunk);
                 // Fast compute on embedding
                 // TODO: Add support for batch computation using io uring
                 embeddingColumn->fastLookup(context->clientContext->getTx(), *readState, id,
@@ -245,7 +244,6 @@ namespace kuzu {
                                                 auto embedding = reinterpret_cast<const float *>(frame);
                                                 dc->computeDistance(embedding + posInFrame, dist);
                                             });
-                printf("dist: %f\n", *dist);
             }
 
             const float *getEmbedding(processor::ExecutionContext *context, vector_id_t id) {
