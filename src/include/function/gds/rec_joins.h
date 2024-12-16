@@ -135,8 +135,7 @@ public:
             common::LogicalTypeID::INT64, common::LogicalTypeID::STRING};
     }
 
-    void bind(const binder::expression_vector& params, binder::Binder* binder,
-        graph::GraphEntry& graphEntry) override;
+    void bind(const GDSBindInput& input, main::ClientContext&) override;
 };
 
 } // namespace function

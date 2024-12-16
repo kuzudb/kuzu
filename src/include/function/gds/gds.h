@@ -19,7 +19,18 @@ struct ExecutionContext;
 namespace function {
 
 class PathLengths;
-// Struct maintaining GDS specific information that needs to be obtained at compile time.
+
+struct GDSBindInput {
+    binder::expression_vector params;
+    binder::Binder* binder = nullptr;
+    const graph::GraphEntry& graphEntry;
+
+    explicit GDSBindInput(const graph::GraphEntry& graphEntry) : graphEntry{graphEntry} {}
+
+    std::shared_ptr<binder::Expression> getParam(common::idx_t idx) const { return params[idx]; }
+    common::idx_t getNumParams() const { return params.size(); }
+};
+
 struct GDSBindData {
     std::shared_ptr<binder::Expression> nodeOutput;
 
@@ -71,8 +82,7 @@ public:
 
     virtual binder::expression_vector getResultColumns(binder::Binder* binder) const = 0;
 
-    virtual void bind(const binder::expression_vector& params, binder::Binder* binder,
-        graph::GraphEntry& graphEntry) = 0;
+    virtual void bind(const GDSBindInput& input, main::ClientContext& context) = 0;
     // When compiling recursive pattern (e.g. [e*1..2]) as GDS.
     // We skip binding and directly set bind data.
     void setBindData(std::unique_ptr<GDSBindData> bindData_) { bindData = std::move(bindData_); }
@@ -105,9 +115,7 @@ protected:
 
 protected:
     std::shared_ptr<binder::Expression> bindNodeOutput(binder::Binder* binder,
-        const graph::GraphEntry& graphEntry);
-    std::shared_ptr<binder::Expression> bindNodeOutput(binder::Binder* binder,
-        const std::string& name, const std::vector<catalog::TableCatalogEntry*>& nodeEntries);
+       const std::vector<catalog::TableCatalogEntry*>& nodeEntries);
 
     std::shared_ptr<PathLengths> getPathLengthsFrontier(processor::ExecutionContext* context,
         uint16_t val);

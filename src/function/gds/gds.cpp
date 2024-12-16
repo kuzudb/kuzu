@@ -4,6 +4,7 @@
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_utils.h"
 #include "processor/execution_context.h"
+#include "binder/expression/expression_util.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::main;
@@ -14,13 +15,8 @@ namespace kuzu {
 namespace function {
 
 std::shared_ptr<Expression> GDSAlgorithm::bindNodeOutput(Binder* binder,
-    const GraphEntry& graphEntry) {
-    return bindNodeOutput(binder, NODE_COLUMN_NAME, graphEntry.nodeEntries);
-}
-
-std::shared_ptr<Expression> GDSAlgorithm::bindNodeOutput(Binder* binder, const std::string& name,
     const std::vector<catalog::TableCatalogEntry*>& nodeEntries) {
-    auto node = binder->createQueryNode(name, nodeEntries);
+    auto node = binder->createQueryNode(NODE_COLUMN_NAME, nodeEntries);
     binder->addToScope(NODE_COLUMN_NAME, node);
     return node;
 }

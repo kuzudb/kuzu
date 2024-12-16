@@ -16,6 +16,7 @@ public:
     static constexpr char SCORE_PROP_NAME[] = "score";
     static constexpr char TERM_FREQUENCY_PROP_NAME[] = "tf";
     static constexpr char DOC_LEN_PROP_NAME[] = "len";
+    static constexpr char DOC_ID_PROP_NAME[] = "docID";
 
 public:
     QFTSAlgorithm() = default;
@@ -43,8 +44,7 @@ public:
 
     binder::expression_vector getResultColumns(binder::Binder* binder) const override;
 
-    void bind(const binder::expression_vector& params, binder::Binder* binder,
-        graph::GraphEntry& graphEntry) override;
+    void bind(const function::GDSBindInput& input, main::ClientContext&) override;
 };
 
 struct QFTSFunction {
