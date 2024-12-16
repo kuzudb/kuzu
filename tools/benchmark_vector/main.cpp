@@ -92,13 +92,6 @@ int main(int argc, char **argv) {
         auto queryNumVectors = queries.size();
         vector_id_t *gtVecs = new vector_id_t[queryNumVectors * k];
         loadFromFile(gtPath, reinterpret_cast<uint8_t *>(gtVecs), queryNumVectors * k * sizeof(vector_id_t));
-        printf("printing ground truth\n");
-        for (int i = 0; i < queryNumVectors; i++) {
-            for (int j = 0; j < k; j++) {
-                printf("%d ", gtVecs[i * k + j]);
-            }
-            printf("\n");
-        }
         // Randomly select warmupTimes queries from the queries
         for (int i = 0; i < warmupTimes; i++) {
             printf("Warmup started %d\n", i);
