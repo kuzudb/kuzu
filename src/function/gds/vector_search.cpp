@@ -627,10 +627,9 @@ namespace kuzu {
                 auto filterMask = sharedState->inputNodeOffsetMasks.at(indexHeader->getNodeTableId()).get();
                 bool isFilteredSearch = filterMask->isEnabled();
                 auto quantizedDc = header->getQuantizer()->get_asym_distance_computer(L2_SQ);
-                printf("search filtered: %d\n", isFilteredSearch);
                 auto dc = std::make_unique<CosineDistanceComputer>(query, indexHeader->getDim(), header->getNumVectors());
                 dc->setQuery(query);
-                auto metric = context->profiler->registerTimeMetric("vectorSearchTime");
+                auto metric = context->profiler->registerTimeMetricForce("vectorSearchTime");
                 metric->start();
 
                 // Find closest entrypoint using the above layer!!

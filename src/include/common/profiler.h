@@ -15,6 +15,9 @@ class Profiler {
 public:
     TimeMetric* registerTimeMetric(const std::string& key);
 
+    TimeMetric* registerTimeMetricForce(const std::string& key);
+
+
     NumericMetric* registerNumericMetric(const std::string& key);
 
     double sumAllTimeMetricsWithKey(const std::string& key);

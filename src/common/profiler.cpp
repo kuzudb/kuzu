@@ -10,6 +10,13 @@ TimeMetric* Profiler::registerTimeMetric(const std::string& key) {
     return metricPtr;
 }
 
+TimeMetric* Profiler::registerTimeMetricForce(const std::string& key) {
+    auto timeMetric = std::make_unique<TimeMetric>(true);
+    auto metricPtr = timeMetric.get();
+    addMetric(key, std::move(timeMetric));
+    return metricPtr;
+}
+
 NumericMetric* Profiler::registerNumericMetric(const std::string& key) {
     auto numericMetric = std::make_unique<NumericMetric>(enabled);
     auto metricPtr = numericMetric.get();
