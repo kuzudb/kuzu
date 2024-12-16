@@ -30,15 +30,6 @@ static std::string generateQueryOptions(const TableFuncBindInput* input,
     return query_options;
 }
 
-static std::unique_ptr<TableFuncBindData> createBindData(const std::string& query,
-    const std::shared_ptr<delta_extension::DeltaConnector>& connector,
-    const std::vector<LogicalType>& returnTypes, const std::vector<std::string>& returnColumnNames,
-    main::ClientContext* context) {
-    return std::make_unique<delta_extension::DeltaScanBindData>(std::move(query), connector,
-        duckdb_extension::DuckDBResultConverter{returnTypes}, copyVector(returnTypes),
-        std::move(returnColumnNames), ReaderConfig{}, context);
-}
-
 std::unique_ptr<TableFuncBindData> bindFuncHelper(main::ClientContext* context,
     TableFuncBindInput* input, const std::string& tableType) {
     auto connector = std::make_shared<delta_extension::DeltaConnector>();
@@ -72,9 +63,9 @@ std::unique_ptr<TableFuncBindData> bindFuncHelper(main::ClientContext* context,
         }
     }
     KU_ASSERT(returnTypes.size() == returnColumnNames.size());
-
-    return createBindData(query, connector, returnTypes, returnColumnNames, context);
-}
-
+    auto columns = input->binder->createVariables(returnColumnNames, returnTypes);
+    return std::make_unique<delta_extension::DeltaScanBindData>(std::move(query), connector,
+        duckdb_extension::DuckDBResultConverter{returnTypes}, columns, ReaderConfig{}, context);
+    }
 } // namespace iceberg_extension
 } // namespace kuzu

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "binder/binder.h"
 #include "common/string_utils.h"
 #include "connector/connector_factory.h"
 #include "connector/duckdb_result_converter.h"
