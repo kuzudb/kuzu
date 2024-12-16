@@ -36,7 +36,7 @@ public:
         entries = std::move(entries_);
     }
     void addEntries(const std::vector<catalog::TableCatalogEntry*> entries_);
-    catalog::TableCatalogEntry* getSingleEntry() const;
+    KUZU_API catalog::TableCatalogEntry* getSingleEntry() const;
 
     void addPropertyExpression(const std::string& propertyName,
         std::unique_ptr<Expression> property);

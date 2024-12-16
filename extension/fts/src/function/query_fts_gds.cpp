@@ -174,6 +174,7 @@ private:
     common::idx_t pos;
     storage::MemoryManager* mm;
     const QFTSGDSBindData& bindData;
+    common::table_id_t outputNodeTableID;
 };
 
 QFTSOutputWriter::QFTSOutputWriter(storage::MemoryManager* mm, QFTSOutput* qFTSOutput,
@@ -189,6 +190,7 @@ QFTSOutputWriter::QFTSOutputWriter(storage::MemoryManager* mm, QFTSOutput* qFTSO
     vectors.push_back(&termsVector);
     vectors.push_back(&docsVector);
     vectors.push_back(&scoreVector);
+    outputNodeTableID = bindData.getNodeOutput()->constCast<NodeExpression>().getSingleEntry()->getTableID();
 }
 
 void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID,
@@ -217,7 +219,7 @@ void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNo
                      ((tf * (k + 1) / (tf + k * (1 - b + b * (len / avgDocLen)))));
         }
         termsVector.setValue(pos, scoreInfo.termID);
-        docsVector.setValue(pos, docNodeID);
+        docsVector.setValue(pos, nodeID_t{docNodeID.offset, outputNodeTableID});
         scoreVector.setValue(pos, score);
     }
     scoreFT.append(vectors);
@@ -273,22 +275,22 @@ void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
         nextFrontier, 1 /* numThreads */);
     auto edgeCompute = std::make_unique<QFTSEdgeCompute>(frontierPair.get(), &output->scores,
         sharedState->nodeProp);
+
+    auto clientContext = executionContext->clientContext;
+    auto transaction = clientContext->getTx();
+    auto catalog = clientContext->getCatalog();
+    auto mm = clientContext->getMemoryManager();
     QFTSState qFTSState = QFTSState{std::move(frontierPair), std::move(edgeCompute), termsTableID};
-    qFTSState.initFirstFrontierWithTerms(*sharedState, *termsMask,
-        executionContext->clientContext->getTx(), termsTableID);
+    qFTSState.initFirstFrontierWithTerms(*sharedState, *termsMask, transaction, termsTableID);
 
     runFrontiersOnce(executionContext, qFTSState, sharedState->graph.get(),
-        executionContext->clientContext->getCatalog()
-            ->getTableCatalogEntry(executionContext->clientContext->getTx(),
-                sharedState->graph->getRelTableIDs()[0])
+        catalog->getTableCatalogEntry(transaction, sharedState->graph->getRelTableIDs()[0])
             ->getPropertyIdx(QFTSAlgorithm::TERM_FREQUENCY_PROP_NAME));
 
     // Do vertex compute to calculate the score for doc with the length property.
-    QFTSOutputWriter outputWriter{executionContext->clientContext->getMemoryManager(), output.get(),
-        *bindData->ptrCast<QFTSGDSBindData>()};
-    auto writerVC =
-        std::make_unique<QFTSVertexCompute>(executionContext->clientContext->getMemoryManager(),
-            sharedState.get(), outputWriter.copy());
+
+    auto writer = std::make_unique<QFTSOutputWriter>(mm, output.get(), *bindData->ptrCast<QFTSGDSBindData>());
+    auto writerVC = std::make_unique<QFTSVertexCompute>(mm, sharedState.get(), std::move(writer));
     auto docsTableID = sharedState->graph->getNodeTableIDs()[1];
     GDSUtils::runVertexCompute(executionContext, sharedState->graph.get(), *writerVC, docsTableID,
         {QFTSAlgorithm::DOC_LEN_PROP_NAME});
@@ -311,7 +313,7 @@ binder::expression_vector QFTSAlgorithm::getResultColumns(binder::Binder* binder
 
 void QFTSAlgorithm::bind(const binder::expression_vector& params, binder::Binder* binder,
     graph::GraphEntry& graphEntry) {
-    KU_ASSERT(params.size() == 8);
+    KU_ASSERT(params.size() == 9);
     auto termNode = params[1];
     auto k = ExpressionUtil::getLiteralValue<double>(*params[2]);
     auto b = ExpressionUtil::getLiteralValue<double>(*params[3]);
@@ -319,7 +321,13 @@ void QFTSAlgorithm::bind(const binder::expression_vector& params, binder::Binder
     auto avgDocLen = ExpressionUtil::getLiteralValue<double>(*params[5]);
     auto numTermsInQuery = ExpressionUtil::getLiteralValue<int64_t>(*params[6]);
     auto isConjunctive = ExpressionUtil::getLiteralValue<bool>(*params[7]);
-    auto nodeOutput = bindNodeOutput(binder, graphEntry);
+
+    auto tableName = ExpressionUtil::getLiteralValue<std::string>(*params[8]);
+    auto catalog = binder->clientContext->getCatalog();
+    auto tx = binder->clientContext->getTx();
+    auto entry = catalog->getTableCatalogEntry(tx, tableName);
+    auto nodeOutput = bindNodeOutput(binder, "_node", {entry});
+//    auto nodeOutput = bindNodeOutput(binder, graphEntry);
     bindData = std::make_unique<QFTSGDSBindData>(termNode, nodeOutput, k, b, numDocs, avgDocLen,
         numTermsInQuery, isConjunctive);
 }

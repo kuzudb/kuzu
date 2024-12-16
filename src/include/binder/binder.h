@@ -309,6 +309,8 @@ private:
     common::idx_t lastExpressionId;
     BinderScope scope;
     ExpressionBinder expressionBinder;
+
+public:
     main::ClientContext* clientContext;
 };
 

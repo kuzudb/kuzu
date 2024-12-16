@@ -106,6 +106,8 @@ protected:
 protected:
     std::shared_ptr<binder::Expression> bindNodeOutput(binder::Binder* binder,
         const graph::GraphEntry& graphEntry);
+    std::shared_ptr<binder::Expression> bindNodeOutput(binder::Binder* binder,
+        const std::string& name, const std::vector<catalog::TableCatalogEntry*>& nodeEntries);
 
     std::shared_ptr<PathLengths> getPathLengthsFrontier(processor::ExecutionContext* context,
         uint16_t val);

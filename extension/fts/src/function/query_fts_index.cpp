@@ -118,10 +118,10 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
                                      "WITH collect(stem(tk, '{}')) AS keywords "
                                      "MATCH (a:`{}`) "
                                      "WHERE list_contains(keywords, a.term) "
-                                     "CALL QFTS(PK, a, {}, {}, cast({} as UINT64), {}, {}, {}) "
-                                     "MATCH (p:`{}`) "
-                                     "WHERE _node.docID = offset(id(p)) "
-                                     "RETURN p, score",
+                                     "CALL QFTS(PK, a, {}, {}, cast({} as UINT64), {}, {}, {}, '{}') "
+//                                     "MATCH (p:`{}`) "
+//                                     "WHERE _node.docID = offset(id(p)) "
+                                     "RETURN _node AS p, score",
             actualQuery, bindData.entry.getFTSConfig().stemmer, bindData.getTermsTableName(),
             bindData.config.k, bindData.config.b, numDocs, avgDocLen, numTermsInQuery,
             bindData.config.isConjunctive ? "true" : "false", bindData.tableName);
