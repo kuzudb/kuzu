@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+#include "binder/binder.h"
 #include "common/exception/binder.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
@@ -320,11 +321,9 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
         }
         reader->validate(resultColumnTypes[i], numRows);
     }
-    const row_idx_t numTotalRows = numRows * config.getNumFiles();
-    auto bindData = std::make_unique<function::ScanBindData>(std::move(resultColumnTypes),
-        std::move(resultColumnNames), scanInput->config.copy(), context);
-    bindData->cardinality = numTotalRows;
-    return bindData;
+    auto columns = input->binder->createVariables(resultColumnNames, resultColumnTypes);
+    return std::make_unique<function::ScanBindData>(columns, scanInput->config.copy(), context,
+        0 /* numWarningColumns*/, numRows);
 }
 
 static std::unique_ptr<function::TableFuncSharedState> initSharedState(

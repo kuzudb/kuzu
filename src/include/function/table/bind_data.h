@@ -13,31 +13,25 @@ class FileSystem;
 namespace function {
 
 struct TableFuncBindData {
-    std::vector<common::LogicalType> columnTypes;
-    std::vector<std::string> columnNames;
-
+    binder::expression_vector columns;
     // the last {numWarningDataColumns} columns are for temporary internal use
     common::column_id_t numWarningDataColumns;
-
     common::cardinality_t cardinality;
 
-    TableFuncBindData() : numWarningDataColumns{0}, cardinality(0) {}
-    TableFuncBindData(std::vector<common::LogicalType> columnTypes,
-        std::vector<std::string> columnNames)
-        : columnTypes{std::move(columnTypes)}, columnNames{std::move(columnNames)},
-          numWarningDataColumns(0), cardinality(0) {}
-    TableFuncBindData(std::vector<common::LogicalType> columnTypes,
-        std::vector<std::string> columnNames, common::column_id_t numWarningDataColumns,
+    TableFuncBindData() : numWarningDataColumns{0}, cardinality{0} {}
+    explicit TableFuncBindData(binder::expression_vector columns)
+        : columns{std::move(columns)}, numWarningDataColumns{0}, cardinality{0} {}
+    TableFuncBindData(binder::expression_vector columns, common::column_id_t numWarningColumns,
         common::cardinality_t cardinality)
-        : columnTypes{std::move(columnTypes)}, columnNames{std::move(columnNames)},
-          numWarningDataColumns{numWarningDataColumns}, cardinality(cardinality) {}
+        : columns{std::move(columns)}, numWarningDataColumns{numWarningColumns},
+          cardinality{cardinality} {}
     TableFuncBindData(const TableFuncBindData& other)
-        : columnTypes{common::LogicalType::copy(other.columnTypes)}, columnNames{other.columnNames},
-          numWarningDataColumns(other.numWarningDataColumns), cardinality(other.cardinality),
-          columnSkips{other.columnSkips}, columnPredicates{copyVector(other.columnPredicates)} {}
+        : columns{other.columns}, numWarningDataColumns(other.numWarningDataColumns),
+          cardinality{other.cardinality}, columnSkips{other.columnSkips},
+          columnPredicates{copyVector(other.columnPredicates)} {}
     virtual ~TableFuncBindData() = default;
 
-    common::idx_t getNumColumns() const { return columnTypes.size(); }
+    common::idx_t getNumColumns() const { return columns.size(); }
     void setColumnSkips(std::vector<bool> skips) { columnSkips = std::move(skips); }
     KUZU_API std::vector<bool> getColumnSkips() const;
 
@@ -69,11 +63,13 @@ struct ScanBindData : public TableFuncBindData {
     common::ReaderConfig config;
     main::ClientContext* context;
 
-    ScanBindData(std::vector<common::LogicalType> columnTypes, std::vector<std::string> columnNames,
-        common::ReaderConfig config, main::ClientContext* context,
-        common::row_idx_t estCardinality = 0, common::column_id_t numWarningDataColumns = 0)
-        : TableFuncBindData{std::move(columnTypes), std::move(columnNames), numWarningDataColumns,
-              estCardinality},
+    ScanBindData(binder::expression_vector columns, common::ReaderConfig config,
+        main::ClientContext* context)
+        : TableFuncBindData{std::move(columns)}, config{std::move(config)}, context{context} {}
+    ScanBindData(binder::expression_vector columns, common::ReaderConfig config,
+        main::ClientContext* context, common::column_id_t numWarningDataColumns,
+        common::row_idx_t estCardinality)
+        : TableFuncBindData{std::move(columns), numWarningDataColumns, estCardinality},
           config{std::move(config)}, context{context} {}
     ScanBindData(const ScanBindData& other)
         : TableFuncBindData{other}, config{other.config.copy()}, context{other.context} {}

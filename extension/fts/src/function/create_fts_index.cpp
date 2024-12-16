@@ -29,7 +29,8 @@ struct CreateFTSBindData final : public FTSBindData {
 
     CreateFTSBindData(std::string tableName, common::table_id_t tableID, std::string indexName,
         std::vector<std::string> properties, FTSConfig createFTSConfig)
-        : FTSBindData{std::move(tableName), tableID, std::move(indexName)},
+        : FTSBindData{std::move(tableName), tableID, std::move(indexName),
+              binder::expression_vector{}},
           properties{std::move(properties)}, ftsConfig{std::move(createFTSConfig)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {

@@ -1,5 +1,6 @@
 #include "pyarrow/pyarrow_scan.h"
 
+#include "binder/binder.h"
 #include "cached_import/py_cached_import.h"
 #include "common/arrow/arrow_converter.h"
 #include "function/cast/functions/numeric_limits.h"
@@ -78,8 +79,9 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
         i.attr("_export_to_c")(reinterpret_cast<uint64_t>(arrowArrayBatches.back().get()));
     }
 
-    return std::make_unique<PyArrowTableScanFunctionData>(std::move(returnTypes), std::move(schema),
-        std::move(names), arrowArrayBatches, numRows);
+    auto columns = input->binder->createVariables(names, returnTypes);
+    return std::make_unique<PyArrowTableScanFunctionData>(std::move(columns), std::move(schema),
+        arrowArrayBatches, numRows);
 }
 
 ArrowArrayWrapper* PyArrowTableScanSharedState::getNextChunk() {
@@ -120,7 +122,7 @@ static common::offset_t tableFunc(function::TableFuncInput& input,
         return 0;
     }
     auto skipCols = arrowScanData->getColumnSkips();
-    for (auto i = 0u; i < arrowScanData->columnTypes.size(); i++) {
+    for (auto i = 0u; i < arrowScanData->getNumColumns(); i++) {
         if (!skipCols[i]) {
             common::ArrowConverter::fromArrowArray(arrowScanData->schema->children[i],
                 arrowLocalState->arrowArray->children[i],

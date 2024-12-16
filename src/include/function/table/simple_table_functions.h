@@ -36,16 +36,12 @@ struct SimpleTableFuncBindData : TableFuncBindData {
     common::offset_t maxOffset;
 
     explicit SimpleTableFuncBindData(common::offset_t maxOffset)
-        : SimpleTableFuncBindData{std::vector<common::LogicalType>{}, std::vector<std::string>{},
-              maxOffset} {}
-    SimpleTableFuncBindData(std::vector<common::LogicalType> columnTypes,
-        std::vector<std::string> returnColumnNames, common::offset_t maxOffset)
-        : TableFuncBindData{std::move(columnTypes), std::move(returnColumnNames)},
-          maxOffset{maxOffset} {}
+        : SimpleTableFuncBindData{binder::expression_vector{}, maxOffset} {}
+    SimpleTableFuncBindData(binder::expression_vector columns, common::offset_t maxOffset)
+        : TableFuncBindData{std::move(columns)}, maxOffset{maxOffset} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<SimpleTableFuncBindData>(common::LogicalType::copy(columnTypes),
-            columnNames, maxOffset);
+        return std::make_unique<SimpleTableFuncBindData>(columns, maxOffset);
     }
 };
 

@@ -19,6 +19,8 @@ public:
     }
     expression_vector getExpressions() const { return expressions; }
     void addExpression(const std::string& varName, std::shared_ptr<Expression> expression);
+    void replaceExpression(const std::string& oldName, const std::string& newName,
+        std::shared_ptr<Expression> expression);
 
     void memorizeTableEntries(const std::string& name,
         std::vector<catalog::TableCatalogEntry*> entries) {

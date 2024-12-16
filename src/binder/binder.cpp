@@ -117,6 +117,33 @@ std::shared_ptr<Expression> Binder::createVariable(const std::string& name,
     return expression;
 }
 
+std::shared_ptr<Expression> Binder::createInvisibleVariable(const std::string& name,
+    const LogicalType& dataType) {
+    auto expression = expressionBinder.createVariableExpression(dataType.copy(), name);
+    expression->setAlias(name);
+    return expression;
+}
+
+binder::expression_vector Binder::createVariables(std::vector<std::string> names,
+    const std::vector<LogicalType>& types) {
+    KU_ASSERT(names.size() == types.size());
+    expression_vector variables;
+    for (auto i = 0u; i < names.size(); ++i) {
+        variables.push_back(createVariable(names[i], types[i]));
+    }
+    return variables;
+}
+
+expression_vector Binder::createInvisibleVariables(std::vector<std::string> names,
+    const std::vector<LogicalType>& types) {
+    KU_ASSERT(names.size() == types.size());
+    expression_vector variables;
+    for (auto i = 0u; i < names.size(); ++i) {
+        variables.push_back(createInvisibleVariable(names[i], types[i]));
+    }
+    return variables;
+}
+
 void Binder::validateOrderByFollowedBySkipOrLimitInWithClause(
     const BoundProjectionBody& boundProjectionBody) {
     auto hasSkipOrLimit = boundProjectionBody.hasSkip() || boundProjectionBody.hasLimit();

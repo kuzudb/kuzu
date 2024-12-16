@@ -1,3 +1,4 @@
+#include "binder/binder.h"
 #include "function/table/simple_table_functions.h"
 #include "main/database_manager.h"
 
@@ -11,14 +12,13 @@ struct ShowAttachedDatabasesBindData : public SimpleTableFuncBindData {
     std::vector<main::AttachedDatabase*> attachedDatabases;
 
     ShowAttachedDatabasesBindData(std::vector<main::AttachedDatabase*> attachedDatabases,
-        std::vector<LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
-        offset_t maxOffset)
-        : SimpleTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
+        binder::expression_vector columns, offset_t maxOffset)
+        : SimpleTableFuncBindData{std::move(columns), maxOffset},
           attachedDatabases{std::move(attachedDatabases)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ShowAttachedDatabasesBindData>(attachedDatabases,
-            LogicalType::copy(columnTypes), columnNames, maxOffset);
+        return std::make_unique<ShowAttachedDatabasesBindData>(attachedDatabases, columns,
+            maxOffset);
     }
 };
 
@@ -41,7 +41,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-    TableFuncBindInput*) {
+    TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     columnNames.emplace_back("name");
@@ -49,8 +49,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     columnNames.emplace_back("database type");
     columnTypes.emplace_back(LogicalType::STRING());
     auto attachedDatabases = context->getDatabaseManager()->getAttachedDatabases();
-    return std::make_unique<ShowAttachedDatabasesBindData>(attachedDatabases,
-        std::move(columnTypes), std::move(columnNames), attachedDatabases.size());
+    auto columns = input->binder->createVariables(columnNames, columnTypes);
+    return std::make_unique<ShowAttachedDatabasesBindData>(attachedDatabases, columns,
+        attachedDatabases.size());
 }
 
 function_set ShowAttachedDatabasesFunction::getFunctionSet() {
