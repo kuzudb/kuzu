@@ -15,7 +15,7 @@ public:
     ColumnPredicateSet() = default;
     EXPLICIT_COPY_DEFAULT_MOVE(ColumnPredicateSet);
 
-    void addColumnPredicate(std::unique_ptr<ColumnPredicate> predicate) {
+    void addPredicate(std::unique_ptr<ColumnPredicate> predicate) {
         predicates.push_back(std::move(predicate));
     }
     void tryAddPredicate(const binder::Expression& column, const binder::Expression& predicate);
@@ -53,6 +53,12 @@ public:
 
 protected:
     std::string columnName;
+    common::ExpressionType expressionType;
+};
+
+struct ColumnPredicateUtil {
+    static std::unique_ptr<ColumnPredicate> tryConvert(const binder::Expression& column,
+        const binder::Expression& predicate);
     common::ExpressionType expressionType;
 };
 

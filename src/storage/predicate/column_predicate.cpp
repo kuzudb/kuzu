@@ -11,9 +11,6 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-static void tryAddConjunction(const Expression& column, const Expression& predicate,
-    std::vector<std::unique_ptr<ColumnPredicate>>& predicateSetToAddTo);
-
 ZoneMapCheckResult ColumnPredicateSet::checkZoneMap(const MergedColumnChunkStats& stats) const {
     for (auto& predicate : predicates) {
         if (predicate->checkZoneMap(stats) == ZoneMapCheckResult::SKIP_SCAN) {
@@ -102,46 +99,19 @@ static std::unique_ptr<ColumnPredicate> tryConvertToIsNotNull(const Expression& 
     return nullptr;
 }
 
-static void emplaceIfNotNull(std::unique_ptr<ColumnPredicate> columnPredicate,
-    std::vector<std::unique_ptr<ColumnPredicate>>& predicateSetToAddTo) {
-    if (columnPredicate) {
-        predicateSetToAddTo.emplace_back(std::move(columnPredicate));
-    }
-}
-
-static void tryAddColumnPredicate(const Expression& property, const Expression& predicate,
-    std::vector<std::unique_ptr<ColumnPredicate>>& predicateSetToAddTo) {
+std::unique_ptr<ColumnPredicate> ColumnPredicateUtil::tryConvert(const Expression& property,
+    const Expression& predicate) {
     if (ExpressionTypeUtil::isComparison(predicate.expressionType)) {
-        emplaceIfNotNull(tryConvertToConstColumnPredicate(property, predicate),
-            predicateSetToAddTo);
-        return;
+        return tryConvertToConstColumnPredicate(property, predicate);
     }
     switch (predicate.expressionType) {
-    case common::ExpressionType::AND:
-        tryAddConjunction(property, predicate, predicateSetToAddTo);
-        break;
     case common::ExpressionType::IS_NULL:
-        emplaceIfNotNull(tryConvertToIsNull(property, predicate), predicateSetToAddTo);
-        break;
+        return tryConvertToIsNull(property, predicate);
     case common::ExpressionType::IS_NOT_NULL:
-        emplaceIfNotNull(tryConvertToIsNotNull(property, predicate), predicateSetToAddTo);
-        break;
+        return tryConvertToIsNotNull(property, predicate);
     default:
-        break;
+        return nullptr;
     }
-    return;
-}
-
-static void tryAddConjunction(const Expression& column, const Expression& predicate,
-    std::vector<std::unique_ptr<ColumnPredicate>>& predicateSetToAddTo) {
-    KU_ASSERT(predicate.expressionType == common::ExpressionType::AND);
-    tryAddColumnPredicate(column, *predicate.getChild(0), predicateSetToAddTo);
-    tryAddColumnPredicate(column, *predicate.getChild(1), predicateSetToAddTo);
-}
-
-void ColumnPredicateSet::tryAddPredicate(const binder::Expression& column,
-    const binder::Expression& predicate) {
-    tryAddColumnPredicate(column, predicate, predicates);
 }
 
 std::string ColumnPredicate::toString() {

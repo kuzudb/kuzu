@@ -138,7 +138,11 @@ static ColumnPredicateSet getPredicateSet(const Expression& column,
     const binder::expression_vector& predicates) {
     auto predicateSet = ColumnPredicateSet();
     for (auto& predicate : predicates) {
-        predicateSet.tryAddPredicate(column, *predicate);
+        auto columnPredicate = ColumnPredicateUtil::tryConvert(column, *predicate);
+        if (columnPredicate == nullptr) {
+            continue;
+        }
+        predicateSet.addPredicate(std::move(columnPredicate));
     }
     return predicateSet;
 }
