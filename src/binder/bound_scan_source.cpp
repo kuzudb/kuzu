@@ -13,14 +13,9 @@ expression_vector BoundTableScanSource::getWarningColumns() const {
     }
     return warningDataExprs;
 }
+
 bool BoundTableScanSource::getIgnoreErrorsOption() const {
-    bool ignoreErrors = common::CopyConstants::DEFAULT_IGNORE_ERRORS;
-    if (type == common::ScanSourceType::FILE) {
-        auto bindData = info.bindData->constPtrCast<function::ScanBindData>();
-        ignoreErrors = bindData->config.getOption(common::CopyConstants::IGNORE_ERRORS_OPTION_NAME,
-            ignoreErrors);
-    }
-    return ignoreErrors;
+    return info.bindData->getIgnoreErrorsOption();
 }
 
 } // namespace binder

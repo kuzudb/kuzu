@@ -5,6 +5,7 @@
 #include "common/exception/runtime.h"
 #include "function/table/bind_input.h"
 #include "numpy/numpy_scan.h"
+#include "processor/execution_context.h"
 #include "py_connection.h"
 #include "pyarrow/pyarrow_scan.h"
 #include "pybind11/pytypes.h"
@@ -31,8 +32,9 @@ std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* /*context*/,
     auto getFunc = df.attr("__getitem__");
     auto numRows = py::len(getFunc(columns[0]));
     auto returnColumns = input->binder->createVariables(names, returnTypes);
+    auto scanConfig = input->extraInput->constPtrCast<ExtraScanTableFuncBindInput>()->config.copy();
     return std::make_unique<PandasScanFunctionData>(std::move(returnColumns), df, numRows,
-        std::move(columnBindData));
+        std::move(columnBindData), std::move(scanConfig));
 }
 
 bool sharedStateNext(const TableFuncBindData* /*bindData*/, PandasScanLocalState* localState,
@@ -119,9 +121,19 @@ static double progressFunc(TableFuncSharedState* sharedState) {
     return static_cast<double>(pandasSharedState->numRowsRead) / pandasSharedState->numRows;
 }
 
+static void finalizeFunc(processor::ExecutionContext* ctx, TableFuncSharedState*) {
+    ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
+}
+
 function_set PandasScanFunction::getFunctionSet() {
     function_set functionSet;
+<<<<<<< HEAD
     functionSet.push_back(getFunction().copy());
+=======
+    functionSet.push_back(std::make_unique<TableFunction>(PandasScanFunction::name, tableFunc,
+        bindFunc, initSharedState, initLocalState, progressFunc,
+        std::vector<LogicalTypeID>{LogicalTypeID::POINTER}, finalizeFunc));
+>>>>>>> ceac2f32d (Support IGNORE_ERRORS when scanning from pyarrow/pandas)
     return functionSet;
 }
 
@@ -160,7 +172,13 @@ std::unique_ptr<ScanReplacementData> tryReplacePD(py::dict& dict, py::str& objec
         if (isPyArrowBacked(entry)) {
             scanReplacementData->func = PyArrowTableScanFunction::getFunction();
         } else {
+<<<<<<< HEAD
             scanReplacementData->func = PandasScanFunction::getFunction();
+=======
+            scanReplacementData->func = TableFunction(PandasScanFunction::name, tableFunc, bindFunc,
+                initSharedState, initLocalState, progressFunc,
+                std::vector<LogicalTypeID>{LogicalTypeID::POINTER}, finalizeFunc);
+>>>>>>> ceac2f32d (Support IGNORE_ERRORS when scanning from pyarrow/pandas)
         }
         auto bindInput = TableFuncBindInput();
         bindInput.addLiteralParam(Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())));

@@ -47,5 +47,25 @@ def test_polars_error(conn_db_readonly: ConnDB) -> None:
     with pytest.raises(RuntimeError, match="Binder exception: Variable df is not in scope."):
         conn.execute("LOAD FROM df RETURN *;")
     df = []
-    with pytest.raises(RuntimeError, match="Binder exception: Variable df found but no matches were scannable"):
+    with pytest.raises(
+        RuntimeError,
+        match="Binder exception: Variable df found but no matches were scannable",
+    ):
         conn.execute("LOAD FROM df RETURN *;")
+
+
+def test_polars_scan_ignore_errors(conn_db_readwrite: ConnDB) -> None:
+    conn, db = conn_db_readwrite
+    df = pl.DataFrame({"id": [1, 2, 3, 1]})
+    conn.execute("CREATE NODE TABLE ids(id INT64, PRIMARY KEY(id))")
+    conn.execute("COPY ids FROM df(IGNORE_ERRORS=true)")
+
+    people = conn.execute("MATCH (i:ids) RETURN i.id")
+    assert people.get_next() == [1]
+    assert people.get_next() == [2]
+    assert people.get_next() == [3]
+    assert not people.has_next()
+
+    warnings = conn.execute("CALL show_warnings() RETURN *")
+    assert warnings.get_next()[1].startswith("Found duplicated primary key value 1")
+    assert not warnings.has_next()

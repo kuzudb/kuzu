@@ -5,6 +5,7 @@
 #include "common/arrow/arrow_converter.h"
 #include "function/cast/functions/numeric_limits.h"
 #include "function/table/bind_input.h"
+#include "processor/execution_context.h"
 #include "py_connection.h"
 #include "pyarrow/pyarrow_bind.h"
 #include "pybind11/pytypes.h"
@@ -18,6 +19,7 @@ namespace kuzu {
 PyArrowScanConfig::PyArrowScanConfig(const case_insensitive_map_t<Value>& options) {
     skipNum = 0;
     limitNum = NumericLimits<uint64_t>::maximum();
+    ignoreErrors = CopyConstants::DEFAULT_IGNORE_ERRORS;
     for (const auto& i : options) {
         if (i.first == "SKIP") {
             if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::INT64 ||
@@ -31,8 +33,14 @@ PyArrowScanConfig::PyArrowScanConfig(const case_insensitive_map_t<Value>& option
                 throw BinderException("LIMIT Option must be a positive integer literal.");
             }
             limitNum = i.second.val.int64Val;
+        } else if (i.first == CopyConstants::IGNORE_ERRORS_OPTION_NAME) {
+            if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::BOOL) {
+                throw BinderException("IGNORE_ERRORS Option must be a boolean.");
+            }
+            ignoreErrors = i.second.val.booleanVal;
         } else {
-            throw BinderException(stringFormat("{} Option not recognized by pyArrow scanner."));
+            throw BinderException(
+                stringFormat("{} Option not recognized by pyArrow scanner.", i.first));
         }
     }
 }
@@ -82,7 +90,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext*,
 
     auto columns = input->binder->createVariables(names, returnTypes);
     return std::make_unique<PyArrowTableScanFunctionData>(std::move(columns), std::move(schema),
-        arrowArrayBatches, numRows);
+        arrowArrayBatches, numRows, config.ignoreErrors);
 }
 
 ArrowArrayWrapper* PyArrowTableScanSharedState::getNextChunk() {
@@ -143,6 +151,10 @@ function_set PyArrowTableScanFunction::getFunctionSet() {
     return functionSet;
 }
 
+static void finalizeFunc(const processor::ExecutionContext* ctx, TableFuncSharedState*) {
+    ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
+}
+
 TableFunction PyArrowTableScanFunction::getFunction() {
     auto function = TableFunction(name, std::vector{LogicalTypeID::POINTER});
     function.tableFunc = tableFunc;
@@ -150,6 +162,7 @@ TableFunction PyArrowTableScanFunction::getFunction() {
     function.initSharedStateFunc = initSharedState;
     function.initLocalStateFunc = initLocalState;
     function.progressFunc = progressFunc;
+    function.finalizeFunc = finalizeFunc;
     return function;
 }
 

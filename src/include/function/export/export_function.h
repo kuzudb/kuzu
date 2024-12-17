@@ -67,7 +67,7 @@ using export_sink_t = std::function<void(ExportFuncSharedState&, ExportFuncLocal
 using export_combine_t = std::function<void(ExportFuncSharedState&, ExportFuncLocalState&)>;
 using export_finalize_t = std::function<void(ExportFuncSharedState&)>;
 
-struct ExportFunction : public Function {
+struct KUZU_API ExportFunction : public Function {
     explicit ExportFunction(std::string name) : Function{std::move(name), {}} {}
 
     ExportFunction(std::string name, export_init_local_t initLocal,

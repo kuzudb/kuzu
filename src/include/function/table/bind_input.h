@@ -35,7 +35,7 @@ struct ExtraTableFuncBindInput {
     }
 };
 
-struct TableFuncBindInput {
+struct KUZU_API TableFuncBindInput {
     binder::expression_vector params;
     optional_params_t optionalParams;
     std::unique_ptr<ExtraTableFuncBindInput> extraInput = nullptr;
@@ -51,7 +51,7 @@ struct TableFuncBindInput {
     T getLiteralVal(common::idx_t idx) const;
 };
 
-struct ExtraScanTableFuncBindInput : ExtraTableFuncBindInput {
+struct KUZU_API ExtraScanTableFuncBindInput : ExtraTableFuncBindInput {
     common::ReaderConfig config;
     std::vector<std::string> expectedColumnNames;
     std::vector<common::LogicalType> expectedColumnTypes;

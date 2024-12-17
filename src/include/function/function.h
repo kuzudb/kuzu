@@ -55,7 +55,7 @@ struct ScalarBindFuncInput {
 using scalar_bind_func =
     std::function<std::unique_ptr<FunctionBindData>(const ScalarBindFuncInput& bindInput)>;
 
-struct Function {
+struct KUZU_API Function {
     std::string name;
     std::vector<common::LogicalTypeID> parameterTypeIDs;
     // Currently we only one variable-length function which is list creation. The expectation is
