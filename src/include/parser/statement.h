@@ -8,13 +8,16 @@ namespace parser {
 
 class Statement {
 public:
-    explicit Statement(common::StatementType statementType) : statementType{statementType} {}
+    explicit Statement(common::StatementType statementType)
+        : statementType{statementType}, internal{false} {}
 
     virtual ~Statement() = default;
 
     common::StatementType getStatementType() const { return statementType; }
+    void setToInternal() { internal = true; }
+    bool isInternal() const { return internal; }
 
-    bool requireTx() {
+    bool requireTx() const {
         switch (statementType) {
         case common::StatementType::TRANSACTION:
             return false;
@@ -38,6 +41,11 @@ public:
 
 private:
     common::StatementType statementType;
+    // By setting the statement to internal, we still execute the statement, but will not return the
+    // executio result as part of the query result returned to users.
+    // The use case for this is when a query internally generates other queries to finish first,
+    // e.g., `TableFunction::rewriteFunc`.
+    bool internal;
 };
 
 } // namespace parser
