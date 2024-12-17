@@ -24,7 +24,6 @@ class SelectionVector {
     enum class State {
         DYNAMIC,
         STATIC,
-        STATIC_FILTERED,
     };
 
 public:
@@ -50,9 +49,12 @@ public:
     }
     void setRange(sel_t startPos, sel_t size) {
         KU_ASSERT(startPos + size <= capacity);
-        selectedPositions = const_cast<sel_t*>(INCREMENTAL_SELECTED_POS.data()) + startPos;
+        selectedPositions = selectedPositionsBuffer.get();
+        for (auto i = 0u; i < size; ++i) {
+            selectedPositions[i] = startPos + i;
+        }
         selectedSize = size;
-        state = State::STATIC_FILTERED;
+        state = State::DYNAMIC;
     }
 
     // Set to filtered is not very accurate. It sets selectedPositions to a mutable array.

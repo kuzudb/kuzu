@@ -47,7 +47,7 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraphCollection
     auto& corrExprs = info.corrExprs;
     auto corrExprsSet = binder::expression_set{corrExprs.begin(), corrExprs.end()};
     int32_t queryGraphIdxToPlanExpressionsScan = -1;
-    if (info.subqueryType == SubqueryType::CORRELATED) {
+    if (info.subqueryType == SubqueryPlanningType::CORRELATED) {
         // Pick a query graph to plan ExpressionsScan. If -1 is returned, we fall back to cross
         // product.
         queryGraphIdxToPlanExpressionsScan =
@@ -80,17 +80,17 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraphCollection
         auto newInfo = info;
         newInfo.predicates = predicatesToEvaluate;
         switch (info.subqueryType) {
-        case SubqueryType::NONE:
-        case SubqueryType::INTERNAL_ID_CORRELATED: {
+        case SubqueryPlanningType::NONE:
+        case SubqueryPlanningType::UNNEST_CORRELATED: {
             plans = enumerateQueryGraph(*queryGraph, newInfo);
         } break;
-        case SubqueryType::CORRELATED: {
+        case SubqueryPlanningType::CORRELATED: {
             if (i == (uint32_t)queryGraphIdxToPlanExpressionsScan) {
                 // Plan ExpressionsScan with current query graph.
                 plans = enumerateQueryGraph(*queryGraph, newInfo);
             } else {
                 // Plan current query graph as an isolated query graph.
-                newInfo.subqueryType = SubqueryType::NONE;
+                newInfo.subqueryType = SubqueryPlanningType::NONE;
                 plans = enumerateQueryGraph(*queryGraph, newInfo);
             }
         } break;
@@ -101,7 +101,7 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraphCollection
     }
     // Fail to plan ExpressionsScan with any query graph. Plan it independently and fall back to
     // cross product.
-    if (info.subqueryType == SubqueryType::CORRELATED && queryGraphIdxToPlanExpressionsScan == -1) {
+    if (info.subqueryType == SubqueryPlanningType::CORRELATED && queryGraphIdxToPlanExpressionsScan == -1) {
         auto plan = std::make_unique<LogicalPlan>();
         appendExpressionsScan(corrExprs, *plan);
         appendDistinct(corrExprs, *plan);
@@ -186,12 +186,12 @@ void Planner::planBaseTableScans(const QueryGraphPlanningInfo& info) {
     auto& corrExprs = info.corrExprs;
     auto corrExprsSet = expression_set{corrExprs.begin(), corrExprs.end()};
     switch (info.subqueryType) {
-    case SubqueryType::NONE: {
+    case SubqueryPlanningType::NONE: {
         for (auto nodePos = 0u; nodePos < queryGraph->getNumQueryNodes(); ++nodePos) {
             planNodeScan(nodePos);
         }
     } break;
-    case SubqueryType::INTERNAL_ID_CORRELATED: {
+    case SubqueryPlanningType::UNNEST_CORRELATED: {
         for (auto nodePos = 0u; nodePos < queryGraph->getNumQueryNodes(); ++nodePos) {
             auto queryNode = queryGraph->getQueryNode(nodePos);
             if (corrExprsSet.contains(queryNode->getInternalID())) {
@@ -205,7 +205,7 @@ void Planner::planBaseTableScans(const QueryGraphPlanningInfo& info) {
             }
         }
     } break;
-    case SubqueryType::CORRELATED: {
+    case SubqueryPlanningType::CORRELATED: {
         for (auto nodePos = 0u; nodePos < queryGraph->getNumQueryNodes(); ++nodePos) {
             auto queryNode = queryGraph->getQueryNode(nodePos);
             if (corrExprsSet.contains(queryNode->getInternalID())) {
