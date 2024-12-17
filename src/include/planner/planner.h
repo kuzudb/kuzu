@@ -270,12 +270,18 @@ public:
     void appendHashJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
         std::shared_ptr<binder::Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
         LogicalPlan& resultPlan);
+    void appendHashJoin(const std::vector<binder::expression_pair>& joinConditions,
+        common::JoinType joinType, std::shared_ptr<binder::Expression> mark, LogicalPlan& probePlan,
+        LogicalPlan& buildPlan, LogicalPlan& resultPlan);
     void appendAccHashJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
         std::shared_ptr<binder::Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
         LogicalPlan& resultPlan);
     void appendMarkJoin(const binder::expression_vector& joinNodeIDs,
         const std::shared_ptr<binder::Expression>& mark, LogicalPlan& probePlan,
-        LogicalPlan& buildPlan);
+        LogicalPlan& buildPlan, LogicalPlan& resultPlan);
+    void appendMarkJoin(const std::vector<binder::expression_pair>& joinConditions,
+        const std::shared_ptr<binder::Expression>& mark, LogicalPlan& probePlan,
+        LogicalPlan& buildPlan, LogicalPlan& resultPlan);
     void appendIntersect(const std::shared_ptr<binder::Expression>& intersectNodeID,
         binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
         std::vector<std::unique_ptr<LogicalPlan>>& buildPlans);

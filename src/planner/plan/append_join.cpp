@@ -21,6 +21,13 @@ void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType join
     for (auto& joinNodeID : joinNodeIDs) {
         joinConditions.emplace_back(joinNodeID, joinNodeID);
     }
+    appendHashJoin(joinConditions, joinType, mark, probePlan, buildPlan, resultPlan);
+    resultPlan.setCost(CostModel::computeHashJoinCost(joinNodeIDs, probePlan, buildPlan));
+}
+
+void Planner::appendHashJoin(const std::vector<expression_pair>& joinConditions, JoinType joinType,
+    std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
+    LogicalPlan& resultPlan) {
     auto hashJoin = make_shared<LogicalHashJoin>(joinConditions, joinType, mark,
         probePlan.getLastOperator(), buildPlan.getLastOperator());
     // Apply flattening to probe side
@@ -38,7 +45,7 @@ void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType join
     // Update cost
     hashJoin->setCardinality(cardinalityEstimator.estimateHashJoin(joinConditions,
         probePlan.getLastOperatorRef(), buildPlan.getLastOperatorRef()));
-    resultPlan.setCost(CostModel::computeHashJoinCost(joinNodeIDs, probePlan, buildPlan));
+    // TODO(Guodong): update result plan cost
     resultPlan.setLastOperator(std::move(hashJoin));
 }
 
@@ -53,11 +60,18 @@ void Planner::appendAccHashJoin(const expression_vector& joinNodeIDs, JoinType j
 }
 
 void Planner::appendMarkJoin(const expression_vector& joinNodeIDs,
-    const std::shared_ptr<Expression>& mark, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+    const std::shared_ptr<Expression>& mark, LogicalPlan& probePlan, LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
     std::vector<join_condition_t> joinConditions;
     for (auto& joinNodeID : joinNodeIDs) {
         joinConditions.emplace_back(joinNodeID, joinNodeID);
     }
+    appendMarkJoin(joinConditions, mark, probePlan, buildPlan, resultPlan);
+    resultPlan.setCost(CostModel::computeMarkJoinCost(joinNodeIDs, probePlan, buildPlan));
+}
+
+void Planner::appendMarkJoin(const std::vector<expression_pair>& joinConditions,
+    const std::shared_ptr<Expression>& mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
+    LogicalPlan& resultPlan) {
     auto hashJoin = make_shared<LogicalHashJoin>(joinConditions, JoinType::MARK, mark,
         probePlan.getLastOperator(), buildPlan.getLastOperator());
     // Apply flattening to probe side
@@ -69,8 +83,8 @@ void Planner::appendMarkJoin(const expression_vector& joinNodeIDs,
     hashJoin->computeFactorizedSchema();
     // update cost. Mark join does not change cardinality.
     hashJoin->setCardinality(probePlan.getCardinality());
-    probePlan.setCost(CostModel::computeMarkJoinCost(joinNodeIDs, probePlan, buildPlan));
-    probePlan.setLastOperator(std::move(hashJoin));
+    // TODO(Guodong): update result plan cost
+    resultPlan.setLastOperator(std::move(hashJoin));
 }
 
 void Planner::appendIntersect(const std::shared_ptr<Expression>& intersectNodeID,
