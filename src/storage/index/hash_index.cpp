@@ -495,7 +495,7 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
     if (newIndex && !inMemMode) {
         // checkpoint the creation of the index so that if we need to rollback it will be to a
         // state we can retry from (an empty index with the disk arrays initialized)
-        checkpoint(true);
+        checkpoint(true /* forceCheckpointAll */);
     }
 }
 

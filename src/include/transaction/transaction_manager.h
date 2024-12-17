@@ -32,11 +32,10 @@ public:
     std::unique_ptr<Transaction> beginTransaction(main::ClientContext& clientContext,
         TransactionType type);
 
-    void commit(main::ClientContext& clientContext, bool skipCheckpoint = false);
+    void commit(main::ClientContext& clientContext);
     void rollback(main::ClientContext& clientContext, const Transaction* transaction);
 
     void checkpoint(main::ClientContext& clientContext);
-    void autoCheckpointIfNeeded(main::ClientContext& clientContext);
 
 private:
     bool canAutoCheckpoint(const main::ClientContext& clientContext) const;

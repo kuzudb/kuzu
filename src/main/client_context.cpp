@@ -1,6 +1,7 @@
 #include "main/client_context.h"
 
 #include "binder/binder.h"
+#include "common/exception/checkpoint.h"
 #include "common/exception/connection.h"
 #include "common/exception/runtime.h"
 #include "common/random_engine.h"
@@ -497,7 +498,6 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     auto executingTimer = TimeMetric(true /* enable */);
     executingTimer.start();
     std::shared_ptr<FactorizedTable> resultFT;
-    bool autoCommitTriggered = false;
     try {
         if (preparedStatement->isTransactionStatement()) {
             resultFT =
@@ -507,21 +507,14 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
             resultFT =
                 localDatabase->queryProcessor->execute(physicalPlan.get(), executionContext.get());
             if (this->transactionContext->isAutoTransaction()) {
-                this->transactionContext->commit(true);
-                autoCommitTriggered = true;
+                this->transactionContext->commit();
             }
         }
+    } catch (CheckpointException& e) {
+        return handleFailedExecution(executionContext.get(), e);
     } catch (std::exception& e) {
         transactionContext->rollback();
-        return handleFailedExecute(executionContext.get(), e);
-    }
-
-    if (autoCommitTriggered) {
-        try {
-            this->transactionContext->autoCheckpointIfNeeded();
-        } catch (std::exception& e) {
-            return handleFailedExecute(executionContext.get(), e);
-        }
+        return handleFailedExecution(executionContext.get(), e);
     }
 
     getMemoryManager()->getBufferManager()->getSpillerOrSkip(
@@ -535,8 +528,8 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     return queryResult;
 }
 
-std::unique_ptr<QueryResult> ClientContext::handleFailedExecute(ExecutionContext* executionContext,
-    std::exception& e) {
+std::unique_ptr<QueryResult> ClientContext::handleFailedExecution(
+    ExecutionContext* executionContext, std::exception& e) {
     getMemoryManager()->getBufferManager()->getSpillerOrSkip(
         [](auto& spiller) { spiller.clearFile(); });
     progressBar->endProgress(executionContext->queryID);

@@ -2,6 +2,7 @@
 
 #include <thread>
 
+#include "common/exception/checkpoint.h"
 #include "common/exception/transaction_manager.h"
 #include "main/client_context.h"
 #include "main/db_config.h"
@@ -48,7 +49,7 @@ std::unique_ptr<Transaction> TransactionManager::beginTransaction(
     return transaction;
 }
 
-void TransactionManager::commit(main::ClientContext& clientContext, bool skipCheckpoint) {
+void TransactionManager::commit(main::ClientContext& clientContext) {
     std::unique_lock<std::mutex> lck{mtxForSerializingPublicFunctionCalls};
     clientContext.cleanUP();
     const auto transaction = clientContext.getTx();
@@ -62,26 +63,13 @@ void TransactionManager::commit(main::ClientContext& clientContext, bool skipChe
         transaction->commitTS = lastTimestamp;
         transaction->commit(&wal);
         activeWriteTransactions.erase(transaction->getID());
-        if (!skipCheckpoint &&
-            (transaction->shouldForceCheckpoint() || canAutoCheckpoint(clientContext))) {
+        if (transaction->shouldForceCheckpoint() || canAutoCheckpoint(clientContext)) {
             checkpointNoLock(clientContext);
         }
     } break;
     default: {
         throw TransactionManagerException("Invalid transaction type to commit.");
     }
-    }
-}
-
-void TransactionManager::autoCheckpointIfNeeded(main::ClientContext& clientContext) {
-    const auto* transaction = clientContext.getTx();
-    const auto transactionType = transaction->getType();
-    const bool transactionTypeCanCheckpoint =
-        (transactionType == TransactionType::WRITE || transactionType == TransactionType::RECOVERY);
-    const bool canAutoCheckpointPermitted =
-        transaction->shouldForceCheckpoint() || canAutoCheckpoint(clientContext);
-    if (canAutoCheckpointPermitted && transactionTypeCanCheckpoint) {
-        checkpoint(clientContext);
     }
 }
 
@@ -197,7 +185,7 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
             clientContext.getVFSUnsafe());
     } catch (std::exception& e) {
         rollbackCheckpoint(clientContext);
-        std::rethrow_exception(std::current_exception());
+        throw CheckpointException{e};
     }
 }
 

@@ -183,8 +183,8 @@ private:
 
     void runFuncInTransaction(const std::function<void(void)>& fun);
 
-    std::unique_ptr<QueryResult> handleFailedExecute(processor::ExecutionContext* executionContext,
-        std::exception& e);
+    std::unique_ptr<QueryResult> handleFailedExecution(
+        processor::ExecutionContext* executionContext, std::exception& e);
 
     // Client side configurable settings.
     ClientConfig clientConfig;
