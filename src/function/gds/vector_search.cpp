@@ -666,19 +666,26 @@ namespace kuzu {
                         return;
                     }
 
-                    if (selectivity > 0.4) {
+                    if (selectivity > 0.3) {
                         filteredSearch(context, query, nodeTableId, graph, dc.get(), quantizedDc.get(), filterMask, *state.get(),
                                        entrypoint,
                                        entrypointDist, results, visited.get(), header, efSearch);
-                    } else {
-                        printf("doing dynamic two hop search\n");
+                    }
+//                    else if (selectivity <= 0.3 && selectivity >= 0.1) {
+//                        printf("doing dynamic two hop search\n");
 //                        dynamicTwoHopFilteredSearch(context, query, nodeTableId, filterMaxK, graph, dc.get(),
 //                                                    quantizedDc.get(),
 //                                                    filterMask, *state.get(), entrypoint, entrypointDist, results,
 //                                                    visited.get(), header, efSearch);
-                        twoHopFilteredSearch(context, query, nodeTableId, graph, dc.get(), quantizedDc.get(),
-                                             filterMask, *state.get(), entrypoint, entrypointDist, results,
-                                             visited.get(), header, efSearch);
+//                    }
+                    else {
+                        dynamicTwoHopFilteredSearch(context, query, nodeTableId, filterMaxK, graph, dc.get(),
+                                                    quantizedDc.get(),
+                                                    filterMask, *state.get(), entrypoint, entrypointDist, results,
+                                                    visited.get(), header, efSearch);
+//                        twoHopFilteredSearch(context, query, nodeTableId, graph, dc.get(), quantizedDc.get(),
+//                                             filterMask, *state.get(), entrypoint, entrypointDist, results,
+//                                             visited.get(), header, efSearch);
                     }
                 } else {
                     unfilteredSearch(context, query, nodeTableId, graph, dc.get(), quantizedDc.get(), *state.get(), entrypoint,
