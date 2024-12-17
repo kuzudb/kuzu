@@ -207,11 +207,6 @@ static ZoneMapCheckResult getZoneMapResult(const Transaction* transaction,
             KU_ASSERT(i < scanState.columnPredicateSets.size());
             const auto columnZoneMapResult = scanState.columnPredicateSets[i].checkZoneMap(
                 chunks[columnID]->getMergedColumnChunkStats(transaction));
-            RUNTIME_CHECK(const bool columnHasStorageValueType =
-                              TypeUtils::visit(chunks[columnID]->getDataType().getPhysicalType(),
-                                  []<typename T>(T) { return StorageValueType<T>; }));
-            KU_ASSERT(columnHasStorageValueType ||
-                      columnZoneMapResult == common::ZoneMapCheckResult::ALWAYS_SCAN);
             if (columnZoneMapResult == common::ZoneMapCheckResult::SKIP_SCAN) {
                 return common::ZoneMapCheckResult::SKIP_SCAN;
             }

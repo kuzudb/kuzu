@@ -197,7 +197,12 @@ static void updateInMemoryStats(ColumnChunkStats& stats, const ColumnChunkData* 
 MergedColumnChunkStats ColumnChunkData::getMergedColumnChunkStats() const {
     const CompressionMetadata& onDiskMetadata = metadata.compMeta;
     ColumnChunkStats stats = inMemoryStats;
-    stats.update(onDiskMetadata.min, onDiskMetadata.max, getDataType().getPhysicalType());
+    const auto physicalType = getDataType().getPhysicalType();
+    const bool isStorageValueType =
+        common::TypeUtils::visit(physicalType, []<typename T>(T) { return StorageValueType<T>; });
+    if (isStorageValueType) {
+        stats.update(onDiskMetadata.min, onDiskMetadata.max, physicalType);
+    }
     return MergedColumnChunkStats{stats, nullData && (nullData->mayHaveNullOnDisk())};
 }
 
