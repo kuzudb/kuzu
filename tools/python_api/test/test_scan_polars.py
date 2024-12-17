@@ -56,9 +56,8 @@ def test_polars_error(conn_db_readonly: ConnDB) -> None:
         conn.execute("LOAD FROM df RETURN *;")
 
 
-def test_polars_scan_ignore_errors(tmp_path: Path) -> None:
-    db = kuzu.Database(tmp_path)
-    conn = kuzu.Connection(db)
+def test_polars_scan_ignore_errors(conn_db_readwrite: ConnDB) -> None:
+    conn, db = conn_db_readwrite
     df = pl.DataFrame({"id": [1, 2, 3, 1]})
     conn.execute("CREATE NODE TABLE person(id INT64, PRIMARY KEY(id))")
     conn.execute("COPY person FROM df(IGNORE_ERRORS=true)")
