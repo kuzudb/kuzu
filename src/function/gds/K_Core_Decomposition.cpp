@@ -19,7 +19,7 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-class KUZU_API KCoreFrontierPair : public FrontierPair {
+class KCoreFrontierPair : public FrontierPair {
 public:
     KCoreFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
         std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreads,
@@ -34,7 +34,7 @@ public:
         }
     }
 
-    void initRJFromSource(common::nodeID_t /* source */) override { setActiveNodesForNextIter(); };
+    void initRJFromSource(common::nodeID_t /* source */) override {};
 
     void pinCurrFrontier(common::table_id_t tableID) override {
         FrontierPair::pinCurrFrontier(tableID);
@@ -62,56 +62,32 @@ public:
         nextDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();
     }
 
-    uint64_t addToVertexDegree(common::nodeID_t nodeID, uint64_t degreeToAdd) {
-        return curVertexValues.getData(nodeID.tableID)[nodeID.offset].fetch_add(degreeToAdd,
-            std::memory_order_relaxed);
+    uint64_t addToVertexDegree(common::offset_t offset, uint64_t degreeToAdd) {
+        return vertexValues[offset].fetch_add(degreeToAdd, std::memory_order_relaxed);
     }
 
-    uint64_t removeFromVertex(common::nodeID_t nodeID) {
+    // Called to remove degrees from a neighbouring vertex
+    // Returns whether the neighbouring vertex should be set as active or not
+    bool removeFromVertex(common::nodeID_t nodeID) {
         int curSmallest = curSmallestDegree.load(std::memory_order_relaxed);
         int curVertexDegree =
             curVertexValues.getData(nodeID.tableID)[nodeID.offset].load(std::memory_order_relaxed);
+        // The vertex should be set as active if it will be considered in a future iteration
+        // The vertex should be set as inactive if it will be processed this iteration
         if (curVertexDegree > curSmallest) {
-            return curVertexValues.getData(nodeID.tableID)[nodeID.offset].fetch_sub(1,
-                std::memory_order_relaxed);
+            curVertexValues.getData(nodeID.tableID)[nodeID.offset].fetch_sub(1, std::memory_order_relaxed);
+            return true;
         }
-        return curVertexDegree;
+        else {
+            return false;
+        }
     }
 
-    void updateSmallestDegree(bool dontCheckOffset = false) {
-        if (updateDegreeFlag) {
-            updateDegreeFlag = false;
-            return;
-        }
-        uint64_t curSmallest = UINT64_MAX;
-        for (const auto& [tableID, curNumNodes] : numNodesMap) {
-            curDenseFrontier->pinTableID(tableID);
-            for (uint64_t offset = 0; offset < curNumNodes; ++offset) {
-                if (dontCheckOffset || curDenseFrontier->isActive(offset)) {
-                    curSmallest = std::min(curSmallest,
-                        curVertexValues.getData(tableID)[offset].load(std::memory_order_relaxed));
-                }
-            }
-        }
-        uint64_t current = curSmallestDegree.load(std::memory_order_relaxed);
-        curSmallestDegree.compare_exchange_strong(current, curSmallest, std::memory_order_relaxed);
-    }
-
-    void setAllActive() {
-        for (const auto& [tableID, curNumNodes] : numNodesMap) {
-            curDenseFrontier->pinTableID(tableID);
-            for (uint64_t offset = 0; offset < curNumNodes; ++offset) {
-                common::nodeID_t nodeID;
-                nodeID.tableID = tableID;
-                nodeID.offset = offset;
-                curDenseFrontier->setActive(nodeID);
-            }
-        }
+    void updateSmallestDegree() {
+        curSmallestDegree.fetch_add(1, std::memory_order_relaxed);
     }
 
     uint64_t getSmallestDegree() { return curSmallestDegree.load(std::memory_order_relaxed); }
-
-    void setUpdateFlag() { updateDegreeFlag = true; }
 
     bool isNodeActive(common::nodeID_t nodeID) const {
         return curDenseFrontier->isActive(nodeID.offset);
@@ -122,7 +98,7 @@ public:
     }
 
 private:
-    bool updateDegreeFlag = false;
+    bool updated = false;
     std::atomic<uint64_t> curSmallestDegree{UINT64_MAX};
     common::table_id_map_t<common::offset_t> numNodesMap;
     std::atomic<uint64_t>* vertexValues = nullptr;
@@ -161,11 +137,13 @@ struct KCoreEdgeCompute : public EdgeCompute {
         std::vector<common::nodeID_t> result;
         uint64_t vertexDegree = frontierPair->getVertexValue(boundNodeID.offset);
         uint64_t smallestDegree = frontierPair->getSmallestDegree();
-        if (frontierPair->isNodeActive(boundNodeID) && (vertexDegree == smallestDegree)) {
+        if (vertexDegree <= smallestDegree) {
             chunk.forEach([&](auto nbrNodeID, auto) {
                 if (frontierPair->isNodeActive(nbrNodeID)) {
-                    frontierPair->removeFromVertex(nbrNodeID);
-                    result.push_back(nbrNodeID);
+                    bool shouldSetActive = frontierPair->removeFromVertex(nbrNodeID);
+                    if (shouldSetActive) {
+                        result.push_back(nbrNodeID);
+                    }
                 }
             });
         }
