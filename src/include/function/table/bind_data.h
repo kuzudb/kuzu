@@ -1,5 +1,6 @@
 #pragma once
 
+#include "binder/expression/node_expression.h"
 #include "common/copier_config/reader_config.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
@@ -41,6 +42,9 @@ struct TableFuncBindData {
     const std::vector<storage::ColumnPredicateSet>& getColumnPredicates() const {
         return columnPredicates;
     }
+
+    bool hasOutputNode() const { return getOutputNode() != nullptr; }
+    virtual std::shared_ptr<binder::NodeExpression> getOutputNode() const { return nullptr; }
 
     virtual std::unique_ptr<TableFuncBindData> copy() const = 0;
 
