@@ -39,7 +39,8 @@ static std::string generateQueryOptions(const TableFuncBindInput* input,
 std::unique_ptr<TableFuncBindData> bindFuncHelper(main::ClientContext* context,
     TableFuncBindInput* input, const std::string& functionName) {
     auto connector = std::make_shared<IcebergConnector>();
-    connector->connect("" /* inMemDB */, "" /* defaultCatalogName */, context);
+    connector->connect("" /* inMemDB */, "" /* defaultCatalogName */, "" /* defaultSchemaName */,
+        context);
 
     std::string query_options = generateQueryOptions(input, functionName);
     std::string query = common::stringFormat("SELECT * FROM {}('{}'{})", functionName,
