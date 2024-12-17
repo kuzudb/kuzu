@@ -57,10 +57,10 @@ def test_polars_error(conn_db_readonly: ConnDB) -> None:
 def test_polars_scan_ignore_errors(conn_db_readwrite: ConnDB) -> None:
     conn, db = conn_db_readwrite
     df = pl.DataFrame({"id": [1, 2, 3, 1]})
-    conn.execute("CREATE NODE TABLE person(id INT64, PRIMARY KEY(id))")
-    conn.execute("COPY person FROM df(IGNORE_ERRORS=true)")
+    conn.execute("CREATE NODE TABLE ids(id INT64, PRIMARY KEY(id))")
+    conn.execute("COPY ids FROM df(IGNORE_ERRORS=true)")
 
-    people = conn.execute("MATCH (p:person) RETURN p.id")
+    people = conn.execute("MATCH (i:ids) RETURN i.id")
     assert people.get_next() == [1]
     assert people.get_next() == [2]
     assert people.get_next() == [3]
