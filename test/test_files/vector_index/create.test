@@ -8,7 +8,7 @@
 -STATEMENT MATCH (e:embeddings) WHERE e.chunk_id < 10 RETURN e.chunk_id LIMIT 1;
 ---- 1
 10000
--STATEMENT CREATE VECTOR INDEX ON embeddings.embedding (samplingProbability=0.05, alpha=1.1, numVectorsPerPartition=50000000, efConstruction=200, maxNbrsAtUpperLevel=32, maxNbrsAtLowerLevel=64);
+-STATEMENT CREATE VECTOR INDEX ON embeddings.embedding (samplingProbability=0.05, alpha=1.0, numVectorsPerPartition=50000000, efConstruction=200, maxNbrsAtUpperLevel=32, maxNbrsAtLowerLevel=64);
 ---- ok
 -STATEMENT UPDATE VECTOR INDEX ON embeddings.embedding;
 ---- 1
