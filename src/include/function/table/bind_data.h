@@ -4,6 +4,7 @@
 #include "common/types/types.h"
 #include "main/client_context.h"
 #include "storage/predicate/column_predicate.h"
+#include "binder/expression/node_expression.h"
 
 namespace kuzu {
 namespace common {
@@ -40,6 +41,11 @@ struct TableFuncBindData {
     }
     const std::vector<storage::ColumnPredicateSet>& getColumnPredicates() const {
         return columnPredicates;
+    }
+
+    bool hasOutputNode() const { return getOutputNode() != nullptr; }
+    virtual std::shared_ptr<binder::NodeExpression> getOutputNode() const {
+        return nullptr;
     }
 
     virtual std::unique_ptr<TableFuncBindData> copy() const = 0;

@@ -26,17 +26,22 @@ struct QueryFTSBindData final : public FTSBindData {
     std::shared_ptr<binder::Expression> query;
     const FTSIndexCatalogEntry& entry;
     QueryFTSConfig config;
+    std::shared_ptr<binder::NodeExpression> outputNode;
 
     QueryFTSBindData(std::string tableName, common::table_id_t tableID, std::string indexName,
         std::shared_ptr<binder::Expression> query, const FTSIndexCatalogEntry& entry,
-        binder::expression_vector columns, QueryFTSConfig config)
+        binder::expression_vector columns, QueryFTSConfig config, std::shared_ptr<binder::NodeExpression> outputNode)
         : FTSBindData{std::move(tableName), tableID, std::move(indexName), columns},
-          query{std::move(query)}, entry{entry}, config{std::move(config)} {}
+          query{std::move(query)}, entry{entry}, config{std::move(config)}, outputNode{outputNode} {}
 
     std::string getQuery() const;
 
+    std::shared_ptr<binder::NodeExpression> getOutputNode() const override {
+        return outputNode;
+    }
+
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<QueryFTSBindData>(*this);
+        return std::make_unique<QueryFTSBindData>(tableName, tableID, indexName, query, entry, columns, config, outputNode);
     }
 };
 
@@ -62,8 +67,6 @@ struct QueryFTSLocalState : public TableFuncLocalState {
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     TableFuncBindInput* input) {
-    std::vector<std::string> columnNames;
-    std::vector<LogicalType> columnTypes;
     // For queryFTS, the table and index name must be given at compile time while the user
     // can give the query at runtime.
     auto indexName = binder::ExpressionUtil::getLiteralValue<std::string>(*input->getParam(1));
@@ -74,15 +77,16 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     FTSUtils::validateIndexExistence(*context, tableEntry.getTableID(), indexName);
     auto ftsCatalogEntry =
         context->getCatalog()->getIndex(context->getTx(), tableEntry.getTableID(), indexName);
-    columnTypes.push_back(common::StructType::getNodeType(tableEntry));
-    columnNames.push_back("node");
-    columnTypes.push_back(LogicalType::DOUBLE());
-    columnNames.push_back("score");
-    auto columns = input->binder->createVariables(columnNames, columnTypes);
+    auto outputNodeName = "node";
+    auto outputNode = input->binder->createQueryNode(outputNodeName, {&tableEntry});
+    input->binder->addToScope(outputNodeName, outputNode);
+    binder::expression_vector columns;
+    columns.push_back(outputNode->getInternalID());
+    columns.push_back(input->binder->createVariable("score", LogicalType::DOUBLE()));
     QueryFTSConfig config{input->optionalParams};
     return std::make_unique<QueryFTSBindData>(tableEntry.getName(), tableEntry.getTableID(),
         std::move(indexName), std::move(query), ftsCatalogEntry->constCast<FTSIndexCatalogEntry>(),
-        columns, std::move(config));
+        columns, std::move(config), outputNode);
 }
 
 static std::unique_ptr<QueryResult> runQuery(main::ClientContext* context, std::string query) {
@@ -120,7 +124,7 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
             "MATCH (a:`{}`) "
             "WHERE list_contains(keywords, a.term) "
             "CALL QFTS(PK, a, {}, {}, cast({} as UINT64), {}, cast({} as UINT64), {}, '{}') "
-            "RETURN _node AS p, score",
+            "RETURN id(_node), score",
             actualQuery, bindData.entry.getFTSConfig().stemmer, bindData.getTermsTableName(),
             bindData.config.k, bindData.config.b, numDocs, avgDocLen, numTermsInQuery,
             bindData.config.isConjunctive ? "true" : "false", bindData.tableName);
@@ -146,7 +150,6 @@ std::unique_ptr<TableFuncLocalState> initLocalState(
 
 function_set QueryFTSFunction::getFunctionSet() {
     function_set functionSet;
-
     auto func =
         std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState, initLocalState,
             std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,

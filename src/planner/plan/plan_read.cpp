@@ -118,13 +118,28 @@ void Planner::planTableFunctionCall(const BoundReadingClause& readingClause,
     splitPredicates(call.getColumns(), call.getConjunctivePredicates(), predicatesToPull,
         predicatesToPush);
     for (auto& plan : plans) {
-
         auto op = getTableFunctionCall(readingClause);
-
-        planReadOp(getTableFunctionCall(readingClause), predicatesToPush, *plan);
+        planReadOp(op, predicatesToPush, *plan);
         if (!predicatesToPull.empty()) {
             appendFilters(predicatesToPull, *plan);
         }
+    }
+    if (!call.getBindData()->hasOutputNode()) {
+        return;
+    }
+    auto& outputNode = *call.getBindData()->getOutputNode();
+    auto properties = getProperties(outputNode);
+    if (properties.empty()) {
+        return;
+    }
+    auto scanPlan = LogicalPlan();
+    cardinalityEstimator.addNodeIDDomAndStats(clientContext->getTx(), *outputNode.getInternalID(),
+        outputNode.getTableIDs());
+    appendScanNodeTable(outputNode.getInternalID(), outputNode.getTableIDs(), properties, scanPlan);
+    expression_vector joinConditions;
+    joinConditions.push_back(outputNode.getInternalID());
+    for (auto& plan : plans) {
+        appendHashJoin(joinConditions, JoinType::INNER, *plan, scanPlan, *plan);
     }
 }
 
@@ -143,7 +158,6 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
         for (auto& plan : plans) {
             auto probePlan = LogicalPlan();
             auto gdsCall = getGDSCall(call.getInfo());
-            gdsCall->computeFactorizedSchema();
             probePlan.setLastOperator(gdsCall);
             if (gdsCall->constPtrCast<LogicalGDSCall>()->getInfo().func.name == "QFTS") {
                 auto op = plan->getLastOperator()->getChild(0)->getChild(0)->getChild(1);
@@ -209,7 +223,6 @@ void Planner::planLoadFrom(const BoundReadingClause& readingClause,
 
 void Planner::planReadOp(std::shared_ptr<LogicalOperator> op, const expression_vector& predicates,
     LogicalPlan& plan) {
-    op->computeFactorizedSchema();
     if (!plan.isEmpty()) {
         auto tmpPlan = LogicalPlan();
         tmpPlan.setLastOperator(std::move(op));

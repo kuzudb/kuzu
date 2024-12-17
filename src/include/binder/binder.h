@@ -258,7 +258,7 @@ public:
     std::shared_ptr<NodeExpression> bindQueryNode(const parser::NodePattern& nodePattern,
         QueryGraph& queryGraph);
     std::shared_ptr<NodeExpression> createQueryNode(const parser::NodePattern& nodePattern);
-    std::shared_ptr<NodeExpression> createQueryNode(const std::string& parsedName,
+    KUZU_API std::shared_ptr<NodeExpression> createQueryNode(const std::string& parsedName,
         const std::vector<catalog::TableCatalogEntry*>& entries);
     void bindQueryNodeProperties(NodeExpression& node);
 
@@ -296,7 +296,7 @@ public:
     static bool reservedInPropertyLookup(const std::string& name);
 
     void addToScope(const std::vector<std::string>& names, const expression_vector& exprs);
-    void addToScope(const std::string& name, std::shared_ptr<Expression> expr);
+    KUZU_API void addToScope(const std::string& name, std::shared_ptr<Expression> expr);
     BinderScope saveScope();
     void restoreScope(BinderScope prevScope);
 
