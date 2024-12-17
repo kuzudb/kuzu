@@ -20,7 +20,8 @@ namespace kuzu {
 namespace function {
 
 class KCoreFrontierPair : public FrontierPair {
-friend class KCoreEdgeCompute;
+    friend class KCoreEdgeCompute;
+
 public:
     KCoreFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
         std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreads,
