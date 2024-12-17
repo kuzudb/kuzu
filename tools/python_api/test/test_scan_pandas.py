@@ -417,15 +417,13 @@ def test_copy_from_pandas_date(tmp_path: Path) -> None:
 def test_scan_string_to_nested(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
-    df = pd.DataFrame(
-        {
-            "id": ["1"],
-            "lstcol": ["[1,2,3]"],
-            "mapcol": ["{'a'=1,'b'=2}"],
-            "structcol": ["{a:1,b:2}"],
-            "lstlstcol": ["[[],[1,2,3],[4,5,6]]"],
-        }
-    )
+    df = pd.DataFrame({
+        "id": ["1"],
+        "lstcol": ["[1,2,3]"],
+        "mapcol": ["{'a'=1,'b'=2}"],
+        "structcol": ["{a:1,b:2}"],
+        "lstlstcol": ["[[],[1,2,3],[4,5,6]]"],
+    })
     conn.execute(
         "CREATE NODE TABLE tab(id INT64, lstcol INT64[], mapcol MAP(STRING, INT64), structcol STRUCT(a INT64, b INT64), lstlstcol INT64[][], PRIMARY KEY(id))"
     )

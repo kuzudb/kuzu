@@ -44,9 +44,7 @@ def test_polars_basic(conn_db_readwrite: ConnDB) -> None:
 
 def test_polars_error(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly
-    with pytest.raises(
-        RuntimeError, match="Binder exception: Variable df is not in scope."
-    ):
+    with pytest.raises(RuntimeError, match="Binder exception: Variable df is not in scope."):
         conn.execute("LOAD FROM df RETURN *;")
     df = []
     with pytest.raises(
