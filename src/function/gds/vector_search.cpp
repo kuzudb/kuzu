@@ -526,6 +526,11 @@ namespace kuzu {
                     totalGetNbrs++;
                     std::priority_queue<NodeDistFarther> nbrsToExplore;
 
+                    // Try prefetching
+                    for (auto &neighbor: firstHopNbrs) {
+                        filterMask->prefetchMaskValue(neighbor.offset);
+                    }
+
                     // First hop neighbours
                     int filteredCount = 0;
                     for (auto &neighbor: firstHopNbrs) {
@@ -576,6 +581,12 @@ namespace kuzu {
                         int secondHopFilteredNbrCount = 0;
                         auto secondHopNbrs = graph->scanFwdRandom({neighbor.id, tableId}, state);
                         totalGetNbrs++;
+
+                        // Try prefetching
+                        for (auto &secondHopNeighbor: secondHopNbrs) {
+                            filterMask->prefetchMaskValue(secondHopNeighbor.offset);
+                        }
+
                         for (auto &secondHopNeighbor: secondHopNbrs) {
                             auto isNeighborMasked = filterMask->isMasked(secondHopNeighbor.offset);
                             if (isNeighborMasked) {

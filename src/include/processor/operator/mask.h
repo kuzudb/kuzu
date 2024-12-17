@@ -7,6 +7,10 @@
 #include "common/constants.h"
 #include "common/types/internal_id_t.h"
 
+#ifdef __AVX__
+#include <immintrin.h>
+#endif
+
 namespace kuzu {
 namespace processor {
 
@@ -39,6 +43,11 @@ struct MaskData {
     inline bool isMasked(uint64_t pos, uint8_t trueMaskVal) const {
         return data[pos] == trueMaskVal;
     }
+    inline void prefetchMaskValue(common::offset_t pos) {
+#ifdef __AVX__
+        _mm_prefetch((const char*)(data + pos), _MM_HINT_T2);
+#endif
+    }
     inline uint8_t getMaskValue(uint64_t pos) const { return data[pos]; }
     inline uint64_t getSize() const { return size; }
     inline uint64_t getNumMaskedNodes() const { return numMaskedNodes; }
@@ -67,7 +76,11 @@ public:
         maskData = std::make_unique<MaskData>(maxOffset + 1);
     }
 
-    bool isMasked(common::offset_t offset) { return maskData->isMasked(offset, numMasks); }
+    inline bool isMasked(common::offset_t offset) { return maskData->isMasked(offset, numMasks); }
+
+    inline void prefetchMaskValue(common::offset_t offset) {
+        maskData->prefetchMaskValue(offset);
+    }
     // Increment mask value for the given nodeOffset if its current mask value is equal to
     // the specified `currentMaskValue`.
     // Note: blindly update mask does not parallelize well, so we minimize write by first checking
@@ -134,8 +147,12 @@ public:
         maskCollection.incrementMaskValue(nodeOffset, currentMaskValue);
     }
 
-    bool isMasked(common::offset_t nodeOffset) override {
+    inline bool isMasked(common::offset_t nodeOffset) override {
         return maskCollection.isMasked(nodeOffset);
+    }
+
+    inline void prefetchMaskValue(common::offset_t nodeOffset) {
+        maskCollection.prefetchMaskValue(nodeOffset);
     }
 };
 
