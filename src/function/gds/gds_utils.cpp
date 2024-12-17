@@ -1,7 +1,5 @@
 #include "function/gds/gds_utils.h"
 
-#include <optional>
-
 #include "common/task_system/task_scheduler.h"
 #include "function/gds/gds_task.h"
 #include "graph/graph.h"
