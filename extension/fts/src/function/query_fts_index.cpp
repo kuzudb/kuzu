@@ -30,18 +30,19 @@ struct QueryFTSBindData final : public FTSBindData {
 
     QueryFTSBindData(std::string tableName, common::table_id_t tableID, std::string indexName,
         std::shared_ptr<binder::Expression> query, const FTSIndexCatalogEntry& entry,
-        binder::expression_vector columns, QueryFTSConfig config, std::shared_ptr<binder::NodeExpression> outputNode)
+        binder::expression_vector columns, QueryFTSConfig config,
+        std::shared_ptr<binder::NodeExpression> outputNode)
         : FTSBindData{std::move(tableName), tableID, std::move(indexName), columns},
-          query{std::move(query)}, entry{entry}, config{std::move(config)}, outputNode{outputNode} {}
+          query{std::move(query)}, entry{entry}, config{std::move(config)}, outputNode{outputNode} {
+    }
 
     std::string getQuery() const;
 
-    std::shared_ptr<binder::NodeExpression> getOutputNode() const override {
-        return outputNode;
-    }
+    std::shared_ptr<binder::NodeExpression> getOutputNode() const override { return outputNode; }
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<QueryFTSBindData>(tableName, tableID, indexName, query, entry, columns, config, outputNode);
+        return std::make_unique<QueryFTSBindData>(tableName, tableID, indexName, query, entry,
+            columns, config, outputNode);
     }
 };
 
