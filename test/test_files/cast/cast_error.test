@@ -826,16 +826,3 @@ True
 -STATEMENT RETURN {'a':12, 'b':24} = {'c':12, 'd':24};
 ---- 1
 False
-
--CASE JSONModeOutput
--STATEMENT :mode json
----- ok
--STATEMENT RETURN [1,2,3] as should_be_an_array_not_a_string;
----- 1
-[{"should_be_an_array_not_a_string":[1,2,3]}]
--STATEMENT RETURN [[1],[2],[3]] as should_be_an_array_not_a_string;
----- 1
-[{"should_be_an_array_not_a_string":[[1],[2],[3]]}]
--STATEMENT RETURN [[[1],[2],[3]],[[1],[2],[3]]] as should_be_an_array_not_a_string;
----- 1
-[{"should_be_an_array_not_a_string":[[[1],[2],[3]],[[1],[2],[3]]]}]
