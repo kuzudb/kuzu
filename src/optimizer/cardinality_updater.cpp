@@ -2,6 +2,7 @@
 
 #include "planner/join_order/cardinality_estimator.h"
 #include "planner/operator/extend/logical_extend.h"
+#include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_aggregate.h"
 #include "planner/operator/logical_filter.h"
 #include "planner/operator/logical_flatten.h"
@@ -19,6 +20,8 @@ void CardinalityUpdater::visitOperator(planner::LogicalOperator* op) {
     for (auto i = 0u; i < op->getNumChildren(); ++i) {
         visitOperator(op->getChild(i).get());
     }
+    // we need to recompute the cardinality multipliers for each factorized group
+    op->computeFactorizedSchema();
     visitOperatorSwitchWithDefault(op);
 }
 
@@ -30,6 +33,10 @@ void CardinalityUpdater::visitOperatorSwitchWithDefault(planner::LogicalOperator
     }
     case planner::LogicalOperatorType::EXTEND: {
         visitExtend(op);
+        break;
+    }
+    case planner::LogicalOperatorType::RECURSIVE_EXTEND: {
+        visitRecursiveExtend(op);
         break;
     }
     case planner::LogicalOperatorType::HASH_JOIN: {
@@ -83,6 +90,18 @@ void CardinalityUpdater::visitExtend(planner::LogicalOperator* op) {
     const auto extensionRate = cardinalityEstimator.getExtensionRate(*extend.getRel(),
         *extend.getBoundNode(), transaction);
     extend.setCardinality(cardinalityEstimator.estimateExtend(extensionRate, *op->getChild(0)));
+    auto group = extend.getSchema()->getGroup(extend.getNbrNode()->getInternalID());
+    group->setMultiplier(extensionRate);
+}
+
+void CardinalityUpdater::visitRecursiveExtend(planner::LogicalOperator* op) {
+    KU_ASSERT(transaction);
+    auto& extend = op->cast<planner::LogicalRecursiveExtend&>();
+    const auto extensionRate = cardinalityEstimator.getExtensionRate(*extend.getRel(),
+        *extend.getBoundNode(), transaction);
+    extend.setCardinality(cardinalityEstimator.estimateExtend(extensionRate, *op->getChild(0)));
+    auto group = extend.getSchema()->getGroup(extend.getNbrNode()->getInternalID());
+    group->setMultiplier(extensionRate);
 }
 
 void CardinalityUpdater::visitHashJoin(planner::LogicalOperator* op) {
