@@ -310,12 +310,7 @@ TEST_F(CopyTest, NodeInsertBMExceptionDuringCheckpointRecovery) {
                 return conn->query(common::stringFormat(
                     "UNWIND RANGE(1,{}) AS i CREATE (a:account {ID:i})", numValues));
             },
-        .earlyExitOnFailureFunc =
-            [this](main::QueryResult*) {
-                // make sure the checkpoint when closing the DB doesn't fail
-                failureFrequency = UINT64_MAX;
-                return true;
-            },
+        .earlyExitOnFailureFunc = [](main::QueryResult*) { return true; },
         .checkFunc =
             [](main::Connection* conn) { return conn->query("MATCH (a:account) RETURN COUNT(*)"); },
         .checkResult = numValues};

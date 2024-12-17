@@ -5,9 +5,6 @@
 #include "transaction.h"
 
 namespace kuzu {
-namespace common {
-struct UniqLock;
-}
 
 namespace main {
 class ClientContext;
@@ -46,8 +43,7 @@ public:
     void beginRecoveryTransaction();
     void validateManualTransaction(bool readOnlyStatement) const;
 
-    void commit(bool skipCheckpoint = false);
-    void autoCheckpointIfNeeded();
+    void commit();
     void rollback();
 
     TransactionMode getTransactionMode() const { return mode; }
