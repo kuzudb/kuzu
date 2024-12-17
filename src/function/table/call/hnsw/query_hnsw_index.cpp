@@ -1,3 +1,8 @@
+#include <iostream>
+
+#include "binder/binder.h"
+#include "binder/expression/literal_expression.h"
+#include "binder/expression/parameter_expression.h"
 #include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
 #include "common/types/value/nested.h"
 #include "function/table/hnsw/hnsw_index_functions.h"
@@ -7,18 +12,47 @@
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
-#include <binder/binder.h>
-#include <binder/expression/literal_expression.h>
 
 namespace kuzu {
 namespace function {
+
+template<typename T>
+static std::vector<float> getLiteralVal(const common::Value& val) {
+    std::vector<float> queryVector;
+    KU_ASSERT(val.getChildrenSize() > 0);
+    queryVector.resize(val.getChildrenSize());
+    for (auto i = 0u; i < queryVector.size(); i++) {
+        queryVector[i] = common::NestedVal::getChildVal(&val, i)->getValue<T>();
+    }
+    // for (auto i = 0u; i < queryVector.size(); i++) {
+    // std::cout << queryVector[i] << " ";
+    // }
+    return queryVector;
+}
+
+std::vector<float> convertQueryVector(const binder::Expression& queryExpr) {
+    auto queryVal = common::Value::createNullValue(queryExpr.dataType);
+    switch (queryExpr.expressionType) {
+    case common::ExpressionType::LITERAL: {
+        queryVal = queryExpr.constCast<binder::LiteralExpression>().getValue();
+        return getLiteralVal<float>(queryVal);
+    }
+    case common::ExpressionType::PARAMETER: {
+        queryVal = queryExpr.constCast<binder::ParameterExpression>().getValue();
+        return getLiteralVal<double>(queryVal);
+    }
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+}
 
 // NOLINTNEXTLINE(readability-non-const-parameter)
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     TableFuncBindInput* input) {
     const auto indexName = input->getLiteralVal<std::string>(0);
     const auto tableName = input->getLiteralVal<std::string>(1);
-    const auto& queryVal = input->params[2]->constCast<binder::LiteralExpression>().getValue();
+    const auto& query = input->params[2];
     const auto k = input->getLiteralVal<int64_t>(3);
 
     const auto catalog = context->getCatalog();
@@ -27,16 +61,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         catalog->getIndex(context->getTx(), nodeTableEntry->getTableID(), indexName));
     auto& indexColumnType = nodeTableEntry->getProperty(indexEntry->getIndexColumnName()).getType();
     KU_ASSERT(indexColumnType.getLogicalTypeID() == common::LogicalTypeID::ARRAY);
-    const auto dimension =
-        indexColumnType.getExtraTypeInfo()->constPtrCast<common::ArrayTypeInfo>()->getNumElements();
-    storage::HNSWIndexUtils::validateQueryVector(queryVal.getDataType(), dimension);
-
-    std::vector<float> queryVector;
-    KU_ASSERT(queryVal.getChildrenSize() > 0);
-    queryVector.resize(queryVal.getChildrenSize());
-    for (auto i = 0u; i < queryVector.size(); i++) {
-        queryVector[i] = common::NestedVal::getChildVal(&queryVal, i)->getValue<float>();
-    }
+    auto queryVector = convertQueryVector(*query);
 
     const auto storageManager = context->getStorageManager();
     auto& nodeTable =

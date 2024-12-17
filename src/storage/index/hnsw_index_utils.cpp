@@ -46,9 +46,28 @@ void HNSWIndexUtils::validateTableAndColumnType(const catalog::TableCatalogEntry
 }
 
 void HNSWIndexUtils::validateQueryVector(const common::LogicalType& type, uint64_t dimension) {
-    validateColumnType(type);
-    if (type.getExtraTypeInfo()->constPtrCast<common::ArrayTypeInfo>()->getNumElements() !=
-        dimension) {
+    common::PhysicalTypeID childType;
+    uint64_t numChildElements;
+    switch (type.getPhysicalType()) {
+    case common::PhysicalTypeID::ARRAY: {
+        const auto typeInfo = type.getExtraTypeInfo()->constPtrCast<common::ArrayTypeInfo>();
+        childType = typeInfo->getChildType().getPhysicalType();
+        numChildElements = typeInfo->getNumElements();
+    } break;
+    case common::PhysicalTypeID::LIST: {
+        const auto typeInfo = type.getExtraTypeInfo()->constPtrCast<common::ListTypeInfo>();
+        childType = typeInfo->getChildType().getPhysicalType();
+        // For LIST type, numChildElements is not known until runtime.
+        numChildElements = dimension;
+    } break;
+    default: {
+        throw common::BinderException("Query vector must be of ARRAY/LIST type.");
+    }
+    }
+    if (childType != common::PhysicalTypeID::FLOAT && childType != common::PhysicalTypeID::DOUBLE) {
+        throw common::BinderException("Query vector's child type must be FLOAT/DOUBLE.");
+    }
+    if (numChildElements != dimension) {
         throw common::BinderException("Query vector dimension does not match index dimension.");
     }
 }
