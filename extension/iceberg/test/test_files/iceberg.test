@@ -131,3 +131,12 @@ lineitem_iceberg/metadata/cf3d0be5-cf70-453d-ad8f-48fdc412e608-m0.avro|1|DATA|AD
 3|8|1996-01-29|TAKE BACK RETURN
 4|28|1996-04-21|NONE
 5|24|1996-03-30|NONE
+
+-LOG metadata_alter_name
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg_alter_name' (file_format='iceberg', allow_moved_paths=true, version_name_format = 'rev-%s.metadata.json%s' ) RETURN l_linenumber, l_quantity, l_shipdate, l_shipinstruct LIMIT 5;
+---- 5
+1|17|1996-03-13|DELIVER IN PERSON
+2|36|1996-04-12|TAKE BACK RETURN
+3|8|1996-01-29|TAKE BACK RETURN
+4|28|1996-04-21|NONE
+5|24|1996-03-30|NONE
