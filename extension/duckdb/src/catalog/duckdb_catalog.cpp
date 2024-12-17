@@ -55,6 +55,19 @@ void DuckDBCatalog::init() {
     }
 }
 
+std::string DuckDBCatalog::bindSchemaName(const binder::AttachOption& options,
+    const std::string& defaultName) {
+    if (options.options.contains(DuckDBStorageExtension::SCHEMA_OPTION)) {
+        auto val = options.options.at(DuckDBStorageExtension::SCHEMA_OPTION);
+        if (val.getDataType().getLogicalTypeID() != common::LogicalTypeID::STRING) {
+            throw common::RuntimeException{common::stringFormat("Invalid option value for {}",
+                DuckDBStorageExtension::SCHEMA_OPTION)};
+        }
+        return val.getValue<std::string>();
+    }
+    return defaultName;
+}
+
 static std::string getQuery(const binder::BoundCreateTableInfo& info) {
     auto extraInfo = info.extraInfo->constPtrCast<BoundExtraCreateDuckDBTableInfo>();
     return "SELECT {} " + common::stringFormat("FROM \"{}\".{}.{}", extraInfo->catalogName,

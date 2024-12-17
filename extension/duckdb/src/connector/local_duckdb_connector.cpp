@@ -8,7 +8,7 @@ namespace kuzu {
 namespace duckdb_extension {
 
 void LocalDuckDBConnector::connect(const std::string& dbPath, const std::string& /*catalogName*/,
-    main::ClientContext* context) {
+    const std::string& /*schemaName*/, main::ClientContext* context) {
     if (!context->getVFSUnsafe()->fileOrPathExists(dbPath, context)) {
         throw common::RuntimeException{
             common::stringFormat("Given duckdb database path {} does not exist.", dbPath)};

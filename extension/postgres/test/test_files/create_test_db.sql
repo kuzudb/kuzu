@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 14.10 (Homebrew)
--- Dumped by pg_dump version 14.10 (Homebrew)
+-- Dumped from database version 14.13 (Homebrew)
+-- Dumped by pg_dump version 14.13 (Homebrew)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -15,6 +15,15 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+--
+-- Name: kuzu; Type: SCHEMA; Schema: -; Owner: ci
+--
+
+CREATE SCHEMA kuzu;
+
+
+ALTER SCHEMA kuzu OWNER TO ci;
 
 --
 -- Name: audience_type; Type: TYPE; Schema: public; Owner: ci
@@ -94,6 +103,19 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: user; Type: TABLE; Schema: kuzu; Owner: ci
+--
+
+CREATE TABLE kuzu."user" (
+    id integer,
+    org character varying,
+    rate integer
+);
+
+
+ALTER TABLE kuzu."user" OWNER TO ci;
+
+--
 -- Name: movies; Type: TABLE; Schema: public; Owner: ci
 --
 
@@ -164,6 +186,17 @@ CREATE TABLE public.persontest (
 
 
 ALTER TABLE public.persontest OWNER TO ci;
+
+--
+-- Data for Name: user; Type: TABLE DATA; Schema: kuzu; Owner: ci
+--
+
+COPY kuzu."user" (id, org, rate) FROM stdin;
+5	apple	4
+7	ms	5
+9	blackberry	7
+\.
+
 
 --
 -- Data for Name: movies; Type: TABLE DATA; Schema: public; Owner: ci

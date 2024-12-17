@@ -4,7 +4,7 @@ namespace kuzu {
 namespace sqlite_extension {
 
 void SqliteConnector::connect(const std::string& dbPath, const std::string& catalogName,
-    main::ClientContext* /*context*/) {
+    const std::string& /*schemaName*/, main::ClientContext* /*context*/) {
     // Creates an in-memory duckdb instance, then install httpfs and attach SQLITE.
     instance = std::make_unique<duckdb::DuckDB>(nullptr);
     connection = std::make_unique<duckdb::Connection>(*instance);

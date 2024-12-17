@@ -25,7 +25,8 @@ std::unique_ptr<main::AttachedDatabase> attachSqlite(std::string dbName, std::st
         dbName = catalogName;
     }
     auto connector = std::make_unique<SqliteConnector>();
-    connector->connect(dbPath, catalogName, clientContext);
+    connector->connect(dbPath, catalogName, SqliteStorageExtension::DEFAULT_SCHEMA_NAME,
+        clientContext);
     auto catalog = std::make_unique<duckdb_extension::DuckDBCatalog>(dbPath, catalogName,
         SqliteStorageExtension::DEFAULT_SCHEMA_NAME, clientContext, *connector, attachOption);
     catalog->init();
