@@ -1056,6 +1056,12 @@ True
 False
 True
 
+-LOG ListContainsUnmatchType
+-STATEMENT MATCH (a:person) where list_contains(cast([0, 7] as int8[]), a.ID) return a.ID
+---- 2
+0
+7
+
 -LOG ListContainsSelect
 -STATEMENT MATCH (a:person) WHERE list_contains(a.courseScoresPerTerm, [8]) RETURN a.ID
 ---- 2
@@ -2310,4 +2316,3 @@ True
 
 -STATEMENT RETURN list_has_all(null, null)
 ---- 1
-
