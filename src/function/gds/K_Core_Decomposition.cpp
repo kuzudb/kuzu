@@ -34,7 +34,7 @@ public:
         }
     }
 
-    void initRJFromSource(common::nodeID_t /* source */) override {};
+    void initRJFromSource(common::nodeID_t /* source */) override{};
 
     void pinCurrFrontier(common::table_id_t tableID) override {
         FrontierPair::pinCurrFrontier(tableID);
@@ -75,17 +75,15 @@ public:
         // The vertex should be set as active if it will be considered in a future iteration
         // The vertex should be set as inactive if it will be processed this iteration
         if (curVertexDegree > curSmallest) {
-            curVertexValues.getData(nodeID.tableID)[nodeID.offset].fetch_sub(1, std::memory_order_relaxed);
+            curVertexValues.getData(nodeID.tableID)[nodeID.offset].fetch_sub(1,
+                std::memory_order_relaxed);
             return true;
-        }
-        else {
+        } else {
             return false;
         }
     }
 
-    void updateSmallestDegree() {
-        curSmallestDegree.fetch_add(1, std::memory_order_relaxed);
-    }
+    void updateSmallestDegree() { curSmallestDegree.fetch_add(1, std::memory_order_relaxed); }
 
     uint64_t getSmallestDegree() { return curSmallestDegree.load(std::memory_order_relaxed); }
 
