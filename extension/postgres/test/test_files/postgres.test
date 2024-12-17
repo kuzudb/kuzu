@@ -97,3 +97,12 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 11|usednames|STRING[]|NULL
 12|height|DOUBLE|NULL
 13|u|UUID|NULL
+-LOG AttachPGWithNonDefaultSchema
+-STATEMENT ATTACH 'dbname=pgscan user=ci host=localhost' as ku (dbtype POSTGRES, SCHEMA = 'kuzu');
+---- 1
+Attached database successfully.
+-STATEMENT LOAD FROM ku.user RETURN *;
+---- 3
+5|apple|4
+7|ms|5
+9|blackberry|7
