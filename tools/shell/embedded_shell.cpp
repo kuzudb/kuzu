@@ -845,11 +845,13 @@ std::string EmbeddedShell::printJsonExecutionResult(QueryResult& queryResult) co
             printString += jsonDrawingCharacters->KeyValue;
             printString += jsonDrawingCharacters->KeyDelimiter;
             auto valueTypeID = tuple->getValue(i)->getDataType().getLogicalTypeID();
-            if (valueTypeID == common::LogicalTypeID::STRING || valueTypeID == common::LogicalTypeID::BLOB) {
+            if (valueTypeID == common::LogicalTypeID::STRING ||
+                valueTypeID == common::LogicalTypeID::BLOB) {
                 printString += jsonDrawingCharacters->KeyValue;
             }
             printString += escapeJsonString(tuple->getValue(i)->toString());
-            if (valueTypeID == common::LogicalTypeID::STRING || valueTypeID == common::LogicalTypeID::BLOB) {
+            if (valueTypeID == common::LogicalTypeID::STRING ||
+                valueTypeID == common::LogicalTypeID::BLOB) {
                 printString += jsonDrawingCharacters->KeyValue;
             }
             if (i != queryResult.getNumColumns() - 1) {
