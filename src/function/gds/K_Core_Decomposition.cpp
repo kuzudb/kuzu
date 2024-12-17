@@ -20,6 +20,7 @@ namespace kuzu {
 namespace function {
 
 class KCoreFrontierPair : public FrontierPair {
+friend class KCoreEdgeCompute;
 public:
     KCoreFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
         std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreads,
@@ -89,10 +90,6 @@ public:
 
     uint64_t getSmallestDegree() { return curSmallestDegree.load(std::memory_order_relaxed); }
 
-    bool isNodeActive(common::nodeID_t nodeID) const {
-        return curDenseFrontier->isActive(nodeID.offset);
-    }
-
     uint64_t getVertexValue(common::offset_t offset) {
         return vertexValues[offset].load(std::memory_order_relaxed);
     }
@@ -139,7 +136,7 @@ struct KCoreEdgeCompute : public EdgeCompute {
         uint64_t smallestDegree = frontierPair->getSmallestDegree();
         if (vertexDegree <= smallestDegree) {
             chunk.forEach([&](auto nbrNodeID, auto) {
-                if (frontierPair->isNodeActive(nbrNodeID)) {
+                if (frontierPair->curDenseFrontier->isActive(nbrNodeID.offset)) {
                     bool shouldSetActive = frontierPair->removeFromVertex(nbrNodeID);
                     if (shouldSetActive) {
                         result.push_back(nbrNodeID);
