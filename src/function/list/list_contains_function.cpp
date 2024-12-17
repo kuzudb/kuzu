@@ -23,7 +23,7 @@ struct ListContains {
 
 static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
     auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
-    TypeUtils::visit(input.arguments[1]->getDataType().getPhysicalType(),
+    TypeUtils::visit(ListType::getChildType(input.arguments[0]->getDataType()).getPhysicalType(),
         [&scalarFunction]<typename T>(T) {
             scalarFunction->execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, T,
                 uint8_t, ListContains>;

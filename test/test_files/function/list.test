@@ -1056,6 +1056,31 @@ True
 False
 True
 
+-LOG ListContainsUnmatchType
+-STATEMENT MATCH (a:person) where list_contains(cast([0, 7] as int8[]), a.ID) return a.ID
+---- 2
+0
+7
+
+-STATEMENT MATCH (a:person) where list_contains(cast([2, 3] as int16[]), a.ID) return a.ID
+---- 2
+2
+3
+
+-STATEMENT MATCH (a:person) where list_contains(cast([5] as int32[]), a.ID) return a.ID
+---- 1
+5
+
+-STATEMENT MATCH (a:person) where list_contains(cast([7, 8] as int128[]), a.ID) return a.ID
+---- 2
+7
+8
+
+-STATEMENT MATCH (a:person) where list_contains(cast(['A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11', 'a0eebc99-9c0b4ef8-bb6d6bb9-bd380a15'] as uuid[]), a.u) return a.ID
+---- 2
+0
+7
+
 -LOG ListContainsSelect
 -STATEMENT MATCH (a:person) WHERE list_contains(a.courseScoresPerTerm, [8]) RETURN a.ID
 ---- 2
@@ -2310,4 +2335,3 @@ True
 
 -STATEMENT RETURN list_has_all(null, null)
 ---- 1
-
