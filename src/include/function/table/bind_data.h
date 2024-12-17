@@ -42,6 +42,8 @@ struct TableFuncBindData {
         return columnPredicates;
     }
 
+    virtual bool getIgnoreErrorsOption() const;
+
     virtual std::unique_ptr<TableFuncBindData> copy() const = 0;
 
     template<class TARGET>
@@ -73,6 +75,8 @@ struct ScanBindData : public TableFuncBindData {
           config{std::move(config)}, context{context} {}
     ScanBindData(const ScanBindData& other)
         : TableFuncBindData{other}, config{other.config.copy()}, context{other.context} {}
+
+    bool getIgnoreErrorsOption() const override;
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<ScanBindData>(*this);
