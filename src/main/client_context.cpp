@@ -511,6 +511,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
             }
         }
     } catch (CheckpointException& e) {
+        transactionContext->clearTransaction();
         return handleFailedExecution(executionContext.get(), e);
     } catch (std::exception& e) {
         transactionContext->rollback();

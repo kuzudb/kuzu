@@ -50,7 +50,6 @@ public:
     bool hasActiveTransaction() const { return activeTransaction != nullptr; }
     Transaction* getActiveTransaction() const { return activeTransaction.get(); }
 
-private:
     void clearTransaction();
 
 private:
