@@ -37,7 +37,8 @@ void ColumnChunkStats::reset() {
 void MergedColumnChunkStats::merge(const MergedColumnChunkStats& o,
     common::PhysicalTypeID dataType) {
     stats.update(o.stats.min, o.stats.max, dataType);
-    mayHaveNulls = mayHaveNulls || o.mayHaveNulls;
+    guaranteedNoNulls = guaranteedNoNulls && o.guaranteedNoNulls;
+    guaranteedAllNulls = guaranteedAllNulls && o.guaranteedAllNulls;
 }
 
 } // namespace storage

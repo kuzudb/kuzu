@@ -325,19 +325,23 @@ public:
 class NullChunkData final : public BoolChunkData {
 public:
     NullChunkData(MemoryManager& mm, uint64_t capacity, bool enableCompression, ResidencyState type)
-        : BoolChunkData(mm, capacity, enableCompression, type, false /*hasNullData*/),
-          mayHaveNullValue{false} {}
+        : BoolChunkData(mm, capacity, enableCompression, type, false /*hasNullData*/) {}
     NullChunkData(MemoryManager& mm, bool enableCompression, const ColumnChunkMetadata& metadata)
-        : BoolChunkData{mm, enableCompression, metadata, false /*hasNullData*/},
-          mayHaveNullValue{false} {}
+        : BoolChunkData{mm, enableCompression, metadata, false /*hasNullData*/} {}
 
     // Maybe this should be combined with BoolChunkData if the only difference is these
     // functions?
     bool isNull(common::offset_t pos) const { return getValue<bool>(pos); }
     void setNull(common::offset_t pos, bool isNull);
 
-    bool mayHaveNull() const { return mayHaveNullValue; }
-    bool mayHaveNullOnDisk() const;
+    bool noNullsGuaranteedInMem() const {
+        return !inMemoryStats.max || !inMemoryStats.max->get<bool>();
+    }
+    bool allNullsGuaranteedInMem() const {
+        return !inMemoryStats.min || inMemoryStats.min->get<bool>();
+    }
+    bool haveNoNullsGuaranteed() const;
+    bool haveAllNullsGuaranteed() const;
 
     void resetToEmpty() override {
         resetToNoNull();
@@ -345,18 +349,21 @@ public:
     }
     void resetToNoNull() {
         memset(getData(), 0 /* non null */, getBufferSize());
-        mayHaveNullValue = false;
+        inMemoryStats.min = inMemoryStats.max = false;
     }
     void resetToAllNull() override {
         memset(getData(), 0xFF /* null */, getBufferSize());
-        mayHaveNullValue = true;
+        inMemoryStats.min = inMemoryStats.max = true;
     }
 
     void copyFromBuffer(uint64_t* srcBuffer, uint64_t srcOffset, uint64_t dstOffset,
         uint64_t numBits, bool invert = false) {
         if (common::NullMask::copyNullMask(srcBuffer, srcOffset, getData<uint64_t>(), dstOffset,
                 numBits, invert)) {
-            mayHaveNullValue = true;
+            // we pessimistically assume that the buffer contains both true/false values
+            // so the zone map won't skip scans
+            inMemoryStats.min = false;
+            inMemoryStats.max = true;
         }
     }
 
@@ -377,11 +384,9 @@ public:
         common::Deserializer& deSer);
 
     common::NullMask getNullMask() const {
-        return common::NullMask(std::span(getData<uint64_t>(), capacity / 64), mayHaveNullValue);
+        return common::NullMask(std::span(getData<uint64_t>(), capacity / 64),
+            !noNullsGuaranteedInMem());
     }
-
-protected:
-    bool mayHaveNullValue;
 };
 
 class InternalIDChunkData final : public ColumnChunkData {

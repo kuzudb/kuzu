@@ -16,11 +16,13 @@ struct ColumnChunkStats {
 };
 
 struct MergedColumnChunkStats {
-    MergedColumnChunkStats(ColumnChunkStats stats, bool mayContainNulls)
-        : stats(stats), mayHaveNulls(mayContainNulls) {}
+    MergedColumnChunkStats(ColumnChunkStats stats, bool guaranteedNoNulls, bool guaranteedAllNulls)
+        : stats(stats), guaranteedNoNulls(guaranteedNoNulls),
+          guaranteedAllNulls(guaranteedAllNulls) {}
 
     ColumnChunkStats stats;
-    bool mayHaveNulls;
+    bool guaranteedNoNulls;
+    bool guaranteedAllNulls;
 
     void merge(const MergedColumnChunkStats& o, common::PhysicalTypeID dataType);
 };

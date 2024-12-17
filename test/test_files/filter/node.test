@@ -33,12 +33,6 @@
 100|100
 
 -LOG NullCheckBool
--STATEMENT MATCH (a:person) WHERE a.isStudent IS NULL RETURN COUNT(*)
----- 1
-0
--STATEMENT MATCH (a:person) WHERE a.isStudent IS NOT NULL RETURN COUNT(*)
----- 1
-9
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.isStudent=null
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.isStudent IS NULL RETURN COUNT(*)

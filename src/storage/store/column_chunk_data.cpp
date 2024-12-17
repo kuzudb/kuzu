@@ -203,7 +203,8 @@ MergedColumnChunkStats ColumnChunkData::getMergedColumnChunkStats() const {
     if (isStorageValueType) {
         stats.update(onDiskMetadata.min, onDiskMetadata.max, physicalType);
     }
-    return MergedColumnChunkStats{stats, nullData && (nullData->mayHaveNullOnDisk())};
+    return MergedColumnChunkStats{stats, !nullData || nullData->haveNoNullsGuaranteed(),
+        nullData && nullData->haveAllNullsGuaranteed()};
 }
 
 void ColumnChunkData::updateStats(const common::ValueVector* vector,
@@ -694,9 +695,6 @@ void BoolChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
 
 void NullChunkData::setNull(offset_t pos, bool isNull) {
     setValue(isNull, pos);
-    if (isNull) {
-        mayHaveNullValue = true;
-    }
     // TODO(Guodong): Better let NullChunkData also support `append` a
     // vector.
     if (pos >= numValues) {
@@ -732,8 +730,12 @@ void NullChunkData::append(ColumnChunkData* other, offset_t startOffsetInOtherCh
     updateInMemoryStats(inMemoryStats, other, startOffsetInOtherChunk, numValuesToAppend);
 }
 
-bool NullChunkData::mayHaveNullOnDisk() const {
-    return mayHaveNull() || metadata.compMeta.max.get<bool>();
+bool NullChunkData::haveNoNullsGuaranteed() const {
+    return noNullsGuaranteedInMem() && !metadata.compMeta.max.get<bool>();
+}
+
+bool NullChunkData::haveAllNullsGuaranteed() const {
+    return allNullsGuaranteedInMem() && metadata.compMeta.min.get<bool>();
 }
 
 void NullChunkData::serialize(Serializer& serializer) const {
