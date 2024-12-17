@@ -11,7 +11,7 @@ struct ColumnChunkStats {
         common::PhysicalTypeID dataType);
     void update(StorageValue val, common::PhysicalTypeID dataType);
     void update(uint8_t* data, uint64_t offset, uint64_t numValues,
-        common::PhysicalTypeID physicalType);
+        const common::NullMask* nullMask, common::PhysicalTypeID physicalType);
     void reset();
 };
 

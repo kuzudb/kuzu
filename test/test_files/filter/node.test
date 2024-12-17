@@ -16,6 +16,7 @@
 77|123456789.123000
 
 -CASE ZoneMapUpdateThenQueryWithoutCheckpoint
+-LOG Comparison
 -STATEMENT CALL enable_zone_map=true;
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.age=40 + 50
@@ -25,11 +26,42 @@
 0|90
 -STATEMENT MATCH (a:person) WHERE a.age > 95 RETURN a.ID, a.age
 ---- 0
--STATEMENT CREATE (a:person {id: 100, age: 100})
+-STATEMENT CREATE (a:person {id: 100, age: 100, isStudent: true})
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.age > 95 RETURN a.ID, a.age
 ---- 1
 100|100
+
+-LOG NullCheck
+-STATEMENT MATCH (a:person) WHERE a.isStudent IS NULL RETURN COUNT(*)
+---- 1
+0
+-STATEMENT MATCH (a:person) WHERE a.isStudent IS NOT NULL RETURN COUNT(*)
+---- 1
+9
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.isStudent=null
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.isStudent IS NULL RETURN COUNT(*)
+---- 1
+1
+-STATEMENT MATCH (a:person) WHERE a.isStudent IS NOT NULL RETURN COUNT(*)
+---- 1
+8
+-RELOADDB
+-STATEMENT MATCH (a:person) WHERE a.isStudent IS NULL RETURN COUNT(*)
+---- 1
+1
+-STATEMENT MATCH (a:person) WHERE a.isStudent IS NOT NULL RETURN COUNT(*)
+---- 1
+8
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.isStudent=true
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.isStudent IS NULL RETURN COUNT(*)
+---- 1
+0
+-STATEMENT MATCH (a:person) WHERE a.isStudent IS NOT NULL RETURN COUNT(*)
+---- 1
+9
 
 -CASE FilterNode
 

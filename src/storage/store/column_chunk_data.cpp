@@ -182,7 +182,7 @@ static void updateInMemoryStats(ColumnChunkStats& stats, const ValueVector& valu
     const auto physicalType = values.dataType.getPhysicalType();
     const auto numValuesToCheck = std::min(numValues, values.state->getSelSize());
     // we pessimistically set mayHaveNulls to check the entire vector instead of the selected range
-    stats.update(values.getData(), offset, numValuesToCheck, physicalType);
+    stats.update(values.getData(), offset, numValuesToCheck, &values.getNullMask(), physicalType);
 }
 
 static void updateInMemoryStats(ColumnChunkStats& stats, const ColumnChunkData* values,
@@ -190,14 +190,15 @@ static void updateInMemoryStats(ColumnChunkStats& stats, const ColumnChunkData* 
     const auto physicalType = values->getDataType().getPhysicalType();
     const auto numValuesToCheck = std::min(values->getNumValues(), numValues);
     const auto nullMask = values->getNullMask();
-    stats.update(values->getData(), offset, numValuesToCheck, physicalType);
+    stats.update(values->getData(), offset, numValuesToCheck,
+        nullMask ? &nullMask.value() : nullptr, physicalType);
 }
 
 MergedColumnChunkStats ColumnChunkData::getMergedColumnChunkStats() const {
     const CompressionMetadata& onDiskMetadata = metadata.compMeta;
     ColumnChunkStats stats = inMemoryStats;
     stats.update(onDiskMetadata.min, onDiskMetadata.max, getDataType().getPhysicalType());
-    return MergedColumnChunkStats{stats, nullData && nullData->mayHaveNull()};
+    return MergedColumnChunkStats{stats, nullData && (nullData->mayHaveNullOnDisk())};
 }
 
 void ColumnChunkData::updateStats(const common::ValueVector* vector,
@@ -724,6 +725,10 @@ void NullChunkData::append(ColumnChunkData* other, offset_t startOffsetInOtherCh
         numValuesToAppend);
     numValues += numValuesToAppend;
     updateInMemoryStats(inMemoryStats, other, startOffsetInOtherChunk, numValuesToAppend);
+}
+
+bool NullChunkData::mayHaveNullOnDisk() const {
+    return mayHaveNull() || metadata.compMeta.max.get<bool>();
 }
 
 void NullChunkData::serialize(Serializer& serializer) const {

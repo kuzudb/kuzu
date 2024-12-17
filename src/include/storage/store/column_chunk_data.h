@@ -337,6 +337,7 @@ public:
     void setNull(common::offset_t pos, bool isNull);
 
     bool mayHaveNull() const { return mayHaveNullValue; }
+    bool mayHaveNullOnDisk() const;
 
     void resetToEmpty() override {
         resetToNoNull();
