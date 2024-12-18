@@ -40,6 +40,12 @@ public:
         headerPagesOnDisk = headersForReadTrx.size();
     }
 
+    void rollbackCheckpoint() {
+        for (size_t i = 0; i < headersForWriteTrx.size(); i++) {
+            *headersForWriteTrx[i] = *headersForReadTrx[i];
+        }
+    }
+
     template<typename T>
     std::unique_ptr<DiskArray<T>> getDiskArray(uint32_t idx) {
         KU_ASSERT(idx < numHeaders);

@@ -2,6 +2,7 @@
 
 #include <thread>
 
+#include "common/exception/checkpoint.h"
 #include "common/exception/transaction_manager.h"
 #include "main/client_context.h"
 #include "main/db_config.h"
@@ -94,8 +95,15 @@ void TransactionManager::rollback(main::ClientContext& clientContext,
     }
 }
 
+void TransactionManager::rollbackCheckpoint(main::ClientContext& clientContext) {
+    if (main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())) {
+        return;
+    }
+    clientContext.getStorageManager()->rollbackCheckpoint(clientContext);
+}
+
 void TransactionManager::checkpoint(main::ClientContext& clientContext) {
-    std::unique_lock<std::mutex> lck{mtxForSerializingPublicFunctionCalls};
+    common::UniqLock lck{mtxForSerializingPublicFunctionCalls};
     if (main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())) {
         return;
     }
@@ -152,28 +160,33 @@ void TransactionManager::checkpointNoLock(main::ClientContext& clientContext) {
     // query stop working on the tasks of the query and these tasks are removed from the
     // query.
     auto lockForStartingTransaction = stopNewTransactionsAndWaitUntilAllTransactionsLeave();
-    // Checkpoint node/relTables, which writes the updated/newly-inserted pages and metadata to
-    // disk.
-    clientContext.getStorageManager()->checkpoint(clientContext);
-    // Checkpoint catalog, which serializes a snapshot of the catalog to disk.
-    clientContext.getCatalog()->checkpoint(clientContext.getDatabasePath(),
-        clientContext.getVFSUnsafe());
-    // Log the checkpoint to the WAL and flush WAL. This indicates that all shadow pages and files(
-    // snapshots of catalog and metadata) have been written to disk. The part is not done is replace
-    // them with the original pages or catalog and metadata files.
-    // If the system crashes before this point, the WAL can still be used to recover the system to a
-    // state where the checkpoint can be redo.
-    wal.logAndFlushCheckpoint();
-    // Replace the original pages and catalog and metadata files with the updated/newly-created
-    // ones.
-    StorageUtils::overwriteWALVersionFiles(clientContext.getDatabasePath(),
-        clientContext.getVFSUnsafe());
-    clientContext.getStorageManager()->getShadowFile().replayShadowPageRecords(clientContext);
-    // Clear the wal, and also shadowing files.
-    wal.clearWAL();
-    clientContext.getStorageManager()->getShadowFile().clearAll(clientContext);
-    StorageUtils::removeWALVersionFiles(clientContext.getDatabasePath(),
-        clientContext.getVFSUnsafe());
+    try {
+        // Checkpoint node/relTables, which writes the updated/newly-inserted pages and metadata to
+        // disk.
+        clientContext.getStorageManager()->checkpoint(clientContext);
+        // Checkpoint catalog, which serializes a snapshot of the catalog to disk.
+        clientContext.getCatalog()->checkpoint(clientContext.getDatabasePath(),
+            clientContext.getVFSUnsafe());
+        // Log the checkpoint to the WAL and flush WAL. This indicates that all shadow pages and
+        // files( snapshots of catalog and metadata) have been written to disk. The part is not done
+        // is replace them with the original pages or catalog and metadata files. If the system
+        // crashes before this point, the WAL can still be used to recover the system to a state
+        // where the checkpoint can be redo.
+        wal.logAndFlushCheckpoint();
+        // Replace the original pages and catalog and metadata files with the updated/newly-created
+        // ones.
+        StorageUtils::overwriteWALVersionFiles(clientContext.getDatabasePath(),
+            clientContext.getVFSUnsafe());
+        clientContext.getStorageManager()->getShadowFile().replayShadowPageRecords(clientContext);
+        // Clear the wal, and also shadowing files.
+        wal.clearWAL();
+        clientContext.getStorageManager()->getShadowFile().clearAll(clientContext);
+        StorageUtils::removeWALVersionFiles(clientContext.getDatabasePath(),
+            clientContext.getVFSUnsafe());
+    } catch (std::exception& e) {
+        rollbackCheckpoint(clientContext);
+        throw CheckpointException{e};
+    }
 }
 
 } // namespace transaction

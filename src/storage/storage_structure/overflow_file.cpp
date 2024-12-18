@@ -207,7 +207,7 @@ void OverflowFile::writePageToDisk(page_idx_t pageIdx, uint8_t* data) const {
     }
 }
 
-void OverflowFile::checkpoint() {
+void OverflowFile::checkpoint(bool forceUpdateHeader) {
     KU_ASSERT(fileHandle);
     if (fileHandle->getNumPages() < pageCounter) {
         fileHandle->addNewPages(pageCounter - fileHandle->getNumPages());
@@ -218,7 +218,7 @@ void OverflowFile::checkpoint() {
     for (auto& handle : handles) {
         handle->checkpoint();
     }
-    if (headerChanged) {
+    if (headerChanged || forceUpdateHeader) {
         uint8_t page[KUZU_PAGE_SIZE];
         header.pages = pageCounter;
         memcpy(page, &header, sizeof(header));

@@ -1,6 +1,7 @@
 #include "main/client_context.h"
 
 #include "binder/binder.h"
+#include "common/exception/checkpoint.h"
 #include "common/exception/connection.h"
 #include "common/exception/runtime.h"
 #include "common/random_engine.h"
@@ -509,13 +510,14 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
                 this->transactionContext->commit();
             }
         }
+    } catch (CheckpointException& e) {
+        transactionContext->clearTransaction();
+        return handleFailedExecution(executionContext.get(), e);
     } catch (std::exception& e) {
         transactionContext->rollback();
-        getMemoryManager()->getBufferManager()->getSpillerOrSkip(
-            [](auto& spiller) { spiller.clearFile(); });
-        progressBar->endProgress(executionContext->queryID);
-        return queryResultWithError(e.what());
+        return handleFailedExecution(executionContext.get(), e);
     }
+
     getMemoryManager()->getBufferManager()->getSpillerOrSkip(
         [](auto& spiller) { spiller.clearFile(); });
     executingTimer.stop();
@@ -525,6 +527,14 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     queryResult->initResultTableAndIterator(std::move(resultFT));
 
     return queryResult;
+}
+
+std::unique_ptr<QueryResult> ClientContext::handleFailedExecution(
+    ExecutionContext* executionContext, std::exception& e) {
+    getMemoryManager()->getBufferManager()->getSpillerOrSkip(
+        [](auto& spiller) { spiller.clearFile(); });
+    progressBar->endProgress(executionContext->queryID);
+    return queryResultWithError(e.what());
 }
 
 // If there is an active transaction in the context, we execute the function in current active
