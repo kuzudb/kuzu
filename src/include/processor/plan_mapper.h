@@ -126,8 +126,8 @@ private:
 
     // Scan fTable
     std::unique_ptr<PhysicalOperator> createFTableScan(const binder::expression_vector& exprs,
-        std::vector<ft_col_idx_t> colIndices,
-        planner::Schema* schema, std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize,
+        std::vector<ft_col_idx_t> colIndices, planner::Schema* schema,
+        std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize,
         physical_op_vector_t children);
     // Scan is the leaf operator of physical plan.
     std::unique_ptr<PhysicalOperator> createFTableScan(const binder::expression_vector& exprs,
@@ -145,8 +145,8 @@ private:
     // Assume scans all columns of table in the same order as given expressions.
     std::unique_ptr<PhysicalOperator> createFTableScanAligned(
         const binder::expression_vector& exprs, planner::Schema* schema,
-        std::shared_ptr<FactorizedTable> table,
-        uint64_t maxMorselSize, physical_op_vector_t children);
+        std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize,
+        physical_op_vector_t children);
     // Assume scans all columns of table in the same order as given expressions.
     // Scan fTable without row offset.
     // Scan is the leaf operator of physical plan.

@@ -19,17 +19,17 @@ void Planner::appendAccumulate(LogicalPlan& plan) {
 }
 
 void Planner::appendOptionalAccumulate(std::shared_ptr<Expression> mark, LogicalPlan& plan) {
-    appendAccumulate(AccumulateType::OPTIONAL_, expression_vector{},  mark, plan);
+    appendAccumulate(AccumulateType::OPTIONAL_, expression_vector{}, mark, plan);
 }
 
 void Planner::appendAccumulate(const expression_vector& flatExprs, LogicalPlan& plan) {
-    appendAccumulate(AccumulateType::REGULAR, flatExprs,  nullptr /* mark */, plan);
+    appendAccumulate(AccumulateType::REGULAR, flatExprs, nullptr /* mark */, plan);
 }
 
 void Planner::appendAccumulate(AccumulateType accumulateType, const expression_vector& flatExprs,
     std::shared_ptr<Expression> mark, LogicalPlan& plan) {
-    auto op = make_shared<LogicalAccumulate>(accumulateType, flatExprs, mark,
-        plan.getLastOperator());
+    auto op =
+        make_shared<LogicalAccumulate>(accumulateType, flatExprs, mark, plan.getLastOperator());
     appendFlattens(op->getGroupPositionsToFlatten(), plan);
     op->setChild(0, plan.getLastOperator());
     op->computeFactorizedSchema();

@@ -7,7 +7,8 @@ namespace kuzu {
 namespace binder {
 
 class BoundStandaloneCallFunction : public BoundStatement {
-    static constexpr common::StatementType statementType = common::StatementType::STANDALONE_CALL_FUNCTION;
+    static constexpr common::StatementType statementType =
+        common::StatementType::STANDALONE_CALL_FUNCTION;
 
 public:
     explicit BoundStandaloneCallFunction(BoundTableFunction tableFunc)

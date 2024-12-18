@@ -49,8 +49,8 @@ class LogicalPartitioner final : public LogicalOperator {
 public:
     LogicalPartitioner(LogicalPartitionerInfo info, binder::BoundCopyFromInfo copyFromInfo,
         std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{type, std::move(child)},
-          info{std::move(info)}, copyFromInfo{std::move(copyFromInfo)} {}
+        : LogicalOperator{type, std::move(child)}, info{std::move(info)},
+          copyFromInfo{std::move(copyFromInfo)} {}
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;

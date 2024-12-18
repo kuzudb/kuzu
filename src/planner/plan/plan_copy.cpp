@@ -72,7 +72,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyNodeFrom(const BoundCopyFromInfo* 
         auto& querySource = info->source->constCast<BoundQueryScanSource>();
         plan = getBestPlan(planQuery(*querySource.statement));
         appendAccumulate(AccumulateType::REGULAR, plan->getSchema()->getExpressionsInScope(),
-             nullptr /* mark */, *plan);
+            nullptr /* mark */, *plan);
     } break;
     default:
         KU_UNREACHABLE;

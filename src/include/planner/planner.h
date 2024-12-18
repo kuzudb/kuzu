@@ -303,8 +303,8 @@ public:
     void appendAccumulate(const binder::expression_vector& flatExprs, LogicalPlan& plan);
     // Append accumulate with a set of expressions being flattened first. Append mark.
     void appendAccumulate(common::AccumulateType accumulateType,
-        const binder::expression_vector& flatExprs,
-        std::shared_ptr<binder::Expression> mark, LogicalPlan& plan);
+        const binder::expression_vector& flatExprs, std::shared_ptr<binder::Expression> mark,
+        LogicalPlan& plan);
 
     void appendDummyScan(LogicalPlan& plan);
 

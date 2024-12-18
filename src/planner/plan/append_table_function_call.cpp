@@ -8,10 +8,9 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-
-void Planner::appendTableFunctionCall(const BoundTableScanSourceInfo& info,LogicalPlan& plan) {
-    auto call = std::make_shared<LogicalTableFunctionCall>(info.func, info.bindData->copy(),
-        info.columns);
+void Planner::appendTableFunctionCall(const BoundTableScanSourceInfo& info, LogicalPlan& plan) {
+    auto call =
+        std::make_shared<LogicalTableFunctionCall>(info.func, info.bindData->copy(), info.columns);
     call->computeFactorizedSchema();
     plan.setLastOperator(std::move(call));
 }

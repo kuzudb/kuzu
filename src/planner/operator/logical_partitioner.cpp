@@ -8,7 +8,8 @@ namespace planner {
 
 static void validateSingleGroup(const Schema& schema) {
     if (schema.getNumGroups() != 1) {
-        throw common::RuntimeException("Try to partition multiple factorization group. This should not happen.");
+        throw common::RuntimeException(
+            "Try to partition multiple factorization group. This should not happen.");
     }
 }
 
