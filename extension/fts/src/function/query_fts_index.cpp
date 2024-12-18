@@ -127,13 +127,13 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
         query = stringFormat("CALL drop_project_graph('PK')");
         runQuery(clientContext, query);
     }
-    if (localState->numRowsOutput >= localState->result->getNumTuples()) {
+    if (localState->numRowsOutput >= localState->result->getTable()->getNumTuples()) {
         return 0;
     }
     auto resultTable = localState->result->getTable();
     resultTable->scan(output.vectors, localState->numRowsOutput, 1 /* numRowsToScan */);
     localState->numRowsOutput++;
-    return 1;
+    return output.dataChunk.state->getSelSize();
 }
 
 std::unique_ptr<TableFuncLocalState> initLocalState(
