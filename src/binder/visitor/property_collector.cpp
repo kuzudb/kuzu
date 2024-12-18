@@ -52,21 +52,27 @@ void PropertyCollector::visitQueryPartSkipNodeRel(const NormalizedQueryPart& que
 
 void PropertyCollector::visitMatch(const BoundReadingClause& readingClause) {
     auto& matchClause = readingClause.constCast<BoundMatchClause>();
-    if (recursivePatternSemantic == PathSemantic::WALK) {
-        if (matchClause.hasPredicate()) {
-            collectProperties(matchClause.getPredicate());
-        }
-    } else {
+    if (matchClause.hasPredicate()) {
+        collectProperties(matchClause.getPredicate());
+    }
+    if (recursivePatternSemantic != PathSemantic::WALK) {
         for (auto node : matchClause.getQueryGraphCollection()->getQueryNodes()) {
             for (auto prop : node->getPropertyExprs()) {
-                auto name = prop->constCast<PropertyExpression>().getPropertyName();
-                collectProperties(node->getPropertyExpression(name));
+                if (prop->constCast<PropertyExpression>().getDataType().getLogicalTypeID() ==
+                    LogicalTypeID::INTERNAL_ID) {
+                    auto name = prop->constCast<PropertyExpression>().getPropertyName();
+                    collectProperties(node->getPropertyExpression(name));
+                }
             }
         }
+
         for (auto rel : matchClause.getQueryGraphCollection()->getQueryRels()) {
             for (auto prop : rel->getPropertyExprs()) {
-                auto name = prop->constCast<PropertyExpression>().getPropertyName();
-                collectProperties(rel->getPropertyExpression(name));
+                if (prop->constCast<PropertyExpression>().getDataType().getLogicalTypeID() ==
+                    LogicalTypeID::INTERNAL_ID) {
+                    auto name = prop->constCast<PropertyExpression>().getPropertyName();
+                    collectProperties(rel->getPropertyExpression(name));
+                }
             }
         }
     }

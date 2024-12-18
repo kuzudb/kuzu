@@ -16,8 +16,7 @@ namespace optimizer {
 
 class PathSemanticRewriter : public LogicalOperatorVisitor {
 public:
-    explicit PathSemanticRewriter(main::ClientContext* context)
-        : hasReplace(false), context{context} {}
+    explicit PathSemanticRewriter(main::ClientContext* context) : context{context} {}
     void rewrite(planner::LogicalPlan* plan);
 
 private:
@@ -29,11 +28,15 @@ private:
         std::shared_ptr<planner::LogicalOperator> op);
 
 private:
-    bool hasReplace;
+    bool hasRecursive = false;
+    std::shared_ptr<planner::LogicalOperator> topOp = nullptr;
+    int replaceIndex = -1;
     main::ClientContext* context;
     binder::expression_vector scanExpression;
     std::shared_ptr<planner::LogicalOperator> appendPathSemanticFilter(
         const std::shared_ptr<planner::LogicalOperator> op);
+    std::shared_ptr<binder::Expression> createNode(const std::shared_ptr<binder::Expression>& expr);
+    std::shared_ptr<binder::Expression> createRel(const std::shared_ptr<binder::Expression>& expr);
 };
 
 } // namespace optimizer

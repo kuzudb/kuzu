@@ -308,6 +308,8 @@ public:
 
     expression_vector findPathExpressionInScope();
 
+    const BinderScope& getBinderScope() { return scope; }
+
 private:
     uint32_t lastInternalPathId;
     common::idx_t lastExpressionId;
