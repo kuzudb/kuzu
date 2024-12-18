@@ -21,6 +21,7 @@ namespace function {
 
 class KCoreFrontierPair : public FrontierPair {
     friend class KCoreEdgeCompute;
+    friend class KCoreUpdateEdgeCompute;
 
 public:
     KCoreFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
@@ -85,7 +86,11 @@ public:
         }
     }
 
-    void updateSmallestDegree() { curSmallestDegree.fetch_add(1, std::memory_order_relaxed); }
+    void updateSmallestDegree(common::offset_t startOffset, common::offset_t endOffset, common::table_id_t tableID) {
+        for (auto offset = startOffset; offset < endOffset; ++offset) {
+            if ()
+        }
+    }
 
     uint64_t getSmallestDegree() { return curSmallestDegree.load(std::memory_order_relaxed); }
 
@@ -93,12 +98,18 @@ public:
         return vertexValues[offset].load(std::memory_order_relaxed);
     }
 
+    uint64_t resetSmallestDegree() {
+        auto prevSmallestDegree = getSmallestDegree();
+        curSmallestDegree.compare_exchange_strong(prevSmallestDegree, UINT64_MAX, std::memory_order_relaxed);
+    }
+
 private:
-    bool updated = false;
     std::atomic<uint64_t> curSmallestDegree{UINT64_MAX};
     common::table_id_map_t<common::offset_t> numNodesMap;
     std::atomic<uint64_t>* vertexValues = nullptr;
+    std::atomic<bool>* curRemoved;
     ObjectArraysMap<std::atomic<uint64_t>> curVertexValues;
+    ObjectArraysMap<std::atomic<bool>> removedMap;
 };
 
 struct KCoreInitEdgeCompute : public EdgeCompute {
@@ -179,6 +190,33 @@ private:
     std::unique_ptr<ValueVector> nodeIDVector;
     std::unique_ptr<ValueVector> kValueVector;
     KCoreFrontierPair* frontierPair;
+};
+
+class KCoreUpdateVertexCompute : public VertexCompute {
+    // Runs between iterations
+    // Finds the smallest degree to compute in the next vertex
+    // Sets the nodes which need computation active inside the frontier
+
+    KCoreFrontierPair* kCoreFrontierPair;
+public:
+    KCoreUpdateVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState, KCoreFrontierPair* kCoreFrontierPair)
+    : mm{mm}, sharedState{sharedState}, kCoreFrontierPair{kCoreFrontierPair} {}
+
+    ~KCoreUpdateVertexCompute() override {}
+
+    bool beginOnTable(common::table_id_t tableID) override {
+        kCoreFrontierPair->pinCurrFrontier(tableID);
+        kCoreFrontierPair->pinNextFrontier(tableID);
+        return true;
+    }
+
+    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset, common::table_id_t tableID) override {
+
+    }
+
+private:
+    storage::MemoryManager* mm;
+    processor::GDSCallSharedState* sharedState;
 };
 
 class KCoreVertexCompute : public VertexCompute {
