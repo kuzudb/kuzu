@@ -83,7 +83,7 @@ allconfig:
 	$(call config-cmake-release, \
 		-DBUILD_BENCHMARK=TRUE \
 		-DBUILD_EXAMPLES=TRUE \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;delta" \
 		-DBUILD_JAVA=TRUE \
 		-DBUILD_NODEJS=TRUE \
 		-DBUILD_PYTHON=TRUE \
@@ -98,7 +98,7 @@ alldebug:
 	$(call run-cmake-debug, \
 		-DBUILD_BENCHMARK=TRUE \
 		-DBUILD_EXAMPLES=TRUE \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;delta" \
 		-DBUILD_JAVA=TRUE \
 		-DBUILD_NODEJS=TRUE \
 		-DBUILD_PYTHON=TRUE \
@@ -182,7 +182,7 @@ example:
 
 extension-test-build:
 	$(call run-cmake-relwithdebinfo, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;delta" \
 		-DBUILD_EXTENSION_TESTS=TRUE \
 		-DBUILD_TESTS=TRUE \
 	)
@@ -208,13 +208,13 @@ extension-json-test: extension-json-test-build
 
 extension-debug:
 	$(call run-cmake-debug, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;delta" \
 		-DBUILD_KUZU=FALSE \
 	)
 
 extension-release:
 	$(call run-cmake-release, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;delta" \
 		-DBUILD_KUZU=FALSE \
 	)
 
@@ -231,11 +231,11 @@ shell-test:
 # parallelism.
 tidy: | allconfig java_native_header
 	run-clang-tidy -p build/release -quiet -j $(NUM_THREADS) \
-		"^$(realpath src)|$(realpath extension)/(?!fts/third_party/snowball/)|$(realpath tools)/(?!shell/linenoise.cpp)"
+		"^$(realpath src)|$(realpath tools)/(?!shell/linenoise.cpp)"
 
 tidy-analyzer: | allconfig java_native_header
 	run-clang-tidy -config-file .clang-tidy-analyzer -p build/release -quiet -j $(NUM_THREADS) \
-		"^$(realpath src)|$(realpath extension)/(?!fts/third_party/snowball/)|$(realpath tools)/(?!shell/linenoise.cpp)"
+		"^$(realpath src)|$(realpath tools)/(?!shell/linenoise.cpp)"
 
 clangd-diagnostics: | allconfig java_native_header
 	find src -name *.h -or -name *.cpp | xargs \
@@ -254,7 +254,6 @@ clean-extension:
 	cmake -E rm -rf extension/duckdb/build
 	cmake -E rm -rf extension/postgres/build
 	cmake -E rm -rf extension/sqlite/build
-	cmake -E rm -rf extension/fts/build
 	cmake -E rm -rf extension/delta/build
 
 clean-python-api:

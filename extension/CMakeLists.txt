@@ -46,10 +46,6 @@ if ("sqlite" IN_LIST BUILD_EXTENSIONS)
     endif ()
 endif ()
 
-if ("fts" IN_LIST BUILD_EXTENSIONS)
-    add_subdirectory(fts)
-endif ()
-
 if ("delta" IN_LIST BUILD_EXTENSIONS)
     add_subdirectory(delta)
 endif ()
