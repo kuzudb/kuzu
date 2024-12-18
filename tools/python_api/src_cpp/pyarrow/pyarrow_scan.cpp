@@ -18,6 +18,7 @@ namespace kuzu {
 PyArrowScanConfig::PyArrowScanConfig(const common::case_insensitive_map_t<Value>& options) {
     skipNum = 0;
     limitNum = NumericLimits<uint64_t>::maximum();
+    ignoreErrors = CopyConstants::DEFAULT_IGNORE_ERRORS;
     for (const auto& i : options) {
         if (i.first == "SKIP") {
             if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::INT64 ||
