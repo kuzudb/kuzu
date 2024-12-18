@@ -8,6 +8,7 @@
 #undef ARROW_FLAG_DICTIONARY_ORDERED
 #include "duckdb.hpp"
 #pragma GCC diagnostic pop
+#include <optional>
 
 namespace kuzu {
 namespace duckdb_extension {
