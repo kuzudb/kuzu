@@ -60,7 +60,8 @@ void Planner::appendAccHashJoin(const std::vector<binder::expression_pair>& join
 }
 
 void Planner::appendMarkJoin(const expression_vector& joinNodeIDs,
-    const std::shared_ptr<Expression>& mark, LogicalPlan& probePlan, LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
+    const std::shared_ptr<Expression>& mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
+    LogicalPlan& resultPlan) {
     std::vector<join_condition_t> joinConditions;
     for (auto& joinNodeID : joinNodeIDs) {
         joinConditions.emplace_back(joinNodeID, joinNodeID);

@@ -273,9 +273,9 @@ public:
     void appendHashJoin(const std::vector<binder::expression_pair>& joinConditions,
         common::JoinType joinType, std::shared_ptr<binder::Expression> mark, LogicalPlan& probePlan,
         LogicalPlan& buildPlan, LogicalPlan& resultPlan);
-    void appendAccHashJoin(const std::vector<binder::expression_pair>& joinConditions, common::JoinType joinType,
-        std::shared_ptr<binder::Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
-        LogicalPlan& resultPlan);
+    void appendAccHashJoin(const std::vector<binder::expression_pair>& joinConditions,
+        common::JoinType joinType, std::shared_ptr<binder::Expression> mark, LogicalPlan& probePlan,
+        LogicalPlan& buildPlan, LogicalPlan& resultPlan);
     void appendMarkJoin(const binder::expression_vector& joinNodeIDs,
         const std::shared_ptr<binder::Expression>& mark, LogicalPlan& probePlan,
         LogicalPlan& buildPlan, LogicalPlan& resultPlan);
