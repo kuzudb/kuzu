@@ -32,7 +32,7 @@ struct SimpleTableFuncSharedState : TableFuncSharedState {
     KUZU_API SimpleTableFuncMorsel getMorsel();
 };
 
-struct SimpleTableFuncBindData : TableFuncBindData {
+struct KUZU_API SimpleTableFuncBindData : TableFuncBindData {
     common::offset_t maxOffset;
 
     explicit SimpleTableFuncBindData(common::offset_t maxOffset)
