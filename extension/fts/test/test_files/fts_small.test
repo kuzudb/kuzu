@@ -18,6 +18,18 @@
 
 -LOG QueryFTSConjunctiveMultiKeywords
 -STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice studying', conjunctive := true) RETURN node.ID, score
+// CALL create_project_graph('PK', ['{}', '{}'], ['{}']);
+//  "UNWIND tokenize('{}') AS tk "
+//          "WITH collect(stem(tk, '{}')) AS keywords "
+//          "MATCH (a:`{}`) "
+//          "WHERE list_contains(keywords, a.term) "
+//          "CALL QFTS(PK, a, {}, {}, cast({} as UINT64), {}, cast({} as UINT64), {}, '{}') "
+//          "RETURN _node, score;",
+
+// MATCH (a:`{}`) "
+ //         WHERE list_contains(keywords, a.term)
+// CALL QFTS('doc', 'docIdx', 'alice studying') "
+// RETURN _node, score;
 ---- 2
 0|0.326304
 3|0.268989
