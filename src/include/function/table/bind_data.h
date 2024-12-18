@@ -29,6 +29,7 @@ struct KUZU_API TableFuncBindData {
         : columns{other.columns}, numWarningDataColumns(other.numWarningDataColumns),
           cardinality{other.cardinality}, columnSkips{other.columnSkips},
           columnPredicates{copyVector(other.columnPredicates)} {}
+    TableFuncBindData& operator=(const TableFuncBindData& other) = delete;
     virtual ~TableFuncBindData() = default;
 
     common::idx_t getNumColumns() const { return columns.size(); }
