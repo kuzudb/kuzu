@@ -110,8 +110,6 @@ public:
         }
     }
 
-    void deserializeCaseInsensitiveSet(common::case_insensitve_set_t& values);
-
 private:
     std::unique_ptr<Reader> reader;
 };
