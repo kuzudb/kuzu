@@ -14,7 +14,7 @@ namespace common {
 class ValueVector;
 
 // AuxiliaryBuffer holds data which is only used by the targeting dataType.
-class AuxiliaryBuffer {
+class KUZU_API AuxiliaryBuffer {
 public:
     virtual ~AuxiliaryBuffer() = default;
 
@@ -43,7 +43,7 @@ private:
     std::unique_ptr<InMemOverflowBuffer> inMemOverflowBuffer;
 };
 
-class StructAuxiliaryBuffer : public AuxiliaryBuffer {
+class KUZU_API StructAuxiliaryBuffer : public AuxiliaryBuffer {
 public:
     StructAuxiliaryBuffer(const LogicalType& type, storage::MemoryManager* memoryManager);
 
