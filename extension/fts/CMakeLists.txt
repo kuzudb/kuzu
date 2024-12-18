@@ -14,7 +14,8 @@ add_subdirectory(third_party/snowball)
 
 target_link_libraries(fts_extension
         PRIVATE
-        snowball)
+        snowball
+        re2)
 
 set_extension_properties(fts_extension fts fts)
 

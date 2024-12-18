@@ -115,13 +115,11 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
         runQuery(clientContext, query);
         // Compute score
         query = common::stringFormat(
-            "UNWIND tokenize('{}') AS tk "
-            "WITH collect(stem(tk, '{}')) AS keywords "
             "MATCH (a:`{}`) "
-            "WHERE list_contains(keywords, a.term) "
+            "WHERE list_contains(get_keys('{}', '{}'), a.term) "
             "CALL QFTS(PK, a, {}, {}, cast({} as UINT64), {}, cast({} as UINT64), {}, '{}') "
             "RETURN _node AS p, score",
-            actualQuery, bindData.entry.getFTSConfig().stemmer, bindData.getTermsTableName(),
+            bindData.getTermsTableName(), actualQuery, bindData.entry.getFTSConfig().stemmer,
             bindData.config.k, bindData.config.b, numDocs, avgDocLen, numTermsInQuery,
             bindData.config.isConjunctive ? "true" : "false", bindData.tableName);
         localState->result = runQuery(clientContext, query);
