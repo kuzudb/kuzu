@@ -19,6 +19,10 @@ struct SimpleTableFuncMorsel {
     static SimpleTableFuncMorsel createInvalidMorsel() {
         return {common::INVALID_OFFSET, common::INVALID_OFFSET};
     }
+
+    bool isInvalid() const {
+        return startOffset == common::INVALID_OFFSET && endOffset == common::INVALID_OFFSET;
+    }
 };
 
 struct SimpleTableFuncSharedState : TableFuncSharedState {
@@ -126,7 +130,7 @@ struct ShowAttachedDatabasesFunction final : SimpleTableFunction {
     static function_set getFunctionSet();
 };
 
-struct ShowFunctionsFunction : public SimpleTableFunction {
+struct ShowFunctionsFunction final : SimpleTableFunction {
     static constexpr const char* name = "SHOW_FUNCTIONS";
 
     static function_set getFunctionSet();

@@ -42,6 +42,7 @@ public:
     void computeFlatSchema() override;
 
     const binder::BoundCopyFromInfo* getInfo() const { return &info; }
+    binder::BoundCopyFromInfo* getInfo() { return &info; }
     binder::expression_vector getOutExprs() const { return outExprs; }
 
     std::unique_ptr<OPPrintInfo> getPrintInfo() const override {

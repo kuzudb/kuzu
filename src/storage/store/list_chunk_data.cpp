@@ -209,7 +209,6 @@ void ListChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     }
     auto startOffset = getListStartOffset(offsetInChunk);
     auto listSize = getListSize(offsetInChunk);
-    output.setValue<list_entry_t>(posInOutputVector, list_entry_t{startOffset, listSize});
     auto dataVector = ListVector::getDataVector(&output);
     auto currentListDataSize = ListVector::getDataVectorSize(&output);
     ListVector::resizeDataVector(&output, currentListDataSize + listSize);

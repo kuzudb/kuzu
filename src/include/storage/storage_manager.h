@@ -21,16 +21,14 @@ public:
     StorageManager(const std::string& databasePath, bool readOnly, const catalog::Catalog& catalog,
         MemoryManager& memoryManager, bool enableCompression, common::VirtualFileSystem* vfs,
         main::ClientContext* context);
-
     ~StorageManager();
+
     static void recover(main::ClientContext& clientContext);
 
     void createTable(common::table_id_t tableID, const catalog::Catalog* catalog,
         main::ClientContext* context);
 
     void checkpoint(main::ClientContext& clientContext);
-
-    PrimaryKeyIndex* getPKIndex(common::table_id_t tableID);
 
     Table* getTable(common::table_id_t tableID) {
         std::lock_guard lck{mtx};
@@ -41,7 +39,6 @@ public:
     WAL& getWAL() const;
     ShadowFile& getShadowFile() const;
     FileHandle* getDataFH() const { return dataFH; }
-    FileHandle* getMetadataFH() const { return metadataFH; }
     std::string getDatabasePath() const { return databasePath; }
     bool isReadOnly() const { return readOnly; }
     bool compressionEnabled() const { return enableCompression; }
@@ -54,8 +51,7 @@ private:
         main::ClientContext* context);
     void createNodeTable(common::table_id_t tableID, catalog::NodeTableCatalogEntry* nodeTableEntry,
         main::ClientContext* context);
-    void createRelTable(common::table_id_t tableID, catalog::RelTableCatalogEntry* relTableEntry,
-        const catalog::Catalog* catalog, transaction::Transaction* transaction);
+    void createRelTable(common::table_id_t tableID, catalog::RelTableCatalogEntry* relTableEntry);
     void createRelTableGroup(common::table_id_t tableID,
         const catalog::RelGroupCatalogEntry* tableSchema, const catalog::Catalog* catalog,
         transaction::Transaction* transaction);

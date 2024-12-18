@@ -44,7 +44,7 @@ protected:
     std::unique_ptr<ResultSetDescriptor> resultSetDescriptor;
 };
 
-class DummySink : public Sink {
+class DummySink final : public Sink {
 public:
     DummySink(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
@@ -58,8 +58,11 @@ public:
     }
 
 protected:
-    void executeInternal(kuzu::processor::ExecutionContext* context) override {
+    void executeInternal(ExecutionContext* context) override {
+        initLocalState(resultSet, context);
+        metrics->executionTime.start();
         while (children[0]->getNextTuple(context)) {}
+        metrics->executionTime.stop();
     }
 };
 

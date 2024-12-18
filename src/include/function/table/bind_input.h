@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "binder/expression/expression.h"
+#include "binder/expression/node_expression.h"
 #include "common/case_insensitive_map.h"
 #include "common/copier_config/reader_config.h"
 #include "common/types/value/value.h"
@@ -55,7 +55,7 @@ struct ExtraScanTableFuncBindInput : ExtraTableFuncBindInput {
     common::ReaderConfig config;
     std::vector<std::string> expectedColumnNames;
     std::vector<common::LogicalType> expectedColumnTypes;
-    function::TableFunction* tableFunction = nullptr;
+    TableFunction* tableFunction = nullptr;
 };
 
 } // namespace function

@@ -1,6 +1,9 @@
+add_subdirectory(hnsw)
+
 add_library(kuzu_table_call
         OBJECT
         bm_info.cpp
+        clear_warnings.cpp
         create_project_graph.cpp
         current_setting.cpp
         db_version.cpp
@@ -9,7 +12,6 @@ add_library(kuzu_table_call
         show_attached_databases.cpp
         show_tables.cpp
         show_warnings.cpp
-        clear_warnings.cpp
         stats_info.cpp
         storage_info.cpp
         table_info.cpp

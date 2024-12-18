@@ -133,7 +133,7 @@ public:
     std::vector<std::shared_ptr<parser::Statement>> parseQuery(std::string_view query);
 
     void setDefaultDatabase(AttachedKuzuDatabase* defaultDatabase_);
-    bool hasDefaultDatabase();
+    bool hasDefaultDatabase() const;
 
     void addScalarFunction(std::string name, function::function_set definitions);
     void removeScalarFunction(std::string name);
@@ -179,7 +179,7 @@ private:
     std::unique_ptr<QueryResult> executeNoLock(PreparedStatement* preparedStatement,
         uint32_t planIdx = 0u, std::optional<uint64_t> queryID = std::nullopt);
 
-    bool canExecuteWriteQuery();
+    bool canExecuteWriteQuery() const;
 
     void runFuncInTransaction(const std::function<void(void)>& fun);
 

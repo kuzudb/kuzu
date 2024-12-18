@@ -32,6 +32,8 @@ enum class SIPDirection {
     NONE = 0,
     PROBE_TO_BUILD = 1,
     BUILD_TO_PROBE = 2,
+    // TODO(Xiyang/Guodong): Temp hack to allow vector index search to pass semi mask.
+    FORCE_BUILD_TO_PROBE = 3,
 };
 
 /*

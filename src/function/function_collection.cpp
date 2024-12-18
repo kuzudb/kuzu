@@ -19,6 +19,7 @@
 #include "function/sequence/sequence_functions.h"
 #include "function/string/vector_string_functions.h"
 #include "function/struct/vector_struct_functions.h"
+#include "function/table/hnsw/hnsw_index_functions.h"
 #include "function/table/simple_table_functions.h"
 #include "function/timestamp/vector_timestamp_functions.h"
 #include "function/union/vector_union_functions.h"
@@ -217,11 +218,15 @@ FunctionCollection* FunctionCollection::getFunctions() {
         TABLE_FUNCTION(StatsInfoFunction), TABLE_FUNCTION(StorageInfoFunction),
         TABLE_FUNCTION(ShowAttachedDatabasesFunction), TABLE_FUNCTION(ShowSequencesFunction),
         TABLE_FUNCTION(ShowFunctionsFunction), TABLE_FUNCTION(BMInfoFunction),
+        TABLE_FUNCTION(QueryHNSWIndexFunction),
 
         // Standalone Table functions
         STANDALONE_TABLE_FUNCTION(ClearWarningsFunction),
         STANDALONE_TABLE_FUNCTION(CreateProjectGraphFunction),
         STANDALONE_TABLE_FUNCTION(DropProjectGraphFunction),
+        // TODO(Guodong): Move this from builtin to extension.
+        STANDALONE_TABLE_FUNCTION(CreateHNSWIndexFunction),
+        STANDALONE_TABLE_FUNCTION(DropHNSWIndexFunction),
 
         // Scan functions
         TABLE_FUNCTION(ParquetScanFunction), TABLE_FUNCTION(NpyScanFunction),

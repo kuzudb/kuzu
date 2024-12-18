@@ -4,6 +4,7 @@
 #include "binder/expression/literal_expression.h"
 #include "catalog/catalog.h"
 #include "function/built_in_function_utils.h"
+#include "function/table/hnsw/hnsw_index_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -11,7 +12,7 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace binder {
 
-static void validateParameterType(expression_vector positionalParams) {
+static void validateParameterType(const expression_vector& positionalParams) {
     for (auto& param : positionalParams) {
         ExpressionUtil::validateExpressionType(*param,
             {ExpressionType::LITERAL, ExpressionType::PARAMETER});

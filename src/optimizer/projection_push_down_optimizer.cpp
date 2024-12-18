@@ -267,10 +267,12 @@ void ProjectionPushDownOptimizer::visitSetProperty(LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitCopyFrom(LogicalOperator* op) {
     auto& copyFrom = op->constCast<LogicalCopyFrom>();
-    for (auto& expr : copyFrom.getInfo()->source->getColumns()) {
+    for (auto& expr : copyFrom.getInfo()->getSourceColumns()) {
         collectExpressionsInUse(expr);
     }
-    collectExpressionsInUse(copyFrom.getInfo()->offset);
+    if (copyFrom.getInfo()->offset) {
+        collectExpressionsInUse(copyFrom.getInfo()->offset);
+    }
 }
 
 void ProjectionPushDownOptimizer::visitTableFunctionCall(LogicalOperator* op) {
