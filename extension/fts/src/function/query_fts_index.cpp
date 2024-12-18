@@ -115,13 +115,11 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
         runQuery(clientContext, query);
         // Compute score
         query = common::stringFormat(
-            "UNWIND tokenize('{}') AS tk "
-            "WITH collect(stem(tk, '{}')) AS keywords "
             "MATCH (a:`{}`) "
-            "WHERE list_contains(keywords, a.term) "
+            "WHERE list_contains(get_keys('{}', '{}'), a.term) "
             "CALL QFTS(PK, a, {}, {}, cast({} as UINT64), {}, cast({} as UINT64), {}, '{}') "
             "RETURN _node AS p, score",
-            actualQuery, bindData.entry.getFTSConfig().stemmer, bindData.getTermsTableName(),
+            bindData.getTermsTableName(), actualQuery, bindData.entry.getFTSConfig().stemmer,
             bindData.config.k, bindData.config.b, numDocs, avgDocLen, numTermsInQuery,
             bindData.config.isConjunctive ? "true" : "false", bindData.tableName);
         localState->result = runQuery(clientContext, query);
@@ -129,13 +127,13 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
         query = stringFormat("CALL drop_project_graph('PK')");
         runQuery(clientContext, query);
     }
-    if (localState->numRowsOutput >= localState->result->getNumTuples()) {
+    if (localState->numRowsOutput >= localState->result->getTable()->getNumTuples()) {
         return 0;
     }
     auto resultTable = localState->result->getTable();
     resultTable->scan(output.vectors, localState->numRowsOutput, 1 /* numRowsToScan */);
     localState->numRowsOutput++;
-    return 1;
+    return output.dataChunk.state->getSelSize();
 }
 
 std::unique_ptr<TableFuncLocalState> initLocalState(

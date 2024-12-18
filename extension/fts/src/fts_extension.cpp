@@ -3,6 +3,7 @@
 #include "catalog/catalog_entry/catalog_entry_type.h"
 #include "function/create_fts_index.h"
 #include "function/drop_fts_index.h"
+#include "function/get_keys.h"
 #include "function/query_fts_gds.h"
 #include "function/query_fts_index.h"
 #include "function/stem.h"
@@ -15,6 +16,7 @@ namespace fts_extension {
 void FTSExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
     ADD_SCALAR_FUNC(StemFunction);
+    ADD_SCALAR_FUNC(GetKeysFunction);
     ADD_GDS_FUNC(QFTSFunction);
     db.addStandaloneCallFunction(CreateFTSFunction::name, CreateFTSFunction::getFunctionSet());
     db.addTableFunction(QueryFTSFunction::name, QueryFTSFunction::getFunctionSet());
