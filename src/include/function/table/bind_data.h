@@ -23,17 +23,17 @@ struct KUZU_API TableFuncBindData {
         : columns{std::move(columns)}, numWarningDataColumns{0}, cardinality{0} {}
     TableFuncBindData(binder::expression_vector columns, common::column_id_t numWarningColumns,
         common::cardinality_t cardinality)
-        : columns{std::move(columns)}, numWarningDataColumns{numWarningColumns},
-          cardinality{cardinality} {}
+        : columns{std::move(columns)}, numWarningDataColumns{numWarningColumns}, cardinality{
+                                                                                     cardinality} {}
     TableFuncBindData(const TableFuncBindData& other)
-        : columns{other.columns}, numWarningDataColumns(other.numWarningDataColumns),
-          cardinality{other.cardinality}, columnSkips{other.columnSkips},
-          columnPredicates{copyVector(other.columnPredicates)} {}
+        : columns{other.columns},
+          numWarningDataColumns(other.numWarningDataColumns), cardinality{other.cardinality},
+          columnSkips{other.columnSkips}, columnPredicates{copyVector(other.columnPredicates)} {}
     virtual ~TableFuncBindData() = default;
 
     common::idx_t getNumColumns() const { return columns.size(); }
     void setColumnSkips(std::vector<bool> skips) { columnSkips = std::move(skips); }
-    KUZU_API std::vector<bool> getColumnSkips() const;
+    std::vector<bool> getColumnSkips() const;
 
     void setColumnPredicates(std::vector<storage::ColumnPredicateSet> predicates) {
         columnPredicates = std::move(predicates);
