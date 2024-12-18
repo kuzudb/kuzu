@@ -49,12 +49,12 @@ void Planner::appendHashJoin(const std::vector<expression_pair>& joinConditions,
     resultPlan.setLastOperator(std::move(hashJoin));
 }
 
-void Planner::appendAccHashJoin(const expression_vector& joinNodeIDs, JoinType joinType,
-    std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
-    LogicalPlan& resultPlan) {
+void Planner::appendAccHashJoin(const std::vector<binder::expression_pair>& joinConditions,
+    JoinType joinType, std::shared_ptr<Expression> mark, LogicalPlan& probePlan,
+    LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
     KU_ASSERT(probePlan.hasUpdate());
     tryAppendAccumulate(probePlan);
-    appendHashJoin(joinNodeIDs, joinType, mark, probePlan, buildPlan, resultPlan);
+    appendHashJoin(joinConditions, joinType, mark, probePlan, buildPlan, resultPlan);
     auto& sipInfo = probePlan.getLastOperator()->cast<LogicalHashJoin>().getSIPInfoUnsafe();
     sipInfo.direction = SIPDirection::PROBE_TO_BUILD;
 }
