@@ -1,16 +1,31 @@
 #include "planner/operator/logical_partitioner.h"
 
 #include "binder/expression/expression_util.h"
+#include "common/exception/runtime.h"
 
 namespace kuzu {
 namespace planner {
 
+static void validateSingleGroup(const Schema& schema) {
+    if (schema.getNumGroups() != 1) {
+        throw common::RuntimeException("Try to partition multiple factorization group. This should not happen.");
+    }
+}
+
 void LogicalPartitioner::computeFactorizedSchema() {
     copyChildSchema(0);
+    // LCOV_EXCL_START
+    validateSingleGroup(*schema);
+    // LCOV_EXCL_STOP
+    schema->insertToGroupAndScope(info.offset, 0);
 }
 
 void LogicalPartitioner::computeFlatSchema() {
     copyChildSchema(0);
+    // LCOV_EXCL_START
+    validateSingleGroup(*schema);
+    // LCOV_EXCL_STOP
+    schema->insertToGroupAndScope(info.offset, 0);
 }
 
 std::string LogicalPartitioner::getExpressionsForPrinting() const {

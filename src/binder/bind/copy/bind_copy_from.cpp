@@ -100,9 +100,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
         evaluateTypes.push_back(evaluateType);
     }
     columns.insert(columns.end(), warningDataExprs.begin(), warningDataExprs.end());
-    // TODO(Guodong): Should remove this expression.
-    auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
-        std::string(InternalKeyword::ANONYMOUS));
+    auto offset = createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
     auto boundCopyFromInfo = BoundCopyFromInfo(nodeTableEntry, std::move(boundSource),
         std::move(offset), std::move(columns), std::move(evaluateTypes), nullptr /* extraInfo */);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
@@ -124,8 +122,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
         copyStatement.getParsingOptionsRef(), expectedColumnNames, expectedColumnTypes);
     expression_vector warningDataExprs = boundSource->getWarningColumns();
     auto columns = boundSource->getColumns();
-    auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
-        std::string(InternalKeyword::ROW_OFFSET));
+    auto offset = createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
     auto srcTableID = relTableEntry->getSrcTableID();
     auto dstTableID = relTableEntry->getDstTableID();
     auto srcKey = columns[0];

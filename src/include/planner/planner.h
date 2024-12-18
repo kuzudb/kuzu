@@ -297,14 +297,13 @@ public:
     void tryAppendAccumulate(LogicalPlan& plan);
     // Accumulate everything.
     void appendAccumulate(LogicalPlan& plan);
-    // Accumulate everything. Append
+    // Accumulate everything. Append mark.
     void appendOptionalAccumulate(std::shared_ptr<binder::Expression> mark, LogicalPlan& plan);
     // Append accumulate with a set of expressions being flattened first.
     void appendAccumulate(const binder::expression_vector& flatExprs, LogicalPlan& plan);
-    // Append accumulate with a set of expressions being flattened first.
-    // Additionally, scan table with row offset.
+    // Append accumulate with a set of expressions being flattened first. Append mark.
     void appendAccumulate(common::AccumulateType accumulateType,
-        const binder::expression_vector& flatExprs, std::shared_ptr<binder::Expression> offset,
+        const binder::expression_vector& flatExprs,
         std::shared_ptr<binder::Expression> mark, LogicalPlan& plan);
 
     void appendDummyScan(LogicalPlan& plan);
@@ -318,8 +317,6 @@ public:
     void appendFilter(const std::shared_ptr<binder::Expression>& predicate, LogicalPlan& plan);
 
     void appendTableFunctionCall(const binder::BoundTableScanSourceInfo& info, LogicalPlan& plan);
-    void appendTableFunctionCall(const binder::BoundTableScanSourceInfo& info,
-        std::shared_ptr<binder::Expression> offset, LogicalPlan& plan);
 
     void appendDistinct(const binder::expression_vector& keys, LogicalPlan& plan);
 

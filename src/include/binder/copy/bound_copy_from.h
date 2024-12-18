@@ -22,9 +22,9 @@ struct ExtraBoundCopyFromInfo {
 struct BoundCopyFromInfo {
     // Table entry to copy into.
     catalog::TableCatalogEntry* tableEntry;
-    // Data source
+    // Data source.
     std::unique_ptr<BoundBaseScanSource> source;
-    // Row offset of input data to generate internal ID.
+    // Row offset.
     std::shared_ptr<Expression> offset;
     expression_vector columnExprs;
     std::vector<common::ColumnEvaluateType> columnEvaluateTypes;

@@ -53,9 +53,7 @@ BoundTableFunction Binder::bindTableFunc(std::string tableFuncName,
     bindInput.binder = this;
     auto bindData = tableFunc->bindFunc(clientContext, &bindInput);
     columns = bindData->columns;
-    auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
-        std::string(InternalKeyword::ROW_OFFSET));
-    return BoundTableFunction{tableFunc->copy(), std::move(bindData), std::move(offset)};
+    return BoundTableFunction{tableFunc->copy(), std::move(bindData)};
 }
 
 } // namespace binder
