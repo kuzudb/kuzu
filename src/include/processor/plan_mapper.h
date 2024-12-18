@@ -124,17 +124,11 @@ private:
         const binder::expression_vector& expressions, planner::Schema* schema,
         std::unique_ptr<PhysicalOperator> prevOperator);
 
-    // Scan fTable with row offset.
-    std::unique_ptr<PhysicalOperator> createFTableScan(const binder::expression_vector& exprs,
-        std::vector<ft_col_idx_t> colIndices, std::shared_ptr<binder::Expression> offset,
-        planner::Schema* schema, std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize,
-        physical_op_vector_t children);
-    // Scan fTable without row offset.
+    // Scan fTable
     std::unique_ptr<PhysicalOperator> createFTableScan(const binder::expression_vector& exprs,
         std::vector<ft_col_idx_t> colIndices, planner::Schema* schema,
         std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize,
         physical_op_vector_t children);
-    // Scan fTable without row offset.
     // Scan is the leaf operator of physical plan.
     std::unique_ptr<PhysicalOperator> createFTableScan(const binder::expression_vector& exprs,
         std::vector<ft_col_idx_t> colIndices, planner::Schema* schema,
@@ -149,13 +143,6 @@ private:
     std::unique_ptr<PhysicalOperator> createEmptyFTableScan(std::shared_ptr<FactorizedTable> table,
         uint64_t maxMorselSize);
     // Assume scans all columns of table in the same order as given expressions.
-    // Scan fTable with row offset.
-    std::unique_ptr<PhysicalOperator> createFTableScanAligned(
-        const binder::expression_vector& exprs, planner::Schema* schema,
-        std::shared_ptr<binder::Expression> offset, std::shared_ptr<FactorizedTable> table,
-        uint64_t maxMorselSize, physical_op_vector_t children);
-    // Assume scans all columns of table in the same order as given expressions.
-    // Scan fTable without row offset.
     std::unique_ptr<PhysicalOperator> createFTableScanAligned(
         const binder::expression_vector& exprs, planner::Schema* schema,
         std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize,

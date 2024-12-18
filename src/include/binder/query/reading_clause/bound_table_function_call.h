@@ -18,7 +18,6 @@ public:
 
     const function::TableFunction& getTableFunc() const { return *tableFunc.tableFunction; }
     const function::TableFuncBindData* getBindData() const { return tableFunc.bindData.get(); }
-    std::shared_ptr<Expression> getOffset() const { return tableFunc.offset; }
     expression_vector getColumns() const { return columns; }
 
 private:

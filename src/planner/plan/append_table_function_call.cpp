@@ -9,13 +9,8 @@ namespace kuzu {
 namespace planner {
 
 void Planner::appendTableFunctionCall(const BoundTableScanSourceInfo& info, LogicalPlan& plan) {
-    appendTableFunctionCall(info, nullptr /* nullptr */, plan);
-}
-
-void Planner::appendTableFunctionCall(const BoundTableScanSourceInfo& info,
-    std::shared_ptr<Expression> offset, LogicalPlan& plan) {
-    auto call = std::make_shared<LogicalTableFunctionCall>(info.func, info.bindData->copy(),
-        info.columns, offset);
+    auto call =
+        std::make_shared<LogicalTableFunctionCall>(info.func, info.bindData->copy(), info.columns);
     call->computeFactorizedSchema();
     plan.setLastOperator(std::move(call));
 }
@@ -23,14 +18,14 @@ void Planner::appendTableFunctionCall(const BoundTableScanSourceInfo& info,
 std::shared_ptr<LogicalOperator> Planner::getTableFunctionCall(
     const binder::BoundTableScanSourceInfo& info) {
     return std::make_shared<LogicalTableFunctionCall>(info.func, info.bindData->copy(),
-        info.columns, nullptr /* offset */);
+        info.columns);
 }
 
 std::shared_ptr<LogicalOperator> Planner::getTableFunctionCall(
     const BoundReadingClause& readingClause) {
     auto& call = readingClause.constCast<BoundTableFunctionCall>();
     return std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(),
-        call.getBindData()->copy(), call.getColumns(), call.getOffset());
+        call.getBindData()->copy(), call.getColumns());
 }
 
 } // namespace planner

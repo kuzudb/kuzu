@@ -9,9 +9,6 @@ void LogicalTableFunctionCall::computeFlatSchema() {
     for (auto& expr : columns) {
         schema->insertToGroupAndScope(expr, groupPos);
     }
-    if (offset != nullptr) {
-        schema->insertToGroupAndScope(offset, groupPos);
-    }
 }
 
 void LogicalTableFunctionCall::computeFactorizedSchema() {
@@ -19,9 +16,6 @@ void LogicalTableFunctionCall::computeFactorizedSchema() {
     auto groupPos = schema->createGroup();
     for (auto& expr : columns) {
         schema->insertToGroupAndScope(expr, groupPos);
-    }
-    if (offset != nullptr) {
-        schema->insertToGroupAndScope(offset, groupPos);
     }
 }
 

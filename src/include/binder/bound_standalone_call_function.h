@@ -7,17 +7,17 @@ namespace kuzu {
 namespace binder {
 
 class BoundStandaloneCallFunction : public BoundStatement {
+    static constexpr common::StatementType statementType =
+        common::StatementType::STANDALONE_CALL_FUNCTION;
+
 public:
     explicit BoundStandaloneCallFunction(BoundTableFunction tableFunc)
-        : BoundStatement{common::StatementType::STANDALONE_CALL_FUNCTION,
-              BoundStatementResult::createEmptyResult()},
+        : BoundStatement{statementType, BoundStatementResult::createEmptyResult()},
           tableFunc{std::move(tableFunc)} {}
 
     const function::TableFunction& getTableFunction() const { return *tableFunc.tableFunction; }
 
     function::TableFuncBindData* getBindData() const { return tableFunc.bindData.get(); }
-
-    std::shared_ptr<Expression> getOffset() const { return tableFunc.offset; }
 
 private:
     BoundTableFunction tableFunc;

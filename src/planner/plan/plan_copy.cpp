@@ -72,7 +72,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyNodeFrom(const BoundCopyFromInfo* 
         auto& querySource = info->source->constCast<BoundQueryScanSource>();
         plan = getBestPlan(planQuery(*querySource.statement));
         appendAccumulate(AccumulateType::REGULAR, plan->getSchema()->getExpressionsInScope(),
-            info->offset, nullptr /* mark */, *plan);
+            nullptr /* mark */, *plan);
     } break;
     default:
         KU_UNREACHABLE;
@@ -99,13 +99,13 @@ std::unique_ptr<LogicalPlan> Planner::planCopyRelFrom(const BoundCopyFromInfo* i
     case ScanSourceType::FILE:
     case ScanSourceType::OBJECT: {
         auto& fileSource = info->source->constCast<BoundTableScanSource>();
-        appendTableFunctionCall(fileSource.info, info->offset, *plan);
+        appendTableFunctionCall(fileSource.info, *plan);
     } break;
     case ScanSourceType::QUERY: {
         auto& querySource = info->source->constCast<BoundQueryScanSource>();
         plan = getBestPlan(planQuery(*querySource.statement));
         appendAccumulate(AccumulateType::REGULAR, plan->getSchema()->getExpressionsInScope(),
-            info->offset, nullptr /* mark */, *plan);
+            nullptr /* mark */, *plan);
     } break;
     default:
         KU_UNREACHABLE;

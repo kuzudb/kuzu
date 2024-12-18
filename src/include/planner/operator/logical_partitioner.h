@@ -44,11 +44,13 @@ struct LogicalPartitionerInfo {
 };
 
 class LogicalPartitioner final : public LogicalOperator {
+    static constexpr LogicalOperatorType type = LogicalOperatorType::PARTITIONER;
+
 public:
     LogicalPartitioner(LogicalPartitionerInfo info, binder::BoundCopyFromInfo copyFromInfo,
         std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::PARTITIONER, std::move(child)},
-          info{std::move(info)}, copyFromInfo{std::move(copyFromInfo)} {}
+        : LogicalOperator{type, std::move(child)}, info{std::move(info)},
+          copyFromInfo{std::move(copyFromInfo)} {}
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
