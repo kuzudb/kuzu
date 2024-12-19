@@ -81,7 +81,8 @@ ColumnChunkData::ColumnChunkData(MemoryManager& mm, LogicalType dataType, uint64
     bool enableCompression, ResidencyState residencyState, bool hasNullData, bool initializeToZero)
     : residencyState{residencyState}, dataType{std::move(dataType)},
       enableCompression{enableCompression},
-      numBytesPerValue{getDataTypeSizeInChunk(this->dataType)}, capacity{capacity}, numValues{0} {
+      numBytesPerValue{getDataTypeSizeInChunk(this->dataType)}, capacity{capacity}, numValues{0},
+      inMemoryStats() {
     if (hasNullData) {
         nullData = std::make_unique<NullChunkData>(mm, capacity, enableCompression, residencyState);
     }
@@ -180,21 +181,29 @@ static void updateInMemoryStats(ColumnChunkStats& stats, const ValueVector& valu
     uint64_t offset = 0, uint64_t numValues = std::numeric_limits<uint64_t>::max()) {
     const auto physicalType = values.dataType.getPhysicalType();
     const auto numValuesToCheck = std::min(numValues, values.state->getSelSize());
-    stats.update(values.getData(), offset, numValuesToCheck, physicalType);
+    stats.update(values.getData(), offset, numValuesToCheck, &values.getNullMask(), physicalType);
 }
 
 static void updateInMemoryStats(ColumnChunkStats& stats, const ColumnChunkData* values,
     uint64_t offset = 0, uint64_t numValues = std::numeric_limits<uint64_t>::max()) {
     const auto physicalType = values->getDataType().getPhysicalType();
     const auto numValuesToCheck = std::min(values->getNumValues(), numValues);
-    stats.update(values->getData(), offset, numValuesToCheck, physicalType);
+    const auto nullMask = values->getNullMask();
+    stats.update(values->getData(), offset, numValuesToCheck,
+        nullMask ? &nullMask.value() : nullptr, physicalType);
 }
 
-ColumnChunkStats ColumnChunkData::getMergedColumnChunkStats() const {
+MergedColumnChunkStats ColumnChunkData::getMergedColumnChunkStats() const {
     const CompressionMetadata& onDiskMetadata = metadata.compMeta;
-    auto ret = inMemoryStats;
-    ret.update(onDiskMetadata.min, onDiskMetadata.max, getDataType().getPhysicalType());
-    return ret;
+    ColumnChunkStats stats = inMemoryStats;
+    const auto physicalType = getDataType().getPhysicalType();
+    const bool isStorageValueType =
+        common::TypeUtils::visit(physicalType, []<typename T>(T) { return StorageValueType<T>; });
+    if (isStorageValueType) {
+        stats.update(onDiskMetadata.min, onDiskMetadata.max, physicalType);
+    }
+    return MergedColumnChunkStats{stats, !nullData || nullData->haveNoNullsGuaranteed(),
+        nullData && nullData->haveAllNullsGuaranteed()};
 }
 
 void ColumnChunkData::updateStats(const common::ValueVector* vector,
@@ -204,12 +213,11 @@ void ColumnChunkData::updateStats(const common::ValueVector* vector,
     } else {
         TypeUtils::visit(
             getDataType().getPhysicalType(),
-            [this, vector, &selVector]<StorageValueType T>(T) {
-                for (idx_t i = 0; i < selVector.getSelSize(); ++i) {
-                    auto pos = selVector.getSelectedPositions()[i];
-                    auto val = vector->getValue<T>(pos);
+            [this, vector]<StorageValueType T>(T) {
+                vector->forEachNonNull([this, vector](auto pos) {
+                    const auto val = vector->getValue<T>(pos);
                     inMemoryStats.update(StorageValue{val}, getDataType().getPhysicalType());
-                }
+                });
             },
             []<typename T>(T) { static_assert(!StorageValueType<T>); });
     }
@@ -662,7 +670,9 @@ void BoolChunkData::write(const ValueVector* vector, offset_t offsetInVector,
         nullData->write(vector, offsetInVector, offsetInChunk);
     }
     numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
-    inMemoryStats.update(StorageValue{valueToSet}, dataType.getPhysicalType());
+    if (!vector->isNull(offsetInVector)) {
+        inMemoryStats.update(StorageValue{valueToSet}, dataType.getPhysicalType());
+    }
 }
 
 void BoolChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
@@ -681,9 +691,6 @@ void BoolChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
 
 void NullChunkData::setNull(offset_t pos, bool isNull) {
     setValue(isNull, pos);
-    if (isNull) {
-        mayHaveNullValue = true;
-    }
     // TODO(Guodong): Better let NullChunkData also support `append` a
     // vector.
     if (pos >= numValues) {
@@ -717,6 +724,14 @@ void NullChunkData::append(ColumnChunkData* other, offset_t startOffsetInOtherCh
         numValuesToAppend);
     numValues += numValuesToAppend;
     updateInMemoryStats(inMemoryStats, other, startOffsetInOtherChunk, numValuesToAppend);
+}
+
+bool NullChunkData::haveNoNullsGuaranteed() const {
+    return noNullsGuaranteedInMem() && !metadata.compMeta.max.get<bool>();
+}
+
+bool NullChunkData::haveAllNullsGuaranteed() const {
+    return allNullsGuaranteedInMem() && metadata.compMeta.min.get<bool>();
 }
 
 void NullChunkData::serialize(Serializer& serializer) const {

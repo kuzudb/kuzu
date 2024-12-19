@@ -11,8 +11,20 @@ struct ColumnChunkStats {
         common::PhysicalTypeID dataType);
     void update(StorageValue val, common::PhysicalTypeID dataType);
     void update(uint8_t* data, uint64_t offset, uint64_t numValues,
-        common::PhysicalTypeID physicalType);
+        const common::NullMask* nullMask, common::PhysicalTypeID physicalType);
     void reset();
+};
+
+struct MergedColumnChunkStats {
+    MergedColumnChunkStats(ColumnChunkStats stats, bool guaranteedNoNulls, bool guaranteedAllNulls)
+        : stats(stats), guaranteedNoNulls(guaranteedNoNulls),
+          guaranteedAllNulls(guaranteedAllNulls) {}
+
+    ColumnChunkStats stats;
+    bool guaranteedNoNulls;
+    bool guaranteedAllNulls;
+
+    void merge(const MergedColumnChunkStats& o, common::PhysicalTypeID dataType);
 };
 
 } // namespace kuzu::storage

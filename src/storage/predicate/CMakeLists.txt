@@ -1,5 +1,6 @@
 add_library(kuzu_storage_predicate
         OBJECT
+        null_predicate.cpp
         column_predicate.cpp
         constant_predicate.cpp)
 
