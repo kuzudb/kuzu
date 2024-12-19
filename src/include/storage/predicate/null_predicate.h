@@ -6,27 +6,18 @@
 namespace kuzu {
 namespace storage {
 
-class ColumnIsNullPredicate : public ColumnPredicate {
+class ColumnNullPredicate : public ColumnPredicate {
 public:
-    explicit ColumnIsNullPredicate(std::string columnName)
-        : ColumnPredicate{std::move(columnName), common::ExpressionType::IS_NULL} {}
-
-    common::ZoneMapCheckResult checkZoneMap(const MergedColumnChunkStats& stats) const override;
-
-    std::unique_ptr<ColumnPredicate> copy() const override {
-        return std::make_unique<ColumnIsNullPredicate>(columnName);
+    explicit ColumnNullPredicate(std::string columnName, common::ExpressionType type)
+        : ColumnPredicate{std::move(columnName), type} {
+        KU_ASSERT(
+            type == common::ExpressionType::IS_NULL || type == common::ExpressionType::IS_NOT_NULL);
     }
-};
-
-class ColumnIsNotNullPredicate : public ColumnPredicate {
-public:
-    explicit ColumnIsNotNullPredicate(std::string columnName)
-        : ColumnPredicate{std::move(columnName), common::ExpressionType::IS_NOT_NULL} {}
 
     common::ZoneMapCheckResult checkZoneMap(const MergedColumnChunkStats& stats) const override;
 
     std::unique_ptr<ColumnPredicate> copy() const override {
-        return std::make_unique<ColumnIsNotNullPredicate>(columnName);
+        return std::make_unique<ColumnNullPredicate>(columnName, expressionType);
     }
 };
 

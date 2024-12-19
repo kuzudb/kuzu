@@ -3,15 +3,13 @@
 #include "storage/store/column_chunk_stats.h"
 
 namespace kuzu::storage {
-common::ZoneMapCheckResult ColumnIsNullPredicate::checkZoneMap(
+common::ZoneMapCheckResult ColumnNullPredicate::checkZoneMap(
     const MergedColumnChunkStats& mergedStats) const {
-    return mergedStats.guaranteedNoNulls ? common::ZoneMapCheckResult::SKIP_SCAN :
-                                           common::ZoneMapCheckResult::ALWAYS_SCAN;
+    const bool statToCheck = (expressionType == common::ExpressionType::IS_NULL) ?
+                                 mergedStats.guaranteedNoNulls :
+                                 mergedStats.guaranteedAllNulls;
+    return statToCheck ? common::ZoneMapCheckResult::SKIP_SCAN :
+                         common::ZoneMapCheckResult::ALWAYS_SCAN;
 }
 
-common::ZoneMapCheckResult ColumnIsNotNullPredicate::checkZoneMap(
-    const MergedColumnChunkStats& mergedStats) const {
-    return mergedStats.guaranteedAllNulls ? common::ZoneMapCheckResult::SKIP_SCAN :
-                                            common::ZoneMapCheckResult::ALWAYS_SCAN;
-}
 } // namespace kuzu::storage

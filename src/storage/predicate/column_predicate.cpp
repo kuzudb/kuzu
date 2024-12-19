@@ -86,7 +86,7 @@ static std::unique_ptr<ColumnPredicate> tryConvertToIsNull(const Expression& col
     const Expression& predicate) {
     // we only convert simple predicates
     if (isSimpleExpr(*predicate.getChild(0))) {
-        return std::make_unique<ColumnIsNullPredicate>(column.toString());
+        return std::make_unique<ColumnNullPredicate>(column.toString(), ExpressionType::IS_NULL);
     }
     return nullptr;
 }
@@ -94,7 +94,8 @@ static std::unique_ptr<ColumnPredicate> tryConvertToIsNull(const Expression& col
 static std::unique_ptr<ColumnPredicate> tryConvertToIsNotNull(const Expression& column,
     const Expression& predicate) {
     if (isSimpleExpr(*predicate.getChild(0))) {
-        return std::make_unique<ColumnIsNotNullPredicate>(column.toString());
+        return std::make_unique<ColumnNullPredicate>(column.toString(),
+            ExpressionType::IS_NOT_NULL);
     }
     return nullptr;
 }

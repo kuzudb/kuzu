@@ -59,7 +59,6 @@ protected:
 struct ColumnPredicateUtil {
     static std::unique_ptr<ColumnPredicate> tryConvert(const binder::Expression& column,
         const binder::Expression& predicate);
-    common::ExpressionType expressionType;
 };
 
 } // namespace storage

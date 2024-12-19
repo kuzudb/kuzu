@@ -181,7 +181,6 @@ static void updateInMemoryStats(ColumnChunkStats& stats, const ValueVector& valu
     uint64_t offset = 0, uint64_t numValues = std::numeric_limits<uint64_t>::max()) {
     const auto physicalType = values.dataType.getPhysicalType();
     const auto numValuesToCheck = std::min(numValues, values.state->getSelSize());
-    // we pessimistically set mayHaveNulls to check the entire vector instead of the selected range
     stats.update(values.getData(), offset, numValuesToCheck, &values.getNullMask(), physicalType);
 }
 
@@ -214,14 +213,11 @@ void ColumnChunkData::updateStats(const common::ValueVector* vector,
     } else {
         TypeUtils::visit(
             getDataType().getPhysicalType(),
-            [this, vector, &selVector]<StorageValueType T>(T) {
-                for (idx_t i = 0; i < selVector.getSelSize(); ++i) {
-                    auto pos = selVector.getSelectedPositions()[i];
-                    if (!vector->isNull(pos)) {
-                        const auto val = vector->getValue<T>(pos);
-                        inMemoryStats.update(StorageValue{val}, getDataType().getPhysicalType());
-                    }
-                }
+            [this, vector]<StorageValueType T>(T) {
+                vector->forEachNonNull([this, vector](auto pos) {
+                    const auto val = vector->getValue<T>(pos);
+                    inMemoryStats.update(StorageValue{val}, getDataType().getPhysicalType());
+                });
             },
             []<typename T>(T) { static_assert(!StorageValueType<T>); });
     }
