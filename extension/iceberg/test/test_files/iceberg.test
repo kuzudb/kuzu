@@ -14,13 +14,13 @@
 IO Error: Cannot open file "lineitem_iceberg.*metadata.*snap-7635660646343998149-1-10eaca8a-1e1c-421e-ad6d-b232e5ee23d3.avro": (The system cannot find the path specified.*|No such file or directory)
 
 -LOG LocalIcebergTable
--STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg' (file_format='iceberg', allow_moved_paths=true) RETURN l_linenumber, l_quantity, l_shipdate, l_shipinstruct LIMIT 5;
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg' (file_format='iceberg', allow_moved_paths=true) RETURN l_linenumber, l_quantity, l_shipdate, l_shipinstruct ORDER BY l_quantity, l_shipdate LIMIT 5;
 ---- 5
-1|17|1996-03-13|DELIVER IN PERSON
-2|36|1996-04-12|TAKE BACK RETURN
-3|8|1996-01-29|TAKE BACK RETURN
-4|28|1996-04-21|NONE
-5|24|1996-03-30|NONE
+1|6|1992-02-03|NONE
+1|6|1992-04-15|NONE
+2|6|1992-03-06|DELIVER IN PERSON
+4|6|1992-04-03|NONE
+6|6|1992-03-07|TAKE BACK RETURN
 
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/person_table' (file_format='iceberg', allow_moved_paths=true) RETURN *
 ---- 5
@@ -50,13 +50,13 @@ Yale|6|190.700000
 ---- ok
 -STATEMENT CALL s3_region='US'
 ---- ok
--STATEMENT LOAD FROM 's3://kuzu-test/iceberg' (file_format='iceberg', allow_moved_paths=true) RETURN l_linenumber, l_quantity, l_shipdate, l_shipinstruct LIMIT 5;
+-STATEMENT LOAD FROM 's3://kuzu-test/iceberg' (file_format='iceberg', allow_moved_paths=true) RETURN l_linenumber, l_quantity, l_shipdate, l_shipinstruct ORDER BY l_quantity, l_shipdate LIMIT 5;
 ---- 5
-1|17|1996-03-13|DELIVER IN PERSON
-2|36|1996-04-12|TAKE BACK RETURN
-3|8|1996-01-29|TAKE BACK RETURN
-4|28|1996-04-21|NONE
-5|24|1996-03-30|NONE
+1|6|1992-02-03|NONE
+1|6|1992-04-15|NONE
+2|6|1992-03-06|DELIVER IN PERSON
+4|6|1992-04-03|NONE
+6|6|1992-03-07|TAKE BACK RETURN
 
 # TODO(Sterling): DUCKDB didn't handle nested struct in iceberg yet
 #-LOG TableOfDifferentTypes
@@ -124,19 +124,19 @@ lineitem_iceberg/metadata/cf3d0be5-cf70-453d-ad8f-48fdc412e608-m0.avro|1|DATA|AD
 1|3776207205136740581|2023-02-15 15:07:54.504|lineitem_iceberg/metadata/snap-3776207205136740581-1-cf3d0be5-cf70-453d-ad8f-48fdc412e608.avro
 
 -LOG metadata_compression_codec
--STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg_gz' (file_format='iceberg', allow_moved_paths=true, metadata_compression_codec = 'gzip' ) RETURN l_linenumber, l_quantity, l_shipdate, l_shipinstruct LIMIT 5;
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg_gz' (file_format='iceberg', allow_moved_paths=true, metadata_compression_codec = 'gzip' ) RETURN l_linenumber, l_quantity, l_shipdate, l_shipinstruct ORDER BY l_quantity, l_shipdate LIMIT 5;
 ---- 5
-1|17|1996-03-13|DELIVER IN PERSON
-2|36|1996-04-12|TAKE BACK RETURN
-3|8|1996-01-29|TAKE BACK RETURN
-4|28|1996-04-21|NONE
-5|24|1996-03-30|NONE
+2|1|1992-02-01|TAKE BACK RETURN
+2|1|1992-02-07|DELIVER IN PERSON
+2|1|1992-02-23|TAKE BACK RETURN
+5|1|1992-01-25|TAKE BACK RETURN
+6|1|1992-02-10|COLLECT COD
 
 -LOG metadata_alter_name
--STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg_alter_name' (file_format='iceberg', allow_moved_paths=true, version_name_format = 'rev-%s.metadata.json%s' ) RETURN l_linenumber, l_quantity, l_shipdate, l_shipinstruct LIMIT 5;
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg_alter_name' (file_format='iceberg', allow_moved_paths=true, version_name_format = 'rev-%s.metadata.json%s' ) RETURN l_linenumber, l_quantity, l_shipdate, l_shipinstruct ORDER BY l_quantity, l_shipdate LIMIT 5;
 ---- 5
-1|17|1996-03-13|DELIVER IN PERSON
-2|36|1996-04-12|TAKE BACK RETURN
-3|8|1996-01-29|TAKE BACK RETURN
-4|28|1996-04-21|NONE
-5|24|1996-03-30|NONE
+1|6|1992-02-03|NONE
+1|6|1992-04-15|NONE
+2|6|1992-03-06|DELIVER IN PERSON
+4|6|1992-04-03|NONE
+6|6|1992-03-07|TAKE BACK RETURN
