@@ -1,5 +1,6 @@
 #include "binder/expression/property_expression.h"
 #include "binder/visitor/property_collector.h"
+#include "main/client_context.h"
 #include "planner/planner.h"
 
 using namespace kuzu::binder;
@@ -13,6 +14,10 @@ namespace planner {
 std::vector<std::unique_ptr<LogicalPlan>> Planner::planSingleQuery(
     const NormalizedSingleQuery* singleQuery) {
     auto propertyCollector = binder::PropertyCollector();
+    // path semantic in query will append a semantic filter like is_trail/is_acyclic，
+    // requiring that schema includes all patterns.
+    propertyCollector.setRecursivePatternSemantic(
+        clientContext->getClientConfig()->recursivePatternSemantic);
     propertyCollector.visitSingleQuery(*singleQuery);
     auto properties = propertyCollector.getProperties();
     for (auto& expr : propertyCollector.getProperties()) {
