@@ -134,17 +134,17 @@ True
 ---- 1
 False
 
-# -LOG ZoneMapConfig
-# -STATEMENT CALL enable_zone_map=true
-# ---- ok
-# -STATEMENT CALL current_setting('enable_zone_map') RETURN *
-# ---- 1
-# True
-# -STATEMENT CALL enable_zone_map=false
-# ---- ok
-# -STATEMENT CALL current_setting('enable_zone_map') RETURN *
-# ---- 1
-# False
+-LOG ZoneMapConfig
+-STATEMENT CALL enable_zone_map=true
+---- ok
+-STATEMENT CALL current_setting('enable_zone_map') RETURN *
+---- 1
+True
+-STATEMENT CALL enable_zone_map=false
+---- ok
+-STATEMENT CALL current_setting('enable_zone_map') RETURN *
+---- 1
+False
 
 -LOG NodeTableInfo
 -STATEMENT CALL table_info('person') RETURN *
