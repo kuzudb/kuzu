@@ -3,7 +3,6 @@
 #include "common/enums/column_evaluate_type.h"
 #include "common/types/types.h"
 #include "expression_evaluator/expression_evaluator.h"
-#include "processor/operator/aggregate/hash_aggregate.h"
 #include "processor/operator/persistent/batch_insert.h"
 #include "processor/operator/persistent/index_builder.h"
 #include "processor/operator/table_function_call.h"
@@ -73,7 +72,6 @@ struct NodeBatchInsertSharedState final : BatchInsertSharedState {
     std::optional<IndexBuilder> globalIndexBuilder;
 
     TableFunctionCallSharedState* readerSharedState;
-    HashAggregateSharedState* distinctSharedState;
 
     std::vector<common::column_id_t> mainDataColumns;
 
@@ -86,7 +84,7 @@ struct NodeBatchInsertSharedState final : BatchInsertSharedState {
         storage::MemoryManager* mm)
         : BatchInsertSharedState{table, std::move(fTable), wal, mm}, pkColumnID{pkColumnID},
           pkType{std::move(pkType)}, globalIndexBuilder(std::nullopt), readerSharedState{nullptr},
-          distinctSharedState{nullptr}, sharedNodeGroup{nullptr} {}
+          sharedNodeGroup{nullptr} {}
 
     void initPKIndex(const ExecutionContext* context);
 };

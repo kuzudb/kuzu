@@ -2,7 +2,6 @@
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
-#include "processor/operator/aggregate/hash_aggregate_scan.h"
 #include "processor/operator/index_lookup.h"
 #include "processor/operator/partitioner.h"
 #include "processor/operator/persistent/node_batch_insert.h"
@@ -75,10 +74,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     if (prevOperator->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL) {
         const auto call = prevOperator->ptrCast<TableFunctionCall>();
         sharedState->readerSharedState = call->getSharedState();
-    } else {
-        KU_ASSERT(prevOperator->getOperatorType() == PhysicalOperatorType::AGGREGATE_SCAN);
-        const auto hashScan = prevOperator->ptrCast<HashAggregateScan>();
-        sharedState->distinctSharedState = hashScan->getSharedState().get();
     }
     // Map copy node.
     std::vector<LogicalType> columnTypes;

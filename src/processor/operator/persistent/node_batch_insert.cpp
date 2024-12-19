@@ -6,7 +6,6 @@
 #include "function/table/scan_functions.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/index_builder.h"
-#include "processor/result/factorized_table.h"
 #include "processor/result/factorized_table_util.h"
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/node_table.h"
@@ -27,13 +26,9 @@ std::string NodeBatchInsertPrintInfo::toString() const {
 void NodeBatchInsertSharedState::initPKIndex(const ExecutionContext* context) {
     uint64_t numRows = 0;
     if (readerSharedState != nullptr) {
-        KU_ASSERT(distinctSharedState == nullptr);
         const auto scanSharedState =
             readerSharedState->funcState->ptrCast<function::BaseScanSharedState>();
         numRows = scanSharedState->getNumRows();
-    } else {
-        KU_ASSERT(distinctSharedState);
-        numRows = distinctSharedState->getFactorizedTable()->getNumTuples();
     }
     auto* nodeTable = ku_dynamic_cast<NodeTable*>(table);
     nodeTable->getPKIndex()->bulkReserve(numRows);
