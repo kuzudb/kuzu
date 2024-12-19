@@ -12,7 +12,7 @@ class FileSystem;
 
 namespace function {
 
-struct BaseScanSharedState : public TableFuncSharedState {
+struct KUZU_API BaseScanSharedState : public TableFuncSharedState {
     std::mutex lock;
 
     virtual uint64_t getNumRows() const = 0;
