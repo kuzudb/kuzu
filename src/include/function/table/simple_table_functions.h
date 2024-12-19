@@ -21,7 +21,7 @@ struct SimpleTableFuncMorsel {
     }
 };
 
-struct SimpleTableFuncSharedState : TableFuncSharedState {
+struct KUZU_API SimpleTableFuncSharedState : TableFuncSharedState {
     common::offset_t maxOffset;
     common::offset_t curOffset;
     std::mutex mtx;
