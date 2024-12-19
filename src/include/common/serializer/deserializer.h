@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "common/assert.h"
-#include "common/case_insensitive_map.h"
 #include "common/serializer/reader.h"
 
 namespace kuzu {
