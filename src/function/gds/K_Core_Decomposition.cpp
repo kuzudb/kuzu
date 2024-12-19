@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "binder/binder.h"
 #include "common/types/types.h"
 #include "function/gds/gds_frontier.h"
@@ -9,8 +11,6 @@
 #include "graph/graph.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
-
-#include <iostream>
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -32,8 +32,10 @@ class KCoreFrontierPair : public FrontierPair {
 public:
     KCoreFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
         std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreads,
-        table_id_map_t<offset_t> numNodesMap, storage::MemoryManager* mm, VertexCompute& vc1, VertexCompute& vc2)
-        : FrontierPair(curFrontier, nextFrontier, maxThreads), numNodesMap{numNodesMap}, vc1{vc1}, vc2{vc2} {
+        table_id_map_t<offset_t> numNodesMap, storage::MemoryManager* mm, VertexCompute& vc1,
+        VertexCompute& vc2)
+        : FrontierPair(curFrontier, nextFrontier, maxThreads), numNodesMap{numNodesMap}, vc1{vc1},
+          vc2{vc2} {
         for (const auto& [tableID, curNumNodes] : numNodesMap) {
             vertexValuesMap.allocate(tableID, curNumNodes, mm);
             removedMap.allocate(tableID, curNumNodes, mm);
@@ -62,9 +64,7 @@ public:
         curVertexValues = vertexValuesMap.getData(tableID);
     }
 
-    void pinRemoved(common::table_id_t tableID) {
-        curRemoved = removedMap.getData(tableID);
-    }
+    void pinRemoved(common::table_id_t tableID) { curRemoved = removedMap.getData(tableID); }
 
     void beginFrontierComputeBetweenTables(table_id_t curTableID, table_id_t nextTableID) override {
         FrontierPair::beginFrontierComputeBetweenTables(curTableID, nextTableID);
@@ -104,7 +104,8 @@ public:
         return curRemoved[offset].load(std::memory_order_relaxed);
     }
 
-    void updateSmallestDegree(common::offset_t startOffset, common::offset_t endOffset, common::table_id_t tableID) {
+    void updateSmallestDegree(common::offset_t startOffset, common::offset_t endOffset,
+        common::table_id_t tableID) {
         pinVertexValues(tableID);
         pinRemoved(tableID);
         uint64_t localMinDegree = UINT64_MAX;
@@ -125,7 +126,8 @@ public:
 
     uint64_t resetSmallestDegree() {
         auto prevSmallestDegree = getSmallestDegree();
-        curSmallestDegree.compare_exchange_strong(prevSmallestDegree, UINT64_MAX, std::memory_order_relaxed);
+        curSmallestDegree.compare_exchange_strong(prevSmallestDegree, UINT64_MAX,
+            std::memory_order_relaxed);
     }
 
     void setAllActive() {
@@ -231,9 +233,11 @@ private:
 class KCoreSetActiveVertexCompute : public VertexCompute {
 public:
     KCoreFrontierPair* kCoreFrontierPair;
+
 public:
-    KCoreSetActiveVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState, KCoreFrontierPair* kCoreFrontierPair)
-    : mm{mm}, sharedState{sharedState}, kCoreFrontierPair{kCoreFrontierPair} {}
+    KCoreSetActiveVertexCompute(storage::MemoryManager* mm,
+        processor::GDSCallSharedState* sharedState, KCoreFrontierPair* kCoreFrontierPair)
+        : mm{mm}, sharedState{sharedState}, kCoreFrontierPair{kCoreFrontierPair} {}
 
     ~KCoreSetActiveVertexCompute() override {}
 
@@ -243,9 +247,10 @@ public:
         return true;
     }
 
-    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset, common::table_id_t tableID) override {
+    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset,
+        common::table_id_t tableID) override {
         uint64_t smallestDegree = kCoreFrontierPair->getSmallestDegree();
-        for(uint64_t offset = startOffset; offset < endOffset; ++offset) {
+        for (uint64_t offset = startOffset; offset < endOffset; ++offset) {
             uint64_t curVertexDegree = kCoreFrontierPair->getVertexValue(offset);
             if (curVertexDegree == smallestDegree && !kCoreFrontierPair->isRemoved(offset)) {
                 nodeID_t curNode;
@@ -254,12 +259,12 @@ public:
                 kCoreFrontierPair->curDenseFrontier->setActive(curNode);
             }
         }
-
     }
 
     std::unique_ptr<VertexCompute> copy() override {
         return std::make_unique<KCoreSetActiveVertexCompute>(mm, sharedState, kCoreFrontierPair);
     }
+
 private:
     storage::MemoryManager* mm;
     processor::GDSCallSharedState* sharedState;
@@ -271,9 +276,11 @@ class KCoreUpdateVertexCompute : public VertexCompute {
     // Sets the nodes which need computation active inside the frontier
 public:
     KCoreFrontierPair* kCoreFrontierPair;
+
 public:
-    KCoreUpdateVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState, KCoreFrontierPair* kCoreFrontierPair)
-    : mm{mm}, sharedState{sharedState}, kCoreFrontierPair{kCoreFrontierPair} {}
+    KCoreUpdateVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState,
+        KCoreFrontierPair* kCoreFrontierPair)
+        : mm{mm}, sharedState{sharedState}, kCoreFrontierPair{kCoreFrontierPair} {}
 
     ~KCoreUpdateVertexCompute() override {}
 
@@ -283,7 +290,8 @@ public:
         return true;
     }
 
-    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset, common::table_id_t tableID) override {
+    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset,
+        common::table_id_t tableID) override {
         kCoreFrontierPair->updateSmallestDegree(startOffset, endOffset, tableID);
     }
 
@@ -367,17 +375,20 @@ public:
         auto numThreads = clientContext->getMaxNumThreadForExec();
         auto currentFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto nextFrontier = getPathLengthsFrontier(context, 0);
-        auto updateVertexCompute = std::make_unique<KCoreUpdateVertexCompute>(clientContext->getMemoryManager(),
-            sharedState.get(), nullptr);
-        auto setActiveVertexCompute = std::make_unique<KCoreSetActiveVertexCompute>(clientContext->getMemoryManager(),
-            sharedState.get(), nullptr);        
+        auto updateVertexCompute = std::make_unique<KCoreUpdateVertexCompute>(
+            clientContext->getMemoryManager(), sharedState.get(), nullptr);
+        auto setActiveVertexCompute = std::make_unique<KCoreSetActiveVertexCompute>(
+            clientContext->getMemoryManager(), sharedState.get(), nullptr);
         auto frontierPair = std::make_unique<KCoreFrontierPair>(currentFrontier, nextFrontier,
-            numThreads, numNodesMap, clientContext->getMemoryManager(), *updateVertexCompute, *setActiveVertexCompute);
+            numThreads, numNodesMap, clientContext->getMemoryManager(), *updateVertexCompute,
+            *setActiveVertexCompute);
         std::cout << "finnish up init" << std::endl;
         frontierPair->context = context;
         frontierPair->sharedState = sharedState;
-        frontierPair->vc1.ptrCast<KCoreSetActiveVertexCompute>()->kCoreFrontierPair = frontierPair.get();
-        frontierPair->vc1.ptrCast<KCoreUpdateVertexCompute>()->kCoreFrontierPair = frontierPair.get();
+        frontierPair->vc1.ptrCast<KCoreSetActiveVertexCompute>()->kCoreFrontierPair =
+            frontierPair.get();
+        frontierPair->vc1.ptrCast<KCoreUpdateVertexCompute>()->kCoreFrontierPair =
+            frontierPair.get();
         std::cout << "hacky assign" << std::endl;
 
         frontierPair->setActiveNodesForNextIter();
