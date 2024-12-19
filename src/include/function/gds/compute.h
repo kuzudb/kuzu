@@ -52,6 +52,11 @@ public:
     virtual void vertexCompute(common::offset_t, common::offset_t, common::table_id_t) {}
 
     virtual std::unique_ptr<VertexCompute> copy() = 0;
+
+    template<class TARGET>
+    TARGET* ptrCast() {
+        return common::ku_dynamic_cast<TARGET*>(this);
+    }
 };
 
 } // namespace function
