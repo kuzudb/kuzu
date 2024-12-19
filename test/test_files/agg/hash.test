@@ -14,6 +14,16 @@ Elizabeth|2
 Farooq|
 Greg|
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|
+-STATEMENT MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) WITH a.fName AS n, COLLECT(b) AS b_list RETURN n, size(b_list)
+---- 8
+Alice|3
+Bob|3
+Carol|3
+Dan|3
+Elizabeth|2
+Farooq|
+Greg|
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|
 -STATEMENT MATCH (a:person)-[r:knows]->(b:person) WHERE a.ID=0 RETURN r, COUNT(*)
 -ENUMERATE
 ---- 3

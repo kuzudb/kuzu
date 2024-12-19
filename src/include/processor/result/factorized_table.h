@@ -29,6 +29,7 @@ public:
     }
 
     uint8_t* getData() const { return block->getBuffer().data(); }
+    std::span<uint8_t> getSizedData() const { return block->getBuffer(); }
     uint8_t* getWritableData() const { return block->getBuffer().last(freeSize).data(); }
     void resetNumTuplesAndFreeSize() {
         freeSize = block->getBuffer().size();
@@ -104,6 +105,8 @@ public:
     void scan(std::vector<common::ValueVector*>& vectors, ft_tuple_idx_t tupleIdx,
         uint64_t numTuplesToScan, std::vector<uint32_t>& colIdxToScan) const;
     // TODO(Guodong): Unify these two interfaces along with `readUnflatCol`.
+    // startPos is the starting position in the tuplesToRead, not the starting position in the
+    // factorizedTable
     void lookup(std::vector<common::ValueVector*>& vectors, std::vector<uint32_t>& colIdxesToScan,
         uint8_t** tuplesToRead, uint64_t startPos, uint64_t numTuplesToRead) const;
     void lookup(std::vector<common::ValueVector*>& vectors,
