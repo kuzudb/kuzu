@@ -13,6 +13,7 @@ expression_vector BoundTableScanSource::getWarningColumns() const {
     }
     return warningDataExprs;
 }
+
 bool BoundTableScanSource::getIgnoreErrorsOption() const {
     return info.bindData->getIgnoreErrorsOption();
 }
