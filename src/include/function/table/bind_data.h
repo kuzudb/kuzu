@@ -12,7 +12,7 @@ class FileSystem;
 
 namespace function {
 
-struct TableFuncBindData {
+struct KUZU_API TableFuncBindData {
     binder::expression_vector columns;
     // the last {numWarningDataColumns} columns are for temporary internal use
     common::column_id_t numWarningDataColumns;
@@ -29,11 +29,12 @@ struct TableFuncBindData {
         : columns{other.columns}, numWarningDataColumns(other.numWarningDataColumns),
           cardinality{other.cardinality}, columnSkips{other.columnSkips},
           columnPredicates{copyVector(other.columnPredicates)} {}
+    TableFuncBindData& operator=(const TableFuncBindData& other) = delete;
     virtual ~TableFuncBindData() = default;
 
     common::idx_t getNumColumns() const { return columns.size(); }
     void setColumnSkips(std::vector<bool> skips) { columnSkips = std::move(skips); }
-    KUZU_API std::vector<bool> getColumnSkips() const;
+    std::vector<bool> getColumnSkips() const;
 
     void setColumnPredicates(std::vector<storage::ColumnPredicateSet> predicates) {
         columnPredicates = std::move(predicates);
@@ -41,6 +42,8 @@ struct TableFuncBindData {
     const std::vector<storage::ColumnPredicateSet>& getColumnPredicates() const {
         return columnPredicates;
     }
+
+    virtual bool getIgnoreErrorsOption() const;
 
     virtual std::unique_ptr<TableFuncBindData> copy() const = 0;
 
@@ -59,7 +62,7 @@ private:
     std::vector<storage::ColumnPredicateSet> columnPredicates;
 };
 
-struct ScanBindData : public TableFuncBindData {
+struct KUZU_API ScanBindData : public TableFuncBindData {
     common::ReaderConfig config;
     main::ClientContext* context;
 
@@ -73,6 +76,8 @@ struct ScanBindData : public TableFuncBindData {
           config{std::move(config)}, context{context} {}
     ScanBindData(const ScanBindData& other)
         : TableFuncBindData{other}, config{other.config.copy()}, context{other.context} {}
+
+    bool getIgnoreErrorsOption() const override;
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<ScanBindData>(*this);
