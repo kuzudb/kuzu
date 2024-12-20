@@ -431,7 +431,7 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
                                       vfs, context)},
       dbFileIDAndName{dbFileIDAndName}, shadowFile{*shadowFile} {
     KU_ASSERT(!(inMemMode && readOnly));
-    bool newIndex = (fileHandle->getNumPages() == 0);
+    bool newIndex = fileHandle->getNumPages() == 0;
 
     if (newIndex) {
         fileHandle->addNewPages(INDEX_HEADER_PAGES);
