@@ -102,6 +102,9 @@ public:
     void loadFromDisk() { data->loadFromDisk(); }
     uint64_t spillToDisk() { return data->spillToDisk(); }
 
+    MergedColumnChunkStats getMergedColumnChunkStats(
+        const transaction::Transaction* transaction) const;
+
 private:
     void scanCommittedUpdates(const transaction::Transaction* transaction, ColumnChunkData& output,
         common::offset_t startOffsetInOutput, common::row_idx_t startRowScanned,

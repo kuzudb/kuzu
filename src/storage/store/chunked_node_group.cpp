@@ -195,8 +195,8 @@ void ChunkedNodeGroup::write(const ChunkedNodeGroup& data, column_id_t offsetCol
     }
 }
 
-static ZoneMapCheckResult getZoneMapResult(const TableScanState& scanState,
-    const std::vector<std::unique_ptr<ColumnChunk>>& chunks) {
+static ZoneMapCheckResult getZoneMapResult(const Transaction* transaction,
+    const TableScanState& scanState, const std::vector<std::unique_ptr<ColumnChunk>>& chunks) {
     if (!scanState.columnPredicateSets.empty()) {
         for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
             const auto columnID = scanState.columnIDs[i];
@@ -206,12 +206,7 @@ static ZoneMapCheckResult getZoneMapResult(const TableScanState& scanState,
 
             KU_ASSERT(i < scanState.columnPredicateSets.size());
             const auto columnZoneMapResult = scanState.columnPredicateSets[i].checkZoneMap(
-                chunks[columnID]->getData().getMergedColumnChunkStats());
-            RUNTIME_CHECK(const bool columnHasStorageValueType =
-                              TypeUtils::visit(chunks[columnID]->getDataType().getPhysicalType(),
-                                  []<typename T>(T) { return StorageValueType<T>; }));
-            KU_ASSERT(columnHasStorageValueType ||
-                      columnZoneMapResult == common::ZoneMapCheckResult::ALWAYS_SCAN);
+                chunks[columnID]->getMergedColumnChunkStats(transaction));
             if (columnZoneMapResult == common::ZoneMapCheckResult::SKIP_SCAN) {
                 return common::ZoneMapCheckResult::SKIP_SCAN;
             }
@@ -225,7 +220,7 @@ void ChunkedNodeGroup::scan(const Transaction* transaction, const TableScanState
     length_t numRowsToScan) const {
     KU_ASSERT(rowIdxInGroup + numRowsToScan <= numRows);
     auto& anchorSelVector = scanState.outState->getSelVectorUnsafe();
-    if (getZoneMapResult(scanState, chunks) == common::ZoneMapCheckResult::SKIP_SCAN) {
+    if (getZoneMapResult(transaction, scanState, chunks) == common::ZoneMapCheckResult::SKIP_SCAN) {
         anchorSelVector.setToFiltered(0);
         return;
     }
