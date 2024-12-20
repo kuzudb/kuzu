@@ -14,45 +14,21 @@ namespace fts_extension {
 using namespace function;
 using namespace common;
 
-struct GetKeys {
-    static void operation(common::ku_string_t& word, common::ku_string_t& stemmer,
-        common::list_entry_t& result, common::ValueVector& resultVector);
-};
-
-void GetKeys::operation(common::ku_string_t& query, common::ku_string_t& stemmer,
-    common::list_entry_t& result, common::ValueVector& resultVector) {
+std::vector<std::string> getTerms(std::string& query, const std::string& stemmer) {
     std::string regexPattern = "[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\/\\|'\"`-]+";
     std::string replacePattern = " ";
-    std::string resultStr = query.getAsString();
-    RE2::GlobalReplace(&resultStr, regexPattern, replacePattern);
-    StringUtils::toLower(resultStr);
-    auto words = StringUtils::split(resultStr, " ");
-    StemFunction::validateStemmer(stemmer.getAsString());
-    auto sbStemmer = sb_stemmer_new(reinterpret_cast<const char*>(stemmer.getData()), "UTF_8");
-    result = ListVector::addList(&resultVector, words.size());
-    for (auto i = 0u; i < result.size; i++) {
-        auto& word = words[i];
-        auto stemData = sb_stemmer_stem(sbStemmer, reinterpret_cast<const sb_symbol*>(word.c_str()),
-            word.length());
-        ListVector::getDataVector(&resultVector)
-            ->setValue(result.offset + i,
-                std::string_view{reinterpret_cast<const char*>(stemData)});
+    RE2::GlobalReplace(&query, regexPattern, replacePattern);
+    StringUtils::toLower(query);
+    auto terms = StringUtils::split(query, " ");
+    StemFunction::validateStemmer(stemmer);
+    auto sbStemmer = sb_stemmer_new(reinterpret_cast<const char*>(stemmer.c_str()), "UTF_8");
+    std::vector<std::string> result;
+    for (auto& term : terms) {
+        auto stemData = sb_stemmer_stem(sbStemmer, reinterpret_cast<const sb_symbol*>(term.c_str()),
+            term.length());
+        result.push_back(reinterpret_cast<const char*>(stemData));
     }
     sb_stemmer_delete(sbStemmer);
-}
-
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
-    return FunctionBindData::getSimpleBindData(input.arguments,
-        LogicalType::LIST(LogicalType::STRING()));
-}
-
-function::function_set GetKeysFunction::getFunctionSet() {
-    function_set result;
-    result.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
-        LogicalTypeID::LIST,
-        ScalarFunction::BinaryStringExecFunction<ku_string_t, ku_string_t, list_entry_t, GetKeys>,
-        bindFunc));
     return result;
 }
 

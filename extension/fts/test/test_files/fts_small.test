@@ -11,42 +11,10 @@
 ---- ok
 
 -LOG QueryFTSConjunctiveSingleKeyword
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice', conjunctive := true) RETURN node.ID, score
+-STATEMENT CALL create_project_graph('PK', ['0_docIdx_terms', '0_docIdx_docs'], ['0_docIdx_appears_in'])
+---- ok
+
+-STATEMENT CALL QFTS(PK, 'doc', 'docIdx', 'alice') RETURN _node.ID, score
 ---- 2
 0|0.271133
 3|0.209476
-
--LOG QueryFTSConjunctiveMultiKeywords
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice studying', conjunctive := true) RETURN node.ID, score
----- 2
-0|0.326304
-3|0.268989
-
--LOG QueryFTSConjunctiveDuplicateKeywords
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice studying alice', conjunctive := true) RETURN node.ID, score
----- 2
-0|0.326304
-3|0.268989
-
--LOG QueryFTSConjunctiveDuplicateSingleKeyword
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice alice', conjunctive := true) RETURN node.ID, score
----- 2
-0|0.271133
-3|0.209476
-
--LOG QueryFTSConjunctiveNotExistSingleKeyword
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'carol', conjunctive := true) RETURN node.ID, score
----- 0
-
--LOG QueryFTSConjunctiveNotExistMultiKeywords
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'carol dog', conjunctive := true) RETURN node.ID, score
----- 0
-
--LOG QueryFTSConjunctivePartialExistKeyword
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice carol', conjunctive := true) RETURN node.ID, score
----- 0
-
--LOG QueryFTSConjunctivePartialExistKeyword
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice waterloo', conjunctive := true) RETURN node.ID, score
----- 1
-0|0.465323

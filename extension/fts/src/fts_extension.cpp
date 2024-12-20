@@ -16,7 +16,6 @@ namespace fts_extension {
 void FTSExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
     ADD_SCALAR_FUNC(StemFunction);
-    ADD_SCALAR_FUNC(GetKeysFunction);
     ADD_GDS_FUNC(QFTSFunction);
     db.addStandaloneCallFunction(CreateFTSFunction::name, CreateFTSFunction::getFunctionSet());
     db.addTableFunction(QueryFTSFunction::name, QueryFTSFunction::getFunctionSet());
