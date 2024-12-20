@@ -569,6 +569,10 @@ void NodeTable::rollbackGroupCollectionInsert(common::row_idx_t numRows_) {
     nodeGroups->rollbackInsert(numRows_);
 }
 
+void NodeTable::rollbackCheckpoint() {
+    pkIndex->rollbackCheckpoint();
+}
+
 TableStats NodeTable::getStats(const Transaction* transaction) const {
     auto stats = nodeGroups->getStats();
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
