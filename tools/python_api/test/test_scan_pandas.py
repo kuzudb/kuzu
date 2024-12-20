@@ -429,5 +429,29 @@ def test_scan_string_to_nested(tmp_path: Path) -> None:
     )
     conn.execute("COPY tab from df")
     result = conn.execute("match (t:tab) return t.*")
-    assert result.get_next() == [1, [1, 2, 3], {"'a'": 1, "'b'": 2}, {"a": 1, "b": 2}, [[], [1, 2, 3], [4, 5, 6]]]
+    assert result.get_next() == [
+        1,
+        [1, 2, 3],
+        {"'a'": 1, "'b'": 2},
+        {"a": 1, "b": 2},
+        [[], [1, 2, 3], [4, 5, 6]],
+    ]
     assert not result.has_next()
+
+
+def test_pandas_scan_ignore_errors(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    df = pd.DataFrame({"id": [1, 2, 3, 1]})
+    conn.execute("CREATE NODE TABLE person(id INT64, PRIMARY KEY(id))")
+    conn.execute("COPY person FROM df(IGNORE_ERRORS=true)")
+
+    people = conn.execute("MATCH (p:person) RETURN p.id")
+    assert people.get_next() == [1]
+    assert people.get_next() == [2]
+    assert people.get_next() == [3]
+    assert not people.has_next()
+
+    warnings = conn.execute("CALL show_warnings() RETURN *")
+    assert warnings.get_next()[1].startswith("Found duplicated primary key value 1")
+    assert not warnings.has_next()
