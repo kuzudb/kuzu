@@ -1,4 +1,6 @@
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
+#include "binder/expression/literal_expression.h"
 #include "binder/query/reading_clause/bound_gds_call.h"
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "catalog/catalog.h"
@@ -36,16 +38,25 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     case CatalogEntryType::GDS_FUNCTION_ENTRY: {
         expression_vector children;
         std::vector<LogicalType> childrenTypes;
+        optional_params_t optionalParams;
         for (auto i = 0u; i < functionExpr->getNumChildren(); i++) {
             auto child = expressionBinder.bindExpression(*functionExpr->getChild(i));
-            children.push_back(child);
-            childrenTypes.push_back(child->getDataType().copy());
+            if (!functionExpr->getChild(i)->hasAlias()) {
+                children.push_back(child);
+                childrenTypes.push_back(child->getDataType().copy());
+            } else {
+                ExpressionUtil::validateExpressionType(*child, ExpressionType::LITERAL);
+                auto literalExpr = child->constPtrCast<LiteralExpression>();
+                optionalParams.emplace(functionExpr->getChild(i)->getAlias(),
+                    literalExpr->getValue());
+            }
         }
         auto func = BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, entry);
         auto gdsFunc = func->constPtrCast<GDSFunction>()->copy();
         auto input = GDSBindInput();
         input.params = children;
         input.binder = this;
+        input.optionalParams = std::move(optionalParams);
         gdsFunc.gds->bind(input, *clientContext);
         columns = gdsFunc.gds->getResultColumns(this);
         auto info = BoundGDSCallInfo(gdsFunc.copy(), std::move(columns));

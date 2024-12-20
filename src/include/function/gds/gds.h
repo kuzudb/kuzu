@@ -18,10 +18,13 @@ struct ExecutionContext;
 
 namespace function {
 
+using optional_params_t = common::case_insensitive_map_t<common::Value>;
+
 class PathLengths;
 
 struct GDSBindInput {
     binder::expression_vector params;
+    optional_params_t optionalParams;
     binder::Binder* binder = nullptr;
 
     GDSBindInput() = default;

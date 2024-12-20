@@ -2,7 +2,8 @@
 
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
-#include "catalog/catalog.h"
+#include "binder/expression/literal_expression.h"
+#include "catalog/fts_index_catalog_entry.h"
 #include "common/exception/runtime.h"
 #include "common/task_system/task_scheduler.h"
 #include "common/types/internal_id_util.h"
@@ -11,9 +12,12 @@
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_task.h"
 #include "function/gds/gds_utils.h"
-#include "main/settings.h"
+#include "function/stem.h"
+#include "graph/on_disk_graph.h"
+#include "libstemmer.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
+#include "re2.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -24,33 +28,35 @@ namespace fts_extension {
 using namespace function;
 
 struct QFTSGDSBindData final : public function::GDSBindData {
-    std::shared_ptr<binder::Expression> terms = nullptr;
-    // k: parameter controls the influence of term frequency saturation. It limits the effect of
-    // additional occurrences of a term within a document.
-    double_t k = 0;
-    // b: parameter controls the degree of length normalization by adjusting the influence of
-    // document length.
-    double_t b = 0;
-    uint64_t numDocs = 0;
-    double_t avgDocLen = 0;
-    uint64_t numTermsInQuery = 0;
-    bool isConjunctive = false;
-    common::table_id_t outputTableID = INVALID_TABLE_ID;
+    std::vector<std::string> terms;
+    uint64_t numDocs;
+    double_t avgDocLen;
+    QueryFTSConfig config;
+    common::table_id_t outputTableID;
 
-    QFTSGDSBindData(graph::GraphEntry graphEntry, std::shared_ptr<Expression> nodeOutput)
-        : function::GDSBindData{std::move(graphEntry), nodeOutput} {}
+    QFTSGDSBindData(std::vector<std::string> terms, graph::GraphEntry graphEntry,
+        std::shared_ptr<binder::Expression> docs, uint64_t numDocs, double_t avgDocLen,
+        QueryFTSConfig config)
+        : GDSBindData{std::move(graphEntry), std::move(docs)}, terms{std::move(terms)},
+          numDocs{numDocs}, avgDocLen{avgDocLen}, config{std::move(config)},
+          outputTableID{nodeOutput->constCast<NodeExpression>().getSingleEntry()->getTableID()} {}
     QFTSGDSBindData(const QFTSGDSBindData& other)
-        : GDSBindData{other}, terms{other.terms}, k{other.k}, b{other.b}, numDocs{other.numDocs},
-          avgDocLen{other.avgDocLen}, numTermsInQuery{other.numTermsInQuery},
-          isConjunctive{other.isConjunctive}, outputTableID{other.outputTableID} {}
+        : GDSBindData{other}, terms{other.terms}, numDocs{other.numDocs},
+          avgDocLen{other.avgDocLen}, config{other.config}, outputTableID{other.outputTableID} {}
 
-    bool hasNodeInput() const override { return true; }
-    std::shared_ptr<binder::Expression> getNodeInput() const override { return terms; }
+    bool hasNodeInput() const override { return false; }
+
+    uint64_t getNumUniqueTerms() const;
 
     std::unique_ptr<GDSBindData> copy() const override {
         return std::make_unique<QFTSGDSBindData>(*this);
     }
 };
+
+uint64_t QFTSGDSBindData::getNumUniqueTerms() const {
+    auto uniqueTerms = std::unordered_set<std::string>{terms.begin(), terms.end()};
+    return uniqueTerms.size();
+}
 
 struct ScoreData {
     uint64_t df;
@@ -108,8 +114,7 @@ struct QFTSOutput {
 };
 
 struct QFTSState : public function::GDSComputeState {
-    void initFirstFrontierWithTerms(processor::GDSCallSharedState& sharedState,
-        RoaringBitmapSemiMask& termsMask, transaction::Transaction* tx,
+    void initFirstFrontierWithTerms(const common::node_id_map_t<uint64_t>& dfs,
         common::table_id_t termsTableID) const;
 
     QFTSState(std::unique_ptr<function::FrontierPair> frontierPair,
@@ -123,20 +128,13 @@ QFTSState::QFTSState(std::unique_ptr<function::FrontierPair> frontierPair,
     this->frontierPair->pinNextFrontier(termsTableID);
 }
 
-void QFTSState::initFirstFrontierWithTerms(processor::GDSCallSharedState& sharedState,
-    RoaringBitmapSemiMask& termsMask, transaction::Transaction* tx,
+void QFTSState::initFirstFrontierWithTerms(const common::node_id_map_t<uint64_t>& dfs,
     common::table_id_t termsTableID) const {
-    auto termNodeID = nodeID_t{INVALID_OFFSET, termsTableID};
-    auto numTerms = sharedState.graph->getNumNodes(tx, termsTableID);
     SparseFrontier sparseFrontier;
     sparseFrontier.pinTableID(termsTableID);
-    for (auto offset = 0u; offset < numTerms; ++offset) {
-        if (!termsMask.isMasked(offset)) {
-            continue;
-        }
-        termNodeID.offset = offset;
-        frontierPair->addNodeToNextDenseFrontier(termNodeID);
-        sparseFrontier.addNode(termNodeID);
+    for (auto& [nodeID, df] : dfs) {
+        frontierPair->addNodeToNextDenseFrontier(nodeID);
+        sparseFrontier.addNode(nodeID);
         sparseFrontier.checkSampleSize();
     }
     frontierPair->mergeLocalFrontier(sparseFrontier);
@@ -167,45 +165,42 @@ public:
 
 private:
     QFTSOutput* qFTSOutput;
-    common::ValueVector termsVector;
     common::ValueVector docsVector;
     common::ValueVector scoreVector;
     std::vector<common::ValueVector*> vectors;
     common::idx_t pos;
     storage::MemoryManager* mm;
     const QFTSGDSBindData& bindData;
+    uint64_t numUniqueTerms;
 };
 
 QFTSOutputWriter::QFTSOutputWriter(storage::MemoryManager* mm, QFTSOutput* qFTSOutput,
     const QFTSGDSBindData& bindData)
-    : qFTSOutput{std::move(qFTSOutput)}, termsVector{LogicalType::INTERNAL_ID(), mm},
-      docsVector{LogicalType::INTERNAL_ID(), mm}, scoreVector{LogicalType::UINT64(), mm}, mm{mm},
-      bindData{bindData} {
+    : qFTSOutput{std::move(qFTSOutput)}, docsVector{LogicalType::INTERNAL_ID(), mm},
+      scoreVector{LogicalType::UINT64(), mm}, mm{mm}, bindData{bindData} {
     auto state = DataChunkState::getSingleValueDataChunkState();
     pos = state->getSelVector()[0];
-    termsVector.setState(state);
     docsVector.setState(state);
     scoreVector.setState(state);
-    vectors.push_back(&termsVector);
     vectors.push_back(&docsVector);
     vectors.push_back(&scoreVector);
+    numUniqueTerms = bindData.getNumUniqueTerms();
 }
 
 void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len,
     int64_t docsID) {
     bool hasScore = qFTSOutput->scores.contains(docNodeID);
-    termsVector.setNull(pos, !hasScore);
     docsVector.setNull(pos, !hasScore);
     scoreVector.setNull(pos, !hasScore);
-    // See comments in FTSBindData for the meaning of k and b.
-    auto k = bindData.k;
-    auto b = bindData.b;
+    auto k = bindData.config.k;
+    auto b = bindData.config.b;
     if (hasScore) {
         auto scoreInfo = qFTSOutput->scores.at(docNodeID);
         double score = 0;
         // If the query is conjunctive, the numbers of distinct terms in the doc and the number of
         // distinct terms in the query must be equal to each other.
-        if (bindData.isConjunctive && scoreInfo.scoreData.size() != bindData.numTermsInQuery) {
+        if (bindData.config.isConjunctive &&
+            scoreInfo.scoreData.size() != bindData.getNumUniqueTerms()) {
             return;
         }
         for (auto& scoreData : scoreInfo.scoreData) {
@@ -216,7 +211,6 @@ void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNo
             score += log10((numDocs - df + 0.5) / (df + 0.5) + 1) *
                      ((tf * (k + 1) / (tf + k * (1 - b + b * (len / avgDocLen)))));
         }
-        termsVector.setValue(pos, scoreInfo.termID);
         docsVector.setValue(pos, nodeID_t{(common::offset_t)docsID, bindData.outputTableID});
         scoreVector.setValue(pos, score);
     }
@@ -250,6 +244,42 @@ private:
     std::unique_ptr<QFTSOutputWriter> writer;
 };
 
+struct TermsComputeSharedState {
+    std::vector<std::string> queryTerms;
+    common::node_id_map_t<uint64_t> dfs;
+    std::mutex mtx;
+
+    explicit TermsComputeSharedState(std::vector<std::string> queryTerms)
+        : queryTerms{std::move(queryTerms)} {}
+};
+
+class TermsVertexCompute : public VertexCompute {
+public:
+    explicit TermsVertexCompute(TermsComputeSharedState* sharedState) : sharedState{sharedState} {}
+
+    void vertexCompute(const graph::VertexScanState::Chunk& chunk) override;
+
+    std::unique_ptr<VertexCompute> copy() override {
+        return std::make_unique<TermsVertexCompute>(sharedState);
+    }
+
+private:
+    TermsComputeSharedState* sharedState;
+};
+
+void TermsVertexCompute::vertexCompute(const graph::VertexScanState::Chunk& chunk) {
+    auto nodeIDs = chunk.getNodeIDs();
+    auto terms = chunk.getProperties<common::ku_string_t>(0);
+    auto dfs = chunk.getProperties<uint64_t>(1);
+    for (auto i = 0u; i < nodeIDs.size(); i++) {
+        if (std::find(sharedState->queryTerms.begin(), sharedState->queryTerms.end(),
+                terms[i].getAsString()) != sharedState->queryTerms.end()) {
+            std::lock_guard<std::mutex> lock(sharedState->mtx);
+            sharedState->dfs.emplace(nodeIDs[i], dfs[i]);
+        }
+    }
+}
+
 void QFTSVertexCompute::vertexCompute(const graph::VertexScanState::Chunk& chunk) {
     auto docLens = chunk.getProperties<uint64_t>(0);
     auto docIDs = chunk.getProperties<int64_t>(1);
@@ -260,9 +290,18 @@ void QFTSVertexCompute::vertexCompute(const graph::VertexScanState::Chunk& chunk
 
 void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto termsTableID = sharedState->graph->getNodeTableIDs()[0];
-    KU_ASSERT(sharedState->getInputNodeMaskMap()->containsTableID(termsTableID));
-    auto termsMask = sharedState->getInputNodeMaskMap()->getOffsetMask(termsTableID);
     auto output = std::make_unique<QFTSOutput>();
+
+    // Do vertex compute to get the terms
+    auto termsTableEntry = executionContext->clientContext->getCatalog()->getTableCatalogEntry(
+        executionContext->clientContext->getTx(), termsTableID);
+    graph::GraphEntry entry{{termsTableEntry}, {} /* relTableEntries */};
+    graph::OnDiskGraph graph(executionContext->clientContext, std::move(entry));
+    auto termsComputeSharedState =
+        TermsComputeSharedState{bindData->ptrCast<QFTSGDSBindData>()->terms};
+    TermsVertexCompute termsCompute{&termsComputeSharedState};
+    GDSUtils::runVertexCompute(executionContext, &graph, termsCompute,
+        std::vector<std::string>{"term", "df"});
 
     // Do edge compute to extend terms -> docs and save the term frequency and document frequency
     // for each term-doc pair. The reason why we store the term frequency and document frequency
@@ -273,14 +312,14 @@ void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier,
         nextFrontier, 1 /* numThreads */);
     auto edgeCompute = std::make_unique<QFTSEdgeCompute>(frontierPair.get(), &output->scores,
-        sharedState->nodeProp);
+        &termsComputeSharedState.dfs);
 
     auto clientContext = executionContext->clientContext;
     auto transaction = clientContext->getTx();
     auto catalog = clientContext->getCatalog();
     auto mm = clientContext->getMemoryManager();
     QFTSState qFTSState = QFTSState{std::move(frontierPair), std::move(edgeCompute), termsTableID};
-    qFTSState.initFirstFrontierWithTerms(*sharedState, *termsMask, transaction, termsTableID);
+    qFTSState.initFirstFrontierWithTerms(termsComputeSharedState.dfs, termsTableID);
 
     runFrontiersOnce(executionContext, qFTSState, sharedState->graph.get(),
         catalog->getTableCatalogEntry(transaction, sharedState->graph->getRelTableIDs()[0])
@@ -303,43 +342,61 @@ static std::shared_ptr<Expression> getScoreColumn(Binder* binder) {
 
 binder::expression_vector QFTSAlgorithm::getResultColumns(binder::Binder* binder) const {
     expression_vector columns;
-    auto& termsNode = bindData->getNodeInput()->constCast<NodeExpression>();
-    columns.push_back(termsNode.getInternalID());
     auto& docsNode = bindData->getNodeOutput()->constCast<NodeExpression>();
     columns.push_back(docsNode.getInternalID());
     columns.push_back(getScoreColumn(binder));
     return columns;
 }
 
+static std::string getParamVal(const GDSBindInput& input, idx_t idx) {
+    return ExpressionUtil::getLiteralValue<std::string>(
+        input.getParam(idx)->constCast<LiteralExpression>());
+}
+
+static std::vector<std::string> getTerms(std::string& query, const std::string& stemmer) {
+    std::string regexPattern = "[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\/\\|'\"`-]+";
+    std::string replacePattern = " ";
+    RE2::GlobalReplace(&query, regexPattern, replacePattern);
+    StringUtils::toLower(query);
+    auto terms = StringUtils::split(query, " ");
+    StemFunction::validateStemmer(stemmer);
+    auto sbStemmer = sb_stemmer_new(reinterpret_cast<const char*>(stemmer.c_str()), "UTF_8");
+    std::vector<std::string> result;
+    for (auto& term : terms) {
+        auto stemData = sb_stemmer_stem(sbStemmer, reinterpret_cast<const sb_symbol*>(term.c_str()),
+            term.length());
+        result.push_back(reinterpret_cast<const char*>(stemData));
+    }
+    sb_stemmer_delete(sbStemmer);
+    return result;
+}
+
 void QFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& context) {
-    KU_ASSERT(input.getNumParams() == 10);
-    // Bind graph entry.
-    auto catalog = context.getCatalog();
-    auto tx = context.getTx();
-    auto tableName = ExpressionUtil::getLiteralValue<std::string>(*input.getParam(8));
-    auto indexName = ExpressionUtil::getLiteralValue<std::string>(*input.getParam(9));
-    auto tableEntry = catalog->getTableCatalogEntry(tx, tableName);
-    auto termsTableName = FTSUtils::getTermsTableName(tableEntry->getTableID(), indexName);
-    auto docsTableName = FTSUtils::getDocsTableName(tableEntry->getTableID(), indexName);
-    auto appearsInTableName = FTSUtils::getAppearsInTableName(tableEntry->getTableID(), indexName);
-    auto termsEntry = catalog->getTableCatalogEntry(tx, termsTableName);
-    auto docsEntry = catalog->getTableCatalogEntry(tx, docsTableName);
-    auto appearsInEntry = catalog->getTableCatalogEntry(tx, appearsInTableName);
+    auto inputTableName = getParamVal(input, 0);
+    auto indexName = getParamVal(input, 1);
+    auto query = getParamVal(input, 2);
+    auto stemmer = "english";
+    auto terms = getTerms(query, stemmer);
+
+    auto& tableEntry =
+        FTSUtils::bindTable(inputTableName, &context, indexName, FTSUtils::IndexOperation::QUERY);
+    FTSUtils::validateIndexExistence(context, tableEntry.getTableID(), indexName);
+    auto& ftsIndexEntry = context.getCatalog()
+                              ->getIndex(context.getTx(), tableEntry.getTableID(), indexName)
+                              ->constCast<FTSIndexCatalogEntry>();
+    auto entry = context.getCatalog()->getTableCatalogEntry(context.getTx(), inputTableName);
+    auto nodeOutput = bindNodeOutput(input.binder, {entry});
+
+    auto termsEntry = context.getCatalog()->getTableCatalogEntry(context.getTx(),
+        FTSUtils::getTermsTableName(tableEntry.getTableID(), indexName));
+    auto docsEntry = context.getCatalog()->getTableCatalogEntry(context.getTx(),
+        FTSUtils::getDocsTableName(tableEntry.getTableID(), indexName));
+    auto appearsInEntry = context.getCatalog()->getTableCatalogEntry(context.getTx(),
+        FTSUtils::getAppearsInTableName(tableEntry.getTableID(), indexName));
     auto graphEntry = graph::GraphEntry({termsEntry, docsEntry}, {appearsInEntry});
-    // Bind output node.
-    auto nodeOutput = bindNodeOutput(input.binder, {tableEntry});
-    auto qftsBindData = std::make_unique<QFTSGDSBindData>(std::move(graphEntry), nodeOutput);
-    // Bind remaining configurations.
-    qftsBindData->terms = input.getParam(1);
-    qftsBindData->k = ExpressionUtil::getLiteralValue<double>(*input.getParam(2));
-    qftsBindData->b = ExpressionUtil::getLiteralValue<double>(*input.getParam(3));
-    qftsBindData->numDocs = ExpressionUtil::getLiteralValue<uint64_t>(*input.getParam(4));
-    qftsBindData->avgDocLen = ExpressionUtil::getLiteralValue<double>(*input.getParam(5));
-    qftsBindData->numTermsInQuery = ExpressionUtil::getLiteralValue<uint64_t>(*input.getParam(6));
-    qftsBindData->isConjunctive = ExpressionUtil::getLiteralValue<bool>(*input.getParam(7));
-    qftsBindData->outputTableID =
-        nodeOutput->constCast<NodeExpression>().getSingleEntry()->getTableID();
-    bindData = std::move(qftsBindData);
+    bindData = std::make_unique<QFTSGDSBindData>(std::move(terms), std::move(graphEntry),
+        nodeOutput, ftsIndexEntry.getNumDocs(), ftsIndexEntry.getAvgDocLen(),
+        QueryFTSConfig{input.optionalParams});
 }
 
 function::function_set QFTSFunction::getFunctionSet() {

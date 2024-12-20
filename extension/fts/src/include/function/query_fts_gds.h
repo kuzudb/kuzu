@@ -30,11 +30,9 @@ public:
      * queryString: STRING
      */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        return {common::LogicalTypeID::ANY, common::LogicalTypeID::NODE,
-            common::LogicalTypeID::DOUBLE, common::LogicalTypeID::DOUBLE,
-            common::LogicalTypeID::UINT64, common::LogicalTypeID::DOUBLE,
-            common::LogicalTypeID::UINT64, common::LogicalTypeID::BOOL,
-            common::LogicalTypeID::STRING};
+        return {common::LogicalTypeID::STRING /* tableName */,
+            common::LogicalTypeID::STRING /* indexName */,
+            common::LogicalTypeID::STRING /* query */};
     }
 
     void exec(processor::ExecutionContext* executionContext) override;
@@ -49,7 +47,7 @@ public:
 };
 
 struct QFTSFunction {
-    static constexpr const char* name = "QFTS";
+    static constexpr const char* name = "QUERY_FTS_INDEX";
 
     static function::function_set getFunctionSet();
 };

@@ -29,11 +29,13 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
 
 std::string dropFTSIndexQuery(ClientContext& /*context*/, const TableFuncBindData& bindData) {
     auto ftsBindData = bindData.constPtrCast<FTSBindData>();
-    std::string query =
-        common::stringFormat("DROP TABLE `{}`;", ftsBindData->getStopWordsTableName());
-    query += common::stringFormat("DROP TABLE `{}`;", ftsBindData->getAppearsInTableName());
-    query += common::stringFormat("DROP TABLE `{}`;", ftsBindData->getDocsTableName());
-    query += common::stringFormat("DROP TABLE `{}`;", ftsBindData->getTermsTableName());
+    std::string query = common::stringFormat("DROP TABLE `{}`;", FTSUtils::getStopWordsTableName());
+    query += common::stringFormat("DROP TABLE `{}`;",
+        FTSUtils::getAppearsInTableName(ftsBindData->tableID, ftsBindData->indexName));
+    query += common::stringFormat("DROP TABLE `{}`;",
+        FTSUtils::getDocsTableName(ftsBindData->tableID, ftsBindData->indexName));
+    query += common::stringFormat("DROP TABLE `{}`;",
+        FTSUtils::getTermsTableName(ftsBindData->tableID, ftsBindData->indexName));
     return query;
 }
 

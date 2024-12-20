@@ -16,6 +16,10 @@
 #include "graph/on_disk_graph.h"
 #include "processor/execution_context.h"
 
+
+#include <iostream>
+#include <fstream>
+
 namespace kuzu {
 namespace fts_extension {
 
@@ -161,6 +165,12 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
 
     // Drop the intermediate terms_in_doc table.
     query += common::stringFormat("DROP TABLE `{}`;", appearsInfoTableName);
+    // basic file operations
+
+using namespace std;
+ofstream myfile("/tmp/query.txt");
+myfile << query << endl;
+myfile.close();
     return query;
 }
 
