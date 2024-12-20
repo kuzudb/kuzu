@@ -28,8 +28,8 @@ public:
         table_id_map_t<offset_t> numNodesMap, storage::MemoryManager* mm)
         : FrontierPair(curFrontier, nextFrontier, maxThreads), numNodesMap{numNodesMap} {
         for (const auto& [tableID, curNumNodes] : numNodesMap) {
-            curVertexValues.allocate(tableID, curNumNodes, mm);
-            auto data = curVertexValues.getData(tableID);
+            vertexValueMap.allocate(tableID, curNumNodes, mm);
+            auto data = vertexValueMap.getData(tableID);
             for (auto i = 0u; i < curNumNodes; ++i) {
                 data[i].store(0, std::memory_order_relaxed);
             }
@@ -49,7 +49,7 @@ public:
     }
 
     void pinVertexValues(common::table_id_t tableID) {
-        vertexValues = curVertexValues.getData(tableID);
+        curVertexValue = vertexValueMap.getData(tableID);
     }
 
     void beginFrontierComputeBetweenTables(table_id_t curTableID, table_id_t nextTableID) override {
@@ -58,14 +58,14 @@ public:
     }
 
     void beginNewIterationInternalNoLock() override {
+        updateSmallestDegree();
         std::swap(curDenseFrontier, nextDenseFrontier);
-        increaseSmallestDegree();
         curDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();
         nextDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();
     }
 
     uint64_t addToVertexDegree(common::offset_t offset, uint64_t degreeToAdd) {
-        return vertexValues[offset].fetch_add(degreeToAdd, std::memory_order_relaxed);
+        return curVertexValue[offset].fetch_add(degreeToAdd, std::memory_order_relaxed);
     }
 
     // Called to remove degrees from a neighbouring vertex
@@ -73,11 +73,11 @@ public:
     bool removeFromVertex(common::nodeID_t nodeID) {
         int curSmallest = curSmallestDegree.load(std::memory_order_relaxed);
         int curVertexDegree =
-            curVertexValues.getData(nodeID.tableID)[nodeID.offset].load(std::memory_order_relaxed);
+            vertexValueMap.getData(nodeID.tableID)[nodeID.offset].load(std::memory_order_relaxed);
         // The vertex should be set as active if it will be considered in a future iteration
         // The vertex should be set as inactive if it will be processed this iteration
         if (curVertexDegree > curSmallest) {
-            curVertexValues.getData(nodeID.tableID)[nodeID.offset].fetch_sub(1,
+            vertexValueMap.getData(nodeID.tableID)[nodeID.offset].fetch_sub(1,
                 std::memory_order_relaxed);
             return true;
         } else {
@@ -85,19 +85,31 @@ public:
         }
     }
 
-    void increaseSmallestDegree() { curSmallestDegree.fetch_add(1, std::memory_order_relaxed); }
+    void updateSmallestDegree() {
+        uint64_t nextSmallestDegree = UINT64_MAX;
+        for (const auto& [tableID, curNumNodes] : numNodesMap) {
+            curDenseFrontier->pinTableID(tableID);
+            for (auto i = 0u; i < curNumNodes; ++i) {
+                if (curDenseFrontier->isActive(i)) {
+                    nextSmallestDegree = std::min(nextSmallestDegree, vertexValueMap.getData(tableID)[i].load(std::memory_order_relaxed));
+                }
+            }
+        }
+        uint64_t smallestDegree = curSmallestDegree.load(std::memory_order_relaxed);
+        curSmallestDegree.compare_exchange_strong(smallestDegree, nextSmallestDegree, std::memory_order_relaxed);
+    }
 
     uint64_t getSmallestDegree() { return curSmallestDegree.load(std::memory_order_relaxed); }
 
     uint64_t getVertexValue(common::offset_t offset) {
-        return vertexValues[offset].load(std::memory_order_relaxed);
+        return curVertexValue[offset].load(std::memory_order_relaxed);
     }
 
 private:
     std::atomic<uint64_t> curSmallestDegree{UINT64_MAX};
     common::table_id_map_t<common::offset_t> numNodesMap;
-    std::atomic<uint64_t>* vertexValues = nullptr;
-    ObjectArraysMap<std::atomic<uint64_t>> curVertexValues;
+    std::atomic<uint64_t>* curVertexValue = nullptr;
+    ObjectArraysMap<std::atomic<uint64_t>> vertexValueMap;
 };
 
 struct KCoreInitEdgeCompute : public EdgeCompute {
@@ -264,8 +276,10 @@ public:
 
         GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH,
             1);
+
         auto edgeCompute = std::make_unique<KCoreEdgeCompute>(
             computeState.frontierPair->ptrCast<KCoreFrontierPair>());
+
         computeState.edgeCompute = std::move(edgeCompute);
         computeState.frontierPair->setActiveNodesForNextIter();
 
