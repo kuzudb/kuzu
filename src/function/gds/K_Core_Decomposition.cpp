@@ -91,12 +91,14 @@ public:
             curDenseFrontier->pinTableID(tableID);
             for (auto i = 0u; i < curNumNodes; ++i) {
                 if (curDenseFrontier->isActive(i)) {
-                    nextSmallestDegree = std::min(nextSmallestDegree, vertexValueMap.getData(tableID)[i].load(std::memory_order_relaxed));
+                    nextSmallestDegree = std::min(nextSmallestDegree,
+                        vertexValueMap.getData(tableID)[i].load(std::memory_order_relaxed));
                 }
             }
         }
         uint64_t smallestDegree = curSmallestDegree.load(std::memory_order_relaxed);
-        curSmallestDegree.compare_exchange_strong(smallestDegree, nextSmallestDegree, std::memory_order_relaxed);
+        curSmallestDegree.compare_exchange_strong(smallestDegree, nextSmallestDegree,
+            std::memory_order_relaxed);
     }
 
     uint64_t getSmallestDegree() { return curSmallestDegree.load(std::memory_order_relaxed); }
