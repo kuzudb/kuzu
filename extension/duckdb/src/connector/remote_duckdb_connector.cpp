@@ -8,7 +8,7 @@ namespace kuzu {
 namespace duckdb_extension {
 
 void HTTPDuckDBConnector::connect(const std::string& dbPath, const std::string& catalogName,
-    main::ClientContext* /*context*/) {
+    const std::string& /*schemaName*/, main::ClientContext* /*context*/) {
     // Creates an in-memory duckdb instance, then install httpfs and attach remote duckdb.
     instance = std::make_unique<duckdb::DuckDB>(nullptr);
     connection = std::make_unique<duckdb::Connection>(*instance);
@@ -18,7 +18,7 @@ void HTTPDuckDBConnector::connect(const std::string& dbPath, const std::string& 
 }
 
 void S3DuckDBConnector::connect(const std::string& dbPath, const std::string& catalogName,
-    main::ClientContext* context) {
+    const std::string& /*schemaName*/, main::ClientContext* context) {
     // Creates an in-memory duckdb instance, then install httpfs and attach remote duckdb.
     instance = std::make_unique<duckdb::DuckDB>(nullptr);
     connection = std::make_unique<duckdb::Connection>(*instance);

@@ -10,7 +10,8 @@
 namespace kuzu {
 namespace binder {
 class LiteralExpression;
-}
+class Binder;
+} // namespace binder
 namespace main {
 class ClientContext;
 }
@@ -27,12 +28,18 @@ struct TableFunction;
 
 struct ExtraTableFuncBindInput {
     virtual ~ExtraTableFuncBindInput() = default;
+
+    template<class TARGET>
+    const TARGET* constPtrCast() const {
+        return common::ku_dynamic_cast<const TARGET*>(this);
+    }
 };
 
 struct TableFuncBindInput {
     binder::expression_vector params;
     optional_params_t optionalParams;
     std::unique_ptr<ExtraTableFuncBindInput> extraInput = nullptr;
+    binder::Binder* binder = nullptr;
 
     TableFuncBindInput() = default;
 

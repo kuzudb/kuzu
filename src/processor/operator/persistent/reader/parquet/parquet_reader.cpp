@@ -1,5 +1,6 @@
 #include "processor/operator/persistent/reader/parquet/parquet_reader.h"
 
+#include "binder/binder.h"
 #include "common/exception/binder.h"
 #include "common/exception/copy.h"
 #include "common/file_system/virtual_file_system.h"
@@ -686,8 +687,10 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
             detectedColumnNames.size());
         detectedColumnNames = scanInput->expectedColumnNames;
     }
-    auto bindData = std::make_unique<function::ScanBindData>(std::move(detectedColumnTypes),
-        std::move(detectedColumnNames), scanInput->config.copy(), context);
+
+    auto resultColumns = input->binder->createVariables(detectedColumnNames, detectedColumnTypes);
+    auto bindData = std::make_unique<function::ScanBindData>(std::move(resultColumns),
+        scanInput->config.copy(), context);
     bindData->cardinality = getNumRows(bindData.get());
     return bindData;
 }

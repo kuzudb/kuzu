@@ -108,7 +108,7 @@ void StringChunkData::scan(ValueVector& output, offset_t offset, length_t length
     sel_t posInOutputVector) const {
     KU_ASSERT(offset + length <= numValues && nullData);
     nullData->scan(output, offset, length, posInOutputVector);
-    if (nullData->mayHaveNull()) {
+    if (!nullData->noNullsGuaranteedInMem()) {
         for (auto i = 0u; i < length; i++) {
             if (!nullData->isNull(offset + i)) {
                 output.setValue<std::string_view>(posInOutputVector + i,

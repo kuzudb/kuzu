@@ -27,7 +27,7 @@ public:
     virtual ~DuckDBConnector() = default;
 
     virtual void connect(const std::string& dbPath, const std::string& catalogName,
-        main::ClientContext* context) = 0;
+        const std::string& schemaName, main::ClientContext* context) = 0;
 
     std::unique_ptr<duckdb::MaterializedQueryResult> executeQuery(std::string query) const;
 

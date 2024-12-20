@@ -8,7 +8,6 @@ namespace binder {
 struct BoundTableFunction {
     std::unique_ptr<function::TableFunction> tableFunction;
     std::unique_ptr<function::TableFuncBindData> bindData;
-    std::shared_ptr<binder::Expression> offset;
 };
 
 } // namespace binder

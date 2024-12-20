@@ -21,11 +21,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapTableFunctionCall(
     info.bindData = call.getBindData()->copy();
     info.outPosV = outPosV;
     KU_ASSERT(info.outPosV.size() >= info.bindData->numWarningDataColumns);
-    if (call.getOffset() != nullptr) {
-        info.rowOffsetPos = getDataPos(*call.getOffset(), *outSchema);
-    } else {
-        info.rowOffsetPos = DataPos::getInvalidPos();
-    }
     info.outputType =
         outPosV.empty() ? TableScanOutputType::EMPTY : TableScanOutputType::SINGLE_DATA_CHUNK;
     auto sharedState = std::make_shared<TableFunctionCallSharedState>();

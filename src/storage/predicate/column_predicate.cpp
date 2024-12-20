@@ -3,6 +3,7 @@
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/scalar_function_expression.h"
 #include "storage/predicate/constant_predicate.h"
+#include "storage/predicate/null_predicate.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -10,7 +11,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-ZoneMapCheckResult ColumnPredicateSet::checkZoneMap(const ColumnChunkStats& stats) const {
+ZoneMapCheckResult ColumnPredicateSet::checkZoneMap(const MergedColumnChunkStats& stats) const {
     for (auto& predicate : predicates) {
         if (predicate->checkZoneMap(stats) == ZoneMapCheckResult::SKIP_SCAN) {
             return ZoneMapCheckResult::SKIP_SCAN;
@@ -45,9 +46,12 @@ static bool isCastedColumnRef(const Expression& expr) {
     return false;
 }
 
+static bool isColumnOrCastedColumnRef(const Expression& expr) {
+    return isColumnRef(expr.expressionType) || isCastedColumnRef(expr);
+}
+
 static bool isColumnRefConstantPair(const Expression& left, const Expression& right) {
-    return (isColumnRef(left.expressionType) || isCastedColumnRef(left)) &&
-           right.expressionType == ExpressionType::LITERAL;
+    return isColumnOrCastedColumnRef(left) && right.expressionType == ExpressionType::LITERAL;
 }
 
 static bool columnMatchesExprChild(const Expression& column, const Expression& expr) {
@@ -78,12 +82,41 @@ static std::unique_ptr<ColumnPredicate> tryConvertToConstColumnPredicate(const E
     return nullptr;
 }
 
+static std::unique_ptr<ColumnPredicate> tryConvertToIsNull(const Expression& column,
+    const Expression& predicate) {
+    // we only convert simple predicates
+    if (isColumnOrCastedColumnRef(*predicate.getChild(0))) {
+        return std::make_unique<ColumnNullPredicate>(column.toString(), ExpressionType::IS_NULL);
+    }
+    return nullptr;
+}
+
+static std::unique_ptr<ColumnPredicate> tryConvertToIsNotNull(const Expression& column,
+    const Expression& predicate) {
+    if (isColumnOrCastedColumnRef(*predicate.getChild(0))) {
+        return std::make_unique<ColumnNullPredicate>(column.toString(),
+            ExpressionType::IS_NOT_NULL);
+    }
+    return nullptr;
+}
+
 std::unique_ptr<ColumnPredicate> ColumnPredicateUtil::tryConvert(const Expression& property,
     const Expression& predicate) {
     if (ExpressionTypeUtil::isComparison(predicate.expressionType)) {
         return tryConvertToConstColumnPredicate(property, predicate);
     }
-    return nullptr;
+    switch (predicate.expressionType) {
+    case common::ExpressionType::IS_NULL:
+        return tryConvertToIsNull(property, predicate);
+    case common::ExpressionType::IS_NOT_NULL:
+        return tryConvertToIsNotNull(property, predicate);
+    default:
+        return nullptr;
+    }
+}
+
+std::string ColumnPredicate::toString() {
+    return stringFormat("{} {}", columnName, ExpressionTypeUtil::toParsableString(expressionType));
 }
 
 } // namespace storage

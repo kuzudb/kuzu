@@ -122,6 +122,10 @@ std::string ExpressionTypeUtil::toParsableString(ExpressionType type) {
         return "<";
     case ExpressionType::LESS_THAN_EQUALS:
         return "<=";
+    case ExpressionType::IS_NULL:
+        return "IS NULL";
+    case ExpressionType::IS_NOT_NULL:
+        return "IS NOT NULL";
     default:
         throw RuntimeException(stringFormat(
             "ExpressionTypeUtil::toParsableString not implemented for {}", toString(type)));

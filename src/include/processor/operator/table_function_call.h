@@ -31,7 +31,6 @@ struct TableFunctionCallInfo {
     function::TableFunction function{};
     std::unique_ptr<function::TableFuncBindData> bindData;
     std::vector<DataPos> outPosV;
-    DataPos rowOffsetPos;
     TableScanOutputType outputType = TableScanOutputType::EMPTY;
 
     TableFunctionCallInfo() = default;
@@ -42,7 +41,6 @@ private:
         function = other.function;
         bindData = other.bindData->copy();
         outPosV = other.outPosV;
-        rowOffsetPos = other.rowOffsetPos;
         outputType = other.outputType;
     }
 };

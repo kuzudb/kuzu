@@ -1,0 +1,16 @@
+-DATASET CSV empty
+
+--
+
+-CASE get_keys_function
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
+---- ok
+-STATEMENT RETURN get_keys('alice bob carol', 'english')
+---- 1
+[alic,bob,carol]
+-STATEMENT RETURN get_keys('alice bo\'b dan', 'english')
+---- 1
+[alic,bo,b,dan]
+-STATEMENT RETURN get_keys('Uwaterloo ut', 'english')
+---- 1
+[uwaterloo,ut]

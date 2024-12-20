@@ -37,6 +37,9 @@ public:
 
     void init() override;
 
+    static std::string bindSchemaName(const binder::AttachOption& options,
+        const std::string& defaultName);
+
 protected:
     bool bindPropertyDefinitions(const std::string& tableName,
         std::vector<binder::PropertyDefinition>& propertyDefinitions);

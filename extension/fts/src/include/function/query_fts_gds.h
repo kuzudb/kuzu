@@ -16,6 +16,7 @@ public:
     static constexpr char SCORE_PROP_NAME[] = "score";
     static constexpr char TERM_FREQUENCY_PROP_NAME[] = "tf";
     static constexpr char DOC_LEN_PROP_NAME[] = "len";
+    static constexpr char DOC_ID_PROP_NAME[] = "docID";
 
 public:
     QFTSAlgorithm() = default;
@@ -32,7 +33,8 @@ public:
         return {common::LogicalTypeID::ANY, common::LogicalTypeID::NODE,
             common::LogicalTypeID::DOUBLE, common::LogicalTypeID::DOUBLE,
             common::LogicalTypeID::UINT64, common::LogicalTypeID::DOUBLE,
-            common::LogicalTypeID::INT64, common::LogicalTypeID::BOOL};
+            common::LogicalTypeID::UINT64, common::LogicalTypeID::BOOL,
+            common::LogicalTypeID::STRING};
     }
 
     void exec(processor::ExecutionContext* executionContext) override;
@@ -43,8 +45,7 @@ public:
 
     binder::expression_vector getResultColumns(binder::Binder* binder) const override;
 
-    void bind(const binder::expression_vector& params, binder::Binder* binder,
-        graph::GraphEntry& graphEntry) override;
+    void bind(const function::GDSBindInput& input, main::ClientContext&) override;
 };
 
 struct QFTSFunction {

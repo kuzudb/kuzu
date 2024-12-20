@@ -94,8 +94,8 @@ public:
         return columns;
     }
 
-    void bind(const expression_vector&, Binder* binder, GraphEntry& graphEntry) override {
-        auto nodeOutput = bindNodeOutput(binder, graphEntry);
+    void bind(const GDSBindInput& input, main::ClientContext&) override {
+        auto nodeOutput = bindNodeOutput(input.binder, input.graphEntry.nodeEntries);
         bindData = std::make_unique<PageRankBindData>(nodeOutput);
     }
 

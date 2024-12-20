@@ -118,6 +118,9 @@ void Planner::planTableFunctionCall(const BoundReadingClause& readingClause,
     splitPredicates(call.getColumns(), call.getConjunctivePredicates(), predicatesToPull,
         predicatesToPush);
     for (auto& plan : plans) {
+
+        auto op = getTableFunctionCall(readingClause);
+
         planReadOp(getTableFunctionCall(readingClause), predicatesToPush, *plan);
         if (!predicatesToPull.empty()) {
             appendFilters(predicatesToPull, *plan);
@@ -143,7 +146,7 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
             gdsCall->computeFactorizedSchema();
             probePlan.setLastOperator(gdsCall);
             if (gdsCall->constPtrCast<LogicalGDSCall>()->getInfo().func.name == "QFTS") {
-                auto op = plan->getLastOperator()->getChild(0)->getChild(0)->getChild(1);
+                auto op = plan->getLastOperator()->getChild(0);
                 auto prop =
                     bindData->getNodeInput()->constCast<NodeExpression>().getPropertyExpression(
                         "df");

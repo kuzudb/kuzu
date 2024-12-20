@@ -201,6 +201,21 @@ void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,
     transaction->pushVectorUpdateInfo(*updateInfo, vectorIdx, *vectorUpdateInfo);
 }
 
+MergedColumnChunkStats ColumnChunk::getMergedColumnChunkStats(
+    const transaction::Transaction* transaction) const {
+    auto baseStats = data->getMergedColumnChunkStats();
+    if (updateInfo) {
+        for (idx_t i = 0; i < updateInfo->getNumVectors(); ++i) {
+            const auto* vectorInfo = updateInfo->getVectorInfo(transaction, i);
+            if (vectorInfo) {
+                baseStats.merge(vectorInfo->data->getMergedColumnChunkStats(),
+                    getDataType().getPhysicalType());
+            }
+        }
+    }
+    return baseStats;
+}
+
 void ColumnChunk::serialize(Serializer& serializer) const {
     serializer.writeDebuggingInfo("enable_compression");
     serializer.write<bool>(enableCompression);

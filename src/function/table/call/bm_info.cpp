@@ -1,3 +1,4 @@
+#include "binder/binder.h"
 #include "function/table/simple_table_functions.h"
 #include "main/database.h"
 #include "storage/buffer_manager/buffer_manager.h"
@@ -10,14 +11,11 @@ struct BMInfoBindData final : SimpleTableFuncBindData {
     uint64_t memLimit;
     uint64_t memUsage;
 
-    BMInfoBindData(uint64_t memLimit, uint64_t memUsage,
-        std::vector<common::LogicalType> returnTypes, std::vector<std::string> returnColumnNames)
-        : SimpleTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), 1},
-          memLimit{memLimit}, memUsage{memUsage} {}
+    BMInfoBindData(uint64_t memLimit, uint64_t memUsage, binder::expression_vector columns)
+        : SimpleTableFuncBindData{std::move(columns), 1}, memLimit{memLimit}, memUsage{memUsage} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<BMInfoBindData>(memLimit, memUsage,
-            common::LogicalType::copy(columnTypes), columnNames);
+        return std::make_unique<BMInfoBindData>(memLimit, memUsage, columns);
     }
 };
 
@@ -35,15 +33,15 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-    TableFuncBindInput*) {
+    TableFuncBindInput* input) {
     auto memLimit = context->getMemoryManager()->getBufferManager()->getMemoryLimit();
     auto memUsage = context->getMemoryManager()->getBufferManager()->getUsedMemory();
     std::vector<common::LogicalType> returnTypes;
     returnTypes.emplace_back(common::LogicalType::UINT64());
     returnTypes.emplace_back(common::LogicalType::UINT64());
     auto returnColumnNames = std::vector<std::string>{"mem_limit", "mem_usage"};
-    return std::make_unique<BMInfoBindData>(memLimit, memUsage, std::move(returnTypes),
-        std::move(returnColumnNames));
+    auto columns = input->binder->createVariables(returnColumnNames, returnTypes);
+    return std::make_unique<BMInfoBindData>(memLimit, memUsage, columns);
 }
 
 function_set BMInfoFunction::getFunctionSet() {

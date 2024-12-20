@@ -94,18 +94,17 @@ public:
             LogicalTypeID::STRING};
     }
 
-    void bind(const expression_vector& params, Binder* binder,
-        graph::GraphEntry& graphEntry) override {
-        auto nodeInput = params[1];
-        auto nodeOutput = bindNodeOutput(binder, graphEntry);
-        auto lowerBound = ExpressionUtil::getLiteralValue<int64_t>(*params[2]);
-        auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*params[3]);
+    void bind(const GDSBindInput& input, main::ClientContext&) override {
+        auto nodeInput = input.getParam(1);
+        auto nodeOutput = bindNodeOutput(input.binder, input.graphEntry.nodeEntries);
+        auto lowerBound = ExpressionUtil::getLiteralValue<int64_t>(*input.getParam(2));
+        auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*input.getParam(3));
         validateLowerUpperBound(lowerBound, upperBound);
         auto extendDirection = ExtendDirectionUtil::fromString(
-            ExpressionUtil::getLiteralValue<std::string>(*params[4]));
+            ExpressionUtil::getLiteralValue<std::string>(*input.getParam(4)));
         bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound,
             PathSemantic::WALK, extendDirection);
-        bindColumnExpressions(binder);
+        bindColumnExpressions(input.binder);
     }
 
     binder::expression_vector getResultColumns(Binder*) const override {

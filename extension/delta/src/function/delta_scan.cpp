@@ -1,40 +1,17 @@
 #include "function/delta_scan.h"
 
-#include "connector/connector_factory.h"
-#include "connector/delta_connector.h"
-#include "connector/duckdb_result_converter.h"
-#include "connector/duckdb_type_converter.h"
-#include "function/table/scan_functions.h"
-
 namespace kuzu {
 namespace delta_extension {
 
 using namespace function;
 using namespace common;
 
-struct DeltaScanBindData : public ScanBindData {
-    std::string query;
-    std::shared_ptr<DeltaConnector> connector;
-    duckdb_extension::DuckDBResultConverter converter;
-
-    DeltaScanBindData(std::string query, std::shared_ptr<DeltaConnector> connector,
-        duckdb_extension::DuckDBResultConverter converter, std::vector<LogicalType> returnTypes,
-        std::vector<std::string> returnColumnNames, ReaderConfig config, main::ClientContext* ctx)
-        : ScanBindData{std::move(returnTypes), std::move(returnColumnNames), std::move(config),
-              ctx},
-          query{std::move(query)}, connector{std::move(connector)},
-          converter{std::move(converter)} {}
-
-    std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<DeltaScanBindData>(*this);
-    }
-};
-
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     TableFuncBindInput* input) {
     auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
     auto connector = std::make_shared<DeltaConnector>();
-    connector->connect("" /* inMemDB */, "" /* defaultCatalogName */, context);
+    connector->connect("" /* inMemDB */, "" /* defaultCatalogName */, "" /* defaultSchemaName */,
+        context);
     std::string query = common::stringFormat("SELECT * FROM DELTA_SCAN('{}')",
         input->getLiteralVal<std::string>(0));
     auto result = connector->executeQuery(query + " LIMIT 1");
@@ -51,9 +28,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         }
     }
     KU_ASSERT(returnTypes.size() == returnColumnNames.size());
+    auto columns = input->binder->createVariables(returnColumnNames, returnTypes);
     return std::make_unique<DeltaScanBindData>(std::move(query), connector,
-        duckdb_extension::DuckDBResultConverter{returnTypes}, copyVector(returnTypes),
-        std::move(returnColumnNames), ReaderConfig{}, context);
+        duckdb_extension::DuckDBResultConverter{returnTypes}, columns, ReaderConfig{}, context);
 }
 
 struct DeltaScanSharedState : public BaseScanSharedState {
@@ -71,7 +48,7 @@ std::unique_ptr<TableFuncSharedState> initDeltaScanSharedState(TableFunctionInit
     return std::make_unique<DeltaScanSharedState>(std::move(queryResult));
 }
 
-static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     auto sharedState = input.sharedState->ptrCast<DeltaScanSharedState>();
     auto deltaScanBindData = input.bindData->constPtrCast<DeltaScanBindData>();
     std::unique_ptr<duckdb::DataChunk> result;

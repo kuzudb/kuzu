@@ -83,8 +83,7 @@ void Planner::appendStandaloneCallFunction(const BoundStatement& statement, Logi
     auto& standaloneCallFunctionClause = statement.constCast<BoundStandaloneCallFunction>();
     auto op =
         std::make_shared<LogicalTableFunctionCall>(standaloneCallFunctionClause.getTableFunction(),
-            standaloneCallFunctionClause.getBindData()->copy(), binder::expression_vector{},
-            standaloneCallFunctionClause.getOffset());
+            standaloneCallFunctionClause.getBindData()->copy(), binder::expression_vector{});
     plan.setLastOperator(std::move(op));
 }
 

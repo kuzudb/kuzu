@@ -1,3 +1,4 @@
+#include "binder/binder.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "function/table/simple_table_functions.h"
@@ -26,14 +27,12 @@ struct SequenceInfo {
 struct ShowSequencesBindData : public SimpleTableFuncBindData {
     std::vector<SequenceInfo> sequences;
 
-    ShowSequencesBindData(std::vector<SequenceInfo> sequences, std::vector<LogicalType> returnTypes,
-        std::vector<std::string> returnColumnNames, offset_t maxOffset)
-        : SimpleTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
-          sequences{std::move(sequences)} {}
+    ShowSequencesBindData(std::vector<SequenceInfo> sequences, binder::expression_vector columns,
+        offset_t maxOffset)
+        : SimpleTableFuncBindData{std::move(columns), maxOffset}, sequences{std::move(sequences)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ShowSequencesBindData>(sequences, LogicalType::copy(columnTypes),
-            columnNames, maxOffset);
+        return std::make_unique<ShowSequencesBindData>(sequences, columns, maxOffset);
     }
 };
 
@@ -60,7 +59,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-    TableFuncBindInput*) {
+    TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     columnNames.emplace_back("name");
@@ -102,8 +101,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     //         sequenceInfos.push_back(std::move(sequenceInfo));
     //     }
     // }
-    return std::make_unique<ShowSequencesBindData>(std::move(sequenceInfos), std::move(columnTypes),
-        std::move(columnNames), sequenceInfos.size());
+    auto columns = input->binder->createVariables(columnNames, columnTypes);
+    return std::make_unique<ShowSequencesBindData>(std::move(sequenceInfos), columns,
+        sequenceInfos.size());
 }
 
 function_set ShowSequencesFunction::getFunctionSet() {

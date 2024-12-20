@@ -1,5 +1,6 @@
 #include "function/clear_cache.h"
 
+#include "binder/binder.h"
 #include "catalog/duckdb_catalog.h"
 #include "storage/duckdb_storage.h"
 
@@ -25,13 +26,14 @@ static offset_t clearCacheTableFunc(TableFuncInput& input, TableFuncOutput& outp
 }
 
 static std::unique_ptr<TableFuncBindData> clearCacheBindFunc(ClientContext* context,
-    TableFuncBindInput*) {
+    TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     columnNames.emplace_back("message");
     columnTypes.emplace_back(LogicalType::STRING());
-    return std::make_unique<ClearCacheBindData>(context->getDatabaseManager(),
-        std::move(columnTypes), std::move(columnNames), 1 /* maxOffset */);
+    auto columns = input->binder->createVariables(columnNames, columnTypes);
+    return std::make_unique<ClearCacheBindData>(context->getDatabaseManager(), columns,
+        1 /* maxOffset */);
 }
 
 ClearCacheFunction::ClearCacheFunction()

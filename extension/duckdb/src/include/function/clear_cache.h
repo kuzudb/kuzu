@@ -11,15 +11,13 @@ namespace duckdb_extension {
 struct ClearCacheBindData : public function::SimpleTableFuncBindData {
     main::DatabaseManager* databaseManager;
 
-    ClearCacheBindData(main::DatabaseManager* databaseManager,
-        std::vector<common::LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
+    ClearCacheBindData(main::DatabaseManager* databaseManager, binder::expression_vector columns,
         common::offset_t maxOffset)
-        : SimpleTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
-          databaseManager{databaseManager} {}
+        : SimpleTableFuncBindData{std::move(columns), maxOffset}, databaseManager{databaseManager} {
+    }
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ClearCacheBindData>(databaseManager,
-            common::LogicalType::copy(columnTypes), columnNames, maxOffset);
+        return std::make_unique<ClearCacheBindData>(databaseManager, columns, maxOffset);
     }
 };
 

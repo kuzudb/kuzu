@@ -1,5 +1,6 @@
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 
+#include "binder/binder.h"
 #include "function/table/bind_data.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
@@ -219,7 +220,6 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     TableFuncBindInput* input) {
     auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
-
     bool detectedHeader = false;
 
     DialectOption detectedDialect;
@@ -249,13 +249,18 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         scanInput->config.options.insert_or_assign("HEADER", Value(detectedHeader));
     }
 
+    auto resultColumns = input->binder->createVariables(resultColumnNames, resultColumnTypes);
+    std::vector<std::string> warningColumnNames;
+    std::vector<LogicalType> warningColumnTypes;
     const column_id_t numWarningDataColumns = BaseCSVReader::appendWarningDataColumns(
-        resultColumnNames, resultColumnTypes, scanInput->config);
-
-    // we currently have no way to estimate the number of rows in a CSV
-    return std::make_unique<ScanBindData>(std::move(resultColumnTypes),
-        std::move(resultColumnNames), scanInput->config.copy(), context, 0 /* estCardinality */,
-        numWarningDataColumns);
+        warningColumnNames, warningColumnTypes, scanInput->config);
+    auto warningColumns =
+        input->binder->createInvisibleVariables(warningColumnNames, warningColumnTypes);
+    for (auto& column : warningColumns) {
+        resultColumns.push_back(column);
+    }
+    return std::make_unique<ScanBindData>(std::move(resultColumns), scanInput->config.copy(),
+        context, numWarningDataColumns, 0 /* estCardinality */);
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitInput& input) {

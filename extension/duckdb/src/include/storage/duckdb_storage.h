@@ -14,6 +14,8 @@ public:
 
     static constexpr const char* SKIP_UNSUPPORTED_TABLE_KEY = "SKIP_UNSUPPORTED_TABLE";
 
+    static constexpr const char* SCHEMA_OPTION = "SCHEMA";
+
     static constexpr bool SKIP_UNSUPPORTED_TABLE_DEFAULT_VAL = false;
 
     explicit DuckDBStorageExtension(main::Database* database);

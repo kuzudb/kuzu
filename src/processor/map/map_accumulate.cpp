@@ -23,7 +23,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAccumulate(LogicalOperator* op)
     }
     physical_op_vector_t children;
     children.push_back(std::move(resultCollector));
-    return createFTableScanAligned(expressions, outSchema, acc.getOffset(), table, maxMorselSize,
+    return createFTableScanAligned(expressions, outSchema, table, maxMorselSize,
         std::move(children));
 }
 

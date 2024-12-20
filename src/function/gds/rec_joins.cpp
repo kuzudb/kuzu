@@ -114,20 +114,19 @@ static void validateSPUpperBound(int64_t upperBound) {
     }
 }
 
-void SPAlgorithm::bind(const expression_vector& params, Binder* binder,
-    graph::GraphEntry& graphEntry) {
-    KU_ASSERT(params.size() == 4);
-    auto nodeInput = params[1];
-    auto nodeOutput = bindNodeOutput(binder, graphEntry);
+void SPAlgorithm::bind(const GDSBindInput& input, main::ClientContext&) {
+    KU_ASSERT(input.getNumParams() == 4);
+    auto nodeInput = input.getParam(1);
+    auto nodeOutput = bindNodeOutput(input.binder, input.graphEntry.nodeEntries);
     auto lowerBound = 1;
-    auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*params[2]);
+    auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*input.getParam(2));
     validateSPUpperBound(upperBound);
     validateLowerUpperBound(lowerBound, upperBound);
-    auto extendDirection =
-        ExtendDirectionUtil::fromString(ExpressionUtil::getLiteralValue<std::string>(*params[3]));
+    auto extendDirection = ExtendDirectionUtil::fromString(
+        ExpressionUtil::getLiteralValue<std::string>(*input.getParam(3)));
     bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound,
         PathSemantic::WALK, extendDirection);
-    bindColumnExpressions(binder);
+    bindColumnExpressions(input.binder);
 }
 
 // All recursive join computation have the same vertex compute. This vertex compute writes

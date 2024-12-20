@@ -1,0 +1,100 @@
+{
+  "format-version" : 2,
+  "table-uuid" : "aac3f1b7-d2b2-4930-95bb-83e975e1bdac",
+  "location" : "/home/sterling/Desktop/iceberg_warehouse/student",
+  "last-sequence-number" : 1,
+  "last-updated-ms" : 1733348084159,
+  "last-column-id" : 8,
+  "current-schema-id" : 0,
+  "schemas" : [ {
+    "type" : "struct",
+    "schema-id" : 0,
+    "fields" : [ {
+      "id" : 1,
+      "name" : "name",
+      "required" : false,
+      "type" : "string"
+    }, {
+      "id" : 2,
+      "name" : "scores",
+      "required" : false,
+      "type" : {
+        "type" : "list",
+        "element-id" : 6,
+        "element" : "int",
+        "element-required" : false
+      }
+    }, {
+      "id" : 3,
+      "name" : "graduated",
+      "required" : false,
+      "type" : "boolean"
+    }, {
+      "id" : 4,
+      "name" : "admission_date",
+      "required" : false,
+      "type" : "timestamptz"
+    }, {
+      "id" : 5,
+      "name" : "metadata",
+      "required" : false,
+      "type" : {
+        "type" : "map",
+        "key-id" : 7,
+        "key" : "string",
+        "value-id" : 8,
+        "value" : "string",
+        "value-required" : false
+      }
+    } ]
+  } ],
+  "default-spec-id" : 0,
+  "partition-specs" : [ {
+    "spec-id" : 0,
+    "fields" : [ ]
+  } ],
+  "last-partition-id" : 999,
+  "default-sort-order-id" : 0,
+  "sort-orders" : [ {
+    "order-id" : 0,
+    "fields" : [ ]
+  } ],
+  "properties" : {
+    "owner" : "sterling",
+    "write.parquet.compression-codec" : "zstd"
+  },
+  "current-snapshot-id" : 7013282544641537982,
+  "refs" : {
+    "main" : {
+      "snapshot-id" : 7013282544641537982,
+      "type" : "branch"
+    }
+  },
+  "snapshots" : [ {
+    "sequence-number" : 1,
+    "snapshot-id" : 7013282544641537982,
+    "timestamp-ms" : 1733348084159,
+    "summary" : {
+      "operation" : "append",
+      "spark.app.id" : "local-1733348080809",
+      "added-data-files" : "3",
+      "added-records" : "3",
+      "added-files-size" : "5631",
+      "changed-partition-count" : "1",
+      "total-records" : "3",
+      "total-files-size" : "5631",
+      "total-data-files" : "3",
+      "total-delete-files" : "0",
+      "total-position-deletes" : "0",
+      "total-equality-deletes" : "0"
+    },
+    "manifest-list" : "/home/sterling/Desktop/iceberg_warehouse/student/metadata/snap-7013282544641537982-1-428f18ac-43e8-40b7-be05-83be572d6606.avro",
+    "schema-id" : 0
+  } ],
+  "statistics" : [ ],
+  "snapshot-log" : [ {
+    "timestamp-ms" : 1733348084159,
+    "snapshot-id" : 7013282544641537982
+  } ],
+  "metadata-log" : [ ]
+}

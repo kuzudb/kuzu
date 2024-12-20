@@ -20,8 +20,9 @@ static void validateParameterType(expression_vector positionalParams) {
 
 BoundTableFunction Binder::bindTableFunc(std::string tableFuncName,
     const parser::ParsedExpression& expr, expression_vector& columns) {
+    auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
     auto entry = BuiltInFunctionsUtils::getFunctionCatalogEntry(clientContext->getTx(),
-        tableFuncName, clientContext->getCatalog()->getFunctions(clientContext->getTx()));
+        tableFuncName, functions);
     expression_vector positionalParams;
     std::vector<LogicalType> positionalParamTypes;
     optional_params_t optionalParams;
@@ -49,13 +50,10 @@ BoundTableFunction Binder::bindTableFunc(std::string tableFuncName,
     auto bindInput = TableFuncBindInput();
     bindInput.params = std::move(positionalParams);
     bindInput.optionalParams = std::move(optionalParams);
+    bindInput.binder = this;
     auto bindData = tableFunc->bindFunc(clientContext, &bindInput);
-    for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
-        columns.push_back(createVariable(bindData->columnNames[i], bindData->columnTypes[i]));
-    }
-    auto offset = expressionBinder.createVariableExpression(LogicalType::INT64(),
-        std::string(InternalKeyword::ROW_OFFSET));
-    return BoundTableFunction{tableFunc->copy(), std::move(bindData), std::move(offset)};
+    columns = bindData->columns;
+    return BoundTableFunction{tableFunc->copy(), std::move(bindData)};
 }
 
 } // namespace binder

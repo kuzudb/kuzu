@@ -1,0 +1,78 @@
+{
+  "format-version" : 2,
+  "table-uuid" : "3fdb12ba-bc3d-4fa2-b402-5e11684e7c5c",
+  "location" : "/home/sterling/Desktop/iceberg_warehouse/university",
+  "last-sequence-number" : 1,
+  "last-updated-ms" : 1733347850414,
+  "last-column-id" : 3,
+  "current-schema-id" : 0,
+  "schemas" : [ {
+    "type" : "struct",
+    "schema-id" : 0,
+    "fields" : [ {
+      "id" : 1,
+      "name" : "university",
+      "required" : false,
+      "type" : "string"
+    }, {
+      "id" : 2,
+      "name" : "rank",
+      "required" : false,
+      "type" : "long"
+    }, {
+      "id" : 3,
+      "name" : "funding",
+      "required" : false,
+      "type" : "double"
+    } ]
+  } ],
+  "default-spec-id" : 0,
+  "partition-specs" : [ {
+    "spec-id" : 0,
+    "fields" : [ ]
+  } ],
+  "last-partition-id" : 999,
+  "default-sort-order-id" : 0,
+  "sort-orders" : [ {
+    "order-id" : 0,
+    "fields" : [ ]
+  } ],
+  "properties" : {
+    "owner" : "sterling",
+    "write.parquet.compression-codec" : "zstd"
+  },
+  "current-snapshot-id" : 3733971056689449947,
+  "refs" : {
+    "main" : {
+      "snapshot-id" : 3733971056689449947,
+      "type" : "branch"
+    }
+  },
+  "snapshots" : [ {
+    "sequence-number" : 1,
+    "snapshot-id" : 3733971056689449947,
+    "timestamp-ms" : 1733347850414,
+    "summary" : {
+      "operation" : "append",
+      "spark.app.id" : "local-1733347847260",
+      "added-data-files" : "6",
+      "added-records" : "6",
+      "added-files-size" : "5796",
+      "changed-partition-count" : "1",
+      "total-records" : "6",
+      "total-files-size" : "5796",
+      "total-data-files" : "6",
+      "total-delete-files" : "0",
+      "total-position-deletes" : "0",
+      "total-equality-deletes" : "0"
+    },
+    "manifest-list" : "/home/sterling/Desktop/iceberg_warehouse/university/metadata/snap-3733971056689449947-1-bf8fe175-30b4-4b7d-9d1d-7a3b112ab9be.avro",
+    "schema-id" : 0
+  } ],
+  "statistics" : [ ],
+  "snapshot-log" : [ {
+    "timestamp-ms" : 1733347850414,
+    "snapshot-id" : 3733971056689449947
+  } ],
+  "metadata-log" : [ ]
+}
