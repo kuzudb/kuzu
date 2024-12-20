@@ -5,7 +5,9 @@
 #include "common/arrow/arrow_converter.h"
 #include "function/cast/functions/numeric_limits.h"
 #include "function/table/bind_input.h"
+#include "processor/execution_context.h"
 #include "py_connection.h"
+#include "py_scan_config.h"
 #include "pybind11/pytypes.h"
 
 using namespace kuzu::function;
@@ -13,28 +15,6 @@ using namespace kuzu::common;
 using namespace kuzu::catalog;
 
 namespace kuzu {
-
-PyArrowScanConfig::PyArrowScanConfig(const common::case_insensitive_map_t<Value>& options) {
-    skipNum = 0;
-    limitNum = NumericLimits<uint64_t>::maximum();
-    for (const auto& i : options) {
-        if (i.first == "SKIP") {
-            if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::INT64 ||
-                i.second.val.int64Val < 0) {
-                throw BinderException("SKIP Option must be a positive integer literal.");
-            }
-            skipNum = i.second.val.int64Val;
-        } else if (i.first == "LIMIT") {
-            if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::INT64 ||
-                i.second.val.int64Val < 0) {
-                throw BinderException("LIMIT Option must be a positive integer literal.");
-            }
-            limitNum = i.second.val.int64Val;
-        } else {
-            throw BinderException(stringFormat("{} Option not recognized by pyArrow scanner."));
-        }
-    }
-}
 
 template<typename T>
 static bool moduleIsLoaded() {
@@ -64,7 +44,7 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
     }
     auto numRows = py::len(table);
     auto schema = Pyarrow::bind(table, returnTypes, names);
-    auto config = PyArrowScanConfig(scanInput->config.options);
+    auto config = PyScanConfig(scanInput->config.options);
     // The following python operations are zero copy as defined in pyarrow docs.
     if (config.skipNum != 0) {
         table = table.attr("slice")(config.skipNum);
@@ -81,7 +61,7 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
 
     auto columns = input->binder->createVariables(names, returnTypes);
     return std::make_unique<PyArrowTableScanFunctionData>(std::move(columns), std::move(schema),
-        arrowArrayBatches, numRows);
+        arrowArrayBatches, numRows, config.ignoreErrors);
 }
 
 ArrowArrayWrapper* PyArrowTableScanSharedState::getNextChunk() {
@@ -142,17 +122,21 @@ static double progressFunc(function::TableFuncSharedState* sharedState) {
     return static_cast<double>(state->currentChunk) / state->chunks.size();
 }
 
+static void finalizeFunc(processor::ExecutionContext* ctx, TableFuncSharedState*) {
+    ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
+}
+
 function::function_set PyArrowTableScanFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(
         std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState, initLocalState,
-            progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::POINTER}));
+            progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::POINTER}, finalizeFunc));
     return functionSet;
 }
 
 TableFunction PyArrowTableScanFunction::getFunction() {
     return TableFunction(name, tableFunc, bindFunc, initSharedState, initLocalState, progressFunc,
-        std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
+        std::vector<LogicalTypeID>{LogicalTypeID::POINTER}, finalizeFunc);
 }
 
 } // namespace kuzu

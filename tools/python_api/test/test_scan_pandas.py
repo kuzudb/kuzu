@@ -140,39 +140,52 @@ def test_scan_pandas(tmp_path: Path) -> None:
         "INT32": np.array([-100, -200, -300, -400], dtype=np.int32),
         "INT64": np.array([-1000, -2000, -3000, -4000], dtype=np.int64),
         "FLOAT_32": np.array(
-            [-0.5199999809265137, float("nan"), -3.299999952316284, 4.400000095367432], dtype=np.float32
+            [-0.5199999809265137, float("nan"), -3.299999952316284, 4.400000095367432],
+            dtype=np.float32,
         ),
-        "FLOAT_64": np.array([5132.12321, 24.222, float("nan"), 4.444], dtype=np.float64),
-        "datetime_microseconds": np.array([
-            np.datetime64("1996-04-01T12:00:11.500001000"),
-            np.datetime64("1981-11-13T22:02:52.000002000"),
-            np.datetime64("1972-12-21T12:05:44.500003000"),
-            np.datetime64("2008-01-11T22:10:03.000004000"),
-        ]).astype("datetime64[us]"),
-        "datetime_microseconds_tz": np.array([
-            np.datetime64("1996-04-01T12:00:11.500001000"),
-            np.datetime64("1981-11-13T22:02:52.000002000"),
-            np.datetime64("1972-12-21T12:05:44.500003000"),
-            np.datetime64("2008-01-11T22:10:03.000004000"),
-        ]).astype("datetime64[us]"),
-        "datetime_nanoseconds": np.array([
-            np.datetime64("1996-04-01T12:00:11.500001"),
-            np.datetime64("1981-11-13T22:02:52.000002"),
-            np.datetime64("1972-12-21T12:05:44.500003"),
-            np.datetime64("2008-01-11T22:10:03.000004"),
-        ]).astype("datetime64[ns]"),
-        "datetime_milliseconds": np.array([
-            np.datetime64("1996-04-01T12:00:11.500001"),
-            np.datetime64("1981-11-13T22:02:52.000002"),
-            np.datetime64("1972-12-21T12:05:44.500003"),
-            np.datetime64("2008-01-11T22:10:03.000004"),
-        ]).astype("datetime64[ms]"),
-        "datetime_seconds": np.array([
-            np.datetime64("1996-04-01T12:00:11"),
-            np.datetime64("1981-11-13T22:02:52"),
-            np.datetime64("1972-12-21T12:05:44"),
-            np.datetime64("2008-01-11T22:10:03"),
-        ]).astype("datetime64[s]"),
+        "FLOAT_64": np.array(
+            [5132.12321, 24.222, float("nan"), 4.444], dtype=np.float64
+        ),
+        "datetime_microseconds": np.array(
+            [
+                np.datetime64("1996-04-01T12:00:11.500001000"),
+                np.datetime64("1981-11-13T22:02:52.000002000"),
+                np.datetime64("1972-12-21T12:05:44.500003000"),
+                np.datetime64("2008-01-11T22:10:03.000004000"),
+            ]
+        ).astype("datetime64[us]"),
+        "datetime_microseconds_tz": np.array(
+            [
+                np.datetime64("1996-04-01T12:00:11.500001000"),
+                np.datetime64("1981-11-13T22:02:52.000002000"),
+                np.datetime64("1972-12-21T12:05:44.500003000"),
+                np.datetime64("2008-01-11T22:10:03.000004000"),
+            ]
+        ).astype("datetime64[us]"),
+        "datetime_nanoseconds": np.array(
+            [
+                np.datetime64("1996-04-01T12:00:11.500001"),
+                np.datetime64("1981-11-13T22:02:52.000002"),
+                np.datetime64("1972-12-21T12:05:44.500003"),
+                np.datetime64("2008-01-11T22:10:03.000004"),
+            ]
+        ).astype("datetime64[ns]"),
+        "datetime_milliseconds": np.array(
+            [
+                np.datetime64("1996-04-01T12:00:11.500001"),
+                np.datetime64("1981-11-13T22:02:52.000002"),
+                np.datetime64("1972-12-21T12:05:44.500003"),
+                np.datetime64("2008-01-11T22:10:03.000004"),
+            ]
+        ).astype("datetime64[ms]"),
+        "datetime_seconds": np.array(
+            [
+                np.datetime64("1996-04-01T12:00:11"),
+                np.datetime64("1981-11-13T22:02:52"),
+                np.datetime64("1972-12-21T12:05:44"),
+                np.datetime64("2008-01-11T22:10:03"),
+            ]
+        ).astype("datetime64[s]"),
         "timedelta_nanoseconds": [
             np.timedelta64(500000, "ns"),
             np.timedelta64(1000000000, "ns"),
@@ -183,7 +196,9 @@ def test_scan_pandas(tmp_path: Path) -> None:
         "worked_hours": [[], [40, 20, 10], [30, None], None],
         "int_object": np.array([528, -9999, None, 56677], dtype=object),
         "float_object": np.array([3.562, 4.213, None, 67.13], dtype=object),
-        "used_names": np.array([["Alice", None], [], None, ["Dan, Ella", "George"]], dtype=object),
+        "used_names": np.array(
+            [["Alice", None], [], None, ["Dan, Ella", "George"]], dtype=object
+        ),
         "past_date": np.array(
             [
                 datetime.date(1996, 2, 15),
@@ -202,7 +217,9 @@ def test_scan_pandas(tmp_path: Path) -> None:
         ],
     }
     df = pd.DataFrame(data)
-    df["datetime_microseconds_tz"] = df["datetime_microseconds_tz"].dt.tz_localize("US/Eastern")
+    df["datetime_microseconds_tz"] = df["datetime_microseconds_tz"].dt.tz_localize(
+        "US/Eastern"
+    )
     results = conn.execute("LOAD FROM df RETURN *")
     validate_scan_pandas_results(results)
 
@@ -223,7 +240,9 @@ def test_scan_pandas_timestamp(tmp_path: Path) -> None:
     # Pandas automatically converts the column from object to timestamp, so we need to manually cast back to object.
     df = df.astype({"timestamp": "object"}, copy=False)
     results = conn.execute("LOAD FROM df RETURN *")
-    assert results.get_next() == [datetime.datetime(1996, 2, 15, hour=12, minute=22, second=54)]
+    assert results.get_next() == [
+        datetime.datetime(1996, 2, 15, hour=12, minute=22, second=54)
+    ]
     assert results.get_next() == [datetime.datetime(2011, 3, 11, minute=11, hour=5)]
     assert results.get_next() == [None]
     assert results.get_next() == [datetime.datetime(2033, 2, 11, microsecond=55)]
@@ -233,7 +252,9 @@ def test_replace_failure(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
 
-    with pytest.raises(RuntimeError, match=re.escape("Binder exception: Variable x is not in scope.")):
+    with pytest.raises(
+        RuntimeError, match=re.escape("Binder exception: Variable x is not in scope.")
+    ):
         conn.execute("LOAD FROM x RETURN *;")
 
     with pytest.raises(
@@ -282,10 +303,12 @@ def test_large_pd(tmp_path: Path) -> None:
     num_rows = 40000
     odd_numbers = [2 * i + 1 for i in range(num_rows)]
     even_numbers = [2 * i for i in range(num_rows)]
-    df = pd.DataFrame({
-        "odd": np.array(odd_numbers, dtype=np.int64),
-        "even": np.array(even_numbers, dtype=np.int64),
-    })
+    df = pd.DataFrame(
+        {
+            "odd": np.array(odd_numbers, dtype=np.int64),
+            "even": np.array(even_numbers, dtype=np.int64),
+        }
+    )
     result = conn.execute("LOAD FROM df RETURN *").get_as_df()
     assert result["odd"].to_list() == odd_numbers
     assert result["even"].to_list() == even_numbers
@@ -305,18 +328,34 @@ def test_pandas_scan_demo(tmp_path: Path) -> None:
     age = np.array([42, 23, 33, 57, 67, 39, 11], dtype=np.uint16)
     height_in_cm = np.array([167, 172, 183, 199, 149, 154, 165], dtype=np.uint32)
     is_student = np.array([False, True, False, False, False, False, True], dtype=bool)
-    person = pd.DataFrame({"id": id, "age": age, "height": height_in_cm, "is_student": is_student})
+    person = pd.DataFrame(
+        {"id": id, "age": age, "height": height_in_cm, "is_student": is_student}
+    )
 
     result = conn.execute(
         "LOAD FROM person with avg(height / 2.54) as height_in_inch MATCH (s:student) WHERE s.height > "
         "height_in_inch RETURN s"
     ).get_as_df()
     assert len(result) == 2
-    assert result["s"][0] == {"ID": 0, "_id": {"offset": 0, "table": 0}, "_label": "student", "height": 70}
-    assert result["s"][1] == {"ID": 4, "_id": {"offset": 2, "table": 0}, "_label": "student", "height": 67}
+    assert result["s"][0] == {
+        "ID": 0,
+        "_id": {"offset": 0, "table": 0},
+        "_label": "student",
+        "height": 70,
+    }
+    assert result["s"][1] == {
+        "ID": 4,
+        "_id": {"offset": 2, "table": 0},
+        "_label": "student",
+        "height": 67,
+    }
 
-    conn.execute("CREATE NODE TABLE person(ID INT64, age UINT16, height UINT32, is_student BOOLean, PRIMARY KEY(ID))")
-    conn.execute("LOAD FROM person CREATE (p:person {ID: id, age: age, height: height, is_student: is_student})")
+    conn.execute(
+        "CREATE NODE TABLE person(ID INT64, age UINT16, height UINT32, is_student BOOLean, PRIMARY KEY(ID))"
+    )
+    conn.execute(
+        "LOAD FROM person CREATE (p:person {ID: id, age: age, height: height, is_student: is_student})"
+    )
     result = conn.execute("MATCH (p:person) return p.*").get_as_df()
     assert np.all(result["p.ID"].to_list() == id)
     assert np.all(result["p.age"].to_list() == age)
@@ -350,8 +389,12 @@ def test_scan_all_null(tmp_path: Path) -> None:
 def test_copy_from_scan_pandas_result(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
-    df = pd.DataFrame({"name": ["Adam", "Karissa", "Zhang", "Noura"], "age": [30, 40, 50, 25]})
-    conn.execute("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY (name));")
+    df = pd.DataFrame(
+        {"name": ["Adam", "Karissa", "Zhang", "Noura"], "age": [30, 40, 50, 25]}
+    )
+    conn.execute(
+        "CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY (name));"
+    )
     conn.execute("COPY Person FROM (LOAD FROM df WHERE age < 30 RETURN *);")
     result = conn.execute("match (p:Person) return p.*")
     assert result.get_next() == ["Noura", 25]
@@ -361,9 +404,9 @@ def test_copy_from_scan_pandas_result(tmp_path: Path) -> None:
 def test_scan_from_py_arrow_pandas(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
-    df = pd.DataFrame({"name": ["Adam", "Karissa", "Zhang", "Noura"], "age": [30, 40, 50, 25]}).convert_dtypes(
-        dtype_backend="pyarrow"
-    )
+    df = pd.DataFrame(
+        {"name": ["Adam", "Karissa", "Zhang", "Noura"], "age": [30, 40, 50, 25]}
+    ).convert_dtypes(dtype_backend="pyarrow")
     result = conn.execute("LOAD FROM df RETURN *;")
     assert result.get_next() == ["Adam", 30]
     assert result.get_next() == ["Karissa", 40]
@@ -384,8 +427,12 @@ def test_scan_long_utf8_string(tmp_path: Path) -> None:
 def test_copy_from_pandas_object(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
-    df = pd.DataFrame({"name": ["Adam", "Karissa", "Zhang", "Noura"], "age": [30, 40, 50, 25]})
-    conn.execute("CREATE NODE TABLE Person(name STRING, age STRING, PRIMARY KEY (name));")
+    df = pd.DataFrame(
+        {"name": ["Adam", "Karissa", "Zhang", "Noura"], "age": [30, 40, 50, 25]}
+    )
+    conn.execute(
+        "CREATE NODE TABLE Person(name STRING, age STRING, PRIMARY KEY (name));"
+    )
     conn.execute("COPY Person FROM df;")
     result = conn.execute("match (p:Person) return p.*")
     assert result.get_next() == ["Adam", "30"]
@@ -402,10 +449,72 @@ def test_copy_from_pandas_object(tmp_path: Path) -> None:
     assert result.has_next() is False
 
 
+def test_copy_from_pandas_object_skip(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    df = pd.DataFrame(
+        {"name": ["Adam", "Karissa", "Zhang", "Noura"], "age": [30, 40, 50, 25]}
+    )
+    conn.execute(
+        "CREATE NODE TABLE Person(name STRING, age STRING, PRIMARY KEY (name));"
+    )
+    conn.execute("COPY Person FROM df(SKIP=2);")
+    result = conn.execute("match (p:Person) return p.*")
+    assert result.get_next() == ["Zhang", "50"]
+    assert result.get_next() == ["Noura", "25"]
+    assert result.has_next() is False
+    df = pd.DataFrame({"f": ["Adam", "Noura"], "t": ["Zhang", "Zhang"]})
+    conn.execute("CREATE REL TABLE Knows(FROM Person TO Person);")
+    conn.execute("COPY Knows FROM df(SKIP=1)")
+    result = conn.execute("match (p:Person)-[]->(:Person {name: 'Zhang'}) return p.*")
+    assert result.get_next() == ["Noura", "25"]
+    assert result.has_next() is False
+
+
+def test_copy_from_pandas_object_limit(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    df = pd.DataFrame(
+        {"name": ["Adam", "Karissa", "Zhang", "Noura"], "age": [30, 40, 50, 25]}
+    )
+    conn.execute(
+        "CREATE NODE TABLE Person(name STRING, age STRING, PRIMARY KEY (name));"
+    )
+    conn.execute("COPY Person FROM df(LIMIT=2);")
+    result = conn.execute("match (p:Person) return p.*")
+    assert result.get_next() == ["Adam", "30"]
+    assert result.get_next() == ["Karissa", "40"]
+    assert result.has_next() is False
+    df = pd.DataFrame({"f": ["Adam", "Zhang"], "t": ["Karissa", "Karissa"]})
+    conn.execute("CREATE REL TABLE Knows(FROM Person TO Person);")
+    conn.execute("COPY Knows FROM df(LIMIT=1)")
+    result = conn.execute("match (p:Person)-[]->(:Person {name: 'Karissa'}) return p.*")
+    assert result.get_next() == ["Adam", "30"]
+    assert result.has_next() is False
+
+
+def test_copy_from_pandas_object_skip_and_limit(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    df = pd.DataFrame(
+        {"name": ["Adam", "Karissa", "Zhang", "Noura"], "age": [30, 40, 50, 25]}
+    )
+    conn.execute(
+        "CREATE NODE TABLE Person(name STRING, age STRING, PRIMARY KEY (name));"
+    )
+    conn.execute("COPY Person FROM df(SKIP=1, LIMIT=2);")
+    result = conn.execute("match (p:Person) return p.*")
+    assert result.get_next() == ["Karissa", "40"]
+    assert result.get_next() == ["Zhang", "50"]
+    assert result.has_next() is False
+
+
 def test_copy_from_pandas_date(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
-    df = pd.DataFrame({"id": [1, 2], "date": [pd.Timestamp("2024-01-03"), pd.Timestamp("2023-10-10")]})
+    df = pd.DataFrame(
+        {"id": [1, 2], "date": [pd.Timestamp("2024-01-03"), pd.Timestamp("2023-10-10")]}
+    )
     conn.execute("CREATE NODE TABLE Person(id INT16, d TIMESTAMP, PRIMARY KEY (id));")
     conn.execute("COPY Person FROM df;")
     result = conn.execute("match (p:Person) return p.*")
@@ -417,17 +526,43 @@ def test_copy_from_pandas_date(tmp_path: Path) -> None:
 def test_scan_string_to_nested(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
-    df = pd.DataFrame({
-        "id": ["1"],
-        "lstcol": ["[1,2,3]"],
-        "mapcol": ["{'a'=1,'b'=2}"],
-        "structcol": ["{a:1,b:2}"],
-        "lstlstcol": ["[[],[1,2,3],[4,5,6]]"],
-    })
+    df = pd.DataFrame(
+        {
+            "id": ["1"],
+            "lstcol": ["[1,2,3]"],
+            "mapcol": ["{'a'=1,'b'=2}"],
+            "structcol": ["{a:1,b:2}"],
+            "lstlstcol": ["[[],[1,2,3],[4,5,6]]"],
+        }
+    )
     conn.execute(
         "CREATE NODE TABLE tab(id INT64, lstcol INT64[], mapcol MAP(STRING, INT64), structcol STRUCT(a INT64, b INT64), lstlstcol INT64[][], PRIMARY KEY(id))"
     )
     conn.execute("COPY tab from df")
     result = conn.execute("match (t:tab) return t.*")
-    assert result.get_next() == [1, [1, 2, 3], {"'a'": 1, "'b'": 2}, {"a": 1, "b": 2}, [[], [1, 2, 3], [4, 5, 6]]]
+    assert result.get_next() == [
+        1,
+        [1, 2, 3],
+        {"'a'": 1, "'b'": 2},
+        {"a": 1, "b": 2},
+        [[], [1, 2, 3], [4, 5, 6]],
+    ]
     assert not result.has_next()
+
+
+def test_pandas_scan_ignore_errors(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    df = pd.DataFrame({"id": [1, 2, 3, 1]})
+    conn.execute("CREATE NODE TABLE person(id INT64, PRIMARY KEY(id))")
+    conn.execute("COPY person FROM df(IGNORE_ERRORS=true)")
+
+    people = conn.execute("MATCH (p:person) RETURN p.id")
+    assert people.get_next() == [1]
+    assert people.get_next() == [2]
+    assert people.get_next() == [3]
+    assert not people.has_next()
+
+    warnings = conn.execute("CALL show_warnings() RETURN *")
+    assert warnings.get_next()[1].startswith("Found duplicated primary key value 1")
+    assert not warnings.has_next()

@@ -1,11 +1,10 @@
 #pragma once
 
-#include "function/scalar_function.h"
 #include "function/table/bind_data.h"
 #include "function/table/scan_functions.h"
 #include "function/table_functions.h"
 #include "pandas_bind.h"
-#include "pybind_include.h"
+#include "py_scan_config.h"
 
 namespace kuzu {
 
@@ -17,9 +16,10 @@ struct PandasScanLocalState final : public function::TableFuncLocalState {
 };
 
 struct PandasScanSharedState final : public function::BaseScanSharedStateWithNumRows {
-    explicit PandasScanSharedState(uint64_t numRows)
-        : BaseScanSharedStateWithNumRows{numRows}, numRowsRead{0} {}
+    PandasScanSharedState(uint64_t startRow, uint64_t numRows)
+        : BaseScanSharedStateWithNumRows{numRows}, startRow(startRow), numRowsRead{0} {}
 
+    uint64_t startRow;
     uint64_t numRowsRead;
 };
 
@@ -32,22 +32,25 @@ struct PandasScanFunction {
 struct PandasScanFunctionData : public function::TableFuncBindData {
     py::handle df;
     std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData;
+    PyScanConfig scanConfig;
 
     PandasScanFunctionData(binder::expression_vector columns, py::handle df, uint64_t numRows,
-        std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData)
+        std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData, PyScanConfig scanConfig)
         : TableFuncBindData{std::move(columns), 0 /* numWarningDataColumns */, numRows}, df{df},
-          columnBindData{std::move(columnBindData)} {}
+          columnBindData{std::move(columnBindData)}, scanConfig(scanConfig) {}
 
     ~PandasScanFunctionData() override {
         py::gil_scoped_acquire acquire;
         columnBindData.clear();
     }
 
+    bool getIgnoreErrorsOption() const override { return scanConfig.ignoreErrors; }
+
     std::vector<std::unique_ptr<PandasColumnBindData>> copyColumnBindData() const;
 
 private:
     PandasScanFunctionData(const PandasScanFunctionData& other)
-        : TableFuncBindData{other}, df{other.df} {
+        : TableFuncBindData{other}, df{other.df}, scanConfig(other.scanConfig) {
         for (const auto& i : other.columnBindData) {
             columnBindData.push_back(i->copy());
         }
