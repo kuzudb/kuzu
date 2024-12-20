@@ -2,7 +2,6 @@
 
 #include "binder/query/reading_clause/bound_reading_clause.h"
 #include "function/gds_function.h"
-#include "graph/graph_entry.h"
 
 namespace kuzu {
 namespace binder {
