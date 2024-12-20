@@ -121,9 +121,10 @@ void SPAlgorithm::bind(const GDSBindInput& input, main::ClientContext& context) 
     auto rjBindData = std::make_unique<RJBindData>(std::move(graphEntry), nodeOutput);
     rjBindData->nodeInput = input.getParam(1);
     rjBindData->lowerBound = 1;
-    rjBindData->upperBound = ExpressionUtil::getLiteralValue<int64_t>(*input.getParam(2));
-    validateSPUpperBound(rjBindData->upperBound);
-    validateLowerUpperBound(rjBindData->lowerBound, rjBindData->upperBound);
+    auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*input.getParam(2));
+    validateSPUpperBound(upperBound);
+    validateLowerUpperBound(rjBindData->lowerBound, upperBound);
+    rjBindData->upperBound = upperBound;
     rjBindData->semantic = PathSemantic::WALK;
     rjBindData->extendDirection = ExtendDirectionUtil::fromString(
         ExpressionUtil::getLiteralValue<std::string>(*input.getParam(3)));

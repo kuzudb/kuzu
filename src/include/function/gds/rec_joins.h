@@ -37,14 +37,6 @@ struct RJBindData final : public GDSBindData {
     std::shared_ptr<binder::Expression> pathNodeIDsExpr = nullptr;
     std::shared_ptr<binder::Expression> pathEdgeIDsExpr = nullptr;
 
-    //    RJBindData(std::shared_ptr<binder::Expression> nodeInput,
-    //        std::shared_ptr<binder::Expression> nodeOutput, uint16_t lowerBound, uint16_t
-    //        upperBound, common::PathSemantic semantic, common::ExtendDirection extendDirection) :
-    //        GDSBindData{std::move(nodeOutput)}, nodeInput{std::move(nodeInput)},
-    //          lowerBound{lowerBound}, upperBound{upperBound}, semantic{semantic},
-    //          extendDirection{extendDirection} {
-    //        KU_ASSERT(upperBound < DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND);
-    //    }
     RJBindData(graph::GraphEntry graphEntry, std::shared_ptr<binder::Expression> nodeOutput)
         : GDSBindData{std::move(graphEntry), std::move(nodeOutput)} {}
     RJBindData(const RJBindData& other);

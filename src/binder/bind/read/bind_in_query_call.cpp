@@ -5,9 +5,7 @@
 #include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
 #include "function/gds_function.h"
-#include "graph/graph_entry.h"
 #include "parser/expression/parsed_function_expression.h"
-#include "parser/expression/parsed_variable_expression.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
 
 using namespace kuzu::common;
