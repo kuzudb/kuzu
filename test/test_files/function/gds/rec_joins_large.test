@@ -22,7 +22,7 @@
 # Layer by layer: p1_1 (len 1): 10, p1_2 (len 2):100, p1_3 (len 3): 1000, p1_4 (len 3): 100*20=2000, p1_4 (len 4): 1000*10=10000
 -LOG VarLenJoins
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL var_len_joins(PK1, a, 1, 30, "FWD")
+           CALL var_len_joins('PK1', a, 1, 30, "FWD")
            RETURN length, count(*);
 ---- 4
 1|10
@@ -33,7 +33,7 @@
 # Layer by layer: p2_1 (len 1): 10, p1_2 (len 2):100, p2_3 (len 3): 1000, p2_4 (len 3): 100*20=2000, p1_4 (len 4): 1000 (from p2_3)*10=10000
 -LOG VarLenJoinsMultilabel1
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL var_len_joins(PK2, a, 1, 30, "FWD")
+           CALL var_len_joins('PK2', a, 1, 30, "FWD")
            RETURN length, count(*);
 ---- 4
 1|10
@@ -44,7 +44,7 @@
 # Layer by layer distinct counts: p2_1: 10, p1_2: 10, p2_3: 10, p2_4: 10, p1:4: 10
 -LOG VarLenJoinsMultilabel1CountDistinct
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL var_len_joins(PK2, a, 1, 30, "FWD")
+           CALL var_len_joins('PK2', a, 1, 30, "FWD")
            RETURN count(distinct _node);
 ---- 1
 50
@@ -53,7 +53,7 @@
 #                 p{i}_4 (len 3): 400*20=8000 (total 16000), p{i}_4 (len 4): 8000*10=80000 (total 160000). Note total len 3 = 16000+8000=24000
 -LOG VarLenJoinsMultilabel2
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL var_len_joins(PK3, a, 1, 30, "FWD")
+           CALL var_len_joins('PK3', a, 1, 30, "FWD")
            RETURN length, count(*)
 ---- 4
 1|20
@@ -63,7 +63,7 @@
 
 -LOG VarLenJoinsLowerBound1
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL var_len_joins(PK1, a, 2, 3, "FWD")
+           CALL var_len_joins('PK1', a, 2, 3, "FWD")
            RETURN length, count(*);
 ---- 2
 2|100
@@ -71,14 +71,14 @@
 
 -LOG VarLenJoinsLowerBound2
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL var_len_joins(PK1, a, 4, 30, "FWD")
+           CALL var_len_joins('PK1', a, 4, 30, "FWD")
            RETURN length, count(*);
 ---- 1
 4|10000
 
 -LOG VarLenJoinsEmptyPaths
 -STATEMENT MATCH (a:person1) WHERE a.ID = 4
-           CALL var_len_joins(PK1, a, 1, 4, "FWD")
+           CALL var_len_joins('PK1', a, 1, 4, "FWD")
            RETURN length, count(*);
 ---- 0
 
@@ -86,7 +86,7 @@
 # Layer by layer: p1_1 (len 1): 10, p1_2 (len 2): 100, p1_3 (len 3): 100*10=1000, p1:4 (len 3): 100*20=2000
 -LOG AllSPDestinations
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_destinations(PK1, a, 30, "FWD")
+           CALL all_sp_destinations('PK1', a, 30, "FWD")
            RETURN count(*)
 ---- 1
 3110
@@ -94,7 +94,7 @@
 # Layer by layer: p1_1 (len 1): 10,  p2_2 (len 2): 100, p1_3 (len 3): 1000, p1_4 (len 3): 100*20=2000, p1_4 (len 4): 1000*10=10000
 -LOG AllSPDestinationsMultilabel1
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_destinations(PK2, a, 30, "FWD")
+           CALL all_sp_destinations('PK2', a, 30, "FWD")
            RETURN count(*)
 ---- 1
 13110
@@ -103,7 +103,7 @@
 #                 p{i}_4 (len 3): 200*20 + 200*20=8000 (total 16000)
 -LOG AllSPDestinationsMultilabel2
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_destinations(PK3, a, 30, "FWD")
+           CALL all_sp_destinations('PK3', a, 30, "FWD")
            RETURN count(*)
 ---- 1
 24420
@@ -111,7 +111,7 @@
 # See AllSPDestinations
 -LOG AllSPLengths
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL ALL_SP_DESTINATIONS(PK1, a, 30, "FWD")
+           CALL ALL_SP_DESTINATIONS('PK1', a, 30, "FWD")
            RETURN length, count(*);
 ---- 3
 1|10
@@ -121,7 +121,7 @@
 # See AllSPDestinationsMultilabel1
 -LOG AllSPLengthsMultilabel1
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL ALL_SP_DESTINATIONS(PK2, a, 30, "FWD")
+           CALL ALL_SP_DESTINATIONS('PK2', a, 30, "FWD")
            RETURN length, count(*);
 ---- 4
 1|10
@@ -132,7 +132,7 @@
 # See AllSPDestinationsMultilabel2
 -LOG AllSPLengthsMultilabel2
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL ALL_SP_DESTINATIONS(PK3, a, 30, "FWD")
+           CALL ALL_SP_DESTINATIONS('PK3', a, 30, "FWD")
            RETURN length, count(*);
 ---- 3
 1|20
@@ -142,7 +142,7 @@
 # See AllSPDestinations. Note pathNodeIDs contains 1 fewer nodes than the lengths of the paths.
 -LOG AllSPPaths
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_paths(PK1, a, 5, "FWD")
+           CALL all_sp_paths('PK1', a, 5, "FWD")
            RETURN size(pathNodeIDs), count(*);
 ---- 3
 0|10
@@ -152,7 +152,7 @@
 # See AllSPDestinationsMultilabel2. Note pathNodeIDs contains 1 fewer nodes than the lengths of the paths.
 -LOG AllSPPathsMultilabel1
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_paths(PK2, a, 30, "FWD")
+           CALL all_sp_paths('PK2', a, 30, "FWD")
            RETURN size(pathNodeIDs), count(*);
 ---- 4
 0|10
@@ -163,7 +163,7 @@
 # See AllSPDestinationsMultilabel2. Note pathNodeIDs contains 1 fewer nodes than the lengths of the paths.
 -LOG AllSPPathsMultilabel2
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL all_sp_paths(PK3, a, 30, "FWD")
+           CALL all_sp_paths('PK3', a, 30, "FWD")
            RETURN size(pathNodeIDs), count(*);
 ---- 3
 0|20
@@ -174,7 +174,7 @@
 # Layer by layer: p1_1 (len 1): 10, p1_2 (len 2): 10, p1_3 (len 3): 10, p1:4 (len 3): 10
 -LOG SingleSPDestinations
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_destinations(PK1, a, 30, "FWD")
+           CALL single_sp_destinations('PK1', a, 30, "FWD")
            RETURN count(*);
 ---- 1
 40
@@ -182,7 +182,7 @@
 # Layer by layer: p1_1 (len 1): 10,  p2_2 (len 2): 10, p1_3 (len 3): 10, p1_4 (len 3): 10, p1_4 (len 4): 10
 -LOG SingleSPDestinationsMultilabel1
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_destinations(PK2, a, 30, "FWD")
+           CALL single_sp_destinations('PK2', a, 30, "FWD")
            RETURN count(*);
 ---- 1
 50
@@ -190,7 +190,7 @@
 # Layer by layer: p{i}_{j} (len j except when j=4 len is 3): 10
 -LOG SingleSPDestinationsMultilabel2
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_destinations(PK3, a, 30, "FWD")
+           CALL single_sp_destinations('PK3', a, 30, "FWD")
            RETURN count(*);
 ---- 1
 80
@@ -198,7 +198,7 @@
 # See SingleSPDestinations
 -LOG SingleSPLengths
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL SINGLE_SP_DESTINATIONS(PK1, a, 30, "FWD")
+           CALL SINGLE_SP_DESTINATIONS('PK1', a, 30, "FWD")
            RETURN length, count(*);
 ---- 3
 1|10
@@ -208,7 +208,7 @@
 # See SingleSPDestinationsMultilabel1
 -LOG SingleSPLengthsMultilabel1
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL SINGLE_SP_DESTINATIONS(PK2, a, 30, "FWD")
+           CALL SINGLE_SP_DESTINATIONS('PK2', a, 30, "FWD")
            RETURN length, count(*);
 ---- 4
 1|10
@@ -219,7 +219,7 @@
 # See SingleSPDestinationsMultilabel2
 -LOG SingleSPLengthsMultilabel2
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL SINGLE_SP_DESTINATIONS(PK3, a, 30, "FWD")
+           CALL SINGLE_SP_DESTINATIONS('PK3', a, 30, "FWD")
            RETURN length, count(*);
 ---- 3
 1|20
@@ -229,7 +229,7 @@
 # See SingleSPDestinations. Note pathNodeIDs contains 1 fewer nodes than the lengths of the paths.
 -LOG SingleSPPaths
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_paths(PK1, a, 5, "FWD")
+           CALL single_sp_paths('PK1', a, 5, "FWD")
            RETURN size(pathNodeIDs), count(*);
 ---- 3
 0|10
@@ -239,7 +239,7 @@
 # See SingleSPDestinationsMultilabel1. Note pathNodeIDs contains 1 fewer nodes than the lengths of the paths.
 -LOG SingleSPPathsMultilabel1
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_paths(PK2, a, 30, "FWD")
+           CALL single_sp_paths('PK2', a, 30, "FWD")
            RETURN size(pathNodeIDs), count(*);
 ---- 4
 0|10
@@ -250,7 +250,7 @@
 # See SingleSPDestinationsMultilabel2. Note pathNodeIDs contains 1 fewer nodes than the lengths of the paths.
 -LOG SingleSPPathsMultilabel2
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
-           CALL single_sp_paths(PK3, a, 30, "FWD")
+           CALL single_sp_paths('PK3', a, 30, "FWD")
            RETURN size(pathNodeIDs), count(*)
 ---- 3
 0|20
@@ -258,7 +258,7 @@
 2|40
 
 -LOG WCC
--STATEMENT CALL weakly_connected_component(PK1)
+-STATEMENT CALL weakly_connected_component('PK1')
            RETURN group_id, count(*) AS size ORDER BY size LIMIT 5
 ---- 1
 0|41

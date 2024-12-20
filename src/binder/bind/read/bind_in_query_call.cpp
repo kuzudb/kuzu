@@ -1,13 +1,13 @@
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
+#include "binder/expression/literal_expression.h"
 #include "binder/query/reading_clause/bound_gds_call.h"
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "catalog/catalog.h"
 #include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
 #include "function/gds_function.h"
-#include "graph/graph_entry.h"
 #include "parser/expression/parsed_function_expression.h"
-#include "parser/expression/parsed_variable_expression.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
 
 using namespace kuzu::common;
@@ -36,38 +36,30 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
             std::move(columns));
     } break;
     case CatalogEntryType::GDS_FUNCTION_ENTRY: {
-        // The first argument of a GDS function must be a graph variable.
-        if (functionExpr->getNumChildren() == 0) {
-            throw BinderException(
-                stringFormat("{} function requires at least one input", functionName));
-        }
-        if (functionExpr->getChild(0)->getExpressionType() != ExpressionType::VARIABLE) {
-            throw BinderException(
-                stringFormat("First argument of {} function must be a variable", functionName));
-        }
-        auto varName =
-            functionExpr->getChild(0)->constPtrCast<ParsedVariableExpression>()->getVariableName();
-        if (!clientContext->getGraphEntrySetUnsafe().hasGraph(varName)) {
-            throw BinderException(stringFormat("Cannot find graph {}.", varName));
-        }
-        auto graphEntry = clientContext->getGraphEntrySetUnsafe().getEntry(varName);
         expression_vector children;
         std::vector<LogicalType> childrenTypes;
-        children.push_back(nullptr); // placeholder for graph variable.
-        childrenTypes.push_back(LogicalType::ANY());
-        for (auto i = 1u; i < functionExpr->getNumChildren(); i++) {
+        optional_params_t optionalParams;
+        for (auto i = 0u; i < functionExpr->getNumChildren(); i++) {
             auto child = expressionBinder.bindExpression(*functionExpr->getChild(i));
-            children.push_back(child);
-            childrenTypes.push_back(child->getDataType().copy());
+            if (!functionExpr->getChild(i)->hasAlias()) {
+                children.push_back(child);
+                childrenTypes.push_back(child->getDataType().copy());
+            } else {
+                ExpressionUtil::validateExpressionType(*child, ExpressionType::LITERAL);
+                auto literalExpr = child->constPtrCast<LiteralExpression>();
+                optionalParams.emplace(functionExpr->getChild(i)->getAlias(),
+                    literalExpr->getValue());
+            }
         }
         auto func = BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, entry);
         auto gdsFunc = func->constPtrCast<GDSFunction>()->copy();
-        auto input = GDSBindInput(graphEntry);
+        auto input = GDSBindInput();
         input.params = children;
         input.binder = this;
+        input.optionalParams = std::move(optionalParams);
         gdsFunc.gds->bind(input, *clientContext);
         columns = gdsFunc.gds->getResultColumns(this);
-        auto info = BoundGDSCallInfo(gdsFunc.copy(), graphEntry.copy(), std::move(columns));
+        auto info = BoundGDSCallInfo(gdsFunc.copy(), std::move(columns));
         boundReadingClause = std::make_unique<BoundGDSCall>(std::move(info));
     } break;
     default:
