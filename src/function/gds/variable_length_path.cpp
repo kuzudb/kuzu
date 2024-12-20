@@ -95,7 +95,7 @@ public:
     }
 
     void bind(const GDSBindInput& input, main::ClientContext& context) override {
-        auto graphName =  ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
+        auto graphName = ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
         auto graphEntry = bindGraphEntry(context, graphName);
         auto nodeOutput = bindNodeOutput(input.binder, graphEntry.nodeEntries);
         auto rjBindData = std::make_unique<RJBindData>(std::move(graphEntry), nodeOutput);

@@ -109,7 +109,8 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
 
     // Create the terms_in_doc table which servers as a temporary table to store the relationship
     // between terms and docs.
-    auto appearsInfoTableName = FTSUtils::getAppearsInfoTableName(ftsBindData->tableID, ftsBindData->indexName);
+    auto appearsInfoTableName =
+        FTSUtils::getAppearsInfoTableName(ftsBindData->tableID, ftsBindData->indexName);
     query +=
         common::stringFormat("CREATE NODE TABLE `{}` (ID SERIAL, term string, docID INT64, primary "
                              "key(ID));",
@@ -146,7 +147,8 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
                                   "RETURN t.term, CAST(count(distinct t.docID) AS UINT64));",
         termsTableName, appearsInfoTableName);
 
-    auto appearsInTableName = FTSUtils::getAppearsInTableName(ftsBindData->tableID, ftsBindData->indexName);
+    auto appearsInTableName =
+        FTSUtils::getAppearsInTableName(ftsBindData->tableID, ftsBindData->indexName);
     // Finally, create a terms table that records the documents in which the terms appear, along
     // with the frequency of each term.
     query +=
@@ -197,7 +199,8 @@ void LenCompute::vertexCompute(const graph::VertexScanState::Chunk& chunk) {
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& /*output*/) {
     auto& bindData = *input.bindData->constPtrCast<CreateFTSBindData>();
     auto& context = *input.context;
-    auto docTableName = FTSUtils::getDocsTableName(bindData.tableID, bindData.indexName);;
+    auto docTableName = FTSUtils::getDocsTableName(bindData.tableID, bindData.indexName);
+    ;
     auto docTableEntry = context.clientContext->getCatalog()->getTableCatalogEntry(
         context.clientContext->getTx(), docTableName);
     graph::GraphEntry entry{{docTableEntry}, {} /* relTableEntries */};
@@ -209,8 +212,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& /*outp
     auto numDocs = sharedState.numDocs.load();
     auto avgDocLen = numDocs == 0 ? 0 : (double)sharedState.totalLen.load() / numDocs;
     context.clientContext->getCatalog()->createIndex(context.clientContext->getTx(),
-        std::make_unique<fts_extension::FTSIndexCatalogEntry>(bindData.tableID,
-            bindData.indexName, numDocs, avgDocLen, bindData.ftsConfig));
+        std::make_unique<fts_extension::FTSIndexCatalogEntry>(bindData.tableID, bindData.indexName,
+            numDocs, avgDocLen, bindData.ftsConfig));
     return 0;
 }
 

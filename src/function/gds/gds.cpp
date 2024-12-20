@@ -1,10 +1,10 @@
 #include "function/gds/gds.h"
 
 #include "binder/binder.h"
+#include "common/exception/binder.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_utils.h"
 #include "processor/execution_context.h"
-#include "common/exception/binder.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -15,7 +15,8 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace function {
 
-graph::GraphEntry GDSAlgorithm::bindGraphEntry(main::ClientContext& context, const std::string& name) {
+graph::GraphEntry GDSAlgorithm::bindGraphEntry(main::ClientContext& context,
+    const std::string& name) {
     if (!context.getGraphEntrySetUnsafe().hasGraph(name)) {
         throw BinderException(stringFormat("Cannot find graph {}.", name));
     }

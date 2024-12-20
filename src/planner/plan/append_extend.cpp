@@ -150,8 +150,7 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     bindData->pathEdgeIDsExpr = recursiveInfo->pathEdgeIDsExpr;
     gdsFunction.gds->setBindData(std::move(bindData));
     auto resultColumns = gdsFunction.gds->getResultColumns(nullptr /* binder*/);
-    auto gdsInfo =
-        BoundGDSCallInfo(gdsFunction.copy(), std::move(resultColumns));
+    auto gdsInfo = BoundGDSCallInfo(gdsFunction.copy(), std::move(resultColumns));
     auto probePlan = LogicalPlan();
     auto gdsCall = getGDSCall(gdsInfo);
     gdsCall->computeFactorizedSchema();

@@ -66,8 +66,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     // can give the query at runtime.
     auto indexName = binder::ExpressionUtil::getLiteralValue<std::string>(*input->getParam(1));
     auto tableName = input->getLiteralVal<std::string>(0);
-    auto& tableEntry = FTSUtils::bindTable(tableName, context,
-        indexName, FTSUtils::IndexOperation::QUERY);
+    auto& tableEntry =
+        FTSUtils::bindTable(tableName, context, indexName, FTSUtils::IndexOperation::QUERY);
     auto query = input->getParam(2);
     FTSUtils::validateIndexExistence(*context, tableEntry.getTableID(), indexName);
     auto ftsCatalogEntry =
@@ -113,8 +113,8 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
             "WHERE list_contains(get_keys('{}', '{}'), a.term) "
             "CALL QFTS(a, {}, {}, cast({} as UINT64), {}, cast({} as UINT64), {}, '{}', '{}') "
             "RETURN _node AS p, score",
-            termsTableName, actualQuery, bindData.entry.getFTSConfig().stemmer,
-            bindData.config.k, bindData.config.b, numDocs, avgDocLen, numTermsInQuery,
+            termsTableName, actualQuery, bindData.entry.getFTSConfig().stemmer, bindData.config.k,
+            bindData.config.b, numDocs, avgDocLen, numTermsInQuery,
             bindData.config.isConjunctive ? "true" : "false", bindData.tableName);
         localState->result = runQuery(clientContext, query);
     }

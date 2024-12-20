@@ -50,7 +50,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         input.binder = this;
         gdsFunc.gds->bind(input, *clientContext);
         columns = gdsFunc.gds->getResultColumns(this);
-        auto info = BoundGDSCallInfo(gdsFunc.copy(),  std::move(columns));
+        auto info = BoundGDSCallInfo(gdsFunc.copy(), std::move(columns));
         boundReadingClause = std::make_unique<BoundGDSCall>(std::move(info));
     } break;
     default:

@@ -6,6 +6,7 @@
 #include "common/exception/runtime.h"
 #include "common/task_system/task_scheduler.h"
 #include "common/types/internal_id_util.h"
+#include "function/fts_utils.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_task.h"
@@ -13,7 +14,6 @@
 #include "main/settings.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
-#include "function/fts_utils.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -316,8 +316,8 @@ void QFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& context
     // Bind graph entry.
     auto catalog = context.getCatalog();
     auto tx = context.getTx();
-    auto tableName =  ExpressionUtil::getLiteralValue<std::string>(*input.getParam(8));
-    auto indexName =  ExpressionUtil::getLiteralValue<std::string>(*input.getParam(9));
+    auto tableName = ExpressionUtil::getLiteralValue<std::string>(*input.getParam(8));
+    auto indexName = ExpressionUtil::getLiteralValue<std::string>(*input.getParam(9));
     auto tableEntry = catalog->getTableCatalogEntry(tx, tableName);
     auto termsTableName = FTSUtils::getTermsTableName(tableEntry->getTableID(), indexName);
     auto docsTableName = FTSUtils::getDocsTableName(tableEntry->getTableID(), indexName);
@@ -331,13 +331,14 @@ void QFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& context
     auto qftsBindData = std::make_unique<QFTSGDSBindData>(std::move(graphEntry), nodeOutput);
     // Bind remaining configurations.
     qftsBindData->terms = input.getParam(1);
-    qftsBindData->k =  ExpressionUtil::getLiteralValue<double>(*input.getParam(2));
-    qftsBindData->b =  ExpressionUtil::getLiteralValue<double>(*input.getParam(3));
-    qftsBindData->numDocs =  ExpressionUtil::getLiteralValue<uint64_t>(*input.getParam(4));
-    qftsBindData->avgDocLen =  ExpressionUtil::getLiteralValue<double>(*input.getParam(5));
-    qftsBindData->numTermsInQuery =  ExpressionUtil::getLiteralValue<uint64_t>(*input.getParam(6));
-    qftsBindData->isConjunctive =  ExpressionUtil::getLiteralValue<bool>(*input.getParam(7));
-    qftsBindData->outputTableID = nodeOutput->constCast<NodeExpression>().getSingleEntry()->getTableID();
+    qftsBindData->k = ExpressionUtil::getLiteralValue<double>(*input.getParam(2));
+    qftsBindData->b = ExpressionUtil::getLiteralValue<double>(*input.getParam(3));
+    qftsBindData->numDocs = ExpressionUtil::getLiteralValue<uint64_t>(*input.getParam(4));
+    qftsBindData->avgDocLen = ExpressionUtil::getLiteralValue<double>(*input.getParam(5));
+    qftsBindData->numTermsInQuery = ExpressionUtil::getLiteralValue<uint64_t>(*input.getParam(6));
+    qftsBindData->isConjunctive = ExpressionUtil::getLiteralValue<bool>(*input.getParam(7));
+    qftsBindData->outputTableID =
+        nodeOutput->constCast<NodeExpression>().getSingleEntry()->getTableID();
     bindData = std::move(qftsBindData);
 }
 

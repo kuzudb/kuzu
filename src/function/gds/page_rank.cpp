@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
 #include "common/types/internal_id_util.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_function_collection.h"
@@ -7,7 +8,6 @@
 #include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
-#include "binder/expression/expression_util.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -23,7 +23,8 @@ struct PageRankBindData final : public GDSBindData {
     int64_t maxIteration = 10;
     double delta = 0.0001; // detect convergence
 
-    explicit PageRankBindData(graph::GraphEntry graphEntry, std::shared_ptr<binder::Expression> nodeOutput)
+    explicit PageRankBindData(graph::GraphEntry graphEntry,
+        std::shared_ptr<binder::Expression> nodeOutput)
         : GDSBindData{std::move(graphEntry), std::move(nodeOutput)} {};
     PageRankBindData(const PageRankBindData& other)
         : GDSBindData{other}, dampingFactor{other.dampingFactor}, maxIteration{other.maxIteration},
@@ -96,7 +97,7 @@ public:
     }
 
     void bind(const GDSBindInput& input, main::ClientContext& context) override {
-        auto graphName =  binder::ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
+        auto graphName = binder::ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
         auto graphEntry = bindGraphEntry(context, graphName);
         auto nodeOutput = bindNodeOutput(input.binder, graphEntry.nodeEntries);
         bindData = std::make_unique<PageRankBindData>(std::move(graphEntry), nodeOutput);

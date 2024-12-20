@@ -36,8 +36,8 @@ struct GDSBindData {
 
     GDSBindData(graph::GraphEntry graphEntry, std::shared_ptr<binder::Expression> nodeOutput)
         : graphEntry{graphEntry.copy()}, nodeOutput{std::move(nodeOutput)} {}
-    GDSBindData(const GDSBindData& other) : graphEntry{other.graphEntry.copy()},
-          nodeOutput{other.nodeOutput} {}
+    GDSBindData(const GDSBindData& other)
+        : graphEntry{other.graphEntry.copy()}, nodeOutput{other.nodeOutput} {}
 
     virtual ~GDSBindData() = default;
 

@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
 #include "common/types/types.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
@@ -9,7 +10,6 @@
 #include "graph/graph.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
-#include "binder/expression/expression_util.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -199,7 +199,7 @@ public:
     }
 
     void bind(const GDSBindInput& input, main::ClientContext& context) override {
-        auto graphName =  binder::ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
+        auto graphName = binder::ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
         auto graphEntry = bindGraphEntry(context, graphName);
         auto nodeOutput = bindNodeOutput(input.binder, graphEntry.nodeEntries);
         bindData = std::make_unique<GDSBindData>(std::move(graphEntry), nodeOutput);

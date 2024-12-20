@@ -27,7 +27,8 @@ struct FTSUtils {
         return common::stringFormat("default_english_stopwords");
     }
 
-    static std::string getInternalTablePrefix(common::table_id_t tableID, const std::string& indexName) {
+    static std::string getInternalTablePrefix(common::table_id_t tableID,
+        const std::string& indexName) {
         return common::stringFormat("{}_{}", tableID, indexName);
     }
 
@@ -35,7 +36,8 @@ struct FTSUtils {
         return common::stringFormat("{}_docs", getInternalTablePrefix(tableID, indexName));
     }
 
-    static std::string getAppearsInfoTableName(common::table_id_t tableID, const std::string& indexName) {
+    static std::string getAppearsInfoTableName(common::table_id_t tableID,
+        const std::string& indexName) {
         return common::stringFormat("{}_appears_info", getInternalTablePrefix(tableID, indexName));
     }
 
@@ -43,7 +45,8 @@ struct FTSUtils {
         return common::stringFormat("{}_terms", getInternalTablePrefix(tableID, indexName));
     }
 
-    static std::string getAppearsInTableName(common::table_id_t tableID, const std::string& indexName) {
+    static std::string getAppearsInTableName(common::table_id_t tableID,
+        const std::string& indexName) {
         return common::stringFormat("{}_appears_in", getInternalTablePrefix(tableID, indexName));
     }
 };
