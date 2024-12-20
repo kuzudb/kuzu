@@ -59,7 +59,7 @@ public:
 
     void beginNewIterationInternalNoLock() override {
         std::swap(curDenseFrontier, nextDenseFrontier);
-        updateSmallestDegree();
+        increaseSmallestDegree();
         curDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();
         nextDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();
     }
@@ -85,7 +85,7 @@ public:
         }
     }
 
-    void updateSmallestDegree() { curSmallestDegree.fetch_add(1, std::memory_order_relaxed); }
+    void increaseSmallestDegree() { curSmallestDegree.fetch_add(1, std::memory_order_relaxed); }
 
     uint64_t getSmallestDegree() { return curSmallestDegree.load(std::memory_order_relaxed); }
 
@@ -94,7 +94,6 @@ public:
     }
 
 private:
-    bool updated = false;
     std::atomic<uint64_t> curSmallestDegree{UINT64_MAX};
     common::table_id_map_t<common::offset_t> numNodesMap;
     std::atomic<uint64_t>* vertexValues = nullptr;
