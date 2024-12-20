@@ -46,12 +46,12 @@ static bool isCastedColumnRef(const Expression& expr) {
     return false;
 }
 
-static bool isSimpleExpr(const Expression& expr) {
+static bool isColumnOrCastedColumnRef(const Expression& expr) {
     return isColumnRef(expr.expressionType) || isCastedColumnRef(expr);
 }
 
 static bool isColumnRefConstantPair(const Expression& left, const Expression& right) {
-    return isSimpleExpr(left) && right.expressionType == ExpressionType::LITERAL;
+    return isColumnOrCastedColumnRef(left) && right.expressionType == ExpressionType::LITERAL;
 }
 
 static bool columnMatchesExprChild(const Expression& column, const Expression& expr) {
@@ -85,7 +85,7 @@ static std::unique_ptr<ColumnPredicate> tryConvertToConstColumnPredicate(const E
 static std::unique_ptr<ColumnPredicate> tryConvertToIsNull(const Expression& column,
     const Expression& predicate) {
     // we only convert simple predicates
-    if (isSimpleExpr(*predicate.getChild(0))) {
+    if (isColumnOrCastedColumnRef(*predicate.getChild(0))) {
         return std::make_unique<ColumnNullPredicate>(column.toString(), ExpressionType::IS_NULL);
     }
     return nullptr;
@@ -93,7 +93,7 @@ static std::unique_ptr<ColumnPredicate> tryConvertToIsNull(const Expression& col
 
 static std::unique_ptr<ColumnPredicate> tryConvertToIsNotNull(const Expression& column,
     const Expression& predicate) {
-    if (isSimpleExpr(*predicate.getChild(0))) {
+    if (isColumnOrCastedColumnRef(*predicate.getChild(0))) {
         return std::make_unique<ColumnNullPredicate>(column.toString(),
             ExpressionType::IS_NOT_NULL);
     }
