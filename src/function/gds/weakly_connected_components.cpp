@@ -9,6 +9,7 @@
 #include "graph/graph.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
+#include "binder/expression/expression_util.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -197,9 +198,11 @@ public:
         return columns;
     }
 
-    void bind(const GDSBindInput& input, main::ClientContext&) override {
-        auto nodeOutput = bindNodeOutput(input.binder, input.graphEntry.nodeEntries);
-        bindData = std::make_unique<GDSBindData>(nodeOutput);
+    void bind(const GDSBindInput& input, main::ClientContext& context) override {
+        auto graphName =  binder::ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
+        auto graphEntry = bindGraphEntry(context, graphName);
+        auto nodeOutput = bindNodeOutput(input.binder, graphEntry.nodeEntries);
+        bindData = std::make_unique<GDSBindData>(std::move(graphEntry), nodeOutput);
     }
 
     void exec(processor::ExecutionContext* context) override {

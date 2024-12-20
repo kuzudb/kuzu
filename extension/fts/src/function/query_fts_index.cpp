@@ -62,22 +62,20 @@ struct QueryFTSLocalState : public TableFuncLocalState {
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     TableFuncBindInput* input) {
-    std::vector<std::string> columnNames;
-    std::vector<LogicalType> columnTypes;
     // For queryFTS, the table and index name must be given at compile time while the user
     // can give the query at runtime.
     auto indexName = binder::ExpressionUtil::getLiteralValue<std::string>(*input->getParam(1));
-    auto& tableEntry = FTSUtils::bindTable(
-        binder::ExpressionUtil::getLiteralValue<std::string>(*input->getParam(0)), context,
+    auto tableName = input->getLiteralVal<std::string>(0);
+    auto& tableEntry = FTSUtils::bindTable(tableName, context,
         indexName, FTSUtils::IndexOperation::QUERY);
     auto query = input->getParam(2);
     FTSUtils::validateIndexExistence(*context, tableEntry.getTableID(), indexName);
     auto ftsCatalogEntry =
         context->getCatalog()->getIndex(context->getTx(), tableEntry.getTableID(), indexName);
+    auto columnNames = std::vector<std::string>{"node", "score"};
+    std::vector<LogicalType> columnTypes;
     columnTypes.push_back(common::StructType::getNodeType(tableEntry));
-    columnNames.push_back("node");
     columnTypes.push_back(LogicalType::DOUBLE());
-    columnNames.push_back("score");
     auto columns = input->binder->createVariables(columnNames, columnTypes);
     QueryFTSConfig config{input->optionalParams};
     return std::make_unique<QueryFTSBindData>(tableEntry.getName(), tableEntry.getTableID(),
@@ -108,24 +106,17 @@ static common::offset_t tableFunc(TableFuncInput& data, TableFuncOutput& output)
         auto clientContext = data.context->clientContext;
         auto result = runQuery(clientContext, query);
         auto numTermsInQuery = result->getNext()->getValue(0)->toString();
-        // Project graph
-        query = stringFormat("CALL create_project_graph('PK', ['{}', '{}'], ['{}'])",
-            bindData.getTermsTableName(), bindData.getDocsTableName(),
-            bindData.getAppearsInTableName());
-        runQuery(clientContext, query);
         // Compute score
+        auto termsTableName = FTSUtils::getTermsTableName(bindData.tableID, bindData.indexName);
         query = common::stringFormat(
             "MATCH (a:`{}`) "
             "WHERE list_contains(get_keys('{}', '{}'), a.term) "
-            "CALL QFTS(PK, a, {}, {}, cast({} as UINT64), {}, cast({} as UINT64), {}, '{}') "
+            "CALL QFTS(a, {}, {}, cast({} as UINT64), {}, cast({} as UINT64), {}, '{}', '{}') "
             "RETURN _node AS p, score",
-            bindData.getTermsTableName(), actualQuery, bindData.entry.getFTSConfig().stemmer,
+            termsTableName, actualQuery, bindData.entry.getFTSConfig().stemmer,
             bindData.config.k, bindData.config.b, numDocs, avgDocLen, numTermsInQuery,
             bindData.config.isConjunctive ? "true" : "false", bindData.tableName);
         localState->result = runQuery(clientContext, query);
-        // Remove project graph
-        query = stringFormat("CALL drop_project_graph('PK')");
-        runQuery(clientContext, query);
     }
     if (localState->numRowsOutput >= localState->result->getTable()->getNumTuples()) {
         return 0;

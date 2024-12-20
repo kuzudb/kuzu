@@ -13,6 +13,7 @@
 #include "main/settings.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
+#include "function/fts_utils.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -23,25 +24,21 @@ namespace fts_extension {
 using namespace function;
 
 struct QFTSGDSBindData final : public function::GDSBindData {
-    std::shared_ptr<binder::Expression> terms;
+    std::shared_ptr<binder::Expression> terms = nullptr;
     // k: parameter controls the influence of term frequency saturation. It limits the effect of
     // additional occurrences of a term within a document.
-    double_t k;
+    double_t k = 0;
     // b: parameter controls the degree of length normalization by adjusting the influence of
     // document length.
-    double_t b;
-    uint64_t numDocs;
-    double_t avgDocLen;
-    uint64_t numTermsInQuery;
-    bool isConjunctive;
-    common::table_id_t outputTableID;
+    double_t b = 0;
+    uint64_t numDocs = 0;
+    double_t avgDocLen = 0;
+    uint64_t numTermsInQuery = 0;
+    bool isConjunctive = false;
+    common::table_id_t outputTableID = INVALID_TABLE_ID;
 
-    QFTSGDSBindData(std::shared_ptr<binder::Expression> terms,
-        std::shared_ptr<binder::Expression> docs, double_t k, double_t b, uint64_t numDocs,
-        double_t avgDocLen, uint64_t numTermsInQuery, bool isConjunctive)
-        : GDSBindData{std::move(docs)}, terms{std::move(terms)}, k{k}, b{b}, numDocs{numDocs},
-          avgDocLen{avgDocLen}, numTermsInQuery{numTermsInQuery}, isConjunctive{isConjunctive},
-          outputTableID{nodeOutput->constCast<NodeExpression>().getSingleEntry()->getTableID()} {}
+    QFTSGDSBindData(graph::GraphEntry graphEntry, std::shared_ptr<Expression> nodeOutput)
+        : function::GDSBindData{std::move(graphEntry), nodeOutput} {}
     QFTSGDSBindData(const QFTSGDSBindData& other)
         : GDSBindData{other}, terms{other.terms}, k{other.k}, b{other.b}, numDocs{other.numDocs},
           avgDocLen{other.avgDocLen}, numTermsInQuery{other.numTermsInQuery},
@@ -315,19 +312,33 @@ binder::expression_vector QFTSAlgorithm::getResultColumns(binder::Binder* binder
 }
 
 void QFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& context) {
-    KU_ASSERT(input.getNumParams() == 9);
-    auto termNode = input.getParam(1);
-    auto k = input.getLiteralVal<double>(2);
-    auto b = input.getLiteralVal<double>(3);
-    auto numDocs = input.getLiteralVal<uint64_t>(4);
-    auto avgDocLen = input.getLiteralVal<double>(5);
-    auto numTermsInQuery = input.getLiteralVal<uint64_t>(6);
-    auto isConjunctive = input.getLiteralVal<bool>(7);
-    auto inputTableName = input.getLiteralVal<std::string>(8);
-    auto entry = context.getCatalog()->getTableCatalogEntry(context.getTx(), inputTableName);
-    auto nodeOutput = bindNodeOutput(input.binder, {entry});
-    bindData = std::make_unique<QFTSGDSBindData>(termNode, nodeOutput, k, b, numDocs, avgDocLen,
-        numTermsInQuery, isConjunctive);
+    KU_ASSERT(input.getNumParams() == 10);
+    // Bind graph entry.
+    auto catalog = context.getCatalog();
+    auto tx = context.getTx();
+    auto tableName =  ExpressionUtil::getLiteralValue<std::string>(*input.getParam(8));
+    auto indexName =  ExpressionUtil::getLiteralValue<std::string>(*input.getParam(9));
+    auto tableEntry = catalog->getTableCatalogEntry(tx, tableName);
+    auto termsTableName = FTSUtils::getTermsTableName(tableEntry->getTableID(), indexName);
+    auto docsTableName = FTSUtils::getDocsTableName(tableEntry->getTableID(), indexName);
+    auto appearsInTableName = FTSUtils::getAppearsInTableName(tableEntry->getTableID(), indexName);
+    auto termsEntry = catalog->getTableCatalogEntry(tx, termsTableName);
+    auto docsEntry = catalog->getTableCatalogEntry(tx, docsTableName);
+    auto appearsInEntry = catalog->getTableCatalogEntry(tx, appearsInTableName);
+    auto graphEntry = graph::GraphEntry({termsEntry, docsEntry}, {appearsInEntry});
+    // Bind output node.
+    auto nodeOutput = bindNodeOutput(input.binder, {tableEntry});
+    auto qftsBindData = std::make_unique<QFTSGDSBindData>(std::move(graphEntry), nodeOutput);
+    // Bind remaining configurations.
+    qftsBindData->terms = input.getParam(1);
+    qftsBindData->k =  ExpressionUtil::getLiteralValue<double>(*input.getParam(2));
+    qftsBindData->b =  ExpressionUtil::getLiteralValue<double>(*input.getParam(3));
+    qftsBindData->numDocs =  ExpressionUtil::getLiteralValue<uint64_t>(*input.getParam(4));
+    qftsBindData->avgDocLen =  ExpressionUtil::getLiteralValue<double>(*input.getParam(5));
+    qftsBindData->numTermsInQuery =  ExpressionUtil::getLiteralValue<uint64_t>(*input.getParam(6));
+    qftsBindData->isConjunctive =  ExpressionUtil::getLiteralValue<bool>(*input.getParam(7));
+    qftsBindData->outputTableID = nodeOutput->constCast<NodeExpression>().getSingleEntry()->getTableID();
+    bindData = std::move(qftsBindData);
 }
 
 function::function_set QFTSFunction::getFunctionSet() {

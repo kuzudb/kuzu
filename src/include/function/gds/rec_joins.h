@@ -13,7 +13,7 @@ namespace function {
 struct RJBindData final : public GDSBindData {
     static constexpr uint16_t DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND = (uint16_t)255;
 
-    std::shared_ptr<binder::Expression> nodeInput;
+    std::shared_ptr<binder::Expression> nodeInput = nullptr;
     // Important Note: For any recursive join algorithm other than variable length joins, lower
     // bound must always be 1. For variable length joins, lower bound 0 has a special meaning, for
     // which we follow the behavior of Neo4j. Lower bound 0 means that when matching the
@@ -23,9 +23,9 @@ struct RJBindData final : public GDSBindData {
     // return an empty path, i.e., one that binds no edges to e. If there is a non-empty path
     // between s and d of length > 1, then we don't return the empty path in addition to non-empty
     // paths. So the semantics is that of optional match.
-    uint16_t lowerBound;
-    uint16_t upperBound;
-    common::PathSemantic semantic;
+    uint16_t lowerBound = 0;
+    uint16_t upperBound = 0;
+    common::PathSemantic semantic = common::PathSemantic::WALK;
 
     common::ExtendDirection extendDirection = common::ExtendDirection::FWD;
 
@@ -37,14 +37,16 @@ struct RJBindData final : public GDSBindData {
     std::shared_ptr<binder::Expression> pathNodeIDsExpr = nullptr;
     std::shared_ptr<binder::Expression> pathEdgeIDsExpr = nullptr;
 
-    RJBindData(std::shared_ptr<binder::Expression> nodeInput,
-        std::shared_ptr<binder::Expression> nodeOutput, uint16_t lowerBound, uint16_t upperBound,
-        common::PathSemantic semantic, common::ExtendDirection extendDirection)
-        : GDSBindData{std::move(nodeOutput)}, nodeInput{std::move(nodeInput)},
-          lowerBound{lowerBound}, upperBound{upperBound}, semantic{semantic},
-          extendDirection{extendDirection} {
-        KU_ASSERT(upperBound < DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND);
-    }
+//    RJBindData(std::shared_ptr<binder::Expression> nodeInput,
+//        std::shared_ptr<binder::Expression> nodeOutput, uint16_t lowerBound, uint16_t upperBound,
+//        common::PathSemantic semantic, common::ExtendDirection extendDirection)
+//        : GDSBindData{std::move(nodeOutput)}, nodeInput{std::move(nodeInput)},
+//          lowerBound{lowerBound}, upperBound{upperBound}, semantic{semantic},
+//          extendDirection{extendDirection} {
+//        KU_ASSERT(upperBound < DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND);
+//    }
+    RJBindData(graph::GraphEntry graphEntry, std::shared_ptr<binder::Expression> nodeOutput)
+        : GDSBindData{std::move(graphEntry), std::move(nodeOutput)} {}
     RJBindData(const RJBindData& other);
 
     bool hasNodeInput() const override { return true; }

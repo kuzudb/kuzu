@@ -36,38 +36,21 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
             std::move(columns));
     } break;
     case CatalogEntryType::GDS_FUNCTION_ENTRY: {
-        // The first argument of a GDS function must be a graph variable.
-        if (functionExpr->getNumChildren() == 0) {
-            throw BinderException(
-                stringFormat("{} function requires at least one input", functionName));
-        }
-        if (functionExpr->getChild(0)->getExpressionType() != ExpressionType::VARIABLE) {
-            throw BinderException(
-                stringFormat("First argument of {} function must be a variable", functionName));
-        }
-        auto varName =
-            functionExpr->getChild(0)->constPtrCast<ParsedVariableExpression>()->getVariableName();
-        if (!clientContext->getGraphEntrySetUnsafe().hasGraph(varName)) {
-            throw BinderException(stringFormat("Cannot find graph {}.", varName));
-        }
-        auto graphEntry = clientContext->getGraphEntrySetUnsafe().getEntry(varName);
         expression_vector children;
         std::vector<LogicalType> childrenTypes;
-        children.push_back(nullptr); // placeholder for graph variable.
-        childrenTypes.push_back(LogicalType::ANY());
-        for (auto i = 1u; i < functionExpr->getNumChildren(); i++) {
+        for (auto i = 0u; i < functionExpr->getNumChildren(); i++) {
             auto child = expressionBinder.bindExpression(*functionExpr->getChild(i));
             children.push_back(child);
             childrenTypes.push_back(child->getDataType().copy());
         }
         auto func = BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, entry);
         auto gdsFunc = func->constPtrCast<GDSFunction>()->copy();
-        auto input = GDSBindInput(graphEntry);
+        auto input = GDSBindInput();
         input.params = children;
         input.binder = this;
         gdsFunc.gds->bind(input, *clientContext);
         columns = gdsFunc.gds->getResultColumns(this);
-        auto info = BoundGDSCallInfo(gdsFunc.copy(), graphEntry.copy(), std::move(columns));
+        auto info = BoundGDSCallInfo(gdsFunc.copy(),  std::move(columns));
         boundReadingClause = std::make_unique<BoundGDSCall>(std::move(info));
     } break;
     default:

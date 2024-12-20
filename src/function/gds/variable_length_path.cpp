@@ -94,16 +94,21 @@ public:
             LogicalTypeID::STRING};
     }
 
-    void bind(const GDSBindInput& input, main::ClientContext&) override {
-        auto nodeInput = input.getParam(1);
-        auto nodeOutput = bindNodeOutput(input.binder, input.graphEntry.nodeEntries);
+    void bind(const GDSBindInput& input, main::ClientContext& context) override {
+        auto graphName =  ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
+        auto graphEntry = bindGraphEntry(context, graphName);
+        auto nodeOutput = bindNodeOutput(input.binder, graphEntry.nodeEntries);
+        auto rjBindData = std::make_unique<RJBindData>(std::move(graphEntry), nodeOutput);
+        rjBindData->nodeInput = input.getParam(1);
         auto lowerBound = ExpressionUtil::getLiteralValue<int64_t>(*input.getParam(2));
         auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*input.getParam(3));
         validateLowerUpperBound(lowerBound, upperBound);
-        auto extendDirection = ExtendDirectionUtil::fromString(
+        rjBindData->lowerBound = lowerBound;
+        rjBindData->upperBound = upperBound;
+        rjBindData->semantic = PathSemantic::WALK;
+        rjBindData->extendDirection = ExtendDirectionUtil::fromString(
             ExpressionUtil::getLiteralValue<std::string>(*input.getParam(4)));
-        bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound,
-            PathSemantic::WALK, extendDirection);
+        bindData = std::move(rjBindData);
         bindColumnExpressions(input.binder);
     }
 

@@ -41,7 +41,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logica
     }
     auto table =
         std::make_shared<FactorizedTable>(clientContext->getMemoryManager(), tableSchema->copy());
-    auto graph = std::make_unique<OnDiskGraph>(clientContext, logicalInfo.graphEntry);
+    auto graph = std::make_unique<OnDiskGraph>(clientContext, logicalInfo.getBindData()->graphEntry);
     auto storageManager = clientContext->getStorageManager();
     auto sharedState =
         std::make_shared<GDSCallSharedState>(table, std::move(graph), call.getLimitNum());
