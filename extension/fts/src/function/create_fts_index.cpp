@@ -1,5 +1,8 @@
 #include "function/create_fts_index.h"
 
+#include <fstream>
+#include <iostream>
+
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "catalog/fts_index_catalog_entry.h"
@@ -15,10 +18,6 @@
 #include "graph/graph_entry.h"
 #include "graph/on_disk_graph.h"
 #include "processor/execution_context.h"
-
-
-#include <iostream>
-#include <fstream>
 
 namespace kuzu {
 namespace fts_extension {
@@ -167,10 +166,10 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
     query += common::stringFormat("DROP TABLE `{}`;", appearsInfoTableName);
     // basic file operations
 
-using namespace std;
-ofstream myfile("/tmp/query.txt");
-myfile << query << endl;
-myfile.close();
+    using namespace std;
+    ofstream myfile("/tmp/query.txt");
+    myfile << query << endl;
+    myfile.close();
     return query;
 }
 
