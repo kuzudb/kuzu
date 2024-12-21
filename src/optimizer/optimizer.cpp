@@ -8,6 +8,7 @@
 #include "optimizer/factorization_rewriter.h"
 #include "optimizer/filter_push_down_optimizer.h"
 #include "optimizer/limit_push_down_optimizer.h"
+#include "optimizer/path_semantic_rewriter.h"
 #include "optimizer/projection_push_down_optimizer.h"
 #include "optimizer/remove_factorization_rewriter.h"
 #include "optimizer/remove_unnecessary_join_optimizer.h"
@@ -28,6 +29,11 @@ void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* contex
 
         auto correlatedSubqueryUnnestSolver = CorrelatedSubqueryUnnestSolver(nullptr);
         correlatedSubqueryUnnestSolver.solve(plan->getLastOperator().get());
+
+        auto removeUnnecessaryJoinOptimizer = RemoveUnnecessaryJoinOptimizer();
+        removeUnnecessaryJoinOptimizer.rewrite(plan);
+        auto pathSemanticRewriter = PathSemanticRewriter(context);
+        pathSemanticRewriter.rewrite(plan);
 
         auto removeUnnecessaryJoinOptimizer = RemoveUnnecessaryJoinOptimizer();
         removeUnnecessaryJoinOptimizer.rewrite(plan);
