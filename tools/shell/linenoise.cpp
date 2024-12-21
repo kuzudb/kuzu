@@ -3461,6 +3461,7 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char* buf, size_t buflen, 
         int nread;
 
 #ifdef _WIN32
+        char seq[5];
         if (readingUTF8) {
             c = uft8Buf[0];
             uft8Buf.erase(0, 1);
