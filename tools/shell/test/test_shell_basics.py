@@ -218,6 +218,10 @@ def test_shell_auto_completion(temp_db) -> None:
     test.send_statement(", PRIMARY KEY(i));\n")
     assert test.shell_process.expect_exact(["\u2502 Table coolTable has been created. \u2502", pexpect.EOF]) == 0
 
+    # insures the previous shell test propely closed before next test
+    test = ShellTest().add_argument(temp_db)
+    test.run()
+
     # reopen shell to load new table name
     test = ShellTest().add_argument(temp_db)
     test.start()
