@@ -35,7 +35,8 @@ binder::expression_vector Planner::getCorrelatedExprs(const QueryGraphCollection
 
 class SubqueryPredicatePullUpAnalyzer {
 public:
-    SubqueryPredicatePullUpAnalyzer(const Schema& schema, const QueryGraphCollection& queryGraphCollection)
+    SubqueryPredicatePullUpAnalyzer(const Schema& schema,
+        const QueryGraphCollection& queryGraphCollection)
         : schema{schema}, queryGraphCollection{queryGraphCollection} {}
 
     bool analyze(const expression_vector& predicates) {

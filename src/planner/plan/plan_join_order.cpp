@@ -101,7 +101,8 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraphCollection
     }
     // Fail to plan ExpressionsScan with any query graph. Plan it independently and fall back to
     // cross product.
-    if (info.subqueryType == SubqueryPlanningType::CORRELATED && queryGraphIdxToPlanExpressionsScan == -1) {
+    if (info.subqueryType == SubqueryPlanningType::CORRELATED &&
+        queryGraphIdxToPlanExpressionsScan == -1) {
         auto plan = std::make_unique<LogicalPlan>();
         appendExpressionsScan(corrExprs, *plan);
         appendDistinct(corrExprs, *plan);
