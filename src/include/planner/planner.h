@@ -28,9 +28,9 @@ namespace planner {
 
 struct LogicalInsertInfo;
 
-enum class SubqueryType : uint8_t {
+enum class SubqueryPlanningType : uint8_t {
     NONE = 0,
-    INTERNAL_ID_CORRELATED = 1,
+    UNNEST_CORRELATED = 1,
     CORRELATED = 2,
 };
 
@@ -38,7 +38,7 @@ struct QueryGraphPlanningInfo {
     // Predicate info.
     binder::expression_vector predicates;
     // Subquery info.
-    SubqueryType subqueryType = SubqueryType::NONE;
+    SubqueryPlanningType subqueryType = SubqueryPlanningType::NONE;
     binder::expression_vector corrExprs;
     cardinality_t corrExprsCard = 0;
     // Join hint info.
@@ -270,12 +270,18 @@ public:
     void appendHashJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
         std::shared_ptr<binder::Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
         LogicalPlan& resultPlan);
-    void appendAccHashJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
-        std::shared_ptr<binder::Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
-        LogicalPlan& resultPlan);
+    void appendHashJoin(const std::vector<binder::expression_pair>& joinConditions,
+        common::JoinType joinType, std::shared_ptr<binder::Expression> mark, LogicalPlan& probePlan,
+        LogicalPlan& buildPlan, LogicalPlan& resultPlan);
+    void appendAccHashJoin(const std::vector<binder::expression_pair>& joinConditions,
+        common::JoinType joinType, std::shared_ptr<binder::Expression> mark, LogicalPlan& probePlan,
+        LogicalPlan& buildPlan, LogicalPlan& resultPlan);
     void appendMarkJoin(const binder::expression_vector& joinNodeIDs,
         const std::shared_ptr<binder::Expression>& mark, LogicalPlan& probePlan,
-        LogicalPlan& buildPlan);
+        LogicalPlan& buildPlan, LogicalPlan& resultPlan);
+    void appendMarkJoin(const std::vector<binder::expression_pair>& joinConditions,
+        const std::shared_ptr<binder::Expression>& mark, LogicalPlan& probePlan,
+        LogicalPlan& buildPlan, LogicalPlan& resultPlan);
     void appendIntersect(const std::shared_ptr<binder::Expression>& intersectNodeID,
         binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
         std::vector<std::unique_ptr<LogicalPlan>>& buildPlans);
