@@ -170,6 +170,10 @@ std::string Binder::getUniqueExpressionName(const std::string& name) {
     return "_" + std::to_string(lastExpressionId++) + "_" + name;
 }
 
+std::string Binder::getInternalPathName() {
+    return InternalKeyword::INTERNAL_PATH + std::to_string(lastInternalPathId++);
+}
+
 struct ReservedNames {
     // Column name that might conflict with internal names.
     static std::unordered_set<std::string> getColumnNames() {
@@ -265,6 +269,16 @@ function::TableFunction Binder::getScanFunction(FileTypeInfo typeInfo, const Rea
         KU_UNREACHABLE;
     }
     return *func->ptrCast<function::TableFunction>();
+}
+
+expression_vector Binder::findPathExpressionInScope() {
+    expression_vector result;
+    for (auto expr : this->scope.getExpressions()) {
+        if (expr->expressionType == ExpressionType::PATH) {
+            result.push_back(expr);
+        }
+    }
+    return result;
 }
 
 } // namespace binder

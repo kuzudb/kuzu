@@ -49,6 +49,7 @@ struct InternalKeyword {
     static constexpr char PLACE_HOLDER[] = "_PLACE_HOLDER";
     static constexpr char MAP_KEY[] = "KEY";
     static constexpr char MAP_VALUE[] = "VALUE";
+    static constexpr char INTERNAL_PATH[] = "_INTERNAL_PATH";
 
     static constexpr std::string_view ROW_OFFSET = "_row_offset";
     static constexpr std::string_view SRC_OFFSET = "_src_offset";
