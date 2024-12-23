@@ -123,10 +123,19 @@ static double progressFunc(TableFuncSharedState* sharedState) {
 
 function_set PandasScanFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(std::make_unique<TableFunction>(PandasScanFunction::name, tableFunc,
-        bindFunc, initSharedState, initLocalState, progressFunc,
-        std::vector<LogicalTypeID>{LogicalTypeID::POINTER}));
+    functionSet.push_back(getFunction().copy());
     return functionSet;
+}
+
+function::TableFunction PandasScanFunction::getFunction() {
+    auto function = TableFunction(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
+    function.tableFunc = tableFunc;
+    function.bindFunc = bindFunc;
+    function.initSharedStateFunc = initSharedState;
+    function.initLocalStateFunc = initLocalState;
+    function.progressFunc = progressFunc;
+    return function;
 }
 
 static bool isPyArrowBacked(const py::handle& df) {
@@ -154,9 +163,7 @@ std::unique_ptr<ScanReplacementData> tryReplacePD(py::dict& dict, py::str& objec
         if (isPyArrowBacked(entry)) {
             scanReplacementData->func = PyArrowTableScanFunction::getFunction();
         } else {
-            scanReplacementData->func = TableFunction(PandasScanFunction::name, tableFunc, bindFunc,
-                initSharedState, initLocalState, progressFunc,
-                std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
+            scanReplacementData->func = PandasScanFunction::getFunction();
         }
         auto bindInput = TableFuncBindInput();
         bindInput.addLiteralParam(Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())));

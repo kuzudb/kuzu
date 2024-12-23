@@ -271,9 +271,14 @@ static double progressFunc(TableFuncSharedState* sharedState) {
 
 function_set SerialCSVScan::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(
-        std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState, initLocalState,
-            progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::STRING}, finalizeFunc));
+    auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
+    function->tableFunc = tableFunc;
+    function->bindFunc = bindFunc;
+    function->initSharedStateFunc = initSharedState;
+    function->initLocalStateFunc = initLocalState;
+    function->progressFunc = progressFunc;
+    function->finalizeFunc = finalizeFunc;
+    functionSet.push_back(std::move(function));
     return functionSet;
 }
 

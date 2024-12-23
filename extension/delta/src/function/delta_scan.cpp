@@ -73,9 +73,12 @@ std::unique_ptr<TableFuncLocalState> initEmptyLocalState(TableFunctionInitInput&
 
 function_set DeltaScanFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(
-        std::make_unique<TableFunction>(name, tableFunc, bindFunc, initDeltaScanSharedState,
-            initEmptyLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+    auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
+    function->tableFunc = tableFunc;
+    function->bindFunc = bindFunc;
+    function->initSharedStateFunc = initDeltaScanSharedState;
+    function->initLocalStateFunc = initEmptyLocalState;
+    functionSet.push_back(std::move(function));
     return functionSet;
 }
 

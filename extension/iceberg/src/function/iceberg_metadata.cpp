@@ -13,9 +13,12 @@ std::unique_ptr<TableFuncBindData> metadataBindFunc(main::ClientContext* context
 
 function_set IcebergMetadataFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(std::make_unique<TableFunction>(name, delta_extension::tableFunc,
-        metadataBindFunc, delta_extension::initDeltaScanSharedState,
-        delta_extension::initEmptyLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+    auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
+    function->tableFunc = delta_extension::tableFunc;
+    function->bindFunc = metadataBindFunc;
+    function->initSharedStateFunc = delta_extension::initDeltaScanSharedState;
+    function->initLocalStateFunc = delta_extension::initEmptyLocalState;
+    functionSet.push_back(std::move(function));
     return functionSet;
 }
 

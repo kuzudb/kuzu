@@ -13,9 +13,12 @@ std::unique_ptr<TableFuncBindData> scanBindFunc(main::ClientContext* context,
 
 function_set IcebergScanFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(std::make_unique<TableFunction>(name, delta_extension::tableFunc,
-        scanBindFunc, delta_extension::initDeltaScanSharedState,
-        delta_extension::initEmptyLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+    auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
+    function->tableFunc = delta_extension::tableFunc;
+    function->bindFunc = scanBindFunc;
+    function->initSharedStateFunc = delta_extension::initDeltaScanSharedState;
+    function->initLocalStateFunc = delta_extension::initEmptyLocalState;
+    functionSet.push_back(std::move(function));
     return functionSet;
 }
 
