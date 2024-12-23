@@ -128,8 +128,7 @@ function_set PandasScanFunction::getFunctionSet() {
 }
 
 function::TableFunction PandasScanFunction::getFunction() {
-    auto function = TableFunction(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
+    auto function = TableFunction(name, std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
     function.tableFunc = tableFunc;
     function.bindFunc = bindFunc;
     function.initSharedStateFunc = initSharedState;

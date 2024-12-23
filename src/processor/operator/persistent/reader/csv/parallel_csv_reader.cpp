@@ -317,7 +317,8 @@ static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* sharedStat
 
 function_set ParallelCSVScan::getFunctionSet() {
     function_set functionSet;
-    auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
+    auto function =
+        std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = initSharedState;

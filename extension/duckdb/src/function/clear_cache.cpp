@@ -36,8 +36,7 @@ static std::unique_ptr<TableFuncBindData> clearCacheBindFunc(ClientContext* cont
         1 /* maxOffset */);
 }
 
-ClearCacheFunction::ClearCacheFunction()
-    : TableFunction{name, std::vector<LogicalTypeID>{}} {
+ClearCacheFunction::ClearCacheFunction() : TableFunction{name, std::vector<LogicalTypeID>{}} {
     tableFunc = clearCacheTableFunc;
     bindFunc = clearCacheBindFunc;
     initSharedStateFunc = SimpleTableFunction::initSharedState;

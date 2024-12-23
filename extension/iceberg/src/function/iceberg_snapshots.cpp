@@ -13,7 +13,8 @@ static std::unique_ptr<TableFuncBindData> snapshotBindFunc(main::ClientContext* 
 
 function_set IcebergSnapshotsFunction::getFunctionSet() {
     function_set functionSet;
-    auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
+    auto function =
+        std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
     function->tableFunc = delta_extension::tableFunc;
     function->bindFunc = snapshotBindFunc;
     function->initSharedStateFunc = delta_extension::initDeltaScanSharedState;
