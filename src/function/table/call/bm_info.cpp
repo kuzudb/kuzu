@@ -46,8 +46,12 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
 
 function_set BMInfoFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(std::make_unique<TableFunction>(name, tableFunc, bindFunc,
-        initSharedState, initEmptyLocalState, std::vector<common::LogicalTypeID>{}));
+    auto function = std::make_unique<TableFunction>(name, std::vector<common::LogicalTypeID>{});
+    function->tableFunc = tableFunc;
+    function->bindFunc = bindFunc;
+    function->initSharedStateFunc = initSharedState;
+    function->initLocalStateFunc = initEmptyLocalState;
+    functionSet.push_back(std::move(function));
     return functionSet;
 }
 

@@ -49,9 +49,12 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& /*outp
 
 function_set DropFTSFunction::getFunctionSet() {
     function_set functionSet;
-    auto func = std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState,
-        initEmptyLocalState,
+    auto func = std::make_unique<TableFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING});
+    func->tableFunc = tableFunc;
+    func->bindFunc = bindFunc;
+    func->initSharedStateFunc = initSharedState;
+    func->initLocalStateFunc = initEmptyLocalState;
     func->rewriteFunc = dropFTSIndexQuery;
     func->canParallelFunc = []() { return false; };
     functionSet.push_back(std::move(func));

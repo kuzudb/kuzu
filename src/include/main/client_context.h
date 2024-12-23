@@ -3,6 +3,7 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
+#include <optional>
 
 #include "common/timer.h"
 #include "common/types/value/value.h"

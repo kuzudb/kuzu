@@ -144,15 +144,18 @@ static double progressFunc(function::TableFuncSharedState* sharedState) {
 
 function::function_set PyArrowTableScanFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(
-        std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState, initLocalState,
-            progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::POINTER}));
+    functionSet.push_back(getFunction().copy());
     return functionSet;
 }
 
 TableFunction PyArrowTableScanFunction::getFunction() {
-    return TableFunction(name, tableFunc, bindFunc, initSharedState, initLocalState, progressFunc,
-        std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
+    auto function = TableFunction(name, std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
+    function.tableFunc = tableFunc;
+    function.bindFunc = bindFunc;
+    function.initSharedStateFunc = initSharedState;
+    function.initLocalStateFunc = initLocalState;
+    function.progressFunc = progressFunc;
+    return function;
 }
 
 } // namespace kuzu
