@@ -56,9 +56,12 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters
 
 function_set PropertiesFunction::getFunctionSet() {
     function_set functions;
-    functions.push_back(make_unique<ScalarFunction>(name,
+    auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::STRING}, LogicalTypeID::ANY,
-        execFunc, nullptr, compileFunc, bindFunc));
+        execFunc);
+    function->bindFunc = bindFunc;
+    function->compileFunc = compileFunc;
+    functions.push_back(std::move(function));
     return functions;
 }
 

@@ -173,15 +173,19 @@ function_set AddFunction::getFunctionSet() {
     }
 
     // decimal + decimal -> decimal
-    result.push_back(std::make_unique<ScalarFunction>(name,
+    std::unique_ptr<ScalarFunction> func;
+    func = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL, LogicalTypeID::DECIMAL},
-        LogicalTypeID::DECIMAL, nullptr, nullptr, DecimalFunction::bindAddFunc));
+        LogicalTypeID::DECIMAL);
+    func->bindFunc = DecimalFunction::bindAddFunc;
+    result.push_back(std::move(func));
     // list + list -> list
-    result.push_back(std::make_unique<ScalarFunction>(name,
+    func = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::LIST}, LogicalTypeID::LIST,
         ScalarFunction::BinaryExecListStructFunction<list_entry_t, list_entry_t, list_entry_t,
-            ListConcat>,
-        nullptr, ListConcatFunction::bindFunc));
+            ListConcat>);
+    func->bindFunc = ListConcatFunction::bindFunc;
+    result.push_back(std::move(func));
     // string + string -> string
     result.push_back(std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
@@ -224,9 +228,11 @@ function_set SubtractFunction::getFunctionSet() {
         result.push_back(getBinaryFunction<Subtract>(name, typeID));
     }
     // decimal - decimal -> decimal
-    result.push_back(make_unique<ScalarFunction>(name,
+    auto func = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL, LogicalTypeID::DECIMAL},
-        LogicalTypeID::DECIMAL, nullptr, nullptr, DecimalFunction::bindSubtractFunc));
+        LogicalTypeID::DECIMAL);
+    func->bindFunc = DecimalFunction::bindSubtractFunc;
+    result.push_back(std::move(func));
     // date - date → int64
     result.push_back(getBinaryFunction<Subtract, date_t, int64_t>(name, LogicalTypeID::DATE,
         LogicalTypeID::INT64));
@@ -259,9 +265,11 @@ function_set MultiplyFunction::getFunctionSet() {
         result.push_back(getBinaryFunction<Multiply>(name, typeID));
     }
     // decimal * decimal -> decimal
-    result.push_back(make_unique<ScalarFunction>(name,
+    auto func = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL, LogicalTypeID::DECIMAL},
-        LogicalTypeID::DECIMAL, nullptr, nullptr, DecimalFunction::bindMultiplyFunc));
+        LogicalTypeID::DECIMAL);
+    func->bindFunc = DecimalFunction::bindMultiplyFunc;
+    result.push_back(std::move(func));
     return result;
 }
 
@@ -289,9 +297,11 @@ function_set ModuloFunction::getFunctionSet() {
         result.push_back(getBinaryFunction<Modulo>(name, typeID));
     }
     // decimal % decimal -> decimal
-    result.push_back(make_unique<ScalarFunction>(name,
+    auto func = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL, LogicalTypeID::DECIMAL},
-        LogicalTypeID::DECIMAL, nullptr, nullptr, DecimalFunction::bindModuloFunc));
+        LogicalTypeID::DECIMAL);
+    func->bindFunc = DecimalFunction::bindModuloFunc;
+    result.push_back(std::move(func));
     return result;
 }
 
@@ -309,9 +319,10 @@ function_set NegateFunction::getFunctionSet() {
         result.push_back(getUnaryFunction<Negate>(name, typeID));
     }
     // floor(decimal) -> decimal
-    result.push_back(
-        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL},
-            LogicalTypeID::DECIMAL, nullptr, nullptr, DecimalFunction::bindNegateFunc));
+    auto func = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL},
+        LogicalTypeID::DECIMAL);
+    func->bindFunc = DecimalFunction::bindNegateFunc;
+    result.push_back(std::move(func));
     return result;
 }
 
@@ -320,9 +331,10 @@ function_set AbsFunction::getFunctionSet() {
     for (auto& typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getUnaryFunction<Abs>(name, typeID));
     }
-    result.push_back(
-        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL},
-            LogicalTypeID::DECIMAL, nullptr, nullptr, DecimalFunction::bindAbsFunc));
+    auto func = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL},
+        LogicalTypeID::DECIMAL);
+    func->bindFunc = DecimalFunction::bindAbsFunc;
+    result.push_back(std::move(func));
     return result;
 }
 
@@ -331,9 +343,10 @@ function_set FloorFunction::getFunctionSet() {
     for (auto& typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getUnaryFunction<Floor>(name, typeID));
     }
-    result.push_back(
-        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL},
-            LogicalTypeID::DECIMAL, nullptr, nullptr, DecimalFunction::bindFloorFunc));
+    auto func = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL},
+        LogicalTypeID::DECIMAL);
+    func->bindFunc = DecimalFunction::bindFloorFunc;
+    result.push_back(std::move(func));
     return result;
 }
 
@@ -342,9 +355,10 @@ function_set CeilFunction::getFunctionSet() {
     for (auto& typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getUnaryFunction<Ceil>(name, typeID));
     }
-    result.push_back(
-        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL},
-            LogicalTypeID::DECIMAL, nullptr, nullptr, DecimalFunction::bindCeilFunc));
+    auto func = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL},
+        LogicalTypeID::DECIMAL);
+    func->bindFunc = DecimalFunction::bindCeilFunc;
+    result.push_back(std::move(func));
     return result;
 }
 

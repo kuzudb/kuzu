@@ -9,7 +9,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<FunctionBindData> ListPositionBindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
     auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
     TypeUtils::visit(input.arguments[1]->getDataType().getPhysicalType(),
         [&scalarFunction]<typename T>(T) {
@@ -21,9 +21,10 @@ static std::unique_ptr<FunctionBindData> ListPositionBindFunc(ScalarBindFuncInpu
 
 function_set ListPositionFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::ANY}, LogicalTypeID::INT64,
-        ListPositionBindFunc));
+    auto func = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::ANY}, LogicalTypeID::INT64);
+    func->bindFunc = bindFunc;
+    result.push_back(std::move(func));
     return result;
 }
 

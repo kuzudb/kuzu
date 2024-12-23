@@ -57,26 +57,35 @@ static std::unique_ptr<FunctionBindData> ListReverseSortBindFunc(ScalarBindFuncI
 
 function_set ListSortFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::LIST}, LogicalTypeID::LIST, ListSortBindFunc));
-    result.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::STRING}, LogicalTypeID::LIST,
-        ListSortBindFunc));
-    result.push_back(std::make_unique<ScalarFunction>(name,
+    std::unique_ptr<ScalarFunction> func;
+    func = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::LIST}, LogicalTypeID::LIST);
+    func->bindFunc = ListSortBindFunc;
+    result.push_back(std::move(func));
+    func = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::STRING}, LogicalTypeID::LIST);
+    func->bindFunc = ListSortBindFunc;
+    result.push_back(std::move(func));
+    func = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::STRING,
             LogicalTypeID::STRING},
-        LogicalTypeID::LIST, ListSortBindFunc));
+        LogicalTypeID::LIST);
+    func->bindFunc = ListSortBindFunc;
+    result.push_back(std::move(func));
     return result;
 }
 
 function_set ListReverseSortFunction::getFunctionSet() {
     function_set result;
-    result.push_back(
-        std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::LIST},
-            LogicalTypeID::LIST, ListReverseSortBindFunc));
-    result.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::STRING}, LogicalTypeID::LIST,
-        ListReverseSortBindFunc));
+    std::unique_ptr<ScalarFunction> func;
+    func = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::LIST},
+        LogicalTypeID::LIST);
+    func->bindFunc = ListReverseSortBindFunc;
+    result.push_back(std::move(func));
+    func = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::STRING}, LogicalTypeID::LIST);
+    func->bindFunc = ListReverseSortBindFunc;
+    result.push_back(std::move(func));
     return result;
 }
 

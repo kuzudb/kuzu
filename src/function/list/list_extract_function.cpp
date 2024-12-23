@@ -31,16 +31,20 @@ static std::unique_ptr<FunctionBindData> ListExtractBindFunc(ScalarBindFuncInput
 
 function_set ListExtractFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::INT64}, LogicalTypeID::ANY,
-        nullptr, nullptr, ListExtractBindFunc));
-    result.push_back(std::make_unique<ScalarFunction>(name,
+    std::unique_ptr<ScalarFunction> func;
+    func = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::INT64}, LogicalTypeID::ANY);
+    func->bindFunc = ListExtractBindFunc;
+    result.push_back(std::move(func));
+    func = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64},
         LogicalTypeID::STRING,
-        ScalarFunction::BinaryExecFunction<ku_string_t, int64_t, ku_string_t, ListExtract>));
-    result.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::ARRAY, LogicalTypeID::INT64}, LogicalTypeID::ANY,
-        nullptr, nullptr, ListExtractBindFunc));
+        ScalarFunction::BinaryExecFunction<ku_string_t, int64_t, ku_string_t, ListExtract>);
+    result.push_back(std::move(func));
+    func = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::ARRAY, LogicalTypeID::INT64}, LogicalTypeID::ANY);
+    func->bindFunc = ListExtractBindFunc;
+    result.push_back(std::move(func));
     return result;
 }
 

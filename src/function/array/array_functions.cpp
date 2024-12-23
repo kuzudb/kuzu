@@ -73,12 +73,14 @@ std::unique_ptr<FunctionBindData> ArrayCrossProductBindFunc(ScalarBindFuncInput 
 
 function_set ArrayCrossProductFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<ScalarFunction>(name,
+    auto func = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{
             LogicalTypeID::ARRAY,
             LogicalTypeID::ARRAY,
         },
-        LogicalTypeID::ARRAY, nullptr, nullptr, ArrayCrossProductBindFunc));
+        LogicalTypeID::ARRAY);
+    func->bindFunc = ArrayCrossProductBindFunc;
+    result.push_back(std::move(func));
     return result;
 }
 
@@ -166,13 +168,14 @@ std::unique_ptr<FunctionBindData> arrayTemplateBindFunc(std::string functionName
 template<typename OPERATION>
 function_set templateGetFunctionSet(const std::string& functionName) {
     function_set result;
-    result.push_back(std::make_unique<ScalarFunction>(functionName,
+    auto function = std::make_unique<ScalarFunction>(functionName,
         std::vector<LogicalTypeID>{
             LogicalTypeID::ARRAY,
             LogicalTypeID::ARRAY,
         },
-        LogicalTypeID::ANY, nullptr, nullptr,
-        std::bind(arrayTemplateBindFunc<OPERATION>, functionName, std::placeholders::_1)));
+        LogicalTypeID::ANY);
+    function->bindFunc = std::bind(arrayTemplateBindFunc<OPERATION>, functionName, std::placeholders::_1);
+    result.push_back(std::move(function));
     return result;
 }
 

@@ -19,9 +19,11 @@ function_set MapCreationFunctions::getFunctionSet() {
     auto execFunc = ScalarFunction::BinaryExecMapCreationFunction<list_entry_t, list_entry_t,
         list_entry_t, MapCreation>;
     function_set functionSet;
-    functionSet.push_back(make_unique<ScalarFunction>(name,
+    auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::LIST}, LogicalTypeID::MAP,
-        execFunc, nullptr, bindFunc));
+        execFunc);
+    function->bindFunc = bindFunc;
+    functionSet.push_back(std::move(function));
     return functionSet;
 }
 

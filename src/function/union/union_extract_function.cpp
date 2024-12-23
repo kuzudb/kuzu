@@ -9,9 +9,11 @@ namespace function {
 
 function_set UnionExtractFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::UNION, LogicalTypeID::STRING}, LogicalTypeID::ANY,
-        nullptr, nullptr, StructExtractFunctions::compileFunc, StructExtractFunctions::bindFunc));
+    auto function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::UNION, LogicalTypeID::STRING}, LogicalTypeID::ANY);
+    function->bindFunc = StructExtractFunctions::bindFunc;
+    function->compileFunc = StructExtractFunctions::compileFunc;
+    functionSet.push_back(std::move(function));
     return functionSet;
 }
 
