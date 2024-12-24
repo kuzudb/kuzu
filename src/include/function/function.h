@@ -86,10 +86,13 @@ struct Function {
 };
 
 struct ScalarOrAggregateFunction : public Function {
-    common::LogicalTypeID returnTypeID;
-    scalar_bind_func bindFunc;
+    common::LogicalTypeID returnTypeID = common::LogicalTypeID::ANY;
+    scalar_bind_func bindFunc = nullptr;
 
-    ScalarOrAggregateFunction() : returnTypeID{common::LogicalTypeID::ANY}, bindFunc{nullptr} {}
+    ScalarOrAggregateFunction() : Function{} {}
+    ScalarOrAggregateFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
+        common::LogicalTypeID returnTypeID)
+        : Function{std::move(name), std::move(parameterTypeIDs)}, returnTypeID{returnTypeID} {}
     ScalarOrAggregateFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
         common::LogicalTypeID returnTypeID, scalar_bind_func bindFunc)
         : Function{std::move(name), std::move(parameterTypeIDs)}, returnTypeID{returnTypeID},

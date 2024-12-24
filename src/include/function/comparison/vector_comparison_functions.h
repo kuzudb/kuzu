@@ -66,11 +66,13 @@ private:
     template<typename FUNC>
     static std::unique_ptr<ScalarFunction> getDecimalCompare(const std::string& name) {
         scalar_bind_func bindFunc = bindDecimalCompare<FUNC>;
-        return std::make_unique<ScalarFunction>(name,
+        auto func = std::make_unique<ScalarFunction>(name,
             std::vector<common::LogicalTypeID>{common::LogicalTypeID::DECIMAL,
                 common::LogicalTypeID::DECIMAL},
-            common::LogicalTypeID::BOOL, nullptr, nullptr,
-            bindFunc); // necessary because decimal physical type is not known from the ID
+            common::LogicalTypeID::BOOL); // necessary because decimal physical type is not known
+                                          // from the ID
+        func->bindFunc = bindFunc;
+        return func;
     }
 
     // When comparing two values, we guarantee that they must have the same dataType. So we only

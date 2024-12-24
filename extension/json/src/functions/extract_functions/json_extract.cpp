@@ -89,15 +89,22 @@ static std::unique_ptr<FunctionBindData> bindJsonExtractMultiPath(ScalarBindFunc
 
 function_set JsonExtractFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<ScalarFunction>(name,
+    std::unique_ptr<ScalarFunction> func;
+    func = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
-        LogicalTypeID::STRING, jsonExtractSinglePath, bindJsonExtractSinglePath));
-    result.push_back(std::make_unique<ScalarFunction>(name,
+        LogicalTypeID::STRING, jsonExtractSinglePath);
+    func->bindFunc = bindJsonExtractSinglePath;
+    result.push_back(std::move(func));
+    func = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64},
-        LogicalTypeID::STRING, jsonExtractSinglePath, bindJsonExtractSinglePath));
-    result.push_back(std::make_unique<ScalarFunction>(name,
+        LogicalTypeID::STRING, jsonExtractSinglePath);
+    func->bindFunc = bindJsonExtractSinglePath;
+    result.push_back(std::move(func));
+    func = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::LIST}, LogicalTypeID::LIST,
-        jsonExtractMultiPath, bindJsonExtractMultiPath));
+        jsonExtractMultiPath);
+    func->bindFunc = bindJsonExtractMultiPath;
+    result.push_back(std::move(func));
     return result;
 }
 

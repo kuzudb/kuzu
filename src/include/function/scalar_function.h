@@ -28,40 +28,17 @@ struct ScalarFunction : public ScalarOrAggregateFunction {
 
     ScalarFunction() = default;
     ScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
+        common::LogicalTypeID returnTypeID)
+        : ScalarOrAggregateFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID} {}
+    ScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
         common::LogicalTypeID returnTypeID, scalar_func_exec_t execFunc)
-        : ScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
-              std::move(execFunc), nullptr, nullptr, nullptr} {}
-
+        : ScalarOrAggregateFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID},
+          execFunc{execFunc} {}
     ScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
         common::LogicalTypeID returnTypeID, scalar_func_exec_t execFunc,
         scalar_func_select_t selectFunc)
-        : ScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
-              std::move(execFunc), std::move(selectFunc), nullptr, nullptr} {}
-
-    ScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
-        common::LogicalTypeID returnTypeID, scalar_func_exec_t execFunc,
-        scalar_func_select_t selectFunc, scalar_bind_func bindFunc)
-        : ScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
-              std::move(execFunc), std::move(selectFunc), nullptr, std::move(bindFunc)} {}
-
-    ScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
-        common::LogicalTypeID returnTypeID, scalar_func_exec_t execFunc,
-        scalar_func_select_t selectFunc, scalar_func_compile_exec_t compileFunc,
-        scalar_bind_func bindFunc)
-        : ScalarOrAggregateFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
-              std::move(bindFunc)},
-          execFunc{std::move(execFunc)}, selectFunc(std::move(selectFunc)),
-          compileFunc{std::move(compileFunc)} {}
-
-    ScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
-        common::LogicalTypeID returnTypeID, scalar_bind_func bindFunc)
-        : ScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
-              nullptr /* execFunc */, nullptr /* selectFunc */, bindFunc} {}
-
-    ScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
-        common::LogicalTypeID returnTypeID, scalar_func_exec_t execFunc, scalar_bind_func bindFunc)
-        : ScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID, execFunc,
-              nullptr /* selectFunc */, bindFunc} {}
+        : ScalarOrAggregateFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID},
+          execFunc{execFunc}, selectFunc{selectFunc} {}
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
     static void TernaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,

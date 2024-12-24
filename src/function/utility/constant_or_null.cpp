@@ -70,9 +70,11 @@ static bool selectFunc(const std::vector<std::shared_ptr<ValueVector>>& params,
 
 function_set ConstantOrNullFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(std::make_unique<ScalarFunction>(name,
+    auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::ANY, LogicalTypeID::ANY}, LogicalTypeID::ANY,
-        execFunc, selectFunc, bindFunc));
+        execFunc, selectFunc);
+    function->bindFunc = bindFunc;
+    functionSet.push_back(std::move(function));
     return functionSet;
 }
 

@@ -107,9 +107,10 @@ void StructPackFunctions::undirectedRelPackExecFunc(
 
 function_set StructPackFunctions::getFunctionSet() {
     function_set functions;
-    auto function =
-        std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::ANY},
-            LogicalTypeID::STRUCT, execFunc, nullptr, compileFunc, bindFunc);
+    auto function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::STRUCT, execFunc);
+    function->bindFunc = bindFunc;
+    function->compileFunc = compileFunc;
     function->isVarLength = true;
     functions.push_back(std::move(function));
     return functions;

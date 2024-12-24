@@ -49,9 +49,10 @@ static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
 
 function_set ListAppendFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::ANY}, LogicalTypeID::LIST,
-        nullptr /* execFunc */, nullptr /* selectFunc */, bindFunc));
+    auto function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::ANY}, LogicalTypeID::LIST);
+    function->bindFunc = bindFunc;
+    result.push_back(std::move(function));
     return result;
 }
 

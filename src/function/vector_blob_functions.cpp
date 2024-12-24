@@ -14,8 +14,7 @@ function_set OctetLengthFunctions::getFunctionSet() {
     function_set definitions;
     definitions.push_back(
         make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::BLOB},
-            LogicalTypeID::INT64, ScalarFunction::UnaryExecFunction<blob_t, int64_t, OctetLength>,
-            nullptr, nullptr, nullptr));
+            LogicalTypeID::INT64, ScalarFunction::UnaryExecFunction<blob_t, int64_t, OctetLength>));
     return definitions;
 }
 

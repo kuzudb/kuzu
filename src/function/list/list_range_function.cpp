@@ -85,15 +85,19 @@ static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
 
 function_set ListRangeFunction::getFunctionSet() {
     function_set result;
+    std::unique_ptr<ScalarFunction> func;
     for (auto typeID : LogicalTypeUtils::getIntegerTypeIDs()) {
         // start, end
-        result.push_back(
-            std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{typeID, typeID},
-                LogicalTypeID::LIST, getBinaryExecFunc(LogicalType{typeID}), bindFunc));
+        func = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{typeID, typeID},
+            LogicalTypeID::LIST, getBinaryExecFunc(LogicalType{typeID}));
+        func->bindFunc = bindFunc;
+        result.push_back(std::move(func));
         // start, end, step
-        result.push_back(std::make_unique<ScalarFunction>(name,
+        func = std::make_unique<ScalarFunction>(name,
             std::vector<LogicalTypeID>{typeID, typeID, typeID}, LogicalTypeID::LIST,
-            getTernaryExecFunc(LogicalType{typeID}), bindFunc));
+            getTernaryExecFunc(LogicalType{typeID}));
+        func->bindFunc = bindFunc;
+        result.push_back(std::move(func));
     }
     return result;
 }

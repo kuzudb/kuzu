@@ -30,8 +30,10 @@ static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
 
 function_set ListReverseFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::LIST}, LogicalTypeID::ANY, bindFunc));
+    auto function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::LIST}, LogicalTypeID::ANY);
+    function->bindFunc = bindFunc;
+    result.push_back(std::move(function));
     return result;
 }
 

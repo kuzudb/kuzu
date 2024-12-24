@@ -39,9 +39,11 @@ static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
 
 function_set JsonMergePatchFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<ScalarFunction>(name,
+    auto func = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
-        LogicalTypeID::STRING, execFunc, bindFunc));
+        LogicalTypeID::STRING, execFunc);
+    func->bindFunc = bindFunc;
+    result.push_back(std::move(func));
     return result;
 }
 

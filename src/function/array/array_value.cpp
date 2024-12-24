@@ -27,7 +27,8 @@ function_set ArrayValueFunction::getFunctionSet() {
     function_set result;
     auto function =
         std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::ANY},
-            LogicalTypeID::ARRAY, ListCreationFunction::execFunc, nullptr, bindFunc);
+            LogicalTypeID::ARRAY, ListCreationFunction::execFunc);
+    function->bindFunc = bindFunc;
     function->isVarLength = true;
     result.push_back(std::move(function));
     return result;

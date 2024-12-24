@@ -1090,9 +1090,10 @@ static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input)
 
 function_set CastAnyFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::ANY, LogicalTypeID::STRING}, LogicalTypeID::ANY,
-        nullptr, nullptr, castBindFunc));
+    auto func = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::ANY, LogicalTypeID::STRING}, LogicalTypeID::ANY);
+    func->bindFunc = castBindFunc;
+    result.push_back(std::move(func));
     return result;
 }
 

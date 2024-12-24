@@ -15,8 +15,8 @@ function_set ListNoneFunction::getFunctionSet() {
     auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::ANY}, LogicalTypeID::BOOL,
         std::bind(execQuantifierFunc, noneHandler, std::placeholders::_1, std::placeholders::_2,
-            std::placeholders::_3),
-        bindQuantifierFunc);
+            std::placeholders::_3));
+    function->bindFunc = bindQuantifierFunc;
     function->isListLambda = true;
     result.push_back(std::move(function));
     return result;

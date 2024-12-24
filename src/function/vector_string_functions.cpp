@@ -279,20 +279,23 @@ function_set RegexpReplaceFunction::getFunctionSet() {
     function_set functionSet;
     // Todo: Implement a function with modifiers
     //  regexp_replace(string, regex, replacement, modifiers)
-    functionSet.emplace_back(make_unique<ScalarFunction>(name,
+    std::unique_ptr<ScalarFunction> func;
+    func = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
             LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::STRING,
         ScalarFunction::TernaryRegexExecFunction<ku_string_t, ku_string_t, ku_string_t, ku_string_t,
-            RegexpReplace>,
-        regexReplaceBindFunc));
-    functionSet.emplace_back(make_unique<ScalarFunction>(name,
+            RegexpReplace>);
+    func->bindFunc = regexReplaceBindFunc;
+    functionSet.emplace_back(std::move(func));
+    func = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
             LogicalTypeID::STRING},
         LogicalTypeID::STRING,
         ScalarFunction::TernaryRegexExecFunction<ku_string_t, ku_string_t, ku_string_t, ku_string_t,
-            RegexpReplace>,
-        regexReplaceBindFunc));
+            RegexpReplace>);
+    func->bindFunc = regexReplaceBindFunc;
+    functionSet.emplace_back(std::move(func));
     return functionSet;
 }
 
@@ -318,30 +321,34 @@ static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput /* input *
 
 function_set RegexpExtractAllFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(name,
+    std::unique_ptr<ScalarFunction> func;
+    func = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::LIST,
         ScalarFunction::BinaryStringExecFunction<ku_string_t, ku_string_t, list_entry_t,
-            RegexpExtractAll>,
-        nullptr, bindFunc));
-    functionSet.emplace_back(make_unique<ScalarFunction>(name,
+            RegexpExtractAll>);
+    func->bindFunc = bindFunc;
+    functionSet.emplace_back(std::move(func));
+    func = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
             LogicalTypeID::INT64},
         LogicalTypeID::LIST,
         ScalarFunction::TernaryStringExecFunction<ku_string_t, ku_string_t, int64_t, list_entry_t,
-            RegexpExtractAll>,
-        nullptr, bindFunc));
+            RegexpExtractAll>);
+    func->bindFunc = bindFunc;
+    functionSet.emplace_back(std::move(func));
     return functionSet;
 }
 
 function_set RegexpSplitToArrayFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(name,
+    auto func = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::LIST,
         ScalarFunction::BinaryStringExecFunction<ku_string_t, ku_string_t, list_entry_t,
-            RegexpSplitToArray>,
-        bindFunc));
+            RegexpSplitToArray>);
+    func->bindFunc = bindFunc;
+    functionSet.emplace_back(std::move(func));
     return functionSet;
 }
 

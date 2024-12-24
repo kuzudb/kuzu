@@ -70,19 +70,22 @@ static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
 
 function_set ListSliceFunction::getFunctionSet() {
     function_set result;
-    result.push_back(std::make_unique<ScalarFunction>(name,
+    std::unique_ptr<ScalarFunction> func;
+    func = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::INT64, LogicalTypeID::INT64},
         LogicalTypeID::LIST,
         ScalarFunction::TernaryExecListStructFunction<list_entry_t, int64_t, int64_t, list_entry_t,
-            ListSlice>,
-        nullptr /* selectFunc */, bindFunc));
-    result.push_back(std::make_unique<ScalarFunction>(name,
+            ListSlice>);
+    func->bindFunc = bindFunc;
+    result.push_back(std::move(func));
+    func = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64,
             LogicalTypeID::INT64},
         LogicalTypeID::STRING,
         ScalarFunction::TernaryExecListStructFunction<ku_string_t, int64_t, int64_t, ku_string_t,
-            ListSlice>,
-        nullptr /* selectFunc */, bindFunc));
+            ListSlice>);
+    func->bindFunc = bindFunc;
+    result.push_back(std::move(func));
     return result;
 }
 

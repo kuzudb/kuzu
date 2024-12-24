@@ -31,9 +31,10 @@ static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
 
 function_set MapExtractFunctions::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::MAP, LogicalTypeID::ANY}, LogicalTypeID::LIST,
-        nullptr, nullptr, bindFunc));
+    auto function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::MAP, LogicalTypeID::ANY}, LogicalTypeID::LIST);
+    function->bindFunc = bindFunc;
+    functionSet.push_back(std::move(function));
     return functionSet;
 }
 
