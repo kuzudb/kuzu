@@ -69,7 +69,8 @@ private:
         auto func = std::make_unique<ScalarFunction>(name,
             std::vector<common::LogicalTypeID>{common::LogicalTypeID::DECIMAL,
                 common::LogicalTypeID::DECIMAL},
-            common::LogicalTypeID::BOOL); // necessary because decimal physical type is not known from the ID
+            common::LogicalTypeID::BOOL); // necessary because decimal physical type is not known
+                                          // from the ID
         func->bindFunc = bindFunc;
         return func;
     }

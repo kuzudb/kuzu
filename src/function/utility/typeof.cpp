@@ -31,8 +31,8 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>&, ValueVect
 
 function_set TypeOfFunction::getFunctionSet() {
     function_set functionSet;
-    auto function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::ANY},
-        LogicalTypeID::STRING, execFunc);
+    auto function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::STRING, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
     return functionSet;

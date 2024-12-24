@@ -42,8 +42,8 @@ struct ListSum {
 
 function_set ListSumFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::LIST},
-        LogicalTypeID::INT64);
+    auto function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::LIST}, LogicalTypeID::INT64);
     function->bindFunc = bindFuncListAggr<ListSum>;
     result.push_back(std::move(function));
     return result;
@@ -66,8 +66,8 @@ struct ListProduct {
 
 function_set ListProductFunction::getFunctionSet() {
     function_set result;
-    auto function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::LIST},
-        LogicalTypeID::INT64);
+    auto function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::LIST}, LogicalTypeID::INT64);
     function->bindFunc = bindFuncListAggr<ListProduct>;
     result.push_back(std::move(function));
     return result;

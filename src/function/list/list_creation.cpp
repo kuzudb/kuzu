@@ -42,9 +42,8 @@ static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
 
 function_set ListCreationFunction::getFunctionSet() {
     function_set result;
-    auto function =
-        std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::ANY},
-            LogicalTypeID::LIST, execFunc);
+    auto function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::LIST, execFunc);
     function->bindFunc = bindFunc;
     function->isVarLength = true;
     result.push_back(std::move(function));

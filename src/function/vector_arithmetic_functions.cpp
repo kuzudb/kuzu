@@ -319,8 +319,8 @@ function_set NegateFunction::getFunctionSet() {
         result.push_back(getUnaryFunction<Negate>(name, typeID));
     }
     // floor(decimal) -> decimal
-    auto func = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL},
-        LogicalTypeID::DECIMAL);
+    auto func = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL}, LogicalTypeID::DECIMAL);
     func->bindFunc = DecimalFunction::bindNegateFunc;
     result.push_back(std::move(func));
     return result;
@@ -331,8 +331,8 @@ function_set AbsFunction::getFunctionSet() {
     for (auto& typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getUnaryFunction<Abs>(name, typeID));
     }
-    auto func = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL},
-        LogicalTypeID::DECIMAL);
+    auto func = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL}, LogicalTypeID::DECIMAL);
     func->bindFunc = DecimalFunction::bindAbsFunc;
     result.push_back(std::move(func));
     return result;
@@ -343,8 +343,8 @@ function_set FloorFunction::getFunctionSet() {
     for (auto& typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getUnaryFunction<Floor>(name, typeID));
     }
-    auto func = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL},
-        LogicalTypeID::DECIMAL);
+    auto func = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL}, LogicalTypeID::DECIMAL);
     func->bindFunc = DecimalFunction::bindFloorFunc;
     result.push_back(std::move(func));
     return result;
@@ -355,8 +355,8 @@ function_set CeilFunction::getFunctionSet() {
     for (auto& typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getUnaryFunction<Ceil>(name, typeID));
     }
-    auto func = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL},
-        LogicalTypeID::DECIMAL);
+    auto func = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL}, LogicalTypeID::DECIMAL);
     func->bindFunc = DecimalFunction::bindCeilFunc;
     result.push_back(std::move(func));
     return result;

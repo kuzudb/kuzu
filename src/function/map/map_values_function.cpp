@@ -17,8 +17,8 @@ function_set MapValuesFunctions::getFunctionSet() {
     auto execFunc =
         ScalarFunction::UnaryExecNestedTypeFunction<list_entry_t, list_entry_t, MapValues>;
     function_set functionSet;
-    auto function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::MAP},
-        LogicalTypeID::LIST, execFunc);
+    auto function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::MAP}, LogicalTypeID::LIST, execFunc);
     function->bindFunc = bindFunc;
     functionSet.push_back(std::move(function));
     return functionSet;

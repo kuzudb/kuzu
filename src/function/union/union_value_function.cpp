@@ -33,8 +33,8 @@ static void valueCompileFunc(FunctionBindData* /*bindData*/,
 
 function_set UnionValueFunction::getFunctionSet() {
     function_set functionSet;
-    auto function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::ANY},
-        LogicalTypeID::UNION, execFunc);
+    auto function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::UNION, execFunc);
     function->bindFunc = bindFunc;
     function->compileFunc = valueCompileFunc;
     functionSet.push_back(std::move(function));

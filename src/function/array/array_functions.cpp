@@ -174,7 +174,8 @@ function_set templateGetFunctionSet(const std::string& functionName) {
             LogicalTypeID::ARRAY,
         },
         LogicalTypeID::ANY);
-    function->bindFunc = std::bind(arrayTemplateBindFunc<OPERATION>, functionName, std::placeholders::_1);
+    function->bindFunc =
+        std::bind(arrayTemplateBindFunc<OPERATION>, functionName, std::placeholders::_1);
     result.push_back(std::move(function));
     return result;
 }

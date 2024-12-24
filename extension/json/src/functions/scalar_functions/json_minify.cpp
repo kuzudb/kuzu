@@ -38,8 +38,8 @@ static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
 
 function_set MinifyJsonFunction::getFunctionSet() {
     function_set result;
-    auto func = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING},
-        LogicalTypeID::STRING, execFunc);
+    auto func = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::STRING, execFunc);
     func->bindFunc = bindFunc;
     result.push_back(std::move(func));
     return result;

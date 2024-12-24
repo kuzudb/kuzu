@@ -20,8 +20,8 @@ static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
 
 function_set RelsFunction::getFunctionSet() {
     function_set functionSet;
-    auto function = std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::RECURSIVE_REL},
-        LogicalTypeID::ANY);
+    auto function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::RECURSIVE_REL}, LogicalTypeID::ANY);
     function->bindFunc = bindFunc;
     function->compileFunc = StructExtractFunctions::compileFunc;
     functionSet.push_back(std::move(function));
