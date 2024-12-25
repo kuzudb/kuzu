@@ -66,13 +66,15 @@ public:
         for (const auto& [tableID, curNumNodes] : numNodesMap) {
             for (auto i = 0u; i < curNumNodes; ++i) {
                 auto temp = vertexValueMap.getData(tableID)[i].load(std::memory_order_relaxed);
-                vertexValueMap.getData(tableID)[i].compare_exchange_strong(temp, nextVertexValueMap.getData(tableID)[i].load(std::memory_order_relaxed), std::memory_order_relaxed);
+                vertexValueMap.getData(tableID)[i].compare_exchange_strong(temp,
+                    nextVertexValueMap.getData(tableID)[i].load(std::memory_order_relaxed),
+                    std::memory_order_relaxed);
             }
         }
         updateSmallestDegree();
         std::swap(curDenseFrontier, nextDenseFrontier);
         curDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();
-        nextDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();        
+        nextDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();
     }
 
     uint64_t addToVertexDegree(common::offset_t offset, uint64_t degreeToAdd) {
@@ -84,9 +86,9 @@ public:
     // Returns whether the neighbouring vertex should be set as active or not
     bool removeFromVertex(common::nodeID_t nodeID) {
         int curSmallest = curSmallestDegree.load(std::memory_order_relaxed);
-        int nextVertexDegree =
-            nextVertexValueMap.getData(nodeID.tableID)[nodeID.offset].load(std::memory_order_relaxed);
-        int curVertexDegree = 
+        int nextVertexDegree = nextVertexValueMap.getData(nodeID.tableID)[nodeID.offset].load(
+            std::memory_order_relaxed);
+        int curVertexDegree =
             vertexValueMap.getData(nodeID.tableID)[nodeID.offset].load(std::memory_order_relaxed);
         // The vertex should be set as active if it will be considered in a future iteration
         // The vertex should be set as inactive if it will be processed this iteration
@@ -169,7 +171,8 @@ struct KCoreEdgeCompute : public EdgeCompute {
                 }
             });
         }
-        // If the node hasn't been considered this iteration, it will need to still be active in future iterations.
+        // If the node hasn't been considered this iteration, it will need to still be active in
+        // future iterations.
         else {
             result.push_back(boundNodeID);
         }
