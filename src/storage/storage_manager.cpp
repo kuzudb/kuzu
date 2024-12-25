@@ -190,6 +190,19 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
     shadowFile->flushAll();
 }
 
+void StorageManager::rollbackCheckpoint(main::ClientContext& clientContext) {
+    if (main::DBConfig::isDBPathInMemory(databasePath)) {
+        return;
+    }
+    std::lock_guard lck{mtx};
+    const auto nodeTableEntries =
+        clientContext.getCatalog()->getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
+    for (const auto tableEntry : nodeTableEntries) {
+        KU_ASSERT(tables.contains(tableEntry->getTableID()));
+        tables.at(tableEntry->getTableID())->rollbackCheckpoint();
+    }
+}
+
 StorageManager::~StorageManager() = default;
 
 } // namespace storage

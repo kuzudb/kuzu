@@ -112,11 +112,14 @@ std::unique_ptr<function::TableFuncBindData> DuckDBScanFunction::bindFunc(
 }
 
 TableFunction getScanFunction(DuckDBScanBindData bindData) {
-    return TableFunction(DuckDBScanFunction::DUCKDB_SCAN_FUNC_NAME, DuckDBScanFunction::tableFunc,
-        std::bind(DuckDBScanFunction::bindFunc, std::move(bindData), std::placeholders::_1,
-            std::placeholders::_2),
-        DuckDBScanFunction::initSharedState, DuckDBScanFunction::initLocalState,
-        std::vector<LogicalTypeID>{});
+    auto function =
+        TableFunction(DuckDBScanFunction::DUCKDB_SCAN_FUNC_NAME, std::vector<LogicalTypeID>{});
+    function.tableFunc = DuckDBScanFunction::tableFunc;
+    function.bindFunc = std::bind(DuckDBScanFunction::bindFunc, std::move(bindData),
+        std::placeholders::_1, std::placeholders::_2);
+    function.initSharedStateFunc = DuckDBScanFunction::initSharedState;
+    function.initLocalStateFunc = DuckDBScanFunction::initLocalState;
+    return function;
 }
 
 } // namespace duckdb_extension

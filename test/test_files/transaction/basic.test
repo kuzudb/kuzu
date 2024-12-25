@@ -64,6 +64,23 @@ Timeout waiting for active transactions to leave the system before checkpointing
 -STATEMENT [conn1] MATCH (a:person) WHERE a.ID=0 RETURN a.age;
 ---- 0
 
+-CASE AutoCheckpointTimeoutErrorTest
+-SKIP_IN_MEM
+-CHECKPOINT_WAIT_TIMEOUT 10000
+-STATEMENT CALL auto_checkpoint=true
+---- ok
+-STATEMENT CREATE NODE TABLE person(ID INT64, name STRING, age INT64, PRIMARY KEY(ID));
+---- ok
+-CREATE_CONNECTION conn1
+-STATEMENT [conn1] BEGIN TRANSACTION READ ONLY;
+---- ok
+-CREATE_CONNECTION conn2
+-STATEMENT [conn2] COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/primary-key-tests/vPerson.csv"
+---- error
+Timeout waiting for active transactions to leave the system before checkpointing. If you have an open transaction, please close it and try again.
+-STATEMENT [conn1] MATCH (a:person) WHERE a.ID=100 RETURN a.age;
+---- 0
+
 -CASE ForceCheckpointWhenClosingDB
 -SKIP_IN_MEM
 -STATEMENT CALL auto_checkpoint=false

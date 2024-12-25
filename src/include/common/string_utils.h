@@ -60,7 +60,7 @@ public:
     }
     static std::string_view rtrim(std::string_view input) {
         auto end = input.size();
-        while (end > 0 && isspace(input[end - 1])) {
+        while (end > 0 && isSpace(input[end - 1])) {
             end--;
         }
         return input.substr(0, end);

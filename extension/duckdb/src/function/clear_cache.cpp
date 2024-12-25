@@ -36,10 +36,12 @@ static std::unique_ptr<TableFuncBindData> clearCacheBindFunc(ClientContext* cont
         1 /* maxOffset */);
 }
 
-ClearCacheFunction::ClearCacheFunction()
-    : TableFunction{name, clearCacheTableFunc, clearCacheBindFunc,
-          function::SimpleTableFunction::initSharedState,
-          function::SimpleTableFunction::initEmptyLocalState, std::vector<LogicalTypeID>{}} {}
+ClearCacheFunction::ClearCacheFunction() : TableFunction{name, std::vector<LogicalTypeID>{}} {
+    tableFunc = clearCacheTableFunc;
+    bindFunc = clearCacheBindFunc;
+    initSharedStateFunc = SimpleTableFunction::initSharedState;
+    initLocalStateFunc = SimpleTableFunction::initEmptyLocalState;
+}
 
 } // namespace duckdb_extension
 } // namespace kuzu

@@ -133,8 +133,13 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
         KU_UNREACHABLE;
     }
     auto semantic = QueryRelTypeUtils::getPathSemantic(rel->getRelType());
-    auto bindData = std::make_unique<RJBindData>(boundNode, nbrNode, recursiveInfo->lowerBound,
-        recursiveInfo->upperBound, semantic, direction);
+
+    auto bindData = std::make_unique<RJBindData>(graphEntry.copy(), nbrNode);
+    bindData->nodeInput = boundNode;
+    bindData->lowerBound = recursiveInfo->lowerBound;
+    bindData->upperBound = recursiveInfo->upperBound;
+    bindData->semantic = semantic;
+    bindData->extendDirection = direction;
     // If we extend from right to left, we need to print path in reverse direction.
     bindData->flipPath = *boundNode == *rel->getRightNode();
     if (direction == common::ExtendDirection::BOTH) {
@@ -145,8 +150,7 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     bindData->pathEdgeIDsExpr = recursiveInfo->pathEdgeIDsExpr;
     gdsFunction.gds->setBindData(std::move(bindData));
     auto resultColumns = gdsFunction.gds->getResultColumns(nullptr /* binder*/);
-    auto gdsInfo =
-        BoundGDSCallInfo(gdsFunction.copy(), graphEntry.copy(), std::move(resultColumns));
+    auto gdsInfo = BoundGDSCallInfo(gdsFunction.copy(), std::move(resultColumns));
     auto probePlan = LogicalPlan();
     auto gdsCall = getGDSCall(gdsInfo);
     gdsCall->computeFactorizedSchema();

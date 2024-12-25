@@ -17,28 +17,6 @@ struct FTSBindData : public function::SimpleTableFuncBindData {
         : function::SimpleTableFuncBindData{std::move(columns), 1 /* maxOffset */},
           tableName{std::move(tableName)}, tableID{tableID}, indexName{std::move(indexName)} {}
 
-    std::string getTablePrefix() const { return common::stringFormat("{}_{}", tableID, indexName); }
-
-    std::string getStopWordsTableName() const {
-        return common::stringFormat("default_english_stopwords");
-    }
-
-    std::string getDocsTableName() const {
-        return common::stringFormat("{}_docs", getTablePrefix());
-    }
-
-    std::string getAppearsInfoTableName() const {
-        return common::stringFormat("{}_appears_info", getTablePrefix());
-    }
-
-    std::string getTermsTableName() const {
-        return common::stringFormat("{}_terms", getTablePrefix());
-    }
-
-    std::string getAppearsInTableName() const {
-        return common::stringFormat("{}_appears_in", getTablePrefix());
-    }
-
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<FTSBindData>(*this);
     }

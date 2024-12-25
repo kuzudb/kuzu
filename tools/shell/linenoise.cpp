@@ -301,6 +301,52 @@ enum KEY_ACTION {
     BACKSPACE = 127 /* Backspace */
 };
 
+enum class EscapeSequence {
+    INVALID = 0,
+    UNKNOWN = 1,
+    CTRL_MOVE_BACKWARDS,
+    CTRL_MOVE_FORWARDS,
+    HOME,
+    END,
+    UP,
+    DOWN,
+    RIGHT,
+    LEFT,
+    DEL,
+    SHIFT_TAB,
+    ESCAPE,
+    ALT_A,
+    ALT_B,
+    ALT_C,
+    ALT_D,
+    ALT_E,
+    ALT_F,
+    ALT_G,
+    ALT_H,
+    ALT_I,
+    ALT_J,
+    ALT_K,
+    ALT_L,
+    ALT_M,
+    ALT_N,
+    ALT_O,
+    ALT_P,
+    ALT_Q,
+    ALT_R,
+    ALT_S,
+    ALT_T,
+    ALT_U,
+    ALT_V,
+    ALT_W,
+    ALT_X,
+    ALT_Y,
+    ALT_Z,
+    ALT_BACKSPACE,
+    ALT_LEFT_ARROW,
+    ALT_RIGHT_ARROW,
+    ALT_BACKSLASH,
+};
+
 static void linenoiseAtExit(void);
 int linenoiseHistoryAdd(const char* line);
 static void refreshLine(struct linenoiseState* l);
@@ -1040,13 +1086,168 @@ TabCompletion linenoiseTabComplete(struct linenoiseState* l) {
     return result;
 }
 
+uint64_t linenoiseReadEscapeSequence(int ifd, char seq[]) {
+    if (read(ifd, seq, 1) == -1) {
+        return 0;
+    }
+    switch (seq[0]) {
+    case 'O':
+    case '[':
+        // these characters have multiple bytes following them
+        break;
+    default:
+        return 1;
+    }
+    if (read(ifd, seq + 1, 1) == -1) {
+        return 0;
+    }
+
+    if (seq[0] != '[') {
+        return 2;
+    }
+    if (seq[1] < '0' || seq[1] > '9') {
+        return 2;
+    }
+    /* Extended escape, read additional byte. */
+    if (read(ifd, seq + 2, 1) == -1) {
+        return 0;
+    }
+    if (seq[2] == ';') {
+        // read 2 extra bytes
+        if (read(ifd, seq + 3, 2) == -1) {
+            return 0;
+        }
+        return 5;
+    } else {
+        return 3;
+    }
+}
+
+EscapeSequence linenoiseReadEscapeSequence(int ifd) {
+    char seq[5];
+    uint64_t length = linenoiseReadEscapeSequence(ifd, seq);
+    if (length == 0) {
+        return EscapeSequence::INVALID;
+    }
+    lndebug("escape of length %d\n", length);
+    switch (length) {
+    case 1:
+        if (seq[0] >= 'a' && seq[0] <= 'z') {
+            return EscapeSequence(uint64_t(EscapeSequence::ALT_A) + (seq[0] - 'a'));
+        }
+        if (seq[0] >= 'A' && seq[0] <= 'Z') {
+            return EscapeSequence(uint64_t(EscapeSequence::ALT_A) + (seq[0] - 'A'));
+        }
+        switch (seq[0]) {
+        case BACKSPACE:
+            return EscapeSequence::ALT_BACKSPACE;
+        case ESC:
+            return EscapeSequence::ESCAPE;
+        case '<':
+            return EscapeSequence::ALT_LEFT_ARROW;
+        case '>':
+            return EscapeSequence::ALT_RIGHT_ARROW;
+        case '\\':
+            return EscapeSequence::ALT_BACKSLASH;
+        default:
+            lndebug("unrecognized escape sequence of length 1 - %d\n", seq[0]);
+            break;
+        }
+        break;
+    case 2:
+        if (seq[0] == 'O') {
+            switch (seq[1]) {
+            case 'A': /* Up */
+                return EscapeSequence::UP;
+            case 'B': /* Down */
+                return EscapeSequence::DOWN;
+            case 'C': /* Right */
+                return EscapeSequence::RIGHT;
+            case 'D': /* Left */
+                return EscapeSequence::LEFT;
+            case 'H': /* Home */
+                return EscapeSequence::HOME;
+            case 'F': /* End*/
+                return EscapeSequence::END;
+            case 'c':
+                return EscapeSequence::ALT_F;
+            case 'd':
+                return EscapeSequence::ALT_B;
+            default:
+                lndebug("unrecognized escape sequence (O) %d\n", seq[1]);
+                break;
+            }
+        } else if (seq[0] == '[') {
+            switch (seq[1]) {
+            case 'A': /* Up */
+                return EscapeSequence::UP;
+            case 'B': /* Down */
+                return EscapeSequence::DOWN;
+            case 'C': /* Right */
+                return EscapeSequence::RIGHT;
+            case 'D': /* Left */
+                return EscapeSequence::LEFT;
+            case 'H': /* Home */
+                return EscapeSequence::HOME;
+            case 'F': /* End*/
+                return EscapeSequence::END;
+            case 'Z': /* Shift Tab */
+                return EscapeSequence::SHIFT_TAB;
+            default:
+                lndebug("unrecognized escape sequence (seq[1]) %d\n", seq[1]);
+                break;
+            }
+        } else {
+            lndebug("unrecognized escape sequence of length %d (%d %d)\n", length, seq[0], seq[1]);
+        }
+        break;
+    case 3:
+        if (seq[2] == '~') {
+            switch (seq[1]) {
+            case '1':
+                return EscapeSequence::HOME;
+            case '3': /* Delete key. */
+                return EscapeSequence::DEL;
+            case '4':
+            case '8':
+                return EscapeSequence::END;
+            default:
+                lndebug("unrecognized escape sequence (~) %d\n", seq[1]);
+                break;
+            }
+        } else if (seq[1] == '5' && seq[2] == 'C') {
+            return EscapeSequence::ALT_F;
+        } else if (seq[1] == '5' && seq[2] == 'D') {
+            return EscapeSequence::ALT_B;
+        } else {
+            lndebug("unrecognized escape sequence of length %d\n", length);
+        }
+        break;
+    case 5:
+        if (memcmp(seq, "[1;5C", 5) == 0 || memcmp(seq, "[1;3C", 5) == 0) {
+            // [1;5C: move word right
+            return EscapeSequence::CTRL_MOVE_FORWARDS;
+        } else if (memcmp(seq, "[1;5D", 5) == 0 || memcmp(seq, "[1;3D", 5) == 0) {
+            // [1;5D: move word left
+            return EscapeSequence::CTRL_MOVE_BACKWARDS;
+        } else {
+            lndebug("unrecognized escape sequence (;) %d\n", seq[1]);
+        }
+        break;
+    default:
+        lndebug("unrecognized escape sequence of length %d\n", length);
+        break;
+    }
+    return EscapeSequence::UNKNOWN;
+}
+
 /* This is an helper function for linenoiseEdit() and is called when the
  * user types the <tab> key in order to complete the string currently in the
  * input.
  *
  * The state of the editing is encapsulated into the pointed linenoiseState
  * structure as described in the structure definition. */
-static int completeLine(struct linenoiseState* l) {
+static int completeLine(EscapeSequence& current_sequence, struct linenoiseState* l) {
     int nread, nwritten;
     char c = 0;
 
@@ -1089,43 +1290,29 @@ static int completeLine(struct linenoiseState* l) {
                 }
                 break;
             case ESC: { /* escape */
-                char seq[5];
-                uint64_t length = 0;
-                if (read(l->ifd, seq, 1) == -1) {
-                    return 0;
-                }
-
-                if (seq[0] != '[') {
-                    length = 1;
-                } else if (read(l->ifd, seq + 1, 1) == -1) {
-                    length = 0;
-                } else if (seq[1] < '0' || seq[1] > '9') {
-                    length = 2;
-                }
-
-                lndebug("escape of length %d\n", length);
-                if (length == 1) {
-                    if (seq[0] == ESC) {
-                        /* Re-show original buffer */
-                        if (i < completions.size()) {
-                            refreshLine(l);
-                        }
-                        stop = true;
+                auto escape = linenoiseReadEscapeSequence(l->ifd);
+                switch (escape) {
+                case EscapeSequence::SHIFT_TAB:
+                    // shift-tab: move backwards
+                    if (i == 0) {
+                        linenoiseBeep();
+                    } else {
+                        i--;
                     }
-                } else if (length == 2) {
-                    if (seq[0] == '[') {
-                        if (seq[1] == 'Z') { /* Shift Tab */
-                            // shift-tab: move backwards
-                            if (i == 0) {
-                                linenoiseBeep();
-                            } else {
-                                i--;
-                            }
-                        }
+                    break;
+                case EscapeSequence::ESCAPE:
+                    /* Re-show original buffer */
+                    if (i < completions.size()) {
+                        refreshLine(l);
                     }
-                } else {
+                    current_sequence = escape;
+                    stop = true;
+                    break;
+                default:
+                    current_sequence = escape;
                     accept_completion = true;
                     stop = true;
+                    break;
                 }
                 break;
             }
@@ -3269,11 +3456,12 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char* buf, size_t buflen, 
     if (write(l.ofd, prompt, l.plen) == -1)
         return -1;
     while (1) {
+        EscapeSequence current_sequence = EscapeSequence::INVALID;
         char c;
         int nread;
-        char seq[5];
 
 #ifdef _WIN32
+        char seq[5];
         if (readingUTF8) {
             c = uft8Buf[0];
             uft8Buf.erase(0, 1);
@@ -3339,7 +3527,7 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char* buf, size_t buflen, 
                 }
                 continue;
             }
-            c = completeLine(&l);
+            c = completeLine(current_sequence, &l);
             /* Return on errors */
             if (c < 0)
                 return l.len;
@@ -3493,92 +3681,58 @@ static int linenoiseEdit(int stdin_fd, int stdout_fd, char* buf, size_t buflen, 
             break;
         }
         case ESC: /* escape sequence */
-            /* Read the next two bytes representing the escape sequence.
-             * Use two calls to handle slow terminals returning the two
-             * chars at different times. */
-            if (read(l.ifd, seq, 1) == -1)
-                break;
+            EscapeSequence escape;
+            if (current_sequence == EscapeSequence::INVALID) {
+                // read escape sequence
+                escape = linenoiseReadEscapeSequence(l.ifd);
+            } else {
+                // use stored sequence
+                escape = current_sequence;
+                current_sequence = EscapeSequence::INVALID;
+            }
 
-            if (seq[0] == 'b') {
+            switch (escape) {
+            case EscapeSequence::CTRL_MOVE_BACKWARDS:
+            case EscapeSequence::ALT_B:
                 linenoiseEditMoveWordLeft(&l);
                 break;
-            } else if (seq[0] == 'f') {
+            case EscapeSequence::CTRL_MOVE_FORWARDS:
+            case EscapeSequence::ALT_F:
                 linenoiseEditMoveWordRight(&l);
                 break;
-            }
-
-            if (read(l.ifd, seq + 1, 1) == -1)
+            case EscapeSequence::ALT_BACKSPACE:
+                linenoiseEditDeletePrevWord(&l);
                 break;
-            /* ESC [ sequences. */
-            if (seq[0] == '[') {
-                if (seq[1] >= '0' && seq[1] <= '9') {
-                    /* Extended escape, read additional byte. */
-                    if (read(l.ifd, seq + 2, 1) == -1)
-                        break;
-                    if (seq[2] == '~') {
-                        switch (seq[1]) {
-                        case '1': /* HOME key. */
-                            linenoiseEditMoveHome(&l);
-                            break;
-                        case '3': /* Delete key. */
-                            linenoiseEditDelete(&l);
-                            break;
-                        case '4': /* END key. */
-                            linenoiseEditMoveEnd(&l);
-                            break;
-                        }
-                    }
-                    if (seq[2] == ';') {
-                        /* read another 2 bytes */
-                        if (read(l.ifd, seq + 3, 2) == -1)
-                            break;
-                        if (memcmp(seq, "[1;5C", 5) == 0) {
-                            linenoiseEditMoveWordRight(&l);
-                        }
-                        if (memcmp(seq, "[1;5D", 5) == 0) {
-                            linenoiseEditMoveWordLeft(&l);
-                        }
-                    }
-                } else {
-                    switch (seq[1]) {
-                    case 'A': /* Up */
-                        if (linenoiseEditMoveRowUp(&l)) {
-                            break;
-                        }
-                        linenoiseEditHistoryNext(&l, LINENOISE_HISTORY_PREV);
-                        break;
-                    case 'B': /* Down */
-                        if (linenoiseEditMoveRowDown(&l)) {
-                            break;
-                        }
-                        linenoiseEditHistoryNext(&l, LINENOISE_HISTORY_NEXT);
-                        break;
-                    case 'C': /* Right */
-                        linenoiseEditMoveRight(&l);
-                        break;
-                    case 'D': /* Left */
-                        linenoiseEditMoveLeft(&l);
-                        break;
-                    case 'H': /* Home */
-                        linenoiseEditMoveHome(&l);
-                        break;
-                    case 'F': /* End*/
-                        linenoiseEditMoveEnd(&l);
-                        break;
-                    }
-                }
-            }
-
-            /* ESC O sequences. */
-            else if (seq[0] == 'O') {
-                switch (seq[1]) {
-                case 'H': /* Home */
-                    linenoiseEditMoveHome(&l);
-                    break;
-                case 'F': /* End*/
-                    linenoiseEditMoveEnd(&l);
+            case EscapeSequence::HOME:
+                linenoiseEditMoveHome(&l);
+                break;
+            case EscapeSequence::END:
+                linenoiseEditMoveEnd(&l);
+                break;
+            case EscapeSequence::UP:
+                if (linenoiseEditMoveRowUp(&l)) {
                     break;
                 }
+                linenoiseEditHistoryNext(&l, LINENOISE_HISTORY_PREV);
+                break;
+            case EscapeSequence::DOWN:
+                if (linenoiseEditMoveRowDown(&l)) {
+                    break;
+                }
+                linenoiseEditHistoryNext(&l, LINENOISE_HISTORY_NEXT);
+                break;
+            case EscapeSequence::RIGHT:
+                linenoiseEditMoveRight(&l);
+                break;
+            case EscapeSequence::LEFT:
+                linenoiseEditMoveLeft(&l);
+                break;
+            case EscapeSequence::DEL:
+                linenoiseEditDelete(&l);
+                break;
+            default:
+                lndebug("Unrecognized escape\n");
+                break;
             }
             break;
         case CTRL_U: /* Ctrl+u, delete the whole line. */

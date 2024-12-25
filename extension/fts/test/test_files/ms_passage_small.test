@@ -10,7 +10,7 @@
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'contentIdx', ['content'])
 ---- ok
 -LOG QueryKeywords
--STATEMENT CALL query_fts_index('doc', 'contentIdx', 'dispossessed meaning') RETURN node.id, score order by score, node.id;
+-STATEMENT CALL query_fts_index('doc', 'contentIdx', 'dispossessed meaning') RETURN _node.id, score order by score, _node.id;
 -CHECK_ORDER
 ---- 9
 389|1.773149
@@ -23,7 +23,7 @@
 109|1.957072
 390|2.937742
 -LOG QuerySingleKeyWord
--STATEMENT CALL query_fts_index('doc', 'contentIdx', 'normality') RETURN node.id, score order by score, node.id;
+-STATEMENT CALL query_fts_index('doc', 'contentIdx', 'normality') RETURN _node.id, score order by score, _node.id;
 -CHECK_ORDER
 ---- 7
 50|1.794529
@@ -34,13 +34,13 @@
 137|2.187176
 57|2.269955
 -LOG QueryShortQuestion
--STATEMENT CALL query_fts_index('doc', 'contentIdx', 'what is piroxicam used to treat') RETURN node.id, score order by score, node.id;
+-STATEMENT CALL query_fts_index('doc', 'contentIdx', 'what is piroxicam used to treat') RETURN _node.id, score order by score, _node.id;
 -CHECK_ORDER
 ---- 2
 67|1.848853
 476|2.684744
 -LOG QueryLongQuestion
--STATEMENT CALL query_fts_index('doc', 'contentIdx', 'how long does it take to recover from top wisdom teeth removal') RETURN node.id, score order by score, node.id;
+-STATEMENT CALL query_fts_index('doc', 'contentIdx', 'how long does it take to recover from top wisdom teeth removal') RETURN _node.id, score order by score, _node.id;
 -CHECK_ORDER
 ---- 31
 62|0.794823

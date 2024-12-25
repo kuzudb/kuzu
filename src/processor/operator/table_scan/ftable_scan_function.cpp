@@ -64,8 +64,11 @@ static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInpu
 
 function_set FTableScan::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(std::make_unique<TableFunction>(name, tableFunc, nullptr /*bindFunc*/,
-        initSharedState, initLocalState, std::vector<LogicalTypeID>{}));
+    auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
+    function->tableFunc = tableFunc;
+    function->initSharedStateFunc = initSharedState;
+    function->initLocalStateFunc = initLocalState;
+    functionSet.push_back(std::move(function));
     return functionSet;
 }
 

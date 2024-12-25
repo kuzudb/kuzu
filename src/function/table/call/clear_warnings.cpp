@@ -19,8 +19,11 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*contex
 
 function_set ClearWarningsFunction::getFunctionSet() {
     function_set functionSet;
-    auto func = std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState,
-        initEmptyLocalState, std::vector<LogicalTypeID>{});
+    auto func = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
+    func->tableFunc = tableFunc;
+    func->bindFunc = bindFunc;
+    func->initSharedStateFunc = initSharedState;
+    func->initLocalStateFunc = initEmptyLocalState;
     func->canParallelFunc = []() { return false; };
     functionSet.push_back(std::move(func));
     return functionSet;

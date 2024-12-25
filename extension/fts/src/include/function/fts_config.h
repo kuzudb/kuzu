@@ -45,7 +45,11 @@ struct Conjunctive {
 };
 
 struct QueryFTSConfig {
+    // k: parameter controls the influence of term frequency saturation. It limits the effect of
+    // additional occurrences of a term within a document.
     double k = K::DEFAULT_VALUE;
+    // b: parameter controls the degree of length normalization by adjusting the influence of
+    // document length.
     double b = B::DEFAULT_VALUE;
     bool isConjunctive = Conjunctive::DEFAULT_VALUE;
 
