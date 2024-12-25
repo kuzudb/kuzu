@@ -7,7 +7,6 @@
 #include "common/task_system/progress_bar.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_utils.h"
-#include "graph/graph.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
 #include "storage/buffer_manager/memory_manager.h"
@@ -114,18 +113,22 @@ static void validateSPUpperBound(int64_t upperBound) {
     }
 }
 
-void SPAlgorithm::bind(const GDSBindInput& input, main::ClientContext&) {
+void SPAlgorithm::bind(const GDSBindInput& input, main::ClientContext& context) {
     KU_ASSERT(input.getNumParams() == 4);
-    auto nodeInput = input.getParam(1);
-    auto nodeOutput = bindNodeOutput(input.binder, input.graphEntry.nodeEntries);
-    auto lowerBound = 1;
+    auto graphName = ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
+    auto graphEntry = bindGraphEntry(context, graphName);
+    auto nodeOutput = bindNodeOutput(input.binder, graphEntry.nodeEntries);
+    auto rjBindData = std::make_unique<RJBindData>(std::move(graphEntry), nodeOutput);
+    rjBindData->nodeInput = input.getParam(1);
+    rjBindData->lowerBound = 1;
     auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*input.getParam(2));
     validateSPUpperBound(upperBound);
-    validateLowerUpperBound(lowerBound, upperBound);
-    auto extendDirection = ExtendDirectionUtil::fromString(
+    validateLowerUpperBound(rjBindData->lowerBound, upperBound);
+    rjBindData->upperBound = upperBound;
+    rjBindData->semantic = PathSemantic::WALK;
+    rjBindData->extendDirection = ExtendDirectionUtil::fromString(
         ExpressionUtil::getLiteralValue<std::string>(*input.getParam(3)));
-    bindData = std::make_unique<RJBindData>(nodeInput, nodeOutput, lowerBound, upperBound,
-        PathSemantic::WALK, extendDirection);
+    bindData = std::move(rjBindData);
     bindColumnExpressions(input.binder);
 }
 

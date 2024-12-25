@@ -38,6 +38,7 @@ public:
     virtual bool checkpoint() = 0;
     virtual bool checkpointInMemory() = 0;
     virtual bool rollbackInMemory() = 0;
+    virtual void rollbackCheckpoint() = 0;
     virtual void bulkReserve(uint64_t numValuesToAppend) = 0;
 };
 
@@ -149,6 +150,7 @@ public:
     bool checkpoint() override;
     bool checkpointInMemory() override;
     bool rollbackInMemory() override;
+    void rollbackCheckpoint() override;
     inline FileHandle* getFileHandle() const { return fileHandle; }
 
 private:
@@ -378,9 +380,11 @@ public:
     void delete_(common::ValueVector* keyVector);
 
     void checkpointInMemory();
-    void checkpoint();
+    void checkpoint(bool forceCheckpointAll = false);
     FileHandle* getFileHandle() const { return fileHandle; }
     OverflowFile* getOverflowFile() const { return overflowFile.get(); }
+
+    void rollbackCheckpoint();
 
     common::PhysicalTypeID keyTypeID() const { return keyDataTypeID; }
 

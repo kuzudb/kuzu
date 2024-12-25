@@ -1,5 +1,8 @@
 #include "function/create_fts_index.h"
 
+#include <fstream>
+#include <iostream>
+
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "catalog/fts_index_catalog_entry.h"
@@ -104,11 +107,13 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
     }
 
     // Create the stop words table if not exists, or the user is not using the default english one.
-    query += createStopWordsTableIfNotExists(context, ftsBindData->getStopWordsTableName());
+    auto stopWordsTableName = FTSUtils::getStopWordsTableName();
+    query += createStopWordsTableIfNotExists(context, stopWordsTableName);
 
     // Create the terms_in_doc table which servers as a temporary table to store the relationship
     // between terms and docs.
-    auto appearsInfoTableName = ftsBindData->getAppearsInfoTableName();
+    auto appearsInfoTableName =
+        FTSUtils::getAppearsInfoTableName(ftsBindData->tableID, ftsBindData->indexName);
     query +=
         common::stringFormat("CREATE NODE TABLE `{}` (ID SERIAL, term string, docID INT64, primary "
                              "key(ID));",
@@ -123,11 +128,11 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
                                       "WHERE t1 is NOT NULL AND SIZE(t1) > 0 AND "
                                       "NOT EXISTS {MATCH (s:`{}` {sw: t1})} "
                                       "RETURN STEM(t1, '{}'), id1);",
-            appearsInfoTableName, tableName, property, ftsBindData->getStopWordsTableName(),
+            appearsInfoTableName, tableName, property, stopWordsTableName,
             ftsBindData->ftsConfig.stemmer);
     }
 
-    auto docsTableName = ftsBindData->getDocsTableName();
+    auto docsTableName = FTSUtils::getDocsTableName(ftsBindData->tableID, ftsBindData->indexName);
     // Create the docs table which records the number of words in each document.
     query += common::stringFormat(
         "CREATE NODE TABLE `{}` (docID INT64, len UINT64, primary key(docID));", docsTableName);
@@ -136,7 +141,7 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
                                   "RETURN t.docID, CAST(count(t) AS UINT64)); ",
         docsTableName, appearsInfoTableName);
 
-    auto termsTableName = ftsBindData->getTermsTableName();
+    auto termsTableName = FTSUtils::getTermsTableName(ftsBindData->tableID, ftsBindData->indexName);
     // Create the dic table which records all distinct terms and their document frequency.
     query += common::stringFormat(
         "CREATE NODE TABLE `{}` (term STRING, df UINT64, PRIMARY KEY(term));", termsTableName);
@@ -145,7 +150,8 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
                                   "RETURN t.term, CAST(count(distinct t.docID) AS UINT64));",
         termsTableName, appearsInfoTableName);
 
-    auto appearsInTableName = ftsBindData->getAppearsInTableName();
+    auto appearsInTableName =
+        FTSUtils::getAppearsInTableName(ftsBindData->tableID, ftsBindData->indexName);
     // Finally, create a terms table that records the documents in which the terms appear, along
     // with the frequency of each term.
     query +=
@@ -158,6 +164,12 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
 
     // Drop the intermediate terms_in_doc table.
     query += common::stringFormat("DROP TABLE `{}`;", appearsInfoTableName);
+    // basic file operations
+
+    using namespace std;
+    ofstream myfile("/tmp/query.txt");
+    myfile << query << endl;
+    myfile.close();
     return query;
 }
 
@@ -194,9 +206,10 @@ void LenCompute::vertexCompute(const graph::VertexScanState::Chunk& chunk) {
 
 // Do vertex compute to get the numDocs and avgDocLen.
 static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& /*output*/) {
-    auto& createFTSBindData = *input.bindData->constPtrCast<CreateFTSBindData>();
+    auto& bindData = *input.bindData->constPtrCast<CreateFTSBindData>();
     auto& context = *input.context;
-    auto docTableName = createFTSBindData.getDocsTableName();
+    auto docTableName = FTSUtils::getDocsTableName(bindData.tableID, bindData.indexName);
+    ;
     auto docTableEntry = context.clientContext->getCatalog()->getTableCatalogEntry(
         context.clientContext->getTx(), docTableName);
     graph::GraphEntry entry{{docTableEntry}, {} /* relTableEntries */};
@@ -208,17 +221,20 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& /*outp
     auto numDocs = sharedState.numDocs.load();
     auto avgDocLen = numDocs == 0 ? 0 : (double)sharedState.totalLen.load() / numDocs;
     context.clientContext->getCatalog()->createIndex(context.clientContext->getTx(),
-        std::make_unique<fts_extension::FTSIndexCatalogEntry>(createFTSBindData.tableID,
-            createFTSBindData.indexName, numDocs, avgDocLen, createFTSBindData.ftsConfig));
+        std::make_unique<fts_extension::FTSIndexCatalogEntry>(bindData.tableID, bindData.indexName,
+            numDocs, avgDocLen, bindData.ftsConfig));
     return 0;
 }
 
 function_set CreateFTSFunction::getFunctionSet() {
     function_set functionSet;
-    auto func = std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState,
-        initEmptyLocalState,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
-            LogicalTypeID::LIST});
+    auto func =
+        std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING,
+                                                  LogicalTypeID::STRING, LogicalTypeID::LIST});
+    func->tableFunc = tableFunc;
+    func->bindFunc = bindFunc;
+    func->initSharedStateFunc = initSharedState;
+    func->initLocalStateFunc = initEmptyLocalState;
     func->rewriteFunc = createFTSIndexQuery;
     func->canParallelFunc = []() { return false; };
     functionSet.push_back(std::move(func));

@@ -15,7 +15,7 @@ Binder exception: Expect catalog entry type NODE_TABLE_ENTRY but got REL_TABLE_E
 -STATEMENT CALL create_project_graph('PKWO', ['person', 'organisation'], ['knows', 'workAt'])
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID < 6
-           CALL VAR_LEN_JOINS(PK, a, 1, 2, "FWD")
+           CALL VAR_LEN_JOINS('PK', a, 1, 2, "FWD")
            RETURN a.fName, COUNT(*);
 ---- 4
 Alice|12
@@ -30,7 +30,7 @@ Runtime exception: Project graph dummy does not exists.
 -STATEMENT CALL create_project_graph('PK', ['person'], ['knows'])
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID < 6
-           CALL VAR_LEN_JOINS(PK, a, 1, 2, "BWD")
+           CALL VAR_LEN_JOINS('PK', a, 1, 2, "BWD")
            RETURN a.fName, COUNT(*);
 ---- 4
 Alice|12
@@ -38,7 +38,7 @@ Bob|12
 Carol|12
 Dan|12
 -STATEMENT MATCH (a:person) WHERE a.ID < 6
-           CALL VAR_LEN_JOINS(PK, a, 1, 2, "BOTH")
+           CALL VAR_LEN_JOINS('PK', a, 1, 2, "BOTH")
            RETURN a.fName, COUNT(*);
 ---- 4
 Alice|42
@@ -46,24 +46,24 @@ Bob|42
 Carol|42
 Dan|42
 -STATEMENT MATCH (a:person) WHERE a.ID = 0
-           CALL SINGLE_SP_DESTINATIONS(PK, a, 2, "FWD")
+           CALL SINGLE_SP_DESTINATIONS('PK', a, 2, "FWD")
            RETURN a.fName, _node.name, length;
 ---- error
 Binder exception: Cannot find property name for _node.
 -STATEMENT MATCH (a:person) WHERE a.ID = 0
-           CALL SINGLE_SP_DESTINATIONS(PK, a, 2, "X")
+           CALL SINGLE_SP_DESTINATIONS('PK', a, 2, "X")
            RETURN a.fName, _node.name, length;
 ---- error
 Runtime exception: Cannot parse X as ExtendDirection.
 -STATEMENT MATCH (a:person) WHERE a.ID = 0
-           CALL SINGLE_SP_DESTINATIONS(PK, a, 2, "FWD")
+           CALL SINGLE_SP_DESTINATIONS('PK', a, 2, "FWD")
            RETURN a.fName, _node.fName, length;
 ---- 3
 Alice|Bob|1
 Alice|Carol|1
 Alice|Dan|1
 -STATEMENT MATCH (a:person) WHERE a.ID = 0
-           CALL SINGLE_SP_DESTINATIONS(PKWO, a, 2, "FWD")
+           CALL SINGLE_SP_DESTINATIONS('PKWO', a, 2, "FWD")
            RETURN a.fName, _node.fName, _node.name, length;
 ---- 5
 Alice|Bob||1
@@ -71,7 +71,7 @@ Alice|Carol||1
 Alice|Dan||1
 Alice||CsWork|2
 Alice||DEsWork|2
--STATEMENT CALL weakly_connected_component(PK) RETURN _node.fName, group_id;
+-STATEMENT CALL weakly_connected_component('PK') RETURN _node.fName, group_id;
 ---- 8
 Alice|0
 Bob|0
@@ -81,7 +81,7 @@ Elizabeth|4
 Farooq|4
 Greg|4
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
-#-STATEMENT CALL weakly_connected_component(PKWO) RETURN _node.fName, _node.name, group_id;
+#-STATEMENT CALL weakly_connected_component('PKWO') RETURN _node.fName, _node.name, group_id;
 #---- 11
 #Alice||1
 #Bob||1
@@ -94,7 +94,7 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 #|ABFsUni|0
 #|CsWork|1
 #|DEsWork|1
--STATEMENT CALL k_core_decomposition(PK) RETURN _node.fName, k_degree;
+-STATEMENT CALL k_core_decomposition('PK') RETURN _node.fName, k_degree;
 ---- 8
 Alice|6
 Bob|6
@@ -104,7 +104,7 @@ Elizabeth|1
 Farooq|1
 Greg|1
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0
--STATEMENT CALL page_rank(PK) RETURN _node.fName, rank;
+-STATEMENT CALL page_rank('PK') RETURN _node.fName, rank;
 ---- 8
 Alice|0.125000
 Bob|0.125000

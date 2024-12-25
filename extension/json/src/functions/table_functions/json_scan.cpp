@@ -899,8 +899,13 @@ static void finalizeFunc(processor::ExecutionContext* ctx, TableFuncSharedState*
 
 std::unique_ptr<TableFunction> JsonScan::getFunction() {
     auto func =
-        std::make_unique<TableFunction>(name, tableFunc, bindFunc, initSharedState, initLocalState,
-            progressFunc, std::vector<LogicalTypeID>{LogicalTypeID::STRING}, finalizeFunc);
+        std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
+    func->tableFunc = tableFunc;
+    func->bindFunc = bindFunc;
+    func->initSharedStateFunc = initSharedState;
+    func->initLocalStateFunc = initLocalState;
+    func->progressFunc = progressFunc;
+    func->finalizeFunc = finalizeFunc;
     return func;
 }
 

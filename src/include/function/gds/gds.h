@@ -18,27 +18,29 @@ struct ExecutionContext;
 
 namespace function {
 
+using optional_params_t = common::case_insensitive_map_t<common::Value>;
+
 class PathLengths;
 
 struct GDSBindInput {
     binder::expression_vector params;
+    optional_params_t optionalParams;
     binder::Binder* binder = nullptr;
-    const graph::GraphEntry& graphEntry;
 
-    explicit GDSBindInput(const graph::GraphEntry& graphEntry) : graphEntry{graphEntry} {}
+    GDSBindInput() = default;
 
     std::shared_ptr<binder::Expression> getParam(common::idx_t idx) const { return params[idx]; }
-    template<typename T>
-    T getLiteralVal(common::idx_t idx) const;
     common::idx_t getNumParams() const { return params.size(); }
 };
 
 struct GDSBindData {
+    graph::GraphEntry graphEntry;
     std::shared_ptr<binder::Expression> nodeOutput;
 
-    explicit GDSBindData(std::shared_ptr<binder::Expression> nodeOutput)
-        : nodeOutput{std::move(nodeOutput)} {}
-    GDSBindData(const GDSBindData& other) : nodeOutput{other.nodeOutput} {}
+    GDSBindData(graph::GraphEntry graphEntry, std::shared_ptr<binder::Expression> nodeOutput)
+        : graphEntry{graphEntry.copy()}, nodeOutput{std::move(nodeOutput)} {}
+    GDSBindData(const GDSBindData& other)
+        : graphEntry{other.graphEntry.copy()}, nodeOutput{other.nodeOutput} {}
 
     virtual ~GDSBindData() = default;
 
@@ -115,7 +117,7 @@ protected:
     // updated. GDSAlgorithms implementing recursive joins do not use this function.
     virtual void initLocalState(main::ClientContext*) {}
 
-protected:
+    graph::GraphEntry bindGraphEntry(main::ClientContext& context, const std::string& name);
     std::shared_ptr<binder::Expression> bindNodeOutput(binder::Binder* binder,
         const std::vector<catalog::TableCatalogEntry*>& nodeEntries);
 

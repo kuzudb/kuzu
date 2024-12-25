@@ -120,6 +120,12 @@ bool HashIndex<T>::rollbackInMemory() {
 }
 
 template<typename T>
+void HashIndex<T>::rollbackCheckpoint() {
+    pSlots->rollbackInMemoryIfNecessary();
+    oSlots->rollbackInMemoryIfNecessary();
+}
+
+template<typename T>
 void HashIndex<T>::splitSlots(const Transaction* transaction, HashIndexHeader& header,
     slot_id_t numSlotsToSplit) {
     auto originalSlotIterator = pSlots->iter_mut();
@@ -485,6 +491,12 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
             }
         },
         [&](auto) { KU_UNREACHABLE; });
+
+    if (newIndex && !inMemMode) {
+        // checkpoint the creation of the index so that if we need to rollback it will be to a
+        // state we can retry from (an empty index with the disk arrays initialized)
+        checkpoint(true /* forceCheckpointAll */);
+    }
 }
 
 bool PrimaryKeyIndex::lookup(const Transaction* trx, ValueVector* keyVector, uint64_t vectorPos,
@@ -563,19 +575,31 @@ void PrimaryKeyIndex::writeHeaders() {
     KU_ASSERT(headerIdx == NUM_HASH_INDEXES);
 }
 
-void PrimaryKeyIndex::checkpoint() {
+void PrimaryKeyIndex::rollbackCheckpoint() {
+    for (idx_t i = 0; i < NUM_HASH_INDEXES; ++i) {
+        hashIndices[i]->rollbackCheckpoint();
+    }
+    hashIndexDiskArrays->rollbackCheckpoint();
+    hashIndexHeadersForWriteTrx.assign(hashIndexHeadersForReadTrx.begin(),
+        hashIndexHeadersForReadTrx.end());
+    if (overflowFile) {
+        overflowFile->rollbackInMemory();
+    }
+}
+
+void PrimaryKeyIndex::checkpoint(bool forceCheckpointAll) {
     bool indexChanged = false;
     for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
         if (hashIndices[i]->checkpoint()) {
             indexChanged = true;
         }
     }
-    if (indexChanged) {
+    if (indexChanged || forceCheckpointAll) {
         writeHeaders();
         hashIndexDiskArrays->checkpoint();
     }
     if (overflowFile) {
-        overflowFile->checkpoint();
+        overflowFile->checkpoint(forceCheckpointAll);
     }
     // Make sure that changes which bypassed the WAL are written.
     // There is no other mechanism for enforcing that they are flushed

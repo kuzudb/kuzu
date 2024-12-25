@@ -3,6 +3,7 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
+#include <optional>
 
 #include "common/timer.h"
 #include "common/types/value/value.h"
@@ -182,6 +183,9 @@ private:
     bool canExecuteWriteQuery();
 
     void runFuncInTransaction(const std::function<void(void)>& fun);
+
+    std::unique_ptr<QueryResult> handleFailedExecution(
+        processor::ExecutionContext* executionContext, std::exception& e);
 
     // Client side configurable settings.
     ClientConfig clientConfig;

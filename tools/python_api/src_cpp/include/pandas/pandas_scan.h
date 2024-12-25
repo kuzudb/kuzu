@@ -27,6 +27,7 @@ struct PandasScanFunction {
     static constexpr const char* name = "READ_PANDAS";
 
     static function::function_set getFunctionSet();
+    static function::TableFunction getFunction();
 };
 
 struct PandasScanFunctionData : public function::TableFuncBindData {
@@ -45,17 +46,16 @@ struct PandasScanFunctionData : public function::TableFuncBindData {
 
     std::vector<std::unique_ptr<PandasColumnBindData>> copyColumnBindData() const;
 
+    std::unique_ptr<function::TableFuncBindData> copy() const override {
+        return std::unique_ptr<PandasScanFunctionData>(new PandasScanFunctionData(*this));
+    }
+
 private:
     PandasScanFunctionData(const PandasScanFunctionData& other)
         : TableFuncBindData{other}, df{other.df} {
         for (const auto& i : other.columnBindData) {
             columnBindData.push_back(i->copy());
         }
-    }
-
-public:
-    std::unique_ptr<function::TableFuncBindData> copy() const override {
-        return std::unique_ptr<PandasScanFunctionData>(new PandasScanFunctionData(*this));
     }
 };
 
