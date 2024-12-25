@@ -1,0 +1,51 @@
+-DATASET CSV gds-rec-joins-small
+
+--
+
+-CASE KCoreDecomposition 
+
+-STATEMENT CREATE NODE TABLE User(name STRING PRIMARY KEY);
+---- ok
+
+-STATEMENT CREATE REL TABLE FRIEND(FROM User to User);
+---- ok
+
+-STATEMENT CREATE (alice:User {name: 'Alice'}),
+            (bridget:User {name: 'Bridget'}),
+            (charles:User {name: 'Charles'}),
+            (doug:User {name: 'Doug'}),
+            (eli:User {name: 'Eli'}),
+            (filip:User {name: 'Filip'}),
+            (greg:User {name: 'Greg'}),
+            (harry:User {name: 'Harry'}),
+            (ian:User {name: 'Ian'}),
+            (james:User {name: 'James'}),
+            (alice)-[:FRIEND]->(bridget),
+            (bridget)-[:FRIEND]->(charles),
+            (charles)-[:FRIEND]->(doug),
+            (charles)-[:FRIEND]->(harry),
+            (doug)-[:FRIEND]->(eli),
+            (doug)-[:FRIEND]->(filip),
+            (doug)-[:FRIEND]->(greg),
+            (eli)-[:FRIEND]->(filip),
+            (eli)-[:FRIEND]->(greg),
+            (filip)-[:FRIEND]->(greg),
+            (greg)-[:FRIEND]->(harry),
+            (ian)-[:FRIEND]->(james);
+---- ok
+
+-STATEMENT CALL create_project_graph('PK', ['User'], ['FRIEND']);
+---- ok
+
+-STATEMENT CALL k_core_decomposition(PK) RETURN _node.name, k_degree;
+---- 10
+Alice|1
+Bridget|1
+Charles|2
+Doug|3
+Eli|3
+Filip|3
+Greg|3
+Harry|2
+Ian|1
+James|1

@@ -29,9 +29,12 @@ public:
         : FrontierPair(curFrontier, nextFrontier, maxThreads), numNodesMap{numNodesMap} {
         for (const auto& [tableID, curNumNodes] : numNodesMap) {
             vertexValueMap.allocate(tableID, curNumNodes, mm);
+            nextVertexValueMap.allocate(tableID, curNumNodes, mm);
             auto data = vertexValueMap.getData(tableID);
+            auto nextData = nextVertexValueMap.getData(tableID);
             for (auto i = 0u; i < curNumNodes; ++i) {
                 data[i].store(0, std::memory_order_relaxed);
+                nextData[i].store(0, std::memory_order_relaxed);
             }
         }
     }
@@ -50,6 +53,7 @@ public:
 
     void pinVertexValues(common::table_id_t tableID) {
         curVertexValue = vertexValueMap.getData(tableID);
+        nextVertexValue = nextVertexValueMap.getData(tableID);
     }
 
     void beginFrontierComputeBetweenTables(table_id_t curTableID, table_id_t nextTableID) override {
@@ -58,13 +62,21 @@ public:
     }
 
     void beginNewIterationInternalNoLock() override {
+        // Update currentFrontier and nextFrontier to be the same
+        for (const auto& [tableID, curNumNodes] : numNodesMap) {
+            for (auto i = 0u; i < curNumNodes; ++i) {
+                auto temp = vertexValueMap.getData(tableID)[i].load(std::memory_order_relaxed);
+                vertexValueMap.getData(tableID)[i].compare_exchange_strong(temp, nextVertexValueMap.getData(tableID)[i].load(std::memory_order_relaxed), std::memory_order_relaxed);
+            }
+        }
         updateSmallestDegree();
         std::swap(curDenseFrontier, nextDenseFrontier);
         curDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();
-        nextDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();
+        nextDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();        
     }
 
     uint64_t addToVertexDegree(common::offset_t offset, uint64_t degreeToAdd) {
+        nextVertexValue[offset].fetch_add(degreeToAdd, std::memory_order_relaxed);
         return curVertexValue[offset].fetch_add(degreeToAdd, std::memory_order_relaxed);
     }
 
@@ -72,17 +84,20 @@ public:
     // Returns whether the neighbouring vertex should be set as active or not
     bool removeFromVertex(common::nodeID_t nodeID) {
         int curSmallest = curSmallestDegree.load(std::memory_order_relaxed);
-        int curVertexDegree =
+        int nextVertexDegree =
+            nextVertexValueMap.getData(nodeID.tableID)[nodeID.offset].load(std::memory_order_relaxed);
+        int curVertexDegree = 
             vertexValueMap.getData(nodeID.tableID)[nodeID.offset].load(std::memory_order_relaxed);
         // The vertex should be set as active if it will be considered in a future iteration
         // The vertex should be set as inactive if it will be processed this iteration
-        if (curVertexDegree > curSmallest) {
-            vertexValueMap.getData(nodeID.tableID)[nodeID.offset].fetch_sub(1,
+        if (nextVertexDegree > curSmallest) {
+            nextVertexValueMap.getData(nodeID.tableID)[nodeID.offset].fetch_sub(1,
                 std::memory_order_relaxed);
-            return true;
-        } else {
+        }
+        if (curVertexDegree <= curSmallest) {
             return false;
         }
+        return true;
     }
 
     void updateSmallestDegree() {
@@ -111,7 +126,9 @@ private:
     std::atomic<uint64_t> curSmallestDegree{UINT64_MAX};
     common::table_id_map_t<common::offset_t> numNodesMap;
     std::atomic<uint64_t>* curVertexValue = nullptr;
+    std::atomic<uint64_t>* nextVertexValue = nullptr;
     ObjectArraysMap<std::atomic<uint64_t>> vertexValueMap;
+    ObjectArraysMap<std::atomic<uint64_t>> nextVertexValueMap;
 };
 
 struct KCoreInitEdgeCompute : public EdgeCompute {
@@ -145,12 +162,16 @@ struct KCoreEdgeCompute : public EdgeCompute {
         if (vertexDegree <= smallestDegree) {
             chunk.forEach([&](auto nbrNodeID, auto) {
                 if (frontierPair->curDenseFrontier->isActive(nbrNodeID.offset)) {
-                    bool shouldSetActive = frontierPair->removeFromVertex(nbrNodeID);
-                    if (shouldSetActive) {
+                    auto shouldBeSetActive = frontierPair->removeFromVertex(nbrNodeID);
+                    if (shouldBeSetActive) {
                         result.push_back(nbrNodeID);
                     }
                 }
             });
+        }
+        // If the node hasn't been considered this iteration, it will need to still be active in future iterations.
+        else {
+            result.push_back(boundNodeID);
         }
         return result;
     }
