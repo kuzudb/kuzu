@@ -37,7 +37,7 @@
 -STATEMENT CALL create_project_graph('PK', ['User'], ['FRIEND']);
 ---- ok
 
--STATEMENT CALL k_core_decomposition(PK) RETURN _node.name, k_degree;
+-STATEMENT CALL k_core_decomposition('PK') RETURN _node.name, k_degree;
 ---- 10
 Alice|1
 Bridget|1
