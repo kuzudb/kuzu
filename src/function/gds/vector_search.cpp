@@ -543,6 +543,7 @@ namespace kuzu {
                     for (auto &neighbor: firstHopNbrs) {
                         filterMask->prefetchMaskValue(neighbor.offset);
                     }
+                    auto max_k = firstHopNbrs.size() * maxK;
 
                     // First hop neighbours
                     int filteredCount = 0;
@@ -582,7 +583,7 @@ namespace kuzu {
                         if (cachedNbrsCount.contains(neighbor.id)) {
                             exploredFilteredNbrCount += cachedNbrsCount[neighbor.id];
                         }
-                        if (exploredFilteredNbrCount >= maxK) {
+                        if (exploredFilteredNbrCount >= max_k) {
                             break;
                         }
 
