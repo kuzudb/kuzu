@@ -543,7 +543,8 @@ namespace kuzu {
                     for (auto &neighbor: firstHopNbrs) {
                         filterMask->prefetchMaskValue(neighbor.offset);
                     }
-                    auto max_k = firstHopNbrs.size() * maxK;
+                    // Reduce density!!
+                    auto max_k = firstHopNbrs.size() * 0.8;
 
                     // First hop neighbours
                     int filteredCount = 0;
