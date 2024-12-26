@@ -371,13 +371,16 @@ namespace kuzu {
                                 QuantizedDistanceComputer<float, uint8_t> *qdc, NodeOffsetLevelSemiMask *filterMask,
                                 GraphScanState &state, const vector_id_t entrypoint, const double entrypointDist,
                                 BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
-                                VectorIndexHeaderPerPartition *header, const int efSearch) {
+                                VectorIndexHeaderPerPartition *header, const int efSearch,
+                                NumericMetric *distCompMetric, NumericMetric *listNbrsCallMetric) {
                 std::priority_queue<NodeDistFarther> candidates;
                 candidates.emplace(entrypoint, entrypointDist);
                 if (filterMask->isMasked(entrypoint)) {
                     results.push(NodeDistFarther(entrypoint, entrypointDist));
                 }
                 visited->set_bit(entrypoint);
+                int totalGetNbrs = 0;
+                int totalDist = 0;
                 while (!candidates.empty()) {
                     auto candidate = candidates.top();
                     if (candidate.dist > results.top()->dist && results.size() >= efSearch) {
@@ -387,6 +390,7 @@ namespace kuzu {
 
                     // Get graph neighbours
                     auto nbrs = graph->scanFwdRandom({candidate.id, tableId}, state);
+                    totalGetNbrs += 1;
 
                     for (auto &neighbor: nbrs) {
                         if (visited->is_bit_set(neighbor.offset)) {
@@ -397,6 +401,7 @@ namespace kuzu {
 //                        auto embedding = getCompressedEmbedding(header, neighbor.offset);
 //                        dc->compute_distance(query, embedding, &dist);
                         computeDistance(context, neighbor.offset, dc, &dist);
+                        totalDist += 1;
                         if (results.size() < efSearch || dist < results.top()->dist) {
                             candidates.emplace(neighbor.offset, dist);
                             if (filterMask->isMasked(neighbor.offset)) {
@@ -405,6 +410,8 @@ namespace kuzu {
                         }
                     }
                 }
+                distCompMetric->increase(totalDist);
+                listNbrsCallMetric->increase(totalGetNbrs);
             }
 
             void
@@ -544,7 +551,7 @@ namespace kuzu {
                         filterMask->prefetchMaskValue(neighbor.offset);
                     }
                     // Reduce density!!
-                    auto max_k = firstHopNbrs.size() * 0.8;
+                    auto max_k = firstHopNbrs.size();
 
                     // First hop neighbours
                     int filteredCount = 0;
@@ -671,22 +678,21 @@ namespace kuzu {
                         printf("skipping search since selectivity too low\n");
                         return;
                     }
-                    dynamicTwoHopFilteredSearch(context, query, nodeTableId, filterMaxK, graph, dc.get(),
-                                                quantizedDc.get(),
-                                                filterMask, *state.get(), entrypoint, entrypointDist, results,
-                                                visited.get(), header, efSearch, distCompMetric, listNbrsMetric);
+
 //                    twoHopFilteredSearch(context, query, nodeTableId, graph, dc.get(), quantizedDc.get(),
 //                                         filterMask, *state.get(), entrypoint, entrypointDist, results,
 //                                         visited.get(), header, efSearch, distCompMetric, listNbrsMetric);
-//                    if (selectivity > 0.3) {
-//                        filteredSearch(context, query, nodeTableId, graph, dc.get(), quantizedDc.get(), filterMask, *state.get(),
-//                                       entrypoint,
-//                                       entrypointDist, results, visited.get(), header, efSearch);
-//                    }
-//                    else {
-//
-
-//                    }
+                    if (selectivity > 0.3) {
+                        filteredSearch(context, query, nodeTableId, graph, dc.get(), quantizedDc.get(), filterMask, *state.get(),
+                                       entrypoint,
+                                       entrypointDist, results, visited.get(), header, efSearch, distCompMetric, listNbrsMetric);
+                    }
+                    else {
+                        dynamicTwoHopFilteredSearch(context, query, nodeTableId, filterMaxK, graph, dc.get(),
+                                                    quantizedDc.get(),
+                                                    filterMask, *state.get(), entrypoint, entrypointDist, results,
+                                                    visited.get(), header, efSearch, distCompMetric, listNbrsMetric);
+                    }
                 } else {
                     unfilteredSearch(context, query, nodeTableId, graph, dc.get(), quantizedDc.get(), *state.get(), entrypoint,
                                      entrypointDist, results, visited.get(), header, efSearch);
