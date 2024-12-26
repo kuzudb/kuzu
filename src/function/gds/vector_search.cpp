@@ -669,13 +669,13 @@ namespace kuzu {
                         printf("skipping search since selectivity too low\n");
                         return;
                     }
-//                    dynamicTwoHopFilteredSearch(context, query, nodeTableId, filterMaxK, graph, dc.get(),
-//                                                quantizedDc.get(),
-//                                                filterMask, *state.get(), entrypoint, entrypointDist, results,
-//                                                visited.get(), header, efSearch, distCompMetric, listNbrsMetric);
-                    twoHopFilteredSearch(context, query, nodeTableId, graph, dc.get(), quantizedDc.get(),
-                                         filterMask, *state.get(), entrypoint, entrypointDist, results,
-                                         visited.get(), header, efSearch, distCompMetric, listNbrsMetric);
+                    dynamicTwoHopFilteredSearch(context, query, nodeTableId, filterMaxK, graph, dc.get(),
+                                                quantizedDc.get(),
+                                                filterMask, *state.get(), entrypoint, entrypointDist, results,
+                                                visited.get(), header, efSearch, distCompMetric, listNbrsMetric);
+//                    twoHopFilteredSearch(context, query, nodeTableId, graph, dc.get(), quantizedDc.get(),
+//                                         filterMask, *state.get(), entrypoint, entrypointDist, results,
+//                                         visited.get(), header, efSearch, distCompMetric, listNbrsMetric);
 //                    if (selectivity > 0.3) {
 //                        filteredSearch(context, query, nodeTableId, graph, dc.get(), quantizedDc.get(), filterMask, *state.get(),
 //                                       entrypoint,
