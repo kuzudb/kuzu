@@ -118,5 +118,7 @@ private:
     const float* query;
 };
 
+
+
 } // namespace common
 } // namespace kuzu

@@ -512,7 +512,8 @@ namespace kuzu {
                                              GraphScanState &state, const vector_id_t entrypoint,
                                              const double entrypointDist,
                                              BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
-                                             VectorIndexHeaderPerPartition *header, const int efSearch) {
+                                             VectorIndexHeaderPerPartition *header, const int efSearch,
+                                             NumericMetric* distCompMetric, NumericMetric* listNbrsCallMetric) {
                 std::priority_queue<NodeDistFarther> candidates;
                 candidates.emplace(entrypoint, entrypointDist);
                 if (filterMask->isMasked(entrypoint)) {
@@ -622,12 +623,10 @@ namespace kuzu {
                         exploredFilteredNbrCount += secondHopFilteredNbrCount;
                         cachedNbrsCount[neighbor.id] = secondHopFilteredNbrCount;
                     }
-//                    if (exploredFilteredNbrCount == 0) {
-//                        printf("no nodes found\n");
-//                    }
                     // TODO: Add backup loop
                 }
-//                printf("Total get nbrs: %d, total dist: %d\n", totalGetNbrs, totalDist);
+                distCompMetric->increase(totalDist);
+                listNbrsCallMetric->increase(totalGetNbrs);
             }
 
             void exec(ExecutionContext *context) override {
@@ -649,8 +648,10 @@ namespace kuzu {
                 auto quantizedDc = header->getQuantizer()->get_asym_distance_computer(L2_SQ);
                 auto dc = std::make_unique<CosineDistanceComputer>(query, indexHeader->getDim(), header->getNumVectors());
                 dc->setQuery(query);
-                auto metric = context->profiler->registerTimeMetricForce("vectorSearchTime");
-                metric->start();
+                auto vectorSearchTimeMetric = context->profiler->registerTimeMetricForce("vectorSearchTime");
+                auto distCompMetric = context->profiler->registerNumericMetricForce("distanceComputations");
+                auto listNbrsMetric = context->profiler->registerNumericMetricForce("listNbrsCalls");
+                vectorSearchTimeMetric->start();
 
                 // Find closest entrypoint using the above layer!!
                 vector_id_t entrypoint;
@@ -665,35 +666,28 @@ namespace kuzu {
                         printf("skipping search since selectivity too low\n");
                         return;
                     }
-
-                    if (selectivity > 0.3) {
-                        filteredSearch(context, query, nodeTableId, graph, dc.get(), quantizedDc.get(), filterMask, *state.get(),
-                                       entrypoint,
-                                       entrypointDist, results, visited.get(), header, efSearch);
-                    }
-//                    else if (selectivity <= 0.3 && selectivity >= 0.1) {
-//                        printf("doing dynamic two hop search\n");
-//                        dynamicTwoHopFilteredSearch(context, query, nodeTableId, filterMaxK, graph, dc.get(),
-//                                                    quantizedDc.get(),
-//                                                    filterMask, *state.get(), entrypoint, entrypointDist, results,
-//                                                    visited.get(), header, efSearch);
+                    dynamicTwoHopFilteredSearch(context, query, nodeTableId, filterMaxK, graph, dc.get(),
+                                                quantizedDc.get(),
+                                                filterMask, *state.get(), entrypoint, entrypointDist, results,
+                                                visited.get(), header, efSearch, distCompMetric, listNbrsMetric);
+//                    if (selectivity > 0.3) {
+//                        filteredSearch(context, query, nodeTableId, graph, dc.get(), quantizedDc.get(), filterMask, *state.get(),
+//                                       entrypoint,
+//                                       entrypointDist, results, visited.get(), header, efSearch);
 //                    }
-                    else {
-                        dynamicTwoHopFilteredSearch(context, query, nodeTableId, filterMaxK, graph, dc.get(),
-                                                    quantizedDc.get(),
-                                                    filterMask, *state.get(), entrypoint, entrypointDist, results,
-                                                    visited.get(), header, efSearch);
-//                        twoHopFilteredSearch(context, query, nodeTableId, graph, dc.get(), quantizedDc.get(),
-//                                             filterMask, *state.get(), entrypoint, entrypointDist, results,
-//                                             visited.get(), header, efSearch);
-                    }
+//                    else {
+//
+////                        twoHopFilteredSearch(context, query, nodeTableId, graph, dc.get(), quantizedDc.get(),
+////                                             filterMask, *state.get(), entrypoint, entrypointDist, results,
+////                                             visited.get(), header, efSearch);
+//                    }
                 } else {
                     unfilteredSearch(context, query, nodeTableId, graph, dc.get(), quantizedDc.get(), *state.get(), entrypoint,
                                      entrypointDist, results, visited.get(), header, efSearch);
                 }
 
                 searchLocalState->materialize(graph, results, *sharedState->fTable, k);
-                metric->stop();
+                vectorSearchTimeMetric->stop();
             }
 
             std::unique_ptr<GDSAlgorithm> copy() const override {

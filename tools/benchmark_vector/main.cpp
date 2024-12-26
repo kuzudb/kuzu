@@ -114,6 +114,8 @@ int main(int argc, char **argv) {
         long executionTime = 0;
         long compilationTime = 0;
         long vectorSearchTime = 0;
+        long avgDistanceComputations = 0;
+        long avgListNbrsCalls = 0;
         for (auto i = 0; i < queries.size(); i++) {
             printf("====== running query %d ======\n", i);
             auto localRecall = 0;
@@ -123,6 +125,8 @@ int main(int argc, char **argv) {
             executionTime += duration;
             compilationTime += res->getQuerySummary()->getCompilingTime();
             vectorSearchTime += res->getQuerySummary()->getVectorSearchTime();
+            avgDistanceComputations += res->getQuerySummary()->getDistanceComputations();
+            avgListNbrsCalls += res->getQuerySummary()->getListNbrsCalls();
             if (res->getNumTuples() < k) {
                 totalQueriesSkipped += 1;
                 printf("skipped query %d\n", i);
@@ -140,6 +144,8 @@ int main(int argc, char **argv) {
             }
             printf("Recall for query %d: %d\n", i, localRecall);
             printf("duration: %ld ms\n", duration);
+            printf("distance computations: %d, list nbrs calls: %d\n",
+                   res->getQuerySummary()->getDistanceComputations(), res->getQuerySummary()->getListNbrsCalls());
             printf("====================================\n");
             totalQueries++;
         }
@@ -148,6 +154,8 @@ int main(int argc, char **argv) {
         printf("Avg execution time: %f ms\n", (double) executionTime / totalQueries);
         printf("Avg compilation time: %f ms\n", (double) compilationTime / totalQueries);
         printf("Avg vector search time: %f ms\n", (double) vectorSearchTime / totalQueries);
+        printf("Avg distance computations: %f\n", (double) avgDistanceComputations / totalQueries);
+        printf("Avg list nbrs calls: %f\n", (double) avgListNbrsCalls / totalQueries);
         printf("Total queries skipped: %d\n", totalQueriesSkipped);
         printf("Recall: %f\n", (double) recall / (queryNumVectors * k));
 

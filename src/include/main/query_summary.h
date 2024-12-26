@@ -33,6 +33,10 @@ public:
 
     KUZU_API double getVectorSearchTime() const;
 
+    KUZU_API int getDistanceComputations() const;
+
+    KUZU_API int getListNbrsCalls() const;
+
     void setPreparedSummary(PreparedSummary preparedSummary_);
 
     /**
@@ -43,6 +47,8 @@ public:
 private:
     double executionTime = 0;
     double vectorSearchTime = 0;
+    int distanceComputations = 0;
+    int listNbrsCalls = 0;
     PreparedSummary preparedSummary;
 };
 

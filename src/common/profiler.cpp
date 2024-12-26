@@ -24,6 +24,13 @@ NumericMetric* Profiler::registerNumericMetric(const std::string& key) {
     return metricPtr;
 }
 
+NumericMetric* Profiler::registerNumericMetricForce(const std::string& key) {
+    auto numericMetric = std::make_unique<NumericMetric>(true);
+    auto metricPtr = numericMetric.get();
+    addMetric(key, std::move(numericMetric));
+    return metricPtr;
+}
+
 double Profiler::sumAllTimeMetricsWithKey(const std::string& key) {
     auto sum = 0.0;
     if (!metrics.contains(key)) {

@@ -19,6 +19,14 @@ double QuerySummary::getVectorSearchTime() const {
     return vectorSearchTime;
 }
 
+int QuerySummary::getDistanceComputations() const {
+    return distanceComputations;
+}
+
+int QuerySummary::getListNbrsCalls() const {
+    return listNbrsCalls;
+}
+
 void QuerySummary::setPreparedSummary(PreparedSummary preparedSummary_) {
     preparedSummary = preparedSummary_;
 }

@@ -20,6 +20,8 @@ public:
 
     NumericMetric* registerNumericMetric(const std::string& key);
 
+    NumericMetric* registerNumericMetricForce(const std::string& key);
+
     double sumAllTimeMetricsWithKey(const std::string& key);
 
     uint64_t sumAllNumericMetricsWithKey(const std::string& key);
