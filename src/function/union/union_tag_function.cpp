@@ -13,10 +13,11 @@ static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
 
 function_set UnionTagFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(make_unique<ScalarFunction>(name,
+    auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::UNION}, LogicalTypeID::STRING,
-        ScalarFunction::UnaryExecNestedTypeFunction<union_entry_t, ku_string_t, UnionTag>, nullptr,
-        bindFunc));
+        ScalarFunction::UnaryExecNestedTypeFunction<union_entry_t, ku_string_t, UnionTag>);
+    function->bindFunc = bindFunc;
+    functionSet.push_back(std::move(function));
     return functionSet;
 }
 

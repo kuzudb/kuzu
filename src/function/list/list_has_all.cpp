@@ -58,7 +58,8 @@ function_set ListHasAllFunction::getFunctionSet() {
         uint8_t, ListHasAll>;
     auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::LIST}, LogicalTypeID::BOOL,
-        execFunc, bindFunc);
+        execFunc);
+    function->bindFunc = bindFunc;
     result.push_back(std::move(function));
     return result;
 }

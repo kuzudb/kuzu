@@ -24,12 +24,13 @@ static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
 
 function_set StringSplitFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(name,
+    auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::LIST,
         ScalarFunction::BinaryStringExecFunction<ku_string_t, ku_string_t, list_entry_t,
-            StringSplit>,
-        bindFunc));
+            StringSplit>);
+    function->bindFunc = bindFunc;
+    functionSet.emplace_back(std::move(function));
     return functionSet;
 }
 

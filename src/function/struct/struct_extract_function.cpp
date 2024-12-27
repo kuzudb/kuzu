@@ -39,9 +39,11 @@ void StructExtractFunctions::compileFunc(FunctionBindData* bindData,
 }
 
 static std::unique_ptr<ScalarFunction> getStructExtractFunction(LogicalTypeID logicalTypeID) {
-    return std::make_unique<ScalarFunction>(StructExtractFunctions::name,
-        std::vector<LogicalTypeID>{logicalTypeID, LogicalTypeID::STRING}, LogicalTypeID::ANY,
-        nullptr, nullptr, StructExtractFunctions::compileFunc, StructExtractFunctions::bindFunc);
+    auto function = std::make_unique<ScalarFunction>(StructExtractFunctions::name,
+        std::vector<LogicalTypeID>{logicalTypeID, LogicalTypeID::STRING}, LogicalTypeID::ANY);
+    function->bindFunc = StructExtractFunctions::bindFunc;
+    function->compileFunc = StructExtractFunctions::compileFunc;
+    return function;
 }
 
 function_set StructExtractFunctions::getFunctionSet() {

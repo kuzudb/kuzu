@@ -74,9 +74,9 @@ static bool selectFunc(const std::vector<std::shared_ptr<ValueVector>>& params,
 
 function_set CoalesceFunction::getFunctionSet() {
     function_set functionSet;
-    auto function =
-        std::make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::ANY},
-            LogicalTypeID::ANY, execFunc, selectFunc, bindFunc);
+    auto function = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::ANY, execFunc, selectFunc);
+    function->bindFunc = bindFunc;
     function->isVarLength = true;
     functionSet.push_back(std::move(function));
     return functionSet;
@@ -84,9 +84,11 @@ function_set CoalesceFunction::getFunctionSet() {
 
 function_set IfNullFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(std::make_unique<ScalarFunction>(name,
+    auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::ANY, LogicalTypeID::ANY}, LogicalTypeID::ANY,
-        execFunc, selectFunc, bindFunc));
+        execFunc, selectFunc);
+    function->bindFunc = bindFunc;
+    functionSet.push_back(std::move(function));
     return functionSet;
 }
 
