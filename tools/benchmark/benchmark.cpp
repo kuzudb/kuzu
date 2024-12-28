@@ -19,27 +19,26 @@ Benchmark::Benchmark(const std::string& benchmarkPath, Database* database, Bench
 }
 
 void Benchmark::loadBenchmark(const std::string& benchmarkPath) {
-    auto queryConfigs = testing::TestHelper::parseTestFile(benchmarkPath);
+    const auto queryConfigs = testing::TestHelper::parseTestFile(benchmarkPath);
     KU_ASSERT(queryConfigs.size() == 1);
-    auto queryConfig = queryConfigs[0].get();
+    const auto queryConfig = queryConfigs[0].get();
     query = queryConfig->query;
     name = queryConfig->name;
     expectedOutput = queryConfig->expectedTuples;
-    encodedJoin = queryConfig->encodedJoin;
     compareResult = queryConfig->compareResult;
     expectedNumTuples = queryConfig->expectedNumTuples;
 }
 
 std::unique_ptr<QueryResult> Benchmark::run() const {
-    return conn->query(query, encodedJoin);
+    return conn->query(query);
 }
 
 std::unique_ptr<QueryResult> Benchmark::runWithProfile() const {
-    return conn->query("PROFILE " + query, encodedJoin);
+    return conn->query("PROFILE " + query);
 }
 
 void Benchmark::logQueryInfo(std::ofstream& log, uint32_t runNum,
-    std::vector<std::string>& actualOutput) const {
+    const std::vector<std::string>& actualOutput) const {
     log << "Run Num: " << runNum << '\n';
     log << "Status: " << (actualOutput == expectedOutput ? "pass" : "error") << '\n';
     log << "Query: " << query << '\n';
@@ -74,7 +73,7 @@ void Benchmark::log(uint32_t runNum, QueryResult& queryResult) const {
     }
 }
 
-void Benchmark::verify(std::vector<std::string>& actualOutput) const {
+void Benchmark::verify(const std::vector<std::string>& actualOutput) const {
     bool matched = expectedNumTuples == actualOutput.size();
     if (matched && compareResult) {
         matched = actualOutput == expectedOutput;

@@ -43,23 +43,12 @@ std::unique_ptr<QueryResult> Connection::queryWithID(std::string_view queryState
     return clientContext->query(queryStatement, queryID);
 }
 
-std::unique_ptr<QueryResult> Connection::query(std::string_view query, std::string_view encodedJoin,
-    bool enumerateAllPlans) {
-    return clientContext->queryInternal(query, encodedJoin, enumerateAllPlans);
-}
-
 std::unique_ptr<QueryResult> Connection::queryResultWithError(std::string_view errMsg) {
     return clientContext->queryResultWithError(errMsg);
 }
 
 std::unique_ptr<PreparedStatement> Connection::preparedStatementWithError(std::string_view errMsg) {
     return clientContext->preparedStatementWithError(errMsg);
-}
-
-std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
-    std::shared_ptr<Statement> parsedStatement, bool enumerateAllPlans,
-    std::string_view encodedJoin) {
-    return clientContext->prepareNoLock(parsedStatement, enumerateAllPlans, encodedJoin);
 }
 
 void Connection::interrupt() {

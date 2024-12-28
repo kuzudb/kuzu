@@ -239,7 +239,6 @@ True
 
 -LOG KnowsRelTestDate
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) RETURN e.date
--ENUMERATE
 ---- 14
 2021-06-30
 2021-06-30
@@ -258,7 +257,6 @@ True
 
 -LOG KnowsOneHopTest2
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE b.age=20 RETURN b.age * 2
--ENUMERATE
 ---- 3
 40
 40
@@ -266,7 +264,6 @@ True
 
 -LOG KnowsOneHopTest3
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.age>20 RETURN b.fName
--ENUMERATE
 ---- 9
 Alice
 Alice
@@ -280,7 +277,6 @@ Dan
 
 -LOG KnowsTwoHopTest3
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.age>c.age+10 RETURN a.age, b.fName, c.age
--ENUMERATE
 ---- 6
 35|Bob|20
 35|Carol|20
@@ -331,7 +327,6 @@ Dan|Carol
 
 -LOG KnowsTwoHopTest5
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.age < 31 RETURN a.age + b.age + c.age
--ENUMERATE
 ---- 18
 100
 100
@@ -354,7 +349,6 @@ Dan|Carol
 
 -LOG StudyAtPropertyProjectionTest
 -STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) RETURN e.year, e.level, e.code, e.temperature, e.ulength
--ENUMERATE
 ---- 3
 2020|120|6689|1|90
 2020|2|23|20|180
@@ -362,7 +356,6 @@ Dan|Carol
 
 -LOG RelID1
 -STATEMENT MATCH (a:person)-[r:knows]->(b:person) RETURN id(r)
--ENUMERATE
 ---- 14
 3:0
 3:1
@@ -381,7 +374,6 @@ Dan|Carol
 
 -LOG RelID2
 -STATEMENT MATCH (a:person)-[r:studyAt]->(o:organisation) RETURN id(r)
--ENUMERATE
 ---- 3
 4:0
 4:1
@@ -389,7 +381,6 @@ Dan|Carol
 
 -LOG RelID3
 -STATEMENT MATCH (a:person)-[r:workAt]->(o:organisation) RETURN id(r)
--ENUMERATE
 ---- 3
 5:0
 5:1
@@ -573,7 +564,6 @@ Dan|Carol
 
 -LOG StudyAtINT128Test
 -STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) RETURN e.hugedata
--ENUMERATE
 ---- 3
 1844674407370955161811111111
 -15
@@ -832,14 +822,11 @@ nice weather
 
 -LOG RandomFunction
 -STATEMENT match (p1:person)-[:knows]->(p2:person) WITH p1.fName AS x, p2.fName AS y, gen_random_uuid() AS z WITH DISTINCT z AS a RETURN COUNT(*);
--ENUMERATE
 ---- 1
 14
 -STATEMENT match (p1:person)-[:knows]->(p2:person) WITH DISTINCT p1.fName AS x, gen_random_uuid() AS y RETURN COUNT(*);
--ENUMERATE
 ---- 1
 14
 -STATEMENT match (p1:person)-[:knows]->(p2:person) with DISTINCT gen_random_uuid() AS x RETURN COUNT(*);
--ENUMERATE
 ---- 1
 14

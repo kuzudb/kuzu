@@ -11,6 +11,5 @@
 
 -LOG MultiLabelTest2
 -STATEMENT MATCH (a:organisation:person) OPTIONAL MATCH (a)-[:studyAt|:workAt]->(b:person:organisation) RETURN COUNT(*)
--ENUMERATE
 ---- 1
 11

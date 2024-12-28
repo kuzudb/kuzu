@@ -711,36 +711,30 @@ Conversion exception: Could not convert epoch seconds to TIMESTAMP
 
 -LOG TimestampLiteralGreaterThanComparison
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE b.registerTime > timestamp('2005-11-03 13:25:30.000526') RETURN COUNT(*)
--ENUMERATE
 ---- 1
 9
 
 -LOG TimestampLiteralLessThanComparison
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE e1.meetTime < timestamp('1979-08-25 19:07:22') RETURN COUNT(*)
--ENUMERATE
 ---- 1
 4
 
 -LOG TimestampComparisonAcrossNodesEquality
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime = b.registerTime RETURN COUNT(*)
--ENUMERATE
 ---- 1
 0
 
 -LOG TimestampComparisonAcrossNodesGreaterThanOrEqualTo
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime >= b.registerTime RETURN COUNT(*)
--ENUMERATE
 ---- 1
 8
 
 -LOG TimestampComparisonAcrossEdges
 -STATEMENT MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE e1.meetTime = e2.meetTime AND id(a) <> id(c) RETURN COUNT(*)
--ENUMERATE
 ---- 1
 2
 
 -LOG TimestampComparisonAcrossEdgeAndNode
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime > e1.meetTime  RETURN COUNT(*)
--ENUMERATE
 ---- 1
 7

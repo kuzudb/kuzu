@@ -11,7 +11,6 @@
 
 -LOG MultiLabelTriangleTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:studyAt|:meets]->(c:organisation:person), (a)-[:studyAt|:meets]->(c) RETURN COUNT(*)
--ENUMERATE
 ---- 1
 4
 

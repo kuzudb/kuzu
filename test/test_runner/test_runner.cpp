@@ -30,7 +30,8 @@ static bool precisionEqual(T x, T y) {
     return std::fabs(x - y) <= std::ldexp(std::numeric_limits<T>::epsilon(), exp);
 }
 
-void TestRunner::runTest(TestStatement* statement, Connection& conn, std::string& databasePath) {
+void TestRunner::runTest(TestStatement* statement, Connection& conn,
+    const std::string& databasePath) {
     // for batch statements
     if (!statement->batchStatmentsCSVFile.empty()) {
         TestHelper::executeScript(statement->batchStatmentsCSVFile, conn);
@@ -44,15 +45,14 @@ void TestRunner::runTest(TestStatement* statement, Connection& conn, std::string
 }
 
 void replaceEnv(std::string& queryToReplace, const std::string& env) {
-    auto envValue = std::getenv(env.c_str()); // NOLINT(*-mt-unsafe);
+    const auto envValue = std::getenv(env.c_str()); // NOLINT(*-mt-unsafe);
     if (envValue != nullptr) {
         StringUtils::replaceAll(queryToReplace, "${" + env + "}", envValue);
     }
 }
 
 void TestRunner::testStatement(TestStatement* statement, Connection& conn,
-    std::string& databasePath) {
-    std::unique_ptr<PreparedStatement> preparedStatement;
+    const std::string& databasePath) {
     StringUtils::replaceAll(statement->query, "${DATABASE_PATH}", databasePath);
     StringUtils::replaceAll(statement->query, "${KUZU_ROOT_DIRECTORY}", KUZU_ROOT_DIRECTORY);
     replaceEnv(statement->query, "UW_S3_ACCESS_KEY_ID");
@@ -60,95 +60,49 @@ void TestRunner::testStatement(TestStatement* statement, Connection& conn,
     replaceEnv(statement->query, "AWS_S3_ACCESS_KEY_ID");
     replaceEnv(statement->query, "AWS_S3_SECRET_ACCESS_KEY");
     replaceEnv(statement->query, "RUN_ID");
-    auto parsedStatements = std::vector<std::shared_ptr<parser::Statement>>();
-    try {
-        parsedStatements = conn.getClientContext()->parseQuery(statement->query);
-    } catch (std::exception& exception) {
-        auto errorPreparedStatement = conn.preparedStatementWithError(exception.what());
-        return checkLogicalPlan(errorPreparedStatement, statement, 0, conn, 0);
-    }
-    if (parsedStatements.empty()) {
-        auto errorPreparedStatement =
-            conn.preparedStatementWithError("Connection Exception: Query is empty.");
-        return checkLogicalPlan(errorPreparedStatement, statement, 0, conn, 0);
-    }
-
-    size_t numParsed = parsedStatements.size();
-    for (size_t i = 0; i < numParsed; i++) {
-        auto parsedStatement = std::move(parsedStatements[i]);
-        if (statement->encodedJoin.empty()) {
-            preparedStatement = conn.prepareNoLock(parsedStatement, statement->enumerate);
-        } else {
-            preparedStatement = conn.prepareNoLock(parsedStatement, true, statement->encodedJoin);
-        }
-        // Check for wrong statements
-        ResultType resultType = statement->result[std::min(i, statement->result.size() - 1)].type;
-        if (resultType != ResultType::ERROR_MSG && resultType != ResultType::ERROR_REGEX) {
-            ASSERT_TRUE(preparedStatement->isSuccess()) << preparedStatement->getErrorMessage();
-        }
-        checkLogicalPlans(preparedStatement, statement, i, conn);
-    }
+    const auto actualResult = conn.query(statement->query);
+    QueryResult* currentQueryResult = actualResult.get();
+    idx_t resultIdx = 0u;
+    do {
+        checkLogicalPlan(conn, currentQueryResult, statement, resultIdx);
+        currentQueryResult = currentQueryResult->getNextQueryResult();
+        resultIdx++;
+    } while (currentQueryResult);
 }
 
-void TestRunner::checkLogicalPlans(std::unique_ptr<PreparedStatement>& preparedStatement,
-    TestStatement* statement, size_t resultIdx, Connection& conn) {
-    auto numPlans = preparedStatement->logicalPlans.size();
-    if (numPlans == 0) {
-        return checkLogicalPlan(preparedStatement, statement, resultIdx, conn, 0);
-    }
-    for (auto i = 0u; i < numPlans; ++i) {
-        try {
-            checkLogicalPlan(preparedStatement, statement, resultIdx, conn, i);
-        } catch (std::exception& ex) {
-            spdlog::error("PLAN {} FAILED.", i);
-            throw;
-        }
-    }
-}
-
-void TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedStatement,
-    TestStatement* statement, size_t resultIdx, Connection& conn, uint32_t planIdx) {
-    auto result = conn.executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), planIdx);
-    // TODO(Ziyi): Our current testing framework is not able to handle multi-statements in a single
-    // query.
-    TestQueryResult& testAnswer =
+void TestRunner::checkLogicalPlan(Connection& conn, QueryResult* queryResult,
+    TestStatement* statement, size_t resultIdx) {
+    const TestQueryResult& testAnswer =
         statement->result[std::min(resultIdx, statement->result.size() - 1)];
     std::string actualError;
     switch (testAnswer.type) {
     case ResultType::OK: {
-        ASSERT_TRUE(result->isSuccess())
-            << "EXPECT OK BUT GOT ERROR: " << result->getErrorMessage();
-        break;
-    }
+        ASSERT_TRUE(queryResult->isSuccess())
+            << "EXPECT OK BUT GOT ERROR: " << queryResult->getErrorMessage();
+    } break;
     case ResultType::ERROR_MSG: {
-        std::string expectedError = StringUtils::rtrim(testAnswer.expectedResult[0]);
-        EXPECT_FALSE(result->isSuccess());
-        actualError = StringUtils::rtrim(result->getErrorMessage());
+        const std::string expectedError = StringUtils::rtrim(testAnswer.expectedResult[0]);
+        EXPECT_FALSE(queryResult->isSuccess());
+        actualError = StringUtils::rtrim(queryResult->getErrorMessage());
         ASSERT_EQ(actualError, expectedError);
-        break;
-    }
+    } break;
     case ResultType::ERROR_REGEX: {
-        actualError = StringUtils::rtrim(result->getErrorMessage());
+        actualError = StringUtils::rtrim(queryResult->getErrorMessage());
         ASSERT_TRUE(std::regex_match(actualError, std::regex(testAnswer.expectedResult[0])))
             << "Expected error to match regex: " << testAnswer.expectedResult[0]
             << " actual error: " << actualError;
-        break;
-    }
+    } break;
     default: {
-        ASSERT_TRUE(preparedStatement->success)
-            << "Query compilation failed with error: " << preparedStatement->getErrorMessage();
-        ASSERT_TRUE(result->isSuccess())
-            << "Unexpected error for query: " << result->getErrorMessage();
-        auto planStr = preparedStatement->logicalPlans[planIdx]->toString();
-        checkPlanResult(result, statement, resultIdx, planStr, planIdx);
-        break;
+        ASSERT_TRUE(queryResult->isSuccess())
+            << "Unexpected error for query: " << queryResult->getErrorMessage();
+        checkPlanResult(conn, queryResult, statement, resultIdx);
     }
     }
 }
 
-void TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestStatement* statement,
-    size_t resultIdx, const std::string& planStr, uint32_t planIdx) {
-    spdlog::info("PLAN{} took {}ms.", planIdx, result->getQuerySummary()->getExecutionTime());
+void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStatement* statement,
+    size_t resultIdx) {
+    spdlog::info("Query execution took {}ms.", result->getQuerySummary()->getExecutionTime());
     TestQueryResult& testAnswer = statement->result[resultIdx];
     if (testAnswer.type == ResultType::CSV_FILE) {
         std::ifstream expectedTuplesFile(testAnswer.expectedResult[0]);
@@ -161,31 +115,29 @@ void TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
             testAnswer.expectedResult.push_back(line);
         }
         if (testAnswer.expectedResult.size() != testAnswer.numTuples) {
-            spdlog::error("PLAN{} FAILED.", planIdx);
-            spdlog::info("PLAN: \n{}", planStr);
+            outputFailedPlan(conn, statement);
             spdlog::info("TUPLE COUNT NOT MATCHING:");
             spdlog::info("    EXPECTED {} TUPLES IN ANSWER FILE.", testAnswer.numTuples);
             spdlog::info("    FOUND {} TUPLES IN ANSWER FILE.", testAnswer.expectedResult.size());
             return;
         }
         if (!statement->checkOutputOrder) {
-            sort(testAnswer.expectedResult.begin(), testAnswer.expectedResult.end());
+            std::sort(testAnswer.expectedResult.begin(), testAnswer.expectedResult.end());
         }
     }
-    std::vector<std::string> resultTuples = TestRunner::convertResultToString(*result,
-        statement->checkOutputOrder, statement->checkColumnNames);
+    std::vector<std::string> resultTuples =
+        convertResultToString(*result, statement->checkOutputOrder, statement->checkColumnNames);
     uint64_t actualNumTuples = result->getNumTuples();
     if (statement->checkColumnNames) {
         actualNumTuples++;
     }
     EXPECT_EQ(resultTuples.size(), actualNumTuples);
     if (testAnswer.type == ResultType::HASH) {
-        std::string resultHash = TestRunner::convertResultToMD5Hash(*result,
-            statement->checkOutputOrder, statement->checkColumnNames);
+        std::string resultHash = convertResultToMD5Hash(*result, statement->checkOutputOrder,
+            statement->checkColumnNames);
 
         if (resultHash != testAnswer.expectedResult[0]) {
-            spdlog::error("PLAN{} FAILED.", planIdx);
-            spdlog::info("PLAN: \n{}", planStr);
+            outputFailedPlan(conn, statement);
             spdlog::info("RESULT: \n");
             for (auto& tuple : resultTuples) {
                 spdlog::info(tuple);
@@ -194,15 +146,13 @@ void TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
         }
     } else if (statement->checkPrecision) {
         ASSERT_TRUE(statement->checkOutputOrder)
-            << "PLAN: \n"
-            << planStr << "\nCHECK_ORDER MUST BE ENABLED FOR CHECK_PRECISION";
+            << "CHECK_ORDER MUST BE ENABLED FOR CHECK_PRECISION";
         EXPECT_TRUE(resultTuples.size() == testAnswer.numTuples);
         ASSERT_TRUE(TestRunner::checkResultNumeric(*result, statement, resultIdx));
     } else if (resultTuples == testAnswer.expectedResult) {
-        spdlog::info("PLAN{} PASSED.", planIdx);
+        spdlog::info("QUERY PASSED.");
     } else {
-        spdlog::error("PLAN{} FAILED.", planIdx);
-        spdlog::info("PLAN: \n{}", planStr);
+        outputFailedPlan(conn, statement);
         if (resultTuples.size() == testAnswer.numTuples) {
             for (auto& tuple : resultTuples) {
                 spdlog::info(tuple);
@@ -218,20 +168,26 @@ void TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
     }
 }
 
-bool TestRunner::checkResultNumeric(QueryResult& queryResult, TestStatement* statement,
+void TestRunner::outputFailedPlan(Connection& conn, const TestStatement* statement) {
+    const auto plan = getLogicalPlan(statement->query, conn);
+    spdlog::error("QUERY FAILED.");
+    spdlog::info("PLAN: \n{}", plan->toString());
+}
+
+bool TestRunner::checkResultNumeric(QueryResult& queryResult, const TestStatement* statement,
     size_t resultIdx) {
     queryResult.resetIterator();
-    std::vector<LogicalType> dataTypes = queryResult.getColumnDataTypes();
-    TestQueryResult& testAnswer = statement->result[resultIdx];
+    const std::vector<LogicalType> dataTypes = queryResult.getColumnDataTypes();
+    const TestQueryResult& testAnswer = statement->result[resultIdx];
     int rowIdx = statement->checkColumnNames;
     while (queryResult.hasNext()) {
-        auto actualTuple = queryResult.getNext();
+        const auto actualTuple = queryResult.getNext();
         auto testTuple = StringUtils::split(testAnswer.expectedResult[rowIdx], "|");
         if (actualTuple->len() != testTuple.size()) {
             return false;
         }
         for (uint32_t i = 0; i < dataTypes.size(); i++) {
-            auto curValue = actualTuple->getValue(i);
+            const auto curValue = actualTuple->getValue(i);
             switch (dataTypes[i].getLogicalTypeID()) {
             case LogicalTypeID::FLOAT: {
                 if (!precisionEqual(curValue->getValue<float>(), std::stof(testTuple[i]))) {
@@ -265,11 +221,11 @@ std::vector<std::string> TestRunner::convertResultToString(QueryResult& queryRes
         actualOutput.push_back(convertResultColumnsToString(queryResult));
     }
     while (queryResult.hasNext()) {
-        auto tuple = queryResult.getNext();
+        const auto tuple = queryResult.getNext();
         actualOutput.push_back(tuple->toString(std::vector<uint32_t>(tuple->len(), 0)));
     }
     if (!checkOutputOrder) {
-        sort(actualOutput.begin(), actualOutput.end());
+        std::sort(actualOutput.begin(), actualOutput.end());
         // NOTE: If you wish to change this sorting in a
         // way that alters its result, you may break existing
         // hashed test cases
@@ -281,9 +237,9 @@ std::string TestRunner::convertResultToMD5Hash(QueryResult& queryResult, bool ch
     bool checkColumnNames) {
     queryResult.resetIterator();
     MD5 hasher;
-    std::vector<std::string> stringRep =
+    const std::vector<std::string> stringRep =
         convertResultToString(queryResult, checkOutputOrder, checkColumnNames);
-    std::string lineBreaker = "\n";
+    const std::string lineBreaker = "\n";
     for (std::string line : stringRep) {
         hasher.addToMD5(line.c_str(), line.size());
         hasher.addToMD5(lineBreaker.c_str(), lineBreaker.size());
@@ -291,9 +247,9 @@ std::string TestRunner::convertResultToMD5Hash(QueryResult& queryResult, bool ch
     return std::string(hasher.finishMD5());
 }
 
-std::string TestRunner::convertResultColumnsToString(main::QueryResult& queryResult) {
+std::string TestRunner::convertResultColumnsToString(const QueryResult& queryResult) {
     std::string columnsString;
-    std::vector<std::string> columnNames = queryResult.getColumnNames();
+    const std::vector<std::string> columnNames = queryResult.getColumnNames();
     for (auto i = 0ul; i < columnNames.size(); i++) {
         if (i != 0) {
             columnsString += "|";
@@ -304,10 +260,10 @@ std::string TestRunner::convertResultColumnsToString(main::QueryResult& queryRes
 }
 
 std::unique_ptr<planner::LogicalPlan> TestRunner::getLogicalPlan(const std::string& query,
-    kuzu::main::Connection& conn) {
-    auto preparedStatement = conn.prepare(query);
+    Connection& conn) {
+    const auto preparedStatement = conn.prepare(query);
     KU_ASSERT(preparedStatement->isSuccess());
-    return std::move(preparedStatement->logicalPlans[0]);
+    return std::move(preparedStatement->logicalPlan);
 }
 
 } // namespace testing

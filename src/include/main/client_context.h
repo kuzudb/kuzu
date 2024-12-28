@@ -64,7 +64,7 @@ class KUZU_API ClientContext {
     friend class binder::Binder;
     friend class binder::ExpressionBinder;
     friend class processor::ImportDB;
-    friend struct main::SpillToDiskSetting;
+    friend struct SpillToDiskSetting;
 
 public:
     explicit ClientContext(Database* database);
@@ -130,9 +130,6 @@ public:
     std::unique_ptr<QueryResult> query(std::string_view queryStatement,
         std::optional<uint64_t> queryID = std::nullopt);
 
-    // only use for test framework
-    std::vector<std::shared_ptr<parser::Statement>> parseQuery(std::string_view query);
-
     void setDefaultDatabase(AttachedKuzuDatabase* defaultDatabase_);
     bool hasDefaultDatabase();
 
@@ -146,10 +143,12 @@ public:
 
     void cleanUP();
 
-    std::unique_ptr<QueryResult> queryInternal(std::string_view query, std::string_view encodedJoin,
-        bool enumerateAllPlans = true, std::optional<uint64_t> queryID = std::nullopt);
+    std::unique_ptr<QueryResult> queryInternal(std::string_view query,
+        std::optional<uint64_t> queryID = std::nullopt);
 
 private:
+    std::vector<std::shared_ptr<parser::Statement>> parseQuery(std::string_view query);
+
     std::unique_ptr<QueryResult> queryResultWithError(std::string_view errMsg);
 
     std::unique_ptr<PreparedStatement> preparedStatementWithError(std::string_view errMsg);
@@ -159,8 +158,7 @@ private:
     // commit the transaction in prepare when we only prepare a query statement, we set requireNewTx
     // to true and will commit the transaction in prepare
     std::unique_ptr<PreparedStatement> prepareNoLock(
-        std::shared_ptr<parser::Statement> parsedStatement, bool enumerateAllPlans = false,
-        std::string_view joinOrder = std::string_view(), bool requireNewTx = true,
+        std::shared_ptr<parser::Statement> parsedStatement, bool requireNewTx = true,
         std::optional<std::unordered_map<std::string, std::shared_ptr<common::Value>>> inputParams =
             std::nullopt);
 
@@ -178,7 +176,7 @@ private:
         const std::unordered_map<std::string, std::unique_ptr<common::Value>>& inputParams);
 
     std::unique_ptr<QueryResult> executeNoLock(PreparedStatement* preparedStatement,
-        uint32_t planIdx = 0u, std::optional<uint64_t> queryID = std::nullopt);
+        std::optional<uint64_t> queryID = std::nullopt);
 
     bool canExecuteWriteQuery();
 

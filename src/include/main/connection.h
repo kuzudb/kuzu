@@ -12,12 +12,11 @@ namespace main {
  * Multiple connections can connect to the same Database instance in a multi-threaded environment.
  */
 class Connection {
-    friend class kuzu::testing::BaseGraphTest;
-    friend class kuzu::testing::PrivateGraphTest;
-    friend class kuzu::testing::TestHelper;
-    friend class kuzu::testing::TestRunner;
-    friend class kuzu::benchmark::Benchmark;
-    friend class kuzu::testing::TinySnbDDLTest;
+    friend class testing::BaseGraphTest;
+    friend class testing::PrivateGraphTest;
+    friend class testing::TestHelper;
+    friend class benchmark::Benchmark;
+    friend class testing::TinySnbDDLTest;
     friend class ConnectionExecuteAsyncWorker;
     friend class ConnectionQueryAsyncWorker;
 
@@ -124,16 +123,9 @@ public:
     ClientContext* getClientContext() { return clientContext.get(); };
 
 private:
-    std::unique_ptr<QueryResult> query(std::string_view query, std::string_view encodedJoin,
-        bool enumerateAllPlans = true);
-
     std::unique_ptr<QueryResult> queryResultWithError(std::string_view errMsg);
 
     std::unique_ptr<PreparedStatement> preparedStatementWithError(std::string_view errMsg);
-
-    std::unique_ptr<PreparedStatement> prepareNoLock(
-        std::shared_ptr<parser::Statement> parsedStatement, bool enumerateAllPlans = false,
-        std::string_view joinOrder = std::string_view());
 
     template<typename T, typename... Args>
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,

@@ -83,7 +83,6 @@
 # expression in all the single queries.
 -LOG UnionAllFlatAndUnFlatColTest
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) RETURN a.age UNION ALL MATCH (a:person)-[e:knows]->(b:person) RETURN a.age UNION ALL MATCH (a:person)-[e:knows]->(b:person) RETURN a.age
--ENUMERATE
 ---- 42
 20
 20
@@ -129,7 +128,6 @@
 45
 -LOG UnionAllWithTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) with b return b.age + 3 UNION ALL MATCH (a:person)-[e:knows]->(b:person) with a RETURN a.age
--ENUMERATE
 ---- 28
 20
 20
@@ -161,7 +159,6 @@
 48
 -LOG UnionAllThreeHopsTest
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person) RETURN a.fName order by d.age desc, c.age asc, b.age asc, a.age desc limit 10 UNION ALL MATCH (p:person) RETURN p.fName
--ENUMERATE
 ---- 18
 Alice
 Alice

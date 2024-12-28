@@ -31,30 +31,25 @@
 
 -LOG TwoHopKnowsTest
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) RETURN COUNT(*)
--ENUMERATE
 ---- 1
 36
 
 -LOG OpenWedgeKnowsStudyAtTest
 -STATEMENT MATCH (b:person)<-[e1:knows]-(a:person)-[e2:studyAt]->(c:organisation) RETURN COUNT(*)
--ENUMERATE
 ---- 1
 6
 
 -LOG OpenWedgeKnowsWorkAtTest
 -STATEMENT MATCH (b:person)<-[e1:knows]-(a:person)-[e2:workAt]->(c:organisation) RETURN COUNT(*)
--ENUMERATE
 ---- 1
 8
 
 -LOG OpenWedgeKnowsTest2
 -STATEMENT MATCH (b:person)-[e1:knows]->(a:person)<-[e2:knows]-(c:person) RETURN COUNT(*)
--ENUMERATE
 ---- 1
 38
 
 -LOG OpenWedgeWorkAtTest2
 -STATEMENT MATCH (b:organisation)<-[e1:workAt]-(a:person)-[e2:studyAt]->(c:organisation) RETURN COUNT(*)
--ENUMERATE
 ---- 1
 0

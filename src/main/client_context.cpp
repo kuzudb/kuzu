@@ -17,7 +17,6 @@
 #include "parser/parser.h"
 #include "parser/visitor/standalone_call_rewriter.h"
 #include "parser/visitor/statement_read_write_analyzer.h"
-#include "planner/operator/logical_plan_util.h"
 #include "planner/planner.h"
 #include "processor/plan_mapper.h"
 #include "processor/processor.h"
@@ -171,7 +170,7 @@ extension::ExtensionOptions* ClientContext::getExtensionOptions() const {
 
 std::string ClientContext::getExtensionDir() const {
     return stringFormat("{}/.kuzu/extension/{}/{}/", clientConfig.homeDirectory,
-        KUZU_EXTENSION_VERSION, kuzu::extension::getPlatform());
+        KUZU_EXTENSION_VERSION, extension::getPlatform());
 }
 
 std::string ClientContext::getDatabasePath() const {
@@ -245,7 +244,7 @@ std::string ClientContext::getEnvVariable(const std::string& name) {
 }
 
 std::unique_ptr<PreparedStatement> ClientContext::prepare(std::string_view query) {
-    std::unique_lock<std::mutex> lck{mtx};
+    std::unique_lock lck{mtx};
     auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
     try {
         parsedStatements = parseQuery(query);
@@ -262,12 +261,11 @@ std::unique_ptr<PreparedStatement> ClientContext::prepare(std::string_view query
 std::unique_ptr<QueryResult> ClientContext::query(std::string_view queryStatement,
     std::optional<uint64_t> queryID) {
     lock_t lck{mtx};
-    return queryInternal(queryStatement, std::string_view() /*encodedJoin*/,
-        false /*enumerateAllPlans */, queryID);
+    return queryInternal(queryStatement, queryID);
 }
 
 std::unique_ptr<QueryResult> ClientContext::queryInternal(std::string_view query,
-    std::string_view encodedJoin, bool enumerateAllPlans, std::optional<uint64_t> queryID) {
+    std::optional<uint64_t> queryID) {
     auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
     try {
         parsedStatements = parseQuery(query);
@@ -276,10 +274,9 @@ std::unique_ptr<QueryResult> ClientContext::queryInternal(std::string_view query
     }
     std::unique_ptr<QueryResult> queryResult;
     QueryResult* lastResult = nullptr;
-    for (auto& statement : parsedStatements) {
-        auto preparedStatement = prepareNoLock(statement,
-            enumerateAllPlans /* enumerate all plans */, encodedJoin, false /*requireNewTx*/);
-        auto currentQueryResult = executeNoLock(preparedStatement.get(), 0u, queryID);
+    for (const auto& statement : parsedStatements) {
+        auto preparedStatement = prepareNoLock(statement, false /*requireNewTx*/);
+        auto currentQueryResult = executeNoLock(preparedStatement.get(), queryID);
         if (!lastResult) {
             // first result of the query
             queryResult = std::move(currentQueryResult);
@@ -310,8 +307,7 @@ std::unique_ptr<PreparedStatement> ClientContext::preparedStatementWithError(
 }
 
 std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
-    std::shared_ptr<Statement> parsedStatement, bool enumerateAllPlans,
-    std::string_view encodedJoin, bool requireNewTx,
+    std::shared_ptr<Statement> parsedStatement, bool requireNewTx,
     std::optional<std::unordered_map<std::string, std::shared_ptr<Value>>> inputParams) {
     auto preparedStatement = std::make_unique<PreparedStatement>();
     auto compilingTimer = TimeMetric(true /* enable */);
@@ -347,31 +343,10 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
             std::make_unique<BoundStatementResult>(boundStatement->getStatementResult()->copy());
         // planning
         auto planner = Planner(this);
-        std::vector<std::unique_ptr<LogicalPlan>> plans;
-        if (enumerateAllPlans) {
-            plans = planner.getAllPlans(*boundStatement);
-        } else {
-            plans.push_back(planner.getBestPlan(*boundStatement));
-        }
+        auto bestPlan = planner.getBestPlan(*boundStatement);
         // optimizing
-        for (auto& plan : plans) {
-            optimizer::Optimizer::optimize(plan.get(), this, planner.getCardinalityEstimator());
-        }
-        if (!encodedJoin.empty()) {
-            std::unique_ptr<LogicalPlan> match;
-            for (auto& plan : plans) {
-                if (LogicalPlanUtil::encodeJoin(*plan) == encodedJoin) {
-                    match = std::move(plan);
-                }
-            }
-            if (match == nullptr) {
-                throw ConnectionException(
-                    stringFormat("Cannot find a plan matching {}", encodedJoin));
-            }
-            preparedStatement->logicalPlans.push_back(std::move(match));
-        } else {
-            preparedStatement->logicalPlans = std::move(plans);
-        }
+        optimizer::Optimizer::optimize(bestPlan.get(), this, planner.getCardinalityEstimator());
+        preparedStatement->logicalPlan = std::move(bestPlan);
         if (transactionContext->isAutoTransaction() && requireNewTx) {
             this->transactionContext->commit();
         }
@@ -446,9 +421,9 @@ std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement*
     }
     // rebind
     KU_ASSERT(preparedStatement->parsedStatement != nullptr);
-    auto rebindPreparedStatement = prepareNoLock(preparedStatement->parsedStatement, false, "",
-        false, preparedStatement->parameterMap);
-    return executeNoLock(rebindPreparedStatement.get(), 0u, queryID);
+    auto rebindPreparedStatement =
+        prepareNoLock(preparedStatement->parsedStatement, false, preparedStatement->parameterMap);
+    return executeNoLock(rebindPreparedStatement.get(), queryID);
 }
 
 void ClientContext::bindParametersNoLock(PreparedStatement* preparedStatement,
@@ -467,7 +442,7 @@ void ClientContext::bindParametersNoLock(PreparedStatement* preparedStatement,
 }
 
 std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* preparedStatement,
-    uint32_t planIdx, std::optional<uint64_t> queryID) {
+    std::optional<uint64_t> queryID) {
     if (!preparedStatement->isSuccess()) {
         return queryResultWithError(preparedStatement->errMsg);
     }
@@ -480,9 +455,8 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     std::unique_ptr<PhysicalPlan> physicalPlan;
     if (preparedStatement->isSuccess()) {
         try {
-            physicalPlan =
-                mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[planIdx].get(),
-                    preparedStatement->statementResult->getColumns());
+            physicalPlan = mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get(),
+                preparedStatement->statementResult->getColumns());
         } catch (std::exception& e) {
             this->transactionContext->rollback();
             return queryResultWithError(e.what());

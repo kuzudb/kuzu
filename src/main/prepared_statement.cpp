@@ -26,7 +26,7 @@ bool PreparedStatement::isReadOnly() const {
 }
 
 bool PreparedStatement::isProfile() {
-    return logicalPlans[0]->isProfile();
+    return logicalPlan->isProfile();
 }
 
 StatementType PreparedStatement::getStatementType() {

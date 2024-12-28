@@ -15,14 +15,12 @@ Farooq|
 Greg|
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|
 -STATEMENT MATCH (a:person)-[r:knows]->(b:person) WHERE a.ID=0 RETURN r, COUNT(*)
--ENUMERATE
 ---- 3
 (0:0)-{_LABEL: knows, _ID: 3:0, date: 2021-06-30, meetTime: 1986-10-21 21:08:31.521, validInterval: 10 years 5 months 13:00:00.000024, comments: [rnme,m8sihsdnf2990nfiwf], summary: {locations: ['toronto','waterloo'], transfer: {day: 2021-01-02, amount: [100,200]}}, notes: 1, someMap: {a=b}}->(0:1)|1
 (0:0)-{_LABEL: knows, _ID: 3:1, date: 2021-06-30, meetTime: 1946-08-25 19:07:22, validInterval: 20 years 30 days 48:00:00, comments: [njnojppo9u0jkmf,fjiojioh9h9h89hph], summary: {locations: , transfer: }, notes: 2020-10-10, someMap: {c=d, e=f, 1=2}}->(0:2)|1
 (0:0)-{_LABEL: knows, _ID: 3:2, date: 2021-06-30, meetTime: 2012-12-11 20:07:22, validInterval: 10 days, comments: [ioji232,jifhe8w99u43434], summary: {locations: ['shanghai'], transfer: {day: 1990-09-10, amount: [10]}}, notes: nice weather}->(0:3)|1
 
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a, COUNT(*)
--ENUMERATE
 ---- 5
 {_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}|3
 {_ID: 0:1, _LABEL: person, ID: 2, fName: Bob, gender: 2, isStudent: True, isWorker: False, age: 30, eyeSight: 5.100000, birthdate: 1900-01-01, registerTime: 2008-11-03 15:25:30.000526, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [12,8], usedNames: [Bobby], courseScoresPerTerm: [[8,9],[9,10]], grades: [98,42,93,88], height: 0.990000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12}|3
@@ -62,7 +60,6 @@ Alice|1
 
 -LOG OneHopAggTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.age, a.gender, COUNT(*)
--ENUMERATE
 -PARALLELISM 2
 ---- 5
 20|1|2
@@ -73,7 +70,6 @@ Alice|1
 
 -LOG OneHopHashAggTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.gender, COUNT(*) + SUM(b.age)
--ENUMERATE
 ---- 2
 1|253
 2|216
@@ -81,7 +77,6 @@ Alice|1
 -LOG TwoHopAggTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.gender, COUNT(*), COUNT(DISTINCT b.age)
 -PARALLELISM 5
--ENUMERATE
 ---- 2
 1|18|4
 2|18|4
@@ -89,7 +84,6 @@ Alice|1
 -LOG OneHopAggFlatUnflatVecTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.ID, b.gender, sum(b.age)
 -PARALLELISM 6
--ENUMERATE
 ---- 9
 0|1|45
 0|2|50
@@ -103,7 +97,6 @@ Alice|1
 
 -LOG OneHopAggFlatUnflatVecWithNonHashKeyTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.ID, a.gender, b.gender, sum(b.age)
--ENUMERATE
 ---- 9
 0|1|1|45
 0|1|2|50
@@ -117,7 +110,6 @@ Alice|1
 
 -LOG OneHopDistinctTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN DISTINCT a.gender, b.isStudent
--ENUMERATE
 ---- 4
 1|False
 1|True
@@ -126,7 +118,6 @@ Alice|1
 
 -LOG TwoHopDistinctTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN DISTINCT a.ID + 1
--ENUMERATE
 ---- 4
 1
 3
@@ -273,7 +264,6 @@ Elizabeth|[25,40]
 -LOG HashAggCountBlob
 -STATEMENT MATCH (m:movies) RETURN m.length > 2542, COUNT(m.content)
 -PARALLELISM 4
--ENUMERATE
 ---- 2
 False|2
 True|1
@@ -329,7 +319,6 @@ True|1
 -LOG HashAggMinBlob
 -STATEMENT MATCH (m:movies) RETURN m.length <> 298, MIN(m.content)
 -PARALLELISM 2
--ENUMERATE
 ---- 2
 False|pure ascii characters
 True|\xAA\xABinteresting\x0B
@@ -337,7 +326,6 @@ True|\xAA\xABinteresting\x0B
 -LOG HashAggMaxBlob
 -STATEMENT MATCH (m:movies) RETURN m.length <> 126, MAX(m.content)
 -PARALLELISM 1
--ENUMERATE
 ---- 2
 False|\xAA\xABinteresting\x0B
 True|\xAB\xCD

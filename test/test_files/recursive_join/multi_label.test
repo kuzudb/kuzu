@@ -46,7 +46,6 @@
 
 -LOG MultiLabelTest2
 -STATEMENT MATCH (a:person)-[e:meets|:marries|:studyAt*2..2]->(b) WHERE a.fName = 'Alice' AND b.ID < 5 RETURN COUNT(*)
--ENUMERATE
 ---- 1
 2
 

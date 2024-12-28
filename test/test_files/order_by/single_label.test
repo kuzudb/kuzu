@@ -207,7 +207,6 @@ pure ascii characters
 -LOG OrderByProjectionTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) with b return b.fName order by b.fName desc
 -CHECK_ORDER
--ENUMERATE
 -PARALLELISM 7
 ---- 14
 Greg
@@ -228,7 +227,6 @@ Alice
 -LOG OrderByThreeHopTest
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person) RETURN a.fName order by d.age desc, c.age asc, b.age asc, a.age desc limit 10
 -CHECK_ORDER
--ENUMERATE
 ---- 10
 Carol
 Alice
@@ -246,7 +244,6 @@ Carol
 -LOG OrderByScanSingleTupleTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) return a.fName order by b.fName, a.fName
 -CHECK_ORDER
--ENUMERATE
 ---- 14
 Bob
 Carol
@@ -274,7 +271,6 @@ Elizabeth
 -LOG OrderByAggregateTest1
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) return a.age, COUNT(b) as c ORDER BY a.age
 -CHECK_ORDER
--ENUMERATE
 ---- 4
 20|5
 30|3
@@ -284,7 +280,6 @@ Elizabeth
 -LOG OrderByAggregateTest2
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) return a.gender, COUNT(b) ORDER BY COUNT(b) DESC
 -CHECK_ORDER
--ENUMERATE
 ---- 2
 1|8
 2|6
@@ -292,7 +287,6 @@ Elizabeth
 -LOG OrderByMultipleCols
 -STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) return s.year ORDER BY s.length, p.lastJobDuration, o.mark, p.height limit 5
 -CHECK_ORDER
--ENUMERATE
 ---- 3
 2021
 2020
@@ -301,7 +295,6 @@ Elizabeth
 -LOG OrderByFlatUnflat
 -STATEMENT MATCH (p:person)-[:knows]->(p1:person) return p.ID, p1.ID ORDER BY p.ID, p1.ID limit 13
 -CHECK_ORDER
--ENUMERATE
 ---- 13
 0|2
 0|3
@@ -320,7 +313,6 @@ Elizabeth
 -LOG OrderByFlatUnflat1
 -STATEMENT MATCH (p:person)-[:knows]->(p1:person) return p.ID, p1.ID ORDER BY p.ID, p1.ID
 -CHECK_ORDER
--ENUMERATE
 ---- 14
 0|2
 0|3

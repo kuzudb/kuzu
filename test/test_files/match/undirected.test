@@ -27,7 +27,6 @@
 
 -LOG UndirKnows1
 -STATEMENT MATCH (a:person)-[:knows]-(b:person) WHERE b.fName = "Bob" RETURN a.fName;
--ENUMERATE
 ---- 6
 Alice
 Carol
@@ -38,7 +37,6 @@ Dan
 
 -LOG UndirKnows2
 -STATEMENT MATCH (a:person)-[:knows]-(b:person)-[:knows]-(c:person) WHERE a.gender = 1 AND b.gender = 2 AND c.fName = "Bob" RETURN a.fName, b.fName;
--ENUMERATE
 ---- 8
 Alice|Dan
 Carol|Dan
@@ -51,19 +49,16 @@ Carol|Dan
 
 -LOG UndirMultiLabel1
 -STATEMENT MATCH (a:person:organisation)-[:meets|:marries|:workAt]-(b:person:organisation) RETURN COUNT(*);
--ENUMERATE
 ---- 1
 26
 
 -LOG UndirMultiLabel2
 -STATEMENT MATCH (a:person)-[:studyAt|:meets]-(b:person:organisation) RETURN COUNT(*);
--ENUMERATE
 ---- 1
 17
 
 -LOG UndirMultiLabel3
 -STATEMENT MATCH (a:person)-[:meets|:marries|:knows]-(b:person)-[:knows|:meets]-(c:person) WHERE c.fName = "Farooq" AND a.fName <> "Farooq" RETURN a.fName, b.fName;
--ENUMERATE
 ---- 13
 Carol|Elizabeth
 Alice|Carol
@@ -81,7 +76,6 @@ Dan|Carol
 
 -LOG UndirUnlabelled
 -STATEMENT MATCH (a:person)-[]-() RETURN COUNT(*);
--ENUMERATE
 ---- 1
 54
 
@@ -92,13 +86,11 @@ Dan|Carol
 
 -LOG UndirPattern
 -STATEMENT MATCH ()-[:studyAt]-(a)-[:meets]-()-[:workAt]-() RETURN a.fName;
--ENUMERATE
 ---- 2
 Farooq
 Bob
 
 -STATEMENT MATCH (a:person)-[:workAt]-(b:organisation) RETURN a.ID, b.ID;
--ENUMERATE
 ---- 3
 3|4
 5|6

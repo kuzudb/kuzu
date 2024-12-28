@@ -88,7 +88,6 @@ Alice|True|Dan|False|Carol|False|False
 
 -LOG BoolExecTest2
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.fName = 'Alice' RETURN a.fName, a.isStudent, b.fName, b.isStudent, c.fName, c.isStudent, (a.isStudent AND b.isStudent) OR c.isStudent
--ENUMERATE
 ---- 9
 Alice|True|Bob|True|Alice|True|True
 Alice|True|Bob|True|Carol|False|True
@@ -102,7 +101,6 @@ Alice|True|Dan|False|Carol|False|False
 
 -LOG BoolExecTest3
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE b.fName <> 'Elizabeth' RETURN a.isStudent and b.isWorker
--ENUMERATE
 ---- 14
 False
 True
