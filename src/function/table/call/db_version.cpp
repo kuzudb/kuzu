@@ -7,19 +7,20 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace function {
 
-static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
+    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
     auto& outputVector = dataChunk.getValueVectorMutable(0);
     if (!sharedState->getMorsel().hasMoreToOutput()) {
         return 0;
     }
-    auto pos = dataChunk.state->getSelVector()[0];
+    const auto pos = dataChunk.state->getSelVector()[0];
     outputVector.setValue(pos, std::string(KUZU_VERSION));
     return 1;
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext*, TableFuncBindInput* input) {
+static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext*,
+    const TableFuncBindInput* input) {
     std::vector<std::string> returnColumnNames;
     std::vector<LogicalType> returnTypes;
     returnColumnNames.emplace_back("version");

@@ -120,8 +120,6 @@ public:
 
     KUZU_API catalog::Catalog* getCatalog() { return catalog.get(); }
 
-    ExtensionOption* getExtensionOption(std::string name) const;
-
     const DBConfig& getConfig() const { return dbConfig; }
 
     common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>>&

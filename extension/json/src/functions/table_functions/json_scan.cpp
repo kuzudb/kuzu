@@ -50,10 +50,10 @@ struct JsonScanConfig {
     int64_t breadth = JsonConstant::DEFAULT_JSON_DETECT_BREADTH;
     bool autoDetect = JsonConstant::DEFAULT_AUTO_DETECT_VALUE;
 
-    explicit JsonScanConfig(const common::case_insensitive_map_t<Value>& options);
+    explicit JsonScanConfig(const case_insensitive_map_t<Value>& options);
 };
 
-JsonScanConfig::JsonScanConfig(const common::case_insensitive_map_t<Value>& options) {
+JsonScanConfig::JsonScanConfig(const case_insensitive_map_t<Value>& options) {
     for (const auto& i : options) {
         if (i.first == "FORMAT") {
             if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::STRING) {
@@ -237,7 +237,7 @@ static void skipWhitespace(uint8_t* bufferPtr, idx_t& bufferOffset, const uint64
         if (lineCount && bufferPtr[bufferOffset] == '\n') {
             ++(*lineCount);
         }
-        if (!common::StringUtils::isSpace(bufferPtr[bufferOffset])) {
+        if (!StringUtils::isSpace(bufferPtr[bufferOffset])) {
             break;
         }
     }
@@ -250,7 +250,7 @@ void JSONScanLocalState::skipOverArrayStart() {
         return; // Empty file
     }
     if (bufferPtr[bufferOffset] != '[') {
-        throw Exception(common::stringFormat(
+        throw Exception(stringFormat(
             "Expected top-level JSON array with format='array', but first character is '{}' in "
             "file \"{}\"."
             "\nTry setting format='auto' or format='newline_delimited'.",
@@ -258,15 +258,15 @@ void JSONScanLocalState::skipOverArrayStart() {
     }
     skipWhitespace(bufferPtr, ++bufferOffset, bufferSize, &lineCountInBuffer);
     if (bufferOffset >= bufferSize) {
-        throw Exception(common::stringFormat(
+        throw Exception(stringFormat(
             "Missing closing brace ']' in JSON array with format='array' in file \"{}\"",
             currentReader->getFileName()));
     }
     if (bufferPtr[bufferOffset] == ']') {
         skipWhitespace(bufferPtr, ++bufferOffset, bufferSize, &lineCountInBuffer);
         if (bufferOffset != bufferSize) {
-            throw Exception(common::stringFormat("Empty array with trailing data when parsing JSON "
-                                                 "array with format='array' in file \"{}\"",
+            throw Exception(stringFormat("Empty array with trailing data when parsing JSON "
+                                         "array with format='array' in file \"{}\"",
                 currentReader->getFileName()));
         }
         return;
@@ -642,8 +642,7 @@ bool JSONScanLocalState::reconstructFirstObject() {
         auto lineEnd = nextNewLine(bufferPtr, bufferSize);
         if (lineEnd == nullptr) {
             // TODO(Ziyi): We should make the maximum object size as a configurable option.
-            throw common::RuntimeException{
-                common::stringFormat("Json object exceeds the maximum object size.")};
+            throw RuntimeException{stringFormat("Json object exceeds the maximum object size.")};
         } else {
             lineEnd++;
         }
@@ -719,8 +718,8 @@ uint64_t JsonScanBindData::getFieldIdx(const std::string& fieldName) const {
 }
 
 static JsonScanFormat autoDetect(main::ClientContext* context, const std::string& filePath,
-    JsonScanConfig& config, std::vector<common::LogicalType>& types,
-    std::vector<std::string>& names, common::case_insensitive_map_t<idx_t>& colNameToIdx) {
+    JsonScanConfig& config, std::vector<LogicalType>& types, std::vector<std::string>& names,
+    case_insensitive_map_t<idx_t>& colNameToIdx) {
     auto numRowsToDetect = config.breadth;
     JSONScanSharedState sharedState(*context, filePath, config.format, 0);
     JSONScanLocalState localState(*context->getMemoryManager(), sharedState, context);
@@ -769,7 +768,7 @@ static JsonScanFormat autoDetect(main::ClientContext* context, const std::string
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-    TableFuncBindInput* input) {
+    const TableFuncBindInput* input) {
     auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
     std::vector<LogicalType> columnTypes;
     std::vector<std::string> columnNames;
@@ -777,7 +776,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     case_insensitive_map_t<idx_t> colNameToIdx;
     if (!scanInput->expectedColumnNames.empty() || !scanConfig.autoDetect) {
         if (scanInput->expectedColumnNames.empty()) {
-            throw common::BinderException{
+            throw BinderException{
                 "When auto-detect is set to false, Kuzu requires the "
                 "user to provide column names and types in the LOAD FROM clause."};
         }
@@ -811,7 +810,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         CopyConstants::DEFAULT_IGNORE_ERRORS);
 
     std::vector<std::string> warningColumnNames;
-    std::vector<common::LogicalType> warningColumnTypes;
+    std::vector<LogicalType> warningColumnTypes;
     column_id_t numWarningDataColumns = 0;
     if (ignoreErrors) {
         numWarningDataColumns = JsonConstant::JSON_WARNING_DATA_NUM_COLUMNS;
@@ -834,13 +833,13 @@ static decltype(auto) getWarningDataVectors(const DataChunk& chunk, column_id_t 
 
     std::vector<ValueVector*> ret;
     for (column_id_t i = chunk.getNumValueVectors() - numWarningColumns;
-         i < chunk.getNumValueVectors(); ++i) {
+        i < chunk.getNumValueVectors(); ++i) {
         ret.push_back(&chunk.getValueVectorMutable(i));
     }
     return ret;
 }
 
-static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto localState = input.localState->ptrCast<JSONScanLocalState>();
     auto bindData = input.bindData->constPtrCast<JsonScanBindData>();
     auto projectionSkips = bindData->getColumnSkips();
@@ -869,13 +868,13 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     return count;
 }
 
-static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitInput& input) {
+static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
     auto jsonBindData = input.bindData->constPtrCast<JsonScanBindData>();
     return std::make_unique<JSONScanSharedState>(*jsonBindData->context,
         jsonBindData->config.filePaths[0], jsonBindData->format, 0);
 }
 
-static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInput& input,
+static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput& input,
     TableFuncSharedState* state, storage::MemoryManager* mm) {
     auto jsonBindData = input.bindData->constPtrCast<JsonScanBindData>();
     auto sharedState = state->ptrCast<JSONScanSharedState>();
@@ -889,7 +888,8 @@ static double progressFunc(TableFuncSharedState* /*state*/) {
     return 0;
 }
 
-static void finalizeFunc(processor::ExecutionContext* ctx, TableFuncSharedState* sharedState) {
+static void finalizeFunc(const processor::ExecutionContext* ctx,
+    TableFuncSharedState* sharedState) {
     auto* jsonSharedState = sharedState->ptrCast<JSONScanSharedState>();
 
     jsonSharedState->sharedErrorHandler.throwCachedErrorsIfNeeded();
@@ -898,8 +898,7 @@ static void finalizeFunc(processor::ExecutionContext* ctx, TableFuncSharedState*
 }
 
 std::unique_ptr<TableFunction> JsonScan::getFunction() {
-    auto func =
-        std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
+    auto func = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
     func->tableFunc = tableFunc;
     func->bindFunc = bindFunc;
     func->initSharedStateFunc = initSharedState;

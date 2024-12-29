@@ -21,7 +21,7 @@ struct SimpleTableFuncMorsel {
     }
 };
 
-struct SimpleTableFuncSharedState : TableFuncSharedState {
+struct SimpleTableFuncSharedState final : TableFuncSharedState {
     common::offset_t maxOffset;
     common::offset_t curOffset;
     std::mutex mtx;
@@ -49,48 +49,50 @@ struct SimpleTableFuncBindData : TableFuncBindData {
  * SimpleTableFunction outputs a fixed size table (can be zero).
  * */
 struct KUZU_API SimpleTableFunction {
-    static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitInput& input);
-    static std::unique_ptr<TableFuncLocalState> initEmptyLocalState(TableFunctionInitInput& input,
-        TableFuncSharedState* state, storage::MemoryManager* mm);
+    static std::unique_ptr<TableFuncSharedState> initSharedState(
+        const TableFunctionInitInput& input);
+    static std::unique_ptr<TableFuncLocalState> initEmptyLocalState(
+        const TableFunctionInitInput& input, TableFuncSharedState* state,
+        storage::MemoryManager* mm);
 };
 
-struct CurrentSettingFunction : SimpleTableFunction {
+struct CurrentSettingFunction final : SimpleTableFunction {
     static constexpr const char* name = "CURRENT_SETTING";
 
     static function_set getFunctionSet();
 };
 
-struct DBVersionFunction : SimpleTableFunction {
+struct DBVersionFunction final : SimpleTableFunction {
     static constexpr const char* name = "DB_VERSION";
 
     static function_set getFunctionSet();
 };
 
-struct ShowTablesFunction : SimpleTableFunction {
+struct ShowTablesFunction final : SimpleTableFunction {
     static constexpr const char* name = "SHOW_TABLES";
 
     static function_set getFunctionSet();
 };
 
-struct ShowWarningsFunction : SimpleTableFunction {
+struct ShowWarningsFunction final : SimpleTableFunction {
     static constexpr const char* name = "SHOW_WARNINGS";
 
     static function_set getFunctionSet();
 };
 
-struct ClearWarningsFunction : SimpleTableFunction {
+struct ClearWarningsFunction final : SimpleTableFunction {
     static constexpr const char* name = "CLEAR_WARNINGS";
 
     static function_set getFunctionSet();
 };
 
-struct TableInfoFunction : SimpleTableFunction {
+struct TableInfoFunction final : SimpleTableFunction {
     static constexpr const char* name = "TABLE_INFO";
 
     static function_set getFunctionSet();
 };
 
-struct ShowSequencesFunction : SimpleTableFunction {
+struct ShowSequencesFunction final : SimpleTableFunction {
     static constexpr const char* name = "SHOW_SEQUENCES";
 
     static function_set getFunctionSet();
@@ -126,19 +128,19 @@ struct ShowAttachedDatabasesFunction final : SimpleTableFunction {
     static function_set getFunctionSet();
 };
 
-struct ShowFunctionsFunction : public SimpleTableFunction {
+struct ShowFunctionsFunction final : SimpleTableFunction {
     static constexpr const char* name = "SHOW_FUNCTIONS";
 
     static function_set getFunctionSet();
 };
 
-struct CreateProjectGraphFunction : public SimpleTableFunction {
+struct CreateProjectGraphFunction final : SimpleTableFunction {
     static constexpr const char* name = "CREATE_PROJECT_GRAPH";
 
     static function_set getFunctionSet();
 };
 
-struct DropProjectGraphFunction : public SimpleTableFunction {
+struct DropProjectGraphFunction final : SimpleTableFunction {
     static constexpr const char* name = "DROP_PROJECT_GRAPH";
 
     static function_set getFunctionSet();

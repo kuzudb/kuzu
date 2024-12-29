@@ -1,4 +1,5 @@
 #include "common/exception/runtime.h"
+#include "connector/iceberg_connector.h"
 #include "function/iceberg_functions.h"
 
 namespace kuzu {
@@ -16,8 +17,8 @@ static std::string generateQueryOptions(const TableFuncBindInput* input,
             auto valueStr = value.toString();
             if (lowerCaseName == "allow_moved_paths") {
                 // check data type of allow_moved_paths
-                if (value.getDataType().getLogicalTypeID() != common::LogicalTypeID::BOOL) {
-                    throw common::RuntimeException{
+                if (value.getDataType().getLogicalTypeID() != LogicalTypeID::BOOL) {
+                    throw RuntimeException{
                         common::stringFormat("Invalid allow_moved_paths value for {}", valueStr)};
                 }
                 query_options += common::stringFormat(", {} = {}", lowerCaseName, valueStr);
@@ -37,13 +38,13 @@ static std::string generateQueryOptions(const TableFuncBindInput* input,
 }
 
 std::unique_ptr<TableFuncBindData> bindFuncHelper(main::ClientContext* context,
-    TableFuncBindInput* input, const std::string& functionName) {
+    const TableFuncBindInput* input, const std::string& functionName) {
     auto connector = std::make_shared<IcebergConnector>();
     connector->connect("" /* inMemDB */, "" /* defaultCatalogName */, "" /* defaultSchemaName */,
         context);
 
     std::string query_options = generateQueryOptions(input, functionName);
-    std::string query = common::stringFormat("SELECT * FROM {}('{}'{})", functionName,
+    std::string query = stringFormat("SELECT * FROM {}('{}'{})", functionName,
         input->getLiteralVal<std::string>(0), query_options);
     auto result = connector->executeQuery(query + " LIMIT 1");
 

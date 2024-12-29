@@ -11,20 +11,20 @@ SimpleTableFuncMorsel SimpleTableFuncSharedState::getMorsel() {
     if (curOffset == maxOffset) {
         return SimpleTableFuncMorsel::createInvalidMorsel();
     } else {
-        auto numValuesToOutput = std::min(DEFAULT_VECTOR_CAPACITY, maxOffset - curOffset);
+        const auto numValuesToOutput = std::min(DEFAULT_VECTOR_CAPACITY, maxOffset - curOffset);
         curOffset += numValuesToOutput;
         return {curOffset - numValuesToOutput, curOffset};
     }
 }
 
 std::unique_ptr<TableFuncSharedState> SimpleTableFunction::initSharedState(
-    TableFunctionInitInput& input) {
-    auto bindData = ku_dynamic_cast<SimpleTableFuncBindData*>(input.bindData);
+    const TableFunctionInitInput& input) {
+    const auto bindData = ku_dynamic_cast<SimpleTableFuncBindData*>(input.bindData);
     return std::make_unique<SimpleTableFuncSharedState>(bindData->maxOffset);
 }
 
 std::unique_ptr<TableFuncLocalState> SimpleTableFunction::initEmptyLocalState(
-    TableFunctionInitInput&, TableFuncSharedState*, storage::MemoryManager*) {
+    const TableFunctionInitInput&, TableFuncSharedState*, storage::MemoryManager*) {
     return std::make_unique<TableFuncLocalState>();
 }
 

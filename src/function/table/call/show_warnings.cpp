@@ -7,7 +7,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-struct ShowWarningsBindData : public SimpleTableFuncBindData {
+struct ShowWarningsBindData final : SimpleTableFuncBindData {
     std::vector<processor::WarningInfo> warnings;
 
     ShowWarningsBindData(std::vector<processor::WarningInfo> warnings,
@@ -19,17 +19,17 @@ struct ShowWarningsBindData : public SimpleTableFuncBindData {
     }
 };
 
-static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
-    auto morsel = sharedState->getMorsel();
+    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
+    const auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
-    auto warnings = input.bindData->constPtrCast<ShowWarningsBindData>()->warnings;
-    auto numWarningsToOutput = morsel.endOffset - morsel.startOffset;
+    const auto warnings = input.bindData->constPtrCast<ShowWarningsBindData>()->warnings;
+    const auto numWarningsToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numWarningsToOutput; i++) {
-        auto tableInfo = warnings[morsel.startOffset + i];
+        const auto tableInfo = warnings[morsel.startOffset + i];
         dataChunk.getValueVectorMutable(0).setValue(i, tableInfo.queryID);
         dataChunk.getValueVectorMutable(1).setValue(i, tableInfo.warning.message);
         dataChunk.getValueVectorMutable(2).setValue(i, tableInfo.warning.filePath);
@@ -39,11 +39,12 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     return numWarningsToOutput;
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-    TableFuncBindInput* input) {
-    std::vector<std::string> columnNames{WarningConstants::WARNING_TABLE_COLUMN_NAMES.begin(),
+static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* context,
+    const TableFuncBindInput* input) {
+    const std::vector<std::string> columnNames{WarningConstants::WARNING_TABLE_COLUMN_NAMES.begin(),
         WarningConstants::WARNING_TABLE_COLUMN_NAMES.end()};
-    std::vector<LogicalType> columnTypes{WarningConstants::WARNING_TABLE_COLUMN_DATA_TYPES.begin(),
+    const std::vector<LogicalType> columnTypes{
+        WarningConstants::WARNING_TABLE_COLUMN_DATA_TYPES.begin(),
         WarningConstants::WARNING_TABLE_COLUMN_DATA_TYPES.end()};
     std::vector<processor::WarningInfo> warningInfos;
     for (const auto& warning : context->getWarningContext().getPopulatedWarnings()) {

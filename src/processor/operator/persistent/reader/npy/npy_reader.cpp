@@ -40,7 +40,7 @@ NpyReader::NpyReader(const std::string& filePath)
     if (fd == -1) {
         throw CopyException("Failed to open NPY file.");
     }
-    struct stat fileStatus {};
+    struct stat fileStatus{};
     fstat(fd, &fileStatus);
     fileSize = fileStatus.st_size;
 
@@ -213,7 +213,7 @@ void NpyReader::validate(const LogicalType& type_, offset_t numRows) {
     }
 }
 
-void NpyReader::readBlock(block_idx_t blockIdx, common::ValueVector* vectorToRead) const {
+void NpyReader::readBlock(block_idx_t blockIdx, ValueVector* vectorToRead) const {
     uint64_t rowNumber = DEFAULT_VECTOR_CAPACITY * blockIdx;
     auto numRows = getNumRows();
     if (rowNumber >= numRows) {
@@ -246,18 +246,18 @@ NpyMultiFileReader::NpyMultiFileReader(const std::vector<std::string>& filePaths
     }
 }
 
-void NpyMultiFileReader::readBlock(block_idx_t blockIdx, common::DataChunk& dataChunkToRead) const {
+void NpyMultiFileReader::readBlock(block_idx_t blockIdx, DataChunk& dataChunkToRead) const {
     for (auto i = 0u; i < fileReaders.size(); i++) {
         fileReaders[i]->readBlock(blockIdx, &dataChunkToRead.getValueVectorMutable(i));
     }
 }
 
-NpyScanSharedState::NpyScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows)
+NpyScanSharedState::NpyScanSharedState(ReaderConfig readerConfig, uint64_t numRows)
     : ScanSharedState{std::move(readerConfig), numRows} {
     npyMultiFileReader = std::make_unique<NpyMultiFileReader>(this->readerConfig.filePaths);
 }
 
-static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto sharedState = reinterpret_cast<NpyScanSharedState*>(input.sharedState);
     auto [_, blockIdx] = sharedState->getNext();
     sharedState->npyMultiFileReader->readBlock(blockIdx, output.dataChunk);
@@ -273,8 +273,8 @@ static LogicalType bindColumnType(const NpyReader& reader) {
     return LogicalType::ARRAY(LogicalType(reader.getType()), reader.getNumElementsPerRow());
 }
 
-static void bindColumns(const common::ReaderConfig& readerConfig, uint32_t fileIdx,
-    std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes) {
+static void bindColumns(const ReaderConfig& readerConfig, uint32_t fileIdx,
+    std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
     auto reader = NpyReader(readerConfig.filePaths[fileIdx]); // TODO: double check
     auto columnName = std::string("column" + std::to_string(fileIdx));
     auto columnType = bindColumnType(reader);
@@ -282,8 +282,8 @@ static void bindColumns(const common::ReaderConfig& readerConfig, uint32_t fileI
     columnTypes.push_back(std::move(columnType));
 }
 
-static void bindColumns(const common::ReaderConfig& readerConfig,
-    std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes) {
+static void bindColumns(const ReaderConfig& readerConfig, std::vector<std::string>& columnNames,
+    std::vector<LogicalType>& columnTypes) {
     KU_ASSERT(readerConfig.getNumFiles() > 0);
     bindColumns(readerConfig, 0, columnNames, columnTypes);
     for (auto i = 1u; i < readerConfig.getNumFiles(); ++i) {
@@ -296,8 +296,8 @@ static void bindColumns(const common::ReaderConfig& readerConfig,
     }
 }
 
-static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* context,
-    function::TableFuncBindInput* input) {
+static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
+    const TableFuncBindInput* input) {
     auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
     if (scanInput->config.options.size() > 1 ||
         (scanInput->config.options.size() == 1 &&
@@ -305,10 +305,10 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
         throw BinderException{"Copy from numpy cannot have options other than IGNORE_ERRORS."};
     }
     std::vector<std::string> detectedColumnNames;
-    std::vector<common::LogicalType> detectedColumnTypes;
+    std::vector<LogicalType> detectedColumnTypes;
     bindColumns(scanInput->config, detectedColumnNames, detectedColumnTypes);
     std::vector<std::string> resultColumnNames;
-    std::vector<common::LogicalType> resultColumnTypes;
+    std::vector<LogicalType> resultColumnTypes;
     ReaderBindUtils::resolveColumns(scanInput->expectedColumnNames, detectedColumnNames,
         resultColumnNames, scanInput->expectedColumnTypes, detectedColumnTypes, resultColumnTypes);
     auto config = scanInput->config.copy();
@@ -322,31 +322,28 @@ static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext
         reader->validate(resultColumnTypes[i], numRows);
     }
     auto columns = input->binder->createVariables(resultColumnNames, resultColumnTypes);
-    return std::make_unique<function::ScanBindData>(columns, scanInput->config.copy(), context,
+    return std::make_unique<ScanBindData>(columns, scanInput->config.copy(), context,
         0 /* numWarningColumns*/, numRows);
 }
 
-static std::unique_ptr<function::TableFuncSharedState> initSharedState(
-    function::TableFunctionInitInput& input) {
+static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
     auto bindData = input.bindData->constPtrCast<ScanBindData>();
     auto reader = make_unique<NpyReader>(bindData->config.filePaths[0]);
     return std::make_unique<NpyScanSharedState>(bindData->config.copy(), reader->getNumRows());
 }
 
-static void finalizeFunc(ExecutionContext* ctx, TableFuncSharedState* /*sharedState*/) {
+static void finalizeFunc(const ExecutionContext* ctx, TableFuncSharedState*) {
     ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
 }
 
-static std::unique_ptr<function::TableFuncLocalState> initLocalState(
-    function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* /*state*/,
-    storage::MemoryManager* /*mm*/) {
-    return std::make_unique<function::TableFuncLocalState>();
+static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput&,
+    TableFuncSharedState*, MemoryManager*) {
+    return std::make_unique<TableFuncLocalState>();
 }
 
 function_set NpyScanFunction::getFunctionSet() {
     function_set functionSet;
-    auto function =
-        std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
+    auto function = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = initSharedState;

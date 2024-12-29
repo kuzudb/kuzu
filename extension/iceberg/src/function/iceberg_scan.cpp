@@ -7,14 +7,13 @@ using namespace function;
 using namespace common;
 
 std::unique_ptr<TableFuncBindData> scanBindFunc(main::ClientContext* context,
-    TableFuncBindInput* input) {
+    const TableFuncBindInput* input) {
     return bindFuncHelper(context, input, IcebergScanFunction::name);
 }
 
 function_set IcebergScanFunction::getFunctionSet() {
     function_set functionSet;
-    auto function =
-        std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
+    auto function = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
     function->tableFunc = delta_extension::tableFunc;
     function->bindFunc = scanBindFunc;
     function->initSharedStateFunc = delta_extension::initDeltaScanSharedState;

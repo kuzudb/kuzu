@@ -2,7 +2,6 @@
 
 #include "binder/expression/expression_util.h"
 #include "catalog/catalog.h"
-#include "common/exception/binder.h"
 #include "fts_extension.h"
 #include "function/fts_bind_data.h"
 #include "function/fts_utils.h"
@@ -17,7 +16,7 @@ using namespace kuzu::main;
 using namespace kuzu::function;
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
-    TableFuncBindInput* input) {
+    const TableFuncBindInput* input) {
     FTSUtils::validateAutoTrx(*context, DropFTSFunction::name);
     auto indexName = input->getLiteralVal<std::string>(1);
     auto& tableEntry = FTSUtils::bindTable(input->getLiteralVal<std::string>(0), context, indexName,
@@ -27,19 +26,19 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
         binder::expression_vector{});
 }
 
-std::string dropFTSIndexQuery(ClientContext& /*context*/, const TableFuncBindData& bindData) {
+std::string dropFTSIndexQuery(const ClientContext& /*context*/, const TableFuncBindData& bindData) {
     auto ftsBindData = bindData.constPtrCast<FTSBindData>();
-    std::string query = common::stringFormat("DROP TABLE `{}`;", FTSUtils::getStopWordsTableName());
-    query += common::stringFormat("DROP TABLE `{}`;",
+    std::string query = stringFormat("DROP TABLE `{}`;", FTSUtils::getStopWordsTableName());
+    query += stringFormat("DROP TABLE `{}`;",
         FTSUtils::getAppearsInTableName(ftsBindData->tableID, ftsBindData->indexName));
-    query += common::stringFormat("DROP TABLE `{}`;",
+    query += stringFormat("DROP TABLE `{}`;",
         FTSUtils::getDocsTableName(ftsBindData->tableID, ftsBindData->indexName));
-    query += common::stringFormat("DROP TABLE `{}`;",
+    query += stringFormat("DROP TABLE `{}`;",
         FTSUtils::getTermsTableName(ftsBindData->tableID, ftsBindData->indexName));
     return query;
 }
 
-static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& /*output*/) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& /*output*/) {
     auto& ftsBindData = *input.bindData->constPtrCast<FTSBindData>();
     auto& context = *input.context;
     context.clientContext->getCatalog()->dropIndex(input.context->clientContext->getTx(),
@@ -50,7 +49,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& /*outp
 function_set DropFTSFunction::getFunctionSet() {
     function_set functionSet;
     auto func = std::make_unique<TableFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING});
+        std::vector{LogicalTypeID::STRING, LogicalTypeID::STRING});
     func->tableFunc = tableFunc;
     func->bindFunc = bindFunc;
     func->initSharedStateFunc = initSharedState;

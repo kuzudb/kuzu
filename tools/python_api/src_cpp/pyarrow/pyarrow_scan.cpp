@@ -14,7 +14,7 @@ using namespace kuzu::catalog;
 
 namespace kuzu {
 
-PyArrowScanConfig::PyArrowScanConfig(const common::case_insensitive_map_t<Value>& options) {
+PyArrowScanConfig::PyArrowScanConfig(const case_insensitive_map_t<Value>& options) {
     skipNum = 0;
     limitNum = NumericLimits<uint64_t>::maximum();
     for (const auto& i : options) {
@@ -42,8 +42,8 @@ static bool moduleIsLoaded() {
     return dict.contains(py::str(T::name_));
 }
 
-static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-    TableFuncBindInput* input) {
+static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext*,
+    const TableFuncBindInput* input) {
     auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
     // TODO: This binding step could use some drastic improvements.
     // Particularly when scanning from pandas or polars.
@@ -92,9 +92,7 @@ ArrowArrayWrapper* PyArrowTableScanSharedState::getNextChunk() {
     return chunks[currentChunk++].get();
 }
 
-static std::unique_ptr<function::TableFuncSharedState> initSharedState(
-    function::TableFunctionInitInput& input) {
-
+static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
     py::gil_scoped_acquire acquire;
     PyArrowTableScanFunctionData* bindData =
         dynamic_cast<PyArrowTableScanFunctionData*>(input.bindData);
@@ -103,18 +101,14 @@ static std::unique_ptr<function::TableFuncSharedState> initSharedState(
         bindData->arrowArrayBatches);
 }
 
-static std::unique_ptr<function::TableFuncLocalState> initLocalState(
-    function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* sharedState,
-    storage::MemoryManager* /*mm*/) {
-
+static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput&,
+    TableFuncSharedState* sharedState, storage::MemoryManager* /*mm*/) {
     PyArrowTableScanSharedState* pyArrowShared =
         dynamic_cast<PyArrowTableScanSharedState*>(sharedState);
     return std::make_unique<PyArrowTableScanLocalState>(pyArrowShared->getNextChunk());
 }
 
-static common::offset_t tableFunc(function::TableFuncInput& input,
-    function::TableFuncOutput& output) {
-
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto arrowScanData = dynamic_cast<PyArrowTableScanFunctionData*>(input.bindData);
     auto arrowLocalState = dynamic_cast<PyArrowTableScanLocalState*>(input.localState);
     auto arrowSharedState = dynamic_cast<PyArrowTableScanSharedState*>(input.sharedState);
@@ -124,7 +118,7 @@ static common::offset_t tableFunc(function::TableFuncInput& input,
     auto skipCols = arrowScanData->getColumnSkips();
     for (auto i = 0u; i < arrowScanData->getNumColumns(); i++) {
         if (!skipCols[i]) {
-            common::ArrowConverter::fromArrowArray(arrowScanData->schema->children[i],
+            ArrowConverter::fromArrowArray(arrowScanData->schema->children[i],
                 arrowLocalState->arrowArray->children[i],
                 output.dataChunk.getValueVectorMutable(i));
         }
@@ -134,7 +128,7 @@ static common::offset_t tableFunc(function::TableFuncInput& input,
     return len;
 }
 
-static double progressFunc(function::TableFuncSharedState* sharedState) {
+static double progressFunc(TableFuncSharedState* sharedState) {
     PyArrowTableScanSharedState* state = ku_dynamic_cast<PyArrowTableScanSharedState*>(sharedState);
     if (state->chunks.size() == 0) {
         return 0.0;
@@ -142,14 +136,14 @@ static double progressFunc(function::TableFuncSharedState* sharedState) {
     return static_cast<double>(state->currentChunk) / state->chunks.size();
 }
 
-function::function_set PyArrowTableScanFunction::getFunctionSet() {
+function_set PyArrowTableScanFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(getFunction().copy());
     return functionSet;
 }
 
 TableFunction PyArrowTableScanFunction::getFunction() {
-    auto function = TableFunction(name, std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
+    auto function = TableFunction(name, std::vector{LogicalTypeID::POINTER});
     function.tableFunc = tableFunc;
     function.bindFunc = bindFunc;
     function.initSharedStateFunc = initSharedState;

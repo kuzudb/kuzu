@@ -14,11 +14,11 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace function {
 
-struct ShowConnectionBindData : public SimpleTableFuncBindData {
-    ClientContext* context;
+struct ShowConnectionBindData final : SimpleTableFuncBindData {
+    const ClientContext* context;
     TableCatalogEntry* tableEntry;
 
-    ShowConnectionBindData(ClientContext* context, TableCatalogEntry* tableEntry,
+    ShowConnectionBindData(const ClientContext* context, TableCatalogEntry* tableEntry,
         binder::expression_vector columns, offset_t maxOffset)
         : SimpleTableFuncBindData{std::move(columns), maxOffset}, context{context},
           tableEntry{tableEntry} {}
@@ -28,22 +28,24 @@ struct ShowConnectionBindData : public SimpleTableFuncBindData {
     }
 };
 
-static void outputRelTableConnection(DataChunk& outputDataChunk, uint64_t outputPos,
-    ClientContext* context, table_id_t tableID) {
-    auto catalog = context->getCatalog();
-    auto tableEntry = catalog->getTableCatalogEntry(context->getTx(), tableID);
-    auto relTableEntry = ku_dynamic_cast<RelTableCatalogEntry*>(tableEntry);
+static void outputRelTableConnection(const DataChunk& outputDataChunk, uint64_t outputPos,
+    const ClientContext* context, table_id_t tableID) {
+    const auto catalog = context->getCatalog();
+    const auto tableEntry = catalog->getTableCatalogEntry(context->getTx(), tableID);
+    const auto relTableEntry = ku_dynamic_cast<RelTableCatalogEntry*>(tableEntry);
     KU_ASSERT(tableEntry->getTableType() == TableType::REL);
     // Get src and dst name
-    auto srcTableID = relTableEntry->getSrcTableID();
-    auto dstTableID = relTableEntry->getDstTableID();
-    auto srcTableName = catalog->getTableName(context->getTx(), srcTableID);
-    auto dstTableName = catalog->getTableName(context->getTx(), dstTableID);
+    const auto srcTableID = relTableEntry->getSrcTableID();
+    const auto dstTableID = relTableEntry->getDstTableID();
+    const auto srcTableName = catalog->getTableName(context->getTx(), srcTableID);
+    const auto dstTableName = catalog->getTableName(context->getTx(), dstTableID);
     // Get src and dst primary key
-    auto srcTableEntry = catalog->getTableCatalogEntry(context->getTx(), srcTableID);
-    auto dstTableEntry = catalog->getTableCatalogEntry(context->getTx(), dstTableID);
-    auto srcTablePrimaryKey = srcTableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName();
-    auto dstTablePrimaryKey = dstTableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName();
+    const auto srcTableEntry = catalog->getTableCatalogEntry(context->getTx(), srcTableID);
+    const auto dstTableEntry = catalog->getTableCatalogEntry(context->getTx(), dstTableID);
+    const auto srcTablePrimaryKey =
+        srcTableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName();
+    const auto dstTablePrimaryKey =
+        dstTableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName();
     // Write result to dataChunk
     outputDataChunk.getValueVectorMutable(0).setValue(outputPos, srcTableName);
     outputDataChunk.getValueVectorMutable(1).setValue(outputPos, dstTableName);
@@ -51,15 +53,15 @@ static void outputRelTableConnection(DataChunk& outputDataChunk, uint64_t output
     outputDataChunk.getValueVectorMutable(3).setValue(outputPos, dstTablePrimaryKey);
 }
 
-static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto morsel = input.sharedState->ptrCast<SimpleTableFuncSharedState>()->getMorsel();
+    const auto morsel = input.sharedState->ptrCast<SimpleTableFuncSharedState>()->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
-    auto bindData = input.bindData->constPtrCast<ShowConnectionBindData>();
-    auto tableEntry = bindData->tableEntry;
-    auto numRelationsToOutput = morsel.endOffset - morsel.startOffset;
+    const auto bindData = input.bindData->constPtrCast<ShowConnectionBindData>();
+    const auto tableEntry = bindData->tableEntry;
+    const auto numRelationsToOutput = morsel.endOffset - morsel.startOffset;
     auto vectorPos = 0u;
     switch (tableEntry->getTableType()) {
     case TableType::REL: {
@@ -67,8 +69,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
         vectorPos++;
     } break;
     case TableType::REL_GROUP: {
-        auto relGroupEntry = ku_dynamic_cast<RelGroupCatalogEntry*>(tableEntry);
-        auto relTableIDs = relGroupEntry->getRelTableIDs();
+        const auto relGroupEntry = ku_dynamic_cast<RelGroupCatalogEntry*>(tableEntry);
+        const auto relTableIDs = relGroupEntry->getRelTableIDs();
         for (; vectorPos < numRelationsToOutput; vectorPos++) {
             outputRelTableConnection(dataChunk, vectorPos, bindData->context,
                 relTableIDs[morsel.startOffset + vectorPos]);
@@ -82,15 +84,15 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     return vectorPos;
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
-    TableFuncBindInput* input) {
+static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
+    const TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
-    auto tableName = input->getLiteralVal<std::string>(0);
-    auto catalog = context->getCatalog();
-    auto tableID = catalog->getTableID(context->getTx(), tableName);
+    const auto tableName = input->getLiteralVal<std::string>(0);
+    const auto catalog = context->getCatalog();
+    const auto tableID = catalog->getTableID(context->getTx(), tableName);
     auto tableEntry = catalog->getTableCatalogEntry(context->getTx(), tableID);
-    auto tableType = tableEntry->getTableType();
+    const auto tableType = tableEntry->getTableType();
     if (tableType != TableType::REL && tableType != TableType::REL_GROUP) {
         throw BinderException{"Show connection can only be called on a rel table!"};
     }
@@ -102,9 +104,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("destination table primary key");
     columnTypes.emplace_back(LogicalType::STRING());
-    common::offset_t maxOffset = 1;
-    if (tableEntry->getTableType() == common::TableType::REL_GROUP) {
-        auto relGroupEntry = ku_dynamic_cast<RelGroupCatalogEntry*>(tableEntry);
+    offset_t maxOffset = 1;
+    if (tableEntry->getTableType() == TableType::REL_GROUP) {
+        const auto relGroupEntry = ku_dynamic_cast<RelGroupCatalogEntry*>(tableEntry);
         maxOffset = relGroupEntry->getRelTableIDs().size();
     }
     auto columns = input->binder->createVariables(columnNames, columnTypes);
@@ -113,8 +115,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
 
 function_set ShowConnectionFunction::getFunctionSet() {
     function_set functionSet;
-    auto function =
-        std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
+    auto function = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = initSharedState;

@@ -91,8 +91,8 @@ private:
     main::ClientContext* context;
 };
 
-struct ParquetScanSharedState final : public function::ScanFileSharedState {
-    explicit ParquetScanSharedState(const common::ReaderConfig readerConfig, uint64_t numRows,
+struct ParquetScanSharedState final : function::ScanFileSharedState {
+    explicit ParquetScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
         main::ClientContext* context, std::vector<bool> columnSkips);
 
     std::vector<std::unique_ptr<ParquetReader>> readers;
@@ -101,7 +101,7 @@ struct ParquetScanSharedState final : public function::ScanFileSharedState {
     uint64_t numBlocksReadByFiles;
 };
 
-struct ParquetScanLocalState final : public function::TableFuncLocalState {
+struct ParquetScanLocalState final : function::TableFuncLocalState {
     ParquetScanLocalState() : reader(nullptr) {
         state = std::make_unique<ParquetReaderScanState>();
     }

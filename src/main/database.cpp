@@ -154,10 +154,6 @@ void Database::addExtensionOption(std::string name, LogicalTypeID type, Value de
     extensionOptions->addExtensionOption(name, type, std::move(defaultValue));
 }
 
-ExtensionOption* Database::getExtensionOption(std::string name) const {
-    return extensionOptions->getExtensionOption(std::move(name));
-}
-
 case_insensitive_map_t<std::unique_ptr<StorageExtension>>& Database::getStorageExtensions() {
     return storageExtensions;
 }

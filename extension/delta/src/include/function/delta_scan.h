@@ -17,7 +17,7 @@ struct DeltaScanFunction {
     static function::function_set getFunctionSet();
 };
 
-struct DeltaScanBindData : public function::ScanBindData {
+struct DeltaScanBindData final : function::ScanBindData {
     std::string query;
     std::shared_ptr<duckdb_extension::DuckDBConnector> connector;
     duckdb_extension::DuckDBResultConverter converter;
@@ -29,19 +29,21 @@ struct DeltaScanBindData : public function::ScanBindData {
         : ScanBindData{std::move(columns), std::move(config), ctx}, query{std::move(query)},
           connector{std::move(connector)}, converter{std::move(converter)} {}
 
-    std::unique_ptr<function::TableFuncBindData> copy() const override {
+    std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<DeltaScanBindData>(*this);
     }
 };
 
 // Functions and structs exposed for use
 std::unique_ptr<function::TableFuncSharedState> initDeltaScanSharedState(
-    function::TableFunctionInitInput& input);
+    const function::TableFunctionInitInput& input);
 
 std::unique_ptr<function::TableFuncLocalState> initEmptyLocalState(
-    function::TableFunctionInitInput&, function::TableFuncSharedState*, storage::MemoryManager*);
+    const function::TableFunctionInitInput&, function::TableFuncSharedState*,
+    storage::MemoryManager*);
 
-common::offset_t tableFunc(function::TableFuncInput& input, function::TableFuncOutput& output);
+common::offset_t tableFunc(const function::TableFuncInput& input,
+    function::TableFuncOutput& output);
 
 } // namespace delta_extension
 } // namespace kuzu

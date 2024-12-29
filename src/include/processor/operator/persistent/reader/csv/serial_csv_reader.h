@@ -51,7 +51,7 @@ struct SerialCSVScanSharedState final : public function::ScanFileSharedState {
     void initReader(main::ClientContext* context);
     void finalizeReader(main::ClientContext* context) const;
 
-    populate_func_t constructPopulateFunc();
+    populate_func_t constructPopulateFunc() const;
 };
 
 struct SerialCSVScan {

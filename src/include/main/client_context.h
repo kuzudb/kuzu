@@ -75,7 +75,7 @@ public:
     ClientConfig* getClientConfigUnsafe() { return &clientConfig; }
     const DBConfig* getDBConfig() const { return &dbConfig; }
     DBConfig* getDBConfigUnsafe() { return &dbConfig; }
-    common::Value getCurrentSetting(const std::string& optionName);
+    common::Value getCurrentSetting(const std::string& optionName) const;
     bool isOptionSet(const std::string& optionName) const;
     // Timer and timeout
     void interrupt() { activeQuery.interrupted = true; }

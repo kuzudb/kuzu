@@ -214,7 +214,7 @@ void ExtensionOptions::addExtensionOption(std::string name, common::LogicalTypeI
     extensionOptions.emplace(name, main::ExtensionOption{name, type, std::move(defaultValue)});
 }
 
-main::ExtensionOption* ExtensionOptions::getExtensionOption(std::string name) {
+const main::ExtensionOption* ExtensionOptions::getExtensionOption(std::string name) const {
     common::StringUtils::toLower(name);
     return extensionOptions.contains(name) ? &extensionOptions.at(name) : nullptr;
 }

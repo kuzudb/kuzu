@@ -8,7 +8,7 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace function {
 
-struct ShowAttachedDatabasesBindData : public SimpleTableFuncBindData {
+struct ShowAttachedDatabasesBindData final : SimpleTableFuncBindData {
     std::vector<main::AttachedDatabase*> attachedDatabases;
 
     ShowAttachedDatabasesBindData(std::vector<main::AttachedDatabase*> attachedDatabases,
@@ -22,26 +22,26 @@ struct ShowAttachedDatabasesBindData : public SimpleTableFuncBindData {
     }
 };
 
-static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
-    auto morsel = sharedState->getMorsel();
+    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
+    const auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
     auto& attachedDatabases =
         input.bindData->constPtrCast<ShowAttachedDatabasesBindData>()->attachedDatabases;
-    auto numDatabasesToOutput = morsel.endOffset - morsel.startOffset;
+    const auto numDatabasesToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numDatabasesToOutput; i++) {
-        auto attachedDatabase = attachedDatabases[morsel.startOffset + i];
+        const auto attachedDatabase = attachedDatabases[morsel.startOffset + i];
         dataChunk.getValueVectorMutable(0).setValue(i, attachedDatabase->getDBName());
         dataChunk.getValueVectorMutable(1).setValue(i, attachedDatabase->getDBType());
     }
     return numDatabasesToOutput;
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-    TableFuncBindInput* input) {
+static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* context,
+    const TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     columnNames.emplace_back("name");
