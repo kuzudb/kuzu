@@ -59,9 +59,6 @@ public:
     static bool isNodeIDOnlyJoin(const std::vector<join_condition_t>& joinConditions);
 
 private:
-    bool isJoinKeyUniqueOnBuildSide(const binder::Expression& joinNodeID);
-
-private:
     std::vector<join_condition_t> joinConditions;
     common::JoinType joinType;
     std::shared_ptr<binder::Expression> mark; // when joinType is Mark or Left

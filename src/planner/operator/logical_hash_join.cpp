@@ -1,6 +1,5 @@
 #include "planner/operator/logical_hash_join.h"
 
-#include "common/cast.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/operator/factorization/sink_util.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
@@ -165,6 +164,24 @@ binder::expression_vector LogicalHashJoin::getJoinNodeIDs(
     return result;
 }
 
+class JoinNodeIDUniquenessAnalyzer {
+public:
+    static bool isUnique(LogicalOperator* op, const binder::Expression& joinNodeID) {
+        switch (op->getOperatorType()) {
+        case LogicalOperatorType::FILTER:
+        case LogicalOperatorType::FLATTEN:
+        case LogicalOperatorType::LIMIT:
+        case LogicalOperatorType::PROJECTION:
+        case LogicalOperatorType::SEMI_MASKER:
+            return isUnique(op->getChild(0).get(), joinNodeID);
+        case LogicalOperatorType::SCAN_NODE_TABLE:
+            return *op->constCast<LogicalScanNodeTable>().getNodeID() == joinNodeID;
+        default:
+            return false;
+        }
+    }
+};
+
 bool LogicalHashJoin::requireFlatProbeKeys() {
     // Flatten for multiple join keys.
     if (joinConditions.size() > 1) {
@@ -179,35 +196,7 @@ bool LogicalHashJoin::requireFlatProbeKeys() {
     if (probeKey->dataType.getLogicalTypeID() != LogicalTypeID::INTERNAL_ID) {
         return true;
     }
-    return !isJoinKeyUniqueOnBuildSide(*buildKey);
-}
-
-bool LogicalHashJoin::isJoinKeyUniqueOnBuildSide(const binder::Expression& joinNodeID) {
-    auto buildSchema = children[1]->getSchema();
-    auto numGroupsInScope = buildSchema->getGroupsPosInScope().size();
-    bool hasProjectedOutGroups = buildSchema->getNumGroups() > numGroupsInScope;
-    if (numGroupsInScope > 1 || hasProjectedOutGroups) {
-        return false;
-    }
-    // Now there is a single factorization group, we need to further make sure joinNodeID comes from
-    // ScanNodeID operator. Because if joinNodeID comes from a ColExtend we cannot guarantee the
-    // reverse mapping is still many-to-one. We look for the most simple pattern where build plan is
-    // linear.
-    auto op = children[1].get();
-    while (op->getNumChildren() != 0) {
-        if (op->getNumChildren() > 1) {
-            return false;
-        }
-        op = op->getChild(0).get();
-    }
-    if (op->getOperatorType() != LogicalOperatorType::SCAN_NODE_TABLE) {
-        return false;
-    }
-    auto scan = ku_dynamic_cast<LogicalScanNodeTable*>(op);
-    if (scan->getNodeID()->getUniqueName() != joinNodeID.getUniqueName()) {
-        return false;
-    }
-    return true;
+    return !JoinNodeIDUniquenessAnalyzer::isUnique(children[1].get(), *buildKey);
 }
 
 } // namespace planner
