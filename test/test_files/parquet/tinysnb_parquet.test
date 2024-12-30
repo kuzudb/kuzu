@@ -15,7 +15,6 @@ Dan|
 
 -LOG AggOneHopAggTestParquet
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.age, a.gender, COUNT(*)
--ENUMERATE
 -PARALLELISM 2
 ---- 5
 20|1|2
@@ -69,7 +68,6 @@ Binder exception: e has data type RECURSIVE_REL but (NODE,REL) was expected.
 
 -LOG OptionalMatchMultiKeyOptionalMatchTest1Parquet
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.ID=0 OPTIONAL MATCH (a)-[:knows]->(c:person), (b)-[:knows]->(c) RETURN COUNT(*)
--ENUMERATE
 ---- 1
 6
 
@@ -96,7 +94,6 @@ Dan|1
 
 -LOG ExistSubqueryTestParquet
 -STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) } RETURN COUNT(*)
--ENUMERATE
 ---- 1
 5
 

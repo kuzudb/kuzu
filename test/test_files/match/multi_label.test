@@ -21,7 +21,6 @@
 
 -LOG MultiLabelCrossProductTest
 -STATEMENT MATCH (a:person), (b:person), (c:person:movies) RETURN COUNT(*)
--ENUMERATE
 ---- 1
 704
 
@@ -47,13 +46,11 @@
 
 -LOG MultiLabelOneHopTest3
 -STATEMENT MATCH (a:person)-[e:knows|:marries|:studyAt|:workAt|:meets]->(b:organisation) RETURN COUNT(*)
--ENUMERATE
 ---- 1
 6
 
 -LOG MultiLabelOneHopTest4
 -STATEMENT MATCH (a:person)-[:studyAt|:knows]->(b:person:organisation) RETURN COUNT(*)
--ENUMERATE
 ---- 1
 17
 

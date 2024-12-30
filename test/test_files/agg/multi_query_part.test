@@ -27,7 +27,6 @@ True
 
 -LOG GroupByMultiQueryTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) WITH a.gender AS k, SUM(b.age) AS s MATCH (d:person)-[:workAt]->(c:organisation) WHERE c.orgCode > s RETURN d.ID, c.orgCode, s
--ENUMERATE
 ---- 6
 3|934|210
 3|934|245

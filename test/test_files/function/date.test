@@ -390,31 +390,26 @@ November
 
 -LOG DateLiteralGreaterThanComparison
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE b.birthdate > date('1970-09-11') RETURN COUNT(*)
--ENUMERATE
 ---- 1
 2
 
 -LOG DateLiteralLessThanComparison
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE e1.date < date('1960-09-11') RETURN COUNT(*)
--ENUMERATE
 ---- 1
 6
 
 -LOG StructuredDateComparisonAcrossNodesEquality
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.birthdate = b.birthdate RETURN COUNT(*)
--ENUMERATE
 ---- 1
 4
 
 -LOG StructuredDateComparisonAcrossNodesGreaterThanOrEqualTo
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.birthdate >= b.birthdate RETURN COUNT(*)
--ENUMERATE
 ---- 1
 9
 
 -LOG StructuredDateComparisonAcrossEdges
 -STATEMENT MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE e1.date = e2.date AND id(a) <> id(c) RETURN COUNT(*)
--ENUMERATE
 ---- 1
 10
 
@@ -422,6 +417,5 @@ November
 #  (2-3) 7,8,1905-12-12 and 7,9,1905-12-12 (7's birthday is 1980-10-26)
 -LOG StructuredDateComparisonAcrossEdgeAndNode
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.birthdate > e1.date  RETURN COUNT(*)
--ENUMERATE
 ---- 1
 3

@@ -7,7 +7,6 @@
 -LOG OneHopSimpleAggTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN COUNT(a.ID), MIN(a.fName), MAX(c.ID),count(a.grades)
 -PARALLELISM 8
--ENUMERATE
 -CHECK_PRECISION
 -CHECK_ORDER
 ---- 1
@@ -77,55 +76,46 @@ False
 
 -LOG TwoHopTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN SUM(b.age), MIN(b.ID), AVG(b.eyeSight)
--ENUMERATE
 ---- 1
 455|0|4.935714
 
 -LOG INT8KeyTest
 -STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.level = 5 RETURN p.ID, o.ID
--ENUMERATE
 ---- 1
 0|1
 
 -LOG UINT8KeyTest
 -STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.ulevel = 220 RETURN p.ID, o.ID
--ENUMERATE
 ---- 1
 2|1
 
 -LOG UINT16KeyTest
 -STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.ulength = 90 RETURN p.ID, o.ID
--ENUMERATE
 ---- 1
 2|1
 
 -LOG UINT32KeyTest
 -STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.temperature = 1 RETURN p.ID, o.ID
--ENUMERATE
 ---- 1
 2|1
 
 -LOG UINT64KeyTest
 -STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.code = 6689 RETURN p.ID, o.ID
--ENUMERATE
 ---- 1
 2|1
 
 -LOG INT128KeyTest
 -STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.hugedata = 1844674407370955161811111111 RETURN p.ID, o.ID
--ENUMERATE
 ---- 1
 0|1
 
 -LOG UUIDKeyTest
 -STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE p.u = UUID("A0EEBC99-9C0B-4EF8-BB6D-6BB9BD380A11") RETURN p.ID, o.ID
--ENUMERATE
 ---- 1
 0|1
 
 -LOG UUIDKeyTest2
 -STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE p.u = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" RETURN p.ID, o.ID
--ENUMERATE
 ---- 1
 0|1
 
@@ -225,112 +215,96 @@ False
 -LOG SimpleAggMinTimestampTest
 -STATEMENT MATCH (a:person) RETURN MIN(a.registerTime)
 -PARALLELISM 8
--ENUMERATE
 ---- 1
 1911-08-20 02:32:21
 
 -LOG SimpleAggMinDateTest
 -STATEMENT MATCH (a:person) RETURN MIN(a.birthdate)
 -PARALLELISM 7
--ENUMERATE
 ---- 1
 1900-01-01
 
 -LOG SimpleAggMinIntervalTest
 -STATEMENT MATCH (a:person) RETURN MIN(a.lastJobDuration)
 -PARALLELISM 4
--ENUMERATE
 ---- 1
 00:18:00.024
 
 -LOG SimpleAggMaxFloatTest
 -STATEMENT MATCH (:person)-[w:workAt]->(:organisation) RETURN MAX(w.rating)
 -PARALLELISM 3
--ENUMERATE
 ---- 1
 9.200000
 
 -LOG SimpleAggMaxInt16Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.length)
 -PARALLELISM 4
--ENUMERATE
 ---- 1
 55
 
 -LOG SimpleAggSumInt16Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.length) / 2
 -PARALLELISM 2
--ENUMERATE
 ---- 1
 41
 
 -LOG SimpleAggAvgInt16Test
 -STATEMENT MATCH (m:movies) RETURN AVG(m.length), count(m.audience), count(m.grade)
 -PARALLELISM 7
--ENUMERATE
 ---- 1
 989.333333|3|3
 
 -LOG SimpleAggMaxInt8Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.level)
 -PARALLELISM 4
--ENUMERATE
 ---- 1
 120
 
 -LOG SimpleAggSumInt8Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.level)
 -PARALLELISM 2
--ENUMERATE
 ---- 1
 127
 
 -LOG SimpleAggMaxUInt64Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.code)
 -PARALLELISM 2
--ENUMERATE
 ---- 1
 9223372036854775808
 
 -LOG SimpleAggSumUInt64Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.code)
 -PARALLELISM 2
--ENUMERATE
 ---- 1
 9223372036854782520
 
 -LOG SimpleAggMaxUInt32Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.temperature)
 -PARALLELISM 2
--ENUMERATE
 ---- 1
 32800
 
 -LOG SimpleAggSumUInt32Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.temperature)
 -PARALLELISM 2
--ENUMERATE
 ---- 1
 32821
 
 -LOG SimpleAggMaxUInt16Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.ulength)
 -PARALLELISM 2
--ENUMERATE
 ---- 1
 33768
 
 -LOG SimpleAggSumUInt16Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.ulength)
 -PARALLELISM 2
--ENUMERATE
 ---- 1
 34038
 
 -LOG SimpleAggMaxUInt8Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.ulevel)
 -PARALLELISM 2
--ENUMERATE
 ---- 1
 250
 
@@ -339,42 +313,36 @@ False
 		   WHERE s.year = 2020
 		   RETURN SUM(s.ulevel)
 -PARALLELISM 2
--ENUMERATE
 ---- 1
 232
 
 -LOG SimpleAggMaxInt128Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.hugedata)
 -PARALLELISM 2
--ENUMERATE
 ---- 1
 1844674407370955161811111111
 
 -LOG SimpleAggSumInt128Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.hugedata)
 -PARALLELISM 2
--ENUMERATE
 ---- 1
 1844672562696547790855949585
 
 -LOG SimpleAggCountBlob
 -STATEMENT MATCH (m:movies) RETURN COUNT(m.content)
 -PARALLELISM 3
--ENUMERATE
 ---- 1
 3
 
 -LOG SimpleAggMinBlob
 -STATEMENT MATCH (m:movies) RETURN MIN(m.content)
 -PARALLELISM 3
--ENUMERATE
 ---- 1
 pure ascii characters
 
 -LOG SimpleAggMaxBlob
 -STATEMENT MATCH (m:movies) RETURN MAX(m.content)
 -PARALLELISM 3
--ENUMERATE
 ---- 1
 \xAB\xCD
 

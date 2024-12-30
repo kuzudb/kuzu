@@ -386,37 +386,31 @@ The license is valid until 82:00:00.1 test
 
 -LOG IntervalGreaterThanComparison
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE b.lastJobDuration > interval('2 years 18 months 3 days') RETURN COUNT(*)
--ENUMERATE
 ---- 1
 7
 
 -LOG IntervalLessThanComparison
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE e1.validInterval < interval('3 years 5 months') RETURN COUNT(*)
--ENUMERATE
 ---- 1
 10
 
 -LOG StructuredIntervalComparisonAcrossNodesEquality
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration = b.lastJobDuration RETURN COUNT(*)
--ENUMERATE
 ---- 1
 2
 
 -LOG StructuredIntervalComparisonAcrossNodesGreaterThanOrEqualTo
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration >= b.lastJobDuration RETURN COUNT(*)
--ENUMERATE
 ---- 1
 8
 
 -LOG StructuredIntervalComparisonAcrossEdges
 -STATEMENT MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE e1.validInterval = e2.validInterval AND id(a) <> id(c) RETURN COUNT(*)
--ENUMERATE
 ---- 1
 2
 
 -LOG StructuredIntervalComparisonAcrossEdgeAndNode
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration > e1.validInterval  RETURN COUNT(*)
--ENUMERATE
 ---- 1
 9
 

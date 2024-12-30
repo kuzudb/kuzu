@@ -17,7 +17,6 @@
 
 -LOG TwoHopDistinctAggTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.ID, SUM(DISTINCT a.age), SUM(DISTINCT c.age)
--ENUMERATE
 ---- 4
 0|35|130
 2|30|130
@@ -26,7 +25,6 @@
 
 -LOG OneHopDistinctAggTest
 -STATEMENT MATCH (p:person)-[:knows]->(:person) RETURN count(distinct p.ID)
--ENUMERATE
 ---- 1
 5
 

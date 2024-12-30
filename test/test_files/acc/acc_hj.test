@@ -14,7 +14,6 @@
 
 -LOG AspBasic
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.age > 35 RETURN b.fName
--ENUMERATE
 ---- 3
 Alice
 Bob
@@ -22,7 +21,6 @@ Dan
 
 -LOG AspMultiLabel
 -STATEMENT MATCH (a:person)-[e1:knows|:studyAt|:workAt]->(b:person:organisation) WHERE a.age > 35 RETURN b.fName, b.name
--ENUMERATE
 ---- 4
 Alice|
 Bob|
@@ -31,7 +29,6 @@ Dan|
 
 -LOG AspMultiKey
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person), (a)-[e3:knows]->(c) WHERE a.fName='Alice' RETURN b.fName, c.fName
--ENUMERATE
 ---- 6
 Bob|Carol
 Bob|Dan
@@ -42,14 +39,12 @@ Dan|Carol
 
 -LOG AspMultiMaskToOneScan
 -STATEMENT MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE a.fName='Alice' AND c.fName='Bob' RETURN b.fName
--ENUMERATE
 ---- 2
 Carol
 Dan
 
 -LOG AspOneMaskToMultiScan
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person), (a)-[e2:knows]->(b), (a)-[e3:knows]->(c:person)-[e4:knows]->(d:person) WHERE e1.date=date('1950-05-14') AND a.ID>0 AND c.fName='Bob' AND d.fName='Carol' RETURN a.fName, b.fName
--ENUMERATE
 ---- 2
 Carol|Bob
 Dan|Bob

@@ -3,7 +3,6 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <vector>
 
 #include "common/api.h"
 #include "kuzu_fwd.h"
@@ -40,7 +39,7 @@ public:
      */
     KUZU_API bool isReadOnly() const;
 
-    inline std::unordered_map<std::string, std::shared_ptr<common::Value>> getParameterMap() {
+    std::unordered_map<std::string, std::shared_ptr<common::Value>> getParameterMap() {
         return parameterMap;
     }
 
@@ -58,7 +57,7 @@ private:
     PreparedSummary preparedSummary;
     std::unordered_map<std::string, std::shared_ptr<common::Value>> parameterMap;
     std::unique_ptr<binder::BoundStatementResult> statementResult;
-    std::vector<std::unique_ptr<planner::LogicalPlan>> logicalPlans;
+    std::unique_ptr<planner::LogicalPlan> logicalPlan;
     std::shared_ptr<parser::Statement> parsedStatement;
 };
 

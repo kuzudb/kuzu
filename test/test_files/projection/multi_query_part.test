@@ -17,7 +17,6 @@
 
 -LOG KnowsOneHopWithTest1
 -STATEMENT MATCH (a:person) WHERE a.age>20 WITH a MATCH (a)-[e:knows]->(b:person) RETURN b.fName
--ENUMERATE
 ---- 9
 Alice
 Alice
@@ -31,7 +30,6 @@ Dan
 
 -LOG  CrossProductTest
 -STATEMENT MATCH (a:person) WITH a.age AS s, a.fName as n MATCH (b:person) WHERE s=b.age RETURN n,b.fName,s
--ENUMERATE
 ---- 10
 Alice|Alice|35
 Bob|Bob|30
@@ -46,12 +44,10 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|Hubert Blaine Wolfeschlegelste
 
 -LOG CrossProductWithFilterPushDownTest
 -STATEMENT MATCH (a:person) WITH a.age AS s, a.fName as n MATCH (b:person) WHERE s=b.age and n='Dan' RETURN n,b.fName,s
--ENUMERATE
 ---- 2
 Dan|Dan|20
 Dan|Elizabeth|20
 -STATEMENT MATCH (a:person) WITH a.age AS s, a.fName as n MATCH (b:person) WHERE s=b.age and n=b.fName RETURN n,b.fName,s
--ENUMERATE
 ---- 8
 Alice|Alice|35
 Bob|Bob|30
