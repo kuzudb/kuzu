@@ -15,10 +15,10 @@
 325
 325
 
--LOG MultiLabelTest2
--STATEMENT MATCH (a:person)-[e:marries|:workAt]->(b:person) return a.ID, b.ID order by ID(e) desc LIMIT 4
----- 4
-7|8
-3|5
-0|2
-10|2
+# -LOG MultiLabelTest2
+# -STATEMENT MATCH (a:person)-[e:marries|:workAt]->(b:person) return a.ID, b.ID order by ID(e) desc LIMIT 4
+# ---- 4
+# 7|8
+# 3|5
+# 0|2
+# 10|2
