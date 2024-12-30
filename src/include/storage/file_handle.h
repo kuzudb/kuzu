@@ -147,7 +147,7 @@ private:
     std::unique_ptr<common::FileInfo> fileInfo;
     common::file_idx_t fileIndex;
     // Actually allocated/used number of pages in the file.
-    uint32_t numPages;
+    std::atomic<uint32_t> numPages;
     // This is the maximum number of pages the filehandle can currently support.
     uint32_t pageCapacity;
 

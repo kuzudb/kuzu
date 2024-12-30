@@ -57,6 +57,9 @@ page_idx_t FileHandle::addNewPage() {
 }
 
 page_idx_t FileHandle::addNewPages(page_idx_t numNewPages) {
+    // TODO: It may be possible to remove this lock
+    // Do an atomic fetch_add on numPages to get the page range, then resize the groups to match the
+    // new size (which should now be safe)
     while (!fhSharedMutex.try_lock()) {}
     const auto numPagesBeforeChange = numPages;
     for (auto i = 0u; i < numNewPages; i++) {
