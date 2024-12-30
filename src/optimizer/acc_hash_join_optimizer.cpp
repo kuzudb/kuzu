@@ -148,6 +148,13 @@ static bool subPlanContainsFilter(LogicalOperator* root) {
     return true;
 }
 
+static inline bool isGDSVectorSearch(LogicalOperator* root) {
+    if (root->getOperatorType() == LogicalOperatorType::GDS_CALL) {
+        return root->ptrCast<LogicalGDSCall>()->getInfo().func->name == "ANN_SEARCH";
+    }
+    return false;
+}
+
 // Probe side is qualified if it is selective.
 static bool isProbeSideQualified(LogicalOperator* probeRoot) {
     if (probeRoot->getOperatorType() == LogicalOperatorType::ACCUMULATE) {
@@ -186,7 +193,7 @@ bool HashJoinSIPOptimizer::tryProbeToBuildHJSIP(LogicalOperator* op) {
 
 bool HashJoinSIPOptimizer::tryBuildToProbeHJSIP(LogicalOperator* op) {
     auto& hashJoin = op->cast<LogicalHashJoin>();
-    if (!subPlanContainsFilter(hashJoin.getChild(1).get())) {
+    if (!(subPlanContainsFilter(hashJoin.getChild(1).get()) || isGDSVectorSearch(hashJoin.getChild(0).get()))) {
         return false;
     }
     auto probeRoot = hashJoin.getChild(0);
