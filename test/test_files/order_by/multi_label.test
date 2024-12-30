@@ -15,8 +15,11 @@
 325
 325
 
-# -LOG MultiLabelTest2
-# -STATEMENT MATCH (a:person)-[e:marries|:workAt]->(b:person) return a.ID, b.ID order by ID(e) desc LIMIT 4
+# TODO(Ziyi): Support order by INTERNAL_ID.
+-LOG MultiLabelTest2
+-STATEMENT MATCH (a:person)-[e:marries|:workAt]->(b:person) return a.ID, b.ID order by ID(e) desc LIMIT 4
+---- error
+Binder exception: Cannot order by e._ID. Order by INTERNAL_ID is not supported.
 # ---- 4
 # 7|8
 # 3|5

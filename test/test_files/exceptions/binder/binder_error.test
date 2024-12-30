@@ -614,3 +614,43 @@ Binder exception: Table type mismatch.
 -STATEMENT CALL show_tables();
 ---- error
 Binder exception: Only standalone table functions can be called without return statement.
+
+-LOG UnsupportedOrderByNode
+-STATEMENT MATCH (a:person) RETURN a ORDER BY a;
+---- error
+Binder exception: Cannot order by a. Order by NODE is not supported.
+
+-LOG UnsupportedOrderByRel
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) RETURN a,e,b ORDER BY e;
+---- error
+Binder exception: Cannot order by e. Order by REL is not supported.
+
+-LOG UnsupportedOrderByInternalID
+-STATEMENT MATCH (a:person) RETURN a ORDER BY ID(a);
+---- error
+Binder exception: Cannot order by a._ID. Order by INTERNAL_ID is not supported.
+
+-LOG UnsupportedOrderByList
+-STATEMENT MATCH (a:person) RETURN a ORDER BY a.workedHours;
+---- error
+Binder exception: Cannot order by a.workedHours. Order by INT64[] is not supported.
+
+-LOG UnsupportedOrderByArray
+-STATEMENT MATCH (a:person) RETURN a ORDER BY a.grades;
+---- error
+Binder exception: Cannot order by a.grades. Order by INT64[4] is not supported.
+
+-LOG UnsupportedOrderByStruct
+-STATEMENT MATCH (a:movies) RETURN a ORDER BY a.description;
+---- error
+Binder exception: Cannot order by a.description. Order by STRUCT(rating DOUBLE, stars INT8, views INT64, release TIMESTAMP, release_ns TIMESTAMP_NS, release_ms TIMESTAMP_MS, release_sec TIMESTAMP_SEC, release_tz TIMESTAMP_TZ, film DATE, u8 UINT8, u16 UINT16, u32 UINT32, u64 UINT64, hugedata INT128) is not supported.
+
+-LOG UnsupportedOrderByMap
+-STATEMENT MATCH (a:movies) RETURN a ORDER BY a.audience;
+---- error
+Binder exception: Cannot order by a.audience. Order by MAP(STRING, INT64) is not supported.
+
+-LOG UnsupportedOrderByUnion
+-STATEMENT MATCH (a:movies) RETURN a ORDER BY a.grade;
+---- error
+Binder exception: Cannot order by a.grade. Order by UNION(credit BOOL, grade1 DOUBLE, grade2 INT64) is not supported.

@@ -284,6 +284,7 @@ public:
     /*** validations ***/
     static void validateOrderByFollowedBySkipOrLimitInWithClause(
         const BoundProjectionBody& boundProjectionBody);
+    static bool isOrderByKeyTypeSupported(const common::LogicalType& dataType);
 
     void validateTableType(common::table_id_t tableID, common::TableType expectedTableType);
     void validateTableExist(const std::string& tableName);
