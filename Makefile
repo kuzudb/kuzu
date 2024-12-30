@@ -106,13 +106,6 @@ alldebug:
 		-DBUILD_TESTS=TRUE \
 	)
 
-tempdebug:
-	$(call run-cmake-debug, \
-		-DBUILD_SHELL=TRUE \
-		-DBUILD_KUZU=TRUE \
-		-DBUILD_EXTENSIONS="delta;iceberg" \
-	)
-
 # Main tests
 test:
 	python3 dataset/ldbc-1/download_data.py

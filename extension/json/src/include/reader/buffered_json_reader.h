@@ -1,3 +1,5 @@
+#pragma once
+
 #include "common/file_system/file_info.h"
 #include "common/json_enums.h"
 #include "main/client_context.h"
@@ -63,11 +65,11 @@ public:
 
     std::string reconstructLine(uint64_t startPosition, uint64_t endPosition);
 
-    std::unique_ptr<storage::MemoryBuffer> removeBuffer(JsonScanBufferHandle& handle);
+    std::unique_ptr<storage::MemoryBuffer> removeBuffer(const JsonScanBufferHandle& handle);
 
     uint64_t getBufferIdx() { return bufferIdx++; }
 
-    void throwParseError(yyjson_read_err& err, bool completedParsingObject,
+    void throwParseError(const yyjson_read_err& err, bool completedParsingObject,
         processor::WarningSourceData errorData, processor::LocalFileErrorHandler* errorHandler,
         const std::string& extra = "") const;
 

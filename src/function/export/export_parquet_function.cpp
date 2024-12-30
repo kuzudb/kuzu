@@ -57,7 +57,7 @@ struct ExportParquetBindData final : public ExportFuncBindData {
     ExportParquetBindData(std::vector<std::string> names, std::string fileName,
         ParquetOptions parquetOptions)
         : ExportFuncBindData{std::move(names), std::move(fileName)},
-          parquetOptions{std::move(parquetOptions)} {}
+          parquetOptions{parquetOptions} {}
 
     std::unique_ptr<ExportFuncBindData> copy() const override {
         auto bindData =
@@ -106,7 +106,7 @@ struct ExportParquetSharedState : public ExportFuncSharedState {
 static std::unique_ptr<ExportFuncBindData> bindFunc(ExportFuncBindInput& bindInput) {
     ParquetOptions parquetOptions{bindInput.parsingOptions};
     return std::make_unique<ExportParquetBindData>(bindInput.columnNames, bindInput.filePath,
-        std::move(parquetOptions));
+        parquetOptions);
 }
 
 static std::unique_ptr<ExportFuncLocalState> initLocalStateFunc(main::ClientContext& context,

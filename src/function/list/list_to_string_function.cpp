@@ -23,7 +23,7 @@ void ListToString::operation(list_entry_t& input, ku_string_t& delim, ku_string_
     StringVector::addString(&resultVector, result, resultStr);
 }
 
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     std::vector<LogicalType> paramTypes;
     paramTypes.push_back(input.arguments[0]->getDataType().copy());
     paramTypes.push_back(LogicalType(input.definition->parameterTypeIDs[1]));

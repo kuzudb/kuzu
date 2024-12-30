@@ -36,7 +36,7 @@ static void validateArgumentType(const binder::expression_vector& arguments) {
     }
 }
 
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     validateArgumentType(input.arguments);
     auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
     TypeUtils::visit(input.arguments[1]->getDataType().getPhysicalType(),

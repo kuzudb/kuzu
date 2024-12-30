@@ -14,7 +14,7 @@ struct BoundTableScanSourceInfo {
 
     BoundTableScanSourceInfo(function::TableFunction func,
         std::unique_ptr<function::TableFuncBindData> bindData, binder::expression_vector columns)
-        : func{func}, bindData{std::move(bindData)}, columns{std::move(columns)} {}
+        : func{std::move(func)}, bindData{std::move(bindData)}, columns{std::move(columns)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundTableScanSourceInfo);
 
 private:

@@ -10,7 +10,8 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace function {
 
-std::unique_ptr<FunctionBindData> StructExtractFunctions::bindFunc(ScalarBindFuncInput input) {
+std::unique_ptr<FunctionBindData> StructExtractFunctions::bindFunc(
+    const ScalarBindFuncInput& input) {
     const auto& structType = input.arguments[0]->getDataType();
     if (input.arguments[1]->expressionType != ExpressionType::LITERAL) {
         throw BinderException("Key name for struct/union extract must be STRING literal.");

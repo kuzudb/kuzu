@@ -7,12 +7,12 @@
 namespace kuzu {
 namespace planner {
 
-class LogicalExportDatabase : public LogicalSimple {
+class LogicalExportDatabase final : public LogicalSimple {
 public:
     explicit LogicalExportDatabase(common::ReaderConfig boundFileInfo,
         std::shared_ptr<binder::Expression> outputExpression,
-        std::vector<std::shared_ptr<LogicalOperator>> plans)
-        : LogicalSimple{LogicalOperatorType::EXPORT_DATABASE, std::move(plans), outputExpression},
+        const std::vector<std::shared_ptr<LogicalOperator>>& plans)
+        : LogicalSimple{LogicalOperatorType::EXPORT_DATABASE, plans, std::move(outputExpression)},
           boundFileInfo{std::move(boundFileInfo)} {}
 
     std::string getFilePath() const { return boundFileInfo.filePaths[0]; }

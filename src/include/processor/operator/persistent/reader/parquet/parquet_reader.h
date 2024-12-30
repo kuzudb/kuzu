@@ -40,7 +40,7 @@ struct ParquetReaderScanState {
 
 class ParquetReader {
 public:
-    ParquetReader(const std::string& filePath, std::vector<bool> columnSkips,
+    ParquetReader(std::string filePath, std::vector<bool> columnSkips,
         main::ClientContext* context);
     ~ParquetReader() = default;
 
@@ -82,7 +82,7 @@ private:
     uint64_t getGroupOffset(ParquetReaderScanState& state);
 
 private:
-    const std::string filePath;
+    std::string filePath;
     std::vector<bool> columnSkips;
     std::vector<std::string> columnNames;
     std::vector<common::LogicalType> columnTypes;

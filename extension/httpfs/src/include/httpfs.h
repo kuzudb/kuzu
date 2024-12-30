@@ -16,7 +16,7 @@ namespace httpfs {
 using HeaderMap = common::case_insensitive_map_t<std::string>;
 
 struct HTTPResponse {
-    HTTPResponse(httplib::Response& res, const std::string& url);
+    HTTPResponse(httplib::Response& res, std::string url);
 
     int code;
     std::string error;

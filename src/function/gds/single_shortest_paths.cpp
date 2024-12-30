@@ -144,7 +144,7 @@ private:
         auto writerInfo = rjBindData->getPathWriterInfo();
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
         auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext, output.get(),
-            sharedState->getOutputNodeMaskMap(), std::move(writerInfo));
+            sharedState->getOutputNodeMaskMap(), writerInfo);
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute =

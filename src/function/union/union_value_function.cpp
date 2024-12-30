@@ -6,7 +6,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     KU_ASSERT(input.arguments.size() == 1);
     std::vector<StructField> fields;
     if (input.arguments[0]->getDataType().getLogicalTypeID() == common::LogicalTypeID::ANY) {
@@ -14,7 +14,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
     }
     fields.emplace_back(input.arguments[0]->getAlias(), input.arguments[0]->getDataType().copy());
     auto resultType = LogicalType::UNION(std::move(fields));
-    return FunctionBindData::getSimpleBindData(input.arguments, std::move(resultType));
+    return FunctionBindData::getSimpleBindData(input.arguments, resultType);
 }
 
 static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& /*parameters*/,

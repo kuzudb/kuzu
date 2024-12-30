@@ -18,7 +18,7 @@ class JsonWrapper {
 
 public:
     explicit JsonWrapper(yyjson_doc* ptr, std::shared_ptr<char[]> buffer = nullptr)
-        : ptr{ptr}, buffer{buffer} {}
+        : ptr{ptr}, buffer{std::move(buffer)} {}
     ~JsonWrapper();
     JsonWrapper(JsonWrapper& other) = delete;
     JsonWrapper(JsonWrapper&& other) {

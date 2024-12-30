@@ -32,9 +32,8 @@ public:
         : LogicalOperator{type_, std::move(child), std::optional<common::cardinality_t>(0)},
           info{std::move(info)}, outExprs{std::move(outExprs)} {}
     LogicalCopyFrom(binder::BoundCopyFromInfo info, binder::expression_vector outExprs,
-        logical_op_vector_t children)
-        : LogicalOperator{type_, std::move(children)}, info{std::move(info)},
-          outExprs{std::move(outExprs)} {}
+        const logical_op_vector_t& children)
+        : LogicalOperator{type_, children}, info{std::move(info)}, outExprs{std::move(outExprs)} {}
 
     std::string getExpressionsForPrinting() const override { return info.tableEntry->getName(); }
 

@@ -50,6 +50,8 @@ struct HashAggregateInfo {
     HashAggregateInfo(std::vector<DataPos> flatKeysPos, std::vector<DataPos> unFlatKeysPos,
         std::vector<DataPos> dependentKeysPos, FactorizedTableSchema tableSchema);
     HashAggregateInfo(const HashAggregateInfo& other);
+
+    EXPLICIT_COPY_DEFAULT_MOVE(HashAggregateInfo);
 };
 
 struct HashAggregateLocalState {

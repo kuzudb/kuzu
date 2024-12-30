@@ -30,10 +30,9 @@ enum class DriverType {
 };
 
 struct WarningDataWithColumnInfo {
-    WarningDataWithColumnInfo(WarningSourceData warningSourceData,
+    WarningDataWithColumnInfo(const WarningSourceData& warningSourceData,
         uint64_t warningDataStartColumnIdx)
-        : warningDataStartColumnIdx(warningDataStartColumnIdx), data(std::move(warningSourceData)) {
-    }
+        : warningDataStartColumnIdx(warningDataStartColumnIdx), data(warningSourceData) {}
 
     uint64_t warningDataStartColumnIdx;
     WarningSourceData data;

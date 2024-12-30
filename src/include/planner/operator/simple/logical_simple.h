@@ -11,10 +11,9 @@ public:
         std::shared_ptr<binder::Expression> outputExpression)
         : LogicalOperator{operatorType}, outputExpression{std::move(outputExpression)} {}
     LogicalSimple(LogicalOperatorType operatorType,
-        std::vector<std::shared_ptr<LogicalOperator>> plans,
+        const std::vector<std::shared_ptr<LogicalOperator>>& plans,
         std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalOperator{operatorType, std::move(plans)},
-          outputExpression{std::move(outputExpression)} {}
+        : LogicalOperator{operatorType, plans}, outputExpression{std::move(outputExpression)} {}
 
     void computeFactorizedSchema() override;
 

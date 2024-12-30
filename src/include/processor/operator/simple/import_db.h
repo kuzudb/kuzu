@@ -11,7 +11,7 @@ class ImportDB final : public Simple {
 public:
     ImportDB(std::string query, const DataPos& outputPos, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Simple{type_, outputPos, id, std::move(printInfo)}, query{query} {}
+        : Simple{type_, outputPos, id, std::move(printInfo)}, query{std::move(query)} {}
 
     void executeInternal(ExecutionContext* context) override;
     std::string getOutputMsg() override;

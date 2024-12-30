@@ -19,7 +19,7 @@ struct TableInfo {
 
     TableInfo(std::string name, table_id_t id, std::string type, std::string databaseName,
         std::string comment)
-        : name{std::move(name)}, id{std::move(id)}, type{std::move(type)},
+        : name{std::move(name)}, id{id}, type{std::move(type)},
           databaseName{std::move(databaseName)}, comment{std::move(comment)} {}
 };
 

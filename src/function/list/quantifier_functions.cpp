@@ -39,7 +39,7 @@ void execQuantifierFunc(quantifier_handler handler,
     }
 }
 
-std::unique_ptr<FunctionBindData> bindQuantifierFunc(ScalarBindFuncInput input) {
+std::unique_ptr<FunctionBindData> bindQuantifierFunc(const ScalarBindFuncInput& input) {
     std::vector<common::LogicalType> paramTypes;
     paramTypes.push_back(input.arguments[0]->getDataType().copy());
     paramTypes.push_back(input.arguments[1]->getDataType().copy());

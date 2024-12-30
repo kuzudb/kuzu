@@ -44,7 +44,7 @@ struct SubqueryGraph {
         return queryRelsSelector.count() == 1 && queryNodesSelector.count() == 0;
     }
 
-    bool containAllVariables(std::unordered_set<std::string>& variables) const;
+    bool containAllVariables(const std::unordered_set<std::string>& variables) const;
 
     std::unordered_set<common::idx_t> getNodeNbrPositions() const;
     std::unordered_set<common::idx_t> getRelNbrPositions() const;

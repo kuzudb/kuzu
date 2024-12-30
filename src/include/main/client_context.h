@@ -131,7 +131,7 @@ public:
     bool hasDefaultDatabase() const;
 
     void addScalarFunction(std::string name, function::function_set definitions);
-    void removeScalarFunction(std::string name);
+    void removeScalarFunction(const std::string& name);
 
     processor::WarningContext& getWarningContextUnsafe();
     const processor::WarningContext& getWarningContext() const;

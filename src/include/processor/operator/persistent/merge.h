@@ -17,7 +17,7 @@ struct MergeInfo {
     MergeInfo(std::vector<DataPos> keyPoses, FactorizedTableSchema tableSchema,
         common::executor_info executorInfo, DataPos existenceMark)
         : keyPoses{std::move(keyPoses)}, tableSchema{std::move(tableSchema)},
-          executorInfo{std::move(executorInfo)}, existenceMark{std::move(existenceMark)} {}
+          executorInfo{std::move(executorInfo)}, existenceMark{existenceMark} {}
 
     MergeInfo copy() const {
         return MergeInfo{keyPoses, tableSchema.copy(), executorInfo, existenceMark};

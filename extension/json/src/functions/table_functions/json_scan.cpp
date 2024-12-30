@@ -111,8 +111,8 @@ struct JSONScanSharedState : public BaseScanSharedState {
 
     uint64_t getNumRows() const override { return numRows; }
 
-    processor::populate_func_t constructPopulateFunc() {
-        return [this](processor::CopyFromFileError error,
+    processor::populate_func_t constructPopulateFunc() const {
+        return [this](const processor::CopyFromFileError& error,
                    [[maybe_unused]] idx_t fileIdx) -> processor::PopulatedCopyFromError {
             KU_ASSERT(fileIdx == JsonExtension::JSON_SCAN_FILE_IDX);
             const auto warningData = JSONWarningSourceData::constructFrom(error.warningData);
@@ -120,7 +120,7 @@ struct JSONScanSharedState : public BaseScanSharedState {
                 sharedErrorHandler.getLineNumber(warningData.blockIdx, warningData.offsetInBlock);
             const char* incompleteLineSuffix = error.completedLine ? "" : "...";
             return processor::PopulatedCopyFromError{
-                .message = StringUtils::rtrim(std::move(error.message)),
+                .message = StringUtils::rtrim(error.message),
                 .filePath = jsonReader->getFileName(),
                 .skippedLineOrRecord = jsonReader->reconstructLine(warningData.startByteOffset,
                                            warningData.endByteOffset) +
@@ -833,7 +833,7 @@ static decltype(auto) getWarningDataVectors(const DataChunk& chunk, column_id_t 
 
     std::vector<ValueVector*> ret;
     for (column_id_t i = chunk.getNumValueVectors() - numWarningColumns;
-         i < chunk.getNumValueVectors(); ++i) {
+        i < chunk.getNumValueVectors(); ++i) {
         ret.push_back(&chunk.getValueVectorMutable(i));
     }
     return ret;

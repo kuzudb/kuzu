@@ -99,7 +99,7 @@ static void combine(uint8_t* state_, uint8_t* otherState_, MemoryManager* /*memo
     otherState->factorizedTable.reset();
 }
 
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     KU_ASSERT(input.arguments.size() == 1);
     auto aggFuncDefinition = reinterpret_cast<AggregateFunction*>(input.definition);
     aggFuncDefinition->parameterTypeIDs[0] = input.arguments[0]->dataType.getLogicalTypeID();

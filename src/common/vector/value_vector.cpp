@@ -28,7 +28,7 @@ ValueVector::ValueVector(LogicalType dataType, storage::MemoryManager* memoryMan
     initializeValueBuffer();
     auxiliaryBuffer = AuxiliaryBufferFactory::getAuxiliaryBuffer(this->dataType, memoryManager);
     if (dataChunkState) {
-        setState(std::move(dataChunkState));
+        setState(dataChunkState);
     }
 }
 

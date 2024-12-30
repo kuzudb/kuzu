@@ -48,7 +48,7 @@ struct ListConcatFunction {
     static constexpr const char* name = "LIST_CONCAT";
 
     static function_set getFunctionSet();
-    static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input);
+    static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input);
 };
 
 struct ListCatFunction {
@@ -177,7 +177,7 @@ void execQuantifierFunc(quantifier_handler handler,
     const std::vector<std::shared_ptr<common::ValueVector>>& input, common::ValueVector& result,
     void* bindData);
 
-std::unique_ptr<FunctionBindData> bindQuantifierFunc(ScalarBindFuncInput input);
+std::unique_ptr<FunctionBindData> bindQuantifierFunc(const ScalarBindFuncInput& input);
 
 struct ListAnyFunction {
     static constexpr const char* name = "ANY";

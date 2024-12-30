@@ -5,7 +5,6 @@
 #include "function/table/bind_data.h"
 #include "function/table/scan_functions.h"
 #include "function/table_functions.h"
-#include "pyarrow_bind.h"
 #include "pybind_include.h"
 
 namespace kuzu {
@@ -41,7 +40,7 @@ struct PyArrowTableScanFunctionData final : public function::TableFuncBindData {
         std::shared_ptr<ArrowSchemaWrapper> schema,
         std::vector<std::shared_ptr<ArrowArrayWrapper>> arrowArrayBatches, uint64_t numRows)
         : TableFuncBindData{std::move(columns), 0 /* numWarningDataColumns */, numRows},
-          schema{std::move(schema)}, arrowArrayBatches{arrowArrayBatches} {}
+          schema{std::move(schema)}, arrowArrayBatches{std::move(arrowArrayBatches)} {}
 
     ~PyArrowTableScanFunctionData() override {}
 

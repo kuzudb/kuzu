@@ -10,7 +10,7 @@ class BoundDrop final : public BoundStatement {
     static constexpr common::StatementType type_ = common::StatementType::DROP;
 
 public:
-    explicit BoundDrop(const parser::DropInfo& dropInfo)
+    explicit BoundDrop(parser::DropInfo dropInfo)
         : BoundStatement{type_, BoundStatementResult::createSingleStringColumnResult()},
           dropInfo{std::move(dropInfo)} {}
 

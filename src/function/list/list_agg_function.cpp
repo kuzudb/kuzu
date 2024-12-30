@@ -9,7 +9,7 @@ namespace kuzu {
 namespace function {
 
 template<typename OPERATION>
-static std::unique_ptr<FunctionBindData> bindFuncListAggr(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFuncListAggr(const ScalarBindFuncInput& input) {
     auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
     const auto& resultType = ListType::getChildType(input.arguments[0]->dataType);
     TypeUtils::visit(

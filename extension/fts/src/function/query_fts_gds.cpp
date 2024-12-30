@@ -38,7 +38,7 @@ struct QFTSGDSBindData final : public function::GDSBindData {
         std::shared_ptr<binder::Expression> docs, uint64_t numDocs, double_t avgDocLen,
         QueryFTSConfig config)
         : GDSBindData{std::move(graphEntry), std::move(docs)}, terms{std::move(terms)},
-          numDocs{numDocs}, avgDocLen{avgDocLen}, config{std::move(config)},
+          numDocs{numDocs}, avgDocLen{avgDocLen}, config{config},
           outputTableID{nodeOutput->constCast<NodeExpression>().getSingleEntry()->getTableID()} {}
     QFTSGDSBindData(const QFTSGDSBindData& other)
         : GDSBindData{other}, terms{other.terms}, numDocs{other.numDocs},
@@ -69,7 +69,7 @@ struct ScoreInfo {
     nodeID_t termID;
     std::vector<ScoreData> scoreData;
 
-    explicit ScoreInfo(nodeID_t termID) : termID{std::move(termID)} {}
+    explicit ScoreInfo(nodeID_t termID) : termID{termID} {}
 
     void addEdge(uint64_t df, uint64_t tf) { scoreData.emplace_back(df, tf); }
 };
@@ -176,7 +176,7 @@ private:
 
 QFTSOutputWriter::QFTSOutputWriter(storage::MemoryManager* mm, QFTSOutput* qFTSOutput,
     const QFTSGDSBindData& bindData)
-    : qFTSOutput{std::move(qFTSOutput)}, docsVector{LogicalType::INTERNAL_ID(), mm},
+    : qFTSOutput{qFTSOutput}, docsVector{LogicalType::INTERNAL_ID(), mm},
       scoreVector{LogicalType::UINT64(), mm}, mm{mm}, bindData{bindData} {
     auto state = DataChunkState::getSingleValueDataChunkState();
     pos = state->getSelVector()[0];
@@ -295,8 +295,8 @@ void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     // Do vertex compute to get the terms
     auto termsTableEntry = executionContext->clientContext->getCatalog()->getTableCatalogEntry(
         executionContext->clientContext->getTx(), termsTableID);
-    graph::GraphEntry entry{{termsTableEntry}, {} /* relTableEntries */};
-    graph::OnDiskGraph graph(executionContext->clientContext, std::move(entry));
+    const graph::GraphEntry entry{{termsTableEntry}, {} /* relTableEntries */};
+    graph::OnDiskGraph graph(executionContext->clientContext, entry);
     auto termsComputeSharedState =
         TermsComputeSharedState{bindData->ptrCast<QFTSGDSBindData>()->terms};
     TermsVertexCompute termsCompute{&termsComputeSharedState};

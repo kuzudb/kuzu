@@ -62,8 +62,8 @@ template WarningSourceData WarningSourceData::constructFromData<ValueVector>(
 
 CopyFromFileError::CopyFromFileError(std::string message, WarningSourceData warningData,
     bool completedLine, bool mustThrow)
-    : message(std::move(message)), completedLine(completedLine),
-      warningData(std::move(warningData)), mustThrow(mustThrow) {}
+    : message(std::move(message)), completedLine(completedLine), warningData(warningData),
+      mustThrow(mustThrow) {}
 
 bool CopyFromFileError::operator<(const CopyFromFileError& o) const {
     if (warningData.getBlockIdx() == o.warningData.getBlockIdx()) {

@@ -8,7 +8,7 @@ namespace function {
 
 using namespace common;
 
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     if (input.arguments[1]->expressionType != ExpressionType::LAMBDA) {
         throw BinderException(stringFormat(
             "The second argument of LIST_TRANSFORM should be a lambda expression but got {}.",

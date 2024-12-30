@@ -75,12 +75,13 @@ struct KUZU_API BoundExtraCreateTableInfo : public BoundExtraCreateCatalogEntryI
         common::Deserializer& deserializer, common::TableType type);
 };
 
-struct BoundExtraCreateNodeTableInfo final : public BoundExtraCreateTableInfo {
+struct BoundExtraCreateNodeTableInfo final : BoundExtraCreateTableInfo {
     std::string primaryKeyName;
 
-    BoundExtraCreateNodeTableInfo(const std::string& primaryKeyName,
+    BoundExtraCreateNodeTableInfo(std::string primaryKeyName,
         std::vector<PropertyDefinition> definitions)
-        : BoundExtraCreateTableInfo{std::move(definitions)}, primaryKeyName{primaryKeyName} {}
+        : BoundExtraCreateTableInfo{std::move(definitions)},
+          primaryKeyName{std::move(primaryKeyName)} {}
     BoundExtraCreateNodeTableInfo(const BoundExtraCreateNodeTableInfo& other)
         : BoundExtraCreateTableInfo{copyVector(other.propertyDefinitions)},
           primaryKeyName{other.primaryKeyName} {}

@@ -29,7 +29,7 @@ struct CSVColumnInfo {
 
     CSVColumnInfo(uint64_t numColumns, std::vector<bool> columnSkips,
         common::column_id_t numWarningDataColumns)
-        : numColumns{numColumns}, columnSkips{columnSkips},
+        : numColumns{numColumns}, columnSkips{std::move(columnSkips)},
           numWarningDataColumns(numWarningDataColumns) {}
     EXPLICIT_COPY_DEFAULT_MOVE(CSVColumnInfo);
 

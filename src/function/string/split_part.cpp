@@ -16,7 +16,7 @@ struct SplitPart {
     }
 };
 
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     return FunctionBindData::getSimpleBindData(input.arguments, LogicalType::STRING());
 }
 

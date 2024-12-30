@@ -14,7 +14,8 @@ struct ScanReplacementData {
 using scan_replace_func_t = std::function<std::unique_ptr<ScanReplacementData>(const std::string&)>;
 
 struct ScanReplacement {
-    explicit ScanReplacement(scan_replace_func_t replaceFunc) : replaceFunc{replaceFunc} {}
+    explicit ScanReplacement(scan_replace_func_t replaceFunc)
+        : replaceFunc{std::move(replaceFunc)} {}
 
     scan_replace_func_t replaceFunc;
 };

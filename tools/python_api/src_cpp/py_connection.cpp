@@ -615,8 +615,8 @@ Value PyConnection::transformPythonValueAs(const py::handle& val, const LogicalT
         auto fieldIdx = 0u;
         for (auto field : dict) {
             auto fieldType = StructType::getFieldType(type, fieldIdx++).copy();
-            children.push_back(std::make_unique<Value>(
-                transformPythonValueAs(field.second, std::move(fieldType))));
+            children.push_back(
+                std::make_unique<Value>(transformPythonValueAs(field.second, fieldType)));
         }
         return Value(type.copy(), std::move(children));
     }

@@ -51,7 +51,7 @@ public:
     //===--------------------------------------------------------------------===//
     SequenceCatalogEntry() : sequenceData{} {}
     explicit SequenceCatalogEntry(const binder::BoundCreateSequenceInfo& sequenceInfo)
-        : CatalogEntry{CatalogEntryType::SEQUENCE_ENTRY, std::move(sequenceInfo.sequenceName)},
+        : CatalogEntry{CatalogEntryType::SEQUENCE_ENTRY, sequenceInfo.sequenceName},
           sequenceData{SequenceData(sequenceInfo)} {}
 
     //===--------------------------------------------------------------------===//

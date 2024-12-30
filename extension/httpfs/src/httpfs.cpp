@@ -3,15 +3,14 @@
 #include "common/cast.h"
 #include "common/exception/io.h"
 #include "common/exception/not_implemented.h"
-#include "common/file_system/virtual_file_system.h"
 
 namespace kuzu {
 namespace httpfs {
 
 using namespace kuzu::common;
 
-HTTPResponse::HTTPResponse(httplib::Response& res, const std::string& url)
-    : code{res.status}, error{res.reason}, url{url}, body{res.body} {
+HTTPResponse::HTTPResponse(httplib::Response& res, std::string url)
+    : code{res.status}, error{res.reason}, url{std::move(url)}, body{res.body} {
     for (auto& [name, value] : res.headers) {
         headers[name] = value;
     }

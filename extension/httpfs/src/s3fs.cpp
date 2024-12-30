@@ -21,10 +21,9 @@ S3WriteBuffer::S3WriteBuffer(uint16_t partID, uint64_t startOffset, uint64_t siz
 }
 
 S3FileInfo::S3FileInfo(std::string path, common::FileSystem* fileSystem, int flags,
-    main::ClientContext* context, const S3AuthParams& authParams,
-    const S3UploadParams& uploadParams)
-    : HTTPFileInfo{std::move(path), fileSystem, flags, context}, authParams{authParams},
-      uploadParams{uploadParams}, partSize(0), uploadsInProgress{0}, numPartsUploaded{0},
+    main::ClientContext* context, S3AuthParams authParams, S3UploadParams uploadParams)
+    : HTTPFileInfo{std::move(path), fileSystem, flags, context}, authParams{std::move(authParams)},
+      uploadParams{std::move(uploadParams)}, partSize(0), uploadsInProgress{0}, numPartsUploaded{0},
       uploadFinalized{false}, uploaderHasException{false} {}
 
 S3FileInfo::~S3FileInfo() {

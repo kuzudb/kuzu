@@ -40,7 +40,7 @@ void ListUnique::operation(common::list_entry_t& input, int64_t& result,
     result = appendListElementsToValueSet(input, inputVector);
 }
 
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     return FunctionBindData::getSimpleBindData(input.arguments, LogicalType::INT64());
 }
 

@@ -16,7 +16,7 @@ static void BinaryExecListExtractFunction(const std::vector<std::shared_ptr<Valu
         *params[1], result);
 }
 
-static std::unique_ptr<FunctionBindData> ListExtractBindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> ListExtractBindFunc(const ScalarBindFuncInput& input) {
     const auto& resultType = ListType::getChildType(input.arguments[0]->dataType);
     auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
     TypeUtils::visit(resultType.getPhysicalType(), [&scalarFunction]<typename T>(T) {

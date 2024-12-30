@@ -136,7 +136,7 @@ private:
         auto writerInfo = rjBindData->getPathWriterInfo();
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
         auto outputWriter = std::make_unique<VarLenPathsOutputWriter>(clientContext, output.get(),
-            sharedState->getOutputNodeMaskMap(), std::move(writerInfo));
+            sharedState->getOutputNodeMaskMap(), writerInfo);
         auto currentFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto nextFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier,

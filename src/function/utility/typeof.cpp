@@ -7,7 +7,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     std::unique_ptr<FunctionBindData> bindData;
     if (input.arguments[0]->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
         bindData = std::make_unique<FunctionStringBindData>("NULL");

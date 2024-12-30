@@ -21,7 +21,7 @@ using scalar_func_exec_t = std::function<void(
 using scalar_func_select_t = std::function<bool(
     const std::vector<std::shared_ptr<common::ValueVector>>&, common::SelectionVector&)>;
 
-struct ScalarFunction : public ScalarOrAggregateFunction {
+struct ScalarFunction : ScalarOrAggregateFunction {
     scalar_func_exec_t execFunc = nullptr;
     scalar_func_select_t selectFunc = nullptr;
     scalar_func_compile_exec_t compileFunc = nullptr;
@@ -33,12 +33,12 @@ struct ScalarFunction : public ScalarOrAggregateFunction {
     ScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
         common::LogicalTypeID returnTypeID, scalar_func_exec_t execFunc)
         : ScalarOrAggregateFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID},
-          execFunc{execFunc} {}
+          execFunc{std::move(execFunc)} {}
     ScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
         common::LogicalTypeID returnTypeID, scalar_func_exec_t execFunc,
         scalar_func_select_t selectFunc)
         : ScalarOrAggregateFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID},
-          execFunc{execFunc}, selectFunc{selectFunc} {}
+          execFunc{std::move(execFunc)}, selectFunc{std::move(selectFunc)} {}
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
     static void TernaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,

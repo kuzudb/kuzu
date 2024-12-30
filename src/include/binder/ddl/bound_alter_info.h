@@ -33,7 +33,7 @@ struct BoundAlterInfo {
         std::unique_ptr<BoundExtraAlterInfo> extraInfo,
         common::ConflictAction onConflict = common::ConflictAction::ON_CONFLICT_THROW)
         : alterType{alterType}, tableName{std::move(tableName)}, extraInfo{std::move(extraInfo)},
-          onConflict{std::move(onConflict)} {}
+          onConflict{onConflict} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundAlterInfo);
 
     std::string toString() const;
@@ -44,18 +44,18 @@ private:
           extraInfo{other.extraInfo->copy()}, onConflict{other.onConflict} {}
 };
 
-struct BoundExtraRenameTableInfo : public BoundExtraAlterInfo {
+struct BoundExtraRenameTableInfo final : BoundExtraAlterInfo {
     std::string newName;
 
     explicit BoundExtraRenameTableInfo(std::string newName) : newName{std::move(newName)} {}
     BoundExtraRenameTableInfo(const BoundExtraRenameTableInfo& other) : newName{other.newName} {}
 
-    inline std::unique_ptr<BoundExtraAlterInfo> copy() const final {
+    std::unique_ptr<BoundExtraAlterInfo> copy() const override {
         return std::make_unique<BoundExtraRenameTableInfo>(*this);
     }
 };
 
-struct BoundExtraAddPropertyInfo : public BoundExtraAlterInfo {
+struct BoundExtraAddPropertyInfo final : BoundExtraAlterInfo {
     PropertyDefinition propertyDefinition;
     std::shared_ptr<Expression> boundDefault;
 
@@ -65,24 +65,25 @@ struct BoundExtraAddPropertyInfo : public BoundExtraAlterInfo {
     BoundExtraAddPropertyInfo(const BoundExtraAddPropertyInfo& other)
         : propertyDefinition{other.propertyDefinition.copy()}, boundDefault{other.boundDefault} {}
 
-    inline std::unique_ptr<BoundExtraAlterInfo> copy() const final {
+    std::unique_ptr<BoundExtraAlterInfo> copy() const override {
         return std::make_unique<BoundExtraAddPropertyInfo>(*this);
     }
 };
 
-struct BoundExtraDropPropertyInfo : public BoundExtraAlterInfo {
+struct BoundExtraDropPropertyInfo final : BoundExtraAlterInfo {
     std::string propertyName;
 
-    explicit BoundExtraDropPropertyInfo(std::string propertyName) : propertyName{propertyName} {}
+    explicit BoundExtraDropPropertyInfo(std::string propertyName)
+        : propertyName{std::move(propertyName)} {}
     BoundExtraDropPropertyInfo(const BoundExtraDropPropertyInfo& other)
         : propertyName{other.propertyName} {}
 
-    inline std::unique_ptr<BoundExtraAlterInfo> copy() const final {
+    std::unique_ptr<BoundExtraAlterInfo> copy() const override {
         return std::make_unique<BoundExtraDropPropertyInfo>(*this);
     }
 };
 
-struct BoundExtraRenamePropertyInfo : public BoundExtraAlterInfo {
+struct BoundExtraRenamePropertyInfo final : BoundExtraAlterInfo {
     std::string newName;
     std::string oldName;
 
@@ -90,17 +91,17 @@ struct BoundExtraRenamePropertyInfo : public BoundExtraAlterInfo {
         : newName{std::move(newName)}, oldName{std::move(oldName)} {}
     BoundExtraRenamePropertyInfo(const BoundExtraRenamePropertyInfo& other)
         : newName{other.newName}, oldName{other.oldName} {}
-    std::unique_ptr<BoundExtraAlterInfo> copy() const final {
+    std::unique_ptr<BoundExtraAlterInfo> copy() const override {
         return std::make_unique<BoundExtraRenamePropertyInfo>(*this);
     }
 };
 
-struct BoundExtraCommentInfo : public BoundExtraAlterInfo {
+struct BoundExtraCommentInfo final : BoundExtraAlterInfo {
     std::string comment;
 
     explicit BoundExtraCommentInfo(std::string comment) : comment{std::move(comment)} {}
     BoundExtraCommentInfo(const BoundExtraCommentInfo& other) : comment{other.comment} {}
-    inline std::unique_ptr<BoundExtraAlterInfo> copy() const final {
+    std::unique_ptr<BoundExtraAlterInfo> copy() const override {
         return std::make_unique<BoundExtraCommentInfo>(*this);
     }
 };

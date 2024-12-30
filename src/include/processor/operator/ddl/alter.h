@@ -13,7 +13,7 @@ struct AlterPrintInfo final : OPPrintInfo {
     binder::BoundAlterInfo info;
 
     AlterPrintInfo(common::AlterType alterType, std::string tableName, binder::BoundAlterInfo info)
-        : alterType{std::move(alterType)}, tableName{std::move(tableName)}, info{std::move(info)} {}
+        : alterType{alterType}, tableName{std::move(tableName)}, info{std::move(info)} {}
 
     std::string toString() const override { return info.toString(); }
 

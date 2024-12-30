@@ -59,8 +59,7 @@ struct NodeTableInsertState final : TableInsertState {
     explicit NodeTableInsertState(common::ValueVector& nodeIDVector,
         const common::ValueVector& pkVector,
         const std::vector<common::ValueVector*>& propertyVectors)
-        : TableInsertState{std::move(propertyVectors)}, nodeIDVector{nodeIDVector},
-          pkVector{pkVector} {}
+        : TableInsertState{propertyVectors}, nodeIDVector{nodeIDVector}, pkVector{pkVector} {}
 };
 
 struct NodeTableUpdateState final : TableUpdateState {

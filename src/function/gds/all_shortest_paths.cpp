@@ -94,7 +94,8 @@ struct AllSPDestinationsOutputs : public SPOutputs {
 public:
     AllSPDestinationsOutputs(nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths,
         std::shared_ptr<PathMultiplicities> multiplicities)
-        : SPOutputs{sourceNodeID, pathLengths}, multiplicities{multiplicities} {}
+        : SPOutputs{sourceNodeID, std::move(pathLengths)},
+          multiplicities{std::move(multiplicities)} {}
 
     void initRJFromSource(nodeID_t source) override {
         multiplicities->incrementMultiplicity(source, 1);
@@ -288,7 +289,7 @@ private:
         auto writerInfo = rjBindData->getPathWriterInfo();
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
         auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext, output.get(),
-            sharedState->getOutputNodeMaskMap(), std::move(writerInfo));
+            sharedState->getOutputNodeMaskMap(), writerInfo);
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
             clientContext->getMaxNumThreadForExec());
         auto edgeCompute =

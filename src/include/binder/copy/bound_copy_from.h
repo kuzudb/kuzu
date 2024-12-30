@@ -34,9 +34,10 @@ struct BoundCopyFromInfo {
         std::unique_ptr<BoundBaseScanSource> source, std::shared_ptr<Expression> offset,
         expression_vector columnExprs, std::vector<common::ColumnEvaluateType> columnEvaluateTypes,
         std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
-        : tableEntry{tableEntry}, source{std::move(source)}, offset{offset},
+        : tableEntry{tableEntry}, source{std::move(source)}, offset{std::move(offset)},
           columnExprs{std::move(columnExprs)}, columnEvaluateTypes{std::move(columnEvaluateTypes)},
           extraInfo{std::move(extraInfo)} {}
+
     EXPLICIT_COPY_DEFAULT_MOVE(BoundCopyFromInfo);
 
 private:

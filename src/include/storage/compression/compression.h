@@ -11,7 +11,6 @@
 #include "common/null_mask.h"
 #include "common/numeric_utils.h"
 #include "common/types/types.h"
-#include <concepts>
 #include <span>
 
 namespace kuzu {

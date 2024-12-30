@@ -543,8 +543,8 @@ void ClientContext::addScalarFunction(std::string name, function::function_set d
     });
 }
 
-void ClientContext::removeScalarFunction(std::string name) {
-    runFuncInTransaction([&]() { localDatabase->catalog->dropFunction(getTx(), std::move(name)); });
+void ClientContext::removeScalarFunction(const std::string& name) {
+    runFuncInTransaction([&]() { localDatabase->catalog->dropFunction(getTx(), name); });
 }
 
 bool ClientContext::canExecuteWriteQuery() const {

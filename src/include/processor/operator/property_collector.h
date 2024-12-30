@@ -15,9 +15,7 @@ struct PropertyCollectorInfo {
     PropertyCollectorInfo(const PropertyCollectorInfo& other)
         : nodeIDPos{other.nodeIDPos}, propPos{other.propPos} {}
 
-    std::unique_ptr<PropertyCollectorInfo> copy() const {
-        return std::make_unique<PropertyCollectorInfo>(*this);
-    }
+    EXPLICIT_COPY_DEFAULT_MOVE(PropertyCollectorInfo);
 };
 
 struct PropertyCollectorPrintInfo final : OPPrintInfo {

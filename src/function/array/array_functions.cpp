@@ -12,7 +12,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static LogicalType interpretLogicalType(binder::Expression* expr) {
+static LogicalType interpretLogicalType(const binder::Expression* expr) {
     if (expr->expressionType == ExpressionType::LITERAL &&
         expr->dataType.getLogicalTypeID() == LogicalTypeID::LIST) {
         auto numChildren =
@@ -22,7 +22,7 @@ static LogicalType interpretLogicalType(binder::Expression* expr) {
     return expr->dataType.copy();
 }
 
-std::unique_ptr<FunctionBindData> ArrayCrossProductBindFunc(ScalarBindFuncInput input) {
+std::unique_ptr<FunctionBindData> ArrayCrossProductBindFunc(const ScalarBindFuncInput& input) {
     auto leftType = interpretLogicalType(input.arguments[0].get());
     auto rightType = interpretLogicalType(input.arguments[1].get());
     if (leftType != rightType) {
@@ -66,9 +66,9 @@ std::unique_ptr<FunctionBindData> ArrayCrossProductBindFunc(ScalarBindFuncInput 
                 ArrayCrossProductFunction::name)};
     }
     input.definition->ptrCast<ScalarFunction>()->execFunc = execFunc;
-    auto resultType = LogicalType::ARRAY(ArrayType::getChildType(leftType).copy(),
+    const auto resultType = LogicalType::ARRAY(ArrayType::getChildType(leftType).copy(),
         ArrayType::getNumElements(leftType));
-    return FunctionBindData::getSimpleBindData(input.arguments, std::move(resultType));
+    return FunctionBindData::getSimpleBindData(input.arguments, resultType);
 }
 
 function_set ArrayCrossProductFunction::getFunctionSet() {

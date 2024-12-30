@@ -8,7 +8,7 @@ namespace processor {
 struct LimitPrintInfo final : OPPrintInfo {
     uint64_t limitNum;
 
-    explicit LimitPrintInfo(uint64_t limitNum) : limitNum{std::move(limitNum)} {}
+    explicit LimitPrintInfo(uint64_t limitNum) : limitNum{limitNum} {}
 
     std::string toString() const override;
 

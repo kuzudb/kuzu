@@ -321,7 +321,7 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::LIST>(ArrowVector* v
     offsets[pos + 1] = offsets[pos] + numElements;
     std::vector<LogicalType> typeVec;
     typeVec.push_back(ListType::getChildType(type).copy());
-    resizeChildVectors(vector, std::move(typeVec), offsets[pos + 1] + 1);
+    resizeChildVectors(vector, typeVec, offsets[pos + 1] + 1);
     for (auto i = 0u; i < numElements; i++) {
         appendValue(vector->childData[0].get(), ListType::getChildType(type),
             value->children[i].get());

@@ -35,7 +35,7 @@ void JsonFileHandle::readAtPosition(uint8_t* pointer, uint64_t size, uint64_t po
 
 BufferedJsonReader::BufferedJsonReader(main::ClientContext& context, std::string fileName,
     BufferedJSONReaderOptions options)
-    : context{context}, fileName{std::move(fileName)}, options{std::move(options)}, bufferIdx{0} {
+    : context{context}, fileName{std::move(fileName)}, options{options}, bufferIdx{0} {
     auto fileInfo = context.getVFSUnsafe()->openFile(this->fileName, FileFlags::READ_ONLY);
     fileHandle = std::make_unique<JsonFileHandle>(std::move(fileInfo));
 }
@@ -56,7 +56,7 @@ std::string BufferedJsonReader::reconstructLine(uint64_t startPosition, uint64_t
 }
 
 std::unique_ptr<storage::MemoryBuffer> BufferedJsonReader::removeBuffer(
-    JsonScanBufferHandle& handle) {
+    const JsonScanBufferHandle& handle) {
     std::lock_guard<std::mutex> guard(lock);
     KU_ASSERT(bufferMap.contains(handle.bufferIdx));
     auto result = std::move(bufferMap.at(handle.bufferIdx)->buffer);
@@ -64,7 +64,7 @@ std::unique_ptr<storage::MemoryBuffer> BufferedJsonReader::removeBuffer(
     return result;
 }
 
-void BufferedJsonReader::throwParseError(yyjson_read_err& err, bool completedParsingObject,
+void BufferedJsonReader::throwParseError(const yyjson_read_err& err, bool completedParsingObject,
     processor::WarningSourceData errorData, processor::LocalFileErrorHandler* errorHandler,
     const std::string& extra) const {
     errorHandler->handleError(

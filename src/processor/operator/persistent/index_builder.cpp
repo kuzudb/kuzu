@@ -31,7 +31,7 @@ void IndexBufferWithWarningData<T>::append(T key, common::offset_t value,
         if (warningDataBuffer == nullptr) {
             warningDataBuffer = std::make_unique<OptionalWarningDataBuffer::element_type>();
         }
-        warningDataBuffer->push_back(std::move(warningData.value()));
+        warningDataBuffer->push_back(warningData.value());
     }
 }
 

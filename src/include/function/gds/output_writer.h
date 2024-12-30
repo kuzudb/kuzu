@@ -182,7 +182,7 @@ class SPPathsOutputWriter : public PathsOutputWriter {
 public:
     SPPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
         processor::NodeOffsetMaskMap* outputNodeMask, PathsOutputWriterInfo info)
-        : PathsOutputWriter{context, rjOutputs, outputNodeMask, std::move(info)} {}
+        : PathsOutputWriter{context, rjOutputs, outputNodeMask, info} {}
 
     std::unique_ptr<RJOutputWriter> copy() override {
         return std::make_unique<SPPathsOutputWriter>(context, rjOutputs, outputNodeMask, info);
