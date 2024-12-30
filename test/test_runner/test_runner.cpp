@@ -169,9 +169,11 @@ void TestRunner::checkPlanResult(Connection& conn, QueryResult* result, TestStat
 }
 
 void TestRunner::outputFailedPlan(Connection& conn, const TestStatement* statement) {
-    const auto plan = getLogicalPlan(statement->query, conn);
     spdlog::error("QUERY FAILED.");
-    spdlog::info("PLAN: \n{}", plan->toString());
+    const auto plan = getLogicalPlan(statement->query, conn);
+    if (plan) {
+        spdlog::info("PLAN: \n{}", plan->toString());
+    }
 }
 
 bool TestRunner::checkResultNumeric(QueryResult& queryResult, const TestStatement* statement,

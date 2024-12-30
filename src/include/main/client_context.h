@@ -106,21 +106,18 @@ public:
     extension::ExtensionOptions* getExtensionOptions() const;
     std::string getExtensionDir() const;
 
-    // Environment.
-    std::string getEnvVariable(const std::string& name);
-
     // Database component getters.
     std::string getDatabasePath() const;
     Database* getDatabase() const { return localDatabase; }
     common::TaskScheduler* getTaskScheduler() const;
     DatabaseManager* getDatabaseManager() const;
     storage::StorageManager* getStorageManager() const;
-    storage::MemoryManager* getMemoryManager();
+    storage::MemoryManager* getMemoryManager() const;
     storage::WAL* getWAL() const;
     catalog::Catalog* getCatalog() const;
     transaction::TransactionManager* getTransactionManagerUnsafe() const;
     common::VirtualFileSystem* getVFSUnsafe() const;
-    common::RandomEngine* getRandomEngine();
+    common::RandomEngine* getRandomEngine() const;
 
     // Query.
     std::unique_ptr<PreparedStatement> prepare(std::string_view query);
@@ -131,7 +128,7 @@ public:
         std::optional<uint64_t> queryID = std::nullopt);
 
     void setDefaultDatabase(AttachedKuzuDatabase* defaultDatabase_);
-    bool hasDefaultDatabase();
+    bool hasDefaultDatabase() const;
 
     void addScalarFunction(std::string name, function::function_set definitions);
     void removeScalarFunction(std::string name);
@@ -146,10 +143,12 @@ public:
     std::unique_ptr<QueryResult> queryInternal(std::string_view query,
         std::optional<uint64_t> queryID = std::nullopt);
 
+    static std::string getEnvVariable(const std::string& name);
+
 private:
     std::vector<std::shared_ptr<parser::Statement>> parseQuery(std::string_view query);
 
-    std::unique_ptr<QueryResult> queryResultWithError(std::string_view errMsg);
+    static std::unique_ptr<QueryResult> queryResultWithError(std::string_view errMsg);
 
     std::unique_ptr<PreparedStatement> preparedStatementWithError(std::string_view errMsg);
 
@@ -178,7 +177,7 @@ private:
     std::unique_ptr<QueryResult> executeNoLock(PreparedStatement* preparedStatement,
         std::optional<uint64_t> queryID = std::nullopt);
 
-    bool canExecuteWriteQuery();
+    bool canExecuteWriteQuery() const;
 
     void runFuncInTransaction(const std::function<void(void)>& fun);
 
