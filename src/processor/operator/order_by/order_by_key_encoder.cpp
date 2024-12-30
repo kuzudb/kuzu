@@ -5,7 +5,6 @@
 
 #include "common/exception/runtime.h"
 #include "common/string_format.h"
-#include "common/string_utils.h"
 #include "common/utils.h"
 #include "storage/storage_utils.h"
 
