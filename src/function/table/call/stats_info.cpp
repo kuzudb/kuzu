@@ -12,18 +12,18 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInput&,
-    TableFuncSharedState*, storage::MemoryManager*) {
+static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput&,
+    const TableFuncSharedState*, const storage::MemoryManager*) {
     return std::make_unique<TableFuncLocalState>();
 }
 
 struct StatsInfoBindData final : SimpleTableFuncBindData {
     TableCatalogEntry* tableEntry;
     storage::Table* table;
-    ClientContext* context;
+    const ClientContext* context;
 
     StatsInfoBindData(binder::expression_vector columns, TableCatalogEntry* tableEntry,
-        storage::Table* table, ClientContext* context)
+        storage::Table* table, const ClientContext* context)
         : SimpleTableFuncBindData{std::move(columns), 1 /*maxOffset*/}, tableEntry{tableEntry},
           table{table}, context{context} {}
 
@@ -32,7 +32,7 @@ struct StatsInfoBindData final : SimpleTableFuncBindData {
     }
 };
 
-static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     const auto& dataChunk = output.dataChunk;
     KU_ASSERT(dataChunk.state->getSelVector().isUnfiltered());
     const auto morsel = input.sharedState->ptrCast<SimpleTableFuncSharedState>()->getMorsel();
@@ -58,8 +58,8 @@ static offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
     return 1;
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
-    TableFuncBindInput* input) {
+static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
+    const TableFuncBindInput* input) {
     const auto tableName = input->getLiteralVal<std::string>(0);
     const auto catalog = context->getCatalog();
     if (!catalog->containsTable(context->getTx(), tableName)) {

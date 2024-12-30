@@ -11,22 +11,22 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace duckdb_extension {
 
-static offset_t clearCacheTableFunc(TableFuncInput& input, TableFuncOutput& output) {
+static offset_t clearCacheTableFunc(const TableFuncInput& input, const TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
-    auto morsel = sharedState->getMorsel();
+    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
+    const auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
-    auto bindData = input.bindData->constPtrCast<ClearCacheBindData>();
+    const auto bindData = input.bindData->constPtrCast<ClearCacheBindData>();
     bindData->databaseManager->invalidateCache();
     dataChunk.getValueVectorMutable(0).setValue<std::string>(0,
         "All attached database caches have been cleared.");
     return 1;
 }
 
-static std::unique_ptr<TableFuncBindData> clearCacheBindFunc(ClientContext* context,
-    TableFuncBindInput* input) {
+static std::unique_ptr<TableFuncBindData> clearCacheBindFunc(const ClientContext* context,
+    const TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     columnNames.emplace_back("message");

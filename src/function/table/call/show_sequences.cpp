@@ -24,7 +24,7 @@ struct SequenceInfo {
           increment{increment}, minValue{minValue}, maxValue{maxValue}, cycle{cycle} {}
 };
 
-struct ShowSequencesBindData : public SimpleTableFuncBindData {
+struct ShowSequencesBindData final : SimpleTableFuncBindData {
     std::vector<SequenceInfo> sequences;
 
     ShowSequencesBindData(std::vector<SequenceInfo> sequences, binder::expression_vector columns,
@@ -36,17 +36,17 @@ struct ShowSequencesBindData : public SimpleTableFuncBindData {
     }
 };
 
-static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
-    auto morsel = sharedState->getMorsel();
+    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
+    const auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
-    auto sequences = input.bindData->constPtrCast<ShowSequencesBindData>()->sequences;
-    auto numSequencesToOutput = morsel.endOffset - morsel.startOffset;
+    const auto sequences = input.bindData->constPtrCast<ShowSequencesBindData>()->sequences;
+    const auto numSequencesToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numSequencesToOutput; i++) {
-        auto sequenceInfo = sequences[morsel.startOffset + i];
+        const auto sequenceInfo = sequences[morsel.startOffset + i];
         dataChunk.getValueVectorMutable(0).setValue(i, sequenceInfo.name);
         dataChunk.getValueVectorMutable(1).setValue(i, sequenceInfo.databaseName);
         dataChunk.getValueVectorMutable(2).setValue(i, sequenceInfo.startValue);
@@ -58,8 +58,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     return numSequencesToOutput;
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-    TableFuncBindInput* input) {
+static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* context,
+    const TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     columnNames.emplace_back("name");
@@ -77,8 +77,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     columnNames.emplace_back("cycle");
     columnTypes.emplace_back(LogicalType::BOOL());
     std::vector<SequenceInfo> sequenceInfos;
-    for (auto& entry : context->getCatalog()->getSequenceEntries(context->getTx())) {
-        auto sequenceData = entry->getSequenceData();
+    for (const auto& entry : context->getCatalog()->getSequenceEntries(context->getTx())) {
+        const auto sequenceData = entry->getSequenceData();
         auto sequenceInfo = SequenceInfo{entry->getName(), LOCAL_DB_NAME, sequenceData.startValue,
             sequenceData.increment, sequenceData.minValue, sequenceData.maxValue,
             sequenceData.cycle};

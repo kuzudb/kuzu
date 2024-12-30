@@ -26,11 +26,11 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace function {
 
-struct StorageInfoLocalState final : public TableFuncLocalState {
+struct StorageInfoLocalState final : TableFuncLocalState {
     std::unique_ptr<DataChunkCollection> dataChunkCollection;
     idx_t currChunkIdx;
 
-    explicit StorageInfoLocalState(storage::MemoryManager* mm) : currChunkIdx{0} {
+    explicit StorageInfoLocalState(MemoryManager* mm) : currChunkIdx{0} {
         dataChunkCollection = std::make_unique<DataChunkCollection>(mm);
     }
 };
@@ -42,22 +42,22 @@ static void collectColumns(Column* column, std::vector<Column*>& result) {
     }
     switch (column->getDataType().getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
-        auto structColumn = ku_dynamic_cast<StructColumn*>(column);
-        auto numChildren = StructType::getNumFields(structColumn->getDataType());
+        const auto structColumn = ku_dynamic_cast<StructColumn*>(column);
+        const auto numChildren = StructType::getNumFields(structColumn->getDataType());
         for (auto i = 0u; i < numChildren; i++) {
-            auto childColumn = structColumn->getChild(i);
+            const auto childColumn = structColumn->getChild(i);
             collectColumns(childColumn, result);
         }
     } break;
     case PhysicalTypeID::STRING: {
-        auto stringColumn = ku_dynamic_cast<StringColumn*>(column);
+        const auto stringColumn = ku_dynamic_cast<StringColumn*>(column);
         auto& dictionary = stringColumn->getDictionary();
         collectColumns(dictionary.getDataColumn(), result);
         collectColumns(dictionary.getOffsetColumn(), result);
     } break;
     case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
-        auto listColumn = ku_dynamic_cast<ListColumn*>(column);
+        const auto listColumn = ku_dynamic_cast<ListColumn*>(column);
         collectColumns(listColumn->getOffsetColumn(), result);
         collectColumns(listColumn->getSizeColumn(), result);
         collectColumns(listColumn->getDataColumn(), result);
@@ -68,23 +68,23 @@ static void collectColumns(Column* column, std::vector<Column*>& result) {
     }
 }
 
-struct StorageInfoBindData final : public SimpleTableFuncBindData {
+struct StorageInfoBindData final : SimpleTableFuncBindData {
     TableCatalogEntry* tableEntry;
-    storage::Table* table;
-    ClientContext* context;
+    Table* table;
+    const ClientContext* context;
 
     StorageInfoBindData(binder::expression_vector columns, TableCatalogEntry* tableEntry,
-        storage::Table* table, ClientContext* context)
-        : SimpleTableFuncBindData{columns, 1 /*maxOffset*/}, tableEntry{tableEntry}, table{table},
-          context{context} {}
+        Table* table, const ClientContext* context)
+        : SimpleTableFuncBindData{std::move(columns), 1 /*maxOffset*/}, tableEntry{tableEntry},
+          table{table}, context{context} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<StorageInfoBindData>(columns, tableEntry, table, context);
     }
 };
 
-static std::unique_ptr<TableFuncLocalState> initLocalState(TableFunctionInitInput& /*input*/,
-    TableFuncSharedState* /*state*/, storage::MemoryManager* mm) {
+static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput& /*input*/,
+    const TableFuncSharedState* /*state*/, MemoryManager* mm) {
     return std::make_unique<StorageInfoLocalState>(mm);
 }
 
@@ -96,7 +96,8 @@ struct StorageInfoOutputData {
     std::vector<Column*> columns;
 };
 
-static void resetOutputIfNecessary(StorageInfoLocalState* localState, DataChunk& outputChunk) {
+static void resetOutputIfNecessary(const StorageInfoLocalState* localState,
+    DataChunk& outputChunk) {
     if (outputChunk.state->getSelVector().getSelSize() == DEFAULT_VECTOR_CAPACITY) {
         localState->dataChunkCollection->append(outputChunk);
         outputChunk.resetAuxiliaryBuffer();
@@ -243,15 +244,16 @@ static void appendStorageInfoForNodeGroup(StorageInfoLocalState* localState, Dat
     }
 }
 
-static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
     auto localState = ku_dynamic_cast<StorageInfoLocalState*>(input.localState);
     KU_ASSERT(dataChunk.state->getSelVector().isUnfiltered());
     while (true) {
         if (localState->currChunkIdx < localState->dataChunkCollection->getNumChunks()) {
             // Copy from local state chunk.
-            auto& chunk = localState->dataChunkCollection->getChunkUnsafe(localState->currChunkIdx);
-            auto numValuesToOutput = chunk.state->getSelVector().getSelSize();
+            const auto& chunk =
+                localState->dataChunkCollection->getChunkUnsafe(localState->currChunkIdx);
+            const auto numValuesToOutput = chunk.state->getSelVector().getSelSize();
             for (auto columnIdx = 0u; columnIdx < dataChunk.getNumValueVectors(); columnIdx++) {
                 const auto& localVector = chunk.getValueVector(columnIdx);
                 auto& outputVector = dataChunk.getValueVectorMutable(columnIdx);
@@ -267,8 +269,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
         if (!morsel.hasMoreToOutput()) {
             return 0;
         }
-        auto bindData = input.bindData->constPtrCast<StorageInfoBindData>();
-        auto table = bindData->table;
+        const auto bindData = input.bindData->constPtrCast<StorageInfoBindData>();
+        const auto table = bindData->table;
         StorageInfoOutputData outputData;
         outputData.tableType = table->getTableType() == TableType::NODE ? "NODE" : "REL";
         node_group_idx_t numNodeGroups = 0;
@@ -326,9 +328,9 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     }
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
-    TableFuncBindInput* input) {
-    std::vector<std::string> columnNames = {"table_type", "node_group_id", "node_chunk_id",
+static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
+    const TableFuncBindInput* input) {
+    const std::vector<std::string> columnNames = {"table_type", "node_group_id", "node_chunk_id",
         "residency", "column_name", "data_type", "start_page_idx", "num_pages", "num_values", "min",
         "max", "compression"};
     std::vector<LogicalType> columnTypes;
@@ -359,8 +361,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
 
 function_set StorageInfoFunction::getFunctionSet() {
     function_set functionSet;
-    auto function =
-        std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
+    auto function = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = initSharedState;

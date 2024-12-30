@@ -12,18 +12,18 @@ namespace function {
 
 struct TableInfo {
     std::string name;
-    common::table_id_t id;
+    table_id_t id;
     std::string type;
     std::string databaseName;
     std::string comment;
 
-    TableInfo(std::string name, common::table_id_t id, std::string type, std::string databaseName,
+    TableInfo(std::string name, table_id_t id, std::string type, std::string databaseName,
         std::string comment)
         : name{std::move(name)}, id{std::move(id)}, type{std::move(type)},
           databaseName{std::move(databaseName)}, comment{std::move(comment)} {}
 };
 
-struct ShowTablesBindData : public SimpleTableFuncBindData {
+struct ShowTablesBindData final : SimpleTableFuncBindData {
     std::vector<TableInfo> tables;
 
     ShowTablesBindData(std::vector<TableInfo> tables, binder::expression_vector columns,
@@ -35,17 +35,17 @@ struct ShowTablesBindData : public SimpleTableFuncBindData {
     }
 };
 
-static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
-    auto morsel = sharedState->getMorsel();
+    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
+    const auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
-    auto tables = input.bindData->constPtrCast<ShowTablesBindData>()->tables;
-    auto numTablesToOutput = morsel.endOffset - morsel.startOffset;
+    const auto tables = input.bindData->constPtrCast<ShowTablesBindData>()->tables;
+    const auto numTablesToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numTablesToOutput; i++) {
-        auto tableInfo = tables[morsel.startOffset + i];
+        const auto tableInfo = tables[morsel.startOffset + i];
         dataChunk.getValueVectorMutable(0).setValue(i, tableInfo.id);
         dataChunk.getValueVectorMutable(1).setValue(i, tableInfo.name);
         dataChunk.getValueVectorMutable(2).setValue(i, tableInfo.type);
@@ -55,8 +55,8 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     return numTablesToOutput;
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-    TableFuncBindInput* input) {
+static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* context,
+    const TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     columnNames.emplace_back("id");

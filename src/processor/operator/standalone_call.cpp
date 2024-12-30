@@ -11,15 +11,15 @@ std::string StandaloneCallPrintInfo::toString() const {
     return result;
 }
 
-bool StandaloneCall::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) {
+bool StandaloneCall::getNextTuplesInternal(ExecutionContext* context) {
     if (standaloneCallInfo->hasExecuted) {
         return false;
     }
     standaloneCallInfo->hasExecuted = true;
     switch (standaloneCallInfo->option->optionType) {
     case main::OptionType::CONFIGURATION: {
-        auto configurationOption =
-            common::ku_dynamic_cast<main::ConfigurationOption*>(standaloneCallInfo->option);
+        const auto configurationOption =
+            common::ku_dynamic_cast<const main::ConfigurationOption*>(standaloneCallInfo->option);
         configurationOption->setContext(context->clientContext, standaloneCallInfo->optionValue);
         break;
     }

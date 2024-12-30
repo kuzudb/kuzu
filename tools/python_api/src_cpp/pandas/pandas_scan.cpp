@@ -15,8 +15,8 @@ using namespace kuzu::catalog;
 
 namespace kuzu {
 
-std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-    TableFuncBindInput* input) {
+std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* /*context*/,
+    const TableFuncBindInput* input) {
     py::gil_scoped_acquire acquire;
     py::handle df(reinterpret_cast<PyObject*>(input->getLiteralVal<uint8_t*>(0)));
     std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData;
@@ -50,16 +50,14 @@ bool sharedStateNext(const TableFuncBindData* /*bindData*/, PandasScanLocalState
     return true;
 }
 
-std::unique_ptr<function::TableFuncLocalState> initLocalState(
-    function::TableFunctionInitInput& input, function::TableFuncSharedState* sharedState,
-    storage::MemoryManager* /*mm*/) {
+std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput& input,
+    TableFuncSharedState* sharedState, storage::MemoryManager* /*mm*/) {
     auto localState = std::make_unique<PandasScanLocalState>(0 /* start */, 0 /* end */);
     sharedStateNext(input.bindData, localState.get(), sharedState);
     return localState;
 }
 
-std::unique_ptr<function::TableFuncSharedState> initSharedState(
-    function::TableFunctionInitInput& input) {
+std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
     // LCOV_EXCL_START
     if (PyGILState_Check()) {
         throw RuntimeException("PandasScan called but GIL was already held!");
@@ -81,7 +79,7 @@ void pandasBackendScanSwitch(PandasColumnBindData* bindData, uint64_t count, uin
     }
 }
 
-offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+offset_t tableFunc(const TableFuncInput& input, const TableFuncOutput& output) {
     auto pandasScanData = input.bindData->constPtrCast<PandasScanFunctionData>();
     auto pandasLocalState = input.localState->ptrCast<PandasScanLocalState>();
     if (pandasLocalState->start >= pandasLocalState->end) {
@@ -127,8 +125,8 @@ function_set PandasScanFunction::getFunctionSet() {
     return functionSet;
 }
 
-function::TableFunction PandasScanFunction::getFunction() {
-    auto function = TableFunction(name, std::vector<LogicalTypeID>{LogicalTypeID::POINTER});
+TableFunction PandasScanFunction::getFunction() {
+    auto function = TableFunction(name, std::vector{LogicalTypeID::POINTER});
     function.tableFunc = tableFunc;
     function.bindFunc = bindFunc;
     function.initSharedStateFunc = initSharedState;

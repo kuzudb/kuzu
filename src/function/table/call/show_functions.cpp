@@ -17,38 +17,38 @@ struct FunctionInfo {
         : name{std::move(name)}, type{std::move(type)}, signature{std::move(signature)} {}
 };
 
-struct ShowFunctionsBindData : public SimpleTableFuncBindData {
+struct ShowFunctionsBindData final : SimpleTableFuncBindData {
     std::vector<FunctionInfo> sequences;
 
     ShowFunctionsBindData(std::vector<FunctionInfo> sequences, binder::expression_vector columns,
         offset_t maxOffset)
-        : SimpleTableFuncBindData{columns, maxOffset}, sequences{std::move(sequences)} {}
+        : SimpleTableFuncBindData{std::move(columns), maxOffset}, sequences{std::move(sequences)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<ShowFunctionsBindData>(sequences, columns, maxOffset);
     }
 };
 
-static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
-    auto morsel = sharedState->getMorsel();
+    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
+    const auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
-    auto sequences = input.bindData->constPtrCast<ShowFunctionsBindData>()->sequences;
-    auto numSequencesToOutput = morsel.endOffset - morsel.startOffset;
+    const auto sequences = input.bindData->constPtrCast<ShowFunctionsBindData>()->sequences;
+    const auto numSequencesToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numSequencesToOutput; i++) {
-        auto FunctionInfo = sequences[morsel.startOffset + i];
-        dataChunk.getValueVectorMutable(0).setValue(i, FunctionInfo.name);
-        dataChunk.getValueVectorMutable(1).setValue(i, FunctionInfo.type);
-        dataChunk.getValueVectorMutable(2).setValue(i, FunctionInfo.signature);
+        const auto functionInfo = sequences[morsel.startOffset + i];
+        dataChunk.getValueVectorMutable(0).setValue(i, functionInfo.name);
+        dataChunk.getValueVectorMutable(1).setValue(i, functionInfo.type);
+        dataChunk.getValueVectorMutable(2).setValue(i, functionInfo.signature);
     }
     return numSequencesToOutput;
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-    TableFuncBindInput* input) {
+static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* context,
+    const TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     columnNames.emplace_back("name");

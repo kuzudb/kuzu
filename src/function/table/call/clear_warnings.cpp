@@ -7,13 +7,13 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& /*output*/) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     input.context->clientContext->getWarningContextUnsafe().clearPopulatedWarnings();
     return 0;
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-    TableFuncBindInput*) {
+static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext*,
+    const TableFuncBindInput*) {
     return std::make_unique<SimpleTableFuncBindData>(0);
 }
 

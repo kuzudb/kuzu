@@ -145,7 +145,7 @@ struct ExtensionOptions {
     void addExtensionOption(std::string name, common::LogicalTypeID type,
         common::Value defaultValue);
 
-    main::ExtensionOption* getExtensionOption(std::string name);
+    const main::ExtensionOption* getExtensionOption(std::string name) const;
 };
 
 #ifdef _WIN32

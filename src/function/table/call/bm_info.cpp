@@ -19,7 +19,7 @@ struct BMInfoBindData final : SimpleTableFuncBindData {
     }
 };
 
-static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     KU_ASSERT(output.dataChunk.getNumValueVectors() == 2);
     const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
     const auto morsel = sharedState->getMorsel();
@@ -32,14 +32,14 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     return 1;
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-    TableFuncBindInput* input) {
+static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* context,
+    const TableFuncBindInput* input) {
     auto memLimit = context->getMemoryManager()->getBufferManager()->getMemoryLimit();
     auto memUsage = context->getMemoryManager()->getBufferManager()->getUsedMemory();
     std::vector<common::LogicalType> returnTypes;
     returnTypes.emplace_back(common::LogicalType::UINT64());
     returnTypes.emplace_back(common::LogicalType::UINT64());
-    auto returnColumnNames = std::vector<std::string>{"mem_limit", "mem_usage"};
+    const auto returnColumnNames = std::vector<std::string>{"mem_limit", "mem_usage"};
     auto columns = input->binder->createVariables(returnColumnNames, returnTypes);
     return std::make_unique<BMInfoBindData>(memLimit, memUsage, columns);
 }

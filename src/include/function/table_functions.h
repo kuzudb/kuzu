@@ -73,20 +73,20 @@ struct TableFunctionInitInput {
 };
 
 using table_func_bind_t = std::function<std::unique_ptr<TableFuncBindData>(main::ClientContext*,
-    function::TableFuncBindInput*)>;
-using table_func_t = std::function<common::offset_t(TableFuncInput&, TableFuncOutput&)>;
+    const TableFuncBindInput*)>;
+using table_func_t = std::function<common::offset_t(const TableFuncInput&, TableFuncOutput&)>;
 using table_func_init_shared_t =
-    std::function<std::unique_ptr<TableFuncSharedState>(TableFunctionInitInput&)>;
+    std::function<std::unique_ptr<TableFuncSharedState>(const TableFunctionInitInput&)>;
 using table_func_init_local_t = std::function<std::unique_ptr<TableFuncLocalState>(
-    TableFunctionInitInput&, TableFuncSharedState*, storage::MemoryManager*)>;
+    const TableFunctionInitInput&, TableFuncSharedState*, storage::MemoryManager*)>;
 using table_func_can_parallel_t = std::function<bool()>;
 using table_func_progress_t = std::function<double(TableFuncSharedState* sharedState)>;
 using table_func_finalize_t =
-    std::function<void(processor::ExecutionContext*, TableFuncSharedState*)>;
+    std::function<void(const processor::ExecutionContext*, TableFuncSharedState*)>;
 using table_func_rewrite_t =
-    std::function<std::string(main::ClientContext&, const TableFuncBindData& bindData)>;
+    std::function<std::string(const main::ClientContext&, const TableFuncBindData& bindData)>;
 
-struct KUZU_API TableFunction : public Function {
+struct KUZU_API TableFunction : Function {
     table_func_t tableFunc = nullptr;
     table_func_bind_t bindFunc = nullptr;
     table_func_init_shared_t initSharedStateFunc = nullptr;
@@ -96,9 +96,9 @@ struct KUZU_API TableFunction : public Function {
     table_func_finalize_t finalizeFunc = [](auto, auto) {};
     table_func_rewrite_t rewriteFunc = nullptr;
 
-    TableFunction() : Function{} {};
+    TableFunction() {}
     TableFunction(std::string name, std::vector<common::LogicalTypeID> inputTypes)
-        : Function{name, inputTypes} {}
+        : Function{std::move(name), std::move(inputTypes)} {}
 
     std::string signatureToString() const override {
         return common::LogicalTypeUtils::toString(parameterTypeIDs);

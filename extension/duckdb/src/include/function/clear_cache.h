@@ -8,7 +8,7 @@
 namespace kuzu {
 namespace duckdb_extension {
 
-struct ClearCacheBindData : public function::SimpleTableFuncBindData {
+struct ClearCacheBindData final : function::SimpleTableFuncBindData {
     main::DatabaseManager* databaseManager;
 
     ClearCacheBindData(main::DatabaseManager* databaseManager, binder::expression_vector columns,
@@ -21,7 +21,7 @@ struct ClearCacheBindData : public function::SimpleTableFuncBindData {
     }
 };
 
-struct ClearCacheFunction final : public function::TableFunction {
+struct ClearCacheFunction final : function::TableFunction {
     static constexpr const char* name = "clear_attached_db_cache";
 
     ClearCacheFunction();

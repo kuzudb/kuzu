@@ -12,7 +12,7 @@ class DuckDBConnector;
 
 using init_duckdb_conn_t = std::function<std::pair<duckdb::DuckDB, duckdb::Connection>()>;
 
-struct DuckDBScanBindData : public function::TableFuncBindData {
+struct DuckDBScanBindData final : function::TableFuncBindData {
     std::string query;
     std::vector<common::LogicalType> columnTypes;
     std::vector<std::string> columnNames;
@@ -22,16 +22,15 @@ struct DuckDBScanBindData : public function::TableFuncBindData {
     DuckDBScanBindData(std::string query, std::vector<common::LogicalType> columnTypes,
         std::vector<std::string> columnNames, const DuckDBConnector& connector);
     DuckDBScanBindData(const DuckDBScanBindData& other)
-        : function::TableFuncBindData{other}, query{other.query},
-          columnTypes{copyVector(other.columnTypes)}, columnNames{other.columnNames},
-          converter{other.converter}, connector{other.connector} {}
+        : TableFuncBindData{other}, query{other.query}, columnTypes{copyVector(other.columnTypes)},
+          columnNames{other.columnNames}, converter{other.converter}, connector{other.connector} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<DuckDBScanBindData>(*this);
     }
 };
 
-struct DuckDBScanSharedState : public function::BaseScanSharedStateWithNumRows {
+struct DuckDBScanSharedState final : function::BaseScanSharedStateWithNumRows {
     explicit DuckDBScanSharedState(std::unique_ptr<duckdb::MaterializedQueryResult> queryResult);
 
     std::unique_ptr<duckdb::MaterializedQueryResult> queryResult;

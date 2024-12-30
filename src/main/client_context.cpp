@@ -106,7 +106,7 @@ uint64_t ClientContext::getMaxNumThreadForExec() const {
     return clientConfig.numThreads;
 }
 
-Value ClientContext::getCurrentSetting(const std::string& optionName) {
+Value ClientContext::getCurrentSetting(const std::string& optionName) const {
     auto lowerCaseOptionName = optionName;
     StringUtils::toLower(lowerCaseOptionName);
     // Firstly, try to find in built-in options.

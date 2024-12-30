@@ -13,7 +13,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-struct TableInfoBindData : public SimpleTableFuncBindData {
+struct TableInfoBindData final : SimpleTableFuncBindData {
     std::unique_ptr<TableCatalogEntry> catalogEntry;
 
     TableInfoBindData(std::unique_ptr<TableCatalogEntry> catalogEntry,
@@ -26,7 +26,7 @@ struct TableInfoBindData : public SimpleTableFuncBindData {
     }
 };
 
-static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
     auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
     auto morsel = sharedState->getMorsel();
@@ -62,7 +62,7 @@ static common::offset_t tableFunc(TableFuncInput& input, TableFuncOutput& output
     return vectorPos;
 }
 
-static std::unique_ptr<TableCatalogEntry> getTableCatalogEntry(main::ClientContext* context,
+static std::unique_ptr<TableCatalogEntry> getTableCatalogEntry(const main::ClientContext* context,
     const std::string& tableName) {
     auto transaction = context->getTx();
     auto tableInfo = common::StringUtils::split(tableName, ".");
@@ -82,12 +82,12 @@ static std::unique_ptr<TableCatalogEntry> getTableCatalogEntry(main::ClientConte
     }
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-    TableFuncBindInput* input) {
+static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* context,
+    const TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     auto catalogEntry = getTableCatalogEntry(context, input->getLiteralVal<std::string>(0));
-    auto tableEntry = catalogEntry->constPtrCast<TableCatalogEntry>();
+    const auto tableEntry = catalogEntry->constPtrCast<TableCatalogEntry>();
     columnNames.emplace_back("property id");
     columnTypes.push_back(LogicalType::INT32());
     columnNames.emplace_back("name");
@@ -107,8 +107,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
 
 function_set TableInfoFunction::getFunctionSet() {
     function_set functionSet;
-    auto function =
-        std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
+    auto function = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = initSharedState;
