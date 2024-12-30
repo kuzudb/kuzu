@@ -1,4 +1,5 @@
 #pragma once
+
 #include "extension/extension_installer.h"
 
 namespace kuzu {

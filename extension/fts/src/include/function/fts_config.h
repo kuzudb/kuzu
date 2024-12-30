@@ -3,7 +3,6 @@
 #include <string>
 
 #include "common/types/types.h"
-#include "common/types/value/value.h"
 #include "function/table/bind_input.h"
 
 namespace kuzu {

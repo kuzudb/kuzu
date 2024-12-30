@@ -11,11 +11,11 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace duckdb_extension {
 
-DuckDBScanBindData::DuckDBScanBindData(std::string query, std::vector<LogicalType> columnTypes,
-    std::vector<std::string> columnNames, const DuckDBConnector& connector)
+DuckDBScanBindData::DuckDBScanBindData(std::string query,
+    const std::vector<LogicalType>& columnTypes, std::vector<std::string> columnNames,
+    const DuckDBConnector& connector)
     : query{std::move(query)}, columnTypes{LogicalType::copy(columnTypes)},
-      columnNames{std::move(columnNames)}, converter{std::move(columnTypes)}, connector{connector} {
-}
+      columnNames{std::move(columnNames)}, converter{columnTypes}, connector{connector} {}
 
 DuckDBScanSharedState::DuckDBScanSharedState(
     std::unique_ptr<duckdb::MaterializedQueryResult> queryResult)

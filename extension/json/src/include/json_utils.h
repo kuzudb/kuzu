@@ -2,8 +2,6 @@
 
 #include <memory>
 
-#include "common/copy_constructors.h"
-#include "common/json_enums.h"
 #include "common/vector/value_vector.h"
 #include "main/client_context.h"
 #include "yyjson.h"

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "function/export/export_function.h"
 #include "function/table/bind_data.h"
 
 namespace kuzu {

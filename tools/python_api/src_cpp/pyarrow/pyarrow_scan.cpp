@@ -6,6 +6,7 @@
 #include "function/cast/functions/numeric_limits.h"
 #include "function/table/bind_input.h"
 #include "py_connection.h"
+#include "pyarrow/pyarrow_bind.h"
 #include "pybind11/pytypes.h"
 
 using namespace kuzu::function;

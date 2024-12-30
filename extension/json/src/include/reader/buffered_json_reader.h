@@ -70,8 +70,8 @@ public:
     uint64_t getBufferIdx() { return bufferIdx++; }
 
     void throwParseError(const yyjson_read_err& err, bool completedParsingObject,
-        processor::WarningSourceData errorData, processor::LocalFileErrorHandler* errorHandler,
-        const std::string& extra = "") const;
+        const processor::WarningSourceData& errorData,
+        processor::LocalFileErrorHandler* errorHandler, const std::string& extra = "") const;
 
     JsonFileHandle* getFileHandle() const { return fileHandle.get(); }
 

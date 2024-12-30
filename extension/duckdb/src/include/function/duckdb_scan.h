@@ -19,7 +19,7 @@ struct DuckDBScanBindData final : function::TableFuncBindData {
     DuckDBResultConverter converter;
     const DuckDBConnector& connector;
 
-    DuckDBScanBindData(std::string query, std::vector<common::LogicalType> columnTypes,
+    DuckDBScanBindData(std::string query, const std::vector<common::LogicalType>& columnTypes,
         std::vector<std::string> columnNames, const DuckDBConnector& connector);
     DuckDBScanBindData(const DuckDBScanBindData& other)
         : TableFuncBindData{other}, query{other.query}, columnTypes{copyVector(other.columnTypes)},

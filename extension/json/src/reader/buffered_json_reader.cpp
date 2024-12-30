@@ -65,11 +65,11 @@ std::unique_ptr<storage::MemoryBuffer> BufferedJsonReader::removeBuffer(
 }
 
 void BufferedJsonReader::throwParseError(const yyjson_read_err& err, bool completedParsingObject,
-    processor::WarningSourceData errorData, processor::LocalFileErrorHandler* errorHandler,
+    const processor::WarningSourceData& errorData, processor::LocalFileErrorHandler* errorHandler,
     const std::string& extra) const {
     errorHandler->handleError(
         processor::CopyFromFileError{common::stringFormat("Malformed JSON: {}. {}", err.msg, extra),
-            std::move(errorData), completedParsingObject});
+            errorData, completedParsingObject});
 }
 
 } // namespace json_extension
