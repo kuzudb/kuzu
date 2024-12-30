@@ -8,9 +8,9 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     auto resultType = LogicalType::LIST(MapType::getKeyType(input.arguments[0]->dataType).copy());
-    return FunctionBindData::getSimpleBindData(input.arguments, std::move(resultType));
+    return FunctionBindData::getSimpleBindData(input.arguments, resultType);
 }
 
 function_set MapKeysFunctions::getFunctionSet() {

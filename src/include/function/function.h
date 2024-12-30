@@ -53,15 +53,15 @@ struct ScalarBindFuncInput {
 };
 
 using scalar_bind_func =
-    std::function<std::unique_ptr<FunctionBindData>(ScalarBindFuncInput bindInput)>;
+    std::function<std::unique_ptr<FunctionBindData>(const ScalarBindFuncInput& bindInput)>;
 
 struct Function {
     std::string name;
     std::vector<common::LogicalTypeID> parameterTypeIDs;
     // Currently we only one variable-length function which is list creation. The expectation is
     // that all parameters must have the same type as parameterTypes[0].
-    bool isVarLength = false;
-    bool isListLambda = false;
+    bool isVarLength;
+    bool isListLambda;
 
     Function() : isVarLength{false}, isListLambda{false} {};
     Function(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs)
@@ -85,7 +85,7 @@ struct Function {
     }
 };
 
-struct ScalarOrAggregateFunction : public Function {
+struct ScalarOrAggregateFunction : Function {
     common::LogicalTypeID returnTypeID = common::LogicalTypeID::ANY;
     scalar_bind_func bindFunc = nullptr;
 

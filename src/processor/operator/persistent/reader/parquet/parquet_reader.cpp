@@ -20,9 +20,9 @@ namespace processor {
 using namespace kuzu::function;
 using namespace kuzu::common;
 
-ParquetReader::ParquetReader(const std::string& filePath, std::vector<bool> columnSkips,
+ParquetReader::ParquetReader(std::string filePath, std::vector<bool> columnSkips,
     main::ClientContext* context)
-    : filePath{filePath}, columnSkips(std::move(columnSkips)), context{context} {
+    : filePath{std::move(filePath)}, columnSkips(std::move(columnSkips)), context{context} {
     initMetadata();
 }
 

@@ -14,8 +14,9 @@ public:
         : LogicalOperator{operatorType_}, info{std::move(info)}, limitNum{common::INVALID_LIMIT} {}
     LogicalGDSCall(binder::BoundGDSCallInfo info, common::table_id_set_t nbrTableIDSet,
         std::shared_ptr<LogicalOperator> nodePredicateRoot)
-        : LogicalOperator{operatorType_}, info{std::move(info)}, nbrTableIDSet{nbrTableIDSet},
-          nodePredicateRoot{std::move(nodePredicateRoot)}, limitNum{common::INVALID_LIMIT} {}
+        : LogicalOperator{operatorType_}, info{std::move(info)},
+          nbrTableIDSet{std::move(nbrTableIDSet)}, nodePredicateRoot{std::move(nodePredicateRoot)},
+          limitNum{common::INVALID_LIMIT} {}
 
     void computeFlatSchema() override;
     void computeFactorizedSchema() override;
@@ -23,7 +24,7 @@ public:
     const binder::BoundGDSCallInfo& getInfo() const { return info; }
     binder::BoundGDSCallInfo& getInfoUnsafe() { return info; }
 
-    void setNbrTableIDSet(common::table_id_set_t set) { nbrTableIDSet = set; }
+    void setNbrTableIDSet(common::table_id_set_t set) { nbrTableIDSet = std::move(set); }
     bool hasNbrTableIDSet() const { return !nbrTableIDSet.empty(); }
     common::table_id_set_t getNbrTableIDSet() const { return nbrTableIDSet; }
 

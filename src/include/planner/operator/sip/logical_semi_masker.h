@@ -41,7 +41,7 @@ struct ExtraKeyInfo {
     virtual std::unique_ptr<ExtraKeyInfo> copy() const = 0;
 };
 
-struct ExtraPathKeyInfo : public ExtraKeyInfo {
+struct ExtraPathKeyInfo final : ExtraKeyInfo {
     common::ExtendDirection direction;
 
     explicit ExtraPathKeyInfo(common::ExtendDirection direction) : direction{direction} {}
@@ -51,20 +51,20 @@ struct ExtraPathKeyInfo : public ExtraKeyInfo {
     }
 };
 
-struct ExtraNodeIDListKeyInfo : public ExtraKeyInfo {
+struct ExtraNodeIDListKeyInfo final : ExtraKeyInfo {
     std::shared_ptr<binder::Expression> srcNodeID;
     std::shared_ptr<binder::Expression> dstNodeID;
 
     ExtraNodeIDListKeyInfo(std::shared_ptr<binder::Expression> srcNodeID,
         std::shared_ptr<binder::Expression> dstNodeID)
-        : srcNodeID{srcNodeID}, dstNodeID{dstNodeID} {}
+        : srcNodeID{std::move(srcNodeID)}, dstNodeID{std::move(dstNodeID)} {}
 
     std::unique_ptr<ExtraKeyInfo> copy() const override {
         return std::make_unique<ExtraNodeIDListKeyInfo>(srcNodeID, dstNodeID);
     }
 };
 
-class LogicalSemiMasker : public LogicalOperator {
+class LogicalSemiMasker final : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::SEMI_MASKER;
 
 public:
@@ -73,8 +73,8 @@ public:
     LogicalSemiMasker(SemiMaskKeyType keyType, SemiMaskTargetType targetType,
         std::shared_ptr<binder::Expression> key, std::vector<common::table_id_t> nodeTableIDs,
         std::shared_ptr<LogicalOperator> child)
-        : LogicalSemiMasker{keyType, targetType, key, nodeTableIDs, std::vector<LogicalOperator*>{},
-              std::move(child)} {}
+        : LogicalSemiMasker{keyType, targetType, std::move(key), std::move(nodeTableIDs),
+              std::vector<LogicalOperator*>{}, std::move(child)} {}
     LogicalSemiMasker(SemiMaskKeyType keyType, SemiMaskTargetType targetType,
         std::shared_ptr<binder::Expression> key, std::vector<common::table_id_t> nodeTableIDs,
         std::vector<LogicalOperator*> ops, std::shared_ptr<LogicalOperator> child)

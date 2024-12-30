@@ -9,7 +9,7 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     const auto& structType = input.arguments[0]->getDataType();
     auto fieldIdx = StructType::getFieldIdx(structType, InternalKeyword::NODES);
     auto resultType = StructType::getField(structType, fieldIdx).getType().copy();

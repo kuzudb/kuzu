@@ -33,7 +33,7 @@ struct AlterInfo {
         std::unique_ptr<ExtraAlterInfo> extraInfo,
         common::ConflictAction onConflict = common::ConflictAction::ON_CONFLICT_THROW)
         : type{type}, tableName{std::move(tableName)}, extraInfo{std::move(extraInfo)},
-          onConflict{std::move(onConflict)} {}
+          onConflict{onConflict} {}
     DELETE_COPY_DEFAULT_MOVE(AlterInfo);
 };
 

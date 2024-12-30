@@ -44,7 +44,7 @@ static std::unique_ptr<FunctionBindData> ListSortBindFunc(ScalarBindFuncInput in
     return FunctionBindData::getSimpleBindData(input.arguments, input.arguments[0]->getDataType());
 }
 
-static std::unique_ptr<FunctionBindData> ListReverseSortBindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> ListReverseSortBindFunc(const ScalarBindFuncInput& input) {
     auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
     common::TypeUtils::visit(
         ListType::getChildType(input.arguments[0]->dataType).getPhysicalType(),

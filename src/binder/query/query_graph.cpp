@@ -12,7 +12,7 @@ std::size_t SubqueryGraphHasher::operator()(const SubqueryGraph& key) const {
     return std::hash<std::bitset<MAX_NUM_QUERY_VARIABLES>>{}(key.queryRelsSelector);
 }
 
-bool SubqueryGraph::containAllVariables(std::unordered_set<std::string>& variables) const {
+bool SubqueryGraph::containAllVariables(const std::unordered_set<std::string>& variables) const {
     for (auto& var : variables) {
         if (queryGraph.containsQueryNode(var) &&
             !queryNodesSelector[queryGraph.getQueryNodeIdx(var)]) {
@@ -131,12 +131,12 @@ subquery_graph_set_t SubqueryGraph::getBaseNbrSubgraph() const {
     for (auto& nodePos : getNodeNbrPositions()) {
         auto nbr = SubqueryGraph(queryGraph);
         nbr.addQueryNode(nodePos);
-        result.insert(std::move(nbr));
+        result.insert(nbr);
     }
     for (auto& relPos : getRelNbrPositions()) {
         auto nbr = SubqueryGraph(queryGraph);
         nbr.addQueryRel(relPos);
-        result.insert(std::move(nbr));
+        result.insert(nbr);
     }
     return result;
 }
@@ -149,7 +149,7 @@ subquery_graph_set_t SubqueryGraph::getNextNbrSubgraphs(const SubqueryGraph& pre
         }
         auto nbr = prevNbr;
         nbr.addQueryNode(nodePos);
-        result.insert(std::move(nbr));
+        result.insert(nbr);
     }
     for (auto& relPos : prevNbr.getRelNbrPositions()) {
         if (queryRelsSelector[relPos]) {
@@ -157,7 +157,7 @@ subquery_graph_set_t SubqueryGraph::getNextNbrSubgraphs(const SubqueryGraph& pre
         }
         auto nbr = prevNbr;
         nbr.addQueryRel(relPos);
-        result.insert(std::move(nbr));
+        result.insert(nbr);
     }
     return result;
 }
@@ -261,7 +261,7 @@ void QueryGraphCollection::finalize() {
 
 std::vector<QueryGraph> QueryGraphCollection::mergeGraphs(common::idx_t baseGraphIdx) {
     KU_ASSERT(baseGraphIdx < queryGraphs.size());
-    auto baseGraph = std::move(queryGraphs[baseGraphIdx]);
+    auto& baseGraph = queryGraphs[baseGraphIdx];
     std::unordered_set<common::idx_t> mergedGraphIndices;
     mergedGraphIndices.insert(baseGraphIdx);
     while (true) {

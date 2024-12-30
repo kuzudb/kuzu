@@ -14,8 +14,8 @@ struct TopKPrintInfo final : OPPrintInfo {
 
     TopKPrintInfo(binder::expression_vector keys, binder::expression_vector payloads,
         uint64_t skipNum, uint64_t limitNum)
-        : keys(std::move(keys)), payloads(std::move(payloads)), skipNum(std::move(skipNum)),
-          limitNum(std::move(limitNum)) {}
+        : keys(std::move(keys)), payloads(std::move(payloads)), skipNum(skipNum),
+          limitNum(limitNum) {}
 
     std::string toString() const override;
 

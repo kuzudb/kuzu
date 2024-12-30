@@ -224,7 +224,7 @@ void DiskArrayInternal::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isChe
     for (auto& newPIP : pipUpdates.newPIPs) {
         clearWALPageVersionAndRemovePageFromFrameIfNecessary(newPIP.pipPageIdx);
         if (isCheckpoint) {
-            pips.emplace_back(std::move(newPIP));
+            pips.emplace_back(newPIP);
         } else {
             // These are newly inserted pages, so we can truncate the file handle.
             this->fileHandle.removePageIdxAndTruncateIfNecessary(newPIP.pipPageIdx);

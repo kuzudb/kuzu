@@ -11,7 +11,7 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     if (input.arguments[1]->expressionType != ExpressionType::LITERAL) {
         throw BinderException(stringFormat(
             "Expected literal input as the second argument for {}().", PropertiesFunction::name));

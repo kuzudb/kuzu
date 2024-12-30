@@ -29,11 +29,11 @@ namespace kuzu {
 namespace storage {
 
 template<typename T>
-HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName, FileHandle* fileHandle,
+HashIndex<T>::HashIndex(DBFileIDAndName dbFileIDAndName, FileHandle* fileHandle,
     OverflowFileHandle* overflowFileHandle, DiskArrayCollection& diskArrays, uint64_t indexPos,
     ShadowFile* shadowFile, const HashIndexHeader& headerForReadTrx,
     HashIndexHeader& headerForWriteTrx)
-    : dbFileIDAndName{dbFileIDAndName}, shadowFile{shadowFile}, headerPageIdx(0),
+    : dbFileIDAndName{std::move(dbFileIDAndName)}, shadowFile{shadowFile}, headerPageIdx(0),
       fileHandle(fileHandle), overflowFileHandle(overflowFileHandle),
       localStorage{std::make_unique<HashIndexLocalStorage<T>>(overflowFileHandle)},
       indexHeaderForReadTrx{headerForReadTrx}, indexHeaderForWriteTrx{headerForWriteTrx} {

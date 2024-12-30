@@ -15,13 +15,12 @@ using attach_function_t = std::unique_ptr<main::AttachedDatabase> (*)(std::strin
 
 class StorageExtension {
 public:
-    explicit StorageExtension(attach_function_t attachFunction)
-        : attachFunction{std::move(attachFunction)} {}
+    explicit StorageExtension(attach_function_t attachFunction) : attachFunction{attachFunction} {}
     virtual bool canHandleDB(std::string /*dbType*/) const { return false; }
 
     std::unique_ptr<main::AttachedDatabase> attach(std::string dbName, std::string dbPath,
         main::ClientContext* clientContext, const binder::AttachOption& attachOption) const {
-        return attachFunction(dbName, dbPath, clientContext, attachOption);
+        return attachFunction(std::move(dbName), std::move(dbPath), clientContext, attachOption);
     }
 
     virtual ~StorageExtension() = default;

@@ -1,6 +1,5 @@
 #include "s3fs.h"
 
-#include "common/cast.h"
 #include "common/exception/io.h"
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
@@ -21,9 +20,8 @@ S3WriteBuffer::S3WriteBuffer(uint16_t partID, uint64_t startOffset, uint64_t siz
 }
 
 S3FileInfo::S3FileInfo(std::string path, common::FileSystem* fileSystem, int flags,
-    main::ClientContext* context, const S3AuthParams& authParams,
-    const S3UploadParams& uploadParams)
-    : HTTPFileInfo{std::move(path), fileSystem, flags, context}, authParams{authParams},
+    main::ClientContext* context, S3AuthParams authParams, S3UploadParams uploadParams)
+    : HTTPFileInfo{path, fileSystem, flags, context}, authParams{std::move(authParams)},
       uploadParams{uploadParams}, partSize(0), uploadsInProgress{0}, numPartsUploaded{0},
       uploadFinalized{false}, uploaderHasException{false} {}
 

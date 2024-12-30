@@ -12,8 +12,7 @@ namespace extension {
 
 class KUZU_API ExtensionLoader {
 public:
-    explicit ExtensionLoader(const std::string extensionName)
-        : extensionName{std::move(extensionName)} {}
+    explicit ExtensionLoader(std::string extensionName) : extensionName{std::move(extensionName)} {}
 
     virtual ~ExtensionLoader() = default;
 

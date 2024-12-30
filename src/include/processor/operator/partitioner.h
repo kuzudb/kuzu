@@ -136,7 +136,7 @@ struct PartitionerInfo {
         }
     }
 
-    EXPLICIT_COPY_METHOD(PartitionerInfo);
+    EXPLICIT_COPY_DEFAULT_MOVE(PartitionerInfo);
 };
 
 struct PartitionerPrintInfo final : OPPrintInfo {

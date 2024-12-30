@@ -210,7 +210,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& /*output
     auto docTableEntry = context.clientContext->getCatalog()->getTableCatalogEntry(
         context.clientContext->getTx(), docTableName);
     graph::GraphEntry entry{{docTableEntry}, {} /* relTableEntries */};
-    graph::OnDiskGraph graph(context.clientContext, std::move(entry));
+    graph::OnDiskGraph graph(context.clientContext, entry);
     auto sharedState = LenComputeSharedState{};
     LenCompute lenCompute{&sharedState};
     GDSUtils::runVertexCompute(&context, &graph, lenCompute,

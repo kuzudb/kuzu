@@ -58,7 +58,7 @@ struct ListSlice {
     }
 };
 
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     KU_ASSERT(input.arguments.size() == 3);
     std::vector<LogicalType> paramTypes;
     paramTypes.push_back(input.arguments[0]->getDataType().copy());

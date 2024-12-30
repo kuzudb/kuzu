@@ -2,6 +2,7 @@
 
 #include "binder/binder.h"
 #include "catalog/duckdb_catalog.h"
+#include "main/database_manager.h"
 #include "storage/duckdb_storage.h"
 
 using namespace kuzu::function;

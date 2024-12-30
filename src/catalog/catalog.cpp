@@ -346,10 +346,10 @@ void Catalog::dropAllIndexes(transaction::Transaction* transaction, common::tabl
 }
 
 void Catalog::dropIndex(transaction::Transaction* transaction, common::table_id_t tableID,
-    std::string indexName) const {
-    auto uniqueName = common::stringFormat("{}_{}", tableID, indexName);
+    const std::string& indexName) const {
+    const auto uniqueName = common::stringFormat("{}_{}", tableID, indexName);
     const auto entry = indexes->getEntry(transaction, uniqueName);
-    indexes->dropEntry(transaction, std::move(uniqueName), entry->getOID());
+    indexes->dropEntry(transaction, uniqueName, entry->getOID());
 }
 
 void Catalog::addFunction(Transaction* transaction, CatalogEntryType entryType, std::string name,
@@ -366,7 +366,7 @@ void Catalog::dropFunction(Transaction* transaction, const std::string& name) {
     if (entry == nullptr) {
         throw CatalogException{stringFormat("function {} doesn't exist.", name)};
     }
-    functions->dropEntry(transaction, std::move(name), entry->getOID());
+    functions->dropEntry(transaction, name, entry->getOID());
 }
 
 void Catalog::addBuiltInFunction(CatalogEntryType entryType, std::string name,

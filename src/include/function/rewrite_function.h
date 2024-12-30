@@ -14,12 +14,13 @@ using rewrite_func_rewrite_t = std::function<std::shared_ptr<binder::Expression>
 
 // We write for the following functions
 // ID(n) -> n._id
-struct RewriteFunction final : public Function {
+struct RewriteFunction final : Function {
     rewrite_func_rewrite_t rewriteFunc;
 
     RewriteFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
         rewrite_func_rewrite_t rewriteFunc)
-        : Function{name, std::move(parameterTypeIDs)}, rewriteFunc{rewriteFunc} {}
+        : Function{std::move(name), std::move(parameterTypeIDs)},
+          rewriteFunc{std::move(rewriteFunc)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(RewriteFunction)
 
 private:

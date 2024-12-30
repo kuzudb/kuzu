@@ -402,7 +402,7 @@ DialectOption SerialCSVReader::detectDialect() {
             }
 
             if (!same_quote) {
-                validDialects.push_back(std::move(dialectOption));
+                validDialects.push_back(dialectOption);
             }
         }
     }

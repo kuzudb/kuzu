@@ -174,7 +174,7 @@ struct ExportCSVLocalState final : public ExportFuncLocalState {
 
 static std::unique_ptr<ExportFuncBindData> bindFunc(ExportFuncBindInput& bindInput) {
     return std::make_unique<ExportCSVBindData>(bindInput.columnNames, bindInput.filePath,
-        CSVReaderConfig::construct(std::move(bindInput.parsingOptions)).option.copy());
+        CSVReaderConfig::construct(bindInput.parsingOptions).option.copy());
 }
 
 static std::unique_ptr<ExportFuncLocalState> initLocalStateFunc(main::ClientContext& context,

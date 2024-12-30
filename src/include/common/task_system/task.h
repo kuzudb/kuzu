@@ -1,9 +1,7 @@
 #pragma once
 
 #include <condition_variable>
-#include <memory>
 #include <mutex>
-#include <utility>
 #include <vector>
 
 namespace kuzu {
@@ -42,27 +40,27 @@ public:
         children.push_back(std::move(child));
     }
 
-    inline bool isCompletedSuccessfully() {
+    bool isCompletedSuccessfully() {
         lock_t lck{taskMtx};
         return isCompletedNoLock() && !hasExceptionNoLock();
     }
 
-    inline bool isCompletedNoLock() const {
+    bool isCompletedNoLock() const {
         return (numThreadsRegistered > 0 && numThreadsFinished == numThreadsRegistered);
     }
 
-    inline void setSingleThreadedTask() { maxNumThreads = 1; }
+    void setSingleThreadedTask() { maxNumThreads = 1; }
 
     bool registerThread();
 
     void deRegisterThreadAndFinalizeTask();
 
-    inline void setException(std::exception_ptr exceptionPtr) {
+    void setException(const std::exception_ptr& exceptionPtr) {
         lock_t lck{taskMtx};
-        setExceptionNoLock(std::move(exceptionPtr));
+        setExceptionNoLock(exceptionPtr);
     }
 
-    inline bool hasException() {
+    bool hasException() {
         lock_t lck{taskMtx};
         return exceptionsPtr != nullptr;
     }
@@ -77,11 +75,11 @@ private:
         return 0 == numThreadsFinished && maxNumThreads > numThreadsRegistered;
     }
 
-    inline bool hasExceptionNoLock() const { return exceptionsPtr != nullptr; }
+    bool hasExceptionNoLock() const { return exceptionsPtr != nullptr; }
 
-    inline void setExceptionNoLock(std::exception_ptr exceptionPtr) {
+    void setExceptionNoLock(const std::exception_ptr& exceptionPtr) {
         if (exceptionsPtr == nullptr) {
-            exceptionsPtr = std::move(exceptionPtr);
+            exceptionsPtr = exceptionPtr;
         }
     }
 

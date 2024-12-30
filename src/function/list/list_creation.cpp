@@ -25,7 +25,7 @@ void ListCreationFunction::execFunc(const std::vector<std::shared_ptr<ValueVecto
     }
 }
 
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     LogicalType combinedType(LogicalTypeID::ANY);
     binder::ExpressionUtil::tryCombineDataType(input.arguments, combinedType);
     if (combinedType.getLogicalTypeID() == LogicalTypeID::ANY) {

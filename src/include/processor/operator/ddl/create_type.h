@@ -24,20 +24,20 @@ private:
         : OPPrintInfo{other}, typeName{other.typeName}, type{other.type} {}
 };
 
-class CreateType : public DDL {
+class CreateType final : public DDL {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::CREATE_TYPE;
 
 public:
-    CreateType(std::string name, common::LogicalType type, const DataPos& outputPos, uint32_t id,
+    CreateType(std::string name, common::LogicalType type, DataPos outputPos, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : DDL{type_, outputPos, id, std::move(printInfo)}, name{std::move(name)},
           type{std::move(type)} {}
 
-    void executeDDLInternal(ExecutionContext* context) final;
+    void executeDDLInternal(ExecutionContext* context) override;
 
-    std::string getOutputMsg() final;
+    std::string getOutputMsg() override;
 
-    std::unique_ptr<PhysicalOperator> clone() final {
+    std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<CreateType>(name, type.copy(), outputPos, id, printInfo->copy());
     }
 

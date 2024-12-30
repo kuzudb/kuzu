@@ -9,7 +9,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
     TypeUtils::visit(input.arguments[1]->getDataType().getPhysicalType(),
         [&scalarFunction]<typename T>(T) {

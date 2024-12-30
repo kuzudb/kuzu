@@ -9,8 +9,8 @@ class CreateType final : public Statement {
     static constexpr common::StatementType type_ = common::StatementType::CREATE_TYPE;
 
 public:
-    CreateType(const std::string& name, const std::string& dataType)
-        : Statement{type_}, name{name}, dataType{dataType} {}
+    CreateType(std::string name, std::string dataType)
+        : Statement{type_}, name{std::move(name)}, dataType{std::move(dataType)} {}
 
     std::string getName() const { return name; }
 

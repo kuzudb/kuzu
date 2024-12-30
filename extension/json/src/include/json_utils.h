@@ -2,8 +2,6 @@
 
 #include <memory>
 
-#include "common/copy_constructors.h"
-#include "common/json_enums.h"
 #include "common/vector/value_vector.h"
 #include "main/client_context.h"
 #include "yyjson.h"
@@ -18,7 +16,7 @@ class JsonWrapper {
 
 public:
     explicit JsonWrapper(yyjson_doc* ptr, std::shared_ptr<char[]> buffer = nullptr)
-        : ptr{ptr}, buffer{buffer} {}
+        : ptr{ptr}, buffer{std::move(buffer)} {}
     ~JsonWrapper();
     JsonWrapper(JsonWrapper& other) = delete;
     JsonWrapper(JsonWrapper&& other) {

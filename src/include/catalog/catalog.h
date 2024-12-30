@@ -128,7 +128,7 @@ public:
         std::string indexName) const;
     void dropAllIndexes(transaction::Transaction* transaction, common::table_id_t tableID);
     void dropIndex(transaction::Transaction* transaction, common::table_id_t tableID,
-        std::string indexName) const;
+        const std::string& indexName) const;
 
     // ----------------------------- Functions ----------------------------
     void addFunction(transaction::Transaction* transaction, CatalogEntryType entryType,

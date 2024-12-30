@@ -196,8 +196,8 @@ Transaction::Transaction(TransactionType transactionType, common::transaction_t 
     std::unordered_map<common::table_id_t, common::offset_t> maxCommittedNodeOffsets)
     : type{transactionType}, ID{ID}, startTS{startTS}, commitTS{common::INVALID_TRANSACTION},
       currentTS{INT64_MAX}, clientContext{nullptr}, undoBuffer{nullptr}, forceCheckpoint{false},
-      minUncommittedNodeOffsets{minUncommittedNodeOffsets},
-      maxCommittedNodeOffsets{maxCommittedNodeOffsets} {}
+      minUncommittedNodeOffsets{std::move(minUncommittedNodeOffsets)},
+      maxCommittedNodeOffsets{std::move(maxCommittedNodeOffsets)} {}
 
 Transaction Transaction::getDummyTransactionFromExistingOne(const Transaction& other) {
     return Transaction(TransactionType::DUMMY, DUMMY_TRANSACTION_ID, DUMMY_START_TIMESTAMP,

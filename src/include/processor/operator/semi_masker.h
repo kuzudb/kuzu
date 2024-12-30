@@ -61,9 +61,8 @@ protected:
     BaseSemiMasker(DataPos keyPos, std::shared_ptr<SemiMaskerSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
-          keyPos{std::move(keyPos)}, keyVector{nullptr}, sharedState{sharedState},
-          localState{nullptr} {}
+        : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)}, keyPos{keyPos},
+          keyVector{nullptr}, sharedState{std::move(sharedState)}, localState{nullptr} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
@@ -161,7 +160,8 @@ protected:
     PathSemiMasker(DataPos keyPos, std::shared_ptr<SemiMaskerSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo, common::ExtendDirection direction)
-        : BaseSemiMasker{keyPos, sharedState, std::move(child), id, std::move(printInfo)},
+        : BaseSemiMasker{keyPos, std::move(sharedState), std::move(child), id,
+              std::move(printInfo)},
           direction{direction} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
@@ -178,8 +178,8 @@ public:
     PathSingleTableSemiMasker(DataPos keyPos, std::shared_ptr<SemiMaskerSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo, common::ExtendDirection direction)
-        : PathSemiMasker{keyPos, sharedState, std::move(child), id, std::move(printInfo),
-              std::move(direction)} {}
+        : PathSemiMasker{keyPos, std::move(sharedState), std::move(child), id, std::move(printInfo),
+              direction} {}
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
@@ -194,8 +194,8 @@ public:
     PathMultipleTableSemiMasker(DataPos keyPos, std::shared_ptr<SemiMaskerSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo, common::ExtendDirection direction)
-        : PathSemiMasker{keyPos, sharedState, std::move(child), id, std::move(printInfo),
-              std::move(direction)} {}
+        : PathSemiMasker{keyPos, std::move(sharedState), std::move(child), id, std::move(printInfo),
+              direction} {}
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 

@@ -24,7 +24,8 @@ void LineContext::setEndOfLine(uint64_t end) {
 
 SharedFileErrorHandler::SharedFileErrorHandler(common::idx_t fileIdx, std::mutex* sharedMtx,
     populate_func_t populateErrorFunc)
-    : mtx(sharedMtx), fileIdx(fileIdx), populateErrorFunc(populateErrorFunc), headerNumRows(0) {}
+    : mtx(sharedMtx), fileIdx(fileIdx), populateErrorFunc(std::move(populateErrorFunc)),
+      headerNumRows(0) {}
 
 uint64_t SharedFileErrorHandler::getNumCachedErrors() {
     auto lockGuard = lock();

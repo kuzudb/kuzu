@@ -67,7 +67,7 @@ public:
         path_semantic_check_func_t semanticCheckFunc, common::ExtendDirection extendDirection,
         bool extendFromSource)
         : BaseFrontierScanner{targetDstNodes, k}, tableIDToName{std::move(tableIDToName)},
-          semanticCheckFunc{semanticCheckFunc}, extendDirection{extendDirection},
+          semanticCheckFunc{std::move(semanticCheckFunc)}, extendDirection{extendDirection},
           extendFromSource{extendFromSource} {
         nodeIDs.resize(k + 1);
         relIDs.resize(k + 1);

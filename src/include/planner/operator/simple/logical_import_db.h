@@ -9,7 +9,7 @@ class LogicalImportDatabase : public LogicalSimple {
 public:
     LogicalImportDatabase(std::string query, std::shared_ptr<binder::Expression> outputExpression)
         : LogicalSimple{LogicalOperatorType::IMPORT_DATABASE, std::move(outputExpression)},
-          query{query} {}
+          query{std::move(query)} {}
 
     std::string getQuery() const { return query; }
 

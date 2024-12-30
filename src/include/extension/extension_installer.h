@@ -13,7 +13,7 @@ namespace extension {
 
 class KUZU_API ExtensionInstaller {
 public:
-    explicit ExtensionInstaller(const std::string extensionName)
+    explicit ExtensionInstaller(std::string extensionName)
         : extensionName{std::move(extensionName)} {}
 
     virtual ~ExtensionInstaller() = default;

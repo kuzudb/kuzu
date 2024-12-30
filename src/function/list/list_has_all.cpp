@@ -35,7 +35,7 @@ struct ListHasAll {
     }
 };
 
-std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     std::vector<LogicalType> types;
     for (auto& arg : input.arguments) {
         if (arg->dataType == LogicalType::ANY()) {

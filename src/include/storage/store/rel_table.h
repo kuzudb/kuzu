@@ -87,8 +87,8 @@ struct RelTableInsertState final : TableInsertState {
     common::ValueVector& dstNodeIDVector;
 
     RelTableInsertState(common::ValueVector& srcNodeIDVector, common::ValueVector& dstNodeIDVector,
-        std::vector<common::ValueVector*>& propertyVectors)
-        : TableInsertState{std::move(propertyVectors)}, srcNodeIDVector{srcNodeIDVector},
+        const std::vector<common::ValueVector*>& propertyVectors)
+        : TableInsertState{propertyVectors}, srcNodeIDVector{srcNodeIDVector},
           dstNodeIDVector{dstNodeIDVector} {}
 };
 

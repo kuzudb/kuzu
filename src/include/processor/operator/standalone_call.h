@@ -29,8 +29,8 @@ struct StandaloneCallInfo {
     common::Value optionValue;
     bool hasExecuted = false;
 
-    StandaloneCallInfo(const main::Option* option, const common::Value& optionValue)
-        : option{option}, optionValue{optionValue} {}
+    StandaloneCallInfo(const main::Option* option, common::Value optionValue)
+        : option{option}, optionValue{std::move(optionValue)} {}
 
     std::unique_ptr<StandaloneCallInfo> copy() {
         return std::make_unique<StandaloneCallInfo>(option, optionValue);

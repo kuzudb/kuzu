@@ -243,7 +243,7 @@ static std::optional<WarningDataWithColumnInfo> getOptionalWarningData(
         if (option.ignoreErrors) {
             KU_ASSERT(
                 columnInfo.numWarningDataColumns == CopyConstants::CSV_WARNING_DATA_NUM_COLUMNS);
-            warningData.emplace(std::move(warningSourceData), columnInfo.numColumns);
+            warningData.emplace(warningSourceData, columnInfo.numColumns);
         }
     }
     return warningData;

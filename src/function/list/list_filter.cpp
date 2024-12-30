@@ -8,7 +8,7 @@ namespace function {
 
 using namespace kuzu::common;
 
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     if (input.arguments[1]->expressionType != ExpressionType::LAMBDA) {
         throw BinderException(stringFormat(
             "The second argument of LIST_FILTER should be a lambda expression but got {}.",
@@ -77,7 +77,7 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& input, Val
                 }
             }
         }
-        result.setValue(result.state->getSelVector()[i], std::move(dstListEntry));
+        result.setValue(result.state->getSelVector()[i], dstListEntry);
     }
 }
 

@@ -21,7 +21,7 @@ struct ListContains {
     }
 };
 
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
     TypeUtils::visit(ListType::getChildType(input.arguments[0]->getDataType()).getPhysicalType(),
         [&scalarFunction]<typename T>(T) {

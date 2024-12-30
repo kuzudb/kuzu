@@ -7,7 +7,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<FunctionBindData> sizeBindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> sizeBindFunc(const ScalarBindFuncInput& input) {
     auto scalarFunc = input.definition->constPtrCast<ScalarFunction>();
     auto resultType = LogicalType(scalarFunc->returnTypeID);
     if (input.definition->parameterTypeIDs[0] == common::LogicalTypeID::STRING) {

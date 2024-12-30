@@ -21,7 +21,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::createLiteralExpression(const Value& value) {
     auto uniqueName = binder->getUniqueExpressionName(value.toString());
-    return std::make_unique<LiteralExpression>(std::move(value), uniqueName);
+    return std::make_unique<LiteralExpression>(value, uniqueName);
 }
 
 std::shared_ptr<Expression> ExpressionBinder::createLiteralExpression(const std::string& strVal) {

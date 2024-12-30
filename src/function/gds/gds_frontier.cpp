@@ -121,7 +121,8 @@ void PathLengthsInitVertexCompute::vertexCompute(common::offset_t startOffset,
 
 FrontierPair::FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
     std::shared_ptr<GDSFrontier> nextFrontier, uint64_t numThreads)
-    : curDenseFrontier{curFrontier}, nextDenseFrontier{nextFrontier}, morselDispatcher{numThreads} {
+    : curDenseFrontier{std::move(curFrontier)}, nextDenseFrontier{std::move(nextFrontier)},
+      morselDispatcher{numThreads} {
     curSparseFrontier = std::make_shared<SparseFrontier>();
     nextSparseFrontier = std::make_shared<SparseFrontier>();
     vertexComputeCandidates = std::make_shared<SparseFrontier>();

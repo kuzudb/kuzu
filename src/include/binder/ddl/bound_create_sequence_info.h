@@ -20,7 +20,7 @@ struct BoundCreateSequenceInfo {
 
     BoundCreateSequenceInfo(std::string sequenceName, int64_t startWith, int64_t increment,
         int64_t minValue, int64_t maxValue, bool cycle, common::ConflictAction onConflict)
-        : sequenceName{sequenceName}, startWith{startWith}, increment{increment},
+        : sequenceName{std::move(sequenceName)}, startWith{startWith}, increment{increment},
           minValue{minValue}, maxValue{maxValue}, cycle{cycle}, onConflict{onConflict} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundCreateSequenceInfo);
 

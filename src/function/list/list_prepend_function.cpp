@@ -28,7 +28,7 @@ struct ListPrepend {
     }
 };
 
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     if (input.arguments[0]->getDataType().getLogicalTypeID() != LogicalTypeID::ANY &&
         input.arguments[1]->dataType != ListType::getChildType(input.arguments[0]->dataType)) {
         throw BinderException(ExceptionMessage::listFunctionIncompatibleChildrenType(

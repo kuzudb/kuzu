@@ -34,8 +34,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         throw RuntimeException(
             stringFormat("Project graph {} already exists.", bindData->graphName));
     }
-    auto entry = graph::GraphEntry(bindData->nodeEntries, bindData->relEntries);
-    graphEntrySet.addGraph(bindData->graphName, std::move(entry));
+    const auto entry = graph::GraphEntry(bindData->nodeEntries, bindData->relEntries);
+    graphEntrySet.addGraph(bindData->graphName, entry);
     return 0;
 }
 

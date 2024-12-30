@@ -14,12 +14,12 @@ using namespace kuzu::common;
 using namespace kuzu;
 using namespace kuzu::function;
 
-struct PyUDFScalarFunction : public ScalarFunction {
+struct PyUDFScalarFunction final : ScalarFunction {
     PyUDFScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
         common::LogicalTypeID returnTypeID, scalar_func_exec_t execFunc, scalar_bind_func bindFunc)
         : ScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
               std::move(execFunc)} {
-        this->bindFunc = bindFunc;
+        this->bindFunc = std::move(bindFunc);
     }
 
     DELETE_COPY_DEFAULT_MOVE(PyUDFScalarFunction);

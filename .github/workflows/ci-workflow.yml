@@ -579,11 +579,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check headers for include guards
+      - name: Check source headers for include guards
         run: ./scripts/check-include-guards.sh src/include
 
-      - name: Checks files for std::assert
+      - name: Check extension headers for include guards
+        run: ./scripts/check-include-guards.sh extension/delta/src/include
+          ./scripts/check-include-guards.sh extension/duckdb/src/include
+          ./scripts/check-include-guards.sh extension/fts/src/include
+          ./scripts/check-include-guards.sh extension/httpfs/src/include
+          ./scripts/check-include-guards.sh extension/iceberg/src/include
+          ./scripts/check-include-guards.sh extension/json/src/include
+          ./scripts/check-include-guards.sh extension/postgres/src/include
+          ./scripts/check-include-guards.sh extension/sqlite/src/include
+
+      - name: Checks source files for std::assert
         run: ./scripts/check-no-std-assert.sh src
+
+      - name: Check extension files for std::assert
+        run: ./scripts/check-no-std-assert.sh extension
 
       - name: Ensure generated grammar files are up to date
         run: |

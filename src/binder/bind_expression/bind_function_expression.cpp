@@ -274,8 +274,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
         auto nodeTableIDs = catalog->getNodeTableIDs(context->getTx());
         children.push_back(node.getInternalID());
         auto labelsValue = Value(std::move(listType),
-            populateLabelValues(nodeTableIDs, *catalog, context->getTx()));
-        children.push_back(createLiteralExpression(std::move(labelsValue)));
+            populateLabelValues(std::move(nodeTableIDs), *catalog, context->getTx()));
+        children.push_back(createLiteralExpression(labelsValue));
     } break;
     case LogicalTypeID::REL: {
         auto& rel = expression.constCast<RelExpression>();
@@ -290,8 +290,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
         auto relTableIDs = catalog->getRelTableIDs(context->getTx());
         children.push_back(rel.getInternalIDProperty());
         auto labelsValue = Value(std::move(listType),
-            populateLabelValues(relTableIDs, *catalog, context->getTx()));
-        children.push_back(createLiteralExpression(std::move(labelsValue)));
+            populateLabelValues(std::move(relTableIDs), *catalog, context->getTx()));
+        children.push_back(createLiteralExpression(labelsValue));
     } break;
     default:
         KU_UNREACHABLE;

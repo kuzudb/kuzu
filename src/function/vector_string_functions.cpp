@@ -315,7 +315,8 @@ function_set RegexpExtractFunction::getFunctionSet() {
     return functionSet;
 }
 
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput /* input */) {
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput /* input */
+        &) {
     return std::make_unique<FunctionBindData>(LogicalType::LIST(LogicalType::STRING()));
 }
 

@@ -26,7 +26,7 @@ struct Option {
     OptionType optionType;
 
     Option(std::string name, common::LogicalTypeID parameterType, OptionType optionType)
-        : name{std::move(name)}, parameterType{std::move(parameterType)}, optionType{optionType} {}
+        : name{std::move(name)}, parameterType{parameterType}, optionType{optionType} {}
 
     virtual ~Option() = default;
 };

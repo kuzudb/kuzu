@@ -615,8 +615,8 @@ Value PyConnection::transformPythonValueAs(const py::handle& val, const LogicalT
         auto fieldIdx = 0u;
         for (auto field : dict) {
             auto fieldType = StructType::getFieldType(type, fieldIdx++).copy();
-            children.push_back(std::make_unique<Value>(
-                transformPythonValueAs(field.second, std::move(fieldType))));
+            children.push_back(
+                std::make_unique<Value>(transformPythonValueAs(field.second, fieldType)));
         }
         return Value(type.copy(), std::move(children));
     }
@@ -668,7 +668,7 @@ Value PyConnection::transformPythonValueFromParameterAs(const py::handle& val,
         for (auto field : dict) {
             auto fieldType = StructType::getFieldType(type, fieldIdx++).copy();
             children.push_back(std::make_unique<Value>(
-                transformPythonValueFromParameterAs(field.second, std::move(fieldType))));
+                transformPythonValueFromParameterAs(field.second, fieldType)));
         }
         return Value(type.copy(), std::move(children));
     }
@@ -679,12 +679,12 @@ Value PyConnection::transformPythonValueFromParameterAs(const py::handle& val,
 
 Value PyConnection::transformPythonValue(const py::handle& val) {
     auto type = pyLogicalType(val);
-    return transformPythonValueAs(val, std::move(type));
+    return transformPythonValueAs(val, type);
 }
 
 Value PyConnection::transformPythonValueFromParameter(const py::handle& val) {
     auto type = pyLogicalTypeFromParameter(val);
-    return transformPythonValueFromParameterAs(val, std::move(type));
+    return transformPythonValueFromParameterAs(val, type);
 }
 
 std::unique_ptr<PyQueryResult> PyConnection::checkAndWrapQueryResult(

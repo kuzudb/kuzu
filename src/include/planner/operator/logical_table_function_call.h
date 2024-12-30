@@ -13,8 +13,8 @@ class LogicalTableFunctionCall : public LogicalOperator {
 public:
     LogicalTableFunctionCall(function::TableFunction tableFunc,
         std::unique_ptr<function::TableFuncBindData> bindData, binder::expression_vector columns)
-        : LogicalOperator{operatorType_}, tableFunc{tableFunc}, bindData{std::move(bindData)},
-          columns{std::move(columns)} {
+        : LogicalOperator{operatorType_}, tableFunc{std::move(tableFunc)},
+          bindData{std::move(bindData)}, columns{std::move(columns)} {
         cardinality = this->bindData->cardinality;
     }
 

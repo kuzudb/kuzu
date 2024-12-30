@@ -22,16 +22,16 @@ private:
         : exists{other.exists}, isPrimaryKey{other.isPrimaryKey} {}
 };
 
-class PropertyExpression : public Expression {
+class PropertyExpression final : public Expression {
     static constexpr common::ExpressionType expressionType_ = common::ExpressionType::PROPERTY;
 
 public:
-    PropertyExpression(common::LogicalType dataType, const std::string& propertyName,
-        const std::string& uniqueVarName, const std::string& rawVariableName,
+    PropertyExpression(common::LogicalType dataType, std::string propertyName,
+        std::string uniqueVarName, std::string rawVariableName,
         common::table_id_map_t<SingleLabelPropertyInfo> infos)
         : Expression{expressionType_, std::move(dataType), uniqueVarName + "." + propertyName},
-          propertyName{propertyName}, uniqueVarName{uniqueVarName},
-          rawVariableName{rawVariableName}, infos{std::move(infos)} {}
+          propertyName{std::move(propertyName)}, uniqueVarName{std::move(uniqueVarName)},
+          rawVariableName{std::move(rawVariableName)}, infos{std::move(infos)} {}
 
     PropertyExpression(const PropertyExpression& other)
         : Expression{expressionType_, other.dataType.copy(), other.uniqueName},
@@ -64,7 +64,7 @@ public:
         return make_unique<PropertyExpression>(*this);
     }
 
-    std::string toStringInternal() const final { return rawVariableName + "." + propertyName; }
+    std::string toStringInternal() const override { return rawVariableName + "." + propertyName; }
 
 private:
     std::string propertyName;

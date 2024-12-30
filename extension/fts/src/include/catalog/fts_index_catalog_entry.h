@@ -13,7 +13,7 @@ public:
     //===--------------------------------------------------------------------===//
     FTSIndexCatalogEntry() = default;
     FTSIndexCatalogEntry(common::table_id_t tableID, std::string indexName, common::idx_t numDocs,
-        double avgDocLen, const FTSConfig& config)
+        double avgDocLen, FTSConfig config)
         : catalog::IndexCatalogEntry{tableID, std::move(indexName)}, numDocs{numDocs},
           avgDocLen{avgDocLen}, config{std::move(config)} {}
 

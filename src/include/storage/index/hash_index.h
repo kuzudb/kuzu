@@ -66,7 +66,7 @@ public:
 template<typename T>
 class HashIndex final : public OnDiskHashIndex {
 public:
-    HashIndex(const DBFileIDAndName& dbFileIDAndName, FileHandle* fileHandle,
+    HashIndex(DBFileIDAndName dbFileIDAndName, FileHandle* fileHandle,
         OverflowFileHandle* overflowFileHandle, DiskArrayCollection& diskArrays, uint64_t indexPos,
         ShadowFile* shadowFile, const HashIndexHeader& indexHeaderForReadTrx,
         HashIndexHeader& indexHeaderForWriteTrx);

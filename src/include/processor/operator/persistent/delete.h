@@ -11,7 +11,7 @@ struct DeleteNodePrintInfo final : OPPrintInfo {
     common::DeleteNodeType deleteType;
 
     DeleteNodePrintInfo(binder::expression_vector expressions, common::DeleteNodeType deleteType)
-        : expressions{std::move(expressions)}, deleteType{std::move(deleteType)} {}
+        : expressions{std::move(expressions)}, deleteType{deleteType} {}
 
     std::string toString() const override;
 
@@ -24,7 +24,7 @@ private:
         : OPPrintInfo{other}, expressions{other.expressions}, deleteType{other.deleteType} {}
 };
 
-class DeleteNode : public PhysicalOperator {
+class DeleteNode final : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::DELETE_;
 
 public:
@@ -34,13 +34,13 @@ public:
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           executors{std::move(executors)} {}
 
-    bool isParallel() const final { return false; }
+    bool isParallel() const override { return false; }
 
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    bool getNextTuplesInternal(ExecutionContext* context) final;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() final;
+    std::unique_ptr<PhysicalOperator> clone() override;
 
 private:
     std::vector<std::unique_ptr<NodeDeleteExecutor>> executors;
@@ -63,7 +63,7 @@ private:
         : OPPrintInfo{other}, expressions{other.expressions} {}
 };
 
-class DeleteRel : public PhysicalOperator {
+class DeleteRel final : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::DELETE_;
 
 public:
@@ -73,13 +73,13 @@ public:
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           executors{std::move(executors)} {}
 
-    bool isParallel() const final { return false; }
+    bool isParallel() const override { return false; }
 
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    bool getNextTuplesInternal(ExecutionContext* context) final;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() final;
+    std::unique_ptr<PhysicalOperator> clone() override;
 
 private:
     std::vector<std::unique_ptr<RelDeleteExecutor>> executors;

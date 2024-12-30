@@ -1,3 +1,5 @@
+#pragma once
+
 #include "httpfs.h"
 
 namespace kuzu {
@@ -36,8 +38,7 @@ struct S3FileInfo final : public HTTPFileInfo {
     static constexpr uint64_t AWS_MINIMUM_PART_SIZE = 5242880;
 
     S3FileInfo(std::string path, common::FileSystem* fileSystem, int flags,
-        main::ClientContext* context, const S3AuthParams& authParams,
-        const S3UploadParams& uploadParams);
+        main::ClientContext* context, S3AuthParams authParams, S3UploadParams uploadParams);
 
     ~S3FileInfo() override;
 

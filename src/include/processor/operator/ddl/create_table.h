@@ -13,7 +13,7 @@ struct CreateTablePrintInfo final : OPPrintInfo {
 
     CreateTablePrintInfo(common::TableType tableType, std::string tableName,
         binder::BoundCreateTableInfo info)
-        : tableType{std::move(tableType)}, tableName{std::move(tableName)}, info{std::move(info)} {}
+        : tableType{tableType}, tableName{std::move(tableName)}, info{std::move(info)} {}
 
     std::string toString() const override { return info.toString(); }
 

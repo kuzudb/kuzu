@@ -25,7 +25,7 @@ struct ListDistinct {
     }
 };
 
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     return FunctionBindData::getSimpleBindData(input.arguments, input.arguments[0]->getDataType());
 }
 

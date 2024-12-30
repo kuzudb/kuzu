@@ -6,7 +6,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
+static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     logical_type_vec_t paramTypes;
     for (auto& argument : input.arguments) {
         if (argument->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {

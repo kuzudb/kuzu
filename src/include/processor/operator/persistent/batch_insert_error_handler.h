@@ -7,7 +7,7 @@ namespace kuzu {
 namespace processor {
 struct BatchInsertCachedError {
     explicit BatchInsertCachedError(std::string message,
-        std::optional<WarningSourceData> warningData = {});
+        const std::optional<WarningSourceData>& warningData = {});
     BatchInsertCachedError() = default;
 
     std::string message;
@@ -22,7 +22,7 @@ public:
         std::shared_ptr<common::row_idx_t> sharedErrorCounter = nullptr,
         std::mutex* sharedErrorCounterMtx = nullptr);
 
-    void handleError(std::string message, std::optional<WarningSourceData> warningData = {});
+    void handleError(std::string message, const std::optional<WarningSourceData>& warningData = {});
 
     void handleError(BatchInsertCachedError error);
 

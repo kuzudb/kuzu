@@ -9,7 +9,7 @@ namespace processor {
 struct SkipPrintInfo final : OPPrintInfo {
     uint64_t number;
 
-    explicit SkipPrintInfo(std::int64_t number) : number(std::move(number)) {}
+    explicit SkipPrintInfo(std::int64_t number) : number(number) {}
     std::string toString() const override;
 
     std::unique_ptr<OPPrintInfo> copy() const override {

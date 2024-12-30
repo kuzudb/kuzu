@@ -11,7 +11,7 @@ struct InsertPrintInfo final : OPPrintInfo {
     common::ConflictAction action;
 
     InsertPrintInfo(binder::expression_vector expressions, common::ConflictAction action)
-        : expressions(std::move(expressions)), action(std::move(action)) {}
+        : expressions(std::move(expressions)), action(action) {}
 
     std::string toString() const override;
 
@@ -24,7 +24,7 @@ private:
         : OPPrintInfo(other), expressions(other.expressions), action(other.action) {}
 };
 
-class Insert : public PhysicalOperator {
+class Insert final : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::INSERT;
 
 public:
@@ -34,13 +34,13 @@ public:
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           nodeExecutors{std::move(nodeExecutors)}, relExecutors{std::move(relExecutors)} {}
 
-    inline bool isParallel() const final { return false; }
+    bool isParallel() const override { return false; }
 
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    bool getNextTuplesInternal(ExecutionContext* context) final;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() final {
+    std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<Insert>(copyVector(nodeExecutors), copyVector(relExecutors),
             children[0]->clone(), id, printInfo->copy());
     }

@@ -9,8 +9,7 @@ namespace processor {
 struct TransactionPrintInfo final : OPPrintInfo {
     transaction::TransactionAction action;
 
-    explicit TransactionPrintInfo(transaction::TransactionAction action)
-        : action(std::move(action)) {}
+    explicit TransactionPrintInfo(transaction::TransactionAction action) : action(action) {}
 
     std::string toString() const override;
 

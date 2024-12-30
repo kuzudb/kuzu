@@ -12,7 +12,7 @@ struct LogicalPartitioningInfo {
     explicit LogicalPartitioningInfo(common::idx_t keyIdx) : keyIdx{keyIdx} {}
     LogicalPartitioningInfo(const LogicalPartitioningInfo& other) : keyIdx{other.keyIdx} {}
 
-    EXPLICIT_COPY_METHOD(LogicalPartitioningInfo);
+    EXPLICIT_COPY_DEFAULT_MOVE(LogicalPartitioningInfo);
 };
 
 struct LogicalPartitionerInfo {
@@ -30,7 +30,7 @@ struct LogicalPartitionerInfo {
         }
     }
 
-    EXPLICIT_COPY_METHOD(LogicalPartitionerInfo);
+    EXPLICIT_COPY_DEFAULT_MOVE(LogicalPartitionerInfo);
 
     common::idx_t getNumInfos() const { return partitioningInfos.size(); }
     LogicalPartitioningInfo& getInfo(common::idx_t idx) {

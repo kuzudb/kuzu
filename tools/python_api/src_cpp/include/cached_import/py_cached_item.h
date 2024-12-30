@@ -9,8 +9,8 @@ namespace kuzu {
 
 class PythonCachedItem {
 public:
-    explicit PythonCachedItem(const std::string& name, PythonCachedItem* parent = nullptr)
-        : name(name), parent(parent), loaded(false) {}
+    explicit PythonCachedItem(std::string name, PythonCachedItem* parent = nullptr)
+        : name(std::move(name)), parent(parent), loaded(false) {}
     virtual ~PythonCachedItem() = default;
 
     bool isLoaded() const { return loaded; }

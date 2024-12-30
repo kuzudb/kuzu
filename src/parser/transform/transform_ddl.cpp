@@ -293,8 +293,8 @@ std::vector<ParsedPropertyDefinition> Transformer::transformPropertyDefinitions(
             defaultExpr = transformExpression(*definition->kU_Default()->oC_Expression());
         } else {
             auto type = LogicalType::convertFromString(columnDefinition.type, context);
-            defaultExpr = std::make_unique<ParsedLiteralExpression>(
-                Value::createNullValue(std::move(type)), "NULL");
+            defaultExpr =
+                std::make_unique<ParsedLiteralExpression>(Value::createNullValue(type), "NULL");
         }
         definitions.push_back(
             ParsedPropertyDefinition(std::move(columnDefinition), std::move(defaultExpr)));
