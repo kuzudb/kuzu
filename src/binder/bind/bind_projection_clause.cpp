@@ -12,7 +12,6 @@ using namespace kuzu::parser;
 
 namespace kuzu {
 namespace binder {
-
 void validateColumnNamesAreUnique(const std::vector<std::string>& columnNames) {
     auto existColumnNames = std::unordered_set<std::string>();
     for (auto& name : columnNames) {
@@ -230,14 +229,26 @@ expression_vector Binder::bindOrderByExpressions(
     expression_vector exprs;
     for (auto& parsedExpr : parsedExprs) {
         auto expr = expressionBinder.bindExpression(*parsedExpr);
-        if (expr->dataType.getLogicalTypeID() == LogicalTypeID::NODE ||
-            expr->dataType.getLogicalTypeID() == LogicalTypeID::REL) {
-            throw BinderException(
-                "Cannot order by " + expr->toString() + ". Order by node or rel is not supported.");
+        if (!isOrderByKeyTypeSupported(expr->dataType)) {
+            throw BinderException(stringFormat("Cannot order by {}. Order by {} is not supported.",
+                expr->toString(), expr->dataType.toString()));
         }
         exprs.push_back(std::move(expr));
     }
     return exprs;
+}
+
+bool Binder::isOrderByKeyTypeSupported(const LogicalType& dataType) {
+    static std::vector unsupportedKeyTypes{LogicalTypeID::NODE, LogicalTypeID::REL,
+        LogicalTypeID::RECURSIVE_REL, LogicalTypeID::INTERNAL_ID, LogicalTypeID::LIST,
+        LogicalTypeID::ARRAY, LogicalTypeID::STRUCT, LogicalTypeID::MAP, LogicalTypeID::UNION,
+        LogicalTypeID::POINTER};
+    for (const auto typeID : unsupportedKeyTypes) {
+        if (dataType.getLogicalTypeID() == typeID) {
+            return false;
+        }
+    }
+    return true;
 }
 
 uint64_t Binder::bindSkipLimitExpression(const ParsedExpression& expression) {
