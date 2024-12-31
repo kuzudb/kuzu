@@ -569,6 +569,29 @@ namespace kuzu {
                 }
             }
 
+            inline void
+            addFilteredNodesToCandidates(processor::ExecutionContext *context, CosineDistanceComputer *dc,
+                                         std::priority_queue<NodeDistFarther> &candidates,
+                                         BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
+                                         NodeOffsetLevelSemiMask *filterMask, int maxNodesToAdd, int &totalDist) {
+                // Add some initial candidates to handle neg correlation case
+                int nbrsAdded = 0;
+                for (offset_t i = 0; i < filterMask->getMaxOffset(); i++) {
+                    if (filterMask->isMasked(i)) {
+                        double dist;
+                        computeDistance(context, i, dc, &dist);
+                        candidates.emplace(i, dist);
+                        results.push(NodeDistFarther(i, dist));
+                        visited->set_bit(i);
+                        nbrsAdded++;
+                        totalDist++;
+                    }
+                    if (nbrsAdded >= maxNodesToAdd) {
+                        break;
+                    }
+                }
+            }
+
             void filteredSearch(processor::ExecutionContext *context, const float *query,
                                 float selectivity,
                                 const table_id_t tableId, Graph *graph,
@@ -590,22 +613,8 @@ namespace kuzu {
                 int totalGetNbrs = 0;
                 int totalDist = 0;
 
-                // Add some initial candidates to handle neg correlation case
-                int maxNbrsToAdd = 5;
-                int nbrsAdded = 0;
-                for (offset_t i = 0; i < filterMask->getMaxOffset(); i++) {
-                    if (filterMask->isMasked(i)) {
-                        double dist;
-                        computeDistance(context, i, dc, &dist);
-                        totalDist++;
-                        candidates.emplace(i, dist);
-                        results.push(NodeDistFarther(i, dist));
-                        nbrsAdded++;
-                    }
-                    if (nbrsAdded >= maxNbrsToAdd) {
-                        break;
-                    }
-                }
+                // Handle for neg correlation cases
+                addFilteredNodesToCandidates(context, dc, candidates, results, visited, filterMask, 3, totalDist);
 
                 while (!candidates.empty()) {
                     auto candidate = candidates.top();
