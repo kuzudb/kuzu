@@ -593,7 +593,7 @@ namespace kuzu {
                 }
                 auto endTime = std::chrono::high_resolution_clock::now();
                 auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime);
-                printf("addFilteredNodesToCandidates: %f ms\n", (float)duration.count() / (1000000.0));
+                printf("addFilteredNodesToCandidates (%d, %d): %f ms\n", nbrsAdded, maxNodesToAdd, (float)duration.count() / (1000000.0));
             }
 
             void filteredSearch(processor::ExecutionContext *context, const float *query,
