@@ -593,7 +593,7 @@ namespace kuzu {
                 }
                 auto endTime = std::chrono::high_resolution_clock::now();
                 auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime);
-                printf("addFilteredNodesToCandidates: %f ms\n", (float)duration.count() / 1000.0);
+                printf("addFilteredNodesToCandidates: %f ms\n", (float)duration.count() / (2 * 1000.0));
             }
 
             void filteredSearch(processor::ExecutionContext *context, const float *query,
@@ -604,7 +604,7 @@ namespace kuzu {
                                 GraphScanState &state, const vector_id_t entrypoint,
                                 const double entrypointDist,
                                 BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
-                                VectorIndexHeaderPerPartition *header, const int efSearch,
+                                VectorIndexHeaderPerPartition *header, const int efSearch, const int maxK,
                                 NumericMetric *distCompMetric, NumericMetric *listNbrsCallMetric) {
                 std::priority_queue<NodeDistFarther> candidates;
                 candidates.emplace(entrypoint, entrypointDist);
@@ -618,7 +618,7 @@ namespace kuzu {
                 int totalDist = 0;
 
                 // Handle for neg correlation cases
-                addFilteredNodesToCandidates(context, dc, candidates, results, visited, filterMask, 3, totalDist);
+                addFilteredNodesToCandidates(context, dc, candidates, results, visited, filterMask, maxK, totalDist);
 
                 while (!candidates.empty()) {
                     auto candidate = candidates.top();
@@ -696,7 +696,7 @@ namespace kuzu {
                     filteredSearch(context, query, selectivity, nodeTableId, graph, dc.get(),
                                    quantizedDc.get(),
                                    filterMask, *state.get(), entrypoint, entrypointDist, results,
-                                   visited.get(), header, efSearch, distCompMetric, listNbrsMetric);
+                                   visited.get(), header, efSearch, filterMaxK, distCompMetric, listNbrsMetric);
                 } else {
                     unfilteredSearch(context, query, nodeTableId, graph, dc.get(), quantizedDc.get(), *state.get(),
                                      entrypoint,
