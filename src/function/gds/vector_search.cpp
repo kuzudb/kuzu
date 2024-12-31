@@ -590,6 +590,23 @@ namespace kuzu {
                 int totalGetNbrs = 0;
                 int totalDist = 0;
 
+                // Add some initial candidates to handle neg correlation case
+                int maxNbrsToAdd = 5;
+                int nbrsAdded = 0;
+                for (offset_t i = 0; i < filterMask->getMaxOffset(); i++) {
+                    if (filterMask->isMasked(i)) {
+                        double dist;
+                        computeDistance(context, i, dc, &dist);
+                        totalDist++;
+                        candidates.emplace(i, dist);
+                        results.push(NodeDistFarther(i, dist));
+                        nbrsAdded++;
+                    }
+                    if (nbrsAdded >= maxNbrsToAdd) {
+                        break;
+                    }
+                }
+
                 while (!candidates.empty()) {
                     auto candidate = candidates.top();
                     if (candidate.dist > results.top()->dist && results.size() > 0) {
@@ -620,7 +637,6 @@ namespace kuzu {
                                      state, results, visited, header, efSearch,
                                      totalGetNbrs, totalDist);
                     }
-                    // TODO: Maybe add backup loop
                 }
                 distCompMetric->increase(totalDist);
                 listNbrsCallMetric->increase(totalGetNbrs);
