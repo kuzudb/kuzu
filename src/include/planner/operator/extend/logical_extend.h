@@ -20,6 +20,7 @@ public:
           properties{std::move(properties)}, hasAtMostOneNbr{hasAtMostOneNbr} {}
 
     f_group_pos_set getGroupsPosToFlatten() override;
+    bool getHasAtMostOneNbr() const { return hasAtMostOneNbr; }
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;

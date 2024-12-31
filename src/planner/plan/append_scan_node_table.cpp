@@ -27,6 +27,7 @@ void Planner::appendScanNodeTable(std::shared_ptr<Expression> nodeID,
         propertiesToScan_, startNodeGroupId, endNodeGroupId);
     scan->computeFactorizedSchema();
     plan.setCardinality(cardinalityEstimator.estimateScanNode(scan.get()));
+    // TODO: maybe? plan.setCost(plan.getCardinality());
     plan.setLastOperator(std::move(scan));
 }
 

@@ -9,6 +9,7 @@
 #include "optimizer/projection_push_down_optimizer.h"
 #include "optimizer/remove_factorization_rewriter.h"
 #include "optimizer/remove_unnecessary_join_optimizer.h"
+#include "optimizer/reorder_extend_direction.h"
 #include "optimizer/top_k_optimizer.h"
 #include "optimizer/gds_selectivity_optimizer.h"
 
@@ -25,6 +26,9 @@ void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* contex
 
     auto removeUnnecessaryJoinOptimizer = RemoveUnnecessaryJoinOptimizer();
     removeUnnecessaryJoinOptimizer.rewrite(plan);
+
+    auto reorderExtendDirection = ReorderExtendDirection(context);
+    reorderExtendDirection.rewrite(plan);
 
     auto filterPushDownOptimizer = FilterPushDownOptimizer(context);
     filterPushDownOptimizer.rewrite(plan);

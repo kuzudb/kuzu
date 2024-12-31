@@ -21,6 +21,7 @@ void Planner::appendFilter(const std::shared_ptr<Expression>& predicate, Logical
     filter->computeFactorizedSchema();
     // estimate cardinality
     plan.setCardinality(cardinalityEstimator.estimateFilter(plan, *predicate));
+    // TODO: maybe? plan.setCost(plan.getCardinality());
     plan.setLastOperator(std::move(filter));
 }
 
