@@ -138,7 +138,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindVectorSearchCall(std::string fun
     auto tableId = nodeTableIds[0];
     auto nodeTableEntry = clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(), tableId);
     auto embeddingPropertyId = nodeTableEntry->getPropertyID(propertyExp->getPropertyName());
-    auto relTableName = storage::VectorIndexHeader::getIndexRelTableName(tableId, embeddingPropertyId, 0, 3768);
+    auto relTableName = storage::VectorIndexHeader::getIndexRelTableName(tableId, embeddingPropertyId, 0, 2);
     auto relTableId = clientContext->getCatalog()->getTableID(clientContext->getTx(), relTableName);
     auto graphEntry = GraphEntry(std::vector<table_id_t>{tableId}, std::vector<table_id_t>{relTableId});
 

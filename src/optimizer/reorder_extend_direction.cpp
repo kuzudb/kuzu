@@ -51,7 +51,7 @@ std::shared_ptr<planner::LogicalOperator> ReorderExtendDirection::visitExtendRep
     }
 
     auto scanNode = logicalExtend->getChild(0)->ptrCast<LogicalScanNodeTable>();
-    if (scanNode->getProperties().size() > 0 || scanNode->getExtraInfo() != nullptr || scanNode->getPropertyPredicates().size() > 0) {
+    if (scanNode->getProperties().size() > 0 || scanNode->getExtraInfo() != nullptr) {
         return op;
     }
 
@@ -66,6 +66,9 @@ std::shared_ptr<planner::LogicalOperator> ReorderExtendDirection::visitExtendRep
                                                           logicalExtend->getNbrNode()->getTableIDs(),
                                                           expression_vector());
     newScan->setScanType(scanNode->getScanType());
+    if (newScan->getPropertyPredicates().size() > 0) {
+        newScan->setPropertyPredicates(copyVector(scanNode->getPropertyPredicates()));
+    }
     // Call computeFlatSchema to update the schema
     newScan->computeFlatSchema();
     auto reverseExtend = std::make_shared<LogicalExtend>(logicalExtend->getNbrNode(),

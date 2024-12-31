@@ -27,9 +27,6 @@ void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* contex
     auto removeUnnecessaryJoinOptimizer = RemoveUnnecessaryJoinOptimizer();
     removeUnnecessaryJoinOptimizer.rewrite(plan);
 
-    auto reorderExtendDirection = ReorderExtendDirection(context);
-    reorderExtendDirection.rewrite(plan);
-
     auto filterPushDownOptimizer = FilterPushDownOptimizer(context);
     filterPushDownOptimizer.rewrite(plan);
 
@@ -48,6 +45,10 @@ void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* contex
     // Remove hash join with SemiMaskDependency if possible
     auto gdsSelectivityOptimizer = GDSSelectivityOptimizer();
     gdsSelectivityOptimizer.rewrite(plan);
+
+    // Reorder extend direction. IMP Note this has to be done after GDSSelectivityOptimizer
+    auto reorderExtendDirection = ReorderExtendDirection(context);
+    reorderExtendDirection.rewrite(plan);
 
     auto factorizationRewriter = FactorizationRewriter();
     factorizationRewriter.rewrite(plan);

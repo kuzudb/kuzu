@@ -207,7 +207,9 @@ namespace kuzu {
             if (scanNode->getExtraInfo() != nullptr) {
                 newScan->setExtraInfo(scanNode->getExtraInfoCopy());
             }
-            newScan->setPropertyPredicates(copyVector(scanNode->getPropertyPredicates()));
+            if (scanNode->getPropertyPredicates().size() > 0) {
+                newScan->setPropertyPredicates(copyVector(scanNode->getPropertyPredicates()));
+            }
             // Call computeFlatSchema to update the schema
             newScan->computeFlatSchema();
             return newScan;
