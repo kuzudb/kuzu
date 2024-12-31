@@ -574,6 +574,7 @@ namespace kuzu {
                                          std::priority_queue<NodeDistFarther> &candidates,
                                          BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
                                          NodeOffsetLevelSemiMask *filterMask, int maxNodesToAdd, int &totalDist) {
+                auto startTime = std::chrono::high_resolution_clock::now();
                 // Add some initial candidates to handle neg correlation case
                 int nbrsAdded = 0;
                 for (offset_t i = 0; i < filterMask->getMaxOffset(); i++) {
@@ -590,6 +591,9 @@ namespace kuzu {
                         break;
                     }
                 }
+                auto endTime = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime);
+                printf("addFilteredNodesToCandidates: %f ms\n", (float)duration.count() / 1000.0);
             }
 
             void filteredSearch(processor::ExecutionContext *context, const float *query,
