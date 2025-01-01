@@ -226,9 +226,8 @@ namespace kuzu {
 //                return ListVector::getDataVector(resultVector)->getData();
 //            }
 
-            inline void
-            computeDistance(processor::ExecutionContext *context, vector_id_t id, CosineDistanceComputer *dc,
-                            double *dist) {
+            inline void computeZeroCopyDistance(processor::ExecutionContext *context, vector_id_t id,
+                                                CosineDistanceComputer *dc, double *dist) {
                 auto searchLocalState =
                         ku_dynamic_cast<GDSLocalState *, VectorSearchLocalState *>(localState.get());
                 auto embeddingColumn = searchLocalState->embeddingColumn;
@@ -245,6 +244,12 @@ namespace kuzu {
                                                 auto embedding = reinterpret_cast<const float *>(frame);
                                                 dc->computeDistance(embedding + posInFrame, dist);
                                             });
+            }
+
+            inline void computeDistance(processor::ExecutionContext *context, vector_id_t id,
+                                            CosineDistanceComputer *dc, double *dist) {
+                auto embedding = getEmbedding(context, id);
+                dc->computeDistance(embedding, dist);
             }
 
             const float *getEmbedding(processor::ExecutionContext *context, vector_id_t id) {
