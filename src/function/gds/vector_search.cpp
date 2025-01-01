@@ -292,7 +292,7 @@ namespace kuzu {
                         double dist;
 //                        auto embedding = getCompressedEmbedding(header, header->getActualId(neighbor));
 //                        qdc->compute_distance(query, embedding, &dist);
-                        computeDistance(context, header->getActualId(neighbor), dc, &dist);
+                        computeZeroCopyDistance(context, header->getActualId(neighbor), dc, &dist);
                         if (dist < nearestDist) {
                             nearest = neighbor;
                             nearestDist = dist;
@@ -313,13 +313,13 @@ namespace kuzu {
                 if (entrypointLevel == 1) {
 //                    auto embedding = getCompressedEmbedding(header, header->getActualId(entrypoint));
 //                    qdc->compute_distance(query, embedding, entrypointDist);
-                    computeDistance(context, header->getActualId(entrypoint), dc, entrypointDist);
+                    computeZeroCopyDistance(context, header->getActualId(entrypoint), dc, entrypointDist);
                     searchNNOnUpperLevel(context, header, query, dc, qdc, entrypoint, *entrypointDist);
                     entrypoint = header->getActualId(entrypoint);
                 } else {
 //                    auto embedding = getCompressedEmbedding(header, entrypoint);
 //                    qdc->compute_distance(query, embedding, entrypointDist);
-                    computeDistance(context, entrypoint, dc, entrypointDist);
+                    computeZeroCopyDistance(context, entrypoint, dc, entrypointDist);
                 }
             }
 
@@ -362,7 +362,7 @@ namespace kuzu {
                         }
                         visited->set_bit(neighbor.offset);
                         double dist;
-                        computeDistance(context, neighbor.offset, dc, &dist);
+                        computeZeroCopyDistance(context, neighbor.offset, dc, &dist);
                         if (results.size() < efSearch || dist < results.top()->dist) {
                             candidates.emplace(neighbor.offset, dist);
                             results.push(NodeDistFarther{neighbor.offset, dist});
@@ -386,7 +386,7 @@ namespace kuzu {
                     }
                     visited->set_bit(neighbor.offset);
                     double dist;
-                    computeDistance(context, neighbor.offset, dc, &dist);
+                    computeZeroCopyDistance(context, neighbor.offset, dc, &dist);
                     totalDist += 1;
                     if (results.size() < efSearch || dist < results.top()->dist) {
                         candidates.emplace(neighbor.offset, dist);
@@ -425,7 +425,7 @@ namespace kuzu {
                     }
                     if (isNeighborMasked) {
                         double dist;
-                        computeDistance(context, neighbor.offset, dc, &dist);
+                        computeZeroCopyDistance(context, neighbor.offset, dc, &dist);
                         totalDist++;
                         visited->set_bit(neighbor.offset);
                         if (results.size() < efSearch || dist < results.top()->dist) {
@@ -463,7 +463,7 @@ namespace kuzu {
                             // TODO: Maybe there's some benefit in doing batch distance computation
                             visited->set_bit(secondHopNeighbor.offset);
                             double dist;
-                            computeDistance(context, secondHopNeighbor.offset, dc, &dist);
+                            computeZeroCopyDistance(context, secondHopNeighbor.offset, dc, &dist);
                             totalDist++;
                             if (results.size() < efSearch || dist < results.top()->dist) {
                                 candidates.emplace(secondHopNeighbor.offset, dist);
@@ -507,7 +507,7 @@ namespace kuzu {
                         continue;
                     }
                     double dist;
-                    computeDistance(context, neighbor.offset, dc, &dist);
+                    computeZeroCopyDistance(context, neighbor.offset, dc, &dist);
                     totalDist++;
                     nbrsToExplore.emplace(neighbor.offset, dist);
 
@@ -561,7 +561,7 @@ namespace kuzu {
                             // TODO: Maybe there's some benefit in doing batch distance computation
                             visited->set_bit(secondHopNeighbor.offset);
                             double dist;
-                            computeDistance(context, secondHopNeighbor.offset, dc, &dist);
+                            computeZeroCopyDistance(context, secondHopNeighbor.offset, dc, &dist);
                             totalDist++;
                             if (results.size() < efSearch || dist < results.top()->dist) {
                                 candidates.emplace(secondHopNeighbor.offset, dist);
@@ -585,7 +585,7 @@ namespace kuzu {
                 for (offset_t i = 0; i < filterMask->getMaxOffset(); i++) {
                     if (filterMask->isMasked(i)) {
                         double dist;
-                        computeDistance(context, i, dc, &dist);
+                        computeZeroCopyDistance(context, i, dc, &dist);
                         candidates.emplace(i, dist);
                         results.push(NodeDistFarther(i, dist));
                         visited->set_bit(i);
