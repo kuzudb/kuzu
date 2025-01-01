@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "common/arrow/arrow.h"
 #include "function/scalar_function.h"
 #include "function/table/bind_data.h"
@@ -43,7 +45,7 @@ struct PyArrowTableScanFunctionData final : public function::TableFuncBindData {
         std::vector<std::shared_ptr<ArrowArrayWrapper>> arrowArrayBatches, uint64_t numRows,
         bool ignoreErrors)
         : TableFuncBindData{std::move(columns), 0 /* numWarningDataColumns */, numRows},
-          schema{std::move(schema)}, arrowArrayBatches{arrowArrayBatches},
+          schema{std::move(schema)}, arrowArrayBatches{std::move(arrowArrayBatches)},
           ignoreErrors(ignoreErrors) {}
 
     ~PyArrowTableScanFunctionData() override {}

@@ -121,19 +121,13 @@ static double progressFunc(TableFuncSharedState* sharedState) {
     return static_cast<double>(pandasSharedState->numRowsRead) / pandasSharedState->numRows;
 }
 
-static void finalizeFunc(processor::ExecutionContext* ctx, TableFuncSharedState*) {
+static void finalizeFunc(const processor::ExecutionContext* ctx, TableFuncSharedState*) {
     ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
 }
 
 function_set PandasScanFunction::getFunctionSet() {
     function_set functionSet;
-<<<<<<< HEAD
     functionSet.push_back(getFunction().copy());
-=======
-    functionSet.push_back(std::make_unique<TableFunction>(PandasScanFunction::name, tableFunc,
-        bindFunc, initSharedState, initLocalState, progressFunc,
-        std::vector<LogicalTypeID>{LogicalTypeID::POINTER}, finalizeFunc));
->>>>>>> ceac2f32d (Support IGNORE_ERRORS when scanning from pyarrow/pandas)
     return functionSet;
 }
 
@@ -144,6 +138,7 @@ TableFunction PandasScanFunction::getFunction() {
     function.initSharedStateFunc = initSharedState;
     function.initLocalStateFunc = initLocalState;
     function.progressFunc = progressFunc;
+    function.finalizeFunc = finalizeFunc;
     return function;
 }
 
@@ -172,13 +167,7 @@ std::unique_ptr<ScanReplacementData> tryReplacePD(py::dict& dict, py::str& objec
         if (isPyArrowBacked(entry)) {
             scanReplacementData->func = PyArrowTableScanFunction::getFunction();
         } else {
-<<<<<<< HEAD
             scanReplacementData->func = PandasScanFunction::getFunction();
-=======
-            scanReplacementData->func = TableFunction(PandasScanFunction::name, tableFunc, bindFunc,
-                initSharedState, initLocalState, progressFunc,
-                std::vector<LogicalTypeID>{LogicalTypeID::POINTER}, finalizeFunc);
->>>>>>> ceac2f32d (Support IGNORE_ERRORS when scanning from pyarrow/pandas)
         }
         auto bindInput = TableFuncBindInput();
         bindInput.addLiteralParam(Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())));
