@@ -3,7 +3,6 @@
 --
 
 -CASE BasicAlgorithm
-
 -STATEMENT CALL create_project_graph('PK', ['person'], ['knows'])
 ---- ok
 -STATEMENT CALL create_project_graph('PK', [], [])

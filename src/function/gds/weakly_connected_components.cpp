@@ -24,16 +24,8 @@ class WCCFrontierPair : public FrontierPair {
 public:
     WCCFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
         std::shared_ptr<GDSFrontier> nextFrontier, table_id_map_t<offset_t> numNodesMap,
-        storage::MemoryManager* mm)
-        : FrontierPair(curFrontier, nextFrontier) {
-        for (const auto& [tableID, numNodes] : numNodesMap) {
-            vertexValueMap.allocate(tableID, numNodes, mm);
-            auto data = vertexValueMap.getData(tableID);
-            // Cast a unique number to each node
-            for (auto i = 0u; i < numNodes; ++i) {
-                data[i].store(i, std::memory_order_relaxed);
-            }
-        }
+        storage::MemoryManager* mm) : FrontierPair(curFrontier, nextFrontier) {
+        initVertexValues(numNodesMap, mm);
     }
 
     void initRJFromSource(common::nodeID_t) override { setActiveNodesForNextIter(); };
@@ -75,6 +67,17 @@ public:
 
     common::offset_t getVertexValue(common::offset_t offset) {
         return vertexValues[offset].load(std::memory_order_relaxed);
+    }
+
+private:
+    void initVertexValues(table_id_map_t<offset_t> numNodesMap, storage::MemoryManager* mm) {
+        for (const auto& [tableID, numNodes] : numNodesMap) {
+            vertexValueMap.allocate(tableID, numNodes, mm);
+            auto data = vertexValueMap.getData(tableID);
+            for (auto i = 0u; i < numNodes; ++i) {
+                data[i].store(i, std::memory_order_relaxed);
+            }
+        }
     }
 
 private:
@@ -175,21 +178,10 @@ public:
     WeaklyConnectedComponent() = default;
     WeaklyConnectedComponent(const WeaklyConnectedComponent& other) : GDSAlgorithm{other} {}
 
-    /*
-     * Inputs are
-     *
-     * graph::ANY
-     */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
         return std::vector<LogicalTypeID>{LogicalTypeID::ANY};
     }
 
-    /*
-     * Outputs are
-     *
-     * _node._id::INTERNAL_ID
-     * group_id::INT64
-     */
     binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         expression_vector columns;
         auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();

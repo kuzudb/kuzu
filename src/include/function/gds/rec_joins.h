@@ -116,14 +116,7 @@ public:
     SPAlgorithm() = default;
     SPAlgorithm(const SPAlgorithm& other) : RJAlgorithm{other} {}
 
-    /*
-     * Inputs include the following:
-     *
-     * graph::ANY
-     * srcNode::NODE
-     * upperBound::INT64
-     * direction::STRING
-     */
+    // Inputs are graph, srcNode, upperBound, direction
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
         return {common::LogicalTypeID::ANY, common::LogicalTypeID::NODE,
             common::LogicalTypeID::INT64, common::LogicalTypeID::STRING};

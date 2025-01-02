@@ -11,7 +11,7 @@ add_library(kuzu_function_algorithm
         output_writer.cpp
         variable_length_path.cpp
         weakly_connected_components.cpp
-        K_Core_Decomposition.cpp)
+        k_core_decomposition.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_function_algorithm>
