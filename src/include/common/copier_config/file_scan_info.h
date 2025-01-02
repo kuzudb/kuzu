@@ -28,17 +28,17 @@ struct FileTypeUtils {
     static FileType fromString(std::string fileType);
 };
 
-struct ReaderConfig {
+struct FileScanInfo {
     static constexpr const char* FILE_FORMAT_OPTION_NAME = "FILE_FORMAT";
 
     FileTypeInfo fileTypeInfo;
     std::vector<std::string> filePaths;
     case_insensitive_map_t<Value> options;
 
-    ReaderConfig() : fileTypeInfo{FileType::UNKNOWN, ""} {}
-    ReaderConfig(FileTypeInfo fileTypeInfo, std::vector<std::string> filePaths)
+    FileScanInfo() : fileTypeInfo{FileType::UNKNOWN, ""} {}
+    FileScanInfo(FileTypeInfo fileTypeInfo, std::vector<std::string> filePaths)
         : fileTypeInfo{std::move(fileTypeInfo)}, filePaths{std::move(filePaths)} {}
-    EXPLICIT_COPY_DEFAULT_MOVE(ReaderConfig);
+    EXPLICIT_COPY_DEFAULT_MOVE(FileScanInfo);
 
     uint32_t getNumFiles() const { return filePaths.size(); }
     std::string getFilePath(idx_t fileIdx) const {
@@ -57,7 +57,7 @@ struct ReaderConfig {
     }
 
 private:
-    ReaderConfig(const ReaderConfig& other)
+    FileScanInfo(const FileScanInfo& other)
         : fileTypeInfo{other.fileTypeInfo}, filePaths{other.filePaths}, options{other.options} {}
 };
 

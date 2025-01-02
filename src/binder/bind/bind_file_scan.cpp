@@ -103,10 +103,10 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     auto filePaths = bindFilePaths(fileSource->filePaths);
     auto parsingOptions = bindParsingOptions(options);
     FileTypeInfo fileTypeInfo;
-    if (parsingOptions.contains(ReaderConfig::FILE_FORMAT_OPTION_NAME)) {
-        auto fileFormat = parsingOptions.at(ReaderConfig::FILE_FORMAT_OPTION_NAME).toString();
+    if (parsingOptions.contains(FileScanInfo::FILE_FORMAT_OPTION_NAME)) {
+        auto fileFormat = parsingOptions.at(FileScanInfo::FILE_FORMAT_OPTION_NAME).toString();
         fileTypeInfo = FileTypeInfo{FileTypeUtils::fromString(fileFormat), fileFormat};
-        parsingOptions.erase(ReaderConfig::FILE_FORMAT_OPTION_NAME);
+        parsingOptions.erase(FileScanInfo::FILE_FORMAT_OPTION_NAME);
     } else {
         fileTypeInfo = bindFileTypeInfo(filePaths);
     }
@@ -122,14 +122,14 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
         }
     }
     // Bind file configuration
-    auto config = std::make_unique<ReaderConfig>(std::move(fileTypeInfo), filePaths);
-    config->options = std::move(parsingOptions);
-    auto func = getScanFunction(config->fileTypeInfo, *config);
+    auto fileScanInfo = std::make_unique<FileScanInfo>(std::move(fileTypeInfo), filePaths);
+    fileScanInfo->options = std::move(parsingOptions);
+    auto func = getScanFunction(fileScanInfo->fileTypeInfo, *fileScanInfo);
     // Bind table function
     auto bindInput = TableFuncBindInput();
     bindInput.addLiteralParam(Value::createValue(filePaths[0]));
     auto extraInput = std::make_unique<ExtraScanTableFuncBindInput>();
-    extraInput->config = config->copy();
+    extraInput->fileScanInfo = fileScanInfo->copy();
     extraInput->expectedColumnNames = columnNames;
     extraInput->expectedColumnTypes = LogicalType::copy(columnTypes);
     extraInput->tableFunction = &func;
@@ -186,7 +186,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindObjectScanSource(const BaseScan
         if (replacementData != nullptr) { // Replace as python object
             func = replacementData->func;
             auto replaceExtraInput = std::make_unique<ExtraScanTableFuncBindInput>();
-            replaceExtraInput->config.options = bindParsingOptions(options);
+            replaceExtraInput->fileScanInfo.options = bindParsingOptions(options);
             replacementData->bindInput.extraInput = std::move(replaceExtraInput);
             replacementData->bindInput.binder = this;
             bindData = func.bindFunc(clientContext, &replacementData->bindInput);

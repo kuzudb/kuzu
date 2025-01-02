@@ -56,7 +56,7 @@ private:
 };
 
 struct NpyScanSharedState final : public function::ScanSharedState {
-    explicit NpyScanSharedState(const common::ReaderConfig readerConfig, uint64_t numRows);
+    explicit NpyScanSharedState(const common::FileScanInfo fileScanInfo, uint64_t numRows);
 
     std::unique_ptr<NpyMultiFileReader> npyMultiFileReader;
 };

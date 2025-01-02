@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/copier_config/reader_config.h"
+#include "common/copier_config/file_scan_info.h"
 #include "processor/operator/simple/simple.h"
 
 namespace kuzu {
@@ -28,7 +28,7 @@ class ExportDB final : public Simple {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::EXPORT_DATABASE;
 
 public:
-    ExportDB(common::ReaderConfig boundFileInfo, const DataPos& outputPos, uint32_t id,
+    ExportDB(common::FileScanInfo boundFileInfo, const DataPos& outputPos, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : Simple{type_, outputPos, id, std::move(printInfo)},
           boundFileInfo{std::move(boundFileInfo)} {}
@@ -44,7 +44,7 @@ public:
     }
 
 private:
-    common::ReaderConfig boundFileInfo;
+    common::FileScanInfo boundFileInfo;
 };
 } // namespace processor
 } // namespace kuzu

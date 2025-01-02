@@ -31,13 +31,13 @@ struct PandasScanFunction {
 struct PandasScanFunctionData : public function::TableFuncBindData {
     py::handle df;
     std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData;
-    common::ReaderConfig config;
+    common::FileScanInfo fileScanInfo;
 
     PandasScanFunctionData(binder::expression_vector columns, py::handle df, uint64_t numRows,
         std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData,
-        common::ReaderConfig config)
+        common::FileScanInfo fileScanInfo)
         : TableFuncBindData{std::move(columns), 0 /* numWarningDataColumns */, numRows}, df{df},
-          columnBindData{std::move(columnBindData)}, config(std::move(config)) {}
+          columnBindData{std::move(columnBindData)}, fileScanInfo(std::move(fileScanInfo)) {}
 
     ~PandasScanFunctionData() override {
         py::gil_scoped_acquire acquire;
@@ -45,7 +45,7 @@ struct PandasScanFunctionData : public function::TableFuncBindData {
     }
 
     bool getIgnoreErrorsOption() const override {
-        return config.getOption(common::CopyConstants::IGNORE_ERRORS_OPTION_NAME,
+        return fileScanInfo.getOption(common::CopyConstants::IGNORE_ERRORS_OPTION_NAME,
             common::CopyConstants::DEFAULT_IGNORE_ERRORS);
     }
 
@@ -61,7 +61,7 @@ private:
         for (const auto& i : other.columnBindData) {
             columnBindData.push_back(i->copy());
         }
-        config = other.config.copy();
+        fileScanInfo = other.fileScanInfo.copy();
     }
 };
 

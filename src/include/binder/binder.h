@@ -5,7 +5,7 @@
 #include "binder/query/bound_regular_query.h"
 #include "binder/query/query_graph.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
-#include "common/copier_config/reader_config.h"
+#include "common/copier_config/file_scan_info.h"
 #include "common/enums/table_type.h"
 #include "parser/ddl/parsed_property_definition.h"
 #include "parser/query/graph_pattern/pattern_element.h"
@@ -302,7 +302,7 @@ public:
     void restoreScope(BinderScope prevScope);
 
     function::TableFunction getScanFunction(common::FileTypeInfo typeInfo,
-        const common::ReaderConfig& config);
+        const common::FileScanInfo& fileScanInfo);
 
     ExpressionBinder* getExpressionBinder() { return &expressionBinder; }
 

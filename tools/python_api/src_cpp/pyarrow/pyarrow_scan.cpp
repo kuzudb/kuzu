@@ -73,7 +73,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext*,
     }
     auto numRows = py::len(table);
     auto schema = Pyarrow::bind(table, returnTypes, names);
-    auto config = PyArrowScanConfig(scanInput->config.options);
+    auto config = PyArrowScanConfig(scanInput->fileScanInfo.options);
     // The following python operations are zero copy as defined in pyarrow docs.
     if (config.skipNum != 0) {
         table = table.attr("slice")(config.skipNum);

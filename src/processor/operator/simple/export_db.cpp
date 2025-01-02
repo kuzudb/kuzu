@@ -53,7 +53,7 @@ static void writeStringStreamToFile(ClientContext* context, const std::string& s
 }
 
 static void writeCopyStatement(stringstream& ss, const TableCatalogEntry* entry,
-    const ReaderConfig* boundFileInfo) {
+    const FileScanInfo* boundFileInfo) {
     auto fileTypeStr = boundFileInfo->fileTypeInfo.fileTypeStr;
     StringUtils::toLower(fileTypeStr);
     const auto csvConfig = CSVReaderConfig::construct(boundFileInfo->options);
@@ -94,7 +94,7 @@ std::string getSchemaCypher(ClientContext* clientContext, Transaction* tx) {
 }
 
 std::string getCopyCypher(const Catalog* catalog, Transaction* tx,
-    const ReaderConfig* boundFileInfo) {
+    const FileScanInfo* boundFileInfo) {
     stringstream ss;
     for (const auto& nodeTableEntry : catalog->getNodeTableEntries(tx)) {
         writeCopyStatement(ss, nodeTableEntry, boundFileInfo);

@@ -2,7 +2,7 @@
 #include "binder/binder.h"
 #include "binder/bound_statement.h"
 #include "binder/query/bound_regular_query.h"
-#include "common/copier_config/reader_config.h"
+#include "common/copier_config/file_scan_info.h"
 
 namespace kuzu {
 namespace binder {
@@ -34,12 +34,12 @@ public:
     common::case_insensitive_map_t<common::Value> getExportOptions() const {
         return boundFileInfo.options;
     }
-    const common::ReaderConfig* getBoundFileInfo() const { return &boundFileInfo; }
+    const common::FileScanInfo* getBoundFileInfo() const { return &boundFileInfo; }
     const std::vector<ExportedTableData>* getExportData() const { return &exportData; }
 
 private:
     std::vector<ExportedTableData> exportData;
-    common::ReaderConfig boundFileInfo;
+    common::FileScanInfo boundFileInfo;
 };
 
 } // namespace binder

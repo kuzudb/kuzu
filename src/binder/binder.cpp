@@ -227,7 +227,8 @@ void Binder::restoreScope(BinderScope prevScope) {
     scope = std::move(prevScope);
 }
 
-function::TableFunction Binder::getScanFunction(FileTypeInfo typeInfo, const ReaderConfig& config) {
+function::TableFunction Binder::getScanFunction(FileTypeInfo typeInfo,
+    const FileScanInfo& fileScanInfo) {
     function::Function* func = nullptr;
     std::vector<LogicalType> inputTypes;
     inputTypes.push_back(LogicalType::STRING());
@@ -242,7 +243,7 @@ function::TableFunction Binder::getScanFunction(FileTypeInfo typeInfo, const Rea
             NpyScanFunction::name, inputTypes, functions);
     } break;
     case FileType::CSV: {
-        auto csvConfig = CSVReaderConfig::construct(config.options);
+        auto csvConfig = CSVReaderConfig::construct(fileScanInfo.options);
         func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
             csvConfig.parallel ? ParallelCSVScan::name : SerialCSVScan::name, inputTypes,
             functions);

@@ -252,9 +252,9 @@ void NpyMultiFileReader::readBlock(block_idx_t blockIdx, DataChunk& dataChunkToR
     }
 }
 
-NpyScanSharedState::NpyScanSharedState(ReaderConfig readerConfig, uint64_t numRows)
-    : ScanSharedState{std::move(readerConfig), numRows} {
-    npyMultiFileReader = std::make_unique<NpyMultiFileReader>(this->readerConfig.filePaths);
+NpyScanSharedState::NpyScanSharedState(FileScanInfo fileScanInfo, uint64_t numRows)
+    : ScanSharedState{std::move(fileScanInfo), numRows} {
+    npyMultiFileReader = std::make_unique<NpyMultiFileReader>(this->fileScanInfo.filePaths);
 }
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
@@ -273,23 +273,23 @@ static LogicalType bindColumnType(const NpyReader& reader) {
     return LogicalType::ARRAY(LogicalType(reader.getType()), reader.getNumElementsPerRow());
 }
 
-static void bindColumns(const ReaderConfig& readerConfig, uint32_t fileIdx,
+static void bindColumns(const FileScanInfo& fileScanInfo, uint32_t fileIdx,
     std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes) {
-    auto reader = NpyReader(readerConfig.filePaths[fileIdx]); // TODO: double check
+    auto reader = NpyReader(fileScanInfo.filePaths[fileIdx]); // TODO: double check
     auto columnName = std::string("column" + std::to_string(fileIdx));
     auto columnType = bindColumnType(reader);
     columnNames.push_back(columnName);
     columnTypes.push_back(std::move(columnType));
 }
 
-static void bindColumns(const ReaderConfig& readerConfig, std::vector<std::string>& columnNames,
+static void bindColumns(const FileScanInfo& fileScanInfo, std::vector<std::string>& columnNames,
     std::vector<LogicalType>& columnTypes) {
-    KU_ASSERT(readerConfig.getNumFiles() > 0);
-    bindColumns(readerConfig, 0, columnNames, columnTypes);
-    for (auto i = 1u; i < readerConfig.getNumFiles(); ++i) {
+    KU_ASSERT(fileScanInfo.getNumFiles() > 0);
+    bindColumns(fileScanInfo, 0, columnNames, columnTypes);
+    for (auto i = 1u; i < fileScanInfo.getNumFiles(); ++i) {
         std::vector<std::string> tmpColumnNames;
         std::vector<LogicalType> tmpColumnTypes;
-        bindColumns(readerConfig, i, tmpColumnNames, tmpColumnTypes);
+        bindColumns(fileScanInfo, i, tmpColumnNames, tmpColumnTypes);
         ReaderBindUtils::validateNumColumns(1, tmpColumnTypes.size());
         columnNames.push_back(tmpColumnNames[0]);
         columnTypes.push_back(std::move(tmpColumnTypes[0]));
@@ -299,19 +299,19 @@ static void bindColumns(const ReaderConfig& readerConfig, std::vector<std::strin
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
     auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
-    if (scanInput->config.options.size() > 1 ||
-        (scanInput->config.options.size() == 1 &&
-            !scanInput->config.options.contains(CopyConstants::IGNORE_ERRORS_OPTION_NAME))) {
+    if (scanInput->fileScanInfo.options.size() > 1 ||
+        (scanInput->fileScanInfo.options.size() == 1 &&
+            !scanInput->fileScanInfo.options.contains(CopyConstants::IGNORE_ERRORS_OPTION_NAME))) {
         throw BinderException{"Copy from numpy cannot have options other than IGNORE_ERRORS."};
     }
     std::vector<std::string> detectedColumnNames;
     std::vector<LogicalType> detectedColumnTypes;
-    bindColumns(scanInput->config, detectedColumnNames, detectedColumnTypes);
+    bindColumns(scanInput->fileScanInfo, detectedColumnNames, detectedColumnTypes);
     std::vector<std::string> resultColumnNames;
     std::vector<LogicalType> resultColumnTypes;
     ReaderBindUtils::resolveColumns(scanInput->expectedColumnNames, detectedColumnNames,
         resultColumnNames, scanInput->expectedColumnTypes, detectedColumnTypes, resultColumnTypes);
-    auto config = scanInput->config.copy();
+    auto config = scanInput->fileScanInfo.copy();
     KU_ASSERT(!config.filePaths.empty() && config.getNumFiles() == resultColumnNames.size());
     row_idx_t numRows = 0;
     for (auto i = 0u; i < config.getNumFiles(); i++) {
@@ -322,14 +322,15 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         reader->validate(resultColumnTypes[i], numRows);
     }
     auto columns = input->binder->createVariables(resultColumnNames, resultColumnTypes);
-    return std::make_unique<ScanBindData>(columns, scanInput->config.copy(), context,
+    return std::make_unique<ScanBindData>(columns, scanInput->fileScanInfo.copy(), context,
         0 /* numWarningColumns*/, numRows);
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
     auto bindData = input.bindData->constPtrCast<ScanBindData>();
-    auto reader = make_unique<NpyReader>(bindData->config.filePaths[0]);
-    return std::make_unique<NpyScanSharedState>(bindData->config.copy(), reader->getNumRows());
+    auto reader = make_unique<NpyReader>(bindData->fileScanInfo.filePaths[0]);
+    return std::make_unique<NpyScanSharedState>(bindData->fileScanInfo.copy(),
+        reader->getNumRows());
 }
 
 static void finalizeFunc(const ExecutionContext* ctx, TableFuncSharedState*) {

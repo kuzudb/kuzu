@@ -518,8 +518,8 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
 }
 
 column_id_t BaseCSVReader::appendWarningDataColumns(std::vector<std::string>& resultColumnNames,
-    std::vector<common::LogicalType>& resultColumnTypes, const common::ReaderConfig& config) {
-    const bool ignoreErrors = config.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
+    std::vector<common::LogicalType>& resultColumnTypes, const common::FileScanInfo& fileScanInfo) {
+    const bool ignoreErrors = fileScanInfo.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
         CopyConstants::DEFAULT_IGNORE_ERRORS);
     column_id_t numWarningDataColumns = 0;
     if (ignoreErrors) {
