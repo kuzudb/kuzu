@@ -2,7 +2,7 @@
 
 #include <mutex>
 
-#include "common/copier_config/reader_config.h"
+#include "common/copier_config/file_scan_info.h"
 #include "function/table_functions.h"
 
 namespace kuzu {
@@ -27,12 +27,12 @@ struct BaseScanSharedStateWithNumRows : public BaseScanSharedState {
 };
 
 struct ScanSharedState : public BaseScanSharedStateWithNumRows {
-    const common::ReaderConfig readerConfig;
+    const common::FileScanInfo fileScanInfo;
     uint64_t fileIdx;
     uint64_t blockIdx;
 
-    ScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows)
-        : BaseScanSharedStateWithNumRows{numRows}, readerConfig{std::move(readerConfig)},
+    ScanSharedState(common::FileScanInfo fileScanInfo, uint64_t numRows)
+        : BaseScanSharedStateWithNumRows{numRows}, fileScanInfo{std::move(fileScanInfo)},
           fileIdx{0}, blockIdx{0} {}
 
     std::pair<uint64_t, uint64_t> getNext();
@@ -43,9 +43,9 @@ struct ScanFileSharedState : public ScanSharedState {
     uint64_t totalSize; // TODO(Mattias): I think we should unify the design on how we calculate the
                         // progress bar for scanning. Can we simply rely on a numRowsScaned stored
                         // in the TableFuncSharedState to determine the progress.
-    ScanFileSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
+    ScanFileSharedState(common::FileScanInfo fileScanInfo, uint64_t numRows,
         main::ClientContext* context)
-        : ScanSharedState{std::move(readerConfig), numRows}, context{context}, totalSize{0} {}
+        : ScanSharedState{std::move(fileScanInfo), numRows}, context{context}, totalSize{0} {}
 };
 
 } // namespace function

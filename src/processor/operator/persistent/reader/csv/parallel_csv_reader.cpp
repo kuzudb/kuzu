@@ -119,12 +119,12 @@ bool ParallelCSVReader::finishedBlock() const {
     return getFileOffset() > (currentBlockIdx + 1) * CopyConstants::PARALLEL_BLOCK_SIZE;
 }
 
-ParallelCSVScanSharedState::ParallelCSVScanSharedState(ReaderConfig readerConfig, uint64_t numRows,
+ParallelCSVScanSharedState::ParallelCSVScanSharedState(FileScanInfo fileScanInfo, uint64_t numRows,
     main::ClientContext* context, CSVOption csvOption, CSVColumnInfo columnInfo)
-    : ScanFileSharedState{std::move(readerConfig), numRows, context},
+    : ScanFileSharedState{std::move(fileScanInfo), numRows, context},
       csvOption{std::move(csvOption)}, columnInfo{std::move(columnInfo)}, numBlocksReadByFiles{0} {
-    errorHandlers.reserve(this->readerConfig.getNumFiles());
-    for (idx_t i = 0; i < this->readerConfig.getNumFiles(); ++i) {
+    errorHandlers.reserve(this->fileScanInfo.getNumFiles());
+    for (idx_t i = 0; i < this->fileScanInfo.getNumFiles(); ++i) {
         errorHandlers.emplace_back(i, &lock);
     }
     populateErrorFunc = constructPopulateFunc();
@@ -134,21 +134,21 @@ ParallelCSVScanSharedState::ParallelCSVScanSharedState(ReaderConfig readerConfig
 }
 
 populate_func_t ParallelCSVScanSharedState::constructPopulateFunc() {
-    const auto numFiles = readerConfig.getNumFiles();
+    const auto numFiles = fileScanInfo.getNumFiles();
     auto localErrorHandlers = std::vector<std::shared_ptr<LocalFileErrorHandler>>(numFiles);
     auto readers = std::vector<std::shared_ptr<SerialCSVReader>>(numFiles);
     for (idx_t i = 0; i < numFiles; ++i) {
         // If we run into errors while reconstructing lines they should be unrecoverable
         localErrorHandlers[i] =
             std::make_shared<LocalFileErrorHandler>(&errorHandlers[i], false, context);
-        readers[i] = std::make_shared<SerialCSVReader>(readerConfig.filePaths[i], i,
+        readers[i] = std::make_shared<SerialCSVReader>(fileScanInfo.filePaths[i], i,
             csvOption.copy(), columnInfo.copy(), context, localErrorHandlers[i].get());
     }
     return [this, movedErrorHandlers = std::move(localErrorHandlers),
                movedReaders = std::move(readers)](CopyFromFileError error,
                idx_t fileIdx) -> PopulatedCopyFromError {
         return BaseCSVReader::basePopulateErrorFunc(std::move(error), &errorHandlers[fileIdx],
-            movedReaders[fileIdx].get(), readerConfig.getFilePath(fileIdx));
+            movedReaders[fileIdx].get(), fileScanInfo.getFilePath(fileIdx));
     };
 }
 
@@ -188,7 +188,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
                 std::make_unique<LocalFileErrorHandler>(&sharedState->errorHandlers[fileIdx],
                     sharedState->csvOption.ignoreErrors, sharedState->context, true);
             localState->reader =
-                std::make_unique<ParallelCSVReader>(sharedState->readerConfig.filePaths[fileIdx],
+                std::make_unique<ParallelCSVReader>(sharedState->fileScanInfo.filePaths[fileIdx],
                     fileIdx, sharedState->csvOption.copy(), sharedState->columnInfo.copy(),
                     sharedState->context, localState->errorHandler.get());
         }
@@ -221,7 +221,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     bool detectedHeader = false;
 
     DialectOption detectedDialect;
-    auto csvOption = CSVReaderConfig::construct(scanInput->config.options).option;
+    auto csvOption = CSVReaderConfig::construct(scanInput->fileScanInfo.options).option;
     detectedDialect.doDialectDetection = csvOption.autoDetection;
 
     std::vector<std::string> detectedColumnNames;
@@ -238,40 +238,40 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         std::string quote(1, detectedDialect.quoteChar);
         std::string delim(1, detectedDialect.delimiter);
         std::string escape(1, detectedDialect.escapeChar);
-        scanInput->config.options.insert_or_assign("ESCAPE", Value(LogicalType::STRING(), escape));
-        scanInput->config.options.insert_or_assign("QUOTE", Value(LogicalType::STRING(), quote));
-        scanInput->config.options.insert_or_assign("DELIM", Value(LogicalType::STRING(), delim));
+        scanInput->fileScanInfo.options.insert_or_assign("ESCAPE", Value(LogicalType::STRING(), escape));
+        scanInput->fileScanInfo.options.insert_or_assign("QUOTE", Value(LogicalType::STRING(), quote));
+        scanInput->fileScanInfo.options.insert_or_assign("DELIM", Value(LogicalType::STRING(), delim));
     }
 
     if (!csvOption.setHeader && csvOption.autoDetection && detectedHeader) {
-        scanInput->config.options.insert_or_assign("HEADER", Value(detectedHeader));
+        scanInput->fileScanInfo.options.insert_or_assign("HEADER", Value(detectedHeader));
     }
 
     auto resultColumns = input->binder->createVariables(resultColumnNames, resultColumnTypes);
     std::vector<std::string> warningColumnNames;
     std::vector<LogicalType> warningColumnTypes;
     const column_id_t numWarningDataColumns = BaseCSVReader::appendWarningDataColumns(
-        warningColumnNames, warningColumnTypes, scanInput->config);
+        warningColumnNames, warningColumnTypes, scanInput->fileScanInfo);
     auto warningColumns =
         input->binder->createInvisibleVariables(warningColumnNames, warningColumnTypes);
     for (auto& column : warningColumns) {
         resultColumns.push_back(column);
     }
-    return std::make_unique<ScanBindData>(std::move(resultColumns), scanInput->config.copy(),
+    return std::make_unique<ScanBindData>(std::move(resultColumns), scanInput->fileScanInfo.copy(),
         context, numWarningDataColumns, 0 /* estCardinality */);
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
     auto bindData = input.bindData->constPtrCast<ScanBindData>();
-    auto csvOption = CSVReaderConfig::construct(bindData->config.options).option;
+    auto csvOption = CSVReaderConfig::construct(bindData->fileScanInfo.options).option;
     row_idx_t numRows = 0;
     auto columnInfo = CSVColumnInfo(bindData->getNumColumns() - bindData->numWarningDataColumns,
         bindData->getColumnSkips(), bindData->numWarningDataColumns);
-    auto sharedState = std::make_unique<ParallelCSVScanSharedState>(bindData->config.copy(),
+    auto sharedState = std::make_unique<ParallelCSVScanSharedState>(bindData->fileScanInfo.copy(),
         numRows, bindData->context, csvOption.copy(), columnInfo.copy());
 
-    for (idx_t i = 0; i < sharedState->readerConfig.getNumFiles(); ++i) {
-        auto filePath = sharedState->readerConfig.filePaths[i];
+    for (idx_t i = 0; i < sharedState->fileScanInfo.getNumFiles(); ++i) {
+        auto filePath = sharedState->fileScanInfo.filePaths[i];
         auto reader = std::make_unique<ParallelCSVReader>(filePath, i, csvOption.copy(),
             columnInfo.copy(), bindData->context, nullptr);
         sharedState->totalSize += reader->getFileSize();
@@ -290,7 +290,7 @@ static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionIn
 
 static double progressFunc(TableFuncSharedState* sharedState) {
     auto state = sharedState->ptrCast<ParallelCSVScanSharedState>();
-    if (state->fileIdx >= state->readerConfig.getNumFiles()) {
+    if (state->fileIdx >= state->fileScanInfo.getNumFiles()) {
         return 1.0;
     }
     if (state->totalSize == 0) {
@@ -306,7 +306,7 @@ static double progressFunc(TableFuncSharedState* sharedState) {
 
 static void finalizeFunc(const ExecutionContext* ctx, TableFuncSharedState* sharedState) {
     auto state = ku_dynamic_cast<ParallelCSVScanSharedState*>(sharedState);
-    for (idx_t i = 0; i < state->readerConfig.getNumFiles(); ++i) {
+    for (idx_t i = 0; i < state->fileScanInfo.getNumFiles(); ++i) {
         state->errorHandlers[i].throwCachedErrorsIfNeeded();
     }
     ctx->clientContext->getWarningContextUnsafe().populateWarnings(ctx->queryID,

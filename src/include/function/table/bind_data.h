@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/copier_config/reader_config.h"
+#include "common/copier_config/file_scan_info.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
 #include "storage/predicate/column_predicate.h"
@@ -63,19 +63,19 @@ private:
 };
 
 struct KUZU_API ScanBindData : public TableFuncBindData {
-    common::ReaderConfig config;
+    common::FileScanInfo fileScanInfo;
     main::ClientContext* context;
 
-    ScanBindData(binder::expression_vector columns, common::ReaderConfig config,
+    ScanBindData(binder::expression_vector columns, common::FileScanInfo fileScanInfo,
         main::ClientContext* context)
-        : TableFuncBindData{std::move(columns)}, config{std::move(config)}, context{context} {}
-    ScanBindData(binder::expression_vector columns, common::ReaderConfig config,
+        : TableFuncBindData{std::move(columns)}, fileScanInfo{std::move(fileScanInfo)}, context{context} {}
+    ScanBindData(binder::expression_vector columns, common::FileScanInfo fileScanInfo,
         main::ClientContext* context, common::column_id_t numWarningDataColumns,
         common::row_idx_t estCardinality)
         : TableFuncBindData{std::move(columns), numWarningDataColumns, estCardinality},
-          config{std::move(config)}, context{context} {}
+          fileScanInfo{std::move(fileScanInfo)}, context{context} {}
     ScanBindData(const ScanBindData& other)
-        : TableFuncBindData{other}, config{other.config.copy()}, context{other.context} {}
+        : TableFuncBindData{other}, fileScanInfo{other.fileScanInfo.copy()}, context{other.context} {}
 
     bool getIgnoreErrorsOption() const override;
 

@@ -21,7 +21,7 @@ SerialCSVReader::SerialCSVReader(const std::string& filePath, idx_t fileIdx, CSV
 
 std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV(
     DialectOption& detectedDialect, bool& detectedHeader) {
-    auto csvOption = CSVReaderConfig::construct(bindInput->config.options).option;
+    auto csvOption = CSVReaderConfig::construct(bindInput->fileScanInfo.options).option;
     readBOM();
 
     if (detectedDialect.doDialectDetection) {
@@ -78,9 +78,9 @@ uint64_t SerialCSVReader::parseBlock(block_idx_t blockIdx, DataChunk& resultChun
     return numRowsRead;
 }
 
-SerialCSVScanSharedState::SerialCSVScanSharedState(ReaderConfig readerConfig, uint64_t numRows,
+SerialCSVScanSharedState::SerialCSVScanSharedState(FileScanInfo fileScanInfo, uint64_t numRows,
     main::ClientContext* context, CSVOption csvOption, CSVColumnInfo columnInfo, uint64_t queryID)
-    : ScanFileSharedState{std::move(readerConfig), numRows, context},
+    : ScanFileSharedState{std::move(fileScanInfo), numRows, context},
       csvOption{std::move(csvOption)}, columnInfo{std::move(columnInfo)}, totalReadSizeByFile{0},
       queryID(queryID), populateErrorFunc(constructPopulateFunc()) {
     initReader(context);
@@ -89,14 +89,14 @@ SerialCSVScanSharedState::SerialCSVScanSharedState(ReaderConfig readerConfig, ui
 populate_func_t SerialCSVScanSharedState::constructPopulateFunc() const {
     return [this](CopyFromFileError error, idx_t fileIdx) -> PopulatedCopyFromError {
         return BaseCSVReader::basePopulateErrorFunc(std::move(error), sharedErrorHandler.get(),
-            reader.get(), readerConfig.getFilePath(fileIdx));
+            reader.get(), fileScanInfo.getFilePath(fileIdx));
     };
 }
 
 void SerialCSVScanSharedState::read(DataChunk& outputChunk) {
     std::lock_guard<std::mutex> mtx{lock};
     do {
-        if (fileIdx >= readerConfig.getNumFiles()) {
+        if (fileIdx >= fileScanInfo.getNumFiles()) {
             return;
         }
         uint64_t numRows = reader->parseBlock(reader->getFileOffset() == 0 ? 0 : 1, outputChunk);
@@ -122,12 +122,12 @@ void SerialCSVScanSharedState::finalizeReader(main::ClientContext* context) cons
 }
 
 void SerialCSVScanSharedState::initReader(main::ClientContext* context) {
-    if (fileIdx < readerConfig.getNumFiles()) {
+    if (fileIdx < fileScanInfo.getNumFiles()) {
         sharedErrorHandler =
             std::make_unique<SharedFileErrorHandler>(fileIdx, nullptr, populateErrorFunc);
         localErrorHandler = std::make_unique<LocalFileErrorHandler>(sharedErrorHandler.get(),
             csvOption.ignoreErrors, context);
-        reader = std::make_unique<SerialCSVReader>(readerConfig.filePaths[fileIdx], fileIdx,
+        reader = std::make_unique<SerialCSVReader>(fileScanInfo.filePaths[fileIdx], fileIdx,
             csvOption.copy(), columnInfo.copy(), context, localErrorHandler.get());
     }
 }
@@ -141,20 +141,20 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
 static void bindColumnsFromFile(const ExtraScanTableFuncBindInput* bindInput, uint32_t fileIdx,
     std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes,
     DialectOption& detectedDialect, bool& detectedHeader, main::ClientContext* context) {
-    auto csvOption = CSVReaderConfig::construct(bindInput->config.options).option;
+    auto csvOption = CSVReaderConfig::construct(bindInput->fileScanInfo.options).option;
     auto columnInfo = CSVColumnInfo(bindInput->expectedColumnNames.size() /* numColumns */,
         {} /* columnSkips */, {} /*warningDataColumns*/);
     SharedFileErrorHandler sharedErrorHandler{fileIdx, nullptr};
     // We don't want to cache CSV errors encountered during sniffing, they will be re-encountered
     // when actually parsing
     LocalFileErrorHandler errorHandler{&sharedErrorHandler, csvOption.ignoreErrors, context, false};
-    auto csvReader = SerialCSVReader(bindInput->config.filePaths[fileIdx], fileIdx,
+    auto csvReader = SerialCSVReader(bindInput->fileScanInfo.filePaths[fileIdx], fileIdx,
         csvOption.copy(), columnInfo.copy(), context, &errorHandler, bindInput);
     sharedErrorHandler.setPopulateErrorFunc(
         [&sharedErrorHandler, &csvReader, bindInput](CopyFromFileError error,
             idx_t fileIdx) -> PopulatedCopyFromError {
             return BaseCSVReader::basePopulateErrorFunc(std::move(error), &sharedErrorHandler,
-                &csvReader, bindInput->config.filePaths[fileIdx]);
+                &csvReader, bindInput->fileScanInfo.filePaths[fileIdx]);
         });
     auto sniffedColumns = csvReader.sniffCSV(detectedDialect, detectedHeader);
     sharedErrorHandler.throwCachedErrorsIfNeeded();
@@ -167,10 +167,10 @@ static void bindColumnsFromFile(const ExtraScanTableFuncBindInput* bindInput, ui
 void SerialCSVScan::bindColumns(const ExtraScanTableFuncBindInput* bindInput,
     std::vector<std::string>& columnNames, std::vector<LogicalType>& columnTypes,
     DialectOption& detectedDialect, bool& detectedHeader, main::ClientContext* context) {
-    KU_ASSERT(bindInput->config.getNumFiles() > 0);
+    KU_ASSERT(bindInput->fileScanInfo.getNumFiles() > 0);
     bindColumnsFromFile(bindInput, 0, columnNames, columnTypes, detectedDialect, detectedHeader,
         context);
-    for (auto i = 1u; i < bindInput->config.getNumFiles(); ++i) {
+    for (auto i = 1u; i < bindInput->fileScanInfo.getNumFiles(); ++i) {
         std::vector<std::string> tmpColumnNames;
         std::vector<LogicalType> tmpColumnTypes;
         bindColumnsFromFile(bindInput, i, tmpColumnNames, tmpColumnTypes, detectedDialect,
@@ -183,14 +183,14 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
     auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
     if (scanInput->expectedColumnTypes.size() > 0) {
-        scanInput->config.options.insert_or_assign("SAMPLE_SIZE",
+        scanInput->fileScanInfo.options.insert_or_assign("SAMPLE_SIZE",
             Value((int64_t)0)); // only scan headers
     }
 
     bool detectedHeader = false;
 
     DialectOption detectedDialect;
-    auto csvOption = CSVReaderConfig::construct(scanInput->config.options).option;
+    auto csvOption = CSVReaderConfig::construct(scanInput->fileScanInfo.options).option;
     detectedDialect.doDialectDetection = csvOption.autoDetection;
 
     std::vector<std::string> detectedColumnNames;
@@ -207,39 +207,39 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         std::string quote(1, detectedDialect.quoteChar);
         std::string delim(1, detectedDialect.delimiter);
         std::string escape(1, detectedDialect.escapeChar);
-        scanInput->config.options.insert_or_assign("ESCAPE", Value(LogicalType::STRING(), escape));
-        scanInput->config.options.insert_or_assign("QUOTE", Value(LogicalType::STRING(), quote));
-        scanInput->config.options.insert_or_assign("DELIM", Value(LogicalType::STRING(), delim));
+        scanInput->fileScanInfo.options.insert_or_assign("ESCAPE", Value(LogicalType::STRING(), escape));
+        scanInput->fileScanInfo.options.insert_or_assign("QUOTE", Value(LogicalType::STRING(), quote));
+        scanInput->fileScanInfo.options.insert_or_assign("DELIM", Value(LogicalType::STRING(), delim));
     }
 
     if (!csvOption.setHeader && csvOption.autoDetection && detectedHeader) {
-        scanInput->config.options.insert_or_assign("HEADER", Value(detectedHeader));
+        scanInput->fileScanInfo.options.insert_or_assign("HEADER", Value(detectedHeader));
     }
 
     auto resultColumns = input->binder->createVariables(resultColumnNames, resultColumnTypes);
     std::vector<std::string> warningColumnNames;
     std::vector<LogicalType> warningColumnTypes;
     const column_id_t numWarningDataColumns = BaseCSVReader::appendWarningDataColumns(
-        warningColumnNames, warningColumnTypes, scanInput->config);
+        warningColumnNames, warningColumnTypes, scanInput->fileScanInfo);
     auto warningColumns =
         input->binder->createInvisibleVariables(warningColumnNames, warningColumnTypes);
     for (auto& column : warningColumns) {
         resultColumns.push_back(column);
     }
-    return std::make_unique<ScanBindData>(std::move(resultColumns), scanInput->config.copy(),
+    return std::make_unique<ScanBindData>(std::move(resultColumns), scanInput->fileScanInfo.copy(),
         context, numWarningDataColumns, 0 /* estCardinality */);
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
     auto bindData = input.bindData->constPtrCast<ScanBindData>();
-    auto csvOption = CSVReaderConfig::construct(bindData->config.options).option;
+    auto csvOption = CSVReaderConfig::construct(bindData->fileScanInfo.options).option;
     row_idx_t numRows = 0;
     auto columnInfo = CSVColumnInfo(bindData->getNumColumns() - bindData->numWarningDataColumns,
         bindData->getColumnSkips(), bindData->numWarningDataColumns);
-    auto sharedState = std::make_unique<SerialCSVScanSharedState>(bindData->config.copy(), numRows,
+    auto sharedState = std::make_unique<SerialCSVScanSharedState>(bindData->fileScanInfo.copy(), numRows,
         bindData->context, csvOption.copy(), columnInfo.copy(), input.queryID);
-    for (idx_t i = 0; i < sharedState->readerConfig.filePaths.size(); ++i) {
-        const auto& filePath = sharedState->readerConfig.filePaths[i];
+    for (idx_t i = 0; i < sharedState->fileScanInfo.filePaths.size(); ++i) {
+        const auto& filePath = sharedState->fileScanInfo.filePaths[i];
         auto reader = std::make_unique<SerialCSVReader>(filePath, i, csvOption.copy(),
             columnInfo.copy(), sharedState->context, nullptr);
         sharedState->totalSize += reader->getFileSize();
@@ -261,7 +261,7 @@ static double progressFunc(TableFuncSharedState* sharedState) {
     auto state = ku_dynamic_cast<SerialCSVScanSharedState*>(sharedState);
     if (state->totalSize == 0) {
         return 0.0;
-    } else if (state->fileIdx >= state->readerConfig.getNumFiles()) {
+    } else if (state->fileIdx >= state->fileScanInfo.getNumFiles()) {
         return 1.0;
     }
     uint64_t totalReadSize = state->totalReadSizeByFile + state->reader->getFileOffset();

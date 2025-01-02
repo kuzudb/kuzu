@@ -47,7 +47,7 @@ struct ParallelCSVScanSharedState final : public function::ScanFileSharedState {
     std::vector<SharedFileErrorHandler> errorHandlers;
     populate_func_t populateErrorFunc;
 
-    ParallelCSVScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
+    ParallelCSVScanSharedState(common::FileScanInfo fileScanInfo, uint64_t numRows,
         main::ClientContext* context, common::CSVOption csvOption, CSVColumnInfo columnInfo);
 
     void setFileComplete(uint64_t completedFileIdx);

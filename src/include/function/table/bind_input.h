@@ -4,7 +4,7 @@
 
 #include "binder/expression/expression.h"
 #include "common/case_insensitive_map.h"
-#include "common/copier_config/reader_config.h"
+#include "common/copier_config/file_scan_info.h"
 #include "common/types/value/value.h"
 
 namespace kuzu {
@@ -52,7 +52,7 @@ struct KUZU_API TableFuncBindInput {
 };
 
 struct KUZU_API ExtraScanTableFuncBindInput : ExtraTableFuncBindInput {
-    common::ReaderConfig config;
+    common::FileScanInfo fileScanInfo;
     std::vector<std::string> expectedColumnNames;
     std::vector<common::LogicalType> expectedColumnTypes;
     function::TableFunction* tableFunction = nullptr;

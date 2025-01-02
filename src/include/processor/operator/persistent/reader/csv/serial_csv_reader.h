@@ -42,7 +42,7 @@ struct SerialCSVScanSharedState final : public function::ScanFileSharedState {
     uint64_t queryID;
     populate_func_t populateErrorFunc;
 
-    SerialCSVScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
+    SerialCSVScanSharedState(common::FileScanInfo fileScanInfo, uint64_t numRows,
         main::ClientContext* context, common::CSVOption csvOption, CSVColumnInfo columnInfo,
         uint64_t queryID);
 

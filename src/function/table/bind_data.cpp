@@ -21,7 +21,7 @@ bool TableFuncBindData::getIgnoreErrorsOption() const {
 }
 
 bool ScanBindData::getIgnoreErrorsOption() const {
-    return config.getOption(common::CopyConstants::IGNORE_ERRORS_OPTION_NAME,
+    return fileScanInfo.getOption(common::CopyConstants::IGNORE_ERRORS_OPTION_NAME,
         common::CopyConstants::DEFAULT_IGNORE_ERRORS);
 }
 

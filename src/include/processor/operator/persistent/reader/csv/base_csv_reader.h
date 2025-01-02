@@ -12,7 +12,7 @@
 
 namespace kuzu {
 namespace common {
-struct ReaderConfig;
+struct FileScanInfo;
 }
 namespace main {
 class ClientContext;
@@ -68,7 +68,7 @@ public:
     std::string reconstructLine(uint64_t startPosition, uint64_t endPosition);
 
     static common::column_id_t appendWarningDataColumns(std::vector<std::string>& resultColumnNames,
-        std::vector<common::LogicalType>& resultColumnTypes, const common::ReaderConfig& config);
+        std::vector<common::LogicalType>& resultColumnTypes, const common::FileScanInfo& fileScanInfo);
 
     static PopulatedCopyFromError basePopulateErrorFunc(CopyFromFileError error,
         const SharedFileErrorHandler* sharedErrorHandler, BaseCSVReader* reader,

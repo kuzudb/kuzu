@@ -1,6 +1,5 @@
-#include "common/copier_config/reader_config.h"
-
 #include "common/assert.h"
+#include "common/copier_config/file_scan_info.h"
 #include "common/string_utils.h"
 
 namespace kuzu {

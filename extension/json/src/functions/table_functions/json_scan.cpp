@@ -686,9 +686,9 @@ struct JsonScanBindData : public ScanBindData {
     JsonScanFormat format;
 
     JsonScanBindData(binder::expression_vector columns, column_id_t numWarningDataColumns,
-        ReaderConfig config, main::ClientContext* ctx, case_insensitive_map_t<idx_t> colNameToIdx,
+        FileScanInfo fileScanInfo, main::ClientContext* ctx, case_insensitive_map_t<idx_t> colNameToIdx,
         JsonScanFormat format)
-        : ScanBindData(columns, std::move(config), ctx, numWarningDataColumns, 0),
+        : ScanBindData(columns, std::move(fileScanInfo), ctx, numWarningDataColumns, 0),
           colNameToIdx{std::move(colNameToIdx)}, format{format} {}
 
     uint64_t getFieldIdx(const std::string& fieldName) const;
@@ -772,7 +772,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
     std::vector<LogicalType> columnTypes;
     std::vector<std::string> columnNames;
-    JsonScanConfig scanConfig(scanInput->config.options);
+    JsonScanConfig scanConfig(scanInput->fileScanInfo.options);
     case_insensitive_map_t<idx_t> colNameToIdx;
     if (!scanInput->expectedColumnNames.empty() || !scanConfig.autoDetect) {
         if (scanInput->expectedColumnNames.empty()) {
@@ -789,7 +789,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
 
         if (scanConfig.format == JsonScanFormat::AUTO_DETECT) {
             JSONScanSharedState sharedState(*context,
-                scanInput->config.getFilePath(JsonExtension::JSON_SCAN_FILE_IDX), scanConfig.format,
+                scanInput->fileScanInfo.getFilePath(JsonExtension::JSON_SCAN_FILE_IDX), scanConfig.format,
                 0);
             JSONScanLocalState localState(*context->getMemoryManager(), sharedState, context);
             localState.readNext();
@@ -797,7 +797,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         }
     } else {
         scanConfig.format =
-            autoDetect(context, scanInput->config.getFilePath(JsonExtension::JSON_SCAN_FILE_IDX),
+            autoDetect(context, scanInput->fileScanInfo.getFilePath(JsonExtension::JSON_SCAN_FILE_IDX),
                 scanConfig, columnTypes, columnNames, colNameToIdx);
     }
     scanInput->tableFunction->canParallelFunc = [scanConfig]() {
@@ -806,7 +806,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
 
     auto columns = input->binder->createVariables(columnNames, columnTypes);
 
-    const bool ignoreErrors = scanInput->config.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
+    const bool ignoreErrors = scanInput->fileScanInfo.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
         CopyConstants::DEFAULT_IGNORE_ERRORS);
 
     std::vector<std::string> warningColumnNames;
@@ -825,7 +825,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         columns.push_back(column);
     }
     return std::make_unique<JsonScanBindData>(columns, numWarningDataColumns,
-        scanInput->config.copy(), context, std::move(colNameToIdx), scanConfig.format);
+        scanInput->fileScanInfo.copy(), context, std::move(colNameToIdx), scanConfig.format);
 }
 
 static decltype(auto) getWarningDataVectors(const DataChunk& chunk, column_id_t numWarningColumns) {
@@ -871,7 +871,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
 static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
     auto jsonBindData = input.bindData->constPtrCast<JsonScanBindData>();
     return std::make_unique<JSONScanSharedState>(*jsonBindData->context,
-        jsonBindData->config.filePaths[0], jsonBindData->format, 0);
+        jsonBindData->fileScanInfo.filePaths[0], jsonBindData->format, 0);
 }
 
 static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput& input,

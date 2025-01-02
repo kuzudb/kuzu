@@ -92,7 +92,7 @@ private:
 };
 
 struct ParquetScanSharedState final : function::ScanFileSharedState {
-    explicit ParquetScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows,
+    explicit ParquetScanSharedState(common::FileScanInfo fileScanInfo, uint64_t numRows,
         main::ClientContext* context, std::vector<bool> columnSkips);
 
     std::vector<std::unique_ptr<ParquetReader>> readers;

@@ -86,9 +86,9 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     if (boundSource->type == ScanSourceType::FILE) {
         auto& source = boundSource->constCast<BoundTableScanSource>();
         auto bindData = source.info.bindData->constPtrCast<ScanBindData>();
-        if (copyStatement.byColumn() && bindData->config.fileTypeInfo.fileType != FileType::NPY) {
+        if (copyStatement.byColumn() && bindData->fileScanInfo.fileTypeInfo.fileType != FileType::NPY) {
             throw BinderException(stringFormat("Copy by column with {} file type is not supported.",
-                bindData->config.fileTypeInfo.fileTypeStr));
+                bindData->fileScanInfo.fileTypeInfo.fileTypeStr));
         }
     }
     expression_vector columns;

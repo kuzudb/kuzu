@@ -32,7 +32,7 @@ std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* /*context*/,
     auto getFunc = df.attr("__getitem__");
     auto numRows = py::len(getFunc(columns[0]));
     auto returnColumns = input->binder->createVariables(names, returnTypes);
-    auto scanConfig = input->extraInput->constPtrCast<ExtraScanTableFuncBindInput>()->config.copy();
+    auto scanConfig = input->extraInput->constPtrCast<ExtraScanTableFuncBindInput>()->fileScanInfo.copy();
     return std::make_unique<PandasScanFunctionData>(std::move(returnColumns), df, numRows,
         std::move(columnBindData), std::move(scanConfig));
 }
