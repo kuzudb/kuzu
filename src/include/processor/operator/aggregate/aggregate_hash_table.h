@@ -1,8 +1,13 @@
 #pragma once
 
+#include <cstdint>
+
 #include "aggregate_input.h"
+#include "common/vector/value_vector.h"
 #include "function/aggregate_function.h"
 #include "processor/result/base_hash_table.h"
+#include "processor/result/factorized_table.h"
+#include "processor/result/factorized_table_schema.h"
 #include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
@@ -81,7 +86,8 @@ public:
         common::ValueVector* aggregateVector);
 
     //! merge aggregate hash table by combining aggregate states under the same key
-    void merge(AggregateHashTable& other);
+    void merge(const FactorizedTable& other);
+    void merge(const AggregateHashTable& other) { merge(*other.factorizedTable); }
 
     void finalizeAggregateStates();
 
@@ -110,7 +116,7 @@ protected:
         const std::vector<common::ValueVector*>& dependentKeyVectors,
         common::DataChunkState* leadingState);
 
-private:
+protected:
     void initializeFT(const std::vector<function::AggregateFunction>& aggregateFunctions,
         FactorizedTableSchema tableSchema);
 
@@ -152,7 +158,7 @@ private:
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
         const std::vector<AggregateInput>& aggregateInputs, uint64_t resultSetMultiplicity);
 
-    void fillEntryWithInitialNullAggregateState(uint8_t* entry);
+    void fillEntryWithInitialNullAggregateState(FactorizedTable& factorizedTable, uint8_t* entry);
 
     //! find an uninitialized hash slot for given hash and fill hash slot with block id and offset
     void fillHashSlot(common::hash_t hash, uint8_t* groupByKeysAndAggregateStateBuffer);
@@ -200,6 +206,10 @@ private:
         function::AggregateFunction& aggregateFunction, common::ValueVector* aggVector,
         uint64_t multiplicity, uint32_t aggStateOffset);
 
+    virtual FactorizedTable& getFactorizedTable(common::hash_t /*entryHash*/) {
+        return *factorizedTable;
+    }
+
 protected:
     uint32_t hashColIdxInFT{};
     std::unique_ptr<uint64_t[]> mayMatchIdxes;
@@ -207,7 +217,6 @@ protected:
     std::unique_ptr<uint64_t[]> entryIdxesToInitialize;
     std::unique_ptr<HashSlot*[]> hashSlotsToUpdateAggState;
 
-private:
     std::vector<common::LogicalType> payloadTypes;
     std::vector<function::AggregateFunction> aggregateFunctions;
 
@@ -229,6 +238,57 @@ struct AggregateHashTableUtils {
         storage::MemoryManager& memoryManager,
         const std::vector<common::LogicalType>& groupByKeyTypes,
         const common::LogicalType& distinctKeyType);
+};
+
+// NOLINTNEXTLINE(cppcoreguidelines-virtual-class-destructor): This is a final class.
+class HashAggregateSharedState;
+class PartitioningAggregateHashTable : public AggregateHashTable {
+public:
+    static constexpr size_t NUM_PARTITIONS = 128;
+
+    PartitioningAggregateHashTable(HashAggregateSharedState* sharedState,
+        storage::MemoryManager& memoryManager, std::vector<common::LogicalType> keyTypes,
+        std::vector<common::LogicalType> payloadTypes,
+        const std::vector<function::AggregateFunction>& aggregateFunctions,
+        const std::vector<common::LogicalType>& distinctAggKeyTypes,
+        FactorizedTableSchema tableSchema)
+        : AggregateHashTable(memoryManager, std::move(keyTypes), std::move(payloadTypes),
+              aggregateFunctions, distinctAggKeyTypes, NUM_PARTITIONS * 1024, tableSchema.copy()),
+          partitions{}, sharedState{sharedState}, tableSchema{std::move(tableSchema)},
+          memoryManager{memoryManager} {
+        std::generate(partitions.begin(), partitions.end(), [&]() {
+            return std::make_unique<FactorizedTable>(&memoryManager, this->tableSchema.copy());
+        });
+    }
+
+    uint64_t append(const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors,
+        const std::vector<common::ValueVector*>& dependentKeyVectors,
+        common::DataChunkState* leadingState, const std::vector<AggregateInput>& aggregateInputs,
+        uint64_t resultSetMultiplicity);
+
+    void mergeAll();
+    uint64_t getNumEntries() const {
+        uint64_t numEntries = 0;
+        for (const auto& partition : partitions) {
+            numEntries += partition->getNumTuples();
+        }
+        return numEntries;
+    }
+
+protected:
+    FactorizedTable& getFactorizedTable(common::hash_t entryHash) override {
+        return *partitions[entryHash % NUM_PARTITIONS];
+    }
+
+private:
+    uint8_t* appendEmptyTuple(uint8_t partitionIdx);
+
+private:
+    std::array<std::unique_ptr<FactorizedTable>, NUM_PARTITIONS> partitions;
+    HashAggregateSharedState* sharedState;
+    FactorizedTableSchema tableSchema;
+    storage::MemoryManager& memoryManager;
 };
 
 } // namespace processor

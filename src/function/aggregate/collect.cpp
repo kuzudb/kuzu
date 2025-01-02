@@ -97,6 +97,7 @@ static void combine(uint8_t* state_, uint8_t* otherState_, MemoryManager* /*memo
         state->factorizedTable->merge(*otherState->factorizedTable);
     }
     otherState->factorizedTable.reset();
+    otherState->isNull = true;
 }
 
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
