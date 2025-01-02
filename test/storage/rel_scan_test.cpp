@@ -27,7 +27,7 @@ public:
         conn->query("BEGIN TRANSACTION");
         context = getClientContext(*conn);
         catalog = context->getCatalog();
-        auto transaction = context->getTx();
+        auto transaction = context->getTransaction();
         auto nodeTableIDs = catalog->getNodeTableIDs(transaction);
         auto relTableIDs = catalog->getRelTableIDs(transaction);
         entry = std::make_unique<kuzu::graph::GraphEntry>(
@@ -51,10 +51,10 @@ class RelScanTestAmazon : public RelScanTest {
 
 // Test correctness of scan fwd
 TEST_F(RelScanTest, ScanFwd) {
-    auto tableID = catalog->getTableID(context->getTx(), "person");
-    auto relTableID = catalog->getTableID(context->getTx(), "knows");
-    auto datePropertyIndex =
-        catalog->getTableCatalogEntry(context->getTx(), relTableID)->getPropertyIdx("date");
+    auto tableID = catalog->getTableID(context->getTransaction(), "person");
+    auto relTableID = catalog->getTableID(context->getTransaction(), "knows");
+    auto datePropertyIndex = catalog->getTableCatalogEntry(context->getTransaction(), relTableID)
+                                 ->getPropertyIdx("date");
     auto scanState = graph->prepareScan(relTableID, datePropertyIndex);
 
     std::unordered_map<offset_t, common::date_t> expectedDates = {
@@ -133,7 +133,7 @@ TEST_F(RelScanTest, ScanFwd) {
 }
 
 TEST_F(RelScanTest, ScanVertexProperties) {
-    auto tableID = catalog->getTableID(context->getTx(), "person");
+    auto tableID = catalog->getTableID(context->getTransaction(), "person");
     std::vector<std::string> properties = {"fname", "height"};
     auto scanState = graph->prepareVertexScan(tableID, properties);
 

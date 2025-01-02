@@ -33,7 +33,7 @@ std::unique_ptr<FileInfo> CachedFileManager::getCachedFileInfo(HTTPFileInfo* htt
 }
 
 void CachedFileManager::cleanUP(main::ClientContext* context) {
-    auto cacheDirForTrx = getCachedDirForTrx(context->getTx()->getID());
+    auto cacheDirForTrx = getCachedDirForTrx(context->getTransaction()->getID());
     vfs->removeFileIfExists(cacheDirForTrx);
 }
 

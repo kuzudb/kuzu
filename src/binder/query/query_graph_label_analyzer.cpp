@@ -32,7 +32,7 @@ void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression&
         std::unordered_set<std::string> candidateNamesSet;
         auto isSrcConnect = *queryRel->getSrcNode() == node;
         auto isDstConnect = *queryRel->getDstNode() == node;
-        auto tx = clientContext.getTx();
+        auto tx = clientContext.getTransaction();
         if (queryRel->getDirectionType() == RelDirectionType::BOTH) {
             if (isSrcConnect || isDstConnect) {
                 for (auto entry : queryRel->getEntries()) {

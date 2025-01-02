@@ -44,7 +44,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
     switch (table->getTableType()) {
     case TableType::NODE: {
         const auto& nodeTable = table->cast<storage::NodeTable>();
-        const auto stats = nodeTable.getStats(bindData->context->getTx());
+        const auto stats = nodeTable.getStats(bindData->context->getTransaction());
         dataChunk.getValueVectorMutable(0).setValue<cardinality_t>(0, stats.getTableCard());
         for (auto i = 0u; i < nodeTable.getNumColumns(); ++i) {
             dataChunk.getValueVectorMutable(i + 1).setValue(0, stats.getNumDistinctValues(i));
@@ -62,11 +62,11 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     const TableFuncBindInput* input) {
     const auto tableName = input->getLiteralVal<std::string>(0);
     const auto catalog = context->getCatalog();
-    if (!catalog->containsTable(context->getTx(), tableName)) {
+    if (!catalog->containsTable(context->getTransaction(), tableName)) {
         throw BinderException{"Table " + tableName + " does not exist!"};
     }
-    const auto tableID = catalog->getTableID(context->getTx(), tableName);
-    auto tableEntry = catalog->getTableCatalogEntry(context->getTx(), tableID);
+    const auto tableID = catalog->getTableID(context->getTransaction(), tableName);
+    auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), tableID);
     if (tableEntry->getTableType() != TableType::NODE) {
         throw BinderException{
             "Stats from a non-node table " + tableName + " is not supported yet!"};

@@ -30,7 +30,7 @@ bool OffsetScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     executed = true;
-    auto transaction = context->clientContext->getTx();
+    auto transaction = context->clientContext->getTransaction();
     auto nodeID = nodeIDVector->getValue<nodeID_t>(0);
     KU_ASSERT(tableIDToNodeInfo.contains(nodeID.tableID));
     auto& nodeInfo = tableIDToNodeInfo.at(nodeID.tableID);

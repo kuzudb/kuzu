@@ -43,12 +43,12 @@ public:
         return parameterMap;
     }
 
-    common::StatementType getStatementType();
+    common::StatementType getStatementType() const;
 
     KUZU_API ~PreparedStatement();
 
 private:
-    bool isProfile();
+    bool isProfile() const;
 
 private:
     bool success = true;

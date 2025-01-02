@@ -93,7 +93,7 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
     extend->computeFactorizedSchema();
     // Update cost & cardinality. Note that extend does not change cardinality.
     const auto extensionRate =
-        cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
+        cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTransaction());
     extend->setCardinality(
         cardinalityEstimator.estimateExtend(extensionRate, plan.getLastOperatorRef()));
     plan.setCost(CostModel::computeExtendCost(plan));
@@ -205,7 +205,7 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     pathPropertyProbe->pathEdgeIDs = recursiveInfo->pathEdgeIDsExpr;
     pathPropertyProbe->computeFactorizedSchema();
     auto extensionRate =
-        cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
+        cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTransaction());
     pathPropertyProbe->setCardinality(
         cardinalityEstimator.estimateExtend(extensionRate, plan.getLastOperatorRef()));
     probePlan.setLastOperator(pathPropertyProbe);
@@ -271,7 +271,7 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
         pathPropertyProbe->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT_PROBE_TO_BUILD;
     }
     auto extensionRate =
-        cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTx());
+        cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTransaction());
     pathPropertyProbe->setCardinality(
         cardinalityEstimator.estimateExtend(extensionRate, plan.getLastOperatorRef()));
     plan.setLastOperator(std::move(pathPropertyProbe));

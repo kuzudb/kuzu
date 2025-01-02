@@ -51,7 +51,8 @@ static std::vector<TableCatalogEntry*> getTableEntries(const std::vector<std::st
     CatalogEntryType expectedType, const main::ClientContext& context) {
     std::vector<TableCatalogEntry*> entries;
     for (auto& tableName : tableNames) {
-        auto entry = context.getCatalog()->getTableCatalogEntry(context.getTx(), tableName);
+        auto entry =
+            context.getCatalog()->getTableCatalogEntry(context.getTransaction(), tableName);
         if (entry->getType() != expectedType) {
             throw BinderException(stringFormat("Expect catalog entry type {} but got {}.",
                 CatalogEntryTypeUtils::toString(expectedType),

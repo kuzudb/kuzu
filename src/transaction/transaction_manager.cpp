@@ -51,8 +51,8 @@ std::unique_ptr<Transaction> TransactionManager::beginTransaction(
 
 void TransactionManager::commit(main::ClientContext& clientContext) {
     std::unique_lock<std::mutex> lck{mtxForSerializingPublicFunctionCalls};
-    clientContext.cleanUP();
-    const auto transaction = clientContext.getTx();
+    clientContext.cleanUp();
+    const auto transaction = clientContext.getTransaction();
     switch (transaction->getType()) {
     case TransactionType::READ_ONLY: {
         activeReadOnlyTransactions.erase(transaction->getID());
@@ -79,7 +79,7 @@ void TransactionManager::commit(main::ClientContext& clientContext) {
 void TransactionManager::rollback(main::ClientContext& clientContext,
     const Transaction* transaction) {
     std::unique_lock<std::mutex> lck{mtxForSerializingPublicFunctionCalls};
-    clientContext.cleanUP();
+    clientContext.cleanUp();
     switch (transaction->getType()) {
     case TransactionType::READ_ONLY: {
         activeReadOnlyTransactions.erase(transaction->getID());
@@ -139,11 +139,12 @@ bool TransactionManager::canAutoCheckpoint(const main::ClientContext& clientCont
     if (!clientContext.getDBConfig()->autoCheckpoint) {
         return false;
     }
-    if (clientContext.getTx()->isRecovery()) {
+    if (clientContext.getTransaction()->isRecovery()) {
         // Recovery transactions are not allowed to trigger auto checkpoint.
         return false;
     }
-    const auto expectedSize = clientContext.getTx()->getEstimatedMemUsage() + wal.getFileSize();
+    const auto expectedSize =
+        clientContext.getTransaction()->getEstimatedMemUsage() + wal.getFileSize();
     return expectedSize > clientContext.getDBConfig()->checkpointThreshold;
 }
 

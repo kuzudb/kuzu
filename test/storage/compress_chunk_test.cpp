@@ -151,10 +151,10 @@ void CompressChunkTest::testCompressChunk(const std::vector<T>& bufferToCompress
     state.numValuesPerPage = state.metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType);
     if (chunkMetadata.compMeta.compression == CompressionType::ALP) {
         state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<T>>(
-            clientContext->getTx(), state, dataFH, mm, &storageManager->getShadowFile());
+            clientContext->getTransaction(), state, dataFH, mm, &storageManager->getShadowFile());
     }
 
-    checkFunc(columnReader.get(), clientContext->getTx(), state, dataType);
+    checkFunc(columnReader.get(), clientContext->getTransaction(), state, dataType);
 }
 
 template<std::floating_point T>

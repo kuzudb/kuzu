@@ -74,7 +74,7 @@ void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext
     relInfo.initScanState(context);
     initVectors(*relInfo.scanState, *resultSet);
     if (const auto localRelTable =
-            context->clientContext->getTx()->getLocalStorage()->getLocalTable(
+            context->clientContext->getTransaction()->getLocalStorage()->getLocalTable(
                 relInfo.table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
         auto localTableColumnIDs =
             LocalRelTable::rewriteLocalColumnIDs(relInfo.direction, relInfo.scanState->columnIDs);
@@ -91,7 +91,7 @@ void ScanRelTable::initVectors(TableScanState& state, const ResultSet& resultSet
 }
 
 bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
-    const auto transaction = context->clientContext->getTx();
+    const auto transaction = context->clientContext->getTransaction();
     auto& scanState = *relInfo.scanState;
     while (true) {
         while (relInfo.table->scan(transaction, scanState)) {

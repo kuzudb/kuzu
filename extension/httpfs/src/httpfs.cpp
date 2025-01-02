@@ -110,7 +110,7 @@ void HTTPFileInfo::initialize(main::ClientContext* context) {
     if (httpConfig.cacheFile) {
         auto hfs = fileSystem->ptrCast<HTTPFileSystem>();
         cachedFileInfo =
-            hfs->getCachedFileManager().getCachedFileInfo(this, context->getTx()->getID());
+            hfs->getCachedFileManager().getCachedFileInfo(this, context->getTransaction()->getID());
         return;
     }
     initMetadata();

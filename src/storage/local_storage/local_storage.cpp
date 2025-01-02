@@ -43,13 +43,13 @@ void LocalStorage::commit() {
     for (auto& [tableID, localTable] : tables) {
         if (localTable->getTableType() == TableType::NODE) {
             const auto table = clientContext.getStorageManager()->getTable(tableID);
-            table->commit(clientContext.getTx(), localTable.get());
+            table->commit(clientContext.getTransaction(), localTable.get());
         }
     }
     for (auto& [tableID, localTable] : tables) {
         if (localTable->getTableType() == TableType::REL) {
             const auto table = clientContext.getStorageManager()->getTable(tableID);
-            table->commit(clientContext.getTx(), localTable.get());
+            table->commit(clientContext.getTransaction(), localTable.get());
         }
     }
 }

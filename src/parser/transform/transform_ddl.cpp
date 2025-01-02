@@ -219,9 +219,7 @@ std::unique_ptr<Statement> Transformer::transformAddProperty(
     if (addPropertyCtx->kU_Default()) {
         defaultValue = transformExpression(*addPropertyCtx->kU_Default()->oC_Expression());
     } else {
-        auto type = LogicalType::convertFromString(dataType, context);
-        defaultValue =
-            std::make_unique<ParsedLiteralExpression>(Value::createNullValue(type), "NULL");
+        defaultValue = std::make_unique<ParsedLiteralExpression>(Value::createNullValue(), "NULL");
     }
     auto extraInfo = std::make_unique<ExtraAddPropertyInfo>(std::move(propertyName),
         std::move(dataType), std::move(defaultValue));
@@ -292,9 +290,8 @@ std::vector<ParsedPropertyDefinition> Transformer::transformPropertyDefinitions(
         if (definition->kU_Default()) {
             defaultExpr = transformExpression(*definition->kU_Default()->oC_Expression());
         } else {
-            auto type = LogicalType::convertFromString(columnDefinition.type, context);
             defaultExpr =
-                std::make_unique<ParsedLiteralExpression>(Value::createNullValue(type), "NULL");
+                std::make_unique<ParsedLiteralExpression>(Value::createNullValue(), "NULL");
         }
         definitions.push_back(
             ParsedPropertyDefinition(std::move(columnDefinition), std::move(defaultExpr)));

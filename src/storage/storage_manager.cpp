@@ -114,18 +114,18 @@ void StorageManager::createRelTableGroup(table_id_t, const RelGroupCatalogEntry*
 void StorageManager::createTable(table_id_t tableID, const Catalog* catalog,
     main::ClientContext* context) {
     std::lock_guard lck{mtx};
-    const auto tableEntry = catalog->getTableCatalogEntry(context->getTx(), tableID);
+    const auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), tableID);
     switch (tableEntry->getTableType()) {
     case TableType::NODE: {
         createNodeTable(tableID, tableEntry->ptrCast<NodeTableCatalogEntry>(), context);
     } break;
     case TableType::REL: {
         createRelTable(tableID, tableEntry->ptrCast<RelTableCatalogEntry>(), catalog,
-            context->getTx());
+            context->getTransaction());
     } break;
     case TableType::REL_GROUP: {
         createRelTableGroup(tableID, tableEntry->ptrCast<RelGroupCatalogEntry>(), catalog,
-            context->getTx());
+            context->getTransaction());
     } break;
     default: {
         KU_UNREACHABLE;

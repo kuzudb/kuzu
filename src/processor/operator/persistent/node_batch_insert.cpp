@@ -32,8 +32,8 @@ void NodeBatchInsertSharedState::initPKIndex(const ExecutionContext* context) {
     }
     auto* nodeTable = ku_dynamic_cast<NodeTable*>(table);
     nodeTable->getPKIndex()->bulkReserve(numRows);
-    globalIndexBuilder = IndexBuilder(
-        std::make_shared<IndexBuilderSharedState>(context->clientContext->getTx(), nodeTable));
+    globalIndexBuilder = IndexBuilder(std::make_shared<IndexBuilderSharedState>(
+        context->clientContext->getTransaction(), nodeTable));
 }
 
 void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
@@ -93,12 +93,12 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
                 break;
             }
         }
-        copyToNodeGroup(context->clientContext->getTx(),
+        copyToNodeGroup(context->clientContext->getTransaction(),
             context->clientContext->getMemoryManager());
         nodeLocalState->columnState->setSelVector(originalSelVector);
     }
     if (nodeLocalState->chunkedGroup->getNumRows() > 0) {
-        appendIncompleteNodeGroup(context->clientContext->getTx(),
+        appendIncompleteNodeGroup(context->clientContext->getTransaction(),
             std::move(nodeLocalState->chunkedGroup), nodeLocalState->localIndexBuilder,
             context->clientContext->getMemoryManager());
     }
@@ -220,7 +220,7 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
     auto errorHandler = createErrorHandler(context);
     if (nodeSharedState->sharedNodeGroup) {
         while (nodeSharedState->sharedNodeGroup->getNumRows() > 0) {
-            writeAndResetNodeGroup(context->clientContext->getTx(),
+            writeAndResetNodeGroup(context->clientContext->getTransaction(),
                 nodeSharedState->sharedNodeGroup, nodeSharedState->globalIndexBuilder,
                 context->clientContext->getMemoryManager(), errorHandler);
         }

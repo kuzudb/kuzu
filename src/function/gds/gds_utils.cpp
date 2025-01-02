@@ -103,7 +103,7 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
 
 static void runVertexComputeInternal(common::table_id_t tableID, graph::Graph* graph,
     std::shared_ptr<VertexComputeTask> task, processor::ExecutionContext* context) {
-    auto numNodes = graph->getNumNodes(context->clientContext->getTx(), tableID);
+    auto numNodes = graph->getNumNodes(context->clientContext->getTransaction(), tableID);
     task->init(tableID, numNodes);
     context->clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context,
         true /* launchNewWorkerThread */);

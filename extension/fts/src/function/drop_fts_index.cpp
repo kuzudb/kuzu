@@ -41,7 +41,7 @@ std::string dropFTSIndexQuery(const ClientContext& /*context*/, const TableFuncB
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& /*output*/) {
     auto& ftsBindData = *input.bindData->constPtrCast<FTSBindData>();
     auto& context = *input.context;
-    context.clientContext->getCatalog()->dropIndex(input.context->clientContext->getTx(),
+    context.clientContext->getCatalog()->dropIndex(input.context->clientContext->getTransaction(),
         ftsBindData.tableID, ftsBindData.indexName);
     return 0;
 }

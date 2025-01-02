@@ -208,7 +208,7 @@ public:
     void exec(processor::ExecutionContext* context) override {
         auto clientContext = context->clientContext;
         auto graph = sharedState->graph.get();
-        auto numNodesMap = graph->getNumNodesMap(clientContext->getTx());
+        auto numNodesMap = graph->getNumNodesMap(clientContext->getTransaction());
         auto numThreads = clientContext->getMaxNumThreadForExec();
         auto currentFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto nextFrontier = getPathLengthsFrontier(context, 0);

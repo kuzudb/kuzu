@@ -55,7 +55,7 @@ void PrimaryKeyScanNodeTable::initVectors(TableScanState& state, const ResultSet
 }
 
 bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
-    auto transaction = context->clientContext->getTx();
+    auto transaction = context->clientContext->getTransaction();
     auto tableIdx = sharedState->getTableIdx();
     if (tableIdx >= nodeInfos.size()) {
         return false;

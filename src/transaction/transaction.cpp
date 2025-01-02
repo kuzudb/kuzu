@@ -94,7 +94,7 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
                 return;
             }
             wal->logCreateTableEntryRecord(
-                tableEntry.getBoundCreateTableInfo(clientContext->getTx()));
+                tableEntry.getBoundCreateTableInfo(clientContext->getTransaction()));
         } else {
             // Must be alter.
             KU_ASSERT(catalogEntry.getType() == newCatalogEntry->getType());
@@ -168,7 +168,7 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
 void Transaction::pushSequenceChange(SequenceCatalogEntry* sequenceEntry, int64_t kCount,
     const SequenceRollbackData& data) const {
     undoBuffer->createSequenceChange(*sequenceEntry, data);
-    if (clientContext->getTx()->shouldLogToWAL()) {
+    if (clientContext->getTransaction()->shouldLogToWAL()) {
         clientContext->getWAL()->logUpdateSequenceRecord(sequenceEntry->getOID(), kCount);
     }
 }

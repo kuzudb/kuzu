@@ -294,7 +294,7 @@ void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
 
     // Do vertex compute to get the terms
     auto termsTableEntry = executionContext->clientContext->getCatalog()->getTableCatalogEntry(
-        executionContext->clientContext->getTx(), termsTableID);
+        executionContext->clientContext->getTransaction(), termsTableID);
     const graph::GraphEntry entry{{termsTableEntry}, {} /* relTableEntries */};
     graph::OnDiskGraph graph(executionContext->clientContext, entry);
     auto termsComputeSharedState =
@@ -315,7 +315,7 @@ void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
         &termsComputeSharedState.dfs);
 
     auto clientContext = executionContext->clientContext;
-    auto transaction = clientContext->getTx();
+    auto transaction = clientContext->getTransaction();
     auto catalog = clientContext->getCatalog();
     auto mm = clientContext->getMemoryManager();
     QFTSState qFTSState = QFTSState{std::move(frontierPair), std::move(edgeCompute), termsTableID};
@@ -381,17 +381,19 @@ void QFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& context
     auto& tableEntry =
         FTSUtils::bindTable(inputTableName, &context, indexName, FTSUtils::IndexOperation::QUERY);
     FTSUtils::validateIndexExistence(context, tableEntry.getTableID(), indexName);
-    auto& ftsIndexEntry = context.getCatalog()
-                              ->getIndex(context.getTx(), tableEntry.getTableID(), indexName)
-                              ->constCast<FTSIndexCatalogEntry>();
-    auto entry = context.getCatalog()->getTableCatalogEntry(context.getTx(), inputTableName);
+    auto& ftsIndexEntry =
+        context.getCatalog()
+            ->getIndex(context.getTransaction(), tableEntry.getTableID(), indexName)
+            ->constCast<FTSIndexCatalogEntry>();
+    auto entry =
+        context.getCatalog()->getTableCatalogEntry(context.getTransaction(), inputTableName);
     auto nodeOutput = bindNodeOutput(input.binder, {entry});
 
-    auto termsEntry = context.getCatalog()->getTableCatalogEntry(context.getTx(),
+    auto termsEntry = context.getCatalog()->getTableCatalogEntry(context.getTransaction(),
         FTSUtils::getTermsTableName(tableEntry.getTableID(), indexName));
-    auto docsEntry = context.getCatalog()->getTableCatalogEntry(context.getTx(),
+    auto docsEntry = context.getCatalog()->getTableCatalogEntry(context.getTransaction(),
         FTSUtils::getDocsTableName(tableEntry.getTableID(), indexName));
-    auto appearsInEntry = context.getCatalog()->getTableCatalogEntry(context.getTx(),
+    auto appearsInEntry = context.getCatalog()->getTableCatalogEntry(context.getTransaction(),
         FTSUtils::getAppearsInTableName(tableEntry.getTableID(), indexName));
     auto graphEntry = graph::GraphEntry({termsEntry, docsEntry}, {appearsInEntry});
     bindData = std::make_unique<QFTSGDSBindData>(std::move(terms), std::move(graphEntry),

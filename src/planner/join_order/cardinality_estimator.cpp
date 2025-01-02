@@ -173,7 +173,7 @@ static std::optional<cardinality_t> getTableStatsIfPossible(main::ClientContext*
         auto tableID = propertyExpr.getSingleTableID();
         if (nodeTableStats.contains(tableID)) {
             auto columnID = propertyExpr.getColumnID(
-                *context->getCatalog()->getTableCatalogEntry(context->getTx(), tableID));
+                *context->getCatalog()->getTableCatalogEntry(context->getTransaction(), tableID));
             if (columnID != INVALID_COLUMN_ID && columnID != ROW_IDX_COLUMN_ID) {
                 auto& stats = nodeTableStats.at(tableID);
                 return atLeastOne(stats.getNumDistinctValues(columnID));

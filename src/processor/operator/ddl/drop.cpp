@@ -13,11 +13,12 @@ bool isValidEntry(parser::DropInfo& dropInfo, main::ClientContext* context) {
     bool validEntry = false;
     switch (dropInfo.dropType) {
     case common::DropType::SEQUENCE: {
-        validEntry = context->getCatalog()->containsSequence(context->getTx(), dropInfo.name);
+        validEntry =
+            context->getCatalog()->containsSequence(context->getTransaction(), dropInfo.name);
     } break;
         // TODO(Ziyi): If the table has indexes, we should drop those indexes as well.
     case common::DropType::TABLE: {
-        validEntry = context->getCatalog()->containsTable(context->getTx(), dropInfo.name);
+        validEntry = context->getCatalog()->containsTable(context->getTransaction(), dropInfo.name);
     } break;
     default:
         KU_UNREACHABLE;
@@ -32,12 +33,12 @@ void Drop::executeDDLInternal(ExecutionContext* context) {
     }
     switch (dropInfo.dropType) {
     case common::DropType::SEQUENCE: {
-        context->clientContext->getCatalog()->dropSequence(context->clientContext->getTx(),
+        context->clientContext->getCatalog()->dropSequence(context->clientContext->getTransaction(),
             dropInfo.name);
     } break;
     case common::DropType::TABLE: {
-        context->clientContext->getCatalog()->dropTableEntry(context->clientContext->getTx(),
-            dropInfo.name);
+        context->clientContext->getCatalog()->dropTableEntry(
+            context->clientContext->getTransaction(), dropInfo.name);
     } break;
     default:
         KU_UNREACHABLE;

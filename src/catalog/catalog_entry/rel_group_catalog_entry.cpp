@@ -76,7 +76,7 @@ RelGroupCatalogEntry::getBoundExtraCreateInfo(transaction::Transaction* transact
 
 static std::string getFromToStr(common::table_id_t tableID, ClientContext* context) {
     auto catalog = context->getCatalog();
-    auto transaction = context->getTx();
+    auto transaction = context->getTransaction();
     auto& entry =
         catalog->getTableCatalogEntry(transaction, tableID)->constCast<RelTableCatalogEntry>();
     auto srcTableName = catalog->getTableName(transaction, entry.getSrcTableID());
@@ -92,8 +92,8 @@ std::string RelGroupCatalogEntry::toCypher(ClientContext* clientContext) const {
     for (auto i = 1u; i < relTableIDs.size(); ++i) {
         ss << stringFormat(", {}", getFromToStr(relTableIDs[i], clientContext));
     }
-    auto childRelEntry =
-        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(), relTableIDs[0]);
+    auto childRelEntry = clientContext->getCatalog()->getTableCatalogEntry(
+        clientContext->getTransaction(), relTableIDs[0]);
     if (childRelEntry->getNumProperties() > 1) { // skip internal id property.
         auto propertyStr = stringFormat(", {}", childRelEntry->propertiesToCypher());
         propertyStr.resize(propertyStr.size() - 1);

@@ -90,7 +90,7 @@ bool Binder::bindExportTableData(ExportedTableData& tableData, const TableCatalo
     if (!bindExportQuery(exportQuery, entry, catalog, tx)) {
         return false;
     }
-    auto parsedStatement = Parser::parseQuery(exportQuery, clientContext);
+    auto parsedStatement = Parser::parseQuery(exportQuery);
     KU_ASSERT(parsedStatement.size() == 1);
     auto parsedQuery = parsedStatement[0]->constPtrCast<RegularQuery>();
     auto query = bindQuery(*parsedQuery);
@@ -108,7 +108,8 @@ std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement
     auto& exportDB = statement.constCast<ExportDB>();
     auto boundFilePath =
         clientContext->getVFSUnsafe()->expandPath(clientContext, exportDB.getFilePath());
-    auto exportData = getExportInfo(*clientContext->getCatalog(), clientContext->getTx(), this);
+    auto exportData =
+        getExportInfo(*clientContext->getCatalog(), clientContext->getTransaction(), this);
     auto parsedOptions = bindParsingOptions(exportDB.getParsingOptionsRef());
     auto fileTypeInfo = getFileType(parsedOptions);
     switch (fileTypeInfo.fileType) {

@@ -25,7 +25,7 @@ bool skipAlter(common::ConflictAction action, skip_alter_on_conflict skipAlterOn
 
 void Alter::executeDDLInternal(ExecutionContext* context) {
     auto catalog = context->clientContext->getCatalog();
-    auto transaction = context->clientContext->getTx();
+    auto transaction = context->clientContext->getTransaction();
     switch (info.alterType) {
     case common::AlterType::ADD_PROPERTY: {
         if (skipAlter(info.onConflict, [&]() {
@@ -58,10 +58,10 @@ void Alter::executeDDLInternal(ExecutionContext* context) {
         auto& addedProp = entry->getProperty(boundAddPropInfo.propertyDefinition.getName());
         storage::TableAddColumnState state{addedProp, *defaultValueEvaluator};
         storageManager->getTable(entry->getTableID())
-            ->addColumn(context->clientContext->getTx(), state);
+            ->addColumn(context->clientContext->getTransaction(), state);
     } else if (info.alterType == common::AlterType::DROP_PROPERTY) {
         const auto schema = context->clientContext->getCatalog()->getTableCatalogEntry(
-            context->clientContext->getTx(), info.tableName);
+            context->clientContext->getTransaction(), info.tableName);
         storageManager->getTable(schema->getTableID())->dropColumn();
     }
 }

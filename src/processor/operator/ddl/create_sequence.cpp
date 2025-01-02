@@ -17,14 +17,15 @@ void CreateSequence::executeDDLInternal(ExecutionContext* context) {
     auto catalog = context->clientContext->getCatalog();
     switch (info.onConflict) {
     case common::ConflictAction::ON_CONFLICT_DO_NOTHING: {
-        if (catalog->containsSequence(context->clientContext->getTx(), info.sequenceName)) {
+        if (catalog->containsSequence(context->clientContext->getTransaction(),
+                info.sequenceName)) {
             return;
         }
     }
     default:
         break;
     }
-    catalog->createSequence(context->clientContext->getTx(), info);
+    catalog->createSequence(context->clientContext->getTransaction(), info);
 }
 
 std::string CreateSequence::getOutputMsg() {

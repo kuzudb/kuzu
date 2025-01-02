@@ -71,7 +71,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     columnTypes.emplace_back(LogicalType::STRING());
     std::vector<TableInfo> tableInfos;
     if (!context->hasDefaultDatabase()) {
-        for (auto& entry : context->getCatalog()->getTableEntries(context->getTx())) {
+        for (auto& entry : context->getCatalog()->getTableEntries(context->getTransaction())) {
             auto tableInfo = TableInfo{entry->getName(), entry->getTableID(),
                 TableTypeUtils::toString(entry->getTableType()), LOCAL_DB_NAME,
                 entry->getComment()};
@@ -83,7 +83,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     for (auto attachedDatabase : databaseManager->getAttachedDatabases()) {
         auto databaseName = attachedDatabase->getDBName();
         auto databaseType = attachedDatabase->getDBType();
-        for (auto& entry : attachedDatabase->getCatalog()->getTableEntries(context->getTx())) {
+        for (auto& entry :
+            attachedDatabase->getCatalog()->getTableEntries(context->getTransaction())) {
             auto tableInfo = TableInfo{entry->getName(), entry->getTableID(),
                 TableTypeUtils::toString(entry->getTableType()),
                 stringFormat("{}({})", databaseName, databaseType), entry->getComment()};

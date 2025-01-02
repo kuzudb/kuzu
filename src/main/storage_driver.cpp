@@ -22,13 +22,13 @@ StorageDriver::StorageDriver(Database* database) : database{database} {
 StorageDriver::~StorageDriver() = default;
 
 static Table* getTable(const ClientContext& context, const std::string& tableName) {
-    auto tableID = context.getCatalog()->getTableID(context.getTx(), tableName);
+    auto tableID = context.getCatalog()->getTableID(context.getTransaction(), tableName);
     return context.getStorageManager()->getTable(tableID);
 }
 
 static TableCatalogEntry* getEntry(const ClientContext& context, const std::string& tableName) {
     auto catalog = context.getCatalog();
-    auto transaction = context.getTx();
+    auto transaction = context.getTransaction();
     auto tableID = catalog->getTableID(transaction, tableName);
     return catalog->getTableCatalogEntry(transaction, tableID);
 }
@@ -113,14 +113,16 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
 
 uint64_t StorageDriver::getNumNodes(const std::string& nodeName) {
     clientContext->query("BEGIN TRANSACTION READ ONLY;");
-    auto result = getTable(*clientContext, nodeName)->getNumTotalRows(clientContext->getTx());
+    auto result =
+        getTable(*clientContext, nodeName)->getNumTotalRows(clientContext->getTransaction());
     clientContext->query("COMMIT");
     return result;
 }
 
 uint64_t StorageDriver::getNumRels(const std::string& relName) {
     clientContext->query("BEGIN TRANSACTION READ ONLY;");
-    auto result = getTable(*clientContext, relName)->getNumTotalRows(clientContext->getTx());
+    auto result =
+        getTable(*clientContext, relName)->getNumTotalRows(clientContext->getTransaction());
     clientContext->query("COMMIT");
     return result;
 }
@@ -160,7 +162,7 @@ void StorageDriver::scanColumn(storage::Table* table, column_id_t columnID, offs
     case PhysicalTypeID::FLOAT: {
         for (auto i = 0u; i < size; ++i) {
             idVector->setValue(0, nodeID_t{offsets[i], table->getTableID()});
-            nodeTable->lookup(clientContext->getTx(), *scanState);
+            nodeTable->lookup(clientContext->getTransaction(), *scanState);
             memcpy(result, columnVector->getData(),
                 PhysicalTypeUtils::getFixedTypeSize(physicalType));
         }
@@ -172,7 +174,7 @@ void StorageDriver::scanColumn(storage::Table* table, column_id_t columnID, offs
         auto arraySize = elementSize * numElements;
         for (auto i = 0u; i < size; ++i) {
             idVector->setValue(0, nodeID_t{offsets[i], table->getTableID()});
-            nodeTable->lookup(clientContext->getTx(), *scanState);
+            nodeTable->lookup(clientContext->getTransaction(), *scanState);
             auto dataVector = ListVector::getDataVector(columnVector.get());
             memcpy(result, dataVector->getData() + i * arraySize, arraySize);
         }

@@ -17,7 +17,7 @@ public:
     void setToInternal() { internal = true; }
     bool isInternal() const { return internal; }
 
-    bool requireTx() const {
+    bool requireTransaction() const {
         switch (statementType) {
         case common::StatementType::TRANSACTION:
             return false;

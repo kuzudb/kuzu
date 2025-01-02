@@ -51,15 +51,36 @@ static void validateSerialNoDefault(const Expression& expr) {
     }
 }
 
+// TODO(Ziyi/Xiyang/Guodong): Ideally this function can be removed, and we can make use of
+// `implicitCastIfNecessary` to handle this. However, the current approach doesn't keep casted
+// boundExpr, instead the ParsedExpression, which is not casted, in PropertyDefinition. We have to
+// change PropertyDefinition to store boundExpr to get rid of this function.
+static void tryResolvingDataTypeForDefaultNull(const ParsedPropertyDefinition& parsedDefinition,
+    const LogicalType& type) {
+    if (parsedDefinition.defaultExpr->getExpressionType() == ExpressionType::LITERAL) {
+        auto& literalVal =
+            common::ku_dynamic_cast<ParsedLiteralExpression*>(parsedDefinition.defaultExpr.get())
+                ->getValueUnsafe();
+        if (literalVal.isNull() &&
+            literalVal.getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
+            literalVal.setDataType(type);
+        }
+        KU_ASSERT(literalVal.getDataType().getLogicalTypeID() != LogicalTypeID::ANY);
+    }
+}
+
 std::vector<PropertyDefinition> Binder::bindPropertyDefinitions(
     const std::vector<ParsedPropertyDefinition>& parsedDefinitions, const std::string& tableName) {
     std::vector<PropertyDefinition> definitions;
     for (auto& parsedDefinition : parsedDefinitions) {
         auto type = LogicalType::convertFromString(parsedDefinition.getType(), clientContext);
+        // For default null value, we may need to resolve its data type, as its type may not be
+        // resolved during parsing and thus may be ANY.
+        tryResolvingDataTypeForDefaultNull(parsedDefinition, type);
         auto expr = parsedDefinition.defaultExpr->copy();
         // This will check the type correctness of the default value expression
-        auto boundExpr = expressionBinder.implicitCastIfNecessary(
-            expressionBinder.bindExpression(*parsedDefinition.defaultExpr), type);
+        auto boundExpr =
+            expressionBinder.implicitCastIfNecessary(expressionBinder.bindExpression(*expr), type);
         if (type.getLogicalTypeID() == LogicalTypeID::SERIAL) {
             validateSerialNoDefault(*boundExpr);
             expr = ParsedExpressionUtils::getSerialDefaultExpr(
@@ -187,7 +208,8 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& stateme
     auto tableName = createTable->getInfo()->tableName;
     switch (createTable->getInfo()->onConflict) {
     case common::ConflictAction::ON_CONFLICT_THROW: {
-        if (clientContext->getCatalog()->containsTable(clientContext->getTx(), tableName)) {
+        if (clientContext->getCatalog()->containsTable(clientContext->getTransaction(),
+                tableName)) {
             throw BinderException(tableName + " already exists in catalog.");
         }
     } break;
@@ -202,7 +224,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateType(const Statement& statemen
     auto createType = statement.constPtrCast<CreateType>();
     auto name = createType->getName();
     LogicalType type = LogicalType::convertFromString(createType->getDataType(), clientContext);
-    if (clientContext->getCatalog()->containsType(clientContext->getTx(), name)) {
+    if (clientContext->getCatalog()->containsType(clientContext->getTransaction(), name)) {
         throw BinderException{common::stringFormat("Duplicated type name: {}.", name)};
     }
     return std::make_unique<BoundCreateType>(std::move(name), std::move(type));
@@ -218,7 +240,8 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
     int64_t maxValue = 0;
     switch (info.onConflict) {
     case common::ConflictAction::ON_CONFLICT_THROW: {
-        if (clientContext->getCatalog()->containsSequence(clientContext->getTx(), sequenceName)) {
+        if (clientContext->getCatalog()->containsSequence(clientContext->getTransaction(),
+                sequenceName)) {
             throw BinderException(sequenceName + " already exists in catalog.");
         }
     } break;
@@ -274,7 +297,7 @@ void Binder::validateDropTable(const Statement& statement) {
     auto& dropTable = statement.constCast<Drop>();
     auto tableName = dropTable.getDropInfo().name;
     auto catalog = clientContext->getCatalog();
-    auto validTable = catalog->containsTable(clientContext->getTx(), tableName);
+    auto validTable = catalog->containsTable(clientContext->getTransaction(), tableName);
     if (!validTable) {
         switch (dropTable.getDropInfo().conflictAction) {
         case common::ConflictAction::ON_CONFLICT_THROW: {
@@ -287,11 +310,11 @@ void Binder::validateDropTable(const Statement& statement) {
             KU_UNREACHABLE;
         }
     }
-    auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTx(), tableName);
+    auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTransaction(), tableName);
     switch (tableEntry->getTableType()) {
     case TableType::NODE: {
         // Check node table is not referenced by rel table.
-        for (auto& relTableEntry : catalog->getRelTableEntries(clientContext->getTx())) {
+        for (auto& relTableEntry : catalog->getRelTableEntries(clientContext->getTransaction())) {
             if (relTableEntry->isParent(tableEntry->getTableID())) {
                 throw BinderException(stringFormat("Cannot delete node table {} because it is "
                                                    "referenced by relationship table {}.",
@@ -301,7 +324,8 @@ void Binder::validateDropTable(const Statement& statement) {
     } break;
     case TableType::REL: {
         // Check rel table is not referenced by rel group.
-        for (auto& relTableGroupEntry : catalog->getRelTableGroupEntries(clientContext->getTx())) {
+        for (auto& relTableGroupEntry :
+            catalog->getRelTableGroupEntries(clientContext->getTransaction())) {
             if (relTableGroupEntry->isParent(tableEntry->getTableID())) {
                 throw BinderException(stringFormat("Cannot delete relationship table {} because it "
                                                    "is referenced by relationship group {}.",
@@ -316,7 +340,7 @@ void Binder::validateDropTable(const Statement& statement) {
 
 void Binder::validateDropSequence(const parser::Statement& statement) {
     auto& dropSequence = statement.constCast<Drop>();
-    if (!clientContext->getCatalog()->containsSequence(clientContext->getTx(),
+    if (!clientContext->getCatalog()->containsSequence(clientContext->getTransaction(),
             dropSequence.getDropInfo().name)) {
         switch (dropSequence.getDropInfo().conflictAction) {
         case common::ConflictAction::ON_CONFLICT_THROW: {
@@ -379,7 +403,7 @@ std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& stateme
     auto newName = extraInfo->newName;
     validateTableExist(tableName);
     auto catalog = clientContext->getCatalog();
-    if (catalog->containsTable(clientContext->getTx(), newName)) {
+    if (catalog->containsTable(clientContext->getTransaction(), newName)) {
         throw BinderException("Table: " + newName + " already exists.");
     }
     auto boundExtraInfo = std::make_unique<BoundExtraRenameTableInfo>(newName);
@@ -448,7 +472,7 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     }
     auto propertyName = extraInfo->propertyName;
     validateTableExist(tableName);
-    auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTx(), tableName);
+    auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTransaction(), tableName);
     validatePropertyDDLOnTable(tableEntry, "add");
     validatePropertyNotExist(info->onConflict, tableEntry, propertyName);
     auto defaultValue = std::move(extraInfo->defaultValue);
@@ -486,7 +510,7 @@ std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statem
     auto propertyName = extraInfo->propertyName;
     validateTableExist(tableName);
     auto catalog = clientContext->getCatalog();
-    auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTx(), tableName);
+    auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTransaction(), tableName);
     validatePropertyDDLOnTable(tableEntry, "drop");
     validatePropertyExist(info->onConflict, tableEntry, propertyName);
     if (tableEntry->getTableType() == TableType::NODE &&
@@ -508,7 +532,7 @@ std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& stat
     auto newName = extraInfo->newName;
     validateTableExist(tableName);
     auto catalog = clientContext->getCatalog();
-    auto tableSchema = catalog->getTableCatalogEntry(clientContext->getTx(), tableName);
+    auto tableSchema = catalog->getTableCatalogEntry(clientContext->getTransaction(), tableName);
     validatePropertyDDLOnTable(tableSchema, "rename");
     validatePropertyExist(common::ConflictAction::ON_CONFLICT_THROW, tableSchema, propertyName);
     validatePropertyNotExist(common::ConflictAction::ON_CONFLICT_THROW, tableSchema, newName);

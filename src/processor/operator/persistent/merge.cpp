@@ -94,12 +94,12 @@ void Merge::executeOnNewPattern(PatternCreationInfo& patternCreationInfo,
     for (auto i = 0u; i < nodeInsertExecutors.size(); i++) {
         auto& executor = nodeInsertExecutors[i];
         executor.setNodeIDVectorToNonNull();
-        auto nodeID = executor.insert(context->clientContext->getTx());
+        auto nodeID = executor.insert(context->clientContext->getTransaction());
         patternCreationInfo.updateID(i, info.executorInfo, nodeID);
     }
     for (auto i = 0u; i < relInsertExecutors.size(); i++) {
         auto& executor = relInsertExecutors[i];
-        auto relID = executor.insert(context->clientContext->getTx());
+        auto relID = executor.insert(context->clientContext->getTransaction());
         patternCreationInfo.updateID(i + nodeInsertExecutors.size(), info.executorInfo, relID);
     }
     for (auto& executor : onCreateNodeSetExecutors) {

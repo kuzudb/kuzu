@@ -1,5 +1,6 @@
 #pragma once
 
+#include "binder/expression/expression.h"
 #include "common/types/types.h"
 #include "parser/expression/parsed_expression.h"
 

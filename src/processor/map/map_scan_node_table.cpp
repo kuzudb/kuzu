@@ -16,7 +16,7 @@ namespace processor {
 std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* logicalOperator) {
     auto catalog = clientContext->getCatalog();
     auto storageManager = clientContext->getStorageManager();
-    auto transaction = clientContext->getTx();
+    auto transaction = clientContext->getTransaction();
     auto& scan = logicalOperator->constCast<LogicalScanNodeTable>();
     const auto outSchema = scan.getSchema();
     auto nodeIDPos = getDataPos(*scan.getNodeID(), *outSchema);

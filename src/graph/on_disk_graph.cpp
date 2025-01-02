@@ -103,8 +103,8 @@ OnDiskGraphNbrScanStates::OnDiskGraphNbrScanStates(ClientContext* context,
         // TODO(bmwinger): If there are both a predicate and a custom edgePropertyIndex, they will
         // currently be scanned twice. The propertyVector could simply be one of the vectors used
         // for the predicate.
-        auto catalogEntry =
-            context->getCatalog()->getTableCatalogEntry(context->getTx(), tables[0]->getTableID());
+        auto catalogEntry = context->getCatalog()->getTableCatalogEntry(context->getTransaction(),
+            tables[0]->getTableID());
         propertyVector = std::make_unique<ValueVector>(
             catalogEntry->getProperty(*edgePropertyIndex).getType().copy(),
             context->getMemoryManager());
@@ -119,12 +119,12 @@ OnDiskGraphNbrScanStates::OnDiskGraphNbrScanStates(ClientContext* context,
     scanStates.reserve(tables.size());
     for (auto table : tables) {
         auto relEntry = graphEntry.getRelEntry(table->getTableID());
-        auto fwdState = getRelScanState(context->getTx(), *context->getMemoryManager(), *relEntry,
-            *table, RelDataDirection::FWD, srcNodeIDVector.get(), dstNodeIDVector.get(),
+        auto fwdState = getRelScanState(context->getTransaction(), *context->getMemoryManager(),
+            *relEntry, *table, RelDataDirection::FWD, srcNodeIDVector.get(), dstNodeIDVector.get(),
             relIDVector.get(), graphEntry.getRelProperties(), edgePropertyID, propertyVector.get(),
             schema, resultSet);
-        auto bwdState = getRelScanState(context->getTx(), *context->getMemoryManager(), *relEntry,
-            *table, RelDataDirection::BWD, srcNodeIDVector.get(), dstNodeIDVector.get(),
+        auto bwdState = getRelScanState(context->getTransaction(), *context->getMemoryManager(),
+            *relEntry, *table, RelDataDirection::BWD, srcNodeIDVector.get(), dstNodeIDVector.get(),
             relIDVector.get(), graphEntry.getRelProperties(), edgePropertyID, propertyVector.get(),
             schema, resultSet);
         scanStates.emplace_back(table->getTableID(),
@@ -136,7 +136,7 @@ OnDiskGraph::OnDiskGraph(ClientContext* context, const GraphEntry& entry)
     : context{context}, graphEntry{entry.copy()} {
     auto storage = context->getStorageManager();
     auto catalog = context->getCatalog();
-    auto transaction = context->getTx();
+    auto transaction = context->getTransaction();
     for (auto& nodeEntry : graphEntry.nodeEntries) {
         auto nodeTableID = nodeEntry->getTableID();
         nodeIDToNodeTable.insert(
@@ -281,7 +281,7 @@ Graph::EdgeIterator OnDiskGraph::scanBwd(nodeID_t nodeID, NbrScanState& state) {
 
 bool OnDiskGraphNbrScanState::InnerIterator::next(evaluator::ExpressionEvaluator* predicate) {
     while (true) {
-        if (!relTable->scan(context->getTx(), *tableScanState)) {
+        if (!relTable->scan(context->getTransaction(), *tableScanState)) {
             return false;
         }
         if (predicate != nullptr) {
@@ -299,7 +299,7 @@ OnDiskGraphNbrScanState::InnerIterator::InnerIterator(const main::ClientContext*
     : context{context}, relTable{relTable}, tableScanState{std::move(tableScanState)} {}
 
 void OnDiskGraphNbrScanState::InnerIterator::initScan() {
-    relTable->initScanState(context->getTx(), *tableScanState);
+    relTable->initScanState(context->getTransaction(), *tableScanState);
 }
 
 bool OnDiskGraphNbrScanStates::next() {
@@ -319,7 +319,8 @@ OnDiskGraphVertexScanState::OnDiskGraphVertexScanState(ClientContext& context,
       numNodesScanned{0}, tableID{tableID}, currentOffset{0}, endOffsetExclusive{0} {
     std::vector<column_id_t> propertyColumnIDs;
     propertyColumnIDs.reserve(propertyNames.size());
-    auto tableCatalogEntry = context.getCatalog()->getTableCatalogEntry(context.getTx(), tableID);
+    auto tableCatalogEntry =
+        context.getCatalog()->getTableCatalogEntry(context.getTransaction(), tableID);
     std::vector<const Column*> columns;
     std::vector<LogicalType> types;
     for (const auto& property : propertyNames) {
@@ -347,7 +348,8 @@ bool OnDiskGraphVertexScanState::next() {
     auto endOffset = std::min(endOffsetExclusive,
         StorageUtils::getStartOffsetOfNodeGroup(tableScanState->nodeGroupIdx + 1));
     numNodesScanned = std::min(endOffset - currentOffset, DEFAULT_VECTOR_CAPACITY);
-    auto result = tableScanState->scanNext(context.getTx(), currentOffset, numNodesScanned);
+    auto result =
+        tableScanState->scanNext(context.getTransaction(), currentOffset, numNodesScanned);
     currentOffset += numNodesScanned;
     return result;
 }
@@ -369,7 +371,7 @@ void OnDiskGraphVertexScanState::startScan(common::offset_t beginOffset,
     numNodesScanned = 0;
     this->currentOffset = beginOffset;
     this->endOffsetExclusive = endOffsetExclusive;
-    nodeTable.initScanState(context.getTx(), *tableScanState, tableID, beginOffset);
+    nodeTable.initScanState(context.getTransaction(), *tableScanState, tableID, beginOffset);
 }
 
 } // namespace graph

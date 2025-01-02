@@ -124,7 +124,7 @@ bool IndexLookup::getNextTuplesInternal(ExecutionContext* context) {
     }
     for (auto& info : infos) {
         KU_ASSERT(info);
-        lookup(context->clientContext->getTx(), *info);
+        lookup(context->clientContext->getTransaction(), *info);
     }
     localState->errorHandler->flushStoredErrors();
     return true;

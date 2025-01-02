@@ -8,7 +8,6 @@
 
 #include "common/exception/parser.h"
 #include "common/string_utils.h"
-#include "main/client_context.h"
 #include "parser/antlr_parser/kuzu_cypher_parser.h"
 #include "parser/antlr_parser/parser_error_listener.h"
 #include "parser/antlr_parser/parser_error_strategy.h"
@@ -19,8 +18,7 @@ using namespace antlr4;
 namespace kuzu {
 namespace parser {
 
-std::vector<std::shared_ptr<Statement>> Parser::parseQuery(std::string_view query,
-    main::ClientContext* context) {
+std::vector<std::shared_ptr<Statement>> Parser::parseQuery(std::string_view query) {
     auto queryStr = std::string(query);
     queryStr = common::StringUtils::ltrim(queryStr);
     queryStr = common::StringUtils::ltrimNewlines(queryStr);
@@ -47,7 +45,7 @@ std::vector<std::shared_ptr<Statement>> Parser::parseQuery(std::string_view quer
     kuzuCypherParser.addErrorListener(&parserErrorListener);
     kuzuCypherParser.setErrorHandler(std::make_shared<ParserErrorStrategy>());
 
-    Transformer transformer(*kuzuCypherParser.ku_Statements(), context);
+    Transformer transformer(*kuzuCypherParser.ku_Statements());
     return transformer.transform();
 }
 

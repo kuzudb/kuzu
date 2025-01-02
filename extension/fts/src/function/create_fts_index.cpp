@@ -57,9 +57,9 @@ static std::vector<std::string> bindProperties(const catalog::NodeTableCatalogEn
 
 static void validateIndexNotExist(const ClientContext& context, table_id_t tableID,
     const std::string& indexName) {
-    if (context.getCatalog()->containsIndex(context.getTx(), tableID, indexName)) {
+    if (context.getCatalog()->containsIndex(context.getTransaction(), tableID, indexName)) {
         throw BinderException{stringFormat("Index: {} already exists in table: {}.", indexName,
-            context.getCatalog()->getTableName(context.getTx(), tableID))};
+            context.getCatalog()->getTableName(context.getTransaction(), tableID))};
     }
 }
 
@@ -79,7 +79,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
 static std::string createStopWordsTableIfNotExists(const ClientContext& context,
     const std::string& stopWordsTableName) {
     std::string query = "";
-    if (!context.getCatalog()->containsTable(context.getTx(), stopWordsTableName)) {
+    if (!context.getCatalog()->containsTable(context.getTransaction(), stopWordsTableName)) {
         query += stringFormat("CREATE NODE TABLE `{}` (sw STRING, PRIMARY KEY(sw));",
             stopWordsTableName);
         for (auto i = 0u; i < FTSExtension::NUM_STOP_WORDS; i++) {
@@ -96,7 +96,7 @@ std::string createFTSIndexQuery(const ClientContext& context, const TableFuncBin
     // statements in a single transaction there.
     // Create the tokenize macro.
     std::string query = "";
-    if (!context.getCatalog()->containsMacro(context.getTx(), "tokenize")) {
+    if (!context.getCatalog()->containsMacro(context.getTransaction(), "tokenize")) {
         query += R"(CREATE MACRO tokenize(query) AS
                             string_split(lower(regexp_replace(
                             CAST(query as STRING),
@@ -208,7 +208,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& /*output
     auto docTableName = FTSUtils::getDocsTableName(bindData.tableID, bindData.indexName);
     ;
     auto docTableEntry = context.clientContext->getCatalog()->getTableCatalogEntry(
-        context.clientContext->getTx(), docTableName);
+        context.clientContext->getTransaction(), docTableName);
     graph::GraphEntry entry{{docTableEntry}, {} /* relTableEntries */};
     graph::OnDiskGraph graph(context.clientContext, entry);
     auto sharedState = LenComputeSharedState{};
@@ -217,7 +217,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& /*output
         std::vector<std::string>{CreateFTSFunction::DOC_LEN_PROP_NAME});
     auto numDocs = sharedState.numDocs.load();
     auto avgDocLen = numDocs == 0 ? 0 : (double)sharedState.totalLen.load() / numDocs;
-    context.clientContext->getCatalog()->createIndex(context.clientContext->getTx(),
+    context.clientContext->getCatalog()->createIndex(context.clientContext->getTransaction(),
         std::make_unique<FTSIndexCatalogEntry>(bindData.tableID, bindData.indexName, numDocs,
             avgDocLen, bindData.ftsConfig));
     return 0;

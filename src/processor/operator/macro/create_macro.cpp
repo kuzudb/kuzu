@@ -15,7 +15,7 @@ bool CreateMacro::getNextTuplesInternal(kuzu::processor::ExecutionContext* conte
     if (hasExecuted) {
         return false;
     }
-    createMacroInfo->catalog->addScalarMacroFunction(context->clientContext->getTx(),
+    createMacroInfo->catalog->addScalarMacroFunction(context->clientContext->getTransaction(),
         createMacroInfo->macroName, createMacroInfo->macro->copy());
     hasExecuted = true;
     outputVector->setValue<std::string>(outputVector->state->getSelVector()[0],

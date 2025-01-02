@@ -27,7 +27,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
 std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     ExpressionType expressionType, const expression_vector& children) {
     auto catalog = context->getCatalog();
-    auto transaction = context->getTx();
+    auto transaction = context->getTransaction();
     auto functions = catalog->getFunctions(transaction);
     auto functionName = ExpressionTypeUtil::toString(expressionType);
     LogicalType combinedType(LogicalTypeID::ANY);

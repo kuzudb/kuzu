@@ -16,6 +16,9 @@
 #include "transaction/transaction_context.h"
 
 namespace kuzu {
+namespace parser {
+class StandaloneCallRewriter;
+} // namespace parser
 
 namespace binder {
 class Binder;
@@ -34,7 +37,8 @@ struct ExtensionOptions;
 
 namespace processor {
 class ImportDB;
-}
+class TableFunctionCall;
+} // namespace processor
 
 namespace graph {
 class GraphEntrySet;
@@ -64,6 +68,8 @@ class KUZU_API ClientContext {
     friend class binder::Binder;
     friend class binder::ExpressionBinder;
     friend class processor::ImportDB;
+    friend class processor::TableFunctionCall;
+    friend class parser::StandaloneCallRewriter;
     friend struct SpillToDiskSetting;
 
 public:
@@ -92,7 +98,7 @@ public:
     uint64_t getMaxNumThreadForExec() const;
 
     // Transaction.
-    transaction::Transaction* getTx() const;
+    transaction::Transaction* getTransaction() const;
     transaction::TransactionContext* getTransactionContext() const;
 
     // Progress bar
@@ -119,13 +125,7 @@ public:
     common::VirtualFileSystem* getVFSUnsafe() const;
     common::RandomEngine* getRandomEngine() const;
 
-    // Query.
-    std::unique_ptr<PreparedStatement> prepare(std::string_view query);
-    std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
-        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams,
-        std::optional<uint64_t> queryID = std::nullopt);
-    std::unique_ptr<QueryResult> query(std::string_view queryStatement,
-        std::optional<uint64_t> queryID = std::nullopt);
+    static std::string getEnvVariable(const std::string& name);
 
     void setDefaultDatabase(AttachedKuzuDatabase* defaultDatabase_);
     bool hasDefaultDatabase() const;
@@ -138,26 +138,48 @@ public:
 
     graph::GraphEntrySet& getGraphEntrySetUnsafe();
 
-    void cleanUP();
+    void cleanUp();
 
-    std::unique_ptr<QueryResult> queryInternal(std::string_view query,
+    // Query.
+    std::unique_ptr<PreparedStatement> prepare(std::string_view query);
+    std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
+        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams,
+        std::optional<uint64_t> queryID = std::nullopt);
+    std::unique_ptr<QueryResult> query(std::string_view queryStatement,
         std::optional<uint64_t> queryID = std::nullopt);
 
-    static std::string getEnvVariable(const std::string& name);
-
 private:
-    std::vector<std::shared_ptr<parser::Statement>> parseQuery(std::string_view query);
+    struct TransactionHelper {
+        enum class TransactionCommitAction : uint8_t {
+            COMMIT_IF_NEW,
+            COMMIT_IF_AUTO,
+            COMMIT_NEW_OR_AUTO,
+            NOT_COMMIT
+        };
+        static bool commitIfNew(TransactionCommitAction action) {
+            return action == TransactionCommitAction::COMMIT_IF_NEW ||
+                   action == TransactionCommitAction::COMMIT_NEW_OR_AUTO;
+        }
+        static bool commitIfAuto(TransactionCommitAction action) {
+            return action == TransactionCommitAction::COMMIT_IF_AUTO ||
+                   action == TransactionCommitAction::COMMIT_NEW_OR_AUTO;
+        }
+        static TransactionCommitAction getAction(bool commitIfNew, bool commitIfAuto);
+        static void runFuncInTransaction(transaction::TransactionContext& context,
+            const std::function<void()>& fun, bool readOnlyStatement, bool isTransactionStatement,
+            TransactionCommitAction action);
+    };
 
     static std::unique_ptr<QueryResult> queryResultWithError(std::string_view errMsg);
+    static std::unique_ptr<PreparedStatement> preparedStatementWithError(std::string_view errMsg);
+    static void bindParametersNoLock(const PreparedStatement* preparedStatement,
+        const std::unordered_map<std::string, std::unique_ptr<common::Value>>& inputParams);
+    void validateTransaction(const PreparedStatement& preparedStatement) const;
 
-    std::unique_ptr<PreparedStatement> preparedStatementWithError(std::string_view errMsg);
+    std::vector<std::shared_ptr<parser::Statement>> parseQuery(std::string_view query);
 
-    // when we do prepare, we will start a transaction for the query
-    // when we execute after prepare in a same context, we set requireNewTx to false and will not
-    // commit the transaction in prepare when we only prepare a query statement, we set requireNewTx
-    // to true and will commit the transaction in prepare
     std::unique_ptr<PreparedStatement> prepareNoLock(
-        std::shared_ptr<parser::Statement> parsedStatement, bool requireNewTx = true,
+        std::shared_ptr<parser::Statement> parsedStatement, bool shouldCommitNewTransaction,
         std::optional<std::unordered_map<std::string, std::shared_ptr<common::Value>>> inputParams =
             std::nullopt);
 
@@ -171,18 +193,16 @@ private:
         return executeWithParams(preparedStatement, std::move(params), args...);
     }
 
-    void bindParametersNoLock(PreparedStatement* preparedStatement,
-        const std::unordered_map<std::string, std::unique_ptr<common::Value>>& inputParams);
-
     std::unique_ptr<QueryResult> executeNoLock(PreparedStatement* preparedStatement,
+        std::optional<uint64_t> queryID = std::nullopt);
+
+    std::unique_ptr<QueryResult> queryNoLock(std::string_view query,
         std::optional<uint64_t> queryID = std::nullopt);
 
     bool canExecuteWriteQuery() const;
 
-    void runFuncInTransaction(const std::function<void(void)>& fun);
-
-    std::unique_ptr<QueryResult> handleFailedExecution(
-        processor::ExecutionContext* executionContext, std::exception& e);
+    std::unique_ptr<QueryResult> handleFailedExecution(std::optional<uint64_t> queryID,
+        const std::exception& e) const;
 
     // Client side configurable settings.
     ClientConfig clientConfig;

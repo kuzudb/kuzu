@@ -30,7 +30,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(const Parse
     if (result != nullptr) {
         return result;
     }
-    auto entry = context->getCatalog()->getFunctionEntry(context->getTx(), functionName);
+    auto entry = context->getCatalog()->getFunctionEntry(context->getTransaction(), functionName);
     switch (entry->getType()) {
     case CatalogEntryType::SCALAR_FUNCTION_ENTRY:
         return bindScalarFunctionExpression(expr, functionName);
@@ -71,7 +71,7 @@ static std::vector<LogicalType> getTypes(const expression_vector& exprs) {
 std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     const expression_vector& children, const std::string& functionName) {
     auto catalog = context->getCatalog();
-    auto transaction = context->getTx();
+    auto transaction = context->getTransaction();
     auto childrenTypes = getTypes(children);
     auto functions = catalog->getFunctions(transaction);
     auto function =
@@ -133,8 +133,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindRewriteFunctionExpression(
         children.push_back(bindExpression(*expr.getChild(i)));
     }
     auto childrenTypes = getTypes(children);
-    auto functions = context->getCatalog()->getFunctions(context->getTx());
-    auto match = BuiltInFunctionsUtils::matchFunction(context->getTx(),
+    auto functions = context->getCatalog()->getFunctions(context->getTransaction());
+    auto match = BuiltInFunctionsUtils::matchFunction(context->getTransaction(),
         funcExpr.getNormalizedFunctionName(), childrenTypes, functions);
     auto function = match->constPtrCast<RewriteFunction>();
     KU_ASSERT(function->rewriteFunc != nullptr);
@@ -150,7 +150,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
         childrenTypes.push_back(child->dataType.copy());
         children.push_back(std::move(child));
     }
-    auto functions = context->getCatalog()->getFunctions(context->getTx());
+    auto functions = context->getCatalog()->getFunctions(context->getTransaction());
     auto function = BuiltInFunctionsUtils::matchAggregateFunction(functionName, childrenTypes,
         isDistinct, functions)
                         ->copy();
@@ -180,7 +180,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
 std::shared_ptr<Expression> ExpressionBinder::bindMacroExpression(
     const ParsedExpression& parsedExpression, const std::string& macroName) {
     auto scalarMacroFunction =
-        context->getCatalog()->getScalarMacroFunction(context->getTx(), macroName);
+        context->getCatalog()->getScalarMacroFunction(context->getTransaction(), macroName);
     auto macroExpr = scalarMacroFunction->expression->copy();
     auto parameterVals = scalarMacroFunction->getDefaultParameterVals();
     auto& parsedFuncExpr = parsedExpression.constCast<ParsedFunctionExpression>();
@@ -267,14 +267,14 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
             return createLiteralExpression("");
         }
         if (!node.isMultiLabeled()) {
-            auto labelName =
-                catalog->getTableName(context->getTx(), node.getSingleEntry()->getTableID());
+            auto labelName = catalog->getTableName(context->getTransaction(),
+                node.getSingleEntry()->getTableID());
             return createLiteralExpression(Value(LogicalType::STRING(), labelName));
         }
-        auto nodeTableIDs = catalog->getNodeTableIDs(context->getTx());
+        auto nodeTableIDs = catalog->getNodeTableIDs(context->getTransaction());
         children.push_back(node.getInternalID());
         auto labelsValue = Value(std::move(listType),
-            populateLabelValues(std::move(nodeTableIDs), *catalog, context->getTx()));
+            populateLabelValues(std::move(nodeTableIDs), *catalog, context->getTransaction()));
         children.push_back(createLiteralExpression(labelsValue));
     } break;
     case LogicalTypeID::REL: {
@@ -283,14 +283,14 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
             return createLiteralExpression("");
         }
         if (!rel.isMultiLabeled()) {
-            auto labelName =
-                catalog->getTableName(context->getTx(), rel.getSingleEntry()->getTableID());
+            auto labelName = catalog->getTableName(context->getTransaction(),
+                rel.getSingleEntry()->getTableID());
             return createLiteralExpression(Value(LogicalType::STRING(), labelName));
         }
-        auto relTableIDs = catalog->getRelTableIDs(context->getTx());
+        auto relTableIDs = catalog->getRelTableIDs(context->getTransaction());
         children.push_back(rel.getInternalIDProperty());
         auto labelsValue = Value(std::move(listType),
-            populateLabelValues(std::move(relTableIDs), *catalog, context->getTx()));
+            populateLabelValues(std::move(relTableIDs), *catalog, context->getTransaction()));
         children.push_back(createLiteralExpression(labelsValue));
     } break;
     default:

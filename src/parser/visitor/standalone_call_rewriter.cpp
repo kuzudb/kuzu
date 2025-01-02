@@ -14,13 +14,21 @@ std::string StandaloneCallRewriter::getRewriteQuery(const Statement& statement) 
 
 void StandaloneCallRewriter::visitStandaloneCallFunction(const Statement& statement) {
     auto& standaloneCallFunc = statement.constCast<StandaloneCallFunction>();
-    binder::Binder binder{context};
-    auto boundStatement = binder.bind(standaloneCallFunc);
-    auto& boundStandaloneCall = boundStatement->constCast<binder::BoundStandaloneCallFunction>();
-    auto func = boundStandaloneCall.getTableFunction().constPtrCast<function::TableFunction>();
-    if (func->rewriteFunc) {
-        rewriteQuery = func->rewriteFunc(*context, *boundStandaloneCall.getBindData());
-    }
+    main::ClientContext::TransactionHelper::runFuncInTransaction(
+        *context->getTransactionContext(),
+        [&]() -> void {
+            binder::Binder binder{context};
+            const auto boundStatement = binder.bind(standaloneCallFunc);
+            auto& boundStandaloneCall =
+                boundStatement->constCast<binder::BoundStandaloneCallFunction>();
+            const auto func =
+                boundStandaloneCall.getTableFunction().constPtrCast<function::TableFunction>();
+            if (func->rewriteFunc) {
+                rewriteQuery = func->rewriteFunc(*context, *boundStandaloneCall.getBindData());
+            }
+        },
+        false /*readOnlyStatement*/, false /*isTransactionStatement*/,
+        main::ClientContext::TransactionHelper::TransactionCommitAction::COMMIT_IF_NEW);
 }
 
 } // namespace parser
