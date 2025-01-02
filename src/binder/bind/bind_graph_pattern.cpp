@@ -287,7 +287,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     std::shared_ptr<NodeExpression> srcNode, std::shared_ptr<NodeExpression> dstNode,
     RelDirectionType directionType) {
     auto catalog = clientContext->getCatalog();
-    auto transaction = clientContext->getTx();
+    auto transaction = clientContext->getTransaction();
     auto relTableEntries = getRelTableEntries(entries);
     table_catalog_entry_set_t entrySet;
     for (auto entry : relTableEntries) {
@@ -575,7 +575,7 @@ void Binder::bindQueryNodeProperties(NodeExpression& node) {
 
 std::vector<TableCatalogEntry*> Binder::bindTableEntries(const std::vector<std::string>& tableNames,
     bool nodePattern) const {
-    auto tx = clientContext->getTx();
+    auto tx = clientContext->getTransaction();
     auto catalog = clientContext->getCatalog();
     table_catalog_entry_set_t entrySet;
     if (tableNames.empty()) { // Rewrite empty table names as all tables.
@@ -605,7 +605,7 @@ std::vector<TableCatalogEntry*> Binder::bindTableEntries(const std::vector<std::
 
 catalog::TableCatalogEntry* Binder::bindTableEntry(const std::string& tableName) const {
     auto catalog = clientContext->getCatalog();
-    auto transaction = clientContext->getTx();
+    auto transaction = clientContext->getTransaction();
     if (!catalog->containsTable(transaction, tableName)) {
         throw BinderException(common::stringFormat("Table {} does not exist.", tableName));
     }
@@ -666,7 +666,7 @@ std::vector<TableCatalogEntry*> Binder::getNodeTableEntries(TableCatalogEntry* e
 
 std::vector<TableCatalogEntry*> Binder::getRelTableEntries(TableCatalogEntry* entry) const {
     auto catalog = clientContext->getCatalog();
-    auto transaction = clientContext->getTx();
+    auto transaction = clientContext->getTransaction();
     switch (entry->getTableType()) {
     case TableType::REL_GROUP: {
         auto& relGroupEntry = entry->constCast<RelGroupCatalogEntry>();
@@ -687,7 +687,7 @@ std::vector<TableCatalogEntry*> Binder::getRelTableEntries(TableCatalogEntry* en
 
 std::vector<TableCatalogEntry*> Binder::getTableEntries(const table_id_vector_t& tableIDs) {
     auto catalog = clientContext->getCatalog();
-    auto transaction = clientContext->getTx();
+    auto transaction = clientContext->getTransaction();
     std::vector<TableCatalogEntry*> result;
     for (auto id : tableIDs) {
         result.push_back(catalog->getTableCatalogEntry(transaction, id));

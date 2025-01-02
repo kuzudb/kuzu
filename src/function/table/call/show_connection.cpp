@@ -31,17 +31,17 @@ struct ShowConnectionBindData final : SimpleTableFuncBindData {
 static void outputRelTableConnection(const DataChunk& outputDataChunk, uint64_t outputPos,
     const ClientContext* context, table_id_t tableID) {
     const auto catalog = context->getCatalog();
-    const auto tableEntry = catalog->getTableCatalogEntry(context->getTx(), tableID);
+    const auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), tableID);
     const auto relTableEntry = ku_dynamic_cast<RelTableCatalogEntry*>(tableEntry);
     KU_ASSERT(tableEntry->getTableType() == TableType::REL);
     // Get src and dst name
     const auto srcTableID = relTableEntry->getSrcTableID();
     const auto dstTableID = relTableEntry->getDstTableID();
-    const auto srcTableName = catalog->getTableName(context->getTx(), srcTableID);
-    const auto dstTableName = catalog->getTableName(context->getTx(), dstTableID);
+    const auto srcTableName = catalog->getTableName(context->getTransaction(), srcTableID);
+    const auto dstTableName = catalog->getTableName(context->getTransaction(), dstTableID);
     // Get src and dst primary key
-    const auto srcTableEntry = catalog->getTableCatalogEntry(context->getTx(), srcTableID);
-    const auto dstTableEntry = catalog->getTableCatalogEntry(context->getTx(), dstTableID);
+    const auto srcTableEntry = catalog->getTableCatalogEntry(context->getTransaction(), srcTableID);
+    const auto dstTableEntry = catalog->getTableCatalogEntry(context->getTransaction(), dstTableID);
     const auto srcTablePrimaryKey =
         srcTableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName();
     const auto dstTablePrimaryKey =
@@ -90,8 +90,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     std::vector<LogicalType> columnTypes;
     const auto tableName = input->getLiteralVal<std::string>(0);
     const auto catalog = context->getCatalog();
-    const auto tableID = catalog->getTableID(context->getTx(), tableName);
-    auto tableEntry = catalog->getTableCatalogEntry(context->getTx(), tableID);
+    const auto tableID = catalog->getTableID(context->getTransaction(), tableName);
+    auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), tableID);
     const auto tableType = tableEntry->getTableType();
     if (tableType != TableType::REL && tableType != TableType::REL_GROUP) {
         throw BinderException{"Show connection can only be called on a rel table!"};

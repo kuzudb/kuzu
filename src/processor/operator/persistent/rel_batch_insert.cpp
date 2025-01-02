@@ -69,11 +69,11 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
         // TODO(Guodong): We need to handle the concurrency between COPY and other insertions
         // into the same node group.
         auto& nodeGroup = relTable
-                              ->getOrCreateNodeGroup(context->clientContext->getTx(),
+                              ->getOrCreateNodeGroup(context->clientContext->getTransaction(),
                                   relLocalState->nodeGroupIdx, relInfo->direction)
                               ->cast<CSRNodeGroup>();
-        appendNodeGroup(context->clientContext->getTx(), nodeGroup, *relInfo, *relLocalState,
-            *sharedState, *partitionerSharedState);
+        appendNodeGroup(context->clientContext->getTransaction(), nodeGroup, *relInfo,
+            *relLocalState, *sharedState, *partitionerSharedState);
         updateProgress(context);
     }
 }

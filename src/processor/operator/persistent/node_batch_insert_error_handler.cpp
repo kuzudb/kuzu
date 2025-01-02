@@ -25,7 +25,7 @@ void NodeBatchInsertErrorHandler::deleteCurrentErroneousRow() {
         *offsetVector,
         *keyVector,
     };
-    nodeTable->delete_(context->clientContext->getTx(), deleteState);
+    nodeTable->delete_(context->clientContext->getTransaction(), deleteState);
 }
 
 void NodeBatchInsertErrorHandler::flushStoredErrors() {

@@ -61,7 +61,7 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
             KU_ASSERT(outState == scanState.outState);
             scanState.nodeIDVector = boundNodeIDVector;
             if (const auto localRelTable =
-                    context->clientContext->getTx()->getLocalStorage()->getLocalTable(
+                    context->clientContext->getTransaction()->getLocalStorage()->getLocalTable(
                         relInfo.table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
                 auto localTableColumnIDs = LocalRelTable::rewriteLocalColumnIDs(relInfo.direction,
                     relInfo.scanState->columnIDs);
@@ -88,7 +88,8 @@ void ScanMultiRelTable::initVectors(TableScanState& state, const ResultSet& resu
 
 bool ScanMultiRelTable::getNextTuplesInternal(ExecutionContext* context) {
     while (true) {
-        if (currentScanner != nullptr && currentScanner->scan(context->clientContext->getTx())) {
+        if (currentScanner != nullptr &&
+            currentScanner->scan(context->clientContext->getTransaction())) {
             metrics->numOutputTuple.increase(outState->getSelVector().getSelSize());
             return true;
         }

@@ -73,10 +73,10 @@ void SingleLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
     KU_ASSERT(tableInfo.pkVector->state == info.nodeIDVector->state);
     auto deleteState =
         std::make_unique<NodeTableDeleteState>(*info.nodeIDVector, *tableInfo.pkVector);
-    if (!tableInfo.table->delete_(context->clientContext->getTx(), *deleteState)) {
+    if (!tableInfo.table->delete_(context->clientContext->getTransaction(), *deleteState)) {
         return;
     }
-    auto transaction = context->clientContext->getTx();
+    auto transaction = context->clientContext->getTransaction();
     switch (info.deleteType) {
     case DeleteNodeType::DELETE: {
         tableInfo.deleteFromRelTable(transaction, info.nodeIDVector);
@@ -107,10 +107,10 @@ void MultiLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
     auto& tableInfo = tableInfos.at(nodeID.tableID);
     auto deleteState =
         std::make_unique<NodeTableDeleteState>(*info.nodeIDVector, *tableInfo.pkVector);
-    if (!tableInfo.table->delete_(context->clientContext->getTx(), *deleteState)) {
+    if (!tableInfo.table->delete_(context->clientContext->getTransaction(), *deleteState)) {
         return;
     }
-    auto transaction = context->clientContext->getTx();
+    auto transaction = context->clientContext->getTransaction();
     switch (info.deleteType) {
     case DeleteNodeType::DELETE: {
         tableInfo.deleteFromRelTable(transaction, info.nodeIDVector);
@@ -136,7 +136,7 @@ void RelDeleteExecutor::init(ResultSet* resultSet, ExecutionContext*) {
 void SingleLabelRelDeleteExecutor::delete_(ExecutionContext* context) {
     auto deleteState = std::make_unique<RelTableDeleteState>(*info.srcNodeIDVector,
         *info.dstNodeIDVector, *info.relIDVector);
-    table->delete_(context->clientContext->getTx(), *deleteState);
+    table->delete_(context->clientContext->getTransaction(), *deleteState);
 }
 
 void MultiLabelRelDeleteExecutor::delete_(ExecutionContext* context) {
@@ -148,7 +148,7 @@ void MultiLabelRelDeleteExecutor::delete_(ExecutionContext* context) {
     auto table = tableIDToTableMap.at(relID.tableID);
     auto deleteState = std::make_unique<RelTableDeleteState>(*info.srcNodeIDVector,
         *info.dstNodeIDVector, *info.relIDVector);
-    table->delete_(context->clientContext->getTx(), *deleteState);
+    table->delete_(context->clientContext->getTransaction(), *deleteState);
 }
 
 } // namespace processor

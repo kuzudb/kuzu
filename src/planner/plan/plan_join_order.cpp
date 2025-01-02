@@ -133,7 +133,7 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraphCollection
 std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraph(const QueryGraph& queryGraph,
     const QueryGraphPlanningInfo& info) {
     context.init(&queryGraph, info.predicates);
-    cardinalityEstimator.initNodeIDDom(clientContext->getTx(), queryGraph);
+    cardinalityEstimator.initNodeIDDom(clientContext->getTransaction(), queryGraph);
     if (info.hint != nullptr) {
         auto constructor = JoinTreeConstructor(queryGraph, propertyExprCollection, info.predicates);
         auto joinTree = constructor.construct(info.hint);

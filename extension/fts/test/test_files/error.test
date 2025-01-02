@@ -58,6 +58,8 @@ Binder exception: Table: person doesn't have an index with name: personIdx.
 Binder exception: CREATE_FTS_INDEX is only supported in auto transaction mode.
 
 -LOG DropFTSInManualTrx
+-STATEMENT BEGIN TRANSACTION
+---- ok
 -STATEMENT CALL DROP_FTS_INDEX('person1', 'contentIdx')
 ---- error
 Binder exception: DROP_FTS_INDEX is only supported in auto transaction mode.

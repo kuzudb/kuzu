@@ -81,8 +81,8 @@ std::unique_ptr<TableCatalogEntry> RelTableCatalogEntry::copy() const {
 std::string RelTableCatalogEntry::toCypher(main::ClientContext* clientContext) const {
     std::stringstream ss;
     auto catalog = clientContext->getCatalog();
-    auto srcTableName = catalog->getTableName(clientContext->getTx(), srcTableID);
-    auto dstTableName = catalog->getTableName(clientContext->getTx(), dstTableID);
+    auto srcTableName = catalog->getTableName(clientContext->getTransaction(), srcTableID);
+    auto dstTableName = catalog->getTableName(clientContext->getTransaction(), dstTableID);
     auto srcMultiStr = srcMultiplicity == common::RelMultiplicity::MANY ? "MANY" : "ONE";
     auto dstMultiStr = dstMultiplicity == common::RelMultiplicity::MANY ? "MANY" : "ONE";
     std::string tableInfo =

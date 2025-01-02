@@ -10,10 +10,10 @@
 ---- error
 Can not execute a write query inside a read-only transaction.
 -STATEMENT BEGIN TRANSACTION READ ONLY;
----- ok
--STATEMENT CREATE SEQUENCE after;
 ---- error
-Can not execute a write query inside a read-only transaction.
+Connection already has an active transaction. Cannot start a transaction within another one. For concurrent multiple transactions, please open other connections.
+-STATEMENT CREATE SEQUENCE after;
+---- ok
 -STATEMENT RETURN currval('before');
 ---- error
 Catalog exception: currval: sequence "before" is not yet defined. To define the sequence, call nextval first.

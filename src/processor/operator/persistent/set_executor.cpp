@@ -55,7 +55,7 @@ void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
     auto updateState = std::make_unique<storage::NodeTableUpdateState>(tableInfo.columnID,
         *info.nodeIDVector, *info.columnDataVector);
     updateState->pkVector = info.pkVector;
-    tableInfo.table->update(context->clientContext->getTx(), *updateState);
+    tableInfo.table->update(context->clientContext->getTransaction(), *updateState);
     if (info.columnVectorPos.isValid()) {
         writeColumnUpdateResult(info.nodeIDVector, info.columnVector, info.columnDataVector);
     }
@@ -77,7 +77,7 @@ void MultiLabelNodeSetExecutor::set(ExecutionContext* context) {
     auto updateState = std::make_unique<storage::NodeTableUpdateState>(tableInfo.columnID,
         *info.nodeIDVector, *info.columnDataVector);
     updateState->pkVector = info.pkVector;
-    tableInfo.table->update(context->clientContext->getTx(), *updateState);
+    tableInfo.table->update(context->clientContext->getTransaction(), *updateState);
     if (info.columnVectorPos.isValid()) {
         writeColumnUpdateResult(info.nodeIDVector, info.columnVector, info.columnDataVector);
     }
@@ -112,7 +112,7 @@ void SingleLabelRelSetExecutor::set(ExecutionContext* context) {
     info.evaluator->evaluate();
     auto updateState = std::make_unique<storage::RelTableUpdateState>(tableInfo.columnID,
         *info.srcNodeIDVector, *info.dstNodeIDVector, *info.relIDVector, *info.columnDataVector);
-    tableInfo.table->update(context->clientContext->getTx(), *updateState);
+    tableInfo.table->update(context->clientContext->getTransaction(), *updateState);
     if (info.columnVectorPos.isValid()) {
         writeColumnUpdateResult(info.relIDVector, info.columnVector, info.columnDataVector);
     }
@@ -132,7 +132,7 @@ void MultiLabelRelSetExecutor::set(ExecutionContext* context) {
     auto& tableInfo = tableInfos.at(relID.tableID);
     auto updateState = std::make_unique<storage::RelTableUpdateState>(tableInfo.columnID,
         *info.srcNodeIDVector, *info.dstNodeIDVector, *info.relIDVector, *info.columnDataVector);
-    tableInfo.table->update(context->clientContext->getTx(), *updateState);
+    tableInfo.table->update(context->clientContext->getTransaction(), *updateState);
     if (info.columnVectorPos.isValid()) {
         writeColumnUpdateResult(info.relIDVector, info.columnVector, info.columnDataVector);
     }

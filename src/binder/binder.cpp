@@ -154,14 +154,14 @@ void Binder::validateOrderByFollowedBySkipOrLimitInWithClause(
 
 void Binder::validateTableType(table_id_t tableID, TableType expectedTableType) {
     auto tableEntry =
-        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(), tableID);
+        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(), tableID);
     if (tableEntry->getTableType() != expectedTableType) {
         throw BinderException("Table type mismatch.");
     }
 }
 
 void Binder::validateTableExist(const std::string& tableName) {
-    if (!clientContext->getCatalog()->containsTable(clientContext->getTx(), tableName)) {
+    if (!clientContext->getCatalog()->containsTable(clientContext->getTransaction(), tableName)) {
         throw BinderException("Table " + tableName + " does not exist.");
     }
 }
@@ -232,25 +232,25 @@ function::TableFunction Binder::getScanFunction(FileTypeInfo typeInfo,
     function::Function* func = nullptr;
     std::vector<LogicalType> inputTypes;
     inputTypes.push_back(LogicalType::STRING());
-    auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
+    auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTransaction());
     switch (typeInfo.fileType) {
     case FileType::PARQUET: {
-        func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
+        func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTransaction(),
             ParquetScanFunction::name, inputTypes, functions);
     } break;
     case FileType::NPY: {
-        func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
+        func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTransaction(),
             NpyScanFunction::name, inputTypes, functions);
     } break;
     case FileType::CSV: {
         auto csvConfig = CSVReaderConfig::construct(fileScanInfo.options);
-        func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
+        func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTransaction(),
             csvConfig.parallel ? ParallelCSVScan::name : SerialCSVScan::name, inputTypes,
             functions);
     } break;
     case FileType::UNKNOWN: {
         try {
-            func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTx(),
+            func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTransaction(),
                 common::stringFormat("{}_SCAN", typeInfo.fileTypeStr), inputTypes, functions);
         } catch (...) {
             if (typeInfo.fileTypeStr == "") {

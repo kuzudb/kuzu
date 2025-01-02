@@ -58,7 +58,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     columnNames.emplace_back("signature");
     columnTypes.emplace_back(LogicalType::STRING());
     std::vector<FunctionInfo> FunctionInfos;
-    for (const auto& entry : context->getCatalog()->getFunctionEntries(context->getTx())) {
+    for (const auto& entry : context->getCatalog()->getFunctionEntries(context->getTransaction())) {
         const auto& functionSet = entry->getFunctionSet();
         const auto type = FunctionEntryTypeUtils::toString(entry->getType());
         for (auto& function : functionSet) {

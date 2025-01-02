@@ -18,7 +18,7 @@ static std::shared_ptr<RecursiveJoinSharedState> createSharedState(const NodeExp
         auto tableID = entry->getTableID();
         auto table = context.getStorageManager()->getTable(tableID)->ptrCast<storage::NodeTable>();
         semiMasks.push_back(RoaringBitmapSemiMaskUtil::createRoaringBitmapSemiMask(tableID,
-            table->getNumTotalRows(context.getTx())));
+            table->getNumTotalRows(context.getTransaction())));
     }
     return std::make_shared<RecursiveJoinSharedState>(std::move(semiMasks));
 }
@@ -62,7 +62,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(LogicalOperator
     } else {
         dataInfo.pathPos = DataPos::getInvalidPos();
     }
-    for (auto& entry : clientContext->getCatalog()->getTableEntries(clientContext->getTx())) {
+    for (auto& entry :
+        clientContext->getCatalog()->getTableEntries(clientContext->getTransaction())) {
         dataInfo.tableIDToName.insert({entry->getTableID(), entry->getName()});
     }
     // Info

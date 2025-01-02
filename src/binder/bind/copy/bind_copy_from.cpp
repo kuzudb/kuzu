@@ -24,8 +24,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     validateTableExist(tableName);
     // Bind to table schema.
     auto catalog = clientContext->getCatalog();
-    auto tableID = catalog->getTableID(clientContext->getTx(), tableName);
-    auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTx(), tableID);
+    auto tableID = catalog->getTableID(clientContext->getTransaction(), tableName);
+    auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTransaction(), tableID);
     switch (tableEntry->getTableType()) {
     case TableType::REL_GROUP: {
         throw BinderException(stringFormat("Cannot copy into {} table with type {}.", tableName,
@@ -221,7 +221,7 @@ void bindExpectedRelColumns(RelTableCatalogEntry* relTableEntry,
     std::vector<LogicalType>& columnTypes, main::ClientContext* context) {
     KU_ASSERT(columnNames.empty() && columnTypes.empty());
     auto catalog = context->getCatalog();
-    auto transaction = context->getTx();
+    auto transaction = context->getTransaction();
     auto srcTable = catalog->getTableCatalogEntry(transaction, relTableEntry->getSrcTableID())
                         ->ptrCast<NodeTableCatalogEntry>();
     auto dstTable = catalog->getTableCatalogEntry(transaction, relTableEntry->getDstTableID())

@@ -126,8 +126,8 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) const {
 void WALReplayer::replayCreateTableEntryRecord(const WALRecord& walRecord) const {
     auto& createTableEntryRecord = walRecord.constCast<CreateTableEntryRecord>();
     KU_ASSERT(clientContext.getCatalog());
-    const auto tableID = clientContext.getCatalog()->createTableSchema(clientContext.getTx(),
-        createTableEntryRecord.boundCreateTableInfo);
+    const auto tableID = clientContext.getCatalog()->createTableSchema(
+        clientContext.getTransaction(), createTableEntryRecord.boundCreateTableInfo);
     KU_ASSERT(clientContext.getStorageManager());
     clientContext.getStorageManager()->createTable(tableID, clientContext.getCatalog(),
         &clientContext);
@@ -139,18 +139,18 @@ void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) con
     case CatalogEntryType::SCALAR_MACRO_ENTRY: {
         auto& macroEntry =
             createEntryRecord.ownedCatalogEntry->constCast<ScalarMacroCatalogEntry>();
-        clientContext.getCatalog()->addScalarMacroFunction(clientContext.getTx(),
+        clientContext.getCatalog()->addScalarMacroFunction(clientContext.getTransaction(),
             macroEntry.getName(), macroEntry.getMacroFunction()->copy());
     } break;
     case CatalogEntryType::SEQUENCE_ENTRY: {
         auto& sequenceEntry =
             createEntryRecord.ownedCatalogEntry->constCast<SequenceCatalogEntry>();
-        clientContext.getCatalog()->createSequence(clientContext.getTx(),
+        clientContext.getCatalog()->createSequence(clientContext.getTransaction(),
             sequenceEntry.getBoundCreateSequenceInfo());
     } break;
     case CatalogEntryType::TYPE_ENTRY: {
         auto& typeEntry = createEntryRecord.ownedCatalogEntry->constCast<TypeCatalogEntry>();
-        clientContext.getCatalog()->createType(clientContext.getTx(), typeEntry.getName(),
+        clientContext.getCatalog()->createType(clientContext.getTransaction(), typeEntry.getName(),
             typeEntry.getLogicalType().copy());
     } break;
     default: {
@@ -167,11 +167,11 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) const
     case CatalogEntryType::REL_TABLE_ENTRY:
     case CatalogEntryType::REL_GROUP_ENTRY: {
         KU_ASSERT(clientContext.getCatalog());
-        clientContext.getCatalog()->dropTableEntry(clientContext.getTx(), entryID);
+        clientContext.getCatalog()->dropTableEntry(clientContext.getTransaction(), entryID);
         KU_ASSERT(clientContext.getStorageManager());
     } break;
     case CatalogEntryType::SEQUENCE_ENTRY: {
-        clientContext.getCatalog()->dropSequence(clientContext.getTx(), entryID);
+        clientContext.getCatalog()->dropSequence(clientContext.getTransaction(), entryID);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -182,7 +182,7 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) const
 void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const {
     auto binder = Binder(&clientContext);
     auto& alterEntryRecord = walRecord.constCast<AlterTableEntryRecord>();
-    clientContext.getCatalog()->alterTableEntry(clientContext.getTx(),
+    clientContext.getCatalog()->alterTableEntry(clientContext.getTransaction(),
         *alterEntryRecord.ownedAlterInfo);
     if (alterEntryRecord.ownedAlterInfo->alterType == AlterType::ADD_PROPERTY) {
         const auto exprBinder = binder.getExpressionBinder();
@@ -194,13 +194,14 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const 
         auto exprMapper = ExpressionMapper();
         const auto defaultValueEvaluator = exprMapper.getEvaluator(boundDefault);
         defaultValueEvaluator->init(ResultSet(0) /* dummy ResultSet */, &clientContext);
-        const auto schema = clientContext.getCatalog()->getTableCatalogEntry(clientContext.getTx(),
-            alterEntryRecord.ownedAlterInfo->tableName);
+        const auto schema = clientContext.getCatalog()->getTableCatalogEntry(
+            clientContext.getTransaction(), alterEntryRecord.ownedAlterInfo->tableName);
         const auto& addedProp = schema->getProperty(addInfo->propertyDefinition.getName());
         TableAddColumnState state{addedProp, *defaultValueEvaluator};
         KU_ASSERT(clientContext.getStorageManager());
         const auto storageManager = clientContext.getStorageManager();
-        storageManager->getTable(schema->getTableID())->addColumn(clientContext.getTx(), state);
+        storageManager->getTable(schema->getTableID())
+            ->addColumn(clientContext.getTransaction(), state);
     }
 }
 
@@ -242,8 +243,8 @@ void WALReplayer::replayNodeTableInsertRecord(const WALRecord& walRecord) const 
         anchorState->getSelVectorUnsafe()[0] = i;
         const auto insertState =
             std::make_unique<NodeTableInsertState>(*nodeIDVector, pkVector, propertyVectors);
-        KU_ASSERT(clientContext.getTx() && clientContext.getTx()->isRecovery());
-        table.insert(clientContext.getTx(), *insertState);
+        KU_ASSERT(clientContext.getTransaction() && clientContext.getTransaction()->isRecovery());
+        table.insert(clientContext.getTransaction(), *insertState);
     }
 }
 
@@ -271,8 +272,8 @@ void WALReplayer::replayRelTableInsertRecord(const WALRecord& walRecord) const {
         const auto insertState = std::make_unique<RelTableInsertState>(
             *insertionRecord.ownedVectors[LOCAL_BOUND_NODE_ID_COLUMN_ID],
             *insertionRecord.ownedVectors[LOCAL_NBR_NODE_ID_COLUMN_ID], propertyVectors);
-        KU_ASSERT(clientContext.getTx() && clientContext.getTx()->isRecovery());
-        table.insert(clientContext.getTx(), *insertState);
+        KU_ASSERT(clientContext.getTransaction() && clientContext.getTransaction()->isRecovery());
+        table.insert(clientContext.getTransaction(), *insertState);
     }
 }
 
@@ -288,8 +289,8 @@ void WALReplayer::replayNodeDeletionRecord(const WALRecord& walRecord) const {
         internalID_t{deletionRecord.nodeOffset, deletionRecord.tableID});
     const auto deleteState =
         std::make_unique<NodeTableDeleteState>(*nodeIDVector, *deletionRecord.ownedPKVector);
-    KU_ASSERT(clientContext.getTx() && clientContext.getTx()->isRecovery());
-    table.delete_(clientContext.getTx(), *deleteState);
+    KU_ASSERT(clientContext.getTransaction() && clientContext.getTransaction()->isRecovery());
+    table.delete_(clientContext.getTransaction(), *deleteState);
 }
 
 void WALReplayer::replayNodeUpdateRecord(const WALRecord& walRecord) const {
@@ -304,8 +305,8 @@ void WALReplayer::replayNodeUpdateRecord(const WALRecord& walRecord) const {
         internalID_t{updateRecord.nodeOffset, updateRecord.tableID});
     const auto updateState = std::make_unique<NodeTableUpdateState>(updateRecord.columnID,
         *nodeIDVector, *updateRecord.ownedPropertyVector);
-    KU_ASSERT(clientContext.getTx() && clientContext.getTx()->isRecovery());
-    table.update(clientContext.getTx(), *updateState);
+    KU_ASSERT(clientContext.getTransaction() && clientContext.getTransaction()->isRecovery());
+    table.update(clientContext.getTransaction(), *updateState);
 }
 
 void WALReplayer::replayRelDeletionRecord(const WALRecord& walRecord) const {
@@ -317,15 +318,15 @@ void WALReplayer::replayRelDeletionRecord(const WALRecord& walRecord) const {
     const auto deleteState =
         std::make_unique<RelTableDeleteState>(*deletionRecord.ownedSrcNodeIDVector,
             *deletionRecord.ownedDstNodeIDVector, *deletionRecord.ownedRelIDVector);
-    KU_ASSERT(clientContext.getTx() && clientContext.getTx()->isRecovery());
-    table.delete_(clientContext.getTx(), *deleteState);
+    KU_ASSERT(clientContext.getTransaction() && clientContext.getTransaction()->isRecovery());
+    table.delete_(clientContext.getTransaction(), *deleteState);
 }
 
 void WALReplayer::replayRelDetachDeletionRecord(const WALRecord& walRecord) const {
     const auto& deletionRecord = walRecord.constCast<RelDetachDeleteRecord>();
     const auto tableID = deletionRecord.tableID;
     auto& table = clientContext.getStorageManager()->getTable(tableID)->cast<RelTable>();
-    KU_ASSERT(clientContext.getTx() && clientContext.getTx()->isRecovery());
+    KU_ASSERT(clientContext.getTransaction() && clientContext.getTransaction()->isRecovery());
     const auto anchorState = deletionRecord.ownedSrcNodeIDVector->state;
     KU_ASSERT(anchorState->getSelVector().getSelSize() == 1);
     const auto dstNodeIDVector =
@@ -335,7 +336,7 @@ void WALReplayer::replayRelDetachDeletionRecord(const WALRecord& walRecord) cons
     relIDVector->setState(anchorState);
     const auto deleteState = std::make_unique<RelTableDeleteState>(
         *deletionRecord.ownedSrcNodeIDVector, *dstNodeIDVector, *relIDVector);
-    table.detachDelete(clientContext.getTx(), deletionRecord.direction, deleteState.get());
+    table.detachDelete(clientContext.getTransaction(), deletionRecord.direction, deleteState.get());
 }
 
 void WALReplayer::replayRelUpdateRecord(const WALRecord& walRecord) const {
@@ -350,8 +351,8 @@ void WALReplayer::replayRelUpdateRecord(const WALRecord& walRecord) const {
     const auto updateState = std::make_unique<RelTableUpdateState>(updateRecord.columnID,
         *updateRecord.ownedSrcNodeIDVector, *updateRecord.ownedDstNodeIDVector,
         *updateRecord.ownedRelIDVector, *updateRecord.ownedPropertyVector);
-    KU_ASSERT(clientContext.getTx() && clientContext.getTx()->isRecovery());
-    table.update(clientContext.getTx(), *updateState);
+    KU_ASSERT(clientContext.getTransaction() && clientContext.getTransaction()->isRecovery());
+    table.update(clientContext.getTransaction(), *updateState);
 }
 
 void WALReplayer::replayCopyTableRecord(const WALRecord&) const {
@@ -361,9 +362,9 @@ void WALReplayer::replayCopyTableRecord(const WALRecord&) const {
 void WALReplayer::replayUpdateSequenceRecord(const WALRecord& walRecord) const {
     auto& sequenceEntryRecord = walRecord.constCast<UpdateSequenceRecord>();
     const auto sequenceID = sequenceEntryRecord.sequenceID;
-    const auto entry =
-        clientContext.getCatalog()->getSequenceCatalogEntry(clientContext.getTx(), sequenceID);
-    entry->nextKVal(clientContext.getTx(), sequenceEntryRecord.kCount);
+    const auto entry = clientContext.getCatalog()->getSequenceCatalogEntry(
+        clientContext.getTransaction(), sequenceID);
+    entry->nextKVal(clientContext.getTransaction(), sequenceEntryRecord.kCount);
 }
 
 } // namespace storage

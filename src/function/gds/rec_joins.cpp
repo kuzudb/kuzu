@@ -193,7 +193,7 @@ void RJAlgorithm::exec(processor::ExecutionContext* context) {
         totalNumNodes = inputNodeMaskMap->getNumMaskedNode();
     } else {
         for (auto& tableID : graph->getNodeTableIDs()) {
-            totalNumNodes += graph->getNumNodes(clientContext->getTx(), tableID);
+            totalNumNodes += graph->getNumNodes(clientContext->getTransaction(), tableID);
         }
     }
     common::offset_t completedNumNodes = 0;
@@ -222,7 +222,7 @@ void RJAlgorithm::exec(processor::ExecutionContext* context) {
                 GDSUtils::runVertexCompute(context, graph, *vertexCompute);
             }
         };
-        auto numNodes = graph->getNumNodes(clientContext->getTx(), tableID);
+        auto numNodes = graph->getNumNodes(clientContext->getTransaction(), tableID);
         auto mask = inputNodeMaskMap->getOffsetMask(tableID);
         if (mask->isEnabled()) {
             for (const auto& offset : mask->range(0, numNodes)) {
@@ -248,7 +248,7 @@ void RJAlgorithm::exec(processor::ExecutionContext* context) {
 }
 
 std::unique_ptr<BFSGraph> RJAlgorithm::getBFSGraph(processor::ExecutionContext* context) {
-    auto tx = context->clientContext->getTx();
+    auto tx = context->clientContext->getTransaction();
     auto mm = context->clientContext->getMemoryManager();
     auto graph = sharedState->graph.get();
     auto bfsGraph = std::make_unique<BFSGraph>(graph->getNumNodesMap(tx), mm);

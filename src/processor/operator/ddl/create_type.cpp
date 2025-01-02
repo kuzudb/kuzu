@@ -14,7 +14,7 @@ std::string CreateTypePrintInfo::toString() const {
 
 void CreateType::executeDDLInternal(ExecutionContext* context) {
     auto catalog = context->clientContext->getCatalog();
-    catalog->createType(context->clientContext->getTx(), name, type.copy());
+    catalog->createType(context->clientContext->getTransaction(), name, type.copy());
 }
 
 std::string CreateType::getOutputMsg() {

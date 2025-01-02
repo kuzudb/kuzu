@@ -38,8 +38,8 @@ static partition_idx_t getNumPartitions(offset_t maxOffset) {
 
 void PartitionerSharedState::initialize(const PartitionerDataInfo& dataInfo,
     main::ClientContext* clientContext) {
-    maxNodeOffsets[0] = srcNodeTable->getNumTotalRows(clientContext->getTx());
-    maxNodeOffsets[1] = dstNodeTable->getNumTotalRows(clientContext->getTx());
+    maxNodeOffsets[0] = srcNodeTable->getNumTotalRows(clientContext->getTransaction());
+    maxNodeOffsets[1] = dstNodeTable->getNumTotalRows(clientContext->getTransaction());
     numPartitions[0] = getNumPartitions(maxNodeOffsets[0]);
     numPartitions[1] = getNumPartitions(maxNodeOffsets[1]);
     Partitioner::initializePartitioningStates(dataInfo, partitioningBuffers, numPartitions);

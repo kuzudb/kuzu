@@ -30,8 +30,8 @@ public:
     bool reserve(uint64_t sizeToReserve) override {
         const bool inCheckpoint =
             ctx && !ctx->getTransactionManagerUnsafe()->hasActiveWriteTransactionNoLock();
-        const bool inCommit =
-            !inCheckpoint && ctx && ctx->getTx()->getCommitTS() != common::INVALID_TRANSACTION;
+        const bool inCommit = !inCheckpoint && ctx &&
+                              ctx->getTransaction()->getCommitTS() != common::INVALID_TRANSACTION;
         const bool inExecute = (!inCommit && !inCheckpoint);
         reserveCount = (reserveCount + 1) % failureFrequency;
         if ((canFailDuringCheckpoint || !inCheckpoint) && (canFailDuringExecute || !inExecute) &&
@@ -219,7 +219,6 @@ TEST_F(CopyTest, NodeInsertBMExceptionDuringCommitRecovery) {
             [](main::Connection* conn, int) {
                 const auto queryString = common::stringFormat(
                     "UNWIND RANGE(1,{}) AS i CREATE (a:account {ID:i})", numValues);
-
                 return conn->query(queryString);
             },
         .earlyExitOnFailureFunc = [](main::QueryResult*) { return false; },

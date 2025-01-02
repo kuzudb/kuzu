@@ -22,7 +22,7 @@ static std::unique_ptr<NodeOffsetMaskMap> getNodeOffsetMaskMap(main::ClientConte
     for (auto tableID : tableIDs) {
         auto nodeTable = storageManager->getTable(tableID)->ptrCast<NodeTable>();
         map->addMask(tableID, RoaringBitmapSemiMaskUtil::createRoaringBitmapSemiMask(tableID,
-                                  nodeTable->getNumTotalRows(context->getTx())));
+                                  nodeTable->getNumTotalRows(context->getTransaction())));
     }
     return map;
 }

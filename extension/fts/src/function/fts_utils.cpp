@@ -9,10 +9,11 @@ namespace fts_extension {
 
 catalog::NodeTableCatalogEntry& FTSUtils::bindTable(const std::string& tableName,
     main::ClientContext* context, std::string indexName, IndexOperation operation) {
-    if (!context->getCatalog()->containsTable(context->getTx(), tableName)) {
+    if (!context->getCatalog()->containsTable(context->getTransaction(), tableName)) {
         throw common::BinderException{common::stringFormat("Table {} does not exist.", tableName)};
     }
-    auto tableEntry = context->getCatalog()->getTableCatalogEntry(context->getTx(), tableName);
+    auto tableEntry =
+        context->getCatalog()->getTableCatalogEntry(context->getTransaction(), tableName);
     if (tableEntry->getTableType() != common::TableType::NODE) {
         switch (operation) {
         case IndexOperation::CREATE:
@@ -34,8 +35,8 @@ catalog::NodeTableCatalogEntry& FTSUtils::bindTable(const std::string& tableName
 
 void FTSUtils::validateIndexExistence(const main::ClientContext& context,
     common::table_id_t tableID, std::string indexName) {
-    if (!context.getCatalog()->containsIndex(context.getTx(), tableID, indexName)) {
-        auto tableName = context.getCatalog()->getTableName(context.getTx(), tableID);
+    if (!context.getCatalog()->containsIndex(context.getTransaction(), tableID, indexName)) {
+        auto tableName = context.getCatalog()->getTableName(context.getTransaction(), tableID);
         throw common::BinderException{common::stringFormat(
             "Table: {} doesn't have an index with name: {}.", tableName, indexName)};
     }

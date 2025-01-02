@@ -25,11 +25,11 @@ bool PreparedStatement::isReadOnly() const {
     return readOnly;
 }
 
-bool PreparedStatement::isProfile() {
+bool PreparedStatement::isProfile() const {
     return logicalPlan->isProfile();
 }
 
-StatementType PreparedStatement::getStatementType() {
+StatementType PreparedStatement::getStatementType() const {
     return parsedStatement->getStatementType();
 }
 

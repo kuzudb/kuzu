@@ -103,13 +103,13 @@ void ScanNodeTable::initVectors(TableScanState& state, const ResultSet& resultSe
 void ScanNodeTable::initGlobalStateInternal(ExecutionContext* context) {
     KU_ASSERT(sharedStates.size() == nodeInfos.size());
     for (auto i = 0u; i < nodeInfos.size(); i++) {
-        sharedStates[i]->initialize(context->clientContext->getTx(), nodeInfos[i].table,
+        sharedStates[i]->initialize(context->clientContext->getTransaction(), nodeInfos[i].table,
             *progressSharedState);
     }
 }
 
 bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
-    const auto transaction = context->clientContext->getTx();
+    const auto transaction = context->clientContext->getTransaction();
     while (currentTableIdx < nodeInfos.size()) {
         const auto& info = nodeInfos[currentTableIdx];
         auto& scanState = *info.localScanState;

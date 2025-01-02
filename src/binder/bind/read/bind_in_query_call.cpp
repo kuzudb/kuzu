@@ -26,8 +26,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     auto functionName = functionExpr->getFunctionName();
     std::unique_ptr<BoundReadingClause> boundReadingClause;
     expression_vector columns;
-    auto catalogSet = clientContext->getCatalog()->getFunctions(clientContext->getTx());
-    auto entry = BuiltInFunctionsUtils::getFunctionCatalogEntry(clientContext->getTx(),
+    auto catalogSet = clientContext->getCatalog()->getFunctions(clientContext->getTransaction());
+    auto entry = BuiltInFunctionsUtils::getFunctionCatalogEntry(clientContext->getTransaction(),
         functionName, catalogSet);
     switch (entry->getType()) {
     case CatalogEntryType::TABLE_FUNCTION_ENTRY: {

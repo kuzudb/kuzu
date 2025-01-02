@@ -18,7 +18,7 @@ NodeTableDeleteInfo PlanMapper::getNodeTableDeleteInfo(const TableCatalogEntry& 
     DataPos pkPos) const {
     auto storageManager = clientContext->getStorageManager();
     auto catalog = clientContext->getCatalog();
-    auto transaction = clientContext->getTx();
+    auto transaction = clientContext->getTransaction();
     auto tableID = entry.getTableID();
     auto table = storageManager->getTable(tableID)->ptrCast<NodeTable>();
     std::unordered_set<RelTable*> fwdRelTables;

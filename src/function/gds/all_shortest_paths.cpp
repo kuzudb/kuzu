@@ -246,7 +246,7 @@ private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
         auto frontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
-        auto numNodesMap = sharedState->graph->getNumNodesMap(clientContext->getTx());
+        auto numNodesMap = sharedState->graph->getNumNodesMap(clientContext->getTransaction());
         auto mm = clientContext->getMemoryManager();
         auto multiplicities = std::make_shared<PathMultiplicities>(numNodesMap, mm);
         auto output =

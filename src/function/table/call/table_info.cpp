@@ -64,7 +64,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
 
 static std::unique_ptr<TableCatalogEntry> getTableCatalogEntry(const main::ClientContext* context,
     const std::string& tableName) {
-    auto transaction = context->getTx();
+    auto transaction = context->getTransaction();
     auto tableInfo = common::StringUtils::split(tableName, ".");
     if (tableInfo.size() == 1) {
         auto tableID = context->getCatalog()->getTableID(transaction, tableName);

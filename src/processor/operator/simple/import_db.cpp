@@ -7,8 +7,6 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace processor {
 
-using std::stringstream;
-
 void ImportDB::executeInternal(ExecutionContext* context) {
     if (query.empty()) { // Export empty database.
         return;
@@ -20,7 +18,7 @@ void ImportDB::executeInternal(ExecutionContext* context) {
     if (context->clientContext->getTransactionContext()->hasActiveTransaction()) {
         context->clientContext->getTransactionContext()->commit();
     }
-    context->clientContext->queryInternal(query, std::nullopt /* queryID */);
+    context->clientContext->queryNoLock(query);
 }
 
 std::string ImportDB::getOutputMsg() {

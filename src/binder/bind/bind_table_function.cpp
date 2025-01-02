@@ -20,8 +20,8 @@ static void validateParameterType(expression_vector positionalParams) {
 
 BoundTableFunction Binder::bindTableFunc(std::string tableFuncName,
     const parser::ParsedExpression& expr, expression_vector& columns) {
-    auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTx());
-    auto entry = BuiltInFunctionsUtils::getFunctionCatalogEntry(clientContext->getTx(),
+    auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTransaction());
+    auto entry = BuiltInFunctionsUtils::getFunctionCatalogEntry(clientContext->getTransaction(),
         tableFuncName, functions);
     expression_vector positionalParams;
     std::vector<LogicalType> positionalParamTypes;
