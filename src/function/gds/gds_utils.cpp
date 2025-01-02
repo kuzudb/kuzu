@@ -47,7 +47,6 @@ void GDSUtils::scheduleFrontierTask(table_id_t boundTableID, table_id_t nbrTable
         task->runSparse();
         return;
     }
-
     // GDSUtils::runFrontiersUntilConvergence is called from a GDSCall operator, which is
     // already executed by a worker thread Tm of the task scheduler. So this function is
     // executed by Tm. Because this function will monitor the task and wait for it to
