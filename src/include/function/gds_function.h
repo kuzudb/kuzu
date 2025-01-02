@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace function {
 
-struct GDSFunction : public Function {
+struct KUZU_API GDSFunction : public Function {
     std::unique_ptr<GDSAlgorithm> gds;
 
     GDSFunction() = default;

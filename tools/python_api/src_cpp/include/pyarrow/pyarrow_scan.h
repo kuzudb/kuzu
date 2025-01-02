@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "common/arrow/arrow.h"
 #include "function/scalar_function.h"
 #include "function/table/bind_data.h"
@@ -12,6 +14,7 @@ namespace kuzu {
 struct PyArrowScanConfig {
     uint64_t skipNum;
     uint64_t limitNum;
+    bool ignoreErrors;
     explicit PyArrowScanConfig(const common::case_insensitive_map_t<common::Value>& options);
 };
 
@@ -35,19 +38,22 @@ struct PyArrowTableScanSharedState final : public function::BaseScanSharedStateW
 struct PyArrowTableScanFunctionData final : public function::TableFuncBindData {
     std::shared_ptr<ArrowSchemaWrapper> schema;
     std::vector<std::shared_ptr<ArrowArrayWrapper>> arrowArrayBatches;
+    bool ignoreErrors;
 
     PyArrowTableScanFunctionData(binder::expression_vector columns,
         std::shared_ptr<ArrowSchemaWrapper> schema,
-        std::vector<std::shared_ptr<ArrowArrayWrapper>> arrowArrayBatches, uint64_t numRows)
+        std::vector<std::shared_ptr<ArrowArrayWrapper>> arrowArrayBatches, uint64_t numRows,
+        bool ignoreErrors)
         : TableFuncBindData{std::move(columns), 0 /* numWarningDataColumns */, numRows},
-          schema{std::move(schema)}, arrowArrayBatches{std::move(arrowArrayBatches)} {}
+          schema{std::move(schema)}, arrowArrayBatches{std::move(arrowArrayBatches)},
+          ignoreErrors(ignoreErrors) {}
 
     ~PyArrowTableScanFunctionData() override {}
 
+    bool getIgnoreErrorsOption() const override { return ignoreErrors; }
+
 private:
-    PyArrowTableScanFunctionData(const PyArrowTableScanFunctionData& other)
-        : TableFuncBindData{other}, schema{other.schema},
-          arrowArrayBatches{other.arrowArrayBatches} {}
+    PyArrowTableScanFunctionData(const PyArrowTableScanFunctionData& other) = default;
 
 public:
     std::unique_ptr<function::TableFuncBindData> copy() const override {

@@ -17,7 +17,7 @@ namespace function {
 struct TableFuncBindInput;
 struct TableFuncBindData;
 
-struct TableFuncSharedState {
+struct KUZU_API TableFuncSharedState {
     virtual ~TableFuncSharedState() = default;
 
     template<class TARGET>

@@ -21,7 +21,7 @@ using scalar_func_exec_t = std::function<void(
 using scalar_func_select_t = std::function<bool(
     const std::vector<std::shared_ptr<common::ValueVector>>&, common::SelectionVector&)>;
 
-struct ScalarFunction : ScalarOrAggregateFunction {
+struct KUZU_API ScalarFunction : public ScalarOrAggregateFunction {
     scalar_func_exec_t execFunc = nullptr;
     scalar_func_select_t selectFunc = nullptr;
     scalar_func_compile_exec_t compileFunc = nullptr;

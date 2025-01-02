@@ -5,6 +5,7 @@
 #include "common/exception/runtime.h"
 #include "function/table/bind_input.h"
 #include "numpy/numpy_scan.h"
+#include "processor/execution_context.h"
 #include "py_connection.h"
 #include "pyarrow/pyarrow_scan.h"
 #include "pybind11/pytypes.h"
@@ -31,8 +32,9 @@ std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* /*context*/,
     auto getFunc = df.attr("__getitem__");
     auto numRows = py::len(getFunc(columns[0]));
     auto returnColumns = input->binder->createVariables(names, returnTypes);
+    auto scanConfig = input->extraInput->constPtrCast<ExtraScanTableFuncBindInput>()->config.copy();
     return std::make_unique<PandasScanFunctionData>(std::move(returnColumns), df, numRows,
-        std::move(columnBindData));
+        std::move(columnBindData), std::move(scanConfig));
 }
 
 bool sharedStateNext(const TableFuncBindData* /*bindData*/, PandasScanLocalState* localState,
@@ -119,6 +121,10 @@ static double progressFunc(TableFuncSharedState* sharedState) {
     return static_cast<double>(pandasSharedState->numRowsRead) / pandasSharedState->numRows;
 }
 
+static void finalizeFunc(const processor::ExecutionContext* ctx, TableFuncSharedState*) {
+    ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
+}
+
 function_set PandasScanFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(getFunction().copy());
@@ -132,6 +138,7 @@ TableFunction PandasScanFunction::getFunction() {
     function.initSharedStateFunc = initSharedState;
     function.initLocalStateFunc = initLocalState;
     function.progressFunc = progressFunc;
+    function.finalizeFunc = finalizeFunc;
     return function;
 }
 

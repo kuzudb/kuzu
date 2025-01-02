@@ -1,5 +1,7 @@
 #include "function/table/bind_data.h"
 
+#include "common/constants.h"
+
 namespace kuzu {
 namespace function {
 
@@ -12,6 +14,15 @@ std::vector<bool> TableFuncBindData::getColumnSkips() const {
         return skips;
     }
     return columnSkips;
+}
+
+bool TableFuncBindData::getIgnoreErrorsOption() const {
+    return common::CopyConstants::DEFAULT_IGNORE_ERRORS;
+}
+
+bool ScanBindData::getIgnoreErrorsOption() const {
+    return config.getOption(common::CopyConstants::IGNORE_ERRORS_OPTION_NAME,
+        common::CopyConstants::DEFAULT_IGNORE_ERRORS);
 }
 
 } // namespace function
