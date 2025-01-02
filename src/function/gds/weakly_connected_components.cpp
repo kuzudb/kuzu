@@ -26,14 +26,7 @@ public:
         std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreads,
         table_id_map_t<offset_t> numNodesMap, storage::MemoryManager* mm)
         : FrontierPair(curFrontier, nextFrontier, maxThreads) {
-        for (const auto& [tableID, numNodes] : numNodesMap) {
-            vertexValueMap.allocate(tableID, numNodes, mm);
-            auto data = vertexValueMap.getData(tableID);
-            // Cast a unique number to each node
-            for (auto i = 0u; i < numNodes; ++i) {
-                data[i].store(i, std::memory_order_relaxed);
-            }
-        }
+        initVertexValues(numNodesMap, mm);
     }
 
     void initRJFromSource(common::nodeID_t) override { setActiveNodesForNextIter(); };
@@ -75,6 +68,17 @@ public:
 
     common::offset_t getVertexValue(common::offset_t offset) {
         return vertexValues[offset].load(std::memory_order_relaxed);
+    }
+
+private:
+    void initVertexValues(table_id_map_t<offset_t> numNodesMap, storage::MemoryManager* mm) {
+        for (const auto& [tableID, numNodes] : numNodesMap) {
+            vertexValueMap.allocate(tableID, numNodes, mm);
+            auto data = vertexValueMap.getData(tableID);
+            for (auto i = 0u; i < numNodes; ++i) {
+                data[i].store(i, std::memory_order_relaxed);
+            }
+        }
     }
 
 private:
