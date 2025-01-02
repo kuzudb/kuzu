@@ -227,7 +227,8 @@ void Binder::restoreScope(BinderScope prevScope) {
     scope = std::move(prevScope);
 }
 
-function::TableFunction Binder::getScanFunction(FileTypeInfo typeInfo, const FileScanInfo& fileScanInfo) {
+function::TableFunction Binder::getScanFunction(FileTypeInfo typeInfo,
+    const FileScanInfo& fileScanInfo) {
     function::Function* func = nullptr;
     std::vector<LogicalType> inputTypes;
     inputTypes.push_back(LogicalType::STRING());

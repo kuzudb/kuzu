@@ -686,8 +686,8 @@ struct JsonScanBindData : public ScanBindData {
     JsonScanFormat format;
 
     JsonScanBindData(binder::expression_vector columns, column_id_t numWarningDataColumns,
-        FileScanInfo fileScanInfo, main::ClientContext* ctx, case_insensitive_map_t<idx_t> colNameToIdx,
-        JsonScanFormat format)
+        FileScanInfo fileScanInfo, main::ClientContext* ctx,
+        case_insensitive_map_t<idx_t> colNameToIdx, JsonScanFormat format)
         : ScanBindData(columns, std::move(fileScanInfo), ctx, numWarningDataColumns, 0),
           colNameToIdx{std::move(colNameToIdx)}, format{format} {}
 
@@ -789,16 +789,16 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
 
         if (scanConfig.format == JsonScanFormat::AUTO_DETECT) {
             JSONScanSharedState sharedState(*context,
-                scanInput->fileScanInfo.getFilePath(JsonExtension::JSON_SCAN_FILE_IDX), scanConfig.format,
-                0);
+                scanInput->fileScanInfo.getFilePath(JsonExtension::JSON_SCAN_FILE_IDX),
+                scanConfig.format, 0);
             JSONScanLocalState localState(*context->getMemoryManager(), sharedState, context);
             localState.readNext();
             scanConfig.format = sharedState.jsonReader->getFormat();
         }
     } else {
-        scanConfig.format =
-            autoDetect(context, scanInput->fileScanInfo.getFilePath(JsonExtension::JSON_SCAN_FILE_IDX),
-                scanConfig, columnTypes, columnNames, colNameToIdx);
+        scanConfig.format = autoDetect(context,
+            scanInput->fileScanInfo.getFilePath(JsonExtension::JSON_SCAN_FILE_IDX), scanConfig,
+            columnTypes, columnNames, colNameToIdx);
     }
     scanInput->tableFunction->canParallelFunc = [scanConfig]() {
         return scanConfig.format == JsonScanFormat::NEWLINE_DELIMITED;
@@ -806,8 +806,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
 
     auto columns = input->binder->createVariables(columnNames, columnTypes);
 
-    const bool ignoreErrors = scanInput->fileScanInfo.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
-        CopyConstants::DEFAULT_IGNORE_ERRORS);
+    const bool ignoreErrors = scanInput->fileScanInfo.getOption(
+        CopyConstants::IGNORE_ERRORS_OPTION_NAME, CopyConstants::DEFAULT_IGNORE_ERRORS);
 
     std::vector<std::string> warningColumnNames;
     std::vector<LogicalType> warningColumnTypes;

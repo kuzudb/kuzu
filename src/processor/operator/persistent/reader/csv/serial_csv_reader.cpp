@@ -207,9 +207,12 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         std::string quote(1, detectedDialect.quoteChar);
         std::string delim(1, detectedDialect.delimiter);
         std::string escape(1, detectedDialect.escapeChar);
-        scanInput->fileScanInfo.options.insert_or_assign("ESCAPE", Value(LogicalType::STRING(), escape));
-        scanInput->fileScanInfo.options.insert_or_assign("QUOTE", Value(LogicalType::STRING(), quote));
-        scanInput->fileScanInfo.options.insert_or_assign("DELIM", Value(LogicalType::STRING(), delim));
+        scanInput->fileScanInfo.options.insert_or_assign("ESCAPE",
+            Value(LogicalType::STRING(), escape));
+        scanInput->fileScanInfo.options.insert_or_assign("QUOTE",
+            Value(LogicalType::STRING(), quote));
+        scanInput->fileScanInfo.options.insert_or_assign("DELIM",
+            Value(LogicalType::STRING(), delim));
     }
 
     if (!csvOption.setHeader && csvOption.autoDetection && detectedHeader) {
@@ -236,8 +239,8 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunction
     row_idx_t numRows = 0;
     auto columnInfo = CSVColumnInfo(bindData->getNumColumns() - bindData->numWarningDataColumns,
         bindData->getColumnSkips(), bindData->numWarningDataColumns);
-    auto sharedState = std::make_unique<SerialCSVScanSharedState>(bindData->fileScanInfo.copy(), numRows,
-        bindData->context, csvOption.copy(), columnInfo.copy(), input.queryID);
+    auto sharedState = std::make_unique<SerialCSVScanSharedState>(bindData->fileScanInfo.copy(),
+        numRows, bindData->context, csvOption.copy(), columnInfo.copy(), input.queryID);
     for (idx_t i = 0; i < sharedState->fileScanInfo.filePaths.size(); ++i) {
         const auto& filePath = sharedState->fileScanInfo.filePaths[i];
         auto reader = std::make_unique<SerialCSVReader>(filePath, i, csvOption.copy(),

@@ -689,16 +689,16 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     }
 
     auto resultColumns = input->binder->createVariables(detectedColumnNames, detectedColumnTypes);
-    auto bindData =
-        std::make_unique<ScanBindData>(std::move(resultColumns), scanInput->fileScanInfo.copy(), context);
+    auto bindData = std::make_unique<ScanBindData>(std::move(resultColumns),
+        scanInput->fileScanInfo.copy(), context);
     bindData->cardinality = getNumRows(bindData.get());
     return bindData;
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
     auto bindData = input.bindData->constPtrCast<ScanBindData>();
-    return std::make_unique<ParquetScanSharedState>(bindData->fileScanInfo.copy(), getNumRows(bindData),
-        bindData->context, bindData->getColumnSkips());
+    return std::make_unique<ParquetScanSharedState>(bindData->fileScanInfo.copy(),
+        getNumRows(bindData), bindData->context, bindData->getColumnSkips());
 }
 
 static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput&,

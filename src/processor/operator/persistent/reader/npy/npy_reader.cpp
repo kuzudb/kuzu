@@ -329,7 +329,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
 static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
     auto bindData = input.bindData->constPtrCast<ScanBindData>();
     auto reader = make_unique<NpyReader>(bindData->fileScanInfo.filePaths[0]);
-    return std::make_unique<NpyScanSharedState>(bindData->fileScanInfo.copy(), reader->getNumRows());
+    return std::make_unique<NpyScanSharedState>(bindData->fileScanInfo.copy(),
+        reader->getNumRows());
 }
 
 static void finalizeFunc(const ExecutionContext* ctx, TableFuncSharedState*) {

@@ -68,14 +68,16 @@ struct KUZU_API ScanBindData : public TableFuncBindData {
 
     ScanBindData(binder::expression_vector columns, common::FileScanInfo fileScanInfo,
         main::ClientContext* context)
-        : TableFuncBindData{std::move(columns)}, fileScanInfo{std::move(fileScanInfo)}, context{context} {}
+        : TableFuncBindData{std::move(columns)}, fileScanInfo{std::move(fileScanInfo)},
+          context{context} {}
     ScanBindData(binder::expression_vector columns, common::FileScanInfo fileScanInfo,
         main::ClientContext* context, common::column_id_t numWarningDataColumns,
         common::row_idx_t estCardinality)
         : TableFuncBindData{std::move(columns), numWarningDataColumns, estCardinality},
           fileScanInfo{std::move(fileScanInfo)}, context{context} {}
     ScanBindData(const ScanBindData& other)
-        : TableFuncBindData{other}, fileScanInfo{other.fileScanInfo.copy()}, context{other.context} {}
+        : TableFuncBindData{other}, fileScanInfo{other.fileScanInfo.copy()},
+          context{other.context} {}
 
     bool getIgnoreErrorsOption() const override;
 

@@ -238,9 +238,12 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         std::string quote(1, detectedDialect.quoteChar);
         std::string delim(1, detectedDialect.delimiter);
         std::string escape(1, detectedDialect.escapeChar);
-        scanInput->fileScanInfo.options.insert_or_assign("ESCAPE", Value(LogicalType::STRING(), escape));
-        scanInput->fileScanInfo.options.insert_or_assign("QUOTE", Value(LogicalType::STRING(), quote));
-        scanInput->fileScanInfo.options.insert_or_assign("DELIM", Value(LogicalType::STRING(), delim));
+        scanInput->fileScanInfo.options.insert_or_assign("ESCAPE",
+            Value(LogicalType::STRING(), escape));
+        scanInput->fileScanInfo.options.insert_or_assign("QUOTE",
+            Value(LogicalType::STRING(), quote));
+        scanInput->fileScanInfo.options.insert_or_assign("DELIM",
+            Value(LogicalType::STRING(), delim));
     }
 
     if (!csvOption.setHeader && csvOption.autoDetection && detectedHeader) {
