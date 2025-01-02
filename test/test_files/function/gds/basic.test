@@ -94,6 +94,16 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
 #|ABFsUni|0
 #|CsWork|1
 #|DEsWork|1
+-STATEMENT CALL k_core_decomposition('PK') RETURN _node.fName, k_degree;
+---- 8
+Alice|6
+Bob|6
+Carol|6
+Dan|6
+Elizabeth|1
+Farooq|1
+Greg|1
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0
 -STATEMENT CALL page_rank('PK') RETURN _node.fName, rank;
 ---- 8
 Alice|0.125000
