@@ -113,8 +113,7 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const BoundStatement& statemen
     default:
         KU_UNREACHABLE;
     }
-    // Avoid sharing operator across plans.
-    return plan->deepCopy();
+    return plan;
 }
 
 std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllPlans(const BoundStatement& statement) {
