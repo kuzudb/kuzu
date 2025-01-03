@@ -11,7 +11,8 @@
   "scripts": {
     "test": "mocha test --timeout 20000",
     "clean": "node clean.js",
-    "build": "node build.js"
+    "clean-all": "node clean.js all",
+    "build": "node build.mjs"
   },
   "author": "Kùzu Team",
   "license": "MIT",

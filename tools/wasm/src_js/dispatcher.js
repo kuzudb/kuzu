@@ -9,8 +9,20 @@ class Dispatcher {
     this.workerInitPromise = this.init();
   }
 
+  getWorkerPath() {
+    if (isNodeJs) {
+      return "./worker.js";
+    }
+    // Hack: importMeta will be replaced by esbuild with "import.meta"
+    // This is a workaround for "This file is considered to be an ECMAScript module because of the use of "import.meta" here:"
+    const scriptPath = importMeta.url;
+    const basePath = scriptPath.substring(0, scriptPath.lastIndexOf("/"));
+    return `${basePath}/worker.js`;
+  }
+
   async init() {
-    const workerUrl = isNodeJs ? "./worker.js" : new URL("./worker.js", import.meta.url).href;
+    const workerUrl = this.getWorkerPath();
+    console.log("Worker URL:", workerUrl);
     this.worker = await spawn(new Worker(workerUrl));
     const res = await this.worker.init();
     if (res.isSuccess) {
