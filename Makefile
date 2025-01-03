@@ -135,6 +135,11 @@ python:
 python-debug:
 	$(call run-cmake-debug, -DBUILD_PYTHON=TRUE)
 
+wasm:
+	mkdir -p build/wasm && cd build/wasm &&\
+	emcmake cmake $(CMAKE_FLAGS) -DCMAKE_BUILD_TYPE=Release -DBUILD_WASM=TRUE -DBUILD_BENCHMARK=FALSE -DBUILD_TESTS=FALSE -DBUILD_SHELL=FALSE  ../.. && \
+	cmake --build . --config Release -j $(NUM_THREADS)
+
 # Language API tests
 javatest:
 ifeq ($(OS),Windows_NT)
