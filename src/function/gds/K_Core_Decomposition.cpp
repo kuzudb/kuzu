@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
 #include "common/types/types.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
@@ -9,7 +10,6 @@
 #include "graph/graph.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
-#include "binder/expression/expression_util.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -65,7 +65,7 @@ public:
         init(numNodesMap, mm);
     }
 
-    void pin(table_id_t tableID) { coreValues = coreValuesMap.getData(tableID);}
+    void pin(table_id_t tableID) { coreValues = coreValuesMap.getData(tableID); }
 
     bool isValid(common::offset_t offset) {
         return coreValues[offset].load(std::memory_order_relaxed) != INVALID_DEGREE;
@@ -153,11 +153,10 @@ struct RemoveVertexEdgeCompute : public EdgeCompute {
 
     explicit RemoveVertexEdgeCompute(Degrees* degrees) : degrees{degrees} {}
 
-    std::vector<common::nodeID_t> edgeCompute(common::nodeID_t,
-        graph::NbrScanState::Chunk& chunk, bool) override {
-        chunk.forEach([&](auto nbrNodeID, auto) {
-            degrees->decreaseDegreeByOne(nbrNodeID.offset);
-        });
+    std::vector<common::nodeID_t> edgeCompute(common::nodeID_t, graph::NbrScanState::Chunk& chunk,
+        bool) override {
+        chunk.forEach(
+            [&](auto nbrNodeID, auto) { degrees->decreaseDegreeByOne(nbrNodeID.offset); });
         return {};
     }
 
@@ -168,8 +167,8 @@ struct RemoveVertexEdgeCompute : public EdgeCompute {
 
 class KCoreOutputWriter : GDSOutputWriter {
 public:
-    KCoreOutputWriter(main::ClientContext* context,
-        processor::NodeOffsetMaskMap* outputNodeMask, CoreValues* coreValues)
+    KCoreOutputWriter(main::ClientContext* context, processor::NodeOffsetMaskMap* outputNodeMask,
+        CoreValues* coreValues)
         : GDSOutputWriter{context, outputNodeMask}, coreValues{coreValues} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID(), context->getMemoryManager());
         kValueVector = createVector(LogicalType::UINT64(), context->getMemoryManager());
@@ -296,14 +295,16 @@ public:
         auto numNodesComputed = 0u;
         while (numNodes != numNodesComputed) {
             while (true) {
-                auto numActiveNodes = degreeLessThanCore(&degrees, &coreValues, coreValue, computeState.frontierPair.get(), numNodesMap);
+                auto numActiveNodes = degreeLessThanCore(&degrees, &coreValues, coreValue,
+                    computeState.frontierPair.get(), numNodesMap);
                 numNodesComputed += numActiveNodes;
                 if (numActiveNodes == 0) {
                     break;
                 }
                 computeState.frontierPair->setActiveNodesForNextIter();
                 computeState.frontierPair->getNextSparseFrontier().disable();
-                GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH,
+                GDSUtils::runFrontiersUntilConvergence(context, computeState, graph,
+                    ExtendDirection::BOTH,
                     computeState.frontierPair->getCurrentIter() + 1 /* maxIters */);
             }
             coreValue++;
@@ -322,10 +323,10 @@ public:
     }
 
 private:
-    offset_t degreeLessThanCore(Degrees* degrees, CoreValues* coreValues,
-        degree_t coreValue, FrontierPair* frontierPair, table_id_map_t<offset_t> numNodesMap) {
+    offset_t degreeLessThanCore(Degrees* degrees, CoreValues* coreValues, degree_t coreValue,
+        FrontierPair* frontierPair, table_id_map_t<offset_t> numNodesMap) {
         auto numActiveNodes = 0u;
-        for (auto[tableID, numNodes] : numNodesMap) {
+        for (auto [tableID, numNodes] : numNodesMap) {
             degrees->pin(tableID);
             coreValues->pin(tableID);
             for (auto i = 0u; i < numNodes; ++i) {
