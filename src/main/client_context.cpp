@@ -392,18 +392,25 @@ std::vector<std::shared_ptr<Statement>> ClientContext::parseQuery(std::string_vi
         throw ConnectionException("Query is empty.");
     }
     std::vector<std::shared_ptr<Statement>> statements;
-    const auto parsedStatements = Parser::parseQuery(query);
+    auto parserTimer = TimeMetric(true /*enable*/);
+    parserTimer.start();
+    auto parsedStatements = Parser::parseQuery(query);
+    parserTimer.stop();
+    const auto avgParsingTime = parserTimer.getElapsedTimeMS() / parsedStatements.size() / 1.0;
     StandaloneCallRewriter standaloneCallAnalyzer{this};
     for (auto i = 0u; i < parsedStatements.size(); i++) {
         auto rewriteQuery = standaloneCallAnalyzer.getRewriteQuery(*parsedStatements[i]);
         if (!rewriteQuery.empty()) {
+            parserTimer.start();
             auto rewrittenStatements = Parser::parseQuery(rewriteQuery);
+            parserTimer.stop();
             for (auto& statement : rewrittenStatements) {
                 statement->setToInternal();
                 statements.push_back(statement);
             }
         }
-        statements.push_back(parsedStatements[i]);
+        parsedStatements[i]->setParsingTime(avgParsingTime + parserTimer.getElapsedTimeMS());
+        statements.push_back(std::move(parsedStatements[i]));
     }
     return statements;
 }
@@ -419,7 +426,7 @@ void ClientContext::validateTransaction(const PreparedStatement& preparedStateme
     }
     if (preparedStatement.parsedStatement->requireTransaction() &&
         transactionContext->hasActiveTransaction()) {
-        // KU_ASSERT(!transactionContext->isAutoTransaction());
+        KU_ASSERT(!transactionContext->isAutoTransaction());
         transactionContext->validateManualTransaction(preparedStatement.readOnly);
     }
 }
@@ -428,8 +435,8 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
     std::shared_ptr<Statement> parsedStatement, bool shouldCommitNewTransaction,
     std::optional<std::unordered_map<std::string, std::shared_ptr<Value>>> inputParams) {
     auto preparedStatement = std::make_unique<PreparedStatement>();
-    auto compilingTimer = TimeMetric(true /* enable */);
-    compilingTimer.start();
+    auto prepareTimer = TimeMetric(true /* enable */);
+    prepareTimer.start();
     try {
         preparedStatement->preparedSummary.statementType = parsedStatement->getStatementType();
         preparedStatement->readOnly = StatementReadWriteAnalyzer().isReadOnly(*parsedStatement);
@@ -462,8 +469,9 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
         preparedStatement->success = false;
         preparedStatement->errMsg = exception.what();
     }
-    compilingTimer.stop();
-    preparedStatement->preparedSummary.compilingTime = compilingTimer.getElapsedTimeMS();
+    prepareTimer.stop();
+    preparedStatement->preparedSummary.compilingTime =
+        preparedStatement->parsedStatement->getParsingTime() + prepareTimer.getElapsedTimeMS();
     return preparedStatement;
 }
 
