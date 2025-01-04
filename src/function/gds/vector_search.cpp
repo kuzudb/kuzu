@@ -518,7 +518,7 @@ namespace kuzu {
                         visited->set_bit(neighbor.offset);
                         double dist;
                         computeZeroCopyDistance(context, neighbor.offset, dc, &dist);
-                        nbrsToExplore.emplace(neighbor.offset, dist);
+                        nbrsToExplore.emplace(i, dist);
                         totalDist++;
                         if (results.size() < efSearch || dist < results.top()->dist) {
                             candidates.emplace(neighbor.offset, dist);
@@ -532,6 +532,7 @@ namespace kuzu {
                         if (visited->is_bit_set(secondHopNeighbor.offset)) {
                             continue;
                         }
+                        visited->set_bit(firstHopNbrs[i].offset);
                         if (filterMask->isMasked(secondHopNeighbor.offset)) {
                             visited->set_bit(secondHopNeighbor.offset);
                             double dist;
