@@ -474,6 +474,92 @@ namespace kuzu {
                 }
             }
 
+            inline void dynamicTwoHopSearchExp(processor::ExecutionContext *context,
+                                            std::priority_queue<NodeDistFarther> &candidates,
+                                            NodeDistFarther &candidate, int filterNbrsToFind,
+                                            std::unordered_map<vector_id_t, int> &cachedNbrsCount,
+                                            std::vector<common::nodeID_t> &firstHopNbrs,
+                                            const float *query, const table_id_t tableId,
+                                            Graph *graph,
+                                            CosineDistanceComputer *dc,
+                                            QuantizedDistanceComputer<float, uint8_t> *qdc,
+                                            NodeOffsetLevelSemiMask *filterMask,
+                                            GraphScanState &state,
+                                            BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
+                                            VectorIndexHeaderPerPartition *header, const int efSearch,
+                                            int &totalGetNbrs, int &totalDist,
+                                            std::array<std::vector<common::nodeID_t>, 128> &cachedNbrs) {
+                // Get the first hop neighbours
+                std::priority_queue<NodeDistFarther> nbrsToExplore;
+
+                // Try prefetching
+                for (auto &neighbor: firstHopNbrs) {
+                    filterMask->prefetchMaskValue(neighbor.offset);
+                }
+
+                // First pass
+                int filteredCount = 0;
+                for (offset_t i = 0; i < firstHopNbrs.size(); i++) {
+                    auto &neighbor = firstHopNbrs[i];
+                    cachedNbrs[i] = graph->scanFwdRandom({neighbor.offset, tableId}, state);
+                    totalGetNbrs++;
+                    for (auto &secondHopNeighbor: cachedNbrs[i]) {
+                        filterMask->prefetchMaskValue(secondHopNeighbor.offset);
+                    }
+                    for (auto &secondHopNeighbor: cachedNbrs[i]) {
+                        if (visited->is_bit_set(secondHopNeighbor.offset)) {
+                            continue;
+                        }
+                        if (filterMask->isMasked(secondHopNeighbor.offset)) {
+                            visited->set_bit(secondHopNeighbor.offset);
+                            double dist;
+                            computeZeroCopyDistance(context, secondHopNeighbor.offset, dc, &dist);
+                            nbrsToExplore.emplace(i, dist);
+                            totalDist++;
+                            if (results.size() < efSearch || dist < results.top()->dist) {
+                                candidates.emplace(secondHopNeighbor.offset, dist);
+                                results.push(NodeDistFarther(secondHopNeighbor.offset, dist));
+                            }
+                            filteredCount++;
+                            break;
+                        }
+                    }
+                }
+
+                if (filteredCount >= filterNbrsToFind) {
+                    return;
+                }
+
+                // Not enough, find more...
+                while (!nbrsToExplore.empty() && filteredCount < filterNbrsToFind) {
+                    auto neighborIdx = nbrsToExplore.top();
+                    nbrsToExplore.pop();
+
+                    for (auto &secondHopNeighbor: cachedNbrs[neighborIdx.id]) {
+                        auto isMasked = filterMask->isMasked(secondHopNeighbor.offset);
+                        if (isMasked) {
+                            filteredCount++;
+                        }
+                        if (visited->is_bit_set(secondHopNeighbor.offset)) {
+                            continue;
+                        }
+                        if (isMasked) {
+                            visited->set_bit(secondHopNeighbor.offset);
+                            double dist;
+                            computeZeroCopyDistance(context, secondHopNeighbor.offset, dc, &dist);
+                            totalDist++;
+                            if (results.size() < efSearch || dist < results.top()->dist) {
+                                candidates.emplace(secondHopNeighbor.offset, dist);
+                                results.push(NodeDistFarther(secondHopNeighbor.offset, dist));
+                            }
+                        }
+                        if (filteredCount >= filterNbrsToFind) {
+                            break;
+                        }
+                    }
+                }
+            }
+
             inline void dynamicTwoHopSearch(processor::ExecutionContext *context,
                                             std::priority_queue<NodeDistFarther> &candidates,
                                             NodeDistFarther &candidate, int filterNbrsToFind,
@@ -612,6 +698,7 @@ namespace kuzu {
                                 VectorIndexHeaderPerPartition *header, const int efSearch, const int maxK,
                                 NumericMetric *distCompMetric, NumericMetric *listNbrsCallMetric) {
                 std::priority_queue<NodeDistFarther> candidates;
+                std::array<std::vector<common::nodeID_t>, 128> cachedNbrs;
                 candidates.emplace(entrypoint, entrypointDist);
                 if (filterMask->isMasked(entrypoint)) {
                     results.push(NodeDistFarther(entrypoint, entrypointDist));
@@ -644,11 +731,11 @@ namespace kuzu {
                                      state, results, visited, header, efSearch, totalDist);
                     } else if ((filterNbrsToFind * filterNbrsToFind * selectivity) > (filterNbrsToFind * 2)) {
                         // We will use this metric to skip unwanted distance computation in the first hop
-                        dynamicTwoHopSearch(context, candidates, candidate, filterNbrsToFind, cachedNbrsCount,
+                        dynamicTwoHopSearchExp(context, candidates, candidate, filterNbrsToFind, cachedNbrsCount,
                                             firstHopNbrs, query, tableId,
                                             graph, dc, qdc, filterMask,
                                             state, results, visited, header, efSearch,
-                                            totalGetNbrs, totalDist);
+                                            totalGetNbrs, totalDist, cachedNbrs);
                     } else {
                         twoHopSearch(context, candidates, firstHopNbrs, query, tableId,
                                      graph, dc, qdc, filterMask,
