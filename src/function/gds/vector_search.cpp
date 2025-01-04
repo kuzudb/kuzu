@@ -745,26 +745,26 @@ namespace kuzu {
                     auto firstHopNbrs = graph->scanFwdRandom({candidate.id, tableId}, state);
                     totalGetNbrs++;
                     // Reduce density!!
-                    auto filterNbrsToFind = firstHopNbrs.size();
+//                    auto filterNbrsToFind = firstHopNbrs.size();
 
-                    if (selectivity >= 0.5) {
+//                    if (selectivity >= 0.5) {
                         oneHopSearch(context, candidates,
                                      firstHopNbrs, query, tableId,
                                      graph, dc, qdc, filterMask,
                                      state, results, visited, header, efSearch, totalDist);
-                    } else if ((filterNbrsToFind * filterNbrsToFind * selectivity) > (filterNbrsToFind * 2)) {
-                        // We will use this metric to skip unwanted distance computation in the first hop
-                        dynamicTwoHopSearchExp(context, candidates, candidate, filterNbrsToFind, cachedNbrsCount,
-                                            firstHopNbrs, query, tableId,
-                                            graph, dc, qdc, filterMask,
-                                            state, results, visited, header, efSearch,
-                                            totalGetNbrs, totalDist, cachedNbrs);
-                    } else {
-                        twoHopSearch(context, candidates, firstHopNbrs, query, tableId,
-                                     graph, dc, qdc, filterMask,
-                                     state, results, visited, header, efSearch,
-                                     totalGetNbrs, totalDist);
-                    }
+//                    } else if ((filterNbrsToFind * filterNbrsToFind * selectivity) > (filterNbrsToFind * 2)) {
+//                        // We will use this metric to skip unwanted distance computation in the first hop
+//                        dynamicTwoHopSearchExp(context, candidates, candidate, filterNbrsToFind, cachedNbrsCount,
+//                                            firstHopNbrs, query, tableId,
+//                                            graph, dc, qdc, filterMask,
+//                                            state, results, visited, header, efSearch,
+//                                            totalGetNbrs, totalDist, cachedNbrs);
+//                    } else {
+//                        twoHopSearch(context, candidates, firstHopNbrs, query, tableId,
+//                                     graph, dc, qdc, filterMask,
+//                                     state, results, visited, header, efSearch,
+//                                     totalGetNbrs, totalDist);
+//                    }
                 }
                 distCompMetric->increase(totalDist);
                 listNbrsCallMetric->increase(totalGetNbrs);
