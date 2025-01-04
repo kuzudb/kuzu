@@ -3,7 +3,7 @@
 #include "catalog/catalog_entry/catalog_entry_type.h"
 #include "function/create_fts_index.h"
 #include "function/drop_fts_index.h"
-#include "function/query_fts_gds.h"
+#include "function/query_fts.h"
 #include "function/stem.h"
 #include "main/client_context.h"
 #include "main/database.h"
