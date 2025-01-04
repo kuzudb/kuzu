@@ -1,3 +1,5 @@
+#include "function/query_fts.h"
+
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
@@ -10,7 +12,6 @@
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_task.h"
 #include "function/gds/gds_utils.h"
-#include "function/query_fts_gds.h"
 #include "function/stem.h"
 #include "graph/on_disk_graph.h"
 #include "libstemmer.h"
