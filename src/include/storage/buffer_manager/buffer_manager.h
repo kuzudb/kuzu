@@ -74,6 +74,11 @@ private:
     std::chrono::nanoseconds insertDuration = std::chrono::nanoseconds::zero();
 };
 
+struct PageReadReq {
+    common::page_idx_t pageIdx;
+    uint64_t numPages;
+};
+
 /**
  * The Buffer Manager (BM) is a centralized manager of database memory resources.
  * It provides two main functionalities:
@@ -181,8 +186,9 @@ public:
     uint8_t* pin(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
         PageReadPolicy pageReadPolicy = PageReadPolicy::READ_PAGE);
 
-    void optimisticBatchRead(BMFileHandle &fileHandle, common::page_idx_t pageIdx, uint64_t numPages,
-                             const std::function<void(const uint8_t *)> &batchFunc);
+    void optimisticBatchRead(kuzu::storage::BMFileHandle &fileHandle,
+                             std::vector<PageReadReq> readReqs,
+                             const std::function<void(std::vector<const uint8_t *>)> &batchFunc);
 
     void optimisticRead(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& func);

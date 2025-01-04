@@ -10,6 +10,7 @@
 #include <sys/fcntl.h>
 #include "atomic"
 #include "thread"
+#include <simsimd/simsimd.h>
 
 namespace kuzu {
 namespace common {
@@ -381,5 +382,126 @@ public:
         memset(data_, 0, num_bytes_);
     }
 };
+
+
+#if _SIMSIMD_TARGET_ARM
+#if SIMSIMD_TARGET_NEON
+#pragma GCC push_options
+#pragma GCC target("+simd")
+#pragma clang attribute push(__attribute__((target("+simd"))), apply_to = function)
+
+    inline static float compute_normalized_factor_neon(const float *vector, int dim) {
+        float32x4_t sum_vec = vdupq_n_f32(0.0f);  // Initialize sum vector to 0
+        int i = 0;
+        // Process 4 elements at a time
+        for (; i + 4 <= dim; i += 4) {
+            float32x4_t vec = vld1q_f32(vector + 4); // Load 4 elements
+            float32x4_t sqr_vec = vmulq_f32(vec, vec); // Square each element
+            sum_vec = vaddq_f32(sum_vec, sqr_vec); // Accumulate the sum of squares
+        }
+        // Horizontal addition of sum_vec components
+        float sum = vaddvq_f32(sum_vec);
+
+        // Handle the remaining elements (if dim is not divisible by 4)
+        for (; i < dim; i++) {
+            sum += vector[i] * vector[i];
+        }
+
+        return 1.0f / std::sqrt(sum); // Compute the normalization factor
+    }
+
+    inline static void normalize_vectors_neon(const float *vector, int dim, float *normalized_vector) {
+        float norm = compute_normalized_factor_neon(vector, dim);
+        float32x4_t norm_vec = vdupq_n_f32(norm); // Create a vector with the normalization factor
+        int i = 0;
+        // Process 4 elements at a time
+        for (; i + 4 <= dim; i += 4) {
+            float32x4_t vec = vld1q_f32(vector + i); // Load 4 elements
+            float32x4_t normed_vec = vmulq_f32(vec, norm_vec); // Normalize the vector
+            vst1q_f32(normalized_vector + i, normed_vec); // Store the normalized vector
+        }
+
+        // Handle the remaining elements (if dim is not divisible by 4)
+        for (; i < dim; i++) {
+            normalized_vector[i] = vector[i] * norm;
+        }
+    }
+
+#pragma clang attribute pop
+#pragma GCC pop_options
+#endif
+#endif
+
+#if _SIMSIMD_TARGET_X86
+#if SIMSIMD_TARGET_SKYLAKE
+#pragma GCC push_options
+#pragma GCC target("avx512f", "avx512vl", "bmi2")
+#pragma clang attribute push(__attribute__((target("avx512f,avx512vl,bmi2"))), apply_to = function)
+    inline static float compute_normalized_factor_skylake(const float *vector, int dim) {
+        __m512 sum_vec = _mm512_setzero_ps();  // Initialize sum vector to 0
+        int i = 0;
+
+        for (; i + 16 <= dim; i += 16) {
+            __m512 vec = _mm512_loadu_ps(vector + i);     // Load 16 elements
+            __m512 sqr_vec = _mm512_mul_ps(vec, vec);     // Square each element
+            sum_vec = _mm512_add_ps(sum_vec, sqr_vec);    // Accumulate sum of squares
+        }
+
+        float sum = _mm512_reduce_add_ps(sum_vec);
+
+        for (; i < dim; i++) {
+            sum += vector[i] * vector[i];
+        }
+
+        return 1.0f / std::sqrt(sum); // Compute the normalization factor
+    }
+
+    inline static void normalize_vectors_skylake(const float *vector, int dim, float *normalized_vector) {
+        float norm = compute_normalized_factor_skylake(vector, dim);
+        __m512 norm_vec = _mm512_set1_ps(norm); // Broadcast norm to all elements
+        int i = 0;
+        for (; i + 16 <= dim; i += 16) {
+            __m512 vec = _mm512_loadu_ps(vector + i);
+            __m512 normed_vec = _mm512_mul_ps(vec, norm_vec);
+            _mm512_storeu_ps(normalized_vector + i, normed_vec);
+        }
+        for (; i < dim; i++) {
+            normalized_vector[i] = vector[i] * norm;
+        }
+    }
+#pragma clang attribute pop
+#pragma GCC pop_options
+#endif // SIMSIMD_TARGET_SKYLAKE
+#endif // SIMSIMD_TARGET_X86
+
+
+        // Normalize the vectors
+        inline static float compute_normalized_factor(const float *vector, int dim) {
+#if SIMSIMD_TARGET_NEON
+            return compute_normalized_factor_neon(vector, dim);
+#elif SIMSIMD_TARGET_SKYLAKE
+            return compute_normalized_factor_skylake(vector, dim);
+#else
+            float norm = 0;
+            for (int i = 0; i < dim; i++) {
+                norm += vector[i] * vector[i];
+            }
+            return 1.0f / std::sqrt(norm);
+#endif
+        }
+
+        inline static void normalize_vectors(const float *vector, int dim, float *normalized_vector) {
+#if SIMSIMD_TARGET_NEON
+            normalize_vectors_neon(vector, dim, normalized_vector);
+#elif SIMSIMD_TARGET_SKYLAKE
+            normalize_vectors_skylake(vector, dim, normalized_vector);
+#else
+            float norm = compute_normalized_factor(vector, dim);
+            for (int i = 0; i < dim; i++) {
+                normalized_vector[i] = vector[i] * norm;
+            }
+#endif
+        }
+
 } // namespace common
 } // namespace kuzu

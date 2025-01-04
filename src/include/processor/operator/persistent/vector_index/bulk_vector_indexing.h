@@ -22,11 +22,12 @@ namespace processor {
 
         std::unique_ptr<VectorIndexBuilder> builder;
         std::unique_ptr<VectorIndexGraph> graph;
-        std::unique_ptr<VectorTempStorage> tempStorage;
+//        std::unique_ptr<VectorTempStorage> tempStorage;
         std::unique_ptr<CompressedVectorStorage> compressedStorage;
         Column *compressedPropertyColumn;
         std::latch compressionLatch;
         offset_t startOffsetNodeTable;
+        offset_t numVectors;
 
         explicit BulkVectorIndexingSharedState(VectorIndexHeader *header, int partitionId,
                                                std::shared_ptr<PartitionerSharedState> partitionerSharedState,
@@ -75,6 +76,7 @@ private:
 private:
     std::unique_ptr<BulkVectorIndexingLocalState> localState;
     std::shared_ptr<BulkVectorIndexingSharedState> sharedState;
+    bool initialized = false;
 };
 
 } // namespace processor

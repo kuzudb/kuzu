@@ -1741,11 +1741,11 @@ SIMSIMD_PUBLIC void simsimd_cos_f32(simsimd_f32_t const *a, simsimd_f32_t const 
     simsimd_cos_f32_sve(a, b, n, d);
 #elif SIMSIMD_TARGET_NEON
     simsimd_cos_f32_neon(a, b, n, d);
-#elif SIMSIMD_TARGET_HASWELL
-    simsimd_cos_f32_haswell(a, b, n, d);
-    // TODO: Move it up back to the top
+    // TODO: Move it up back to the bottom
 #elif SIMSIMD_TARGET_SKYLAKE
     simsimd_cos_f32_skylake(a, b, n, d);
+#elif SIMSIMD_TARGET_HASWELL
+    simsimd_cos_f32_haswell(a, b, n, d);
 #else
     simsimd_cos_f32_serial(a, b, n, d);
 #endif

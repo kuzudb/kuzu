@@ -201,20 +201,51 @@ inline bool try_func(const std::function<void(uint8_t*)>& func, uint8_t* frame,
     return true;
 }
 
-void BufferManager::optimisticBatchRead(kuzu::storage::BMFileHandle &fileHandle, common::page_idx_t pageIdx,
-                                        uint64_t numPages, const std::function<void(const uint8_t *)> &batchFunc) {
-    std::vector<PageState*> pageStates;
-    for (auto i = 0u; i < numPages; i++) {
-        pageStates.push_back(fileHandle.getPageState(pageIdx + i));
+inline bool try_func(const std::function<void(std::vector<const uint8_t*>)>& func, std::vector<const uint8_t*> frames,
+                     const std::vector<std::unique_ptr<VMRegion>>& vmRegions, common::PageSizeClass pageSizeClass) {
+#if defined(_WIN32)
+    try {
+#endif
+    func(frames);
+#if defined(_WIN32)
+    } catch (AccessViolation& exc) {
+// If we encounter an acess violation within the VM region,
+// the page was decomitted by another thread
+// and is no longer valid memory
+if (vmRegions[pageSizeClass]->contains(exc.location)) {
+    return false;
+} else {
+    throw EXCEPTION_ACCESS_VIOLATION;
+}
+}
+#else
+    (void)pageSizeClass;
+    (void)vmRegions;
+#endif
+    return true;
+}
+
+void BufferManager::optimisticBatchRead(kuzu::storage::BMFileHandle &fileHandle,
+                                        std::vector<PageReadReq> readReqs,
+                                        const std::function<void(std::vector<const uint8_t *>)> &batchFunc) {
+    std::vector<std::pair<page_idx_t, PageState*>> pageStates;
+    for (auto& readReq : readReqs) {
+        for (auto i = 0u; i < readReq.numPages; i++) {
+            pageStates.push_back({readReq.pageIdx + i, fileHandle.getPageState(readReq.pageIdx + i)});
+        }
     }
+    auto numPages = pageStates.size();
     std::vector<uint64_t> currStateAndVersions;
+    for (auto i = 0u; i < numPages; i++) {
+        currStateAndVersions.push_back(pageStates[i].second->getStateAndVersion());
+    }
 
     while (true) {
         // Get state and version of all pages
-        currStateAndVersions.clear();
         for (auto i = 0u; i < numPages; i++) {
-            currStateAndVersions.push_back(pageStates[i]->getStateAndVersion());
+            currStateAndVersions[i] = pageStates[i].second->getStateAndVersion();
         }
+
         // Check if all unlocked
         bool allUnlocked = true;
         for (auto i = 0u; i < numPages; i++) {
@@ -226,20 +257,32 @@ void BufferManager::optimisticBatchRead(kuzu::storage::BMFileHandle &fileHandle,
 
         if (allUnlocked) {
             // This function has to idempotent otherwise we might read the same page multiple times!
-            batchFunc(getFrame(fileHandle, pageIdx));
-            // TODO: check if state and version is still same for all pages that we read!
-            return;
+            std::vector<const uint8_t*> frames;
+            for (auto& readReq : readReqs) {
+                frames.push_back(getFrame(fileHandle, readReq.pageIdx));
+            }
+            if (!try_func(batchFunc, frames, vmRegions, fileHandle.getPageSizeClass())) {
+                continue;
+            }
+            // Check if the state and version of all pages are still the same
+            if (std::equal(currStateAndVersions.begin(), currStateAndVersions.end(),
+                    pageStates.begin(), [](uint64_t stateAndVersion, std::pair<page_idx_t, PageState*> pageState) {
+                        return stateAndVersion == pageState.second->getStateAndVersion();
+                    })) {
+                return;
+            }
+            continue;
         }
 
         // Try to unlock all marked pages
         for (auto i = 0u; i < numPages; i++) {
             if (PageState::getState(currStateAndVersions[i]) == PageState::MARKED) {
-                pageStates[i]->tryClearMark(currStateAndVersions[i]);
+                pageStates[i].second->tryClearMark(currStateAndVersions[i]);
                 continue;
             }
             if (PageState::getState(currStateAndVersions[i]) == PageState::EVICTED) {
-                pin(fileHandle, pageIdx + i, PageReadPolicy::READ_PAGE);
-                unpin(fileHandle, pageIdx + i);
+                pin(fileHandle, pageStates[i].first, PageReadPolicy::READ_PAGE);
+                unpin(fileHandle, pageStates[i].first);
             }
         }
         // Continue spinning if any page is locked

@@ -192,8 +192,8 @@ private:
 // Currently, it implements the HNSW algorithm.
 class VectorIndexBuilder {
 public:
-    explicit VectorIndexBuilder(VectorIndexHeader* header, int partitionId, VectorIndexGraph* graphStorage,
-        VectorTempStorage* vectorTempStorage);
+    explicit VectorIndexBuilder(VectorIndexHeader *header, int partitionId, vector_id_t numVectors,
+                                VectorIndexGraph *graphStorage);
 
     // This function is used to insert batch of vectors into the index.
     void batchInsert(const float* vectors, const vector_id_t* vectorIds, uint64_t numVectors,
@@ -224,9 +224,9 @@ private:
         const std::function<vector_id_t*(vector_id_t, size_t&, size_t&)>& getNeighbours,
         const std::function<vector_id_t(vector_id_t)>& getActualId);
 
-    void insertNodeInUpperLayer(vector_id_t id, VisitedTable* visited, DistanceComputer* dc);
+    void insertNodeInUpperLayer(const float* vector, vector_id_t id, VisitedTable* visited, DistanceComputer* dc);
 
-    void insertNodeInLowerLayer(vector_id_t id, VisitedTable* visited, DistanceComputer* dc);
+    void insertNodeInLowerLayer(const float* vector, vector_id_t id, VisitedTable* visited, DistanceComputer* dc);
 
     void findEntrypointUsingUpperLayer(DistanceComputer* dc, vector_id_t& entrypoint,
         double* entrypointDist);
@@ -235,7 +235,7 @@ private:
     VectorIndexHeader* header;
     VectorIndexHeaderPerPartition* partitionHeader;
     VectorIndexGraph* graphStorage;
-    VectorTempStorage* vectorTempStorage;
+//    VectorTempStorage* vectorTempStorage;
     std::vector<std::mutex> locks;
     std::atomic<uint64_t> nodeCounter;
 };

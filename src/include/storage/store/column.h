@@ -19,8 +19,14 @@ namespace storage {
 struct CompressionMetadata;
 class DiskArrayCollection;
 
+struct SeqFrames {
+    const uint8_t* frame;
+    uint16_t posInFrame;
+    uint32_t numValuesToRead;
+};
+
 // Only works when compression isn't enabled as of now.
-using fast_compute_on_values_func_t = const std::function<void(const uint8_t* frame, uint16_t posInFrame, uint32_t numValuesToRead)>;
+using fast_compute_on_values_func_t = const std::function<void(std::vector<SeqFrames> &frames)>;
 
 using read_values_to_vector_func_t =
     std::function<void(uint8_t* frame, PageCursor& pageCursor, common::ValueVector* resultVector,
@@ -88,16 +94,16 @@ public:
     virtual void initChunkState(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, ChunkState& state);
 
-    virtual void fastScan(transaction::Transaction *transaction, const ChunkState &state,
-                          common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
+    virtual void fastScan(transaction::TransactionType txnType, const std::vector<const ChunkState*> &states,
+                          std::vector<std::pair<common::offset_t, common::offset_t>> &offsetsInGroup,
                           fast_compute_on_values_func_t &computeFunc);
 
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::idx_t vectorIdx, common::row_idx_t numValuesToScan,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
 
-    virtual void fastLookup(transaction::Transaction *transaction, ChunkState &state, common::offset_t nodeOffset,
-                              fast_compute_on_values_func_t &computeFunc);
+    virtual void fastLookup(transaction::TransactionType txnType, const std::vector<ChunkState*> &states,
+                            std::vector<common::offset_t> nodeOffsets, fast_compute_on_values_func_t &computeFunc);
 
     virtual void lookup(transaction::Transaction* transaction, ChunkState& state,
         const common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
@@ -195,10 +201,10 @@ protected:
     virtual void lookupValue(transaction::Transaction* transaction, ChunkState& state,
         common::offset_t nodeOffset, common::ValueVector* resultVector, uint32_t posInVector);
 
-    void readFromPages(transaction::Transaction *transaction, common::page_idx_t pageIdx, int numPages,
-                       const std::function<void(const uint8_t *)> &func);
+    void readFromPages(transaction::TransactionType trxType, std::vector<PageReadReq> &readReqs,
+                       const std::function<void(std::vector<const uint8_t *>)> &func);
 
-    void readFromPage(transaction::Transaction* transaction, common::page_idx_t pageIdx,
+    void readFromPage(transaction::TransactionType trxType, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& func);
 
     virtual void writeValue(ChunkState& state, common::offset_t offsetInChunk,

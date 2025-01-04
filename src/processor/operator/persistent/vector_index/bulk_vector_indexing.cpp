@@ -17,15 +17,26 @@ namespace kuzu {
                                                std::unique_ptr<OPPrintInfo> printInfo)
                 : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::UPDATE_VECTOR_INDEX,
                        std::move(child), id, std::move(printInfo)},
-                  localState(std::move(localState)), sharedState(sharedState) {}
+                  localState(std::move(localState)), sharedState(sharedState), initialized(false) {}
 
         void BulkVectorIndexing::initLocalStateInternal(ResultSet *resultSet, ExecutionContext *context) {
+            if (initialized) {
+                return;
+            }
             localState->offsetVector = resultSet->getValueVector(localState->offsetPos).get();
             localState->embeddingVector = resultSet->getValueVector(localState->embeddingPos).get();
-            localState->dc = std::make_unique<CosineDistanceComputer>(sharedState->tempStorage->vectors,
-                                                                      sharedState->header->getDim(),
-                                                                      sharedState->tempStorage->numVectors);
-            localState->visited = std::make_unique<VisitedTable>(sharedState->tempStorage->numVectors);
+//            localState->dc = std::make_unique<CosineDistanceComputer>(sharedState->tempStorage->vectors,
+//                                                                      sharedState->header->getDim(),
+//                                                                      sharedState->tempStorage->numVectors);
+            localState->dc = std::make_unique<NodeTableDistanceComputer>(
+                    context->clientContext,
+                    sharedState->header->getNodeTableId(),
+                    sharedState->header->getEmbeddingPropertyId(),
+                    sharedState->startOffsetNodeTable,
+                    // Intentionally set data to nullptr since we will directly access the data from the node table
+                    std::make_unique<CosineDistanceComputer>(nullptr, sharedState->header->getDim(), sharedState->numVectors));
+            localState->visited = std::make_unique<VisitedTable>(sharedState->numVectors);
+            initialized = true;
         }
 
         void BulkVectorIndexing::initGlobalStateInternal(ExecutionContext *context) {
@@ -43,13 +54,14 @@ namespace kuzu {
             auto numVectors = endOffsetNodeTable - sharedState->startOffsetNodeTable + 1;
             sharedState->headerPerPartition->initSampleGraph(numVectors);
             auto maxNbrsAtLowerLevel = sharedState->header->getConfig().maxNbrsAtLowerLevel;
-            sharedState->tempStorage =
-                    std::make_unique<VectorTempStorage>(sharedState->header->getDim(), numVectors);
+            sharedState->numVectors = numVectors;
+//            sharedState->tempStorage =
+//                    std::make_unique<VectorTempStorage>(sharedState->header->getDim(), numVectors);
             sharedState->graph = std::make_unique<VectorIndexGraph>(numVectors, maxNbrsAtLowerLevel,
                                                                     StorageConstants::NODE_GROUP_SIZE);
             sharedState->builder = std::make_unique<VectorIndexBuilder>(sharedState->header, sharedState->partitionId,
-                                                                        sharedState->graph.get(),
-                                                                        sharedState->tempStorage.get());
+                                                                        numVectors,
+                                                                        sharedState->graph.get());
 //            sharedState->compressedStorage = std::make_unique<CompressedVectorStorage>(
 //                    context->clientContext->getTx(), table->getColumn(table->getPKColumnID())->getMetadataDA(),
 //                    sharedState->header->getDim(), startNodeGroupId, endNodeGroupId);
@@ -59,7 +71,7 @@ namespace kuzu {
 
         void BulkVectorIndexing::executeInternal(ExecutionContext *context) {
             std::vector<vector_id_t> vectorIds(DEFAULT_VECTOR_CAPACITY);
-            SQ8Bit *quantizer = sharedState->headerPerPartition->getQuantizer();
+//            SQ8Bit *quantizer = sharedState->headerPerPartition->getQuantizer();
             printf("Running indexing %d!!\n", sharedState->partitionId);
             while (children[0]->getNextTuple(context)) {
                 // print the thread id
@@ -123,7 +135,7 @@ namespace kuzu {
 
             // Free the memory of the graph
             sharedState->graph.reset();
-            sharedState->tempStorage.reset();
+//            sharedState->tempStorage.reset();
             sharedState->builder.reset();
             sharedState->compressedStorage.reset();
 
@@ -149,49 +161,6 @@ namespace kuzu {
 //    }
 //    printf("Total elements: %d\n", totalElements);
 //}
-
-        void BulkVectorIndexing::testGraph() {
-            // For testing purposes
-            int k = 100;
-            int efSearch = 200;
-            auto queryVectorPath = "/home/g3sehgal/projects/def-ssalihog/g3sehgal/gist_50k/query.fvecs";
-            size_t queryDimension, queryNumVectors;
-            float *queryVecs = readFvecFile(queryVectorPath, &queryDimension, &queryNumVectors);
-            auto *gtVecs = new vector_id_t[queryNumVectors * k];
-
-            // Test with ANN
-            auto visited = std::make_unique<VisitedTable>(sharedState->tempStorage->numVectors);
-            auto distanceComputer = std::make_unique<L2DistanceComputer>(sharedState->tempStorage->vectors,
-                                                                         sharedState->header->getDim(),
-                                                                         sharedState->tempStorage->numVectors);
-            auto dim = sharedState->header->getDim();
-
-            // Generate ground truth
-            IndexKNN index(distanceComputer.get(), dim, sharedState->tempStorage->numVectors);
-            auto recall = 0.0;
-            for (size_t i = 0; i < queryNumVectors; i++) {
-                double dists[k];
-                index.search(k, queryVecs + i * dim, dists, gtVecs + i * k);
-                std::priority_queue<NodeDistCloser> results;
-                std::vector<NodeDistFarther> res;
-                sharedState->builder->search(queryVecs + (i * queryDimension), k, efSearch, visited.get(), results,
-                                             distanceComputer.get());
-                while (!results.empty()) {
-                    auto top = results.top();
-                    res.emplace_back(top.id, top.dist);
-                    results.pop();
-                }
-
-                auto gt = gtVecs + i * k;
-                for (auto &result: res) {
-                    if (std::find(gt, gt + k, result.id) != (gt + k)) {
-                        recall++;
-                    }
-                }
-            }
-            auto recallPerQuery = recall / queryNumVectors;
-            printf("Recall: %f\n", (recallPerQuery / k) * 100);
-        }
 
         std::unique_ptr<PhysicalOperator> BulkVectorIndexing::clone() {
             return make_unique<BulkVectorIndexing>(resultSetDescriptor->copy(), localState->copy(),

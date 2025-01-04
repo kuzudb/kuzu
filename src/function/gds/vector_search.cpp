@@ -238,11 +238,11 @@ namespace kuzu {
                 embeddingColumn->initChunkState(context->clientContext->getTx(), nodeGroupIdx, *readState);
                 // Fast compute on embedding
                 // TODO: Add support for batch computation using io uring
-                embeddingColumn->fastLookup(context->clientContext->getTx(), *readState, id,
-                                            [dc, dist](const uint8_t *frame, uint16_t posInFrame,
-                                                       uint32_t numValuesToRead) {
-                                                auto embedding = reinterpret_cast<const float *>(frame);
-                                                dc->computeDistance(embedding + posInFrame, dist);
+                embeddingColumn->fastLookup(TransactionType::READ_ONLY, {readState}, {id},
+                                            [dc, dist](std::vector<SeqFrames> &frames) {
+                                                auto embedding = reinterpret_cast<const float *>(frames[0].frame) +
+                                                                 frames[0].posInFrame;
+                                                dc->computeDistance(embedding, dist);
                                             });
             }
 

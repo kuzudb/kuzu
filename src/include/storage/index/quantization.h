@@ -12,6 +12,7 @@ namespace kuzu {
     namespace storage {
         enum DistanceType {
             L2_SQ,
+            IP,
         };
 
         template<typename T1, typename T2>
@@ -77,6 +78,95 @@ namespace kuzu {
             }
             *result = res;
         }
+
+        inline void compute_asym_ip_serial_8bit(const float *x, const uint8_t *y, double *result, size_t dim,
+                                                  const float *alpha, const float *beta) {
+            for (size_t i = 0; i < dim; i++) {
+                *result += x[i] * decode_serial(y[i], alpha[i], beta[i]);
+            }
+        }
+
+        inline void compute_sym_ip_serial_8bit(const uint8_t *x, const uint8_t *y, double *result, size_t dim,
+                                                const float *alphaSqr) {
+            double xy = 0;
+            for (size_t i = 0; i < dim; i++) {
+                xy += x[i] * y[i] * alphaSqr[i];
+            }
+            // Add precomputed value (last 4 bytes)
+            xy += *reinterpret_cast<const float *>(x + dim);
+            *result = xy;
+        }
+
+#if _SIMSIMD_TARGET_ARM
+#if SIMSIMD_TARGET_NEON
+#pragma GCC push_options
+#pragma GCC target("+simd")
+#pragma clang attribute push(__attribute__((target("+simd"))), apply_to = function)
+
+        inline uint32x4_t encode_neon_(const float *x, size_t i, const float *vmin, const float *vdiff,
+                                       const float scalar_range) {
+            float32x4_t scalar_range_vec = vdupq_n_f32(scalar_range);
+            float32x4_t vmin_vec = vld1q_f32(vmin + i);
+            float32x4_t vdiff_vec = vld1q_f32(vdiff + i);
+            float32x4_t x_vec = vld1q_f32(x + i);
+
+            // Clamp to [vmin, vmin + vdiff]
+            float32x4_t val = vminq_f32(vmaxq_f32(vsubq_f32(x_vec, vmin_vec), vdupq_n_f32(0.0f)), vdiff_vec);
+
+            // Scale to [0, 1]
+            float32x4_t x_scaled = vdivq_f32(val, vdiff_vec);
+            // Scale to [0, scalar_range) => min(x * scalar_range, scalar_range - 1)
+            uint32x4_t ci = vminq_u32(vcvtq_u32_f32(vmulq_f32(x_scaled, scalar_range_vec)),
+                                      vdupq_n_u32((uint32_t) scalar_range - 1));
+            return ci;
+        }
+
+        inline uint8x8_t encode_neon(const float *x, size_t i, const float *vmin, const float *vdiff,
+                                     const float scalar_range) {
+            uint32x4_t ci_low = encode_neon_(x, i, vmin, vdiff, scalar_range);
+            uint32x4_t ci_high = encode_neon_(x, i + 4, vmin, vdiff, scalar_range);
+            return vmovn_u16(vcombine_u16(vmovn_u32(ci_low), vmovn_u32(ci_high)));
+        }
+
+        inline float32x4_t calc_precomputed_values_neon(uint8x8_t ci_vec, size_t i,
+                                                        const float *alpha, const float *beta) {
+            uint16x8_t ci_vec16 = vmovl_u8(ci_vec);
+            float32x4_t ci_vec32_low = vcvtq_f32_u32(vmovl_u16(vget_low_u16(ci_vec16)));
+            float32x4_t ci_vec32_high = vcvtq_f32_u32(vmovl_u16(vget_high_u16(ci_vec16)));
+
+            // Calculate precomputed values i8 * alpha * beta
+            float32x4_t precompute_values_low = vmulq_f32(vmulq_f32(ci_vec32_low, vld1q_f32(alpha + i)),
+                                                          vld1q_f32(beta + i));
+            float32x4_t precompute_values_high = vmulq_f32(vmulq_f32(ci_vec32_high, vld1q_f32(alpha + i + 4)),
+                                                           vld1q_f32(beta + i + 4));
+
+            return vaddq_f32(precompute_values_low, precompute_values_high);
+        }
+
+        inline void encode_neon_8bit(const float *data, uint8_t *codes, int dim, const float *vmin,
+                                     const float *vdiff, const float *alpha, const float *beta) {
+            int i = 0;
+            float32x4_t precompute_values = vdupq_n_f32(0);
+            for (; i + 8 <= dim; i += 8) {
+                uint8x8_t ci_vec = encode_neon(data, i, vmin, vdiff, 256.0f);
+                precompute_values = vaddq_f32(calc_precomputed_values_neon(ci_vec, i, alpha, beta),
+                                              precompute_values);
+                vst1_u8(codes + i, ci_vec);
+            }
+            auto precompute_value = vaddvq_f32(precompute_values);
+            // Handle the remaining
+            for (; i < dim; i++) {
+                codes[i] = encode_serial(data[i], vmin[i], vdiff[i], 256.0f);
+                precompute_value += compute_precomputed_value_serial(codes[i], alpha[i], beta[i]);
+            }
+            // Store precomputed values
+            *reinterpret_cast<float *>(codes + dim) = precompute_value;
+        }
+
+#pragma clang attribute pop
+#pragma GCC pop_options
+#endif
+#endif
 
 #if _SIMSIMD_TARGET_X86
 #if SIMSIMD_TARGET_HASWELL
@@ -241,85 +331,43 @@ namespace kuzu {
             const float *alphaSqr;
         };
 
-        inline void determine_smallest_breakpoint(const float *data, size_t n, int dim, float *vmin,
-                                                  float *vdiff, int num_bins, float break_point_data_ratio) {
-            // Use histogram to determine the smallest break point.
-            // We will use 256 bins.
-            std::vector<std::vector<uint64_t>> histogram(dim);
-            for (size_t i = 0; i < dim; i++) {
-                histogram[i].resize(num_bins, 0);
+        class AsymmetricIP : public QuantizedDistanceComputer<float, uint8_t> {
+        public:
+            explicit AsymmetricIP(int dim, const float *alpha, const float *beta)
+                    : QuantizedDistanceComputer(dim), alpha(alpha), beta(beta) {};
+
+            ~AsymmetricIP() = default;
+
+            inline void compute_distance(const float *x, const uint8_t *y, double *result) override {
+                compute_asym_ip_serial_8bit(x, y, result, dim, alpha, beta);
             }
 
-            for (size_t i = 0; i < n; i++) {
-                for (size_t j = 0; j < dim; j++) {
-                    // TODO: This should be using simd instruction.
-                    // Determine the bin using vmin and vdiff.
-                    auto bin = static_cast<uint64_t>(((data[i * dim + j] - vmin[j]) / vdiff[j]) * (float) num_bins);
-                    bin = std::min((int) bin, (int) num_bins - 1);
-                    histogram[j][bin]++;
-                }
+        private:
+            const float *alpha;
+            const float *beta;
+        };
+
+        class SymmetricIP : public QuantizedDistanceComputer<uint8_t, uint8_t> {
+        public:
+            explicit SymmetricIP(int dim, const float *alphaSqr)
+                    : QuantizedDistanceComputer(dim), alphaSqr(alphaSqr) {};
+
+            ~SymmetricIP() = default;
+
+            inline void compute_distance(const uint8_t *x, const uint8_t *y, double *result) override {
+                compute_sym_ip_serial_8bit(x, y, result, dim, alphaSqr);
             }
 
-            // Now we have to find the smallest which contains at-least 70% of n of the data.
-            // Find the smallest bin range that contains at least 70% of the data
-            auto threshold = n * break_point_data_ratio;
-            for (size_t i = 0; i < dim; i++) {
-                size_t start_bin = 0;
-                size_t end_bin = 0;
-                size_t min_bin_size = num_bins;
-                size_t sum = 0;
-                size_t left = 0;
-
-                // Sliding window approach to find the smallest range
-                for (size_t right = 0; right < num_bins; right++) {
-                    sum += histogram[i][right];
-
-                    // Shrink the window from the left if the threshold is met
-                    while (sum >= threshold) {
-                        if (right - left < min_bin_size) {
-                            min_bin_size = right - left;
-                            start_bin = left;
-                            end_bin = right;
-                        }
-                        sum -= histogram[i][left];
-                        left++;
-                    }
-                }
-                vmin[i] = vmin[i] + (float) start_bin / (float) num_bins * vdiff[i];
-                vdiff[i] = (float) (end_bin - start_bin) / (float) num_bins * vdiff[i];
-            }
-        }
-
-        // Todo: Use SIMD instructions for this
-        inline void scalar_batch_train(const float *x, size_t n, int dim, float scalar_range, int hist_num_bins,
-                                       float break_point_data_ratio, float *vmin, float *vdiff, float *alpha,
-                                       float *beta, float *alphaSqr, float *betaSqr) {
-            for (size_t i = 0; i < n; i++) {
-                for (size_t j = 0; j < dim; j++) {
-                    vmin[j] = std::min(vmin[j], x[i * dim + j]);
-                    vdiff[j] = std::max(vdiff[j], x[i * dim + j]);
-                }
-            }
-
-            for (size_t i = 0; i < dim; i++) {
-                vdiff[i] -= vmin[i];
-            }
-
-//            determine_smallest_breakpoint(x, n, dim, vmin, vdiff, hist_num_bins, break_point_data_ratio);
-            // Precompute alpha and gamma, as well as their squares
-            for (size_t i = 0; i < dim; i++) {
-                alpha[i] = vdiff[i] / scalar_range;
-                beta[i] = (0.5f * alpha[i]) + vmin[i];
-                alphaSqr[i] = alpha[i] * alpha[i];
-                betaSqr[i] = beta[i] * beta[i];
-            }
-        }
+        private:
+            const float *alphaSqr;
+        };
 
         class SQ8Bit {
             static constexpr size_t HISTOGRAM_NUM_BINS = 512;
+            static constexpr size_t SCALAR_RANGE = 256;
         public:
-            explicit SQ8Bit(int dim, float break_point_data_ratio = 0.99f)
-                    : dim(dim), codeSize(dim + 4), break_point_data_ratio(break_point_data_ratio) {
+            explicit SQ8Bit(int dim, float breakPointDataRatio = 0.99f)
+                    : dim(dim), codeSize(dim + 4), breakPointDataRatio(breakPointDataRatio), numTrainedVecs(0) {
                 vmin = new float[dim];
                 vdiff = new float[dim];
                 for (size_t i = 0; i < dim; i++) {
@@ -330,10 +378,21 @@ namespace kuzu {
                 beta = new float[dim];
                 alphaSqr = new float[dim];
                 betaSqr = new float[dim];
+
+                // initialize the histogram
+                histogram = std::vector<std::vector<std::atomic_uint64_t>>(dim);
+                for (size_t i = 0; i < dim; i++) {
+                    histogram[i] = std::vector<std::atomic_uint64_t>(HISTOGRAM_NUM_BINS);
+                }
+                for (size_t i = 0; i < dim; i++) {
+                    for (size_t j = 0; j < HISTOGRAM_NUM_BINS; j++) {
+                        histogram[i][j] = 0;
+                    }
+                }
             }
 
             SQ8Bit(const SQ8Bit &other) : dim(other.dim), codeSize(dim + 4),
-                                          break_point_data_ratio(other.break_point_data_ratio) {
+                                          breakPointDataRatio(other.breakPointDataRatio) {
                 vmin = new float[dim];
                 vdiff = new float[dim];
                 alpha = new float[dim];
@@ -349,9 +408,73 @@ namespace kuzu {
                 memcpy(betaSqr, other.betaSqr, dim * sizeof(float));
             }
 
-            inline void batch_train(const float *x, size_t n) {
-                scalar_batch_train(x, n, dim, 256, HISTOGRAM_NUM_BINS, break_point_data_ratio, vmin, vdiff,
-                                   alpha, beta, alphaSqr, betaSqr);
+            inline void batchTrain(const float *data, size_t n) {
+                for (size_t i = 0; i < n; i++) {
+                    for (size_t j = 0; j < dim; j++) {
+                        vmin[j] = std::min(vmin[j], data[i * dim + j]);
+                        vdiff[j] = std::max(vdiff[j], data[i * dim + j]);
+                    }
+                }
+
+                for (size_t i = 0; i < dim; i++) {
+                    vdiff[i] -= vmin[i];
+                }
+            }
+
+            inline void determineBreakpoints(const float *data, size_t n) {
+                if (breakPointDataRatio >= 1.0f) {
+                    return;
+                }
+
+                for (size_t i = 0; i < n; i++) {
+                    for (size_t j = 0; j < dim; j++) {
+                        // TODO: This should be using simd instruction.
+                        // Determine the bin using vmin and vdiff.
+                        auto bin = static_cast<uint64_t>(((data[i * dim + j] - vmin[j]) / vdiff[j]) * (float) HISTOGRAM_NUM_BINS);
+                        bin = std::min((int) bin, (int) HISTOGRAM_NUM_BINS - 1);
+                        histogram[j][bin]++;
+                    }
+                }
+                numTrainedVecs += n;
+            }
+
+            inline void finalizeTrain() {
+                if (breakPointDataRatio < 1.0f) {
+                    // Now we have to find the smallest which contains at-least 70% of n of the data.
+                    // Find the smallest bin range that contains at least 70% of the data
+                    auto threshold = numTrainedVecs * breakPointDataRatio;
+                    for (size_t i = 0; i < dim; i++) {
+                        size_t start_bin = 0;
+                        size_t end_bin = 0;
+                        size_t min_bin_size = HISTOGRAM_NUM_BINS;
+                        size_t sum = 0;
+                        size_t left = 0;
+
+                        // Sliding window approach to find the smallest range
+                        for (size_t right = 0; right < HISTOGRAM_NUM_BINS; right++) {
+                            sum += histogram[i][right];
+
+                            // Shrink the window from the left if the threshold is met
+                            while (sum >= threshold) {
+                                if (right - left < min_bin_size) {
+                                    min_bin_size = right - left;
+                                    start_bin = left;
+                                    end_bin = right;
+                                }
+                                sum -= histogram[i][left];
+                                left++;
+                            }
+                        }
+                        vmin[i] = vmin[i] + (float) start_bin / (float) HISTOGRAM_NUM_BINS * vdiff[i];
+                        vdiff[i] = (float) (end_bin - start_bin) / (float) HISTOGRAM_NUM_BINS * vdiff[i];
+                    }
+                }
+                for (size_t i = 0; i < dim; i++) {
+                    alpha[i] = vdiff[i] / SCALAR_RANGE;
+                    beta[i] = (0.5f * alpha[i]) + vmin[i];
+                    alphaSqr[i] = alpha[i] * alpha[i];
+                    betaSqr[i] = beta[i] * beta[i];
+                }
             }
 
             inline void encode(const float *x, uint8_t *codes, size_t n) const {
@@ -361,6 +484,8 @@ namespace kuzu {
                     uint8_t *ci = codes + i * codeSize;
 #if SIMSIMD_TARGET_HASWELL
                     encode_haswell_8bit(xi, ci, dim, vmin, vdiff, alpha, beta);
+#elif SIMSIMD_TARGET_NEON
+                    encode_neon_8bit(xi, ci, dim, vmin, vdiff, alpha, beta);
 #else
                     encode_serial_8bit(xi, ci, dim, vmin, vdiff, alpha, beta, 0);
 #endif
@@ -372,6 +497,8 @@ namespace kuzu {
                 switch (type) {
                     case DistanceType::L2_SQ:
                         return std::make_unique<AsymmetricL2Sq>(dim, alpha, beta);
+                    case DistanceType::IP:
+                        return std::make_unique<AsymmetricIP>(dim, alpha, beta);
                     default:
                         throw std::runtime_error("Unsupported distance type");
                 }
@@ -382,6 +509,8 @@ namespace kuzu {
                 switch (type) {
                     case DistanceType::L2_SQ:
                         return std::make_unique<SymmetricL2Sq>(dim, alphaSqr);
+                    case DistanceType::IP:
+                        return std::make_unique<SymmetricIP>(dim, alphaSqr);
                     default:
                         throw std::runtime_error("Unsupported distance type");
                 }
@@ -436,7 +565,11 @@ namespace kuzu {
             float *beta;
             float *alphaSqr;
             float *betaSqr;
-            float break_point_data_ratio;
+
+            // Training
+            float breakPointDataRatio;
+            std::atomic_uint64_t numTrainedVecs;
+            std::vector<std::vector<std::atomic_uint64_t>> histogram;
         };
     } // namespace storage
 } // namespace kuzu

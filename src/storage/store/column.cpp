@@ -178,7 +178,7 @@ void Column::batchLookup(Transaction* transaction, const offset_t* nodeOffsets, 
         auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
         (void)isPageIdxValid;
         KU_ASSERT(isPageIdxValid(cursor.pageIdx, chunkMeta));
-        readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
+        readFromPage(transaction->getType(), cursor.pageIdx, [&](uint8_t* frame) -> void {
             batchLookupFunc(frame, cursor, result, i, 1, chunkMeta.compMeta);
         });
     }
@@ -215,22 +215,37 @@ void Column::scan(Transaction* transaction, const ChunkState& state, idx_t vecto
     scanInternal(transaction, state, vectorIdx, numValuesToScan, nodeIDVector, resultVector);
 }
 
-void Column::fastScan(transaction::Transaction *transaction, const kuzu::storage::Column::ChunkState &state,
-                      common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
+void Column::fastScan(TransactionType txnType, const std::vector<const ChunkState*> &states,
+                      std::vector<std::pair<common::offset_t, common::offset_t>> &offsetsInGroup,
                       fast_compute_on_values_func_t &computeFunc) {
     // TODO: fix for null column
-    auto pageCursor = getPageCursorForOffsetInGroup(startOffsetInGroup, state);
-    const auto numValuesToScan = endOffsetInGroup - startOffsetInGroup;
-    auto chunkMeta = state.metadata;
-    const auto numValuesPerPage =
-            state.metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
-    auto startPageIdx = pageCursor.pageIdx;
-    auto startPosInPage = pageCursor.elemPosInPage;
-    KU_ASSERT(isPageIdxValid(pageCursor.pageIdx, chunkMeta));
-    auto numPagesToRead =
-            std::ceil((float)std::max((int)(numValuesToScan - (numValuesPerPage - startPosInPage)), 0) / numValuesPerPage) + 1;
-    readFromPages(transaction, startPageIdx, numPagesToRead, [&](const uint8_t *frame) -> void {
-        computeFunc(frame, startPosInPage, numValuesToScan);
+    KU_ASSERT(states.size() == offsetsInGroup.size());
+    std::vector<PageReadReq> readReqs(states.size());
+    std::vector<uint16_t> startPositions(states.size());
+    for (auto i = 0; i < offsetsInGroup.size(); i++) {
+        auto startOffsetInGroup = offsetsInGroup[i].first;
+        auto endOffsetInGroup = offsetsInGroup[i].second;
+        auto pageCursor = getPageCursorForOffsetInGroup(startOffsetInGroup, *states[i]);
+        const auto numValuesToScan = endOffsetInGroup - startOffsetInGroup;
+        auto chunkMeta = states[i]->metadata;
+        const auto numValuesPerPage =
+                states[i]->metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+        auto startPageIdx = pageCursor.pageIdx;
+        auto startPosInPage = pageCursor.elemPosInPage;
+        KU_ASSERT(isPageIdxValid(pageCursor.pageIdx, chunkMeta));
+        auto numPagesToRead =
+                std::ceil((float) std::max((int) (numValuesToScan - (numValuesPerPage - startPosInPage)), 0) /
+                          numValuesPerPage) + 1;
+        readReqs[i] = PageReadReq(startPageIdx, (uint64_t) numPagesToRead);
+        startPositions[i] = startPosInPage;
+    }
+
+    readFromPages(txnType, readReqs, [&](std::vector<const uint8_t *> frames) -> void {
+        std::vector<SeqFrames> seqFrames(frames.size());
+        for (auto i = 0; i < frames.size(); i++) {
+            seqFrames[i] = SeqFrames(frames[i], startPositions[i], readReqs[i].numPages);
+        }
+        computeFunc(seqFrames);
     });
 }
 
@@ -276,7 +291,7 @@ void Column::scan(Transaction* transaction, const ChunkState& state, ColumnChunk
         auto numValuesToReadInPage =
             std::min(numValuesPerPage - cursor.elemPosInPage, numValuesToScan - numValuesScanned);
         KU_ASSERT(isPageIdxValid(cursor.pageIdx, state.metadata));
-        readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
+        readFromPage(transaction->getType(), cursor.pageIdx, [&](uint8_t* frame) -> void {
             readToPageFunc(frame, cursor, columnChunk->getData(), numValuesScanned,
                 numValuesToReadInPage, state.metadata.compMeta);
         });
@@ -296,7 +311,7 @@ void Column::scan(Transaction* transaction, const ChunkState& state, offset_t st
         uint64_t numValuesToScanInPage =
             std::min(static_cast<uint64_t>(state.numValuesPerPage) - cursor.elemPosInPage,
                 numValuesToScan - numValuesScanned);
-        readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
+        readFromPage(transaction->getType(), cursor.pageIdx, [&](uint8_t* frame) -> void {
             readToPageFunc(frame, cursor, result, numValuesScanned, numValuesToScanInPage,
                 state.metadata.compMeta);
         });
@@ -327,7 +342,7 @@ void Column::scanUnfiltered(Transaction* transaction, PageCursor& pageCursor,
         uint64_t numValuesToScanInPage = std::min(numValuesPerPage - pageCursor.elemPosInPage,
             numValuesToScan - numValuesScanned);
         KU_ASSERT(isPageIdxValid(pageCursor.pageIdx, chunkMeta));
-        readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
+        readFromPage(transaction->getType(), pageCursor.pageIdx, [&](uint8_t* frame) -> void {
             readToVectorFunc(frame, pageCursor, resultVector, numValuesScanned + startPosInVector,
                 numValuesToScanInPage, chunkMeta.compMeta);
         });
@@ -349,7 +364,7 @@ void Column::scanFiltered(Transaction* transaction, PageCursor& pageCursor,
         if (isInRange(selVector[posInSelVector], numValuesScanned,
                 numValuesScanned + numValuesToScanInPage)) {
             KU_ASSERT(isPageIdxValid(pageCursor.pageIdx, chunkMeta));
-            readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
+            readFromPage(transaction->getType(), pageCursor.pageIdx, [&](uint8_t* frame) -> void {
                 readToVectorFunc(frame, pageCursor, resultVector, numValuesScanned,
                     numValuesToScanInPage, chunkMeta.compMeta);
             });
@@ -363,8 +378,8 @@ void Column::scanFiltered(Transaction* transaction, PageCursor& pageCursor,
     }
 }
 
-void Column::fastLookup(Transaction *transaction, ChunkState &state, common::offset_t nodeOffset,
-                        fast_compute_on_values_func_t &computeFunc) {
+void Column::fastLookup(TransactionType txnType, const std::vector<ChunkState*> &states,
+                        std::vector<common::offset_t> nodeOffsets, fast_compute_on_values_func_t &computeFunc) {
     throw std::runtime_error("Not implemented");
 }
 
@@ -395,20 +410,31 @@ void Column::lookupValue(Transaction* transaction, ChunkState& readState, offset
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
     auto cursor = getPageCursorForOffsetInGroup(offsetInChunk, readState);
     KU_ASSERT(isPageIdxValid(cursor.pageIdx, readState.metadata));
-    readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
+    readFromPage(transaction->getType(), cursor.pageIdx, [&](uint8_t* frame) -> void {
         readToVectorFunc(frame, cursor, resultVector, posInVector, 1 /* numValuesToRead */,
             readState.metadata.compMeta);
     });
 }
 
-void Column::readFromPages(transaction::Transaction *transaction, common::page_idx_t pageIdx, int numPages,
-                           const std::function<void(const uint8_t *)> &func) {
-    auto [fileHandleToPin, pageIdxToPin] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
-            *dataFH, pageIdx, *wal, transaction->getType());
-    bufferManager->optimisticBatchRead(*fileHandleToPin, pageIdxToPin, numPages, func);
+void Column::readFromPages(TransactionType trxType, std::vector<PageReadReq> &readReqs,
+                           const std::function<void(std::vector<const uint8_t *>)> &func) {
+    KU_ASSERT(readReqs.size() > 0);
+    BMFileHandle* fileHandleToPin = nullptr;
+    for (auto &readReq : readReqs) {
+        // Fast scan is only supported with read-only transactions
+        auto [fileHandle, pageIdx] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
+                *dataFH, readReq.pageIdx, *wal, trxType);
+        readReq.pageIdx = pageIdx;
+        if (fileHandleToPin == nullptr) {
+            fileHandleToPin = fileHandle;
+        } else {
+            KU_ASSERT(fileHandleToPin == fileHandle);
+        }
+    }
+    bufferManager->optimisticBatchRead(*fileHandleToPin, readReqs, func);
 }
 
-void Column::readFromPage(Transaction* transaction, page_idx_t pageIdx,
+void Column::readFromPage(TransactionType trxType, page_idx_t pageIdx,
     const std::function<void(uint8_t*)>& func) {
     // For constant compression, call read on a nullptr since there is no data on disk and
     // decompression only requires metadata
@@ -416,7 +442,7 @@ void Column::readFromPage(Transaction* transaction, page_idx_t pageIdx,
         return func(nullptr);
     }
     auto [fileHandleToPin, pageIdxToPin] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
-        *dataFH, pageIdx, *wal, transaction->getType());
+        *dataFH, pageIdx, *wal, trxType);
     bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, func);
 }
 

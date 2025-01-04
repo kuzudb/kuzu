@@ -190,16 +190,26 @@ void ListColumn::scanInternal(Transaction* transaction, const ChunkState& state,
     }
 }
 
-void ListColumn::fastLookup(Transaction *transaction, ChunkState &readState,
-                            common::offset_t nodeOffset, fast_compute_on_values_func_t &computeFunc) {
-    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-    KU_ASSERT(readState.nodeGroupIdx == nodeGroupIdx);
-    auto nodeOffsetInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    auto listEndOffset = readOffset(transaction, readState, nodeOffsetInGroup);
-    auto size = readSize(transaction, readState, nodeOffsetInGroup);
-    auto listStartOffset = listEndOffset - size;
-    dataColumn->fastScan(transaction, readState.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
-                     listStartOffset, listEndOffset, computeFunc);
+void ListColumn::fastLookup(TransactionType txnType, const std::vector<ChunkState*> &states,
+                            std::vector<common::offset_t> nodeOffsets, fast_compute_on_values_func_t &computeFunc) {
+    // TODO: We only support this function for read-only transaction now.
+    KU_ASSERT(txnType == TransactionType::READ_ONLY);
+    KU_ASSERT(nodeOffsets.size() == states.size());
+    std::vector<const ChunkState*> childStates(states.size());
+    std::vector<std::pair<offset_t, offset_t>> listOffsets(states.size());
+    for (auto i = 0u; i < nodeOffsets.size(); i++) {
+        auto nodeOffset = nodeOffsets[i];
+        auto& readState = *states[i];
+        auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+        KU_ASSERT(readState.nodeGroupIdx == nodeGroupIdx);
+        auto nodeOffsetInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+        auto listEndOffset = readOffset(txnType, readState, nodeOffsetInGroup);
+        auto size = readSize(txnType, readState, nodeOffsetInGroup);
+        auto listStartOffset = listEndOffset - size;
+        childStates[i] = &readState.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX];
+        listOffsets[i] = {listStartOffset, listEndOffset};
+    }
+    dataColumn->fastScan(txnType, childStates, listOffsets, computeFunc);
 }
 
 void ListColumn::lookupValue(Transaction* transaction, ChunkState& readState, offset_t nodeOffset,
@@ -207,8 +217,8 @@ void ListColumn::lookupValue(Transaction* transaction, ChunkState& readState, of
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     KU_ASSERT(readState.nodeGroupIdx == nodeGroupIdx);
     auto nodeOffsetInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    auto listEndOffset = readOffset(transaction, readState, nodeOffsetInGroup);
-    auto size = readSize(transaction, readState, nodeOffsetInGroup);
+    auto listEndOffset = readOffset(transaction->getType(), readState, nodeOffsetInGroup);
+    auto size = readSize(transaction->getType(), readState, nodeOffsetInGroup);
     auto listStartOffset = listEndOffset - size;
     auto offsetInVector = posInVector == 0 ? 0 : resultVector->getValue<offset_t>(posInVector - 1);
     resultVector->setValue(posInVector, list_entry_t{offsetInVector, size});
@@ -316,24 +326,24 @@ void ListColumn::rollbackInMemory() {
     offsetColumn->rollbackInMemory();
 }
 
-offset_t ListColumn::readOffset(Transaction* transaction, const ChunkState& readState,
+offset_t ListColumn::readOffset(transaction::TransactionType txnType, const ChunkState& readState,
     offset_t offsetInNodeGroup) {
     const auto& offsetState = readState.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX];
     auto pageCursor = offsetColumn->getPageCursorForOffsetInGroup(offsetInNodeGroup, offsetState);
     offset_t value;
-    offsetColumn->readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
+    offsetColumn->readFromPage(txnType, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
         offsetColumn->readToPageFunc(frame, pageCursor, (uint8_t*)&value, 0 /* posInVector */,
             1 /* numValuesToRead */, offsetState.metadata.compMeta);
     });
     return value;
 }
 
-list_size_t ListColumn::readSize(Transaction* transaction, const ChunkState& readState,
+list_size_t ListColumn::readSize(transaction::TransactionType txnType, const ChunkState& readState,
     offset_t offsetInNodeGroup) {
     const auto& sizeState = readState.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX];
     auto pageCursor = sizeColumn->getPageCursorForOffsetInGroup(offsetInNodeGroup, sizeState);
     offset_t value;
-    sizeColumn->readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
+    sizeColumn->readFromPage(txnType, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
         sizeColumn->readToPageFunc(frame, pageCursor, (uint8_t*)&value, 0 /* posInVector */,
             1 /* numValuesToRead */, sizeState.metadata.compMeta);
     });
