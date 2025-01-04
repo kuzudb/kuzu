@@ -501,11 +501,33 @@ namespace kuzu {
                 int filteredCount = 0;
                 for (offset_t i = 0; i < firstHopNbrs.size(); i++) {
                     auto &neighbor = firstHopNbrs[i];
+                    auto isNeighborMasked = filterMask->isMasked(neighbor.offset);
+                    if (isNeighborMasked) {
+                        filteredCount++;
+                    }
+                    if (visited->is_bit_set(neighbor.offset)) {
+                        continue;
+                    }
                     cachedNbrs[i] = graph->scanFwdRandom({neighbor.offset, tableId}, state);
                     totalGetNbrs++;
                     for (auto &secondHopNeighbor: cachedNbrs[i]) {
                         filterMask->prefetchMaskValue(secondHopNeighbor.offset);
                     }
+
+                    if (isNeighborMasked) {
+                        visited->set_bit(neighbor.offset);
+                        double dist;
+                        computeZeroCopyDistance(context, neighbor.offset, dc, &dist);
+                        nbrsToExplore.emplace(neighbor.offset, dist);
+                        totalDist++;
+                        if (results.size() < efSearch || dist < results.top()->dist) {
+                            candidates.emplace(neighbor.offset, dist);
+                            results.push(NodeDistFarther(neighbor.offset, dist));
+                        }
+                        filteredCount++;
+                        continue;
+                    }
+
                     for (auto &secondHopNeighbor: cachedNbrs[i]) {
                         if (visited->is_bit_set(secondHopNeighbor.offset)) {
                             continue;
