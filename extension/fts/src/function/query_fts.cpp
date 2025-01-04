@@ -1,4 +1,4 @@
-#include "function/query_fts_gds.h"
+#include "function/query_fts.h"
 
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
@@ -359,6 +359,9 @@ static std::vector<std::string> getTerms(std::string& query, const std::string& 
     RE2::GlobalReplace(&query, regexPattern, replacePattern);
     StringUtils::toLower(query);
     auto terms = StringUtils::split(query, " ");
+    if (stemmer == "none") {
+        return terms;
+    }
     StemFunction::validateStemmer(stemmer);
     auto sbStemmer = sb_stemmer_new(reinterpret_cast<const char*>(stemmer.c_str()), "UTF_8");
     std::vector<std::string> result;
@@ -375,8 +378,6 @@ void QFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& context
     auto inputTableName = getParamVal(input, 0);
     auto indexName = getParamVal(input, 1);
     auto query = getParamVal(input, 2);
-    auto stemmer = "english";
-    auto terms = getTerms(query, stemmer);
 
     auto& tableEntry =
         FTSUtils::bindTable(inputTableName, &context, indexName, FTSUtils::IndexOperation::QUERY);
@@ -385,6 +386,7 @@ void QFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& context
         context.getCatalog()
             ->getIndex(context.getTransaction(), tableEntry.getTableID(), indexName)
             ->constCast<FTSIndexCatalogEntry>();
+    auto terms = getTerms(query, ftsIndexEntry.getFTSConfig().stemmer);
     auto entry =
         context.getCatalog()->getTableCatalogEntry(context.getTransaction(), inputTableName);
     auto nodeOutput = bindNodeOutput(input.binder, {entry});
