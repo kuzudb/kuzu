@@ -192,22 +192,23 @@ void ListColumn::scanInternal(Transaction* transaction, const ChunkState& state,
 
 void ListColumn::fastLookup(TransactionType txnType, const std::vector<ChunkState*> &states,
                             std::vector<common::offset_t> nodeOffsets, fast_compute_on_values_func_t &computeFunc) {
-    // TODO: We only support this function for read-only transaction now.
-    KU_ASSERT(txnType == TransactionType::READ_ONLY);
+    // TODO: We only support this function for read-only transaction now and array type with fixed numElements.
+    KU_ASSERT(txnType == TransactionType::READ_ONLY && dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
     KU_ASSERT(nodeOffsets.size() == states.size());
     std::vector<const ChunkState*> childStates(states.size());
     std::vector<std::pair<offset_t, offset_t>> listOffsets(states.size());
+    auto size = ArrayType::getNumElements(dataType);
     for (auto i = 0u; i < nodeOffsets.size(); i++) {
         auto nodeOffset = nodeOffsets[i];
         auto& readState = *states[i];
         auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
         KU_ASSERT(readState.nodeGroupIdx == nodeGroupIdx);
         auto nodeOffsetInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-        auto listEndOffset = readOffset(txnType, readState, nodeOffsetInGroup);
-        auto size = readSize(txnType, readState, nodeOffsetInGroup);
-        auto listStartOffset = listEndOffset - size;
+//        auto listEndOffset = readOffset(txnType, readState, nodeOffsetInGroup);
+//        auto size = readSize(txnType, readState, nodeOffsetInGroup);
+//        auto listStartOffset = listEndOffset - size;
         childStates[i] = &readState.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX];
-        listOffsets[i] = {listStartOffset, listEndOffset};
+        listOffsets[i] = {nodeOffsetInGroup, nodeOffsetInGroup + size};
     }
     dataColumn->fastScan(txnType, childStates, listOffsets, computeFunc);
 }
