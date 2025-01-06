@@ -148,7 +148,7 @@ void runFrontiersOnce(processor::ExecutionContext* executionContext, QFTSState& 
     auto& appearsInTableInfo = relTableIDInfos[0];
     frontierPair->beginFrontierComputeBetweenTables(appearsInTableInfo.fromNodeTableID,
         appearsInTableInfo.toNodeTableID);
-    GDSUtils::scheduleFrontierTask(appearsInTableInfo.toNodeTableID, appearsInTableInfo.relTableID,
+    GDSUtils::scheduleFrontierTask(appearsInTableInfo.fromNodeTableID, appearsInTableInfo.toNodeTableID, appearsInTableInfo.relTableID,
         graph, ExtendDirection::FWD, qFtsState, executionContext, 1 /* numThreads */,
         tfPropertyIdx);
 }
@@ -310,7 +310,7 @@ void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto currentFrontier = getPathLengthsFrontier(executionContext, PathLengths::UNVISITED);
     auto nextFrontier = getPathLengthsFrontier(executionContext, PathLengths::UNVISITED);
     auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier,
-        nextFrontier, 1 /* numThreads */);
+        nextFrontier);
     auto edgeCompute = std::make_unique<QFTSEdgeCompute>(frontierPair.get(), &output->scores,
         &termsComputeSharedState.dfs);
 

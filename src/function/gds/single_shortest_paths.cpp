@@ -109,8 +109,7 @@ private:
         auto output = std::make_unique<SingleSPDestinationsOutputs>(sourceNodeID, frontier);
         auto outputWriter = std::make_unique<DestinationsOutputWriter>(clientContext, output.get(),
             sharedState->getOutputNodeMaskMap());
-        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
-            clientContext->getMaxNumThreadForExec());
+        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths);
         auto edgeCompute = std::make_unique<SingleSPDestinationsEdgeCompute>(frontierPair.get());
         return RJCompState(std::move(frontierPair), std::move(edgeCompute),
             sharedState->getOutputNodeMaskMap(), std::move(output), std::move(outputWriter));
@@ -145,8 +144,7 @@ private:
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
         auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext, output.get(),
             sharedState->getOutputNodeMaskMap(), writerInfo);
-        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths,
-            clientContext->getMaxNumThreadForExec());
+        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(output->pathLengths);
         auto edgeCompute =
             std::make_unique<SingleSPPathsEdgeCompute>(frontierPair.get(), output->bfsGraph.get());
         return RJCompState(std::move(frontierPair), std::move(edgeCompute),
