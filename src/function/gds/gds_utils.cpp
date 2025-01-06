@@ -39,7 +39,8 @@ void GDSUtils::scheduleFrontierTask(table_id_t boundTableID, table_id_t nbrTable
     auto info = FrontierTaskInfo(nbrTableID, relTableID, graph, extendDirection,
         *gdsComputeState.edgeCompute, edgePropertyIdx);
     auto maxThreads = numThreads ? numThreads.value() : getNumThreads(*context);
-    auto sharedState = std::make_shared<FrontierTaskSharedState>(maxThreads, *gdsComputeState.frontierPair);
+    auto sharedState =
+        std::make_shared<FrontierTaskSharedState>(maxThreads, *gdsComputeState.frontierPair);
     auto task = std::make_shared<FrontierTask>(maxThreads, info, sharedState);
 
     if (gdsComputeState.frontierPair->isCurFrontierSparse()) {
@@ -76,24 +77,24 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
             case ExtendDirection::FWD: {
                 compState.beginFrontierComputeBetweenTables(info.fromNodeTableID,
                     info.toNodeTableID);
-                scheduleFrontierTask(info.fromNodeTableID, info.toNodeTableID, info.relTableID, graph,
-                    ExtendDirection::FWD, compState, context);
+                scheduleFrontierTask(info.fromNodeTableID, info.toNodeTableID, info.relTableID,
+                    graph, ExtendDirection::FWD, compState, context);
             } break;
             case ExtendDirection::BWD: {
                 compState.beginFrontierComputeBetweenTables(info.toNodeTableID,
                     info.fromNodeTableID);
-                scheduleFrontierTask(info.toNodeTableID, info.fromNodeTableID, info.relTableID, graph,
-                    ExtendDirection::BWD, compState, context);
+                scheduleFrontierTask(info.toNodeTableID, info.fromNodeTableID, info.relTableID,
+                    graph, ExtendDirection::BWD, compState, context);
             } break;
             case ExtendDirection::BOTH: {
                 compState.beginFrontierComputeBetweenTables(info.fromNodeTableID,
                     info.toNodeTableID);
-                scheduleFrontierTask(info.fromNodeTableID, info.toNodeTableID, info.relTableID, graph,
-                    ExtendDirection::FWD, compState, context);
+                scheduleFrontierTask(info.fromNodeTableID, info.toNodeTableID, info.relTableID,
+                    graph, ExtendDirection::FWD, compState, context);
                 compState.beginFrontierComputeBetweenTables(info.toNodeTableID,
                     info.fromNodeTableID);
-                scheduleFrontierTask(info.toNodeTableID, info.fromNodeTableID, info.relTableID, graph,
-                    ExtendDirection::BWD, compState, context);
+                scheduleFrontierTask(info.toNodeTableID, info.fromNodeTableID, info.relTableID,
+                    graph, ExtendDirection::BWD, compState, context);
             } break;
             default:
                 KU_UNREACHABLE;

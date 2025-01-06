@@ -67,7 +67,8 @@ struct VertexComputeTaskInfo {
     graph::Graph* graph;
     std::vector<std::string> propertiesToScan;
 
-    VertexComputeTaskInfo(VertexCompute& vc, graph::Graph* graph, std::vector<std::string> propertiesToScan)
+    VertexComputeTaskInfo(VertexCompute& vc, graph::Graph* graph,
+        std::vector<std::string> propertiesToScan)
         : vc{vc}, graph{graph}, propertiesToScan{std::move(propertiesToScan)} {}
     VertexComputeTaskInfo(const VertexComputeTaskInfo& other)
         : vc{other.vc}, graph{other.graph}, propertiesToScan{other.propertiesToScan} {}

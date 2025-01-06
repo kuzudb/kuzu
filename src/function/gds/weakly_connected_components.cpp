@@ -23,8 +23,8 @@ namespace function {
 class WCCFrontierPair : public FrontierPair {
 public:
     WCCFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-        std::shared_ptr<GDSFrontier> nextFrontier,
-        table_id_map_t<offset_t> numNodesMap, storage::MemoryManager* mm)
+        std::shared_ptr<GDSFrontier> nextFrontier, table_id_map_t<offset_t> numNodesMap,
+        storage::MemoryManager* mm)
         : FrontierPair(curFrontier, nextFrontier) {
         for (const auto& [tableID, numNodes] : numNodesMap) {
             vertexValueMap.allocate(tableID, numNodes, mm);

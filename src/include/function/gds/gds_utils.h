@@ -43,8 +43,9 @@ struct KUZU_API GDSComputeState {
 class KUZU_API GDSUtils {
 public:
     static void scheduleFrontierTask(common::table_id_t boundTableID, common::table_id_t nbrTableID,
-        common::table_id_t relTableID, graph::Graph* graph, common::ExtendDirection extendDirection, GDSComputeState& rjCompState,
-        processor::ExecutionContext* context, std::optional<uint64_t> numThreads = std::nullopt,
+        common::table_id_t relTableID, graph::Graph* graph, common::ExtendDirection extendDirection,
+        GDSComputeState& rjCompState, processor::ExecutionContext* context,
+        std::optional<uint64_t> numThreads = std::nullopt,
         std::optional<common::idx_t> edgePropertyIdx = std::nullopt);
     static void runFrontiersUntilConvergence(processor::ExecutionContext* context,
         GDSComputeState& rjCompState, graph::Graph* graph, common::ExtendDirection extendDirection,

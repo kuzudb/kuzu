@@ -148,9 +148,9 @@ void runFrontiersOnce(processor::ExecutionContext* executionContext, QFTSState& 
     auto& appearsInTableInfo = relTableIDInfos[0];
     frontierPair->beginFrontierComputeBetweenTables(appearsInTableInfo.fromNodeTableID,
         appearsInTableInfo.toNodeTableID);
-    GDSUtils::scheduleFrontierTask(appearsInTableInfo.fromNodeTableID, appearsInTableInfo.toNodeTableID, appearsInTableInfo.relTableID,
-        graph, ExtendDirection::FWD, qFtsState, executionContext, 1 /* numThreads */,
-        tfPropertyIdx);
+    GDSUtils::scheduleFrontierTask(appearsInTableInfo.fromNodeTableID,
+        appearsInTableInfo.toNodeTableID, appearsInTableInfo.relTableID, graph,
+        ExtendDirection::FWD, qFtsState, executionContext, 1 /* numThreads */, tfPropertyIdx);
 }
 
 class QFTSOutputWriter {
@@ -309,8 +309,8 @@ void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     // vertex compute.
     auto currentFrontier = getPathLengthsFrontier(executionContext, PathLengths::UNVISITED);
     auto nextFrontier = getPathLengthsFrontier(executionContext, PathLengths::UNVISITED);
-    auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier,
-        nextFrontier);
+    auto frontierPair =
+        std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
     auto edgeCompute = std::make_unique<QFTSEdgeCompute>(frontierPair.get(), &output->scores,
         &termsComputeSharedState.dfs);
 
