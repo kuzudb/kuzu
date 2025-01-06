@@ -85,7 +85,7 @@ namespace kuzu {
                 auto sharedState = std::make_shared<BulkVectorIndexingSharedState>(
                         header, partitionId,
                         partitionerSharedState,
-                        clientContext->getDBConfig()->maxNumThreads);
+                        std::min(clientContext->getDBConfig()->maxNumThreads, clientContext->getMaxNumThreadForExec()));
                 auto bulkIndexing = std::make_unique<BulkVectorIndexing>(
                         std::make_unique<ResultSetDescriptor>(outSchema), std::move(localState), sharedState,
                         std::move(prevOperator), getOperatorID(), std::move(printInfo));

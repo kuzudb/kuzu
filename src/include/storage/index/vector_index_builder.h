@@ -6,10 +6,13 @@
 
 #include "common/vector_index/distance_computer.h"
 #include "common/vector_index/helpers.h"
+#include "common/vector_index/vector_index_config.h"
 #include "processor/operator/partitioner.h"
 #include "storage/index/vector_index_header.h"
 #include "storage/storage_structure/disk_array.h"
 #include "storage/store/list_chunk_data.h"
+
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
@@ -120,26 +123,20 @@ struct VectorTempStorage {
 
 // Struct to store compressed vectors with ColumnChunkData
 struct CompressedVectorStorage {
-    struct Element {
-        node_group_idx_t nodeGroupIdx;
-        uint64_t startOffset;
-        std::unique_ptr<ColumnChunkData> columnChunk;
-    };
-
-    explicit CompressedVectorStorage(Transaction *transaction,
-                                     DiskArray<ColumnChunkMetadata> *metadataDA, size_t dim,
-                                     node_group_idx_t startNodeGroupIdx, node_group_idx_t endNodeGroupIdx) {
+    explicit CompressedVectorStorage(Transaction *transaction, Column *column,
+                                     DiskArray<ColumnChunkMetadata> *metadataDA, size_t codeSize,
+                                     node_group_idx_t startNodeGroupIdx, node_group_idx_t endNodeGroupIdx)
+                                     : codeSize(codeSize), column(column) {
         KU_ASSERT(metadataDA != nullptr);
         // TODO: Make it generic, currently only supports scalar quantization
-        auto dataType = LogicalType::ARRAY(LogicalType::INT8(), dim + 4);
-        uint64_t startOffset = startNodeGroupIdx * StorageConstants::NODE_GROUP_SIZE * dim;
+        auto dataType = LogicalType::ARRAY(LogicalType::INT8(), codeSize);
         for (auto nodeGroupIdx = startNodeGroupIdx; nodeGroupIdx <= endNodeGroupIdx; nodeGroupIdx++) {
             auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
             auto capacity = StorageConstants::NODE_GROUP_SIZE;
             auto numValues = chunkMeta.numValues;
             auto columnChunk = ColumnChunkFactory::createColumnChunkData(dataType.copy(), true, capacity);
             auto &listChunk = columnChunk->cast<ListChunkData>();
-            listChunk.getDataColumnChunk()->resize(numValues * (dim + 4));
+            listChunk.getDataColumnChunk()->resize(numValues * (codeSize));
             // Set offset and size column
             auto offsetColumn = listChunk.getOffsetColumnChunk();
             auto sizeColumn = listChunk.getSizeColumnChunk();
@@ -147,44 +144,104 @@ struct CompressedVectorStorage {
             // Initialize offset and size column
             uint64_t offset = 0;
             for (auto i = 0u; i < numValues; i++) {
-                offset += (dim + 4);
+                offset += (codeSize);
                 offsetColumn->setValue(offset, i);
-                sizeColumn->setValue((uint32_t) (dim + 4), i);
+                sizeColumn->setValue((uint32_t) (codeSize), i);
             }
             listChunk.setNumValues(numValues);
-            listChunk.getDataColumnChunk()->setNumValues(numValues * (dim + 4));
-            queue.push({nodeGroupIdx, startOffset, std::move(columnChunk)});
-            startOffset += capacity * dim;
+            listChunk.getDataColumnChunk()->setNumValues(numValues * (codeSize));
+            columnChunks.insert({nodeGroupIdx, std::move(columnChunk)});
         }
     }
 
-    Element getCompressedChunk() {
+    inline uint8_t* getData(node_group_idx_t nodeGroupIdx, offset_t offsetInNodeGroup) {
+        KU_ASSERT(columnChunks.contains(nodeGroupIdx));
+        return reinterpret_cast<ListChunkData *>(columnChunks[nodeGroupIdx].get())->getDataColumnChunk()->getData() +
+               (codeSize * offsetInNodeGroup);
+    }
+
+    inline void flush(Transaction* trnx) {
         std::lock_guard<std::mutex> lock(mtx);
-        if (queue.empty()) {
-            return {INVALID_NODE_GROUP_IDX, UINT64_MAX, nullptr};
+        if (flushed) {
+            return;
         }
-
-        auto pair = std::move(queue.front());
-        queue.pop();
-
-        return pair;
+        Column::ChunkState state;
+        for (auto& [nodeGroupIdx, columnChunk] : columnChunks) {
+            column->initChunkState(trnx, nodeGroupIdx, state);
+            column->append(columnChunk.get(), state);
+        }
+        flushed = true;
     }
-
-    std::mutex mtx;
-    std::queue<Element> queue;
-};
-
-class IndexKNN {
-public:
-    explicit IndexKNN(DistanceComputer* dc, int dim, int numEntries)
-        : dc(dc), dim(dim), numEntries(numEntries){};
-
-    void search(int k, const float* queries, double* distances, vector_id_t* resultIds);
 
 private:
-    DistanceComputer* dc;
+    std::unordered_map<node_group_idx_t, std::unique_ptr<ColumnChunkData>> columnChunks;
+    size_t codeSize;
+
+    std::mutex mtx;
+    bool flushed = false;
+    Column* column;
+};
+
+
+class Quantizer {
+public:
+    explicit Quantizer(SQ8Bit *sq, DistanceFunc distFunc, CompressedVectorStorage *compressedStorage, int batchSize,
+                       int dim) : sq(sq), distFunc(distFunc), compressedStorage(compressedStorage), dim(dim),
+                       batchSize(batchSize) {
+        if (distFunc == DistanceFunc::COSINE) {
+            normVectorsCache = static_cast<float *>(malloc(batchSize * dim * sizeof(float)));
+        }
+    }
+
+    inline void batchTrain(const float *data, size_t n) {
+        if (distFunc == DistanceFunc::COSINE) {
+            normalizeVectors(data, n);
+            sq->batchTrain(normVectorsCache, n);
+        } else {
+            sq->batchTrain(data, n);
+        }
+    }
+
+    inline void finalizeTrain() { sq->finalizeTrain(); }
+
+    inline void encode(const float *data, vector_id_t startVectorId, size_t n) {
+        auto [nodeGroup, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(startVectorId);
+        auto compressedData = compressedStorage->getData(nodeGroup, offsetInGroup);
+        encode(data, compressedData, n);
+    }
+
+    ~Quantizer() {
+        if (distFunc == DistanceFunc::COSINE) {
+            free(normVectorsCache);
+        }
+    }
+
+private:
+    inline void normalizeVectors(const float* data, size_t n) {
+        for (size_t i = 0; i < n; i++) {
+            normalize_vectors(data + i * dim, dim, normVectorsCache + i * dim);
+        }
+    }
+
+    inline void encode(const float *data, uint8_t *codes, size_t n) {
+        KU_ASSERT(n <= batchSize);
+        if (distFunc == DistanceFunc::COSINE) {
+            normalizeVectors(data, n);
+            sq->encode(normVectorsCache, codes, n);
+        } else {
+            sq->encode(data, codes, n);
+        }
+    }
+
+private:
+    SQ8Bit* sq;
+    DistanceFunc distFunc;
+    CompressedVectorStorage* compressedStorage;
+
+    // For normalized vectors
+    float* normVectorsCache;
     int dim;
-    int numEntries;
+    int batchSize;
 };
 
 // This graph is used to build the index and store the results in the VectorIndexGraph.
@@ -197,38 +254,38 @@ public:
 
     // This function is used to insert batch of vectors into the index.
     void batchInsert(const float* vectors, const vector_id_t* vectorIds, uint64_t numVectors,
-        VisitedTable* visited, DistanceComputer* dc);
+        VisitedTable* visited, NodeTableDistanceComputer<float>* dc);
 
     void search(const float* query, int k, int efSearch, VisitedTable* visited,
-        std::priority_queue<NodeDistCloser>& results, DistanceComputer* dc);
+        std::priority_queue<NodeDistCloser>& results, NodeTableDistanceComputer<float>* dc);
 
 private:
-    void searchANN(DistanceComputer* dc, std::priority_queue<NodeDistCloser>& results,
+    void searchANN(NodeTableDistanceComputer<float>* dc, std::priority_queue<NodeDistCloser>& results,
         vector_id_t entrypoint, double entrypointDist, uint16_t efSearch, VisitedTable* visited,
         const std::function<vector_id_t*(vector_id_t, size_t&, size_t&)>& getNeighbours,
         const std::function<vector_id_t(vector_id_t)>& getActualId);
 
-    void searchNNOnUpperLevel(DistanceComputer* dc, vector_id_t& nearest, double& nearestDist);
+    void searchNNOnUpperLevel(NodeTableDistanceComputer<float>* dc, vector_id_t& nearest, double& nearestDist);
 
-    void shrinkNeighbors(DistanceComputer* dc, std::priority_queue<NodeDistCloser>& results,
+    void shrinkNeighbors(NodeTableDistanceComputer<float>* dc, std::priority_queue<NodeDistCloser>& results,
         int maxSize, const std::function<vector_id_t(vector_id_t)>& getActualId);
 
-    void makeConnection(DistanceComputer* dc, vector_id_t src, vector_id_t dest, double distSrcDest,
+    void makeConnection(NodeTableDistanceComputer<float>* dc, vector_id_t src, vector_id_t dest, double distSrcDest,
         int maxNbrs,
         const std::function<vector_id_t*(vector_id_t, size_t&, size_t&)>& getNeighbours,
         const std::function<vector_id_t(vector_id_t)>& getActualId);
 
-    void insertNode(DistanceComputer* dc, vector_id_t id, vector_id_t entrypoint,
+    void insertNode(NodeTableDistanceComputer<float>* dc, vector_id_t id, vector_id_t entrypoint,
         double entrypointDist, int maxNbrs, int efConstruction, VisitedTable* visited,
         std::vector<NodeDistCloser>& backNbrs,
         const std::function<vector_id_t*(vector_id_t, size_t&, size_t&)>& getNeighbours,
         const std::function<vector_id_t(vector_id_t)>& getActualId);
 
-    void insertNodeInUpperLayer(const float* vector, vector_id_t id, VisitedTable* visited, DistanceComputer* dc);
+    void insertNodeInUpperLayer(const float* vector, vector_id_t id, VisitedTable* visited, NodeTableDistanceComputer<float>* dc);
 
-    void insertNodeInLowerLayer(const float* vector, vector_id_t id, VisitedTable* visited, DistanceComputer* dc);
+    void insertNodeInLowerLayer(const float* vector, vector_id_t id, VisitedTable* visited, NodeTableDistanceComputer<float>* dc);
 
-    void findEntrypointUsingUpperLayer(DistanceComputer* dc, vector_id_t& entrypoint,
+    void findEntrypointUsingUpperLayer(NodeTableDistanceComputer<float>* dc, vector_id_t& entrypoint,
         double* entrypointDist);
 
 private:

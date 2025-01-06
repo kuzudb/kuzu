@@ -64,8 +64,8 @@ public:
         ColumnChunkData* columnChunk, common::offset_t startOffset = 0,
         common::offset_t endOffset = common::INVALID_OFFSET) override;
 
-    void fastLookup(transaction::TransactionType txnType, const std::vector<ChunkState*> &states,
-                    std::vector<common::offset_t> nodeOffsets, fast_compute_on_values_func_t &computeFunc) override;
+    void fastLookup(transaction::TransactionType txnType, FastLookupRequest *request,
+                    fast_compute_on_values_func_t &computeFunc) override;
 
     Column* getDataColumn() const { return dataColumn.get(); }
 

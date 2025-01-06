@@ -18,6 +18,8 @@ public:
 
     void initialize(transaction::Transaction* transaction, storage::NodeTable* table);
 
+    void reset(transaction::Transaction* transaction, storage::NodeTable* table);
+
     void markNodeGroupAsFinished(storage::NodeTableScanState& scanState);
 
     void updateVectorIdx(storage::NodeTableScanState& scanState);
@@ -85,6 +87,8 @@ public:
         KU_ASSERT(idx < sharedStates.size());
         return *sharedStates[idx];
     }
+
+    void reset(transaction::Transaction* transaction);
 
     std::unique_ptr<PhysicalOperator> clone() override;
 

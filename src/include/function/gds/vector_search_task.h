@@ -31,7 +31,7 @@ namespace kuzu {
             const uint64_t maxNumThreads;
             processor::ExecutionContext *context;
             graph::Graph *graph;
-            DistanceComputer *distanceComputer;
+            NodeTableDistanceComputer<float> *distanceComputer;
             NodeOffsetLevelSemiMask *filterMask;
             VectorIndexHeader *header;
             std::vector<PartSearchInfo> partSearchInfo;
@@ -41,7 +41,7 @@ namespace kuzu {
                                                  const int maxK,
                                                  processor::ExecutionContext *context,
                                                  graph::Graph *graph,
-                                                 DistanceComputer *distanceComputer,
+                                                 NodeTableDistanceComputer<float> *distanceComputer,
                                                  NodeOffsetLevelSemiMask *filterMask,
                                                  VectorIndexHeader *header,
                                                  BitVectorVisitedTable *visited,

@@ -39,8 +39,9 @@ namespace processor {
 struct BulkVectorIndexingLocalState {
     DataPos offsetPos;
     DataPos embeddingPos;
-    std::unique_ptr<DistanceComputer> dc;
+    std::unique_ptr<NodeTableDistanceComputer<float>> dc;
     std::unique_ptr<VisitedTable> visited;
+    std::unique_ptr<Quantizer> quantizer;
     ValueVector* offsetVector = nullptr;
     ValueVector* embeddingVector = nullptr;
 
@@ -66,13 +67,12 @@ public:
 
     void executeInternal(ExecutionContext* context) final;
 
+    inline void resetScanTable(transaction::Transaction* transaction);
+
     void finalize(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() final;
 
-private:
-    //    void printGraph();
-    void testGraph();
 private:
     std::unique_ptr<BulkVectorIndexingLocalState> localState;
     std::shared_ptr<BulkVectorIndexingSharedState> sharedState;

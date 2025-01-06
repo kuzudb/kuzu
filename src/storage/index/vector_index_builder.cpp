@@ -62,7 +62,7 @@ VectorIndexBuilder::VectorIndexBuilder(VectorIndexHeader* header, int partitionI
     partitionHeader = header->getPartitionHeader(partitionId);
 }
 
-void VectorIndexBuilder::searchNNOnUpperLevel(DistanceComputer* dc, vector_id_t& nearest,
+void VectorIndexBuilder::searchNNOnUpperLevel(NodeTableDistanceComputer<float>* dc, vector_id_t& nearest,
     double& nearestDist) {
     while (true) {
         vector_id_t prev_nearest = nearest;
@@ -86,7 +86,7 @@ void VectorIndexBuilder::searchNNOnUpperLevel(DistanceComputer* dc, vector_id_t&
     }
 }
 
-void VectorIndexBuilder::searchANN(DistanceComputer* dc,
+void VectorIndexBuilder::searchANN(NodeTableDistanceComputer<float>* dc,
     std::priority_queue<NodeDistCloser>& results, vector_id_t entrypoint, double entrypointDist,
     uint16_t efSearch, VisitedTable* visited,
     const std::function<vector_id_t*(vector_id_t, size_t&, size_t&)>& getNeighbours,
@@ -137,7 +137,7 @@ void VectorIndexBuilder::searchANN(DistanceComputer* dc,
     visited->reset();
 }
 
-void VectorIndexBuilder::shrinkNeighbors(DistanceComputer* dc,
+void VectorIndexBuilder::shrinkNeighbors(NodeTableDistanceComputer<float>* dc,
     std::priority_queue<NodeDistCloser>& results, int maxSize,
     const std::function<vector_id_t(vector_id_t)>& getActualId) {
     if (results.size() <= maxSize) {
@@ -178,7 +178,7 @@ void VectorIndexBuilder::shrinkNeighbors(DistanceComputer* dc,
     }
 }
 
-void VectorIndexBuilder::makeConnection(DistanceComputer* dc, vector_id_t src, vector_id_t dest,
+void VectorIndexBuilder::makeConnection(NodeTableDistanceComputer<float>* dc, vector_id_t src, vector_id_t dest,
     double distSrcDest, int maxNbrs,
     const std::function<vector_id_t*(vector_id_t, size_t&, size_t&)>& getNeighbours,
     const std::function<vector_id_t(vector_id_t)>& getActualId) {
@@ -221,7 +221,7 @@ void VectorIndexBuilder::makeConnection(DistanceComputer* dc, vector_id_t src, v
     }
 }
 
-void VectorIndexBuilder::insertNode(DistanceComputer* dc, vector_id_t id, vector_id_t entrypoint,
+void VectorIndexBuilder::insertNode(NodeTableDistanceComputer<float>* dc, vector_id_t id, vector_id_t entrypoint,
     double entrypointDist, int maxNbrs, int efConstruction, VisitedTable* visited,
     std::vector<NodeDistCloser>& backNbrs,
     const std::function<vector_id_t*(vector_id_t, size_t&, size_t&)>& getNeighbours,
@@ -244,7 +244,7 @@ void VectorIndexBuilder::insertNode(DistanceComputer* dc, vector_id_t id, vector
     }
 }
 
-void VectorIndexBuilder::findEntrypointUsingUpperLayer(DistanceComputer* dc,
+void VectorIndexBuilder::findEntrypointUsingUpperLayer(NodeTableDistanceComputer<float>* dc,
     vector_id_t& entrypoint, double* entrypointDist) {
     // TODO: This should be behind some lock
     uint8_t entrypointLevel;
@@ -259,7 +259,7 @@ void VectorIndexBuilder::findEntrypointUsingUpperLayer(DistanceComputer* dc,
 }
 
 void VectorIndexBuilder::insertNodeInUpperLayer(const float* vector, vector_id_t id, VisitedTable* visited,
-    DistanceComputer* dc) {
+    NodeTableDistanceComputer<float>* dc) {
     std::vector<NodeDistCloser> backNbrs;
     {
         auto actualId = partitionHeader->getActualId(id);
@@ -298,7 +298,7 @@ void VectorIndexBuilder::insertNodeInUpperLayer(const float* vector, vector_id_t
 }
 
 void VectorIndexBuilder::insertNodeInLowerLayer(const float* vector, vector_id_t id, VisitedTable* visited,
-    DistanceComputer* dc) {
+    NodeTableDistanceComputer<float>* dc) {
     std::vector<NodeDistCloser> backNbrs;
     {
         std::lock_guard<std::mutex> lock(locks[id]);
@@ -329,7 +329,7 @@ void VectorIndexBuilder::insertNodeInLowerLayer(const float* vector, vector_id_t
 }
 
 void VectorIndexBuilder::batchInsert(const float* vectors, const vector_id_t* vectorIds,
-    uint64_t numVectors, VisitedTable* visited, DistanceComputer* dc) {
+    uint64_t numVectors, VisitedTable* visited, NodeTableDistanceComputer<float>* dc) {
     std::vector<vector_id_t> upperLayerVectorIds;
     // first copy the vectors to the temporary storage
     // vectorTempStorage->copyVectors(vectors, vectorIds, numVectors);
@@ -361,7 +361,7 @@ void VectorIndexBuilder::batchInsert(const float* vectors, const vector_id_t* ve
 }
 
 void VectorIndexBuilder::search(const float* query, int k, int efSearch, VisitedTable* visited,
-    std::priority_queue<NodeDistCloser>& results, DistanceComputer* dc) {
+    std::priority_queue<NodeDistCloser>& results, NodeTableDistanceComputer<float>* dc) {
     dc->setQuery(query);
     vector_id_t entrypoint;
     double entrypointDist;
@@ -374,21 +374,21 @@ void VectorIndexBuilder::search(const float* query, int k, int efSearch, Visited
         [&](vector_id_t _id) { return _id; });
 }
 
-void IndexKNN::search(int k, const float* queries, double* distances, vector_id_t* resultIds) {
-    // Find the k nearest neighbors
-    dc->setQuery(queries);
-    std::priority_queue<NodeDistFarther> res;
-    for (int i = 0; i < numEntries; i++) {
-        double d;
-        dc->computeDistance(i, &d);
-        res.emplace(i, d);
-    }
-    for (int i = 0; i < k; i++) {
-        resultIds[i] = res.top().id;
-        distances[i] = res.top().dist;
-        res.pop();
-    }
-}
+//void IndexKNN::search(int k, const float* queries, double* distances, vector_id_t* resultIds) {
+//    // Find the k nearest neighbors
+//    dc->setQuery(queries);
+//    std::priority_queue<NodeDistFarther> res;
+//    for (int i = 0; i < numEntries; i++) {
+//        double d;
+//        dc->computeDistance(i, &d);
+//        res.emplace(i, d);
+//    }
+//    for (int i = 0; i < k; i++) {
+//        resultIds[i] = res.top().id;
+//        distances[i] = res.top().dist;
+//        res.pop();
+//    }
+//}
 
 } // namespace storage
 } // namespace kuzu

@@ -9,6 +9,12 @@
 namespace kuzu {
 namespace common {
 
+enum DistanceFunc {
+    L2 = 0,
+    COSINE = 1,
+    IP = 2,
+};
+
 struct VectorIndexConfig {
     constexpr static const char* MAX_NBRS_AT_UPPER_LEVEL = "MAXNBRSATUPPERLEVEL";
     constexpr static const char* MAX_NBRS_AT_LOWER_LEVEL = "MAXNBRSATLOWERLEVEL";
@@ -17,6 +23,8 @@ struct VectorIndexConfig {
     constexpr static const char* EF_SEARCH = "EFSEARCH";
     constexpr static const char* ALPHA = "ALPHA";
     constexpr static const char* NUM_VECTORS_PER_PARTITION = "NUMVECTORSPERPARTITION";
+    constexpr static const char* SQ_ENABLED = "SQENABLED";
+    constexpr static const char* DISTANCE_FUNC = "DISTANCEFUNC";
 
     // The maximum number of neighbors to keep for each node at the upper level
     int maxNbrsAtUpperLevel = 64;
@@ -38,6 +46,12 @@ struct VectorIndexConfig {
 
     // The number of node groups per partition (default to 5M)
     int numberVectorsPerPartition = 5000000;
+
+    // Whether scalar quantization is enabled
+    bool sqEnabled = true;
+
+    // The distance function to use
+    DistanceFunc distanceFunc = DistanceFunc::COSINE;
 
     VectorIndexConfig() = default;
 
@@ -62,6 +76,19 @@ struct VectorIndexConfig {
                 config.alpha = value.getValue<double>();
             } else if (key == NUM_VECTORS_PER_PARTITION) {
                 config.numberVectorsPerPartition = value.getValue<int64_t>();
+            } else if (key == SQ_ENABLED) {
+                config.sqEnabled = value.getValue<bool>();
+            } else if (key == DISTANCE_FUNC) {
+                auto distFunc = value.toString();
+                if (distFunc == "L2") {
+                    config.distanceFunc = DistanceFunc::L2;
+                } else if (distFunc == "COSINE") {
+                    config.distanceFunc = DistanceFunc::COSINE;
+                } else if (distFunc == "IP") {
+                    config.distanceFunc = DistanceFunc::IP;
+                } else {
+                    KU_ASSERT(false);
+                }
             } else {
                 KU_ASSERT(false);
             }
@@ -77,6 +104,8 @@ struct VectorIndexConfig {
         serializer.serializeValue(efSearch);
         serializer.serializeValue(alpha);
         serializer.serializeValue(numberVectorsPerPartition);
+        serializer.serializeValue(sqEnabled);
+        serializer.serializeValue(static_cast<int>(distanceFunc));
     }
 
     static VectorIndexConfig deserialize(Deserializer& deserializer) {
@@ -88,6 +117,10 @@ struct VectorIndexConfig {
         deserializer.deserializeValue(config.efSearch);
         deserializer.deserializeValue(config.alpha);
         deserializer.deserializeValue(config.numberVectorsPerPartition);
+        deserializer.deserializeValue(config.sqEnabled);
+        int distanceFunc;
+        deserializer.deserializeValue(distanceFunc);
+        config.distanceFunc = static_cast<DistanceFunc>(distanceFunc);
         return config;
     }
 };

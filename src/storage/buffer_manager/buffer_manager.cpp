@@ -201,12 +201,16 @@ inline bool try_func(const std::function<void(uint8_t*)>& func, uint8_t* frame,
     return true;
 }
 
-inline bool try_func(const std::function<void(std::vector<const uint8_t*>)>& func, std::vector<const uint8_t*> frames,
-                     const std::vector<std::unique_ptr<VMRegion>>& vmRegions, common::PageSizeClass pageSizeClass) {
+inline bool try_func(const std::function<void(std::array<const uint8_t *, FAST_LOOKUP_MAX_BATCH_SIZE>,
+                                              const int)> &func,
+                     std::array<const uint8_t *, FAST_LOOKUP_MAX_BATCH_SIZE> frames,
+                     int size,
+                     const std::vector<std::unique_ptr<VMRegion>> &vmRegions,
+                     common::PageSizeClass pageSizeClass) {
 #if defined(_WIN32)
     try {
 #endif
-    func(frames);
+    func(frames, size);
 #if defined(_WIN32)
     } catch (AccessViolation& exc) {
 // If we encounter an acess violation within the VM region,
@@ -226,12 +230,13 @@ if (vmRegions[pageSizeClass]->contains(exc.location)) {
 }
 
 void BufferManager::optimisticBatchRead(kuzu::storage::BMFileHandle &fileHandle,
-                                        std::vector<PageReadReq> readReqs,
-                                        const std::function<void(std::vector<const uint8_t *>)> &batchFunc) {
+                                        std::array<PageReadReq, common::FAST_LOOKUP_MAX_BATCH_SIZE> &readReqs, int size,
+                                        const std::function<void(std::array<const uint8_t *, FAST_LOOKUP_MAX_BATCH_SIZE>, const int)> &batchFunc) {
     std::vector<std::pair<page_idx_t, PageState*>> pageStates;
-    for (auto& readReq : readReqs) {
-        for (auto i = 0u; i < readReq.numPages; i++) {
-            pageStates.push_back({readReq.pageIdx + i, fileHandle.getPageState(readReq.pageIdx + i)});
+    for (int i = 0u; i < size; i++) {
+        auto &readReq = readReqs[i];
+        for (auto j = 0u; j < readReq.numPages; j++) {
+            pageStates.push_back({readReq.pageIdx + j, fileHandle.getPageState(readReq.pageIdx + j)});
         }
     }
     auto numPages = pageStates.size();
@@ -257,11 +262,12 @@ void BufferManager::optimisticBatchRead(kuzu::storage::BMFileHandle &fileHandle,
 
         if (allUnlocked) {
             // This function has to idempotent otherwise we might read the same page multiple times!
-            std::vector<const uint8_t*> frames;
-            for (auto& readReq : readReqs) {
-                frames.push_back(getFrame(fileHandle, readReq.pageIdx));
+            std::array<const uint8_t*, FAST_LOOKUP_MAX_BATCH_SIZE> frames;
+            for (int i = 0; i < size; i++) {
+                auto &readReq = readReqs[i];
+                frames[i] = getFrame(fileHandle, readReq.pageIdx);
             }
-            if (!try_func(batchFunc, frames, vmRegions, fileHandle.getPageSizeClass())) {
+            if (!try_func(batchFunc, frames, size, vmRegions, fileHandle.getPageSizeClass())) {
                 continue;
             }
             // Check if the state and version of all pages are still the same

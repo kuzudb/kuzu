@@ -11,6 +11,8 @@ extern const char* KUZU_VERSION;
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY_LOG_2 = 11;
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY = (uint64_t)1 << DEFAULT_VECTOR_CAPACITY_LOG_2;
 
+constexpr int FAST_LOOKUP_MAX_BATCH_SIZE = 128;
+
 constexpr double DEFAULT_HT_LOAD_FACTOR = 1.5;
 
 // This is the default thread sleep time we use when a thread,

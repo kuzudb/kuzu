@@ -215,38 +215,31 @@ void Column::scan(Transaction* transaction, const ChunkState& state, idx_t vecto
     scanInternal(transaction, state, vectorIdx, numValuesToScan, nodeIDVector, resultVector);
 }
 
-void Column::fastScan(TransactionType txnType, const std::vector<const ChunkState*> &states,
-                      std::vector<std::pair<common::offset_t, common::offset_t>> &offsetsInGroup,
+void Column::fastScan(TransactionType txnType, FastLookupRequest* request,
                       fast_compute_on_values_func_t &computeFunc) {
     // TODO: fix for null column
-    KU_ASSERT(states.size() == offsetsInGroup.size());
-    std::vector<PageReadReq> readReqs(states.size());
-    std::vector<uint16_t> startPositions(states.size());
-    for (auto i = 0; i < offsetsInGroup.size(); i++) {
-        auto startOffsetInGroup = offsetsInGroup[i].first;
-        auto endOffsetInGroup = offsetsInGroup[i].second;
-        auto pageCursor = getPageCursorForOffsetInGroup(startOffsetInGroup, *states[i]);
+    for (auto i = 0; i < request->size; i++) {
+        auto startOffsetInGroup = request->startOffsetsInGroup[i];
+        auto endOffsetInGroup = request->endOffsetsInGroup[i];
+        auto pageCursor = getPageCursorForOffsetInGroup(startOffsetInGroup, *request->states[i]);
         const auto numValuesToScan = endOffsetInGroup - startOffsetInGroup;
-        auto chunkMeta = states[i]->metadata;
+        auto chunkMeta = request->states[i]->metadata;
         const auto numValuesPerPage =
-                states[i]->metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+                request->states[i]->metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
         auto startPageIdx = pageCursor.pageIdx;
         auto startPosInPage = pageCursor.elemPosInPage;
         KU_ASSERT(isPageIdxValid(pageCursor.pageIdx, chunkMeta));
         auto numPagesToRead =
                 std::ceil((float) std::max((int) (numValuesToScan - (numValuesPerPage - startPosInPage)), 0) /
                           numValuesPerPage) + 1;
-        readReqs[i] = PageReadReq(startPageIdx, (uint64_t) numPagesToRead);
-        startPositions[i] = startPosInPage;
+        request->readReqs[i] = PageReadReq(startPageIdx, (uint64_t) numPagesToRead);
+        request->startPositions[i] = startPosInPage;
     }
 
-    readFromPages(txnType, readReqs, [&](std::vector<const uint8_t *> frames) -> void {
-        std::vector<SeqFrames> seqFrames(frames.size());
-        for (auto i = 0; i < frames.size(); i++) {
-            seqFrames[i] = SeqFrames(frames[i], startPositions[i], readReqs[i].numPages);
-        }
-        computeFunc(seqFrames);
-    });
+    readFromPages(txnType, request->readReqs, request->size,
+                  [&](std::array<const uint8_t *, common::FAST_LOOKUP_MAX_BATCH_SIZE> frames, const int size) -> void {
+                      computeFunc(frames, request->startPositions, size);
+                  });
 }
 
 void Column::scan(Transaction* transaction, const ChunkState& state, offset_t startOffsetInGroup,
@@ -378,8 +371,7 @@ void Column::scanFiltered(Transaction* transaction, PageCursor& pageCursor,
     }
 }
 
-void Column::fastLookup(TransactionType txnType, const std::vector<ChunkState*> &states,
-                        std::vector<common::offset_t> nodeOffsets, fast_compute_on_values_func_t &computeFunc) {
+void Column::fastLookup(TransactionType txnType, FastLookupRequest* request, fast_compute_on_values_func_t &computeFunc) {
     throw std::runtime_error("Not implemented");
 }
 
@@ -416,11 +408,13 @@ void Column::lookupValue(Transaction* transaction, ChunkState& readState, offset
     });
 }
 
-void Column::readFromPages(TransactionType trxType, std::vector<PageReadReq> &readReqs,
-                           const std::function<void(std::vector<const uint8_t *>)> &func) {
+void Column::readFromPages(TransactionType trxType, std::array<PageReadReq, FAST_LOOKUP_MAX_BATCH_SIZE> &readReqs,
+                               int size,
+                               const std::function<void(std::array<const uint8_t *, FAST_LOOKUP_MAX_BATCH_SIZE>, const int)> &batchFunc) {
     KU_ASSERT(readReqs.size() > 0);
     BMFileHandle* fileHandleToPin = nullptr;
-    for (auto &readReq : readReqs) {
+    for (int i = 0; i < size; i++) {
+        auto &readReq = readReqs[i];
         // Fast scan is only supported with read-only transactions
         auto [fileHandle, pageIdx] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
                 *dataFH, readReq.pageIdx, *wal, trxType);
@@ -431,7 +425,7 @@ void Column::readFromPages(TransactionType trxType, std::vector<PageReadReq> &re
             KU_ASSERT(fileHandleToPin == fileHandle);
         }
     }
-    bufferManager->optimisticBatchRead(*fileHandleToPin, readReqs, func);
+    bufferManager->optimisticBatchRead(*fileHandleToPin, readReqs, size, batchFunc);
 }
 
 void Column::readFromPage(TransactionType trxType, page_idx_t pageIdx,

@@ -1,1 +1,1 @@
-COPY dataset FROM "dataset/vector-index/embeddings.csv" (deLim=',', header=false);
+COPY dataset FROM "dataset/vector-index/embeddings.csv" (deLim=',', header=true);

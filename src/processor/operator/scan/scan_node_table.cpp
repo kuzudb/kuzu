@@ -27,6 +27,32 @@ void ScanNodeTableSharedState::initialize(transaction::Transaction* transaction,
     committedNodeGroupFinished.resize(numCommittedNodeGroups, false);
 }
 
+void ScanNodeTableSharedState::reset(transaction::Transaction *transaction, storage::NodeTable *table) {
+    std::unique_lock lck{mtx};
+    if (this->currentCommittedGroupIdx == 0 && this->currentUnCommittedGroupIdx == 0) {
+        // Already reset.
+        return;
+    }
+
+    this->table = table;
+    this->currentCommittedGroupIdx = 0;
+    this->currentUnCommittedGroupIdx = 0;
+    this->numCommittedNodeGroups = std::min(endNodeGroupIdx - startNodeGroupIdx, table->getNumCommittedNodeGroups() - 1);
+    this->numCommittedNodeGroups += 1;
+    if (transaction->isWriteTransaction()) {
+        if (const auto localTable = transaction->getLocalStorage()->getLocalTable(
+                this->table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
+            localNodeGroups = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable)
+                    ->getTableData()
+                    ->getNodeGroups();
+        }
+    }
+    for (auto i = 0u; i < numCommittedNodeGroups; i++) {
+        committedNodeGroupVectorIdx[i] = 0;
+        committedNodeGroupFinished[i] = false;
+    }
+}
+
 void ScanNodeTableSharedState::updateVectorIdx(storage::NodeTableScanState& scanState) {
     std::unique_lock lck{mtx};
     auto& dataScanState =
@@ -139,6 +165,22 @@ bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
         }
     }
     return false;
+}
+
+void ScanNodeTable::reset(transaction::Transaction* transaction) {
+    KU_ASSERT(sharedStates.size() == nodeInfos.size());
+    // Reset the shared state.
+    for (auto i = 0u; i < nodeInfos.size(); i++) {
+        sharedStates[i]->reset(transaction, nodeInfos[i].table);
+    }
+
+    // Reset the local scan state.
+    currentTableIdx = 0;
+    for (auto i = 0u; i < nodeInfos.size(); ++i) {
+        auto& nodeInfo = nodeInfos[i];
+        nodeInfo.initScanState(sharedStates[i]->getSemiMask());
+        initVectors(*nodeInfo.localScanState, *resultSet);
+    }
 }
 
 std::unique_ptr<PhysicalOperator> ScanNodeTable::clone() {

@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "common/types/types.h"
+#include "common/constants.h"
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/buffer_manager/memory_manager.h"
 
@@ -187,8 +188,8 @@ public:
         PageReadPolicy pageReadPolicy = PageReadPolicy::READ_PAGE);
 
     void optimisticBatchRead(kuzu::storage::BMFileHandle &fileHandle,
-                             std::vector<PageReadReq> readReqs,
-                             const std::function<void(std::vector<const uint8_t *>)> &batchFunc);
+                             std::array<PageReadReq, common::FAST_LOOKUP_MAX_BATCH_SIZE> &readReqs, int size,
+                             const std::function<void(std::array<const uint8_t *, common::FAST_LOOKUP_MAX_BATCH_SIZE>, const int)> &batchFunc);
 
     void optimisticRead(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& func);

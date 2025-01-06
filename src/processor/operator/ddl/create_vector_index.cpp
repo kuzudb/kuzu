@@ -21,15 +21,15 @@ namespace kuzu {
             // Add column to table for compressed vectors
             auto compressedPropertyName = VectorIndexHeader::getCompressedVectorPropertyName(propertyId);
             // Here we do not have any default value evaluator
-            auto type = LogicalType::ARRAY(LogicalType::INT8(), dim);
+            auto type = LogicalType::ARRAY(LogicalType::UINT8(), dim + 4);
             auto defaultValue =
                     std::make_unique<parser::ParsedLiteralExpression>(Value::createNullValue(type), "NULL");
             binder::BoundAlterInfo alterInfo(AlterType::ADD_PROPERTY, tableName, tableId,
                                              std::make_unique<binder::BoundExtraAddPropertyInfo>(
                                                      compressedPropertyName,
                                                      LogicalType::ARRAY(
-                                                             LogicalType::INT8(),
-                                                             dim),
+                                                             LogicalType::UINT8(),
+                                                             dim + 4),
                                                      std::move(defaultValue),
                                                      nullptr));
             catalog->alterTableSchema(context->clientContext->getTx(), alterInfo);

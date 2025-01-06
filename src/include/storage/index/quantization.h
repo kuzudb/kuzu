@@ -10,28 +10,6 @@ using namespace kuzu::common;
 
 namespace kuzu {
     namespace storage {
-        enum DistanceType {
-            L2_SQ,
-            IP,
-        };
-
-        template<typename T1, typename T2>
-        struct QuantizedDistanceComputer {
-            int dim;
-
-            explicit QuantizedDistanceComputer(int dim) : dim(dim) {}
-
-            /**
-             * Compute the distance between two vectors.
-             * @param x the first vector
-             * @param y the second vector
-             * @param result the distance
-             */
-            virtual void compute_distance(const T1 *x, const T2 *y, double *result) = 0;
-
-            virtual ~QuantizedDistanceComputer() = default;
-        };
-
         // Serial encoding functions
         inline uint8_t encode_serial(const float x, const float vmin, const float vdiff,
                                      float scalar_range) {
@@ -81,9 +59,11 @@ namespace kuzu {
 
         inline void compute_asym_ip_serial_8bit(const float *x, const uint8_t *y, double *result, size_t dim,
                                                   const float *alpha, const float *beta) {
+            double xy = 0;
             for (size_t i = 0; i < dim; i++) {
-                *result += x[i] * decode_serial(y[i], alpha[i], beta[i]);
+                xy += x[i] * decode_serial(y[i], alpha[i], beta[i]);
             }
+            *result = xy;
         }
 
         inline void compute_sym_ip_serial_8bit(const uint8_t *x, const uint8_t *y, double *result, size_t dim,
@@ -94,6 +74,7 @@ namespace kuzu {
             }
             // Add precomputed value (last 4 bytes)
             xy += *reinterpret_cast<const float *>(x + dim);
+            xy += *reinterpret_cast<const float *>(y + dim);
             *result = xy;
         }
 
@@ -287,86 +268,58 @@ namespace kuzu {
                                                   const float *alphaSqr) {
             // TODO
         }
+
+        inline void compute_asym_ip_skylake_8bit(const float *x, const uint8_t *y, double *result, size_t dim,
+                                                 const float *alpha, const float *beta) {
+            __m512 xy_vec = _mm512_setzero();
+            __m512 y_vec, x_vec, d_vec;
+            size_t i = 0;
+            for (; i + 16 <= dim; i += 16) {
+                x_vec = _mm512_loadu_ps(x + i);
+                __m128i codes = _mm_loadu_si128(reinterpret_cast<const __m128i *>(y));
+                y_vec = decode_skylake(codes, i, alpha, beta);
+                xy_vec = _mm512_fmadd_ps(x_vec, y_vec, xy_vec);
+            }
+            *result = _mm512_reduce_add_ps(xy_vec);
+        }
+
+        inline void compute_sym_ip_skylake_8bit(const uint8_t *x, const uint8_t *y, double *result, size_t dim,
+                                                const float *alphaSqr) {
+            __m512 xy_vec = _mm512_setzero();
+            size_t i = 0;
+            for (; i + 32 <= dim; i += 32) {
+                __m256i x_codes = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(x));
+                __m256i y_codes = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(y));
+                // Convert to 16 bit integers
+                __m512i x_codes16 = _mm512_cvtepu8_epi16(x_codes);
+                __m512i y_codes16 = _mm512_cvtepu8_epi16(y_codes);
+
+                // Multiply and add
+                __m512i xy = _mm512_mullo_epi16(x_codes16, y_codes16);
+
+                // Convert to 32-bit integers
+                __m512 lower_half = _mm512_cvtepi32_ps(_mm512_cvtepu16_epi32(_mm512_castsi512_si256(xy)));
+                __m512 upper_half = _mm512_cvtepi32_ps(_mm512_cvtepu16_epi32(_mm512_extracti64x4_epi64(xy, 1)));
+
+                // xy_vec = _mm512_add_ps(xy_vec, lower_half);
+                __m512 alphaSqr_vec_low = _mm512_loadu_ps(alphaSqr + i);
+                __m512 alphaSqr_vec_high = _mm512_loadu_ps(alphaSqr + i + 16);
+                xy_vec = _mm512_fmadd_ps(lower_half, alphaSqr_vec_low, xy_vec);
+                xy_vec = _mm512_fmadd_ps(upper_half, alphaSqr_vec_high, xy_vec);
+            }
+            *result = _mm512_reduce_add_ps(xy_vec) + reinterpret_cast<const float *>(x + dim)[0] +
+                      reinterpret_cast<const float *>(y + dim)[0];
+        }
 #pragma clang attribute pop
 #pragma GCC pop_options
 #endif // SIMSIMD_TARGET_SKYLAKE
 #endif // SIMSIMD_TARGET_X86
 
-        class AsymmetricL2Sq : public QuantizedDistanceComputer<float, uint8_t> {
-        public:
-            explicit AsymmetricL2Sq(int dim, const float *alpha, const float *beta)
-                    : QuantizedDistanceComputer(dim), alpha(alpha), beta(beta) {};
-
-            ~AsymmetricL2Sq() = default;
-
-            inline void compute_distance(const float *x, const uint8_t *y, double *result) override {
-#if SIMSIMD_TARGET_SKYLAKE
-                compute_asym_l2sq_skylake_8bit(x, y, result, dim, alpha, beta);
-#else
-                compute_asym_l2sq_serial_8bit(x, y, result, dim, alpha, beta);
-#endif
-            }
-
-        private:
-            const float *alpha;
-            const float *beta;
-        };
-
-        class SymmetricL2Sq : public QuantizedDistanceComputer<uint8_t, uint8_t> {
-        public:
-            explicit SymmetricL2Sq(int dim, const float *alphaSqr)
-                    : QuantizedDistanceComputer(dim), alphaSqr(alphaSqr) {};
-
-            ~SymmetricL2Sq() = default;
-
-            inline void compute_distance(const uint8_t *x, const uint8_t *y, double *result) override {
-#if SIMSIMD_TARGET_SKYLAKE
-                compute_sym_l2sq_skylake_8bit(x, y, result, dim, alphaSqr);
-#else
-                compute_sym_l2sq_serial_8bit(x, y, result, dim, alphaSqr);
-#endif
-            }
-
-        private:
-            const float *alphaSqr;
-        };
-
-        class AsymmetricIP : public QuantizedDistanceComputer<float, uint8_t> {
-        public:
-            explicit AsymmetricIP(int dim, const float *alpha, const float *beta)
-                    : QuantizedDistanceComputer(dim), alpha(alpha), beta(beta) {};
-
-            ~AsymmetricIP() = default;
-
-            inline void compute_distance(const float *x, const uint8_t *y, double *result) override {
-                compute_asym_ip_serial_8bit(x, y, result, dim, alpha, beta);
-            }
-
-        private:
-            const float *alpha;
-            const float *beta;
-        };
-
-        class SymmetricIP : public QuantizedDistanceComputer<uint8_t, uint8_t> {
-        public:
-            explicit SymmetricIP(int dim, const float *alphaSqr)
-                    : QuantizedDistanceComputer(dim), alphaSqr(alphaSqr) {};
-
-            ~SymmetricIP() = default;
-
-            inline void compute_distance(const uint8_t *x, const uint8_t *y, double *result) override {
-                compute_sym_ip_serial_8bit(x, y, result, dim, alphaSqr);
-            }
-
-        private:
-            const float *alphaSqr;
-        };
-
         class SQ8Bit {
             static constexpr size_t HISTOGRAM_NUM_BINS = 512;
             static constexpr size_t SCALAR_RANGE = 256;
         public:
-            explicit SQ8Bit(int dim, float breakPointDataRatio = 0.99f)
+            explicit SQ8Bit(int dim, float breakPointDataRatio = 1.0f)
                     : dim(dim), codeSize(dim + 4), breakPointDataRatio(breakPointDataRatio), numTrainedVecs(0) {
                 vmin = new float[dim];
                 vdiff = new float[dim];
@@ -392,7 +345,8 @@ namespace kuzu {
             }
 
             SQ8Bit(const SQ8Bit &other) : dim(other.dim), codeSize(dim + 4),
-                                          breakPointDataRatio(other.breakPointDataRatio) {
+                                          breakPointDataRatio(other.breakPointDataRatio),
+                                          numTrainedVecs(other.numTrainedVecs.load()) {
                 vmin = new float[dim];
                 vdiff = new float[dim];
                 alpha = new float[dim];
@@ -406,9 +360,25 @@ namespace kuzu {
                 memcpy(beta, other.beta, dim * sizeof(float));
                 memcpy(alphaSqr, other.alphaSqr, dim * sizeof(float));
                 memcpy(betaSqr, other.betaSqr, dim * sizeof(float));
+
+                histogram = std::vector<std::vector<std::atomic_uint64_t>>(dim);
+                for (size_t i = 0; i < dim; i++) {
+                    histogram[i] = std::vector<std::atomic_uint64_t>(HISTOGRAM_NUM_BINS);
+                }
+                for (size_t i = 0; i < dim; i++) {
+                    for (size_t j = 0; j < HISTOGRAM_NUM_BINS; j++) {
+                        histogram[i][j] = other.histogram[i][j].load();
+                    }
+                }
             }
 
             inline void batchTrain(const float *data, size_t n) {
+                std::lock_guard<std::mutex> lock(mtx);
+                if (trainingFinished) {
+                    return;
+                }
+
+                // TODO: make this code SIMD
                 for (size_t i = 0; i < n; i++) {
                     for (size_t j = 0; j < dim; j++) {
                         vmin[j] = std::min(vmin[j], data[i * dim + j]);
@@ -422,6 +392,11 @@ namespace kuzu {
             }
 
             inline void determineBreakpoints(const float *data, size_t n) {
+                std::lock_guard<std::mutex> lock(mtx);
+                if (trainingFinished) {
+                    return;
+                }
+
                 if (breakPointDataRatio >= 1.0f) {
                     return;
                 }
@@ -439,6 +414,11 @@ namespace kuzu {
             }
 
             inline void finalizeTrain() {
+                std::lock_guard<std::mutex> lock(mtx);
+                if (trainingFinished) {
+                    return;
+                }
+
                 if (breakPointDataRatio < 1.0f) {
                     // Now we have to find the smallest which contains at-least 70% of n of the data.
                     // Find the smallest bin range that contains at least 70% of the data
@@ -475,6 +455,7 @@ namespace kuzu {
                     alphaSqr[i] = alpha[i] * alpha[i];
                     betaSqr[i] = beta[i] * beta[i];
                 }
+                trainingFinished = true;
             }
 
             inline void encode(const float *x, uint8_t *codes, size_t n) const {
@@ -492,28 +473,26 @@ namespace kuzu {
                 }
             }
 
-            inline std::unique_ptr<QuantizedDistanceComputer<float, uint8_t>>
-            get_asym_distance_computer(DistanceType type) const {
-                switch (type) {
-                    case DistanceType::L2_SQ:
-                        return std::make_unique<AsymmetricL2Sq>(dim, alpha, beta);
-                    case DistanceType::IP:
-                        return std::make_unique<AsymmetricIP>(dim, alpha, beta);
-                    default:
-                        throw std::runtime_error("Unsupported distance type");
+            inline void decode(const uint8_t *codes, float *x, size_t n) const {
+                for (size_t i = 0; i < n; i++) {
+                    const uint8_t *ci = codes + i * codeSize;
+                    float *xi = x + i * dim;
+                    for (size_t j = 0; j < dim; j++) {
+                        xi[j] = decode_serial(ci[j], alpha[j], beta[j]);
+                    }
                 }
             }
 
-            inline std::unique_ptr<QuantizedDistanceComputer<uint8_t, uint8_t>>
-            get_sym_distance_computer(DistanceType type) const {
-                switch (type) {
-                    case DistanceType::L2_SQ:
-                        return std::make_unique<SymmetricL2Sq>(dim, alphaSqr);
-                    case DistanceType::IP:
-                        return std::make_unique<SymmetricIP>(dim, alphaSqr);
-                    default:
-                        throw std::runtime_error("Unsupported distance type");
-                }
+            inline const float* getAlpha() const {
+                return alpha;
+            }
+
+            inline const float* getBeta() const {
+                return beta;
+            }
+
+            inline const float* getAlphaSqr() const {
+                return alphaSqr;
             }
 
             inline void serialize(Serializer &serializer) const {
@@ -525,6 +504,13 @@ namespace kuzu {
                 serializer.write(reinterpret_cast<uint8_t *>(beta), size);
                 serializer.write(reinterpret_cast<uint8_t *>(alphaSqr), size);
                 serializer.write(reinterpret_cast<uint8_t *>(betaSqr), size);
+                serializer.write(breakPointDataRatio);
+                serializer.write(numTrainedVecs.load());
+                for (size_t i = 0; i < dim; i++) {
+                    for (size_t j = 0; j < HISTOGRAM_NUM_BINS; j++) {
+                        serializer.write(histogram[i][j].load());
+                    }
+                }
             }
 
             static std::unique_ptr<SQ8Bit> deserialize(Deserializer &deserializer) {
@@ -538,6 +524,17 @@ namespace kuzu {
                 deserializer.deserializeValue(reinterpret_cast<uint8_t *>(sq->beta), size);
                 deserializer.deserializeValue(reinterpret_cast<uint8_t *>(sq->alphaSqr), size);
                 deserializer.deserializeValue(reinterpret_cast<uint8_t *>(sq->betaSqr), size);
+                deserializer.deserializeValue(sq->breakPointDataRatio);
+                uint64_t numTrainedVecs;
+                deserializer.deserializeValue(numTrainedVecs);
+                sq->numTrainedVecs = numTrainedVecs;
+                for (size_t i = 0; i < dim; i++) {
+                    for (size_t j = 0; j < HISTOGRAM_NUM_BINS; j++) {
+                        uint64_t val;
+                        deserializer.deserializeValue(val);
+                        sq->histogram[i][j] = val;
+                    }
+                }
                 return sq;
             }
 
@@ -557,6 +554,9 @@ namespace kuzu {
             size_t codeSize; // bytes per indexed vector
 
         private:
+            std::mutex mtx;
+            bool trainingFinished = false;
+
             float *vmin;
             float *vdiff;
 

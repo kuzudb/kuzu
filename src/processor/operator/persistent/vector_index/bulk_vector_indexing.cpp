@@ -2,11 +2,13 @@
 
 #include <thread>
 
+#include "common/vector_index/helpers.h"
+#include "common/vector_index/vector_index_config.h"
 #include "binder/ddl/bound_create_table.h"
 #include "catalog/catalog.h"
 #include "common/enums/rel_multiplicity.h"
-#include "storage/storage_manager.h"
 #include "storage/store/column.h"
+#include "processor/operator/scan/scan_node_table.h"
 
 namespace kuzu {
     namespace processor {
@@ -25,17 +27,18 @@ namespace kuzu {
             }
             localState->offsetVector = resultSet->getValueVector(localState->offsetPos).get();
             localState->embeddingVector = resultSet->getValueVector(localState->embeddingPos).get();
-//            localState->dc = std::make_unique<CosineDistanceComputer>(sharedState->tempStorage->vectors,
-//                                                                      sharedState->header->getDim(),
-//                                                                      sharedState->tempStorage->numVectors);
-            localState->dc = std::make_unique<NodeTableDistanceComputer>(
-                    context->clientContext,
-                    sharedState->header->getNodeTableId(),
-                    sharedState->header->getEmbeddingPropertyId(),
-                    sharedState->startOffsetNodeTable,
-                    // Intentionally set data to nullptr since we will directly access the data from the node table
-                    std::make_unique<CosineDistanceComputer>(nullptr, sharedState->header->getDim(), sharedState->numVectors));
+            auto distFunc = sharedState->header->getConfig().distanceFunc;
+            auto dim = sharedState->header->getDim();
+            localState->dc = createDistanceComputer(context->clientContext, sharedState->header->getNodeTableId(),
+                                                    sharedState->header->getEmbeddingPropertyId(),
+                                                    sharedState->startOffsetNodeTable, dim, distFunc);
             localState->visited = std::make_unique<VisitedTable>(sharedState->numVectors);
+            localState->quantizer = std::make_unique<Quantizer>(
+                    sharedState->headerPerPartition->getQuantizer(),
+                    distFunc,
+                    sharedState->compressedStorage.get(),
+                    DEFAULT_VECTOR_CAPACITY,
+                    dim);
             initialized = true;
         }
 
@@ -62,23 +65,19 @@ namespace kuzu {
             sharedState->builder = std::make_unique<VectorIndexBuilder>(sharedState->header, sharedState->partitionId,
                                                                         numVectors,
                                                                         sharedState->graph.get());
-//            sharedState->compressedStorage = std::make_unique<CompressedVectorStorage>(
-//                    context->clientContext->getTx(), table->getColumn(table->getPKColumnID())->getMetadataDA(),
-//                    sharedState->header->getDim(), startNodeGroupId, endNodeGroupId);
-//            sharedState->compressedPropertyColumn =
-//                    table->getColumn(sharedState->header->getCompressedPropertyId());
+            sharedState->compressedStorage = std::make_unique<CompressedVectorStorage>(
+                    context->clientContext->getTx(), table->getColumn(sharedState->header->getCompressedPropertyId()),
+                    table->getColumn(table->getPKColumnID())->getMetadataDA(),
+                    sharedState->headerPerPartition->getQuantizer()->codeSize, startNodeGroupId, endNodeGroupId);
         }
 
         void BulkVectorIndexing::executeInternal(ExecutionContext *context) {
             std::vector<vector_id_t> vectorIds(DEFAULT_VECTOR_CAPACITY);
-//            SQ8Bit *quantizer = sharedState->headerPerPartition->getQuantizer();
             printf("Running indexing %d!!\n", sharedState->partitionId);
             while (children[0]->getNextTuple(context)) {
-                // print the thread id
                 auto numVectors = localState->offsetVector->state->getSelVector().getSelSize();
                 auto vectors = reinterpret_cast<float *>(
                         ListVector::getDataVector(localState->embeddingVector)->getData());
-                // print the offset and embedding
                 for (size_t i = 0; i < numVectors; i++) {
                     auto id = localState->offsetVector->getValue<internalID_t>(i);
                     KU_ASSERT(id.offset >= sharedState->startOffsetNodeTable);
@@ -86,52 +85,57 @@ namespace kuzu {
                 }
                 sharedState->builder->batchInsert(vectors, vectorIds.data(), numVectors,
                                                   localState->visited.get(), localState->dc.get());
-                // TODO: FIX this!!!
-//                quantizer->batch_train(numVectors, vectors);
+
+                // Train the quantizer
+                localState->quantizer->batchTrain(vectors, numVectors);
             }
             printf("Finished indexing %d!!\n", sharedState->partitionId);
-            // Wait for all threads to finish indexing
-//            sharedState->compressionLatch.arrive_and_wait();
-//            printf("Running quantization!!\n");
-//            Column::ChunkState state;
-//            // Start compressing the vectors
-//            while (true) {
-//                auto element = sharedState->compressedStorage->getCompressedChunk();
-//                if (element.nodeGroupIdx == INVALID_NODE_GROUP_IDX) {
-//                    break;
-//                }
-//                auto &listChunk = element.columnChunk->cast<ListChunkData>();
-//                // Fix the start offset!!
-//                // TODO: Cleanup the code. Super Hackyyy!!
-//                auto startOffset =
-//                        element.startOffset - (sharedState->startOffsetNodeTable * sharedState->header->getDim());
-//                quantizer->encode(sharedState->tempStorage->vectors + startOffset,
-//                                  listChunk.getDataColumnChunk()->getData(), listChunk.getNumValues());
-//                sharedState->compressedPropertyColumn->initChunkState(context->clientContext->getTx(),
-//                                                                      element.nodeGroupIdx, state);
-//                sharedState->compressedPropertyColumn->append(element.columnChunk.get(), state);
-//            }
+
+            sharedState->compressionLatch.arrive_and_wait();
+            printf("Starting quantization %d!!\n", sharedState->partitionId);
+            resetScanTable(context->clientContext->getTx());
+            localState->quantizer->finalizeTrain();
+
+            // Run quantization
+            vector_id_t startVectorId = 0;
+            while (children[0]->getNextTuple(context)) {
+                auto numVectors = localState->offsetVector->state->getSelVector().getSelSize();
+                if (numVectors == 0) {
+                    continue;
+                }
+                auto vectors = reinterpret_cast<float *>(
+                        ListVector::getDataVector(localState->embeddingVector)->getData());
+                startVectorId = localState->offsetVector->getValue<internalID_t>(0).offset -
+                                sharedState->startOffsetNodeTable;
+                localState->quantizer->encode(vectors, startVectorId, numVectors);
+            }
+            printf("Finished quantization %d!!\n", sharedState->partitionId);
+        }
+
+        inline void BulkVectorIndexing::resetScanTable(transaction::Transaction *transaction) {
+            children[0]->ptrCast<ScanNodeTable>()->reset(transaction);
         }
 
         void BulkVectorIndexing::finalize(ExecutionContext *context) {
             // TODO: Benchmark and make it parallelized (might be important)
             KU_ASSERT_MSG(sharedState->partitionerSharedState->partitioningBuffers.size() == 1,
                           "Only one partitioning buffer in fwd direction is supported");
-//    printf("checking recall... single threaded might take time...\n");
-//    testGraph();
             // Populate partition buffer
-            // TODO: IMP: Free the memory of the graph as partition is filled!!
             sharedState->graph->populatePartitionBuffer(
                     *sharedState->partitionerSharedState->partitioningBuffers[0]);
 
-            // TODO: Fix this to make it parallel!!
-            printf("Running quantization!!\n");
+//             TODO: Fix this to make it parallel!!
+//            printf("Running quantization!!\n");
             // Skip the quantization for now
 //            sharedState->headerPerPartition->getQuantizer()->batch_train(
 //                    sharedState->tempStorage->vectors, sharedState->tempStorage->numVectors);
 //            sharedState->headerPerPartition->getQuantizer()->encode(
 //                    sharedState->tempStorage->vectors, sharedState->headerPerPartition->getQuantizedVectors(),
 //                    sharedState->tempStorage->numVectors);
+
+            // Flush quantized vectors
+            // TODO: Make it parallel
+            sharedState->compressedStorage->flush(context->clientContext->getTx());
 
             // Free the memory of the graph
             sharedState->graph.reset();
@@ -143,24 +147,6 @@ namespace kuzu {
             context->clientContext->getStorageManager()->getWAL().addToUpdatedTables(
                     sharedState->header->getNodeTableId());
         }
-
-//void BulkVectorIndexing::printGraph() {
-////      Print the graph from partitionerSharedState
-//    auto& partitionBuffer = *sharedState->partitionerSharedState->partitioningBuffers[0];
-//    auto totalElements = 0;
-//    for (auto partitionIdx = 0u; partitionIdx < partitionBuffer.partitions.size();
-//    partitionIdx++) {
-//        auto& partition = partitionBuffer.partitions[partitionIdx];
-//        auto& group = partition.getChunkedGroups()[0];
-//        auto& from = group->getColumnChunk(0);
-//        auto& to = group->getColumnChunk(1);
-//        auto& relId = group->getColumnChunk(2);
-//        for (auto i = 0u; i < group->getNumRows(); i++) {
-//            totalElements++;
-//        }
-//    }
-//    printf("Total elements: %d\n", totalElements);
-//}
 
         std::unique_ptr<PhysicalOperator> BulkVectorIndexing::clone() {
             return make_unique<BulkVectorIndexing>(resultSetDescriptor->copy(), localState->copy(),

@@ -12,6 +12,7 @@
 #include "parser/expression/parsed_property_expression.h"
 #include "parser/expression/parsed_variable_expression.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
+#include "storage/storage_manager.h"
 #include "storage/index/vector_index_header.h"
 
 using namespace kuzu::common;
@@ -138,7 +139,12 @@ std::unique_ptr<BoundReadingClause> Binder::bindVectorSearchCall(std::string fun
     auto tableId = nodeTableIds[0];
     auto nodeTableEntry = clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTx(), tableId);
     auto embeddingPropertyId = nodeTableEntry->getPropertyID(propertyExp->getPropertyName());
-    auto relTableName = storage::VectorIndexHeader::getIndexRelTableName(tableId, embeddingPropertyId, 0, 3768);
+    auto header = clientContext->getStorageManager()->getVectorIndexHeaderReadOnlyVersion(tableId, embeddingPropertyId);
+    // Considering there's only one partition
+    auto partitionHeader = header->getPartitionHeader(0);
+    auto relTableName = storage::VectorIndexHeader::getIndexRelTableName(tableId, embeddingPropertyId,
+                                                                         partitionHeader->getStartNodeGroupId(),
+                                                                         partitionHeader->getEndNodeGroupId());
     auto relTableId = clientContext->getCatalog()->getTableID(clientContext->getTx(), relTableName);
     auto graphEntry = GraphEntry(std::vector<table_id_t>{tableId}, std::vector<table_id_t>{relTableId});
 

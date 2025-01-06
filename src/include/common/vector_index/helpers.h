@@ -11,6 +11,7 @@
 #include "atomic"
 #include "thread"
 #include <simsimd/simsimd.h>
+#include <simsimd/dot.h>
 
 namespace kuzu {
 namespace common {
@@ -395,9 +396,8 @@ public:
         int i = 0;
         // Process 4 elements at a time
         for (; i + 4 <= dim; i += 4) {
-            float32x4_t vec = vld1q_f32(vector + 4); // Load 4 elements
-            float32x4_t sqr_vec = vmulq_f32(vec, vec); // Square each element
-            sum_vec = vaddq_f32(sum_vec, sqr_vec); // Accumulate the sum of squares
+            float32x4_t vec = vld1q_f32(vector + i); // Load 4 elements
+            sum_vec = vfmaq_f32(sum_vec, vec, vec); // Square each element
         }
         // Horizontal addition of sum_vec components
         float sum = vaddvq_f32(sum_vec);
@@ -433,6 +433,55 @@ public:
 #endif
 
 #if _SIMSIMD_TARGET_X86
+#if SIMSIMD_TARGET_HASWELL
+#pragma GCC push_options
+#pragma GCC target("avx2", "fma")
+#pragma clang attribute push(__attribute__((target("avx2,fma"))), apply_to = function)
+
+inline static float compute_normalized_factor_haswell(const float *vector, int dim) {
+    __m256 sum_vec = _mm256_setzero_ps();  // Initialize sum vector to 0
+    int i = 0;
+
+    // Process 8 elements at a time using AVX2
+    for (; i + 8 <= dim; i += 8) {
+        __m256 vec = _mm256_loadu_ps(vector + i);
+        // Use FMA for multiply-add operation: sum += vec * vec
+        sum_vec = _mm256_fmadd_ps(vec, vec, sum_vec);
+    }
+
+    // Reduce with double precision for better accuracy
+    double sum = _simsimd_reduce_f32x8_haswell(sum_vec);
+
+    // Handle remaining elements in double precision
+    for (; i < dim; i++) {
+        sum += static_cast<double>(vector[i]) * static_cast<double>(vector[i]);
+    }
+
+    return static_cast<float>(1.0 / std::sqrt(sum));
+}
+
+inline static void normalize_vectors_haswell(const float *vector, int dim, float *normalized_vector) {
+    float norm = compute_normalized_factor_haswell(vector, dim);
+    __m256 norm_vec = _mm256_set1_ps(norm);  // Broadcast norm to all elements
+    int i = 0;
+
+    // Process 8 elements at a time
+    for (; i + 8 <= dim; i += 8) {
+        __m256 vec = _mm256_loadu_ps(vector + i);
+        __m256 normed_vec = _mm256_mul_ps(vec, norm_vec);
+        _mm256_storeu_ps(normalized_vector + i, normed_vec);
+    }
+
+    // Handle remaining elements
+    for (; i < dim; i++) {
+        normalized_vector[i] = vector[i] * norm;
+    }
+}
+
+#pragma clang attribute pop
+#pragma GCC pop_options
+#endif // SIMSIMD_TARGET_HASWELL
+
 #if SIMSIMD_TARGET_SKYLAKE
 #pragma GCC push_options
 #pragma GCC target("avx512f", "avx512vl", "bmi2")
@@ -443,8 +492,7 @@ public:
 
         for (; i + 16 <= dim; i += 16) {
             __m512 vec = _mm512_loadu_ps(vector + i);     // Load 16 elements
-            __m512 sqr_vec = _mm512_mul_ps(vec, vec);     // Square each element
-            sum_vec = _mm512_add_ps(sum_vec, sqr_vec);    // Accumulate sum of squares
+            sum_vec= _mm512_fmadd_ps(vec, vec, sum_vec);     // Square each element
         }
 
         float sum = _mm512_reduce_add_ps(sum_vec);
@@ -481,6 +529,8 @@ public:
             return compute_normalized_factor_neon(vector, dim);
 #elif SIMSIMD_TARGET_SKYLAKE
             return compute_normalized_factor_skylake(vector, dim);
+#elif SIMSIMD_TARGET_HASWELL
+            return compute_normalized_factor_haswell(vector, dim);
 #else
             float norm = 0;
             for (int i = 0; i < dim; i++) {
@@ -495,6 +545,8 @@ public:
             normalize_vectors_neon(vector, dim, normalized_vector);
 #elif SIMSIMD_TARGET_SKYLAKE
             normalize_vectors_skylake(vector, dim, normalized_vector);
+#elif SIMSIMD_TARGET_HASWELL
+            normalize_vectors_haswell(vector, dim, normalized_vector);
 #else
             float norm = compute_normalized_factor(vector, dim);
             for (int i = 0; i < dim; i++) {
