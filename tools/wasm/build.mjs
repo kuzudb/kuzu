@@ -2,28 +2,57 @@ import * as esbuild from 'esbuild'
 import { execSync } from "child_process";
 import path from 'path'
 import os from 'os'
+import fs from 'fs'
 
 const SRC_PATH = path.resolve("..", "..");
 const THREADS = os.cpus().length;
+const ES_BUILD_CONFIG = {
+  entryPoints: ['./build/sync/index.js', './build/index.js', 'build/worker.js'],
+  bundle: true,
+  format: 'esm',
+  external: ['fs', 'path', 'ws', 'crypto', "worker_threads", "os"],
+  outdir: 'dist',
+  logLevel: 'info',
+  define: {
+    "importMeta": "import.meta"
+  }
+};
 
 console.log(`Using ${THREADS} threads to build Kùzu.`);
-// console.log('Cleaning up...')
-// execSync("npm run clean", { stdio: "inherit" });
+console.log('Cleaning up...')
+execSync("npm run clean", { stdio: "inherit" });
 console.log('Building single-threaded version of Kùzu WebAssembly module...')
-execSync(`make wasm NUM_THREADS=${THREADS} SINGLE_THREAD=true`, {
+execSync(`make wasm NUM_THREADS=${THREADS} SINGLE_THREADED=true`, {
   cwd: SRC_PATH,
   stdio: "inherit",
 });
 
-console.log('Creating esbuild bundle...')
-await esbuild.build({
-    entryPoints: ['./build/sync/index.js', './build/index.js', 'build/worker.js'],
-    bundle: true,
-    format: 'esm',
-    external: ['fs', 'path', 'ws', 'crypto'],
-    outdir: 'dist',
-  logLevel: 'info',
-  define: {
-      "importMeta": "import.meta"
-    }
+console.log('Creating esbuild bundle...');
+await esbuild.build(ES_BUILD_CONFIG);
+
+console.log('Cleaning up...')
+execSync("npm run clean exclude-dist", { stdio: "inherit" });
+console.log("Building multi-threaded version of Kùzu WebAssembly module...");
+execSync(`make wasm NUM_THREADS=${THREADS} SINGLE_THREADED=false`, {
+  cwd: SRC_PATH,
+  stdio: "inherit",
 });
+console.log('Creating esbuild bundle...');
+const ES_BUILD_CONFIG_MULTI = JSON.parse(JSON.stringify(ES_BUILD_CONFIG));
+ES_BUILD_CONFIG_MULTI.outdir = 'dist/multithreaded';
+await esbuild.build(ES_BUILD_CONFIG_MULTI);
+
+console.log('Creating package.json...');
+const packageJsonText = await fs.promises.readFile(path.resolve(".", 'package.json'), 'utf-8');
+const packageJson = JSON.parse(packageJsonText);
+delete packageJson.scripts;
+delete packageJson.devDependencies;
+delete packageJson.dependencies;
+await fs.promises.writeFile(path.resolve(".", 'dist', 'package.json'), JSON.stringify(packageJson, null, 2), 'utf-8');
+
+console.log('Copying LICENSE...');
+await fs.promises.copyFile(path.resolve(SRC_PATH, 'LICENSE'), path.resolve(".", 'dist', 'LICENSE'));
+
+console.log('Copying README.md...');
+await fs.promises.copyFile(path.resolve(SRC_PATH, 'README.md'), path.resolve(".", 'dist', 'README.md'));
+console.log('All done!');

@@ -158,11 +158,11 @@ if(${BUILD_WASM})
     add_link_options(-sWASM_BIGINT)
 
     if(BUILD_TESTS OR BUILD_EXTENSION_TESTS)
-        add_link_options(-sINITIAL_MEMORY=3892MB) # 3.8GB
+        add_link_options(-sINITIAL_MEMORY=4GB)
         add_link_options(-sNODERAWFS=1)
     else()
+        add_link_options(-sSINGLE_FILE=1)
         add_link_options(-sALLOW_MEMORY_GROWTH=1)
-        add_link_options(-sEXPORTED_RUNTIME_METHODS=ccall)
         add_link_options(-sMODULARIZE=1)
         add_link_options(-sEXPORT_NAME=kuzu)
         add_link_options(-sMAXIMUM_MEMORY=4GB)

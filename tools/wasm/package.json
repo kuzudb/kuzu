@@ -8,6 +8,24 @@
     "type": "git",
     "url": "https://github.com/kuzudb/kuzu.git"
   },
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "require": "./index.js"
+    },
+    "./sync": {
+      "import": "./sync/index.js",
+      "require": "./sync/index.js"
+    },
+    "./multithreaded": {
+      "import": "./multithreaded/index.js",
+      "require": "./multithreaded/index.js"
+    },
+    "./multithreaded/sync": {
+      "import": "./multithreaded/sync/index.js",
+      "require": "./multithreaded/sync/index.js"
+    }
+  },
   "scripts": {
     "test": "mocha test --timeout 20000",
     "clean": "node clean.js",
