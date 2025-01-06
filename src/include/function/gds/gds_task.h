@@ -28,9 +28,11 @@ struct FrontierTaskInfo {
 };
 
 struct FrontierTaskSharedState {
+    FrontierMorselDispatcher morselDispatcher;
     FrontierPair& frontierPair;
 
-    explicit FrontierTaskSharedState(FrontierPair& frontierPair) : frontierPair{frontierPair} {}
+    FrontierTaskSharedState(uint64_t maxNumThreads, FrontierPair& frontierPair)
+        : morselDispatcher{maxNumThreads}, frontierPair{frontierPair} {}
     DELETE_COPY_AND_MOVE(FrontierTaskSharedState);
 };
 
@@ -39,6 +41,10 @@ public:
     FrontierTask(uint64_t maxNumThreads, const FrontierTaskInfo& info,
         std::shared_ptr<FrontierTaskSharedState> sharedState)
         : common::Task{maxNumThreads}, info{info}, sharedState{std::move(sharedState)} {}
+
+    void init(common::table_id_t tableID, common::offset_t numNodes) {
+        sharedState->morselDispatcher.init(tableID, numNodes);
+    }
 
     void run() override;
 
@@ -51,20 +57,21 @@ private:
 
 struct VertexComputeTaskSharedState {
     FrontierMorselDispatcher morselDispatcher;
-    graph::Graph* graph;
 
-    VertexComputeTaskSharedState(uint64_t maxNumThreads, graph::Graph* graph)
-        : morselDispatcher{maxNumThreads}, graph{graph} {}
+    explicit VertexComputeTaskSharedState(uint64_t maxNumThreads)
+        : morselDispatcher{maxNumThreads} {}
 };
 
 struct VertexComputeTaskInfo {
     VertexCompute& vc;
+    graph::Graph* graph;
     std::vector<std::string> propertiesToScan;
 
-    explicit VertexComputeTaskInfo(VertexCompute& vc, std::vector<std::string> propertiesToScan)
-        : vc{vc}, propertiesToScan{std::move(propertiesToScan)} {}
+    VertexComputeTaskInfo(VertexCompute& vc, graph::Graph* graph,
+        std::vector<std::string> propertiesToScan)
+        : vc{vc}, graph{graph}, propertiesToScan{std::move(propertiesToScan)} {}
     VertexComputeTaskInfo(const VertexComputeTaskInfo& other)
-        : vc{other.vc}, propertiesToScan{other.propertiesToScan} {}
+        : vc{other.vc}, graph{other.graph}, propertiesToScan{other.propertiesToScan} {}
 
     bool hasPropertiesToScan() const { return !propertiesToScan.empty(); }
 };

@@ -23,9 +23,9 @@ namespace function {
 class WCCFrontierPair : public FrontierPair {
 public:
     WCCFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-        std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreads,
-        table_id_map_t<offset_t> numNodesMap, storage::MemoryManager* mm)
-        : FrontierPair(curFrontier, nextFrontier, maxThreads) {
+        std::shared_ptr<GDSFrontier> nextFrontier, table_id_map_t<offset_t> numNodesMap,
+        storage::MemoryManager* mm)
+        : FrontierPair(curFrontier, nextFrontier) {
         for (const auto& [tableID, numNodes] : numNodesMap) {
             vertexValueMap.allocate(tableID, numNodes, mm);
             auto data = vertexValueMap.getData(tableID);
@@ -209,11 +209,10 @@ public:
         auto clientContext = context->clientContext;
         auto graph = sharedState->graph.get();
         auto numNodesMap = graph->getNumNodesMap(clientContext->getTransaction());
-        auto numThreads = clientContext->getMaxNumThreadForExec();
         auto currentFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto nextFrontier = getPathLengthsFrontier(context, 0);
         auto frontierPair = std::make_unique<WCCFrontierPair>(currentFrontier, nextFrontier,
-            numThreads, numNodesMap, clientContext->getMemoryManager());
+            numNodesMap, clientContext->getMemoryManager());
         // Initialize starting nodes in the next frontier.
         // When beginNewIteration, next frontier will become current frontier
         frontierPair->setActiveNodesForNextIter();

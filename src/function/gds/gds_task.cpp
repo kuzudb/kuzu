@@ -27,7 +27,7 @@ void FrontierTask::run() {
     auto& curFrontier = sharedState->frontierPair.getCurDenseFrontier();
     switch (info.direction) {
     case ExtendDirection::FWD: {
-        while (sharedState->frontierPair.getNextRangeMorsel(morsel)) {
+        while (sharedState->morselDispatcher.getNextRangeMorsel(morsel)) {
             for (auto offset = morsel.getBeginOffset(); offset < morsel.getEndOffset(); ++offset) {
                 if (!curFrontier.isActive(offset)) {
                     continue;
@@ -41,7 +41,7 @@ void FrontierTask::run() {
         }
     } break;
     case ExtendDirection::BWD: {
-        while (sharedState->frontierPair.getNextRangeMorsel(morsel)) {
+        while (sharedState->morselDispatcher.getNextRangeMorsel(morsel)) {
             for (auto offset = morsel.getBeginOffset(); offset < morsel.getEndOffset(); ++offset) {
                 if (!curFrontier.isActive(offset)) {
                     continue;
@@ -101,7 +101,7 @@ void FrontierTask::runSparse() {
 
 void VertexComputeTask::run() {
     FrontierMorsel morsel;
-    auto graph = sharedState->graph;
+    auto graph = info.graph;
     auto localVc = info.vc.copy();
     auto tableID = sharedState->morselDispatcher.getTableID();
     if (info.hasPropertiesToScan()) {

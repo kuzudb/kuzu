@@ -31,15 +31,16 @@ static uint64_t getNumThreads(processor::ExecutionContext& context) {
         .getValue<uint64_t>();
 }
 
-void GDSUtils::scheduleFrontierTask(table_id_t nbrTableID, table_id_t relTableID,
-    graph::Graph* graph, ExtendDirection extendDirection, GDSComputeState& gdsComputeState,
-    processor::ExecutionContext* context, std::optional<uint64_t> numThreads,
-    std::optional<common::idx_t> edgePropertyIdx) {
+void GDSUtils::scheduleFrontierTask(table_id_t boundTableID, table_id_t nbrTableID,
+    table_id_t relTableID, graph::Graph* graph, ExtendDirection extendDirection,
+    GDSComputeState& gdsComputeState, processor::ExecutionContext* context,
+    std::optional<uint64_t> numThreads, std::optional<common::idx_t> edgePropertyIdx) {
     auto clientContext = context->clientContext;
     auto info = FrontierTaskInfo(nbrTableID, relTableID, graph, extendDirection,
         *gdsComputeState.edgeCompute, edgePropertyIdx);
-    auto sharedState = std::make_shared<FrontierTaskSharedState>(*gdsComputeState.frontierPair);
-    uint64_t maxThreads = numThreads ? numThreads.value() : getNumThreads(*context);
+    auto maxThreads = numThreads ? numThreads.value() : getNumThreads(*context);
+    auto sharedState =
+        std::make_shared<FrontierTaskSharedState>(maxThreads, *gdsComputeState.frontierPair);
     auto task = std::make_shared<FrontierTask>(maxThreads, info, sharedState);
 
     if (gdsComputeState.frontierPair->isCurFrontierSparse()) {
@@ -55,6 +56,7 @@ void GDSUtils::scheduleFrontierTask(table_id_t nbrTableID, table_id_t relTableID
     // more generally decrease the number of worker threads by 1. Therefore, we instruct
     // scheduleTaskAndWaitOrError to start a new thread by passing true as the last
     // argument.
+    task->init(boundTableID, graph->getNumNodes(clientContext->getTransaction(), boundTableID));
     clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context,
         true /* launchNewWorkerThread */);
 }
@@ -75,24 +77,24 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
             case ExtendDirection::FWD: {
                 compState.beginFrontierComputeBetweenTables(info.fromNodeTableID,
                     info.toNodeTableID);
-                scheduleFrontierTask(info.toNodeTableID, info.relTableID, graph,
-                    ExtendDirection::FWD, compState, context);
+                scheduleFrontierTask(info.fromNodeTableID, info.toNodeTableID, info.relTableID,
+                    graph, ExtendDirection::FWD, compState, context);
             } break;
             case ExtendDirection::BWD: {
                 compState.beginFrontierComputeBetweenTables(info.toNodeTableID,
                     info.fromNodeTableID);
-                scheduleFrontierTask(info.fromNodeTableID, info.relTableID, graph,
-                    ExtendDirection::BWD, compState, context);
+                scheduleFrontierTask(info.toNodeTableID, info.fromNodeTableID, info.relTableID,
+                    graph, ExtendDirection::BWD, compState, context);
             } break;
             case ExtendDirection::BOTH: {
                 compState.beginFrontierComputeBetweenTables(info.fromNodeTableID,
                     info.toNodeTableID);
-                scheduleFrontierTask(info.toNodeTableID, info.relTableID, graph,
-                    ExtendDirection::FWD, compState, context);
+                scheduleFrontierTask(info.fromNodeTableID, info.toNodeTableID, info.relTableID,
+                    graph, ExtendDirection::FWD, compState, context);
                 compState.beginFrontierComputeBetweenTables(info.toNodeTableID,
                     info.fromNodeTableID);
-                scheduleFrontierTask(info.fromNodeTableID, info.relTableID, graph,
-                    ExtendDirection::BWD, compState, context);
+                scheduleFrontierTask(info.toNodeTableID, info.fromNodeTableID, info.relTableID,
+                    graph, ExtendDirection::BWD, compState, context);
             } break;
             default:
                 KU_UNREACHABLE;
@@ -112,8 +114,8 @@ static void runVertexComputeInternal(common::table_id_t tableID, graph::Graph* g
 void GDSUtils::runVertexCompute(processor::ExecutionContext* context, graph::Graph* graph,
     VertexCompute& vc, std::vector<std::string> propertiesToScan) {
     auto maxThreads = getNumThreads(*context);
-    auto info = VertexComputeTaskInfo(vc, propertiesToScan);
-    auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads, graph);
+    auto info = VertexComputeTaskInfo(vc, graph, propertiesToScan);
+    auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
     for (auto& tableID : graph->getNodeTableIDs()) {
         if (!vc.beginOnTable(tableID)) {
             continue;
@@ -130,8 +132,8 @@ void GDSUtils::runVertexCompute(ExecutionContext* context, Graph* graph, VertexC
 void GDSUtils::runVertexCompute(ExecutionContext* context, Graph* graph, VertexCompute& vc,
     table_id_t tableID, std::vector<std::string> propertiesToScan) {
     auto maxThreads = getNumThreads(*context);
-    auto info = VertexComputeTaskInfo(vc, propertiesToScan);
-    auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads, graph);
+    auto info = VertexComputeTaskInfo(vc, graph, propertiesToScan);
+    auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
     if (!vc.beginOnTable(tableID)) {
         return;
     }

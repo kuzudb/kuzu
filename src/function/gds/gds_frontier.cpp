@@ -120,9 +120,8 @@ void PathLengthsInitVertexCompute::vertexCompute(common::offset_t startOffset,
 }
 
 FrontierPair::FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-    std::shared_ptr<GDSFrontier> nextFrontier, uint64_t numThreads)
-    : curDenseFrontier{std::move(curFrontier)}, nextDenseFrontier{std::move(nextFrontier)},
-      morselDispatcher{numThreads} {
+    std::shared_ptr<GDSFrontier> nextFrontier)
+    : curDenseFrontier{std::move(curFrontier)}, nextDenseFrontier{std::move(nextFrontier)} {
     curSparseFrontier = std::make_shared<SparseFrontier>();
     nextSparseFrontier = std::make_shared<SparseFrontier>();
     vertexComputeCandidates = std::make_shared<SparseFrontier>();
@@ -144,7 +143,6 @@ void FrontierPair::beginFrontierComputeBetweenTables(common::table_id_t curTable
     common::table_id_t nextTableID) {
     pinCurrFrontier(curTableID);
     pinNextFrontier(nextTableID);
-    morselDispatcher.init(curTableID, curDenseFrontier->getNumNodes(curTableID));
 }
 
 bool FrontierPair::continueNextIter(uint16_t maxIter) {

@@ -249,13 +249,9 @@ private:
 class KUZU_API FrontierPair {
 public:
     FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-        std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreads);
+        std::shared_ptr<GDSFrontier> nextFrontier);
 
     virtual ~FrontierPair() = default;
-
-    bool getNextRangeMorsel(FrontierMorsel& morsel) {
-        return morselDispatcher.getNextRangeMorsel(morsel);
-    }
 
     void setActiveNodesForNextIter() { hasActiveNodesForNextIter_.store(true); }
 
@@ -311,14 +307,12 @@ protected:
     std::shared_ptr<SparseFrontier> curSparseFrontier;
     std::shared_ptr<SparseFrontier> nextSparseFrontier;
     std::shared_ptr<SparseFrontier> vertexComputeCandidates;
-
-    FrontierMorselDispatcher morselDispatcher;
 };
 
 class SinglePathLengthsFrontierPair : public FrontierPair {
 public:
-    SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths, uint64_t numThreads)
-        : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */, numThreads),
+    SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths)
+        : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */),
           pathLengths{pathLengths} {}
 
     PathLengths* getPathLengths() const { return pathLengths.get(); }
@@ -343,8 +337,8 @@ private:
 class KUZU_API DoublePathLengthsFrontierPair : public FrontierPair {
 public:
     DoublePathLengthsFrontierPair(std::shared_ptr<PathLengths> curFrontier,
-        std::shared_ptr<PathLengths> nextFrontier, uint64_t numThreads)
-        : FrontierPair{curFrontier, nextFrontier, numThreads} {}
+        std::shared_ptr<PathLengths> nextFrontier)
+        : FrontierPair{curFrontier, nextFrontier} {}
 
     void initRJFromSource(common::nodeID_t source) override;
 
