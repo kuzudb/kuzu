@@ -145,6 +145,11 @@ November
 1980-10-31
 1990-11-30
 
+-LOG DatePartWithFilterTest
+-STATEMENT MATCH (p:person) WHERE date_part("year", p.birthdate) > 1940 and date_part("year", p.birthdate) < 1976 RETURN p.fName
+---- 1
+Dan
+
 -LOG StructuredDateExtractYearFuncTest
 -STATEMENT MATCH (p:person) RETURN date_part("year", p.birthdate)
 ---- 8

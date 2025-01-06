@@ -105,7 +105,7 @@ public:
 
     KUZU_API static date_t getLastDay(date_t& date);
 
-    KUZU_API static int32_t getDatePart(DatePartSpecifier specifier, date_t& date);
+    KUZU_API static int32_t getDatePart(DatePartSpecifier specifier, date_t date);
 
     KUZU_API static date_t trunc(DatePartSpecifier specifier, date_t& date);
 

@@ -413,7 +413,7 @@ date_t Date::getLastDay(date_t& date) {
     return Date::fromDate(year, month, 1) - 1;
 }
 
-int32_t Date::getDatePart(DatePartSpecifier specifier, date_t& date) {
+int32_t Date::getDatePart(DatePartSpecifier specifier, date_t date) {
     int32_t year = 0, month = 0, day = 0;
     Date::convert(date, year, month, day);
     switch (specifier) {
