@@ -230,7 +230,6 @@ void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
                 [&joinNodeIDs](LogicalPlan& leftPlan, LogicalPlan& rightPlan) {
                     return CostModel::computeHashJoinCost(joinNodeIDs, leftPlan, rightPlan);
                 });
-            // appendHashJoin(joinNodeIDs, JoinType::INNER, leftPlan, *rightPlan, leftPlan);
         }
     }
     for (auto& predicate : predicatesToPullUp) {

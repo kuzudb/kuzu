@@ -96,3 +96,13 @@ Bob|Dan|3
 Dan|Alice|3
 Dan|Bob|3
 Dan|Carol|3
+
+# If the aggregation happens on the build side of the join
+# A flatten will needed to be appended to the probe side
+# Otherwise we will have the incorrect number of results
+-LOG GroupByMultiQueryTest8
+-STATEMENT MATCH (a:person)-[k1:knows]->(b:person) WITH a, b, COUNT(*) AS s
+           MATCH (c:person)-[k2:knows]->(a) WITH c, s
+           MATCH (c) WHERE c.ID = 0 RETURN COUNT(*)
+---- 1
+9
