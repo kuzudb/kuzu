@@ -102,6 +102,18 @@ TEST_F(CardinalityTest, TestOperators) {
         EXPECT_GT(joinOp->getCardinality(), 1);
     }
 
+    // Recursive Extend
+    {
+        conn->query("CALL enable_gds=false");
+        auto plan = getRoot("EXPLAIN LOGICAL MATCH (a)-[r:knows*1..2]-(b:person) WHERE "
+                            "a.ID = 9 AND b.ID = 10 RETURN COUNT(*)");
+        auto* extendOp = getOpWithType(plan->getLastOperator().get(),
+            planner::LogicalOperatorType::RECURSIVE_EXTEND);
+        ASSERT_NE(nullptr, extendOp);
+        EXPECT_EQ(200, extendOp->getCardinality());
+        conn->query("CALL enable_gds=true");
+    }
+
     // Intersect + Flatten
     {
         auto plan = getRoot(
@@ -112,7 +124,7 @@ TEST_F(CardinalityTest, TestOperators) {
         auto* intersect =
             getOpWithType(plan->getLastOperator().get(), planner::LogicalOperatorType::INTERSECT);
         ASSERT_NE(nullptr, intersect);
-        EXPECT_EQ(intersect->getCardinality(), 1);
+        EXPECT_EQ(intersect->getCardinality(), 2);
 
         auto* flatten =
             getOpWithType(plan->getLastOperator().get(), planner::LogicalOperatorType::FLATTEN);
