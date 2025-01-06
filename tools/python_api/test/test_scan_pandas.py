@@ -140,7 +140,8 @@ def test_scan_pandas(tmp_path: Path) -> None:
         "INT32": np.array([-100, -200, -300, -400], dtype=np.int32),
         "INT64": np.array([-1000, -2000, -3000, -4000], dtype=np.int64),
         "FLOAT_32": np.array(
-            [-0.5199999809265137, float("nan"), -3.299999952316284, 4.400000095367432], dtype=np.float32
+            [-0.5199999809265137, float("nan"), -3.299999952316284, 4.400000095367432],
+            dtype=np.float32,
         ),
         "FLOAT_64": np.array([5132.12321, 24.222, float("nan"), 4.444], dtype=np.float64),
         "datetime_microseconds": np.array([
@@ -312,8 +313,18 @@ def test_pandas_scan_demo(tmp_path: Path) -> None:
         "height_in_inch RETURN s"
     ).get_as_df()
     assert len(result) == 2
-    assert result["s"][0] == {"ID": 0, "_id": {"offset": 0, "table": 0}, "_label": "student", "height": 70}
-    assert result["s"][1] == {"ID": 4, "_id": {"offset": 2, "table": 0}, "_label": "student", "height": 67}
+    assert result["s"][0] == {
+        "ID": 0,
+        "_id": {"offset": 0, "table": 0},
+        "_label": "student",
+        "height": 70,
+    }
+    assert result["s"][1] == {
+        "ID": 4,
+        "_id": {"offset": 2, "table": 0},
+        "_label": "student",
+        "height": 67,
+    }
 
     conn.execute("CREATE NODE TABLE person(ID INT64, age UINT16, height UINT32, is_student BOOLean, PRIMARY KEY(ID))")
     conn.execute("LOAD FROM person CREATE (p:person {ID: id, age: age, height: height, is_student: is_student})")
@@ -399,6 +410,54 @@ def test_copy_from_pandas_object(tmp_path: Path) -> None:
     result = conn.execute("match (p:Person)-[]->(:Person {name: 'Zhang'}) return p.*")
     assert result.get_next() == ["Adam", "30"]
     assert result.get_next() == ["Karissa", "40"]
+    assert result.has_next() is False
+
+
+def test_copy_from_pandas_object_skip(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    df = pd.DataFrame({"name": ["Adam", "Karissa", "Zhang", "Noura"], "age": [30, 40, 50, 25]})
+    conn.execute("CREATE NODE TABLE Person(name STRING, age STRING, PRIMARY KEY (name));")
+    conn.execute("COPY Person FROM df(SKIP=2);")
+    result = conn.execute("match (p:Person) return p.*")
+    assert result.get_next() == ["Zhang", "50"]
+    assert result.get_next() == ["Noura", "25"]
+    assert result.has_next() is False
+    df = pd.DataFrame({"f": ["Adam", "Noura"], "t": ["Zhang", "Zhang"]})
+    conn.execute("CREATE REL TABLE Knows(FROM Person TO Person);")
+    conn.execute("COPY Knows FROM df(SKIP=1)")
+    result = conn.execute("match (p:Person)-[]->(:Person {name: 'Zhang'}) return p.*")
+    assert result.get_next() == ["Noura", "25"]
+    assert result.has_next() is False
+
+
+def test_copy_from_pandas_object_limit(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    df = pd.DataFrame({"name": ["Adam", "Karissa", "Zhang", "Noura"], "age": [30, 40, 50, 25]})
+    conn.execute("CREATE NODE TABLE Person(name STRING, age STRING, PRIMARY KEY (name));")
+    conn.execute("COPY Person FROM df(LIMIT=2);")
+    result = conn.execute("match (p:Person) return p.*")
+    assert result.get_next() == ["Adam", "30"]
+    assert result.get_next() == ["Karissa", "40"]
+    assert result.has_next() is False
+    df = pd.DataFrame({"f": ["Adam", "Zhang"], "t": ["Karissa", "Karissa"]})
+    conn.execute("CREATE REL TABLE Knows(FROM Person TO Person);")
+    conn.execute("COPY Knows FROM df(LIMIT=1)")
+    result = conn.execute("match (p:Person)-[]->(:Person {name: 'Karissa'}) return p.*")
+    assert result.get_next() == ["Adam", "30"]
+    assert result.has_next() is False
+
+
+def test_copy_from_pandas_object_skip_and_limit(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    df = pd.DataFrame({"name": ["Adam", "Karissa", "Zhang", "Noura"], "age": [30, 40, 50, 25]})
+    conn.execute("CREATE NODE TABLE Person(name STRING, age STRING, PRIMARY KEY (name));")
+    conn.execute("COPY Person FROM df(SKIP=1, LIMIT=2);")
+    result = conn.execute("match (p:Person) return p.*")
+    assert result.get_next() == ["Karissa", "40"]
+    assert result.get_next() == ["Zhang", "50"]
     assert result.has_next() is False
 
 
