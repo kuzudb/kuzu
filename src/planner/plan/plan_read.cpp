@@ -6,7 +6,6 @@
 #include "common/enums/join_type.h"
 #include "planner/operator/logical_gds_call.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
-#include "planner/operator/sip/logical_property_collector.h"
 #include "planner/planner.h"
 
 using namespace kuzu::binder;
@@ -145,18 +144,6 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
             auto gdsCall = getGDSCall(call.getInfo());
             gdsCall->computeFactorizedSchema();
             probePlan.setLastOperator(gdsCall);
-            if (gdsCall->constPtrCast<LogicalGDSCall>()->getInfo().func.name == "QFTS") {
-                auto op = plan->getLastOperator()->getChild(0);
-                auto prop =
-                    bindData->getNodeInput()->constCast<NodeExpression>().getPropertyExpression(
-                        "df");
-                op->cast<LogicalScanNodeTable>().addProperty(prop);
-                auto nodeID = bindData->getNodeInput()->constCast<NodeExpression>().getInternalID();
-                auto propertyMasker = std::make_shared<LogicalPropertyCollector>(nodeID, prop,
-                    gdsCall.get(), plan->getLastOperator());
-                propertyMasker->computeFactorizedSchema();
-                plan->setLastOperator(std::move(propertyMasker));
-            }
             if (!predicatesToPush.empty()) {
                 appendFilters(predicatesToPush, probePlan);
             }
