@@ -30,23 +30,26 @@ namespace kuzu {
             property_id_t embeddingPropertyID = INVALID_PROPERTY_ID;
             int k = 100;
             int efSearch = 100;
-            int maxK = 30;
+            int numFilteredNodesToAdd = 5;
             bool useQuantizedVectors = false;
+            bool useKnnSearch = false;
             std::vector<float> queryVector;
 
             VectorSearchBindData(std::shared_ptr<binder::Expression> nodeInput,
                                  std::shared_ptr<binder::Expression> nodeOutput, table_id_t nodeTableID,
-                                 property_id_t embeddingPropertyID, int k, int64_t efSearch, int maxK,
-                                 bool useQuantizedVectors, std::vector<float> queryVector, bool outputAsNode)
+                                 property_id_t embeddingPropertyID, int k, int64_t efSearch, int numFilteredNodesToAdd,
+                                 bool useQuantizedVectors, bool useKnnSearch, std::vector<float> queryVector, bool outputAsNode)
                     : GDSBindData{std::move(nodeOutput), outputAsNode}, nodeInput(std::move(nodeInput)),
                       nodeTableID(nodeTableID), embeddingPropertyID(embeddingPropertyID), k(k),
-                      efSearch(efSearch), maxK(maxK), useQuantizedVectors(useQuantizedVectors),
+                      efSearch(efSearch), numFilteredNodesToAdd(numFilteredNodesToAdd),
+                      useQuantizedVectors(useQuantizedVectors), useKnnSearch(useKnnSearch),
                       queryVector(std::move(queryVector)) {};
 
             VectorSearchBindData(const VectorSearchBindData &other)
                     : GDSBindData{other}, nodeInput(other.nodeInput), nodeTableID(other.nodeTableID),
                       embeddingPropertyID(other.embeddingPropertyID), k(other.k), efSearch{other.efSearch},
-                      maxK(other.maxK), useQuantizedVectors(other.useQuantizedVectors),
+                      numFilteredNodesToAdd(other.numFilteredNodesToAdd),
+                      useQuantizedVectors(other.useQuantizedVectors), useKnnSearch(other.useKnnSearch),
                       queryVector(other.queryVector) {}
 
             bool hasNodeInput() const override { return true; }
@@ -135,7 +138,8 @@ namespace kuzu {
              */
             std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
                 return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64, LogicalTypeID::LIST,
-                        LogicalTypeID::INT64, LogicalTypeID::INT64, LogicalTypeID::INT64, LogicalTypeID::BOOL};
+                        LogicalTypeID::INT64, LogicalTypeID::INT64, LogicalTypeID::INT64, LogicalTypeID::BOOL,
+                        LogicalTypeID::BOOL};
             }
 
             /*
@@ -172,9 +176,10 @@ namespace kuzu {
                 auto efSearch = ExpressionUtil::getLiteralValue<int64_t>(*params[5]);
                 auto maxK = ExpressionUtil::getLiteralValue<int64_t>(*params[6]);
                 auto useQuantizedVectors = ExpressionUtil::getLiteralValue<bool>(*params[7]);
+                auto useKnnSearch = ExpressionUtil::getLiteralValue<bool>(*params[8]);
                 bindData = std::make_unique<VectorSearchBindData>(nodeInput, nodeOutput, nodeTableId,
                                                                   embeddingPropertyId, k, efSearch, maxK,
-                                                                  useQuantizedVectors, queryVector, false);
+                                                                  useQuantizedVectors, useKnnSearch, queryVector, false);
             }
 
             void initLocalState(main::ClientContext *context) override {
@@ -316,11 +321,6 @@ namespace kuzu {
                 // Get the first hop neighbours
                 std::queue<vector_id_t> nbrsToExplore;
 
-                // Try prefetching
-                for (auto &neighbor: firstHopNbrs) {
-                    filterMask->prefetchMaskValue(neighbor.offset);
-                }
-
                 // First hop neighbours
                 for (auto &neighbor: firstHopNbrs) {
                     auto isNeighborMasked = filterMask->isMasked(neighbor.offset);
@@ -391,11 +391,6 @@ namespace kuzu {
                                             const int efSearch, int &totalGetNbrs, int &totalDist) {
                 // Get the first hop neighbours
                 std::priority_queue<NodeDistFarther> nbrsToExplore;
-
-                // Try prefetching
-                for (auto &neighbor: firstHopNbrs) {
-                    filterMask->prefetchMaskValue(neighbor.offset);
-                }
 
                 // First hop neighbours
                 int filteredCount = 0;
@@ -505,7 +500,7 @@ namespace kuzu {
                                 NodeTableDistanceComputer<T> *dc, NodeOffsetLevelSemiMask *filterMask,
                                 GraphScanState &state, const vector_id_t entrypoint, const double entrypointDist,
                                 BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
-                                const int efSearch, const int maxK, NumericMetric *distCompMetric,
+                                const int efSearch, const int numFilteredNodesToAdd, NumericMetric *distCompMetric,
                                 NumericMetric *listNbrsCallMetric) {
                 std::priority_queue<NodeDistFarther> candidates;
                 candidates.emplace(entrypoint, entrypointDist);
@@ -519,7 +514,7 @@ namespace kuzu {
                 int totalDist = 0;
 
                 // Handle for neg correlation cases
-                addFilteredNodesToCandidates(dc, candidates, results, visited, filterMask, maxK, totalDist);
+                addFilteredNodesToCandidates(dc, candidates, results, visited, filterMask, numFilteredNodesToAdd, totalDist);
 
                 while (!candidates.empty()) {
                     auto candidate = candidates.top();
@@ -533,15 +528,33 @@ namespace kuzu {
                     // Reduce density!!
                     auto filterNbrsToFind = firstHopNbrs.size();
 
-                    if (selectivity >= 0.5) {
+                    // Try prefetching
+                    for (auto &neighbor: firstHopNbrs) {
+                        filterMask->prefetchMaskValue(neighbor.offset);
+                    }
+
+                    // Calculate local selectivity
+                    float localSelectivity = 0;
+                    for (auto &neighbor: firstHopNbrs) {
+                        if (filterMask->isMasked(neighbor.offset)) {
+                            localSelectivity += 1;
+                        }
+                    }
+                    localSelectivity /= filterNbrsToFind;
+
+                    if (localSelectivity >= 0.5) {
+                        // If the selectivity is high, we will simply do one hop search since we can find the next
+                        // closest directly from candidates priority queue.
                         oneHopSearch(candidates, firstHopNbrs, dc, filterMask, results, visited,
                                      efSearch, totalDist);
-                    } else if ((filterNbrsToFind * filterNbrsToFind * selectivity) > (filterNbrsToFind * 2)) {
+                    } else if ((filterNbrsToFind * filterNbrsToFind * localSelectivity) > (filterNbrsToFind * 2)) {
                         // We will use this metric to skip unwanted distance computation in the first hop
                         dynamicTwoHopSearch(candidates, candidate, filterNbrsToFind, cachedNbrsCount,
                                             firstHopNbrs, tableId, graph, dc, filterMask,
                                             state, results, visited, efSearch, totalGetNbrs, totalDist);
                     } else {
+                        // If the selectivity is low, we will not do dynamic two hop search since it does some extra
+                        // distance computations to reduce listNbrs call which are redundant.
                         twoHopSearch(candidates, firstHopNbrs, tableId, graph, dc, filterMask, state, results, visited,
                                      efSearch, totalGetNbrs, totalDist);
                     }
@@ -576,6 +589,33 @@ namespace kuzu {
                 }
             }
 
+            inline void knnFilteredSearch(NodeTableDistanceComputer<float>* dc, NodeOffsetLevelSemiMask *filterMask,
+                                          BinaryHeap<NodeDistFarther> &results, int k) {
+                // Find the k nearest neighbors
+                for (offset_t i = 0; i < filterMask->getMaxOffset(); i++) {
+                    if (!filterMask->isMasked(i)) {
+                        continue;
+                    }
+                    double dist;
+                    dc->computeDistance(i, &dist);
+                    if (results.size() < k || dist < results.top()->dist) {
+                        results.push(NodeDistFarther(i, dist));
+                    }
+                }
+            }
+
+            inline void knnSearch(NodeTableDistanceComputer<float>* dc, offset_t maxOffset,
+                                  BinaryHeap<NodeDistFarther> &results, int k) {
+                // Find the k nearest neighbors
+                for (offset_t i = 0; i < maxOffset; i++) {
+                    double dist;
+                    dc->computeDistance(i, &dist);
+                    if (results.size() < k || dist < results.top()->dist) {
+                        results.push(NodeDistFarther(i, dist));
+                    }
+                }
+            }
+
             void exec(ExecutionContext *context) override {
                 auto searchLocalState = ku_dynamic_cast<GDSLocalState *, VectorSearchLocalState *>(localState.get());
                 auto bindState = ku_dynamic_cast<GDSBindData *, VectorSearchBindData *>(bindData.get());
@@ -585,7 +625,7 @@ namespace kuzu {
                 auto graph = sharedState->graph.get();
                 auto nodeTableId = indexHeader->getNodeTableId();
                 auto efSearch = bindState->efSearch;
-                auto filterMaxK = bindState->maxK;
+                auto numFilteredNodesToAdd = bindState->numFilteredNodesToAdd;
                 auto k = bindState->k;
                 KU_ASSERT(bindState->queryVector.size() == indexHeader->getDim());
                 auto query = bindState->queryVector.data();
@@ -604,18 +644,26 @@ namespace kuzu {
                 auto distCompMetric = context->profiler->registerNumericMetricForce("distanceComputations");
                 auto listNbrsMetric = context->profiler->registerNumericMetricForce("listNbrsCalls");
                 vectorSearchTimeMetric->start();
-
-                BinaryHeap<NodeDistFarther> results(efSearch);
-                if (useQuantizedVectors) {
-                    search(header, nodeTableId, graph, qdc, filterMask, *state.get(), results, visited.get(),
-                           efSearch, filterMaxK, distCompMetric, listNbrsMetric);
-                } else {
-                    search(header, nodeTableId, graph, dc, filterMask, *state.get(), results, visited.get(),
-                           efSearch, filterMaxK, distCompMetric, listNbrsMetric);
-                }
-
                 std::priority_queue<NodeDistFarther> reversed;
-                reverseAndRerankResults(results, reversed, dc, useQuantizedVectors);
+                if (bindState->useKnnSearch) {
+                    BinaryHeap<NodeDistFarther> results(k);
+                    if  (filterMask->isEnabled()) {
+                        knnFilteredSearch(dc, filterMask, results, k);
+                    } else {
+                        knnSearch(dc, filterMask->getMaxOffset(), results, k);
+                    }
+                    reverseAndRerankResults(results, reversed, dc, false);
+                } else {
+                    BinaryHeap<NodeDistFarther> results(efSearch);
+                    if (useQuantizedVectors) {
+                        search(header, nodeTableId, graph, qdc, filterMask, *state.get(), results, visited.get(),
+                               efSearch, numFilteredNodesToAdd, distCompMetric, listNbrsMetric);
+                    } else {
+                        search(header, nodeTableId, graph, dc, filterMask, *state.get(), results, visited.get(),
+                               efSearch, numFilteredNodesToAdd, distCompMetric, listNbrsMetric);
+                    }
+                    reverseAndRerankResults(results, reversed, dc, useQuantizedVectors);
+                }
                 searchLocalState->materialize(reversed, *sharedState->fTable, k);
                 vectorSearchTimeMetric->stop();
             }
