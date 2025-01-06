@@ -2,15 +2,15 @@ const fs = require("fs");
 const path = require("path");
 
 const IS_CLEAN_ALL = process.argv[2] === "all";
-const IS_DIST_EXCLUDED = process.argv[2] === "exclude-dist";
+const IS_DIST_EXCLUDED = process.argv[2] === "exclude-package";
 
 const BUILD_DIR = path.resolve(__dirname, "build");
 fs.rmSync(BUILD_DIR, { recursive: true, force: true });
 console.log("build dir removed");
-const DIST_DIR = path.resolve(__dirname, "dist");
+const DIST_DIR = path.resolve(__dirname, "package");
 if (!IS_DIST_EXCLUDED) {
   fs.rmSync(DIST_DIR, { recursive: true, force: true });
-  console.log("dist dir removed");
+  console.log("package dir removed");
 }
 const CMAKE_BUILD_DIR = path.resolve(__dirname, "..", "..", "build", "wasm");
 fs.rmSync(CMAKE_BUILD_DIR, { recursive: true, force: true });

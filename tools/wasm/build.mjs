@@ -11,7 +11,7 @@ const ES_BUILD_CONFIG = {
   bundle: true,
   format: 'esm',
   external: ['fs', 'path', 'ws', 'crypto', "worker_threads", "os"],
-  outdir: 'dist',
+  outdir: 'package',
   logLevel: 'info',
   define: {
     "importMeta": "import.meta"
@@ -31,7 +31,7 @@ console.log('Creating esbuild bundle...');
 await esbuild.build(ES_BUILD_CONFIG);
 
 console.log('Cleaning up...')
-execSync("npm run clean exclude-dist", { stdio: "inherit" });
+execSync("npm run clean exclude-package", { stdio: "inherit" });
 console.log("Building multi-threaded version of Kùzu WebAssembly module...");
 execSync(`make wasm NUM_THREADS=${THREADS} SINGLE_THREADED=false`, {
   cwd: SRC_PATH,
@@ -39,7 +39,7 @@ execSync(`make wasm NUM_THREADS=${THREADS} SINGLE_THREADED=false`, {
 });
 console.log('Creating esbuild bundle...');
 const ES_BUILD_CONFIG_MULTI = JSON.parse(JSON.stringify(ES_BUILD_CONFIG));
-ES_BUILD_CONFIG_MULTI.outdir = 'dist/multithreaded';
+ES_BUILD_CONFIG_MULTI.outdir = 'package/multithreaded';
 await esbuild.build(ES_BUILD_CONFIG_MULTI);
 
 console.log('Creating package.json...');
@@ -48,11 +48,11 @@ const packageJson = JSON.parse(packageJsonText);
 delete packageJson.scripts;
 delete packageJson.devDependencies;
 delete packageJson.dependencies;
-await fs.promises.writeFile(path.resolve(".", 'dist', 'package.json'), JSON.stringify(packageJson, null, 2), 'utf-8');
+await fs.promises.writeFile(path.resolve(".", 'package', 'package.json'), JSON.stringify(packageJson, null, 2), 'utf-8');
 
 console.log('Copying LICENSE...');
-await fs.promises.copyFile(path.resolve(SRC_PATH, 'LICENSE'), path.resolve(".", 'dist', 'LICENSE'));
+await fs.promises.copyFile(path.resolve(SRC_PATH, 'LICENSE'), path.resolve(".", 'package', 'LICENSE'));
 
 console.log('Copying README.md...');
-await fs.promises.copyFile(path.resolve(SRC_PATH, 'README.md'), path.resolve(".", 'dist', 'README.md'));
+await fs.promises.copyFile(path.resolve(SRC_PATH, 'README.md'), path.resolve(".", 'package', 'README.md'));
 console.log('All done!');
