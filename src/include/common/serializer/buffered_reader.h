@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstring>
+
 #include "common/serializer/reader.h"
 
 namespace kuzu {
