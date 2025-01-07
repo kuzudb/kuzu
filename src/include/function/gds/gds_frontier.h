@@ -311,7 +311,7 @@ protected:
 
 class SinglePathLengthsFrontierPair : public FrontierPair {
 public:
-    SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths)
+    explicit SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths)
         : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */),
           pathLengths{pathLengths} {}
 
