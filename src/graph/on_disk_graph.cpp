@@ -215,38 +215,6 @@ std::unique_ptr<NbrScanState> OnDiskGraph::prepareScan(table_id_t relTableID,
         std::span(&relTable, 1), graphEntry, edgePropertyIndex));
 }
 
-std::unique_ptr<NbrScanState> OnDiskGraph::prepareMultiTableScanFwd(
-    std::span<table_id_t> nodeTableIDs) {
-    std::unordered_set<table_id_t> relTableIDSet;
-    std::vector<RelTable*> tables;
-    for (auto nodeTableID : nodeTableIDs) {
-        for (auto& [tableID, table] : nodeTableIDToFwdRelTables.at(nodeTableID)) {
-            if (!relTableIDSet.contains(tableID)) {
-                relTableIDSet.insert(tableID);
-                tables.push_back(table);
-            }
-        }
-    }
-    return std::unique_ptr<OnDiskGraphNbrScanStates>(
-        new OnDiskGraphNbrScanStates(context, std::span(tables), graphEntry));
-}
-
-std::unique_ptr<NbrScanState> OnDiskGraph::prepareMultiTableScanBwd(
-    std::span<table_id_t> nodeTableIDs) {
-    std::unordered_set<table_id_t> relTableIDSet;
-    std::vector<RelTable*> tables;
-    for (auto nodeTableID : nodeTableIDs) {
-        for (auto& [tableID, table] : nodeTableIDToBwdRelTables.at(nodeTableID)) {
-            if (!relTableIDSet.contains(tableID)) {
-                relTableIDSet.insert(tableID);
-                tables.push_back(table);
-            }
-        }
-    }
-    return std::unique_ptr<OnDiskGraphNbrScanStates>(
-        new OnDiskGraphNbrScanStates(context, std::span(tables), graphEntry));
-}
-
 Graph::EdgeIterator OnDiskGraph::scanFwd(nodeID_t nodeID, NbrScanState& state) {
     auto& onDiskScanState = ku_dynamic_cast<OnDiskGraphNbrScanStates&>(state);
     onDiskScanState.srcNodeIDVector->setValue<nodeID_t>(0, nodeID);

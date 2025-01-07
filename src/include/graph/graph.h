@@ -203,23 +203,9 @@ public:
     // Prepares scan on the specified relationship table (works for backwards and forwards scans)
     virtual std::unique_ptr<NbrScanState> prepareScan(common::table_id_t relTableID,
         std::optional<common::idx_t> edgePropertyIndex = std::nullopt) = 0;
-    // Prepares scan on all connected relationship tables using forward adjList.
-    virtual std::unique_ptr<NbrScanState> prepareMultiTableScanFwd(
-        std::span<common::table_id_t> nodeTableIDs) = 0;
-
-    // scanFwd an scanBwd scan a single source node under the assumption that many nodes in the same
-    // group will be scanned at once.
 
     // Get dst nodeIDs for given src nodeID using forward adjList.
     virtual EdgeIterator scanFwd(common::nodeID_t nodeID, NbrScanState& state) = 0;
-
-    // We don't use scanBwd currently. I'm adding them because they are the mirroring to scanFwd.
-    // Also, algorithm may only need adjList index in single direction so we should make double
-    // indexing optional.
-
-    // Prepares scan on all connected relationship tables using backward adjList.
-    virtual std::unique_ptr<NbrScanState> prepareMultiTableScanBwd(
-        std::span<common::table_id_t> nodeTableIDs) = 0;
 
     // Get dst nodeIDs for given src nodeID tables using backward adjList.
     virtual EdgeIterator scanBwd(common::nodeID_t nodeID, NbrScanState& state) = 0;

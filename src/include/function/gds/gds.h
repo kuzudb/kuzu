@@ -113,10 +113,6 @@ public:
     }
 
 protected:
-    // TODO(Semih/Xiyang): See if this will be still needed after PageRank and other algorithms are
-    // updated. GDSAlgorithms implementing recursive joins do not use this function.
-    virtual void initLocalState(main::ClientContext*) {}
-
     graph::GraphEntry bindGraphEntry(main::ClientContext& context, const std::string& name);
     std::shared_ptr<binder::Expression> bindNodeOutput(binder::Binder* binder,
         const std::vector<catalog::TableCatalogEntry*>& nodeEntries);

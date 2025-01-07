@@ -98,7 +98,6 @@ private:
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapProjection(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapRecursiveExtend(planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapScanSource(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapScanNodeTable(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSemiMasker(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSetProperty(planner::LogicalOperator* logicalOperator);

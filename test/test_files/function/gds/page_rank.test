@@ -1,0 +1,17 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE PageRank1
+-STATEMENT CALL create_project_graph('PK', ['person'], ['knows'])
+---- ok
+-STATEMENT CALL page_rank('PK') RETURN _node.fName, rank;
+---- 8
+Alice|0.125000
+Bob|0.125000
+Carol|0.125000
+Dan|0.125000
+Elizabeth|0.018750
+Farooq|0.026719
+Greg|0.026719
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0.018750

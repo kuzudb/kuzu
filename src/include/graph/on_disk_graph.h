@@ -166,10 +166,6 @@ public:
 
     std::unique_ptr<NbrScanState> prepareScan(common::table_id_t relTableID,
         std::optional<common::idx_t> edgePropertyIndex = std::nullopt) override;
-    std::unique_ptr<NbrScanState> prepareMultiTableScanFwd(
-        std::span<common::table_id_t> nodeTableIDs) override;
-    std::unique_ptr<NbrScanState> prepareMultiTableScanBwd(
-        std::span<common::table_id_t> nodeTableIDs) override;
     std::unique_ptr<VertexScanState> prepareVertexScan(common::table_id_t tableID,
         const std::vector<std::string>& propertiesToScan) override;
 
