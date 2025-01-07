@@ -1,6 +1,7 @@
 #include "function/fts_config.h"
 
 #include "common/exception/binder.h"
+#include "common/serializer/serializer.h"
 #include "common/string_utils.h"
 #include "function/stem.h"
 
@@ -22,6 +23,24 @@ FTSConfig::FTSConfig(const function::optional_params_t& optionalParams) {
             throw common::BinderException{"Unrecognized optional parameter: " + name};
         }
     }
+}
+
+void FTSConfig::serialize(common::Serializer& serializer) const {
+    serializer.serializeValue(stemmer);
+}
+
+FTSConfig FTSConfig::deserialize(uint8_t* buffer) {
+    auto config = FTSConfig{};
+    uint64_t len = 0;
+    memcpy(&len, buffer, sizeof(len));
+    buffer += sizeof(len);
+    memcpy(config.stemmer.data(), buffer, len);
+    return config;
+}
+
+// We store the length + the string itself. So the total size is sizeof(length) + string length.
+uint64_t FTSConfig::getNumBytesForSerialization() const {
+    return sizeof(stemmer.size()) + stemmer.size();
 }
 
 void K::validate(double value) {

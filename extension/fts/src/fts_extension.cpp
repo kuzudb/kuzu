@@ -1,6 +1,8 @@
 #include "fts_extension.h"
 
-#include "catalog/catalog_entry/catalog_entry_type.h"
+#include "catalog/catalog.h"
+#include "catalog/catalog_entry/index_catalog_entry.h"
+#include "catalog/fts_index_catalog_entry.h"
 #include "function/create_fts_index.h"
 #include "function/drop_fts_index.h"
 #include "function/query_fts.h"
@@ -17,6 +19,18 @@ void FTSExtension::load(main::ClientContext* context) {
     ADD_GDS_FUNC(QFTSFunction);
     db.addStandaloneCallFunction(CreateFTSFunction::name, CreateFTSFunction::getFunctionSet());
     db.addStandaloneCallFunction(DropFTSFunction::name, DropFTSFunction::getFunctionSet());
+
+    auto indexEntries = db.getCatalog()->getIndexes()->getEntries(context->getTransaction());
+    for (auto& [_, entry] : indexEntries) {
+        auto indexEntry = entry->ptrCast<catalog::IndexCatalogEntry>();
+        if (indexEntry->getIndexType() == FTSIndexCatalogEntry::TYPE_NAME) {
+            auto deserializedEntry =
+                FTSIndexCatalogEntry::deserializeAuxInfo(indexEntry, indexEntry->getAuxBuffer());
+            db.getCatalog()->dropIndex(context->getTransaction(), indexEntry->getTableID(),
+                indexEntry->getIndexName());
+            db.getCatalog()->createIndex(context->getTransaction(), std::move(deserializedEntry));
+        }
+    }
 }
 
 } // namespace fts_extension

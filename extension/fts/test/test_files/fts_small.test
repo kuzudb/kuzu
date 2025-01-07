@@ -163,3 +163,23 @@ Binder exception: BM25 model requires the Term Frequency Saturation(k) value to 
 -STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice waterloo', conjunctive := true) RETURN _node.ID, score
 ---- 1
 0|0.465323
+
+-CASE fts_serialization
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN _node.ID, score
+---- 2
+0|0.271133
+3|0.209476
+-RELOADDB
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN _node.ID, score
+---- error
+Catalog exception: QUERY_FTS_INDEX function does not exist.
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN _node.ID, score
+---- 2
+0|0.271133
+3|0.209476

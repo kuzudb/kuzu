@@ -1,6 +1,7 @@
 #pragma once
 
 #include "catalog_entry.h"
+#include "common/serializer/deserializer.h"
 
 namespace kuzu {
 namespace catalog {
@@ -12,27 +13,50 @@ public:
     //===--------------------------------------------------------------------===//
     IndexCatalogEntry() = default;
 
-    IndexCatalogEntry(common::table_id_t tableID, std::string indexName)
+    IndexCatalogEntry(std::string type, common::table_id_t tableID, std::string indexName)
         : CatalogEntry{CatalogEntryType::INDEX_ENTRY,
               common::stringFormat("{}_{}", tableID, indexName)},
-          tableID{tableID}, indexName{std::move(indexName)} {}
+          type{std::move(type)}, tableID{tableID}, indexName{std::move(indexName)} {}
+
+    std::string getIndexType() const { return type; }
 
     common::table_id_t getTableID() const { return tableID; }
+
+    std::string getIndexName() const { return indexName; }
+
+    uint8_t* getAuxBuffer() const { return auxBuffer.get(); }
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization
     //===--------------------------------------------------------------------===//
-    void serialize(common::Serializer& /*serializer*/) const override {}
-    // TODO(Ziyi/Guodong) : If the database fails with loaded extensions, should we restart the db
-    // and reload previously loaded extensions? Currently, we don't have the mechanism to reload
-    // extensions during recovery, thus, we are not able to recover the indexes created by
-    // extensions.
-    static std::unique_ptr<IndexCatalogEntry> deserialize(common::Deserializer& /*deserializer*/) {
-        KU_UNREACHABLE;
+    void serialize(common::Serializer& serializer) const override {
+        CatalogEntry::serialize(serializer);
+        serializer.write(type);
+        serializer.write(tableID);
+        serializer.write(indexName);
+        serializeAuxInfo(serializer);
+    }
+    static std::unique_ptr<IndexCatalogEntry> deserialize(common::Deserializer& deserializer) {
+        std::string type;
+        common::table_id_t tableID = common::INVALID_TABLE_ID;
+        std::string indexName;
+        deserializer.deserializeValue(type);
+        deserializer.deserializeValue(tableID);
+        deserializer.deserializeValue(indexName);
+        auto indexEntry = std::make_unique<IndexCatalogEntry>(type, tableID, std::move(indexName));
+        uint64_t auxBufferSize = 0;
+        deserializer.deserializeValue(auxBufferSize);
+        indexEntry->auxBuffer = std::make_unique<uint8_t[]>(auxBufferSize);
+        deserializer.read(indexEntry->auxBuffer.get(), auxBufferSize);
+        return indexEntry;
     }
 
+    virtual void serializeAuxInfo(common::Serializer& /*serializer*/) const { KU_UNREACHABLE; }
+
     std::string toCypher(main::ClientContext* /*clientContext*/) const override { KU_UNREACHABLE; }
-    virtual std::unique_ptr<IndexCatalogEntry> copy() const = 0;
+    virtual std::unique_ptr<IndexCatalogEntry> copy() const {
+        return std::make_unique<IndexCatalogEntry>(type, tableID, indexName);
+    }
 
     void copyFrom(const CatalogEntry& other) override {
         CatalogEntry::copyFrom(other);
@@ -42,8 +66,10 @@ public:
     }
 
 protected:
+    std::string type;
     common::table_id_t tableID = common::INVALID_TABLE_ID;
     std::string indexName;
+    std::unique_ptr<uint8_t[]> auxBuffer;
 };
 
 } // namespace catalog
