@@ -26,30 +26,13 @@ public:
 
     uint8_t* getAuxBuffer() const { return auxBuffer.get(); }
 
+    uint64_t getAuxBufferSize() const { return auxBufferSize; }
+
     //===--------------------------------------------------------------------===//
     // serialization & deserialization
     //===--------------------------------------------------------------------===//
-    void serialize(common::Serializer& serializer) const override {
-        CatalogEntry::serialize(serializer);
-        serializer.write(type);
-        serializer.write(tableID);
-        serializer.write(indexName);
-        serializeAuxInfo(serializer);
-    }
-    static std::unique_ptr<IndexCatalogEntry> deserialize(common::Deserializer& deserializer) {
-        std::string type;
-        common::table_id_t tableID = common::INVALID_TABLE_ID;
-        std::string indexName;
-        deserializer.deserializeValue(type);
-        deserializer.deserializeValue(tableID);
-        deserializer.deserializeValue(indexName);
-        auto indexEntry = std::make_unique<IndexCatalogEntry>(type, tableID, std::move(indexName));
-        uint64_t auxBufferSize = 0;
-        deserializer.deserializeValue(auxBufferSize);
-        indexEntry->auxBuffer = std::make_unique<uint8_t[]>(auxBufferSize);
-        deserializer.read(indexEntry->auxBuffer.get(), auxBufferSize);
-        return indexEntry;
-    }
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<IndexCatalogEntry> deserialize(common::Deserializer& deserializer);
 
     virtual void serializeAuxInfo(common::Serializer& /*serializer*/) const { KU_UNREACHABLE; }
 
@@ -58,18 +41,14 @@ public:
         return std::make_unique<IndexCatalogEntry>(type, tableID, indexName);
     }
 
-    void copyFrom(const CatalogEntry& other) override {
-        CatalogEntry::copyFrom(other);
-        auto& otherTable = other.constCast<IndexCatalogEntry>();
-        tableID = otherTable.tableID;
-        indexName = otherTable.indexName;
-    }
+    void copyFrom(const CatalogEntry& other) override;
 
 protected:
     std::string type;
     common::table_id_t tableID = common::INVALID_TABLE_ID;
     std::string indexName;
     std::unique_ptr<uint8_t[]> auxBuffer;
+    uint64_t auxBufferSize = 0;
 };
 
 } // namespace catalog

@@ -9,7 +9,8 @@ add_library(kuzu_catalog_entry
         rel_group_catalog_entry.cpp
         scalar_macro_catalog_entry.cpp
         type_catalog_entry.cpp
-        sequence_catalog_entry.cpp)
+        sequence_catalog_entry.cpp
+        index_catalog_entry.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_catalog_entry>

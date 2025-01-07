@@ -1,6 +1,7 @@
 #include "function/fts_config.h"
 
 #include "common/exception/binder.h"
+#include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/string_utils.h"
 #include "function/stem.h"
@@ -29,12 +30,9 @@ void FTSConfig::serialize(common::Serializer& serializer) const {
     serializer.serializeValue(stemmer);
 }
 
-FTSConfig FTSConfig::deserialize(uint8_t* buffer) {
+FTSConfig FTSConfig::deserialize(common::Deserializer& deserializer) {
     auto config = FTSConfig{};
-    uint64_t len = 0;
-    memcpy(&len, buffer, sizeof(len));
-    buffer += sizeof(len);
-    memcpy(config.stemmer.data(), buffer, len);
+    deserializer.deserializeValue(config.stemmer);
     return config;
 }
 

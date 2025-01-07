@@ -24,7 +24,7 @@ struct FTSConfig {
 
     void serialize(common::Serializer& serializer) const;
 
-    static FTSConfig deserialize(uint8_t* buffer);
+    static FTSConfig deserialize(common::Deserializer& deserializer);
 
     uint64_t getNumBytesForSerialization() const;
 };

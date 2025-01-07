@@ -29,26 +29,10 @@ public:
     //===--------------------------------------------------------------------===//
     std::unique_ptr<catalog::IndexCatalogEntry> copy() const override;
 
-    void serializeAuxInfo(common::Serializer& serializer) const override {
-        auto len = sizeof(numDocs) + sizeof(avgDocLen) + config.getNumBytesForSerialization();
-        serializer.serializeValue(len);
-        serializer.serializeValue(numDocs);
-        serializer.serializeValue(avgDocLen);
-        config.serialize(serializer);
-    }
+    void serializeAuxInfo(common::Serializer& serializer) const override;
 
     static std::unique_ptr<FTSIndexCatalogEntry> deserializeAuxInfo(
-        catalog::IndexCatalogEntry* indexCatalogEntry, uint8_t* buffer) {
-        common::idx_t numDocs = 0;
-        memcpy(&numDocs, buffer, sizeof(numDocs));
-        buffer += sizeof(numDocs);
-        double avgDocLen = 0;
-        memcpy(&avgDocLen, buffer, sizeof(avgDocLen));
-        buffer += sizeof(avgDocLen);
-        auto config = FTSConfig::deserialize(buffer);
-        return std::make_unique<FTSIndexCatalogEntry>(indexCatalogEntry->getTableID(),
-            indexCatalogEntry->getIndexName(), numDocs, avgDocLen, config);
-    }
+        catalog::IndexCatalogEntry* indexCatalogEntry);
 
 public:
     static constexpr char TYPE_NAME[] = "FTS";

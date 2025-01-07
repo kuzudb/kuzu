@@ -13,24 +13,25 @@
 namespace kuzu {
 namespace fts_extension {
 
+static void initFTSEntries(transaction::Transaction* tx, catalog::Catalog& catalog) {
+    auto indexEntries = catalog.getIndexes()->getEntries(tx);
+    for (auto& [_, entry] : indexEntries) {
+        auto indexEntry = entry->ptrCast<catalog::IndexCatalogEntry>();
+        if (indexEntry->getIndexType() == FTSIndexCatalogEntry::TYPE_NAME) {
+            auto deserializedEntry = FTSIndexCatalogEntry::deserializeAuxInfo(indexEntry);
+            catalog.dropIndex(tx, indexEntry->getTableID(), indexEntry->getIndexName());
+            catalog.createIndex(tx, std::move(deserializedEntry));
+        }
+    }
+}
+
 void FTSExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
     ADD_SCALAR_FUNC(StemFunction);
     ADD_GDS_FUNC(QueryFTSFunction);
     db.addStandaloneCallFunction(CreateFTSFunction::name, CreateFTSFunction::getFunctionSet());
     db.addStandaloneCallFunction(DropFTSFunction::name, DropFTSFunction::getFunctionSet());
-
-    auto indexEntries = db.getCatalog()->getIndexes()->getEntries(context->getTransaction());
-    for (auto& [_, entry] : indexEntries) {
-        auto indexEntry = entry->ptrCast<catalog::IndexCatalogEntry>();
-        if (indexEntry->getIndexType() == FTSIndexCatalogEntry::TYPE_NAME) {
-            auto deserializedEntry =
-                FTSIndexCatalogEntry::deserializeAuxInfo(indexEntry, indexEntry->getAuxBuffer());
-            db.getCatalog()->dropIndex(context->getTransaction(), indexEntry->getTableID(),
-                indexEntry->getIndexName());
-            db.getCatalog()->createIndex(context->getTransaction(), std::move(deserializedEntry));
-        }
-    }
+    initFTSEntries(context->getTransaction(), *db.getCatalog());
 }
 
 } // namespace fts_extension
