@@ -5,6 +5,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
+SimpleTableFuncSharedState::~SimpleTableFuncSharedState() = default;
+
 SimpleTableFuncMorsel SimpleTableFuncSharedState::getMorsel() {
     std::lock_guard lck{mtx};
     KU_ASSERT(curOffset <= maxOffset);

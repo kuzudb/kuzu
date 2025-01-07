@@ -26,6 +26,8 @@ struct KUZU_API SimpleTableFuncSharedState final : TableFuncSharedState {
     common::offset_t curOffset;
     std::mutex mtx;
 
+    ~SimpleTableFuncSharedState() override;
+
     explicit SimpleTableFuncSharedState(common::offset_t maxOffset)
         : maxOffset{maxOffset}, curOffset{0} {}
 
