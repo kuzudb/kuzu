@@ -677,6 +677,18 @@ def test_pyarrow_skip_limit(conn_db_readonly: ConnDB) -> None:
     assert result["col1"].to_pylist() == expected["col1"].to_pylist()
     assert result["col2"].to_pylist() == expected["col2"].to_pylist()
 
+    # skip bounds check
+    result = conn.execute("LOAD FROM df (SKIP=500000, LIMIT=5000) RETURN * ORDER BY index").get_as_arrow()
+    assert len(result) == 0
+
+    # limit bounds check
+    result = conn.execute("LOAD FROM df (SKIP=0, LIMIT=500000) RETURN * ORDER BY index").get_as_arrow()
+    expected = pa.Table.from_pandas(df)
+    assert result["index"].to_pylist() == expected["index"].to_pylist()
+    assert result["col0"].to_pylist() == expected["col0"].to_pylist()
+    assert result["col1"].to_pylist() == expected["col1"].to_pylist()
+    assert result["col2"].to_pylist() == expected["col2"].to_pylist()
+
 
 def test_pyarrow_invalid_skip_limit(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly

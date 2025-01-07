@@ -34,7 +34,8 @@ std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* /*context*/,
     auto numRows = py::len(getFunc(columns[0]));
     auto returnColumns = input->binder->createVariables(names, returnTypes);
     auto scanConfig = PyScanConfig{
-        input->extraInput->constPtrCast<ExtraScanTableFuncBindInput>()->fileScanInfo.options};
+        input->extraInput->constPtrCast<ExtraScanTableFuncBindInput>()->fileScanInfo.options,
+        numRows};
     KU_ASSERT(numRows >= scanConfig.skipNum);
     return std::make_unique<PandasScanFunctionData>(std::move(returnColumns), df,
         std::min(numRows - scanConfig.skipNum, scanConfig.limitNum), std::move(columnBindData),

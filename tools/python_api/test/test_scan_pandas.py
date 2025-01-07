@@ -461,6 +461,30 @@ def test_copy_from_pandas_object_skip_and_limit(tmp_path: Path) -> None:
     assert result.has_next() is False
 
 
+def test_copy_from_pandas_object_skip_bounds_check(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    df = pd.DataFrame({"name": ["Adam", "Karissa", "Zhang", "Noura"], "age": [30, 40, 50, 25]})
+    conn.execute("CREATE NODE TABLE Person(name STRING, age STRING, PRIMARY KEY (name));")
+    conn.execute("COPY Person FROM df(SKIP=10);")
+    result = conn.execute("match (p:Person) return p.*")
+    assert result.has_next() is False
+
+
+def test_copy_from_pandas_object_limit_bounds_check(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    df = pd.DataFrame({"name": ["Adam", "Karissa", "Zhang", "Noura"], "age": [30, 40, 50, 25]})
+    conn.execute("CREATE NODE TABLE Person(name STRING, age STRING, PRIMARY KEY (name));")
+    conn.execute("COPY Person FROM df(LIMIT=10);")
+    result = conn.execute("match (p:Person) return p.*")
+    assert result.get_next() == ["Adam", "30"]
+    assert result.get_next() == ["Karissa", "40"]
+    assert result.get_next() == ["Zhang", "50"]
+    assert result.get_next() == ["Noura", "25"]
+    assert result.has_next() is False
+
+
 def test_copy_from_pandas_date(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
