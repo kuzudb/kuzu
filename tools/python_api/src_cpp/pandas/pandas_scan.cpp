@@ -7,6 +7,7 @@
 #include "numpy/numpy_scan.h"
 #include "processor/execution_context.h"
 #include "py_connection.h"
+#include "py_scan_config.h"
 #include "pyarrow/pyarrow_scan.h"
 #include "pybind11/pytypes.h"
 
@@ -32,10 +33,13 @@ std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* /*context*/,
     auto getFunc = df.attr("__getitem__");
     auto numRows = py::len(getFunc(columns[0]));
     auto returnColumns = input->binder->createVariables(names, returnTypes);
-    auto scanConfig =
-        input->extraInput->constPtrCast<ExtraScanTableFuncBindInput>()->fileScanInfo.copy();
-    return std::make_unique<PandasScanFunctionData>(std::move(returnColumns), df, numRows,
-        std::move(columnBindData), std::move(scanConfig));
+    auto scanConfig = PyScanConfig{
+        input->extraInput->constPtrCast<ExtraScanTableFuncBindInput>()->fileScanInfo.options,
+        numRows};
+    KU_ASSERT(numRows >= scanConfig.skipNum);
+    return std::make_unique<PandasScanFunctionData>(std::move(returnColumns), df,
+        std::min(numRows - scanConfig.skipNum, scanConfig.limitNum), std::move(columnBindData),
+        scanConfig);
 }
 
 bool sharedStateNext(const TableFuncBindData* /*bindData*/, PandasScanLocalState* localState,
@@ -45,11 +49,11 @@ bool sharedStateNext(const TableFuncBindData* /*bindData*/, PandasScanLocalState
     if (pandasSharedState->numRowsRead >= pandasSharedState->numRows) {
         return false;
     }
-    localState->start = pandasSharedState->numRowsRead;
+    localState->start = pandasSharedState->startRow + pandasSharedState->numRowsRead;
     pandasSharedState->numRowsRead +=
         std::min(pandasSharedState->numRows - pandasSharedState->numRowsRead,
             CopyConstants::PANDAS_PARTITION_COUNT);
-    localState->end = pandasSharedState->numRowsRead;
+    localState->end = pandasSharedState->startRow + pandasSharedState->numRowsRead;
     return true;
 }
 
@@ -67,7 +71,8 @@ std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInp
     }
     // LCOV_EXCL_STOP
     auto scanBindData = ku_dynamic_cast<PandasScanFunctionData*>(input.bindData);
-    return std::make_unique<PandasScanSharedState>(scanBindData->cardinality);
+    return std::make_unique<PandasScanSharedState>(scanBindData->scanConfig.skipNum,
+        scanBindData->cardinality);
 }
 
 void pandasBackendScanSwitch(PandasColumnBindData* bindData, uint64_t count, uint64_t offset,

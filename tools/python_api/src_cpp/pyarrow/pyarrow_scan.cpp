@@ -7,6 +7,7 @@
 #include "function/table/bind_input.h"
 #include "processor/execution_context.h"
 #include "py_connection.h"
+#include "py_scan_config.h"
 #include "pyarrow/pyarrow_bind.h"
 #include "pybind11/pytypes.h"
 
@@ -15,35 +16,6 @@ using namespace kuzu::common;
 using namespace kuzu::catalog;
 
 namespace kuzu {
-
-PyArrowScanConfig::PyArrowScanConfig(const case_insensitive_map_t<Value>& options) {
-    skipNum = 0;
-    limitNum = NumericLimits<uint64_t>::maximum();
-    ignoreErrors = CopyConstants::DEFAULT_IGNORE_ERRORS;
-    for (const auto& i : options) {
-        if (i.first == "SKIP") {
-            if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::INT64 ||
-                i.second.val.int64Val < 0) {
-                throw BinderException("SKIP Option must be a positive integer literal.");
-            }
-            skipNum = i.second.val.int64Val;
-        } else if (i.first == "LIMIT") {
-            if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::INT64 ||
-                i.second.val.int64Val < 0) {
-                throw BinderException("LIMIT Option must be a positive integer literal.");
-            }
-            limitNum = i.second.val.int64Val;
-        } else if (i.first == CopyConstants::IGNORE_ERRORS_OPTION_NAME) {
-            if (i.second.getDataType().getLogicalTypeID() != LogicalTypeID::BOOL) {
-                throw BinderException("IGNORE_ERRORS Option must be a boolean.");
-            }
-            ignoreErrors = i.second.val.booleanVal;
-        } else {
-            throw BinderException(
-                stringFormat("{} Option not recognized by pyArrow scanner.", i.first));
-        }
-    }
-}
 
 template<typename T>
 static bool moduleIsLoaded() {
@@ -73,7 +45,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext*,
     }
     auto numRows = py::len(table);
     auto schema = Pyarrow::bind(table, returnTypes, names);
-    auto config = PyArrowScanConfig(scanInput->fileScanInfo.options);
+    auto config = PyScanConfig(scanInput->fileScanInfo.options, numRows);
     // The following python operations are zero copy as defined in pyarrow docs.
     if (config.skipNum != 0) {
         table = table.attr("slice")(config.skipNum);
