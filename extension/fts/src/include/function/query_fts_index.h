@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace fts_extension {
 
-class QFTSAlgorithm : public function::GDSAlgorithm {
+class QueryFTSAlgorithm : public function::GDSAlgorithm {
 public:
     static constexpr char SCORE_PROP_NAME[] = "score";
     static constexpr char TERM_FREQUENCY_PROP_NAME[] = "tf";
@@ -15,8 +15,8 @@ public:
     static constexpr char DOC_ID_PROP_NAME[] = "docID";
 
 public:
-    QFTSAlgorithm() = default;
-    QFTSAlgorithm(const QFTSAlgorithm& other) : GDSAlgorithm{other} {}
+    QueryFTSAlgorithm() = default;
+    QueryFTSAlgorithm(const QueryFTSAlgorithm& other) : GDSAlgorithm{other} {}
 
     /*
      * Inputs include the following:
@@ -34,7 +34,7 @@ public:
     void exec(processor::ExecutionContext* executionContext) override;
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
-        return std::make_unique<QFTSAlgorithm>(*this);
+        return std::make_unique<QueryFTSAlgorithm>(*this);
     }
 
     binder::expression_vector getResultColumns(binder::Binder* binder) const override;
@@ -42,7 +42,7 @@ public:
     void bind(const function::GDSBindInput& input, main::ClientContext&) override;
 };
 
-struct QFTSFunction {
+struct QueryFTSFunction {
     static constexpr const char* name = "QUERY_FTS_INDEX";
 
     static function::function_set getFunctionSet();
