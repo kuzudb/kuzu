@@ -105,7 +105,7 @@ public:
     KUZU_API static void normalizeIntervalEntries(interval_t input, int64_t& months, int64_t& days,
         int64_t& micros);
     KUZU_API static void tryGetDatePartSpecifier(std::string specifier, DatePartSpecifier& result);
-    KUZU_API static int32_t getIntervalPart(DatePartSpecifier specifier, interval_t& timestamp);
+    KUZU_API static int32_t getIntervalPart(DatePartSpecifier specifier, interval_t timestamp);
     KUZU_API static int64_t getMicro(const interval_t& val);
     KUZU_API static int64_t getNanoseconds(const interval_t& val);
     KUZU_API static const regex::RE2& regexPattern1();

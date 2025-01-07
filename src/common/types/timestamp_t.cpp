@@ -282,7 +282,7 @@ timestamp_t Timestamp::fromEpochNanoSeconds(int64_t ns) {
     return fromEpochMicroSeconds(ns / 1000);
 }
 
-int32_t Timestamp::getTimestampPart(DatePartSpecifier specifier, timestamp_t& timestamp) {
+int32_t Timestamp::getTimestampPart(DatePartSpecifier specifier, timestamp_t timestamp) {
     switch (specifier) {
     case DatePartSpecifier::MICROSECOND:
         return getTime(timestamp).micros % Interval::MICROS_PER_MINUTE;
@@ -303,7 +303,7 @@ int32_t Timestamp::getTimestampPart(DatePartSpecifier specifier, timestamp_t& ti
     }
 }
 
-timestamp_t Timestamp::trunc(DatePartSpecifier specifier, timestamp_t& timestamp) {
+timestamp_t Timestamp::trunc(DatePartSpecifier specifier, timestamp_t timestamp) {
     int32_t hour = 0, min = 0, sec = 0, micros = 0;
     date_t date;
     dtime_t time;

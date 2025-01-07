@@ -133,7 +133,7 @@ October
 October
 November
 
--LOG StructuredDateLastDayFuncTest
+-LOG DateLastDayFuncTest
 -STATEMENT MATCH (p:person) RETURN last_day(p.birthdate)
 ---- 8
 1900-01-31
@@ -144,6 +144,20 @@ November
 1980-10-31
 1980-10-31
 1990-11-30
+
+-LOG LastDayInFilter
+-STATEMENT MATCH (p:person) WHERE last_day(p.birthdate) > date('1940-06-30') RETURN p.birthdate
+---- 5
+1950-07-23
+1980-10-26
+1980-10-26
+1980-10-26
+1990-11-27
+
+-LOG DatePartWithFilterTest
+-STATEMENT MATCH (p:person) WHERE date_part("year", p.birthdate) > 1940 and date_part("year", p.birthdate) < 1976 RETURN p.fName
+---- 1
+Dan
 
 -LOG StructuredDateExtractYearFuncTest
 -STATEMENT MATCH (p:person) RETURN date_part("year", p.birthdate)
@@ -325,11 +339,21 @@ November
 1980-10-01
 1990-10-01
 
--LOG StructuredDateTruncSecondFuncTest
+-LOG DateTruncSecondFuncTest
 -STATEMENT MATCH (p:person) RETURN date_trunc("second", p.birthdate)
 ---- 8
 1900-01-01
 1900-01-01
+1940-06-22
+1950-07-23
+1980-10-26
+1980-10-26
+1980-10-26
+1990-11-27
+
+-LOG DateTruncInFilter
+-STATEMENT MATCH (p:person) where date_trunc("second", p.birthdate) <> date('1900-01-01') RETURN p.birthdate
+---- 6
 1940-06-22
 1950-07-23
 1980-10-26
