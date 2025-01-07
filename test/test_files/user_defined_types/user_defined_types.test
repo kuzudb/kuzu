@@ -52,7 +52,7 @@ Dan
 1|description|STRUCT(age INT64, name STRING)|NULL|False
 -STATEMENT CALL TABLE_INFO('knows') RETURN *;
 ---- 1
-1|info|STRUCT(meetDate DATE, length INTERVAL)|NULL
+1|info|STRUCT(meetDate DATE, length INTERVAL)|NULL|both
 
 -CASE InvalidUserDefinedType
 -LOG InvalidUserDefinedTypeErr

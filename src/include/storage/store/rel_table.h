@@ -86,6 +86,10 @@ struct RelTableInsertState final : TableInsertState {
     common::ValueVector& srcNodeIDVector;
     common::ValueVector& dstNodeIDVector;
 
+    common::ValueVector& getSrcNodeIDVector(common::RelDataDirection direction) const {
+        return direction == common::RelDataDirection::FWD ? srcNodeIDVector : dstNodeIDVector;
+    }
+
     RelTableInsertState(common::ValueVector& srcNodeIDVector, common::ValueVector& dstNodeIDVector,
         const std::vector<common::ValueVector*>& propertyVectors)
         : TableInsertState{propertyVectors}, srcNodeIDVector{srcNodeIDVector},
@@ -96,6 +100,10 @@ struct RelTableUpdateState final : TableUpdateState {
     common::ValueVector& srcNodeIDVector;
     common::ValueVector& dstNodeIDVector;
     common::ValueVector& relIDVector;
+
+    common::ValueVector& getSrcNodeIDVector(common::RelDataDirection direction) const {
+        return direction == common::RelDataDirection::FWD ? srcNodeIDVector : dstNodeIDVector;
+    }
 
     RelTableUpdateState(common::column_id_t columnID, common::ValueVector& srcNodeIDVector,
         common::ValueVector& dstNodeIDVector, common::ValueVector& relIDVector,
@@ -108,6 +116,10 @@ struct RelTableDeleteState final : TableDeleteState {
     common::ValueVector& srcNodeIDVector;
     common::ValueVector& dstNodeIDVector;
     common::ValueVector& relIDVector;
+
+    common::ValueVector& getSrcNodeIDVector(common::RelDataDirection direction) const {
+        return direction == common::RelDataDirection::FWD ? srcNodeIDVector : dstNodeIDVector;
+    }
 
     RelTableDeleteState(common::ValueVector& srcNodeIDVector, common::ValueVector& dstNodeIDVector,
         common::ValueVector& relIDVector)
@@ -150,20 +162,21 @@ public:
     void addColumn(transaction::Transaction* transaction,
         TableAddColumnState& addColumnState) override;
     Column* getCSROffsetColumn(common::RelDataDirection direction) const {
-        return direction == common::RelDataDirection::FWD ? fwdRelTableData->getCSROffsetColumn() :
-                                                            bwdRelTableData->getCSROffsetColumn();
+        return getDirectedTableData(direction)->getCSROffsetColumn();
     }
     Column* getCSRLengthColumn(common::RelDataDirection direction) const {
-        return direction == common::RelDataDirection::FWD ? fwdRelTableData->getCSRLengthColumn() :
-                                                            bwdRelTableData->getCSRLengthColumn();
+        return getDirectedTableData(direction)->getCSRLengthColumn();
     }
     common::column_id_t getNumColumns() const {
-        KU_ASSERT(fwdRelTableData->getNumColumns() == bwdRelTableData->getNumColumns());
-        return fwdRelTableData->getNumColumns();
+        KU_ASSERT(directedRelData.size() >= 1);
+        RUNTIME_CHECK(for (const auto& relData
+                           : directedRelData) {
+            KU_ASSERT(relData->getNumColumns() == directedRelData[0]->getNumColumns());
+        });
+        return directedRelData[0]->getNumColumns();
     }
     Column* getColumn(common::column_id_t columnID, common::RelDataDirection direction) const {
-        return direction == common::RelDataDirection::FWD ? fwdRelTableData->getColumn(columnID) :
-                                                            bwdRelTableData->getColumn(columnID);
+        return getDirectedTableData(direction)->getColumn(columnID);
     }
 
     NodeGroup* getOrCreateNodeGroup(transaction::Transaction* transaction,
@@ -175,10 +188,7 @@ public:
 
     common::row_idx_t getNumTotalRows(const transaction::Transaction* transaction) override;
 
-    RelTableData* getDirectedTableData(common::RelDataDirection direction) const {
-        return direction == common::RelDataDirection::FWD ? fwdRelTableData.get() :
-                                                            bwdRelTableData.get();
-    }
+    RelTableData* getDirectedTableData(common::RelDataDirection direction) const;
 
     common::offset_t reserveRelOffsets(common::offset_t numRels) {
         std::unique_lock xLck{relOffsetMtx};
@@ -188,7 +198,10 @@ public:
     }
 
     void pushInsertInfo(transaction::Transaction* transaction, common::RelDataDirection direction,
-        const CSRNodeGroup& nodeGroup, common::row_idx_t numRows_, CSRNodeGroupScanSource source);
+        const CSRNodeGroup& nodeGroup, common::row_idx_t numRows_,
+        CSRNodeGroupScanSource source) const;
+
+    std::vector<common::RelDataDirection> getStorageDirections() const;
 
 private:
     static void prepareCommitForNodeGroup(const transaction::Transaction* transaction,
@@ -209,15 +222,14 @@ private:
     void checkRelMultiplicityConstraint(transaction::Transaction* transaction,
         const TableInsertState& state) const;
 
-    RelTableData* getRelTableData(common::RelDataDirection direction) const;
+    void commitRelTableData(common::RelDataDirection direction);
 
 private:
     common::table_id_t fromNodeTableID;
     common::table_id_t toNodeTableID;
     std::mutex relOffsetMtx;
     common::offset_t nextRelOffset;
-    std::unique_ptr<RelTableData> fwdRelTableData;
-    std::unique_ptr<RelTableData> bwdRelTableData;
+    std::vector<std::unique_ptr<RelTableData>> directedRelData;
 };
 
 } // namespace storage

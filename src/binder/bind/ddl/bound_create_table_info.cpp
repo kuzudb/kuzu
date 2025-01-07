@@ -148,6 +148,7 @@ void BoundExtraCreateRelTableInfo::serialize(Serializer& serializer) const {
     BoundExtraCreateTableInfo::serialize(serializer);
     serializer.serializeValue(srcMultiplicity);
     serializer.serializeValue(dstMultiplicity);
+    serializer.serializeValue(storageDirection);
     serializer.serializeValue(srcTableID);
     serializer.serializeValue(dstTableID);
 }
@@ -156,14 +157,16 @@ std::unique_ptr<BoundExtraCreateRelTableInfo> BoundExtraCreateRelTableInfo::dese
     Deserializer& deserializer) {
     RelMultiplicity srcMultiplicity{};
     RelMultiplicity dstMultiplicity{};
+    RelStorageDirection storageDirection{};
     table_id_t srcTableID = INVALID_TABLE_ID;
     table_id_t dstTableID = INVALID_TABLE_ID;
     deserializer.deserializeValue(srcMultiplicity);
     deserializer.deserializeValue(dstMultiplicity);
+    deserializer.deserializeValue(storageDirection);
     deserializer.deserializeValue(srcTableID);
     deserializer.deserializeValue(dstTableID);
     return std::make_unique<BoundExtraCreateRelTableInfo>(srcMultiplicity, dstMultiplicity,
-        srcTableID, dstTableID, std::vector<PropertyDefinition>());
+        storageDirection, srcTableID, dstTableID, std::vector<PropertyDefinition>());
 }
 
 void BoundExtraCreateRelTableGroupInfo::serialize(Serializer& serializer) const {

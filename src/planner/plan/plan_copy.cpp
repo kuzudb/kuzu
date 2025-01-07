@@ -1,5 +1,6 @@
 #include "binder/copy/bound_copy_from.h"
 #include "binder/copy/bound_copy_to.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "planner/operator/persistent/logical_copy_to.h"
@@ -23,11 +24,13 @@ static void appendIndexScan(const ExtraBoundCopyRelInfo& extraInfo, LogicalPlan&
 }
 
 static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan& plan) {
+    const auto* tableCatalogEntry =
+        copyFromInfo.tableEntry->constPtrCast<catalog::RelTableCatalogEntry>();
     LogicalPartitionerInfo info(copyFromInfo.tableEntry, copyFromInfo.offset);
-    // Partitioner for FWD direction rel data.
-    info.partitioningInfos.push_back(LogicalPartitioningInfo(RelKeyIdx::FWD /* keyIdx */));
-    // Partitioner for BWD direction rel data.
-    info.partitioningInfos.push_back(LogicalPartitioningInfo(RelKeyIdx::BWD /* keyIdx */));
+    for (auto direction : tableCatalogEntry->getRelDataDirections()) {
+        info.partitioningInfos.push_back(
+            LogicalPartitioningInfo(RelDirectionUtils::relDirectionToKeyIdx(direction)));
+    }
     auto partitioner = std::make_shared<LogicalPartitioner>(std::move(info), copyFromInfo.copy(),
         plan.getLastOperator());
     partitioner->computeFactorizedSchema();

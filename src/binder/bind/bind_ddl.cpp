@@ -169,12 +169,20 @@ BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info)
     auto& extraInfo = info->extraInfo->constCast<ExtraCreateRelTableInfo>();
     auto srcMultiplicity = RelMultiplicityUtils::getFwd(extraInfo.relMultiplicity);
     auto dstMultiplicity = RelMultiplicityUtils::getBwd(extraInfo.relMultiplicity);
+
+    auto parsingOptions = bindParsingOptions(extraInfo.options);
+    auto storageDirection = RelDirectionUtils::DEFAULT_REL_STORAGE_DIRECTION;
+    if (parsingOptions.contains(TableConstants::REL_STORAGE_DIRECTION_OPTION)) {
+        storageDirection = RelDirectionUtils::getRelStorageDirection(
+            parsingOptions.at(TableConstants::REL_STORAGE_DIRECTION_OPTION).toString());
+    }
+
     auto srcTableID = bindTableID(extraInfo.srcTableName);
     validateTableType(srcTableID, TableType::NODE);
     auto dstTableID = bindTableID(extraInfo.dstTableName);
     validateTableType(dstTableID, TableType::NODE);
     auto boundExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(srcMultiplicity,
-        dstMultiplicity, srcTableID, dstTableID, std::move(propertyDefinitions));
+        dstMultiplicity, storageDirection, srcTableID, dstTableID, std::move(propertyDefinitions));
     return BoundCreateTableInfo(TableType::REL, info->tableName, info->onConflict,
         std::move(boundExtraInfo));
 }
@@ -193,8 +201,10 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
     relCreateInfo->propertyDefinitions = copyVector(info->propertyDefinitions);
     for (auto& [srcTableName, dstTableName] : extraInfo.srcDstTablePairs) {
         relCreateInfo->tableName = getRelGroupTableName(relGroupName, srcTableName, dstTableName);
-        relCreateInfo->extraInfo =
-            std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity, srcTableName, dstTableName);
+        // TODO(Royi) correctly populate options for create rel table group
+        options_t options;
+        relCreateInfo->extraInfo = std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity,
+            std::move(options), srcTableName, dstTableName);
         boundCreateRelTableInfos.push_back(bindCreateRelTableInfo(relCreateInfo.get()));
     }
     auto boundExtraInfo =

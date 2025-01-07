@@ -37,6 +37,7 @@ struct PartitioningBuffer {
 struct BatchInsertSharedState;
 struct PartitioningInfo;
 struct PartitionerDataInfo;
+struct PartitionerInfo;
 struct RelBatchInsertProgressSharedState;
 struct PartitionerSharedState {
     std::mutex mtx;
@@ -57,7 +58,8 @@ struct PartitionerSharedState {
     std::vector<std::unique_ptr<PartitioningBuffer>> partitioningBuffers;
     std::atomic<common::partition_idx_t> nextPartitionIdx;
 
-    void initialize(const PartitionerDataInfo& dataInfo, main::ClientContext* clientContext);
+    void initialize(const PartitionerDataInfo& dataInfo, const PartitionerInfo& info,
+        main::ClientContext* clientContext);
 
     common::partition_idx_t getNextPartition(common::idx_t partitioningIdx,
         RelBatchInsertProgressSharedState& progressSharedState);
@@ -174,7 +176,8 @@ public:
     static void initializePartitioningStates(const PartitionerDataInfo& dataInfo,
         std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers,
         const std::array<common::partition_idx_t, PartitionerSharedState::DIRECTIONS>&
-            numPartitions);
+            numPartitions,
+        common::idx_t numPartitioners);
 
 private:
     common::DataChunk constructDataChunk(

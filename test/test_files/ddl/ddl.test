@@ -24,11 +24,18 @@ Binder exception: Table organisation does not exist.
 Binder exception: Table movies does not exist.
 -STATEMENT create node table organisation (ID INT64, name STRING, orgCode INT64, mark DOUBLE, score INT64, history STRING, licenseValidInterval INTERVAL, rating DOUBLE, PRIMARY KEY (ID))
 ---- ok
--STATEMENT create rel table studyAt (FROM person TO organisation, year INT64, places STRING[], MANY_ONE);
+-STATEMENT create rel table studyAt (FROM person TO organisation, year INT64, places STRING[], MANY_ONE) WITH (storage_direction = 'both');
+---- ok
+-STATEMENT create rel table workAt (FROM person TO organisation, year INT64, grading DOUBLE[2], rating float, MANY_ONE) WITH (storage_direction = 'invalid');
+---- error
+Binder exception: Cannot bind invalid as rel storage direction.
+-STATEMENT create rel table workAt (FROM person TO organisation, year INT64, grading DOUBLE[2], rating float, MANY_ONE) WITH (storage_direction = 'fwd_only');
 ---- ok
 -STATEMENT match (o:organisation) return o.name
 ---- ok
 -STATEMENT match (:person)-[s:studyAt]->(:organisation) return s.year
+---- ok
+-STATEMENT match (:person)-[w:workAt]->(:organisation) return w.year
 ---- ok
 -STATEMENT CREATE NODE TABLE books (ID INT64, rating DOUBLE DEFAULT 0, PRIMARY KEY (ID));
 ---- ok
@@ -68,10 +75,10 @@ Table knows altered.
 Table likes has been created.
 -STATEMENT Call table_info('likes_person_person') RETURN *;
 ---- 1
-1|since|INT64|NULL
+1|since|INT64|NULL|both
 -STATEMENT Call table_info('likes_person_organisation') RETURN *;
 ---- 1
-1|since|INT64|NULL
+1|since|INT64|NULL|both
 -STATEMENT CREATE REL TABLE GROUP likes (FROM person TO person, FROM person TO organisation);
 ---- error
 Binder exception: likes already exists in catalog.
@@ -178,8 +185,8 @@ Binder exception: Table knows does not exist.
 
 -STATEMENT CALL TABLE_INFO('replyOf') RETURN *;
 ---- 2
-1|propx|INT64|NULL
-2|propy|INT64|1
+1|propx|INT64|NULL|both
+2|propy|INT64|1|both
 
 -CASE DropNodeTablePropertyNormalExecution
 -STATEMENT ALTER TABLE person DROP gender

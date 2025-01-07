@@ -152,7 +152,8 @@ std::string createFTSIndexQuery(const ClientContext& context, const TableFuncBin
         FTSUtils::getAppearsInTableName(ftsBindData->tableID, ftsBindData->indexName);
     // Finally, create a terms table that records the documents in which the terms appear, along
     // with the frequency of each term.
-    query += stringFormat("CREATE REL TABLE `{}` (FROM `{}` TO `{}`, tf UINT64, MANY_MANY);",
+    query += stringFormat("CREATE REL TABLE `{}` (FROM `{}` TO `{}`, tf UINT64) WITH "
+                          "(storage_direction = 'fwd_only');",
         appearsInTableName, termsTableName, docsTableName);
     query += stringFormat("COPY `{}` FROM ("
                           "MATCH (b:`{}`) "

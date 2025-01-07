@@ -185,13 +185,12 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(LogicalOperator* logicalOperator
         FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     const auto batchInsertSharedState = std::make_shared<BatchInsertSharedState>(relTable, fTable,
         &storageManager->getWAL(), clientContext->getMemoryManager());
-    auto copyRelFWD = createCopyRel(partitionerSharedState, batchInsertSharedState, copyFrom,
-        RelDataDirection::FWD, LogicalType::copy(columnTypes));
-    auto copyRelBWD = createCopyRel(partitionerSharedState, batchInsertSharedState, copyFrom,
-        RelDataDirection::BWD, std::move(columnTypes));
     physical_op_vector_t result;
-    result.push_back(std::move(copyRelBWD));
-    result.push_back(std::move(copyRelFWD));
+    for (auto direction : relTableEntry.getRelDataDirections()) {
+        auto copyRel = createCopyRel(partitionerSharedState, batchInsertSharedState, copyFrom,
+            direction, LogicalType::copy(columnTypes));
+        result.push_back(std::move(copyRel));
+    }
     result.push_back(std::move(partitioner));
     return result;
 }
