@@ -325,7 +325,7 @@ namespace kuzu {
                 vdiff = new float[dim];
                 for (size_t i = 0; i < dim; i++) {
                     vmin[i] = std::numeric_limits<float>::max();
-                    vdiff[i] = std::numeric_limits<float>::lowest();
+                    vdiff[i] = std::numeric_limits<float>::min();
                 }
                 alpha = new float[dim];
                 beta = new float[dim];
@@ -356,11 +356,6 @@ namespace kuzu {
 
                 memcpy(vmin, other.vmin, dim * sizeof(float));
                 memcpy(vdiff, other.vdiff, dim * sizeof(float));
-                // Set it to max and min
-                for (size_t i = 0; i < dim; i++) {
-                    vmin[i] = std::numeric_limits<float>::max();
-                    vdiff[i] = std::numeric_limits<float>::min();
-                }
                 memcpy(alpha, other.alpha, dim * sizeof(float));
                 memcpy(beta, other.beta, dim * sizeof(float));
                 memcpy(alphaSqr, other.alphaSqr, dim * sizeof(float));
@@ -388,6 +383,9 @@ namespace kuzu {
                     for (size_t j = 0; j < dim; j++) {
                         vmin[j] = std::min(vmin[j], data[i * dim + j]);
                         vdiff[j] = std::max(vdiff[j], data[i * dim + j]);
+                        if (data[i * dim + j] > 1000) {
+                            printf("data[%d]: %f\n", i * dim + j, data[i * dim + j]);
+                        }
                     }
                 }
 
