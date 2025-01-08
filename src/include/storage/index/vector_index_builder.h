@@ -165,19 +165,19 @@ struct CompressedVectorStorage {
         if (flushed) {
             return;
         }
-        printf("Flushing compressed data\n");
+//        printf("Flushing compressed data\n");
         Column::ChunkState state;
         for (auto& [nodeGroupIdx, columnChunk] : columnChunks) {
-            printf("NodeGroupIdx: %d\n", nodeGroupIdx);
+//            printf("NodeGroupIdx: %d\n", nodeGroupIdx);
             auto data = reinterpret_cast<ListChunkData *>(columnChunk.get())->getDataColumnChunk()->getData();
-            for (auto i = 0u; i < 5; i++) {
-                printf("[%d] ", data[i]);
-            }
-            printf("\n");
+//            for (auto i = 0u; i < 5; i++) {
+//                printf("[%d] ", data[i]);
+//            }
+//            printf("\n");
             column->initChunkState(trnx, nodeGroupIdx, state);
-            printf("Appending to column\n");
+//            printf("Appending to column\n");
             column->append(columnChunk.get(), state);
-            printf("Actual NumValues: %lu, Num Values: %lu\n", state.metadata.numValues, columnChunk.get()->getNumValues());
+//            printf("Actual NumValues: %lu, Num Values: %lu\n", state.metadata.numValues, columnChunk.get()->getNumValues());
         }
         flushed = true;
     }
@@ -237,26 +237,26 @@ private:
         if (distFunc == DistanceFunc::COSINE) {
             normalizeVectors(data, n);
             // print the actual vector and normalized vector
-            for (size_t i = 0; i < 1; i++) {
-                printf("Actual Vector: ");
-                for (size_t j = 0; j < 5; j++) {
-                    printf("%f ", data[i * dim + j]);
-                }
-                printf("\n");
-                printf("Normalized Vector: ");
-                for (size_t j = 0; j < 4; j++) {
-                    printf("%f ", normVectorsCache[i * dim + j]);
-                }
-                printf("\n");
-            }
+//            for (size_t i = 0; i < 1; i++) {
+//                printf("Actual Vector: ");
+//                for (size_t j = 0; j < 5; j++) {
+//                    printf("%f ", data[i * dim + j]);
+//                }
+//                printf("\n");
+//                printf("Normalized Vector: ");
+//                for (size_t j = 0; j < 4; j++) {
+//                    printf("%f ", normVectorsCache[i * dim + j]);
+//                }
+//                printf("\n");
+//            }
             sq->encode(normVectorsCache, codes, n);
-            for (size_t i = 0; i < 1; i++) {
-                printf("Compressed Vector: ");
-                for (size_t j = 0; j < 4; j++) {
-                    printf("%d ", codes[i * 4 + j]);
-                }
-                printf("\n");
-            }
+//            for (size_t i = 0; i < 1; i++) {
+//                printf("Compressed Vector: ");
+//                for (size_t j = 0; j < 4; j++) {
+//                    printf("%d ", codes[i * 4 + j]);
+//                }
+//                printf("\n");
+//            }
         } else {
             sq->encode(data, codes, n);
         }
