@@ -356,6 +356,11 @@ namespace kuzu {
 
                 memcpy(vmin, other.vmin, dim * sizeof(float));
                 memcpy(vdiff, other.vdiff, dim * sizeof(float));
+                // Set it to max and min
+                for (size_t i = 0; i < dim; i++) {
+                    vmin[i] = std::numeric_limits<float>::max();
+                    vdiff[i] = std::numeric_limits<float>::min();
+                }
                 memcpy(alpha, other.alpha, dim * sizeof(float));
                 memcpy(beta, other.beta, dim * sizeof(float));
                 memcpy(alphaSqr, other.alphaSqr, dim * sizeof(float));
