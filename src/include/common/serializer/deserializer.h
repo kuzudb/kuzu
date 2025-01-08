@@ -14,7 +14,7 @@
 namespace kuzu {
 namespace common {
 
-class Deserializer {
+class KUZU_API Deserializer {
 public:
     explicit Deserializer(std::unique_ptr<Reader> reader) : reader(std::move(reader)) {}
 

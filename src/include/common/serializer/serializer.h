@@ -13,7 +13,7 @@
 namespace kuzu {
 namespace common {
 
-class Serializer {
+class KUZU_API Serializer {
 public:
     explicit Serializer(std::shared_ptr<Writer> writer) : writer(std::move(writer)) {}
 

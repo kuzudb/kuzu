@@ -21,6 +21,12 @@ struct FTSConfig {
 
     FTSConfig() = default;
     explicit FTSConfig(const function::optional_params_t& optionalParams);
+
+    void serialize(common::Serializer& serializer) const;
+
+    static FTSConfig deserialize(common::Deserializer& deserializer);
+
+    uint64_t getNumBytesForSerialization() const;
 };
 
 struct K {

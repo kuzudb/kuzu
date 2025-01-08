@@ -1,4 +1,4 @@
-#include "function/query_fts.h"
+#include "function/query_fts_index.h"
 
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
@@ -27,20 +27,20 @@ namespace fts_extension {
 
 using namespace function;
 
-struct QFTSGDSBindData final : public function::GDSBindData {
+struct QueryFTSBindData final : public function::GDSBindData {
     std::vector<std::string> terms;
     uint64_t numDocs;
     double_t avgDocLen;
     QueryFTSConfig config;
     common::table_id_t outputTableID;
 
-    QFTSGDSBindData(std::vector<std::string> terms, graph::GraphEntry graphEntry,
+    QueryFTSBindData(std::vector<std::string> terms, graph::GraphEntry graphEntry,
         std::shared_ptr<binder::Expression> docs, uint64_t numDocs, double_t avgDocLen,
         QueryFTSConfig config)
         : GDSBindData{std::move(graphEntry), std::move(docs)}, terms{std::move(terms)},
           numDocs{numDocs}, avgDocLen{avgDocLen}, config{config},
           outputTableID{nodeOutput->constCast<NodeExpression>().getSingleEntry()->getTableID()} {}
-    QFTSGDSBindData(const QFTSGDSBindData& other)
+    QueryFTSBindData(const QueryFTSBindData& other)
         : GDSBindData{other}, terms{other.terms}, numDocs{other.numDocs},
           avgDocLen{other.avgDocLen}, config{other.config}, outputTableID{other.outputTableID} {}
 
@@ -49,11 +49,11 @@ struct QFTSGDSBindData final : public function::GDSBindData {
     uint64_t getNumUniqueTerms() const;
 
     std::unique_ptr<GDSBindData> copy() const override {
-        return std::make_unique<QFTSGDSBindData>(*this);
+        return std::make_unique<QueryFTSBindData>(*this);
     }
 };
 
-uint64_t QFTSGDSBindData::getNumUniqueTerms() const {
+uint64_t QueryFTSBindData::getNumUniqueTerms() const {
     auto uniqueTerms = std::unordered_set<std::string>{terms.begin(), terms.end()};
     return uniqueTerms.size();
 }
@@ -156,7 +156,7 @@ void runFrontiersOnce(processor::ExecutionContext* executionContext, QFTSState& 
 class QFTSOutputWriter {
 public:
     QFTSOutputWriter(storage::MemoryManager* mm, QFTSOutput* qFTSOutput,
-        const QFTSGDSBindData& bindData);
+        const QueryFTSBindData& bindData);
 
     void write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len,
         int64_t docsID);
@@ -170,12 +170,12 @@ private:
     std::vector<common::ValueVector*> vectors;
     common::idx_t pos;
     storage::MemoryManager* mm;
-    const QFTSGDSBindData& bindData;
+    const QueryFTSBindData& bindData;
     uint64_t numUniqueTerms;
 };
 
 QFTSOutputWriter::QFTSOutputWriter(storage::MemoryManager* mm, QFTSOutput* qFTSOutput,
-    const QFTSGDSBindData& bindData)
+    const QueryFTSBindData& bindData)
     : qFTSOutput{qFTSOutput}, docsVector{LogicalType::INTERNAL_ID(), mm},
       scoreVector{LogicalType::UINT64(), mm}, mm{mm}, bindData{bindData} {
     auto state = DataChunkState::getSingleValueDataChunkState();
@@ -288,7 +288,7 @@ void QFTSVertexCompute::vertexCompute(const graph::VertexScanState::Chunk& chunk
     }
 }
 
-void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
+void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto termsTableID = sharedState->graph->getNodeTableIDs()[0];
     auto output = std::make_unique<QFTSOutput>();
 
@@ -298,7 +298,7 @@ void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     const graph::GraphEntry entry{{termsTableEntry}, {} /* relTableEntries */};
     graph::OnDiskGraph graph(executionContext->clientContext, entry);
     auto termsComputeSharedState =
-        TermsComputeSharedState{bindData->ptrCast<QFTSGDSBindData>()->terms};
+        TermsComputeSharedState{bindData->ptrCast<QueryFTSBindData>()->terms};
     TermsVertexCompute termsCompute{&termsComputeSharedState};
     GDSUtils::runVertexCompute(executionContext, &graph, termsCompute,
         std::vector<std::string>{"term", "df"});
@@ -323,24 +323,24 @@ void QFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
 
     runFrontiersOnce(executionContext, qFTSState, sharedState->graph.get(),
         catalog->getTableCatalogEntry(transaction, sharedState->graph->getRelTableIDs()[0])
-            ->getPropertyIdx(QFTSAlgorithm::TERM_FREQUENCY_PROP_NAME));
+            ->getPropertyIdx(QueryFTSAlgorithm::TERM_FREQUENCY_PROP_NAME));
 
     // Do vertex compute to calculate the score for doc with the length property.
 
-    auto writer =
-        std::make_unique<QFTSOutputWriter>(mm, output.get(), *bindData->ptrCast<QFTSGDSBindData>());
+    auto writer = std::make_unique<QFTSOutputWriter>(mm, output.get(),
+        *bindData->ptrCast<QueryFTSBindData>());
     auto writerVC = std::make_unique<QFTSVertexCompute>(mm, sharedState.get(), std::move(writer));
     auto docsTableID = sharedState->graph->getNodeTableIDs()[1];
     GDSUtils::runVertexCompute(executionContext, sharedState->graph.get(), *writerVC, docsTableID,
-        {QFTSAlgorithm::DOC_LEN_PROP_NAME, QFTSAlgorithm::DOC_ID_PROP_NAME});
+        {QueryFTSAlgorithm::DOC_LEN_PROP_NAME, QueryFTSAlgorithm::DOC_ID_PROP_NAME});
     sharedState->mergeLocalTables();
 }
 
 static std::shared_ptr<Expression> getScoreColumn(Binder* binder) {
-    return binder->createVariable(QFTSAlgorithm::SCORE_PROP_NAME, LogicalType::DOUBLE());
+    return binder->createVariable(QueryFTSAlgorithm::SCORE_PROP_NAME, LogicalType::DOUBLE());
 }
 
-binder::expression_vector QFTSAlgorithm::getResultColumns(binder::Binder* binder) const {
+binder::expression_vector QueryFTSAlgorithm::getResultColumns(binder::Binder* binder) const {
     expression_vector columns;
     auto& docsNode = bindData->getNodeOutput()->constCast<NodeExpression>();
     columns.push_back(docsNode.getInternalID());
@@ -374,7 +374,7 @@ static std::vector<std::string> getTerms(std::string& query, const std::string& 
     return result;
 }
 
-void QFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& context) {
+void QueryFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& context) {
     auto inputTableName = getParamVal(input, 0);
     auto indexName = getParamVal(input, 1);
     auto query = getParamVal(input, 2);
@@ -398,14 +398,14 @@ void QFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& context
     auto appearsInEntry = context.getCatalog()->getTableCatalogEntry(context.getTransaction(),
         FTSUtils::getAppearsInTableName(tableEntry.getTableID(), indexName));
     auto graphEntry = graph::GraphEntry({termsEntry, docsEntry}, {appearsInEntry});
-    bindData = std::make_unique<QFTSGDSBindData>(std::move(terms), std::move(graphEntry),
+    bindData = std::make_unique<QueryFTSBindData>(std::move(terms), std::move(graphEntry),
         nodeOutput, ftsIndexEntry.getNumDocs(), ftsIndexEntry.getAvgDocLen(),
         QueryFTSConfig{input.optionalParams});
 }
 
-function::function_set QFTSFunction::getFunctionSet() {
+function::function_set QueryFTSFunction::getFunctionSet() {
     function_set result;
-    auto algo = std::make_unique<QFTSAlgorithm>();
+    auto algo = std::make_unique<QueryFTSAlgorithm>();
     result.push_back(
         std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
     return result;
