@@ -207,17 +207,6 @@ void* ExtensionLibLoader::getDynamicLibFunc(const std::string& funcName) {
     return sym;
 }
 
-void ExtensionOptions::addExtensionOption(std::string name, common::LogicalTypeID type,
-    common::Value defaultValue) {
-    common::StringUtils::toLower(name);
-    extensionOptions.emplace(name, main::ExtensionOption{name, type, std::move(defaultValue)});
-}
-
-const main::ExtensionOption* ExtensionOptions::getExtensionOption(std::string name) const {
-    common::StringUtils::toLower(name);
-    return extensionOptions.contains(name) ? &extensionOptions.at(name) : nullptr;
-}
-
 #ifdef _WIN32
 std::wstring utf8ToUnicode(const char* input) {
     uint32_t result;

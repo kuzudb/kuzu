@@ -7,6 +7,7 @@
 
 #include "common/timer.h"
 #include "common/types/value/value.h"
+#include "db_config.h"
 #include "function/table/scan_replacement.h"
 #include "main/client_config.h"
 #include "parser/statement.h"
@@ -32,7 +33,6 @@ class ProgressBar;
 } // namespace common
 
 namespace extension {
-struct ExtensionOptions;
 class ExtensionManager;
 } // namespace extension
 
@@ -83,7 +83,6 @@ public:
     const DBConfig* getDBConfig() const { return &dbConfig; }
     DBConfig* getDBConfigUnsafe() { return &dbConfig; }
     common::Value getCurrentSetting(const std::string& optionName) const;
-    bool isOptionSet(const std::string& optionName) const;
     // Timer and timeout
     void interrupt() { activeQuery.interrupted = true; }
     bool interrupted() const { return activeQuery.interrupted; }
@@ -110,7 +109,7 @@ public:
     std::unique_ptr<function::ScanReplacementData> tryReplace(const std::string& objectName) const;
     // Extension
     void setExtensionOption(std::string name, common::Value value);
-    extension::ExtensionOptions* getExtensionOptions() const;
+    const main::ExtensionOption* getExtensionOption(std::string optionName) const;
     std::string getExtensionDir() const;
 
     // Database component getters.

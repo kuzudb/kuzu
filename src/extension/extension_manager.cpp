@@ -1,6 +1,7 @@
 #include "extension/extension_manager.h"
 
 #include "common/file_system/virtual_file_system.h"
+#include "common/string_utils.h"
 #include "extension/extension.h"
 
 namespace kuzu {
@@ -42,6 +43,34 @@ std::string ExtensionManager::toCypher() {
         cypher += extension.toCypher();
     }
     return cypher;
+}
+
+void ExtensionManager::addExtensionOption(std::string name, common::LogicalTypeID type,
+    common::Value defaultValue) {
+    if (getExtensionOption(name) != nullptr) {
+        // One extension option can be shared by multiple extensions.
+        return;
+    }
+    common::StringUtils::toLower(name);
+    extensionOptions.emplace(name, main::ExtensionOption{name, type, std::move(defaultValue)});
+}
+
+const main::ExtensionOption* ExtensionManager::getExtensionOption(std::string name) const {
+    common::StringUtils::toLower(name);
+    return extensionOptions.contains(name) ? &extensionOptions.at(name) : nullptr;
+}
+
+void ExtensionManager::registerStorageExtension(std::string name,
+    std::unique_ptr<storage::StorageExtension> storageExtension) {
+    if (storageExtensions.contains(name)) {
+        return;
+    }
+    storageExtensions.emplace(std::move(name), std::move(storageExtension));
+}
+
+common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>>&
+ExtensionManager::getStorageExtensions() {
+    return storageExtensions;
 }
 
 } // namespace extension

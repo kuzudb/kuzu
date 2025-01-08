@@ -24,10 +24,6 @@ class RelTableCatalogEntry;
 class Catalog;
 } // namespace catalog
 
-namespace extension {
-struct ExtensionOptions;
-} // namespace extension
-
 namespace main {
 class ClientContext;
 class Database;

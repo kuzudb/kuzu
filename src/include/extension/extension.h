@@ -144,15 +144,6 @@ private:
     void* libHdl;
 };
 
-struct ExtensionOptions {
-    std::unordered_map<std::string, main::ExtensionOption> extensionOptions;
-
-    void addExtensionOption(std::string name, common::LogicalTypeID type,
-        common::Value defaultValue);
-
-    const main::ExtensionOption* getExtensionOption(std::string name) const;
-};
-
 #ifdef _WIN32
 std::wstring utf8ToUnicode(const char* input);
 

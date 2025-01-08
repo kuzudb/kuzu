@@ -106,9 +106,6 @@ std::string getSchemaCypher(ClientContext* clientContext, Transaction* transacti
         ss << sequenceEntry->toCypher(clientContext) << std::endl;
     }
     for (auto macroName : catalog->getMacroNames(transaction)) {
-        if (macroName == "TOKENIZE") {
-            continue;
-        }
         ss << catalog->getScalarMacroFunction(transaction, macroName)->toCypher(macroName)
            << std::endl;
     }
