@@ -429,11 +429,10 @@ void RelTable::commit(Transaction* transaction, LocalTable* localTable) {
     // commit rel table data
     for (auto& relData : directedRelData) {
         const auto direction = relData->getDirection();
-        auto [index, columnToSkip] =
-            (direction == common::RelDataDirection::FWD) ?
-                std::tie(localRelTable.getFWDIndex(), LOCAL_BOUND_NODE_ID_COLUMN_ID) :
-                std::tie(localRelTable.getBWDIndex(), LOCAL_NBR_NODE_ID_COLUMN_ID);
-        for (auto& [boundNodeOffset, rowIndices] : index) {
+        const auto columnToSkip = (direction == common::RelDataDirection::FWD) ?
+                                      LOCAL_BOUND_NODE_ID_COLUMN_ID :
+                                      LOCAL_NBR_NODE_ID_COLUMN_ID;
+        for (auto& [boundNodeOffset, rowIndices] : localRelTable.getCSRIndex(direction)) {
             auto [nodeGroupIdx, boundOffsetInGroup] = StorageUtils::getQuotientRemainder(
                 boundNodeOffset, StorageConstants::NODE_GROUP_SIZE);
             auto& nodeGroup =
@@ -467,7 +466,7 @@ void RelTable::updateRelOffsets(const LocalRelTable& localRelTable) {
 }
 
 static void updateIndexNodeOffsets(const transaction::Transaction* transaction,
-    LocalRelTable::rel_index_t& localRelIndex, common::table_id_t nodeTableID) {
+    DirectedCSRIndex::index_t& localRelIndex, common::table_id_t nodeTableID) {
     for (auto& [offset, rowIndices] : localRelIndex) {
         if (transaction->isUnCommitted(nodeTableID, offset)) {
             const auto committedOffset =
@@ -484,11 +483,13 @@ void RelTable::updateNodeOffsets(const Transaction* transaction,
     std::unordered_map<column_id_t, table_id_t> columnsToUpdate;
     if (transaction->hasNewlyInsertedNodes(fromNodeTableID)) {
         columnsToUpdate[LOCAL_BOUND_NODE_ID_COLUMN_ID] = fromNodeTableID;
-        updateIndexNodeOffsets(transaction, localRelTable.getFWDIndex(), fromNodeTableID);
+        updateIndexNodeOffsets(transaction,
+            localRelTable.getCSRIndex(common::RelDataDirection::FWD), fromNodeTableID);
     }
     if (transaction->hasNewlyInsertedNodes(toNodeTableID)) {
         columnsToUpdate[LOCAL_NBR_NODE_ID_COLUMN_ID] = toNodeTableID;
-        updateIndexNodeOffsets(transaction, localRelTable.getFWDIndex(), toNodeTableID);
+        updateIndexNodeOffsets(transaction,
+            localRelTable.getCSRIndex(common::RelDataDirection::FWD), toNodeTableID);
     }
     auto& localNodeGroup = localRelTable.getLocalNodeGroup();
     for (auto i = 0u; i < localNodeGroup.getNumChunkedGroups(); i++) {
