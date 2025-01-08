@@ -17,6 +17,9 @@ struct ExtendDirectionUtil {
     }
 
     static ExtendDirection fromString(const std::string& str);
+    static std::string toString(ExtendDirection direction);
+
+    static constexpr ExtendDirection DEFAULT_EXTEND_DIRECTION = ExtendDirection::BOTH;
 };
 
 } // namespace common
