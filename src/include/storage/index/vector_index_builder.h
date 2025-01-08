@@ -130,13 +130,15 @@ struct CompressedVectorStorage {
         KU_ASSERT(metadataDA != nullptr);
         // TODO: Make it generic, currently only supports scalar quantization
         auto dataType = LogicalType::ARRAY(LogicalType::INT8(), codeSize);
+        printf("endNodeGroupIdx: %d\n", endNodeGroupIdx);
         for (auto nodeGroupIdx = startNodeGroupIdx; nodeGroupIdx <= endNodeGroupIdx; nodeGroupIdx++) {
             auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
             auto capacity = StorageConstants::NODE_GROUP_SIZE;
             auto numValues = chunkMeta.numValues;
             auto columnChunk = ColumnChunkFactory::createColumnChunkData(dataType.copy(), true, capacity);
             auto &listChunk = columnChunk->cast<ListChunkData>();
-            listChunk.getDataColumnChunk()->resize(numValues * (codeSize));
+            listChunk.getDataColumnChunk()->resize(numValues * codeSize);
+            printf("%lu\n", listChunk.getDataColumnChunk()->getCapacity());
             // Set offset and size column
             auto offsetColumn = listChunk.getOffsetColumnChunk();
             auto sizeColumn = listChunk.getSizeColumnChunk();
@@ -149,7 +151,7 @@ struct CompressedVectorStorage {
                 sizeColumn->setValue((uint32_t) codeSize, i);
             }
             listChunk.setNumValues(numValues);
-            listChunk.getDataColumnChunk()->setNumValues(numValues * (codeSize));
+            listChunk.getDataColumnChunk()->setNumValues(numValues * codeSize);
             columnChunks.insert({nodeGroupIdx, std::move(columnChunk)});
         }
     }
