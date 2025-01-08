@@ -250,6 +250,13 @@ private:
                 printf("\n");
             }
             sq->encode(normVectorsCache, codes, n);
+            for (size_t i = 0; i < 1; i++) {
+                printf("Compressed Vector: ");
+                for (size_t j = 0; j < 4; j++) {
+                    printf("%d ", codes[i * 4 + j]);
+                }
+                printf("\n");
+            }
         } else {
             sq->encode(data, codes, n);
         }
