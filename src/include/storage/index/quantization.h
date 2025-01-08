@@ -325,7 +325,7 @@ namespace kuzu {
                 vdiff = new float[dim];
                 for (size_t i = 0; i < dim; i++) {
                     vmin[i] = std::numeric_limits<float>::max();
-                    vdiff[i] = std::numeric_limits<float>::min();
+                    vdiff[i] = std::numeric_limits<float>::lowest();
                 }
                 alpha = new float[dim];
                 beta = new float[dim];
@@ -333,10 +333,10 @@ namespace kuzu {
                 betaSqr = new float[dim];
 
                 // print vmin and vdiff
-                for (size_t i = 0; i < dim; i++) {
-                    printf("vmin[%d]: %f\n", i, vmin[i]);
-                    printf("vdiff[%d]: %f\n", i, vdiff[i]);
-                }
+//                for (size_t i = 0; i < dim; i++) {
+//                    printf("vmin[%d]: %f\n", i, vmin[i]);
+//                    printf("vdiff[%d]: %f\n", i, vdiff[i]);
+//                }
 
                 // initialize the histogram
                 histogram = std::vector<std::vector<std::atomic_uint64_t>>(dim);
@@ -368,10 +368,10 @@ namespace kuzu {
                 memcpy(betaSqr, other.betaSqr, dim * sizeof(float));
 
                 // print vmin and vdiff
-                for (size_t i = 0; i < dim; i++) {
-                    printf("vmin[%d]: %f\n", i, vmin[i]);
-                    printf("vdiff[%d]: %f\n", i, vdiff[i]);
-                }
+//                for (size_t i = 0; i < dim; i++) {
+//                    printf("vmin[%d]: %f\n", i, vmin[i]);
+//                    printf("vdiff[%d]: %f\n", i, vdiff[i]);
+//                }
 
                 histogram = std::vector<std::vector<std::atomic_uint64_t>>(dim);
                 for (size_t i = 0; i < dim; i++) {
@@ -395,10 +395,10 @@ namespace kuzu {
                     for (size_t j = 0; j < dim; j++) {
                         vmin[j] = std::min(vmin[j], data[i * dim + j]);
                         vdiff[j] = std::max(vdiff[j], data[i * dim + j]);
-                        if (data[i * dim + j] > 100) {
-                            printf("vdiff[%d]: %f\n", j, vdiff[j]);
-                            printf("data[%d]: %f\n", i * dim + j, data[i * dim + j]);
-                        }
+//                        if (data[i * dim + j] > 100) {
+//                            printf("vdiff[%d]: %f\n", j, vdiff[j]);
+//                            printf("data[%d]: %f\n", i * dim + j, data[i * dim + j]);
+//                        }
                     }
                 }
             }
@@ -462,9 +462,9 @@ namespace kuzu {
                         vdiff[i] = (float) (end_bin - start_bin) / (float) HISTOGRAM_NUM_BINS * vdiff[i];
                     }
                 }
-                for (size_t i = 0; i < dim; i++) {
-                    printf("vmin[%d]: %f, vdiff[%d]: %f\n", i, vmin[i], i, vdiff[i]);
-                }
+//                for (size_t i = 0; i < dim; i++) {
+//                    printf("vmin[%d]: %f, vdiff[%d]: %f\n", i, vmin[i], i, vdiff[i]);
+//                }
 
                 for (size_t i = 0; i < dim; i++) {
                     vdiff[i] -= vmin[i];
@@ -475,9 +475,9 @@ namespace kuzu {
                 }
 
                 // print
-                for (size_t i = 0; i < dim; i++) {
-                    printf("vmin[%d]: %f, vdiff[%d]: %f, alpha[%d]: %f, beta[%d]: %f, alphaSqr[%d]: %f, betaSqr[%d]: %f\n", i, vmin[i], i, vdiff[i], i, alpha[i], i, beta[i], i, alphaSqr[i], i, betaSqr[i]);
-                }
+//                for (size_t i = 0; i < dim; i++) {
+//                    printf("vmin[%d]: %f, vdiff[%d]: %f, alpha[%d]: %f, beta[%d]: %f, alphaSqr[%d]: %f, betaSqr[%d]: %f\n", i, vmin[i], i, vdiff[i], i, alpha[i], i, beta[i], i, alphaSqr[i], i, betaSqr[i]);
+//                }
 
                 trainingFinished = true;
             }

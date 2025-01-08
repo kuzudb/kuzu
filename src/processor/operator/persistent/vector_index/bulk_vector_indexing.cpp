@@ -78,13 +78,13 @@ namespace kuzu {
                 auto numVectors = localState->offsetVector->state->getSelVector().getSelSize();
                 auto vectors = reinterpret_cast<float *>(
                         ListVector::getDataVector(localState->embeddingVector)->getData());
-//                for (size_t i = 0; i < numVectors; i++) {
-//                    auto id = localState->offsetVector->getValue<internalID_t>(i);
-//                    KU_ASSERT(id.offset >= sharedState->startOffsetNodeTable);
-//                    vectorIds[i] = id.offset - sharedState->startOffsetNodeTable;
-//                }
-//                sharedState->builder->batchInsert(vectors, vectorIds.data(), numVectors,
-//                                                  localState->visited.get(), localState->dc.get());
+                for (size_t i = 0; i < numVectors; i++) {
+                    auto id = localState->offsetVector->getValue<internalID_t>(i);
+                    KU_ASSERT(id.offset >= sharedState->startOffsetNodeTable);
+                    vectorIds[i] = id.offset - sharedState->startOffsetNodeTable;
+                }
+                sharedState->builder->batchInsert(vectors, vectorIds.data(), numVectors,
+                                                  localState->visited.get(), localState->dc.get());
 
                 // Train the quantizer
                 localState->quantizer->batchTrain(vectors, numVectors);
