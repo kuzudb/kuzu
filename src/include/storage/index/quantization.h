@@ -455,6 +455,10 @@ namespace kuzu {
                     alphaSqr[i] = alpha[i] * alpha[i];
                     betaSqr[i] = beta[i] * beta[i];
                 }
+                // print vmin, vdiff, alpha, beta
+                for (size_t i = 0; i < dim; i++) {
+                    printf("vmin[%zu]: %f, vdiff[%zu]: %f, alpha[%zu]: %f, beta[%zu]: %f\n", i, vmin[i], i, vdiff[i], i, alpha[i], i, beta[i]);
+                }
                 trainingFinished = true;
             }
 

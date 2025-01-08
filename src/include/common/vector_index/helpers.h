@@ -454,10 +454,10 @@ inline static float compute_normalized_factor_haswell(const float *vector, int d
 
     // Handle remaining elements in double precision
     for (; i < dim; i++) {
-        sum += static_cast<double>(vector[i]) * static_cast<double>(vector[i]);
+        sum += vector[i] * vector[i];
     }
 
-    return static_cast<float>(1.0 / std::sqrt(sum));
+    return 1.0 / std::sqrt(sum);
 }
 
 inline static void normalize_vectors_haswell(const float *vector, int dim, float *normalized_vector) {
