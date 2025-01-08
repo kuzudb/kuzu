@@ -35,6 +35,9 @@ public:
     static std::unique_ptr<FTSIndexCatalogEntry> deserializeAuxInfo(
         catalog::IndexCatalogEntry* indexCatalogEntry);
 
+private:
+    uint64_t getNumBytesForSerialization() const;
+
 public:
     static constexpr char TYPE_NAME[] = "FTS";
 
