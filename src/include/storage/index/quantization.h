@@ -383,14 +383,7 @@ namespace kuzu {
                     for (size_t j = 0; j < dim; j++) {
                         vmin[j] = std::min(vmin[j], data[i * dim + j]);
                         vdiff[j] = std::max(vdiff[j], data[i * dim + j]);
-                        if (data[i * dim + j] > 1000) {
-                            printf("data[%d]: %f\n", i * dim + j, data[i * dim + j]);
-                        }
                     }
-                }
-
-                for (size_t i = 0; i < dim; i++) {
-                    vdiff[i] -= vmin[i];
                 }
             }
 
@@ -453,6 +446,7 @@ namespace kuzu {
                     }
                 }
                 for (size_t i = 0; i < dim; i++) {
+                    vdiff[i] -= vmin[i];
                     alpha[i] = vdiff[i] / SCALAR_RANGE;
                     beta[i] = (0.5f * alpha[i]) + vmin[i];
                     alphaSqr[i] = alpha[i] * alpha[i];
