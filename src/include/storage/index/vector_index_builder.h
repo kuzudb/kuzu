@@ -168,7 +168,15 @@ struct CompressedVectorStorage {
         printf("Flushing compressed data\n");
         Column::ChunkState state;
         for (auto& [nodeGroupIdx, columnChunk] : columnChunks) {
+            printf("NodeGroupIdx: %d\n", nodeGroupIdx);
+            auto data = reinterpret_cast<ListChunkData *>(columnChunks[nodeGroupIdx].get())->getDataColumnChunk()->getData();
+            for (auto i = 0u; i < 50; i++) {
+                printf("[%d] ", data[i]);
+            }
+            printf("\n");
             column->initChunkState(trnx, nodeGroupIdx, state);
+            printf("Appending to column\n");
+            printf("NumValues: %lu\n", state.metadata.numValues);
             column->append(columnChunk.get(), state);
         }
         flushed = true;
