@@ -332,6 +332,12 @@ namespace kuzu {
                 alphaSqr = new float[dim];
                 betaSqr = new float[dim];
 
+                // print vmin and vdiff
+                for (size_t i = 0; i < dim; i++) {
+                    printf("vmin[%d]: %f\n", i, vmin[i]);
+                    printf("vdiff[%d]: %f\n", i, vdiff[i]);
+                }
+
                 // initialize the histogram
                 histogram = std::vector<std::vector<std::atomic_uint64_t>>(dim);
                 for (size_t i = 0; i < dim; i++) {
@@ -360,6 +366,12 @@ namespace kuzu {
                 memcpy(beta, other.beta, dim * sizeof(float));
                 memcpy(alphaSqr, other.alphaSqr, dim * sizeof(float));
                 memcpy(betaSqr, other.betaSqr, dim * sizeof(float));
+
+                // print vmin and vdiff
+                for (size_t i = 0; i < dim; i++) {
+                    printf("vmin[%d]: %f\n", i, vmin[i]);
+                    printf("vdiff[%d]: %f\n", i, vdiff[i]);
+                }
 
                 histogram = std::vector<std::vector<std::atomic_uint64_t>>(dim);
                 for (size_t i = 0; i < dim; i++) {
