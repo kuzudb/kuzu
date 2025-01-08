@@ -347,7 +347,7 @@ struct NodeTableDistanceComputer {
 private:
     inline void computeZeroCopyDistance(vector_id_t id, DistanceComputer<T>* dc, double *dist) {
         auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(id);
-        printf("nodeGroupIdx: %d, offsetInChunk: %d\n", nodeGroupIdx, offsetInChunk);
+//        printf("nodeGroupIdx: %d, offsetInChunk: %d\n", nodeGroupIdx, offsetInChunk);
 
         // Initialize the read state
         readRequest->states[0] = readStates[nodeGroupIdx].get();
