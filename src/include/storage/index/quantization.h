@@ -383,6 +383,10 @@ namespace kuzu {
                     for (size_t j = 0; j < dim; j++) {
                         vmin[j] = std::min(vmin[j], data[i * dim + j]);
                         vdiff[j] = std::max(vdiff[j], data[i * dim + j]);
+                        if (vdiff[j] > 100) {
+                            printf("vdiff[%d]: %f\n", j, vdiff[j]);
+                            printf("data[%d]: %f\n", i * dim + j, data[i * dim + j]);
+                        }
                     }
                 }
             }
@@ -416,6 +420,7 @@ namespace kuzu {
                 }
 
                 if (breakPointDataRatio < 1.0f) {
+                    printf("Finding the smallest range\n");
                     // Now we have to find the smallest which contains at-least 70% of n of the data.
                     // Find the smallest bin range that contains at least 70% of the data
                     auto threshold = numTrainedVecs * breakPointDataRatio;
@@ -445,6 +450,10 @@ namespace kuzu {
                         vdiff[i] = (float) (end_bin - start_bin) / (float) HISTOGRAM_NUM_BINS * vdiff[i];
                     }
                 }
+                for (size_t i = 0; i < dim; i++) {
+                    printf("vmin[%d]: %f, vdiff[%d]: %f\n", i, vmin[i], i, vdiff[i]);
+                }
+
                 for (size_t i = 0; i < dim; i++) {
                     vdiff[i] -= vmin[i];
                     alpha[i] = vdiff[i] / SCALAR_RANGE;
