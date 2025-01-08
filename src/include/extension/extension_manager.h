@@ -8,18 +8,18 @@
 namespace kuzu {
 namespace extension {
 
-class KUZU_API ExtensionManager {
+class ExtensionManager {
 public:
     void loadExtension(const std::string& path, main::ClientContext* context);
 
-    std::string toCypher();
+    KUZU_API std::string toCypher();
 
-    void addExtensionOption(std::string name, common::LogicalTypeID type,
+    KUZU_API void addExtensionOption(std::string name, common::LogicalTypeID type,
         common::Value defaultValue);
 
     const main::ExtensionOption* getExtensionOption(std::string name) const;
 
-    void registerStorageExtension(std::string name,
+    KUZU_API void registerStorageExtension(std::string name,
         std::unique_ptr<storage::StorageExtension> storageExtension);
 
     common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>>&
