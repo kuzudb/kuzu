@@ -356,7 +356,7 @@ oC_RelationshipPattern
         ;
 
 oC_RelationshipDetail
-    : '[' SP? ( oC_Variable SP? )? ( oC_RelationshipTypes SP? )? ( oC_RangeLiteral SP? )? ( kU_Properties SP? )? ']' ;
+    : '[' SP? ( oC_Variable SP? )? ( oC_RelationshipTypes SP? )? ( kU_RecursiveDetail SP? )? ( kU_Properties SP? )? ']' ;
 
 // The original oC_Properties definition is  oC_MapLiteral | oC_Parameter.
 // We choose to not support parameter as properties which will be the decision for a long time.
@@ -373,16 +373,24 @@ oC_NodeLabels
 oC_NodeLabel
     : ':' SP? oC_LabelName ;
 
+kU_RecursiveDetail
+    : '*' ( SP? kU_RecursiveType)? ( SP? oC_RangeLiteral )? ( SP? kU_RecursiveComprehension )? ;
+
+kU_RecursiveType
+    : WSHORTEST SP? '(' SP? oC_PropertyKeyName SP? ')'
+        | SHORTEST
+        | ALL SP SHORTEST
+        | TRAIL
+        | ACYCLIC ;
+
 oC_RangeLiteral
-    :  '*' SP? ( SHORTEST | ALL SP SHORTEST | TRAIL | ACYCLIC )? SP? (oC_LowerBound? SP? '..' SP? oC_UpperBound? | oC_IntegerLiteral)? (SP? kU_RecursiveRelationshipComprehension)? ;
+    :  oC_LowerBound? SP? '..' SP? oC_UpperBound?
+        | oC_IntegerLiteral ;
 
-kU_RecursiveRelationshipComprehension
-    : '(' SP? oC_Variable SP? ',' SP? oC_Variable ( SP? '|' SP? oC_Where SP? )? ( SP? '|' SP? kU_IntermediateRelProjectionItems SP? ',' SP? kU_IntermediateNodeProjectionItems SP? )? ')' ;
+kU_RecursiveComprehension
+    : '(' SP? oC_Variable SP? ',' SP? oC_Variable ( SP? '|' SP? oC_Where SP? )? ( SP? '|' SP? kU_RecursiveProjectionItems SP? ',' SP? kU_RecursiveProjectionItems SP? )? ')' ;
 
-kU_IntermediateNodeProjectionItems
-    : '{' SP? oC_ProjectionItems? SP? '}' ;
-
-kU_IntermediateRelProjectionItems
+kU_RecursiveProjectionItems
     : '{' SP? oC_ProjectionItems? SP? '}' ;
 
 oC_LowerBound

@@ -1,7 +1,6 @@
 #include "function/gds/output_writer.h"
 
 #include "common/exception/interrupt.h"
-#include "function/gds/gds_frontier.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;
@@ -376,32 +375,6 @@ void PathsOutputWriter::addEdge(relID_t edgeID, bool fwdEdge, sel_t pos) const {
 
 void PathsOutputWriter::addNode(common::nodeID_t nodeID, common::sel_t pos) const {
     ListVector::getDataVector(pathNodeIDsVector.get())->setValue(pos, nodeID);
-}
-
-DestinationsOutputWriter::DestinationsOutputWriter(main::ClientContext* context,
-    RJOutputs* rjOutputs, processor::NodeOffsetMaskMap* outputNodeMask)
-    : RJOutputWriter{context, rjOutputs, outputNodeMask} {
-    lengthVector = createVector(LogicalType::UINT16(), context->getMemoryManager());
-}
-
-void DestinationsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
-    GDSOutputCounter* counter) {
-    auto length =
-        rjOutputs->ptrCast<SPDestinationOutputs>()->pathLengths->getMaskValueFromCurFrontier(
-            dstNodeID.offset);
-    dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
-    setLength(lengthVector.get(), length);
-    fTable.append(vectors);
-    if (counter != nullptr) {
-        counter->increase(1);
-    }
-    return;
-}
-
-bool DestinationsOutputWriter::skipInternal(common::nodeID_t dstNodeID) const {
-    auto outputs = rjOutputs->ptrCast<SPDestinationOutputs>();
-    return dstNodeID == outputs->sourceNodeID || outputs->pathLengths->getMaskValueFromCurFrontier(
-                                                     dstNodeID.offset) == PathLengths::UNVISITED;
 }
 
 } // namespace function

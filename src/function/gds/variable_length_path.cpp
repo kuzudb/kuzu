@@ -107,6 +107,7 @@ public:
     binder::expression_vector getResultColumns(Binder*) const override {
         auto columns = getBaseResultColumns();
         auto rjBindData = bindData->ptrCast<RJBindData>();
+        columns.push_back(rjBindData->lengthExpr);
         if (rjBindData->writePath) {
             columns.push_back(rjBindData->pathNodeIDsExpr);
             columns.push_back(rjBindData->pathEdgeIDsExpr);

@@ -389,9 +389,9 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     auto recursiveInfo = std::make_unique<RecursiveInfo>();
     recursiveInfo->lowerBound = lowerBound;
     recursiveInfo->upperBound = upperBound;
-    recursiveInfo->node = std::move(node);
-    recursiveInfo->nodeCopy = std::move(nodeCopy);
-    recursiveInfo->rel = std::move(rel);
+    recursiveInfo->node = node;
+    recursiveInfo->nodeCopy = nodeCopy;
+    recursiveInfo->rel = rel;
     recursiveInfo->lengthExpression = std::move(lengthExpression);
     recursiveInfo->nodePredicateExecFlag = nodePredicateExecutionFlag;
     recursiveInfo->originalNodePredicate = nodePredicate;
@@ -404,12 +404,20 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     recursiveInfo->nodeProjectionList = std::move(nodeProjectionList);
     recursiveInfo->relProjectionList = std::move(relProjectionList);
 
-    recursiveInfo->pathNodeIDsExpr = expressionBinder.createVariableExpression(
-        LogicalType::LIST(LogicalType::INTERNAL_ID()), std::string("pathNodeIDs"));
-    recursiveInfo->pathEdgeIDsExpr = expressionBinder.createVariableExpression(
-        LogicalType::LIST(LogicalType::INTERNAL_ID()), std::string("pathEdgeIDs"));
-    recursiveInfo->pathEdgeDirectionsExpr = expressionBinder.createVariableExpression(
-        LogicalType::LIST(LogicalType::BOOL()), std::string("pathEdgeDirections"));
+    recursiveInfo->pathNodeIDsExpr =
+        createInvisibleVariable("pathNodeIDs", LogicalType::LIST(LogicalType::INTERNAL_ID()));
+    recursiveInfo->pathEdgeIDsExpr =
+        createInvisibleVariable("pathEdgeIDs", LogicalType::LIST(LogicalType::INTERNAL_ID()));
+    recursiveInfo->pathEdgeDirectionsExpr =
+        createInvisibleVariable("pathEdgeDirections", LogicalType::LIST(LogicalType::BOOL()));
+
+    if (relPattern.getRelType() == QueryRelType::WEIGHTED_SHORTEST) {
+        auto propertyExpr = expressionBinder.bindNodeOrRelPropertyExpression(*rel,
+            recursivePatternInfo->weightPropertyName);
+        recursiveInfo->weightPropertyExpr = propertyExpr;
+        recursiveInfo->weightOutputExpr =
+            createVariable(parsedName + "_weight", propertyExpr->getDataType());
+    }
 
     queryRel->setRecursiveInfo(std::move(recursiveInfo));
     return queryRel;

@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "common/types/types.h"
 #include "function/gds/bfs_graph.h"
 #include "function/gds/gds_frontier.h"
@@ -21,11 +23,8 @@ namespace function {
  * A dense storage structures for multiplicities for multiple node tables.
  */
 class PathMultiplicities {
-    // Data type that is allocated to max num nodes per node table.
-    using multiplicity_entry_t = std::atomic<uint64_t>;
-
 public:
-    PathMultiplicities(std::unordered_map<table_id_t, uint64_t> numNodesMap,
+    PathMultiplicities(const std::unordered_map<table_id_t, uint64_t>& numNodesMap,
         storage::MemoryManager* mm) {
         for (auto& [tableID, numNodes] : numNodesMap) {
             multiplicityArray.allocate(tableID, numNodes, mm);
@@ -38,53 +37,43 @@ public:
     }
 
     void incrementTargetMultiplicity(offset_t offset, uint64_t multiplicity) {
-        getCurTargetMultiplicities()[offset].fetch_add(multiplicity);
+        curTargetMultiplicities[offset].fetch_add(multiplicity);
     }
 
     uint64_t getBoundMultiplicity(offset_t nodeOffset) {
-        return getCurBoundMultiplicities()[nodeOffset].load(std::memory_order_relaxed);
+        return curBoundMultiplicities[nodeOffset].load(std::memory_order_relaxed);
     }
 
     uint64_t getTargetMultiplicity(offset_t nodeOffset) {
-        return getCurTargetMultiplicities()[nodeOffset].load(std::memory_order_relaxed);
+        return curTargetMultiplicities[nodeOffset].load(std::memory_order_relaxed);
     }
 
     void pinBoundTable(table_id_t tableID) {
-        curBoundMultiplicities.store(multiplicityArray.getData(tableID), std::memory_order_relaxed);
+        curBoundMultiplicities = multiplicityArray.getData(tableID);
     }
 
     void pinTargetTable(table_id_t tableID) {
-        curTargetMultiplicities.store(multiplicityArray.getData(tableID),
-            std::memory_order_relaxed);
+        curTargetMultiplicities = multiplicityArray.getData(tableID);
     }
 
 private:
-    multiplicity_entry_t* getCurTargetMultiplicities() {
-        auto retVal = curTargetMultiplicities.load(std::memory_order_relaxed);
-        KU_ASSERT(retVal != nullptr);
-        return retVal;
-    }
-    multiplicity_entry_t* getCurBoundMultiplicities() {
-        auto retVal = curBoundMultiplicities.load(std::memory_order_relaxed);
-        KU_ASSERT(retVal != nullptr);
-        return retVal;
-    }
-
-private:
-    ObjectArraysMap<multiplicity_entry_t> multiplicityArray;
+    ObjectArraysMap<std::atomic<uint64_t>> multiplicityArray;
     // curTargetMultiplicities is the multiplicities of the current table that will be updated in a
-    // particular rel table extension. This is fixed through the fixTargetNodeTable function.
-    std::atomic<multiplicity_entry_t*> curTargetMultiplicities;
+    // particular rel table extension.
+    std::atomic<uint64_t>* curTargetMultiplicities = nullptr;
     // curBoundMultiplicities is the multiplicities of the table "from which" an extension is
-    // being made. This is fixed through the fixBoundNodeTable function.
-    std::atomic<multiplicity_entry_t*> curBoundMultiplicities;
+    // being made.
+    std::atomic<uint64_t>* curBoundMultiplicities = nullptr;
 };
 
-struct AllSPDestinationsOutputs : public SPDestinationOutputs {
+struct AllSPDestinationOutputs : public RJOutputs {
+    std::shared_ptr<PathLengths> pathLengths;
+    std::shared_ptr<PathMultiplicities> multiplicities;
+
 public:
-    AllSPDestinationsOutputs(nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths,
+    AllSPDestinationOutputs(nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths,
         std::shared_ptr<PathMultiplicities> multiplicities)
-        : SPDestinationOutputs{sourceNodeID, std::move(pathLengths)},
+        : RJOutputs{sourceNodeID}, pathLengths{std::move(pathLengths)},
           multiplicities{std::move(multiplicities)} {}
 
     void initRJFromSource(nodeID_t source) override {
@@ -95,7 +84,7 @@ public:
     void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
         table_id_t nextFrontierTableID) override {
         // Note: We do not fix the node table for pathLengths, which is inherited from AllSPOutputs.
-        // See the comment in SingleSPOutputs::beginFrontierComputeBetweenTables() for details.
+        // See the comment in single_shortest_path.cpp for details.
         multiplicities->pinBoundTable(curFrontierTableID);
         multiplicities->pinTargetTable(nextFrontierTableID);
     };
@@ -104,20 +93,18 @@ public:
         pathLengths->pinCurFrontierTableID(tableID);
         multiplicities->pinTargetTable(tableID);
     }
-
-public:
-    std::shared_ptr<PathMultiplicities> multiplicities;
 };
 
-class AllSPDestinationsOutputWriter : public DestinationsOutputWriter {
+class AllSPDestinationsOutputWriter : public RJOutputWriter {
 public:
     AllSPDestinationsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-        processor::NodeOffsetMaskMap* outputNodeMask)
-        : DestinationsOutputWriter{context, rjOutputs, outputNodeMask} {}
+        NodeOffsetMaskMap* outputNodeMask)
+        : RJOutputWriter{context, rjOutputs, outputNodeMask} {
+        lengthVector = createVector(LogicalType::UINT16(), context->getMemoryManager());
+    }
 
-    void write(FactorizedTable& fTable, nodeID_t dstNodeID,
-        processor::GDSOutputCounter* counter) override {
-        auto outputs = rjOutputs->ptrCast<AllSPDestinationsOutputs>();
+    void write(FactorizedTable& fTable, nodeID_t dstNodeID, GDSOutputCounter* counter) override {
+        auto outputs = rjOutputs->ptrCast<AllSPDestinationOutputs>();
         auto length = outputs->pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset);
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
         lengthVector->setValue<uint16_t>(0, length);
@@ -133,13 +120,24 @@ public:
     std::unique_ptr<RJOutputWriter> copy() override {
         return std::make_unique<AllSPDestinationsOutputWriter>(context, rjOutputs, outputNodeMask);
     }
+
+private:
+    bool skipInternal(nodeID_t dstNodeID) const override {
+        auto outputs = rjOutputs->ptrCast<AllSPDestinationOutputs>();
+        return dstNodeID == outputs->sourceNodeID ||
+               outputs->pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset) ==
+                   PathLengths::UNVISITED;
+    }
+
+private:
+    std::unique_ptr<ValueVector> lengthVector;
 };
 
 class AllSPDestinationsEdgeCompute : public SPEdgeCompute {
 public:
     AllSPDestinationsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair,
-        PathMultiplicities* multiplicities)
-        : SPEdgeCompute{frontierPair}, multiplicities{multiplicities} {};
+        std::shared_ptr<PathMultiplicities> multiplicities)
+        : SPEdgeCompute{frontierPair}, multiplicities{std::move(multiplicities)} {};
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, NbrScanState::Chunk& resultChunk,
         bool) override {
@@ -171,7 +169,7 @@ public:
     }
 
 private:
-    PathMultiplicities* multiplicities;
+    std::shared_ptr<PathMultiplicities> multiplicities;
 };
 
 class AllSPPathsEdgeCompute : public SPEdgeCompute {
@@ -227,7 +225,11 @@ public:
     AllSPDestinationsAlgorithm() = default;
     AllSPDestinationsAlgorithm(const AllSPDestinationsAlgorithm& other) : SPAlgorithm{other} {}
 
-    expression_vector getResultColumns(Binder*) const override { return getBaseResultColumns(); }
+    expression_vector getResultColumns(Binder*) const override {
+        auto columns = getBaseResultColumns();
+        columns.push_back(bindData->ptrCast<RJBindData>()->lengthExpr);
+        return columns;
+    }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {
         return std::make_unique<AllSPDestinationsAlgorithm>(*this);
@@ -241,12 +243,12 @@ private:
         auto mm = clientContext->getMemoryManager();
         auto multiplicities = std::make_shared<PathMultiplicities>(numNodesMap, mm);
         auto output =
-            std::make_unique<AllSPDestinationsOutputs>(sourceNodeID, frontier, multiplicities);
+            std::make_unique<AllSPDestinationOutputs>(sourceNodeID, frontier, multiplicities);
         auto outputWriter = std::make_unique<AllSPDestinationsOutputWriter>(clientContext,
             output.get(), sharedState->getOutputNodeMaskMap());
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(frontier);
-        auto edgeCompute = std::make_unique<AllSPDestinationsEdgeCompute>(frontierPair.get(),
-            output->multiplicities.get());
+        auto edgeCompute =
+            std::make_unique<AllSPDestinationsEdgeCompute>(frontierPair.get(), multiplicities);
         return RJCompState(std::move(frontierPair), std::move(edgeCompute),
             sharedState->getOutputNodeMaskMap(), std::move(output), std::move(outputWriter));
     }
@@ -260,6 +262,7 @@ public:
     expression_vector getResultColumns(Binder*) const override {
         auto columns = getBaseResultColumns();
         auto rjBindData = bindData->ptrCast<RJBindData>();
+        columns.push_back(rjBindData->lengthExpr);
         columns.push_back(rjBindData->pathNodeIDsExpr);
         columns.push_back(rjBindData->pathEdgeIDsExpr);
         return columns;

@@ -118,9 +118,9 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     }
     GDSFunction gdsFunction;
     switch (rel->getRelType()) {
-    case common::QueryRelType::VARIABLE_LENGTH_WALK:
-    case common::QueryRelType::VARIABLE_LENGTH_TRAIL:
-    case common::QueryRelType::VARIABLE_LENGTH_ACYCLIC: {
+    case QueryRelType::VARIABLE_LENGTH_WALK:
+    case QueryRelType::VARIABLE_LENGTH_TRAIL:
+    case QueryRelType::VARIABLE_LENGTH_ACYCLIC: {
         gdsFunction = VarLenJoinsFunction::getFunction();
     } break;
     case QueryRelType::SHORTEST: {
@@ -128,6 +128,9 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     } break;
     case QueryRelType::ALL_SHORTEST: {
         gdsFunction = AllSPPathsFunction::getFunction();
+    } break;
+    case QueryRelType::WEIGHTED_SHORTEST: {
+        gdsFunction = WeightedSPDestinationsFunction::getFunction();
     } break;
     default:
         KU_UNREACHABLE;
@@ -148,6 +151,11 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     bindData->lengthExpr = recursiveInfo->lengthExpression;
     bindData->pathNodeIDsExpr = recursiveInfo->pathNodeIDsExpr;
     bindData->pathEdgeIDsExpr = recursiveInfo->pathEdgeIDsExpr;
+    if (recursiveInfo->weightPropertyExpr != nullptr) {
+        bindData->weightPropertyName =
+            recursiveInfo->weightPropertyExpr->ptrCast<PropertyExpression>()->getPropertyName();
+        bindData->weightOutputExpr = recursiveInfo->weightOutputExpr;
+    }
     gdsFunction.gds->setBindData(std::move(bindData));
     auto resultColumns = gdsFunction.gds->getResultColumns(nullptr /* binder*/);
     auto gdsInfo = BoundGDSCallInfo(gdsFunction.copy(), std::move(resultColumns));

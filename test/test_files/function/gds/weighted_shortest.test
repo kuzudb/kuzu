@@ -1,0 +1,259 @@
+-DATASET CSV gds-weighted-shortest-path
+
+--
+
+-CASE WeightedShortestPath
+-LOG SingleWSP
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(cost1) ]->(b)
+        WHERE a.ID = 'A'
+        RETURN b.ID, e_weight
+---- 5
+B|50
+C|50
+D|90
+E|120
+F|160
+-LOG WSP-INT128
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(cost0) ]->(b)
+        RETURN a.ID, b.ID, e_weight
+---- error
+Runtime exception: INT128 weight type is not supported for weighted shortest path.
+-LOG WSP-INT64
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(cost1) ]->(b)
+        RETURN a.ID, b.ID, e_weight
+---- 14
+A|B|50
+A|C|50
+A|D|90
+A|E|120
+A|F|160
+B|D|40
+B|E|70
+B|F|110
+C|D|40
+C|E|70
+C|F|110
+D|E|30
+D|F|70
+E|F|40
+-LOG WSP-INT32
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(cost2) ]->(b)
+        RETURN a.ID, b.ID, e_weight
+---- 14
+A|B|50
+A|C|50
+A|D|90
+A|E|120
+A|F|160
+B|D|40
+B|E|70
+B|F|110
+C|D|40
+C|E|70
+C|F|110
+D|E|30
+D|F|70
+E|F|40
+-LOG WSP-INT16
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(cost3) ]->(b)
+        RETURN a.ID, b.ID, e_weight
+---- 14
+A|B|50
+A|C|50
+A|D|90
+A|E|120
+A|F|160
+B|D|40
+B|E|70
+B|F|110
+C|D|40
+C|E|70
+C|F|110
+D|E|30
+D|F|70
+E|F|40
+-LOG WSP-INT8
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(cost4) ]->(b)
+        RETURN a.ID, b.ID, e_weight
+---- 14
+A|B|5
+A|C|5
+A|D|9
+A|E|12
+A|F|16
+B|D|4
+B|E|7
+B|F|11
+C|D|4
+C|E|7
+C|F|11
+D|E|3
+D|F|7
+E|F|4
+-LOG WSP-UINT64
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(cost5) ]->(b)
+        RETURN a.ID, b.ID, e_weight
+---- 14
+A|B|50
+A|C|50
+A|D|90
+A|E|120
+A|F|160
+B|D|40
+B|E|70
+B|F|110
+C|D|40
+C|E|70
+C|F|110
+D|E|30
+D|F|70
+E|F|40
+-LOG WSP-UINT32
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(cost6) ]->(b)
+        RETURN a.ID, b.ID, e_weight
+---- 14
+A|B|50
+A|C|50
+A|D|90
+A|E|120
+A|F|160
+B|D|40
+B|E|70
+B|F|110
+C|D|40
+C|E|70
+C|F|110
+D|E|30
+D|F|70
+E|F|40
+-LOG WSP-UINT16
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(cost7) ]->(b)
+        RETURN a.ID, b.ID, e_weight
+---- 14
+A|B|50
+A|C|50
+A|D|90
+A|E|120
+A|F|160
+B|D|40
+B|E|70
+B|F|110
+C|D|40
+C|E|70
+C|F|110
+D|E|30
+D|F|70
+E|F|40
+-LOG WSP-UINT8
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(cost8) ]->(b)
+        RETURN a.ID, b.ID, e_weight
+---- 14
+A|B|5
+A|C|5
+A|D|9
+A|E|12
+A|F|16
+B|D|4
+B|E|7
+B|F|11
+C|D|4
+C|E|7
+C|F|11
+D|E|3
+D|F|7
+E|F|4
+-LOG WSP-DOUBLE
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(cost9) ]->(b)
+        RETURN a.ID, b.ID, e_weight
+---- 14
+A|B|50.000000
+A|C|50.000000
+A|D|90.000000
+A|E|120.000000
+A|F|160.000000
+B|D|40.000000
+B|E|70.000000
+B|F|110.000000
+C|D|40.000000
+C|E|70.000000
+C|F|110.000000
+D|E|30.000000
+D|F|70.000000
+E|F|40.000000
+-LOG WSP-FLOAT
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(cost10) ]->(b)
+        RETURN a.ID, b.ID, e_weight
+---- 14
+A|B|50.000000
+A|C|50.000000
+A|D|90.000000
+A|E|120.000000
+A|F|160.000000
+B|D|40.000000
+B|E|70.000000
+B|F|110.000000
+C|D|40.000000
+C|E|70.000000
+C|F|110.000000
+D|E|30.000000
+D|F|70.000000
+E|F|40.000000
+-LOG WSP-D4
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(cost11) ]->(b)
+        RETURN a.ID, b.ID, e_weight
+---- 14
+A|B|0.5000
+A|C|0.5000
+A|D|0.9000
+A|E|1.2000
+A|F|1.6000
+B|D|0.4000
+B|E|0.7000
+B|F|1.1000
+C|D|0.4000
+C|E|0.7000
+C|F|1.1000
+D|E|0.3000
+D|F|0.7000
+E|F|0.4000
+-LOG WSP-D9
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(cost12) ]->(b)
+        RETURN a.ID, b.ID, e_weight
+---- 14
+A|B|50.0000
+A|C|50.0000
+A|D|90.0000
+A|E|120.0000
+A|F|160.0000
+B|D|40.0000
+B|E|70.0000
+B|F|110.0000
+C|D|40.0000
+C|E|70.0000
+C|F|110.0000
+D|E|30.0000
+D|F|70.0000
+E|F|40.0000
+-LOG WSP-D18
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(cost13) ]->(b)
+        RETURN a.ID, b.ID, e_weight
+---- 14
+A|B|50.0000
+A|C|50.0000
+A|D|90.0000
+A|E|120.0000
+A|F|160.0000
+B|D|40.0000
+B|E|70.0000
+B|F|110.0000
+C|D|40.0000
+C|E|70.0000
+C|F|110.0000
+D|E|30.0000
+D|F|70.0000
+E|F|40.0000
+-LOG WSP-D38
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(cost14) ]->(b)
+        RETURN a.ID, b.ID, e_weight
+---- error
+Runtime exception: DECIMAL(38, 4) weight type is not supported for weighted shortest path.

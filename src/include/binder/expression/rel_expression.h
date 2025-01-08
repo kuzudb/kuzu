@@ -27,30 +27,33 @@ struct RecursiveInfo {
      * */
     uint64_t lowerBound = 0;
     uint64_t upperBound = 0;
-    std::shared_ptr<NodeExpression> node;
+    std::shared_ptr<NodeExpression> node = nullptr;
     // NodeCopy has the same fields as node but a different unique name.
     // We use nodeCopy to plan recursive plan because boundNode&nbrNode cannot be the same.
-    std::shared_ptr<NodeExpression> nodeCopy;
-    std::shared_ptr<RelExpression> rel;
+    std::shared_ptr<NodeExpression> nodeCopy = nullptr;
+    std::shared_ptr<RelExpression> rel = nullptr;
 
-    std::shared_ptr<Expression> lengthExpression;
+    std::shared_ptr<Expression> lengthExpression = nullptr;
     // Node predicate should only be applied to intermediate node. So we need to avoid executing
     // predicate for src and dst node. This is done by rewriting node predicate 'P' as 'Flag OR P'
     // During recursive computation, we set 'Flag' to True to avoid executing 'P'.
-    std::shared_ptr<Expression> nodePredicateExecFlag;
-    std::shared_ptr<Expression> nodePredicate;
+    std::shared_ptr<Expression> nodePredicateExecFlag = nullptr;
+    std::shared_ptr<Expression> nodePredicate = nullptr;
     // The node predicate we use for recursive join & gds is different. Until we migrate recursive
     // extend to GDS, we need to keep this field.
-    std::shared_ptr<Expression> originalNodePredicate;
+    std::shared_ptr<Expression> originalNodePredicate = nullptr;
 
-    std::shared_ptr<Expression> relPredicate;
+    std::shared_ptr<Expression> relPredicate = nullptr;
     // Projection list
     expression_vector nodeProjectionList;
     expression_vector relProjectionList;
-
-    std::shared_ptr<Expression> pathNodeIDsExpr;
-    std::shared_ptr<Expression> pathEdgeIDsExpr;
-    std::shared_ptr<Expression> pathEdgeDirectionsExpr;
+    // Path expressions
+    std::shared_ptr<Expression> pathNodeIDsExpr = nullptr;
+    std::shared_ptr<Expression> pathEdgeIDsExpr = nullptr;
+    std::shared_ptr<Expression> pathEdgeDirectionsExpr = nullptr;
+    // Edge property representing weight
+    std::shared_ptr<Expression> weightPropertyExpr = nullptr;
+    std::shared_ptr<Expression> weightOutputExpr = nullptr;
 };
 
 class RelExpression : public NodeOrRelExpression {

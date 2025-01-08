@@ -1,6 +1,8 @@
 #include "function/gds/gds_utils.h"
 
+#include "binder/expression/property_expression.h"
 #include "catalog/catalog.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/task_system/task_scheduler.h"
 #include "function/gds/gds_task.h"
 #include "graph/graph.h"
@@ -41,10 +43,10 @@ static void scheduleFrontierTask(catalog::TableCatalogEntry* fromEntry,
     auto transaction = clientContext->getTransaction();
     auto info = FrontierTaskInfo(fromEntry, toEntry, relEntry, graph, extendDirection,
         *gdsComputeState.edgeCompute, propertyToScan);
-    auto maxThreads = getNumThreads(*context);
+    auto numThreads = getNumThreads(*context);
     auto sharedState =
-        std::make_shared<FrontierTaskSharedState>(maxThreads, *gdsComputeState.frontierPair);
-    auto task = std::make_shared<FrontierTask>(maxThreads, info, sharedState);
+        std::make_shared<FrontierTaskSharedState>(numThreads, *gdsComputeState.frontierPair);
+    auto task = std::make_shared<FrontierTask>(numThreads, info, sharedState);
 
     if (gdsComputeState.frontierPair->isCurFrontierSparse()) {
         task->runSparse();
@@ -66,10 +68,10 @@ static void scheduleFrontierTask(catalog::TableCatalogEntry* fromEntry,
 
 void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context,
     GDSComputeState& compState, graph::Graph* graph, ExtendDirection extendDirection,
-    uint64_t maxIters, const std::string& propertyToScan) {
+    uint64_t maxIteration, const std::string& propertyToScan) {
     auto frontierPair = compState.frontierPair.get();
     compState.edgeCompute->resetSingleThreadState();
-    while (frontierPair->continueNextIter(maxIters)) {
+    while (frontierPair->continueNextIter(maxIteration)) {
         frontierPair->beginNewIteration();
         if (compState.outputNodeMask != nullptr && compState.outputNodeMask->enabled() &&
             compState.edgeCompute->terminate(*compState.outputNodeMask)) {
@@ -118,7 +120,7 @@ static void runVertexComputeInternal(catalog::TableCatalogEntry* currentEntry, g
 
 void GDSUtils::runVertexCompute(processor::ExecutionContext* context, graph::Graph* graph,
     VertexCompute& vc, std::vector<std::string> propertiesToScan) {
-    auto maxThreads = getNumThreads(*context);
+    auto maxThreads = context->clientContext->getMaxNumThreadForExec();
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
     for (auto& entry : graph->getGraphEntry()->nodeEntries) {
         if (!vc.beginOnTable(entry->getTableID())) {
@@ -136,7 +138,7 @@ void GDSUtils::runVertexCompute(ExecutionContext* context, Graph* graph, VertexC
 
 void GDSUtils::runVertexCompute(ExecutionContext* context, Graph* graph, VertexCompute& vc,
     catalog::TableCatalogEntry* entry, std::vector<std::string> propertiesToScan) {
-    auto maxThreads = getNumThreads(*context);
+    auto maxThreads = context->clientContext->getMaxNumThreadForExec();
     auto info = VertexComputeTaskInfo(vc, graph, entry, propertiesToScan);
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
     if (!vc.beginOnTable(entry->getTableID())) {

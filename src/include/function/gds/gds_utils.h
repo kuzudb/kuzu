@@ -43,7 +43,7 @@ class KUZU_API GDSUtils {
 public:
     static void runFrontiersUntilConvergence(processor::ExecutionContext* context,
         GDSComputeState& rjCompState, graph::Graph* graph, common::ExtendDirection extendDirection,
-        uint64_t maxIters, const std::string& propertyToScan = "");
+        uint64_t maxIteration, const std::string& propertyToScan = "");
     // Run vertex compute without property scan
     static void runVertexCompute(processor::ExecutionContext* context, graph::Graph* graph,
         VertexCompute& vc);

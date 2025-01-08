@@ -14,6 +14,7 @@ enum class QueryRelType : uint8_t {
     VARIABLE_LENGTH_ACYCLIC = 3,
     SHORTEST = 4,
     ALL_SHORTEST = 5,
+    WEIGHTED_SHORTEST = 6,
 };
 
 struct QueryRelTypeUtils {
