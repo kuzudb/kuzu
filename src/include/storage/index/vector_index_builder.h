@@ -144,9 +144,9 @@ struct CompressedVectorStorage {
             // Initialize offset and size column
             uint64_t offset = 0;
             for (auto i = 0u; i < numValues; i++) {
-                offset += (codeSize);
+                offset += codeSize;
                 offsetColumn->setValue(offset, i);
-                sizeColumn->setValue((uint32_t) (codeSize), i);
+                sizeColumn->setValue((uint32_t) codeSize, i);
             }
             listChunk.setNumValues(numValues);
             listChunk.getDataColumnChunk()->setNumValues(numValues * (codeSize));
