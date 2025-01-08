@@ -165,6 +165,7 @@ Binder exception: BM25 model requires the Term Frequency Saturation(k) value to 
 0|0.465323
 
 -CASE fts_serialization
+-SKIP_IN_MEM
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
