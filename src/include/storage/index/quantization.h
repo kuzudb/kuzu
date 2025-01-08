@@ -320,7 +320,7 @@ namespace kuzu {
             static constexpr size_t SCALAR_RANGE = 256;
         public:
             explicit SQ8Bit(int dim, float breakPointDataRatio = 1.0f)
-                    : dim(dim), codeSize(dim + 4), breakPointDataRatio(breakPointDataRatio), numTrainedVecs(0) {
+                    : dim(dim), codeSize(dim + 4), breakPointDataRatio(breakPointDataRatio), numTrainedVecs(0), trainingFinished(false) {
                 vmin = new float[dim];
                 vdiff = new float[dim];
                 for (size_t i = 0; i < dim; i++) {
@@ -346,7 +346,7 @@ namespace kuzu {
 
             SQ8Bit(const SQ8Bit &other) : dim(other.dim), codeSize(dim + 4),
                                           breakPointDataRatio(other.breakPointDataRatio),
-                                          numTrainedVecs(other.numTrainedVecs.load()) {
+                                          numTrainedVecs(other.numTrainedVecs.load()), trainingFinished(other.trainingFinished) {
                 vmin = new float[dim];
                 vdiff = new float[dim];
                 alpha = new float[dim];
@@ -454,10 +454,6 @@ namespace kuzu {
                     beta[i] = (0.5f * alpha[i]) + vmin[i];
                     alphaSqr[i] = alpha[i] * alpha[i];
                     betaSqr[i] = beta[i] * beta[i];
-                }
-                // print vmin, vdiff, alpha, beta
-                for (size_t i = 0; i < dim; i++) {
-                    printf("vmin[%zu]: %f, vdiff[%zu]: %f, alpha[%zu]: %f, beta[%zu]: %f\n", i, vmin[i], i, vdiff[i], i, alpha[i], i, beta[i]);
                 }
                 trainingFinished = true;
             }

@@ -107,6 +107,7 @@ namespace kuzu {
                         ListVector::getDataVector(localState->embeddingVector)->getData());
                 startVectorId = localState->offsetVector->getValue<internalID_t>(0).offset -
                                 sharedState->startOffsetNodeTable;
+                // print some vector
                 localState->quantizer->encode(vectors, startVectorId, numVectors);
             }
             printf("Finished quantization %d!!\n", sharedState->partitionId);

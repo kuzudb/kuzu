@@ -170,7 +170,7 @@ struct CompressedVectorStorage {
         for (auto& [nodeGroupIdx, columnChunk] : columnChunks) {
             printf("NodeGroupIdx: %d\n", nodeGroupIdx);
             auto data = reinterpret_cast<ListChunkData *>(columnChunk.get())->getDataColumnChunk()->getData();
-            for (auto i = 0u; i < 50; i++) {
+            for (auto i = 0u; i < 5; i++) {
                 printf("[%d] ", data[i]);
             }
             printf("\n");
@@ -236,6 +236,19 @@ private:
         KU_ASSERT(n <= batchSize);
         if (distFunc == DistanceFunc::COSINE) {
             normalizeVectors(data, n);
+            // print the actual vector and normalized vector
+            for (size_t i = 0; i < 1; i++) {
+                printf("Actual Vector: ");
+                for (size_t j = 0; j < 5; j++) {
+                    printf("%f ", data[i * dim + j]);
+                }
+                printf("\n");
+                printf("Normalized Vector: ");
+                for (size_t j = 0; j < 4; j++) {
+                    printf("%f ", normVectorsCache[i * dim + j]);
+                }
+                printf("\n");
+            }
             sq->encode(normVectorsCache, codes, n);
         } else {
             sq->encode(data, codes, n);
