@@ -26,4 +26,8 @@ extern "C" {
 INIT_EXPORT void init(kuzu::main::ClientContext* context) {
     kuzu::postgres_extension::PostgresExtension::load(context);
 }
+
+INIT_EXPORT const char* name() {
+    return kuzu::postgres_extension::PostgresExtension::EXTENSION_NAME;
+}
 }

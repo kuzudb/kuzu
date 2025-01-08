@@ -1,5 +1,6 @@
 #include "main/database.h"
 
+#include "extension/extension_manager.h"
 #include "main/client_context.h"
 #include "main/database_manager.h"
 #include "storage/buffer_manager/buffer_manager.h"
@@ -112,6 +113,7 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
     StorageManager::recover(clientContext);
     extensionOptions = std::make_unique<extension::ExtensionOptions>();
     databaseManager = std::make_unique<DatabaseManager>();
+    extensionManager = std::make_unique<extension::ExtensionManager>();
 }
 
 Database::~Database() {

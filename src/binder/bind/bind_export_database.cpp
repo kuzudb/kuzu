@@ -25,10 +25,24 @@ static std::string getPrimaryKeyName(table_id_t tableId, const Catalog& catalog,
     return tableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName();
 }
 
+// TODO(Ziyi): we shouldn't export internal virtual tables. This should be fixed after we
+// introduce virtual table.
+static bool isInternalTable(const std::string& name) {
+    std::regex pattern(R"(^\d+_\w+_\w+)");
+    std::smatch match;
+    if (std::regex_search(name, match, pattern)) {
+        return true;
+    }
+    return false;
+}
+
 static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog, Transaction* tx,
     Binder* binder) {
     std::vector<ExportedTableData> exportData;
     for (auto tableEntry : catalog.getTableEntries(tx)) {
+        if (isInternalTable(tableEntry->getName())) {
+            continue;
+        }
         ExportedTableData tableData;
         if (binder->bindExportTableData(tableData, *tableEntry, catalog, tx)) {
             exportData.push_back(std::move(tableData));

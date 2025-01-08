@@ -8,6 +8,7 @@
 #include "common/string_utils.h"
 #include "common/task_system/progress_bar.h"
 #include "extension/extension.h"
+#include "extension/extension_manager.h"
 #include "graph/graph_entry.h"
 #include "main/attached_database.h"
 #include "main/database.h"
@@ -195,6 +196,10 @@ storage::StorageManager* ClientContext::getStorageManager() const {
 
 storage::MemoryManager* ClientContext::getMemoryManager() const {
     return localDatabase->memoryManager.get();
+}
+
+extension::ExtensionManager* ClientContext::getExtensionManager() const {
+    return localDatabase->extensionManager.get();
 }
 
 storage::WAL* ClientContext::getWAL() const {

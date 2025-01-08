@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include "catalog/catalog.h"
+#include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
@@ -10,6 +11,7 @@
 #include "common/copier_config/csv_reader_config.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
+#include "extension/extension_manager.h"
 #include "function/scalar_macro_function.h"
 
 using namespace kuzu::common;
@@ -36,6 +38,16 @@ std::string ExportDBPrintInfo::toString() const {
         }
     }
     return result;
+}
+
+// TODO(Ziyi): Remove after we support virtual tables.
+static bool isInternalTable(const std::string& name) {
+    std::regex pattern(R"(^\d+_\w+_\w+)");
+    std::smatch match;
+    if (std::regex_search(name, match, pattern)) {
+        return true;
+    }
+    return false;
 }
 
 void ExportDB::initGlobalStateInternal(ExecutionContext* context) {
@@ -73,9 +85,15 @@ std::string getSchemaCypher(ClientContext* clientContext, Transaction* transacti
     stringstream ss;
     const auto catalog = clientContext->getCatalog();
     for (const auto& nodeTableEntry : catalog->getNodeTableEntries(transaction)) {
+        if (isInternalTable(nodeTableEntry->getName())) {
+            continue;
+        }
         ss << nodeTableEntry->toCypher(clientContext) << std::endl;
     }
     for (const auto& entry : catalog->getRelTableEntries(transaction)) {
+        if (isInternalTable(entry->getName())) {
+            continue;
+        }
         if (catalog->tableInRelGroup(transaction, entry->getTableID())) {
             continue;
         }
@@ -88,9 +106,13 @@ std::string getSchemaCypher(ClientContext* clientContext, Transaction* transacti
         ss << sequenceEntry->toCypher(clientContext) << std::endl;
     }
     for (auto macroName : catalog->getMacroNames(transaction)) {
+        if (macroName == "TOKENIZE") {
+            continue;
+        }
         ss << catalog->getScalarMacroFunction(transaction, macroName)->toCypher(macroName)
            << std::endl;
     }
+    ss << clientContext->getExtensionManager()->toCypher() << std::endl;
     return ss.str();
 }
 
@@ -98,10 +120,24 @@ std::string getCopyCypher(const Catalog* catalog, Transaction* transaction,
     const FileScanInfo* boundFileInfo) {
     stringstream ss;
     for (const auto& nodeTableEntry : catalog->getNodeTableEntries(transaction)) {
+        if (isInternalTable(nodeTableEntry->getName())) {
+            continue;
+        }
         writeCopyStatement(ss, nodeTableEntry, boundFileInfo);
     }
     for (const auto& entry : catalog->getRelTableEntries(transaction)) {
+        if (isInternalTable(entry->getName())) {
+            continue;
+        }
         writeCopyStatement(ss, entry, boundFileInfo);
+    }
+    return ss.str();
+}
+
+std::string getIndexCypher(ClientContext* clientContext) {
+    stringstream ss;
+    for (auto index : clientContext->getCatalog()->getIndexes(clientContext->getTransaction())) {
+        ss << index->toCypher(clientContext) << std::endl;
     }
     return ss.str();
 }
@@ -112,11 +148,14 @@ void ExportDB::executeInternal(ExecutionContext* context) {
     const auto catalog = clientContext->getCatalog();
     // write the schema.cypher file
     writeStringStreamToFile(clientContext, getSchemaCypher(clientContext, transaction),
-        boundFileInfo.filePaths[0] + "/schema.cypher");
+        boundFileInfo.filePaths[0] + "/" + PortDBConstants::SCHEMA_FILE_NAME);
     // write the copy.cypher file
     // for every table, we write COPY FROM statement
     writeStringStreamToFile(clientContext, getCopyCypher(catalog, transaction, &boundFileInfo),
-        boundFileInfo.filePaths[0] + "/copy.cypher");
+        boundFileInfo.filePaths[0] + "/" + PortDBConstants::COPY_FILE_NAME);
+    // write the index.cypher file
+    writeStringStreamToFile(clientContext, getIndexCypher(clientContext),
+        boundFileInfo.filePaths[0] + "/" + PortDBConstants::INDEX_FILE_NAME);
 }
 
 std::string ExportDB::getOutputMsg() {

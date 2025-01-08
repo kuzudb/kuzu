@@ -26,6 +26,7 @@ struct Function;
 namespace extension {
 struct ExtensionUtils;
 struct ExtensionOptions;
+class ExtensionManager;
 } // namespace extension
 
 namespace storage {
@@ -160,6 +161,7 @@ private:
     std::unique_ptr<extension::ExtensionOptions> extensionOptions;
     std::unique_ptr<DatabaseManager> databaseManager;
     common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>> storageExtensions;
+    std::unique_ptr<extension::ExtensionManager> extensionManager;
     QueryIDGenerator queryIDGenerator;
 };
 

@@ -84,8 +84,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapImportDatabase(
     planner::LogicalOperator* logicalOperator) {
     auto importDatabase = logicalOperator->constPtrCast<LogicalImportDatabase>();
     auto printInfo = std::make_unique<OPPrintInfo>();
-    return std::make_unique<ImportDB>(importDatabase->getQuery(), getOutputPos(importDatabase),
-        getOperatorID(), std::move(printInfo));
+    return std::make_unique<ImportDB>(importDatabase->getQuery(), importDatabase->getIndexQuery(),
+        getOutputPos(importDatabase), getOperatorID(), std::move(printInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapExtension(

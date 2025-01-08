@@ -52,11 +52,6 @@ std::string getPlatform() {
     return getOS() + "_" + getArch();
 }
 
-bool ExtensionUtils::isFullPath(const std::string& extension) {
-    return extension.find('.') != std::string::npos || extension.find('/') != std::string::npos ||
-           extension.find('\\') != std::string::npos;
-}
-
 static ExtensionRepoInfo getExtensionRepoInfo(std::string& extensionURL) {
     common::StringUtils::replaceAll(extensionURL, "http://", "");
     auto hostNamePos = extensionURL.find('/');
@@ -192,6 +187,10 @@ ext_load_func_t ExtensionLibLoader::getLoadFunc() {
 
 ext_init_func_t ExtensionLibLoader::getInitFunc() {
     return (ext_init_func_t)getDynamicLibFunc(EXTENSION_INIT_FUNC_NAME);
+}
+
+ext_name_func_t ExtensionLibLoader::getNameFunc() {
+    return (ext_name_func_t)getDynamicLibFunc(EXTENSION_NAME_FUNC_NAME);
 }
 
 ext_install_func_t ExtensionLibLoader::getInstallFunc() {

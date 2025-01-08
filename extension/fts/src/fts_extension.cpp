@@ -48,4 +48,8 @@ extern "C" {
 INIT_EXPORT void init(kuzu::main::ClientContext* context) {
     kuzu::fts_extension::FTSExtension::load(context);
 }
+
+INIT_EXPORT const char* name() {
+    return kuzu::fts_extension::FTSExtension::EXTENSION_NAME;
+}
 }

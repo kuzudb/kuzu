@@ -33,7 +33,8 @@ class ProgressBar;
 
 namespace extension {
 struct ExtensionOptions;
-}
+class ExtensionManager;
+} // namespace extension
 
 namespace processor {
 class ImportDB;
@@ -119,6 +120,7 @@ public:
     DatabaseManager* getDatabaseManager() const;
     storage::StorageManager* getStorageManager() const;
     storage::MemoryManager* getMemoryManager() const;
+    extension::ExtensionManager* getExtensionManager() const;
     storage::WAL* getWAL() const;
     catalog::Catalog* getCatalog() const;
     transaction::TransactionManager* getTransactionManagerUnsafe() const;
