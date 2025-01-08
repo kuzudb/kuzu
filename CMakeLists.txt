@@ -97,6 +97,7 @@ option(ENABLE_UBSAN "Enable undefined behavior sanitizer." FALSE)
 option(ENABLE_RUNTIME_CHECKS "Enable runtime coherency checks (e.g. asserts)" FALSE)
 option(ENABLE_LTO "Enable Link-Time Optimization" FALSE)
 option(ENABLE_O3_OPTIMIZATION "Enable O3 Optimization" TRUE)
+option(ENABLE_IGNORE_WARNINGS "Enable ignore warnings" TRUE)
 if(MSVC)
     # Required for M_PI on Windows
     add_compile_definitions(_USE_MATH_DEFINES)
@@ -130,13 +131,18 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     add_compile_options(-Wno-restrict) # no restrict until https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105651 is fixed
 endif()
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -march=native -g")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native -g")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -g")
 
-#if (${ENABLE_O3_OPTIMIZATION})
-#    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
-#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
-#endif()
+if (${ENABLE_O3_OPTIMIZATION})
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+endif()
+
+if (${ENABLE_IGNORE_WARNINGS})
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -w")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -w")
+endif()
 
 if(${ENABLE_THREAD_SANITIZER})
     if(MSVC)
