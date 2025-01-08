@@ -21,13 +21,13 @@ std::string FTSIndexCatalogEntry::toCypher(main::ClientContext* context) const {
     std::string cypher;
     auto catalog = context->getCatalog();
     auto tableName = catalog->getTableName(context->getTransaction(), tableID);
-    std::string fieldsStr;
+    std::string propertyStr;
     for (auto i = 0u; i < properties.size(); i++) {
-        fieldsStr +=
+        propertyStr +=
             common::stringFormat("'{}'{} ", properties[i], i == properties.size() - 1 ? "" : ",");
     }
     cypher += common::stringFormat("CALL CREATE_FTS_INDEX('{}', '{}', [{}], stemmer := '{}');\n",
-        tableName, indexName, fieldsStr, config.stemmer);
+        tableName, indexName, std::move(propertyStr), config.stemmer);
     return cypher;
 }
 

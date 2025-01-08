@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <unordered_map>
 
 #include "catalog/catalog_entry/catalog_entry_type.h"
 #include "common/api.h"

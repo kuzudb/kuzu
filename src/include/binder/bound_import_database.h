@@ -9,7 +9,8 @@ public:
     BoundImportDatabase(std::string filePath, std::string query, std::string indexQuery)
         : BoundStatement{common::StatementType::IMPORT_DATABASE,
               BoundStatementResult::createSingleStringColumnResult()},
-          filePath{std::move(filePath)}, query{std::move(query)}, indexQuery{indexQuery} {}
+          filePath{std::move(filePath)}, query{std::move(query)},
+          indexQuery{std::move(indexQuery)} {}
 
     std::string getFilePath() const { return filePath; }
     std::string getQuery() const { return query; }
