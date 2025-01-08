@@ -31,7 +31,13 @@ public:
     //===--------------------------------------------------------------------===//
     // serialization & deserialization
     //===--------------------------------------------------------------------===//
+    // When serializing index entries to disk, we first write the fields of the base class,
+    // followed by the size (in bytes) of the auxiliary data and its content.
     void serialize(common::Serializer& serializer) const override;
+    // During deserialization of index entries from disk, we first read the base class
+    // (IndexCatalogEntry). The auxiliary data is stored in auxBuffer, with its size in
+    // auxBufferSize. Once the extension is loaded, the corresponding indexes are reconstructed
+    // using the auxBuffer.
     static std::unique_ptr<IndexCatalogEntry> deserialize(common::Deserializer& deserializer);
 
     virtual void serializeAuxInfo(common::Serializer& /*serializer*/) const { KU_UNREACHABLE; }

@@ -15,7 +15,7 @@ struct BufferReader : Reader {
         readSize += size;
     }
 
-    bool finished() final { return (readSize >= dataSize); }
+    bool finished() final { return readSize >= dataSize; }
 
     uint8_t* data;
     size_t dataSize;
