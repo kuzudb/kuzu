@@ -467,7 +467,6 @@ void Column::append(ColumnChunkData* columnChunk, ChunkState& state) {
     auto preScanMetadata = columnChunk->getMetadataToFlush();
     auto startPageIdx = dataFH->addNewPages(preScanMetadata.numPages);
     state.metadata = columnChunk->flushBuffer(dataFH, startPageIdx, preScanMetadata);
-    printf("state.metadata.numValues: %d\n", state.metadata.numValues);
     (void)sanityCheckForWrites;
     KU_ASSERT(sanityCheckForWrites(state.metadata, dataType));
     metadataDA->resize(state.nodeGroupIdx + 1);
