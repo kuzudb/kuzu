@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
 #include "common/exception/binder.h"
 #include "parser/query/reading_clause/match_clause.h"
