@@ -135,6 +135,7 @@ namespace kuzu {
 
             // Flush quantized vectors
             // TODO: Make it parallel
+            printf("Calling Flushing quantized vectors!!\n");
             sharedState->compressedStorage->flush(context->clientContext->getTx());
 
             // Free the memory of the graph

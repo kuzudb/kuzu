@@ -126,7 +126,7 @@ struct CompressedVectorStorage {
     explicit CompressedVectorStorage(Transaction *transaction, Column *column,
                                      DiskArray<ColumnChunkMetadata> *metadataDA, size_t codeSize,
                                      node_group_idx_t startNodeGroupIdx, node_group_idx_t endNodeGroupIdx)
-                                     : codeSize(codeSize), column(column) {
+                                     : codeSize(codeSize), column(column), flushed(false) {
         KU_ASSERT(metadataDA != nullptr);
         // TODO: Make it generic, currently only supports scalar quantization
         auto dataType = LogicalType::ARRAY(LogicalType::INT8(), codeSize);
@@ -165,6 +165,7 @@ struct CompressedVectorStorage {
         if (flushed) {
             return;
         }
+        printf("Flushing compressed data\n");
         Column::ChunkState state;
         for (auto& [nodeGroupIdx, columnChunk] : columnChunks) {
             column->initChunkState(trnx, nodeGroupIdx, state);
