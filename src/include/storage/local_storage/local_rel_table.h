@@ -42,20 +42,26 @@ public:
 
     void clear() override {
         localNodeGroup.reset();
-        fwdIndex.clear();
-        bwdIndex.clear();
+        for (auto& index : directedIndices) {
+            index.clear();
+        }
     }
     bool isEmpty() const {
-        KU_ASSERT(
-            (fwdIndex.empty() && bwdIndex.empty()) || (!fwdIndex.empty() && !bwdIndex.empty()));
-        return fwdIndex.empty();
+        KU_ASSERT(directedIndices.size() >= 1);
+        RUNTIME_CHECK(for (const auto& index : directedIndices) {
+            KU_ASSERT(index.empty() == directedIndices[0].empty());
+        });
+        return directedIndices[0].empty();
     }
 
     common::column_id_t getNumColumns() const { return localNodeGroup->getDataTypes().size(); }
     common::row_idx_t getNumTotalRows() override { return localNodeGroup->getNumRows(); }
 
-    rel_index_t& getFWDIndex() { return fwdIndex; }
-    rel_index_t& getBWDIndex() { return bwdIndex; }
+    rel_index_t& getFWDIndex() { return directedIndices[0]; }
+    rel_index_t& getBWDIndex() {
+        KU_ASSERT(directedIndices.size() >= 2);
+        return directedIndices[1];
+    }
     NodeGroup& getLocalNodeGroup() const { return *localNodeGroup; }
 
     static std::vector<common::column_id_t> rewriteLocalColumnIDs(
@@ -73,8 +79,7 @@ private:
     // [srcNodeID, dstNodeID, relID, property1, property2, ...]
     // All local rel tuples are stored in a single node group, and they are indexed by src/dst
     // NodeID.
-    rel_index_t fwdIndex;
-    rel_index_t bwdIndex;
+    std::vector<rel_index_t> directedIndices;
     std::unique_ptr<NodeGroup> localNodeGroup;
 };
 
