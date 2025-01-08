@@ -55,8 +55,10 @@ bool LocalRelTable::insert(Transaction* transaction, TableInsertState& state) {
     localNodeGroup->append(transaction, insertVectors, 0, numRowsToAppend);
     const auto srcNodeOffset = insertState.srcNodeIDVector.readNodeOffset(srcNodePos);
     const auto dstNodeOffset = insertState.dstNodeIDVector.readNodeOffset(dstNodePos);
-    fwdIndex[srcNodeOffset].push_back(numRowsInLocalTable);
-    bwdIndex[dstNodeOffset].push_back(numRowsInLocalTable);
+    std::array nodeOffsets = {srcNodeOffset, dstNodeOffset};
+    for (idx_t i = 0; i < directedIndices.size(); ++i) {
+        directedIndices[i][nodeOffsets[i]].push_back(numRowsInLocalTable);
+    }
     return true;
 }
 
