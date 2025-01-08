@@ -316,9 +316,13 @@ struct NodeTableDistanceComputer {
             readStates.push_back(std::make_unique<Column::ChunkState>());
         }
         // initialize only once
-        for (size_t nodeGroup = 0; nodeGroup < totalNodeGroups; nodeGroup++) {
+        for (auto nodeGroup = 0; nodeGroup < totalNodeGroups; nodeGroup++) {
             auto readState = readStates[nodeGroup].get();
             embeddingColumn->initChunkState(context->getTx(), nodeGroup, *readState);
+//            // print state.metadata.pageIdx
+//            printf("state.metadata.pageIdx: %d\n", readState->metadata.pageIdx);
+//            // print state.numValuesPerPage
+//            printf("state.numValuesPerPage: %d\n", readState->numValuesPerPage);
         }
         readRequest = std::make_unique<Column::FastLookupRequest>();
     }
@@ -343,6 +347,7 @@ struct NodeTableDistanceComputer {
 private:
     inline void computeZeroCopyDistance(vector_id_t id, DistanceComputer<T>* dc, double *dist) {
         auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(id);
+        printf("nodeGroupIdx: %d, offsetInChunk: %d\n", nodeGroupIdx, offsetInChunk);
 
         // Initialize the read state
         readRequest->states[0] = readStates[nodeGroupIdx].get();

@@ -233,9 +233,19 @@ void BufferManager::optimisticBatchRead(kuzu::storage::BMFileHandle &fileHandle,
                                         std::array<PageReadReq, common::FAST_LOOKUP_MAX_BATCH_SIZE> &readReqs, int size,
                                         const std::function<void(std::array<const uint8_t *, FAST_LOOKUP_MAX_BATCH_SIZE>, const int)> &batchFunc) {
     std::vector<std::pair<page_idx_t, PageState*>> pageStates;
+//    printf("Called optimisticBatchRead\n");
+//    // print page read requests
+//    for (int i = 0u; i < size; i++) {
+//        auto &readReq = readReqs[i];
+//        for (auto j = 0u; j < readReq.numPages; j++) {
+//            printf("Page read request: %d\n", readReq.pageIdx + j);
+//        }
+//    }
+
     for (int i = 0u; i < size; i++) {
         auto &readReq = readReqs[i];
         for (auto j = 0u; j < readReq.numPages; j++) {
+//            printf("Page read request: %d\n", readReq.pageIdx + j);
             pageStates.push_back({readReq.pageIdx + j, fileHandle.getPageState(readReq.pageIdx + j)});
         }
     }

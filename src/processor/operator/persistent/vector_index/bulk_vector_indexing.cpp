@@ -78,13 +78,13 @@ namespace kuzu {
                 auto numVectors = localState->offsetVector->state->getSelVector().getSelSize();
                 auto vectors = reinterpret_cast<float *>(
                         ListVector::getDataVector(localState->embeddingVector)->getData());
-                for (size_t i = 0; i < numVectors; i++) {
-                    auto id = localState->offsetVector->getValue<internalID_t>(i);
-                    KU_ASSERT(id.offset >= sharedState->startOffsetNodeTable);
-                    vectorIds[i] = id.offset - sharedState->startOffsetNodeTable;
-                }
-                sharedState->builder->batchInsert(vectors, vectorIds.data(), numVectors,
-                                                  localState->visited.get(), localState->dc.get());
+//                for (size_t i = 0; i < numVectors; i++) {
+//                    auto id = localState->offsetVector->getValue<internalID_t>(i);
+//                    KU_ASSERT(id.offset >= sharedState->startOffsetNodeTable);
+//                    vectorIds[i] = id.offset - sharedState->startOffsetNodeTable;
+//                }
+//                sharedState->builder->batchInsert(vectors, vectorIds.data(), numVectors,
+//                                                  localState->visited.get(), localState->dc.get());
 
                 // Train the quantizer
                 localState->quantizer->batchTrain(vectors, numVectors);
@@ -121,8 +121,8 @@ namespace kuzu {
             KU_ASSERT_MSG(sharedState->partitionerSharedState->partitioningBuffers.size() == 1,
                           "Only one partitioning buffer in fwd direction is supported");
             // Populate partition buffer
-            sharedState->graph->populatePartitionBuffer(
-                    *sharedState->partitionerSharedState->partitioningBuffers[0]);
+//            sharedState->graph->populatePartitionBuffer(
+//                    *sharedState->partitionerSharedState->partitioningBuffers[0]);
 
 //             TODO: Fix this to make it parallel!!
 //            printf("Running quantization!!\n");

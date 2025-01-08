@@ -221,6 +221,11 @@ void Column::fastScan(TransactionType txnType, FastLookupRequest* request,
     for (auto i = 0; i < request->size; i++) {
         auto startOffsetInGroup = request->startOffsetsInGroup[i];
         auto endOffsetInGroup = request->endOffsetsInGroup[i];
+//        printf("startOffsetInGroup: %d, endOffsetInGroup: %d\n", startOffsetInGroup, endOffsetInGroup);
+        // print state.metadata.pageIdx
+//        printf("state.metadata.pageIdx: %d\n", request->states[i]->metadata.pageIdx);
+        // print state.numValuesPerPage
+//        printf("state.numValuesPerPage: %d\n", request->states[i]->numValuesPerPage);
         auto pageCursor = getPageCursorForOffsetInGroup(startOffsetInGroup, *request->states[i]);
         const auto numValuesToScan = endOffsetInGroup - startOffsetInGroup;
         auto chunkMeta = request->states[i]->metadata;
@@ -415,6 +420,7 @@ void Column::readFromPages(TransactionType trxType, std::array<PageReadReq, FAST
     BMFileHandle* fileHandleToPin = nullptr;
     for (int i = 0; i < size; i++) {
         auto &readReq = readReqs[i];
+//        printf("readReq.pageIdx: %d\n", readReq.pageIdx);
         // Fast scan is only supported with read-only transactions
         auto [fileHandle, pageIdx] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
                 *dataFH, readReq.pageIdx, *wal, trxType);
