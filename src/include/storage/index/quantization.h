@@ -383,7 +383,7 @@ namespace kuzu {
                     for (size_t j = 0; j < dim; j++) {
                         vmin[j] = std::min(vmin[j], data[i * dim + j]);
                         vdiff[j] = std::max(vdiff[j], data[i * dim + j]);
-                        if (vdiff[j] > 100) {
+                        if (data[i * dim + j] > 100) {
                             printf("vdiff[%d]: %f\n", j, vdiff[j]);
                             printf("data[%d]: %f\n", i * dim + j, data[i * dim + j]);
                         }
