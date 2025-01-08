@@ -19,5 +19,18 @@ ExtendDirection ExtendDirectionUtil::fromString(const std::string& str) {
     }
 }
 
+std::string ExtendDirectionUtil::toString(ExtendDirection direction) {
+    switch (direction) {
+    case ExtendDirection::FWD:
+        return "fwd";
+    case ExtendDirection::BWD:
+        return "bwd";
+    case ExtendDirection::BOTH:
+        return "both";
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
 } // namespace common
 } // namespace kuzu
