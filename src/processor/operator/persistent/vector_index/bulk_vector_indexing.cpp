@@ -121,8 +121,8 @@ namespace kuzu {
             KU_ASSERT_MSG(sharedState->partitionerSharedState->partitioningBuffers.size() == 1,
                           "Only one partitioning buffer in fwd direction is supported");
             // Populate partition buffer
-//            sharedState->graph->populatePartitionBuffer(
-//                    *sharedState->partitionerSharedState->partitioningBuffers[0]);
+            sharedState->graph->populatePartitionBuffer(
+                    *sharedState->partitionerSharedState->partitioningBuffers[0]);
 
 //             TODO: Fix this to make it parallel!!
 //            printf("Running quantization!!\n");
