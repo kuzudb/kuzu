@@ -559,26 +559,25 @@ namespace kuzu {
                     }
                     localSelectivity /= filterNbrsToFind;
 
-                    if (selectivity >= 0.5) {
+                    if (localSelectivity >= 0.5) {
                         // If the selectivity is high, we will simply do one hop search since we can find the next
                         // closest directly from candidates priority queue.
                         oneHopSearch(candidates, firstHopNbrs, dc, filterMask, results, visited,
                                      efSearch, totalDist, dcTime);
                         oneHopSearchCount++;
-                    } else {
+                    } else if ((filterNbrsToFind * filterNbrsToFind * localSelectivity) > (filterNbrsToFind * 4)) {
                         // We will use this metric to skip unwanted distance computation in the first hop
-                        dynamicTwoHopSearch(candidates, candidate, filterNbrsToFind * 0.6, cachedNbrsCount,
+                        dynamicTwoHopSearch(candidates, candidate, filterNbrsToFind, cachedNbrsCount,
                                             firstHopNbrs, tableId, graph, dc, filterMask,
                                             state, results, visited, efSearch, totalGetNbrs, totalDist);
                         dynamicTwoHopSearchCount++;
+                    } else {
+                        // If the selectivity is low, we will not do dynamic two hop search since it does some extra
+                        // distance computations to reduce listNbrs call which are redundant.
+                        twoHopSearch(candidates, firstHopNbrs, tableId, graph, dc, filterMask, state, results, visited,
+                                     efSearch, totalGetNbrs, totalDist, dcTime, ListNbrsCallTime);
+                        twoHopSearchCount++;
                     }
-//                    } else {
-//                        // If the selectivity is low, we will not do dynamic two hop search since it does some extra
-//                        // distance computations to reduce listNbrs call which are redundant.
-//                        twoHopSearch(candidates, firstHopNbrs, tableId, graph, dc, filterMask, state, results, visited,
-//                                     efSearch, totalGetNbrs, totalDist, dcTime, ListNbrsCallTime);
-//                        twoHopSearchCount++;
-//                    }
                 }
                 printf("One hop search count: %d\n", oneHopSearchCount);
                 printf("Two hop search count: %d\n", twoHopSearchCount);
