@@ -171,7 +171,7 @@ BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info)
     auto dstMultiplicity = RelMultiplicityUtils::getBwd(extraInfo.relMultiplicity);
 
     auto parsingOptions = bindParsingOptions(extraInfo.options);
-    auto storageDirection = ExtendDirectionUtil::DEFAULT_EXTEND_DIRECTION;
+    auto storageDirection = ExtendDirectionUtil::getDefaultExtendDirection();
     if (parsingOptions.contains(TableOptionConstants::REL_STORAGE_DIRECTION_OPTION)) {
         storageDirection = ExtendDirectionUtil::fromString(
             parsingOptions.at(TableOptionConstants::REL_STORAGE_DIRECTION_OPTION).toString());

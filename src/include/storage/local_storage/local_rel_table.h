@@ -20,6 +20,9 @@ struct RelTableUpdateState;
 
 struct DirectedCSRIndex {
     using index_t = std::map<common::offset_t, row_idx_vec_t>;
+
+    explicit DirectedCSRIndex(common::RelDataDirection direction) : direction(direction) {}
+
     common::RelDataDirection direction;
     index_t index;
 };
@@ -53,7 +56,8 @@ public:
     }
     bool isEmpty() const {
         KU_ASSERT(directedIndices.size() >= 1);
-        RUNTIME_CHECK(for (const auto& index : directedIndices) {
+        RUNTIME_CHECK(for (const auto& index
+                           : directedIndices) {
             KU_ASSERT(index.index.empty() == directedIndices[0].index.empty());
         });
         return directedIndices[0].index.empty();

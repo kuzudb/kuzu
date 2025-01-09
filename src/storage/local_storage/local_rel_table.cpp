@@ -26,6 +26,10 @@ std::vector<LogicalType> LocalRelTable::getTypesForLocalRelTable(const RelTable&
 LocalRelTable::LocalRelTable(Table& table) : LocalTable{table} {
     localNodeGroup = std::make_unique<NodeGroup>(0, false,
         getTypesForLocalRelTable(table.cast<RelTable>()), INVALID_ROW_IDX);
+    const auto& relTable = table.cast<RelTable&>();
+    for (auto relDirection : relTable.getStorageDirections()) {
+        directedIndices.emplace_back(relDirection);
+    }
 }
 
 bool LocalRelTable::insert(Transaction* transaction, TableInsertState& state) {
