@@ -276,7 +276,7 @@ namespace kuzu {
             size_t i = 0;
             for (; i + 16 <= dim; i += 16) {
                 x_vec = _mm512_loadu_ps(x + i);
-                __m128i codes = _mm_loadu_si128(reinterpret_cast<const __m128i *>(y));
+                __m128i codes = _mm_loadu_si128(reinterpret_cast<const __m128i *>(y + i));
                 y_vec = decode_skylake(codes, i, alpha, beta);
                 xy_vec = _mm512_fmadd_ps(x_vec, y_vec, xy_vec);
             }
@@ -288,8 +288,8 @@ namespace kuzu {
             __m512 xy_vec = _mm512_setzero();
             size_t i = 0;
             for (; i + 32 <= dim; i += 32) {
-                __m256i x_codes = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(x));
-                __m256i y_codes = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(y));
+                __m256i x_codes = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(x + i));
+                __m256i y_codes = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(y + i));
                 // Convert to 16 bit integers
                 __m512i x_codes16 = _mm512_cvtepu8_epi16(x_codes);
                 __m512i y_codes16 = _mm512_cvtepu8_epi16(y_codes);
