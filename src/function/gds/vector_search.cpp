@@ -579,7 +579,8 @@ namespace kuzu {
                         // We will use this metric to skip unwanted distance computation in the first hop
                         dynamicTwoHopSearch(candidates, candidate, filterNbrsToFind, cachedNbrsCount,
                                             firstHopNbrs, tableId, graph, dc, filterMask,
-                                            state, results, visited, efSearch, totalGetNbrs, totalDist);
+                                            state, results, visited, efSearch, totalGetNbrs, totalDist, dcTime,
+                                            ListNbrsCallTime);
                         dynamicTwoHopSearchCount++;
                     } else {
                         // If the selectivity is low, we will not do dynamic two hop search since it does some extra
