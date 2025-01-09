@@ -109,7 +109,7 @@ struct BoundExtraCreateRelTableInfo final : public BoundExtraCreateTableInfo {
     BoundExtraCreateRelTableInfo(common::table_id_t srcTableID, common::table_id_t dstTableID,
         std::vector<PropertyDefinition> definitions)
         : BoundExtraCreateRelTableInfo{common::RelMultiplicity::MANY, common::RelMultiplicity::MANY,
-              common::ExtendDirectionUtil::DEFAULT_EXTEND_DIRECTION, srcTableID, dstTableID,
+              common::ExtendDirectionUtil::getDefaultExtendDirection(), srcTableID, dstTableID,
               std::move(definitions)} {}
     BoundExtraCreateRelTableInfo(common::RelMultiplicity srcMultiplicity,
         common::RelMultiplicity dstMultiplicity, common::ExtendDirection storageDirection,

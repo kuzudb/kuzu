@@ -6,6 +6,15 @@
 namespace kuzu {
 namespace common {
 
+static ExtendDirection defaultExtendDirection = ExtendDirection::BOTH;
+ExtendDirection ExtendDirectionUtil::getDefaultExtendDirection() {
+    return defaultExtendDirection;
+}
+
+void ExtendDirectionUtil::setDefaultExtendDirection(ExtendDirection newDirection) {
+    defaultExtendDirection = newDirection;
+}
+
 ExtendDirection ExtendDirectionUtil::fromString(const std::string& str) {
     auto normalizedString = StringUtils::getUpper(str);
     if (normalizedString == "FWD") {

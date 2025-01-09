@@ -224,7 +224,7 @@ void RelBatchInsert::checkRelMultiplicityConstraint(const ChunkedCSRHeader& csrH
 
 void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
     const auto relInfo = info->ptrCast<RelBatchInsertInfo>();
-    if (relInfo->direction == RelDataDirection::BWD) {
+    if (relInfo->direction == RelDataDirection::FWD) {
         KU_ASSERT(
             relInfo->partitioningIdx == partitionerSharedState->partitioningBuffers.size() - 1);
 
