@@ -10,11 +10,6 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace function {
 
-void PathsOutputs::beginWritingOutputsForDstNodesInTable(common::table_id_t tableID) {
-    pathLengths->pinCurFrontierTableID(tableID);
-    bfsGraph->pinTableID(tableID);
-}
-
 std::unique_ptr<common::ValueVector> GDSOutputWriter::createVector(const LogicalType& type,
     storage::MemoryManager* mm) {
     auto vector = std::make_unique<ValueVector>(type.copy(), mm);
@@ -392,7 +387,8 @@ DestinationsOutputWriter::DestinationsOutputWriter(main::ClientContext* context,
 void DestinationsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
     GDSOutputCounter* counter) {
     auto length =
-        rjOutputs->ptrCast<SPOutputs>()->pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset);
+        rjOutputs->ptrCast<SPDestinationOutputs>()->pathLengths->getMaskValueFromCurFrontier(
+            dstNodeID.offset);
     dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
     setLength(lengthVector.get(), length);
     fTable.append(vectors);
@@ -403,7 +399,7 @@ void DestinationsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_
 }
 
 bool DestinationsOutputWriter::skipInternal(common::nodeID_t dstNodeID) const {
-    auto outputs = rjOutputs->ptrCast<SPOutputs>();
+    auto outputs = rjOutputs->ptrCast<SPDestinationOutputs>();
     return dstNodeID == outputs->sourceNodeID || outputs->pathLengths->getMaskValueFromCurFrontier(
                                                      dstNodeID.offset) == PathLengths::UNVISITED;
 }

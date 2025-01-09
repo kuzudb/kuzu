@@ -3,16 +3,16 @@
 #include "bfs_graph.h"
 #include "common/enums/path_semantic.h"
 #include "common/types/types.h"
+#include "gds_frontier.h"
 #include "processor/operator/gds_call_shared_state.h"
 #include "processor/result/factorized_table.h"
 
 namespace kuzu {
 namespace function {
 
-class PathLengths;
-
 struct RJOutputs {
-public:
+    common::nodeID_t sourceNodeID;
+
     explicit RJOutputs(common::nodeID_t sourceNodeID) : sourceNodeID{sourceNodeID} {}
     virtual ~RJOutputs() = default;
 
@@ -26,36 +26,38 @@ public:
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<TARGET*>(this);
     }
-
-public:
-    common::nodeID_t sourceNodeID;
 };
 
-struct SPOutputs : public RJOutputs {
-public:
-    SPOutputs(common::nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths)
+struct SPDestinationOutputs : public RJOutputs {
+    std::shared_ptr<PathLengths> pathLengths;
+
+    SPDestinationOutputs(common::nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths)
         : RJOutputs{sourceNodeID}, pathLengths{std::move(pathLengths)} {}
 
-public:
-    std::shared_ptr<PathLengths> pathLengths;
+    // Note: We do not fix the node table for pathLengths, because PathLengths is a
+    // FrontierPair implementation and RJCompState will call beginFrontierComputeBetweenTables
+    // on FrontierPair (and RJOutputs).
+    void beginFrontierComputeBetweenTables(common::table_id_t, common::table_id_t) override{};
+
+    void beginWritingOutputsForDstNodesInTable(common::table_id_t tableID) override {
+        pathLengths->pinCurFrontierTableID(tableID);
+    }
 };
 
-struct PathsOutputs : public SPOutputs {
-    PathsOutputs(common::nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths,
-        std::unique_ptr<BFSGraph> bfsGraph)
-        : SPOutputs(sourceNodeID, std::move(pathLengths)), bfsGraph{std::move(bfsGraph)} {}
+struct PathsOutputs : public RJOutputs {
+    std::unique_ptr<BFSGraph> bfsGraph;
+
+    PathsOutputs(common::nodeID_t sourceNodeID, std::unique_ptr<BFSGraph> bfsGraph)
+        : RJOutputs(sourceNodeID), bfsGraph{std::move(bfsGraph)} {}
 
     void beginFrontierComputeBetweenTables(common::table_id_t,
         common::table_id_t nextFrontierTableID) override {
-        // Note: We do not fix the node table for pathLengths, which is inherited from AllSPOutputs.
-        // See the comment in SingleSPOutputs::beginFrontierComputeBetweenTables() for details.
         bfsGraph->pinTableID(nextFrontierTableID);
     };
 
-    void beginWritingOutputsForDstNodesInTable(common::table_id_t tableID) override;
-
-public:
-    std::unique_ptr<BFSGraph> bfsGraph;
+    void beginWritingOutputsForDstNodesInTable(common::table_id_t tableID) override {
+        bfsGraph->pinTableID(tableID);
+    }
 };
 
 class GDSOutputWriter {
