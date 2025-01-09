@@ -41,7 +41,7 @@ public:
 
     // ColumnChunks must be initialized after construction, so this constructor should only be used
     // through the ColumnChunkFactory
-    ColumnChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression = true,
+    ColumnChunkData(common::LogicalType dataType, uint64_t capacity, bool enableCompression = false,
         bool hasNull = true);
 
     virtual ~ColumnChunkData() = default;

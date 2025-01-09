@@ -126,7 +126,7 @@ struct CompressedVectorStorage {
     explicit CompressedVectorStorage(Transaction *transaction, Column *column,
                                      DiskArray<ColumnChunkMetadata> *metadataDA, size_t codeSize,
                                      node_group_idx_t startNodeGroupIdx, node_group_idx_t endNodeGroupIdx)
-                                     : codeSize(codeSize), column(column), flushed(false) {
+                                     : codeSize(codeSize), column(column), flushed(false), startNodeGroupIdx(startNodeGroupIdx) {
         KU_ASSERT(metadataDA != nullptr);
         // TODO: Make it generic, currently only supports scalar quantization
         auto dataType = LogicalType::ARRAY(LogicalType::INT8(), codeSize);
@@ -150,13 +150,14 @@ struct CompressedVectorStorage {
             }
             listChunk.setNumValues(numValues);
             listChunk.getDataColumnChunk()->setNumValues(numValues * codeSize);
-            columnChunks.insert({nodeGroupIdx, std::move(columnChunk)});
+            columnChunks.emplace_back(std::move(columnChunk));
         }
     }
 
     inline uint8_t* getData(node_group_idx_t nodeGroupIdx, offset_t offsetInNodeGroup) {
-        KU_ASSERT(columnChunks.contains(nodeGroupIdx));
-        return reinterpret_cast<ListChunkData *>(columnChunks[nodeGroupIdx].get())->getDataColumnChunk()->getData() +
+        auto virtualNodeGroupIdx = getVirtualNodeGroup(nodeGroupIdx);
+        KU_ASSERT(virtualNodeGroupIdx < columnChunks.size());
+        return reinterpret_cast<ListChunkData *>(columnChunks[virtualNodeGroupIdx].get())->getDataColumnChunk()->getData() +
                (codeSize * offsetInNodeGroup);
     }
 
@@ -166,10 +167,13 @@ struct CompressedVectorStorage {
             return;
         }
 //        printf("Flushing compressed data\n");
+        // Append the data to the column in order of node group
         Column::ChunkState state;
-        for (auto& [nodeGroupIdx, columnChunk] : columnChunks) {
+        for (node_group_idx_t i = 0; i < columnChunks.size(); i++) {
+            auto& columnChunk = columnChunks[i];
+            auto nodeGroupIdx = getNodeGroup(i);
 //            printf("NodeGroupIdx: %d\n", nodeGroupIdx);
-            auto data = reinterpret_cast<ListChunkData *>(columnChunk.get())->getDataColumnChunk()->getData();
+//            auto data = reinterpret_cast<ListChunkData *>(columnChunk.get())->getDataColumnChunk()->getData();
 //            for (auto i = 0u; i < 5; i++) {
 //                printf("[%d] ", data[i]);
 //            }
@@ -183,12 +187,22 @@ struct CompressedVectorStorage {
     }
 
 private:
-    std::unordered_map<node_group_idx_t, std::unique_ptr<ColumnChunkData>> columnChunks;
+    inline node_group_idx_t getVirtualNodeGroup(node_group_idx_t nodeGroupIdx) const {
+        return nodeGroupIdx - startNodeGroupIdx;
+    }
+
+    inline node_group_idx_t getNodeGroup(node_group_idx_t virtualNodeGroupIdx) const {
+        return virtualNodeGroupIdx + startNodeGroupIdx;
+    }
+
+private:
+    std::vector<std::unique_ptr<ColumnChunkData>> columnChunks;
     size_t codeSize;
 
     std::mutex mtx;
     bool flushed = false;
     Column* column;
+    node_group_idx_t startNodeGroupIdx;
 };
 
 

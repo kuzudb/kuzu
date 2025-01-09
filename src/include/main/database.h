@@ -60,7 +60,7 @@ struct KUZU_API SystemConfig {
      * `DEFAULT_VM_REGION_MAX_SIZE`).
      */
     explicit SystemConfig(uint64_t bufferPoolSize = -1u, uint64_t maxNumThreads = 0,
-        bool enableCompression = true, bool readOnly = false, uint64_t maxDBSize = -1u);
+        bool enableCompression = false, bool readOnly = false, uint64_t maxDBSize = -1u);
 
     uint64_t bufferPoolSize;
     uint64_t maxNumThreads;
