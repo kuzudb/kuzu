@@ -569,7 +569,7 @@ namespace kuzu {
                     }
                     localSelectivity /= filterNbrsToFind;
 
-                    if (localSelectivity >= 0.5) {
+                    if (localSelectivity > 0.4) {
                         // If the selectivity is high, we will simply do one hop search since we can find the next
                         // closest directly from candidates priority queue.
                         oneHopSearch(candidates, firstHopNbrs, dc, filterMask, results, visited,
