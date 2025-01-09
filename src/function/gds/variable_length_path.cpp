@@ -80,15 +80,7 @@ public:
     VarLenJoinsAlgorithm() = default;
     VarLenJoinsAlgorithm(const VarLenJoinsAlgorithm& other) : RJAlgorithm(other) {}
 
-    /*
-     * Inputs include the following:
-     *
-     * graph::ANY
-     * srcNode::NODE
-     * lowerBound::INT64
-     * upperBound::INT64
-     * direction::STRING
-     */
+    // Inputs are: graph, srcNode, lowerBound, upperBound, direction
     std::vector<LogicalTypeID> getParameterTypeIDs() const override {
         return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64, LogicalTypeID::INT64,
             LogicalTypeID::STRING};

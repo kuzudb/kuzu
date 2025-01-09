@@ -11,6 +11,12 @@ struct WeaklyConnectedComponentsFunction {
     static function_set getFunctionSet();
 };
 
+struct KCoreDecompositionFunction {
+    static constexpr const char* name = "K_CORE_DECOMPOSITION";
+
+    static function_set getFunctionSet();
+};
+
 struct VarLenJoinsFunction {
     static constexpr const char* name = "VAR_LEN_JOINS";
 

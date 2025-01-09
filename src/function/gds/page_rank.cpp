@@ -73,21 +73,10 @@ public:
     PageRank() = default;
     PageRank(const PageRank& other) : GDSAlgorithm{other} {}
 
-    /*
-     * Inputs are
-     *
-     * graph::ANY
-     */
     std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
         return {LogicalTypeID::ANY};
     }
 
-    /*
-     * Outputs are
-     *
-     * node_id::INTERNAL_ID
-     * rank::DOUBLE
-     */
     binder::expression_vector getResultColumns(binder::Binder* binder) const override {
         expression_vector columns;
         auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
