@@ -34,7 +34,7 @@ private:
     std::vector<std::string> tokens;
 };
 
-std::vector<std::string> readQueriesFromFile(const std::string &filePath, int efSearch, int maxK) {
+std::vector<std::string> readQueriesFromFile(const std::string &filePath, int efSearch, int maxK, bool useQ, bool useKnn) {
     std::ifstream inputFile(filePath);
     std::vector<std::string> queries;
 
@@ -56,6 +56,24 @@ std::vector<std::string> readQueriesFromFile(const std::string &filePath, int ef
             line.replace(pos, 6, std::to_string(maxK));
         }
 
+        // Replace <useQ> with the value of useQ
+        while ((pos = line.find("<useQ>")) != std::string::npos) {
+            if (useQ) {
+                line.replace(pos, 6, "true");
+            } else {
+                line.replace(pos, 6, "false");
+            }
+        }
+
+        // Replace <knn> with the value of useKnn
+        while ((pos = line.find("<knn>")) != std::string::npos) {
+            if (useKnn) {
+                line.replace(pos, 5, "true");
+            } else {
+                line.replace(pos, 5, "false");
+            }
+        }
+
         queries.push_back(line); // Push the modified line as a query
     }
 
@@ -75,10 +93,12 @@ int main(int argc, char **argv) {
     std::string queryPath = input.getCmdOption("-queriesPath");
     std::string gtPath = input.getCmdOption("-gtPath");
     int warmupTimes = stoi(input.getCmdOption("-warmup"));
-    int actualTimes = stoi(input.getCmdOption("-actual"));
+//    int actualTimes = stoi(input.getCmdOption("-actual"));
     int k = stoi(input.getCmdOption("-k"));
     int efSearch = stoi(input.getCmdOption("-efSearch"));
     int maxK = stoi(input.getCmdOption("-maxK"));
+    bool useQ = (bool) stoi(input.getCmdOption("-useQ"));
+    bool useKnn = (bool) stoi(input.getCmdOption("-useKnn"));
 
     std::vector<std::string> testQueries;
     testQueries.push_back(queryPath);
@@ -88,7 +108,7 @@ int main(int argc, char **argv) {
 
     for (auto &queriesPath: testQueries) {
         printf("Running queries from: %s\n", queriesPath.c_str());
-        auto queries = readQueriesFromFile(queriesPath, efSearch, maxK);
+        auto queries = readQueriesFromFile(queriesPath, efSearch, maxK, useQ, useKnn);
         auto queryNumVectors = queries.size();
         vector_id_t *gtVecs = new vector_id_t[queryNumVectors * k];
         loadFromFile(gtPath, reinterpret_cast<uint8_t *>(gtVecs), queryNumVectors * k * sizeof(vector_id_t));
