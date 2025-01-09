@@ -190,7 +190,8 @@ QFTSOutputWriter::QFTSOutputWriter(storage::MemoryManager* mm, QFTSOutput* qFTSO
 void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len,
     int64_t docsID) {
     bool hasScore = qFTSOutput->scores.contains(docNodeID);
-    docsVector.setNull(pos, !hasScore);
+    docsVector.setValue(pos, nodeID_t{(common::offset_t)docsID, bindData.outputTableID});
+    docsVector.setNull(pos, false /* isNull */);
     scoreVector.setNull(pos, !hasScore);
     auto k = bindData.config.k;
     auto b = bindData.config.b;
@@ -211,7 +212,6 @@ void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNo
             score += log10((numDocs - df + 0.5) / (df + 0.5) + 1) *
                      ((tf * (k + 1) / (tf + k * (1 - b + b * (len / avgDocLen)))));
         }
-        docsVector.setValue(pos, nodeID_t{(common::offset_t)docsID, bindData.outputTableID});
         scoreVector.setValue(pos, score);
     }
     scoreFT.append(vectors);
