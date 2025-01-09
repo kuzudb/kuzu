@@ -305,8 +305,8 @@ namespace kuzu {
                     dcTime += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
                     totalDist += 1;
                     if (results.size() < efSearch || dist < results.top()->dist) {
-                        candidates.emplace(neighbor.offset, dist);
                         if (filterMask->isMasked(neighbor.offset)) {
+                            candidates.emplace(neighbor.offset, dist);
                             results.push(NodeDistFarther(neighbor.offset, dist));
                         }
                     }
@@ -427,11 +427,9 @@ namespace kuzu {
                         visited->set_bit(neighbor.offset);
                     }
 
-                    if ((results.size() < efSearch || dist < results.top()->dist)) {
+                    if ((results.size() < efSearch || dist < results.top()->dist) && isNeighborMasked) {
                         candidates.emplace(neighbor.offset, dist);
-                        if (isNeighborMasked) {
-                            results.push(NodeDistFarther(neighbor.offset, dist));
-                        }
+                        results.push(NodeDistFarther(neighbor.offset, dist));
                     }
                 }
                 cachedNbrsCount[candidate.id] = filteredCount;
