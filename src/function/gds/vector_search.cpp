@@ -565,19 +565,20 @@ namespace kuzu {
                         oneHopSearch(candidates, firstHopNbrs, dc, filterMask, results, visited,
                                      efSearch, totalDist, dcTime);
                         oneHopSearchCount++;
-                    } else if ((filterNbrsToFind * filterNbrsToFind * selectivity) > (filterNbrsToFind * 2)) {
+                    } else {
                         // We will use this metric to skip unwanted distance computation in the first hop
                         dynamicTwoHopSearch(candidates, candidate, filterNbrsToFind, cachedNbrsCount,
                                             firstHopNbrs, tableId, graph, dc, filterMask,
                                             state, results, visited, efSearch, totalGetNbrs, totalDist);
                         dynamicTwoHopSearchCount++;
-                    } else {
-                        // If the selectivity is low, we will not do dynamic two hop search since it does some extra
-                        // distance computations to reduce listNbrs call which are redundant.
-                        twoHopSearch(candidates, firstHopNbrs, tableId, graph, dc, filterMask, state, results, visited,
-                                     efSearch, totalGetNbrs, totalDist, dcTime, ListNbrsCallTime);
-                        twoHopSearchCount++;
                     }
+//                    } else {
+//                        // If the selectivity is low, we will not do dynamic two hop search since it does some extra
+//                        // distance computations to reduce listNbrs call which are redundant.
+//                        twoHopSearch(candidates, firstHopNbrs, tableId, graph, dc, filterMask, state, results, visited,
+//                                     efSearch, totalGetNbrs, totalDist, dcTime, ListNbrsCallTime);
+//                        twoHopSearchCount++;
+//                    }
                 }
                 printf("One hop search count: %d\n", oneHopSearchCount);
                 printf("Two hop search count: %d\n", twoHopSearchCount);
