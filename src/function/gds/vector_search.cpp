@@ -515,6 +515,9 @@ namespace kuzu {
 
                 // Handle for neg correlation cases
                 addFilteredNodesToCandidates(dc, candidates, results, visited, filterMask, numFilteredNodesToAdd, totalDist);
+                int oneHopSearchCount = 0;
+                int twoHopSearchCount = 0;
+                int dynamicTwoHopSearchCount = 0;
 
                 while (!candidates.empty()) {
                     auto candidate = candidates.top();
@@ -547,18 +550,24 @@ namespace kuzu {
                         // closest directly from candidates priority queue.
                         oneHopSearch(candidates, firstHopNbrs, dc, filterMask, results, visited,
                                      efSearch, totalDist);
+                        oneHopSearchCount++;
                     } else if ((filterNbrsToFind * filterNbrsToFind * localSelectivity) > (filterNbrsToFind * 2)) {
                         // We will use this metric to skip unwanted distance computation in the first hop
                         dynamicTwoHopSearch(candidates, candidate, filterNbrsToFind, cachedNbrsCount,
                                             firstHopNbrs, tableId, graph, dc, filterMask,
                                             state, results, visited, efSearch, totalGetNbrs, totalDist);
+                        dynamicTwoHopSearchCount++;
                     } else {
                         // If the selectivity is low, we will not do dynamic two hop search since it does some extra
                         // distance computations to reduce listNbrs call which are redundant.
                         twoHopSearch(candidates, firstHopNbrs, tableId, graph, dc, filterMask, state, results, visited,
                                      efSearch, totalGetNbrs, totalDist);
+                        twoHopSearchCount++;
                     }
                 }
+                printf("One hop search count: %d\n", oneHopSearchCount);
+                printf("Two hop search count: %d\n", twoHopSearchCount);
+                printf("Dynamic two hop search count: %d\n", dynamicTwoHopSearchCount);
                 distCompMetric->increase(totalDist);
                 listNbrsCallMetric->increase(totalGetNbrs);
             }
