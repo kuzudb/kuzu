@@ -387,7 +387,8 @@ DestinationsOutputWriter::DestinationsOutputWriter(main::ClientContext* context,
 void DestinationsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
     GDSOutputCounter* counter) {
     auto length =
-        rjOutputs->ptrCast<SPDestinationOutputs>()->pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset);
+        rjOutputs->ptrCast<SPDestinationOutputs>()->pathLengths->getMaskValueFromCurFrontier(
+            dstNodeID.offset);
     dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
     setLength(lengthVector.get(), length);
     fTable.append(vectors);

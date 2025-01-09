@@ -3,9 +3,9 @@
 #include "bfs_graph.h"
 #include "common/enums/path_semantic.h"
 #include "common/types/types.h"
+#include "gds_frontier.h"
 #include "processor/operator/gds_call_shared_state.h"
 #include "processor/result/factorized_table.h"
-#include "gds_frontier.h"
 
 namespace kuzu {
 namespace function {
@@ -37,7 +37,7 @@ struct SPDestinationOutputs : public RJOutputs {
     // Note: We do not fix the node table for pathLengths, because PathLengths is a
     // FrontierPair implementation and RJCompState will call beginFrontierComputeBetweenTables
     // on FrontierPair (and RJOutputs).
-    void beginFrontierComputeBetweenTables(common::table_id_t, common::table_id_t) override {};
+    void beginFrontierComputeBetweenTables(common::table_id_t, common::table_id_t) override{};
 
     void beginWritingOutputsForDstNodesInTable(common::table_id_t tableID) override {
         pathLengths->pinCurFrontierTableID(tableID);

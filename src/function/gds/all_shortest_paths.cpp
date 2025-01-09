@@ -36,7 +36,7 @@ public:
             }
         }
     }
-    
+
     void incrementTargetMultiplicity(offset_t offset, uint64_t multiplicity) {
         getCurTargetMultiplicities()[offset].fetch_add(multiplicity);
     }
@@ -89,7 +89,7 @@ public:
 
     void initRJFromSource(nodeID_t source) override {
         multiplicities->pinTargetTable(source.tableID);
-        multiplicities->incrementTargetMultiplicity(source.offset,  1);
+        multiplicities->incrementTargetMultiplicity(source.offset, 1);
     }
 
     void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
