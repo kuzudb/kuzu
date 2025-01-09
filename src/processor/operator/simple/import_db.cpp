@@ -19,6 +19,7 @@ void ImportDB::executeInternal(ExecutionContext* context) {
         context->clientContext->getTransactionContext()->commit();
     }
     context->clientContext->queryNoLock(query);
+    context->clientContext->queryNoLock(indexQuery);
 }
 
 std::string ImportDB::getOutputMsg() {

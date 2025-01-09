@@ -9,19 +9,22 @@ class ImportDB final : public Simple {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::IMPORT_DATABASE;
 
 public:
-    ImportDB(std::string query, const DataPos& outputPos, uint32_t id,
+    ImportDB(std::string query, std::string indexQuery, const DataPos& outputPos, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Simple{type_, outputPos, id, std::move(printInfo)}, query{std::move(query)} {}
+        : Simple{type_, outputPos, id, std::move(printInfo)}, query{std::move(query)},
+          indexQuery{std::move(indexQuery)} {}
 
     void executeInternal(ExecutionContext* context) override;
     std::string getOutputMsg() override;
 
-    inline std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<ImportDB>(query, outputPos, id, printInfo->copy());
+    std::unique_ptr<PhysicalOperator> clone() override {
+        return std::make_unique<ImportDB>(query, indexQuery, outputPos, id, printInfo->copy());
     }
 
 private:
     std::string query;
+    std::string indexQuery;
 };
+
 } // namespace processor
 } // namespace kuzu

@@ -52,11 +52,6 @@ std::string getPlatform() {
     return getOS() + "_" + getArch();
 }
 
-bool ExtensionUtils::isFullPath(const std::string& extension) {
-    return extension.find('.') != std::string::npos || extension.find('/') != std::string::npos ||
-           extension.find('\\') != std::string::npos;
-}
-
 static ExtensionRepoInfo getExtensionRepoInfo(std::string& extensionURL) {
     common::StringUtils::replaceAll(extensionURL, "http://", "");
     auto hostNamePos = extensionURL.find('/');
@@ -194,6 +189,10 @@ ext_init_func_t ExtensionLibLoader::getInitFunc() {
     return (ext_init_func_t)getDynamicLibFunc(EXTENSION_INIT_FUNC_NAME);
 }
 
+ext_name_func_t ExtensionLibLoader::getNameFunc() {
+    return (ext_name_func_t)getDynamicLibFunc(EXTENSION_NAME_FUNC_NAME);
+}
+
 ext_install_func_t ExtensionLibLoader::getInstallFunc() {
     return (ext_install_func_t)getDynamicLibFunc(EXTENSION_INSTALL_FUNC_NAME);
 }
@@ -206,17 +205,6 @@ void* ExtensionLibLoader::getDynamicLibFunc(const std::string& funcName) {
                 extensionName, common::dlErrMessage()));
     }
     return sym;
-}
-
-void ExtensionOptions::addExtensionOption(std::string name, common::LogicalTypeID type,
-    common::Value defaultValue) {
-    common::StringUtils::toLower(name);
-    extensionOptions.emplace(name, main::ExtensionOption{name, type, std::move(defaultValue)});
-}
-
-const main::ExtensionOption* ExtensionOptions::getExtensionOption(std::string name) const {
-    common::StringUtils::toLower(name);
-    return extensionOptions.contains(name) ? &extensionOptions.at(name) : nullptr;
 }
 
 #ifdef _WIN32

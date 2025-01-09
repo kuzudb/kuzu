@@ -28,4 +28,8 @@ extern "C" {
 INIT_EXPORT void init(kuzu::main::ClientContext* context) {
     kuzu::duckdb_extension::DuckDBExtension::load(context);
 }
+
+INIT_EXPORT const char* name() {
+    return kuzu::duckdb_extension::DuckDBExtension::EXTENSION_NAME;
+}
 }

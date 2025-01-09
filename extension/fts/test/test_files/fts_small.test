@@ -184,3 +184,23 @@ Catalog exception: QUERY_FTS_INDEX function does not exist.
 ---- 2
 0|0.271133
 3|0.209476
+
+-CASE FTSWithPortDB
+-SKIP_IN_MEM
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN _node.ID, score
+---- 2
+0|0.271133
+3|0.209476
+-STATEMENT EXPORT DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_fts/small'
+---- ok
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_fts/small"
+-STATEMENT IMPORT DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_fts/small';
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN _node.ID, score
+---- 2
+0|0.271133
+3|0.209476

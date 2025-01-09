@@ -8,6 +8,7 @@
 #include "common/string_utils.h"
 #include "common/task_system/progress_bar.h"
 #include "extension/extension.h"
+#include "extension/extension_manager.h"
 #include "graph/graph_entry.h"
 #include "main/attached_database.h"
 #include "main/database.h"
@@ -119,16 +120,11 @@ Value ClientContext::getCurrentSetting(const std::string& optionName) const {
         return extensionOptionValues.at(lowerCaseOptionName);
     }
     // Lastly, find the default value in db clientConfig.
-    const auto defaultOption =
-        localDatabase->extensionOptions->getExtensionOption(lowerCaseOptionName);
+    const auto defaultOption = getExtensionOption(lowerCaseOptionName);
     if (defaultOption != nullptr) {
         return defaultOption->defaultValue;
     }
     throw RuntimeException{"Invalid option name: " + lowerCaseOptionName + "."};
-}
-
-bool ClientContext::isOptionSet(const std::string& optionName) const {
-    return extensionOptionValues.contains(StringUtils::getLower(optionName));
 }
 
 Transaction* ClientContext::getTransaction() const {
@@ -164,8 +160,8 @@ void ClientContext::setExtensionOption(std::string name, Value value) {
     extensionOptionValues.insert_or_assign(name, std::move(value));
 }
 
-extension::ExtensionOptions* ClientContext::getExtensionOptions() const {
-    return localDatabase->extensionOptions.get();
+const main::ExtensionOption* ClientContext::getExtensionOption(std::string optionName) const {
+    return localDatabase->extensionManager->getExtensionOption(optionName);
 }
 
 std::string ClientContext::getExtensionDir() const {
@@ -195,6 +191,10 @@ storage::StorageManager* ClientContext::getStorageManager() const {
 
 storage::MemoryManager* ClientContext::getMemoryManager() const {
     return localDatabase->memoryManager.get();
+}
+
+extension::ExtensionManager* ClientContext::getExtensionManager() const {
+    return localDatabase->extensionManager.get();
 }
 
 storage::WAL* ClientContext::getWAL() const {

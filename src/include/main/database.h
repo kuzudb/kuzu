@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "common/api.h"
-#include "common/case_insensitive_map.h"
 #include "kuzu_fwd.h"
 #include "main/db_config.h"
 
@@ -25,7 +24,7 @@ struct Function;
 
 namespace extension {
 struct ExtensionUtils;
-struct ExtensionOptions;
+class ExtensionManager;
 } // namespace extension
 
 namespace storage {
@@ -122,8 +121,7 @@ public:
 
     const DBConfig& getConfig() const { return dbConfig; }
 
-    common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>>&
-    getStorageExtensions();
+    std::vector<storage::StorageExtension*> getStorageExtensions();
 
     uint64_t getNextQueryID();
 
@@ -157,9 +155,8 @@ private:
     std::unique_ptr<storage::StorageManager> storageManager;
     std::unique_ptr<transaction::TransactionManager> transactionManager;
     std::unique_ptr<common::FileInfo> lockFile;
-    std::unique_ptr<extension::ExtensionOptions> extensionOptions;
     std::unique_ptr<DatabaseManager> databaseManager;
-    common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>> storageExtensions;
+    std::unique_ptr<extension::ExtensionManager> extensionManager;
     QueryIDGenerator queryIDGenerator;
 };
 

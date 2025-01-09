@@ -1,5 +1,6 @@
 #include "main/database.h"
 
+#include "extension/extension_manager.h"
 #include "main/client_context.h"
 #include "main/database_manager.h"
 #include "storage/buffer_manager/buffer_manager.h"
@@ -110,8 +111,8 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
         *memoryManager, dbConfig.enableCompression, vfs.get(), &clientContext);
     transactionManager = std::make_unique<TransactionManager>(storageManager->getWAL());
     StorageManager::recover(clientContext);
-    extensionOptions = std::make_unique<extension::ExtensionOptions>();
     databaseManager = std::make_unique<DatabaseManager>();
+    extensionManager = std::make_unique<extension::ExtensionManager>();
 }
 
 Database::~Database() {
@@ -140,22 +141,15 @@ void Database::registerFileSystem(std::unique_ptr<FileSystem> fs) {
 
 void Database::registerStorageExtension(std::string name,
     std::unique_ptr<StorageExtension> storageExtension) {
-    if (storageExtensions.contains(name)) {
-        return;
-    }
-    storageExtensions.emplace(std::move(name), std::move(storageExtension));
+    extensionManager->registerStorageExtension(std::move(name), std::move(storageExtension));
 }
 
 void Database::addExtensionOption(std::string name, LogicalTypeID type, Value defaultValue) {
-    if (extensionOptions->getExtensionOption(name) != nullptr) {
-        // One extension option can be shared by multiple extensions.
-        return;
-    }
-    extensionOptions->addExtensionOption(name, type, std::move(defaultValue));
+    extensionManager->addExtensionOption(name, type, std::move(defaultValue));
 }
 
-case_insensitive_map_t<std::unique_ptr<StorageExtension>>& Database::getStorageExtensions() {
-    return storageExtensions;
+std::vector<StorageExtension*> Database::getStorageExtensions() {
+    return extensionManager->getStorageExtensions();
 }
 
 void Database::openLockFile() {
