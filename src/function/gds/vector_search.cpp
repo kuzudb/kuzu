@@ -427,9 +427,11 @@ namespace kuzu {
                         visited->set_bit(neighbor.offset);
                     }
 
-                    if ((results.size() < efSearch || dist < results.top()->dist) && isNeighborMasked) {
+                    if ((results.size() < efSearch || dist < results.top()->dist)) {
                         candidates.emplace(neighbor.offset, dist);
-                        results.push(NodeDistFarther(neighbor.offset, dist));
+                        if (isNeighborMasked) {
+                            results.push(NodeDistFarther(neighbor.offset, dist));
+                        }
                     }
                 }
                 cachedNbrsCount[candidate.id] = filteredCount;
@@ -575,7 +577,7 @@ namespace kuzu {
                         oneHopSearch(candidates, firstHopNbrs, dc, filterMask, results, visited,
                                      efSearch, totalDist, dcTime);
                         oneHopSearchCount++;
-                    } else if ((filterNbrsToFind * filterNbrsToFind * localSelectivity) > (filterNbrsToFind * 4)) {
+                    } else if ((filterNbrsToFind * filterNbrsToFind * localSelectivity) > (filterNbrsToFind * 3)) {
                         // We will use this metric to skip unwanted distance computation in the first hop
                         dynamicTwoHopSearch(candidates, candidate, filterNbrsToFind, cachedNbrsCount,
                                             firstHopNbrs, tableId, graph, dc, filterMask,
