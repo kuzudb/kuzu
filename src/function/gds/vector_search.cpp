@@ -400,7 +400,8 @@ namespace kuzu {
                                             NodeOffsetLevelSemiMask *filterMask,
                                             GraphScanState &state,
                                             BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
-                                            const int efSearch, int &totalGetNbrs, int &totalDist) {
+                                            const int efSearch, int &totalGetNbrs, int &totalDist, long &dcTime,
+                                            long &ListNbrsCallTime) {
                 // Get the first hop neighbours
                 std::priority_queue<NodeDistFarther> nbrsToExplore;
 
@@ -415,7 +416,10 @@ namespace kuzu {
                         continue;
                     }
                     double dist;
+                    auto start = std::chrono::high_resolution_clock::now();
                     dc->computeDistance(neighbor.offset, &dist);
+                    auto end = std::chrono::high_resolution_clock::now();
+                    dcTime += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
                     totalDist++;
                     nbrsToExplore.emplace(neighbor.offset, dist);
 
@@ -449,7 +453,10 @@ namespace kuzu {
                     visited->set_bit(neighbor.id);
 
                     int secondHopFilteredNbrCount = 0;
+                    auto start = std::chrono::high_resolution_clock::now();
                     auto secondHopNbrs = graph->scanFwdRandom({neighbor.id, tableId}, state);
+                    auto end = std::chrono::high_resolution_clock::now();
+                    ListNbrsCallTime += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
                     totalGetNbrs++;
 
                     // Try prefetching
@@ -469,7 +476,10 @@ namespace kuzu {
                             // TODO: Maybe there's some benefit in doing batch distance computation
                             visited->set_bit(secondHopNeighbor.offset);
                             double dist;
+                            auto start = std::chrono::high_resolution_clock::now();
                             dc->computeDistance(secondHopNeighbor.offset, &dist);
+                            auto end = std::chrono::high_resolution_clock::now();
+                            dcTime += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
                             totalDist++;
                             if (results.size() < efSearch || dist < results.top()->dist) {
                                 candidates.emplace(secondHopNeighbor.offset, dist);
