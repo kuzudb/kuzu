@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
 #include "common/types/types.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
@@ -9,7 +10,6 @@
 #include "graph/graph.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
-#include "binder/expression/expression_util.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -65,7 +65,7 @@ public:
         init(numNodesMap, mm);
     }
 
-    void pinTable(table_id_t tableID) { coreValues = coreValuesMap.getData(tableID);}
+    void pinTable(table_id_t tableID) { coreValues = coreValuesMap.getData(tableID); }
 
     bool isValid(offset_t offset) {
         return coreValues[offset].load(std::memory_order_relaxed) != INVALID_DEGREE;
@@ -96,10 +96,8 @@ private:
 class KCoreFrontierPair : public FrontierPair {
 public:
     KCoreFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-        std::shared_ptr<GDSFrontier> nextFrontier, Degrees* degrees,
-        CoreValues* coreValues)
-        : FrontierPair(curFrontier, nextFrontier), degrees{degrees},
-          coreValues{coreValues} {}
+        std::shared_ptr<GDSFrontier> nextFrontier, Degrees* degrees, CoreValues* coreValues)
+        : FrontierPair(curFrontier, nextFrontier), degrees{degrees}, coreValues{coreValues} {}
 
     void initRJFromSource(nodeID_t /* source */) override{};
 
@@ -135,8 +133,8 @@ struct DegreeEdgeCompute : public EdgeCompute {
 
     explicit DegreeEdgeCompute(Degrees* degrees) : degrees{degrees} {}
 
-    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID,
-        graph::NbrScanState::Chunk& chunk, bool) override {
+    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
+        bool) override {
         degrees->addDegree(boundNodeID.offset, chunk.size());
         return {};
     }
@@ -151,11 +149,9 @@ struct RemoveVertexEdgeCompute : public EdgeCompute {
 
     explicit RemoveVertexEdgeCompute(Degrees* degrees) : degrees{degrees} {}
 
-    std::vector<nodeID_t> edgeCompute(nodeID_t,
-        graph::NbrScanState::Chunk& chunk, bool) override {
-        chunk.forEach([&](auto nbrNodeID, auto) {
-            degrees->decreaseDegreeByOne(nbrNodeID.offset);
-        });
+    std::vector<nodeID_t> edgeCompute(nodeID_t, graph::NbrScanState::Chunk& chunk, bool) override {
+        chunk.forEach(
+            [&](auto nbrNodeID, auto) { degrees->decreaseDegreeByOne(nbrNodeID.offset); });
         return {};
     }
 
@@ -166,8 +162,8 @@ struct RemoveVertexEdgeCompute : public EdgeCompute {
 
 class KCoreOutputWriter : GDSOutputWriter {
 public:
-    KCoreOutputWriter(main::ClientContext* context,
-        processor::NodeOffsetMaskMap* outputNodeMask, CoreValues* coreValues)
+    KCoreOutputWriter(main::ClientContext* context, processor::NodeOffsetMaskMap* outputNodeMask,
+        CoreValues* coreValues)
         : GDSOutputWriter{context, outputNodeMask}, coreValues{coreValues} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID(), context->getMemoryManager());
         kValueVector = createVector(LogicalType::UINT64(), context->getMemoryManager());
@@ -255,8 +251,8 @@ public:
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<DegreeLessThanCoreVertexCompute>(degrees, coreValues,
-            frontierPair, coreValue, numActiveNodes);
+        return std::make_unique<DegreeLessThanCoreVertexCompute>(degrees, coreValues, frontierPair,
+            coreValue, numActiveNodes);
     }
 
 private:
@@ -326,7 +322,8 @@ public:
                 std::atomic<offset_t> numActiveNodes;
                 numActiveNodes.store(0);
                 // Find nodes with degree less than current core.
-                auto vc = DegreeLessThanCoreVertexCompute(&degrees, &coreValues, computeState.frontierPair.get(), coreValue, numActiveNodes);
+                auto vc = DegreeLessThanCoreVertexCompute(&degrees, &coreValues,
+                    computeState.frontierPair.get(), coreValue, numActiveNodes);
                 GDSUtils::runVertexCompute(context, sharedState->graph.get(), vc);
                 numNodesComputed += numActiveNodes.load();
                 if (numActiveNodes.load() == 0) {
@@ -335,7 +332,8 @@ public:
                 // Remove found nodes by decreasing their nbrs degree by one.
                 computeState.frontierPair->setActiveNodesForNextIter();
                 computeState.frontierPair->getNextSparseFrontier().disable();
-                GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH,
+                GDSUtils::runFrontiersUntilConvergence(context, computeState, graph,
+                    ExtendDirection::BOTH,
                     computeState.frontierPair->getCurrentIter() + 1 /* maxIters */);
                 // Repeat until all remaining nodes has degree greater than current core.
             }

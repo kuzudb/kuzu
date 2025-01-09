@@ -277,9 +277,7 @@ public:
     SparseFrontier& getNextSparseFrontier() const { return *nextSparseFrontier; }
     SparseFrontier& getVertexComputeCandidates() const { return *vertexComputeCandidates; }
 
-    bool hasActiveNodes() {
-        return hasActiveNodesForNextIter_.load(std::memory_order_relaxed);
-    }
+    bool hasActiveNodes() { return hasActiveNodesForNextIter_.load(std::memory_order_relaxed); }
     bool continueNextIter(uint16_t maxIter);
 
     void addNodeToNextDenseFrontier(common::nodeID_t nodeID);

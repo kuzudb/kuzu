@@ -24,7 +24,8 @@ class WCCFrontierPair : public FrontierPair {
 public:
     WCCFrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
         std::shared_ptr<GDSFrontier> nextFrontier, table_id_map_t<offset_t> numNodesMap,
-        storage::MemoryManager* mm) : FrontierPair(curFrontier, nextFrontier) {
+        storage::MemoryManager* mm)
+        : FrontierPair(curFrontier, nextFrontier) {
         initVertexValues(numNodesMap, mm);
     }
 
