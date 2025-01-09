@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "common/api.h"
-#include "common/case_insensitive_map.h"
 #include "kuzu_fwd.h"
 #include "main/db_config.h"
 
