@@ -22,8 +22,7 @@ public:
     KUZU_API void registerStorageExtension(std::string name,
         std::unique_ptr<storage::StorageExtension> storageExtension);
 
-    common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>>&
-    getStorageExtensions();
+    std::vector<storage::StorageExtension*> getStorageExtensions();
 
 private:
     std::vector<LoadedExtension> loadedExtensions;

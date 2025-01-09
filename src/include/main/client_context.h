@@ -7,7 +7,6 @@
 
 #include "common/timer.h"
 #include "common/types/value/value.h"
-#include "db_config.h"
 #include "function/table/scan_replacement.h"
 #include "main/client_config.h"
 #include "parser/statement.h"
@@ -51,6 +50,7 @@ class Database;
 class DatabaseManager;
 class AttachedKuzuDatabase;
 struct SpillToDiskSetting;
+struct ExtensionOption;
 
 struct ActiveQuery {
     explicit ActiveQuery();

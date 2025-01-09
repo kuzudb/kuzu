@@ -148,7 +148,7 @@ void Database::addExtensionOption(std::string name, LogicalTypeID type, Value de
     extensionManager->addExtensionOption(name, type, std::move(defaultValue));
 }
 
-case_insensitive_map_t<std::unique_ptr<StorageExtension>>& Database::getStorageExtensions() {
+std::vector<StorageExtension*> Database::getStorageExtensions() {
     return extensionManager->getStorageExtensions();
 }
 

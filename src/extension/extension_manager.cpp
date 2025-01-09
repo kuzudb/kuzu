@@ -68,9 +68,12 @@ void ExtensionManager::registerStorageExtension(std::string name,
     storageExtensions.emplace(std::move(name), std::move(storageExtension));
 }
 
-common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>>&
-ExtensionManager::getStorageExtensions() {
-    return storageExtensions;
+std::vector<storage::StorageExtension*> ExtensionManager::getStorageExtensions() {
+    std::vector<storage::StorageExtension*> storageExtensionsToReturn;
+    for (auto& [name, storageExtension] : storageExtensions) {
+        storageExtensionsToReturn.push_back(storageExtension.get());
+    }
+    return storageExtensionsToReturn;
 }
 
 } // namespace extension

@@ -122,8 +122,7 @@ public:
 
     const DBConfig& getConfig() const { return dbConfig; }
 
-    common::case_insensitive_map_t<std::unique_ptr<storage::StorageExtension>>&
-    getStorageExtensions();
+    std::vector<storage::StorageExtension*> getStorageExtensions();
 
     uint64_t getNextQueryID();
 
