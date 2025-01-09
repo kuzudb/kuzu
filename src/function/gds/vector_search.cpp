@@ -292,14 +292,17 @@ namespace kuzu {
                                      std::vector<common::nodeID_t> &firstHopNbrs, NodeTableDistanceComputer<T> *dc,
                                      NodeOffsetLevelSemiMask *filterMask,
                                      BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
-                                     const int efSearch, int &totalDist) {
+                                     const int efSearch, int &totalDist, long &dcTime) {
                 for (auto &neighbor: firstHopNbrs) {
                     if (visited->is_bit_set(neighbor.offset)) {
                         continue;
                     }
                     visited->set_bit(neighbor.offset);
                     double dist;
+                    auto start = std::chrono::high_resolution_clock::now();
                     dc->computeDistance(neighbor.offset, &dist);
+                    auto end = std::chrono::high_resolution_clock::now();
+                    dcTime += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
                     totalDist += 1;
                     if (results.size() < efSearch || dist < results.top()->dist) {
                         candidates.emplace(neighbor.offset, dist);
@@ -317,7 +320,7 @@ namespace kuzu {
                                      NodeOffsetLevelSemiMask *filterMask,
                                      GraphScanState &state,
                                      BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
-                                     const int efSearch, int &totalGetNbrs, int &totalDist) {
+                                     const int efSearch, int &totalGetNbrs, int &totalDist, long &dcTime, long &ListNbrsCallTime) {
                 // Get the first hop neighbours
                 std::queue<vector_id_t> nbrsToExplore;
 
@@ -329,7 +332,10 @@ namespace kuzu {
                     }
                     if (isNeighborMasked) {
                         double dist;
+                        auto start = std::chrono::high_resolution_clock::now();
                         dc->computeDistance(neighbor.offset, &dist);
+                        auto end = std::chrono::high_resolution_clock::now();
+                        dcTime += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
                         totalDist++;
                         visited->set_bit(neighbor.offset);
                         if (results.size() < efSearch || dist < results.top()->dist) {
@@ -350,7 +356,10 @@ namespace kuzu {
                         continue;
                     }
                     visited->set_bit(neighbor);
+                    auto start = std::chrono::high_resolution_clock::now();
                     auto secondHopNbrs = graph->scanFwdRandom({neighbor, tableId}, state);
+                    auto end = std::chrono::high_resolution_clock::now();
+                    ListNbrsCallTime += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 
                     // Try prefetching
                     for (auto &secondHopNeighbor: secondHopNbrs) {
@@ -367,7 +376,10 @@ namespace kuzu {
                             // TODO: Maybe there's some benefit in doing batch distance computation
                             visited->set_bit(secondHopNeighbor.offset);
                             double dist;
+                            auto start = std::chrono::high_resolution_clock::now();
                             dc->computeDistance(secondHopNeighbor.offset, &dist);
+                            auto end = std::chrono::high_resolution_clock::now();
+                            dcTime += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
                             totalDist++;
                             if (results.size() < efSearch || dist < results.top()->dist) {
                                 candidates.emplace(secondHopNeighbor.offset, dist);
@@ -502,6 +514,8 @@ namespace kuzu {
                                 BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
                                 const int efSearch, const int numFilteredNodesToAdd, NumericMetric *distCompMetric,
                                 NumericMetric *listNbrsCallMetric) {
+                long dcTime = 0;
+                long ListNbrsCallTime = 0;
                 std::priority_queue<NodeDistFarther> candidates;
                 candidates.emplace(entrypoint, entrypointDist);
                 if (filterMask->isMasked(entrypoint)) {
@@ -549,7 +563,7 @@ namespace kuzu {
                         // If the selectivity is high, we will simply do one hop search since we can find the next
                         // closest directly from candidates priority queue.
                         oneHopSearch(candidates, firstHopNbrs, dc, filterMask, results, visited,
-                                     efSearch, totalDist);
+                                     efSearch, totalDist, dcTime);
                         oneHopSearchCount++;
                     } else if ((filterNbrsToFind * filterNbrsToFind * selectivity) > (filterNbrsToFind * 2)) {
                         // We will use this metric to skip unwanted distance computation in the first hop
@@ -561,13 +575,15 @@ namespace kuzu {
                         // If the selectivity is low, we will not do dynamic two hop search since it does some extra
                         // distance computations to reduce listNbrs call which are redundant.
                         twoHopSearch(candidates, firstHopNbrs, tableId, graph, dc, filterMask, state, results, visited,
-                                     efSearch, totalGetNbrs, totalDist);
+                                     efSearch, totalGetNbrs, totalDist, dcTime, ListNbrsCallTime);
                         twoHopSearchCount++;
                     }
                 }
                 printf("One hop search count: %d\n", oneHopSearchCount);
                 printf("Two hop search count: %d\n", twoHopSearchCount);
                 printf("Dynamic two hop search count: %d\n", dynamicTwoHopSearchCount);
+                printf("dc time: %ld ns\n", dcTime);
+                printf("ListNbrs call time: %ld ns\n", ListNbrsCallTime);
                 distCompMetric->increase(totalDist);
                 listNbrsCallMetric->increase(totalGetNbrs);
             }
