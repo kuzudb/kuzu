@@ -551,7 +551,7 @@ namespace kuzu {
                         oneHopSearch(candidates, firstHopNbrs, dc, filterMask, results, visited,
                                      efSearch, totalDist);
                         oneHopSearchCount++;
-                    } else if ((filterNbrsToFind * filterNbrsToFind * localSelectivity) > (filterNbrsToFind * 2)) {
+                    } else if ((filterNbrsToFind * filterNbrsToFind * localSelectivity) > (filterNbrsToFind * 3)) {
                         // We will use this metric to skip unwanted distance computation in the first hop
                         dynamicTwoHopSearch(candidates, candidate, filterNbrsToFind, cachedNbrsCount,
                                             firstHopNbrs, tableId, graph, dc, filterMask,
