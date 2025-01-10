@@ -1,4 +1,5 @@
 -DATASET CSV tinysnb
+-ENABLE_FWD_ONLY
 --
 
 -CASE Merge1
