@@ -1,4 +1,5 @@
 -DATASET CSV empty
+-ENABLE_FWD_ONLY
 --
 
 -CASE DeleteRelEmptyDB

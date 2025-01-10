@@ -1,5 +1,4 @@
 -DATASET CSV tinysnb
-
 --
 
 -CASE InsertMultipleRelsAutoCheckpoint

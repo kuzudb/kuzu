@@ -1,4 +1,5 @@
 -DATASET CSV node-insertion-deletion-tests/int64-pk
+-ENABLE_FWD_ONLY
 --
 
 -CASE MixedInsertDeleteCommitNormalExecution
