@@ -134,7 +134,7 @@ struct CompressedVectorStorage {
             auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
             auto capacity = StorageConstants::NODE_GROUP_SIZE;
             auto numValues = chunkMeta.numValues;
-            auto columnChunk = ColumnChunkFactory::createColumnChunkData(dataType.copy(), true, capacity);
+            auto columnChunk = ColumnChunkFactory::createColumnChunkData(dataType.copy(), false, capacity, true, false);
             auto &listChunk = columnChunk->cast<ListChunkData>();
             listChunk.getDataColumnChunk()->resize(numValues * codeSize);
             // Set offset and size column

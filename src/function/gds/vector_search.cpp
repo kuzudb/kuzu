@@ -331,7 +331,9 @@ namespace kuzu {
                                   Graph *graph, NodeTableDistanceComputer<T> *dc,
                                   GraphScanState &state, const vector_id_t entrypoint, const double entrypointDist,
                                   BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
-                                  const int efSearch) {
+                                  const int efSearch, VectorSearchStats &stats) {
+                vector_array_t vectorArray;
+                int size;
                 std::priority_queue<NodeDistFarther> candidates;
                 candidates.emplace(entrypoint, entrypointDist);
                 results.push(NodeDistFarther{entrypoint, entrypointDist});
@@ -344,20 +346,19 @@ namespace kuzu {
                     candidates.pop();
 
                     // Get graph neighbours
+                    stats.listNbrsCallTime->start();
                     auto nbrs = graph->scanFwdRandom({candidate.id, tableId}, state);
+                    stats.listNbrsCallTime->stop();
+                    stats.listNbrsMetric->increase(1);
 
                     for (auto &neighbor: nbrs) {
                         if (visited->is_bit_set(neighbor.offset)) {
                             continue;
                         }
                         visited->set_bit(neighbor.offset);
-                        double dist = 0;
-                        dc->computeDistance(neighbor.offset, &dist);
-                        if (results.size() < efSearch || dist < results.top()->dist) {
-                            candidates.emplace(neighbor.offset, dist);
-                            results.push(NodeDistFarther(neighbor.offset, dist));
-                        }
+                        vectorArray[size++] = neighbor.offset;
                     }
+                    batchComputeDistance(vectorArray, size, dc, candidates, results, efSearch, stats);
                 }
             }
 
@@ -369,10 +370,9 @@ namespace kuzu {
                                      vector_array_t &vectorArray, int &size,
                                      const int efSearch, VectorSearchStats &stats) {
                 for (auto &neighbor: firstHopNbrs) {
-                    if (filterMask->isMasked(neighbor.offset)) {
+                    if (!filterMask->isMasked(neighbor.offset)) {
                         continue;
                     }
-
                     if (visited->is_bit_set(neighbor.offset)) {
                         continue;
                     }
@@ -560,7 +560,6 @@ namespace kuzu {
                             continue;
                         }
                         if (isNeighborMasked) {
-                            // TODO: Maybe there's some benefit in doing batch distance computation
                             visited->set_bit(secondHopNeighbor.offset);
                             vectorArray[size++] = secondHopNeighbor.offset;
                         }
@@ -690,7 +689,7 @@ namespace kuzu {
                 } else {
                     unfilteredSearch(nodeTableId, graph, dc, state,
                                      entrypoint,
-                                     entrypointDist, results, visited, efSearch);
+                                     entrypointDist, results, visited, efSearch, stats);
                 }
             }
 
@@ -771,6 +770,7 @@ namespace kuzu {
                 }
                 searchLocalState->materialize(reversed, *sharedState->fTable, k);
                 stats.vectorSearchTimeMetric->stop();
+                printf("vector search time: %f ms\n", stats.vectorSearchTimeMetric->getElapsedTimeMS());
             }
 
             std::unique_ptr<GDSAlgorithm> copy() const override {

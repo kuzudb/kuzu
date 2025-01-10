@@ -133,11 +133,11 @@ int main(int argc, char **argv) {
         auto totalQueriesSkipped = 0;
         long executionTime = 0;
         long compilationTime = 0;
-        long vectorSearchTime = 0;
+        double vectorSearchTime = 0;
         long avgDistanceComputations = 0;
-        long distCompTime = 0;
+        double distCompTime = 0;
         long avgListNbrsCalls = 0;
-        long listNbrsCallsTime = 0;
+        double listNbrsCallsTime = 0;
         long oneHopCalls = 0;
         long twoHopCalls = 0;
         long dynamicTwoHopCalls = 0;

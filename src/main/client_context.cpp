@@ -518,7 +518,7 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
     }
     executingTimer.stop();
     queryResult->querySummary->executionTime = executingTimer.getElapsedTimeMS();
-    queryResult->querySummary->vectorSearchSummary = {
+    queryResult->querySummary->vectorSearchSummary = VectorSearchSummary(
             profiler->sumAllTimeMetricsWithKey("vectorSearchTime"),
             profiler->sumAllNumericMetricsWithKey("distanceComputations"),
             profiler->sumAllTimeMetricsWithKey("distanceComputationTime"),
@@ -526,7 +526,7 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
             profiler->sumAllTimeMetricsWithKey("listNbrsCallTime"),
             profiler->sumAllNumericMetricsWithKey("oneHopCalls"),
             profiler->sumAllNumericMetricsWithKey("twoHopCalls"),
-            profiler->sumAllNumericMetricsWithKey("dynamicTwoHopCalls")};
+            profiler->sumAllNumericMetricsWithKey("dynamicTwoHopCalls"));
     queryResult->initResultTableAndIterator(std::move(resultFT),
         preparedStatement->statementResult->getColumns());
     return queryResult;

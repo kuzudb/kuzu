@@ -29,6 +29,6 @@ void kuzu_database_destroy(kuzu_database* database) {
 }
 
 kuzu_system_config kuzu_default_system_config() {
-    return {0 /*bufferPoolSize*/, 0 /*maxNumThreads*/, true /*enableCompression*/,
+    return {0 /*bufferPoolSize*/, 0 /*maxNumThreads*/, false /*enableCompression*/,
         false /*readOnly*/, BufferPoolConstants::DEFAULT_VM_REGION_MAX_SIZE};
 }

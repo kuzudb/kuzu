@@ -23,6 +23,15 @@ struct VectorSearchSummary {
     uint64_t oneHopCalls = 0;
     uint64_t twoHopCalls = 0;
     uint64_t dynamicTwoHopCalls = 0;
+
+    explicit VectorSearchSummary() = default;
+
+    explicit VectorSearchSummary(double vectorSearchTime_, uint64_t distanceComputations_, double distanceComputationsTime_,
+                                 uint64_t listNbrsCalls_, double listNbrsCallsTime_, uint64_t oneHopCalls_, uint64_t twoHopCalls_,
+                                 uint64_t dynamicTwoHopCalls_)
+        : vectorSearchTime{vectorSearchTime_}, distanceComputations{distanceComputations_},
+          distanceComputationsTime{distanceComputationsTime_}, listNbrsCalls{listNbrsCalls_}, listNbrsCallsTime{listNbrsCallsTime_},
+          oneHopCalls{oneHopCalls_}, twoHopCalls{twoHopCalls_}, dynamicTwoHopCalls{dynamicTwoHopCalls_} {}
 };
 
 /**
