@@ -53,7 +53,7 @@ struct CreateHNSWLocalState final : TableFuncLocalState {
 struct BoundQueryHNSWIndexInput {
     catalog::NodeTableCatalogEntry* nodeTableEntry;
     catalog::HNSWIndexCatalogEntry* indexEntry;
-    std::vector<float> queryVector;
+    std::shared_ptr<binder::Expression> queryExpression;
     uint64_t k;
 };
 

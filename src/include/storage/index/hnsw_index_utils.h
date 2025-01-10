@@ -15,8 +15,6 @@ struct HNSWIndexUtils {
     static void validateColumnType(const catalog::TableCatalogEntry& tableEntry,
         const std::string& columnName);
 
-    static void validateQueryVector(const common::LogicalType& type, uint64_t dimension);
-
     static std::string getUpperGraphTableName(const std::string& indexName) {
         return "_" + indexName + "_UPPER";
     }

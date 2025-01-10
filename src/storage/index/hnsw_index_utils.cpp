@@ -38,14 +38,6 @@ void HNSWIndexUtils::validateColumnType(const catalog::TableCatalogEntry& tableE
     validateColumnType(type);
 }
 
-void HNSWIndexUtils::validateQueryVector(const common::LogicalType& type, uint64_t dimension) {
-    validateColumnType(type);
-    if (type.getExtraTypeInfo()->constPtrCast<common::ArrayTypeInfo>()->getNumElements() !=
-        dimension) {
-        throw common::BinderException("Query vector dimension does not match index dimension.");
-    }
-}
-
 double HNSWIndexUtils::computeDistance(DistFuncType funcType, const float* left, const float* right,
     uint32_t dimension) {
     double distance = 0.0;
