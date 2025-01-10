@@ -258,7 +258,7 @@ namespace kuzu {
 
             inline void reverseAndRerankResults(BinaryHeap<NodeDistFarther> &results,
                                                 std::priority_queue<NodeDistFarther> &reversed,
-                                                NodeTableDistanceComputer<float> *dc) {
+                                                NodeTableDistanceComputer<float> *dc, VectorSearchStats &stats) {
                 vector_array_t reranked;
                 constexpr int batch_size = 32;
                 std::array<double, batch_size> dists;
@@ -267,12 +267,23 @@ namespace kuzu {
                     auto res = results.popMin();
                     reranked[size++] = res.id;
                     if (size == batch_size) {
+                        stats.distanceComputationTime->start();
                         dc->batchComputeDistance(reranked.data(), size, dists.data());
+                        stats.distanceComputationTime->stop();
+                        stats.distCompMetric->increase(size);
                         for (int i = 0; i < size; i++) {
                             reversed.emplace(reranked[i], dists[i]);
                         }
                         size = 0;
                     }
+                }
+                for (int i = 0; i < size; i++) {
+                    double dist;
+                    stats.distanceComputationTime->start();
+                    dc->computeDistance(reranked[i], &dist);
+                    stats.distanceComputationTime->stop();
+                    stats.distCompMetric->increase(1);
+                    reversed.emplace(reranked[i], dist);
                 }
             }
 
@@ -761,7 +772,7 @@ namespace kuzu {
                     if (useQuantizedVectors) {
                         search(header, nodeTableId, graph, qdc, filterMask, *state.get(), results, visited.get(),
                                efSearch, numFilteredNodesToAdd, stats);
-                        reverseAndRerankResults(results, reversed, dc);
+                        reverseAndRerankResults(results, reversed, dc, stats);
                     } else {
                         search(header, nodeTableId, graph, dc, filterMask, *state.get(), results, visited.get(),
                                efSearch, numFilteredNodesToAdd, stats);
