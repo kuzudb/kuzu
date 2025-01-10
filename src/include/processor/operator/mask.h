@@ -86,9 +86,10 @@ public:
     // Note: blindly update mask does not parallelize well, so we minimize write by first checking
     // if the mask is set to true (mask value is equal to the expected currentMaskValue) or not.
     inline void incrementMaskValue(common::offset_t offset, uint8_t currentMaskValue) {
-        if (maskData->isMasked(offset, currentMaskValue)) {
-            maskData->setMask(offset, currentMaskValue + 1);
-        }
+        maskData->setMask(offset, currentMaskValue + 1);
+//        if (maskData->isMasked(offset, currentMaskValue)) {
+//            maskData->setMask(offset, currentMaskValue + 1);
+//        }
     }
 
     void incrementNumMaskedNodes(uint64_t delta) { maskData->incrementNumMaskedNodes(delta); }
