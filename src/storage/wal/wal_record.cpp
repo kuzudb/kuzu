@@ -131,6 +131,7 @@ std::unique_ptr<CreateTableEntryRecord> CreateTableEntryRecord::deserialize(
 void CreateCatalogEntryRecord::serialize(Serializer& serializer) const {
     WALRecord::serialize(serializer);
     catalogEntry->serialize(serializer);
+    serializer.serializeValue(isInternal);
 }
 
 std::unique_ptr<CreateCatalogEntryRecord> CreateCatalogEntryRecord::deserialize(
@@ -138,6 +139,9 @@ std::unique_ptr<CreateCatalogEntryRecord> CreateCatalogEntryRecord::deserialize(
     auto catalogEntry = catalog::CatalogEntry::deserialize(deserializer);
     auto retVal = std::make_unique<CreateCatalogEntryRecord>();
     retVal->ownedCatalogEntry = std::move(catalogEntry);
+    bool isInternal = false;
+    deserializer.deserializeValue(isInternal);
+    retVal->isInternal = isInternal;
     return retVal;
 }
 

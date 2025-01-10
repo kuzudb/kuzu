@@ -370,6 +370,7 @@ static std::vector<std::string> getTerms(std::string& query, const std::string& 
 }
 
 void QueryFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& context) {
+    context.setToUseInternalCatalogEntry();
     auto inputTableName = getParamVal(input, 0);
     auto indexName = getParamVal(input, 1);
     auto query = getParamVal(input, 2);

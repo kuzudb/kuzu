@@ -57,10 +57,10 @@ CatalogEntry* CatalogSet::getEntryNoLock(const Transaction* transaction,
 }
 
 static void logEntryForTrx(Transaction* transaction, CatalogSet& set, CatalogEntry& entry,
-    bool skipLoggingToWAL = false) {
+    bool isInternal, bool skipLoggingToWAL = false) {
     KU_ASSERT(transaction);
     if (transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushCatalogEntry(set, entry, skipLoggingToWAL);
+        transaction->pushCatalogEntry(set, entry, isInternal, skipLoggingToWAL);
     }
 }
 
@@ -74,7 +74,7 @@ oid_t CatalogSet::createEntry(Transaction* transaction, std::unique_ptr<CatalogE
         entryPtr = createEntryNoLock(transaction, std::move(entry));
     }
     KU_ASSERT(entryPtr);
-    logEntryForTrx(transaction, *this, *entryPtr);
+    logEntryForTrx(transaction, *this, *entryPtr, isInternal());
     return oid;
 }
 
@@ -151,7 +151,7 @@ void CatalogSet::dropEntry(Transaction* transaction, const std::string& name, oi
         entryPtr = dropEntryNoLock(transaction, name, oid);
     }
     KU_ASSERT(entryPtr);
-    logEntryForTrx(transaction, *this, *entryPtr);
+    logEntryForTrx(transaction, *this, *entryPtr, isInternal());
 }
 
 CatalogEntry* CatalogSet::dropEntryNoLock(const Transaction* transaction, const std::string& name,
@@ -192,7 +192,7 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
         tableEntry->setAlterInfo(alterInfo);
     }
     KU_ASSERT(entry);
-    logEntryForTrx(transaction, *this, *entry);
+    logEntryForTrx(transaction, *this, *entry, isInternal());
     if (createdEntry) {
         logEntryForTrx(transaction, *this, *createdEntry, true /* skip logging to WAL */);
     }
@@ -241,6 +241,10 @@ CatalogEntry* CatalogSet::getEntryOfOID(const Transaction* transaction, oid_t oi
         return currentEntry;
     }
     return nullptr;
+}
+
+void CatalogSet::setAsInternal() {
+    nextOID = INTERNAL_CATALOG_SET_START_OID;
 }
 
 void CatalogSet::serialize(Serializer serializer) const {

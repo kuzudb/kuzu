@@ -99,11 +99,13 @@ struct CreateTableEntryRecord final : WALRecord {
 struct CreateCatalogEntryRecord final : WALRecord {
     catalog::CatalogEntry* catalogEntry;
     std::unique_ptr<catalog::CatalogEntry> ownedCatalogEntry;
+    bool isInternal = false;
 
     CreateCatalogEntryRecord()
         : WALRecord{WALRecordType::CREATE_CATALOG_ENTRY_RECORD}, catalogEntry{nullptr} {}
-    explicit CreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry)
-        : WALRecord{WALRecordType::CREATE_CATALOG_ENTRY_RECORD}, catalogEntry{catalogEntry} {}
+    CreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry, bool isInternal)
+        : WALRecord{WALRecordType::CREATE_CATALOG_ENTRY_RECORD}, catalogEntry{catalogEntry},
+          isInternal{isInternal} {}
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<CreateCatalogEntryRecord> deserialize(

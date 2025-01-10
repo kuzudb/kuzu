@@ -40,16 +40,6 @@ std::string ExportDBPrintInfo::toString() const {
     return result;
 }
 
-// TODO(Ziyi): Remove after we support virtual tables.
-static bool isInternalTable(const std::string& name) {
-    std::regex pattern(R"(^\d+_\w+_\w+)");
-    std::smatch match;
-    if (std::regex_search(name, match, pattern)) {
-        return true;
-    }
-    return false;
-}
-
 void ExportDB::initGlobalStateInternal(ExecutionContext* context) {
     const auto vfs = context->clientContext->getVFSUnsafe();
     KU_ASSERT(!vfs->fileOrPathExists(boundFileInfo.filePaths[0], context->clientContext));
@@ -84,16 +74,11 @@ static void writeCopyStatement(stringstream& ss, const TableCatalogEntry* entry,
 std::string getSchemaCypher(ClientContext* clientContext, Transaction* transaction) {
     stringstream ss;
     const auto catalog = clientContext->getCatalog();
-    for (const auto& nodeTableEntry : catalog->getNodeTableEntries(transaction)) {
-        if (isInternalTable(nodeTableEntry->getName())) {
-            continue;
-        }
+    for (const auto& nodeTableEntry :
+        catalog->getNodeTableEntries(transaction, false /* useInternal */)) {
         ss << nodeTableEntry->toCypher(clientContext) << std::endl;
     }
-    for (const auto& entry : catalog->getRelTableEntries(transaction)) {
-        if (isInternalTable(entry->getName())) {
-            continue;
-        }
+    for (const auto& entry : catalog->getRelTableEntries(transaction, false /* useInternal */)) {
         if (catalog->tableInRelGroup(transaction, entry->getTableID())) {
             continue;
         }
@@ -116,16 +101,11 @@ std::string getSchemaCypher(ClientContext* clientContext, Transaction* transacti
 std::string getCopyCypher(const Catalog* catalog, Transaction* transaction,
     const FileScanInfo* boundFileInfo) {
     stringstream ss;
-    for (const auto& nodeTableEntry : catalog->getNodeTableEntries(transaction)) {
-        if (isInternalTable(nodeTableEntry->getName())) {
-            continue;
-        }
+    for (const auto& nodeTableEntry :
+        catalog->getNodeTableEntries(transaction, false /* useInternal */)) {
         writeCopyStatement(ss, nodeTableEntry, boundFileInfo);
     }
-    for (const auto& entry : catalog->getRelTableEntries(transaction)) {
-        if (isInternalTable(entry->getName())) {
-            continue;
-        }
+    for (const auto& entry : catalog->getRelTableEntries(transaction, false /* useInternal */)) {
         writeCopyStatement(ss, entry, boundFileInfo);
     }
     return ss.str();

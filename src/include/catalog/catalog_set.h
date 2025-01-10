@@ -38,6 +38,7 @@ public:
     void iterateEntriesOfType(const transaction::Transaction* transaction, CatalogEntryType type,
         const std::function<void(const CatalogEntry*)>& func);
     CatalogEntry* getEntryOfOID(const transaction::Transaction* transaction, common::oid_t oid);
+    void setAsInternal();
 
     void serialize(common::Serializer serializer) const;
     static std::unique_ptr<CatalogSet> deserialize(common::Deserializer& deserializer);
@@ -66,6 +67,12 @@ private:
     static CatalogEntry* traverseVersionChainsForTransactionNoLock(
         const transaction::Transaction* transaction, CatalogEntry* currentEntry);
     static CatalogEntry* getCommittedEntryNoLock(CatalogEntry* entry);
+    bool isInternal() const { return nextOID >= INTERNAL_CATALOG_SET_START_OID; }
+
+public:
+    // To ensure the uniqueness of the OID and avoid conflict with user tables/sequence, we make the
+    // start OID of the internal catalog set to be 2^63.
+    static constexpr common::oid_t INTERNAL_CATALOG_SET_START_OID = 1LL << 63;
 
 private:
     std::shared_mutex mtx;

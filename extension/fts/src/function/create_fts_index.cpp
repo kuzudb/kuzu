@@ -56,6 +56,34 @@ static std::vector<std::string> bindProperties(const catalog::NodeTableCatalogEn
     return result;
 }
 
+static void validateIndexNotExist(const ClientContext& context, table_id_t tableID,
+    const std::string& indexName) {
+    if (context.getCatalog()->containsIndex(context.getTransaction(), tableID, indexName)) {
+        throw BinderException{stringFormat("Index: {} already exists in table: {}.", indexName,
+            context.getCatalog()->getTableName(context.getTransaction(), tableID))};
+    }
+}
+
+static void validateInternalTableNotExist(const std::string& tableName,
+    const catalog::Catalog& catalog, transaction::Transaction* trx) {
+    if (catalog.containsTable(trx, tableName)) {
+        throw common::BinderException{
+            common::stringFormat("Table: {} already exists. Please drop or rename the table before "
+                                 "creating a full text search index.",
+                tableName)};
+    }
+}
+
+static void validateInternalTablesNotExist(common::table_id_t tableID, const std::string& indexName,
+    const catalog::Catalog& catalog, transaction::Transaction* trx) {
+    validateInternalTableNotExist(FTSUtils::getDocsTableName(tableID, indexName), catalog, trx);
+    validateInternalTableNotExist(FTSUtils::getAppearsInTableName(tableID, indexName), catalog,
+        trx);
+    validateInternalTableNotExist(FTSUtils::getAppearsInfoTableName(tableID, indexName), catalog,
+        trx);
+    validateInternalTableNotExist(FTSUtils::getTermsTableName(tableID, indexName), catalog, trx);
+}
+
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     const TableFuncBindInput* input) {
     storage::IndexUtils::validateAutoTransaction(*context, CreateFTSFunction::name);
@@ -82,8 +110,11 @@ static std::string createStopWordsTableIfNotExists(const ClientContext& context,
     return query;
 }
 
-std::string createFTSIndexQuery(const ClientContext& context, const TableFuncBindData& bindData) {
+std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData& bindData) {
     auto ftsBindData = bindData.constPtrCast<CreateFTSBindData>();
+    validateInternalTablesNotExist(ftsBindData->tableID, ftsBindData->indexName,
+        *context.getCatalog(), context.getTransaction());
+    context.setToUseInternalCatalogEntry();
     // TODO(Ziyi): Copy statement can't be wrapped in manual transaction, so we can't wrap all
     // statements in a single transaction there.
     // Create the tokenize macro.
@@ -193,7 +224,6 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& /*output
     auto& bindData = *input.bindData->constPtrCast<CreateFTSBindData>();
     auto& context = *input.context;
     auto docTableName = FTSUtils::getDocsTableName(bindData.tableID, bindData.indexName);
-    ;
     auto docTableEntry = context.clientContext->getCatalog()->getTableCatalogEntry(
         context.clientContext->getTransaction(), docTableName);
     graph::GraphEntry entry{{docTableEntry}, {} /* relTableEntries */};

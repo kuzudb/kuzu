@@ -75,7 +75,7 @@ public:
     static std::unique_ptr<SequenceCatalogEntry> deserialize(common::Deserializer& deserializer);
     std::string toCypher(main::ClientContext* /*clientContext*/) const override;
 
-    binder::BoundCreateSequenceInfo getBoundCreateSequenceInfo() const;
+    binder::BoundCreateSequenceInfo getBoundCreateSequenceInfo(bool isInternal) const;
 
 private:
     void nextValNoLock();

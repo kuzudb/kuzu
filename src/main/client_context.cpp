@@ -298,7 +298,9 @@ std::unique_ptr<PreparedStatement> ClientContext::prepare(std::string_view query
         return preparedStatementWithError(
             "Connection Exception: We do not support prepare multiple statements.");
     }
-    return prepareNoLock(parsedStatements[0], true /*shouldCommitNewTransaction*/);
+    auto result = prepareNoLock(parsedStatements[0], true /*shouldCommitNewTransaction*/);
+    useInternalCatalogEntry = false;
+    return result;
 }
 
 std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement* preparedStatement,
@@ -318,6 +320,7 @@ std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement*
     KU_ASSERT(preparedStatement->parsedStatement != nullptr);
     const auto rebindPreparedStatement = prepareNoLock(preparedStatement->parsedStatement,
         false /*shouldCommitNewTransaction*/, preparedStatement->parameterMap);
+    useInternalCatalogEntry = false;
     return executeNoLock(rebindPreparedStatement.get(), queryID);
 }
 
@@ -354,6 +357,7 @@ std::unique_ptr<QueryResult> ClientContext::queryNoLock(std::string_view query,
             lastResult = lastResult->nextQueryResult.get();
         }
     }
+    useInternalCatalogEntry = false;
     return queryResult;
 }
 
@@ -471,6 +475,7 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
         preparedStatement->success = false;
         preparedStatement->errMsg = exception.what();
     }
+    preparedStatement->useInternalTable = useInternalCatalogEntry;
     prepareTimer.stop();
     preparedStatement->preparedSummary.compilingTime =
         preparedStatement->parsedStatement->getParsingTime() + prepareTimer.getElapsedTimeMS();
@@ -482,6 +487,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     if (!preparedStatement->isSuccess()) {
         return queryResultWithError(preparedStatement->errMsg);
     }
+    useInternalCatalogEntry = preparedStatement->useInternalTable;
     this->resetActiveQuery();
     this->startTimer();
     auto executingTimer = TimeMetric(true /* enable */);
@@ -517,6 +523,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
             TransactionHelper::getAction(true /*shouldCommitNewTransaction*/,
                 !preparedStatement->isTransactionStatement() /*shouldCommitAutoTransaction*/));
     } catch (std::exception& e) {
+        useInternalCatalogEntry = false;
         return handleFailedExecution(queryID, e);
     }
     getMemoryManager()->getBufferManager()->getSpillerOrSkip(

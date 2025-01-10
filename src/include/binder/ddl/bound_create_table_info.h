@@ -37,13 +37,14 @@ struct BoundCreateTableInfo {
     common::ConflictAction onConflict = common::ConflictAction::INVALID;
     bool hasParent = false;
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo;
+    bool isInternal = false;
 
     BoundCreateTableInfo() = default;
     BoundCreateTableInfo(common::TableType type, std::string tableName,
         common::ConflictAction onConflict,
-        std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo)
+        std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo, bool isInternal)
         : type{type}, tableName{std::move(tableName)}, onConflict{onConflict},
-          extraInfo{std::move(extraInfo)} {}
+          extraInfo{std::move(extraInfo)}, isInternal{isInternal} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundCreateTableInfo);
 
     std::string toString() const;
@@ -54,7 +55,8 @@ struct BoundCreateTableInfo {
 private:
     BoundCreateTableInfo(const BoundCreateTableInfo& other)
         : type{other.type}, tableName{other.tableName}, onConflict{other.onConflict},
-          hasParent{other.hasParent}, extraInfo{other.extraInfo->copy()} {}
+          hasParent{other.hasParent}, extraInfo{other.extraInfo->copy()},
+          isInternal{other.isInternal} {}
 };
 
 struct KUZU_API BoundExtraCreateTableInfo : public BoundExtraCreateCatalogEntryInfo {
