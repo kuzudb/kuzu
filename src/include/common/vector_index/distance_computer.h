@@ -340,6 +340,11 @@ struct NodeTableDistanceComputer {
         computeZeroCopyDistance(src + startOffset, dest + startOffset, delegate.get(), result);
     }
 
+    inline void batchComputeDistance(const vector_id_t* vecIds, const int numIds, double* results) {
+        KU_ASSERT(numIds <= common::FAST_LOOKUP_MAX_BATCH_SIZE && numIds >= 4);
+        batchComputeZeroCopyDistance(vecIds, numIds, delegate.get(), results);
+    }
+
     inline void setQuery(const float* query) {
         delegate->setQuery(query);
     }
@@ -387,6 +392,38 @@ private:
                                         auto destEmbedding =
                                                 reinterpret_cast<const T *>(frames[1]) + positionInFrame[1];
                                         dc->computeDistance(srcEmbedding, destEmbedding, dist);
+                                    });
+    }
+
+    inline void batchComputeZeroCopyDistance(const vector_id_t *vecIds, const int numIds, DistanceComputer<T> *dc,
+                                             double *results) {
+        // Initialize the read state
+        for (int i = 0; i < numIds; i++) {
+            auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(vecIds[i]);
+            readRequest->states[i] = readStates[nodeGroupIdx].get();
+            readRequest->nodeOffsets[i] = vecIds[i];
+        }
+        readRequest->size = numIds;
+        // Fast compute on embedding
+        embeddingColumn->fastLookup(TransactionType::READ_ONLY, readRequest.get(),
+                                    [dc, results, numIds](std::array<const uint8_t *, common::FAST_LOOKUP_MAX_BATCH_SIZE> frames,
+                                                   std::array<uint16_t, common::FAST_LOOKUP_MAX_BATCH_SIZE> positionInFrame,
+                                                   int size) {
+                                        KU_ASSERT(size == numIds);
+                                        int i = 0;
+                                        for (; i + 4 <= size; i += 4) {
+                                            auto embedding0 = reinterpret_cast<const T *>(frames[i]) + positionInFrame[i];
+                                            dc->computeDistance(embedding0, results + i);
+
+                                            auto embedding1 = reinterpret_cast<const T *>(frames[i + 1]) + positionInFrame[i + 1];
+                                            dc->computeDistance(embedding1, results + i + 1);
+
+                                            auto embedding2 = reinterpret_cast<const T *>(frames[i + 2]) + positionInFrame[i + 2];
+                                            dc->computeDistance(embedding2, results + i + 2);
+
+                                            auto embedding3 = reinterpret_cast<const T *>(frames[i + 3]) + positionInFrame[i + 3];
+                                            dc->computeDistance(embedding3, results + i + 3);
+                                        }
                                     });
     }
 

@@ -14,6 +14,17 @@ struct PreparedSummary {
     common::StatementType statementType;
 };
 
+struct VectorSearchSummary {
+    double vectorSearchTime = 0;
+    uint64_t distanceComputations = 0;
+    double distanceComputationsTime = 0;
+    uint64_t listNbrsCalls = 0;
+    double listNbrsCallsTime = 0;
+    uint64_t oneHopCalls = 0;
+    uint64_t twoHopCalls = 0;
+    uint64_t dynamicTwoHopCalls = 0;
+};
+
 /**
  * @brief QuerySummary stores the execution time, plan, compiling time and query options of a query.
  */
@@ -31,11 +42,7 @@ public:
      */
     KUZU_API double getExecutionTime() const;
 
-    KUZU_API double getVectorSearchTime() const;
-
-    KUZU_API int getDistanceComputations() const;
-
-    KUZU_API int getListNbrsCalls() const;
+    KUZU_API VectorSearchSummary getVectorSearchSummary() const;
 
     void setPreparedSummary(PreparedSummary preparedSummary_);
 
@@ -46,9 +53,7 @@ public:
 
 private:
     double executionTime = 0;
-    double vectorSearchTime = 0;
-    int distanceComputations = 0;
-    int listNbrsCalls = 0;
+    VectorSearchSummary vectorSearchSummary;
     PreparedSummary preparedSummary;
 };
 

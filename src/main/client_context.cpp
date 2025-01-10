@@ -518,9 +518,15 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
     }
     executingTimer.stop();
     queryResult->querySummary->executionTime = executingTimer.getElapsedTimeMS();
-    queryResult->querySummary->vectorSearchTime = profiler->sumAllTimeMetricsWithKey("vectorSearchTime");
-    queryResult->querySummary->distanceComputations = profiler->sumAllNumericMetricsWithKey("distanceComputations");
-    queryResult->querySummary->listNbrsCalls = profiler->sumAllNumericMetricsWithKey("listNbrsCalls");
+    queryResult->querySummary->vectorSearchSummary = {
+            profiler->sumAllTimeMetricsWithKey("vectorSearchTime"),
+            profiler->sumAllNumericMetricsWithKey("distanceComputations"),
+            profiler->sumAllTimeMetricsWithKey("distanceComputationTime"),
+            profiler->sumAllNumericMetricsWithKey("listNbrsCalls"),
+            profiler->sumAllTimeMetricsWithKey("listNbrsCallTime"),
+            profiler->sumAllNumericMetricsWithKey("oneHopCalls"),
+            profiler->sumAllNumericMetricsWithKey("twoHopCalls"),
+            profiler->sumAllNumericMetricsWithKey("dynamicTwoHopCalls")};
     queryResult->initResultTableAndIterator(std::move(resultFT),
         preparedStatement->statementResult->getColumns());
     return queryResult;

@@ -135,7 +135,13 @@ int main(int argc, char **argv) {
         long compilationTime = 0;
         long vectorSearchTime = 0;
         long avgDistanceComputations = 0;
+        long distCompTime = 0;
         long avgListNbrsCalls = 0;
+        long listNbrsCallsTime = 0;
+        long oneHopCalls = 0;
+        long twoHopCalls = 0;
+        long dynamicTwoHopCalls = 0;
+
         for (auto i = 0; i < queries.size(); i++) {
             printf("====== running query %d ======\n", i);
             auto localRecall = 0;
@@ -144,9 +150,15 @@ int main(int argc, char **argv) {
             long duration = res->getQuerySummary()->getExecutionTime();
             executionTime += duration;
             compilationTime += res->getQuerySummary()->getCompilingTime();
-            vectorSearchTime += res->getQuerySummary()->getVectorSearchTime();
-            avgDistanceComputations += res->getQuerySummary()->getDistanceComputations();
-            avgListNbrsCalls += res->getQuerySummary()->getListNbrsCalls();
+            auto vectorStats = res->getQuerySummary()->getVectorSearchSummary();
+            vectorSearchTime += vectorStats.vectorSearchTime;
+            avgDistanceComputations += vectorStats.distanceComputations;
+            distCompTime += vectorStats.distanceComputationsTime;
+            avgListNbrsCalls += vectorStats.listNbrsCalls;
+            listNbrsCallsTime += vectorStats.listNbrsCallsTime;
+            oneHopCalls += vectorStats.oneHopCalls;
+            twoHopCalls += vectorStats.twoHopCalls;
+            dynamicTwoHopCalls += vectorStats.dynamicTwoHopCalls;
             if (res->getNumTuples() < k) {
                 totalQueriesSkipped += 1;
                 printf("skipped query %d\n", i);
@@ -164,8 +176,6 @@ int main(int argc, char **argv) {
             }
             printf("Recall for query %d: %d\n", i, localRecall);
             printf("duration: %ld ms\n", duration);
-            printf("distance computations: %d, list nbrs calls: %d\n",
-                   res->getQuerySummary()->getDistanceComputations(), res->getQuerySummary()->getListNbrsCalls());
             printf("====================================\n");
             totalQueries++;
         }
@@ -175,7 +185,12 @@ int main(int argc, char **argv) {
         printf("Avg compilation time: %f ms\n", (double) compilationTime / totalQueries);
         printf("Avg vector search time: %f ms\n", (double) vectorSearchTime / totalQueries);
         printf("Avg distance computations: %f\n", (double) avgDistanceComputations / totalQueries);
+        printf("Avg distance computations time: %f ms\n", (double) distCompTime / totalQueries);
         printf("Avg list nbrs calls: %f\n", (double) avgListNbrsCalls / totalQueries);
+        printf("Avg list nbrs calls time: %f ms\n", (double) listNbrsCallsTime / totalQueries);
+        printf("Avg one hop calls: %f\n", (double) oneHopCalls / totalQueries);
+        printf("Avg two hop calls: %f\n", (double) twoHopCalls / totalQueries);
+        printf("Avg dynamic two hop calls: %f\n", (double) dynamicTwoHopCalls / totalQueries);
         printf("Total queries skipped: %d\n", totalQueriesSkipped);
         printf("Recall: %f\n", (double) recall / (queryNumVectors * k));
 
