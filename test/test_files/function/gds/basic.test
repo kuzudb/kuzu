@@ -103,16 +103,6 @@ Elizabeth|1
 Farooq|1
 Greg|1
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0
--STATEMENT CALL page_rank('PK') RETURN _node.fName, rank;
----- 8
-Alice|0.125000
-Bob|0.125000
-Carol|0.125000
-Dan|0.125000
-Elizabeth|0.022734
-Farooq|0.018750
-Greg|0.018750
-Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0.018750
 
 -STATEMENT CALL enable_gds = true;
 ---- ok

@@ -219,7 +219,7 @@ public:
             MAX_ITERATION);
         auto vertexCompute = std::make_unique<WCCVertexCompute>(clientContext->getMemoryManager(),
             sharedState.get(), std::move(writer));
-        GDSUtils::runVertexCompute(context, sharedState->graph.get(), *vertexCompute);
+        GDSUtils::runVertexCompute(context, graph, *vertexCompute);
         sharedState->mergeLocalTables();
     }
 
