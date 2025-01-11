@@ -306,7 +306,7 @@ namespace kuzu {
                     const int efSearch,
                     VectorSearchStats &stats) {
                 int i = 0;
-                constexpr int batch_size = 4;
+                constexpr int batch_size = 8;
                 std::array<double, batch_size> dists;
                 for (; i + batch_size <= size; i += batch_size) {
                     stats.distanceComputationTime->start();
@@ -464,7 +464,7 @@ namespace kuzu {
                     const int efSearch,
                     VectorSearchStats &stats) {
                 int i = 0;
-                constexpr int batch_size = 4;
+                constexpr int batch_size = 8;
                 std::array<double, batch_size> dists;
                 for (; i + batch_size <= size; i += batch_size) {
                     stats.distanceComputationTime->start();
@@ -524,7 +524,6 @@ namespace kuzu {
                     if (visited->is_bit_set(neighbor.offset)) {
                         continue;
                     }
-
                     if (isNeighborMasked) {
                         visited->set_bit(neighbor.offset);
                     }
