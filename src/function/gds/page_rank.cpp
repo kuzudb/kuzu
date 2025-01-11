@@ -10,6 +10,7 @@
 #include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
+#include "degrees.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -62,7 +63,9 @@ public:
 
     double getValue(offset_t offset) { return values[offset].load(std::memory_order_relaxed); }
 
-    void addValueCAS(offset_t offset, double val) { addCAS(values[offset], val); }
+    void addValueCAS(offset_t offset, double val) {
+        addCAS(values[offset], val);
+    }
 
     void setValue(offset_t offset, double val) {
         values[offset].store(val, std::memory_order_relaxed);
@@ -76,23 +79,26 @@ private:
 // Sum the weight (current rank / degree) for each incoming edge.
 class PNextUpdateEdgeCompute : public EdgeCompute {
 public:
-    PNextUpdateEdgeCompute(PValues* pCurrent, PValues* pNext) : pCurrent{pCurrent}, pNext{pNext} {}
+    PNextUpdateEdgeCompute(Degrees* degrees, PValues* pCurrent, PValues* pNext) : degrees{degrees}, pCurrent{pCurrent}, pNext{pNext} {}
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
         bool) override {
         if (chunk.size() > 0) {
-            auto valToAdd = pCurrent->getValue(boundNodeID.offset) / chunk.size();
-            chunk.forEach(
-                [&](auto nbrNodeID, auto) { pNext->addValueCAS(nbrNodeID.offset, valToAdd); });
+            double valToAdd = 0;
+            chunk.forEach([&](auto nbrNodeID, auto) {
+                valToAdd += pCurrent->getValue(nbrNodeID.offset) / degrees->getValue(nbrNodeID.offset);
+            });
+            pNext->addValueCAS(boundNodeID.offset, valToAdd);
         }
         return {boundNodeID};
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
-        return std::make_unique<PNextUpdateEdgeCompute>(pCurrent, pNext);
+        return std::make_unique<PNextUpdateEdgeCompute>(degrees, pCurrent, pNext);
     }
 
 private:
+    Degrees* degrees;
     PValues* pCurrent;
     PValues* pNext;
 };
@@ -157,29 +163,6 @@ private:
     PValues* pCurrent;
     PValues* pNext;
 };
-
-// class PResetVertexCompute : public VertexCompute {
-// public:
-//     explicit PResetVertexCompute(P* pCurrent) : pCurrent{pCurrent} {}
-//
-//     bool beginOnTable(common::table_id_t tableID) override {
-//         pCurrent->pin(tableID);
-//         return true;
-//     }
-//
-//     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
-//         for (auto i = startOffset; i < endOffset; ++i) {
-//             pCurrent->setValue(i, 0);
-//         }
-//     }
-//
-//     std::unique_ptr<VertexCompute> copy() override {
-//         return std::make_unique<PResetVertexCompute>(pCurrent);
-//     }
-//
-// private:
-//     P* pCurrent;
-// };
 
 class PageRankOutputWriter : public GDSOutputWriter {
 public:
@@ -284,18 +267,20 @@ public:
         auto currentIter = 1u;
         auto currentFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto nextFrontier = getPathLengthsFrontier(context, 0);
+        auto degrees = Degrees(numNodesMap, clientContext->getMemoryManager());
+        DegreesUtils::computeDegree(context, graph, &degrees, ExtendDirection::FWD);
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
         frontierPair->setActiveNodesForNextIter();
         frontierPair->getNextSparseFrontier().disable();
+        auto computeState = GDSComputeState(std::move(frontierPair), nullptr,
+            sharedState->getOutputNodeMaskMap());
         auto pNextUpdateConstant = (1 - pageRankBindData->dampingFactor) * ((double)1 / numNodes);
-        auto computeState =
-            GDSComputeState(std::move(frontierPair), nullptr, sharedState->getOutputNodeMaskMap());
         while (currentIter < pageRankBindData->maxIteration) {
-            auto ec = std::make_unique<PNextUpdateEdgeCompute>(pCurrent, pNext);
+            auto ec = std::make_unique<PNextUpdateEdgeCompute>(&degrees, pCurrent, pNext);
             computeState.edgeCompute = std::move(ec);
             GDSUtils::runFrontiersUntilConvergence(context, computeState, graph,
-                ExtendDirection::FWD, computeState.frontierPair->getCurrentIter() + 1);
+                ExtendDirection::BWD, computeState.frontierPair->getCurrentIter() + 1);
             auto pNextUpdateVC = PNextUpdateVertexCompute(pageRankBindData->dampingFactor,
                 pNextUpdateConstant, pNext);
             GDSUtils::runVertexCompute(context, graph, pNextUpdateVC);

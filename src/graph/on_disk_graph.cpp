@@ -160,7 +160,7 @@ OnDiskGraph::OnDiskGraph(ClientContext* context, const GraphEntry& entry)
     }
 }
 
-std::vector<table_id_t> OnDiskGraph::getNodeTableIDs() {
+std::vector<table_id_t> OnDiskGraph::getNodeTableIDs() const {
     std::vector<table_id_t> result;
     for (auto& entry : graphEntry.nodeEntries) {
         result.push_back(entry->getTableID());
@@ -168,7 +168,7 @@ std::vector<table_id_t> OnDiskGraph::getNodeTableIDs() {
     return result;
 }
 
-std::vector<table_id_t> OnDiskGraph::getRelTableIDs() {
+std::vector<table_id_t> OnDiskGraph::getRelTableIDs() const {
     std::vector<table_id_t> result;
     for (auto& entry : graphEntry.relEntries) {
         result.push_back(entry->getTableID());
@@ -176,7 +176,7 @@ std::vector<table_id_t> OnDiskGraph::getRelTableIDs() {
     return result;
 }
 
-table_id_map_t<offset_t> OnDiskGraph::getNumNodesMap(transaction::Transaction* transaction) {
+table_id_map_t<offset_t> OnDiskGraph::getNumNodesMap(transaction::Transaction* transaction) const {
     table_id_map_t<offset_t> retVal;
     for (auto tableID : getNodeTableIDs()) {
         retVal[tableID] = getNumNodes(transaction, tableID);
@@ -184,7 +184,7 @@ table_id_map_t<offset_t> OnDiskGraph::getNumNodesMap(transaction::Transaction* t
     return retVal;
 }
 
-offset_t OnDiskGraph::getNumNodes(transaction::Transaction* transaction) {
+offset_t OnDiskGraph::getNumNodes(transaction::Transaction* transaction) const {
     offset_t numNodes = 0u;
     for (auto id : getNodeTableIDs()) {
         numNodes += getNumNodes(transaction, id);
@@ -192,7 +192,7 @@ offset_t OnDiskGraph::getNumNodes(transaction::Transaction* transaction) {
     return numNodes;
 }
 
-offset_t OnDiskGraph::getNumNodes(transaction::Transaction* transaction, table_id_t id) {
+offset_t OnDiskGraph::getNumNodes(transaction::Transaction* transaction, table_id_t id) const {
     KU_ASSERT(nodeIDToNodeTable.contains(id));
     return nodeIDToNodeTable.at(id)->getNumTotalRows(transaction);
 }

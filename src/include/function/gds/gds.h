@@ -118,7 +118,7 @@ protected:
         const std::vector<catalog::TableCatalogEntry*>& nodeEntries);
 
     std::shared_ptr<PathLengths> getPathLengthsFrontier(processor::ExecutionContext* context,
-        uint16_t val);
+        uint16_t initialVal);
 
 protected:
     std::unique_ptr<GDSBindData> bindData;

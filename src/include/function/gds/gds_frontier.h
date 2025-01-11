@@ -8,6 +8,11 @@
 #include <span>
 
 namespace kuzu {
+
+namespace processor {
+struct ExecutionContext;
+}
+
 namespace function {
 
 class FrontierMorsel {
@@ -188,6 +193,8 @@ public:
     void pinTableID(common::table_id_t tableID) override { pinCurFrontierTableID(tableID); }
     void pinCurFrontierTableID(common::table_id_t tableID);
     void pinNextFrontierTableID(common::table_id_t tableID);
+
+    static std::shared_ptr<PathLengths> getFrontier(processor::ExecutionContext* context, graph::Graph* graph,uint16_t initialValue);
 
 private:
     uint16_t getCurIter() { return curIter.load(std::memory_order_relaxed); }
