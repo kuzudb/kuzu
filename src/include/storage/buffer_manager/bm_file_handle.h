@@ -89,7 +89,7 @@ public:
     // Should not be used if other threads are modifying the page state
     inline void clearDirtyWithoutLock() { stateAndVersion &= ~DIRTY_MASK; }
     inline bool isDirty() const { return stateAndVersion & DIRTY_MASK; }
-    uint64_t getStateAndVersion() const { return stateAndVersion.load(std::memory_order_relaxed); }
+    uint64_t getStateAndVersion() const { return stateAndVersion.load(); }
 
     inline void resetToEvicted() {
         stateAndVersion.store(EVICTED << NUM_BITS_TO_SHIFT_FOR_STATE, std::memory_order_release);
