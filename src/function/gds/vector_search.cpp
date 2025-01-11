@@ -663,16 +663,16 @@ namespace kuzu {
 //                        stats.oneHopCalls->increase(1);
 //                    } else if ((filterNbrsToFind * filterNbrsToFind * localSelectivity) > (filterNbrsToFind * 3)) {
 //                        // We will use this metric to skip unwanted distance computation in the first hop
-                        dynamicTwoHopSearch(candidates, candidate, filterNbrsToFind, cachedNbrsCount,
-                                            firstHopNbrs, tableId, graph, dc, filterMask,
-                                            state, results, visited, vectorArray, size, efSearch, stats);
-                        stats.dynamicTwoHopCalls->increase(1);
+//                        dynamicTwoHopSearch(candidates, candidate, filterNbrsToFind, cachedNbrsCount,
+//                                            firstHopNbrs, tableId, graph, dc, filterMask,
+//                                            state, results, visited, vectorArray, size, efSearch, stats);
+//                        stats.dynamicTwoHopCalls->increase(1);
 //                    } else {
                         // If the selectivity is low, we will not do dynamic two hop search since it does some extra
                         // distance computations to reduce listNbrs call which are redundant.
-//                        twoHopSearch(candidates, firstHopNbrs, tableId, graph, dc, filterMask, state, results, visited,
-//                                        vectorArray, size, efSearch, stats);
-//                        stats.twoHopCalls->increase(1);
+                        twoHopSearch(candidates, firstHopNbrs, tableId, graph, dc, filterMask, state, results, visited,
+                                        vectorArray, size, efSearch, stats);
+                        stats.twoHopCalls->increase(1);
 //                    }
                     batchComputeDistance(vectorArray, size, dc, candidates, results, efSearch, stats);
                 }
