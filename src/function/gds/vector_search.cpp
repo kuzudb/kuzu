@@ -813,7 +813,7 @@ namespace kuzu {
                 if (bindState->useKnnSearch) {
                     BinaryHeap<NodeDistFarther> results(k);
                     if (filterMask->isEnabled()) {
-                        knnFilteredSearch(qdc, filterMask, results, k, stats);
+                        knnFilteredSearch(dc, filterMask, results, k, stats);
                     } else {
                         knnSearch(dc, filterMask->getMaxOffset(), results, k, stats);
                     }
