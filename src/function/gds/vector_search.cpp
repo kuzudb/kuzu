@@ -91,7 +91,8 @@ namespace kuzu {
                                                             indexHeader->getCompressedPropertyId(), startOffset,
                                                             indexHeader->getDim(),
                                                             indexHeader->getConfig().distanceFunc,
-                                                            partitionHeader->getQuantizer());
+                                                            partitionHeader->getQuantizer(),
+                                                            true);
             }
 
             void materialize(std::priority_queue<NodeDistFarther> &results, FactorizedTable &table, int k) const {
@@ -704,7 +705,8 @@ namespace kuzu {
                 }
             }
 
-            inline void knnFilteredSearch(NodeTableDistanceComputer<float>* dc, NodeOffsetLevelSemiMask *filterMask,
+            template<typename T>
+            inline void knnFilteredSearch(NodeTableDistanceComputer<T>* dc, NodeOffsetLevelSemiMask *filterMask,
                                           BinaryHeap<NodeDistFarther> &results, int k, VectorSearchStats &stats) {
                 vector_array_t vectorArray;
                 int size = 0;
@@ -743,7 +745,8 @@ namespace kuzu {
                 }
             }
 
-            inline void knnSearch(NodeTableDistanceComputer<float>* dc, offset_t maxOffset,
+            template<typename T>
+            inline void knnSearch(NodeTableDistanceComputer<T>* dc, offset_t maxOffset,
                                   BinaryHeap<NodeDistFarther> &results, int k, VectorSearchStats &stats) {
                 vector_array_t vectorArray;
                 int size = 0;
@@ -810,7 +813,7 @@ namespace kuzu {
                 if (bindState->useKnnSearch) {
                     BinaryHeap<NodeDistFarther> results(k);
                     if (filterMask->isEnabled()) {
-                        knnFilteredSearch(dc, filterMask, results, k, stats);
+                        knnFilteredSearch(qdc, filterMask, results, k, stats);
                     } else {
                         knnSearch(dc, filterMask->getMaxOffset(), results, k, stats);
                     }
