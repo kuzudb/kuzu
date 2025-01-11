@@ -158,28 +158,28 @@ private:
     PValues* pNext;
 };
 
-//class PResetVertexCompute : public VertexCompute {
-//public:
-//    explicit PResetVertexCompute(P* pCurrent) : pCurrent{pCurrent} {}
+// class PResetVertexCompute : public VertexCompute {
+// public:
+//     explicit PResetVertexCompute(P* pCurrent) : pCurrent{pCurrent} {}
 //
-//    bool beginOnTable(common::table_id_t tableID) override {
-//        pCurrent->pin(tableID);
-//        return true;
-//    }
+//     bool beginOnTable(common::table_id_t tableID) override {
+//         pCurrent->pin(tableID);
+//         return true;
+//     }
 //
-//    void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
-//        for (auto i = startOffset; i < endOffset; ++i) {
-//            pCurrent->setValue(i, 0);
-//        }
-//    }
+//     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
+//         for (auto i = startOffset; i < endOffset; ++i) {
+//             pCurrent->setValue(i, 0);
+//         }
+//     }
 //
-//    std::unique_ptr<VertexCompute> copy() override {
-//        return std::make_unique<PResetVertexCompute>(pCurrent);
-//    }
+//     std::unique_ptr<VertexCompute> copy() override {
+//         return std::make_unique<PResetVertexCompute>(pCurrent);
+//     }
 //
-//private:
-//    P* pCurrent;
-//};
+// private:
+//     P* pCurrent;
+// };
 
 class PageRankOutputWriter : public GDSOutputWriter {
 public:
