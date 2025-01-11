@@ -705,7 +705,7 @@ namespace kuzu {
             }
 
             inline void knnFilteredSearch(NodeTableDistanceComputer<float>* dc, NodeOffsetLevelSemiMask *filterMask,
-                                          BinaryHeap<NodeDistFarther> &results, int k) {
+                                          BinaryHeap<NodeDistFarther> &results, int k, VectorSearchStats &stats) {
                 vector_array_t vectorArray;
                 int size = 0;
                 constexpr int batch_size = 64;
@@ -717,7 +717,10 @@ namespace kuzu {
                     }
                     vectorArray[size++] = i;
                     if (size == batch_size) {
+                        stats.distanceComputationTime->start();
                         dc->batchComputeDistance(vectorArray.data(), size, dists.data());
+                        stats.distanceComputationTime->stop();
+                        stats.distCompMetric->increase(size);
                         for (int j = 0; j < size; j++) {
                             if (results.size() < k || dists[j] < results.top()->dist) {
                                 results.push(NodeDistFarther(vectorArray[j], dists[j]));
@@ -730,7 +733,10 @@ namespace kuzu {
                 // Process the remaining
                 for (int i = 0; i < size; i++) {
                     double dist;
+                    stats.distanceComputationTime->start();
                     dc->computeDistance(vectorArray[i], &dist);
+                    stats.distanceComputationTime->stop();
+                    stats.distCompMetric->increase(1);
                     if (results.size() < k || dist < results.top()->dist) {
                         results.push(NodeDistFarther(vectorArray[i], dist));
                     }
@@ -738,7 +744,7 @@ namespace kuzu {
             }
 
             inline void knnSearch(NodeTableDistanceComputer<float>* dc, offset_t maxOffset,
-                                  BinaryHeap<NodeDistFarther> &results, int k) {
+                                  BinaryHeap<NodeDistFarther> &results, int k, VectorSearchStats &stats) {
                 vector_array_t vectorArray;
                 int size = 0;
                 constexpr int batch_size = 64;
@@ -747,7 +753,10 @@ namespace kuzu {
                 for (offset_t i = 0; i < maxOffset; i++) {
                     vectorArray[size++] = i;
                     if (size == batch_size) {
+                        stats.distanceComputationTime->start();
                         dc->batchComputeDistance(vectorArray.data(), size, dists.data());
+                        stats.distanceComputationTime->stop();
+                        stats.distCompMetric->increase(size);
                         for (int j = 0; j < size; j++) {
                             if (results.size() < k || dists[j] < results.top()->dist) {
                                 results.push(NodeDistFarther(vectorArray[j], dists[j]));
@@ -760,7 +769,10 @@ namespace kuzu {
                 // Handle the remaining
                 for (int i = 0; i < size; i++) {
                     double dist;
+                    stats.distanceComputationTime->start();
                     dc->computeDistance(vectorArray[i], &dist);
+                    stats.distanceComputationTime->stop();
+                    stats.distCompMetric->increase(1);
                     if (results.size() < k || dist < results.top()->dist) {
                         results.push(NodeDistFarther(vectorArray[i], dist));
                     }
