@@ -189,17 +189,16 @@ namespace kuzu {
 
         inline __m256 calc_precomputed_values_haswell(__m128i ci_vec, size_t i, const float *alpha, const float *beta) {
             // Load and extend ci_vec data
-            __m256i ci_vec32 = _mm256_cvtepu8_epi32(ci_vec);          // Extend 8-bit to 32-bit integers
-            __m256 ci_vec_f32 = _mm256_cvtepi32_ps(ci_vec32);          // Convert to float
-
-            // Load alpha and beta
-            __m256 alpha_vec = _mm256_loadu_ps(alpha + i);
-            __m256 beta_vec = _mm256_loadu_ps(beta + i);
+            __m256 ci_vec_lower_half = _mm256_cvtepi32_ps(_mm256_cvtepu8_epi32(ci_vec));
+            __m256 ci_vec_upper_half = _mm256_cvtepi32_ps(_mm256_cvtepu8_epi32(_mm_srli_si128(ci_vec, 8)));
 
             // Calculate precomputed values
-            __m256 precompute_values = _mm256_mul_ps(_mm256_mul_ps(ci_vec_f32, alpha_vec), beta_vec);
+            __m256 precompute_values_lower_half = _mm256_mul_ps(_mm256_mul_ps(
+                    ci_vec_lower_half, _mm256_loadu_ps(alpha + i)), _mm256_loadu_ps(beta + i));
+            __m256 precompute_values_upper_half = _mm256_mul_ps(_mm256_mul_ps(
+                    ci_vec_upper_half, _mm256_loadu_ps(alpha + i + 8)), _mm256_loadu_ps(beta + i + 8));
 
-            return precompute_values;
+            return _mm256_add_ps(precompute_values_lower_half, precompute_values_upper_half);
         }
 
         inline void encode_haswell_8bit(const float *data, uint8_t *codes, int dim, const float *vmin,
