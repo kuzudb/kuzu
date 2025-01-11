@@ -271,11 +271,11 @@ public:
     }
 
     inline void computeDistance(const uint8_t* dest, double* result) override {
-#if SIMSIMD_TARGET_SKYLAKE
-        compute_sym_ip_skylake_8bit(quantizedQuery, dest, result, dim, quantizer->getAlphaSqr());
-#else
+//#if SIMSIMD_TARGET_SKYLAKE
+//        compute_sym_ip_skylake_8bit(quantizedQuery, dest, result, dim, quantizer->getAlphaSqr());
+//#else
         compute_sym_ip_serial_8bit(quantizedQuery, dest, result, dim, quantizer->getAlphaSqr());
-#endif
+//#endif
         *result = 1 - *result;
         *result = *result < 0 ? 0 : *result;
     }
