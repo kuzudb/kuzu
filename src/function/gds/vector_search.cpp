@@ -810,9 +810,9 @@ namespace kuzu {
                 if (bindState->useKnnSearch) {
                     BinaryHeap<NodeDistFarther> results(k);
                     if (filterMask->isEnabled()) {
-                        knnFilteredSearch(dc, filterMask, results, k);
+                        knnFilteredSearch(dc, filterMask, results, k, stats);
                     } else {
-                        knnSearch(dc, filterMask->getMaxOffset(), results, k);
+                        knnSearch(dc, filterMask->getMaxOffset(), results, k, stats);
                     }
                     reverseResults(results, reversed, dc);
                 } else {
