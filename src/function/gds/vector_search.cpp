@@ -706,27 +706,63 @@ namespace kuzu {
 
             inline void knnFilteredSearch(NodeTableDistanceComputer<float>* dc, NodeOffsetLevelSemiMask *filterMask,
                                           BinaryHeap<NodeDistFarther> &results, int k) {
+                vector_array_t vectorArray;
+                int size = 0;
+                constexpr int batch_size = 64;
+                std::array<double, batch_size> dists;
                 // Find the k nearest neighbors
                 for (offset_t i = 0; i < filterMask->getMaxOffset(); i++) {
                     if (!filterMask->isMasked(i)) {
                         continue;
                     }
+                    vectorArray[size++] = i;
+                    if (size == batch_size) {
+                        dc->batchComputeDistance(vectorArray.data(), size, dists.data());
+                        for (int j = 0; j < size; j++) {
+                            if (results.size() < k || dists[j] < results.top()->dist) {
+                                results.push(NodeDistFarther(vectorArray[j], dists[j]));
+                            }
+                        }
+                        size = 0;
+                    }
+                }
+
+                // Process the remaining
+                for (int i = 0; i < size; i++) {
                     double dist;
-                    dc->computeDistance(i, &dist);
+                    dc->computeDistance(vectorArray[i], &dist);
                     if (results.size() < k || dist < results.top()->dist) {
-                        results.push(NodeDistFarther(i, dist));
+                        results.push(NodeDistFarther(vectorArray[i], dist));
                     }
                 }
             }
 
             inline void knnSearch(NodeTableDistanceComputer<float>* dc, offset_t maxOffset,
                                   BinaryHeap<NodeDistFarther> &results, int k) {
+                vector_array_t vectorArray;
+                int size = 0;
+                constexpr int batch_size = 64;
+                std::array<double, batch_size> dists;
                 // Find the k nearest neighbors
                 for (offset_t i = 0; i < maxOffset; i++) {
+                    vectorArray[size++] = i;
+                    if (size == batch_size) {
+                        dc->batchComputeDistance(vectorArray.data(), size, dists.data());
+                        for (int j = 0; j < size; j++) {
+                            if (results.size() < k || dists[j] < results.top()->dist) {
+                                results.push(NodeDistFarther(vectorArray[j], dists[j]));
+                            }
+                        }
+                        size = 0;
+                    }
+                }
+
+                // Handle the remaining
+                for (int i = 0; i < size; i++) {
                     double dist;
-                    dc->computeDistance(i, &dist);
+                    dc->computeDistance(vectorArray[i], &dist);
                     if (results.size() < k || dist < results.top()->dist) {
-                        results.push(NodeDistFarther(i, dist));
+                        results.push(NodeDistFarther(vectorArray[i], dist));
                     }
                 }
             }

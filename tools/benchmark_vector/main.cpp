@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
     std::string queryPath = input.getCmdOption("-queriesPath");
     std::string gtPath = input.getCmdOption("-gtPath");
     int warmupTimes = stoi(input.getCmdOption("-warmup"));
-//    int actualTimes = stoi(input.getCmdOption("-actual"));
+    int nQueries = stoi(input.getCmdOption("-nQueries"));
     int k = stoi(input.getCmdOption("-k"));
     int efSearch = stoi(input.getCmdOption("-efSearch"));
     int maxK = stoi(input.getCmdOption("-maxK"));
@@ -110,13 +110,17 @@ int main(int argc, char **argv) {
         printf("Running queries from: %s\n", queriesPath.c_str());
         auto queries = readQueriesFromFile(queriesPath, efSearch, maxK, useQ, useKnn);
         auto queryNumVectors = queries.size();
+        if (nQueries < queryNumVectors) {
+            queryNumVectors = nQueries;
+        }
+
         vector_id_t *gtVecs = new vector_id_t[queryNumVectors * k];
         loadFromFile(gtPath, reinterpret_cast<uint8_t *>(gtVecs), queryNumVectors * k * sizeof(vector_id_t));
         // Randomly select warmupTimes queries from the queries
         for (int i = 0; i < warmupTimes; i++) {
             printf("Warmup started %d\n", i);
             auto start = std::chrono::high_resolution_clock::now();
-            for (int j = 0; j < queries.size(); j++) {
+            for (int j = 0; j < queryNumVectors; j++) {
                 conn.query(queries[j]);
             }
             // Get the current time after the function call
@@ -142,7 +146,7 @@ int main(int argc, char **argv) {
         long twoHopCalls = 0;
         long dynamicTwoHopCalls = 0;
 
-        for (auto i = 0; i < queries.size(); i++) {
+        for (auto i = 0; i < queryNumVectors; i++) {
             printf("====== running query %d ======\n", i);
             auto localRecall = 0;
             auto res = conn.query(queries[i]);
