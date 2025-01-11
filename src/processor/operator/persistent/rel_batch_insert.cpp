@@ -219,7 +219,7 @@ void RelBatchInsert::checkRelMultiplicityConstraint(const ChunkedCSRHeader& csrH
         if (csrHeader.length->getData().getValue<length_t>(i) > 1) {
             throw CopyException(ExceptionMessage::violateRelMultiplicityConstraint(
                 relInfo.tableEntry->getName(), std::to_string(i + startNodeOffset),
-                RelDataDirectionUtils::relDirectionToString(relInfo.direction)));
+                RelDirectionUtils::relDirectionToString(relInfo.direction)));
         }
     }
 }

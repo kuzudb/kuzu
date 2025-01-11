@@ -122,6 +122,10 @@ struct StorageConstants {
     static constexpr char TEMP_SPILLING_FILE_NAME[] = ".tmp";
 };
 
+struct TableOptionConstants {
+    static constexpr char REL_STORAGE_DIRECTION_OPTION[] = "STORAGE_DIRECTION";
+};
+
 // Hash Index Configurations
 struct HashIndexConstants {
     static constexpr uint16_t SLOT_CAPACITY_BYTES = 256;

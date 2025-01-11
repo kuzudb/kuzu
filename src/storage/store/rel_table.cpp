@@ -114,10 +114,10 @@ RelTable::RelTable(RelTableCatalogEntry* relTableEntry, const StorageManager* st
     : Table{relTableEntry, storageManager, memoryManager},
       fromNodeTableID{relTableEntry->getSrcTableID()},
       toNodeTableID{relTableEntry->getDstTableID()}, nextRelOffset{0} {
-    fwdRelTableData = std::make_unique<RelTableData>(dataFH, memoryManager, shadowFile,
-        relTableEntry, RelDataDirection::FWD, enableCompression, deSer);
-    bwdRelTableData = std::make_unique<RelTableData>(dataFH, memoryManager, shadowFile,
-        relTableEntry, RelDataDirection::BWD, enableCompression, deSer);
+    for (auto direction : relTableEntry->getRelDataDirections()) {
+        directedRelData.emplace_back(std::make_unique<RelTableData>(dataFH, memoryManager,
+            shadowFile, relTableEntry, direction, enableCompression, deSer));
+    }
 }
 
 std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog& catalog,
@@ -153,7 +153,7 @@ void RelTable::initScanState(Transaction* transaction, TableScanState& scanState
         const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(boundNodeID.offset);
         if (relScanState.nodeGroupIdx != nodeGroupIdx) {
             // We need to re-initialize the node group scan state.
-            nodeGroup = getRelTableData(relScanState.direction)->getNodeGroup(nodeGroupIdx);
+            nodeGroup = getDirectedTableData(relScanState.direction)->getNodeGroup(nodeGroupIdx);
         } else {
             nodeGroup = relScanState.nodeGroup;
         }
@@ -168,7 +168,7 @@ bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState)
 static void throwRelMultiplicityConstraintError(const std::string& tableName, offset_t nodeOffset,
     RelDataDirection direction) {
     throw RuntimeException(ExceptionMessage::violateRelMultiplicityConstraint(tableName,
-        std::to_string(nodeOffset), RelDataDirectionUtils::relDirectionToString(direction)));
+        std::to_string(nodeOffset), RelDirectionUtils::relDirectionToString(direction)));
 }
 
 void RelTable::checkRelMultiplicityConstraint(Transaction* transaction,
@@ -177,13 +177,12 @@ void RelTable::checkRelMultiplicityConstraint(Transaction* transaction,
     KU_ASSERT(insertState.srcNodeIDVector.state->getSelVector().getSelSize() == 1 &&
               insertState.dstNodeIDVector.state->getSelVector().getSelSize() == 1);
 
-    if (fwdRelTableData->getMultiplicity() == common::RelMultiplicity::ONE) {
-        throwIfNodeHasRels(transaction, common::RelDataDirection::FWD, &insertState.srcNodeIDVector,
-            throwRelMultiplicityConstraintError);
-    }
-    if (bwdRelTableData->getMultiplicity() == common::RelMultiplicity::ONE) {
-        throwIfNodeHasRels(transaction, common::RelDataDirection::BWD, &insertState.dstNodeIDVector,
-            throwRelMultiplicityConstraintError);
+    for (auto& relData : directedRelData) {
+        if (relData->getMultiplicity() == common::RelMultiplicity::ONE) {
+            throwIfNodeHasRels(transaction, relData->getDirection(),
+                &insertState.getBoundNodeIDVector(relData->getDirection()),
+                throwRelMultiplicityConstraintError);
+        }
     }
 }
 
@@ -223,10 +222,11 @@ void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
         auto dummyTrx = Transaction::getDummyTransactionFromExistingOne(*transaction);
         localTable->update(&dummyTrx, updateState);
     } else {
-        fwdRelTableData->update(transaction, relUpdateState.srcNodeIDVector,
-            relUpdateState.relIDVector, relUpdateState.columnID, relUpdateState.propertyVector);
-        bwdRelTableData->update(transaction, relUpdateState.dstNodeIDVector,
-            relUpdateState.relIDVector, relUpdateState.columnID, relUpdateState.propertyVector);
+        for (auto& relData : directedRelData) {
+            relData->update(transaction,
+                relUpdateState.getBoundNodeIDVector(relData->getDirection()),
+                relUpdateState.relIDVector, relUpdateState.columnID, relUpdateState.propertyVector);
+        }
     }
     if (transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
@@ -251,11 +251,13 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
         KU_ASSERT(localTable);
         isDeleted = localTable->delete_(transaction, deleteState);
     } else {
-        isDeleted = fwdRelTableData->delete_(transaction, relDeleteState.srcNodeIDVector,
-            relDeleteState.relIDVector);
-        if (isDeleted) {
-            isDeleted = bwdRelTableData->delete_(transaction, relDeleteState.dstNodeIDVector,
+        for (auto& relData : directedRelData) {
+            isDeleted = relData->delete_(transaction,
+                relDeleteState.getBoundNodeIDVector(relData->getDirection()),
                 relDeleteState.relIDVector);
+            if (!isDeleted) {
+                break;
+            }
         }
     }
     if (isDeleted) {
@@ -273,11 +275,13 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
 
 void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
     RelTableDeleteState* deleteState) {
+    // TODO(Royi) check if this needs to be updated for fwd-only rel tables
+    KU_ASSERT(directedRelData.size() == 2);
+
     KU_ASSERT(deleteState->srcNodeIDVector.state->getSelVector().getSelSize() == 1);
-    const auto tableData =
-        direction == RelDataDirection::FWD ? fwdRelTableData.get() : bwdRelTableData.get();
+    const auto tableData = getDirectedTableData(direction);
     const auto reverseTableData =
-        direction == RelDataDirection::FWD ? bwdRelTableData.get() : fwdRelTableData.get();
+        getDirectedTableData(RelDirectionUtils::getOppositeDirection(direction));
     std::vector<column_id_t> columnsToScan = {NBR_ID_COLUMN_ID, REL_ID_COLUMN_ID};
     const auto relReadState =
         std::make_unique<RelTableScanState>(*transaction->getClientContext()->getMemoryManager(),
@@ -308,6 +312,14 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     hasChanges = true;
 }
 
+std::vector<common::RelDataDirection> RelTable::getStorageDirections() const {
+    std::vector<common::RelDataDirection> ret;
+    for (const auto& relData : directedRelData) {
+        ret.push_back(relData->getDirection());
+    }
+    return ret;
+}
+
 bool RelTable::checkIfNodeHasRels(Transaction* transaction, RelDataDirection direction,
     ValueVector* srcNodeIDVector) const {
     bool hasRels = false;
@@ -317,8 +329,8 @@ bool RelTable::checkIfNodeHasRels(Transaction* transaction, RelDataDirection dir
         hasRels = hasRels ||
                   localTable->cast<LocalRelTable>().checkIfNodeHasRels(srcNodeIDVector, direction);
     }
-    hasRels =
-        hasRels || (getRelTableData(direction)->checkIfNodeHasRels(transaction, srcNodeIDVector));
+    hasRels = hasRels ||
+              (getDirectedTableData(direction)->checkIfNodeHasRels(transaction, srcNodeIDVector));
     return hasRels;
 }
 
@@ -370,23 +382,31 @@ void RelTable::addColumn(Transaction* transaction, TableAddColumnState& addColum
     if (localTable) {
         localTable->addColumn(transaction, addColumnState);
     }
-    fwdRelTableData->addColumn(transaction, addColumnState);
-    bwdRelTableData->addColumn(transaction, addColumnState);
+    for (auto& directedRelData : directedRelData) {
+        directedRelData->addColumn(transaction, addColumnState);
+    }
     hasChanges = true;
 }
 
-RelTableData* RelTable::getRelTableData(common::RelDataDirection direction) const {
-    return direction == RelDataDirection::FWD ? fwdRelTableData.get() : bwdRelTableData.get();
+RelTableData* RelTable::getDirectedTableData(common::RelDataDirection direction) const {
+    const auto directionIdx = RelDirectionUtils::relDirectionToKeyIdx(direction);
+    if (directionIdx >= directedRelData.size()) {
+        throw RuntimeException(stringFormat(
+            "Failed to get {} data for rel table \"{}\", please set the storage direction to BOTH",
+            RelDirectionUtils::relDirectionToString(direction), tableName));
+    }
+    KU_ASSERT(directedRelData[directionIdx]->getDirection() == direction);
+    return directedRelData[directionIdx].get();
 }
 
 NodeGroup* RelTable::getOrCreateNodeGroup(transaction::Transaction* transaction,
     node_group_idx_t nodeGroupIdx, RelDataDirection direction) const {
-    return getRelTableData(direction)->getOrCreateNodeGroup(transaction, nodeGroupIdx);
+    return getDirectedTableData(direction)->getOrCreateNodeGroup(transaction, nodeGroupIdx);
 }
 
 void RelTable::pushInsertInfo(Transaction* transaction, RelDataDirection direction,
-    const CSRNodeGroup& nodeGroup, row_idx_t numRows_, CSRNodeGroupScanSource source) {
-    getRelTableData(direction)->pushInsertInfo(transaction, nodeGroup, numRows_, source);
+    const CSRNodeGroup& nodeGroup, row_idx_t numRows_, CSRNodeGroupScanSource source) const {
+    getDirectedTableData(direction)->pushInsertInfo(transaction, nodeGroup, numRows_, source);
 }
 
 void RelTable::commit(Transaction* transaction, LocalTable* localTable) {
@@ -406,25 +426,24 @@ void RelTable::commit(Transaction* transaction, LocalTable* localTable) {
         columnIDsToScan.push_back(i);
     }
 
-    const auto commitRelTableData = [&](RelDataDirection direction) {
-        auto [index, relTableData, columnToSkip] =
+    // commit rel table data
+    for (auto& relData : directedRelData) {
+        const auto direction = relData->getDirection();
+        auto [index, columnToSkip] =
             (direction == common::RelDataDirection::FWD) ?
-                std::tie(localRelTable.getFWDIndex(), fwdRelTableData,
-                    LOCAL_BOUND_NODE_ID_COLUMN_ID) :
-                std::tie(localRelTable.getBWDIndex(), bwdRelTableData, LOCAL_NBR_NODE_ID_COLUMN_ID);
+                std::tie(localRelTable.getFWDIndex(), LOCAL_BOUND_NODE_ID_COLUMN_ID) :
+                std::tie(localRelTable.getBWDIndex(), LOCAL_NBR_NODE_ID_COLUMN_ID);
         for (auto& [boundNodeOffset, rowIndices] : index) {
             auto [nodeGroupIdx, boundOffsetInGroup] = StorageUtils::getQuotientRemainder(
                 boundNodeOffset, StorageConstants::NODE_GROUP_SIZE);
             auto& nodeGroup =
-                relTableData->getOrCreateNodeGroup(transaction, nodeGroupIdx)->cast<CSRNodeGroup>();
+                relData->getOrCreateNodeGroup(transaction, nodeGroupIdx)->cast<CSRNodeGroup>();
             pushInsertInfo(transaction, direction, nodeGroup, rowIndices.size(),
                 CSRNodeGroupScanSource::COMMITTED_IN_MEMORY);
             prepareCommitForNodeGroup(transaction, localNodeGroup, nodeGroup, boundOffsetInGroup,
                 rowIndices, columnToSkip);
         }
-    };
-    commitRelTableData(common::RelDataDirection::FWD);
-    commitRelTableData(common::RelDataDirection::BWD);
+    }
 
     localRelTable.clear();
 }
@@ -521,16 +540,18 @@ void RelTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
         for (auto& property : tableEntry->getProperties()) {
             columnIDs.push_back(tableEntry->getColumnID(property.getName()));
         }
-        fwdRelTableData->checkpoint(columnIDs);
-        bwdRelTableData->checkpoint(columnIDs);
+        for (auto& directedRelData : directedRelData) {
+            directedRelData->checkpoint(columnIDs);
+        }
         tableEntry->vacuumColumnIDs(1);
         hasChanges = false;
     }
     Table::serialize(ser);
     ser.writeDebuggingInfo("next_rel_offset");
     ser.write<offset_t>(nextRelOffset);
-    fwdRelTableData->serialize(ser);
-    bwdRelTableData->serialize(ser);
+    for (auto& directedRelData : directedRelData) {
+        directedRelData->serialize(ser);
+    }
 }
 
 row_idx_t RelTable::getNumTotalRows(const Transaction* transaction) {

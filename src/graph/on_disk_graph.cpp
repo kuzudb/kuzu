@@ -118,17 +118,17 @@ OnDiskGraphNbrScanStates::OnDiskGraphNbrScanStates(ClientContext* context,
     }
     scanStates.reserve(tables.size());
     for (auto table : tables) {
-        auto relEntry = graphEntry.getRelEntry(table->getTableID());
-        auto fwdState = getRelScanState(context->getTransaction(), *context->getMemoryManager(),
-            *relEntry, *table, RelDataDirection::FWD, srcNodeIDVector.get(), dstNodeIDVector.get(),
-            relIDVector.get(), graphEntry.getRelProperties(), edgePropertyID, propertyVector.get(),
-            schema, resultSet);
-        auto bwdState = getRelScanState(context->getTransaction(), *context->getMemoryManager(),
-            *relEntry, *table, RelDataDirection::BWD, srcNodeIDVector.get(), dstNodeIDVector.get(),
-            relIDVector.get(), graphEntry.getRelProperties(), edgePropertyID, propertyVector.get(),
-            schema, resultSet);
+        const auto* relEntry =
+            graphEntry.getRelEntry(table->getTableID())->constPtrCast<RelTableCatalogEntry>();
+        std::vector<std::unique_ptr<RelTableScanState>> directedScanStates;
+        for (auto direction : relEntry->getRelDataDirections()) {
+            directedScanStates.emplace_back(getRelScanState(context->getTransaction(),
+                *context->getMemoryManager(), *relEntry, *table, direction, srcNodeIDVector.get(),
+                dstNodeIDVector.get(), relIDVector.get(), graphEntry.getRelProperties(),
+                edgePropertyID, propertyVector.get(), schema, resultSet));
+        }
         scanStates.emplace_back(table->getTableID(),
-            OnDiskGraphNbrScanState{context, *table, std::move(fwdState), std::move(bwdState)});
+            OnDiskGraphNbrScanState{context, *table, std::move(directedScanStates)});
     }
 }
 
@@ -215,6 +215,14 @@ std::unique_ptr<NbrScanState> OnDiskGraph::prepareScan(table_id_t relTableID,
         std::span(&relTable, 1), graphEntry, edgePropertyIndex));
 }
 
+OnDiskGraphNbrScanState::InnerIterator& OnDiskGraphNbrScanState::getIterator(
+    RelDataDirection direction) {
+    auto directionIdx = RelDirectionUtils::relDirectionToKeyIdx(direction);
+    KU_ASSERT(directionIdx < directedIterators.size() &&
+              directedIterators[directionIdx].getDirection() == direction);
+    return directedIterators[directionIdx];
+}
+
 Graph::EdgeIterator OnDiskGraph::scanFwd(nodeID_t nodeID, NbrScanState& state) {
     auto& onDiskScanState = ku_dynamic_cast<OnDiskGraphNbrScanStates&>(state);
     onDiskScanState.srcNodeIDVector->setValue<nodeID_t>(0, nodeID);
@@ -224,7 +232,7 @@ Graph::EdgeIterator OnDiskGraph::scanFwd(nodeID_t nodeID, NbrScanState& state) {
     for (auto& [tableID, scanState] : onDiskScanState.scanStates) {
         auto relTablePair = relTables.find(tableID);
         if (relTablePair != relTables.end()) {
-            scanState.fwdIterator.initScan();
+            scanState.getIterator(common::RelDataDirection::FWD).initScan();
         }
     }
     onDiskScanState.startScan(common::RelDataDirection::FWD);
@@ -240,7 +248,7 @@ Graph::EdgeIterator OnDiskGraph::scanBwd(nodeID_t nodeID, NbrScanState& state) {
     for (auto& [tableID, scanState] : onDiskScanState.scanStates) {
         auto relTablePair = relTables.find(tableID);
         if (relTablePair != relTables.end()) {
-            scanState.bwdIterator.initScan();
+            scanState.getIterator(common::RelDataDirection::BWD).initScan();
         }
     }
     onDiskScanState.startScan(common::RelDataDirection::BWD);

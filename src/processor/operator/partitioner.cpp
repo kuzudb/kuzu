@@ -37,12 +37,19 @@ static partition_idx_t getNumPartitions(offset_t maxOffset) {
 }
 
 void PartitionerSharedState::initialize(const PartitionerDataInfo& dataInfo,
-    main::ClientContext* clientContext) {
+    const PartitionerInfo& info, main::ClientContext* clientContext) {
+    const auto numPartitioners = info.infos.size();
+    KU_ASSERT(numPartitioners >= 1 && numPartitioners <= DIRECTIONS);
     maxNodeOffsets[0] = srcNodeTable->getNumTotalRows(clientContext->getTransaction());
-    maxNodeOffsets[1] = dstNodeTable->getNumTotalRows(clientContext->getTransaction());
+    if (numPartitioners > 1) {
+        maxNodeOffsets[1] = dstNodeTable->getNumTotalRows(clientContext->getTransaction());
+    }
     numPartitions[0] = getNumPartitions(maxNodeOffsets[0]);
-    numPartitions[1] = getNumPartitions(maxNodeOffsets[1]);
-    Partitioner::initializePartitioningStates(dataInfo, partitioningBuffers, numPartitions);
+    if (numPartitioners > 1) {
+        numPartitions[1] = getNumPartitions(maxNodeOffsets[1]);
+    }
+    Partitioner::initializePartitioningStates(dataInfo, partitioningBuffers, numPartitions,
+        numPartitioners);
 }
 
 partition_idx_t PartitionerSharedState::getNextPartition(idx_t partitioningIdx,
@@ -90,13 +97,13 @@ Partitioner::Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescripto
 }
 
 void Partitioner::initGlobalStateInternal(ExecutionContext* context) {
-    sharedState->initialize(dataInfo, context->clientContext);
+    sharedState->initialize(dataInfo, info, context->clientContext);
 }
 
 void Partitioner::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     localState = std::make_unique<PartitionerLocalState>();
     initializePartitioningStates(dataInfo, localState->partitioningBuffers,
-        sharedState->numPartitions);
+        sharedState->numPartitions, info.infos.size());
     for (const auto& evaluator : dataInfo.columnEvaluators) {
         evaluator->init(*resultSet, context->clientContext);
     }
@@ -114,9 +121,10 @@ DataChunk Partitioner::constructDataChunk(const std::shared_ptr<DataChunkState>&
 
 void Partitioner::initializePartitioningStates(const PartitionerDataInfo& dataInfo,
     std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers,
-    const std::array<partition_idx_t, PartitionerSharedState::DIRECTIONS>& numPartitions) {
-    partitioningBuffers.resize(numPartitions.size());
-    for (auto partitioningIdx = 0u; partitioningIdx < numPartitions.size(); partitioningIdx++) {
+    const std::array<partition_idx_t, PartitionerSharedState::DIRECTIONS>& numPartitions,
+    idx_t numPartitioners) {
+    partitioningBuffers.resize(numPartitioners);
+    for (auto partitioningIdx = 0u; partitioningIdx < numPartitioners; partitioningIdx++) {
         const auto numPartition = numPartitions[partitioningIdx];
         auto partitioningBuffer = std::make_unique<PartitioningBuffer>();
         partitioningBuffer->partitions.reserve(numPartition);

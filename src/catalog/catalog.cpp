@@ -518,7 +518,7 @@ std::unique_ptr<CatalogEntry> Catalog::createRelTableEntry(Transaction*,
     const auto extraInfo = info.extraInfo.get()->constPtrCast<BoundExtraCreateRelTableInfo>();
     auto relTableEntry = std::make_unique<RelTableCatalogEntry>(tables.get(), info.tableName,
         extraInfo->srcMultiplicity, extraInfo->dstMultiplicity, extraInfo->srcTableID,
-        extraInfo->dstTableID);
+        extraInfo->dstTableID, extraInfo->storageDirection);
     for (auto& definition : extraInfo->propertyDefinitions) {
         relTableEntry->addProperty(definition);
     }

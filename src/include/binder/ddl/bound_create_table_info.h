@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/enums/conflict_action.h"
+#include "common/enums/rel_direction.h"
 #include "common/enums/rel_multiplicity.h"
 #include "common/enums/table_type.h"
 #include "common/types/types.h"
@@ -98,22 +99,27 @@ struct BoundExtraCreateNodeTableInfo final : BoundExtraCreateTableInfo {
 struct BoundExtraCreateRelTableInfo final : public BoundExtraCreateTableInfo {
     common::RelMultiplicity srcMultiplicity;
     common::RelMultiplicity dstMultiplicity;
+    common::RelStorageDirection storageDirection;
     common::table_id_t srcTableID;
     common::table_id_t dstTableID;
 
     BoundExtraCreateRelTableInfo(common::table_id_t srcTableID, common::table_id_t dstTableID,
         std::vector<PropertyDefinition> definitions)
         : BoundExtraCreateRelTableInfo{common::RelMultiplicity::MANY, common::RelMultiplicity::MANY,
-              srcTableID, dstTableID, std::move(definitions)} {}
+              common::RelDirectionUtils::DEFAULT_REL_STORAGE_DIRECTION, srcTableID, dstTableID,
+              std::move(definitions)} {}
     BoundExtraCreateRelTableInfo(common::RelMultiplicity srcMultiplicity,
-        common::RelMultiplicity dstMultiplicity, common::table_id_t srcTableID,
-        common::table_id_t dstTableID, std::vector<PropertyDefinition> definitions)
+        common::RelMultiplicity dstMultiplicity, common::RelStorageDirection storageDirection,
+        common::table_id_t srcTableID, common::table_id_t dstTableID,
+        std::vector<PropertyDefinition> definitions)
         : BoundExtraCreateTableInfo{std::move(definitions)}, srcMultiplicity{srcMultiplicity},
-          dstMultiplicity{dstMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID} {}
+          dstMultiplicity{dstMultiplicity}, storageDirection(storageDirection),
+          srcTableID{srcTableID}, dstTableID{dstTableID} {}
     BoundExtraCreateRelTableInfo(const BoundExtraCreateRelTableInfo& other)
         : BoundExtraCreateTableInfo{copyVector(other.propertyDefinitions)},
           srcMultiplicity{other.srcMultiplicity}, dstMultiplicity{other.dstMultiplicity},
-          srcTableID{other.srcTableID}, dstTableID{other.dstTableID} {}
+          storageDirection{other.storageDirection}, srcTableID{other.srcTableID},
+          dstTableID{other.dstTableID} {}
 
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
         return std::make_unique<BoundExtraCreateRelTableInfo>(*this);

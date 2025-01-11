@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(Kuzu VERSION 0.7.1.4 LANGUAGES CXX C)
+project(Kuzu VERSION 0.7.1.5 LANGUAGES CXX C)
 
 option(SINGLE_THREADED "Single-threaded mode" FALSE)
 if(SINGLE_THREADED)
@@ -254,7 +254,7 @@ function(add_kuzu_test TEST_NAME)
     endif()
     target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include)
     include(GoogleTest)
-    
+
     if (TEST_NAME STREQUAL "e2e_test")
         gtest_discover_tests(${TEST_NAME}
             DISCOVERY_TIMEOUT 600

@@ -57,6 +57,8 @@ struct OnDiskGraphNbrScanState {
         bool next(evaluator::ExpressionEvaluator* predicate);
         void initScan();
 
+        common::RelDataDirection getDirection() const { return tableScanState->direction; }
+
     private:
         common::ValueVector& dstVector() const { return *tableScanState->outputVectors[0]; }
         common::ValueVector& relIDVector() const { return *tableScanState->outputVectors[1]; }
@@ -66,14 +68,16 @@ struct OnDiskGraphNbrScanState {
         std::unique_ptr<storage::RelTableScanState> tableScanState;
     };
 
-    InnerIterator fwdIterator;
-    InnerIterator bwdIterator;
+    std::vector<InnerIterator> directedIterators;
 
     OnDiskGraphNbrScanState(main::ClientContext* context, storage::RelTable& table,
-        std::unique_ptr<storage::RelTableScanState> fwdState,
-        std::unique_ptr<storage::RelTableScanState> bwdState)
-        : fwdIterator{context, &table, std::move(fwdState)},
-          bwdIterator{context, &table, std::move(bwdState)} {}
+        std::vector<std::unique_ptr<storage::RelTableScanState>> directedScanStates) {
+        for (auto& directedScanState : directedScanStates) {
+            directedIterators.emplace_back(context, &table, std::move(directedScanState));
+        }
+    }
+
+    InnerIterator& getIterator(common::RelDataDirection direction);
 };
 
 class OnDiskGraphNbrScanStates : public NbrScanState {
@@ -93,18 +97,9 @@ public:
     }
 
 private:
-    const OnDiskGraphNbrScanState::InnerIterator& getInnerIterator() const {
-        KU_ASSERT(iteratorIndex < scanStates.size());
-        if (direction == common::RelDataDirection::FWD) {
-            return scanStates[iteratorIndex].second.fwdIterator;
-        } else {
-            return scanStates[iteratorIndex].second.bwdIterator;
-        }
-    }
-
     OnDiskGraphNbrScanState::InnerIterator& getInnerIterator() {
-        return const_cast<OnDiskGraphNbrScanState::InnerIterator&>(
-            const_cast<const OnDiskGraphNbrScanStates*>(this)->getInnerIterator());
+        KU_ASSERT(iteratorIndex < scanStates.size());
+        return scanStates[iteratorIndex].second.getIterator(direction);
     }
 
 private:

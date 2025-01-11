@@ -107,6 +107,8 @@ public:
 
     void rollbackGroupCollectionInsert(common::row_idx_t numRows_, bool isPersistent);
 
+    common::RelDataDirection getDirection() const { return direction; }
+
 private:
     void initCSRHeaderColumns();
     void initPropertyColumns(const catalog::TableCatalogEntry* tableEntry);

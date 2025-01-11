@@ -75,6 +75,10 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTable(
     if (ctx.oC_SymbolicName()) {
         relMultiplicity = transformSymbolicName(*ctx.oC_SymbolicName());
     }
+    options_t options;
+    if (ctx.kU_ParsingOptions()) {
+        options = transformOptions(*ctx.kU_ParsingOptions()->kU_Options());
+    }
     auto srcTableName = transformSchemaName(*ctx.kU_RelTableConnection()->oC_SchemaName(0));
     auto dstTableName = transformSchemaName(*ctx.kU_RelTableConnection()->oC_SchemaName(1));
     auto createTableInfo = CreateTableInfo(TableType::REL, tableName,
@@ -85,7 +89,7 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTable(
             transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
     }
     createTableInfo.extraInfo = std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity,
-        std::move(srcTableName), std::move(dstTableName));
+        std::move(options), std::move(srcTableName), std::move(dstTableName));
     return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 
