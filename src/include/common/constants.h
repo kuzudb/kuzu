@@ -122,7 +122,7 @@ struct StorageConstants {
     static constexpr char TEMP_SPILLING_FILE_NAME[] = ".tmp";
 };
 
-struct TableConstants {
+struct TableOptionConstants {
     static constexpr char REL_STORAGE_DIRECTION_OPTION[] = "STORAGE_DIRECTION";
 };
 

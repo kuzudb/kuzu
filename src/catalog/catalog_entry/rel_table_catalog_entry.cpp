@@ -25,8 +25,18 @@ RelMultiplicity RelTableCatalogEntry::getMultiplicity(RelDataDirection direction
     return direction == RelDataDirection::FWD ? dstMultiplicity : srcMultiplicity;
 }
 
-std::span<const common::RelDataDirection> RelTableCatalogEntry::getRelDataDirections() const {
-    return storageDirections;
+std::vector<common::RelDataDirection> RelTableCatalogEntry::getRelDataDirections() const {
+    switch (storageDirection) {
+    case common::RelStorageDirection::FWD_ONLY: {
+        return {RelDataDirection::FWD};
+    }
+    case common::RelStorageDirection::BOTH: {
+        return {RelDataDirection::FWD, RelDataDirection::BWD};
+    }
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
 }
 
 table_id_t RelTableCatalogEntry::getBoundTableID(RelDataDirection relDirection) const {
@@ -43,8 +53,8 @@ void RelTableCatalogEntry::serialize(Serializer& serializer) const {
     serializer.write(srcMultiplicity);
     serializer.writeDebuggingInfo("dstMultiplicity");
     serializer.write(dstMultiplicity);
-    serializer.writeDebuggingInfo("storageDirections");
-    serializer.serializeVector(storageDirections);
+    serializer.writeDebuggingInfo("storageDirection");
+    serializer.write(storageDirection);
     serializer.writeDebuggingInfo("srcTableID");
     serializer.write(srcTableID);
     serializer.writeDebuggingInfo("dstTableID");
@@ -56,15 +66,15 @@ std::unique_ptr<RelTableCatalogEntry> RelTableCatalogEntry::deserialize(
     std::string debuggingInfo;
     RelMultiplicity srcMultiplicity{};
     RelMultiplicity dstMultiplicity{};
-    std::vector<RelDataDirection> storageDirections{};
+    RelStorageDirection storageDirection{};
     table_id_t srcTableID = INVALID_TABLE_ID;
     table_id_t dstTableID = INVALID_TABLE_ID;
     deserializer.validateDebuggingInfo(debuggingInfo, "srcMultiplicity");
     deserializer.deserializeValue(srcMultiplicity);
     deserializer.validateDebuggingInfo(debuggingInfo, "dstMultiplicity");
     deserializer.deserializeValue(dstMultiplicity);
-    deserializer.validateDebuggingInfo(debuggingInfo, "storageDirections");
-    deserializer.deserializeVector(storageDirections);
+    deserializer.validateDebuggingInfo(debuggingInfo, "storageDirection");
+    deserializer.deserializeValue(storageDirection);
     deserializer.validateDebuggingInfo(debuggingInfo, "srcTableID");
     deserializer.deserializeValue(srcTableID);
     deserializer.validateDebuggingInfo(debuggingInfo, "dstTableID");
@@ -72,7 +82,7 @@ std::unique_ptr<RelTableCatalogEntry> RelTableCatalogEntry::deserialize(
     auto relTableEntry = std::make_unique<RelTableCatalogEntry>();
     relTableEntry->srcMultiplicity = srcMultiplicity;
     relTableEntry->dstMultiplicity = dstMultiplicity;
-    relTableEntry->storageDirections = std::move(storageDirections);
+    relTableEntry->storageDirection = storageDirection;
     relTableEntry->srcTableID = srcTableID;
     relTableEntry->dstTableID = dstTableID;
     return relTableEntry;
@@ -82,7 +92,7 @@ std::unique_ptr<TableCatalogEntry> RelTableCatalogEntry::copy() const {
     auto other = std::make_unique<RelTableCatalogEntry>();
     other->srcMultiplicity = srcMultiplicity;
     other->dstMultiplicity = dstMultiplicity;
-    other->storageDirections = storageDirections;
+    other->storageDirection = storageDirection;
     other->srcTableID = srcTableID;
     other->dstTableID = dstTableID;
     other->copyFrom(*this);
@@ -103,19 +113,7 @@ std::string RelTableCatalogEntry::toCypher(main::ClientContext* clientContext) c
 }
 
 common::RelStorageDirection RelTableCatalogEntry::getStorageDirection() const {
-    switch (storageDirections.size()) {
-    case 1: {
-        KU_ASSERT(storageDirections[0] == common::RelDataDirection::FWD);
-        return common::RelStorageDirection::FWD_ONLY;
-    }
-    case 2: {
-        KU_ASSERT(storageDirections[0] == common::RelDataDirection::FWD &&
-                  storageDirections[1] == common::RelDataDirection::BWD);
-        return common::RelStorageDirection::BOTH;
-    }
-    default:
-        KU_UNREACHABLE;
-    }
+    return storageDirection;
 }
 
 std::unique_ptr<BoundExtraCreateCatalogEntryInfo> RelTableCatalogEntry::getBoundExtraCreateInfo(

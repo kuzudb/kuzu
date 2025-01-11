@@ -172,9 +172,9 @@ BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info)
 
     auto parsingOptions = bindParsingOptions(extraInfo.options);
     auto storageDirection = RelDirectionUtils::DEFAULT_REL_STORAGE_DIRECTION;
-    if (parsingOptions.contains(TableConstants::REL_STORAGE_DIRECTION_OPTION)) {
+    if (parsingOptions.contains(TableOptionConstants::REL_STORAGE_DIRECTION_OPTION)) {
         storageDirection = RelDirectionUtils::getRelStorageDirection(
-            parsingOptions.at(TableConstants::REL_STORAGE_DIRECTION_OPTION).toString());
+            parsingOptions.at(TableOptionConstants::REL_STORAGE_DIRECTION_OPTION).toString());
     }
 
     auto srcTableID = bindTableID(extraInfo.srcTableName);

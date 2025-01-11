@@ -86,7 +86,7 @@ struct RelTableInsertState final : TableInsertState {
     common::ValueVector& srcNodeIDVector;
     common::ValueVector& dstNodeIDVector;
 
-    common::ValueVector& getSrcNodeIDVector(common::RelDataDirection direction) const {
+    common::ValueVector& getBoundNodeIDVector(common::RelDataDirection direction) const {
         return direction == common::RelDataDirection::FWD ? srcNodeIDVector : dstNodeIDVector;
     }
 
@@ -101,7 +101,7 @@ struct RelTableUpdateState final : TableUpdateState {
     common::ValueVector& dstNodeIDVector;
     common::ValueVector& relIDVector;
 
-    common::ValueVector& getSrcNodeIDVector(common::RelDataDirection direction) const {
+    common::ValueVector& getBoundNodeIDVector(common::RelDataDirection direction) const {
         return direction == common::RelDataDirection::FWD ? srcNodeIDVector : dstNodeIDVector;
     }
 
@@ -117,7 +117,7 @@ struct RelTableDeleteState final : TableDeleteState {
     common::ValueVector& dstNodeIDVector;
     common::ValueVector& relIDVector;
 
-    common::ValueVector& getSrcNodeIDVector(common::RelDataDirection direction) const {
+    common::ValueVector& getBoundNodeIDVector(common::RelDataDirection direction) const {
         return direction == common::RelDataDirection::FWD ? srcNodeIDVector : dstNodeIDVector;
     }
 
@@ -184,7 +184,7 @@ public:
 
     void commit(transaction::Transaction* transaction, LocalTable* localTable) override;
     void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) override;
-    void rollbackCheckpoint() override {};
+    void rollbackCheckpoint() override{};
 
     common::row_idx_t getNumTotalRows(const transaction::Transaction* transaction) override;
 

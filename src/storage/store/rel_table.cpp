@@ -180,7 +180,7 @@ void RelTable::checkRelMultiplicityConstraint(Transaction* transaction,
     for (auto& relData : directedRelData) {
         if (relData->getMultiplicity() == common::RelMultiplicity::ONE) {
             throwIfNodeHasRels(transaction, relData->getDirection(),
-                &insertState.getSrcNodeIDVector(relData->getDirection()),
+                &insertState.getBoundNodeIDVector(relData->getDirection()),
                 throwRelMultiplicityConstraintError);
         }
     }
@@ -223,7 +223,8 @@ void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
         localTable->update(&dummyTrx, updateState);
     } else {
         for (auto& relData : directedRelData) {
-            relData->update(transaction, relUpdateState.getSrcNodeIDVector(relData->getDirection()),
+            relData->update(transaction,
+                relUpdateState.getBoundNodeIDVector(relData->getDirection()),
                 relUpdateState.relIDVector, relUpdateState.columnID, relUpdateState.propertyVector);
         }
     }
@@ -252,7 +253,7 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
     } else {
         for (auto& relData : directedRelData) {
             isDeleted = relData->delete_(transaction,
-                relDeleteState.getSrcNodeIDVector(relData->getDirection()),
+                relDeleteState.getBoundNodeIDVector(relData->getDirection()),
                 relDeleteState.relIDVector);
             if (!isDeleted) {
                 break;
@@ -389,8 +390,12 @@ void RelTable::addColumn(Transaction* transaction, TableAddColumnState& addColum
 
 RelTableData* RelTable::getDirectedTableData(common::RelDataDirection direction) const {
     const auto directionIdx = RelDirectionUtils::relDirectionToKeyIdx(direction);
-    KU_ASSERT(directionIdx < directedRelData.size() &&
-              directedRelData[directionIdx]->getDirection() == direction);
+    if (directionIdx >= directedRelData.size()) {
+        throw RuntimeException(stringFormat(
+            "Failed to get {} data for rel table \"{}\", please set the storage direction to BOTH",
+            RelDirectionUtils::relDirectionToString(direction), tableName));
+    }
+    KU_ASSERT(directedRelData[directionIdx]->getDirection() == direction);
     return directedRelData[directionIdx].get();
 }
 

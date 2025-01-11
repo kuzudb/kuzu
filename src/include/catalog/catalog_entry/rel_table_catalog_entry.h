@@ -12,20 +12,16 @@ class RelTableCatalogEntry final : public TableCatalogEntry {
 
 public:
     RelTableCatalogEntry()
-        : srcMultiplicity{}, dstMultiplicity{}, storageDirections{},
+        : srcMultiplicity{}, dstMultiplicity{}, storageDirection{},
           srcTableID{common::INVALID_TABLE_ID}, dstTableID{common::INVALID_TABLE_ID} {};
     RelTableCatalogEntry(CatalogSet* set, std::string name, common::RelMultiplicity srcMultiplicity,
         common::RelMultiplicity dstMultiplicity, common::table_id_t srcTableID,
         common::table_id_t dstTableID, common::RelStorageDirection storageDirection)
         : TableCatalogEntry{set, entryType_, std::move(name)}, srcMultiplicity{srcMultiplicity},
-          dstMultiplicity{dstMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID} {
+          dstMultiplicity{dstMultiplicity}, storageDirection(storageDirection),
+          srcTableID{srcTableID}, dstTableID{dstTableID} {
         propertyCollection =
             PropertyDefinitionCollection{1}; // Skip NBR_NODE_ID column as the first one.
-
-        storageDirections.push_back(common::RelDataDirection::FWD);
-        if (storageDirection == common::RelStorageDirection::BOTH) {
-            storageDirections.push_back(common::RelDataDirection::BWD);
-        }
     }
 
     bool isParent(common::table_id_t tableID) override;
@@ -35,7 +31,7 @@ public:
     bool isSingleMultiplicity(common::RelDataDirection direction) const;
     common::RelMultiplicity getMultiplicity(common::RelDataDirection direction) const;
 
-    std::span<const common::RelDataDirection> getRelDataDirections() const;
+    std::vector<common::RelDataDirection> getRelDataDirections() const;
     common::RelStorageDirection getStorageDirection() const;
 
     common::table_id_t getBoundTableID(common::RelDataDirection relDirection) const;
@@ -55,7 +51,7 @@ private:
 private:
     common::RelMultiplicity srcMultiplicity;
     common::RelMultiplicity dstMultiplicity;
-    std::vector<common::RelDataDirection> storageDirections;
+    common::RelStorageDirection storageDirection;
     common::table_id_t srcTableID;
     common::table_id_t dstTableID;
 };
