@@ -18,7 +18,7 @@ namespace kuzu {
         }
 
         inline float compute_precomputed_value_serial(const uint8_t code, const float alpha, const float beta) {
-            return code * alpha * beta;
+            return ((float) code) * alpha * beta;
         }
 
         inline void encode_serial_8bit(const float *data, uint8_t *codes, int dim, const float *vmin,
@@ -211,19 +211,14 @@ namespace kuzu {
                                                   precompute_values);
                 _mm_storeu_si128((__m128i *) (codes + i), ci_vec);
             }
-            __m256 temp = _mm256_hadd_ps(precompute_values, precompute_values);
-            __m128 sum128 = _mm_add_ps(_mm256_castps256_ps128(temp), _mm256_extractf128_ps(temp, 1));
-            sum128 = _mm_hadd_ps(sum128, sum128);
-            sum128 = _mm_hadd_ps(sum128, sum128);
-
-            auto precompute_value = _mm_cvtss_f32(sum128);
+            double precompute_value = _simsimd_reduce_f32x8_haswell(precompute_values);
             // Handle the remaining
             for (; i < dim; i++) {
                 codes[i] = encode_serial(data[i], vmin[i], vdiff[i], 256.0f);
-                precompute_value += compute_precomputed_value_serial(codes[i], alpha[i], beta[i]);
+                precompute_value += (double) compute_precomputed_value_serial(codes[i], alpha[i], beta[i]);
             }
             // Store precomputed values
-            *reinterpret_cast<float *>(codes + dim) = precompute_value;
+            *reinterpret_cast<float *>(codes + dim) = (float)precompute_value;
         }
 
 #pragma clang attribute pop
