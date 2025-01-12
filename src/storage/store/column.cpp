@@ -30,7 +30,7 @@ namespace storage {
 
 struct ReadInternalIDValuesToVector {
     ReadInternalIDValuesToVector() : compressedReader{LogicalType(LogicalTypeID::INTERNAL_ID)} {}
-    void operator()(const uint8_t* frame, PageCursor& pageCursor, ValueVector* resultVector,
+    void operator()(const uint8_t* frame, PageCursor& pageCursor, const ValueVector* resultVector,
         uint32_t posInVector, uint32_t numValuesToRead, const CompressionMetadata& metadata) {
         KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
 
@@ -121,8 +121,8 @@ Column::Column(std::string name, LogicalType dataType, FileHandle* dataFH, Memor
 
 Column::Column(std::string name, PhysicalTypeID physicalType, FileHandle* dataFH, MemoryManager* mm,
     ShadowFile* shadowFile, bool enableCompression, bool requireNullColumn)
-    : Column(name, LogicalType::ANY(physicalType), dataFH, mm, shadowFile, enableCompression,
-          requireNullColumn) {}
+    : Column(std::move(name), LogicalType::ANY(physicalType), dataFH, mm, shadowFile,
+          enableCompression, requireNullColumn) {}
 
 Column::~Column() = default;
 
@@ -133,10 +133,10 @@ Column* Column::getNullColumn() const {
 void Column::populateExtraChunkState(ChunkState& state) const {
     if (state.metadata.compMeta.compression == CompressionType::ALP) {
         Transaction& transaction = DUMMY_CHECKPOINT_TRANSACTION;
-        if (dataType.getPhysicalType() == common::PhysicalTypeID::DOUBLE) {
+        if (dataType.getPhysicalType() == PhysicalTypeID::DOUBLE) {
             state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<double>>(&transaction,
                 state, dataFH, mm, shadowFile);
-        } else if (dataType.getPhysicalType() == common::PhysicalTypeID::FLOAT) {
+        } else if (dataType.getPhysicalType() == PhysicalTypeID::FLOAT) {
             state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<float>>(&transaction,
                 state, dataFH, mm, shadowFile);
         }
@@ -331,8 +331,8 @@ void Column::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t
     }
     writeValues(state, dstOffset, data->getData(), nullMaskPtr, srcOffset, numValues);
 
-    if (dataType.getPhysicalType() != common::PhysicalTypeID::ALP_EXCEPTION_DOUBLE &&
-        dataType.getPhysicalType() != common::PhysicalTypeID::ALP_EXCEPTION_FLOAT) {
+    if (dataType.getPhysicalType() != PhysicalTypeID::ALP_EXCEPTION_DOUBLE &&
+        dataType.getPhysicalType() != PhysicalTypeID::ALP_EXCEPTION_FLOAT) {
         auto [minWritten, maxWritten] = getMinMaxStorageValue(data->getData(), srcOffset, numValues,
             dataType.getPhysicalType(), nullMaskPtr);
         updateStatistics(persistentChunk.getMetadata(), dstOffset + numValues - 1, minWritten,
@@ -448,9 +448,9 @@ void Column::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
         checkpointColumnChunkInPlace(chunkState, checkpointState);
 
         if (chunkState.metadata.compMeta.compression == CompressionType::ALP) {
-            if (dataType.getPhysicalType() == common::PhysicalTypeID::DOUBLE) {
+            if (dataType.getPhysicalType() == PhysicalTypeID::DOUBLE) {
                 chunkState.getExceptionChunk<double>()->finalizeAndFlushToDisk(chunkState);
-            } else if (dataType.getPhysicalType() == common::PhysicalTypeID::FLOAT) {
+            } else if (dataType.getPhysicalType() == PhysicalTypeID::FLOAT) {
                 chunkState.getExceptionChunk<float>()->finalizeAndFlushToDisk(chunkState);
             } else {
                 KU_UNREACHABLE;
@@ -464,10 +464,9 @@ void Column::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
 }
 
 std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, PhysicalTypeID physicalType,
-    FileHandle* dataFH, MemoryManager* memoryManager, ShadowFile* shadowFile,
-    bool enableCompression) {
-    return std::make_unique<Column>(name, LogicalType::ANY(physicalType), dataFH, memoryManager,
-        shadowFile, enableCompression);
+    FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression) {
+    return std::make_unique<Column>(name, LogicalType::ANY(physicalType), dataFH, mm, shadowFile,
+        enableCompression);
 }
 
 std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalType dataType,

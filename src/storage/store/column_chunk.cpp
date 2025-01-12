@@ -5,7 +5,6 @@
 #include "common/serializer/deserializer.h"
 #include "common/vector/value_vector.h"
 #include "main/client_context.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column.h"
 #include "transaction/transaction.h"
@@ -202,12 +201,11 @@ void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,
 }
 
 MergedColumnChunkStats ColumnChunk::getMergedColumnChunkStats(
-    const transaction::Transaction* transaction) const {
+    const Transaction* transaction) const {
     auto baseStats = data->getMergedColumnChunkStats();
     if (updateInfo) {
         for (idx_t i = 0; i < updateInfo->getNumVectors(); ++i) {
-            const auto* vectorInfo = updateInfo->getVectorInfo(transaction, i);
-            if (vectorInfo) {
+            if (const auto* vectorInfo = updateInfo->getVectorInfo(transaction, i)) {
                 baseStats.merge(vectorInfo->data->getMergedColumnChunkStats(),
                     getDataType().getPhysicalType());
             }

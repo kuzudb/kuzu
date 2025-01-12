@@ -31,43 +31,16 @@ struct NodeCSRIndex {
     // structures. so the struct can be more space efficient.
     bool isSequential = false;
     row_idx_vec_t rowIndices; // TODO(Guodong): Should optimze the vector to a more space-efficient
-                              // data structure.
+    // data structure.
 
     bool isEmpty() const { return getNumRows() == 0; }
-    common::row_idx_t getNumRows() const {
-        if (isSequential) {
-            return rowIndices[1];
-        }
-        return rowIndices.size();
-    }
-    row_idx_vec_t getRows() const {
-        if (isSequential) {
-            row_idx_vec_t result;
-            result.reserve(rowIndices[1]);
-            for (common::row_idx_t i = 0u; i < rowIndices[1]; ++i) {
-                result.push_back(i + rowIndices[0]);
-            }
-            return result;
-        }
-        return rowIndices;
-    }
-
+    common::row_idx_t getNumRows() const;
+    row_idx_vec_t getRows() const;
     void clear() {
         isSequential = false;
         rowIndices.clear();
     }
-
-    void turnToNonSequential() {
-        if (isSequential) {
-            row_idx_vec_t newIndices;
-            newIndices.reserve(rowIndices[1]);
-            for (common::row_idx_t i = 0u; i < rowIndices[1]; ++i) {
-                newIndices.push_back(i + rowIndices[0]);
-            }
-            rowIndices = std::move(newIndices);
-            isSequential = false;
-        }
-    }
+    void turnToNonSequential();
     void setInvalid(common::idx_t idx) {
         KU_ASSERT(!isSequential);
         KU_ASSERT(idx < rowIndices.size());
@@ -83,16 +56,7 @@ struct CSRIndex {
     common::row_idx_t getNumRows(common::offset_t offset) const {
         return indices[offset].getNumRows();
     }
-
-    common::offset_t getMaxOffsetWithRels() const {
-        common::offset_t maxOffset = 0;
-        for (auto i = 0u; i < indices.size(); i++) {
-            if (!indices[i].isEmpty()) {
-                maxOffset = i;
-            }
-        }
-        return maxOffset;
-    }
+    common::offset_t getMaxOffsetWithRels() const;
 };
 
 // TODO(Guodong): Serialize the info to disk. This should be a config per node group.
@@ -106,12 +70,36 @@ struct PackedCSRInfo {
     constexpr PackedCSRInfo() noexcept = default;
 };
 
+struct CachedCSRHeader {
+    common::offset_t startNodeOffset;
+    common::offset_t size;
+
+    common::ValueVector offsets;
+    common::ValueVector lengths;
+    std::shared_ptr<common::DataChunkState> state;
+
+    CachedCSRHeader();
+
+    common::offset_t getStartCSROffset(common::offset_t nodeOffset) const {
+        return offsets.getValue<common::offset_t>(nodeOffset - startNodeOffset);
+    }
+    common::length_t getCSRLength(common::offset_t nodeOffset) const {
+        return lengths.getValue<common::length_t>(nodeOffset - startNodeOffset);
+    }
+    bool isOutOfBound(common::offset_t nodeOffset) const {
+        return nodeOffset < startNodeOffset || nodeOffset >= startNodeOffset + size;
+    }
+    uint64_t getNumCachedRows() const;
+    void cache(const transaction::Transaction* transaction, const CSRHeader& csrHeader,
+        const ChunkState& offsetChunkState, const ChunkState& lengthChunkState,
+        common::offset_t startNodeOffset_, common::length_t size_);
+};
+
 class CSRNodeGroup;
 struct RelTableScanState;
 struct CSRNodeGroupScanState final : NodeGroupScanState {
-    // Cached offsets and lengths for a sequence of CSR lists within the current vector of
-    // boundNodes.
-    std::unique_ptr<ChunkedCSRHeader> header;
+    // TODO(Guodong): Get rid of the unique_ptr.
+    std::unique_ptr<CachedCSRHeader> cachedHeader;
 
     std::optional<std::bitset<common::DEFAULT_VECTOR_CAPACITY>> cachedScannedVectorsSelBitset;
     // The total number of rows (i.e., rels) in the current node group.
@@ -126,13 +114,9 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
     CSRNodeGroupScanSource source;
 
     explicit CSRNodeGroupScanState(common::idx_t numChunks)
-        : NodeGroupScanState{numChunks}, header{nullptr}, numTotalRows{0}, numCachedRows{0},
-          nextCachedRowToScan{0}, source{CSRNodeGroupScanSource::COMMITTED_PERSISTENT} {}
-    CSRNodeGroupScanState(MemoryManager& mm, common::idx_t numChunks)
         : NodeGroupScanState{numChunks}, numTotalRows{0}, numCachedRows{0}, nextCachedRowToScan{0},
           source{CSRNodeGroupScanSource::COMMITTED_PERSISTENT} {
-        header = std::make_unique<ChunkedCSRHeader>(mm, false,
-            common::StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
+        cachedHeader = std::make_unique<CachedCSRHeader>();
     }
 
     bool tryScanCachedTuples(RelTableScanState& tableScanState);
@@ -142,8 +126,8 @@ struct CSRNodeGroupCheckpointState final : NodeGroupCheckpointState {
     Column* csrOffsetColumn;
     Column* csrLengthColumn;
 
-    std::unique_ptr<ChunkedCSRHeader> oldHeader;
-    std::unique_ptr<ChunkedCSRHeader> newHeader;
+    std::unique_ptr<CSRHeader> oldHeader;
+    std::unique_ptr<CSRHeader> newHeader;
 
     CSRNodeGroupCheckpointState(std::vector<common::column_id_t> columnIDs,
         std::vector<Column*> columns, FileHandle& dataFH, MemoryManager* mm, Column* csrOffsetCol,
@@ -215,9 +199,10 @@ public:
 
 private:
     void initScanForCommittedPersistent(const transaction::Transaction* transaction,
-        RelTableScanState& relScanState, CSRNodeGroupScanState& nodeGroupScanState) const;
-    void initScanForCommittedInMem(RelTableScanState& relScanState,
-        CSRNodeGroupScanState& nodeGroupScanState) const;
+        RelTableScanState& relScanState, CSRNodeGroupScanState& nodeGroupScanState,
+        common::offset_t startBoundNodeOffset) const;
+    static void initScanForCommittedInMem(RelTableScanState& relScanState,
+        CSRNodeGroupScanState& nodeGroupScanState);
 
     void updateCSRIndex(common::offset_t boundNodeOffsetInGroup, common::row_idx_t startRow,
         common::length_t length) const;
@@ -265,7 +250,7 @@ private:
         const std::vector<CSRRegion>& leafRegions);
     static std::vector<CSRRegion> mergeRegionsToCheckpoint(
         const CSRNodeGroupCheckpointState& csrState, std::vector<CSRRegion>& leafRegions);
-    static bool isWithinDensityBound(const ChunkedCSRHeader& header,
+    static bool isWithinDensityBound(const CSRHeader& header,
         const std::vector<CSRRegion>& leafRegions, const CSRRegion& region);
 
     void checkpointColumn(const common::UniqLock& lock, common::column_id_t columnID,

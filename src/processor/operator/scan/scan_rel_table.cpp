@@ -54,7 +54,7 @@ std::string ScanRelTablePrintInfo::toString() const {
     return result;
 }
 
-void ScanRelTableInfo::initScanState(const ExecutionContext* context) {
+void ScanRelTableInfo::initScanState() {
     std::vector<const Column*> columns;
     columns.reserve(columnIDs.size());
     for (const auto columnID : columnIDs) {
@@ -65,13 +65,13 @@ void ScanRelTableInfo::initScanState(const ExecutionContext* context) {
             columns.push_back(table->getColumn(columnID, direction));
         }
     }
-    scanState = std::make_unique<RelTableScanState>(*context->clientContext->getMemoryManager(),
-        table->getTableID(), columnIDs, columns, table->getCSROffsetColumn(direction),
-        table->getCSRLengthColumn(direction), direction, copyVector(columnPredicates));
+    scanState = std::make_unique<RelTableScanState>(table->getTableID(), columnIDs, columns,
+        table->getCSROffsetColumn(direction), table->getCSRLengthColumn(direction), direction,
+        copyVector(columnPredicates));
 }
 
 void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    relInfo.initScanState(context);
+    relInfo.initScanState();
     initVectors(*relInfo.scanState, *resultSet);
     if (const auto localRelTable =
             context->clientContext->getTransaction()->getLocalStorage()->getLocalTable(

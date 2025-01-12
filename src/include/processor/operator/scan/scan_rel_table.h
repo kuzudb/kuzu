@@ -27,7 +27,7 @@ struct ScanRelTableInfo {
           columnPredicates{std::move(columnPredicates)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(ScanRelTableInfo);
 
-    void initScanState(const ExecutionContext* context);
+    void initScanState();
 
 private:
     ScanRelTableInfo(const ScanRelTableInfo& other)

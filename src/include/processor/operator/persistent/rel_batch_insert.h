@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace storage {
 class CSRNodeGroup;
-struct ChunkedCSRHeader;
+struct CSRHeader;
 class MemoryManager;
 } // namespace storage
 
@@ -116,7 +116,7 @@ private:
         common::offset_t startNodeOffset, const RelBatchInsertInfo& relInfo,
         const RelBatchInsertLocalState& localState, common::offset_t numNodes, bool leaveGaps);
 
-    static void populateCSRLengths(const storage::ChunkedCSRHeader& csrHeader,
+    static void populateCSRLengths(const storage::CSRHeader& csrHeader,
         common::offset_t numNodes, storage::InMemChunkedNodeGroupCollection& partition,
         common::column_id_t boundNodeOffsetColumn);
 
@@ -125,7 +125,7 @@ private:
     static void setRowIdxFromCSROffsets(storage::ColumnChunkData& rowIdxChunk,
         storage::ColumnChunkData& csrOffsetChunk);
 
-    static void checkRelMultiplicityConstraint(const storage::ChunkedCSRHeader& csrHeader,
+    static void checkRelMultiplicityConstraint(const storage::CSRHeader& csrHeader,
         common::offset_t startNodeOffset, const RelBatchInsertInfo& relInfo);
 
 private:

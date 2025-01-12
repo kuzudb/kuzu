@@ -35,14 +35,12 @@ struct RelTableScanState : TableScanState {
         nodeGroupScanState = std::make_unique<NodeGroupScanState>(columnIDs.size());
     }
 
-    RelTableScanState(MemoryManager& mm, common::table_id_t tableID,
-        const std::vector<common::column_id_t>& columnIDs,
+    RelTableScanState(common::table_id_t tableID, const std::vector<common::column_id_t>& columnIDs,
         const std::vector<const Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
         common::RelDataDirection direction)
-        : RelTableScanState(mm, tableID, columnIDs, columns, csrOffsetCol, csrLengthCol, direction,
+        : RelTableScanState(tableID, columnIDs, columns, csrOffsetCol, csrLengthCol, direction,
               std::vector<ColumnPredicateSet>{}) {}
-    RelTableScanState(MemoryManager& mm, common::table_id_t tableID,
-        const std::vector<common::column_id_t>& columnIDs,
+    RelTableScanState(common::table_id_t tableID, const std::vector<common::column_id_t>& columnIDs,
         const std::vector<const Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
         common::RelDataDirection direction, std::vector<ColumnPredicateSet> columnPredicateSets);
 
@@ -56,7 +54,7 @@ private:
     bool hasUnComittedData() const;
 
     void initCachedBoundNodeIDSelVector();
-    void initStateForCommitted(transaction::Transaction* transaction);
+    void initStateForCommitted(const transaction::Transaction* transaction);
     void initStateForUncommitted();
 };
 
@@ -187,13 +185,15 @@ public:
         return currentRelOffset;
     }
 
-    void pushInsertInfo(transaction::Transaction* transaction, common::RelDataDirection direction,
-        const CSRNodeGroup& nodeGroup, common::row_idx_t numRows_, CSRNodeGroupScanSource source);
+    void pushInsertInfo(const transaction::Transaction* transaction,
+        common::RelDataDirection direction, const CSRNodeGroup& nodeGroup,
+        common::row_idx_t numRows_, CSRNodeGroupScanSource source) const;
 
 private:
     static void prepareCommitForNodeGroup(const transaction::Transaction* transaction,
-        NodeGroup& localNodeGroup, CSRNodeGroup& csrNodeGroup, common::offset_t boundOffsetInGroup,
-        const row_idx_vec_t& rowIndices, common::column_id_t skippedColumn);
+        const NodeGroup& localNodeGroup, CSRNodeGroup& csrNodeGroup,
+        common::offset_t boundOffsetInGroup, const row_idx_vec_t& rowIndices,
+        common::column_id_t skippedColumn);
 
     void updateRelOffsets(const LocalRelTable& localRelTable);
     void updateNodeOffsets(const transaction::Transaction* transaction,
@@ -202,9 +202,9 @@ private:
     static common::offset_t getCommittedOffset(common::offset_t uncommittedOffset,
         common::offset_t maxCommittedOffset);
 
-    void detachDeleteForCSRRels(transaction::Transaction* transaction, RelTableData* tableData,
-        RelTableData* reverseTableData, RelTableScanState* relDataReadState,
-        RelTableDeleteState* deleteState);
+    void detachDeleteForCSRRels(transaction::Transaction* transaction,
+        const RelTableData* tableData, const RelTableData* reverseTableData,
+        RelTableScanState* relDataReadState, RelTableDeleteState* deleteState);
 
     void checkRelMultiplicityConstraint(transaction::Transaction* transaction,
         const TableInsertState& state) const;

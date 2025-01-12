@@ -1,7 +1,5 @@
 #include "graph/on_disk_graph.h"
 
-#include <memory>
-
 #include "binder/expression/property_expression.h"
 #include "common/assert.h"
 #include "common/cast.h"
@@ -15,7 +13,6 @@
 #include "main/client_context.h"
 #include "planner/operator/schema.h"
 #include "processor/expression_mapper.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/storage_manager.h"
@@ -25,26 +22,23 @@
 #include "storage/store/rel_table.h"
 #include "storage/store/table.h"
 
-using namespace kuzu::catalog;
 using namespace kuzu::storage;
-using namespace kuzu::main;
 using namespace kuzu::common;
-using namespace kuzu::planner;
-using namespace kuzu::processor;
-using namespace kuzu::binder;
 
 namespace kuzu {
 namespace graph {
 
 static std::unique_ptr<RelTableScanState> getRelScanState(
-    const transaction::Transaction* transaction, MemoryManager& mm,
-    const TableCatalogEntry& relEntry, const RelTable& table, RelDataDirection direction,
-    ValueVector* srcVector, ValueVector* dstVector, ValueVector* relIDVector,
-    expression_vector predicateEdgeProperties, std::optional<column_id_t> edgePropertyID,
-    ValueVector* propertyVector, const Schema& schema, const ResultSet& resultSet) {
-    auto columnIDs = std::vector<column_id_t>{NBR_ID_COLUMN_ID, REL_ID_COLUMN_ID};
+    const transaction::Transaction* transaction, const catalog::TableCatalogEntry& relEntry,
+    const RelTable& table, RelDataDirection direction, ValueVector* srcVector,
+    ValueVector* dstVector, ValueVector* relIDVector,
+    const binder::expression_vector& predicateEdgeProperties,
+    std::optional<column_id_t> edgePropertyID, ValueVector* propertyVector,
+    const planner::Schema& schema, const processor::ResultSet& resultSet) {
+    auto columnIDs = std::vector{NBR_ID_COLUMN_ID, REL_ID_COLUMN_ID};
     for (auto property : predicateEdgeProperties) {
-        columnIDs.push_back(property->constCast<PropertyExpression>().getColumnID(relEntry));
+        columnIDs.push_back(
+            property->constCast<binder::PropertyExpression>().getColumnID(relEntry));
     }
     if (edgePropertyID) {
         columnIDs.push_back(*edgePropertyID);
@@ -53,13 +47,13 @@ static std::unique_ptr<RelTableScanState> getRelScanState(
     for (const auto columnID : columnIDs) {
         columns.push_back(table.getColumn(columnID, direction));
     }
-    auto scanState = std::make_unique<RelTableScanState>(mm, table.getTableID(), columnIDs, columns,
+    auto scanState = std::make_unique<RelTableScanState>(table.getTableID(), columnIDs, columns,
         table.getCSROffsetColumn(direction), table.getCSRLengthColumn(direction), direction);
     scanState->nodeIDVector = srcVector;
     scanState->outputVectors.push_back(dstVector);
     scanState->outputVectors.push_back(relIDVector);
     for (auto& property : predicateEdgeProperties) {
-        auto pos = DataPos(schema.getExpressionPos(*property));
+        auto pos = processor::DataPos(schema.getExpressionPos(*property));
         auto vector = resultSet.getValueVector(pos).get();
         scanState->outputVectors.push_back(vector);
     }
@@ -78,13 +72,13 @@ static std::unique_ptr<RelTableScanState> getRelScanState(
     return scanState;
 }
 
-OnDiskGraphNbrScanStates::OnDiskGraphNbrScanStates(ClientContext* context,
+OnDiskGraphNbrScanStates::OnDiskGraphNbrScanStates(main::ClientContext* context,
     std::span<RelTable*> tables, const GraphEntry& graphEntry,
     std::optional<idx_t> edgePropertyIndex)
     : iteratorIndex{0}, direction{RelDataDirection::INVALID} {
     auto schema = graphEntry.getRelPropertiesSchema();
-    auto descriptor = ResultSetDescriptor(&schema);
-    auto resultSet = ResultSet(&descriptor, context->getMemoryManager());
+    auto descriptor = processor::ResultSetDescriptor(&schema);
+    auto resultSet = processor::ResultSet(&descriptor, context->getMemoryManager());
     KU_ASSERT(resultSet.dataChunks.size() == 1);
     auto state = resultSet.getDataChunk(0)->state;
     srcNodeIDVector =
@@ -112,27 +106,25 @@ OnDiskGraphNbrScanStates::OnDiskGraphNbrScanStates(ClientContext* context,
         edgePropertyID = catalogEntry->getColumnID(*edgePropertyIndex);
     }
     if (graphEntry.hasRelPredicate()) {
-        auto mapper = ExpressionMapper(&schema);
+        auto mapper = processor::ExpressionMapper(&schema);
         relPredicateEvaluator = mapper.getEvaluator(graphEntry.getRelPredicate());
         relPredicateEvaluator->init(resultSet, context);
     }
     scanStates.reserve(tables.size());
     for (auto table : tables) {
         auto relEntry = graphEntry.getRelEntry(table->getTableID());
-        auto fwdState = getRelScanState(context->getTransaction(), *context->getMemoryManager(),
-            *relEntry, *table, RelDataDirection::FWD, srcNodeIDVector.get(), dstNodeIDVector.get(),
-            relIDVector.get(), graphEntry.getRelProperties(), edgePropertyID, propertyVector.get(),
-            schema, resultSet);
-        auto bwdState = getRelScanState(context->getTransaction(), *context->getMemoryManager(),
-            *relEntry, *table, RelDataDirection::BWD, srcNodeIDVector.get(), dstNodeIDVector.get(),
-            relIDVector.get(), graphEntry.getRelProperties(), edgePropertyID, propertyVector.get(),
-            schema, resultSet);
+        auto fwdState = getRelScanState(context->getTransaction(), *relEntry, *table,
+            RelDataDirection::FWD, srcNodeIDVector.get(), dstNodeIDVector.get(), relIDVector.get(),
+            graphEntry.getRelProperties(), edgePropertyID, propertyVector.get(), schema, resultSet);
+        auto bwdState = getRelScanState(context->getTransaction(), *relEntry, *table,
+            RelDataDirection::BWD, srcNodeIDVector.get(), dstNodeIDVector.get(), relIDVector.get(),
+            graphEntry.getRelProperties(), edgePropertyID, propertyVector.get(), schema, resultSet);
         scanStates.emplace_back(table->getTableID(),
             OnDiskGraphNbrScanState{context, *table, std::move(fwdState), std::move(bwdState)});
     }
 }
 
-OnDiskGraph::OnDiskGraph(ClientContext* context, const GraphEntry& entry)
+OnDiskGraph::OnDiskGraph(main::ClientContext* context, const GraphEntry& entry)
     : context{context}, graphEntry{entry.copy()} {
     auto storage = context->getStorageManager();
     auto catalog = context->getCatalog();
@@ -227,8 +219,8 @@ Graph::EdgeIterator OnDiskGraph::scanFwd(nodeID_t nodeID, NbrScanState& state) {
             scanState.fwdIterator.initScan();
         }
     }
-    onDiskScanState.startScan(common::RelDataDirection::FWD);
-    return Graph::EdgeIterator(&onDiskScanState);
+    onDiskScanState.startScan(RelDataDirection::FWD);
+    return EdgeIterator(&onDiskScanState);
 }
 
 Graph::EdgeIterator OnDiskGraph::scanBwd(nodeID_t nodeID, NbrScanState& state) {
@@ -243,11 +235,11 @@ Graph::EdgeIterator OnDiskGraph::scanBwd(nodeID_t nodeID, NbrScanState& state) {
             scanState.bwdIterator.initScan();
         }
     }
-    onDiskScanState.startScan(common::RelDataDirection::BWD);
-    return Graph::EdgeIterator(&onDiskScanState);
+    onDiskScanState.startScan(RelDataDirection::BWD);
+    return EdgeIterator(&onDiskScanState);
 }
 
-bool OnDiskGraphNbrScanState::InnerIterator::next(evaluator::ExpressionEvaluator* predicate) {
+bool OnDiskGraphNbrScanState::InnerIterator::next(evaluator::ExpressionEvaluator* predicate) const {
     while (true) {
         if (!relTable->scan(context->getTransaction(), *tableScanState)) {
             return false;
@@ -263,10 +255,10 @@ bool OnDiskGraphNbrScanState::InnerIterator::next(evaluator::ExpressionEvaluator
 }
 
 OnDiskGraphNbrScanState::InnerIterator::InnerIterator(const main::ClientContext* context,
-    storage::RelTable* relTable, std::unique_ptr<storage::RelTableScanState> tableScanState)
+    RelTable* relTable, std::unique_ptr<RelTableScanState> tableScanState)
     : context{context}, relTable{relTable}, tableScanState{std::move(tableScanState)} {}
 
-void OnDiskGraphNbrScanState::InnerIterator::initScan() {
+void OnDiskGraphNbrScanState::InnerIterator::initScan() const {
     relTable->initScanState(context->getTransaction(), *tableScanState);
 }
 
@@ -280,8 +272,8 @@ bool OnDiskGraphNbrScanStates::next() {
     return false;
 }
 
-OnDiskGraphVertexScanState::OnDiskGraphVertexScanState(ClientContext& context,
-    common::table_id_t tableID, const std::vector<std::string>& propertyNames)
+OnDiskGraphVertexScanState::OnDiskGraphVertexScanState(main::ClientContext& context,
+    table_id_t tableID, const std::vector<std::string>& propertyNames)
     : context{context},
       nodeTable{ku_dynamic_cast<const NodeTable&>(*context.getStorageManager()->getTable(tableID))},
       numNodesScanned{0}, tableID{tableID}, currentOffset{0}, endOffsetExclusive{0} {
@@ -322,20 +314,19 @@ bool OnDiskGraphVertexScanState::next() {
     return result;
 }
 
-Graph::VertexIterator OnDiskGraph::scanVertices(common::offset_t beginOffset,
-    common::offset_t endOffsetExclusive, VertexScanState& state) {
+Graph::VertexIterator OnDiskGraph::scanVertices(offset_t beginOffset, offset_t endOffsetExclusive,
+    VertexScanState& state) {
     auto& onDiskVertexScanState = ku_dynamic_cast<OnDiskGraphVertexScanState&>(state);
     onDiskVertexScanState.startScan(beginOffset, endOffsetExclusive);
-    return Graph::VertexIterator(&state);
+    return VertexIterator(&state);
 }
 
-std::unique_ptr<VertexScanState> OnDiskGraph::prepareVertexScan(common::table_id_t tableID,
+std::unique_ptr<VertexScanState> OnDiskGraph::prepareVertexScan(table_id_t tableID,
     const std::vector<std::string>& propertiesToScan) {
     return std::make_unique<OnDiskGraphVertexScanState>(*context, tableID, propertiesToScan);
 }
 
-void OnDiskGraphVertexScanState::startScan(common::offset_t beginOffset,
-    common::offset_t endOffsetExclusive) {
+void OnDiskGraphVertexScanState::startScan(offset_t beginOffset, offset_t endOffsetExclusive) {
     numNodesScanned = 0;
     this->currentOffset = beginOffset;
     this->endOffsetExclusive = endOffsetExclusive;

@@ -19,14 +19,13 @@ using namespace kuzu::evaluator;
 namespace kuzu {
 namespace storage {
 
-RelTableScanState::RelTableScanState(MemoryManager& mm, table_id_t tableID,
-    const std::vector<column_id_t>& columnIDs, const std::vector<const Column*>& columns,
-    Column* csrOffsetCol, Column* csrLengthCol, RelDataDirection direction,
-    std::vector<ColumnPredicateSet> columnPredicateSets)
+RelTableScanState::RelTableScanState(table_id_t tableID, const std::vector<column_id_t>& columnIDs,
+    const std::vector<const Column*>& columns, Column* csrOffsetCol, Column* csrLengthCol,
+    RelDataDirection direction, std::vector<ColumnPredicateSet> columnPredicateSets)
     : TableScanState{tableID, columnIDs, columns, std::move(columnPredicateSets)},
       direction{direction}, currBoundNodeIdx{0}, csrOffsetColumn{csrOffsetCol},
       csrLengthColumn{csrLengthCol}, localTableScanState{nullptr} {
-    nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(mm, this->columnIDs.size());
+    nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(this->columnIDs.size());
     if (!this->columnPredicateSets.empty()) {
         // Since we insert a nbr column. We need to pad an empty nbr column predicate set.
         this->columnPredicateSets.insert(this->columnPredicateSets.begin(), ColumnPredicateSet());
@@ -61,7 +60,7 @@ bool RelTableScanState::hasUnComittedData() const {
     return localTableScanState && localTableScanState->localRelTable;
 }
 
-void RelTableScanState::initStateForCommitted(Transaction* transaction) {
+void RelTableScanState::initStateForCommitted(const Transaction* transaction) {
     source = TableScanSource::COMMITTED;
     currBoundNodeIdx = 0;
     nodeGroup->initializeScanState(transaction, *this);
@@ -148,11 +147,10 @@ void RelTable::initScanState(Transaction* transaction, TableScanState& scanState
     const auto boundNodeID = relScanState.nodeIDVector->getValue<nodeID_t>(
         relScanState.nodeIDVector->state->getSelVector()[0]);
     NodeGroup* nodeGroup = nullptr;
-    if (!transaction->isUnCommitted(boundNodeID.tableID, boundNodeID.offset)) {
+    if (transaction->isCommitted(boundNodeID.tableID, boundNodeID.offset)) {
         // Check if the node group idx is same as previous scan.
         const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(boundNodeID.offset);
         if (relScanState.nodeGroupIdx != nodeGroupIdx) {
-            // We need to re-initialize the node group scan state.
             nodeGroup = getRelTableData(relScanState.direction)->getNodeGroup(nodeGroupIdx);
         } else {
             nodeGroup = relScanState.nodeGroup;
@@ -177,12 +175,12 @@ void RelTable::checkRelMultiplicityConstraint(Transaction* transaction,
     KU_ASSERT(insertState.srcNodeIDVector.state->getSelVector().getSelSize() == 1 &&
               insertState.dstNodeIDVector.state->getSelVector().getSelSize() == 1);
 
-    if (fwdRelTableData->getMultiplicity() == common::RelMultiplicity::ONE) {
-        throwIfNodeHasRels(transaction, common::RelDataDirection::FWD, &insertState.srcNodeIDVector,
+    if (fwdRelTableData->getMultiplicity() == RelMultiplicity::ONE) {
+        throwIfNodeHasRels(transaction, RelDataDirection::FWD, &insertState.srcNodeIDVector,
             throwRelMultiplicityConstraintError);
     }
-    if (bwdRelTableData->getMultiplicity() == common::RelMultiplicity::ONE) {
-        throwIfNodeHasRels(transaction, common::RelDataDirection::BWD, &insertState.dstNodeIDVector,
+    if (bwdRelTableData->getMultiplicity() == RelMultiplicity::ONE) {
+        throwIfNodeHasRels(transaction, RelDataDirection::BWD, &insertState.dstNodeIDVector,
             throwRelMultiplicityConstraintError);
     }
 }
@@ -278,14 +276,13 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
         direction == RelDataDirection::FWD ? fwdRelTableData.get() : bwdRelTableData.get();
     const auto reverseTableData =
         direction == RelDataDirection::FWD ? bwdRelTableData.get() : fwdRelTableData.get();
-    std::vector<column_id_t> columnsToScan = {NBR_ID_COLUMN_ID, REL_ID_COLUMN_ID};
+    std::vector columnsToScan = {NBR_ID_COLUMN_ID, REL_ID_COLUMN_ID};
     const auto relReadState =
-        std::make_unique<RelTableScanState>(*transaction->getClientContext()->getMemoryManager(),
-            tableID, columnsToScan, tableData->getColumns(), tableData->getCSROffsetColumn(),
-            tableData->getCSRLengthColumn(), direction);
+        std::make_unique<RelTableScanState>(tableID, columnsToScan, tableData->getColumns(),
+            tableData->getCSROffsetColumn(), tableData->getCSRLengthColumn(), direction);
     relReadState->nodeIDVector = &deleteState->srcNodeIDVector;
     relReadState->outputVectors =
-        std::vector<ValueVector*>{&deleteState->dstNodeIDVector, &deleteState->relIDVector};
+        std::vector{&deleteState->dstNodeIDVector, &deleteState->relIDVector};
     relReadState->outState = relReadState->outputVectors[0]->state.get();
     relReadState->rowIdxVector->state = relReadState->outputVectors[0]->state;
     if (const auto localRelTable = transaction->getLocalStorage()->getLocalTable(tableID,
@@ -314,11 +311,10 @@ bool RelTable::checkIfNodeHasRels(Transaction* transaction, RelDataDirection dir
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::RETURN_NULL);
     if (localTable) {
-        hasRels = hasRels ||
-                  localTable->cast<LocalRelTable>().checkIfNodeHasRels(srcNodeIDVector, direction);
+        hasRels = localTable->cast<LocalRelTable>().checkIfNodeHasRels(srcNodeIDVector, direction);
     }
     hasRels =
-        hasRels || (getRelTableData(direction)->checkIfNodeHasRels(transaction, srcNodeIDVector));
+        hasRels || getRelTableData(direction)->checkIfNodeHasRels(transaction, srcNodeIDVector);
     return hasRels;
 }
 
@@ -331,8 +327,8 @@ void RelTable::throwIfNodeHasRels(Transaction* transaction, RelDataDirection dir
     }
 }
 
-void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* tableData,
-    RelTableData* reverseTableData, RelTableScanState* relDataReadState,
+void RelTable::detachDeleteForCSRRels(Transaction* transaction, const RelTableData* tableData,
+    const RelTableData* reverseTableData, RelTableScanState* relDataReadState,
     RelTableDeleteState* deleteState) {
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::RETURN_NULL);
@@ -375,17 +371,17 @@ void RelTable::addColumn(Transaction* transaction, TableAddColumnState& addColum
     hasChanges = true;
 }
 
-RelTableData* RelTable::getRelTableData(common::RelDataDirection direction) const {
+RelTableData* RelTable::getRelTableData(RelDataDirection direction) const {
     return direction == RelDataDirection::FWD ? fwdRelTableData.get() : bwdRelTableData.get();
 }
 
-NodeGroup* RelTable::getOrCreateNodeGroup(transaction::Transaction* transaction,
-    node_group_idx_t nodeGroupIdx, RelDataDirection direction) const {
+NodeGroup* RelTable::getOrCreateNodeGroup(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    RelDataDirection direction) const {
     return getRelTableData(direction)->getOrCreateNodeGroup(transaction, nodeGroupIdx);
 }
 
-void RelTable::pushInsertInfo(Transaction* transaction, RelDataDirection direction,
-    const CSRNodeGroup& nodeGroup, row_idx_t numRows_, CSRNodeGroupScanSource source) {
+void RelTable::pushInsertInfo(const Transaction* transaction, RelDataDirection direction,
+    const CSRNodeGroup& nodeGroup, row_idx_t numRows_, CSRNodeGroupScanSource source) const {
     getRelTableData(direction)->pushInsertInfo(transaction, nodeGroup, numRows_, source);
 }
 
@@ -408,7 +404,7 @@ void RelTable::commit(Transaction* transaction, LocalTable* localTable) {
 
     const auto commitRelTableData = [&](RelDataDirection direction) {
         auto [index, relTableData, columnToSkip] =
-            (direction == common::RelDataDirection::FWD) ?
+            (direction == RelDataDirection::FWD) ?
                 std::tie(localRelTable.getFWDIndex(), fwdRelTableData,
                     LOCAL_BOUND_NODE_ID_COLUMN_ID) :
                 std::tie(localRelTable.getBWDIndex(), bwdRelTableData, LOCAL_NBR_NODE_ID_COLUMN_ID);
@@ -423,8 +419,8 @@ void RelTable::commit(Transaction* transaction, LocalTable* localTable) {
                 rowIndices, columnToSkip);
         }
     };
-    commitRelTableData(common::RelDataDirection::FWD);
-    commitRelTableData(common::RelDataDirection::BWD);
+    commitRelTableData(RelDataDirection::FWD);
+    commitRelTableData(RelDataDirection::BWD);
 
     localRelTable.clear();
 }
@@ -447,8 +443,8 @@ void RelTable::updateRelOffsets(const LocalRelTable& localRelTable) {
     }
 }
 
-static void updateIndexNodeOffsets(const transaction::Transaction* transaction,
-    LocalRelTable::rel_index_t& localRelIndex, common::table_id_t nodeTableID) {
+static void updateIndexNodeOffsets(const Transaction* transaction,
+    LocalRelTable::rel_index_t& localRelIndex, table_id_t nodeTableID) {
     for (auto& [offset, rowIndices] : localRelIndex) {
         if (transaction->isUnCommitted(nodeTableID, offset)) {
             const auto committedOffset =
@@ -494,9 +490,9 @@ offset_t RelTable::getCommittedOffset(offset_t uncommittedOffset, offset_t maxCo
     return uncommittedOffset - StorageConstants::MAX_NUM_ROWS_IN_TABLE + maxCommittedOffset;
 }
 
-void RelTable::prepareCommitForNodeGroup(const Transaction* transaction, NodeGroup& localNodeGroup,
-    CSRNodeGroup& csrNodeGroup, offset_t boundOffsetInGroup, const row_idx_vec_t& rowIndices,
-    column_id_t skippedColumn) {
+void RelTable::prepareCommitForNodeGroup(const Transaction* transaction,
+    const NodeGroup& localNodeGroup, CSRNodeGroup& csrNodeGroup, offset_t boundOffsetInGroup,
+    const row_idx_vec_t& rowIndices, column_id_t skippedColumn) {
     for (const auto row : rowIndices) {
         auto [chunkedGroupIdx, rowInChunkedGroup] =
             StorageUtils::getQuotientRemainder(row, ChunkedNodeGroup::CHUNK_CAPACITY);

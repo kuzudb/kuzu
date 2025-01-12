@@ -61,7 +61,7 @@ public:
         const common::ValueVector& relIDVector, common::column_id_t columnID,
         const common::ValueVector& dataVector) const;
     bool delete_(transaction::Transaction* transaction, common::ValueVector& boundNodeIDVector,
-        const common::ValueVector& relIDVector);
+        const common::ValueVector& relIDVector) const;
     void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState);
 
     bool checkIfNodeHasRels(transaction::Transaction* transaction,
@@ -96,8 +96,8 @@ public:
 
     void checkpoint(const std::vector<common::column_id_t>& columnIDs);
 
-    void pushInsertInfo(transaction::Transaction* transaction, const CSRNodeGroup& nodeGroup,
-        common::row_idx_t numRows_, CSRNodeGroupScanSource source);
+    void pushInsertInfo(const transaction::Transaction* transaction, const CSRNodeGroup& nodeGroup,
+        common::row_idx_t numRows_, CSRNodeGroupScanSource source) const;
 
     void serialize(common::Serializer& serializer) const;
 
@@ -105,7 +105,7 @@ public:
         return nodeGroups->getNodeGroupNoLock(nodeGroupIdx);
     }
 
-    void rollbackGroupCollectionInsert(common::row_idx_t numRows_, bool isPersistent);
+    void rollbackGroupCollectionInsert(common::row_idx_t numRows_, bool isPersistent) const;
 
 private:
     void initCSRHeaderColumns();
@@ -135,7 +135,7 @@ private:
         return types;
     }
 
-    const VersionRecordHandler* getVersionRecordHandler(CSRNodeGroupScanSource source);
+    const VersionRecordHandler* getVersionRecordHandler(CSRNodeGroupScanSource source) const;
 
 private:
     FileHandle* dataFH;

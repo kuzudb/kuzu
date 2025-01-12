@@ -55,7 +55,7 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
     outState = resultSet->getValueVector(info.outVectorsPos[0])->state.get();
     for (auto& [_, scanner] : scanners) {
         for (auto& relInfo : scanner.relInfos) {
-            relInfo.initScanState(context);
+            relInfo.initScanState();
             initVectors(*relInfo.scanState, *resultSet);
             auto& scanState = relInfo.scanState->cast<RelTableScanState>();
             KU_ASSERT(outState == scanState.outState);

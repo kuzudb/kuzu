@@ -173,7 +173,7 @@ void RelBatchInsert::populateCSRHeaderAndRowIdx(InMemChunkedNodeGroupCollection&
     KU_ASSERT(csrHeader.sanityCheck());
 }
 
-void RelBatchInsert::populateCSRLengths(const ChunkedCSRHeader& csrHeader, offset_t numNodes,
+void RelBatchInsert::populateCSRLengths(const CSRHeader& csrHeader, offset_t numNodes,
     InMemChunkedNodeGroupCollection& partition, column_id_t boundNodeOffsetColumn) {
     KU_ASSERT(numNodes == csrHeader.length->getNumValues() &&
               numNodes == csrHeader.offset->getNumValues());
@@ -209,7 +209,7 @@ void RelBatchInsert::setRowIdxFromCSROffsets(ColumnChunkData& rowIdxChunk,
     }
 }
 
-void RelBatchInsert::checkRelMultiplicityConstraint(const ChunkedCSRHeader& csrHeader,
+void RelBatchInsert::checkRelMultiplicityConstraint(const CSRHeader& csrHeader,
     offset_t startNodeOffset, const RelBatchInsertInfo& relInfo) {
     auto& relTableEntry = relInfo.tableEntry->constCast<RelTableCatalogEntry>();
     if (!relTableEntry.isSingleMultiplicity(relInfo.direction)) {

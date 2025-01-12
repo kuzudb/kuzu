@@ -53,22 +53,22 @@ struct CSRRegion {
         const CSRRegion& region);
 };
 
-struct ChunkedCSRHeader {
+struct CSRHeader {
     std::unique_ptr<ColumnChunk> offset;
     std::unique_ptr<ColumnChunk> length;
 
-    ChunkedCSRHeader(MemoryManager& memoryManager, bool enableCompression, uint64_t capacity,
+    CSRHeader(MemoryManager& memoryManager, bool enableCompression, uint64_t capacity,
         ResidencyState residencyState);
-    ChunkedCSRHeader(std::unique_ptr<ColumnChunk> offset, std::unique_ptr<ColumnChunk> length)
+    CSRHeader(std::unique_ptr<ColumnChunk> offset, std::unique_ptr<ColumnChunk> length)
         : offset{std::move(offset)}, length{std::move(length)} {}
 
     common::offset_t getStartCSROffset(common::offset_t nodeOffset) const;
     common::offset_t getEndCSROffset(common::offset_t nodeOffset) const;
     common::length_t getCSRLength(common::offset_t nodeOffset) const;
-    common::length_t getGapSize(common::length_t length) const;
+    common::length_t getGapSize(common::length_t nodeOffset) const;
 
     bool sanityCheck() const;
-    void copyFrom(const ChunkedCSRHeader& other) const;
+    void copyFrom(const CSRHeader& other) const;
     void fillDefaultValues(common::offset_t newNumValues) const;
     void setNumValues(const common::offset_t numValues) const {
         offset->setNumValues(numValues);
@@ -80,7 +80,7 @@ struct ChunkedCSRHeader {
     void populateEndCSROffsetFromStartAndLength() const;
     void finalizeCSRRegionEndOffsets(
         const std::vector<common::offset_t>& rightCSROffsetOfRegions) const;
-    void populateRegionCSROffsets(const CSRRegion& region, const ChunkedCSRHeader& oldHeader) const;
+    void populateRegionCSROffsets(const CSRRegion& region, const CSRHeader& oldHeader) const;
     void populateEndCSROffsets(const std::vector<common::offset_t>& gaps) const;
     common::idx_t getNumRegions() const;
 
@@ -101,13 +101,13 @@ public:
     ChunkedCSRNodeGroup(ChunkedCSRNodeGroup& base,
         const std::vector<common::column_id_t>& selectedColumns)
         : ChunkedNodeGroup{base, selectedColumns}, csrHeader{std::move(base.csrHeader)} {}
-    ChunkedCSRNodeGroup(ChunkedCSRHeader csrHeader,
-        std::vector<std::unique_ptr<ColumnChunk>> chunks, common::row_idx_t startRowIdx)
+    ChunkedCSRNodeGroup(CSRHeader csrHeader, std::vector<std::unique_ptr<ColumnChunk>> chunks,
+        common::row_idx_t startRowIdx)
         : ChunkedNodeGroup{std::move(chunks), startRowIdx, NodeGroupDataFormat::CSR},
           csrHeader{std::move(csrHeader)} {}
 
-    ChunkedCSRHeader& getCSRHeader() { return csrHeader; }
-    const ChunkedCSRHeader& getCSRHeader() const { return csrHeader; }
+    CSRHeader& getCSRHeader() { return csrHeader; }
+    const CSRHeader& getCSRHeader() const { return csrHeader; }
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<ChunkedCSRNodeGroup> deserialize(MemoryManager& memoryManager,
@@ -127,7 +127,7 @@ public:
     void flush(FileHandle& dataFH) override;
 
 private:
-    ChunkedCSRHeader csrHeader;
+    CSRHeader csrHeader;
 };
 
 } // namespace storage
