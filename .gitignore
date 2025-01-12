@@ -48,7 +48,7 @@ tools/nodejs_api/prebuilt/
 
 ### WASM
 tools/wasm/node_modules/
-tools/wasm/dist/
+tools/wasm/package/
 
 # Archive files
 *.zip
