@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "degrees.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
@@ -10,7 +11,6 @@
 #include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
-#include "degrees.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -63,9 +63,7 @@ public:
 
     double getValue(offset_t offset) { return values[offset].load(std::memory_order_relaxed); }
 
-    void addValueCAS(offset_t offset, double val) {
-        addCAS(values[offset], val);
-    }
+    void addValueCAS(offset_t offset, double val) { addCAS(values[offset], val); }
 
     void setValue(offset_t offset, double val) {
         values[offset].store(val, std::memory_order_relaxed);
@@ -79,14 +77,16 @@ private:
 // Sum the weight (current rank / degree) for each incoming edge.
 class PNextUpdateEdgeCompute : public EdgeCompute {
 public:
-    PNextUpdateEdgeCompute(Degrees* degrees, PValues* pCurrent, PValues* pNext) : degrees{degrees}, pCurrent{pCurrent}, pNext{pNext} {}
+    PNextUpdateEdgeCompute(Degrees* degrees, PValues* pCurrent, PValues* pNext)
+        : degrees{degrees}, pCurrent{pCurrent}, pNext{pNext} {}
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
         bool) override {
         if (chunk.size() > 0) {
             double valToAdd = 0;
             chunk.forEach([&](auto nbrNodeID, auto) {
-                valToAdd += pCurrent->getValue(nbrNodeID.offset) / degrees->getValue(nbrNodeID.offset);
+                valToAdd +=
+                    pCurrent->getValue(nbrNodeID.offset) / degrees->getValue(nbrNodeID.offset);
             });
             pNext->addValueCAS(boundNodeID.offset, valToAdd);
         }
@@ -273,8 +273,8 @@ public:
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
         frontierPair->setActiveNodesForNextIter();
         frontierPair->getNextSparseFrontier().disable();
-        auto computeState = GDSComputeState(std::move(frontierPair), nullptr,
-            sharedState->getOutputNodeMaskMap());
+        auto computeState =
+            GDSComputeState(std::move(frontierPair), nullptr, sharedState->getOutputNodeMaskMap());
         auto pNextUpdateConstant = (1 - pageRankBindData->dampingFactor) * ((double)1 / numNodes);
         while (currentIter < pageRankBindData->maxIteration) {
             auto ec = std::make_unique<PNextUpdateEdgeCompute>(&degrees, pCurrent, pNext);

@@ -1,8 +1,8 @@
+#include "function/gds/compute.h"
+#include "function/gds/gds_frontier.h"
 #include "function/gds/gds_object_manager.h"
 #include "function/gds/gds_utils.h"
 #include "graph/graph.h"
-#include "function/gds/compute.h"
-#include "function/gds/gds_frontier.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -66,10 +66,12 @@ struct DegreeEdgeCompute : public EdgeCompute {
 };
 
 struct DegreesUtils {
-    static void computeDegree(processor::ExecutionContext* context, graph::Graph* graph, Degrees* degrees, ExtendDirection direction) {
+    static void computeDegree(processor::ExecutionContext* context, graph::Graph* graph,
+        Degrees* degrees, ExtendDirection direction) {
         auto currentFrontier = PathLengths::getFrontier(context, graph, PathLengths::UNVISITED);
         auto nextFrontier = PathLengths::getFrontier(context, graph, 0);
-        auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
+        auto frontierPair =
+            std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
         frontierPair->setActiveNodesForNextIter();
         frontierPair->getNextSparseFrontier().disable();
         auto ec = std::make_unique<DegreeEdgeCompute>(degrees);
@@ -79,5 +81,5 @@ struct DegreesUtils {
     }
 };
 
-}
-}
+} // namespace function
+} // namespace kuzu

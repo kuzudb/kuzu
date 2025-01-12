@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "common/types/types.h"
+#include "degrees.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_object_manager.h"
@@ -10,7 +11,6 @@
 #include "graph/graph.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
-#include "degrees.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -250,8 +250,8 @@ public:
             &degrees, &coreValues);
         // Compute Core values
         auto removeVertexEdgeCompute = std::make_unique<RemoveVertexEdgeCompute>(&degrees);
-        auto computeState = GDSComputeState(std::move(frontierPair), std::move(removeVertexEdgeCompute),
-            sharedState->getOutputNodeMaskMap());
+        auto computeState = GDSComputeState(std::move(frontierPair),
+            std::move(removeVertexEdgeCompute), sharedState->getOutputNodeMaskMap());
         auto coreValue = 0u;
         auto numNodes = graph->getNumNodes(clientContext->getTransaction());
         auto numNodesComputed = 0u;
