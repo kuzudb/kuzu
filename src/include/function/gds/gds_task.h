@@ -21,10 +21,10 @@ struct FrontierTaskInfo {
 
     FrontierTaskInfo(catalog::TableCatalogEntry* boundEntry, catalog::TableCatalogEntry* nbrEntry,
         catalog::TableCatalogEntry* relEntry, graph::Graph* graph,
-        common::ExtendDirection direction, EdgeCompute& edgeCompute,
-        std::string  propertyToScan)
+        common::ExtendDirection direction, EdgeCompute& edgeCompute, std::string propertyToScan)
         : boundEntry{boundEntry}, nbrEntry{nbrEntry}, relEntry{relEntry}, graph{graph},
-          direction{direction}, edgeCompute{edgeCompute}, propertyToScan{std::move(propertyToScan)} {}
+          direction{direction}, edgeCompute{edgeCompute},
+          propertyToScan{std::move(propertyToScan)} {}
     FrontierTaskInfo(const FrontierTaskInfo& other)
         : boundEntry{other.boundEntry}, nbrEntry{other.nbrEntry}, relEntry{other.relEntry},
           graph{other.graph}, direction{other.direction}, edgeCompute{other.edgeCompute},
