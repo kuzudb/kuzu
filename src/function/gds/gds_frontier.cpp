@@ -1,5 +1,8 @@
 #include "function/gds/gds_frontier.h"
 
+#include "function/gds/gds_utils.h"
+#include "processor/execution_context.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -104,6 +107,16 @@ void PathLengths::pinCurFrontierTableID(common::table_id_t tableID) {
 
 void PathLengths::pinNextFrontierTableID(common::table_id_t tableID) {
     nextFrontier.store(getMaskData(tableID), std::memory_order_relaxed);
+}
+
+std::shared_ptr<PathLengths> PathLengths::getFrontier(processor::ExecutionContext* context,
+    graph::Graph* graph, uint16_t initialValue) {
+    auto tx = context->clientContext->getTransaction();
+    auto mm = context->clientContext->getMemoryManager();
+    auto pathLengths = std::make_shared<PathLengths>(graph->getNumNodesMap(tx), mm);
+    auto vc = std::make_unique<PathLengthsInitVertexCompute>(*pathLengths, initialValue);
+    GDSUtils::runVertexCompute(context, graph, *vc);
+    return pathLengths;
 }
 
 bool PathLengthsInitVertexCompute::beginOnTable(common::table_id_t tableID) {

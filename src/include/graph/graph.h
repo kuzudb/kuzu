@@ -184,18 +184,18 @@ public:
     virtual ~Graph() = default;
 
     // Get id for all node tables.
-    virtual std::vector<common::table_id_t> getNodeTableIDs() = 0;
+    virtual std::vector<common::table_id_t> getNodeTableIDs() const = 0;
     // Get id for all relationship tables.
-    virtual std::vector<common::table_id_t> getRelTableIDs() = 0;
+    virtual std::vector<common::table_id_t> getRelTableIDs() const = 0;
 
     virtual common::table_id_map_t<common::offset_t> getNumNodesMap(
-        transaction::Transaction* transaction) = 0;
+        transaction::Transaction* transaction) const = 0;
 
     // Get num rows for all node tables.
-    virtual common::offset_t getNumNodes(transaction::Transaction* transcation) = 0;
+    virtual common::offset_t getNumNodes(transaction::Transaction* transaction) const = 0;
     // Get num rows for given node table.
-    virtual common::offset_t getNumNodes(transaction::Transaction* transcation,
-        common::table_id_t id) = 0;
+    virtual common::offset_t getNumNodes(transaction::Transaction* transaction,
+        common::table_id_t id) const = 0;
 
     // Get all possible "forward" (fromNodeTableID, relTableID, toNodeTableID) combinations.
     virtual std::vector<RelTableIDInfo> getRelTableIDInfos() = 0;

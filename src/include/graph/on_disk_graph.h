@@ -147,15 +147,15 @@ class KUZU_API OnDiskGraph final : public Graph {
 public:
     OnDiskGraph(main::ClientContext* context, const GraphEntry& entry);
 
-    std::vector<common::table_id_t> getNodeTableIDs() override;
-    std::vector<common::table_id_t> getRelTableIDs() override;
+    std::vector<common::table_id_t> getNodeTableIDs() const override;
+    std::vector<common::table_id_t> getRelTableIDs() const override;
 
     common::table_id_map_t<common::offset_t> getNumNodesMap(
-        transaction::Transaction* transaction) override;
+        transaction::Transaction* transaction) const override;
 
-    common::offset_t getNumNodes(transaction::Transaction* transcation) override;
+    common::offset_t getNumNodes(transaction::Transaction* transaction) const override;
     common::offset_t getNumNodes(transaction::Transaction* transaction,
-        common::table_id_t id) override;
+        common::table_id_t id) const override;
 
     std::vector<RelTableIDInfo> getRelTableIDInfos() override;
 
