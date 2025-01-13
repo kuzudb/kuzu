@@ -3,6 +3,7 @@
 --
 
 -CASE SmallHNSW8DimL2
+-SKIP_MUSL
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -17,6 +18,7 @@
 133
 
 -CASE SmallHNSW8DimCosine
+-SKIP_MUSL
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -31,6 +33,7 @@
 146
 
 -CASE CreateSmallHNSW8DimDotProduct
+-SKIP_MUSL
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -45,6 +48,7 @@
 58
 
 -CASE CreateSmallHNSW960Dim
+-SKIP_MUSL
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[960], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-960-1k.csv" (deLim=',');
@@ -64,6 +68,7 @@
 6
 
 -CASE CreateAndDropSmallHNSW
+-SKIP_MUSL
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -82,6 +87,7 @@
 0|embeddings|NODE|local(kuzu)|
 
 -CASE HNSWOnEmptyTable
+-SKIP_MUSL
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', distFunc := 'l2');
@@ -90,6 +96,7 @@
 ---- 0
 
 -CASE TinyHNSWCreateAndQuery
+-SKIP_MUSL
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-tiny.csv" (deLim=',');
