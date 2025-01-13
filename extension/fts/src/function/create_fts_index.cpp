@@ -60,12 +60,12 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     const TableFuncBindInput* input) {
     storage::IndexUtils::validateAutoTransaction(*context, CreateFTSFunction::name);
     auto indexName = input->getLiteralVal<std::string>(1);
-    auto& nodeTableEntry = storage::IndexUtils::bindTable(*context,
+    auto nodeTableEntry = storage::IndexUtils::bindTable(*context,
         input->getLiteralVal<std::string>(0), indexName, storage::IndexOperation::CREATE);
-    auto properties = bindProperties(nodeTableEntry, input->getParam(2));
+    auto properties = bindProperties(*nodeTableEntry, input->getParam(2));
     auto createFTSConfig = FTSConfig{input->optionalParams};
-    return std::make_unique<CreateFTSBindData>(nodeTableEntry.getName(),
-        nodeTableEntry.getTableID(), indexName, std::move(properties), std::move(createFTSConfig));
+    return std::make_unique<CreateFTSBindData>(nodeTableEntry->getName(),
+        nodeTableEntry->getTableID(), indexName, std::move(properties), std::move(createFTSConfig));
 }
 
 static std::string createStopWordsTableIfNotExists(const ClientContext& context,

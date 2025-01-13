@@ -38,12 +38,12 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const auto& queryVal = input->params[2]->constCast<binder::LiteralExpression>().getValue();
     const auto k = input->getLiteralVal<int64_t>(3);
 
-    auto& nodeTableEntry = storage::IndexUtils::bindTable(*context, tableName, indexName,
+    auto nodeTableEntry = storage::IndexUtils::bindTable(*context, tableName, indexName,
         storage::IndexOperation::QUERY);
     const auto indexEntry = common::ku_dynamic_cast<catalog::HNSWIndexCatalogEntry*>(
-        context->getCatalog()->getIndex(context->getTransaction(), nodeTableEntry.getTableID(),
+        context->getCatalog()->getIndex(context->getTransaction(), nodeTableEntry->getTableID(),
             indexName));
-    auto& indexColumnType = nodeTableEntry.getProperty(indexEntry->getIndexColumnName()).getType();
+    auto& indexColumnType = nodeTableEntry->getProperty(indexEntry->getIndexColumnName()).getType();
     KU_ASSERT(indexColumnType.getLogicalTypeID() == common::LogicalTypeID::ARRAY);
     const auto dimension =
         indexColumnType.getExtraTypeInfo()->constPtrCast<common::ArrayTypeInfo>()->getNumElements();
@@ -56,12 +56,12 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         queryVector[i] = common::NestedVal::getChildVal(&queryVal, i)->getValue<float>();
     }
 
-    auto outputNode = input->binder->createQueryNode("nn", {&nodeTableEntry});
+    auto outputNode = input->binder->createQueryNode("nn", {nodeTableEntry});
     input->binder->addToScope(outputNode->toString(), outputNode);
     binder::expression_vector columns;
     columns.push_back(outputNode->getInternalID());
     columns.push_back(input->binder->createVariable("_distance", common::LogicalType::DOUBLE()));
-    auto boundInput = BoundQueryHNSWIndexInput{&nodeTableEntry, indexEntry, std::move(queryVector),
+    auto boundInput = BoundQueryHNSWIndexInput{nodeTableEntry, indexEntry, std::move(queryVector),
         static_cast<uint64_t>(k)};
     auto config = storage::QueryHNSWConfig{input->optionalParams};
     return std::make_unique<QueryHNSWIndexBindData>(context, std::move(columns), boundInput, config,

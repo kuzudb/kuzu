@@ -21,13 +21,11 @@ std::unique_ptr<HNSWIndexCatalogEntry> HNSWIndexCatalogEntry::deserializeAuxInfo
     const IndexCatalogEntry* indexCatalogEntry) {
     auto reader = std::make_unique<common::BufferReader>(indexCatalogEntry->getAuxBuffer(),
         indexCatalogEntry->getAuxBufferSize());
-
     common::table_id_t upperRelTableID = common::INVALID_TABLE_ID;
     common::table_id_t lowerRelTableID = common::INVALID_TABLE_ID;
     std::string columnName;
     common::offset_t upperEntryPoint = common::INVALID_OFFSET;
     common::offset_t lowerEntryPoint = common::INVALID_OFFSET;
-    std::string debuggingInfo;
     common::Deserializer deSer{std::move(reader)};
     deSer.deserializeValue(upperRelTableID);
     deSer.deserializeValue(lowerRelTableID);

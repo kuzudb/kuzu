@@ -19,9 +19,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     const TableFuncBindInput* input) {
     storage::IndexUtils::validateAutoTransaction(*context, DropFTSFunction::name);
     auto indexName = input->getLiteralVal<std::string>(1);
-    const auto& tableEntry = storage::IndexUtils::bindTable(*context,
+    const auto tableEntry = storage::IndexUtils::bindTable(*context,
         input->getLiteralVal<std::string>(0), indexName, storage::IndexOperation::DROP);
-    return std::make_unique<FTSBindData>(tableEntry.getName(), tableEntry.getTableID(), indexName,
+    return std::make_unique<FTSBindData>(tableEntry->getName(), tableEntry->getTableID(), indexName,
         binder::expression_vector{});
 }
 

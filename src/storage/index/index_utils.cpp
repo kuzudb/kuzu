@@ -48,14 +48,14 @@ static void validateNodeTable(const catalog::TableCatalogEntry* tableEntry) {
     }
 }
 
-catalog::NodeTableCatalogEntry& IndexUtils::bindTable(const main::ClientContext& context,
+catalog::NodeTableCatalogEntry* IndexUtils::bindTable(const main::ClientContext& context,
     const std::string& tableName, const std::string& indexName, IndexOperation indexOperation) {
     validateTableExistence(context, tableName);
     const auto tableEntry =
         context.getCatalog()->getTableCatalogEntry(context.getTransaction(), tableName);
     validateNodeTable(tableEntry);
     validateIndexExistence(context, tableEntry->getTableID(), indexName, indexOperation);
-    return tableEntry->cast<catalog::NodeTableCatalogEntry>();
+    return tableEntry->ptrCast<catalog::NodeTableCatalogEntry>();
 }
 
 void IndexUtils::validateAutoTransaction(const main::ClientContext& context,

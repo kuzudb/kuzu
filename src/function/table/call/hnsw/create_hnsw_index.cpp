@@ -15,8 +15,8 @@ namespace function {
 CreateHNSWSharedState::CreateHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : SimpleTableFuncSharedState{bindData.maxOffset}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-                    ->getTable(bindData.tableEntry->getTableID())
-                    ->cast<storage::NodeTable>()},
+              ->getTable(bindData.tableEntry->getTableID())
+              ->cast<storage::NodeTable>()},
       numNodes{bindData.numNodes}, bindData{&bindData} {
     hnswIndex = std::make_unique<storage::InMemHNSWIndex>(bindData.context, nodeTable,
         bindData.columnID, bindData.config.copy());
@@ -30,16 +30,16 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const auto indexName = input->getLiteralVal<std::string>(0);
     const auto tableName = input->getLiteralVal<std::string>(1);
     const auto columnName = input->getLiteralVal<std::string>(2);
-    auto& tableEntry = storage::IndexUtils::bindTable(*context, tableName, indexName,
+    auto tableEntry = storage::IndexUtils::bindTable(*context, tableName, indexName,
         storage::IndexOperation::CREATE);
-    const auto tableID = tableEntry.getTableID();
-    storage::HNSWIndexUtils::validateColumnType(tableEntry, columnName);
+    const auto tableID = tableEntry->getTableID();
+    storage::HNSWIndexUtils::validateColumnType(*tableEntry, columnName);
     const auto& table = context->getStorageManager()->getTable(tableID)->cast<storage::NodeTable>();
-    auto columnID = tableEntry.getColumnID(columnName);
+    auto columnID = tableEntry->getColumnID(columnName);
     auto config = storage::HNSWIndexConfig{input->optionalParams};
     auto numNodes = table.getStats(context->getTransaction()).getTableCard();
     auto maxOffset = numNodes > 0 ? numNodes - 1 : 0;
-    return std::make_unique<CreateHNSWIndexBindData>(context, indexName, &tableEntry, columnID,
+    return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, columnID,
         numNodes, maxOffset, std::move(config));
 }
 
