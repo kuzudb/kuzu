@@ -281,23 +281,26 @@ namespace kuzu {
                                                 const float *alphaSqr) {
             __m512 xy_vec = _mm512_setzero();
             size_t i = 0;
+            __m256i x_codes, y_codes;
+            __m512i x_codes16, y_codes16, xy;
+            __m512 lower_half, upper_half, alphaSqr_vec_low, alphaSqr_vec_high;
             for (; i + 32 <= dim; i += 32) {
-                __m256i x_codes = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(x + i));
-                __m256i y_codes = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(y + i));
+                x_codes = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(x + i));
+                y_codes = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(y + i));
                 // Convert to 16 bit integers
-                __m512i x_codes16 = _mm512_cvtepu8_epi16(x_codes);
-                __m512i y_codes16 = _mm512_cvtepu8_epi16(y_codes);
+                x_codes16 = _mm512_cvtepu8_epi16(x_codes);
+                y_codes16 = _mm512_cvtepu8_epi16(y_codes);
 
                 // Multiply and add
-                __m512i xy = _mm512_mullo_epi16(x_codes16, y_codes16);
+                xy = _mm512_mullo_epi16(x_codes16, y_codes16);
 
                 // Convert to 32-bit integers
-                __m512 lower_half = _mm512_cvtepi32_ps(_mm512_cvtepu16_epi32(_mm512_castsi512_si256(xy)));
-                __m512 upper_half = _mm512_cvtepi32_ps(_mm512_cvtepu16_epi32(_mm512_extracti64x4_epi64(xy, 1)));
+                lower_half = _mm512_cvtepi32_ps(_mm512_cvtepu16_epi32(_mm512_castsi512_si256(xy)));
+                upper_half = _mm512_cvtepi32_ps(_mm512_cvtepu16_epi32(_mm512_extracti64x4_epi64(xy, 1)));
 
                 // xy_vec = _mm512_add_ps(xy_vec, lower_half);
-                __m512 alphaSqr_vec_low = _mm512_loadu_ps(alphaSqr + i);
-                __m512 alphaSqr_vec_high = _mm512_loadu_ps(alphaSqr + i + 16);
+                alphaSqr_vec_low = _mm512_loadu_ps(alphaSqr + i);
+                alphaSqr_vec_high = _mm512_loadu_ps(alphaSqr + i + 16);
                 xy_vec = _mm512_fmadd_ps(lower_half, alphaSqr_vec_low, xy_vec);
                 xy_vec = _mm512_fmadd_ps(upper_half, alphaSqr_vec_high, xy_vec);
             }
