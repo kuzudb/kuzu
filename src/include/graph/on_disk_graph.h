@@ -20,7 +20,23 @@ class MemoryManager;
 }
 namespace graph {
 
-struct OnDiskGraphDirectedNbrScanState {
+class OnDiskGraphNbrScanState : public NbrScanState {
+    friend class OnDiskGraph;
+
+public:
+    OnDiskGraphNbrScanState(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
+        const GraphEntry& graphEntry);
+    OnDiskGraphNbrScanState(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
+        const GraphEntry& graphEntry, const std::string& propertyName);
+
+    NbrScanState::Chunk getChunk() override {
+        return createChunk(currentIter->getNbrNodes(), currentIter->getEdges(), currentIter->getSelVectorUnsafe(),
+            propertyVector.get());
+    }
+    bool next() override;
+
+    void startScan(common::RelDataDirection direction);
+
     class InnerIterator {
     public:
         InnerIterator(const main::ClientContext* context, storage::RelTable* relTable,
@@ -68,52 +84,16 @@ struct OnDiskGraphDirectedNbrScanState {
         std::unique_ptr<storage::RelTableScanState> tableScanState;
     };
 
-    std::vector<InnerIterator> directedIterators;
-
-    OnDiskGraphDirectedNbrScanState() = default;
-    OnDiskGraphDirectedNbrScanState(main::ClientContext* context, storage::RelTable& table,
-        std::vector<std::unique_ptr<storage::RelTableScanState>> directedScanStates) {
-        for (auto& directedScanState : directedScanStates) {
-            directedIterators.emplace_back(context, &table, std::move(directedScanState));
-        }
-    }
-
-    InnerIterator& getIterator(common::RelDataDirection direction);
-};
-
-class OnDiskGraphNbrScanStates : public NbrScanState {
-    friend class OnDiskGraph;
-
-public:
-    OnDiskGraphNbrScanStates(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
-        const GraphEntry& graphEntry);
-    OnDiskGraphNbrScanStates(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
-        const GraphEntry& graphEntry, const std::string& propertyName);
-
-    NbrScanState::Chunk getChunk() override {
-        auto& iter = getInnerIterator();
-        return createChunk(iter.getNbrNodes(), iter.getEdges(), iter.getSelVectorUnsafe(),
-            propertyVector.get());
-    }
-    bool next() override;
-
-    void startScan(common::RelDataDirection direction_) { this->direction = direction_; }
-
-private:
-    OnDiskGraphDirectedNbrScanState::InnerIterator& getInnerIterator() {
-        return directedScanState.getIterator(direction);
-    }
-
 private:
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
     std::unique_ptr<common::ValueVector> relIDVector;
     std::unique_ptr<common::ValueVector> propertyVector;
-    common::RelDataDirection direction;
 
     std::unique_ptr<evaluator::ExpressionEvaluator> relPredicateEvaluator;
-    common::table_id_t relTableID;
-    OnDiskGraphDirectedNbrScanState directedScanState;
+
+    std::vector<InnerIterator> directedIterators;
+    InnerIterator* currentIter = nullptr;
 };
 
 class OnDiskGraphVertexScanState : public VertexScanState {
