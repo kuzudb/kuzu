@@ -19,6 +19,9 @@
 -STATEMENT MATCH (a:person)-[k:knows]->(b:person) HINT a JOIN (k JOIN b) RETURN COUNT(*)
 ---- error
 Runtime exception: Failed to get bwd data for rel table "knows", please set the storage direction to BOTH
+-STATEMENT MATCH (a:person)-[k:knows]-(b:person) RETURN COUNT(*)
+---- error
+Binder exception: Binding rel pattern k as undirected is unsupported as at least one matched table doesn't have storage type 'both'
 -STATEMENT MATCH (a:person)-[k:knows]->(b:person) HINT b JOIN (k JOIN a) RETURN COUNT(*)
 ---- 1
 6
