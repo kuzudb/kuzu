@@ -2,7 +2,7 @@
 
 --
 
--CASE InvalidHNSWIndexColumnTypeOrDimension
+-CASE InvalidError
 -STATEMENT CREATE NODE TABLE test(id int64 primary key, vec double[90]);
 ---- ok
 -STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'test', 'vec');
@@ -18,7 +18,7 @@ Binder exception: HNSW_INDEX only supports FLOAT ARRAY columns.
 ---- error
 Binder exception: Query vector dimension does not match index dimension.
 
--CASE DropNonExistingHNSWIndex
+-CASE DropError
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL DROP_HNSW_INDEX('e_hnsw_index', 'embeddings');
@@ -28,7 +28,7 @@ Binder exception: Table embeddings doesn't have an index with name e_hnsw_index.
 ---- error
 Binder exception: Table embeddingssss does not exist.
 
--CASE UnrecognizedOrInvalidOptionalParam
+-CASE InvalidParam
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
