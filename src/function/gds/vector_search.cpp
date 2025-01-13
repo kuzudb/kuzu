@@ -323,6 +323,7 @@ namespace kuzu {
                 }
 
                 for (; i < size; i++) {
+                    printf("yes");
                     double dist;
                     stats.distanceComputationTime->start();
                     dc->computeDistance(vectorArray[i], &dist);
@@ -813,7 +814,11 @@ namespace kuzu {
                 if (bindState->useKnnSearch) {
                     BinaryHeap<NodeDistFarther> results(k);
                     if (filterMask->isEnabled()) {
-                        knnFilteredSearch(dc, filterMask, results, k, stats);
+                        if (useQuantizedVectors) {
+                            knnFilteredSearch(qdc, filterMask, results, k, stats);
+                        } else {
+                            knnFilteredSearch(dc, filterMask, results, k, stats);
+                        }
                     } else {
                         knnSearch(dc, filterMask->getMaxOffset(), results, k, stats);
                     }
