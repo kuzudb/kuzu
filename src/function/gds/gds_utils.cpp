@@ -1,8 +1,10 @@
 #include "function/gds/gds_utils.h"
 
+#include "catalog/catalog.h"
 #include "common/task_system/task_scheduler.h"
 #include "function/gds/gds_task.h"
 #include "graph/graph.h"
+#include "graph/graph_entry.h"
 #include "main/settings.h"
 
 using namespace kuzu::common;
@@ -31,13 +33,15 @@ static uint64_t getNumThreads(processor::ExecutionContext& context) {
         .getValue<uint64_t>();
 }
 
-void GDSUtils::scheduleFrontierTask(table_id_t boundTableID, table_id_t nbrTableID,
-    table_id_t relTableID, graph::Graph* graph, ExtendDirection extendDirection,
-    GDSComputeState& gdsComputeState, processor::ExecutionContext* context,
-    std::optional<uint64_t> numThreads, std::optional<common::idx_t> edgePropertyIdx) {
+void GDSUtils::scheduleFrontierTask(catalog::TableCatalogEntry* fromEntry,
+    catalog::TableCatalogEntry* toEntry, catalog::TableCatalogEntry* relEntry, graph::Graph* graph,
+    ExtendDirection extendDirection, GDSComputeState& gdsComputeState,
+    processor::ExecutionContext* context, std::optional<uint64_t> numThreads,
+    const std::string& propertyToScan) {
     auto clientContext = context->clientContext;
-    auto info = FrontierTaskInfo(nbrTableID, relTableID, graph, extendDirection,
-        *gdsComputeState.edgeCompute, edgePropertyIdx);
+    auto transaction = clientContext->getTransaction();
+    auto info = FrontierTaskInfo(fromEntry, toEntry, relEntry, graph, extendDirection,
+        *gdsComputeState.edgeCompute, propertyToScan);
     auto maxThreads = numThreads ? numThreads.value() : getNumThreads(*context);
     auto sharedState =
         std::make_shared<FrontierTaskSharedState>(maxThreads, *gdsComputeState.frontierPair);
@@ -55,7 +59,8 @@ void GDSUtils::scheduleFrontierTask(table_id_t boundTableID, table_id_t nbrTable
     // more generally decrease the number of worker threads by 1. Therefore, we instruct
     // scheduleTaskAndWaitOrError to start a new thread by passing true as the last
     // argument.
-    task->init(boundTableID, graph->getNumNodes(clientContext->getTransaction(), boundTableID));
+    auto numNodes = graph->getNumNodes(transaction, fromEntry->getTableID());
+    sharedState->morselDispatcher.init(numNodes);
     clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context,
         true /* launchNewWorkerThread */);
 }
@@ -71,29 +76,29 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
             compState.edgeCompute->terminate(*compState.outputNodeMask)) {
             break;
         }
-        for (auto& info : graph->getRelTableIDInfos()) {
+        for (auto& [fromEntry, toEntry, relEntry] : graph->getRelFromToEntryInfos()) {
             switch (extendDirection) {
             case ExtendDirection::FWD: {
-                compState.beginFrontierComputeBetweenTables(info.fromNodeTableID,
-                    info.toNodeTableID);
-                scheduleFrontierTask(info.fromNodeTableID, info.toNodeTableID, info.relTableID,
-                    graph, ExtendDirection::FWD, compState, context);
+                compState.beginFrontierComputeBetweenTables(fromEntry->getTableID(),
+                    toEntry->getTableID());
+                scheduleFrontierTask(fromEntry, toEntry, relEntry, graph, ExtendDirection::FWD,
+                    compState, context);
             } break;
             case ExtendDirection::BWD: {
-                compState.beginFrontierComputeBetweenTables(info.toNodeTableID,
-                    info.fromNodeTableID);
-                scheduleFrontierTask(info.toNodeTableID, info.fromNodeTableID, info.relTableID,
-                    graph, ExtendDirection::BWD, compState, context);
+                compState.beginFrontierComputeBetweenTables(toEntry->getTableID(),
+                    fromEntry->getTableID());
+                scheduleFrontierTask(toEntry, fromEntry, relEntry, graph, ExtendDirection::BWD,
+                    compState, context);
             } break;
             case ExtendDirection::BOTH: {
-                compState.beginFrontierComputeBetweenTables(info.fromNodeTableID,
-                    info.toNodeTableID);
-                scheduleFrontierTask(info.fromNodeTableID, info.toNodeTableID, info.relTableID,
-                    graph, ExtendDirection::FWD, compState, context);
-                compState.beginFrontierComputeBetweenTables(info.toNodeTableID,
-                    info.fromNodeTableID);
-                scheduleFrontierTask(info.toNodeTableID, info.fromNodeTableID, info.relTableID,
-                    graph, ExtendDirection::BWD, compState, context);
+                compState.beginFrontierComputeBetweenTables(fromEntry->getTableID(),
+                    toEntry->getTableID());
+                scheduleFrontierTask(fromEntry, toEntry, relEntry, graph, ExtendDirection::FWD,
+                    compState, context);
+                compState.beginFrontierComputeBetweenTables(toEntry->getTableID(),
+                    fromEntry->getTableID());
+                scheduleFrontierTask(toEntry, fromEntry, relEntry, graph, ExtendDirection::BWD,
+                    compState, context);
             } break;
             default:
                 KU_UNREACHABLE;
@@ -102,10 +107,12 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
     }
 }
 
-static void runVertexComputeInternal(common::table_id_t tableID, graph::Graph* graph,
+static void runVertexComputeInternal(catalog::TableCatalogEntry* currentEntry, graph::Graph* graph,
     std::shared_ptr<VertexComputeTask> task, processor::ExecutionContext* context) {
-    auto numNodes = graph->getNumNodes(context->clientContext->getTransaction(), tableID);
-    task->init(tableID, numNodes);
+    auto numNodes =
+        graph->getNumNodes(context->clientContext->getTransaction(), currentEntry->getTableID());
+    auto sharedState = task->getSharedState();
+    sharedState->morselDispatcher.init(numNodes);
     context->clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context,
         true /* launchNewWorkerThread */);
 }
@@ -113,14 +120,14 @@ static void runVertexComputeInternal(common::table_id_t tableID, graph::Graph* g
 void GDSUtils::runVertexCompute(processor::ExecutionContext* context, graph::Graph* graph,
     VertexCompute& vc, std::vector<std::string> propertiesToScan) {
     auto maxThreads = getNumThreads(*context);
-    auto info = VertexComputeTaskInfo(vc, graph, propertiesToScan);
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
-    for (auto& tableID : graph->getNodeTableIDs()) {
-        if (!vc.beginOnTable(tableID)) {
+    for (auto& entry : graph->getGraphEntry()->nodeEntries) {
+        if (!vc.beginOnTable(entry->getTableID())) {
             continue;
         }
+        auto info = VertexComputeTaskInfo(vc, graph, entry, propertiesToScan);
         auto task = std::make_shared<VertexComputeTask>(maxThreads, info, sharedState);
-        runVertexComputeInternal(tableID, graph, task, context);
+        runVertexComputeInternal(entry, graph, task, context);
     }
 }
 
@@ -129,15 +136,15 @@ void GDSUtils::runVertexCompute(ExecutionContext* context, Graph* graph, VertexC
 }
 
 void GDSUtils::runVertexCompute(ExecutionContext* context, Graph* graph, VertexCompute& vc,
-    table_id_t tableID, std::vector<std::string> propertiesToScan) {
+    catalog::TableCatalogEntry* entry, std::vector<std::string> propertiesToScan) {
     auto maxThreads = getNumThreads(*context);
-    auto info = VertexComputeTaskInfo(vc, graph, propertiesToScan);
+    auto info = VertexComputeTaskInfo(vc, graph, entry, propertiesToScan);
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
-    if (!vc.beginOnTable(tableID)) {
+    if (!vc.beginOnTable(entry->getTableID())) {
         return;
     }
     auto task = std::make_shared<VertexComputeTask>(maxThreads, info, sharedState);
-    runVertexComputeInternal(tableID, graph, task, context);
+    runVertexComputeInternal(entry, graph, task, context);
 }
 
 void GDSUtils::runVertexComputeSparse(SparseFrontier& sparseFrontier, graph::Graph* graph,

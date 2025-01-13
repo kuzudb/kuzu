@@ -2,6 +2,7 @@
 
 #include <optional>
 
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/enums/extend_direction.h"
 #include "common/types/types.h"
 
@@ -42,11 +43,11 @@ struct KUZU_API GDSComputeState {
 
 class KUZU_API GDSUtils {
 public:
-    static void scheduleFrontierTask(common::table_id_t boundTableID, common::table_id_t nbrTableID,
-        common::table_id_t relTableID, graph::Graph* graph, common::ExtendDirection extendDirection,
-        GDSComputeState& rjCompState, processor::ExecutionContext* context,
-        std::optional<uint64_t> numThreads = std::nullopt,
-        std::optional<common::idx_t> edgePropertyIdx = std::nullopt);
+    static void scheduleFrontierTask(catalog::TableCatalogEntry* fromEntry,
+        catalog::TableCatalogEntry* toEntry, catalog::TableCatalogEntry* relEntry,
+        graph::Graph* graph, common::ExtendDirection extendDirection, GDSComputeState& rjCompState,
+        processor::ExecutionContext* context, std::optional<uint64_t> numThreads = std::nullopt,
+        const std::string& propertyToScan = "");
     static void runFrontiersUntilConvergence(processor::ExecutionContext* context,
         GDSComputeState& rjCompState, graph::Graph* graph, common::ExtendDirection extendDirection,
         uint64_t maxIters);
@@ -58,7 +59,8 @@ public:
         VertexCompute& vc, std::vector<std::string> propertiesToScan);
     // Run vertex compute on specific table with property scan
     static void runVertexCompute(processor::ExecutionContext* context, graph::Graph* graph,
-        VertexCompute& vc, common::table_id_t tableID, std::vector<std::string> propertiesToScan);
+        VertexCompute& vc, catalog::TableCatalogEntry* entry,
+        std::vector<std::string> propertiesToScan);
     static void runVertexComputeSparse(SparseFrontier& sparseFrontier, graph::Graph* graph,
         VertexCompute& vc);
 };

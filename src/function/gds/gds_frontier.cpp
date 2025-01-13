@@ -9,13 +9,11 @@ namespace kuzu {
 namespace function {
 
 FrontierMorselDispatcher::FrontierMorselDispatcher(uint64_t maxThreads)
-    : tableID{INVALID_TABLE_ID}, maxOffset{INVALID_OFFSET}, maxThreads{maxThreads},
-      morselSize(UINT64_MAX) {
+    : maxOffset{INVALID_OFFSET}, maxThreads{maxThreads}, morselSize(UINT64_MAX) {
     nextOffset.store(INVALID_OFFSET);
 }
 
-void FrontierMorselDispatcher::init(common::table_id_t _tableID, common::offset_t _maxOffset) {
-    tableID = _tableID;
+void FrontierMorselDispatcher::init(common::offset_t _maxOffset) {
     maxOffset = _maxOffset;
     nextOffset.store(0u);
     // Frontier size calculation: The ideal scenario is to have k^2 many morsels where k
@@ -32,7 +30,7 @@ bool FrontierMorselDispatcher::getNextRangeMorsel(FrontierMorsel& frontierMorsel
         return false;
     }
     auto endOffset = beginOffset + morselSize > maxOffset ? maxOffset : beginOffset + morselSize;
-    frontierMorsel.init(tableID, beginOffset, endOffset);
+    frontierMorsel.init(beginOffset, endOffset);
     return true;
 }
 
