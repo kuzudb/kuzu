@@ -38,7 +38,7 @@ struct QueryFTSBindData final : GDSBindData {
     QueryFTSBindData(graph::GraphEntry graphEntry, std::shared_ptr<Expression> docs,
         std::shared_ptr<Expression> query, const FTSIndexCatalogEntry& entry, QueryFTSConfig config)
         : GDSBindData{std::move(graphEntry), std::move(docs)}, query{std::move(query)},
-          entry{entry}, config{config},
+          config{config}, entry{entry},
           outputTableID{nodeOutput->constCast<NodeExpression>().getSingleEntry()->getTableID()} {}
     QueryFTSBindData(const QueryFTSBindData& other)
         : GDSBindData{other}, query{other.query}, entry{other.entry}, config{other.config},
