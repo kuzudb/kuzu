@@ -14,6 +14,10 @@ function(set_apple_dynamic_lookup target_name)
     set_target_properties(${target_name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
 endfunction()
 
+if (${BUILD_EXTENSION_TESTS})
+    enable_testing()
+endif ()
+
 if ("httpfs" IN_LIST BUILD_EXTENSIONS)
     add_subdirectory(httpfs)
 endif ()
@@ -56,8 +60,4 @@ endif ()
 
 if ("iceberg" IN_LIST BUILD_EXTENSIONS)
     add_subdirectory(iceberg)
-endif ()
-
-if (${BUILD_EXTENSION_TESTS})
-    enable_testing()
 endif ()
