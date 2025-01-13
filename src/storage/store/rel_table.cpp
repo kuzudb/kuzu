@@ -313,10 +313,6 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     hasChanges = true;
 }
 
-bool RelTable::containsStorageDirection(RelDataDirection direction) const {
-    return dataContains(getStorageDirections(), direction);
-}
-
 std::vector<common::RelDataDirection> RelTable::getStorageDirections() const {
     std::vector<common::RelDataDirection> ret;
     for (const auto& relData : directedRelData) {

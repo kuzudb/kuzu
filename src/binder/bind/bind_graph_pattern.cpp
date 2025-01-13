@@ -242,8 +242,10 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
 static void checkRelDirectionTypeAgainstStorageDirection(RelExpression* rel) {
     if (rel->getExtendDirections().size() < 2 &&
         rel->getDirectionType() == RelDirectionType::BOTH) {
-        throw BinderException(stringFormat(
-            "Cannot bind rel pattern {} as undirected as its type is 'fwd'", rel->toString()));
+        throw BinderException(
+            stringFormat("Binding rel pattern {} as undirected is unsupported as at "
+                         "least one matched table doesn't have storage type 'both'",
+                rel->toString()));
     }
 }
 
