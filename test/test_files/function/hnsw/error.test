@@ -2,7 +2,7 @@
 
 --
 
--CASE InvalidError
+-CASE Error
 -STATEMENT CREATE NODE TABLE test(id int64 primary key, vec double[90]);
 ---- ok
 -STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'test', 'vec');
@@ -28,7 +28,7 @@ Binder exception: Table embeddings doesn't have an index with name e_hnsw_index.
 ---- error
 Binder exception: Table embeddingssss does not exist.
 
--CASE InvalidParam
+-CASE ParamError
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
