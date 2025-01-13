@@ -18,6 +18,9 @@ module.exports = {
     const storageVersion = await worker.getStorageVersion();
     return storageVersion;
   },
+  setWorkerPath: (workerPath) => {
+    dispatcher.setWorkerPath(workerPath);
+  },
   Database,
   Connection,
   PreparedStatement,

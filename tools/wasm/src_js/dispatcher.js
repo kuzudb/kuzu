@@ -4,12 +4,14 @@ const { spawn, Thread, Worker } = require("threads");
 const isNodeJs = typeof process === "object" && process + "" === "[object process]";
 
 class Dispatcher {
-  constructor(workerPath) {
-    if (workerPath) {
-      this.workerPath = workerPath;
-    }
+  constructor() {
     this.worker = null;
     this.workerInitPromise = this.init();
+    this.workerPath = null;
+  }
+  
+  setWorkerPath(workerPath) {
+    this.workerPath = workerPath;
   }
 
   getWorkerPath() {
