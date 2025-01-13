@@ -2,6 +2,7 @@
 
 #include "binder/expression_visitor.h"
 #include "common/enums/join_type.h"
+#include "common/utils.h"
 #include "main/client_context.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/join_order/join_plan_solver.h"
@@ -543,9 +544,7 @@ bool Planner::tryPlanINLJoin(const SubqueryGraph& subgraph, const SubqueryGraph&
     auto nbrNode =
         boundNode->getUniqueName() == rel->getSrcNodeName() ? rel->getDstNode() : rel->getSrcNode();
     auto extendDirection = getExtendDirection(*rel, *boundNode);
-    auto validExtendDirections = rel->getExtendDirections();
-    if (validExtendDirections.end() ==
-        std::find(validExtendDirections.begin(), validExtendDirections.end(), extendDirection)) {
+    if (!common::dataContains(rel->getExtendDirections(), extendDirection)) {
         return false;
     }
     auto newSubgraph = subgraph;

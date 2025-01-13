@@ -3,6 +3,7 @@
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
+#include "common/utils.h"
 #include "main/client_context.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_storage.h"
@@ -275,7 +276,7 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
 
 void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
     RelTableDeleteState* deleteState) {
-    // TODO(Royi) check if this needs to be updated for fwd-only rel tables
+    // TODO(Royi) we currently do not support detached deleting from single-direction rel tables
     KU_ASSERT(directedRelData.size() == 2);
 
     KU_ASSERT(deleteState->srcNodeIDVector.state->getSelVector().getSelSize() == 1);
@@ -310,6 +311,10 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
         wal.logRelDetachDelete(tableID, direction, &deleteState->srcNodeIDVector);
     }
     hasChanges = true;
+}
+
+bool RelTable::containsStorageDirection(RelDataDirection direction) const {
+    return dataContains(getStorageDirections(), direction);
 }
 
 std::vector<common::RelDataDirection> RelTable::getStorageDirections() const {

@@ -37,7 +37,7 @@ bool LocalRelTable::insert(Transaction* transaction, TableInsertState& state) {
 
     std::vector<row_idx_vec_t*> rowIndicesToInsertTo;
     for (auto& directedIndex : directedIndices) {
-        const auto& nodeIDVector = insertState.getSrcNodeIDVector(directedIndex.direction);
+        const auto& nodeIDVector = insertState.getBoundNodeIDVector(directedIndex.direction);
         KU_ASSERT(nodeIDVector.state->getSelVector().getSelSize() == 1);
         auto nodePos = nodeIDVector.state->getSelVector()[0];
         if (nodeIDVector.isNull(nodePos)) {
@@ -76,7 +76,7 @@ bool LocalRelTable::update(Transaction* transaction, TableUpdateState& state) {
 
     std::vector<row_idx_vec_t*> rowIndicesToUpdate;
     for (auto& directedIndex : directedIndices) {
-        const auto& nodeIDVector = updateState.getSrcNodeIDVector(directedIndex.direction);
+        const auto& nodeIDVector = updateState.getBoundNodeIDVector(directedIndex.direction);
         KU_ASSERT(nodeIDVector.state->getSelVector().getSelSize() == 1);
         auto nodePos = nodeIDVector.state->getSelVector()[0];
         if (nodeIDVector.isNull(nodePos)) {
@@ -108,7 +108,7 @@ bool LocalRelTable::delete_(Transaction* transaction, TableDeleteState& state) {
 
     std::vector<row_idx_vec_t*> rowIndicesToDeleteFrom;
     for (auto& directedIndex : directedIndices) {
-        const auto& nodeIDVector = deleteState.getSrcNodeIDVector(directedIndex.direction);
+        const auto& nodeIDVector = deleteState.getBoundNodeIDVector(directedIndex.direction);
         KU_ASSERT(nodeIDVector.state->getSelVector().getSelSize() == 1);
         auto nodePos = nodeIDVector.state->getSelVector()[0];
         if (nodeIDVector.isNull(nodePos)) {
@@ -145,11 +145,11 @@ uint64_t LocalRelTable::getEstimatedMemUsage() {
     if (!localNodeGroup) {
         return 0;
     }
-    auto sizeExcludingLocalIndices = localNodeGroup->getEstimatedMemoryUsage();
+    auto estimatedMemUsage = localNodeGroup->getEstimatedMemoryUsage();
     for (const auto& directedIndex : directedIndices) {
-        sizeExcludingLocalIndices += directedIndex.index.size() * sizeof(offset_t);
+        estimatedMemUsage += directedIndex.index.size() * sizeof(offset_t);
     }
-    return sizeExcludingLocalIndices;
+    return estimatedMemUsage;
 }
 
 bool LocalRelTable::checkIfNodeHasRels(ValueVector* srcNodeIDVector,

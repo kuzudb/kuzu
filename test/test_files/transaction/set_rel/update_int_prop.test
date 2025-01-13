@@ -1,4 +1,5 @@
 -DATASET CSV rel-update-tests
+-ENABLE_FWD_ONLY
 --
 
 -DEFINE_STATEMENT_BLOCK UPDATE_INT_PROP [
@@ -15,7 +16,7 @@
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_INT_PROP
 -STATEMENT COMMIT
----- ok 
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) WHERE p1.ID >= 20 AND p1.ID <= 30 AND p0.ID = 0 return e.length;
@@ -44,7 +45,7 @@
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_INT_PROP
 -STATEMENT COMMIT
----- ok 
+---- ok
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok
@@ -70,7 +71,7 @@
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_INT_PROP
 -STATEMENT Rollback
----- ok 
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) WHERE p1.ID >= 20 AND p1.ID <= 30 AND p0.ID = 0 return e.length;
@@ -99,7 +100,7 @@
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_INT_PROP
 -STATEMENT ROLLBACK
----- ok 
+---- ok
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok
