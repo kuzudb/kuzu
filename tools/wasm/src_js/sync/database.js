@@ -3,6 +3,18 @@
 const KuzuWasm = require("./kuzu.js");
 
 class Database {
+  /**
+ * Initialize a new Database object.
+ *
+ * @param {String} databasePath path to the database file. If the path is not specified, or empty, or equal to
+ `:memory:`, the database will be created in memory.
+ * @param {Number} bufferManagerSize size of the buffer manager in bytes.
+ * @param {Boolean} enableCompression whether to enable compression.
+ * @param {Boolean} readOnly if true, database will be opened in read-only mode.
+ * @param {Number} maxDBSize maximum size of the database file in bytes. Note that
+ * this is introduced temporarily for now to get around with the default 8TB mmap
+ * address space limit some environment.
+ */
   constructor(
     databasePath,
     bufferPoolSize = 0,
@@ -50,6 +62,9 @@ class Database {
     this._isClosed = false;
   }
 
+  /**
+   * Close the database.
+   */
   close() {
     if (!this._isClosed) {
       this._database.delete();

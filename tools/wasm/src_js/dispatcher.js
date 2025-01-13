@@ -4,12 +4,18 @@ const { spawn, Thread, Worker } = require("threads");
 const isNodeJs = typeof process === "object" && process + "" === "[object process]";
 
 class Dispatcher {
-  constructor() {
+  constructor(workerPath) {
+    if (workerPath) {
+      this.workerPath = workerPath;
+    }
     this.worker = null;
     this.workerInitPromise = this.init();
   }
 
   getWorkerPath() {
+    if (this.workerPath) {
+      return this.workerPath;
+    }
     if (isNodeJs) {
       return "./worker.js";
     }
@@ -22,7 +28,6 @@ class Dispatcher {
 
   async init() {
     const workerUrl = this.getWorkerPath();
-    console.log("Worker URL:", workerUrl);
     this.worker = await spawn(new Worker(workerUrl));
     const res = await this.worker.init();
     if (res.isSuccess) {

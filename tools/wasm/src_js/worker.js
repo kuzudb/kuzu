@@ -6,7 +6,7 @@ const objectsStore = {};
 const kuzuSync = require('./sync');
 
 if (!isWorkerRuntime) {
-  // Do nothing if not in worker runtime
+  // Do nothing if not in worker runtime (i.e. running in main thread)
 }
 else {
   expose({
@@ -18,6 +18,14 @@ else {
       catch (e) {
         return { error: e.message, isSuccess: false };
       }
+    },
+
+    getVersion() {
+      return kuzuSync.getVersion();
+    },
+
+    getStorageVersion() {
+      return kuzuSync.getStorageVersion();
     },
 
     databaseConstruct(databasePath,
