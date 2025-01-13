@@ -225,8 +225,7 @@ void RelBatchInsert::checkRelMultiplicityConstraint(const ChunkedCSRHeader& csrH
 void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
     const auto relInfo = info->ptrCast<RelBatchInsertInfo>();
     if (relInfo->direction == RelDataDirection::FWD) {
-        KU_ASSERT(
-            relInfo->partitioningIdx == partitionerSharedState->partitioningBuffers.size() - 1);
+        KU_ASSERT(relInfo->partitioningIdx == 0);
 
         auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
             sharedState->getNumRows(), info->tableEntry->getName());

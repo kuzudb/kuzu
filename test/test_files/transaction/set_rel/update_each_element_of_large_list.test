@@ -1,4 +1,5 @@
 -DATASET CSV rel-update-tests
+-ENABLE_FWD_ONLY
 --
 
 -CASE updateEachElementOfLargeListCommitNormalExecution
@@ -7,7 +8,7 @@
 -BATCH_STATEMENTS <FILE>:update_each_element_of_large_list.cypher
 ---- ok
 -STATEMENT COMMIT
----- ok 
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) WHERE p0.ID = 0 return e.length
@@ -44,7 +45,7 @@
 -BATCH_STATEMENTS <FILE>:update_each_element_of_large_list.cypher
 ---- ok
 -STATEMENT Rollback
----- ok 
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) WHERE p0.ID = 0 return e.length
@@ -64,7 +65,7 @@
 -BATCH_STATEMENTS <FILE>:update_each_element_of_large_list.cypher
 ---- ok
 -STATEMENT ROLLBACK
----- ok 
+---- ok
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok

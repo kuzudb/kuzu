@@ -202,6 +202,7 @@ public:
         CSRNodeGroupScanSource source) const;
 
     std::vector<common::RelDataDirection> getStorageDirections() const;
+    bool containsStorageDirection(common::RelDataDirection direction) const;
 
 private:
     static void prepareCommitForNodeGroup(const transaction::Transaction* transaction,

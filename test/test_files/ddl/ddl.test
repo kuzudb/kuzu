@@ -28,7 +28,7 @@ Binder exception: Table movies does not exist.
 ---- ok
 -STATEMENT create rel table workAt (FROM person TO organisation, year INT64, grading DOUBLE[2], rating float, MANY_ONE) WITH (storage_direction = 'invalid');
 ---- error
-Binder exception: Cannot bind invalid as rel storage direction.
+Runtime exception: Cannot parse invalid as ExtendDirection.
 -STATEMENT create rel table workAt (FROM person TO organisation, year INT64, grading DOUBLE[2], rating float, MANY_ONE) WITH (storage_direction = 'fwd');
 ---- ok
 -STATEMENT match (o:organisation) return o.name

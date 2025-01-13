@@ -4,6 +4,7 @@
 
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
+#include "common/utils.h"
 
 using namespace kuzu::common;
 
@@ -36,9 +37,13 @@ std::vector<common::ExtendDirection> RelExpression::getExtendDirections() const 
         [](auto intersection, catalog::TableCatalogEntry* curEntry) {
             decltype(intersection) ret;
             const auto* relTableEntry = curEntry->constPtrCast<catalog::RelTableCatalogEntry>();
-            const auto newDirections = relTableEntry->getExtendDirections();
-            std::set_intersection(intersection.begin(), intersection.end(), newDirections.begin(),
-                newDirections.end(), std::back_inserter(ret));
+            const auto newDirections = relTableEntry->getRelDataDirections();
+            for (auto curDirection : intersection) {
+                if (common::dataContains(newDirections,
+                        ExtendDirectionUtil::getRelDataDirection(curDirection))) {
+                    ret.push_back(curDirection);
+                }
+            }
             return ret;
         });
 }

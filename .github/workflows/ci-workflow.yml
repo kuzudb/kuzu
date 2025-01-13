@@ -355,6 +355,13 @@ jobs:
         env:
           ASAN_OPTIONS: "detect_leaks=1"
 
+      - name: Test fwd only rel tables with ASAN
+        env:
+          DEFAULT_EXTEND_DIRECTION: FWD
+          GTEST_FILTER: "e2e_test*"
+        run: |
+          make test
+
       - name: Test compression disabled with ASAN
         env:
           ENABLE_COMPRESSION: false
@@ -400,6 +407,13 @@ jobs:
       - name: Test
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
+          make test
+
+      - name: Test fwd only rel tables
+        env:
+          DEFAULT_EXTEND_DIRECTION: FWD
+          GTEST_FILTER: "e2e_test*"
+        run: |
           make test
 
       - name: Test compression disabled
@@ -526,6 +540,15 @@ jobs:
         shell: cmd
         env:
           ENABLE_COMPRESSION: false
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          make test
+
+      - name: Test fwd only rel tables
+        shell: cmd
+        env:
+          DEFAULT_EXTEND_DIRECTION: FWD
+          GTEST_FILTER: "e2e_test*"
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make test

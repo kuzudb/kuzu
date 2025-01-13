@@ -2,7 +2,6 @@
 
 #include "common/enums/conflict_action.h"
 #include "common/enums/extend_direction.h"
-#include "common/enums/rel_direction.h"
 #include "common/enums/rel_multiplicity.h"
 #include "common/enums/table_type.h"
 #include "common/types/types.h"
