@@ -18,7 +18,7 @@ TEST_F(ApiTest, PrepareFTSTest) {
     auto preparedResult = TestHelper::convertResultToString(
         *conn->execute(prepared.get(), std::make_pair(std::string("q"), std::string("alice"))));
     auto nonPreparedResult = TestHelper::convertResultToString(*conn->query(
-        "CALL QUERY_FTS_INDEX('person', 'personIdx', 'alicdd') RETURN _node.ID, score;"));
+        "CALL QUERY_FTS_INDEX('person', 'personIdx', 'alice') RETURN _node.ID, score;"));
     sortAndCheckTestResults(preparedResult, nonPreparedResult);
 }
 
