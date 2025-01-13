@@ -358,7 +358,7 @@ jobs:
       - name: Test fwd only rel tables with ASAN
         env:
           DEFAULT_EXTEND_DIRECTION: FWD
-          GTEST_FILTER: "e2e_test*"
+          GTEST_FILTER: "e2e_test*:RelScanTest*"
         run: |
           make test
 
@@ -412,7 +412,7 @@ jobs:
       - name: Test fwd only rel tables
         env:
           DEFAULT_EXTEND_DIRECTION: FWD
-          GTEST_FILTER: "e2e_test*"
+          GTEST_FILTER: "e2e_test*:RelScanTest*"
         run: |
           make test
 
@@ -548,7 +548,7 @@ jobs:
         shell: cmd
         env:
           DEFAULT_EXTEND_DIRECTION: FWD
-          GTEST_FILTER: "e2e_test*"
+          GTEST_FILTER: "e2e_test*:RelScanTest*"
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make test
