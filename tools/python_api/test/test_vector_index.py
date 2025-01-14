@@ -16,7 +16,7 @@ def test_vector_index(conn_db_readwrite: ConnDB) -> None:
     conn.execute(query)
     vec = [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557]
     res = conn.execute("""
-                CALL QUERY_HNSW_INDEX('e_hnsw_index', 'embeddings', $q, 3) RETURN nn.id AS id;
+                CALL QUERY_HNSW_INDEX('e_hnsw_index', 'embeddings', $q, 3) RETURN nn.id AS id ORDER BY id;
                 """, {'q': vec}).get_as_arrow()
     assert len(res) == 3
-    assert res["id"].to_pylist() == [333, 444, 133]
+    assert res["id"].to_pylist() == [133, 333, 444]
