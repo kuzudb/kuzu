@@ -260,7 +260,7 @@ public:
 
     void beginNewIteration();
 
-    virtual void initRJFromSource(common::nodeID_t source) = 0;
+    virtual void initSource(common::nodeID_t source) = 0;
 
     virtual void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
         common::table_id_t nextTableID);
@@ -320,8 +320,9 @@ public:
           pathLengths{std::move(pathLengths)} {}
 
     PathLengths* getPathLengths() const { return pathLengths.get(); }
+    std::shared_ptr<PathLengths> getPathLengthsShared() const { return pathLengths; }
 
-    void initRJFromSource(common::nodeID_t source) override;
+    void initSource(common::nodeID_t source) override;
 
     void pinCurrFrontier(common::table_id_t tableID) override {
         FrontierPair::pinCurrFrontier(tableID);
@@ -344,7 +345,7 @@ public:
         std::shared_ptr<PathLengths> nextFrontier)
         : FrontierPair{curFrontier, nextFrontier} {}
 
-    void initRJFromSource(common::nodeID_t source) override;
+    void initSource(common::nodeID_t source) override;
 
     void pinCurrFrontier(common::table_id_t tableID) override {
         FrontierPair::pinCurrFrontier(tableID);

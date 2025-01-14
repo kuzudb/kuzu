@@ -3,7 +3,6 @@
 #include "binder/binder.h"
 #include "common/exception/binder.h"
 #include "function/gds/gds_frontier.h"
-#include "function/gds/gds_utils.h"
 #include "processor/execution_context.h"
 
 using namespace kuzu::common;

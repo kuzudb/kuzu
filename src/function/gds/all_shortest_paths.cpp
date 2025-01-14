@@ -1,6 +1,7 @@
 #include <utility>
 
 #include "common/types/types.h"
+#include "function/gds/auxiliary_state/path_auxiliary_state.h"
 #include "function/gds/bfs_graph.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
@@ -19,9 +20,6 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-/**
- * A dense storage structures for multiplicities for multiple node tables.
- */
 class PathMultiplicities {
 public:
     PathMultiplicities(const std::unordered_map<table_id_t, uint64_t>& numNodesMap,
@@ -66,49 +64,46 @@ private:
     std::atomic<uint64_t>* curBoundMultiplicities = nullptr;
 };
 
-struct AllSPDestinationOutputs : public RJOutputs {
-    std::shared_ptr<PathLengths> pathLengths;
-    std::shared_ptr<PathMultiplicities> multiplicities;
-
+class AllSPDestinationsAuxiliaryState : public GDSAuxiliaryState {
 public:
-    AllSPDestinationOutputs(nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths,
-        std::shared_ptr<PathMultiplicities> multiplicities)
-        : RJOutputs{sourceNodeID}, pathLengths{std::move(pathLengths)},
-          multiplicities{std::move(multiplicities)} {}
+    explicit AllSPDestinationsAuxiliaryState(std::shared_ptr<PathMultiplicities> multiplicities)
+        : multiplicities{std::move(multiplicities)} {}
 
-    void initRJFromSource(nodeID_t source) override {
+    void initSource(common::nodeID_t source) override {
         multiplicities->pinTargetTable(source.tableID);
         multiplicities->incrementTargetMultiplicity(source.offset, 1);
     }
 
-    void beginFrontierComputeBetweenTables(table_id_t curFrontierTableID,
-        table_id_t nextFrontierTableID) override {
-        // Note: We do not fix the node table for pathLengths, which is inherited from AllSPOutputs.
-        // See the comment in single_shortest_path.cpp for details.
-        multiplicities->pinBoundTable(curFrontierTableID);
-        multiplicities->pinTargetTable(nextFrontierTableID);
-    };
-
-    void beginWritingOutputsForDstNodesInTable(table_id_t tableID) override {
-        pathLengths->pinCurFrontierTableID(tableID);
-        multiplicities->pinTargetTable(tableID);
+    void beginFrontierCompute(common::table_id_t fromTableID,
+        common::table_id_t toTableID) override {
+        multiplicities->pinBoundTable(fromTableID);
+        multiplicities->pinTargetTable(toTableID);
     }
+
+private:
+    std::shared_ptr<PathMultiplicities> multiplicities;
 };
 
 class AllSPDestinationsOutputWriter : public RJOutputWriter {
 public:
-    AllSPDestinationsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-        NodeOffsetMaskMap* outputNodeMask)
-        : RJOutputWriter{context, rjOutputs, outputNodeMask} {
+    AllSPDestinationsOutputWriter(main::ClientContext* context, NodeOffsetMaskMap* outputNodeMask,
+        nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths,
+        std::shared_ptr<PathMultiplicities> multiplicities)
+        : RJOutputWriter{context, outputNodeMask, sourceNodeID},
+          pathLengths{std::move(pathLengths)}, multiplicities{std::move(multiplicities)} {
         lengthVector = createVector(LogicalType::UINT16(), context->getMemoryManager());
     }
 
+    void beginWritingOutputsInternal(common::table_id_t tableID) override {
+        pathLengths->pinCurFrontierTableID(tableID);
+        multiplicities->pinTargetTable(tableID);
+    }
+
     void write(FactorizedTable& fTable, nodeID_t dstNodeID, GDSOutputCounter* counter) override {
-        auto outputs = rjOutputs->ptrCast<AllSPDestinationOutputs>();
-        auto length = outputs->pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset);
+        auto length = pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset);
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
         lengthVector->setValue<uint16_t>(0, length);
-        auto multiplicity = outputs->multiplicities->getTargetMultiplicity(dstNodeID.offset);
+        auto multiplicity = multiplicities->getTargetMultiplicity(dstNodeID.offset);
         for (auto i = 0u; i < multiplicity; ++i) {
             fTable.append(vectors);
         }
@@ -118,19 +113,20 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<AllSPDestinationsOutputWriter>(context, rjOutputs, outputNodeMask);
+        return std::make_unique<AllSPDestinationsOutputWriter>(context, outputNodeMask,
+            sourceNodeID, pathLengths, multiplicities);
     }
 
 private:
     bool skipInternal(nodeID_t dstNodeID) const override {
-        auto outputs = rjOutputs->ptrCast<AllSPDestinationOutputs>();
-        return dstNodeID == outputs->sourceNodeID ||
-               outputs->pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset) ==
-                   PathLengths::UNVISITED;
+        return dstNodeID == sourceNodeID ||
+               pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset) == PathLengths::UNVISITED;
     }
 
 private:
     std::unique_ptr<ValueVector> lengthVector;
+    std::shared_ptr<PathLengths> pathLengths;
+    std::shared_ptr<PathMultiplicities> multiplicities;
 };
 
 class AllSPDestinationsEdgeCompute : public SPEdgeCompute {
@@ -242,15 +238,15 @@ private:
         auto numNodesMap = sharedState->graph->getNumNodesMap(clientContext->getTransaction());
         auto mm = clientContext->getMemoryManager();
         auto multiplicities = std::make_shared<PathMultiplicities>(numNodesMap, mm);
-        auto output =
-            std::make_unique<AllSPDestinationOutputs>(sourceNodeID, frontier, multiplicities);
         auto outputWriter = std::make_unique<AllSPDestinationsOutputWriter>(clientContext,
-            output.get(), sharedState->getOutputNodeMaskMap());
+            sharedState->getOutputNodeMaskMap(), sourceNodeID, frontier, multiplicities);
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(frontier);
         auto edgeCompute =
             std::make_unique<AllSPDestinationsEdgeCompute>(frontierPair.get(), multiplicities);
-        return RJCompState(std::move(frontierPair), std::move(edgeCompute),
-            sharedState->getOutputNodeMaskMap(), std::move(output), std::move(outputWriter));
+        auto auxiliaryState = std::make_unique<AllSPDestinationsAuxiliaryState>(multiplicities);
+        auto gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
+            std::move(edgeCompute), std::move(auxiliaryState), sharedState->getOutputNodeMaskMap());
+        return RJCompState(std::move(gdsState), std::move(outputWriter));
     }
 };
 
@@ -277,17 +273,18 @@ private:
         auto clientContext = context->clientContext;
         auto frontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto bfsGraph = getBFSGraph(context);
-        auto output = std::make_unique<PathsOutputs>(sourceNodeID, std::move(bfsGraph));
         auto rjBindData = bindData->ptrCast<RJBindData>();
         auto writerInfo = rjBindData->getPathWriterInfo();
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
-        auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext, output.get(),
-            sharedState->getOutputNodeMaskMap(), writerInfo);
+        auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext,
+            sharedState->getOutputNodeMaskMap(), sourceNodeID, writerInfo, *bfsGraph);
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(frontier);
         auto edgeCompute =
-            std::make_unique<AllSPPathsEdgeCompute>(frontierPair.get(), output->bfsGraph.get());
-        return RJCompState(std::move(frontierPair), std::move(edgeCompute),
-            sharedState->getOutputNodeMaskMap(), std::move(output), std::move(outputWriter));
+            std::make_unique<AllSPPathsEdgeCompute>(frontierPair.get(), bfsGraph.get());
+        auto auxiliaryState = std::make_unique<PathAuxiliaryState>(std::move(bfsGraph));
+        auto gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
+            std::move(edgeCompute), std::move(auxiliaryState), sharedState->getOutputNodeMaskMap());
+        return RJCompState(std::move(gdsState), std::move(outputWriter));
     }
 };
 

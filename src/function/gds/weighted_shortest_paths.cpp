@@ -80,30 +80,28 @@ private:
 };
 
 template<typename T>
-struct DestinationOutputs : public RJOutputs {
+struct WeightedSPDestinationsAuxiliaryState : public GDSAuxiliaryState {
+public:
+    explicit WeightedSPDestinationsAuxiliaryState(std::shared_ptr<Weights<T>> weights)
+        : weights{std::move(weights)} {}
+
+    void initSource(nodeID_t sourceNodeID) override { weights->setWeight(sourceNodeID.offset, 0); }
+
+    void beginFrontierCompute(table_id_t, table_id_t toTableID) override {
+        weights->pinTable(toTableID);
+    }
+
+private:
     std::shared_ptr<Weights<T>> weights;
-
-    DestinationOutputs(nodeID_t sourceNodeID, std::shared_ptr<Weights<T>> weights)
-        : RJOutputs{sourceNodeID}, weights{std::move(weights)} {}
-
-    void initRJFromSource(common::nodeID_t a) override { weights->setWeight(a.offset, 0); }
-
-    void beginFrontierComputeBetweenTables(table_id_t, table_id_t nextFrontierTableID) override {
-        weights->pinTable(nextFrontierTableID);
-    }
-
-    void beginWritingOutputsForDstNodesInTable(table_id_t tableID) override {
-        weights->pinTable(tableID);
-    }
 };
 
 template<typename T>
 class DestinationsOutputWriter : public RJOutputWriter {
 public:
-    DestinationsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-        processor::NodeOffsetMaskMap* outputNodeMask, std::shared_ptr<Weights<T>> weights,
-        const LogicalType& weightType)
-        : RJOutputWriter{context, rjOutputs, outputNodeMask}, weights{std::move(weights)} {
+    DestinationsOutputWriter(main::ClientContext* context,
+        processor::NodeOffsetMaskMap* outputNodeMask, common::nodeID_t sourceNodeID,
+        std::shared_ptr<Weights<T>> weights, const LogicalType& weightType)
+        : RJOutputWriter{context, outputNodeMask, sourceNodeID}, weights{std::move(weights)} {
         weightVector = createVector(weightType, context->getMemoryManager());
     }
 
@@ -119,14 +117,15 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<DestinationsOutputWriter<T>>(context, rjOutputs, outputNodeMask,
+        return std::make_unique<DestinationsOutputWriter<T>>(context, outputNodeMask, sourceNodeID,
             weights, weightVector->dataType);
     }
 
 private:
-    bool skipInternal(common::nodeID_t dstNodeID) const override {
+    void beginWritingOutputsInternal(table_id_t tableID) override { weights->pinTable(tableID); }
+    bool skipInternal(nodeID_t dstNodeID) const override {
         auto weight = weights->getWeight(dstNodeID.offset);
-        return dstNodeID == rjOutputs->sourceNodeID || weight == std::numeric_limits<T>::max();
+        return dstNodeID == sourceNodeID || weight == std::numeric_limits<T>::max();
     }
 
 private:
@@ -205,19 +204,20 @@ private:
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(curFrontier, nextFrontier);
         auto rjBindData = bindData->ptrCast<RJBindData>();
-        std::unique_ptr<EdgeCompute> edgeCompute;
-        std::unique_ptr<RJOutputs> outputs;
-        std::unique_ptr<RJOutputWriter> outputWriter;
         auto& dataType = rjBindData->weightOutputExpr->getDataType();
+        std::unique_ptr<GDSComputeState> gdsState;
+        std::unique_ptr<RJOutputWriter> outputWriter;
         visit(dataType, [&]<typename T>(T) {
             auto weight = std::make_shared<Weights<T>>(numNodes, clientContext->getMemoryManager());
-            edgeCompute = std::make_unique<DestinationsEdgeCompute<T>>(weight);
-            outputs = std::make_unique<DestinationOutputs<T>>(sourceNodeID, weight);
+            auto edgeCompute = std::make_unique<DestinationsEdgeCompute<T>>(weight);
+            auto auxiliaryState = std::make_unique<WeightedSPDestinationsAuxiliaryState<T>>(weight);
             outputWriter = std::make_unique<DestinationsOutputWriter<T>>(clientContext,
-                outputs.get(), sharedState->getOutputNodeMaskMap(), weight, dataType);
+                sharedState->getOutputNodeMaskMap(), sourceNodeID, weight, dataType);
+            gdsState =
+                std::make_unique<GDSComputeState>(std::move(frontierPair), std::move(edgeCompute),
+                    std::move(auxiliaryState), sharedState->getOutputNodeMaskMap());
         });
-        return RJCompState(std::move(frontierPair), std::move(edgeCompute),
-            sharedState->getOutputNodeMaskMap(), std::move(outputs), std::move(outputWriter));
+        return RJCompState(std::move(gdsState), std::move(outputWriter));
     }
 };
 

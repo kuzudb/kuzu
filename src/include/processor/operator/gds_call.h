@@ -1,7 +1,6 @@
 #pragma once
 
 #include "function/gds/gds.h"
-#include "function/gds/gds_utils.h"
 #include "gds_call_shared_state.h"
 #include "processor/operator/sink.h"
 

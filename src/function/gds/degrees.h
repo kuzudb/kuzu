@@ -16,7 +16,13 @@ static constexpr degree_t INVALID_DEGREE = UINT64_MAX;
 class Degrees {
 public:
     Degrees(const table_id_map_t<offset_t>& numNodesMap, MemoryManager* mm) {
-        init(numNodesMap, mm);
+        for (const auto& [tableID, numNodes] : numNodesMap) {
+            degreeValuesMap.allocate(tableID, numNodes, mm);
+            pinTable(tableID);
+            for (auto i = 0u; i < numNodes; ++i) {
+                degreeValues[i].store(0, std::memory_order_relaxed);
+            }
+        }
     }
 
     void pinTable(table_id_t tableID) { degreeValues = degreeValuesMap.getData(tableID); }
@@ -31,17 +37,6 @@ public:
 
     degree_t getValue(offset_t offset) {
         return degreeValues[offset].load(std::memory_order_relaxed);
-    }
-
-private:
-    void init(const table_id_map_t<offset_t>& numNodesMap, MemoryManager* mm) {
-        for (const auto& [tableID, numNodes] : numNodesMap) {
-            degreeValuesMap.allocate(tableID, numNodes, mm);
-            pinTable(tableID);
-            for (auto i = 0u; i < numNodes; ++i) {
-                degreeValues[i].store(0, std::memory_order_relaxed);
-            }
-        }
     }
 
 private:
@@ -75,7 +70,9 @@ struct DegreesUtils {
         frontierPair->setActiveNodesForNextIter();
         frontierPair->getNextSparseFrontier().disable();
         auto ec = std::make_unique<DegreeEdgeCompute>(degrees);
-        auto computeState = GDSComputeState(std::move(frontierPair), std::move(ec), nullptr);
+        auto auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
+        auto computeState = GDSComputeState(std::move(frontierPair), std::move(ec),
+            std::move(auxiliaryState), nullptr);
         GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, direction,
             1 /* maxIters */);
     }

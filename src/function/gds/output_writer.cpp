@@ -9,7 +9,7 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace function {
 
-std::unique_ptr<common::ValueVector> GDSOutputWriter::createVector(const LogicalType& type,
+std::unique_ptr<ValueVector> GDSOutputWriter::createVector(const LogicalType& type,
     storage::MemoryManager* mm) {
     auto vector = std::make_unique<ValueVector>(type.copy(), mm);
     vector->state = DataChunkState::getSingleValueDataChunkState();
@@ -17,21 +17,23 @@ std::unique_ptr<common::ValueVector> GDSOutputWriter::createVector(const Logical
     return vector;
 }
 
-RJOutputWriter::RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-    processor::NodeOffsetMaskMap* outputNodeMask)
-    : GDSOutputWriter{context, outputNodeMask}, rjOutputs{rjOutputs} {
+RJOutputWriter::RJOutputWriter(main::ClientContext* context,
+    processor::NodeOffsetMaskMap* outputNodeMask, nodeID_t sourceNodeID)
+    : GDSOutputWriter{context}, outputNodeMask{outputNodeMask}, sourceNodeID{sourceNodeID} {
     auto mm = context->getMemoryManager();
     srcNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm);
     dstNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm);
-    srcNodeIDVector->setValue<nodeID_t>(0, rjOutputs->sourceNodeID);
+    srcNodeIDVector->setValue<nodeID_t>(0, sourceNodeID);
 }
 
-void RJOutputWriter::pinTableID(common::table_id_t tableID) {
-    GDSOutputWriter::pinTableID(tableID);
-    rjOutputs->beginWritingOutputsForDstNodesInTable(tableID);
+void RJOutputWriter::beginWritingOutputs(table_id_t tableID) {
+    if (outputNodeMask != nullptr) {
+        outputNodeMask->pin(tableID);
+    }
+    beginWritingOutputsInternal(tableID);
 }
 
-bool RJOutputWriter::skip(common::nodeID_t dstNodeID) const {
+bool RJOutputWriter::skip(nodeID_t dstNodeID) const {
     if (outputNodeMask != nullptr && outputNodeMask->hasPinnedMask()) {
         auto mask = outputNodeMask->getPinnedMask();
         if (mask->isEnabled() && !mask->isMasked(dstNodeID.offset)) {
@@ -41,9 +43,10 @@ bool RJOutputWriter::skip(common::nodeID_t dstNodeID) const {
     return skipInternal(dstNodeID);
 }
 
-PathsOutputWriter::PathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-    processor::NodeOffsetMaskMap* outputNodeMask, PathsOutputWriterInfo info)
-    : RJOutputWriter{context, rjOutputs, outputNodeMask}, info{info} {
+PathsOutputWriter::PathsOutputWriter(main::ClientContext* context,
+    processor::NodeOffsetMaskMap* outputNodeMask, nodeID_t sourceNodeID, PathsOutputWriterInfo info,
+    BFSGraph& bfsGraph)
+    : RJOutputWriter{context, outputNodeMask, sourceNodeID}, info{info}, bfsGraph{bfsGraph} {
     auto mm = context->getMemoryManager();
     if (info.writeEdgeDirection) {
         directionVector = createVector(LogicalType::LIST(LogicalType::BOOL()), mm);
@@ -73,11 +76,8 @@ static ParentList* getTop(const std::vector<ParentList*>& path) {
 
 void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
     GDSOutputCounter* counter) {
-    auto output = rjOutputs->ptrCast<PathsOutputs>();
-    auto& bfsGraph = *output->bfsGraph;
-    auto sourceNodeID = output->sourceNodeID;
-    dstNodeIDVector->setValue<common::nodeID_t>(0, dstNodeID);
-    auto firstParent = findFirstParent(dstNodeID.offset, bfsGraph);
+    dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
+    auto firstParent = findFirstParent(dstNodeID.offset);
     if (firstParent == nullptr) {
         if (sourceNodeID == dstNodeID && info.lowerBound == 0) {
             // We still output a path from src to src if required path length is 0.
@@ -98,7 +98,7 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
     std::vector<ParentList*> curPath;
     curPath.push_back(firstParent);
     auto backtracking = false;
-    if (!info.hasNodeMask() && info.semantic == common::PathSemantic::WALK) {
+    if (!info.hasNodeMask() && info.semantic == PathSemantic::WALK) {
         // Fast path when there is no node predicate or semantic check
         while (!curPath.empty()) {
             if (context->interrupted()) {
@@ -198,7 +198,7 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
     return;
 }
 
-ParentList* PathsOutputWriter::findFirstParent(offset_t dstOffset, BFSGraph& bfsGraph) const {
+ParentList* PathsOutputWriter::findFirstParent(offset_t dstOffset) const {
     auto result = bfsGraph.getParentListHead(dstOffset);
     if (!info.hasNodeMask() && info.semantic == PathSemantic::WALK) {
         // Fast path when there is no node predicate or semantic check
@@ -320,7 +320,7 @@ bool PathsOutputWriter::isReplaceTopAcyclic(const std::vector<ParentList*>& path
     return true;
 }
 
-void PathsOutputWriter::beginWritePath(common::idx_t length) const {
+void PathsOutputWriter::beginWritePath(idx_t length) const {
     KU_ASSERT(info.writePath);
     addListEntry(pathNodeIDsVector.get(), length > 1 ? length - 1 : 0);
     addListEntry(pathEdgeIDsVector.get(), length);
@@ -373,7 +373,7 @@ void PathsOutputWriter::addEdge(relID_t edgeID, bool fwdEdge, sel_t pos) const {
     }
 }
 
-void PathsOutputWriter::addNode(common::nodeID_t nodeID, common::sel_t pos) const {
+void PathsOutputWriter::addNode(nodeID_t nodeID, sel_t pos) const {
     ListVector::getDataVector(pathNodeIDsVector.get())->setValue(pos, nodeID);
 }
 
