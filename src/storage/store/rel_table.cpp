@@ -3,7 +3,6 @@
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
-#include "common/utils.h"
 #include "main/client_context.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_storage.h"
