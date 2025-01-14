@@ -420,7 +420,7 @@ void Interval::tryGetDatePartSpecifier(std::string specifier, DatePartSpecifier&
     }
 }
 
-int32_t Interval::getIntervalPart(DatePartSpecifier specifier, interval_t& interval) {
+int32_t Interval::getIntervalPart(DatePartSpecifier specifier, interval_t interval) {
     switch (specifier) {
     case DatePartSpecifier::YEAR:
         return interval.months / Interval::MONTHS_PER_YEAR;

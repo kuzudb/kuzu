@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "common/enums/extend_direction.h"
 #include "common/task_system/task.h"
 #include "function/gds/gds_frontier.h"
@@ -9,28 +11,32 @@ namespace kuzu {
 namespace function {
 
 struct FrontierTaskInfo {
-    common::table_id_t nbrTableID;
-    common::table_id_t relTableID;
+    catalog::TableCatalogEntry* boundEntry = nullptr;
+    catalog::TableCatalogEntry* nbrEntry = nullptr;
+    catalog::TableCatalogEntry* relEntry = nullptr;
     graph::Graph* graph;
     common::ExtendDirection direction;
     EdgeCompute& edgeCompute;
-    std::optional<common::idx_t> edgePropertyIdx;
+    std::string propertyToScan;
 
-    FrontierTaskInfo(common::table_id_t nbrTableID, common::table_id_t relTableID,
-        graph::Graph* graph, common::ExtendDirection direction, EdgeCompute& edgeCompute,
-        std::optional<common::idx_t> edgePropertyIdx)
-        : nbrTableID{nbrTableID}, relTableID{relTableID}, graph{graph}, direction{direction},
-          edgeCompute{edgeCompute}, edgePropertyIdx{edgePropertyIdx} {}
+    FrontierTaskInfo(catalog::TableCatalogEntry* boundEntry, catalog::TableCatalogEntry* nbrEntry,
+        catalog::TableCatalogEntry* relEntry, graph::Graph* graph,
+        common::ExtendDirection direction, EdgeCompute& edgeCompute, std::string propertyToScan)
+        : boundEntry{boundEntry}, nbrEntry{nbrEntry}, relEntry{relEntry}, graph{graph},
+          direction{direction}, edgeCompute{edgeCompute},
+          propertyToScan{std::move(propertyToScan)} {}
     FrontierTaskInfo(const FrontierTaskInfo& other)
-        : nbrTableID{other.nbrTableID}, relTableID{other.relTableID}, graph{other.graph},
-          direction{other.direction}, edgeCompute{other.edgeCompute},
-          edgePropertyIdx{other.edgePropertyIdx} {}
+        : boundEntry{other.boundEntry}, nbrEntry{other.nbrEntry}, relEntry{other.relEntry},
+          graph{other.graph}, direction{other.direction}, edgeCompute{other.edgeCompute},
+          propertyToScan{other.propertyToScan} {}
 };
 
 struct FrontierTaskSharedState {
+    FrontierMorselDispatcher morselDispatcher;
     FrontierPair& frontierPair;
 
-    explicit FrontierTaskSharedState(FrontierPair& frontierPair) : frontierPair{frontierPair} {}
+    FrontierTaskSharedState(uint64_t maxNumThreads, FrontierPair& frontierPair)
+        : morselDispatcher{maxNumThreads}, frontierPair{frontierPair} {}
     DELETE_COPY_AND_MOVE(FrontierTaskSharedState);
 };
 
@@ -51,20 +57,24 @@ private:
 
 struct VertexComputeTaskSharedState {
     FrontierMorselDispatcher morselDispatcher;
-    graph::Graph* graph;
 
-    VertexComputeTaskSharedState(uint64_t maxNumThreads, graph::Graph* graph)
-        : morselDispatcher{maxNumThreads}, graph{graph} {}
+    explicit VertexComputeTaskSharedState(uint64_t maxNumThreads)
+        : morselDispatcher{maxNumThreads} {}
 };
 
 struct VertexComputeTaskInfo {
     VertexCompute& vc;
+    graph::Graph* graph;
+    catalog::TableCatalogEntry* tableEntry;
     std::vector<std::string> propertiesToScan;
 
-    explicit VertexComputeTaskInfo(VertexCompute& vc, std::vector<std::string> propertiesToScan)
-        : vc{vc}, propertiesToScan{std::move(propertiesToScan)} {}
+    VertexComputeTaskInfo(VertexCompute& vc, graph::Graph* graph,
+        catalog::TableCatalogEntry* tableEntry, std::vector<std::string> propertiesToScan)
+        : vc{vc}, graph{graph}, tableEntry{tableEntry},
+          propertiesToScan{std::move(propertiesToScan)} {}
     VertexComputeTaskInfo(const VertexComputeTaskInfo& other)
-        : vc{other.vc}, propertiesToScan{other.propertiesToScan} {}
+        : vc{other.vc}, graph{other.graph}, tableEntry{other.tableEntry},
+          propertiesToScan{other.propertiesToScan} {}
 
     bool hasPropertiesToScan() const { return !propertiesToScan.empty(); }
 };
@@ -75,9 +85,7 @@ public:
         std::shared_ptr<VertexComputeTaskSharedState> sharedState)
         : common::Task{maxNumThreads}, info{info}, sharedState{std::move(sharedState)} {};
 
-    void init(common::table_id_t tableID, common::offset_t numNodes) {
-        sharedState->morselDispatcher.init(tableID, numNodes);
-    }
+    VertexComputeTaskSharedState* getSharedState() const { return sharedState.get(); }
 
     void run() override;
 

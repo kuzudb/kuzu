@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <unordered_map>
 
 #include "catalog/catalog_entry/catalog_entry_type.h"
 #include "common/api.h"
@@ -43,6 +42,7 @@ class Database;
 namespace extension {
 
 typedef void (*ext_init_func_t)(kuzu::main::ClientContext*);
+typedef const char* (*ext_name_func_t)();
 using ext_load_func_t = ext_init_func_t;
 using ext_install_func_t = ext_init_func_t;
 
@@ -67,7 +67,7 @@ struct ExtensionUtils {
     static constexpr const char* EXTENSION_FILE_NAME = "lib{}.kuzu_extension";
 
     static constexpr const char* OFFICIAL_EXTENSION[] = {"HTTPFS", "POSTGRES", "DUCKDB", "JSON",
-        "SQLITE"};
+        "SQLITE", "FTS", "DELTA", "ICEBERG"};
 
     static constexpr const char* EXTENSION_LOADER_SUFFIX = "_loader";
 
@@ -120,6 +120,8 @@ public:
 
     static constexpr const char* EXTENSION_INIT_FUNC_NAME = "init";
 
+    static constexpr const char* EXTENSION_NAME_FUNC_NAME = "name";
+
     static constexpr const char* EXTENSION_INSTALL_FUNC_NAME = "install";
 
 public:
@@ -129,6 +131,8 @@ public:
 
     ext_init_func_t getInitFunc();
 
+    ext_name_func_t getNameFunc();
+
     ext_install_func_t getInstallFunc();
 
 private:
@@ -137,15 +141,6 @@ private:
 private:
     std::string extensionName;
     void* libHdl;
-};
-
-struct ExtensionOptions {
-    std::unordered_map<std::string, main::ExtensionOption> extensionOptions;
-
-    void addExtensionOption(std::string name, common::LogicalTypeID type,
-        common::Value defaultValue);
-
-    const main::ExtensionOption* getExtensionOption(std::string name) const;
 };
 
 #ifdef _WIN32

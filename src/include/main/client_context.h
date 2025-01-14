@@ -32,8 +32,8 @@ class ProgressBar;
 } // namespace common
 
 namespace extension {
-struct ExtensionOptions;
-}
+class ExtensionManager;
+} // namespace extension
 
 namespace processor {
 class ImportDB;
@@ -50,6 +50,7 @@ class Database;
 class DatabaseManager;
 class AttachedKuzuDatabase;
 struct SpillToDiskSetting;
+struct ExtensionOption;
 
 struct ActiveQuery {
     explicit ActiveQuery();
@@ -82,7 +83,6 @@ public:
     const DBConfig* getDBConfig() const { return &dbConfig; }
     DBConfig* getDBConfigUnsafe() { return &dbConfig; }
     common::Value getCurrentSetting(const std::string& optionName) const;
-    bool isOptionSet(const std::string& optionName) const;
     // Timer and timeout
     void interrupt() { activeQuery.interrupted = true; }
     bool interrupted() const { return activeQuery.interrupted; }
@@ -109,7 +109,7 @@ public:
     std::unique_ptr<function::ScanReplacementData> tryReplace(const std::string& objectName) const;
     // Extension
     void setExtensionOption(std::string name, common::Value value);
-    extension::ExtensionOptions* getExtensionOptions() const;
+    const main::ExtensionOption* getExtensionOption(std::string optionName) const;
     std::string getExtensionDir() const;
 
     // Database component getters.
@@ -119,6 +119,7 @@ public:
     DatabaseManager* getDatabaseManager() const;
     storage::StorageManager* getStorageManager() const;
     storage::MemoryManager* getMemoryManager() const;
+    extension::ExtensionManager* getExtensionManager() const;
     storage::WAL* getWAL() const;
     catalog::Catalog* getCatalog() const;
     transaction::TransactionManager* getTransactionManagerUnsafe() const;

@@ -31,7 +31,7 @@ void AttachDatabase::executeInternal(ExecutionContext* context) {
         client->getDatabaseManager()->registerAttachedDatabase(std::move(attachedKuzuDB));
         return;
     }
-    for (auto& [name, storageExtension] : client->getDatabase()->getStorageExtensions()) {
+    for (auto& storageExtension : client->getDatabase()->getStorageExtensions()) {
         if (storageExtension->canHandleDB(attachInfo.dbType)) {
             auto db = storageExtension->attach(attachInfo.dbAlias, attachInfo.dbPath, client,
                 attachInfo.options);

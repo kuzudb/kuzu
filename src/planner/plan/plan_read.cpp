@@ -4,9 +4,8 @@
 #include "binder/query/reading_clause/bound_match_clause.h"
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "common/enums/join_type.h"
-#include "planner/operator/logical_gds_call.h"
-#include "planner/operator/scan/logical_scan_node_table.h"
-#include "planner/operator/sip/logical_property_collector.h"
+#include "planner/operator/logical_hash_join.h"
+#include "planner/operator/logical_table_function_call.h"
 #include "planner/planner.h"
 
 using namespace kuzu::binder;
@@ -118,13 +117,30 @@ void Planner::planTableFunctionCall(const BoundReadingClause& readingClause,
     splitPredicates(call.getColumns(), call.getConjunctivePredicates(), predicatesToPull,
         predicatesToPush);
     for (auto& plan : plans) {
-
         auto op = getTableFunctionCall(readingClause);
-
+        op->computeFactorizedSchema();
         planReadOp(getTableFunctionCall(readingClause), predicatesToPush, *plan);
         if (!predicatesToPull.empty()) {
             appendFilters(predicatesToPull, *plan);
         }
+        auto callOp = op->ptrCast<LogicalTableFunctionCall>();
+        if (!callOp->getBindData()->hasNodeOutput()) {
+            continue;
+        }
+        auto& node = callOp->getBindData()->getNodeOutput()->constCast<NodeExpression>();
+        auto properties = getProperties(node);
+        if (properties.empty()) {
+            continue;
+        }
+        cardinalityEstimator.addNodeIDDomAndStats(clientContext->getTransaction(),
+            *node.getInternalID(), node.getTableIDs());
+        auto scanPlan = LogicalPlan();
+        appendScanNodeTable(node.getInternalID(), node.getTableIDs(), properties, scanPlan);
+        expression_vector joinConditions;
+        joinConditions.push_back(node.getInternalID());
+        appendHashJoin(joinConditions, JoinType::INNER, scanPlan, *plan, *plan);
+        plan->getLastOperator()->cast<LogicalHashJoin>().getSIPInfoUnsafe().direction =
+            SIPDirection::FORCE_BUILD_TO_PROBE;
     }
 }
 
@@ -145,18 +161,6 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
             auto gdsCall = getGDSCall(call.getInfo());
             gdsCall->computeFactorizedSchema();
             probePlan.setLastOperator(gdsCall);
-            if (gdsCall->constPtrCast<LogicalGDSCall>()->getInfo().func.name == "QFTS") {
-                auto op = plan->getLastOperator()->getChild(0);
-                auto prop =
-                    bindData->getNodeInput()->constCast<NodeExpression>().getPropertyExpression(
-                        "df");
-                op->cast<LogicalScanNodeTable>().addProperty(prop);
-                auto nodeID = bindData->getNodeInput()->constCast<NodeExpression>().getInternalID();
-                auto propertyMasker = std::make_shared<LogicalPropertyCollector>(nodeID, prop,
-                    gdsCall.get(), plan->getLastOperator());
-                propertyMasker->computeFactorizedSchema();
-                plan->setLastOperator(std::move(propertyMasker));
-            }
             if (!predicatesToPush.empty()) {
                 appendFilters(predicatesToPush, probePlan);
             }
@@ -164,6 +168,8 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
         }
     } else {
         for (auto& plan : plans) {
+            auto gdsCall = getGDSCall(call.getInfo());
+            gdsCall->computeFactorizedSchema();
             planReadOp(getGDSCall(call.getInfo()), predicatesToPush, *plan);
         }
     }
@@ -200,6 +206,7 @@ void Planner::planLoadFrom(const BoundReadingClause& readingClause,
         predicatesToPull, predicatesToPush);
     for (auto& plan : plans) {
         auto op = getTableFunctionCall(*loadFrom.getInfo());
+        op->computeFactorizedSchema();
         planReadOp(std::move(op), predicatesToPush, *plan);
         if (!predicatesToPull.empty()) {
             appendFilters(predicatesToPull, *plan);

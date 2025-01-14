@@ -27,7 +27,7 @@ def extension_extension_dir_prefix() -> str:
     return extension_extension_dir_prefix
 
 
-def test_extension_install_httpfs(conn_db_readonly: ConnDB, tmpdir: str, extension_extension_dir_prefix: str) -> None:
+def test_extension_install_httpfs(conn_db_readwrite: ConnDB, tmpdir: str, extension_extension_dir_prefix: str) -> None:
     current_dir = Path(__file__).resolve().parent
     cmake_list_file = Path(current_dir).parent.parent.parent / "CMakeLists.txt"
     extension_version = None
@@ -56,7 +56,7 @@ def test_extension_install_httpfs(conn_db_readonly: ConnDB, tmpdir: str, extensi
     temp_path = Path(tmpdir) / "libhttpfs.kuzu_extension"
     urllib.request.urlretrieve(download_url, temp_path)
 
-    conn, _ = conn_db_readonly
+    conn, _ = conn_db_readwrite
     conn.execute("INSTALL httpfs")
 
     assert Path.exists(extension_path)

@@ -26,4 +26,8 @@ extern "C" {
 INIT_EXPORT void init(kuzu::main::ClientContext* context) {
     kuzu::sqlite_extension::SqliteExtension::load(context);
 }
+
+INIT_EXPORT const char* name() {
+    return kuzu::sqlite_extension::SqliteExtension::EXTENSION_NAME;
+}
 }

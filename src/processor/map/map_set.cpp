@@ -2,6 +2,7 @@
 #include "binder/expression/rel_expression.h"
 #include "common/exception/binder.h"
 #include "planner/operator/persistent/logical_set.h"
+#include "processor/expression_mapper.h"
 #include "processor/operator/persistent/set.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"

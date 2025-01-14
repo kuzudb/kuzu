@@ -9,13 +9,15 @@ namespace parser {
 class Statement {
 public:
     explicit Statement(common::StatementType statementType)
-        : statementType{statementType}, internal{false} {}
+        : parsingTime{0}, statementType{statementType}, internal{false} {}
 
     virtual ~Statement() = default;
 
     common::StatementType getStatementType() const { return statementType; }
     void setToInternal() { internal = true; }
     bool isInternal() const { return internal; }
+    void setParsingTime(double time) { parsingTime = time; }
+    double getParsingTime() const { return parsingTime; }
 
     bool requireTransaction() const {
         switch (statementType) {
@@ -40,6 +42,7 @@ public:
     }
 
 private:
+    double parsingTime;
     common::StatementType statementType;
     // By setting the statement to internal, we still execute the statement, but will not return the
     // executio result as part of the query result returned to users.

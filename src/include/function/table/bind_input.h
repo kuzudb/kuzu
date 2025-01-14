@@ -55,7 +55,7 @@ struct KUZU_API ExtraScanTableFuncBindInput : ExtraTableFuncBindInput {
     common::FileScanInfo fileScanInfo;
     std::vector<std::string> expectedColumnNames;
     std::vector<common::LogicalType> expectedColumnTypes;
-    function::TableFunction* tableFunction = nullptr;
+    TableFunction* tableFunction = nullptr;
 };
 
 } // namespace function

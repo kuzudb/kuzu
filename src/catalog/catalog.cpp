@@ -327,13 +327,19 @@ void Catalog::createIndex(Transaction* transaction,
 
 IndexCatalogEntry* Catalog::getIndex(const Transaction* transaction, common::table_id_t tableID,
     std::string indexName) const {
-    return indexes->getEntry(transaction, common::stringFormat("{}_{}", tableID, indexName))
+    return indexes
+        ->getEntry(transaction, IndexCatalogEntry::getInternalIndexName(tableID, indexName))
         ->ptrCast<IndexCatalogEntry>();
+}
+
+CatalogSet* Catalog::getIndexes() const {
+    return indexes.get();
 }
 
 bool Catalog::containsIndex(const transaction::Transaction* transaction, common::table_id_t tableID,
     std::string indexName) const {
-    return indexes->containsEntry(transaction, common::stringFormat("{}_{}", tableID, indexName));
+    return indexes->containsEntry(transaction,
+        IndexCatalogEntry::getInternalIndexName(tableID, indexName));
 }
 
 void Catalog::dropAllIndexes(transaction::Transaction* transaction, common::table_id_t tableID) {
@@ -347,7 +353,7 @@ void Catalog::dropAllIndexes(transaction::Transaction* transaction, common::tabl
 
 void Catalog::dropIndex(transaction::Transaction* transaction, common::table_id_t tableID,
     const std::string& indexName) const {
-    const auto uniqueName = common::stringFormat("{}_{}", tableID, indexName);
+    auto uniqueName = IndexCatalogEntry::getInternalIndexName(tableID, indexName);
     const auto entry = indexes->getEntry(transaction, uniqueName);
     indexes->dropEntry(transaction, uniqueName, entry->getOID());
 }
@@ -473,6 +479,7 @@ void Catalog::saveToFile(const std::string& directory, VirtualFileSystem* fs,
     sequences->serialize(serializer);
     functions->serialize(serializer);
     types->serialize(serializer);
+    indexes->serialize(serializer);
 }
 
 void Catalog::readFromFile(const std::string& directory, VirtualFileSystem* fs,
@@ -489,7 +496,7 @@ void Catalog::readFromFile(const std::string& directory, VirtualFileSystem* fs,
     sequences = CatalogSet::deserialize(deserializer);
     functions = CatalogSet::deserialize(deserializer);
     types = CatalogSet::deserialize(deserializer);
-    indexes = std::make_unique<CatalogSet>();
+    indexes = CatalogSet::deserialize(deserializer);
 }
 
 void Catalog::registerBuiltInFunctions() {
@@ -513,7 +520,7 @@ std::unique_ptr<CatalogEntry> Catalog::createRelTableEntry(Transaction*,
     const auto extraInfo = info.extraInfo.get()->constPtrCast<BoundExtraCreateRelTableInfo>();
     auto relTableEntry = std::make_unique<RelTableCatalogEntry>(tables.get(), info.tableName,
         extraInfo->srcMultiplicity, extraInfo->dstMultiplicity, extraInfo->srcTableID,
-        extraInfo->dstTableID);
+        extraInfo->dstTableID, extraInfo->storageDirection);
     for (auto& definition : extraInfo->propertyDefinitions) {
         relTableEntry->addProperty(definition);
     }

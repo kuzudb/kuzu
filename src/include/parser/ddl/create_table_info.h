@@ -43,13 +43,14 @@ struct ExtraCreateNodeTableInfo : public ExtraCreateTableInfo {
 
 struct ExtraCreateRelTableInfo : public ExtraCreateTableInfo {
     std::string relMultiplicity;
+    options_t options;
     std::string srcTableName;
     std::string dstTableName;
 
-    ExtraCreateRelTableInfo(std::string relMultiplicity, std::string srcTableName,
-        std::string dstTableName)
-        : relMultiplicity{std::move(relMultiplicity)}, srcTableName{std::move(srcTableName)},
-          dstTableName{std::move(dstTableName)} {}
+    ExtraCreateRelTableInfo(std::string relMultiplicity, options_t options,
+        std::string srcTableName, std::string dstTableName)
+        : relMultiplicity{std::move(relMultiplicity)}, options(std::move(options)),
+          srcTableName{std::move(srcTableName)}, dstTableName{std::move(dstTableName)} {}
 };
 
 struct ExtraCreateRelTableGroupInfo : public ExtraCreateTableInfo {

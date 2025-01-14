@@ -29,4 +29,8 @@ extern "C" {
 INIT_EXPORT void init(kuzu::main::ClientContext* context) {
     kuzu::delta_extension::DeltaExtension::load(context);
 }
+
+INIT_EXPORT const char* name() {
+    return kuzu::delta_extension::DeltaExtension::EXTENSION_NAME;
+}
 }

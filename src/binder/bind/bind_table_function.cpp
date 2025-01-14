@@ -11,7 +11,7 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace binder {
 
-static void validateParameterType(expression_vector positionalParams) {
+static void validateParameterType(const expression_vector& positionalParams) {
     for (auto& param : positionalParams) {
         ExpressionUtil::validateExpressionType(*param,
             {ExpressionType::LITERAL, ExpressionType::PARAMETER});

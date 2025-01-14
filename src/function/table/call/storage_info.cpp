@@ -291,31 +291,24 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
         } break;
         case TableType::REL: {
             auto& relTable = table->cast<RelTable>();
-            auto fwdRelTableData = relTable.getDirectedTableData(RelDataDirection::FWD);
-            auto bwdRelTableData = relTable.getDirectedTableData(RelDataDirection::BWD);
-            std::vector<Column*> fwdColumns;
-            std::vector<Column*> bwdColumns;
-            for (auto columnID = 0u; columnID < relTable.getNumColumns(); columnID++) {
-                collectColumns(fwdRelTableData->getColumn(columnID), fwdColumns);
-                collectColumns(bwdRelTableData->getColumn(columnID), bwdColumns);
-            }
-            fwdColumns.push_back(fwdRelTableData->getCSROffsetColumn());
-            fwdColumns.push_back(fwdRelTableData->getCSRLengthColumn());
-            bwdColumns.push_back(bwdRelTableData->getCSROffsetColumn());
-            bwdColumns.push_back(bwdRelTableData->getCSRLengthColumn());
-            outputData.columns = std::move(fwdColumns);
-            numNodeGroups = fwdRelTableData->getNumNodeGroups();
-            for (auto i = 0ul; i < numNodeGroups; i++) {
-                outputData.nodeGroupIdx = i;
-                appendStorageInfoForNodeGroup(localState, dataChunk, outputData,
-                    fwdRelTableData->getNodeGroup(i));
-            }
-            outputData.columns = std::move(bwdColumns);
-            numNodeGroups = bwdRelTableData->getNumNodeGroups();
-            for (auto i = 0ul; i < numNodeGroups; i++) {
-                outputData.nodeGroupIdx = i;
-                appendStorageInfoForNodeGroup(localState, dataChunk, outputData,
-                    bwdRelTableData->getNodeGroup(i));
+            auto appendDirectedStorageInfo = [&](RelDataDirection direction) {
+                auto directedRelTableData = relTable.getDirectedTableData(direction);
+                std::vector<Column*> columns;
+                for (auto columnID = 0u; columnID < relTable.getNumColumns(); columnID++) {
+                    collectColumns(directedRelTableData->getColumn(columnID), columns);
+                }
+                columns.push_back(directedRelTableData->getCSROffsetColumn());
+                columns.push_back(directedRelTableData->getCSRLengthColumn());
+                outputData.columns = std::move(columns);
+                numNodeGroups = directedRelTableData->getNumNodeGroups();
+                for (auto i = 0ul; i < numNodeGroups; i++) {
+                    outputData.nodeGroupIdx = i;
+                    appendStorageInfoForNodeGroup(localState, dataChunk, outputData,
+                        directedRelTableData->getNodeGroup(i));
+                }
+            };
+            for (auto direction : relTable.getStorageDirections()) {
+                appendDirectedStorageInfo(direction);
             }
         } break;
         default: {

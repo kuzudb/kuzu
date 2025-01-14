@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
 #include "function/table/bind_input.h"
@@ -56,6 +57,11 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
             auto primaryKeyName = nodeTableEntry->getPrimaryKeyName();
             dataChunk.getValueVectorMutable(4).setValue(vectorPos,
                 primaryKeyName == property.getName());
+        } else if (tableEntry->getTableType() == TableType::REL) {
+            const auto* relTableEntry = tableEntry->constPtrCast<RelTableCatalogEntry>();
+            dataChunk.getValueVectorMutable(4).setValue(vectorPos,
+                RelDirectionUtils::relStorageDirectionToString(
+                    relTableEntry->getStorageDirection()));
         }
         vectorPos++;
     }
@@ -94,11 +100,14 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     columnTypes.push_back(LogicalType::STRING());
     columnNames.emplace_back("type");
     columnTypes.push_back(LogicalType::STRING());
-    columnNames.emplace_back("deault expression");
+    columnNames.emplace_back("default expression");
     columnTypes.push_back(LogicalType::STRING());
     if (tableEntry->getTableType() == TableType::NODE) {
         columnNames.emplace_back("primary key");
         columnTypes.push_back(LogicalType::BOOL());
+    } else if (tableEntry->getTableType() == TableType::REL) {
+        columnNames.emplace_back("storage_direction");
+        columnTypes.push_back(LogicalType::STRING());
     }
     auto columns = input->binder->createVariables(columnNames, columnTypes);
     return std::make_unique<TableInfoBindData>(std::move(catalogEntry), columns,

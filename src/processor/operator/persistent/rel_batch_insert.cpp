@@ -5,8 +5,6 @@
 #include "common/string_format.h"
 #include "common/task_system/progress_bar.h"
 #include "processor/result/factorized_table_util.h"
-#include "storage/buffer_manager/memory_manager.h"
-#include "storage/buffer_manager/spiller.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/rel_table.h"
@@ -113,7 +111,7 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
     // Calculate num of source nodes in this node group.
     // This will be used to set the num of values of the node group.
     const auto numNodes = std::min(StorageConstants::NODE_GROUP_SIZE,
-        partitionerSharedState.maxNodeOffsets[relInfo.partitioningIdx] - startNodeOffset + 1);
+        partitionerSharedState.numNodes[relInfo.partitioningIdx] - startNodeOffset);
     // We optimistically flush new node group directly to disk in gapped CSR format.
     // There is no benefit of leaving gaps for existing node groups, which is kept in memory.
     const auto leaveGaps = nodeGroup.isEmpty();
@@ -219,7 +217,7 @@ void RelBatchInsert::checkRelMultiplicityConstraint(const ChunkedCSRHeader& csrH
         if (csrHeader.length->getData().getValue<length_t>(i) > 1) {
             throw CopyException(ExceptionMessage::violateRelMultiplicityConstraint(
                 relInfo.tableEntry->getName(), std::to_string(i + startNodeOffset),
-                RelDataDirectionUtils::relDirectionToString(relInfo.direction)));
+                RelDirectionUtils::relDirectionToString(relInfo.direction)));
         }
     }
 }

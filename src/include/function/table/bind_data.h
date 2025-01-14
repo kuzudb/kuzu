@@ -43,6 +43,9 @@ struct KUZU_API TableFuncBindData {
         return columnPredicates;
     }
 
+    bool hasNodeOutput() const { return getNodeOutput() != nullptr; }
+    virtual std::shared_ptr<binder::Expression> getNodeOutput() const { return nullptr; }
+
     virtual bool getIgnoreErrorsOption() const;
 
     virtual std::unique_ptr<TableFuncBindData> copy() const = 0;
@@ -62,7 +65,7 @@ private:
     std::vector<storage::ColumnPredicateSet> columnPredicates;
 };
 
-struct KUZU_API ScanBindData : public TableFuncBindData {
+struct KUZU_API ScanBindData : TableFuncBindData {
     common::FileScanInfo fileScanInfo;
     main::ClientContext* context;
 

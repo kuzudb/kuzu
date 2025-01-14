@@ -169,13 +169,13 @@ False
 -LOG RelTableInfo
 -STATEMENT CALL table_info('knows') RETURN *
 ---- 7
-1|date|DATE|NULL
-2|meetTime|TIMESTAMP|NULL
-3|validInterval|INTERVAL|NULL
-4|comments|STRING[]|NULL
-5|summary|STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[]))|NULL
-6|notes|UNION(firstmet DATE, type INT16, comment STRING)|NULL
-7|someMap|MAP(STRING, STRING)|NULL
+1|date|DATE|NULL|both
+2|meetTime|TIMESTAMP|NULL|both
+3|validInterval|INTERVAL|NULL|both
+4|comments|STRING[]|NULL|both
+5|summary|STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[]))|NULL|both
+6|notes|UNION(firstmet DATE, type INT16, comment STRING)|NULL|both
+7|someMap|MAP(STRING, STRING)|NULL|both
 
 -LOG ReturnNodeName
 -STATEMENT CALL table_info('person') WHERE name <> 'ID' RETURN name

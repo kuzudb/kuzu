@@ -87,8 +87,9 @@ static std::unique_ptr<function::ScanReplacementData> replacePythonObject(
     auto currentFrame = importCache->inspect.currentframe()();
     bool nameMatchFound = false;
     while (hasattr(currentFrame, "f_locals")) {
-        auto localDict = py::reinterpret_borrow<py::dict>(currentFrame.attr("f_locals"));
-        if (localDict) {
+        auto localDict = py::cast<py::dict>(currentFrame.attr("f_locals"));
+        auto hasLocalDict = !py::none().is(localDict);
+        if (hasLocalDict) {
             if (localDict.contains(pyTableName)) {
                 nameMatchFound = true;
             }

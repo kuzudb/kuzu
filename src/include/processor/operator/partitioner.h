@@ -37,6 +37,7 @@ struct PartitioningBuffer {
 struct BatchInsertSharedState;
 struct PartitioningInfo;
 struct PartitionerDataInfo;
+struct PartitionerInfo;
 struct RelBatchInsertProgressSharedState;
 struct PartitionerSharedState {
     std::mutex mtx;
@@ -46,18 +47,18 @@ struct PartitionerSharedState {
     storage::MemoryManager& mm;
 
     explicit PartitionerSharedState(storage::MemoryManager& mm)
-        : mtx{}, srcNodeTable{nullptr}, dstNodeTable{nullptr}, relTable(nullptr), mm{mm},
-          maxNodeOffsets{0, 0}, numPartitions{0, 0}, nextPartitionIdx{0} {}
+        : srcNodeTable{nullptr}, dstNodeTable{nullptr}, relTable(nullptr), mm{mm}, numNodes{0, 0},
+          numPartitions{0, 0}, nextPartitionIdx{0} {}
 
     static constexpr size_t DIRECTIONS = 2;
-    // FIXME(Guodong): we should not maintain maxNodeOffsets.
-    std::array<common::offset_t, DIRECTIONS> maxNodeOffsets; // max node offset in each direction.
+    std::array<common::offset_t, DIRECTIONS> numNodes;
     std::array<common::partition_idx_t, DIRECTIONS>
         numPartitions; // num of partitions in each direction.
     std::vector<std::unique_ptr<PartitioningBuffer>> partitioningBuffers;
     std::atomic<common::partition_idx_t> nextPartitionIdx;
 
-    void initialize(const PartitionerDataInfo& dataInfo, main::ClientContext* clientContext);
+    void initialize(const common::logical_type_vec_t& columnTypes, common::idx_t numPartitioners,
+        const main::ClientContext* clientContext);
 
     common::partition_idx_t getNextPartition(common::idx_t partitioningIdx,
         RelBatchInsertProgressSharedState& progressSharedState);
@@ -171,10 +172,11 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override;
 
-    static void initializePartitioningStates(const PartitionerDataInfo& dataInfo,
+    static void initializePartitioningStates(const common::logical_type_vec_t& columnTypes,
         std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers,
         const std::array<common::partition_idx_t, PartitionerSharedState::DIRECTIONS>&
-            numPartitions);
+            numPartitions,
+        common::idx_t numPartitioners);
 
 private:
     common::DataChunk constructDataChunk(

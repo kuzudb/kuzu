@@ -105,7 +105,6 @@ std::string ExpressionTypeUtil::toString(ExpressionType type) {
     default:
         KU_UNREACHABLE;
     }
-    return "";
 }
 
 std::string ExpressionTypeUtil::toParsableString(ExpressionType type) {

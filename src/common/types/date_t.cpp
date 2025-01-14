@@ -390,13 +390,13 @@ int32_t Date::monthDays(int32_t year, int32_t month) {
     return Date::isLeapYear(year) ? Date::LEAP_DAYS[month] : Date::NORMAL_DAYS[month];
 }
 
-std::string Date::getDayName(date_t& date) {
+std::string Date::getDayName(date_t date) {
     std::string dayNames[] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
         "Saturday"};
     return dayNames[(date.days < 0 ? 7 - ((-date.days + 3) % 7) : ((date.days + 3) % 7) + 1) % 7];
 }
 
-std::string Date::getMonthName(date_t& date) {
+std::string Date::getMonthName(date_t date) {
     std::string monthNames[] = {"January", "February", "March", "April", "May", "June", "July",
         "August", "September", "October", "November", "December"};
     int32_t year = 0, month = 0, day = 0;
@@ -404,7 +404,7 @@ std::string Date::getMonthName(date_t& date) {
     return monthNames[month - 1];
 }
 
-date_t Date::getLastDay(date_t& date) {
+date_t Date::getLastDay(date_t date) {
     int32_t year = 0, month = 0, day = 0;
     Date::convert(date, year, month, day);
     year += (month / 12);
@@ -413,7 +413,7 @@ date_t Date::getLastDay(date_t& date) {
     return Date::fromDate(year, month, 1) - 1;
 }
 
-int32_t Date::getDatePart(DatePartSpecifier specifier, date_t& date) {
+int32_t Date::getDatePart(DatePartSpecifier specifier, date_t date) {
     int32_t year = 0, month = 0, day = 0;
     Date::convert(date, year, month, day);
     switch (specifier) {
@@ -446,7 +446,7 @@ int32_t Date::getDatePart(DatePartSpecifier specifier, date_t& date) {
     }
 }
 
-date_t Date::trunc(DatePartSpecifier specifier, date_t& date) {
+date_t Date::trunc(DatePartSpecifier specifier, date_t date) {
     switch (specifier) {
     case DatePartSpecifier::YEAR:
         return Date::fromDate(Date::getDatePart(DatePartSpecifier::YEAR, date), 1 /* month */,

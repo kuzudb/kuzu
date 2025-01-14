@@ -80,15 +80,7 @@ public:
     VarLenJoinsAlgorithm() = default;
     VarLenJoinsAlgorithm(const VarLenJoinsAlgorithm& other) : RJAlgorithm(other) {}
 
-    /*
-     * Inputs include the following:
-     *
-     * graph::ANY
-     * srcNode::NODE
-     * lowerBound::INT64
-     * upperBound::INT64
-     * direction::STRING
-     */
+    // Inputs are: graph, srcNode, lowerBound, upperBound, direction
     std::vector<LogicalTypeID> getParameterTypeIDs() const override {
         return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64, LogicalTypeID::INT64,
             LogicalTypeID::STRING};
@@ -131,7 +123,7 @@ private:
         auto clientContext = context->clientContext;
         auto frontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto bfsGraph = getBFSGraph(context);
-        auto output = std::make_unique<PathsOutputs>(sourceNodeID, frontier, std::move(bfsGraph));
+        auto output = std::make_unique<PathsOutputs>(sourceNodeID, std::move(bfsGraph));
         auto rjBindData = bindData->ptrCast<RJBindData>();
         auto writerInfo = rjBindData->getPathWriterInfo();
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
@@ -139,8 +131,8 @@ private:
             sharedState->getOutputNodeMaskMap(), writerInfo);
         auto currentFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto nextFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
-        auto frontierPair = std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier,
-            nextFrontier, clientContext->getMaxNumThreadForExec());
+        auto frontierPair =
+            std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
         auto edgeCompute =
             std::make_unique<VarLenJoinsEdgeCompute>(frontierPair.get(), output->bfsGraph.get());
         return RJCompState(std::move(frontierPair), std::move(edgeCompute),

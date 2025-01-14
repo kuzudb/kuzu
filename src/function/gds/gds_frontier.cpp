@@ -1,18 +1,19 @@
 #include "function/gds/gds_frontier.h"
 
+#include "function/gds/gds_utils.h"
+#include "processor/execution_context.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace function {
 
 FrontierMorselDispatcher::FrontierMorselDispatcher(uint64_t maxThreads)
-    : tableID{INVALID_TABLE_ID}, maxOffset{INVALID_OFFSET}, maxThreads{maxThreads},
-      morselSize(UINT64_MAX) {
+    : maxOffset{INVALID_OFFSET}, maxThreads{maxThreads}, morselSize(UINT64_MAX) {
     nextOffset.store(INVALID_OFFSET);
 }
 
-void FrontierMorselDispatcher::init(common::table_id_t _tableID, common::offset_t _maxOffset) {
-    tableID = _tableID;
+void FrontierMorselDispatcher::init(common::offset_t _maxOffset) {
     maxOffset = _maxOffset;
     nextOffset.store(0u);
     // Frontier size calculation: The ideal scenario is to have k^2 many morsels where k
@@ -29,7 +30,7 @@ bool FrontierMorselDispatcher::getNextRangeMorsel(FrontierMorsel& frontierMorsel
         return false;
     }
     auto endOffset = beginOffset + morselSize > maxOffset ? maxOffset : beginOffset + morselSize;
-    frontierMorsel.init(tableID, beginOffset, endOffset);
+    frontierMorsel.init(beginOffset, endOffset);
     return true;
 }
 
@@ -106,6 +107,16 @@ void PathLengths::pinNextFrontierTableID(common::table_id_t tableID) {
     nextFrontier.store(getMaskData(tableID), std::memory_order_relaxed);
 }
 
+std::shared_ptr<PathLengths> PathLengths::getFrontier(processor::ExecutionContext* context,
+    graph::Graph* graph, uint16_t initialValue) {
+    auto tx = context->clientContext->getTransaction();
+    auto mm = context->clientContext->getMemoryManager();
+    auto pathLengths = std::make_shared<PathLengths>(graph->getNumNodesMap(tx), mm);
+    auto vc = std::make_unique<PathLengthsInitVertexCompute>(*pathLengths, initialValue);
+    GDSUtils::runVertexCompute(context, graph, *vc);
+    return pathLengths;
+}
+
 bool PathLengthsInitVertexCompute::beginOnTable(common::table_id_t tableID) {
     pathLengths.pinTableID(tableID);
     return true;
@@ -120,9 +131,8 @@ void PathLengthsInitVertexCompute::vertexCompute(common::offset_t startOffset,
 }
 
 FrontierPair::FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-    std::shared_ptr<GDSFrontier> nextFrontier, uint64_t numThreads)
-    : curDenseFrontier{std::move(curFrontier)}, nextDenseFrontier{std::move(nextFrontier)},
-      morselDispatcher{numThreads} {
+    std::shared_ptr<GDSFrontier> nextFrontier)
+    : curDenseFrontier{std::move(curFrontier)}, nextDenseFrontier{std::move(nextFrontier)} {
     curSparseFrontier = std::make_shared<SparseFrontier>();
     nextSparseFrontier = std::make_shared<SparseFrontier>();
     vertexComputeCandidates = std::make_shared<SparseFrontier>();
@@ -144,7 +154,6 @@ void FrontierPair::beginFrontierComputeBetweenTables(common::table_id_t curTable
     common::table_id_t nextTableID) {
     pinCurrFrontier(curTableID);
     pinNextFrontier(nextTableID);
-    morselDispatcher.init(curTableID, curDenseFrontier->getNumNodes(curTableID));
 }
 
 bool FrontierPair::continueNextIter(uint16_t maxIter) {

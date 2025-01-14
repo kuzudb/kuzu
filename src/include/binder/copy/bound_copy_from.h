@@ -2,9 +2,12 @@
 
 #include "binder/bound_scan_source.h"
 #include "binder/expression/expression.h"
-#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/enums/column_evaluate_type.h"
 #include "index_look_up_info.h"
+
+namespace kuzu::catalog {
+class TableCatalogEntry;
+} // namespace kuzu::catalog
 
 namespace kuzu {
 namespace binder {
@@ -20,6 +23,8 @@ struct ExtraBoundCopyFromInfo {
 };
 
 struct BoundCopyFromInfo {
+    enum class CopyFromType : uint8_t { TABLE = 0, HNSW_INDEX = 1 };
+
     // Table entry to copy into.
     catalog::TableCatalogEntry* tableEntry;
     // Data source.
@@ -29,28 +34,40 @@ struct BoundCopyFromInfo {
     expression_vector columnExprs;
     std::vector<common::ColumnEvaluateType> columnEvaluateTypes;
     std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo;
+    CopyFromType type;
 
+    explicit BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry)
+        : tableEntry{tableEntry}, source{nullptr}, offset{nullptr}, extraInfo{nullptr},
+          type{CopyFromType::HNSW_INDEX} {}
     BoundCopyFromInfo(catalog::TableCatalogEntry* tableEntry,
         std::unique_ptr<BoundBaseScanSource> source, std::shared_ptr<Expression> offset,
         expression_vector columnExprs, std::vector<common::ColumnEvaluateType> columnEvaluateTypes,
         std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
         : tableEntry{tableEntry}, source{std::move(source)}, offset{std::move(offset)},
           columnExprs{std::move(columnExprs)}, columnEvaluateTypes{std::move(columnEvaluateTypes)},
-          extraInfo{std::move(extraInfo)} {}
-
+          extraInfo{std::move(extraInfo)}, type{CopyFromType::TABLE} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundCopyFromInfo);
+
+    expression_vector getSourceColumns() const {
+        return source ? source->getColumns() : expression_vector{};
+    }
+    common::column_id_t getNumWarningColumns() const {
+        return source ? source->getNumWarningDataColumns() : 0;
+    }
+    bool getIgnoreErrorsOption() const { return source ? source->getIgnoreErrorsOption() : false; }
 
 private:
     BoundCopyFromInfo(const BoundCopyFromInfo& other)
-        : tableEntry{other.tableEntry}, source{other.source->copy()}, offset{other.offset},
-          columnExprs{other.columnExprs}, columnEvaluateTypes{other.columnEvaluateTypes} {
+        : tableEntry{other.tableEntry}, offset{other.offset}, columnExprs{other.columnExprs},
+          columnEvaluateTypes{other.columnEvaluateTypes}, type{other.type} {
+        source = other.source ? other.source->copy() : nullptr;
         if (other.extraInfo) {
             extraInfo = other.extraInfo->copy();
         }
     }
 };
 
-struct ExtraBoundCopyRelInfo final : public ExtraBoundCopyFromInfo {
+struct ExtraBoundCopyRelInfo final : ExtraBoundCopyFromInfo {
     // We process internal ID column as offset (INT64) column until partitioner. In partitioner,
     // we need to manually change offset(INT64) type to internal ID type.
     std::vector<common::idx_t> internalIDColumnIndices;
@@ -66,7 +83,7 @@ struct ExtraBoundCopyRelInfo final : public ExtraBoundCopyFromInfo {
     }
 };
 
-class BoundCopyFrom : public BoundStatement {
+class BoundCopyFrom final : public BoundStatement {
     static constexpr common::StatementType statementType_ = common::StatementType::COPY_FROM;
 
 public:

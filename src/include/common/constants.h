@@ -122,6 +122,10 @@ struct StorageConstants {
     static constexpr char TEMP_SPILLING_FILE_NAME[] = ".tmp";
 };
 
+struct TableOptionConstants {
+    static constexpr char REL_STORAGE_DIRECTION_OPTION[] = "STORAGE_DIRECTION";
+};
+
 // Hash Index Configurations
 struct HashIndexConstants {
     static constexpr uint16_t SLOT_CAPACITY_BYTES = 256;
@@ -224,9 +228,10 @@ struct ExportCSVConstants {
     static constexpr uint64_t DEFAULT_CSV_FLUSH_SIZE = 4096 * 8;
 };
 
-struct ImportDBConstants {
-    static constexpr char SCHEMA_NAME[] = "schema.cypher";
-    static constexpr char COPY_NAME[] = "copy.cypher";
+struct PortDBConstants {
+    static constexpr char INDEX_FILE_NAME[] = "index.cypher";
+    static constexpr char SCHEMA_FILE_NAME[] = "schema.cypher";
+    static constexpr char COPY_FILE_NAME[] = "copy.cypher";
 };
 
 struct WarningConstants {

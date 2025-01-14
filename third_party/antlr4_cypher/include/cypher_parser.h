@@ -700,6 +700,8 @@ public:
     KU_IfNotExistsContext *kU_IfNotExists();
     KU_PropertyDefinitionsContext *kU_PropertyDefinitions();
     OC_SymbolicNameContext *oC_SymbolicName();
+    antlr4::tree::TerminalNode *WITH();
+    KU_ParsingOptionsContext *kU_ParsingOptions();
 
    
   };

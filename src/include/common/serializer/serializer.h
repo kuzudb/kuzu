@@ -13,11 +13,9 @@
 namespace kuzu {
 namespace common {
 
-class Serializer {
+class KUZU_API Serializer {
 public:
     explicit Serializer(std::shared_ptr<Writer> writer) : writer(std::move(writer)) {}
-
-    Writer& getWriter() const { return *writer; }
 
     template<typename T>
         requires std::is_trivially_destructible<T>::value || std::is_same<std::string, T>::value

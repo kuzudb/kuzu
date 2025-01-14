@@ -54,10 +54,9 @@ std::unique_ptr<LogicalPlan> Planner::planExportDatabase(const BoundStatement& s
 
 std::unique_ptr<LogicalPlan> Planner::planImportDatabase(const BoundStatement& statement) {
     auto& boundImportDatabase = statement.constCast<BoundImportDatabase>();
-    auto query = boundImportDatabase.getQuery();
     auto plan = std::make_unique<LogicalPlan>();
-    auto importDatabase = make_shared<LogicalImportDatabase>(query,
-        statement.getStatementResult()->getSingleColumnExpr());
+    auto importDatabase = make_shared<LogicalImportDatabase>(boundImportDatabase.getQuery(),
+        boundImportDatabase.getIndexQuery(), statement.getStatementResult()->getSingleColumnExpr());
     plan->setLastOperator(std::move(importDatabase));
     return plan;
 }

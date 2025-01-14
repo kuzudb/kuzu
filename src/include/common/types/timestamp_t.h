@@ -93,9 +93,9 @@ public:
     // Create a Timestamp object from the specified epochNs.
     KUZU_API static timestamp_t fromEpochNanoSeconds(int64_t ns);
 
-    KUZU_API static int32_t getTimestampPart(DatePartSpecifier specifier, timestamp_t& timestamp);
+    KUZU_API static int32_t getTimestampPart(DatePartSpecifier specifier, timestamp_t timestamp);
 
-    KUZU_API static timestamp_t trunc(DatePartSpecifier specifier, timestamp_t& date);
+    KUZU_API static timestamp_t trunc(DatePartSpecifier specifier, timestamp_t date);
 
     KUZU_API static int64_t getEpochNanoSeconds(const timestamp_t& timestamp);
 

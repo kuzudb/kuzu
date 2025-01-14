@@ -24,9 +24,8 @@ void NodeTableDeleteInfo::init(const ResultSet& resultSet) {
 
 static void throwDeleteNodeWithConnectedEdgesError(const std::string& tableName,
     offset_t nodeOffset, RelDataDirection direction) {
-    throw RuntimeException(
-        ExceptionMessage::violateDeleteNodeWithConnectedEdgesConstraint(tableName,
-            std::to_string(nodeOffset), RelDataDirectionUtils::relDirectionToString(direction)));
+    throw RuntimeException(ExceptionMessage::violateDeleteNodeWithConnectedEdgesConstraint(
+        tableName, std::to_string(nodeOffset), RelDirectionUtils::relDirectionToString(direction)));
 }
 
 void NodeTableDeleteInfo::deleteFromRelTable(Transaction* transaction,

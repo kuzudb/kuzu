@@ -123,8 +123,6 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "UNWIND";
     case PhysicalOperatorType::USE_DATABASE:
         return "USE_DATABASE";
-    case PhysicalOperatorType::PROPERTY_COLLECTOR:
-        return "PROPERTY_COLLECTOR";
     default:
         throw RuntimeException("Unknown physical operator type.");
     }

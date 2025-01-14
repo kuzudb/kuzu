@@ -49,4 +49,8 @@ extern "C" {
 INIT_EXPORT void init(kuzu::main::ClientContext* context) {
     kuzu::httpfs::HttpfsExtension::load(context);
 }
+
+INIT_EXPORT const char* name() {
+    return kuzu::httpfs::HttpfsExtension::EXTENSION_NAME;
+}
 }

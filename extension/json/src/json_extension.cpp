@@ -63,4 +63,8 @@ extern "C" {
 INIT_EXPORT void init(kuzu::main::ClientContext* context) {
     kuzu::json_extension::JsonExtension::load(context);
 }
+
+INIT_EXPORT const char* name() {
+    return kuzu::json_extension::JsonExtension::EXTENSION_NAME;
+}
 }

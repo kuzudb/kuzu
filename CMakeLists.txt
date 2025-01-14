@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(Kuzu VERSION 0.7.1.2 LANGUAGES CXX C)
+project(Kuzu VERSION 0.7.1.5 LANGUAGES CXX C)
 
 option(SINGLE_THREADED "Single-threaded mode" FALSE)
 if(SINGLE_THREADED)
@@ -119,6 +119,9 @@ if(MSVC)
     add_compile_definitions(_USE_MATH_DEFINES)
     add_compile_definitions(NOMINMAX)
     add_compile_definitions(SERD_STATIC)
+    # This is a workaround for regex oom issue on windows in gtest.
+    add_compile_definitions(_REGEX_MAX_STACK_COUNT=0)
+    add_compile_definitions(_REGEX_MAX_COMPLEXITY_COUNT=0)
     # TODO (bmwinger): Figure out if this can be set automatically by cmake,
     # or at least better integrated with user-specified options
     # For now, hardcode _AMD64_
@@ -136,6 +139,8 @@ if(MSVC)
     # Store all libraries and binaries in the same directory so that kuzu_shared.dll is found at runtime
     set(LIBRARY_OUTPUT_PATH "${CMAKE_BINARY_DIR}/src")
     set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/src")
+    # This is a workaround for regex stackoverflow issue on windows in gtest.
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:8388608")
 
     string(REGEX REPLACE "/W[3|4]" "/w" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
     add_compile_options($<$<CONFIG:Release>:/W0>)
@@ -261,7 +266,7 @@ function(add_kuzu_test TEST_NAME)
     endif()
     target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include)
     include(GoogleTest)
-    
+
     if (TEST_NAME STREQUAL "e2e_test")
         gtest_discover_tests(${TEST_NAME}
             DISCOVERY_TIMEOUT 600
@@ -318,6 +323,8 @@ include_directories(third_party/httplib)
 include_directories(third_party/pcg)
 include_directories(third_party/lz4)
 include_directories(third_party/roaring_bitmap)
+# Use SYSTEM to suppress warnings from simsimd
+include_directories(SYSTEM third_party/simsimd/include)
 
 add_subdirectory(third_party)
 

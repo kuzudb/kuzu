@@ -32,4 +32,8 @@ extern "C" {
 INIT_EXPORT void init(kuzu::main::ClientContext* context) {
     kuzu::iceberg_extension::IcebergExtension::load(context);
 }
+
+INIT_EXPORT const char* name() {
+    return kuzu::iceberg_extension::IcebergExtension::EXTENSION_NAME;
+}
 }

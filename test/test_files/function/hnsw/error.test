@@ -1,0 +1,60 @@
+-DATASET CSV embeddings
+
+--
+
+-CASE Error
+-STATEMENT CREATE NODE TABLE test(id int64 primary key, vec double[90]);
+---- ok
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'test', 'vec');
+---- error
+Binder exception: HNSW_INDEX only supports FLOAT ARRAY columns.
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[960], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-960-1k.csv" (deLim=',');
+---- ok
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec');
+---- ok
+-STATEMENT CALL QUERY_HNSW_INDEX('e_hnsw_index', 'embeddings', CAST([0.0459,0.0439,0.0251], 'FLOAT[3]'), 10) RETURN *;
+---- error
+Runtime exception: Query vector dimension does not match index dimension.
+-STATEMENT CALL DROP_HNSW_INDEX('e_hnsw_index2', 'embeddings');
+---- error
+Binder exception: Table embeddings doesn't have an index with name e_hnsw_index2.
+-STATEMENT CALL DROP_HNSW_INDEX('e_hnsw_indexxxx', 'embeddingssss');
+---- error
+Binder exception: Table embeddingssss does not exist.
+
+-CASE ParamError
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+---- ok
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', unknown_param := 1);
+---- error
+Binder exception: Unrecognized optional parameter unknown_param in CREATE_HNSW_INDEX.
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', efc := 0);
+---- error
+Binder exception: Efc must be a positive integer.
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', mu := 0);
+---- error
+Binder exception: Mu must be a positive integer between 1 and 100.
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', ml := -1);
+---- error
+Binder exception: Ml must be a positive integer between 1 and 200.
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', pu := 1.5);
+---- error
+Binder exception: Pu must be a double between 0 and 1.
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', alpha := 0.5);
+---- error
+Binder exception: Alpha must be a double greater than or equal to 1.
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', distFunc := 'invalid');
+---- error
+Binder exception: DistFunc must be one of COSINE, L2, L2SQ or DOTPRODUCT.
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec');
+---- ok
+-STATEMENT CALL QUERY_HNSW_INDEX('e_hnsw_index', 'embeddings', CAST([0.0459,0.0439,0.0251,0.1,0.2,0.3,0.4,0.4], 'FLOAT[8]'), 10, unknown_param := 1) RETURN *;
+---- error
+Binder exception: Unrecognized optional parameter unknown_param in QUERY_HNSW_INDEX.
+-STATEMENT CALL QUERY_HNSW_INDEX('e_hnsw_index', 'embeddings', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3, efs := -1) RETURN nn.id, _distance ORDER BY _distance;
+---- error
+Binder exception: Efs must be a positive integer.

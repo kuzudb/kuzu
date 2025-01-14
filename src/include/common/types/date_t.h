@@ -99,15 +99,15 @@ public:
 
     KUZU_API static int32_t monthDays(int32_t year, int32_t month);
 
-    KUZU_API static std::string getDayName(date_t& date);
+    KUZU_API static std::string getDayName(date_t date);
 
-    KUZU_API static std::string getMonthName(date_t& date);
+    KUZU_API static std::string getMonthName(date_t date);
 
-    KUZU_API static date_t getLastDay(date_t& date);
+    KUZU_API static date_t getLastDay(date_t date);
 
-    KUZU_API static int32_t getDatePart(DatePartSpecifier specifier, date_t& date);
+    KUZU_API static int32_t getDatePart(DatePartSpecifier specifier, date_t date);
 
-    KUZU_API static date_t trunc(DatePartSpecifier specifier, date_t& date);
+    KUZU_API static date_t trunc(DatePartSpecifier specifier, date_t date);
 
     KUZU_API static int64_t getEpochNanoSeconds(const date_t& date);
 

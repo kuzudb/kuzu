@@ -213,7 +213,8 @@ bool HashJoinSIPOptimizer::tryProbeToBuildHJSIP(LogicalOperator* op) {
 
 bool HashJoinSIPOptimizer::tryBuildToProbeHJSIP(LogicalOperator* op) {
     auto& hashJoin = op->cast<LogicalHashJoin>();
-    if (!subPlanContainsFilter(hashJoin.getChild(1).get())) {
+    if (hashJoin.getSIPInfo().direction != SIPDirection::FORCE_BUILD_TO_PROBE &&
+        !subPlanContainsFilter(hashJoin.getChild(1).get())) {
         return false;
     }
     auto probeRoot = hashJoin.getChild(0);
@@ -232,7 +233,7 @@ bool HashJoinSIPOptimizer::tryBuildToProbeHJSIP(LogicalOperator* op) {
     auto& sipInfo = hashJoin.getSIPInfoUnsafe();
     sipInfo.position = SemiMaskPosition::ON_BUILD;
     sipInfo.dependency = SIPDependency::BUILD_DEPENDS_ON_PROBE;
-    sipInfo.direction = planner::SIPDirection::BUILD_TO_PROBE;
+    sipInfo.direction = SIPDirection::BUILD_TO_PROBE;
     hashJoin.setChild(1, buildRoot);
     return true;
 }

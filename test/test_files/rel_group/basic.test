@@ -94,4 +94,4 @@ Binder exception: Cannot rename property on table hates with type REL_GROUP.
 ---- ok
 -STATEMENT CALL table_info("likes_A_B") RETURN *;
 ---- 1
-1|s|DATE|NULL
+1|s|DATE|NULL|both

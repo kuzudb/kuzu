@@ -24,6 +24,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapTableFunctionCall(
     info.outputType =
         outPosV.empty() ? TableScanOutputType::EMPTY : TableScanOutputType::SINGLE_DATA_CHUNK;
     auto sharedState = std::make_shared<TableFunctionCallSharedState>();
+    function::TableFunctionInitInput tableFunctionInitInput{info.bindData.get(), 0};
+    sharedState->funcState = info.function.initSharedStateFunc(tableFunctionInitInput);
     auto printInfo = std::make_unique<TableFunctionCallPrintInfo>(call.getTableFunc().name);
     return std::make_unique<TableFunctionCall>(std::move(info), sharedState, getOperatorID(),
         std::move(printInfo));

@@ -4,6 +4,7 @@
 #include "common/constants.h"
 #include "common/exception/not_implemented.h"
 #include "common/exception/storage.h"
+#include "common/serializer/buffered_reader.h"
 #include "common/serializer/buffered_serializer.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/reader.h"
@@ -60,21 +61,6 @@ bool operator==(const CompressionMetadata& a, const CompressionMetadata& b) {
     }
     return true;
 }
-
-struct BufferReader : Reader {
-    BufferReader(uint8_t* data, size_t dataSize) : data(data), dataSize(dataSize), readSize(0) {}
-
-    void read(uint8_t* outputData, uint64_t size) final {
-        memcpy(outputData, data + readSize, size);
-        readSize += size;
-    }
-
-    bool finished() final { return (readSize >= dataSize); }
-
-    uint8_t* data;
-    size_t dataSize;
-    size_t readSize;
-};
 
 void testSerializeThenDeserialize(const CompressionMetadata& orig) {
     // test serializing/deserializing twice

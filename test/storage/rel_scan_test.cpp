@@ -30,15 +30,13 @@ public:
         auto transaction = context->getTransaction();
         auto nodeTableIDs = catalog->getNodeTableIDs(transaction);
         auto relTableIDs = catalog->getRelTableIDs(transaction);
-        entry = std::make_unique<kuzu::graph::GraphEntry>(
-            catalog->getTableEntries(transaction, nodeTableIDs),
+        auto entry = graph::GraphEntry(catalog->getTableEntries(transaction, nodeTableIDs),
             catalog->getTableEntries(transaction, relTableIDs));
-        graph = std::make_unique<kuzu::graph::OnDiskGraph>(context, *entry);
+        graph = std::make_unique<kuzu::graph::OnDiskGraph>(context, std::move(entry));
     }
 
 public:
     std::unique_ptr<kuzu::graph::OnDiskGraph> graph;
-    std::unique_ptr<kuzu::graph::GraphEntry> entry;
     main::ClientContext* context;
     catalog::Catalog* catalog;
 };
@@ -52,10 +50,8 @@ class RelScanTestAmazon : public RelScanTest {
 // Test correctness of scan fwd
 TEST_F(RelScanTest, ScanFwd) {
     auto tableID = catalog->getTableID(context->getTransaction(), "person");
-    auto relTableID = catalog->getTableID(context->getTransaction(), "knows");
-    auto datePropertyIndex = catalog->getTableCatalogEntry(context->getTransaction(), relTableID)
-                                 ->getPropertyIdx("date");
-    auto scanState = graph->prepareScan(relTableID, datePropertyIndex);
+    auto relEntry = catalog->getTableCatalogEntry(context->getTransaction(), "knows");
+    auto scanState = graph->prepareRelScan(relEntry, "date");
 
     std::unordered_map<offset_t, common::date_t> expectedDates = {
         {0, Date::fromDate(2021, 6, 30)},
@@ -72,22 +68,22 @@ TEST_F(RelScanTest, ScanFwd) {
         {11, Date::fromDate(2000, 1, 1)},
     };
 
-    const auto compare = [&](uint64_t node, std::vector<offset_t> expectedNodeOffsets,
-                             std::vector<offset_t> expectedFwdRelOffsets,
-                             std::vector<offset_t> expectedBwdRelOffsets) {
-        std::vector<offset_t> resultNodeOffsets;
+    const auto compare = [&](uint64_t node, common::offset_vec_t expectedNodeOffsets,
+                             common::offset_vec_t expectedFwdRelOffsets,
+                             common::offset_vec_t expectedBwdRelOffsets) {
+        common::offset_vec_t resultNodeOffsets;
         std::vector<common::nodeID_t> expectedNodes;
         std::transform(expectedNodeOffsets.begin(), expectedNodeOffsets.end(),
             std::back_inserter(expectedNodes),
             [&](auto offset) { return nodeID_t{offset, tableID}; });
 
-        std::vector<offset_t> resultRelOffsets;
+        common::offset_vec_t resultRelOffsets;
         std::vector<common::date_t> resultDates;
         for (const auto chunk : graph->scanFwd(nodeID_t{node, tableID}, *scanState)) {
             chunk.forEach<common::date_t>([&](auto nbr, auto edgeID, auto date) {
                 EXPECT_EQ(nbr.tableID, tableID);
                 resultNodeOffsets.push_back(nbr.offset);
-                EXPECT_EQ(edgeID.tableID, relTableID);
+                EXPECT_EQ(edgeID.tableID, relEntry->getTableID());
                 resultRelOffsets.push_back(edgeID.offset);
                 resultDates.push_back(date);
             });
@@ -111,7 +107,7 @@ TEST_F(RelScanTest, ScanFwd) {
             chunk.forEach<common::date_t>([&](auto nbr, auto edgeID, auto date) {
                 EXPECT_EQ(nbr.tableID, tableID);
                 resultNodeOffsets.push_back(nbr.offset);
-                EXPECT_EQ(edgeID.tableID, relTableID);
+                EXPECT_EQ(edgeID.tableID, relEntry->getTableID());
                 resultRelOffsets.push_back(edgeID.offset);
                 resultDates.push_back(date);
             });
@@ -133,9 +129,9 @@ TEST_F(RelScanTest, ScanFwd) {
 }
 
 TEST_F(RelScanTest, ScanVertexProperties) {
-    auto tableID = catalog->getTableID(context->getTransaction(), "person");
+    auto entry = catalog->getTableCatalogEntry(context->getTransaction(), "person");
     std::vector<std::string> properties = {"fname", "height"};
-    auto scanState = graph->prepareVertexScan(tableID, properties);
+    auto scanState = graph->prepareVertexScan(entry, properties);
 
     const auto compare = [&](offset_t startNodeOffset, offset_t endNodeOffset,
                              std::vector<std::tuple<offset_t, std::string, float>> expectedNames) {

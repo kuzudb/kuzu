@@ -69,6 +69,10 @@ public:
     virtual std::string toCypher(main::ClientContext* /*clientContext*/) const { KU_UNREACHABLE; }
 
     template<class TARGET>
+    TARGET& cast() {
+        return common::ku_dynamic_cast<TARGET&>(*this);
+    }
+    template<class TARGET>
     const TARGET& constCast() const {
         return common::ku_dynamic_cast<const TARGET&>(*this);
     }

@@ -1,5 +1,6 @@
 #include "binder/expression/rel_expression.h"
 #include "planner/operator/persistent/logical_insert.h"
+#include "processor/expression_mapper.h"
 #include "processor/operator/persistent/insert.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"

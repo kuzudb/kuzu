@@ -13,9 +13,9 @@ public:
     //===--------------------------------------------------------------------===//
     FTSIndexCatalogEntry() = default;
     FTSIndexCatalogEntry(common::table_id_t tableID, std::string indexName, common::idx_t numDocs,
-        double avgDocLen, FTSConfig config)
-        : catalog::IndexCatalogEntry{tableID, std::move(indexName)}, numDocs{numDocs},
-          avgDocLen{avgDocLen}, config{std::move(config)} {}
+        double avgDocLen, std::vector<std::string> properties, FTSConfig config)
+        : catalog::IndexCatalogEntry{TYPE_NAME, tableID, std::move(indexName)}, numDocs{numDocs},
+          avgDocLen{avgDocLen}, properties{std::move(properties)}, config{std::move(config)} {}
 
     //===--------------------------------------------------------------------===//
     // getters & setters
@@ -28,10 +28,23 @@ public:
     // serialization & deserialization
     //===--------------------------------------------------------------------===//
     std::unique_ptr<catalog::IndexCatalogEntry> copy() const override;
+    std::string toCypher(main::ClientContext* /*clientContext*/) const override;
+
+    void serializeAuxInfo(common::Serializer& serializer) const override;
+
+    static std::unique_ptr<FTSIndexCatalogEntry> deserializeAuxInfo(
+        catalog::IndexCatalogEntry* indexCatalogEntry);
+
+private:
+    uint64_t getNumBytesForSerialization() const;
+
+public:
+    static constexpr char TYPE_NAME[] = "FTS";
 
 private:
     common::idx_t numDocs = 0;
     double avgDocLen = 0;
+    std::vector<std::string> properties;
     FTSConfig config;
 };
 

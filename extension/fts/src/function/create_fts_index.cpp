@@ -17,6 +17,7 @@
 #include "graph/graph_entry.h"
 #include "graph/on_disk_graph.h"
 #include "processor/execution_context.h"
+#include "storage/index/index_utils.h"
 
 namespace kuzu {
 namespace fts_extension {
@@ -55,25 +56,16 @@ static std::vector<std::string> bindProperties(const catalog::NodeTableCatalogEn
     return result;
 }
 
-static void validateIndexNotExist(const ClientContext& context, table_id_t tableID,
-    const std::string& indexName) {
-    if (context.getCatalog()->containsIndex(context.getTransaction(), tableID, indexName)) {
-        throw BinderException{stringFormat("Index: {} already exists in table: {}.", indexName,
-            context.getCatalog()->getTableName(context.getTransaction(), tableID))};
-    }
-}
-
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     const TableFuncBindInput* input) {
-    FTSUtils::validateAutoTrx(*context, CreateFTSFunction::name);
+    storage::IndexUtils::validateAutoTransaction(*context, CreateFTSFunction::name);
     auto indexName = input->getLiteralVal<std::string>(1);
-    auto& nodeTableEntry = FTSUtils::bindTable(input->getLiteralVal<std::string>(0), context,
-        indexName, FTSUtils::IndexOperation::CREATE);
-    auto properties = bindProperties(nodeTableEntry, input->getParam(2));
-    validateIndexNotExist(*context, nodeTableEntry.getTableID(), indexName);
+    auto nodeTableEntry = storage::IndexUtils::bindTable(*context,
+        input->getLiteralVal<std::string>(0), indexName, storage::IndexOperation::CREATE);
+    auto properties = bindProperties(*nodeTableEntry, input->getParam(2));
     auto createFTSConfig = FTSConfig{input->optionalParams};
-    return std::make_unique<CreateFTSBindData>(nodeTableEntry.getName(),
-        nodeTableEntry.getTableID(), indexName, std::move(properties), std::move(createFTSConfig));
+    return std::make_unique<CreateFTSBindData>(nodeTableEntry->getName(),
+        nodeTableEntry->getTableID(), indexName, std::move(properties), std::move(createFTSConfig));
 }
 
 static std::string createStopWordsTableIfNotExists(const ClientContext& context,
@@ -152,7 +144,8 @@ std::string createFTSIndexQuery(const ClientContext& context, const TableFuncBin
         FTSUtils::getAppearsInTableName(ftsBindData->tableID, ftsBindData->indexName);
     // Finally, create a terms table that records the documents in which the terms appear, along
     // with the frequency of each term.
-    query += stringFormat("CREATE REL TABLE `{}` (FROM `{}` TO `{}`, tf UINT64, MANY_MANY);",
+    query += stringFormat("CREATE REL TABLE `{}` (FROM `{}` TO `{}`, tf UINT64) WITH "
+                          "(storage_direction = 'fwd_only');",
         appearsInTableName, termsTableName, docsTableName);
     query += stringFormat("COPY `{}` FROM ("
                           "MATCH (b:`{}`) "
@@ -161,12 +154,6 @@ std::string createFTSIndexQuery(const ClientContext& context, const TableFuncBin
 
     // Drop the intermediate terms_in_doc table.
     query += stringFormat("DROP TABLE `{}`;", appearsInfoTableName);
-    // basic file operations
-
-    using namespace std;
-    ofstream myfile("/tmp/query.txt");
-    myfile << query << endl;
-    myfile.close();
     return query;
 }
 
@@ -210,7 +197,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& /*output
     auto docTableEntry = context.clientContext->getCatalog()->getTableCatalogEntry(
         context.clientContext->getTransaction(), docTableName);
     graph::GraphEntry entry{{docTableEntry}, {} /* relTableEntries */};
-    graph::OnDiskGraph graph(context.clientContext, entry);
+    graph::OnDiskGraph graph(context.clientContext, std::move(entry));
     auto sharedState = LenComputeSharedState{};
     LenCompute lenCompute{&sharedState};
     GDSUtils::runVertexCompute(&context, &graph, lenCompute,
@@ -219,7 +206,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& /*output
     auto avgDocLen = numDocs == 0 ? 0 : (double)sharedState.totalLen.load() / numDocs;
     context.clientContext->getCatalog()->createIndex(context.clientContext->getTransaction(),
         std::make_unique<FTSIndexCatalogEntry>(bindData.tableID, bindData.indexName, numDocs,
-            avgDocLen, bindData.ftsConfig));
+            avgDocLen, bindData.properties, bindData.ftsConfig));
     return 0;
 }
 

@@ -7,7 +7,6 @@
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
-#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -32,17 +31,23 @@ void PartitionerFunctions::partitionRelData(ValueVector* key, ValueVector* parti
     }
 }
 
-static partition_idx_t getNumPartitions(offset_t maxOffset) {
-    return (maxOffset + StorageConstants::NODE_GROUP_SIZE) / StorageConstants::NODE_GROUP_SIZE;
+static partition_idx_t getNumPartitions(offset_t numRows) {
+    return (numRows + StorageConstants::NODE_GROUP_SIZE - 1) / StorageConstants::NODE_GROUP_SIZE;
 }
 
-void PartitionerSharedState::initialize(const PartitionerDataInfo& dataInfo,
-    main::ClientContext* clientContext) {
-    maxNodeOffsets[0] = srcNodeTable->getNumTotalRows(clientContext->getTransaction());
-    maxNodeOffsets[1] = dstNodeTable->getNumTotalRows(clientContext->getTransaction());
-    numPartitions[0] = getNumPartitions(maxNodeOffsets[0]);
-    numPartitions[1] = getNumPartitions(maxNodeOffsets[1]);
-    Partitioner::initializePartitioningStates(dataInfo, partitioningBuffers, numPartitions);
+void PartitionerSharedState::initialize(const logical_type_vec_t& columnTypes,
+    idx_t numPartitioners, const main::ClientContext* clientContext) {
+    KU_ASSERT(numPartitioners >= 1 && numPartitioners <= DIRECTIONS);
+    numNodes[0] = srcNodeTable->getNumTotalRows(clientContext->getTransaction());
+    if (numPartitioners > 1) {
+        numNodes[1] = dstNodeTable->getNumTotalRows(clientContext->getTransaction());
+    }
+    numPartitions[0] = getNumPartitions(numNodes[0]);
+    if (numPartitioners > 1) {
+        numPartitions[1] = getNumPartitions(numNodes[1]);
+    }
+    Partitioner::initializePartitioningStates(columnTypes, partitioningBuffers, numPartitions,
+        numPartitioners);
 }
 
 partition_idx_t PartitionerSharedState::getNextPartition(idx_t partitioningIdx,
@@ -90,13 +95,13 @@ Partitioner::Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescripto
 }
 
 void Partitioner::initGlobalStateInternal(ExecutionContext* context) {
-    sharedState->initialize(dataInfo, context->clientContext);
+    sharedState->initialize(dataInfo.columnTypes, info.infos.size(), context->clientContext);
 }
 
 void Partitioner::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     localState = std::make_unique<PartitionerLocalState>();
-    initializePartitioningStates(dataInfo, localState->partitioningBuffers,
-        sharedState->numPartitions);
+    initializePartitioningStates(dataInfo.columnTypes, localState->partitioningBuffers,
+        sharedState->numPartitions, info.infos.size());
     for (const auto& evaluator : dataInfo.columnEvaluators) {
         evaluator->init(*resultSet, context->clientContext);
     }
@@ -112,18 +117,18 @@ DataChunk Partitioner::constructDataChunk(const std::shared_ptr<DataChunkState>&
     return dataChunk;
 }
 
-void Partitioner::initializePartitioningStates(const PartitionerDataInfo& dataInfo,
+void Partitioner::initializePartitioningStates(const logical_type_vec_t& columnTypes,
     std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers,
-    const std::array<partition_idx_t, PartitionerSharedState::DIRECTIONS>& numPartitions) {
-    partitioningBuffers.resize(numPartitions.size());
-    for (auto partitioningIdx = 0u; partitioningIdx < numPartitions.size(); partitioningIdx++) {
+    const std::array<partition_idx_t, PartitionerSharedState::DIRECTIONS>& numPartitions,
+    idx_t numPartitioners) {
+    partitioningBuffers.resize(numPartitioners);
+    for (auto partitioningIdx = 0u; partitioningIdx < numPartitioners; partitioningIdx++) {
         const auto numPartition = numPartitions[partitioningIdx];
         auto partitioningBuffer = std::make_unique<PartitioningBuffer>();
         partitioningBuffer->partitions.reserve(numPartition);
         for (auto i = 0u; i < numPartition; i++) {
             partitioningBuffer->partitions.push_back(
-                std::make_unique<InMemChunkedNodeGroupCollection>(
-                    LogicalType::copy(dataInfo.columnTypes)));
+                std::make_unique<InMemChunkedNodeGroupCollection>(LogicalType::copy(columnTypes)));
         }
         partitioningBuffers[partitioningIdx] = std::move(partitioningBuffer);
     }

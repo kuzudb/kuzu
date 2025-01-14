@@ -8,6 +8,7 @@
 #include "common/string_utils.h"
 #include "common/task_system/progress_bar.h"
 #include "extension/extension.h"
+#include "extension/extension_manager.h"
 #include "graph/graph_entry.h"
 #include "main/attached_database.h"
 #include "main/database.h"
@@ -119,16 +120,11 @@ Value ClientContext::getCurrentSetting(const std::string& optionName) const {
         return extensionOptionValues.at(lowerCaseOptionName);
     }
     // Lastly, find the default value in db clientConfig.
-    const auto defaultOption =
-        localDatabase->extensionOptions->getExtensionOption(lowerCaseOptionName);
+    const auto defaultOption = getExtensionOption(lowerCaseOptionName);
     if (defaultOption != nullptr) {
         return defaultOption->defaultValue;
     }
     throw RuntimeException{"Invalid option name: " + lowerCaseOptionName + "."};
-}
-
-bool ClientContext::isOptionSet(const std::string& optionName) const {
-    return extensionOptionValues.contains(StringUtils::getLower(optionName));
 }
 
 Transaction* ClientContext::getTransaction() const {
@@ -164,8 +160,8 @@ void ClientContext::setExtensionOption(std::string name, Value value) {
     extensionOptionValues.insert_or_assign(name, std::move(value));
 }
 
-extension::ExtensionOptions* ClientContext::getExtensionOptions() const {
-    return localDatabase->extensionOptions.get();
+const main::ExtensionOption* ClientContext::getExtensionOption(std::string optionName) const {
+    return localDatabase->extensionManager->getExtensionOption(optionName);
 }
 
 std::string ClientContext::getExtensionDir() const {
@@ -195,6 +191,10 @@ storage::StorageManager* ClientContext::getStorageManager() const {
 
 storage::MemoryManager* ClientContext::getMemoryManager() const {
     return localDatabase->memoryManager.get();
+}
+
+extension::ExtensionManager* ClientContext::getExtensionManager() const {
+    return localDatabase->extensionManager.get();
 }
 
 storage::WAL* ClientContext::getWAL() const {
@@ -341,6 +341,8 @@ std::unique_ptr<QueryResult> ClientContext::queryNoLock(std::string_view query,
         auto preparedStatement = prepareNoLock(statement, false /*shouldCommitNewTransaction*/);
         auto currentQueryResult = executeNoLock(preparedStatement.get(), queryID);
         if (statement->isInternal()) {
+            // The result of internal statements should be invisible to end users. Skip chaining the
+            // result of internal statements to the final result to end users.
             continue;
         }
         if (!lastResult) {
@@ -392,18 +394,25 @@ std::vector<std::shared_ptr<Statement>> ClientContext::parseQuery(std::string_vi
         throw ConnectionException("Query is empty.");
     }
     std::vector<std::shared_ptr<Statement>> statements;
-    const auto parsedStatements = Parser::parseQuery(query);
+    auto parserTimer = TimeMetric(true /*enable*/);
+    parserTimer.start();
+    auto parsedStatements = Parser::parseQuery(query);
+    parserTimer.stop();
+    const auto avgParsingTime = parserTimer.getElapsedTimeMS() / parsedStatements.size() / 1.0;
     StandaloneCallRewriter standaloneCallAnalyzer{this};
     for (auto i = 0u; i < parsedStatements.size(); i++) {
         auto rewriteQuery = standaloneCallAnalyzer.getRewriteQuery(*parsedStatements[i]);
         if (!rewriteQuery.empty()) {
+            parserTimer.start();
             auto rewrittenStatements = Parser::parseQuery(rewriteQuery);
+            parserTimer.stop();
             for (auto& statement : rewrittenStatements) {
                 statement->setToInternal();
                 statements.push_back(statement);
             }
         }
-        statements.push_back(parsedStatements[i]);
+        parsedStatements[i]->setParsingTime(avgParsingTime + parserTimer.getElapsedTimeMS());
+        statements.push_back(std::move(parsedStatements[i]));
     }
     return statements;
 }
@@ -419,7 +428,7 @@ void ClientContext::validateTransaction(const PreparedStatement& preparedStateme
     }
     if (preparedStatement.parsedStatement->requireTransaction() &&
         transactionContext->hasActiveTransaction()) {
-        // KU_ASSERT(!transactionContext->isAutoTransaction());
+        KU_ASSERT(!transactionContext->isAutoTransaction());
         transactionContext->validateManualTransaction(preparedStatement.readOnly);
     }
 }
@@ -428,8 +437,8 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
     std::shared_ptr<Statement> parsedStatement, bool shouldCommitNewTransaction,
     std::optional<std::unordered_map<std::string, std::shared_ptr<Value>>> inputParams) {
     auto preparedStatement = std::make_unique<PreparedStatement>();
-    auto compilingTimer = TimeMetric(true /* enable */);
-    compilingTimer.start();
+    auto prepareTimer = TimeMetric(true /* enable */);
+    prepareTimer.start();
     try {
         preparedStatement->preparedSummary.statementType = parsedStatement->getStatementType();
         preparedStatement->readOnly = StatementReadWriteAnalyzer().isReadOnly(*parsedStatement);
@@ -462,8 +471,9 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
         preparedStatement->success = false;
         preparedStatement->errMsg = exception.what();
     }
-    compilingTimer.stop();
-    preparedStatement->preparedSummary.compilingTime = compilingTimer.getElapsedTimeMS();
+    prepareTimer.stop();
+    preparedStatement->preparedSummary.compilingTime =
+        preparedStatement->parsedStatement->getParsingTime() + prepareTimer.getElapsedTimeMS();
     return preparedStatement;
 }
 

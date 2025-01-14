@@ -124,6 +124,7 @@ public:
         std::unique_ptr<IndexCatalogEntry> indexCatalogEntry);
     IndexCatalogEntry* getIndex(const transaction::Transaction*, common::table_id_t tableID,
         std::string indexName) const;
+    CatalogSet* getIndexes() const;
     bool containsIndex(const transaction::Transaction* transaction, common::table_id_t tableID,
         std::string indexName) const;
     void dropAllIndexes(transaction::Transaction* transaction, common::table_id_t tableID);

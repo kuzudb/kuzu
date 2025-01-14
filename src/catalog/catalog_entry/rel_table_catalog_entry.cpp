@@ -25,6 +25,20 @@ RelMultiplicity RelTableCatalogEntry::getMultiplicity(RelDataDirection direction
     return direction == RelDataDirection::FWD ? dstMultiplicity : srcMultiplicity;
 }
 
+std::vector<common::RelDataDirection> RelTableCatalogEntry::getRelDataDirections() const {
+    switch (storageDirection) {
+    case common::RelStorageDirection::FWD_ONLY: {
+        return {RelDataDirection::FWD};
+    }
+    case common::RelStorageDirection::BOTH: {
+        return {RelDataDirection::FWD, RelDataDirection::BWD};
+    }
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+}
+
 table_id_t RelTableCatalogEntry::getBoundTableID(RelDataDirection relDirection) const {
     return relDirection == RelDataDirection::FWD ? srcTableID : dstTableID;
 }
@@ -39,6 +53,8 @@ void RelTableCatalogEntry::serialize(Serializer& serializer) const {
     serializer.write(srcMultiplicity);
     serializer.writeDebuggingInfo("dstMultiplicity");
     serializer.write(dstMultiplicity);
+    serializer.writeDebuggingInfo("storageDirection");
+    serializer.write(storageDirection);
     serializer.writeDebuggingInfo("srcTableID");
     serializer.write(srcTableID);
     serializer.writeDebuggingInfo("dstTableID");
@@ -50,12 +66,15 @@ std::unique_ptr<RelTableCatalogEntry> RelTableCatalogEntry::deserialize(
     std::string debuggingInfo;
     RelMultiplicity srcMultiplicity{};
     RelMultiplicity dstMultiplicity{};
+    RelStorageDirection storageDirection{};
     table_id_t srcTableID = INVALID_TABLE_ID;
     table_id_t dstTableID = INVALID_TABLE_ID;
     deserializer.validateDebuggingInfo(debuggingInfo, "srcMultiplicity");
     deserializer.deserializeValue(srcMultiplicity);
     deserializer.validateDebuggingInfo(debuggingInfo, "dstMultiplicity");
     deserializer.deserializeValue(dstMultiplicity);
+    deserializer.validateDebuggingInfo(debuggingInfo, "storageDirection");
+    deserializer.deserializeValue(storageDirection);
     deserializer.validateDebuggingInfo(debuggingInfo, "srcTableID");
     deserializer.deserializeValue(srcTableID);
     deserializer.validateDebuggingInfo(debuggingInfo, "dstTableID");
@@ -63,6 +82,7 @@ std::unique_ptr<RelTableCatalogEntry> RelTableCatalogEntry::deserialize(
     auto relTableEntry = std::make_unique<RelTableCatalogEntry>();
     relTableEntry->srcMultiplicity = srcMultiplicity;
     relTableEntry->dstMultiplicity = dstMultiplicity;
+    relTableEntry->storageDirection = storageDirection;
     relTableEntry->srcTableID = srcTableID;
     relTableEntry->dstTableID = dstTableID;
     return relTableEntry;
@@ -72,6 +92,7 @@ std::unique_ptr<TableCatalogEntry> RelTableCatalogEntry::copy() const {
     auto other = std::make_unique<RelTableCatalogEntry>();
     other->srcMultiplicity = srcMultiplicity;
     other->dstMultiplicity = dstMultiplicity;
+    other->storageDirection = storageDirection;
     other->srcTableID = srcTableID;
     other->dstTableID = dstTableID;
     other->copyFrom(*this);
@@ -91,10 +112,15 @@ std::string RelTableCatalogEntry::toCypher(main::ClientContext* clientContext) c
     return ss.str();
 }
 
+common::RelStorageDirection RelTableCatalogEntry::getStorageDirection() const {
+    return storageDirection;
+}
+
 std::unique_ptr<BoundExtraCreateCatalogEntryInfo> RelTableCatalogEntry::getBoundExtraCreateInfo(
     transaction::Transaction*) const {
     return std::make_unique<binder::BoundExtraCreateRelTableInfo>(srcMultiplicity, dstMultiplicity,
-        srcTableID, dstTableID, copyVector(propertyCollection.getDefinitions()));
+        getStorageDirection(), srcTableID, dstTableID,
+        copyVector(propertyCollection.getDefinitions()));
 }
 
 } // namespace catalog

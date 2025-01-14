@@ -79,11 +79,11 @@ RelTableData::RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* sh
 void RelTableData::initCSRHeaderColumns() {
     // No NULL values is allowed for the csr length and offset column.
     auto csrOffsetColumnName = StorageUtils::getColumnName("", StorageUtils::ColumnType::CSR_OFFSET,
-        RelDataDirectionUtils::relDirectionToString(direction));
+        RelDirectionUtils::relDirectionToString(direction));
     csrHeaderColumns.offset = std::make_unique<Column>(csrOffsetColumnName, LogicalType::UINT64(),
         dataFH, memoryManager, shadowFile, enableCompression, false /* requireNUllColumn */);
     auto csrLengthColumnName = StorageUtils::getColumnName("", StorageUtils::ColumnType::CSR_LENGTH,
-        RelDataDirectionUtils::relDirectionToString(direction));
+        RelDirectionUtils::relDirectionToString(direction));
     csrHeaderColumns.length = std::make_unique<Column>(csrLengthColumnName, LogicalType::UINT64(),
         dataFH, memoryManager, shadowFile, enableCompression, false /* requireNUllColumn */);
 }
@@ -92,16 +92,15 @@ void RelTableData::initPropertyColumns(const TableCatalogEntry* tableEntry) {
     const auto maxColumnID = tableEntry->getMaxColumnID();
     columns.resize(maxColumnID + 1);
     auto nbrIDColName = StorageUtils::getColumnName("NBR_ID", StorageUtils::ColumnType::DEFAULT,
-        RelDataDirectionUtils::relDirectionToString(direction));
+        RelDirectionUtils::relDirectionToString(direction));
     auto nbrIDColumn = std::make_unique<InternalIDColumn>(nbrIDColName, dataFH, memoryManager,
         shadowFile, enableCompression);
     columns[NBR_ID_COLUMN_ID] = std::move(nbrIDColumn);
     for (auto i = 0u; i < tableEntry->getNumProperties(); i++) {
         auto& property = tableEntry->getProperty(i);
         const auto columnID = tableEntry->getColumnID(property.getName());
-        const auto colName =
-            StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT,
-                RelDataDirectionUtils::relDirectionToString(direction));
+        const auto colName = StorageUtils::getColumnName(property.getName(),
+            StorageUtils::ColumnType::DEFAULT, RelDirectionUtils::relDirectionToString(direction));
         columns[columnID] = ColumnFactory::createColumn(colName, property.getType().copy(), dataFH,
             memoryManager, shadowFile, enableCompression);
     }

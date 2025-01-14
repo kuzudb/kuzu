@@ -18,6 +18,9 @@ static std::string getQueryFromFile(common::VirtualFileSystem* vfs, const std::s
     const std::string fileName, main::ClientContext* context) {
     auto filePath = vfs->joinPath(boundFilePath, fileName);
     if (!vfs->fileOrPathExists(filePath, context)) {
+        if (fileName == PortDBConstants::INDEX_FILE_NAME) {
+            return "";
+        }
         throw BinderException(stringFormat("File {} does not exist.", filePath));
     }
     auto fileInfo = vfs->openFile(filePath, FileFlags::READ_ONLY
@@ -68,10 +71,10 @@ std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement
     }
     std::string finalQueryStatements;
     finalQueryStatements +=
-        getQueryFromFile(fs, boundFilePath, ImportDBConstants::SCHEMA_NAME, clientContext);
+        getQueryFromFile(fs, boundFilePath, PortDBConstants::SCHEMA_FILE_NAME, clientContext);
     // replace the path in copy from statement with the bound path
     auto copyQuery =
-        getQueryFromFile(fs, boundFilePath, ImportDBConstants::COPY_NAME, clientContext);
+        getQueryFromFile(fs, boundFilePath, PortDBConstants::COPY_FILE_NAME, clientContext);
     if (!copyQuery.empty()) {
         auto parsedStatements = Parser::parseQuery(copyQuery);
         for (auto& parsedStatement : parsedStatements) {
@@ -97,7 +100,8 @@ std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement
             finalQueryStatements += query;
         }
     }
-    return std::make_unique<BoundImportDatabase>(boundFilePath, finalQueryStatements);
+    return std::make_unique<BoundImportDatabase>(boundFilePath, finalQueryStatements,
+        getQueryFromFile(fs, boundFilePath, PortDBConstants::INDEX_FILE_NAME, clientContext));
 }
 
 } // namespace binder

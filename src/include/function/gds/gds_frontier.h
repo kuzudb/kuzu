@@ -8,27 +8,28 @@
 #include <span>
 
 namespace kuzu {
+
+namespace processor {
+struct ExecutionContext;
+}
+
 namespace function {
 
 class FrontierMorsel {
 public:
     FrontierMorsel() = default;
 
-    common::table_id_t getTableID() const { return tableID; }
     common::offset_t getBeginOffset() const { return beginOffset; }
-    common::offset_t getEndOffset() const { return endOffsetExclusive; }
+    common::offset_t getEndOffset() const { return endOffset; }
 
-    void init(common::table_id_t _tableID, common::offset_t _beginOffset,
-        common::offset_t _endOffsetExclusive) {
-        tableID = _tableID;
-        beginOffset = _beginOffset;
-        endOffsetExclusive = _endOffsetExclusive;
+    void init(common::offset_t beginOffset_, common::offset_t endOffset_) {
+        beginOffset = beginOffset_;
+        endOffset = endOffset_;
     }
 
 private:
-    common::table_id_t tableID = common::INVALID_TABLE_ID;
     common::offset_t beginOffset = common::INVALID_OFFSET;
-    common::offset_t endOffsetExclusive = common::INVALID_OFFSET;
+    common::offset_t endOffset = common::INVALID_OFFSET;
 };
 
 class KUZU_API FrontierMorselDispatcher {
@@ -41,14 +42,11 @@ class KUZU_API FrontierMorselDispatcher {
 public:
     explicit FrontierMorselDispatcher(uint64_t maxThreads);
 
-    void init(common::table_id_t _tableID, common::offset_t _maxOffset);
+    void init(common::offset_t _maxOffset);
 
     bool getNextRangeMorsel(FrontierMorsel& frontierMorsel);
 
-    common::table_id_t getTableID() const { return tableID; }
-
 private:
-    common::table_id_t tableID;
     common::offset_t maxOffset;
     std::atomic<common::offset_t> nextOffset;
     uint64_t maxThreads;
@@ -189,6 +187,9 @@ public:
     void pinCurFrontierTableID(common::table_id_t tableID);
     void pinNextFrontierTableID(common::table_id_t tableID);
 
+    static std::shared_ptr<PathLengths> getFrontier(processor::ExecutionContext* context,
+        graph::Graph* graph, uint16_t initialValue);
+
 private:
     uint16_t getCurIter() { return curIter.load(std::memory_order_relaxed); }
 
@@ -249,13 +250,9 @@ private:
 class KUZU_API FrontierPair {
 public:
     FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-        std::shared_ptr<GDSFrontier> nextFrontier, uint64_t maxThreads);
+        std::shared_ptr<GDSFrontier> nextFrontier);
 
     virtual ~FrontierPair() = default;
-
-    bool getNextRangeMorsel(FrontierMorsel& morsel) {
-        return morselDispatcher.getNextRangeMorsel(morsel);
-    }
 
     void setActiveNodesForNextIter() { hasActiveNodesForNextIter_.store(true); }
 
@@ -281,6 +278,7 @@ public:
     SparseFrontier& getNextSparseFrontier() const { return *nextSparseFrontier; }
     SparseFrontier& getVertexComputeCandidates() const { return *vertexComputeCandidates; }
 
+    bool hasActiveNodes() { return hasActiveNodesForNextIter_.load(std::memory_order_relaxed); }
     bool continueNextIter(uint16_t maxIter);
 
     void addNodeToNextDenseFrontier(common::nodeID_t nodeID);
@@ -311,15 +309,13 @@ protected:
     std::shared_ptr<SparseFrontier> curSparseFrontier;
     std::shared_ptr<SparseFrontier> nextSparseFrontier;
     std::shared_ptr<SparseFrontier> vertexComputeCandidates;
-
-    FrontierMorselDispatcher morselDispatcher;
 };
 
 class SinglePathLengthsFrontierPair : public FrontierPair {
 public:
-    SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths, uint64_t numThreads)
-        : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */, numThreads),
-          pathLengths{pathLengths} {}
+    explicit SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths)
+        : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */),
+          pathLengths{std::move(pathLengths)} {}
 
     PathLengths* getPathLengths() const { return pathLengths.get(); }
 
@@ -343,8 +339,8 @@ private:
 class KUZU_API DoublePathLengthsFrontierPair : public FrontierPair {
 public:
     DoublePathLengthsFrontierPair(std::shared_ptr<PathLengths> curFrontier,
-        std::shared_ptr<PathLengths> nextFrontier, uint64_t numThreads)
-        : FrontierPair{curFrontier, nextFrontier, numThreads} {}
+        std::shared_ptr<PathLengths> nextFrontier)
+        : FrontierPair{curFrontier, nextFrontier} {}
 
     void initRJFromSource(common::nodeID_t source) override;
 
