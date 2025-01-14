@@ -1,5 +1,5 @@
 -DATASET CSV rel-update-tests
--ENABLE_FWD_ONLY
+-TEST_FWD_ONLY_REL
 --
 -DEFINE_STATEMENT_BLOCK UPDATE_MANY_TO_ONE_REL_TABLE [
 -STATEMENT MATCH (p1:person)-[e:teaches]->(p2:person) WHERE p1.ID = 21 AND p2.ID = 2 SET e.length=null
