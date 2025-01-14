@@ -5,6 +5,7 @@ const Database = require("./database");
 const Connection = require("./connection");
 const PreparedStatement = require("./prepared_statement");
 const QueryResult = require("./query_result");
+const FS = require("./fs");
 
 
 module.exports = {
@@ -25,4 +26,5 @@ module.exports = {
   Connection,
   PreparedStatement,
   QueryResult,
+  FS,
 }

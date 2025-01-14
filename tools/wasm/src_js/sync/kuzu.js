@@ -24,6 +24,11 @@ class kuzu {
     this.checkInit();
     return this._kuzu.getStorageVersion();
   }
+
+  getFS() {
+    this.checkInit();
+    return this._kuzu.FS;
+  }
 }
 
 const kuzuInstance = new kuzu();

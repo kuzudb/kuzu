@@ -1,8 +1,9 @@
 "use strict";
 
-const { expose, isWorkerRuntime } = require('threads/worker');
+const { expose, isWorkerRuntime, Transfer } = require('threads/worker');
 const { v4: uuidv4 } = require('uuid');
 const objectsStore = {};
+let FS = null;
 const kuzuSync = require('./sync');
 
 if (!isWorkerRuntime) {
@@ -13,6 +14,7 @@ else {
     async init() {
       try {
         await kuzuSync.init();
+        FS = kuzuSync.getFS();
         return { isSuccess: true };
       }
       catch (e) {
@@ -451,6 +453,49 @@ else {
         return { isSuccess: true, result: objectsStore[id].getAllObjects() };
       } catch (e) {
         return { error: e.message, isSuccess: false, };
+      }
+    },
+
+    FSReadFile(path) {
+      try {
+        const result = FS.readFile(path);
+        return Transfer(result.buffer, [result.buffer]);
+      }
+      catch (e) {
+        // Use `isFail` instead of `isSuccess` to work with Transfer
+        // because the return value in the normal case is an ArrayBuffer
+        // instead of an object.
+        return { error: e.message, isFail: true }
+      }
+    },
+
+    FSWriteFile(path, data) {
+      try {
+        FS.writeFile(path, data);
+        return { isSuccess: true };
+      }
+      catch (e) {
+        return { error: e.message, isSuccess: false }
+      }
+    },
+
+    FSMkdir(path) {
+      try {
+        FS.mkdir(path);
+        return { isSuccess: true };
+      }
+      catch (e) {
+        return { error: e.message, isSuccess: false }
+      }
+    },
+
+    FSUnlink(path) {
+      try {
+        FS.unlink(path);
+        return { isSuccess: true };
+      }
+      catch (e) {
+        return { error: e.message, isSuccess: false }
       }
     },
   });

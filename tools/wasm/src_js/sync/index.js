@@ -31,6 +31,14 @@ module.exports = {
     return KuzuWasm.getStorageVersion();
   },
   
+  /**
+   * Get the standard emscripten filesystem module (FS).
+   * @returns {Object} the standard emscripten filesystem module (FS).
+   */
+  getFS: () => {
+    return KuzuWasm.getFS();
+  },
+
   Database,
   Connection,
   PreparedStatement,
