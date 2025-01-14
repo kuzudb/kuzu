@@ -10,7 +10,7 @@ class BoundProjectionBody {
 
 public:
     explicit BoundProjectionBody(bool distinct)
-        : distinct{distinct}, skipNumber{INVALID_NUMBER}, limitNumber{INVALID_NUMBER} {}
+        : distinct{distinct}, skipNumber{nullptr}, limitNumber{nullptr} {}
     EXPLICIT_COPY_DEFAULT_MOVE(BoundProjectionBody);
 
     bool isDistinct() const { return distinct; }
@@ -39,13 +39,13 @@ public:
     const expression_vector& getOrderByExpressions() const { return orderByExpressions; }
     const std::vector<bool>& getSortingOrders() const { return isAscOrders; }
 
-    void setSkipNumber(uint64_t number) { skipNumber = number; }
-    bool hasSkip() const { return skipNumber != INVALID_NUMBER; }
-    uint64_t getSkipNumber() const { return skipNumber; }
+    void setSkipNumber(std::shared_ptr<Expression> number) { skipNumber = number; }
+    bool hasSkip() const { return skipNumber != nullptr; }
+    std::shared_ptr<Expression> getSkipNumber() const { return skipNumber; }
 
-    void setLimitNumber(uint64_t number) { limitNumber = number; }
-    bool hasLimit() const { return limitNumber != INVALID_NUMBER; }
-    uint64_t getLimitNumber() const { return limitNumber; }
+    void setLimitNumber(std::shared_ptr<Expression> number) { limitNumber = number; }
+    bool hasLimit() const { return limitNumber != nullptr; }
+    std::shared_ptr<Expression> getLimitNumber() const { return limitNumber; }
 
     bool hasSkipOrLimit() const { return hasSkip() || hasLimit(); }
 
@@ -64,8 +64,8 @@ private:
     expression_vector aggregateExpressions;
     expression_vector orderByExpressions;
     std::vector<bool> isAscOrders;
-    uint64_t skipNumber;
-    uint64_t limitNumber;
+    std::shared_ptr<Expression> skipNumber;
+    std::shared_ptr<Expression> limitNumber;
 };
 
 } // namespace binder

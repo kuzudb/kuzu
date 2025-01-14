@@ -21,11 +21,11 @@ void LimitPushDownOptimizer::visitOperator(planner::LogicalOperator* op) {
     switch (op->getOperatorType()) {
     case LogicalOperatorType::LIMIT: {
         auto& limit = op->constCast<LogicalLimit>();
-        if (limit.hasSkipNum()) {
-            skipNumber = limit.getSkipNum();
+        if (limit.hasSkipNum() && limit.canEvaluateSkipNum()) {
+            skipNumber = limit.evaluateSkipNum();
         }
-        if (limit.hasLimitNum()) {
-            limitNumber = limit.getLimitNum();
+        if (limit.hasLimitNum() && limit.canEvaluateLimitNum()) {
+            limitNumber = limit.evaluateLimitNum();
         }
         visitOperator(limit.getChild(0).get());
         return;

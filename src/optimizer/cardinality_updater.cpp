@@ -122,7 +122,9 @@ void CardinalityUpdater::visitFilter(planner::LogicalOperator* op) {
 
 void CardinalityUpdater::visitLimit(planner::LogicalOperator* op) {
     auto& limit = op->cast<planner::LogicalLimit&>();
-    limit.setCardinality(limit.getLimitNum());
+    if (limit.canEvaluateLimitNum()) {
+        limit.setCardinality(limit.evaluateLimitNum());
+    }
 }
 
 void CardinalityUpdater::visitAggregate(planner::LogicalOperator* op) {

@@ -155,6 +155,72 @@ TEST_F(ApiTest, Prepare) {
         "Connection Exception: We do not support prepare multiple statements.");
 }
 
+TEST_F(ApiTest, PrepareWithLimit) {
+    auto prepared = conn->prepare("MATCH (p:person) RETURN p.ID limit $lm");
+    auto result = conn->execute(prepared.get(), std::make_pair(std::string{"lm"}, 3));
+    ASSERT_TRUE(result->isSuccess());
+    std::vector<std::string> expectedResult = {"0", "2", "3"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), expectedResult);
+    result = conn->execute(prepared.get(), std::make_pair(std::string{"lm"}, 5));
+    ASSERT_TRUE(result->isSuccess());
+    expectedResult = {"0", "2", "3", "5", "7"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), expectedResult);
+}
+
+TEST_F(ApiTest, PrepareWithSkip) {
+    auto prepared = conn->prepare("MATCH (p:person) RETURN p.ID skip $sp");
+    auto result = conn->execute(prepared.get(), std::make_pair(std::string{"sp"}, 2));
+    ASSERT_TRUE(result->isSuccess());
+    std::vector<std::string> expectedResult = {"10", "3", "5", "7", "8", "9"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), expectedResult);
+    result = conn->execute(prepared.get(), std::make_pair(std::string{"sp"}, 4));
+    ASSERT_TRUE(result->isSuccess());
+    expectedResult = {"10", "7", "8", "9"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), expectedResult);
+}
+
+TEST_F(ApiTest, PrepareWithSkipAndLimit) {
+    auto prepared = conn->prepare("MATCH (p:person) RETURN p.ID skip $sp limit $lm");
+    auto result = conn->execute(prepared.get(), std::make_pair(std::string{"sp"}, 2),
+        std::make_pair(std::string{"lm"}, 5));
+    ASSERT_TRUE(result->isSuccess());
+    std::vector<std::string> expectedResult = {"3", "5", "7", "8", "9"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), expectedResult);
+    result = conn->execute(prepared.get(), std::make_pair(std::string{"sp"}, 4),
+        std::make_pair(std::string{"lm"}, 2));
+    ASSERT_TRUE(result->isSuccess());
+    expectedResult = {"7", "8"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), expectedResult);
+}
+
+TEST_F(ApiTest, PrepareWithSkipLimitError) {
+    auto prepared = conn->prepare("MATCH (p:person) RETURN p.ID skip $sp");
+    auto result = conn->execute(prepared.get());
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_EQ(result->toString(),
+        "Runtime exception: The number of rows to skip is a parameter. Please give a "
+        "valid skip number.");
+
+    prepared = conn->prepare("MATCH (p:person) RETURN p.ID limit $sp");
+    result = conn->execute(prepared.get());
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_EQ(result->toString(),
+        "Runtime exception: The number of rows to limit is a parameter. Please give a "
+        "valid limit number.");
+
+    prepared = conn->prepare("MATCH (p:person) RETURN p.ID skip $s limit $sp");
+    result = conn->execute(prepared.get(), std::make_pair(std::string("s"), 3));
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_EQ(result->toString(), "Runtime exception: The number of rows to limit is a parameter. "
+                                  "Please give a valid limit number.");
+
+    prepared = conn->prepare("MATCH (p:person) RETURN p.ID skip $s");
+    result = conn->execute(prepared.get(), std::make_pair(std::string("s"), 3.4));
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_EQ(result->toString(),
+        "Runtime exception: The number of rows to skip/limit must be a non-negative integer.");
+}
+
 TEST_F(ApiTest, CreateTableAfterClosingDatabase) {
     database.reset();
     database = std::make_unique<Database>(databasePath, *systemConfig);

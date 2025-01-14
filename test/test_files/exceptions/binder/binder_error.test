@@ -369,12 +369,12 @@ Binder exception: Table person1 does not exist.
 -LOG InvalidLimitNumberType
 -STATEMENT MATCH (a:person) RETURN a.age LIMIT "abc"
 ---- error
-Binder exception: The number of rows to skip/limit must be a non-negative integer.
+Runtime exception: The number of rows to skip/limit must be a non-negative integer.
 
 -LOG NegativeLimitNumber
 -STATEMENT MATCH (a:person) RETURN a.age LIMIT -1
 ---- error
-Binder exception: The number of rows to skip/limit must be a non-negative integer.
+Runtime exception: The number of rows to skip/limit must be a non-negative integer.
 
 -LOG DuplicateVariableName
 -STATEMENT MATCH (a:person) UNWIND [1,2] AS a RETURN COUNT(*)

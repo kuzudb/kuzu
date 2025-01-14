@@ -6,6 +6,7 @@
 #include "binder/expression/node_rel_expression.h"
 #include "binder/expression/parameter_expression.h"
 #include "common/exception/binder.h"
+#include "common/type_utils.h"
 #include "common/types/value/nested.h"
 
 using namespace kuzu::common;
@@ -409,6 +410,8 @@ bool ExpressionUtil::canCastStatically(const Expression& expr, const LogicalType
         return compatible(expr.getDataType(), targetType);
     }
 }
+
+
 
 } // namespace binder
 } // namespace kuzu

@@ -224,7 +224,7 @@ public:
 
     expression_vector bindOrderByExpressions(
         const std::vector<std::unique_ptr<parser::ParsedExpression>>& parsedExprs);
-    uint64_t bindSkipLimitExpression(const parser::ParsedExpression& expression);
+    std::shared_ptr<Expression> bindSkipLimitExpression(const parser::ParsedExpression& expression);
 
     /*** bind graph pattern ***/
     BoundGraphPattern bindGraphPattern(const std::vector<parser::PatternElement>& graphPattern);

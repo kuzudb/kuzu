@@ -128,7 +128,7 @@ Craig
 ---- ok
 -STATEMENT MATCH (n) RETURN n LIMIT n.count;
 ---- error
-Binder exception: The number of rows to skip/limit must be a non-negative integer.
+Binder exception: The number of rows to skip/limit must be a parameter/literal expression.
 
 # Negative parameter for LIMIT should fail
 -CASE Scenario10
@@ -142,7 +142,7 @@ Binder exception: The number of rows to skip/limit must be a non-negative intege
            RETURN p.name AS name
            LIMIT $_limit;
 ---- error
-Binder exception: The number of rows to skip/limit must be a non-negative integer.
+Runtime exception: The number of rows to skip/limit must be a non-negative integer.
 
 # Negative parameter for LIMIT with ORDER BY should fail
 -CASE Scenario11
@@ -156,7 +156,7 @@ Binder exception: The number of rows to skip/limit must be a non-negative intege
            RETURN p.name AS name
            ORDER BY name LIMIT $_limit;
 ---- error
-Binder exception: The number of rows to skip/limit must be a non-negative integer.
+Runtime exception: The number of rows to skip/limit must be a non-negative integer.
 
 # Fail when using negative value in LIMIT 1
 -CASE Scenario12
@@ -166,7 +166,7 @@ Binder exception: The number of rows to skip/limit must be a non-negative intege
            RETURN n
              LIMIT -1;
 ---- error
-Binder exception: The number of rows to skip/limit must be a non-negative integer.
+Runtime exception: The number of rows to skip/limit must be a non-negative integer.
 
 # Fail when using negative value in LIMIT 2
 -CASE Scenario13
@@ -179,7 +179,7 @@ Binder exception: The number of rows to skip/limit must be a non-negative intege
            RETURN p.name AS name
            LIMIT -1;
 ---- error
-Binder exception: The number of rows to skip/limit must be a non-negative integer.
+Runtime exception: The number of rows to skip/limit must be a non-negative integer.
 
 # Floating point parameter for LIMIT should fail
 -CASE Scenario14
@@ -193,7 +193,7 @@ Binder exception: The number of rows to skip/limit must be a non-negative intege
            RETURN p.name AS name
            LIMIT $_limit;
 ---- error
-Binder exception: The number of rows to skip/limit must be a non-negative integer.
+Runtime exception: The number of rows to skip/limit must be a non-negative integer.
 
 # Floating point parameter for LIMIT with ORDER BY should fail
 -CASE Scenario15
@@ -207,7 +207,7 @@ Binder exception: The number of rows to skip/limit must be a non-negative intege
            RETURN p.name AS name
            ORDER BY name LIMIT $_limit;
 ---- error
-Binder exception: The number of rows to skip/limit must be a non-negative integer.
+Runtime exception: The number of rows to skip/limit must be a non-negative integer.
 
 # Fail when using floating point in LIMIT 1
 -CASE Scenario16
@@ -217,7 +217,7 @@ Binder exception: The number of rows to skip/limit must be a non-negative intege
            RETURN n
              LIMIT 1.7;
 ---- error
-Binder exception: The number of rows to skip/limit must be a non-negative integer.
+Runtime exception: The number of rows to skip/limit must be a non-negative integer.
 
 # Fail when using floating point in LIMIT 2
 -CASE Scenario17
@@ -230,4 +230,4 @@ Binder exception: The number of rows to skip/limit must be a non-negative intege
            RETURN p.name AS name
            LIMIT 1.5;
 ---- error
-Binder exception: The number of rows to skip/limit must be a non-negative integer.
+Runtime exception: The number of rows to skip/limit must be a non-negative integer.

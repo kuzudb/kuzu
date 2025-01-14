@@ -49,9 +49,11 @@ std::shared_ptr<LogicalOperator> TopKOptimizer::visitLimitReplace(
     } else {
         return op;
     }
-    orderBy->setLimitNum(limit->getLimitNum());
-    auto skipNum = limit->hasSkipNum() ? limit->getSkipNum() : 0;
-    orderBy->setSkipNum(skipNum);
+    if (limit->canEvaluateLimitNum() || limit->canEvaluateSkipNum()) {
+        orderBy->setLimitNum(limit->evaluateLimitNum());
+        auto skipNum = limit->hasSkipNum() ? limit->evaluateSkipNum() : 0;
+        orderBy->setSkipNum(skipNum);
+    }
     return projectionOrOrderBy;
 }
 
