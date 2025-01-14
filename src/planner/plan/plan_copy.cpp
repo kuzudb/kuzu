@@ -88,17 +88,6 @@ std::unique_ptr<LogicalPlan> Planner::planCopyNodeFrom(const BoundCopyFromInfo* 
     return plan;
 }
 
-std::unique_ptr<LogicalPlan> Planner::planCopyResourceFrom(const BoundCopyFromInfo* info,
-    expression_vector results) {
-    auto plan = std::make_unique<LogicalPlan>();
-    KU_ASSERT(info->source->type == ScanSourceType::FILE);
-    auto& scanSource = info->source->constCast<BoundTableScanSource>();
-    appendTableFunctionCall(scanSource.info, *plan);
-    appendDistinct(scanSource.info.columns, *plan);
-    appendCopyFrom(*info, results, *plan);
-    return plan;
-}
-
 std::unique_ptr<LogicalPlan> Planner::planCopyRelFrom(const BoundCopyFromInfo* info,
     expression_vector results) {
     auto plan = std::make_unique<LogicalPlan>();

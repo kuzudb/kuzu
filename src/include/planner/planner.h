@@ -89,8 +89,6 @@ public:
     std::unique_ptr<LogicalPlan> planCopyFrom(const binder::BoundStatement& statement);
     std::unique_ptr<LogicalPlan> planCopyNodeFrom(const binder::BoundCopyFromInfo* info,
         binder::expression_vector outExprs);
-    std::unique_ptr<LogicalPlan> planCopyResourceFrom(const binder::BoundCopyFromInfo* info,
-        binder::expression_vector results);
     std::unique_ptr<LogicalPlan> planCopyRelFrom(const binder::BoundCopyFromInfo* info,
         binder::expression_vector outExprs);
 

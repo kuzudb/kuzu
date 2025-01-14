@@ -327,7 +327,8 @@ void Catalog::createIndex(Transaction* transaction,
 
 IndexCatalogEntry* Catalog::getIndex(const Transaction* transaction, common::table_id_t tableID,
     std::string indexName) const {
-    return indexes->getEntry(transaction, common::stringFormat("{}_{}", tableID, indexName))
+    return indexes
+        ->getEntry(transaction, IndexCatalogEntry::getInternalIndexName(tableID, indexName))
         ->ptrCast<IndexCatalogEntry>();
 }
 
@@ -337,7 +338,8 @@ CatalogSet* Catalog::getIndexes() const {
 
 bool Catalog::containsIndex(const transaction::Transaction* transaction, common::table_id_t tableID,
     std::string indexName) const {
-    return indexes->containsEntry(transaction, common::stringFormat("{}_{}", tableID, indexName));
+    return indexes->containsEntry(transaction,
+        IndexCatalogEntry::getInternalIndexName(tableID, indexName));
 }
 
 void Catalog::dropAllIndexes(transaction::Transaction* transaction, common::table_id_t tableID) {
@@ -351,7 +353,7 @@ void Catalog::dropAllIndexes(transaction::Transaction* transaction, common::tabl
 
 void Catalog::dropIndex(transaction::Transaction* transaction, common::table_id_t tableID,
     const std::string& indexName) const {
-    const auto uniqueName = common::stringFormat("{}_{}", tableID, indexName);
+    auto uniqueName = IndexCatalogEntry::getInternalIndexName(tableID, indexName);
     const auto entry = indexes->getEntry(transaction, uniqueName);
     indexes->dropEntry(transaction, uniqueName, entry->getOID());
 }

@@ -22,7 +22,7 @@ public:
     virtual bool isMasked(common::offset_t startNodeOffset) = 0;
 
     // include&exclude
-    virtual std::vector<common::offset_t> range(uint32_t start, uint32_t end) = 0;
+    virtual offset_vec_t range(uint32_t start, uint32_t end) = 0;
 
     virtual uint64_t getNumMaskedNodes() const = 0;
 
@@ -56,10 +56,10 @@ public:
     uint64_t getNumMaskedNodes() const override { return roaring->cardinality(); }
 
     // include&exclude
-    std::vector<common::offset_t> range(uint32_t start, uint32_t end) override {
+    offset_vec_t range(uint32_t start, uint32_t end) override {
         auto it = roaring->begin();
         it.equalorlarger(start);
-        std::vector<common::offset_t> ans;
+        offset_vec_t ans;
         for (; it != roaring->end(); it++) {
             auto value = *it;
             if (value >= end) {
@@ -91,10 +91,10 @@ public:
     uint64_t getNumMaskedNodes() const override { return roaring->cardinality(); }
 
     // include&exclude
-    std::vector<common::offset_t> range(uint32_t start, uint32_t end) override {
+    offset_vec_t range(uint32_t start, uint32_t end) override {
         auto it = roaring->begin();
         it.move(start);
-        std::vector<common::offset_t> ans;
+        offset_vec_t ans;
         for (; it != roaring->end(); it++) {
             auto value = *it;
             if (value >= end) {

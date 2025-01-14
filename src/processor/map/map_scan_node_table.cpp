@@ -1,5 +1,6 @@
 #include "binder/expression/property_expression.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
+#include "processor/expression_mapper.h"
 #include "processor/operator/scan/offset_scan_node_table.h"
 #include "processor/operator/scan/primary_key_scan_node_table.h"
 #include "processor/operator/scan/scan_node_table.h"

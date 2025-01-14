@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/enums/rel_direction.h"
-#include "expression_mapper.h"
 #include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_plan.h"
 #include "processor/operator/result_collector.h"
@@ -58,6 +57,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapAlter(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapAttachDatabase(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCopyFrom(planner::LogicalOperator* logicalOperator);
+    physical_op_vector_t mapCopyHNSWIndexFrom(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCopyNodeFrom(planner::LogicalOperator* logicalOperator);
     physical_op_vector_t mapCopyRelFrom(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCopyTo(planner::LogicalOperator* logicalOperator);
@@ -111,7 +111,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapUnwind(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapUseDatabase(planner::LogicalOperator* logicalOperator);
 
-    std::unique_ptr<PhysicalOperator> createCopyRel(
+    std::unique_ptr<PhysicalOperator> createRelBatchInsertOp(
         std::shared_ptr<PartitionerSharedState> partitionerSharedState,
         std::shared_ptr<BatchInsertSharedState> sharedState,
         const planner::LogicalCopyFrom& copyFrom, common::RelDataDirection direction,
@@ -193,7 +193,6 @@ private:
     }
 
 public:
-    ExpressionMapper expressionMapper;
     main::ClientContext* clientContext;
 
 private:

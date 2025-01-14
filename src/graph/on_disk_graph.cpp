@@ -1,7 +1,5 @@
 #include "graph/on_disk_graph.h"
 
-#include <memory>
-
 #include "binder/expression/property_expression.h"
 #include "common/assert.h"
 #include "common/cast.h"
@@ -61,7 +59,7 @@ OnDiskGraphNbrScanState::OnDiskGraphNbrScanState(main::ClientContext* context,
 
 OnDiskGraphNbrScanState::OnDiskGraphNbrScanState(ClientContext* context,
     catalog::TableCatalogEntry* tableEntry, const GraphEntry& graphEntry,
-    const std::string& propertyName) {
+    const std::string& propertyName, bool randomLookup) {
     auto schema = graphEntry.getRelPropertiesSchema();
     auto descriptor = ResultSetDescriptor(&schema);
     auto resultSet = ResultSet(&descriptor, context->getMemoryManager());
@@ -113,6 +111,7 @@ OnDiskGraphNbrScanState::OnDiskGraphNbrScanState(ClientContext* context,
         }
         scanState->outState = dstNodeIDVector->state.get();
         scanState->rowIdxVector->state = dstNodeIDVector->state;
+        scanState->randomLookup = randomLookup;
         // Initialize local transaction to scanState
         if (auto localTable = context->getTransaction()->getLocalStorage()->getLocalTable(
                 table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
@@ -125,8 +124,8 @@ OnDiskGraphNbrScanState::OnDiskGraphNbrScanState(ClientContext* context,
     }
 }
 
-OnDiskGraph::OnDiskGraph(ClientContext* context, const GraphEntry& entry)
-    : context{context}, graphEntry{entry.copy()} {
+OnDiskGraph::OnDiskGraph(ClientContext* context, GraphEntry entry)
+    : context{context}, graphEntry{std::move(entry)} {
     auto storage = context->getStorageManager();
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
@@ -205,9 +204,14 @@ std::vector<RelFromToEntryInfo> OnDiskGraph::getRelFromToEntryInfos() {
     return result;
 }
 
-std::unique_ptr<NbrScanState> OnDiskGraph::prepareRelScan(catalog::TableCatalogEntry* tableEntry,
+std::unique_ptr<NbrScanState> OnDiskGraph::prepareRelScan(TableCatalogEntry* tableEntry,
     const std::string& property) {
     return std::make_unique<OnDiskGraphNbrScanState>(context, tableEntry, graphEntry, property);
+}
+
+std::unique_ptr<NbrScanState> OnDiskGraph::prepareRelLookup(TableCatalogEntry* tableEntry) const {
+    return std::make_unique<OnDiskGraphNbrScanState>(context, tableEntry, graphEntry, "",
+        true /*randomLookup*/);
 }
 
 Graph::EdgeIterator OnDiskGraph::scanFwd(nodeID_t nodeID, NbrScanState& state) {
@@ -291,7 +295,7 @@ OnDiskGraphVertexScanState::OnDiskGraphVertexScanState(ClientContext& context,
         columns.push_back(&nodeTable.getColumn(columnID));
         types.push_back(columns.back()->getDataType().copy());
     }
-    propertyVectors = nodeTable.constructDataChunk(std::move(types));
+    propertyVectors = Table::constructDataChunk(context.getMemoryManager(), std::move(types));
     nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(),
         context.getMemoryManager(), propertyVectors.state);
     tableScanState = std::make_unique<NodeTableScanState>(tableEntry->getTableID(),

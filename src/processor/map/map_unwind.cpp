@@ -1,4 +1,5 @@
 #include "planner/operator/logical_unwind.h"
+#include "processor/expression_mapper.h"
 #include "processor/operator/physical_operator.h"
 #include "processor/operator/unwind.h"
 #include "processor/plan_mapper.h"

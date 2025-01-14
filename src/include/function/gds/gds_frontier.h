@@ -315,7 +315,7 @@ class SinglePathLengthsFrontierPair : public FrontierPair {
 public:
     explicit SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths)
         : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */),
-          pathLengths{pathLengths} {}
+          pathLengths{std::move(pathLengths)} {}
 
     PathLengths* getPathLengths() const { return pathLengths.get(); }
 

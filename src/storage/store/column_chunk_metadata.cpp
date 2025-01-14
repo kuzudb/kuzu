@@ -167,7 +167,7 @@ CompressionMetadata createFloatMetadata(CompressionType compressionType,
     StorageValue max) {
     using EncodedType = typename FloatCompression<T>::EncodedType;
 
-    std::vector<offset_t> unsuccessfulEncodeIdxes;
+    offset_vec_t unsuccessfulEncodeIdxes;
     std::vector<EncodedType> floatEncodedValues(src.size());
     std::optional<EncodedType> firstSuccessfulEncode;
     size_t exceptionCount = 0;
