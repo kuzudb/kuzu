@@ -185,7 +185,7 @@ else {
         );
         const id = uuidv4();
         objectsStore[id] = result;
-        return { isSuccess: true, result: id };
+        return { isSuccess: true, id };
       } catch (e) {
         return { error: e.message, isSuccess: false, };
       }

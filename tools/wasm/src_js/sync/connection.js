@@ -145,7 +145,7 @@ class Connection {
    */
   close() {
     if (!this._isClosed) {
-      this._connection.close();
+      this._connection.delete();
       this._isClosed = true;
     }
   }
