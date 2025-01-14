@@ -41,7 +41,7 @@ struct QueryFTSBindData final : GDSBindData {
           config{config}, entry{entry},
           outputTableID{nodeOutput->constCast<NodeExpression>().getSingleEntry()->getTableID()} {}
     QueryFTSBindData(const QueryFTSBindData& other)
-        : GDSBindData{other}, query{other.query}, entry{other.entry}, config{other.config},
+        : GDSBindData{other}, query{other.query}, config{other.config}, entry{other.entry},
           outputTableID{other.outputTableID} {}
 
     bool hasNodeInput() const override { return false; }
