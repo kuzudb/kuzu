@@ -56,14 +56,6 @@ static std::vector<std::string> bindProperties(const catalog::NodeTableCatalogEn
     return result;
 }
 
-static void validateIndexNotExist(const ClientContext& context, table_id_t tableID,
-    const std::string& indexName) {
-    if (context.getCatalog()->containsIndex(context.getTransaction(), tableID, indexName)) {
-        throw BinderException{stringFormat("Index: {} already exists in table: {}.", indexName,
-            context.getCatalog()->getTableName(context.getTransaction(), tableID))};
-    }
-}
-
 static void validateInternalTableNotExist(const std::string& tableName,
     const catalog::Catalog& catalog, transaction::Transaction* trx) {
     if (catalog.containsTable(trx, tableName)) {
