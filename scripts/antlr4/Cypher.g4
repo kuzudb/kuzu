@@ -256,7 +256,7 @@ oC_Statement
         | kU_UseDatabase;
 
 kU_CopyFrom
-    : COPY SP oC_SchemaName ( ( SP? kU_ColumnNames SP? ) | SP ) FROM SP kU_ScanSource ( SP? kU_ParsingOptions )? ;
+    : COPY SP oC_SchemaName ( ( SP? kU_ColumnNames SP? ) | SP ) FROM SP kU_ScanSource ( SP? '(' SP? kU_Options SP? ')' )? ;
 
 kU_ColumnNames
      : '(' SP? oC_SchemaName ( SP? ',' SP? oC_SchemaName )* SP? ')';
@@ -271,10 +271,10 @@ kU_CopyFromByColumn
     : COPY SP oC_SchemaName SP FROM SP '(' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ')' SP BY SP COLUMN ;
 
 kU_CopyTO
-    : COPY SP '(' SP? oC_Query SP? ')' SP TO SP StringLiteral ( SP? kU_ParsingOptions )? ;
+    : COPY SP '(' SP? oC_Query SP? ')' SP TO SP StringLiteral ( SP? '(' SP? kU_Options SP? ')' )? ;
 
 kU_ExportDatabase
-    : EXPORT SP DATABASE SP StringLiteral ( SP? kU_ParsingOptions )? ;
+    : EXPORT SP DATABASE SP StringLiteral ( SP? '(' SP? kU_Options SP? ')' )? ;
 
 kU_ImportDatabase
     : IMPORT SP DATABASE SP StringLiteral;
@@ -315,9 +315,6 @@ kU_FilePaths
         | StringLiteral
         | GLOB SP? '(' SP? StringLiteral SP? ')' ;
 
-kU_ParsingOptions
-    : '(' SP? kU_Options SP? ')' ;
-
 kU_IfNotExists
     : IF SP NOT SP EXISTS ;
 
@@ -325,7 +322,7 @@ kU_CreateNodeTable
     : CREATE SP NODE SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_PropertyDefinitions SP? ( ',' SP? kU_CreateNodeConstraint )? SP? ')' ;
 
 kU_CreateRelTable
-    : CREATE SP REL SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_RelTableConnection SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' (SP WITH SP? kU_ParsingOptions)?;
+    : CREATE SP REL SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_RelTableConnection SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' (SP WITH SP? '(' SP? kU_Options SP? ')')?;
 
 kU_CreateRelTableGroup
     : CREATE SP REL SP TABLE SP GROUP SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_RelTableConnection ( SP? ',' SP? kU_RelTableConnection )+ SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
@@ -480,7 +477,7 @@ oC_ReadingClause
         ;
 
 kU_LoadFrom
-    :  LOAD ( SP WITH SP HEADERS SP? '(' SP? kU_ColumnDefinitions SP? ')' )? SP FROM SP kU_ScanSource (SP? kU_ParsingOptions)? (SP? oC_Where)? ;
+    :  LOAD ( SP WITH SP HEADERS SP? '(' SP? kU_ColumnDefinitions SP? ')' )? SP FROM SP kU_ScanSource (SP? '(' SP? kU_Options SP? ')')? (SP? oC_Where)? ;
 
 kU_InQueryCall
     : CALL SP oC_FunctionInvocation (SP? oC_Where)? ;

@@ -76,8 +76,8 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTable(
         relMultiplicity = transformSymbolicName(*ctx.oC_SymbolicName());
     }
     options_t options;
-    if (ctx.kU_ParsingOptions()) {
-        options = transformOptions(*ctx.kU_ParsingOptions()->kU_Options());
+    if (ctx.kU_Options()) {
+        options = transformOptions(*ctx.kU_Options());
     }
     auto srcTableName = transformSchemaName(*ctx.kU_RelTableConnection()->oC_SchemaName(0));
     auto dstTableName = transformSchemaName(*ctx.kU_RelTableConnection()->oC_SchemaName(1));
