@@ -3,27 +3,32 @@
 #include <cstdint>
 #include <iterator>
 #include <memory>
-#include <optional>
 
 #include "common/constants.h"
 #include "common/copy_constructors.h"
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
+#include "transaction/transaction.h"
 #include <span>
 
 namespace kuzu {
-
-namespace transaction {
-class Transaction;
+namespace catalog {
+class TableCatalogEntry;
 }
 
 namespace graph {
 
-struct RelTableIDInfo {
-    common::table_id_t fromNodeTableID;
-    common::table_id_t relTableID;
-    common::table_id_t toNodeTableID;
+struct GraphEntry;
+
+struct RelFromToEntryInfo {
+    catalog::TableCatalogEntry* fromEntry;
+    catalog::TableCatalogEntry* toEntry;
+    catalog::TableCatalogEntry* relEntry;
+
+    RelFromToEntryInfo(catalog::TableCatalogEntry* fromEntry, catalog::TableCatalogEntry* toEntry,
+        catalog::TableCatalogEntry* relEntry)
+        : fromEntry{fromEntry}, toEntry{toEntry}, relEntry{relEntry} {}
 };
 
 class NbrScanState {
@@ -183,11 +188,15 @@ public:
     Graph() = default;
     virtual ~Graph() = default;
 
+    virtual GraphEntry* getGraphEntry() = 0;
+
     // Get id for all node tables.
     virtual std::vector<common::table_id_t> getNodeTableIDs() const = 0;
+
     // Get id for all relationship tables.
     virtual std::vector<common::table_id_t> getRelTableIDs() const = 0;
 
+    // Get num rows of each table as a map
     virtual common::table_id_map_t<common::offset_t> getNumNodesMap(
         transaction::Transaction* transaction) const = 0;
 
@@ -198,11 +207,11 @@ public:
         common::table_id_t id) const = 0;
 
     // Get all possible "forward" (fromNodeTableID, relTableID, toNodeTableID) combinations.
-    virtual std::vector<RelTableIDInfo> getRelTableIDInfos() = 0;
+    virtual std::vector<RelFromToEntryInfo> getRelFromToEntryInfos() = 0;
 
     // Prepares scan on the specified relationship table (works for backwards and forwards scans)
-    virtual std::unique_ptr<NbrScanState> prepareScan(common::table_id_t relTableID,
-        std::optional<common::idx_t> edgePropertyIndex = std::nullopt) = 0;
+    virtual std::unique_ptr<NbrScanState> prepareRelScan(catalog::TableCatalogEntry* tableEntry,
+        const std::string& property) = 0;
 
     // Get dst nodeIDs for given src nodeID using forward adjList.
     virtual EdgeIterator scanFwd(common::nodeID_t nodeID, NbrScanState& state) = 0;
@@ -240,8 +249,9 @@ public:
     };
     static_assert(std::input_iterator<EdgeIterator>);
 
-    virtual std::unique_ptr<VertexScanState> prepareVertexScan(common::table_id_t tableID,
-        const std::vector<std::string>& propertiesToScan) = 0;
+    virtual std::unique_ptr<VertexScanState> prepareVertexScan(
+        catalog::TableCatalogEntry* tableEntry, const std::vector<std::string>& properties) = 0;
+
     virtual VertexIterator scanVertices(common::offset_t startNodeOffset,
         common::offset_t endNodeOffsetExclusive, VertexScanState& scanState) = 0;
 };

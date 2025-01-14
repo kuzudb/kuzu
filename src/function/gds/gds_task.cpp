@@ -1,5 +1,6 @@
 #include "function/gds/gds_task.h"
 
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "graph/graph.h"
 
 using namespace kuzu::common;
@@ -20,10 +21,10 @@ void FrontierTask::run() {
     FrontierMorsel morsel;
     auto numActiveNodes = 0u;
     auto graph = info.graph;
-    auto scanState = graph->prepareScan(info.relTableID, info.edgePropertyIdx);
+    auto scanState = graph->prepareRelScan(info.relEntry, info.propertyToScan);
     auto localEc = info.edgeCompute.copy();
     SparseFrontier localFrontier;
-    localFrontier.pinTableID(info.nbrTableID);
+    localFrontier.pinTableID(info.nbrEntry->getTableID());
     auto& curFrontier = sharedState->frontierPair.getCurDenseFrontier();
     switch (info.direction) {
     case ExtendDirection::FWD: {
@@ -32,7 +33,7 @@ void FrontierTask::run() {
                 if (!curFrontier.isActive(offset)) {
                     continue;
                 }
-                nodeID_t nodeID = {offset, morsel.getTableID()};
+                nodeID_t nodeID = {offset, info.boundEntry->getTableID()};
                 for (auto chunk : graph->scanFwd(nodeID, *scanState)) {
                     numActiveNodes += runEdgeCompute(nodeID, chunk, *localEc,
                         sharedState->frontierPair, true, localFrontier);
@@ -46,7 +47,7 @@ void FrontierTask::run() {
                 if (!curFrontier.isActive(offset)) {
                     continue;
                 }
-                nodeID_t nodeID = {offset, morsel.getTableID()};
+                nodeID_t nodeID = {offset, info.boundEntry->getTableID()};
                 for (auto chunk : graph->scanBwd(nodeID, *scanState)) {
                     numActiveNodes += runEdgeCompute(nodeID, chunk, *localEc,
                         sharedState->frontierPair, false, localFrontier);
@@ -66,10 +67,10 @@ void FrontierTask::run() {
 void FrontierTask::runSparse() {
     auto numActiveNodes = 0u;
     auto graph = info.graph;
-    auto scanState = graph->prepareScan(info.relTableID, info.edgePropertyIdx);
+    auto scanState = graph->prepareRelScan(info.relEntry, info.propertyToScan);
     auto localEc = info.edgeCompute.copy();
     SparseFrontier localFrontier;
-    localFrontier.pinTableID(info.nbrTableID);
+    localFrontier.pinTableID(info.nbrEntry->getTableID());
     auto& curFrontier = sharedState->frontierPair.getCurSparseFrontier();
     switch (info.direction) {
     case ExtendDirection::FWD: {
@@ -103,9 +104,8 @@ void VertexComputeTask::run() {
     FrontierMorsel morsel;
     auto graph = info.graph;
     auto localVc = info.vc.copy();
-    auto tableID = sharedState->morselDispatcher.getTableID();
     if (info.hasPropertiesToScan()) {
-        auto scanState = graph->prepareVertexScan(tableID, info.propertiesToScan);
+        auto scanState = graph->prepareVertexScan(info.tableEntry, info.propertiesToScan);
         while (sharedState->morselDispatcher.getNextRangeMorsel(morsel)) {
             for (auto chunk :
                 graph->scanVertices(morsel.getBeginOffset(), morsel.getEndOffset(), *scanState)) {
@@ -114,7 +114,8 @@ void VertexComputeTask::run() {
         }
     } else {
         while (sharedState->morselDispatcher.getNextRangeMorsel(morsel)) {
-            localVc->vertexCompute(morsel.getBeginOffset(), morsel.getEndOffset(), tableID);
+            localVc->vertexCompute(morsel.getBeginOffset(), morsel.getEndOffset(),
+                info.tableEntry->getTableID());
         }
     }
 }

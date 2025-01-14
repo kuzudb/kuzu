@@ -20,7 +20,7 @@ class MemoryManager;
 }
 namespace graph {
 
-struct OnDiskGraphNbrScanState {
+struct OnDiskGraphDirectedNbrScanState {
     class InnerIterator {
     public:
         InnerIterator(const main::ClientContext* context, storage::RelTable* relTable,
@@ -70,7 +70,8 @@ struct OnDiskGraphNbrScanState {
 
     std::vector<InnerIterator> directedIterators;
 
-    OnDiskGraphNbrScanState(main::ClientContext* context, storage::RelTable& table,
+    OnDiskGraphDirectedNbrScanState() = default;
+    OnDiskGraphDirectedNbrScanState(main::ClientContext* context, storage::RelTable& table,
         std::vector<std::unique_ptr<storage::RelTableScanState>> directedScanStates) {
         for (auto& directedScanState : directedScanStates) {
             directedIterators.emplace_back(context, &table, std::move(directedScanState));
@@ -84,6 +85,11 @@ class OnDiskGraphNbrScanStates : public NbrScanState {
     friend class OnDiskGraph;
 
 public:
+    OnDiskGraphNbrScanStates(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
+        const GraphEntry& graphEntry);
+    OnDiskGraphNbrScanStates(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
+        const GraphEntry& graphEntry, const std::string& propertyName);
+
     NbrScanState::Chunk getChunk() override {
         auto& iter = getInnerIterator();
         return createChunk(iter.getNbrNodes(), iter.getEdges(), iter.getSelVectorUnsafe(),
@@ -91,15 +97,11 @@ public:
     }
     bool next() override;
 
-    void startScan(common::RelDataDirection direction_) {
-        this->direction = direction_;
-        iteratorIndex = 0;
-    }
+    void startScan(common::RelDataDirection direction_) { this->direction = direction_; }
 
 private:
-    OnDiskGraphNbrScanState::InnerIterator& getInnerIterator() {
-        KU_ASSERT(iteratorIndex < scanStates.size());
-        return scanStates[iteratorIndex].second.getIterator(direction);
+    OnDiskGraphDirectedNbrScanState::InnerIterator& getInnerIterator() {
+        return directedScanState.getIterator(direction);
     }
 
 private:
@@ -107,20 +109,16 @@ private:
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
     std::unique_ptr<common::ValueVector> relIDVector;
     std::unique_ptr<common::ValueVector> propertyVector;
-    size_t iteratorIndex;
     common::RelDataDirection direction;
 
     std::unique_ptr<evaluator::ExpressionEvaluator> relPredicateEvaluator;
-
-    explicit OnDiskGraphNbrScanStates(main::ClientContext* context,
-        std::span<storage::RelTable*> tableIDs, const GraphEntry& graphEntry,
-        std::optional<common::idx_t> edgePropertyIndex = std::nullopt);
-    std::vector<std::pair<common::table_id_t, OnDiskGraphNbrScanState>> scanStates;
+    common::table_id_t relTableID;
+    OnDiskGraphDirectedNbrScanState directedScanState;
 };
 
 class OnDiskGraphVertexScanState : public VertexScanState {
 public:
-    OnDiskGraphVertexScanState(main::ClientContext& context, common::table_id_t tableID,
+    OnDiskGraphVertexScanState(main::ClientContext& context, catalog::TableCatalogEntry* tableEntry,
         const std::vector<std::string>& propertyNames);
 
     void startScan(common::offset_t beginOffset, common::offset_t endOffsetExclusive);
@@ -132,13 +130,14 @@ public:
     }
 
 private:
+    const main::ClientContext& context;
+    const storage::NodeTable& nodeTable;
+
     common::DataChunk propertyVectors;
     std::unique_ptr<common::ValueVector> nodeIDVector;
     std::unique_ptr<storage::NodeTableScanState> tableScanState;
-    const main::ClientContext& context;
-    const storage::NodeTable& nodeTable;
+
     common::offset_t numNodesScanned;
-    common::table_id_t tableID;
     common::offset_t currentOffset;
     common::offset_t endOffsetExclusive;
 };
@@ -146,6 +145,8 @@ private:
 class KUZU_API OnDiskGraph final : public Graph {
 public:
     OnDiskGraph(main::ClientContext* context, const GraphEntry& entry);
+
+    GraphEntry* getGraphEntry() override { return &graphEntry; }
 
     std::vector<common::table_id_t> getNodeTableIDs() const override;
     std::vector<common::table_id_t> getRelTableIDs() const override;
@@ -157,11 +158,11 @@ public:
     common::offset_t getNumNodes(transaction::Transaction* transaction,
         common::table_id_t id) const override;
 
-    std::vector<RelTableIDInfo> getRelTableIDInfos() override;
+    std::vector<RelFromToEntryInfo> getRelFromToEntryInfos() override;
 
-    std::unique_ptr<NbrScanState> prepareScan(common::table_id_t relTableID,
-        std::optional<common::idx_t> edgePropertyIndex = std::nullopt) override;
-    std::unique_ptr<VertexScanState> prepareVertexScan(common::table_id_t tableID,
+    std::unique_ptr<NbrScanState> prepareRelScan(catalog::TableCatalogEntry* tableEntry,
+        const std::string& property) override;
+    std::unique_ptr<VertexScanState> prepareVertexScan(catalog::TableCatalogEntry* tableEntry,
         const std::vector<std::string>& propertiesToScan) override;
 
     Graph::EdgeIterator scanFwd(common::nodeID_t nodeID, NbrScanState& state) override;

@@ -19,21 +19,17 @@ class FrontierMorsel {
 public:
     FrontierMorsel() = default;
 
-    common::table_id_t getTableID() const { return tableID; }
     common::offset_t getBeginOffset() const { return beginOffset; }
-    common::offset_t getEndOffset() const { return endOffsetExclusive; }
+    common::offset_t getEndOffset() const { return endOffset; }
 
-    void init(common::table_id_t _tableID, common::offset_t _beginOffset,
-        common::offset_t _endOffsetExclusive) {
-        tableID = _tableID;
-        beginOffset = _beginOffset;
-        endOffsetExclusive = _endOffsetExclusive;
+    void init(common::offset_t beginOffset_, common::offset_t endOffset_) {
+        beginOffset = beginOffset_;
+        endOffset = endOffset_;
     }
 
 private:
-    common::table_id_t tableID = common::INVALID_TABLE_ID;
     common::offset_t beginOffset = common::INVALID_OFFSET;
-    common::offset_t endOffsetExclusive = common::INVALID_OFFSET;
+    common::offset_t endOffset = common::INVALID_OFFSET;
 };
 
 class KUZU_API FrontierMorselDispatcher {
@@ -46,14 +42,11 @@ class KUZU_API FrontierMorselDispatcher {
 public:
     explicit FrontierMorselDispatcher(uint64_t maxThreads);
 
-    void init(common::table_id_t _tableID, common::offset_t _maxOffset);
+    void init(common::offset_t _maxOffset);
 
     bool getNextRangeMorsel(FrontierMorsel& frontierMorsel);
 
-    common::table_id_t getTableID() const { return tableID; }
-
 private:
-    common::table_id_t tableID;
     common::offset_t maxOffset;
     std::atomic<common::offset_t> nextOffset;
     uint64_t maxThreads;

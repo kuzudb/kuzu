@@ -141,16 +141,16 @@ void QFTSState::initFirstFrontierWithTerms(const common::node_id_map_t<uint64_t>
 }
 
 void runFrontiersOnce(processor::ExecutionContext* executionContext, QFTSState& qFtsState,
-    graph::Graph* graph, common::idx_t tfPropertyIdx) {
+    graph::Graph* graph, const std::string& tfProperty) {
     auto frontierPair = qFtsState.frontierPair.get();
     frontierPair->beginNewIteration();
-    auto relTableIDInfos = graph->getRelTableIDInfos();
-    auto& appearsInTableInfo = relTableIDInfos[0];
-    frontierPair->beginFrontierComputeBetweenTables(appearsInTableInfo.fromNodeTableID,
-        appearsInTableInfo.toNodeTableID);
-    GDSUtils::scheduleFrontierTask(appearsInTableInfo.fromNodeTableID,
-        appearsInTableInfo.toNodeTableID, appearsInTableInfo.relTableID, graph,
-        ExtendDirection::FWD, qFtsState, executionContext, 1 /* numThreads */, tfPropertyIdx);
+    auto infos = graph->getRelFromToEntryInfos();
+    KU_ASSERT(infos.size() == 1);
+    auto& info = infos[0];
+    frontierPair->beginFrontierComputeBetweenTables(info.fromEntry->getTableID(),
+        info.toEntry->getTableID());
+    GDSUtils::scheduleFrontierTask(info.fromEntry, info.toEntry, info.relEntry, graph,
+        ExtendDirection::FWD, qFtsState, executionContext, 1 /* numThreads */, tfProperty);
 }
 
 class QFTSOutputWriter {
@@ -289,14 +289,13 @@ void QFTSVertexCompute::vertexCompute(const graph::VertexScanState::Chunk& chunk
 }
 
 void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
-    auto termsTableID = sharedState->graph->getNodeTableIDs()[0];
+    auto graphEntry = sharedState->graph->getGraphEntry();
     auto output = std::make_unique<QFTSOutput>();
 
     // Do vertex compute to get the terms
-    auto termsTableEntry = executionContext->clientContext->getCatalog()->getTableCatalogEntry(
-        executionContext->clientContext->getTransaction(), termsTableID);
-    const graph::GraphEntry entry{{termsTableEntry}, {} /* relTableEntries */};
-    graph::OnDiskGraph graph(executionContext->clientContext, entry);
+    auto termsTableEntry = graphEntry->nodeEntries[0];
+    const graph::GraphEntry tmpGraphEntry{{termsTableEntry}, {} /* relTableEntries */};
+    graph::OnDiskGraph graph(executionContext->clientContext, tmpGraphEntry);
     auto termsComputeSharedState =
         TermsComputeSharedState{bindData->ptrCast<QueryFTSBindData>()->terms};
     TermsVertexCompute termsCompute{&termsComputeSharedState};
@@ -314,24 +313,20 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto edgeCompute = std::make_unique<QFTSEdgeCompute>(frontierPair.get(), &output->scores,
         &termsComputeSharedState.dfs);
 
-    auto clientContext = executionContext->clientContext;
-    auto transaction = clientContext->getTransaction();
-    auto catalog = clientContext->getCatalog();
-    auto mm = clientContext->getMemoryManager();
-    QFTSState qFTSState = QFTSState{std::move(frontierPair), std::move(edgeCompute), termsTableID};
-    qFTSState.initFirstFrontierWithTerms(termsComputeSharedState.dfs, termsTableID);
-
+    auto mm = executionContext->clientContext->getMemoryManager();
+    QFTSState qFTSState =
+        QFTSState{std::move(frontierPair), std::move(edgeCompute), termsTableEntry->getTableID()};
+    qFTSState.initFirstFrontierWithTerms(termsComputeSharedState.dfs,
+        termsTableEntry->getTableID());
     runFrontiersOnce(executionContext, qFTSState, sharedState->graph.get(),
-        catalog->getTableCatalogEntry(transaction, sharedState->graph->getRelTableIDs()[0])
-            ->getPropertyIdx(QueryFTSAlgorithm::TERM_FREQUENCY_PROP_NAME));
+        QueryFTSAlgorithm::TERM_FREQUENCY_PROP_NAME);
 
     // Do vertex compute to calculate the score for doc with the length property.
-
     auto writer = std::make_unique<QFTSOutputWriter>(mm, output.get(),
         *bindData->ptrCast<QueryFTSBindData>());
     auto writerVC = std::make_unique<QFTSVertexCompute>(mm, sharedState.get(), std::move(writer));
-    auto docsTableID = sharedState->graph->getNodeTableIDs()[1];
-    GDSUtils::runVertexCompute(executionContext, sharedState->graph.get(), *writerVC, docsTableID,
+    auto docsEntry = graphEntry->nodeEntries[1];
+    GDSUtils::runVertexCompute(executionContext, sharedState->graph.get(), *writerVC, docsEntry,
         {QueryFTSAlgorithm::DOC_LEN_PROP_NAME, QueryFTSAlgorithm::DOC_ID_PROP_NAME});
     sharedState->mergeLocalTables();
 }
