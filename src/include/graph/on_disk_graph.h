@@ -30,8 +30,8 @@ public:
         const GraphEntry& graphEntry, const std::string& propertyName);
 
     NbrScanState::Chunk getChunk() override {
-        return createChunk(currentIter->getNbrNodes(), currentIter->getEdges(), currentIter->getSelVectorUnsafe(),
-            propertyVector.get());
+        return createChunk(currentIter->getNbrNodes(), currentIter->getEdges(),
+            currentIter->getSelVectorUnsafe(), propertyVector.get());
     }
     bool next() override;
 
