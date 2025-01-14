@@ -65,13 +65,19 @@ uint64_t LogicalLimit::evaluateLimitNum() const {
 std::string LogicalLimit::getExpressionsForPrinting() const {
     std::string result;
     if (hasSkipNum()) {
-        result += "SKIP "; //+ std::to_string(skipNum);
+        result += "SKIP ";
+        if (canEvaluateSkipNum()) {
+            result += std::to_string(evaluateSkipNum());
+        }
     }
     if (hasLimitNum()) {
         if (!result.empty()) {
             result += ",";
         }
-        result += "LIMIT "; //+ std::to_string(limitNum);
+        result += "LIMIT ";
+        if (canEvaluateLimitNum()) {
+            result += std::to_string(evaluateLimitNum());
+        }
     }
     return result;
 }

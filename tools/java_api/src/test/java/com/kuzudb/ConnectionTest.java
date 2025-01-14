@@ -277,6 +277,27 @@ public class ConnectionTest extends TestBase {
     }
 
     @Test
+    void ConnPrepareLimit() throws ObjectRefDestroyedException {
+        String query = "MATCH (a:person) RETURN a.ID LIMIT $lt";
+        Map<String, Value> m = new HashMap<String, Value>();
+        m.put("lt", new Value((int) 2));
+        PreparedStatement statement = conn.prepare(query);
+        assertNotNull(statement);
+        QueryResult result = conn.execute(statement, m);
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        assertTrue(result.getErrorMessage().equals(""));
+        assertEquals(result.getNumTuples(), 2);
+        assertEquals(result.getNumColumns(), 1);
+        FlatTuple tuple = result.getNext();
+        assertEquals(((long) tuple.getValue(0).getValue()), 0);
+        tuple = result.getNext();
+        assertEquals(((long) tuple.getValue(0).getValue()), 2);
+        statement.close();
+        result.close();
+    }
+
+    @Test
     void ConnQueryTimeout() throws ObjectRefDestroyedException {
         conn.setQueryTimeout(1);
         try (QueryResult result = conn.query("UNWIND RANGE(1,100000) AS x UNWIND RANGE(1, 100000) AS y RETURN COUNT(x + y);")) {

@@ -119,3 +119,10 @@ def test_error(conn_db_readonly: ConnDB) -> None:
     prepared_statement = conn_db_readonly[0].prepare("SELECT * FROM person")
     assert not prepared_statement.is_success()
     assert prepared_statement.get_error_message().startswith("Parser exception: extraneous input 'SELECT'")
+
+def test_prepare_limit(conn_db_readonly: ConnDB) -> None:
+    prepared_statement = conn_db_readonly[0].prepare("MATCH (p:person) return p.ID limit $lt")
+    result = conn_db_readonly[0].execute(prepared_statement, {'lt': 3})
+    assert result.get_next() == [0]
+    assert result.get_next() == [2]
+    assert result.get_next() == [3]

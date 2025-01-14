@@ -411,7 +411,5 @@ bool ExpressionUtil::canCastStatically(const Expression& expr, const LogicalType
     }
 }
 
-
-
 } // namespace binder
 } // namespace kuzu
