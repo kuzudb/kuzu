@@ -1,6 +1,5 @@
 #include "planner/operator/logical_limit.h"
 
-#include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/parameter_expression.h"
 #include "common/exception/runtime.h"

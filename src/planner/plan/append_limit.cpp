@@ -1,4 +1,3 @@
-#include "binder/expression/expression_util.h"
 #include "planner/operator/logical_limit.h"
 #include "planner/planner.h"
 
