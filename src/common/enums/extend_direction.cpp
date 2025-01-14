@@ -6,13 +6,13 @@
 namespace kuzu {
 namespace common {
 
-static ExtendDirection defaultExtendDirection = ExtendDirection::BOTH;
 ExtendDirection ExtendDirectionUtil::getDefaultExtendDirection() {
+#if defined(KUZU_DEFAULT_FWD_REL_STORAGE) && (KUZU_DEFAULT_FWD_REL_STORAGE == 1)
+    static constexpr ExtendDirection defaultExtendDirection = ExtendDirection::FWD;
+#else
+    static constexpr ExtendDirection defaultExtendDirection = ExtendDirection::BOTH;
+#endif
     return defaultExtendDirection;
-}
-
-void ExtendDirectionUtil::setDefaultExtendDirection(ExtendDirection newDirection) {
-    defaultExtendDirection = newDirection;
 }
 
 ExtendDirection ExtendDirectionUtil::fromString(const std::string& str) {

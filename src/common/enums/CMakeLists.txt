@@ -1,3 +1,7 @@
+if(${DEFAULT_FWD_REL_STORAGE})
+    add_compile_definitions(KUZU_DEFAULT_FWD_REL_STORAGE)
+endif()
+
 add_library(kuzu_common_enums
         OBJECT
         accumulate_type.cpp
@@ -11,7 +15,7 @@ add_library(kuzu_common_enums
         drop_type.cpp
         extend_direction.cpp
         conflict_action.cpp)
-        
+
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_common_enums>
         PARENT_SCOPE)
