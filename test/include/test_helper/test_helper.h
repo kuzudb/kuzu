@@ -2,7 +2,6 @@
 
 #include <filesystem>
 
-#include "common/enums/extend_direction.h"
 #include "common/file_system/file_system.h"
 #include "common/string_utils.h"
 #include "main/kuzu.h"
@@ -59,7 +58,6 @@ public:
         auto maxNumThreadsEnv = getSystemEnv("MAX_NUM_THREADS");
         auto enableCompressionEnv = getSystemEnv("ENABLE_COMPRESSION");
         auto checkpointThresholdEnv = getSystemEnv("CHECKPOINT_THRESHOLD");
-        auto defaultExtendDirectionEnv = getSystemEnv("DEFAULT_EXTEND_DIRECTION");
         systemConfig->bufferPoolSize =
             bufferPoolSizeEnv.empty() ?
                 common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING :
@@ -71,10 +69,6 @@ public:
         systemConfig->checkpointThreshold = checkpointThresholdEnv.empty() ?
                                                 systemConfig->checkpointThreshold :
                                                 std::stoull(checkpointThresholdEnv);
-        if (!defaultExtendDirectionEnv.empty()) {
-            common::ExtendDirectionUtil::setDefaultExtendDirection(
-                common::ExtendDirectionUtil::fromString(defaultExtendDirectionEnv));
-        }
         return systemConfig;
     }
 

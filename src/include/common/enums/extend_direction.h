@@ -25,11 +25,6 @@ public:
     static std::string toString(ExtendDirection direction);
 
     static ExtendDirection getDefaultExtendDirection();
-
-private:
-    friend testing::TestHelper;
-    // for testing purposes only
-    static KUZU_API void setDefaultExtendDirection(ExtendDirection newDirection);
 };
 
 } // namespace common
