@@ -30,10 +30,6 @@ void BaseHashTable::computeAndCombineVecHash(const std::vector<ValueVector*>& un
     uint32_t startVecIdx) {
     for (; startVecIdx < unFlatKeyVectors.size(); startVecIdx++) {
         auto keyVector = unFlatKeyVectors[startVecIdx];
-        auto tmpHashResultVector =
-            std::make_unique<ValueVector>(LogicalType::HASH(), &memoryManager);
-        auto tmpHashCombineResultVector =
-            std::make_unique<ValueVector>(LogicalType::HASH(), &memoryManager);
         tmpHashResultVector->state = keyVector->state;
         tmpHashCombineResultVector->state = keyVector->state;
         VectorHashFunction::computeHash(*keyVector, keyVector->state->getSelVector(),
@@ -43,7 +39,7 @@ void BaseHashTable::computeAndCombineVecHash(const std::vector<ValueVector*>& un
         VectorHashFunction::combineHash(*hashVector, hashVector->state->getSelVector(),
             *tmpHashResultVector, tmpHashResultVector->state->getSelVector(),
             *tmpHashCombineResultVector, tmpHashCombineResultVector->state->getSelVector());
-        hashVector = std::move(tmpHashCombineResultVector);
+        hashVector.swap(tmpHashCombineResultVector);
     }
 }
 
@@ -204,6 +200,8 @@ void BaseHashTable::initTmpHashVector() {
     hashState->setToFlat();
     hashVector = std::make_unique<ValueVector>(LogicalType::HASH(), &memoryManager);
     hashVector->state = hashState;
+    tmpHashResultVector = std::make_unique<ValueVector>(LogicalType::HASH(), &memoryManager);
+    tmpHashCombineResultVector = std::make_unique<ValueVector>(LogicalType::HASH(), &memoryManager);
 }
 
 } // namespace processor

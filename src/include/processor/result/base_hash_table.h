@@ -46,6 +46,8 @@ protected:
     std::shared_ptr<common::DataChunkState> hashState;
     std::unique_ptr<common::ValueVector> hashVector;
     common::SelectionVector hashSelVec;
+    std::unique_ptr<common::ValueVector> tmpHashResultVector;
+    std::unique_ptr<common::ValueVector> tmpHashCombineResultVector;
 };
 
 } // namespace processor
