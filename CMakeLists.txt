@@ -119,6 +119,8 @@ if(MSVC)
     add_compile_definitions(_USE_MATH_DEFINES)
     add_compile_definitions(NOMINMAX)
     add_compile_definitions(SERD_STATIC)
+    add_compile_definitions(_REGEX_MAX_STACK_COUNT=0)
+    add_compile_definitions(_REGEX_MAX_COMPLEXITY_COUNT=0)
     # TODO (bmwinger): Figure out if this can be set automatically by cmake,
     # or at least better integrated with user-specified options
     # For now, hardcode _AMD64_

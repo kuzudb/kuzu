@@ -17,13 +17,9 @@ Binder exception: HNSW_INDEX only supports FLOAT ARRAY columns.
 -STATEMENT CALL QUERY_HNSW_INDEX('e_hnsw_index', 'embeddings', CAST([0.0459,0.0439,0.0251], 'FLOAT[3]'), 10) RETURN *;
 ---- error
 Binder exception: Query vector dimension does not match index dimension.
-
--CASE DropError
--STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
----- ok
--STATEMENT CALL DROP_HNSW_INDEX('e_hnsw_index', 'embeddings');
+-STATEMENT CALL DROP_HNSW_INDEX('e_hnsw_index2', 'embeddings');
 ---- error
-Binder exception: Table embeddings doesn't have an index with name e_hnsw_index.
+Binder exception: Table embeddings doesn't have an index with name e_hnsw_index2.
 -STATEMENT CALL DROP_HNSW_INDEX('e_hnsw_indexxxx', 'embeddingssss');
 ---- error
 Binder exception: Table embeddingssss does not exist.
