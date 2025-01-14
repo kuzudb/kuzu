@@ -204,3 +204,65 @@ Catalog exception: QUERY_FTS_INDEX function does not exist.
 ---- 2
 0|0.271133
 3|0.209476
+
+-CASE ValidateInternalTableSeq
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
+---- ok
+-STATEMENT MATCH (c) return label(c)
+---- 3
+doc
+doc
+doc
+-STATEMENT MATCH (d:`0_docIdx_docs`) return d.*
+---- error
+Binder exception: Table 0_docIdx_docs does not exist.
+-STATEMENT call show_tables() return *
+---- 1
+0|doc|NODE|local(kuzu)|
+-STATEMENT DROP TABLE `0_docIdx_docs`
+---- error
+Binder exception: Table 0_docIdx_docs does not exist.
+-STATEMENT ALTER TABLE `0_docIdx_docs` ADD TEST1 int64
+---- error
+Binder exception: Table 0_docIdx_docs does not exist.
+-STATEMENT CALL create_project_graph('PK1', ['0_docIdx_docs'], [])
+---- error
+Catalog exception: 0_docIdx_docs does not exist in catalog.
+-STATEMENT RETURN nextval('0_docIdx_appears_info_ID_serial');
+---- error
+Catalog exception: 0_docIdx_appears_info_ID_serial does not exist in catalog.
+-STATEMENT DROP SEQUENCE `0_docIdx_appears_info_ID_serial`
+---- error
+Binder exception: Sequence 0_docIdx_appears_info_ID_serial does not exist.
+
+-CASE InternalTableNamingConflict
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
+---- ok
+-STATEMENT create node table `0_docIdx_docs` (id int64, primary key(id))
+---- error
+Binder exception: 0_docIdx_docs already exists in catalog.
+
+-STATEMENT create node table `0_docIdx1_docs` (id int64, primary key(id))
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx1', ['content'])
+---- error
+Binder exception: Table: 0_docIdx1_docs already exists. Please drop or rename the table before creating a full text search index.
+-STATEMENT create node table `0_docIdx2_terms` (id int64, primary key(id))
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx2', ['content'])
+---- error
+Binder exception: Table: 0_docIdx2_terms already exists. Please drop or rename the table before creating a full text search index.
+-STATEMENT create rel table `0_docIdx3_appears_info` (from doc to doc)
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx3', ['content'])
+---- error
+Binder exception: Table: 0_docIdx3_appears_info already exists. Please drop or rename the table before creating a full text search index.
+-STATEMENT create rel table `0_docIdx4_appears_in` (from doc to doc)
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx4', ['content'])
+---- error
+Binder exception: Table: 0_docIdx4_appears_in already exists. Please drop or rename the table before creating a full text search index.

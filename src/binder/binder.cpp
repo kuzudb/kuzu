@@ -161,7 +161,8 @@ void Binder::validateTableType(table_id_t tableID, TableType expectedTableType) 
 }
 
 void Binder::validateTableExist(const std::string& tableName) {
-    if (!clientContext->getCatalog()->containsTable(clientContext->getTransaction(), tableName)) {
+    if (!clientContext->getCatalog()->containsTable(clientContext->getTransaction(), tableName,
+            clientContext->shouldUseInternalCatalogEntry())) {
         throw BinderException("Table " + tableName + " does not exist.");
     }
 }

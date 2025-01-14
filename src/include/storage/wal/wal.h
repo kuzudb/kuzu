@@ -38,7 +38,7 @@ public:
     // we want to log minimal info into the WAL, so each entry type should have its
     // own WAL record
     void logCreateTableEntryRecord(binder::BoundCreateTableInfo tableInfo);
-    void logCreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry);
+    void logCreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry, bool isInternal);
     void logDropCatalogEntryRecord(uint64_t entryID, catalog::CatalogEntryType type);
     void logAlterTableEntryRecord(const binder::BoundAlterInfo* alterInfo);
     void logUpdateSequenceRecord(common::sequence_id_t sequenceID, uint64_t kCount);

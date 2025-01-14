@@ -26,6 +26,8 @@ class KUZU_API CatalogSet {
     friend class storage::UndoBuffer;
 
 public:
+    CatalogSet() = default;
+    explicit CatalogSet(bool isInternal);
     bool containsEntry(const transaction::Transaction* transaction, const std::string& name);
     CatalogEntry* getEntry(const transaction::Transaction* transaction, const std::string& name);
     common::oid_t createEntry(transaction::Transaction* transaction,
@@ -66,6 +68,12 @@ private:
     static CatalogEntry* traverseVersionChainsForTransactionNoLock(
         const transaction::Transaction* transaction, CatalogEntry* currentEntry);
     static CatalogEntry* getCommittedEntryNoLock(CatalogEntry* entry);
+    bool isInternal() const { return nextOID >= INTERNAL_CATALOG_SET_START_OID; }
+
+public:
+    // To ensure the uniqueness of the OID and avoid conflict with user tables/sequence, we make the
+    // start OID of the internal catalog set to be 2^63.
+    static constexpr common::oid_t INTERNAL_CATALOG_SET_START_OID = 1LL << 63;
 
 private:
     std::shared_mutex mtx;

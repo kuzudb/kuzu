@@ -75,7 +75,7 @@ uint64_t Transaction::getEstimatedMemUsage() const {
 }
 
 void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry,
-    bool skipLoggingToWAL) const {
+    bool isInternal, bool skipLoggingToWAL) const {
     undoBuffer->createCatalogEntry(catalogSet, catalogEntry);
     if (!shouldLogToWAL() || skipLoggingToWAL) {
         return;
@@ -94,7 +94,7 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
                 return;
             }
             wal->logCreateTableEntryRecord(
-                tableEntry.getBoundCreateTableInfo(clientContext->getTransaction()));
+                tableEntry.getBoundCreateTableInfo(clientContext->getTransaction(), isInternal));
         } else {
             // Must be alter.
             KU_ASSERT(catalogEntry.getType() == newCatalogEntry->getType());
@@ -109,13 +109,13 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
             // We don't log SERIAL catalog entry creation as it is implicit
             return;
         }
-        wal->logCreateCatalogEntryRecord(newCatalogEntry);
+        wal->logCreateCatalogEntryRecord(newCatalogEntry, isInternal);
     } break;
     case CatalogEntryType::SCALAR_MACRO_ENTRY:
     case CatalogEntryType::TYPE_ENTRY: {
         KU_ASSERT(
             catalogEntry.getType() == CatalogEntryType::DUMMY_ENTRY && catalogEntry.isDeleted());
-        wal->logCreateCatalogEntryRecord(newCatalogEntry);
+        wal->logCreateCatalogEntryRecord(newCatalogEntry, isInternal);
     } break;
     case CatalogEntryType::DUMMY_ENTRY: {
         KU_ASSERT(newCatalogEntry->isDeleted());

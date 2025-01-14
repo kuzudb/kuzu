@@ -146,7 +146,7 @@ void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) con
         auto& sequenceEntry =
             createEntryRecord.ownedCatalogEntry->constCast<SequenceCatalogEntry>();
         clientContext.getCatalog()->createSequence(clientContext.getTransaction(),
-            sequenceEntry.getBoundCreateSequenceInfo());
+            sequenceEntry.getBoundCreateSequenceInfo(createEntryRecord.isInternal));
     } break;
     case CatalogEntryType::TYPE_ENTRY: {
         auto& typeEntry = createEntryRecord.ownedCatalogEntry->constCast<TypeCatalogEntry>();
