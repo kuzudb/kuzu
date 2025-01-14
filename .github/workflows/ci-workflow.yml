@@ -358,8 +358,9 @@ jobs:
       - name: Test fwd only rel tables with ASAN
         env:
           GTEST_FILTER: "e2e_test*:RelScanTest*"
+          DEFAULT_FWD_REL_STORAGE: 1
         run: |
-          make test DEFAULT_FWD_REL_STORAGE=1
+          make test
 
       - name: Test compression disabled with ASAN
         env:
@@ -411,8 +412,9 @@ jobs:
       - name: Test fwd only rel tables
         env:
           GTEST_FILTER: "e2e_test*:RelScanTest*"
+          DEFAULT_FWD_REL_STORAGE: 1
         run: |
-          make test DEFAULT_FWD_REL_STORAGE=1
+          make test
 
       - name: Test compression disabled
         env:
@@ -545,10 +547,11 @@ jobs:
       - name: Test fwd only rel tables
         shell: cmd
         env:
+          DEFAULT_FWD_REL_STORAGE: 1
           GTEST_FILTER: "e2e_test*:RelScanTest*"
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          make test DEFAULT_FWD_REL_STORAGE=1
+          make test
 
       - name: Test in mem
         shell: cmd

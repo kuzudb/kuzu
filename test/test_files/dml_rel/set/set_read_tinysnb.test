@@ -1,5 +1,5 @@
 -DATASET CSV tinysnb
--ENABLE_FWD_ONLY
+-TEST_FWD_ONLY_REL
 --
 
 -CASE SetReadTest1

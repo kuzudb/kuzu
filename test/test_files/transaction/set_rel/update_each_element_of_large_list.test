@@ -1,5 +1,5 @@
 -DATASET CSV rel-update-tests
--ENABLE_FWD_ONLY
+-TEST_FWD_ONLY_REL
 --
 
 -CASE updateEachElementOfLargeListCommitNormalExecution

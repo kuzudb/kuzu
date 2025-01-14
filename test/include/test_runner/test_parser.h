@@ -18,7 +18,7 @@ enum class TokenType {
     SKIP_32BIT,
     SKIP_WASM,
     SKIP_IN_MEM,
-    ENABLE_FWD_ONLY,
+    TEST_FWD_ONLY_REL,
     // body
     BUFFER_POOL_SIZE,
     CASE,
@@ -63,7 +63,7 @@ const std::unordered_map<std::string, TokenType> tokenMap = {{"-DATASET", TokenT
     {"-PARALLELISM", TokenType::PARALLELISM}, {"-SKIP", TokenType::SKIP},
     {"-SKIP_MUSL", TokenType::SKIP_MUSL}, {"-SKIP_LINE", TokenType::DEFINE},
     {"-SKIP_32BIT", TokenType::SKIP_32BIT}, {"-SKIP_WASM", TokenType::SKIP_WASM},
-    {"-SKIP_IN_MEM", TokenType::SKIP_IN_MEM}, {"-ENABLE_FWD_ONLY", TokenType::ENABLE_FWD_ONLY},
+    {"-SKIP_IN_MEM", TokenType::SKIP_IN_MEM}, {"-TEST_FWD_ONLY_REL", TokenType::TEST_FWD_ONLY_REL},
     {"-DEFINE", TokenType::DEFINE}, {"-STATEMENT", TokenType::STATEMENT},
     {"-INSERT_STATEMENT_BLOCK", TokenType::INSERT_STATEMENT_BLOCK},
     {"-ROLLBACK", TokenType::ROLLBACK}, {"-BUFFER_POOL_SIZE", TokenType::BUFFER_POOL_SIZE},

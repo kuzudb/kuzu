@@ -123,7 +123,7 @@ void TestParser::parseHeader() {
 #endif
             break;
         }
-        case TokenType::ENABLE_FWD_ONLY: {
+        case TokenType::TEST_FWD_ONLY_REL: {
             testGroup->testFwdOnly = true;
             break;
         }
@@ -476,7 +476,7 @@ void TestParser::parseBody() {
             }
             break;
         }
-        case TokenType::ENABLE_FWD_ONLY: {
+        case TokenType::TEST_FWD_ONLY_REL: {
             testFwdOnly = true;
             break;
         }
@@ -484,11 +484,11 @@ void TestParser::parseBody() {
             break;
         }
         default: {
-            // if its not a special case, then it has to be a statement
-            if (TestHelper::getSystemEnv("DEFAULT_EXTEND_DIRECTION") == "fwd" && !testFwdOnly &&
+            if (TestHelper::getSystemEnv("DEFAULT_FWD_REL_STORAGE") == "1" && !testFwdOnly &&
                 !testCaseName.starts_with("DISABLED_")) {
                 testCaseName = "DISABLED_" + testCaseName;
             }
+            // if its not a special case, then it has to be a statement
             TestStatement* statement = addNewStatement(testCaseName);
             testGroup->testCasesConnNames[testCaseName].insert(TestHelper::DEFAULT_CONN_NAME);
             extractStatement(statement, testCaseName);

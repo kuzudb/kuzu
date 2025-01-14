@@ -2,7 +2,7 @@
 --
 
 -CASE deleteAllRelsFromLargeListCommitNormalExecution
--ENABLE_FWD_ONLY
+-TEST_FWD_ONLY_REL
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (:person)-[e:knows]->(:person) DELETE e
@@ -18,7 +18,7 @@
 
 
 -CASE deleteAllRelsFromLargeListCommitRecovery
--ENABLE_FWD_ONLY
+-TEST_FWD_ONLY_REL
 -STATEMENT CALL auto_checkpoint=false
 ---- ok
 -STATEMENT CHECKPOINT;
@@ -39,7 +39,7 @@
 
 
 -CASE deleteAllRelsFromLargeListRollbackNormalExecution
--ENABLE_FWD_ONLY
+-TEST_FWD_ONLY_REL
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (:person)-[e:knows]->(:person) DELETE e
@@ -56,7 +56,7 @@
 
 
 -CASE deleteAllRelsFromLargeListRollbackRecovery
--ENABLE_FWD_ONLY
+-TEST_FWD_ONLY_REL
 -STATEMENT CALL auto_checkpoint=false
 ---- ok
 -STATEMENT CHECKPOINT;
