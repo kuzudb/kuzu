@@ -114,17 +114,17 @@ TEST_F(RelScanTest, ScanFwd) {
                     resultRelOffsets.push_back(edgeID.offset);
                     resultDates.push_back(date);
                 });
-                EXPECT_EQ(resultNodeOffsets, expectedNodeOffsets);
-                EXPECT_EQ(resultRelOffsets, expectedBwdRelOffsets);
-                for (size_t i = 0; i < resultRelOffsets.size(); i++) {
-                    EXPECT_EQ(expectedDates[resultRelOffsets[i]], resultDates[i])
-                        << " Result " << i << " (rel offset " << resultRelOffsets[i] << ") was "
-                        << Date::toString(resultDates[i]) << " but we expected "
-                        << Date::toString(expectedDates[resultRelOffsets[i]]);
-                }
-                EXPECT_EQ(graph->scanFwd(nodeID_t{node, tableID}, *scanState).collectNbrNodes(),
-                    expectedNodes);
             }
+            EXPECT_EQ(resultNodeOffsets, expectedNodeOffsets);
+            EXPECT_EQ(resultRelOffsets, expectedBwdRelOffsets);
+            for (size_t i = 0; i < resultRelOffsets.size(); i++) {
+                EXPECT_EQ(expectedDates[resultRelOffsets[i]], resultDates[i])
+                    << " Result " << i << " (rel offset " << resultRelOffsets[i] << ") was "
+                    << Date::toString(resultDates[i]) << " but we expected "
+                    << Date::toString(expectedDates[resultRelOffsets[i]]);
+            }
+            EXPECT_EQ(graph->scanFwd(nodeID_t{node, tableID}, *scanState).collectNbrNodes(),
+                expectedNodes);
         }
     };
     compare(0, {1, 2, 3}, {0, 1, 2}, {3, 6, 9});
