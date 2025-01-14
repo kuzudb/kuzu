@@ -475,7 +475,7 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
         preparedStatement->success = false;
         preparedStatement->errMsg = exception.what();
     }
-    preparedStatement->useInternalTable = useInternalCatalogEntry;
+    preparedStatement->useInternalCatalogEntry = useInternalCatalogEntry;
     prepareTimer.stop();
     preparedStatement->preparedSummary.compilingTime =
         preparedStatement->parsedStatement->getParsingTime() + prepareTimer.getElapsedTimeMS();
@@ -487,7 +487,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     if (!preparedStatement->isSuccess()) {
         return queryResultWithError(preparedStatement->errMsg);
     }
-    useInternalCatalogEntry = preparedStatement->useInternalTable;
+    useInternalCatalogEntry = preparedStatement->useInternalCatalogEntry;
     this->resetActiveQuery();
     this->startTimer();
     auto executingTimer = TimeMetric(true /* enable */);
