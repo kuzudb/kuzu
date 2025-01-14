@@ -266,9 +266,9 @@ void OnDiskGraphNbrScanState::InnerIterator::initScan() {
 }
 
 void OnDiskGraphNbrScanState::startScan(common::RelDataDirection direction) {
-    auto idx = RelDirectionUtils::relDirectionToKeyIdx(direction);
-    KU_ASSERT(idx < directedIterators.size() && directedIterators[idx].getDirection() == direction);
-    currentIter = &directedIterators[idx];
+    auto currentIter = std::find_if(directedIterators.begin(), directedIterators.end(),
+        [direction](const auto& directedIt) { return directedIt.getDirection() == direction; });
+    KU_ASSERT(currentIter != directedIterators.end());
     currentIter->initScan();
 }
 

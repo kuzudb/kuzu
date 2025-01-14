@@ -50,26 +50,30 @@ public:
 
     void clear() override {
         localNodeGroup.reset();
-        for (auto& index : directedIndices) {
-            index.index.clear();
+        for (auto& directedIndex : directedIndices) {
+            directedIndex.index.clear();
         }
     }
     bool isEmpty() const {
-        KU_ASSERT(directedIndices.size() >= 1);
-        RUNTIME_CHECK(for (const auto& index
-                           : directedIndices) {
-            KU_ASSERT(index.index.empty() == directedIndices[0].index.empty());
-        });
+        KU_ASSERT(std::all_of(directedIndices.begin(), directedIndices.end(),
+            [this](const auto& directedIndex) {
+                return directedIndex.index.empty() == directedIndices[0].index.empty();
+            }));
         return directedIndices[0].index.empty();
     }
 
     common::column_id_t getNumColumns() const { return localNodeGroup->getDataTypes().size(); }
     common::row_idx_t getNumTotalRows() override { return localNodeGroup->getNumRows(); }
 
-    DirectedCSRIndex::index_t& getCSRIndex(common::RelDataDirection direction) {
-        const auto directionIdx = common::RelDirectionUtils::relDirectionToKeyIdx(direction);
-        KU_ASSERT(directionIdx < directedIndices.size());
-        return directedIndices[directionIdx].index;
+    const DirectedCSRIndex::index_t& getCSRIndex(common::RelDataDirection direction) const {
+        auto ret = std::find_if(directedIndices.begin(), directedIndices.end(),
+            [direction](
+                const auto& directedIndex) { return directedIndex.direction == direction; });
+        KU_ASSERT(ret != directedIndices.end());
+        return ret->index;
+    }
+    DirectedCSRIndex::index_t& getCSRIndexMutable(common::RelDataDirection direction) {
+        return const_cast<DirectedCSRIndex::index_t&>(getCSRIndex(direction));
     }
     NodeGroup& getLocalNodeGroup() const { return *localNodeGroup; }
 

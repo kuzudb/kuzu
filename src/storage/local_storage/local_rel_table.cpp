@@ -157,8 +157,7 @@ bool LocalRelTable::checkIfNodeHasRels(ValueVector* srcNodeIDVector,
     KU_ASSERT(srcNodeIDVector->state->isFlat());
     const auto nodeIDPos = srcNodeIDVector->state->getSelVector()[0];
     const auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
-    const auto& directedIndex =
-        directedIndices[RelDirectionUtils::relDirectionToKeyIdx(direction)].index;
+    const auto& directedIndex = getCSRIndex(direction);
     return (directedIndex.contains(nodeOffset) && !directedIndex.at(nodeOffset).empty());
 }
 
@@ -201,8 +200,7 @@ bool LocalRelTable::scan(Transaction* transaction, TableScanState& state) const 
         const auto boundNodePos =
             relScanState.cachedBoundNodeSelVector[relScanState.currBoundNodeIdx];
         const auto boundNodeOffset = relScanState.nodeIDVector->readNodeOffset(boundNodePos);
-        auto& localCSRIndex =
-            directedIndices[RelDirectionUtils::relDirectionToKeyIdx(relScanState.direction)].index;
+        auto& localCSRIndex = getCSRIndex(relScanState.direction);
         if (localScanState.rowIndices.empty() && localCSRIndex.contains(boundNodeOffset)) {
             localScanState.rowIndices = localCSRIndex.at(boundNodeOffset);
             localScanState.nextRowToScan = 0;

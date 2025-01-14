@@ -168,11 +168,10 @@ public:
         return getDirectedTableData(direction)->getCSRLengthColumn();
     }
     common::column_id_t getNumColumns() const {
-        KU_ASSERT(directedRelData.size() >= 1);
-        RUNTIME_CHECK(for (const auto& relData
-                           : directedRelData) {
-            KU_ASSERT(relData->getNumColumns() == directedRelData[0]->getNumColumns());
-        });
+        KU_ASSERT(std::all_of(directedRelData.begin(), directedRelData.end(),
+            [this](const auto& relData) {
+                return relData->getNumColumns() == directedRelData[0]->getNumColumns();
+            }));
         return directedRelData[0]->getNumColumns();
     }
     Column* getColumn(common::column_id_t columnID, common::RelDataDirection direction) const {

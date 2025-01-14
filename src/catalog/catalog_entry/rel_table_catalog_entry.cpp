@@ -30,6 +30,9 @@ std::vector<common::RelDataDirection> RelTableCatalogEntry::getRelDataDirections
     case common::ExtendDirection::FWD: {
         return {RelDataDirection::FWD};
     }
+    case common::ExtendDirection::BWD: {
+        return {RelDataDirection::BWD};
+    }
     case common::ExtendDirection::BOTH: {
         return {RelDataDirection::FWD, RelDataDirection::BWD};
     }

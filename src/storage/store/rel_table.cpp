@@ -276,7 +276,7 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
 void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
     RelTableDeleteState* deleteState) {
     // TODO(Royi) we currently do not support detached deleting from single-direction rel tables
-    KU_ASSERT(directedRelData.size() == 2);
+    KU_ASSERT(directedRelData.size() == common::NUM_REL_DIRECTIONS);
 
     KU_ASSERT(deleteState->srcNodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto tableData = getDirectedTableData(direction);
@@ -382,21 +382,21 @@ void RelTable::addColumn(Transaction* transaction, TableAddColumnState& addColum
     if (localTable) {
         localTable->addColumn(transaction, addColumnState);
     }
-    for (auto& directedRelData : directedRelData) {
-        directedRelData->addColumn(transaction, addColumnState);
+    for (auto& directedData : directedRelData) {
+        directedData->addColumn(transaction, addColumnState);
     }
     hasChanges = true;
 }
 
 RelTableData* RelTable::getDirectedTableData(common::RelDataDirection direction) const {
-    const auto directionIdx = RelDirectionUtils::relDirectionToKeyIdx(direction);
-    if (directionIdx >= directedRelData.size()) {
+    auto ret = std::find_if(directedRelData.begin(), directedRelData.end(),
+        [direction](const auto& relData) { return relData->getDirection() == direction; });
+    if (ret == directedRelData.end()) {
         throw RuntimeException(stringFormat(
             "Failed to get {} data for rel table \"{}\", please set the storage direction to BOTH",
             RelDirectionUtils::relDirectionToString(direction), tableName));
     }
-    KU_ASSERT(directedRelData[directionIdx]->getDirection() == direction);
-    return directedRelData[directionIdx].get();
+    return ret->get();
 }
 
 NodeGroup* RelTable::getOrCreateNodeGroup(transaction::Transaction* transaction,
@@ -484,12 +484,12 @@ void RelTable::updateNodeOffsets(const Transaction* transaction,
     if (transaction->hasNewlyInsertedNodes(fromNodeTableID)) {
         columnsToUpdate[LOCAL_BOUND_NODE_ID_COLUMN_ID] = fromNodeTableID;
         updateIndexNodeOffsets(transaction,
-            localRelTable.getCSRIndex(common::RelDataDirection::FWD), fromNodeTableID);
+            localRelTable.getCSRIndexMutable(common::RelDataDirection::FWD), fromNodeTableID);
     }
     if (transaction->hasNewlyInsertedNodes(toNodeTableID)) {
         columnsToUpdate[LOCAL_NBR_NODE_ID_COLUMN_ID] = toNodeTableID;
         updateIndexNodeOffsets(transaction,
-            localRelTable.getCSRIndex(common::RelDataDirection::FWD), toNodeTableID);
+            localRelTable.getCSRIndexMutable(common::RelDataDirection::FWD), toNodeTableID);
     }
     auto& localNodeGroup = localRelTable.getLocalNodeGroup();
     for (auto i = 0u; i < localNodeGroup.getNumChunkedGroups(); i++) {
@@ -541,8 +541,8 @@ void RelTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
         for (auto& property : tableEntry->getProperties()) {
             columnIDs.push_back(tableEntry->getColumnID(property.getName()));
         }
-        for (auto& directedRelData : directedRelData) {
-            directedRelData->checkpoint(columnIDs);
+        for (auto& directedData : directedRelData) {
+            directedData->checkpoint(columnIDs);
         }
         tableEntry->vacuumColumnIDs(1);
         hasChanges = false;
@@ -550,8 +550,8 @@ void RelTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
     Table::serialize(ser);
     ser.writeDebuggingInfo("next_rel_offset");
     ser.write<offset_t>(nextRelOffset);
-    for (auto& directedRelData : directedRelData) {
-        directedRelData->serialize(ser);
+    for (auto& directedData : directedRelData) {
+        directedData->serialize(ser);
     }
 }
 

@@ -285,7 +285,7 @@ getBoundAndNbrNodes(const RelExpression& rel, ExtendDirection direction) {
 static ExtendDirection getExtendDirection(const binder::RelExpression& relExpression,
     const binder::NodeExpression& boundNode) {
     if (relExpression.getDirectionType() == binder::RelDirectionType::BOTH) {
-        KU_ASSERT(relExpression.getExtendDirections().size() == 2);
+        KU_ASSERT(relExpression.getExtendDirections().size() == common::NUM_REL_DIRECTIONS);
         return ExtendDirection::BOTH;
     }
     if (relExpression.getSrcNodeName() == boundNode.getUniqueName()) {
