@@ -75,13 +75,12 @@ static void validateInternalTableNotExist(const std::string& tableName,
 }
 
 static void validateInternalTablesNotExist(common::table_id_t tableID, const std::string& indexName,
-    const catalog::Catalog& catalog, transaction::Transaction* trx) {
-    validateInternalTableNotExist(FTSUtils::getDocsTableName(tableID, indexName), catalog, trx);
-    validateInternalTableNotExist(FTSUtils::getAppearsInTableName(tableID, indexName), catalog,
-        trx);
+    const catalog::Catalog& catalog, transaction::Transaction* tx) {
+    validateInternalTableNotExist(FTSUtils::getDocsTableName(tableID, indexName), catalog, tx);
+    validateInternalTableNotExist(FTSUtils::getAppearsInTableName(tableID, indexName), catalog, tx);
     validateInternalTableNotExist(FTSUtils::getAppearsInfoTableName(tableID, indexName), catalog,
-        trx);
-    validateInternalTableNotExist(FTSUtils::getTermsTableName(tableID, indexName), catalog, trx);
+        tx);
+    validateInternalTableNotExist(FTSUtils::getTermsTableName(tableID, indexName), catalog, tx);
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,

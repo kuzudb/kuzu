@@ -17,6 +17,12 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace catalog {
 
+CatalogSet::CatalogSet(bool isInternal) {
+    if (isInternal) {
+        nextOID = INTERNAL_CATALOG_SET_START_OID;
+    }
+}
+
 static bool checkWWConflict(const Transaction* transaction, const CatalogEntry* entry) {
     return (entry->getTimestamp() >= Transaction::START_TRANSACTION_ID &&
                entry->getTimestamp() != transaction->getID()) ||
@@ -241,10 +247,6 @@ CatalogEntry* CatalogSet::getEntryOfOID(const Transaction* transaction, oid_t oi
         return currentEntry;
     }
     return nullptr;
-}
-
-void CatalogSet::setAsInternal() {
-    nextOID = INTERNAL_CATALOG_SET_START_OID;
 }
 
 void CatalogSet::serialize(Serializer serializer) const {

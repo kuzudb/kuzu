@@ -26,6 +26,8 @@ class KUZU_API CatalogSet {
     friend class storage::UndoBuffer;
 
 public:
+    CatalogSet() = default;
+    explicit CatalogSet(bool isInternal);
     bool containsEntry(const transaction::Transaction* transaction, const std::string& name);
     CatalogEntry* getEntry(const transaction::Transaction* transaction, const std::string& name);
     common::oid_t createEntry(transaction::Transaction* transaction,
@@ -38,7 +40,6 @@ public:
     void iterateEntriesOfType(const transaction::Transaction* transaction, CatalogEntryType type,
         const std::function<void(const CatalogEntry*)>& func);
     CatalogEntry* getEntryOfOID(const transaction::Transaction* transaction, common::oid_t oid);
-    void setAsInternal();
 
     void serialize(common::Serializer serializer) const;
     static std::unique_ptr<CatalogSet> deserialize(common::Deserializer& deserializer);

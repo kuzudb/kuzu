@@ -38,10 +38,8 @@ Catalog::Catalog() {
     functions = std::make_unique<CatalogSet>();
     types = std::make_unique<CatalogSet>();
     indexes = std::make_unique<CatalogSet>();
-    internalTables = std::make_unique<CatalogSet>();
-    internalTables->setAsInternal();
-    internalSequences = std::make_unique<CatalogSet>();
-    internalSequences->setAsInternal();
+    internalTables = std::make_unique<CatalogSet>(true /* isInternal */);
+    internalSequences = std::make_unique<CatalogSet>(true /* isInternal */);
     registerBuiltInFunctions();
 }
 
@@ -56,10 +54,8 @@ Catalog::Catalog(const std::string& directory, VirtualFileSystem* vfs) {
         functions = std::make_unique<CatalogSet>();
         types = std::make_unique<CatalogSet>();
         indexes = std::make_unique<CatalogSet>();
-        internalTables = std::make_unique<CatalogSet>();
-        internalTables->setAsInternal();
-        internalSequences = std::make_unique<CatalogSet>();
-        internalSequences->setAsInternal();
+        internalTables = std::make_unique<CatalogSet>(true /* isInternal */);
+        internalSequences = std::make_unique<CatalogSet>(true /* isInternal */);
         if (!isInMemMode) {
             // TODO(Guodong): Ideally we should be able to remove this line. Revisit here.
             saveToFile(directory, vfs, FileVersionType::ORIGINAL);
