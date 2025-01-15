@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
+import java.util.HashMap;
 
 public class ValueTest extends TestBase {
 
@@ -896,6 +897,10 @@ public class ValueTest extends TestBase {
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
+        InternalID relId = ValueRelUtil.getID(value);
+        assertEquals(relId.tableId, 3);
+        assertEquals(relId.offset, 0);
+
         InternalID srcId = ValueRelUtil.getSrcID(value);
         assertEquals(srcId.tableId, 0);
         assertEquals(srcId.offset, 0);
@@ -971,6 +976,39 @@ public class ValueTest extends TestBase {
         value.close();
         flatTuple.close();
         result.close();
+    }
+
+    @Test
+    void InternalIDEquality() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (a:person) -[r:knows]-> (b:person) RETURN r ORDER BY a.ID, b.ID");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        FlatTuple flatTuple = result.getNext();
+        Value value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertFalse(value.isNull());
+
+        InternalID relId = ValueRelUtil.getID(value);
+        InternalID newInternalID = new InternalID(relId.tableId, relId.offset);
+        assertEquals(relId, newInternalID);
+        assertTrue(relId.equals(newInternalID));
+        assertTrue(relId.equals(relId));
+        assertFalse(relId.equals(null));
+        assertFalse(relId.equals(new Object()));
+    }
+
+    @Test
+    void InternalIDAsHashMapKey () {
+        HashMap<InternalID, String> map = new HashMap<>();
+        InternalID id1 = new InternalID(1, 2);
+        InternalID id2 = new InternalID(1, 2);
+        InternalID id3 = new InternalID(1, 3);
+        map.put(id1, "Alice");
+        map.put(id2, "Bob");
+        map.put(id3, "Charlie");
+        assertEquals(map.size(), 2);
+        assertEquals(map.get(id1), "Bob");
+        assertEquals(map.get(id3), "Charlie");
     }
 
     @Test

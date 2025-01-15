@@ -201,6 +201,8 @@ public class Native {
 
     protected static native String kuzu_node_val_to_string(Value node_val);
 
+    protected static native InternalID kuzu_rel_val_get_id(Value rel_val);
+
     protected static native InternalID kuzu_rel_val_get_src_id(Value rel_val);
 
     protected static native InternalID kuzu_rel_val_get_dst_id(Value rel_val);

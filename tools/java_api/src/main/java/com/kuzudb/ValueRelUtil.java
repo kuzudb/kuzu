@@ -4,6 +4,19 @@ package com.kuzudb;
  * Utility functions for Value of rel type.
  */
 public class ValueRelUtil {
+
+    /**
+     * Get the id of the given rel value.
+     *
+     * @param value: The rel value.
+     * @return The id of the given rel value.
+     * @throws ObjectRefDestroyedException If the rel value has been destroyed.
+     */
+    public static InternalID getID(Value value) throws ObjectRefDestroyedException {
+        value.checkNotDestroyed();
+        return Native.kuzu_rel_val_get_id(value);
+    }
+
     /**
      * Get src id of the given rel value.
      *
