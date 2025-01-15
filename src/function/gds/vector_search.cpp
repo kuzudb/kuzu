@@ -323,7 +323,6 @@ namespace kuzu {
                 }
 
                 for (; i < size; i++) {
-                    printf("yes");
                     double dist;
                     stats.distanceComputationTime->start();
                     dc->computeDistance(vectorArray[i], &dist);
