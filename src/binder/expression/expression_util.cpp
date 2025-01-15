@@ -410,5 +410,11 @@ bool ExpressionUtil::canCastStatically(const Expression& expr, const LogicalType
     }
 }
 
+bool ExpressionUtil::canEvaluateAsLiteral(const kuzu::binder::Expression& expr) {
+    return (expr.expressionType == common::ExpressionType::LITERAL ||
+            (expr.expressionType == common::ExpressionType::PARAMETER &&
+                expr.getDataType().getLogicalTypeID() != common::LogicalTypeID::ANY));
+}
+
 } // namespace binder
 } // namespace kuzu

@@ -1,6 +1,5 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
-#include "binder/expression/literal_expression.h"
 #include "binder/expression_visitor.h"
 #include "binder/query/return_with_clause/bound_return_clause.h"
 #include "binder/query/return_with_clause/bound_with_clause.h"
@@ -251,33 +250,14 @@ bool Binder::isOrderByKeyTypeSupported(const LogicalType& dataType) {
     return true;
 }
 
-uint64_t Binder::bindSkipLimitExpression(const ParsedExpression& expression) {
+std::shared_ptr<Expression> Binder::bindSkipLimitExpression(const ParsedExpression& expression) {
     auto boundExpression = expressionBinder.bindExpression(expression);
-    auto errorMsg = "The number of rows to skip/limit must be a non-negative integer.";
-    if (boundExpression->expressionType != ExpressionType::LITERAL) {
-        throw BinderException(errorMsg);
+    if (boundExpression->expressionType != ExpressionType::LITERAL &&
+        boundExpression->expressionType != ExpressionType::PARAMETER) {
+        throw BinderException(
+            "The number of rows to skip/limit must be a parameter/literal expression.");
     }
-    auto& literalExpr = boundExpression->constCast<LiteralExpression>();
-    auto value = literalExpr.getValue();
-    int64_t num = 0;
-    // TODO: replace the following switch with value.cast()
-    switch (value.getDataType().getLogicalTypeID()) {
-    case LogicalTypeID::INT64: {
-        num = value.getValue<int64_t>();
-    } break;
-    case LogicalTypeID::INT32: {
-        num = value.getValue<int32_t>();
-    } break;
-    case LogicalTypeID::INT16: {
-        num = value.getValue<int16_t>();
-    } break;
-    default:
-        throw BinderException(errorMsg);
-    }
-    if (num < 0) {
-        throw BinderException(errorMsg);
-    }
-    return num;
+    return boundExpression;
 }
 
 } // namespace binder

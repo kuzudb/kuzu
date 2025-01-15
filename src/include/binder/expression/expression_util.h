@@ -57,6 +57,8 @@ struct KUZU_API ExpressionUtil {
     // This mostly happen when a literal is an empty list. By default, we assign its data type to
     // INT64[] but it can be cast to any other list type at compile time.
     static bool canCastStatically(const Expression& expr, const common::LogicalType& targetType);
+
+    static bool canEvaluateAsLiteral(const Expression& expr);
 };
 
 } // namespace binder
