@@ -1,5 +1,6 @@
 #include "planner/operator/logical_limit.h"
 
+#include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/parameter_expression.h"
 #include "common/exception/runtime.h"
@@ -38,15 +39,8 @@ static uint64_t getLiteralNumber(std::shared_ptr<kuzu::binder::Expression> expr)
     return number;
 }
 
-static bool canEvaluate(std::shared_ptr<binder::Expression> expr) {
-    KU_ASSERT(expr != nullptr);
-    return (expr->expressionType == common::ExpressionType::LITERAL ||
-            (expr->expressionType == common::ExpressionType::PARAMETER &&
-                expr->getDataType().getLogicalTypeID() != common::LogicalTypeID::ANY));
-}
-
 bool LogicalLimit::canEvaluateSkipNum() const {
-    return canEvaluate(skipNum);
+    return binder::ExpressionUtil::canEvaluateAsLiteral(*skipNum);
 }
 
 uint64_t LogicalLimit::evaluateSkipNum() const {
@@ -54,7 +48,7 @@ uint64_t LogicalLimit::evaluateSkipNum() const {
 }
 
 bool LogicalLimit::canEvaluateLimitNum() const {
-    return canEvaluate(limitNum);
+    return binder::ExpressionUtil::canEvaluateAsLiteral(*limitNum);
 }
 
 uint64_t LogicalLimit::evaluateLimitNum() const {

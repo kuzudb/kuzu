@@ -112,3 +112,26 @@ Bob
 ---- 2
 [2.100000,4.400000]
 [3.800000,2.500000]
+
+-LOG LimitWithConstantExpr
+-STATEMENT MATCH (a:person) RETURN a.ID LIMIT 2 + 3
+---- 5
+0
+2
+3
+5
+7
+
+-LOG SkipWithConstantExpr
+-STATEMENT MATCH (a:person) RETURN a.ID SKIP 1 + 2
+---- 5
+5
+7
+8
+9
+10
+
+-LOG SkipLimitWithConstantExpr
+-STATEMENT MATCH (a:person) RETURN a.ID SKIP 1 + 2 LIMIT 0 + 1
+---- 5
+5
