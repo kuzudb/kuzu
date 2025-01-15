@@ -133,5 +133,5 @@ Bob
 
 -LOG SkipLimitWithConstantExpr
 -STATEMENT MATCH (a:person) RETURN a.ID SKIP 1 + 2 LIMIT 0 + 1
----- 5
+---- 1
 5
