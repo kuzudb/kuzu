@@ -54,9 +54,9 @@ constexpr To safeIntegerConversion(From val) {
     return val;
 }
 
-template<typename T, typename Data>
-bool dataContains(const Data& data, const T& value) {
-    return std::find(data.begin(), data.end(), value) != data.end();
+template<typename T, typename Container>
+bool containsValue(const Container& container, const T& value) {
+    return std::find(container.begin(), container.end(), value) != container.end();
 }
 
 template<class T>

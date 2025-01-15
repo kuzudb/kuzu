@@ -276,7 +276,7 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
 void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
     RelTableDeleteState* deleteState) {
     // TODO(Royi) we currently do not support detached deleting from single-direction rel tables
-    KU_ASSERT(directedRelData.size() == 2);
+    KU_ASSERT(directedRelData.size() == common::NUM_REL_DIRECTIONS);
 
     KU_ASSERT(deleteState->srcNodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto tableData = getDirectedTableData(direction);
