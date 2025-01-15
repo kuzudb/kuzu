@@ -7,6 +7,8 @@
 #endif
 
 // This header is generated at build time. See CMakeLists.txt.
+#include <vector>
+
 #include "com_kuzudb_Native.h"
 #include "common/constants.h"
 #include "common/exception/exception.h"
@@ -794,6 +796,37 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzu_1value_1destroy(JNIEnv* env, 
     jobject thisValue) {
     Value* v = getValue(env, thisValue);
     delete v;
+}
+
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1create_1list___3Lcom_kuzudb_Value_2(
+    JNIEnv* env, jclass, jobjectArray listValues) {
+    jsize len = env->GetArrayLength(listValues);
+    if (len == 0) {
+        return nullptr;
+    }
+
+    std::vector<std::unique_ptr<Value>> children;
+    for (jsize i = 0; i < len; ++i) {
+        Value* element = getValue(env, env->GetObjectArrayElement(listValues, i));
+        children.emplace_back(element->copy());
+    }
+    LogicalType childType = children[0]->getDataType().copy();
+
+    Value* listValue = new Value(LogicalType::LIST(std::move(childType)), std::move(children));
+    return createJavaObject(env, listValue, J_C_Value, J_C_Value_F_v_ref);
+}
+
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1create_1list__Lcom_kuzudb_DataType_2J(
+    JNIEnv* env, jclass, jobject dataType, jlong numElements) {
+    LogicalType* logicalType = getDataType(env, dataType);
+
+    std::vector<std::unique_ptr<Value>> children;
+    for (jlong i = 0; i < numElements; ++i) {
+        children.emplace_back(std::make_unique<Value>(Value::createDefaultValue(*logicalType)));
+    }
+
+    Value* listValue = new Value(LogicalType::LIST(logicalType->copy()), std::move(children));
+    return createJavaObject(env, listValue, J_C_Value, J_C_Value_F_v_ref);
 }
 
 JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1list_1size(JNIEnv* env, jclass,

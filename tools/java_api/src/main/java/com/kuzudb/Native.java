@@ -179,6 +179,10 @@ public class Native {
 
     protected static native void kuzu_value_destroy(Value value);
 
+    protected static native Value kuzu_create_list(Value[] values);
+
+    protected static native Value kuzu_create_list(DataType type, long numElements);
+
     protected static native long kuzu_value_get_list_size(Value value);
 
     protected static native Value kuzu_value_get_list_element(Value value, long index);

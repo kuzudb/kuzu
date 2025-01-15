@@ -1,6 +1,5 @@
 package com.kuzudb;
 
-
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -12,6 +11,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.HashMap;
+import java.util.Map;
 
 public class ValueTest extends TestBase {
 
@@ -286,6 +286,44 @@ public class ValueTest extends TestBase {
     }
 
     @Test
+    void CreateListLiteral() throws ObjectRefDestroyedException {
+        Value[] listValues = { new Value(0), new Value(2), new Value(3) };
+        KuzuList list = KuzuList.createList(listValues);
+        assertEquals(listValues.length, list.getListSize());
+        for (int i = 0; i < list.getListSize(); ++i) {
+            assertEquals((Integer) listValues[i].getValue(), (Integer) list.getListElement(i).getValue());
+        }
+        assertNull(list.getListElement(list.getListSize()));
+
+        PreparedStatement stmt = conn.prepare("MATCH (a:person) WHERE a.ID IN $ids RETURN a.ID");
+        Map<String, Value> params = Map.of("ids", list.getValue());
+        QueryResult result = conn.execute(stmt, params);
+        assertTrue(result.isSuccess());
+
+        System.out.println("actual num tuples: " + result.getNumTuples());
+        assertEquals(listValues.length, result.getNumTuples());
+        for (int i = 0; i < listValues.length; ++i) {
+            assertTrue(result.hasNext());
+            var nextVal = result.getNext().getValue(i).getValue();
+            System.out.println("next tuple: " + nextVal + " " + nextVal.getClass());
+            assertEquals((Long) listValues[i].getValue(), (Long) nextVal);
+        }
+
+        assertFalse(result.hasNext());
+    }
+
+    @Test
+    void CreateListDefaultValues() throws ObjectRefDestroyedException {
+        int listLength = 5;
+        KuzuList list = KuzuList.createListWithDefaults(new DataType(DataTypeID.INT32), listLength);
+        assertEquals(listLength, list.getListSize());
+        for (int i = 0; i < listLength; ++i) {
+            assertEquals(0, (Integer) list.getListElement(i).getValue());
+        }
+        assertNull(list.getListElement(list.getListSize()));
+    }
+
+    @Test
     void ValueGetListSize() throws ObjectRefDestroyedException {
         QueryResult result = conn.query("MATCH (a:person) RETURN a.workedHours ORDER BY a.ID");
         assertTrue(result.isSuccess());
@@ -296,7 +334,8 @@ public class ValueTest extends TestBase {
 
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
-        assertEquals(ValueListUtil.getListSize(value), 2);
+        KuzuList list = new KuzuList(value);
+        assertEquals(list.getListSize(), 2);
 
         value.close();
         flatTuple.close();
@@ -313,19 +352,21 @@ public class ValueTest extends TestBase {
         Value value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
-        assertEquals(ValueListUtil.getListSize(value), 2);
 
-        Value listElement = ValueListUtil.getListElement(value, 0);
+        KuzuList list = new KuzuList(value);
+        assertEquals(list.getListSize(), 2);
+
+        Value listElement = list.getListElement(0);
         assertTrue(listElement.isOwnedByCPP());
         assertTrue(listElement.getValue().equals(10L));
         listElement.close();
 
-        listElement = ValueListUtil.getListElement(value, 1);
+        listElement = list.getListElement(1);
         assertTrue(listElement.isOwnedByCPP());
         assertTrue(listElement.getValue().equals(5L));
         listElement.close();
 
-        listElement = ValueListUtil.getListElement(value, 222);
+        listElement = list.getListElement(222);
         assertNull(listElement);
 
         value.close();
@@ -381,7 +422,8 @@ public class ValueTest extends TestBase {
     @Test
     void ValueGetINT8() throws ObjectRefDestroyedException {
         // INT8
-        QueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.level ORDER BY a.ID");
+        QueryResult result = conn
+                .query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.level ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
         FlatTuple flatTuple = result.getNext();
@@ -398,7 +440,8 @@ public class ValueTest extends TestBase {
     @Test
     void ValueGetINT16() throws ObjectRefDestroyedException {
         // INT16
-        QueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.length ORDER BY a.ID");
+        QueryResult result = conn
+                .query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.length ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
         FlatTuple flatTuple = result.getNext();
@@ -1215,25 +1258,28 @@ public class ValueTest extends TestBase {
 
     @Test
     void RecursiveRelGetNodeAndRelList() throws ObjectRefDestroyedException {
-        try (QueryResult result = conn.query("MATCH (a:person)-[e:studyAt*1..1]->(b:organisation) WHERE a.fName = 'Alice' RETURN e;")) {
+        try (QueryResult result = conn
+                .query("MATCH (a:person)-[e:studyAt*1..1]->(b:organisation) WHERE a.fName = 'Alice' RETURN e;")) {
             assertTrue(result.isSuccess());
             assertTrue(result.hasNext());
 
             try (FlatTuple flatTuple = result.getNext();
-                 Value value = flatTuple.getValue(0)) {
+                    Value value = flatTuple.getValue(0)) {
 
                 assertTrue(value.isOwnedByCPP());
 
-                try (Value nodeList = ValueRecursiveRelUtil.getNodeList(value)) {
-                    assertTrue(nodeList.isOwnedByCPP());
-                    assertEquals(ValueListUtil.getListSize(nodeList), 0);
+                try (Value nodeListValue = ValueRecursiveRelUtil.getNodeList(value)) {
+                    assertTrue(nodeListValue.isOwnedByCPP());
+                    KuzuList nodeList = new KuzuList(nodeListValue);
+                    assertEquals(nodeList.getListSize(), 0);
                 }
 
-                try (Value relList = ValueRecursiveRelUtil.getRelList(value)) {
-                    assertTrue(relList.isOwnedByCPP());
-                    assertEquals(ValueListUtil.getListSize(relList), 1);
+                try (Value relListValue = ValueRecursiveRelUtil.getRelList(value)) {
+                    assertTrue(relListValue.isOwnedByCPP());
+                    KuzuList relList = new KuzuList(relListValue);
+                    assertEquals(relList.getListSize(), 1);
 
-                    try (Value rel = ValueListUtil.getListElement(relList, 0)) {
+                    try (Value rel = relList.getListElement(0)) {
                         assertTrue(rel.isOwnedByCPP());
 
                         InternalID srcId = ValueRelUtil.getSrcID(rel);
