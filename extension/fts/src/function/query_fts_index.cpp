@@ -4,6 +4,7 @@
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "catalog/fts_index_catalog_entry.h"
+#include "common/exception/binder.h"
 #include "common/task_system/task_scheduler.h"
 #include "common/types/internal_id_util.h"
 #include "function/fts_utils.h"
@@ -29,34 +30,66 @@ namespace fts_extension {
 using namespace function;
 
 struct QueryFTSBindData final : GDSBindData {
-    std::vector<std::string> terms;
-    uint64_t numDocs;
-    double_t avgDocLen;
+    std::shared_ptr<Expression> query;
+    const FTSIndexCatalogEntry& entry;
     QueryFTSConfig config;
     table_id_t outputTableID;
 
-    QueryFTSBindData(std::vector<std::string> terms, graph::GraphEntry graphEntry,
-        std::shared_ptr<Expression> docs, uint64_t numDocs, double_t avgDocLen,
-        QueryFTSConfig config)
-        : GDSBindData{std::move(graphEntry), std::move(docs)}, terms{std::move(terms)},
-          numDocs{numDocs}, avgDocLen{avgDocLen}, config{config},
+    QueryFTSBindData(graph::GraphEntry graphEntry, std::shared_ptr<Expression> docs,
+        std::shared_ptr<Expression> query, const FTSIndexCatalogEntry& entry, QueryFTSConfig config)
+        : GDSBindData{std::move(graphEntry), std::move(docs)}, query{std::move(query)},
+          entry{entry}, config{config},
           outputTableID{nodeOutput->constCast<NodeExpression>().getSingleEntry()->getTableID()} {}
     QueryFTSBindData(const QueryFTSBindData& other)
-        : GDSBindData{other}, terms{other.terms}, numDocs{other.numDocs},
-          avgDocLen{other.avgDocLen}, config{other.config}, outputTableID{other.outputTableID} {}
+        : GDSBindData{other}, query{other.query}, entry{other.entry}, config{other.config},
+          outputTableID{other.outputTableID} {}
 
     bool hasNodeInput() const override { return false; }
 
-    uint64_t getNumUniqueTerms() const;
+    std::vector<std::string> getTerms() const;
 
     std::unique_ptr<GDSBindData> copy() const override {
         return std::make_unique<QueryFTSBindData>(*this);
     }
 };
 
-uint64_t QueryFTSBindData::getNumUniqueTerms() const {
-    auto uniqueTerms = std::unordered_set<std::string>{terms.begin(), terms.end()};
-    return uniqueTerms.size();
+std::vector<std::string> QueryFTSBindData::getTerms() const {
+    if (!binder::ExpressionUtil::canEvaluateAsLiteral(*query)) {
+        std::string errMsg;
+        switch (query->expressionType) {
+        case common::ExpressionType::PARAMETER: {
+            errMsg = "The query is a parameter expression. Please assign it a value.";
+        } break;
+        default: {
+            errMsg = "The query must be a parameter/literal expression.";
+        } break;
+        }
+        throw RuntimeException{errMsg};
+    }
+    auto value = binder::ExpressionUtil::evaluateAsLiteralValue(*query);
+    if (value.getDataType() != common::LogicalType::STRING()) {
+        throw RuntimeException{"The query must be a string literal."};
+    }
+    auto queryInStr = value.getValue<std::string>();
+    auto stemmer = entry.getFTSConfig().stemmer;
+    std::string regexPattern = "[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\/\\|'\"`-]+";
+    std::string replacePattern = " ";
+    RE2::GlobalReplace(&queryInStr, regexPattern, replacePattern);
+    StringUtils::toLower(queryInStr);
+    auto terms = StringUtils::split(queryInStr, " ");
+    if (stemmer == "none") {
+        return terms;
+    }
+    StemFunction::validateStemmer(stemmer);
+    auto sbStemmer = sb_stemmer_new(reinterpret_cast<const char*>(stemmer.c_str()), "UTF_8");
+    std::vector<std::string> result;
+    for (auto& term : terms) {
+        auto stemData = sb_stemmer_stem(sbStemmer, reinterpret_cast<const sb_symbol*>(term.c_str()),
+            term.length());
+        result.push_back(reinterpret_cast<const char*>(stemData));
+    }
+    sb_stemmer_delete(sbStemmer);
+    return result;
 }
 
 struct ScoreData {
@@ -154,7 +187,7 @@ void runFrontiersOnce(processor::ExecutionContext* executionContext, QFTSState& 
 class QFTSOutputWriter {
 public:
     QFTSOutputWriter(storage::MemoryManager* mm, QFTSOutput* qFTSOutput,
-        const QueryFTSBindData& bindData);
+        const QueryFTSBindData& bindData, uint64_t numUniqueTerms);
 
     void write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len,
         int64_t docsID);
@@ -173,9 +206,10 @@ private:
 };
 
 QFTSOutputWriter::QFTSOutputWriter(storage::MemoryManager* mm, QFTSOutput* qFTSOutput,
-    const QueryFTSBindData& bindData)
+    const QueryFTSBindData& bindData, uint64_t numUniqueTerms)
     : qFTSOutput{qFTSOutput}, docsVector{LogicalType::INTERNAL_ID(), mm},
-      scoreVector{LogicalType::UINT64(), mm}, mm{mm}, bindData{bindData} {
+      scoreVector{LogicalType::UINT64(), mm}, mm{mm}, bindData{bindData},
+      numUniqueTerms{numUniqueTerms} {
     auto state = DataChunkState::getSingleValueDataChunkState();
     pos = state->getSelVector()[0];
     docsVector.setState(state);
@@ -184,7 +218,6 @@ QFTSOutputWriter::QFTSOutputWriter(storage::MemoryManager* mm, QFTSOutput* qFTSO
     scoreVector.setNull(pos, false /* isNull */);
     vectors.push_back(&docsVector);
     vectors.push_back(&scoreVector);
-    numUniqueTerms = bindData.getNumUniqueTerms();
 }
 
 void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len,
@@ -203,8 +236,8 @@ void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNo
         return;
     }
     for (auto& scoreData : scoreInfo.scoreData) {
-        auto numDocs = bindData.numDocs;
-        auto avgDocLen = bindData.avgDocLen;
+        auto numDocs = bindData.entry.getNumDocs();
+        auto avgDocLen = bindData.entry.getAvgDocLen();
         auto df = scoreData.df;
         auto tf = scoreData.tf;
         score += log10((numDocs - df + 0.5) / (df + 0.5) + 1) *
@@ -216,7 +249,7 @@ void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNo
 }
 
 std::unique_ptr<QFTSOutputWriter> QFTSOutputWriter::copy() {
-    return std::make_unique<QFTSOutputWriter>(mm, qFTSOutput, bindData);
+    return std::make_unique<QFTSOutputWriter>(mm, qFTSOutput, bindData, numUniqueTerms);
 }
 
 class QFTSVertexCompute final : public VertexCompute {
@@ -284,12 +317,17 @@ static node_id_map_t<uint64_t> getDFs(main::ClientContext& context,
     return dfs;
 }
 
+static uint64_t getNumUniqueTerms(const std::vector<std::string>& terms) {
+    auto uniqueTerms = std::unordered_set<std::string>{terms.begin(), terms.end()};
+    return uniqueTerms.size();
+}
+
 void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto graphEntry = sharedState->graph->getGraphEntry();
     auto output = std::make_unique<QFTSOutput>();
-    auto qFTSBindData = bindData->ptrCast<QueryFTSBindData>();
     auto& termsEntry = graphEntry->nodeEntries[0]->constCast<catalog::NodeTableCatalogEntry>();
-    auto dfs = getDFs(*executionContext->clientContext, termsEntry, qFTSBindData->terms);
+    auto terms = bindData->ptrCast<QueryFTSBindData>()->getTerms();
+    auto dfs = getDFs(*executionContext->clientContext, termsEntry, terms);
     // Do edge compute to extend terms -> docs and save the term frequency and document frequency
     // for each term-doc pair. The reason why we store the term frequency and document frequency
     // is that: we need the `len` property from the docs table which is only available during the
@@ -308,8 +346,9 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
         QueryFTSAlgorithm::TERM_FREQUENCY_PROP_NAME);
 
     // Do vertex compute to calculate the score for doc with the length property.
+    auto numUniqueTerms = getNumUniqueTerms(terms);
     auto writer = std::make_unique<QFTSOutputWriter>(mm, output.get(),
-        *bindData->ptrCast<QueryFTSBindData>());
+        *bindData->ptrCast<QueryFTSBindData>(), numUniqueTerms);
     auto writerVC = std::make_unique<QFTSVertexCompute>(mm, sharedState.get(), std::move(writer));
     auto docsEntry = graphEntry->nodeEntries[1];
     GDSUtils::runVertexCompute(executionContext, sharedState->graph.get(), *writerVC, docsEntry,
@@ -330,36 +369,20 @@ expression_vector QueryFTSAlgorithm::getResultColumns(Binder* binder) const {
 }
 
 static std::string getParamVal(const GDSBindInput& input, idx_t idx) {
+    if (input.getParam(idx)->expressionType != common::ExpressionType::LITERAL) {
+        throw common::BinderException{"The table and index name must be literal expressions."};
+    }
     return ExpressionUtil::getLiteralValue<std::string>(
         input.getParam(idx)->constCast<LiteralExpression>());
 }
 
-static std::vector<std::string> getTerms(std::string& query, const std::string& stemmer) {
-    std::string regexPattern = "[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\/\\|'\"`-]+";
-    std::string replacePattern = " ";
-    RE2::GlobalReplace(&query, regexPattern, replacePattern);
-    StringUtils::toLower(query);
-    auto terms = StringUtils::split(query, " ");
-    if (stemmer == "none") {
-        return terms;
-    }
-    StemFunction::validateStemmer(stemmer);
-    auto sbStemmer = sb_stemmer_new(reinterpret_cast<const char*>(stemmer.c_str()), "UTF_8");
-    std::vector<std::string> result;
-    for (auto& term : terms) {
-        auto stemData = sb_stemmer_stem(sbStemmer, reinterpret_cast<const sb_symbol*>(term.c_str()),
-            term.length());
-        result.push_back(reinterpret_cast<const char*>(stemData));
-    }
-    sb_stemmer_delete(sbStemmer);
-    return result;
-}
-
 void QueryFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& context) {
     context.setToUseInternalCatalogEntry();
+    // For queryFTS, the table and index name must be given at compile time while the user
+    // can give the query at runtime.
     auto inputTableName = getParamVal(input, 0);
     auto indexName = getParamVal(input, 1);
-    auto query = getParamVal(input, 2);
+    auto query = input.getParam(2);
 
     auto tableEntry = storage::IndexUtils::bindTable(context, inputTableName, indexName,
         storage::IndexOperation::QUERY);
@@ -367,7 +390,6 @@ void QueryFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& con
         context.getCatalog()
             ->getIndex(context.getTransaction(), tableEntry->getTableID(), indexName)
             ->constCast<FTSIndexCatalogEntry>();
-    auto terms = getTerms(query, ftsIndexEntry.getFTSConfig().stemmer);
     auto entry =
         context.getCatalog()->getTableCatalogEntry(context.getTransaction(), inputTableName);
     auto nodeOutput = bindNodeOutput(input.binder, {entry});
@@ -379,9 +401,8 @@ void QueryFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& con
     auto appearsInEntry = context.getCatalog()->getTableCatalogEntry(context.getTransaction(),
         FTSUtils::getAppearsInTableName(tableEntry->getTableID(), indexName));
     auto graphEntry = graph::GraphEntry({termsEntry, docsEntry}, {appearsInEntry});
-    bindData = std::make_unique<QueryFTSBindData>(std::move(terms), std::move(graphEntry),
-        nodeOutput, ftsIndexEntry.getNumDocs(), ftsIndexEntry.getAvgDocLen(),
-        QueryFTSConfig{input.optionalParams});
+    bindData = std::make_unique<QueryFTSBindData>(std::move(graphEntry), nodeOutput,
+        std::move(query), ftsIndexEntry, QueryFTSConfig{input.optionalParams});
 }
 
 function_set QueryFTSFunction::getFunctionSet() {

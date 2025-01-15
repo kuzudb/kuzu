@@ -1,8 +1,6 @@
 #include "planner/operator/logical_limit.h"
 
 #include "binder/expression/expression_util.h"
-#include "binder/expression/literal_expression.h"
-#include "binder/expression/parameter_expression.h"
 #include "common/exception/runtime.h"
 #include "common/type_utils.h"
 #include "planner/operator/factorization/flatten_resolver.h"
@@ -15,17 +13,7 @@ static uint64_t getLiteralNumber(std::shared_ptr<kuzu::binder::Expression> expr)
     if (expr == nullptr) {
         return number;
     }
-    auto value = common::Value::createDefaultValue(expr->dataType);
-    switch (expr->expressionType) {
-    case common::ExpressionType::LITERAL: {
-        value = expr->constCast<binder::LiteralExpression>().getValue();
-    } break;
-    case common::ExpressionType::PARAMETER: {
-        value = expr->constCast<binder::ParameterExpression>().getValue();
-    } break;
-    default:
-        KU_UNREACHABLE;
-    }
+    auto value = binder::ExpressionUtil::evaluateAsLiteralValue(*expr);
     auto errorMsg = "The number of rows to skip/limit must be a non-negative integer.";
     common::TypeUtils::visit(
         value.getDataType(),

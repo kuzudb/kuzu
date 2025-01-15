@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/types/value/value.h"
 #include "expression.h"
 
 namespace kuzu {
@@ -59,6 +60,8 @@ struct KUZU_API ExpressionUtil {
     static bool canCastStatically(const Expression& expr, const common::LogicalType& targetType);
 
     static bool canEvaluateAsLiteral(const Expression& expr);
+
+    static common::Value evaluateAsLiteralValue(const Expression& expr);
 };
 
 } // namespace binder
