@@ -266,8 +266,8 @@ static node_id_map_t<uint64_t> getDFs(main::ClientContext& context,
     dataChunk.insert(1, nodeIDVector);
     auto termsVector = ValueVector(LogicalType::STRING(), context.getMemoryManager());
     termsVector.state = dataChunk.state;
-    auto nodeTableScanState = storage::NodeTableScanState{tableID, {dfColumnID},
-        {dfColumn}, dataChunk, nodeIDVector.get()};
+    auto nodeTableScanState = storage::NodeTableScanState{tableID, {dfColumnID}, {dfColumn},
+        dataChunk, nodeIDVector.get()};
     node_id_map_t<uint64_t> dfs;
     for (auto& term : terms) {
         termsVector.setValue(0, term);
@@ -275,7 +275,7 @@ static node_id_map_t<uint64_t> getDFs(main::ClientContext& context,
         if (!termsNodeTable.lookupPK(tx, &termsVector, 0, offset)) {
             continue;
         }
-        auto nodeID = nodeID_t {offset, tableID};
+        auto nodeID = nodeID_t{offset, tableID};
         nodeIDVector->setValue(0, nodeID);
         termsNodeTable.initScanState(tx, nodeTableScanState, tableID, offset);
         termsNodeTable.lookup(tx, nodeTableScanState);
