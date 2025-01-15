@@ -687,7 +687,8 @@ namespace kuzu {
 
                 // Handle for neg correlation cases
                 addFilteredNodesToCandidates(dc, candidates, results, visited, filterMask, numFilteredNodesToAdd, stats);
-                auto maxNodes = std::min(8, (int) (1.0 / selectivity)) * 64;
+//                auto maxNodes = std::min(8, (int) (1.0 / selectivity)) * 64;
+                auto maxNodes = 64;
                 while (!candidates.empty()) {
                     auto candidate = candidates.top();
                     if (candidate.dist > results.top()->dist && results.size() > 0) {
