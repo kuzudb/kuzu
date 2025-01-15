@@ -3,8 +3,8 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
-#include "binder/expression/parameter_expression.h"
 #include "catalog/fts_index_catalog_entry.h"
+#include "common/exception/binder.h"
 #include "common/task_system/task_scheduler.h"
 #include "common/types/internal_id_util.h"
 #include "function/fts_utils.h"
@@ -38,10 +38,10 @@ struct QueryFTSBindData final : GDSBindData {
     QueryFTSBindData(graph::GraphEntry graphEntry, std::shared_ptr<Expression> docs,
         std::shared_ptr<Expression> query, const FTSIndexCatalogEntry& entry, QueryFTSConfig config)
         : GDSBindData{std::move(graphEntry), std::move(docs)}, query{std::move(query)},
-          config{config}, entry{entry},
+          entry{entry}, config{config},
           outputTableID{nodeOutput->constCast<NodeExpression>().getSingleEntry()->getTableID()} {}
     QueryFTSBindData(const QueryFTSBindData& other)
-        : GDSBindData{other}, query{other.query}, config{other.config}, entry{other.entry},
+        : GDSBindData{other}, query{other.query}, entry{other.entry}, config{other.config},
           outputTableID{other.outputTableID} {}
 
     bool hasNodeInput() const override { return false; }
@@ -54,16 +54,21 @@ struct QueryFTSBindData final : GDSBindData {
 };
 
 std::vector<std::string> QueryFTSBindData::getTerms() const {
-    auto value = Value::createDefaultValue(query->dataType);
-    switch (query->expressionType) {
-    case ExpressionType::LITERAL: {
-        value = query->constCast<binder::LiteralExpression>().getValue();
-    } break;
-    case ExpressionType::PARAMETER: {
-        value = query->constCast<binder::ParameterExpression>().getValue();
-    } break;
-    default:
-        KU_UNREACHABLE;
+    if (!binder::ExpressionUtil::canEvaluateAsLiteral(*query)) {
+        std::string errMsg;
+        switch (query->expressionType) {
+        case common::ExpressionType::PARAMETER: {
+            errMsg = "The query is a parameter expression. Please assign it a value.";
+        } break;
+        default: {
+            errMsg = "The query must be a parameter/literal expression.";
+        } break;
+        }
+        throw RuntimeException{errMsg};
+    }
+    auto value = binder::ExpressionUtil::evaluateAsLiteralValue(*query);
+    if (value.getDataType() != common::LogicalType::STRING()) {
+        throw RuntimeException{"The query must be a string literal."};
     }
     auto queryInStr = value.getValue<std::string>();
     auto stemmer = entry.getFTSConfig().stemmer;
@@ -85,11 +90,6 @@ std::vector<std::string> QueryFTSBindData::getTerms() const {
     }
     sb_stemmer_delete(sbStemmer);
     return result;
-}
-
-static uint64_t getNumUniqueTerms(std::vector<std::string> terms) {
-    auto uniqueTerms = std::unordered_set<std::string>{terms.begin(), terms.end()};
-    return uniqueTerms.size();
 }
 
 struct ScoreData {
@@ -187,7 +187,7 @@ void runFrontiersOnce(processor::ExecutionContext* executionContext, QFTSState& 
 class QFTSOutputWriter {
 public:
     QFTSOutputWriter(storage::MemoryManager* mm, QFTSOutput* qFTSOutput,
-        const QueryFTSBindData& bindData);
+        const QueryFTSBindData& bindData, uint64_t numUniqueTerms);
 
     void write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len,
         int64_t docsID);
@@ -206,9 +206,10 @@ private:
 };
 
 QFTSOutputWriter::QFTSOutputWriter(storage::MemoryManager* mm, QFTSOutput* qFTSOutput,
-    const QueryFTSBindData& bindData)
+    const QueryFTSBindData& bindData, uint64_t numUniqueTerms)
     : qFTSOutput{qFTSOutput}, docsVector{LogicalType::INTERNAL_ID(), mm},
-      scoreVector{LogicalType::UINT64(), mm}, mm{mm}, bindData{bindData} {
+      scoreVector{LogicalType::UINT64(), mm}, mm{mm}, bindData{bindData},
+      numUniqueTerms{numUniqueTerms} {
     auto state = DataChunkState::getSingleValueDataChunkState();
     pos = state->getSelVector()[0];
     docsVector.setState(state);
@@ -217,7 +218,6 @@ QFTSOutputWriter::QFTSOutputWriter(storage::MemoryManager* mm, QFTSOutput* qFTSO
     scoreVector.setNull(pos, false /* isNull */);
     vectors.push_back(&docsVector);
     vectors.push_back(&scoreVector);
-    numUniqueTerms = getNumUniqueTerms(bindData.getTerms());
 }
 
 void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len,
@@ -249,7 +249,7 @@ void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNo
 }
 
 std::unique_ptr<QFTSOutputWriter> QFTSOutputWriter::copy() {
-    return std::make_unique<QFTSOutputWriter>(mm, qFTSOutput, bindData);
+    return std::make_unique<QFTSOutputWriter>(mm, qFTSOutput, bindData, numUniqueTerms);
 }
 
 class QFTSVertexCompute final : public VertexCompute {
@@ -317,10 +317,14 @@ static node_id_map_t<uint64_t> getDFs(main::ClientContext& context,
     return dfs;
 }
 
+static uint64_t getNumUniqueTerms(const std::vector<std::string>& terms) {
+    auto uniqueTerms = std::unordered_set<std::string>{terms.begin(), terms.end()};
+    return uniqueTerms.size();
+}
+
 void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto graphEntry = sharedState->graph->getGraphEntry();
     auto output = std::make_unique<QFTSOutput>();
-    auto qFTSBindData = bindData->ptrCast<QueryFTSBindData>();
     auto& termsEntry = graphEntry->nodeEntries[0]->constCast<catalog::NodeTableCatalogEntry>();
     auto terms = bindData->ptrCast<QueryFTSBindData>()->getTerms();
     auto dfs = getDFs(*executionContext->clientContext, termsEntry, terms);
@@ -342,8 +346,9 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
         QueryFTSAlgorithm::TERM_FREQUENCY_PROP_NAME);
 
     // Do vertex compute to calculate the score for doc with the length property.
+    auto numUniqueTerms = getNumUniqueTerms(terms);
     auto writer = std::make_unique<QFTSOutputWriter>(mm, output.get(),
-        *bindData->ptrCast<QueryFTSBindData>());
+        *bindData->ptrCast<QueryFTSBindData>(), numUniqueTerms);
     auto writerVC = std::make_unique<QFTSVertexCompute>(mm, sharedState.get(), std::move(writer));
     auto docsEntry = graphEntry->nodeEntries[1];
     GDSUtils::runVertexCompute(executionContext, sharedState->graph.get(), *writerVC, docsEntry,
@@ -364,6 +369,9 @@ expression_vector QueryFTSAlgorithm::getResultColumns(Binder* binder) const {
 }
 
 static std::string getParamVal(const GDSBindInput& input, idx_t idx) {
+    if (input.getParam(idx)->expressionType != common::ExpressionType::LITERAL) {
+        throw common::BinderException{"The table and index name must be literal expressions."};
+    }
     return ExpressionUtil::getLiteralValue<std::string>(
         input.getParam(idx)->constCast<LiteralExpression>());
 }

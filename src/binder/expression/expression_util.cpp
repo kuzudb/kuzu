@@ -416,5 +416,21 @@ bool ExpressionUtil::canEvaluateAsLiteral(const kuzu::binder::Expression& expr) 
                 expr.getDataType().getLogicalTypeID() != common::LogicalTypeID::ANY));
 }
 
+common::Value ExpressionUtil::evaluateAsLiteralValue(const kuzu::binder::Expression& expr) {
+    KU_ASSERT(canEvaluateAsLiteral(expr));
+    auto value = Value::createDefaultValue(expr.dataType);
+    switch (expr.expressionType) {
+    case ExpressionType::LITERAL: {
+        value = expr.constCast<binder::LiteralExpression>().getValue();
+    } break;
+    case ExpressionType::PARAMETER: {
+        value = expr.constCast<binder::ParameterExpression>().getValue();
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
+    return value;
+}
+
 } // namespace binder
 } // namespace kuzu
