@@ -1,0 +1,21 @@
+-DATASET CSV fts-dense-frontier
+
+--
+
+-CASE fts_dense_frontier
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content'])
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice') RETURN _node.content,score LIMIT 10
+---- 10
+alice|0.000145
+alice|0.000145
+alice|0.000145
+alice|0.000145
+alice|0.000145
+alice|0.000145
+alice|0.000145
+alice|0.000145
+alice|0.000145
+alice|0.000145

@@ -42,17 +42,16 @@ void SparseFrontier::pinTableID(common::table_id_t tableID) {
     curOffsetSet = &tableIDToOffsetMap.at(tableID);
 }
 
-void SparseFrontier::addNode(common::nodeID_t nodeID) {
+void SparseFrontier::addNode(common::offset_t offset) {
     std::unique_lock<std::mutex> lck{mtx};
-    pinTableID(nodeID.tableID);
-    curOffsetSet->insert(nodeID.offset);
+    curOffsetSet->insert(offset);
 }
 
 void SparseFrontier::addNodes(const std::vector<common::nodeID_t> nodeIDs) {
     if (!enabled_) {
         return;
     }
-    KU_ASSERT(tableIDToOffsetMap.size() == 1);
+    KU_ASSERT(curOffsetSet != nullptr);
     for (auto nodeID : nodeIDs) {
         curOffsetSet->insert(nodeID.offset);
     }
@@ -62,7 +61,7 @@ void SparseFrontier::checkSampleSize() {
     if (!enabled_) {
         return;
     }
-    enabled_ = curOffsetSet->size() < SAMPLE_SIZE;
+    enabled_ = curOffsetSet->size() < sampleSize;
 }
 
 void SparseFrontier::mergeLocalFrontier(const SparseFrontier& localFrontier) {
@@ -100,7 +99,6 @@ PathLengths::PathLengths(const common::table_id_map_t<common::offset_t>& numNode
 
 void PathLengths::pinCurFrontierTableID(common::table_id_t tableID) {
     curFrontier.store(getMaskData(tableID), std::memory_order_relaxed);
-    curTableID.store(tableID, std::memory_order_relaxed);
 }
 
 void PathLengths::pinNextFrontierTableID(common::table_id_t tableID) {
@@ -187,14 +185,16 @@ bool FrontierPair::isCurFrontierSparse() {
 void SinglePathLengthsFrontierPair::initRJFromSource(nodeID_t source) {
     pathLengths->pinNextFrontierTableID(source.tableID);
     pathLengths->setActive(source);
-    nextSparseFrontier->addNode(source);
+    nextSparseFrontier->pinTableID(source.tableID);
+    nextSparseFrontier->addNode(source.offset);
     hasActiveNodesForNextIter_.store(true);
 }
 
 void DoublePathLengthsFrontierPair::initRJFromSource(nodeID_t source) {
     nextDenseFrontier->ptrCast<PathLengths>()->pinNextFrontierTableID(source.tableID);
     nextDenseFrontier->ptrCast<PathLengths>()->setActive(source);
-    nextSparseFrontier->addNode(source);
+    nextSparseFrontier->pinTableID(source.tableID);
+    nextSparseFrontier->addNode(source.offset);
     hasActiveNodesForNextIter_.store(true);
 }
 
