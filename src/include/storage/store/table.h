@@ -128,7 +128,7 @@ struct TableAddColumnState final {
 
 class LocalTable;
 class StorageManager;
-class Table {
+class KUZU_API Table {
 public:
     Table(const catalog::TableCatalogEntry* tableEntry, const StorageManager* storageManager,
         MemoryManager* memoryManager);

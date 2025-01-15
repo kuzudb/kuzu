@@ -10,6 +10,7 @@ namespace fts_extension {
 class QueryFTSAlgorithm : public function::GDSAlgorithm {
 public:
     static constexpr char SCORE_PROP_NAME[] = "score";
+    static constexpr char DOC_FREQUENCY_PROP_NAME[] = "df";
     static constexpr char TERM_FREQUENCY_PROP_NAME[] = "tf";
     static constexpr char DOC_LEN_PROP_NAME[] = "len";
     static constexpr char DOC_ID_PROP_NAME[] = "docID";

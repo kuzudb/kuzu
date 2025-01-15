@@ -20,7 +20,7 @@ struct ChunkState;
 // Additionally, each exceptionIdx can be updated at most once before finalizing
 // After such operations are performed, you must call finalizeAndFlushToDisk() before reading again
 template<std::floating_point T>
-class InMemoryExceptionChunk {
+class KUZU_API InMemoryExceptionChunk {
 public:
     InMemoryExceptionChunk(transaction::Transaction* transaction, const ChunkState& state,
         FileHandle* dataFH, MemoryManager* memoryManager, ShadowFile* shadowFile);
