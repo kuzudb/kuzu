@@ -21,7 +21,7 @@ namespace storage {
 
 class OverflowFile;
 
-class OverflowFileHandle {
+class KUZU_API OverflowFileHandle {
 
 public:
     OverflowFileHandle(OverflowFile& overflowFile, PageCursor& nextPosToWriteTo)

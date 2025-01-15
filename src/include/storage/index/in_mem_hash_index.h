@@ -55,7 +55,7 @@ using HashIndexType =
 // For strings this is different than the type used when inserting/searching
 // (see BufferKeyType and Key)
 template<typename T>
-class InMemHashIndex final {
+class KUZU_API InMemHashIndex final {
     static_assert(getSlotCapacity<T>() <= SlotHeader::FINGERPRINT_CAPACITY);
     // Size of the validity mask
     static_assert(getSlotCapacity<T>() <= sizeof(SlotHeader().validityMask) * 8);

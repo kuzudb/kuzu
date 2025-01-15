@@ -139,7 +139,7 @@ struct InPlaceUpdateLocalState {
 };
 
 // Data statistics used for determining how to handle compressed data
-struct CompressionMetadata {
+struct KUZU_API CompressionMetadata {
 
     // Minimum and maximum are upper and lower bounds for the data.
     // Updates and deletions may cause them to no longer be the exact minimums and maximums,

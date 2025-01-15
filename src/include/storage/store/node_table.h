@@ -23,7 +23,7 @@ class Transaction;
 namespace storage {
 class NodeTable;
 
-struct NodeTableScanState final : TableScanState {
+struct KUZU_API NodeTableScanState final : TableScanState {
     // Scan state for un-committed data.
     // Ideally we shouldn't need columns to scan un-checkpointed but committed data.
     NodeTableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
@@ -112,7 +112,7 @@ private:
 
 class StorageManager;
 
-class NodeTable final : public Table {
+class KUZU_API NodeTable final : public Table {
 public:
     static std::vector<common::LogicalType> getNodeTableColumnTypes(const NodeTable& table) {
         std::vector<common::LogicalType> types;
@@ -210,13 +210,14 @@ public:
     TableStats getStats(const transaction::Transaction* transaction) const;
     void mergeStats(const TableStats& stats) { nodeGroups->mergeStats(stats); }
 
+    visible_func getVisibleFunc(const transaction::Transaction* transaction) const;
+
 private:
     void validatePkNotExists(const transaction::Transaction* transaction,
         common::ValueVector* pkVector) const;
 
     void serialize(common::Serializer& serializer) const override;
 
-    visible_func getVisibleFunc(const transaction::Transaction* transaction) const;
     common::DataChunk constructDataChunkForPKColumn() const;
     void scanPKColumn(const transaction::Transaction* transaction, PKColumnScanHelper& scanHelper,
         NodeGroupCollection& nodeGroups_);
