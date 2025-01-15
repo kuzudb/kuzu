@@ -97,7 +97,7 @@ struct PIPUpdates {
  *   <li> apPageIdx: the physical disk pageIdx of some PIP.
  * </ul>
  */
-class KUZU_API DiskArrayInternal {
+class DiskArrayInternal {
 public:
     // Used when loading from file
     DiskArrayInternal(FileHandle& fileHandle, DBFileID dbFileID,

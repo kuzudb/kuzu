@@ -210,14 +210,13 @@ public:
     TableStats getStats(const transaction::Transaction* transaction) const;
     void mergeStats(const TableStats& stats) { nodeGroups->mergeStats(stats); }
 
-    visible_func getVisibleFunc(const transaction::Transaction* transaction) const;
-
 private:
     void validatePkNotExists(const transaction::Transaction* transaction,
         common::ValueVector* pkVector) const;
 
     void serialize(common::Serializer& serializer) const override;
 
+    visible_func getVisibleFunc(const transaction::Transaction* transaction) const;
     common::DataChunk constructDataChunkForPKColumn() const;
     void scanPKColumn(const transaction::Transaction* transaction, PKColumnScanHelper& scanHelper,
         NodeGroupCollection& nodeGroups_);

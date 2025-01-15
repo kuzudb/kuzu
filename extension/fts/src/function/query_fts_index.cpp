@@ -253,31 +253,33 @@ void QFTSVertexCompute::vertexCompute(const graph::VertexScanState::Chunk& chunk
 static node_id_map_t<uint64_t> getDFs(main::ClientContext& context,
     const catalog::NodeTableCatalogEntry& termsEntry, const std::vector<std::string>& terms) {
     auto storageManager = context.getStorageManager();
-    auto& termsNodeTable =
-        storageManager->getTable(termsEntry.getTableID())->cast<storage::NodeTable>();
+    auto tableID = termsEntry.getTableID();
+    auto& termsNodeTable = storageManager->getTable(tableID)->cast<storage::NodeTable>();
     auto tx = context.getTransaction();
-    auto visibleFunc = termsNodeTable.getVisibleFunc(tx);
     auto dfColumnID = termsEntry.getColumnID(QueryFTSAlgorithm::DOC_FREQUENCY_PROP_NAME);
     auto dfColumn = &termsNodeTable.getColumn(dfColumnID);
-    auto nodeIDVec = std::make_shared<ValueVector>(LogicalType::INTERNAL_ID());
+    auto nodeIDVector = std::make_shared<ValueVector>(LogicalType::INTERNAL_ID());
     auto dataChunk = DataChunk{2 /* numValueVectors */};
     dataChunk.state = DataChunkState::getSingleValueDataChunkState();
     auto dfVector = std::make_shared<ValueVector>(LogicalType::UINT64());
     dataChunk.insert(0, dfVector);
-    dataChunk.insert(1, nodeIDVec);
-    auto nodeTableScanState = storage::NodeTableScanState{termsNodeTable.getTableID(), {dfColumnID},
-        {dfColumn}, dataChunk, nodeIDVec.get()};
-    common::nodeID_t nodeID{common::INVALID_OFFSET, termsNodeTable.getTableID()};
-    auto nodeIDPos = nodeIDVec->state->getSelVector()[0];
+    dataChunk.insert(1, nodeIDVector);
+    auto termsVector = ValueVector(LogicalType::STRING(), context.getMemoryManager());
+    termsVector.state = dataChunk.state;
+    auto nodeTableScanState = storage::NodeTableScanState{tableID, {dfColumnID},
+        {dfColumn}, dataChunk, nodeIDVector.get()};
     node_id_map_t<uint64_t> dfs;
     for (auto& term : terms) {
-        if (!termsNodeTable.getPKIndex()->lookup(tx, term, nodeID.offset, visibleFunc)) {
+        termsVector.setValue(0, term);
+        common::offset_t offset = 0;
+        if (!termsNodeTable.lookupPK(tx, &termsVector, 0, offset)) {
             continue;
         }
-        nodeIDVec->setValue(nodeIDPos, nodeID);
-        termsNodeTable.initScanState(tx, nodeTableScanState, nodeID.tableID, nodeID.offset);
+        auto nodeID = nodeID_t {offset, tableID};
+        nodeIDVector->setValue(0, nodeID);
+        termsNodeTable.initScanState(tx, nodeTableScanState, tableID, offset);
         termsNodeTable.lookup(tx, nodeTableScanState);
-        dfs.emplace(nodeID, dfVector->getValue<uint64_t>(nodeIDPos));
+        dfs.emplace(nodeID, dfVector->getValue<uint64_t>(0));
     }
     return dfs;
 }
