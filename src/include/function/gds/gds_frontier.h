@@ -97,8 +97,10 @@ protected:
  * */
 class KUZU_API SparseFrontier {
 public:
-    SparseFrontier()
-        : enabled_{true}, curTableID{common::INVALID_TABLE_ID}, curOffsetSet{nullptr} {}
+    SparseFrontier() : SparseFrontier{DEFAULT_SAMPLE_SIZE} {}
+    explicit SparseFrontier(uint64_t sampleSize)
+        : sampleSize{sampleSize}, enabled_{true}, curTableID{common::INVALID_TABLE_ID},
+          curOffsetSet{nullptr} {}
 
     void disable() { enabled_ = false; }
     void resetState() {
@@ -113,7 +115,7 @@ public:
     common::table_id_t getTableID() const { return curTableID; }
     const std::unordered_set<common::offset_t>& getOffsetSet() const { return *curOffsetSet; }
 
-    void addNode(common::nodeID_t nodeID);
+    void addNode(common::offset_t offset);
     void addNodes(const std::vector<common::nodeID_t> nodeIDs);
     void checkSampleSize();
 
@@ -121,7 +123,8 @@ public:
     void mergeSparseFrontier(const SparseFrontier& other);
 
 private:
-    static constexpr uint16_t SAMPLE_SIZE = 20;
+    static constexpr uint16_t DEFAULT_SAMPLE_SIZE = 20;
+    uint64_t sampleSize;
 
     std::mutex mtx;
     bool enabled_;
@@ -172,13 +175,13 @@ public:
     }
 
     void setActive(std::span<const common::nodeID_t> nodeIDs) override {
-        auto frontierMask = getNextFrontier();
         for (const auto nodeID : nodeIDs) {
-            frontierMask[nodeID.offset].store(getCurIter(), std::memory_order_relaxed);
+            setActive(nodeID.offset);
         }
     }
-    void setActive(common::nodeID_t nodeID) override {
-        getNextFrontier()[nodeID.offset].store(getCurIter(), std::memory_order_relaxed);
+    void setActive(common::nodeID_t nodeID) override { setActive(nodeID.offset); }
+    void setActive(common::offset_t offset) {
+        getNextFrontier()[offset].store(getCurIter(), std::memory_order_relaxed);
     }
 
     void incrementCurIter() { curIter.fetch_add(1, std::memory_order_relaxed); }
@@ -215,7 +218,6 @@ private:
     // See FrontierPair::curIter. We keep a copy of curIter here because PathLengths stores
     // iteration numbers for vertices and uses them to identify which vertex is in the frontier.
     std::atomic<uint16_t> curIter;
-    std::atomic<common::table_id_t> curTableID;
     std::atomic<frontier_entry_t*> curFrontier;
     std::atomic<frontier_entry_t*> nextFrontier;
 };
