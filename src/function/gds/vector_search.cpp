@@ -395,6 +395,68 @@ namespace kuzu {
             }
 
             template<typename T>
+            inline void acornTwoHopSearch(std::priority_queue<NodeDistFarther> &candidates,
+                                     std::vector<common::nodeID_t> &firstHopNbrs, const table_id_t tableId,
+                                     Graph *graph, NodeTableDistanceComputer<T> *dc,
+                                     NodeOffsetLevelSemiMask *filterMask,
+                                     GraphScanState &state,
+                                     BinaryHeap<NodeDistFarther> &results, int maxNodes, BitVectorVisitedTable *visited,
+                                     vector_array_t &vectorArray, int &size,
+                                     const int efSearch, VectorSearchStats &stats) {
+                // Get the first hop neighbours
+                std::queue<vector_id_t> nbrsToExplore;
+                // First hop neighbours
+                for (auto &neighbor: firstHopNbrs) {
+                    auto isNeighborMasked = filterMask->isMasked(neighbor.offset);
+                    if (visited->is_bit_set(neighbor.offset)) {
+                        continue;
+                    }
+                    if (isNeighborMasked) {
+                        visited->set_bit(neighbor.offset);
+                        vectorArray[size++] = neighbor.offset;
+                    }
+                    nbrsToExplore.push(neighbor.offset);
+                }
+
+                // Second hop neighbours
+                // TODO: Maybe there's some benefit in doing batch distance computation
+                while (!nbrsToExplore.empty()) {
+                    auto neighbor = nbrsToExplore.front();
+                    nbrsToExplore.pop();
+
+                    if (visited->is_bit_set(neighbor)) {
+                        continue;
+                    }
+                    visited->set_bit(neighbor);
+
+                    stats.listNbrsCallTime->start();
+                    auto secondHopNbrs = graph->scanFwdRandom({neighbor, tableId}, state);
+                    stats.listNbrsCallTime->stop();
+                    stats.listNbrsMetric->increase(1);
+
+                    // Try prefetching
+                    for (auto &secondHopNeighbor: secondHopNbrs) {
+                        filterMask->prefetchMaskValue(secondHopNeighbor.offset);
+                    }
+
+                    for (auto &secondHopNeighbor: secondHopNbrs) {
+                        auto isNeighborMasked = filterMask->isMasked(secondHopNeighbor.offset);
+                        if (visited->is_bit_set(secondHopNeighbor.offset)) {
+                            continue;
+                        }
+                        if (isNeighborMasked) {
+                            // TODO: Maybe there's some benefit in doing batch distance computation
+                            visited->set_bit(secondHopNeighbor.offset);
+                            vectorArray[size++] = secondHopNeighbor.offset;
+                            if (size >= maxNodes) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            template<typename T>
             inline void twoHopSearch(std::priority_queue<NodeDistFarther> &candidates,
                                      std::vector<common::nodeID_t> &firstHopNbrs, const table_id_t tableId,
                                      Graph *graph, NodeTableDistanceComputer<T> *dc,
@@ -626,7 +688,7 @@ namespace kuzu {
 
                 // Handle for neg correlation cases
                 addFilteredNodesToCandidates(dc, candidates, results, visited, filterMask, numFilteredNodesToAdd, stats);
-
+                auto maxNodes = std::min(8, (int) (1.0 / selectivity)) * 64;
                 while (!candidates.empty()) {
                     auto candidate = candidates.top();
                     if (candidate.dist > results.top()->dist && results.size() > 0) {
@@ -649,33 +711,35 @@ namespace kuzu {
                     }
 
                     // Calculate local selectivity
-                    float localSelectivity = 0;
-                    for (auto &neighbor: firstHopNbrs) {
-                        if (filterMask->isMasked(neighbor.offset)) {
-                            localSelectivity += 1;
-                        }
-                    }
-                    localSelectivity /= filterNbrsToFind;
+//                    float localSelectivity = 0;
+//                    for (auto &neighbor: firstHopNbrs) {
+//                        if (filterMask->isMasked(neighbor.offset)) {
+//                            localSelectivity += 1;
+//                        }
+//                    }
+//                    localSelectivity /= filterNbrsToFind;
 
-                    if (localSelectivity >= 0.5) {
-                        // If the selectivity is high, we will simply do one hop search since we can find the next
-                        // closest directly from candidates priority queue.
-                        oneHopSearch(candidates, firstHopNbrs, dc, filterMask, results, visited, vectorArray, size,
-                                     efSearch, stats);
-                        stats.oneHopCalls->increase(1);
-                    } else if ((filterNbrsToFind * filterNbrsToFind * localSelectivity) > (filterNbrsToFind * 3)) {
-                        // We will use this metric to skip unwanted distance computation in the first hop
-                        dynamicTwoHopSearch(candidates, candidate, filterNbrsToFind, cachedNbrsCount,
-                                            firstHopNbrs, tableId, graph, dc, filterMask,
-                                            state, results, visited, vectorArray, size, efSearch, stats);
-                        stats.dynamicTwoHopCalls->increase(1);
-                    } else {
+//                    if (localSelectivity >= 0.5) {
+//                        // If the selectivity is high, we will simply do one hop search since we can find the next
+//                        // closest directly from candidates priority queue.
+//                        oneHopSearch(candidates, firstHopNbrs, dc, filterMask, results, visited, vectorArray, size,
+//                                     efSearch, stats);
+//                        stats.oneHopCalls->increase(1);
+//                    } else if ((filterNbrsToFind * filterNbrsToFind * localSelectivity) > (filterNbrsToFind * 3)) {
+//                        // We will use this metric to skip unwanted distance computation in the first hop
+//                        dynamicTwoHopSearch(candidates, candidate, filterNbrsToFind, cachedNbrsCount,
+//                                            firstHopNbrs, tableId, graph, dc, filterMask,
+//                                            state, results, visited, vectorArray, size, efSearch, stats);
+//                        stats.dynamicTwoHopCalls->increase(1);
+//                    } else {
                         // If the selectivity is low, we will not do dynamic two hop search since it does some extra
                         // distance computations to reduce listNbrs call which are redundant.
-                        twoHopSearch(candidates, firstHopNbrs, tableId, graph, dc, filterMask, state, results, visited,
-                                        vectorArray, size, efSearch, stats);
-                        stats.twoHopCalls->increase(1);
-                    }
+//                        twoHopSearch(candidates, firstHopNbrs, tableId, graph, dc, filterMask, state, results, visited,
+//                                        vectorArray, size, efSearch, stats);
+                    acornTwoHopSearch(candidates, firstHopNbrs, tableId, graph, dc, filterMask, state, results, maxNodes, visited,
+                             vectorArray, size, efSearch, stats);
+                    stats.twoHopCalls->increase(1);
+//                    }
                     batchComputeDistance(vectorArray, size, dc, candidates, results, efSearch, stats);
                 }
             }
@@ -838,6 +902,10 @@ namespace kuzu {
                 searchLocalState->materialize(reversed, *sharedState->fTable, k);
                 stats.vectorSearchTimeMetric->stop();
                 printf("vector search time: %f ms\n", stats.vectorSearchTimeMetric->getElapsedTimeMS());
+                printf("distance computation time: %f ms\n", stats.distanceComputationTime->getElapsedTimeMS());
+                printf("distance computations: %ld\n", stats.distCompMetric->accumulatedValue);
+                printf("list nbrs calls: %ld\n", stats.listNbrsMetric->accumulatedValue);
+                printf("list nbrs call time: %f ms\n", stats.listNbrsCallTime->getElapsedTimeMS());
             }
 
             std::unique_ptr<GDSAlgorithm> copy() const override {
