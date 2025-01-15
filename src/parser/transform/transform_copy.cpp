@@ -13,8 +13,8 @@ std::unique_ptr<Statement> Transformer::transformCopyTo(CypherParser::KU_CopyTOC
     std::string filePath = transformStringLiteral(*ctx.StringLiteral());
     auto regularQuery = transformQuery(*ctx.oC_Query());
     auto copyTo = std::make_unique<CopyTo>(std::move(filePath), std::move(regularQuery));
-    if (ctx.kU_ParsingOptions()) {
-        copyTo->setParsingOption(transformOptions(*ctx.kU_ParsingOptions()->kU_Options()));
+    if (ctx.kU_Options()) {
+        copyTo->setParsingOption(transformOptions(*ctx.kU_Options()));
     }
     return copyTo;
 }
@@ -26,8 +26,8 @@ std::unique_ptr<Statement> Transformer::transformCopyFrom(CypherParser::KU_CopyF
     if (ctx.kU_ColumnNames()) {
         copyFrom->setColumnNames(transformColumnNames(*ctx.kU_ColumnNames()));
     }
-    if (ctx.kU_ParsingOptions()) {
-        copyFrom->setParsingOption(transformOptions(*ctx.kU_ParsingOptions()->kU_Options()));
+    if (ctx.kU_Options()) {
+        copyFrom->setParsingOption(transformOptions(*ctx.kU_Options()));
     }
     return copyFrom;
 }

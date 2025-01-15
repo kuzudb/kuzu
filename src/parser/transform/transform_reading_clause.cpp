@@ -84,8 +84,8 @@ std::unique_ptr<ReadingClause> Transformer::transformLoadFrom(
     if (ctx.kU_ColumnDefinitions()) {
         loadFrom->setPropertyDefinitions(transformColumnDefinitions(*ctx.kU_ColumnDefinitions()));
     }
-    if (ctx.kU_ParsingOptions()) {
-        loadFrom->setParingOptions(transformOptions(*ctx.kU_ParsingOptions()->kU_Options()));
+    if (ctx.kU_Options()) {
+        loadFrom->setParingOptions(transformOptions(*ctx.kU_Options()));
     }
     if (ctx.oC_Where()) {
         loadFrom->setWherePredicate(transformWhere(*ctx.oC_Where()));
