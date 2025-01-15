@@ -163,7 +163,7 @@ if(${BUILD_WASM})
     add_link_options(-sWASM_BIGINT)
 
     if(BUILD_TESTS OR BUILD_EXTENSION_TESTS)
-        add_link_options(-sINITIAL_MEMORY=4GB)
+        add_link_options(-sINITIAL_MEMORY=3892MB)
         add_link_options(-sNODERAWFS=1)
     else()
         add_link_options(-sSINGLE_FILE=1)
