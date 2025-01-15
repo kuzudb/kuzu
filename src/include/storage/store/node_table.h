@@ -23,7 +23,7 @@ class Transaction;
 namespace storage {
 class NodeTable;
 
-struct NodeTableScanState final : TableScanState {
+struct KUZU_API NodeTableScanState final : TableScanState {
     // Scan state for un-committed data.
     // Ideally we shouldn't need columns to scan un-checkpointed but committed data.
     NodeTableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
@@ -112,7 +112,7 @@ private:
 
 class StorageManager;
 
-class NodeTable final : public Table {
+class KUZU_API NodeTable final : public Table {
 public:
     static std::vector<common::LogicalType> getNodeTableColumnTypes(const NodeTable& table) {
         std::vector<common::LogicalType> types;

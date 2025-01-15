@@ -580,11 +580,13 @@ std::vector<TableCatalogEntry*> Binder::bindTableEntries(const std::vector<std::
     table_catalog_entry_set_t entrySet;
     if (tableNames.empty()) { // Rewrite empty table names as all tables.
         if (nodePattern) {    // Fill all node table schemas to node pattern.
-            for (auto entry : catalog->getNodeTableEntries(tx)) {
+            for (auto entry :
+                catalog->getNodeTableEntries(tx, clientContext->shouldUseInternalCatalogEntry())) {
                 entrySet.insert(entry);
             }
         } else { // Fill all rel table schemas to rel pattern.
-            for (auto entry : catalog->getRelTableEntries(tx)) {
+            for (auto entry :
+                catalog->getRelTableEntries(tx, clientContext->shouldUseInternalCatalogEntry())) {
                 entrySet.insert(entry);
             }
         }
@@ -606,7 +608,8 @@ std::vector<TableCatalogEntry*> Binder::bindTableEntries(const std::vector<std::
 catalog::TableCatalogEntry* Binder::bindTableEntry(const std::string& tableName) const {
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();
-    if (!catalog->containsTable(transaction, tableName)) {
+    if (!catalog->containsTable(transaction, tableName,
+            clientContext->shouldUseInternalCatalogEntry())) {
         throw BinderException(common::stringFormat("Table {} does not exist.", tableName));
     }
     return catalog->getTableCatalogEntry(transaction, tableName);

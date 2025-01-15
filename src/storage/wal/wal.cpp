@@ -71,9 +71,9 @@ void WAL::logCreateTableEntryRecord(BoundCreateTableInfo tableInfo) {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logCreateCatalogEntryRecord(CatalogEntry* catalogEntry) {
+void WAL::logCreateCatalogEntryRecord(CatalogEntry* catalogEntry, bool isInternal) {
     std::unique_lock<std::mutex> lck{mtx};
-    CreateCatalogEntryRecord walRecord(catalogEntry);
+    CreateCatalogEntryRecord walRecord(catalogEntry, isInternal);
     addNewWALRecordNoLock(walRecord);
 }
 

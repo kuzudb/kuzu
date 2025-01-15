@@ -156,18 +156,18 @@ std::unique_ptr<SequenceCatalogEntry> SequenceCatalogEntry::deserialize(
 }
 
 std::string SequenceCatalogEntry::toCypher(main::ClientContext* /*clientContext*/) const {
-    return stringFormat(
-        "DROP SEQUENCE IF EXISTS {};\n"
-        "CREATE SEQUENCE IF NOT EXISTS {} START {} INCREMENT {} MINVALUE {} MAXVALUE {} {} CYCLE;\n"
-        "RETURN nextval('{}');",
+    return stringFormat("DROP SEQUENCE IF EXISTS `{}`;\n"
+                        "CREATE SEQUENCE IF NOT EXISTS `{}` START {} INCREMENT {} MINVALUE {} "
+                        "MAXVALUE {} {} CYCLE;\n"
+                        "RETURN nextval('{}');",
         getName(), getName(), sequenceData.currVal, sequenceData.increment, sequenceData.minValue,
         sequenceData.maxValue, sequenceData.cycle ? "" : "NO", getName());
 }
 
-BoundCreateSequenceInfo SequenceCatalogEntry::getBoundCreateSequenceInfo() const {
+BoundCreateSequenceInfo SequenceCatalogEntry::getBoundCreateSequenceInfo(bool isInternal) const {
     return BoundCreateSequenceInfo(name, sequenceData.startValue, sequenceData.increment,
         sequenceData.minValue, sequenceData.maxValue, sequenceData.cycle,
-        ConflictAction::ON_CONFLICT_THROW);
+        ConflictAction::ON_CONFLICT_THROW, isInternal);
 }
 
 } // namespace catalog

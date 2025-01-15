@@ -17,7 +17,7 @@ namespace common {
 // A data chunk further contains a DataChunkState, which keeps the data chunk's size, selector, and
 // currIdx (used when flattening and implies the value vector only contains the elements at currIdx
 // of each value vector).
-class DataChunk {
+class KUZU_API DataChunk {
 public:
     DataChunk() : DataChunk{0} {}
     explicit DataChunk(uint32_t numValueVectors)

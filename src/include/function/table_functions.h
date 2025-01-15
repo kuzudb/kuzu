@@ -84,7 +84,7 @@ using table_func_progress_t = std::function<double(TableFuncSharedState* sharedS
 using table_func_finalize_t =
     std::function<void(const processor::ExecutionContext*, TableFuncSharedState*)>;
 using table_func_rewrite_t =
-    std::function<std::string(const main::ClientContext&, const TableFuncBindData& bindData)>;
+    std::function<std::string(main::ClientContext&, const TableFuncBindData& bindData)>;
 
 struct KUZU_API TableFunction : Function {
     table_func_t tableFunc = nullptr;

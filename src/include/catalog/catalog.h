@@ -55,27 +55,27 @@ public:
     virtual ~Catalog() = default;
 
     // ----------------------------- Table Schemas ----------------------------
-    bool containsTable(const transaction::Transaction* transaction,
-        const std::string& tableName) const;
+    bool containsTable(const transaction::Transaction* transaction, const std::string& tableName,
+        bool useInternal = true) const;
 
     common::table_id_t getTableID(const transaction::Transaction* transaction,
-        const std::string& tableName) const;
-    std::vector<common::table_id_t> getNodeTableIDs(
-        const transaction::Transaction* transaction) const;
-    std::vector<common::table_id_t> getRelTableIDs(
-        const transaction::Transaction* transaction) const;
+        const std::string& tableName, bool useInternal = true) const;
+    std::vector<common::table_id_t> getNodeTableIDs(const transaction::Transaction* transaction,
+        bool useInternal = true) const;
+    std::vector<common::table_id_t> getRelTableIDs(const transaction::Transaction* transaction,
+        bool useInternal = true) const;
 
     // TODO: Should remove this.
     std::string getTableName(const transaction::Transaction* transaction,
         common::table_id_t tableID) const;
     TableCatalogEntry* getTableCatalogEntry(const transaction::Transaction* transaction,
-        const std::string& tableName) const;
+        const std::string& tableName, bool useInternal = true) const;
     TableCatalogEntry* getTableCatalogEntry(const transaction::Transaction* transaction,
         common::table_id_t tableID) const;
-    std::vector<NodeTableCatalogEntry*> getNodeTableEntries(
-        transaction::Transaction* transaction) const;
-    std::vector<RelTableCatalogEntry*> getRelTableEntries(
-        transaction::Transaction* transaction) const;
+    std::vector<NodeTableCatalogEntry*> getNodeTableEntries(transaction::Transaction* transaction,
+        bool useInternal = true) const;
+    std::vector<RelTableCatalogEntry*> getRelTableEntries(transaction::Transaction* transaction,
+        bool useInternal = true) const;
     std::vector<RelGroupCatalogEntry*> getRelTableGroupEntries(
         transaction::Transaction* transaction) const;
     std::vector<TableCatalogEntry*> getTableEntries(
@@ -99,7 +99,7 @@ public:
         const std::string& sequenceName) const;
 
     common::sequence_id_t getSequenceID(const transaction::Transaction* transaction,
-        const std::string& sequenceName) const;
+        const std::string& sequenceName, bool useInternalSeq = true) const;
     SequenceCatalogEntry* getSequenceCatalogEntry(const transaction::Transaction* transaction,
         common::sequence_id_t sequenceID) const;
     std::vector<SequenceCatalogEntry*> getSequenceEntries(
@@ -173,11 +173,17 @@ private:
     // ----------------------------- Table entries ----------------------------
     template<typename T>
     std::vector<T*> getTableCatalogEntries(transaction::Transaction* transaction,
-        CatalogEntryType catalogType) const {
+        CatalogEntryType catalogType, bool useInternal = true) const {
         std::vector<T*> result;
         tables->iterateEntriesOfType(transaction, catalogType, [&](const CatalogEntry* entry) {
             result.push_back(const_cast<T*>(common::ku_dynamic_cast<const T*>(entry)));
         });
+        if (useInternal) {
+            internalTables->iterateEntriesOfType(transaction, catalogType,
+                [&](const CatalogEntry* entry) {
+                    result.push_back(const_cast<T*>(common::ku_dynamic_cast<const T*>(entry)));
+                });
+        }
         return result;
     }
 
@@ -207,6 +213,8 @@ private:
     std::unique_ptr<CatalogSet> functions;
     std::unique_ptr<CatalogSet> types;
     std::unique_ptr<CatalogSet> indexes;
+    std::unique_ptr<CatalogSet> internalTables;
+    std::unique_ptr<CatalogSet> internalSequences;
 };
 
 } // namespace catalog

@@ -16,6 +16,7 @@ void BoundCreateTableInfo::serialize(Serializer& serializer) const {
     serializer.serializeValue(tableName);
     serializer.serializeValue(onConflict);
     serializer.serializeValue(hasParent);
+    serializer.serializeValue(isInternal);
     extraInfo->serialize(serializer);
 }
 
@@ -25,10 +26,12 @@ BoundCreateTableInfo BoundCreateTableInfo::deserialize(Deserializer& deserialize
     auto onConflict = ConflictAction::INVALID;
     bool hasParent = false;
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo;
+    bool isInternal = false;
     deserializer.deserializeValue(type);
     deserializer.deserializeValue(tableName);
     deserializer.deserializeValue(onConflict);
     deserializer.deserializeValue(hasParent);
+    deserializer.deserializeValue(isInternal);
     switch (type) {
     case TableType::NODE:
     case TableType::REL: {
@@ -41,7 +44,8 @@ BoundCreateTableInfo BoundCreateTableInfo::deserialize(Deserializer& deserialize
         KU_UNREACHABLE;
     }
     }
-    auto retval = BoundCreateTableInfo{type, tableName, onConflict, std::move(extraInfo)};
+    auto retval =
+        BoundCreateTableInfo{type, tableName, onConflict, std::move(extraInfo), isInternal};
     retval.hasParent = hasParent;
     return retval;
 }

@@ -136,10 +136,10 @@ void TableCatalogEntry::copyFrom(const CatalogEntry& other) {
 }
 
 BoundCreateTableInfo TableCatalogEntry::getBoundCreateTableInfo(
-    transaction::Transaction* transaction) const {
+    transaction::Transaction* transaction, bool isInternal) const {
     auto extraInfo = getBoundExtraCreateInfo(transaction);
     return BoundCreateTableInfo(getTableType(), name, ConflictAction::ON_CONFLICT_THROW,
-        std::move(extraInfo));
+        std::move(extraInfo), isInternal);
 }
 
 } // namespace catalog

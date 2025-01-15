@@ -69,8 +69,8 @@ public:
         CatalogEntryType type);
     virtual std::unique_ptr<TableCatalogEntry> copy() const = 0;
 
-    binder::BoundCreateTableInfo getBoundCreateTableInfo(
-        transaction::Transaction* transaction) const;
+    binder::BoundCreateTableInfo getBoundCreateTableInfo(transaction::Transaction* transaction,
+        bool isInternal) const;
 
 protected:
     void copyFrom(const CatalogEntry& other) override;

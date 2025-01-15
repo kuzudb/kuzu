@@ -55,7 +55,7 @@ static std::optional<binder::BoundCreateTableInfo> getBoundCreateTableInfoForTab
     for (auto& [name, entry] : entries) {
         auto current = ku_dynamic_cast<TableCatalogEntry*>(entry);
         if (current->getTableID() == tableID) {
-            auto boundInfo = current->getBoundCreateTableInfo(transaction);
+            auto boundInfo = current->getBoundCreateTableInfo(transaction, false /* isInternal */);
             return boundInfo;
         }
     }

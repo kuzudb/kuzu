@@ -1044,6 +1044,18 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1node_1val_1to_1string(JNI
     return ret;
 }
 
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1get_1id(JNIEnv* env, jclass,
+    jobject thisRV) {
+    auto* rv = getValue(env, thisRV);
+    auto srcIdVal = RelVal::getIDVal(rv);
+    if (srcIdVal == nullptr) {
+        return NULL;
+    }
+    internalID_t id = srcIdVal->getValue<internalID_t>();
+    jobject ret = env->NewObject(J_C_InternalID, J_C_InternalID_M_init, id.tableID, id.offset);
+    return ret;
+}
+
 JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1get_1src_1id(JNIEnv* env, jclass,
     jobject thisRV) {
     auto* rv = getValue(env, thisRV);

@@ -271,7 +271,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
                 node.getSingleEntry()->getTableID());
             return createLiteralExpression(Value(LogicalType::STRING(), labelName));
         }
-        auto nodeTableIDs = catalog->getNodeTableIDs(context->getTransaction());
+        // Internal tables should be invisible to the label function.
+        auto nodeTableIDs =
+            catalog->getNodeTableIDs(context->getTransaction(), false /* useInternalTable */);
         children.push_back(node.getInternalID());
         auto labelsValue = Value(std::move(listType),
             populateLabelValues(std::move(nodeTableIDs), *catalog, context->getTransaction()));
@@ -287,7 +289,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
                 rel.getSingleEntry()->getTableID());
             return createLiteralExpression(Value(LogicalType::STRING(), labelName));
         }
-        auto relTableIDs = catalog->getRelTableIDs(context->getTransaction());
+        auto relTableIDs =
+            catalog->getRelTableIDs(context->getTransaction(), false /* useInternalTable */);
         children.push_back(rel.getInternalIDProperty());
         auto labelsValue = Value(std::move(listType),
             populateLabelValues(std::move(relTableIDs), *catalog, context->getTransaction()));

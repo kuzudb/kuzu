@@ -156,7 +156,7 @@ BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo* info
     auto boundExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(extraInfo.pKName,
         std::move(propertyDefinitions));
     return BoundCreateTableInfo(TableType::NODE, info->tableName, info->onConflict,
-        std::move(boundExtraInfo));
+        std::move(boundExtraInfo), clientContext->shouldUseInternalCatalogEntry());
 }
 
 BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info) {
@@ -184,7 +184,7 @@ BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info)
     auto boundExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(srcMultiplicity,
         dstMultiplicity, storageDirection, srcTableID, dstTableID, std::move(propertyDefinitions));
     return BoundCreateTableInfo(TableType::REL, info->tableName, info->onConflict,
-        std::move(boundExtraInfo));
+        std::move(boundExtraInfo), clientContext->shouldUseInternalCatalogEntry());
 }
 
 static std::string getRelGroupTableName(const std::string& relGroupName,
@@ -210,7 +210,7 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
     auto boundExtraInfo =
         std::make_unique<BoundExtraCreateRelTableGroupInfo>(std::move(boundCreateRelTableInfos));
     return BoundCreateTableInfo(TableType::REL_GROUP, info->tableName, info->onConflict,
-        std::move(boundExtraInfo));
+        std::move(boundExtraInfo), clientContext->shouldUseInternalCatalogEntry());
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& statement) {
@@ -299,7 +299,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
     }
 
     auto boundInfo = BoundCreateSequenceInfo(sequenceName, startWith, increment, minValue, maxValue,
-        info.cycle, info.onConflict);
+        info.cycle, info.onConflict, false /* isInternal */);
     return std::make_unique<BoundCreateSequence>(std::move(boundInfo));
 }
 
@@ -307,7 +307,8 @@ void Binder::validateDropTable(const Statement& statement) {
     auto& dropTable = statement.constCast<Drop>();
     auto tableName = dropTable.getDropInfo().name;
     auto catalog = clientContext->getCatalog();
-    auto validTable = catalog->containsTable(clientContext->getTransaction(), tableName);
+    auto validTable = catalog->containsTable(clientContext->getTransaction(), tableName,
+        clientContext->shouldUseInternalCatalogEntry());
     if (!validTable) {
         switch (dropTable.getDropInfo().conflictAction) {
         case common::ConflictAction::ON_CONFLICT_THROW: {
@@ -320,7 +321,8 @@ void Binder::validateDropTable(const Statement& statement) {
             KU_UNREACHABLE;
         }
     }
-    auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTransaction(), tableName);
+    auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTransaction(), tableName,
+        clientContext->shouldUseInternalCatalogEntry());
     switch (tableEntry->getTableType()) {
     case TableType::NODE: {
         // Check node table is not referenced by rel table.

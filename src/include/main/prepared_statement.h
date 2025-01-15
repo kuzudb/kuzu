@@ -53,6 +53,7 @@ private:
 private:
     bool success = true;
     bool readOnly = false;
+    bool useInternalCatalogEntry = false;
     std::string errMsg;
     PreparedSummary preparedSummary;
     std::unordered_map<std::string, std::shared_ptr<common::Value>> parameterMap;
