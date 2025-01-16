@@ -1,17 +1,17 @@
 package com.kuzudb;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.math.BigInteger;
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.UUID;
-import java.util.HashMap;
-import java.util.Map;
 
 public class ValueTest extends TestBase {
 
@@ -300,13 +300,12 @@ public class ValueTest extends TestBase {
         QueryResult result = conn.execute(stmt, params);
         assertTrue(result.isSuccess());
 
-        System.out.println("actual num tuples: " + result.getNumTuples());
         assertEquals(listValues.length, result.getNumTuples());
         for (int i = 0; i < listValues.length; ++i) {
             assertTrue(result.hasNext());
-            var nextVal = result.getNext().getValue(i).getValue();
-            System.out.println("next tuple: " + nextVal + " " + nextVal.getClass());
-            assertEquals((Long) listValues[i].getValue(), (Long) nextVal);
+            var nextVal = (Long)result.getNext().getValue(0).getValue();
+            var expectedValue = (Integer)listValues[i].getValue();
+            assertEquals(Long.valueOf(expectedValue), nextVal);
         }
 
         assertFalse(result.hasNext());

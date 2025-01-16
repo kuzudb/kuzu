@@ -3,10 +3,6 @@ package com.kuzudb;
 public class KuzuList {
     private Value listVal;
 
-    private KuzuList() {
-        listVal = null;
-    }
-
     public Value getValue() {
         return listVal;
     }
@@ -21,14 +17,12 @@ public class KuzuList {
     }
 
     /**
-     * Construct a list from a collection.
+     * Construct a list from an array of values
      *
-     * @param list: the collection to construct the list from
+     * @param values: the array to construct the list from
      */
     public static KuzuList createList(Value[] values) {
-        KuzuList ret = new KuzuList();
-        ret.listVal = Native.kuzu_create_list(values);
-        return ret;
+        return new KuzuList(Native.kuzu_create_list(values));
     }
 
     /**
@@ -37,9 +31,7 @@ public class KuzuList {
      * @param numElements: the size of the list to construct
      */
     public static KuzuList createListWithDefaults(DataType type, long numElements) {
-        KuzuList ret = new KuzuList();
-        ret.listVal = Native.kuzu_create_list(type, numElements);
-        return ret;
+        return new KuzuList(Native.kuzu_create_list(type, numElements));
     }
 
     /**

@@ -4,12 +4,9 @@ import java.util.Map;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.sql.SQLException;
-import java.util.Properties;
 
 /**
  * Native is a wrapper class for the native library.
@@ -64,8 +61,8 @@ public class Native {
         }
     }
 
-    // Hack: Reload the native library again in JNI bindings to work around the 
-    // extension loading issue on Linux as System.load() does not set 
+    // Hack: Reload the native library again in JNI bindings to work around the
+    // extension loading issue on Linux as System.load() does not set
     // `RTLD_GLOBAL` flag and there is no way to set it in Java.
     protected static native void kuzu_native_reload_library(String lib_path);
 
