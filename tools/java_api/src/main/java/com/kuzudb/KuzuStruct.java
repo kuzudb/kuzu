@@ -1,10 +1,10 @@
 package com.kuzudb;
 
 public class KuzuStruct {
-    private KuzuList structRepresentation;
+    private Value structVal;
 
     public Value getValue() {
-        return structRepresentation.getValue();
+        return structVal;
     }
 
     /**
@@ -13,7 +13,7 @@ public class KuzuStruct {
      * @param value the value to construct the map from
      */
     public KuzuStruct(Value value) {
-        structRepresentation = new KuzuList(value);
+        structVal = value;
     }
 
     public static KuzuStruct createStruct(String[] fieldNames, Value[] fieldValues) throws ObjectRefDestroyedException {
@@ -34,7 +34,7 @@ public class KuzuStruct {
      * @throws ObjectRefDestroyedException If the map has been destroyed.
      */
     public long getNumFields() throws ObjectRefDestroyedException {
-        return structRepresentation.getListSize();
+        return Native.kuzu_value_get_list_size(structVal);
     }
 
     /**
@@ -45,7 +45,7 @@ public class KuzuStruct {
      * @throws ObjectRefDestroyedException If the struct has been destroyed.
      */
     public long getIndexByFieldName(String fieldName) throws ObjectRefDestroyedException {
-        return Native.kuzu_value_get_struct_index(structRepresentation.getValue(), fieldName);
+        return Native.kuzu_value_get_struct_index(structVal, fieldName);
     }
 
     /**
@@ -56,7 +56,7 @@ public class KuzuStruct {
      * @throws ObjectRefDestroyedException If the struct has been destroyed.
      */
     public String getFieldNameByIndex(long index) throws ObjectRefDestroyedException {
-        return Native.kuzu_value_get_struct_field_name(structRepresentation.getValue(), index);
+        return Native.kuzu_value_get_struct_field_name(structVal, index);
     }
 
     /**
@@ -89,6 +89,6 @@ public class KuzuStruct {
         if (index < 0 || index >= getNumFields()) {
             return null;
         }
-        return structRepresentation.getListElement(index);
+        return Native.kuzu_value_get_list_element(structVal, index);
     }
 }

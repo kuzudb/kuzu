@@ -177,6 +177,8 @@ public class Native {
 
     protected static native void kuzu_value_destroy(Value value);
 
+    protected static native Value kuzu_create_map(Value[] keys, Value[] values);
+
     protected static native Value kuzu_create_list(Value[] values);
 
     protected static native Value kuzu_create_list(DataType type, long numElements);

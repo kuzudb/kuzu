@@ -1171,29 +1171,28 @@ public class ValueTest extends TestBase {
         result.close();
     }
 
-    // @Test
-    // void CreateMapLiteral() throws ObjectRefDestroyedException {
-    // Map<Value, Value> audienceMap = Map.of(
-    // new Value("Alice"), new Value(1),
-    // new Value("Bob"), new Value(2));
-    // KuzuMap kuzuMap = KuzuMap.createMap(audienceMap);
-    // assertEquals(audienceMap.size(), kuzuMap.getNumFields());
-    // int aliceKeyIdx = ("Alice" == kuzuMap.getKey(0).getValue()) ? 0 : 1;
-    // int bobKeyIdx = 1 - aliceKeyIdx;
-    // assertEquals("Alice", kuzuMap.getKey(aliceKeyIdx).getValue());
-    // assertEquals(1, (Integer) kuzuMap.getValue(aliceKeyIdx).getValue());
-    // assertEquals("Bob", kuzuMap.getKey(bobKeyIdx).getValue());
-    // assertEquals(2, (Integer) kuzuMap.getValue(bobKeyIdx).getValue());
+    @Test
+    void CreateMapLiteral() throws ObjectRefDestroyedException {
+        Map<Value, Value> audienceMap = Map.of(
+                new Value("Alice"), new Value(1),
+                new Value("Bob"), new Value(2));
+        KuzuMap kuzuMap = KuzuMap.createMap(audienceMap);
+        assertEquals(audienceMap.size(), kuzuMap.getNumFields());
+        int aliceKeyIdx = (kuzuMap.getKey(0).getValue().equals("Alice")) ? 0 : 1;
+        int bobKeyIdx = 1 - aliceKeyIdx;
+        assertEquals("Alice", kuzuMap.getKey(aliceKeyIdx).getValue());
+        assertEquals(1, (Integer) kuzuMap.getValue(aliceKeyIdx).getValue());
+        assertEquals("Bob", kuzuMap.getKey(bobKeyIdx).getValue());
+        assertEquals(2, (Integer) kuzuMap.getValue(bobKeyIdx).getValue());
 
-    // PreparedStatement stmt = conn
-    // .prepare("MATCH (m:movies) WHERE m.name = 'Roma' SET m.audience =
-    // $audience");
-    // Map<String, Value> options = Map.of(
-    // "audience", kuzuMap.getValue());
-    // QueryResult result = conn.execute(stmt, options);
+        PreparedStatement stmt = conn
+                .prepare("MATCH (m:movies) WHERE m.name = 'Roma' SET m.audience = $audience");
+        Map<String, Value> options = Map.of(
+                "audience", kuzuMap.getValue());
+        QueryResult result = conn.execute(stmt, options);
 
-    // assertTrue(result.isSuccess());
-    // }
+        assertTrue(result.isSuccess());
+    }
 
     @Test
     void MapValGetNumFields() throws ObjectRefDestroyedException {

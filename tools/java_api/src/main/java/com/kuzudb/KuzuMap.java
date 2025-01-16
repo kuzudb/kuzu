@@ -3,14 +3,10 @@ package com.kuzudb;
 import java.util.Map;
 
 public class KuzuMap {
-    private KuzuList mapRepresentation;
-
-    private KuzuMap(KuzuList rep) {
-        mapRepresentation = rep;
-    }
+    private Value mapVal;
 
     public Value getValue() {
-        return mapRepresentation.getValue();
+        return mapVal;
     }
 
     /**
@@ -19,7 +15,7 @@ public class KuzuMap {
      * @param value the value to construct the map from
      */
     public KuzuMap(Value value) {
-        mapRepresentation = new KuzuList(value);
+        mapVal = value;
     }
 
     /**
@@ -28,23 +24,28 @@ public class KuzuMap {
      * @param map: the collection to construct the map from
      */
     public static KuzuMap createMap(Map<Value, Value> map) throws ObjectRefDestroyedException {
+        if (map.isEmpty()) {
+            return null;
+        }
+
         // The underlying representation of a map is a list of pairs
         // The pairs are represented as a list of size 2
-        Value[] mapElements = new Value[map.size()];
+        Value[] keys = new Value[map.size()];
+        Value[] values = new Value[map.size()];
         int idx = 0;
         for (Map.Entry<Value, Value> entry : map.entrySet()) {
-            Value[] curPair = { entry.getKey(), entry.getValue() };
-            mapElements[idx] = KuzuList.createList(curPair).getValue();
+            keys[idx] = entry.getKey();
+            values[idx] = entry.getValue();
             ++idx;
         }
-        return new KuzuMap(KuzuList.createList(mapElements));
+        return new KuzuMap(Native.kuzu_create_map(keys, values));
     }
 
     private Value getMapKeyOrValue(long index, boolean isKey) throws ObjectRefDestroyedException {
         if (index < 0 || index >= getNumFields()) {
             return null;
         }
-        Value structValue = mapRepresentation.getListElement(index);
+        Value structValue = Native.kuzu_value_get_list_element(mapVal, index);
         Value keyOrValue = new KuzuList(structValue).getListElement(isKey ? 0 : 1);
         structValue.close();
         return keyOrValue;
@@ -55,7 +56,7 @@ public class KuzuMap {
      * @throws ObjectRefDestroyedException If the map has been destroyed.
      */
     public long getNumFields() throws ObjectRefDestroyedException {
-        return mapRepresentation.getListSize();
+        return Native.kuzu_value_get_list_size(mapVal);
     }
 
     /**

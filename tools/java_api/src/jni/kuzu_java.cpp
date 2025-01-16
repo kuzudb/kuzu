@@ -1157,10 +1157,48 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1to_1string(JNIE
     return ret;
 }
 
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1create_1map(JNIEnv* env, jclass,
+    jobjectArray keys, jobjectArray values) {
+    jsize len = env->GetArrayLength(keys);
+    KU_ASSERT(env->GetArrayLength(values) == len);
+    KU_ASSERT(len > 0);
+
+    std::optional<LogicalType> keyType;
+    std::optional<LogicalType> valueType;
+
+    std::vector<std::unique_ptr<Value>> children;
+    for (jsize i = 0; i < len; ++i) {
+        auto key = getValue(env, env->GetObjectArrayElement(keys, i))->copy();
+        auto value = getValue(env, env->GetObjectArrayElement(values, i))->copy();
+
+        if (!keyType.has_value()) {
+            keyType = key->getDataType().copy();
+            valueType = value->getDataType().copy();
+        } else if (key->getDataType() != *keyType || value->getDataType() != *valueType) {
+            return nullptr;
+        }
+
+        std::vector<StructField> structFields;
+        structFields.emplace_back(InternalKeyword::MAP_KEY, keyType->copy());
+        structFields.emplace_back(InternalKeyword::MAP_VALUE, valueType->copy());
+
+        decltype(children) structVals;
+        structVals.emplace_back(std::move(key));
+        structVals.emplace_back(std::move(value));
+        children.emplace_back(std::make_unique<Value>(LogicalType::STRUCT(std::move(structFields)),
+            std::move(structVals)));
+    }
+
+    Value* mapValue = new Value(LogicalType::MAP(std::move(*keyType), std::move(*valueType)),
+        std::move(children));
+    return createJavaObject(env, mapValue, J_C_Value, J_C_Value_F_v_ref);
+}
+
 JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1create_1struct(JNIEnv* env, jclass,
     jobjectArray fieldNames, jobjectArray fieldValues) {
     jsize len = env->GetArrayLength(fieldNames);
     KU_ASSERT(env->GetArrayLength(fieldValues) == len);
+    KU_ASSERT(len > 0);
 
     std::vector<std::unique_ptr<Value>> children;
     auto structFields = std::vector<StructField>{};
