@@ -1157,6 +1157,28 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1to_1string(JNIE
     return ret;
 }
 
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1create_1struct(JNIEnv* env, jclass,
+    jobjectArray fieldNames, jobjectArray fieldValues) {
+    jsize len = env->GetArrayLength(fieldNames);
+    KU_ASSERT(env->GetArrayLength(fieldValues) == len);
+
+    std::vector<std::unique_ptr<Value>> children;
+    auto structFields = std::vector<StructField>{};
+    for (jsize i = 0; i < len; ++i) {
+        auto fieldName = std::string(env->GetStringUTFChars(
+            reinterpret_cast<jstring>(env->GetObjectArrayElement(fieldNames, i)), JNI_FALSE));
+        auto fieldValue = getValue(env, env->GetObjectArrayElement(fieldValues, i))->copy();
+        auto fieldType = fieldValue->getDataType().copy();
+
+        structFields.emplace_back(std::move(fieldName), std::move(fieldType));
+        children.push_back(std::move(fieldValue));
+    }
+
+    Value* structValue =
+        new Value(LogicalType::STRUCT(std::move(structFields)), std::move(children));
+    return createJavaObject(env, structValue, J_C_Value, J_C_Value_F_v_ref);
+}
+
 JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1field_1name(JNIEnv* env,
     jclass, jobject thisSV, jlong index) {
     auto* sv = getValue(env, thisSV);

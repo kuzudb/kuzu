@@ -16,6 +16,19 @@ public class KuzuStruct {
         structRepresentation = new KuzuList(value);
     }
 
+    public static KuzuStruct createStruct(String[] fieldNames, Value[] fieldValues) throws ObjectRefDestroyedException {
+        if (fieldNames.length != fieldValues.length) {
+            return null;
+        }
+        if (fieldNames.length == 0) {
+            return null;
+        }
+        for (Value value : fieldValues) {
+            value.checkNotDestroyed();
+        }
+        return new KuzuStruct(Native.kuzu_create_struct(fieldNames, fieldValues));
+    }
+
     /**
      * @return The number of fields in the map.
      * @throws ObjectRefDestroyedException If the map has been destroyed.

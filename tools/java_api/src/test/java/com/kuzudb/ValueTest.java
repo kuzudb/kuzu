@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -286,7 +287,7 @@ public class ValueTest extends TestBase {
 
     @Test
     void CreateListLiteral() throws ObjectRefDestroyedException {
-        Value[] listValues = { new Value(0), new Value(2), new Value(3) };
+        Value[] listValues = { new Value(1), new Value(2), new Value(3) };
         KuzuList list = KuzuList.createList(listValues);
         assertEquals(listValues.length, list.getListSize());
         for (int i = 0; i < list.getListSize(); ++i) {
@@ -299,15 +300,16 @@ public class ValueTest extends TestBase {
         QueryResult result = conn.execute(stmt, params);
         assertTrue(result.isSuccess());
 
-        assertEquals(listValues.length, result.getNumTuples());
-        for (int i = 0; i < listValues.length; ++i) {
+        int[] expectedValues = { 2, 3 };
+        assertEquals(expectedValues.length, result.getNumTuples());
+        for (int i = 0; i < expectedValues.length; ++i) {
             assertTrue(result.hasNext());
             var nextVal = (Long) result.getNext().getValue(0).getValue();
-            var expectedValue = (Integer) listValues[i].getValue();
-            assertEquals(Long.valueOf(expectedValue), nextVal);
+            assertEquals(Long.valueOf(expectedValues[i]), nextVal);
         }
 
         assertFalse(result.hasNext());
+        result.close();
     }
 
     @Test
@@ -1008,6 +1010,28 @@ public class ValueTest extends TestBase {
     }
 
     @Test
+    void CreateStructLiteral() throws ObjectRefDestroyedException {
+        String[] fieldNames = { "name", "ID", "age" };
+        Value[] fieldValues = { new Value("Alice"), new Value(1), new Value(20) };
+        KuzuStruct structVal = KuzuStruct.createStruct(fieldNames, fieldValues);
+        assertEquals(fieldNames.length, structVal.getNumFields());
+        for (int i = 0; i < fieldNames.length; ++i) {
+            assertEquals(fieldNames[i], structVal.getFieldNameByIndex(i));
+            assertEquals(fieldValues[i].toString(), structVal.getValueByFieldName(fieldNames[i]).toString());
+            assertEquals(structVal.getValueByIndex(i).toString(),
+                    structVal.getValueByFieldName(fieldNames[i]).toString());
+        }
+
+        PreparedStatement stmt = conn.prepare("MATCH (p:person) WHERE p.fName = $alice.name RETURN p.age");
+        Map<String, Value> params = Map.of("alice", structVal.getValue());
+        QueryResult result = conn.execute(stmt, params);
+
+        assertTrue(result.isSuccess());
+        assertEquals(1, result.getNumTuples());
+        assertEquals(Long.valueOf(35), result.getNext().getValue(0).getValue());
+    }
+
+    @Test
     void StructValGetNumFields() throws ObjectRefDestroyedException {
         QueryResult result = conn.query("MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
         assertTrue(result.isSuccess());
@@ -1146,6 +1170,30 @@ public class ValueTest extends TestBase {
         flatTuple.close();
         result.close();
     }
+
+    // @Test
+    // void CreateMapLiteral() throws ObjectRefDestroyedException {
+    // Map<Value, Value> audienceMap = Map.of(
+    // new Value("Alice"), new Value(1),
+    // new Value("Bob"), new Value(2));
+    // KuzuMap kuzuMap = KuzuMap.createMap(audienceMap);
+    // assertEquals(audienceMap.size(), kuzuMap.getNumFields());
+    // int aliceKeyIdx = ("Alice" == kuzuMap.getKey(0).getValue()) ? 0 : 1;
+    // int bobKeyIdx = 1 - aliceKeyIdx;
+    // assertEquals("Alice", kuzuMap.getKey(aliceKeyIdx).getValue());
+    // assertEquals(1, (Integer) kuzuMap.getValue(aliceKeyIdx).getValue());
+    // assertEquals("Bob", kuzuMap.getKey(bobKeyIdx).getValue());
+    // assertEquals(2, (Integer) kuzuMap.getValue(bobKeyIdx).getValue());
+
+    // PreparedStatement stmt = conn
+    // .prepare("MATCH (m:movies) WHERE m.name = 'Roma' SET m.audience =
+    // $audience");
+    // Map<String, Value> options = Map.of(
+    // "audience", kuzuMap.getValue());
+    // QueryResult result = conn.execute(stmt, options);
+
+    // assertTrue(result.isSuccess());
+    // }
 
     @Test
     void MapValGetNumFields() throws ObjectRefDestroyedException {

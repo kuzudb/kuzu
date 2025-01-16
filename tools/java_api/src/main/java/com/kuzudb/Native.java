@@ -67,7 +67,8 @@ public class Native {
     protected static native void kuzu_native_reload_library(String lib_path);
 
     // Database
-    protected static native long kuzu_database_init(String database_path, long buffer_pool_size, boolean enable_compression, boolean read_only, long max_db_size);
+    protected static native long kuzu_database_init(String database_path, long buffer_pool_size,
+            boolean enable_compression, boolean read_only, long max_db_size);
 
     protected static native void kuzu_database_destroy(Database db);
 
@@ -217,6 +218,8 @@ public class Native {
     protected static native Value kuzu_rel_val_get_property_value_at(Value rel_val, long index);
 
     protected static native String kuzu_rel_val_to_string(Value rel_val);
+
+    protected static native Value kuzu_create_struct(String[] fieldNames, Value[] fieldValues);
 
     protected static native String kuzu_value_get_struct_field_name(Value struct_val, long index);
 

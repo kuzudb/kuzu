@@ -33,7 +33,7 @@ public class KuzuMap {
         Value[] mapElements = new Value[map.size()];
         int idx = 0;
         for (Map.Entry<Value, Value> entry : map.entrySet()) {
-            Value[] curPair = { entry.getKey().getValue(), entry.getValue().getValue() };
+            Value[] curPair = { entry.getKey(), entry.getValue() };
             mapElements[idx] = KuzuList.createList(curPair).getValue();
             ++idx;
         }
