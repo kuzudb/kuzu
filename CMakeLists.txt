@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(Kuzu VERSION 0.7.1.7 LANGUAGES CXX C)
+project(Kuzu VERSION 0.7.1.8 LANGUAGES CXX C)
 
 option(SINGLE_THREADED "Single-threaded mode" FALSE)
 if(SINGLE_THREADED)
@@ -103,6 +103,7 @@ option(ENABLE_THREAD_SANITIZER "Enable thread sanitizer." FALSE)
 option(ENABLE_UBSAN "Enable undefined behavior sanitizer." FALSE)
 option(ENABLE_RUNTIME_CHECKS "Enable runtime coherency checks (e.g. asserts)" FALSE)
 option(ENABLE_LTO "Enable Link-Time Optimization" FALSE)
+option(DEFAULT_FWD_REL_STORAGE "Only store fwd direction in rel tables by default." FALSE)
 option(PAGE_SIZE_LOG2 "Log2 of the page size." 12)
 if(NOT PAGE_SIZE_LOG2)
     set(PAGE_SIZE_LOG2 12)

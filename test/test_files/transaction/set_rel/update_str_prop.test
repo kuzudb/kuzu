@@ -1,4 +1,5 @@
 -DATASET CSV rel-update-tests
+-TEST_FWD_ONLY_REL
 --
 
 -DEFINE_STATEMENT_BLOCK UPDATE_STR_PROP [
@@ -15,7 +16,7 @@
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_STR_PROP
 -STATEMENT COMMIT
----- ok 
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) where p1.ID >= 10 and p1.ID <= 20 and p0.ID = 0 return e.place
@@ -44,7 +45,7 @@ kitchener
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_STR_PROP
 -STATEMENT COMMIT
----- ok 
+---- ok
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok
@@ -70,7 +71,7 @@ kitchener
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_STR_PROP
 -STATEMENT Rollback
----- ok 
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) where p1.ID >= 10 and p1.ID <= 20 and p0.ID = 0 return e.place
@@ -99,7 +100,7 @@ kitchener
 ---- ok
 -INSERT_STATEMENT_BLOCK UPDATE_STR_PROP
 -STATEMENT ROLLBACK
----- ok 
+---- ok
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok

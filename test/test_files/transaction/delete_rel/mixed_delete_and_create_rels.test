@@ -1,4 +1,5 @@
 -DATASET CSV rel-update-tests
+-TEST_FWD_ONLY_REL
 --
 
 -CASE MixedDeleteAndCreateRelsCommitNormalExecution
@@ -45,4 +46,3 @@
 10
 -STATEMENT COMMIT;
 ---- ok
-

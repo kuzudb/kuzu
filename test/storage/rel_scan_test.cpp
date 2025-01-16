@@ -1,5 +1,4 @@
 #include <cstdint>
-#include <random>
 #include <vector>
 
 #include "catalog/catalog.h"
@@ -8,7 +7,6 @@
 #include "common/types/types.h"
 #include "graph/graph_entry.h"
 #include "graph/on_disk_graph.h"
-#include "graph_test/base_graph_test.h"
 #include "main/client_context.h"
 #include "main_test_helper/private_main_test_helper.h"
 
@@ -33,12 +31,16 @@ public:
         auto entry = graph::GraphEntry(catalog->getTableEntries(transaction, nodeTableIDs),
             catalog->getTableEntries(transaction, relTableIDs));
         graph = std::make_unique<kuzu::graph::OnDiskGraph>(context, std::move(entry));
+
+        fwdStorageOnly = (common::ExtendDirectionUtil::getDefaultExtendDirection() ==
+                          common::ExtendDirection::FWD);
     }
 
 public:
     std::unique_ptr<kuzu::graph::OnDiskGraph> graph;
     main::ClientContext* context;
     catalog::Catalog* catalog;
+    bool fwdStorageOnly;
 };
 
 class RelScanTestAmazon : public RelScanTest {
@@ -99,29 +101,31 @@ TEST_F(RelScanTest, ScanFwd) {
         EXPECT_EQ(graph->scanFwd(nodeID_t{node, tableID}, *scanState).collectNbrNodes(),
             expectedNodes);
 
-        resultNodeOffsets.clear();
-        resultRelOffsets.clear();
-        resultDates.clear();
+        if (!fwdStorageOnly) {
+            resultNodeOffsets.clear();
+            resultRelOffsets.clear();
+            resultDates.clear();
 
-        for (const auto chunk : graph->scanBwd(nodeID_t{node, tableID}, *scanState)) {
-            chunk.forEach<common::date_t>([&](auto nbr, auto edgeID, auto date) {
-                EXPECT_EQ(nbr.tableID, tableID);
-                resultNodeOffsets.push_back(nbr.offset);
-                EXPECT_EQ(edgeID.tableID, relEntry->getTableID());
-                resultRelOffsets.push_back(edgeID.offset);
-                resultDates.push_back(date);
-            });
+            for (const auto chunk : graph->scanBwd(nodeID_t{node, tableID}, *scanState)) {
+                chunk.forEach<common::date_t>([&](auto nbr, auto edgeID, auto date) {
+                    EXPECT_EQ(nbr.tableID, tableID);
+                    resultNodeOffsets.push_back(nbr.offset);
+                    EXPECT_EQ(edgeID.tableID, relEntry->getTableID());
+                    resultRelOffsets.push_back(edgeID.offset);
+                    resultDates.push_back(date);
+                });
+            }
+            EXPECT_EQ(resultNodeOffsets, expectedNodeOffsets);
+            EXPECT_EQ(resultRelOffsets, expectedBwdRelOffsets);
+            for (size_t i = 0; i < resultRelOffsets.size(); i++) {
+                EXPECT_EQ(expectedDates[resultRelOffsets[i]], resultDates[i])
+                    << " Result " << i << " (rel offset " << resultRelOffsets[i] << ") was "
+                    << Date::toString(resultDates[i]) << " but we expected "
+                    << Date::toString(expectedDates[resultRelOffsets[i]]);
+            }
+            EXPECT_EQ(graph->scanFwd(nodeID_t{node, tableID}, *scanState).collectNbrNodes(),
+                expectedNodes);
         }
-        EXPECT_EQ(resultNodeOffsets, expectedNodeOffsets);
-        EXPECT_EQ(resultRelOffsets, expectedBwdRelOffsets);
-        for (size_t i = 0; i < resultRelOffsets.size(); i++) {
-            EXPECT_EQ(expectedDates[resultRelOffsets[i]], resultDates[i])
-                << " Result " << i << " (rel offset " << resultRelOffsets[i] << ") was "
-                << Date::toString(resultDates[i]) << " but we expected "
-                << Date::toString(expectedDates[resultRelOffsets[i]]);
-        }
-        EXPECT_EQ(graph->scanFwd(nodeID_t{node, tableID}, *scanState).collectNbrNodes(),
-            expectedNodes);
     };
     compare(0, {1, 2, 3}, {0, 1, 2}, {3, 6, 9});
     compare(1, {0, 2, 3}, {3, 4, 5}, {0, 7, 10});

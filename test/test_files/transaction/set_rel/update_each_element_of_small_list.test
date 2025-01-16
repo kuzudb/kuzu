@@ -1,4 +1,5 @@
 -DATASET CSV rel-update-tests
+-TEST_FWD_ONLY_REL
 --
 
 -CASE updateEachElementOfSmallListCommitNormalExecution
@@ -7,7 +8,7 @@
 -BATCH_STATEMENTS <FILE>:update_each_element_of_small_list.cypher
 ---- ok
 -STATEMENT COMMIT
----- ok 
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) WHERE p0.ID = 1 RETURN e.length
@@ -44,7 +45,7 @@
 -BATCH_STATEMENTS <FILE>:update_each_element_of_small_list.cypher
 ---- ok
 -STATEMENT Rollback
----- ok 
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) WHERE p0.ID = 1 RETURN e.length
@@ -64,7 +65,7 @@
 -BATCH_STATEMENTS <FILE>:update_each_element_of_small_list.cypher
 ---- ok
 -STATEMENT ROLLBACK
----- ok 
+---- ok
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok

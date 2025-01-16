@@ -355,11 +355,18 @@ jobs:
         env:
           ASAN_OPTIONS: "detect_leaks=1"
 
+      - name: Test fwd only rel tables with ASAN
+        env:
+          GTEST_FILTER: "*~*:RelScanTest*"
+          DEFAULT_FWD_REL_STORAGE: 1
+        run: |
+          make test
+
       - name: Test compression disabled with ASAN
         env:
           ENABLE_COMPRESSION: false
         run: |
-          make test
+          make test DEFAULT_FWD_REL_STORAGE=0
 
   clang-build-test:
     name: clang build & test
@@ -402,11 +409,19 @@ jobs:
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test
 
+      - name: Test fwd only rel tables
+        env:
+          # We assume that any test name containing '~' is part of e2e_test
+          GTEST_FILTER: "*~*:RelScanTest*"
+          DEFAULT_FWD_REL_STORAGE: 1
+        run: |
+          make test
+
       - name: Test compression disabled
         env:
           ENABLE_COMPRESSION: false
         run: |
-          make test
+          make test DEFAULT_FWD_REL_STORAGE=0
 
       - name: Python test
         run: make pytest
@@ -530,13 +545,22 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           make test
 
+      - name: Test fwd only rel tables
+        shell: cmd
+        env:
+          DEFAULT_FWD_REL_STORAGE: 1
+          GTEST_FILTER: "*~*:RelScanTest*"
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          make test
+
       - name: Test in mem
         shell: cmd
         env:
           IN_MEM_MODE: true
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          make test
+          make test DEFAULT_FWD_REL_STORAGE=0
 
       - name: Python test
         shell: cmd

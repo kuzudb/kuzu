@@ -17,10 +17,18 @@ static constexpr common::column_id_t LOCAL_REL_ID_COLUMN_ID = 2;
 class RelTable;
 struct TableScanState;
 struct RelTableUpdateState;
+
+struct DirectedCSRIndex {
+    using index_t = std::map<common::offset_t, row_idx_vec_t>;
+
+    explicit DirectedCSRIndex(common::RelDataDirection direction) : direction(direction) {}
+
+    common::RelDataDirection direction;
+    index_t index;
+};
+
 class LocalRelTable final : public LocalTable {
 public:
-    using rel_index_t = std::map<common::offset_t, row_idx_vec_t>;
-
     static std::vector<common::LogicalType> getTypesForLocalRelTable(const RelTable& table);
 
     explicit LocalRelTable(Table& table);
@@ -42,20 +50,27 @@ public:
 
     void clear() override {
         localNodeGroup.reset();
-        fwdIndex.clear();
-        bwdIndex.clear();
+        for (auto& index : directedIndices) {
+            index.index.clear();
+        }
     }
     bool isEmpty() const {
-        KU_ASSERT(
-            (fwdIndex.empty() && bwdIndex.empty()) || (!fwdIndex.empty() && !bwdIndex.empty()));
-        return fwdIndex.empty();
+        KU_ASSERT(directedIndices.size() >= 1);
+        RUNTIME_CHECK(for (const auto& index
+                           : directedIndices) {
+            KU_ASSERT(index.index.empty() == directedIndices[0].index.empty());
+        });
+        return directedIndices[0].index.empty();
     }
 
     common::column_id_t getNumColumns() const { return localNodeGroup->getDataTypes().size(); }
     common::row_idx_t getNumTotalRows() override { return localNodeGroup->getNumRows(); }
 
-    rel_index_t& getFWDIndex() { return fwdIndex; }
-    rel_index_t& getBWDIndex() { return bwdIndex; }
+    DirectedCSRIndex::index_t& getCSRIndex(common::RelDataDirection direction) {
+        const auto directionIdx = common::RelDirectionUtils::relDirectionToKeyIdx(direction);
+        KU_ASSERT(directionIdx < directedIndices.size());
+        return directedIndices[directionIdx].index;
+    }
     NodeGroup& getLocalNodeGroup() const { return *localNodeGroup; }
 
     static std::vector<common::column_id_t> rewriteLocalColumnIDs(
@@ -65,7 +80,7 @@ public:
 
 private:
     common::row_idx_t findMatchingRow(transaction::Transaction* transaction,
-        common::offset_t srcNodeOffset, common::offset_t dstNodeOffset, common::offset_t relOffset);
+        const std::vector<row_idx_vec_t*>& rowVecsToCheck, common::offset_t relOffset);
 
 private:
     // We don't duplicate local rel tuples. Tuples are stored same as node tuples.
@@ -73,8 +88,7 @@ private:
     // [srcNodeID, dstNodeID, relID, property1, property2, ...]
     // All local rel tuples are stored in a single node group, and they are indexed by src/dst
     // NodeID.
-    rel_index_t fwdIndex;
-    rel_index_t bwdIndex;
+    std::vector<DirectedCSRIndex> directedIndices;
     std::unique_ptr<NodeGroup> localNodeGroup;
 };
 

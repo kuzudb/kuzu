@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/enums/conflict_action.h"
-#include "common/enums/rel_direction.h"
+#include "common/enums/extend_direction.h"
 #include "common/enums/rel_multiplicity.h"
 #include "common/enums/table_type.h"
 #include "common/types/types.h"
@@ -101,17 +101,17 @@ struct BoundExtraCreateNodeTableInfo final : BoundExtraCreateTableInfo {
 struct BoundExtraCreateRelTableInfo final : public BoundExtraCreateTableInfo {
     common::RelMultiplicity srcMultiplicity;
     common::RelMultiplicity dstMultiplicity;
-    common::RelStorageDirection storageDirection;
+    common::ExtendDirection storageDirection;
     common::table_id_t srcTableID;
     common::table_id_t dstTableID;
 
     BoundExtraCreateRelTableInfo(common::table_id_t srcTableID, common::table_id_t dstTableID,
         std::vector<PropertyDefinition> definitions)
         : BoundExtraCreateRelTableInfo{common::RelMultiplicity::MANY, common::RelMultiplicity::MANY,
-              common::RelDirectionUtils::DEFAULT_REL_STORAGE_DIRECTION, srcTableID, dstTableID,
+              common::ExtendDirectionUtil::getDefaultExtendDirection(), srcTableID, dstTableID,
               std::move(definitions)} {}
     BoundExtraCreateRelTableInfo(common::RelMultiplicity srcMultiplicity,
-        common::RelMultiplicity dstMultiplicity, common::RelStorageDirection storageDirection,
+        common::RelMultiplicity dstMultiplicity, common::ExtendDirection storageDirection,
         common::table_id_t srcTableID, common::table_id_t dstTableID,
         std::vector<PropertyDefinition> definitions)
         : BoundExtraCreateTableInfo{std::move(definitions)}, srcMultiplicity{srcMultiplicity},

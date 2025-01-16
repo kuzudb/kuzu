@@ -1,4 +1,5 @@
 -DATASET CSV rel-update-tests
+-TEST_FWD_ONLY_REL
 --
 
 -CASE deleteRelsFromManyToOneTableCommitNormalExecution
@@ -9,7 +10,7 @@
 -STATEMENT MATCH (p1:person)-[t:teaches]->(p2:person) WHERE p1.ID = 31 AND p2.ID = 3 delete t;
 ---- ok
 -STATEMENT COMMIT
----- ok 
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (:person)-[t:teaches]->(:person) return t.length
@@ -34,7 +35,7 @@
 -STATEMENT MATCH (p1:person)-[t:teaches]->(p2:person) WHERE p1.ID = 31 AND p2.ID = 3 delete t;
 ---- ok
 -STATEMENT COMMIT
----- ok 
+---- ok
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok
@@ -56,7 +57,7 @@
 -STATEMENT MATCH (p1:person)-[t:teaches]->(p2:person) WHERE p1.ID = 31 AND p2.ID = 3 delete t;
 ---- ok
 -STATEMENT Rollback
----- ok 
+---- ok
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (:person)-[t:teaches]->(:person) return t.length
@@ -83,7 +84,7 @@
 -STATEMENT MATCH (p1:person)-[t:teaches]->(p2:person) WHERE p1.ID = 31 AND p2.ID = 3 delete t;
 ---- ok
 -STATEMENT ROLLBACK
----- ok 
+---- ok
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok
