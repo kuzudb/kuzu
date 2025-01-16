@@ -8,7 +8,7 @@ const SRC_PATH = path.resolve("..", "..");
 const THREADS = os.cpus().length;
 const KUZU_VERSION_TEXT = "Kuzu VERSION";
 const ES_BUILD_CONFIG = {
-  entryPoints: ['./build/sync/index.js', './build/index.js', 'build/worker.js'],
+  entryPoints: ['./build/sync/index.js', './build/index.js', 'build/kuzu_wasm_worker.js'],
   bundle: true,
   format: 'esm',
   external: ['fs', 'path', 'ws', 'crypto', "worker_threads", "os"],

@@ -6,9 +6,9 @@ class QueryResult {
   constructor(id) {
     this._id = id;
     this._isClosed = false;
-    this.hasNext = undefined;
-    this.hasNextQueryResult = undefined;
-    this.isSuccess = undefined;
+    this._hasNext = undefined;
+    this._hasNextQueryResult = undefined;
+    this._isSuccess = undefined;
   }
 
   async _syncValues() {
@@ -18,26 +18,26 @@ class QueryResult {
     const worker = await dispatcher.getWorker();
     let res = await worker.queryResultHasNext(this._id);
     if (res.isSuccess) {
-      this.hasNext = res.result;
+      this._hasNext = res.result;
     } else {
       throw new Error(res.error);
     }
     res = await worker.queryResultHasNextQueryResult(this._id);
     if (res.isSuccess) {
-      this.hasNextQueryResult = res.result;
+      this._hasNextQueryResult = res.result;
     } else {
       throw new Error(res.error);
     }
     res = await worker.queryResultIsSuccess(this._id);
     if (res.isSuccess) {
-      this.isSuccess = res.result;
+      this._isSuccess = res.result;
     } else {
       throw new Error(res.error);
     }
   }
 
   isSuccess() {
-    return this.isSuccess;
+    return this._isSuccess;
   }
 
   async getErrorMessage() {
@@ -60,11 +60,11 @@ class QueryResult {
   }
 
   hasNext() {
-    return this.hasNext;
+    return this._hasNext;
   }
 
   hasNextQueryResult() {
-    return this.hasNextQueryResult;
+    return this._hasNextQueryResult;
   }
 
   async getNumColumns() {

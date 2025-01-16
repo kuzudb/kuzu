@@ -9,7 +9,8 @@ class Database {
     maxNumThreads = 0,
     enableCompression = true,
     readOnly = false,
-    maxDBSize = 0
+    autoCheckpoint = true,
+    checkpointThreshold = 16777216
   ) {
     this._isInitialized = false;
     this._initPromise = null;
@@ -20,7 +21,8 @@ class Database {
     this.maxNumThreads = maxNumThreads;
     this.enableCompression = enableCompression;
     this.readOnly = readOnly;
-    this.maxDBSize = maxDBSize;
+    this.autoCheckpoint = autoCheckpoint;
+    this.checkpointThreshold = checkpointThreshold;
   }
 
   async init() {
@@ -34,7 +36,8 @@ class Database {
             this.maxNumThreads,
             this.enableCompression,
             this.readOnly,
-            this.maxDBSize
+            this.autoCheckpoint,
+            this.checkpointThreshold
           );
           if (res.isSuccess) {
             this._id = res.id;

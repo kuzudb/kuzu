@@ -11,9 +11,8 @@ class Database {
  * @param {Number} bufferManagerSize size of the buffer manager in bytes.
  * @param {Boolean} enableCompression whether to enable compression.
  * @param {Boolean} readOnly if true, database will be opened in read-only mode.
- * @param {Number} maxDBSize maximum size of the database file in bytes. Note that
- * this is introduced temporarily for now to get around with the default 8TB mmap
- * address space limit some environment.
+ * @param {Boolean} autoCheckpoint if true, automatic checkpointing will be enabled.
+ * @param {Number} checkpointThreshold threshold for automatic checkpointing in bytes. Default is 16MB.
  */
   constructor(
     databasePath,
@@ -21,7 +20,8 @@ class Database {
     maxNumThreads = 0,
     enableCompression = true,
     readOnly = false,
-    maxDBSize = 0
+    autoCheckpoint = true,
+    checkpointThreshold = 16777216
   ) {
     KuzuWasm.checkInit();
     const kuzu = KuzuWasm._kuzu;
@@ -37,23 +37,21 @@ class Database {
     if (typeof maxNumThreads !== "number" || maxNumThreads < 0) {
       throw new Error("Max number of threads must be a positive integer.");
     }
-    if (typeof maxDBSize !== "number" || maxDBSize < 0) {
-      throw new Error("Max DB size must be a positive integer.");
+    if (typeof checkpointThreshold !== "number" || checkpointThreshold < 0) {
+      throw new Error("Checkpoint threshold must be a positive integer.");
     }
-    const systemConfig = new kuzu.SystemConfig();
     bufferPoolSize = Math.floor(bufferPoolSize);
-    maxDBSize = Math.floor(maxDBSize);
-    if (bufferPoolSize > 0) {
-      systemConfig.bufferPoolSize = bufferPoolSize;
-    }
-    if (maxNumThreads > 0) {
-      systemConfig.maxNumThreads = maxNumThreads;
-    }
-    systemConfig.enableCompression = enableCompression;
-    systemConfig.readOnly = readOnly;
-    if (maxDBSize > 0) {
-      systemConfig.maxDBSize = maxDBSize;
-    }
+    const defaultSystemConfig = new kuzu.SystemConfig();
+    const systemConfig = new kuzu.SystemConfig(
+      bufferPoolSize,
+      maxNumThreads,
+      !!enableCompression,
+      !!readOnly,
+      defaultSystemConfig.maxDBSize,
+      !!autoCheckpoint,
+      checkpointThreshold
+    );
+    defaultSystemConfig.delete();
     try {
       this._database = new kuzu.Database(databasePath, systemConfig);
     } finally {

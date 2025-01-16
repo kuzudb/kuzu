@@ -35,7 +35,9 @@ else {
       maxNumThreads,
       enableCompression,
       readOnly,
-      maxDBSize) {
+      autoCheckpoint,
+      checkpointThreshold
+    ) {
       const id = uuidv4();
       try {
         objectsStore[id] = new kuzuSync.Database(
@@ -44,7 +46,8 @@ else {
           maxNumThreads,
           enableCompression,
           readOnly,
-          maxDBSize
+          autoCheckpoint,
+          checkpointThreshold
         );
       } catch (e) {
         delete objectsStore[id];

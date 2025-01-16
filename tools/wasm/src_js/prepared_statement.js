@@ -6,7 +6,7 @@ class PreparedStatement {
   constructor(id) {
     this._id = id;
     this._isClosed = false;
-    this.isSuccess = undefined;
+    this._isSuccess = undefined;
   }
 
   async _syncValues() {
@@ -16,14 +16,14 @@ class PreparedStatement {
     const worker = await dispatcher.getWorker();
     let res = await worker.preparedStatementIsSuccess(this._id);
     if (res.isSuccess) {
-      this.isSuccess = res.result;
+      this._isSuccess = res.result;
     } else {
       throw new Error(res.error);
     }
   }
 
   isSuccess() {
-    return this.isSuccess;
+    return this._isSuccess;
   }
 
   async getErrorMessage() {

@@ -19,13 +19,13 @@ class Dispatcher {
       return this.workerPath;
     }
     if (isNodeJs) {
-      return "./worker.js";
+      return "./kuzu_wasm_worker.js";
     }
     // Hack: importMeta will be replaced by esbuild with "import.meta"
     // This is a workaround for "This file is considered to be an ECMAScript module because of the use of "import.meta" here:"
     const scriptPath = importMeta.url;
     const basePath = scriptPath.substring(0, scriptPath.lastIndexOf("/"));
-    return `${basePath}/worker.js`;
+    return `${basePath}/kuzu_wasm_worker.js`;
   }
 
   async init() {
