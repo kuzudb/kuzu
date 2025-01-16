@@ -1173,11 +1173,10 @@ public class ValueTest extends TestBase {
 
     @Test
     void CreateMapLiteral() throws ObjectRefDestroyedException {
-        Map<Value, Value> audienceMap = Map.of(
-                new Value("Alice"), new Value(1),
-                new Value("Bob"), new Value(2));
-        KuzuMap kuzuMap = KuzuMap.createMap(audienceMap);
-        assertEquals(audienceMap.size(), kuzuMap.getNumFields());
+        Value[] keys = { new Value("Alice"), new Value("Bob") };
+        Value[] values = { new Value(1), new Value(2) };
+        KuzuMap kuzuMap = KuzuMap.createMap(keys, values);
+        assertEquals(keys.length, kuzuMap.getNumFields());
         int aliceKeyIdx = (kuzuMap.getKey(0).getValue().equals("Alice")) ? 0 : 1;
         int bobKeyIdx = 1 - aliceKeyIdx;
         assertEquals("Alice", kuzuMap.getKey(aliceKeyIdx).getValue());

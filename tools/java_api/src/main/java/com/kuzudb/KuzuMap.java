@@ -5,6 +5,9 @@ import java.util.Map;
 public class KuzuMap {
     private Value mapVal;
 
+    /**
+     * @return Gets the underlying Value for the map
+     */
     public Value getValue() {
         return mapVal;
     }
@@ -19,24 +22,18 @@ public class KuzuMap {
     }
 
     /**
-     * Construct a map from a collection.
+     * Construct a map literal from a given set of keys/values. The length of the
+     * key/value arrays must be the same.
      *
-     * @param map: the collection to construct the map from
+     * @param keys:   The keys in the map
+     * @param values: The values in the map
      */
-    public static KuzuMap createMap(Map<Value, Value> map) throws ObjectRefDestroyedException {
-        if (map.isEmpty()) {
+    public static KuzuMap createMap(Value[] keys, Value[] values) throws ObjectRefDestroyedException {
+        if (keys.length != values.length) {
             return null;
         }
-
-        // The underlying representation of a map is a list of pairs
-        // The pairs are represented as a list of size 2
-        Value[] keys = new Value[map.size()];
-        Value[] values = new Value[map.size()];
-        int idx = 0;
-        for (Map.Entry<Value, Value> entry : map.entrySet()) {
-            keys[idx] = entry.getKey();
-            values[idx] = entry.getValue();
-            ++idx;
+        if (keys.length == 0) {
+            return null;
         }
         return new KuzuMap(Native.kuzu_create_map(keys, values));
     }

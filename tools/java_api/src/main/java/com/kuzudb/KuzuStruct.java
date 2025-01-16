@@ -3,19 +3,29 @@ package com.kuzudb;
 public class KuzuStruct {
     private Value structVal;
 
+    /**
+     * @return Gets the underlying Value for the struct
+     */
     public Value getValue() {
         return structVal;
     }
 
     /**
-     * Construct a map from a value
+     * Construct a struct from a value
      *
-     * @param value the value to construct the map from
+     * @param value the value to construct the struct from
      */
     public KuzuStruct(Value value) {
         structVal = value;
     }
 
+    /**
+     * Construct a struct literal from a given set of fields. The length of the
+     * fieldName/fieldValue arrays must be the same.
+     *
+     * @param fieldNames:  The name of the struct fields
+     * @param fieldValues: The values of the struct fields
+     */
     public static KuzuStruct createStruct(String[] fieldNames, Value[] fieldValues) throws ObjectRefDestroyedException {
         if (fieldNames.length != fieldValues.length) {
             return null;
@@ -30,8 +40,8 @@ public class KuzuStruct {
     }
 
     /**
-     * @return The number of fields in the map.
-     * @throws ObjectRefDestroyedException If the map has been destroyed.
+     * @return The number of fields in the struct.
+     * @throws ObjectRefDestroyedException If the struct has been destroyed.
      */
     public long getNumFields() throws ObjectRefDestroyedException {
         return Native.kuzu_value_get_list_size(structVal);

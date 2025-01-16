@@ -3,6 +3,9 @@ package com.kuzudb;
 public class KuzuList {
     private Value listVal;
 
+    /**
+     * @return Gets the underlying Value for the list
+     */
     public Value getValue() {
         return listVal;
     }
@@ -17,7 +20,7 @@ public class KuzuList {
     }
 
     /**
-     * Construct a list from an array of values
+     * Construct a list literal from an array of values
      *
      * @param values: the array to construct the list from
      */
@@ -35,10 +38,10 @@ public class KuzuList {
     }
 
     /**
-     * Get the size of the list value.
+     * Get the size of the list.
      *
-     * @return The size of the list value.
-     * @throws ObjectRefDestroyedException If the list value has been destroyed.
+     * @return The size of the list.
+     * @throws ObjectRefDestroyedException If the list has been destroyed.
      */
     public long getListSize() throws ObjectRefDestroyedException {
         listVal.checkNotDestroyed();
@@ -46,11 +49,11 @@ public class KuzuList {
     }
 
     /**
-     * Get the element at the given index from the given list value.
+     * Get the element at the given index from the given list.
      *
      * @param index: The index of the element.
-     * @return The element at the given index from the given list value.
-     * @throws ObjectRefDestroyedException If the list value has been destroyed.
+     * @return The element at the given index from the given list.
+     * @throws ObjectRefDestroyedException If the list has been destroyed.
      */
     public Value getListElement(long index) throws ObjectRefDestroyedException {
         listVal.checkNotDestroyed();

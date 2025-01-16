@@ -1174,8 +1174,11 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1create_1map(JNIEnv* env, 
         if (!keyType.has_value()) {
             keyType = key->getDataType().copy();
             valueType = value->getDataType().copy();
-        } else if (key->getDataType() != *keyType || value->getDataType() != *valueType) {
-            return nullptr;
+        } else {
+            KU_ASSERT(valueType.has_value());
+            if (key->getDataType() != *keyType || value->getDataType() != *valueType) {
+                return nullptr;
+            }
         }
 
         std::vector<StructField> structFields;
