@@ -10,19 +10,12 @@
 namespace kuzu {
 namespace function {
 
-struct RJBindData final : public GDSBindData {
+struct RJBindData : public GDSBindData {
     static constexpr uint16_t DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND = (uint16_t)255;
 
     std::shared_ptr<binder::Expression> nodeInput = nullptr;
-    // Important Note: For any recursive join algorithm other than variable length joins, lower
-    // bound must always be 1. For variable length joins, lower bound 0 has a special meaning, for
-    // which we follow the behavior of Neo4j. Lower bound 0 means that when matching the
-    // (a)-[e*0..max]->(b) or its variant forms, such as (a)-[*0..max]-(b), if no such path exists
-    // between possible bound a nodes and b nodes, say between nodes s and d, such that s matches
-    // all filters on node pattern a and b matches all filters on node pattern b, we should still
-    // return an empty path, i.e., one that binds no edges to e. If there is a non-empty path
-    // between s and d of length > 1, then we don't return the empty path in addition to non-empty
-    // paths. So the semantics is that of optional match.
+    // For any form of shortest path lower bound must always be 1.
+    // If lowerBound equals to 0, an empty path with source node only will be returned.
     uint16_t lowerBound = 0;
     uint16_t upperBound = 0;
     common::PathSemantic semantic = common::PathSemantic::WALK;
@@ -36,6 +29,9 @@ struct RJBindData final : public GDSBindData {
     std::shared_ptr<binder::Expression> lengthExpr = nullptr;
     std::shared_ptr<binder::Expression> pathNodeIDsExpr = nullptr;
     std::shared_ptr<binder::Expression> pathEdgeIDsExpr = nullptr;
+
+    std::string weightPropertyName;
+    std::shared_ptr<binder::Expression> weightOutputExpr = nullptr;
 
     RJBindData(graph::GraphEntry graphEntry, std::shared_ptr<binder::Expression> nodeOutput)
         : GDSBindData{std::move(graphEntry), std::move(nodeOutput)} {}

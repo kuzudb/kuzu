@@ -3,7 +3,6 @@
 #include "bfs_graph.h"
 #include "common/enums/path_semantic.h"
 #include "common/types/types.h"
-#include "gds_frontier.h"
 #include "processor/operator/gds_call_shared_state.h"
 #include "processor/result/factorized_table.h"
 
@@ -25,22 +24,6 @@ struct RJOutputs {
     template<class TARGET>
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<TARGET*>(this);
-    }
-};
-
-struct SPDestinationOutputs : public RJOutputs {
-    std::shared_ptr<PathLengths> pathLengths;
-
-    SPDestinationOutputs(common::nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths)
-        : RJOutputs{sourceNodeID}, pathLengths{std::move(pathLengths)} {}
-
-    // Note: We do not fix the node table for pathLengths, because PathLengths is a
-    // FrontierPair implementation and RJCompState will call beginFrontierComputeBetweenTables
-    // on FrontierPair (and RJOutputs).
-    void beginFrontierComputeBetweenTables(common::table_id_t, common::table_id_t) override{};
-
-    void beginWritingOutputsForDstNodesInTable(common::table_id_t tableID) override {
-        pathLengths->pinCurFrontierTableID(tableID);
     }
 };
 
@@ -105,25 +88,6 @@ protected:
     RJOutputs* rjOutputs;
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
-};
-
-class DestinationsOutputWriter : public RJOutputWriter {
-public:
-    DestinationsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-        processor::NodeOffsetMaskMap* outputNodeMask);
-
-    void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
-        processor::GDSOutputCounter* counter) override;
-
-    std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<DestinationsOutputWriter>(context, rjOutputs, outputNodeMask);
-    }
-
-protected:
-    bool skipInternal(common::nodeID_t dstNodeID) const override;
-
-protected:
-    std::unique_ptr<common::ValueVector> lengthVector;
 };
 
 struct PathsOutputWriterInfo {

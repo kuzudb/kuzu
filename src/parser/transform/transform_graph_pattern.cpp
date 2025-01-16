@@ -71,7 +71,7 @@ RelPattern Transformer::transformRelationshipPattern(
     auto variable = std::string();
     auto relTypes = std::vector<std::string>{};
     auto properties = std::vector<std::pair<std::string, std::unique_ptr<ParsedExpression>>>{};
-
+    // Parse name, label & properties
     if (relDetail) {
         if (relDetail->oC_Variable()) {
             variable = transformVariable(*relDetail->oC_Variable());
@@ -83,7 +83,7 @@ RelPattern Transformer::transformRelationshipPattern(
             properties = transformProperties(*relDetail->kU_Properties());
         }
     }
-
+    // Parse direction
     ArrowDirection arrowDirection; // NOLINT(*-init-variables)
     if (ctx.oC_LeftArrowHead()) {
         arrowDirection = ArrowDirection::LEFT;
@@ -92,59 +92,72 @@ RelPattern Transformer::transformRelationshipPattern(
     } else {
         arrowDirection = ArrowDirection::BOTH;
     }
-
+    // Parse recursive info
     auto relType = QueryRelType::NON_RECURSIVE;
     auto recursiveInfo = RecursiveRelPatternInfo();
-    if (relDetail && relDetail->oC_RangeLiteral()) {
-        auto range = relDetail->oC_RangeLiteral();
-        if (range->ALL()) {
-            relType = QueryRelType::ALL_SHORTEST;
-        } else if (range->SHORTEST()) {
-            relType = QueryRelType::SHORTEST;
-        } else if (range->TRAIL()) {
-            relType = QueryRelType::VARIABLE_LENGTH_TRAIL;
-        } else if (range->ACYCLIC()) {
-            relType = QueryRelType::VARIABLE_LENGTH_ACYCLIC;
+
+    if (relDetail && relDetail->kU_RecursiveDetail()) {
+        auto recursiveDetail = relDetail->kU_RecursiveDetail();
+        // Parse recursive type
+        auto recursiveType = recursiveDetail->kU_RecursiveType();
+        if (recursiveType) {
+            if (recursiveType->ALL()) {
+                relType = QueryRelType::ALL_SHORTEST;
+            } else if (recursiveType->WSHORTEST()) {
+                relType = QueryRelType::WEIGHTED_SHORTEST;
+                recursiveInfo.weightPropertyName =
+                    transformPropertyKeyName(*recursiveType->oC_PropertyKeyName());
+            } else if (recursiveDetail->kU_RecursiveType()->SHORTEST()) {
+                relType = QueryRelType::SHORTEST;
+            } else if (recursiveDetail->kU_RecursiveType()->TRAIL()) {
+                relType = QueryRelType::VARIABLE_LENGTH_TRAIL;
+            } else if (recursiveDetail->kU_RecursiveType()->ACYCLIC()) {
+                relType = QueryRelType::VARIABLE_LENGTH_ACYCLIC;
+            } else {
+                relType = QueryRelType::VARIABLE_LENGTH_WALK;
+            }
         } else {
             relType = QueryRelType::VARIABLE_LENGTH_WALK;
         }
-
+        // Parse lower, upper bound
         auto lowerBound = std::string("1");
         auto upperBound = std::string("");
-
-        if (range->oC_IntegerLiteral()) {
-            lowerBound = range->oC_IntegerLiteral()->getText();
-            upperBound = lowerBound;
-        }
-        if (range->oC_LowerBound()) {
-            lowerBound = range->oC_LowerBound()->getText();
-        }
-        if (range->oC_UpperBound()) {
-            upperBound = range->oC_UpperBound()->getText();
+        auto range = recursiveDetail->oC_RangeLiteral();
+        if (range) {
+            if (range->oC_IntegerLiteral()) {
+                lowerBound = range->oC_IntegerLiteral()->getText();
+                upperBound = lowerBound;
+            }
+            if (range->oC_LowerBound()) {
+                lowerBound = range->oC_LowerBound()->getText();
+            }
+            if (range->oC_UpperBound()) {
+                upperBound = range->oC_UpperBound()->getText();
+            }
         }
         recursiveInfo.lowerBound = lowerBound;
         recursiveInfo.upperBound = upperBound;
-        if (range->kU_RecursiveRelationshipComprehension()) {
-            auto comprehension = range->kU_RecursiveRelationshipComprehension();
+        // Parse recursive comprehension
+        auto comprehension = recursiveDetail->kU_RecursiveComprehension();
+        if (comprehension) {
             recursiveInfo.relName = transformVariable(*comprehension->oC_Variable(0));
             recursiveInfo.nodeName = transformVariable(*comprehension->oC_Variable(1));
             if (comprehension->oC_Where()) {
                 recursiveInfo.whereExpression = transformWhere(*comprehension->oC_Where());
             }
-            if (comprehension->kU_IntermediateRelProjectionItems()) {
+            if (!comprehension->kU_RecursiveProjectionItems().empty()) {
                 recursiveInfo.hasProjection = true;
-                auto relProjectionItem = comprehension->kU_IntermediateRelProjectionItems();
-                if (relProjectionItem->oC_ProjectionItems()) {
-                    recursiveInfo.relProjectionList =
-                        transformProjectionItems(*relProjectionItem->oC_ProjectionItems());
+                KU_ASSERT(comprehension->kU_RecursiveProjectionItems().size() == 2);
+                auto relProjectionList =
+                    comprehension->kU_RecursiveProjectionItems(0)->oC_ProjectionItems();
+                if (relProjectionList) {
+                    recursiveInfo.relProjectionList = transformProjectionItems(*relProjectionList);
                 }
-            }
-            if (comprehension->kU_IntermediateNodeProjectionItems()) {
-                recursiveInfo.hasProjection = true;
-                auto nodeProjectionItem = comprehension->kU_IntermediateNodeProjectionItems();
-                if (nodeProjectionItem->oC_ProjectionItems()) {
+                auto nodeProjectionList =
+                    comprehension->kU_RecursiveProjectionItems(1)->oC_ProjectionItems();
+                if (nodeProjectionList) {
                     recursiveInfo.nodeProjectionList =
-                        transformProjectionItems(*nodeProjectionItem->oC_ProjectionItems());
+                        transformProjectionItems(*nodeProjectionList);
                 }
             }
         }

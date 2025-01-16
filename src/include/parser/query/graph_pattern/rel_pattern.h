@@ -12,6 +12,7 @@ enum class ArrowDirection : uint8_t { LEFT = 0, RIGHT = 1, BOTH = 2 };
 struct RecursiveRelPatternInfo {
     std::string lowerBound;
     std::string upperBound;
+    std::string weightPropertyName;
     std::string relName;
     std::string nodeName;
     std::unique_ptr<ParsedExpression> whereExpression = nullptr;
@@ -33,11 +34,11 @@ public:
           recursiveInfo{std::move(recursiveInfo)} {}
     DELETE_COPY_DEFAULT_MOVE(RelPattern);
 
-    inline common::QueryRelType getRelType() const { return relType; }
+    common::QueryRelType getRelType() const { return relType; }
 
-    inline ArrowDirection getDirection() const { return arrowDirection; }
+    ArrowDirection getDirection() const { return arrowDirection; }
 
-    inline const RecursiveRelPatternInfo* getRecursiveInfo() const { return &recursiveInfo; }
+    const RecursiveRelPatternInfo* getRecursiveInfo() const { return &recursiveInfo; }
 
 private:
     common::QueryRelType relType;

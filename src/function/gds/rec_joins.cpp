@@ -31,6 +31,8 @@ RJBindData::RJBindData(const RJBindData& other) : GDSBindData{other} {
     lengthExpr = other.lengthExpr;
     pathNodeIDsExpr = other.pathNodeIDsExpr;
     pathEdgeIDsExpr = other.pathEdgeIDsExpr;
+    weightPropertyName = other.weightPropertyName;
+    weightOutputExpr = other.weightOutputExpr;
 }
 
 PathsOutputWriterInfo RJBindData::getPathWriterInfo() const {
@@ -88,7 +90,6 @@ expression_vector RJAlgorithm::getBaseResultColumns() const {
     if (rjBindData->extendDirection == ExtendDirection::BOTH) {
         columns.push_back(rjBindData->directionExpr);
     }
-    columns.push_back(rjBindData->lengthExpr);
     return columns;
 }
 
@@ -210,7 +211,8 @@ void RJAlgorithm::exec(processor::ExecutionContext* context) {
             rjCompState.initSource(sourceNodeID);
             auto rjBindData = bindData->ptrCast<RJBindData>();
             GDSUtils::runFrontiersUntilConvergence(context, rjCompState, graph,
-                rjBindData->extendDirection, rjBindData->upperBound);
+                rjBindData->extendDirection, rjBindData->upperBound,
+                rjBindData->weightPropertyName);
             auto vertexCompute =
                 std::make_unique<RJVertexCompute>(clientContext->getMemoryManager(),
                     sharedState.get(), rjCompState.outputWriter->copy());
