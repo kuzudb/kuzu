@@ -32,7 +32,7 @@ public class KuzuMap {
         // The pairs are represented as a list of size 2
         Value[] mapElements = new Value[map.size()];
         int idx = 0;
-        for (var entry : map.entrySet()) {
+        for (Map.Entry<Value, Value> entry : map.entrySet()) {
             Value[] curPair = { entry.getKey().getValue(), entry.getValue().getValue() };
             mapElements[idx] = KuzuList.createList(curPair).getValue();
             ++idx;
