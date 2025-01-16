@@ -94,8 +94,9 @@ static void finalizeFunc(const processor::ExecutionContext* context,
                 hnswSharedState->hnswIndex->getLowerEntryPoint(), bindData->config.copy())));
 }
 
-static std::string createHNSWIndexTables(const main::ClientContext&,
+static std::string createHNSWIndexTables(main::ClientContext& context,
     const TableFuncBindData& bindData) {
+    context.setToUseInternalCatalogEntry();
     const auto hnswBindData = bindData.constPtrCast<CreateHNSWIndexBindData>();
     std::string query = "";
     query += stringFormat("CREATE REL TABLE {} (FROM {} TO {});",

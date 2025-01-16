@@ -66,8 +66,8 @@ HNSWIndexConfig::HNSWIndexConfig(const function::optional_params_t& optionalPara
             Ml::validate(ml);
         } else if (Pu::NAME == lowerCaseName) {
             value.validateType(Pu::TYPE);
-            upperLayerNodePct = value.getValue<double>();
-            Pu::validate(upperLayerNodePct);
+            pu = value.getValue<double>();
+            Pu::validate(pu);
         } else if (DistFunc::NAME == lowerCaseName) {
             value.validateType(DistFunc::TYPE);
             auto funcName = value.getValue<std::string>();
