@@ -447,7 +447,7 @@ void AggregateHashTable::findHashSlots(const std::vector<ValueVector*>& flatKeyV
             matchFTEntries(flatKeyVectors, unFlatKeyVectors, numMayMatches, numNoMatches);
         increaseHashSlotIdxes(numNoMatches);
         numEntriesToFindHashSlots = numNoMatches;
-        memcpy(tmpValueIdxes.get(), noMatchIdxes.get(), DEFAULT_VECTOR_CAPACITY * sizeof(uint64_t));
+        memcpy(tmpValueIdxes.get(), noMatchIdxes.get(), numNoMatches * sizeof(uint64_t));
     }
 }
 
