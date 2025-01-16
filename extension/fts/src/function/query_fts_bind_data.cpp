@@ -50,7 +50,7 @@ struct StopWordsChecker {
     storage::NodeTable* stopWordsTable;
     transaction::Transaction* tx;
 
-    StopWordsChecker(main::ClientContext& context);
+    explicit StopWordsChecker(main::ClientContext& context);
     bool isStopWord(const std::string& term);
 };
 
