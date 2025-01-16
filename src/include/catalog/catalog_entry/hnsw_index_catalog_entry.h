@@ -3,47 +3,49 @@
 #include "catalog/catalog_entry/index_catalog_entry.h"
 #include "storage/index/hnsw_config.h"
 
+namespace kuzu::common {
+struct BufferReader;
+}
 namespace kuzu {
 namespace catalog {
 
-class HNSWIndexCatalogEntry final : public IndexCatalogEntry {
-public:
-    HNSWIndexCatalogEntry(common::table_id_t tableID, std::string indexName, std::string columnName,
-        common::table_id_t upperRelTableID, common::table_id_t lowerRelTableID,
-        common::offset_t upperEntryPoint, common::offset_t lowerEntryPoint,
+struct HNSWIndexAuxInfo final : IndexAuxInfo {
+
+    common::table_id_t upperRelTableID = common::INVALID_TABLE_ID;
+    common::table_id_t lowerRelTableID = common::INVALID_TABLE_ID;
+    std::string columnName;
+    common::offset_t upperEntryPoint = common::INVALID_OFFSET;
+    common::offset_t lowerEntryPoint = common::INVALID_OFFSET;
+    storage::HNSWIndexConfig config;
+
+    HNSWIndexAuxInfo(common::table_id_t upperRelTableID, common::table_id_t lowerRelTableID,
+        std::string columnName, common::offset_t upperEntryPoint, common::offset_t lowerEntryPoint,
         storage::HNSWIndexConfig config)
-        : IndexCatalogEntry{TYPE_NAME, tableID, std::move(indexName)},
-          upperRelTableID{upperRelTableID}, lowerRelTableID{lowerRelTableID},
+        : upperRelTableID{upperRelTableID}, lowerRelTableID{lowerRelTableID},
           columnName{std::move(columnName)}, upperEntryPoint{upperEntryPoint},
           lowerEntryPoint{lowerEntryPoint}, config{std::move(config)} {}
 
-    void serializeAuxInfo(common::Serializer& ser) const override;
-    static std::unique_ptr<HNSWIndexCatalogEntry> deserializeAuxInfo(
-        const IndexCatalogEntry* indexCatalogEntry);
+    HNSWIndexAuxInfo(const HNSWIndexAuxInfo& other)
+        : upperRelTableID{other.upperRelTableID}, lowerRelTableID{other.lowerRelTableID},
+          columnName{other.columnName}, upperEntryPoint{other.upperEntryPoint},
+          lowerEntryPoint{other.lowerEntryPoint}, config{other.config.copy()} {}
 
-    std::unique_ptr<IndexCatalogEntry> copy() const override;
+    std::shared_ptr<common::BufferedSerializer> serialize() const override;
+    static std::unique_ptr<HNSWIndexAuxInfo> deserialize(
+        std::unique_ptr<common::BufferReader> reader);
 
-    common::table_id_t getUpperRelTableID() const { return upperRelTableID; }
-    common::table_id_t getLowerRelTableID() const { return lowerRelTableID; }
-    const std::string& getIndexColumnName() const { return columnName; }
-    common::offset_t getUpperEntryPoint() const { return upperEntryPoint; }
-    common::offset_t getLowerEntryPoint() const { return lowerEntryPoint; }
-    const storage::HNSWIndexConfig& getConfig() const { return config; }
-    storage::HNSWIndexConfig& getConfig() { return config; }
+    std::unique_ptr<IndexAuxInfo> copy() override {
+        return std::make_unique<HNSWIndexAuxInfo>(*this);
+    }
 
-public:
+    std::string toCypher(const IndexCatalogEntry& indexEntry,
+        main::ClientContext* context) override;
+};
+
+struct HNSWIndexCatalogEntry {
     static constexpr char TYPE_NAME[] = "HNSW";
 
-private:
-    uint64_t getNumBytesForSerialization() const;
-
-private:
-    common::table_id_t upperRelTableID;
-    common::table_id_t lowerRelTableID;
-    std::string columnName;
-    common::offset_t upperEntryPoint;
-    common::offset_t lowerEntryPoint;
-    storage::HNSWIndexConfig config;
+    static std::string toCypher(const IndexCatalogEntry& indexEntry, main::ClientContext* context);
 };
 
 } // namespace catalog

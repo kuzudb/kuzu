@@ -1,26 +1,28 @@
 #include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
 
+#include "catalog/catalog.h"
+#include "common/serializer/buffered_reader.h"
+#include "common/serializer/buffered_serializer.h"
 #include "common/serializer/deserializer.h"
-#include <common/serializer/buffered_reader.h>
-#include <common/serializer/buffered_serializer.h>
+#include "main/client_context.h"
 
 namespace kuzu {
 namespace catalog {
 
-void HNSWIndexCatalogEntry::serializeAuxInfo(common::Serializer& ser) const {
-    ser.serializeValue(getNumBytesForSerialization());
-    ser.serializeValue(upperRelTableID);
-    ser.serializeValue(lowerRelTableID);
-    ser.serializeValue(columnName);
-    ser.serializeValue(upperEntryPoint);
-    ser.serializeValue(lowerEntryPoint);
-    config.serialize(ser);
+std::shared_ptr<common::BufferedSerializer> HNSWIndexAuxInfo::serialize() const {
+    auto bufferWriter = std::make_shared<common::BufferedSerializer>();
+    auto serializer = common::Serializer(bufferWriter);
+    serializer.serializeValue(upperRelTableID);
+    serializer.serializeValue(lowerRelTableID);
+    serializer.serializeValue(columnName);
+    serializer.serializeValue(upperEntryPoint);
+    serializer.serializeValue(lowerEntryPoint);
+    config.serialize(serializer);
+    return bufferWriter;
 }
 
-std::unique_ptr<HNSWIndexCatalogEntry> HNSWIndexCatalogEntry::deserializeAuxInfo(
-    const IndexCatalogEntry* indexCatalogEntry) {
-    auto reader = std::make_unique<common::BufferReader>(indexCatalogEntry->getAuxBuffer(),
-        indexCatalogEntry->getAuxBufferSize());
+std::unique_ptr<HNSWIndexAuxInfo> HNSWIndexAuxInfo::deserialize(
+    std::unique_ptr<common::BufferReader> reader) {
     common::table_id_t upperRelTableID = common::INVALID_TABLE_ID;
     common::table_id_t lowerRelTableID = common::INVALID_TABLE_ID;
     std::string columnName;
@@ -33,26 +35,22 @@ std::unique_ptr<HNSWIndexCatalogEntry> HNSWIndexCatalogEntry::deserializeAuxInfo
     deSer.deserializeValue(upperEntryPoint);
     deSer.deserializeValue(lowerEntryPoint);
     auto config = storage::HNSWIndexConfig::deserialize(deSer);
-    return std::make_unique<HNSWIndexCatalogEntry>(indexCatalogEntry->getTableID(),
-        indexCatalogEntry->getIndexName(), columnName, upperRelTableID, lowerRelTableID,
+    return std::make_unique<HNSWIndexAuxInfo>(upperRelTableID, lowerRelTableID, columnName,
         upperEntryPoint, lowerEntryPoint, std::move(config));
 }
 
-std::unique_ptr<IndexCatalogEntry> HNSWIndexCatalogEntry::copy() const {
-    return std::make_unique<HNSWIndexCatalogEntry>(tableID, indexName, columnName, upperRelTableID,
-        lowerRelTableID, upperEntryPoint, lowerEntryPoint, config.copy());
-}
-
-uint64_t HNSWIndexCatalogEntry::getNumBytesForSerialization() const {
-    auto bufferWriter = std::make_shared<common::BufferedSerializer>();
-    auto serializer = common::Serializer(bufferWriter);
-    serializer.serializeValue(upperEntryPoint);
-    serializer.serializeValue(lowerEntryPoint);
-    serializer.serializeValue(columnName);
-    serializer.serializeValue(upperEntryPoint);
-    serializer.serializeValue(lowerEntryPoint);
-    config.serialize(serializer);
-    return bufferWriter->getSize();
+std::string HNSWIndexAuxInfo::toCypher(const IndexCatalogEntry& indexEntry,
+    main::ClientContext* context) {
+    std::string cypher;
+    auto catalog = context->getCatalog();
+    auto tableName = catalog->getTableName(context->getTransaction(), indexEntry.getTableID());
+    auto distFuncName = storage::HNSWIndexConfig::distFuncToString(config.distFunc);
+    cypher += common::stringFormat(
+        "CALL CREATE_HNSW_INDEX('{}', '{}', '{}', mu := {}, ml := {}, "
+        "upperLayerNodePct := {}, distFunc := '{}', alpha := {}, efc := {});\n",
+        indexEntry.getIndexName(), tableName, columnName, config.mu, config.ml,
+        config.upperLayerNodePct, distFuncName, config.alpha, config.efc);
+    return cypher;
 }
 
 } // namespace catalog

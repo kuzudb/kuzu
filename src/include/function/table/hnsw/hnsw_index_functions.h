@@ -1,7 +1,6 @@
 #pragma once
 
 #include "binder/expression/node_expression.h"
-#include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
 #include "function/table/simple_table_functions.h"
 #include "storage/index/hnsw_index.h"
 
@@ -52,7 +51,7 @@ struct CreateHNSWLocalState final : TableFuncLocalState {
 
 struct BoundQueryHNSWIndexInput {
     catalog::NodeTableCatalogEntry* nodeTableEntry;
-    catalog::HNSWIndexCatalogEntry* indexEntry;
+    catalog::IndexCatalogEntry* indexEntry;
     std::shared_ptr<binder::Expression> queryExpression;
     uint64_t k;
 };

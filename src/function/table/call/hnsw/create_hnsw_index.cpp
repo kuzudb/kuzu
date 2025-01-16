@@ -15,8 +15,8 @@ namespace function {
 CreateHNSWSharedState::CreateHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : SimpleTableFuncSharedState{bindData.maxOffset}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-                    ->getTable(bindData.tableEntry->getTableID())
-                    ->cast<storage::NodeTable>()},
+              ->getTable(bindData.tableEntry->getTableID())
+              ->cast<storage::NodeTable>()},
       numNodes{bindData.numNodes}, bindData{&bindData} {
     hnswIndex = std::make_unique<storage::InMemHNSWIndex>(bindData.context, nodeTable,
         bindData.columnID, bindData.config.copy());
@@ -86,10 +86,12 @@ static void finalizeFunc(const processor::ExecutionContext* context,
     auto lowerRelTableID = catalog->getTableID(context->clientContext->getTransaction(),
         storage::HNSWIndexUtils::getLowerGraphTableName(bindData->indexName));
     catalog->createIndex(context->clientContext->getTransaction(),
-        std::make_unique<catalog::HNSWIndexCatalogEntry>(bindData->tableEntry->getTableID(),
-            bindData->indexName, hnswSharedState->nodeTable.getColumn(bindData->columnID).getName(),
-            upperRelTableID, lowerRelTableID, hnswSharedState->hnswIndex->getUpperEntryPoint(),
-            hnswSharedState->hnswIndex->getLowerEntryPoint(), bindData->config.copy()));
+        std::make_unique<catalog::IndexCatalogEntry>(catalog::HNSWIndexCatalogEntry::TYPE_NAME,
+            bindData->tableEntry->getTableID(), bindData->indexName,
+            std::make_unique<catalog::HNSWIndexAuxInfo>(upperRelTableID, lowerRelTableID,
+                hnswSharedState->nodeTable.getColumn(bindData->columnID).getName(),
+                hnswSharedState->hnswIndex->getUpperEntryPoint(),
+                hnswSharedState->hnswIndex->getLowerEntryPoint(), bindData->config.copy())));
 }
 
 static std::string createHNSWIndexTables(const main::ClientContext&,

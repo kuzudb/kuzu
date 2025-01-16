@@ -20,16 +20,16 @@ QueryHNSWIndexBindData::QueryHNSWIndexBindData(main::ClientContext* context,
     storage::QueryHNSWConfig config, std::shared_ptr<binder::NodeExpression> outputNode)
     : SimpleTableFuncBindData{std::move(columns), 1 /*maxOffset*/}, context{context},
       boundInput{std::move(boundInput)}, config{config}, outputNode{std::move(outputNode)} {
-    indexColumnID = this->boundInput.nodeTableEntry->getColumnID(
-        this->boundInput.indexEntry->getIndexColumnName());
-    upperHNSWRelTableEntry = context->getCatalog()
-                                 ->getTableCatalogEntry(context->getTransaction(),
-                                     this->boundInput.indexEntry->getUpperRelTableID())
-                                 ->ptrCast<catalog::RelTableCatalogEntry>();
-    lowerHNSWRelTableEntry = context->getCatalog()
-                                 ->getTableCatalogEntry(context->getTransaction(),
-                                     this->boundInput.indexEntry->getLowerRelTableID())
-                                 ->ptrCast<catalog::RelTableCatalogEntry>();
+    auto& indexAuxInfo =
+        this->boundInput.indexEntry->getAuxInfo().cast<catalog::HNSWIndexAuxInfo>();
+    indexColumnID = this->boundInput.nodeTableEntry->getColumnID(indexAuxInfo.columnName);
+    auto catalog = context->getCatalog();
+    upperHNSWRelTableEntry =
+        catalog->getTableCatalogEntry(context->getTransaction(), indexAuxInfo.upperRelTableID)
+            ->ptrCast<catalog::RelTableCatalogEntry>();
+    lowerHNSWRelTableEntry =
+        catalog->getTableCatalogEntry(context->getTransaction(), indexAuxInfo.lowerRelTableID)
+            ->ptrCast<catalog::RelTableCatalogEntry>();
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
@@ -41,12 +41,12 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
 
     auto nodeTableEntry = storage::IndexUtils::bindTable(*context, tableName, indexName,
         storage::IndexOperation::QUERY);
-    const auto indexEntry = common::ku_dynamic_cast<catalog::HNSWIndexCatalogEntry*>(
-        context->getCatalog()->getIndex(context->getTransaction(), nodeTableEntry->getTableID(),
-            indexName));
-    KU_ASSERT(nodeTableEntry->getProperty(indexEntry->getIndexColumnName())
-                  .getType()
-                  .getLogicalTypeID() == common::LogicalTypeID::ARRAY);
+    auto indexEntry = context->getCatalog()->getIndex(context->getTransaction(),
+        nodeTableEntry->getTableID(), indexName);
+    const auto& auxInfo = indexEntry->getAuxInfo().cast<catalog::HNSWIndexAuxInfo>();
+    KU_ASSERT(nodeTableEntry->getProperty(auxInfo.columnName).getType().getLogicalTypeID() ==
+              common::LogicalTypeID::ARRAY);
+    KU_UNUSED(auxInfo);
 
     auto outputNode = input->binder->createQueryNode("nn", {nodeTableEntry});
     input->binder->addToScope(outputNode->toString(), outputNode);
@@ -138,8 +138,9 @@ static std::vector<float> getQueryVector(const binder::Expression& queryExpressi
 }
 
 static const common::LogicalType& getIndexColumnType(const BoundQueryHNSWIndexInput& boundInput) {
-    return boundInput.nodeTableEntry->getProperty(boundInput.indexEntry->getIndexColumnName())
-        .getType();
+    auto columnName =
+        boundInput.indexEntry->getAuxInfo().cast<catalog::HNSWIndexAuxInfo>().columnName;
+    return boundInput.nodeTableEntry->getProperty(columnName).getType();
 }
 
 static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
@@ -149,12 +150,14 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& 
     // call, and output the rest of the query result in chunks in following calls.
     if (!localState->hasResultToOutput()) {
         // We start searching when there is no query result to output.
+        const auto& auxInfo =
+            bindData->boundInput.indexEntry->getAuxInfo().cast<catalog::HNSWIndexAuxInfo>();
         const auto index = std::make_unique<storage::OnDiskHNSWIndex>(input.context->clientContext,
             bindData->boundInput.nodeTableEntry, bindData->indexColumnID,
             bindData->upperHNSWRelTableEntry, bindData->lowerHNSWRelTableEntry,
-            bindData->boundInput.indexEntry->getConfig().copy());
-        index->setDefaultUpperEntryPoint(bindData->boundInput.indexEntry->getUpperEntryPoint());
-        index->setDefaultLowerEntryPoint(bindData->boundInput.indexEntry->getLowerEntryPoint());
+            auxInfo.config.copy());
+        index->setDefaultUpperEntryPoint(auxInfo.upperEntryPoint);
+        index->setDefaultLowerEntryPoint(auxInfo.lowerEntryPoint);
 
         auto dimension =
             common::ArrayType::getNumElements(getIndexColumnType(bindData->boundInput));

@@ -16,8 +16,7 @@ namespace planner {
 
 void Planner::planReadingClause(const BoundReadingClause& readingClause,
     std::vector<std::unique_ptr<LogicalPlan>>& prevPlans) {
-    auto readingClauseType = readingClause.getClauseType();
-    switch (readingClauseType) {
+    switch (readingClause.getClauseType()) {
     case ClauseType::MATCH: {
         planMatchClause(readingClause, prevPlans);
     } break;

@@ -31,12 +31,13 @@ using namespace function;
 
 struct QueryFTSBindData final : GDSBindData {
     std::shared_ptr<Expression> query;
-    const FTSIndexCatalogEntry& entry;
+    const catalog::IndexCatalogEntry& entry;
     QueryFTSConfig config;
     table_id_t outputTableID;
 
     QueryFTSBindData(graph::GraphEntry graphEntry, std::shared_ptr<Expression> docs,
-        std::shared_ptr<Expression> query, const FTSIndexCatalogEntry& entry, QueryFTSConfig config)
+        std::shared_ptr<Expression> query, const catalog::IndexCatalogEntry& entry,
+        QueryFTSConfig config)
         : GDSBindData{std::move(graphEntry), std::move(docs)}, query{std::move(query)},
           entry{entry}, config{config},
           outputTableID{nodeOutput->constCast<NodeExpression>().getSingleEntry()->getTableID()} {}
@@ -54,10 +55,10 @@ struct QueryFTSBindData final : GDSBindData {
 };
 
 std::vector<std::string> QueryFTSBindData::getTerms() const {
-    if (!binder::ExpressionUtil::canEvaluateAsLiteral(*query)) {
+    if (!ExpressionUtil::canEvaluateAsLiteral(*query)) {
         std::string errMsg;
         switch (query->expressionType) {
-        case common::ExpressionType::PARAMETER: {
+        case ExpressionType::PARAMETER: {
             errMsg = "The query is a parameter expression. Please assign it a value.";
         } break;
         default: {
@@ -66,12 +67,12 @@ std::vector<std::string> QueryFTSBindData::getTerms() const {
         }
         throw RuntimeException{errMsg};
     }
-    auto value = binder::ExpressionUtil::evaluateAsLiteralValue(*query);
-    if (value.getDataType() != common::LogicalType::STRING()) {
+    auto value = ExpressionUtil::evaluateAsLiteralValue(*query);
+    if (value.getDataType() != LogicalType::STRING()) {
         throw RuntimeException{"The query must be a string literal."};
     }
     auto queryInStr = value.getValue<std::string>();
-    auto stemmer = entry.getFTSConfig().stemmer;
+    auto stemmer = entry.getAuxInfo().cast<FTSIndexAuxInfo>().config.stemmer;
     std::string regexPattern = "[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\/\\|'\"`-]+";
     std::string replacePattern = " ";
     RE2::GlobalReplace(&queryInStr, regexPattern, replacePattern);
@@ -141,7 +142,6 @@ struct QFTSOutput {
     node_id_map_t<ScoreInfo> scores;
 
     QFTSOutput() = default;
-    virtual ~QFTSOutput() = default;
 };
 
 struct QFTSState final : GDSComputeState {
@@ -235,9 +235,10 @@ void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNo
     if (bindData.config.isConjunctive && scoreInfo.scoreData.size() != numUniqueTerms) {
         return;
     }
+    auto auxInfo = bindData.entry.getAuxInfo().cast<FTSIndexAuxInfo>();
     for (auto& scoreData : scoreInfo.scoreData) {
-        auto numDocs = bindData.entry.getNumDocs();
-        auto avgDocLen = bindData.entry.getAvgDocLen();
+        auto numDocs = auxInfo.numDocs;
+        auto avgDocLen = auxInfo.avgDocLen;
         auto df = scoreData.df;
         auto tf = scoreData.tf;
         score += log10((numDocs - df + 0.5) / (df + 0.5) + 1) *
@@ -304,7 +305,7 @@ static node_id_map_t<uint64_t> getDFs(main::ClientContext& context,
     node_id_map_t<uint64_t> dfs;
     for (auto& term : terms) {
         termsVector.setValue(0, term);
-        common::offset_t offset = 0;
+        offset_t offset = 0;
         if (!termsNodeTable.lookupPK(tx, &termsVector, 0, offset)) {
             continue;
         }
@@ -339,7 +340,7 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto edgeCompute = std::make_unique<QFTSEdgeCompute>(frontierPair.get(), &output->scores, dfs);
 
     auto mm = executionContext->clientContext->getMemoryManager();
-    QFTSState qFTSState =
+    auto qFTSState =
         QFTSState{std::move(frontierPair), std::move(edgeCompute), termsEntry.getTableID()};
     qFTSState.initFirstFrontierWithTerms(dfs, termsEntry.getTableID());
     runFrontiersOnce(executionContext, qFTSState, sharedState->graph.get(),
@@ -369,8 +370,8 @@ expression_vector QueryFTSAlgorithm::getResultColumns(Binder* binder) const {
 }
 
 static std::string getParamVal(const GDSBindInput& input, idx_t idx) {
-    if (input.getParam(idx)->expressionType != common::ExpressionType::LITERAL) {
-        throw common::BinderException{"The table and index name must be literal expressions."};
+    if (input.getParam(idx)->expressionType != ExpressionType::LITERAL) {
+        throw BinderException{"The table and index name must be literal expressions."};
     }
     return ExpressionUtil::getLiteralValue<std::string>(
         input.getParam(idx)->constCast<LiteralExpression>());
@@ -386,10 +387,8 @@ void QueryFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& con
 
     auto tableEntry = storage::IndexUtils::bindTable(context, inputTableName, indexName,
         storage::IndexOperation::QUERY);
-    auto& ftsIndexEntry =
-        context.getCatalog()
-            ->getIndex(context.getTransaction(), tableEntry->getTableID(), indexName)
-            ->constCast<FTSIndexCatalogEntry>();
+    auto ftsIndexEntry = context.getCatalog()->getIndex(context.getTransaction(),
+        tableEntry->getTableID(), indexName);
     auto entry =
         context.getCatalog()->getTableCatalogEntry(context.getTransaction(), inputTableName);
     auto nodeOutput = bindNodeOutput(input.binder, {entry});
@@ -402,7 +401,7 @@ void QueryFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& con
         FTSUtils::getAppearsInTableName(tableEntry->getTableID(), indexName));
     auto graphEntry = graph::GraphEntry({termsEntry, docsEntry}, {appearsInEntry});
     bindData = std::make_unique<QueryFTSBindData>(std::move(graphEntry), nodeOutput,
-        std::move(query), ftsIndexEntry, QueryFTSConfig{input.optionalParams});
+        std::move(query), *ftsIndexEntry, QueryFTSConfig{input.optionalParams});
 }
 
 function_set QueryFTSFunction::getFunctionSet() {

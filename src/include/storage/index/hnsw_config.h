@@ -85,6 +85,8 @@ struct HNSWIndexConfig {
 
     static HNSWIndexConfig deserialize(common::Deserializer& deSer);
 
+    static std::string distFuncToString(DistFuncType distFunc);
+
 private:
     HNSWIndexConfig(const HNSWIndexConfig& other)
         : mu{other.mu}, ml{other.ml}, upperLayerNodePct{other.upperLayerNodePct},
