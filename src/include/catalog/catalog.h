@@ -88,11 +88,17 @@ public:
     common::table_id_set_t getBwdRelTableIDs(transaction::Transaction* transaction,
         common::table_id_t nodeTableID) const;
 
-    common::table_id_t createTableSchema(transaction::Transaction* transaction,
+    common::table_id_t createTableEntry(transaction::Transaction* transaction,
         const binder::BoundCreateTableInfo& info);
     void dropTableEntry(transaction::Transaction* transaction, const std::string& name);
     void dropTableEntry(transaction::Transaction* transaction, common::table_id_t tableID);
     void alterTableEntry(transaction::Transaction* transaction, const binder::BoundAlterInfo& info);
+
+    // ----------------------------- Sequences ----------------------------
+    bool containsRelGroup(const transaction::Transaction* transaction, const std::string& name);
+
+    common::oid_t createRelGroup(transaction::Transaction* transaction,
+        const binder::BoundCreateTableInfo& info);
 
     // ----------------------------- Sequences ----------------------------
     bool containsSequence(const transaction::Transaction* transaction,
@@ -194,8 +200,6 @@ private:
         const binder::BoundCreateTableInfo& info) const;
     std::unique_ptr<CatalogEntry> createRelTableEntry(transaction::Transaction* transaction,
         const binder::BoundCreateTableInfo& info) const;
-    std::unique_ptr<CatalogEntry> createRelTableGroupEntry(transaction::Transaction* transaction,
-        const binder::BoundCreateTableInfo& info);
 
     // ----------------------------- Sequence entries ----------------------------
     void iterateSequenceCatalogEntries(const transaction::Transaction* transaction,
@@ -209,6 +213,7 @@ protected:
     std::unique_ptr<CatalogSet> tables;
 
 private:
+    std::unique_ptr<CatalogSet> tableGroups;
     std::unique_ptr<CatalogSet> sequences;
     std::unique_ptr<CatalogSet> functions;
     std::unique_ptr<CatalogSet> types;

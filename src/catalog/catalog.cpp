@@ -34,6 +34,7 @@ namespace catalog {
 
 Catalog::Catalog() {
     tables = std::make_unique<CatalogSet>();
+    tableGroups = std::make_unique<CatalogSet>();
     sequences = std::make_unique<CatalogSet>();
     functions = std::make_unique<CatalogSet>();
     types = std::make_unique<CatalogSet>();
@@ -50,6 +51,7 @@ Catalog::Catalog(const std::string& directory, VirtualFileSystem* vfs) {
         readFromFile(directory, vfs, FileVersionType::ORIGINAL);
     } else {
         tables = std::make_unique<CatalogSet>();
+        tableGroups = std::make_unique<CatalogSet>();
         sequences = std::make_unique<CatalogSet>();
         functions = std::make_unique<CatalogSet>();
         types = std::make_unique<CatalogSet>();
@@ -203,7 +205,7 @@ table_id_set_t Catalog::getBwdRelTableIDs(Transaction* transaction, table_id_t n
     return result;
 }
 
-table_id_t Catalog::createTableSchema(Transaction* transaction, const BoundCreateTableInfo& info) {
+table_id_t Catalog::createTableEntry(Transaction* transaction, const BoundCreateTableInfo& info) {
     std::unique_ptr<CatalogEntry> entry;
     switch (info.type) {
     case TableType::NODE: {
@@ -211,9 +213,6 @@ table_id_t Catalog::createTableSchema(Transaction* transaction, const BoundCreat
     } break;
     case TableType::REL: {
         entry = createRelTableEntry(transaction, info);
-    } break;
-    case TableType::REL_GROUP: {
-        entry = createRelTableGroupEntry(transaction, info);
     } break;
     default:
         KU_UNREACHABLE;
@@ -530,6 +529,7 @@ void Catalog::saveToFile(const std::string& directory, VirtualFileSystem* fs,
     writeMagicBytes(serializer);
     serializer.serializeValue(StorageVersionInfo::getStorageVersion());
     tables->serialize(serializer);
+    tableGroups->serialize(serializer);
     sequences->serialize(serializer);
     functions->serialize(serializer);
     types->serialize(serializer);
@@ -549,6 +549,7 @@ void Catalog::readFromFile(const std::string& directory, VirtualFileSystem* fs,
     deserializer.deserializeValue(savedStorageVersion);
     validateStorageVersion(savedStorageVersion);
     tables = CatalogSet::deserialize(deserializer);
+    tableGroups = CatalogSet::deserialize(deserializer);
     sequences = CatalogSet::deserialize(deserializer);
     functions = CatalogSet::deserialize(deserializer);
     types = CatalogSet::deserialize(deserializer);
@@ -586,15 +587,17 @@ std::unique_ptr<CatalogEntry> Catalog::createRelTableEntry(Transaction*,
     return relTableEntry;
 }
 
-std::unique_ptr<CatalogEntry> Catalog::createRelTableGroupEntry(Transaction* transaction,
+common::oid_t Catalog::createRelGroup(Transaction* transaction,
     const BoundCreateTableInfo& info) {
     const auto extraInfo = info.extraInfo->ptrCast<BoundExtraCreateRelTableGroupInfo>();
     std::vector<table_id_t> relTableIDs;
     relTableIDs.reserve(extraInfo->infos.size());
     for (auto& childInfo : extraInfo->infos) {
         childInfo.hasParent = true;
-        relTableIDs.push_back(createTableSchema(transaction, childInfo));
+        relTableIDs.push_back(createTableEntry(transaction, childInfo));
     }
+
+
     return std::make_unique<RelGroupCatalogEntry>(tables.get(), info.tableName,
         std::move(relTableIDs));
 }

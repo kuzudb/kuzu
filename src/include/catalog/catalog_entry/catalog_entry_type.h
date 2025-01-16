@@ -10,8 +10,9 @@ enum class CatalogEntryType : uint8_t {
     // Table entries
     NODE_TABLE_ENTRY = 0,
     REL_TABLE_ENTRY = 1,
-    REL_GROUP_ENTRY = 2,
     FOREIGN_TABLE_ENTRY = 4,
+    // Group entries
+    REL_GROUP_ENTRY = 6,
     // Macro entries
     SCALAR_MACRO_ENTRY = 10,
     // Function entries

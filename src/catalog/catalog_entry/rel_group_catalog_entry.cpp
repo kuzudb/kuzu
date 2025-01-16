@@ -15,17 +15,6 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace catalog {
 
-RelGroupCatalogEntry::RelGroupCatalogEntry(CatalogSet* set, std::string tableName,
-    std::vector<table_id_t> relTableIDs)
-    : TableCatalogEntry{set, CatalogEntryType::REL_GROUP_ENTRY, std::move(tableName)},
-      relTableIDs{std::move(relTableIDs)} {}
-
-bool RelGroupCatalogEntry::isParent(table_id_t childID) {
-    const auto it = find_if(relTableIDs.begin(), relTableIDs.end(),
-        [&](table_id_t relTableID) { return relTableID == childID; });
-    return it != relTableIDs.end();
-}
-
 void RelGroupCatalogEntry::serialize(Serializer& serializer) const {
     TableCatalogEntry::serialize(serializer);
     serializer.writeDebuggingInfo("relTableIDs");
@@ -86,7 +75,7 @@ static std::string getFromToStr(common::table_id_t tableID, ClientContext* conte
 
 std::string RelGroupCatalogEntry::toCypher(ClientContext* clientContext) const {
     std::stringstream ss;
-    ss << stringFormat("CREATE REL TABLE GROUP {} ( ", getName());
+    ss << stringFormat("CREATE REL TABLE {} ( ", getName());
     KU_ASSERT(!relTableIDs.empty());
     ss << getFromToStr(relTableIDs[0], clientContext);
     for (auto i = 1u; i < relTableIDs.size(); ++i) {

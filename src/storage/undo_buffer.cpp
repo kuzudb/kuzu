@@ -34,10 +34,6 @@ struct SequenceEntryRecord {
     SequenceRollbackData sequenceRollbackData;
 };
 
-struct NodeBatchInsertRecord {
-    table_id_t tableID;
-};
-
 struct VersionRecord {
     row_idx_t startRow;
     row_idx_t numRows;

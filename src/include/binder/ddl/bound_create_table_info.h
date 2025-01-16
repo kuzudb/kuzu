@@ -140,7 +140,7 @@ struct BoundExtraCreateRelTableGroupInfo final : public BoundExtraCreateCatalogE
     BoundExtraCreateRelTableGroupInfo(const BoundExtraCreateRelTableGroupInfo& other)
         : infos{copyVector(other.infos)} {}
 
-    inline std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
+    std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
         return std::make_unique<BoundExtraCreateRelTableGroupInfo>(*this);
     }
 
