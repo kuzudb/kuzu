@@ -1,7 +1,5 @@
 #pragma once
 
-#include <optional>
-
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/enums/extend_direction.h"
 #include "common/types/types.h"
@@ -43,14 +41,9 @@ struct KUZU_API GDSComputeState {
 
 class KUZU_API GDSUtils {
 public:
-    static void scheduleFrontierTask(catalog::TableCatalogEntry* fromEntry,
-        catalog::TableCatalogEntry* toEntry, catalog::TableCatalogEntry* relEntry,
-        graph::Graph* graph, common::ExtendDirection extendDirection, GDSComputeState& rjCompState,
-        processor::ExecutionContext* context, std::optional<uint64_t> numThreads = std::nullopt,
-        const std::string& propertyToScan = "");
     static void runFrontiersUntilConvergence(processor::ExecutionContext* context,
         GDSComputeState& rjCompState, graph::Graph* graph, common::ExtendDirection extendDirection,
-        uint64_t maxIters);
+        uint64_t maxIters, const std::string& propertyToScan = "");
     // Run vertex compute without property scan
     static void runVertexCompute(processor::ExecutionContext* context, graph::Graph* graph,
         VertexCompute& vc);
