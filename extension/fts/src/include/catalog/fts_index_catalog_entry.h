@@ -3,50 +3,41 @@
 #include "catalog/catalog_entry/index_catalog_entry.h"
 #include "function/fts_config.h"
 
+namespace kuzu::common {
+struct BufferReader;
+}
 namespace kuzu {
 namespace fts_extension {
 
-class FTSIndexCatalogEntry final : public catalog::IndexCatalogEntry {
-public:
-    //===--------------------------------------------------------------------===//
-    // constructors
-    //===--------------------------------------------------------------------===//
-    FTSIndexCatalogEntry() = default;
-    FTSIndexCatalogEntry(common::table_id_t tableID, std::string indexName, common::idx_t numDocs,
-        double avgDocLen, std::vector<std::string> properties, FTSConfig config)
-        : catalog::IndexCatalogEntry{TYPE_NAME, tableID, std::move(indexName)}, numDocs{numDocs},
-          avgDocLen{avgDocLen}, properties{std::move(properties)}, config{std::move(config)} {}
-
-    //===--------------------------------------------------------------------===//
-    // getters & setters
-    //===--------------------------------------------------------------------===//
-    common::idx_t getNumDocs() const { return numDocs; }
-    double getAvgDocLen() const { return avgDocLen; }
-    const FTSConfig& getFTSConfig() const { return config; }
-
-    //===--------------------------------------------------------------------===//
-    // serialization & deserialization
-    //===--------------------------------------------------------------------===//
-    std::unique_ptr<catalog::IndexCatalogEntry> copy() const override;
-    std::string toCypher(main::ClientContext* /*clientContext*/) const override;
-
-    void serializeAuxInfo(common::Serializer& serializer) const override;
-
-    static std::unique_ptr<FTSIndexCatalogEntry> deserializeAuxInfo(
-        catalog::IndexCatalogEntry* indexCatalogEntry);
-
-private:
-    uint64_t getNumBytesForSerialization() const;
-
-public:
-    static constexpr char TYPE_NAME[] = "FTS";
-
-private:
+struct FTSIndexAuxInfo final : catalog::IndexAuxInfo {
     common::idx_t numDocs = 0;
     double avgDocLen = 0;
     std::vector<std::string> properties;
     FTSConfig config;
+
+    FTSIndexAuxInfo(common::idx_t numDocs, double avgDocLen, std::vector<std::string> properties,
+        FTSConfig config)
+        : numDocs{numDocs}, avgDocLen{avgDocLen}, properties{std::move(properties)},
+          config{std::move(config)} {}
+
+    FTSIndexAuxInfo(const FTSIndexAuxInfo& other)
+        : numDocs{other.numDocs}, avgDocLen{other.avgDocLen}, properties{other.properties},
+          config{other.config} {}
+
+    std::shared_ptr<common::BufferedSerializer> serialize() const override;
+    static std::unique_ptr<FTSIndexAuxInfo> deserialize(
+        std::unique_ptr<common::BufferReader> reader);
+
+    std::unique_ptr<IndexAuxInfo> copy() override {
+        return std::make_unique<FTSIndexAuxInfo>(*this);
+    }
+
+    std::string toCypher(const catalog::IndexCatalogEntry& indexEntry,
+        main::ClientContext* context) override;
 };
 
+struct FTSIndexCatalogEntry {
+    static constexpr char TYPE_NAME[] = "FTS";
+};
 } // namespace fts_extension
 } // namespace kuzu

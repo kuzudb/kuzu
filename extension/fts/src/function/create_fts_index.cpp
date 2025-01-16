@@ -57,22 +57,25 @@ static std::vector<std::string> bindProperties(const catalog::NodeTableCatalogEn
 }
 
 static void validateInternalTableNotExist(const std::string& tableName,
-    const catalog::Catalog& catalog, transaction::Transaction* trx) {
-    if (catalog.containsTable(trx, tableName)) {
-        throw common::BinderException{
-            common::stringFormat("Table: {} already exists. Please drop or rename the table before "
-                                 "creating a full text search index.",
+    const catalog::Catalog& catalog, const transaction::Transaction* transaction) {
+    if (catalog.containsTable(transaction, tableName)) {
+        throw BinderException{
+            stringFormat("Table: {} already exists. Please drop or rename the table before "
+                         "creating a full text search index.",
                 tableName)};
     }
 }
 
-static void validateInternalTablesNotExist(common::table_id_t tableID, const std::string& indexName,
-    const catalog::Catalog& catalog, transaction::Transaction* tx) {
-    validateInternalTableNotExist(FTSUtils::getDocsTableName(tableID, indexName), catalog, tx);
-    validateInternalTableNotExist(FTSUtils::getAppearsInTableName(tableID, indexName), catalog, tx);
+static void validateInternalTablesNotExist(table_id_t tableID, const std::string& indexName,
+    const catalog::Catalog& catalog, const transaction::Transaction* transaction) {
+    validateInternalTableNotExist(FTSUtils::getDocsTableName(tableID, indexName), catalog,
+        transaction);
+    validateInternalTableNotExist(FTSUtils::getAppearsInTableName(tableID, indexName), catalog,
+        transaction);
     validateInternalTableNotExist(FTSUtils::getAppearsInfoTableName(tableID, indexName), catalog,
-        tx);
-    validateInternalTableNotExist(FTSUtils::getTermsTableName(tableID, indexName), catalog, tx);
+        transaction);
+    validateInternalTableNotExist(FTSUtils::getTermsTableName(tableID, indexName), catalog,
+        transaction);
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
@@ -224,10 +227,12 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& /*output
     GDSUtils::runVertexCompute(&context, &graph, lenCompute,
         std::vector<std::string>{CreateFTSFunction::DOC_LEN_PROP_NAME});
     auto numDocs = sharedState.numDocs.load();
-    auto avgDocLen = numDocs == 0 ? 0 : (double)sharedState.totalLen.load() / numDocs;
+    auto avgDocLen = numDocs == 0 ? 0 : static_cast<double>(sharedState.totalLen.load()) / numDocs;
     context.clientContext->getCatalog()->createIndex(context.clientContext->getTransaction(),
-        std::make_unique<FTSIndexCatalogEntry>(bindData.tableID, bindData.indexName, numDocs,
-            avgDocLen, bindData.properties, bindData.ftsConfig));
+        std::make_unique<catalog::IndexCatalogEntry>(FTSIndexCatalogEntry::TYPE_NAME,
+            bindData.tableID, bindData.indexName,
+            std::make_unique<FTSIndexAuxInfo>(numDocs, avgDocLen, bindData.properties,
+                bindData.ftsConfig)));
     return 0;
 }
 

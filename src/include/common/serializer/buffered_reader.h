@@ -7,15 +7,15 @@
 namespace kuzu {
 namespace common {
 
-struct BufferReader : Reader {
+struct BufferReader final : Reader {
     BufferReader(uint8_t* data, size_t dataSize) : data(data), dataSize(dataSize), readSize(0) {}
 
-    void read(uint8_t* outputData, uint64_t size) final {
+    void read(uint8_t* outputData, uint64_t size) override {
         memcpy(outputData, data + readSize, size);
         readSize += size;
     }
 
-    bool finished() final { return readSize >= dataSize; }
+    bool finished() override { return readSize >= dataSize; }
 
     uint8_t* data;
     size_t dataSize;

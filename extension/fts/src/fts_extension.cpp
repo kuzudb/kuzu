@@ -3,6 +3,7 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/fts_index_catalog_entry.h"
+#include "common/serializer/buffered_reader.h"
 #include "function/create_fts_index.h"
 #include "function/drop_fts_index.h"
 #include "function/query_fts_index.h"
@@ -13,14 +14,12 @@
 namespace kuzu {
 namespace fts_extension {
 
-static void initFTSEntries(transaction::Transaction* tx, catalog::Catalog& catalog) {
-    auto indexEntries = catalog.getIndexes()->getEntries(tx);
+static void initFTSEntries(const transaction::Transaction* transaction, catalog::Catalog& catalog) {
+    auto indexEntries = catalog.getIndexes()->getEntries(transaction);
     for (auto& [_, entry] : indexEntries) {
         auto indexEntry = entry->ptrCast<catalog::IndexCatalogEntry>();
         if (indexEntry->getIndexType() == FTSIndexCatalogEntry::TYPE_NAME) {
-            auto deserializedEntry = FTSIndexCatalogEntry::deserializeAuxInfo(indexEntry);
-            catalog.dropIndex(tx, indexEntry->getTableID(), indexEntry->getIndexName());
-            catalog.createIndex(tx, std::move(deserializedEntry));
+            indexEntry->setAuxInfo(FTSIndexAuxInfo::deserialize(indexEntry->getAuxBufferReader()));
         }
     }
 }

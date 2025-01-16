@@ -86,10 +86,12 @@ static void finalizeFunc(const processor::ExecutionContext* context,
     auto lowerRelTableID = catalog->getTableID(context->clientContext->getTransaction(),
         storage::HNSWIndexUtils::getLowerGraphTableName(bindData->indexName));
     catalog->createIndex(context->clientContext->getTransaction(),
-        std::make_unique<catalog::HNSWIndexCatalogEntry>(bindData->tableEntry->getTableID(),
-            bindData->indexName, hnswSharedState->nodeTable.getColumn(bindData->columnID).getName(),
-            upperRelTableID, lowerRelTableID, hnswSharedState->hnswIndex->getUpperEntryPoint(),
-            hnswSharedState->hnswIndex->getLowerEntryPoint(), bindData->config.copy()));
+        std::make_unique<catalog::IndexCatalogEntry>(catalog::HNSWIndexCatalogEntry::TYPE_NAME,
+            bindData->tableEntry->getTableID(), bindData->indexName,
+            std::make_unique<catalog::HNSWIndexAuxInfo>(upperRelTableID, lowerRelTableID,
+                hnswSharedState->nodeTable.getColumn(bindData->columnID).getName(),
+                hnswSharedState->hnswIndex->getUpperEntryPoint(),
+                hnswSharedState->hnswIndex->getLowerEntryPoint(), bindData->config.copy())));
 }
 
 static std::string createHNSWIndexTables(const main::ClientContext&,

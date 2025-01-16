@@ -89,6 +89,27 @@ HNSWIndexConfig::HNSWIndexConfig(const function::optional_params_t& optionalPara
     }
 }
 
+std::string HNSWIndexConfig::distFuncToString(DistFuncType distFunc) {
+    switch (distFunc) {
+    case DistFuncType::Cosine: {
+        return "cosine";
+    }
+    case DistFuncType::L2: {
+        return "l2";
+    }
+    case DistFuncType::L2_SQUARE: {
+        return "l2sq";
+    }
+    case DistFuncType::DotProduct: {
+        return "dotproduct";
+    }
+    default: {
+        throw common::RuntimeException(common::stringFormat("Unknown distance function type {}.",
+            static_cast<int64_t>(distFunc)));
+    }
+    }
+}
+
 void HNSWIndexConfig::serialize(common::Serializer& ser) const {
     ser.writeDebuggingInfo("degreeInUpperLayer");
     ser.serializeValue(mu);
