@@ -1192,6 +1192,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1create_1map(JNIEnv* env, 
             std::move(structVals)));
     }
 
+    KU_ASSERT(keyType.has_value());
+    KU_ASSERT(valueType.has_value());
     Value* mapValue = new Value(LogicalType::MAP(std::move(*keyType), std::move(*valueType)),
         std::move(children));
     return createJavaObject(env, mapValue, J_C_Value, J_C_Value_F_v_ref);
