@@ -15,8 +15,8 @@ namespace function {
 CreateHNSWSharedState::CreateHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : SimpleTableFuncSharedState{bindData.maxOffset}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-              ->getTable(bindData.tableEntry->getTableID())
-              ->cast<storage::NodeTable>()},
+                    ->getTable(bindData.tableEntry->getTableID())
+                    ->cast<storage::NodeTable>()},
       numNodes{bindData.numNodes}, bindData{&bindData} {
     hnswIndex = std::make_unique<storage::InMemHNSWIndex>(bindData.context, nodeTable,
         bindData.columnID, bindData.config.copy());
@@ -94,8 +94,9 @@ static void finalizeFunc(const processor::ExecutionContext* context,
                 hnswSharedState->hnswIndex->getLowerEntryPoint(), bindData->config.copy())));
 }
 
-static std::string createHNSWIndexTables(const main::ClientContext&,
+static std::string createHNSWIndexTables(main::ClientContext& context,
     const TableFuncBindData& bindData) {
+    context.setToUseInternalCatalogEntry();
     const auto hnswBindData = bindData.constPtrCast<CreateHNSWIndexBindData>();
     std::string query = "";
     query += stringFormat("CREATE REL TABLE {} (FROM {} TO {});",

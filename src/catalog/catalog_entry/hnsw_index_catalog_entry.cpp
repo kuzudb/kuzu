@@ -45,11 +45,10 @@ std::string HNSWIndexAuxInfo::toCypher(const IndexCatalogEntry& indexEntry,
     auto catalog = context->getCatalog();
     auto tableName = catalog->getTableName(context->getTransaction(), indexEntry.getTableID());
     auto distFuncName = storage::HNSWIndexConfig::distFuncToString(config.distFunc);
-    cypher += common::stringFormat(
-        "CALL CREATE_HNSW_INDEX('{}', '{}', '{}', mu := {}, ml := {}, "
-        "upperLayerNodePct := {}, distFunc := '{}', alpha := {}, efc := {});\n",
-        indexEntry.getIndexName(), tableName, columnName, config.mu, config.ml,
-        config.upperLayerNodePct, distFuncName, config.alpha, config.efc);
+    cypher += common::stringFormat("CALL CREATE_HNSW_INDEX('{}', '{}', '{}', mu := {}, ml := {}, "
+                                   "pu := {}, distFunc := '{}', alpha := {}, efc := {});\n",
+        indexEntry.getIndexName(), tableName, columnName, config.mu, config.ml, config.pu,
+        distFuncName, config.alpha, config.efc);
     return cypher;
 }
 

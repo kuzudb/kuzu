@@ -243,7 +243,7 @@ void InMemHNSWIndex::insert(common::offset_t offset, transaction::Transaction* t
     auto lowerEntryPoint = upperLayer->searchNN(transaction, offset, upperLayer->getEntryPoint());
     lowerLayer->insert(transaction, offset, lowerEntryPoint, lowerVisited);
     const auto rand = randomEngine.nextRandomInteger(INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND);
-    if (rand <= INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND * config.upperLayerNodePct) {
+    if (rand <= INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND * config.pu) {
         upperLayer->insert(transaction, offset, upperLayer->getEntryPoint(), upperVisited);
     }
 }

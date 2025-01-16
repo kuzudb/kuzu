@@ -70,7 +70,7 @@ struct Efs {
 struct HNSWIndexConfig {
     int64_t mu = Mu::DEFAULT_VALUE;
     int64_t ml = Ml::DEFAULT_VALUE;
-    double upperLayerNodePct = Pu::DEFAULT_VALUE;
+    double pu = Pu::DEFAULT_VALUE;
     DistFuncType distFunc = DistFunc::DEFAULT_VALUE;
     double alpha = Alpha::DEFAULT_VALUE;
     int64_t efc = Efc::DEFAULT_VALUE;
@@ -89,8 +89,8 @@ struct HNSWIndexConfig {
 
 private:
     HNSWIndexConfig(const HNSWIndexConfig& other)
-        : mu{other.mu}, ml{other.ml}, upperLayerNodePct{other.upperLayerNodePct},
-          distFunc{other.distFunc}, alpha{other.alpha}, efc{other.efc} {}
+        : mu{other.mu}, ml{other.ml}, pu{other.pu}, distFunc{other.distFunc}, alpha{other.alpha},
+          efc{other.efc} {}
 
     static DistFuncType getDistFuncType(const std::string& funcName);
 };
