@@ -8,7 +8,6 @@
 #include "common/task_system/task_scheduler.h"
 #include "common/types/internal_id_util.h"
 #include "function/fts_utils.h"
-#include "function/gds/gds.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_task.h"
 #include "function/gds/gds_utils.h"
@@ -47,17 +46,17 @@ struct QueryFTSBindData final : GDSBindData {
 
     bool hasNodeInput() const override { return false; }
 
-    std::vector<std::string> getTerms() const;
+    std::vector<std::string> getTerms(main::ClientContext& context) const;
 
     std::unique_ptr<GDSBindData> copy() const override {
         return std::make_unique<QueryFTSBindData>(*this);
     }
 };
 
-std::vector<std::string> QueryFTSBindData::getTerms() const {
-    if (!ExpressionUtil::canEvaluateAsLiteral(*query)) {
+static std::string evaluateQuery(const Expression& query) {
+    if (!ExpressionUtil::canEvaluateAsLiteral(query)) {
         std::string errMsg;
-        switch (query->expressionType) {
+        switch (query.expressionType) {
         case ExpressionType::PARAMETER: {
             errMsg = "The query is a parameter expression. Please assign it a value.";
         } break;
@@ -67,30 +66,68 @@ std::vector<std::string> QueryFTSBindData::getTerms() const {
         }
         throw RuntimeException{errMsg};
     }
-    auto value = ExpressionUtil::evaluateAsLiteralValue(*query);
-    if (value.getDataType() != LogicalType::STRING()) {
+    auto value = binder::ExpressionUtil::evaluateAsLiteralValue(query);
+    if (value.getDataType() != common::LogicalType::STRING()) {
         throw RuntimeException{"The query must be a string literal."};
     }
-    auto queryInStr = value.getValue<std::string>();
-    auto stemmer = entry.getAuxInfo().cast<FTSIndexAuxInfo>().config.stemmer;
+    return value.getValue<std::string>();
+}
+
+static void normalizeQuery(std::string& query) {
     std::string regexPattern = "[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\/\\|'\"`-]+";
     std::string replacePattern = " ";
-    RE2::GlobalReplace(&queryInStr, regexPattern, replacePattern);
-    StringUtils::toLower(queryInStr);
-    auto terms = StringUtils::split(queryInStr, " ");
+    RE2::GlobalReplace(&query, regexPattern, replacePattern);
+    StringUtils::toLower(query);
+}
+
+struct StopWordsChecker {
+    ValueVector termsVector;
+    common::offset_t offset = common::INVALID_OFFSET;
+    storage::NodeTable* stopWordsTable;
+    transaction::Transaction* tx;
+
+    StopWordsChecker(main::ClientContext& context);
+    bool isStopWord(const std::string& term);
+};
+
+StopWordsChecker::StopWordsChecker(main::ClientContext& context)
+    : termsVector{LogicalType::STRING(), context.getMemoryManager()}, tx{context.getTransaction()} {
+    termsVector.state = common::DataChunkState::getSingleValueDataChunkState();
+    auto tableID = context.getCatalog()->getTableID(tx, FTSUtils::getStopWordsTableName());
+    stopWordsTable = context.getStorageManager()->getTable(tableID)->ptrCast<storage::NodeTable>();
+}
+
+bool StopWordsChecker::isStopWord(const std::string& term) {
+    termsVector.setValue(0, term);
+    return stopWordsTable->lookupPK(tx, &termsVector, 0 /* vectorPos */, offset);
+}
+
+static std::vector<std::string> stemTerms(std::vector<std::string> terms,
+    const std::string& stemmer, main::ClientContext& context) {
     if (stemmer == "none") {
         return terms;
     }
     StemFunction::validateStemmer(stemmer);
     auto sbStemmer = sb_stemmer_new(reinterpret_cast<const char*>(stemmer.c_str()), "UTF_8");
     std::vector<std::string> result;
+    StopWordsChecker checker{context};
     for (auto& term : terms) {
+        if (checker.isStopWord(term)) {
+            continue;
+        }
         auto stemData = sb_stemmer_stem(sbStemmer, reinterpret_cast<const sb_symbol*>(term.c_str()),
             term.length());
         result.push_back(reinterpret_cast<const char*>(stemData));
     }
     sb_stemmer_delete(sbStemmer);
     return result;
+}
+
+std::vector<std::string> QueryFTSBindData::getTerms(main::ClientContext& context) const {
+    auto queryInStr = evaluateQuery(*query);
+    normalizeQuery(queryInStr);
+    auto terms = StringUtils::split(queryInStr, " ");
+    return stemTerms(terms, entry.getAuxInfo().cast<FTSIndexAuxInfo>().config.stemmer, context);
 }
 
 struct ScoreData {
@@ -270,7 +307,7 @@ static std::unordered_map<common::offset_t, uint64_t> getDFs(main::ClientContext
     for (auto& term : terms) {
         termsVector.setValue(0, term);
         offset_t offset = 0;
-        if (!termsNodeTable.lookupPK(tx, &termsVector, 0, offset)) {
+        if (!termsNodeTable.lookupPK(tx, &termsVector, 0 /* vectorPos */, offset)) {
             continue;
         }
         auto nodeID = nodeID_t{offset, tableID};
@@ -305,9 +342,8 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto graphEntry = graph->getGraphEntry();
     auto qFTSBindData = bindData->ptrCast<QueryFTSBindData>();
     auto& termsEntry = graphEntry->nodeEntries[0]->constCast<catalog::NodeTableCatalogEntry>();
-    auto termsTableID = termsEntry.getTableID();
-    auto terms = bindData->ptrCast<QueryFTSBindData>()->getTerms();
-    auto dfs = getDFs(*clientContext, termsEntry, terms);
+    auto terms = bindData->ptrCast<QueryFTSBindData>()->getTerms(*executionContext->clientContext);
+    auto dfs = getDFs(*executionContext->clientContext, termsEntry, terms);
     // Do edge compute to extend terms -> docs and save the term frequency and document frequency
     // for each term-doc pair. The reason why we store the term frequency and document frequency
     // is that: we need the `len` property from the docs table which is only available during the
@@ -316,6 +352,7 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto nextFrontier = getPathLengthsFrontier(executionContext, PathLengths::UNVISITED);
     auto frontierPair =
         std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
+    auto termsTableID = termsEntry.getTableID();
     frontierPair->pinNextFrontier(termsTableID);
     initDenseFrontier(*nextFrontier, termsTableID, dfs);
     auto storageManager = clientContext->getStorageManager();
