@@ -11,124 +11,20 @@
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_task.h"
 #include "function/gds/gds_utils.h"
-#include "function/stem.h"
+#include "function/query_fts_bind_data.h"
 #include "graph/on_disk_graph.h"
-#include "libstemmer.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
-#include "re2.h"
 #include "storage/index/index_utils.h"
 #include "storage/storage_manager.h"
-
-using namespace kuzu::binder;
-using namespace kuzu::common;
 
 namespace kuzu {
 namespace fts_extension {
 
+using namespace storage;
 using namespace function;
-
-struct QueryFTSBindData final : GDSBindData {
-    std::shared_ptr<Expression> query;
-    const catalog::IndexCatalogEntry& entry;
-    QueryFTSConfig config;
-    table_id_t outputTableID;
-
-    QueryFTSBindData(graph::GraphEntry graphEntry, std::shared_ptr<Expression> docs,
-        std::shared_ptr<Expression> query, const catalog::IndexCatalogEntry& entry,
-        QueryFTSConfig config)
-        : GDSBindData{std::move(graphEntry), std::move(docs)}, query{std::move(query)},
-          entry{entry}, config{config},
-          outputTableID{nodeOutput->constCast<NodeExpression>().getSingleEntry()->getTableID()} {}
-    QueryFTSBindData(const QueryFTSBindData& other)
-        : GDSBindData{other}, query{other.query}, entry{other.entry}, config{other.config},
-          outputTableID{other.outputTableID} {}
-
-    bool hasNodeInput() const override { return false; }
-
-    std::vector<std::string> getTerms(main::ClientContext& context) const;
-
-    std::unique_ptr<GDSBindData> copy() const override {
-        return std::make_unique<QueryFTSBindData>(*this);
-    }
-};
-
-static std::string evaluateQuery(const Expression& query) {
-    if (!ExpressionUtil::canEvaluateAsLiteral(query)) {
-        std::string errMsg;
-        switch (query.expressionType) {
-        case ExpressionType::PARAMETER: {
-            errMsg = "The query is a parameter expression. Please assign it a value.";
-        } break;
-        default: {
-            errMsg = "The query must be a parameter/literal expression.";
-        } break;
-        }
-        throw RuntimeException{errMsg};
-    }
-    auto value = binder::ExpressionUtil::evaluateAsLiteralValue(query);
-    if (value.getDataType() != common::LogicalType::STRING()) {
-        throw RuntimeException{"The query must be a string literal."};
-    }
-    return value.getValue<std::string>();
-}
-
-static void normalizeQuery(std::string& query) {
-    std::string regexPattern = "[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\/\\|'\"`-]+";
-    std::string replacePattern = " ";
-    RE2::GlobalReplace(&query, regexPattern, replacePattern);
-    StringUtils::toLower(query);
-}
-
-struct StopWordsChecker {
-    ValueVector termsVector;
-    common::offset_t offset = common::INVALID_OFFSET;
-    storage::NodeTable* stopWordsTable;
-    transaction::Transaction* tx;
-
-    StopWordsChecker(main::ClientContext& context);
-    bool isStopWord(const std::string& term);
-};
-
-StopWordsChecker::StopWordsChecker(main::ClientContext& context)
-    : termsVector{LogicalType::STRING(), context.getMemoryManager()}, tx{context.getTransaction()} {
-    termsVector.state = common::DataChunkState::getSingleValueDataChunkState();
-    auto tableID = context.getCatalog()->getTableID(tx, FTSUtils::getStopWordsTableName());
-    stopWordsTable = context.getStorageManager()->getTable(tableID)->ptrCast<storage::NodeTable>();
-}
-
-bool StopWordsChecker::isStopWord(const std::string& term) {
-    termsVector.setValue(0, term);
-    return stopWordsTable->lookupPK(tx, &termsVector, 0 /* vectorPos */, offset);
-}
-
-static std::vector<std::string> stemTerms(std::vector<std::string> terms,
-    const std::string& stemmer, main::ClientContext& context) {
-    if (stemmer == "none") {
-        return terms;
-    }
-    StemFunction::validateStemmer(stemmer);
-    auto sbStemmer = sb_stemmer_new(reinterpret_cast<const char*>(stemmer.c_str()), "UTF_8");
-    std::vector<std::string> result;
-    StopWordsChecker checker{context};
-    for (auto& term : terms) {
-        if (checker.isStopWord(term)) {
-            continue;
-        }
-        auto stemData = sb_stemmer_stem(sbStemmer, reinterpret_cast<const sb_symbol*>(term.c_str()),
-            term.length());
-        result.push_back(reinterpret_cast<const char*>(stemData));
-    }
-    sb_stemmer_delete(sbStemmer);
-    return result;
-}
-
-std::vector<std::string> QueryFTSBindData::getTerms(main::ClientContext& context) const {
-    auto queryInStr = evaluateQuery(*query);
-    normalizeQuery(queryInStr);
-    auto terms = StringUtils::split(queryInStr, " ");
-    return stemTerms(terms, entry.getAuxInfo().cast<FTSIndexAuxInfo>().config.stemmer, context);
-}
+using namespace binder;
+using namespace common;
 
 struct ScoreData {
     uint64_t df;

@@ -39,5 +39,6 @@ struct FTSIndexAuxInfo final : catalog::IndexAuxInfo {
 struct FTSIndexCatalogEntry {
     static constexpr char TYPE_NAME[] = "FTS";
 };
+
 } // namespace fts_extension
 } // namespace kuzu
