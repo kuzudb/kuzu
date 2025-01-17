@@ -43,7 +43,7 @@ public:
         expressions.push_back(expression);
     }
     binder::expression_vector getExpressions() const { return expressions; }
-    uint32_t getExpressionPos(const binder::Expression& expression) {
+    uint32_t getExpressionPos(const binder::Expression& expression) const {
         KU_ASSERT(expressionNameToPos.contains(expression.getUniqueName()));
         return expressionNameToPos.at(expression.getUniqueName());
     }

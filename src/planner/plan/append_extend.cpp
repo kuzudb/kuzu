@@ -333,7 +333,7 @@ void Planner::createPathNodeFilterPlan(const std::shared_ptr<NodeExpression>& no
     auto semiMasker = std::make_shared<LogicalSemiMasker>(SemiMaskKeyType::NODE,
         SemiMaskTargetType::GDS_PATH_NODE, node->getInternalID(), node->getTableIDs(),
         plan.getLastOperator());
-    semiMasker->computeFlatSchema();
+    semiMasker->computeFactorizedSchema();
     plan.setLastOperator(semiMasker);
 }
 
