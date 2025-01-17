@@ -143,10 +143,10 @@ public class KuzuStruct implements AutoCloseable {
     }
 
     /**
-     * Gets the elements the map as a Java map. This will be truncated if the
-     * size of the map doesn't fit in a 32-bit integer.
+     * Gets the elements the struct as a Java map. This will be truncated if the
+     * number of fields doesn't fit in a 32-bit integer.
      *
-     * @return the map as a Java map
+     * @return the struct as a Java map
      * @throws ObjectRefDestroyedException
      */
     public Map<String, Value> toMap() throws ObjectRefDestroyedException {
