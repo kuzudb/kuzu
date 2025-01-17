@@ -21,16 +21,12 @@ StorageDriver::StorageDriver(Database* database) : database{database} {
 
 StorageDriver::~StorageDriver() = default;
 
-static Table* getTable(const ClientContext& context, const std::string& tableName) {
-    auto tableID = context.getCatalog()->getTableID(context.getTransaction(), tableName);
-    return context.getStorageManager()->getTable(tableID);
+static TableCatalogEntry* getEntry(const ClientContext& context, const std::string& tableName) {
+    return context.getCatalog()->getTableCatalogEntry(context.getTransaction(), tableName);
 }
 
-static TableCatalogEntry* getEntry(const ClientContext& context, const std::string& tableName) {
-    auto catalog = context.getCatalog();
-    auto transaction = context.getTransaction();
-    auto tableID = catalog->getTableID(transaction, tableName);
-    return catalog->getTableCatalogEntry(transaction, tableID);
+static Table* getTable(const ClientContext& context, const std::string& tableName) {
+    return context.getStorageManager()->getTable(getEntry(context, tableName)->getTableID());
 }
 
 static bool validateNumericalType(const LogicalType& type) {

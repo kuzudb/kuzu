@@ -165,8 +165,7 @@ static TableFunction getObjectScanFunc(const std::string& dbName, const std::str
         throw BinderException{stringFormat("No database named {} has been attached.", dbName)};
     }
     auto attachedCatalog = attachedDB->getCatalog();
-    auto tableID = attachedCatalog->getTableID(clientContext->getTransaction(), tableName);
-    auto entry = attachedCatalog->getTableCatalogEntry(clientContext->getTransaction(), tableID);
+    auto entry = attachedCatalog->getTableCatalogEntry(clientContext->getTransaction(), tableName);
     return entry->ptrCast<TableCatalogEntry>()->getScanFunction();
 }
 

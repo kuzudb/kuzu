@@ -79,8 +79,8 @@ static std::string getFromToStr(common::table_id_t tableID, ClientContext* conte
     auto transaction = context->getTransaction();
     auto& entry =
         catalog->getTableCatalogEntry(transaction, tableID)->constCast<RelTableCatalogEntry>();
-    auto srcTableName = catalog->getTableName(transaction, entry.getSrcTableID());
-    auto dstTableName = catalog->getTableName(transaction, entry.getDstTableID());
+    auto srcTableName = catalog->getTableCatalogEntry(transaction, entry.getSrcTableID())->getName();
+    auto dstTableName = catalog->getTableCatalogEntry(transaction, entry.getDstTableID())->getName();
     return stringFormat("FROM {} TO {}", srcTableName, dstTableName);
 }
 

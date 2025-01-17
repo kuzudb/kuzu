@@ -2,6 +2,7 @@
 
 #include "binder/expression/expression_util.h"
 #include "catalog/fts_index_catalog_entry.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/string_utils.h"
 #include "function/fts_utils.h"
 #include "function/stem.h"
@@ -57,7 +58,7 @@ struct StopWordsChecker {
 StopWordsChecker::StopWordsChecker(main::ClientContext& context)
     : termsVector{LogicalType::STRING(), context.getMemoryManager()}, tx{context.getTransaction()} {
     termsVector.state = common::DataChunkState::getSingleValueDataChunkState();
-    auto tableID = context.getCatalog()->getTableID(tx, FTSUtils::getStopWordsTableName());
+    auto tableID = context.getCatalog()->getTableCatalogEntry(tx, FTSUtils::getStopWordsTableName())->getTableID();
     stopWordsTable = context.getStorageManager()->getTable(tableID)->ptrCast<storage::NodeTable>();
 }
 

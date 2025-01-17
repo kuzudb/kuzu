@@ -72,8 +72,7 @@ static std::unique_ptr<TableCatalogEntry> getTableCatalogEntry(const main::Clien
     auto transaction = context->getTransaction();
     auto tableInfo = common::StringUtils::split(tableName, ".");
     if (tableInfo.size() == 1) {
-        auto tableID = context->getCatalog()->getTableID(transaction, tableName);
-        return context->getCatalog()->getTableCatalogEntry(transaction, tableID)->copy();
+        return context->getCatalog()->getTableCatalogEntry(transaction, tableName)->copy();
     } else {
         auto catalogName = tableInfo[0];
         auto attachedTableName = tableInfo[1];
@@ -82,8 +81,7 @@ static std::unique_ptr<TableCatalogEntry> getTableCatalogEntry(const main::Clien
             throw common::RuntimeException{
                 common::stringFormat("Database: {} doesn't exist.", catalogName)};
         }
-        auto tableID = attachedDatabase->getCatalog()->getTableID(transaction, attachedTableName);
-        return attachedDatabase->getCatalog()->getTableCatalogEntry(transaction, tableID)->copy();
+        return attachedDatabase->getCatalog()->getTableCatalogEntry(transaction, attachedTableName)->copy();
     }
 }
 

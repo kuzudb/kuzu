@@ -1,6 +1,7 @@
 #include "catalog/fts_index_catalog_entry.h"
 
 #include "catalog/catalog.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/serializer/buffered_reader.h"
 #include "common/serializer/buffered_serializer.h"
 #include "main/client_context.h"
@@ -36,7 +37,7 @@ std::string FTSIndexAuxInfo::toCypher(const catalog::IndexCatalogEntry& indexEnt
     main::ClientContext* context) {
     std::string cypher;
     auto catalog = context->getCatalog();
-    auto tableName = catalog->getTableName(context->getTransaction(), indexEntry.getTableID());
+    auto tableName = catalog->getTableCatalogEntry(context->getTransaction(), indexEntry.getTableID())->getName();
     std::string propertyStr;
     for (auto i = 0u; i < properties.size(); i++) {
         propertyStr +=

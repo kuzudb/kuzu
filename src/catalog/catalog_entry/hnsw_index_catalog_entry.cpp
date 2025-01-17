@@ -1,6 +1,7 @@
 #include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
 
 #include "catalog/catalog.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/serializer/buffered_reader.h"
 #include "common/serializer/buffered_serializer.h"
 #include "common/serializer/deserializer.h"
@@ -43,7 +44,7 @@ std::string HNSWIndexAuxInfo::toCypher(const IndexCatalogEntry& indexEntry,
     main::ClientContext* context) {
     std::string cypher;
     auto catalog = context->getCatalog();
-    auto tableName = catalog->getTableName(context->getTransaction(), indexEntry.getTableID());
+    auto tableName = catalog->getTableCatalogEntry(context->getTransaction(), indexEntry.getTableID())->getName();
     auto distFuncName = storage::HNSWIndexConfig::distFuncToString(config.distFunc);
     cypher += common::stringFormat("CALL CREATE_HNSW_INDEX('{}', '{}', '{}', mu := {}, ml := {}, "
                                    "pu := {}, distFunc := '{}', alpha := {}, efc := {});\n",

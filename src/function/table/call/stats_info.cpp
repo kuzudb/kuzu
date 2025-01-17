@@ -65,8 +65,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     if (!catalog->containsTable(context->getTransaction(), tableName)) {
         throw BinderException{"Table " + tableName + " does not exist!"};
     }
-    const auto tableID = catalog->getTableID(context->getTransaction(), tableName);
-    auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), tableID);
+    auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), tableName);
     if (tableEntry->getTableType() != TableType::NODE) {
         throw BinderException{
             "Stats from a non-node table " + tableName + " is not supported yet!"};
@@ -80,7 +79,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
         columnTypes.push_back(LogicalType::INT64());
     }
     const auto storageManager = context->getStorageManager();
-    auto table = storageManager->getTable(tableID);
+    auto table = storageManager->getTable(tableEntry->getTableID());
     auto columns = input->binder->createVariables(columnNames, columnTypes);
     return std::make_unique<StatsInfoBindData>(columns, tableEntry, table, context);
 }

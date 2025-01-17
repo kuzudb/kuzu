@@ -61,8 +61,8 @@ static void bindExportRelTableDataQuery(const TableCatalogEntry& entry, std::str
     auto relTableEntry = entry.constPtrCast<RelTableCatalogEntry>();
     auto srcPrimaryKeyName = getPrimaryKeyName(relTableEntry->getSrcTableID(), catalog, tx);
     auto dstPrimaryKeyName = getPrimaryKeyName(relTableEntry->getDstTableID(), catalog, tx);
-    auto srcName = catalog.getTableName(tx, relTableEntry->getSrcTableID());
-    auto dstName = catalog.getTableName(tx, relTableEntry->getDstTableID());
+    auto srcName = catalog.getTableCatalogEntry(tx, relTableEntry->getSrcTableID())->getName();
+    auto dstName = catalog.getTableCatalogEntry(tx, relTableEntry->getDstTableID())->getName();
     auto relName = relTableEntry->getName();
     exportQuery = stringFormat("match (a:{})-[r:{}]->(b:{}) return a.{},b.{},r.*;", srcName,
         relName, dstName, srcPrimaryKeyName, dstPrimaryKeyName);

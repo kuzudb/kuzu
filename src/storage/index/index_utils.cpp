@@ -8,23 +8,21 @@
 namespace kuzu {
 namespace storage {
 
-static void validateIndexExistence(const main::ClientContext& context, common::table_id_t tableID,
+static void validateIndexExistence(const main::ClientContext& context, catalog::TableCatalogEntry* tableEntry,
     const std::string& indexName, IndexOperation indexOperation) {
     switch (indexOperation) {
     case IndexOperation::CREATE: {
-        if (context.getCatalog()->containsIndex(context.getTransaction(), tableID, indexName)) {
+        if (context.getCatalog()->containsIndex(context.getTransaction(), tableEntry->getTableID(), indexName)) {
             throw common::BinderException{
                 common::stringFormat("Index {} already exists in table {}.", indexName,
-                    context.getCatalog()->getTableName(context.getTransaction(), tableID))};
+                    tableEntry->getName())};
         }
     } break;
     case IndexOperation::DROP:
     case IndexOperation::QUERY: {
-        if (!context.getCatalog()->containsIndex(context.getTransaction(), tableID, indexName)) {
-            const auto tableName =
-                context.getCatalog()->getTableName(context.getTransaction(), tableID);
+        if (!context.getCatalog()->containsIndex(context.getTransaction(), tableEntry->getTableID(), indexName)) {
             throw common::BinderException{common::stringFormat(
-                "Table {} doesn't have an index with name {}.", tableName, indexName)};
+                "Table {} doesn't have an index with name {}.", tableEntry->getName(), indexName)};
         }
     } break;
     default: {
@@ -54,7 +52,7 @@ catalog::NodeTableCatalogEntry* IndexUtils::bindTable(const main::ClientContext&
     const auto tableEntry =
         context.getCatalog()->getTableCatalogEntry(context.getTransaction(), tableName);
     validateNodeTable(tableEntry);
-    validateIndexExistence(context, tableEntry->getTableID(), indexName, indexOperation);
+    validateIndexExistence(context, tableEntry, indexName, indexOperation);
     return tableEntry->ptrCast<catalog::NodeTableCatalogEntry>();
 }
 
