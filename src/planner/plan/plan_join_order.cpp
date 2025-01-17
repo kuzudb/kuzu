@@ -2,7 +2,6 @@
 
 #include "binder/expression_visitor.h"
 #include "common/enums/join_type.h"
-#include "common/utils.h"
 #include "main/client_context.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/join_order/join_plan_solver.h"
@@ -285,7 +284,6 @@ getBoundAndNbrNodes(const RelExpression& rel, ExtendDirection direction) {
 static ExtendDirection getExtendDirection(const binder::RelExpression& relExpression,
     const binder::NodeExpression& boundNode) {
     if (relExpression.getDirectionType() == binder::RelDirectionType::BOTH) {
-        KU_ASSERT(relExpression.getExtendDirections().size() == 2);
         return ExtendDirection::BOTH;
     }
     if (relExpression.getSrcNodeName() == boundNode.getUniqueName()) {
@@ -301,7 +299,9 @@ void Planner::planRelScan(uint32_t relPos) {
     newSubgraph.addQueryRel(relPos);
     const auto predicates = getNewlyMatchedExprs(context.getEmptySubqueryGraph(), newSubgraph,
         context.getWhereExpressions());
-    for (const auto direction : rel->getExtendDirections()) {
+    // Regardless of whether rel is directed or not,
+    // we always enumerate two plans, one from src to dst, and the other from dst to src.
+    for (const auto direction : {ExtendDirection::FWD, ExtendDirection::BWD}) {
         auto plan = std::make_unique<LogicalPlan>();
         auto [boundNode, nbrNode] = getBoundAndNbrNodes(*rel, direction);
         const auto extendDirection = getExtendDirection(*rel, *boundNode);
@@ -545,9 +545,6 @@ bool Planner::tryPlanINLJoin(const SubqueryGraph& subgraph, const SubqueryGraph&
     auto nbrNode =
         boundNode->getUniqueName() == rel->getSrcNodeName() ? rel->getDstNode() : rel->getSrcNode();
     auto extendDirection = getExtendDirection(*rel, *boundNode);
-    if (!common::dataContains(rel->getExtendDirections(), extendDirection)) {
-        return false;
-    }
     auto newSubgraph = subgraph;
     newSubgraph.addQueryRel(relPos);
     auto predicates = getNewlyMatchedExprs(subgraph, newSubgraph, context.getWhereExpressions());

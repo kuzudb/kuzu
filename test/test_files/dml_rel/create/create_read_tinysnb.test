@@ -34,7 +34,6 @@ Alice|2023-12-20|2024-01-01|Bob
 Binder exception: Create undirected relationship is not supported. Try create 2 directed relationships instead.
 
 -CASE CreateRelRead2
--TEST_FWD_ONLY_REL
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 0 CREATE (a)-[f:knows {date:date('2023-04-04')}]->(b) RETURN f;
 ---- 3
 (0:0)-{_LABEL: knows, _ID: 3:4611686018427387904, date: 2023-04-04}->(0:1)

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/constants.h"
-#include "common/enums/extend_direction.h"
 #include "common/enums/query_rel_type.h"
 #include "node_expression.h"
 
@@ -111,10 +110,6 @@ public:
     bool isSelfLoop() const { return *srcNode == *dstNode; }
 
     std::string detailsToString() const;
-
-    // if multiple tables match the pattern
-    // returns the intersection of available extend directions for all matched tables
-    std::vector<common::ExtendDirection> getExtendDirections() const;
 
 private:
     // Start node if a directed arrow is given. Left node otherwise.

@@ -1,5 +1,4 @@
 -DATASET CSV rel-update-tests
--TEST_FWD_ONLY_REL
 --
 
 -CASE smallListBecomesLargeListAfterInsertionCommitNormalExecution
@@ -8,7 +7,7 @@
 -BATCH_STATEMENTS <FILE:>small_list_becomes_large_list_after_insertion.cypher
 ---- ok
 -STATEMENT COMMIT
----- ok
+---- ok 
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 1 RETURN e.length, e.place, e.tag
@@ -28,7 +27,7 @@
 -BATCH_STATEMENTS <FILE:>small_list_becomes_large_list_after_insertion.cypher
 ---- ok
 -STATEMENT COMMIT
----- ok
+---- ok 
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok
@@ -45,7 +44,7 @@
 -BATCH_STATEMENTS <FILE:>small_list_becomes_large_list_after_insertion.cypher
 ---- ok
 -STATEMENT Rollback
----- ok
+---- ok 
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 1 RETURN e.length, e.place, e.tag
@@ -65,7 +64,7 @@
 -BATCH_STATEMENTS <FILE:>small_list_becomes_large_list_after_insertion.cypher
 ---- ok
 -STATEMENT ROLLBACK
----- ok
+---- ok 
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok

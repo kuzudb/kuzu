@@ -1,5 +1,4 @@
 -DATASET CSV rel-update-tests
--TEST_FWD_ONLY_REL
 --
 
 -CASE deleteRelsFromSmallListCommitNormalExecution
@@ -8,7 +7,7 @@
 -BATCH_STATEMENTS <FILE:>delete_rels_from_small_list.cypher
 ---- ok
 -STATEMENT COMMIT
----- ok
+---- ok 
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID  = 0 RETURN e.length
@@ -28,7 +27,7 @@
 -BATCH_STATEMENTS <FILE:>delete_rels_from_small_list.cypher
 ---- ok
 -STATEMENT COMMIT
----- ok
+---- ok 
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok
@@ -45,7 +44,7 @@
 -BATCH_STATEMENTS <FILE:>delete_rels_from_small_list.cypher
 ---- ok
 -STATEMENT Rollback
----- ok
+---- ok 
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID  = 0 RETURN e.length
@@ -65,7 +64,7 @@
 -BATCH_STATEMENTS <FILE:>delete_rels_from_small_list.cypher
 ---- ok
 -STATEMENT ROLLBACK
----- ok
+---- ok 
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok

@@ -54,11 +54,6 @@ constexpr To safeIntegerConversion(From val) {
     return val;
 }
 
-template<typename T, typename Data>
-bool dataContains(const Data& data, const T& value) {
-    return std::find(data.begin(), data.end(), value) != data.end();
-}
-
 template<class T>
 struct CountZeros {};
 

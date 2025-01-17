@@ -172,13 +172,10 @@ BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info)
     auto dstMultiplicity = RelMultiplicityUtils::getBwd(extraInfo.relMultiplicity);
 
     auto parsingOptions = bindParsingOptions(extraInfo.options);
-    auto storageDirection = ExtendDirectionUtil::getDefaultExtendDirection();
+    auto storageDirection = RelDirectionUtils::DEFAULT_REL_STORAGE_DIRECTION;
     if (parsingOptions.contains(TableOptionConstants::REL_STORAGE_DIRECTION_OPTION)) {
-        storageDirection = ExtendDirectionUtil::fromString(
+        storageDirection = RelDirectionUtils::getRelStorageDirection(
             parsingOptions.at(TableOptionConstants::REL_STORAGE_DIRECTION_OPTION).toString());
-        if (storageDirection == common::ExtendDirection::BWD) {
-            throw BinderException("Cannot create rel table with storage direction 'bwd'");
-        }
     }
 
     auto srcTableID = bindTableID(extraInfo.srcTableName);

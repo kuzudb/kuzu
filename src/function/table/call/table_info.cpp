@@ -60,7 +60,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
         } else if (tableEntry->getTableType() == TableType::REL) {
             const auto* relTableEntry = tableEntry->constPtrCast<RelTableCatalogEntry>();
             dataChunk.getValueVectorMutable(4).setValue(vectorPos,
-                ExtendDirectionUtil::toString(relTableEntry->getStorageDirection()));
+                RelDirectionUtils::relStorageDirectionToString(
+                    relTableEntry->getStorageDirection()));
         }
         vectorPos++;
     }

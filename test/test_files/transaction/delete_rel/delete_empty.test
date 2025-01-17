@@ -1,5 +1,4 @@
 -DATASET CSV empty
--TEST_FWD_ONLY_REL
 --
 
 -CASE DeleteRelEmptyDB

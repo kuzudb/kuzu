@@ -1,5 +1,4 @@
 -DATASET CSV node-insertion-deletion-tests/string-pk
--TEST_FWD_ONLY_REL
 --
 
 -CASE IndexScanAfterDeletionCommitNormalExecution
@@ -32,7 +31,7 @@
 ---- 1
 1
 -STATEMENT [conn_write] COMMIT
----- ok
+---- ok 
 -STATEMENT [conn_write] BEGIN TRANSACTION
 ---- ok
 -STATEMENT [conn_read] Match (a:person) WHERE a.ID='999999999999' RETURN COUNT(*);
@@ -82,7 +81,7 @@
 ---- 1
 1
 -STATEMENT [conn_write] COMMIT
----- ok
+---- ok 
 -RELOADDB
 -STATEMENT [conn_write] BEGIN TRANSACTION
 ---- ok
@@ -129,7 +128,7 @@
 ---- 1
 1
 -STATEMENT [conn_write] Rollback
----- ok
+---- ok 
 -STATEMENT [conn_write] BEGIN TRANSACTION
 ---- ok
 -STATEMENT [conn_write] Match (a:person) WHERE a.ID='999999999999' RETURN COUNT(*);
@@ -180,7 +179,7 @@
 ---- 1
 1
 -STATEMENT [conn_write] ROLLBACK
----- ok
+---- ok 
 -RELOADDB
 -STATEMENT [conn_write] BEGIN TRANSACTION
 ---- ok
@@ -211,7 +210,7 @@
 ---- 1
 10000
 -STATEMENT [conn_write] COMMIT
----- ok
+---- ok 
 -STATEMENT [conn_write] BEGIN TRANSACTION
 ---- ok
 -STATEMENT [conn_write] Match (a:person) RETURN COUNT(*);
@@ -239,7 +238,7 @@
 ---- 1
 10000
 -STATEMENT [conn_write] COMMIT
----- ok
+---- ok 
 -RELOADDB
 -STATEMENT [conn_write] BEGIN TRANSACTION
 ---- ok
@@ -264,7 +263,7 @@
 ---- 1
 10000
 -STATEMENT [conn_write] Rollback
----- ok
+---- ok 
 -STATEMENT [conn_write] BEGIN TRANSACTION
 ---- ok
 -STATEMENT [conn_write] Match (a:person) RETURN COUNT(*);
@@ -292,7 +291,7 @@
 ---- 1
 10000
 -STATEMENT [conn_write] ROLLBACK
----- ok
+---- ok 
 -RELOADDB
 -STATEMENT [conn_write] BEGIN TRANSACTION
 ---- ok

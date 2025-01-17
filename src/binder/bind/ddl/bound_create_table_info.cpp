@@ -161,7 +161,7 @@ std::unique_ptr<BoundExtraCreateRelTableInfo> BoundExtraCreateRelTableInfo::dese
     Deserializer& deserializer) {
     RelMultiplicity srcMultiplicity{};
     RelMultiplicity dstMultiplicity{};
-    ExtendDirection storageDirection{};
+    RelStorageDirection storageDirection{};
     table_id_t srcTableID = INVALID_TABLE_ID;
     table_id_t dstTableID = INVALID_TABLE_ID;
     deserializer.deserializeValue(srcMultiplicity);

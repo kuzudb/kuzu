@@ -24,15 +24,12 @@ Binder exception: Table organisation does not exist.
 Binder exception: Table movies does not exist.
 -STATEMENT create node table organisation (ID INT64, name STRING, orgCode INT64, mark DOUBLE, score INT64, history STRING, licenseValidInterval INTERVAL, rating DOUBLE, PRIMARY KEY (ID))
 ---- ok
--STATEMENT create rel table invalidDirection (FROM person TO person) WITH (storage_direction = 'bwd')
----- error
-Binder exception: Cannot create rel table with storage direction 'bwd'
 -STATEMENT create rel table studyAt (FROM person TO organisation, year INT64, places STRING[], MANY_ONE) WITH (storage_direction = 'both');
 ---- ok
 -STATEMENT create rel table workAt (FROM person TO organisation, year INT64, grading DOUBLE[2], rating float, MANY_ONE) WITH (storage_direction = 'invalid');
 ---- error
-Runtime exception: Cannot parse invalid as ExtendDirection.
--STATEMENT create rel table workAt (FROM person TO organisation, year INT64, grading DOUBLE[2], rating float, MANY_ONE) WITH (storage_direction = 'fwd');
+Binder exception: Cannot bind invalid as rel storage direction.
+-STATEMENT create rel table workAt (FROM person TO organisation, year INT64, grading DOUBLE[2], rating float, MANY_ONE) WITH (storage_direction = 'fwd_only');
 ---- ok
 -STATEMENT match (o:organisation) return o.name
 ---- ok

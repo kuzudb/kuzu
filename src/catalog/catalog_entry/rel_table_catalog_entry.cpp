@@ -27,10 +27,10 @@ RelMultiplicity RelTableCatalogEntry::getMultiplicity(RelDataDirection direction
 
 std::vector<common::RelDataDirection> RelTableCatalogEntry::getRelDataDirections() const {
     switch (storageDirection) {
-    case common::ExtendDirection::FWD: {
+    case common::RelStorageDirection::FWD_ONLY: {
         return {RelDataDirection::FWD};
     }
-    case common::ExtendDirection::BOTH: {
+    case common::RelStorageDirection::BOTH: {
         return {RelDataDirection::FWD, RelDataDirection::BWD};
     }
     default: {
@@ -66,7 +66,7 @@ std::unique_ptr<RelTableCatalogEntry> RelTableCatalogEntry::deserialize(
     std::string debuggingInfo;
     RelMultiplicity srcMultiplicity{};
     RelMultiplicity dstMultiplicity{};
-    ExtendDirection storageDirection{};
+    RelStorageDirection storageDirection{};
     table_id_t srcTableID = INVALID_TABLE_ID;
     table_id_t dstTableID = INVALID_TABLE_ID;
     deserializer.validateDebuggingInfo(debuggingInfo, "srcMultiplicity");
@@ -113,7 +113,7 @@ std::string RelTableCatalogEntry::toCypher(main::ClientContext* clientContext) c
     return ss.str();
 }
 
-common::ExtendDirection RelTableCatalogEntry::getStorageDirection() const {
+common::RelStorageDirection RelTableCatalogEntry::getStorageDirection() const {
     return storageDirection;
 }
 

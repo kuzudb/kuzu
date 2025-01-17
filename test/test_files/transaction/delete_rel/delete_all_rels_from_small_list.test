@@ -1,5 +1,4 @@
 -DATASET CSV rel-update-tests
--TEST_FWD_ONLY_REL
 --
 
 -CASE deleteAllRelsFromSmallListCommitNormalExecution
@@ -8,7 +7,7 @@
 -STATEMENT MATCH (:person)-[e:knows]->(:person) DELETE e
 ---- ok
 -STATEMENT COMMIT
----- ok
+---- ok 
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID = 0 RETURN e.length
@@ -27,7 +26,7 @@
 -STATEMENT MATCH (:person)-[e:knows]->(:person) DELETE e
 ---- ok
 -STATEMENT COMMIT
----- ok
+---- ok 
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok
@@ -43,7 +42,7 @@
 -STATEMENT MATCH (:person)-[e:knows]->(:person) DELETE e
 ---- ok
 -STATEMENT Rollback
----- ok
+---- ok 
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID = 0 RETURN e.length
@@ -63,7 +62,7 @@
 -STATEMENT MATCH (:person)-[e:knows]->(:person) DELETE e
 ---- ok
 -STATEMENT ROLLBACK
----- ok
+---- ok 
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok

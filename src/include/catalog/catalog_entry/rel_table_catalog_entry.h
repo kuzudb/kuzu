@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/enums/extend_direction.h"
 #include "common/enums/rel_direction.h"
 #include "common/enums/rel_multiplicity.h"
 #include "table_catalog_entry.h"
@@ -17,7 +16,7 @@ public:
           srcTableID{common::INVALID_TABLE_ID}, dstTableID{common::INVALID_TABLE_ID} {};
     RelTableCatalogEntry(CatalogSet* set, std::string name, common::RelMultiplicity srcMultiplicity,
         common::RelMultiplicity dstMultiplicity, common::table_id_t srcTableID,
-        common::table_id_t dstTableID, common::ExtendDirection storageDirection)
+        common::table_id_t dstTableID, common::RelStorageDirection storageDirection)
         : TableCatalogEntry{set, entryType_, std::move(name)}, srcMultiplicity{srcMultiplicity},
           dstMultiplicity{dstMultiplicity}, storageDirection(storageDirection),
           srcTableID{srcTableID}, dstTableID{dstTableID} {
@@ -33,7 +32,7 @@ public:
     common::RelMultiplicity getMultiplicity(common::RelDataDirection direction) const;
 
     std::vector<common::RelDataDirection> getRelDataDirections() const;
-    common::ExtendDirection getStorageDirection() const;
+    common::RelStorageDirection getStorageDirection() const;
 
     common::table_id_t getBoundTableID(common::RelDataDirection relDirection) const;
     common::table_id_t getNbrTableID(common::RelDataDirection relDirection) const;
@@ -52,7 +51,7 @@ private:
 private:
     common::RelMultiplicity srcMultiplicity;
     common::RelMultiplicity dstMultiplicity;
-    common::ExtendDirection storageDirection;
+    common::RelStorageDirection storageDirection;
     common::table_id_t srcTableID;
     common::table_id_t dstTableID;
 };

@@ -1,5 +1,4 @@
 -DATASET CSV rel-update-tests
--TEST_FWD_ONLY_REL
 --
 
 -DEFINE_STATEMENT_BLOCK INSERT_RELS_TO_SMALL_LIST [
@@ -18,7 +17,7 @@
 ---- ok
 -INSERT_STATEMENT_BLOCK INSERT_RELS_TO_SMALL_LIST
 -STATEMENT COMMIT
----- ok
+---- ok 
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) where b.ID > 200 AND a.ID = 1 RETURN e.length, e.place, e.tag
@@ -40,7 +39,7 @@
 ---- ok
 -INSERT_STATEMENT_BLOCK INSERT_RELS_TO_SMALL_LIST
 -STATEMENT COMMIT
----- ok
+---- ok 
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok
@@ -59,7 +58,7 @@
 ---- ok
 -INSERT_STATEMENT_BLOCK INSERT_RELS_TO_SMALL_LIST
 -STATEMENT Rollback
----- ok
+---- ok 
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) where b.ID > 200 AND a.ID = 1 RETURN e.length, e.place, e.tag
@@ -77,7 +76,7 @@
 ---- ok
 -INSERT_STATEMENT_BLOCK INSERT_RELS_TO_SMALL_LIST
 -STATEMENT ROLLBACK
----- ok
+---- ok 
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok

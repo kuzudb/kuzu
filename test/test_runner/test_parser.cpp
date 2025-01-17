@@ -123,10 +123,6 @@ void TestParser::parseHeader() {
 #endif
             break;
         }
-        case TokenType::TEST_FWD_ONLY_REL: {
-            testGroup->testFwdOnly = true;
-            break;
-        }
         case TokenType::SKIP_IN_MEM: {
             auto env = TestHelper::getSystemEnv("IN_MEM_MODE");
             if (!env.empty()) {
@@ -419,7 +415,6 @@ std::string TestParser::parseCommandArange() const {
 }
 
 void TestParser::parseBody() {
-    bool testFwdOnly = testGroup->testFwdOnly;
     std::string testCaseName;
     while (nextLine()) {
         tokenize();
@@ -427,7 +422,6 @@ void TestParser::parseBody() {
         case TokenType::CASE: {
             checkMinimumParams(1);
             testCaseName = currentToken.params[1];
-            testFwdOnly = testGroup->testFwdOnly;
             break;
         }
         case TokenType::DEFINE_STATEMENT_BLOCK: {
@@ -476,18 +470,10 @@ void TestParser::parseBody() {
             }
             break;
         }
-        case TokenType::TEST_FWD_ONLY_REL: {
-            testFwdOnly = true;
-            break;
-        }
         case TokenType::EMPTY: {
             break;
         }
         default: {
-            if (TestHelper::getSystemEnv("DEFAULT_FWD_REL_STORAGE") == "1" && !testFwdOnly &&
-                !testCaseName.starts_with("DISABLED_")) {
-                testCaseName = "DISABLED_" + testCaseName;
-            }
             // if its not a special case, then it has to be a statement
             TestStatement* statement = addNewStatement(testCaseName);
             testGroup->testCasesConnNames[testCaseName].insert(TestHelper::DEFAULT_CONN_NAME);

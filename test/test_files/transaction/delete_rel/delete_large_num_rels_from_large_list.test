@@ -1,5 +1,4 @@
 -DATASET CSV rel-update-tests
--TEST_FWD_ONLY_REL
 --
 
 -CASE deleteLargeNumRelsFromLargeListCommitNormalExecution
@@ -8,7 +7,7 @@
 -STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID >= 10 delete e;
 ---- ok
 -STATEMENT COMMIT
----- ok
+---- ok 
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 return e.length
@@ -36,7 +35,7 @@
 -STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID >= 10 delete e;
 ---- ok
 -STATEMENT COMMIT
----- ok
+---- ok 
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok
@@ -61,7 +60,7 @@
 -STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID >= 10 delete e;
 ---- ok
 -STATEMENT Rollback
----- ok
+---- ok 
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID = 0 RETURN e.length
@@ -81,7 +80,7 @@
 -STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID >= 10 delete e;
 ---- ok
 -STATEMENT ROLLBACK
----- ok
+---- ok 
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok

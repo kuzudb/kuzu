@@ -1,5 +1,4 @@
 -DATASET CSV rel-update-tests
--TEST_FWD_ONLY_REL
 --
 
 -CASE DeleteRelsTwoHopCommitNormalExecution
@@ -8,7 +7,7 @@
 -STATEMENT MATCH (p:person)-[e:knows]->(p1:person)-[:knows]->(p2:person) WHERE p.ID = 1 AND p2.ID = 5 DELETE e;
 ---- ok
 -STATEMENT COMMIT
----- ok
+---- ok 
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(p:person) WHERE a.ID = 1 AND p.ID < 10 RETURN e.length
@@ -35,7 +34,7 @@
 -STATEMENT MATCH (p:person)-[e:knows]->(p1:person)-[:knows]->(p2:person) WHERE p.ID = 1 AND p2.ID = 5 DELETE e;
 ---- ok
 -STATEMENT COMMIT
----- ok
+---- ok 
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok
@@ -59,7 +58,7 @@
 -STATEMENT MATCH (p:person)-[e:knows]->(p1:person)-[:knows]->(p2:person) WHERE p.ID = 1 AND p2.ID = 5 DELETE e;
 ---- ok
 -STATEMENT Rollback
----- ok
+---- ok 
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(p:person) WHERE a.ID = 1 AND p.ID < 10 RETURN e.length
@@ -88,7 +87,7 @@
 -STATEMENT MATCH (p:person)-[e:knows]->(p1:person)-[:knows]->(p2:person) WHERE p.ID = 1 AND p2.ID = 5 DELETE e;
 ---- ok
 -STATEMENT ROLLBACK
----- ok
+---- ok 
 -RELOADDB
 -STATEMENT BEGIN TRANSACTION
 ---- ok
