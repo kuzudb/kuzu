@@ -12,8 +12,7 @@ class HashAggregateSharedState final : public BaseAggregateSharedState {
 public:
     explicit HashAggregateSharedState(
         const std::vector<function::AggregateFunction>& aggregateFunctions)
-        : BaseAggregateSharedState{aggregateFunctions}, limitCounter{0},
-          limitNumber{common::INVALID_LIMIT} {}
+        : BaseAggregateSharedState{aggregateFunctions}, limitNumber{common::INVALID_LIMIT} {}
 
     void appendAggregateHashTable(std::unique_ptr<AggregateHashTable> aggregateHashTable);
 
@@ -23,21 +22,20 @@ public:
 
     std::pair<uint64_t, uint64_t> getNextRangeToRead() override;
 
-    inline uint8_t* getRow(uint64_t idx) { return globalAggregateHashTable->getEntry(idx); }
+    uint8_t* getRow(uint64_t idx) const { return globalAggregateHashTable->getEntry(idx); }
 
-    FactorizedTable* getFactorizedTable() { return globalAggregateHashTable->getFactorizedTable(); }
+    FactorizedTable* getFactorizedTable() const {
+        return globalAggregateHashTable->getFactorizedTable();
+    }
 
     uint64_t getCurrentOffset() const { return currentOffset; }
 
-    // return whether limitNumber is exceeded
-    bool increaseAndCheckLimitCount(uint64_t num);
-
     void setLimitNumber(uint64_t num) { limitNumber = num; }
+    uint64_t getLimitNumber() const { return limitNumber; }
 
 private:
     std::vector<std::unique_ptr<AggregateHashTable>> localAggregateHashTables;
     std::unique_ptr<AggregateHashTable> globalAggregateHashTable;
-    std::atomic_uint64_t limitCounter;
     uint64_t limitNumber;
 };
 
@@ -88,7 +86,7 @@ private:
           limitNum{other.limitNum} {}
 };
 
-class HashAggregate : public BaseAggregate {
+class HashAggregate final : public BaseAggregate {
 public:
     HashAggregate(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::shared_ptr<HashAggregateSharedState> sharedState, HashAggregateInfo hashInfo,
