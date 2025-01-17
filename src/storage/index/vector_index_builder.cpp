@@ -180,7 +180,7 @@ void VectorIndexBuilder::shrinkNeighbors(NodeTableDistanceComputer<float>* dc,
 
 void VectorIndexBuilder::acornShrinkNeighbors(std::priority_queue<NodeDistCloser> &results, int maxSize,
                                               const std::function<vector_id_t*(vector_id_t, size_t&, size_t&)>& getNeighbours) {
-    bool isUpperLayer = maxSize == header->getConfig().maxNbrs * header->getConfig().gamma;
+    bool isUpperLayer = maxSize == (header->getConfig().maxNbrs * header->getConfig().gamma);
     std::priority_queue<NodeDistFarther> input;
     std::vector<NodeDistFarther> output;
     while (!results.empty()) {
