@@ -53,7 +53,6 @@ public class InternalID {
 
     /**
      * Returns a string representation of this InternalID.
-     * The format is "InternalID{tableId=<tableId>, offset=<offset>}".
      *
      * @return A string representation of this InternalID.
      */
