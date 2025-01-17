@@ -68,11 +68,19 @@ void VectorIndexBuilder::searchNNOnUpperLevel(NodeTableDistanceComputer<float>* 
         vector_id_t prev_nearest = nearest;
         size_t begin, end;
         auto neighbors = partitionHeader->getNeighbors(nearest, begin, end);
+        int numIter = 0;
         for (size_t i = begin; i < end; i++) {
             vector_id_t neighbor = neighbors[i];
             if (neighbor == INVALID_VECTOR_ID) {
                 break;
             }
+
+            // limit the number of iterations
+            numIter++;
+            if (numIter >= header->getConfig().maxNbrs) {
+                break;
+            }
+
             double dist;
             dc->computeDistance(partitionHeader->getActualId(neighbor), &dist);
             if (dist < nearestDist) {
