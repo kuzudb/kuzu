@@ -56,7 +56,7 @@ namespace kuzu {
                                                     StorageConstants::NODE_GROUP_SIZE) - 1);
             auto numVectors = endOffsetNodeTable - sharedState->startOffsetNodeTable + 1;
             sharedState->headerPerPartition->initSampleGraph(numVectors);
-            auto maxNbrsAtLowerLevel = sharedState->header->getConfig().maxNbrsAtLowerLevel;
+            auto maxNbrsAtLowerLevel = sharedState->header->getConfig().maxNbrs * sharedState->header->getConfig().gamma * 2;
             sharedState->numVectors = numVectors;
 //            sharedState->tempStorage =
 //                    std::make_unique<VectorTempStorage>(sharedState->header->getDim(), numVectors);

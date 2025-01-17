@@ -16,8 +16,9 @@ enum DistanceFunc {
 };
 
 struct VectorIndexConfig {
-    constexpr static const char* MAX_NBRS_AT_UPPER_LEVEL = "MAXNBRSATUPPERLEVEL";
-    constexpr static const char* MAX_NBRS_AT_LOWER_LEVEL = "MAXNBRSATLOWERLEVEL";
+    constexpr static const char* MAX_NBRS = "MAXNBRS";
+    constexpr static const char* GAMMA = "GAMMA";
+    constexpr static const char* MAX_NBRS_BETA = "MAXNBRSBETA";
     constexpr static const char* SAMPLING_PROBABILITY = "SAMPLINGPROBABILITY";
     constexpr static const char* EF_CONSTRUCTION = "EFCONSTRUCTION";
     constexpr static const char* EF_SEARCH = "EFSEARCH";
@@ -26,11 +27,14 @@ struct VectorIndexConfig {
     constexpr static const char* SQ_ENABLED = "SQENABLED";
     constexpr static const char* DISTANCE_FUNC = "DISTANCEFUNC";
 
-    // The maximum number of neighbors to keep for each node at the upper level
-    int maxNbrsAtUpperLevel = 64;
+    // The maximum number of neighbors to keep for each node
+    int maxNbrs = 32;
 
-    // The maximum number of neighbors to keep for each node at the lower level
-    int maxNbrsAtLowerLevel = 128;
+    // Gamma parameter for the Acorn algorithm
+    int gamma = 1;
+
+    // The maximum number of neighbors to keep for each node for acorn beta
+    int maxNbrsBeta = 64;
 
     // Sampling probability for the upper level
     float samplingProbability = 0.05;
@@ -59,10 +63,12 @@ struct VectorIndexConfig {
         const std::unordered_map<std::string, common::Value>& options) {
         VectorIndexConfig config;
         for (const auto& [key, value] : options) {
-            if (key == MAX_NBRS_AT_UPPER_LEVEL) {
-                config.maxNbrsAtUpperLevel = value.getValue<int64_t>();
-            } else if (key == MAX_NBRS_AT_LOWER_LEVEL) {
-                config.maxNbrsAtLowerLevel = value.getValue<int64_t>();
+            if (key == MAX_NBRS) {
+                config.maxNbrs = value.getValue<int64_t>();
+            } else if (key == GAMMA) {
+                config.gamma = value.getValue<int64_t>();
+            } else if (key == MAX_NBRS_BETA) {
+                config.maxNbrsBeta = value.getValue<int64_t>();
             } else if (key == SAMPLING_PROBABILITY) {
                 config.samplingProbability = value.getValue<double>();
                 KU_ASSERT_MSG(config.samplingProbability >= 0.0 &&
@@ -97,8 +103,9 @@ struct VectorIndexConfig {
     }
 
     void serialize(Serializer& serializer) const {
-        serializer.serializeValue(maxNbrsAtUpperLevel);
-        serializer.serializeValue(maxNbrsAtLowerLevel);
+        serializer.serializeValue(maxNbrs);
+        serializer.serializeValue(gamma);
+        serializer.serializeValue(maxNbrsBeta);
         serializer.serializeValue(samplingProbability);
         serializer.serializeValue(efConstruction);
         serializer.serializeValue(efSearch);
@@ -110,8 +117,9 @@ struct VectorIndexConfig {
 
     static VectorIndexConfig deserialize(Deserializer& deserializer) {
         VectorIndexConfig config;
-        deserializer.deserializeValue(config.maxNbrsAtUpperLevel);
-        deserializer.deserializeValue(config.maxNbrsAtLowerLevel);
+        deserializer.deserializeValue(config.maxNbrs);
+        deserializer.deserializeValue(config.gamma);
+        deserializer.deserializeValue(config.maxNbrsBeta);
         deserializer.deserializeValue(config.samplingProbability);
         deserializer.deserializeValue(config.efConstruction);
         deserializer.deserializeValue(config.efSearch);

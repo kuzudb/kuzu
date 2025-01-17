@@ -175,7 +175,7 @@ namespace kuzu {
                         startNodeGroupId,
                         endNodeGroupId,
                         csrRelTableId,
-                        config.maxNbrsAtUpperLevel,
+                        config.maxNbrs * config.gamma,
                         config.samplingProbability));
                 return partitionId;
             }

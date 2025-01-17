@@ -178,6 +178,69 @@ void VectorIndexBuilder::shrinkNeighbors(NodeTableDistanceComputer<float>* dc,
     }
 }
 
+void VectorIndexBuilder::acornShrinkNeighbors(std::priority_queue<NodeDistCloser> &results, int maxSize,
+                                              const std::function<vector_id_t*(vector_id_t, size_t&, size_t&)>& getNeighbours) {
+    bool isUpperLayer = maxSize == header->getConfig().maxNbrs * header->getConfig().gamma;
+    std::priority_queue<NodeDistFarther> input;
+    std::vector<NodeDistFarther> output;
+    while (!results.empty()) {
+        input.emplace(results.top().id, results.top().dist);
+        results.pop();
+    }
+
+    // if we are in the upper layer, we need to add the neighbors of the neighbors
+    if (isUpperLayer) {
+        while (!input.empty()) {
+            results.emplace(input.top().id, input.top().dist);
+            input.pop();
+            if (results.size() >= maxSize) {
+                break;
+            }
+        }
+    }
+
+    std::unordered_set<vector_id_t> neigh_of_neigh;
+    int node_num = 0;
+
+    while (!input.empty()) {
+        node_num = node_num + 1;
+        NodeDistFarther v1 = input.top();
+        input.pop();
+        bool good = true;
+
+        if (node_num > header->getConfig().maxNbrsBeta  && neigh_of_neigh.count(v1.id) > 0) {
+            good = false;
+        }
+
+        if (good) {
+            output.push_back(v1);
+            if (output.size() >= maxSize) {
+                return;
+            }
+
+            // update neigh of neigh set
+            neigh_of_neigh.insert(v1.id);
+            if (node_num > header->getConfig().maxNbrsBeta) {
+                size_t begin, end;
+                auto neighbors = getNeighbours(v1.id, begin, end);
+                for (size_t j = begin; j < end; j++) {
+                    if (neighbors[j] < 0) // mod
+                        break;
+                    neigh_of_neigh.insert(neighbors[j]); // mod
+                }
+            }
+
+            // break if neigh_of_neigh set is sufficiently large
+            if (neigh_of_neigh.size() >= maxSize) {
+                break;
+            }
+        }
+    }
+    for (auto& node : output) {
+        results.emplace(node.id, node.dist);
+    }
+}
+
 void VectorIndexBuilder::makeConnection(NodeTableDistanceComputer<float>* dc, vector_id_t src, vector_id_t dest,
     double distSrcDest, int maxNbrs,
     const std::function<vector_id_t*(vector_id_t, size_t&, size_t&)>& getNeighbours,
@@ -210,7 +273,7 @@ void VectorIndexBuilder::makeConnection(NodeTableDistanceComputer<float>* dc, ve
         dc->computeDistance(getActualId(src), getActualId(neighbor), &distSrcNbr);
         results.emplace(neighbor, distSrcNbr);
     }
-    shrinkNeighbors(dc, results, maxNbrs, getActualId);
+    acornShrinkNeighbors(results, maxNbrs, getNeighbours);
     size_t i = begin;
     while (!results.empty()) {
         neighbors[i++] = results.top().id;
@@ -276,7 +339,7 @@ void VectorIndexBuilder::insertNodeInUpperLayer(const float* vector, vector_id_t
             entrypointDist = 0;
         }
         insertNode(
-            dc, id, entrypoint, entrypointDist, header->getConfig().maxNbrsAtUpperLevel,
+            dc, id, entrypoint, entrypointDist, header->getConfig().maxNbrs * header->getConfig().gamma,
             header->getConfig().efConstruction, visited, backNbrs,
             [&](vector_id_t _id, size_t& begin, size_t& end) {
                 return partitionHeader->getNeighbors(_id, begin, end);
@@ -288,7 +351,7 @@ void VectorIndexBuilder::insertNodeInUpperLayer(const float* vector, vector_id_t
         {
             std::lock_guard<std::mutex> lock(locks[partitionHeader->getActualId(backNbr.id)]);
             makeConnection(
-                dc, backNbr.id, id, backNbr.dist, header->getConfig().maxNbrsAtUpperLevel,
+                dc, backNbr.id, id, backNbr.dist, header->getConfig().maxNbrs * header->getConfig().gamma,
                 [&](vector_id_t _id, size_t& begin, size_t& end) {
                     return partitionHeader->getNeighbors(_id, begin, end);
                 },
@@ -307,7 +370,7 @@ void VectorIndexBuilder::insertNodeInLowerLayer(const float* vector, vector_id_t
         double entrypointDist;
         findEntrypointUsingUpperLayer(dc, entrypoint, &entrypointDist);
         insertNode(
-            dc, id, entrypoint, entrypointDist, header->getConfig().maxNbrsAtLowerLevel,
+            dc, id, entrypoint, entrypointDist, header->getConfig().maxNbrs * header->getConfig().gamma * 2,
             header->getConfig().efConstruction, visited, backNbrs,
             [&](vector_id_t _id, size_t& begin, size_t& end) {
                 return graphStorage->getNeighbors(_id, begin, end);
@@ -319,7 +382,7 @@ void VectorIndexBuilder::insertNodeInLowerLayer(const float* vector, vector_id_t
         {
             std::lock_guard<std::mutex> lock(locks[backNbr.id]);
             makeConnection(
-                dc, backNbr.id, id, backNbr.dist, header->getConfig().maxNbrsAtLowerLevel,
+                dc, backNbr.id, id, backNbr.dist, header->getConfig().maxNbrs * header->getConfig().gamma * 2,
                 [&](vector_id_t _id, size_t& begin, size_t& end) {
                     return graphStorage->getNeighbors(_id, begin, end);
                 },

@@ -285,6 +285,9 @@ private:
     void shrinkNeighbors(NodeTableDistanceComputer<float>* dc, std::priority_queue<NodeDistCloser>& results,
         int maxSize, const std::function<vector_id_t(vector_id_t)>& getActualId);
 
+    void acornShrinkNeighbors(std::priority_queue<NodeDistCloser> &results, int maxSize,
+                              const std::function<vector_id_t*(vector_id_t, size_t&, size_t&)>& getNeighbours);
+
     void makeConnection(NodeTableDistanceComputer<float>* dc, vector_id_t src, vector_id_t dest, double distSrcDest,
         int maxNbrs,
         const std::function<vector_id_t*(vector_id_t, size_t&, size_t&)>& getNeighbours,
