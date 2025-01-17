@@ -292,7 +292,7 @@ void VectorIndexBuilder::insertNode(NodeTableDistanceComputer<float>* dc, vector
     std::priority_queue<NodeDistCloser> nearestNbrs;
     searchANN(dc, nearestNbrs, entrypoint, entrypointDist, efConstruction, visited, getNeighbours,
         getActualId);
-    shrinkNeighbors(dc, nearestNbrs, maxNbrs, getActualId);
+    acornShrinkNeighbors(nearestNbrs, maxNbrs, getNeighbours);
 
     backNbrs.reserve(nearestNbrs.size());
     while (!nearestNbrs.empty()) {
