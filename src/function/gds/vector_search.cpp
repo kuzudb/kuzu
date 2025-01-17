@@ -493,6 +493,7 @@ namespace kuzu {
                     }
                     // Second hop neighbours
                     if (((size >= maxNbrsBeta) && keep_expanding) || gamma == 1) {
+                        printf("expanding second hop\n");
                         stats.listNbrsCallTime->start();
                         auto secondHopNbrs = graph->scanFwdRandom(neighbor, state);
                         stats.listNbrsCallTime->stop();
