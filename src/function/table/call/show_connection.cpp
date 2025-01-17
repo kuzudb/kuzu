@@ -37,8 +37,6 @@ static void outputRelTableConnection(const DataChunk& outputDataChunk, uint64_t 
     // Get src and dst name
     const auto srcTableID = relTableEntry->getSrcTableID();
     const auto dstTableID = relTableEntry->getDstTableID();
-    const auto srcTableName = catalog->getTableName(context->getTransaction(), srcTableID);
-    const auto dstTableName = catalog->getTableName(context->getTransaction(), dstTableID);
     // Get src and dst primary key
     const auto srcTableEntry = catalog->getTableCatalogEntry(context->getTransaction(), srcTableID);
     const auto dstTableEntry = catalog->getTableCatalogEntry(context->getTransaction(), dstTableID);
@@ -47,8 +45,8 @@ static void outputRelTableConnection(const DataChunk& outputDataChunk, uint64_t 
     const auto dstTablePrimaryKey =
         dstTableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName();
     // Write result to dataChunk
-    outputDataChunk.getValueVectorMutable(0).setValue(outputPos, srcTableName);
-    outputDataChunk.getValueVectorMutable(1).setValue(outputPos, dstTableName);
+    outputDataChunk.getValueVectorMutable(0).setValue(outputPos, srcTableEntry->getName());
+    outputDataChunk.getValueVectorMutable(1).setValue(outputPos, dstTableEntry->getName());
     outputDataChunk.getValueVectorMutable(2).setValue(outputPos, srcTablePrimaryKey);
     outputDataChunk.getValueVectorMutable(3).setValue(outputPos, dstTablePrimaryKey);
 }
@@ -90,8 +88,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     std::vector<LogicalType> columnTypes;
     const auto tableName = input->getLiteralVal<std::string>(0);
     const auto catalog = context->getCatalog();
-    const auto tableID = catalog->getTableID(context->getTransaction(), tableName);
-    auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), tableID);
+    auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), tableName);
     const auto tableType = tableEntry->getTableType();
     if (tableType != TableType::REL && tableType != TableType::REL_GROUP) {
         throw BinderException{"Show connection can only be called on a rel table!"};

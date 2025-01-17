@@ -1,6 +1,6 @@
 #include "transaction/transaction.h"
 
-#include "catalog/catalog_entry/table_catalog_entry.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/runtime.h"
 #include "main/client_context.h"
 #include "main/db_config.h"
@@ -23,9 +23,10 @@ Transaction::Transaction(main::ClientContext& clientContext, TransactionType tra
     undoBuffer = std::make_unique<storage::UndoBuffer>(this);
     currentTS = common::Timestamp::getCurrentTimestamp().value;
     // Note that the use of `this` should be safe here as there is no inheritance.
-    for (auto tableID : clientContext.getCatalog()->getNodeTableIDs(this)) {
-        minUncommittedNodeOffsets[tableID] =
-            clientContext.getStorageManager()->getTable(tableID)->getNumTotalRows(this);
+    for (auto entry : clientContext.getCatalog()->getNodeTableEntries(this)) {
+        auto id = entry->getTableID();
+        minUncommittedNodeOffsets[id] =
+            clientContext.getStorageManager()->getTable(id)->getNumTotalRows(this);
     }
 }
 

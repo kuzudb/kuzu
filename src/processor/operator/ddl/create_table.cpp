@@ -10,20 +10,21 @@ namespace kuzu {
 namespace processor {
 
 void CreateTable::executeDDLInternal(ExecutionContext* context) {
-    auto catalog = context->clientContext->getCatalog();
+    auto clientContext = context->clientContext;
+    auto catalog = clientContext->getCatalog();
     switch (info.onConflict) {
     case common::ConflictAction::ON_CONFLICT_DO_NOTHING: {
-        if (catalog->containsTable(context->clientContext->getTransaction(), info.tableName)) {
+        if (catalog->containsTable(clientContext->getTransaction(), info.tableName)) {
             return;
         }
     }
     default:
         break;
     }
-    auto newTableID = catalog->createTableSchema(context->clientContext->getTransaction(), info);
+    auto newTableID = catalog->createTableEntry(clientContext->getTransaction(), info);
     tableCreated = true;
-    auto storageManager = context->clientContext->getStorageManager();
-    storageManager->createTable(newTableID, catalog, context->clientContext);
+    auto storageManager = clientContext->getStorageManager();
+    storageManager->createTable(newTableID, catalog, clientContext);
 }
 
 std::string CreateTable::getOutputMsg() {

@@ -113,10 +113,9 @@ std::string getCopyCypher(const Catalog* catalog, Transaction* transaction,
 
 std::string getIndexCypher(ClientContext* clientContext) {
     stringstream ss;
-    for (auto [_, entry] :
-        clientContext->getCatalog()->getIndexes()->getEntries(clientContext->getTransaction())) {
-        auto& index = entry->constCast<IndexCatalogEntry>();
-        ss << index.toCypher(clientContext) << std::endl;
+    for (auto entry :
+        clientContext->getCatalog()->getIndexEntries(clientContext->getTransaction())) {
+        ss << entry->toCypher(clientContext) << std::endl;
     }
     return ss.str();
 }

@@ -9,6 +9,7 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
 #include "common/string_format.h"
@@ -84,7 +85,7 @@ std::vector<PropertyDefinition> Binder::bindPropertyDefinitions(
         if (type.getLogicalTypeID() == LogicalTypeID::SERIAL) {
             validateSerialNoDefault(*boundExpr);
             expr = ParsedExpressionUtils::getSerialDefaultExpr(
-                Catalog::genSerialName(tableName, parsedDefinition.getName()));
+                SequenceCatalogEntry::genSerialName(tableName, parsedDefinition.getName()));
         }
         auto columnDefinition = ColumnDefinition(parsedDefinition.getName(), std::move(type));
         definitions.emplace_back(std::move(columnDefinition), std::move(expr));
@@ -496,7 +497,7 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
         validateSerialNoDefault(*boundDefault);
         defaultValue = ParsedExpressionUtils::getSerialDefaultExpr(
-            Catalog::genSerialName(tableName, propertyName));
+            SequenceCatalogEntry::genSerialName(tableName, propertyName));
         boundDefault = expressionBinder.implicitCastIfNecessary(
             expressionBinder.bindExpression(*defaultValue), dataType);
     }

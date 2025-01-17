@@ -73,39 +73,6 @@ bool Catalog::containsTable(const Transaction* transaction, const std::string& t
     return contains;
 }
 
-table_id_t Catalog::getTableID(const Transaction* transaction, const std::string& tableName,
-    bool useInternal) const {
-    return getTableCatalogEntry(transaction, tableName, useInternal)->getTableID();
-}
-
-std::vector<table_id_t> Catalog::getNodeTableIDs(const Transaction* transaction,
-    bool useInternal) const {
-    std::vector<table_id_t> tableIDs;
-    tables->iterateEntriesOfType(transaction, CatalogEntryType::NODE_TABLE_ENTRY,
-        [&](const CatalogEntry* entry) { tableIDs.push_back(entry->getOID()); });
-    if (useInternal) {
-        internalTables->iterateEntriesOfType(transaction, CatalogEntryType::NODE_TABLE_ENTRY,
-            [&](const CatalogEntry* entry) { tableIDs.push_back(entry->getOID()); });
-    }
-    return tableIDs;
-}
-
-std::vector<table_id_t> Catalog::getRelTableIDs(const Transaction* transaction,
-    bool useInternal) const {
-    std::vector<table_id_t> tableIDs;
-    tables->iterateEntriesOfType(transaction, CatalogEntryType::REL_TABLE_ENTRY,
-        [&](const CatalogEntry* entry) { tableIDs.push_back(entry->getOID()); });
-    if (useInternal) {
-        internalTables->iterateEntriesOfType(transaction, CatalogEntryType::REL_TABLE_ENTRY,
-            [&](const CatalogEntry* entry) { tableIDs.push_back(entry->getOID()); });
-    }
-    return tableIDs;
-}
-
-std::string Catalog::getTableName(const Transaction* transaction, table_id_t tableID) const {
-    return getTableCatalogEntry(transaction, tableID)->getName();
-}
-
 TableCatalogEntry* Catalog::getTableCatalogEntry(const Transaction* transaction,
     table_id_t tableID) const {
     auto result = tables->getEntryOfOID(transaction, tableID);
@@ -163,15 +130,6 @@ std::vector<TableCatalogEntry*> Catalog::getTableEntries(const Transaction* tran
     return result;
 }
 
-std::vector<TableCatalogEntry*> Catalog::getTableEntries(const Transaction* transaction,
-    const table_id_vector_t& tableIDs) const {
-    std::vector<TableCatalogEntry*> result;
-    for (const auto tableID : tableIDs) {
-        result.push_back(getTableCatalogEntry(transaction, tableID));
-    }
-    return result;
-}
-
 bool Catalog::tableInRelGroup(Transaction* transaction, table_id_t tableID) const {
     for (const auto& entry : getRelTableGroupEntries(transaction)) {
         if (entry->isParent(tableID)) {
@@ -181,29 +139,7 @@ bool Catalog::tableInRelGroup(Transaction* transaction, table_id_t tableID) cons
     return false;
 }
 
-table_id_set_t Catalog::getFwdRelTableIDs(Transaction* transaction, table_id_t nodeTableID) const {
-    KU_ASSERT(getTableCatalogEntry(transaction, nodeTableID)->getTableType() == TableType::NODE);
-    table_id_set_t result;
-    for (const auto& relEntry : getRelTableEntries(transaction)) {
-        if (relEntry->getSrcTableID() == nodeTableID) {
-            result.insert(relEntry->getTableID());
-        }
-    }
-    return result;
-}
-
-table_id_set_t Catalog::getBwdRelTableIDs(Transaction* transaction, table_id_t nodeTableID) const {
-    KU_ASSERT(getTableCatalogEntry(transaction, nodeTableID)->getTableType() == TableType::NODE);
-    table_id_set_t result;
-    for (const auto& relEntry : getRelTableEntries(transaction)) {
-        if (relEntry->getDstTableID() == nodeTableID) {
-            result.insert(relEntry->getTableID());
-        }
-    }
-    return result;
-}
-
-table_id_t Catalog::createTableSchema(Transaction* transaction, const BoundCreateTableInfo& info) {
+table_id_t Catalog::createTableEntry(Transaction* transaction, const BoundCreateTableInfo& info) {
     std::unique_ptr<CatalogEntry> entry;
     switch (info.type) {
     case TableType::NODE: {
@@ -221,7 +157,8 @@ table_id_t Catalog::createTableSchema(Transaction* transaction, const BoundCreat
     const auto tableEntry = entry->constPtrCast<TableCatalogEntry>();
     for (auto& definition : tableEntry->getProperties()) {
         if (definition.getType().getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            const auto seqName = genSerialName(tableEntry->getName(), definition.getName());
+            const auto seqName =
+                SequenceCatalogEntry::genSerialName(tableEntry->getName(), definition.getName());
             auto seqInfo =
                 BoundCreateSequenceInfo(seqName, 0, 1, 0, std::numeric_limits<int64_t>::max(),
                     false, ConflictAction::ON_CONFLICT_THROW, info.isInternal);
@@ -237,7 +174,7 @@ table_id_t Catalog::createTableSchema(Transaction* transaction, const BoundCreat
 }
 
 void Catalog::dropTableEntry(Transaction* transaction, const std::string& name) {
-    const auto tableID = getTableID(transaction, name);
+    auto tableID = getTableCatalogEntry(transaction, name)->getTableID();
     dropAllIndexes(transaction, tableID);
     dropTableEntry(transaction, tableID);
 }
@@ -257,7 +194,8 @@ void Catalog::dropTableEntry(Transaction* transaction, table_id_t tableID) {
     }
     for (auto& definition : tableEntry->getProperties()) {
         if (definition.getType().getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            auto seqName = genSerialName(tableEntry->getName(), definition.getName());
+            auto seqName =
+                SequenceCatalogEntry::genSerialName(tableEntry->getName(), definition.getName());
             dropSequence(transaction, seqName);
         }
     }
@@ -287,12 +225,11 @@ void Catalog::alterTableEntry(Transaction* transaction, const BoundAlterInfo& in
     tables->alterEntry(transaction, info);
 }
 
-bool Catalog::containsSequence(const Transaction* transaction,
-    const std::string& sequenceName) const {
-    return sequences->containsEntry(transaction, sequenceName);
+bool Catalog::containsSequence(const Transaction* transaction, const std::string& name) const {
+    return sequences->containsEntry(transaction, name);
 }
 
-sequence_id_t Catalog::getSequenceID(const Transaction* transaction,
+SequenceCatalogEntry* Catalog::getSequenceEntry(const Transaction* transaction,
     const std::string& sequenceName, bool useInternalSeq) const {
     CatalogEntry* entry = nullptr;
     if (!sequences->containsEntry(transaction, sequenceName) && useInternalSeq) {
@@ -301,10 +238,10 @@ sequence_id_t Catalog::getSequenceID(const Transaction* transaction,
         entry = sequences->getEntry(transaction, sequenceName);
     }
     KU_ASSERT(entry);
-    return entry->getOID();
+    return entry->ptrCast<SequenceCatalogEntry>();
 }
 
-SequenceCatalogEntry* Catalog::getSequenceCatalogEntry(const Transaction* transaction,
+SequenceCatalogEntry* Catalog::getSequenceEntry(const Transaction* transaction,
     sequence_id_t sequenceID) const {
     auto entry = internalSequences->getEntryOfOID(transaction, sequenceID);
     if (entry == nullptr) {
@@ -335,20 +272,16 @@ sequence_id_t Catalog::createSequence(Transaction* transaction,
 }
 
 void Catalog::dropSequence(Transaction* transaction, const std::string& name) {
-    const auto sequenceID = getSequenceID(transaction, name);
-    dropSequence(transaction, sequenceID);
+    const auto entry = getSequenceEntry(transaction, name);
+    dropSequence(transaction, entry->getOID());
 }
 
 void Catalog::dropSequence(Transaction* transaction, sequence_id_t sequenceID) {
-    const auto sequenceEntry = getSequenceCatalogEntry(transaction, sequenceID);
+    const auto sequenceEntry = getSequenceEntry(transaction, sequenceID);
     CatalogSet* set = nullptr;
     set = sequences->containsEntry(transaction, sequenceEntry->getName()) ? sequences.get() :
                                                                             internalSequences.get();
     set->dropEntry(transaction, sequenceEntry->getName(), sequenceEntry->getOID());
-}
-
-std::string Catalog::genSerialName(const std::string& tableName, const std::string& propertyName) {
-    return std::string(tableName).append("_").append(propertyName).append("_").append("serial");
 }
 
 void Catalog::createType(Transaction* transaction, std::string name, LogicalType type) {
@@ -381,13 +314,16 @@ void Catalog::createIndex(Transaction* transaction,
 
 IndexCatalogEntry* Catalog::getIndex(const Transaction* transaction, table_id_t tableID,
     const std::string& indexName) const {
-    return indexes
-        ->getEntry(transaction, IndexCatalogEntry::getInternalIndexName(tableID, indexName))
-        ->ptrCast<IndexCatalogEntry>();
+    auto internalName = IndexCatalogEntry::getInternalIndexName(tableID, indexName);
+    return indexes->getEntry(transaction, internalName)->ptrCast<IndexCatalogEntry>();
 }
 
-CatalogSet* Catalog::getIndexes() const {
-    return indexes.get();
+std::vector<IndexCatalogEntry*> Catalog::getIndexEntries(const Transaction* transaction) const {
+    std::vector<IndexCatalogEntry*> result;
+    for (auto& [_, entry] : indexes->getEntries(transaction)) {
+        result.push_back(entry->ptrCast<IndexCatalogEntry>());
+    }
+    return result;
 }
 
 bool Catalog::containsIndex(const Transaction* transaction, table_id_t tableID,
@@ -593,7 +529,7 @@ std::unique_ptr<CatalogEntry> Catalog::createRelTableGroupEntry(Transaction* tra
     relTableIDs.reserve(extraInfo->infos.size());
     for (auto& childInfo : extraInfo->infos) {
         childInfo.hasParent = true;
-        relTableIDs.push_back(createTableSchema(transaction, childInfo));
+        relTableIDs.push_back(createTableEntry(transaction, childInfo));
     }
     return std::make_unique<RelGroupCatalogEntry>(tables.get(), info.tableName,
         std::move(relTableIDs));

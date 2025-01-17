@@ -2,6 +2,8 @@
 #include <vector>
 
 #include "catalog/catalog.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/types/date_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
@@ -26,10 +28,15 @@ public:
         context = getClientContext(*conn);
         catalog = context->getCatalog();
         auto transaction = context->getTransaction();
-        auto nodeTableIDs = catalog->getNodeTableIDs(transaction);
-        auto relTableIDs = catalog->getRelTableIDs(transaction);
-        auto entry = graph::GraphEntry(catalog->getTableEntries(transaction, nodeTableIDs),
-            catalog->getTableEntries(transaction, relTableIDs));
+        std::vector<catalog::TableCatalogEntry*> nodeEntries;
+        for (auto& entry : catalog->getNodeTableEntries(transaction)) {
+            nodeEntries.push_back(entry);
+        }
+        std::vector<catalog::TableCatalogEntry*> relEntries;
+        for (auto& entry : catalog->getRelTableEntries(transaction)) {
+            relEntries.push_back(entry);
+        }
+        auto entry = graph::GraphEntry(nodeEntries, relEntries);
         graph = std::make_unique<kuzu::graph::OnDiskGraph>(context, std::move(entry));
 
         fwdStorageOnly = (common::ExtendDirectionUtil::getDefaultExtendDirection() ==
@@ -51,7 +58,7 @@ class RelScanTestAmazon : public RelScanTest {
 
 // Test correctness of scan fwd
 TEST_F(RelScanTest, ScanFwd) {
-    auto tableID = catalog->getTableID(context->getTransaction(), "person");
+    auto tableID = catalog->getTableCatalogEntry(context->getTransaction(), "person")->getTableID();
     auto relEntry = catalog->getTableCatalogEntry(context->getTransaction(), "knows");
     auto scanState = graph->prepareRelScan(relEntry, "date");
 

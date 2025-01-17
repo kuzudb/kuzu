@@ -1,6 +1,7 @@
 #include "graph/on_disk_graph.h"
 
 #include "binder/expression/property_expression.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/assert.h"
 #include "common/cast.h"
 #include "common/constants.h"
@@ -129,12 +130,13 @@ OnDiskGraph::OnDiskGraph(ClientContext* context, GraphEntry entry)
     auto storage = context->getStorageManager();
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
-    for (auto& nodeEntry : graphEntry.nodeEntries) {
-        auto nodeTableID = nodeEntry->getTableID();
+    for (auto& entry : graphEntry.nodeEntries) {
+        auto& nodeEntry = entry->constCast<NodeTableCatalogEntry>();
+        auto nodeTableID = nodeEntry.getTableID();
         nodeIDToNodeTable.insert(
             {nodeTableID, storage->getTable(nodeTableID)->ptrCast<NodeTable>()});
         table_id_map_t<RelTable*> fwdRelTables;
-        for (auto& relTableID : catalog->getFwdRelTableIDs(transaction, nodeTableID)) {
+        for (auto& relTableID : nodeEntry.getFwdRelTableIDs(catalog, transaction)) {
             if (!graphEntry.hasRelEntry(relTableID)) {
                 continue;
             }
@@ -142,7 +144,7 @@ OnDiskGraph::OnDiskGraph(ClientContext* context, GraphEntry entry)
         }
         nodeTableIDToFwdRelTables.insert({nodeTableID, std::move(fwdRelTables)});
         table_id_map_t<RelTable*> bwdRelTables;
-        for (auto& relTableID : catalog->getBwdRelTableIDs(transaction, nodeTableID)) {
+        for (auto& relTableID : nodeEntry.getBwdRelTableIDs(catalog, transaction)) {
             if (!graphEntry.hasRelEntry(relTableID)) {
                 continue;
             }

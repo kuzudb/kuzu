@@ -24,8 +24,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     validateTableExist(tableName);
     // Bind to table schema.
     auto catalog = clientContext->getCatalog();
-    auto tableID = catalog->getTableID(clientContext->getTransaction(), tableName);
-    auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTransaction(), tableID);
+    auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTransaction(), tableName);
     switch (tableEntry->getTableType()) {
     case TableType::REL_GROUP: {
         throw BinderException(stringFormat("Cannot copy into {} table with type {}.", tableName,

@@ -1,6 +1,8 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 
 #include "binder/ddl/bound_create_table_info.h"
+#include "catalog/catalog.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_set.h"
 #include "common/serializer/deserializer.h"
 
@@ -8,6 +10,28 @@ using namespace kuzu::binder;
 
 namespace kuzu {
 namespace catalog {
+
+common::table_id_set_t NodeTableCatalogEntry::getFwdRelTableIDs(Catalog* catalog,
+    transaction::Transaction* transaction) const {
+    common::table_id_set_t result;
+    for (const auto& relEntry : catalog->getRelTableEntries(transaction)) {
+        if (relEntry->getSrcTableID() == getTableID()) {
+            result.insert(relEntry->getTableID());
+        }
+    }
+    return result;
+}
+
+common::table_id_set_t NodeTableCatalogEntry::getBwdRelTableIDs(Catalog* catalog,
+    transaction::Transaction* transaction) const {
+    common::table_id_set_t result;
+    for (const auto& relEntry : catalog->getRelTableEntries(transaction)) {
+        if (relEntry->getDstTableID() == getTableID()) {
+            result.insert(relEntry->getTableID());
+        }
+    }
+    return result;
+}
 
 void NodeTableCatalogEntry::serialize(common::Serializer& serializer) const {
     TableCatalogEntry::serialize(serializer);
