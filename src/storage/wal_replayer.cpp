@@ -126,11 +126,11 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) const {
 void WALReplayer::replayCreateTableEntryRecord(const WALRecord& walRecord) const {
     auto& createTableEntryRecord = walRecord.constCast<CreateTableEntryRecord>();
     KU_ASSERT(clientContext.getCatalog());
-    const auto tableID = clientContext.getCatalog()->createTableSchema(
+    auto catalog = clientContext.getCatalog();
+    const auto tableID = catalog->createTableEntry(
         clientContext.getTransaction(), createTableEntryRecord.boundCreateTableInfo);
     KU_ASSERT(clientContext.getStorageManager());
-    clientContext.getStorageManager()->createTable(tableID, clientContext.getCatalog(),
-        &clientContext);
+    clientContext.getStorageManager()->createTable(tableID, catalog, &clientContext);
 }
 
 void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) const {
@@ -362,7 +362,7 @@ void WALReplayer::replayCopyTableRecord(const WALRecord&) const {
 void WALReplayer::replayUpdateSequenceRecord(const WALRecord& walRecord) const {
     auto& sequenceEntryRecord = walRecord.constCast<UpdateSequenceRecord>();
     const auto sequenceID = sequenceEntryRecord.sequenceID;
-    const auto entry = clientContext.getCatalog()->getSequenceCatalogEntry(
+    const auto entry = clientContext.getCatalog()->getSequenceEntry(
         clientContext.getTransaction(), sequenceID);
     entry->nextKVal(clientContext.getTransaction(), sequenceEntryRecord.kCount);
 }

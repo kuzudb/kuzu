@@ -1,5 +1,6 @@
 #include "binder/expression/node_expression.h"
 #include "binder/expression/rel_expression.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "planner/operator/persistent/logical_delete.h"
 #include "processor/operator/persistent/delete.h"
 #include "processor/plan_mapper.h"
@@ -23,10 +24,11 @@ NodeTableDeleteInfo PlanMapper::getNodeTableDeleteInfo(const TableCatalogEntry& 
     auto table = storageManager->getTable(tableID)->ptrCast<NodeTable>();
     std::unordered_set<RelTable*> fwdRelTables;
     std::unordered_set<RelTable*> bwdRelTables;
-    for (auto id : catalog->getFwdRelTableIDs(transaction, tableID)) {
+    auto& nodeEntry = entry.constCast<NodeTableCatalogEntry>();
+    for (auto id : nodeEntry.getFwdRelTableIDs(catalog, transaction)) {
         fwdRelTables.insert(storageManager->getTable(id)->ptrCast<RelTable>());
     }
-    for (auto id : catalog->getBwdRelTableIDs(transaction, tableID)) {
+    for (auto id : nodeEntry.getBwdRelTableIDs(catalog, transaction)) {
         bwdRelTables.insert(storageManager->getTable(id)->ptrCast<RelTable>());
     }
     return NodeTableDeleteInfo(table, std::move(fwdRelTables), std::move(bwdRelTables), pkPos);

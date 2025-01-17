@@ -15,9 +15,7 @@ namespace kuzu {
 namespace fts_extension {
 
 static void initFTSEntries(const transaction::Transaction* transaction, catalog::Catalog& catalog) {
-    auto indexEntries = catalog.getIndexes()->getEntries(transaction);
-    for (auto& [_, entry] : indexEntries) {
-        auto indexEntry = entry->ptrCast<catalog::IndexCatalogEntry>();
+    for (auto& indexEntry : catalog.getIndexEntries(transaction)) {
         if (indexEntry->getIndexType() == FTSIndexCatalogEntry::TYPE_NAME) {
             indexEntry->setAuxInfo(FTSIndexAuxInfo::deserialize(indexEntry->getAuxBufferReader()));
         }
