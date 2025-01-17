@@ -1,6 +1,5 @@
 #include "binder/binder.h"
 #include "extension/extension.h"
-#include "extension/extension_manager.h"
 #include "function/table/simple_table_functions.h"
 
 using namespace kuzu::catalog;
@@ -10,7 +9,7 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace function {
 
-static std::unordered_map<std::string, std::string> OFFICIAL_EXTENSIONS = {
+inline static std::unordered_map<std::string, std::string> OFFICIAL_EXTENSIONS = {
     {"HTTPFS", "Adds support for reading and writing files over a HTTP(S)/S3 filesystem"},
     {"DELTA", "Adds support for reading from delta tables"},
     {"DUCKDB", "Adds support for reading from duckdb tables"},
