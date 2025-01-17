@@ -29,6 +29,8 @@ private:
     bool enableCompression;
     bool readOnly;
     uint64_t maxDBSize;
+    bool autoCheckpoint;
+    uint64_t checkpointThreshold;
     std::shared_ptr<Database> database;
 };
 

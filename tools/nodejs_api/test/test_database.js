@@ -67,6 +67,59 @@ describe("Database constructor", function () {
     assert.notExists(testDb._initPromise);
   });
 
+  it("should create a database with auto checkpoint configured", async function () {
+    const tmpDbPath = await new Promise((resolve, reject) => {
+      tmp.dir({ unsafeCleanup: true }, (err, path, _) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve(path);
+      });
+    });
+    const testDb = new kuzu.Database(tmpDbPath,
+      1 << 28 /* 256MB */,
+      true /* compression */,
+      false /* readOnly */,
+      1 << 30 /* 1GB */,
+      false /* autoCheckpoint */
+    );
+    const conn = new kuzu.Connection(testDb);
+    let res = await conn.query("CALL current_setting('auto_checkpoint') RETURN *");
+    assert.equal(res.getNumTuples(), 1);
+    const tuple = await res.getNext();
+    assert.equal(tuple["auto_checkpoint"], "False");
+    res.close();
+    conn.close();
+    testDb.close();
+  });
+
+  it("should create a database with checkpoint threshold configured", async function () {
+    const tmpDbPath = await new Promise((resolve, reject) => {
+      tmp.dir({ unsafeCleanup: true }, (err, path, _) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve(path);
+      });
+    });
+    const testDb = new kuzu.Database(tmpDbPath,
+      1 << 28 /* 256MB */,
+      true /* compression */,
+      false /* readOnly */,
+      1 << 30 /* 1GB */,
+      true /* autoCheckpoint */,
+      1234 /* checkpointThreshold */
+    );
+    const conn = new kuzu.Connection(testDb);
+    let res = await conn.query("CALL current_setting('checkpoint_threshold') RETURN *");
+    assert.equal(res.getNumTuples(), 1);
+    const tuple = await res.getNext();
+    assert.equal(tuple["checkpoint_threshold"], 1234);
+    res.close();
+    conn.close();
+    testDb.close();
+  });
+
   it("should create a database in read-only mode", async function () {
     const tmpDbPath = await new Promise((resolve, reject) => {
       tmp.dir({ unsafeCleanup: true }, (err, path, _) => {
