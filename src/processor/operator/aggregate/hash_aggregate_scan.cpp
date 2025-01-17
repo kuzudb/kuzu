@@ -28,7 +28,7 @@ bool HashAggregateScan::getNextTuplesInternal(ExecutionContext* /*context*/) {
         auto offset = sharedState->getFactorizedTable()->getTableSchema()->getColOffset(
             groupByKeyVectors.size());
         for (auto& vector : aggregateVectors) {
-            auto aggState = (AggregateState*)(entry + offset);
+            auto aggState = reinterpret_cast<AggregateState*>(entry + offset);
             writeAggregateResultToVector(*vector, pos, aggState);
             offset += aggState->getStateSize();
         }

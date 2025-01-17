@@ -536,7 +536,7 @@ void AggregateHashTable::fillHashSlot(hash_t hash, uint8_t* groupByKeysAndAggreg
 }
 
 void AggregateHashTable::addDataBlocksIfNecessary(uint64_t maxNumHashSlots) {
-    auto numHashSlotsPerBlock = (uint64_t)1 << numSlotsPerBlockLog2;
+    auto numHashSlotsPerBlock = static_cast<uint64_t>(1) << numSlotsPerBlockLog2;
     auto numHashSlotsBlocksNeeded =
         (maxNumHashSlots + numHashSlotsPerBlock - 1) / numHashSlotsPerBlock;
     while (hashSlotsBlocks.size() < numHashSlotsBlocksNeeded) {
@@ -546,8 +546,8 @@ void AggregateHashTable::addDataBlocksIfNecessary(uint64_t maxNumHashSlots) {
 
 void AggregateHashTable::resizeHashTableIfNecessary(uint32_t maxNumDistinctHashKeys) {
     if (factorizedTable->getNumTuples() + maxNumDistinctHashKeys > maxNumHashSlots ||
-        (double)factorizedTable->getNumTuples() + maxNumDistinctHashKeys >
-            (double)maxNumHashSlots / DEFAULT_HT_LOAD_FACTOR) {
+        static_cast<double>(factorizedTable->getNumTuples()) + maxNumDistinctHashKeys >
+            static_cast<double>(maxNumHashSlots) / DEFAULT_HT_LOAD_FACTOR) {
         resize(maxNumHashSlots * 2);
     }
 }
