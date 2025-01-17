@@ -3,10 +3,10 @@
 #include <cstdint>
 #include <string>
 
+#include "extension.h"
+
 namespace kuzu {
 namespace extension {
-
-enum class ExtensionSource : uint8_t { OFFICIAL, USER };
 
 class LoadedExtension {
 
@@ -15,6 +15,10 @@ public:
         : extensionName{std::move(extensionName)}, fullPath{std::move(fullPath)}, source{source} {}
 
     std::string getExtensionName() const { return extensionName; }
+
+    std::string getFullPath() const { return fullPath; }
+
+    ExtensionSource getSource() const { return source; }
 
     std::string toCypher();
 

@@ -152,5 +152,17 @@ struct DropProjectGraphFunction final : SimpleTableFunction {
     static function_set getFunctionSet();
 };
 
+struct ShowLoadedExtensionsFunction final : SimpleTableFunction {
+    static constexpr const char* name = "SHOW_LOADED_EXTENSIONS";
+
+    static function_set getFunctionSet();
+};
+
+struct ShowOfficialExtensionsFunction final : SimpleTableFunction {
+    static constexpr const char* name = "SHOW_OFFICIAL_EXTENSIONS";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu

@@ -59,6 +59,12 @@ struct ExtensionRepoInfo {
     std::string repoURL;
 };
 
+enum class ExtensionSource : uint8_t { OFFICIAL, USER };
+
+struct ExtensionSourceUtils {
+    static std::string toString(ExtensionSource source);
+};
+
 struct ExtensionUtils {
     static constexpr const char* EXTENSION_FILE_REPO = "http://extension.kuzudb.com/v{}/{}/{}/{}";
 

@@ -275,3 +275,19 @@ Binder exception: a.fName has type PROPERTY but LITERAL,PARAMETER was expected.
 -STATEMENT CALL bm_info() RETURN mem_limit
 ---- 1
 67108864
+
+-LOG ShowLoadedExtension
+-STATEMENT CALL SHOW_LOADED_EXTENSIONS() RETURN *
+---- 0
+
+-LOG ShowOfficialExtensions
+-STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() RETURN *
+---- 8
+DELTA|Adds support for reading from delta tables
+DUCKDB|Adds support for reading from duckdb tables
+FTS|Adds support for full-text search indexes
+HTTPFS|Adds support for reading and writing files over a HTTP(S)/S3 filesystem
+ICEBERG|Adds support for reading from iceberg tables
+JSON|Adds support for JSON operations
+POSTGRES|Adds support for reading from POSTGRES tables
+SQLITE|Adds support for reading from SQLITE tables

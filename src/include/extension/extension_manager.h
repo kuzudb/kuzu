@@ -24,6 +24,10 @@ public:
 
     std::vector<storage::StorageExtension*> getStorageExtensions();
 
+    KUZU_API const std::vector<LoadedExtension>& getLoadedExtensions() const {
+        return loadedExtensions;
+    }
+
 private:
     std::vector<LoadedExtension> loadedExtensions;
     std::unordered_map<std::string, main::ExtensionOption> extensionOptions;
