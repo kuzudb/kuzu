@@ -297,7 +297,7 @@ namespace kuzu {
             template<typename T>
             inline void searchNNOnUpperLevel(VectorIndexHeaderPerPartition *header, VectorIndexConfig* config,
                                              NodeTableDistanceComputer<T> *dc, vector_id_t &nearest,
-                                             double &nearestDist) {
+                                             double &nearestDist, VectorSearchStats &stats) {
                 int maxNbrs = config->maxNbrs;
                 while (true) {
                     vector_id_t prev_nearest = nearest;
@@ -317,7 +317,10 @@ namespace kuzu {
                         }
 
                         double dist;
+                        stats.distanceComputationTime->start();
                         dc->computeDistance(header->getActualId(neighbor), &dist);
+                        stats.distanceComputationTime->stop();
+                        stats.distCompMetric->increase(1);
                         if (dist < nearestDist) {
                             nearest = neighbor;
                             nearestDist = dist;
@@ -333,7 +336,7 @@ namespace kuzu {
             inline void filteredSearchNNOnUpperLevel(VectorIndexHeaderPerPartition *header, VectorIndexConfig* config,
                                                      NodeOffsetLevelSemiMask *filterMask,
                                                      NodeTableDistanceComputer<T> *dc, vector_id_t &nearest,
-                                                     double &nearestDist) {
+                                                     double &nearestDist, VectorSearchStats &stats) {
                 int maxNbrs = config->maxNbrs;
                 int gamma = config->gamma;
                 while (true) {
@@ -352,7 +355,10 @@ namespace kuzu {
                         if (isNeighborMasked) {
                             // Skip the node beyond the max number of neighbors
                             double dist;
+                            stats.distanceComputationTime->start();
                             dc->computeDistance(actualNeighbor, &dist);
+                            stats.distanceComputationTime->stop();
+                            stats.distCompMetric->increase(1);
                             if (dist < nearestDist) {
                                 nearest = neighbor;
                                 nearestDist = dist;
@@ -381,7 +387,10 @@ namespace kuzu {
                             auto isSecondHopNeighborMasked = filterMask->isMasked(actualSecondHopNeighbor);
                             if (isSecondHopNeighborMasked) {
                                 double dist;
+                                stats.distanceComputationTime->start();
                                 dc->computeDistance(actualSecondHopNeighbor, &dist);
+                                stats.distanceComputationTime->stop();
+                                stats.distCompMetric->increase(1);
                                 if (dist < nearestDist) {
                                     nearest = secondHopNeighbor;
                                     nearestDist = dist;
@@ -404,15 +413,15 @@ namespace kuzu {
             inline void findEntrypointUsingUpperLayer(VectorIndexHeaderPerPartition *header, VectorIndexConfig* config,
                                                       NodeOffsetLevelSemiMask *filterMask,
                                                       NodeTableDistanceComputer<T> *dc, vector_id_t &entrypoint,
-                                                      double *entrypointDist) {
+                                                      double *entrypointDist, VectorSearchStats &stats) {
                 uint8_t entrypointLevel;
                 header->getEntrypoint(entrypoint, entrypointLevel);
                 if (entrypointLevel == 1) {
                     dc->computeDistance(header->getActualId(entrypoint), entrypointDist);
                     if (filterMask->isEnabled()) {
-                        filteredSearchNNOnUpperLevel(header, config, filterMask, dc, entrypoint, *entrypointDist);
+                        filteredSearchNNOnUpperLevel(header, config, filterMask, dc, entrypoint, *entrypointDist, stats);
                     } else {
-                        searchNNOnUpperLevel(header, config, dc, entrypoint, *entrypointDist);
+                        searchNNOnUpperLevel(header, config, dc, entrypoint, *entrypointDist, stats);
                     }
                     entrypoint = header->getActualId(entrypoint);
                 } else {
@@ -593,7 +602,7 @@ namespace kuzu {
                 // Find closest entrypoint using the above layer!!
                 vector_id_t entrypoint;
                 double entrypointDist;
-                findEntrypointUsingUpperLayer(header, config, filterMask, dc, entrypoint, &entrypointDist);
+                findEntrypointUsingUpperLayer(header, config, filterMask, dc, entrypoint, &entrypointDist, stats);
 
                 if (filterMask->isEnabled()) {
                     auto selectivity = static_cast<double>(filterMask->getNumMaskedNodes()) / header->getNumVectors();
