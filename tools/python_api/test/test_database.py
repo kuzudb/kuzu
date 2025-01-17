@@ -117,3 +117,25 @@ def test_in_mem_database_no_db_path() -> None:
         conn.execute("CREATE (:person {name: 'Bob', age: 40});")
         with conn.execute("MATCH (p:person) RETURN p.*") as result:
             assert result.get_num_tuples() == 2
+
+
+def test_database_auto_checkpoint_config(tmp_path: Path) -> None:
+    with kuzu.Database(database_path=tmp_path, auto_checkpoint=False) as db:
+        assert not db.is_closed
+        assert db._database is not None
+
+        conn = kuzu.Connection(db)
+        with conn.execute("CALL current_setting('auto_checkpoint') RETURN *") as result:
+            assert result.get_num_tuples() == 1
+            assert result.get_next()[0] == "False"
+
+
+def test_database_checkpoint_threshold_config(tmp_path: Path) -> None:
+    with kuzu.Database(database_path=tmp_path, checkpoint_threshold=1234) as db:
+        assert not db.is_closed
+        assert db._database is not None
+
+        conn = kuzu.Connection(db)
+        with conn.execute("CALL current_setting('checkpoint_threshold') RETURN *") as result:
+            assert result.get_num_tuples() == 1
+            assert result.get_next()[0] == "1234"

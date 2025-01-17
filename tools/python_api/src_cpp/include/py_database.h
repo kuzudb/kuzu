@@ -18,7 +18,8 @@ public:
     static uint64_t getStorageVersion();
 
     explicit PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize,
-        uint64_t maxNumThreads, bool compression, bool readOnly, uint64_t maxDBSize);
+        uint64_t maxNumThreads, bool compression, bool readOnly, uint64_t maxDBSize,
+        bool autoCheckpoint, uint64_t checkpointThreshold);
 
     ~PyDatabase();
 
