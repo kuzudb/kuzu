@@ -28,10 +28,9 @@ std::unique_ptr<LogicalPlan> Planner::planExportDatabase(const BoundStatement& s
     auto fileTypeStr = FileTypeUtils::toString(fileType);
     StringUtils::toLower(fileTypeStr);
     auto copyToSuffix = "." + fileTypeStr;
-    auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTransaction());
     std::string name = common::stringFormat("COPY_{}", FileTypeUtils::toString(fileType));
-    auto func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTransaction(),
-        name, functions);
+    auto entry = clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(), name);
+    auto func = function::BuiltInFunctionsUtils::matchFunction(name, entry->ptrCast<FunctionCatalogEntry>());
     KU_ASSERT(func != nullptr);
     auto exportFunc = *func->constPtrCast<function::ExportFunction>();
     for (auto& exportTableData : *exportData) {

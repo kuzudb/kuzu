@@ -16,6 +16,7 @@
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
+using namespace kuzu::function;
 using namespace kuzu::parser;
 using namespace kuzu::processor;
 
@@ -228,31 +229,33 @@ void Binder::restoreScope(BinderScope prevScope) {
     scope = std::move(prevScope);
 }
 
-function::TableFunction Binder::getScanFunction(FileTypeInfo typeInfo,
+TableFunction Binder::getScanFunction(FileTypeInfo typeInfo,
     const FileScanInfo& fileScanInfo) {
-    function::Function* func = nullptr;
+    Function* func = nullptr;
     std::vector<LogicalType> inputTypes;
     inputTypes.push_back(LogicalType::STRING());
-    auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTransaction());
+    auto catalog = clientContext->getCatalog();
+    auto transaction = clientContext->getTransaction();
     switch (typeInfo.fileType) {
     case FileType::PARQUET: {
-        func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTransaction(),
-            ParquetScanFunction::name, inputTypes, functions);
+        auto entry = catalog->getFunctionEntry(transaction, ParquetScanFunction::name);
+        func = BuiltInFunctionsUtils::matchFunction(ParquetScanFunction::name, inputTypes, entry->ptrCast<FunctionCatalogEntry>());
     } break;
     case FileType::NPY: {
-        func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTransaction(),
-            NpyScanFunction::name, inputTypes, functions);
+        auto entry = catalog->getFunctionEntry(transaction, NpyScanFunction::name);
+        func = BuiltInFunctionsUtils::matchFunction(NpyScanFunction::name, inputTypes, entry->ptrCast<FunctionCatalogEntry>());
     } break;
     case FileType::CSV: {
         auto csvConfig = CSVReaderConfig::construct(fileScanInfo.options);
-        func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTransaction(),
-            csvConfig.parallel ? ParallelCSVScan::name : SerialCSVScan::name, inputTypes,
-            functions);
+        auto name = csvConfig.parallel ? ParallelCSVScan::name : SerialCSVScan::name;
+        auto entry = catalog->getFunctionEntry(transaction, name);
+        func = BuiltInFunctionsUtils::matchFunction(name, inputTypes, entry->ptrCast<FunctionCatalogEntry>());
     } break;
     case FileType::UNKNOWN: {
         try {
-            func = function::BuiltInFunctionsUtils::matchFunction(clientContext->getTransaction(),
-                common::stringFormat("{}_SCAN", typeInfo.fileTypeStr), inputTypes, functions);
+            auto name = common::stringFormat("{}_SCAN", typeInfo.fileTypeStr);
+            auto entry = catalog->getFunctionEntry(transaction, name);
+            func = BuiltInFunctionsUtils::matchFunction(name, inputTypes, entry->ptrCast<FunctionCatalogEntry>());
         } catch (...) {
             if (typeInfo.fileTypeStr == "") {
                 throw common::BinderException{
@@ -266,7 +269,7 @@ function::TableFunction Binder::getScanFunction(FileTypeInfo typeInfo,
     default:
         KU_UNREACHABLE;
     }
-    return *func->ptrCast<function::TableFunction>();
+    return *func->ptrCast<TableFunction>();
 }
 
 } // namespace binder

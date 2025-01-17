@@ -73,11 +73,11 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
     auto childrenTypes = getTypes(children);
-    auto functions = catalog->getFunctions(transaction);
+
+    auto entry = catalog->getFunctionEntry(transaction, functionName);
+
     auto function =
-        BuiltInFunctionsUtils::matchFunction(transaction, functionName, childrenTypes, functions)
-            ->ptrCast<ScalarFunction>()
-            ->copy();
+        BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, entry->ptrCast<FunctionCatalogEntry>())->ptrCast<ScalarFunction>()->copy();
     if (children.size() == 2 && children[1]->expressionType == ExpressionType::LAMBDA) {
         if (!function->isListLambda) {
             throw BinderException(stringFormat("{} does not support lambda input.", functionName));
@@ -133,9 +133,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindRewriteFunctionExpression(
         children.push_back(bindExpression(*expr.getChild(i)));
     }
     auto childrenTypes = getTypes(children);
-    auto functions = context->getCatalog()->getFunctions(context->getTransaction());
-    auto match = BuiltInFunctionsUtils::matchFunction(context->getTransaction(),
-        funcExpr.getNormalizedFunctionName(), childrenTypes, functions);
+    auto functionName = funcExpr.getNormalizedFunctionName();
+    auto entry = context->getCatalog()->getFunctionEntry(context->getTransaction(), functionName);
+    auto match = BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, entry->ptrCast<FunctionCatalogEntry>());
     auto function = match->constPtrCast<RewriteFunction>();
     KU_ASSERT(function->rewriteFunc != nullptr);
     return function->rewriteFunc(children, this);
@@ -150,10 +150,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
         childrenTypes.push_back(child->dataType.copy());
         children.push_back(std::move(child));
     }
-    auto functions = context->getCatalog()->getFunctions(context->getTransaction());
+    auto entry = context->getCatalog()->getFunctionEntry(context->getTransaction(), functionName);
     auto function = BuiltInFunctionsUtils::matchAggregateFunction(functionName, childrenTypes,
-        isDistinct, functions)
-                        ->copy();
+        isDistinct, entry->ptrCast<FunctionCatalogEntry>())->copy();
     if (function.paramRewriteFunc) {
         function.paramRewriteFunc(children);
     }

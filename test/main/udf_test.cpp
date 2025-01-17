@@ -481,7 +481,7 @@ TEST_F(ApiTest, CreateUDFExceptionTest) {
         conn->removeUDFFunction("add6");
         FAIL();
     } catch (std::exception& e) {
-        ASSERT_EQ(std::string(e.what()), "Catalog exception: add6 does not exist in catalog.");
+        ASSERT_EQ(std::string(e.what()), "Catalog exception: function add6 doesn't exist.");
     }
 }
 

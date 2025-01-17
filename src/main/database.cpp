@@ -125,14 +125,14 @@ Database::~Database() {
 }
 
 void Database::addTableFunction(std::string name, function::function_set functionSet) {
-    catalog->addBuiltInFunction(CatalogEntryType::TABLE_FUNCTION_ENTRY, std::move(name),
-        std::move(functionSet));
+    catalog->addFunction(&DUMMY_TRANSACTION, CatalogEntryType::TABLE_FUNCTION_ENTRY,
+        std::move(name), std::move(functionSet));
 }
 
 void Database::addStandaloneCallFunction(std::string name,
     std::vector<std::unique_ptr<function::Function>> functionSet) {
-    catalog->addBuiltInFunction(CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY, std::move(name),
-        std::move(functionSet));
+    catalog->addFunction(&DUMMY_TRANSACTION, CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY,
+               std::move(name), std::move(functionSet));
 }
 
 void Database::registerFileSystem(std::unique_ptr<FileSystem> fs) {
