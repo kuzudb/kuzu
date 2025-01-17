@@ -99,6 +99,7 @@ public:
 
     common::oid_t createRelGroup(transaction::Transaction* transaction,
         const binder::BoundCreateTableInfo& info);
+    std::vector<RelGroupCatalogEntry*>
 
     // ----------------------------- Sequences ----------------------------
     bool containsSequence(const transaction::Transaction* transaction,
