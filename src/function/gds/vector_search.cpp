@@ -687,8 +687,6 @@ namespace kuzu {
 
                 // Handle for neg correlation cases
                 addFilteredNodesToCandidates(dc, candidates, results, visited, filterMask, numFilteredNodesToAdd, stats);
-//                auto maxNodes = std::min(8, (int) (1.0 / selectivity)) * 64;
-//                auto maxNodes = 64;
                 while (!candidates.empty()) {
                     auto candidate = candidates.top();
                     if (candidate.dist > results.top()->dist && results.size() > 0) {
@@ -736,9 +734,7 @@ namespace kuzu {
                         // distance computations to reduce listNbrs call which are redundant.
                         twoHopSearch(candidates, firstHopNbrs, tableId, graph, dc, filterMask, state, results, visited,
                                         vectorArray, size, efSearch, stats);
-//                    acornTwoHopSearch(candidates, firstHopNbrs, tableId, graph, dc, filterMask, state, results, maxNodes, visited,
-//                             vectorArray, size, efSearch, stats);
-                    stats.twoHopCalls->increase(1);
+                        stats.twoHopCalls->increase(1);
                     }
                     batchComputeDistance(vectorArray, size, dc, candidates, results, efSearch, stats);
                 }
