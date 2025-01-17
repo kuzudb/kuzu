@@ -1,8 +1,6 @@
 package com.kuzudb;
 
-import java.util.Map;
-
-public class KuzuMap {
+public class KuzuMap implements AutoCloseable {
     private Value mapVal;
 
     /**
@@ -28,14 +26,16 @@ public class KuzuMap {
      * @param keys:   The keys in the map
      * @param values: The values in the map
      */
-    public static KuzuMap createMap(Value[] keys, Value[] values) throws ObjectRefDestroyedException {
+    public KuzuMap(Value[] keys, Value[] values) throws ObjectRefDestroyedException {
         if (keys.length != values.length) {
-            return null;
+            mapVal = null;
+            return;
         }
         if (keys.length == 0) {
-            return null;
+            mapVal = null;
+            return;
         }
-        return new KuzuMap(Native.kuzu_create_map(keys, values));
+        mapVal = Native.kuzu_create_map(keys, values);
     }
 
     private Value getMapKeyOrValue(long index, boolean isKey) throws ObjectRefDestroyedException {
@@ -53,6 +53,9 @@ public class KuzuMap {
      * @throws ObjectRefDestroyedException If the map has been destroyed.
      */
     public long getNumFields() throws ObjectRefDestroyedException {
+        if (mapVal == null) {
+            return 0;
+        }
         return Native.kuzu_value_get_list_size(mapVal);
     }
 
@@ -76,5 +79,14 @@ public class KuzuMap {
      */
     public Value getValue(long index) throws ObjectRefDestroyedException {
         return getMapKeyOrValue(index, false);
+    }
+
+    /**
+     * Closes this object, relinquishing the underlying value
+     *
+     * @throws ObjectRefDestroyedException
+     */
+    public void close() throws ObjectRefDestroyedException {
+        mapVal.close();
     }
 }

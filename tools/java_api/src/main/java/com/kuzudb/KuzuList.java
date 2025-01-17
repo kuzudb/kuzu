@@ -1,6 +1,6 @@
 package com.kuzudb;
 
-public class KuzuList {
+public class KuzuList implements AutoCloseable {
     private Value listVal;
 
     /**
@@ -24,8 +24,8 @@ public class KuzuList {
      *
      * @param values: the array to construct the list from
      */
-    public static KuzuList createList(Value[] values) {
-        return new KuzuList(Native.kuzu_create_list(values));
+    public KuzuList(Value[] values) {
+        listVal = Native.kuzu_create_list(values);
     }
 
     /**
@@ -33,8 +33,8 @@ public class KuzuList {
      *
      * @param numElements: the size of the list to construct
      */
-    public static KuzuList createListWithDefaults(DataType type, long numElements) {
-        return new KuzuList(Native.kuzu_create_list(type, numElements));
+    public KuzuList(DataType type, long numElements) {
+        listVal = Native.kuzu_create_list(type, numElements);
     }
 
     /**
@@ -58,5 +58,30 @@ public class KuzuList {
     public Value getListElement(long index) throws ObjectRefDestroyedException {
         listVal.checkNotDestroyed();
         return Native.kuzu_value_get_list_element(listVal, index);
+    }
+
+    /**
+     * Gets the elements the list as a Java array. This will be truncated if the
+     * size of the list doesn't fit in a 32-bit integer.
+     *
+     * @return the list as a Java array
+     * @throws ObjectRefDestroyedException
+     */
+    public Value[] toArray() throws ObjectRefDestroyedException {
+        int arraySize = ((Long) getListSize()).intValue();
+        Value[] ret = new Value[arraySize];
+        for (int i = 0; i < arraySize; ++i) {
+            ret[i] = getListElement(i);
+        }
+        return ret;
+    }
+
+    /**
+     * Closes this object, relinquishing the underlying value
+     *
+     * @throws ObjectRefDestroyedException
+     */
+    public void close() throws ObjectRefDestroyedException {
+        listVal.close();
     }
 }

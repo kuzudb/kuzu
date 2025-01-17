@@ -1,6 +1,9 @@
 package com.kuzudb;
 
-public class KuzuStruct {
+import java.util.HashMap;
+import java.util.Map;
+
+public class KuzuStruct implements AutoCloseable {
     private Value structVal;
 
     /**
@@ -20,23 +23,51 @@ public class KuzuStruct {
     }
 
     /**
+     * Construct a struct literal from a given set of fields represented as a Java
+     * map.
+     *
+     * @param fields: The fields of the struct, with the keys representing the field
+     *                names and the values representing the field values.
+     */
+    public KuzuStruct(Map<String, Value> fields) throws ObjectRefDestroyedException {
+        if (fields.isEmpty()) {
+            structVal = null;
+            return;
+        }
+        String[] fieldNames = new String[fields.size()];
+        Value[] fieldValues = new Value[fields.size()];
+        int idx = 0;
+        for (Map.Entry<String, Value> field : fields.entrySet()) {
+            fieldNames[idx] = field.getKey();
+            fieldValues[idx] = field.getValue();
+            ++idx;
+        }
+        for (Value value : fieldValues) {
+            value.checkNotDestroyed();
+        }
+        structVal = Native.kuzu_create_struct(fieldNames, fieldValues);
+    }
+
+    /**
      * Construct a struct literal from a given set of fields. The length of the
      * fieldName/fieldValue arrays must be the same.
      *
      * @param fieldNames:  The name of the struct fields
      * @param fieldValues: The values of the struct fields
      */
-    public static KuzuStruct createStruct(String[] fieldNames, Value[] fieldValues) throws ObjectRefDestroyedException {
+    public KuzuStruct(String[] fieldNames, Value[] fieldValues) throws ObjectRefDestroyedException {
         if (fieldNames.length != fieldValues.length) {
-            return null;
+            structVal = null;
+            return;
         }
         if (fieldNames.length == 0) {
-            return null;
+            structVal = null;
+            return;
         }
         for (Value value : fieldValues) {
             value.checkNotDestroyed();
         }
-        return new KuzuStruct(Native.kuzu_create_struct(fieldNames, fieldValues));
+        structVal = Native.kuzu_create_struct(fieldNames, fieldValues);
     }
 
     /**
@@ -44,6 +75,9 @@ public class KuzuStruct {
      * @throws ObjectRefDestroyedException If the struct has been destroyed.
      */
     public long getNumFields() throws ObjectRefDestroyedException {
+        if (structVal == null) {
+            return 0;
+        }
         return Native.kuzu_value_get_list_size(structVal);
     }
 
@@ -51,10 +85,13 @@ public class KuzuStruct {
      * Get the index of the field with the given name
      *
      * @param fieldName: The name of the field.
-     * @return The index of the field with the given name
+     * @return The index of the field with the given name, or -1 if it doesn't exist
      * @throws ObjectRefDestroyedException If the struct has been destroyed.
      */
     public long getIndexByFieldName(String fieldName) throws ObjectRefDestroyedException {
+        if (structVal == null) {
+            return -1;
+        }
         return Native.kuzu_value_get_struct_index(structVal, fieldName);
     }
 
@@ -66,6 +103,9 @@ public class KuzuStruct {
      * @throws ObjectRefDestroyedException If the struct has been destroyed.
      */
     public String getFieldNameByIndex(long index) throws ObjectRefDestroyedException {
+        if (structVal == null) {
+            return null;
+        }
         return Native.kuzu_value_get_struct_field_name(structVal, index);
     }
 
@@ -100,5 +140,33 @@ public class KuzuStruct {
             return null;
         }
         return Native.kuzu_value_get_list_element(structVal, index);
+    }
+
+    /**
+     * Gets the elements the map as a Java map. This will be truncated if the
+     * size of the map doesn't fit in a 32-bit integer.
+     *
+     * @return the map as a Java map
+     * @throws ObjectRefDestroyedException
+     */
+    public Map<String, Value> toMap() throws ObjectRefDestroyedException {
+        if (structVal == null) {
+            return null;
+        }
+        Map<String, Value> ret = new HashMap<String, Value>();
+        int numFields = ((Long) getNumFields()).intValue();
+        for (int i = 0; i < numFields; ++i) {
+            ret.put(getFieldNameByIndex(i), getValueByIndex(i));
+        }
+        return ret;
+    }
+
+    /**
+     * Closes this object, relinquishing the underlying value
+     *
+     * @throws ObjectRefDestroyedException
+     */
+    public void close() throws ObjectRefDestroyedException {
+        structVal.close();
     }
 }
