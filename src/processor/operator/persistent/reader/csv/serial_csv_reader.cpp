@@ -458,6 +458,13 @@ bool SerialCSVReader::detectHeader(
     // In this case, User didn't set Header, but we detected a Header, use the detected header to
     // set the name and type.
     if (sniffHeaderDriver.detectedHeader) {
+        // If the detected header has fewer columns that expected, treat it as if no header was
+        // detected
+        if (sniffHeaderDriver.header.size() < detectedTypes.size()) {
+            sniffHeaderDriver.detectedHeader = false;
+            return false;
+        }
+
         for (auto i = 0u; i < detectedTypes.size(); i++) {
             detectedTypes[i].first = sniffHeaderDriver.header[i].first;
         }
