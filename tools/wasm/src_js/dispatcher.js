@@ -6,7 +6,6 @@ const isNodeJs = typeof process === "object" && process + "" === "[object proces
 class Dispatcher {
   constructor() {
     this.worker = null;
-    this.workerInitPromise = this.init();
     this.workerPath = null;
   }
   
@@ -46,7 +45,13 @@ class Dispatcher {
   }
 
   async getWorker() {
-    await this.workerInitPromise;
+    if (!this.worker) {
+      if (!this.workerInitPromise) {
+        this.workerInitPromise = this.init();
+      }
+      await this.workerInitPromise;
+      delete this.workerInitPromise;
+    }
     return this.worker;
   }
 }

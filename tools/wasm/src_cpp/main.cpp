@@ -148,7 +148,11 @@ val valueGetAsEmscriptenValue(const Value& value) {
         return JsNumber.new_(value.getValue<uint32_t>());
     }
     case LogicalTypeID::UINT64: {
-        return val(value.getValue<uint64_t>());
+        auto uint64tVal = value.getValue<uint64_t>();
+        if(uint64tVal > JsNumber["MAX_SAFE_INTEGER"].as<uint64_t>()) {
+            return val(value.getValue<uint64_t>());
+        }
+        return JsNumber.new_(value.getValue<uint64_t>());
     }
     case LogicalTypeID::INT8: {
         return JsNumber.new_(value.getValue<int8_t>());
@@ -161,7 +165,11 @@ val valueGetAsEmscriptenValue(const Value& value) {
     }
     case LogicalTypeID::INT64:
     case LogicalTypeID::SERIAL: {
-        return val(value.getValue<int64_t>());
+        auto int64Val = value.getValue<int64_t>();
+        if(int64Val > JsNumber["MAX_SAFE_INTEGER"].as<int64_t>() || int64Val < JsNumber["MIN_SAFE_INTEGER"].as<int64_t>()) {
+            return val(int64Val);
+        }
+        return JsNumber.new_(int64Val);
     }
     case LogicalTypeID::INT128: {
         auto int128Val = value.getValue<int128_t>();
