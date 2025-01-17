@@ -9,15 +9,16 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace function {
 
-inline static std::unordered_map<std::string, std::string> OFFICIAL_EXTENSIONS = {
-    {"HTTPFS", "Adds support for reading and writing files over a HTTP(S)/S3 filesystem"},
-    {"DELTA", "Adds support for reading from delta tables"},
-    {"DUCKDB", "Adds support for reading from duckdb tables"},
-    {"FTS", "Adds support for full-text search indexes"},
-    {"ICEBERG", "Adds support for reading from iceberg tables"},
-    {"JSON", "Adds support for JSON operations"},
-    {"POSTGRES", "Adds support for reading from POSTGRES tables"},
-    {"SQLITE", "Adds support for reading from SQLITE tables"}};
+static std::unordered_map<std::string, std::string> getOfficialExtensions() {
+    return {{"HTTPFS", "Adds support for reading and writing files over a HTTP(S)/S3 filesystem"},
+        {"DELTA", "Adds support for reading from delta tables"},
+        {"DUCKDB", "Adds support for reading from duckdb tables"},
+        {"FTS", "Adds support for full-text search indexes"},
+        {"ICEBERG", "Adds support for reading from iceberg tables"},
+        {"JSON", "Adds support for JSON operations"},
+        {"POSTGRES", "Adds support for reading from POSTGRES tables"},
+        {"SQLITE", "Adds support for reading from SQLITE tables"}};
+}
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
@@ -26,9 +27,10 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
-    auto numTuplesToOutput = OFFICIAL_EXTENSIONS.size();
+    auto officialExtensions = getOfficialExtensions();
+    auto numTuplesToOutput = officialExtensions.size();
     auto vectorPosToWrite = 0u;
-    for (auto& [name, description] : OFFICIAL_EXTENSIONS) {
+    for (auto& [name, description] : officialExtensions) {
         dataChunk.getValueVectorMutable(0).setValue(vectorPosToWrite, name);
         dataChunk.getValueVectorMutable(1).setValue(vectorPosToWrite++, description);
     }
@@ -45,7 +47,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* /*
     columnTypes.emplace_back(LogicalType::STRING());
     auto columns = input->binder->createVariables(columnNames, columnTypes);
     return std::make_unique<SimpleTableFuncBindData>(std::move(columns),
-        OFFICIAL_EXTENSIONS.size());
+        getOfficialExtensions().size());
 }
 
 function_set ShowOfficialExtensionsFunction::getFunctionSet() {
