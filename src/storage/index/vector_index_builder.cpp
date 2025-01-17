@@ -197,6 +197,7 @@ void VectorIndexBuilder::acornShrinkNeighbors(std::priority_queue<NodeDistCloser
                 break;
             }
         }
+        return;
     }
 
     std::unordered_set<vector_id_t> neigh_of_neigh;
