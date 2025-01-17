@@ -140,6 +140,17 @@ Binder exception: BM25 model requires the Term Frequency Saturation(k) value to 
 ---- 2
 0|0.326304
 3|0.268990
+-LOG QueryFTSConjunctiveMultiKeywordsAndStopWords
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice and studying', conjunctive := true) RETURN _node.ID, score
+---- 2
+0|0.326304
+3|0.268990
+-LOG QueryFTSConjunctiveMultiKeywordsAndStopWords1
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'study in', conjunctive := true) RETURN _node.ID, score
+---- 3
+0|0.055171
+20|0.059514
+3|0.059514
 -LOG QueryFTSConjunctiveDuplicateKeywords
 -STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice studying alice', conjunctive := true) RETURN _node.ID, score
 ---- 2

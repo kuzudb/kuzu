@@ -8,90 +8,23 @@
 #include "common/task_system/task_scheduler.h"
 #include "common/types/internal_id_util.h"
 #include "function/fts_utils.h"
-#include "function/gds/gds.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_task.h"
 #include "function/gds/gds_utils.h"
-#include "function/stem.h"
+#include "function/query_fts_bind_data.h"
 #include "graph/on_disk_graph.h"
-#include "libstemmer.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
-#include "re2.h"
 #include "storage/index/index_utils.h"
 #include "storage/storage_manager.h"
-
-using namespace kuzu::binder;
-using namespace kuzu::common;
 
 namespace kuzu {
 namespace fts_extension {
 
+using namespace storage;
 using namespace function;
-
-struct QueryFTSBindData final : GDSBindData {
-    std::shared_ptr<Expression> query;
-    const catalog::IndexCatalogEntry& entry;
-    QueryFTSConfig config;
-    table_id_t outputTableID;
-
-    QueryFTSBindData(graph::GraphEntry graphEntry, std::shared_ptr<Expression> docs,
-        std::shared_ptr<Expression> query, const catalog::IndexCatalogEntry& entry,
-        QueryFTSConfig config)
-        : GDSBindData{std::move(graphEntry), std::move(docs)}, query{std::move(query)},
-          entry{entry}, config{config},
-          outputTableID{nodeOutput->constCast<NodeExpression>().getSingleEntry()->getTableID()} {}
-    QueryFTSBindData(const QueryFTSBindData& other)
-        : GDSBindData{other}, query{other.query}, entry{other.entry}, config{other.config},
-          outputTableID{other.outputTableID} {}
-
-    bool hasNodeInput() const override { return false; }
-
-    std::vector<std::string> getTerms() const;
-
-    std::unique_ptr<GDSBindData> copy() const override {
-        return std::make_unique<QueryFTSBindData>(*this);
-    }
-};
-
-std::vector<std::string> QueryFTSBindData::getTerms() const {
-    if (!ExpressionUtil::canEvaluateAsLiteral(*query)) {
-        std::string errMsg;
-        switch (query->expressionType) {
-        case ExpressionType::PARAMETER: {
-            errMsg = "The query is a parameter expression. Please assign it a value.";
-        } break;
-        default: {
-            errMsg = "The query must be a parameter/literal expression.";
-        } break;
-        }
-        throw RuntimeException{errMsg};
-    }
-    auto value = ExpressionUtil::evaluateAsLiteralValue(*query);
-    if (value.getDataType() != LogicalType::STRING()) {
-        throw RuntimeException{"The query must be a string literal."};
-    }
-    auto queryInStr = value.getValue<std::string>();
-    auto stemmer = entry.getAuxInfo().cast<FTSIndexAuxInfo>().config.stemmer;
-    std::string regexPattern = "[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\/\\|'\"`-]+";
-    std::string replacePattern = " ";
-    RE2::GlobalReplace(&queryInStr, regexPattern, replacePattern);
-    StringUtils::toLower(queryInStr);
-    auto terms = StringUtils::split(queryInStr, " ");
-    if (stemmer == "none") {
-        return terms;
-    }
-    StemFunction::validateStemmer(stemmer);
-    auto sbStemmer = sb_stemmer_new(reinterpret_cast<const char*>(stemmer.c_str()), "UTF_8");
-    std::vector<std::string> result;
-    for (auto& term : terms) {
-        auto stemData = sb_stemmer_stem(sbStemmer, reinterpret_cast<const sb_symbol*>(term.c_str()),
-            term.length());
-        result.push_back(reinterpret_cast<const char*>(stemData));
-    }
-    sb_stemmer_delete(sbStemmer);
-    return result;
-}
+using namespace binder;
+using namespace common;
 
 struct ScoreData {
     uint64_t df;
@@ -270,7 +203,7 @@ static std::unordered_map<common::offset_t, uint64_t> getDFs(main::ClientContext
     for (auto& term : terms) {
         termsVector.setValue(0, term);
         offset_t offset = 0;
-        if (!termsNodeTable.lookupPK(tx, &termsVector, 0, offset)) {
+        if (!termsNodeTable.lookupPK(tx, &termsVector, 0 /* vectorPos */, offset)) {
             continue;
         }
         auto nodeID = nodeID_t{offset, tableID};
@@ -305,9 +238,8 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto graphEntry = graph->getGraphEntry();
     auto qFTSBindData = bindData->ptrCast<QueryFTSBindData>();
     auto& termsEntry = graphEntry->nodeEntries[0]->constCast<catalog::NodeTableCatalogEntry>();
-    auto termsTableID = termsEntry.getTableID();
-    auto terms = bindData->ptrCast<QueryFTSBindData>()->getTerms();
-    auto dfs = getDFs(*clientContext, termsEntry, terms);
+    auto terms = bindData->ptrCast<QueryFTSBindData>()->getTerms(*executionContext->clientContext);
+    auto dfs = getDFs(*executionContext->clientContext, termsEntry, terms);
     // Do edge compute to extend terms -> docs and save the term frequency and document frequency
     // for each term-doc pair. The reason why we store the term frequency and document frequency
     // is that: we need the `len` property from the docs table which is only available during the
@@ -316,6 +248,7 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto nextFrontier = getPathLengthsFrontier(executionContext, PathLengths::UNVISITED);
     auto frontierPair =
         std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
+    auto termsTableID = termsEntry.getTableID();
     frontierPair->pinNextFrontier(termsTableID);
     initDenseFrontier(*nextFrontier, termsTableID, dfs);
     auto storageManager = clientContext->getStorageManager();
