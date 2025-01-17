@@ -479,7 +479,9 @@ namespace kuzu {
 
                 // Get the first hop neighbours
                 // First hop neighbours
+                int numIter = 0;
                 for (auto &neighbor: firstHopNbrs) {
+                    numIter++;
                     auto isNeighborMasked = filterMask->isMasked(neighbor.offset);
                     if (visited->is_bit_set(neighbor.offset)) {
                         continue;
@@ -491,10 +493,8 @@ namespace kuzu {
                             break;
                         }
                     }
-                    printf("maxNbrsBeta: %d\n", maxNbrsBeta);
                     // Second hop neighbours
-                    if (((size >= maxNbrsBeta) && keep_expanding) || gamma == 1) {
-                        printf("expanding second hop\n");
+                    if (((numIter >= maxNbrsBeta) && keep_expanding) || gamma == 1) {
                         stats.listNbrsCallTime->start();
                         auto secondHopNbrs = graph->scanFwdRandom(neighbor, state);
                         stats.listNbrsCallTime->stop();
@@ -520,7 +520,6 @@ namespace kuzu {
                                 }
                             }
                         }
-
                     }
                 }
             }
