@@ -8,19 +8,21 @@
 namespace kuzu {
 namespace storage {
 
-static void validateIndexExistence(const main::ClientContext& context, catalog::TableCatalogEntry* tableEntry,
-    const std::string& indexName, IndexOperation indexOperation) {
+static void validateIndexExistence(const main::ClientContext& context,
+    catalog::TableCatalogEntry* tableEntry, const std::string& indexName,
+    IndexOperation indexOperation) {
     switch (indexOperation) {
     case IndexOperation::CREATE: {
-        if (context.getCatalog()->containsIndex(context.getTransaction(), tableEntry->getTableID(), indexName)) {
-            throw common::BinderException{
-                common::stringFormat("Index {} already exists in table {}.", indexName,
-                    tableEntry->getName())};
+        if (context.getCatalog()->containsIndex(context.getTransaction(), tableEntry->getTableID(),
+                indexName)) {
+            throw common::BinderException{common::stringFormat(
+                "Index {} already exists in table {}.", indexName, tableEntry->getName())};
         }
     } break;
     case IndexOperation::DROP:
     case IndexOperation::QUERY: {
-        if (!context.getCatalog()->containsIndex(context.getTransaction(), tableEntry->getTableID(), indexName)) {
+        if (!context.getCatalog()->containsIndex(context.getTransaction(), tableEntry->getTableID(),
+                indexName)) {
             throw common::BinderException{common::stringFormat(
                 "Table {} doesn't have an index with name {}.", tableEntry->getName(), indexName)};
         }

@@ -78,7 +78,7 @@ public:
     std::vector<TableCatalogEntry*> getTableEntries(
         const transaction::Transaction* transaction) const;
     bool tableInRelGroup(transaction::Transaction* transaction, common::table_id_t tableID) const;
-    
+
     // Create table entry.
     common::table_id_t createTableEntry(transaction::Transaction* transaction,
         const binder::BoundCreateTableInfo& info);
@@ -115,8 +115,7 @@ public:
     // ----------------------------- Types ----------------------------
 
     // Check if type entry exists.
-    bool containsType(const transaction::Transaction* transaction,
-        const std::string& name) const;
+    bool containsType(const transaction::Transaction* transaction, const std::string& name) const;
     // Get type entry with name.
     common::LogicalType getType(const transaction::Transaction*, const std::string& name) const;
 
@@ -130,10 +129,11 @@ public:
     bool containsIndex(const transaction::Transaction* transaction, common::table_id_t tableID,
         const std::string& indexName) const;
     // Get index entry with name.
-    IndexCatalogEntry* getIndex(const transaction::Transaction* transaction, common::table_id_t tableID,
-        const std::string& indexName) const;
+    IndexCatalogEntry* getIndex(const transaction::Transaction* transaction,
+        common::table_id_t tableID, const std::string& indexName) const;
     // Get all index entries.
-    std::vector<IndexCatalogEntry*> getIndexEntries(const transaction::Transaction* transaction) const;
+    std::vector<IndexCatalogEntry*> getIndexEntries(
+        const transaction::Transaction* transaction) const;
 
     // Create index entry.
     void createIndex(transaction::Transaction* transaction,

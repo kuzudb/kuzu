@@ -37,7 +37,9 @@ std::string FTSIndexAuxInfo::toCypher(const catalog::IndexCatalogEntry& indexEnt
     main::ClientContext* context) {
     std::string cypher;
     auto catalog = context->getCatalog();
-    auto tableName = catalog->getTableCatalogEntry(context->getTransaction(), indexEntry.getTableID())->getName();
+    auto tableName =
+        catalog->getTableCatalogEntry(context->getTransaction(), indexEntry.getTableID())
+            ->getName();
     std::string propertyStr;
     for (auto i = 0u; i < properties.size(); i++) {
         propertyStr +=

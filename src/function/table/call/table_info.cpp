@@ -81,7 +81,9 @@ static std::unique_ptr<TableCatalogEntry> getTableCatalogEntry(const main::Clien
             throw common::RuntimeException{
                 common::stringFormat("Database: {} doesn't exist.", catalogName)};
         }
-        return attachedDatabase->getCatalog()->getTableCatalogEntry(transaction, attachedTableName)->copy();
+        return attachedDatabase->getCatalog()
+            ->getTableCatalogEntry(transaction, attachedTableName)
+            ->copy();
     }
 }
 

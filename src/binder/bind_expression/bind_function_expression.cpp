@@ -239,7 +239,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindEndNodeExpression(const Expres
     return rel.getDstNode();
 }
 
-static std::vector<std::unique_ptr<Value>> populateLabelValues(std::vector<TableCatalogEntry*> entries) {
+static std::vector<std::unique_ptr<Value>> populateLabelValues(
+    std::vector<TableCatalogEntry*> entries) {
     std::unordered_map<table_id_t, std::string> map;
     common::table_id_t maxTableID = 0;
     for (auto& entry : entries) {

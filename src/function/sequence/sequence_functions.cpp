@@ -15,7 +15,8 @@ struct CurrVal {
         auto ctx = reinterpret_cast<FunctionBindData*>(dataPtr)->clientContext;
         auto catalog = ctx->getCatalog();
         auto sequenceName = input.getAsString();
-        auto sequenceEntry = catalog->getSequenceEntry(ctx->getTransaction(), sequenceName, ctx->shouldUseInternalCatalogEntry());
+        auto sequenceEntry = catalog->getSequenceEntry(ctx->getTransaction(), sequenceName,
+            ctx->shouldUseInternalCatalogEntry());
         result.setValue(0, sequenceEntry->currVal());
     }
 };
@@ -26,7 +27,8 @@ struct NextVal {
         auto cnt = reinterpret_cast<FunctionBindData*>(dataPtr)->count;
         auto catalog = ctx->getCatalog();
         auto sequenceName = input.getAsString();
-        auto sequenceEntry = catalog->getSequenceEntry(ctx->getTransaction(), sequenceName, ctx->shouldUseInternalCatalogEntry());
+        auto sequenceEntry = catalog->getSequenceEntry(ctx->getTransaction(), sequenceName,
+            ctx->shouldUseInternalCatalogEntry());
         sequenceEntry->nextKVal(ctx->getTransaction(), cnt, result);
         result.state->getSelVectorUnsafe().setSelSize(cnt);
     }

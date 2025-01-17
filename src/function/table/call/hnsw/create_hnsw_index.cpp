@@ -83,16 +83,23 @@ static void finalizeFunc(const processor::ExecutionContext* context,
 
     const auto bindData = hnswSharedState->bindData->constPtrCast<CreateHNSWIndexBindData>();
     const auto catalog = clientContext->getCatalog();
-    auto upperRelTableID = catalog->getTableCatalogEntry(transaction,
-        storage::HNSWIndexUtils::getUpperGraphTableName(bindData->indexName))->getTableID();
-    auto lowerRelTableID = catalog->getTableCatalogEntry(transaction,
-        storage::HNSWIndexUtils::getLowerGraphTableName(bindData->indexName))->getTableID();
+    auto upperRelTableID =
+        catalog
+            ->getTableCatalogEntry(transaction,
+                storage::HNSWIndexUtils::getUpperGraphTableName(bindData->indexName))
+            ->getTableID();
+    auto lowerRelTableID =
+        catalog
+            ->getTableCatalogEntry(transaction,
+                storage::HNSWIndexUtils::getLowerGraphTableName(bindData->indexName))
+            ->getTableID();
     auto auxInfo = std::make_unique<catalog::HNSWIndexAuxInfo>(upperRelTableID, lowerRelTableID,
         hnswSharedState->nodeTable.getColumn(bindData->columnID).getName(),
         index->getUpperEntryPoint(), index->getLowerEntryPoint(), bindData->config.copy());
-    auto indexEntry = std::make_unique<catalog::IndexCatalogEntry>(catalog::HNSWIndexCatalogEntry::TYPE_NAME,
-        bindData->tableEntry->getTableID(), bindData->indexName, std::move(auxInfo));
-    catalog->createIndex(transaction,std::move(indexEntry));
+    auto indexEntry =
+        std::make_unique<catalog::IndexCatalogEntry>(catalog::HNSWIndexCatalogEntry::TYPE_NAME,
+            bindData->tableEntry->getTableID(), bindData->indexName, std::move(auxInfo));
+    catalog->createIndex(transaction, std::move(indexEntry));
 }
 
 static std::string createHNSWIndexTables(main::ClientContext& context,

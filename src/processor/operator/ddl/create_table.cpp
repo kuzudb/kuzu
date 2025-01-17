@@ -23,7 +23,7 @@ void CreateTable::executeDDLInternal(ExecutionContext* context) {
     }
     auto newTableID = catalog->createTableEntry(clientContext->getTransaction(), info);
     tableCreated = true;
-    auto storageManager =  clientContext->getStorageManager();
+    auto storageManager = clientContext->getStorageManager();
     storageManager->createTable(newTableID, catalog, clientContext);
 }
 

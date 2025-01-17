@@ -2,6 +2,8 @@
 #include <vector>
 
 #include "catalog/catalog.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/types/date_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
@@ -9,8 +11,6 @@
 #include "graph/on_disk_graph.h"
 #include "main/client_context.h"
 #include "main_test_helper/private_main_test_helper.h"
-#include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 
 namespace kuzu {
 

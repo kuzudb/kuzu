@@ -1,6 +1,7 @@
 #include "graph/on_disk_graph.h"
 
 #include "binder/expression/property_expression.h"
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/assert.h"
 #include "common/cast.h"
 #include "common/constants.h"
@@ -8,7 +9,6 @@
 #include "common/enums/rel_direction.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
-#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "expression_evaluator/expression_evaluator.h"
 #include "graph/graph.h"
 #include "main/client_context.h"

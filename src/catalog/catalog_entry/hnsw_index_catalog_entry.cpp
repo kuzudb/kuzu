@@ -44,7 +44,9 @@ std::string HNSWIndexAuxInfo::toCypher(const IndexCatalogEntry& indexEntry,
     main::ClientContext* context) {
     std::string cypher;
     auto catalog = context->getCatalog();
-    auto tableName = catalog->getTableCatalogEntry(context->getTransaction(), indexEntry.getTableID())->getName();
+    auto tableName =
+        catalog->getTableCatalogEntry(context->getTransaction(), indexEntry.getTableID())
+            ->getName();
     auto distFuncName = storage::HNSWIndexConfig::distFuncToString(config.distFunc);
     cypher += common::stringFormat("CALL CREATE_HNSW_INDEX('{}', '{}', '{}', mu := {}, ml := {}, "
                                    "pu := {}, distFunc := '{}', alpha := {}, efc := {});\n",

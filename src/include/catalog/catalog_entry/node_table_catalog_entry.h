@@ -29,8 +29,10 @@ public:
         return getProperty(primaryKeyName);
     }
 
-    common::table_id_set_t getFwdRelTableIDs(Catalog* catalog, transaction::Transaction* transaction) const;
-    common::table_id_set_t getBwdRelTableIDs(Catalog* catalog, transaction::Transaction* transaction) const;
+    common::table_id_set_t getFwdRelTableIDs(Catalog* catalog,
+        transaction::Transaction* transaction) const;
+    common::table_id_set_t getBwdRelTableIDs(Catalog* catalog,
+        transaction::Transaction* transaction) const;
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<NodeTableCatalogEntry> deserialize(common::Deserializer& deserializer);

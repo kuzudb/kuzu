@@ -157,7 +157,8 @@ table_id_t Catalog::createTableEntry(Transaction* transaction, const BoundCreate
     const auto tableEntry = entry->constPtrCast<TableCatalogEntry>();
     for (auto& definition : tableEntry->getProperties()) {
         if (definition.getType().getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            const auto seqName = SequenceCatalogEntry::genSerialName(tableEntry->getName(), definition.getName());
+            const auto seqName =
+                SequenceCatalogEntry::genSerialName(tableEntry->getName(), definition.getName());
             auto seqInfo =
                 BoundCreateSequenceInfo(seqName, 0, 1, 0, std::numeric_limits<int64_t>::max(),
                     false, ConflictAction::ON_CONFLICT_THROW, info.isInternal);
@@ -193,7 +194,8 @@ void Catalog::dropTableEntry(Transaction* transaction, table_id_t tableID) {
     }
     for (auto& definition : tableEntry->getProperties()) {
         if (definition.getType().getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            auto seqName = SequenceCatalogEntry::genSerialName(tableEntry->getName(), definition.getName());
+            auto seqName =
+                SequenceCatalogEntry::genSerialName(tableEntry->getName(), definition.getName());
             dropSequence(transaction, seqName);
         }
     }
@@ -223,8 +225,7 @@ void Catalog::alterTableEntry(Transaction* transaction, const BoundAlterInfo& in
     tables->alterEntry(transaction, info);
 }
 
-bool Catalog::containsSequence(const Transaction* transaction,
-    const std::string& name) const {
+bool Catalog::containsSequence(const Transaction* transaction, const std::string& name) const {
     return sequences->containsEntry(transaction, name);
 }
 
@@ -317,8 +318,7 @@ IndexCatalogEntry* Catalog::getIndex(const Transaction* transaction, table_id_t 
     return indexes->getEntry(transaction, internalName)->ptrCast<IndexCatalogEntry>();
 }
 
-std::vector<IndexCatalogEntry*> Catalog::getIndexEntries(
-    const Transaction* transaction) const {
+std::vector<IndexCatalogEntry*> Catalog::getIndexEntries(const Transaction* transaction) const {
     std::vector<IndexCatalogEntry*> result;
     for (auto& [_, entry] : indexes->getEntries(transaction)) {
         result.push_back(entry->ptrCast<IndexCatalogEntry>());
