@@ -100,7 +100,5 @@ abc"def
 -STATEMENT create node table values(val1 int32, val2 int32, val3 string, val4 string, primary key(val1))
 ---- ok
 -STATEMENT copy values from "${KUZU_ROOT_DIRECTORY}/dataset/csv-edge-case-tests/header-num-columns-mismatch.csv"(delim = ' ')
----- ok
--STATEMENT MATCH (v:values) RETURN v.*;
 ---- error
 Binder exception: Number of columns mismatch. Expected 4 but got 6.
