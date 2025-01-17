@@ -1,0 +1,23 @@
+-DATASET CSV empty
+
+--
+
+-CASE show_loaded_extensions
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
+---- ok
+-STATEMENT CALL SHOW_LOADED_EXTENSIONS() RETURN *
+---- 1
+FTS|USER|${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/duckdb/build/libduckdb.kuzu_extension"
+---- ok
+-STATEMENT CALL SHOW_LOADED_EXTENSIONS() RETURN *
+---- 2
+FTS|USER|${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension
+DUCKDB|USER|${KUZU_ROOT_DIRECTORY}/extension/duckdb/build/libduckdb.kuzu_extension
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT CALL SHOW_LOADED_EXTENSIONS() RETURN *
+---- 3
+FTS|USER|${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension
+DUCKDB|USER|${KUZU_ROOT_DIRECTORY}/extension/duckdb/build/libduckdb.kuzu_extension
+HTTPFS|USER|${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension

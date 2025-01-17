@@ -59,7 +59,18 @@ static ExtensionRepoInfo getExtensionRepoInfo(std::string& extensionURL) {
     auto hostURL = "http://" + hostName;
     auto hostPath = extensionURL.substr(hostNamePos);
     return {hostPath, hostURL, extensionURL};
-};
+}
+
+std::string ExtensionSourceUtils::toString(ExtensionSource source) {
+    switch (source) {
+    case ExtensionSource::OFFICIAL:
+        return "OFFICIAL";
+    case ExtensionSource::USER:
+        return "USER";
+    default:
+        KU_UNREACHABLE;
+    }
+}
 
 ExtensionRepoInfo ExtensionUtils::getExtensionLibRepoInfo(const std::string& extensionName) {
     auto extensionURL = common::stringFormat(EXTENSION_FILE_REPO, KUZU_EXTENSION_VERSION,

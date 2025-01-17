@@ -218,7 +218,8 @@ FunctionCollection* FunctionCollection::getFunctions() {
         TABLE_FUNCTION(StatsInfoFunction), TABLE_FUNCTION(StorageInfoFunction),
         TABLE_FUNCTION(ShowAttachedDatabasesFunction), TABLE_FUNCTION(ShowSequencesFunction),
         TABLE_FUNCTION(ShowFunctionsFunction), TABLE_FUNCTION(BMInfoFunction),
-        TABLE_FUNCTION(QueryHNSWIndexFunction),
+        TABLE_FUNCTION(QueryHNSWIndexFunction), TABLE_FUNCTION(ShowLoadedExtensionsFunction),
+        TABLE_FUNCTION(ShowOfficialExtensionsFunction),
 
         // Standalone Table functions
         STANDALONE_TABLE_FUNCTION(ClearWarningsFunction),
