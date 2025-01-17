@@ -491,6 +491,7 @@ namespace kuzu {
                             break;
                         }
                     }
+                    printf("maxNbrsBeta: %d\n", maxNbrsBeta);
                     // Second hop neighbours
                     if (((size >= maxNbrsBeta) && keep_expanding) || gamma == 1) {
                         printf("expanding second hop\n");
