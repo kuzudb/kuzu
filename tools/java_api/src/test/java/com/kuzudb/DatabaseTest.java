@@ -25,7 +25,9 @@ public class DatabaseTest extends TestBase {
                 1 << 28 /* 256 MB */,
                 true /* compression */,
                 false /* readOnly */,
-                1 << 30 /* 1 GB */)) {
+                1 << 30 /* 1 GB */,
+                true /* autoCheckpoint */,
+                1 << 24 /* 16 MB */)) {
             // Database will be automatically destroyed after this block
         } catch (Exception e) {
             fail("DBCreationAndDestroyWithArgs failed: " + e.getMessage());

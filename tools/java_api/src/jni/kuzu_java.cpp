@@ -251,7 +251,7 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzu_1native_1reload_1library(JNIE
 
 JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1database_1init(JNIEnv* env, jclass,
     jstring database_path, jlong buffer_pool_size, jboolean enable_compression, jboolean read_only,
-    jlong max_db_size) {
+    jlong max_db_size, jboolean auto_checkpoint, jlong checkpoint_threshold) {
 
     const char* path = env->GetStringUTFChars(database_path, JNI_FALSE);
     uint64_t buffer = static_cast<uint64_t>(buffer_pool_size);
@@ -260,6 +260,9 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1database_1init(JNIEnv* env,
     systemConfig.enableCompression = enable_compression;
     systemConfig.readOnly = read_only;
     systemConfig.maxDBSize = max_db_size == 0 ? systemConfig.maxDBSize : max_db_size;
+    systemConfig.autoCheckpoint = auto_checkpoint;
+    systemConfig.checkpointThreshold =
+        checkpoint_threshold == -1 ? systemConfig.checkpointThreshold : checkpoint_threshold;
     try {
         Database* db = new Database(path, systemConfig);
         uint64_t address = reinterpret_cast<uint64_t>(db);
