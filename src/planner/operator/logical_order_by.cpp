@@ -38,7 +38,7 @@ void LogicalOrderBy::computeFlatSchema() {
     createEmptySchema();
     schema->createGroup();
     for (auto& expression : children[0]->getSchema()->getExpressionsInScope()) {
-        schema->insertToScope(expression, 0);
+        schema->insertToGroupAndScope(expression, 0);
     }
 }
 
