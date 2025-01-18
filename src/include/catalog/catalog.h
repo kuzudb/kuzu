@@ -147,8 +147,7 @@ public:
     // ----------------------------- Functions ----------------------------
 
     // Check if function exists.
-    bool containsFunction(const transaction::Transaction* transaction,
-        const std::string& name);
+    bool containsFunction(const transaction::Transaction* transaction, const std::string& name);
     // Get function entry by name.
     // Note we cannot cast to FunctionEntry here because result could also be a MacroEntry.
     CatalogEntry* getFunctionEntry(const transaction::Transaction* transaction,

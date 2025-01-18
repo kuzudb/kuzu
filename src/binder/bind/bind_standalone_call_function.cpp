@@ -16,7 +16,8 @@ std::unique_ptr<BoundStatement> Binder::bindStandaloneCallFunction(
     auto& funcExpr =
         callStatement.getFunctionExpression()->constCast<parser::ParsedFunctionExpression>();
     auto funcName = funcExpr.getFunctionName();
-    auto entry = clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(), funcName);
+    auto entry =
+        clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(), funcName);
     if (entry->getType() != catalog::CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY) {
         throw common::BinderException(
             "Only standalone table functions can be called without return statement.");

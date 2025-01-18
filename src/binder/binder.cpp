@@ -229,8 +229,7 @@ void Binder::restoreScope(BinderScope prevScope) {
     scope = std::move(prevScope);
 }
 
-TableFunction Binder::getScanFunction(FileTypeInfo typeInfo,
-    const FileScanInfo& fileScanInfo) {
+TableFunction Binder::getScanFunction(FileTypeInfo typeInfo, const FileScanInfo& fileScanInfo) {
     Function* func = nullptr;
     std::vector<LogicalType> inputTypes;
     inputTypes.push_back(LogicalType::STRING());
@@ -239,23 +238,27 @@ TableFunction Binder::getScanFunction(FileTypeInfo typeInfo,
     switch (typeInfo.fileType) {
     case FileType::PARQUET: {
         auto entry = catalog->getFunctionEntry(transaction, ParquetScanFunction::name);
-        func = BuiltInFunctionsUtils::matchFunction(ParquetScanFunction::name, inputTypes, entry->ptrCast<FunctionCatalogEntry>());
+        func = BuiltInFunctionsUtils::matchFunction(ParquetScanFunction::name, inputTypes,
+            entry->ptrCast<FunctionCatalogEntry>());
     } break;
     case FileType::NPY: {
         auto entry = catalog->getFunctionEntry(transaction, NpyScanFunction::name);
-        func = BuiltInFunctionsUtils::matchFunction(NpyScanFunction::name, inputTypes, entry->ptrCast<FunctionCatalogEntry>());
+        func = BuiltInFunctionsUtils::matchFunction(NpyScanFunction::name, inputTypes,
+            entry->ptrCast<FunctionCatalogEntry>());
     } break;
     case FileType::CSV: {
         auto csvConfig = CSVReaderConfig::construct(fileScanInfo.options);
         auto name = csvConfig.parallel ? ParallelCSVScan::name : SerialCSVScan::name;
         auto entry = catalog->getFunctionEntry(transaction, name);
-        func = BuiltInFunctionsUtils::matchFunction(name, inputTypes, entry->ptrCast<FunctionCatalogEntry>());
+        func = BuiltInFunctionsUtils::matchFunction(name, inputTypes,
+            entry->ptrCast<FunctionCatalogEntry>());
     } break;
     case FileType::UNKNOWN: {
         try {
             auto name = common::stringFormat("{}_SCAN", typeInfo.fileTypeStr);
             auto entry = catalog->getFunctionEntry(transaction, name);
-            func = BuiltInFunctionsUtils::matchFunction(name, inputTypes, entry->ptrCast<FunctionCatalogEntry>());
+            func = BuiltInFunctionsUtils::matchFunction(name, inputTypes,
+                entry->ptrCast<FunctionCatalogEntry>());
         } catch (...) {
             if (typeInfo.fileTypeStr == "") {
                 throw common::BinderException{

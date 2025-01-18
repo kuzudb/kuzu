@@ -19,11 +19,11 @@
 #include "common/serializer/serializer.h"
 #include "common/string_format.h"
 #include "function/built_in_function_utils.h"
+#include "function/function_collection.h"
 #include "main/db_config.h"
 #include "storage/storage_utils.h"
 #include "storage/storage_version_info.h"
 #include "transaction/transaction.h"
-#include "function/function_collection.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -401,8 +401,7 @@ function::ScalarMacroFunction* Catalog::getScalarMacroFunction(const Transaction
 // addScalarMacroFunction
 void Catalog::addScalarMacroFunction(Transaction* transaction, std::string name,
     std::unique_ptr<function::ScalarMacroFunction> macro) {
-    auto entry =
-        std::make_unique<ScalarMacroCatalogEntry>(std::move(name), std::move(macro));
+    auto entry = std::make_unique<ScalarMacroCatalogEntry>(std::move(name), std::move(macro));
     functions->createEntry(transaction, std::move(entry));
 }
 

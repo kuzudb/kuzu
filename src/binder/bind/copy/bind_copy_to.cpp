@@ -21,8 +21,10 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     auto columns = query->getStatementResult()->getColumns();
     auto fileTypeStr = fileTypeInfo.fileTypeStr;
     auto name = common::stringFormat("COPY_{}", fileTypeStr);
-    auto entry = clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(), name);
-    auto exportFunc = function::BuiltInFunctionsUtils::matchFunction(name, entry->ptrCast<catalog::FunctionCatalogEntry>())
+    auto entry =
+        clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(), name);
+    auto exportFunc = function::BuiltInFunctionsUtils::matchFunction(name,
+        entry->ptrCast<catalog::FunctionCatalogEntry>())
                           ->constPtrCast<function::ExportFunction>();
     for (auto& column : columns) {
         auto columnName = column->hasAlias() ? column->getAlias() : column->toString();

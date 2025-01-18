@@ -132,7 +132,7 @@ void Database::addTableFunction(std::string name, function::function_set functio
 void Database::addStandaloneCallFunction(std::string name,
     std::vector<std::unique_ptr<function::Function>> functionSet) {
     catalog->addFunction(&DUMMY_TRANSACTION, CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY,
-               std::move(name), std::move(functionSet));
+        std::move(name), std::move(functionSet));
 }
 
 void Database::registerFileSystem(std::unique_ptr<FileSystem> fs) {

@@ -42,7 +42,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
         childrenTypes.push_back(combinedType.copy());
     }
     auto entry = catalog->getFunctionEntry(transaction, functionName);
-    auto function = BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, entry->ptrCast<catalog::FunctionCatalogEntry>())->ptrCast<ScalarFunction>();
+    auto function = BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes,
+        entry->ptrCast<catalog::FunctionCatalogEntry>())
+                        ->ptrCast<ScalarFunction>();
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {
         if (children[i]->dataType != combinedType) {

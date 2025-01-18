@@ -20,7 +20,8 @@ static void validateNonEmptyCandidateFunctions(std::vector<Function*>& candidate
     const function::function_set& set);
 
 Function* BuiltInFunctionsUtils::matchFunction(const std::string& name,
-    const std::vector<LogicalType>& inputTypes, const catalog::FunctionCatalogEntry* functionEntry) {
+    const std::vector<LogicalType>& inputTypes,
+    const catalog::FunctionCatalogEntry* functionEntry) {
     auto& functionSet = functionEntry->getFunctionSet();
     std::vector<Function*> candidateFunctions;
     uint32_t minCost = UINT32_MAX;
@@ -47,7 +48,8 @@ Function* BuiltInFunctionsUtils::matchFunction(const std::string& name,
 }
 
 AggregateFunction* BuiltInFunctionsUtils::matchAggregateFunction(const std::string& name,
-    const std::vector<common::LogicalType>& inputTypes, bool isDistinct, const catalog::FunctionCatalogEntry* functionEntry) {
+    const std::vector<common::LogicalType>& inputTypes, bool isDistinct,
+    const catalog::FunctionCatalogEntry* functionEntry) {
     auto& functionSet = functionEntry->getFunctionSet();
     std::vector<AggregateFunction*> candidateFunctions;
     for (auto& function : functionSet) {

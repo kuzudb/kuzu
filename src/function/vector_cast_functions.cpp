@@ -1058,9 +1058,10 @@ static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input)
         std::vector<LogicalType> typeVec;
         typeVec.push_back(input.arguments[0]->getDataType().copy());
         try {
-            auto entry = input.context->getCatalog()->getFunctionEntry(input.context->getTransaction(), func->name);
-            auto match = BuiltInFunctionsUtils::matchFunction(
-                func->name, typeVec, entry->ptrCast<catalog::FunctionCatalogEntry>());
+            auto entry = input.context->getCatalog()->getFunctionEntry(
+                input.context->getTransaction(), func->name);
+            auto match = BuiltInFunctionsUtils::matchFunction(func->name, typeVec,
+                entry->ptrCast<catalog::FunctionCatalogEntry>());
             func->execFunc = match->constPtrCast<ScalarFunction>()->execFunc;
             return std::make_unique<function::CastFunctionBindData>(targetType.copy());
         } catch (...) { // NOLINT

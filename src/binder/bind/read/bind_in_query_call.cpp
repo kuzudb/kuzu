@@ -26,7 +26,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     auto functionName = functionExpr->getFunctionName();
     std::unique_ptr<BoundReadingClause> boundReadingClause;
     expression_vector columns;
-    auto entry = clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(), functionName);
+    auto entry = clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(),
+        functionName);
     switch (entry->getType()) {
     case CatalogEntryType::TABLE_FUNCTION_ENTRY: {
         auto boundTableFunction = bindTableFunc(functionName, *functionExpr, columns);
@@ -49,7 +50,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
                     literalExpr->getValue());
             }
         }
-        auto func = BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes, entry->ptrCast<FunctionCatalogEntry>());
+        auto func = BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes,
+            entry->ptrCast<FunctionCatalogEntry>());
         auto gdsFunc = func->constPtrCast<GDSFunction>()->copy();
         auto input = GDSBindInput();
         input.params = children;
