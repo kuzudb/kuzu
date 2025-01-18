@@ -1,9 +1,8 @@
 #include "binder/expression/rel_expression.h"
 
-#include <numeric>
-
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
+#include "common/exception/binder.h"
 #include "common/utils.h"
 
 using namespace kuzu::common;
@@ -35,19 +34,28 @@ std::string RelExpression::detailsToString() const {
 }
 
 std::vector<common::ExtendDirection> RelExpression::getExtendDirections() const {
-    return std::accumulate(entries.begin(), entries.end(),
-        std::vector{ExtendDirection::FWD, ExtendDirection::BWD},
-        [](const auto& intersection, catalog::TableCatalogEntry* curEntry) {
-            const auto newDirections =
-                curEntry->constPtrCast<catalog::RelTableCatalogEntry>()->getRelDataDirections();
-            std::vector<ExtendDirection> ret;
-            std::copy_if(intersection.begin(), intersection.end(), std::back_inserter(ret),
-                [&](auto extendDir) {
-                    return common::dataContains(newDirections,
-                        ExtendDirectionUtil::getRelDataDirection(extendDir));
-                });
-            return ret;
-        });
+    std::vector<ExtendDirection> ret;
+    for (const auto direction : {ExtendDirection::FWD, ExtendDirection::BWD}) {
+        const bool addDirection = std::all_of(entries.begin(), entries.end(),
+            [direction](const catalog::TableCatalogEntry* tableEntry) {
+                const auto* relTableEntry =
+                    tableEntry->constPtrCast<catalog::RelTableCatalogEntry>();
+                return common::containsValue(relTableEntry->getRelDataDirections(),
+                    ExtendDirectionUtil::getRelDataDirection(direction));
+            });
+        if (addDirection) {
+            ret.push_back(direction);
+        }
+    }
+    if (ret.empty()) {
+        throw BinderException(stringFormat(
+            "There are no common storage directions among the rel "
+            "tables matched by pattern '{}' (some tables have storage direction 'fwd' "
+            "while others have storage direction 'bwd'). Scanning different tables matching the "
+            "same pattern in different directions is currently unsupported.",
+            toString()));
+    }
+    return ret;
 }
 
 } // namespace binder

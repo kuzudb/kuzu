@@ -10,6 +10,7 @@
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
+#include "common/utils.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "main/client_context.h"
 
@@ -175,6 +176,30 @@ static std::unique_ptr<Expression> createPropertyExpression(const std::string& p
         entries);
 }
 
+static void checkRelDirectionTypeAgainstStorageDirection(RelExpression* rel) {
+    switch (rel->getDirectionType()) {
+    case RelDirectionType::SINGLE:
+        // Directed pattern is in the fwd direction
+        if (!common::containsValue(rel->getExtendDirections(), ExtendDirection::FWD)) {
+            throw BinderException(stringFormat("Querying table matched in rel pattern '{}' with "
+                                               "bwd-only storage direction isn't supported.",
+                rel->toString()));
+        }
+        break;
+    case RelDirectionType::BOTH:
+        if (rel->getExtendDirections().size() < common::NUM_REL_DIRECTIONS) {
+            throw BinderException(
+                stringFormat("Undirected rel pattern '{}' has at least one matched rel table with "
+                             "storage type 'fwd' or 'bwd'. Undirected rel patterns are only "
+                             "supported if every matched rel table has storage type 'both'.",
+                    rel->toString()));
+        }
+        break;
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
 std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern,
     const std::shared_ptr<NodeExpression>& leftNode,
     const std::shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph) {
@@ -236,17 +261,8 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
         addToScope(parsedName, queryRel);
     }
     queryGraph.addQueryRel(queryRel);
+    checkRelDirectionTypeAgainstStorageDirection(queryRel.get());
     return queryRel;
-}
-
-static void checkRelDirectionTypeAgainstStorageDirection(RelExpression* rel) {
-    if (rel->getExtendDirections().size() < 2 &&
-        rel->getDirectionType() == RelDirectionType::BOTH) {
-        throw BinderException(
-            stringFormat("Binding rel pattern {} as undirected is unsupported as at "
-                         "least one matched table doesn't have storage type 'both'",
-                rel->toString()));
-    }
 }
 
 std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::string& parsedName,
@@ -277,7 +293,6 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     }
     auto extraInfo = std::make_unique<StructTypeInfo>(std::move(fields));
     queryRel->setExtraTypeInfo(std::move(extraInfo));
-    checkRelDirectionTypeAgainstStorageDirection(queryRel.get());
     return queryRel;
 }
 
@@ -431,7 +446,6 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     }
 
     queryRel->setRecursiveInfo(std::move(recursiveInfo));
-    checkRelDirectionTypeAgainstStorageDirection(queryRel.get());
     return queryRel;
 }
 

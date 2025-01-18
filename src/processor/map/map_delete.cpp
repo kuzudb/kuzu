@@ -15,6 +15,16 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
+static void checkDetachDeleteRelDirection(const RelTable* relTable, const NodeTable* nodeTable) {
+    if (relTable->getStorageDirections().size() < common::NUM_REL_DIRECTIONS) {
+        throw RuntimeException(stringFormat(
+            "Cannot detach delete from node table '{}' as it has connected edges in rel "
+            "table '{}' (detach delete only supports deleting from rel tables with "
+            "storage direction 'both').",
+            nodeTable->getTableName(), relTable->getTableName()));
+    }
+}
+
 NodeTableDeleteInfo PlanMapper::getNodeTableDeleteInfo(const TableCatalogEntry& entry,
     DataPos pkPos) const {
     auto storageManager = clientContext->getStorageManager();
@@ -26,10 +36,14 @@ NodeTableDeleteInfo PlanMapper::getNodeTableDeleteInfo(const TableCatalogEntry& 
     std::unordered_set<RelTable*> bwdRelTables;
     auto& nodeEntry = entry.constCast<NodeTableCatalogEntry>();
     for (auto id : nodeEntry.getFwdRelTableIDs(catalog, transaction)) {
-        fwdRelTables.insert(storageManager->getTable(id)->ptrCast<RelTable>());
+        auto* relTable = storageManager->getTable(id)->ptrCast<RelTable>();
+        checkDetachDeleteRelDirection(relTable, table);
+        fwdRelTables.insert(relTable);
     }
     for (auto id : nodeEntry.getBwdRelTableIDs(catalog, transaction)) {
-        bwdRelTables.insert(storageManager->getTable(id)->ptrCast<RelTable>());
+        auto* relTable = storageManager->getTable(id)->ptrCast<RelTable>();
+        checkDetachDeleteRelDirection(relTable, table);
+        bwdRelTables.insert(relTable);
     }
     return NodeTableDeleteInfo(table, std::move(fwdRelTables), std::move(bwdRelTables), pkPos);
 }

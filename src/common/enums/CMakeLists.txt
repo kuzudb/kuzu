@@ -1,5 +1,9 @@
-if(${DEFAULT_FWD_REL_STORAGE})
-    add_compile_definitions(KUZU_DEFAULT_FWD_REL_STORAGE)
+if(${DEFAULT_REL_STORAGE_DIRECTION} STREQUAL "FWD")
+        add_definitions(-DKUZU_DEFAULT_REL_STORAGE_DIRECTION=1)
+elseif(${DEFAULT_REL_STORAGE_DIRECTION} STREQUAL "BWD")
+        add_definitions(-DKUZU_DEFAULT_REL_STORAGE_DIRECTION=2)
+else()
+        add_definitions(-DKUZU_DEFAULT_REL_STORAGE_DIRECTION=0)
 endif()
 
 add_library(kuzu_common_enums

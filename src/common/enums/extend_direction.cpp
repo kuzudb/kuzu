@@ -3,12 +3,20 @@
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
 
+#define BOTH_REL_STORAGE 0
+#define FWD_REL_STORAGE 1
+#define BWD_REL_STORAGE 2
+
 namespace kuzu {
 namespace common {
 
 ExtendDirection ExtendDirectionUtil::getDefaultExtendDirection() {
-#if defined(KUZU_DEFAULT_FWD_REL_STORAGE) && (KUZU_DEFAULT_FWD_REL_STORAGE == 1)
+#if defined(KUZU_DEFAULT_REL_STORAGE_DIRECTION) &&                                                 \
+    (KUZU_DEFAULT_REL_STORAGE_DIRECTION == FWD_REL_STORAGE)
     static constexpr ExtendDirection defaultExtendDirection = ExtendDirection::FWD;
+#elif defined(KUZU_DEFAULT_REL_STORAGE_DIRECTION) &&                                               \
+    (KUZU_DEFAULT_REL_STORAGE_DIRECTION == BWD_REL_STORAGE)
+    static constexpr ExtendDirection defaultExtendDirection = ExtendDirection::BWD;
 #else
     static constexpr ExtendDirection defaultExtendDirection = ExtendDirection::BOTH;
 #endif

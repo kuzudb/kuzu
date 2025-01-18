@@ -285,7 +285,7 @@ getBoundAndNbrNodes(const RelExpression& rel, ExtendDirection direction) {
 static ExtendDirection getExtendDirection(const binder::RelExpression& relExpression,
     const binder::NodeExpression& boundNode) {
     if (relExpression.getDirectionType() == binder::RelDirectionType::BOTH) {
-        KU_ASSERT(relExpression.getExtendDirections().size() == 2);
+        KU_ASSERT(relExpression.getExtendDirections().size() == common::NUM_REL_DIRECTIONS);
         return ExtendDirection::BOTH;
     }
     if (relExpression.getSrcNodeName() == boundNode.getUniqueName()) {
@@ -432,6 +432,14 @@ void Planner::planWCOJoin(const SubqueryGraph& subgraph,
         auto boundNode = rel->getSrcNodeName() == intersectNode->getUniqueName() ?
                              rel->getDstNode() :
                              rel->getSrcNode();
+
+        // stop if the rel pattern's supported rel directions don't contain the current direction
+        const auto extendDirection = getExtendDirection(*rel, *boundNode);
+        if (extendDirection != common::ExtendDirection::BOTH &&
+            !common::containsValue(rel->getExtendDirections(), extendDirection)) {
+            return;
+        }
+
         boundNodeIDs.push_back(boundNode->getInternalID());
         auto relPos = context.getQueryGraph()->getQueryRelIdx(rel->getUniqueName());
         auto prevSubgraph = context.getEmptySubqueryGraph();
@@ -545,7 +553,8 @@ bool Planner::tryPlanINLJoin(const SubqueryGraph& subgraph, const SubqueryGraph&
     auto nbrNode =
         boundNode->getUniqueName() == rel->getSrcNodeName() ? rel->getDstNode() : rel->getSrcNode();
     auto extendDirection = getExtendDirection(*rel, *boundNode);
-    if (!common::dataContains(rel->getExtendDirections(), extendDirection)) {
+    if (extendDirection != common::ExtendDirection::BOTH &&
+        !common::containsValue(rel->getExtendDirections(), extendDirection)) {
         return false;
     }
     auto newSubgraph = subgraph;

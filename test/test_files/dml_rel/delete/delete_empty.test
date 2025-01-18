@@ -43,3 +43,18 @@
 ---- 2
 77|88|5.100000
 77|55|1.200000
+
+-CASE DetachDeleteSingleDirectionRelStorage
+-STATEMENT create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID))
+---- ok
+-STATEMENT create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MAnY) WITH (storage_direction = 'fwd')
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv";
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv";
+---- ok
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv";
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID = 0 DETACH DELETE a;
+---- error
+Runtime exception: Cannot detach delete from node table 'person' as it has connected edges in rel table 'knows' (detach delete only supports deleting from rel tables with storage direction 'both').

@@ -165,5 +165,13 @@ TEST_F(OptimizerTest, SingleNodeTwoHopJoins) {
 #endif
 }
 
+TEST_F(OptimizerTest, PlanUndirectedInnerJoin) {
+    auto query = "MATCH (a:person)-[e:knows]-(b:person) RETURN a.ID, b.ID;";
+    auto encodedPlan = getEncodedPlan(query);
+    // there should only be a single hash join in the plan
+    ASSERT_TRUE((encodedPlan == "HJ(b._ID){E(b)S(a)}{S(b)}") ||
+                (encodedPlan == "HJ(a._ID){E(a)S(b)}{S(a)}"));
+}
+
 } // namespace testing
 } // namespace kuzu

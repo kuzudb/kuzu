@@ -23,6 +23,9 @@ struct DirectedCSRIndex {
 
     explicit DirectedCSRIndex(common::RelDataDirection direction) : direction(direction) {}
 
+    bool isEmpty() const { return index.empty(); }
+    void clear() { index.clear(); }
+
     common::RelDataDirection direction;
     index_t index;
 };
@@ -51,7 +54,7 @@ public:
     void clear() override {
         localNodeGroup.reset();
         for (auto& index : directedIndices) {
-            index.index.clear();
+            index.clear();
         }
     }
     bool isEmpty() const {
@@ -60,7 +63,7 @@ public:
                            : directedIndices) {
             KU_ASSERT(index.index.empty() == directedIndices[0].index.empty());
         });
-        return directedIndices[0].index.empty();
+        return directedIndices[0].isEmpty();
     }
 
     common::column_id_t getNumColumns() const { return localNodeGroup->getDataTypes().size(); }
@@ -80,7 +83,7 @@ public:
 
 private:
     common::row_idx_t findMatchingRow(transaction::Transaction* transaction,
-        const std::vector<row_idx_vec_t*>& rowVecsToCheck, common::offset_t relOffset);
+        const std::vector<row_idx_vec_t*>& rowIndicesToCheck, common::offset_t relOffset);
 
 private:
     // We don't duplicate local rel tuples. Tuples are stored same as node tuples.

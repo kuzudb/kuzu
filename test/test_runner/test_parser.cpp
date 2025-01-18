@@ -484,8 +484,8 @@ void TestParser::parseBody() {
             break;
         }
         default: {
-            if (TestHelper::getSystemEnv("DEFAULT_FWD_REL_STORAGE") == "1" && !testFwdOnly &&
-                !testCaseName.starts_with("DISABLED_")) {
+            if (TestHelper::getSystemEnv("DEFAULT_REL_STORAGE_DIRECTION") == "fwd" &&
+                !testFwdOnly && !testCaseName.starts_with("DISABLED_")) {
                 testCaseName = "DISABLED_" + testCaseName;
             }
             // if its not a special case, then it has to be a statement
