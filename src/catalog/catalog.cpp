@@ -19,6 +19,7 @@
 #include "common/serializer/serializer.h"
 #include "common/string_format.h"
 #include "function/built_in_function_utils.h"
+#include "function/function_collection.h"
 #include "main/db_config.h"
 #include "storage/storage_utils.h"
 #include "storage/storage_version_info.h"
@@ -348,6 +349,10 @@ void Catalog::dropIndex(Transaction* transaction, table_id_t tableID,
     indexes->dropEntry(transaction, uniqueName, entry->getOID());
 }
 
+bool Catalog::containsFunction(const Transaction* transaction, const std::string& name) {
+    return functions->containsEntry(transaction, name);
+}
+
 void Catalog::addFunction(Transaction* transaction, CatalogEntryType entryType, std::string name,
     function::function_set functionSet) {
     if (functions->containsEntry(transaction, name)) {
@@ -358,29 +363,19 @@ void Catalog::addFunction(Transaction* transaction, CatalogEntryType entryType, 
 }
 
 void Catalog::dropFunction(Transaction* transaction, const std::string& name) {
-    const auto entry = functions->getEntry(transaction, name);
-    if (entry == nullptr) {
+    if (!containsFunction(transaction, name)) {
         throw CatalogException{stringFormat("function {} doesn't exist.", name)};
     }
+    auto entry = getFunctionEntry(transaction, name);
     functions->dropEntry(transaction, name, entry->getOID());
-}
-
-void Catalog::addBuiltInFunction(CatalogEntryType entryType, std::string name,
-    function::function_set functionSet) {
-    addFunction(&DUMMY_TRANSACTION, entryType, std::move(name), std::move(functionSet));
-}
-
-CatalogSet* Catalog::getFunctions(Transaction*) const {
-    return functions.get();
 }
 
 CatalogEntry* Catalog::getFunctionEntry(const Transaction* transaction,
     const std::string& name) const {
-    const auto catalogSet = functions.get();
-    if (!catalogSet->containsEntry(transaction, name)) {
+    if (!functions->containsEntry(transaction, name)) {
         throw CatalogException(stringFormat("function {} does not exist.", name));
     }
-    return catalogSet->getEntry(transaction, name);
+    return functions->getEntry(transaction, name);
 }
 
 std::vector<FunctionCatalogEntry*> Catalog::getFunctionEntries(
@@ -403,11 +398,11 @@ function::ScalarMacroFunction* Catalog::getScalarMacroFunction(const Transaction
         .getMacroFunction();
 }
 
+// addScalarMacroFunction
 void Catalog::addScalarMacroFunction(Transaction* transaction, std::string name,
     std::unique_ptr<function::ScalarMacroFunction> macro) {
-    auto scalarMacroCatalogEntry =
-        std::make_unique<ScalarMacroCatalogEntry>(std::move(name), std::move(macro));
-    functions->createEntry(transaction, std::move(scalarMacroCatalogEntry));
+    auto entry = std::make_unique<ScalarMacroCatalogEntry>(std::move(name), std::move(macro));
+    functions->createEntry(transaction, std::move(entry));
 }
 
 std::vector<std::string> Catalog::getMacroNames(const Transaction* transaction) const {
@@ -494,7 +489,14 @@ void Catalog::readFromFile(const std::string& directory, VirtualFileSystem* fs,
 }
 
 void Catalog::registerBuiltInFunctions() {
-    function::BuiltInFunctionsUtils::createFunctions(&DUMMY_TRANSACTION, functions.get());
+    auto functionCollection = function::FunctionCollection::getFunctions();
+    for (auto i = 0u; functionCollection[i].name != nullptr; ++i) {
+        auto& f = functionCollection[i];
+        auto functionSet = f.getFunctionSetFunc();
+        functions->createEntry(&DUMMY_TRANSACTION,
+            std::make_unique<FunctionCatalogEntry>(f.catalogEntryType, f.name,
+                std::move(functionSet)));
+    }
 }
 
 std::unique_ptr<CatalogEntry> Catalog::createNodeTableEntry(Transaction*,

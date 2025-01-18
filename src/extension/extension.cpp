@@ -131,8 +131,7 @@ void ExtensionUtils::registerTableFunction(main::Database& database,
     function::function_set functionSet;
     functionSet.push_back(std::move(function));
     auto catalog = database.getCatalog();
-    if (catalog->getFunctions(&transaction::DUMMY_TRANSACTION)
-            ->containsEntry(&transaction::DUMMY_TRANSACTION, name)) {
+    if (catalog->containsFunction(&transaction::DUMMY_TRANSACTION, name)) {
         return;
     }
     catalog->addFunction(&transaction::DUMMY_TRANSACTION,
@@ -164,8 +163,7 @@ std::string ExtensionUtils::getLocalPathForSharedLib(main::ClientContext* contex
 void ExtensionUtils::registerFunctionSet(main::Database& database, std::string name,
     function::function_set functionSet, catalog::CatalogEntryType functionType) {
     auto catalog = database.getCatalog();
-    if (catalog->getFunctions(&transaction::DUMMY_TRANSACTION)
-            ->containsEntry(&transaction::DUMMY_TRANSACTION, name)) {
+    if (catalog->containsFunction(&transaction::DUMMY_TRANSACTION, name)) {
         return;
     }
     catalog->addFunction(&transaction::DUMMY_TRANSACTION, functionType, std::move(name),

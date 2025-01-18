@@ -1,13 +1,9 @@
 #include "function/built_in_function_utils.h"
 
 #include "catalog/catalog_entry/function_catalog_entry.h"
-#include "catalog/catalog_set.h"
 #include "common/exception/binder.h"
-#include "common/exception/catalog.h"
 #include "function/aggregate_function.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
-#include "function/function_collection.h"
-#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -23,39 +19,9 @@ static void validateNonEmptyCandidateFunctions(std::vector<Function*>& candidate
     const std::string& name, const std::vector<LogicalType>& inputTypes,
     const function::function_set& set);
 
-void BuiltInFunctionsUtils::createFunctions(transaction::Transaction* transaction,
-    CatalogSet* catalogSet) {
-    auto functions = FunctionCollection::getFunctions();
-    for (auto i = 0u; functions[i].name != nullptr; ++i) {
-        auto functionSet = functions[i].getFunctionSetFunc();
-        catalogSet->createEntry(transaction,
-            std::make_unique<FunctionCatalogEntry>(functions[i].catalogEntryType, functions[i].name,
-                std::move(functionSet)));
-    }
-}
-
-catalog::CatalogEntry* BuiltInFunctionsUtils::getFunctionCatalogEntry(
-    transaction::Transaction* transaction, const std::string& name, CatalogSet* catalogSet) {
-    if (!catalogSet->containsEntry(transaction, name)) {
-        throw CatalogException(stringFormat("{} function does not exist.", name));
-    }
-    return catalogSet->getEntry(transaction, name);
-}
-
-Function* BuiltInFunctionsUtils::matchFunction(transaction::Transaction* transaction,
-    const std::string& name, CatalogSet* catalogSet) {
-    return matchFunction(transaction, name, std::vector<LogicalType>{}, catalogSet);
-}
-
-Function* BuiltInFunctionsUtils::matchFunction(transaction::Transaction* transaction,
-    const std::string& name, const std::vector<LogicalType>& inputTypes, CatalogSet* catalogSet) {
-    auto entry = getFunctionCatalogEntry(transaction, name, catalogSet);
-    return matchFunction(name, inputTypes, entry);
-}
-
 Function* BuiltInFunctionsUtils::matchFunction(const std::string& name,
-    const std::vector<LogicalType>& inputTypes, const catalog::CatalogEntry* catalogEntry) {
-    auto functionEntry = catalogEntry->constPtrCast<FunctionCatalogEntry>();
+    const std::vector<LogicalType>& inputTypes,
+    const catalog::FunctionCatalogEntry* functionEntry) {
     auto& functionSet = functionEntry->getFunctionSet();
     std::vector<Function*> candidateFunctions;
     uint32_t minCost = UINT32_MAX;
@@ -82,10 +48,9 @@ Function* BuiltInFunctionsUtils::matchFunction(const std::string& name,
 }
 
 AggregateFunction* BuiltInFunctionsUtils::matchAggregateFunction(const std::string& name,
-    const std::vector<common::LogicalType>& inputTypes, bool isDistinct, CatalogSet* catalogSet) {
-    auto& functionSet = catalogSet->getEntry(&transaction::DUMMY_TRANSACTION, name)
-                            ->ptrCast<FunctionCatalogEntry>()
-                            ->getFunctionSet();
+    const std::vector<common::LogicalType>& inputTypes, bool isDistinct,
+    const catalog::FunctionCatalogEntry* functionEntry) {
+    auto& functionSet = functionEntry->getFunctionSet();
     std::vector<AggregateFunction*> candidateFunctions;
     for (auto& function : functionSet) {
         auto aggregateFunction = function->ptrCast<AggregateFunction>();

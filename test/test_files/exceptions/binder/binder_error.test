@@ -547,7 +547,7 @@ Binder exception: Invalid number of arguments for macro ADD4.
 -LOG CopyToNPYFormat
 -STATEMENT COPY (MATCH (a:person) RETURN a) TO 'person.npy';
 ---- error
-Catalog exception: COPY_npy function does not exist.
+Catalog exception: function COPY_npy does not exist.
 
 -LOG InvalidImplicitCast
 -STATEMENT RETURN timestamp("2019-11-21") + "ok";

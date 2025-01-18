@@ -146,16 +146,21 @@ public:
 
     // ----------------------------- Functions ----------------------------
 
-    void addFunction(transaction::Transaction* transaction, CatalogEntryType entryType,
-        std::string name, function::function_set functionSet);
-    void dropFunction(transaction::Transaction* transaction, const std::string& name);
-    void addBuiltInFunction(CatalogEntryType entryType, std::string name,
-        function::function_set functionSet);
-    CatalogSet* getFunctions(transaction::Transaction* transaction) const;
+    // Check if function exists.
+    bool containsFunction(const transaction::Transaction* transaction, const std::string& name);
+    // Get function entry by name.
+    // Note we cannot cast to FunctionEntry here because result could also be a MacroEntry.
     CatalogEntry* getFunctionEntry(const transaction::Transaction* transaction,
         const std::string& name) const;
+    // Get all function entries.
     std::vector<FunctionCatalogEntry*> getFunctionEntries(
         const transaction::Transaction* transaction) const;
+
+    // Add function with name.
+    void addFunction(transaction::Transaction* transaction, CatalogEntryType entryType,
+        std::string name, function::function_set functionSet);
+    // Drop function with name.
+    void dropFunction(transaction::Transaction* transaction, const std::string& name);
 
     // ----------------------------- Macro ----------------------------
 

@@ -20,9 +20,8 @@ static void validateParameterType(const expression_vector& positionalParams) {
 
 BoundTableFunction Binder::bindTableFunc(std::string tableFuncName,
     const parser::ParsedExpression& expr, expression_vector& columns) {
-    auto functions = clientContext->getCatalog()->getFunctions(clientContext->getTransaction());
-    auto entry = BuiltInFunctionsUtils::getFunctionCatalogEntry(clientContext->getTransaction(),
-        tableFuncName, functions);
+    auto entry = clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(),
+        tableFuncName);
     expression_vector positionalParams;
     std::vector<LogicalType> positionalParamTypes;
     optional_params_t optionalParams;
@@ -38,7 +37,8 @@ BoundTableFunction Binder::bindTableFunc(std::string tableFuncName,
             optionalParams.emplace(childExpr.getAlias(), literalExpr->getValue());
         }
     }
-    auto func = BuiltInFunctionsUtils::matchFunction(tableFuncName, positionalParamTypes, entry);
+    auto func = BuiltInFunctionsUtils::matchFunction(tableFuncName, positionalParamTypes,
+        entry->ptrCast<catalog::FunctionCatalogEntry>());
     validateParameterType(positionalParams);
     auto tableFunc = func->constPtrCast<TableFunction>();
     for (auto i = 0u; i < positionalParams.size(); ++i) {

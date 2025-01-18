@@ -9,32 +9,26 @@ class Transaction;
 } // namespace transaction
 
 namespace catalog {
-class CatalogSet;
-class CatalogEntry;
+class FunctionCatalogEntry;
 } // namespace catalog
 
 namespace function {
 
 class BuiltInFunctionsUtils {
 public:
-    static void createFunctions(transaction::Transaction* transaction,
-        catalog::CatalogSet* catalogSet);
-
-    static catalog::CatalogEntry* getFunctionCatalogEntry(transaction::Transaction* transaction,
-        const std::string& name, catalog::CatalogSet* catalogSet);
-    static Function* matchFunction(transaction::Transaction* transaction, const std::string& name,
-        catalog::CatalogSet* catalogSet);
     // TODO(Ziyi): We should have a unified interface for matching table, aggregate and scalar
     // functions.
-    static Function* matchFunction(transaction::Transaction* transaction, const std::string& name,
-        const std::vector<common::LogicalType>& inputTypes, catalog::CatalogSet* catalogSet);
+    static Function* matchFunction(const std::string& name,
+        const catalog::FunctionCatalogEntry* catalogEntry) {
+        return matchFunction(name, {}, catalogEntry);
+    }
     static Function* matchFunction(const std::string& name,
         const std::vector<common::LogicalType>& inputTypes,
-        const catalog::CatalogEntry* catalogEntry);
+        const catalog::FunctionCatalogEntry* functionEntry);
 
     static AggregateFunction* matchAggregateFunction(const std::string& name,
         const std::vector<common::LogicalType>& inputTypes, bool isDistinct,
-        catalog::CatalogSet* catalogSet);
+        const catalog::FunctionCatalogEntry* functionEntry);
 
     static KUZU_API uint32_t getCastCost(common::LogicalTypeID inputTypeID,
         common::LogicalTypeID targetTypeID);
