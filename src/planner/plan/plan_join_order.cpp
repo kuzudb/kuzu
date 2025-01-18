@@ -435,7 +435,8 @@ void Planner::planWCOJoin(const SubqueryGraph& subgraph,
 
         // stop if the rel pattern's supported rel directions don't contain the current direction
         const auto extendDirection = getExtendDirection(*rel, *boundNode);
-        if (!common::containsValue(rel->getExtendDirections(), extendDirection)) {
+        if (extendDirection != common::ExtendDirection::BOTH &&
+            !common::containsValue(rel->getExtendDirections(), extendDirection)) {
             return;
         }
 
@@ -552,7 +553,8 @@ bool Planner::tryPlanINLJoin(const SubqueryGraph& subgraph, const SubqueryGraph&
     auto nbrNode =
         boundNode->getUniqueName() == rel->getSrcNodeName() ? rel->getDstNode() : rel->getSrcNode();
     auto extendDirection = getExtendDirection(*rel, *boundNode);
-    if (!common::containsValue(rel->getExtendDirections(), extendDirection)) {
+    if (extendDirection != common::ExtendDirection::BOTH &&
+        !common::containsValue(rel->getExtendDirections(), extendDirection)) {
         return false;
     }
     auto newSubgraph = subgraph;

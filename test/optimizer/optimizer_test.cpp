@@ -165,5 +165,10 @@ TEST_F(OptimizerTest, SingleNodeTwoHopJoins) {
 #endif
 }
 
+TEST_F(OptimizerTest, PlanUndirectedInnerJoin) {
+    auto query = "MATCH (a:person)-[e:knows]-(b:person) RETURN a.ID, b.ID;";
+    ASSERT_STREQ(getEncodedPlan(query).c_str(), "HJ(b._ID){E(b)S(a)}{S(b)}");
+}
+
 } // namespace testing
 } // namespace kuzu
