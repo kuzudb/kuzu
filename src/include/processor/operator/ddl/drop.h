@@ -28,7 +28,7 @@ public:
     Drop(parser::DropInfo dropInfo, const DataPos& outputPos, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : DDL{type_, outputPos, id, std::move(printInfo)}, dropInfo{std::move(dropInfo)},
-          validEntry{false} {}
+          entryDropped{false} {}
 
     void executeDDLInternal(ExecutionContext* context) override;
 
@@ -39,8 +39,13 @@ public:
     }
 
 private:
+    void dropSequence(main::ClientContext* context);
+    void dropTable(main::ClientContext* context);
+    void dropRelGroup(main::ClientContext* context);
+
+private:
     parser::DropInfo dropInfo;
-    bool validEntry;
+    bool entryDropped;
 };
 
 } // namespace processor

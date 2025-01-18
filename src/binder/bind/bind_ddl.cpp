@@ -7,8 +7,6 @@
 #include "binder/expression/expression_util.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "catalog/catalog_entry/rel_group_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
@@ -134,14 +132,14 @@ static void validatePrimaryKey(const std::string& pkColName,
 }
 
 BoundCreateTableInfo Binder::bindCreateTableInfo(const parser::CreateTableInfo* info) {
-    switch (info->tableType) {
-    case TableType::NODE: {
+    switch (info->type) {
+    case CatalogEntryType::NODE_TABLE_ENTRY: {
         return bindCreateNodeTableInfo(info);
     }
-    case TableType::REL: {
+    case CatalogEntryType::REL_TABLE_ENTRY: {
         return bindCreateRelTableInfo(info);
     }
-    case TableType::REL_GROUP: {
+    case CatalogEntryType::REL_GROUP_ENTRY: {
         return bindCreateRelTableGroupInfo(info);
     }
     default: {
@@ -156,8 +154,15 @@ BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo* info
     validatePrimaryKey(extraInfo.pKName, propertyDefinitions);
     auto boundExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(extraInfo.pKName,
         std::move(propertyDefinitions));
-    return BoundCreateTableInfo(TableType::NODE, info->tableName, info->onConflict,
-        std::move(boundExtraInfo), clientContext->shouldUseInternalCatalogEntry());
+    return BoundCreateTableInfo(CatalogEntryType::NODE_TABLE_ENTRY, info->tableName,
+        info->onConflict, std::move(boundExtraInfo),
+        clientContext->shouldUseInternalCatalogEntry());
+}
+
+static void validateNodeTableType(TableCatalogEntry* entry) {
+    if (entry->getType() != CatalogEntryType::NODE_TABLE_ENTRY) {
+        throw BinderException(stringFormat("{} is not of type NODE.", entry->getName()));
+    }
 }
 
 BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info) {
@@ -181,14 +186,16 @@ BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info)
         }
     }
 
-    auto srcTableID = bindTableID(extraInfo.srcTableName);
-    validateTableType(srcTableID, TableType::NODE);
-    auto dstTableID = bindTableID(extraInfo.dstTableName);
-    validateTableType(dstTableID, TableType::NODE);
+    auto srcEntry = bindNodeTableEntry(extraInfo.srcTableName);
+    validateNodeTableType(srcEntry);
+    auto dstEntry = bindNodeTableEntry(extraInfo.dstTableName);
+    validateNodeTableType(dstEntry);
     auto boundExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(srcMultiplicity,
-        dstMultiplicity, storageDirection, srcTableID, dstTableID, std::move(propertyDefinitions));
-    return BoundCreateTableInfo(TableType::REL, info->tableName, info->onConflict,
-        std::move(boundExtraInfo), clientContext->shouldUseInternalCatalogEntry());
+        dstMultiplicity, storageDirection, srcEntry->getTableID(), dstEntry->getTableID(),
+        std::move(propertyDefinitions));
+    return BoundCreateTableInfo(CatalogEntryType::REL_TABLE_ENTRY, info->tableName,
+        info->onConflict, std::move(boundExtraInfo),
+        clientContext->shouldUseInternalCatalogEntry());
 }
 
 static std::string getRelGroupTableName(const std::string& relGroupName,
@@ -201,7 +208,8 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
     auto& extraInfo = info->extraInfo->constCast<ExtraCreateRelTableGroupInfo>();
     auto relMultiplicity = extraInfo.relMultiplicity;
     std::vector<BoundCreateTableInfo> boundCreateRelTableInfos;
-    auto relCreateInfo = std::make_unique<CreateTableInfo>(TableType::REL, "", info->onConflict);
+    auto relCreateInfo =
+        std::make_unique<CreateTableInfo>(CatalogEntryType::REL_TABLE_ENTRY, "", info->onConflict);
     relCreateInfo->propertyDefinitions = copyVector(info->propertyDefinitions);
     for (auto& [srcTableName, dstTableName] : extraInfo.srcDstTablePairs) {
         relCreateInfo->tableName = getRelGroupTableName(relGroupName, srcTableName, dstTableName);
@@ -209,27 +217,19 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
         options_t options;
         relCreateInfo->extraInfo = std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity,
             std::move(options), srcTableName, dstTableName);
-        boundCreateRelTableInfos.push_back(bindCreateRelTableInfo(relCreateInfo.get()));
+        auto boundInfo = bindCreateRelTableInfo(relCreateInfo.get());
+        boundInfo.hasParent = true;
+        boundCreateRelTableInfos.push_back(std::move(boundInfo));
     }
     auto boundExtraInfo =
         std::make_unique<BoundExtraCreateRelTableGroupInfo>(std::move(boundCreateRelTableInfos));
-    return BoundCreateTableInfo(TableType::REL_GROUP, info->tableName, info->onConflict,
-        std::move(boundExtraInfo), clientContext->shouldUseInternalCatalogEntry());
+    return BoundCreateTableInfo(CatalogEntryType::REL_GROUP_ENTRY, info->tableName,
+        info->onConflict, std::move(boundExtraInfo),
+        clientContext->shouldUseInternalCatalogEntry());
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& statement) {
     auto createTable = statement.constPtrCast<CreateTable>();
-    auto tableName = createTable->getInfo()->tableName;
-    switch (createTable->getInfo()->onConflict) {
-    case common::ConflictAction::ON_CONFLICT_THROW: {
-        if (clientContext->getCatalog()->containsTable(clientContext->getTransaction(),
-                tableName)) {
-            throw BinderException(tableName + " already exists in catalog.");
-        }
-    } break;
-    default:
-        break;
-    }
     auto boundCreateInfo = bindCreateTableInfo(createTable->getInfo());
     return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo));
 }
@@ -307,83 +307,8 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
     return std::make_unique<BoundCreateSequence>(std::move(boundInfo));
 }
 
-void Binder::validateDropTable(const Statement& statement) {
-    auto& dropTable = statement.constCast<Drop>();
-    auto tableName = dropTable.getDropInfo().name;
-    auto catalog = clientContext->getCatalog();
-    auto validTable = catalog->containsTable(clientContext->getTransaction(), tableName,
-        clientContext->shouldUseInternalCatalogEntry());
-    if (!validTable) {
-        switch (dropTable.getDropInfo().conflictAction) {
-        case common::ConflictAction::ON_CONFLICT_THROW: {
-            throw BinderException("Table " + tableName + " does not exist.");
-        }
-        case common::ConflictAction::ON_CONFLICT_DO_NOTHING: {
-            return;
-        }
-        default:
-            KU_UNREACHABLE;
-        }
-    }
-    auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTransaction(), tableName,
-        clientContext->shouldUseInternalCatalogEntry());
-    switch (tableEntry->getTableType()) {
-    case TableType::NODE: {
-        // Check node table is not referenced by rel table.
-        for (auto& relTableEntry : catalog->getRelTableEntries(clientContext->getTransaction())) {
-            if (relTableEntry->isParent(tableEntry->getTableID())) {
-                throw BinderException(stringFormat("Cannot delete node table {} because it is "
-                                                   "referenced by relationship table {}.",
-                    tableEntry->getName(), relTableEntry->getName()));
-            }
-        }
-    } break;
-    case TableType::REL: {
-        // Check rel table is not referenced by rel group.
-        for (auto& relTableGroupEntry :
-            catalog->getRelTableGroupEntries(clientContext->getTransaction())) {
-            if (relTableGroupEntry->isParent(tableEntry->getTableID())) {
-                throw BinderException(stringFormat("Cannot delete relationship table {} because it "
-                                                   "is referenced by relationship group {}.",
-                    tableName, relTableGroupEntry->getName()));
-            }
-        }
-    } break;
-    default:
-        break;
-    }
-}
-
-void Binder::validateDropSequence(const parser::Statement& statement) {
-    auto& dropSequence = statement.constCast<Drop>();
-    if (!clientContext->getCatalog()->containsSequence(clientContext->getTransaction(),
-            dropSequence.getDropInfo().name)) {
-        switch (dropSequence.getDropInfo().conflictAction) {
-        case common::ConflictAction::ON_CONFLICT_THROW: {
-            throw BinderException(common::stringFormat("Sequence {} does not exist.",
-                dropSequence.getDropInfo().name));
-        }
-        case common::ConflictAction::ON_CONFLICT_DO_NOTHING: {
-            return;
-        }
-        default:
-            KU_UNREACHABLE;
-        }
-    }
-}
-
 std::unique_ptr<BoundStatement> Binder::bindDrop(const Statement& statement) {
     auto& drop = statement.constCast<Drop>();
-    switch (drop.getDropInfo().dropType) {
-    case DropType::TABLE: {
-        validateDropTable(drop);
-    } break;
-    case DropType::SEQUENCE: {
-        validateDropSequence(drop);
-    } break;
-    default:
-        KU_UNREACHABLE;
-    }
     return std::make_unique<BoundDrop>(drop.getDropInfo());
 }
 
@@ -464,8 +389,8 @@ static void validatePropertyNotExist(common::ConflictAction action, TableCatalog
 
 static void validatePropertyDDLOnTable(TableCatalogEntry* tableEntry,
     const std::string& ddlOperation) {
-    switch (tableEntry->getTableType()) {
-    case TableType::REL_GROUP: {
+    switch (tableEntry->getType()) {
+    case CatalogEntryType::REL_GROUP_ENTRY: {
         throw BinderException(
             stringFormat("Cannot {} property on table {} with type {}.", ddlOperation,
                 tableEntry->getName(), TableTypeUtils::toString(tableEntry->getTableType())));

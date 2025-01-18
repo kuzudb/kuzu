@@ -91,39 +91,36 @@ void StorageManager::recover(main::ClientContext& clientContext) {
     }
 }
 
-void StorageManager::createNodeTable(table_id_t tableID, NodeTableCatalogEntry* nodeTableEntry,
-    main::ClientContext* context) {
+void StorageManager::createNodeTable(NodeTableCatalogEntry* entry, main::ClientContext* context) {
     KU_ASSERT(context != nullptr);
-    tables[tableID] = std::make_unique<NodeTable>(this, nodeTableEntry, &memoryManager,
-        context->getVFSUnsafe(), context);
+    tables[entry->getTableID()] =
+        std::make_unique<NodeTable>(this, entry, &memoryManager, context->getVFSUnsafe(), context);
 }
 
-void StorageManager::createRelTable(table_id_t tableID, RelTableCatalogEntry* relTableEntry) {
-    tables[tableID] = std::make_unique<RelTable>(relTableEntry, this, &memoryManager);
+void StorageManager::createRelTable(RelTableCatalogEntry* entry) {
+    tables[entry->getTableID()] = std::make_unique<RelTable>(entry, this, &memoryManager);
 }
 
-void StorageManager::createRelTableGroup(table_id_t, const RelGroupCatalogEntry* tableSchema,
-    const Catalog* catalog, Transaction* transaction) {
-    for (const auto relTableID : tableSchema->getRelTableIDs()) {
-        createRelTable(relTableID, ku_dynamic_cast<RelTableCatalogEntry*>(
-                                       catalog->getTableCatalogEntry(transaction, relTableID)));
+void StorageManager::createRelTableGroup(catalog::RelGroupCatalogEntry* entry,
+    main::ClientContext* context) {
+    for (const auto id : entry->getRelTableIDs()) {
+        createRelTable(context->getCatalog()
+                           ->getTableCatalogEntry(context->getTransaction(), id)
+                           ->ptrCast<RelTableCatalogEntry>());
     }
 }
 
-void StorageManager::createTable(table_id_t tableID, const Catalog* catalog,
-    main::ClientContext* context) {
+void StorageManager::createTable(catalog::CatalogEntry* entry, main::ClientContext* context) {
     std::lock_guard lck{mtx};
-    const auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), tableID);
-    switch (tableEntry->getTableType()) {
-    case TableType::NODE: {
-        createNodeTable(tableID, tableEntry->ptrCast<NodeTableCatalogEntry>(), context);
+    switch (entry->getType()) {
+    case CatalogEntryType::NODE_TABLE_ENTRY: {
+        createNodeTable(entry->ptrCast<NodeTableCatalogEntry>(), context);
     } break;
-    case TableType::REL: {
-        createRelTable(tableID, tableEntry->ptrCast<RelTableCatalogEntry>());
+    case CatalogEntryType::REL_TABLE_ENTRY: {
+        createRelTable(entry->ptrCast<RelTableCatalogEntry>());
     } break;
-    case TableType::REL_GROUP: {
-        createRelTableGroup(tableID, tableEntry->ptrCast<RelGroupCatalogEntry>(), catalog,
-            context->getTransaction());
+    case CatalogEntryType::REL_GROUP_ENTRY: {
+        createRelTableGroup(entry->ptrCast<RelGroupCatalogEntry>(), context);
     } break;
     default: {
         KU_UNREACHABLE;

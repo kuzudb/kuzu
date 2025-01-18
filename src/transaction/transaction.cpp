@@ -1,6 +1,7 @@
 #include "transaction/transaction.h"
 
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/exception/runtime.h"
 #include "main/client_context.h"
 #include "main/db_config.h"
@@ -84,23 +85,35 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
     const auto wal = clientContext->getWAL();
     KU_ASSERT(wal);
     const auto newCatalogEntry = catalogEntry.getNext();
+    auto transaction = clientContext->getTransaction();
     switch (newCatalogEntry->getType()) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
-    case CatalogEntryType::REL_TABLE_ENTRY:
-    case CatalogEntryType::REL_GROUP_ENTRY: {
+    case CatalogEntryType::REL_TABLE_ENTRY: {
         if (catalogEntry.getType() == CatalogEntryType::DUMMY_ENTRY) {
+            auto& entry = newCatalogEntry->constCast<TableCatalogEntry>();
             KU_ASSERT(catalogEntry.isDeleted());
-            auto& tableEntry = newCatalogEntry->constCast<TableCatalogEntry>();
-            if (tableEntry.hasParent()) {
+            if (entry.hasParent()) {
                 return;
             }
-            wal->logCreateTableEntryRecord(
-                tableEntry.getBoundCreateTableInfo(clientContext->getTransaction(), isInternal));
+            wal->logCreateTableEntryRecord(entry.getBoundCreateTableInfo(transaction, isInternal));
         } else {
-            // Must be alter.
+            // Must be ALTER.
             KU_ASSERT(catalogEntry.getType() == newCatalogEntry->getType());
-            const auto& tableEntry = catalogEntry.constCast<TableCatalogEntry>();
-            wal->logAlterTableEntryRecord(tableEntry.getAlterInfo());
+            auto& entry = catalogEntry.constCast<TableCatalogEntry>();
+            wal->logAlterTableEntryRecord(entry.getAlterInfo());
+        }
+    } break;
+    case CatalogEntryType::REL_GROUP_ENTRY: {
+        auto& entry = newCatalogEntry->constCast<RelGroupCatalogEntry>();
+        if (catalogEntry.getType() == CatalogEntryType::DUMMY_ENTRY) {
+            KU_ASSERT(catalogEntry.isDeleted());
+            wal->logCreateTableEntryRecord(entry.getBoundCreateTableInfo(transaction, isInternal));
+        } else {
+            // Must be ALTER.
+            throw common::RuntimeException("Alter rel group is not supported.");
+            //            KU_ASSERT(catalogEntry.getType() == newCatalogEntry->getType());
+            //            const auto& tableEntry = catalogEntry.constCast<TableCatalogEntry>();
+            //            wal->logAlterTableEntryRecord(tableEntry.getAlterInfo());
         }
     } break;
     case CatalogEntryType::SEQUENCE_ENTRY: {
@@ -126,8 +139,7 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
         switch (catalogEntry.getType()) {
         // Eventually we probably want to merge these
         case CatalogEntryType::NODE_TABLE_ENTRY:
-        case CatalogEntryType::REL_TABLE_ENTRY:
-        case CatalogEntryType::REL_GROUP_ENTRY: {
+        case CatalogEntryType::REL_TABLE_ENTRY: {
             const auto tableCatalogEntry = catalogEntry.constPtrCast<TableCatalogEntry>();
             if (const auto alterInfo = tableCatalogEntry->getAlterInfo()) {
                 // Must be rename table
@@ -137,9 +149,10 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
                     catalogEntry.getType());
             }
         } break;
+        case CatalogEntryType::REL_GROUP_ENTRY:
         case CatalogEntryType::SEQUENCE_ENTRY: {
-            const auto sequenceCatalogEntry = catalogEntry.constPtrCast<SequenceCatalogEntry>();
-            wal->logDropCatalogEntryRecord(sequenceCatalogEntry->getOID(), catalogEntry.getType());
+            // TODO(Guodong): support alter rel group.
+            wal->logDropCatalogEntryRecord(catalogEntry.getOID(), catalogEntry.getType());
         } break;
         case CatalogEntryType::INDEX_ENTRY:
         case CatalogEntryType::SCALAR_FUNCTION_ENTRY: {

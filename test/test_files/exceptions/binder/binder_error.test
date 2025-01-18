@@ -283,7 +283,7 @@ Binder exception: person already exists in catalog.
 -LOG CreateNodeTablePKColNameNotExists
 -STATEMENT CREATE NODE TABLE PERSON(NAME STRING, ID INT64, birthdate date, primary key (dummyColName))
 ---- error
-Binder exception: PERSON already exists in catalog.
+Binder exception: Primary key dummyColName does not match any of the predefined node properties.
 
 -LOG CreateNodeTableDuplicatedColumnName
 -STATEMENT CREATE NODE TABLE student (id INT64, eyesight double, eyesight double, PRIMARY KEY(id))
@@ -608,7 +608,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 ---- ok
 -STATEMENT CREATE REL TABLE R2 (FROM R TO R);
 ---- error
-Binder exception: Table type mismatch.
+Binder exception: R is not of type NODE.
 
 -LOG InQueryCallWithoutReturn
 -STATEMENT CALL show_tables();

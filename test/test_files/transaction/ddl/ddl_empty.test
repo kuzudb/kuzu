@@ -65,7 +65,7 @@
 1|base2|NODE|local(kuzu)|
 2|test_base1_base1|REL|local(kuzu)|
 3|test_base1_base2|REL|local(kuzu)|
-4|test|REL_GROUP|local(kuzu)|
+0|test|REL_GROUP|local(kuzu)|
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT DROP TABLE test;

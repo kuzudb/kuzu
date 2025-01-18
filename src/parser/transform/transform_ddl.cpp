@@ -9,6 +9,7 @@
 #include "parser/transformer.h"
 
 using namespace kuzu::common;
+using namespace kuzu::catalog;
 
 namespace kuzu {
 namespace parser {
@@ -54,14 +55,20 @@ std::string Transformer::getPKName(CypherParser::KU_CreateNodeTableContext& ctx)
     return pkName;
 }
 
+static ConflictAction getConflictAction(CypherParser::KU_IfNotExistsContext* ctx) {
+    if (ctx != nullptr) {
+        return ConflictAction::ON_CONFLICT_DO_NOTHING;
+    }
+    return ConflictAction::ON_CONFLICT_THROW;
+}
+
 std::unique_ptr<Statement> Transformer::transformCreateNodeTable(
     CypherParser::KU_CreateNodeTableContext& ctx) {
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
     std::string pkName;
     pkName = getPKName(ctx);
-    auto createTableInfo = CreateTableInfo(TableType::NODE, tableName,
-        ctx.kU_IfNotExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
-                               common::ConflictAction::ON_CONFLICT_THROW);
+    auto createTableInfo = CreateTableInfo(CatalogEntryType::NODE_TABLE_ENTRY, tableName,
+        getConflictAction(ctx.kU_IfNotExists()));
     createTableInfo.propertyDefinitions =
         transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
     createTableInfo.extraInfo = std::make_unique<ExtraCreateNodeTableInfo>(pkName);
@@ -81,9 +88,8 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTable(
     }
     auto srcTableName = transformSchemaName(*ctx.kU_RelTableConnection()->oC_SchemaName(0));
     auto dstTableName = transformSchemaName(*ctx.kU_RelTableConnection()->oC_SchemaName(1));
-    auto createTableInfo = CreateTableInfo(TableType::REL, tableName,
-        ctx.kU_IfNotExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
-                               common::ConflictAction::ON_CONFLICT_THROW);
+    auto createTableInfo = CreateTableInfo(CatalogEntryType::REL_TABLE_ENTRY, tableName,
+        getConflictAction(ctx.kU_IfNotExists()));
     if (ctx.kU_PropertyDefinitions()) {
         createTableInfo.propertyDefinitions =
             transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
@@ -108,9 +114,8 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTableGroup(
         auto dstTableName = transformSchemaName(*connection->oC_SchemaName(1));
         srcDstTablePairs.emplace_back(srcTableName, dstTableName);
     }
-    auto createTableInfo = CreateTableInfo(TableType::REL_GROUP, tableName,
-        ctx.kU_IfNotExists() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
-                               common::ConflictAction::ON_CONFLICT_THROW);
+    auto createTableInfo = CreateTableInfo(CatalogEntryType::REL_GROUP_ENTRY, tableName,
+        getConflictAction(ctx.kU_IfNotExists()));
     if (ctx.kU_PropertyDefinitions()) {
         createTableInfo.propertyDefinitions =
             transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());

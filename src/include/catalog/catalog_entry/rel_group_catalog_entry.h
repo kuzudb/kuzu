@@ -5,21 +5,19 @@
 namespace kuzu {
 namespace catalog {
 
-class RelGroupCatalogEntry final : public TableCatalogEntry {
-public:
-    //===--------------------------------------------------------------------===//
-    // constructors
-    //===--------------------------------------------------------------------===//
-    RelGroupCatalogEntry() = default;
-    RelGroupCatalogEntry(CatalogSet* set, std::string tableName,
-        std::vector<common::table_id_t> relTableIDs);
+class RelGroupCatalogEntry final : public CatalogEntry {
+    static constexpr CatalogEntryType type_ = CatalogEntryType::REL_GROUP_ENTRY;
 
-    //===--------------------------------------------------------------------===//
-    // getter & setter
-    //===--------------------------------------------------------------------===//
-    bool isParent(common::table_id_t childID) override;
-    common::TableType getTableType() const override { return common::TableType::REL_GROUP; }
+public:
+    RelGroupCatalogEntry() = default;
+    RelGroupCatalogEntry(std::string tableName, CatalogSet* tables,
+        std::vector<common::table_id_t> relTableIDs)
+        : CatalogEntry{type_, std::move(tableName)}, tables{tables},
+          relTableIDs{std::move(relTableIDs)} {}
+
     const std::vector<common::table_id_t>& getRelTableIDs() const { return relTableIDs; }
+
+    bool isParent(common::table_id_t tableID) const;
 
     //===--------------------------------------------------------------------===//
     // serialization & deserialization
@@ -27,13 +25,12 @@ public:
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<RelGroupCatalogEntry> deserialize(common::Deserializer& deserializer);
     std::string toCypher(main::ClientContext* clientContext) const override;
-    std::unique_ptr<TableCatalogEntry> copy() const override;
+
+    binder::BoundCreateTableInfo getBoundCreateTableInfo(transaction::Transaction* transaction,
+        bool isInternal) const;
 
 private:
-    std::unique_ptr<binder::BoundExtraCreateCatalogEntryInfo> getBoundExtraCreateInfo(
-        transaction::Transaction* transaction) const override;
-
-private:
+    CatalogSet* tables = nullptr;
     std::vector<common::table_id_t> relTableIDs;
 };
 
