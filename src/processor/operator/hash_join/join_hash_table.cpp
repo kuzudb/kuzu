@@ -2,6 +2,7 @@
 
 #include "common/utils.h"
 #include "function/hash/vector_hash_functions.h"
+#include "processor/result/factorized_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -18,7 +19,6 @@ JoinHashTable::JoinHashTable(MemoryManager& memoryManager, logical_type_vec_t ke
     // Prev pointer is always the last column in the table.
     prevPtrColOffset = tableSchema.getColOffset(tableSchema.getNumColumns() - PREV_PTR_COL_IDX);
     factorizedTable = std::make_unique<FactorizedTable>(&memoryManager, std::move(tableSchema));
-    this->tableSchema = factorizedTable->getTableSchema();
 }
 
 static bool discardNullFromKeys(const std::vector<ValueVector*>& vectors) {
@@ -109,7 +109,7 @@ void JoinHashTable::allocateHashSlots(uint64_t numTuples) {
     auto numSlotsPerBlock = (uint64_t)1 << numSlotsPerBlockLog2;
     auto numBlocksNeeded = (maxNumHashSlots + numSlotsPerBlock - 1) / numSlotsPerBlock;
     while (hashSlotsBlocks.size() < numBlocksNeeded) {
-        hashSlotsBlocks.emplace_back(std::make_unique<DataBlock>(&memoryManager, HASH_BLOCK_SIZE));
+        hashSlotsBlocks.emplace_back(std::make_unique<DataBlock>(memoryManager, HASH_BLOCK_SIZE));
     }
 }
 
@@ -121,7 +121,7 @@ void JoinHashTable::buildHashSlots() {
             auto prevPtr = getPrevTuple(tuple);
             memcpy(reinterpret_cast<void*>(prevPtr), reinterpret_cast<void*>(&lastSlotEntryInHT),
                 sizeof(uint8_t*));
-            tuple += factorizedTable->getTableSchema()->getNumBytesPerTuple();
+            tuple += getTableSchema()->getNumBytesPerTuple();
         }
     }
 }
@@ -129,7 +129,7 @@ void JoinHashTable::buildHashSlots() {
 void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors, ValueVector& hashVector,
     SelectionVector& hashSelVec, ValueVector& tmpHashResultVector, uint8_t** probedTuples) {
     KU_ASSERT(keyVectors.size() == keyTypes.size());
-    if (getNumTuples() == 0) {
+    if (getNumEntries() == 0) {
         return;
     }
     if (!discardNullFromKeys(keyVectors)) {
@@ -206,7 +206,7 @@ void JoinHashTable::computeVectorHashes(std::vector<common::ValueVector*> keyVec
 }
 
 offset_t JoinHashTable::getHashValueColOffset() const {
-    return tableSchema->getColOffset(tableSchema->getNumColumns() - HASH_COL_IDX);
+    return getTableSchema()->getColOffset(getTableSchema()->getNumColumns() - HASH_COL_IDX);
 }
 
 } // namespace processor

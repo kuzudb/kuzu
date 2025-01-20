@@ -1,8 +1,15 @@
 #pragma once
 
+#include <cstdint>
+
 #include "aggregate_input.h"
+#include "common/copy_constructors.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
 #include "function/aggregate_function.h"
 #include "processor/result/base_hash_table.h"
+#include "processor/result/factorized_table.h"
+#include "processor/result/factorized_table_schema.h"
 #include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
@@ -55,12 +62,6 @@ public:
         const std::vector<common::LogicalType>& distinctAggKeyTypes, uint64_t numEntriesToAllocate,
         FactorizedTableSchema tableSchema);
 
-    uint8_t* getEntry(uint64_t idx) { return factorizedTable->getTuple(idx); }
-
-    FactorizedTable* getFactorizedTable() { return factorizedTable.get(); }
-
-    uint64_t getNumEntries() const { return factorizedTable->getNumTuples(); }
-
     void append(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
         common::DataChunkState* leadingState, const std::vector<AggregateInput>& aggregateInputs,
@@ -81,20 +82,31 @@ public:
         common::ValueVector* aggregateVector);
 
     //! merge aggregate hash table by combining aggregate states under the same key
-    void merge(AggregateHashTable& other);
+    void merge(FactorizedTable&& other);
+    void merge(AggregateHashTable&& other) { merge(std::move(*other.factorizedTable)); }
 
     void finalizeAggregateStates();
 
     void resize(uint64_t newSize);
+    void resizeHashTableIfNecessary(uint32_t maxNumDistinctHashKeys);
+
+    AggregateHashTable createEmptyCopy() const { return AggregateHashTable(*this); }
+
+    DEFAULT_BOTH_MOVE(AggregateHashTable);
 
 protected:
     virtual uint64_t matchFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors, uint64_t numMayMatches,
         uint64_t numNoMatches);
 
+    uint64_t matchFTEntries(const FactorizedTable& srcTable, uint64_t startOffset,
+        uint64_t numMayMatches, uint64_t numNoMatches);
+
     void initializeFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
         const std::vector<common::ValueVector*>& dependentKeyVectors,
+        uint64_t numFTEntriesToInitialize);
+    void initializeFTEntries(const FactorizedTable& sourceTable, uint64_t sourceStartOffset,
         uint64_t numFTEntriesToInitialize);
 
     uint64_t matchUnFlatVecWithFTColumn(common::ValueVector* vector, uint64_t numMayMatches,
@@ -103,16 +115,16 @@ protected:
     uint64_t matchFlatVecWithFTColumn(common::ValueVector* vector, uint64_t numMayMatches,
         uint64_t& numNoMatches, uint32_t colIdx);
 
-    void resizeHashTableIfNecessary(uint32_t maxNumDistinctHashKeys);
-
     void findHashSlots(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
         const std::vector<common::ValueVector*>& dependentKeyVectors,
         common::DataChunkState* leadingState);
 
-private:
+    void findHashSlots(const FactorizedTable& data, uint64_t startOffset, uint64_t numTuples);
+
+protected:
     void initializeFT(const std::vector<function::AggregateFunction>& aggregateFunctions,
-        FactorizedTableSchema tableSchema);
+        FactorizedTableSchema&& tableSchema);
 
     void initializeHashTable(uint64_t numEntriesToAllocate);
 
@@ -135,6 +147,8 @@ private:
     void increaseSlotIdx(uint64_t& slotIdx) const;
 
     void initTmpHashSlotsAndIdxes();
+    void initTmpHashSlotsAndIdxes(const FactorizedTable& sourceTable, uint64_t startOffset,
+        uint64_t numTuples);
 
     void increaseHashSlotIdxes(uint64_t numNoMatches);
 
@@ -152,7 +166,7 @@ private:
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
         const std::vector<AggregateInput>& aggregateInputs, uint64_t resultSetMultiplicity);
 
-    void fillEntryWithInitialNullAggregateState(uint8_t* entry);
+    void fillEntryWithInitialNullAggregateState(FactorizedTable& table, uint8_t* entry);
 
     //! find an uninitialized hash slot for given hash and fill hash slot with block id and offset
     void fillHashSlot(common::hash_t hash, uint8_t* groupByKeysAndAggregateStateBuffer);
@@ -200,6 +214,29 @@ private:
         function::AggregateFunction& aggregateFunction, common::ValueVector* aggVector,
         uint64_t multiplicity, uint32_t aggStateOffset);
 
+    static std::vector<common::LogicalType> getDistinctAggKeyTypes(
+        const AggregateHashTable& hashTable) {
+        std::vector<common::LogicalType> distinctAggKeyTypes(hashTable.distinctHashTables.size());
+        std::transform(hashTable.distinctHashTables.begin(), hashTable.distinctHashTables.end(),
+            distinctAggKeyTypes.begin(), [&](const auto& distinctHashTable) {
+                if (distinctHashTable) {
+                    return distinctHashTable->keyTypes.back().copy();
+                } else {
+                    return common::LogicalType();
+                }
+            });
+        return distinctAggKeyTypes;
+    }
+
+private:
+    // Does not copy the contents of the hash table and is provided as a convenient way of
+    // constructing more hash tables without having to hold on to or expose the construction
+    // arguments via createEmptyCopy
+    AggregateHashTable(const AggregateHashTable& other)
+        : AggregateHashTable(*other.memoryManager, common::LogicalType::copy(other.keyTypes),
+              common::LogicalType::copy(other.payloadTypes), other.aggregateFunctions,
+              getDistinctAggKeyTypes(other), 0, other.getTableSchema()->copy()) {}
+
 protected:
     uint32_t hashColIdxInFT{};
     std::unique_ptr<uint64_t[]> mayMatchIdxes;
@@ -207,7 +244,6 @@ protected:
     std::unique_ptr<uint64_t[]> entryIdxesToInitialize;
     std::unique_ptr<HashSlot*[]> hashSlotsToUpdateAggState;
 
-private:
     std::vector<common::LogicalType> payloadTypes;
     std::vector<function::AggregateFunction> aggregateFunctions;
 
@@ -229,6 +265,37 @@ struct AggregateHashTableUtils {
         storage::MemoryManager& memoryManager,
         const std::vector<common::LogicalType>& groupByKeyTypes,
         const common::LogicalType& distinctKeyType);
+};
+
+// NOLINTNEXTLINE(cppcoreguidelines-virtual-class-destructor): This is a final class.
+class HashAggregateSharedState;
+
+// Fixed-sized Aggregate hash table that flushes tuples into partitions in the
+// HashAggregateSharedState when full
+class PartitioningAggregateHashTable final : public AggregateHashTable {
+public:
+    PartitioningAggregateHashTable(HashAggregateSharedState* sharedState,
+        storage::MemoryManager& memoryManager, std::vector<common::LogicalType> keyTypes,
+        std::vector<common::LogicalType> payloadTypes,
+        const std::vector<function::AggregateFunction>& aggregateFunctions,
+        const std::vector<common::LogicalType>& distinctAggKeyTypes,
+        FactorizedTableSchema tableSchema)
+        : AggregateHashTable(memoryManager, std::move(keyTypes), std::move(payloadTypes),
+              aggregateFunctions, distinctAggKeyTypes,
+              common::DEFAULT_VECTOR_CAPACITY /*minimum size*/, tableSchema.copy()),
+          sharedState{sharedState}, tableSchema{std::move(tableSchema)} {}
+
+    uint64_t append(const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors,
+        const std::vector<common::ValueVector*>& dependentKeyVectors,
+        common::DataChunkState* leadingState, const std::vector<AggregateInput>& aggregateInputs,
+        uint64_t resultSetMultiplicity);
+
+    void mergeAll();
+
+private:
+    HashAggregateSharedState* sharedState;
+    FactorizedTableSchema tableSchema;
 };
 
 } // namespace processor

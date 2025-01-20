@@ -1,5 +1,7 @@
 #include "processor/result/factorized_table.h"
 
+#include <cstdint>
+
 #include "common/assert.h"
 #include "common/exception/runtime.h"
 #include "common/null_buffer.h"
@@ -87,6 +89,40 @@ void FactorizedTable::append(const std::vector<ValueVector*>& vectors) {
     numTuples += numTuplesToAppend;
 }
 
+void FactorizedTable::resize(uint64_t numTuples) {
+    if (numTuples > this->numTuples) {
+        auto numTuplesToAdd = numTuples - this->numTuples;
+        auto numBytesPerTuple = tableSchema.getNumBytesPerTuple();
+        while (flatTupleBlockCollection->needAllocation(numTuplesToAdd * numBytesPerTuple)) {
+            auto newBlock = std::make_unique<DataBlock>(memoryManager, flatTupleBlockSize);
+            flatTupleBlockCollection->append(std::move(newBlock));
+            auto numTuplesToAddInBlock =
+                std::min(static_cast<uint32_t>(numTuplesToAdd), numFlatTuplesPerBlock);
+            auto block = flatTupleBlockCollection->getLastBlock();
+            block->freeSize -= numBytesPerTuple * numTuplesToAddInBlock;
+            block->numTuples += numTuplesToAddInBlock;
+            numTuplesToAdd -= numTuplesToAddInBlock;
+        }
+        KU_ASSERT(numTuplesToAdd < numFlatTuplesPerBlock);
+        auto block = flatTupleBlockCollection->getLastBlock();
+        block->freeSize -= numBytesPerTuple * numTuplesToAdd;
+        block->numTuples += numTuplesToAdd;
+    } else {
+        auto numTuplesRemaining = numTuples;
+        KU_ASSERT(flatTupleBlockCollection->getBlocks().size() == 1);
+        // TODO: It always adds to the end, so this will leave empty blocks in the middle if it's
+        // reused
+        for (auto& block : flatTupleBlockCollection->getBlocks()) {
+            block->numTuples =
+                std::min(static_cast<uint32_t>(numTuplesRemaining), numFlatTuplesPerBlock);
+            block->freeSize =
+                block->getSizedData().size() - block->numTuples * tableSchema.getNumBytesPerTuple();
+            numTuplesRemaining -= block->numTuples;
+        }
+        KU_ASSERT(numTuplesRemaining == 0);
+    }
+    this->numTuples = numTuples;
+}
 uint8_t* FactorizedTable::appendEmptyTuple() {
     auto numBytesPerTuple = tableSchema.getNumBytesPerTuple();
     if (flatTupleBlockCollection->needAllocation(numBytesPerTuple)) {
@@ -211,8 +247,10 @@ uint64_t FactorizedTable::getNumFlatTuples(ft_tuple_idx_t tupleIdx) const {
 uint8_t* FactorizedTable::getTuple(ft_tuple_idx_t tupleIdx) const {
     KU_ASSERT(tupleIdx < numTuples);
     auto [blockIdx, tupleIdxInBlock] = getBlockIdxAndTupleIdxInBlock(tupleIdx);
-    return flatTupleBlockCollection->getBlock(blockIdx)->getData() +
-           tupleIdxInBlock * tableSchema.getNumBytesPerTuple();
+    auto buffer = flatTupleBlockCollection->getBlock(blockIdx)->getSizedData();
+    // Check that the end of the block doesn't overflow the buffer
+    KU_ASSERT((tupleIdxInBlock + 1) * tableSchema.getNumBytesPerTuple() <= buffer.size());
+    return buffer.data() + tupleIdxInBlock * tableSchema.getNumBytesPerTuple();
 }
 
 void FactorizedTable::updateFlatCell(uint8_t* tuplePtr, ft_col_idx_t colIdx,
@@ -242,6 +280,14 @@ bool FactorizedTable::isNonOverflowColNull(const uint8_t* nullBuffer, ft_col_idx
         return false;
     }
     return NullBuffer::isNull(nullBuffer, colIdx);
+}
+
+bool FactorizedTable::isNonOverflowColNull(ft_tuple_idx_t tupleIdx, ft_col_idx_t colIdx) const {
+    KU_ASSERT(colIdx < tableSchema.getNumColumns());
+    if (tableSchema.getColumn(colIdx)->hasNoNullGuarantee()) {
+        return false;
+    }
+    return NullBuffer::isNull(getTuple(tupleIdx) + tableSchema.getNullMapOffset(), colIdx);
 }
 
 void FactorizedTable::setNonOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx) {

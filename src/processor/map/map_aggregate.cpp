@@ -141,17 +141,18 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(const expressi
     allKeys.insert(allKeys.end(), keys.begin(), keys.end());
     allKeys.insert(allKeys.end(), payloads.begin(), payloads.end());
     auto aggregateInputInfos = getAggregateInputInfos(allKeys, aggregates, *inSchema);
-    auto sharedState = std::make_shared<HashAggregateSharedState>(aggFunctions);
     auto flatKeys = getKeyExpressions(keys, *inSchema, true /* isFlat */);
     auto unFlatKeys = getKeyExpressions(keys, *inSchema, false /* isFlat */);
     auto tableSchema = getFactorizedTableSchema(flatKeys, unFlatKeys, payloads, aggFunctions);
     HashAggregateInfo aggregateInfo{getDataPos(flatKeys, *inSchema),
         getDataPos(unFlatKeys, *inSchema), getDataPos(payloads, *inSchema), std::move(tableSchema)};
+
+    auto sharedState = std::make_shared<HashAggregateSharedState>(clientContext,
+        std::move(aggregateInfo), aggFunctions);
     auto printInfo = std::make_unique<HashAggregatePrintInfo>(allKeys, aggregates);
-    auto aggregate =
-        make_unique<HashAggregate>(std::make_unique<ResultSetDescriptor>(inSchema), sharedState,
-            std::move(aggregateInfo), std::move(aggFunctions), std::move(aggregateInputInfos),
-            std::move(prevOperator), getOperatorID(), printInfo->copy());
+    auto aggregate = make_unique<HashAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
+        sharedState, std::move(aggFunctions), std::move(aggregateInputInfos),
+        std::move(prevOperator), getOperatorID(), printInfo->copy());
     // Create AggScan.
     expression_vector outputExpressions;
     outputExpressions.insert(outputExpressions.end(), flatKeys.begin(), flatKeys.end());

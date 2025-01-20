@@ -1,6 +1,7 @@
 #pragma once
 
 #include "processor/result/base_hash_table.h"
+#include "processor/result/factorized_table.h"
 #include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
@@ -39,7 +40,6 @@ public:
         factorizedTable->lookup(vectors, colIdxesToScan, tuplesToRead, startPos, numTuplesToRead);
     }
     void merge(JoinHashTable& other) { factorizedTable->merge(*other.factorizedTable); }
-    uint64_t getNumTuples() { return factorizedTable->getNumTuples(); }
     uint8_t** getPrevTuple(const uint8_t* tuple) const {
         return (uint8_t**)(tuple + prevPtrColOffset);
     }
@@ -49,8 +49,6 @@ public:
         return ((uint8_t**)(hashSlotsBlocks[slotIdx >> numSlotsPerBlockLog2]
                                 ->getData()))[slotIdx & slotIdxInBlockMask];
     }
-    FactorizedTable* getFactorizedTable() { return factorizedTable.get(); }
-    const FactorizedTableSchema* getTableSchema() { return factorizedTable->getTableSchema(); }
 
 private:
     uint8_t** findHashSlot(const uint8_t* tuple) const;
@@ -65,7 +63,6 @@ private:
 private:
     static constexpr uint64_t PREV_PTR_COL_IDX = 1;
     static constexpr uint64_t HASH_COL_IDX = 2;
-    const FactorizedTableSchema* tableSchema;
     uint64_t prevPtrColOffset;
 };
 

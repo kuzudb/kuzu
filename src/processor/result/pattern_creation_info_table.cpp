@@ -26,8 +26,7 @@ PatternCreationInfo PatternCreationInfoTable::getPatternCreationInfo(
     if (keyVectors.size() == 0) {
         // Constant keys, we can simply use one tuple to store all information
         if (factorizedTable->getNumTuples() == 0) {
-            factorizedTable->appendEmptyTuple();
-            tuple = factorizedTable->getTuple(0);
+            tuple = factorizedTable->appendEmptyTuple();
             hasCreated = false;
         }
         KU_ASSERT(factorizedTable->getNumTuples() == 1);

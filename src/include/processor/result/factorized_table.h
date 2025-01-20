@@ -29,6 +29,7 @@ public:
     }
 
     uint8_t* getData() const { return block->getBuffer().data(); }
+    std::span<uint8_t> getSizedData() const { return block->getBuffer(); }
     uint8_t* getWritableData() const { return block->getBuffer().last(freeSize).data(); }
     void resetNumTuplesAndFreeSize() {
         freeSize = block->getBuffer().size();
@@ -104,6 +105,8 @@ public:
     void scan(std::vector<common::ValueVector*>& vectors, ft_tuple_idx_t tupleIdx,
         uint64_t numTuplesToScan, std::vector<uint32_t>& colIdxToScan) const;
     // TODO(Guodong): Unify these two interfaces along with `readUnflatCol`.
+    // startPos is the starting position in the tuplesToRead, not the starting position in the
+    // factorizedTable
     void lookup(std::vector<common::ValueVector*>& vectors, std::vector<uint32_t>& colIdxesToScan,
         uint8_t** tuplesToRead, uint64_t startPos, uint64_t numTuplesToRead) const;
     void lookup(std::vector<common::ValueVector*>& vectors,
@@ -161,8 +164,24 @@ public:
     bool isOverflowColNull(const uint8_t* nullBuffer, ft_tuple_idx_t tupleIdx,
         ft_col_idx_t colIdx) const;
     bool isNonOverflowColNull(const uint8_t* nullBuffer, ft_col_idx_t colIdx) const;
+    bool isNonOverflowColNull(ft_tuple_idx_t tupleIdx, ft_col_idx_t colIdx) const;
     void setNonOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx);
     void clear();
+
+    storage::MemoryManager* getMemoryManager() { return memoryManager; }
+
+    void resize(uint64_t numTuples);
+
+    template<typename Func>
+    void forEach(Func func) {
+        for (auto& tupleBlock : flatTupleBlockCollection->getBlocks()) {
+            uint8_t* tuple = tupleBlock->getData();
+            for (auto i = 0u; i < tupleBlock->numTuples; i++) {
+                func(tuple);
+                tuple += getTableSchema()->getNumBytesPerTuple();
+            }
+        }
+    }
 
 private:
     void setOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx, ft_tuple_idx_t tupleIdx);
