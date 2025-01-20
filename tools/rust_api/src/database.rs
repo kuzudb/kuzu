@@ -35,6 +35,10 @@ pub struct SystemConfig {
     read_only: bool,
     /// The maximum size of the database. Defaults to 8TB
     max_db_size: u64,
+    /// If true, the database will automatically checkpoint when the size of the WAL file exceeds the checkpoint threshold.
+    auto_checkpoint: bool,
+    /// The threshold of the WAL file size in bytes. When the size of the WAL file exceeds this threshold, the database will checkpoint if autoCheckpoint is true.
+    checkpoint_threshold: i64,
 }
 
 impl Default for SystemConfig {
@@ -46,6 +50,8 @@ impl Default for SystemConfig {
             read_only: false,
             // This is a little weird, but it's a temporary interface
             max_db_size: u32::MAX as u64,
+            auto_checkpoint: true,
+            checkpoint_threshold: -1 as i64,
         }
     }
 }
@@ -71,6 +77,14 @@ impl SystemConfig {
         self.max_db_size = max_db_size;
         self
     }
+    pub fn auto_checkpoint(mut self, auto_checkpoint: bool) -> Self {
+        self.auto_checkpoint = auto_checkpoint;
+        self
+    }
+    pub fn checkpoint_threshold(mut self, checkpoint_threshold: i64) -> Self {
+        self.checkpoint_threshold = checkpoint_threshold;
+        self
+    }
 }
 
 pub(crate) const IN_MEMORY_DB_NAME: &str = ":memory:";
@@ -92,6 +106,8 @@ impl Database {
                 config.enable_compression,
                 config.read_only,
                 config.max_db_size,
+                config.auto_checkpoint,
+                config.checkpoint_threshold,
             )?),
         })
     }
@@ -118,6 +134,7 @@ mod tests {
 
     use crate::connection::Connection;
     use crate::database::{Database, SystemConfig};
+    use crate::value::Value;
     use std::collections::HashSet;
 
     #[test]
@@ -174,6 +191,44 @@ mod tests {
             Database::new(temp_dir.path(), SystemConfig::default().max_db_size(0))
                 .expect_err("0 is not a valid max DB size");
         }
+        Ok(())
+    }
+
+    #[test]
+    fn test_database_auto_checkpoint() -> Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        let db = Database::new(
+            temp_dir.path(),
+            SystemConfig::default().auto_checkpoint(false),
+        )?;
+        let conn = Connection::new(&db)?;
+        let result = conn.query("CALL current_setting('auto_checkpoint') RETURN *");
+        assert_eq!(
+            result?.next().unwrap()[0],
+            Value::String("False".to_string())
+        );
+        // check default checkpoint threshold
+        let result = conn.query("CALL current_setting('checkpoint_threshold') RETURN *");
+        assert_eq!(
+            result?.next().unwrap()[0],
+            Value::String("16777216".to_string())
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_database_checkpoint_threshold() -> Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        let db = Database::new(
+            temp_dir.path(),
+            SystemConfig::default().checkpoint_threshold(1234),
+        )?;
+        let conn = Connection::new(&db)?;
+        let result = conn.query("CALL current_setting('checkpoint_threshold') RETURN *");
+        assert_eq!(
+            result?.next().unwrap()[0],
+            Value::String("1234".to_string())
+        );
         Ok(())
     }
 

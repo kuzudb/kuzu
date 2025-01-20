@@ -157,6 +157,8 @@ pub(crate) mod ffi {
             enableCompression: bool,
             readOnly: bool,
             maxDBSize: u64,
+            auto_checkpoint: bool,
+            checkpoint_threshold: i64,
         ) -> Result<UniquePtr<Database>>;
 
     }

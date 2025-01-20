@@ -95,7 +95,7 @@ inline uint32_t logical_type_get_decimal_scale(const kuzu::common::LogicalType& 
 /* Database */
 std::unique_ptr<kuzu::main::Database> new_database(std::string_view databasePath,
     uint64_t bufferPoolSize, uint64_t maxNumThreads, bool enableCompression, bool readOnly,
-    uint64_t maxDBSize);
+    uint64_t maxDBSize, bool autoCheckpoint, int64_t checkpointThreshold);
 
 void database_set_logging_level(kuzu::main::Database& database, const std::string& level);
 
