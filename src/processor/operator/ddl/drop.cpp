@@ -19,8 +19,7 @@ void Drop::executeDDLInternal(ExecutionContext* context) {
     switch (dropInfo.dropType) {
     case DropType::SEQUENCE: {
         dropSequence(clientContext);
-    }
-        return;
+    } break;
     case DropType::TABLE: {
         if (catalog->containsRelGroup(transaction, dropInfo.name)) {
             dropRelGroup(clientContext);
@@ -41,8 +40,7 @@ void Drop::executeDDLInternal(ExecutionContext* context) {
         default:
             KU_UNREACHABLE;
         }
-    }
-        return;
+    } break;
     default:
         KU_UNREACHABLE;
     }

@@ -34,11 +34,9 @@ void CreateTable::executeDDLInternal(ExecutionContext* context) {
     // Create table.
     CatalogEntry* entry = nullptr;
     switch (info.type) {
-    case CatalogEntryType::NODE_TABLE_ENTRY: {
-        entry = catalog->createNodeTableEntry(transaction, info);
-    } break;
+    case CatalogEntryType::NODE_TABLE_ENTRY:
     case CatalogEntryType::REL_TABLE_ENTRY: {
-        entry = catalog->createRelTableEntry(transaction, info);
+        entry = catalog->createTableEntry(transaction, info);
     } break;
     case CatalogEntryType::REL_GROUP_ENTRY: {
         entry = catalog->createRelGroupEntry(transaction, info);

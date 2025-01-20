@@ -10,15 +10,13 @@ class Transaction;
 namespace catalog {
 
 class Catalog;
-class CatalogSet;
 class KUZU_API NodeTableCatalogEntry final : public TableCatalogEntry {
     static constexpr CatalogEntryType entryType_ = CatalogEntryType::NODE_TABLE_ENTRY;
 
 public:
     NodeTableCatalogEntry() = default;
-    NodeTableCatalogEntry(CatalogSet* set, std::string name, std::string primaryKeyName)
-        : TableCatalogEntry{set, entryType_, std::move(name)},
-          primaryKeyName{std::move(primaryKeyName)} {}
+    NodeTableCatalogEntry(std::string name, std::string primaryKeyName)
+        : TableCatalogEntry{entryType_, std::move(name)}, primaryKeyName{std::move(primaryKeyName)} {}
 
     bool isParent(common::table_id_t /*tableID*/) override { return false; }
     common::TableType getTableType() const override { return common::TableType::NODE; }

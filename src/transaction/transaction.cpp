@@ -85,7 +85,6 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
     const auto wal = clientContext->getWAL();
     KU_ASSERT(wal);
     const auto newCatalogEntry = catalogEntry.getNext();
-    auto transaction = clientContext->getTransaction();
     switch (newCatalogEntry->getType()) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
     case CatalogEntryType::REL_TABLE_ENTRY: {
@@ -95,7 +94,7 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
             if (entry.hasParent()) {
                 return;
             }
-            wal->logCreateTableEntryRecord(entry.getBoundCreateTableInfo(transaction, isInternal));
+            wal->logCreateCatalogEntryRecord(newCatalogEntry, isInternal);
         } else {
             // Must be ALTER.
             KU_ASSERT(catalogEntry.getType() == newCatalogEntry->getType());
@@ -104,10 +103,9 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
         }
     } break;
     case CatalogEntryType::REL_GROUP_ENTRY: {
-        auto& entry = newCatalogEntry->constCast<RelGroupCatalogEntry>();
         if (catalogEntry.getType() == CatalogEntryType::DUMMY_ENTRY) {
             KU_ASSERT(catalogEntry.isDeleted());
-            wal->logCreateTableEntryRecord(entry.getBoundCreateTableInfo(transaction, isInternal));
+            wal->logCreateCatalogEntryRecord(newCatalogEntry, isInternal);
         } else {
             // Must be ALTER.
             throw common::RuntimeException("Alter rel group is not supported.");
@@ -145,7 +143,7 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
                 // Must be rename table
                 wal->logAlterTableEntryRecord(alterInfo);
             } else {
-                wal->logDropCatalogEntryRecord(tableCatalogEntry->getTableID(),
+                wal->logDropCatalogEntryRecord(tableCatalogEntry->getOID(),
                     catalogEntry.getType());
             }
         } break;

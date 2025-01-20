@@ -75,11 +75,8 @@ public:
     std::vector<TableCatalogEntry*> getTableEntries(
         const transaction::Transaction* transaction) const;
 
-    // Create node table entry.
-    CatalogEntry* createNodeTableEntry(transaction::Transaction* transaction,
-        const binder::BoundCreateTableInfo& info);
-    // Create rel table entry.
-    CatalogEntry* createRelTableEntry(transaction::Transaction* transaction,
+    // Create table catalog entry.
+    CatalogEntry* createTableEntry(transaction::Transaction* transaction,
         const binder::BoundCreateTableInfo& info);
     // Drop table entry and all indices within the table.
     void dropTableEntryAndIndex(transaction::Transaction* transaction, const std::string& name);
@@ -104,6 +101,8 @@ public:
     // Create rel group entry.
     CatalogEntry* createRelGroupEntry(transaction::Transaction* transaction,
         const binder::BoundCreateTableInfo& info);
+    // Drop rel group entry.
+    void dropRelGroupEntry(transaction::Transaction* transaction, common::oid_t id);
     // Drop rel group entry.
     void dropRelGroupEntry(transaction::Transaction* transaction, RelGroupCatalogEntry* entry);
 
@@ -208,6 +207,12 @@ private:
 
 private:
     void registerBuiltInFunctions();
+
+
+    CatalogEntry* createNodeTableEntry(transaction::Transaction* transaction,
+        const binder::BoundCreateTableInfo& info);
+    CatalogEntry* createRelTableEntry(transaction::Transaction* transaction,
+        const binder::BoundCreateTableInfo& info);
 
     void createSerialSequence(transaction::Transaction* transaction, TableCatalogEntry* entry,
         bool isInternal);

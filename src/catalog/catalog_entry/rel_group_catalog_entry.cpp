@@ -39,13 +39,12 @@ std::unique_ptr<RelGroupCatalogEntry> RelGroupCatalogEntry::deserialize(
 }
 
 binder::BoundCreateTableInfo RelGroupCatalogEntry::getBoundCreateTableInfo(
-    transaction::Transaction* transaction, bool isInternal) const {
+    transaction::Transaction* transaction, Catalog* catalog, bool isInternal) const {
     std::vector<binder::BoundCreateTableInfo> infos;
     for (auto relTableID : relTableIDs) {
-        auto relEntry = tables->getEntryOfOID(transaction, relTableID);
+        auto relEntry = catalog->getTableCatalogEntry(transaction, relTableID);
         KU_ASSERT(relEntry != nullptr);
-        auto boundInfo =
-            relEntry->ptrCast<TableCatalogEntry>()->getBoundCreateTableInfo(transaction, false);
+        auto boundInfo = relEntry->getBoundCreateTableInfo(transaction, false);
         infos.push_back(std::move(boundInfo));
     }
     auto extraInfo = std::make_unique<binder::BoundExtraCreateRelTableGroupInfo>(std::move(infos));
