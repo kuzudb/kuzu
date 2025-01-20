@@ -262,7 +262,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1database_1init(JNIEnv* env,
     systemConfig.maxDBSize = max_db_size == 0 ? systemConfig.maxDBSize : max_db_size;
     systemConfig.autoCheckpoint = auto_checkpoint;
     systemConfig.checkpointThreshold =
-        checkpoint_threshold >= 0 ? systemConfig.checkpointThreshold : checkpoint_threshold;
+        checkpoint_threshold >= 0 ? checkpoint_threshold : systemConfig.checkpointThreshold;
     try {
         Database* db = new Database(path, systemConfig);
         uint64_t address = reinterpret_cast<uint64_t>(db);

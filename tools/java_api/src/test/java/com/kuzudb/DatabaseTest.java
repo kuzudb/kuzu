@@ -9,13 +9,13 @@ import java.nio.file.Path;
 
 public class DatabaseTest extends TestBase {
     @TempDir
-    static Path tempDir;
+    static Path tmpDir;
 
     @Test
     void DBCreationAndDestroyWithArgs() {
         String dbPath = "";
         try {
-            dbPath = tempDir.toFile().getAbsolutePath();
+            dbPath = tmpDir.toFile().getAbsolutePath();
         } catch (Exception e) {
             fail("Cannot get database path: " + e.getMessage());
         }
@@ -48,7 +48,7 @@ public class DatabaseTest extends TestBase {
     void DBCreationAndDestroyWithPathOnly() {
         String dbPath = "";
         try {
-            dbPath = tempDir.toFile().getAbsolutePath();
+            dbPath = tmpDir.toFile().getAbsolutePath();
         } catch (Exception e) {
             fail("Cannot get database path: " + e.getMessage());
         }
@@ -56,8 +56,8 @@ public class DatabaseTest extends TestBase {
         try (Database database = new Database(dbPath)) {
             // check default config
             QueryResult result = conn.query("CALL current_setting('checkpoint_threshold') RETURN *");
-            Long checkpointThreshold = Long.parseLong(result.getNext().getValue(0).toString());
-            assertTrue(checkpointThreshold > 0);
+            String checkpointThresholdStr = result.getNext().getValue(0).toString();
+            assertTrue(Long.parseLong(checkpointThresholdStr) > 0);
         } catch (Exception e) {
             fail("DBCreationAndDestroyWithPathOnly failed: " + e.getMessage());
         }
