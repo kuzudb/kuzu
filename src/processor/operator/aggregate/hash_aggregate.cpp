@@ -192,6 +192,14 @@ void HashAggregateSharedState::finalizeAggregateHashTable(
     const AggregateHashTable& localHashTable) {
     for (auto& partition : globalPartitions) {
         if (!partition.finalized && partition.mtx.try_lock()) {
+            if (partition.finalized) {
+                // If there was a data race in the above && a thread may get through after another
+                // thread has finalized this partition
+                // TODO(bmwinger): While it's not currently necessary to unlock the mutexes here,
+                // we can use the locks again to start scanning before all partitions are finalized.
+                partition.mtx.unlock();
+                continue;
+            }
             if (!partition.hashTable) {
                 partition.hashTable =
                     std::make_unique<AggregateHashTable>(localHashTable.createEmptyCopy());

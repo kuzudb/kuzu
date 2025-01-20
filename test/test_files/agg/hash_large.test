@@ -1,5 +1,5 @@
 -DATASET CSV snap/twitter/csv
--BUFFER_POOL_SIZE 107374182400
+-BUFFER_POOL_SIZE 268435456
 
 --
 -CASE AggHash
@@ -9,7 +9,7 @@
 -STATEMENT MATCH (a:account)-[]->(b:account) WHERE a.ID = 3359851 RETURN COUNT(b);
 ---- 1
 3373
--STATEMENT MATCH (a:account)-[]->(b:account) WHERE a.ID > 1000000 RETURN a.ID, size(COLLECT(b)) as n ORDER BY n DESC LIMIT 5;
+-STATEMENT MATCH (a:account)-[]->(b:account) WHERE a.ID > 1000000 RETURN a.ID, COUNT(b) as n ORDER BY n DESC LIMIT 5;
 # TODO(bmwinger): Ordering is wrong here
 ---- 5
 18776017|2272
@@ -17,6 +17,6 @@
 5442012|2204
 59804598|2467
 7860742|2458
--STATEMENT MATCH (a:account)-[]->(b:account) WHERE a.ID > 1000000 RETURN a.ID, size(COLLECT(b)) as n ORDER BY n, a.ID;
+-STATEMENT MATCH (a:account)-[]->(b:account) WHERE a.ID > 1000000 RETURN a.ID, COUNT(b.ID) as n ORDER BY n, a.ID;
 ---- 68949
 <FILE>:hash_large.csv
