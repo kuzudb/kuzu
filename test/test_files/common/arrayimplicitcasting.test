@@ -13,10 +13,11 @@ Overflow exception: Value -3 is not within UINT64 range
 ---- error
 Binder exception: Invalid cast from DOUBLE to UINT64 during: threads.
 -STATEMENT call timeout=1000.5
----- ok
--STATEMENT call timeout=-1.5
 ---- error
-Binder exception: Invalid setting timeout to a negative value.
+Binder exception: Invalid cast from DOUBLE to UINT64 during: timeout.
+-STATEMENT call timeout=-3
+---- error
+Overflow exception: Value -3 is not within UINT64 range
 -STATEMENT CREATE NODE TABLE tab(id SERIAL, a INT64[], PRIMARY KEY(id))
 ---- ok
 -STATEMENT CREATE (t:tab {a: cast([1, 2, 3], 'int64[3]')}) RETURN t.a
