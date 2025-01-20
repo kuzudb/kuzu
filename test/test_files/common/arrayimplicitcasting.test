@@ -3,6 +3,16 @@
 --
 
 -CASE ArrayImplicitCast
+-STATEMENT call threads=4.5
+---- error
+-STATEMENT call threads=-3
+---- error
+-STATEMENT call threads=-3.5
+---- error
+-STATEMENT call TIME_OUT=1.5
+---- ok
+-STATEMENT call time_out=-1.5
+---- error
 -STATEMENT CREATE NODE TABLE tab(id SERIAL, a INT64[], PRIMARY KEY(id))
 ---- ok
 -STATEMENT CREATE (t:tab {a: cast([1, 2, 3], 'int64[3]')}) RETURN t.a

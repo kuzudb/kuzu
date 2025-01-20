@@ -11,15 +11,10 @@ namespace main {
 
 struct ThreadsSetting {
     static constexpr auto name = "threads";
-    static constexpr auto inputType = common::LogicalTypeID::INT64;
+    static constexpr auto inputType = common::LogicalTypeID::UINT64;
     static void setContext(ClientContext* context, const common::Value& parameter) {
         parameter.validateType(inputType);
-        int64_t valueToSet = parameter.getValue<int64_t>();
-        if (valueToSet <= 0) {
-            throw kuzu::common::BinderException{
-                "Invalid setting " + std::string(name) + " to a negative value."};
-        }
-        context->getClientConfigUnsafe()->numThreads = valueToSet;
+        context->getClientConfigUnsafe()->numThreads = parameter.getValue<u_int64_t>();
     }
     static common::Value getSetting(const ClientContext* context) {
         return common::Value(context->getClientConfig()->numThreads);
@@ -28,15 +23,10 @@ struct ThreadsSetting {
 
 struct WarningLimitSetting {
     static constexpr auto name = "warning_limit";
-    static constexpr auto inputType = common::LogicalTypeID::INT64;
+    static constexpr auto inputType = common::LogicalTypeID::UINT64;
     static void setContext(ClientContext* context, const common::Value& parameter) {
         parameter.validateType(inputType);
-        int64_t valueToSet = parameter.getValue<int64_t>();
-        if (valueToSet <= 0) {
-            throw kuzu::common::BinderException{
-                "Invalid setting " + std::string(name) + " to a negative value."};
-        }
-        context->getClientConfigUnsafe()->warningLimit = valueToSet;
+        context->getClientConfigUnsafe()->warningLimit = parameter.getValue<u_int64_t>();
     }
     static common::Value getSetting(const ClientContext* context) {
         return common::Value(context->getClientConfig()->warningLimit);

@@ -624,10 +624,7 @@ struct KUZU_API LogicalTypeUtils {
     static bool isIntegral(const LogicalTypeID& dataType);
     static bool isNumerical(const LogicalType& dataType);
     static bool isNumerical(const LogicalTypeID& dataType);
-    static bool isFloatingPoint(const LogicalType& dataType);
     static bool isFloatingPoint(const LogicalTypeID& dataType);
-    static bool isInteger(const LogicalType& dataType);
-    static bool isInteger(const LogicalTypeID& dataType);
     static bool isNested(const LogicalType& dataType);
     static bool isNested(LogicalTypeID logicalTypeID);
     static std::vector<LogicalTypeID> getAllValidComparableLogicalTypes();
