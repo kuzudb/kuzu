@@ -36,7 +36,7 @@ class Database:
         read_only: bool = False,
         max_db_size: int = (1 << 43),
         auto_checkpoint: bool = True,
-        checkpoint_threshold: int = (1 << 24),  # 16MB
+        checkpoint_threshold: int = -1,
     ):
         """
         Parameters

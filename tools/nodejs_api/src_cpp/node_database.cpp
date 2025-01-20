@@ -51,7 +51,7 @@ void NodeDatabase::InitCppDatabase() {
         systemConfig.maxDBSize = maxDBSize;
     }
     systemConfig.autoCheckpoint = autoCheckpoint;
-    if (checkpointThreshold != std::numeric_limits<uint64_t>::max()) {
+    if (checkpointThreshold >= 0) {
         systemConfig.checkpointThreshold = checkpointThreshold;
     }
     this->database = std::make_shared<Database>(databasePath, systemConfig);

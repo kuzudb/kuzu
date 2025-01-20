@@ -51,7 +51,7 @@ impl Default for SystemConfig {
             // This is a little weird, but it's a temporary interface
             max_db_size: u32::MAX as u64,
             auto_checkpoint: true,
-            checkpoint_threshold: u64::MAX as u64,
+            checkpoint_threshold: -1 as i64,
         }
     }
 }

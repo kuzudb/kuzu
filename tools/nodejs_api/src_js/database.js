@@ -25,7 +25,7 @@ class Database {
     enableCompression = true,
     readOnly = false,
     maxDBSize = 0,
-    autoCheckpoint = false,
+    autoCheckpoint = true,
     checkpointThreshold = -1
   ) {
     if (!databasePath) {

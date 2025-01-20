@@ -30,7 +30,7 @@ private:
     bool readOnly;
     uint64_t maxDBSize;
     bool autoCheckpoint;
-    uint64_t checkpointThreshold;
+    int64_t checkpointThreshold;
     std::shared_ptr<Database> database;
 };
 

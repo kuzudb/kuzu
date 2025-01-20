@@ -65,6 +65,12 @@ describe("Database constructor", function () {
     assert.exists(testDb._database);
     assert.isTrue(testDb._isInitialized);
     assert.notExists(testDb._initPromise);
+
+    // check default config
+    let res = await conn.query("CALL current_setting('checkpoint_threshold') RETURN *");
+    assert.equal(res.getNumTuples(), 1);
+    const tuple = await res.getNext();
+    assert.isTrue(tuple["checkpoint_threshold"] > 0);
   });
 
   it("should create a database with auto checkpoint configured", async function () {

@@ -26,8 +26,18 @@ public class DatabaseTest extends TestBase {
                 true /* compression */,
                 false /* readOnly */,
                 1 << 30 /* 1 GB */,
-                true /* autoCheckpoint */,
-                1 << 24 /* 16 MB */)) {
+                false /* autoCheckpoint */,
+                1234 /* checkpointThreshold */)) {
+            Connection conn = new Connection(database);
+            {
+                QueryResult result = conn.query("CALL current_setting('auto_checkpoint') RETURN *");
+                assertEquals(result.getNext().getValue(0).toString(), "False");
+            }
+            {
+                QueryResult result = conn.query("CALL current_setting('checkpoint_threshold') RETURN *");
+                assertEquals(result.getNext().getValue(0).toString(), "1234");
+            }
+            conn.close();
             // Database will be automatically destroyed after this block
         } catch (Exception e) {
             fail("DBCreationAndDestroyWithArgs failed: " + e.getMessage());
@@ -44,6 +54,10 @@ public class DatabaseTest extends TestBase {
         }
 
         try (Database database = new Database(dbPath)) {
+            // check default config
+            QueryResult result = conn.query("CALL current_setting('checkpoint_threshold') RETURN *");
+            Long checkpointThreshold = Long.parseLong(result.getNext().getValue(0).toString());
+            assertTrue(checkpointThreshold > 0);
         } catch (Exception e) {
             fail("DBCreationAndDestroyWithPathOnly failed: " + e.getMessage());
         }
