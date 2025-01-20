@@ -5,7 +5,6 @@
 #include "common/enums/extend_direction.h"
 #include "common/enums/rel_multiplicity.h"
 #include "common/types/types.h"
-#include "common/types/value/value.h"
 #include "property_definition.h"
 
 namespace kuzu {
@@ -25,8 +24,6 @@ struct BoundExtraCreateCatalogEntryInfo {
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<TARGET*>(this);
     }
-
-    virtual void serialize(common::Serializer& serializer) const = 0;
 
     virtual inline std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const = 0;
 };
@@ -49,9 +46,6 @@ struct BoundCreateTableInfo {
 
     std::string toString() const;
 
-    void serialize(common::Serializer& serializer) const;
-    static BoundCreateTableInfo deserialize(common::Deserializer& deserializer);
-
 private:
     BoundCreateTableInfo(const BoundCreateTableInfo& other)
         : type{other.type}, tableName{other.tableName}, onConflict{other.onConflict},
@@ -72,10 +66,6 @@ struct KUZU_API BoundExtraCreateTableInfo : public BoundExtraCreateCatalogEntryI
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
         return std::make_unique<BoundExtraCreateTableInfo>(*this);
     }
-
-    void serialize(common::Serializer& serializer) const override;
-    static std::unique_ptr<BoundExtraCreateTableInfo> deserialize(
-        common::Deserializer& deserializer, catalog::CatalogEntryType type);
 };
 
 struct BoundExtraCreateNodeTableInfo final : BoundExtraCreateTableInfo {
@@ -92,10 +82,6 @@ struct BoundExtraCreateNodeTableInfo final : BoundExtraCreateTableInfo {
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
         return std::make_unique<BoundExtraCreateNodeTableInfo>(*this);
     }
-
-    void serialize(common::Serializer& serializer) const override;
-    static std::unique_ptr<BoundExtraCreateNodeTableInfo> deserialize(
-        common::Deserializer& deserializer);
 };
 
 struct BoundExtraCreateRelTableInfo final : public BoundExtraCreateTableInfo {
@@ -126,10 +112,6 @@ struct BoundExtraCreateRelTableInfo final : public BoundExtraCreateTableInfo {
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
         return std::make_unique<BoundExtraCreateRelTableInfo>(*this);
     }
-
-    void serialize(common::Serializer& serializer) const override;
-    static std::unique_ptr<BoundExtraCreateRelTableInfo> deserialize(
-        common::Deserializer& deserializer);
 };
 
 struct BoundExtraCreateRelTableGroupInfo final : public BoundExtraCreateCatalogEntryInfo {
@@ -140,13 +122,9 @@ struct BoundExtraCreateRelTableGroupInfo final : public BoundExtraCreateCatalogE
     BoundExtraCreateRelTableGroupInfo(const BoundExtraCreateRelTableGroupInfo& other)
         : infos{copyVector(other.infos)} {}
 
-    inline std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
+    std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
         return std::make_unique<BoundExtraCreateRelTableGroupInfo>(*this);
     }
-
-    void serialize(common::Serializer& serializer) const override;
-    static std::unique_ptr<BoundExtraCreateRelTableGroupInfo> deserialize(
-        common::Deserializer& deserializer);
 };
 
 } // namespace binder

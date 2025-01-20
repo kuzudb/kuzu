@@ -21,12 +21,11 @@ class Transaction;
 
 namespace catalog {
 
-class CatalogSet;
 class KUZU_API TableCatalogEntry : public CatalogEntry {
 public:
-    TableCatalogEntry() : set{nullptr} {}
-    TableCatalogEntry(CatalogSet* set, CatalogEntryType catalogType, std::string name)
-        : CatalogEntry{catalogType, std::move(name)}, set{set} {}
+    TableCatalogEntry() = default;
+    TableCatalogEntry(CatalogEntryType catalogType, std::string name)
+        : CatalogEntry{catalogType, std::move(name)} {}
     TableCatalogEntry& operator=(const TableCatalogEntry&) = delete;
 
     common::table_id_t getTableID() const { return oid; }
@@ -78,7 +77,6 @@ protected:
         transaction::Transaction* transaction) const = 0;
 
 protected:
-    CatalogSet* set;
     std::string comment;
     PropertyDefinitionCollection propertyCollection;
     std::unique_ptr<binder::BoundAlterInfo> alterInfo;

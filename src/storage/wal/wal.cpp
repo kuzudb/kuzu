@@ -1,7 +1,6 @@
 #include "storage/wal/wal.h"
 
 #include "binder/ddl/bound_alter_info.h"
-#include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/file_system/file_info.h"
 #include "common/file_system/virtual_file_system.h"
@@ -63,12 +62,6 @@ void WAL::logAndFlushCheckpoint() {
     CheckpointRecord walRecord;
     addNewWALRecordNoLock(walRecord);
     flushAllPages();
-}
-
-void WAL::logCreateTableEntryRecord(BoundCreateTableInfo tableInfo) {
-    std::unique_lock<std::mutex> lck{mtx};
-    CreateTableEntryRecord walRecord(std::move(tableInfo));
-    addNewWALRecordNoLock(walRecord);
 }
 
 void WAL::logCreateCatalogEntryRecord(CatalogEntry* catalogEntry, bool isInternal) {

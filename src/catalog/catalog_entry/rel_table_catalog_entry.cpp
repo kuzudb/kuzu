@@ -123,8 +123,7 @@ common::ExtendDirection RelTableCatalogEntry::getStorageDirection() const {
 std::unique_ptr<BoundExtraCreateCatalogEntryInfo> RelTableCatalogEntry::getBoundExtraCreateInfo(
     transaction::Transaction*) const {
     return std::make_unique<binder::BoundExtraCreateRelTableInfo>(srcMultiplicity, dstMultiplicity,
-        getStorageDirection(), srcTableID, dstTableID,
-        copyVector(propertyCollection.getDefinitions()));
+        storageDirection, srcTableID, dstTableID, copyVector(propertyCollection.getDefinitions()));
 }
 
 } // namespace catalog

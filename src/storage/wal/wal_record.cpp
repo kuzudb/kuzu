@@ -1,6 +1,5 @@
 #include "storage/wal/wal_record.h"
 
-#include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/catalog_entry.h"
 #include "common/exception/runtime.h"
 #include "common/serializer/deserializer.h"
@@ -34,9 +33,6 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer,
     } break;
     case WALRecordType::ROLLBACK_RECORD: {
         walRecord = RollbackRecord::deserialize(deserializer);
-    } break;
-    case WALRecordType::CREATE_TABLE_CATALOG_ENTRY_RECORD: {
-        walRecord = CreateTableEntryRecord::deserialize(deserializer);
     } break;
     case WALRecordType::CREATE_CATALOG_ENTRY_RECORD: {
         walRecord = CreateCatalogEntryRecord::deserialize(deserializer);
@@ -115,17 +111,6 @@ void CheckpointRecord::serialize(Serializer& serializer) const {
 
 std::unique_ptr<CheckpointRecord> CheckpointRecord::deserialize(Deserializer&) {
     return std::make_unique<CheckpointRecord>();
-}
-
-void CreateTableEntryRecord::serialize(Serializer& serializer) const {
-    WALRecord::serialize(serializer);
-    boundCreateTableInfo.serialize(serializer);
-}
-
-std::unique_ptr<CreateTableEntryRecord> CreateTableEntryRecord::deserialize(
-    Deserializer& deserializer) {
-    auto boundCreateTableInfo = BoundCreateTableInfo::deserialize(deserializer);
-    return std::make_unique<CreateTableEntryRecord>(std::move(boundCreateTableInfo));
 }
 
 void CreateCatalogEntryRecord::serialize(Serializer& serializer) const {

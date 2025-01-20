@@ -5,9 +5,9 @@
 namespace kuzu {
 namespace catalog {
 
-DuckDBTableCatalogEntry::DuckDBTableCatalogEntry(CatalogSet* set, std::string name,
+DuckDBTableCatalogEntry::DuckDBTableCatalogEntry(std::string name,
     function::TableFunction scanFunction)
-    : TableCatalogEntry{set, CatalogEntryType::FOREIGN_TABLE_ENTRY, std::move(name)},
+    : TableCatalogEntry{CatalogEntryType::FOREIGN_TABLE_ENTRY, std::move(name)},
       scanFunction{std::move(scanFunction)} {}
 
 common::TableType DuckDBTableCatalogEntry::getTableType() const {
@@ -15,7 +15,7 @@ common::TableType DuckDBTableCatalogEntry::getTableType() const {
 }
 
 std::unique_ptr<TableCatalogEntry> DuckDBTableCatalogEntry::copy() const {
-    auto other = std::make_unique<DuckDBTableCatalogEntry>(set, name, scanFunction);
+    auto other = std::make_unique<DuckDBTableCatalogEntry>(name, scanFunction);
     other->copyFrom(*this);
     return other;
 }

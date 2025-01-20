@@ -15,10 +15,10 @@ public:
     RelTableCatalogEntry()
         : srcMultiplicity{}, dstMultiplicity{}, storageDirection{},
           srcTableID{common::INVALID_TABLE_ID}, dstTableID{common::INVALID_TABLE_ID} {};
-    RelTableCatalogEntry(CatalogSet* set, std::string name, common::RelMultiplicity srcMultiplicity,
+    RelTableCatalogEntry(std::string name, common::RelMultiplicity srcMultiplicity,
         common::RelMultiplicity dstMultiplicity, common::table_id_t srcTableID,
         common::table_id_t dstTableID, common::ExtendDirection storageDirection)
-        : TableCatalogEntry{set, entryType_, std::move(name)}, srcMultiplicity{srcMultiplicity},
+        : TableCatalogEntry{entryType_, std::move(name)}, srcMultiplicity{srcMultiplicity},
           dstMultiplicity{dstMultiplicity}, storageDirection(storageDirection),
           srcTableID{srcTableID}, dstTableID{dstTableID} {
         propertyCollection =

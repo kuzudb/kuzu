@@ -16,7 +16,6 @@ public:
 
 private:
     void replayWALRecord(const WALRecord& walRecord) const;
-    void replayCreateTableEntryRecord(const WALRecord& walRecord) const;
     void replayCreateCatalogEntryRecord(const WALRecord& walRecord) const;
     void replayDropCatalogEntryRecord(const WALRecord& walRecord) const;
     void replayAlterTableEntryRecord(const WALRecord& walRecord) const;

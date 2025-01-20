@@ -1,6 +1,7 @@
 #include "storage/wal_replayer.h"
 
 #include "binder/binder.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
@@ -77,9 +78,6 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) const {
     case WALRecordType::ROLLBACK_RECORD: {
         clientContext.getTransactionContext()->rollback();
     } break;
-    case WALRecordType::CREATE_TABLE_CATALOG_ENTRY_RECORD: {
-        replayCreateTableEntryRecord(walRecord);
-    } break;
     case WALRecordType::CREATE_CATALOG_ENTRY_RECORD: {
         replayCreateCatalogEntryRecord(walRecord);
     } break;
@@ -123,47 +121,43 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) const {
     }
 }
 
-void WALReplayer::replayCreateTableEntryRecord(const WALRecord& walRecord) const {
-    auto& record = walRecord.constCast<CreateTableEntryRecord>();
-    KU_ASSERT(clientContext.getCatalog());
+void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) const {
     auto catalog = clientContext.getCatalog();
     auto transaction = clientContext.getTransaction();
-    CatalogEntry* entry = nullptr;
-    switch (record.boundCreateTableInfo.type) {
+    auto storageManager = clientContext.getStorageManager();
+    auto& record = walRecord.constCast<CreateCatalogEntryRecord>();
+    switch (record.ownedCatalogEntry->getType()) {
     case CatalogEntryType::NODE_TABLE_ENTRY: {
-        entry = catalog->createNodeTableEntry(transaction, record.boundCreateTableInfo);
+        auto& entry = record.ownedCatalogEntry->constCast<TableCatalogEntry>();
+        auto newEntry = catalog->createTableEntry(transaction,
+            entry.getBoundCreateTableInfo(transaction, record.isInternal));
+        storageManager->createTable(newEntry, &clientContext);
     } break;
     case CatalogEntryType::REL_TABLE_ENTRY: {
-        entry = catalog->createRelTableEntry(transaction, record.boundCreateTableInfo);
+        auto& entry = record.ownedCatalogEntry->constCast<TableCatalogEntry>();
+        auto newEntry = catalog->createTableEntry(transaction,
+            entry.getBoundCreateTableInfo(transaction, record.isInternal));
+        storageManager->createTable(newEntry, &clientContext);
     } break;
     case CatalogEntryType::REL_GROUP_ENTRY: {
-        entry = catalog->createRelGroupEntry(transaction, record.boundCreateTableInfo);
+        auto& entry = record.ownedCatalogEntry->constCast<RelGroupCatalogEntry>();
+        auto newEntry = catalog->createRelGroupEntry(transaction,
+            entry.getBoundCreateTableInfo(transaction, catalog, record.isInternal));
+        storageManager->createTable(newEntry, &clientContext);
     } break;
-    default:
-        KU_UNREACHABLE;
-    }
-    clientContext.getStorageManager()->createTable(entry, &clientContext);
-}
-
-void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) const {
-    auto& createEntryRecord = walRecord.constCast<CreateCatalogEntryRecord>();
-    switch (createEntryRecord.ownedCatalogEntry->getType()) {
     case CatalogEntryType::SCALAR_MACRO_ENTRY: {
-        auto& macroEntry =
-            createEntryRecord.ownedCatalogEntry->constCast<ScalarMacroCatalogEntry>();
-        clientContext.getCatalog()->addScalarMacroFunction(clientContext.getTransaction(),
-            macroEntry.getName(), macroEntry.getMacroFunction()->copy());
+        auto& macroEntry = record.ownedCatalogEntry->constCast<ScalarMacroCatalogEntry>();
+        catalog->addScalarMacroFunction(transaction, macroEntry.getName(),
+            macroEntry.getMacroFunction()->copy());
     } break;
     case CatalogEntryType::SEQUENCE_ENTRY: {
-        auto& sequenceEntry =
-            createEntryRecord.ownedCatalogEntry->constCast<SequenceCatalogEntry>();
-        clientContext.getCatalog()->createSequence(clientContext.getTransaction(),
-            sequenceEntry.getBoundCreateSequenceInfo(createEntryRecord.isInternal));
+        auto& sequenceEntry = record.ownedCatalogEntry->constCast<SequenceCatalogEntry>();
+        catalog->createSequence(transaction,
+            sequenceEntry.getBoundCreateSequenceInfo(record.isInternal));
     } break;
     case CatalogEntryType::TYPE_ENTRY: {
-        auto& typeEntry = createEntryRecord.ownedCatalogEntry->constCast<TypeCatalogEntry>();
-        clientContext.getCatalog()->createType(clientContext.getTransaction(), typeEntry.getName(),
-            typeEntry.getLogicalType().copy());
+        auto& typeEntry = record.ownedCatalogEntry->constCast<TypeCatalogEntry>();
+        catalog->createType(transaction, typeEntry.getName(), typeEntry.getLogicalType().copy());
     } break;
     default: {
         KU_UNREACHABLE;
@@ -173,17 +167,20 @@ void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) con
 
 void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) const {
     auto& dropEntryRecord = walRecord.constCast<DropCatalogEntryRecord>();
+    auto catalog = clientContext.getCatalog();
+    auto transaction = clientContext.getTransaction();
     const auto entryID = dropEntryRecord.entryID;
     switch (dropEntryRecord.entryType) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
-    case CatalogEntryType::REL_TABLE_ENTRY:
-    case CatalogEntryType::REL_GROUP_ENTRY: {
+    case CatalogEntryType::REL_TABLE_ENTRY: {
         KU_ASSERT(clientContext.getCatalog());
-        clientContext.getCatalog()->dropTableEntry(clientContext.getTransaction(), entryID);
-        KU_ASSERT(clientContext.getStorageManager());
+        catalog->dropTableEntry(transaction, entryID);
+    } break;
+    case CatalogEntryType::REL_GROUP_ENTRY: {
+        catalog->dropRelGroupEntry(transaction, entryID);
     } break;
     case CatalogEntryType::SEQUENCE_ENTRY: {
-        clientContext.getCatalog()->dropSequence(clientContext.getTransaction(), entryID);
+        catalog->dropSequence(transaction, entryID);
     } break;
     default: {
         KU_UNREACHABLE;
