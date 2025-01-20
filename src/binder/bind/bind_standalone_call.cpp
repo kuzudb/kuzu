@@ -24,8 +24,12 @@ std::unique_ptr<BoundStatement> Binder::bindStandaloneCall(const parser::Stateme
     }
     auto optionValue = expressionBinder.bindExpression(*callStatement.getOptionValue());
     ExpressionUtil::validateExpressionType(*optionValue, ExpressionType::LITERAL);
-    if (LogicalTypeUtils::isFloatingPoint(optionValue->dataType.getLogicalTypeID()) && LogicalTypeUtils::isIntegral(LogicalType(option->parameterType))) {
-        throw BinderException{"Invalid cast from " + LogicalTypeUtils::toString(optionValue->dataType.getLogicalTypeID()) + " to " + LogicalTypeUtils::toString(option->parameterType) + " during: " + callStatement.getOptionName() + "."};
+    if (LogicalTypeUtils::isFloatingPoint(optionValue->dataType.getLogicalTypeID()) &&
+        LogicalTypeUtils::isIntegral(LogicalType(option->parameterType))) {
+        throw BinderException{"Invalid cast from " +
+                              LogicalTypeUtils::toString(optionValue->dataType.getLogicalTypeID()) +
+                              " to " + LogicalTypeUtils::toString(option->parameterType) +
+                              " during: " + callStatement.getOptionName() + "."};
     }
     optionValue =
         expressionBinder.implicitCastIfNecessary(optionValue, LogicalType(option->parameterType));
