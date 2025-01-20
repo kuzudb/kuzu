@@ -4,6 +4,7 @@
 #include "common/types/value/value.h"
 #include "main/client_context.h"
 #include "main/db_config.h"
+#include "common/exception/binder.h"
 
 namespace kuzu {
 namespace main {
@@ -13,7 +14,11 @@ struct ThreadsSetting {
     static constexpr auto inputType = common::LogicalTypeID::INT64;
     static void setContext(ClientContext* context, const common::Value& parameter) {
         parameter.validateType(inputType);
-        context->getClientConfigUnsafe()->numThreads = parameter.getValue<int64_t>();
+        int64_t valueToSet = parameter.getValue<int64_t>();
+        if (valueToSet <= 0) {
+            throw kuzu::common::BinderException{"Invalid setting " + std::string(name) + " to a negative value."};
+        }
+        context->getClientConfigUnsafe()->numThreads = valueToSet;
     }
     static common::Value getSetting(const ClientContext* context) {
         return common::Value(context->getClientConfig()->numThreads);
@@ -25,7 +30,11 @@ struct WarningLimitSetting {
     static constexpr auto inputType = common::LogicalTypeID::INT64;
     static void setContext(ClientContext* context, const common::Value& parameter) {
         parameter.validateType(inputType);
-        context->getClientConfigUnsafe()->warningLimit = parameter.getValue<int64_t>();
+        int64_t valueToSet = parameter.getValue<int64_t>();
+        if (valueToSet <= 0) {
+            throw kuzu::common::BinderException{"Invalid setting " + std::string(name) + " to a negative value."};
+        }
+        context->getClientConfigUnsafe()->warningLimit = valueToSet;
     }
     static common::Value getSetting(const ClientContext* context) {
         return common::Value(context->getClientConfig()->warningLimit);
@@ -34,10 +43,14 @@ struct WarningLimitSetting {
 
 struct TimeoutSetting {
     static constexpr auto name = "timeout";
-    static constexpr auto inputType = common::LogicalTypeID::INT64;
+    static constexpr auto inputType = common::LogicalTypeID::DOUBLE;
     static void setContext(ClientContext* context, const common::Value& parameter) {
         parameter.validateType(inputType);
-        context->getClientConfigUnsafe()->timeoutInMS = parameter.getValue<int64_t>();
+        double valueToSet = parameter.getValue<double>();
+        if (valueToSet <= 0) {
+            throw kuzu::common::BinderException{"Invalid setting " + std::string(name) + " to a negative value."};
+        }
+        context->getClientConfigUnsafe()->timeoutInMS = valueToSet;
     }
     static common::Value getSetting(const ClientContext* context) {
         return common::Value(context->getClientConfig()->timeoutInMS);
