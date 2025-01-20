@@ -38,7 +38,7 @@ pub struct SystemConfig {
     /// If true, the database will automatically checkpoint when the size of the WAL file exceeds the checkpoint threshold.
     auto_checkpoint: bool,
     /// The threshold of the WAL file size in bytes. When the size of the WAL file exceeds this threshold, the database will checkpoint if autoCheckpoint is true.
-    checkpoint_threshold: u64,
+    checkpoint_threshold: i64,
 }
 
 impl Default for SystemConfig {
@@ -81,7 +81,7 @@ impl SystemConfig {
         self.auto_checkpoint = auto_checkpoint;
         self
     }
-    pub fn checkpoint_threshold(mut self, checkpoint_threshold: u64) -> Self {
+    pub fn checkpoint_threshold(mut self, checkpoint_threshold: i64) -> Self {
         self.checkpoint_threshold = checkpoint_threshold;
         self
     }
