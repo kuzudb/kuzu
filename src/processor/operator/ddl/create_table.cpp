@@ -1,5 +1,6 @@
 #include "processor/operator/ddl/create_table.h"
 
+#include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "storage/storage_manager.h"
 
@@ -12,19 +13,41 @@ namespace processor {
 void CreateTable::executeDDLInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
     auto catalog = clientContext->getCatalog();
-    switch (info.onConflict) {
-    case common::ConflictAction::ON_CONFLICT_DO_NOTHING: {
-        if (catalog->containsTable(clientContext->getTransaction(), info.tableName)) {
+    auto transaction = clientContext->getTransaction();
+    // Check conflict
+    // We don't allow naming conflicting between tables and rel groups because rel groups are
+    // transparent to user.
+    auto contains = catalog->containsTable(transaction, info.tableName) ||
+                    catalog->containsRelGroup(transaction, info.tableName);
+    if (contains) {
+        switch (info.onConflict) {
+        case ConflictAction::ON_CONFLICT_DO_NOTHING: {
             return;
         }
+        case ConflictAction::ON_CONFLICT_THROW: {
+            throw BinderException(info.tableName + " already exists in catalog.");
+        }
+        default:
+            KU_UNREACHABLE;
+        }
     }
+    // Create table.
+    CatalogEntry* entry = nullptr;
+    switch (info.type) {
+    case CatalogEntryType::NODE_TABLE_ENTRY: {
+        entry = catalog->createNodeTableEntry(transaction, info);
+    } break;
+    case CatalogEntryType::REL_TABLE_ENTRY: {
+        entry = catalog->createRelTableEntry(transaction, info);
+    } break;
+    case CatalogEntryType::REL_GROUP_ENTRY: {
+        entry = catalog->createRelGroupEntry(transaction, info);
+    } break;
     default:
-        break;
+        KU_UNREACHABLE;
     }
-    auto newTableID = catalog->createTableEntry(clientContext->getTransaction(), info);
+    clientContext->getStorageManager()->createTable(entry, clientContext);
     tableCreated = true;
-    auto storageManager = clientContext->getStorageManager();
-    storageManager->createTable(newTableID, catalog, clientContext);
 }
 
 std::string CreateTable::getOutputMsg() {

@@ -124,13 +124,25 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) const {
 }
 
 void WALReplayer::replayCreateTableEntryRecord(const WALRecord& walRecord) const {
-    auto& createTableEntryRecord = walRecord.constCast<CreateTableEntryRecord>();
+    auto& record = walRecord.constCast<CreateTableEntryRecord>();
     KU_ASSERT(clientContext.getCatalog());
     auto catalog = clientContext.getCatalog();
-    const auto tableID = catalog->createTableEntry(clientContext.getTransaction(),
-        createTableEntryRecord.boundCreateTableInfo);
-    KU_ASSERT(clientContext.getStorageManager());
-    clientContext.getStorageManager()->createTable(tableID, catalog, &clientContext);
+    auto transaction = clientContext.getTransaction();
+    CatalogEntry* entry = nullptr;
+    switch (record.boundCreateTableInfo.type) {
+    case CatalogEntryType::NODE_TABLE_ENTRY: {
+        entry = catalog->createNodeTableEntry(transaction, record.boundCreateTableInfo);
+    } break;
+    case CatalogEntryType::REL_TABLE_ENTRY: {
+        entry = catalog->createRelTableEntry(transaction, record.boundCreateTableInfo);
+    } break;
+    case CatalogEntryType::REL_GROUP_ENTRY: {
+        entry = catalog->createRelGroupEntry(transaction, record.boundCreateTableInfo);
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
+    clientContext.getStorageManager()->createTable(entry, &clientContext);
 }
 
 void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) const {

@@ -71,6 +71,16 @@ static void writeCopyStatement(stringstream& ss, const TableCatalogEntry* entry,
         fileTypeStr, csvConfig.option.toCypher());
 }
 
+static bool inAnyRelGroups(const std::vector<RelGroupCatalogEntry*>& relGroupEntries,
+    common::table_id_t id) {
+    for (auto& group : relGroupEntries) {
+        if (group->isParent(id)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::string getSchemaCypher(ClientContext* clientContext, Transaction* transaction) {
     stringstream ss;
     const auto catalog = clientContext->getCatalog();
@@ -78,13 +88,14 @@ std::string getSchemaCypher(ClientContext* clientContext, Transaction* transacti
         catalog->getNodeTableEntries(transaction, false /* useInternal */)) {
         ss << nodeTableEntry->toCypher(clientContext) << std::endl;
     }
+    auto relGroupEntries = catalog->getRelGroupEntries(transaction);
     for (const auto& entry : catalog->getRelTableEntries(transaction, false /* useInternal */)) {
-        if (catalog->tableInRelGroup(transaction, entry->getTableID())) {
+        if (inAnyRelGroups(relGroupEntries, entry->getTableID())) {
             continue;
         }
         ss << entry->toCypher(clientContext) << std::endl;
     }
-    for (const auto& relGroupEntry : catalog->getRelTableGroupEntries(transaction)) {
+    for (const auto& relGroupEntry : relGroupEntries) {
         ss << relGroupEntry->toCypher(clientContext) << std::endl;
     }
     for (const auto sequenceEntry : catalog->getSequenceEntries(transaction)) {

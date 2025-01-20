@@ -6,7 +6,6 @@
 #include "binder/query/query_graph.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/copier_config/file_scan_info.h"
-#include "common/enums/table_type.h"
 #include "parser/ddl/parsed_property_definition.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 #include "parser/query/regular_query.h"
@@ -259,33 +258,18 @@ public:
     void bindQueryNodeProperties(NodeExpression& node);
 
     /*** bind table entries ***/
-    std::vector<catalog::TableCatalogEntry*> bindTableEntries(
-        const std::vector<std::string>& tableNames, bool nodePattern) const;
-    catalog::TableCatalogEntry* bindTableEntry(const std::string& tableName) const;
-    common::table_id_t bindTableID(const std::string& tableName) const;
-    std::vector<catalog::TableCatalogEntry*> getNodeTableEntries(
-        const std::vector<catalog::TableCatalogEntry*>& entries) const;
-    std::vector<catalog::TableCatalogEntry*> getRelTableEntries(
-        const std::vector<catalog::TableCatalogEntry*>& entries) const;
-    std::vector<catalog::TableCatalogEntry*> getTableEntries(
-        const std::vector<catalog::TableCatalogEntry*>& entries, common::TableType tableType) const;
-    std::vector<catalog::TableCatalogEntry*> getNodeTableEntries(
-        catalog::TableCatalogEntry* entry) const;
-    std::vector<catalog::TableCatalogEntry*> getRelTableEntries(
-        catalog::TableCatalogEntry* entry) const;
-    // TODO(Xiyang): remove id based table binding logic.
-    std::vector<catalog::TableCatalogEntry*> getTableEntries(
-        const common::table_id_vector_t& tableIDs);
+    std::vector<catalog::TableCatalogEntry*> bindNodeTableEntries(
+        const std::vector<std::string>& tableNames) const;
+    catalog::TableCatalogEntry* bindNodeTableEntry(const std::string& name) const;
+    std::vector<catalog::TableCatalogEntry*> bindRelTableEntries(
+        const std::vector<std::string>& tableNames) const;
 
     /*** validations ***/
     static void validateOrderByFollowedBySkipOrLimitInWithClause(
         const BoundProjectionBody& boundProjectionBody);
     static bool isOrderByKeyTypeSupported(const common::LogicalType& dataType);
 
-    void validateTableType(common::table_id_t tableID, common::TableType expectedTableType);
     void validateTableExist(const std::string& tableName);
-    void validateDropTable(const parser::Statement& dropTable);
-    void validateDropSequence(const parser::Statement& dropTable);
     /*** helpers ***/
     std::string getUniqueExpressionName(const std::string& name);
 

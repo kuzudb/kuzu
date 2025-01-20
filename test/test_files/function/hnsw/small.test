@@ -137,10 +137,10 @@
 58
 -STATEMENT MATCH ()-[:_e_hnsw_index_UPPER]->() RETURN COUNT(*)
 ---- error
-Binder exception: Table _e_hnsw_index_UPPER does not exist.
+Catalog exception: _e_hnsw_index_UPPER does not exist in catalog.
 -STATEMENT MATCH ()-[:_e_hnsw_index_LOWER]->() RETURN COUNT(*)
 ---- error
-Binder exception: Table _e_hnsw_index_LOWER does not exist.
+Catalog exception: _e_hnsw_index_LOWER does not exist in catalog.
 -STATEMENT CREATE REL TABLE _e_hnsw_index_UPPER (FROM embeddings TO embeddings, distance FLOAT);
 ---- error
 Binder exception: _e_hnsw_index_UPPER already exists in catalog.

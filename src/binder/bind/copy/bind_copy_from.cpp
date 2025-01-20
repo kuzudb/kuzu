@@ -3,7 +3,6 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
-#include "common/enums/table_type.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "main/client_context.h"
@@ -25,20 +24,12 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     // Bind to table schema.
     auto catalog = clientContext->getCatalog();
     auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTransaction(), tableName);
-    switch (tableEntry->getTableType()) {
-    case TableType::REL_GROUP: {
-        throw BinderException(stringFormat("Cannot copy into {} table with type {}.", tableName,
-            TableTypeUtils::toString(tableEntry->getTableType())));
-    }
-    default:
-        break;
-    }
-    switch (tableEntry->getTableType()) {
-    case TableType::NODE: {
+    switch (tableEntry->getType()) {
+    case CatalogEntryType::NODE_TABLE_ENTRY: {
         auto nodeTableEntry = tableEntry->ptrCast<NodeTableCatalogEntry>();
         return bindCopyNodeFrom(statement, nodeTableEntry);
     }
-    case TableType::REL: {
+    case CatalogEntryType::REL_TABLE_ENTRY: {
         auto relTableEntry = tableEntry->ptrCast<RelTableCatalogEntry>();
         return bindCopyRelFrom(statement, relTableEntry);
     }

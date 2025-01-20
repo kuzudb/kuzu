@@ -21,7 +21,7 @@ void BoundCreateTableInfo::serialize(Serializer& serializer) const {
 }
 
 BoundCreateTableInfo BoundCreateTableInfo::deserialize(Deserializer& deserializer) {
-    auto type = TableType::UNKNOWN;
+    auto type = CatalogEntryType::DUMMY_ENTRY;
     std::string tableName;
     auto onConflict = ConflictAction::INVALID;
     bool hasParent = false;
@@ -33,11 +33,11 @@ BoundCreateTableInfo BoundCreateTableInfo::deserialize(Deserializer& deserialize
     deserializer.deserializeValue(hasParent);
     deserializer.deserializeValue(isInternal);
     switch (type) {
-    case TableType::NODE:
-    case TableType::REL: {
+    case CatalogEntryType::NODE_TABLE_ENTRY:
+    case CatalogEntryType::REL_TABLE_ENTRY: {
         extraInfo = BoundExtraCreateTableInfo::deserialize(deserializer, type);
     } break;
-    case TableType::REL_GROUP: {
+    case CatalogEntryType::REL_GROUP_ENTRY: {
         extraInfo = BoundExtraCreateRelTableGroupInfo::deserialize(deserializer);
     } break;
     default: {
@@ -53,7 +53,7 @@ BoundCreateTableInfo BoundCreateTableInfo::deserialize(Deserializer& deserialize
 std::string BoundCreateTableInfo::toString() const {
     std::string result = "";
     switch (type) {
-    case TableType::NODE: {
+    case CatalogEntryType::NODE_TABLE_ENTRY: {
         result += "Create Node Table: ";
         result += tableName;
         result += ",Properties: ";
@@ -64,7 +64,7 @@ std::string BoundCreateTableInfo::toString() const {
         }
         break;
     }
-    case TableType::REL: {
+    case CatalogEntryType::REL_TABLE_ENTRY: {
         result += "Create Relationship Table: ";
         result += tableName;
         result += ",Multiplicity: ";
@@ -87,7 +87,7 @@ std::string BoundCreateTableInfo::toString() const {
         }
         break;
     }
-    case TableType::REL_GROUP: {
+    case CatalogEntryType::REL_GROUP_ENTRY: {
         result += "Create Relationship Group Table: ";
         result += tableName;
         auto* relGroupInfo = extraInfo->ptrCast<BoundExtraCreateRelTableGroupInfo>();
@@ -116,15 +116,15 @@ void BoundExtraCreateTableInfo::serialize(Serializer& serializer) const {
 }
 
 std::unique_ptr<BoundExtraCreateTableInfo> BoundExtraCreateTableInfo::deserialize(
-    Deserializer& deserializer, TableType type) {
+    Deserializer& deserializer, CatalogEntryType type) {
     std::vector<PropertyDefinition> propertyDefinitions;
     std::unique_ptr<BoundExtraCreateTableInfo> info;
     deserializer.deserializeVector(propertyDefinitions);
     switch (type) {
-    case TableType::NODE: {
+    case CatalogEntryType::NODE_TABLE_ENTRY: {
         info = BoundExtraCreateNodeTableInfo::deserialize(deserializer);
     } break;
-    case TableType::REL: {
+    case CatalogEntryType::REL_TABLE_ENTRY: {
         info = BoundExtraCreateRelTableInfo::deserialize(deserializer);
     } break;
     default: {

@@ -5,8 +5,8 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/catalog_entry/catalog_entry_type.h"
 #include "common/enums/conflict_action.h"
-#include "common/enums/table_type.h"
 #include "parsed_property_definition.h"
 
 namespace kuzu {
@@ -22,16 +22,15 @@ struct ExtraCreateTableInfo {
 };
 
 struct CreateTableInfo {
-    common::TableType tableType;
+    catalog::CatalogEntryType type;
     std::string tableName;
     std::vector<ParsedPropertyDefinition> propertyDefinitions;
     std::unique_ptr<ExtraCreateTableInfo> extraInfo;
     common::ConflictAction onConflict;
 
-    CreateTableInfo(common::TableType tableType, std::string tableName,
+    CreateTableInfo(catalog::CatalogEntryType type, std::string tableName,
         common::ConflictAction onConflict)
-        : tableType{tableType}, tableName{std::move(tableName)}, extraInfo{nullptr},
-          onConflict{onConflict} {}
+        : type{type}, tableName{std::move(tableName)}, extraInfo{nullptr}, onConflict{onConflict} {}
     DELETE_COPY_DEFAULT_MOVE(CreateTableInfo);
 };
 

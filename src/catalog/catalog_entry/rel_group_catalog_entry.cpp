@@ -15,19 +15,14 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace catalog {
 
-RelGroupCatalogEntry::RelGroupCatalogEntry(CatalogSet* set, std::string tableName,
-    std::vector<table_id_t> relTableIDs)
-    : TableCatalogEntry{set, CatalogEntryType::REL_GROUP_ENTRY, std::move(tableName)},
-      relTableIDs{std::move(relTableIDs)} {}
-
-bool RelGroupCatalogEntry::isParent(table_id_t childID) {
+bool RelGroupCatalogEntry::isParent(common::table_id_t tableID) const {
     const auto it = find_if(relTableIDs.begin(), relTableIDs.end(),
-        [&](table_id_t relTableID) { return relTableID == childID; });
+        [&](table_id_t relTableID) { return relTableID == tableID; });
     return it != relTableIDs.end();
 }
 
 void RelGroupCatalogEntry::serialize(Serializer& serializer) const {
-    TableCatalogEntry::serialize(serializer);
+    CatalogEntry::serialize(serializer);
     serializer.writeDebuggingInfo("relTableIDs");
     serializer.serializeVector(relTableIDs);
 }
@@ -43,35 +38,19 @@ std::unique_ptr<RelGroupCatalogEntry> RelGroupCatalogEntry::deserialize(
     return relGroupEntry;
 }
 
-std::unique_ptr<TableCatalogEntry> RelGroupCatalogEntry::copy() const {
-    auto other = std::make_unique<RelGroupCatalogEntry>();
-    other->relTableIDs = relTableIDs;
-    other->copyFrom(*this);
-    return other;
-}
-
-static std::optional<binder::BoundCreateTableInfo> getBoundCreateTableInfoForTable(
-    transaction::Transaction* transaction, const CatalogEntrySet& entries, table_id_t tableID) {
-    for (auto& [name, entry] : entries) {
-        auto current = ku_dynamic_cast<TableCatalogEntry*>(entry);
-        if (current->getTableID() == tableID) {
-            auto boundInfo = current->getBoundCreateTableInfo(transaction, false /* isInternal */);
-            return boundInfo;
-        }
-    }
-    return std::nullopt;
-}
-
-std::unique_ptr<binder::BoundExtraCreateCatalogEntryInfo>
-RelGroupCatalogEntry::getBoundExtraCreateInfo(transaction::Transaction* transaction) const {
+binder::BoundCreateTableInfo RelGroupCatalogEntry::getBoundCreateTableInfo(
+    transaction::Transaction* transaction, bool isInternal) const {
     std::vector<binder::BoundCreateTableInfo> infos;
-    auto entries = set->getEntries(transaction);
     for (auto relTableID : relTableIDs) {
-        auto boundInfo = getBoundCreateTableInfoForTable(transaction, entries, relTableID);
-        KU_ASSERT(boundInfo.has_value());
-        infos.push_back(std::move(boundInfo.value()));
+        auto relEntry = tables->getEntryOfOID(transaction, relTableID);
+        KU_ASSERT(relEntry != nullptr);
+        auto boundInfo =
+            relEntry->ptrCast<TableCatalogEntry>()->getBoundCreateTableInfo(transaction, false);
+        infos.push_back(std::move(boundInfo));
     }
-    return std::make_unique<binder::BoundExtraCreateRelTableGroupInfo>(std::move(infos));
+    auto extraInfo = std::make_unique<binder::BoundExtraCreateRelTableGroupInfo>(std::move(infos));
+    return binder::BoundCreateTableInfo(type, name, ConflictAction::ON_CONFLICT_THROW,
+        std::move(extraInfo), isInternal);
 }
 
 static std::string getFromToStr(common::table_id_t tableID, ClientContext* context) {

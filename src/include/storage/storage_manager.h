@@ -12,6 +12,10 @@ namespace main {
 class Database;
 } // namespace main
 
+namespace catalog {
+class CatalogEntry;
+}
+
 namespace storage {
 class Table;
 class DiskArrayCollection;
@@ -25,8 +29,7 @@ public:
 
     static void recover(main::ClientContext& clientContext);
 
-    void createTable(common::table_id_t tableID, const catalog::Catalog* catalog,
-        main::ClientContext* context);
+    void createTable(catalog::CatalogEntry* entry, main::ClientContext* context);
 
     void checkpoint(main::ClientContext& clientContext);
     void rollbackCheckpoint(main::ClientContext& clientContext);
@@ -50,12 +53,9 @@ private:
 
     void loadTables(const catalog::Catalog& catalog, common::VirtualFileSystem* vfs,
         main::ClientContext* context);
-    void createNodeTable(common::table_id_t tableID, catalog::NodeTableCatalogEntry* nodeTableEntry,
-        main::ClientContext* context);
-    void createRelTable(common::table_id_t tableID, catalog::RelTableCatalogEntry* relTableEntry);
-    void createRelTableGroup(common::table_id_t tableID,
-        const catalog::RelGroupCatalogEntry* tableSchema, const catalog::Catalog* catalog,
-        transaction::Transaction* transaction);
+    void createNodeTable(catalog::NodeTableCatalogEntry* entry, main::ClientContext* context);
+    void createRelTable(catalog::RelTableCatalogEntry* entry);
+    void createRelTableGroup(catalog::RelGroupCatalogEntry* entry, main::ClientContext* context);
 
 private:
     std::mutex mtx;

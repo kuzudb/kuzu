@@ -2,7 +2,6 @@
 
 #include "binder/ddl/bound_alter_info.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/serializer/deserializer.h"
 
@@ -116,9 +115,6 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::deserialize(Deserializer& 
     case CatalogEntryType::REL_TABLE_ENTRY:
         result = RelTableCatalogEntry::deserialize(deserializer);
         break;
-    case CatalogEntryType::REL_GROUP_ENTRY:
-        result = RelGroupCatalogEntry::deserialize(deserializer);
-        break;
     default:
         KU_UNREACHABLE;
     }
@@ -138,8 +134,8 @@ void TableCatalogEntry::copyFrom(const CatalogEntry& other) {
 BoundCreateTableInfo TableCatalogEntry::getBoundCreateTableInfo(
     transaction::Transaction* transaction, bool isInternal) const {
     auto extraInfo = getBoundExtraCreateInfo(transaction);
-    return BoundCreateTableInfo(getTableType(), name, ConflictAction::ON_CONFLICT_THROW,
-        std::move(extraInfo), isInternal);
+    return BoundCreateTableInfo(type, name, ConflictAction::ON_CONFLICT_THROW, std::move(extraInfo),
+        isInternal);
 }
 
 } // namespace catalog

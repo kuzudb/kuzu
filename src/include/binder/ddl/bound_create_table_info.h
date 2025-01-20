@@ -1,9 +1,9 @@
 #pragma once
 
+#include "catalog/catalog_entry/catalog_entry_type.h"
 #include "common/enums/conflict_action.h"
 #include "common/enums/extend_direction.h"
 #include "common/enums/rel_multiplicity.h"
-#include "common/enums/table_type.h"
 #include "common/types/types.h"
 #include "common/types/value/value.h"
 #include "property_definition.h"
@@ -32,7 +32,7 @@ struct BoundExtraCreateCatalogEntryInfo {
 };
 
 struct BoundCreateTableInfo {
-    common::TableType type{};
+    catalog::CatalogEntryType type = catalog::CatalogEntryType::DUMMY_ENTRY;
     std::string tableName;
     common::ConflictAction onConflict = common::ConflictAction::INVALID;
     bool hasParent = false;
@@ -40,7 +40,7 @@ struct BoundCreateTableInfo {
     bool isInternal = false;
 
     BoundCreateTableInfo() = default;
-    BoundCreateTableInfo(common::TableType type, std::string tableName,
+    BoundCreateTableInfo(catalog::CatalogEntryType type, std::string tableName,
         common::ConflictAction onConflict,
         std::unique_ptr<BoundExtraCreateCatalogEntryInfo> extraInfo, bool isInternal)
         : type{type}, tableName{std::move(tableName)}, onConflict{onConflict},
@@ -75,7 +75,7 @@ struct KUZU_API BoundExtraCreateTableInfo : public BoundExtraCreateCatalogEntryI
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<BoundExtraCreateTableInfo> deserialize(
-        common::Deserializer& deserializer, common::TableType type);
+        common::Deserializer& deserializer, catalog::CatalogEntryType type);
 };
 
 struct BoundExtraCreateNodeTableInfo final : BoundExtraCreateTableInfo {

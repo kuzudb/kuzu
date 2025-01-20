@@ -2,7 +2,6 @@
 
 #include "binder/bound_statement_rewriter.h"
 #include "catalog/catalog.h"
-#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/copier_config/csv_reader_config.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
@@ -150,14 +149,6 @@ void Binder::validateOrderByFollowedBySkipOrLimitInWithClause(
     auto hasSkipOrLimit = boundProjectionBody.hasSkip() || boundProjectionBody.hasLimit();
     if (boundProjectionBody.hasOrderByExpressions() && !hasSkipOrLimit) {
         throw BinderException("In WITH clause, ORDER BY must be followed by SKIP or LIMIT.");
-    }
-}
-
-void Binder::validateTableType(table_id_t tableID, TableType expectedTableType) {
-    auto tableEntry =
-        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(), tableID);
-    if (tableEntry->getTableType() != expectedTableType) {
-        throw BinderException("Table type mismatch.");
     }
 }
 

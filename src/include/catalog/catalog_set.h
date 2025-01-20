@@ -1,6 +1,5 @@
 #pragma once
 
-#include <functional>
 #include <shared_mutex>
 
 #include "catalog_entry/catalog_entry.h"
@@ -37,8 +36,6 @@ public:
     void alterEntry(transaction::Transaction* transaction, const binder::BoundAlterInfo& alterInfo);
 
     CatalogEntrySet getEntries(const transaction::Transaction* transaction);
-    void iterateEntriesOfType(const transaction::Transaction* transaction, CatalogEntryType type,
-        const std::function<void(const CatalogEntry*)>& func);
     CatalogEntry* getEntryOfOID(const transaction::Transaction* transaction, common::oid_t oid);
 
     void serialize(common::Serializer serializer) const;

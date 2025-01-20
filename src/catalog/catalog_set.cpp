@@ -217,22 +217,6 @@ CatalogEntrySet CatalogSet::getEntries(const Transaction* transaction) {
     return result;
 }
 
-void CatalogSet::iterateEntriesOfType(const Transaction* transaction, CatalogEntryType type,
-    const std::function<void(const CatalogEntry*)>& func) {
-    std::shared_lock lck{mtx};
-    for (auto& [_, entry] : entries) {
-        if (entry->getType() != CatalogEntryType::DUMMY_ENTRY && entry->getType() != type) {
-            continue;
-        }
-        const auto currentEntry =
-            traverseVersionChainsForTransactionNoLock(transaction, entry.get());
-        if (currentEntry->getType() != type || currentEntry->isDeleted()) {
-            continue;
-        }
-        func(currentEntry);
-    }
-}
-
 CatalogEntry* CatalogSet::getEntryOfOID(const Transaction* transaction, oid_t oid) {
     std::shared_lock lck{mtx};
     for (auto& [_, entry] : entries) {

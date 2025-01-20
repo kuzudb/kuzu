@@ -1,6 +1,9 @@
 #include "processor/operator/ddl/drop.h"
 
 #include "catalog/catalog.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "common/exception/binder.h"
 #include "common/string_format.h"
 
 using namespace kuzu::catalog;
@@ -9,44 +12,102 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-bool isValidEntry(parser::DropInfo& dropInfo, main::ClientContext* context) {
-    bool validEntry = false;
+void Drop::executeDDLInternal(ExecutionContext* context) {
+    auto clientContext = context->clientContext;
+    auto catalog = clientContext->getCatalog();
+    auto transaction = clientContext->getTransaction();
     switch (dropInfo.dropType) {
-    case common::DropType::SEQUENCE: {
-        validEntry =
-            context->getCatalog()->containsSequence(context->getTransaction(), dropInfo.name);
-    } break;
-        // TODO(Ziyi): If the table has indexes, we should drop those indexes as well.
-    case common::DropType::TABLE: {
-        validEntry = context->getCatalog()->containsTable(context->getTransaction(), dropInfo.name);
-    } break;
+    case DropType::SEQUENCE: {
+        dropSequence(clientContext);
+    }
+        return;
+    case DropType::TABLE: {
+        if (catalog->containsRelGroup(transaction, dropInfo.name)) {
+            dropRelGroup(clientContext);
+            return;
+        }
+        if (catalog->containsTable(transaction, dropInfo.name,
+                clientContext->shouldUseInternalCatalogEntry())) {
+            dropTable(clientContext);
+            return;
+        }
+        switch (dropInfo.conflictAction) {
+        case ConflictAction::ON_CONFLICT_DO_NOTHING: {
+            return;
+        }
+        case ConflictAction::ON_CONFLICT_THROW: {
+            throw BinderException("Table " + dropInfo.name + " does not exist.");
+        }
+        default:
+            KU_UNREACHABLE;
+        }
+    }
+        return;
     default:
         KU_UNREACHABLE;
     }
-    return validEntry;
 }
 
-void Drop::executeDDLInternal(ExecutionContext* context) {
-    validEntry = isValidEntry(dropInfo, context->clientContext);
-    if (!validEntry) {
-        return;
+void Drop::dropSequence(main::ClientContext* context) {
+    auto catalog = context->getCatalog();
+    auto transaction = context->getTransaction();
+    if (!catalog->containsSequence(transaction, dropInfo.name)) {
+        switch (dropInfo.conflictAction) {
+        case ConflictAction::ON_CONFLICT_DO_NOTHING: {
+            return;
+        }
+        case ConflictAction::ON_CONFLICT_THROW: {
+            throw BinderException(
+                common::stringFormat("Sequence {} does not exist.", dropInfo.name));
+        }
+        default:
+            KU_UNREACHABLE;
+        }
     }
-    switch (dropInfo.dropType) {
-    case common::DropType::SEQUENCE: {
-        context->clientContext->getCatalog()->dropSequence(context->clientContext->getTransaction(),
-            dropInfo.name);
+    catalog->dropSequence(transaction, dropInfo.name);
+    entryDropped = true;
+}
+
+void Drop::dropTable(main::ClientContext* context) {
+    auto catalog = context->getCatalog();
+    auto transaction = context->getTransaction();
+    auto entry = catalog->getTableCatalogEntry(transaction, dropInfo.name);
+    switch (entry->getType()) {
+    case CatalogEntryType::NODE_TABLE_ENTRY: {
+        for (auto& relEntry : catalog->getRelTableEntries(transaction)) {
+            if (relEntry->isParent(entry->getTableID())) {
+                throw BinderException(stringFormat("Cannot delete node table {} because it is "
+                                                   "referenced by relationship table {}.",
+                    entry->getName(), relEntry->getName()));
+            }
+        }
     } break;
-    case common::DropType::TABLE: {
-        context->clientContext->getCatalog()->dropTableEntry(
-            context->clientContext->getTransaction(), dropInfo.name);
+    case CatalogEntryType::REL_TABLE_ENTRY: {
+        for (auto& relGroupEntry : catalog->getRelGroupEntries(transaction)) {
+            if (relGroupEntry->isParent(entry->getTableID())) {
+                throw BinderException(stringFormat("Cannot delete relationship table {} because it "
+                                                   "is referenced by relationship group {}.",
+                    entry->getName(), relGroupEntry->getName()));
+            }
+        }
     } break;
     default:
         KU_UNREACHABLE;
     }
+    catalog->dropTableEntryAndIndex(transaction, dropInfo.name);
+    entryDropped = true;
+}
+
+void Drop::dropRelGroup(main::ClientContext* context) {
+    auto catalog = context->getCatalog();
+    auto transaction = context->getTransaction();
+    auto entry = catalog->getRelGroupEntry(transaction, dropInfo.name);
+    catalog->dropRelGroupEntry(transaction, entry);
+    entryDropped = true;
 }
 
 std::string Drop::getOutputMsg() {
-    if (validEntry) {
+    if (entryDropped) {
         return stringFormat("{} {} has been dropped.", DropTypeUtils::toString(dropInfo.dropType),
             dropInfo.name);
     } else {

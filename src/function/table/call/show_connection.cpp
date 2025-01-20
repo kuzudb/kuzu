@@ -16,24 +16,24 @@ namespace function {
 
 struct ShowConnectionBindData final : SimpleTableFuncBindData {
     const ClientContext* context;
-    TableCatalogEntry* tableEntry;
+    std::vector<TableCatalogEntry*> entries;
 
-    ShowConnectionBindData(const ClientContext* context, TableCatalogEntry* tableEntry,
+    ShowConnectionBindData(const ClientContext* context, std::vector<TableCatalogEntry*> entries,
         binder::expression_vector columns, offset_t maxOffset)
         : SimpleTableFuncBindData{std::move(columns), maxOffset}, context{context},
-          tableEntry{tableEntry} {}
+          entries{std::move(entries)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ShowConnectionBindData>(context, tableEntry, columns, maxOffset);
+        return std::make_unique<ShowConnectionBindData>(context, entries, columns, maxOffset);
     }
 };
 
 static void outputRelTableConnection(const DataChunk& outputDataChunk, uint64_t outputPos,
-    const ClientContext* context, table_id_t tableID) {
+    const ClientContext* context, TableCatalogEntry* entry) {
     const auto catalog = context->getCatalog();
-    const auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), tableID);
-    const auto relTableEntry = ku_dynamic_cast<RelTableCatalogEntry*>(tableEntry);
-    KU_ASSERT(tableEntry->getTableType() == TableType::REL);
+    KU_ASSERT(entry->getType() == CatalogEntryType::REL_TABLE_ENTRY);
+    const auto relTableEntry = ku_dynamic_cast<RelTableCatalogEntry*>(entry);
+
     // Get src and dst name
     const auto srcTableID = relTableEntry->getSrcTableID();
     const auto dstTableID = relTableEntry->getDstTableID();
@@ -58,26 +58,10 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
         return 0;
     }
     const auto bindData = input.bindData->constPtrCast<ShowConnectionBindData>();
-    const auto tableEntry = bindData->tableEntry;
-    const auto numRelationsToOutput = morsel.endOffset - morsel.startOffset;
     auto vectorPos = 0u;
-    switch (tableEntry->getTableType()) {
-    case TableType::REL: {
-        outputRelTableConnection(dataChunk, vectorPos, bindData->context, tableEntry->getTableID());
+    for (auto& entry : bindData->entries) {
+        outputRelTableConnection(dataChunk, vectorPos, bindData->context, entry);
         vectorPos++;
-    } break;
-    case TableType::REL_GROUP: {
-        const auto relGroupEntry = ku_dynamic_cast<RelGroupCatalogEntry*>(tableEntry);
-        const auto relTableIDs = relGroupEntry->getRelTableIDs();
-        for (; vectorPos < numRelationsToOutput; vectorPos++) {
-            outputRelTableConnection(dataChunk, vectorPos, bindData->context,
-                relTableIDs[morsel.startOffset + vectorPos]);
-        }
-    } break;
-    default:
-        // LCOV_EXCL_START
-        KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
     return vectorPos;
 }
@@ -86,13 +70,6 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     const TableFuncBindInput* input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
-    const auto tableName = input->getLiteralVal<std::string>(0);
-    const auto catalog = context->getCatalog();
-    auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), tableName);
-    const auto tableType = tableEntry->getTableType();
-    if (tableType != TableType::REL && tableType != TableType::REL_GROUP) {
-        throw BinderException{"Show connection can only be called on a rel table!"};
-    }
     columnNames.emplace_back("source table name");
     columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("destination table name");
@@ -102,12 +79,28 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     columnNames.emplace_back("destination table primary key");
     columnTypes.emplace_back(LogicalType::STRING());
     offset_t maxOffset = 1;
-    if (tableEntry->getTableType() == TableType::REL_GROUP) {
-        const auto relGroupEntry = ku_dynamic_cast<RelGroupCatalogEntry*>(tableEntry);
-        maxOffset = relGroupEntry->getRelTableIDs().size();
+    const auto name = input->getLiteralVal<std::string>(0);
+    const auto catalog = context->getCatalog();
+    auto transaction = context->getTransaction();
+    std::vector<TableCatalogEntry*> entries;
+    if (catalog->containsTable(transaction, name)) {
+        auto entry = catalog->getTableCatalogEntry(transaction, name);
+        if (entry->getType() != catalog::CatalogEntryType::REL_TABLE_ENTRY) {
+            throw BinderException{"Show connection can only be called on a rel table!"};
+        }
+        entries.push_back(entry);
+    } else if (catalog->containsRelGroup(transaction, name)) {
+        auto entry = catalog->getRelGroupEntry(transaction, name);
+        for (auto& id : entry->getRelTableIDs()) {
+            entries.push_back(catalog->getTableCatalogEntry(transaction, id));
+        }
+    } else {
+        throw BinderException{"Show connection can only be called on a rel table!"};
     }
+    maxOffset = entries.size();
+
     auto columns = input->binder->createVariables(columnNames, columnTypes);
-    return std::make_unique<ShowConnectionBindData>(context, tableEntry, columns, maxOffset);
+    return std::make_unique<ShowConnectionBindData>(context, entries, columns, maxOffset);
 }
 
 function_set ShowConnectionFunction::getFunctionSet() {
