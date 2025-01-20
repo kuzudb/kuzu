@@ -5,16 +5,16 @@
 -CASE ArrayImplicitCast
 -STATEMENT call threads=4.5
 ---- error
-Binder exception: Invalid cast from DOUBLE to UINT64 during: threads.
+Binder exception: Invalid cast from DOUBLE to UINT64 during threads.
 -STATEMENT call threads=-3
 ---- error
 Overflow exception: Value -3 is not within UINT64 range
 -STATEMENT call threads=-3.5
 ---- error
-Binder exception: Invalid cast from DOUBLE to UINT64 during: threads.
+Binder exception: Invalid cast from DOUBLE to UINT64 during threads.
 -STATEMENT call timeout=1000.5
 ---- error
-Binder exception: Invalid cast from DOUBLE to UINT64 during: timeout.
+Binder exception: Invalid cast from DOUBLE to UINT64 during timeout.
 -STATEMENT call timeout=-3
 ---- error
 Overflow exception: Value -3 is not within UINT64 range
