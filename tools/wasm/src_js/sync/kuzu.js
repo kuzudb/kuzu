@@ -29,6 +29,11 @@ class kuzu {
     this.checkInit();
     return this._kuzu.FS;
   }
+
+  getWasmMemory() {
+    this.checkInit();
+    return this._kuzu.wasmMemory;
+  }
 }
 
 const kuzuInstance = new kuzu();

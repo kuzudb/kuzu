@@ -39,6 +39,14 @@ module.exports = {
     return KuzuWasm.getFS();
   },
 
+  /**
+   * Get the WebAssembly memory.
+   * @returns {Object} the WebAssembly memory.
+   */
+  getWasmMemory: () => {
+    return KuzuWasm.getWasmMemory();
+  },
+
   Database,
   Connection,
   PreparedStatement,
