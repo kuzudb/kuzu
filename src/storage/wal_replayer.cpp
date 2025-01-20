@@ -1,10 +1,10 @@
 #include "storage/wal_replayer.h"
 
 #include "binder/binder.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
-#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/type_catalog_entry.h"
 #include "common/file_system/file_info.h"
 #include "common/serializer/buffered_file.h"
@@ -129,23 +129,26 @@ void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) con
     switch (record.ownedCatalogEntry->getType()) {
     case CatalogEntryType::NODE_TABLE_ENTRY: {
         auto& entry = record.ownedCatalogEntry->constCast<TableCatalogEntry>();
-        auto newEntry = catalog->createTableEntry(transaction, entry.getBoundCreateTableInfo(transaction, record.isInternal));
+        auto newEntry = catalog->createTableEntry(transaction,
+            entry.getBoundCreateTableInfo(transaction, record.isInternal));
         storageManager->createTable(newEntry, &clientContext);
     } break;
     case CatalogEntryType::REL_TABLE_ENTRY: {
         auto& entry = record.ownedCatalogEntry->constCast<TableCatalogEntry>();
-        auto newEntry = catalog->createTableEntry(transaction, entry.getBoundCreateTableInfo(transaction, record.isInternal));
+        auto newEntry = catalog->createTableEntry(transaction,
+            entry.getBoundCreateTableInfo(transaction, record.isInternal));
         storageManager->createTable(newEntry, &clientContext);
     } break;
     case CatalogEntryType::REL_GROUP_ENTRY: {
         auto& entry = record.ownedCatalogEntry->constCast<RelGroupCatalogEntry>();
-        auto newEntry = catalog->createRelGroupEntry(transaction, entry.getBoundCreateTableInfo(transaction, catalog, record.isInternal));
+        auto newEntry = catalog->createRelGroupEntry(transaction,
+            entry.getBoundCreateTableInfo(transaction, catalog, record.isInternal));
         storageManager->createTable(newEntry, &clientContext);
     } break;
     case CatalogEntryType::SCALAR_MACRO_ENTRY: {
         auto& macroEntry = record.ownedCatalogEntry->constCast<ScalarMacroCatalogEntry>();
-       catalog->addScalarMacroFunction(transaction,
-            macroEntry.getName(), macroEntry.getMacroFunction()->copy());
+        catalog->addScalarMacroFunction(transaction, macroEntry.getName(),
+            macroEntry.getMacroFunction()->copy());
     } break;
     case CatalogEntryType::SEQUENCE_ENTRY: {
         auto& sequenceEntry = record.ownedCatalogEntry->constCast<SequenceCatalogEntry>();
@@ -154,8 +157,7 @@ void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) con
     } break;
     case CatalogEntryType::TYPE_ENTRY: {
         auto& typeEntry = record.ownedCatalogEntry->constCast<TypeCatalogEntry>();
-        catalog->createType(transaction, typeEntry.getName(),
-            typeEntry.getLogicalType().copy());
+        catalog->createType(transaction, typeEntry.getName(), typeEntry.getLogicalType().copy());
     } break;
     default: {
         KU_UNREACHABLE;

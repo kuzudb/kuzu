@@ -218,7 +218,8 @@ std::vector<RelGroupCatalogEntry*> Catalog::getRelGroupEntries(
 }
 
 void Catalog::dropRelGroupEntry(transaction::Transaction* transaction, common::oid_t id) {
-    dropRelGroupEntry(transaction, relGroups->getEntryOfOID(transaction, id)->ptrCast<RelGroupCatalogEntry>());
+    dropRelGroupEntry(transaction,
+        relGroups->getEntryOfOID(transaction, id)->ptrCast<RelGroupCatalogEntry>());
 }
 
 void Catalog::dropRelGroupEntry(Transaction* transaction, RelGroupCatalogEntry* entry) {
@@ -239,8 +240,7 @@ CatalogEntry* Catalog::createRelGroupEntry(Transaction* transaction,
                                   ->ptrCast<TableCatalogEntry>()
                                   ->getTableID());
     }
-    auto entry = std::make_unique<RelGroupCatalogEntry>(info.tableName,
-        std::move(relTableIDs));
+    auto entry = std::make_unique<RelGroupCatalogEntry>(info.tableName, std::move(relTableIDs));
     relGroups->createEntry(transaction, std::move(entry));
     return relGroups->getEntry(transaction, info.tableName);
 }
@@ -520,7 +520,8 @@ void Catalog::registerBuiltInFunctions() {
     }
 }
 
-CatalogEntry* Catalog::createTableEntry(Transaction* transaction, const BoundCreateTableInfo& info) {
+CatalogEntry* Catalog::createTableEntry(Transaction* transaction,
+    const BoundCreateTableInfo& info) {
     switch (info.type) {
     case CatalogEntryType::NODE_TABLE_ENTRY: {
         return createNodeTableEntry(transaction, info);
@@ -536,8 +537,7 @@ CatalogEntry* Catalog::createTableEntry(Transaction* transaction, const BoundCre
 CatalogEntry* Catalog::createNodeTableEntry(Transaction* transaction,
     const BoundCreateTableInfo& info) {
     const auto extraInfo = info.extraInfo->constPtrCast<BoundExtraCreateNodeTableInfo>();
-    auto entry = std::make_unique<NodeTableCatalogEntry>(info.tableName,
-        extraInfo->primaryKeyName);
+    auto entry = std::make_unique<NodeTableCatalogEntry>(info.tableName, extraInfo->primaryKeyName);
     for (auto& definition : extraInfo->propertyDefinitions) {
         entry->addProperty(definition);
     }
@@ -551,9 +551,9 @@ CatalogEntry* Catalog::createNodeTableEntry(Transaction* transaction,
 CatalogEntry* Catalog::createRelTableEntry(Transaction* transaction,
     const BoundCreateTableInfo& info) {
     const auto extraInfo = info.extraInfo.get()->constPtrCast<BoundExtraCreateRelTableInfo>();
-    auto entry = std::make_unique<RelTableCatalogEntry>(info.tableName,
-        extraInfo->srcMultiplicity, extraInfo->dstMultiplicity, extraInfo->srcTableID,
-        extraInfo->dstTableID, extraInfo->storageDirection);
+    auto entry = std::make_unique<RelTableCatalogEntry>(info.tableName, extraInfo->srcMultiplicity,
+        extraInfo->dstMultiplicity, extraInfo->srcTableID, extraInfo->dstTableID,
+        extraInfo->storageDirection);
     for (auto& definition : extraInfo->propertyDefinitions) {
         entry->addProperty(definition);
     }

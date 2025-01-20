@@ -208,7 +208,6 @@ private:
 private:
     void registerBuiltInFunctions();
 
-
     CatalogEntry* createNodeTableEntry(transaction::Transaction* transaction,
         const binder::BoundCreateTableInfo& info);
     CatalogEntry* createRelTableEntry(transaction::Transaction* transaction,

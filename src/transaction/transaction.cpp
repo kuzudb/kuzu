@@ -143,8 +143,7 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
                 // Must be rename table
                 wal->logAlterTableEntryRecord(alterInfo);
             } else {
-                wal->logDropCatalogEntryRecord(tableCatalogEntry->getOID(),
-                    catalogEntry.getType());
+                wal->logDropCatalogEntryRecord(tableCatalogEntry->getOID(), catalogEntry.getType());
             }
         } break;
         case CatalogEntryType::REL_GROUP_ENTRY:

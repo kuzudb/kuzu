@@ -26,8 +26,8 @@ public:
     static std::unique_ptr<RelGroupCatalogEntry> deserialize(common::Deserializer& deserializer);
     std::string toCypher(main::ClientContext* clientContext) const override;
 
-    binder::BoundCreateTableInfo getBoundCreateTableInfo(transaction::Transaction* transaction, Catalog* catalog,
-        bool isInternal) const;
+    binder::BoundCreateTableInfo getBoundCreateTableInfo(transaction::Transaction* transaction,
+        Catalog* catalog, bool isInternal) const;
 
 private:
     std::vector<common::table_id_t> relTableIDs;
