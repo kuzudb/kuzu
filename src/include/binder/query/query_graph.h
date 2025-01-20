@@ -77,6 +77,8 @@ public:
           queryRelNameToPosMap{other.queryRelNameToPosMap}, queryNodes{other.queryNodes},
           queryRels{other.queryRels} {}
 
+    EXPLICIT_COPY_DEFAULT_MOVE(QueryGraph);
+
     bool isEmpty() const;
 
     std::vector<std::shared_ptr<NodeOrRelExpression>> getAllPatterns() const;
@@ -130,8 +132,6 @@ public:
     bool isConnected(const QueryGraph& other);
 
     void merge(const QueryGraph& other);
-
-    std::unique_ptr<QueryGraph> copy() const { return std::make_unique<QueryGraph>(*this); }
 
 private:
     std::unordered_map<std::string, uint32_t> queryNodeNameToPosMap;
