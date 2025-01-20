@@ -24,6 +24,9 @@ std::unique_ptr<BoundStatement> Binder::bindStandaloneCall(const parser::Stateme
     }
     auto optionValue = expressionBinder.bindExpression(*callStatement.getOptionValue());
     ExpressionUtil::validateExpressionType(*optionValue, ExpressionType::LITERAL);
+    if (LogicalTypeUtils::isFloatingPoint(optionValue->dataType) && LogicalTypeUtils::isInteger(LogicalType(option->parameterType))) {
+        throw BinderException{"Invalid cast from Double to Int during: " + callStatement.getOptionName() + "."};
+    }
     optionValue =
         expressionBinder.implicitCastIfNecessary(optionValue, LogicalType(option->parameterType));
     if (ConstantExpressionVisitor::needFold(*optionValue)) {

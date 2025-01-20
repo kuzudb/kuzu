@@ -220,10 +220,7 @@ bool CastFunction::hasImplicitCast(const LogicalType& srcType, const LogicalType
         return true;
     }
     // TODO(Jiamin): there are still other special cases
-    // We allow cast between any numerical types, except for floating type to int type
-    if (LogicalTypeUtils::isFloatingPoint(srcType) && LogicalTypeUtils::isInteger(dstType)) {
-        return false;
-    }
+    // We allow cast between any numerical types
     if (LogicalTypeUtils::isNumerical(srcType) && LogicalTypeUtils::isNumerical(dstType)) {
         return true;
     }
