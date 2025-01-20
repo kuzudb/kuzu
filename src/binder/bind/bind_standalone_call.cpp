@@ -25,8 +25,12 @@ std::unique_ptr<BoundStatement> Binder::bindStandaloneCall(const parser::Stateme
     auto optionValue = expressionBinder.bindExpression(*callStatement.getOptionValue());
     ExpressionUtil::validateExpressionType(*optionValue, ExpressionType::LITERAL);
     // Disallow casting from double->int64 for calls such as threads configuration.
-    if (optionValue->dataType.getPhysicalType() == PhysicalTypeID::DOUBLE && LogicalType(option->parameterType).getPhysicalType() == PhysicalTypeID::INT64) {
-        throw BinderException{"Invalid attempt at casting: From " + optionValue->dataType.toString() + " to " + LogicalType(option->parameterType).toString() + " during call " + callStatement.getOptionName() + "."};
+    if (optionValue->dataType.getPhysicalType() == PhysicalTypeID::DOUBLE &&
+        LogicalType(option->parameterType).getPhysicalType() == PhysicalTypeID::INT64) {
+        throw BinderException{"Invalid attempt at casting: From " +
+                              optionValue->dataType.toString() + " to " +
+                              LogicalType(option->parameterType).toString() + " during call " +
+                              callStatement.getOptionName() + "."};
     }
     optionValue =
         expressionBinder.implicitCastIfNecessary(optionValue, LogicalType(option->parameterType));
