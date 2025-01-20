@@ -9,7 +9,7 @@
 ---- error
 -STATEMENT call threads=-3.5
 ---- error
--STATEMENT call TIME_OUT=1.5
+-STATEMENT call TIME_OUT=1000.5
 ---- ok
 -STATEMENT call time_out=-1.5
 ---- error
