@@ -101,7 +101,7 @@ public:
     std::shared_ptr<NodeExpression> getQueryNode(common::idx_t nodePos) const {
         return queryNodes[nodePos];
     }
-    common::idx_t getQueryNodeIdx(NodeExpression& node) const {
+    common::idx_t getQueryNodeIdx(const NodeExpression& node) const {
         return getQueryNodeIdx(node.getUniqueName());
     }
     common::idx_t getQueryNodeIdx(const std::string& queryNodeName) const {

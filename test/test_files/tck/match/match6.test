@@ -336,8 +336,8 @@
 -STATEMENT MATCH p = ({name: 'A'})-[:KNOWS*..2]->()
            RETURN p;
 ---- 2
-{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B},{_ID: 0:2, _LABEL: A, ID: 2, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 1:0}->(0:1),(0:1)-{_LABEL: KNOWS, _ID: 1:1}->(0:2)]}
-{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 1:0}->(0:1)]}
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B},{_ID: 0:2, _LABEL: A, ID: 2, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 1:1}->(0:1),(0:1)-{_LABEL: KNOWS, _ID: 1:0}->(0:2)]}
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 1:1}->(0:1)]}
 
 # Variable length relationship without bounds
 -CASE Scenario20
@@ -352,8 +352,8 @@
 -STATEMENT MATCH p = ({name: 'A'})-[:KNOWS*..]->()
            RETURN p;
 ---- 2
-{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B},{_ID: 0:2, _LABEL: A, ID: 2, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 1:0}->(0:1),(0:1)-{_LABEL: KNOWS, _ID: 1:1}->(0:2)]}
-{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 1:0}->(0:1)]}
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B},{_ID: 0:2, _LABEL: A, ID: 2, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 1:1}->(0:1),(0:1)-{_LABEL: KNOWS, _ID: 1:0}->(0:2)]}
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 1:1}->(0:1)]}
 
 # Fail when a node has the same variable in a preceding MATCH
 -CASE Scenario21

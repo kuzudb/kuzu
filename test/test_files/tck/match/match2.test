@@ -87,8 +87,8 @@
 3
 -STATEMENT MATCH (n)-[r:KNOWS|HATES]->(x) RETURN r;
 ---- 2
-(0:0)-{_LABEL: HATES, _ID: 2:0}->(0:2)
-(0:0)-{_LABEL: KNOWS, _ID: 1:0}->(0:1)
+(0:0)-{_LABEL: HATES, _ID: 2:0}->(0:1)
+(0:0)-{_LABEL: KNOWS, _ID: 1:0}->(0:2)
 
 
 # Matching twice with conflicting relationship types on same relationship

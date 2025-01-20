@@ -90,7 +90,7 @@
 ---- ok
 -STATEMENT CREATE (a)-[:T]->(b1), (a)-[:T]->(b2)
 ---- error
-Binder exception: Create node b2 with multiple node labels is not supported.
+Binder exception: Create node b1 with multiple node labels is not supported.
 
 # Matching nodes with many labels
 #-CASE Scenario7
@@ -236,10 +236,10 @@ a
 ---- ok
 -STATEMENT MATCH (a {name: 'A'}), (b {name: 'B'}) 
            MATCH (a)-->(x)--(b) 
-           RETURN x;
+           RETURN x.name;
 ---- 2
-{_ID: 0:1, _LABEL: A, ID: 1, name: x1}
-{_ID: 0:2, _LABEL: A, ID: 2, name: x2}
+x1
+x2
 
 # Three bound nodes pointing to the same node
 -CASE Scenario20
@@ -253,10 +253,10 @@ a
 ---- ok
 -STATEMENT MATCH (a {name: 'A'}), (b {name: 'B'}), (c {name: 'C'}) 
            MATCH (a)-->(x), (b)-->(x), (c)-->(x) 
-           RETURN x;
+           RETURN x.name;
 ---- 2
-{_ID: 0:1, _LABEL: A, ID: 1, name: x1}
-{_ID: 0:2, _LABEL: A, ID: 2, name: x2}
+x1
+x2
 
 # Three bound nodes pointing to the same node with extra connections
 -CASE Scenario21

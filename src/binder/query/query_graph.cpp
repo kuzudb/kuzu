@@ -236,16 +236,17 @@ bool QueryGraph::isConnected(const QueryGraph& other) {
 }
 
 void QueryGraphCollection::addAndMergeQueryGraphIfConnected(QueryGraph queryGraphToAdd) {
-    bool isMerged = false;
-    for (auto& queryGraph : queryGraphs) {
+    auto newQueryGraphSet = std::vector<QueryGraph>();
+    for (auto i = 0u; i < queryGraphs.size(); i++) {
+        auto queryGraph = std::move(queryGraphs[i]);
         if (queryGraph.isConnected(queryGraphToAdd)) {
-            queryGraph.merge(queryGraphToAdd);
-            isMerged = true;
+            queryGraphToAdd.merge(queryGraph);
+        } else {
+            newQueryGraphSet.push_back(std::move(queryGraph));
         }
     }
-    if (!isMerged) {
-        queryGraphs.push_back(std::move(queryGraphToAdd));
-    }
+    newQueryGraphSet.push_back(std::move(queryGraphToAdd));
+    queryGraphs = std::move(newQueryGraphSet);
 }
 
 void QueryGraphCollection::finalize() {

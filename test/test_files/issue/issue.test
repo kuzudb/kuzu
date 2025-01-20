@@ -131,17 +131,17 @@ foo
         (t2)-[:KIND_OF]->(t3);
 ---- ok
 -STATEMENT MATCH (t1:T)-[:KIND_OF*]->(t2:T), (t1)-[:LIKES]->(f1:Fruit), (t2)-[:LIKES]->(f2:Fruit)
-            WHERE f1.name = "Apple" and f2.name = "Banana" OR f1.name = "Banana" and f2.name = "Apple" return t1 as t
+            WHERE f1.name = "Apple" and f2.name = "Banana" OR f1.name = "Banana" and f2.name = "Apple" return t1.name as t
 ---- 1
-{_ID: 0:0, _LABEL: T, name: T1}
+T1
 -STATEMENT MATCH (t:T)-[:LIKES]->(:Fruit {name: "Apple"}), (t)-[:LIKES]->(:Fruit {name: "Banana"}) return t;
 ---- 0
 -STATEMENT MATCH (t1:T)-[:KIND_OF*]->(t2:T), (t1)-[:LIKES]->(f1:Fruit), (t2)-[:LIKES]->(f2:Fruit)
-            WHERE f1.name = "Apple" and f2.name = "Banana" OR f1.name = "Banana" and f2.name = "Apple" return t1 as t
+            WHERE f1.name = "Apple" and f2.name = "Banana" OR f1.name = "Banana" and f2.name = "Apple" return t1.name as t
            UNION
-           MATCH (t:T)-[:LIKES]->(:Fruit {name: "Apple"}), (t)-[:LIKES]->(:Fruit {name: "Banana"}) return t;
+           MATCH (t:T)-[:LIKES]->(:Fruit {name: "Apple"}), (t)-[:LIKES]->(:Fruit {name: "Banana"}) return t.name;
 ---- 1
-{_ID: 0:0, _LABEL: T, name: T1}
+T1
 
 -CASE 2184
 -STATEMENT CREATE NODE TABLE T(name STRING, PRIMARY KEY(name));
@@ -456,7 +456,6 @@ v3|v2
 2|1
 
 -CASE 2942
-
 -STATEMENT CREATE NODE TABLE V (id STRING, PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE NODE TABLE R (id STRING, PRIMARY KEY(id));
@@ -472,9 +471,9 @@ v3|v2
 ---- ok
 -STATEMENT MATCH (v:V)-[e:childof*]->(v1:V {id: "v1"})
            OPTIONAL MATCH (r)-[:relatedto]->(v)
-           RETURN r, v.id;
+           RETURN r.id, v.id;
 ---- 3
-{_ID: 1:1, _LABEL: R, id: r12}|v12
+r12|v12
 |v11
 |v111
 
