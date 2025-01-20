@@ -29,7 +29,7 @@ struct KUZU_API IndexAuxInfo {
     }
 
     virtual std::string toCypher(const IndexCatalogEntry& indexEntry,
-        main::ClientContext* context) = 0;
+        const main::ClientContext* context) const = 0;
 };
 
 class KUZU_API IndexCatalogEntry final : public CatalogEntry {
@@ -39,17 +39,19 @@ public:
     }
 
     IndexCatalogEntry(std::string type, common::table_id_t tableID, std::string indexName,
-        std::unique_ptr<IndexAuxInfo> auxInfo)
+        std::vector<std::string> properties, std::unique_ptr<IndexAuxInfo> auxInfo)
         : CatalogEntry{CatalogEntryType::INDEX_ENTRY,
               common::stringFormat("{}_{}", tableID, indexName)},
           type{std::move(type)}, tableID{tableID}, indexName{std::move(indexName)},
-          auxInfo{std::move(auxInfo)} {}
+          properties{std::move(properties)}, auxInfo{std::move(auxInfo)} {}
 
     std::string getIndexType() const { return type; }
 
     common::table_id_t getTableID() const { return tableID; }
 
     std::string getIndexName() const { return indexName; }
+
+    std::vector<std::string> getProperties() const { return properties; }
 
     // When serializing index entries to disk, we first write the fields of the base class,
     // followed by the size (in bytes) of the auxiliary data and its content.
@@ -64,21 +66,25 @@ public:
         return auxInfo->toCypher(*this, context);
     }
     std::unique_ptr<IndexCatalogEntry> copy() const {
-        return std::make_unique<IndexCatalogEntry>(type, tableID, indexName, auxInfo->copy());
+        return std::make_unique<IndexCatalogEntry>(type, tableID, indexName, properties,
+            auxInfo->copy());
     }
 
     void copyFrom(const CatalogEntry& other) override;
 
     std::unique_ptr<common::BufferReader> getAuxBufferReader() const;
 
-    void setAuxInfo(std::unique_ptr<IndexAuxInfo> auxInfo_) { auxInfo = std::move(auxInfo_); }
+    void setAuxInfo(std::unique_ptr<IndexAuxInfo> auxInfo_);
     const IndexAuxInfo& getAuxInfo() const { return *auxInfo; }
+
+    bool isLoaded() const { return auxBuffer == nullptr; }
 
 protected:
     std::string type;
     common::table_id_t tableID = common::INVALID_TABLE_ID;
     std::string indexName;
-    std::unique_ptr<uint8_t[]> auxBuffer;
+    std::vector<std::string> properties;
+    std::unique_ptr<uint8_t[]> auxBuffer = nullptr;
     std::unique_ptr<IndexAuxInfo> auxInfo;
     uint64_t auxBufferSize = 0;
 };

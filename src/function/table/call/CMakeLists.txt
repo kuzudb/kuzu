@@ -17,6 +17,7 @@ add_library(kuzu_table_call
         table_info.cpp
         show_sequences.cpp
         show_functions.cpp
+        show_indexes.cpp
         show_loaded_extensions.cpp
         show_official_extensions.cpp)
 

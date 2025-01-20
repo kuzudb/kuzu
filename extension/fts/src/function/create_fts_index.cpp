@@ -234,9 +234,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& /*output
     auto avgDocLen = numDocs == 0 ? 0 : static_cast<double>(sharedState.totalLen.load()) / numDocs;
     context.clientContext->getCatalog()->createIndex(context.clientContext->getTransaction(),
         std::make_unique<catalog::IndexCatalogEntry>(FTSIndexCatalogEntry::TYPE_NAME,
-            bindData.tableID, bindData.indexName,
-            std::make_unique<FTSIndexAuxInfo>(numDocs, avgDocLen, bindData.properties,
-                bindData.ftsConfig)));
+            bindData.tableID, bindData.indexName, bindData.properties,
+            std::make_unique<FTSIndexAuxInfo>(numDocs, avgDocLen, bindData.ftsConfig)));
     return 0;
 }
 

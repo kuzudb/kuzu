@@ -164,5 +164,11 @@ struct ShowOfficialExtensionsFunction final : SimpleTableFunction {
     static function_set getFunctionSet();
 };
 
+struct ShowIndexesFunction final : SimpleTableFunction {
+    static constexpr const char* name = "SHOW_INDEXES";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu

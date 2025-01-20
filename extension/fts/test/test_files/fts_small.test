@@ -283,3 +283,38 @@ Binder exception: Table: 0_docIdx3_appears_info already exists. Please drop or r
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx4', ['content'])
 ---- error
 Binder exception: Table: 0_docIdx4_appears_in already exists. Please drop or rename the table before creating a full text search index.
+
+-CASE show_indexes
+-SKIP_IN_MEM
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx1', ['content'])
+---- ok
+-STATEMENT CALL SHOW_INDEXES() RETURN *
+---- 2
+doc|docIdx1|FTS|[content]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx1', ['content' ], stemmer := 'english');
+doc|docIdx|FTS|[content,author,name]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name' ], stemmer := 'english');
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', distFunc := 'l2');
+---- ok
+-STATEMENT CALL SHOW_INDEXES() RETURN *
+---- 3
+doc|docIdx1|FTS|[content]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx1', ['content' ], stemmer := 'english');
+doc|docIdx|FTS|[content,author,name]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name' ], stemmer := 'english');
+embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', mu := 30, ml := 60, pu := 0.050000, distFunc := 'l2', alpha := 1.100000, efc := 200);
+-RELOADDB
+-STATEMENT CALL SHOW_INDEXES() RETURN *
+---- 3
+doc|docIdx1|FTS|[content]|False|
+doc|docIdx|FTS|[content,author,name]|False|
+embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', mu := 30, ml := 60, pu := 0.050000, distFunc := 'l2', alpha := 1.100000, efc := 200);
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
+---- ok
+-STATEMENT CALL SHOW_INDEXES() RETURN *
+---- 3
+doc|docIdx1|FTS|[content]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx1', ['content' ], stemmer := 'english');
+doc|docIdx|FTS|[content,author,name]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name' ], stemmer := 'english');
+embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', mu := 30, ml := 60, pu := 0.050000, distFunc := 'l2', alpha := 1.100000, efc := 200);

@@ -12,17 +12,13 @@ namespace fts_extension {
 struct FTSIndexAuxInfo final : catalog::IndexAuxInfo {
     common::idx_t numDocs = 0;
     double avgDocLen = 0;
-    std::vector<std::string> properties;
     FTSConfig config;
 
-    FTSIndexAuxInfo(common::idx_t numDocs, double avgDocLen, std::vector<std::string> properties,
-        FTSConfig config)
-        : numDocs{numDocs}, avgDocLen{avgDocLen}, properties{std::move(properties)},
-          config{std::move(config)} {}
+    FTSIndexAuxInfo(common::idx_t numDocs, double avgDocLen, FTSConfig config)
+        : numDocs{numDocs}, avgDocLen{avgDocLen}, config{std::move(config)} {}
 
     FTSIndexAuxInfo(const FTSIndexAuxInfo& other)
-        : numDocs{other.numDocs}, avgDocLen{other.avgDocLen}, properties{other.properties},
-          config{other.config} {}
+        : numDocs{other.numDocs}, avgDocLen{other.avgDocLen}, config{other.config} {}
 
     std::shared_ptr<common::BufferedSerializer> serialize() const override;
     static std::unique_ptr<FTSIndexAuxInfo> deserialize(
@@ -33,7 +29,7 @@ struct FTSIndexAuxInfo final : catalog::IndexAuxInfo {
     }
 
     std::string toCypher(const catalog::IndexCatalogEntry& indexEntry,
-        main::ClientContext* context) override;
+        const main::ClientContext* context) const override;
 };
 
 struct FTSIndexCatalogEntry {

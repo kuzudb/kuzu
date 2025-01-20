@@ -161,3 +161,6 @@ Binder exception: _e_hnsw_index_LOWER already exists in catalog.
 499
 581
 58
+-STATEMENT CALL SHOW_INDEXES() RETURN *
+---- 1
+embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', mu := 30, ml := 60, pu := 0.050000, distFunc := 'dotproduct', alpha := 1.100000, efc := 200);

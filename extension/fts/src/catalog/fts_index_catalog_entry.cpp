@@ -14,7 +14,6 @@ std::shared_ptr<common::BufferedSerializer> FTSIndexAuxInfo::serialize() const {
     auto serializer = common::Serializer(bufferWriter);
     serializer.serializeValue(numDocs);
     serializer.serializeValue(avgDocLen);
-    serializer.serializeVector(properties);
     config.serialize(serializer);
     return bufferWriter;
 }
@@ -26,26 +25,24 @@ std::unique_ptr<FTSIndexAuxInfo> FTSIndexAuxInfo::deserialize(
     deserializer.deserializeValue(numDocs);
     double avgDocLen = 0;
     deserializer.deserializeValue(avgDocLen);
-    std::vector<std::string> properties;
-    deserializer.deserializeVector(properties);
     auto config = FTSConfig::deserialize(deserializer);
-    return std::make_unique<FTSIndexAuxInfo>(numDocs, avgDocLen, std::move(properties),
-        std::move(config));
+    return std::make_unique<FTSIndexAuxInfo>(numDocs, avgDocLen, std::move(config));
 }
 
 std::string FTSIndexAuxInfo::toCypher(const catalog::IndexCatalogEntry& indexEntry,
-    main::ClientContext* context) {
+    const main::ClientContext* context) const {
     std::string cypher;
     auto catalog = context->getCatalog();
     auto tableName =
         catalog->getTableCatalogEntry(context->getTransaction(), indexEntry.getTableID())
             ->getName();
     std::string propertyStr;
+    auto properties = indexEntry.getProperties();
     for (auto i = 0u; i < properties.size(); i++) {
         propertyStr +=
             common::stringFormat("'{}'{} ", properties[i], i == properties.size() - 1 ? "" : ",");
     }
-    cypher += common::stringFormat("CALL CREATE_FTS_INDEX('{}', '{}', [{}], stemmer := '{}');\n",
+    cypher += common::stringFormat("CALL CREATE_FTS_INDEX('{}', '{}', [{}], stemmer := '{}');",
         tableName, indexEntry.getIndexName(), std::move(propertyStr), config.stemmer);
     return cypher;
 }
