@@ -1172,14 +1172,14 @@ bool LogicalTypeUtils::isFloatingPoint(const LogicalType& dataType) {
 }
 
 bool LogicalTypeUtils::isFloatingPoint(const LogicalTypeID& dataType) {
-    switch(dataType) {
-        case LogicalTypeID::DOUBLE:
-        case LogicalTypeID::FLOAT:
-        case LogicalTypeID::SERIAL:
-        case LogicalTypeID::DECIMAL:
-            return true;
-        default:
-            return false;
+    switch (dataType) {
+    case LogicalTypeID::DOUBLE:
+    case LogicalTypeID::FLOAT:
+    case LogicalTypeID::SERIAL:
+    case LogicalTypeID::DECIMAL:
+        return true;
+    default:
+        return false;
     }
 }
 
@@ -1188,19 +1188,19 @@ bool LogicalTypeUtils::isInteger(const LogicalType& dataType) {
 }
 
 bool LogicalTypeUtils::isInteger(const LogicalTypeID& dataType) {
-    switch(dataType) {
-        case LogicalTypeID::INT64:
-        case LogicalTypeID::INT32:
-        case LogicalTypeID::INT16:
-        case LogicalTypeID::INT8:
-        case LogicalTypeID::UINT64:
-        case LogicalTypeID::UINT32:
-        case LogicalTypeID::UINT16:
-        case LogicalTypeID::UINT8:
-        case LogicalTypeID::INT128:
-            return true;
-        default:
-            return false;
+    switch (dataType) {
+    case LogicalTypeID::INT64:
+    case LogicalTypeID::INT32:
+    case LogicalTypeID::INT16:
+    case LogicalTypeID::INT8:
+    case LogicalTypeID::UINT64:
+    case LogicalTypeID::UINT32:
+    case LogicalTypeID::UINT16:
+    case LogicalTypeID::UINT8:
+    case LogicalTypeID::INT128:
+        return true;
+    default:
+        return false;
     }
 }
 

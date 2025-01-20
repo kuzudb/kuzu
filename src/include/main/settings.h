@@ -1,10 +1,10 @@
 #pragma once
 
+#include "common/exception/binder.h"
 #include "common/task_system/progress_bar.h"
 #include "common/types/value/value.h"
 #include "main/client_context.h"
 #include "main/db_config.h"
-#include "common/exception/binder.h"
 
 namespace kuzu {
 namespace main {
@@ -16,7 +16,8 @@ struct ThreadsSetting {
         parameter.validateType(inputType);
         int64_t valueToSet = parameter.getValue<int64_t>();
         if (valueToSet <= 0) {
-            throw kuzu::common::BinderException{"Invalid setting " + std::string(name) + " to a negative value."};
+            throw kuzu::common::BinderException{
+                "Invalid setting " + std::string(name) + " to a negative value."};
         }
         context->getClientConfigUnsafe()->numThreads = valueToSet;
     }
@@ -32,7 +33,8 @@ struct WarningLimitSetting {
         parameter.validateType(inputType);
         int64_t valueToSet = parameter.getValue<int64_t>();
         if (valueToSet <= 0) {
-            throw kuzu::common::BinderException{"Invalid setting " + std::string(name) + " to a negative value."};
+            throw kuzu::common::BinderException{
+                "Invalid setting " + std::string(name) + " to a negative value."};
         }
         context->getClientConfigUnsafe()->warningLimit = valueToSet;
     }
@@ -48,7 +50,8 @@ struct TimeoutSetting {
         parameter.validateType(inputType);
         double valueToSet = parameter.getValue<double>();
         if (valueToSet <= 0) {
-            throw kuzu::common::BinderException{"Invalid setting " + std::string(name) + " to a negative value."};
+            throw kuzu::common::BinderException{
+                "Invalid setting " + std::string(name) + " to a negative value."};
         }
         context->getClientConfigUnsafe()->timeoutInMS = valueToSet;
     }
