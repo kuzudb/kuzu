@@ -7,6 +7,8 @@
 #endif
 
 // This header is generated at build time. See CMakeLists.txt.
+#include <vector>
+
 #include "com_kuzudb_Native.h"
 #include "common/constants.h"
 #include "common/exception/exception.h"
@@ -796,6 +798,37 @@ JNIEXPORT void JNICALL Java_com_kuzudb_Native_kuzu_1value_1destroy(JNIEnv* env, 
     delete v;
 }
 
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1create_1list___3Lcom_kuzudb_Value_2(
+    JNIEnv* env, jclass, jobjectArray listValues) {
+    jsize len = env->GetArrayLength(listValues);
+    if (len == 0) {
+        return nullptr;
+    }
+
+    std::vector<std::unique_ptr<Value>> children;
+    for (jsize i = 0; i < len; ++i) {
+        Value* element = getValue(env, env->GetObjectArrayElement(listValues, i));
+        children.emplace_back(element->copy());
+    }
+    LogicalType childType = children[0]->getDataType().copy();
+
+    Value* listValue = new Value(LogicalType::LIST(std::move(childType)), std::move(children));
+    return createJavaObject(env, listValue, J_C_Value, J_C_Value_F_v_ref);
+}
+
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1create_1list__Lcom_kuzudb_DataType_2J(
+    JNIEnv* env, jclass, jobject dataType, jlong numElements) {
+    LogicalType* logicalType = getDataType(env, dataType);
+
+    std::vector<std::unique_ptr<Value>> children;
+    for (jlong i = 0; i < numElements; ++i) {
+        children.emplace_back(std::make_unique<Value>(Value::createDefaultValue(*logicalType)));
+    }
+
+    Value* listValue = new Value(LogicalType::LIST(logicalType->copy()), std::move(children));
+    return createJavaObject(env, listValue, J_C_Value, J_C_Value_F_v_ref);
+}
+
 JNIEXPORT jlong JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1list_1size(JNIEnv* env, jclass,
     jobject thisValue) {
     Value* v = getValue(env, thisValue);
@@ -1122,6 +1155,71 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1rel_1val_1to_1string(JNIE
     std::string result_string = RelVal::toString(rv);
     jstring ret = env->NewStringUTF(result_string.c_str());
     return ret;
+}
+
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1create_1map(JNIEnv* env, jclass,
+    jobjectArray keys, jobjectArray values) {
+    jsize len = env->GetArrayLength(keys);
+    KU_ASSERT(env->GetArrayLength(values) == len);
+    KU_ASSERT(len > 0);
+
+    std::optional<LogicalType> keyType;
+    std::optional<LogicalType> valueType;
+
+    std::vector<std::unique_ptr<Value>> children;
+    for (jsize i = 0; i < len; ++i) {
+        auto key = getValue(env, env->GetObjectArrayElement(keys, i))->copy();
+        auto value = getValue(env, env->GetObjectArrayElement(values, i))->copy();
+
+        if (!keyType.has_value()) {
+            keyType = key->getDataType().copy();
+            valueType = value->getDataType().copy();
+        } else {
+            KU_ASSERT(valueType.has_value());
+            if (key->getDataType() != *keyType || value->getDataType() != *valueType) {
+                return nullptr;
+            }
+        }
+
+        std::vector<StructField> structFields;
+        structFields.emplace_back(InternalKeyword::MAP_KEY, keyType->copy());
+        structFields.emplace_back(InternalKeyword::MAP_VALUE, valueType->copy());
+
+        decltype(children) structVals;
+        structVals.emplace_back(std::move(key));
+        structVals.emplace_back(std::move(value));
+        children.emplace_back(std::make_unique<Value>(LogicalType::STRUCT(std::move(structFields)),
+            std::move(structVals)));
+    }
+
+    KU_ASSERT(keyType.has_value());
+    KU_ASSERT(valueType.has_value());
+    Value* mapValue = new Value(LogicalType::MAP(std::move(*keyType), std::move(*valueType)),
+        std::move(children));
+    return createJavaObject(env, mapValue, J_C_Value, J_C_Value_F_v_ref);
+}
+
+JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzu_1create_1struct(JNIEnv* env, jclass,
+    jobjectArray fieldNames, jobjectArray fieldValues) {
+    jsize len = env->GetArrayLength(fieldNames);
+    KU_ASSERT(env->GetArrayLength(fieldValues) == len);
+    KU_ASSERT(len > 0);
+
+    std::vector<std::unique_ptr<Value>> children;
+    auto structFields = std::vector<StructField>{};
+    for (jsize i = 0; i < len; ++i) {
+        auto fieldName = std::string(env->GetStringUTFChars(
+            reinterpret_cast<jstring>(env->GetObjectArrayElement(fieldNames, i)), JNI_FALSE));
+        auto fieldValue = getValue(env, env->GetObjectArrayElement(fieldValues, i))->copy();
+        auto fieldType = fieldValue->getDataType().copy();
+
+        structFields.emplace_back(std::move(fieldName), std::move(fieldType));
+        children.push_back(std::move(fieldValue));
+    }
+
+    Value* structValue =
+        new Value(LogicalType::STRUCT(std::move(structFields)), std::move(children));
+    return createJavaObject(env, structValue, J_C_Value, J_C_Value_F_v_ref);
 }
 
 JNIEXPORT jstring JNICALL Java_com_kuzudb_Native_kuzu_1value_1get_1struct_1field_1name(JNIEnv* env,

@@ -4,12 +4,9 @@ import java.util.Map;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.sql.SQLException;
-import java.util.Properties;
 
 /**
  * Native is a wrapper class for the native library.
@@ -64,13 +61,14 @@ public class Native {
         }
     }
 
-    // Hack: Reload the native library again in JNI bindings to work around the 
-    // extension loading issue on Linux as System.load() does not set 
+    // Hack: Reload the native library again in JNI bindings to work around the
+    // extension loading issue on Linux as System.load() does not set
     // `RTLD_GLOBAL` flag and there is no way to set it in Java.
     protected static native void kuzu_native_reload_library(String lib_path);
 
     // Database
-    protected static native long kuzu_database_init(String database_path, long buffer_pool_size, boolean enable_compression, boolean read_only, long max_db_size);
+    protected static native long kuzu_database_init(String database_path, long buffer_pool_size,
+            boolean enable_compression, boolean read_only, long max_db_size);
 
     protected static native void kuzu_database_destroy(Database db);
 
@@ -179,6 +177,12 @@ public class Native {
 
     protected static native void kuzu_value_destroy(Value value);
 
+    protected static native Value kuzu_create_map(Value[] keys, Value[] values);
+
+    protected static native Value kuzu_create_list(Value[] values);
+
+    protected static native Value kuzu_create_list(DataType type, long numElements);
+
     protected static native long kuzu_value_get_list_size(Value value);
 
     protected static native Value kuzu_value_get_list_element(Value value, long index);
@@ -216,6 +220,8 @@ public class Native {
     protected static native Value kuzu_rel_val_get_property_value_at(Value rel_val, long index);
 
     protected static native String kuzu_rel_val_to_string(Value rel_val);
+
+    protected static native Value kuzu_create_struct(String[] fieldNames, Value[] fieldValues);
 
     protected static native String kuzu_value_get_struct_field_name(Value struct_val, long index);
 
