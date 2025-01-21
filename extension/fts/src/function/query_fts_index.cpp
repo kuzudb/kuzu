@@ -129,6 +129,9 @@ void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNo
     auto k = bindData.config.k;
     auto b = bindData.config.b;
 
+    if (!scores.contains(docNodeID)) {
+        return;
+    }
     auto scoreInfo = scores.at(docNodeID);
     double score = 0;
     // If the query is conjunctive, the numbers of distinct terms in the doc and the number of
