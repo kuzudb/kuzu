@@ -97,7 +97,8 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(const BaseScanSource
 }
 
 static void removeNonScanOptions(case_insensitive_map_t<Value>& options) {
-    auto nonScanOptions = std::vector<std::string>{FileScanInfo::FILE_FORMAT_OPTION_NAME, CopyConstants::FROM_OPTION_NAME, CopyConstants::TO_OPTION_NAME};
+    auto nonScanOptions = std::vector<std::string>{FileScanInfo::FILE_FORMAT_OPTION_NAME,
+        CopyConstants::FROM_OPTION_NAME, CopyConstants::TO_OPTION_NAME};
     for (auto option : nonScanOptions) {
         if (options.contains(option)) {
             options.erase(option);

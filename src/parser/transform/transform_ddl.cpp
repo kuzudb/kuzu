@@ -87,7 +87,7 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTable(
         options = transformOptions(*ctx.kU_Options());
     }
     std::vector<std::pair<std::string, std::string>> fromToPairs;
-    for (auto& fromTo: ctx.kU_FromToConnections()->kU_FromToConnection()) {
+    for (auto& fromTo : ctx.kU_FromToConnections()->kU_FromToConnection()) {
         auto src = transformSchemaName(*fromTo->oC_SchemaName(0));
         auto dst = transformSchemaName(*fromTo->oC_SchemaName(1));
         fromToPairs.emplace_back(src, dst);
@@ -97,7 +97,8 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTable(
     auto entryType = CatalogEntryType::DUMMY_ENTRY;
     if (fromToPairs.size() == 1) {
         entryType = CatalogEntryType::REL_TABLE_ENTRY;
-        extraInfo = std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity, fromToPairs[0].first, fromToPairs[0].second, std::move(options));
+        extraInfo = std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity, fromToPairs[0].first,
+            fromToPairs[0].second, std::move(options));
     } else {
         entryType = CatalogEntryType::REL_GROUP_ENTRY;
         extraInfo = std::make_unique<ExtraCreateRelTableGroupInfo>(relMultiplicity,

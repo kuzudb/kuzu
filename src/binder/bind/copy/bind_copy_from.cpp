@@ -2,8 +2,8 @@
 #include "binder/copy/bound_copy_from.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "main/client_context.h"
@@ -26,11 +26,13 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     if (catalog->containsRelGroup(transaction, tableName)) {
         auto entry = catalog->getRelGroupEntry(transaction, tableName);
         if (entry->getNumRelTables() == 1) {
-            auto tableEntry = catalog->getTableCatalogEntry(transaction, entry->getRelTableIDs()[0]);
+            auto tableEntry =
+                catalog->getTableCatalogEntry(transaction, entry->getRelTableIDs()[0]);
             return bindCopyRelFrom(statement, tableEntry->ptrCast<RelTableCatalogEntry>());
         } else {
             auto options = bindParsingOptions(copyStatement.getParsingOptions());
-            if (!options.contains(CopyConstants::FROM_OPTION_NAME) || !options.contains(CopyConstants::TO_OPTION_NAME)) {
+            if (!options.contains(CopyConstants::FROM_OPTION_NAME) ||
+                !options.contains(CopyConstants::TO_OPTION_NAME)) {
                 throw BinderException(
                     stringFormat("Expect FROM&TO options when copying into {}.", tableName));
             }
@@ -93,8 +95,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     std::vector<LogicalType> expectedColumnTypes;
     bindExpectedNodeColumns(nodeTableEntry, copyStatement.getColumnNames(), expectedColumnNames,
         expectedColumnTypes);
-    auto boundSource = bindScanSource(copyStatement.getSource(),
-        copyStatement.getParsingOptions(), expectedColumnNames, expectedColumnTypes);
+    auto boundSource = bindScanSource(copyStatement.getSource(), copyStatement.getParsingOptions(),
+        expectedColumnNames, expectedColumnTypes);
     expression_vector warningDataExprs = boundSource->getWarningColumns();
     if (boundSource->type == ScanSourceType::FILE) {
         auto& source = boundSource->constCast<BoundTableScanSource>();
@@ -133,8 +135,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& stateme
     std::vector<LogicalType> expectedColumnTypes;
     bindExpectedRelColumns(relTableEntry, copyStatement.getColumnNames(), expectedColumnNames,
         expectedColumnTypes, clientContext);
-    auto boundSource = bindScanSource(copyStatement.getSource(),
-        copyStatement.getParsingOptions(), expectedColumnNames, expectedColumnTypes);
+    auto boundSource = bindScanSource(copyStatement.getSource(), copyStatement.getParsingOptions(),
+        expectedColumnNames, expectedColumnTypes);
     expression_vector warningDataExprs = boundSource->getWarningColumns();
     auto columns = boundSource->getColumns();
     auto offset =

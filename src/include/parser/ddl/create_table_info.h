@@ -46,8 +46,8 @@ struct ExtraCreateRelTableInfo : public ExtraCreateTableInfo {
     std::string dstTableName;
     options_t options;
 
-    ExtraCreateRelTableInfo(std::string relMultiplicity,
-        std::string srcTableName, std::string dstTableName, options_t options)
+    ExtraCreateRelTableInfo(std::string relMultiplicity, std::string srcTableName,
+        std::string dstTableName, options_t options)
         : relMultiplicity{std::move(relMultiplicity)}, srcTableName{std::move(srcTableName)},
           dstTableName{std::move(dstTableName)}, options{std::move(options)} {}
 };

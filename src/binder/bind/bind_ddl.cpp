@@ -166,7 +166,8 @@ static void validateNodeTableType(const TableCatalogEntry* entry) {
     }
 }
 
-static ExtendDirection getStorageDirection(const common::case_insensitive_map_t<common::Value>& options) {
+static ExtendDirection getStorageDirection(
+    const common::case_insensitive_map_t<common::Value>& options) {
     if (options.contains(TableOptionConstants::REL_STORAGE_DIRECTION_OPTION)) {
         return ExtendDirectionUtil::fromString(
             options.at(TableOptionConstants::REL_STORAGE_DIRECTION_OPTION).toString());
@@ -179,7 +180,8 @@ BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info)
     return bindCreateRelTableInfo(info, extraInfo.options);
 }
 
-BoundCreateTableInfo Binder::bindCreateRelTableInfo(const parser::CreateTableInfo* info, const parser::options_t& parsedOptions) {
+BoundCreateTableInfo Binder::bindCreateRelTableInfo(const parser::CreateTableInfo* info,
+    const parser::options_t& parsedOptions) {
     std::vector<PropertyDefinition> propertyDefinitions;
     propertyDefinitions.emplace_back(
         ColumnDefinition(InternalKeyword::ID, LogicalType::INTERNAL_ID()));
@@ -212,9 +214,10 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
         std::make_unique<CreateTableInfo>(CatalogEntryType::REL_TABLE_ENTRY, "", info->onConflict);
     relCreateInfo->propertyDefinitions = copyVector(info->propertyDefinitions);
     for (auto& [srcTableName, dstTableName] : extraInfo.srcDstTablePairs) {
-        relCreateInfo->tableName = RelGroupCatalogEntry::getChildTableName(relGroupName, srcTableName, dstTableName);
+        relCreateInfo->tableName =
+            RelGroupCatalogEntry::getChildTableName(relGroupName, srcTableName, dstTableName);
         relCreateInfo->extraInfo = std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity,
-             srcTableName, dstTableName, options_t{});
+            srcTableName, dstTableName, options_t{});
         auto boundInfo = bindCreateRelTableInfo(relCreateInfo.get(), extraInfo.options);
         boundInfo.hasParent = true;
         boundCreateRelTableInfos.push_back(std::move(boundInfo));

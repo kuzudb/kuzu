@@ -18,11 +18,13 @@ bool RelTableCatalogEntry::isParent(table_id_t tableID) {
     return srcTableID == tableID || dstTableID == tableID;
 }
 
-bool RelTableCatalogEntry::hasParentRelGroup(Catalog* catalog, const transaction::Transaction* transaction) const {
+bool RelTableCatalogEntry::hasParentRelGroup(Catalog* catalog,
+    const transaction::Transaction* transaction) const {
     return getParentRelGroup(catalog, transaction) != nullptr;
 }
 
-RelGroupCatalogEntry* RelTableCatalogEntry::getParentRelGroup(Catalog* catalog, const transaction::Transaction* transaction) const {
+RelGroupCatalogEntry* RelTableCatalogEntry::getParentRelGroup(Catalog* catalog,
+    const transaction::Transaction* transaction) const {
     for (auto& relGroup : catalog->getRelGroupEntries(transaction)) {
         if (relGroup->isParent(getTableID())) {
             return relGroup;

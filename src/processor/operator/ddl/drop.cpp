@@ -81,7 +81,8 @@ void Drop::dropTable(main::ClientContext* context) {
         }
     } break;
     case CatalogEntryType::REL_TABLE_ENTRY: {
-        auto parentRelGroup = entry->ptrCast<RelTableCatalogEntry>()->getParentRelGroup(catalog, transaction);
+        auto parentRelGroup =
+            entry->ptrCast<RelTableCatalogEntry>()->getParentRelGroup(catalog, transaction);
         if (parentRelGroup != nullptr) {
             throw BinderException(stringFormat("Cannot delete relationship table {} because it "
                                                "is referenced by relationship group {}.",

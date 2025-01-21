@@ -1,8 +1,8 @@
 #include "binder/binder.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/catalog.h"
 #include "common/string_utils.h"
 #include "function/table/bind_input.h"
@@ -39,7 +39,8 @@ struct ExtraNodePropertyInfo : ExtraPropertyInfo {
 struct ExtraRelPropertyInfo : ExtraPropertyInfo {
     std::string storageDirection;
 
-    explicit ExtraRelPropertyInfo(std::string storageDirection) : storageDirection{std::move(storageDirection)} {}
+    explicit ExtraRelPropertyInfo(std::string storageDirection)
+        : storageDirection{std::move(storageDirection)} {}
 
     std::unique_ptr<ExtraPropertyInfo> copy() const override {
         return std::make_unique<ExtraRelPropertyInfo>(storageDirection);
@@ -58,7 +59,8 @@ struct PropertyInfo {
 
 private:
     PropertyInfo(const PropertyInfo& other)
-        : propertyID{other.propertyID}, name{other.name}, type{other.type}, defaultVal{other.defaultVal} {
+        : propertyID{other.propertyID}, name{other.name}, type{other.type},
+          defaultVal{other.defaultVal} {
         if (other.extraInfo) {
             extraInfo = other.extraInfo->copy();
         }
@@ -149,12 +151,12 @@ static std::vector<PropertyInfo> getRelPropertyInfos(RelTableCatalogEntry* entry
         }
         auto info = getInfo(def);
         info.propertyID = entry->getPropertyIdx(def.getName());
-        info.extraInfo = std::make_unique<ExtraRelPropertyInfo>(ExtendDirectionUtil::toString(entry->getStorageDirection()));
+        info.extraInfo = std::make_unique<ExtraRelPropertyInfo>(
+            ExtendDirectionUtil::toString(entry->getStorageDirection()));
         infos.push_back(std::move(info));
     }
     return infos;
 }
-
 
 static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* context,
     const TableFuncBindInput* input) {
@@ -198,7 +200,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
             auto entry = catalog->getRelGroupEntry(transaction, tableName);
             KU_ASSERT(entry->getNumRelTables() > 0);
             auto id = entry->getRelTableIDs()[0];
-            auto relEntry = catalog->getTableCatalogEntry(transaction, id)->ptrCast<RelTableCatalogEntry>();
+            auto relEntry =
+                catalog->getTableCatalogEntry(transaction, id)->ptrCast<RelTableCatalogEntry>();
             columnNames.emplace_back("storage_direction");
             columnTypes.push_back(LogicalType::STRING());
             infos = getRelPropertyInfos(relEntry->ptrCast<RelTableCatalogEntry>());

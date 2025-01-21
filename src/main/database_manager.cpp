@@ -54,8 +54,7 @@ void DatabaseManager::detachDatabase(const std::string& databaseName) {
             return;
         }
     }
-    throw RuntimeException{
-        stringFormat("Database: {} doesn't exist.", databaseName)};
+    throw RuntimeException{stringFormat("Database: {} doesn't exist.", databaseName)};
 }
 
 void DatabaseManager::setDefaultDatabase(const std::string& databaseName) {
