@@ -76,7 +76,7 @@ static binder::expression_vector bindColumns(binder::Binder& binder) {
     columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("property names");
     columnTypes.emplace_back(LogicalType::LIST(LogicalType::STRING()));
-    columnNames.emplace_back("dependency loaded");
+    columnNames.emplace_back("extension loaded");
     columnTypes.emplace_back(LogicalType::BOOL());
     columnNames.emplace_back("index definition");
     columnTypes.emplace_back(LogicalType::STRING());
