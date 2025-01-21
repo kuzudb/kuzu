@@ -63,6 +63,37 @@ def test_default_bp_size(temp_db, flag) -> None:
 @pytest.mark.parametrize(
     "flag",
     [
+        "--maxdbsize",
+        "--max_db_size"
+    ],
+)
+def test_max_db_size(temp_db, flag) -> None:
+    # empty flag argument
+    test = ShellTest().add_argument(temp_db).add_argument(flag)
+    result = test.run()
+    result.check_stderr(
+        f"Flag '{flag.replace('-', '')}' requires an argument but received none",
+    )
+
+    # flag argument is not a number
+    test = ShellTest().add_argument(temp_db).add_argument(flag).add_argument("kuzu")
+    result = test.run()
+    result.check_stderr("Argument 'max_db_size' received invalid value type 'kuzu'")
+
+    # invalid flag
+    test = ShellTest().add_argument(temp_db).add_argument(flag).add_argument("1000")
+    result = test.run()
+    result.check_stderr(f"Buffer manager exception: The given max db size should be at least 4194304 bytes.")
+
+    # successful flag
+    test = ShellTest().add_argument(temp_db).add_argument(flag).add_argument("4194304")
+    result = test.run()
+    result.check_stdout(f"Opening the database at path: {temp_db} in read-write mode.")
+
+
+@pytest.mark.parametrize(
+    "flag",
+    [
         "--nocompression",
         "--no_compression"
     ],
