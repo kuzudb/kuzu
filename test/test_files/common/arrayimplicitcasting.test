@@ -5,19 +5,21 @@
 -CASE ArrayImplicitCast
 -STATEMENT call threads=4.5
 ---- error
-Binder exception: Invalid cast from DOUBLE to UINT64 during threads.
+Binder exception: Expression 4.500000 has data type DOUBLE but expected UINT64. Implicit cast is not supported.
 -STATEMENT call threads=-3
 ---- error
 Overflow exception: Value -3 is not within UINT64 range
 -STATEMENT call threads=-3.5
 ---- error
-Binder exception: Invalid cast from DOUBLE to UINT64 during threads.
+Binder exception: Expression NEGATE(3.500000) has data type DOUBLE but expected UINT64. Implicit cast is not supported.
 -STATEMENT call timeout=1000.5
 ---- error
-Binder exception: Invalid cast from DOUBLE to UINT64 during timeout.
+Binder exception: Expression 1000.500000 has data type DOUBLE but expected UINT64. Implicit cast is not supported.
 -STATEMENT call timeout=-3
 ---- error
 Overflow exception: Value -3 is not within UINT64 range
+-STATEMENT call threads=CAST(127.3, "DECIMAL(5, 2)")
+Binder exception: Expression CAST(127.300000, DECIMAL(5, 2)) has data type DECIMAL but expected UINT64. Implicit cast is not supported.
 -STATEMENT CREATE NODE TABLE tab(id SERIAL, a INT64[], PRIMARY KEY(id))
 ---- ok
 -STATEMENT CREATE (t:tab {a: cast([1, 2, 3], 'int64[3]')}) RETURN t.a
