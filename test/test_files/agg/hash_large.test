@@ -10,13 +10,14 @@
 ---- 1
 3373
 -STATEMENT MATCH (a:account)-[]->(b:account) WHERE a.ID > 1000000 RETURN a.ID, COUNT(b) as n ORDER BY n DESC LIMIT 5;
-# TODO(bmwinger): Ordering is wrong here
+-CHECK_ORDER
 ---- 5
-18776017|2272
 3359851|3373
-5442012|2204
 59804598|2467
 7860742|2458
+18776017|2272
+5442012|2204
 -STATEMENT MATCH (a:account)-[]->(b:account) WHERE a.ID > 1000000 RETURN a.ID, COUNT(b.ID) as n ORDER BY n, a.ID;
+-CHECK_ORDER
 ---- 68949
 <FILE>:hash_large.csv

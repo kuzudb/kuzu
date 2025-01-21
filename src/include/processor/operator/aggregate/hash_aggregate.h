@@ -37,13 +37,8 @@ private:
 class HashAggregateSharedState final : public BaseAggregateSharedState {
 
 public:
-    explicit HashAggregateSharedState(main::ClientContext* context, HashAggregateInfo hashInfo,
+    explicit HashAggregateSharedState(main::ClientContext* context, HashAggregateInfo aggInfo,
         const std::vector<function::AggregateFunction>& aggregateFunctions);
-
-    void initPartitions(main::ClientContext* context,
-        const std::vector<common::LogicalType>& keyDataTypes,
-        const std::vector<common::LogicalType>& payloadDataTypes,
-        const std::vector<common::LogicalType>& types);
 
     ~HashAggregateSharedState();
 
@@ -64,9 +59,6 @@ public:
 
     uint64_t getCurrentOffset() const { return currentOffset; }
 
-    // return whether limitNumber is exceeded
-    bool increaseAndCheckLimitCount(uint64_t num);
-
     void setLimitNumber(uint64_t num) { limitNumber = num; }
     uint64_t getLimitNumber() const { return limitNumber; }
 
@@ -81,14 +73,14 @@ public:
 
     void assertFinalized() const;
 
-    const HashAggregateInfo& getInfo() const { return hashInfo; }
+    const HashAggregateInfo& getAggregateInfo() const { return aggInfo; }
 
 protected:
     std::tuple<const FactorizedTable*, common::offset_t> getPartitionForOffset(
         common::offset_t offset) const;
 
 public:
-    HashAggregateInfo hashInfo;
+    HashAggregateInfo aggInfo;
     common::MPSCQueue<std::unique_ptr<common::InMemOverflowBuffer>> overflow;
     struct Partition {
         std::unique_ptr<AggregateHashTable> hashTable;
@@ -103,7 +95,7 @@ public:
                 table.resize(table.getNumTuplesPerBlock());
             }
             // numTuplesReserved may be greater than the capacity of the factorizedTable
-            // if threads try to write to it it while a new block is being allocated
+            // if threads try to write to it while a new block is being allocated
             // So it should not be relied on for anything other than reserving tuples
             std::atomic<uint64_t> numTuplesReserved;
             // Set after the tuple has been written to the block.

@@ -256,18 +256,6 @@ void AggregateHashTable::initializeFTEntries(const FactorizedTable& sourceTable,
         auto sourcePos = sourceStartOffset + idx;
         memcpy(slot.entry, sourceTable.getTuple(sourcePos),
             getTableSchema()->getNumBytesPerTuple());
-        // TODO: Ideally we should actually copy the overflow so that the original overflow data can
-        // be released
-        /*
-        for (size_t colIdx = 0; colIdx < tableSchema.getNumColumns(); colIdx++) {
-            auto colOffset = tableSchema.getColOffset(colIdx);
-            if (sourceTable.isNonOverflowColNull(sourcePos, colIdx)) {
-                table->setNonOverflowColNull(slot.entry + tableSchema.getNullMapOffset(), colIdx);
-            } else {
-                sourceTable->copy(sourcePos, slot.entry + colOffset,
-        &table->getInMemOverflowBuffer());
-            }
-        }*/
     }
     for (auto i = 0u; i < numFTEntriesToInitialize; i++) {
         auto entryIdx = entryIdxesToInitialize[i];
@@ -516,7 +504,7 @@ void AggregateHashTable::findHashSlots(const FactorizedTable& srcTable, uint64_t
         increaseHashSlotIdxes(numNoMatches);
         KU_ASSERT(numNoMatches <= numEntriesToFindHashSlots);
         numEntriesToFindHashSlots = numNoMatches;
-        memcpy(tmpValueIdxes.get(), noMatchIdxes.get(), DEFAULT_VECTOR_CAPACITY * sizeof(uint64_t));
+        memcpy(tmpValueIdxes.get(), noMatchIdxes.get(), numNoMatches * sizeof(uint64_t));
     }
 }
 

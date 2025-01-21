@@ -32,20 +32,20 @@ std::string HashAggregatePrintInfo::toString() const {
     return result;
 }
 HashAggregateSharedState::HashAggregateSharedState(main::ClientContext* context,
-    HashAggregateInfo hashInfo, const std::vector<function::AggregateFunction>& aggregateFunctions)
-    : BaseAggregateSharedState{aggregateFunctions}, hashInfo{std::move(hashInfo)},
+    HashAggregateInfo aggInfo, const std::vector<function::AggregateFunction>& aggregateFunctions)
+    : BaseAggregateSharedState{aggregateFunctions}, aggInfo{std::move(aggInfo)},
       globalPartitions{static_cast<size_t>(context->getMaxNumThreadForExec())},
       limitNumber{common::INVALID_LIMIT}, numThreads{0},
       memoryManager{context->getMemoryManager()} {
 
     // When copying directly into factorizedTables the table's schema's internal mayContainNulls
     // won't be updated and it's probably less work to just always check nulls
-    for (size_t i = 0; i < this->hashInfo.tableSchema.getNumColumns(); i++) {
-        this->hashInfo.tableSchema.setMayContainsNullsToTrue(i);
+    for (size_t i = 0; i < this->aggInfo.tableSchema.getNumColumns(); i++) {
+        this->aggInfo.tableSchema.setMayContainsNullsToTrue(i);
     }
     for (auto& partition : globalPartitions) {
         partition.headBlock = new Partition::TupleBlock(context->getMemoryManager(),
-            this->hashInfo.tableSchema.copy());
+            this->aggInfo.tableSchema.copy());
     }
 }
 
@@ -88,7 +88,7 @@ HashAggregateInfo::HashAggregateInfo(const HashAggregateInfo& other)
 void HashAggregateLocalState::init(HashAggregateSharedState* sharedState, ResultSet& resultSet,
     main::ClientContext* context, std::vector<function::AggregateFunction>& aggregateFunctions,
     std::vector<common::LogicalType> types) {
-    auto& info = sharedState->getInfo();
+    auto& info = sharedState->getAggregateInfo();
     std::vector<LogicalType> keyDataTypes;
     for (auto& pos : info.flatKeysPos) {
         auto vector = resultSet.getValueVector(pos).get();
@@ -173,7 +173,7 @@ void HashAggregateSharedState::appendTuple(std::span<uint8_t> tuple, common::has
             return;
         } else {
             // No more space in the block, allocate and replace it
-            auto* newBlock = new Partition::TupleBlock(memoryManager, hashInfo.tableSchema.copy());
+            auto* newBlock = new Partition::TupleBlock(memoryManager, aggInfo.tableSchema.copy());
             if (partition.headBlock.compare_exchange_strong(block, newBlock)) {
                 // TODO(bmwinger): if the queuedTuples has at least a certain size (benchmark to see
                 // if there's a benefit to waiting for multiple blocks) then cycle through the queue
