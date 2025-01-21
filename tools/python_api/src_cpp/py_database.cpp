@@ -2,10 +2,10 @@
 
 #include <memory>
 
+#include "extension/extension.h"
 #include "include/cached_import/py_cached_import.h"
 #include "main/version.h"
 #include "pandas/pandas_scan.h"
-#include "pyarrow/pyarrow_scan.h"
 
 using namespace kuzu::common;
 
@@ -54,8 +54,7 @@ PyDatabase::PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize,
         systemConfig.checkpointThreshold = static_cast<uint64_t>(checkpointThreshold);
     }
     database = std::make_unique<Database>(databasePath, systemConfig);
-    database->addTableFunction(kuzu::PandasScanFunction::name,
-        kuzu::PandasScanFunction::getFunctionSet());
+    kuzu::extension::ExtensionUtils::addTableFunc<kuzu::PandasScanFunction>(*database);
     storageDriver = std::make_unique<kuzu::main::StorageDriver>(database.get());
     py::gil_scoped_acquire acquire;
     if (kuzu::importCache.get() == nullptr) {
