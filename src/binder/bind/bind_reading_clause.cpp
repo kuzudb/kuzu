@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "parser/query/regular_query.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;

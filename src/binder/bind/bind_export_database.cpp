@@ -9,6 +9,7 @@
 #include "main/client_context.h"
 #include "parser/parser.h"
 #include "parser/port_db.h"
+#include "parser/query/regular_query.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

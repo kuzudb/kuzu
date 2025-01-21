@@ -8,13 +8,20 @@
 #include "common/copier_config/file_scan_info.h"
 #include "parser/ddl/parsed_property_definition.h"
 #include "parser/query/graph_pattern/pattern_element.h"
-#include "parser/query/regular_query.h"
 
 namespace kuzu {
 namespace parser {
+class ProjectionBody;
+class ReturnClause;
+class WithClause;
+class UpdatingClause;
+class ReadingClause;
+class QueryPart;
+class SingleQuery;
 struct CreateTableInfo;
 struct BaseScanSource;
 struct JoinHintNode;
+class Statement;
 } // namespace parser
 
 namespace catalog {
