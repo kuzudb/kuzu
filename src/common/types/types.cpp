@@ -1167,6 +1167,18 @@ bool LogicalTypeUtils::isNumerical(const LogicalTypeID& dataType) {
     }
 }
 
+bool LogicalTypeUtils::isFloatingPoint(const LogicalTypeID& dataType) {
+    switch (dataType) {
+    case LogicalTypeID::DOUBLE:
+    case LogicalTypeID::FLOAT:
+    case LogicalTypeID::SERIAL:
+    case LogicalTypeID::DECIMAL:
+        return true;
+    default:
+        return false;
+    }
+}
+
 bool LogicalTypeUtils::isNested(const LogicalType& dataType) {
     return isNested(dataType.typeID);
 }
