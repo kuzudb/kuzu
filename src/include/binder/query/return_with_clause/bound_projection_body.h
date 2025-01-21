@@ -39,11 +39,11 @@ public:
     const expression_vector& getOrderByExpressions() const { return orderByExpressions; }
     const std::vector<bool>& getSortingOrders() const { return isAscOrders; }
 
-    void setSkipNumber(std::shared_ptr<Expression> number) { skipNumber = number; }
+    void setSkipNumber(std::shared_ptr<Expression> number) { skipNumber = std::move(number); }
     bool hasSkip() const { return skipNumber != nullptr; }
     std::shared_ptr<Expression> getSkipNumber() const { return skipNumber; }
 
-    void setLimitNumber(std::shared_ptr<Expression> number) { limitNumber = number; }
+    void setLimitNumber(std::shared_ptr<Expression> number) { limitNumber = std::move(number); }
     bool hasLimit() const { return limitNumber != nullptr; }
     std::shared_ptr<Expression> getLimitNumber() const { return limitNumber; }
 

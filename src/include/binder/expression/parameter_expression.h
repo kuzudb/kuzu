@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace binder {
 
-class KUZU_API ParameterExpression : public Expression {
+class KUZU_API ParameterExpression final : public Expression {
     static constexpr common::ExpressionType expressionType = common::ExpressionType::PARAMETER;
 
 public:
@@ -19,7 +19,7 @@ public:
     common::Value getValue() const { return value; }
 
 private:
-    std::string toStringInternal() const final { return "$" + parameterName; }
+    std::string toStringInternal() const override { return "$" + parameterName; }
     static std::string createUniqueName(const std::string& input) { return "$" + input; }
 
 private:

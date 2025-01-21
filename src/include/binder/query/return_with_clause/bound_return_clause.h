@@ -9,7 +9,7 @@ namespace binder {
 class BoundReturnClause {
 public:
     explicit BoundReturnClause(BoundProjectionBody projectionBody)
-        : projectionBody{std::move(projectionBody)}, statementResult{} {}
+        : projectionBody{std::move(projectionBody)} {}
     BoundReturnClause(BoundProjectionBody projectionBody, BoundStatementResult statementResult)
         : projectionBody{std::move(projectionBody)}, statementResult{std::move(statementResult)} {}
     DELETE_COPY_DEFAULT_MOVE(BoundReturnClause);

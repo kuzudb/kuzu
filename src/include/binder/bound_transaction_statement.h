@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace binder {
 
-class BoundTransactionStatement : public BoundStatement {
+class BoundTransactionStatement final : public BoundStatement {
     static constexpr common::StatementType statementType_ = common::StatementType::TRANSACTION;
 
 public:

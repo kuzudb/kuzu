@@ -64,7 +64,7 @@ public:
 
     void setInputParameters(
         std::unordered_map<std::string, std::shared_ptr<common::Value>> parameters) {
-        expressionBinder.parameterMap = parameters;
+        expressionBinder.parameterMap = std::move(parameters);
     }
 
     std::unordered_map<std::string, std::shared_ptr<common::Value>> getParameterMap() {

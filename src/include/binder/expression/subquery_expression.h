@@ -1,7 +1,5 @@
 #pragma once
 
-#include <utility>
-
 #include "binder/query/query_graph.h"
 #include "common/enums/subquery_type.h"
 #include "expression.h"
@@ -9,7 +7,7 @@
 namespace kuzu {
 namespace binder {
 
-class SubqueryExpression : public Expression {
+class SubqueryExpression final : public Expression {
     static constexpr common::ExpressionType expressionType_ = common::ExpressionType::SUBQUERY;
 
 public:
@@ -37,7 +35,7 @@ public:
     void setProjectionExpr(std::shared_ptr<Expression> expr) { projectionExpr = std::move(expr); }
     std::shared_ptr<Expression> getProjectionExpr() const { return projectionExpr; }
 
-    std::string toStringInternal() const final { return rawName; }
+    std::string toStringInternal() const override { return rawName; }
 
 private:
     common::SubqueryType subqueryType;

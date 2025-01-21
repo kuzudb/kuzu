@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace binder {
 
-class BoundRegularQuery : public BoundStatement {
+class BoundRegularQuery final : public BoundStatement {
 
 public:
     explicit BoundRegularQuery(std::vector<bool> isUnionAll, BoundStatementResult statementResult)

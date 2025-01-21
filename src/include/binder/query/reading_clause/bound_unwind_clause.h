@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace binder {
 
-class BoundUnwindClause : public BoundReadingClause {
+class BoundUnwindClause final : public BoundReadingClause {
 public:
     BoundUnwindClause(std::shared_ptr<Expression> inExpr, std::shared_ptr<Expression> outExpr,
         std::shared_ptr<Expression> idExpr)

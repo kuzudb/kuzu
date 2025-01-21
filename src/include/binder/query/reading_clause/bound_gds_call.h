@@ -22,7 +22,7 @@ private:
         : func{other.func.copy()}, outExprs{other.outExprs} {}
 };
 
-class BoundGDSCall : public BoundReadingClause {
+class BoundGDSCall final : public BoundReadingClause {
     static constexpr common::ClauseType clauseType_ = common::ClauseType::GDS_CALL;
 
 public:

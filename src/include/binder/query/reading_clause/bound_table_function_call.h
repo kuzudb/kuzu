@@ -8,7 +8,7 @@
 namespace kuzu {
 namespace binder {
 
-class BoundTableFunctionCall : public BoundReadingClause {
+class BoundTableFunctionCall final : public BoundReadingClause {
     static constexpr common::ClauseType clauseType_ = common::ClauseType::TABLE_FUNCTION_CALL;
 
 public:

@@ -8,7 +8,7 @@
 namespace kuzu {
 namespace binder {
 
-class BoundMergeClause : public BoundUpdatingClause {
+class BoundMergeClause final : public BoundUpdatingClause {
 public:
     BoundMergeClause(std::shared_ptr<Expression> existenceMark,
         std::shared_ptr<Expression> distinctMark, QueryGraphCollection queryGraphCollection,

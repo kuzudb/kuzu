@@ -23,7 +23,7 @@ struct BoundJoinHintNode {
     bool isMultiWay() const { return children.size() > 2; }
 };
 
-class BoundMatchClause : public BoundReadingClause {
+class BoundMatchClause final : public BoundReadingClause {
     static constexpr common::ClauseType clauseType_ = common::ClauseType::MATCH;
 
 public:

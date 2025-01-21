@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace binder {
 
-class PathExpression : public Expression {
+class PathExpression final : public Expression {
 public:
     PathExpression(common::LogicalType dataType, std::string uniqueName, std::string variableName,
         common::LogicalType nodeType, common::LogicalType relType, expression_vector children)
@@ -18,7 +18,7 @@ public:
     inline const common::LogicalType& getNodeType() const { return nodeType; }
     inline const common::LogicalType& getRelType() const { return relType; }
 
-    inline std::string toStringInternal() const final { return variableName; }
+    inline std::string toStringInternal() const override { return variableName; }
 
 private:
     std::string variableName;

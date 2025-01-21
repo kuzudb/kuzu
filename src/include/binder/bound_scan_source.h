@@ -31,7 +31,7 @@ protected:
     BoundBaseScanSource(const BoundBaseScanSource& other) : type{other.type} {}
 };
 
-struct BoundEmptyScanSource : public BoundBaseScanSource {
+struct BoundEmptyScanSource final : BoundBaseScanSource {
     BoundEmptyScanSource() : BoundBaseScanSource{common::ScanSourceType::EMPTY} {}
     BoundEmptyScanSource(const BoundEmptyScanSource& other) : BoundBaseScanSource{other} {}
 
@@ -42,7 +42,7 @@ struct BoundEmptyScanSource : public BoundBaseScanSource {
     }
 };
 
-struct BoundTableScanSource : public BoundBaseScanSource {
+struct BoundTableScanSource final : BoundBaseScanSource {
     BoundTableScanSourceInfo info;
 
     explicit BoundTableScanSource(common::ScanSourceType type, BoundTableScanSourceInfo info)
@@ -62,7 +62,7 @@ struct BoundTableScanSource : public BoundBaseScanSource {
     }
 };
 
-struct BoundQueryScanSource : public BoundBaseScanSource {
+struct BoundQueryScanSource final : BoundBaseScanSource {
     // Use shared ptr to avoid copy BoundStatement.
     // We should consider implement a copy constructor though.
     std::shared_ptr<BoundStatement> statement;
