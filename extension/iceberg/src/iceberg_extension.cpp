@@ -1,6 +1,5 @@
 #include "iceberg_extension.h"
 
-#include "function/duckdb_scan.h"
 #include "function/iceberg_functions.h"
 #include "main/client_context.h"
 #include "main/database.h"
@@ -9,11 +8,13 @@
 namespace kuzu {
 namespace iceberg_extension {
 
+using namespace kuzu::extension;
+
 void IcebergExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
-    ADD_TABLE_FUNC(IcebergScanFunction);
-    ADD_TABLE_FUNC(IcebergMetadataFunction);
-    ADD_TABLE_FUNC(IcebergSnapshotsFunction);
+    extension::ExtensionUtils::addTableFunc<IcebergScanFunction>(db);
+    extension::ExtensionUtils::addTableFunc<IcebergMetadataFunction>(db);
+    extension::ExtensionUtils::addTableFunc<IcebergSnapshotsFunction>(db);
     httpfs::S3DownloadOptions::registerExtensionOptions(&db);
     httpfs::S3DownloadOptions::setEnvValue(context);
 }

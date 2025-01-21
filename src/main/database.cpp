@@ -13,7 +13,6 @@
 
 #include "common/exception/exception.h"
 #include "common/file_system/virtual_file_system.h"
-#include "extension/extension.h"
 #include "main/db_config.h"
 #include "processor/processor.h"
 #include "storage/storage_extension.h"
@@ -122,17 +121,6 @@ Database::~Database() {
             transactionManager->checkpoint(clientContext);
         } catch (...) {} // NOLINT
     }
-}
-
-void Database::addTableFunction(std::string name, function::function_set functionSet) {
-    catalog->addFunction(&DUMMY_TRANSACTION, CatalogEntryType::TABLE_FUNCTION_ENTRY,
-        std::move(name), std::move(functionSet));
-}
-
-void Database::addStandaloneCallFunction(std::string name,
-    std::vector<std::unique_ptr<function::Function>> functionSet) {
-    catalog->addFunction(&DUMMY_TRANSACTION, CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY,
-        std::move(name), std::move(functionSet));
 }
 
 void Database::registerFileSystem(std::unique_ptr<FileSystem> fs) {

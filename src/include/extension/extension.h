@@ -2,31 +2,13 @@
 
 #include <string>
 
+#include "catalog/catalog.h"
 #include "catalog/catalog_entry/catalog_entry_type.h"
 #include "common/api.h"
 #include "function/function.h"
+#include "main/database.h"
 #include "main/db_config.h"
-
-#define ADD_FUNC_BASE(_PARAM, _NAME, _TYPE)                                                        \
-    kuzu::extension::ExtensionUtils::registerFunctionSet(db, std::string(_NAME),                   \
-        _PARAM::getFunctionSet(), _TYPE)
-
-#define ADD_FUNC(FUNC_STRUCT, FUNC_TYPE) ADD_FUNC_BASE(FUNC_STRUCT, FUNC_STRUCT::name, FUNC_TYPE)
-
-#define ADD_FUNC_ALIAS(FUNC_STRUCT, FUNC_TYPE)                                                     \
-    ADD_FUNC_BASE(FUNC_STRUCT::alias, FUNC_STRUCT::name, FUNC_TYPE)
-
-#define ADD_SCALAR_FUNC(FUNC_STRUCT)                                                               \
-    ADD_FUNC(FUNC_STRUCT, catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY)
-
-#define ADD_SCALAR_FUNC_ALIAS(FUNC_STRUCT)                                                         \
-    ADD_FUNC_ALIAS(FUNC_STRUCT, catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY)
-
-#define ADD_GDS_FUNC(FUNC_STRUCT)                                                                  \
-    ADD_FUNC(FUNC_STRUCT, catalog::CatalogEntryType::GDS_FUNCTION_ENTRY)
-
-#define ADD_TABLE_FUNC(FUNC_STRUCT)                                                                \
-    ADD_FUNC(FUNC_STRUCT, catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY)
+#include "transaction/transaction.h"
 
 #define ADD_EXTENSION_OPTION(OPTION)                                                               \
     db->addExtensionOption(OPTION::NAME, OPTION::TYPE, OPTION::getDefaultValue())
@@ -65,7 +47,17 @@ struct ExtensionSourceUtils {
     static std::string toString(ExtensionSource source);
 };
 
-struct ExtensionUtils {
+template<typename T>
+void addFunc(main::Database& database, std::string name, catalog::CatalogEntryType functionType) {
+    auto catalog = database.getCatalog();
+    if (catalog->containsFunction(&transaction::DUMMY_TRANSACTION, name)) {
+        return;
+    }
+    catalog->addFunction(&transaction::DUMMY_TRANSACTION, functionType, std::move(name),
+        T::getFunctionSet());
+}
+
+struct KUZU_API ExtensionUtils {
     static constexpr const char* EXTENSION_FILE_REPO = "http://extension.kuzudb.com/v{}/{}/{}/{}";
 
     static constexpr const char* SHARED_LIB_REPO = "http://extension.kuzudb.com/v{}/{}/common/{}";
@@ -81,43 +73,62 @@ struct ExtensionUtils {
 
     static bool isFullPath(const std::string& extension);
 
-    static KUZU_API ExtensionRepoInfo getExtensionLibRepoInfo(const std::string& extensionName);
+    static ExtensionRepoInfo getExtensionLibRepoInfo(const std::string& extensionName);
 
-    static KUZU_API ExtensionRepoInfo getExtensionLoaderRepoInfo(const std::string& extensionName);
+    static ExtensionRepoInfo getExtensionLoaderRepoInfo(const std::string& extensionName);
 
-    static KUZU_API ExtensionRepoInfo getExtensionInstallerRepoInfo(
-        const std::string& extensionName);
+    static ExtensionRepoInfo getExtensionInstallerRepoInfo(const std::string& extensionName);
 
-    static KUZU_API ExtensionRepoInfo getSharedLibRepoInfo(const std::string& fileName);
+    static ExtensionRepoInfo getSharedLibRepoInfo(const std::string& fileName);
 
     static std::string getExtensionFileName(const std::string& name);
 
-    KUZU_API static std::string getLocalPathForExtensionLib(main::ClientContext* context,
+    static std::string getLocalPathForExtensionLib(main::ClientContext* context,
         const std::string& extensionName);
 
-    KUZU_API static std::string getLocalPathForExtensionLoader(main::ClientContext* context,
+    static std::string getLocalPathForExtensionLoader(main::ClientContext* context,
         const std::string& extensionName);
 
-    KUZU_API static std::string getLocalPathForExtensionInstaller(main::ClientContext* context,
+    static std::string getLocalPathForExtensionInstaller(main::ClientContext* context,
         const std::string& extensionName);
 
-    KUZU_API static std::string getLocalExtensionDir(main::ClientContext* context,
+    static std::string getLocalExtensionDir(main::ClientContext* context,
         const std::string& extensionName);
 
-    KUZU_API static std::string appendLibSuffix(const std::string& libName);
+    static std::string appendLibSuffix(const std::string& libName);
 
-    KUZU_API static std::string getLocalPathForSharedLib(main::ClientContext* context,
+    static std::string getLocalPathForSharedLib(main::ClientContext* context,
         const std::string& libName);
 
-    KUZU_API static std::string getLocalPathForSharedLib(main::ClientContext* context);
-
-    KUZU_API static void registerTableFunction(main::Database& database,
-        std::unique_ptr<function::TableFunction> function);
-
-    KUZU_API static void registerFunctionSet(main::Database& database, std::string name,
-        function::function_set functionSet, catalog::CatalogEntryType functionType);
+    static std::string getLocalPathForSharedLib(main::ClientContext* context);
 
     static bool isOfficialExtension(const std::string& extension);
+
+    template<typename T>
+    static void addTableFunc(main::Database& database) {
+        addFunc<T>(database, T::name, catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY);
+    }
+
+    template<typename T>
+    static void addStandaloneTableFunc(main::Database& database) {
+        addFunc<T>(database, T::name, catalog::CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY);
+    }
+
+    template<typename T>
+    static void addScalarFunc(main::Database& database) {
+        addFunc<T>(database, T::name, catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY);
+    }
+
+    template<typename T>
+    static void addScalarFuncAlias(main::Database& database) {
+        addFunc<typename T::alias>(database, T::name,
+            catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY);
+    }
+
+    template<typename T>
+    static void addGDSFunc(main::Database& database) {
+        addFunc<T>(database, T::name, catalog::CatalogEntryType::GDS_FUNCTION_ENTRY);
+    }
 };
 
 class KUZU_API ExtensionLibLoader {

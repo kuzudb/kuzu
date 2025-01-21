@@ -8,7 +8,7 @@ namespace json_extension {
 struct JsonScan {
     static constexpr const char* name = "JSON_SCAN";
 
-    static std::unique_ptr<function::TableFunction> getFunction();
+    static function::function_set getFunctionSet();
 };
 
 } // namespace json_extension

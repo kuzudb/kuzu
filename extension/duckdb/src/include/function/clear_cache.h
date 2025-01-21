@@ -22,8 +22,7 @@ struct ClearCacheBindData final : function::SimpleTableFuncBindData {
 
 struct ClearCacheFunction final : function::TableFunction {
     static constexpr const char* name = "clear_attached_db_cache";
-
-    ClearCacheFunction();
+    static function::function_set getFunctionSet();
 };
 
 } // namespace duckdb_extension

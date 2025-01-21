@@ -1,15 +1,11 @@
 #include "extension/extension.h"
 
-#include "catalog/catalog.h"
 #include "common/exception/io.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
 #include "common/system_message.h"
-#include "function/table_functions.h"
 #include "main/client_context.h"
-#include "main/database.h"
-#include "transaction/transaction.h"
 #ifdef _WIN32
 
 #include "windows.h"
@@ -125,19 +121,6 @@ std::string ExtensionUtils::getLocalExtensionDir(main::ClientContext* context,
     return common::stringFormat("{}{}", context->getExtensionDir(), extensionName);
 }
 
-void ExtensionUtils::registerTableFunction(main::Database& database,
-    std::unique_ptr<function::TableFunction> function) {
-    auto name = function->name;
-    function::function_set functionSet;
-    functionSet.push_back(std::move(function));
-    auto catalog = database.getCatalog();
-    if (catalog->containsFunction(&transaction::DUMMY_TRANSACTION, name)) {
-        return;
-    }
-    catalog->addFunction(&transaction::DUMMY_TRANSACTION,
-        catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY, std::move(name), std::move(functionSet));
-}
-
 std::string ExtensionUtils::appendLibSuffix(const std::string& libName) {
     auto os = getOS();
     std::string suffix;
@@ -158,16 +141,6 @@ std::string ExtensionUtils::getLocalPathForSharedLib(main::ClientContext* contex
 
 std::string ExtensionUtils::getLocalPathForSharedLib(main::ClientContext* context) {
     return common::stringFormat("{}common/", context->getExtensionDir());
-}
-
-void ExtensionUtils::registerFunctionSet(main::Database& database, std::string name,
-    function::function_set functionSet, catalog::CatalogEntryType functionType) {
-    auto catalog = database.getCatalog();
-    if (catalog->containsFunction(&transaction::DUMMY_TRANSACTION, name)) {
-        return;
-    }
-    catalog->addFunction(&transaction::DUMMY_TRANSACTION, functionType, std::move(name),
-        std::move(functionSet));
 }
 
 bool ExtensionUtils::isOfficialExtension(const std::string& extension) {
