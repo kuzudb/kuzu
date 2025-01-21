@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/exception/binder.h"
 #include "common/task_system/progress_bar.h"
 #include "common/types/value/value.h"
 #include "main/client_context.h"
