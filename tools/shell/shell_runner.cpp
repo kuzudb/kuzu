@@ -10,7 +10,7 @@
 using namespace kuzu::main;
 using namespace kuzu::common;
 
-int setConfigOutputMode(const std::string mode, ShellConfig& shell) {
+int setConfigOutputMode(const std::string& mode, ShellConfig& shell) {
     if (mode == "box") {
         shell.drawingCharacters = std::make_unique<BoxDrawingCharacters>();
     } else if (mode == "table") {
@@ -44,7 +44,7 @@ int setConfigOutputMode(const std::string mode, ShellConfig& shell) {
     return 0;
 }
 
-void processRunCommands(EmbeddedShell& shell, std::string filename) {
+void processRunCommands(EmbeddedShell& shell, const std::string& filename) {
     FILE* fp = fopen(filename.c_str(), "r");
     char buf[LINENOISE_MAX_LINE + 1];
     buf[LINENOISE_MAX_LINE] = '\0';
@@ -79,6 +79,8 @@ int main(int argc, char* argv[]) {
     args::ValueFlag<uint64_t> bpSizeInMBFlag(parser, "",
         "Size of buffer pool for default and large page sizes in megabytes",
         {'d', "default_bp_size", "defaultbpsize"}, -1u);
+    args::ValueFlag<uint64_t> maxDBSize(parser, "max_db_size",
+        "Maximum size of the database in bytes", {"max_db_size", "maxdbsize"}, -1u);
     args::Flag disableCompression(parser, "no_compression", "Disable compression",
         {"no_compression", "nocompression"});
     args::Flag readOnlyMode(parser, "read_only", "Open database at read-only mode.",
@@ -133,6 +135,10 @@ int main(int argc, char* argv[]) {
         bpSizeInBytes = bpSizeInMB << 20;
     }
     SystemConfig systemConfig(bpSizeInBytes);
+    uint64_t maxDBSizeInBytes = args::get(maxDBSize);
+    if (maxDBSizeInBytes != -1u) {
+        systemConfig.maxDBSize = maxDBSizeInBytes;
+    }
     if (disableCompression) {
         systemConfig.enableCompression = false;
     }
@@ -148,7 +154,7 @@ int main(int argc, char* argv[]) {
     try {
         std::make_unique<LocalFileSystem>("")->openFile(pathToHistory,
             FileFlags::CREATE_IF_NOT_EXISTS | FileFlags::WRITE | FileFlags::READ_ONLY);
-    } catch (Exception& e) {
+    } catch (Exception&) {
         std::cerr << "Invalid path to directory for history file" << '\n';
         return 1;
     }
