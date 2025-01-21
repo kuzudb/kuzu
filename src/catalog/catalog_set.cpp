@@ -4,6 +4,7 @@
 
 #include "binder/ddl/bound_alter_info.h"
 #include "catalog/catalog_entry/dummy_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/assert.h"
 #include "common/exception/catalog.h"
@@ -172,7 +173,7 @@ CatalogEntry* CatalogSet::dropEntryNoLock(const Transaction* transaction, const 
     return tombstonePtr->getPrev();
 }
 
-void CatalogSet::alterEntry(const Transaction* transaction,
+void CatalogSet::alterTableEntry(const Transaction* transaction,
     const binder::BoundAlterInfo& alterInfo) {
     {
         std::unique_lock lck{mtx};
@@ -181,8 +182,7 @@ void CatalogSet::alterEntry(const Transaction* transaction,
         // LCOV_EXCL_STOP
         auto entry = getEntryNoLock(transaction, alterInfo.tableName);
         KU_ASSERT(entry->getType() == CatalogEntryType::NODE_TABLE_ENTRY ||
-                  entry->getType() == CatalogEntryType::REL_TABLE_ENTRY ||
-                  entry->getType() == CatalogEntryType::REL_GROUP_ENTRY);
+                  entry->getType() == CatalogEntryType::REL_TABLE_ENTRY);
         const auto tableEntry = entry->ptrCast<TableCatalogEntry>();
         auto newEntry = tableEntry->alter(alterInfo);
         newEntry->setTimestamp(transaction->getID());
@@ -203,6 +203,36 @@ void CatalogSet::alterEntry(const Transaction* transaction,
             }
         }
     }
+}
+
+
+void CatalogSet::alterRelGroupEntry(Transaction* transaction,
+    const binder::BoundAlterInfo& alterInfo) {
+    if (alterInfo.alterType != AlterType::RENAME_TABLE) {
+        // We only need to handle rename at the rel group level. Other alter types are handled in
+        // each internal rel table.
+        return;
+    }
+    std::unique_lock lck{mtx};
+    // LCOV_EXCL_START
+    validateExistNoLock(transaction, alterInfo.tableName);
+    // LCOV_EXCL_STOP
+    auto entry = getEntryNoLock(transaction, alterInfo.tableName);
+    KU_ASSERT(entry->getType() == CatalogEntryType::REL_GROUP_ENTRY);
+    auto* relGroupEntry = entry->ptrCast<RelGroupCatalogEntry>();
+    // the only alter type needed to be handled in the rel group is rename
+    // the rest is handled in the member tables
+    const auto& renameTableInfo =
+        alterInfo.extraInfo->constCast<binder::BoundExtraRenameTableInfo>();
+    auto newEntry = relGroupEntry->copy();
+    newEntry->rename(renameTableInfo.newName);
+    newEntry->setTimestamp(transaction->getID());
+    newEntry->setOID(relGroupEntry->getOID());
+    dropEntryNoLock(transaction, alterInfo.tableName, entry->getOID());
+    auto createdEntry = createEntryNoLock(transaction, std::move(newEntry));
+    KU_ASSERT(entry);
+    logEntryForTrx(transaction, *this, *entry, isInternal());
+    logEntryForTrx(transaction, *this, *createdEntry, isInternal(), true /* skip logging to WAL */);
 }
 
 CatalogEntrySet CatalogSet::getEntries(const Transaction* transaction) {

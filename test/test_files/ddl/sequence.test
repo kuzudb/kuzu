@@ -231,7 +231,7 @@ Catalog exception: nextval: reached maximum value of sequence "test" 3
 23217646816
 -STATEMENT alter table replyOf add propx int64 default nextval('test2');
 ---- error
-Binder exception: Cannot set a non-constant default value when adding columns on REL tables.
+Runtime exception: Cannot set a non-constant default value when adding columns on REL tables.
 
 -CASE DefaultSharedSequence
 -STATEMENT CREATE SEQUENCE shared;

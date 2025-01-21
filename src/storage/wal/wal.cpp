@@ -76,6 +76,12 @@ void WAL::logDropCatalogEntryRecord(table_id_t tableID, CatalogEntryType type) {
     addNewWALRecordNoLock(walRecord);
 }
 
+void WAL::logAlterRelGroupEntryRecord(const BoundAlterInfo* alterInfo) {
+    std::unique_lock<std::mutex> lck{mtx};
+    AlterRelGroupEntryRecord walRecord(alterInfo);
+    addNewWALRecordNoLock(walRecord);
+}
+
 void WAL::logAlterTableEntryRecord(const BoundAlterInfo* alterInfo) {
     std::unique_lock<std::mutex> lck{mtx};
     AlterTableEntryRecord walRecord(alterInfo);

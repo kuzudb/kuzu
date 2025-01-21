@@ -5,7 +5,6 @@
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
-#include "catalog/catalog_set.h"
 #include "common/serializer/deserializer.h"
 #include "main/client_context.h"
 
@@ -15,7 +14,7 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace catalog {
 
-bool RelGroupCatalogEntry::isParent(common::table_id_t tableID) const {
+bool RelGroupCatalogEntry::isParent(table_id_t tableID) const {
     const auto it = find_if(relTableIDs.begin(), relTableIDs.end(),
         [&](table_id_t relTableID) { return relTableID == tableID; });
     return it != relTableIDs.end();
@@ -39,12 +38,13 @@ std::unique_ptr<RelGroupCatalogEntry> RelGroupCatalogEntry::deserialize(
 }
 
 binder::BoundCreateTableInfo RelGroupCatalogEntry::getBoundCreateTableInfo(
-    transaction::Transaction* transaction, Catalog* catalog, bool isInternal) const {
+    transaction::Transaction* transaction, const Catalog* catalog, bool isInternal) const {
     std::vector<binder::BoundCreateTableInfo> infos;
     for (auto relTableID : relTableIDs) {
         auto relEntry = catalog->getTableCatalogEntry(transaction, relTableID);
         KU_ASSERT(relEntry != nullptr);
         auto boundInfo = relEntry->getBoundCreateTableInfo(transaction, false);
+        boundInfo.hasParent = true;
         infos.push_back(std::move(boundInfo));
     }
     auto extraInfo = std::make_unique<binder::BoundExtraCreateRelTableGroupInfo>(std::move(infos));
@@ -52,7 +52,7 @@ binder::BoundCreateTableInfo RelGroupCatalogEntry::getBoundCreateTableInfo(
         std::move(extraInfo), isInternal);
 }
 
-static std::string getFromToStr(common::table_id_t tableID, ClientContext* context) {
+static std::string getFromToStr(table_id_t tableID, const ClientContext* context) {
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
     auto& entry =

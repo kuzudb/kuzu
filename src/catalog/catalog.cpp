@@ -108,7 +108,7 @@ TableCatalogEntry* Catalog::getTableCatalogEntry(const Transaction* transaction,
     return result->ptrCast<TableCatalogEntry>();
 }
 
-std::vector<NodeTableCatalogEntry*> Catalog::getNodeTableEntries(Transaction* transaction,
+std::vector<NodeTableCatalogEntry*> Catalog::getNodeTableEntries(const Transaction* transaction,
     bool useInternal) const {
     std::vector<NodeTableCatalogEntry*> result;
     for (auto& [_, entry] : tables->getEntries(transaction)) {
@@ -128,7 +128,7 @@ std::vector<NodeTableCatalogEntry*> Catalog::getNodeTableEntries(Transaction* tr
     return result;
 }
 
-std::vector<RelTableCatalogEntry*> Catalog::getRelTableEntries(Transaction* transaction,
+std::vector<RelTableCatalogEntry*> Catalog::getRelTableEntries(const Transaction* transaction,
     bool useInternal) const {
     std::vector<RelTableCatalogEntry*> result;
     for (auto& [_, entry] : tables->getEntries(transaction)) {
@@ -166,7 +166,7 @@ void Catalog::dropTableEntry(Transaction* transaction, table_id_t tableID) {
     dropTableEntry(transaction, getTableCatalogEntry(transaction, tableID));
 }
 
-void Catalog::dropTableEntry(Transaction* transaction, TableCatalogEntry* entry) {
+void Catalog::dropTableEntry(Transaction* transaction, const TableCatalogEntry* entry) {
     dropSerialSequence(transaction, entry);
     if (tables->containsEntry(transaction, entry->getName())) {
         tables->dropEntry(transaction, entry->getName(), entry->getOID());
@@ -175,31 +175,20 @@ void Catalog::dropTableEntry(Transaction* transaction, TableCatalogEntry* entry)
     }
 }
 
-void Catalog::alterTableEntry(Transaction* transaction, const BoundAlterInfo& info) {
-    auto& tableEntry =
-        tables->getEntry(transaction, info.tableName)->constCast<TableCatalogEntry>();
-    switch (info.alterType) {
-    case AlterType::DROP_PROPERTY: {
-        auto dropPropertyInfo = info.extraInfo->constCast<BoundExtraDropPropertyInfo>();
-        for (auto& [name, catalogEntry] : indexes->getEntries(transaction)) {
-            auto& indexCatalogEntry = catalogEntry->constCast<IndexCatalogEntry>();
-            if (indexCatalogEntry.getTableID() == tableEntry.getTableID()) {
-                throw CatalogException{"Cannot drop a property in a table with indexes."};
-            }
-        }
-    } break;
-    default:
-        break;
-    }
-    tables->alterEntry(transaction, info);
+void Catalog::alterRelGroupEntry(Transaction* transaction, const BoundAlterInfo& info) {
+    relGroups->alterRelGroupEntry(transaction, info);
 }
 
-bool Catalog::containsRelGroup(const Transaction* transaction, const std::string& name) {
+void Catalog::alterTableEntry(Transaction* transaction, const BoundAlterInfo& info) {
+    tables->alterTableEntry(transaction, info);
+}
+
+bool Catalog::containsRelGroup(const Transaction* transaction, const std::string& name) const {
     return relGroups->containsEntry(transaction, name);
 }
 
 RelGroupCatalogEntry* Catalog::getRelGroupEntry(const Transaction* transaction,
-    const std::string& name) {
+    const std::string& name) const {
     // LCOV_EXCL_START
     if (!containsRelGroup(transaction, name)) {
         throw RuntimeException(stringFormat("Cannot find rel group entry {}.", name));
@@ -217,12 +206,12 @@ std::vector<RelGroupCatalogEntry*> Catalog::getRelGroupEntries(
     return result;
 }
 
-void Catalog::dropRelGroupEntry(transaction::Transaction* transaction, common::oid_t id) {
+void Catalog::dropRelGroupEntry(Transaction* transaction, oid_t id) {
     dropRelGroupEntry(transaction,
         relGroups->getEntryOfOID(transaction, id)->ptrCast<RelGroupCatalogEntry>());
 }
 
-void Catalog::dropRelGroupEntry(Transaction* transaction, RelGroupCatalogEntry* entry) {
+void Catalog::dropRelGroupEntry(Transaction* transaction, const RelGroupCatalogEntry* entry) {
     for (auto& relTableID : entry->getRelTableIDs()) {
         dropTableEntry(transaction, relTableID);
     }
@@ -368,7 +357,7 @@ void Catalog::dropIndex(Transaction* transaction, table_id_t tableID,
     indexes->dropEntry(transaction, uniqueName, entry->getOID());
 }
 
-bool Catalog::containsFunction(const Transaction* transaction, const std::string& name) {
+bool Catalog::containsFunction(const Transaction* transaction, const std::string& name) const {
     return functions->containsEntry(transaction, name);
 }
 
@@ -525,10 +514,10 @@ CatalogEntry* Catalog::createTableEntry(Transaction* transaction,
     switch (info.type) {
     case CatalogEntryType::NODE_TABLE_ENTRY: {
         return createNodeTableEntry(transaction, info);
-    } break;
+    }
     case CatalogEntryType::REL_TABLE_ENTRY: {
         return createRelTableEntry(transaction, info);
-    } break;
+    }
     default:
         KU_UNREACHABLE;
     }
@@ -564,7 +553,7 @@ CatalogEntry* Catalog::createRelTableEntry(Transaction* transaction,
     return catalogSet->getEntry(transaction, info.tableName);
 }
 
-void Catalog::createSerialSequence(Transaction* transaction, TableCatalogEntry* entry,
+void Catalog::createSerialSequence(Transaction* transaction, const TableCatalogEntry* entry,
     bool isInternal) {
     for (auto& definition : entry->getProperties()) {
         if (definition.getType().getLogicalTypeID() != LogicalTypeID::SERIAL) {
@@ -580,8 +569,7 @@ void Catalog::createSerialSequence(Transaction* transaction, TableCatalogEntry* 
     }
 }
 
-void Catalog::dropSerialSequence(transaction::Transaction* transaction,
-    kuzu::catalog::TableCatalogEntry* entry) {
+void Catalog::dropSerialSequence(Transaction* transaction, const TableCatalogEntry* entry) {
     for (auto& definition : entry->getProperties()) {
         if (definition.getType().getLogicalTypeID() != LogicalTypeID::SERIAL) {
             continue;

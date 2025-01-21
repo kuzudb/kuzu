@@ -139,3 +139,313 @@ Binder exception: Cannot find property since for k.
 2
 3
 4
+
+-CASE RenameRelGroupCommit
+-STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base1 TO base1, FROM base1 TO base2);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE test RENAME TO test1;
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 3
+0|base1|NODE|local(kuzu)|
+1|base2|NODE|local(kuzu)|
+0|test1|REL|local(kuzu)|
+
+-CASE RenameRelGroupRollback
+-STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base1 TO base1, FROM base1 TO base2);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE test RENAME TO test1;
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 3
+0|base1|NODE|local(kuzu)|
+1|base2|NODE|local(kuzu)|
+0|test|REL|local(kuzu)|
+
+-CASE RenameRelGroupCommitRecovery
+-STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base1 TO base1, FROM base1 TO base2);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE test RENAME TO test1;
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 3
+0|base1|NODE|local(kuzu)|
+1|base2|NODE|local(kuzu)|
+0|test1|REL|local(kuzu)|
+-RELOADDB
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 3
+0|base1|NODE|local(kuzu)|
+1|base2|NODE|local(kuzu)|
+0|test1|REL|local(kuzu)|
+
+-CASE RenameRelGroupRollbackRecovery
+-STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base1 TO base1, FROM base1 TO base2);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE test RENAME TO test1;
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 3
+0|base1|NODE|local(kuzu)|
+1|base2|NODE|local(kuzu)|
+0|test|REL|local(kuzu)|
+-RELOADDB
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 3
+0|base1|NODE|local(kuzu)|
+1|base2|NODE|local(kuzu)|
+0|test|REL|local(kuzu)|
+
+-CASE RenameRelGroupPropertyCommit
+-STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base1 TO base1, FROM base1 TO base2, prop1 INT64);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE test RENAME prop1 TO prop2;
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT CALL table_info("test") RETURN *;
+---- 1
+1|prop2|INT64|NULL|both
+
+-CASE RenameRelGroupPropertyRollback
+-STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base1 TO base1, FROM base1 TO base2, prop1 INT64);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE test RENAME prop1 TO prop2;
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT CALL table_info("test") RETURN *;
+---- 1
+1|prop1|INT64|NULL|both
+
+-CASE RenameRelGroupPropertyCommitRecovery
+-STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base1 TO base1, FROM base1 TO base2, prop1 INT64);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE test RENAME prop1 TO prop2;
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT CALL table_info("test") RETURN *;
+---- 1
+1|prop2|INT64|NULL|both
+-RELOADDB
+-STATEMENT CALL table_info("test") RETURN *;
+---- 1
+1|prop2|INT64|NULL|both
+
+-CASE RenameRelGroupPropertyRollbackRecovery
+-STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base1 TO base1, FROM base1 TO base2, prop1 INT64);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE test RENAME prop1 TO prop2;
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT CALL table_info("test") RETURN *;
+---- 1
+1|prop1|INT64|NULL|both
+-RELOADDB
+-STATEMENT CALL table_info("test") RETURN *;
+---- 1
+1|prop1|INT64|NULL|both
+
+-CASE AddDropRelGroupPropertyCommit
+-STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base1 TO base1, FROM base1 TO base2);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE test ADD prop1 INT64;
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT CALL table_info("test") RETURN *;
+---- 1
+1|prop1|INT64|NULL|both
+
+-CASE AddDropRelGroupPropertyRollback
+-STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base1 TO base1, FROM base1 TO base2);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE test ADD prop1 INT64;
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT CALL table_info("test") RETURN *;
+---- 0
+
+-CASE AddDropRelGroupPropertyCommitRecovery
+-STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base1 TO base1, FROM base1 TO base2);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE test ADD prop1 INT64;
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT CALL table_info("test") RETURN *;
+---- 1
+1|prop1|INT64|NULL|both
+-RELOADDB
+-STATEMENT CALL table_info("test") RETURN *;
+---- 1
+1|prop1|INT64|NULL|both
+
+-CASE AddDropRelGroupPropertyRollbackRecovery
+-STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base1 TO base1, FROM base1 TO base2);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE test ADD prop1 INT64;
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT CALL table_info("test") RETURN *;
+---- 0
+-RELOADDB
+-STATEMENT CALL table_info("test") RETURN *;
+---- 0
+
+-CASE DropRelGroupPropertyCommit
+-STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base1 TO base1, FROM base1 TO base2, prop1 INT64);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE test DROP prop1;
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT CALL table_info("test") RETURN *;
+---- 0
+
+-CASE DropRelGroupPropertyRollback
+-STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base1 TO base1, FROM base1 TO base2, prop1 INT64);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE test DROP prop1;
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT CALL table_info("test") RETURN *;
+---- 1
+1|prop1|INT64|NULL|both
+
+-CASE DropRelGroupPropertyCommitRecovery
+-STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base1 TO base1, FROM base1 TO base2, prop1 INT64);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE test DROP prop1;
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT CALL table_info("test") RETURN *;
+---- 0
+-RELOADDB
+-STATEMENT CALL table_info("test") RETURN *;
+---- 0
+
+-CASE DropRelGroupPropertyRollbackRecovery
+-STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base1 TO base1, FROM base1 TO base2, prop1 INT64);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE test DROP prop1;
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT CALL table_info("test") RETURN *;
+---- 1
+1|prop1|INT64|NULL|both
+-RELOADDB
+-STATEMENT CALL table_info("test") RETURN *;
+---- 1
+1|prop1|INT64|NULL|both

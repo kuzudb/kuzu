@@ -151,13 +151,6 @@ void Binder::validateOrderByFollowedBySkipOrLimitInWithClause(
     }
 }
 
-void Binder::validateTableExist(const std::string& tableName) const {
-    if (!clientContext->getCatalog()->containsTable(clientContext->getTransaction(), tableName,
-            clientContext->shouldUseInternalCatalogEntry())) {
-        throw BinderException("Table " + tableName + " does not exist.");
-    }
-}
-
 std::string Binder::getUniqueExpressionName(const std::string& name) {
     return "_" + std::to_string(lastExpressionId++) + "_" + name;
 }

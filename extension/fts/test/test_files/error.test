@@ -77,7 +77,7 @@ Binder exception: DROP_FTS_INDEX is only supported in auto transaction mode.
 ---- 0
 -STATEMENT ALTER TABLE STUDENT DROP name;
 ---- error
-Catalog exception: Cannot drop a property in a table with indexes.
+Binder exception: Cannot drop property name in table STUDENT because it is used in one or more indexes. Please remove the associated indexes before attempting to drop this property.
 -STATEMENT ALTER TABLE STUDENT ADD length int64;
 ---- ok
 -STATEMENT DROP TABLE STUDENT

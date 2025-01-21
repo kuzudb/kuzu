@@ -28,6 +28,7 @@ enum class WALRecordType : uint8_t {
     DROP_CATALOG_ENTRY_RECORD = 16,
     ALTER_TABLE_ENTRY_RECORD = 17,
     UPDATE_SEQUENCE_RECORD = 18,
+    ALTER_REL_GROUP_ENTRY_RECORD = 19,
     TABLE_INSERTION_RECORD = 30,
     NODE_DELETION_RECORD = 31,
     NODE_UDPATE_RECORD = 32,
@@ -137,6 +138,20 @@ struct AlterTableEntryRecord final : WALRecord {
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<AlterTableEntryRecord> deserialize(common::Deserializer& deserializer);
+};
+
+struct AlterRelGroupEntryRecord final : WALRecord {
+    const binder::BoundAlterInfo* alterInfo;
+    std::unique_ptr<binder::BoundAlterInfo> ownedAlterInfo;
+
+    AlterRelGroupEntryRecord()
+        : WALRecord{WALRecordType::ALTER_REL_GROUP_ENTRY_RECORD}, alterInfo{nullptr} {}
+    explicit AlterRelGroupEntryRecord(const binder::BoundAlterInfo* alterInfo)
+        : WALRecord{WALRecordType::ALTER_REL_GROUP_ENTRY_RECORD}, alterInfo{alterInfo} {}
+
+    void serialize(common::Serializer& serializer) const override;
+    static std::unique_ptr<AlterRelGroupEntryRecord> deserialize(
+        common::Deserializer& deserializer);
 };
 
 struct UpdateSequenceRecord final : WALRecord {

@@ -27,11 +27,15 @@ public:
     std::string toCypher(main::ClientContext* clientContext) const override;
 
     binder::BoundCreateTableInfo getBoundCreateTableInfo(transaction::Transaction* transaction,
-        Catalog* catalog, bool isInternal) const;
+        const Catalog* catalog, bool isInternal) const;
 
     static std::string getChildTableName(const std::string& groupName, const std::string& srcName,
         const std::string& dstName) {
         return groupName + "_" + srcName + "_" + dstName;
+    }
+
+    std::unique_ptr<RelGroupCatalogEntry> copy() const {
+        return std::make_unique<RelGroupCatalogEntry>(getName(), relTableIDs);
     }
 
 private:

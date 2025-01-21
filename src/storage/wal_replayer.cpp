@@ -108,6 +108,9 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) const {
     case WALRecordType::ALTER_TABLE_ENTRY_RECORD: {
         replayAlterTableEntryRecord(walRecord);
     } break;
+    case WALRecordType::ALTER_REL_GROUP_ENTRY_RECORD: {
+        replayAlterRelGroupEntryRecord(walRecord);
+    } break;
     case WALRecordType::UPDATE_SEQUENCE_RECORD: {
         replayUpdateSequenceRecord(walRecord);
     } break;
@@ -186,6 +189,13 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) const
         KU_UNREACHABLE;
     }
     }
+}
+
+void WALReplayer::replayAlterRelGroupEntryRecord(const WALRecord& walRecord) const {
+    auto binder = Binder(&clientContext);
+    auto& alterEntryRecord = walRecord.constCast<AlterTableEntryRecord>();
+    clientContext.getCatalog()->alterRelGroupEntry(clientContext.getTransaction(),
+        *alterEntryRecord.ownedAlterInfo);
 }
 
 void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const {
