@@ -1,8 +1,8 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <limits>
-#include <algorithm>
 
 #include "common/assert.h"
 #include "common/numeric_utils.h"
