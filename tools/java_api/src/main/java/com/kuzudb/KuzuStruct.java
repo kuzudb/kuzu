@@ -112,7 +112,6 @@ public class KuzuStruct implements AutoCloseable {
     /**
      * Get the value of the field with the given name
      *
-     * @param value:     The struct value.
      * @param fieldName: The name of the field.
      * @return The value of the field with the given name
      *         value.
@@ -129,7 +128,6 @@ public class KuzuStruct implements AutoCloseable {
     /**
      * Get the value of the field at the given index
      *
-     * @param value: The struct value.
      * @param index: The index of the field.
      * @return The value of the field at the given index
      *         value.
