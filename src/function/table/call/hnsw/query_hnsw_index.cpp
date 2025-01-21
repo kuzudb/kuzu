@@ -20,9 +20,9 @@ QueryHNSWIndexBindData::QueryHNSWIndexBindData(main::ClientContext* context,
     storage::QueryHNSWConfig config, std::shared_ptr<binder::NodeExpression> outputNode)
     : SimpleTableFuncBindData{std::move(columns), 1 /*maxOffset*/}, context{context},
       boundInput{std::move(boundInput)}, config{config}, outputNode{std::move(outputNode)} {
-    auto& indexAuxInfo =
-        this->boundInput.indexEntry->getAuxInfo().cast<catalog::HNSWIndexAuxInfo>();
-    indexColumnID = this->boundInput.nodeTableEntry->getColumnID(indexAuxInfo.columnName);
+    auto indexEntry = this->boundInput.indexEntry;
+    auto& indexAuxInfo = indexEntry->getAuxInfo().cast<catalog::HNSWIndexAuxInfo>();
+    indexColumnID = this->boundInput.nodeTableEntry->getColumnID(indexEntry->getProperties()[0]);
     auto catalog = context->getCatalog();
     upperHNSWRelTableEntry =
         catalog->getTableCatalogEntry(context->getTransaction(), indexAuxInfo.upperRelTableID)
@@ -45,8 +45,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto indexEntry = context->getCatalog()->getIndex(context->getTransaction(),
         nodeTableEntry->getTableID(), indexName);
     const auto& auxInfo = indexEntry->getAuxInfo().cast<catalog::HNSWIndexAuxInfo>();
-    KU_ASSERT(nodeTableEntry->getProperty(auxInfo.columnName).getType().getLogicalTypeID() ==
-              common::LogicalTypeID::ARRAY);
+    KU_ASSERT(
+        nodeTableEntry->getProperty(indexEntry->getProperties()[0]).getType().getLogicalTypeID() ==
+        common::LogicalTypeID::ARRAY);
     KU_UNUSED(auxInfo);
 
     auto outputNode = input->binder->createQueryNode("nn", {nodeTableEntry});
@@ -139,8 +140,7 @@ static std::vector<float> getQueryVector(const binder::Expression& queryExpressi
 }
 
 static const common::LogicalType& getIndexColumnType(const BoundQueryHNSWIndexInput& boundInput) {
-    auto columnName =
-        boundInput.indexEntry->getAuxInfo().cast<catalog::HNSWIndexAuxInfo>().columnName;
+    auto columnName = boundInput.indexEntry->getProperties()[0];
     return boundInput.nodeTableEntry->getProperty(columnName).getType();
 }
 

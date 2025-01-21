@@ -12,11 +12,18 @@ std::shared_ptr<common::BufferedSerializer> IndexAuxInfo::serialize() const {
     return std::make_shared<common::BufferedSerializer>(0 /*maximumSize*/);
 }
 
+void IndexCatalogEntry::setAuxInfo(std::unique_ptr<IndexAuxInfo> auxInfo_) {
+    auxInfo = std::move(auxInfo_);
+    auxBuffer = nullptr;
+    auxBufferSize = 0;
+}
+
 void IndexCatalogEntry::serialize(common::Serializer& serializer) const {
     CatalogEntry::serialize(serializer);
     serializer.write(type);
     serializer.write(tableID);
     serializer.write(indexName);
+    serializer.serializeVector(properties);
     const auto bufferedWriter = auxInfo->serialize();
     serializer.write<uint64_t>(bufferedWriter->getSize());
     serializer.write(bufferedWriter->getData().data.get(), bufferedWriter->getSize());
@@ -27,11 +34,13 @@ std::unique_ptr<IndexCatalogEntry> IndexCatalogEntry::deserialize(
     std::string type;
     common::table_id_t tableID = common::INVALID_TABLE_ID;
     std::string indexName;
+    std::vector<std::string> properties;
     deserializer.deserializeValue(type);
     deserializer.deserializeValue(tableID);
     deserializer.deserializeValue(indexName);
-    auto indexEntry =
-        std::make_unique<IndexCatalogEntry>(type, tableID, std::move(indexName), nullptr);
+    deserializer.deserializeVector(properties);
+    auto indexEntry = std::make_unique<IndexCatalogEntry>(type, tableID, std::move(indexName),
+        std::move(properties), nullptr /* auxInfo */);
     uint64_t auxBufferSize = 0;
     deserializer.deserializeValue(auxBufferSize);
     indexEntry->auxBuffer = std::make_unique<uint8_t[]>(auxBufferSize);
