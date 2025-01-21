@@ -3,7 +3,6 @@
 #include <cstdint>
 
 #include "binder/ddl/bound_alter_info.h"
-#include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/enums/rel_direction.h"
@@ -26,7 +25,6 @@ enum class WALRecordType : uint8_t {
     ROLLBACK_RECORD = 3,
     COPY_TABLE_RECORD = 13,
     CREATE_CATALOG_ENTRY_RECORD = 14,
-    CREATE_TABLE_CATALOG_ENTRY_RECORD = 15,
     DROP_CATALOG_ENTRY_RECORD = 16,
     ALTER_TABLE_ENTRY_RECORD = 17,
     UPDATE_SEQUENCE_RECORD = 18,
@@ -85,17 +83,6 @@ struct CheckpointRecord final : WALRecord {
     static std::unique_ptr<CheckpointRecord> deserialize(common::Deserializer& deserializer);
 };
 
-struct CreateTableEntryRecord final : WALRecord {
-    binder::BoundCreateTableInfo boundCreateTableInfo;
-
-    explicit CreateTableEntryRecord(binder::BoundCreateTableInfo boundCreateTableInfo)
-        : WALRecord{WALRecordType::CREATE_TABLE_CATALOG_ENTRY_RECORD},
-          boundCreateTableInfo{std::move(boundCreateTableInfo)} {}
-
-    void serialize(common::Serializer& serializer) const override;
-    static std::unique_ptr<CreateTableEntryRecord> deserialize(common::Deserializer& deserializer);
-};
-
 struct CreateCatalogEntryRecord final : WALRecord {
     catalog::CatalogEntry* catalogEntry;
     std::unique_ptr<catalog::CatalogEntry> ownedCatalogEntry;
@@ -125,11 +112,11 @@ struct CopyTableRecord final : WALRecord {
 };
 
 struct DropCatalogEntryRecord final : WALRecord {
-    common::table_id_t entryID;
+    common::oid_t entryID;
     catalog::CatalogEntryType entryType;
 
     DropCatalogEntryRecord()
-        : WALRecord{WALRecordType::DROP_CATALOG_ENTRY_RECORD}, entryID{common::INVALID_TABLE_ID},
+        : WALRecord{WALRecordType::DROP_CATALOG_ENTRY_RECORD}, entryID{common::INVALID_OID},
           entryType{} {}
     DropCatalogEntryRecord(common::table_id_t entryID, catalog::CatalogEntryType entryType)
         : WALRecord{WALRecordType::DROP_CATALOG_ENTRY_RECORD}, entryID{entryID},
