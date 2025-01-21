@@ -9,7 +9,6 @@ oC_Statement
     : oC_Query
         | kU_CreateNodeTable
         | kU_CreateRelTable
-        | kU_CreateRelTableGroup
         | kU_CreateSequence
         | kU_CreateType
         | kU_Drop
@@ -95,12 +94,18 @@ kU_CreateNodeTable
     : CREATE SP NODE SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_PropertyDefinitions SP? ( ',' SP? kU_CreateNodeConstraint )? SP? ')' ;
 
 kU_CreateRelTable
-    : CREATE SP REL SP TABLE SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_RelTableConnection SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' (SP WITH SP? '(' SP? kU_Options SP? ')')?;
+    : CREATE SP REL SP TABLE ( SP GROUP )? ( SP kU_IfNotExists )? SP oC_SchemaName
+        SP? '(' SP?
+            kU_FromToConnections SP?
+            ( ',' SP? kU_PropertyDefinitions SP? )?
+            ( ',' SP? oC_SymbolicName SP? )? // Constraints
+        ')'
+         ( SP WITH SP? '(' SP? kU_Options SP? ')')? ;
 
-kU_CreateRelTableGroup
-    : CREATE SP REL SP TABLE SP GROUP SP (kU_IfNotExists SP)? oC_SchemaName SP? '(' SP? kU_RelTableConnection ( SP? ',' SP? kU_RelTableConnection )+ SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
+kU_FromToConnections
+    : kU_FromToConnection ( SP? ',' SP? kU_FromToConnection )* ;
 
-kU_RelTableConnection
+kU_FromToConnection
     : FROM SP oC_SchemaName SP TO SP oC_SchemaName ;
 
 kU_CreateSequence
@@ -723,6 +728,8 @@ kU_NonReservedKeywords
         | TYPE
         | USE
         | WRITE
+        | FROM
+        | TO
         ;
 
 UnescapedSymbolicName

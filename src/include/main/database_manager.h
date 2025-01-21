@@ -10,6 +10,7 @@ public:
     DatabaseManager();
 
     void registerAttachedDatabase(std::unique_ptr<AttachedDatabase> attachedDatabase);
+    bool hasAttachedDatabase(const std::string& name);
     AttachedDatabase* getAttachedDatabase(const std::string& name);
     void detachDatabase(const std::string& databaseName);
     std::string getDefaultDatabase() const { return defaultDatabase; }

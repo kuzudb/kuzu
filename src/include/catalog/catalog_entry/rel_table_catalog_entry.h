@@ -8,6 +8,7 @@
 namespace kuzu {
 namespace catalog {
 
+class RelGroupCatalogEntry;
 class RelTableCatalogEntry final : public TableCatalogEntry {
     static constexpr auto entryType_ = CatalogEntryType::REL_TABLE_ENTRY;
 
@@ -26,6 +27,9 @@ public:
     }
 
     bool isParent(common::table_id_t tableID) override;
+    bool hasParentRelGroup(Catalog* catalog, const transaction::Transaction* transaction) const;
+    RelGroupCatalogEntry* getParentRelGroup(Catalog* catalog, const transaction::Transaction* transaction) const;
+
     common::TableType getTableType() const override { return common::TableType::REL; }
     common::table_id_t getSrcTableID() const { return srcTableID; }
     common::table_id_t getDstTableID() const { return dstTableID; }

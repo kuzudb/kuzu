@@ -11,7 +11,7 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE User (xxx String, PRIMARY KEY (xxx));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP has (FROM User TO Source, FROM Source TO Exercise, xxx String);
+-STATEMENT CREATE REL TABLE has (FROM User TO Source, FROM Source TO Exercise, xxx String);
 ---- ok
 -STATEMENT CREATE (ex:Exercise {xxx: "11-ex"});
 ---- ok
@@ -51,10 +51,10 @@
 ---- ok
 -STATEMENT MATCH (usr:User)-[h1:has]->(src:Source {xxx: "1-src"}) RETURN h1;
 ---- 1
-(3:0)-{_LABEL: has_User_Source, _ID: 4:0, xxx: has}->(2:0)
+(3:0)-{_LABEL: has, _ID: 4:0, xxx: has}->(2:0)
 -STATEMENT MATCH (usr:User)-[h1:has*1..1]->(src:Source {xxx: "1-src"}) RETURN rels(h1)[1];
 ---- 1
-(3:0)-{_LABEL: has_User_Source, _ID: 4:0, xxx: has}->(2:0)
+(3:0)-{_LABEL: has, _ID: 4:0, xxx: has}->(2:0)
 
 -CASE 3083
 -STATEMENT CREATE NODE TABLE test ( prop0 STRING, prop1 STRING[], prop2 STRING, prop3 INT64, prop4 STRING, PRIMARY KEY(prop4) )

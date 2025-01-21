@@ -4,6 +4,7 @@
 
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/serializer/deserializer.h"
 #include "main/client_context.h"
 
@@ -15,6 +16,19 @@ namespace catalog {
 
 bool RelTableCatalogEntry::isParent(table_id_t tableID) {
     return srcTableID == tableID || dstTableID == tableID;
+}
+
+bool RelTableCatalogEntry::hasParentRelGroup(Catalog* catalog, const transaction::Transaction* transaction) const {
+    return getParentRelGroup(catalog, transaction) != nullptr;
+}
+
+RelGroupCatalogEntry* RelTableCatalogEntry::getParentRelGroup(Catalog* catalog, const transaction::Transaction* transaction) const {
+    for (auto& relGroup : catalog->getRelGroupEntries(transaction)) {
+        if (relGroup->isParent(getTableID())) {
+            return relGroup;
+        }
+    }
+    return nullptr;
 }
 
 bool RelTableCatalogEntry::isSingleMultiplicity(RelDataDirection direction) const {

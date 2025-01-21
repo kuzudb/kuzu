@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "function/table/simple_table_functions.h"
 #include "main/database_manager.h"
@@ -75,12 +76,16 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     if (!context->hasDefaultDatabase()) {
         auto catalog = context->getCatalog();
         for (auto& entry : catalog->getTableEntries(transaction)) {
+            if (entry->getType() == CatalogEntryType::REL_TABLE_ENTRY &&
+                entry->constCast<RelTableCatalogEntry>().hasParentRelGroup(catalog, transaction)) {
+                continue;
+            }
             tableInfos.emplace_back(entry->getName(), entry->getTableID(),
                 TableTypeUtils::toString(entry->getTableType()), LOCAL_DB_NAME,
                 entry->getComment());
         }
         for (auto& entry : catalog->getRelGroupEntries(transaction)) {
-            tableInfos.emplace_back(entry->getName(), entry->getOID(), "REL_GROUP", LOCAL_DB_NAME,
+            tableInfos.emplace_back(entry->getName(), entry->getOID(), "REL", LOCAL_DB_NAME,
                 "" /* comment */);
         }
     }

@@ -66,7 +66,7 @@ static std::string getFromToStr(common::table_id_t tableID, ClientContext* conte
 
 std::string RelGroupCatalogEntry::toCypher(ClientContext* clientContext) const {
     std::stringstream ss;
-    ss << stringFormat("CREATE REL TABLE GROUP {} ( ", getName());
+    ss << stringFormat("CREATE REL TABLE {} ( ", getName());
     KU_ASSERT(!relTableIDs.empty());
     ss << getFromToStr(relTableIDs[0], clientContext);
     for (auto i = 1u; i < relTableIDs.size(); ++i) {

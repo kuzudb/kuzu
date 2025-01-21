@@ -54,18 +54,16 @@
 ---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
--STATEMENT CREATE REL TABLE GROUP test(FROM base1 To base1, FROM base1 to base2);
+-STATEMENT CREATE REL TABLE test(FROM base1 To base1, FROM base1 to base2);
 ---- ok
 -STATEMENT COMMIT;
 ---- ok
 -RELOADDB
 -STATEMENT CALL SHOW_TABLES() RETURN *;
----- 5
+---- 3
 0|base1|NODE|local(kuzu)|
 1|base2|NODE|local(kuzu)|
-2|test_base1_base1|REL|local(kuzu)|
-3|test_base1_base2|REL|local(kuzu)|
-0|test|REL_GROUP|local(kuzu)|
+0|test|REL|local(kuzu)|
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT DROP TABLE test;

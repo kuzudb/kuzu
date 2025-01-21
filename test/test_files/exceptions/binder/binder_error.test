@@ -319,7 +319,7 @@ Binder exception: Number of columns mismatch. Expected 1 but got 3.
 -LOG CopyCSVInvalidSchemaName
 -STATEMENT COPY university FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (pk=",")
 ---- error
-Binder exception: Table university does not exist.
+Catalog exception: university does not exist in catalog.
 
 -LOG CopyCSVInvalidEscapeChar
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (ESCAPE="..")

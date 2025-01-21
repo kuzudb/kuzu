@@ -86,42 +86,30 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTable(
     if (ctx.kU_Options()) {
         options = transformOptions(*ctx.kU_Options());
     }
-    auto srcTableName = transformSchemaName(*ctx.kU_RelTableConnection()->oC_SchemaName(0));
-    auto dstTableName = transformSchemaName(*ctx.kU_RelTableConnection()->oC_SchemaName(1));
-    auto createTableInfo = CreateTableInfo(CatalogEntryType::REL_TABLE_ENTRY, tableName,
-        getConflictAction(ctx.kU_IfNotExists()));
+    std::vector<std::pair<std::string, std::string>> fromToPairs;
+    for (auto& fromTo: ctx.kU_FromToConnections()->kU_FromToConnection()) {
+        auto src = transformSchemaName(*fromTo->oC_SchemaName(0));
+        auto dst = transformSchemaName(*fromTo->oC_SchemaName(1));
+        fromToPairs.emplace_back(src, dst);
+    }
+
+    std::unique_ptr<ExtraCreateTableInfo> extraInfo;
+    auto entryType = CatalogEntryType::DUMMY_ENTRY;
+    if (fromToPairs.size() == 1) {
+        entryType = CatalogEntryType::REL_TABLE_ENTRY;
+        extraInfo = std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity, fromToPairs[0].first, fromToPairs[0].second, std::move(options));
+    } else {
+        entryType = CatalogEntryType::REL_GROUP_ENTRY;
+        extraInfo = std::make_unique<ExtraCreateRelTableGroupInfo>(relMultiplicity,
+            std::move(fromToPairs), std::move(options));
+    }
+    auto conflictAction = getConflictAction(ctx.kU_IfNotExists());
+    auto createTableInfo = CreateTableInfo(entryType, tableName, conflictAction);
     if (ctx.kU_PropertyDefinitions()) {
         createTableInfo.propertyDefinitions =
             transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
     }
-    createTableInfo.extraInfo = std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity,
-        std::move(options), std::move(srcTableName), std::move(dstTableName));
-    return std::make_unique<CreateTable>(std::move(createTableInfo));
-}
-
-std::unique_ptr<Statement> Transformer::transformCreateRelTableGroup(
-    CypherParser::KU_CreateRelTableGroupContext& ctx) {
-    auto tableName = transformSchemaName(*ctx.oC_SchemaName());
-    std::vector<std::pair<std::string, std::string>> propertyDefinitions;
-
-    std::string relMultiplicity = "MANY_MANY";
-    if (ctx.oC_SymbolicName()) {
-        relMultiplicity = transformSymbolicName(*ctx.oC_SymbolicName());
-    }
-    std::vector<std::pair<std::string, std::string>> srcDstTablePairs;
-    for (auto& connection : ctx.kU_RelTableConnection()) {
-        auto srcTableName = transformSchemaName(*connection->oC_SchemaName(0));
-        auto dstTableName = transformSchemaName(*connection->oC_SchemaName(1));
-        srcDstTablePairs.emplace_back(srcTableName, dstTableName);
-    }
-    auto createTableInfo = CreateTableInfo(CatalogEntryType::REL_GROUP_ENTRY, tableName,
-        getConflictAction(ctx.kU_IfNotExists()));
-    if (ctx.kU_PropertyDefinitions()) {
-        createTableInfo.propertyDefinitions =
-            transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
-    }
-    createTableInfo.extraInfo = std::make_unique<ExtraCreateRelTableGroupInfo>(relMultiplicity,
-        std::move(srcDstTablePairs));
+    createTableInfo.extraInfo = std::move(extraInfo);
     return std::make_unique<CreateTable>(std::move(createTableInfo));
 }
 

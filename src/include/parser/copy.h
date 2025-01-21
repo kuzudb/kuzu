@@ -14,7 +14,7 @@ public:
     explicit Copy(common::StatementType type) : Statement{type} {}
 
     void setParsingOption(options_t options) { parsingOptions = std::move(options); }
-    const options_t& getParsingOptionsRef() const { return parsingOptions; }
+    const options_t& getParsingOptions() const { return parsingOptions; }
 
 protected:
     options_t parsingOptions;
