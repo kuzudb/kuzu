@@ -40,7 +40,8 @@ void validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery) {
     }
 }
 
-std::unique_ptr<BoundRegularQuery> Binder::bindQuery(const RegularQuery& regularQuery) {
+std::unique_ptr<BoundRegularQuery> Binder::bindQuery(const Statement& statement) {
+    auto& regularQuery = statement.constCast<RegularQuery>();
     std::vector<NormalizedSingleQuery> normalizedSingleQueries;
     for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
         // Don't clear scope within bindSingleQuery() yet because it is also used for subquery

@@ -39,12 +39,12 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     }
 }
 
-static void bindExpectedNodeColumns(NodeTableCatalogEntry* nodeTableEntry,
+static void bindExpectedNodeColumns(const NodeTableCatalogEntry* nodeTableEntry,
     const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
     std::vector<LogicalType>& columnTypes);
-static void bindExpectedRelColumns(RelTableCatalogEntry* relTableEntry,
+static void bindExpectedRelColumns(const RelTableCatalogEntry* relTableEntry,
     const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
-    std::vector<LogicalType>& columnTypes, main::ClientContext* context);
+    std::vector<LogicalType>& columnTypes, const main::ClientContext* context);
 
 static std::pair<ColumnEvaluateType, std::shared_ptr<Expression>> matchColumnExpression(
     const expression_vector& columns, const PropertyDefinition& property,
@@ -98,7 +98,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
-std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement& statement,
+std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& statement,
     RelTableCatalogEntry* relTableEntry) {
     auto& copyStatement = statement.constCast<CopyFrom>();
     if (copyStatement.byColumn()) {
@@ -137,7 +137,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
     auto srcLookUpInfo = IndexLookupInfo(srcTableID, srcOffset, srcKey, warningDataExprs);
     auto dstLookUpInfo = IndexLookupInfo(dstTableID, dstOffset, dstKey, warningDataExprs);
     auto lookupInfos = std::vector<IndexLookupInfo>{srcLookUpInfo, dstLookUpInfo};
-    auto internalIDColumnIndices = std::vector<common::idx_t>{0, 1, 2};
+    auto internalIDColumnIndices = std::vector<idx_t>{0, 1, 2};
     auto extraCopyRelInfo =
         std::make_unique<ExtraBoundCopyRelInfo>(internalIDColumnIndices, lookupInfos);
     auto boundCopyFromInfo = BoundCopyFromInfo(relTableEntry, boundSource->copy(), offset,
@@ -162,9 +162,9 @@ static bool skipPropertyInSchema(const PropertyDefinition& property) {
     return false;
 }
 
-static void bindExpectedColumns(TableCatalogEntry* tableEntry,
+static void bindExpectedColumns(const TableCatalogEntry* tableEntry,
     const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
-    std::vector<common::LogicalType>& columnTypes) {
+    std::vector<LogicalType>& columnTypes) {
     if (!inputColumnNames.empty()) {
         std::unordered_set<std::string> inputColumnNamesSet;
         for (auto& columName : inputColumnNames) {
@@ -199,16 +199,16 @@ static void bindExpectedColumns(TableCatalogEntry* tableEntry,
     }
 }
 
-void bindExpectedNodeColumns(NodeTableCatalogEntry* nodeTableEntry,
+void bindExpectedNodeColumns(const NodeTableCatalogEntry* nodeTableEntry,
     const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
     std::vector<LogicalType>& columnTypes) {
     KU_ASSERT(columnNames.empty() && columnTypes.empty());
     bindExpectedColumns(nodeTableEntry, inputColumnNames, columnNames, columnTypes);
 }
 
-void bindExpectedRelColumns(RelTableCatalogEntry* relTableEntry,
+void bindExpectedRelColumns(const RelTableCatalogEntry* relTableEntry,
     const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
-    std::vector<LogicalType>& columnTypes, main::ClientContext* context) {
+    std::vector<LogicalType>& columnTypes, const main::ClientContext* context) {
     KU_ASSERT(columnNames.empty() && columnTypes.empty());
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();

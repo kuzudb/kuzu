@@ -20,7 +20,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     auto query = bindQuery(*parsedQuery);
     auto columns = query->getStatementResult()->getColumns();
     auto fileTypeStr = fileTypeInfo.fileTypeStr;
-    auto name = common::stringFormat("COPY_{}", fileTypeStr);
+    auto name = stringFormat("COPY_{}", fileTypeStr);
     auto entry =
         clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(), name);
     auto exportFunc = function::BuiltInFunctionsUtils::matchFunction(name,

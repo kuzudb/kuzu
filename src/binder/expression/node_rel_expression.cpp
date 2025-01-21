@@ -25,7 +25,7 @@ table_id_set_t NodeOrRelExpression::getTableIDsSet() const {
     return result;
 }
 
-void NodeOrRelExpression::addEntries(const std::vector<TableCatalogEntry*> entries_) {
+void NodeOrRelExpression::addEntries(const std::vector<TableCatalogEntry*>& entries_) {
     auto tableIDsSet = getTableIDsSet();
     for (auto& entry : entries_) {
         if (!tableIDsSet.contains(entry->getTableID())) {

@@ -20,26 +20,27 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace binder {
 
-static std::string getPrimaryKeyName(table_id_t tableId, const Catalog& catalog, Transaction* tx) {
-    auto tableEntry = catalog.getTableCatalogEntry(tx, tableId);
+static std::string getPrimaryKeyName(table_id_t tableId, const Catalog& catalog,
+    const Transaction* transaction) {
+    auto tableEntry = catalog.getTableCatalogEntry(transaction, tableId);
     return tableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName();
 }
 
-static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog, Transaction* tx,
-    Binder* binder) {
+static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog,
+    const Transaction* transaction, Binder* binder) {
     std::vector<ExportedTableData> exportData;
-    for (auto tableEntry : catalog.getTableEntries(tx)) {
+    for (auto tableEntry : catalog.getTableEntries(transaction)) {
         ExportedTableData tableData;
-        if (binder->bindExportTableData(tableData, *tableEntry, catalog, tx)) {
+        if (binder->bindExportTableData(tableData, *tableEntry, catalog, transaction)) {
             exportData.push_back(std::move(tableData));
         }
     }
     return exportData;
 }
 
-FileTypeInfo getFileType(case_insensitive_map_t<common::Value>& options) {
+FileTypeInfo getFileType(case_insensitive_map_t<Value>& options) {
     auto fileTypeInfo = FileTypeInfo{FileType::CSV, "CSV"};
-    if (options.find("FORMAT") != options.end()) {
+    if (options.contains("FORMAT")) {
         auto value = options.at("FORMAT");
         if (value.getDataType().getLogicalTypeID() != LogicalTypeID::STRING) {
             throw BinderException("The type of format option must be a string.");
@@ -57,25 +58,29 @@ static void bindExportNodeTableDataQuery(const TableCatalogEntry& entry, std::st
 }
 
 static void bindExportRelTableDataQuery(const TableCatalogEntry& entry, std::string& exportQuery,
-    const catalog::Catalog& catalog, transaction::Transaction* tx) {
+    const Catalog& catalog, const Transaction* transaction) {
     auto relTableEntry = entry.constPtrCast<RelTableCatalogEntry>();
-    auto srcPrimaryKeyName = getPrimaryKeyName(relTableEntry->getSrcTableID(), catalog, tx);
-    auto dstPrimaryKeyName = getPrimaryKeyName(relTableEntry->getDstTableID(), catalog, tx);
-    auto srcName = catalog.getTableCatalogEntry(tx, relTableEntry->getSrcTableID())->getName();
-    auto dstName = catalog.getTableCatalogEntry(tx, relTableEntry->getDstTableID())->getName();
+    auto srcPrimaryKeyName =
+        getPrimaryKeyName(relTableEntry->getSrcTableID(), catalog, transaction);
+    auto dstPrimaryKeyName =
+        getPrimaryKeyName(relTableEntry->getDstTableID(), catalog, transaction);
+    auto srcName =
+        catalog.getTableCatalogEntry(transaction, relTableEntry->getSrcTableID())->getName();
+    auto dstName =
+        catalog.getTableCatalogEntry(transaction, relTableEntry->getDstTableID())->getName();
     auto relName = relTableEntry->getName();
     exportQuery = stringFormat("match (a:{})-[r:{}]->(b:{}) return a.{},b.{},r.*;", srcName,
         relName, dstName, srcPrimaryKeyName, dstPrimaryKeyName);
 }
 
 static bool bindExportQuery(std::string& exportQuery, const TableCatalogEntry& entry,
-    const Catalog& catalog, transaction::Transaction* tx) {
+    const Catalog& catalog, const Transaction* transaction) {
     switch (entry.getTableType()) {
-    case common::TableType::NODE: {
+    case TableType::NODE: {
         bindExportNodeTableDataQuery(entry, exportQuery);
     } break;
-    case common::TableType::REL: {
-        bindExportRelTableDataQuery(entry, exportQuery, catalog, tx);
+    case TableType::REL: {
+        bindExportRelTableDataQuery(entry, exportQuery, catalog, transaction);
     } break;
     default:
         return false;
@@ -84,10 +89,10 @@ static bool bindExportQuery(std::string& exportQuery, const TableCatalogEntry& e
 }
 
 bool Binder::bindExportTableData(ExportedTableData& tableData, const TableCatalogEntry& entry,
-    const Catalog& catalog, transaction::Transaction* tx) {
+    const Catalog& catalog, const Transaction* transaction) {
     std::string exportQuery;
     tableData.tableName = entry.getName();
-    if (!bindExportQuery(exportQuery, entry, catalog, tx)) {
+    if (!bindExportQuery(exportQuery, entry, catalog, transaction)) {
         return false;
     }
     auto parsedStatement = Parser::parseQuery(exportQuery);

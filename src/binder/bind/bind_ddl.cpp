@@ -30,7 +30,7 @@ namespace kuzu {
 namespace binder {
 
 static void validatePropertyName(const std::vector<PropertyDefinition>& definitions) {
-    common::case_insensitve_set_t nameSet;
+    case_insensitve_set_t nameSet;
     for (auto& definition : definitions) {
         if (nameSet.contains(definition.getName())) {
             throw BinderException(stringFormat(
@@ -58,7 +58,7 @@ static void tryResolvingDataTypeForDefaultNull(const ParsedPropertyDefinition& p
     const LogicalType& type) {
     if (parsedDefinition.defaultExpr->getExpressionType() == ExpressionType::LITERAL) {
         auto& literalVal =
-            common::ku_dynamic_cast<ParsedLiteralExpression*>(parsedDefinition.defaultExpr.get())
+            ku_dynamic_cast<ParsedLiteralExpression*>(parsedDefinition.defaultExpr.get())
                 ->getValueUnsafe();
         if (literalVal.isNull() &&
             literalVal.getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
@@ -92,7 +92,7 @@ std::vector<PropertyDefinition> Binder::bindPropertyDefinitions(
     return definitions;
 }
 
-static void validateNotUDT(const common::LogicalType& type) {
+static void validateNotUDT(const LogicalType& type) {
     if (!type.isInternalType()) {
         throw BinderException(ExceptionMessage::invalidPKType(type.toString()));
     }
@@ -131,7 +131,7 @@ static void validatePrimaryKey(const std::string& pkColName,
     }
 }
 
-BoundCreateTableInfo Binder::bindCreateTableInfo(const parser::CreateTableInfo* info) {
+BoundCreateTableInfo Binder::bindCreateTableInfo(const CreateTableInfo* info) {
     switch (info->type) {
     case CatalogEntryType::NODE_TABLE_ENTRY: {
         return bindCreateNodeTableInfo(info);
@@ -159,7 +159,7 @@ BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo* info
         clientContext->shouldUseInternalCatalogEntry());
 }
 
-static void validateNodeTableType(TableCatalogEntry* entry) {
+static void validateNodeTableType(const TableCatalogEntry* entry) {
     if (entry->getType() != CatalogEntryType::NODE_TABLE_ENTRY) {
         throw BinderException(stringFormat("{} is not of type NODE.", entry->getName()));
     }
@@ -231,17 +231,17 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& stateme
     return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo));
 }
 
-std::unique_ptr<BoundStatement> Binder::bindCreateType(const Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bindCreateType(const Statement& statement) const {
     auto createType = statement.constPtrCast<CreateType>();
     auto name = createType->getName();
     LogicalType type = LogicalType::convertFromString(createType->getDataType(), clientContext);
     if (clientContext->getCatalog()->containsType(clientContext->getTransaction(), name)) {
-        throw BinderException{common::stringFormat("Duplicated type name: {}.", name)};
+        throw BinderException{stringFormat("Duplicated type name: {}.", name)};
     }
     return std::make_unique<BoundCreateType>(std::move(name), std::move(type));
 }
 
-std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& statement) const {
     auto& createSequence = statement.constCast<CreateSequence>();
     auto info = createSequence.getInfo();
     auto sequenceName = info.sequenceName;
@@ -250,7 +250,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
     int64_t minValue = 0;
     int64_t maxValue = 0;
     switch (info.onConflict) {
-    case common::ConflictAction::ON_CONFLICT_THROW: {
+    case ConflictAction::ON_CONFLICT_THROW: {
         if (clientContext->getCatalog()->containsSequence(clientContext->getTransaction(),
                 sequenceName)) {
             throw BinderException(sequenceName + " already exists in catalog.");
@@ -333,7 +333,7 @@ std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {
     }
 }
 
-std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& statement) const {
     auto& alter = statement.constCast<Alter>();
     auto info = alter.getInfo();
     auto extraInfo = ku_dynamic_cast<ExtraRenameTableInfo*>(info->extraInfo.get());
@@ -352,19 +352,19 @@ std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& stateme
 
 using on_conflict_throw_action = std::function<void()>;
 
-static void validateProperty(common::ConflictAction action, on_conflict_throw_action throwAction) {
+static void validateProperty(ConflictAction action, const on_conflict_throw_action& throwAction) {
     switch (action) {
-    case common::ConflictAction::ON_CONFLICT_THROW: {
+    case ConflictAction::ON_CONFLICT_THROW: {
         throwAction();
     } break;
-    case common::ConflictAction::ON_CONFLICT_DO_NOTHING:
+    case ConflictAction::ON_CONFLICT_DO_NOTHING:
         break;
     default:
         KU_UNREACHABLE;
     }
 }
 
-static void validatePropertyExist(common::ConflictAction action, TableCatalogEntry* tableEntry,
+static void validatePropertyExist(ConflictAction action, TableCatalogEntry* tableEntry,
     const std::string& propertyName) {
     validateProperty(action, [&tableEntry, &propertyName]() {
         if (!tableEntry->containsProperty(propertyName)) {
@@ -374,7 +374,7 @@ static void validatePropertyExist(common::ConflictAction action, TableCatalogEnt
     });
 }
 
-static void validatePropertyNotExist(common::ConflictAction action, TableCatalogEntry* tableEntry,
+static void validatePropertyNotExist(ConflictAction action, TableCatalogEntry* tableEntry,
     const std::string& propertyName) {
     validateProperty(action, [&tableEntry, &propertyName] {
         if (tableEntry->containsProperty(propertyName)) {
@@ -384,7 +384,7 @@ static void validatePropertyNotExist(common::ConflictAction action, TableCatalog
     });
 }
 
-static void validatePropertyDDLOnTable(TableCatalogEntry* tableEntry,
+static void validatePropertyDDLOnTable(const TableCatalogEntry* tableEntry,
     const std::string& ddlOperation) {
     switch (tableEntry->getType()) {
     case CatalogEntryType::REL_GROUP_ENTRY: {
@@ -440,7 +440,7 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 
-std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statement) const {
     auto& alter = statement.constCast<Alter>();
     auto info = alter.getInfo();
     auto extraInfo = info->extraInfo->constPtrCast<ExtraDropPropertyInfo>();
@@ -461,7 +461,7 @@ std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statem
     return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 
-std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& statement) const {
     auto& alter = statement.constCast<Alter>();
     auto info = alter.getInfo();
     auto extraInfo = info->extraInfo->constPtrCast<ExtraRenamePropertyInfo>();
@@ -472,15 +472,15 @@ std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& stat
     auto catalog = clientContext->getCatalog();
     auto tableSchema = catalog->getTableCatalogEntry(clientContext->getTransaction(), tableName);
     validatePropertyDDLOnTable(tableSchema, "rename");
-    validatePropertyExist(common::ConflictAction::ON_CONFLICT_THROW, tableSchema, propertyName);
-    validatePropertyNotExist(common::ConflictAction::ON_CONFLICT_THROW, tableSchema, newName);
+    validatePropertyExist(ConflictAction::ON_CONFLICT_THROW, tableSchema, propertyName);
+    validatePropertyNotExist(ConflictAction::ON_CONFLICT_THROW, tableSchema, newName);
     auto boundExtraInfo = std::make_unique<BoundExtraRenamePropertyInfo>(newName, propertyName);
     auto boundInfo = BoundAlterInfo(AlterType::RENAME_PROPERTY, tableName,
         std::move(boundExtraInfo), info->onConflict);
     return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 
-std::unique_ptr<BoundStatement> Binder::bindCommentOn(const Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bindCommentOn(const Statement& statement) const {
     auto& alter = statement.constCast<Alter>();
     auto info = alter.getInfo();
     auto extraInfo = info->extraInfo->constPtrCast<ExtraCommentInfo>();

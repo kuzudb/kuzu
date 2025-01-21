@@ -24,7 +24,7 @@ public:
     std::shared_ptr<Expression> bindExpression(const parser::ParsedExpression& parsedExpression);
 
     // TODO(Xiyang): move to an expression rewriter
-    std::shared_ptr<Expression> foldExpression(const std::shared_ptr<Expression>& expression);
+    std::shared_ptr<Expression> foldExpression(const std::shared_ptr<Expression>& expression) const;
 
     // Boolean expressions.
     std::shared_ptr<Expression> bindBooleanExpression(
@@ -49,27 +49,25 @@ public:
 
     // Property expressions.
     expression_vector bindPropertyStarExpression(const parser::ParsedExpression& parsedExpression);
-    expression_vector bindNodeOrRelPropertyStarExpression(const Expression& child);
+    static expression_vector bindNodeOrRelPropertyStarExpression(const Expression& child);
     expression_vector bindStructPropertyStarExpression(const std::shared_ptr<Expression>& child);
     std::shared_ptr<Expression> bindPropertyExpression(
         const parser::ParsedExpression& parsedExpression);
-    std::shared_ptr<Expression> bindNodeOrRelPropertyExpression(const Expression& child,
+    static std::shared_ptr<Expression> bindNodeOrRelPropertyExpression(const Expression& child,
         const std::string& propertyName);
     std::shared_ptr<Expression> bindStructPropertyExpression(std::shared_ptr<Expression> child,
         const std::string& propertyName);
     // Function expressions.
-    std::shared_ptr<Expression> bindFunctionExpression(
-        const parser::ParsedExpression& parsedExpression);
-    void bindLambdaExpression(const Expression& lambdaInput, Expression& lambdaExpr);
+    std::shared_ptr<Expression> bindFunctionExpression(const parser::ParsedExpression& expr);
+    void bindLambdaExpression(const Expression& lambdaInput, Expression& lambdaExpr) const;
     std::shared_ptr<Expression> bindLambdaExpression(
-        const parser::ParsedExpression& parsedExpression) const;
+        const parser::ParsedExpression& parsedExpr) const;
 
     std::shared_ptr<Expression> bindScalarFunctionExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& functionName);
     std::shared_ptr<Expression> bindScalarFunctionExpression(const expression_vector& children,
         const std::string& functionName);
-    std::shared_ptr<Expression> bindRewriteFunctionExpression(
-        const parser::ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> bindRewriteFunctionExpression(const parser::ParsedExpression& expr);
     std::shared_ptr<Expression> bindAggregateFunctionExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& functionName,
         bool isDistinct);
@@ -78,31 +76,30 @@ public:
 
     std::shared_ptr<Expression> rewriteFunctionExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& functionName);
-    std::shared_ptr<Expression> bindStartNodeExpression(const Expression& expression);
-    std::shared_ptr<Expression> bindEndNodeExpression(const Expression& expression);
-    std::shared_ptr<Expression> bindLabelFunction(const Expression& expression);
+    static std::shared_ptr<Expression> bindStartNodeExpression(const Expression& expression);
+    static std::shared_ptr<Expression> bindEndNodeExpression(const Expression& expression);
+    std::shared_ptr<Expression> bindLabelFunction(const Expression& expression) const;
 
     // Parameter expressions.
     std::shared_ptr<Expression> bindParameterExpression(
         const parser::ParsedExpression& parsedExpression);
     // Literal expressions.
     std::shared_ptr<Expression> bindLiteralExpression(
-        const parser::ParsedExpression& parsedExpression);
-    std::shared_ptr<Expression> createLiteralExpression(const common::Value& value);
-    std::shared_ptr<Expression> createLiteralExpression(const std::string& strVal);
-    std::shared_ptr<Expression> createNullLiteralExpression();
-    std::shared_ptr<Expression> createNullLiteralExpression(const common::Value& value);
+        const parser::ParsedExpression& parsedExpression) const;
+    std::shared_ptr<Expression> createLiteralExpression(const common::Value& value) const;
+    std::shared_ptr<Expression> createLiteralExpression(const std::string& strVal) const;
+    std::shared_ptr<Expression> createNullLiteralExpression() const;
+    std::shared_ptr<Expression> createNullLiteralExpression(const common::Value& value) const;
     // Variable expressions.
     std::shared_ptr<Expression> bindVariableExpression(
-        const parser::ParsedExpression& parsedExpression);
-    std::shared_ptr<Expression> bindVariableExpression(const std::string& varName);
+        const parser::ParsedExpression& parsedExpression) const;
+    std::shared_ptr<Expression> bindVariableExpression(const std::string& varName) const;
     std::shared_ptr<Expression> createVariableExpression(common::LogicalType logicalType,
-        std::string_view name);
+        std::string_view name) const;
     std::shared_ptr<Expression> createVariableExpression(common::LogicalType logicalType,
-        std::string name);
+        std::string name) const;
     // Subquery expressions.
-    std::shared_ptr<Expression> bindSubqueryExpression(
-        const parser::ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> bindSubqueryExpression(const parser::ParsedExpression& parsedExpr);
     // Case expressions.
     std::shared_ptr<Expression> bindCaseExpression(
         const parser::ParsedExpression& parsedExpression);

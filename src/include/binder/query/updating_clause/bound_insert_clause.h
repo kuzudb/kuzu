@@ -6,12 +6,13 @@
 namespace kuzu {
 namespace binder {
 
-class BoundInsertClause : public BoundUpdatingClause {
+class BoundInsertClause final : public BoundUpdatingClause {
 public:
     explicit BoundInsertClause(std::vector<BoundInsertInfo> infos)
         : BoundUpdatingClause{common::ClauseType::INSERT}, infos{std::move(infos)} {}
 
     const std::vector<BoundInsertInfo>& getInfos() { return infos; }
+    const std::vector<BoundInsertInfo>& getInfos() const { return infos; }
 
     bool hasNodeInfo() const {
         return hasInfo(

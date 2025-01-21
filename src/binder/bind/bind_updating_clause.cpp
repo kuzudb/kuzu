@@ -68,8 +68,7 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindInsertClause(
     return std::make_unique<BoundInsertClause>(std::move(insertInfos));
 }
 
-std::unique_ptr<BoundUpdatingClause> Binder::bindMergeClause(
-    const parser::UpdatingClause& updatingClause) {
+std::unique_ptr<BoundUpdatingClause> Binder::bindMergeClause(const UpdatingClause& updatingClause) {
     auto& mergeClause = updatingClause.constCast<MergeClause>();
     auto patternsScope = populatePatternsScope(scope);
     // bindGraphPattern will update scope.
@@ -149,8 +148,8 @@ static void validatePrimaryKeyExistence(const NodeTableCatalogEntry* nodeTableEn
     auto pkeyDefaultExpr = defaultExprs.at(nodeTableEntry->getPrimaryKeyIdx());
     if (!node.hasPropertyDataExpr(primaryKeyName) &&
         ExpressionUtil::isNullLiteral(*pkeyDefaultExpr)) {
-        throw BinderException(common::stringFormat(
-            "Create node {} expects primary key {} as input.", node.toString(), primaryKeyName));
+        throw BinderException(stringFormat("Create node {} expects primary key {} as input.",
+            node.toString(), primaryKeyName));
     }
 }
 
@@ -184,8 +183,7 @@ void Binder::bindInsertRel(std::shared_ptr<RelExpression> rel,
             " with multiple rel labels or bound by multiple node labels is not supported.");
     }
     if (ExpressionUtil::isRecursiveRelPattern(*rel)) {
-        throw BinderException(
-            common::stringFormat("Cannot create recursive rel {}.", rel->toString()));
+        throw BinderException(stringFormat("Cannot create recursive rel {}.", rel->toString()));
     }
     rel->setEntries(std::vector<TableCatalogEntry*>{rel->getEntries()[0]});
     auto entry = rel->getSingleEntry();
@@ -197,7 +195,7 @@ void Binder::bindInsertRel(std::shared_ptr<RelExpression> rel,
 }
 
 expression_vector Binder::bindInsertColumnDataExprs(
-    const common::case_insensitive_map_t<std::shared_ptr<Expression>>& propertyDataExprs,
+    const case_insensitive_map_t<std::shared_ptr<Expression>>& propertyDataExprs,
     const std::vector<PropertyDefinition>& propertyDefinitions) {
     expression_vector result;
     for (auto& definition : propertyDefinitions) {
@@ -222,8 +220,8 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindSetClause(const UpdatingClause&
     return boundSetClause;
 }
 
-BoundSetPropertyInfo Binder::bindSetPropertyInfo(parser::ParsedExpression* column,
-    parser::ParsedExpression* columnData) {
+BoundSetPropertyInfo Binder::bindSetPropertyInfo(const ParsedExpression* column,
+    const ParsedExpression* columnData) {
     auto expr = expressionBinder.bindExpression(*column->getChild(0));
     auto isNode = ExpressionUtil::isNodePattern(*expr);
     auto isRel = ExpressionUtil::isRelPattern(*expr);
@@ -249,8 +247,8 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(parser::ParsedExpression* colum
     return BoundSetPropertyInfo(TableType::REL, expr, boundColumn, boundColumnData);
 }
 
-expression_pair Binder::bindSetItem(parser::ParsedExpression* column,
-    parser::ParsedExpression* columnData) {
+expression_pair Binder::bindSetItem(const ParsedExpression* column,
+    const ParsedExpression* columnData) {
     auto boundColumn = expressionBinder.bindExpression(*column);
     auto boundColumnData = expressionBinder.bindExpression(*columnData);
     boundColumnData =

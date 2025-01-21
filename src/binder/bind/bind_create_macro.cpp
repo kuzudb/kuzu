@@ -13,7 +13,7 @@ using namespace kuzu::parser;
 namespace kuzu {
 namespace binder {
 
-std::unique_ptr<BoundStatement> Binder::bindCreateMacro(const Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bindCreateMacro(const Statement& statement) const {
     auto& createMacro = ku_dynamic_cast<const CreateMacro&>(statement);
     auto macroName = createMacro.getMacroName();
     StringUtils::toUpper(macroName);

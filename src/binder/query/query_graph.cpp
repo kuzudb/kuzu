@@ -226,7 +226,7 @@ bool QueryGraph::canProjectExpression(const std::shared_ptr<Expression>& express
     return true;
 }
 
-bool QueryGraph::isConnected(const QueryGraph& other) {
+bool QueryGraph::isConnected(const QueryGraph& other) const {
     for (auto& queryNode : queryNodes) {
         if (other.containsQueryNode(queryNode->getUniqueName())) {
             return true;

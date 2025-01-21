@@ -155,7 +155,7 @@ void BoundStatementVisitor::visitQueryPartUnsafe(NormalizedQueryPart& queryPart)
 }
 
 void BoundStatementVisitor::visitExplain(const BoundStatement& statement) {
-    visit(*((const BoundExplain&)statement).getStatementToExplain());
+    visit(*(statement.constCast<BoundExplain>()).getStatementToExplain());
 }
 
 void BoundStatementVisitor::visitReadingClause(const BoundReadingClause& readingClause) {

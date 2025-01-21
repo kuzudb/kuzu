@@ -6,7 +6,7 @@ namespace kuzu {
 namespace binder {
 
 std::unique_ptr<BoundStatement> Binder::bindExplain(const parser::Statement& statement) {
-    auto& explain = (parser::ExplainStatement&)statement;
+    auto& explain = statement.constCast<parser::ExplainStatement>();
     auto boundStatementToExplain = bind(*explain.getStatementToExplain());
     return std::make_unique<BoundExplain>(std::move(boundStatementToExplain),
         explain.getExplainType());

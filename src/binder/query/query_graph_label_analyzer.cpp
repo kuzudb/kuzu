@@ -12,7 +12,7 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace binder {
 
-void QueryGraphLabelAnalyzer::pruneLabel(QueryGraph& graph) {
+void QueryGraphLabelAnalyzer::pruneLabel(const QueryGraph& graph) const {
     for (auto i = 0u; i < graph.getNumQueryNodes(); ++i) {
         pruneNode(graph, *graph.getQueryNode(i));
     }
@@ -21,7 +21,7 @@ void QueryGraphLabelAnalyzer::pruneLabel(QueryGraph& graph) {
     }
 }
 
-void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression& node) {
+void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression& node) const {
     auto catalog = clientContext.getCatalog();
     for (auto i = 0u; i < graph.getNumQueryRels(); ++i) {
         auto queryRel = graph.getQueryRel(i);

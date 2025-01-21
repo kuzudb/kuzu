@@ -9,7 +9,8 @@ using namespace kuzu::parser;
 namespace kuzu {
 namespace binder {
 
-void ExpressionBinder::bindLambdaExpression(const Expression& lambdaInput, Expression& lambdaExpr) {
+void ExpressionBinder::bindLambdaExpression(const Expression& lambdaInput,
+    Expression& lambdaExpr) const {
     ExpressionUtil::validateDataType(lambdaInput, LogicalTypeID::LIST);
     auto& listChildType = ListType::getChildType(lambdaInput.getDataType());
     auto& boundLambdaExpr = lambdaExpr.cast<LambdaExpression>();

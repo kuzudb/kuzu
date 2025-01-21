@@ -140,7 +140,7 @@ static std::vector<std::string> getPropertyNames(const std::vector<TableCatalogE
 static std::unique_ptr<Expression> createPropertyExpression(const std::string& propertyName,
     const std::string& uniqueVariableName, const std::string& rawVariableName,
     const std::vector<TableCatalogEntry*>& entries) {
-    common::table_id_map_t<SingleLabelPropertyInfo> infos;
+    table_id_map_t<SingleLabelPropertyInfo> infos;
     std::vector<LogicalType> dataTypes;
     for (auto& entry : entries) {
         bool exists = false;
@@ -150,7 +150,7 @@ static std::unique_ptr<Expression> createPropertyExpression(const std::string& p
         }
         // Bind isPrimaryKey
         auto isPrimaryKey = false;
-        if (entry->getTableType() == common::TableType::NODE) {
+        if (entry->getTableType() == TableType::NODE) {
             auto nodeEntry = entry->constPtrCast<NodeTableCatalogEntry>();
             isPrimaryKey = nodeEntry->getPrimaryKeyName() == propertyName;
         }
@@ -176,18 +176,18 @@ static std::unique_ptr<Expression> createPropertyExpression(const std::string& p
         entries);
 }
 
-static void checkRelDirectionTypeAgainstStorageDirection(RelExpression* rel) {
+static void checkRelDirectionTypeAgainstStorageDirection(const RelExpression* rel) {
     switch (rel->getDirectionType()) {
     case RelDirectionType::SINGLE:
         // Directed pattern is in the fwd direction
-        if (!common::containsValue(rel->getExtendDirections(), ExtendDirection::FWD)) {
+        if (!containsValue(rel->getExtendDirections(), ExtendDirection::FWD)) {
             throw BinderException(stringFormat("Querying table matched in rel pattern '{}' with "
                                                "bwd-only storage direction isn't supported.",
                 rel->toString()));
         }
         break;
     case RelDirectionType::BOTH:
-        if (rel->getExtendDirections().size() < common::NUM_REL_DIRECTIONS) {
+        if (rel->getExtendDirections().size() < NUM_REL_DIRECTIONS) {
             throw BinderException(
                 stringFormat("Undirected rel pattern '{}' has at least one matched rel table with "
                              "storage type 'fwd' or 'bwd'. Undirected rel patterns are only "
@@ -266,9 +266,8 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
 }
 
 std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::string& parsedName,
-    const std::vector<catalog::TableCatalogEntry*>& entries,
-    std::shared_ptr<NodeExpression> srcNode, std::shared_ptr<NodeExpression> dstNode,
-    RelDirectionType directionType) {
+    const std::vector<TableCatalogEntry*>& entries, std::shared_ptr<NodeExpression> srcNode,
+    std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType) {
     auto queryRel = make_shared<RelExpression>(LogicalType(LogicalTypeID::REL),
         getUniqueExpressionName(parsedName), parsedName, entries, std::move(srcNode),
         std::move(dstNode), directionType, QueryRelType::NON_RECURSIVE);
@@ -308,9 +307,8 @@ static void bindProjectionListAsStructField(const expression_vector& projectionL
 }
 
 std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::RelPattern& relPattern,
-    const std::vector<catalog::TableCatalogEntry*>& entries,
-    std::shared_ptr<NodeExpression> srcNode, std::shared_ptr<NodeExpression> dstNode,
-    RelDirectionType directionType) {
+    const std::vector<TableCatalogEntry*>& entries, std::shared_ptr<NodeExpression> srcNode,
+    std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType) {
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();
     table_catalog_entry_set_t entrySet;
@@ -382,7 +380,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
                 relPredicate = expressionBinder.combineBooleanExpressions(ExpressionType::AND,
                     relPredicate, predicate);
             } else {
-                if (predicate->expressionType != common::ExpressionType::LITERAL ||
+                if (predicate->expressionType != ExpressionType::LITERAL ||
                     predicate->dataType != LogicalType::BOOL()) {
                     throw BinderException(canNotEvaluatePredicateMessage);
                 }
@@ -569,7 +567,7 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodeP
 }
 
 std::shared_ptr<NodeExpression> Binder::createQueryNode(const std::string& parsedName,
-    const std::vector<catalog::TableCatalogEntry*>& entries) {
+    const std::vector<TableCatalogEntry*>& entries) {
     auto queryNode = make_shared<NodeExpression>(LogicalType(LogicalTypeID::NODE),
         getUniqueExpressionName(parsedName), parsedName, entries);
     queryNode->setAlias(parsedName);
@@ -609,9 +607,10 @@ static std::vector<TableCatalogEntry*> sortEntries(const table_catalog_entry_set
     for (auto entry : set) {
         entries.push_back(entry);
     }
-    std::sort(entries.begin(), entries.end(), [](TableCatalogEntry* a, TableCatalogEntry* b) {
-        return a->getTableID() < b->getTableID();
-    });
+    std::sort(entries.begin(), entries.end(),
+        [](const TableCatalogEntry* a, const TableCatalogEntry* b) {
+            return a->getTableID() < b->getTableID();
+        });
     return entries;
 }
 
@@ -628,7 +627,7 @@ std::vector<TableCatalogEntry*> Binder::bindNodeTableEntries(
     } else {
         for (auto& name : tableNames) {
             auto entry = bindNodeTableEntry(name);
-            if (entry->getType() != catalog::CatalogEntryType::NODE_TABLE_ENTRY) {
+            if (entry->getType() != CatalogEntryType::NODE_TABLE_ENTRY) {
                 throw BinderException(
                     stringFormat("Cannot bind {} as a node pattern label.", entry->getName()));
             }
@@ -638,17 +637,17 @@ std::vector<TableCatalogEntry*> Binder::bindNodeTableEntries(
     return sortEntries(entrySet);
 }
 
-catalog::TableCatalogEntry* Binder::bindNodeTableEntry(const std::string& name) const {
+TableCatalogEntry* Binder::bindNodeTableEntry(const std::string& name) const {
     auto transaction = clientContext->getTransaction();
     auto catalog = clientContext->getCatalog();
     auto useInternal = clientContext->shouldUseInternalCatalogEntry();
     if (!catalog->containsTable(transaction, name, useInternal)) {
-        throw BinderException(common::stringFormat("Table {} does not exist.", name));
+        throw BinderException(stringFormat("Table {} does not exist.", name));
     }
     return catalog->getTableCatalogEntry(transaction, name, useInternal);
 }
 
-std::vector<catalog::TableCatalogEntry*> Binder::bindRelTableEntries(
+std::vector<TableCatalogEntry*> Binder::bindRelTableEntries(
     const std::vector<std::string>& tableNames) const {
     auto transaction = clientContext->getTransaction();
     auto catalog = clientContext->getCatalog();
@@ -668,13 +667,13 @@ std::vector<catalog::TableCatalogEntry*> Binder::bindRelTableEntries(
                 }
             } else if (catalog->containsTable(transaction, name)) {
                 auto entry = catalog->getTableCatalogEntry(transaction, name, useInternal);
-                if (entry->getType() != catalog::CatalogEntryType::REL_TABLE_ENTRY) {
+                if (entry->getType() != CatalogEntryType::REL_TABLE_ENTRY) {
                     throw BinderException(stringFormat(
                         "Cannot bind {} as a relationship pattern label.", entry->getName()));
                 }
                 entrySet.insert(entry);
             } else {
-                throw BinderException(common::stringFormat("Table {} does not exist.", name));
+                throw BinderException(stringFormat("Table {} does not exist.", name));
             }
         }
     }

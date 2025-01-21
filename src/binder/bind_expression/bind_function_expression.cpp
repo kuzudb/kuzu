@@ -233,19 +233,17 @@ std::shared_ptr<Expression> ExpressionBinder::rewriteFunctionExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindStartNodeExpression(
     const Expression& expression) {
-    auto& rel = (RelExpression&)expression;
-    return rel.getSrcNode();
+    return expression.constCast<RelExpression>().getSrcNode();
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindEndNodeExpression(const Expression& expression) {
-    auto& rel = (RelExpression&)expression;
-    return rel.getDstNode();
+    return expression.constCast<RelExpression>().getDstNode();
 }
 
 static std::vector<std::unique_ptr<Value>> populateLabelValues(
-    std::vector<TableCatalogEntry*> entries) {
+    const std::vector<TableCatalogEntry*>& entries) {
     std::unordered_map<table_id_t, std::string> map;
-    common::table_id_t maxTableID = 0;
+    table_id_t maxTableID = 0;
     for (auto& entry : entries) {
         map.insert({entry->getTableID(), entry->getName()});
         if (entry->getTableID() > maxTableID) {
@@ -265,7 +263,8 @@ static std::vector<std::unique_ptr<Value>> populateLabelValues(
     return labels;
 }
 
-std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression& expression) {
+std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(
+    const Expression& expression) const {
     auto listType = LogicalType::LIST(LogicalType::STRING());
     expression_vector children;
     switch (expression.getDataType().getLogicalTypeID()) {

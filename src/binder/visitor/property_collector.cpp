@@ -17,7 +17,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace binder {
 
-expression_vector PropertyCollector::getProperties() {
+expression_vector PropertyCollector::getProperties() const {
     expression_vector result;
     for (auto& property : properties) {
         result.push_back(property);
@@ -109,7 +109,7 @@ void PropertyCollector::visitDelete(const BoundUpdatingClause& updatingClause) {
 }
 
 void PropertyCollector::visitInsert(const BoundUpdatingClause& updatingClause) {
-    auto& insertClause = (BoundInsertClause&)updatingClause;
+    auto& insertClause = updatingClause.constCast<BoundInsertClause>();
     for (auto& info : insertClause.getInfos()) {
         for (auto& expr : info.columnDataExprs) {
             collectProperties(expr);
@@ -118,7 +118,7 @@ void PropertyCollector::visitInsert(const BoundUpdatingClause& updatingClause) {
 }
 
 void PropertyCollector::visitMerge(const BoundUpdatingClause& updatingClause) {
-    auto& boundMergeClause = (BoundMergeClause&)updatingClause;
+    auto& boundMergeClause = updatingClause.constCast<BoundMergeClause>();
     for (auto& rel : boundMergeClause.getQueryGraphCollection()->getQueryRels()) {
         if (rel->getRelType() == QueryRelType::NON_RECURSIVE) {
             properties.insert(rel->getInternalIDProperty());

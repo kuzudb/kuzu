@@ -27,12 +27,11 @@ std::shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(ExpressionTy
         inputTypeIDs.push_back(LogicalTypeID::BOOL);
     }
     auto functionName = ExpressionTypeUtil::toString(expressionType);
-    function::scalar_func_exec_t execFunc;
-    function::VectorBooleanFunction::bindExecFunction(expressionType, childrenAfterCast, execFunc);
-    function::scalar_func_select_t selectFunc;
-    function::VectorBooleanFunction::bindSelectFunction(expressionType, childrenAfterCast,
-        selectFunc);
-    auto bindData = std::make_unique<function::FunctionBindData>(LogicalType::BOOL());
+    scalar_func_exec_t execFunc;
+    VectorBooleanFunction::bindExecFunction(expressionType, childrenAfterCast, execFunc);
+    scalar_func_select_t selectFunc;
+    VectorBooleanFunction::bindSelectFunction(expressionType, childrenAfterCast, selectFunc);
+    auto bindData = std::make_unique<FunctionBindData>(LogicalType::BOOL());
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(functionName, childrenAfterCast);
     auto func = std::make_unique<ScalarFunction>(functionName, inputTypeIDs, LogicalTypeID::BOOL,
@@ -42,7 +41,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(ExpressionTy
 }
 
 std::shared_ptr<Expression> ExpressionBinder::combineBooleanExpressions(
-    common::ExpressionType expressionType, std::shared_ptr<Expression> left,
+    ExpressionType expressionType, std::shared_ptr<Expression> left,
     std::shared_ptr<Expression> right) {
     if (left == nullptr) {
         return right;

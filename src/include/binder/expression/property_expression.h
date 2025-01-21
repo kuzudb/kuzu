@@ -40,7 +40,7 @@ public:
 
     // Construct from a virtual property, i.e. no propertyID available.
     static std::unique_ptr<PropertyExpression> construct(common::LogicalType type,
-        const std::string& propertyName, const Expression& pattern);
+        const std::string& propertyName, const Expression& child);
 
     // If this property is primary key on all tables.
     bool isPrimaryKey() const;
