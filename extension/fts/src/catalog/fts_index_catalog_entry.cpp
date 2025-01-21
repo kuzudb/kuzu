@@ -33,14 +33,15 @@ std::string FTSIndexAuxInfo::toCypher(const catalog::IndexCatalogEntry& indexEnt
     const main::ClientContext* context) const {
     std::string cypher;
     auto catalog = context->getCatalog();
-    auto tableName =
-        catalog->getTableCatalogEntry(context->getTransaction(), indexEntry.getTableID())
-            ->getName();
+    auto tableCatalogEntry =
+        catalog->getTableCatalogEntry(context->getTransaction(), indexEntry.getTableID());
+    auto tableName = tableCatalogEntry->getName();
     std::string propertyStr;
     auto properties = indexEntry.getProperties();
     for (auto i = 0u; i < properties.size(); i++) {
         propertyStr +=
-            common::stringFormat("'{}'{} ", properties[i], i == properties.size() - 1 ? "" : ",");
+            common::stringFormat("'{}'{}", tableCatalogEntry->getProperty(properties[i]).getName(),
+                i == properties.size() - 1 ? "" : ", ");
     }
     cypher += common::stringFormat("CALL CREATE_FTS_INDEX('{}', '{}', [{}], stemmer := '{}');",
         tableName, indexEntry.getIndexName(), std::move(propertyStr), config.stemmer);

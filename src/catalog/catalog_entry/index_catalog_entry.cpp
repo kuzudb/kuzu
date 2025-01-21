@@ -34,7 +34,7 @@ std::unique_ptr<IndexCatalogEntry> IndexCatalogEntry::deserialize(
     std::string type;
     common::table_id_t tableID = common::INVALID_TABLE_ID;
     std::string indexName;
-    std::vector<std::string> properties;
+    std::vector<common::idx_t> properties;
     deserializer.deserializeValue(type);
     deserializer.deserializeValue(tableID);
     deserializer.deserializeValue(indexName);

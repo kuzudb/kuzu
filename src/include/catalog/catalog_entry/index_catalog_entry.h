@@ -39,7 +39,7 @@ public:
     }
 
     IndexCatalogEntry(std::string type, common::table_id_t tableID, std::string indexName,
-        std::vector<std::string> properties, std::unique_ptr<IndexAuxInfo> auxInfo)
+        std::vector<common::idx_t> properties, std::unique_ptr<IndexAuxInfo> auxInfo)
         : CatalogEntry{CatalogEntryType::INDEX_ENTRY,
               common::stringFormat("{}_{}", tableID, indexName)},
           type{std::move(type)}, tableID{tableID}, indexName{std::move(indexName)},
@@ -51,7 +51,7 @@ public:
 
     std::string getIndexName() const { return indexName; }
 
-    std::vector<std::string> getProperties() const { return properties; }
+    std::vector<common::idx_t> getProperties() const { return properties; }
 
     // When serializing index entries to disk, we first write the fields of the base class,
     // followed by the size (in bytes) of the auxiliary data and its content.
@@ -83,7 +83,7 @@ protected:
     std::string type;
     common::table_id_t tableID = common::INVALID_TABLE_ID;
     std::string indexName;
-    std::vector<std::string> properties;
+    std::vector<common::idx_t> properties;
     std::unique_ptr<uint8_t[]> auxBuffer = nullptr;
     std::unique_ptr<IndexAuxInfo> auxInfo;
     uint64_t auxBufferSize = 0;
