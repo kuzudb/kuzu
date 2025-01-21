@@ -24,7 +24,9 @@ class Database {
     bufferManagerSize = 0,
     enableCompression = true,
     readOnly = false,
-    maxDBSize = 0
+    maxDBSize = 0,
+    autoCheckpoint = true,
+    checkpointThreshold = -1
   ) {
     if (!databasePath) {
       databasePath = ":memory:";
@@ -38,14 +40,20 @@ class Database {
     if (typeof maxDBSize !== "number" || maxDBSize < 0) {
       throw new Error("Max DB size must be a positive integer.");
     }
+    if (typeof checkpointThreshold !== "number" || maxDBSize < -1) {
+      throw new Error("Checkpoint threshold must be a positive integer.");
+    }
     bufferManagerSize = Math.floor(bufferManagerSize);
     maxDBSize = Math.floor(maxDBSize);
+    checkpointThreshold = Math.floor(checkpointThreshold);
     this._database = new KuzuNative.NodeDatabase(
       databasePath,
       bufferManagerSize,
       enableCompression,
       readOnly,
-      maxDBSize
+      maxDBSize,
+      autoCheckpoint,
+      checkpointThreshold
     );
     this._isInitialized = false;
     this._initPromise = null;

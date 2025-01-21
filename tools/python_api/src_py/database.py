@@ -35,6 +35,8 @@ class Database:
         lazy_init: bool = False,
         read_only: bool = False,
         max_db_size: int = (1 << 43),
+        auto_checkpoint: bool = True,
+        checkpoint_threshold: int = -1,
     ):
         """
         Parameters
@@ -73,6 +75,14 @@ class Database:
              a better solution later. The value is default to 1 << 43 (8TB) under 64-bit
              environment and 1GB under 32-bit one.
 
+        auto_checkpoint: bool
+            If true, the database will automatically checkpoint when the size of
+            the WAL file exceeds the checkpoint threshold.
+
+        checkpoint_threshold: int
+            The threshold of the WAL file size in bytes. When the size of the
+            WAL file exceeds this threshold, the database will checkpoint if autoCheckpoint is true.
+
         """
         if database_path is None:
             database_path = ":memory:"
@@ -85,6 +95,8 @@ class Database:
         self.compression = compression
         self.read_only = read_only
         self.max_db_size = max_db_size
+        self.auto_checkpoint = auto_checkpoint
+        self.checkpoint_threshold = checkpoint_threshold
         self.is_closed = False
 
         self._database: Any = None  # (type: _kuzu.Database from pybind11)
@@ -147,6 +159,8 @@ class Database:
                 self.compression,
                 self.read_only,
                 self.max_db_size,
+                self.auto_checkpoint,
+                self.checkpoint_threshold,
             )
 
     def get_torch_geometric_remote_backend(
