@@ -1771,7 +1771,7 @@ void addErrorHighlighting(uint64_t render_start, uint64_t render_end,
             }
             break;
         case ScanState::IN_DOUBLE_QUOTE:
-            // quote - all that will get us out is an unescaped quote
+            // double quote - all that will get us out is an unescaped quote
             if (c == '"') {
                 if (i > 0 && l->buf[i - 1] == '\\') { // escaped quote
                     i++;
