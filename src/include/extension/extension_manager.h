@@ -8,7 +8,7 @@
 namespace kuzu {
 namespace extension {
 
-struct ExtensionFunctionEntry {
+struct ExtensionEntry {
     const char* name;
     const char* extensionName;
 };
@@ -33,8 +33,9 @@ public:
         return loadedExtensions;
     }
 
-    static std::optional<ExtensionFunctionEntry> lookupExtensionsByFunctionName(
+    static std::optional<ExtensionEntry> lookupExtensionsByFunctionName(
         std::string_view functionName);
+    static std::optional<ExtensionEntry> lookupExtensionsByTypeName(std::string_view typeName);
 
 private:
     std::vector<LoadedExtension> loadedExtensions;

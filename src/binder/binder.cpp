@@ -252,13 +252,13 @@ TableFunction Binder::getScanFunction(const FileTypeInfo& typeInfo,
             auto entry = catalog->getFunctionEntry(transaction, name);
             func = BuiltInFunctionsUtils::matchFunction(name, inputTypes,
                 entry->ptrCast<FunctionCatalogEntry>());
-        } catch (...) {
+        } catch (std::exception& e) {
             if (typeInfo.fileTypeStr == "") {
                 throw BinderException{"Cannot infer the format of the given file. Please "
                                       "set the file format explicitly by (file_format=<type>)."};
             }
-            throw BinderException{
-                stringFormat("Cannot load from file type {}.", typeInfo.fileTypeStr)};
+            throw BinderException{stringFormat("Cannot load from file type {}. Reason: {}",
+                typeInfo.fileTypeStr, e.what())};
         }
     } break;
     default:

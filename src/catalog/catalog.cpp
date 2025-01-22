@@ -238,8 +238,8 @@ CatalogEntry* Catalog::createRelGroupEntry(Transaction* transaction,
     for (auto& childInfo : extraInfo->infos) {
         KU_ASSERT(childInfo.hasParent);
         relTableIDs.push_back(createRelTableEntry(transaction, childInfo)
-                                  ->ptrCast<TableCatalogEntry>()
-                                  ->getTableID());
+                ->ptrCast<TableCatalogEntry>()
+                ->getTableID());
     }
     auto entry = std::make_unique<RelGroupCatalogEntry>(info.tableName, std::move(relTableIDs));
     relGroups->createEntry(transaction, std::move(entry));
@@ -313,10 +313,23 @@ void Catalog::createType(Transaction* transaction, std::string name, LogicalType
     types->createEntry(transaction, std::move(entry));
 }
 
+static std::string getTypeDoesNotExistMessage(std::string_view entryName) {
+    std::string message =
+        stringFormat("{} is neither an internal type nor a user defined type.", entryName);
+    const auto matchingExtensionFunction =
+        extension::ExtensionManager::lookupExtensionsByTypeName(entryName);
+    if (matchingExtensionFunction.has_value()) {
+        message = stringFormat("{} This type exists in the {} extension. You can load the "
+                               "extension by running the command 'LOAD EXTENSION {}'.",
+            message, matchingExtensionFunction->extensionName,
+            matchingExtensionFunction->extensionName);
+    }
+    return message;
+}
+
 LogicalType Catalog::getType(const Transaction* transaction, const std::string& name) const {
     if (!types->containsEntry(transaction, name)) {
-        throw CatalogException{
-            stringFormat("{} is neither an internal type nor a user defined type.", name)};
+        throw CatalogException{getTypeDoesNotExistMessage(name)};
     }
     return types->getEntry(transaction, name)
         ->constCast<TypeCatalogEntry>()
