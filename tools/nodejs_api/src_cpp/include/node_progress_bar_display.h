@@ -1,8 +1,9 @@
 #pragma once
 
+#include <shared_mutex>
+
 #include "common/task_system/progress_bar_display.h"
 #include <napi.h>
-#include <shared_mutex>
 
 using namespace kuzu;
 using namespace common;
