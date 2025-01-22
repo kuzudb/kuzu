@@ -66,7 +66,7 @@ static void logEntryForTrx(Transaction* transaction, CatalogSet& set, CatalogEnt
     bool isInternal, bool skipLoggingToWAL = false) {
     KU_ASSERT(transaction);
     if (transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushCatalogEntry(set, entry, isInternal, skipLoggingToWAL);
+        transaction->pushCreateDropCatalogEntry(set, entry, isInternal, skipLoggingToWAL);
     }
 }
 
@@ -172,15 +172,14 @@ CatalogEntry* CatalogSet::dropEntryNoLock(const Transaction* transaction, const 
     return tombstonePtr->getPrev();
 }
 
-void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterInfo& alterInfo) {
-    CatalogEntry* createdEntry = nullptr;
-    CatalogEntry* entry = nullptr;
+void CatalogSet::alterEntry(const Transaction* transaction,
+    const binder::BoundAlterInfo& alterInfo) {
     {
         std::unique_lock lck{mtx};
         // LCOV_EXCL_START
         validateExistNoLock(transaction, alterInfo.tableName);
         // LCOV_EXCL_STOP
-        entry = getEntryNoLock(transaction, alterInfo.tableName);
+        auto entry = getEntryNoLock(transaction, alterInfo.tableName);
         KU_ASSERT(entry->getType() == CatalogEntryType::NODE_TABLE_ENTRY ||
                   entry->getType() == CatalogEntryType::REL_TABLE_ENTRY ||
                   entry->getType() == CatalogEntryType::REL_GROUP_ENTRY);
@@ -191,16 +190,18 @@ void CatalogSet::alterEntry(Transaction* transaction, const binder::BoundAlterIn
         if (alterInfo.alterType == AlterType::RENAME_TABLE) {
             // We treat rename table as drop and create.
             dropEntryNoLock(transaction, alterInfo.tableName, entry->getOID());
-            createdEntry = createEntryNoLock(transaction, std::move(newEntry));
+            auto createdEntry = createEntryNoLock(transaction, std::move(newEntry));
+            if (transaction->shouldAppendToUndoBuffer()) {
+                transaction->pushAlterCatalogEntry(*this, *entry, alterInfo);
+                transaction->pushCreateDropCatalogEntry(*this, *createdEntry, isInternal(),
+                    true /* skipLoggingToWAL */);
+            }
         } else {
             emplaceNoLock(std::move(newEntry));
+            if (transaction->shouldAppendToUndoBuffer()) {
+                transaction->pushAlterCatalogEntry(*this, *entry, alterInfo);
+            }
         }
-        tableEntry->setAlterInfo(alterInfo);
-    }
-    KU_ASSERT(entry);
-    logEntryForTrx(transaction, *this, *entry, isInternal());
-    if (createdEntry) {
-        logEntryForTrx(transaction, *this, *createdEntry, true /* skip logging to WAL */);
     }
 }
 

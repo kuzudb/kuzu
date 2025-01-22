@@ -4,6 +4,9 @@
 #include "common/types/types.h"
 
 namespace kuzu {
+namespace binder {
+struct BoundAlterInfo;
+}
 namespace catalog {
 class CatalogEntry;
 class CatalogSet;
@@ -110,8 +113,10 @@ public:
         return maxCommittedNodeOffsets.at(tableID) + getLocalRowIdx(tableID, uncommittedOffset);
     }
 
-    void pushCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry,
-        bool isInternal, bool skipLoggingToWAL = false) const;
+    void pushCreateDropCatalogEntry(catalog::CatalogSet& catalogSet,
+        catalog::CatalogEntry& catalogEntry, bool isInternal, bool skipLoggingToWAL = false) const;
+    void pushAlterCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry,
+        const binder::BoundAlterInfo& alterInfo) const;
     void pushSequenceChange(catalog::SequenceCatalogEntry* sequenceEntry, int64_t kCount,
         const catalog::SequenceRollbackData& data) const;
     void pushInsertInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,

@@ -76,7 +76,7 @@ uint64_t Transaction::getEstimatedMemUsage() const {
     return localStorage->getEstimatedMemUsage() + undoBuffer->getMemUsage();
 }
 
-void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry,
+void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry,
     bool isInternal, bool skipLoggingToWAL) const {
     undoBuffer->createCatalogEntry(catalogSet, catalogEntry);
     if (!shouldLogToWAL() || skipLoggingToWAL) {
@@ -96,10 +96,7 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
             }
             wal->logCreateCatalogEntryRecord(newCatalogEntry, isInternal);
         } else {
-            // Must be ALTER.
-            KU_ASSERT(catalogEntry.getType() == newCatalogEntry->getType());
-            auto& entry = catalogEntry.constCast<TableCatalogEntry>();
-            wal->logAlterTableEntryRecord(entry.getAlterInfo());
+            throw common::RuntimeException("This shouldn't happen. Alter table is not supported.");
         }
     } break;
     case CatalogEntryType::REL_GROUP_ENTRY: {
@@ -137,15 +134,7 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
         switch (catalogEntry.getType()) {
         // Eventually we probably want to merge these
         case CatalogEntryType::NODE_TABLE_ENTRY:
-        case CatalogEntryType::REL_TABLE_ENTRY: {
-            const auto tableCatalogEntry = catalogEntry.constPtrCast<TableCatalogEntry>();
-            if (const auto alterInfo = tableCatalogEntry->getAlterInfo()) {
-                // Must be rename table
-                wal->logAlterTableEntryRecord(alterInfo);
-            } else {
-                wal->logDropCatalogEntryRecord(tableCatalogEntry->getOID(), catalogEntry.getType());
-            }
-        } break;
+        case CatalogEntryType::REL_TABLE_ENTRY:
         case CatalogEntryType::REL_GROUP_ENTRY:
         case CatalogEntryType::SEQUENCE_ENTRY: {
             // TODO(Guodong): support alter rel group.
@@ -174,6 +163,17 @@ void Transaction::pushCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalog
                 CatalogEntryTypeUtils::toString(catalogEntry.getType())));
     }
     }
+}
+
+void Transaction::pushAlterCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry,
+    const binder::BoundAlterInfo& alterInfo) const {
+    undoBuffer->createCatalogEntry(catalogSet, catalogEntry);
+    if (!shouldLogToWAL()) {
+        return;
+    }
+    const auto wal = clientContext->getWAL();
+    KU_ASSERT(wal);
+    wal->logAlterTableEntryRecord(&alterInfo);
 }
 
 void Transaction::pushSequenceChange(SequenceCatalogEntry* sequenceEntry, int64_t kCount,

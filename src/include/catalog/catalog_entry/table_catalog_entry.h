@@ -41,12 +41,6 @@ public:
 
     virtual function::TableFunction getScanFunction() { KU_UNREACHABLE; }
 
-    binder::BoundAlterInfo* getAlterInfo() const { return alterInfo.get(); }
-    void resetAlterInfo() { alterInfo = nullptr; }
-    void setAlterInfo(const binder::BoundAlterInfo& alterInfo_) {
-        alterInfo = std::make_unique<binder::BoundAlterInfo>(alterInfo_.copy());
-    }
-
     common::column_id_t getMaxColumnID() const;
     void vacuumColumnIDs(common::column_id_t nextColumnID);
     std::string propertiesToCypher() const;
@@ -82,7 +76,6 @@ protected:
 protected:
     std::string comment;
     PropertyDefinitionCollection propertyCollection;
-    std::unique_ptr<binder::BoundAlterInfo> alterInfo;
 };
 
 struct TableCatalogEntryHasher {
