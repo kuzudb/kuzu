@@ -125,7 +125,7 @@ static std::vector<PropertyInfo> getForeignPropertyInfos(TableCatalogEntry* entr
     std::vector<PropertyInfo> infos;
     for (auto& def : entry->getProperties()) {
         auto info = getInfo(def);
-        info.propertyID = entry->getPropertyIdx(def.getName());
+        info.propertyID = entry->getPropertyID(def.getName());
         infos.push_back(std::move(info));
     }
     return infos;
@@ -136,7 +136,7 @@ static std::vector<PropertyInfo> getNodePropertyInfos(NodeTableCatalogEntry* ent
     auto primaryKeyName = entry->getPrimaryKeyName();
     for (auto& def : entry->getProperties()) {
         auto info = getInfo(def);
-        info.propertyID = entry->getPropertyIdx(def.getName());
+        info.propertyID = entry->getPropertyID(def.getName());
         info.extraInfo = std::make_unique<ExtraNodePropertyInfo>(primaryKeyName == def.getName());
         infos.push_back(std::move(info));
     }
@@ -150,7 +150,7 @@ static std::vector<PropertyInfo> getRelPropertyInfos(RelTableCatalogEntry* entry
             continue;
         }
         auto info = getInfo(def);
-        info.propertyID = entry->getPropertyIdx(def.getName());
+        info.propertyID = entry->getPropertyID(def.getName());
         info.extraInfo = std::make_unique<ExtraRelPropertyInfo>(
             ExtendDirectionUtil::toString(entry->getStorageDirection()));
         infos.push_back(std::move(info));

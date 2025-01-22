@@ -1,5 +1,7 @@
 #include "common/serializer/serializer.h"
 
+#include <map>
+
 #include "common/assert.h"
 
 namespace kuzu {

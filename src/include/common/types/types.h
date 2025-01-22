@@ -39,6 +39,7 @@ constexpr file_idx_t INVALID_FILE_IDX = UINT32_MAX;
 using page_group_idx_t = uint32_t;
 using frame_group_idx_t = page_group_idx_t;
 using column_id_t = uint32_t;
+using property_id_t = uint32_t;
 constexpr column_id_t INVALID_COLUMN_ID = UINT32_MAX;
 constexpr column_id_t ROW_IDX_COLUMN_ID = INVALID_COLUMN_ID - 1;
 using idx_t = uint32_t;

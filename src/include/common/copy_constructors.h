@@ -1,4 +1,5 @@
 #pragma once
+#include <map>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -110,8 +111,17 @@ static std::vector<std::unique_ptr<T>> cloneVector(const std::vector<std::unique
 }
 
 template<typename K, typename V>
-static std::unordered_map<K, V> copyMap(const std::unordered_map<K, V>& objects) {
+static std::unordered_map<K, V> copyUnorderedMap(const std::unordered_map<K, V>& objects) {
     std::unordered_map<K, V> result;
+    for (auto& [k, v] : objects) {
+        result.insert({k, v.copy()});
+    }
+    return result;
+}
+
+template<typename K, typename V>
+static std::map<K, V> copyMap(const std::map<K, V>& objects) {
+    std::map<K, V> result;
     for (auto& [k, v] : objects) {
         result.insert({k, v.copy()});
     }

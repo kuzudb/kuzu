@@ -88,7 +88,7 @@ public:
     MultiLabelNodeSetExecutor(NodeSetInfo info, common::table_id_map_t<NodeTableSetInfo> tableInfos)
         : NodeSetExecutor{std::move(info)}, tableInfos{std::move(tableInfos)} {}
     MultiLabelNodeSetExecutor(const MultiLabelNodeSetExecutor& other)
-        : NodeSetExecutor{other}, tableInfos{copyMap(other.tableInfos)} {}
+        : NodeSetExecutor{other}, tableInfos{copyUnorderedMap(other.tableInfos)} {}
 
     void set(ExecutionContext* context) override;
 
@@ -180,7 +180,7 @@ public:
     MultiLabelRelSetExecutor(RelSetInfo info, common::table_id_map_t<RelTableSetInfo> tableInfos)
         : RelSetExecutor{std::move(info)}, tableInfos{std::move(tableInfos)} {}
     MultiLabelRelSetExecutor(const MultiLabelRelSetExecutor& other)
-        : RelSetExecutor{other}, tableInfos{copyMap(other.tableInfos)} {}
+        : RelSetExecutor{other}, tableInfos{copyUnorderedMap(other.tableInfos)} {}
 
     void set(ExecutionContext* context) override;
 

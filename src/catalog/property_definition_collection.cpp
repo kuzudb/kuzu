@@ -1,5 +1,6 @@
 #include "catalog/property_definition_collection.h"
 
+#include <map>
 #include <sstream>
 
 #include "common/serializer/deserializer.h"
@@ -12,62 +13,70 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace catalog {
 
-const PropertyDefinition& PropertyDefinitionCollection::getDefinition(
-    const std::string& name) const {
-    return getDefinition(getIdx(name));
+std::vector<binder::PropertyDefinition> PropertyDefinitionCollection::getDefinitions() const {
+    std::vector<binder::PropertyDefinition> propertyDefinitions;
+    for (auto i = 0u; i < nextPropertyID; i++) {
+        if (definitions.contains(i)) {
+            propertyDefinitions.push_back(definitions.at(i).copy());
+        }
+    }
+    return propertyDefinitions;
 }
 
-const PropertyDefinition& PropertyDefinitionCollection::getDefinition(idx_t idx) const {
-    KU_ASSERT(idx < definitions.size());
-    return definitions[idx];
+const PropertyDefinition& PropertyDefinitionCollection::getDefinition(
+    const std::string& name) const {
+    return getDefinition(getPropertyID(name));
+}
+
+const PropertyDefinition& PropertyDefinitionCollection::getDefinition(
+    property_id_t propertyID) const {
+    KU_ASSERT(definitions.contains(propertyID));
+    return definitions.at(propertyID);
 }
 
 column_id_t PropertyDefinitionCollection::getColumnID(const std::string& name) const {
-    return getColumnID(getIdx(name));
+    return getColumnID(getPropertyID(name));
 }
 
-column_id_t PropertyDefinitionCollection::getColumnID(idx_t idx) const {
-    KU_ASSERT(idx < columnIDs.size());
-    return columnIDs[idx];
+column_id_t PropertyDefinitionCollection::getColumnID(property_id_t propertyID) const {
+    KU_ASSERT(columnIDs.contains(propertyID));
+    return columnIDs.at(propertyID);
 }
 
 void PropertyDefinitionCollection::vacuumColumnIDs(column_id_t nextColumnID) {
     this->nextColumnID = nextColumnID;
     columnIDs.clear();
-    for (auto& _ : definitions) {
-        KU_UNUSED(_);
-        columnIDs.push_back(this->nextColumnID++);
+    for (auto& [propertyID, definition] : definitions) {
+        columnIDs.emplace(propertyID, this->nextColumnID++);
     }
 }
 
 void PropertyDefinitionCollection::add(const PropertyDefinition& definition) {
-    nameToPropertyIdxMap.insert({definition.columnDefinition.name, definitions.size()});
-    columnIDs.push_back(nextColumnID++);
-    definitions.push_back(definition.copy());
+    auto propertyID = nextPropertyID++;
+    columnIDs.emplace(propertyID, nextColumnID++);
+    definitions.emplace(propertyID, definition.copy());
+    nameToPropertyIDMap.emplace(definition.getName(), propertyID);
 }
 
 void PropertyDefinitionCollection::drop(const std::string& name) {
     KU_ASSERT(contains(name));
-    auto idx = nameToPropertyIdxMap.at(name);
-    definitions.erase(definitions.begin() + idx);
-    columnIDs.erase(columnIDs.begin() + idx);
-    nameToPropertyIdxMap.clear();
-    for (auto i = 0u; i < definitions.size(); ++i) {
-        nameToPropertyIdxMap.insert({definitions[i].getName(), i});
-    }
+    auto propertyID = nameToPropertyIDMap.at(name);
+    definitions.erase(propertyID);
+    columnIDs.erase(propertyID);
+    nameToPropertyIDMap.erase(name);
 }
 
 void PropertyDefinitionCollection::rename(const std::string& name, const std::string& newName) {
     KU_ASSERT(contains(name));
-    auto idx = nameToPropertyIdxMap.at(name);
+    auto idx = nameToPropertyIDMap.at(name);
     definitions[idx].rename(newName);
-    nameToPropertyIdxMap.erase(name);
-    nameToPropertyIdxMap.insert({newName, idx});
+    nameToPropertyIDMap.erase(name);
+    nameToPropertyIDMap.insert({newName, idx});
 }
 
 column_id_t PropertyDefinitionCollection::getMaxColumnID() const {
     column_id_t maxID = 0;
-    for (auto id : columnIDs) {
+    for (auto [_, id] : columnIDs) {
         if (id > maxID) {
             maxID = id;
         }
@@ -75,14 +84,14 @@ column_id_t PropertyDefinitionCollection::getMaxColumnID() const {
     return maxID;
 }
 
-idx_t PropertyDefinitionCollection::getIdx(const std::string& name) const {
+property_id_t PropertyDefinitionCollection::getPropertyID(const std::string& name) const {
     KU_ASSERT(contains(name));
-    return nameToPropertyIdxMap.at(name);
+    return nameToPropertyIDMap.at(name);
 }
 
 std::string PropertyDefinitionCollection::toCypher() const {
     std::stringstream ss;
-    for (auto& def : definitions) {
+    for (auto& [_, def] : definitions) {
         auto& dataType = def.getType();
         if (dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID) {
             continue;
@@ -100,10 +109,12 @@ std::string PropertyDefinitionCollection::toCypher() const {
 void PropertyDefinitionCollection::serialize(Serializer& serializer) const {
     serializer.writeDebuggingInfo("nextColumnID");
     serializer.serializeValue(nextColumnID);
+    serializer.writeDebuggingInfo("nextPropertyID");
+    serializer.serializeValue(nextPropertyID);
     serializer.writeDebuggingInfo("definitions");
-    serializer.serializeVector(definitions);
+    serializer.serializeMap(definitions);
     serializer.writeDebuggingInfo("columnIDs");
-    serializer.serializeVector(columnIDs);
+    serializer.serializeUnorderedMap(columnIDs);
 }
 
 PropertyDefinitionCollection PropertyDefinitionCollection::deserialize(Deserializer& deserializer) {
@@ -111,17 +122,21 @@ PropertyDefinitionCollection PropertyDefinitionCollection::deserialize(Deseriali
     column_id_t nextColumnID = 0;
     deserializer.validateDebuggingInfo(debuggingInfo, "nextColumnID");
     deserializer.deserializeValue(nextColumnID);
-    std::vector<PropertyDefinition> definitions;
+    property_id_t nextPropertyID = 0;
+    deserializer.validateDebuggingInfo(debuggingInfo, "nextPropertyID");
+    deserializer.deserializeValue(nextPropertyID);
+    std::map<property_id_t, PropertyDefinition> definitions;
     deserializer.validateDebuggingInfo(debuggingInfo, "definitions");
-    deserializer.deserializeVector(definitions);
-    std::vector<column_id_t> columnIDs;
+    deserializer.deserializeMap(definitions);
+    std::unordered_map<property_id_t, column_id_t> columnIDs;
     deserializer.validateDebuggingInfo(debuggingInfo, "columnIDs");
-    deserializer.deserializeVector(columnIDs);
+    deserializer.deserializeUnorderedMap(columnIDs);
     auto collection = PropertyDefinitionCollection();
-    for (auto i = 0u; i < definitions.size(); ++i) {
-        collection.nameToPropertyIdxMap.insert({definitions[i].getName(), i});
+    for (auto& [propertyID, definition] : definitions) {
+        collection.nameToPropertyIDMap.insert({definition.getName(), propertyID});
     }
     collection.nextColumnID = nextColumnID;
+    collection.nextPropertyID = nextPropertyID;
     collection.definitions = std::move(definitions);
     collection.columnIDs = std::move(columnIDs);
     return collection;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -42,7 +43,27 @@ public:
     }
 
     template<typename T1, typename T2>
-    void serializeUnorderedMap(const std::unordered_map<T1, std::unique_ptr<T2>>& values) {
+    void serializeMap(const std::map<T1, T2>& values) {
+        uint64_t mapSize = values.size();
+        serializeValue(mapSize);
+        for (auto& value : values) {
+            serializeValue(value.first);
+            value.second.serialize(*this);
+        }
+    }
+
+    template<typename T1, typename T2>
+    void serializeUnorderedMap(const std::unordered_map<T1, T2>& values) {
+        uint64_t mapSize = values.size();
+        serializeValue(mapSize);
+        for (auto& value : values) {
+            serializeValue(value.first);
+            serializeValue<T2>(value.second);
+        }
+    }
+
+    template<typename T1, typename T2>
+    void serializeUnorderedMapOfPtrs(const std::unordered_map<T1, std::unique_ptr<T2>>& values) {
         uint64_t mapSize = values.size();
         serializeValue(mapSize);
         for (auto& value : values) {

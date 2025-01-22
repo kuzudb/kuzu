@@ -202,8 +202,7 @@ NodeTable::NodeTable(const StorageManager* storageManager,
       versionRecordHandler(this) {
     const auto maxColumnID = nodeTableEntry->getMaxColumnID();
     columns.resize(maxColumnID + 1);
-    for (auto i = 0u; i < nodeTableEntry->getNumProperties(); i++) {
-        auto& property = nodeTableEntry->getProperty(i);
+    for (auto& property : nodeTableEntry->getProperties()) {
         const auto columnID = nodeTableEntry->getColumnID(property.getName());
         const auto columnName =
             StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT, "");
@@ -485,7 +484,7 @@ void NodeTable::commit(Transaction* transaction, LocalTable* localTable) {
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
-         localNodeGroupIdx++) {
+        localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
         if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by

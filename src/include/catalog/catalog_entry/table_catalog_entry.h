@@ -50,12 +50,12 @@ public:
     common::column_id_t getMaxColumnID() const;
     void vacuumColumnIDs(common::column_id_t nextColumnID);
     std::string propertiesToCypher() const;
-    const std::vector<binder::PropertyDefinition>& getProperties() const {
+    std::vector<binder::PropertyDefinition> getProperties() const {
         return propertyCollection.getDefinitions();
     }
     common::idx_t getNumProperties() const { return propertyCollection.size(); }
     bool containsProperty(const std::string& propertyName) const;
-    common::idx_t getPropertyIdx(const std::string& propertyName) const;
+    common::idx_t getPropertyID(const std::string& propertyName) const;
     const binder::PropertyDefinition& getProperty(const std::string& propertyName) const;
     const binder::PropertyDefinition& getProperty(common::idx_t idx) const;
     virtual common::column_id_t getColumnID(const std::string& propertyName) const;
