@@ -2,7 +2,6 @@
 #include "binder/expression/node_expression.h"
 #include "binder/expression/rel_expression.h"
 #include "binder/expression_binder.h"
-#include "common/types/value/value.h"
 #include "function/rewrite_function.h"
 #include "function/schema/vector_node_rel_functions.h"
 #include "function/struct/vector_struct_functions.h"
@@ -13,10 +12,9 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace function {
 
-static std::shared_ptr<Expression> rewriteFunc(const expression_vector& params,
-    ExpressionBinder* binder) {
-    KU_ASSERT(params.size() == 1);
-    auto param = params[0].get();
+static std::shared_ptr<Expression> rewriteFunc(const RewriteFunctionBindInput& input) {
+    KU_ASSERT(input.arguments.size() == 1);
+    auto param = input.arguments[0].get();
     if (ExpressionUtil::isNodePattern(*param)) {
         auto node = param->constPtrCast<NodeExpression>();
         return node->getInternalID();
@@ -26,10 +24,9 @@ static std::shared_ptr<Expression> rewriteFunc(const expression_vector& params,
         return rel->getPropertyExpression(InternalKeyword::ID);
     }
     // Bind as struct_extract(param, "_id")
-    auto keyExpr =
-        binder->createLiteralExpression(Value(LogicalType::STRING(), InternalKeyword::ID));
-    auto newParams = expression_vector{params[0], keyExpr};
-    return binder->bindScalarFunctionExpression(newParams, StructExtractFunctions::name);
+    auto extractKey = input.expressionBinder->createLiteralExpression(InternalKeyword::ID);
+    return input.expressionBinder->bindScalarFunctionExpression({input.arguments[0], extractKey},
+        StructExtractFunctions::name);
 }
 
 function_set IDFunction::getFunctionSet() {

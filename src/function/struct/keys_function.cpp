@@ -9,13 +9,12 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace function {
 
-static std::shared_ptr<Expression> rewriteFunc(const expression_vector& params,
-    ExpressionBinder* /*binder*/) {
-    KU_ASSERT(params.size() == 1);
+static std::shared_ptr<Expression> rewriteFunc(const RewriteFunctionBindInput& input) {
+    KU_ASSERT(input.arguments.size() == 1);
     auto uniqueExpressionName =
-        ScalarFunctionExpression::getUniqueName(KeysFunctions::name, params);
+        ScalarFunctionExpression::getUniqueName(KeysFunctions::name, input.arguments);
     const auto& resultType = LogicalType::LIST(LogicalType::STRING());
-    auto fields = common::StructType::getFieldNames(params[0]->dataType);
+    auto fields = common::StructType::getFieldNames(input.arguments[0]->dataType);
     std::vector<std::unique_ptr<Value>> children;
     for (auto field : fields) {
         if (field == InternalKeyword::ID || field == InternalKeyword::LABEL ||
