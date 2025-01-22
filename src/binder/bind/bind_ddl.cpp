@@ -7,6 +7,7 @@
 #include "binder/expression/expression_util.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
@@ -165,7 +166,22 @@ static void validateNodeTableType(const TableCatalogEntry* entry) {
     }
 }
 
+static ExtendDirection getStorageDirection(
+    const common::case_insensitive_map_t<common::Value>& options) {
+    if (options.contains(TableOptionConstants::REL_STORAGE_DIRECTION_OPTION)) {
+        return ExtendDirectionUtil::fromString(
+            options.at(TableOptionConstants::REL_STORAGE_DIRECTION_OPTION).toString());
+    }
+    return ExtendDirectionUtil::getDefaultExtendDirection();
+}
+
 BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info) {
+    auto& extraInfo = info->extraInfo->constCast<ExtraCreateRelTableInfo>();
+    return bindCreateRelTableInfo(info, extraInfo.options);
+}
+
+BoundCreateTableInfo Binder::bindCreateRelTableInfo(const parser::CreateTableInfo* info,
+    const parser::options_t& parsedOptions) {
     std::vector<PropertyDefinition> propertyDefinitions;
     propertyDefinitions.emplace_back(
         ColumnDefinition(InternalKeyword::ID, LogicalType::INTERNAL_ID()));
@@ -175,29 +191,18 @@ BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info)
     auto& extraInfo = info->extraInfo->constCast<ExtraCreateRelTableInfo>();
     auto srcMultiplicity = RelMultiplicityUtils::getFwd(extraInfo.relMultiplicity);
     auto dstMultiplicity = RelMultiplicityUtils::getBwd(extraInfo.relMultiplicity);
-
-    auto parsingOptions = bindParsingOptions(extraInfo.options);
-    auto storageDirection = ExtendDirectionUtil::getDefaultExtendDirection();
-    if (parsingOptions.contains(TableOptionConstants::REL_STORAGE_DIRECTION_OPTION)) {
-        storageDirection = ExtendDirectionUtil::fromString(
-            parsingOptions.at(TableOptionConstants::REL_STORAGE_DIRECTION_OPTION).toString());
-    }
-
     auto srcEntry = bindNodeTableEntry(extraInfo.srcTableName);
     validateNodeTableType(srcEntry);
     auto dstEntry = bindNodeTableEntry(extraInfo.dstTableName);
     validateNodeTableType(dstEntry);
+    auto boundOptions = bindParsingOptions(parsedOptions);
+    auto storageDirection = getStorageDirection(boundOptions);
     auto boundExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(srcMultiplicity,
         dstMultiplicity, storageDirection, srcEntry->getTableID(), dstEntry->getTableID(),
         std::move(propertyDefinitions));
     return BoundCreateTableInfo(CatalogEntryType::REL_TABLE_ENTRY, info->tableName,
         info->onConflict, std::move(boundExtraInfo),
         clientContext->shouldUseInternalCatalogEntry());
-}
-
-static std::string getRelGroupTableName(const std::string& relGroupName,
-    const std::string& srcTableName, const std::string& dstTableName) {
-    return relGroupName + "_" + srcTableName + "_" + dstTableName;
 }
 
 BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* info) {
@@ -209,12 +214,11 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
         std::make_unique<CreateTableInfo>(CatalogEntryType::REL_TABLE_ENTRY, "", info->onConflict);
     relCreateInfo->propertyDefinitions = copyVector(info->propertyDefinitions);
     for (auto& [srcTableName, dstTableName] : extraInfo.srcDstTablePairs) {
-        relCreateInfo->tableName = getRelGroupTableName(relGroupName, srcTableName, dstTableName);
-        // TODO(Royi) correctly populate options for create rel table group
-        options_t options;
+        relCreateInfo->tableName =
+            RelGroupCatalogEntry::getChildTableName(relGroupName, srcTableName, dstTableName);
         relCreateInfo->extraInfo = std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity,
-            std::move(options), srcTableName, dstTableName);
-        auto boundInfo = bindCreateRelTableInfo(relCreateInfo.get());
+            srcTableName, dstTableName, options_t{});
+        auto boundInfo = bindCreateRelTableInfo(relCreateInfo.get(), extraInfo.options);
         boundInfo.hasParent = true;
         boundCreateRelTableInfos.push_back(std::move(boundInfo));
     }

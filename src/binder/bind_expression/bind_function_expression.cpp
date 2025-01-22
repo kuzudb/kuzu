@@ -4,6 +4,7 @@
 #include "binder/expression/scalar_function_expression.h"
 #include "binder/expression_binder.h"
 #include "catalog/catalog.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
 #include "function/cast/vector_cast_functions.h"
@@ -240,12 +241,13 @@ std::shared_ptr<Expression> ExpressionBinder::bindEndNodeExpression(const Expres
     return expression.constCast<RelExpression>().getDstNode();
 }
 
-static std::vector<std::unique_ptr<Value>> populateLabelValues(
+static std::vector<std::unique_ptr<Value>> populateLabelValues(const main::ClientContext* context,
     const std::vector<TableCatalogEntry*>& entries) {
     std::unordered_map<table_id_t, std::string> map;
     table_id_t maxTableID = 0;
     for (auto& entry : entries) {
-        map.insert({entry->getTableID(), entry->getName()});
+        map.insert({entry->getTableID(),
+            entry->getLabel(context->getCatalog(), context->getTransaction())});
         if (entry->getTableID() > maxTableID) {
             maxTableID = entry->getTableID();
         }
@@ -266,6 +268,8 @@ static std::vector<std::unique_ptr<Value>> populateLabelValues(
 std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(
     const Expression& expression) const {
     auto listType = LogicalType::LIST(LogicalType::STRING());
+    auto catalog = context->getCatalog();
+    auto transaction = context->getTransaction();
     expression_vector children;
     switch (expression.getDataType().getLogicalTypeID()) {
     case LogicalTypeID::NODE: {
@@ -274,11 +278,12 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(
             return createLiteralExpression("");
         }
         if (!node.isMultiLabeled()) {
-            auto labelName = node.getSingleEntry()->getName();
-            return createLiteralExpression(Value(LogicalType::STRING(), labelName));
+            return createLiteralExpression(Value(LogicalType::STRING(),
+                node.getSingleEntry()->getLabel(catalog, transaction)));
         }
         children.push_back(node.getInternalID());
-        auto labelsValue = Value(std::move(listType), populateLabelValues(node.getEntries()));
+        auto labelsValue =
+            Value(std::move(listType), populateLabelValues(context, node.getEntries()));
         children.push_back(createLiteralExpression(labelsValue));
     } break;
     case LogicalTypeID::REL: {
@@ -287,11 +292,12 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(
             return createLiteralExpression("");
         }
         if (!rel.isMultiLabeled()) {
-            auto labelName = rel.getSingleEntry()->getName();
-            return createLiteralExpression(Value(LogicalType::STRING(), labelName));
+            return createLiteralExpression(
+                Value(LogicalType::STRING(), rel.getSingleEntry()->getLabel(catalog, transaction)));
         }
         children.push_back(rel.getInternalIDProperty());
-        auto labelsValue = Value(std::move(listType), populateLabelValues(rel.getEntries()));
+        auto labelsValue =
+            Value(std::move(listType), populateLabelValues(context, rel.getEntries()));
         children.push_back(createLiteralExpression(labelsValue));
     } break;
     default:

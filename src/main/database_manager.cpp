@@ -3,6 +3,8 @@
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace main {
 
@@ -12,43 +14,52 @@ void DatabaseManager::registerAttachedDatabase(std::unique_ptr<AttachedDatabase>
     if (defaultDatabase == "") {
         defaultDatabase = attachedDatabase->getDBName();
     }
-    if (getAttachedDatabase(attachedDatabase->getDBName()) != nullptr) {
-        throw common::RuntimeException{common::stringFormat(
+    if (hasAttachedDatabase(attachedDatabase->getDBName())) {
+        throw RuntimeException{stringFormat(
             "Duplicate attached database name: {}. Attached database name must be unique.",
             attachedDatabase->getDBName())};
     }
     attachedDatabases.push_back(std::move(attachedDatabase));
 }
 
-AttachedDatabase* DatabaseManager::getAttachedDatabase(const std::string& name) {
-    auto upperCaseName = common::StringUtils::getUpper(name);
+bool DatabaseManager::hasAttachedDatabase(const std::string& name) {
+    auto upperCaseName = StringUtils::getUpper(name);
     for (auto& attachedDatabase : attachedDatabases) {
-        auto attachedDBName = attachedDatabase->getDBName();
-        common::StringUtils::toUpper(attachedDBName);
+        auto attachedDBName = StringUtils::getUpper(attachedDatabase->getDBName());
+        if (attachedDBName == upperCaseName) {
+            return true;
+        }
+    }
+    return false;
+}
+
+AttachedDatabase* DatabaseManager::getAttachedDatabase(const std::string& name) {
+    auto upperCaseName = StringUtils::getUpper(name);
+    for (auto& attachedDatabase : attachedDatabases) {
+        auto attachedDBName = StringUtils::getUpper(attachedDatabase->getDBName());
         if (attachedDBName == upperCaseName) {
             return attachedDatabase.get();
         }
     }
-    return nullptr;
+    throw RuntimeException{stringFormat("No database named {}.", name)};
 }
 
 void DatabaseManager::detachDatabase(const std::string& databaseName) {
-    auto upperCaseName = common::StringUtils::getUpper(databaseName);
+    auto upperCaseName = StringUtils::getUpper(databaseName);
     for (auto it = attachedDatabases.begin(); it != attachedDatabases.end(); ++it) {
         auto attachedDBName = (*it)->getDBName();
-        common::StringUtils::toUpper(attachedDBName);
+        StringUtils::toUpper(attachedDBName);
         if (attachedDBName == upperCaseName) {
             attachedDatabases.erase(it);
             return;
         }
     }
-    throw common::RuntimeException{
-        common::stringFormat("Database: {} doesn't exist.", databaseName)};
+    throw RuntimeException{stringFormat("Database: {} doesn't exist.", databaseName)};
 }
 
 void DatabaseManager::setDefaultDatabase(const std::string& databaseName) {
     if (getAttachedDatabase(databaseName) == nullptr) {
-        throw common::RuntimeException{common::stringFormat("No database named {}.", databaseName)};
+        throw RuntimeException{stringFormat("No database named {}.", databaseName)};
     }
     defaultDatabase = databaseName;
 }

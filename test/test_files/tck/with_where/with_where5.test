@@ -10,7 +10,7 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE IntNode(ID SERIAL, var INT64, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP T(FROM Root TO TextNode, FROM Root TO IntNode);
+-STATEMENT CREATE REL TABLE T(FROM Root TO TextNode, FROM Root TO IntNode);
 ---- ok
 -STATEMENT CREATE (root:Root {name: 'x'}),
                   (child1:TextNode {var: 'text'}),
@@ -33,7 +33,7 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE IntNode(ID SERIAL, var INT64, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP T(FROM Root TO TextNode, FROM Root TO IntNode);
+-STATEMENT CREATE REL TABLE T(FROM Root TO TextNode, FROM Root TO IntNode);
 ---- ok
 -STATEMENT CREATE (root:Root {name: 'x'}),
                   (child1:TextNode {var: 'text'}),
@@ -56,7 +56,7 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE IntNode(ID SERIAL, var INT64, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP T(FROM Root TO TextNode, FROM Root TO IntNode);
+-STATEMENT CREATE REL TABLE T(FROM Root TO TextNode, FROM Root TO IntNode);
 ---- ok
 -STATEMENT CREATE (root:Root {name: 'x'}),
                   (child1:TextNode {var: 'text'}),
@@ -80,7 +80,7 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE IntNode(ID SERIAL, var INT64, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP T(FROM Root TO TextNode, FROM Root TO IntNode);
+-STATEMENT CREATE REL TABLE T(FROM Root TO TextNode, FROM Root TO IntNode);
 ---- ok
 -STATEMENT CREATE (root:Root {name: 'x'}),
                   (child1:TextNode {var: 'text'}),

@@ -96,17 +96,26 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(const BaseScanSource
     }
 }
 
+static void removeNonScanOptions(case_insensitive_map_t<Value>& options) {
+    auto nonScanOptions = std::vector<std::string>{FileScanInfo::FILE_FORMAT_OPTION_NAME,
+        CopyConstants::FROM_OPTION_NAME, CopyConstants::TO_OPTION_NAME};
+    for (auto option : nonScanOptions) {
+        if (options.contains(option)) {
+            options.erase(option);
+        }
+    }
+}
+
 std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSource& scanSource,
     const options_t& options, const std::vector<std::string>& columnNames,
     const std::vector<LogicalType>& columnTypes) {
     auto fileSource = scanSource.constPtrCast<FileScanSource>();
     auto filePaths = bindFilePaths(fileSource->filePaths);
-    auto parsingOptions = bindParsingOptions(options);
+    auto boundOptions = bindParsingOptions(options);
     FileTypeInfo fileTypeInfo;
-    if (parsingOptions.contains(FileScanInfo::FILE_FORMAT_OPTION_NAME)) {
-        auto fileFormat = parsingOptions.at(FileScanInfo::FILE_FORMAT_OPTION_NAME).toString();
+    if (boundOptions.contains(FileScanInfo::FILE_FORMAT_OPTION_NAME)) {
+        auto fileFormat = boundOptions.at(FileScanInfo::FILE_FORMAT_OPTION_NAME).toString();
         fileTypeInfo = FileTypeInfo{FileTypeUtils::fromString(fileFormat), fileFormat};
-        parsingOptions.erase(FileScanInfo::FILE_FORMAT_OPTION_NAME);
     } else {
         fileTypeInfo = bindFileTypeInfo(filePaths);
     }
@@ -119,9 +128,10 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
             }
         }
     }
+    removeNonScanOptions(boundOptions);
     // Bind file configuration
     auto fileScanInfo = std::make_unique<FileScanInfo>(std::move(fileTypeInfo), filePaths);
-    fileScanInfo->options = std::move(parsingOptions);
+    fileScanInfo->options = std::move(boundOptions);
     auto func = getScanFunction(fileScanInfo->fileTypeInfo, *fileScanInfo);
     // Bind table function
     auto bindInput = TableFuncBindInput();
@@ -159,9 +169,6 @@ static TableFunction getObjectScanFunc(const std::string& dbName, const std::str
     const main::ClientContext* clientContext) {
     // Bind external database table
     auto attachedDB = clientContext->getDatabaseManager()->getAttachedDatabase(dbName);
-    if (attachedDB == nullptr) {
-        throw BinderException{stringFormat("No database named {} has been attached.", dbName)};
-    }
     auto attachedCatalog = attachedDB->getCatalog();
     auto entry = attachedCatalog->getTableCatalogEntry(clientContext->getTransaction(), tableName);
     return entry->ptrCast<TableCatalogEntry>()->getScanFunction();

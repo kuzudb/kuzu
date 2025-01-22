@@ -2,6 +2,7 @@
 #include "binder/copy/bound_copy_from.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
@@ -20,23 +21,49 @@ namespace binder {
 std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& statement) {
     auto& copyStatement = ku_dynamic_cast<const CopyFrom&>(statement);
     auto tableName = copyStatement.getTableName();
-    validateTableExist(tableName);
-    // Bind to table schema.
     auto catalog = clientContext->getCatalog();
-    auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTransaction(), tableName);
-    switch (tableEntry->getType()) {
-    case CatalogEntryType::NODE_TABLE_ENTRY: {
-        auto nodeTableEntry = tableEntry->ptrCast<NodeTableCatalogEntry>();
-        return bindCopyNodeFrom(statement, nodeTableEntry);
+    auto transaction = clientContext->getTransaction();
+    if (catalog->containsRelGroup(transaction, tableName)) {
+        auto entry = catalog->getRelGroupEntry(transaction, tableName);
+        if (entry->getNumRelTables() == 1) {
+            auto tableEntry =
+                catalog->getTableCatalogEntry(transaction, entry->getRelTableIDs()[0]);
+            return bindCopyRelFrom(statement, tableEntry->ptrCast<RelTableCatalogEntry>());
+        } else {
+            auto options = bindParsingOptions(copyStatement.getParsingOptions());
+            if (!options.contains(CopyConstants::FROM_OPTION_NAME) ||
+                !options.contains(CopyConstants::TO_OPTION_NAME)) {
+                throw BinderException(stringFormat(
+                    "The table {} has multiple FROM and TO pairs defined in the schema. A specific "
+                    "pair of FROM and TO options is expected when copying data into the {} table.",
+                    tableName, tableName));
+            }
+            auto from = options.at(CopyConstants::FROM_OPTION_NAME).getValue<std::string>();
+            auto to = options.at(CopyConstants::TO_OPTION_NAME).getValue<std::string>();
+            auto relTableName = RelGroupCatalogEntry::getChildTableName(tableName, from, to);
+            if (catalog->containsTable(transaction, relTableName)) {
+                auto relEntry = catalog->getTableCatalogEntry(transaction, relTableName);
+                return bindCopyRelFrom(statement, relEntry->ptrCast<RelTableCatalogEntry>());
+            }
+        }
+        throw BinderException(stringFormat("REL GROUP {} does not exist.", tableName));
+    } else if (catalog->getTableCatalogEntry(transaction, tableName)) {
+        auto tableEntry = catalog->getTableCatalogEntry(transaction, tableName);
+        switch (tableEntry->getType()) {
+        case CatalogEntryType::NODE_TABLE_ENTRY: {
+            auto nodeTableEntry = tableEntry->ptrCast<NodeTableCatalogEntry>();
+            return bindCopyNodeFrom(statement, nodeTableEntry);
+        }
+        case CatalogEntryType::REL_TABLE_ENTRY: {
+            auto relTableEntry = tableEntry->ptrCast<RelTableCatalogEntry>();
+            return bindCopyRelFrom(statement, relTableEntry);
+        }
+        default: {
+            KU_UNREACHABLE;
+        }
+        }
     }
-    case CatalogEntryType::REL_TABLE_ENTRY: {
-        auto relTableEntry = tableEntry->ptrCast<RelTableCatalogEntry>();
-        return bindCopyRelFrom(statement, relTableEntry);
-    }
-    default: {
-        KU_UNREACHABLE;
-    }
-    }
+    throw BinderException(stringFormat("Table {} does not exist.", tableName));
 }
 
 static void bindExpectedNodeColumns(const NodeTableCatalogEntry* nodeTableEntry,
@@ -70,8 +97,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     std::vector<LogicalType> expectedColumnTypes;
     bindExpectedNodeColumns(nodeTableEntry, copyStatement.getColumnNames(), expectedColumnNames,
         expectedColumnTypes);
-    auto boundSource = bindScanSource(copyStatement.getSource(),
-        copyStatement.getParsingOptionsRef(), expectedColumnNames, expectedColumnTypes);
+    auto boundSource = bindScanSource(copyStatement.getSource(), copyStatement.getParsingOptions(),
+        expectedColumnNames, expectedColumnTypes);
     expression_vector warningDataExprs = boundSource->getWarningColumns();
     if (boundSource->type == ScanSourceType::FILE) {
         auto& source = boundSource->constCast<BoundTableScanSource>();
@@ -110,8 +137,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& stateme
     std::vector<LogicalType> expectedColumnTypes;
     bindExpectedRelColumns(relTableEntry, copyStatement.getColumnNames(), expectedColumnNames,
         expectedColumnTypes, clientContext);
-    auto boundSource = bindScanSource(copyStatement.getSource(),
-        copyStatement.getParsingOptionsRef(), expectedColumnNames, expectedColumnTypes);
+    auto boundSource = bindScanSource(copyStatement.getSource(), copyStatement.getParsingOptions(),
+        expectedColumnNames, expectedColumnTypes);
     expression_vector warningDataExprs = boundSource->getWarningColumns();
     auto columns = boundSource->getColumns();
     auto offset =

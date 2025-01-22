@@ -101,6 +101,8 @@ public:
     BoundCreateTableInfo bindCreateTableInfo(const parser::CreateTableInfo* info);
     BoundCreateTableInfo bindCreateNodeTableInfo(const parser::CreateTableInfo* info);
     BoundCreateTableInfo bindCreateRelTableInfo(const parser::CreateTableInfo* info);
+    BoundCreateTableInfo bindCreateRelTableInfo(const parser::CreateTableInfo* info,
+        const parser::options_t& parsedOptions);
     BoundCreateTableInfo bindCreateRelTableGroupInfo(const parser::CreateTableInfo* info);
     std::unique_ptr<BoundStatement> bindCreateTable(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateType(const parser::Statement& statement) const;

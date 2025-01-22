@@ -21,6 +21,7 @@ class Transaction;
 
 namespace catalog {
 
+class Catalog;
 class KUZU_API TableCatalogEntry : public CatalogEntry {
 public:
     TableCatalogEntry() = default;
@@ -62,6 +63,8 @@ public:
     void addProperty(const binder::PropertyDefinition& propertyDefinition);
     void dropProperty(const std::string& propertyName);
     void renameProperty(const std::string& propertyName, const std::string& newName);
+
+    std::string getLabel(const Catalog* catalog, const transaction::Transaction* transaction);
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<TableCatalogEntry> deserialize(common::Deserializer& deserializer,

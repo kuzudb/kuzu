@@ -32,7 +32,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
         columnNames.push_back(columnName);
     }
     function::ExportFuncBindInput bindInput{std::move(columnNames), std::move(boundFilePath),
-        bindParsingOptions(copyToStatement.getParsingOptionsRef())};
+        bindParsingOptions(copyToStatement.getParsingOptions())};
     auto bindData = exportFunc->bind(bindInput);
     return std::make_unique<BoundCopyTo>(std::move(bindData), *exportFunc, std::move(query));
 }

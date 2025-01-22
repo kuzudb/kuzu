@@ -84,7 +84,7 @@ struct BoundExtraCreateNodeTableInfo final : BoundExtraCreateTableInfo {
     }
 };
 
-struct BoundExtraCreateRelTableInfo final : public BoundExtraCreateTableInfo {
+struct BoundExtraCreateRelTableInfo final : BoundExtraCreateTableInfo {
     common::RelMultiplicity srcMultiplicity;
     common::RelMultiplicity dstMultiplicity;
     common::ExtendDirection storageDirection;
@@ -114,7 +114,7 @@ struct BoundExtraCreateRelTableInfo final : public BoundExtraCreateTableInfo {
     }
 };
 
-struct BoundExtraCreateRelTableGroupInfo final : public BoundExtraCreateCatalogEntryInfo {
+struct BoundExtraCreateRelTableGroupInfo final : BoundExtraCreateCatalogEntryInfo {
     std::vector<BoundCreateTableInfo> infos;
 
     explicit BoundExtraCreateRelTableGroupInfo(std::vector<BoundCreateTableInfo> infos)

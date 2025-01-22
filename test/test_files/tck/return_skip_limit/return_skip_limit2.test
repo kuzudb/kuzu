@@ -104,7 +104,7 @@ Craig
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP T(FROM A TO B, FROM B TO C);
+-STATEMENT CREATE REL TABLE T(FROM A TO B, FROM B TO C);
 ---- ok
 -STATEMENT CREATE (a:A), (n1:B {num: 1}), (n2:B {num: 2}),
                   (m1:C), (m2:C)

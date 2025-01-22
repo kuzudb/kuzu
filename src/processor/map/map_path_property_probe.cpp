@@ -120,6 +120,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
     auto pathProbeInfo = PathPropertyProbeInfo();
     auto schema = logicalProbe.getSchema();
     pathProbeInfo.pathPos = getDataPos(*rel, *schema);
+    auto catalog = clientContext->getCatalog();
+    auto transaction = clientContext->getTransaction();
     if (logicalProbe.getPathEdgeIDs() != nullptr) {
         pathProbeInfo.leftNodeIDPos = getDataPos(*rel->getLeftNode()->getInternalID(), *schema);
         pathProbeInfo.rightNodeIDPos = getDataPos(*rel->getRightNode()->getInternalID(), *schema);
@@ -132,10 +134,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
                 getDataPos(*recursiveInfo->pathEdgeDirectionsExpr, *schema);
         }
         for (auto entry : recursiveInfo->node->getEntries()) {
-            pathProbeInfo.tableIDToName.insert({entry->getTableID(), entry->getName()});
+            pathProbeInfo.tableIDToName.insert(
+                {entry->getTableID(), entry->getLabel(catalog, transaction)});
         }
         for (auto& entry : recursiveInfo->rel->getEntries()) {
-            pathProbeInfo.tableIDToName.insert({entry->getTableID(), entry->getName()});
+            pathProbeInfo.tableIDToName.insert(
+                {entry->getTableID(), entry->getLabel(catalog, transaction)});
         }
     }
     pathProbeInfo.nodeFieldIndices = nodeFieldIndices;

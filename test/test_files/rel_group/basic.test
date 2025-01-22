@@ -5,59 +5,52 @@
 -CASE RelGroupTest1
 -STATEMENT MATCH (a)-[e:knows]->(b) WHERE a.ID = 0 AND b.ID = 2 RETURN label(e), label(b), b.*
 ---- 3
-knows_personA_personB|personB|2|Bob
-knows_personA_personC|personC|2|Bob
-knows_personB_personC|personC|2|Bob
+knows|personB|2|Bob
+knows|personC|2|Bob
+knows|personC|2|Bob
 -STATEMENT MATCH (a:personA)-[e:knows]->(b) WHERE a.ID = 0 AND b.ID = 2 RETURN label(e), label(b), b.*
 ---- 2
-knows_personA_personB|personB|2|Bob
-knows_personA_personC|personC|2|Bob
+knows|personB|2|Bob
+knows|personC|2|Bob
 -STATEMENT MATCH (a:personA)-[e:knows]->(b:personB) WHERE a.ID = 0 AND b.ID = 2 RETURN label(e), label(b), b.*
 ---- 1
-knows_personA_personB|personB|2|Bob
+knows|personB|2|Bob
 -STATEMENT MATCH (a:personA)-[e:likes]->(b:personB) WHERE a.ID = 0 RETURN label(e), label(b), b.*
 ---- 3
-likes_personA_personB|personB|2|Bob
-likes_personA_personB|personB|3|Carol
-likes_personA_personB|personB|5|Dan
+likes|personB|2|Bob
+likes|personB|3|Carol
+likes|personB|5|Dan
 -STATEMENT MATCH (a)-[e:likes]-(b) WHERE a.ID = 0 RETURN COUNT(*)
 ---- 1
 12
 -STATEMENT MATCH (a)-[e]->(b) WHERE a.ID = 0 AND b.ID = 2 RETURN label(e), label(b), b.*
 ---- 5
-knows_personA_personB|personB|2|Bob
-knows_personA_personC|personC|2|Bob
-knows_personB_personC|personC|2|Bob
-likes_personA_personB|personB|2|Bob
-likes_personB_personA|personA|2|Bob
+knows|personB|2|Bob
+knows|personC|2|Bob
+knows|personC|2|Bob
+likes|personB|2|Bob
+likes|personA|2|Bob
 -STATEMENT COPY knows FROM "a.csv";
 ---- error
-Binder exception: Table knows does not exist.
+Binder exception: The table knows has multiple FROM and TO pairs defined in the schema. A specific pair of FROM and TO options is expected when copying data into the knows table.
 -STATEMENT DROP TABLE knows_personA_personB;
 ---- error
 Binder exception: Cannot delete relationship table knows_personA_personB because it is referenced by relationship group knows.
 -STATEMENT CALL show_tables() RETURN *;
----- 10
+---- 5
 0|personA|NODE|local(kuzu)|
 1|personB|NODE|local(kuzu)|
 2|personC|NODE|local(kuzu)|
-3|knows_personA_personB|REL|local(kuzu)|
-4|knows_personA_personC|REL|local(kuzu)|
-5|knows_personB_personC|REL|local(kuzu)|
-0|knows|REL_GROUP|local(kuzu)|
-6|likes_personA_personB|REL|local(kuzu)|
-7|likes_personB_personA|REL|local(kuzu)|
-1|likes|REL_GROUP|local(kuzu)|
+0|knows|REL|local(kuzu)|
+1|likes|REL|local(kuzu)|
 -STATEMENT DROP TABLE knows;
 ---- ok
 -STATEMENT CALL show_tables() RETURN *;
----- 6
+---- 4
 0|personA|NODE|local(kuzu)|
 1|personB|NODE|local(kuzu)|
 2|personC|NODE|local(kuzu)|
-6|likes_personA_personB|REL|local(kuzu)|
-7|likes_personB_personA|REL|local(kuzu)|
-1|likes|REL_GROUP|local(kuzu)|
+1|likes|REL|local(kuzu)|
 -STATEMENT MATCH (a:personA)-[e:knows]->(b) RETURN COUNT(*)
 ---- error
 Binder exception: Table knows does not exist.
@@ -98,3 +91,56 @@ Binder exception: Cannot rename property on table hates with type REL_GROUP.
 -STATEMENT CALL table_info("likes_A_B") RETURN *;
 ---- 1
 1|s|DATE|NULL|both
+
+
+-CASE DMLCreateWithSRCandDEST
+
+-STATEMENT CREATE (a);
+---- error
+Binder exception: Create node a with multiple node labels is not supported.
+-STATEMENT CREATE (a {ID:1145})-[:likes]->(b {ID:1919});
+---- error
+Binder exception: Create node a with multiple node labels is not supported.
+-STATEMENT CREATE (a:personA {ID:1145})-[:likes]->(b {ID:1919});
+---- error
+Binder exception: Create node b with multiple node labels is not supported.
+-STATEMENT CREATE (a {ID:1145})-[:likes]->(b:personB {ID:1919});
+---- error
+Binder exception: Create node a with multiple node labels is not supported.
+-STATEMENT CREATE (a:personA {ID:1145})-[:likes]->(b:personB {ID:1919});
+---- ok
+-STATEMENT MATCH (a)-[e:likes]-(b) WHERE b.ID = 1919 RETURN a.ID,b.ID,label(a),label(b),label(e);
+---- 1
+1145|1919|personA|personB|likes
+
+-CASE COPYWithFROMTO
+
+-STATEMENT create rel table test (FROM personA TO personA, FROM personA To personB, date DATE);
+---- ok
+-STATEMENT COPY test FROM '${KUZU_ROOT_DIRECTORY}/dataset/rel-group/edge.csv';
+---- error
+Binder exception: The table test has multiple FROM and TO pairs defined in the schema. A specific pair of FROM and TO options is expected when copying data into the test table.
+-STATEMENT COPY test FROM '${KUZU_ROOT_DIRECTORY}/dataset/rel-group/edge.csv' (from = 'personA', to = 'personB');
+---- ok
+-STATEMENT MATCH (a:personA)-[e:test]->(b:personB) WHERE a.ID = 0 RETURN label(e), label(b), b.*
+---- 3
+test|personB|2|Bob
+test|personB|3|Carol
+test|personB|5|Dan
+-STATEMENT CALL table_info('test') RETURN *;
+---- 1
+1|date|DATE|NULL|both
+
+-CASE ImportRELGROUPfromOldVersion
+-STATEMENT create rel table group likes_import (FROM personA TO personB, FROM personB To personA, date DATE);
+---- ok
+-STATEMENT COPY likes_import_personA_personB FROM "${KUZU_ROOT_DIRECTORY}/dataset/rel-group/edge.csv";
+---- ok
+-STATEMENT MATCH (a:personA)-[e:likes_import]->(b:personB) WHERE a.ID = 0 RETURN label(e), label(b), b.*
+---- 3
+likes_import|personB|2|Bob
+likes_import|personB|3|Carol
+likes_import|personB|5|Dan
+-STATEMENT MATCH (a)-[e:likes_import]-(b) WHERE a.ID = 0 RETURN COUNT(*)
+---- 1
+6

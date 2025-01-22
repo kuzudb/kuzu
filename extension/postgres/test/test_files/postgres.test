@@ -49,7 +49,7 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|2544|the movie is very ve
 Catalog exception: person1 does not exist in catalog.
 -STATEMENT LOAD FROM tinysnb1.person RETURN *;
 ---- error
-Binder exception: No database named tinysnb1 has been attached.
+Runtime exception: No database named tinysnb1.
 -STATEMENT ATTACH 'dbname=pgscan user=ci host=localhost' (dbtype POSTGRES);
 ---- ok
 -STATEMENT LOAD FROM pgscan.movies RETURN count(*);

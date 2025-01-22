@@ -55,8 +55,8 @@ public:
     RuleKU_DetachDatabase = 13, RuleKU_UseDatabase = 14, RuleKU_StandaloneCall = 15, 
     RuleKU_CommentOn = 16, RuleKU_CreateMacro = 17, RuleKU_PositionalArgs = 18, 
     RuleKU_DefaultArg = 19, RuleKU_FilePaths = 20, RuleKU_IfNotExists = 21, 
-    RuleKU_CreateNodeTable = 22, RuleKU_CreateRelTable = 23, RuleKU_CreateRelTableGroup = 24, 
-    RuleKU_RelTableConnection = 25, RuleKU_CreateSequence = 26, RuleKU_CreateType = 27, 
+    RuleKU_CreateNodeTable = 22, RuleKU_CreateRelTable = 23, RuleKU_FromToConnections = 24, 
+    RuleKU_FromToConnection = 25, RuleKU_CreateSequence = 26, RuleKU_CreateType = 27, 
     RuleKU_SequenceOptions = 28, RuleKU_IncrementBy = 29, RuleKU_MinValue = 30, 
     RuleKU_MaxValue = 31, RuleKU_StartWith = 32, RuleKU_Cycle = 33, RuleKU_IfExists = 34, 
     RuleKU_Drop = 35, RuleKU_AlterTable = 36, RuleKU_AlterOptions = 37, 
@@ -148,8 +148,8 @@ public:
   class KU_IfNotExistsContext;
   class KU_CreateNodeTableContext;
   class KU_CreateRelTableContext;
-  class KU_CreateRelTableGroupContext;
-  class KU_RelTableConnectionContext;
+  class KU_FromToConnectionsContext;
+  class KU_FromToConnectionContext;
   class KU_CreateSequenceContext;
   class KU_CreateTypeContext;
   class KU_SequenceOptionsContext;
@@ -329,7 +329,6 @@ public:
     OC_QueryContext *oC_Query();
     KU_CreateNodeTableContext *kU_CreateNodeTable();
     KU_CreateRelTableContext *kU_CreateRelTable();
-    KU_CreateRelTableGroupContext *kU_CreateRelTableGroup();
     KU_CreateSequenceContext *kU_CreateSequence();
     KU_CreateTypeContext *kU_CreateType();
     KU_DropContext *kU_Drop();
@@ -683,7 +682,8 @@ public:
     antlr4::tree::TerminalNode *REL();
     antlr4::tree::TerminalNode *TABLE();
     OC_SchemaNameContext *oC_SchemaName();
-    KU_RelTableConnectionContext *kU_RelTableConnection();
+    KU_FromToConnectionsContext *kU_FromToConnections();
+    antlr4::tree::TerminalNode *GROUP();
     KU_IfNotExistsContext *kU_IfNotExists();
     KU_PropertyDefinitionsContext *kU_PropertyDefinitions();
     OC_SymbolicNameContext *oC_SymbolicName();
@@ -695,31 +695,23 @@ public:
 
   KU_CreateRelTableContext* kU_CreateRelTable();
 
-  class  KU_CreateRelTableGroupContext : public antlr4::ParserRuleContext {
+  class  KU_FromToConnectionsContext : public antlr4::ParserRuleContext {
   public:
-    KU_CreateRelTableGroupContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    KU_FromToConnectionsContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *CREATE();
+    std::vector<KU_FromToConnectionContext *> kU_FromToConnection();
+    KU_FromToConnectionContext* kU_FromToConnection(size_t i);
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
-    antlr4::tree::TerminalNode *REL();
-    antlr4::tree::TerminalNode *TABLE();
-    antlr4::tree::TerminalNode *GROUP();
-    OC_SchemaNameContext *oC_SchemaName();
-    std::vector<KU_RelTableConnectionContext *> kU_RelTableConnection();
-    KU_RelTableConnectionContext* kU_RelTableConnection(size_t i);
-    KU_IfNotExistsContext *kU_IfNotExists();
-    KU_PropertyDefinitionsContext *kU_PropertyDefinitions();
-    OC_SymbolicNameContext *oC_SymbolicName();
 
    
   };
 
-  KU_CreateRelTableGroupContext* kU_CreateRelTableGroup();
+  KU_FromToConnectionsContext* kU_FromToConnections();
 
-  class  KU_RelTableConnectionContext : public antlr4::ParserRuleContext {
+  class  KU_FromToConnectionContext : public antlr4::ParserRuleContext {
   public:
-    KU_RelTableConnectionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    KU_FromToConnectionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *FROM();
     std::vector<antlr4::tree::TerminalNode *> SP();
@@ -731,7 +723,7 @@ public:
    
   };
 
-  KU_RelTableConnectionContext* kU_RelTableConnection();
+  KU_FromToConnectionContext* kU_FromToConnection();
 
   class  KU_CreateSequenceContext : public antlr4::ParserRuleContext {
   public:
@@ -2801,6 +2793,8 @@ public:
     antlr4::tree::TerminalNode *TYPE();
     antlr4::tree::TerminalNode *USE();
     antlr4::tree::TerminalNode *WRITE();
+    antlr4::tree::TerminalNode *FROM();
+    antlr4::tree::TerminalNode *TO();
 
    
   };

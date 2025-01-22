@@ -36,14 +36,14 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP KNOWS(FROM A TO B, FROM B TO C);
+-STATEMENT CREATE REL TABLE KNOWS(FROM A TO B, FROM B TO C);
 ---- ok
 -STATEMENT CREATE (a:A {name: 'A'})-[:KNOWS_A_B]->(b:B {name: 'B'})-[:KNOWS_B_C]->(c:C {name: 'C'});
 ---- ok
 -STATEMENT MATCH p = (a {name: 'A'})-[rel1]->(b)-[rel2]->(c)
            RETURN p;
 ---- 1
-{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B},{_ID: 2:0, _LABEL: C, ID: 0, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS_A_B, _ID: 3:0}->(1:0),(1:0)-{_LABEL: KNOWS_B_C, _ID: 4:0}->(2:0)]}
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B},{_ID: 2:0, _LABEL: C, ID: 0, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 3:0}->(1:0),(1:0)-{_LABEL: KNOWS, _ID: 4:0}->(2:0)]}
 
 # Respecting direction when matching non-existent path
 -CASE Scenario4
@@ -109,7 +109,7 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP T(FROM A TO B, FROM B TO A);
+-STATEMENT CREATE REL TABLE T(FROM A TO B, FROM B TO A);
 ---- ok
 -STATEMENT CREATE (a:A), (b:B)
            CREATE (a)-[:T_A_B]->(b),
@@ -148,7 +148,7 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP T(FROM B TO A, FROM C TO B);
+-STATEMENT CREATE REL TABLE T(FROM B TO A, FROM C TO B);
 ---- ok
 -STATEMENT CREATE (a:A), (b:B), (c:C)
            CREATE (b)-[:T_B_A]->(a),
@@ -170,7 +170,7 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE D(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP T(FROM B TO A, FROM C TO B, FROM D TO C);
+-STATEMENT CREATE REL TABLE T(FROM B TO A, FROM C TO B, FROM D TO C);
 ---- ok
 -STATEMENT CREATE (a:A), (b:B), (c:C), (d:D)
            CREATE (b)-[:T_B_A]->(a),
@@ -235,7 +235,7 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP CONNECTED_TO(FROM A TO Start, FROM A TO End, FROM A TO A);
+-STATEMENT CREATE REL TABLE CONNECTED_TO(FROM A TO Start, FROM A TO End, FROM A TO A);
 ---- ok
 -STATEMENT CREATE (db1:Start), (db2:End), (mid:A), (other:A)
            CREATE (mid)-[:CONNECTED_TO_A_Start]->(db1),
@@ -274,15 +274,15 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE GROUP KNOWS(FROM A TO B, FROM B TO C, num INT64);
+-STATEMENT CREATE REL TABLE KNOWS(FROM A TO B, FROM B TO C, num INT64);
 ---- ok
 -STATEMENT CREATE (a:A {name: 'A'})-[:KNOWS_A_B {num: 1}]->(b:B {name: 'B'})-[:KNOWS_B_C {num: 2}]->(c:C {name: 'C'});
 ---- ok
 -STATEMENT MATCH p = (n {name: 'A'})-[:KNOWS*1..2]->(x)
            RETURN p;
 ---- 2
-{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B},{_ID: 2:0, _LABEL: C, ID: 0, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS_A_B, _ID: 3:0, num: 1}->(1:0),(1:0)-{_LABEL: KNOWS_B_C, _ID: 4:0, num: 2}->(2:0)]}
-{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B}], _RELS: [(0:0)-{_LABEL: KNOWS_A_B, _ID: 3:0, num: 1}->(1:0)]}
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B},{_ID: 2:0, _LABEL: C, ID: 0, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 3:0, num: 1}->(1:0),(1:0)-{_LABEL: KNOWS, _ID: 4:0, num: 2}->(2:0)]}
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 3:0, num: 1}->(1:0)]}
 
 # Return a named var length path of length zero
 -CASE Scenario17

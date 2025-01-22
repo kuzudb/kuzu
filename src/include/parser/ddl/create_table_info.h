@@ -42,24 +42,25 @@ struct ExtraCreateNodeTableInfo : public ExtraCreateTableInfo {
 
 struct ExtraCreateRelTableInfo : public ExtraCreateTableInfo {
     std::string relMultiplicity;
-    options_t options;
     std::string srcTableName;
     std::string dstTableName;
+    options_t options;
 
-    ExtraCreateRelTableInfo(std::string relMultiplicity, options_t options,
-        std::string srcTableName, std::string dstTableName)
-        : relMultiplicity{std::move(relMultiplicity)}, options(std::move(options)),
-          srcTableName{std::move(srcTableName)}, dstTableName{std::move(dstTableName)} {}
+    ExtraCreateRelTableInfo(std::string relMultiplicity, std::string srcTableName,
+        std::string dstTableName, options_t options)
+        : relMultiplicity{std::move(relMultiplicity)}, srcTableName{std::move(srcTableName)},
+          dstTableName{std::move(dstTableName)}, options{std::move(options)} {}
 };
 
 struct ExtraCreateRelTableGroupInfo : public ExtraCreateTableInfo {
     std::string relMultiplicity;
     std::vector<std::pair<std::string, std::string>> srcDstTablePairs;
+    options_t options;
 
     ExtraCreateRelTableGroupInfo(std::string relMultiplicity,
-        std::vector<std::pair<std::string, std::string>> srcDstTablePairs)
+        std::vector<std::pair<std::string, std::string>> srcDstTablePairs, options_t options)
         : relMultiplicity{std::move(relMultiplicity)},
-          srcDstTablePairs{std::move(srcDstTablePairs)} {}
+          srcDstTablePairs{std::move(srcDstTablePairs)}, options{std::move(options)} {}
 };
 
 } // namespace parser

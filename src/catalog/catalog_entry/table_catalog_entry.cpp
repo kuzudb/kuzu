@@ -1,7 +1,9 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 
 #include "binder/ddl/bound_alter_info.h"
+#include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/serializer/deserializer.h"
 
@@ -89,6 +91,20 @@ void TableCatalogEntry::dropProperty(const std::string& propertyName) {
 void TableCatalogEntry::renameProperty(const std::string& propertyName,
     const std::string& newName) {
     propertyCollection.rename(propertyName, newName);
+}
+
+std::string TableCatalogEntry::getLabel(const Catalog* catalog,
+    const transaction::Transaction* transaction) {
+    if (type == CatalogEntryType::NODE_TABLE_ENTRY) {
+        return name;
+    }
+    KU_ASSERT(type == CatalogEntryType::REL_TABLE_ENTRY);
+    for (auto& relGroup : catalog->getRelGroupEntries(transaction)) {
+        if (relGroup->isParent(getTableID())) {
+            return relGroup->getName();
+        }
+    }
+    return name;
 }
 
 void TableCatalogEntry::serialize(Serializer& serializer) const {

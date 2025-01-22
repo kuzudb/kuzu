@@ -6,7 +6,6 @@ namespace kuzu {
 namespace catalog {
 
 class Catalog;
-
 class RelGroupCatalogEntry final : public CatalogEntry {
     static constexpr CatalogEntryType type_ = CatalogEntryType::REL_GROUP_ENTRY;
 
@@ -15,6 +14,7 @@ public:
     RelGroupCatalogEntry(std::string tableName, std::vector<common::table_id_t> relTableIDs)
         : CatalogEntry{type_, std::move(tableName)}, relTableIDs{std::move(relTableIDs)} {}
 
+    common::idx_t getNumRelTables() const { return relTableIDs.size(); }
     const std::vector<common::table_id_t>& getRelTableIDs() const { return relTableIDs; }
 
     bool isParent(common::table_id_t tableID) const;
@@ -28,6 +28,11 @@ public:
 
     binder::BoundCreateTableInfo getBoundCreateTableInfo(transaction::Transaction* transaction,
         Catalog* catalog, bool isInternal) const;
+
+    static std::string getChildTableName(const std::string& groupName, const std::string& srcName,
+        const std::string& dstName) {
+        return groupName + "_" + srcName + "_" + dstName;
+    }
 
 private:
     std::vector<common::table_id_t> relTableIDs;

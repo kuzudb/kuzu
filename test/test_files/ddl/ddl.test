@@ -70,7 +70,7 @@ Table knows altered.
 ---- ok
 
 -CASE CreateRelGroup
--STATEMENT CREATE REL TABLE GROUP likes (FROM person TO person, FROM person TO organisation, since INT64);
+-STATEMENT CREATE REL TABLE likes (FROM person TO person, FROM person TO organisation, since INT64);
 ---- 1
 Table likes has been created.
 -STATEMENT Call table_info('likes_person_person') RETURN *;
@@ -79,18 +79,18 @@ Table likes has been created.
 -STATEMENT Call table_info('likes_person_organisation') RETURN *;
 ---- 1
 1|since|INT64|NULL|both
--STATEMENT CREATE REL TABLE GROUP likes (FROM person TO person, FROM person TO organisation);
+-STATEMENT CREATE REL TABLE likes (FROM person TO person, FROM person TO organisation);
 ---- error
 Binder exception: likes already exists in catalog.
--STATEMENT CREATE REL TABLE GROUP knows (FROM person TO person, FROM person TO organisation);
+-STATEMENT CREATE REL TABLE knows (FROM person TO person, FROM person TO organisation);
 ---- error
 Binder exception: knows already exists in catalog.
 -STATEMENT CREATE REL TABLE test_person_person (FROM person TO person);
 ---- ok
--STATEMENT CREATE REL TABLE GROUP test (FROM person TO person, FROM person TO organisation);
+-STATEMENT CREATE REL TABLE test (FROM person TO person, FROM person TO organisation);
 ---- error
 Catalog exception: test_person_person already exists in catalog.
--STATEMENT CREATE REL TABLE GROUP test2 (FROM person TO person, FROM person TO person);
+-STATEMENT CREATE REL TABLE test2 (FROM person TO person, FROM person TO person);
 ---- error
 Catalog exception: test2_person_person already exists in catalog.
 
@@ -506,10 +506,10 @@ Table finds already exists.
 -STATEMENT CREATE NODE TABLE student (ID INT64, PRIMARY KEY(ID));
 ---- 1
 Table student has been created.
--STATEMENT CREATE REL TABLE GROUP interests(FROM UW to student, From student to student);
+-STATEMENT CREATE REL TABLE interests(FROM UW to student, From student to student);
 ---- 1
 Table interests has been created.
--STATEMENT CREATE REL TABLE GROUP IF NOT EXISTS interests(FROM UW to student, From student to student);
+-STATEMENT CREATE REL TABLE IF NOT EXISTS interests(FROM UW to student, From student to student);
 ---- 1
 Table interests already exists.
 -STATEMENT CREATE NODE TABLE IF NOT EXISTS UW1 (ID INT64, PRIMARY KEY(ID))
