@@ -897,7 +897,8 @@ static void finalizeFunc(const processor::ExecutionContext* ctx,
         jsonSharedState->populateErrorFunc);
 }
 
-std::unique_ptr<TableFunction> JsonScan::getFunction() {
+function_set JsonScan::getFunctionSet() {
+    function_set functionSet;
     auto func = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
     func->tableFunc = tableFunc;
     func->bindFunc = bindFunc;
@@ -905,7 +906,8 @@ std::unique_ptr<TableFunction> JsonScan::getFunction() {
     func->initLocalStateFunc = initLocalState;
     func->progressFunc = progressFunc;
     func->finalizeFunc = finalizeFunc;
-    return func;
+    functionSet.push_back(std::move(func));
+    return functionSet;
 }
 
 } // namespace json_extension

@@ -1,7 +1,6 @@
 #include "fts_extension.h"
 
 #include "catalog/catalog.h"
-#include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/fts_index_catalog_entry.h"
 #include "common/serializer/buffered_reader.h"
 #include "function/create_fts_index.h"
@@ -14,6 +13,8 @@
 namespace kuzu {
 namespace fts_extension {
 
+using namespace extension;
+
 static void initFTSEntries(const transaction::Transaction* transaction, catalog::Catalog& catalog) {
     for (auto& indexEntry : catalog.getIndexEntries(transaction)) {
         if (indexEntry->getIndexType() == FTSIndexCatalogEntry::TYPE_NAME) {
@@ -24,10 +25,10 @@ static void initFTSEntries(const transaction::Transaction* transaction, catalog:
 
 void FTSExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
-    ADD_SCALAR_FUNC(StemFunction);
-    ADD_GDS_FUNC(QueryFTSFunction);
-    db.addStandaloneCallFunction(CreateFTSFunction::name, CreateFTSFunction::getFunctionSet());
-    db.addStandaloneCallFunction(DropFTSFunction::name, DropFTSFunction::getFunctionSet());
+    ExtensionUtils::addScalarFunc<StemFunction>(db);
+    ExtensionUtils::addGDSFunc<QueryFTSFunction>(db);
+    ExtensionUtils::addStandaloneTableFunc<CreateFTSFunction>(db);
+    ExtensionUtils::addStandaloneTableFunc<DropFTSFunction>(db);
     initFTSEntries(context->getTransaction(), *db.getCatalog());
 }
 

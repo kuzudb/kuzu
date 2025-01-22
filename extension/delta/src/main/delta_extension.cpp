@@ -10,7 +10,7 @@ namespace delta_extension {
 
 void DeltaExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
-    ADD_TABLE_FUNC(DeltaScanFunction);
+    extension::ExtensionUtils::addTableFunc<DeltaScanFunction>(db);
     httpfs::S3DownloadOptions::registerExtensionOptions(&db);
     httpfs::S3DownloadOptions::setEnvValue(context);
 }

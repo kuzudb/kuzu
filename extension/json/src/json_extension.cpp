@@ -1,7 +1,5 @@
 #include "json_extension.h"
 
-#include "catalog/catalog.h"
-#include "common/types/types.h"
 #include "json_creation_functions.h"
 #include "json_export.h"
 #include "json_extract_functions.h"
@@ -14,28 +12,30 @@
 namespace kuzu {
 namespace json_extension {
 
+using namespace kuzu::extension;
+
 static void addJsonCreationFunction(main::Database& db) {
-    ADD_SCALAR_FUNC(ToJsonFunction);
-    ADD_SCALAR_FUNC_ALIAS(JsonQuoteFunction);
-    ADD_SCALAR_FUNC_ALIAS(ArrayToJsonFunction);
-    ADD_SCALAR_FUNC_ALIAS(RowToJsonFunction);
-    ADD_SCALAR_FUNC_ALIAS(CastToJsonFunction);
-    ADD_SCALAR_FUNC(JsonArrayFunction);
-    ADD_SCALAR_FUNC(JsonObjectFunction);
-    ADD_SCALAR_FUNC(JsonMergePatchFunction);
+    ExtensionUtils::addScalarFunc<ToJsonFunction>(db);
+    ExtensionUtils::addScalarFuncAlias<JsonQuoteFunction>(db);
+    ExtensionUtils::addScalarFuncAlias<ArrayToJsonFunction>(db);
+    ExtensionUtils::addScalarFuncAlias<RowToJsonFunction>(db);
+    ExtensionUtils::addScalarFuncAlias<CastToJsonFunction>(db);
+    ExtensionUtils::addScalarFunc<JsonArrayFunction>(db);
+    ExtensionUtils::addScalarFunc<JsonObjectFunction>(db);
+    ExtensionUtils::addScalarFunc<JsonMergePatchFunction>(db);
 }
 
 static void addJsonExtractFunction(main::Database& db) {
-    ADD_SCALAR_FUNC(JsonExtractFunction);
+    ExtensionUtils::addScalarFunc<JsonExtractFunction>(db);
 }
 
 static void addJsonScalarFunction(main::Database& db) {
-    ADD_SCALAR_FUNC(JsonArrayLengthFunction);
-    ADD_SCALAR_FUNC(JsonContainsFunction);
-    ADD_SCALAR_FUNC(JsonKeysFunction);
-    ADD_SCALAR_FUNC(JsonStructureFunction);
-    ADD_SCALAR_FUNC(JsonValidFunction);
-    ADD_SCALAR_FUNC(MinifyJsonFunction);
+    ExtensionUtils::addScalarFunc<JsonArrayLengthFunction>(db);
+    ExtensionUtils::addScalarFunc<JsonContainsFunction>(db);
+    ExtensionUtils::addScalarFunc<JsonKeysFunction>(db);
+    ExtensionUtils::addScalarFunc<JsonStructureFunction>(db);
+    ExtensionUtils::addScalarFunc<JsonValidFunction>(db);
+    ExtensionUtils::addScalarFunc<MinifyJsonFunction>(db);
 }
 
 void JsonExtension::load(main::ClientContext* context) {
@@ -45,8 +45,8 @@ void JsonExtension::load(main::ClientContext* context) {
     addJsonCreationFunction(db);
     addJsonExtractFunction(db);
     addJsonScalarFunction(db);
-    ADD_SCALAR_FUNC(JsonExportFunction);
-    extension::ExtensionUtils::registerTableFunction(db, JsonScan::getFunction());
+    ExtensionUtils::addScalarFunc<JsonExportFunction>(db);
+    ExtensionUtils::addTableFunc<JsonScan>(db);
 }
 
 } // namespace json_extension
