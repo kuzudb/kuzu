@@ -21,12 +21,6 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace binder {
 
-static std::string getPrimaryKeyName(table_id_t tableId, const Catalog& catalog,
-    const Transaction* transaction) {
-    auto tableEntry = catalog.getTableCatalogEntry(transaction, tableId);
-    return tableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName();
-}
-
 static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog,
     const Transaction* transaction, Binder* binder) {
     std::vector<ExportedTableData> exportData;
@@ -61,17 +55,13 @@ static void bindExportNodeTableDataQuery(const TableCatalogEntry& entry, std::st
 static void bindExportRelTableDataQuery(const TableCatalogEntry& entry, std::string& exportQuery,
     const Catalog& catalog, const Transaction* transaction) {
     auto relTableEntry = entry.constPtrCast<RelTableCatalogEntry>();
-    auto srcPrimaryKeyName =
-        getPrimaryKeyName(relTableEntry->getSrcTableID(), catalog, transaction);
-    auto dstPrimaryKeyName =
-        getPrimaryKeyName(relTableEntry->getDstTableID(), catalog, transaction);
-    auto srcName =
-        catalog.getTableCatalogEntry(transaction, relTableEntry->getSrcTableID())->getName();
-    auto dstName =
-        catalog.getTableCatalogEntry(transaction, relTableEntry->getDstTableID())->getName();
-    auto relName = relTableEntry->getName();
-    exportQuery = stringFormat("match (a:{})-[r:{}]->(b:{}) return a.{},b.{},r.*;", srcName,
-        relName, dstName, srcPrimaryKeyName, dstPrimaryKeyName);
+    auto& srcTableEntry = catalog.getTableCatalogEntry(transaction, relTableEntry->getSrcTableID())
+                              ->constCast<NodeTableCatalogEntry>();
+    auto& dstTableEntry = catalog.getTableCatalogEntry(transaction, relTableEntry->getDstTableID())
+                              ->constCast<NodeTableCatalogEntry>();
+    exportQuery = stringFormat("match (a:{})-[r:{}]->(b:{}) return a.{},b.{},r.*;",
+        srcTableEntry.getName(), relTableEntry->getName(), dstTableEntry.getName(),
+        srcTableEntry.getPrimaryKeyName(), dstTableEntry.getPrimaryKeyName());
 }
 
 static bool bindExportQuery(std::string& exportQuery, const TableCatalogEntry& entry,

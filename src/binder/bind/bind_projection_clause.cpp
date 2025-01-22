@@ -5,7 +5,7 @@
 #include "binder/query/return_with_clause/bound_with_clause.h"
 #include "common/exception/binder.h"
 #include "parser/expression/parsed_property_expression.h"
-#include "parser/query/regular_query.h"
+#include "parser/query/return_with_clause/with_clause.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;

@@ -11,7 +11,7 @@ public:
     explicit QueryGraphLabelAnalyzer(const main::ClientContext& clientContext, bool throwOnViolate)
         : throwOnViolate{throwOnViolate}, clientContext{clientContext} {}
 
-    void pruneLabel(const QueryGraph& graph) const;
+    void pruneLabel(QueryGraph& graph) const;
 
 private:
     void pruneNode(const QueryGraph& graph, NodeExpression& node) const;
