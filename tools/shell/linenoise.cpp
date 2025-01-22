@@ -1760,8 +1760,7 @@ void addErrorHighlighting(uint64_t render_start, uint64_t render_end,
         case ScanState::IN_SINGLE_QUOTE:
             // single quote - all that will get us out is an unescaped single-quote
             if (c == '\'') {
-                if (i + 1 < l->len && l->buf[i + 1] == '\'') {
-                    // double single-quote means the quote is escaped - continue
+                if (i > 0 && l->buf[i - 1] == '\\') { // escaped quote
                     i++;
                     break;
                 } else {
@@ -1772,10 +1771,9 @@ void addErrorHighlighting(uint64_t render_start, uint64_t render_end,
             }
             break;
         case ScanState::IN_DOUBLE_QUOTE:
-            // double quote - all that will get us out is an unescaped quote
+            // quote - all that will get us out is an unescaped quote
             if (c == '"') {
-                if (i + 1 < l->len && l->buf[i + 1] == '"') {
-                    // double quote means the quote is escaped - continue
+                if (i > 0 && l->buf[i - 1] == '\\') { // escaped quote
                     i++;
                     break;
                 } else {
