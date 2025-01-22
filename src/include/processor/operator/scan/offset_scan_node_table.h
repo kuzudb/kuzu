@@ -27,8 +27,7 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<OffsetScanNodeTable>(info.copy(),
-            copyUnorderedMap(tableIDToNodeInfo), id,
-            printInfo->copy());
+            copyUnorderedMap(tableIDToNodeInfo), id, printInfo->copy());
     }
 
 private:
