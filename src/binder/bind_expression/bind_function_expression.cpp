@@ -292,8 +292,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(
             return createLiteralExpression("");
         }
         if (!rel.isMultiLabeled()) {
-            return createLiteralExpression(Value(LogicalType::STRING(),
-                rel.getSingleEntry()->getLabel(catalog, transaction)));
+            return createLiteralExpression(
+                Value(LogicalType::STRING(), rel.getSingleEntry()->getLabel(catalog, transaction)));
         }
         children.push_back(rel.getInternalIDProperty());
         auto labelsValue =
