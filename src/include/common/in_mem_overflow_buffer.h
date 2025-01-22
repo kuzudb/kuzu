@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "common/api.h"
+#include "common/copy_constructors.h"
 
 namespace kuzu {
 namespace storage {
@@ -34,6 +35,8 @@ class InMemOverflowBuffer {
 public:
     explicit InMemOverflowBuffer(storage::MemoryManager* memoryManager)
         : memoryManager{memoryManager}, currentBlock{nullptr} {};
+
+    DEFAULT_BOTH_MOVE(InMemOverflowBuffer);
 
     uint8_t* allocateSpace(uint64_t size);
 

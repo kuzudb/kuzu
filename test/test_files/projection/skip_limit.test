@@ -4,7 +4,7 @@
 
 -CASE ProjectionSkipLimit
 
--STATEMENT UNWIND [1,2] AS x MATCH (a:person) RETURN DISTINCT a.fName LIMIT 1
+-STATEMENT UNWIND [1,2] AS x MATCH (a:person) RETURN DISTINCT a.fName ORDER BY a.fName LIMIT 1
 ---- 1
 Alice
 

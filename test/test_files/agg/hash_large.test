@@ -1,0 +1,23 @@
+-DATASET CSV snap/twitter/csv
+-BUFFER_POOL_SIZE 268435456
+
+--
+-CASE AggHash
+-STATEMENT MATCH (a:account)-[]->(b:account) WHERE a.ID = 18776017 RETURN COUNT(b);
+---- 1
+2272
+-STATEMENT MATCH (a:account)-[]->(b:account) WHERE a.ID = 3359851 RETURN COUNT(b);
+---- 1
+3373
+-STATEMENT MATCH (a:account)-[]->(b:account) WHERE a.ID > 1000000 RETURN a.ID, COUNT(b) as n ORDER BY n DESC LIMIT 5;
+-CHECK_ORDER
+---- 5
+3359851|3373
+59804598|2467
+7860742|2458
+18776017|2272
+5442012|2204
+-STATEMENT MATCH (a:account)-[]->(b:account) WHERE a.ID > 1000000 RETURN a.ID, COUNT(b.ID) as n ORDER BY n, a.ID;
+-CHECK_ORDER
+---- 68949
+<FILE>:hash_large.csv

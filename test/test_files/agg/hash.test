@@ -14,6 +14,16 @@ Elizabeth|2
 Farooq|
 Greg|
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|
+-STATEMENT MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) WITH a.fName AS n, COLLECT(b) AS b_list RETURN n, size(b_list)
+---- 8
+Alice|3
+Bob|3
+Carol|3
+Dan|3
+Elizabeth|2
+Farooq|
+Greg|
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|
 -STATEMENT MATCH (a:person)-[r:knows]->(b:person) WHERE a.ID=0 RETURN r, COUNT(*)
 ---- 3
 (0:0)-{_LABEL: knows, _ID: 3:0, date: 2021-06-30, meetTime: 1986-10-21 21:08:31.521, validInterval: 10 years 5 months 13:00:00.000024, comments: [rnme,m8sihsdnf2990nfiwf], summary: {locations: ['toronto','waterloo'], transfer: {day: 2021-01-02, amount: [100,200]}}, notes: 1, someMap: {a=b}}->(0:1)|1
