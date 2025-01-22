@@ -1,6 +1,11 @@
 #pragma once
 
+#include "common/type_utils.h"
 #include "extension/extension.h"
+#include "function/create_fts_index.h"
+#include "function/drop_fts_index.h"
+#include "function/query_fts_index.h"
+#include "function/stem.h"
 
 namespace kuzu {
 namespace fts_extension {
@@ -8,6 +13,9 @@ namespace fts_extension {
 class FTSExtension final : public extension::Extension {
 public:
     static constexpr char EXTENSION_NAME[] = "FTS";
+
+    using Functions =
+        common::TypeList<StemFunction, QueryFTSFunction, CreateFTSFunction, DropFTSFunction>;
 
 public:
     static void load(main::ClientContext* context);

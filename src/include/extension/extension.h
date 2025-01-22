@@ -5,6 +5,7 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/catalog_entry_type.h"
 #include "common/api.h"
+#include "common/type_utils.h"
 #include "function/function.h"
 #include "main/database.h"
 #include "main/db_config.h"
@@ -47,6 +48,11 @@ struct ExtensionSourceUtils {
     static std::string toString(ExtensionSource source);
 };
 
+struct ExtensionFunctionEntry {
+    const char* name;
+    const char* extensionName;
+};
+
 template<typename T>
 void addFunc(main::Database& database, std::string name, catalog::CatalogEntryType functionType) {
     auto catalog = database.getCatalog();
@@ -55,6 +61,28 @@ void addFunc(main::Database& database, std::string name, catalog::CatalogEntryTy
     }
     catalog->addFunction(&transaction::DUMMY_TRANSACTION, functionType, std::move(name),
         T::getFunctionSet());
+}
+
+template<typename T>
+concept IsAlias = requires(T) { typename T::alias; };
+template<typename T>
+concept IsNotAlias = !IsAlias<T>;
+
+struct AddFuncsToCatalog {
+    template<IsAlias Function>
+    void operator()(main::Database& db) {
+        addFunc<typename Function::alias>(db, Function::name, Function::alias::type);
+    }
+
+    template<IsNotAlias Function>
+    void operator()(main::Database& db) {
+        addFunc<Function>(db, Function::name, Function::type);
+    }
+};
+
+template<typename... Functions>
+void addFuncsToCatalog(common::TypeList<Functions...> funcs, main::Database& db) {
+    common::TypeUtils::forEachType(AddFuncsToCatalog{}, funcs, db);
 }
 
 struct KUZU_API ExtensionUtils {

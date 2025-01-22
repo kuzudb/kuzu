@@ -28,6 +28,9 @@ public:
         return loadedExtensions;
     }
 
+    static std::optional<ExtensionFunctionEntry> lookupExtensionsByFunctionName(
+        std::string_view functionName);
+
 private:
     std::vector<LoadedExtension> loadedExtensions;
     std::unordered_map<std::string, main::ExtensionOption> extensionOptions;

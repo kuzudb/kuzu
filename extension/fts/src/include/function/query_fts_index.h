@@ -45,6 +45,7 @@ public:
 
 struct QueryFTSFunction {
     static constexpr const char* name = "QUERY_FTS_INDEX";
+    static constexpr catalog::CatalogEntryType type = catalog::CatalogEntryType::GDS_FUNCTION_ENTRY;
 
     static function::function_set getFunctionSet();
 };

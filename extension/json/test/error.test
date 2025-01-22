@@ -3,6 +3,18 @@
 
 --
 
+-CASE ForgotToLoadExtension
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
+---- ok
+-STATEMENT create node table person (id INT64, description json, primary key(id));
+---- ok
+-RELOADDB
+-STATEMENT CREATE (p:person {id: 5, description: 6})
+---- ok
+-STATEMENT CREATE (p:person {id: 8, description: to_json({"family": "anatidae", "species": [ "duck", "goose", "swan", null]})})
+---- error
+Catalog exception: function TO_JSON does not exist. This function exists in the JSON extension. You can load the extension by running the command 'LOAD EXTENSION JSON'.
+
 -CASE LoadFromError
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok

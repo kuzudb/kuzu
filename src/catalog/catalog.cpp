@@ -18,6 +18,7 @@
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/string_format.h"
+#include "extension/extension_manager.h"
 #include "function/function_collection.h"
 #include "main/db_config.h"
 #include "storage/storage_utils.h"
@@ -237,8 +238,8 @@ CatalogEntry* Catalog::createRelGroupEntry(Transaction* transaction,
     for (auto& childInfo : extraInfo->infos) {
         KU_ASSERT(childInfo.hasParent);
         relTableIDs.push_back(createRelTableEntry(transaction, childInfo)
-                                  ->ptrCast<TableCatalogEntry>()
-                                  ->getTableID());
+                ->ptrCast<TableCatalogEntry>()
+                ->getTableID());
     }
     auto entry = std::make_unique<RelGroupCatalogEntry>(info.tableName, std::move(relTableIDs));
     relGroups->createEntry(transaction, std::move(entry));
@@ -381,6 +382,19 @@ void Catalog::addFunction(Transaction* transaction, CatalogEntryType entryType, 
         std::make_unique<FunctionCatalogEntry>(entryType, std::move(name), std::move(functionSet)));
 }
 
+static std::string getFunctionDoesNotExistMessage(std::string_view entryName) {
+    std::string message = stringFormat("function {} does not exist.", entryName);
+    const auto matchingExtensionFunction =
+        extension::ExtensionManager::lookupExtensionsByFunctionName(entryName);
+    if (matchingExtensionFunction.has_value()) {
+        message = stringFormat("{} This function exists in the {} extension. You can load the "
+                               "extension by running the command 'LOAD EXTENSION {}'.",
+            message, matchingExtensionFunction->extensionName,
+            matchingExtensionFunction->extensionName);
+    }
+    return message;
+}
+
 void Catalog::dropFunction(Transaction* transaction, const std::string& name) {
     if (!containsFunction(transaction, name)) {
         throw CatalogException{stringFormat("function {} doesn't exist.", name)};
@@ -392,7 +406,7 @@ void Catalog::dropFunction(Transaction* transaction, const std::string& name) {
 CatalogEntry* Catalog::getFunctionEntry(const Transaction* transaction,
     const std::string& name) const {
     if (!functions->containsEntry(transaction, name)) {
-        throw CatalogException(stringFormat("function {} does not exist.", name));
+        throw CatalogException(getFunctionDoesNotExistMessage(name));
     }
     return functions->getEntry(transaction, name);
 }

@@ -5,6 +5,9 @@
 # These ground truth numbers were obtained from DuckDB and we double checked that
 # our results and DuckDB's results is within three decimal places.
 -CASE fts_search_simple
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
+---- error
+
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
 ---- ok
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
@@ -196,7 +199,7 @@ Binder exception: BM25 model requires the Term Frequency Saturation(k) value to 
 -RELOADDB
 -STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN _node.ID, score
 ---- error
-Catalog exception: function QUERY_FTS_INDEX does not exist.
+Catalog exception: function QUERY_FTS_INDEX does not exist. This function exists in the FTS extension. You can load the extension by running the command 'LOAD EXTENSION FTS'.
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
 ---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN _node.ID, score
