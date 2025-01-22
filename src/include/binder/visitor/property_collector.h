@@ -8,7 +8,7 @@ namespace binder {
 // Collect all property expressions for a given statement.
 class PropertyCollector final : public BoundStatementVisitor {
 public:
-    expression_vector getProperties();
+    expression_vector getProperties() const;
 
     // Skip collecting node/rel properties if they are in WITH projection list.
     // See with_clause_projection_rewriter for more details.

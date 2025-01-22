@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace binder {
 
-class BoundSetClause : public BoundUpdatingClause {
+class BoundSetClause final : public BoundUpdatingClause {
 public:
     BoundSetClause() : BoundUpdatingClause{common::ClauseType::SET} {}
 

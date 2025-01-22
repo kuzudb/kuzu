@@ -14,7 +14,7 @@ struct CaseAlternative {
         : whenExpression{std::move(whenExpression)}, thenExpression{std::move(thenExpression)} {}
 };
 
-class CaseExpression : public Expression {
+class CaseExpression final : public Expression {
     static constexpr common::ExpressionType expressionType_ = common::ExpressionType::CASE_ELSE;
 
 public:
@@ -33,7 +33,7 @@ public:
 
     std::shared_ptr<Expression> getElseExpression() const { return elseExpression; }
 
-    std::string toStringInternal() const final;
+    std::string toStringInternal() const override;
 
 private:
     std::vector<std::unique_ptr<CaseAlternative>> caseAlternatives;

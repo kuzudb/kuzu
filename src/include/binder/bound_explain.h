@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace binder {
 
-class BoundExplain : public BoundStatement {
+class BoundExplain final : public BoundStatement {
 public:
     explicit BoundExplain(std::unique_ptr<BoundStatement> statementToExplain,
         common::ExplainType explainType)

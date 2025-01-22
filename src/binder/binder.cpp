@@ -47,7 +47,7 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
         boundStatement = bindAlter(statement);
     } break;
     case StatementType::QUERY: {
-        boundStatement = bindQuery((const RegularQuery&)statement);
+        boundStatement = bindQuery(statement);
     } break;
     case StatementType::STANDALONE_CALL: {
         boundStatement = bindStandaloneCall(statement);
@@ -96,8 +96,7 @@ std::shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& 
     return whereExpression;
 }
 
-std::shared_ptr<Expression> Binder::createVariable(std::string_view name,
-    common::LogicalTypeID typeID) {
+std::shared_ptr<Expression> Binder::createVariable(std::string_view name, LogicalTypeID typeID) {
     return createVariable(std::string(name), LogicalType{typeID});
 }
 
@@ -118,13 +117,13 @@ std::shared_ptr<Expression> Binder::createVariable(const std::string& name,
 }
 
 std::shared_ptr<Expression> Binder::createInvisibleVariable(const std::string& name,
-    const LogicalType& dataType) {
+    const LogicalType& dataType) const {
     auto expression = expressionBinder.createVariableExpression(dataType.copy(), name);
     expression->setAlias(name);
     return expression;
 }
 
-binder::expression_vector Binder::createVariables(std::vector<std::string> names,
+expression_vector Binder::createVariables(const std::vector<std::string>& names,
     const std::vector<LogicalType>& types) {
     KU_ASSERT(names.size() == types.size());
     expression_vector variables;
@@ -134,8 +133,8 @@ binder::expression_vector Binder::createVariables(std::vector<std::string> names
     return variables;
 }
 
-expression_vector Binder::createInvisibleVariables(std::vector<std::string> names,
-    const std::vector<LogicalType>& types) {
+expression_vector Binder::createInvisibleVariables(const std::vector<std::string>& names,
+    const std::vector<LogicalType>& types) const {
     KU_ASSERT(names.size() == types.size());
     expression_vector variables;
     for (auto i = 0u; i < names.size(); ++i) {
@@ -152,7 +151,7 @@ void Binder::validateOrderByFollowedBySkipOrLimitInWithClause(
     }
 }
 
-void Binder::validateTableExist(const std::string& tableName) {
+void Binder::validateTableExist(const std::string& tableName) const {
     if (!clientContext->getCatalog()->containsTable(clientContext->getTransaction(), tableName,
             clientContext->shouldUseInternalCatalogEntry())) {
         throw BinderException("Table " + tableName + " does not exist.");
@@ -209,10 +208,12 @@ void Binder::addToScope(const std::vector<std::string>& names, const expression_
 
 void Binder::addToScope(const std::string& name, std::shared_ptr<Expression> expr) {
     // TODO(Xiyang): assert name not in scope.
+    // Note to Xiyang: I don't think the TODO still stands here. I tried adding the assertion, but
+    // it failed a few tests. You may want to revisit this TODO.
     scope.addExpression(name, std::move(expr));
 }
 
-BinderScope Binder::saveScope() {
+BinderScope Binder::saveScope() const {
     return scope.copy();
 }
 
@@ -220,7 +221,8 @@ void Binder::restoreScope(BinderScope prevScope) {
     scope = std::move(prevScope);
 }
 
-TableFunction Binder::getScanFunction(FileTypeInfo typeInfo, const FileScanInfo& fileScanInfo) {
+TableFunction Binder::getScanFunction(const FileTypeInfo& typeInfo,
+    const FileScanInfo& fileScanInfo) const {
     Function* func = nullptr;
     std::vector<LogicalType> inputTypes;
     inputTypes.push_back(LogicalType::STRING());
@@ -246,18 +248,17 @@ TableFunction Binder::getScanFunction(FileTypeInfo typeInfo, const FileScanInfo&
     } break;
     case FileType::UNKNOWN: {
         try {
-            auto name = common::stringFormat("{}_SCAN", typeInfo.fileTypeStr);
+            auto name = stringFormat("{}_SCAN", typeInfo.fileTypeStr);
             auto entry = catalog->getFunctionEntry(transaction, name);
             func = BuiltInFunctionsUtils::matchFunction(name, inputTypes,
                 entry->ptrCast<FunctionCatalogEntry>());
         } catch (...) {
             if (typeInfo.fileTypeStr == "") {
-                throw common::BinderException{
-                    "Cannot infer the format of the given file. Please "
-                    "set the file format explicitly by (file_format=<type>)."};
+                throw BinderException{"Cannot infer the format of the given file. Please "
+                                      "set the file format explicitly by (file_format=<type>)."};
             }
-            throw common::BinderException{
-                common::stringFormat("Cannot load from file type {}.", typeInfo.fileTypeStr)};
+            throw BinderException{
+                stringFormat("Cannot load from file type {}.", typeInfo.fileTypeStr)};
         }
     } break;
     default:

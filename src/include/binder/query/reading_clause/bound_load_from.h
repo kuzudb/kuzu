@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace binder {
 
-class BoundLoadFrom : public BoundReadingClause {
+class BoundLoadFrom final : public BoundReadingClause {
     static constexpr common::ClauseType clauseType_ = common::ClauseType::LOAD_FROM;
 
 public:

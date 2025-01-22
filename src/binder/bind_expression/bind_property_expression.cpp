@@ -41,9 +41,9 @@ expression_vector ExpressionBinder::bindPropertyStarExpression(
 
 expression_vector ExpressionBinder::bindNodeOrRelPropertyStarExpression(const Expression& child) {
     expression_vector result;
-    auto& nodeOrRel = (NodeOrRelExpression&)child;
+    auto& nodeOrRel = child.constCast<NodeOrRelExpression>();
     for (auto& expression : nodeOrRel.getPropertyExprsRef()) {
-        auto propertyExpression = (PropertyExpression*)expression.get();
+        auto propertyExpression = expression->ptrCast<PropertyExpression>();
         if (Binder::reservedInPropertyLookup(propertyExpression->getPropertyName())) {
             continue;
         }

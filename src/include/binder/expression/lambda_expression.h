@@ -7,12 +7,12 @@ namespace kuzu {
 namespace binder {
 
 class LambdaExpression final : public Expression {
-    static constexpr const common::ExpressionType type_ = common::ExpressionType::LAMBDA;
+    static constexpr common::ExpressionType type_ = common::ExpressionType::LAMBDA;
 
 public:
     LambdaExpression(std::unique_ptr<parser::ParsedExpression> parsedLambdaExpr,
         std::string uniqueName)
-        : Expression{type_, common::LogicalType::ANY(), uniqueName},
+        : Expression{type_, common::LogicalType::ANY(), std::move(uniqueName)},
           parsedLambdaExpr{std::move(parsedLambdaExpr)} {}
 
     void cast(const common::LogicalType& type_) override {

@@ -10,7 +10,7 @@ struct KUZU_API ExpressionUtil {
     static expression_vector getExpressionsWithDataType(const expression_vector& expressions,
         common::LogicalTypeID dataTypeID);
 
-    static uint32_t find(Expression* target, expression_vector expressions);
+    static uint32_t find(const Expression* target, const expression_vector& expressions);
 
     // Print as a1,a2,a3,...
     static std::string toString(const expression_vector& expressions);

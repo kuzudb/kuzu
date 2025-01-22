@@ -55,11 +55,10 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     }
     if (function->bindFunc) {
         // Resolve exec and select function if necessary
-        // Only used for decimal at the moment
+        // Only used for decimal at the moment. See `bindDecimalCompare`.
         function->bindFunc({childrenAfterCast, function, nullptr});
     }
-    auto bindData =
-        std::make_unique<function::FunctionBindData>(LogicalType(function->returnTypeID));
+    auto bindData = std::make_unique<FunctionBindData>(LogicalType(function->returnTypeID));
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
     return std::make_shared<ScalarFunctionExpression>(expressionType, function->copy(),

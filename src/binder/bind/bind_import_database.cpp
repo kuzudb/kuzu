@@ -14,8 +14,8 @@ using namespace kuzu::parser;
 namespace kuzu {
 namespace binder {
 
-static std::string getQueryFromFile(common::VirtualFileSystem* vfs, const std::string boundFilePath,
-    const std::string fileName, main::ClientContext* context) {
+static std::string getQueryFromFile(VirtualFileSystem* vfs, const std::string& boundFilePath,
+    const std::string& fileName, main::ClientContext* context) {
     auto filePath = vfs->joinPath(boundFilePath, fileName);
     if (!vfs->fileOrPathExists(filePath, context)) {
         if (fileName == PortDBConstants::INDEX_FILE_NAME) {
@@ -47,7 +47,7 @@ static std::string getColumnNamesToCopy(const CopyFrom& copyFrom) {
     if (columns.empty()) {
         return columns;
     }
-    return common::stringFormat("({})", columns);
+    return stringFormat("({})", columns);
 }
 
 static std::string getCopyFilePath(const std::string& boundFilePath, const std::string& filePath) {
@@ -80,7 +80,7 @@ std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement
         for (auto& parsedStatement : parsedStatements) {
             KU_ASSERT(parsedStatement->getStatementType() == StatementType::COPY_FROM);
             auto& copyFromStatement = parsedStatement->constCast<CopyFrom>();
-            KU_ASSERT(copyFromStatement.getSource()->type == common::ScanSourceType::FILE);
+            KU_ASSERT(copyFromStatement.getSource()->type == ScanSourceType::FILE);
             auto filePaths =
                 copyFromStatement.getSource()->constPtrCast<FileScanSource>()->filePaths;
             KU_ASSERT(filePaths.size() == 1);

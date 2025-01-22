@@ -1,7 +1,5 @@
 #pragma once
 
-#include <utility>
-
 #include "binder/bound_statement.h"
 #include "binder/expression/expression.h"
 #include "main/db_config.h"
@@ -9,7 +7,7 @@
 namespace kuzu {
 namespace binder {
 
-class BoundStandaloneCall : public BoundStatement {
+class BoundStandaloneCall final : public BoundStatement {
 public:
     BoundStandaloneCall(const main::Option* option, std::shared_ptr<Expression> optionValue)
         : BoundStatement{common::StatementType::STANDALONE_CALL,

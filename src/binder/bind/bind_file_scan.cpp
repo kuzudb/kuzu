@@ -22,14 +22,14 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace binder {
 
-FileTypeInfo bindSingleFileType(main::ClientContext* context, const std::string& filePath) {
+FileTypeInfo bindSingleFileType(const main::ClientContext* context, const std::string& filePath) {
     std::filesystem::path fileName(filePath);
     auto extension = context->getVFSUnsafe()->getFileExtension(fileName);
     return FileTypeInfo{FileTypeUtils::getFileTypeFromExtension(extension),
         extension.substr(std::min<uint64_t>(1, extension.length()))};
 }
 
-FileTypeInfo Binder::bindFileTypeInfo(const std::vector<std::string>& filePaths) {
+FileTypeInfo Binder::bindFileTypeInfo(const std::vector<std::string>& filePaths) const {
     auto expectedFileType = FileTypeInfo{FileType::UNKNOWN, "" /* fileTypeStr */};
     for (auto& filePath : filePaths) {
         auto fileType = bindSingleFileType(clientContext, filePath);
@@ -42,7 +42,7 @@ FileTypeInfo Binder::bindFileTypeInfo(const std::vector<std::string>& filePaths)
     return expectedFileType;
 }
 
-std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& filePaths) {
+std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& filePaths) const {
     std::vector<std::string> boundFilePaths;
     for (auto& filePath : filePaths) {
         // This is a temporary workaround because we use duckdb to read from iceberg/delta.
@@ -65,11 +65,11 @@ std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& f
     return boundFilePaths;
 }
 
-case_insensitive_map_t<Value> Binder::bindParsingOptions(const parser::options_t& parsingOptions) {
+case_insensitive_map_t<Value> Binder::bindParsingOptions(const options_t& parsingOptions) {
     case_insensitive_map_t<Value> options;
     for (auto& option : parsingOptions) {
         auto name = option.first;
-        common::StringUtils::toUpper(name);
+        StringUtils::toUpper(name);
         auto expr = expressionBinder.bindExpression(*option.second);
         KU_ASSERT(expr->expressionType == ExpressionType::LITERAL);
         auto literalExpr = ku_dynamic_cast<LiteralExpression*>(expr.get());
@@ -78,11 +78,11 @@ case_insensitive_map_t<Value> Binder::bindParsingOptions(const parser::options_t
     return options;
 }
 
-std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(BaseScanSource* source,
+std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(const BaseScanSource* source,
     const options_t& options, const std::vector<std::string>& columnNames,
     const std::vector<LogicalType>& columnTypes) {
     switch (source->type) {
-    case common::ScanSourceType::FILE: {
+    case ScanSourceType::FILE: {
         return bindFileScanSource(*source, options, columnNames, columnTypes);
     }
     case ScanSourceType::QUERY: {
@@ -114,10 +114,8 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     // (e.g. an existed directory)
     if (fileTypeInfo.fileType != FileType::UNKNOWN) {
         for (const auto& filePath : filePaths) {
-            if (!common::LocalFileSystem::fileExists(filePath) &&
-                common::LocalFileSystem::isLocalPath(filePath)) {
-                throw common::BinderException{
-                    common::stringFormat("Provided path is not a file: {}.", filePath)};
+            if (!LocalFileSystem::fileExists(filePath) && LocalFileSystem::isLocalPath(filePath)) {
+                throw BinderException{stringFormat("Provided path is not a file: {}.", filePath)};
             }
         }
     }
@@ -158,7 +156,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindQueryScanSource(const BaseScanS
 }
 
 static TableFunction getObjectScanFunc(const std::string& dbName, const std::string& tableName,
-    main::ClientContext* clientContext) {
+    const main::ClientContext* clientContext) {
     // Bind external database table
     auto attachedDB = clientContext->getDatabaseManager()->getAttachedDatabase(dbName);
     if (attachedDB == nullptr) {
@@ -170,8 +168,8 @@ static TableFunction getObjectScanFunc(const std::string& dbName, const std::str
 }
 
 std::unique_ptr<BoundBaseScanSource> Binder::bindObjectScanSource(const BaseScanSource& scanSource,
-    const parser::options_t& options, const std::vector<std::string>& columnNames,
-    const std::vector<common::LogicalType>& columnTypes) {
+    const options_t& options, const std::vector<std::string>& columnNames,
+    const std::vector<LogicalType>& columnTypes) {
     auto objectSource = scanSource.constPtrCast<ObjectScanSource>();
     TableFunction func;
     std::unique_ptr<TableFuncBindData> bindData;

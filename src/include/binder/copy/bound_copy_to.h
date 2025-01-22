@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace binder {
 
-class BoundCopyTo : public BoundStatement {
+class BoundCopyTo final : public BoundStatement {
 public:
     BoundCopyTo(std::unique_ptr<function::ExportFuncBindData> bindData,
         function::ExportFunction exportFunc, std::unique_ptr<BoundStatement> query)

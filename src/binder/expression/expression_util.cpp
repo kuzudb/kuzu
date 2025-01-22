@@ -14,7 +14,7 @@ namespace kuzu {
 namespace binder {
 
 expression_vector ExpressionUtil::getExpressionsWithDataType(const expression_vector& expressions,
-    common::LogicalTypeID dataTypeID) {
+    LogicalTypeID dataTypeID) {
     expression_vector result;
     for (auto& expression : expressions) {
         if (expression->dataType.getLogicalTypeID() == dataTypeID) {
@@ -24,7 +24,7 @@ expression_vector ExpressionUtil::getExpressionsWithDataType(const expression_ve
     return result;
 }
 
-uint32_t ExpressionUtil::find(Expression* target, expression_vector expressions) {
+uint32_t ExpressionUtil::find(const Expression* target, const expression_vector& expressions) {
     for (auto i = 0u; i < expressions.size(); ++i) {
         if (target->getUniqueName() == expressions[i]->getUniqueName()) {
             return i;
@@ -47,8 +47,7 @@ std::string ExpressionUtil::toString(const expression_vector& expressions) {
 std::string ExpressionUtil::toStringOrdered(const expression_vector& expressions) {
     auto expressions_ = expressions;
     std::sort(expressions_.begin(), expressions_.end(),
-        [](const std::shared_ptr<binder::Expression>& a,
-            const std::shared_ptr<binder::Expression>& b) {
+        [](const std::shared_ptr<Expression>& a, const std::shared_ptr<Expression>& b) {
             return a->toString() < b->toString();
         });
     return toString(expressions_);
@@ -170,7 +169,7 @@ bool ExpressionUtil::isFalseLiteral(const Expression& expression) {
     return expression.constCast<LiteralExpression>().getValue().getValue<bool>() == false;
 }
 
-bool ExpressionUtil::isEmptyList(const kuzu::binder::Expression& expression) {
+bool ExpressionUtil::isEmptyList(const Expression& expression) {
     if (expression.expressionType != ExpressionType::LITERAL) {
         return false;
     }
@@ -181,8 +180,7 @@ bool ExpressionUtil::isEmptyList(const kuzu::binder::Expression& expression) {
     return val.getChildrenSize() == 0;
 }
 
-void ExpressionUtil::validateExpressionType(const Expression& expr,
-    common::ExpressionType expectedType) {
+void ExpressionUtil::validateExpressionType(const Expression& expr, ExpressionType expectedType) {
     if (expr.expressionType == expectedType) {
         return;
     }
@@ -192,14 +190,14 @@ void ExpressionUtil::validateExpressionType(const Expression& expr,
 }
 
 void ExpressionUtil::validateExpressionType(const Expression& expr,
-    std::vector<common::ExpressionType> expectedType) {
+    std::vector<ExpressionType> expectedType) {
     if (std::find(expectedType.begin(), expectedType.end(), expr.expressionType) !=
         expectedType.end()) {
         return;
     }
     std::string expectedTypesStr = "";
     std::for_each(expectedType.begin(), expectedType.end(),
-        [&expectedTypesStr](common::ExpressionType type) {
+        [&expectedTypesStr](ExpressionType type) {
             expectedTypesStr += expectedTypesStr.empty() ? ExpressionTypeUtil::toString(type) :
                                                            "," + ExpressionTypeUtil::toString(type);
         });
@@ -370,7 +368,7 @@ bool ExpressionUtil::tryCombineDataType(const expression_vector& expressions, Lo
     std::vector<Value> secondaryValues;
     std::vector<LogicalType> primaryTypes;
     for (auto& expr : expressions) {
-        if (expr->expressionType != common::ExpressionType::LITERAL) {
+        if (expr->expressionType != ExpressionType::LITERAL) {
             primaryTypes.push_back(expr->getDataType().copy());
             continue;
         }
@@ -410,21 +408,21 @@ bool ExpressionUtil::canCastStatically(const Expression& expr, const LogicalType
     }
 }
 
-bool ExpressionUtil::canEvaluateAsLiteral(const kuzu::binder::Expression& expr) {
-    return (expr.expressionType == common::ExpressionType::LITERAL ||
-            (expr.expressionType == common::ExpressionType::PARAMETER &&
-                expr.getDataType().getLogicalTypeID() != common::LogicalTypeID::ANY));
+bool ExpressionUtil::canEvaluateAsLiteral(const Expression& expr) {
+    return (expr.expressionType == ExpressionType::LITERAL ||
+            (expr.expressionType == ExpressionType::PARAMETER &&
+                expr.getDataType().getLogicalTypeID() != LogicalTypeID::ANY));
 }
 
-common::Value ExpressionUtil::evaluateAsLiteralValue(const kuzu::binder::Expression& expr) {
+Value ExpressionUtil::evaluateAsLiteralValue(const Expression& expr) {
     KU_ASSERT(canEvaluateAsLiteral(expr));
     auto value = Value::createDefaultValue(expr.dataType);
     switch (expr.expressionType) {
     case ExpressionType::LITERAL: {
-        value = expr.constCast<binder::LiteralExpression>().getValue();
+        value = expr.constCast<LiteralExpression>().getValue();
     } break;
     case ExpressionType::PARAMETER: {
-        value = expr.constCast<binder::ParameterExpression>().getValue();
+        value = expr.constCast<ParameterExpression>().getValue();
     } break;
     default:
         KU_UNREACHABLE;

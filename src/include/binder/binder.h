@@ -8,13 +8,20 @@
 #include "common/copier_config/file_scan_info.h"
 #include "parser/ddl/parsed_property_definition.h"
 #include "parser/query/graph_pattern/pattern_element.h"
-#include "parser/query/regular_query.h"
 
 namespace kuzu {
 namespace parser {
+class ProjectionBody;
+class ReturnClause;
+class WithClause;
+class UpdatingClause;
+class ReadingClause;
+class QueryPart;
+class SingleQuery;
 struct CreateTableInfo;
 struct BaseScanSource;
 struct JoinHintNode;
+class Statement;
 } // namespace parser
 
 namespace catalog {
@@ -64,7 +71,7 @@ public:
 
     void setInputParameters(
         std::unordered_map<std::string, std::shared_ptr<common::Value>> parameters) {
-        expressionBinder.parameterMap = parameters;
+        expressionBinder.parameterMap = std::move(parameters);
     }
 
     std::unordered_map<std::string, std::shared_ptr<common::Value>> getParameterMap() {
@@ -72,23 +79,23 @@ public:
     }
 
     bool bindExportTableData(ExportedTableData& tableData, const catalog::TableCatalogEntry& entry,
-        const catalog::Catalog& catalog, transaction::Transaction* tx);
+        const catalog::Catalog& catalog, const transaction::Transaction* transaction);
 
     KUZU_API std::shared_ptr<Expression> createVariable(const std::string& name,
         const common::LogicalType& dataType);
     KUZU_API std::shared_ptr<Expression> createInvisibleVariable(const std::string& name,
-        const common::LogicalType& dataType);
-    KUZU_API expression_vector createVariables(std::vector<std::string> names,
+        const common::LogicalType& dataType) const;
+    KUZU_API expression_vector createVariables(const std::vector<std::string>& names,
         const std::vector<common::LogicalType>& types);
-    KUZU_API expression_vector createInvisibleVariables(std::vector<std::string> names,
-        const std::vector<common::LogicalType>& types);
+    KUZU_API expression_vector createInvisibleVariables(const std::vector<std::string>& names,
+        const std::vector<common::LogicalType>& types) const;
 
     std::shared_ptr<Expression> bindWhereExpression(
         const parser::ParsedExpression& parsedExpression);
 
     std::shared_ptr<Expression> createVariable(std::string_view name, common::LogicalTypeID typeID);
     std::shared_ptr<Expression> createVariable(const std::string& name,
-        common::LogicalTypeID typeID);
+        common::LogicalTypeID logicalTypeID);
 
     /*** bind DDL ***/
     BoundCreateTableInfo bindCreateTableInfo(const parser::CreateTableInfo* info);
@@ -96,16 +103,16 @@ public:
     BoundCreateTableInfo bindCreateRelTableInfo(const parser::CreateTableInfo* info);
     BoundCreateTableInfo bindCreateRelTableGroupInfo(const parser::CreateTableInfo* info);
     std::unique_ptr<BoundStatement> bindCreateTable(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindCreateType(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindCreateSequence(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindCreateType(const parser::Statement& statement) const;
+    std::unique_ptr<BoundStatement> bindCreateSequence(const parser::Statement& statement) const;
 
-    std::unique_ptr<BoundStatement> bindDrop(const parser::Statement& statement);
+    static std::unique_ptr<BoundStatement> bindDrop(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindAlter(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindRenameTable(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindRenameTable(const parser::Statement& statement) const;
     std::unique_ptr<BoundStatement> bindAddProperty(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindDropProperty(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindRenameProperty(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindCommentOn(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindDropProperty(const parser::Statement& statement) const;
+    std::unique_ptr<BoundStatement> bindRenameProperty(const parser::Statement& statement) const;
+    std::unique_ptr<BoundStatement> bindCommentOn(const parser::Statement& statement) const;
 
     std::vector<PropertyDefinition> bindPropertyDefinitions(
         const std::vector<parser::ParsedPropertyDefinition>& parsedDefinitions,
@@ -123,12 +130,12 @@ public:
     std::unique_ptr<BoundStatement> bindExportDatabaseClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindImportDatabaseClause(const parser::Statement& statement);
 
-    std::unique_ptr<BoundStatement> bindAttachDatabase(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindDetachDatabase(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindUseDatabase(const parser::Statement& statement);
+    static std::unique_ptr<BoundStatement> bindAttachDatabase(const parser::Statement& statement);
+    static std::unique_ptr<BoundStatement> bindDetachDatabase(const parser::Statement& statement);
+    static std::unique_ptr<BoundStatement> bindUseDatabase(const parser::Statement& statement);
 
     /*** bind scan source ***/
-    std::unique_ptr<BoundBaseScanSource> bindScanSource(parser::BaseScanSource* scanSource,
+    std::unique_ptr<BoundBaseScanSource> bindScanSource(const parser::BaseScanSource* source,
         const parser::options_t& options, const std::vector<std::string>& columnNames,
         const std::vector<common::LogicalType>& columnTypes);
     std::unique_ptr<BoundBaseScanSource> bindFileScanSource(
@@ -145,11 +152,11 @@ public:
 
     common::case_insensitive_map_t<common::Value> bindParsingOptions(
         const parser::options_t& parsingOptions);
-    common::FileTypeInfo bindFileTypeInfo(const std::vector<std::string>& filePaths);
-    std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths);
+    common::FileTypeInfo bindFileTypeInfo(const std::vector<std::string>& filePaths) const;
+    std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths) const;
 
     /*** bind query ***/
-    std::unique_ptr<BoundRegularQuery> bindQuery(const parser::RegularQuery& regularQuery);
+    std::unique_ptr<BoundRegularQuery> bindQuery(const parser::Statement& statement);
     NormalizedSingleQuery bindSingleQuery(const parser::SingleQuery& singleQuery);
     NormalizedQueryPart bindQueryPart(const parser::QueryPart& queryPart);
 
@@ -161,17 +168,17 @@ public:
 
     /*** bind table function ***/
     // TODO: change signature
-    BoundTableFunction bindTableFunc(std::string tableFuncName,
+    BoundTableFunction bindTableFunc(const std::string& tableFuncName,
         const parser::ParsedExpression& expr, expression_vector& columns);
 
     /*** bind create macro ***/
-    std::unique_ptr<BoundStatement> bindCreateMacro(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindCreateMacro(const parser::Statement& statement) const;
 
     /*** bind transaction ***/
-    std::unique_ptr<BoundStatement> bindTransaction(const parser::Statement& statement);
+    static std::unique_ptr<BoundStatement> bindTransaction(const parser::Statement& statement);
 
     /*** bind extension ***/
-    std::unique_ptr<BoundStatement> bindExtension(const parser::Statement& statement);
+    static std::unique_ptr<BoundStatement> bindExtension(const parser::Statement& statement);
 
     /*** bind explain ***/
     std::unique_ptr<BoundStatement> bindExplain(const parser::Statement& statement);
@@ -200,17 +207,17 @@ public:
         const parser::UpdatingClause& updatingClause);
 
     std::vector<BoundInsertInfo> bindInsertInfos(QueryGraphCollection& queryGraphCollection,
-        const std::unordered_set<std::string>& patternsInScope);
+        const std::unordered_set<std::string>& patternsInScope_);
     void bindInsertNode(std::shared_ptr<NodeExpression> node, std::vector<BoundInsertInfo>& infos);
     void bindInsertRel(std::shared_ptr<RelExpression> rel, std::vector<BoundInsertInfo>& infos);
     expression_vector bindInsertColumnDataExprs(
-        const common::case_insensitive_map_t<std::shared_ptr<Expression>>& propertyDataExpr,
+        const common::case_insensitive_map_t<std::shared_ptr<Expression>>& propertyDataExprs,
         const std::vector<PropertyDefinition>& propertyDefinitions);
 
-    BoundSetPropertyInfo bindSetPropertyInfo(parser::ParsedExpression* column,
-        parser::ParsedExpression* columnData);
-    expression_pair bindSetItem(parser::ParsedExpression* column,
-        parser::ParsedExpression* columnData);
+    BoundSetPropertyInfo bindSetPropertyInfo(const parser::ParsedExpression* column,
+        const parser::ParsedExpression* columnData);
+    expression_pair bindSetItem(const parser::ParsedExpression* column,
+        const parser::ParsedExpression* columnData);
 
     /*** bind projection clause ***/
     BoundWithClause bindWithClause(const parser::WithClause& withClause);
@@ -248,14 +255,14 @@ public:
     expression_vector bindRecursivePatternRelProjectionList(
         const parser::RecursiveRelPatternInfo& info, const NodeOrRelExpression& expr);
     std::pair<uint64_t, uint64_t> bindVariableLengthRelBound(const parser::RelPattern& relPattern);
-    void bindQueryRelProperties(RelExpression& rel);
+    static void bindQueryRelProperties(RelExpression& rel);
 
     std::shared_ptr<NodeExpression> bindQueryNode(const parser::NodePattern& nodePattern,
         QueryGraph& queryGraph);
     std::shared_ptr<NodeExpression> createQueryNode(const parser::NodePattern& nodePattern);
     std::shared_ptr<NodeExpression> createQueryNode(const std::string& parsedName,
         const std::vector<catalog::TableCatalogEntry*>& entries);
-    void bindQueryNodeProperties(NodeExpression& node);
+    static void bindQueryNodeProperties(NodeExpression& node);
 
     /*** bind table entries ***/
     std::vector<catalog::TableCatalogEntry*> bindNodeTableEntries(
@@ -269,7 +276,7 @@ public:
         const BoundProjectionBody& boundProjectionBody);
     static bool isOrderByKeyTypeSupported(const common::LogicalType& dataType);
 
-    void validateTableExist(const std::string& tableName);
+    void validateTableExist(const std::string& tableName) const;
     /*** helpers ***/
     std::string getUniqueExpressionName(const std::string& name);
 
@@ -278,11 +285,11 @@ public:
 
     void addToScope(const std::vector<std::string>& names, const expression_vector& exprs);
     void addToScope(const std::string& name, std::shared_ptr<Expression> expr);
-    BinderScope saveScope();
+    BinderScope saveScope() const;
     void restoreScope(BinderScope prevScope);
 
-    function::TableFunction getScanFunction(common::FileTypeInfo typeInfo,
-        const common::FileScanInfo& fileScanInfo);
+    function::TableFunction getScanFunction(const common::FileTypeInfo& typeInfo,
+        const common::FileScanInfo& fileScanInfo) const;
 
     ExpressionBinder* getExpressionBinder() { return &expressionBinder; }
 

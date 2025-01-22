@@ -4,6 +4,7 @@
 #include "function/built_in_function_utils.h"
 #include "main/client_context.h"
 #include "parser/copy.h"
+#include "parser/query/regular_query.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -20,7 +21,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     auto query = bindQuery(*parsedQuery);
     auto columns = query->getStatementResult()->getColumns();
     auto fileTypeStr = fileTypeInfo.fileTypeStr;
-    auto name = common::stringFormat("COPY_{}", fileTypeStr);
+    auto name = stringFormat("COPY_{}", fileTypeStr);
     auto entry =
         clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(), name);
     auto exportFunc = function::BuiltInFunctionsUtils::matchFunction(name,

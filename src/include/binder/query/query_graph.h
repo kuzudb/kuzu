@@ -129,7 +129,7 @@ public:
 
     bool canProjectExpression(const std::shared_ptr<Expression>& expression) const;
 
-    bool isConnected(const QueryGraph& other);
+    bool isConnected(const QueryGraph& other) const;
 
     void merge(const QueryGraph& other);
 

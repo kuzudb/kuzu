@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace binder {
 
-class BoundDeleteClause : public BoundUpdatingClause {
+class BoundDeleteClause final : public BoundUpdatingClause {
 public:
     BoundDeleteClause() : BoundUpdatingClause{common::ClauseType::DELETE_} {};
 

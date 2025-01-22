@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace binder {
 
-class BoundCreateMacro : public BoundStatement {
+class BoundCreateMacro final : public BoundStatement {
 public:
     explicit BoundCreateMacro(std::string macroName,
         std::unique_ptr<function::ScalarMacroFunction> macro)

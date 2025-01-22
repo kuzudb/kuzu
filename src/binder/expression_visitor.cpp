@@ -134,7 +134,7 @@ expression_vector ExpressionChildrenCollector::collectChildren(const Expression&
 
 expression_vector ExpressionChildrenCollector::collectCaseChildren(const Expression& expression) {
     expression_vector result;
-    auto& caseExpression = (CaseExpression&)expression;
+    auto& caseExpression = expression.constCast<CaseExpression>();
     for (auto i = 0u; i < caseExpression.getNumCaseAlternatives(); ++i) {
         auto caseAlternative = caseExpression.getCaseAlternative(i);
         result.push_back(caseAlternative->whenExpression);
@@ -147,7 +147,7 @@ expression_vector ExpressionChildrenCollector::collectCaseChildren(const Express
 expression_vector ExpressionChildrenCollector::collectSubqueryChildren(
     const Expression& expression) {
     expression_vector result;
-    auto& subqueryExpression = (SubqueryExpression&)expression;
+    auto& subqueryExpression = expression.constCast<SubqueryExpression>();
     for (auto& node : subqueryExpression.getQueryGraphCollection()->getQueryNodes()) {
         result.push_back(node->getInternalID());
     }

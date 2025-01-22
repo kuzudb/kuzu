@@ -11,10 +11,10 @@ public:
     explicit QueryGraphLabelAnalyzer(const main::ClientContext& clientContext, bool throwOnViolate)
         : throwOnViolate{throwOnViolate}, clientContext{clientContext} {}
 
-    void pruneLabel(QueryGraph& graph);
+    void pruneLabel(QueryGraph& graph) const;
 
 private:
-    void pruneNode(const QueryGraph& graph, NodeExpression& node);
+    void pruneNode(const QueryGraph& graph, NodeExpression& node) const;
     void pruneRel(RelExpression& rel) const;
 
 private:

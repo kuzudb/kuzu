@@ -3,6 +3,7 @@
 #include "binder/query/return_with_clause/bound_return_clause.h"
 #include "binder/query/return_with_clause/bound_with_clause.h"
 #include "common/exception/binder.h"
+#include "parser/query/regular_query.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -40,7 +41,8 @@ void validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery) {
     }
 }
 
-std::unique_ptr<BoundRegularQuery> Binder::bindQuery(const RegularQuery& regularQuery) {
+std::unique_ptr<BoundRegularQuery> Binder::bindQuery(const Statement& statement) {
+    auto& regularQuery = statement.constCast<RegularQuery>();
     std::vector<NormalizedSingleQuery> normalizedSingleQueries;
     for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
         // Don't clear scope within bindSingleQuery() yet because it is also used for subquery

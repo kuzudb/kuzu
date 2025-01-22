@@ -12,7 +12,7 @@ namespace processor {
 
 using skip_alter_on_conflict = std::function<bool()>;
 
-bool skipAlter(common::ConflictAction action, skip_alter_on_conflict skipAlterOnConflict) {
+bool skipAlter(common::ConflictAction action, const skip_alter_on_conflict& skipAlterOnConflict) {
     switch (action) {
     case common::ConflictAction::ON_CONFLICT_THROW:
         return false;

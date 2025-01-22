@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace binder {
 
-class KUZU_API NodeExpression : public NodeOrRelExpression {
+class KUZU_API NodeExpression final : public NodeOrRelExpression {
 public:
     NodeExpression(common::LogicalType dataType, std::string uniqueName, std::string variableName,
         std::vector<catalog::TableCatalogEntry*> entries)
