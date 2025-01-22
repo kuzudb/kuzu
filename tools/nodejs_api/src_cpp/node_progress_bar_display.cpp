@@ -14,6 +14,7 @@ void NodeProgressBarDisplay::updateProgress(uint64_t queryID, double newPipeline
         newNumPipelinesFinished > numPipelinesFinished) {
         pipelineProgress.store(newPipelineProgress);
         numPipelinesFinished.store(newNumPipelinesFinished);
+        std::shared_lock<std::shared_mutex> lock(callbackMutex);
         auto callback = queryCallbacks.find(queryID);
         if (callback != queryCallbacks.end()) {
             double capturedPipelineProgress = pipelineProgress;
@@ -36,6 +37,7 @@ void NodeProgressBarDisplay::finishProgress(uint64_t queryID) {
     numPipelines = 0;
     numPipelinesFinished = 0;
     pipelineProgress = 0;
+    std::unique_lock<std::shared_mutex> lock(callbackMutex);
     auto callback = queryCallbacks.find(queryID);
     if (callback != queryCallbacks.end()) {
         callback->second.Release();
@@ -45,5 +47,6 @@ void NodeProgressBarDisplay::finishProgress(uint64_t queryID) {
 
 void NodeProgressBarDisplay::setCallbackFunction(uint64_t queryID,
     Napi::ThreadSafeFunction callback) {
+    std::unique_lock<std::shared_mutex> lock(callbackMutex);
     queryCallbacks.emplace(queryID, callback);
 }
