@@ -55,7 +55,7 @@ public:
     }
     common::idx_t getNumProperties() const { return propertyCollection.size(); }
     bool containsProperty(const std::string& propertyName) const;
-    common::idx_t getPropertyID(const std::string& propertyName) const;
+    common::property_id_t getPropertyID(const std::string& propertyName) const;
     const binder::PropertyDefinition& getProperty(const std::string& propertyName) const;
     const binder::PropertyDefinition& getProperty(common::idx_t idx) const;
     virtual common::column_id_t getColumnID(const std::string& propertyName) const;
