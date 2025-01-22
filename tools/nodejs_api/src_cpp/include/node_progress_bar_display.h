@@ -1,5 +1,7 @@
 #pragma once
 
+#include <shared_mutex>
+
 #include "common/task_system/progress_bar_display.h"
 #include <napi.h>
 
@@ -22,4 +24,5 @@ public:
 
 private:
     std::unordered_map<uint64_t, Napi::ThreadSafeFunction> queryCallbacks;
+    std::shared_mutex callbackMutex;
 };
