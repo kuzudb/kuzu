@@ -84,10 +84,9 @@ struct BoundExtraCreateNodeTableInfo final : BoundExtraCreateTableInfo {
     }
 };
 
-struct BoundExtraCreateRelTableInfo final : public BoundExtraCreateTableInfo {
+struct BoundExtraCreateRelTableInfo final : BoundExtraCreateTableInfo {
     common::RelMultiplicity srcMultiplicity;
     common::RelMultiplicity dstMultiplicity;
-    // TODO(Royi): this should be rel data direction.
     common::ExtendDirection storageDirection;
     common::table_id_t srcTableID;
     common::table_id_t dstTableID;
@@ -115,7 +114,7 @@ struct BoundExtraCreateRelTableInfo final : public BoundExtraCreateTableInfo {
     }
 };
 
-struct BoundExtraCreateRelTableGroupInfo final : public BoundExtraCreateCatalogEntryInfo {
+struct BoundExtraCreateRelTableGroupInfo final : BoundExtraCreateCatalogEntryInfo {
     std::vector<BoundCreateTableInfo> infos;
 
     explicit BoundExtraCreateRelTableGroupInfo(std::vector<BoundCreateTableInfo> infos)

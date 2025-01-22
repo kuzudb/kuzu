@@ -135,11 +135,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
         }
         for (auto entry : recursiveInfo->node->getEntries()) {
             pathProbeInfo.tableIDToName.insert(
-                {entry->getTableID(), entry->getDisplayLabelName(catalog, transaction)});
+                {entry->getTableID(), entry->getLabel(catalog, transaction)});
         }
         for (auto& entry : recursiveInfo->rel->getEntries()) {
             pathProbeInfo.tableIDToName.insert(
-                {entry->getTableID(), entry->getDisplayLabelName(catalog, transaction)});
+                {entry->getTableID(), entry->getLabel(catalog, transaction)});
         }
     }
     pathProbeInfo.nodeFieldIndices = nodeFieldIndices;

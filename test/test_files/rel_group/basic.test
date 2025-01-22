@@ -32,7 +32,7 @@ likes|personB|2|Bob
 likes|personA|2|Bob
 -STATEMENT COPY knows FROM "a.csv";
 ---- error
-Binder exception: Expect FROM&TO options when copying into knows.
+Binder exception: The table knows has multiple FROM and TO pairs defined in the schema. A specific pair of FROM and TO options is expected when copying data into the knows table.
 -STATEMENT DROP TABLE knows_personA_personB;
 ---- error
 Binder exception: Cannot delete relationship table knows_personA_personB because it is referenced by relationship group knows.
@@ -119,7 +119,7 @@ Binder exception: Create node a with multiple node labels is not supported.
 ---- ok
 -STATEMENT COPY test FROM '${KUZU_ROOT_DIRECTORY}/dataset/rel-group/edge.csv';
 ---- error
-Binder exception: Expect FROM&TO options when copying into test.
+Binder exception: The table test has multiple FROM and TO pairs defined in the schema. A specific pair of FROM and TO options is expected when copying data into the test table.
 -STATEMENT COPY test FROM '${KUZU_ROOT_DIRECTORY}/dataset/rel-group/edge.csv' (from = 'personA', to = 'personB');
 ---- ok
 -STATEMENT MATCH (a:personA)-[e:test]->(b:personB) WHERE a.ID = 0 RETURN label(e), label(b), b.*

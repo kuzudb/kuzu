@@ -33,8 +33,10 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
             auto options = bindParsingOptions(copyStatement.getParsingOptions());
             if (!options.contains(CopyConstants::FROM_OPTION_NAME) ||
                 !options.contains(CopyConstants::TO_OPTION_NAME)) {
-                throw BinderException(
-                    stringFormat("Expect FROM&TO options when copying into {}.", tableName));
+                throw BinderException(stringFormat(
+                    "The table {} has multiple FROM and TO pairs defined in the schema. A specific "
+                    "pair of FROM and TO options is expected when copying data into the {} table.",
+                    tableName, tableName));
             }
             auto from = options.at(CopyConstants::FROM_OPTION_NAME).getValue<std::string>();
             auto to = options.at(CopyConstants::TO_OPTION_NAME).getValue<std::string>();

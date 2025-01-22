@@ -247,7 +247,7 @@ static std::vector<std::unique_ptr<Value>> populateLabelValues(const main::Clien
     table_id_t maxTableID = 0;
     for (auto& entry : entries) {
         map.insert({entry->getTableID(),
-            entry->getDisplayLabelName(context->getCatalog(), context->getTransaction())});
+            entry->getLabel(context->getCatalog(), context->getTransaction())});
         if (entry->getTableID() > maxTableID) {
             maxTableID = entry->getTableID();
         }
@@ -279,7 +279,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(
         }
         if (!node.isMultiLabeled()) {
             return createLiteralExpression(Value(LogicalType::STRING(),
-                node.getSingleEntry()->getDisplayLabelName(catalog, transaction)));
+                node.getSingleEntry()->getLabel(catalog, transaction)));
         }
         children.push_back(node.getInternalID());
         auto labelsValue =
@@ -293,7 +293,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(
         }
         if (!rel.isMultiLabeled()) {
             return createLiteralExpression(Value(LogicalType::STRING(),
-                rel.getSingleEntry()->getDisplayLabelName(catalog, transaction)));
+                rel.getSingleEntry()->getLabel(catalog, transaction)));
         }
         children.push_back(rel.getInternalIDProperty());
         auto labelsValue =

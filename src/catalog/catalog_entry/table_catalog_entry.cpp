@@ -93,7 +93,7 @@ void TableCatalogEntry::renameProperty(const std::string& propertyName,
     propertyCollection.rename(propertyName, newName);
 }
 
-std::string TableCatalogEntry::getDisplayLabelName(Catalog* catalog,
+std::string TableCatalogEntry::getLabel(const Catalog* catalog,
     const transaction::Transaction* transaction) {
     if (type == CatalogEntryType::NODE_TABLE_ENTRY) {
         return name;

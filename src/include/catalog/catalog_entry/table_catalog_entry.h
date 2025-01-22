@@ -64,7 +64,7 @@ public:
     void dropProperty(const std::string& propertyName);
     void renameProperty(const std::string& propertyName, const std::string& newName);
 
-    std::string getDisplayLabelName(Catalog* catalog, const transaction::Transaction* transaction);
+    std::string getLabel(const Catalog* catalog, const transaction::Transaction* transaction);
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<TableCatalogEntry> deserialize(common::Deserializer& deserializer,
