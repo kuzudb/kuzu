@@ -5,7 +5,7 @@
 -CASE DidNotLoadExtension
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/iceberg/test/iceberg_tables/lineitem_iceberg' (file_format='iceberg', allow_moved_paths=true) RETURN l_linenumber, l_quantity, l_shipdate, l_shipinstruct ORDER BY l_quantity, l_shipdate LIMIT 5;
 ---- error
-Binder exception: Cannot load from file type iceberg. Reason: Catalog exception: function iceberg_SCAN does not exist. This function exists in the ICEBERG extension. You can load the extension by running the command 'LOAD EXTENSION ICEBERG'.
+Binder exception: Cannot load from file type iceberg. If this file type is part of a kuzu extension please load the extension then try again.
 
 -CASE IcebergFunctions
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/iceberg/build/libiceberg.kuzu_extension"

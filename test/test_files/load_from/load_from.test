@@ -82,7 +82,7 @@ Binder exception: dateColumn has data type DATE but INT32 was expected.
 -STATEMENT LOAD WITH HEADERS (a INT64) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eStudyAt.csv" (HEADER=True, AUTO_DETECT=false) RETURN `from`, `to`, YEAR, Places;
 ---- error
 Binder exception: Number of columns mismatch. Expected 1 but got 11.
--STATEMENT LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" 
+-STATEMENT LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv"
             RETURN fName, gender, birthdate;
 ---- 5
 Alice|1|1900-01-01
@@ -90,7 +90,7 @@ Bob|2|1900-01-01
 Carol|1|1940-06-22
 Dan|2|1950-07-23
 Elizabeth|1|1980-10-26
--STATEMENT LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv" 
+-STATEMENT LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv"
             RETURN fName, gender, birthdate;
 ---- 3
 Farooq|2|1980-10-26
@@ -101,7 +101,7 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|1990-11-27
             RETURN *, concat(fName, 'aa');
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv on line 2: Conversion exception: Cast failed. Could not convert "[Aida]" to INT64. Line/record containing the error: '0,Alice,1,true,false,35,5.0,1900-01-01,2011-08-20 11:25:30Z+00:00,3 years 2 days 13 hours 2 minutes,"[10,5]","[Aida]"...'
--STATEMENT LOAD WITH HEADERS (ID StRING, fName StRING, gender StRING, isStudent StRING, isWorker StRING, age StRING, eyeSight StRING, birthdate StRING, registerTime StRING, lastJobDuration StRING, workedHours StRING, usedNames StRING, courseScoresPerTerm StRING, grades StRING, height StRING, u UUID) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv" 
+-STATEMENT LOAD WITH HEADERS (ID StRING, fName StRING, gender StRING, isStudent StRING, isWorker StRING, age StRING, eyeSight StRING, birthdate StRING, registerTime StRING, lastJobDuration StRING, workedHours StRING, usedNames StRING, courseScoresPerTerm StRING, grades StRING, height StRING, u UUID) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv"
             WHERE ID = '10'
             RETURN *, concat(fName, 'aa');
 ---- 1
@@ -111,7 +111,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv
 0aa|Alice
 -STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.tsv"  WITH * WHERE fname = 'Alice' RETURN concat(id, 'aa'), fname;
 ---- error
-Binder exception: Cannot load from file type tsv.
+Binder exception: Cannot load from file type tsv. If this file type is part of a kuzu extension please load the extension then try again.
 -STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.tsv" (file_format='csv')   WITH * WHERE fname = 'Alice' RETURN concat(id, 'aa'), fname;
 ---- 1
 0aa|Alice
@@ -130,9 +130,9 @@ Binder exception: Cannot load from file type tsv.
 3|4|2015|[3.8,2.5]|8.2
 5|6|2010|[2.1,4.4]|7.6
 7|6|2015|[9.2,3.1]|9.2
--STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eWorkAt.csv" 
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eWorkAt.csv"
             WITH column0 AS a, column1 AS b
-            LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" 
+            LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv"
             WITH * WHERE id = a
             RETURN a, b, fname;
 ---- 3
@@ -140,15 +140,15 @@ Binder exception: Cannot load from file type tsv.
 5|6|Dan
 7|6|Elizabeth
 -STATEMENT MATCH (a:person) WHERE a.ID < 2
-            LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" 
+            LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv"
             WHERE fname = "Alice" or fname = "Bob" AND a.fName = fname
             RETURN id, fname;
 ---- 1
 0|Alice
--STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eWorkAt.csv" 
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eWorkAt.csv"
             WHERE column0 = "3"
             WITH column0 AS a, column1 AS b
-            LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" 
+            LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv"
             WHERE id = a
             RETURN a, b, fname;
 ---- 1
@@ -187,4 +187,4 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_doub
 -LOG LoadFromIncorrectFormat
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_double.npy" (file_format='npyd') RETURN *;
 ---- error (regex)
-Binder exception: Cannot load from file type npyd.
+Binder exception: Cannot load from file type npyd. If this file type is part of a kuzu extension please load the extension then try again.
