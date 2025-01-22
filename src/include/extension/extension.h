@@ -57,23 +57,6 @@ void addFunc(main::Database& database, std::string name, catalog::CatalogEntryTy
         T::getFunctionSet());
 }
 
-template<typename T>
-concept IsAlias = requires(T) { typename T::alias; };
-template<typename T>
-concept IsNotAlias = !IsAlias<T>;
-
-struct AddFuncsToCatalog {
-    template<IsAlias Function>
-    void operator()(main::Database& db) {
-        addFunc<typename Function::alias>(db, Function::name, Function::alias::type);
-    }
-
-    template<IsNotAlias Function>
-    void operator()(main::Database& db) {
-        addFunc<Function>(db, Function::name, Function::type);
-    }
-};
-
 struct KUZU_API ExtensionUtils {
     static constexpr const char* EXTENSION_FILE_REPO = "http://extension.kuzudb.com/v{}/{}/{}/{}";
 

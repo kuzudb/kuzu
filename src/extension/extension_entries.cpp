@@ -2,7 +2,7 @@
 
 namespace kuzu::extension {
 
-static constexpr size_t NUM_EXTENSION_FUNCTIONS = 50;
+static constexpr size_t NUM_EXTENSION_FUNCTIONS = 27;
 static constexpr std::array<ExtensionFunctionEntry, NUM_EXTENSION_FUNCTIONS> extensionFunctions = {
     {{"STEM", "FTS"}, {"QUERY_FTS_INDEX", "FTS"}, {"CREATE_FTS_INDEX", "FTS"},
         {"DROP_FTS_INDEX", "FTS"}, {"TO_JSON", "JSON"}, {"JSON_QUOTE", "JSON"},
