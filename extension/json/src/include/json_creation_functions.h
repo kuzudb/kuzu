@@ -1,6 +1,5 @@
 #pragma once
 
-#include "catalog/catalog_entry/catalog_entry_type.h"
 #include "function/function.h"
 
 namespace kuzu {
@@ -8,8 +7,6 @@ namespace json_extension {
 
 struct ToJsonFunction {
     static constexpr const char* name = "to_json";
-    static constexpr catalog::CatalogEntryType type =
-        catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY;
 
     static function::function_set getFunctionSet();
 };
@@ -40,24 +37,18 @@ struct CastToJsonFunction {
 
 struct JsonArrayFunction {
     static constexpr const char* name = "json_array";
-    static constexpr catalog::CatalogEntryType type =
-        catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY;
 
     static function::function_set getFunctionSet();
 };
 
 struct JsonObjectFunction {
     static constexpr const char* name = "json_object";
-    static constexpr catalog::CatalogEntryType type =
-        catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY;
 
     static function::function_set getFunctionSet();
 };
 
 struct JsonMergePatchFunction {
     static constexpr const char* name = "json_merge_patch";
-    static constexpr catalog::CatalogEntryType type =
-        catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY;
 
     static function::function_set getFunctionSet();
 };

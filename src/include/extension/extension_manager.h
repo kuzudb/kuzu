@@ -8,6 +8,11 @@
 namespace kuzu {
 namespace extension {
 
+struct ExtensionFunctionEntry {
+    const char* name;
+    const char* extensionName;
+};
+
 class ExtensionManager {
 public:
     void loadExtension(const std::string& path, main::ClientContext* context);

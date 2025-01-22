@@ -5,9 +5,6 @@
 # These ground truth numbers were obtained from DuckDB and we double checked that
 # our results and DuckDB's results is within three decimal places.
 -CASE fts_search_simple
--STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
----- error
-
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
 ---- ok
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"

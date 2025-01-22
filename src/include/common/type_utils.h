@@ -23,23 +23,8 @@ struct overload : Funcs... {
     using Funcs::operator()...;
 };
 
-template<typename... Types>
-struct TypeList {
-    using types = std::tuple<Types...>;
-};
-
 class TypeUtils {
 public:
-    template<typename Func, typename Type, typename... RemainingTypes, typename... Params>
-    constexpr static void forEachType(Func&& func, TypeList<Type, RemainingTypes...>,
-        Params&&... params) {
-        func.template operator()<Type>(std::forward<Params>(params)...);
-        if constexpr (sizeof...(RemainingTypes) > 0) {
-            forEachType(std::forward<Func>(func), TypeList<RemainingTypes...>{},
-                std::forward<Params>(params)...);
-        }
-    }
-
     template<typename Func, typename... Types, size_t... indices>
     static void paramPackForEachHelper(const Func& func, std::index_sequence<indices...>,
         Types&&... values) {

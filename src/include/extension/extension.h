@@ -5,7 +5,6 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/catalog_entry_type.h"
 #include "common/api.h"
-#include "common/type_utils.h"
 #include "function/function.h"
 #include "main/database.h"
 #include "main/db_config.h"
@@ -48,11 +47,6 @@ struct ExtensionSourceUtils {
     static std::string toString(ExtensionSource source);
 };
 
-struct ExtensionFunctionEntry {
-    const char* name;
-    const char* extensionName;
-};
-
 template<typename T>
 void addFunc(main::Database& database, std::string name, catalog::CatalogEntryType functionType) {
     auto catalog = database.getCatalog();
@@ -79,11 +73,6 @@ struct AddFuncsToCatalog {
         addFunc<Function>(db, Function::name, Function::type);
     }
 };
-
-template<typename... Functions>
-void addFuncsToCatalog(common::TypeList<Functions...> funcs, main::Database& db) {
-    common::TypeUtils::forEachType(AddFuncsToCatalog{}, funcs, db);
-}
 
 struct KUZU_API ExtensionUtils {
     static constexpr const char* EXTENSION_FILE_REPO = "http://extension.kuzudb.com/v{}/{}/{}/{}";
