@@ -157,8 +157,12 @@ void Binder::validateNoIndexOnProperty(const std::string& tableName,
         return;
     }
     auto tableEntry = catalog->getTableCatalogEntry(transaction, tableName);
+    auto propertyID = tableEntry->getPropertyID(propertyName);
     for (auto indexCatalogEntry : catalog->getIndexEntries(transaction)) {
-        if (indexCatalogEntry->getTableID() == tableEntry->getTableID()) {
+        auto propertiesWithIndex = indexCatalogEntry->getProperties();
+        if (indexCatalogEntry->getTableID() == tableEntry->getTableID() &&
+            std::find(propertiesWithIndex.begin(), propertiesWithIndex.end(), propertyID) !=
+                propertiesWithIndex.end()) {
             throw BinderException{stringFormat(
                 "Cannot drop property {} in table {} because it is used in one or more indexes. "
                 "Please remove the associated indexes before attempting to drop this property.",

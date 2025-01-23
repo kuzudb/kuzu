@@ -331,3 +331,20 @@ embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_HNSW_INDEX('e_hnsw_index', '
 ---- 2
 0|0.271133
 3|0.209476
+-STATEMENT CREATE NODE TABLE student(ID INT64, age INT64, name STRING, primary key(ID))
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('student', 'studentIdx', ['name'])
+---- ok
+-STATEMENT CALL SHOW_INDEXES() WHERE `table name` = 'student' RETURN *
+---- 1
+student|studentIdx|FTS|[name]|True|CALL CREATE_FTS_INDEX('student', 'studentIdx', ['name'], stemmer := 'english');
+-STATEMENT ALTER TABLE student drop age
+---- ok
+-STATEMENT CALL SHOW_INDEXES() WHERE `table name` = 'student' RETURN *
+---- 1
+student|studentIdx|FTS|[name]|True|CALL CREATE_FTS_INDEX('student', 'studentIdx', ['name'], stemmer := 'english');
+-STATEMENT ALTER TABLE student rename name to firstName
+---- ok
+-STATEMENT CALL SHOW_INDEXES() WHERE `table name` = 'student' RETURN *
+---- 1
+student|studentIdx|FTS|[firstName]|True|CALL CREATE_FTS_INDEX('student', 'studentIdx', ['firstName'], stemmer := 'english');

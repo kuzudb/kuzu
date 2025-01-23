@@ -41,10 +41,11 @@ struct CreateFTSBindData final : FTSBindData {
     }
 };
 
-static std::vector<common::idx_t> bindProperties(const catalog::NodeTableCatalogEntry& entry,
+static std::vector<common::property_id_t> bindProperties(
+    const catalog::NodeTableCatalogEntry& entry,
     const std::shared_ptr<binder::Expression>& properties) {
     auto propertyValue = properties->constPtrCast<binder::LiteralExpression>()->getValue();
-    std::vector<common::idx_t> result;
+    std::vector<common::property_id_t> result;
     for (auto i = 0u; i < propertyValue.getChildrenSize(); i++) {
         auto propertyName = NestedVal::getChildVal(&propertyValue, i)->toString();
         if (!entry.containsProperty(propertyName)) {
@@ -55,7 +56,7 @@ static std::vector<common::idx_t> bindProperties(const catalog::NodeTableCatalog
             LogicalType::STRING()) {
             throw BinderException{"Full text search index can only be built on string properties."};
         }
-        result.push_back(entry.getPropertyIdx(propertyName));
+        result.push_back(entry.getPropertyID(propertyName));
     }
     return result;
 }
