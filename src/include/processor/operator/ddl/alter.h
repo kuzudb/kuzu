@@ -5,6 +5,11 @@
 #include "processor/operator/ddl/ddl.h"
 
 namespace kuzu {
+namespace catalog {
+class TableCatalogEntry;
+class RelGroupCatalogEntry;
+} // namespace catalog
+
 namespace processor {
 
 struct AlterPrintInfo final : OPPrintInfo {
@@ -55,8 +60,13 @@ public:
     }
 
 private:
-    void alterTable(const ExecutionContext* context, const binder::BoundAlterInfo& alterInfo) const;
-    void alterRelGroupChildren(const ExecutionContext* context) const;
+    void alterTable(main::ClientContext* clientContext, catalog::TableCatalogEntry* entry,
+        const binder::BoundAlterInfo& alterInfo) const;
+
+    void alterRelGroup(main::ClientContext* clientContext, catalog::RelGroupCatalogEntry* entry,
+        const binder::BoundAlterInfo& alterInfo) const;
+    void alterRelGroupChildren(main::ClientContext* clientContext,
+        catalog::RelGroupCatalogEntry* entry, const binder::BoundAlterInfo& alterInfo) const;
 
     binder::BoundAlterInfo info;
     std::unique_ptr<evaluator::ExpressionEvaluator> defaultValueEvaluator;

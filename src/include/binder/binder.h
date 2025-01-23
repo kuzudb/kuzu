@@ -278,7 +278,6 @@ public:
         const BoundProjectionBody& boundProjectionBody);
     static bool isOrderByKeyTypeSupported(const common::LogicalType& dataType);
 
-    void validateTableExists(const std::string& name) const;
     void validateNoIndexOnProperty(const std::string& tableName,
         const std::string& propertyName) const;
     /*** helpers ***/

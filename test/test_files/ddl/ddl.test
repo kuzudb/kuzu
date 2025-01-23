@@ -92,7 +92,7 @@ Binder exception: knows already exists in catalog.
 Catalog exception: test_person_person already exists in catalog.
 -STATEMENT CREATE REL TABLE test2 (FROM person TO person, FROM person TO person);
 ---- error
-Catalog exception: test2_person_person already exists in catalog.
+Binder exception: Found duplicate FROM-TO person-person pairs.
 
 -CASE CreateNodeTableCommitNormalExecution
 -STATEMENT CREATE NODE TABLE EXAM_PAPER(STUDENT_ID INT64, MARK DOUBLE, PRIMARY KEY(STUDENT_ID))

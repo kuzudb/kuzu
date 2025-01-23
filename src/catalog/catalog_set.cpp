@@ -63,7 +63,7 @@ CatalogEntry* CatalogSet::getEntryNoLock(const Transaction* transaction,
     return entry;
 }
 
-static void logEntryForTrx(Transaction* transaction, CatalogSet& set, CatalogEntry& entry,
+static void logCreateDropEntryForTrx(Transaction* transaction, CatalogSet& set, CatalogEntry& entry,
     bool isInternal, bool skipLoggingToWAL = false) {
     KU_ASSERT(transaction);
     if (transaction->shouldAppendToUndoBuffer()) {
@@ -81,7 +81,7 @@ oid_t CatalogSet::createEntry(Transaction* transaction, std::unique_ptr<CatalogE
         entryPtr = createEntryNoLock(transaction, std::move(entry));
     }
     KU_ASSERT(entryPtr);
-    logEntryForTrx(transaction, *this, *entryPtr, isInternal());
+    logCreateDropEntryForTrx(transaction, *this, *entryPtr, isInternal());
     return oid;
 }
 
@@ -158,7 +158,7 @@ void CatalogSet::dropEntry(Transaction* transaction, const std::string& name, oi
         entryPtr = dropEntryNoLock(transaction, name, oid);
     }
     KU_ASSERT(entryPtr);
-    logEntryForTrx(transaction, *this, *entryPtr, isInternal());
+    logCreateDropEntryForTrx(transaction, *this, *entryPtr, isInternal());
 }
 
 CatalogEntry* CatalogSet::dropEntryNoLock(const Transaction* transaction, const std::string& name,
@@ -230,8 +230,9 @@ void CatalogSet::alterRelGroupEntry(Transaction* transaction,
     dropEntryNoLock(transaction, alterInfo.tableName, entry->getOID());
     auto createdEntry = createEntryNoLock(transaction, std::move(newEntry));
     KU_ASSERT(entry);
-    logEntryForTrx(transaction, *this, *entry, isInternal());
-    logEntryForTrx(transaction, *this, *createdEntry, isInternal(), true /* skip logging to WAL */);
+    logCreateDropEntryForTrx(transaction, *this, *entry, isInternal());
+    logCreateDropEntryForTrx(transaction, *this, *createdEntry, isInternal(),
+        true /* skip logging to WAL */);
 }
 
 CatalogEntrySet CatalogSet::getEntries(const Transaction* transaction) {
