@@ -22,7 +22,7 @@ void IndexCatalogEntry::serialize(common::Serializer& serializer) const {
     serializer.write(type);
     serializer.write(tableID);
     serializer.write(indexName);
-    serializer.serializeVector(properties);
+    serializer.serializeVector(propertyIDs);
     const auto bufferedWriter = auxInfo->serialize();
     serializer.write<uint64_t>(bufferedWriter->getSize());
     serializer.write(bufferedWriter->getData().data.get(), bufferedWriter->getSize());
@@ -33,13 +33,13 @@ std::unique_ptr<IndexCatalogEntry> IndexCatalogEntry::deserialize(
     std::string type;
     common::table_id_t tableID = common::INVALID_TABLE_ID;
     std::string indexName;
-    std::vector<std::string> properties;
+    std::vector<common::property_id_t> propertyIDs;
     deserializer.deserializeValue(type);
     deserializer.deserializeValue(tableID);
     deserializer.deserializeValue(indexName);
-    deserializer.deserializeVector(properties);
+    deserializer.deserializeVector(propertyIDs);
     auto indexEntry = std::make_unique<IndexCatalogEntry>(type, tableID, std::move(indexName),
-        std::move(properties), nullptr /* auxInfo */);
+        std::move(propertyIDs), nullptr /* auxInfo */);
     uint64_t auxBufferSize = 0;
     deserializer.deserializeValue(auxBufferSize);
     indexEntry->auxBuffer = std::make_unique<uint8_t[]>(auxBufferSize);

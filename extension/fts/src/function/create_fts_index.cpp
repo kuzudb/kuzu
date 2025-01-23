@@ -27,24 +27,25 @@ using namespace kuzu::main;
 using namespace kuzu::function;
 
 struct CreateFTSBindData final : FTSBindData {
-    std::vector<std::string> properties;
+    std::vector<common::property_id_t> propertyIDs;
     FTSConfig ftsConfig;
 
     CreateFTSBindData(std::string tableName, table_id_t tableID, std::string indexName,
-        std::vector<std::string> properties, FTSConfig createFTSConfig)
+        std::vector<common::property_id_t> propertyIDs, FTSConfig createFTSConfig)
         : FTSBindData{std::move(tableName), tableID, std::move(indexName),
               binder::expression_vector{}},
-          properties{std::move(properties)}, ftsConfig{std::move(createFTSConfig)} {}
+          propertyIDs{std::move(propertyIDs)}, ftsConfig{std::move(createFTSConfig)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<CreateFTSBindData>(*this);
     }
 };
 
-static std::vector<std::string> bindProperties(const catalog::NodeTableCatalogEntry& entry,
+static std::vector<common::property_id_t> bindProperties(
+    const catalog::NodeTableCatalogEntry& entry,
     const std::shared_ptr<binder::Expression>& properties) {
     auto propertyValue = properties->constPtrCast<binder::LiteralExpression>()->getValue();
-    std::vector<std::string> result;
+    std::vector<common::property_id_t> result;
     for (auto i = 0u; i < propertyValue.getChildrenSize(); i++) {
         auto propertyName = NestedVal::getChildVal(&propertyValue, i)->toString();
         if (!entry.containsProperty(propertyName)) {
@@ -55,7 +56,7 @@ static std::vector<std::string> bindProperties(const catalog::NodeTableCatalogEn
             LogicalType::STRING()) {
             throw BinderException{"Full text search index can only be built on string properties."};
         }
-        result.push_back(std::move(propertyName));
+        result.push_back(entry.getPropertyID(propertyName));
     }
     return result;
 }
@@ -88,10 +89,11 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     auto indexName = input->getLiteralVal<std::string>(1);
     auto nodeTableEntry = storage::IndexUtils::bindTable(*context,
         input->getLiteralVal<std::string>(0), indexName, storage::IndexOperation::CREATE);
-    auto properties = bindProperties(*nodeTableEntry, input->getParam(2));
+    auto propertyIDs = bindProperties(*nodeTableEntry, input->getParam(2));
     auto createFTSConfig = FTSConfig{input->optionalParams};
     return std::make_unique<CreateFTSBindData>(nodeTableEntry->getName(),
-        nodeTableEntry->getTableID(), indexName, std::move(properties), std::move(createFTSConfig));
+        nodeTableEntry->getTableID(), indexName, std::move(propertyIDs),
+        std::move(createFTSConfig));
 }
 
 static std::string createStopWordsTableIfNotExists(const ClientContext& context,
@@ -138,7 +140,10 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
                           "key(ID));",
         appearsInfoTableName);
     auto tableName = ftsBindData->tableName;
-    for (auto& property : ftsBindData->properties) {
+    auto tableEntry =
+        context.getCatalog()->getTableCatalogEntry(context.getTransaction(), tableName);
+    for (auto& property : ftsBindData->propertyIDs) {
+        auto propertyName = tableEntry->getProperty(property).getName();
         query += stringFormat("COPY `{}` FROM "
                               "(MATCH (b:`{}`) "
                               "WITH tokenize(b.{}) AS tk, OFFSET(ID(b)) AS id "
@@ -147,7 +152,7 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
                               "WHERE t1 is NOT NULL AND SIZE(t1) > 0 AND "
                               "NOT EXISTS {MATCH (s:`{}` {sw: t1})} "
                               "RETURN STEM(t1, '{}'), id1);",
-            appearsInfoTableName, tableName, property, stopWordsTableName,
+            appearsInfoTableName, tableName, propertyName, stopWordsTableName,
             ftsBindData->ftsConfig.stemmer);
     }
 
@@ -234,7 +239,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& /*output
     auto avgDocLen = numDocs == 0 ? 0 : static_cast<double>(sharedState.totalLen.load()) / numDocs;
     context.clientContext->getCatalog()->createIndex(context.clientContext->getTransaction(),
         std::make_unique<catalog::IndexCatalogEntry>(FTSIndexCatalogEntry::TYPE_NAME,
-            bindData.tableID, bindData.indexName, bindData.properties,
+            bindData.tableID, bindData.indexName, bindData.propertyIDs,
             std::make_unique<FTSIndexAuxInfo>(numDocs, avgDocLen, bindData.ftsConfig)));
     return 0;
 }

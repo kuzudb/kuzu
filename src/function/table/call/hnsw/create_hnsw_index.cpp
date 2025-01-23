@@ -19,7 +19,7 @@ CreateHNSWSharedState::CreateHNSWSharedState(const CreateHNSWIndexBindData& bind
                     ->cast<storage::NodeTable>()},
       numNodes{bindData.numNodes}, bindData{&bindData} {
     hnswIndex = std::make_unique<storage::InMemHNSWIndex>(bindData.context, nodeTable,
-        bindData.columnID, bindData.config.copy());
+        bindData.tableEntry->getColumnID(bindData.propertyID), bindData.config.copy());
     partitionerSharedState = std::make_shared<storage::HNSWIndexPartitionerSharedState>(
         *bindData.context->getMemoryManager());
 }
@@ -35,11 +35,11 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const auto tableID = tableEntry->getTableID();
     storage::HNSWIndexUtils::validateColumnType(*tableEntry, columnName);
     const auto& table = context->getStorageManager()->getTable(tableID)->cast<storage::NodeTable>();
-    auto columnID = tableEntry->getColumnID(columnName);
+    auto propertyID = tableEntry->getPropertyID(columnName);
     auto config = storage::HNSWIndexConfig{input->optionalParams};
     auto numNodes = table.getStats(context->getTransaction()).getTableCard();
     auto maxOffset = numNodes > 0 ? numNodes - 1 : 0;
-    return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, columnID,
+    return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, propertyID,
         numNodes, maxOffset, std::move(config));
 }
 
@@ -99,9 +99,7 @@ static void finalizeFunc(const processor::ExecutionContext* context,
     auto indexEntry =
         std::make_unique<catalog::IndexCatalogEntry>(catalog::HNSWIndexCatalogEntry::TYPE_NAME,
             bindData->tableEntry->getTableID(), bindData->indexName,
-            std::vector<std::string>{
-                hnswSharedState->nodeTable.getColumn(bindData->columnID).getName()},
-            std::move(auxInfo));
+            std::vector<common::property_id_t>{bindData->propertyID}, std::move(auxInfo));
     catalog->createIndex(transaction, std::move(indexEntry));
 }
 

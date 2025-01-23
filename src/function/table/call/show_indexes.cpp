@@ -90,12 +90,16 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     auto catalog = context->getCatalog();
     auto indexEntries = catalog->getIndexEntries(context->getTransaction());
     for (auto indexEntry : indexEntries) {
-        auto tableName =
-            catalog->getTableCatalogEntry(context->getTransaction(), indexEntry->getTableID())
-                ->getName();
+        auto tableEntry =
+            catalog->getTableCatalogEntry(context->getTransaction(), indexEntry->getTableID());
+        auto tableName = tableEntry->getName();
         auto indexName = indexEntry->getIndexName();
         auto indexType = indexEntry->getIndexType();
-        auto properties = indexEntry->getProperties();
+        auto properties = indexEntry->getPropertyIDs();
+        std::vector<std::string> propertyNames;
+        for (auto& property : properties) {
+            propertyNames.push_back(tableEntry->getProperty(property).getName());
+        }
         auto dependencyLoaded = indexEntry->isLoaded();
         std::string indexDefinition;
         if (dependencyLoaded) {
@@ -103,7 +107,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
             indexDefinition = auxInfo.toCypher(*indexEntry, context);
         }
         indexesInfo.emplace_back(std::move(tableName), std::move(indexName), std::move(indexType),
-            std::move(properties), dependencyLoaded, std::move(indexDefinition));
+            std::move(propertyNames), dependencyLoaded, std::move(indexDefinition));
     }
     return std::make_unique<ShowIndexesBindData>(indexesInfo, bindColumns(*input),
         indexesInfo.size());

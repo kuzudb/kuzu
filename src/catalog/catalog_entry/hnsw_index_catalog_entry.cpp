@@ -41,14 +41,15 @@ std::string HNSWIndexAuxInfo::toCypher(const IndexCatalogEntry& indexEntry,
     const main::ClientContext* context) const {
     std::string cypher;
     auto catalog = context->getCatalog();
-    auto tableName =
-        catalog->getTableCatalogEntry(context->getTransaction(), indexEntry.getTableID())
-            ->getName();
+    auto tableEntry =
+        catalog->getTableCatalogEntry(context->getTransaction(), indexEntry.getTableID());
+    auto tableName = tableEntry->getName();
+    auto propertyName = tableEntry->getProperty(indexEntry.getPropertyIDs()[0]).getName();
     auto distFuncName = storage::HNSWIndexConfig::distFuncToString(config.distFunc);
     cypher += common::stringFormat("CALL CREATE_HNSW_INDEX('{}', '{}', '{}', mu := {}, ml := {}, "
                                    "pu := {}, distFunc := '{}', alpha := {}, efc := {});",
-        indexEntry.getIndexName(), tableName, indexEntry.getProperties()[0], config.mu, config.ml,
-        config.pu, distFuncName, config.alpha, config.efc);
+        indexEntry.getIndexName(), tableName, propertyName, config.mu, config.ml, config.pu,
+        distFuncName, config.alpha, config.efc);
     return cypher;
 }
 

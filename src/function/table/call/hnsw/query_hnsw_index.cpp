@@ -22,7 +22,7 @@ QueryHNSWIndexBindData::QueryHNSWIndexBindData(main::ClientContext* context,
       boundInput{std::move(boundInput)}, config{config}, outputNode{std::move(outputNode)} {
     auto indexEntry = this->boundInput.indexEntry;
     auto& indexAuxInfo = indexEntry->getAuxInfo().cast<catalog::HNSWIndexAuxInfo>();
-    indexColumnID = this->boundInput.nodeTableEntry->getColumnID(indexEntry->getProperties()[0]);
+    indexColumnID = this->boundInput.nodeTableEntry->getColumnID(indexEntry->getPropertyIDs()[0]);
     auto catalog = context->getCatalog();
     upperHNSWRelTableEntry =
         catalog->getTableCatalogEntry(context->getTransaction(), indexAuxInfo.upperRelTableID)
@@ -46,7 +46,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         nodeTableEntry->getTableID(), indexName);
     const auto& auxInfo = indexEntry->getAuxInfo().cast<catalog::HNSWIndexAuxInfo>();
     KU_ASSERT(
-        nodeTableEntry->getProperty(indexEntry->getProperties()[0]).getType().getLogicalTypeID() ==
+        nodeTableEntry->getProperty(indexEntry->getPropertyIDs()[0]).getType().getLogicalTypeID() ==
         common::LogicalTypeID::ARRAY);
     KU_UNUSED(auxInfo);
 
@@ -140,7 +140,7 @@ static std::vector<float> getQueryVector(const binder::Expression& queryExpressi
 }
 
 static const common::LogicalType& getIndexColumnType(const BoundQueryHNSWIndexInput& boundInput) {
-    auto columnName = boundInput.indexEntry->getProperties()[0];
+    auto columnName = boundInput.indexEntry->getPropertyIDs()[0];
     return boundInput.nodeTableEntry->getProperty(columnName).getType();
 }
 
