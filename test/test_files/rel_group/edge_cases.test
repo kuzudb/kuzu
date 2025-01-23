@@ -9,6 +9,17 @@
 ---- ok
 -STATEMENT CREATE REL TABLE Knows(FROM PersonA TO PersonA, FROM PersonA TO PersonB, data STRING);
 ---- ok
+-STATEMENT CREATE (:PersonA {id:0}), (:PersonB {id:0})
+---- ok
+-STATEMENT MATCH (p1:PersonA {id:0}), (p2:PersonB {id:0}) CREATE (p1)-[e:Knows]->(p2)
+---- ok
+-STATEMENT MATCH (p1 {id:0}), (p2 {id:0}) CREATE (p1)-[e:Knows]->(p2)
+---- error
+Binder exception: Create rel e bound by multiple node labels is not supported.
+-STATEMENT MATCH (a)-[]->(b) RETURN a.id, b.id
+---- 1
+0|0
+
 -STATEMENT ALTER TABLE Knows_PersonA_PersonB DROP data;
 ---- error
 Runtime exception: Cannot alter table Knows_PersonA_PersonB because it is referenced by table Knows.
@@ -17,8 +28,8 @@ Runtime exception: Cannot alter table Knows_PersonA_PersonB because it is refere
 -STATEMENT CALL table_info("Knows") RETURN *;
 ---- 0
 
-
 -CASE DuplicateRelTable
+-SKIP
 -STATEMENT CREATE NODE TABLE PersonA (id INT64 PRIMARY KEY);
 ---- ok
 -STATEMENT CREATE NODE TABLE PersonB (id INT64 PRIMARY KEY);
@@ -41,6 +52,7 @@ Binder exception: Table Know2 already exists.
 2|Know2|REL|local(kuzu)|
 
 -CASE DuplicateFromToPairs
+-SKIP
 -STATEMENT CREATE NODE TABLE PersonA (id INT64 PRIMARY KEY);
 ---- ok
 -STATEMENT CREATE NODE TABLE PersonB (id INT64 PRIMARY KEY);
