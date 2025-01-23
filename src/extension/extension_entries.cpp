@@ -3,6 +3,12 @@
 
 namespace kuzu::extension {
 
+struct EntriesForExtension {
+    const char* extensionName;
+    std::span<const char* const> entries;
+    size_t numEntries;
+};
+
 static constexpr std::array ftsExtensionFunctions = {"STEM", "QUERY_FTS_INDEX", "CREATE_FTS_INDEX",
     "DROP_FTS_INDEX"};
 static constexpr std::array jsonExtensionFunctions = {"TO_JSON", "JSON_QUOTE", "ARRAY_TO_JSON",
@@ -13,11 +19,6 @@ static constexpr std::array duckdbExtensionFunctions = {"CLEAR_ATTACHED_DB_CACHE
 static constexpr std::array deltaExtensionFunctions = {"DELTA_SCAN"};
 static constexpr std::array icebergExtensionFunctions = {"ICEBERG_SCAN", "ICEBERG_METADATA",
     "ICEBERG_SNAPSHOTS"};
-struct EntriesForExtension {
-    const char* extensionName;
-    std::span<const char* const> entries;
-    size_t numEntries;
-};
 
 static constexpr EntriesForExtension functionsForExtensionsRaw[] = {
     {"FTS", ftsExtensionFunctions, ftsExtensionFunctions.size()},
