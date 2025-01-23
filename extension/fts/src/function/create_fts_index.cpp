@@ -27,11 +27,11 @@ using namespace kuzu::main;
 using namespace kuzu::function;
 
 struct CreateFTSBindData final : FTSBindData {
-    std::vector<common::idx_t> properties;
+    std::vector<common::property_id_t> properties;
     FTSConfig ftsConfig;
 
     CreateFTSBindData(std::string tableName, table_id_t tableID, std::string indexName,
-        std::vector<common::idx_t> properties, FTSConfig createFTSConfig)
+        std::vector<common::property_id_t> properties, FTSConfig createFTSConfig)
         : FTSBindData{std::move(tableName), tableID, std::move(indexName),
               binder::expression_vector{}},
           properties{std::move(properties)}, ftsConfig{std::move(createFTSConfig)} {}

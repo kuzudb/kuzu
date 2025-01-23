@@ -12,21 +12,19 @@ struct CreateHNSWIndexBindData final : SimpleTableFuncBindData {
     std::string indexName;
     catalog::TableCatalogEntry* tableEntry;
     common::property_id_t propertyID;
-    common::column_id_t columnID;
     storage::HNSWIndexConfig config;
     common::offset_t numNodes;
 
     CreateHNSWIndexBindData(main::ClientContext* context, std::string indexName,
         catalog::TableCatalogEntry* tableEntry, common::property_id_t propertyID,
-        common::column_id_t columnID, common::offset_t numNodes, common::offset_t maxOffset,
-        storage::HNSWIndexConfig config)
+        common::offset_t numNodes, common::offset_t maxOffset, storage::HNSWIndexConfig config)
         : SimpleTableFuncBindData{maxOffset}, context{context}, indexName{std::move(indexName)},
-          tableEntry{tableEntry}, propertyID{propertyID}, columnID{columnID},
-          config{std::move(config)}, numNodes{numNodes} {}
+          tableEntry{tableEntry}, propertyID{propertyID}, config{std::move(config)},
+          numNodes{numNodes} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, propertyID,
-            columnID, numNodes, maxOffset, config.copy());
+            numNodes, maxOffset, config.copy());
     }
 };
 

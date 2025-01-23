@@ -15,11 +15,11 @@ namespace function {
 CreateHNSWSharedState::CreateHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : SimpleTableFuncSharedState{bindData.maxOffset}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-                    ->getTable(bindData.tableEntry->getTableID())
-                    ->cast<storage::NodeTable>()},
+              ->getTable(bindData.tableEntry->getTableID())
+              ->cast<storage::NodeTable>()},
       numNodes{bindData.numNodes}, bindData{&bindData} {
     hnswIndex = std::make_unique<storage::InMemHNSWIndex>(bindData.context, nodeTable,
-        bindData.columnID, bindData.config.copy());
+        bindData.tableEntry->getColumnID(bindData.propertyID), bindData.config.copy());
     partitionerSharedState = std::make_shared<storage::HNSWIndexPartitionerSharedState>(
         *bindData.context->getMemoryManager());
 }
@@ -36,12 +36,11 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     storage::HNSWIndexUtils::validateColumnType(*tableEntry, columnName);
     const auto& table = context->getStorageManager()->getTable(tableID)->cast<storage::NodeTable>();
     auto propertyID = tableEntry->getPropertyID(columnName);
-    auto columnID = tableEntry->getColumnID(propertyID);
     auto config = storage::HNSWIndexConfig{input->optionalParams};
     auto numNodes = table.getStats(context->getTransaction()).getTableCard();
     auto maxOffset = numNodes > 0 ? numNodes - 1 : 0;
     return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, propertyID,
-        columnID, numNodes, maxOffset, std::move(config));
+        numNodes, maxOffset, std::move(config));
 }
 
 static std::unique_ptr<TableFuncSharedState> initCreateHNSWSharedState(
