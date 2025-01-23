@@ -60,8 +60,8 @@ bool TableCatalogEntry::containsProperty(const std::string& propertyName) const 
     return propertyCollection.contains(propertyName);
 }
 
-idx_t TableCatalogEntry::getPropertyIdx(const std::string& propertyName) const {
-    return propertyCollection.getIdx(propertyName);
+property_id_t TableCatalogEntry::getPropertyID(const std::string& propertyName) const {
+    return propertyCollection.getPropertyID(propertyName);
 }
 
 const PropertyDefinition& TableCatalogEntry::getProperty(const std::string& propertyName) const {

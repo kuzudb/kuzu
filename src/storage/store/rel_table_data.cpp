@@ -96,8 +96,7 @@ void RelTableData::initPropertyColumns(const TableCatalogEntry* tableEntry) {
     auto nbrIDColumn = std::make_unique<InternalIDColumn>(nbrIDColName, dataFH, memoryManager,
         shadowFile, enableCompression);
     columns[NBR_ID_COLUMN_ID] = std::move(nbrIDColumn);
-    for (auto i = 0u; i < tableEntry->getNumProperties(); i++) {
-        auto& property = tableEntry->getProperty(i);
+    for (auto& property : tableEntry->getProperties()) {
         const auto columnID = tableEntry->getColumnID(property.getName());
         const auto colName = StorageUtils::getColumnName(property.getName(),
             StorageUtils::ColumnType::DEFAULT, RelDirectionUtils::relDirectionToString(direction));

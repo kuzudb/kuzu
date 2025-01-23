@@ -8,22 +8,22 @@ namespace catalog {
 
 class PropertyDefinitionCollection {
 public:
-    PropertyDefinitionCollection() : nextColumnID{0} {}
+    PropertyDefinitionCollection() : nextColumnID{0}, nextPropertyID{0} {}
     explicit PropertyDefinitionCollection(common::column_id_t nextColumnID)
-        : nextColumnID{nextColumnID} {}
+        : nextColumnID{nextColumnID}, nextPropertyID{0} {}
     EXPLICIT_COPY_DEFAULT_MOVE(PropertyDefinitionCollection);
 
     common::idx_t size() const { return definitions.size(); }
 
-    bool contains(const std::string& name) const { return nameToPropertyIdxMap.contains(name); }
+    bool contains(const std::string& name) const { return nameToPropertyIDMap.contains(name); }
 
-    const std::vector<binder::PropertyDefinition>& getDefinitions() const { return definitions; }
+    std::vector<binder::PropertyDefinition> getDefinitions() const;
     const binder::PropertyDefinition& getDefinition(const std::string& name) const;
     const binder::PropertyDefinition& getDefinition(common::idx_t idx) const;
     common::column_id_t getMaxColumnID() const;
     common::column_id_t getColumnID(const std::string& name) const;
-    common::column_id_t getColumnID(common::idx_t idx) const;
-    common::idx_t getIdx(const std::string& name) const;
+    common::column_id_t getColumnID(common::property_id_t propertyID) const;
+    common::property_id_t getPropertyID(const std::string& name) const;
     void vacuumColumnIDs(common::column_id_t nextColumnID);
 
     void add(const binder::PropertyDefinition& definition);
@@ -37,14 +37,16 @@ public:
 
 private:
     PropertyDefinitionCollection(const PropertyDefinitionCollection& other)
-        : nextColumnID{other.nextColumnID}, definitions{copyVector(other.definitions)},
-          columnIDs{other.columnIDs}, nameToPropertyIdxMap{other.nameToPropertyIdxMap} {}
+        : nextColumnID{other.nextColumnID}, nextPropertyID{other.nextPropertyID},
+          definitions{copyMap(other.definitions)}, columnIDs{other.columnIDs},
+          nameToPropertyIDMap{other.nameToPropertyIDMap} {}
 
 private:
     common::column_id_t nextColumnID;
-    std::vector<binder::PropertyDefinition> definitions;
-    std::vector<common::column_id_t> columnIDs;
-    common::case_insensitive_map_t<common::idx_t> nameToPropertyIdxMap;
+    common::property_id_t nextPropertyID;
+    std::map<common::property_id_t, binder::PropertyDefinition> definitions;
+    std::unordered_map<common::property_id_t, common::column_id_t> columnIDs;
+    common::case_insensitive_map_t<common::property_id_t> nameToPropertyIDMap;
 };
 
 } // namespace catalog

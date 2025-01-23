@@ -36,7 +36,7 @@ public:
     PropertyExpression(const PropertyExpression& other)
         : Expression{expressionType_, other.dataType.copy(), other.uniqueName},
           propertyName{other.propertyName}, uniqueVarName{other.uniqueVarName},
-          rawVariableName{other.rawVariableName}, infos{copyMap(other.infos)} {}
+          rawVariableName{other.rawVariableName}, infos{copyUnorderedMap(other.infos)} {}
 
     // Construct from a virtual property, i.e. no propertyID available.
     static std::unique_ptr<PropertyExpression> construct(common::LogicalType type,

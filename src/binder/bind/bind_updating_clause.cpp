@@ -145,7 +145,7 @@ std::vector<BoundInsertInfo> Binder::bindInsertInfos(QueryGraphCollection& query
 static void validatePrimaryKeyExistence(const NodeTableCatalogEntry* nodeTableEntry,
     const NodeExpression& node, const expression_vector& defaultExprs) {
     auto primaryKeyName = nodeTableEntry->getPrimaryKeyName();
-    auto pkeyDefaultExpr = defaultExprs.at(nodeTableEntry->getPrimaryKeyIdx());
+    auto pkeyDefaultExpr = defaultExprs.at(nodeTableEntry->getPrimaryKeyID());
     if (!node.hasPropertyDataExpr(primaryKeyName) &&
         ExpressionUtil::isNullLiteral(*pkeyDefaultExpr)) {
         throw BinderException(stringFormat("Create node {} expects primary key {} as input.",

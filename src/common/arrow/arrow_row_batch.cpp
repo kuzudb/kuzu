@@ -407,13 +407,13 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::REL>(ArrowVector* ve
         RelVal::getLabelVal(value));
     appendValue(vector->childData[3].get(), StructType::getFieldType(type, 3),
         RelVal::getIDVal(value));
-    std::int64_t propertyId = 4;
+    common::property_id_t propertyID = 4;
     auto numProperties = RelVal::getNumProperties(value);
     for (auto i = 0u; i < numProperties; i++) {
         auto val = RelVal::getPropertyVal(value, i);
-        appendValue(vector->childData[propertyId].get(), StructType::getFieldType(type, propertyId),
+        appendValue(vector->childData[propertyID].get(), StructType::getFieldType(type, propertyID),
             val);
-        propertyId++;
+        propertyID++;
     }
 }
 

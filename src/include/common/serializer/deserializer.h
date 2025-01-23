@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <map>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -40,7 +41,32 @@ public:
     }
 
     template<typename T1, typename T2>
-    void deserializeUnorderedMap(std::unordered_map<T1, std::unique_ptr<T2>>& values) {
+    void deserializeMap(std::map<T1, T2>& values) {
+        uint64_t mapSize = 0;
+        deserializeValue<uint64_t>(mapSize);
+        for (auto i = 0u; i < mapSize; i++) {
+            T1 key;
+            deserializeValue<T1>(key);
+            auto val = T2::deserialize(*this);
+            values.emplace(key, std::move(val));
+        }
+    }
+
+    template<typename T1, typename T2>
+    void deserializeUnorderedMap(std::unordered_map<T1, T2>& values) {
+        uint64_t mapSize = 0;
+        deserializeValue<uint64_t>(mapSize);
+        for (auto i = 0u; i < mapSize; i++) {
+            T1 key;
+            deserializeValue<T1>(key);
+            T2 val;
+            deserializeValue(val);
+            values.emplace(key, std::move(val));
+        }
+    }
+
+    template<typename T1, typename T2>
+    void deserializeUnorderedMapOfPtrs(std::unordered_map<T1, std::unique_ptr<T2>>& values) {
         uint64_t mapSize = 0;
         deserializeValue<uint64_t>(mapSize);
         values.reserve(mapSize);

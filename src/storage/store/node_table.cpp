@@ -202,8 +202,7 @@ NodeTable::NodeTable(const StorageManager* storageManager,
       versionRecordHandler(this) {
     const auto maxColumnID = nodeTableEntry->getMaxColumnID();
     columns.resize(maxColumnID + 1);
-    for (auto i = 0u; i < nodeTableEntry->getNumProperties(); i++) {
-        auto& property = nodeTableEntry->getProperty(i);
+    for (auto& property : nodeTableEntry->getProperties()) {
         const auto columnID = nodeTableEntry->getColumnID(property.getName());
         const auto columnName =
             StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT, "");

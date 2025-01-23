@@ -114,7 +114,7 @@ public:
         common::table_id_map_t<NodeTableDeleteInfo> tableInfos)
         : NodeDeleteExecutor(std::move(info)), tableInfos{std::move(tableInfos)} {}
     MultiLabelNodeDeleteExecutor(const MultiLabelNodeDeleteExecutor& other)
-        : NodeDeleteExecutor(other), tableInfos{copyMap(other.tableInfos)} {}
+        : NodeDeleteExecutor(other), tableInfos{copyUnorderedMap(other.tableInfos)} {}
 
     void init(ResultSet* resultSet, ExecutionContext*) override;
     void delete_(ExecutionContext* context) override;

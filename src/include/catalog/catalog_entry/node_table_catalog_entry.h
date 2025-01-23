@@ -23,7 +23,9 @@ public:
     common::TableType getTableType() const override { return common::TableType::NODE; }
 
     std::string getPrimaryKeyName() const { return primaryKeyName; }
-    common::idx_t getPrimaryKeyIdx() const { return propertyCollection.getIdx(primaryKeyName); }
+    common::property_id_t getPrimaryKeyID() const {
+        return propertyCollection.getPropertyID(primaryKeyName);
+    }
     const binder::PropertyDefinition& getPrimaryKeyDefinition() const {
         return getProperty(primaryKeyName);
     }

@@ -51,7 +51,7 @@ static std::vector<std::string> bindProperties(const catalog::NodeTableCatalogEn
             throw BinderException{stringFormat("Property: {} does not exist in table {}.",
                 propertyName, entry.getName())};
         }
-        if (entry.getProperty(entry.getPropertyIdx(propertyName)).getType() !=
+        if (entry.getProperty(entry.getPropertyID(propertyName)).getType() !=
             LogicalType::STRING()) {
             throw BinderException{"Full text search index can only be built on string properties."};
         }
