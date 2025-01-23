@@ -40,7 +40,7 @@ NpyReader::NpyReader(const std::string& filePath)
     if (fd == -1) {
         throw CopyException("Failed to open NPY file.");
     }
-    struct stat fileStatus{};
+    struct stat fileStatus {};
     fstat(fd, &fileStatus);
     fileSize = fileStatus.st_size;
 
