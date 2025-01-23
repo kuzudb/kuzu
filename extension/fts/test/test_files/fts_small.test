@@ -74,6 +74,14 @@
 ---- 2
 0|0.192034
 20|0.210752
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'studying') yield _node as studyNode, score as studyScore CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice') yield _node as aliceNode, score as aliceScore RETURN studyNode.ID, aliceNode.ID,aliceScore
+---- 6
+0|0|0.271133
+0|3|0.209476
+20|0|0.271133
+20|3|0.209476
+3|0|0.271133
+3|3|0.209476
 
 -CASE FTSWithParams
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"

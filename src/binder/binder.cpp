@@ -124,7 +124,7 @@ std::shared_ptr<Expression> Binder::createInvisibleVariable(const std::string& n
 }
 
 expression_vector Binder::createVariables(const std::vector<std::string>& names,
-    const std::vector<LogicalType>& types) {
+    const std::vector<common::LogicalType>& types) {
     KU_ASSERT(names.size() == types.size());
     expression_vector variables;
     for (auto i = 0u; i < names.size(); ++i) {

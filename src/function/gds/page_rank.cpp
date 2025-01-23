@@ -238,18 +238,20 @@ public:
         return {LogicalTypeID::ANY};
     }
 
-    binder::expression_vector getResultColumns(binder::Binder* binder) const override {
+    binder::expression_vector getResultColumns(
+        const function::GDSBindInput& bindInput) const override {
         expression_vector columns;
         auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
         columns.push_back(outputNode.getInternalID());
-        columns.push_back(binder->createVariable(RANK_COLUMN_NAME, LogicalType::DOUBLE()));
+        columns.push_back(
+            bindInput.binder->createVariable(RANK_COLUMN_NAME, LogicalType::DOUBLE()));
         return columns;
     }
 
     void bind(const GDSBindInput& input, main::ClientContext& context) override {
         auto graphName = binder::ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
         auto graphEntry = bindGraphEntry(context, graphName);
-        auto nodeOutput = bindNodeOutput(input.binder, graphEntry.nodeEntries);
+        auto nodeOutput = bindNodeOutput(input, graphEntry.nodeEntries);
         bindData = std::make_unique<PageRankBindData>(std::move(graphEntry), nodeOutput);
     }
 

@@ -60,6 +60,8 @@ struct KUZU_API SimpleTableFunction {
     static std::unique_ptr<TableFuncLocalState> initEmptyLocalState(
         const TableFunctionInitInput& input, TableFuncSharedState* state,
         storage::MemoryManager* mm);
+    static std::vector<std::string> extractYieldVariables(const std::vector<std::string>& names,
+        std::vector<parser::YieldVariable> yieldVariables);
 };
 
 struct CurrentSettingFunction final : SimpleTableFunction {

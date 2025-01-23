@@ -2,6 +2,7 @@
 
 #include "binder/binder.h"
 #include "function/table/bind_data.h"
+#include "function/table/simple_table_functions.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
@@ -219,6 +220,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         scanInput->fileScanInfo.options.insert_or_assign("HEADER", Value(detectedHeader));
     }
 
+    resultColumnNames =
+        SimpleTableFunction::extractYieldVariables(resultColumnNames, input->yieldVariables);
     auto resultColumns = input->binder->createVariables(resultColumnNames, resultColumnTypes);
     std::vector<std::string> warningColumnNames;
     std::vector<LogicalType> warningColumnTypes;

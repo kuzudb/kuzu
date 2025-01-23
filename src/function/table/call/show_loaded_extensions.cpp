@@ -54,7 +54,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
     return numTuplesToOutput;
 }
 
-static binder::expression_vector bindColumns(binder::Binder& binder) {
+static binder::expression_vector bindColumns(const TableFuncBindInput& input) {
     std::vector<std::string> columnNames;
     std::vector<LogicalType> columnTypes;
     columnNames.emplace_back("extension name");
@@ -63,7 +63,8 @@ static binder::expression_vector bindColumns(binder::Binder& binder) {
     columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("extension path");
     columnTypes.emplace_back(LogicalType::STRING());
-    return binder.createVariables(columnNames, columnTypes);
+    columnNames = SimpleTableFunction::extractYieldVariables(columnNames, input.yieldVariables);
+    return input.binder->createVariables(columnNames, columnTypes);
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* context,
@@ -74,8 +75,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
         loadedExtensionInfo.emplace_back(loadedExtension.getExtensionName(),
             loadedExtension.getSource(), loadedExtension.getFullPath());
     }
-    return std::make_unique<ShowLoadedExtensionsBindData>(loadedExtensionInfo,
-        bindColumns(*input->binder), loadedExtensionInfo.size());
+    return std::make_unique<ShowLoadedExtensionsBindData>(loadedExtensionInfo, bindColumns(*input),
+        loadedExtensionInfo.size());
 }
 
 function_set ShowLoadedExtensionsFunction::getFunctionSet() {

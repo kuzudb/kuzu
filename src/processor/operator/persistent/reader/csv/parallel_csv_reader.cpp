@@ -12,6 +12,7 @@
 
 #include "common/string_format.h"
 #include "common/system_message.h"
+#include "function/table/simple_table_functions.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
 
 using namespace kuzu::common;
@@ -250,6 +251,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         scanInput->fileScanInfo.options.insert_or_assign("HEADER", Value(detectedHeader));
     }
 
+    resultColumnNames =
+        SimpleTableFunction::extractYieldVariables(resultColumnNames, input->yieldVariables);
     auto resultColumns = input->binder->createVariables(resultColumnNames, resultColumnTypes);
     std::vector<std::string> warningColumnNames;
     std::vector<LogicalType> warningColumnTypes;

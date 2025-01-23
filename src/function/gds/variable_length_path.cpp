@@ -89,7 +89,7 @@ public:
     void bind(const GDSBindInput& input, main::ClientContext& context) override {
         auto graphName = ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
         auto graphEntry = bindGraphEntry(context, graphName);
-        auto nodeOutput = bindNodeOutput(input.binder, graphEntry.nodeEntries);
+        auto nodeOutput = bindNodeOutput(input, graphEntry.nodeEntries);
         auto rjBindData = std::make_unique<RJBindData>(std::move(graphEntry), nodeOutput);
         rjBindData->nodeInput = input.getParam(1);
         auto lowerBound = ExpressionUtil::getLiteralValue<int64_t>(*input.getParam(2));
@@ -104,7 +104,8 @@ public:
         bindColumnExpressions(input.binder);
     }
 
-    binder::expression_vector getResultColumns(Binder*) const override {
+    binder::expression_vector getResultColumns(
+        const function::GDSBindInput& /*bindInput*/) const override {
         auto columns = getBaseResultColumns();
         auto rjBindData = bindData->ptrCast<RJBindData>();
         columns.push_back(rjBindData->lengthExpr);

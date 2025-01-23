@@ -67,6 +67,7 @@ src/include/main/query_summary.h
 src/include/main/storage_driver.h
 src/include/main/version.h
 src/include/parser/statement.h
+src/include/parser/query/reading_clause/yield_variable.h
 src/include/processor/result/flat_tuple.h
 src/include/processor/warning_context.h
 src/include/processor/operator/persistent/reader/copy_from_error.h

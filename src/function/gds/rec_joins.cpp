@@ -118,7 +118,7 @@ void SPAlgorithm::bind(const GDSBindInput& input, main::ClientContext& context) 
     KU_ASSERT(input.getNumParams() == 4);
     auto graphName = ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
     auto graphEntry = bindGraphEntry(context, graphName);
-    auto nodeOutput = bindNodeOutput(input.binder, graphEntry.nodeEntries);
+    auto nodeOutput = bindNodeOutput(input, graphEntry.nodeEntries);
     auto rjBindData = std::make_unique<RJBindData>(std::move(graphEntry), nodeOutput);
     rjBindData->nodeInput = input.getParam(1);
     rjBindData->lowerBound = 1;

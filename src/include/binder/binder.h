@@ -22,6 +22,7 @@ struct CreateTableInfo;
 struct BaseScanSource;
 struct JoinHintNode;
 class Statement;
+struct YieldVariable;
 } // namespace parser
 
 namespace catalog {
@@ -171,7 +172,8 @@ public:
     /*** bind table function ***/
     // TODO: change signature
     BoundTableFunction bindTableFunc(const std::string& tableFuncName,
-        const parser::ParsedExpression& expr, expression_vector& columns);
+        const parser::ParsedExpression& expr, expression_vector& columns,
+        std::vector<parser::YieldVariable> yieldVariables);
 
     /*** bind create macro ***/
     std::unique_ptr<BoundStatement> bindCreateMacro(const parser::Statement& statement) const;

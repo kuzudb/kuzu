@@ -23,7 +23,7 @@ std::unique_ptr<BoundStatement> Binder::bindStandaloneCallFunction(
             "Only standalone table functions can be called without return statement.");
     }
     expression_vector columns;
-    auto boundTableFunction = bindTableFunc(funcName, funcExpr, columns);
+    auto boundTableFunction = bindTableFunc(funcName, funcExpr, columns, {} /* yieldVariables */);
     return std::make_unique<BoundStandaloneCallFunction>(std::move(boundTableFunction));
 }
 

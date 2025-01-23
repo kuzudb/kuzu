@@ -157,7 +157,8 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
         bindData->weightOutputExpr = recursiveInfo->weightOutputExpr;
     }
     gdsFunction.gds->setBindData(std::move(bindData));
-    auto resultColumns = gdsFunction.gds->getResultColumns(nullptr /* binder*/);
+    GDSBindInput input;
+    auto resultColumns = gdsFunction.gds->getResultColumns(input);
     auto gdsInfo = BoundGDSCallInfo(gdsFunction.copy(), std::move(resultColumns));
     auto probePlan = LogicalPlan();
     auto gdsCall = getGDSCall(gdsInfo);

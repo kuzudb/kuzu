@@ -217,6 +217,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
         infos = getForeignPropertyInfos(entry);
         type = CatalogEntryType::FOREIGN_TABLE_ENTRY;
     }
+    columnNames = SimpleTableFunction::extractYieldVariables(columnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(columnNames, columnTypes);
     return std::make_unique<TableInfoBindData>(type, std::move(infos), columns);
 }

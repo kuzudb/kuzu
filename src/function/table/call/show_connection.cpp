@@ -98,7 +98,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
         throw BinderException{"Show connection can only be called on a rel table!"};
     }
     maxOffset = entries.size();
-
+    columnNames = SimpleTableFunction::extractYieldVariables(columnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(columnNames, columnTypes);
     return std::make_unique<ShowConnectionBindData>(context, entries, columns, maxOffset);
 }

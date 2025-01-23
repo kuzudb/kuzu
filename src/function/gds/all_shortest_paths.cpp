@@ -225,7 +225,7 @@ public:
     AllSPDestinationsAlgorithm() = default;
     AllSPDestinationsAlgorithm(const AllSPDestinationsAlgorithm& other) : SPAlgorithm{other} {}
 
-    expression_vector getResultColumns(Binder*) const override {
+    expression_vector getResultColumns(const function::GDSBindInput& /*bindInput*/) const override {
         auto columns = getBaseResultColumns();
         columns.push_back(bindData->ptrCast<RJBindData>()->lengthExpr);
         return columns;
@@ -259,7 +259,7 @@ public:
     AllSPPathsAlgorithm() = default;
     AllSPPathsAlgorithm(const AllSPPathsAlgorithm& other) : SPAlgorithm{other} {}
 
-    expression_vector getResultColumns(Binder*) const override {
+    expression_vector getResultColumns(const function::GDSBindInput& /*bindInput*/) const override {
         auto columns = getBaseResultColumns();
         auto rjBindData = bindData->ptrCast<RJBindData>();
         columns.push_back(rjBindData->lengthExpr);
