@@ -32,7 +32,7 @@ jobs:
       - name: Build Java lib for Windows
         shell: cmd
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           make java NUM_THREADS=8
 
       - uses: actions/upload-artifact@v4
