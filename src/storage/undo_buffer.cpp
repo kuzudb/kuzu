@@ -262,12 +262,6 @@ void UndoBuffer::rollbackCatalogEntryRecord(const uint8_t* record) {
     const auto& [catalogSet, catalogEntry] = *reinterpret_cast<CatalogEntryRecord const*>(record);
     const auto entryToRollback = catalogEntry->getNext();
     KU_ASSERT(entryToRollback);
-    const auto entryType = entryToRollback->getType();
-    if (entryType == CatalogEntryType::NODE_TABLE_ENTRY ||
-        entryType == CatalogEntryType::REL_TABLE_ENTRY ||
-        entryType == CatalogEntryType::REL_GROUP_ENTRY) {
-        entryToRollback->ptrCast<TableCatalogEntry>()->resetAlterInfo();
-    }
     if (entryToRollback->getNext()) {
         // If entryToRollback has a newer entry (next) in the version chain. Simple remove
         // entryToRollback from the chain.
