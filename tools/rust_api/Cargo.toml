@@ -35,6 +35,7 @@ rust_decimal = {version="1.35", default-features=false}
 cxx-build = "1.0"
 num_cpus = "1.0"
 cmake = "0.1"
+rustversion = "1"
 
 [dev-dependencies]
 tempfile = "3"
