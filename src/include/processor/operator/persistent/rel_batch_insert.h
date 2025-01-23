@@ -44,15 +44,15 @@ struct RelBatchInsertInfo final : BatchInsertInfo {
 
     RelBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
         common::RelDataDirection direction, uint64_t partitioningIdx,
-        common::column_id_t offsetColumnID, std::vector<common::LogicalType> columnTypes,
-        common::column_id_t numWarningDataColumns)
-        : BatchInsertInfo{tableEntry, compressionEnabled,
+        common::column_id_t offsetColumnID, std::vector<common::column_id_t> columnIDs,
+        std::vector<common::LogicalType> columnTypes, common::column_id_t numWarningDataColumns)
+        : BatchInsertInfo{tableEntry, compressionEnabled, std::move(columnIDs),
               static_cast<common::column_id_t>(columnTypes.size() - numWarningDataColumns),
               numWarningDataColumns},
           direction{direction}, partitioningIdx{partitioningIdx},
           boundNodeOffsetColumnID{offsetColumnID}, columnTypes{std::move(columnTypes)} {}
     RelBatchInsertInfo(const RelBatchInsertInfo& other)
-        : BatchInsertInfo{other.tableEntry, other.compressionEnabled,
+        : BatchInsertInfo{other.tableEntry, other.compressionEnabled, other.insertColumnIDs,
               static_cast<common::column_id_t>(other.outputDataColumns.size()),
               static_cast<common::column_id_t>(other.warningDataColumns.size())},
           direction{other.direction}, partitioningIdx{other.partitioningIdx},
@@ -104,7 +104,7 @@ public:
             resultSetDescriptor->copy(), id, printInfo->copy(), progressSharedState);
     }
 
-    void updateProgress(ExecutionContext* context);
+    void updateProgress(const ExecutionContext* context) const;
 
 private:
     static void appendNodeGroup(transaction::Transaction* transaction,

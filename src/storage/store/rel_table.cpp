@@ -61,7 +61,7 @@ bool RelTableScanState::hasUnComittedData() const {
     return localTableScanState && localTableScanState->localRelTable;
 }
 
-void RelTableScanState::initStateForCommitted(Transaction* transaction) {
+void RelTableScanState::initStateForCommitted(const Transaction* transaction) {
     source = TableScanSource::COMMITTED;
     currBoundNodeIdx = 0;
     nodeGroup->initializeScanState(transaction, *this);
@@ -178,7 +178,7 @@ void RelTable::checkRelMultiplicityConstraint(Transaction* transaction,
               insertState.dstNodeIDVector.state->getSelVector().getSelSize() == 1);
 
     for (auto& relData : directedRelData) {
-        if (relData->getMultiplicity() == common::RelMultiplicity::ONE) {
+        if (relData->getMultiplicity() == RelMultiplicity::ONE) {
             throwIfNodeHasRels(transaction, relData->getDirection(),
                 &insertState.getBoundNodeIDVector(relData->getDirection()),
                 throwRelMultiplicityConstraintError);
@@ -276,7 +276,7 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
 void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
     RelTableDeleteState* deleteState) {
     // TODO(Royi) we currently do not support detached deleting from single-direction rel tables
-    KU_ASSERT(directedRelData.size() == common::NUM_REL_DIRECTIONS);
+    KU_ASSERT(directedRelData.size() == NUM_REL_DIRECTIONS);
 
     KU_ASSERT(deleteState->srcNodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto tableData = getDirectedTableData(direction);
@@ -312,8 +312,8 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     hasChanges = true;
 }
 
-std::vector<common::RelDataDirection> RelTable::getStorageDirections() const {
-    std::vector<common::RelDataDirection> ret;
+std::vector<RelDataDirection> RelTable::getStorageDirections() const {
+    std::vector<RelDataDirection> ret;
     for (const auto& relData : directedRelData) {
         ret.push_back(relData->getDirection());
     }
@@ -326,8 +326,7 @@ bool RelTable::checkIfNodeHasRels(Transaction* transaction, RelDataDirection dir
     const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
         LocalStorage::NotExistAction::RETURN_NULL);
     if (localTable) {
-        hasRels = hasRels ||
-                  localTable->cast<LocalRelTable>().checkIfNodeHasRels(srcNodeIDVector, direction);
+        hasRels = localTable->cast<LocalRelTable>().checkIfNodeHasRels(srcNodeIDVector, direction);
     }
     hasRels = hasRels ||
               (getDirectedTableData(direction)->checkIfNodeHasRels(transaction, srcNodeIDVector));
@@ -388,7 +387,7 @@ void RelTable::addColumn(Transaction* transaction, TableAddColumnState& addColum
     hasChanges = true;
 }
 
-RelTableData* RelTable::getDirectedTableData(common::RelDataDirection direction) const {
+RelTableData* RelTable::getDirectedTableData(RelDataDirection direction) const {
     const auto directionIdx = RelDirectionUtils::relDirectionToKeyIdx(direction);
     if (directionIdx >= directedRelData.size()) {
         throw RuntimeException(stringFormat(
@@ -399,17 +398,18 @@ RelTableData* RelTable::getDirectedTableData(common::RelDataDirection direction)
     return directedRelData[directionIdx].get();
 }
 
-NodeGroup* RelTable::getOrCreateNodeGroup(transaction::Transaction* transaction,
+NodeGroup* RelTable::getOrCreateNodeGroup(const Transaction* transaction,
     node_group_idx_t nodeGroupIdx, RelDataDirection direction) const {
     return getDirectedTableData(direction)->getOrCreateNodeGroup(transaction, nodeGroupIdx);
 }
 
-void RelTable::pushInsertInfo(Transaction* transaction, RelDataDirection direction,
+void RelTable::pushInsertInfo(const Transaction* transaction, RelDataDirection direction,
     const CSRNodeGroup& nodeGroup, row_idx_t numRows_, CSRNodeGroupScanSource source) const {
     getDirectedTableData(direction)->pushInsertInfo(transaction, nodeGroup, numRows_, source);
 }
 
-void RelTable::commit(Transaction* transaction, LocalTable* localTable) {
+void RelTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
+    LocalTable* localTable) {
     auto& localRelTable = localTable->cast<LocalRelTable>();
     if (localRelTable.isEmpty()) {
         localTable->clear();
@@ -426,10 +426,16 @@ void RelTable::commit(Transaction* transaction, LocalTable* localTable) {
         columnIDsToScan.push_back(i);
     }
 
+    std::vector<column_id_t> columnIDsToCommit;
+    columnIDsToCommit.push_back(0); // NBR column.
+    for (auto& property : tableEntry->getProperties()) {
+        auto columnID = tableEntry->getColumnID(property.getName());
+        columnIDsToCommit.push_back(columnID);
+    }
     // commit rel table data
     for (auto& relData : directedRelData) {
         const auto direction = relData->getDirection();
-        const auto columnToSkip = (direction == common::RelDataDirection::FWD) ?
+        const auto columnToSkip = (direction == RelDataDirection::FWD) ?
                                       LOCAL_BOUND_NODE_ID_COLUMN_ID :
                                       LOCAL_NBR_NODE_ID_COLUMN_ID;
         for (auto& [boundNodeOffset, rowIndices] : localRelTable.getCSRIndex(direction)) {
@@ -439,8 +445,8 @@ void RelTable::commit(Transaction* transaction, LocalTable* localTable) {
                 relData->getOrCreateNodeGroup(transaction, nodeGroupIdx)->cast<CSRNodeGroup>();
             pushInsertInfo(transaction, direction, nodeGroup, rowIndices.size(),
                 CSRNodeGroupScanSource::COMMITTED_IN_MEMORY);
-            prepareCommitForNodeGroup(transaction, localNodeGroup, nodeGroup, boundOffsetInGroup,
-                rowIndices, columnToSkip);
+            prepareCommitForNodeGroup(transaction, columnIDsToCommit, localNodeGroup, nodeGroup,
+                boundOffsetInGroup, rowIndices, columnToSkip);
         }
     }
 
@@ -465,8 +471,8 @@ void RelTable::updateRelOffsets(const LocalRelTable& localRelTable) {
     }
 }
 
-static void updateIndexNodeOffsets(const transaction::Transaction* transaction,
-    DirectedCSRIndex::index_t& localRelIndex, common::table_id_t nodeTableID) {
+static void updateIndexNodeOffsets(const Transaction* transaction,
+    DirectedCSRIndex::index_t& localRelIndex, table_id_t nodeTableID) {
     for (auto& [offset, rowIndices] : localRelIndex) {
         if (transaction->isUnCommitted(nodeTableID, offset)) {
             const auto committedOffset =
@@ -483,13 +489,13 @@ void RelTable::updateNodeOffsets(const Transaction* transaction,
     std::unordered_map<column_id_t, table_id_t> columnsToUpdate;
     if (transaction->hasNewlyInsertedNodes(fromNodeTableID)) {
         columnsToUpdate[LOCAL_BOUND_NODE_ID_COLUMN_ID] = fromNodeTableID;
-        updateIndexNodeOffsets(transaction,
-            localRelTable.getCSRIndex(common::RelDataDirection::FWD), fromNodeTableID);
+        updateIndexNodeOffsets(transaction, localRelTable.getCSRIndex(RelDataDirection::FWD),
+            fromNodeTableID);
     }
     if (transaction->hasNewlyInsertedNodes(toNodeTableID)) {
         columnsToUpdate[LOCAL_NBR_NODE_ID_COLUMN_ID] = toNodeTableID;
-        updateIndexNodeOffsets(transaction,
-            localRelTable.getCSRIndex(common::RelDataDirection::FWD), toNodeTableID);
+        updateIndexNodeOffsets(transaction, localRelTable.getCSRIndex(RelDataDirection::FWD),
+            toNodeTableID);
     }
     auto& localNodeGroup = localRelTable.getLocalNodeGroup();
     for (auto i = 0u; i < localNodeGroup.getNumChunkedGroups(); i++) {
@@ -514,7 +520,8 @@ offset_t RelTable::getCommittedOffset(offset_t uncommittedOffset, offset_t maxCo
     return uncommittedOffset - StorageConstants::MAX_NUM_ROWS_IN_TABLE + maxCommittedOffset;
 }
 
-void RelTable::prepareCommitForNodeGroup(const Transaction* transaction, NodeGroup& localNodeGroup,
+void RelTable::prepareCommitForNodeGroup(const Transaction* transaction,
+    const std::vector<column_id_t>& columnIDs, const NodeGroup& localNodeGroup,
     CSRNodeGroup& csrNodeGroup, offset_t boundOffsetInGroup, const row_idx_vec_t& rowIndices,
     column_id_t skippedColumn) {
     for (const auto row : rowIndices) {
@@ -528,7 +535,7 @@ void RelTable::prepareCommitForNodeGroup(const Transaction* transaction, NodeGro
             }
             chunks.push_back(&chunkedGroup->getColumnChunk(i));
         }
-        csrNodeGroup.append(transaction, boundOffsetInGroup, chunks, rowInChunkedGroup,
+        csrNodeGroup.append(transaction, columnIDs, boundOffsetInGroup, chunks, rowInChunkedGroup,
             1 /*numRows*/);
     }
 }

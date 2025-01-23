@@ -110,7 +110,8 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
         nodeLocalState->localIndexBuilder->finishedProducing(nodeLocalState->errorHandler.value());
         nodeLocalState->errorHandler->flushStoredErrors();
     }
-    sharedState->table->cast<NodeTable>().mergeStats(nodeLocalState->stats);
+    sharedState->table->cast<NodeTable>().mergeStats(nodeInfo->insertColumnIDs,
+        nodeLocalState->stats);
 }
 
 void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction,
@@ -133,7 +134,7 @@ void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction,
     sharedState->incrementNumRows(numAppendedTuples);
 }
 
-NodeBatchInsertErrorHandler NodeBatchInsert::createErrorHandler(ExecutionContext* context) {
+NodeBatchInsertErrorHandler NodeBatchInsert::createErrorHandler(ExecutionContext* context) const {
     const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
     auto* nodeTable = ku_dynamic_cast<NodeTable*>(sharedState->table);
     return NodeBatchInsertErrorHandler{context, nodeSharedState->pkType.getLogicalTypeID(),
@@ -147,8 +148,9 @@ void NodeBatchInsert::clearToIndex(MemoryManager* mm, std::unique_ptr<ChunkedNod
     // TODO(bmwinger): Can probably re-use the chunk and shift the values
     const auto oldNodeGroup = std::move(nodeGroup);
     const auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
-    nodeGroup = std::make_unique<ChunkedNodeGroup>(*mm, nodeInfo->columnTypes,
-        info->compressionEnabled, StorageConstants::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
+    nodeGroup =
+        std::make_unique<ChunkedNodeGroup>(*mm, nodeInfo->columnTypes, nodeInfo->compressionEnabled,
+            StorageConstants::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
     nodeGroup->append(&transaction::DUMMY_TRANSACTION, *oldNodeGroup, startIndexInGroup,
         oldNodeGroup->getNumRows() - startIndexInGroup);
 }
@@ -167,18 +169,17 @@ void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transacti
     MemoryManager* mm, NodeBatchInsertErrorHandler& errorHandler) const {
     const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
     const auto nodeTable = ku_dynamic_cast<NodeTable*>(sharedState->table);
-    auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
 
     // we only need to write the main data in the chunked node group, the extra data is only used
     // during the lifetime of this operator to populate error messages
-    ChunkedNodeGroup sliceToWriteToDisk(*nodeGroup, nodeInfo->outputDataColumns);
+    ChunkedNodeGroup sliceToWriteToDisk(*nodeGroup, info->outputDataColumns);
     auto [nodeOffset, numRowsWritten] =
-        nodeTable->appendToLastNodeGroup(transaction, sliceToWriteToDisk);
-    nodeGroup->merge(sliceToWriteToDisk, nodeInfo->outputDataColumns);
+        nodeTable->appendToLastNodeGroup(transaction, info->insertColumnIDs, sliceToWriteToDisk);
+    nodeGroup->merge(sliceToWriteToDisk, info->outputDataColumns);
 
     if (indexBuilder) {
         std::vector<ColumnChunkData*> warningChunkData;
-        for (const auto warningDataColumn : nodeInfo->warningDataColumns) {
+        for (const auto warningDataColumn : info->warningDataColumns) {
             warningChunkData.push_back(&nodeGroup->getColumnChunk(warningDataColumn).getData());
         }
         indexBuilder->insert(nodeGroup->getColumnChunk(nodeSharedState->pkColumnID).getData(),

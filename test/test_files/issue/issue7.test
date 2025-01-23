@@ -297,3 +297,23 @@ Binder exception: Table T19 does not exist.
 ---- ok
 -STATEMENT MATCH (n0)-[r0]-(n1{k20:true}), (n2)-[r1]-(n3{k20:true}), (n4)<-[r2]-(n5), (n5{k39:false})-[r3]->(n2{k41:false}) WHERE (((r2.id) <> (r3.id)) AND true) RETURN n2.id as a0, r1.id as a1, n3.id as a2;
 ---- 0
+
+-CASE issue4783
+-STATEMENT CREATE NODE TABLE Person(id INT64, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE NODE TABLE IF NOT EXISTS Movie(id INT64, name STRING, PRIMARY KEY (id));
+---- ok
+-STATEMENT CREATE rel table knows(from person to person, from person to movie, age int64, comment string);
+---- ok
+-STATEMENT CREATE (:person {id: 12});
+---- ok
+-STATEMENT CREATE (:movie {id: 12, name: 'm'});
+---- ok
+-STATEMENT CREATE (:person {id: 25});
+---- ok
+-STATEMENT CREATE (:movie {id: 25, name: 'z'});
+---- ok
+-STATEMENT alter table knows drop age;
+---- ok
+-STATEMENT match (a:person), (b:person) where a.id = 25 and b.id = 12 create (a)-[:knows {comment: -8696457900372165364}]->(b);
+---- ok

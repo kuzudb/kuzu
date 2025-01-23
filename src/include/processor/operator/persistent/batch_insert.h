@@ -16,13 +16,16 @@ struct BatchInsertInfo {
     catalog::TableCatalogEntry* tableEntry;
     bool compressionEnabled;
 
+    std::vector<common::column_id_t> insertColumnIDs;
     std::vector<common::column_id_t> outputDataColumns;
     std::vector<common::column_id_t> warningDataColumns;
 
     BatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
-        common::column_id_t numOutputDataColumns, common::column_id_t numWarningDataColumns)
+        std::vector<common::column_id_t> insertColumnIDs, common::column_id_t numOutputDataColumns,
+        common::column_id_t numWarningDataColumns)
         : tableEntry{tableEntry}, compressionEnabled{compressionEnabled},
-          outputDataColumns(numOutputDataColumns), warningDataColumns(numWarningDataColumns) {
+          insertColumnIDs{std::move(insertColumnIDs)}, outputDataColumns(numOutputDataColumns),
+          warningDataColumns(numWarningDataColumns) {
         std::iota(outputDataColumns.begin(), outputDataColumns.end(), 0);
         std::iota(warningDataColumns.begin(), warningDataColumns.end(), outputDataColumns.size());
     }

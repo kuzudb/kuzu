@@ -24,7 +24,7 @@ void NodeInsertInfo::updateNodeID(nodeID_t nodeID) const {
     nodeIDVector->setValue<nodeID_t>(pos, nodeID);
 }
 
-common::nodeID_t NodeInsertInfo::getNodeID() const {
+nodeID_t NodeInsertInfo::getNodeID() const {
     auto& nodeIDSelVector = nodeIDVector->state->getSelVector();
     KU_ASSERT(nodeIDSelVector.getSelSize() == 1);
     if (nodeIDVector->isNull(nodeIDSelVector[0])) {
@@ -41,12 +41,12 @@ void NodeTableInsertInfo::init(const ResultSet& resultSet, main::ClientContext* 
     pkVector = columnDataVectors[table->getPKColumnID()];
 }
 
-void NodeInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
+void NodeInsertExecutor::init(ResultSet* resultSet, const ExecutionContext* context) {
     info.init(*resultSet);
     tableInfo.init(*resultSet, context->clientContext);
 }
 
-static void writeColumnVector(ValueVector* columnVector, ValueVector* dataVector) {
+static void writeColumnVector(ValueVector* columnVector, const ValueVector* dataVector) {
     auto& columnSelVector = columnVector->state->getSelVector();
     auto& dataSelVector = dataVector->state->getSelVector();
     KU_ASSERT(columnSelVector.getSelSize() == 1 && dataSelVector.getSelSize() == 1);
@@ -88,7 +88,7 @@ void NodeInsertExecutor::setNodeIDVectorToNonNull() const {
     info.nodeIDVector->setNull(info.nodeIDVector->state->getSelVector()[0], false);
 }
 
-common::nodeID_t NodeInsertExecutor::insert(Transaction* transaction) {
+nodeID_t NodeInsertExecutor::insert(Transaction* transaction) {
     for (auto& evaluator : tableInfo.columnDataEvaluators) {
         evaluator->evaluate();
     }
@@ -110,7 +110,7 @@ void NodeInsertExecutor::skipInsert() const {
     writeColumnVectors(info.columnVectors, tableInfo.columnDataVectors);
 }
 
-bool NodeInsertExecutor::checkConflict(Transaction* transaction) const {
+bool NodeInsertExecutor::checkConflict(const Transaction* transaction) const {
     if (info.conflictAction == ConflictAction::ON_CONFLICT_DO_NOTHING) {
         auto offset =
             tableInfo.table->validateUniquenessConstraint(transaction, tableInfo.columnDataVectors);
@@ -142,7 +142,7 @@ void RelTableInsertInfo::init(const ResultSet& resultSet, main::ClientContext* c
     }
 }
 
-common::internalID_t RelTableInsertInfo::getRelID() const {
+internalID_t RelTableInsertInfo::getRelID() const {
     auto relIDVector = columnDataVectors[0];
     auto& nodeIDSelVector = relIDVector->state->getSelVector();
     KU_ASSERT(nodeIDSelVector.getSelSize() == 1);
@@ -152,12 +152,12 @@ common::internalID_t RelTableInsertInfo::getRelID() const {
     return relIDVector->getValue<nodeID_t>(nodeIDSelVector[0]);
 }
 
-void RelInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
+void RelInsertExecutor::init(ResultSet* resultSet, const ExecutionContext* context) {
     info.init(*resultSet);
     tableInfo.init(*resultSet, context->clientContext);
 }
 
-internalID_t RelInsertExecutor::insert(transaction::Transaction* transaction) {
+internalID_t RelInsertExecutor::insert(Transaction* transaction) {
     KU_ASSERT(info.srcNodeIDVector->state->getSelVector().getSelSize() == 1);
     KU_ASSERT(info.dstNodeIDVector->state->getSelVector().getSelSize() == 1);
     auto srcNodeIDPos = info.srcNodeIDVector->state->getSelVector()[0];

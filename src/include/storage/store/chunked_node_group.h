@@ -64,7 +64,7 @@ public:
     ResidencyState getResidencyState() const { return residencyState; }
     NodeGroupDataFormat getFormat() const { return format; }
 
-    void merge(ChunkedNodeGroup& base, const std::vector<common::column_id_t>& columnsToMergeInfo);
+    void merge(ChunkedNodeGroup& base, const std::vector<common::column_id_t>& columnsToMergeInto);
     void resetToEmpty();
     void resetToAllNull() const;
     void resetNumRowsFromChunks();
@@ -84,8 +84,11 @@ public:
         const ChunkedNodeGroup& other, common::offset_t offsetInOtherNodeGroup,
         common::offset_t numRowsToAppend);
     common::offset_t append(const transaction::Transaction* transaction,
-        const std::vector<ColumnChunk*>& other, common::offset_t offsetInOtherNodeGroup,
-        common::offset_t numRowsToAppend);
+        const std::vector<common::column_id_t>& columnIDs, const ChunkedNodeGroup& other,
+        common::offset_t offsetInOtherNodeGroup, common::offset_t numRowsToAppend);
+    common::offset_t append(const transaction::Transaction* transaction,
+        const std::vector<common::column_id_t>& columnIDs, const std::vector<ColumnChunk*>& other,
+        common::offset_t offsetInOtherNodeGroup, common::offset_t numRowsToAppend);
     void write(const ChunkedNodeGroup& data, common::column_id_t offsetColumnID);
 
     void scan(const transaction::Transaction* transaction, const TableScanState& scanState,
@@ -102,27 +105,28 @@ public:
         common::column_id_t columnID);
 
     std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> scanUpdates(
-        transaction::Transaction* transaction, common::column_id_t columnID);
+        const transaction::Transaction* transaction, common::column_id_t columnID);
 
     bool lookup(const transaction::Transaction* transaction, const TableScanState& state,
-        NodeGroupScanState& nodeGroupScanState, common::offset_t rowIdxInChunk,
+        const NodeGroupScanState& nodeGroupScanState, common::offset_t rowIdxInChunk,
         common::sel_t posInOutput) const;
 
-    void update(transaction::Transaction* transaction, common::row_idx_t rowIdxInChunk,
+    void update(const transaction::Transaction* transaction, common::row_idx_t rowIdxInChunk,
         common::column_id_t columnID, const common::ValueVector& propertyVector);
 
     bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdxInChunk);
 
-    void addColumn(transaction::Transaction* transaction, const TableAddColumnState& addColumnState,
-        bool enableCompression, FileHandle* dataFH, ColumnStats* newColumnStats);
+    void addColumn(const transaction::Transaction* transaction,
+        const TableAddColumnState& addColumnState, bool enableCompression, FileHandle* dataFH,
+        ColumnStats* newColumnStats);
 
     bool isDeleted(const transaction::Transaction* transaction, common::row_idx_t rowInChunk) const;
     bool isInserted(const transaction::Transaction* transaction,
         common::row_idx_t rowInChunk) const;
     bool hasAnyUpdates(const transaction::Transaction* transaction, common::column_id_t columnID,
-        common::row_idx_t startRow, common::length_t numRows) const;
+        common::row_idx_t startRow, common::length_t numRowsToCheck) const;
     common::row_idx_t getNumDeletions(const transaction::Transaction* transaction,
-        common::row_idx_t startRow, common::length_t numRows) const;
+        common::row_idx_t startRow, common::length_t numRowsToCheck) const;
     bool hasVersionInfo() const { return versionInfo != nullptr; }
 
     void finalize() const;
@@ -138,7 +142,7 @@ public:
         transaction::Transaction* transaction, FileHandle& dataFH) const;
     virtual void flush(FileHandle& dataFH);
 
-    void commitInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
+    void commitInsert(common::row_idx_t startRow, common::row_idx_t numRowsToCommit,
         common::transaction_t commitTS);
     void rollbackInsert(common::row_idx_t startRow, common::row_idx_t numRows_,
         common::transaction_t commitTS);
@@ -164,12 +168,12 @@ public:
 
     // Also marks the chunks as in-use
     // I.e. if you want to be able to spill to disk again you must call setUnused first
-    void loadFromDisk(MemoryManager& mm);
+    void loadFromDisk(const MemoryManager& mm);
 
     // returns the amount of space reclaimed in bytes
     uint64_t spillToDisk();
 
-    void setUnused(MemoryManager& mm);
+    void setUnused(const MemoryManager& mm);
 
 protected:
     NodeGroupDataFormat format;

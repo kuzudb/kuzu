@@ -21,7 +21,7 @@ struct CSRHeaderColumns {
     std::unique_ptr<Column> length;
 };
 
-class PersistentVersionRecordHandler : public VersionRecordHandler {
+class PersistentVersionRecordHandler final : public VersionRecordHandler {
 public:
     explicit PersistentVersionRecordHandler(RelTableData* relTableData);
 
@@ -36,7 +36,7 @@ private:
     RelTableData* relTableData;
 };
 
-class InMemoryVersionRecordHandler : public VersionRecordHandler {
+class InMemoryVersionRecordHandler final : public VersionRecordHandler {
 public:
     explicit InMemoryVersionRecordHandler(RelTableData* relTableData);
 
@@ -84,7 +84,7 @@ public:
     NodeGroup* getNodeGroup(common::node_group_idx_t nodeGroupIdx) const {
         return nodeGroups->getNodeGroup(nodeGroupIdx, true /*mayOutOfBound*/);
     }
-    NodeGroup* getOrCreateNodeGroup(transaction::Transaction* transaction,
+    NodeGroup* getOrCreateNodeGroup(const transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx) const {
         return nodeGroups->getOrCreateNodeGroup(transaction, nodeGroupIdx,
             NodeGroupDataFormat::CSR);
@@ -96,7 +96,7 @@ public:
 
     void checkpoint(const std::vector<common::column_id_t>& columnIDs);
 
-    void pushInsertInfo(transaction::Transaction* transaction, const CSRNodeGroup& nodeGroup,
+    void pushInsertInfo(const transaction::Transaction* transaction, const CSRNodeGroup& nodeGroup,
         common::row_idx_t numRows_, CSRNodeGroupScanSource source);
 
     void serialize(common::Serializer& serializer) const;
@@ -137,7 +137,7 @@ private:
         return types;
     }
 
-    const VersionRecordHandler* getVersionRecordHandler(CSRNodeGroupScanSource source);
+    const VersionRecordHandler* getVersionRecordHandler(CSRNodeGroupScanSource source) const;
 
 private:
     FileHandle* dataFH;

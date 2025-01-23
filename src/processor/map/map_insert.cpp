@@ -66,7 +66,7 @@ RelInsertExecutor PlanMapper::getRelInsertExecutor(const LogicalInsertInfo* boun
     return RelInsertExecutor(std::move(info), std::move(tableInfo));
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapInsert(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapInsert(const LogicalOperator* logicalOperator) {
     auto& logicalInsert = logicalOperator->constCast<LogicalInsert>();
     auto inSchema = logicalInsert.getChild(0)->getSchema();
     auto outSchema = logicalInsert.getSchema();
@@ -85,7 +85,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapInsert(LogicalOperator* logical
             KU_UNREACHABLE;
         }
     }
-    binder::expression_vector expressions;
+    expression_vector expressions;
     for (auto& info : logicalInsert.getInfos()) {
         for (auto& expr : info.columnExprs) {
             expressions.push_back(expr);

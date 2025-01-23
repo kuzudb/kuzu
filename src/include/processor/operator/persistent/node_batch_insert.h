@@ -42,18 +42,18 @@ struct NodeBatchInsertInfo final : BatchInsertInfo {
     std::vector<common::ColumnEvaluateType> evaluateTypes;
 
     NodeBatchInsertInfo(catalog::TableCatalogEntry* tableEntry, bool compressionEnabled,
-        std::vector<common::LogicalType> columnTypes,
+        std::vector<common::column_id_t> columnIDs, std::vector<common::LogicalType> columnTypes,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> columnEvaluators,
         std::vector<common::ColumnEvaluateType> evaluateTypes,
         common::column_id_t numWarningDataColumns)
-        : BatchInsertInfo{tableEntry, compressionEnabled,
+        : BatchInsertInfo{tableEntry, compressionEnabled, std::move(columnIDs),
               static_cast<common::column_id_t>(columnTypes.size() - numWarningDataColumns),
               numWarningDataColumns},
           columnTypes{std::move(columnTypes)}, columnEvaluators{std::move(columnEvaluators)},
           evaluateTypes{std::move(evaluateTypes)} {}
 
     NodeBatchInsertInfo(const NodeBatchInsertInfo& other)
-        : BatchInsertInfo{other.tableEntry, other.compressionEnabled,
+        : BatchInsertInfo{other.tableEntry, other.compressionEnabled, other.insertColumnIDs,
               static_cast<common::column_id_t>(other.outputDataColumns.size()),
               static_cast<common::column_id_t>(other.warningDataColumns.size())},
           columnTypes{common::LogicalType::copy(other.columnTypes)},
@@ -147,7 +147,7 @@ private:
 
     void copyToNodeGroup(transaction::Transaction* transaction, storage::MemoryManager* mm) const;
 
-    NodeBatchInsertErrorHandler createErrorHandler(ExecutionContext* context);
+    NodeBatchInsertErrorHandler createErrorHandler(ExecutionContext* context) const;
 
     void writeAndResetNodeGroup(transaction::Transaction* transaction,
         std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,

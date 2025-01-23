@@ -32,9 +32,7 @@ struct DirectedCSRIndex {
 
 class LocalRelTable final : public LocalTable {
 public:
-    static std::vector<common::LogicalType> getTypesForLocalRelTable(const RelTable& table);
-
-    explicit LocalRelTable(Table& table);
+    LocalRelTable(const catalog::TableCatalogEntry* tableEntry, Table& table);
 
     bool insert(transaction::Transaction* transaction, TableInsertState& state) override;
     bool update(transaction::Transaction* transaction, TableUpdateState& state) override;
@@ -48,8 +46,8 @@ public:
 
     common::TableType getTableType() const override { return common::TableType::REL; }
 
-    void initializeScan(TableScanState& state);
-    bool scan(transaction::Transaction* transaction, TableScanState& state) const;
+    static void initializeScan(TableScanState& state);
+    bool scan(const transaction::Transaction* transaction, TableScanState& state) const;
 
     void clear() override {
         localNodeGroup.reset();
@@ -82,8 +80,8 @@ public:
         common::column_id_t columnID);
 
 private:
-    common::row_idx_t findMatchingRow(transaction::Transaction* transaction,
-        const std::vector<row_idx_vec_t*>& rowIndicesToCheck, common::offset_t relOffset);
+    common::row_idx_t findMatchingRow(const transaction::Transaction* transaction,
+        const std::vector<row_idx_vec_t*>& rowIndicesToCheck, common::offset_t relOffset) const;
 
 private:
     // We don't duplicate local rel tuples. Tuples are stored same as node tuples.

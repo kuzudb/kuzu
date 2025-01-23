@@ -12,20 +12,22 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-std::vector<LogicalType> LocalRelTable::getTypesForLocalRelTable(const RelTable& table) {
+static std::vector<LogicalType> getTypesForLocalRelTable(const catalog::TableCatalogEntry& table) {
     std::vector<LogicalType> types;
-    types.reserve(table.getNumColumns() + 1);
-    // Src node ID.
+    types.reserve(table.getNumProperties() + 2);
+    // Pre-append src and dst node ID columns.
     types.push_back(LogicalType::INTERNAL_ID());
-    for (auto i = 0u; i < table.getNumColumns(); i++) {
-        types.push_back(table.getColumn(i, RelDataDirection::FWD)->getDataType().copy());
+    types.push_back(LogicalType::INTERNAL_ID());
+    for (auto& property : table.getProperties()) {
+        types.push_back(property.getType().copy());
     }
     return types;
 }
 
-LocalRelTable::LocalRelTable(Table& table) : LocalTable{table} {
-    localNodeGroup = std::make_unique<NodeGroup>(0, false,
-        getTypesForLocalRelTable(table.cast<RelTable>()), INVALID_ROW_IDX);
+LocalRelTable::LocalRelTable(const catalog::TableCatalogEntry* tableEntry, Table& table)
+    : LocalTable{table} {
+    localNodeGroup = std::make_unique<NodeGroup>(0, false, getTypesForLocalRelTable(*tableEntry),
+        INVALID_ROW_IDX);
     const auto& relTable = table.cast<RelTable&>();
     for (auto relDirection : relTable.getStorageDirections()) {
         directedIndices.emplace_back(relDirection);
@@ -190,7 +192,7 @@ column_id_t LocalRelTable::rewriteLocalColumnID(RelDataDirection direction, colu
                                           columnID + 1;
 }
 
-bool LocalRelTable::scan(Transaction* transaction, TableScanState& state) const {
+bool LocalRelTable::scan(const Transaction* transaction, TableScanState& state) const {
     auto& relScanState = state.cast<RelTableScanState>();
     KU_ASSERT(relScanState.localTableScanState);
     auto& localScanState = *relScanState.localTableScanState;
@@ -224,7 +226,7 @@ bool LocalRelTable::scan(Transaction* transaction, TableScanState& state) const 
                 localScanState.rowIndices[localScanState.nextRowToScan + i]);
         }
         localScanState.rowIdxVector->state->getSelVectorUnsafe().setSelSize(numToScan);
-        localNodeGroup->lookup(transaction, localScanState);
+        [[maybe_unused]] auto lookupRes = localNodeGroup->lookup(transaction, localScanState);
         localScanState.nextRowToScan += numToScan;
         relScanState.setNodeIDVectorToFlat(
             relScanState.cachedBoundNodeSelVector[relScanState.currBoundNodeIdx]);
@@ -232,8 +234,8 @@ bool LocalRelTable::scan(Transaction* transaction, TableScanState& state) const 
     }
 }
 
-row_idx_t LocalRelTable::findMatchingRow(Transaction* transaction,
-    const std::vector<row_idx_vec_t*>& rowIndicesToCheck, offset_t relOffset) {
+row_idx_t LocalRelTable::findMatchingRow(const Transaction* transaction,
+    const std::vector<row_idx_vec_t*>& rowIndicesToCheck, offset_t relOffset) const {
     for (auto* rowIndex : rowIndicesToCheck) {
         std::sort(rowIndex->begin(), rowIndex->end());
     }
@@ -260,7 +262,7 @@ row_idx_t LocalRelTable::findMatchingRow(Transaction* transaction,
         scanState->rowIdxVector->setValue<row_idx_t>(i, intersectRows[i]);
     }
     auto dummyTrx = Transaction::getDummyTransactionFromExistingOne(*transaction);
-    localNodeGroup->lookup(&dummyTrx, *scanState);
+    [[maybe_unused]] auto lookupRes = localNodeGroup->lookup(&dummyTrx, *scanState);
     const auto scannedRelIDVector = scanState->outputVectors[0];
     KU_ASSERT(scannedRelIDVector->state->getSelVector().getSelSize() == intersectRows.size());
     row_idx_t matchedRow = INVALID_ROW_IDX;

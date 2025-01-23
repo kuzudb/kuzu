@@ -1,5 +1,6 @@
 #include "storage/local_storage/local_node_table.h"
 
+#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/cast.h"
 #include "common/exception/message.h"
 #include "common/types/types.h"
@@ -13,10 +14,18 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-LocalNodeTable::LocalNodeTable(Table& table)
+std::vector<LogicalType> LocalNodeTable::getNodeTableColumnTypes(
+    const catalog::TableCatalogEntry& table) {
+    std::vector<LogicalType> types;
+    for (auto& property : table.getProperties()) {
+        types.push_back(property.getType().copy());
+    }
+    return types;
+}
+
+LocalNodeTable::LocalNodeTable(const catalog::TableCatalogEntry* tableEntry, Table& table)
     : LocalTable{table}, nodeGroups{this->table.getMemoryManager(),
-                             NodeTable::getNodeTableColumnTypes(table.cast<NodeTable>()),
-                             false /*enableCompression*/} {
+                             getNodeTableColumnTypes(*tableEntry), false /*enableCompression*/} {
     initLocalHashIndex();
 }
 
@@ -30,7 +39,7 @@ void LocalNodeTable::initLocalHashIndex() {
         overflowFileHandle.get());
 }
 
-bool LocalNodeTable::isVisible(const Transaction* transaction, offset_t offset) {
+bool LocalNodeTable::isVisible(const Transaction* transaction, offset_t offset) const {
     auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(
         transaction->getLocalRowIdx(table.getTableID(), offset));
     auto* nodeGroup = nodeGroups.getNodeGroup(nodeGroupIdx);
@@ -41,7 +50,7 @@ bool LocalNodeTable::isVisible(const Transaction* transaction, offset_t offset) 
 }
 
 offset_t LocalNodeTable::validateUniquenessConstraint(const Transaction* transaction,
-    const ValueVector& pkVector) {
+    const ValueVector& pkVector) const {
     KU_ASSERT(pkVector.state->getSelVector().getSelSize() == 1);
     return hashIndex->lookup(pkVector,
         [&](offset_t offset_) { return isVisible(transaction, offset_); });
@@ -116,7 +125,7 @@ void LocalNodeTable::clear() {
 }
 
 bool LocalNodeTable::lookupPK(const Transaction* transaction, const ValueVector* keyVector,
-    offset_t& result) {
+    offset_t& result) const {
     result = hashIndex->lookup(*keyVector,
         [&](offset_t offset) { return isVisible(transaction, offset); });
     return result != INVALID_OFFSET;

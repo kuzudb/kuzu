@@ -62,7 +62,7 @@ public:
         : info{std::move(info)}, tableInfo{std::move(tableInfo)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(NodeInsertExecutor);
 
-    void init(ResultSet* resultSet, ExecutionContext* context);
+    void init(ResultSet* resultSet, const ExecutionContext* context);
 
     void setNodeIDVectorToNonNull() const;
     common::nodeID_t insert(transaction::Transaction* transaction);
@@ -75,7 +75,7 @@ private:
     NodeInsertExecutor(const NodeInsertExecutor& other)
         : info{other.info.copy()}, tableInfo{other.tableInfo.copy()} {}
 
-    bool checkConflict(transaction::Transaction* transaction) const;
+    bool checkConflict(const transaction::Transaction* transaction) const;
 
 private:
     NodeInsertInfo info;
@@ -128,7 +128,7 @@ public:
         : info{std::move(info)}, tableInfo{std::move(tableInfo)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(RelInsertExecutor);
 
-    void init(ResultSet* resultSet, ExecutionContext* context);
+    void init(ResultSet* resultSet, const ExecutionContext* context);
 
     common::internalID_t insert(transaction::Transaction* transaction);
 

@@ -18,12 +18,14 @@ LocalTable* LocalStorage::getLocalTable(table_id_t tableID, NotExistAction actio
         switch (action) {
         case NotExistAction::CREATE: {
             const auto table = clientContext.getStorageManager()->getTable(tableID);
+            const auto tableEntry = clientContext.getCatalog()->getTableCatalogEntry(
+                clientContext.getTransaction(), tableID);
             switch (table->getTableType()) {
             case TableType::NODE: {
-                tables[tableID] = std::make_unique<LocalNodeTable>(*table);
+                tables[tableID] = std::make_unique<LocalNodeTable>(tableEntry, *table);
             } break;
             case TableType::REL: {
-                tables[tableID] = std::make_unique<LocalRelTable>(*table);
+                tables[tableID] = std::make_unique<LocalRelTable>(tableEntry, *table);
             } break;
             default:
                 KU_UNREACHABLE;
@@ -42,14 +44,18 @@ LocalTable* LocalStorage::getLocalTable(table_id_t tableID, NotExistAction actio
 void LocalStorage::commit() {
     for (auto& [tableID, localTable] : tables) {
         if (localTable->getTableType() == TableType::NODE) {
+            const auto tableEntry = clientContext.getCatalog()->getTableCatalogEntry(
+                clientContext.getTransaction(), tableID);
             const auto table = clientContext.getStorageManager()->getTable(tableID);
-            table->commit(clientContext.getTransaction(), localTable.get());
+            table->commit(clientContext.getTransaction(), tableEntry, localTable.get());
         }
     }
     for (auto& [tableID, localTable] : tables) {
         if (localTable->getTableType() == TableType::REL) {
+            const auto tableEntry = clientContext.getCatalog()->getTableCatalogEntry(
+                clientContext.getTransaction(), tableID);
             const auto table = clientContext.getStorageManager()->getTable(tableID);
-            table->commit(clientContext.getTransaction(), localTable.get());
+            table->commit(clientContext.getTransaction(), tableEntry, localTable.get());
         }
     }
 }
