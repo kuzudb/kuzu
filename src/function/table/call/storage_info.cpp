@@ -323,7 +323,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
 
 static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     const TableFuncBindInput* input) {
-    const std::vector<std::string> columnNames = {"table_type", "node_group_id", "node_chunk_id",
+    std::vector<std::string> columnNames = {"table_type", "node_group_id", "node_chunk_id",
         "residency", "column_name", "data_type", "start_page_idx", "num_pages", "num_values", "min",
         "max", "compression"};
     std::vector<LogicalType> columnTypes;
@@ -347,7 +347,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), tableName);
     auto storageManager = context->getStorageManager();
     auto table = storageManager->getTable(tableEntry->getTableID());
-    auto columns = input->binder->createVariables(columnNames, columnTypes, input->yieldVariables);
+    columnNames = SimpleTableFunction::extractYieldVariables(columnNames, input->yieldVariables);
+    auto columns = input->binder->createVariables(columnNames, columnTypes);
     return std::make_unique<StorageInfoBindData>(columns, tableEntry, table, context);
 }
 

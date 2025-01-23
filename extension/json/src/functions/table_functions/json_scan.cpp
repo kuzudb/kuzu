@@ -10,6 +10,7 @@
 #include "common/string_utils.h"
 #include "function/table/bind_data.h"
 #include "function/table/scan_functions.h"
+#include "function/table/simple_table_functions.h"
 #include "json_extension.h"
 #include "json_utils.h"
 #include "processor/execution_context.h"
@@ -804,10 +805,11 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         return scanConfig.format == JsonScanFormat::NEWLINE_DELIMITED;
     };
 
-    auto columns = input->binder->createVariables(columnNames, columnTypes, input->yieldVariables);
+    columnNames = SimpleTableFunction::extractYieldVariables(columnNames, input->yieldVariables);
+    auto columns = input->binder->createVariables(columnNames, columnTypes);
 
-    const bool ignoreErrors = scanInput->fileScanInfo.getOption(
-        CopyConstants::IGNORE_ERRORS_OPTION_NAME, CopyConstants::DEFAULT_IGNORE_ERRORS);
+    bool ignoreErrors = scanInput->fileScanInfo.getOption(CopyConstants::IGNORE_ERRORS_OPTION_NAME,
+        CopyConstants::DEFAULT_IGNORE_ERRORS);
 
     std::vector<std::string> warningColumnNames;
     std::vector<LogicalType> warningColumnTypes;
@@ -833,7 +835,7 @@ static decltype(auto) getWarningDataVectors(const DataChunk& chunk, column_id_t 
 
     std::vector<ValueVector*> ret;
     for (column_id_t i = chunk.getNumValueVectors() - numWarningColumns;
-         i < chunk.getNumValueVectors(); ++i) {
+        i < chunk.getNumValueVectors(); ++i) {
         ret.push_back(&chunk.getValueVectorMutable(i));
     }
     return ret;

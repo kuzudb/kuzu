@@ -87,8 +87,7 @@ public:
     KUZU_API std::shared_ptr<Expression> createInvisibleVariable(const std::string& name,
         const common::LogicalType& dataType) const;
     KUZU_API expression_vector createVariables(const std::vector<std::string>& names,
-        const std::vector<common::LogicalType>& types,
-        std::vector<parser::YieldVariable> yieldVariables);
+        const std::vector<common::LogicalType>& types);
     KUZU_API expression_vector createInvisibleVariables(const std::vector<std::string>& names,
         const std::vector<common::LogicalType>& types) const;
 

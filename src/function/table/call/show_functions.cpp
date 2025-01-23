@@ -66,7 +66,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
             FunctionInfos.emplace_back(function->name, type, signature);
         }
     }
-    auto columns = input->binder->createVariables(columnNames, columnTypes, input->yieldVariables);
+    columnNames = SimpleTableFunction::extractYieldVariables(columnNames, input->yieldVariables);
+    auto columns = input->binder->createVariables(columnNames, columnTypes);
     return std::make_unique<ShowFunctionsBindData>(std::move(FunctionInfos), columns,
         FunctionInfos.size());
 }

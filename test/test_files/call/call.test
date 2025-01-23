@@ -354,3 +354,6 @@ Binder exception: Unknown table function output variable name: timeot.
 -STATEMENT CALL show_connection('knows') yield `source table name` as `destination table name`, `destination table name` as `source table name`, `source table primary key`, `destination table primary key` return *;
 ---- 1
 person|person|ID|ID
+-STATEMENT CALL current_setting('timeout') yield `timeout` as timeout1 CALL current_setting('timeout') RETURN *;
+---- 1
+0|0

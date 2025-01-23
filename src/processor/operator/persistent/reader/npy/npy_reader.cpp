@@ -18,12 +18,12 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #endif
-
 #include "common/exception/copy.h"
 #include "common/string_format.h"
 #include "common/utils.h"
 #include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
+#include "function/table/simple_table_functions.h"
 #include "pyparse.h"
 #include "storage/storage_utils.h"
 
@@ -40,7 +40,7 @@ NpyReader::NpyReader(const std::string& filePath)
     if (fd == -1) {
         throw CopyException("Failed to open NPY file.");
     }
-    struct stat fileStatus {};
+    struct stat fileStatus{};
     fstat(fd, &fileStatus);
     fileSize = fileStatus.st_size;
 
@@ -321,8 +321,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         }
         reader->validate(resultColumnTypes[i], numRows);
     }
-    auto columns =
-        input->binder->createVariables(resultColumnNames, resultColumnTypes, input->yieldVariables);
+    resultColumnNames =
+        SimpleTableFunction::extractYieldVariables(resultColumnNames, input->yieldVariables);
+    auto columns = input->binder->createVariables(resultColumnNames, resultColumnTypes);
     return std::make_unique<ScanBindData>(columns, scanInput->fileScanInfo.copy(), context,
         0 /* numWarningColumns*/, numRows);
 }

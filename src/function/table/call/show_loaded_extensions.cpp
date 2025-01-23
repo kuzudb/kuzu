@@ -63,7 +63,8 @@ static binder::expression_vector bindColumns(const TableFuncBindInput& input) {
     columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("extension path");
     columnTypes.emplace_back(LogicalType::STRING());
-    return input.binder->createVariables(columnNames, columnTypes, input.yieldVariables);
+    columnNames = SimpleTableFunction::extractYieldVariables(columnNames, input.yieldVariables);
+    return input.binder->createVariables(columnNames, columnTypes);
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* context,

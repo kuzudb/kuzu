@@ -41,16 +41,16 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
 
 static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* context,
     const TableFuncBindInput* input) {
-    const std::vector<std::string> columnNames{WarningConstants::WARNING_TABLE_COLUMN_NAMES.begin(),
+    std::vector<std::string> columnNames{WarningConstants::WARNING_TABLE_COLUMN_NAMES.begin(),
         WarningConstants::WARNING_TABLE_COLUMN_NAMES.end()};
-    const std::vector<LogicalType> columnTypes{
-        WarningConstants::WARNING_TABLE_COLUMN_DATA_TYPES.begin(),
+    std::vector<LogicalType> columnTypes{WarningConstants::WARNING_TABLE_COLUMN_DATA_TYPES.begin(),
         WarningConstants::WARNING_TABLE_COLUMN_DATA_TYPES.end()};
     std::vector<processor::WarningInfo> warningInfos;
     for (const auto& warning : context->getWarningContext().getPopulatedWarnings()) {
         warningInfos.emplace_back(warning);
     }
-    auto columns = input->binder->createVariables(columnNames, columnTypes, input->yieldVariables);
+    columnNames = SimpleTableFunction::extractYieldVariables(columnNames, input->yieldVariables);
+    auto columns = input->binder->createVariables(columnNames, columnTypes);
     return std::make_unique<ShowWarningsBindData>(std::move(warningInfos), columns,
         warningInfos.size());
 }
