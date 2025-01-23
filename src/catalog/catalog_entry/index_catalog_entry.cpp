@@ -23,9 +23,14 @@ void IndexCatalogEntry::serialize(common::Serializer& serializer) const {
     serializer.write(tableID);
     serializer.write(indexName);
     serializer.serializeVector(propertyIDs);
-    const auto bufferedWriter = auxInfo->serialize();
-    serializer.write<uint64_t>(bufferedWriter->getSize());
-    serializer.write(bufferedWriter->getData().data.get(), bufferedWriter->getSize());
+    if (isLoaded()) {
+        const auto bufferedWriter = auxInfo->serialize();
+        serializer.write<uint64_t>(bufferedWriter->getSize());
+        serializer.write(bufferedWriter->getData().data.get(), bufferedWriter->getSize());
+    } else {
+        serializer.write(auxBufferSize);
+        serializer.write(auxBuffer.get(), auxBufferSize);
+    }
 }
 
 std::unique_ptr<IndexCatalogEntry> IndexCatalogEntry::deserialize(
