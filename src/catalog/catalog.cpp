@@ -313,16 +313,22 @@ void Catalog::createType(Transaction* transaction, std::string name, LogicalType
     types->createEntry(transaction, std::move(entry));
 }
 
+static std::string getInstallExtensionMessage(std::string_view extensionName,
+    std::string_view entryType) {
+    return stringFormat("This {} exists in the {} "
+                        "extension. You can install and load the "
+                        "extension by running 'INSTALL {}; LOAD EXTENSION {};'.",
+        entryType, extensionName, extensionName, extensionName);
+}
+
 static std::string getTypeDoesNotExistMessage(std::string_view entryName) {
     std::string message =
         stringFormat("{} is neither an internal type nor a user defined type.", entryName);
     const auto matchingExtensionFunction =
         extension::ExtensionManager::lookupExtensionsByTypeName(entryName);
     if (matchingExtensionFunction.has_value()) {
-        message = stringFormat("{} This type exists in the {} extension. You can load the "
-                               "extension by running the command 'LOAD EXTENSION {}'.",
-            message, matchingExtensionFunction->extensionName,
-            matchingExtensionFunction->extensionName);
+        message = stringFormat("{} {}", message,
+            getInstallExtensionMessage(matchingExtensionFunction->extensionName, "type"));
     }
     return message;
 }
@@ -400,10 +406,8 @@ static std::string getFunctionDoesNotExistMessage(std::string_view entryName) {
     const auto matchingExtensionFunction =
         extension::ExtensionManager::lookupExtensionsByFunctionName(entryName);
     if (matchingExtensionFunction.has_value()) {
-        message = stringFormat("{} This function exists in the {} extension. You can load the "
-                               "extension by running the command 'LOAD EXTENSION {}'.",
-            message, matchingExtensionFunction->extensionName,
-            matchingExtensionFunction->extensionName);
+        message = stringFormat("function {} is not defined. {}", entryName,
+            getInstallExtensionMessage(matchingExtensionFunction->extensionName, "function"));
     }
     return message;
 }

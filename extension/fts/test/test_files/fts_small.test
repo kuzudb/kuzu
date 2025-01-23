@@ -196,7 +196,7 @@ Binder exception: BM25 model requires the Term Frequency Saturation(k) value to 
 -RELOADDB
 -STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN _node.ID, score
 ---- error
-Catalog exception: function QUERY_FTS_INDEX does not exist. This function exists in the FTS extension. You can load the extension by running the command 'LOAD EXTENSION FTS'.
+Catalog exception: function QUERY_FTS_INDEX is not defined. This function exists in the FTS extension. You can install and load the extension by running 'INSTALL FTS; LOAD EXTENSION FTS;'.
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
 ---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN _node.ID, score
