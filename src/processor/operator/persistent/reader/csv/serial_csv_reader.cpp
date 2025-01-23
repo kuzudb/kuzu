@@ -219,7 +219,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         scanInput->fileScanInfo.options.insert_or_assign("HEADER", Value(detectedHeader));
     }
 
-    auto resultColumns = input->binder->createVariables(resultColumnNames, resultColumnTypes);
+    auto resultColumns =
+        input->binder->createVariables(resultColumnNames, resultColumnTypes, input->yieldVariables);
     std::vector<std::string> warningColumnNames;
     std::vector<LogicalType> warningColumnTypes;
     const column_id_t numWarningDataColumns = BaseCSVReader::appendWarningDataColumns(

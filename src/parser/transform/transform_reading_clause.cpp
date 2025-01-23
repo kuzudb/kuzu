@@ -67,10 +67,31 @@ std::unique_ptr<ReadingClause> Transformer::transformUnwind(CypherParser::OC_Unw
     return std::make_unique<UnwindClause>(std::move(expression), std::move(transformedVariable));
 }
 
+std::vector<YieldVariable> Transformer::transformYieldVariables(
+    CypherParser::OC_YieldItemsContext& ctx) {
+    std::vector<YieldVariable> yieldVariables;
+    std::string name;
+    for (auto& yieldItem : ctx.oC_YieldItem()) {
+        std::string alias;
+        if (yieldItem->AS()) {
+            alias = transformVariable(*yieldItem->oC_Variable(1));
+        }
+        name = transformVariable(*yieldItem->oC_Variable(0));
+        yieldVariables.emplace_back(name, alias);
+    }
+    return yieldVariables;
+}
+
 std::unique_ptr<ReadingClause> Transformer::transformInQueryCall(
     CypherParser::KU_InQueryCallContext& ctx) {
-    auto inQueryCall = std::make_unique<InQueryCallClause>(
-        Transformer::transformFunctionInvocation(*ctx.oC_FunctionInvocation()));
+    auto functionExpression =
+        Transformer::transformFunctionInvocation(*ctx.oC_FunctionInvocation());
+    std::vector<YieldVariable> yieldVariables;
+    if (ctx.oC_YieldItems()) {
+        yieldVariables = transformYieldVariables(*ctx.oC_YieldItems());
+    }
+    auto inQueryCall = std::make_unique<InQueryCallClause>(std::move(functionExpression),
+        std::move(yieldVariables));
     if (ctx.oC_Where()) {
         inQueryCall->setWherePredicate(transformWhere(*ctx.oC_Where()));
     }

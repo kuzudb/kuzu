@@ -2,6 +2,7 @@
 
 #include "binder/expression/expression.h"
 #include "graph/graph_entry.h"
+#include "parser/query/reading_clause/in_query_call_clause.h"
 #include "processor/operator/gds_call_shared_state.h"
 
 namespace kuzu {
@@ -26,6 +27,7 @@ struct GDSBindInput {
     binder::expression_vector params;
     optional_params_t optionalParams;
     binder::Binder* binder = nullptr;
+    std::vector<parser::YieldVariable> yieldVariables;
 
     GDSBindInput() = default;
 
@@ -84,7 +86,8 @@ public:
 
     virtual std::vector<common::LogicalTypeID> getParameterTypeIDs() const { return {}; }
 
-    virtual binder::expression_vector getResultColumns(binder::Binder* binder) const = 0;
+    virtual binder::expression_vector getResultColumns(
+        const function::GDSBindInput& bindInput) const = 0;
 
     virtual void bind(const GDSBindInput& input, main::ClientContext& context) = 0;
     // When compiling recursive pattern (e.g. [e*1..2]) as GDS.
@@ -114,11 +117,14 @@ public:
 
 protected:
     graph::GraphEntry bindGraphEntry(main::ClientContext& context, const std::string& name);
-    std::shared_ptr<binder::Expression> bindNodeOutput(binder::Binder* binder,
+    std::shared_ptr<binder::Expression> bindNodeOutput(const GDSBindInput& bindInput,
         const std::vector<catalog::TableCatalogEntry*>& nodeEntries);
 
     std::shared_ptr<PathLengths> getPathLengthsFrontier(processor::ExecutionContext* context,
         uint16_t initialVal);
+
+    static std::string bindColumnName(const parser::YieldVariable& yieldVariable,
+        std::string expressionName);
 
 protected:
     std::unique_ptr<GDSBindData> bindData;

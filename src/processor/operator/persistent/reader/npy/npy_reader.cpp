@@ -40,7 +40,7 @@ NpyReader::NpyReader(const std::string& filePath)
     if (fd == -1) {
         throw CopyException("Failed to open NPY file.");
     }
-    struct stat fileStatus {};
+    struct stat fileStatus{};
     fstat(fd, &fileStatus);
     fileSize = fileStatus.st_size;
 
@@ -321,7 +321,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         }
         reader->validate(resultColumnTypes[i], numRows);
     }
-    auto columns = input->binder->createVariables(resultColumnNames, resultColumnTypes);
+    auto columns =
+        input->binder->createVariables(resultColumnNames, resultColumnTypes, input->yieldVariables);
     return std::make_unique<ScanBindData>(columns, scanInput->fileScanInfo.copy(), context,
         0 /* numWarningColumns*/, numRows);
 }

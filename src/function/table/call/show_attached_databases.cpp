@@ -49,7 +49,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     columnNames.emplace_back("database type");
     columnTypes.emplace_back(LogicalType::STRING());
     auto attachedDatabases = context->getDatabaseManager()->getAttachedDatabases();
-    auto columns = input->binder->createVariables(columnNames, columnTypes);
+    auto columns = input->binder->createVariables(columnNames, columnTypes, input->yieldVariables);
     return std::make_unique<ShowAttachedDatabasesBindData>(attachedDatabases, columns,
         attachedDatabases.size());
 }

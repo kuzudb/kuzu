@@ -22,6 +22,7 @@ struct CreateTableInfo;
 struct BaseScanSource;
 struct JoinHintNode;
 class Statement;
+struct YieldVariable;
 } // namespace parser
 
 namespace catalog {
@@ -86,7 +87,8 @@ public:
     KUZU_API std::shared_ptr<Expression> createInvisibleVariable(const std::string& name,
         const common::LogicalType& dataType) const;
     KUZU_API expression_vector createVariables(const std::vector<std::string>& names,
-        const std::vector<common::LogicalType>& types);
+        const std::vector<common::LogicalType>& types,
+        std::vector<parser::YieldVariable> yieldVariables);
     KUZU_API expression_vector createInvisibleVariables(const std::vector<std::string>& names,
         const std::vector<common::LogicalType>& types) const;
 
@@ -171,7 +173,8 @@ public:
     /*** bind table function ***/
     // TODO: change signature
     BoundTableFunction bindTableFunc(const std::string& tableFuncName,
-        const parser::ParsedExpression& expr, expression_vector& columns);
+        const parser::ParsedExpression& expr, expression_vector& columns,
+        std::vector<parser::YieldVariable> yieldVariables);
 
     /*** bind create macro ***/
     std::unique_ptr<BoundStatement> bindCreateMacro(const parser::Statement& statement) const;

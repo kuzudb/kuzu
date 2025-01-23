@@ -183,18 +183,20 @@ public:
         return std::vector<LogicalTypeID>{LogicalTypeID::ANY};
     }
 
-    binder::expression_vector getResultColumns(binder::Binder* binder) const override {
+    binder::expression_vector getResultColumns(
+        const function::GDSBindInput& bindInput) const override {
         expression_vector columns;
         auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
         columns.push_back(outputNode.getInternalID());
-        columns.push_back(binder->createVariable(GROUP_ID_COLUMN_NAME, LogicalType::INT64()));
+        columns.push_back(
+            bindInput.binder->createVariable(GROUP_ID_COLUMN_NAME, LogicalType::INT64()));
         return columns;
     }
 
     void bind(const GDSBindInput& input, main::ClientContext& context) override {
         auto graphName = binder::ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
         auto graphEntry = bindGraphEntry(context, graphName);
-        auto nodeOutput = bindNodeOutput(input.binder, graphEntry.nodeEntries);
+        auto nodeOutput = bindNodeOutput(input, graphEntry.nodeEntries);
         bindData = std::make_unique<GDSBindData>(std::move(graphEntry), nodeOutput);
     }
 

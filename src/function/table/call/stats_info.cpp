@@ -80,7 +80,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     }
     const auto storageManager = context->getStorageManager();
     auto table = storageManager->getTable(tableEntry->getTableID());
-    auto columns = input->binder->createVariables(columnNames, columnTypes);
+    auto columns = input->binder->createVariables(columnNames, columnTypes, input->yieldVariables);
     return std::make_unique<StatsInfoBindData>(columns, tableEntry, table, context);
 }
 

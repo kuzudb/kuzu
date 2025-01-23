@@ -688,7 +688,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         detectedColumnNames = scanInput->expectedColumnNames;
     }
 
-    auto resultColumns = input->binder->createVariables(detectedColumnNames, detectedColumnTypes);
+    auto resultColumns = input->binder->createVariables(detectedColumnNames, detectedColumnTypes,
+        input->yieldVariables);
     auto bindData = std::make_unique<ScanBindData>(std::move(resultColumns),
         scanInput->fileScanInfo.copy(), context);
     bindData->cardinality = getNumRows(bindData.get());

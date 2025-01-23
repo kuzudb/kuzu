@@ -50,7 +50,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     for (const auto& warning : context->getWarningContext().getPopulatedWarnings()) {
         warningInfos.emplace_back(warning);
     }
-    auto columns = input->binder->createVariables(columnNames, columnTypes);
+    auto columns = input->binder->createVariables(columnNames, columnTypes, input->yieldVariables);
     return std::make_unique<ShowWarningsBindData>(std::move(warningInfos), columns,
         warningInfos.size());
 }

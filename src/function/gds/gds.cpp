@@ -23,16 +23,29 @@ graph::GraphEntry GDSAlgorithm::bindGraphEntry(main::ClientContext& context,
     return context.getGraphEntrySetUnsafe().getEntry(name);
 }
 
-std::shared_ptr<Expression> GDSAlgorithm::bindNodeOutput(Binder* binder,
+std::shared_ptr<Expression> GDSAlgorithm::bindNodeOutput(const GDSBindInput& bindInput,
     const std::vector<catalog::TableCatalogEntry*>& nodeEntries) {
-    auto node = binder->createQueryNode(NODE_COLUMN_NAME, nodeEntries);
-    binder->addToScope(NODE_COLUMN_NAME, node);
+    std::string nodeColumnName = NODE_COLUMN_NAME;
+    if (!bindInput.yieldVariables.empty()) {
+        nodeColumnName = bindColumnName(bindInput.yieldVariables[0], nodeColumnName);
+    }
+    auto node = bindInput.binder->createQueryNode(nodeColumnName, nodeEntries);
+    bindInput.binder->addToScope(nodeColumnName, node);
     return node;
 }
 
 std::shared_ptr<PathLengths> GDSAlgorithm::getPathLengthsFrontier(
     processor::ExecutionContext* context, uint16_t initialVal) {
     return PathLengths::getFrontier(context, sharedState->graph.get(), initialVal);
+}
+
+std::string GDSAlgorithm::bindColumnName(const parser::YieldVariable& yieldVariable,
+    std::string expressionName) {
+    if (yieldVariable.name != expressionName) {
+        throw common::BinderException{
+            common::stringFormat("Unknown variable name: {}.", yieldVariable.name)};
+    }
+    return yieldVariable.hasAlias() ? yieldVariable.alias : expressionName;
 }
 
 } // namespace function

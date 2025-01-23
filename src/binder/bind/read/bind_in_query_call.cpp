@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
+#include "binder/expression/variable_expression.h"
 #include "binder/query/reading_clause/bound_gds_call.h"
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "catalog/catalog.h"
@@ -30,7 +31,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         functionName);
     switch (entry->getType()) {
     case CatalogEntryType::TABLE_FUNCTION_ENTRY: {
-        auto boundTableFunction = bindTableFunc(functionName, *functionExpr, columns);
+        auto boundTableFunction =
+            bindTableFunc(functionName, *functionExpr, columns, call.getYieldVariables());
         boundReadingClause = std::make_unique<BoundTableFunctionCall>(std::move(boundTableFunction),
             std::move(columns));
     } break;
@@ -57,8 +59,9 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         input.params = children;
         input.binder = this;
         input.optionalParams = std::move(optionalParams);
+        input.yieldVariables = call.getYieldVariables();
         gdsFunc.gds->bind(input, *clientContext);
-        columns = gdsFunc.gds->getResultColumns(this);
+        columns = gdsFunc.gds->getResultColumns(input);
         auto info = BoundGDSCallInfo(gdsFunc.copy(), std::move(columns));
         boundReadingClause = std::make_unique<BoundGDSCall>(std::move(info));
     } break;

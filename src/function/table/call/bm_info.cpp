@@ -40,7 +40,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     returnTypes.emplace_back(common::LogicalType::UINT64());
     returnTypes.emplace_back(common::LogicalType::UINT64());
     const auto returnColumnNames = std::vector<std::string>{"mem_limit", "mem_usage"};
-    auto columns = input->binder->createVariables(returnColumnNames, returnTypes);
+    auto columns =
+        input->binder->createVariables(returnColumnNames, returnTypes, input->yieldVariables);
     return std::make_unique<BMInfoBindData>(memLimit, memUsage, columns);
 }
 

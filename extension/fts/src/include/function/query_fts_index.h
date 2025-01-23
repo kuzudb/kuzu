@@ -38,7 +38,8 @@ public:
         return std::make_unique<QueryFTSAlgorithm>(*this);
     }
 
-    binder::expression_vector getResultColumns(binder::Binder* binder) const override;
+    binder::expression_vector getResultColumns(
+        const function::GDSBindInput& bindInput) const override;
 
     void bind(const function::GDSBindInput& input, main::ClientContext&) override;
 };

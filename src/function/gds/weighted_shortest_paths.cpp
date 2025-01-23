@@ -140,7 +140,8 @@ public:
     WeightedSPDestinationsAlgorithm(const WeightedSPDestinationsAlgorithm& other)
         : SPAlgorithm{other} {}
 
-    binder::expression_vector getResultColumns(binder::Binder*) const override {
+    binder::expression_vector getResultColumns(
+        const function::GDSBindInput& /*bindInput*/) const override {
         auto columns = getBaseResultColumns();
         columns.push_back(bindData->ptrCast<RJBindData>()->weightOutputExpr);
         return columns;

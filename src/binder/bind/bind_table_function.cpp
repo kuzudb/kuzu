@@ -19,7 +19,8 @@ static void validateParameterType(const expression_vector& positionalParams) {
 }
 
 BoundTableFunction Binder::bindTableFunc(const std::string& tableFuncName,
-    const parser::ParsedExpression& expr, expression_vector& columns) {
+    const parser::ParsedExpression& expr, expression_vector& columns,
+    std::vector<parser::YieldVariable> yieldVariables) {
     auto entry = clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(),
         tableFuncName);
     expression_vector positionalParams;
@@ -51,6 +52,7 @@ BoundTableFunction Binder::bindTableFunc(const std::string& tableFuncName,
     bindInput.params = std::move(positionalParams);
     bindInput.optionalParams = std::move(optionalParams);
     bindInput.binder = this;
+    bindInput.yieldVariables = std::move(yieldVariables);
     auto bindData = tableFunc->bindFunc(clientContext, &bindInput);
     columns = bindData->columns;
     return BoundTableFunction{tableFunc->copy(), std::move(bindData)};

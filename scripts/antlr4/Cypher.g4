@@ -486,8 +486,17 @@ oC_ReadingClause
 kU_LoadFrom
     :  LOAD ( SP WITH SP HEADERS SP? '(' SP? kU_ColumnDefinitions SP? ')' )? SP FROM SP kU_ScanSource (SP? '(' SP? kU_Options SP? ')')? (SP? oC_Where)? ;
 
+
+YIELD: ( 'Y' | 'y' ) ( 'I' | 'i' ) ( 'E' | 'e' ) ( 'L' | 'l' ) ( 'D' | 'd' ) ;
+
+oC_YieldItem
+         :  ( oC_Variable SP AS SP )? oC_Variable ;
+
+oC_YieldItems
+          :  oC_YieldItem ( SP? ',' SP? oC_YieldItem )* ;
+
 kU_InQueryCall
-    : CALL SP oC_FunctionInvocation (SP? oC_Where)? ;
+    : CALL SP oC_FunctionInvocation (SP? oC_Where)? ( SP? YIELD SP oC_YieldItems )? ;
 
 oC_Match
     : ( OPTIONAL SP )? MATCH SP? oC_Pattern ( SP oC_Where )? ( SP kU_Hint )? ;

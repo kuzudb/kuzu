@@ -99,7 +99,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     }
     maxOffset = entries.size();
 
-    auto columns = input->binder->createVariables(columnNames, columnTypes);
+    auto columns = input->binder->createVariables(columnNames, columnTypes, input->yieldVariables);
     return std::make_unique<ShowConnectionBindData>(context, entries, columns, maxOffset);
 }
 

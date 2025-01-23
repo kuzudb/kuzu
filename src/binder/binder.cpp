@@ -124,13 +124,31 @@ std::shared_ptr<Expression> Binder::createInvisibleVariable(const std::string& n
 }
 
 expression_vector Binder::createVariables(const std::vector<std::string>& names,
-    const std::vector<LogicalType>& types) {
-    KU_ASSERT(names.size() == types.size());
-    expression_vector variables;
-    for (auto i = 0u; i < names.size(); ++i) {
-        variables.push_back(createVariable(names[i], types[i]));
+    const std::vector<common::LogicalType>& types,
+    std::vector<parser::YieldVariable> yieldVariables) {
+    if (yieldVariables.empty()) {
+        KU_ASSERT(names.size() == types.size());
+        expression_vector variables;
+        for (auto i = 0u; i < names.size(); ++i) {
+            variables.push_back(createVariable(names[i], types[i]));
+        }
+        return variables;
+    } else {
+        expression_vector variables;
+        if (yieldVariables.size() != names.size()) {
+            throw common::BinderException{"Output variables must all appear in the yield clause."};
+        }
+        for (auto i = 0u; i < names.size(); i++) {
+            if (names[i] != yieldVariables[i].name) {
+                throw common::BinderException{common::stringFormat(
+                    "Unknown table function output variable name: {}.", yieldVariables[i].name)};
+            }
+            auto variableName =
+                yieldVariables[i].hasAlias() ? yieldVariables[i].alias : yieldVariables[i].name;
+            variables.push_back(createVariable(variableName, types[i]));
+        }
+        return variables;
     }
-    return variables;
 }
 
 expression_vector Binder::createInvisibleVariables(const std::vector<std::string>& names,

@@ -291,3 +291,66 @@ ICEBERG|Adds support for reading from iceberg tables
 JSON|Adds support for JSON operations
 POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables
+
+-CASE CallFuncWithYield
+-LOG CallWithYield
+-STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() yield name, description return name, description
+---- 8
+DELTA|Adds support for reading from delta tables
+DUCKDB|Adds support for reading from duckdb tables
+FTS|Adds support for full-text search indexes
+HTTPFS|Adds support for reading and writing files over a HTTP(S)/S3 filesystem
+ICEBERG|Adds support for reading from iceberg tables
+JSON|Adds support for JSON operations
+POSTGRES|Adds support for reading from POSTGRES tables
+SQLITE|Adds support for reading from SQLITE tables
+-STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() yield name as extension_name, description as extension_description return extension_name, extension_description
+---- 8
+DELTA|Adds support for reading from delta tables
+DUCKDB|Adds support for reading from duckdb tables
+FTS|Adds support for full-text search indexes
+HTTPFS|Adds support for reading and writing files over a HTTP(S)/S3 filesystem
+ICEBERG|Adds support for reading from iceberg tables
+JSON|Adds support for JSON operations
+POSTGRES|Adds support for reading from POSTGRES tables
+SQLITE|Adds support for reading from SQLITE tables
+-LOG ShowConnectionWithoutYieldError
+-STATEMENT CALL show_connection('workAt') CALL show_connection('workAt') RETURN *
+---- error
+Binder exception: Variable source table name already exists.
+-LOG ShowExtensionWithYield
+-STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() yield name as extension_name, description as extension_description CALL SHOW_OFFICIAL_EXTENSIONS() WHERE extension_name = 'SQLITE' RETURN *
+---- 8
+SQLITE|Adds support for reading from SQLITE tables|DELTA|Adds support for reading from delta tables
+SQLITE|Adds support for reading from SQLITE tables|DUCKDB|Adds support for reading from duckdb tables
+SQLITE|Adds support for reading from SQLITE tables|FTS|Adds support for full-text search indexes
+SQLITE|Adds support for reading from SQLITE tables|HTTPFS|Adds support for reading and writing files over a HTTP(S)/S3 filesystem
+SQLITE|Adds support for reading from SQLITE tables|ICEBERG|Adds support for reading from iceberg tables
+SQLITE|Adds support for reading from SQLITE tables|JSON|Adds support for JSON operations
+SQLITE|Adds support for reading from SQLITE tables|POSTGRES|Adds support for reading from POSTGRES tables
+SQLITE|Adds support for reading from SQLITE tables|SQLITE|Adds support for reading from SQLITE tables
+-LOG ShowExtensionPartialAlias
+-STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() yield name, description as extension_description RETURN *
+---- 8
+DELTA|Adds support for reading from delta tables
+DUCKDB|Adds support for reading from duckdb tables
+FTS|Adds support for full-text search indexes
+HTTPFS|Adds support for reading and writing files over a HTTP(S)/S3 filesystem
+ICEBERG|Adds support for reading from iceberg tables
+JSON|Adds support for JSON operations
+POSTGRES|Adds support for reading from POSTGRES tables
+SQLITE|Adds support for reading from SQLITE tables
+
+-CASE CallFuncWithYieldError
+-STATEMENT CALL TABLE_INFO('person') yield `property id` as id RETURN *;
+---- error
+Binder exception: Output variables must all appear in the yield clause.
+-STATEMENT CALL TABLE_INFO('person') yield `property id` as name, name, type, `default expression`, `primary key` RETURN *;
+---- error
+Binder exception: Variable name already exists.
+-STATEMENT CALL current_setting('timeout') yield `timeot` as timeout RETURN *;
+---- error
+Binder exception: Unknown table function output variable name: timeot.
+-STATEMENT CALL show_connection('knows') yield `source table name` as `destination table name`, `destination table name` as `source table name`, `source table primary key`, `destination table primary key` return *;
+---- 1
+person|person|ID|ID

@@ -291,15 +291,16 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     sharedState->mergeLocalTables();
 }
 
-static std::shared_ptr<Expression> getScoreColumn(Binder* binder) {
-    return binder->createVariable(QueryFTSAlgorithm::SCORE_PROP_NAME, LogicalType::DOUBLE());
-}
-
-expression_vector QueryFTSAlgorithm::getResultColumns(Binder* binder) const {
+expression_vector QueryFTSAlgorithm::getResultColumns(
+    const function::GDSBindInput& bindInput) const {
     expression_vector columns;
     auto& docsNode = bindData->getNodeOutput()->constCast<NodeExpression>();
     columns.push_back(docsNode.getInternalID());
-    columns.push_back(getScoreColumn(binder));
+    std::string scoreColumnName = QueryFTSAlgorithm::SCORE_PROP_NAME;
+    if (!bindInput.yieldVariables.empty()) {
+        scoreColumnName = bindColumnName(bindInput.yieldVariables[1], scoreColumnName);
+    }
+    bindInput.binder->createVariable(scoreColumnName, LogicalType::DOUBLE());
     return columns;
 }
 
@@ -325,7 +326,7 @@ void QueryFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& con
         tableEntry->getTableID(), indexName);
     auto entry =
         context.getCatalog()->getTableCatalogEntry(context.getTransaction(), inputTableName);
-    auto nodeOutput = bindNodeOutput(input.binder, {entry});
+    auto nodeOutput = bindNodeOutput(input, {entry});
 
     auto termsEntry = context.getCatalog()->getTableCatalogEntry(context.getTransaction(),
         FTSUtils::getTermsTableName(tableEntry->getTableID(), indexName));

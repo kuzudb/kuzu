@@ -6,6 +6,7 @@
 #include "common/case_insensitive_map.h"
 #include "common/copier_config/file_scan_info.h"
 #include "common/types/value/value.h"
+#include "parser/query/reading_clause/yield_variable.h"
 
 namespace kuzu {
 namespace binder {
@@ -40,6 +41,7 @@ struct KUZU_API TableFuncBindInput {
     optional_params_t optionalParams;
     std::unique_ptr<ExtraTableFuncBindInput> extraInput = nullptr;
     binder::Binder* binder = nullptr;
+    std::vector<parser::YieldVariable> yieldVariables;
 
     TableFuncBindInput() = default;
 
