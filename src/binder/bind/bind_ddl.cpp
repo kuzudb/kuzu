@@ -157,9 +157,12 @@ void Binder::validateNoIndexOnProperty(const std::string& tableName,
         return;
     }
     auto tableEntry = catalog->getTableCatalogEntry(transaction, tableName);
+    if (!tableEntry->containsProperty(propertyName)) {
+        return;
+    }
     auto propertyID = tableEntry->getPropertyID(propertyName);
     for (auto indexCatalogEntry : catalog->getIndexEntries(transaction)) {
-        auto propertiesWithIndex = indexCatalogEntry->getProperties();
+        auto propertiesWithIndex = indexCatalogEntry->getPropertyIDs();
         if (indexCatalogEntry->getTableID() == tableEntry->getTableID() &&
             std::find(propertiesWithIndex.begin(), propertiesWithIndex.end(), propertyID) !=
                 propertiesWithIndex.end()) {

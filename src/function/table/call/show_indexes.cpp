@@ -94,7 +94,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
         auto tableName = tableEntry->getName();
         auto indexName = indexEntry->getIndexName();
         auto indexType = indexEntry->getIndexType();
-        auto properties = indexEntry->getProperties();
+        auto properties = indexEntry->getPropertyIDs();
         std::vector<std::string> propertyNames;
         for (auto& property : properties) {
             propertyNames.push_back(tableEntry->getProperty(property).getName());
