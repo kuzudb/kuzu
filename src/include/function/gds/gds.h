@@ -2,6 +2,7 @@
 
 #include "binder/expression/expression.h"
 #include "graph/graph_entry.h"
+#include "parser/query/reading_clause/yield_variable.h"
 #include "processor/operator/gds_call_shared_state.h"
 
 namespace kuzu {
