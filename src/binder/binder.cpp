@@ -251,7 +251,9 @@ TableFunction Binder::getScanFunction(const FileTypeInfo& typeInfo,
                                       "set the file format explicitly by (file_format=<type>)."};
             }
             throw BinderException{
-                stringFormat("Cannot load from file type {}.", typeInfo.fileTypeStr)};
+                stringFormat("Cannot load from file type {}. If this file type is part of a kuzu "
+                             "extension please load the extension then try again.",
+                    typeInfo.fileTypeStr)};
         }
     } break;
     default:

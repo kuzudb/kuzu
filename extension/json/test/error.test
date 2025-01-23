@@ -3,6 +3,16 @@
 
 --
 
+-CASE DidNotLoadExtension
+-STATEMENT create node table person (id INT64, description json, primary key(id));
+---- error
+Catalog exception: JSON is neither an internal type nor a user defined type. This type exists in the JSON extension. You can install and load the extension by running 'INSTALL JSON; LOAD EXTENSION JSON;'.
+-STATEMENT create node table person (id INT64, description STRING, primary key(id))
+---- ok
+-STATEMENT CREATE (p:person {id: 8, description: to_json({"family": "anatidae", "species": [ "duck", "goose", "swan", null]})})
+---- error
+Catalog exception: function TO_JSON is not defined. This function exists in the JSON extension. You can install and load the extension by running 'INSTALL JSON; LOAD EXTENSION JSON;'.
+
 -CASE LoadFromError
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok

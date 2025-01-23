@@ -8,6 +8,11 @@
 namespace kuzu {
 namespace extension {
 
+struct ExtensionEntry {
+    const char* name;
+    const char* extensionName;
+};
+
 class ExtensionManager {
 public:
     void loadExtension(const std::string& path, main::ClientContext* context);
@@ -27,6 +32,10 @@ public:
     KUZU_API const std::vector<LoadedExtension>& getLoadedExtensions() const {
         return loadedExtensions;
     }
+
+    static std::optional<ExtensionEntry> lookupExtensionsByFunctionName(
+        std::string_view functionName);
+    static std::optional<ExtensionEntry> lookupExtensionsByTypeName(std::string_view typeName);
 
 private:
     std::vector<LoadedExtension> loadedExtensions;

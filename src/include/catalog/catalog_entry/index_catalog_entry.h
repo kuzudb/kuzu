@@ -1,6 +1,7 @@
 #pragma once
 
 #include "catalog_entry.h"
+#include "common/serializer/buffered_reader.h"
 #include "common/serializer/deserializer.h"
 
 namespace kuzu::common {

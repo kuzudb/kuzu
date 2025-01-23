@@ -2,7 +2,6 @@
 
 #include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
 #include "common/exception/runtime.h"
-#include "common/serializer/buffered_reader.h"
 #include "common/serializer/buffered_serializer.h"
 
 namespace kuzu {
