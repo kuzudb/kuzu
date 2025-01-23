@@ -17,11 +17,7 @@ fn link_libraries() {
     if cfg!(windows) && link_mode() == "dylib" {
         println!("cargo:rustc-link-lib=dylib=kuzu_shared");
     } else {
-        if link_mode() == "dylib" {
-            println!("cargo:rustc-link-lib={}=kuzu", link_mode());
-        } else {
-            println!("cargo:rustc-link-lib=static:+whole-archive=kuzu");
-        }
+        println!("cargo:rustc-link-lib={}=kuzu", link_mode());
     }
     if link_mode() == "static" {
         if cfg!(windows) {
@@ -34,25 +30,21 @@ fn link_libraries() {
             println!("cargo:rustc-link-lib=dylib=stdc++");
         }
 
-        for lib in [
-            "utf8proc",
-            "antlr4_cypher",
-            "antlr4_runtime",
-            "re2",
-            "fastpfor",
-            "parquet",
-            "thrift",
-            "snappy",
-            "zstd",
-            "miniz",
-            "mbedtls",
-            "brotlidec",
-            "brotlicommon",
-            "lz4",
-            "roaring_bitmap",
-        ] {
-            println!("cargo:rustc-link-lib=static:+whole-archive={}", lib);
-        }
+        println!("cargo:rustc-link-lib=static=utf8proc");
+        println!("cargo:rustc-link-lib=static=antlr4_cypher");
+        println!("cargo:rustc-link-lib=static=antlr4_runtime");
+        println!("cargo:rustc-link-lib=static=re2");
+        println!("cargo:rustc-link-lib=static=fastpfor");
+        println!("cargo:rustc-link-lib=static=parquet");
+        println!("cargo:rustc-link-lib=static=thrift");
+        println!("cargo:rustc-link-lib=static=snappy");
+        println!("cargo:rustc-link-lib=static=zstd");
+        println!("cargo:rustc-link-lib=static=miniz");
+        println!("cargo:rustc-link-lib=static=mbedtls");
+        println!("cargo:rustc-link-lib=static=brotlidec");
+        println!("cargo:rustc-link-lib=static=brotlicommon");
+        println!("cargo:rustc-link-lib=static=lz4");
+        println!("cargo:rustc-link-lib=static=roaring_bitmap");
     }
 }
 
