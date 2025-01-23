@@ -39,3 +39,42 @@ Binder exception: Table person does not exist.
 -STATEMENT CREATE NODE TABLE person(id INT64, name STRING, PRIMARY KEY(id));
 ---- error
 Binder exception: person already exists in catalog.
+
+-CASE RelGroupAlterRollbackAndRecovery
+-STATEMENT CREATE NODE TABLE person(id INT64, name STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE person1(id INT64, name STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE group knows(FROM person TO person, FROM person To person1, age INT64);
+---- ok
+-STATEMENT CREATE (:person {id: 1, name: "Alice"})
+---- ok
+-STATEMENT MATCH (a:person), (b:person) CREATE (a)-[:knows {age: 12}]->(b)
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE knows RENAME age to year
+---- ok
+-STATEMENT ALTER TABLE knows RENAME TO likes
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (a:person)-[k:knows]->(b:person) RETURN k.age
+---- 1
+12
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT ALTER TABLE knows ADD year INT
+---- ok
+-STATEMENT ALTER TABLE knows DROP age
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (a:person)-[k:knows]->(b:person) RETURN k.year
+---- error
+Binder exception: Cannot find property year for k.
+-STATEMENT MATCH (a:person)-[k:knows]->(b:person) RETURN k.age
+---- 1
+12

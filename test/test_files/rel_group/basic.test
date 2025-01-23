@@ -2,7 +2,7 @@
 
 --
 
--CASE RelGroupTest1
+-CASE SimpleMatch
 -STATEMENT MATCH (a)-[e:knows]->(b) WHERE a.ID = 0 AND b.ID = 2 RETURN label(e), label(b), b.*
 ---- 3
 knows|personB|2|Bob
@@ -30,12 +30,8 @@ knows|personC|2|Bob
 knows|personC|2|Bob
 likes|personB|2|Bob
 likes|personA|2|Bob
--STATEMENT COPY knows FROM "a.csv";
----- error
-Binder exception: The table knows has multiple FROM and TO pairs defined in the schema. A specific pair of FROM and TO options is expected when copying data into the knows table.
--STATEMENT DROP TABLE knows_personA_personB;
----- error
-Binder exception: Cannot delete relationship table knows_personA_personB because it is referenced by relationship group knows.
+
+-CASE Drop
 -STATEMENT CALL show_tables() RETURN *;
 ---- 5
 0|personA|NODE|local(kuzu)|
@@ -43,6 +39,9 @@ Binder exception: Cannot delete relationship table knows_personA_personB because
 2|personC|NODE|local(kuzu)|
 0|knows|REL|local(kuzu)|
 1|likes|REL|local(kuzu)|
+-STATEMENT DROP TABLE knows_personA_personB;
+---- error
+Binder exception: Cannot delete relationship table knows_personA_personB because it is referenced by relationship group knows.
 -STATEMENT DROP TABLE knows;
 ---- ok
 -STATEMENT CALL show_tables() RETURN *;
@@ -57,44 +56,62 @@ Binder exception: Table knows does not exist.
 -STATEMENT MATCH (a:personA)-[e:knows_personA_personB]->(b) RETURN COUNT(*)
 ---- error
 Binder exception: Table knows_personA_personB does not exist.
--STATEMENT ALTER TABLE likes_personA_personB RENAME TO likes_A_B;
----- ok
 
--CASE X
--SKIP
+-CASE Alter
 -STATEMENT ALTER TABLE likes RENAME TO hates;
----- ok
+ ---- ok
 -STATEMENT CALL show_tables() RETURN *;
----- 6
+---- 5
 0|personA|NODE|local(kuzu)|
 1|personB|NODE|local(kuzu)|
 2|personC|NODE|local(kuzu)|
-7|likes_A_B|REL|local(kuzu)|
-8|likes_personB_personA|REL|local(kuzu)|
-0|hates|REL_GROUP|local(kuzu)|
+0|knows|REL|local(kuzu)|
+1|hates|REL|local(kuzu)|
 -STATEMENT MATCH (a:personA)-[e:hates]->(b:personB) WHERE a.ID = 0 RETURN label(e), label(b), b.*
 ---- 3
-likes_A_B|personB|2|Bob
-likes_A_B|personB|3|Carol
-likes_A_B|personB|5|Dan
+hates|personB|2|Bob
+hates|personB|3|Carol
+hates|personB|5|Dan
 -STATEMENT ALTER TABLE hates ADD age INT;
----- error
-Binder exception: Cannot add property on table hates with type REL_GROUP.
--STATEMENT ALTER TABLE hates DROP age;
----- error
-Binder exception: Cannot drop property on table hates with type REL_GROUP.
--STATEMENT ALTER TABLE hates RENAME age TO s;
----- error
-Binder exception: Cannot rename property on table hates with type REL_GROUP.
--STATEMENT ALTER TABLE likes_A_B RENAME date TO s;
 ---- ok
--STATEMENT CALL table_info("likes_A_B") RETURN *;
+-STATEMENT MATCH (a:personA)-[e:hates]->(b:personB) WHERE a.ID = 0 RETURN e.age
+---- 3 # default values are null
+
+
+
+-STATEMENT ALTER TABLE hates RENAME age TO s;
+---- ok
+-STATEMENT MATCH (a:personA)-[e:hates]->(b:personB) WHERE a.ID = 0 RETURN e.s
+---- 3
+
+
+
+-STATEMENT ALTER TABLE hates DROP s;
+---- ok
+-STATEMENT MATCH (a:personA)-[e:hates]->(b:personB) RETURN e.s
+---- error
+Binder exception: Cannot find property s for e.
+-STATEMENT ALTER TABLE hates RENAME TO likes;
+---- ok
+-STATEMENT CALL show_tables() RETURN *;
+---- 5
+0|personA|NODE|local(kuzu)|
+1|personB|NODE|local(kuzu)|
+2|personC|NODE|local(kuzu)|
+0|knows|REL|local(kuzu)|
+1|likes|REL|local(kuzu)|
+-STATEMENT MATCH (a:personA)-[e:likes]->(b:personB) WHERE a.ID = 0 RETURN label(e), label(b), b.*
+---- 3
+likes|personB|2|Bob
+likes|personB|3|Carol
+likes|personB|5|Dan
+-STATEMENT ALTER TABLE likes_personA_personB RENAME date TO s;
+---- ok
+-STATEMENT CALL table_info("likes_personA_personB") RETURN *;
 ---- 1
 1|s|DATE|NULL|both
 
-
 -CASE DMLCreateWithSRCandDEST
-
 -STATEMENT CREATE (a);
 ---- error
 Binder exception: Create node a with multiple node labels is not supported.
@@ -114,7 +131,6 @@ Binder exception: Create node a with multiple node labels is not supported.
 1145|1919|personA|personB|likes
 
 -CASE COPYWithFROMTO
-
 -STATEMENT create rel table test (FROM personA TO personA, FROM personA To personB, date DATE);
 ---- ok
 -STATEMENT COPY test FROM '${KUZU_ROOT_DIRECTORY}/dataset/rel-group/edge.csv';

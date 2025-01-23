@@ -153,11 +153,10 @@ std::unique_ptr<DropCatalogEntryRecord> DropCatalogEntryRecord::deserialize(
     return retVal;
 }
 
-void AlterTableEntryRecord::serialize(Serializer& serializer) const {
-    WALRecord::serialize(serializer);
+static void serializeAlterExtraInfo(Serializer& serializer, const BoundAlterInfo* alterInfo) {
+    const auto* extraInfo = alterInfo->extraInfo.get();
     serializer.write(alterInfo->alterType);
     serializer.write(alterInfo->tableName);
-    auto extraInfo = alterInfo->extraInfo.get();
     switch (alterInfo->alterType) {
     case AlterType::ADD_PROPERTY: {
         auto addInfo = extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
@@ -186,8 +185,7 @@ void AlterTableEntryRecord::serialize(Serializer& serializer) const {
     }
 }
 
-std::unique_ptr<AlterTableEntryRecord> AlterTableEntryRecord::deserialize(
-    Deserializer& deserializer) {
+static decltype(auto) deserializeAlterRecord(Deserializer& deserializer) {
     auto alterType = AlterType::INVALID;
     std::string tableName;
     deserializer.deserializeValue(alterType);
@@ -225,7 +223,32 @@ std::unique_ptr<AlterTableEntryRecord> AlterTableEntryRecord::deserialize(
         KU_UNREACHABLE;
     }
     }
+    return std::make_tuple(alterType, tableName, std::move(extraInfo));
+}
+
+void AlterTableEntryRecord::serialize(Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializeAlterExtraInfo(serializer, alterInfo);
+}
+
+std::unique_ptr<AlterTableEntryRecord> AlterTableEntryRecord::deserialize(
+    Deserializer& deserializer) {
+    auto [alterType, tableName, extraInfo] = deserializeAlterRecord(deserializer);
     auto retval = std::make_unique<AlterTableEntryRecord>();
+    retval->ownedAlterInfo =
+        std::make_unique<BoundAlterInfo>(alterType, tableName, std::move(extraInfo));
+    return retval;
+}
+
+void AlterRelGroupEntryRecord::serialize(Serializer& serializer) const {
+    WALRecord::serialize(serializer);
+    serializeAlterExtraInfo(serializer, alterInfo);
+}
+
+std::unique_ptr<AlterRelGroupEntryRecord> AlterRelGroupEntryRecord::deserialize(
+    Deserializer& deserializer) {
+    auto [alterType, tableName, extraInfo] = deserializeAlterRecord(deserializer);
+    auto retval = std::make_unique<AlterRelGroupEntryRecord>();
     retval->ownedAlterInfo =
         std::make_unique<BoundAlterInfo>(alterType, tableName, std::move(extraInfo));
     return retval;

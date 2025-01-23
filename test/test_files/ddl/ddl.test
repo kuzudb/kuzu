@@ -532,7 +532,7 @@ Binder exception: Duplicated column name: name, column name must be unique.
 0|a
 -STATEMENT ALTER TABLE A ADD name STRING;
 ---- error
-Binder exception: A table already has property name.
+Runtime exception: A table already has property name.
 -STATEMENT ALTER TABLE A DROP name;
 ---- 1
 Table A altered.

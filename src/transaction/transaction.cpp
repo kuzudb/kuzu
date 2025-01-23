@@ -103,13 +103,9 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
         if (catalogEntry.getType() == CatalogEntryType::DUMMY_ENTRY) {
             KU_ASSERT(catalogEntry.isDeleted());
             wal->logCreateCatalogEntryRecord(newCatalogEntry, isInternal);
-        } else {
-            // Must be ALTER.
-            throw common::RuntimeException("Alter rel group is not supported.");
-            //            KU_ASSERT(catalogEntry.getType() == newCatalogEntry->getType());
-            //            const auto& tableEntry = catalogEntry.constCast<TableCatalogEntry>();
-            //            wal->logAlterTableEntryRecord(tableEntry.getAlterInfo());
         }
+        // Otherwise must be ALTER. We don't do anything in this case since the only operation
+        // we need on rel groups is RENAME which only requires create/drop
     } break;
     case CatalogEntryType::SEQUENCE_ENTRY: {
         KU_ASSERT(
@@ -137,7 +133,6 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
         case CatalogEntryType::REL_TABLE_ENTRY:
         case CatalogEntryType::REL_GROUP_ENTRY:
         case CatalogEntryType::SEQUENCE_ENTRY: {
-            // TODO(Guodong): support alter rel group.
             wal->logDropCatalogEntryRecord(catalogEntry.getOID(), catalogEntry.getType());
         } break;
         case CatalogEntryType::INDEX_ENTRY:

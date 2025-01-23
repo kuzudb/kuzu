@@ -46,7 +46,7 @@ void Drop::executeDDLInternal(ExecutionContext* context) {
     }
 }
 
-void Drop::dropSequence(main::ClientContext* context) {
+void Drop::dropSequence(const main::ClientContext* context) {
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
     if (!catalog->containsSequence(transaction, dropInfo.name)) {
@@ -66,7 +66,7 @@ void Drop::dropSequence(main::ClientContext* context) {
     entryDropped = true;
 }
 
-void Drop::dropTable(main::ClientContext* context) {
+void Drop::dropTable(const main::ClientContext* context) {
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
     auto entry = catalog->getTableCatalogEntry(transaction, dropInfo.name);
@@ -96,7 +96,7 @@ void Drop::dropTable(main::ClientContext* context) {
     entryDropped = true;
 }
 
-void Drop::dropRelGroup(main::ClientContext* context) {
+void Drop::dropRelGroup(const main::ClientContext* context) {
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
     auto entry = catalog->getRelGroupEntry(transaction, dropInfo.name);

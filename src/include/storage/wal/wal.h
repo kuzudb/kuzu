@@ -39,6 +39,7 @@ public:
     // own WAL record
     void logCreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry, bool isInternal);
     void logDropCatalogEntryRecord(uint64_t entryID, catalog::CatalogEntryType type);
+    void logAlterRelGroupEntryRecord(const binder::BoundAlterInfo* alterInfo);
     void logAlterTableEntryRecord(const binder::BoundAlterInfo* alterInfo);
     void logUpdateSequenceRecord(common::sequence_id_t sequenceID, uint64_t kCount);
 

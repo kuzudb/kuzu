@@ -27,8 +27,9 @@ public:
     }
 
     bool isParent(common::table_id_t tableID) override;
-    bool hasParentRelGroup(Catalog* catalog, const transaction::Transaction* transaction) const;
-    RelGroupCatalogEntry* getParentRelGroup(Catalog* catalog,
+    bool hasParentRelGroup(const Catalog* catalog,
+        const transaction::Transaction* transaction) const;
+    RelGroupCatalogEntry* getParentRelGroup(const Catalog* catalog,
         const transaction::Transaction* transaction) const;
 
     common::TableType getTableType() const override { return common::TableType::REL; }

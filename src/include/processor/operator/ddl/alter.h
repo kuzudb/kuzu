@@ -55,6 +55,9 @@ public:
     }
 
 private:
+    void alterTable(const ExecutionContext* context, const binder::BoundAlterInfo& alterInfo) const;
+    void alterRelGroupChildren(const ExecutionContext* context) const;
+
     binder::BoundAlterInfo info;
     std::unique_ptr<evaluator::ExpressionEvaluator> defaultValueEvaluator;
 };

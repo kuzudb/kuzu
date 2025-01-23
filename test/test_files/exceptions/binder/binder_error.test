@@ -446,17 +446,17 @@ Binder exception: Table person1 does not exist.
 -LOG DropNonExistedColumn
 -STATEMENT alter table person drop random
 ---- error
-Binder exception: person table does not have property random.
+Runtime exception: person table does not have property random.
 
 -LOG DropPrimaryKeyColumn
 -STATEMENT alter table person drop ID
 ---- error
-Binder exception: Cannot drop primary key of a node table.
+Runtime exception: Cannot drop primary key of a node table.
 
 -LOG AddPropertyDuplicateName
 -STATEMENT alter table person add fName STRING
 ---- error
-Binder exception: person table already has property fName.
+Runtime exception: person table already has property fName.
 
 -LOG AddPropertyUnmatchedDefaultValueType
 -STATEMENT alter table person add intCol INT64 DEFAULT '3.2'
@@ -481,7 +481,7 @@ Binder exception: Table person1 does not exist.
 -LOG RenamePropertyDuplicateName
 -STATEMENT alter table person rename fName to gender
 ---- error
-Binder exception: person table already has property gender.
+Runtime exception: person table already has property gender.
 
 -LOG InvalidArrayNumElements
 -STATEMENT create node table test1(ID INT64, marks INT64[0], PRIMARY KEY(ID))

@@ -18,12 +18,12 @@ bool RelTableCatalogEntry::isParent(table_id_t tableID) {
     return srcTableID == tableID || dstTableID == tableID;
 }
 
-bool RelTableCatalogEntry::hasParentRelGroup(Catalog* catalog,
+bool RelTableCatalogEntry::hasParentRelGroup(const Catalog* catalog,
     const transaction::Transaction* transaction) const {
     return getParentRelGroup(catalog, transaction) != nullptr;
 }
 
-RelGroupCatalogEntry* RelTableCatalogEntry::getParentRelGroup(Catalog* catalog,
+RelGroupCatalogEntry* RelTableCatalogEntry::getParentRelGroup(const Catalog* catalog,
     const transaction::Transaction* transaction) const {
     for (auto& relGroup : catalog->getRelGroupEntries(transaction)) {
         if (relGroup->isParent(getTableID())) {
@@ -41,15 +41,15 @@ RelMultiplicity RelTableCatalogEntry::getMultiplicity(RelDataDirection direction
     return direction == RelDataDirection::FWD ? dstMultiplicity : srcMultiplicity;
 }
 
-std::vector<common::RelDataDirection> RelTableCatalogEntry::getRelDataDirections() const {
+std::vector<RelDataDirection> RelTableCatalogEntry::getRelDataDirections() const {
     switch (storageDirection) {
-    case common::ExtendDirection::FWD: {
+    case ExtendDirection::FWD: {
         return {RelDataDirection::FWD};
     }
-    case common::ExtendDirection::BWD: {
+    case ExtendDirection::BWD: {
         return {RelDataDirection::BWD};
     }
-    case common::ExtendDirection::BOTH: {
+    case ExtendDirection::BOTH: {
         return {RelDataDirection::FWD, RelDataDirection::BWD};
     }
     default: {
@@ -124,21 +124,21 @@ std::string RelTableCatalogEntry::toCypher(main::ClientContext* clientContext) c
     auto transaction = clientContext->getTransaction();
     auto srcTableName = catalog->getTableCatalogEntry(transaction, srcTableID)->getName();
     auto dstTableName = catalog->getTableCatalogEntry(transaction, dstTableID)->getName();
-    auto srcMultiStr = srcMultiplicity == common::RelMultiplicity::MANY ? "MANY" : "ONE";
-    auto dstMultiStr = dstMultiplicity == common::RelMultiplicity::MANY ? "MANY" : "ONE";
+    auto srcMultiStr = srcMultiplicity == RelMultiplicity::MANY ? "MANY" : "ONE";
+    auto dstMultiStr = dstMultiplicity == RelMultiplicity::MANY ? "MANY" : "ONE";
     std::string tableInfo =
         stringFormat("CREATE REL TABLE {} (FROM {} TO {}, ", getName(), srcTableName, dstTableName);
     ss << tableInfo << propertyCollection.toCypher() << srcMultiStr << "_" << dstMultiStr << ");";
     return ss.str();
 }
 
-common::ExtendDirection RelTableCatalogEntry::getStorageDirection() const {
+ExtendDirection RelTableCatalogEntry::getStorageDirection() const {
     return storageDirection;
 }
 
 std::unique_ptr<BoundExtraCreateCatalogEntryInfo> RelTableCatalogEntry::getBoundExtraCreateInfo(
     transaction::Transaction*) const {
-    return std::make_unique<binder::BoundExtraCreateRelTableInfo>(srcMultiplicity, dstMultiplicity,
+    return std::make_unique<BoundExtraCreateRelTableInfo>(srcMultiplicity, dstMultiplicity,
         storageDirection, srcTableID, dstTableID, copyVector(propertyCollection.getDefinitions()));
 }
 

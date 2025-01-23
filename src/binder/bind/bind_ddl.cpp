@@ -6,8 +6,10 @@
 #include "binder/ddl/bound_drop.h"
 #include "binder/expression/expression_util.h"
 #include "catalog/catalog.h"
+#include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
@@ -132,6 +134,39 @@ static void validatePrimaryKey(const std::string& pkColName,
     }
 }
 
+static bool checkTableExists(const main::ClientContext* clientContext,
+    const std::string& tableName) {
+    auto transaction = clientContext->getTransaction();
+    return clientContext->getCatalog()->containsTable(transaction, tableName,
+               clientContext->shouldUseInternalCatalogEntry()) ||
+           clientContext->getCatalog()->containsRelGroup(transaction, tableName);
+}
+
+void Binder::validateTableExists(const std::string& name) const {
+    if (!checkTableExists(clientContext, name)) {
+        throw BinderException("Table " + name + " does not exist.");
+    }
+}
+
+void Binder::validateNoIndexOnProperty(const std::string& tableName,
+    const std::string& propertyName) const {
+    auto transaction = clientContext->getTransaction();
+    auto catalog = clientContext->getCatalog();
+    if (catalog->containsRelGroup(transaction, tableName)) {
+        // RelGroup does not have indexes.
+        return;
+    }
+    auto tableEntry = catalog->getTableCatalogEntry(transaction, tableName);
+    for (auto indexCatalogEntry : catalog->getIndexEntries(transaction)) {
+        if (indexCatalogEntry->getTableID() == tableEntry->getTableID()) {
+            throw BinderException{stringFormat(
+                "Cannot drop property {} in table {} because it is used in one or more indexes. "
+                "Please remove the associated indexes before attempting to drop this property.",
+                propertyName, tableName)};
+        }
+    }
+}
+
 BoundCreateTableInfo Binder::bindCreateTableInfo(const CreateTableInfo* info) {
     switch (info->type) {
     case CatalogEntryType::NODE_TABLE_ENTRY: {
@@ -166,8 +201,7 @@ static void validateNodeTableType(const TableCatalogEntry* entry) {
     }
 }
 
-static ExtendDirection getStorageDirection(
-    const common::case_insensitive_map_t<common::Value>& options) {
+static ExtendDirection getStorageDirection(const case_insensitive_map_t<Value>& options) {
     if (options.contains(TableOptionConstants::REL_STORAGE_DIRECTION_OPTION)) {
         return ExtendDirectionUtil::fromString(
             options.at(TableOptionConstants::REL_STORAGE_DIRECTION_OPTION).toString());
@@ -180,8 +214,8 @@ BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info)
     return bindCreateRelTableInfo(info, extraInfo.options);
 }
 
-BoundCreateTableInfo Binder::bindCreateRelTableInfo(const parser::CreateTableInfo* info,
-    const parser::options_t& parsedOptions) {
+BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info,
+    const options_t& parsedOptions) {
     std::vector<PropertyDefinition> propertyDefinitions;
     propertyDefinitions.emplace_back(
         ColumnDefinition(InternalKeyword::ID, LogicalType::INTERNAL_ID()));
@@ -343,7 +377,7 @@ std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& stateme
     auto extraInfo = ku_dynamic_cast<ExtraRenameTableInfo*>(info->extraInfo.get());
     auto tableName = info->tableName;
     auto newName = extraInfo->newName;
-    validateTableExist(tableName);
+    validateTableExists(tableName);
     auto catalog = clientContext->getCatalog();
     if (catalog->containsTable(clientContext->getTransaction(), newName)) {
         throw BinderException("Table: " + newName + " already exists.");
@@ -354,55 +388,7 @@ std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& stateme
     return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 
-using on_conflict_throw_action = std::function<void()>;
-
-static void validateProperty(ConflictAction action, const on_conflict_throw_action& throwAction) {
-    switch (action) {
-    case ConflictAction::ON_CONFLICT_THROW: {
-        throwAction();
-    } break;
-    case ConflictAction::ON_CONFLICT_DO_NOTHING:
-        break;
-    default:
-        KU_UNREACHABLE;
-    }
-}
-
-static void validatePropertyExist(ConflictAction action, TableCatalogEntry* tableEntry,
-    const std::string& propertyName) {
-    validateProperty(action, [&tableEntry, &propertyName]() {
-        if (!tableEntry->containsProperty(propertyName)) {
-            throw BinderException(
-                tableEntry->getName() + " table does not have property " + propertyName + ".");
-        }
-    });
-}
-
-static void validatePropertyNotExist(ConflictAction action, TableCatalogEntry* tableEntry,
-    const std::string& propertyName) {
-    validateProperty(action, [&tableEntry, &propertyName] {
-        if (tableEntry->containsProperty(propertyName)) {
-            throw BinderException(
-                tableEntry->getName() + " table already has property " + propertyName + ".");
-        }
-    });
-}
-
-static void validatePropertyDDLOnTable(const TableCatalogEntry* tableEntry,
-    const std::string& ddlOperation) {
-    switch (tableEntry->getType()) {
-    case CatalogEntryType::REL_GROUP_ENTRY: {
-        throw BinderException(
-            stringFormat("Cannot {} property on table {} with type {}.", ddlOperation,
-                tableEntry->getName(), TableTypeUtils::toString(tableEntry->getTableType())));
-    }
-    default:
-        return;
-    }
-}
-
 std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& statement) {
-    auto catalog = clientContext->getCatalog();
     auto& alter = statement.constCast<Alter>();
     auto info = alter.getInfo();
     auto extraInfo = info->extraInfo->ptrCast<ExtraAddPropertyInfo>();
@@ -413,10 +399,7 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
             std::make_unique<ParsedLiteralExpression>(Value::createNullValue(dataType), "NULL");
     }
     auto propertyName = extraInfo->propertyName;
-    validateTableExist(tableName);
-    auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTransaction(), tableName);
-    validatePropertyDDLOnTable(tableEntry, "add");
-    validatePropertyNotExist(info->onConflict, tableEntry, propertyName);
+    validateTableExists(tableName);
     auto defaultValue = std::move(extraInfo->defaultValue);
     auto boundDefault = expressionBinder.implicitCastIfNecessary(
         expressionBinder.bindExpression(*defaultValue), dataType);
@@ -426,13 +409,6 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
             SequenceCatalogEntry::genSerialName(tableName, propertyName));
         boundDefault = expressionBinder.implicitCastIfNecessary(
             expressionBinder.bindExpression(*defaultValue), dataType);
-    }
-    // Eventually, we want to support non-constant default on rel tables, but it is non-trivial due
-    // to FWD/BWD storage
-    if (tableEntry->getType() == CatalogEntryType::REL_TABLE_ENTRY &&
-        boundDefault->expressionType != ExpressionType::LITERAL) {
-        throw BinderException(
-            "Cannot set a non-constant default value when adding columns on REL tables.");
     }
     auto columnDefinition = ColumnDefinition(propertyName, dataType.copy());
     auto propertyDefinition =
@@ -450,15 +426,8 @@ std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statem
     auto extraInfo = info->extraInfo->constPtrCast<ExtraDropPropertyInfo>();
     auto tableName = info->tableName;
     auto propertyName = extraInfo->propertyName;
-    validateTableExist(tableName);
-    auto catalog = clientContext->getCatalog();
-    auto tableEntry = catalog->getTableCatalogEntry(clientContext->getTransaction(), tableName);
-    validatePropertyDDLOnTable(tableEntry, "drop");
-    validatePropertyExist(info->onConflict, tableEntry, propertyName);
-    if (tableEntry->getTableType() == TableType::NODE &&
-        tableEntry->constCast<NodeTableCatalogEntry>().getPrimaryKeyName() == propertyName) {
-        throw BinderException("Cannot drop primary key of a node table.");
-    }
+    validateTableExists(tableName);
+    validateNoIndexOnProperty(tableName, propertyName);
     auto boundExtraInfo = std::make_unique<BoundExtraDropPropertyInfo>(propertyName);
     auto boundInfo = BoundAlterInfo(AlterType::DROP_PROPERTY, tableName, std::move(boundExtraInfo),
         info->onConflict);
@@ -472,12 +441,7 @@ std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& stat
     auto tableName = info->tableName;
     auto propertyName = extraInfo->propertyName;
     auto newName = extraInfo->newName;
-    validateTableExist(tableName);
-    auto catalog = clientContext->getCatalog();
-    auto tableSchema = catalog->getTableCatalogEntry(clientContext->getTransaction(), tableName);
-    validatePropertyDDLOnTable(tableSchema, "rename");
-    validatePropertyExist(ConflictAction::ON_CONFLICT_THROW, tableSchema, propertyName);
-    validatePropertyNotExist(ConflictAction::ON_CONFLICT_THROW, tableSchema, newName);
+    validateTableExists(tableName);
     auto boundExtraInfo = std::make_unique<BoundExtraRenamePropertyInfo>(newName, propertyName);
     auto boundInfo = BoundAlterInfo(AlterType::RENAME_PROPERTY, tableName,
         std::move(boundExtraInfo), info->onConflict);
@@ -490,7 +454,7 @@ std::unique_ptr<BoundStatement> Binder::bindCommentOn(const Statement& statement
     auto extraInfo = info->extraInfo->constPtrCast<ExtraCommentInfo>();
     auto tableName = info->tableName;
     auto comment = extraInfo->comment;
-    validateTableExist(tableName);
+    validateTableExists(tableName);
     auto boundExtraInfo = std::make_unique<BoundExtraCommentInfo>(comment);
     auto boundInfo =
         BoundAlterInfo(AlterType::COMMENT, tableName, std::move(boundExtraInfo), info->onConflict);

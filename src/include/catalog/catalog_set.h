@@ -33,7 +33,10 @@ public:
         std::unique_ptr<CatalogEntry> entry);
     void dropEntry(transaction::Transaction* transaction, const std::string& name,
         common::oid_t oid);
-    void alterEntry(const transaction::Transaction* transaction,
+
+    void alterTableEntry(const transaction::Transaction* transaction,
+        const binder::BoundAlterInfo& alterInfo);
+    void alterRelGroupEntry(transaction::Transaction* transaction,
         const binder::BoundAlterInfo& alterInfo);
 
     CatalogEntrySet getEntries(const transaction::Transaction* transaction);

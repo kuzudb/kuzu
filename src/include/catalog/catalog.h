@@ -66,11 +66,11 @@ public:
     TableCatalogEntry* getTableCatalogEntry(const transaction::Transaction* transaction,
         common::table_id_t tableID) const;
     // Get all node table entries.
-    std::vector<NodeTableCatalogEntry*> getNodeTableEntries(transaction::Transaction* transaction,
-        bool useInternal = true) const;
+    std::vector<NodeTableCatalogEntry*> getNodeTableEntries(
+        const transaction::Transaction* transaction, bool useInternal = true) const;
     // Get all rel table entries.
-    std::vector<RelTableCatalogEntry*> getRelTableEntries(transaction::Transaction* transaction,
-        bool useInternal = true) const;
+    std::vector<RelTableCatalogEntry*> getRelTableEntries(
+        const transaction::Transaction* transaction, bool useInternal = true) const;
     // Get all table entries.
     std::vector<TableCatalogEntry*> getTableEntries(
         const transaction::Transaction* transaction) const;
@@ -83,17 +83,22 @@ public:
     // Drop table entry with id.
     void dropTableEntry(transaction::Transaction* transaction, common::table_id_t tableID);
     // Drop table entry.
-    void dropTableEntry(transaction::Transaction* transaction, TableCatalogEntry* entry);
+    void dropTableEntry(transaction::Transaction* transaction, const TableCatalogEntry* entry);
     // Alter table entry.
     void alterTableEntry(transaction::Transaction* transaction, const binder::BoundAlterInfo& info);
+    // Alter a rel group entry
+    // alterTableEntry() still needs to be called separately for each member of the group
+    void alterRelGroupEntry(transaction::Transaction* transaction,
+        const binder::BoundAlterInfo& info);
 
     // ----------------------------- Rel groups ----------------------------
 
     // Check if rel group entry exists.
-    bool containsRelGroup(const transaction::Transaction* transaction, const std::string& name);
+    bool containsRelGroup(const transaction::Transaction* transaction,
+        const std::string& name) const;
     // Get rel group entry with name.
     RelGroupCatalogEntry* getRelGroupEntry(const transaction::Transaction* transaction,
-        const std::string& name);
+        const std::string& name) const;
     // Get all rel group entries.
     std::vector<RelGroupCatalogEntry*> getRelGroupEntries(
         const transaction::Transaction* transaction) const;
@@ -104,7 +109,8 @@ public:
     // Drop rel group entry.
     void dropRelGroupEntry(transaction::Transaction* transaction, common::oid_t id);
     // Drop rel group entry.
-    void dropRelGroupEntry(transaction::Transaction* transaction, RelGroupCatalogEntry* entry);
+    void dropRelGroupEntry(transaction::Transaction* transaction,
+        const RelGroupCatalogEntry* entry);
 
     // ----------------------------- Sequences ----------------------------
 
@@ -113,7 +119,7 @@ public:
         const std::string& name) const;
     // Get sequence entry with name.
     SequenceCatalogEntry* getSequenceEntry(const transaction::Transaction* transaction,
-        const std::string& name, bool useInternalSeq = true) const;
+        const std::string& sequenceName, bool useInternalSeq = true) const;
     // Get sequence entry with id.
     SequenceCatalogEntry* getSequenceEntry(const transaction::Transaction* transaction,
         common::sequence_id_t sequenceID) const;
@@ -164,7 +170,8 @@ public:
     // ----------------------------- Functions ----------------------------
 
     // Check if function exists.
-    bool containsFunction(const transaction::Transaction* transaction, const std::string& name);
+    bool containsFunction(const transaction::Transaction* transaction,
+        const std::string& name) const;
     // Get function entry by name.
     // Note we cannot cast to FunctionEntry here because result could also be a MacroEntry.
     CatalogEntry* getFunctionEntry(const transaction::Transaction* transaction,
@@ -213,9 +220,9 @@ private:
     CatalogEntry* createRelTableEntry(transaction::Transaction* transaction,
         const binder::BoundCreateTableInfo& info);
 
-    void createSerialSequence(transaction::Transaction* transaction, TableCatalogEntry* entry,
+    void createSerialSequence(transaction::Transaction* transaction, const TableCatalogEntry* entry,
         bool isInternal);
-    void dropSerialSequence(transaction::Transaction* transaction, TableCatalogEntry* entry);
+    void dropSerialSequence(transaction::Transaction* transaction, const TableCatalogEntry* entry);
 
 protected:
     std::unique_ptr<CatalogSet> tables;
