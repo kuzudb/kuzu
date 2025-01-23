@@ -205,7 +205,6 @@ void CatalogSet::alterTableEntry(const Transaction* transaction,
     }
 }
 
-
 void CatalogSet::alterRelGroupEntry(Transaction* transaction,
     const binder::BoundAlterInfo& alterInfo) {
     if (alterInfo.alterType != AlterType::RENAME_TABLE) {
