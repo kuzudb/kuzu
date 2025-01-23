@@ -32,7 +32,7 @@ static std::unique_ptr<TableFuncBindData> clearCacheBindFunc(const ClientContext
     std::vector<LogicalType> columnTypes;
     columnNames.emplace_back("message");
     columnTypes.emplace_back(LogicalType::STRING());
-    auto columns = input->binder->createVariables(columnNames, columnTypes);
+    auto columns = input->binder->createVariables(columnNames, columnTypes, input->yieldVariables);
     return std::make_unique<ClearCacheBindData>(context->getDatabaseManager(), columns,
         1 /* maxOffset */);
 }

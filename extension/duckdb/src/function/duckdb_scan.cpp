@@ -101,7 +101,8 @@ offset_t DuckDBScanFunction::tableFunc(const TableFuncInput& input, TableFuncOut
 std::unique_ptr<TableFuncBindData> DuckDBScanFunction::bindFunc(const DuckDBScanBindData& bindData,
     main::ClientContext*, const TableFuncBindInput* input) {
     auto result = bindData.copy();
-    result->columns = input->binder->createVariables(bindData.columnNames, bindData.columnTypes);
+    result->columns = input->binder->createVariables(bindData.columnNames, bindData.columnTypes,
+        input->yieldVariables);
     return result;
 }
 

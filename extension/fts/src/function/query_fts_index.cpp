@@ -300,7 +300,8 @@ expression_vector QueryFTSAlgorithm::getResultColumns(
     if (!bindInput.yieldVariables.empty()) {
         scoreColumnName = bindColumnName(bindInput.yieldVariables[1], scoreColumnName);
     }
-    bindInput.binder->createVariable(scoreColumnName, LogicalType::DOUBLE());
+    auto scoreColumn = bindInput.binder->createVariable(scoreColumnName, LogicalType::DOUBLE());
+    columns.push_back(scoreColumn);
     return columns;
 }
 

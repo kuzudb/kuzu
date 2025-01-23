@@ -163,7 +163,7 @@ public:
     SingleSPPathsAlgorithm() = default;
     SingleSPPathsAlgorithm(const SingleSPPathsAlgorithm& other) : SPAlgorithm{other} {}
 
-    expression_vector getResultColumns(const function::GDSBindInput& bindInput) const override {
+    expression_vector getResultColumns(const function::GDSBindInput& /*bindInput*/) const override {
         auto columns = getBaseResultColumns();
         auto rjBindData = bindData->ptrCast<RJBindData>();
         columns.push_back(rjBindData->lengthExpr);
