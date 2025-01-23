@@ -1,0 +1,50 @@
+-DATASET CSV EMPTY
+
+--
+
+-CASE AlterRelGroupChildTable
+-STATEMENT CREATE NODE TABLE PersonA (id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE NODE TABLE PersonB (id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Knows(FROM PersonA TO PersonA, FROM PersonA TO PersonB, data STRING);
+---- ok
+-STATEMENT ALTER TABLE Knows_PersonA_PersonB DROP data;
+---- error
+Runtime exception: Cannot alter table Knows_PersonA_PersonB because it is referenced by table Knows.
+-STATEMENT ALTER TABLE Knows DROP data;
+---- ok
+-STATEMENT CALL table_info("Knows") RETURN *;
+---- 0
+
+
+-CASE DuplicateRelTable
+-STATEMENT CREATE NODE TABLE PersonA (id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE NODE TABLE PersonB (id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Know2 (FROM PersonA TO PersonA);
+---- ok
+-STATEMENT CREATE REL TABLE Know (FROM PersonB TO PersonB, FROM PersonB TO PersonA);
+---- ok
+-STATEMENT ALTER TABLE Know2 RENAME TO Know;
+---- error
+Binder exception: Table Know already exists.
+-STATEMENT ALTER TABLE Know RENAME TO Know2;
+---- error
+Binder exception: Table Know2 already exists.
+-STATEMENT CALL show_tables() RETURN *;
+---- 4
+0|Know|REL|local(kuzu)|
+0|PersonA|NODE|local(kuzu)|
+1|PersonB|NODE|local(kuzu)|
+2|Know2|REL|local(kuzu)|
+
+-CASE DuplicateFromToPairs
+-STATEMENT CREATE NODE TABLE PersonA (id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE NODE TABLE PersonB (id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Knows (FROM PersonA TO PersonA, From PersonA TO PersonA);
+---- error
+Binder exception: Found duplicate FROM-TO PersonA-PersonA pairs.

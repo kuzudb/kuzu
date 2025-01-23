@@ -105,7 +105,7 @@ Binder exception: Cannot find property s for e.
 likes|personB|2|Bob
 likes|personB|3|Carol
 likes|personB|5|Dan
--STATEMENT ALTER TABLE likes_personA_personB RENAME date TO s;
+-STATEMENT ALTER TABLE likes RENAME date TO s;
 ---- ok
 -STATEMENT CALL table_info("likes_personA_personB") RETURN *;
 ---- 1

@@ -134,20 +134,6 @@ static void validatePrimaryKey(const std::string& pkColName,
     }
 }
 
-static bool checkTableExists(const main::ClientContext* clientContext,
-    const std::string& tableName) {
-    auto transaction = clientContext->getTransaction();
-    return clientContext->getCatalog()->containsTable(transaction, tableName,
-               clientContext->shouldUseInternalCatalogEntry()) ||
-           clientContext->getCatalog()->containsRelGroup(transaction, tableName);
-}
-
-void Binder::validateTableExists(const std::string& name) const {
-    if (!checkTableExists(clientContext, name)) {
-        throw BinderException("Table " + name + " does not exist.");
-    }
-}
-
 void Binder::validateNoIndexOnProperty(const std::string& tableName,
     const std::string& propertyName) const {
     auto transaction = clientContext->getTransaction();
@@ -239,6 +225,18 @@ BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info,
         clientContext->shouldUseInternalCatalogEntry());
 }
 
+static void validateUniqueFromToPairs(
+    const std::vector<std::pair<std::string, std::string>>& pairs) {
+    std::unordered_set<std::string> set;
+    for (auto [from, to] : pairs) {
+        auto key = from + to;
+        if (set.contains(key)) {
+            throw BinderException(stringFormat("Found duplicate FROM-TO {}-{} pairs.", from, to));
+        }
+        set.insert(key);
+    }
+}
+
 BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* info) {
     auto relGroupName = info->tableName;
     auto& extraInfo = info->extraInfo->constCast<ExtraCreateRelTableGroupInfo>();
@@ -247,6 +245,7 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
     auto relCreateInfo =
         std::make_unique<CreateTableInfo>(CatalogEntryType::REL_TABLE_ENTRY, "", info->onConflict);
     relCreateInfo->propertyDefinitions = copyVector(info->propertyDefinitions);
+    validateUniqueFromToPairs(extraInfo.srcDstTablePairs);
     for (auto& [srcTableName, dstTableName] : extraInfo.srcDstTablePairs) {
         relCreateInfo->tableName =
             RelGroupCatalogEntry::getChildTableName(relGroupName, srcTableName, dstTableName);
@@ -377,11 +376,6 @@ std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& stateme
     auto extraInfo = ku_dynamic_cast<ExtraRenameTableInfo*>(info->extraInfo.get());
     auto tableName = info->tableName;
     auto newName = extraInfo->newName;
-    validateTableExists(tableName);
-    auto catalog = clientContext->getCatalog();
-    if (catalog->containsTable(clientContext->getTransaction(), newName)) {
-        throw BinderException("Table: " + newName + " already exists.");
-    }
     auto boundExtraInfo = std::make_unique<BoundExtraRenameTableInfo>(newName);
     auto boundInfo = BoundAlterInfo(AlterType::RENAME_TABLE, tableName, std::move(boundExtraInfo),
         info->onConflict);
@@ -399,7 +393,6 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
             std::make_unique<ParsedLiteralExpression>(Value::createNullValue(dataType), "NULL");
     }
     auto propertyName = extraInfo->propertyName;
-    validateTableExists(tableName);
     auto defaultValue = std::move(extraInfo->defaultValue);
     auto boundDefault = expressionBinder.implicitCastIfNecessary(
         expressionBinder.bindExpression(*defaultValue), dataType);
@@ -426,7 +419,6 @@ std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statem
     auto extraInfo = info->extraInfo->constPtrCast<ExtraDropPropertyInfo>();
     auto tableName = info->tableName;
     auto propertyName = extraInfo->propertyName;
-    validateTableExists(tableName);
     validateNoIndexOnProperty(tableName, propertyName);
     auto boundExtraInfo = std::make_unique<BoundExtraDropPropertyInfo>(propertyName);
     auto boundInfo = BoundAlterInfo(AlterType::DROP_PROPERTY, tableName, std::move(boundExtraInfo),
@@ -441,7 +433,6 @@ std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& stat
     auto tableName = info->tableName;
     auto propertyName = extraInfo->propertyName;
     auto newName = extraInfo->newName;
-    validateTableExists(tableName);
     auto boundExtraInfo = std::make_unique<BoundExtraRenamePropertyInfo>(newName, propertyName);
     auto boundInfo = BoundAlterInfo(AlterType::RENAME_PROPERTY, tableName,
         std::move(boundExtraInfo), info->onConflict);
@@ -454,7 +445,6 @@ std::unique_ptr<BoundStatement> Binder::bindCommentOn(const Statement& statement
     auto extraInfo = info->extraInfo->constPtrCast<ExtraCommentInfo>();
     auto tableName = info->tableName;
     auto comment = extraInfo->comment;
-    validateTableExists(tableName);
     auto boundExtraInfo = std::make_unique<BoundExtraCommentInfo>(comment);
     auto boundInfo =
         BoundAlterInfo(AlterType::COMMENT, tableName, std::move(boundExtraInfo), info->onConflict);

@@ -441,7 +441,7 @@ DISTINCT (SERIAL) -> SERIAL
 -LOG DropColumnFromNonExistedTable
 -STATEMENT alter table person1 drop k
 ---- error
-Binder exception: Table person1 does not exist.
+Catalog exception: person1 does not exist in catalog.
 
 -LOG DropNonExistedColumn
 -STATEMENT alter table person drop random
@@ -471,7 +471,7 @@ Binder exception: Table person1 does not exist.
 -LOG RenameTableDuplicateName
 -STATEMENT alter table person rename to organisation
 ---- error
-Binder exception: Table: organisation already exists.
+Binder exception: Table organisation already exists.
 
 -LOG RenamePropertyOfNonExistedTable
 -STATEMENT alter table person1 rename col1 to col2
