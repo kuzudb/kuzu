@@ -28,12 +28,14 @@ jobs:
           java-version: '21'
           cache: 'gradle'
           architecture: 'x64'
+      
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64
 
       - name: Build Java lib for Windows
         shell: cmd
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          make java NUM_THREADS=8
+        run: make java NUM_THREADS=8
 
       - uses: actions/upload-artifact@v4
         with:
