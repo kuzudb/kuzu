@@ -160,7 +160,31 @@ void Binder::validateNoIndexOnProperty(const std::string& tableName,
     }
 }
 
+void Binder::validateName(const std::string& name) const {
+    // Check if the name is empty or exceeds the maximum allowed length
+    if (name.size() >= MAX_NAME_LENGTH) {
+        throw common::BinderException{
+            common::stringFormat("The maximum length of a name is: {}.", MAX_NAME_LENGTH)};
+    }
+
+    // Check if the name starts with a valid character (a letter or underscore).
+    auto firstChar = name[0];
+    if (!(std::isalpha(firstChar) || firstChar == '_')) {
+        throw common::BinderException{
+            "The first character of a name must either be a letter or underscore."};
+    }
+
+    // Check subsequent characters for validity (letters, digits, underscores).
+    for (auto& c : name) {
+        if (!(std::isalnum(c) || c == '_')) {
+            throw common::BinderException{
+                common::stringFormat("Invalid character: {} in name.", c)};
+        }
+    }
+}
+
 BoundCreateTableInfo Binder::bindCreateTableInfo(const CreateTableInfo* info) {
+    validateName(info->tableName);
     switch (info->type) {
     case CatalogEntryType::NODE_TABLE_ENTRY: {
         return bindCreateNodeTableInfo(info);

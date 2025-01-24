@@ -245,3 +245,10 @@ Catalog exception: function ADDWITHDEFAULT does not exist.
 -STATEMENT return addWithDefault(4,7);
 ---- 1
 11
+
+-CASE MacroNameError
+-STATEMENT Begin transaction
+---- ok
+-STATEMENT create macro `!Add-3`(a) as a + 5;
+---- error
+Binder exception: The first character of a name must either be a letter or underscore.

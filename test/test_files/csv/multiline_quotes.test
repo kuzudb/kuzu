@@ -7,7 +7,7 @@
 ---- 1
 1
 
--STATEMENT MATCH (m:`mixed-newlines`) RETURN COUNT(*)
+-STATEMENT MATCH (m:`mixed_newlines`) RETURN COUNT(*)
 ---- 1
 1
 

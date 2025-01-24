@@ -654,3 +654,29 @@ Binder exception: Cannot order by a.audience. Order by MAP(STRING, INT64) is not
 -STATEMENT MATCH (a:movies) RETURN a ORDER BY a.grade;
 ---- error
 Binder exception: Cannot order by a.grade. Order by UNION(credit BOOL, grade1 DOUBLE, grade2 INT64) is not supported.
+
+-LOG InvalidTableName
+-STATEMENT CREATE NODE TABLE `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` (a SERIAL, PRIMARY KEY(a))
+---- error
+Binder exception: The maximum length of a name is: 32.
+-STATEMENT CREATE NODE TABLE `!tb` (a SERIAL, PRIMARY KEY(a))
+---- error
+Binder exception: The first character of a name must either be a letter or underscore.
+-STATEMENT CREATE NODE TABLE `3tb` (a SERIAL, PRIMARY KEY(a))
+---- error
+Binder exception: The first character of a name must either be a letter or underscore.
+-STATEMENT CREATE NODE TABLE `tb3!2` (a SERIAL, PRIMARY KEY(a))
+---- error
+Binder exception: Invalid character: ! in name.
+-STATEMENT CREATE NODE TABLE `tb-32` (a SERIAL, PRIMARY KEY(a))
+---- error
+Binder exception: Invalid character: - in name.
+-STATEMENT CREATE NODE TABLE `tb-3-2` (a SERIAL, PRIMARY KEY(a))
+---- error
+Binder exception: Invalid character: - in name.
+-STATEMENT CREATE NODE TABLE `_table_name` (a SERIAL, PRIMARY KEY(a))
+---- ok
+-STATEMENT CREATE NODE TABLE `_table5name` (a SERIAL, PRIMARY KEY(a))
+---- ok
+-STATEMENT CREATE NODE TABLE `person_knows_you` (a SERIAL, PRIMARY KEY(a))
+---- ok

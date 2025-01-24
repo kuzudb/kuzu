@@ -63,6 +63,9 @@ struct BoundTableFunction;
 class Binder {
     friend class ExpressionBinder;
 
+private:
+    static constexpr uint64_t MAX_NAME_LENGTH = 32;
+
 public:
     explicit Binder(main::ClientContext* clientContext)
         : lastExpressionId{0}, scope{}, expressionBinder{this, clientContext},
@@ -282,6 +285,8 @@ public:
 
     void validateNoIndexOnProperty(const std::string& tableName,
         const std::string& propertyName) const;
+    void validateName(const std::string& tableName) const;
+
     /*** helpers ***/
     std::string getUniqueExpressionName(const std::string& name);
 

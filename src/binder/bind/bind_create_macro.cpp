@@ -16,6 +16,7 @@ namespace binder {
 std::unique_ptr<BoundStatement> Binder::bindCreateMacro(const Statement& statement) const {
     auto& createMacro = ku_dynamic_cast<const CreateMacro&>(statement);
     auto macroName = createMacro.getMacroName();
+    validateName(macroName);
     StringUtils::toUpper(macroName);
     if (clientContext->getCatalog()->containsMacro(clientContext->getTransaction(), macroName)) {
         throw BinderException{stringFormat("Macro {} already exists.", macroName)};

@@ -3,37 +3,37 @@
 --
 
 -CASE EdgeCases
--STATEMENT MATCH (b:`bom-and-data`) RETURN b.*
+-STATEMENT MATCH (b:`bom_and_data`) RETURN b.*
 ---- 2
 data|moredata
 abc|﻿﻿bomdata﻿
 
--STATEMENT MATCH (b:`bom-and-header`) RETURN b.*
+-STATEMENT MATCH (b:`bom_and_header`) RETURN b.*
 ---- 0
 
 -STATEMENT MATCH (b:`bom`) RETURN b.*
 ---- 0
 
--STATEMENT MATCH (c:`carriage-return-then-eof`) RETURN c.*
+-STATEMENT MATCH (c:`carriage_return_then_eof`) RETURN c.*
 ---- 2
 abc|def
 ghi|jkl
 
--STATEMENT MATCH (d:`delimiter-then-eof`) RETURN d.*
+-STATEMENT MATCH (d:`delimiter_then_eof`) RETURN d.*
 ---- 1
 abc
 
--STATEMENT MATCH (e:`empty-first-line`) RETURN e.*
+-STATEMENT MATCH (e:`empty_first_line`) RETURN e.*
 ---- 2
 abc|def
 ghi|jkl
 
--STATEMENT MATCH (e:`empty-lines-multiple-columns`) RETURN e.*
+-STATEMENT MATCH (e:`empty_lines_multiple_columns`) RETURN e.*
 ---- 2
 abc|def
 ghi|jkl
 
--STATEMENT MATCH (e:`empty-lines-single-column`) RETURN e.B
+-STATEMENT MATCH (e:`empty_lines_s_column`) RETURN e.B
 ---- 3
 abc
 
@@ -42,28 +42,28 @@ def
 -STATEMENT MATCH (e:`empty`) RETURN e.*
 ---- 0
 
--STATEMENT MATCH (e:`empty-with-header`) RETURN e.*
+-STATEMENT MATCH (e:`empty_with_header`) RETURN e.*
 ---- 0
 
--STATEMENT MATCH (e:`eof-after-unquote`) RETURN e.*
+-STATEMENT MATCH (e:`eof_after_unquote`) RETURN e.*
 ---- 1
 abc|def
 
--STATEMENT MATCH (e:`escapes-in-quote`) RETURN e.*
+-STATEMENT MATCH (e:`escapes_in_quote`) RETURN e.*
 ---- 1
 abc\"
 
--STATEMENT MATCH (e:`escapes-out-of-quote`) RETURN e.*
+-STATEMENT MATCH (e:`escapes_out_of_quote`) RETURN e.*
 ---- 2
 a|b
 \|\
 
--STATEMENT MATCH (m:`mixed-empty-lines-multiple-columns`) RETURN m.*
+-STATEMENT MATCH (m:`mixed_empty_lines_m_columns`) RETURN m.*
 ---- 2
 abc|def
 ghi|jkl
 
--STATEMENT MATCH (m:`mixed-empty-lines-single-column`) RETURN m.B
+-STATEMENT MATCH (m:`mixed_empty_lines_s_column`) RETURN m.B
 ---- 6
 abc
 
@@ -72,22 +72,22 @@ def
 
 ghi
 
--STATEMENT MATCH (m:`mixed-newlines`) RETURN m.*
+-STATEMENT MATCH (m:`mixed_newlines`) RETURN m.*
 ---- 3
 abc
 def
 ghi
 
--STATEMENT MATCH (q:`quoted-values`) RETURN q.*
+-STATEMENT MATCH (q:`quoted_values`) RETURN q.*
 ---- 1
 abc|bcd
 
--STATEMENT MATCH (t:`tab-as-delim`) RETURN t.*
+-STATEMENT MATCH (t:`tab_as_delim`) RETURN t.*
 ---- 2
 abc|def
 ghi|jkl
 
--STATEMENT MATCH (u:`unquote-escape`) RETURN u.*
+-STATEMENT MATCH (u:`unquote_escape`) RETURN u.*
 ---- 1
 abc"def
 
