@@ -119,6 +119,7 @@ endif()
 message(STATUS "VECTOR_CAPACITY_LOG2: ${VECTOR_CAPACITY_LOG2}")
 
 if(MSVC)
+    message(STATUS "MSVC toolchain detected")
     # Required for M_PI on Windows
     add_compile_definitions(_USE_MATH_DEFINES)
     add_compile_definitions(NOMINMAX)
@@ -148,6 +149,15 @@ if(MSVC)
 
     string(REGEX REPLACE "/W[3|4]" "/w" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
     add_compile_options($<$<CONFIG:Release>:/W0>)
+
+    # Use static runtime libraries
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MT")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
 else()
     add_compile_options(-Wall -Wextra)
     # Disable warnings for unknown pragmas, which is used by several third-party libraries
@@ -206,17 +216,6 @@ if(${ENABLE_UBSAN})
     else()
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fno-omit-frame-pointer")
     endif()
-endif()
-
-if(MSVC)
-    # Use static runtime libraries
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MT")
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
-    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
 endif()
 
 if(${ENABLE_RUNTIME_CHECKS})
