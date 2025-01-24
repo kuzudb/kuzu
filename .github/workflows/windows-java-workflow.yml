@@ -11,7 +11,7 @@ on:
 
 jobs:
   build-windows-java:
-    runs-on: self-hosted,windows-2019
+    runs-on: [self-hosted, windows-2019]
     steps:
       - uses: actions/checkout@v4
 
