@@ -1,4 +1,4 @@
--DATASET CSV empty
+-DATASET CSV tinysnb
 --
 
 -CASE DropAndCreateTables
