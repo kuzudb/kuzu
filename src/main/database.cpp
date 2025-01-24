@@ -100,6 +100,7 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
     databasePath = StorageUtils::expandPath(&clientContext, dbPathStr);
 
     vfs = std::make_unique<VirtualFileSystem>(databasePath);
+    vfs->validateDatabasePath(databasePath);
 
     initAndLockDBDir();
     bufferManager = initBmFunc(*this);

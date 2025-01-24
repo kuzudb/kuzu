@@ -237,3 +237,33 @@ TEST_F(ApiTest, QueryWithHeadingNewline) {
     createDBAndConn();
     ASSERT_TRUE(conn->query("\n PROFILE RETURN 5; \n")->isSuccess());
 }
+
+static void checkErrMsg(std::string dbName, std::string err) {
+    try {
+        auto db = Database(dbName);
+    } catch (Exception& e) {
+        ASSERT_STREQ(e.what(), err.c_str());
+    } catch (...) {
+        FAIL();
+    }
+}
+
+static void checkNoException(std::string dbName) {
+    try {
+        auto db = Database(dbName);
+    } catch (...) {
+        FAIL();
+    }
+}
+
+TEST_F(ApiTest, DatabaseName) {
+    checkNoException("_dbna");
+    checkNoException("_dbna/");
+    checkNoException("test_name/");
+    checkNoException("test_name");
+    checkNoException("test_name_");
+    checkErrMsg("3db", "The first character of the database name must be a letter or underscore.");
+    checkErrMsg("!db/", "The first character of the database name must be a letter or underscore.");
+    checkErrMsg("d!b", "Invalid character: ! in the database name.");
+    checkErrMsg("d?b", "Invalid character: ? in the database name.");
+}

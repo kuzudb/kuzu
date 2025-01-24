@@ -11,6 +11,21 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace testing {
 
+void validateTestName(const std::string& name) {
+    for (auto& c : name) {
+        if (!(std::isalnum(c) || c == '_')) {
+            throw common::Exception{common::stringFormat("Invalid character: {} in test name.", c)};
+        }
+    }
+}
+
+std::string BaseGraphTest::getTestGroupAndName() {
+    auto testInfo = ::testing::UnitTest::GetInstance()->current_test_info();
+    auto testName = std::string(testInfo->test_case_name()) + "_" + std::string(testInfo->name());
+    validateTestName(testName);
+    return testName;
+}
+
 void TestHelper::executeScript(const std::string& cypherScript, Connection& conn) {
     std::cout << "cypherScript: " << cypherScript << std::endl;
     if (!std::filesystem::exists(cypherScript)) {

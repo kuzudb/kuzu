@@ -163,7 +163,7 @@ Binder exception: rs has data type REL[] but RECURSIVE_REL was expected.
 
 # Fail when asterisk operator is missing
 # Fail on negative bound
--CASE Scenario9&10
+-CASE Scenario9And10
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));

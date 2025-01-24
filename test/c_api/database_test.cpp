@@ -92,7 +92,7 @@ TEST_F(CApiDatabaseTest, CreationHomeDir) {
     kuzu_database database;
     kuzu_connection connection;
     kuzu_state state;
-    auto databasePathCStr = (char*)"~/ku_test.db/";
+    auto databasePathCStr = (char*)"~/ku_test_db/";
     state = kuzu_database_init(databasePathCStr, defaultSystemConfig, &database);
     ASSERT_EQ(state, KuzuSuccess);
     state = kuzu_connection_init(&database, &connection);

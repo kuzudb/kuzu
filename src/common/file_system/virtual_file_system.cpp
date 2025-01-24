@@ -3,6 +3,7 @@
 #include "common/assert.h"
 #include "common/file_system/local_file_system.h"
 #include "main/client_context.h"
+#include "main/db_config.h"
 
 namespace kuzu {
 namespace common {
@@ -75,6 +76,33 @@ void VirtualFileSystem::cleanUP(main::ClientContext* context) {
         subSystem->cleanUP(context);
     }
     defaultFS->cleanUP(context);
+}
+
+void VirtualFileSystem::validateDatabasePath(const std::string& filePath) {
+    if (main::DBConfig::isDBPathInMemory(filePath)) {
+        return;
+    }
+    std::filesystem::path path(filePath);
+    std::string dbName;
+
+    if (path.has_filename()) {
+        dbName = path.filename();
+    } else {
+        dbName = path.parent_path().filename();
+    }
+
+    // Check if the name starts with a valid character (a letter or underscore).
+    auto firstChar = dbName[0];
+    if (!(std::isalpha(firstChar) || firstChar == '_')) {
+        throw Exception("The first character of the database name must be a letter or underscore.");
+    }
+
+    // Check subsequent characters for validity (letters, digits, underscores)
+    for (auto& c : dbName) {
+        if (!(std::isalnum(c) || c == '_')) {
+            throw Exception(common::stringFormat("Invalid character: {} in the database name.", c));
+        }
+    }
 }
 
 int64_t VirtualFileSystem::seek(FileInfo& /*fileInfo*/, uint64_t /*offset*/, int /*whence*/) const {

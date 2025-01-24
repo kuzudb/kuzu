@@ -32,7 +32,7 @@
 (0:0)-{_LABEL: T1, _ID: 2:0}->(1:0)
 
 # Matching a self-loop with an undirected relationship pattern
--CASE Scenario3&4
+-CASE Scenario3A4
 -STATEMENT CREATE NODE TABLE A(name STRING, PRIMARY KEY(name));
 ---- ok
 -STATEMENT CREATE REL TABLE T(FROM A TO A);

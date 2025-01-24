@@ -140,7 +140,7 @@ Binder exception: Create node b1 with multiple node labels is not supported.
 
 # Undirected match in self-relationship graph
 # Undirected match of self-relationship in self-relationship graph
--CASE Scenario11&12
+-CASE Scenario11And12
 -SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
@@ -158,7 +158,7 @@ Binder exception: Create node b1 with multiple node labels is not supported.
 
 # Directed match on self-relationship graph
 # Directed match of self-relationship on self-relationship graph
--CASE Scenario13&14
+-CASE Scenario13And14
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM A TO A);
@@ -174,7 +174,7 @@ Binder exception: Create node b1 with multiple node labels is not supported.
 
 # Mixing directed and undirected pattern parts with self-relationship, simple
 # Mixing directed and undirected pattern parts with self-relationship, undirected
--CASE Scenario15&16
+-CASE Scenario15And16
 -SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
@@ -205,7 +205,7 @@ Binder exception: Create node b1 with multiple node labels is not supported.
 
 # handle cyclic patterns
 # Handling cyclic patterns when separated into two parts
--CASE Scenario17&18
+-CASE Scenario17And18
 -STATEMENT CREATE NODE TABLE T1(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE T2(ID SERIAL, name STRING, PRIMARY KEY(ID));

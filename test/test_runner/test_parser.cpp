@@ -42,8 +42,8 @@ void TestParser::genGroupName() const {
         1;
     const std::size_t subEnd = path.find_last_of('.') - 1;
     std::string relPath = path.substr(subStart, subEnd - subStart + 1);
-    std::replace(relPath.begin(), relPath.end(), '/', '~');
-    std::replace(relPath.begin(), relPath.end(), '\\', '~');
+    std::replace(relPath.begin(), relPath.end(), '/', '_');
+    std::replace(relPath.begin(), relPath.end(), '\\', '_');
     testGroup->group = relPath;
 }
 

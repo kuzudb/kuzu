@@ -2,7 +2,7 @@
 
 --
 
--CASE InvalidNotEqualOperator)
+-CASE InvalidNotEqualOperato
 -STATEMENT MATCH (a) WHERE a.age != 1 RETURN *;
 ---- error
 Parser exception: Unknown operation '!=' (you probably meant to use '<>', which is the operator for inequality testing.) (line: 1, offset: 22)

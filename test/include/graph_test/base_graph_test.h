@@ -92,11 +92,7 @@ protected:
         ASSERT_EQ(actualResult, expectedResult);
     }
 
-    static std::string getTestGroupAndName() {
-        const ::testing::TestInfo* const testInfo =
-            ::testing::UnitTest::GetInstance()->current_test_info();
-        return std::string(testInfo->test_case_name()) + "." + std::string(testInfo->name());
-    }
+    static std::string getTestGroupAndName();
 
 private:
     void setDatabasePath() {
