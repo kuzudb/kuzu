@@ -171,8 +171,8 @@ void Binder::bindInsertNode(std::shared_ptr<NodeExpression> node,
     infos.push_back(std::move(insertInfo));
 }
 
-static TableCatalogEntry* tryPruneMultiLabeled(const RelExpression& rel,
-    table_id_t srcTableID, table_id_t dstTableID) {
+static TableCatalogEntry* tryPruneMultiLabeled(const RelExpression& rel, table_id_t srcTableID,
+    table_id_t dstTableID) {
     std::vector<TableCatalogEntry*> candidates;
     for (auto& entry : rel.getEntries()) {
         KU_ASSERT(entry->getType() == CatalogEntryType::REL_TABLE_ENTRY);
@@ -182,7 +182,8 @@ static TableCatalogEntry* tryPruneMultiLabeled(const RelExpression& rel,
         }
     }
     if (candidates.size() != 1) {
-        throw BinderException(stringFormat("Create rel {} with multiple rel labels is not supported.", rel.toString()));
+        throw BinderException(stringFormat(
+            "Create rel {} with multiple rel labels is not supported.", rel.toString()));
     }
     return nullptr;
 }
@@ -190,7 +191,8 @@ static TableCatalogEntry* tryPruneMultiLabeled(const RelExpression& rel,
 void Binder::bindInsertRel(std::shared_ptr<RelExpression> rel,
     std::vector<BoundInsertInfo>& infos) {
     if (rel->isBoundByMultiLabeledNode()) {
-        throw BinderException(stringFormat("Create rel {} bound by multiple node labels is not supported.", rel->toString()));
+        throw BinderException(stringFormat(
+            "Create rel {} bound by multiple node labels is not supported.", rel->toString()));
     }
     if (rel->getDirectionType() == RelDirectionType::BOTH) {
         throw BinderException(stringFormat("Create undirected relationship is not supported. "
@@ -208,7 +210,8 @@ void Binder::bindInsertRel(std::shared_ptr<RelExpression> rel,
         entry = tryPruneMultiLabeled(*rel, srcTableID, dstTableID);
         // LCOV_EXCL_START
         if (entry == nullptr) {
-            throw BinderException(stringFormat("Cannot find a valid label in {} to create. This should not happen."));
+            throw BinderException(
+                stringFormat("Cannot find a valid label in {} to create. This should not happen."));
         }
         // LCOV_EXCL_STOP
     }
