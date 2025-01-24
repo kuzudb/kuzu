@@ -728,12 +728,14 @@ namespace kuzu {
                         dynamicTwoHopSearch(candidates, candidate, filterNbrsToFind, cachedNbrsCount,
                                             firstHopNbrs, tableId, graph, dc, filterMask,
                                             state, results, visited, vectorArray, size, efSearch, stats);
+                        printf("size: %d and filterNbrsToFind: %d\n", size, filterNbrsToFind);
                         stats.dynamicTwoHopCalls->increase(1);
                     } else {
                         // If the selectivity is low, we will not do dynamic two hop search since it does some extra
                         // distance computations to reduce listNbrs call which are redundant.
                         twoHopSearch(candidates, firstHopNbrs, tableId, graph, dc, filterMask, state, results, visited,
                                         vectorArray, size, efSearch, stats);
+                        printf("size: %d and filterNbrsToFind: %d\n", size, filterNbrsToFind);
                         stats.twoHopCalls->increase(1);
                     }
                     batchComputeDistance(vectorArray, size, dc, candidates, results, efSearch, stats);
