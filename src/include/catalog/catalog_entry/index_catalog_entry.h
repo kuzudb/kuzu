@@ -64,7 +64,7 @@ public:
     static std::unique_ptr<IndexCatalogEntry> deserialize(common::Deserializer& deserializer);
 
     std::string toCypher(main::ClientContext* context) const override {
-        return auxInfo->toCypher(*this, context);
+        return isLoaded() ? auxInfo->toCypher(*this, context) : "";
     }
     std::unique_ptr<IndexCatalogEntry> copy() const {
         return std::make_unique<IndexCatalogEntry>(type, tableID, indexName, propertyIDs,
