@@ -11,7 +11,7 @@ on:
 
 jobs:
   build-windows-java:
-    runs-on: windows-2019
+    runs-on: self-hosted, windows-2019
     steps:
       - uses: actions/checkout@v4
 
@@ -22,20 +22,11 @@ jobs:
           python3 update-nightly-build-version.py
         working-directory: ./scripts
 
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'oracle'
-          java-version: '21'
-          cache: 'gradle'
-          architecture: 'x64'
-      
-      - uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: amd64
-
       - name: Build Java lib for Windows
         shell: cmd
-        run: make java NUM_THREADS=8
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          make java NUM_THREADS=40
 
       - uses: actions/upload-artifact@v4
         with:
