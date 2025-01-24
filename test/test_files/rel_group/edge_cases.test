@@ -29,7 +29,6 @@ Runtime exception: Cannot alter table Knows_PersonA_PersonB because it is refere
 ---- 0
 
 -CASE DuplicateRelTable
--SKIP
 -STATEMENT CREATE NODE TABLE PersonA (id INT64 PRIMARY KEY);
 ---- ok
 -STATEMENT CREATE NODE TABLE PersonB (id INT64 PRIMARY KEY);
@@ -52,7 +51,6 @@ Binder exception: Table Know2 already exists.
 2|Know2|REL|local(kuzu)|
 
 -CASE DuplicateFromToPairs
--SKIP
 -STATEMENT CREATE NODE TABLE PersonA (id INT64 PRIMARY KEY);
 ---- ok
 -STATEMENT CREATE NODE TABLE PersonB (id INT64 PRIMARY KEY);
