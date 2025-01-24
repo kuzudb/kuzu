@@ -11,6 +11,7 @@ license = "MIT"
 categories = ["database"]
 # Only include files required to build to keep crate size small
 include = [
+    ".cargo",
     "build.rs",
     "/src",
     "/include",

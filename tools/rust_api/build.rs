@@ -25,9 +25,7 @@ fn link_libraries() {
     }
     if link_mode() == "static" {
         if cfg!(windows) {
-            println!("cargo:rustc-link-lib=dylib=msvcrt");
-            println!("cargo:rustc-link-lib=dylib=shell32");
-            println!("cargo:rustc-link-lib=dylib=ole32");
+            // msvcrt and friends are statically linked into kuzu, so we don't need to link them here
         } else if cfg!(target_os = "macos") {
             println!("cargo:rustc-link-lib=dylib=c++");
         } else {
@@ -165,7 +163,7 @@ fn build_ffi(
 
     if cfg!(windows) {
         build.flag("/std:c++20");
-        build.flag("/MT");
+        build.static_crt(true);
     } else {
         build.flag("-std=c++2a");
     }
