@@ -773,6 +773,9 @@ namespace kuzu {
                 int size = 0;
                 constexpr int batch_size = 64;
                 std::array<double, batch_size> dists;
+                auto maskedNodes = filterMask->getNumMaskedNodes();
+                std::vector<NodeDistFarther> candidates(maskedNodes);
+                offset_t l = 0;
                 // Find the k nearest neighbors
                 for (offset_t i = 0; i < filterMask->getMaxOffset(); i++) {
                     if (!filterMask->isMasked(i)) {
@@ -785,9 +788,7 @@ namespace kuzu {
                         stats.distanceComputationTime->stop();
                         stats.distCompMetric->increase(size);
                         for (int j = 0; j < size; j++) {
-                            if (results.size() < k || dists[j] < results.top()->dist) {
-                                results.push(NodeDistFarther(vectorArray[j], dists[j]));
-                            }
+                            candidates[l++] = NodeDistFarther(vectorArray[j], dists[j]);
                         }
                         size = 0;
                     }
@@ -800,9 +801,12 @@ namespace kuzu {
                     dc->computeDistance(vectorArray[i], &dist);
                     stats.distanceComputationTime->stop();
                     stats.distCompMetric->increase(1);
-                    if (results.size() < k || dist < results.top()->dist) {
-                        results.push(NodeDistFarther(vectorArray[i], dist));
-                    }
+                    candidates[l++] = NodeDistFarther(vectorArray[i], dist);
+                }
+
+                std::sort(candidates.begin(), candidates.end());
+                for (int i = 0; i < k; i++) {
+                    results.push(candidates[i]);
                 }
             }
 
