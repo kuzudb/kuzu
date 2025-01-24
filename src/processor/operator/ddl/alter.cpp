@@ -1,5 +1,6 @@
 #include "processor/operator/ddl/alter.h"
 
+#include "binder/expression/scalar_function_expression.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
@@ -88,6 +89,20 @@ static bool skipAlter(ConflictAction action, const skip_alter_on_conflict& skipA
     }
 }
 
+static bool isLiteralOrCastedLiteral(const Expression& expr) {
+    if (expr.expressionType == common::ExpressionType::LITERAL) {
+        return true;
+    }
+    if (expr.expressionType == common::ExpressionType::FUNCTION) {
+        const auto& funcExpr = expr.constCast<binder::ScalarFunctionExpression>();
+        if (funcExpr.getFunction().name.starts_with("CAST")) {
+            KU_ASSERT(funcExpr.getNumChildren() > 0);
+            return funcExpr.getChild(0)->expressionType == common::ExpressionType::LITERAL;
+        }
+    }
+    return false;
+}
+
 static bool checkAddPropertyConflicts(TableCatalogEntry* tableEntry, const BoundAlterInfo& info) {
     const auto* extraInfo = info.extraInfo->constPtrCast<BoundExtraAddPropertyInfo>();
     validatePropertyNotExist(info.onConflict, tableEntry, extraInfo->propertyDefinition.getName());
@@ -95,7 +110,7 @@ static bool checkAddPropertyConflicts(TableCatalogEntry* tableEntry, const Bound
     // Eventually, we want to support non-constant default on rel tables, but it is non-trivial
     // due to FWD/BWD storage
     if (tableEntry->getType() == CatalogEntryType::REL_TABLE_ENTRY &&
-        extraInfo->boundDefault->expressionType != ExpressionType::LITERAL) {
+        !isLiteralOrCastedLiteral(*extraInfo->boundDefault)) {
         throw RuntimeException(
             "Cannot set a non-constant default value when adding columns on REL tables.");
     }

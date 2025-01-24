@@ -131,6 +131,16 @@ Binder exception: Table knows does not exist.
 ---- ok
 -STATEMENT MATCH (c:Comment) RETURN SUM(c.propx);
 ---- 1
+-STATEMENT alter table Comment add propy float default 5.4;
+---- ok
+-STATEMENT alter table Comment add propz int32 default 5;
+---- ok
+-STATEMENT MATCH (c:Comment) RETURN DISTINCT c.propy
+---- 1
+5.4
+-STATEMENT MATCH (c:Comment) RETURN DISTINCT c.propz
+---- 1
+5
 
 -STATEMENT MATCH (c:Comment) WHERE c.propx <> 1 RETURN COUNT(*);
 ---- 1
