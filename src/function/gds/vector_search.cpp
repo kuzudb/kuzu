@@ -769,6 +769,7 @@ namespace kuzu {
             template<typename T>
             inline void knnFilteredSearch(NodeTableDistanceComputer<T>* dc, NodeOffsetLevelSemiMask *filterMask,
                                           BinaryHeap<NodeDistFarther> &results, int k, VectorSearchStats &stats) {
+                auto startT = std::chrono::high_resolution_clock::now();
                 vector_array_t vectorArray;
                 int size = 0;
                 constexpr int batch_size = 64;
@@ -803,7 +804,6 @@ namespace kuzu {
                     stats.distCompMetric->increase(1);
                     candidates[l++] = NodeDistCloser(vectorArray[i], dist);
                 }
-                auto startT = std::chrono::high_resolution_clock::now();
                 std::sort(candidates.begin(), candidates.end());
                 for (int i = 0; i < k; i++) {
                     results.push(NodeDistFarther(candidates[i].id, candidates[i].dist));
