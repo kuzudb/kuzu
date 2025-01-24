@@ -56,9 +56,6 @@ TEST_F(ApiTest, ParallelConnect) {
 
 // TODO: FIX-ME. See Issue #4431.
 TEST_F(ApiTest, Interrupt) {
-    // set query timeout mainly so we can tell when the query starts
-    static constexpr uint64_t queryTimeout = 100000;
-    conn->setQueryTimeOut(queryTimeout);
     std::thread longRunningQueryThread(executeLongRunningQuery, conn.get());
     std::atomic<bool> finished_executing{false};
     std::thread interruptingThread([&]() {
