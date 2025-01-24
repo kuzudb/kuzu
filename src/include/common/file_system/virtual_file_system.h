@@ -17,10 +17,7 @@ namespace common {
 
 class KUZU_API VirtualFileSystem final : public FileSystem {
     friend class storage::BufferManager;
-
-private:
-    static constexpr uint32_t MAX_DATABASE_NAME_LEN = 32;
-
+    
 public:
     VirtualFileSystem();
     explicit VirtualFileSystem(std::string homeDir);

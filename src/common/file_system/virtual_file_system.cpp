@@ -97,7 +97,7 @@ void VirtualFileSystem::validateDatabasePath(const std::string& filePath) {
         throw Exception("The first character of the database name must be a letter or underscore.");
     }
 
-    // Check subsequent characters for validity (letters, digits, underscores)
+    // Check subsequent characters for validity (letters, digits, underscores).
     for (auto& c : dbName) {
         if (!(std::isalnum(c) || c == '_')) {
             throw Exception(common::stringFormat("Invalid character: {} in the database name.", c));
