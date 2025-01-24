@@ -728,7 +728,7 @@ namespace kuzu {
                         dynamicTwoHopSearch(candidates, candidate, filterNbrsToFind, cachedNbrsCount,
                                             firstHopNbrs, tableId, graph, dc, filterMask,
                                             state, results, visited, vectorArray, size, efSearch, stats);
-                        printf("size: %d and filterNbrsToFind: %d\n", size, filterNbrsToFind);
+                        printf("dynamicSize: %d and filterNbrsToFind: %d\n", size, filterNbrsToFind);
                         stats.dynamicTwoHopCalls->increase(1);
                     } else {
                         // If the selectivity is low, we will not do dynamic two hop search since it does some extra
