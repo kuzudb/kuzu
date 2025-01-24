@@ -803,11 +803,14 @@ namespace kuzu {
                     stats.distCompMetric->increase(1);
                     candidates[l++] = NodeDistCloser(vectorArray[i], dist);
                 }
-
+                auto startT = std::chrono::high_resolution_clock::now();
                 std::sort(candidates.begin(), candidates.end());
                 for (int i = 0; i < k; i++) {
                     results.push(NodeDistFarther(candidates[i].id, candidates[i].dist));
                 }
+                auto endT = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endT - startT);
+                printf("sorting time: %ld micro\n", duration.count());
             }
 
             template<typename T>
