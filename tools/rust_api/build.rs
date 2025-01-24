@@ -165,7 +165,7 @@ fn build_ffi(
 
     if cfg!(windows) {
         build.flag("/std:c++20");
-        build.flag("/MD");
+        build.flag("/MT");
     } else {
         build.flag("-std=c++2a");
     }
