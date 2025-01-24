@@ -17,7 +17,7 @@ namespace common {
 
 class KUZU_API VirtualFileSystem final : public FileSystem {
     friend class storage::BufferManager;
-    
+
 public:
     VirtualFileSystem();
     explicit VirtualFileSystem(std::string homeDir);
