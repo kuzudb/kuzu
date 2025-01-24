@@ -210,9 +210,12 @@ endif()
 
 if(MSVC)
   # Append /MT or /MTd to force static linking of the runtime
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT")
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MT")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
 endif()
 
 # Print the compiler flags
