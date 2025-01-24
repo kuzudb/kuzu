@@ -209,7 +209,8 @@ if(${ENABLE_UBSAN})
 endif()
 
 if(MSVC)
-  # Append /MT or /MTd to force static linking of the runtime
+    # Use static runtime libraries
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT")
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
