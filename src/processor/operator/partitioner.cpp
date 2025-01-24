@@ -143,7 +143,7 @@ void Partitioner::executeInternal(ExecutionContext* context) {
             auto evaluator = dataInfo.columnEvaluators[i].get();
             switch (dataInfo.evaluateTypes[i]) {
             case ColumnEvaluateType::DEFAULT: {
-                evaluator->getLocalStateUnsafe().count = numRels;
+                evaluator->updateCount(numRels);
                 evaluator->evaluate();
             } break;
             default: {

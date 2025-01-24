@@ -83,7 +83,7 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
             switch (nodeInfo->evaluateTypes[i]) {
             case ColumnEvaluateType::DEFAULT: {
                 auto& defaultEvaluator = nodeInfo->columnEvaluators[i];
-                defaultEvaluator->getLocalStateUnsafe().count = numTuples;
+                defaultEvaluator->updateCount(numTuples);
                 defaultEvaluator->evaluate();
             } break;
             case ColumnEvaluateType::CAST: {

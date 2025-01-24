@@ -1,4 +1,4 @@
--DATASET CSV tinysnb
+-DATASET CSV empty
 --
 
 -CASE DropAndCreateTables
@@ -131,17 +131,17 @@ Binder exception: Table knows does not exist.
 ---- ok
 -STATEMENT MATCH (c:Comment) RETURN SUM(c.propx);
 ---- 1
--STATEMENT alter table Comment add propy float default 5.4;
+
+-STATEMENT alter table Comment add propi float default 5.4;
 ---- ok
--STATEMENT alter table Comment add propz int32 default 5;
+-STATEMENT alter table Comment add propj int32 default 5;
 ---- ok
--STATEMENT MATCH (c:Comment) RETURN DISTINCT c.propy
+-STATEMENT MATCH (c:Comment) RETURN DISTINCT c.propi
 ---- 1
-5.4
--STATEMENT MATCH (c:Comment) RETURN DISTINCT c.propz
+5.400000
+-STATEMENT MATCH (c:Comment) RETURN DISTINCT c.propj
 ---- 1
 5
-
 -STATEMENT MATCH (c:Comment) WHERE c.propx <> 1 RETURN COUNT(*);
 ---- 1
 0
@@ -164,10 +164,12 @@ Binder exception: Table knows does not exist.
 ---- ok
 
 -STATEMENT CALL TABLE_INFO('Comment') RETURN *;
----- 3
+---- 5
 0|id|INT64|NULL|True
 1|propx|INT64|NULL|False
-2|propy|INT64|1|False
+2|propi|FLOAT|5.4|False
+3|propj|INT32|5|False
+4|propy|INT64|1|False
 
 -CASE AddRelProperty
 -STATEMENT create node table Comment (id int64, PRIMARY KEY (id));

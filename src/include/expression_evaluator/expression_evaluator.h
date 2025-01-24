@@ -40,6 +40,8 @@ public:
           children{cloneVector(other.children)} {}
     virtual ~ExpressionEvaluator() = default;
 
+    void updateCount(uint64_t newCount);
+
     EvaluatorType getEvaluatorType() const { return type; }
 
     std::shared_ptr<binder::Expression> getExpression() const { return expression; }

@@ -1,5 +1,6 @@
 #include "storage/predicate/column_predicate.h"
 
+#include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/scalar_function_expression.h"
 #include "storage/predicate/constant_predicate.h"
@@ -36,12 +37,9 @@ static bool isColumnRef(ExpressionType type) {
 }
 
 static bool isCastedColumnRef(const Expression& expr) {
-    if (expr.expressionType == ExpressionType::FUNCTION) {
-        const auto& funcExpr = expr.constCast<ScalarFunctionExpression>();
-        if (funcExpr.getFunction().name.starts_with("CAST")) {
-            KU_ASSERT(funcExpr.getNumChildren() > 0);
-            return isColumnRef(funcExpr.getChild(0)->expressionType);
-        }
+    if (ExpressionUtil::isCastExpr(expr)) {
+        KU_ASSERT(expr.getNumChildren() > 0);
+        return isColumnRef(expr.getChild(0)->expressionType);
     }
     return false;
 }

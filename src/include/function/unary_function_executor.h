@@ -154,6 +154,8 @@ struct UnaryFunctionExecutor {
                     }
                 }
             }
+            auto& resultSelVector = result.state->getSelVectorUnsafe();
+            resultSelVector.setSelSize(operandSelVector.getSelSize());
         }
     }
 

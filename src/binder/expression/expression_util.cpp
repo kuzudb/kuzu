@@ -5,6 +5,7 @@
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/node_rel_expression.h"
 #include "binder/expression/parameter_expression.h"
+#include "binder/expression/scalar_function_expression.h"
 #include "common/exception/binder.h"
 #include "common/types/value/nested.h"
 
@@ -428,6 +429,27 @@ Value ExpressionUtil::evaluateAsLiteralValue(const Expression& expr) {
         KU_UNREACHABLE;
     }
     return value;
+}
+
+bool ExpressionUtil::isLiteralOrCastedLiteral(const Expression& expr) {
+    if (canEvaluateAsLiteral(expr)) {
+        return true;
+    }
+    if (isCastExpr(expr)) {
+        KU_ASSERT(expr.getNumChildren() > 0);
+        return canEvaluateAsLiteral(*expr.getChild(0));
+    }
+    return false;
+}
+
+bool ExpressionUtil::isCastExpr(const Expression& expr) {
+    if (expr.expressionType == common::ExpressionType::FUNCTION) {
+        const auto& funcExpr = expr.constCast<binder::ScalarFunctionExpression>();
+        if (funcExpr.getFunction().name.starts_with("CAST")) {
+            return true;
+        }
+    }
+    return false;
 }
 
 } // namespace binder

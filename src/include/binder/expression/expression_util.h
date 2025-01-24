@@ -62,6 +62,10 @@ struct KUZU_API ExpressionUtil {
     static bool canEvaluateAsLiteral(const Expression& expr);
 
     static common::Value evaluateAsLiteralValue(const Expression& expr);
+
+    static bool isLiteralOrCastedLiteral(const Expression& expr);
+
+    static bool isCastExpr(const Expression& expr);
 };
 
 } // namespace binder

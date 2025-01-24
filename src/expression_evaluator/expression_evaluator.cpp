@@ -1,5 +1,7 @@
 #include "expression_evaluator/expression_evaluator.h"
 
+#include "binder/expression/expression_util.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -33,6 +35,14 @@ void ExpressionEvaluator::resolveResultStateFromChildren(
     resultVector->setState(std::make_shared<DataChunkState>());
     resultVector->state->initOriginalAndSelectedSize(1);
     resultVector->state->setToFlat();
+}
+
+void ExpressionEvaluator::updateCount(uint64_t newCount) {
+    if (binder::ExpressionUtil::isCastExpr(*expression)) {
+        KU_ASSERT(children.size() == 1);
+        children[0]->updateCount(newCount);
+    }
+    localState.count = newCount;
 }
 
 } // namespace evaluator
