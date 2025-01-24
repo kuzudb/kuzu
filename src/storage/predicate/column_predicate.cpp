@@ -2,7 +2,6 @@
 
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
-#include "binder/expression/scalar_function_expression.h"
 #include "storage/predicate/constant_predicate.h"
 #include "storage/predicate/null_predicate.h"
 
