@@ -209,15 +209,10 @@ if(${ENABLE_UBSAN})
 endif()
 
 if(MSVC)
-  # Force static linking of the runtime library on Windows
-  foreach(flag_var CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE)
-    if(${flag_var} MATCHES "/MD")
-      string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
-    endif()
-    if(${flag_var} MATCHES "/MDd")
-      string(REGEX REPLACE "/MDd" "/MTd" ${flag_var} "${${flag_var}}")
-    endif()
-  endforeach()
+  # Append /MT or /MTd to force static linking of the runtime
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT")
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
 endif()
 
 # Print the compiler flags
