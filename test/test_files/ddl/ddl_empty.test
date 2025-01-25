@@ -1,0 +1,101 @@
+-DATASET CSV empty
+--
+
+-CASE InsertNodeAfterDropAddCol
+-STATEMENT CREATE NODE TABLE person(id INT64 PRIMARY KEY, name STRING);
+---- ok
+-STATEMENT CREATE (:person {id: 10, name: 'A'});
+---- ok
+-STATEMENT MATCH (n:person) RETURN n.id, n.name
+---- 1
+10|A
+-STATEMENT ALTER TABLE person DROP name;
+---- ok
+-STATEMENT ALTER TABLE person ADD age INT64;
+---- ok
+-STATEMENT CREATE (:person {id: 20, age: 20});
+---- ok
+-STATEMENT MATCH (n:person) RETURN n.id, n.age
+---- 2
+10|
+20|20
+
+-CASE InsertRelAfterDropAddCol
+-STATEMENT CREATE NODE TABLE person(id INT64 PRIMARY KEY, name STRING);
+---- ok
+-STATEMENT CREATE REL TABLE knows(FROM person TO person, since INT64);
+---- ok
+-STATEMENT CREATE (:person {id: 10, name: 'A'});
+---- ok
+-STATEMENT CREATE (:person {id: 20, name: 'B'});
+---- ok
+-STATEMENT CREATE (:person {id: 30, name: 'C'});
+---- ok
+-STATEMENT MATCH (a:person {id: 10}), (b:person {id: 20}) CREATE (a)-[e:knows {since: 1900}]->(b);
+---- ok
+-STATEMENT MATCH (a:person {id: 20}), (b:person {id: 30}) CREATE (a)-[e:knows {since: 2000}]->(b);
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) RETURN e.since, b.id;
+---- 2
+1900|20
+2000|30
+-STATEMENT ALTER TABLE knows DROP since;
+---- ok
+-STATEMENT ALTER TABLE knows ADD weight FLOAT;
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) RETURN e.weight, b.id;
+---- 2
+|20
+|30
+-STATEMENT MATCH (a:person {id: 10}), (b:person {id: 20}) CREATE (a)-[e:knows {weight: 19.2}]->(b);
+---- ok
+-STATEMENT MATCH (a:person {id: 20}), (b:person {id: 30}) CREATE (a)-[e:knows {weight: 20.2}]->(b);
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) RETURN e.weight, b.id;
+---- 4
+19.200001|20
+20.200001|30
+|20
+|30
+
+-CASE CopyNodeAfterDropAddCol
+-STATEMENT CREATE NODE TABLE User(name STRING, alias STRING, PRIMARY KEY (name));
+---- ok
+-STATEMENT CREATE (:User {name: 'Alice', alias: 'A'});
+---- ok
+-STATEMENT ALTER TABLE User DROP alias;
+---- ok
+-STATEMENT ALTER TABLE User ADD age INT64;
+---- ok
+-STATEMENT COPY User FROM '${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/user.csv';
+---- ok
+-STATEMENT MATCH (n:User) RETURN n.name, n.age;
+---- 5
+Alice|
+Adam|30
+Karissa|40
+Zhang|50
+Noura|25
+
+-CASE CopyRelAfterDropAddCol
+-STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name));
+---- ok
+-STATEMENT CREATE REL TABLE Follows(FROM User TO User, comment STRING);
+---- ok
+-STATEMENT COPY User FROM '${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/user.csv';
+---- ok
+-STATEMENT MATCH (a:User {name: 'Zhang'}), (b:User {name: 'Adam'}) CREATE (a)-[:Follows {comment: 'platform is tiktok'}]->(b);
+---- ok
+-STATEMENT ALTER TABLE Follows DROP comment;
+---- ok
+-STATEMENT ALTER TABLE Follows ADD since INT64;
+---- ok
+-STATEMENT COPY Follows FROM '${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/follows.csv';
+---- ok
+-STATEMENT MATCH (a:User)-[e:Follows]->(b:User) RETURN a.name, e.since, b.name;
+---- 5
+Adam|2020|Karissa
+Adam|2020|Zhang
+Karissa|2021|Zhang
+Zhang|2022|Noura
+Zhang||Adam

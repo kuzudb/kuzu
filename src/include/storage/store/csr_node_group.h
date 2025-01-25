@@ -187,12 +187,13 @@ public:
         TableScanState& state) const override;
 
     void appendChunkedCSRGroup(const transaction::Transaction* transaction,
-        ChunkedCSRNodeGroup& chunkedGroup);
-    void append(const transaction::Transaction* transaction, common::offset_t boundOffsetInGroup,
+        const std::vector<common::column_id_t>& columnIDs, ChunkedCSRNodeGroup& chunkedGroup);
+    void append(const transaction::Transaction* transaction,
+        const std::vector<common::column_id_t>& columnIDs, common::offset_t boundOffsetInGroup,
         const std::vector<ColumnChunk*>& chunks, common::row_idx_t startRowInChunks,
         common::row_idx_t numRows);
 
-    void update(transaction::Transaction* transaction, CSRNodeGroupScanSource source,
+    void update(const transaction::Transaction* transaction, CSRNodeGroupScanSource source,
         common::row_idx_t rowIdxInGroup, common::column_id_t columnID,
         const common::ValueVector& propertyVector);
     bool delete_(const transaction::Transaction* transaction, CSRNodeGroupScanSource source,
@@ -216,8 +217,8 @@ public:
 private:
     void initScanForCommittedPersistent(const transaction::Transaction* transaction,
         RelTableScanState& relScanState, CSRNodeGroupScanState& nodeGroupScanState) const;
-    void initScanForCommittedInMem(RelTableScanState& relScanState,
-        CSRNodeGroupScanState& nodeGroupScanState) const;
+    static void initScanForCommittedInMem(RelTableScanState& relScanState,
+        CSRNodeGroupScanState& nodeGroupScanState);
 
     void updateCSRIndex(common::offset_t boundNodeOffsetInGroup, common::row_idx_t startRow,
         common::length_t length) const;
@@ -245,16 +246,16 @@ private:
         const CSRNodeGroupCheckpointState& csrState);
 
     void collectRegionChangesAndUpdateHeaderLength(const common::UniqLock& lock, CSRRegion& region,
-        const CSRNodeGroupCheckpointState& csrState);
+        const CSRNodeGroupCheckpointState& csrState) const;
     void collectInMemRegionChangesAndUpdateHeaderLength(const common::UniqLock& lock,
-        CSRRegion& region, const CSRNodeGroupCheckpointState& csrState);
+        CSRRegion& region, const CSRNodeGroupCheckpointState& csrState) const;
     void collectOnDiskRegionChangesAndUpdateHeaderLength(const common::UniqLock& lock,
         CSRRegion& region, const CSRNodeGroupCheckpointState& csrState) const;
 
     std::vector<CSRRegion> collectLeafRegionsAndCSRLength(const common::UniqLock& lock,
-        const CSRNodeGroupCheckpointState& csrState);
-    void collectPersistentUpdatesInRegion(CSRRegion& region, common::offset_t leftCSROffset,
-        common::offset_t rightCSROffset) const;
+        const CSRNodeGroupCheckpointState& csrState) const;
+    void collectPersistentUpdatesInRegion(CSRRegion& region,
+        const CSRNodeGroupCheckpointState& csrState) const;
 
     common::row_idx_t getNumDeletionsForNodeInPersistentData(common::offset_t nodeOffset,
         const CSRNodeGroupCheckpointState& csrState) const;
@@ -269,10 +270,10 @@ private:
         const std::vector<CSRRegion>& leafRegions, const CSRRegion& region);
 
     void checkpointColumn(const common::UniqLock& lock, common::column_id_t columnID,
-        const CSRNodeGroupCheckpointState& csrState, const std::vector<CSRRegion>& regions);
+        const CSRNodeGroupCheckpointState& csrState, const std::vector<CSRRegion>& regions) const;
     ChunkCheckpointState checkpointColumnInRegion(const common::UniqLock& lock,
         common::column_id_t columnID, const CSRNodeGroupCheckpointState& csrState,
-        const CSRRegion& region);
+        const CSRRegion& region) const;
     void checkpointCSRHeaderColumns(const CSRNodeGroupCheckpointState& csrState) const;
     void finalizeCheckpoint(const common::UniqLock& lock);
 

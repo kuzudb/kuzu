@@ -22,7 +22,7 @@ void InMemChunkedNodeGroupCollection::append(MemoryManager& memoryManager,
         auto& lastChunkedGroup = chunkedGroups.back();
         auto numRowsToAppendInGroup = std::min(numRowsToAppend - numRowsAppended,
             ChunkedNodeGroup::CHUNK_CAPACITY - lastChunkedGroup->getNumRows());
-        lastChunkedGroup->append(&transaction::DUMMY_TRANSACTION, vectors, startRowInVectors,
+        lastChunkedGroup->append(&DUMMY_TRANSACTION, vectors, startRowInVectors,
             numRowsToAppendInGroup);
         if (lastChunkedGroup->getNumRows() == ChunkedNodeGroup::CHUNK_CAPACITY) {
             lastChunkedGroup->setUnused(memoryManager);

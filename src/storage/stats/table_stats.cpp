@@ -20,11 +20,22 @@ TableStats::TableStats(const TableStats& other) : cardinality{other.cardinality}
 }
 
 void TableStats::update(const std::vector<common::ValueVector*>& vectors, size_t numColumns) {
+    std::vector<common::column_id_t> dummyColumnIDs;
+    for (auto i = 0u; i < vectors.size(); ++i) {
+        dummyColumnIDs.push_back(i);
+    }
+    update(dummyColumnIDs, vectors, numColumns);
+}
+
+void TableStats::update(const std::vector<common::column_id_t>& columnIDs,
+    const std::vector<common::ValueVector*>& vectors, size_t numColumns) {
+    KU_ASSERT(columnIDs.size() == vectors.size());
     size_t numColumnsToUpdate = std::min(numColumns, vectors.size());
 
-    KU_ASSERT(numColumnsToUpdate == columnStats.size());
     for (auto i = 0u; i < numColumnsToUpdate; ++i) {
-        columnStats[i].update(vectors[i]);
+        auto columnID = columnIDs[i];
+        KU_ASSERT(columnID < columnStats.size());
+        columnStats[columnID].update(vectors[i]);
     }
     const auto numValues = vectors[0]->state->getSelVector().getSelSize();
     for (auto i = 1u; i < numColumnsToUpdate; ++i) {

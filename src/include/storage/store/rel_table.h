@@ -56,7 +56,7 @@ private:
     bool hasUnComittedData() const;
 
     void initCachedBoundNodeIDSelVector();
-    void initStateForCommitted(transaction::Transaction* transaction);
+    void initStateForCommitted(const transaction::Transaction* transaction);
     void initStateForUncommitted();
 };
 
@@ -91,8 +91,8 @@ struct RelTableInsertState final : TableInsertState {
     }
 
     RelTableInsertState(common::ValueVector& srcNodeIDVector, common::ValueVector& dstNodeIDVector,
-        const std::vector<common::ValueVector*>& propertyVectors)
-        : TableInsertState{propertyVectors}, srcNodeIDVector{srcNodeIDVector},
+        std::vector<common::ValueVector*> propertyVectors)
+        : TableInsertState{std::move(propertyVectors)}, srcNodeIDVector{srcNodeIDVector},
           dstNodeIDVector{dstNodeIDVector} {}
 };
 
@@ -179,10 +179,11 @@ public:
         return getDirectedTableData(direction)->getColumn(columnID);
     }
 
-    NodeGroup* getOrCreateNodeGroup(transaction::Transaction* transaction,
+    NodeGroup* getOrCreateNodeGroup(const transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::RelDataDirection direction) const;
 
-    void commit(transaction::Transaction* transaction, LocalTable* localTable) override;
+    void commit(transaction::Transaction* transaction, catalog::TableCatalogEntry* tableEntry,
+        LocalTable* localTable) override;
     void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) override;
     void rollbackCheckpoint() override {};
 
@@ -197,15 +198,16 @@ public:
         return currentRelOffset;
     }
 
-    void pushInsertInfo(transaction::Transaction* transaction, common::RelDataDirection direction,
-        const CSRNodeGroup& nodeGroup, common::row_idx_t numRows_,
-        CSRNodeGroupScanSource source) const;
+    void pushInsertInfo(const transaction::Transaction* transaction,
+        common::RelDataDirection direction, const CSRNodeGroup& nodeGroup,
+        common::row_idx_t numRows_, CSRNodeGroupScanSource source) const;
 
     std::vector<common::RelDataDirection> getStorageDirections() const;
 
 private:
     static void prepareCommitForNodeGroup(const transaction::Transaction* transaction,
-        NodeGroup& localNodeGroup, CSRNodeGroup& csrNodeGroup, common::offset_t boundOffsetInGroup,
+        const std::vector<common::column_id_t>& columnIDs, const NodeGroup& localNodeGroup,
+        CSRNodeGroup& csrNodeGroup, common::offset_t boundOffsetInGroup,
         const row_idx_vec_t& rowIndices, common::column_id_t skippedColumn);
 
     void updateRelOffsets(const LocalRelTable& localRelTable);

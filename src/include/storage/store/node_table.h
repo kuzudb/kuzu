@@ -57,9 +57,9 @@ struct NodeTableInsertState final : TableInsertState {
     const common::ValueVector& pkVector;
 
     explicit NodeTableInsertState(common::ValueVector& nodeIDVector,
-        const common::ValueVector& pkVector,
-        const std::vector<common::ValueVector*>& propertyVectors)
-        : TableInsertState{propertyVectors}, nodeIDVector{nodeIDVector}, pkVector{pkVector} {}
+        const common::ValueVector& pkVector, std::vector<common::ValueVector*> propertyVectors)
+        : TableInsertState{std::move(propertyVectors)}, nodeIDVector{nodeIDVector},
+          pkVector{pkVector} {}
 };
 
 struct NodeTableUpdateState final : TableUpdateState {
@@ -95,7 +95,7 @@ struct PKColumnScanHelper {
     PrimaryKeyIndex* pkIndex;
 };
 
-class NodeTableVersionRecordHandler : public VersionRecordHandler {
+class NodeTableVersionRecordHandler final : public VersionRecordHandler {
 public:
     explicit NodeTableVersionRecordHandler(NodeTable* table);
 
@@ -114,14 +114,6 @@ class StorageManager;
 
 class KUZU_API NodeTable final : public Table {
 public:
-    static std::vector<common::LogicalType> getNodeTableColumnTypes(const NodeTable& table) {
-        std::vector<common::LogicalType> types;
-        for (auto i = 0u; i < table.getNumColumns(); i++) {
-            types.push_back(table.getColumn(i).getDataType().copy());
-        }
-        return types;
-    }
-
     NodeTable(const StorageManager* storageManager,
         const catalog::NodeTableCatalogEntry* nodeTableEntry, MemoryManager* memoryManager,
         common::VirtualFileSystem* vfs, main::ClientContext* context,
@@ -143,7 +135,7 @@ public:
         common::table_id_t tableID, common::offset_t startOffset) const;
 
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
-    bool lookup(transaction::Transaction* transaction, const TableScanState& scanState) const;
+    bool lookup(const transaction::Transaction* transaction, const TableScanState& scanState) const;
 
     // Return the max node offset during insertions.
     common::offset_t validateUniquenessConstraint(const transaction::Transaction* transaction,
@@ -181,15 +173,17 @@ public:
     }
 
     std::pair<common::offset_t, common::offset_t> appendToLastNodeGroup(
-        transaction::Transaction* transaction, ChunkedNodeGroup& chunkedGroup);
+        transaction::Transaction* transaction, const std::vector<common::column_id_t>& columnIDs,
+        ChunkedNodeGroup& chunkedGroup);
 
-    void commit(transaction::Transaction* transaction, LocalTable* localTable) override;
+    void commit(transaction::Transaction* transaction, catalog::TableCatalogEntry* tableEntry,
+        LocalTable* localTable) override;
     void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) override;
     void rollbackCheckpoint() override;
 
     void rollbackPKIndexInsert(const transaction::Transaction* transaction,
         common::row_idx_t startRow, common::row_idx_t numRows_,
-        common::node_group_idx_t nodeGroupIdx);
+        common::node_group_idx_t nodeGroupIdx_);
     void rollbackGroupCollectionInsert(common::row_idx_t numRows_);
 
     common::node_group_idx_t getNumCommittedNodeGroups() const {
@@ -208,7 +202,10 @@ public:
     }
 
     TableStats getStats(const transaction::Transaction* transaction) const;
-    void mergeStats(const TableStats& stats) { nodeGroups->mergeStats(stats); }
+    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
+    void mergeStats(const std::vector<common::column_id_t>& columnIDs, const TableStats& stats) {
+        nodeGroups->mergeStats(columnIDs, stats);
+    }
 
 private:
     void validatePkNotExists(const transaction::Transaction* transaction,
@@ -219,7 +216,7 @@ private:
     visible_func getVisibleFunc(const transaction::Transaction* transaction) const;
     common::DataChunk constructDataChunkForPKColumn() const;
     void scanPKColumn(const transaction::Transaction* transaction, PKColumnScanHelper& scanHelper,
-        NodeGroupCollection& nodeGroups_);
+        const NodeGroupCollection& nodeGroups_) const;
 
 private:
     std::vector<std::unique_ptr<Column>> columns;

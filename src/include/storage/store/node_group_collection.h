@@ -3,7 +3,6 @@
 #include "storage/stats/table_stats.h"
 #include "storage/store/group_collection.h"
 #include "storage/store/node_group.h"
-#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace transaction {
@@ -20,8 +19,10 @@ public:
 
     void append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors);
-    void append(const transaction::Transaction* transaction, NodeGroupCollection& other);
-    void append(const transaction::Transaction* transaction, NodeGroup& nodeGroup);
+    void append(const transaction::Transaction* transaction,
+        const std::vector<common::column_id_t>& columnIDs, const NodeGroupCollection& other);
+    void append(const transaction::Transaction* transaction,
+        const std::vector<common::column_id_t>& columnIDs, const NodeGroup& nodeGroup);
 
     // This function only tries to append data into the last node group, and if the last node group
     // is not enough to hold all the data, it will append partially and return the number of rows
@@ -29,17 +30,18 @@ public:
     // The returned values are the startOffset and numValuesAppended.
     // NOTE: This is specially coded to only be used by NodeBatchInsert for now.
     std::pair<common::offset_t, common::offset_t> appendToLastNodeGroupAndFlushWhenFull(
-        transaction::Transaction* transaction, ChunkedNodeGroup& chunkedGroup);
+        transaction::Transaction* transaction, const std::vector<common::column_id_t>& columnIDs,
+        ChunkedNodeGroup& chunkedGroup);
 
-    common::row_idx_t getNumTotalRows();
-    common::node_group_idx_t getNumNodeGroups() {
+    common::row_idx_t getNumTotalRows() const;
+    common::node_group_idx_t getNumNodeGroups() const {
         const auto lock = nodeGroups.lock();
         return nodeGroups.getNumGroups(lock);
     }
     common::node_group_idx_t getNumNodeGroupsNoLock() const {
         return nodeGroups.getNumGroupsNoLock();
     }
-    NodeGroup* getNodeGroupNoLock(const common::node_group_idx_t groupIdx) {
+    NodeGroup* getNodeGroupNoLock(const common::node_group_idx_t groupIdx) const {
         KU_ASSERT(nodeGroups.getGroupNoLock(groupIdx)->getNodeGroupIdx() == groupIdx);
         return nodeGroups.getGroupNoLock(groupIdx);
     }
@@ -52,7 +54,7 @@ public:
         KU_ASSERT(nodeGroups.getGroupNoLock(groupIdx)->getNodeGroupIdx() == groupIdx);
         return nodeGroups.getGroup(lock, groupIdx);
     }
-    NodeGroup* getOrCreateNodeGroup(transaction::Transaction* transaction,
+    NodeGroup* getOrCreateNodeGroup(const transaction::Transaction* transaction,
         common::node_group_idx_t groupIdx, NodeGroupDataFormat format);
 
     void setNodeGroup(const common::node_group_idx_t nodeGroupIdx,
@@ -72,7 +74,7 @@ public:
 
     void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState);
 
-    uint64_t getEstimatedMemoryUsage();
+    uint64_t getEstimatedMemoryUsage() const;
 
     void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
 
@@ -89,6 +91,10 @@ public:
         auto lock = nodeGroups.lock();
         this->stats.merge(stats);
     }
+    void mergeStats(const std::vector<common::column_id_t>& columnIDs, const TableStats& stats) {
+        auto lock = nodeGroups.lock();
+        this->stats.merge(columnIDs, stats);
+    }
 
     void serialize(common::Serializer& ser);
     void deserialize(common::Deserializer& deSer, MemoryManager& memoryManager);
@@ -96,10 +102,10 @@ public:
     void pushInsertInfo(const transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
         common::row_idx_t numRows, const VersionRecordHandler* versionRecordHandler,
-        bool incrementNumTotalRows);
+        bool incrementNumRows);
 
 private:
-    void pushInsertInfo(const transaction::Transaction* transaction, NodeGroup* nodeGroup,
+    void pushInsertInfo(const transaction::Transaction* transaction, const NodeGroup* nodeGroup,
         common::row_idx_t numRows);
 
     bool enableCompression;

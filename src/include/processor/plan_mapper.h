@@ -86,7 +86,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapImportDatabase(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapIndexLookup(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapIntersect(planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapInsert(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapInsert(const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLimit(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapMerge(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapMultiplicityReducer(
@@ -115,7 +115,7 @@ private:
         std::shared_ptr<PartitionerSharedState> partitionerSharedState,
         std::shared_ptr<BatchInsertSharedState> sharedState,
         const planner::LogicalCopyFrom& copyFrom, common::RelDataDirection direction,
-        std::vector<common::LogicalType> columnTypes);
+        std::vector<common::column_id_t> columnIDs, std::vector<common::LogicalType> columnTypes);
 
     std::unique_ptr<ResultCollector> createResultCollector(common::AccumulateType accumulateType,
         const binder::expression_vector& expressions, planner::Schema* schema,
@@ -163,9 +163,9 @@ private:
         planner::Schema* inSchema, planner::Schema* outSchema,
         std::unique_ptr<PhysicalOperator> prevOperator);
 
-    NodeInsertExecutor getNodeInsertExecutor(const planner::LogicalInsertInfo* info,
+    NodeInsertExecutor getNodeInsertExecutor(const planner::LogicalInsertInfo* boundInfo,
         const planner::Schema& inSchema, const planner::Schema& outSchema) const;
-    RelInsertExecutor getRelInsertExecutor(const planner::LogicalInsertInfo* info,
+    RelInsertExecutor getRelInsertExecutor(const planner::LogicalInsertInfo* boundInfo,
         const planner::Schema& inSchema, const planner::Schema& outSchema) const;
     std::unique_ptr<NodeSetExecutor> getNodeSetExecutor(const binder::BoundSetPropertyInfo& info,
         const planner::Schema& schema) const;

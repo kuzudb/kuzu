@@ -77,8 +77,8 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
 }
 
 static void appendNewChunkedGroup(transaction::Transaction* transaction,
-    ChunkedCSRNodeGroup& chunkedGroup, RelTable& relTable, CSRNodeGroup& nodeGroup,
-    RelDataDirection direction) {
+    const std::vector<column_id_t>& columnIDs, ChunkedCSRNodeGroup& chunkedGroup,
+    RelTable& relTable, CSRNodeGroup& nodeGroup, RelDataDirection direction) {
     const bool isNewNodeGroup = nodeGroup.isEmpty();
     const CSRNodeGroupScanSource source = isNewNodeGroup ?
                                               CSRNodeGroupScanSource::COMMITTED_PERSISTENT :
@@ -92,7 +92,7 @@ static void appendNewChunkedGroup(transaction::Transaction* transaction,
             chunkedGroup.flushAsNewChunkedNodeGroup(transaction, *relTable.getDataFH());
         nodeGroup.setPersistentChunkedGroup(std::move(flushedChunkedGroup));
     } else {
-        nodeGroup.appendChunkedCSRGroup(transaction, chunkedGroup);
+        nodeGroup.appendChunkedCSRGroup(transaction, columnIDs, chunkedGroup);
     }
 }
 
@@ -142,8 +142,9 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
     localState.chunkedGroup->finalize();
 
     auto* relTable = sharedState.table->ptrCast<RelTable>();
-    appendNewChunkedGroup(transaction, localState.chunkedGroup->cast<ChunkedCSRNodeGroup>(),
-        *relTable, nodeGroup, relInfo.direction);
+    appendNewChunkedGroup(transaction, relInfo.insertColumnIDs,
+        localState.chunkedGroup->cast<ChunkedCSRNodeGroup>(), *relTable, nodeGroup,
+        relInfo.direction);
 
     localState.chunkedGroup->resetToEmpty();
 }
@@ -249,12 +250,12 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
     partitionerSharedState->partitioningBuffers[relInfo->partitioningIdx].reset();
 }
 
-void RelBatchInsert::updateProgress(ExecutionContext* context) {
+void RelBatchInsert::updateProgress(const ExecutionContext* context) const {
     if (progressSharedState->partitionsTotal == 0) {
         context->clientContext->getProgressBar()->updateProgress(context->queryID, 0);
     } else {
-        double progress = double(progressSharedState->partitionsDone) /
-                          double(progressSharedState->partitionsTotal);
+        double progress = static_cast<double>(progressSharedState->partitionsDone) /
+                          static_cast<double>(progressSharedState->partitionsTotal);
         context->clientContext->getProgressBar()->updateProgress(context->queryID, progress);
     }
 }

@@ -20,20 +20,18 @@ PersistentVersionRecordHandler::PersistentVersionRecordHandler(RelTableData* rel
     : relTableData(relTableData) {}
 
 void PersistentVersionRecordHandler::applyFuncToChunkedGroups(version_record_handler_op_t func,
-    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
-    common::transaction_t commitTS) const {
+    node_group_idx_t nodeGroupIdx, row_idx_t startRow, row_idx_t numRows,
+    transaction_t commitTS) const {
     if (nodeGroupIdx < relTableData->getNumNodeGroups()) {
         auto& nodeGroup = relTableData->getNodeGroupNoLock(nodeGroupIdx)->cast<CSRNodeGroup>();
-        auto* persistentChunkedGroup = nodeGroup.getPersistentChunkedGroup();
-        if (persistentChunkedGroup) {
+        if (auto* persistentChunkedGroup = nodeGroup.getPersistentChunkedGroup()) {
             std::invoke(func, *persistentChunkedGroup, startRow, numRows, commitTS);
         }
     }
 }
 
-void PersistentVersionRecordHandler::rollbackInsert(const transaction::Transaction* transaction,
-    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
-    common::row_idx_t numRows) const {
+void PersistentVersionRecordHandler::rollbackInsert(const Transaction* transaction,
+    node_group_idx_t nodeGroupIdx, row_idx_t startRow, row_idx_t numRows) const {
     VersionRecordHandler::rollbackInsert(transaction, nodeGroupIdx, startRow, numRows);
     relTableData->rollbackGroupCollectionInsert(numRows, true);
 }
@@ -42,15 +40,14 @@ InMemoryVersionRecordHandler::InMemoryVersionRecordHandler(RelTableData* relTabl
     : relTableData(relTableData) {}
 
 void InMemoryVersionRecordHandler::applyFuncToChunkedGroups(version_record_handler_op_t func,
-    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
-    common::transaction_t commitTS) const {
+    node_group_idx_t nodeGroupIdx, row_idx_t startRow, row_idx_t numRows,
+    transaction_t commitTS) const {
     auto* nodeGroup = relTableData->getNodeGroupNoLock(nodeGroupIdx);
     nodeGroup->applyFuncToChunkedGroups(func, startRow, numRows, commitTS);
 }
 
-void InMemoryVersionRecordHandler::rollbackInsert(const transaction::Transaction* transaction,
-    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
-    common::row_idx_t numRows) const {
+void InMemoryVersionRecordHandler::rollbackInsert(const Transaction* transaction,
+    node_group_idx_t nodeGroupIdx, row_idx_t startRow, row_idx_t numRows) const {
     VersionRecordHandler::rollbackInsert(transaction, nodeGroupIdx, startRow, numRows);
     auto* nodeGroup = relTableData->getNodeGroupNoLock(nodeGroupIdx);
     const auto numRowsToRollback = std::min(numRows, nodeGroup->getNumRows() - startRow);
@@ -235,8 +232,8 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction,
     return false;
 }
 
-void RelTableData::pushInsertInfo(transaction::Transaction* transaction,
-    const CSRNodeGroup& nodeGroup, common::row_idx_t numRows_, CSRNodeGroupScanSource source) {
+void RelTableData::pushInsertInfo(const Transaction* transaction, const CSRNodeGroup& nodeGroup,
+    row_idx_t numRows_, CSRNodeGroupScanSource source) {
     // we shouldn't be appending directly to the to the persistent data
     // unless we are performing batch insert and the persistent chunked group is empty
     KU_ASSERT(source != CSRNodeGroupScanSource::COMMITTED_PERSISTENT ||
@@ -274,7 +271,8 @@ void RelTableData::serialize(Serializer& serializer) const {
     nodeGroups->serialize(serializer);
 }
 
-const VersionRecordHandler* RelTableData::getVersionRecordHandler(CSRNodeGroupScanSource source) {
+const VersionRecordHandler* RelTableData::getVersionRecordHandler(
+    CSRNodeGroupScanSource source) const {
     if (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) {
         return &persistentVersionRecordHandler;
     } else {
@@ -283,7 +281,7 @@ const VersionRecordHandler* RelTableData::getVersionRecordHandler(CSRNodeGroupSc
     }
 }
 
-void RelTableData::rollbackGroupCollectionInsert(common::row_idx_t numRows_, bool isPersistent) {
+void RelTableData::rollbackGroupCollectionInsert(row_idx_t numRows_, bool isPersistent) {
     nodeGroups->rollbackInsert(numRows_, !isPersistent);
 }
 

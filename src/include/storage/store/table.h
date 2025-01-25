@@ -70,10 +70,10 @@ struct TableScanState {
 };
 
 struct TableInsertState {
-    const std::vector<common::ValueVector*>& propertyVectors;
+    std::vector<common::ValueVector*> propertyVectors;
 
-    explicit TableInsertState(const std::vector<common::ValueVector*>& propertyVectors)
-        : propertyVectors{propertyVectors} {}
+    explicit TableInsertState(std::vector<common::ValueVector*> propertyVectors)
+        : propertyVectors{std::move(propertyVectors)} {}
     virtual ~TableInsertState() = default;
 
     template<typename T>
@@ -156,7 +156,8 @@ public:
         TableAddColumnState& addColumnState) = 0;
     void dropColumn() { setHasChanges(); }
 
-    virtual void commit(transaction::Transaction* transaction, LocalTable* localTable) = 0;
+    virtual void commit(transaction::Transaction* transaction,
+        catalog::TableCatalogEntry* tableEntry, LocalTable* localTable) = 0;
     virtual void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) = 0;
     virtual void rollbackCheckpoint() = 0;
 

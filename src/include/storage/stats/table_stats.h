@@ -18,10 +18,20 @@ public:
     void incrementCardinality(common::cardinality_t increment) { cardinality += increment; }
 
     void merge(const TableStats& other) {
+        std::vector<common::column_id_t> columnIDs;
+        for (auto i = 0u; i < columnStats.size(); i++) {
+            columnIDs.push_back(i);
+        }
+        merge(columnIDs, other);
+    }
+
+    void merge(const std::vector<common::column_id_t>& columnIDs, const TableStats& other) {
         cardinality += other.cardinality;
-        KU_ASSERT(columnStats.size() == other.columnStats.size());
-        for (auto i = 0u; i < columnStats.size(); ++i) {
-            columnStats[i].merge(other.columnStats[i]);
+        KU_ASSERT(columnIDs.size() == other.columnStats.size());
+        for (auto i = 0u; i < columnIDs.size(); ++i) {
+            auto columnID = columnIDs[i];
+            KU_ASSERT(columnID < columnStats.size());
+            columnStats[columnID].merge(other.columnStats[i]);
         }
     }
 
@@ -33,6 +43,9 @@ public:
     }
 
     void update(const std::vector<common::ValueVector*>& vectors,
+        size_t numColumns = std::numeric_limits<size_t>::max());
+    void update(const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<common::ValueVector*>& vectors,
         size_t numColumns = std::numeric_limits<size_t>::max());
 
     ColumnStats& addNewColumn(const common::LogicalType& dataType) {

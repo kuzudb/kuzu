@@ -59,16 +59,18 @@ void NodeGroupCollection::append(const Transaction* transaction,
     stats.update(vectors);
 }
 
-void NodeGroupCollection::append(const Transaction* transaction, NodeGroupCollection& other) {
+void NodeGroupCollection::append(const Transaction* transaction,
+    const std::vector<column_id_t>& columnIDs, const NodeGroupCollection& other) {
     const auto otherLock = other.nodeGroups.lock();
     for (auto& nodeGroup : other.nodeGroups.getAllGroups(otherLock)) {
-        append(transaction, *nodeGroup);
+        append(transaction, columnIDs, *nodeGroup);
     }
-    mergeStats(other.getStats(otherLock));
+    mergeStats(columnIDs, other.getStats(otherLock));
 }
 
-void NodeGroupCollection::append(const Transaction* transaction, NodeGroup& nodeGroup) {
-    KU_ASSERT(nodeGroup.getDataTypes().size() == types.size());
+void NodeGroupCollection::append(const Transaction* transaction,
+    const std::vector<column_id_t>& columnIDs, const NodeGroup& nodeGroup) {
+    KU_ASSERT(nodeGroup.getDataTypes().size() == columnIDs.size());
     const auto lock = nodeGroups.lock();
     if (nodeGroups.isEmpty(lock)) {
         auto newGroup = std::make_unique<NodeGroup>(0, enableCompression, LogicalType::copy(types));
@@ -94,8 +96,8 @@ void NodeGroupCollection::append(const Transaction* transaction, NodeGroup& node
             lastNodeGroup->moveNextRowToAppend(numToAppendInBatch);
             pushInsertInfo(transaction, lastNodeGroup, numToAppendInBatch);
             numTotalRows += numToAppendInBatch;
-            lastNodeGroup->append(transaction, *chunkedGroupToAppend, numRowsAppendedInChunkedGroup,
-                numToAppendInBatch);
+            lastNodeGroup->append(transaction, columnIDs, *chunkedGroupToAppend,
+                numRowsAppendedInChunkedGroup, numToAppendInBatch);
             numRowsAppendedInChunkedGroup += numToAppendInBatch;
         }
         numChunkedGroupsAppended++;
@@ -103,7 +105,8 @@ void NodeGroupCollection::append(const Transaction* transaction, NodeGroup& node
 }
 
 std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlushWhenFull(
-    Transaction* transaction, ChunkedNodeGroup& chunkedGroup) {
+    Transaction* transaction, const std::vector<column_id_t>& columnIDs,
+    ChunkedNodeGroup& chunkedGroup) {
     NodeGroup* lastNodeGroup = nullptr;
     offset_t startOffset = 0;
     offset_t numToAppend = 0;
@@ -133,7 +136,7 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         if (!directFlushWhenAppend) {
             // TODO(Guodong): Furthur optimize on this. Should directly figure out startRowIdx to
             // start appending into the node group and pass in as param.
-            lastNodeGroup->append(transaction, chunkedGroup, 0, numToAppend);
+            lastNodeGroup->append(transaction, columnIDs, chunkedGroup, 0, numToAppend);
         }
     }
     if (directFlushWhenAppend) {
@@ -145,12 +148,12 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
     return {startOffset, numToAppend};
 }
 
-row_idx_t NodeGroupCollection::getNumTotalRows() {
+row_idx_t NodeGroupCollection::getNumTotalRows() const {
     const auto lock = nodeGroups.lock();
     return numTotalRows;
 }
 
-NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(transaction::Transaction* transaction,
+NodeGroup* NodeGroupCollection::getOrCreateNodeGroup(const Transaction* transaction,
     node_group_idx_t groupIdx, NodeGroupDataFormat format) {
     const auto lock = nodeGroups.lock();
     while (groupIdx >= nodeGroups.getNumGroups(lock)) {
@@ -177,7 +180,7 @@ void NodeGroupCollection::addColumn(Transaction* transaction, TableAddColumnStat
     types.push_back(addColumnState.propertyDefinition.getType().copy());
 }
 
-uint64_t NodeGroupCollection::getEstimatedMemoryUsage() {
+uint64_t NodeGroupCollection::getEstimatedMemoryUsage() const {
     auto estimatedMemUsage = 0u;
     const auto lock = nodeGroups.lock();
     for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
@@ -186,6 +189,7 @@ uint64_t NodeGroupCollection::getEstimatedMemoryUsage() {
     return estimatedMemUsage;
 }
 
+// NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
 void NodeGroupCollection::checkpoint(MemoryManager& memoryManager,
     NodeGroupCheckpointState& state) {
     KU_ASSERT(dataFH);
@@ -193,9 +197,14 @@ void NodeGroupCollection::checkpoint(MemoryManager& memoryManager,
     for (const auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
         nodeGroup->checkpoint(memoryManager, state);
     }
+    std::vector<LogicalType> typesAfterCheckpoint;
+    for (auto i = 0u; i < state.columnIDs.size(); i++) {
+        typesAfterCheckpoint.push_back(types[state.columnIDs[i]].copy());
+    }
+    types = std::move(typesAfterCheckpoint);
 }
 
-void NodeGroupCollection::rollbackInsert(common::row_idx_t numRows_, bool updateNumRows) {
+void NodeGroupCollection::rollbackInsert(row_idx_t numRows_, bool updateNumRows) {
     const auto lock = nodeGroups.lock();
 
     // remove any empty trailing node groups after the rollback
@@ -208,14 +217,14 @@ void NodeGroupCollection::rollbackInsert(common::row_idx_t numRows_, bool update
     }
 }
 
-void NodeGroupCollection::pushInsertInfo(const transaction::Transaction* transaction,
-    NodeGroup* nodeGroup, common::row_idx_t numRows) {
+void NodeGroupCollection::pushInsertInfo(const Transaction* transaction, const NodeGroup* nodeGroup,
+    row_idx_t numRows) {
     pushInsertInfo(transaction, nodeGroup->getNodeGroupIdx(), nodeGroup->getNumRows(), numRows,
         versionRecordHandler, false);
 };
 
-void NodeGroupCollection::pushInsertInfo(const transaction::Transaction* transaction,
-    common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow, common::row_idx_t numRows,
+void NodeGroupCollection::pushInsertInfo(const Transaction* transaction,
+    node_group_idx_t nodeGroupIdx, row_idx_t startRow, row_idx_t numRows,
     const VersionRecordHandler* versionRecordHandler, bool incrementNumRows) {
     // we only append to the undo buffer if the node group collection is persistent
     if (dataFH && transaction->shouldAppendToUndoBuffer()) {
