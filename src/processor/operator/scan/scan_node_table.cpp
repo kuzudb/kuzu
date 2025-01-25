@@ -168,6 +168,7 @@ bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
             currentTableIdx++;
         } else {
             info.table->initializeScanState(transaction, scanState);
+            ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(*scanState.dataScanState).vectorIdx = 0;
         }
     }
     return false;
