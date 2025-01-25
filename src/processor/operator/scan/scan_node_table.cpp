@@ -74,10 +74,13 @@ void ScanNodeTableSharedState::markNodeGroupAsFinished(storage::NodeTableScanSta
 
 void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState) {
     std::unique_lock lck{mtx};
+    auto& dataScanState =
+            ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(*scanState.dataScanState);
     // First try to give separate node groups to different threads.
     if (currentCommittedGroupIdx < numCommittedNodeGroups) {
         scanState.nodeGroupIdx = (currentCommittedGroupIdx++ + startNodeGroupIdx);
         scanState.source = TableScanSource::COMMITTED;
+        dataScanState.vectorIdx = 0;
         return;
     }
     // Then try to give local node groups to different threads.
@@ -86,25 +89,26 @@ void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState) {
         scanState.localNodeGroup = ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(
             localNodeGroups[currentUnCommittedGroupIdx++]);
         scanState.source = TableScanSource::UNCOMMITTED;
+        dataScanState.vectorIdx = 0;
         return;
     }
-    // Finally, give the node group with smallest vector index to different threads.
-    if (currentCommittedGroupIdx == numCommittedNodeGroups) {
-        // Find node group with the smallest vector index.
-        auto minVectorIdx = common::INVALID_IDX;
-        auto nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
-        for (auto i = 0u; i < committedNodeGroupVectorIdx.size(); i++) {
-            if (committedNodeGroupVectorIdx[i] < minVectorIdx && !committedNodeGroupFinished[i]) {
-                minVectorIdx = committedNodeGroupVectorIdx[i];
-                nodeGroupIdx = i + startNodeGroupIdx;
-            }
-        }
-        if (minVectorIdx != common::INVALID_IDX) {
-            scanState.source = TableScanSource::COMMITTED;
-            scanState.nodeGroupIdx = nodeGroupIdx;
-            return;
-        }
-    }
+//    // Finally, give the node group with smallest vector index to different threads.
+//    if (currentCommittedGroupIdx == numCommittedNodeGroups) {
+//        // Find node group with the smallest vector index.
+//        auto minVectorIdx = common::INVALID_IDX;
+//        auto nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+//        for (auto i = 0u; i < committedNodeGroupVectorIdx.size(); i++) {
+//            if (committedNodeGroupVectorIdx[i] < minVectorIdx && !committedNodeGroupFinished[i]) {
+//                minVectorIdx = committedNodeGroupVectorIdx[i];
+//                nodeGroupIdx = i + startNodeGroupIdx;
+//            }
+//        }
+//        if (minVectorIdx != common::INVALID_IDX) {
+//            scanState.source = TableScanSource::COMMITTED;
+//            scanState.nodeGroupIdx = nodeGroupIdx;
+//            return;
+//        }
+//    }
     scanState.source = TableScanSource::NONE;
 }
 
@@ -145,17 +149,19 @@ bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
         auto skipScan =
             transaction->isReadOnly() && scanState.zoneMapResult == ZoneMapCheckResult::SKIP_SCAN;
         if (!skipScan) {
-            sharedStates[currentTableIdx]->updateVectorIdx(scanState);
+//            sharedStates[currentTableIdx]->updateVectorIdx(scanState);
             while (scanState.source != TableScanSource::NONE &&
                    info.table->scan(transaction, scanState)) {
+                ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(*scanState.dataScanState).vectorIdx++;
                 if (scanState.nodeIDVector->state->getSelVector().getSelSize() > 0) {
                     return true;
                 }
-                sharedStates[currentTableIdx]->updateVectorIdx(scanState);
+//                sharedStates[currentTableIdx]->updateVectorIdx(scanState);
             }
-        } else {
-            sharedStates[currentTableIdx]->markNodeGroupAsFinished(scanState);
         }
+//        else {
+//            sharedStates[currentTableIdx]->markNodeGroupAsFinished(scanState);
+//        }
         // TODO: Take care of skipScan!!
         sharedStates[currentTableIdx]->nextMorsel(scanState);
         if (scanState.source == TableScanSource::NONE) {
