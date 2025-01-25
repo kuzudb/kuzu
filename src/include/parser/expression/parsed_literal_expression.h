@@ -24,8 +24,6 @@ public:
 
     common::Value getValue() const { return value; }
 
-    common::Value& getValueUnsafe() { return value; }
-
     static std::unique_ptr<ParsedLiteralExpression> deserialize(
         common::Deserializer& deserializer) {
         return std::make_unique<ParsedLiteralExpression>(*common::Value::deserialize(deserializer));

@@ -590,7 +590,7 @@ void Catalog::createSerialSequence(Transaction* transaction, const TableCatalogE
             continue;
         }
         const auto seqName =
-            SequenceCatalogEntry::genSerialName(entry->getName(), definition.getName());
+            SequenceCatalogEntry::getSerialName(entry->getName(), definition.getName());
         auto seqInfo =
             BoundCreateSequenceInfo(seqName, 0, 1, 0, std::numeric_limits<int64_t>::max(), false,
                 ConflictAction::ON_CONFLICT_THROW, isInternal);
@@ -604,7 +604,7 @@ void Catalog::dropSerialSequence(Transaction* transaction, const TableCatalogEnt
         if (definition.getType().getLogicalTypeID() != LogicalTypeID::SERIAL) {
             continue;
         }
-        auto seqName = SequenceCatalogEntry::genSerialName(entry->getName(), definition.getName());
+        auto seqName = SequenceCatalogEntry::getSerialName(entry->getName(), definition.getName());
         dropSequence(transaction, seqName);
     }
 }

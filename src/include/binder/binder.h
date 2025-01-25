@@ -121,6 +121,9 @@ public:
         const std::vector<parser::ParsedPropertyDefinition>& parsedDefinitions,
         const std::string& tableName);
 
+    std::unique_ptr<parser::ParsedExpression> resolvePropertyDefault(parser::ParsedExpression* parsedDefault, const common::LogicalType& type, const std::string& tableName, const std::string& propertyName);
+
+
     /*** bind copy ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCopyNodeFrom(const parser::Statement& statement,

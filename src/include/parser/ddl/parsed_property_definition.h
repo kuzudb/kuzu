@@ -32,7 +32,11 @@ struct ParsedPropertyDefinition {
 
 private:
     ParsedPropertyDefinition(const ParsedPropertyDefinition& other)
-        : columnDefinition{other.columnDefinition.copy()}, defaultExpr{other.defaultExpr->copy()} {}
+        : columnDefinition{other.columnDefinition.copy()} {
+        if (other.defaultExpr) {
+            defaultExpr = other.defaultExpr->copy();
+        }
+    }
 };
 
 } // namespace parser

@@ -78,7 +78,7 @@ public:
 
     binder::BoundCreateSequenceInfo getBoundCreateSequenceInfo(bool isInternal) const;
 
-    static std::string genSerialName(const std::string& tableName,
+    static std::string getSerialName(const std::string& tableName,
         const std::string& propertyName) {
         return std::string(tableName).append("_").append(propertyName).append("_").append("serial");
     }

@@ -5,7 +5,6 @@
 #include "parser/ddl/create_type.h"
 #include "parser/ddl/drop.h"
 #include "parser/ddl/drop_info.h"
-#include "parser/expression/parsed_literal_expression.h"
 #include "parser/transformer.h"
 
 using namespace kuzu::common;
@@ -217,11 +216,9 @@ std::unique_ptr<Statement> Transformer::transformAddProperty(
     auto addPropertyCtx = ctx.kU_AlterOptions()->kU_AddProperty();
     auto propertyName = transformPropertyKeyName(*addPropertyCtx->oC_PropertyKeyName());
     auto dataType = transformDataType(*addPropertyCtx->kU_DataType());
-    std::unique_ptr<ParsedExpression> defaultValue;
+    std::unique_ptr<ParsedExpression> defaultValue = nullptr;
     if (addPropertyCtx->kU_Default()) {
         defaultValue = transformExpression(*addPropertyCtx->kU_Default()->oC_Expression());
-    } else {
-        defaultValue = std::make_unique<ParsedLiteralExpression>(Value::createNullValue(), "NULL");
     }
     auto extraInfo = std::make_unique<ExtraAddPropertyInfo>(std::move(propertyName),
         std::move(dataType), std::move(defaultValue));
@@ -288,12 +285,9 @@ std::vector<ParsedPropertyDefinition> Transformer::transformPropertyDefinitions(
     std::vector<ParsedPropertyDefinition> definitions;
     for (auto& definition : ctx.kU_PropertyDefinition()) {
         auto columnDefinition = transformColumnDefinition(*definition->kU_ColumnDefinition());
-        std::unique_ptr<ParsedExpression> defaultExpr;
+        std::unique_ptr<ParsedExpression> defaultExpr = nullptr;
         if (definition->kU_Default()) {
             defaultExpr = transformExpression(*definition->kU_Default()->oC_Expression());
-        } else {
-            defaultExpr =
-                std::make_unique<ParsedLiteralExpression>(Value::createNullValue(), "NULL");
         }
         definitions.push_back(
             ParsedPropertyDefinition(std::move(columnDefinition), std::move(defaultExpr)));
