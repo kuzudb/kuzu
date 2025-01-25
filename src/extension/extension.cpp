@@ -68,8 +68,9 @@ std::string ExtensionSourceUtils::toString(ExtensionSource source) {
 }
 
 ExtensionRepoInfo ExtensionUtils::getExtensionLibRepoInfo(const std::string& extensionName) {
-    auto extensionURL = common::stringFormat(EXTENSION_FILE_REPO, KUZU_EXTENSION_VERSION,
-        getPlatform(), extensionName, getExtensionFileName(extensionName));
+    auto extensionURL =
+        common::stringFormat(EXTENSION_FILE_REPO, KUZU_EXTENSION_VERSION, getPlatform(),
+            common::StringUtils::getLower(extensionName), getExtensionFileName(extensionName));
     return getExtensionRepoInfo(extensionURL);
 }
 
