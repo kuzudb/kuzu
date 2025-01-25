@@ -175,7 +175,7 @@ static void serializeAlterExtraInfo(Serializer& serializer, const BoundAlterInfo
         auto commentInfo = extraInfo->constPtrCast<BoundExtraCommentInfo>();
         serializer.write(commentInfo->comment);
     } break;
-    case AlterType::RENAME_TABLE: {
+    case AlterType::RENAME: {
         auto renameTableInfo = extraInfo->constPtrCast<BoundExtraRenameTableInfo>();
         serializer.write(renameTableInfo->newName);
     } break;
@@ -214,7 +214,7 @@ static decltype(auto) deserializeAlterRecord(Deserializer& deserializer) {
         deserializer.deserializeValue(comment);
         extraInfo = std::make_unique<BoundExtraCommentInfo>(std::move(comment));
     } break;
-    case AlterType::RENAME_TABLE: {
+    case AlterType::RENAME: {
         std::string newName;
         deserializer.deserializeValue(newName);
         extraInfo = std::make_unique<BoundExtraRenameTableInfo>(std::move(newName));

@@ -356,7 +356,7 @@ std::unique_ptr<BoundStatement> Binder::bindDrop(const Statement& statement) {
 std::unique_ptr<BoundStatement> Binder::bindAlter(const Statement& statement) {
     auto& alter = statement.constCast<Alter>();
     switch (alter.getInfo()->type) {
-    case AlterType::RENAME_TABLE: {
+    case AlterType::RENAME: {
         return bindRenameTable(statement);
     }
     case AlterType::ADD_PROPERTY: {
@@ -384,8 +384,8 @@ std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& stateme
     auto tableName = info->tableName;
     auto newName = extraInfo->newName;
     auto boundExtraInfo = std::make_unique<BoundExtraRenameTableInfo>(newName);
-    auto boundInfo = BoundAlterInfo(AlterType::RENAME_TABLE, tableName, std::move(boundExtraInfo),
-        info->onConflict);
+    auto boundInfo =
+        BoundAlterInfo(AlterType::RENAME, tableName, std::move(boundExtraInfo), info->onConflict);
     return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 

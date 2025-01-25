@@ -14,6 +14,33 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace catalog {
 
+std::unique_ptr<RelGroupCatalogEntry> RelGroupCatalogEntry::alter(transaction_t timestamp,
+    const binder::BoundAlterInfo& alterInfo) const {
+    std::unique_ptr<RelGroupCatalogEntry> newEntry;
+    switch (alterInfo.alterType) {
+    case AlterType::RENAME: {
+        newEntry = copy();
+        auto& renameTableInfo =
+            *alterInfo.extraInfo->constPtrCast<binder::BoundExtraRenameTableInfo>();
+        newEntry->rename(renameTableInfo.newName);
+        newEntry->setTimestamp(timestamp);
+        newEntry->setOID(oid);
+    } break;
+    case AlterType::COMMENT: {
+        newEntry = copy();
+        auto& commentInfo = *alterInfo.extraInfo->constPtrCast<binder::BoundExtraCommentInfo>();
+        newEntry->setComment(commentInfo.comment);
+        newEntry->setTimestamp(timestamp);
+        newEntry->setOID(oid);
+    } break;
+    default: {
+        // the only alter types needed to be handled in the rel group are rename and comment.
+        // the rest is handled in the child member tables.
+    }
+    }
+    return newEntry;
+}
+
 bool RelGroupCatalogEntry::isParent(table_id_t tableID) const {
     const auto it = find_if(relTableIDs.begin(), relTableIDs.end(),
         [&](table_id_t relTableID) { return relTableID == tableID; });
@@ -24,16 +51,22 @@ void RelGroupCatalogEntry::serialize(Serializer& serializer) const {
     CatalogEntry::serialize(serializer);
     serializer.writeDebuggingInfo("relTableIDs");
     serializer.serializeVector(relTableIDs);
+    serializer.writeDebuggingInfo("comment");
+    serializer.serializeValue(comment);
 }
 
 std::unique_ptr<RelGroupCatalogEntry> RelGroupCatalogEntry::deserialize(
     Deserializer& deserializer) {
     std::string debuggingInfo;
     std::vector<table_id_t> relTableIDs;
+    std::string comment;
     deserializer.validateDebuggingInfo(debuggingInfo, "relTableIDs");
     deserializer.deserializeVector(relTableIDs);
+    deserializer.validateDebuggingInfo(debuggingInfo, "comment");
+    deserializer.deserializeValue(comment);
     auto relGroupEntry = std::make_unique<RelGroupCatalogEntry>();
     relGroupEntry->relTableIDs = std::move(relTableIDs);
+    relGroupEntry->comment = comment;
     return relGroupEntry;
 }
 

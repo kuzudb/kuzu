@@ -13,11 +13,12 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace catalog {
 
-std::unique_ptr<TableCatalogEntry> TableCatalogEntry::alter(const BoundAlterInfo& alterInfo) const {
+std::unique_ptr<TableCatalogEntry> TableCatalogEntry::alter(transaction_t timestamp,
+    const BoundAlterInfo& alterInfo) const {
     KU_ASSERT(!deleted);
     auto newEntry = copy();
     switch (alterInfo.alterType) {
-    case AlterType::RENAME_TABLE: {
+    case AlterType::RENAME: {
         auto& renameTableInfo = *alterInfo.extraInfo->constPtrCast<BoundExtraRenameTableInfo>();
         newEntry->rename(renameTableInfo.newName);
     } break;
@@ -41,6 +42,8 @@ std::unique_ptr<TableCatalogEntry> TableCatalogEntry::alter(const BoundAlterInfo
         KU_UNREACHABLE;
     }
     }
+    newEntry->setOID(oid);
+    newEntry->setTimestamp(timestamp);
     return newEntry;
 }
 

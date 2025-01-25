@@ -449,3 +449,101 @@ Binder exception: Cannot find property since for k.
 -STATEMENT CALL table_info("test") RETURN *;
 ---- 1
 1|prop1|INT64|NULL|both
+
+-CASE CommentRelGroupCommit
+-STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base1 TO base1, FROM base1 TO base2);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT COMMENT ON TABLE test IS 'This is a test comment';
+---- ok
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 3
+0|base1|NODE|local(kuzu)|
+1|base2|NODE|local(kuzu)|
+0|test|REL|local(kuzu)|This is a test comment
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 3
+0|base1|NODE|local(kuzu)|
+1|base2|NODE|local(kuzu)|
+0|test|REL|local(kuzu)|This is a test comment
+
+-CASE CommentRelGroupRollback
+-STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base1 TO base1, FROM base1 TO base2);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT COMMENT ON TABLE test IS 'This is a test comment';
+---- ok
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 3
+0|base1|NODE|local(kuzu)|
+1|base2|NODE|local(kuzu)|
+0|test|REL|local(kuzu)|This is a test comment
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 3
+0|base1|NODE|local(kuzu)|
+1|base2|NODE|local(kuzu)|
+0|test|REL|local(kuzu)|
+
+-CASE CommentRelGroupCommitRecovery
+-STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base1 TO base1, FROM base1 TO base2);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT COMMENT ON TABLE test IS 'This is a test comment';
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 3
+0|base1|NODE|local(kuzu)|
+1|base2|NODE|local(kuzu)|
+0|test|REL|local(kuzu)|This is a test comment
+-RELOADDB
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 3
+0|base1|NODE|local(kuzu)|
+1|base2|NODE|local(kuzu)|
+0|test|REL|local(kuzu)|This is a test comment
+
+-CASE CommentRelGroupRollbackRecovery
+-STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
+---- ok
+-STATEMENT CREATE REL TABLE test(FROM base1 TO base1, FROM base1 TO base2);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT COMMENT ON TABLE test IS 'This is a test comment';
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 3
+0|base1|NODE|local(kuzu)|
+1|base2|NODE|local(kuzu)|
+0|test|REL|local(kuzu)|
+-RELOADDB
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 3
+0|base1|NODE|local(kuzu)|
+1|base2|NODE|local(kuzu)|
+0|test|REL|local(kuzu)|

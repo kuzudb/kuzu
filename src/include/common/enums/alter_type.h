@@ -6,7 +6,7 @@ namespace kuzu {
 namespace common {
 
 enum class AlterType : uint8_t {
-    RENAME_TABLE = 0,
+    RENAME = 0,
 
     ADD_PROPERTY = 10,
     DROP_PROPERTY = 11,

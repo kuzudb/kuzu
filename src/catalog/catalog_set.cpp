@@ -63,15 +63,7 @@ CatalogEntry* CatalogSet::getEntryNoLock(const Transaction* transaction,
     return entry;
 }
 
-static void logCreateDropEntryForTrx(Transaction* transaction, CatalogSet& set, CatalogEntry& entry,
-    bool isInternal, bool skipLoggingToWAL = false) {
-    KU_ASSERT(transaction);
-    if (transaction->shouldAppendToUndoBuffer()) {
-        transaction->pushCreateDropCatalogEntry(set, entry, isInternal, skipLoggingToWAL);
-    }
-}
-
-oid_t CatalogSet::createEntry(Transaction* transaction, std::unique_ptr<CatalogEntry> entry) {
+oid_t CatalogSet::createEntry(const Transaction* transaction, std::unique_ptr<CatalogEntry> entry) {
     CatalogEntry* entryPtr = nullptr;
     oid_t oid = INVALID_OID;
     {
@@ -81,7 +73,9 @@ oid_t CatalogSet::createEntry(Transaction* transaction, std::unique_ptr<CatalogE
         entryPtr = createEntryNoLock(transaction, std::move(entry));
     }
     KU_ASSERT(entryPtr);
-    logCreateDropEntryForTrx(transaction, *this, *entryPtr, isInternal());
+    if (transaction->shouldAppendToUndoBuffer()) {
+        transaction->pushCreateDropCatalogEntry(*this, *entryPtr, isInternal());
+    }
     return oid;
 }
 
@@ -151,14 +145,16 @@ CatalogEntry* CatalogSet::getCommittedEntryNoLock(CatalogEntry* entry) {
     return entry;
 }
 
-void CatalogSet::dropEntry(Transaction* transaction, const std::string& name, oid_t oid) {
+void CatalogSet::dropEntry(const Transaction* transaction, const std::string& name, oid_t oid) {
     CatalogEntry* entryPtr = nullptr;
     {
         std::unique_lock lck{mtx};
         entryPtr = dropEntryNoLock(transaction, name, oid);
     }
     KU_ASSERT(entryPtr);
-    logCreateDropEntryForTrx(transaction, *this, *entryPtr, isInternal());
+    if (transaction->shouldAppendToUndoBuffer()) {
+        transaction->pushCreateDropCatalogEntry(*this, *entryPtr, isInternal());
+    }
 }
 
 CatalogEntry* CatalogSet::dropEntryNoLock(const Transaction* transaction, const std::string& name,
@@ -175,43 +171,37 @@ CatalogEntry* CatalogSet::dropEntryNoLock(const Transaction* transaction, const 
 
 void CatalogSet::alterTableEntry(const Transaction* transaction,
     const binder::BoundAlterInfo& alterInfo) {
-    {
-        std::unique_lock lck{mtx};
-        // LCOV_EXCL_START
-        validateExistNoLock(transaction, alterInfo.tableName);
-        // LCOV_EXCL_STOP
-        auto entry = getEntryNoLock(transaction, alterInfo.tableName);
-        KU_ASSERT(entry->getType() == CatalogEntryType::NODE_TABLE_ENTRY ||
-                  entry->getType() == CatalogEntryType::REL_TABLE_ENTRY);
-        const auto tableEntry = entry->ptrCast<TableCatalogEntry>();
-        auto newEntry = tableEntry->alter(alterInfo);
-        newEntry->setTimestamp(transaction->getID());
-        newEntry->setOID(tableEntry->getOID());
-        if (alterInfo.alterType == AlterType::RENAME_TABLE) {
-            // We treat rename table as drop and create.
-            dropEntryNoLock(transaction, alterInfo.tableName, entry->getOID());
-            auto createdEntry = createEntryNoLock(transaction, std::move(newEntry));
-            if (transaction->shouldAppendToUndoBuffer()) {
-                transaction->pushAlterCatalogEntry(*this, *entry, alterInfo);
-                transaction->pushCreateDropCatalogEntry(*this, *createdEntry, isInternal(),
-                    true /* skipLoggingToWAL */);
-            }
-        } else {
-            emplaceNoLock(std::move(newEntry));
-            if (transaction->shouldAppendToUndoBuffer()) {
-                transaction->pushAlterCatalogEntry(*this, *entry, alterInfo);
-            }
+    std::unique_lock lck{mtx};
+    // LCOV_EXCL_START
+    validateExistNoLock(transaction, alterInfo.tableName);
+    // LCOV_EXCL_STOP
+    auto entry = getEntryNoLock(transaction, alterInfo.tableName);
+    KU_ASSERT(entry->getType() == CatalogEntryType::NODE_TABLE_ENTRY ||
+              entry->getType() == CatalogEntryType::REL_TABLE_ENTRY);
+    const auto tableEntry = entry->ptrCast<TableCatalogEntry>();
+    auto newEntry = tableEntry->alter(transaction->getID(), alterInfo);
+    switch (alterInfo.alterType) {
+    case AlterType::RENAME: {
+        // We treat rename table as drop and create.
+        dropEntryNoLock(transaction, alterInfo.tableName, entry->getOID());
+        auto createdEntry = createEntryNoLock(transaction, std::move(newEntry));
+        if (transaction->shouldAppendToUndoBuffer()) {
+            transaction->pushAlterCatalogEntry(*this, *entry, alterInfo);
+            transaction->pushCreateDropCatalogEntry(*this, *createdEntry, isInternal(),
+                true /* skipLoggingToWAL */);
         }
+    } break;
+    default: {
+        emplaceNoLock(std::move(newEntry));
+        if (transaction->shouldAppendToUndoBuffer()) {
+            transaction->pushAlterCatalogEntry(*this, *entry, alterInfo);
+        }
+    }
     }
 }
 
-void CatalogSet::alterRelGroupEntry(Transaction* transaction,
+void CatalogSet::alterRelGroupEntry(const Transaction* transaction,
     const binder::BoundAlterInfo& alterInfo) {
-    if (alterInfo.alterType != AlterType::RENAME_TABLE) {
-        // We only need to handle rename at the rel group level. Other alter types are handled in
-        // each internal rel table.
-        return;
-    }
     std::unique_lock lck{mtx};
     // LCOV_EXCL_START
     validateExistNoLock(transaction, alterInfo.tableName);
@@ -219,20 +209,30 @@ void CatalogSet::alterRelGroupEntry(Transaction* transaction,
     auto entry = getEntryNoLock(transaction, alterInfo.tableName);
     KU_ASSERT(entry->getType() == CatalogEntryType::REL_GROUP_ENTRY);
     auto* relGroupEntry = entry->ptrCast<RelGroupCatalogEntry>();
-    // the only alter type needed to be handled in the rel group is rename
-    // the rest is handled in the member tables
-    const auto& renameTableInfo =
-        alterInfo.extraInfo->constCast<binder::BoundExtraRenameTableInfo>();
-    auto newEntry = relGroupEntry->copy();
-    newEntry->rename(renameTableInfo.newName);
-    newEntry->setTimestamp(transaction->getID());
-    newEntry->setOID(relGroupEntry->getOID());
-    dropEntryNoLock(transaction, alterInfo.tableName, entry->getOID());
-    auto createdEntry = createEntryNoLock(transaction, std::move(newEntry));
-    KU_ASSERT(entry);
-    logCreateDropEntryForTrx(transaction, *this, *entry, isInternal());
-    logCreateDropEntryForTrx(transaction, *this, *createdEntry, isInternal(),
-        true /* skip logging to WAL */);
+    auto newEntry = relGroupEntry->alter(transaction->getID(), alterInfo);
+    switch (alterInfo.alterType) {
+    case AlterType::RENAME: {
+        // We treat rename rel group as drop and create.
+        dropEntryNoLock(transaction, alterInfo.tableName, entry->getOID());
+        auto createdEntry = createEntryNoLock(transaction, std::move(newEntry));
+        KU_ASSERT(entry);
+        if (transaction->shouldAppendToUndoBuffer()) {
+            transaction->pushAlterCatalogEntry(*this, *entry, alterInfo);
+            transaction->pushCreateDropCatalogEntry(*this, *createdEntry, isInternal(),
+                true /* skipLoggingToWAL */);
+        }
+    } break;
+    case AlterType::COMMENT: {
+        emplaceNoLock(std::move(newEntry));
+        if (transaction->shouldAppendToUndoBuffer()) {
+            transaction->pushAlterCatalogEntry(*this, *entry, alterInfo);
+        }
+    } break;
+    default: {
+        // We only need to handle rename and comment at the rel group level. Other alter types are
+        // handled in each child rel table.
+    }
+    }
 }
 
 CatalogEntrySet CatalogSet::getEntries(const Transaction* transaction) {

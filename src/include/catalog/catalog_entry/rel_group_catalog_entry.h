@@ -17,6 +17,9 @@ public:
     common::idx_t getNumRelTables() const { return relTableIDs.size(); }
     const std::vector<common::table_id_t>& getRelTableIDs() const { return relTableIDs; }
 
+    std::unique_ptr<RelGroupCatalogEntry> alter(common::transaction_t timestamp,
+        const binder::BoundAlterInfo& alterInfo) const;
+
     bool isParent(common::table_id_t tableID) const;
 
     //===--------------------------------------------------------------------===//
@@ -34,12 +37,16 @@ public:
         return groupName + "_" + srcName + "_" + dstName;
     }
 
+    void setComment(std::string newComment) { comment = std::move(newComment); }
+    std::string getComment() const { return comment; }
+
     std::unique_ptr<RelGroupCatalogEntry> copy() const {
         return std::make_unique<RelGroupCatalogEntry>(getName(), relTableIDs);
     }
 
 private:
     std::vector<common::table_id_t> relTableIDs;
+    std::string comment;
 };
 
 } // namespace catalog
