@@ -52,7 +52,8 @@ std::vector<PropertyDefinition> Binder::bindPropertyDefinitions(
     std::vector<PropertyDefinition> definitions;
     for (auto& def : parsedDefinitions) {
         auto type = LogicalType::convertFromString(def.getType(), clientContext);
-        auto defaultExpr = resolvePropertyDefault(def.defaultExpr.get(), type, tableName, def.getName());
+        auto defaultExpr =
+            resolvePropertyDefault(def.defaultExpr.get(), type, tableName, def.getName());
         auto columnDefinition = ColumnDefinition(def.getName(), std::move(type));
         definitions.emplace_back(std::move(columnDefinition), std::move(defaultExpr));
     }
@@ -60,7 +61,9 @@ std::vector<PropertyDefinition> Binder::bindPropertyDefinitions(
     return definitions;
 }
 
-std::unique_ptr<parser::ParsedExpression> Binder::resolvePropertyDefault(ParsedExpression* parsedDefault, const common::LogicalType& type, const std::string& tableName, const std::string& propertyName) {
+std::unique_ptr<parser::ParsedExpression> Binder::resolvePropertyDefault(
+    ParsedExpression* parsedDefault, const common::LogicalType& type, const std::string& tableName,
+    const std::string& propertyName) {
     if (parsedDefault == nullptr) { // No default provided.
         if (type.getLogicalTypeID() == LogicalTypeID::SERIAL) {
             auto serialName = SequenceCatalogEntry::getSerialName(tableName, propertyName);
@@ -374,7 +377,8 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     auto propertyName = extraInfo->propertyName;
     auto type = LogicalType::convertFromString(extraInfo->dataType, clientContext);
     auto columnDefinition = ColumnDefinition(propertyName, type.copy());
-    auto defaultExpr = resolvePropertyDefault(extraInfo->defaultValue.get(), type, tableName, propertyName);
+    auto defaultExpr =
+        resolvePropertyDefault(extraInfo->defaultValue.get(), type, tableName, propertyName);
     auto boundDefault = expressionBinder.bindExpression(*defaultExpr);
     boundDefault = expressionBinder.implicitCastIfNecessary(boundDefault, type);
     if (ConstantExpressionVisitor::needFold(*boundDefault)) {
