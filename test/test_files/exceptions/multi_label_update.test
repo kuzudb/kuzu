@@ -7,6 +7,10 @@
 ---- error
 Binder exception: Create node a with multiple node labels is not supported.
 
+-STATEMENT MATCH (a), (b:organisation) CREATE (a)-[e:studyAt|:workAt]->(b)
+---- error
+Binder exception: Create rel e with multiple rel labels is not supported.
+
 -STATEMENT MATCH (a:person), (b:organisation) CREATE (a)-[e:studyAt|:workAt]->(b)
 ---- error
-Binder exception: Create rel e with multiple rel labels or bound by multiple node labels is not supported.
+Binder exception: Create rel e with multiple rel labels is not supported.
