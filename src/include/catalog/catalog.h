@@ -85,7 +85,8 @@ public:
     // Drop table entry.
     void dropTableEntry(transaction::Transaction* transaction, const TableCatalogEntry* entry);
     // Alter table entry.
-    void alterTableEntry(const transaction::Transaction* transaction, const binder::BoundAlterInfo& info);
+    void alterTableEntry(const transaction::Transaction* transaction,
+        const binder::BoundAlterInfo& info);
     // Alter a rel group entry
     // alterTableEntry() still needs to be called separately for each member of the group
     void alterRelGroupEntry(const transaction::Transaction* transaction,
