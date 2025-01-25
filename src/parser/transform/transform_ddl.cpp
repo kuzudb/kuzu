@@ -207,7 +207,7 @@ std::unique_ptr<Statement> Transformer::transformRenameTable(
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
     auto newName = transformSchemaName(*ctx.kU_AlterOptions()->kU_RenameTable()->oC_SchemaName());
     auto extraInfo = std::make_unique<ExtraRenameTableInfo>(std::move(newName));
-    auto info = AlterInfo(AlterType::RENAME_TABLE, tableName, std::move(extraInfo));
+    auto info = AlterInfo(AlterType::RENAME, tableName, std::move(extraInfo));
     return std::make_unique<Alter>(std::move(info));
 }
 

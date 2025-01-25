@@ -6,7 +6,7 @@ namespace binder {
 std::string BoundAlterInfo::toString() const {
     std::string result = "Operation: ";
     switch (alterType) {
-    case common::AlterType::RENAME_TABLE: {
+    case common::AlterType::RENAME: {
         auto renameInfo = common::ku_dynamic_cast<BoundExtraRenameTableInfo*>(extraInfo.get());
         result += "Rename Table " + tableName + " to " + renameInfo->newName;
         break;

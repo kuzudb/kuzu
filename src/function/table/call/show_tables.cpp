@@ -86,7 +86,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
         }
         for (auto& entry : catalog->getRelGroupEntries(transaction)) {
             tableInfos.emplace_back(entry->getName(), entry->getOID(), "REL", LOCAL_DB_NAME,
-                "" /* comment */);
+                entry->getComment());
         }
     }
 

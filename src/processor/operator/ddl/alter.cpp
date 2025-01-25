@@ -155,15 +155,14 @@ static bool checkAlterTableConflicts(TableCatalogEntry* tableEntry, const BoundA
         return checkDropPropertyConflicts(tableEntry, info);
     case AlterType::RENAME_PROPERTY:
         return checkRenamePropertyConflicts(tableEntry, info);
-    case AlterType::RENAME_TABLE:
+    case AlterType::RENAME:
         return checkRenameTableConflicts(info, context);
-        ;
     default:
         return false;
     }
 }
 
-void Alter::alterTable(main::ClientContext* clientContext, catalog::TableCatalogEntry* entry,
+void Alter::alterTable(main::ClientContext* clientContext, TableCatalogEntry* entry,
     const BoundAlterInfo& alterInfo) const {
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();
@@ -192,15 +191,14 @@ void Alter::alterTable(main::ClientContext* clientContext, catalog::TableCatalog
 
 static void checkAlterRelGroupConflicts(const BoundAlterInfo& info, main::ClientContext* context) {
     switch (info.alterType) {
-    case AlterType::RENAME_TABLE:
+    case AlterType::RENAME:
         checkRenameTableConflicts(info, context);
-        ;
     default:
         break;
     }
 }
 
-void Alter::alterRelGroup(main::ClientContext* clientContext, catalog::RelGroupCatalogEntry* entry,
+void Alter::alterRelGroup(main::ClientContext* clientContext, RelGroupCatalogEntry* entry,
     const BoundAlterInfo& alterInfo) const {
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();
@@ -209,15 +207,15 @@ void Alter::alterRelGroup(main::ClientContext* clientContext, catalog::RelGroupC
     catalog->alterRelGroupEntry(transaction, info);
 }
 
-void Alter::alterRelGroupChildren(main::ClientContext* clientContext,
-    catalog::RelGroupCatalogEntry* entry, const binder::BoundAlterInfo& alterInfo) const {
+void Alter::alterRelGroupChildren(main::ClientContext* clientContext, RelGroupCatalogEntry* entry,
+    const binder::BoundAlterInfo& alterInfo) const {
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();
     for (auto tableID : entry->getRelTableIDs()) {
         auto tableEntry = catalog->getTableCatalogEntry(transaction, tableID);
         auto tableAlterInfo = alterInfo.copy();
         tableAlterInfo.tableName = tableEntry->getName();
-        if (tableAlterInfo.alterType == AlterType::RENAME_TABLE) {
+        if (tableAlterInfo.alterType == AlterType::RENAME) {
             KU_ASSERT(tableAlterInfo.tableName.starts_with(entry->getName()));
             // table name is in format {rel_group_name}{suffix}
             // rename to {new_rel_group_name}{suffix}

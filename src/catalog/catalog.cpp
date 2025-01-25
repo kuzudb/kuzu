@@ -1,6 +1,5 @@
 #include "catalog/catalog.h"
 
-#include "binder/ddl/bound_alter_info.h"
 #include "binder/ddl/bound_create_sequence_info.h"
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog_entry/function_catalog_entry.h"
@@ -176,11 +175,11 @@ void Catalog::dropTableEntry(Transaction* transaction, const TableCatalogEntry* 
     }
 }
 
-void Catalog::alterRelGroupEntry(Transaction* transaction, const BoundAlterInfo& info) {
+void Catalog::alterRelGroupEntry(const Transaction* transaction, const BoundAlterInfo& info) {
     relGroups->alterRelGroupEntry(transaction, info);
 }
 
-void Catalog::alterTableEntry(Transaction* transaction, const BoundAlterInfo& info) {
+void Catalog::alterTableEntry(const Transaction* transaction, const BoundAlterInfo& info) {
     tables->alterTableEntry(transaction, info);
 }
 

@@ -29,14 +29,14 @@ public:
     explicit CatalogSet(bool isInternal);
     bool containsEntry(const transaction::Transaction* transaction, const std::string& name);
     CatalogEntry* getEntry(const transaction::Transaction* transaction, const std::string& name);
-    common::oid_t createEntry(transaction::Transaction* transaction,
+    common::oid_t createEntry(const transaction::Transaction* transaction,
         std::unique_ptr<CatalogEntry> entry);
-    void dropEntry(transaction::Transaction* transaction, const std::string& name,
+    void dropEntry(const transaction::Transaction* transaction, const std::string& name,
         common::oid_t oid);
 
     void alterTableEntry(const transaction::Transaction* transaction,
         const binder::BoundAlterInfo& alterInfo);
-    void alterRelGroupEntry(transaction::Transaction* transaction,
+    void alterRelGroupEntry(const transaction::Transaction* transaction,
         const binder::BoundAlterInfo& alterInfo);
 
     CatalogEntrySet getEntries(const transaction::Transaction* transaction);
