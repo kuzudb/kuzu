@@ -42,7 +42,7 @@ std::unique_ptr<BoundStatement> Binder::bindExtension(const Statement& statement
     std::string path = extensionStatement->getPath();
     switch (extensionStatement->getAction()) {
     case ExtensionAction::INSTALL:
-        common::StringUtils::toLower(path);
+        bindInstallExtension(extensionStatement);
         break;
     case ExtensionAction::LOAD:
         bindLoadExtension(extensionStatement);
