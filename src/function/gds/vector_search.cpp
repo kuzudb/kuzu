@@ -363,6 +363,11 @@ namespace kuzu {
                     stats.listNbrsCallTime->stop();
                     stats.listNbrsMetric->increase(1);
 
+                    // Try prefetching
+                    for (auto &neighbor: nbrs) {
+                        visited->prefetch(neighbor.offset);
+                    }
+
                     for (auto &neighbor: nbrs) {
                         if (visited->is_bit_set(neighbor.offset)) {
                             continue;
@@ -435,6 +440,7 @@ namespace kuzu {
 
                     // Try prefetching
                     for (auto &secondHopNeighbor: secondHopNbrs) {
+                        visited->prefetch(secondHopNeighbor.offset);
                         filterMask->prefetchMaskValue(secondHopNeighbor.offset);
                     }
 
@@ -498,6 +504,7 @@ namespace kuzu {
 
                     // Try prefetching
                     for (auto &secondHopNeighbor: secondHopNbrs) {
+                        visited->prefetch(secondHopNeighbor.offset);
                         filterMask->prefetchMaskValue(secondHopNeighbor.offset);
                     }
 
@@ -622,6 +629,7 @@ namespace kuzu {
 
                     // Try prefetching
                     for (auto &secondHopNeighbor: secondHopNbrs) {
+                        visited->prefetch(secondHopNeighbor.offset);
                         filterMask->prefetchMaskValue(secondHopNeighbor.offset);
                     }
 
@@ -705,6 +713,7 @@ namespace kuzu {
 
                     // Try prefetching
                     for (auto &neighbor: firstHopNbrs) {
+                        visited->prefetch(neighbor.offset);
                         filterMask->prefetchMaskValue(neighbor.offset);
                     }
 
