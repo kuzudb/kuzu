@@ -728,14 +728,12 @@ namespace kuzu {
                         dynamicTwoHopSearch(candidates, candidate, filterNbrsToFind, cachedNbrsCount,
                                             firstHopNbrs, tableId, graph, dc, filterMask,
                                             state, results, visited, vectorArray, size, efSearch, stats);
-                        printf("dynamicSize: %d and filterNbrsToFind: %d\n", size, filterNbrsToFind);
                         stats.dynamicTwoHopCalls->increase(1);
                     } else {
                         // If the selectivity is low, we will not do dynamic two hop search since it does some extra
                         // distance computations to reduce listNbrs call which are redundant.
                         twoHopSearch(candidates, firstHopNbrs, tableId, graph, dc, filterMask, state, results, visited,
                                         vectorArray, size, efSearch, stats);
-                        printf("size: %d and filterNbrsToFind: %d\n", size, filterNbrsToFind);
                         stats.twoHopCalls->increase(1);
                     }
                     batchComputeDistance(vectorArray, size, dc, candidates, results, efSearch, stats);
@@ -771,7 +769,6 @@ namespace kuzu {
             template<typename T>
             inline void knnFilteredSearch(NodeTableDistanceComputer<T>* dc, NodeOffsetLevelSemiMask *filterMask,
                                           BinaryHeap<NodeDistFarther> &results, int k, VectorSearchStats &stats) {
-                auto startT = std::chrono::high_resolution_clock::now();
                 vector_array_t vectorArray;
                 int size = 0;
                 constexpr int batch_size = 64;
@@ -810,9 +807,6 @@ namespace kuzu {
                 for (int i = 0; i < k; i++) {
                     results.push(NodeDistFarther(candidates[i].id, candidates[i].dist));
                 }
-                auto endT = std::chrono::high_resolution_clock::now();
-                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endT - startT);
-                printf("sorting time: %ld micro\n", duration.count());
             }
 
             template<typename T>
@@ -906,11 +900,6 @@ namespace kuzu {
                 }
                 searchLocalState->materialize(reversed, *sharedState->fTable, k);
                 stats.vectorSearchTimeMetric->stop();
-                printf("vector search time: %f ms\n", stats.vectorSearchTimeMetric->getElapsedTimeMS());
-                printf("distance computation time: %f ms\n", stats.distanceComputationTime->getElapsedTimeMS());
-                printf("distance computations: %ld\n", stats.distCompMetric->accumulatedValue);
-                printf("list nbrs calls: %ld\n", stats.listNbrsMetric->accumulatedValue);
-                printf("list nbrs call time: %f ms\n", stats.listNbrsCallTime->getElapsedTimeMS());
             }
 
             std::unique_ptr<GDSAlgorithm> copy() const override {
