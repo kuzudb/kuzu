@@ -2,6 +2,7 @@
 #include "binder/bound_extension_statement.h"
 #include "common/exception/binder.h"
 #include "common/file_system/local_file_system.h"
+#include "common/string_utils.h"
 #include "extension/extension.h"
 #include "parser/extension_statement.h"
 
@@ -38,6 +39,7 @@ static void bindLoadExtension(const ExtensionStatement* extensionStatement) {
 
 std::unique_ptr<BoundStatement> Binder::bindExtension(const Statement& statement) {
     auto extensionStatement = statement.constPtrCast<ExtensionStatement>();
+    std::string path = extensionStatement->getPath();
     switch (extensionStatement->getAction()) {
     case ExtensionAction::INSTALL:
         bindInstallExtension(extensionStatement);
@@ -48,8 +50,11 @@ std::unique_ptr<BoundStatement> Binder::bindExtension(const Statement& statement
     default:
         KU_UNREACHABLE;
     }
+    if (ExtensionUtils::isOfficialExtension(extensionStatement->getPath())) {
+        common::StringUtils::toLower(path);
+    }
     return std::make_unique<BoundExtensionStatement>(extensionStatement->getAction(),
-        extensionStatement->getPath());
+        std::move(path));
 }
 
 } // namespace binder

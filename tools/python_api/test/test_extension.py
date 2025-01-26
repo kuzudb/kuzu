@@ -57,7 +57,7 @@ def test_extension_install_httpfs(conn_db_readwrite: ConnDB, tmpdir: str, extens
     urllib.request.urlretrieve(download_url, temp_path)
 
     conn, _ = conn_db_readwrite
-    conn.execute("INSTALL httpfs")
+    conn.execute("INSTALL hTtpFs")
 
     assert Path.exists(extension_path)
 
