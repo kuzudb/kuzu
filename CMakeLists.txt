@@ -126,6 +126,10 @@ if(MSVC)
     # This is a workaround for regex oom issue on windows in gtest.
     add_compile_definitions(_REGEX_MAX_STACK_COUNT=0)
     add_compile_definitions(_REGEX_MAX_COMPLEXITY_COUNT=0)
+    # Disable constexpr mutex constructor to avoid compatibility issues with 
+    # older versions of the MSVC runtime library
+    # See: https://github.com/microsoft/STL/wiki/Changelog#vs-2022-1710
+    add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
     # TODO (bmwinger): Figure out if this can be set automatically by cmake,
     # or at least better integrated with user-specified options
     # For now, hardcode _AMD64_
