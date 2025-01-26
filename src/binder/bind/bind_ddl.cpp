@@ -4,7 +4,7 @@
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_create_type.h"
 #include "binder/ddl/bound_drop.h"
-#include "binder/expression/expression_util.h"
+#include "binder/expression_visitor.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
@@ -47,57 +47,35 @@ static void validatePropertyName(const std::vector<PropertyDefinition>& definiti
     }
 }
 
-static void validateSerialNoDefault(const Expression& expr) {
-    if (!ExpressionUtil::isNullLiteral(expr)) {
-        throw BinderException("No DEFAULT value should be set for SERIAL columns");
-    }
-}
-
-// TODO(Ziyi/Xiyang/Guodong): Ideally this function can be removed, and we can make use of
-// `implicitCastIfNecessary` to handle this. However, the current approach doesn't keep casted
-// boundExpr, instead the ParsedExpression, which is not casted, in PropertyDefinition. We have to
-// change PropertyDefinition to store boundExpr to get rid of this function.
-static void tryResolvingDataTypeForDefaultNull(const ParsedPropertyDefinition& parsedDefinition,
-    const LogicalType& type) {
-    if (parsedDefinition.defaultExpr->getExpressionType() == ExpressionType::LITERAL) {
-        auto& literalVal =
-            ku_dynamic_cast<ParsedLiteralExpression*>(parsedDefinition.defaultExpr.get())
-                ->getValueUnsafe();
-        if (literalVal.isNull() &&
-            literalVal.getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
-            literalVal.setDataType(type);
-        }
-        KU_ASSERT(literalVal.getDataType().getLogicalTypeID() != LogicalTypeID::ANY);
-    }
-}
-
 std::vector<PropertyDefinition> Binder::bindPropertyDefinitions(
     const std::vector<ParsedPropertyDefinition>& parsedDefinitions, const std::string& tableName) {
     std::vector<PropertyDefinition> definitions;
-    for (auto& parsedDefinition : parsedDefinitions) {
-        auto type = LogicalType::convertFromString(parsedDefinition.getType(), clientContext);
-        // For default null value, we may need to resolve its data type, as its type may not be
-        // resolved during parsing and thus may be ANY.
-        tryResolvingDataTypeForDefaultNull(parsedDefinition, type);
-        auto expr = parsedDefinition.defaultExpr->copy();
-        // This will check the type correctness of the default value expression
-        auto boundExpr =
-            expressionBinder.implicitCastIfNecessary(expressionBinder.bindExpression(*expr), type);
-        if (type.getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            validateSerialNoDefault(*boundExpr);
-            expr = ParsedExpressionUtils::getSerialDefaultExpr(
-                SequenceCatalogEntry::genSerialName(tableName, parsedDefinition.getName()));
-        }
-        auto columnDefinition = ColumnDefinition(parsedDefinition.getName(), std::move(type));
-        definitions.emplace_back(std::move(columnDefinition), std::move(expr));
+    for (auto& def : parsedDefinitions) {
+        auto type = LogicalType::convertFromString(def.getType(), clientContext);
+        auto defaultExpr =
+            resolvePropertyDefault(def.defaultExpr.get(), type, tableName, def.getName());
+        auto columnDefinition = ColumnDefinition(def.getName(), std::move(type));
+        definitions.emplace_back(std::move(columnDefinition), std::move(defaultExpr));
     }
     validatePropertyName(definitions);
     return definitions;
 }
 
-static void validateNotUDT(const LogicalType& type) {
-    if (!type.isInternalType()) {
-        throw BinderException(ExceptionMessage::invalidPKType(type.toString()));
+std::unique_ptr<parser::ParsedExpression> Binder::resolvePropertyDefault(
+    ParsedExpression* parsedDefault, const common::LogicalType& type, const std::string& tableName,
+    const std::string& propertyName) {
+    if (parsedDefault == nullptr) { // No default provided.
+        if (type.getLogicalTypeID() == LogicalTypeID::SERIAL) {
+            auto serialName = SequenceCatalogEntry::getSerialName(tableName, propertyName);
+            return ParsedExpressionUtils::getSerialDefaultExpr(serialName);
+        } else {
+            return std::make_unique<ParsedLiteralExpression>(Value::createNullValue(type), "NULL");
+        }
+    } else {
+        if (type.getLogicalTypeID() == LogicalTypeID::SERIAL) {
+            throw BinderException("No DEFAULT value should be set for SERIAL columns");
+        }
+        return parsedDefault->copy();
     }
 }
 
@@ -114,7 +92,9 @@ static void validatePrimaryKey(const std::string& pkColName,
             "Primary key " + pkColName + " does not match any of the predefined node properties.");
     }
     const auto& pkType = definitions[primaryKeyIdx].getType();
-    validateNotUDT(pkType);
+    if (!pkType.isInternalType()) {
+        throw BinderException(ExceptionMessage::invalidPKType(pkType.toString()));
+    }
     switch (pkType.getPhysicalType()) {
     case PhysicalTypeID::UINT8:
     case PhysicalTypeID::UINT16:
@@ -394,25 +374,18 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     auto info = alter.getInfo();
     auto extraInfo = info->extraInfo->ptrCast<ExtraAddPropertyInfo>();
     auto tableName = info->tableName;
-    auto dataType = LogicalType::convertFromString(extraInfo->dataType, clientContext);
-    if (extraInfo->defaultValue == nullptr) {
-        extraInfo->defaultValue =
-            std::make_unique<ParsedLiteralExpression>(Value::createNullValue(dataType), "NULL");
-    }
     auto propertyName = extraInfo->propertyName;
-    auto defaultValue = std::move(extraInfo->defaultValue);
-    auto boundDefault = expressionBinder.implicitCastIfNecessary(
-        expressionBinder.bindExpression(*defaultValue), dataType);
-    if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
-        validateSerialNoDefault(*boundDefault);
-        defaultValue = ParsedExpressionUtils::getSerialDefaultExpr(
-            SequenceCatalogEntry::genSerialName(tableName, propertyName));
-        boundDefault = expressionBinder.implicitCastIfNecessary(
-            expressionBinder.bindExpression(*defaultValue), dataType);
+    auto type = LogicalType::convertFromString(extraInfo->dataType, clientContext);
+    auto columnDefinition = ColumnDefinition(propertyName, type.copy());
+    auto defaultExpr =
+        resolvePropertyDefault(extraInfo->defaultValue.get(), type, tableName, propertyName);
+    auto boundDefault = expressionBinder.bindExpression(*defaultExpr);
+    boundDefault = expressionBinder.implicitCastIfNecessary(boundDefault, type);
+    if (ConstantExpressionVisitor::needFold(*boundDefault)) {
+        boundDefault = expressionBinder.foldExpression(boundDefault);
     }
-    auto columnDefinition = ColumnDefinition(propertyName, dataType.copy());
     auto propertyDefinition =
-        PropertyDefinition(std::move(columnDefinition), std::move(defaultValue));
+        PropertyDefinition(std::move(columnDefinition), std::move(defaultExpr));
     auto boundExtraInfo = std::make_unique<BoundExtraAddPropertyInfo>(std::move(propertyDefinition),
         std::move(boundDefault));
     auto boundInfo = BoundAlterInfo(AlterType::ADD_PROPERTY, tableName, std::move(boundExtraInfo),
