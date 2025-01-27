@@ -392,6 +392,12 @@ TEST_F(CompressChunkTest, TestDoubleReadPartialMultiPage) {
 }
 
 TEST_F(CompressChunkTest, TestDoubleReadPartialAtOffsetsIntoValueVector) {
+    static constexpr size_t offsetInResult = 150;
+    static constexpr size_t numValuesToRead = 200;
+    if (DEFAULT_VECTOR_CAPACITY < offsetInResult + numValuesToRead) {
+        GTEST_SKIP();
+    }
+
     std::vector<double> src(512, -5.6);
     src[3] = -1;
     src[4] = -54387589437957.834;
@@ -403,8 +409,6 @@ TEST_F(CompressChunkTest, TestDoubleReadPartialAtOffsetsIntoValueVector) {
                                ChunkState& state, const LogicalType& dataType) {
         common::ValueVector out{LogicalType::DOUBLE()};
 
-        static constexpr size_t offsetInResult = 150;
-        static constexpr size_t numValuesToRead = 200;
         const size_t offsetInSrc = src.size() - numValuesToRead;
 
         reader->readCompressedValuesToVector(transaction, state, &out, offsetInResult, offsetInSrc,
@@ -419,6 +423,11 @@ TEST_F(CompressChunkTest, TestDoubleReadPartialAtOffsetsIntoValueVector) {
 
 TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateNoExceptions) {
     std::vector<double> src(256, 5.6);
+
+    if (DEFAULT_VECTOR_CAPACITY < src.size()) {
+        GTEST_SKIP();
+    }
+
     src[0] = 0;
     src[1] = 123456789012.56;
     for (size_t i = 11; i < src.size(); i += 10) {
