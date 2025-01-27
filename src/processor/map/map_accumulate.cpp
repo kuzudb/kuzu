@@ -8,8 +8,9 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapAccumulate(LogicalOperator* op) {
-    const auto& acc = op->cast<LogicalAccumulate>();
+std::unique_ptr<PhysicalOperator> PlanMapper::mapAccumulate(
+    const LogicalOperator* logicalOperator) {
+    const auto& acc = logicalOperator->constCast<LogicalAccumulate>();
     auto outSchema = acc.getSchema();
     auto inSchema = acc.getChild(0)->getSchema();
     auto prevOperator = mapOperator(acc.getChild(0).get());

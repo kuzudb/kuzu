@@ -9,13 +9,13 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyTo(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyTo(const LogicalOperator* logicalOperator) {
     auto& logicalCopyTo = logicalOperator->constCast<LogicalCopyTo>();
     auto childSchema = logicalOperator->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     std::vector<DataPos> vectorsToCopyPos;
     std::vector<bool> isFlat;
-    std::vector<common::LogicalType> types;
+    std::vector<LogicalType> types;
     for (auto& expression : childSchema->getExpressionsInScope()) {
         vectorsToCopyPos.emplace_back(childSchema->getExpressionPos(*expression));
         isFlat.push_back(childSchema->getGroup(expression)->isFlat());

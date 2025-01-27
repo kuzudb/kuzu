@@ -9,7 +9,7 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapStandaloneCall(
-    planner::LogicalOperator* logicalOperator) {
+    const LogicalOperator* logicalOperator) {
     auto logicalStandaloneCall = logicalOperator->constPtrCast<LogicalStandaloneCall>();
     auto optionValue =
         logicalStandaloneCall->getOptionValue()->constPtrCast<binder::LiteralExpression>();

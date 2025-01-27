@@ -6,7 +6,7 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapEmptyResult(LogicalOperator*) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapEmptyResult(const LogicalOperator*) {
     auto printInfo = std::make_unique<OPPrintInfo>();
     return std::make_unique<EmptyResult>(getOperatorID(), std::move(printInfo));
 }

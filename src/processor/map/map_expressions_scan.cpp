@@ -10,7 +10,8 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapExpressionsScan(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapExpressionsScan(
+    const LogicalOperator* logicalOperator) {
     auto& expressionsScan = logicalOperator->constCast<LogicalExpressionsScan>();
     auto outerAccumulate = expressionsScan.getOuterAccumulate()->ptrCast<LogicalAccumulate>();
     expression_map<ft_col_idx_t> materializedExpressionToColIdx;
@@ -29,7 +30,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExpressionsScan(LogicalOperator
     auto physicalOp = logicalOpToPhysicalOpMap.at(outerAccumulate);
     KU_ASSERT(physicalOp->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL);
     KU_ASSERT(physicalOp->getChild(0)->getOperatorType() == PhysicalOperatorType::RESULT_COLLECTOR);
-    auto resultCollector = (ResultCollector*)physicalOp->getChild(0);
+    auto resultCollector = physicalOp->getChild(0)->ptrCast<ResultCollector>();
     auto table = resultCollector->getResultFactorizedTable();
     return createFTableScan(expressionsToScan, colIndicesToScan, schema, table,
         DEFAULT_VECTOR_CAPACITY /* maxMorselSize */);

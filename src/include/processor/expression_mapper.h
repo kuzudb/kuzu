@@ -20,16 +20,16 @@ public:
         std::shared_ptr<binder::Expression> expression);
 
 private:
-    std::unique_ptr<evaluator::ExpressionEvaluator> getLiteralEvaluator(
+    static std::unique_ptr<evaluator::ExpressionEvaluator> getLiteralEvaluator(
         std::shared_ptr<binder::Expression> expression);
 
-    std::unique_ptr<evaluator::ExpressionEvaluator> getParameterEvaluator(
+    static std::unique_ptr<evaluator::ExpressionEvaluator> getParameterEvaluator(
         std::shared_ptr<binder::Expression> expression);
 
     std::unique_ptr<evaluator::ExpressionEvaluator> getReferenceEvaluator(
-        std::shared_ptr<binder::Expression> expression);
+        std::shared_ptr<binder::Expression> expression) const;
 
-    std::unique_ptr<evaluator::ExpressionEvaluator> getLambdaParamEvaluator(
+    static std::unique_ptr<evaluator::ExpressionEvaluator> getLambdaParamEvaluator(
         std::shared_ptr<binder::Expression> expression);
 
     std::unique_ptr<evaluator::ExpressionEvaluator> getCaseEvaluator(

@@ -7,7 +7,7 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapMultiplicityReducer(
-    LogicalOperator* logicalOperator) {
+    const LogicalOperator* logicalOperator) {
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto printInfo = std::make_unique<OPPrintInfo>();
     return std::make_unique<MultiplicityReducer>(std::move(prevOperator), getOperatorID(),

@@ -11,29 +11,29 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(const Schema& buildSchema,
+std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(const Schema& buildSideSchema,
     const expression_vector& keys, const expression_vector& payloads) {
-    planner::f_group_pos_set keyGroupPosSet;
+    f_group_pos_set keyGroupPosSet;
     std::vector<DataPos> keysPos;
     std::vector<FStateType> fStateTypes;
     std::vector<DataPos> payloadsPos;
     auto tableSchema = FactorizedTableSchema();
     for (auto& key : keys) {
-        auto pos = DataPos(buildSchema.getExpressionPos(*key));
+        auto pos = DataPos(buildSideSchema.getExpressionPos(*key));
         keyGroupPosSet.insert(pos.dataChunkPos);
         // Keys are always stored in flat column.
         auto columnSchema = ColumnSchema(false /* isUnFlat */, pos.dataChunkPos,
             LogicalTypeUtils::getRowLayoutSize(key->dataType));
         tableSchema.appendColumn(std::move(columnSchema));
         keysPos.push_back(pos);
-        fStateTypes.push_back(buildSchema.getGroup(pos.dataChunkPos)->isFlat() ?
+        fStateTypes.push_back(buildSideSchema.getGroup(pos.dataChunkPos)->isFlat() ?
                                   FStateType::FLAT :
                                   FStateType::UNFLAT);
     }
     for (auto& payload : payloads) {
-        auto pos = DataPos(buildSchema.getExpressionPos(*payload));
+        auto pos = DataPos(buildSideSchema.getExpressionPos(*payload));
         if (keyGroupPosSet.contains(pos.dataChunkPos) ||
-            buildSchema.getGroup(pos.dataChunkPos)->isFlat()) {
+            buildSideSchema.getGroup(pos.dataChunkPos)->isFlat()) {
             // Payloads need to be stored in flat column in 2 cases
             // 1. payload is in the same chunk as a key. Since keys are always stored as flat,
             // payloads must also be stored as flat.
@@ -42,8 +42,8 @@ std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(const Schema&
                 LogicalTypeUtils::getRowLayoutSize(payload->dataType));
             tableSchema.appendColumn(std::move(columnSchema));
         } else {
-            auto columnSchema = ColumnSchema(true /* isUnFlat */, pos.dataChunkPos,
-                (uint32_t)sizeof(overflow_value_t));
+            auto columnSchema =
+                ColumnSchema(true /* isUnFlat */, pos.dataChunkPos, sizeof(overflow_value_t));
             tableSchema.appendColumn(std::move(columnSchema));
         }
         payloadsPos.push_back(pos);
@@ -58,8 +58,8 @@ std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(const Schema&
         std::move(payloadsPos), std::move(tableSchema));
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logicalOperator) {
-    auto hashJoin = (LogicalHashJoin*)logicalOperator;
+std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(const LogicalOperator* logicalOperator) {
+    auto hashJoin = logicalOperator->constPtrCast<LogicalHashJoin>();
     auto outSchema = hashJoin->getSchema();
     auto buildSchema = hashJoin->getChild(1)->getSchema();
     std::unique_ptr<PhysicalOperator> probeSidePrevOperator;

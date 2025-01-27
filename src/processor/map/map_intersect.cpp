@@ -11,8 +11,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapIntersect(LogicalOperator* logicalOperator) {
-    auto logicalIntersect = (LogicalIntersect*)logicalOperator;
+std::unique_ptr<PhysicalOperator> PlanMapper::mapIntersect(const LogicalOperator* logicalOperator) {
+    auto logicalIntersect = logicalOperator->constPtrCast<LogicalIntersect>();
     auto intersectNodeID = logicalIntersect->getIntersectNodeID();
     auto outSchema = logicalIntersect->getSchema();
     std::vector<std::unique_ptr<PhysicalOperator>> children;
@@ -26,7 +26,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIntersect(LogicalOperator* logi
         auto buildSchema = logicalIntersect->getChild(i)->getSchema();
         auto buildPrevOperator = mapOperator(logicalIntersect->getChild(i).get());
         auto payloadExpressions =
-            binder::ExpressionUtil::excludeExpressions(buildSchema->getExpressionsInScope(), keys);
+            ExpressionUtil::excludeExpressions(buildSchema->getExpressionsInScope(), keys);
         auto buildInfo = createHashBuildInfo(*buildSchema, keys, payloadExpressions);
         auto globalHashTable = std::make_unique<JoinHashTable>(*clientContext->getMemoryManager(),
             ExpressionUtil::getDataTypes(keys), buildInfo->getTableSchema()->copy());
@@ -38,7 +38,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIntersect(LogicalOperator* logi
             std::move(buildPrevOperator), getOperatorID(), std::move(printInfo));
         // Collect intersect info
         std::vector<DataPos> vectorsToScanPos;
-        auto expressionsToScan = binder::ExpressionUtil::excludeExpressions(
+        auto expressionsToScan = ExpressionUtil::excludeExpressions(
             buildSchema->getExpressionsInScope(), {keyNodeID, intersectNodeID});
         for (auto& expression : expressionsToScan) {
             vectorsToScanPos.emplace_back(outSchema->getExpressionPos(*expression));

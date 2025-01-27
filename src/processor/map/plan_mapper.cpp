@@ -25,7 +25,7 @@ std::unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(const Logical
     return physicalPlan;
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(const LogicalOperator* logicalOperator) {
     std::unique_ptr<PhysicalOperator> physicalOperator;
     switch (logicalOperator->getOperatorType()) {
     case LogicalOperatorType::ACCUMULATE: {

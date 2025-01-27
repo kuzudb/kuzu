@@ -54,7 +54,7 @@ public:
     // keep probe side key unflat only when we know that there is only 0 or 1 match for each key.
     // TODO(Guodong): when the build side has only flat payloads, we should consider getting rid of
     // flattening probe key, instead duplicating keys as in vectorized processing if necessary.
-    bool requireFlatProbeKeys();
+    bool requireFlatProbeKeys() const;
 
     static bool isNodeIDOnlyJoin(const std::vector<join_condition_t>& joinConditions);
 

@@ -5,7 +5,7 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-static PhysicalOperator* getTableScan(PhysicalOperator* joinRoot) {
+static PhysicalOperator* getTableScan(const PhysicalOperator* joinRoot) {
     auto op = joinRoot->getChild(0);
     while (op->getOperatorType() != PhysicalOperatorType::TABLE_FUNCTION_CALL) {
         KU_ASSERT(op->getNumChildren() != 0);
@@ -14,7 +14,7 @@ static PhysicalOperator* getTableScan(PhysicalOperator* joinRoot) {
     return op;
 }
 
-void PlanMapper::mapSIPJoin(kuzu::processor::PhysicalOperator* joinRoot) {
+void PlanMapper::mapSIPJoin(PhysicalOperator* joinRoot) {
     auto tableScan = getTableScan(joinRoot);
     auto resultCollector = tableScan->moveUnaryChild();
     joinRoot->addChild(std::move(resultCollector));

@@ -7,7 +7,8 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapTransaction(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapTransaction(
+    const LogicalOperator* logicalOperator) {
     auto& logicalTransaction = logicalOperator->constCast<LogicalTransaction>();
     auto printInfo =
         std::make_unique<TransactionPrintInfo>(logicalTransaction.getTransactionAction());

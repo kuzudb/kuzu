@@ -74,8 +74,8 @@ static std::vector<AggregateFunction> getAggFunctions(const expression_vector& a
     return aggregateFunctions;
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(LogicalOperator* logicalOperator) {
-    auto& agg = logicalOperator->cast<LogicalAggregate>();
+std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(const LogicalOperator* logicalOperator) {
+    auto& agg = logicalOperator->constCast<LogicalAggregate>();
     auto aggregates = agg.getAggregates();
     auto outSchema = agg.getSchema();
     auto child = agg.getChild(0).get();
@@ -99,7 +99,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(LogicalOperator* logi
 
 static FactorizedTableSchema getFactorizedTableSchema(const expression_vector& flatKeys,
     const expression_vector& unFlatKeys, const expression_vector& payloads,
-    std::vector<function::AggregateFunction>& aggregateFunctions) {
+    const std::vector<AggregateFunction>& aggregateFunctions) {
     auto isUnFlat = false;
     auto groupID = 0u;
     auto tableSchema = FactorizedTableSchema();

@@ -19,7 +19,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-static column_id_t getColumnID(const catalog::TableCatalogEntry& entry,
+static column_id_t getColumnID(const TableCatalogEntry& entry,
     const PropertyExpression& propertyExpr) {
     auto columnID = INVALID_COLUMN_ID;
     if (propertyExpr.hasProperty(entry.getTableID())) {
@@ -83,7 +83,7 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapSetProperty(
-    planner::LogicalOperator* logicalOperator) {
+    const LogicalOperator* logicalOperator) {
     auto set = logicalOperator->constPtrCast<LogicalSetProperty>();
     switch (set->getTableType()) {
     case TableType::NODE: {
@@ -97,7 +97,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSetProperty(
     }
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapSetNodeProperty(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapSetNodeProperty(
+    const LogicalOperator* logicalOperator) {
     auto set = logicalOperator->constPtrCast<LogicalSetProperty>();
     auto inSchema = set->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
@@ -144,7 +145,8 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(const BoundSetProp
     return std::make_unique<SingleLabelRelSetExecutor>(std::move(info), std::move(tableInfo));
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapSetRelProperty(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapSetRelProperty(
+    const LogicalOperator* logicalOperator) {
     auto set = logicalOperator->constPtrCast<LogicalSetProperty>();
     auto inSchema = set->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());

@@ -7,7 +7,7 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapFlatten(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapFlatten(const LogicalOperator* logicalOperator) {
     auto& flatten = logicalOperator->constCast<LogicalFlatten>();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     // todo (Xiyang): add print info for flatten

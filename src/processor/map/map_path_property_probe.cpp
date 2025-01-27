@@ -21,7 +21,7 @@ static std::pair<std::vector<struct_field_idx_t>, std::vector<ft_col_idx_t>> get
     std::unordered_map<std::string, ft_col_idx_t> propertyNameToColumnIdx;
     for (auto i = 0u; i < payloads.size(); ++i) {
         KU_ASSERT(payloads[i]->expressionType == ExpressionType::PROPERTY);
-        auto propertyName = ((PropertyExpression*)payloads[i].get())->getPropertyName();
+        auto propertyName = payloads[i]->ptrCast<PropertyExpression>()->getPropertyName();
         StringUtils::toUpper(propertyName);
         propertyNameToColumnIdx.insert({propertyName, i + numKeys});
     }
@@ -40,14 +40,14 @@ static std::pair<std::vector<struct_field_idx_t>, std::vector<ft_col_idx_t>> get
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
-    planner::LogicalOperator* logicalOperator) {
+    const LogicalOperator* logicalOperator) {
     auto& logicalProbe = logicalOperator->constCast<LogicalPathPropertyProbe>();
     if (logicalProbe.getJoinType() == RecursiveJoinType::TRACK_NONE) {
         return mapOperator(logicalProbe.getChild(0).get());
     }
     auto rel = logicalProbe.getRel();
     auto recursiveInfo = rel->getRecursiveInfo();
-    std::vector<common::struct_field_idx_t> nodeFieldIndices;
+    std::vector<struct_field_idx_t> nodeFieldIndices;
     std::vector<ft_col_idx_t> nodeTableColumnIndices;
     std::shared_ptr<HashJoinSharedState> nodeBuildSharedState = nullptr;
     std::unique_ptr<HashJoinBuild> nodeBuild = nullptr;
@@ -73,7 +73,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
         nodeFieldIndices = std::move(fieldIndices);
         nodeTableColumnIndices = std::move(columnIndices);
     }
-    std::vector<common::struct_field_idx_t> relFieldIndices;
+    std::vector<struct_field_idx_t> relFieldIndices;
     std::vector<ft_col_idx_t> relTableColumnIndices;
     std::shared_ptr<HashJoinSharedState> relBuildSharedState = nullptr;
     std::unique_ptr<HashJoinBuild> relBuild = nullptr;
@@ -129,7 +129,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
         pathProbeInfo.inputEdgeIDsPos = getDataPos(*logicalProbe.getPathEdgeIDs(), *schema);
         pathProbeInfo.extendFromLeft = logicalProbe.extendFromLeft;
         pathProbeInfo.extendDirection = logicalProbe.direction;
-        if (logicalProbe.direction == common::ExtendDirection::BOTH) {
+        if (logicalProbe.direction == ExtendDirection::BOTH) {
             pathProbeInfo.directionPos =
                 getDataPos(*recursiveInfo->pathEdgeDirectionsExpr, *schema);
         }
@@ -160,7 +160,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
     auto printInfo = std::make_unique<OPPrintInfo>();
     auto pathPropertyProbe = std::make_unique<PathPropertyProbe>(std::move(pathProbeInfo),
         pathProbeSharedState, std::move(children), getOperatorID(), std::move(printInfo));
-    if (logicalProbe.getSIPInfo().direction == planner::SIPDirection::PROBE_TO_BUILD) {
+    if (logicalProbe.getSIPInfo().direction == SIPDirection::PROBE_TO_BUILD) {
         mapSIPJoin(pathPropertyProbe.get());
     }
     return pathPropertyProbe;

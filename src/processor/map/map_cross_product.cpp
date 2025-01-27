@@ -8,7 +8,8 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapCrossProduct(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCrossProduct(
+    const LogicalOperator* logicalOperator) {
     auto& logicalCrossProduct = logicalOperator->constCast<LogicalCrossProduct>();
     auto outSchema = logicalCrossProduct.getSchema();
     auto buildChild = logicalCrossProduct.getChild(1);
