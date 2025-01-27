@@ -19,7 +19,6 @@ private:
     void replayCreateCatalogEntryRecord(const WALRecord& walRecord) const;
     void replayDropCatalogEntryRecord(const WALRecord& walRecord) const;
     void replayAlterTableEntryRecord(const WALRecord& walRecord) const;
-    void replayAlterRelGroupEntryRecord(const WALRecord& walRecord) const;
     void replayTableInsertionRecord(const WALRecord& walRecord) const;
     void replayNodeDeletionRecord(const WALRecord& walRecord) const;
     void replayNodeUpdateRecord(const WALRecord& walRecord) const;
