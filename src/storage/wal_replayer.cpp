@@ -81,6 +81,9 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) const {
     case WALRecordType::CREATE_CATALOG_ENTRY_RECORD: {
         replayCreateCatalogEntryRecord(walRecord);
     } break;
+    case WALRecordType::DROP_CATALOG_ENTRY_RECORD: {
+        replayDropCatalogEntryRecord(walRecord);
+    } break;
     case WALRecordType::TABLE_INSERTION_RECORD: {
         replayTableInsertionRecord(walRecord);
     } break;
@@ -102,14 +105,8 @@ void WALReplayer::replayWALRecord(const WALRecord& walRecord) const {
     case WALRecordType::COPY_TABLE_RECORD: {
         replayCopyTableRecord(walRecord);
     } break;
-    case WALRecordType::DROP_CATALOG_ENTRY_RECORD: {
-        replayDropCatalogEntryRecord(walRecord);
-    } break;
     case WALRecordType::ALTER_TABLE_ENTRY_RECORD: {
         replayAlterTableEntryRecord(walRecord);
-    } break;
-    case WALRecordType::ALTER_REL_GROUP_ENTRY_RECORD: {
-        replayAlterRelGroupEntryRecord(walRecord);
     } break;
     case WALRecordType::UPDATE_SEQUENCE_RECORD: {
         replayUpdateSequenceRecord(walRecord);
@@ -189,13 +186,6 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) const
         KU_UNREACHABLE;
     }
     }
-}
-
-void WALReplayer::replayAlterRelGroupEntryRecord(const WALRecord& walRecord) const {
-    auto binder = Binder(&clientContext);
-    auto& alterEntryRecord = walRecord.constCast<AlterTableEntryRecord>();
-    clientContext.getCatalog()->alterRelGroupEntry(clientContext.getTransaction(),
-        *alterEntryRecord.ownedAlterInfo);
 }
 
 void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const {

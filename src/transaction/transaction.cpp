@@ -168,7 +168,7 @@ void Transaction::pushAlterCatalogEntry(CatalogSet& catalogSet, CatalogEntry& ca
     }
     const auto wal = clientContext->getWAL();
     KU_ASSERT(wal);
-    wal->logAlterTableEntryRecord(&alterInfo);
+    wal->logAlterCatalogEntryRecord(&alterInfo);
 }
 
 void Transaction::pushSequenceChange(SequenceCatalogEntry* sequenceEntry, int64_t kCount,

@@ -18,9 +18,9 @@ void WALRecord::serialize(Serializer& serializer) const {
 }
 
 std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer,
-    main::ClientContext& clientContext) {
+    const main::ClientContext& clientContext) {
     std::string key;
-    WALRecordType type = WALRecordType::INVALID_RECORD;
+    auto type = WALRecordType::INVALID_RECORD;
     deserializer.validateDebuggingInfo(key, "type");
     deserializer.deserializeValue(type);
     std::unique_ptr<WALRecord> walRecord;
@@ -240,20 +240,6 @@ std::unique_ptr<AlterTableEntryRecord> AlterTableEntryRecord::deserialize(
     return retval;
 }
 
-void AlterRelGroupEntryRecord::serialize(Serializer& serializer) const {
-    WALRecord::serialize(serializer);
-    serializeAlterExtraInfo(serializer, alterInfo);
-}
-
-std::unique_ptr<AlterRelGroupEntryRecord> AlterRelGroupEntryRecord::deserialize(
-    Deserializer& deserializer) {
-    auto [alterType, tableName, extraInfo] = deserializeAlterRecord(deserializer);
-    auto retval = std::make_unique<AlterRelGroupEntryRecord>();
-    retval->ownedAlterInfo =
-        std::make_unique<BoundAlterInfo>(alterType, tableName, std::move(extraInfo));
-    return retval;
-}
-
 void UpdateSequenceRecord::serialize(Serializer& serializer) const {
     WALRecord::serialize(serializer);
     serializer.write(sequenceID);
@@ -284,7 +270,7 @@ void TableInsertionRecord::serialize(Serializer& serializer) const {
 }
 
 std::unique_ptr<TableInsertionRecord> TableInsertionRecord::deserialize(Deserializer& deserializer,
-    main::ClientContext& clientContext) {
+    const main::ClientContext& clientContext) {
     std::string key;
     table_id_t tableID = INVALID_TABLE_ID;
     auto tableType = TableType::UNKNOWN;
@@ -320,7 +306,7 @@ void NodeDeletionRecord::serialize(Serializer& serializer) const {
 }
 
 std::unique_ptr<NodeDeletionRecord> NodeDeletionRecord::deserialize(Deserializer& deserializer,
-    main::ClientContext& clientContext) {
+    const main::ClientContext& clientContext) {
     std::string key;
     table_id_t tableID = INVALID_TABLE_ID;
     offset_t nodeOffset = INVALID_OFFSET;
@@ -349,7 +335,7 @@ void NodeUpdateRecord::serialize(Serializer& serializer) const {
 }
 
 std::unique_ptr<NodeUpdateRecord> NodeUpdateRecord::deserialize(Deserializer& deserializer,
-    main::ClientContext& clientContext) {
+    const main::ClientContext& clientContext) {
     std::string key;
     table_id_t tableID = INVALID_TABLE_ID;
     column_id_t columnID = INVALID_COLUMN_ID;
@@ -382,7 +368,7 @@ void RelDeletionRecord::serialize(Serializer& serializer) const {
 }
 
 std::unique_ptr<RelDeletionRecord> RelDeletionRecord::deserialize(Deserializer& deserializer,
-    main::ClientContext& clientContext) {
+    const main::ClientContext& clientContext) {
     std::string key;
     table_id_t tableID = INVALID_TABLE_ID;
 
@@ -413,7 +399,7 @@ void RelDetachDeleteRecord::serialize(Serializer& serializer) const {
 }
 
 std::unique_ptr<RelDetachDeleteRecord> RelDetachDeleteRecord::deserialize(
-    Deserializer& deserializer, main::ClientContext& clientContext) {
+    Deserializer& deserializer, const main::ClientContext& clientContext) {
     std::string key;
     table_id_t tableID = INVALID_TABLE_ID;
     auto direction = RelDataDirection::INVALID;
@@ -446,7 +432,7 @@ void RelUpdateRecord::serialize(Serializer& serializer) const {
 }
 
 std::unique_ptr<RelUpdateRecord> RelUpdateRecord::deserialize(Deserializer& deserializer,
-    main::ClientContext& clientContext) {
+    const main::ClientContext& clientContext) {
     std::string key;
     table_id_t tableID = INVALID_TABLE_ID;
     column_id_t columnID = INVALID_COLUMN_ID;

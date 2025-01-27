@@ -28,7 +28,6 @@ enum class WALRecordType : uint8_t {
     DROP_CATALOG_ENTRY_RECORD = 16,
     ALTER_TABLE_ENTRY_RECORD = 17,
     UPDATE_SEQUENCE_RECORD = 18,
-    ALTER_REL_GROUP_ENTRY_RECORD = 19,
     TABLE_INSERTION_RECORD = 30,
     NODE_DELETION_RECORD = 31,
     NODE_UDPATE_RECORD = 32,
@@ -48,7 +47,7 @@ struct WALRecord {
 
     virtual void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<WALRecord> deserialize(common::Deserializer& deserializer,
-        main::ClientContext& clientContext);
+        const main::ClientContext& clientContext);
 
     template<class TARGET>
     const TARGET& constCast() const {
@@ -140,20 +139,6 @@ struct AlterTableEntryRecord final : WALRecord {
     static std::unique_ptr<AlterTableEntryRecord> deserialize(common::Deserializer& deserializer);
 };
 
-struct AlterRelGroupEntryRecord final : WALRecord {
-    const binder::BoundAlterInfo* alterInfo;
-    std::unique_ptr<binder::BoundAlterInfo> ownedAlterInfo;
-
-    AlterRelGroupEntryRecord()
-        : WALRecord{WALRecordType::ALTER_REL_GROUP_ENTRY_RECORD}, alterInfo{nullptr} {}
-    explicit AlterRelGroupEntryRecord(const binder::BoundAlterInfo* alterInfo)
-        : WALRecord{WALRecordType::ALTER_REL_GROUP_ENTRY_RECORD}, alterInfo{alterInfo} {}
-
-    void serialize(common::Serializer& serializer) const override;
-    static std::unique_ptr<AlterRelGroupEntryRecord> deserialize(
-        common::Deserializer& deserializer);
-};
-
 struct UpdateSequenceRecord final : WALRecord {
     common::sequence_id_t sequenceID;
     uint64_t kCount;
@@ -189,7 +174,7 @@ struct TableInsertionRecord final : WALRecord {
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<TableInsertionRecord> deserialize(common::Deserializer& deserializer,
-        main::ClientContext& clientContext);
+        const main::ClientContext& clientContext);
 };
 
 struct NodeDeletionRecord final : WALRecord {
@@ -212,7 +197,7 @@ struct NodeDeletionRecord final : WALRecord {
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<NodeDeletionRecord> deserialize(common::Deserializer& deserializer,
-        main::ClientContext& clientContext);
+        const main::ClientContext& clientContext);
 };
 
 struct NodeUpdateRecord final : WALRecord {
@@ -238,7 +223,7 @@ struct NodeUpdateRecord final : WALRecord {
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<NodeUpdateRecord> deserialize(common::Deserializer& deserializer,
-        main::ClientContext& clientContext);
+        const main::ClientContext& clientContext);
 };
 
 struct RelDeletionRecord final : WALRecord {
@@ -270,7 +255,7 @@ struct RelDeletionRecord final : WALRecord {
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<RelDeletionRecord> deserialize(common::Deserializer& deserializer,
-        main::ClientContext& clientContext);
+        const main::ClientContext& clientContext);
 };
 
 struct RelDetachDeleteRecord final : WALRecord {
@@ -294,7 +279,7 @@ struct RelDetachDeleteRecord final : WALRecord {
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<RelDetachDeleteRecord> deserialize(common::Deserializer& deserializer,
-        main::ClientContext& clientContext);
+        const main::ClientContext& clientContext);
 };
 
 struct RelUpdateRecord final : WALRecord {
@@ -333,7 +318,7 @@ struct RelUpdateRecord final : WALRecord {
 
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<RelUpdateRecord> deserialize(common::Deserializer& deserializer,
-        main::ClientContext& clientContext);
+        const main::ClientContext& clientContext);
 };
 
 } // namespace storage

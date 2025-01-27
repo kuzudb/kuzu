@@ -191,11 +191,17 @@ void CatalogSet::alterTableEntry(const Transaction* transaction,
                 true /* skipLoggingToWAL */);
         }
     } break;
-    default: {
+    case AlterType::COMMENT:
+    case AlterType::ADD_PROPERTY:
+    case AlterType::DROP_PROPERTY:
+    case AlterType::RENAME_PROPERTY: {
         emplaceNoLock(std::move(newEntry));
         if (transaction->shouldAppendToUndoBuffer()) {
             transaction->pushAlterCatalogEntry(*this, *entry, alterInfo);
         }
+    } break;
+    default: {
+        KU_UNREACHABLE;
     }
     }
 }
