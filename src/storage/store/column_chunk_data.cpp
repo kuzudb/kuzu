@@ -689,6 +689,13 @@ void BoolChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     updateInMemoryStats(inMemoryStats, srcChunk, srcOffsetInChunk, numValuesToCopy);
 }
 
+NullMask NullChunkData::getNullMask() const {
+    return common::NullMask(
+        std::span(getData<uint64_t>(),
+            common::ceilDiv(capacity, common::NullMask::NUM_BITS_PER_NULL_ENTRY)),
+        !noNullsGuaranteedInMem());
+}
+
 void NullChunkData::setNull(offset_t pos, bool isNull) {
     setValue(isNull, pos);
     // TODO(Guodong): Better let NullChunkData also support `append` a
