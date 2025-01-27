@@ -9,7 +9,7 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapTableFunctionCall(
-    LogicalOperator* logicalOperator) {
+    const LogicalOperator* logicalOperator) {
     auto& call = logicalOperator->constCast<LogicalTableFunctionCall>();
     std::vector<DataPos> outPosV;
     auto outSchema = call.getSchema();

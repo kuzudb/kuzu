@@ -8,7 +8,7 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapDistinct(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapDistinct(const LogicalOperator* logicalOperator) {
     auto distinct = logicalOperator->constPtrCast<LogicalDistinct>();
     auto child = distinct->getChild(0).get();
     auto outSchema = distinct->getSchema();

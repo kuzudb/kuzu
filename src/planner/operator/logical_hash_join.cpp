@@ -51,8 +51,7 @@ void LogicalHashJoin::computeFactorizedSchema() {
         binder::expression_vector expressionsToMaterializeInNonKeyGroups;
         for (auto groupIdx = 0u; groupIdx < buildSchema->getNumGroups(); ++groupIdx) {
             auto expressions = buildSchema->getExpressionsInScope(groupIdx);
-            bool isKeyGroup = buildToProbeKeyGroupPositionMap.contains(groupIdx);
-            if (isKeyGroup) { // merge key group
+            if (buildToProbeKeyGroupPositionMap.contains(groupIdx)) { // merge key group
                 auto probeKeyGroupPos = buildToProbeKeyGroupPositionMap.at(groupIdx);
                 for (auto& expression : expressions) {
                     // Join key may repeat for internal ID based joins
@@ -166,7 +165,7 @@ binder::expression_vector LogicalHashJoin::getJoinNodeIDs(
 
 class JoinNodeIDUniquenessAnalyzer {
 public:
-    static bool isUnique(LogicalOperator* op, const binder::Expression& joinNodeID) {
+    static bool isUnique(const LogicalOperator* op, const binder::Expression& joinNodeID) {
         switch (op->getOperatorType()) {
         case LogicalOperatorType::FILTER:
         case LogicalOperatorType::FLATTEN:
@@ -182,7 +181,7 @@ public:
     }
 };
 
-bool LogicalHashJoin::requireFlatProbeKeys() {
+bool LogicalHashJoin::requireFlatProbeKeys() const {
     // Flatten for multiple join keys.
     if (joinConditions.size() > 1) {
         return true;

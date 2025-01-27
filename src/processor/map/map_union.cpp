@@ -8,7 +8,7 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapUnionAll(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapUnionAll(const LogicalOperator* logicalOperator) {
     auto& logicalUnionAll = logicalOperator->constCast<LogicalUnion>();
     auto outSchema = logicalUnionAll.getSchema();
     // append result collectors to each child

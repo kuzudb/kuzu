@@ -11,7 +11,7 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-static void initMask(common::table_id_map_t<mask_vector>& masksPerTable, mask_vector masks) {
+static void initMask(table_id_map_t<mask_vector>& masksPerTable, mask_vector masks) {
     for (auto& mask : masks) {
         auto tableID = mask->getTableID();
         mask->enable();
@@ -19,12 +19,13 @@ static void initMask(common::table_id_map_t<mask_vector>& masksPerTable, mask_ve
     }
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* logicalOperator) {
-    const auto& semiMasker = logicalOperator->cast<LogicalSemiMasker>();
+std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(
+    const LogicalOperator* logicalOperator) {
+    const auto& semiMasker = logicalOperator->constCast<LogicalSemiMasker>();
     const auto inSchema = semiMasker.getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     const auto tableIDs = semiMasker.getNodeTableIDs();
-    common::table_id_map_t<mask_vector> masksPerTable;
+    table_id_map_t<mask_vector> masksPerTable;
     for (auto tableID : tableIDs) {
         masksPerTable.insert({tableID, std::vector<RoaringBitmapSemiMask*>{}});
     }

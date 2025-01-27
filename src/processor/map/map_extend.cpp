@@ -85,7 +85,7 @@ static bool scanSingleRelTable(const RelExpression& rel, const NodeExpression& b
            extendDirection != ExtendDirection::BOTH;
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(const LogicalOperator* logicalOperator) {
     auto extend = logicalOperator->constPtrCast<LogicalExtend>();
     auto outFSchema = extend->getSchema();
     auto inFSchema = extend->getChild(0)->getSchema();

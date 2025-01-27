@@ -8,7 +8,8 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapProjection(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapProjection(
+    const LogicalOperator* logicalOperator) {
     auto& logicalProjection = logicalOperator->constCast<LogicalProjection>();
     auto outSchema = logicalProjection.getSchema();
     auto inSchema = logicalProjection.getChild(0)->getSchema();

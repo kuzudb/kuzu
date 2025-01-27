@@ -24,7 +24,7 @@ static FactorizedTableSchema getFactorizedTableSchema(const binder::expression_v
     return tableSchema;
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapMerge(planner::LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapMerge(const LogicalOperator* logicalOperator) {
     auto& logicalMerge = logicalOperator->constCast<LogicalMerge>();
     auto outSchema = logicalMerge.getSchema();
     auto inSchema = logicalMerge.getChild(0)->getSchema();

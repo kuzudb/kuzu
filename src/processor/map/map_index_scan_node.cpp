@@ -9,7 +9,8 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapIndexLookup(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapIndexLookup(
+    const LogicalOperator* logicalOperator) {
     auto& logicalIndexScan = logicalOperator->constCast<LogicalPrimaryKeyLookup>();
     auto outSchema = logicalIndexScan.getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());

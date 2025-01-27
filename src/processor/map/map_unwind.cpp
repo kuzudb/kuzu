@@ -10,7 +10,7 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapUnwind(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapUnwind(const LogicalOperator* logicalOperator) {
     auto& unwind = logicalOperator->constCast<LogicalUnwind>();
     auto outSchema = unwind.getSchema();
     auto inSchema = unwind.getChild(0)->getSchema();

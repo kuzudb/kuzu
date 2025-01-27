@@ -8,7 +8,7 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapFilter(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapFilter(const LogicalOperator* logicalOperator) {
     auto& logicalFilter = logicalOperator->constCast<LogicalFilter>();
     auto inSchema = logicalFilter.getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());

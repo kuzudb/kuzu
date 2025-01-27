@@ -12,7 +12,7 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(const LogicalOperator* logicalOperator) {
     auto& logicalOrderBy = logicalOperator->constCast<LogicalOrderBy>();
     auto outSchema = logicalOrderBy.getSchema();
     auto inSchema = logicalOrderBy.getChild(0)->getSchema();

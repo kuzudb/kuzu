@@ -9,7 +9,7 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLimit(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLimit(const LogicalOperator* logicalOperator) {
     auto& logicalLimit = logicalOperator->constCast<LogicalLimit>();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto dataChunkToSelectPos = logicalLimit.getGroupPosToSelect();

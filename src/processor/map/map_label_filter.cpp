@@ -7,7 +7,8 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapNodeLabelFilter(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapNodeLabelFilter(
+    const LogicalOperator* logicalOperator) {
     auto& logicalLabelFilter = logicalOperator->constCast<LogicalNodeLabelFilter>();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto schema = logicalOperator->getSchema();

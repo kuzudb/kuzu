@@ -14,7 +14,8 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(
+    const LogicalOperator* logicalOperator) {
     auto catalog = clientContext->getCatalog();
     auto storageManager = clientContext->getStorageManager();
     auto transaction = clientContext->getTransaction();
@@ -57,7 +58,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* 
             std::move(sharedStates), getOperatorID(), std::move(printInfo), progressSharedState);
     }
     case LogicalScanNodeTableType::OFFSET_SCAN: {
-        common::table_id_map_t<ScanNodeTableInfo> tableInfosMap;
+        table_id_map_t<ScanNodeTableInfo> tableInfosMap;
         for (auto& info : tableInfos) {
             tableInfosMap.insert({info.table->getTableID(), info.copy()});
         }

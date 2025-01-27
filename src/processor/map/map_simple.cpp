@@ -29,7 +29,7 @@ static DataPos getOutputPos(const LogicalSimple* logicalSimple) {
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapUseDatabase(
-    planner::LogicalOperator* logicalOperator) {
+    const LogicalOperator* logicalOperator) {
     auto useDatabase = logicalOperator->constPtrCast<LogicalUseDatabase>();
     auto printInfo = std::make_unique<UseDatabasePrintInfo>(useDatabase->getDBName());
     return std::make_unique<UseDatabase>(useDatabase->getDBName(), getOutputPos(useDatabase),
@@ -37,7 +37,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapUseDatabase(
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapAttachDatabase(
-    planner::LogicalOperator* logicalOperator) {
+    const LogicalOperator* logicalOperator) {
     auto attachDatabase = logicalOperator->constPtrCast<LogicalAttachDatabase>();
     auto printInfo = std::make_unique<AttachDatabasePrintInfo>(
         attachDatabase->getAttachInfo().dbAlias, attachDatabase->getAttachInfo().dbPath);
@@ -46,7 +46,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAttachDatabase(
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
-    planner::LogicalOperator* logicalOperator) {
+    const LogicalOperator* logicalOperator) {
     auto detachDatabase = logicalOperator->constPtrCast<LogicalDetachDatabase>();
     auto printInfo = std::make_unique<OPPrintInfo>();
     return std::make_unique<DetachDatabase>(detachDatabase->getDBName(),
@@ -54,7 +54,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDetachDatabase(
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
-    planner::LogicalOperator* logicalOperator) {
+    const LogicalOperator* logicalOperator) {
     auto exportDatabase = logicalOperator->constPtrCast<LogicalExportDatabase>();
     auto fs = clientContext->getVFSUnsafe();
     auto boundFileInfo = exportDatabase->getBoundFileInfo();
@@ -81,15 +81,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapImportDatabase(
-    planner::LogicalOperator* logicalOperator) {
+    const LogicalOperator* logicalOperator) {
     auto importDatabase = logicalOperator->constPtrCast<LogicalImportDatabase>();
     auto printInfo = std::make_unique<OPPrintInfo>();
     return std::make_unique<ImportDB>(importDatabase->getQuery(), importDatabase->getIndexQuery(),
         getOutputPos(importDatabase), getOperatorID(), std::move(printInfo));
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapExtension(
-    planner::LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapExtension(const LogicalOperator* logicalOperator) {
     auto logicalExtension = logicalOperator->constPtrCast<LogicalExtension>();
     auto outputPos = getOutputPos(logicalExtension);
     std::unique_ptr<OPPrintInfo> printInfo;

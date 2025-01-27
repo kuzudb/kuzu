@@ -12,7 +12,7 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapExplain(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapExplain(const LogicalOperator* logicalOperator) {
     auto& logicalExplain = logicalOperator->constCast<LogicalExplain>();
     auto outSchema = logicalExplain.getSchema();
     auto inSchema = logicalExplain.getChild(0)->getSchema();

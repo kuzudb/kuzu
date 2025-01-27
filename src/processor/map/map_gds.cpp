@@ -16,7 +16,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-static std::unique_ptr<NodeOffsetMaskMap> getNodeOffsetMaskMap(main::ClientContext* context,
+static std::unique_ptr<NodeOffsetMaskMap> getNodeOffsetMaskMap(const main::ClientContext* context,
     const std::vector<table_id_t>& tableIDs, StorageManager* storageManager) {
     auto map = std::make_unique<NodeOffsetMaskMap>();
     for (auto tableID : tableIDs) {
@@ -27,7 +27,7 @@ static std::unique_ptr<NodeOffsetMaskMap> getNodeOffsetMaskMap(main::ClientConte
     return map;
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(const LogicalOperator* logicalOperator) {
     auto& call = logicalOperator->constCast<LogicalGDSCall>();
     auto& logicalInfo = call.getInfo();
     auto outSchema = call.getSchema();

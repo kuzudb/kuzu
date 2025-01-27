@@ -16,7 +16,7 @@ namespace kuzu {
 namespace processor {
 
 static void checkDetachDeleteRelDirection(const RelTable* relTable, const NodeTable* nodeTable) {
-    if (relTable->getStorageDirections().size() < common::NUM_REL_DIRECTIONS) {
+    if (relTable->getStorageDirections().size() < NUM_REL_DIRECTIONS) {
         throw RuntimeException(stringFormat(
             "Cannot detach delete from node table '{}' as it has connected edges in rel "
             "table '{}' (detach delete only supports deleting from rel tables with "
@@ -58,7 +58,7 @@ std::unique_ptr<NodeDeleteExecutor> PlanMapper::getNodeDeleteExecutor(
         return std::make_unique<EmptyNodeDeleteExecutor>(std::move(info));
     }
     if (node.isMultiLabeled()) {
-        common::table_id_map_t<NodeTableDeleteInfo> tableInfos;
+        table_id_map_t<NodeTableDeleteInfo> tableInfos;
         for (auto entry : node.getEntries()) {
             auto tableID = entry->getTableID();
             auto pkPos = getDataPos(*node.getPrimaryKey(tableID), schema);
@@ -72,7 +72,7 @@ std::unique_ptr<NodeDeleteExecutor> PlanMapper::getNodeDeleteExecutor(
     return std::make_unique<SingleLabelNodeDeleteExecutor>(std::move(info), std::move(extraInfo));
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapDelete(planner::LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapDelete(const LogicalOperator* logicalOperator) {
     auto delete_ = logicalOperator->constPtrCast<LogicalDelete>();
     switch (delete_->getTableType()) {
     case TableType::NODE: {
@@ -86,7 +86,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDelete(planner::LogicalOperator
     }
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteNode(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteNode(
+    const LogicalOperator* logicalOperator) {
     auto delete_ = logicalOperator->constPtrCast<LogicalDelete>();
     auto inSchema = delete_->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
@@ -116,7 +117,7 @@ std::unique_ptr<RelDeleteExecutor> PlanMapper::getRelDeleteExecutor(
     auto info = RelDeleteInfo(srcNodeIDPos, dstNodeIDPos, relIDPos);
     auto storageManager = clientContext->getStorageManager();
     if (rel.isMultiLabeled()) {
-        common::table_id_map_t<storage::RelTable*> tableIDToTableMap;
+        table_id_map_t<RelTable*> tableIDToTableMap;
         for (auto entry : rel.getEntries()) {
             auto tableID = entry->getTableID();
             auto table = storageManager->getTable(tableID)->ptrCast<RelTable>();
@@ -129,7 +130,7 @@ std::unique_ptr<RelDeleteExecutor> PlanMapper::getRelDeleteExecutor(
     return std::make_unique<SingleLabelRelDeleteExecutor>(table, std::move(info));
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteRel(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteRel(const LogicalOperator* logicalOperator) {
     auto delete_ = logicalOperator->constPtrCast<LogicalDelete>();
     auto inSchema = delete_->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());

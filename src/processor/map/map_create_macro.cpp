@@ -8,7 +8,7 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateMacro(
-    planner::LogicalOperator* logicalOperator) {
+    const LogicalOperator* logicalOperator) {
     auto& logicalCreateMacro = logicalOperator->constCast<LogicalCreateMacro>();
     auto outSchema = logicalCreateMacro.getSchema();
     auto outputExpression = logicalCreateMacro.getOutputExpression();

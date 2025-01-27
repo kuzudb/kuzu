@@ -23,7 +23,8 @@ static std::shared_ptr<RecursiveJoinSharedState> createSharedState(const NodeExp
     return std::make_shared<RecursiveJoinSharedState>(std::move(semiMasks));
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(
+    const LogicalOperator* logicalOperator) {
     auto extend = logicalOperator->constPtrCast<LogicalRecursiveExtend>();
     auto boundNode = extend->getBoundNode();
     auto nbrNode = extend->getNbrNode();
