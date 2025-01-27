@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/enums/rel_direction.h"
 #include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_plan.h"
 #include "processor/operator/result_collector.h"
@@ -137,12 +136,6 @@ private:
     std::unique_ptr<PhysicalOperator> mapUnwind(const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapUseDatabase(
         const planner::LogicalOperator* logicalOperator);
-
-    std::unique_ptr<PhysicalOperator> createRelBatchInsertOp(
-        std::shared_ptr<PartitionerSharedState> partitionerSharedState,
-        std::shared_ptr<BatchInsertSharedState> sharedState,
-        const planner::LogicalCopyFrom& copyFrom, common::RelDataDirection direction,
-        std::vector<common::column_id_t> columnIDs, std::vector<common::LogicalType> columnTypes);
 
     std::unique_ptr<ResultCollector> createResultCollector(common::AccumulateType accumulateType,
         const binder::expression_vector& expressions, planner::Schema* schema,
