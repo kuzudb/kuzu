@@ -8,18 +8,17 @@ using namespace kuzu::storage;
 namespace kuzu {
     namespace processor {
 
-        void ScanNodeTableSharedState::initialize(transaction::Transaction *transaction, NodeTable *table) {
+        void ScanNodeTableSharedState::initialize(transaction::Transaction* transaction, NodeTable* table) {
             this->table = table;
             this->currentCommittedGroupIdx = 0;
             this->currentUnCommittedGroupIdx = 0;
-            this->numCommittedNodeGroups = std::min(endNodeGroupIdx - startNodeGroupIdx,
-                                                    table->getNumCommittedNodeGroups() - 1);
+            this->numCommittedNodeGroups = std::min(endNodeGroupIdx - startNodeGroupIdx, table->getNumCommittedNodeGroups() - 1);
             this->numCommittedNodeGroups += 1;
             // TODO: Fix this code!!
             if (transaction->isWriteTransaction()) {
                 if (const auto localTable = transaction->getLocalStorage()->getLocalTable(
                         this->table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
-                    localNodeGroups = ku_dynamic_cast<LocalTable *, LocalNodeTable *>(localTable)
+                    localNodeGroups = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable)
                             ->getTableData()
                             ->getNodeGroups();
                 }
@@ -38,13 +37,12 @@ namespace kuzu {
             this->table = table;
             this->currentCommittedGroupIdx = 0;
             this->currentUnCommittedGroupIdx = 0;
-            this->numCommittedNodeGroups = std::min(endNodeGroupIdx - startNodeGroupIdx,
-                                                    table->getNumCommittedNodeGroups() - 1);
+            this->numCommittedNodeGroups = std::min(endNodeGroupIdx - startNodeGroupIdx, table->getNumCommittedNodeGroups() - 1);
             this->numCommittedNodeGroups += 1;
             if (transaction->isWriteTransaction()) {
                 if (const auto localTable = transaction->getLocalStorage()->getLocalTable(
                         this->table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
-                    localNodeGroups = ku_dynamic_cast<LocalTable *, LocalNodeTable *>(localTable)
+                    localNodeGroups = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable)
                             ->getTableData()
                             ->getNodeGroups();
                 }
@@ -55,10 +53,10 @@ namespace kuzu {
             }
         }
 
-        void ScanNodeTableSharedState::updateVectorIdx(storage::NodeTableScanState &scanState) {
+        void ScanNodeTableSharedState::updateVectorIdx(storage::NodeTableScanState& scanState) {
             std::unique_lock lck{mtx};
-            auto &dataScanState =
-                    ku_dynamic_cast<TableDataScanState &, NodeDataScanState &>(*scanState.dataScanState);
+            auto& dataScanState =
+                    ku_dynamic_cast<TableDataScanState&, NodeDataScanState&>(*scanState.dataScanState);
             if (scanState.source == TableScanSource::COMMITTED) {
                 dataScanState.vectorIdx = committedNodeGroupVectorIdx[scanState.nodeGroupIdx - startNodeGroupIdx]++;
                 if (!dataScanState.updateNumRowsToScan()) {
@@ -74,110 +72,102 @@ namespace kuzu {
             committedNodeGroupFinished[scanState.nodeGroupIdx - startNodeGroupIdx] = true;
         }
 
-        void ScanNodeTableSharedState::nextMorsel(NodeTableScanState &scanState) {
+        void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState) {
             std::unique_lock lck{mtx};
-            auto &dataScanState =
-                    ku_dynamic_cast<TableDataScanState &, NodeDataScanState &>(*scanState.dataScanState);
             // First try to give separate node groups to different threads.
             if (currentCommittedGroupIdx < numCommittedNodeGroups) {
                 scanState.nodeGroupIdx = (currentCommittedGroupIdx++ + startNodeGroupIdx);
                 scanState.source = TableScanSource::COMMITTED;
-                dataScanState.vectorIdx = 0;
                 return;
             }
             // Then try to give local node groups to different threads.
             // TODO: Fix this code!!
             if (currentUnCommittedGroupIdx < localNodeGroups.size()) {
-                scanState.localNodeGroup = ku_dynamic_cast<LocalNodeGroup *, LocalNodeNG *>(
+                scanState.localNodeGroup = ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(
                         localNodeGroups[currentUnCommittedGroupIdx++]);
                 scanState.source = TableScanSource::UNCOMMITTED;
-                dataScanState.vectorIdx = 0;
                 return;
             }
-//    // Finally, give the node group with smallest vector index to different threads.
-//    if (currentCommittedGroupIdx == numCommittedNodeGroups) {
-//        // Find node group with the smallest vector index.
-//        auto minVectorIdx = common::INVALID_IDX;
-//        auto nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
-//        for (auto i = 0u; i < committedNodeGroupVectorIdx.size(); i++) {
-//            if (committedNodeGroupVectorIdx[i] < minVectorIdx && !committedNodeGroupFinished[i]) {
-//                minVectorIdx = committedNodeGroupVectorIdx[i];
-//                nodeGroupIdx = i + startNodeGroupIdx;
-//            }
-//        }
-//        if (minVectorIdx != common::INVALID_IDX) {
-//            scanState.source = TableScanSource::COMMITTED;
-//            scanState.nodeGroupIdx = nodeGroupIdx;
-//            return;
-//        }
-//    }
+            // Finally, give the node group with smallest vector index to different threads.
+            if (currentCommittedGroupIdx == numCommittedNodeGroups) {
+                // Find node group with the smallest vector index.
+                auto minVectorIdx = common::INVALID_IDX;
+                auto nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+                for (auto i = 0u; i < committedNodeGroupVectorIdx.size(); i++) {
+                    if (committedNodeGroupVectorIdx[i] < minVectorIdx && !committedNodeGroupFinished[i]) {
+                        minVectorIdx = committedNodeGroupVectorIdx[i];
+                        nodeGroupIdx = i + startNodeGroupIdx;
+                    }
+                }
+                if (minVectorIdx != common::INVALID_IDX) {
+                    scanState.source = TableScanSource::COMMITTED;
+                    scanState.nodeGroupIdx = nodeGroupIdx;
+                    return;
+                }
+            }
             scanState.source = TableScanSource::NONE;
         }
 
-        void ScanNodeTableInfo::initScanState(NodeSemiMask *semiMask) {
+        void ScanNodeTableInfo::initScanState(NodeSemiMask* semiMask) {
             localScanState =
                     std::make_unique<NodeTableScanState>(columnIDs, copyVector(columnPredicates), semiMask);
         }
 
-        std::vector<NodeSemiMask *> ScanNodeTable::getSemiMasks() {
-            std::vector<NodeSemiMask *> result;
-            for (auto &sharedState: sharedStates) {
+        std::vector<NodeSemiMask*> ScanNodeTable::getSemiMasks() {
+            std::vector<NodeSemiMask*> result;
+            for (auto& sharedState : sharedStates) {
                 result.push_back(sharedState->getSemiMask());
             }
             return result;
         }
 
-        void ScanNodeTable::initLocalStateInternal(ResultSet *resultSet, ExecutionContext *context) {
+        void ScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
             ScanTable::initLocalStateInternal(resultSet, context);
             for (auto i = 0u; i < nodeInfos.size(); ++i) {
-                auto &nodeInfo = nodeInfos[i];
+                auto& nodeInfo = nodeInfos[i];
                 nodeInfo.initScanState(sharedStates[i]->getSemiMask());
                 initVectors(*nodeInfo.localScanState, *resultSet);
             }
         }
 
-        void ScanNodeTable::initGlobalStateInternal(ExecutionContext *context) {
+        void ScanNodeTable::initGlobalStateInternal(ExecutionContext* context) {
             KU_ASSERT(sharedStates.size() == nodeInfos.size());
             for (auto i = 0u; i < nodeInfos.size(); i++) {
                 sharedStates[i]->initialize(context->clientContext->getTx(), nodeInfos[i].table);
             }
         }
 
-        bool ScanNodeTable::getNextTuplesInternal(ExecutionContext *context) {
+        bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
             auto transaction = context->clientContext->getTx();
             while (currentTableIdx < nodeInfos.size()) {
-                const auto &info = nodeInfos[currentTableIdx];
-                auto &scanState = *info.localScanState;
+                const auto& info = nodeInfos[currentTableIdx];
+                auto& scanState = *info.localScanState;
                 auto skipScan =
                         transaction->isReadOnly() && scanState.zoneMapResult == ZoneMapCheckResult::SKIP_SCAN;
                 if (!skipScan) {
-//            sharedStates[currentTableIdx]->updateVectorIdx(scanState);
+                    sharedStates[currentTableIdx]->updateVectorIdx(scanState);
                     while (scanState.source != TableScanSource::NONE &&
                            info.table->scan(transaction, scanState)) {
-                        ku_dynamic_cast<TableDataScanState &, NodeDataScanState &>(
-                                *scanState.dataScanState).vectorIdx++;
                         if (scanState.nodeIDVector->state->getSelVector().getSelSize() > 0) {
                             return true;
                         }
-//                sharedStates[currentTableIdx]->updateVectorIdx(scanState);
+                        sharedStates[currentTableIdx]->updateVectorIdx(scanState);
                     }
+                } else {
+                    sharedStates[currentTableIdx]->markNodeGroupAsFinished(scanState);
                 }
-//        else {
-//            sharedStates[currentTableIdx]->markNodeGroupAsFinished(scanState);
-//        }
                 // TODO: Take care of skipScan!!
                 sharedStates[currentTableIdx]->nextMorsel(scanState);
                 if (scanState.source == TableScanSource::NONE) {
                     currentTableIdx++;
                 } else {
                     info.table->initializeScanState(transaction, scanState);
-                    ku_dynamic_cast<TableDataScanState &, NodeDataScanState &>(*scanState.dataScanState).vectorIdx = 0;
                 }
             }
             return false;
         }
 
-        void ScanNodeTable::reset(transaction::Transaction *transaction) {
+        void ScanNodeTable::reset(transaction::Transaction* transaction) {
             KU_ASSERT(sharedStates.size() == nodeInfos.size());
             // Reset the shared state.
             for (auto i = 0u; i < nodeInfos.size(); i++) {
@@ -187,7 +177,7 @@ namespace kuzu {
             // Reset the local scan state.
             currentTableIdx = 0;
             for (auto i = 0u; i < nodeInfos.size(); ++i) {
-                auto &nodeInfo = nodeInfos[i];
+                auto& nodeInfo = nodeInfos[i];
                 nodeInfo.initScanState(sharedStates[i]->getSemiMask());
                 initVectors(*nodeInfo.localScanState, *resultSet);
             }
