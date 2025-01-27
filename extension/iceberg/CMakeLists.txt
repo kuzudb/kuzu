@@ -27,6 +27,7 @@ add_library(delta_connector
     ${PROJECT_SOURCE_DIR}/extension/delta/src/connector/delta_connector.cpp
     ${PROJECT_SOURCE_DIR}/extension/duckdb/src/connector/duckdb_secret_manager.cpp
     ${PROJECT_SOURCE_DIR}/extension/duckdb/src/connector/duckdb_connector.cpp
+    ${PROJECT_SOURCE_DIR}/extension/duckdb/src/function/duckdb_scan.cpp
     ${PROJECT_SOURCE_DIR}/extension/httpfs/src/s3_download_options.cpp
 )
 

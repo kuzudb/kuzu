@@ -56,21 +56,23 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|2544| the movie is very v
 -STATEMENT LOAD FROM tinysnb.person1 RETURN *;
 ---- error
 Catalog exception: person1 does not exist in catalog.
--STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/sqlite/test/sqlite_database/flextype' as flextype (dbtype sqlite);
----- 1
-Attached database successfully.
--STATEMENT LOAD FROM flextype.person RETURN *
----- error(regex)
-^Mismatch Type Error: Invalid type in column "id": column was declared as integer, found "abc" of type "text" instead.(\n|.)*
--STATEMENT CALL SHOW_TABLES() RETURN *;
----- 6
-0|movies|ATTACHED|tinysnb(SQLITE)|
-0|person_copy|NODE|local(kuzu)|
-0|person|ATTACHED|flextype(SQLITE)|
-1|organisation|ATTACHED|tinysnb(SQLITE)|
-2|person|ATTACHED|tinysnb(SQLITE)|
-3|tableOfTypes|ATTACHED|tinysnb(SQLITE)|
 
 -STATEMENT DETACH tinysnb;
 ---- 1
 Detached database successfully.
+
+-CASE ScanSqliteDynamicTable
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/sqlite/build/libsqlite.kuzu_extension"
+---- ok
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/sqlite/test/sqlite_database/dynamic' as tinysnb (dbtype sqlite);
+---- ok
+-STATEMENT LOAD FROM tinysnb.dynamic_person RETURN *
+----- error(regex)
+-^Mismatch Type Error: Invalid type in column "id": column was declared as integer, found "abc" of type "text" instead.(\n|.)*
+-STATEMENT CALL sqlite_all_varchar=true
+---- ok
+-STATEMENT LOAD FROM tinysnb.dynamic_person RETURN *
+---- 3
+102
+5.872
+alice

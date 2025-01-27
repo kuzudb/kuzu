@@ -15,6 +15,7 @@ add_subdirectory(src/connector)
 add_subdirectory(src/storage)
 add_subdirectory(src/main)
 add_subdirectory(src/installer)
+add_subdirectory(src/function)
 
 add_library(sqlite_extension
         SHARED

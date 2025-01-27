@@ -10,9 +10,7 @@ namespace duckdb_extension {
 
 class DuckDBConnector;
 
-using init_duckdb_conn_t = std::function<std::pair<duckdb::DuckDB, duckdb::Connection>()>;
-
-struct DuckDBScanBindData final : function::TableFuncBindData {
+struct DuckDBScanBindData : function::TableFuncBindData {
     std::string query;
     std::vector<common::LogicalType> columnTypes;
     std::vector<std::string> columnNames;
@@ -25,6 +23,13 @@ struct DuckDBScanBindData final : function::TableFuncBindData {
         : TableFuncBindData{other}, query{other.query}, columnTypes{copyVector(other.columnTypes)},
           columnNames{other.columnNames}, converter{other.converter}, connector{other.connector} {}
 
+    virtual std::string getQuery(const main::ClientContext& /*context*/) const { return query; }
+
+    virtual std::vector<common::LogicalType> getColumnTypes(
+        const main::ClientContext& /*context*/) const {
+        return copyVector(columnTypes);
+    }
+
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<DuckDBScanBindData>(*this);
     }
@@ -36,7 +41,7 @@ struct DuckDBScanSharedState final : function::BaseScanSharedStateWithNumRows {
     std::unique_ptr<duckdb::MaterializedQueryResult> queryResult;
 };
 
-function::TableFunction getScanFunction(DuckDBScanBindData bindData);
+function::TableFunction getScanFunction(std::shared_ptr<DuckDBScanBindData> bindData);
 
 } // namespace duckdb_extension
 } // namespace kuzu
