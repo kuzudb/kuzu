@@ -581,8 +581,6 @@ namespace kuzu {
                     stats.listNbrsCallTime->stop();
                     stats.listNbrsMetric->increase(1);
 
-                    auto filterNbrsToFind = firstHopNbrs.size();
-
                     // Try prefetching
                     for (auto &neighbor: firstHopNbrs) {
                         filterMask->prefetchMaskValue(neighbor.offset);
