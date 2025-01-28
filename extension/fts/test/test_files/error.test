@@ -2,7 +2,8 @@
 
 --
 
--CASE fts_invalid_test
+-CASE ErrorCases
+
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
 ---- ok
 
@@ -10,17 +11,22 @@
 -STATEMENT CALL CREATE_FTS_INDEX('person1', 'contentIdx', ['content'])
 ---- error
 Binder exception: Table person1 does not exist.
+
 -STATEMENT CALL CREATE_FTS_INDEX('person', 'personIdx', ['fName'])
 ---- ok
+
 -STATEMENT CALL CREATE_FTS_INDEX('person', 'personIdx', ['fName'])
 ---- error
 Binder exception: Index personIdx already exists in table person.
+
 -STATEMENT CALL CREATE_FTS_INDEX('knows', 'personIdx', ['fName'])
 ---- error
 Binder exception: Table knows is not a node table. Only a node table is supported for this function.
+
 -STATEMENT CALL CREATE_FTS_INDEX('person', 'personIdx1', ['fName1'])
 ---- error
 Binder exception: Property: fName1 does not exist in table person.
+
 -STATEMENT CALL CREATE_FTS_INDEX('person', 'personIdx2', ['fName', 'fName1'])
 ---- error
 Binder exception: Property: fName1 does not exist in table person.
@@ -29,16 +35,20 @@ Binder exception: Property: fName1 does not exist in table person.
 -STATEMENT CALL QUERY_FTS_INDEX('person', 'personIdx1', 'alice') RETURN *
 ---- error
 Binder exception: Table person doesn't have an index with name personIdx1.
+
 -STATEMENT CALL QUERY_FTS_INDEX('person1', 'personIdx', 'alice') RETURN *
 ---- error
 Binder exception: Table person1 does not exist.
+
 -STATEMENT CALL QUERY_FTS_INDEX('knows', 'personIdx', 'alice') RETURN *
 ---- error
 Binder exception: Table knows is not a node table. Only a node table is supported for this function.
 -LOG DropFTSIndexError
+
 -STATEMENT CALL DROP_FTS_INDEX('knows', 'personIdx')
 ---- error
 Binder exception: Table knows is not a node table. Only a node table is supported for this function.
+
 -STATEMENT CALL DROP_FTS_INDEX('person', 'personIdx1')
 ---- error
 Binder exception: Table person doesn't have an index with name personIdx1.
@@ -46,6 +56,7 @@ Binder exception: Table person doesn't have an index with name personIdx1.
 -LOG QueryAfterDropError
 -STATEMENT CALL DROP_FTS_INDEX('person', 'personIdx')
 ---- ok
+
 -STATEMENT CALL QUERY_FTS_INDEX('person', 'personIdx', 'alice') RETURN *
 ---- error
 Binder exception: Table person doesn't have an index with name personIdx.
@@ -64,24 +75,34 @@ Binder exception: CREATE_FTS_INDEX is only supported in auto transaction mode.
 ---- error
 Binder exception: DROP_FTS_INDEX is only supported in auto transaction mode.
 
+
+
 -CASE DropTableWithIndexes
+
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
 ---- ok
 -STATEMENT CREATE NODE TABLE STUDENT (ID INT64, name string, age INT64, PRIMARY KEY(ID))
 ---- ok
+
 -STATEMENT CALL CREATE_FTS_INDEX('STUDENT', 'sIdx', ['name'])
 ---- ok
+
 -STATEMENT CALL CREATE_FTS_INDEX('STUDENT', 'sIdx1', ['name'])
 ---- ok
+
 -STATEMENT CALL QUERY_FTS_INDEX('STUDENT', 'sIdx', 'test') RETURN *
 ---- 0
+
 -STATEMENT ALTER TABLE STUDENT DROP name;
 ---- error
 Binder exception: Cannot drop property name in table STUDENT because it is used in one or more indexes. Please remove the associated indexes before attempting to drop this property.
+
 -STATEMENT ALTER TABLE STUDENT ADD length int64;
 ---- ok
+
 -STATEMENT DROP TABLE STUDENT
 ---- ok
+
 -STATEMENT CALL QUERY_FTS_INDEX('STUDENT', 'sIdx', 'test') RETURN *
 ---- error
 Binder exception: Table STUDENT does not exist.
