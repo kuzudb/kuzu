@@ -2,7 +2,6 @@
 
 #include <vector>
 
-#include "common/exception/conversion.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
@@ -86,7 +85,7 @@ bool BaseCSVReader::addValue(Driver& driver, uint64_t rowNum, column_id_t column
         valueToAdd = strVal;
     }
     if (!utf8proc::Utf8Proc::isValid(valueToAdd.data(), valueToAdd.length())) {
-        handleCopyException("Invalid UTF8-encoded string.");
+        handleCopyException("Invalid UTF8-encoded string.", true /* mustThrow */);
     }
     return driver.addValue(rowNum, columnIdx, valueToAdd);
 }

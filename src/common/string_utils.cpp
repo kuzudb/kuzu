@@ -132,11 +132,11 @@ static void changeCase(std::string& input) {
     if (!utf8proc::Utf8Proc::isValid(input.c_str(), input.length())) {
         throw RuntimeException{"Invalid UTF8-encoded string."};
     }
-    auto resultLen =
-        function::BaseLowerUpperFunction::getResultLen(input.data(), input.length(), toUpper);
+    auto resultLen = function::BaseLowerUpperFunction::getResultLen((char*)input.data(),
+        input.length(), toUpper);
     std::string result(resultLen, '\0' /* char */);
-    function::BaseLowerUpperFunction::convertCase(result.data(), input.length(), input.data(),
-        toUpper);
+    function::BaseLowerUpperFunction::convertCase((char*)result.data(), input.length(),
+        input.data(), toUpper);
     input = result;
 }
 

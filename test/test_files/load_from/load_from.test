@@ -181,8 +181,8 @@ Binder exception: No file found that matches the pattern: ${KUZU_ROOT_DIRECTORY}
 
 -LOG LoadFromIncorrectFileFormat
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_double.npy" (file_format='csv') RETURN *;
----- error (regex)
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_double.npy on line 2: quote should be followed by end of file, end of value, end of row or another quote. Line/record containing the error: '
+---- error(regex)
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_double.npy on line 1: Invalid UTF8-encoded string. Line/record containing the error: .+
 
 -LOG LoadFromIncorrectFormat
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_double.npy" (file_format='npyd') RETURN *;

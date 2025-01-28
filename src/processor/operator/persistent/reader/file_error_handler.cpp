@@ -39,6 +39,9 @@ void SharedFileErrorHandler::tryCacheError(CopyFromFileError error, const common
 }
 
 void SharedFileErrorHandler::handleError(CopyFromFileError error) {
+    if (error.mustThrow) {
+        throwError(error);
+    }
     auto lockGuard = lock();
 
     const auto blockIdx = error.warningData.getBlockIdx();
