@@ -676,7 +676,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
     auto scanInput = ku_dynamic_cast<ExtraScanTableFuncBindInput*>(input->extraInput.get());
     const auto& options = scanInput->fileScanInfo.options;
-    if (options.size() > 1 || (options.size() == 1 && !options.contains(CopyConstants::IGNORE_ERRORS_OPTION_NAME))) {
+    if (options.size() > 1 ||
+        (options.size() == 1 && !options.contains(CopyConstants::IGNORE_ERRORS_OPTION_NAME))) {
         throw BinderException{"Copy from Parquet cannot have options other than IGNORE_ERRORS."};
     }
     std::vector<std::string> detectedColumnNames;

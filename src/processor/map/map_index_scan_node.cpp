@@ -1,9 +1,9 @@
 #include "planner/operator/scan/logical_index_look_up.h"
+#include "processor/expression_mapper.h"
 #include "processor/operator/index_lookup.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
-#include "processor/expression_mapper.h"
 
 using namespace kuzu::planner;
 
@@ -32,8 +32,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIndexLookup(
         expressions.push_back(logicalIndexScan.getInfo(i).offset);
     }
     auto printInfo = std::make_unique<IndexLookupPrintInfo>(expressions);
-    return std::make_unique<IndexLookup>(std::move(indexLookupInfos), std::move(warningDataPos), std::move(prevOperator),
-        getOperatorID(), std::move(printInfo));
+    return std::make_unique<IndexLookup>(std::move(indexLookupInfos), std::move(warningDataPos),
+        std::move(prevOperator), getOperatorID(), std::move(printInfo));
 }
 
 } // namespace processor

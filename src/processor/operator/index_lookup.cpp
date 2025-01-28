@@ -131,8 +131,8 @@ bool IndexLookup::getNextTuplesInternal(ExecutionContext* context) {
 }
 
 void IndexLookup::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    auto errorHandler =std::make_unique<BatchInsertErrorHandler>(
-        context, context->clientContext->getWarningContext().getIgnoreErrorsOption());
+    auto errorHandler = std::make_unique<BatchInsertErrorHandler>(context,
+        context->clientContext->getWarningContext().getIgnoreErrorsOption());
     localState = std::make_unique<IndexLookupLocalState>(std::move(errorHandler));
     for (auto& pos : warningDataVectorPos) {
         localState->warningDataVectors.push_back(resultSet->getValueVector(pos).get());

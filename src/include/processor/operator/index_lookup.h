@@ -1,8 +1,8 @@
 #pragma once
 
+#include "expression_evaluator/expression_evaluator.h"
 #include "processor/operator/persistent/batch_insert_error_handler.h"
 #include "processor/operator/physical_operator.h"
-#include "expression_evaluator/expression_evaluator.h"
 
 namespace kuzu {
 namespace storage {
