@@ -7,10 +7,9 @@
 
 -STATEMENT CALL threads=1;
 ---- ok
--STATEMENT MATCH (p:persons)-[:person_resources]->(:resources)-[:resource_embeddings]->(e:embeddings) WHERE p.birth_date >= date('1973-01-01') AND p.birth_date < date('1975-01-01') RETURN count(*);
+-STATEMENT EXPLAIN MATCH (p:persons)-[:person_resources]->(:resources)-[:resource_embeddings]->(e:embeddings) WHERE p.birth_date >= date('1973-01-01') AND p.birth_date < date('1975-01-01') RETURN count(*);
 ---- 1
 1
-
 #-STATEMENT CREATE VECTOR INDEX ON dataset.embedding (samplingProbability=0.05, alpha=1.0, numVectorsPerPartition=50000000, efConstruction=64, maxNbrsAtUpperLevel=16, maxNbrsAtLowerLevel=32);
 #---- ok
 #-STATEMENT UPDATE VECTOR INDEX ON dataset.embedding;

@@ -12,6 +12,7 @@
 #include "optimizer/reorder_extend_direction.h"
 #include "optimizer/top_k_optimizer.h"
 #include "optimizer/gds_selectivity_optimizer.h"
+#include "optimizer/remove_hash_join_optimizer.h"
 
 namespace kuzu {
 namespace optimizer {
@@ -49,6 +50,10 @@ void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* contex
     // Reorder extend direction. IMP Note this has to be done after GDSSelectivityOptimizer
     auto reorderExtendDirection = ReorderExtendDirection(context);
     reorderExtendDirection.rewrite(plan);
+
+    // Remove unnecessary hash join
+    auto removeHashJoinOptimizer = RemoveHashJoinOptimizer();
+    removeHashJoinOptimizer.rewrite(plan);
 
     auto factorizationRewriter = FactorizationRewriter();
     factorizationRewriter.rewrite(plan);

@@ -10,6 +10,7 @@ add_library(kuzu_optimizer
         optimizer.cpp
         projection_push_down_optimizer.cpp
         remove_factorization_rewriter.cpp
+        remove_hash_join_optimizer.cpp
         remove_unnecessary_join_optimizer.cpp
         reorder_extend_direction.cpp
         top_k_optimizer.cpp
