@@ -2,23 +2,6 @@
 
 --
 
--CASE X
--SKIP
--STATEMENT CREATE REL TABLE R (FROM person TO person, x INT64);
----- ok
--STATEMENT COPY R FROM '${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/follows.csv'
----- ok
--STATEMENT MATCH (a:person)-[:R]->(b:person) RETURN a.fName, b.fName;
----- 1
-
--CASE Y
--STATEMENT CREATE REL TABLE R (FROM movies TO movies, x STRING[], y INT[], z STRING);
----- ok
--STATEMENT COPY R FROM '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eMarries.csv'
----- ok
--STATEMENT MATCH (a:person)-[:R]->(b:person) RETURN a.fName, b.fName;
----- 1
-
 -CASE CopyFromSubquery
 
 -STATEMENT CREATE NODE TABLE A(name STRING, PRIMARY KEY (name));
