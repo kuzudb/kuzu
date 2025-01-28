@@ -6,6 +6,7 @@
 
 #include "common/api.h"
 #include "function/cast/functions/numeric_limits.h"
+#include "function/string/functions/base_lower_upper_function.h"
 
 namespace kuzu {
 namespace common {
@@ -23,15 +24,11 @@ public:
         bool ignoreEmptyStringParts = true);
     static std::vector<std::string> splitBySpace(const std::string& input);
 
-    static void toUpper(std::string& input) {
-        std::transform(input.begin(), input.end(), input.begin(), ::toupper);
-    }
     static std::string getUpper(const std::string& input);
     static std::string getUpper(const std::string_view& input);
     static std::string getLower(const std::string& input);
-    static void toLower(std::string& input) {
-        std::transform(input.begin(), input.end(), input.begin(), ::tolower);
-    }
+    static void toLower(std::string& input);
+    static void toUpper(std::string& input);
 
     static bool isSpace(char c) {
         return c == ' ' || c == '\t' || c == '\n' || c == '\v' || c == '\f' || c == '\r';

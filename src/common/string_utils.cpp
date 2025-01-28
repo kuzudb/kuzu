@@ -123,6 +123,24 @@ std::string StringUtils::getLower(const std::string& input) {
     return result;
 }
 
+template<bool toUpper>
+static void changeCase(std::string& input) {
+    auto resultLen =
+        function::BaseLowerUpperFunction::getResultLen(input.data(), input.length(), toUpper);
+    std::string result(resultLen, '\0' /* char */);
+    function::BaseLowerUpperFunction::convertCase(result.data(), input.length(), input.data(),
+        toUpper);
+    input = result;
+}
+
+void StringUtils::toLower(std::string& input) {
+    changeCase<false>(input);
+}
+
+void StringUtils::toUpper(std::string& input) {
+    changeCase<true>(input);
+}
+
 void StringUtils::removeCStringWhiteSpaces(const char*& input, uint64_t& len) {
     // skip leading/trailing spaces
     while (len > 0 && isspace(input[0])) {
