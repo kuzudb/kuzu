@@ -129,6 +129,11 @@ public:
                                                             bwdRelTableData->getColumns();
     }
 
+    common::node_group_idx_t getNumCommittedNodeGroups(common::RelDataDirection direction) const {
+        return direction == common::RelDataDirection::FWD ? fwdRelTableData->getNumCommittedNodeGroups() :
+               bwdRelTableData->getNumCommittedNodeGroups();
+    }
+
     void append(transaction::Transaction* transaction, ChunkedNodeGroup* nodeGroup,
         common::RelDataDirection direction) {
         direction == common::RelDataDirection::FWD ?
