@@ -145,8 +145,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& stateme
         createInvisibleVariable(std::string(InternalKeyword::ROW_OFFSET), LogicalType::INT64());
     auto srcTableID = relTableEntry->getSrcTableID();
     auto dstTableID = relTableEntry->getDstTableID();
-    auto srcKey = columns[0];
-    auto dstKey = columns[1];
+
     auto srcOffset = createVariable(std::string(InternalKeyword::SRC_OFFSET), LogicalType::INT64());
     auto dstOffset = createVariable(std::string(InternalKeyword::DST_OFFSET), LogicalType::INT64());
     expression_vector columnExprs{srcOffset, dstOffset, offset};
@@ -161,6 +160,17 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& stateme
         evaluateTypes.push_back(evaluateType);
     }
     columnExprs.insert(columnExprs.end(), warningDataExprs.begin(), warningDataExprs.end());
+    std::shared_ptr<Expression> srcKey = nullptr, dstKey = nullptr;
+    if (expectedColumnTypes[0] != columns[0]->getDataType()) {
+        srcKey = expressionBinder.forceCast(columns[0], expectedColumnTypes[0]);
+    } else {
+        srcKey = columns[0];
+    }
+    if (expectedColumnTypes[1] != columns[1]->getDataType()) {
+        dstKey = expressionBinder.forceCast(columns[1], expectedColumnTypes[1]);
+    } else {
+        dstKey = columns[1];
+    }
     auto srcLookUpInfo = IndexLookupInfo(srcTableID, srcOffset, srcKey, warningDataExprs);
     auto dstLookUpInfo = IndexLookupInfo(dstTableID, dstOffset, dstKey, warningDataExprs);
     auto lookupInfos = std::vector<IndexLookupInfo>{srcLookUpInfo, dstLookUpInfo};

@@ -2,6 +2,7 @@
 
 #include "processor/operator/persistent/batch_insert_error_handler.h"
 #include "processor/operator/physical_operator.h"
+#include "expression_evaluator/expression_evaluator.h"
 
 namespace kuzu {
 namespace storage {
@@ -12,19 +13,20 @@ namespace processor {
 struct BatchInsertSharedState;
 struct IndexLookupInfo {
     storage::NodeTable* nodeTable;
-    DataPos keyVectorPos;
+    std::unique_ptr<evaluator::ExpressionEvaluator> keyEvaluator;
     DataPos resultVectorPos;
-    std::vector<DataPos> warningDataVectorPos;
 
-    IndexLookupInfo(storage::NodeTable* nodeTable, const DataPos& keyVectorPos,
-        const DataPos& resultVectorPos, std::vector<DataPos> warningDataVectorPos)
-        : nodeTable{nodeTable}, keyVectorPos{keyVectorPos}, resultVectorPos{resultVectorPos},
-          warningDataVectorPos(std::move(warningDataVectorPos)) {}
-    IndexLookupInfo(const IndexLookupInfo& other) = default;
+    IndexLookupInfo(storage::NodeTable* nodeTable,
+        std::unique_ptr<evaluator::ExpressionEvaluator> keyEvaluator,
+        const DataPos& resultVectorPos)
+        : nodeTable{nodeTable}, keyEvaluator{std::move(keyEvaluator)},
+          resultVectorPos{resultVectorPos} {}
+    EXPLICIT_COPY_DEFAULT_MOVE(IndexLookupInfo);
 
-    inline std::unique_ptr<IndexLookupInfo> copy() {
-        return std::make_unique<IndexLookupInfo>(*this);
-    }
+private:
+    IndexLookupInfo(const IndexLookupInfo& other)
+        : nodeTable{other.nodeTable}, keyEvaluator{other.keyEvaluator->clone()},
+          resultVectorPos{other.resultVectorPos} {}
 };
 
 struct IndexLookupPrintInfo final : OPPrintInfo {
@@ -55,24 +57,27 @@ class IndexLookup : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::INDEX_LOOKUP;
 
 public:
-    IndexLookup(std::vector<std::unique_ptr<IndexLookupInfo>> infos,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+    IndexLookup(std::vector<IndexLookupInfo> infos, std::vector<DataPos> warningDataVectorPos,
+        std::unique_ptr<PhysicalOperator> child, common::idx_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
-          infos{std::move(infos)} {}
+          infos{std::move(infos)}, warningDataVectorPos{std::move(warningDataVectorPos)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
-    std::unique_ptr<PhysicalOperator> clone() final;
+    std::unique_ptr<PhysicalOperator> clone() final {
+        return std::make_unique<IndexLookup>(copyVector(infos), warningDataVectorPos,
+            children[0]->clone(), getOperatorID(), printInfo->copy());
+    }
 
 private:
     void lookup(transaction::Transaction* transaction, const IndexLookupInfo& info);
 
 private:
-    std::vector<std::unique_ptr<IndexLookupInfo>> infos;
-
+    std::vector<IndexLookupInfo> infos;
+    std::vector<DataPos> warningDataVectorPos;
     std::unique_ptr<IndexLookupLocalState> localState;
 };
 

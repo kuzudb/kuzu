@@ -3,6 +3,7 @@
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
+#include "processor/expression_mapper.h"
 
 using namespace kuzu::planner;
 
@@ -13,24 +14,25 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIndexLookup(
     const LogicalOperator* logicalOperator) {
     auto& logicalIndexScan = logicalOperator->constCast<LogicalPrimaryKeyLookup>();
     auto outSchema = logicalIndexScan.getSchema();
-    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
+    auto child = logicalOperator->getChild(0).get();
+    auto prevOperator = mapOperator(child);
     auto storageManager = clientContext->getStorageManager();
-    std::vector<std::unique_ptr<IndexLookupInfo>> indexLookupInfos;
+    auto exprMapper = ExpressionMapper(child->getSchema());
+    std::vector<IndexLookupInfo> indexLookupInfos;
     for (auto i = 0u; i < logicalIndexScan.getNumInfos(); ++i) {
         auto& info = logicalIndexScan.getInfo(i);
         auto nodeTable = storageManager->getTable(info.nodeTableID)->ptrCast<storage::NodeTable>();
         auto offsetPos = DataPos(outSchema->getExpressionPos(*info.offset));
-        auto keyPos = DataPos(outSchema->getExpressionPos(*info.key));
-        auto warningDataPos = getDataPos(info.warningExprs, *outSchema);
-        indexLookupInfos.push_back(std::make_unique<IndexLookupInfo>(nodeTable, keyPos, offsetPos,
-            std::move(warningDataPos)));
+        auto keyEvaluator = exprMapper.getEvaluator(info.key);
+        indexLookupInfos.emplace_back(nodeTable, std::move(keyEvaluator), offsetPos);
     }
+    auto warningDataPos = getDataPos(logicalIndexScan.getInfo(0).warningExprs, *outSchema);
     binder::expression_vector expressions;
     for (auto i = 0u; i < logicalIndexScan.getNumInfos(); ++i) {
         expressions.push_back(logicalIndexScan.getInfo(i).offset);
     }
     auto printInfo = std::make_unique<IndexLookupPrintInfo>(expressions);
-    return std::make_unique<IndexLookup>(std::move(indexLookupInfos), std::move(prevOperator),
+    return std::make_unique<IndexLookup>(std::move(indexLookupInfos), std::move(warningDataPos), std::move(prevOperator),
         getOperatorID(), std::move(printInfo));
 }
 
