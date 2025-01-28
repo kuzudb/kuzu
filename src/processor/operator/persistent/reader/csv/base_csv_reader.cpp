@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "common/exception/conversion.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
@@ -10,6 +11,7 @@
 #include "main/client_context.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
 #include "processor/operator/persistent/reader/file_error_handler.h"
+#include "utf8proc_wrapper.h"
 
 using namespace kuzu::common;
 
@@ -66,6 +68,7 @@ uint64_t BaseCSVReader::getFileSize() {
 template<typename Driver>
 bool BaseCSVReader::addValue(Driver& driver, uint64_t rowNum, column_id_t columnIdx,
     std::string_view strVal, std::vector<uint64_t>& escapePositions) {
+    std::string valueToAdd;
     // insert the line number into the chunk
     if (!escapePositions.empty()) {
         // remove escape characters (if any)
@@ -78,10 +81,14 @@ bool BaseCSVReader::addValue(Driver& driver, uint64_t rowNum, column_id_t column
         }
         newVal += strVal.substr(prevPos, strVal.size() - prevPos);
         escapePositions.clear();
-        return driver.addValue(rowNum, columnIdx, newVal);
+        valueToAdd = newVal;
     } else {
-        return driver.addValue(rowNum, columnIdx, strVal);
+        valueToAdd = strVal;
     }
+    if (!utf8proc::Utf8Proc::isValid(valueToAdd.data(), valueToAdd.length())) {
+        handleCopyException("Invalid UTF8-encoded string.");
+    }
+    return driver.addValue(rowNum, columnIdx, valueToAdd);
 }
 
 struct SkipRowDriver {

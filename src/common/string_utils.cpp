@@ -3,6 +3,10 @@
 #include <sstream>
 #include <vector>
 
+#include "common/exception/runtime.h"
+#include "function/string/functions/base_lower_upper_function.h"
+#include "utf8proc_wrapper.h"
+
 namespace kuzu {
 namespace common {
 
@@ -125,6 +129,9 @@ std::string StringUtils::getLower(const std::string& input) {
 
 template<bool toUpper>
 static void changeCase(std::string& input) {
+    if (!utf8proc::Utf8Proc::isValid(input.c_str(), input.length())) {
+        throw RuntimeException{"Invalid UTF8-encoded string."};
+    }
     auto resultLen =
         function::BaseLowerUpperFunction::getResultLen(input.data(), input.length(), toUpper);
     std::string result(resultLen, '\0' /* char */);

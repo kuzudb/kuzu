@@ -6,7 +6,6 @@
 
 #include "common/api.h"
 #include "function/cast/functions/numeric_limits.h"
-#include "function/string/functions/base_lower_upper_function.h"
 
 namespace kuzu {
 namespace common {
