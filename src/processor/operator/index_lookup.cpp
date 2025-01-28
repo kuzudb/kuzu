@@ -123,43 +123,27 @@ bool IndexLookup::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     for (auto& info : infos) {
-        KU_ASSERT(info);
-        lookup(context->clientContext->getTransaction(), *info);
+        info.keyEvaluator->evaluate();
+        lookup(context->clientContext->getTransaction(), info);
     }
     localState->errorHandler->flushStoredErrors();
     return true;
 }
 
-void IndexLookup::initLocalStateInternal(ResultSet*, ExecutionContext* context) {
-    localState = std::make_unique<IndexLookupLocalState>(std::make_unique<BatchInsertErrorHandler>(
-        context, context->clientContext->getWarningContext().getIgnoreErrorsOption()));
-    KU_ASSERT(!infos.empty());
-    const auto& info = infos[0];
-    localState->warningDataVectors.reserve(info->warningDataVectorPos.size());
-    for (size_t i = 0; i < info->warningDataVectorPos.size(); ++i) {
-        localState->warningDataVectors.push_back(
-            resultSet->getValueVector(info->warningDataVectorPos[i]).get());
+void IndexLookup::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    auto errorHandler = std::make_unique<BatchInsertErrorHandler>(context,
+        context->clientContext->getWarningContext().getIgnoreErrorsOption());
+    localState = std::make_unique<IndexLookupLocalState>(std::move(errorHandler));
+    for (auto& pos : warningDataVectorPos) {
+        localState->warningDataVectors.push_back(resultSet->getValueVector(pos).get());
     }
-    RUNTIME_CHECK(for (idx_t i = 1; i < infos.size(); ++i) {
-        KU_ASSERT(infos[i]->warningDataVectorPos.size() == infos[0]->warningDataVectorPos.size());
-        for (idx_t j = 0; j < infos[i]->warningDataVectorPos.size(); ++j) {
-            KU_ASSERT(infos[i]->warningDataVectorPos[j] == infos[0]->warningDataVectorPos[j]);
-        }
-    });
-}
-
-std::unique_ptr<PhysicalOperator> IndexLookup::clone() {
-    std::vector<std::unique_ptr<IndexLookupInfo>> copiedInfos;
-    copiedInfos.reserve(infos.size());
-    for (const auto& info : infos) {
-        copiedInfos.push_back(info->copy());
+    for (auto& info : infos) {
+        info.keyEvaluator->init(*resultSet, context->clientContext);
     }
-    return make_unique<IndexLookup>(std::move(copiedInfos), children[0]->clone(), getOperatorID(),
-        printInfo->copy());
 }
 
 void IndexLookup::lookup(transaction::Transaction* transaction, const IndexLookupInfo& info) {
-    auto keyVector = resultSet->getValueVector(info.keyVectorPos).get();
+    auto keyVector = info.keyEvaluator->resultVector.get();
     auto resultVector = resultSet->getValueVector(info.resultVectorPos).get();
 
     if (keyVector->hasNoNullsGuarantee()) {
