@@ -36,8 +36,11 @@ std::vector<std::string> SimpleTableFunction::extractYieldVariables(
     const std::vector<std::string>& names, std::vector<parser::YieldVariable> yieldVariables) {
     std::vector<std::string> variableNames;
     if (!yieldVariables.empty()) {
-        if (yieldVariables.size() != names.size()) {
+        if (yieldVariables.size() < names.size()) {
             throw common::BinderException{"Output variables must all appear in the yield clause."};
+        } else if (yieldVariables.size() > names.size()) {
+            throw common::BinderException{"The number of variables in the yield clause exceeds the "
+                                          "number of output variables of the table function."};
         }
         for (auto i = 0u; i < names.size(); i++) {
             if (names[i] != yieldVariables[i].name) {

@@ -357,3 +357,6 @@ person|person|ID|ID
 -STATEMENT CALL current_setting('timeout') yield `timeout` as timeout1 CALL current_setting('timeout') RETURN *;
 ---- 1
 0|0
+-STATEMENT CALL current_setting('timeout') yield `timeout`, `timeout` RETURN *;
+---- error
+Binder exception: The number of variables in the yield clause exceeds the number of output variables of the table function.
