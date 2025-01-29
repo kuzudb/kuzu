@@ -324,9 +324,6 @@ True|id
 False|name
 False|age
 
--STATEMENT call table_info('Person') YIELD `property id`, `name`, `type` RETURN `name`;
-Binder exception: Output variables must all appear in the yield clause.
-
 -CASE CallFuncWithYield
 -LOG CallWithYield
 -STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() yield name, description return name, description

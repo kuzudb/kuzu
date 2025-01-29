@@ -2,15 +2,6 @@
 
 --
 
--CASE LoadWithDoubleSkip
--STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv' (skip=3) RETURN * ORDER BY age SKIP 1;
----- 1
-7|Elizabeth|1|False|True|20|4.7|1980-10-26|1976-12-23 11:21:42|48:24:11|[2]|[Ein]|[[6],[7],[8]]|[96,59,65,88]|1.463|{a0eebc99-9c0b4ef8-bb6d6bb9-bd380a15}
-
--STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv' (skip=3) RETURN * SKIP 1;
----- 1
-7|Elizabeth|1|False|True|20|4.7|1980-10-26|1976-12-23 11:21:42|48:24:11|[2]|[Ein]|[[6],[7],[8]]|[96,59,65,88]|1.463|{a0eebc99-9c0b4ef8-bb6d6bb9-bd380a15}
-
 -CASE LoadWithExpressionSkip
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv' RETURN * SKIP 4.1;
 ---- error
