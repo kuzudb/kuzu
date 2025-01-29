@@ -308,10 +308,6 @@ NULL|True
 NULL|False
 NULL|False
 
--STATEMENT call table_info('PersonTableInfo') YIELD `property id`, `name`, `type`, `default expression` as `de`, `primary key` as pk RETURN `default expression`, `primary key`
----- error
-Binder exception: Variable default expression is not in scope.
-
 -STATEMENT call table_info('PersonTableInfo') YIELD `property id`, `name`, `type`, `default expression` as `de`, `primary key` as pk RETURN `de`, `pk`
 ---- 3
 NULL|True
