@@ -142,8 +142,7 @@ Binder exception: Cannot drop property note in table STUDENT because it is used 
 ---- ok
 
 -STATEMENT ALTER TABLE STUDENT DROP age;
----- error
-Binder exception: Cannot drop property name in table STUDENT because it is used in one or more indexes. Please remove the associated indexes before attempting to drop this property.
+---- ok
 
 -STATEMENT DROP TABLE STUDENT
 ---- ok
