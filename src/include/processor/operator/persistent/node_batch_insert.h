@@ -137,6 +137,8 @@ public:
         std::unique_ptr<storage::ChunkedNodeGroup>& nodeGroup,
         std::optional<IndexBuilder>& indexBuilder, storage::MemoryManager* mm) const;
 
+    // bool isParallel() const override { return false; }
+
 private:
     void appendIncompleteNodeGroup(transaction::Transaction* transaction,
         std::unique_ptr<storage::ChunkedNodeGroup> localNodeGroup,
