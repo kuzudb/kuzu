@@ -252,7 +252,7 @@ bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
     } else if (sniffType[columnIdx] &&
                (rowNum == 0 && csvOption.autoDetection && !csvOption.setHeader)) {
         // store the first line for later use
-        firstRow.push_back(value);
+        firstRow.push_back(std::string{value});
     }
 
     return true;
