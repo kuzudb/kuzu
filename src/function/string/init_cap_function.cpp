@@ -8,7 +8,7 @@ using namespace kuzu::common;
 struct InitCap {
     static void operation(ku_string_t& operand, ku_string_t& result, ValueVector& resultVector) {
         Lower::operation(operand, result, resultVector);
-        int originalSize, newSize = 0;
+        int originalSize = 0, newSize = 0;
         BaseLowerUpperFunction::convertCharCase(reinterpret_cast<char*>(result.getDataUnsafe()),
             reinterpret_cast<const char*>(result.getData()), 0 /* charPos */, true /* toUpper */,
             originalSize, newSize);
