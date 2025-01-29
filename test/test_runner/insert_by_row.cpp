@@ -41,7 +41,7 @@ void InsertDatasetByRow::init() {
         auto query = stringFormat("call show_tables() where name='{}' return type;", tableName);
         auto result = validateQuery(connection, query);
         auto tableType = result->getNext()->getValue(0)->toString();
-        query = stringFormat("call table_info('{}') return name, type order by 'property id';",
+        query = stringFormat("call table_info('{}') return name, type order by `property id`;",
             tableName);
         result = validateQuery(connection, query);
         std::vector<std::pair<std::string, std::string>> properties;
