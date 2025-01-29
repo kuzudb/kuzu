@@ -27,12 +27,10 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/too
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/too-many-values.csv on line 1: expected 3 values per row, but got 1. Line/record containing the error: 'a'
 
-
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/union-no-conversion.csv" (HEADER=TRUE, AUTO_DETECT=false) RETURN *
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/union-no-conversion.csv on line 2: Conversion exception: Could not convert to union type UNION(u UINT8, s INT8): a. Line/record containing the error: 'a'
 
--CASE TEST1
 # Test for issue 4531 (sniff wrong type when sample_size = 1)
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/sniff_first_row.csv" (ignore_errors=false, sample_size=1) RETURN *;
 ---- error
