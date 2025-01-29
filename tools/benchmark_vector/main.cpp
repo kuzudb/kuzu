@@ -99,12 +99,19 @@ int main(int argc, char **argv) {
     int maxK = stoi(input.getCmdOption("-maxK"));
     bool useQ = (bool) stoi(input.getCmdOption("-useQ"));
     bool useKnn = (bool) stoi(input.getCmdOption("-useKnn"));
+    auto maxNumThreadsStr = input.getCmdOption("-maxNumThreads");
+    int maxNumThreads = 32;
+    if (!maxNumThreadsStr.empty()) {
+        maxNumThreads = stoi(maxNumThreadsStr);
+    }
 
     std::vector<std::string> testQueries;
     testQueries.push_back(queryPath);
 
     auto db = Database(databasePath);
     auto conn = Connection(&db);
+    printf("Max num threads: %d\n", maxNumThreads);
+    conn.setMaxNumThreadForExec(maxNumThreads);
 
     for (auto &queriesPath: testQueries) {
         printf("Running queries from: %s\n", queriesPath.c_str());
