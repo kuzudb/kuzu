@@ -7,7 +7,9 @@
 #include "duckdb.hpp"
 #pragma GCC diagnostic pop
 
+#include "binder/binder.h"
 #include "common/assert.h"
+#include "function/duckdb_scan.h"
 
 namespace kuzu {
 namespace main {
@@ -28,6 +30,13 @@ public:
 
     virtual void connect(const std::string& dbPath, const std::string& catalogName,
         const std::string& schemaName, main::ClientContext* context) = 0;
+
+    virtual std::shared_ptr<DuckDBScanBindData> getScanBindData(std::string query,
+        const std::vector<common::LogicalType>& columnTypes,
+        const std::vector<std::string>& columnNames) const {
+        return std::make_shared<DuckDBScanBindData>(std::move(query), columnTypes, columnNames,
+            *this);
+    }
 
     std::unique_ptr<duckdb::MaterializedQueryResult> executeQuery(std::string query) const;
 

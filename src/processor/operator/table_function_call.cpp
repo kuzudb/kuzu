@@ -49,7 +49,8 @@ void TableFunctionCall::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
         KU_UNREACHABLE;
     }
     // Init table function input.
-    function::TableFunctionInitInput tableFunctionInitInput{info.bindData.get(), context->queryID};
+    function::TableFunctionInitInput tableFunctionInitInput{info.bindData.get(), context->queryID,
+        *context->clientContext};
     localState.funcState = info.function.initLocalStateFunc(tableFunctionInitInput,
         sharedState->funcState.get(), context->clientContext->getMemoryManager());
     localState.funcInput = function::TableFuncInput{info.bindData.get(), localState.funcState.get(),

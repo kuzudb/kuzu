@@ -28,7 +28,7 @@ struct DuckDBScanFunction {
 
     static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output);
 
-    static std::unique_ptr<TableFuncBindData> bindFunc(const DuckDBScanBindData& bindData,
+    static std::unique_ptr<TableFuncBindData> bindFunc(std::shared_ptr<DuckDBScanBindData> bindData,
         main::ClientContext* /*context*/, const TableFuncBindInput* input);
 
     static std::unique_ptr<TableFuncSharedState> initSharedState(
@@ -66,7 +66,8 @@ std::unique_ptr<TableFuncSharedState> DuckDBScanFunction::initSharedState(
             predicatesString += stringFormat(" AND {}", predicates.toString());
         }
     }
-    auto finalQuery = stringFormat(scanBindData->query, columnNames) + predicatesString;
+    auto finalQuery =
+        stringFormat(scanBindData->getQuery(input.context), columnNames) + predicatesString;
     auto result = scanBindData->connector.executeQuery(finalQuery);
     if (result->HasError()) {
         throw RuntimeException(
@@ -99,21 +100,24 @@ offset_t DuckDBScanFunction::tableFunc(const TableFuncInput& input, TableFuncOut
     return output.dataChunk.state->getSelVector().getSelSize();
 }
 
-std::unique_ptr<TableFuncBindData> DuckDBScanFunction::bindFunc(const DuckDBScanBindData& bindData,
-    main::ClientContext*, const TableFuncBindInput* input) {
-    auto result = bindData.copy();
-    auto columnNames =
-        SimpleTableFunction::extractYieldVariables(bindData.columnNames, input->yieldVariables);
-    result->columns = input->binder->createVariables(columnNames, bindData.columnTypes);
+std::unique_ptr<TableFuncBindData> DuckDBScanFunction::bindFunc(
+    std::shared_ptr<DuckDBScanBindData> bindData, main::ClientContext* context,
+    const TableFuncBindInput* input) {
+    auto result = bindData->copy();
+    auto scanBindData = bindData->constPtrCast<DuckDBScanBindData>();
+    auto columnNames = SimpleTableFunction::extractYieldVariables(scanBindData->columnNames,
+        input->yieldVariables);
+    result->columns =
+        input->binder->createVariables(columnNames, scanBindData->getColumnTypes(*context));
     return result;
 }
 
-TableFunction getScanFunction(DuckDBScanBindData bindData) {
+TableFunction getScanFunction(std::shared_ptr<DuckDBScanBindData> bindData) {
     auto function =
         TableFunction(DuckDBScanFunction::DUCKDB_SCAN_FUNC_NAME, std::vector<LogicalTypeID>{});
     function.tableFunc = DuckDBScanFunction::tableFunc;
-    function.bindFunc = std::bind(DuckDBScanFunction::bindFunc, std::move(bindData),
-        std::placeholders::_1, std::placeholders::_2);
+    function.bindFunc = std::bind(DuckDBScanFunction::bindFunc, bindData, std::placeholders::_1,
+        std::placeholders::_2);
     function.initSharedStateFunc = DuckDBScanFunction::initSharedState;
     function.initLocalStateFunc = DuckDBScanFunction::initLocalState;
     return function;

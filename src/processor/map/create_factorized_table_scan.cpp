@@ -35,7 +35,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScan(const expression_
     info.outPosV = std::move(outPosV);
     info.outputType = TableScanOutputType::MULTI_DATA_CHUNK;
     auto sharedState = std::make_shared<TableFunctionCallSharedState>();
-    TableFunctionInitInput tableFunctionInitInput{info.bindData.get(), 0};
+    TableFunctionInitInput tableFunctionInitInput{info.bindData.get(), 0 /* queryID */,
+        *clientContext};
     sharedState->funcState = info.function.initSharedStateFunc(tableFunctionInitInput);
     auto printInfo = std::make_unique<FTableScanFunctionCallPrintInfo>(function->name, exprs);
     if (children.size() == 0) {
