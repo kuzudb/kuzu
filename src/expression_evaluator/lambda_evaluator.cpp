@@ -48,9 +48,9 @@ void ListLambdaEvaluator::init(const ResultSet& resultSet, ClientContext* client
     bindData = ListLambdaBindData{lambdaParamEvaluators, paramIndices, lambdaRootEvaluator.get()};
 }
 
-void ListLambdaEvaluator::evaluate() {
-    KU_ASSERT(children.size() == 1);
-    children[0]->evaluate();
+// TODO(Ziyi): we currently do not support evaluating a list with size > DEFAULT_VECTOR_CAPACITY in
+// lambda.
+static void validateListLen(std::vector<std::shared_ptr<ValueVector>> params) {
     for (auto& param : params) {
         if (param->dataType.getLogicalTypeID() == LogicalTypeID::LIST) {
             for (auto i = 0u; i < param->state->getSelSize(); i++) {
@@ -65,6 +65,12 @@ void ListLambdaEvaluator::evaluate() {
             }
         }
     }
+}
+
+void ListLambdaEvaluator::evaluate() {
+    KU_ASSERT(children.size() == 1);
+    children[0]->evaluate();
+    validateListLen(params);
     execFunc(params, *resultVector, &bindData);
 }
 
