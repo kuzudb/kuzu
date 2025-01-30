@@ -4,19 +4,11 @@ namespace kuzu {
 namespace common {
 
 uint64_t nextPowerOfTwo(uint64_t v) {
-    v--;
-    v |= v >> 1;
-    v |= v >> 2;
-    v |= v >> 4;
-    v |= v >> 8;
-    v |= v >> 16;
-    v |= v >> 32;
-    v++;
-    return v;
+    return std::bit_ceil(v);
 }
 
 uint64_t prevPowerOfTwo(uint64_t v) {
-    return nextPowerOfTwo((v / 2) + 1);
+    return std::bit_floor(v);
 }
 
 bool isLittleEndian() {

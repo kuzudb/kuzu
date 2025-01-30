@@ -148,7 +148,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(const expressi
         getDataPos(unFlatKeys, *inSchema), getDataPos(payloads, *inSchema), std::move(tableSchema)};
 
     auto sharedState = std::make_shared<HashAggregateSharedState>(clientContext,
-        std::move(aggregateInfo), aggFunctions);
+        std::move(aggregateInfo), aggFunctions, aggregateInputInfos);
     auto printInfo = std::make_unique<HashAggregatePrintInfo>(allKeys, aggregates);
     auto aggregate = make_unique<HashAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
         sharedState, std::move(aggFunctions), std::move(aggregateInputInfos),

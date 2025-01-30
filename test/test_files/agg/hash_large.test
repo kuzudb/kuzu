@@ -21,3 +21,7 @@
 -CHECK_ORDER
 ---- 68949
 <FILE>:hash_large.csv
+-STATEMENT MATCH (a:account)-[]->(b:account) WHERE a.ID > 1000000 RETURN a.ID, COUNT(DISTINCT b.ID) as n ORDER BY n, a.ID;
+-CHECK_ORDER
+---- 68949
+<FILE>:hash_large.csv

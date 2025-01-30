@@ -73,6 +73,12 @@ public:
             printInfo->copy());
     }
 
+    // TODO(bmwinger): We can use the same type of partitioning to handle distinct simple aggregates
+    // It could even be the exact same pipeline, but it would perform better if we don't use the
+    // hash tables for anything but collecting the distinct values
+    // Maybe try and move the partitioning into BaseAggregate
+    bool isParallel() const final { return !containDistinctAggregate(); }
+
 private:
     void computeDistinctAggregate(AggregateHashTable* distinctHT,
         function::AggregateFunction* function, AggregateInput* input,

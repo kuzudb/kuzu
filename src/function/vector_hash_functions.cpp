@@ -164,6 +164,8 @@ static void finalizeDataVecHash(const ValueVector& operand, const SelectionVecto
 static void computeListVectorHash(const ValueVector& operand,
     const SelectionVector& operandSelectVec, ValueVector& result,
     const SelectionVector& resultSelectVec) {
+    // FIXME(bmwinger): this Will be a bottleneck on distinct hash aggregations of lists
+    // Do a rolling hash instead
     auto dataVecHash = computeDataVecHash(operand);
     finalizeDataVecHash(operand, operandSelectVec, result, resultSelectVec, *dataVecHash);
 }
@@ -186,6 +188,7 @@ static void computeStructVecHash(const ValueVector& operand, const SelectionVect
     case LogicalTypeID::STRUCT: {
         VectorHashFunction::computeHash(*StructVector::getFieldVector(&operand, 0 /* idx */),
             operandSelVec, result, resultSelVec);
+        // FIXME(bmwinger): this Will be a bottleneck on distinct hash aggregations of structs
         auto tmpHashVector = std::make_unique<ValueVector>(LogicalType::HASH());
         for (auto i = 1u; i < StructType::getNumFields(operand.dataType); i++) {
             auto fieldVector = StructVector::getFieldVector(&operand, i);

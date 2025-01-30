@@ -88,11 +88,15 @@ public:
     void finalizeAggregateStates();
 
     void resize(uint64_t newSize);
+    void clear();
     void resizeHashTableIfNecessary(uint32_t maxNumDistinctHashKeys);
 
     AggregateHashTable createEmptyCopy() const { return AggregateHashTable(*this); }
 
     DEFAULT_BOTH_MOVE(AggregateHashTable);
+    AggregateHashTable* getDistinctHashTable(uint64_t aggregateFunctionIdx) const {
+        return distinctHashTables[aggregateFunctionIdx].get();
+    }
 
 protected:
     virtual uint64_t matchFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
@@ -164,7 +168,8 @@ protected:
 
     void updateAggStates(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
-        const std::vector<AggregateInput>& aggregateInputs, uint64_t resultSetMultiplicity);
+        const std::vector<AggregateInput>& aggregateInputs, uint64_t resultSetMultiplicity,
+        bool updateDistinct = true);
 
     void fillEntryWithInitialNullAggregateState(FactorizedTable& table, uint8_t* entry);
 
@@ -249,6 +254,7 @@ protected:
 
     //! special handling of distinct aggregate
     std::vector<std::unique_ptr<AggregateHashTable>> distinctHashTables;
+    std::vector<uint64_t> distinctHashEntriesProcessed;
     uint32_t hashColOffsetInFT{};
     uint32_t aggStateColOffsetInFT{};
     uint32_t aggStateColIdxInFT{};
