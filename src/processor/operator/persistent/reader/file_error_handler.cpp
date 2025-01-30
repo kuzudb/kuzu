@@ -6,7 +6,6 @@
 #include "common/exception/copy.h"
 #include "common/string_format.h"
 #include "main/client_context.h"
-#include "processor/operator/persistent/reader/csv/base_csv_reader.h"
 
 namespace kuzu {
 using namespace common;
@@ -39,10 +38,10 @@ void SharedFileErrorHandler::tryCacheError(CopyFromFileError error, const common
 }
 
 void SharedFileErrorHandler::handleError(CopyFromFileError error) {
+    auto lockGuard = lock();
     if (error.mustThrow) {
         throwError(error);
     }
-    auto lockGuard = lock();
 
     const auto blockIdx = error.warningData.getBlockIdx();
     if (blockIdx >= linesPerBlock.size()) {
