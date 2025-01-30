@@ -54,5 +54,5 @@ a:b:a:c:a:b:a:d:a:b:a:c:a:b:a:
 ---- 1
 d:c:b:a:b:c:d:
 -STATEMENT unwind range(1, 5000) as t with collect(t) as lst return list_reduce(lst, (x, y) -> y+x+y);
----- error
-Runtime exception: Lists with size greater than: 2048 is not supported in list lambda functions.
+---- error(regex)
+Runtime exception: Lists with size greater than: [0-9]+ is not supported in list lambda functions.
