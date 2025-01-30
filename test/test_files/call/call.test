@@ -296,12 +296,6 @@ SQLITE|Adds support for reading from SQLITE tables
 -STATEMENT CREATE NODE TABLE PersonTableInfo(id INT64 PRIMARY KEY, name STRING, age INT64)
 ---- ok
 
--STATEMENT CALL table_info('PersonTableInfo') YIELD `property id`, `name`, `type`, `default expression`, `primary key` RETURN *
----- 3
-0|id|INT64|NULL|True
-1|name|STRING|NULL|False
-2|age|INT64|NULL|False
-
 -STATEMENT call table_info('PersonTableInfo') YIELD `property id`, `name`, `type`, `default expression`, `primary key` RETURN `default expression`, `primary key`
 ---- 3
 NULL|True

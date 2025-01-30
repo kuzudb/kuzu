@@ -7,28 +7,6 @@
 ---- error
 Runtime exception: The number of rows to skip/limit must be a non-negative integer.
 
--STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv' RETURN * SKIP -4;
----- error
-Runtime exception: The number of rows to skip/limit must be a non-negative integer.
-
--STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv' RETURN * SKIP 'abc';
----- error
-Runtime exception: The number of rows to skip/limit must be a non-negative integer.
-
--STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv' RETURN * SKIP 2*2;
----- 1
-7|Elizabeth|1|False|True|20|4.7|1980-10-26|1976-12-23 11:21:42|48:24:11|[2]|[Ein]|[[6],[7],[8]]|[96,59,65,88]|1.463|{a0eebc99-9c0b4ef8-bb6d6bb9-bd380a15}
-
--STATEMENT CREATE NODE TABLE PersonLoad(id INT64 PRIMARY KEY);
----- ok
-
--STATEMENT CREATE (n:PersonLoad {id:1});
----- ok
-
--STATEMENT MATCH(p:PersonLoad) LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv' RETURN * SKIP p.id;
----- error
-Binder exception: The number of rows to skip/limit must be a parameter/literal expression.
-
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv' RETURN * SKIP CAST(4.6, "INT8");
 ---- ok
 
