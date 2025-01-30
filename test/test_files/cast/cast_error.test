@@ -661,7 +661,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/arra
 Binder exception: The number of elements in an array must be greater than 0. Given: 0.
 -STATEMENT LOAD WITH HEADERS (a UNION(v1 INT64, v2 STRING)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-utf8/invalid-utf8.csv" (auto_detect = false) RETURN *;
 ---- error(regex)
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-utf8/invalid-utf8\.csv on line 1: Conversion exception: Invalid UTF8-encoded string\. Line/record containing the error: '.'
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-utf8/invalid-utf8\.csv on line 1: Invalid UTF8-encoded string\. Line/record containing the error: .+
 -STATEMENT LOAD WITH HEADERS (a UNION(v1 INT64, v2 INT32)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/union/union_error.csv" (auto_detect = false) RETURN *;
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/union/union_error.csv on line 1: Conversion exception: Could not convert to union type UNION(v1 INT64, v2 INT32): fdsaf. Line/record containing the error: 'fdsaf'

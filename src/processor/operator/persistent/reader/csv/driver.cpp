@@ -4,6 +4,7 @@
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
+#include "utf8proc_wrapper.h"
 
 using namespace kuzu::common;
 
@@ -186,8 +187,12 @@ bool SniffCSVNameAndTypeDriver::done(uint64_t rowNum) {
     // if the csv only has one row
     if (finished && rowNum <= 1 && csvOption.autoDetection && !csvOption.setHeader) {
         for (auto columnIdx = 0u; columnIdx < firstRow.size(); ++columnIdx) {
-            std::string columnName = std::string(firstRow[columnIdx]);
-            LogicalType columnType = function::inferMinimalTypeFromString(firstRow[columnIdx]);
+            auto value = firstRow[columnIdx];
+            if (!utf8proc::Utf8Proc::isValid(value.data(), value.length())) {
+                reader->handleCopyException("Invalid UTF8-encoded string.", true /* mustThrow */);
+            }
+            std::string columnName = std::string(value);
+            LogicalType columnType = function::inferMinimalTypeFromString(value);
             columns[columnIdx].first = columnName;
             columns[columnIdx].second = std::move(columnType);
         }
@@ -247,7 +252,7 @@ bool SniffCSVNameAndTypeDriver::addValue(uint64_t rowNum, common::column_id_t co
     } else if (sniffType[columnIdx] &&
                (rowNum == 0 && csvOption.autoDetection && !csvOption.setHeader)) {
         // store the first line for later use
-        firstRow.push_back(value);
+        firstRow.push_back(std::string{value});
     }
 
     return true;

@@ -3,6 +3,10 @@
 #include <sstream>
 #include <vector>
 
+#include "common/exception/runtime.h"
+#include "function/string/functions/base_lower_upper_function.h"
+#include "utf8proc_wrapper.h"
+
 namespace kuzu {
 namespace common {
 
@@ -121,6 +125,27 @@ std::string StringUtils::getLower(const std::string& input) {
     auto result = input;
     toLower(result);
     return result;
+}
+
+template<bool toUpper>
+static void changeCase(std::string& input) {
+    if (!utf8proc::Utf8Proc::isValid(input.c_str(), input.length())) {
+        throw RuntimeException{"Invalid UTF8-encoded string."};
+    }
+    auto resultLen = function::BaseLowerUpperFunction::getResultLen((char*)input.data(),
+        input.length(), toUpper);
+    std::string result(resultLen, '\0' /* char */);
+    function::BaseLowerUpperFunction::convertCase((char*)result.data(), input.length(),
+        input.data(), toUpper);
+    input = result;
+}
+
+void StringUtils::toLower(std::string& input) {
+    changeCase<false>(input);
+}
+
+void StringUtils::toUpper(std::string& input) {
+    changeCase<true>(input);
 }
 
 void StringUtils::removeCStringWhiteSpaces(const char*& input, uint64_t& len) {

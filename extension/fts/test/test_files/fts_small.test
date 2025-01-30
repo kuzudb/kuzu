@@ -382,3 +382,25 @@ Catalog exception: function QUERY_FTS_INDEX is not defined. This function exists
 ---- 2
 0|0.271133
 3|0.209476
+
+-CASE RussianDoc
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
+---- ok
+-STATEMENT CREATE NODE TABLE Documents (ID SERIAL, title STRING, text STRING, PRIMARY KEY (ID));
+---- ok
+-STATEMENT CREATE (b:Documents {title: 'one', text: 'Многоклеточный Какие'});
+---- ok
+-STATEMENT CREATE (b:Documents {title: 'two', text: 'Какие'});
+---- ok
+-STATEMENT CREATE (b:Documents {title: 'three', text: 'часто относят к колониальным организмам'});
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('Documents', 'documents_index', ['text'], stemmer := 'russian');
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'Какие') RETURN _node.title;
+---- 2
+one
+two
+-STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'какие') RETURN _node.title;
+---- 2
+one
+two
