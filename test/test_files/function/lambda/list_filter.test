@@ -83,5 +83,5 @@ Binder exception: LIST_FILTER requires the result type of lambda expression be B
 []
 [10,6,7]
 -STATEMENT unwind range(1, 5000) as t with collect(t) as lst return list_filter(lst, x->x > 3);
----- error
+---- error(regex)
 Runtime exception: Lists with size greater than: [0-9]+ is not supported in list lambda functions.
