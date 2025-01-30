@@ -68,14 +68,14 @@ uint64_t SerialCSVReader::parseBlock(block_idx_t blockIdx, DataChunk& resultChun
     }
     currentBlockIdx = blockIdx;
     if (blockIdx == 0) {
-        uint64_t headerNumRows = handleFirstBlock();
-        errorHandler->setHeaderNumRows(headerNumRows);
+        const auto [numRowsRead, numErrors] = handleFirstBlock();
+        errorHandler->setHeaderNumRows(numRowsRead + numErrors);
     }
     SerialParsingDriver driver(resultChunk, this);
-    auto numRowsRead = parseCSV(driver);
+    const auto [numRowsRead, numErrors] = parseCSV(driver);
     errorHandler->reportFinishedBlock(blockIdx, numRowsRead);
     resultChunk.state->getSelVectorUnsafe().setSelSize(numRowsRead);
-    increaseNumRowsInCurrentBlock(numRowsRead);
+    increaseNumRowsInCurrentBlock(numRowsRead, numErrors);
     return numRowsRead;
 }
 

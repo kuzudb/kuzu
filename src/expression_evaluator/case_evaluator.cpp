@@ -56,7 +56,9 @@ bool CaseExpressionEvaluator::select(SelectionVector& selVector) {
         auto selVectorPos = selVector[i];
         auto resultVectorPos = resultVector->state->getSelVector()[i];
         selectedPosBuffer[numSelectedValues] = selVectorPos;
-        numSelectedValues += resultVector->getValue<bool>(resultVectorPos);
+        const bool selectCurrentValue =
+            !resultVector->isNull(resultVectorPos) && resultVector->getValue<bool>(resultVectorPos);
+        numSelectedValues += selectCurrentValue;
     }
     selVector.setSelSize(numSelectedValues);
     return numSelectedValues > 0;

@@ -122,6 +122,7 @@ struct UnaryFunctionExecutor {
             }
         } else {
             if (operand.hasNoNullsGuarantee()) {
+                result.setAllNonNull();
                 if (operandSelVector.isUnfiltered()) {
                     for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
                         executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand, i,

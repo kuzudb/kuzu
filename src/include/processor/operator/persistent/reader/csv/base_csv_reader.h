@@ -44,6 +44,10 @@ class BaseCSVReader {
     friend class SniffCSVNameAndTypeDriver;
 
 public:
+    // 1st element is number of successfully parsed rows
+    // 2nd element is number of failed to parse rows
+    using parse_result_t = std::pair<uint64_t, uint64_t>;
+
     BaseCSVReader(const std::string& filePath, common::idx_t fileIdx, common::CSVOption option,
         CSVColumnInfo columnInfo, main::ClientContext* context,
         LocalFileErrorHandler* errorHandler);
@@ -83,11 +87,11 @@ protected:
         std::vector<uint64_t>& escapePositions);
 
     //! Read BOM and header.
-    uint64_t handleFirstBlock();
+    parse_result_t handleFirstBlock();
 
     //! If this finds a BOM, it advances `position`.
     void readBOM();
-    uint64_t readHeader();
+    parse_result_t readHeader();
     //! Reads a new buffer from the CSV file.
     //! Uses the start value to ensure the current value stays within the buffer.
     //! Modifies the start value to point to the new start of the current value.
@@ -104,7 +108,7 @@ protected:
     void handleCopyException(const std::string& message, bool mustThrow = false);
 
     template<typename Driver>
-    uint64_t parseCSV(Driver&);
+    parse_result_t parseCSV(Driver&);
 
     inline bool isNewLine(char c) { return c == '\n' || c == '\r'; }
 
@@ -114,7 +118,7 @@ protected:
     void skipCurrentLine();
 
     void resetNumRowsInCurrentBlock();
-    void increaseNumRowsInCurrentBlock(uint64_t numRows);
+    void increaseNumRowsInCurrentBlock(uint64_t numRows, uint64_t numErrors);
     uint64_t getNumRowsInCurrentBlock() const;
     uint32_t getRowOffsetInCurrentBlock() const;
 

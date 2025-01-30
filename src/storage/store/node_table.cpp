@@ -134,7 +134,7 @@ bool UncommittedPKInserter::processScanOutput(const Transaction* transaction,
         nodeIDVector.setValue(i, nodeID_t{startNodeOffset + i, tableID});
     }
     insertPK(transaction, nodeIDVector, scannedVector, pkIndex, isVisible);
-    startNodeOffset = scanResult.startRow + scanResult.numRows;
+    startNodeOffset += scanResult.numRows;
     return true;
 }
 
