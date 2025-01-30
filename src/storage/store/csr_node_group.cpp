@@ -161,7 +161,7 @@ NodeGroupScanResult CSRNodeGroup::scan(const Transaction* transaction,
         }
     }
 }
-
+/*
 NodeGroupScanResult CSRNodeGroup::scanCommittedPersistent(const Transaction* transaction,
     RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const {
     if (tableState.cachedBoundNodeSelVector.getSelSize() == 1) {
@@ -170,6 +170,109 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedPersistent(const Transaction* tra
     }
     return scanCommittedPersistentWithCache(transaction, tableState, nodeGroupScanState);
 }
+*/
+
+NodeGroupScanResult CSRNodeGroup::scanCommittedPersistent(const Transaction* transaction,
+    RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const {
+    // First get scan result as usual - this will populate nodeIDs and relIDs
+    NodeGroupScanResult result;
+    if (tableState.cachedBoundNodeSelVector.getSelSize() == 1) {
+        result = scanCommittedPersistentWtihoutCache(transaction, tableState, nodeGroupScanState);
+    } else {
+        result = scanCommittedPersistentWithCache(transaction, tableState, nodeGroupScanState);
+    }
+
+    // If scanning backward and we got results, fetch properties from forward storage
+    if (result != NODE_GROUP_SCAN_EMMPTY_RESULT && 
+        tableState.direction == RelDataDirection::BWD && 
+        tableState.forwardTableData != nullptr) {
+        
+        // relID is at columnID 2 in the output vectors 
+        auto& relIDVector = *tableState.outputVectors[2];
+        const auto numRels = tableState.outState->getSelVector().getSelSize();
+
+        // For each relID, look up properties from forward node groups
+        for (auto i = 0u; i < numRels; i++) {
+            const auto pos = tableState.outState->getSelVector()[i];
+            const auto relID = relIDVector.getValue<nodeID_t>(pos);
+            const auto relOffset = relID.offset;
+
+            // Get forward node group that contains this relationship
+            auto nodeGroupIdnodeGroupIdxx = StorageUtils::getNodeGroupIdx(relOffset);
+            auto offsetInGroup = relOffset % StorageConstants::NODE_GROUP_SIZE;
+            
+            auto* forwardNG = tableState.forwardTableData->getNodeGroup(nodeGroupIdx);
+            if (!forwardNG) continue;
+
+            // Look up property values from forward node group
+            auto& forwardCSRGroup = forwardNG->cast<CSRNodeGroup>();
+            
+            // copy properties to position 2 (where the property vector is)
+            const auto& chunk = forwardCSRGroup.persistentChunkGroup->getColumnChunk(2); // Property is at columnID 1
+            
+            // Initialize chunk state for the lookup
+            ChunkState chunkState;
+            chunk.initializeScanState(chunkState, tableState.columns[1]);
+            
+            chunk.lookup(transaction, chunkState, offsetInGroup, 
+                *tableState.outputVectors[1], pos); 
+        }
+    }
+
+    return result;
+}
+/*
+NodeGroupScanResult CSRNodeGroup::scanCommittedPersistent(const Transaction* transaction,
+    RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const {
+    // First get scan result as usual - this will populate nodeIDs and relIDs
+    NodeGroupScanResult result;
+    if (tableState.cachedBoundNodeSelVector.getSelSize() == 1) {
+        result = scanCommittedPersistentWtihoutCache(transaction, tableState, nodeGroupScanState);
+    } else {
+        result = scanCommittedPersistentWithCache(transaction, tableState, nodeGroupScanState);
+    }
+
+    // If scanning backward and we got results, fetch properties from forward storage
+    if (result != NODE_GROUP_SCAN_EMMPTY_RESULT && 
+        tableState.direction == RelDataDirection::BWD && 
+        tableState.forwardTableData != nullptr) {
+        
+        // relID is at columnID 1 in the output vectors (after nbrID)
+        auto& relIDVector = *tableState.outputVectors[0];
+        const auto numRels = tableState.outState->getSelVector().getSelSize();
+
+        // For each relID, look up properties from forward node groups
+        for (auto i = 0u; i < numRels; i++) {
+            const auto pos = tableState.outState->getSelVector()[i];
+            const auto relOffset = relIDVector.readNodeOffset(pos);
+
+            // Get forward node group that contains this relationship
+            auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(relOffset);
+            auto offsetInGroup = relOffset % StorageConstants::NODE_GROUP_SIZE;
+            
+            auto* forwardNG = tableState.forwardTableData->getNodeGroup(nodeGroupIdx);
+            if (!forwardNG) continue;
+
+            // Look up property values from forward node group
+            auto& forwardCSRGroup = forwardNG->cast<CSRNodeGroup>();
+            
+            // Start from columnID 2 (after nbrID and relID) to get only properties
+            for (auto colIdx = 2u; colIdx < tableState.columnIDs.size(); colIdx++) {
+                const auto columnID = tableState.columnIDs[colIdx];
+                const auto& chunk = forwardCSRGroup.persistentChunkGroup->getColumnChunk(columnID);
+                
+                // Initialize chunk state for the lookup
+                ChunkState chunkState;
+                chunk.initializeScanState(chunkState, tableState.columns[colIdx]);
+                
+                chunk.lookup(transaction, chunkState, offsetInGroup, 
+                    *tableState.outputVectors[colIdx], pos);
+            }
+        }
+    }
+
+    return result;
+} */
 
 NodeGroupScanResult CSRNodeGroup::scanCommittedPersistentWithCache(const Transaction* transaction,
     RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const {

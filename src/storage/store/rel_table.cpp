@@ -37,6 +37,15 @@ void RelTableScanState::initState(Transaction* transaction, NodeGroup* nodeGroup
     this->nodeGroup = nodeGroup;
     initCachedBoundNodeIDSelVector();
     if (this->nodeGroup) {
+
+        if (direction == RelDataDirection::BWD) {
+            const auto& relTable = transaction->getClientContext()
+                                       ->getStorageManager()
+                                       ->getTable(tableID)
+                                       ->cast<RelTable>();
+            forwardTableData = relTable.getDirectedTableData(RelDataDirection::FWD);
+        }
+
         initStateForCommitted(transaction);
     } else if (hasUnComittedData()) {
         initStateForUncommitted();

@@ -21,6 +21,8 @@ struct RelTableScanState : TableScanState {
     Column* csrOffsetColumn;
     Column* csrLengthColumn;
 
+    RelTableData* forwardTableData{nullptr};
+
     // This is a reference of the original selVector of the input boundNodeIDVector.
     common::SelectionVector cachedBoundNodeSelVector;
 
