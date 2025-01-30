@@ -292,28 +292,6 @@ JSON|Adds support for JSON operations
 POSTGRES|Adds support for reading from POSTGRES tables
 SQLITE|Adds support for reading from SQLITE tables
 
--CASE CallTableInfoWithYield
--STATEMENT CREATE NODE TABLE PersonTableInfo(id INT64 PRIMARY KEY, name STRING, age INT64)
----- ok
-
--STATEMENT call table_info('PersonTableInfo') YIELD `property id`, `name`, `type`, `default expression`, `primary key` RETURN `default expression`, `primary key`
----- 3
-NULL|True
-NULL|False
-NULL|False
-
--STATEMENT call table_info('PersonTableInfo') YIELD `property id`, `name`, `type`, `default expression` as `de`, `primary key` as pk RETURN `de`, `pk`
----- 3
-NULL|True
-NULL|False
-NULL|False
-
--STATEMENT call table_info('PersonTableInfo') YIELD `property id`, `name`, `type`, `default expression` as `de`, `primary key` as pk RETURN `pk`, `name`
----- 3
-True|id
-False|name
-False|age
-
 -CASE CallFuncWithYield
 -LOG CallWithYield
 -STATEMENT CALL SHOW_OFFICIAL_EXTENSIONS() yield name, description return name, description
@@ -376,6 +354,9 @@ Binder exception: Unknown table function output variable name: timeot.
 -STATEMENT CALL show_connection('knows') yield `source table name` as `destination table name`, `destination table name` as `source table name`, `source table primary key`, `destination table primary key` return *;
 ---- 1
 person|person|ID|ID
+-STATEMENT CALL show_connection('knows') yield `destination table name`, `source table name`, `source table primary key`, `destination table primary key` return *;
+---- error
+Binder exception: Unknown table function output variable name: destination table name.
 -STATEMENT CALL current_setting('timeout') yield `timeout` as timeout1 CALL current_setting('timeout') RETURN *;
 ---- 1
 0|0
