@@ -51,6 +51,20 @@ void ListLambdaEvaluator::init(const ResultSet& resultSet, ClientContext* client
 void ListLambdaEvaluator::evaluate() {
     KU_ASSERT(children.size() == 1);
     children[0]->evaluate();
+    for (auto& param : params) {
+        if (param->dataType.getLogicalTypeID() == LogicalTypeID::LIST) {
+            for (auto i = 0u; i < param->state->getSelSize(); i++) {
+                auto lst = param->getValue<list_entry_t>(param->state->getSelVector()[i]);
+                if (lst.size > DEFAULT_VECTOR_CAPACITY) {
+                    throw common::RuntimeException{
+                        common::stringFormat("Lists with size greater than: {} is not "
+                                             "supported in list lambda functions.",
+                            DEFAULT_VECTOR_CAPACITY),
+                    };
+                }
+            }
+        }
+    }
     execFunc(params, *resultVector, &bindData);
 }
 

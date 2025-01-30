@@ -90,3 +90,6 @@ Binder exception: The second argument of LIST_TRANSFORM should be a lambda expre
 -STATEMENT RETURN LIST_TRANSFORM(['KUZU', 'DUCKDB', 'NEO4J'], x-> size(x)+size(x))
 ---- 1
 [8,12,10]
+-STATEMENT unwind range(1, 5000) as t with collect(t) as lst return list_transform(lst, x->x+1);
+---- error
+Runtime exception: Lists with size greater than: 2048 is not supported in list lambda functions.
