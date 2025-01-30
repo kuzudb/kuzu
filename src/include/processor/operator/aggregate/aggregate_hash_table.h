@@ -79,26 +79,35 @@ public:
         common::DataChunkState* leadingState, const std::vector<AggregateInput>& aggregateInputs,
         uint64_t resultSetMultiplicity);
 
-    bool isAggregateValueDistinctForGroupByKeys(
+    // Returns true if the value was distinct and was inserted
+    // otherwise if the value already existed, returns false and the hash table is unchanged
+    bool insertAggregateValueIfDistinctForGroupByKeys(
         const std::vector<common::ValueVector*>& groupByKeyVectors,
         common::ValueVector* aggregateVector);
 
     //! merge aggregate hash table by combining aggregate states under the same key
     void merge(FactorizedTable&& other);
     void merge(AggregateHashTable&& other) { merge(std::move(*other.factorizedTable)); }
+    // Must be called after merging hash tables with distinct functions, but only when the merged
+    // distinct tuples match the merged non-distinct tuples
+    void mergeDistinctAggregateInfo();
 
     void finalizeAggregateStates();
 
     void resize(uint64_t newSize);
+    void clear();
     void resizeHashTableIfNecessary(uint32_t maxNumDistinctHashKeys);
 
     AggregateHashTable createEmptyCopy() const { return AggregateHashTable(*this); }
 
     DEFAULT_BOTH_MOVE(AggregateHashTable);
+    AggregateHashTable* getDistinctHashTable(uint64_t aggregateFunctionIdx) const {
+        return distinctHashTables[aggregateFunctionIdx].get();
+    }
 
 protected:
-    virtual uint64_t matchFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
-        const std::vector<common::ValueVector*>& unFlatKeyVectors, uint64_t numMayMatches,
+    virtual uint64_t matchFTEntries(std::span<const common::ValueVector*> flatKeyVectors,
+        std::span<const common::ValueVector*> unFlatKeyVectors, uint64_t numMayMatches,
         uint64_t numNoMatches);
 
     uint64_t matchFTEntries(const FactorizedTable& srcTable, uint64_t startOffset,
@@ -111,10 +120,10 @@ protected:
     void initializeFTEntries(const FactorizedTable& sourceTable, uint64_t sourceStartOffset,
         uint64_t numFTEntriesToInitialize);
 
-    uint64_t matchUnFlatVecWithFTColumn(common::ValueVector* vector, uint64_t numMayMatches,
+    uint64_t matchUnFlatVecWithFTColumn(const common::ValueVector* vector, uint64_t numMayMatches,
         uint64_t& numNoMatches, uint32_t colIdx);
 
-    uint64_t matchFlatVecWithFTColumn(common::ValueVector* vector, uint64_t numMayMatches,
+    uint64_t matchFlatVecWithFTColumn(const common::ValueVector* vector, uint64_t numMayMatches,
         uint64_t& numNoMatches, uint32_t colIdx);
 
     void findHashSlots(const std::vector<common::ValueVector*>& flatKeyVectors,
@@ -166,7 +175,8 @@ protected:
 
     void updateAggStates(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
-        const std::vector<AggregateInput>& aggregateInputs, uint64_t resultSetMultiplicity);
+        const std::vector<AggregateInput>& aggregateInputs, uint64_t resultSetMultiplicity,
+        bool updateDistinct);
 
     void fillEntryWithInitialNullAggregateState(FactorizedTable& table, uint8_t* entry);
 
@@ -230,6 +240,20 @@ protected:
         return distinctAggKeyTypes;
     }
 
+    template<class Func>
+    uint8_t* findEntry(common::hash_t hash, Func compareKeys) {
+        auto slotIdx = getSlotIdxForHash(hash);
+        while (true) {
+            auto slot = (HashSlot*)getHashSlot(slotIdx);
+            if (slot->entry == nullptr) {
+                return nullptr;
+            } else if ((slot->hash == hash) && compareKeys(slot->entry)) {
+                return slot->entry;
+            }
+            increaseSlotIdx(slotIdx);
+        }
+    }
+
 private:
     // Does not copy the contents of the hash table and is provided as a convenient way of
     // constructing more hash tables without having to hold on to or expose the construction
@@ -251,6 +275,7 @@ protected:
 
     //! special handling of distinct aggregate
     std::vector<std::unique_ptr<AggregateHashTable>> distinctHashTables;
+    std::vector<uint64_t> distinctHashEntriesProcessed;
     uint32_t hashColOffsetInFT{};
     uint32_t aggStateColOffsetInFT{};
     uint32_t aggStateColIdxInFT{};

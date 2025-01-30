@@ -93,19 +93,19 @@ public:
 
     // This function scans numTuplesToScan of rows to vectors starting at tupleIdx. Callers are
     // responsible for making sure all the parameters are valid.
-    void scan(std::vector<common::ValueVector*>& vectors, ft_tuple_idx_t tupleIdx,
+    void scan(std::span<common::ValueVector*> vectors, ft_tuple_idx_t tupleIdx,
         uint64_t numTuplesToScan) const {
         std::vector<uint32_t> colIdxes(tableSchema.getNumColumns());
         iota(colIdxes.begin(), colIdxes.end(), 0);
         scan(vectors, tupleIdx, numTuplesToScan, colIdxes);
     }
     bool isEmpty() const { return getNumTuples() == 0; }
-    void scan(std::vector<common::ValueVector*>& vectors, ft_tuple_idx_t tupleIdx,
-        uint64_t numTuplesToScan, std::vector<uint32_t>& colIdxToScan) const;
+    void scan(std::span<common::ValueVector*> vectors, ft_tuple_idx_t tupleIdx,
+        uint64_t numTuplesToScan, std::span<uint32_t> colIdxToScan) const;
     // TODO(Guodong): Unify these two interfaces along with `readUnflatCol`.
     // startPos is the starting position in the tuplesToRead, not the starting position in the
     // factorizedTable
-    void lookup(std::vector<common::ValueVector*>& vectors, std::vector<uint32_t>& colIdxesToScan,
+    void lookup(std::span<common::ValueVector*> vectors, std::span<uint32_t> colIdxesToScan,
         uint8_t** tuplesToRead, uint64_t startPos, uint64_t numTuplesToRead) const;
     void lookup(std::vector<common::ValueVector*>& vectors,
         const common::SelectionVector* selVector, std::vector<uint32_t>& colIdxesToScan,
