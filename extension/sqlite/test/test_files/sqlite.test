@@ -99,7 +99,7 @@ alice
 -STATEMENT COPY person_copy FROM (LOAD FROM datatype.person RETURN id, name, profile_picture, balance, age, is_active, birth_date, wrong_birth_time, additional_info);
 ---- error
 Conversion Error: timestamp field value out of range: "08:30:00", expected format is (YYYY-MM-DD HH:MM:SS[.US][±HH:MM| ZONE])
--STATEMENT COPY person_copy FROM (LOAD FROM sqliteDatatype.person RETURN id, name, profile_picture, balance, age, is_active, birth_date, birth_time, additional_info);
+-STATEMENT COPY person_copy FROM (LOAD FROM datatype.person RETURN id, name, profile_picture, balance, age, is_active, birth_date, birth_time, additional_info);
 ---- ok
 -STATEMENT MATCH (p:person_copy) RETURN p.*;
 ---- 4
