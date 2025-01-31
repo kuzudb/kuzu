@@ -14,6 +14,38 @@ public:
     }
 };
 
+static kuzu_value* copy_flat_tuple(kuzu_flat_tuple* tuple, uint32_t tupleLen) {
+    kuzu_value* ret = (kuzu_value*)malloc(sizeof(kuzu_value) * tupleLen);
+    for (uint32_t i = 0; i < tupleLen; i++) {
+        kuzu_flat_tuple_get_value(tuple, i, &ret[i]);
+    }
+    return ret;
+}
+
+TEST_F(CApiQueryResultTest, GetNextExample) {
+    auto conn = getConnection();
+
+    kuzu_query_result result;
+    kuzu_connection_query(conn, "MATCH (p:person) RETURN p.*", &result);
+
+    uint64_t num_tuples = kuzu_query_result_get_num_tuples(&result);
+    kuzu_value** tuples = (kuzu_value**)malloc(sizeof(kuzu_value*) * num_tuples);
+    for (uint64_t i = 0; i < num_tuples; ++i) {
+        kuzu_flat_tuple tuple;
+        kuzu_query_result_get_next(&result, &tuple);
+        tuples[i] = copy_flat_tuple(&tuple, kuzu_query_result_get_num_columns(&result));
+    }
+
+    for (uint64_t i = 0; i < num_tuples; ++i) {
+        for (uint64_t j = 0; j < kuzu_query_result_get_num_columns(&result); ++j) {
+            ASSERT_FALSE(kuzu_value_is_null(&tuples[i][j]));
+        }
+        free(tuples[i]);
+    }
+
+    free((void*)tuples);
+}
+
 TEST_F(CApiQueryResultTest, GetErrorMessage) {
     kuzu_query_result result;
     kuzu_state state;

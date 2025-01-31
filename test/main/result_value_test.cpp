@@ -42,3 +42,26 @@ TEST_F(ResultValueTest, getResultValueException) {
         FAIL();
     }
 }
+
+static decltype(auto) copyFlatTuple(kuzu::processor::FlatTuple* tuple) {
+    std::vector<std::unique_ptr<kuzu::common::Value>> ret;
+    for (uint32_t i = 0; i < tuple->len(); i++) {
+        ret.emplace_back(tuple->getValue(i)->copy());
+    }
+    return ret;
+}
+
+TEST_F(ResultValueTest, getNextExample) {
+    std::unique_ptr<kuzu::main::QueryResult> result = conn->query("MATCH (p:person) RETURN p.*");
+    std::vector<std::vector<std::unique_ptr<kuzu::common::Value>>> tuples;
+    while (result->hasNext()) {
+        auto tuple = result->getNext();
+        tuples.emplace_back(copyFlatTuple(tuple.get()));
+    }
+
+    for (const auto& tuple : tuples) {
+        for (const auto& value : tuple) {
+            ASSERT_FALSE(value->isNull());
+        }
+    }
+}

@@ -6,10 +6,36 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 public class QueryResultTest extends TestBase {
     @TempDir
     static Path tempDir;
+
+    List<Value> copyFlatTuple(FlatTuple tuple, long tupleLen) throws ObjectRefDestroyedException {
+        List<Value> ret = new ArrayList<Value>();
+        for (int i = 0; i < tupleLen; i++) {
+            ret.add(tuple.getValue(i).clone());
+        }
+        return ret;
+    }
+
+    @Test
+    void QueryResultGetNextExample() throws ObjectRefDestroyedException {
+        QueryResult result = conn.query("MATCH (p:person) RETURN p.*");
+        List<List<Value>> tuples = new ArrayList<List<Value>>();
+        while (result.hasNext()) {
+            FlatTuple tuple = result.getNext();
+            tuples.add(copyFlatTuple(tuple, result.getNumColumns()));
+        }
+
+        for (List<Value> tuple : tuples) {
+            for (Value value : tuple) {
+                assertFalse(value.isNull());
+            }
+        }
+    }
 
     @Test
     void QueryResultGetErrorMessage() throws ObjectRefDestroyedException {
