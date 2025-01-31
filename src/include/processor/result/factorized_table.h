@@ -37,7 +37,7 @@ public:
     }
     void resetToZero() { memset(block->getBuffer().data(), 0, block->getBuffer().size()); }
 
-    static void copyTuples(DataBlock* blockToCopyFrom, ft_tuple_idx_t tupleIdxToCopyFrom,
+    static void copyTuples(const DataBlock* blockToCopyFrom, ft_tuple_idx_t tupleIdxToCopyFrom,
         DataBlock* blockToCopyInto, ft_tuple_idx_t tupleIdxToCopyTo, uint32_t numTuplesToCopy,
         uint32_t numBytesPerTuple);
 
@@ -102,23 +102,25 @@ public:
         scan(vectors, tupleIdx, numTuplesToScan, colIdxes);
     }
     bool isEmpty() const { return getNumTuples() == 0; }
-    void scan(std::vector<common::ValueVector*>& vectors, ft_tuple_idx_t tupleIdx,
-        uint64_t numTuplesToScan, std::vector<uint32_t>& colIdxToScan) const;
+    void scan(const std::vector<common::ValueVector*>& vectors, ft_tuple_idx_t tupleIdx,
+        uint64_t numTuplesToScan, const std::vector<uint32_t>& colIdxesToScan) const;
     // TODO(Guodong): Unify these two interfaces along with `readUnflatCol`.
     // startPos is the starting position in the tuplesToRead, not the starting position in the
     // factorizedTable
-    void lookup(std::vector<common::ValueVector*>& vectors, std::vector<uint32_t>& colIdxesToScan,
+    void lookup(const std::vector<common::ValueVector*>& vectors,
+        const std::vector<uint32_t>& colIdxesToScan,
         uint8_t** tuplesToRead, uint64_t startPos, uint64_t numTuplesToRead) const;
-    void lookup(std::vector<common::ValueVector*>& vectors,
-        const common::SelectionVector* selVector, std::vector<uint32_t>& colIdxesToScan,
+    void lookup(const std::vector<common::ValueVector*>& vectors,
+        const common::SelectionVector* selVector, const std::vector<uint32_t>& colIdxesToScan,
         uint8_t* tupleToRead) const;
-    void lookup(std::vector<common::ValueVector*>& vectors, std::vector<uint32_t>& colIdxesToScan,
-        std::vector<ft_tuple_idx_t>& tupleIdxesToRead, uint64_t startPos,
+    void lookup(const std::vector<common::ValueVector*>& vectors,
+        const std::vector<uint32_t>& colIdxesToScan,
+        const std::vector<ft_tuple_idx_t>& tupleIdxesToRead, uint64_t startPos,
         uint64_t numTuplesToRead) const;
 
     // When we merge two factorizedTables, we need to update the hasNoNullGuarantee based on
     // other factorizedTable.
-    void mergeMayContainNulls(FactorizedTable& other);
+    void mergeMayContainNulls(const FactorizedTable& other);
     void merge(FactorizedTable& other);
 
     common::InMemOverflowBuffer* getInMemOverflowBuffer() const {
@@ -148,7 +150,8 @@ public:
 
     uint8_t* getTuple(ft_tuple_idx_t tupleIdx) const;
 
-    void updateFlatCell(uint8_t* tuplePtr, ft_col_idx_t colIdx, common::ValueVector* valueVector,
+    void updateFlatCell(uint8_t* tuplePtr, ft_col_idx_t colIdx,
+        const common::ValueVector* valueVector,
         uint32_t pos);
     void updateFlatCellNoNull(uint8_t* ftTuplePtr, ft_col_idx_t colIdx, void* dataBuf) {
         memcpy(ftTuplePtr + tableSchema.getColOffset(colIdx), dataBuf,
@@ -224,7 +227,7 @@ private:
         common::ValueVector& vector) const;
     void readUnflatCol(const uint8_t* tupleToRead, const common::SelectionVector& selVector,
         ft_col_idx_t colIdx, common::ValueVector& vector) const;
-    void readFlatColToFlatVector(uint8_t* tupleToRead, ft_col_idx_t colIdx,
+    void readFlatColToFlatVector(const uint8_t* tupleToRead, ft_col_idx_t colIdx,
         common::ValueVector& vector, common::sel_t pos) const;
     void readFlatColToUnflatVector(uint8_t** tuplesToRead, ft_col_idx_t colIdx,
         common::ValueVector& vector, uint64_t numTuplesToRead) const;
@@ -274,7 +277,7 @@ private:
 
     void readUnflatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* valueBuffer);
 
-    void readFlatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* valueBuffer);
+    void readFlatColToFlatTuple(ft_col_idx_t colIdx, const uint8_t* valueBuffer);
 
     // We put pair(UINT64_MAX, UINT64_MAX) in all invalid entries in
     // FlatTuplePositionsInDataChunk.

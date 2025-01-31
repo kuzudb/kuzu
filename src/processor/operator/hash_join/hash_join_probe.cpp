@@ -153,8 +153,8 @@ uint64_t HashJoinProbe::getCountJoinResult() {
     return 1;
 }
 
-uint64_t HashJoinProbe::getMarkJoinResult() {
-    auto markValues = (bool*)markVector->getData();
+uint64_t HashJoinProbe::getMarkJoinResult() const {
+    auto markValues = reinterpret_cast<bool*>(markVector->getData());
     if (markVector->state->isFlat()) {
         auto pos = markVector->state->getSelVector()[0];
         markValues[pos] = probeState->matchedSelVector.getSelSize() != 0;

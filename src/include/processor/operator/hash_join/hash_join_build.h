@@ -42,9 +42,9 @@ public:
 
     virtual ~HashJoinSharedState() = default;
 
-    void mergeLocalHashTable(JoinHashTable& localHashTable);
+    void mergeLocalHashTable(const JoinHashTable& localHashTable);
 
-    inline JoinHashTable* getHashTable() { return hashTable.get(); }
+    JoinHashTable* getHashTable() const { return hashTable.get(); }
 
 protected:
     std::mutex mtx;
@@ -88,7 +88,7 @@ public:
               std::move(printInfo)},
           sharedState{std::move(sharedState)}, info{std::move(info)} {}
 
-    inline std::shared_ptr<HashJoinSharedState> getSharedState() const { return sharedState; }
+    std::shared_ptr<HashJoinSharedState> getSharedState() const { return sharedState; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
@@ -96,13 +96,13 @@ public:
 
     void finalizeInternal(ExecutionContext* context) override;
 
-    inline std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<HashJoinBuild>(resultSetDescriptor->copy(), operatorType, sharedState,
             info->copy(), children[0]->clone(), id, printInfo->copy());
     }
 
 protected:
-    virtual inline uint64_t appendVectors() {
+    virtual uint64_t appendVectors() {
         return hashTable->appendVectors(keyVectors, payloadVectors, keyState);
     }
 

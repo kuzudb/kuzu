@@ -13,7 +13,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void DataBlock::copyTuples(DataBlock* blockToCopyFrom, ft_tuple_idx_t tupleIdxToCopyFrom,
+void DataBlock::copyTuples(const DataBlock* blockToCopyFrom, ft_tuple_idx_t tupleIdxToCopyFrom,
     DataBlock* blockToCopyInto, ft_tuple_idx_t tupleIdxToCopyTo, uint32_t numTuplesToCopy,
     uint32_t numBytesPerTuple) {
     for (auto i = 0u; i < numTuplesToCopy; i++) {
@@ -137,19 +137,19 @@ uint8_t* FactorizedTable::appendEmptyTuple() {
     return tuplePtr;
 }
 
-void FactorizedTable::scan(std::vector<ValueVector*>& vectors, ft_tuple_idx_t tupleIdx,
-    uint64_t numTuplesToScan, std::vector<ft_col_idx_t>& colIdxesToScan) const {
+void FactorizedTable::scan(const std::vector<ValueVector*>& vectors, ft_tuple_idx_t tupleIdx,
+    uint64_t numTuplesToScan, const std::vector<ft_col_idx_t>& colIdxesToScan) const {
     KU_ASSERT(tupleIdx + numTuplesToScan <= numTuples);
     KU_ASSERT(vectors.size() == colIdxesToScan.size());
-    std::unique_ptr<uint8_t*[]> tuplesToRead = std::make_unique<uint8_t*[]>(numTuplesToScan);
+    auto tuplesToRead = std::make_unique<uint8_t*[]>(numTuplesToScan);
     for (auto i = 0u; i < numTuplesToScan; i++) {
         tuplesToRead[i] = getTuple(tupleIdx + i);
     }
     lookup(vectors, colIdxesToScan, tuplesToRead.get(), 0 /* startPos */, numTuplesToScan);
 }
 
-void FactorizedTable::lookup(std::vector<ValueVector*>& vectors,
-    std::vector<ft_col_idx_t>& colIdxesToScan, uint8_t** tuplesToRead, uint64_t startPos,
+void FactorizedTable::lookup(const std::vector<ValueVector*>& vectors,
+    const std::vector<ft_col_idx_t>& colIdxesToScan, uint8_t** tuplesToRead, uint64_t startPos,
     uint64_t numTuplesToRead) const {
     KU_ASSERT(vectors.size() == colIdxesToScan.size());
     for (auto i = 0u; i < colIdxesToScan.size(); i++) {
@@ -169,8 +169,9 @@ void FactorizedTable::lookup(std::vector<ValueVector*>& vectors,
     }
 }
 
-void FactorizedTable::lookup(std::vector<ValueVector*>& vectors, const SelectionVector* selVector,
-    std::vector<ft_col_idx_t>& colIdxesToScan, uint8_t* tupleToRead) const {
+void FactorizedTable::lookup(const std::vector<ValueVector*>& vectors,
+    const SelectionVector* selVector, const std::vector<ft_col_idx_t>& colIdxesToScan,
+    uint8_t* tupleToRead) const {
     KU_ASSERT(vectors.size() == colIdxesToScan.size());
     for (auto i = 0u; i < colIdxesToScan.size(); i++) {
         ft_col_idx_t colIdx = colIdxesToScan[i];
@@ -182,9 +183,10 @@ void FactorizedTable::lookup(std::vector<ValueVector*>& vectors, const Selection
     }
 }
 
-void FactorizedTable::lookup(std::vector<ValueVector*>& vectors,
-    std::vector<ft_col_idx_t>& colIdxesToScan, std::vector<ft_tuple_idx_t>& tupleIdxesToRead,
-    uint64_t startPos, uint64_t numTuplesToRead) const {
+void FactorizedTable::lookup(const std::vector<ValueVector*>& vectors,
+    const std::vector<ft_col_idx_t>& colIdxesToScan,
+    const std::vector<ft_tuple_idx_t>& tupleIdxesToRead, uint64_t startPos,
+    uint64_t numTuplesToRead) const {
     KU_ASSERT(vectors.size() == colIdxesToScan.size());
     auto tuplesToRead = std::make_unique<uint8_t*[]>(tupleIdxesToRead.size());
     KU_ASSERT(numTuplesToRead > 0);
@@ -194,7 +196,7 @@ void FactorizedTable::lookup(std::vector<ValueVector*>& vectors,
     lookup(vectors, colIdxesToScan, tuplesToRead.get(), 0 /* startPos */, numTuplesToRead);
 }
 
-void FactorizedTable::mergeMayContainNulls(FactorizedTable& other) {
+void FactorizedTable::mergeMayContainNulls(const FactorizedTable& other) {
     for (auto i = 0u; i < other.tableSchema.getNumColumns(); i++) {
         if (!other.hasNoNullGuarantee(i)) {
             tableSchema.setMayContainsNullsToTrue(i);
@@ -237,7 +239,9 @@ uint64_t FactorizedTable::getNumFlatTuples(ft_tuple_idx_t tupleIdx) const {
         auto groupID = column->getGroupID();
         if (!calculatedGroups.contains(groupID)) {
             calculatedGroups[groupID] = true;
-            numFlatTuples *= column->isFlat() ? 1 : ((overflow_value_t*)tupleBuffer)->numElements;
+            numFlatTuples *= column->isFlat() ?
+                                 1 :
+                                 reinterpret_cast<overflow_value_t*>(tupleBuffer)->numElements;
         }
         tupleBuffer += column->getNumBytes();
     }
@@ -254,7 +258,7 @@ uint8_t* FactorizedTable::getTuple(ft_tuple_idx_t tupleIdx) const {
 }
 
 void FactorizedTable::updateFlatCell(uint8_t* tuplePtr, ft_col_idx_t colIdx,
-    ValueVector* valueVector, uint32_t pos) {
+    const ValueVector* valueVector, uint32_t pos) {
     auto nullBuffer = tuplePtr + tableSchema.getNullMapOffset();
     if (valueVector->isNull(pos)) {
         setNonOverflowColNull(nullBuffer, colIdx);
@@ -507,7 +511,7 @@ overflow_value_t FactorizedTable::appendVectorToUnflatTupleBlocks(const ValueVec
 void FactorizedTable::readUnflatCol(uint8_t** tuplesToRead, ft_col_idx_t colIdx,
     ValueVector& vector) const {
     auto overflowColValue =
-        *(overflow_value_t*)(tuplesToRead[0] + tableSchema.getColOffset(colIdx));
+        *reinterpret_cast<overflow_value_t*>(tuplesToRead[0] + tableSchema.getColOffset(colIdx));
     KU_ASSERT(vector.state->getSelVector().isUnfiltered());
     auto numBytesPerValue = LogicalTypeUtils::getRowLayoutSize(vector.dataType);
     if (hasNoNullGuarantee(colIdx)) {
@@ -536,7 +540,8 @@ void FactorizedTable::readUnflatCol(uint8_t** tuplesToRead, ft_col_idx_t colIdx,
 
 void FactorizedTable::readUnflatCol(const uint8_t* tupleToRead, const SelectionVector& selVector,
     ft_col_idx_t colIdx, ValueVector& vector) const {
-    auto vectorOverflowValue = *(overflow_value_t*)(tupleToRead + tableSchema.getColOffset(colIdx));
+    auto vectorOverflowValue =
+        *reinterpret_cast<const overflow_value_t*>(tupleToRead + tableSchema.getColOffset(colIdx));
     KU_ASSERT(vector.state->getSelVector().isUnfiltered());
     if (hasNoNullGuarantee(colIdx)) {
         vector.setAllNonNull();
@@ -562,7 +567,7 @@ void FactorizedTable::readUnflatCol(const uint8_t* tupleToRead, const SelectionV
     vector.state->getSelVectorUnsafe().setSelSize(selVector.getSelSize());
 }
 
-void FactorizedTable::readFlatColToFlatVector(uint8_t* tupleToRead, ft_col_idx_t colIdx,
+void FactorizedTable::readFlatColToFlatVector(const uint8_t* tupleToRead, ft_col_idx_t colIdx,
     ValueVector& vector, sel_t pos) const {
     if (isNonOverflowColNull(tupleToRead + tableSchema.getNullMapOffset(), colIdx)) {
         vector.setNull(pos, true);
@@ -648,8 +653,8 @@ void FlatTupleIterator::resetState() {
 }
 
 void FlatTupleIterator::readUnflatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* valueBuffer) {
-    auto overflowValue =
-        (overflow_value_t*)(valueBuffer + factorizedTable.getTableSchema()->getColOffset(colIdx));
+    auto overflowValue = reinterpret_cast<overflow_value_t*>(
+        valueBuffer + factorizedTable.getTableSchema()->getColOffset(colIdx));
     auto groupID = factorizedTable.getTableSchema()->getColumn(colIdx)->getGroupID();
     auto tupleSizeInOverflowBuffer =
         LogicalTypeUtils::getRowLayoutSize(values[colIdx]->getDataType());
@@ -664,7 +669,7 @@ void FlatTupleIterator::readUnflatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* v
     }
 }
 
-void FlatTupleIterator::readFlatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* valueBuffer) {
+void FlatTupleIterator::readFlatColToFlatTuple(ft_col_idx_t colIdx, const uint8_t* valueBuffer) {
     auto isNull = factorizedTable.isNonOverflowColNull(
         valueBuffer + factorizedTable.getTableSchema()->getNullMapOffset(), colIdx);
     values[colIdx]->setNull(isNull);
@@ -699,7 +704,8 @@ void FlatTupleIterator::updateNumElementsInDataChunk() {
         auto numElementsInDataChunk =
             column->isFlat() ?
                 1 :
-                ((overflow_value_t*)(currentTupleBuffer + colOffsetInTupleBuffer))->numElements;
+                reinterpret_cast<overflow_value_t*>(currentTupleBuffer + colOffsetInTupleBuffer)
+                    ->numElements;
         if (groupID >= flatTuplePositionsInDataChunk.size()) {
             flatTuplePositionsInDataChunk.resize(groupID + 1);
         }

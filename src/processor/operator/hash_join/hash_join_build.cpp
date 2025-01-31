@@ -18,7 +18,7 @@ std::string HashJoinBuildPrintInfo::toString() const {
     return result;
 }
 
-void HashJoinSharedState::mergeLocalHashTable(JoinHashTable& localHashTable) {
+void HashJoinSharedState::mergeLocalHashTable(const JoinHashTable& localHashTable) {
     std::unique_lock lck(mtx);
     hashTable->merge(localHashTable);
 }
@@ -28,7 +28,7 @@ void HashJoinBuild::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     for (auto i = 0u; i < info->keysPos.size(); ++i) {
         auto vector = resultSet->getValueVector(info->keysPos[i]).get();
         keyTypes.push_back(vector->dataType.copy());
-        if (info->fStateTypes[i] == common::FStateType::UNFLAT) {
+        if (info->fStateTypes[i] == FStateType::UNFLAT) {
             setKeyState(vector->state.get());
         }
         keyVectors.push_back(vector);
@@ -43,7 +43,7 @@ void HashJoinBuild::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
         std::move(keyTypes), info->tableSchema.copy());
 }
 
-void HashJoinBuild::setKeyState(common::DataChunkState* state) {
+void HashJoinBuild::setKeyState(DataChunkState* state) {
     if (keyState == nullptr) {
         keyState = state;
     } else {
@@ -51,7 +51,7 @@ void HashJoinBuild::setKeyState(common::DataChunkState* state) {
     }
 }
 
-void HashJoinBuild::finalizeInternal(ExecutionContext* /*context*/) {
+void HashJoinBuild::finalizeInternal(ExecutionContext*) {
     auto numTuples = sharedState->getHashTable()->getNumEntries();
     sharedState->getHashTable()->allocateHashSlots(numTuples);
     sharedState->getHashTable()->buildHashSlots();

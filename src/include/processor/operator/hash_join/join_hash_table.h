@@ -7,62 +7,69 @@
 namespace kuzu {
 namespace processor {
 
-class JoinHashTable : public BaseHashTable {
+class JoinHashTable final : public BaseHashTable {
 public:
     JoinHashTable(storage::MemoryManager& memoryManager, common::logical_type_vec_t keyTypes,
         FactorizedTableSchema tableSchema);
 
     uint64_t appendVectors(const std::vector<common::ValueVector*>& keyVectors,
-        const std::vector<common::ValueVector*>& payloadVectors, common::DataChunkState* keyState);
-    void appendVector(common::ValueVector* vector,
+        const std::vector<common::ValueVector*>& payloadVectors,
+        const common::DataChunkState* keyState);
+    void appendVector(const common::ValueVector* vector,
         const std::vector<BlockAppendingInfo>& appendInfos, ft_col_idx_t colIdx);
 
     // Used in worst-case optimal join
     uint64_t appendVectorWithSorting(common::ValueVector* keyVector,
-        std::vector<common::ValueVector*> payloadVectors);
+        const std::vector<common::ValueVector*>& payloadVectors);
 
     void allocateHashSlots(uint64_t numTuples);
     void buildHashSlots();
 
     void probe(const std::vector<common::ValueVector*>& keyVectors, common::ValueVector& hashVector,
         common::SelectionVector& hashSelVec, common::ValueVector& tmpHashResultVector,
-        uint8_t** probedTuples);
+        uint8_t** probedTuples) const;
     // All key vectors must be flat. Thus input is a tuple, multiple matches can be found for the
     // given key tuple.
     common::sel_t matchFlatKeys(const std::vector<common::ValueVector*>& keyVectors,
         uint8_t** probedTuples, uint8_t** matchedTuples);
     // Input is multiple tuples, at most one match exist for each key.
     common::sel_t matchUnFlatKey(common::ValueVector* keyVector, uint8_t** probedTuples,
-        uint8_t** matchedTuples, common::SelectionVector& matchedTuplesSelVector);
+        uint8_t** matchedTuples, common::SelectionVector& matchedTuplesSelVector) const;
 
-    void lookup(std::vector<common::ValueVector*>& vectors, std::vector<uint32_t>& colIdxesToScan,
-        uint8_t** tuplesToRead, uint64_t startPos, uint64_t numTuplesToRead) {
+    void lookup(const std::vector<common::ValueVector*>& vectors,
+        const std::vector<uint32_t>& colIdxesToScan, uint8_t** tuplesToRead, uint64_t startPos,
+        uint64_t numTuplesToRead) const {
         factorizedTable->lookup(vectors, colIdxesToScan, tuplesToRead, startPos, numTuplesToRead);
     }
-    void merge(JoinHashTable& other) { factorizedTable->merge(*other.factorizedTable); }
+    void merge(const JoinHashTable& other) { factorizedTable->merge(*other.factorizedTable); }
     uint8_t** getPrevTuple(const uint8_t* tuple) const {
         return (uint8_t**)(tuple + prevPtrColOffset);
     }
-    uint8_t* getTupleForHash(common::hash_t hash) {
-        auto slotIdx = getSlotIdxForHash(hash);
-        KU_ASSERT(slotIdx < maxNumHashSlots);
-        return ((uint8_t**)(hashSlotsBlocks[slotIdx >> numSlotsPerBlockLog2]
-                                ->getData()))[slotIdx & slotIdxInBlockMask];
-    }
+    uint8_t* getTupleForHash(common::hash_t hash) const;
 
 private:
-    uint8_t** findHashSlot(const uint8_t* tuple) const;
     // This function returns the pointer that previously stored in the same slot.
-    uint8_t* insertEntry(uint8_t* tuple) const;
+    uint8_t* insertEntry(const uint8_t* tuple) const;
 
     // Join hash table assumes all keys to be flat.
-    void computeVectorHashes(std::vector<common::ValueVector*> keyVectors);
+    void computeVectorHashes(const std::vector<common::ValueVector*>& keyVectors);
 
-    common::offset_t getHashValueColOffset() const;
+    common::offset_t getHashValueColOffset() const {
+        return getTableSchema()->getColOffset(getTableSchema()->getNumColumns() - HASH_COL_IDX);
+    }
+
+    static common::hash_t tag(common::hash_t hash) { return (hash << 48) & TAG_MASK; }
+    static uint64_t removeTag(uint64_t tuple) { return tuple & ~TAG_MASK; }
+
+    uint8_t* getTupleForSlot(uint64_t slotIdx) const {
+        return reinterpret_cast<uint8_t**>(hashSlotsBlocks[slotIdx >> numSlotsPerBlockLog2]
+                ->getData())[slotIdx & slotIdxInBlockMask];
+    }
 
 private:
     static constexpr uint64_t PREV_PTR_COL_IDX = 1;
     static constexpr uint64_t HASH_COL_IDX = 2;
+    static constexpr uint64_t TAG_MASK = 0xFFFF000000000000;
     uint64_t prevPtrColOffset;
 };
 

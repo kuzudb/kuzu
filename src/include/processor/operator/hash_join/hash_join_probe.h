@@ -27,7 +27,6 @@ struct ProbeState {
 };
 
 struct ProbeDataInfo {
-public:
     ProbeDataInfo(std::vector<DataPos> keysDataPos, std::vector<DataPos> payloadsOutPos)
         : keysDataPos{std::move(keysDataPos)}, payloadsOutPos{std::move(payloadsOutPos)},
           markDataPos{UINT32_MAX, UINT32_MAX} {}
@@ -37,9 +36,8 @@ public:
         markDataPos = other.markDataPos;
     }
 
-    inline uint32_t getNumPayloads() const { return payloadsOutPos.size(); }
+    uint32_t getNumPayloads() const { return payloadsOutPos.size(); }
 
-public:
     std::vector<DataPos> keysDataPos;
     std::vector<DataPos> payloadsOutPos;
     DataPos markDataPos;
@@ -62,7 +60,7 @@ private:
 };
 
 // Probe side on left, i.e. children[0] and build side on right, i.e. children[1]
-class HashJoinProbe : public PhysicalOperator, public SelVectorOverWriter {
+class HashJoinProbe final : public PhysicalOperator, public SelVectorOverWriter {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::HASH_JOIN_PROBE;
 
 public:
@@ -88,13 +86,13 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    inline std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<HashJoinProbe>(sharedState, joinType, flatProbe, probeDataInfo,
             children[0]->clone(), id, printInfo->copy());
     }
 
 private:
-    inline bool getMatchedTuples(ExecutionContext* context) {
+    bool getMatchedTuples(ExecutionContext* context) {
         return flatProbe ? getMatchedTuplesForFlatKey(context) :
                            getMatchedTuplesForUnFlatKey(context);
     }
@@ -102,13 +100,13 @@ private:
     // We can probe a batch of input tuples if we know they have at most one match.
     bool getMatchedTuplesForUnFlatKey(ExecutionContext* context);
 
-    inline uint64_t getInnerJoinResult() {
+    uint64_t getInnerJoinResult() {
         return flatProbe ? getInnerJoinResultForFlatKey() : getInnerJoinResultForUnFlatKey();
     }
     uint64_t getInnerJoinResultForFlatKey();
     uint64_t getInnerJoinResultForUnFlatKey();
     uint64_t getLeftJoinResult();
-    uint64_t getMarkJoinResult();
+    uint64_t getMarkJoinResult() const;
     uint64_t getCountJoinResult();
     uint64_t getJoinResult();
 
