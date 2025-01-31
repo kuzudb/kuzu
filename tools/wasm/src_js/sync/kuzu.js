@@ -1,3 +1,6 @@
+/**
+ * @file kuzu.js is the internal wrapper for the WebAssembly module.
+ */
 const kuzu_wasm = require("../kuzu/kuzu_wasm.js");
 
 class kuzu {

@@ -1,3 +1,6 @@
+/**
+ * @file prepared_statement.js is the file for the PreparedStatement class. A prepared statement is a parameterized query which can avoid planning the same query for repeated execution.
+ */
 "use strict";
 
 const KuzuWasm = require("./kuzu.js");

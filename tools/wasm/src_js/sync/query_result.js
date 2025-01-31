@@ -1,3 +1,6 @@
+/**
+ * @file QueryResult stores the result of a query execution.
+ */
 "use strict";
 
 const KuzuWasm = require("./kuzu.js");

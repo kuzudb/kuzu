@@ -1,3 +1,6 @@
+/**
+ * @file connection.js is the file for the Connection class. Connection is used to interact with a Database instance. 
+ */
 "use strict";
 
 const KuzuWasm = require("./kuzu.js");

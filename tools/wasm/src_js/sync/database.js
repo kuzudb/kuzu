@@ -1,3 +1,6 @@
+/**
+ * @file database.js is the file for the Database class. Database class is the main class of Kùzu. It manages all database components.
+ */
 "use strict";
 
 const KuzuWasm = require("./kuzu.js");
