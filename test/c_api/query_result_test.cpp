@@ -34,16 +34,20 @@ TEST_F(CApiQueryResultTest, GetNextExample) {
         kuzu_flat_tuple tuple;
         kuzu_query_result_get_next(&result, &tuple);
         tuples[i] = copy_flat_tuple(&tuple, kuzu_query_result_get_num_columns(&result));
+        kuzu_flat_tuple_destroy(&tuple);
     }
 
     for (uint64_t i = 0; i < num_tuples; ++i) {
         for (uint64_t j = 0; j < kuzu_query_result_get_num_columns(&result); ++j) {
             ASSERT_FALSE(kuzu_value_is_null(&tuples[i][j]));
+            kuzu_value_destroy(&tuples[i][j]);
         }
         free(tuples[i]);
     }
 
     free((void*)tuples);
+
+    kuzu_query_result_destroy(&result);
 }
 
 TEST_F(CApiQueryResultTest, GetErrorMessage) {
