@@ -53,3 +53,6 @@ a:b:a:c:a:b:a:d:a:b:a:c:a:b:a:
 -STATEMENT RETURN LIST_REDUCE(['a:', 'b:', 'c:', 'd:'], (x, y) -> y+x+y)
 ---- 1
 d:c:b:a:b:c:d:
+-STATEMENT unwind range(1, 5000) as t with collect(t) as lst return list_reduce(lst, (x, y) -> y+x+y);
+---- error(regex)
+Runtime exception: Lists with size greater than: [0-9]+ is not supported in list lambda functions.
