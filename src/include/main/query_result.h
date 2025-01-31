@@ -95,7 +95,10 @@ public:
 
     std::unique_ptr<QueryResult> nextQueryResult;
     /**
-     * @return next flat tuple in the query result.
+     * @return next flat tuple in the query result. Note that to reduce resource allocation, all
+     * calls to getNext() reuse the same FlatTuple object. Since its contents will be overwritten,
+     * please complete processing a FlatTuple or make a copy of its data before calling getNext()
+     * again.
      */
     KUZU_API std::shared_ptr<processor::FlatTuple> getNext();
     /**
