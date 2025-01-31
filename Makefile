@@ -73,6 +73,10 @@ ifdef SINGLE_THREADED
 	CMAKE_FLAGS += -DSINGLE_THREADED=$(SINGLE_THREADED)
 endif
 
+ifdef WASM_NODEFS
+	CMAKE_FLAGS += -DWASM_NODEFS=$(WASM_NODEFS)
+endif
+
 # Must be first in the Makefile so that it is the default target.
 release:
 	$(call run-cmake-release,)
@@ -138,6 +142,11 @@ python:
 
 python-debug:
 	$(call run-cmake-debug, -DBUILD_PYTHON=TRUE)
+
+wasm:
+	mkdir -p build/wasm && cd build/wasm &&\
+	emcmake cmake $(CMAKE_FLAGS) -DCMAKE_BUILD_TYPE=Release -DBUILD_WASM=TRUE -DBUILD_BENCHMARK=FALSE -DBUILD_TESTS=FALSE -DBUILD_SHELL=FALSE  ../.. && \
+	cmake --build . --config Release -j $(NUM_THREADS)
 
 # Language API tests
 javatest:

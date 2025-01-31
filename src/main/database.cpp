@@ -59,7 +59,7 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, boo
 #else
     // In single-threaded mode, even if the user specifies a number of threads,
     // it will be ignored and set to 0.
-    this->maxNumThreads = 0;
+    this->maxNumThreads = 1;
 #endif
     if (maxDBSize == -1u) {
         maxDBSize = BufferPoolConstants::DEFAULT_VM_REGION_MAX_SIZE;

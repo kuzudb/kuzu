@@ -9,7 +9,6 @@ const QueryResult = require("./query_result.js");
 module.exports = {
   Connection,
   Database,
-  LoggingLevel,
   PreparedStatement,
   QueryResult,
   get VERSION() {

@@ -46,6 +46,10 @@ tools/nodejs_api/cmake_install.cmake
 tools/nodejs_api/package-lock.json
 tools/nodejs_api/prebuilt/
 
+### WASM
+tools/wasm/node_modules/
+tools/wasm/package/
+
 # Archive files
 *.zip
 *.tar.gz

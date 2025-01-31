@@ -1,7 +1,6 @@
 "use strict";
 
 const KuzuNative = require("./kuzu_native.js");
-const LoggingLevel = require("./logging_level.js");
 
 class Database {
   /**
@@ -38,7 +37,7 @@ class Database {
       throw new Error("Buffer manager size must be a positive integer.");
     }
     if (typeof maxDBSize !== "number" || maxDBSize < 0) {
-      throw new Error("Max DB size must be a positive integer.");
+    throw new Error("Max DB size must be a positive integer.");
     }
     if (typeof checkpointThreshold !== "number" || maxDBSize < -1) {
       throw new Error("Checkpoint threshold must be a positive integer.");
@@ -90,10 +89,6 @@ class Database {
             } else {
               try {
                 this._isInitialized = true;
-                if (this._loggingLevel) {
-                  this.setLoggingLevel(this._loggingLevel);
-                  delete this._loggingLevel;
-                }
               } catch (e) {
                 return reject(e);
               }
