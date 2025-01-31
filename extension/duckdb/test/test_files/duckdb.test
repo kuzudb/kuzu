@@ -202,6 +202,51 @@ Attached database successfully.
 0|alice|52
 2|carol|23
 10|dan|72
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/dataset/databases/duckdb_database/tinysnb.db' as noneExist (dbtype duckdb, schema = 'noneExist');
+---- ok
+-STATEMENT USE noneExist;
+---- ok
+-STATEMENT CALL show_tables() RETURN *;
+---- 9
+0|employee|ATTACHED|kuzu(DUCKDB)|
+0|movies|ATTACHED|tinysnb(DUCKDB)|
+0|person_copy|NODE|local(kuzu)|
+0|person|ATTACHED|Other1(DUCKDB)|
+1|organisation|ATTACHED|tinysnb(DUCKDB)|
+1|person_copy1|NODE|local(kuzu)|
+2|person|ATTACHED|tinysnb(DUCKDB)|
+3|tableOfTypes|ATTACHED|tinysnb(DUCKDB)|
+4|tableOfTypes1|ATTACHED|tinysnb(DUCKDB)|
+-STATEMENT DETACH noneExist;
+---- ok
+
+-CASE TestingSupportedDBDataTypes
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/duckdb/build/libduckdb.kuzu_extension"
+---- ok
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/dataset/databases/duckdb_database/datatypeTesting.db' as dataType (dbtype duckdb);
+---- ok
+-STATEMENT CALL table_info('dataType.person') RETURN *;
+---- 10
+0|name|STRING|NULL
+1|profile_picture|BLOB|NULL
+2|balance|DECIMAL(10, 2)|NULL
+3|height|FLOAT|NULL
+4|age|INT16|NULL
+5|rating|INT8|NULL
+6|large_number|UINT64|NULL
+7|medium_number|UINT32|NULL
+8|small_number|UINT16|NULL
+9|tiny_number|UINT8|NULL
+-STATEMENT CREATE NODE TABLE person_datatype(name STRING PRIMARY KEY, profile_picture BLOB, balance DECIMAL(10, 2), height FLOAT, age INT16, rating INT8, large_number UINT64, medium_number UINT32, small_number UINT16, tiny_number UINT8);
+---- ok
+-STATEMENT COPY person_datatype FROM dataType.person;
+---- ok
+-STATEMENT MATCH(p:person_datatype) RETURN p.*;
+---- 4
+Alice||1000.50|5.400000|30|5|10000000000|40000|500|10
+Bob||2500.75|5.900000|27|4|20000000000|30000|400|20
+Carol||500.25|5.200000|19|3|15000000000|20000|300|30
+Dan||750.60|6.100000|25|4|18000000000|35000|450|15
 
 -CASE InvalidDuckDBDatabase
 -STATEMENT LOAD FROM tinysnb1.person RETURN *;

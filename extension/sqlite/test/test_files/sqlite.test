@@ -76,3 +76,34 @@ Detached database successfully.
 102
 5.872
 alice
+
+-CASE TestingDataTypesSqlite
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/sqlite/build/libsqlite.kuzu_extension"
+---- ok
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/sqlite/test/sqlite_database/datatypeTestingSqlite' as datatype (dbtype sqlite);
+---- ok
+-STATEMENT CALL table_info('datatype.person') RETURN *;
+---- 10
+0|id|INT64|NULL
+1|name|STRING|NULL
+2|profile_picture|BLOB|NULL
+3|balance|DOUBLE|NULL
+4|age|INT64|NULL
+5|is_active|INT64|NULL
+6|birth_date|DATE|NULL
+7|wrong_birth_time|TIMESTAMP|NULL
+8|birth_time|TIMESTAMP|NULL
+9|additional_info|BLOB|NULL
+-STATEMENT CREATE NODE TABLE person_copy(id INT64 PRIMARY KEY, name STRING, profile_picture BLOB, balance DOUBLE, age INT64, is_active INT64, birth_date DATE, birth_time TIMESTAMP, additional_info BLOB);
+---- ok
+-STATEMENT COPY person_copy FROM (LOAD FROM datatype.person RETURN id, name, profile_picture, balance, age, is_active, birth_date, wrong_birth_time, additional_info);
+---- error
+Conversion Error: timestamp field value out of range: "08:30:00", expected format is (YYYY-MM-DD HH:MM:SS[.US][±HH:MM| ZONE])
+-STATEMENT COPY person_copy FROM (LOAD FROM sqliteDatatype.person RETURN id, name, profile_picture, balance, age, is_active, birth_date, birth_time, additional_info);
+---- ok
+-STATEMENT MATCH (p:person_copy) RETURN p.*;
+---- 4
+1|Alice||1000.500000|30|1|1993-05-21|1993-05-21 08:30:00|
+2|Bob||2500.750000|27|0|1996-07-15|1996-07-15 14:45:00|
+3|Carol||500.250000|19|1|2004-02-10|2004-02-10 12:00:00|
+4|Dan||750.600000|25|1|1998-09-05|1998-09-05 09:15:00|
