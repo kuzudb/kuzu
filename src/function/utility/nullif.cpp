@@ -10,15 +10,15 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static std::shared_ptr<Expression> rewriteFunc(const expression_vector& params,
-    ExpressionBinder* binder) {
-    KU_ASSERT(params.size() == 2);
+static std::shared_ptr<Expression> rewriteFunc(const RewriteFunctionBindInput& input) {
+    KU_ASSERT(input.arguments.size() == 2);
     auto uniqueExpressionName =
-        ScalarFunctionExpression::getUniqueName(NullIfFunction::name, params);
-    const auto& resultType = params[0]->getDataType();
-    auto caseExpression =
-        std::make_shared<CaseExpression>(resultType.copy(), params[0], uniqueExpressionName);
-    auto whenExpression = binder->bindComparisonExpression(ExpressionType::EQUALS, params);
+        ScalarFunctionExpression::getUniqueName(NullIfFunction::name, input.arguments);
+    const auto& resultType = input.arguments[0]->getDataType();
+    auto caseExpression = std::make_shared<CaseExpression>(resultType.copy(), input.arguments[0],
+        uniqueExpressionName);
+    auto binder = input.expressionBinder;
+    auto whenExpression = binder->bindComparisonExpression(ExpressionType::EQUALS, input.arguments);
     auto thenExpression = binder->createNullLiteralExpression();
     thenExpression = binder->implicitCastIfNecessary(thenExpression, resultType.copy());
     caseExpression->addCaseAlternative(whenExpression, thenExpression);

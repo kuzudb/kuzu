@@ -10,17 +10,16 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static void OffsetExecFunc(const std::vector<std::shared_ptr<ValueVector>>& params,
-    ValueVector& result, void* /*dataPtr*/ = nullptr) {
+static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result,
+    void* /*dataPtr*/ = nullptr) {
     KU_ASSERT(params.size() == 1);
     UnaryFunctionExecutor::execute<internalID_t, int64_t, Offset>(*params[0], result);
 }
 
 function_set OffsetFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(
-        make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::INTERNAL_ID},
-            LogicalTypeID::INT64, OffsetExecFunc));
+    functionSet.push_back(make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{LogicalTypeID::INTERNAL_ID}, LogicalTypeID::INT64, execFunc));
     return functionSet;
 }
 
