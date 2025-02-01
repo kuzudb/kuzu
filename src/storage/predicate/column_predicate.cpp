@@ -85,7 +85,7 @@ static std::unique_ptr<ColumnPredicate> tryConvertToConstColumnPredicate(const E
 static std::unique_ptr<ColumnPredicate> tryConvertToIsNull(const Expression& column,
     const Expression& predicate) {
     // we only convert simple predicates
-    if (isColumnOrCastedColumnRef(*predicate.getChild(0))) {
+    if (isColumnOrCastedColumnRef(*predicate.getChild(0)) && column == *predicate.getChild(0)) {
         return std::make_unique<ColumnNullPredicate>(column.toString(), ExpressionType::IS_NULL);
     }
     return nullptr;
@@ -93,7 +93,7 @@ static std::unique_ptr<ColumnPredicate> tryConvertToIsNull(const Expression& col
 
 static std::unique_ptr<ColumnPredicate> tryConvertToIsNotNull(const Expression& column,
     const Expression& predicate) {
-    if (isColumnOrCastedColumnRef(*predicate.getChild(0))) {
+    if (isColumnOrCastedColumnRef(*predicate.getChild(0)) && column == *predicate.getChild(0)) {
         return std::make_unique<ColumnNullPredicate>(column.toString(),
             ExpressionType::IS_NOT_NULL);
     }
