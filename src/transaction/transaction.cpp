@@ -210,8 +210,8 @@ Transaction Transaction::getDummyTransactionFromExistingOne(const Transaction& o
         other.minUncommittedNodeOffsets, other.maxCommittedNodeOffsets);
 }
 
-auto DUMMY_TRANSACTION = Transaction(TransactionType::DUMMY);
-auto DUMMY_CHECKPOINT_TRANSACTION = Transaction(TransactionType::CHECKPOINT,
+Transaction DUMMY_TRANSACTION = Transaction(TransactionType::DUMMY);
+Transaction DUMMY_CHECKPOINT_TRANSACTION = Transaction(TransactionType::CHECKPOINT,
     Transaction::DUMMY_TRANSACTION_ID, Transaction::START_TRANSACTION_ID - 1);
 
 } // namespace transaction
