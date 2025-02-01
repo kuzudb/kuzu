@@ -117,6 +117,7 @@ public:
     std::atomic<size_t> numThreadsFinishedProducing;
     std::atomic<size_t> numThreads;
     storage::MemoryManager* memoryManager;
+    uint8_t shiftForPartitioning;
 };
 
 struct HashAggregateLocalState {
