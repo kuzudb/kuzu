@@ -1,0 +1,16 @@
+{
+  "name": "kuzu-wasm-example-browser",
+  "version": "0.0.1",
+  "main": "index.js",
+  "scripts": {
+    "bootstrap": "node bootstrap.js",
+    "serve": "node index.js"
+  },
+  "author": "Kùzu Team",
+  "license": "MIT",
+  "description": "",
+  "dependencies": {
+    "express": "^4.21.2",
+    "kuzu-wasm": "^0.7.1-dev.10"
+  }
+}
