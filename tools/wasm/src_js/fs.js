@@ -1,15 +1,21 @@
 /**
  * @file fs.js is the file for the FS class. FS is used to interact with the 
- * WebAssembly filesystem. It is an (incomplete) asynchronous wrapper around the Emscripten filesystem API.
+ * WebAssembly filesystem. It is an (incomplete) asynchronous wrapper around the 
+ * Emscripten filesystem API.
  */
 "use strict";
 
 const dispatcher = require("./dispatcher.js");
 
 class FS {
-  constructor() { }
+  /**
+   * Initialize a new FS object.
+   */
+  constructor() {
 
-  /*
+  }
+
+  /**
    * Read a file from the filesystem.
    * @param {String} path the path to the file.
    * @returns {Buffer} the file contents.
@@ -23,7 +29,7 @@ class FS {
     return result;
   }
 
-  /*
+  /**
    * Write a file to the filesystem.
    * @param {String} path the path to the file.
    * @param {Buffer | String} data the data to write.
@@ -36,7 +42,7 @@ class FS {
     }
   }
 
-  /*
+  /**
    * Make a directory in the filesystem.
    * @param {String} path the path to the directory.
    */
@@ -48,7 +54,7 @@ class FS {
     }
   }
 
-  /*
+  /**
    * Remove a file from the filesystem.
    * @param {String} path the path to the file.
    */

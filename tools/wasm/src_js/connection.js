@@ -14,7 +14,6 @@ class Connection {
    * lazily, so the connection is not initialized until the first query is
    * executed. To initialize the connection immediately, call the `init()`
    * function on the returned object.
-   *
    * @param {kuzu.Database} database the database object to connect to.
    * @param {Number} numThreads the maximum number of threads to use for query 
    * execution.
