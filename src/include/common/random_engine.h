@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "pcg_random.hpp"
 
 namespace kuzu {
