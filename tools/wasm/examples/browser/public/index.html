@@ -97,8 +97,8 @@ Noura,Guelph`;
                 appendOutput(`User ${row['u.name']} follows ${row['v.name']} since ${row['f.since']}`);
             }
             await queryResult.close();
-            appendOutput("");
 
+            appendOutput("");
 
             queryString = "MATCH (u:User) -[l:LivesIn]-> (c:City) RETURN u.name, c.name";
             appendOutput("Executing query: " + queryString);
@@ -109,11 +109,11 @@ Noura,Guelph`;
             for (const row of rows) {
                 appendOutput(`User ${row['u.name']} lives in ${row['c.name']}`);
             }
-
             await queryResult.close();
             appendOutput("");
-            appendOutput("All queries executed successfully.");
 
+            appendOutput("All queries executed successfully.");
+            
             // Close the connection
             await conn.close();
             appendOutput("Connection closed.");

@@ -9,6 +9,6 @@
   "license": "MIT",
   "description": "",
   "dependencies": {
-    "kuzu-wasm": "^0.7.1-dev.10"
+    "kuzu-wasm": "^0.7.1-dev.12"
   }
 }
