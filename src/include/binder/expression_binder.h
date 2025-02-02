@@ -9,6 +9,10 @@ namespace main {
 class ClientContext;
 }
 
+namespace function {
+struct Function;
+}
+
 namespace binder {
 
 class Binder;
@@ -73,12 +77,6 @@ public:
         bool isDistinct);
     std::shared_ptr<Expression> bindMacroExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& macroName);
-
-    std::shared_ptr<Expression> rewriteFunctionExpression(
-        const parser::ParsedExpression& parsedExpression, const std::string& functionName);
-    static std::shared_ptr<Expression> bindStartNodeExpression(const Expression& expression);
-    static std::shared_ptr<Expression> bindEndNodeExpression(const Expression& expression);
-    std::shared_ptr<Expression> bindLabelFunction(const Expression& expression) const;
 
     // Parameter expressions.
     std::shared_ptr<Expression> bindParameterExpression(

@@ -12,10 +12,10 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static std::shared_ptr<Expression> rewriteFunc(const expression_vector& params,
-    ExpressionBinder* binder) {
-    KU_ASSERT(params.size() == 1);
-    auto param = params[0].get();
+static std::shared_ptr<Expression> rewriteFunc(const RewriteFunctionBindInput& input) {
+    KU_ASSERT(input.arguments.size() == 1);
+    auto param = input.arguments[0].get();
+    auto binder = input.expressionBinder;
     if (param->expressionType == ExpressionType::PATH) {
         int64_t numRels = 0u;
         std::vector<const RelExpression*> recursiveRels;

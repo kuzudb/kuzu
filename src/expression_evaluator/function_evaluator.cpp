@@ -61,7 +61,6 @@ bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
             // the correctness, because when all children are flat the check is done on tuple.
             auto pos = resultVector->state->getSelVector()[0];
             return resultVector->isNull(pos) ? 0 : resultVector->getValue<bool>(pos);
-            ;
         }
     }
     return function->selectFunc(parameters, selVector);

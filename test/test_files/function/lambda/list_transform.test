@@ -4,6 +4,12 @@
 
 -CASE ListTransform
 
+-STATEMENT MATCH p = (a:person)-[:knows*1..2]->(b) WHERE a.ID = 0 AND b.ID=2 RETURN LIST_TRANSFORM(rels(p), x->label(x)), LIST_TRANSFORM(nodes(p), x->label(x))
+---- 3
+[knows,knows]|[person,person,person]
+[knows,knows]|[person,person,person]
+[knows]|[person,person]
+
 -STATEMENT RETURN list_transform(list_transform([1,3,2], x->x+5), y->y+3)
 ---- 1
 [9,11,10]
@@ -90,3 +96,6 @@ Binder exception: The second argument of LIST_TRANSFORM should be a lambda expre
 -STATEMENT RETURN LIST_TRANSFORM(['KUZU', 'DUCKDB', 'NEO4J'], x-> size(x)+size(x))
 ---- 1
 [8,12,10]
+-STATEMENT unwind range(1, 5000) as t with collect(t) as lst return list_transform(lst, x->x+1);
+---- error(regex)
+Runtime exception: Lists with size greater than: [0-9]+ is not supported in list lambda functions.

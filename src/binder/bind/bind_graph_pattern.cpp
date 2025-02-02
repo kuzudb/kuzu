@@ -12,6 +12,8 @@
 #include "common/string_format.h"
 #include "common/utils.h"
 #include "function/cast/functions/cast_from_string_functions.h"
+#include "function/rewrite_function.h"
+#include "function/schema/vector_node_rel_functions.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;
@@ -281,7 +283,8 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     fields.emplace_back(InternalKeyword::SRC, LogicalType::INTERNAL_ID());
     fields.emplace_back(InternalKeyword::DST, LogicalType::INTERNAL_ID());
     // Bind internal expressions.
-    queryRel->setLabelExpression(expressionBinder.bindLabelFunction(*queryRel));
+    auto input = function::RewriteFunctionBindInput(clientContext, &expressionBinder, {queryRel});
+    queryRel->setLabelExpression(function::LabelFunction::rewriteFunc(input));
     fields.emplace_back(InternalKeyword::LABEL,
         queryRel->getLabelExpression()->getDataType().copy());
     // Bind properties.
@@ -576,7 +579,8 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(const std::string& parse
     // Bind internal expressions
     queryNode->setInternalID(
         PropertyExpression::construct(LogicalType::INTERNAL_ID(), InternalKeyword::ID, *queryNode));
-    queryNode->setLabelExpression(expressionBinder.bindLabelFunction(*queryNode));
+    auto input = function::RewriteFunctionBindInput(clientContext, &expressionBinder, {queryNode});
+    queryNode->setLabelExpression(function::LabelFunction::rewriteFunc(input));
     fieldNames.emplace_back(InternalKeyword::ID);
     fieldNames.emplace_back(InternalKeyword::LABEL);
     fieldTypes.push_back(queryNode->getInternalID()->getDataType().copy());

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "pcg_random.hpp"
 
 namespace kuzu {
@@ -25,6 +27,7 @@ public:
     uint32_t nextRandomInteger(uint32_t upper);
 
 private:
+    std::mutex mtx;
     RandomState randomState;
 };
 

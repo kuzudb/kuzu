@@ -55,7 +55,8 @@
 -LOG StartNodeTestRecursiveRel
 -STATEMENT MATCH (:person { fName: "Alice" })-[r:knows *1..2]->(friend:person) RETURN START_NODE(r)
 ---- error
-Binder exception: r has data type RECURSIVE_REL but REL was expected.
+Binder exception: Cannot match a built-in function for given function START_NODE(RECURSIVE_REL). Supported inputs are
+(REL)
 
 
 -CASE FunctionEndNode
@@ -111,4 +112,5 @@ Binder exception: r has data type RECURSIVE_REL but REL was expected.
 -LOG EndNodeTestRecursiveRel
 -STATEMENT MATCH (:person { fName: "Alice" })-[r:knows *1..2]->(friend:person) RETURN END_NODE(r)
 ---- error
-Binder exception: r has data type RECURSIVE_REL but REL was expected.
+Binder exception: Cannot match a built-in function for given function END_NODE(RECURSIVE_REL). Supported inputs are
+(REL)

@@ -676,6 +676,9 @@ KUZU_C_API kuzu_state kuzu_query_result_get_query_summary(kuzu_query_result* que
 KUZU_C_API bool kuzu_query_result_has_next(kuzu_query_result* query_result);
 /**
  * @brief Returns the next tuple in the query result. Throws an exception if there is no more tuple.
+ * Note that to reduce resource allocation, all calls to kuzu_query_result_get_next() reuse the same
+ * FlatTuple object. Since its contents will be overwritten, please complete processing a FlatTuple
+ * or make a copy of its data before calling kuzu_query_result_get_next() again.
  * @param query_result The query result instance to return.
  * @param[out] out_flat_tuple The output parameter that will hold the next tuple.
  * @return The state indicating the success or failure of the operation.

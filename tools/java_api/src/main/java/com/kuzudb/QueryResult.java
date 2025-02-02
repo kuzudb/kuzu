@@ -136,7 +136,10 @@ public class QueryResult implements AutoCloseable {
     }
 
     /**
-     * Get the next tuple.
+     * Get the next tuple. Note that to reduce resource allocation, all calls to
+     * getNext() reuse the same FlatTuple object. Since its contents will be
+     * overwritten, please complete processing a FlatTuple or make a copy of its
+     * data before calling getNext() again.
      *
      * @return The next tuple.
      * @throws ObjectRefDestroyedException If the query result has been destroyed.
