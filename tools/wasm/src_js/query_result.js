@@ -1,8 +1,16 @@
+/**
+ * @file QueryResult stores the result of a query execution.
+ */
 "use strict";
 
 const dispatcher = require("./dispatcher.js");
 
 class QueryResult {
+  /**
+   * Internal constructor. Use `Connection.query` or `Connection.execute`
+   * to get a `QueryResult` object.
+   * @param {String} id the internal ID of the query result object.
+   */
   constructor(id) {
     this._id = id;
     this._isClosed = false;
@@ -11,6 +19,12 @@ class QueryResult {
     this._isSuccess = undefined;
   }
 
+  /**
+   * Internal function to update the local fields with the values from the
+   * worker.
+   * @private
+   * @throws {Error} if the query result is closed.
+   */
   async _syncValues() {
     if (this._isClosed) {
       return;
@@ -36,10 +50,18 @@ class QueryResult {
     }
   }
 
+  /**
+   * Check if the query result is successfully executed.
+   * @returns {Boolean} true if the query result is successfully executed.
+   */
   isSuccess() {
     return this._isSuccess;
   }
 
+  /**
+   * Get the error message if the query result is not successfully executed.
+   * @returns {String} the error message.
+   */
   async getErrorMessage() {
     const worker = await dispatcher.getWorker();
     const res = await worker.queryResultGetErrorMessage(this._id);
@@ -50,6 +72,10 @@ class QueryResult {
     }
   }
 
+  /**
+   * Reset the iterator of the query result to the beginning.
+   * This function is useful if the query result is iterated multiple times.
+   */
   async resetIterator() {
     const worker = await dispatcher.getWorker();
     const res = await worker.queryResultResetIterator(this._id);
@@ -59,14 +85,27 @@ class QueryResult {
     await this._syncValues();
   }
 
+  /**
+   * Get the number of rows of the query result.
+   * @returns {Number} the number of rows of the query result.
+   */
   hasNext() {
     return this._hasNext;
   }
 
+  /**
+   * Check if the query result has a following query result when multiple 
+   * statements are executed within a single query.
+   * @returns {Boolean} true if the query result has a following query result.
+   */
   hasNextQueryResult() {
     return this._hasNextQueryResult;
   }
 
+  /**
+   * Get the number of columns of the query result.
+   * @returns {Number} the number of columns of the query result.
+   */
   async getNumColumns() {
     const worker = await dispatcher.getWorker();
     const res = await worker.queryResultGetNumColumns(this._id);
@@ -77,6 +116,10 @@ class QueryResult {
     }
   }
 
+  /**
+   * Get the number of rows of the query result.
+   * @returns {Number} the number of rows of the query result.
+   */
   async getNumTuples() {
     const worker = await dispatcher.getWorker();
     const res = await worker.queryResultGetNumTuples(this._id);
@@ -87,6 +130,11 @@ class QueryResult {
     }
   }
 
+
+  /**
+   * Get the column names of the query result.
+   * @returns {Array<String>} the column names of the query result.
+   */
   async getColumnNames() {
     const worker = await dispatcher.getWorker();
     const res = await worker.queryResultGetColumnNames(this._id);
@@ -97,6 +145,10 @@ class QueryResult {
     }
   }
 
+  /**
+   * Get the column types of the query result.
+   * @returns {Array<String>} the column types of the query result.
+   */
   async getColumnTypes() {
     const worker = await dispatcher.getWorker();
     const res = await worker.queryResultGetColumnTypes(this._id);
@@ -107,7 +159,10 @@ class QueryResult {
     }
   }
 
-
+  /**
+   * Get the string representation of the query result.
+   * @returns {String} the string representation of the query result.
+   */
   async toString() {
     const worker = await dispatcher.getWorker();
     const res = await worker.queryResultToString(this._id);
@@ -118,6 +173,11 @@ class QueryResult {
     }
   }
 
+  /**
+   * Get the query summary (execution time and compiling time) of the query 
+   * result.
+   * @returns {Object} the query summary of the query result.
+   */
   async getQuerySummary() {
     const worker = await dispatcher.getWorker();
     const res = await worker.queryResultGetQuerySummary(this._id);
@@ -128,6 +188,11 @@ class QueryResult {
     }
   }
 
+  /**
+   * Get the following query result when multiple statements are executed within 
+   * a single query.
+   * @returns {QueryResult} the next query result.
+   */
   async getNextQueryResult() {
     const worker = await dispatcher.getWorker();
     const res = await worker.queryResultGetNextQueryResult(this._id);
@@ -141,6 +206,10 @@ class QueryResult {
     }
   }
 
+  /**
+   * Get the next row of the query result.
+   * @returns {Array} the next row of the query result.
+   */
   async getNext() {
     const worker = await dispatcher.getWorker();
     const res = await worker.queryResultGetNext(this._id);
@@ -152,6 +221,10 @@ class QueryResult {
     }
   }
 
+  /**
+   * Get all rows of the query result.
+   * @returns {Array<Array>} all rows of the query result.
+   */
   async getAllRows() {
     const worker = await dispatcher.getWorker();
     const res = await worker.queryResultGetAllRows(this._id);
@@ -163,6 +236,10 @@ class QueryResult {
     }
   }
 
+  /**
+   * Get all objects of the query result.
+   * @returns {Array<Object>} all objects of the query result.
+   */
   async getAllObjects() {
     const worker = await dispatcher.getWorker();
     const res = await worker.queryResultGetAllObjects(this._id);
@@ -174,6 +251,9 @@ class QueryResult {
     }
   }
 
+  /**
+   * Close the query result.
+   */
   async close() {
     if (!this._isClosed) {
       const worker = await dispatcher.getWorker();

@@ -60,6 +60,16 @@ describe("Get number of tuples", function () {
   });
 });
 
+describe("Get number of columns", function () {
+  it("should return the number of columns", async function () {
+    const queryResult = await conn.query(
+      "RETURN 1, 2, 3, 4, 5, 6, 7, 8"
+    );
+    assert.equal((await queryResult.getNumColumns()), 8);
+    await queryResult.close();
+  });
+});
+
 describe("Get next", function () {
   it("should return the next tuple", async function () {
     const queryResult = await conn.query(

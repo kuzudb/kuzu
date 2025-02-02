@@ -70,7 +70,8 @@ class QueryResult {
   }
 
   /**
-   * Check if the query result has a following query result when multiple statements are executed within a single query.
+   * Check if the query result has a following query result when multiple 
+   * statements are executed within a single query.
    * @returns {Boolean} true if the query result has a following query result.
    * @throws {Error} if the query result is closed.
    */
@@ -130,7 +131,8 @@ class QueryResult {
   }
 
   /**
-   * Get the query summary (execution time and compiling time) of the query result.
+   * Get the query summary (execution time and compiling time) of the query 
+   * result.
    * @returns {Object} the query summary of the query result.
    * @throws {Error} if the query result is closed.
    */
@@ -140,8 +142,9 @@ class QueryResult {
   }
 
   /**
-   * Get the next row of the query result.
-   * @returns {Object} the next row of the query result.
+   * Get the following query result when multiple statements are executed within 
+   * a single query.
+   * @returns {QueryResult} the next query result.
    * @throws {Error} if the query result is closed.
    */
   getNextQueryResult() {

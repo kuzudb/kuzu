@@ -1,5 +1,7 @@
 /**
- * @file prepared_statement.js is the file for the PreparedStatement class. A prepared statement is a parameterized query which can avoid planning the same query for repeated execution.
+ * @file prepared_statement.js is the file for the PreparedStatement class. 
+ * A prepared statement is a parameterized query which can avoid planning the 
+ * same query for repeated execution.
  */
 "use strict";
 
@@ -9,7 +11,8 @@ class PreparedStatement {
   /**
    * Internal constructor. Use `Connection.prepare` to get a
    * `PreparedStatement` object.
-   * @param {kuzu.sync.PreparedStatement} _preparedStatement the native prepared statement object.
+   * @param {kuzu.sync.PreparedStatement} _preparedStatement the native prepared 
+   * statement object.
    */
   constructor(_preparedStatement) {
     this._statement = _preparedStatement;
@@ -39,7 +42,8 @@ class PreparedStatement {
   }
 
   /**
-   * Get the error message if the prepared statement is not successfully prepared.
+   * Get the error message if the prepared statement is not successfully 
+   * prepared.
    * @returns {String} the error message.
    * @throws {Error} if the prepared statement is closed.
    */

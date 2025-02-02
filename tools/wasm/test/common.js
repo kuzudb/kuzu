@@ -19,6 +19,7 @@ const initTests = async () => {
     });
   });
 
+  await kuzu.init();
   const db = new kuzu.Database(dbPath, 1 << 30 /* 1GB */);
   const conn = new kuzu.Connection(db, 4);
 
@@ -59,6 +60,7 @@ const initTests = async () => {
 const cleanup = async () => {
   await conn.close();
   await db.close();
+  await kuzu.close();
 };
 
 global.initTests = initTests;

@@ -1,5 +1,6 @@
 /**
- * @file index.js is the root file for the synchronous version of Kùzu WebAssembly module. It exports the module's public interface.
+ * @file index.js is the root file for the synchronous version of Kùzu 
+ * WebAssembly module. It exports the module's public interface.
  */
 "use strict";
 
@@ -17,7 +18,8 @@ module.exports = {
   /**
    * Initialize the Kùzu WebAssembly module.
    * @memberof module:kuzu-wasm
-   * @returns {Promise<void>} a promise that resolves when the module is initialized. The promise is rejected if the module fails to initialize.
+   * @returns {Promise<void>} a promise that resolves when the module is 
+   * initialized. The promise is rejected if the module fails to initialize.
    */
   init: () => {
     return KuzuWasm.init();
@@ -42,7 +44,8 @@ module.exports = {
   },
   
   /**
-   * Get the standard emscripten filesystem module (FS). Please refer to the emscripten documentation for more information.
+   * Get the standard emscripten filesystem module (FS). Please refer to the 
+   * emscripten documentation for more information.
    * @memberof module:kuzu-wasm
    * @returns {Object} the standard emscripten filesystem module (FS).
    */
@@ -51,7 +54,8 @@ module.exports = {
   },
 
   /**
-   * Get the WebAssembly memory. Please refer to the emscripten documentation for more information.
+   * Get the WebAssembly memory. Please refer to the emscripten documentation 
+   * for more information.
    * @memberof module:kuzu-wasm
    * @returns {Object} the WebAssembly memory object.
    */

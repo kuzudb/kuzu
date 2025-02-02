@@ -1,3 +1,7 @@
+/**
+ * @file connection.js is the file for the Connection class. Connection is used 
+ * to interact with a Database instance. 
+ */
 "use strict";
 
 const dispatcher = require("./dispatcher.js");
@@ -5,6 +9,16 @@ const QueryResult = require("./query_result.js");
 const PreparedStatement = require("./prepared_statement.js");
 
 class Connection {
+  /**
+   * Initialize a new Connection object. Note that the initialization is done
+   * lazily, so the connection is not initialized until the first query is
+   * executed. To initialize the connection immediately, call the `init()`
+   * function on the returned object.
+   *
+   * @param {kuzu.Database} database the database object to connect to.
+   * @param {Number} numThreads the maximum number of threads to use for query 
+   * execution.
+   */
   constructor(database, numThreads = null) {
     this._isInitialized = false;
     this._initPromise = null;
@@ -14,6 +28,10 @@ class Connection {
     this.numThreads = numThreads;
   }
 
+  /**
+   * Initialize the connection. Calling this function is optional, as the
+   * connection is initialized automatically when the first query is executed.
+   */
   async init() {
     if (!this._isInitialized) {
       if (!this._initPromise) {
@@ -34,6 +52,11 @@ class Connection {
     }
   }
 
+  /**
+   * Internal function to get the connection object ID.
+   * @private
+   * @throws {Error} if the connection is closed.
+   */
   async _getConnectionObjectId() {
     if (this._isClosed) {
       throw new Error("Connection is closed.");
@@ -44,6 +67,11 @@ class Connection {
     return this._id;
   }
 
+  /**
+   * Set the maximum number of threads to use for query execution.
+   * @param {Number} numThreads the maximum number of threads to use for query 
+   * execution.
+   */
   async setMaxNumThreadForExec(numThreads) {
     const connectionId = await this._getConnectionObjectId();
     const worker = await dispatcher.getWorker();
@@ -53,6 +81,10 @@ class Connection {
     }
   }
 
+  /**
+   * Set the query timeout in milliseconds.
+   * @param {Number} timeout the query timeout in milliseconds.
+   */
   async setQueryTimeout(timeout) {
     const connectionId = await this._getConnectionObjectId();
     const worker = await dispatcher.getWorker();
@@ -62,6 +94,10 @@ class Connection {
     }
   }
 
+  /**
+   * Get the maximum number of threads to use for query execution.
+   * @returns {Number} the maximum number of threads to use for query execution.
+   */
   async getMaxNumThreadForExec() {
     const connectionId = await this._getConnectionObjectId();
     const worker = await dispatcher.getWorker();
@@ -72,6 +108,11 @@ class Connection {
     return res.numThreads;
   }
 
+  /**
+   * Execute a query.
+   * @param {String} statement the statement to execute.
+   * @returns {kuzu.QueryResult} the query result.
+   */
   async query(statement) {
     const connectionId = await this._getConnectionObjectId();
     const worker = await dispatcher.getWorker();
@@ -84,6 +125,11 @@ class Connection {
     return queryResult;
   }
 
+  /**
+   * Prepare a statement for execution.
+   * @param {String} statement the statement to prepare.
+   * @returns {kuzu.PreparedStatement} the prepared statement.
+   */
   async prepare(statement) {
     const connectionId = await this._getConnectionObjectId();
     const worker = await dispatcher.getWorker();
@@ -96,6 +142,13 @@ class Connection {
     return preparedStatement;
   }
 
+  /**
+   * Execute a prepared statement.
+   * @param {kuzu.sync.PreparedStatement} preparedStatement the prepared 
+   * statement to execute.
+   * @param {Object} params a plain object mapping parameter names to values.
+   * @returns {kuzu.QueryResult} the query result.
+   */
   async execute(preparedStatement, params = {}) {
     const connectionId = await this._getConnectionObjectId();
     const worker = await dispatcher.getWorker();
@@ -108,6 +161,9 @@ class Connection {
     return queryResult;
   }
 
+  /**
+   * Close the connection.
+   */
   async close() {
     if (!this._isClosed) {
       const connectionId = await this._getConnectionObjectId();

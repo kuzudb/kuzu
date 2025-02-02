@@ -1,3 +1,7 @@
+/**
+ * @file dispatcher.js is the file for the internal Dispatcher class. 
+ * Dispatcher is used to manage the worker thread for the wasm module.
+ */
 "use strict";
 
 const { spawn, Thread, Worker } = require("threads");
@@ -21,7 +25,8 @@ class Dispatcher {
       return "./kuzu_wasm_worker.js";
     }
     // Hack: importMeta will be replaced by esbuild with "import.meta"
-    // This is a workaround for "This file is considered to be an ECMAScript module because of the use of "import.meta" here:"
+    // This is a workaround for "This file is considered to be an ECMAScript 
+    // module because of the use of "import.meta" here:"
     const scriptPath = importMeta.url;
     const basePath = scriptPath.substring(0, scriptPath.lastIndexOf("/"));
     return `${basePath}/kuzu_wasm_worker.js`;

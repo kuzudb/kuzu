@@ -1,5 +1,6 @@
 /**
- * @file database.js is the file for the Database class. Database class is the main class of Kùzu. It manages all database components.
+ * @file database.js is the file for the Database class. Database class is the 
+ * main class of Kùzu. It manages all database components.
  */
 "use strict";
 
@@ -7,16 +8,20 @@ const KuzuWasm = require("./kuzu.js");
 
 class Database {
   /**
- * Initialize a new Database object.
- *
- * @param {String} databasePath path to the database file. If the path is not specified, or empty, or equal to
- `:memory:`, the database will be created in memory.
- * @param {Number} bufferManagerSize size of the buffer manager in bytes.
- * @param {Boolean} enableCompression whether to enable compression.
- * @param {Boolean} readOnly if true, database will be opened in read-only mode.
- * @param {Boolean} autoCheckpoint if true, automatic checkpointing will be enabled.
- * @param {Number} checkpointThreshold threshold for automatic checkpointing in bytes. Default is 16MB.
- */
+   * Initialize a new Database object.
+   *
+   * @param {String} databasePath path to the database file. If the path is not 
+   * specified, or empty, or equal to`:memory:`, the database will be created in 
+   * memory.
+   * @param {Number} bufferManagerSize size of the buffer manager in bytes.
+   * @param {Boolean} enableCompression whether to enable compression.
+   * @param {Boolean} readOnly if true, database will be opened in read-only 
+   * mode.
+   * @param {Boolean} autoCheckpoint if true, automatic checkpointing will be 
+   * enabled.
+   * @param {Number} checkpointThreshold threshold for automatic checkpointing 
+   * in bytes. Default is 16MB.
+   */
   constructor(
     databasePath,
     bufferPoolSize = 0,

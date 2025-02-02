@@ -1,5 +1,6 @@
 /**
- * @file connection.js is the file for the Connection class. Connection is used to interact with a Database instance. 
+ * @file connection.js is the file for the Connection class. Connection 
+ * is used to interact with a Database instance. 
  */
 "use strict";
 
@@ -12,7 +13,8 @@ class Connection {
    * Initialize a new Connection object.
    *
    * @param {kuzu.sync.Database} database the database object to connect to.
-   * @param {Number} numThreads the maximum number of threads to use for query execution.
+   * @param {Number} numThreads the maximum number of threads to use for query 
+   * execution.
    */
   constructor(database, numThreads = null) {
     KuzuWasm.checkInit();
@@ -46,7 +48,8 @@ class Connection {
 
   /**
    * Set the maximum number of threads to use for query execution.
-   * @param {Number} numThreads the maximum number of threads to use for query execution.
+   * @param {Number} numThreads the maximum number of threads to use for query 
+   * execution.
    * @throws {Error} if the connection is closed.
    * @throws {Error} if numThreads is not a positive integer.
    */
@@ -80,7 +83,6 @@ class Connection {
   /**
    * Execute a query.
    * @param {String} statement the statement to execute.
-   * @param {Function} [progressCallback] - Optional callback function that is invoked with the progress of the query execution. The callback receives three arguments: pipelineProgress, numPipelinesFinished, and numPipelines.
    * @returns {kuzu.sync.QueryResult} the query result.
    * @throws {Error} if the connection is closed.
    * @throws {Error} if statement is not a string.
@@ -110,11 +112,13 @@ class Connection {
 
   /**
    * Execute a prepared statement.
-   * @param {kuzu.sync.PreparedStatement} preparedStatement the prepared statement to execute.
+   * @param {kuzu.sync.PreparedStatement} preparedStatement the prepared 
+   * statement to execute.
    * @param {Object} params a plain object mapping parameter names to values.
    * @returns {kuzu.sync.QueryResult} the query result.
    * @throws {Error} if the connection is closed.
-   * @throws {Error} if preparedStatement is not a valid PreparedStatement object.
+   * @throws {Error} if preparedStatement is not a valid PreparedStatement 
+   * object.
    * @throws {Error} if preparedStatement is not successful.
    * @throws {Error} if params is not a plain object.
    */

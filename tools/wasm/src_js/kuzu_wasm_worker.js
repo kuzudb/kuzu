@@ -1,3 +1,7 @@
+/**
+ * @file kuzu_wasm_worker.js is the file for the worker thread that wraps around 
+ * the synchronous WebAssembly module to create an asynchronous API.
+ */
 "use strict";
 
 const { expose, isWorkerRuntime, Transfer } = require('threads/worker');

@@ -24,10 +24,16 @@
     "./multithreaded/sync": {
       "import": "./multithreaded/sync/index.js",
       "require": "./multithreaded/sync/index.js"
+    },
+    "./nodejs": {
+      "require": "./nodejs/index.js"
+    },
+    "./nodejs/sync": {
+      "require": "./nodejs/sync/index.js"
     }
   },
   "scripts": {
-    "test": "mocha test --timeout 20000 --exit",
+    "test": "mocha test --timeout 20000",
     "clean": "node clean.js",
     "build": "node build.mjs"
   },
