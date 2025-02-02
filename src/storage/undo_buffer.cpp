@@ -42,7 +42,7 @@ struct VersionRecord {
     row_idx_t startRow;
     row_idx_t numRows;
     node_group_idx_t nodeGroupIdx;
-    const storage::VersionRecordHandler* versionRecordHandler;
+    const VersionRecordHandler* versionRecordHandler;
 };
 
 struct VectorUpdateRecord {
@@ -90,8 +90,6 @@ void UndoBufferIterator::reverseIterate(F&& callback) {
     }
 }
 
-UndoBuffer::UndoBuffer(transaction::Transaction* transaction) : transaction{transaction} {}
-
 void UndoBuffer::createCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry) {
     auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(CatalogEntryRecord));
     const UndoRecordHeader recordHeader{UndoRecordType::CATALOG_ENTRY, sizeof(CatalogEntryRecord)};
@@ -113,19 +111,19 @@ void UndoBuffer::createSequenceChange(SequenceCatalogEntry& sequenceEntry,
 }
 
 void UndoBuffer::createInsertInfo(node_group_idx_t nodeGroupIdx, row_idx_t startRow,
-    row_idx_t numRows, const storage::VersionRecordHandler* versionRecordHandler) {
+    row_idx_t numRows, const VersionRecordHandler* versionRecordHandler) {
     createVersionInfo(UndoRecordType::INSERT_INFO, startRow, numRows, versionRecordHandler,
         nodeGroupIdx);
 }
 
-void UndoBuffer::createDeleteInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
-    common::row_idx_t numRows, const storage::VersionRecordHandler* versionRecordHandler) {
+void UndoBuffer::createDeleteInfo(node_group_idx_t nodeGroupIdx, row_idx_t startRow,
+    row_idx_t numRows, const VersionRecordHandler* versionRecordHandler) {
     createVersionInfo(UndoRecordType::DELETE_INFO, startRow, numRows, versionRecordHandler,
         nodeGroupIdx);
 }
 
 void UndoBuffer::createVersionInfo(const UndoRecordType recordType, row_idx_t startRow,
-    row_idx_t numRows, const storage::VersionRecordHandler* versionRecordHandler,
+    row_idx_t numRows, const VersionRecordHandler* versionRecordHandler,
     node_group_idx_t nodeGroupIdx) {
     KU_ASSERT(versionRecordHandler);
     auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(VersionRecord));
@@ -149,12 +147,12 @@ void UndoBuffer::createVectorUpdateInfo(UpdateInfo* updateInfo, const idx_t vect
 uint8_t* UndoBuffer::createUndoRecord(const uint64_t size) {
     std::unique_lock xLck{mtx};
     if (memoryBuffers.empty() || !memoryBuffers.back().canFit(size)) {
-        auto capacity = UndoMemoryBuffer::UNDO_MEMORY_BUFFER_SIZE;
+        auto capacity = UndoMemoryBuffer::UNDO_MEMORY_BUFFER_INIT_CAPACITY;
         while (size > capacity) {
             capacity *= 2;
         }
         // We need to allocate a new memory buffer.
-        memoryBuffers.push_back(UndoMemoryBuffer(capacity));
+        memoryBuffers.emplace_back(mm->mallocBuffer(false, capacity), capacity);
     }
     const auto res =
         memoryBuffers.back().getDataUnsafe() + memoryBuffers.back().getCurrentPosition();
@@ -169,7 +167,7 @@ void UndoBuffer::commit(transaction_t commitTS) const {
     });
 }
 
-void UndoBuffer::rollback() {
+void UndoBuffer::rollback(const transaction::Transaction* transaction) const {
     UndoBufferIterator iterator{*this};
     iterator.reverseIterate([&](UndoRecordType entryType, uint8_t const* entry) {
         rollbackRecord(transaction, entryType, entry);
@@ -185,7 +183,7 @@ uint64_t UndoBuffer::getMemUsage() const {
 }
 
 void UndoBuffer::commitRecord(UndoRecordType recordType, const uint8_t* record,
-    transaction_t commitTS) const {
+    transaction_t commitTS) {
     switch (recordType) {
     case UndoRecordType::CATALOG_ENTRY: {
         commitCatalogEntryRecord(record, commitTS);
@@ -205,8 +203,7 @@ void UndoBuffer::commitRecord(UndoRecordType recordType, const uint8_t* record,
     }
 }
 
-void UndoBuffer::commitCatalogEntryRecord(const uint8_t* record,
-    const transaction_t commitTS) const {
+void UndoBuffer::commitCatalogEntryRecord(const uint8_t* record, const transaction_t commitTS) {
     const auto& [_, catalogEntry] = *reinterpret_cast<CatalogEntryRecord const*>(record);
     const auto newCatalogEntry = catalogEntry->getNext();
     KU_ASSERT(newCatalogEntry);
@@ -214,7 +211,7 @@ void UndoBuffer::commitCatalogEntryRecord(const uint8_t* record,
 }
 
 void UndoBuffer::commitVersionInfo(UndoRecordType recordType, const uint8_t* record,
-    transaction_t commitTS) const {
+    transaction_t commitTS) {
     const auto& undoRecord = *reinterpret_cast<VersionRecord const*>(record);
     switch (recordType) {
     case UndoRecordType::INSERT_INFO: {
@@ -231,7 +228,7 @@ void UndoBuffer::commitVersionInfo(UndoRecordType recordType, const uint8_t* rec
     }
 }
 
-void UndoBuffer::commitVectorUpdateInfo(const uint8_t* record, transaction_t commitTS) const {
+void UndoBuffer::commitVectorUpdateInfo(const uint8_t* record, transaction_t commitTS) {
     auto& undoRecord = *reinterpret_cast<VectorUpdateRecord const*>(record);
     undoRecord.vectorUpdateInfo->version = commitTS;
 }
@@ -250,7 +247,7 @@ void UndoBuffer::rollbackRecord(const transaction::Transaction* transaction,
         rollbackVersionInfo(transaction, recordType, record);
     } break;
     case UndoRecordType::UPDATE_INFO: {
-        rollbackVectorUpdateInfo(record);
+        rollbackVectorUpdateInfo(transaction, record);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -262,14 +259,6 @@ void UndoBuffer::rollbackCatalogEntryRecord(const uint8_t* record) {
     const auto& [catalogSet, catalogEntry] = *reinterpret_cast<CatalogEntryRecord const*>(record);
     const auto entryToRollback = catalogEntry->getNext();
     KU_ASSERT(entryToRollback);
-    //<<<<<<< HEAD
-    //=======
-    //    const auto entryType = entryToRollback->getType();
-    //    if (entryType == CatalogEntryType::NODE_TABLE_ENTRY ||
-    //        entryType == CatalogEntryType::REL_TABLE_ENTRY) {
-    //        entryToRollback->ptrCast<TableCatalogEntry>()->resetAlterInfo();
-    //    }
-    //>>>>>>> 966b0aaec (Add support for alter on rel groups)
     if (entryToRollback->getNext()) {
         // If entryToRollback has a newer entry (next) in the version chain. Simple remove
         // entryToRollback from the chain.
@@ -285,7 +274,7 @@ void UndoBuffer::rollbackCatalogEntryRecord(const uint8_t* record) {
     }
 }
 
-void UndoBuffer::commitSequenceEntry(const uint8_t*, transaction_t) const {
+void UndoBuffer::commitSequenceEntry(const uint8_t*, transaction_t) {
     // DO NOTHING.
 }
 
@@ -315,7 +304,8 @@ void UndoBuffer::rollbackVersionInfo(const transaction::Transaction* transaction
     }
 }
 
-void UndoBuffer::rollbackVectorUpdateInfo(const uint8_t* record) const {
+void UndoBuffer::rollbackVectorUpdateInfo(const transaction::Transaction* transaction,
+    const uint8_t* record) {
     auto& undoRecord = *reinterpret_cast<VectorUpdateRecord const*>(record);
     KU_ASSERT(undoRecord.updateInfo);
     if (undoRecord.updateInfo->getVectorInfo(transaction, undoRecord.vectorIdx) !=

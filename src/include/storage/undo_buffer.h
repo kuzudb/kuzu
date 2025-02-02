@@ -2,6 +2,7 @@
 
 #include <mutex>
 
+#include "buffer_manager/memory_manager.h"
 #include "common/constants.h"
 #include "common/types/types.h"
 
@@ -22,30 +23,28 @@ class ClientContext;
 namespace storage {
 class VersionRecordHandler;
 
-// TODO(Guodong): This should be reworked to use MemoryManager for memory allocaiton.
-//                For now, we use malloc to get around the limitation of 256KB from MM.
 class UndoMemoryBuffer {
 public:
-    static constexpr uint64_t UNDO_MEMORY_BUFFER_SIZE = common::KUZU_PAGE_SIZE;
+    static constexpr uint64_t UNDO_MEMORY_BUFFER_INIT_CAPACITY = common::KUZU_PAGE_SIZE;
 
-    explicit UndoMemoryBuffer(uint64_t size) : size{size} {
-        data = std::make_unique<uint8_t[]>(size);
+    explicit UndoMemoryBuffer(std::unique_ptr<MemoryBuffer> buffer, uint64_t capacity)
+        : buffer{std::move(buffer)}, capacity{capacity} {
         currentPosition = 0;
     }
 
-    uint8_t* getDataUnsafe() const { return data.get(); }
-    uint8_t const* getData() const { return data.get(); }
-    uint64_t getSize() const { return size; }
+    uint8_t* getDataUnsafe() const { return buffer->getData(); }
+    uint8_t const* getData() const { return buffer->getData(); }
+    uint64_t getSize() const { return capacity; }
     uint64_t getCurrentPosition() const { return currentPosition; }
     void moveCurrentPosition(uint64_t offset) {
-        KU_ASSERT(currentPosition + offset <= size);
+        KU_ASSERT(currentPosition + offset <= capacity);
         currentPosition += offset;
     }
-    bool canFit(uint64_t size_) const { return currentPosition + size_ <= this->size; }
+    bool canFit(uint64_t size_) const { return currentPosition + size_ <= this->capacity; }
 
 private:
-    std::unique_ptr<uint8_t[]> data;
-    uint64_t size;
+    std::unique_ptr<MemoryBuffer> buffer;
+    uint64_t capacity;
     uint64_t currentPosition;
 };
 
@@ -80,7 +79,7 @@ public:
         DELETE_INFO = 8,
     };
 
-    explicit UndoBuffer(transaction::Transaction* transaction);
+    explicit UndoBuffer(MemoryManager* mm) : mm{mm} {}
 
     void createCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry);
     void createSequenceChange(catalog::SequenceCatalogEntry& sequenceEntry,
@@ -93,7 +92,7 @@ public:
         VectorUpdateInfo* vectorUpdateInfo);
 
     void commit(common::transaction_t commitTS) const;
-    void rollback();
+    void rollback(const transaction::Transaction* transaction) const;
 
     uint64_t getMemUsage() const;
 
@@ -104,28 +103,29 @@ private:
         common::row_idx_t numRows, const VersionRecordHandler* versionRecordHandler,
         common::node_group_idx_t nodeGroupIdx = 0);
 
-    void commitRecord(UndoRecordType recordType, const uint8_t* record,
-        common::transaction_t commitTS) const;
-    void rollbackRecord(const transaction::Transaction* transaction, UndoRecordType recordType,
+    static void commitRecord(UndoRecordType recordType, const uint8_t* record,
+        common::transaction_t commitTS);
+    static void rollbackRecord(const transaction::Transaction* transaction,
+        UndoRecordType recordType, const uint8_t* record);
+
+    static void commitCatalogEntryRecord(const uint8_t* record, common::transaction_t commitTS);
+    static void rollbackCatalogEntryRecord(const uint8_t* record);
+
+    static void commitSequenceEntry(uint8_t const* entry, common::transaction_t commitTS);
+    static void rollbackSequenceEntry(uint8_t const* entry);
+
+    static void commitVersionInfo(UndoRecordType recordType, const uint8_t* record,
+        common::transaction_t commitTS);
+    static void rollbackVersionInfo(const transaction::Transaction* transaction,
+        UndoRecordType recordType, const uint8_t* record);
+
+    static void commitVectorUpdateInfo(const uint8_t* record, common::transaction_t commitTS);
+    static void rollbackVectorUpdateInfo(const transaction::Transaction* transaction,
         const uint8_t* record);
-
-    void commitCatalogEntryRecord(const uint8_t* record, common::transaction_t commitTS) const;
-    void rollbackCatalogEntryRecord(const uint8_t* record);
-
-    void commitSequenceEntry(uint8_t const* entry, common::transaction_t commitTS) const;
-    void rollbackSequenceEntry(uint8_t const* entry);
-
-    void commitVersionInfo(UndoRecordType recordType, const uint8_t* record,
-        common::transaction_t commitTS) const;
-    void rollbackVersionInfo(const transaction::Transaction* transaction, UndoRecordType recordType,
-        const uint8_t* record);
-
-    void commitVectorUpdateInfo(const uint8_t* record, common::transaction_t commitTS) const;
-    void rollbackVectorUpdateInfo(const uint8_t* record) const;
 
 private:
     std::mutex mtx;
-    transaction::Transaction* transaction;
+    MemoryManager* mm;
     std::vector<UndoMemoryBuffer> memoryBuffers;
 };
 
