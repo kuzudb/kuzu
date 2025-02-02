@@ -2,86 +2,181 @@
 
 --
 
--CASE fts_invalid_test
+-CASE ErrorCases
+
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
 ---- ok
 
--LOG CreateFTSError
 -STATEMENT CALL CREATE_FTS_INDEX('person1', 'contentIdx', ['content'])
 ---- error
 Binder exception: Table person1 does not exist.
+
 -STATEMENT CALL CREATE_FTS_INDEX('person', 'personIdx', ['fName'])
 ---- ok
+
 -STATEMENT CALL CREATE_FTS_INDEX('person', 'personIdx', ['fName'])
 ---- error
 Binder exception: Index personIdx already exists in table person.
+
 -STATEMENT CALL CREATE_FTS_INDEX('knows', 'personIdx', ['fName'])
 ---- error
 Binder exception: Table knows is not a node table. Only a node table is supported for this function.
+
 -STATEMENT CALL CREATE_FTS_INDEX('person', 'personIdx1', ['fName1'])
 ---- error
 Binder exception: Property: fName1 does not exist in table person.
+
 -STATEMENT CALL CREATE_FTS_INDEX('person', 'personIdx2', ['fName', 'fName1'])
 ---- error
 Binder exception: Property: fName1 does not exist in table person.
 
--LOG QueryFTSIndexError
+-STATEMENT CALL CREATE_FTS_INDEX('person', 'personIdx3', ['gender'])
+---- error
+Binder exception: Full text search index can only be built on string properties.
+
+-STATEMENT CALL CREATE_FTS_INDEX('person', 'personIdx4', ['fName', 'gender'])
+---- error
+Binder exception: Full text search index can only be built on string properties.
+
 -STATEMENT CALL QUERY_FTS_INDEX('person', 'personIdx1', 'alice') RETURN *
 ---- error
 Binder exception: Table person doesn't have an index with name personIdx1.
+
 -STATEMENT CALL QUERY_FTS_INDEX('person1', 'personIdx', 'alice') RETURN *
 ---- error
 Binder exception: Table person1 does not exist.
+
 -STATEMENT CALL QUERY_FTS_INDEX('knows', 'personIdx', 'alice') RETURN *
 ---- error
 Binder exception: Table knows is not a node table. Only a node table is supported for this function.
--LOG DropFTSIndexError
+
+-STATEMENT CALL QUERY_FTS_INDEX('movies', 'personIdx', 'alice') RETURN *
+---- error
+Binder exception: Table movies doesn't have an index with name personIdx.
+
+-STATEMENT CALL DROP_FTS_INDEX('person1', 'personIdx')
+---- error
+Binder exception: Table person1 does not exist.
+
 -STATEMENT CALL DROP_FTS_INDEX('knows', 'personIdx')
 ---- error
 Binder exception: Table knows is not a node table. Only a node table is supported for this function.
+
 -STATEMENT CALL DROP_FTS_INDEX('person', 'personIdx1')
 ---- error
 Binder exception: Table person doesn't have an index with name personIdx1.
 
--LOG QueryAfterDropError
 -STATEMENT CALL DROP_FTS_INDEX('person', 'personIdx')
 ---- ok
+
 -STATEMENT CALL QUERY_FTS_INDEX('person', 'personIdx', 'alice') RETURN *
 ---- error
 Binder exception: Table person doesn't have an index with name personIdx.
 
--LOG CreateFTSInManualTrx
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('person', 'otherIdx', ['fName'])
 ---- error
 Binder exception: CREATE_FTS_INDEX is only supported in auto transaction mode.
 
--LOG DropFTSInManualTrx
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT CALL DROP_FTS_INDEX('person1', 'contentIdx')
 ---- error
 Binder exception: DROP_FTS_INDEX is only supported in auto transaction mode.
 
--CASE DropTableWithIndexes
+
+
+-CASE DuplicateIndexes
+
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
 ---- ok
--STATEMENT CREATE NODE TABLE STUDENT (ID INT64, name string, age INT64, PRIMARY KEY(ID))
+
+-STATEMENT CALL CREATE_FTS_INDEX('movies', 'moviesIdx', ['name'])
 ---- ok
--STATEMENT CALL CREATE_FTS_INDEX('STUDENT', 'sIdx', ['name'])
+-STATEMENT CALL QUERY_FTS_INDEX('movies', 'moviesIdx', 'movie') RETURN _node.name
+---- 1
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
+
+-STATEMENT CALL CREATE_FTS_INDEX('movies', 'moviesIdx2', ['name', 'note'])
 ---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('movies', 'moviesIdx2', 'movie') RETURN _node.name
+---- 3
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
+Sóló cón tu párejâ
+Roma
+
+
+
+-CASE DropTableWithIndexes
+
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
+---- ok
+-STATEMENT CREATE NODE TABLE STUDENT (ID INT64, name string, age INT64, note string, PRIMARY KEY(ID))
+---- ok
+
 -STATEMENT CALL CREATE_FTS_INDEX('STUDENT', 'sIdx1', ['name'])
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('STUDENT', 'sIdx', 'test') RETURN *
+
+-STATEMENT CALL CREATE_FTS_INDEX('STUDENT', 'sIdx2', ['name', 'note'])
+---- ok
+
+-STATEMENT CALL QUERY_FTS_INDEX('STUDENT', 'sIdx1', 'test') RETURN *
 ---- 0
+
+-STATEMENT CALL QUERY_FTS_INDEX('STUDENT', 'sIdx2', 'test') RETURN *
+---- 0
+
 -STATEMENT ALTER TABLE STUDENT DROP name;
 ---- error
 Binder exception: Cannot drop property name in table STUDENT because it is used in one or more indexes. Please remove the associated indexes before attempting to drop this property.
+
+-STATEMENT CALL DROP_FTS_INDEX('STUDENT', 'sIdx1')
+---- 0
+
+-STATEMENT ALTER TABLE STUDENT DROP note;
+---- error
+Binder exception: Cannot drop property note in table STUDENT because it is used in one or more indexes. Please remove the associated indexes before attempting to drop this property.
+
 -STATEMENT ALTER TABLE STUDENT ADD length int64;
 ---- ok
+
+-STATEMENT ALTER TABLE STUDENT DROP age;
+---- ok
+
 -STATEMENT DROP TABLE STUDENT
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('STUDENT', 'sIdx', 'test') RETURN *
+
+-STATEMENT CALL QUERY_FTS_INDEX('STUDENT', 'sIdx1', 'test') RETURN *
 ---- error
 Binder exception: Table STUDENT does not exist.
+
+-STATEMENT CREATE NODE TABLE STUDENT (ID INT64, name string, age INT64, note string, PRIMARY KEY(ID))
+---- ok
+
+-STATEMENT CALL QUERY_FTS_INDEX('STUDENT', 'sIdx1', 'test') RETURN *
+---- error
+Binder exception: Table STUDENT doesn't have an index with name sIdx1.
+
+-STATEMENT CALL QUERY_FTS_INDEX('STUDENT', 'sIdx2', 'test') RETURN *
+---- error
+Binder exception: Table STUDENT doesn't have an index with name sIdx2.
+
+
+
+-CASE ExtensionNotLoaded
+
+-STATEMENT CREATE NODE TABLE STUDENT (ID INT64, name string, age INT64, note string, PRIMARY KEY(ID))
+---- ok
+
+-STATEMENT CALL CREATE_FTS_INDEX('STUDENT', 'sIdx', ['name'])
+---- error
+Catalog exception: function CREATE_FTS_INDEX is not defined. This function exists in the FTS extension. You can install and load the extension by running 'INSTALL FTS; LOAD EXTENSION FTS;'.
+
+-STATEMENT CALL QUERY_FTS_INDEX('STUDENT', 'sIdx', 'test') RETURN *
+---- error
+Catalog exception: function QUERY_FTS_INDEX is not defined. This function exists in the FTS extension. You can install and load the extension by running 'INSTALL FTS; LOAD EXTENSION FTS;'.
+
+-STATEMENT CALL DROP_FTS_INDEX('STUDENT', 'sIdx')
+---- error
+Catalog exception: function DROP_FTS_INDEX is not defined. This function exists in the FTS extension. You can install and load the extension by running 'INSTALL FTS; LOAD EXTENSION FTS;'.
