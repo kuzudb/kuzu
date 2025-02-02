@@ -154,7 +154,13 @@ jobs:
 
   update-docs:
     runs-on: ubuntu-22.04
-    needs: [generate-python-docs, generate-nodejs-docs, generate-java-docs, generate-cpp-docs]
+    needs: [
+      generate-python-docs,
+      generate-nodejs-docs,
+      generate-wasm-docs,
+      generate-java-docs,
+      generate-cpp-docs
+    ]
     steps:
       - uses: actions/checkout@v4
         with:
