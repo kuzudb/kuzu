@@ -14,10 +14,12 @@ RandomEngine::RandomEngine(uint64_t seed, uint64_t stream) : randomState(RandomS
 }
 
 uint32_t RandomEngine::nextRandomInteger() {
+    std::unique_lock xLck{mtx};
     return randomState.pcg();
 }
 
 uint32_t RandomEngine::nextRandomInteger(uint32_t upper) {
+    std::unique_lock xLck{mtx};
     return randomState.pcg(upper);
 }
 
