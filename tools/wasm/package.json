@@ -1,0 +1,53 @@
+{
+  "name": "kuzu-wasm",
+  "version": "0.0.1",
+  "description": "Official WebAssembly build of Kùzu in-process property graph database management system.",
+  "main": "index.js",
+  "homepage": "https://kuzudb.com/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kuzudb/kuzu.git"
+  },
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "require": "./index.js"
+    },
+    "./sync": {
+      "import": "./sync/index.js",
+      "require": "./sync/index.js"
+    },
+    "./multithreaded": {
+      "import": "./multithreaded/index.js",
+      "require": "./multithreaded/index.js"
+    },
+    "./multithreaded/sync": {
+      "import": "./multithreaded/sync/index.js",
+      "require": "./multithreaded/sync/index.js"
+    },
+    "./nodejs": {
+      "require": "./nodejs/index.js"
+    },
+    "./nodejs/sync": {
+      "require": "./nodejs/sync/index.js"
+    }
+  },
+  "scripts": {
+    "test": "mocha test --timeout 20000",
+    "clean": "node clean.js",
+    "build": "node build.mjs"
+  },
+  "author": "Kùzu Team",
+  "license": "MIT",
+  "devDependencies": {
+    "chai": "^4.4.1",
+    "esbuild": "0.24.2",
+    "mocha": "^10.4.0",
+    "tmp": "^0.2.3"
+  },
+  "dependencies": {
+    "threads": "^1.7.0",
+    "tiny-worker": "^2.3.0",
+    "uuid": "^11.0.3"
+  }
+}

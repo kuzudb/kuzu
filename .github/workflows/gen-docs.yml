@@ -78,6 +78,33 @@ jobs:
         with:
           name: kuzu-nodejs-docs
           path: ./docs
+  
+  generate-wasm-docs:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Node.js packages
+        run: |
+          npm install -g jsdoc
+
+      - name: Generate Node.js docs
+        shell: bash
+        run: |
+          mkdir docs
+          jsdoc ./tools/wasm/src_js/sync/*.js ./tools/wasm/src_js/sync/README.md --destination ./docs/sync
+          jsdoc ./tools/wasm/src_js/*.js ./tools/wasm/src_js/README.md --destination ./docs/async
+
+      - name: Upload Node.js docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: kuzu-wasm-docs
+          path: ./docs
 
   generate-java-docs:
     runs-on: ubuntu-latest
@@ -127,7 +154,13 @@ jobs:
 
   update-docs:
     runs-on: ubuntu-22.04
-    needs: [generate-python-docs, generate-nodejs-docs, generate-java-docs, generate-cpp-docs]
+    needs: [
+      generate-python-docs,
+      generate-nodejs-docs,
+      generate-wasm-docs,
+      generate-java-docs,
+      generate-cpp-docs
+    ]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -149,6 +182,12 @@ jobs:
         with:
           name: kuzu-nodejs-docs
           path: kuzudb.github.io/api-docs/nodejs
+
+      - name: Download WASM docs
+        uses: actions/download-artifact@v4
+        with:
+          name: kuzu-wasm-docs
+          path: kuzudb.github.io/api-docs/wasm
         
       - name: Download Java docs
         uses: actions/download-artifact@v4

@@ -1,0 +1,14 @@
+{
+  "name": "kuzu-wasm-example-node",
+  "version": "0.0.1",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Kùzu Team",
+  "license": "MIT",
+  "description": "",
+  "dependencies": {
+    "kuzu-wasm": "^0.7.1-dev.12"
+  }
+}

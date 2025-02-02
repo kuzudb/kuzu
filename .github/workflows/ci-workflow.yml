@@ -287,14 +287,31 @@ jobs:
         with:
           name: binary-demo
           path: dataset/binary-demo
+      
+      - name: Install dependencies
+        working-directory: tools/wasm
+        run: npm i
 
-      - name: Build & test
+      - name: Build WebAssembly package
+        working-directory: tools/wasm
+        run: |
+          source /home/runner/emsdk/emsdk_env.sh
+          npm run build
+      
+      - name: API test
+        working-directory: tools/wasm
+        run: npm run test
+
+      - name: Clean up
+        run: make clean
+        
+      - name: Kernel build & test
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           source /home/runner/emsdk/emsdk_env.sh
           make wasmtest
 
-      - name: Build & test (single-thread mode)
+      - name: Kernel build & test (single-threaded)
         env:
           SINGLE_THREADED: true
         run: |
