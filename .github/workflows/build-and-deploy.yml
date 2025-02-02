@@ -25,6 +25,11 @@ on:
         type: boolean
         required: true
         default: false
+      skipWasm:
+        description: "Skip building WebAssembly?"
+        type: boolean
+        required: true
+        default: false
       skipPython:
         description: "Skip building Python?"
         type: boolean
@@ -259,6 +264,51 @@ jobs:
         if: ${{ github.event.inputs.isDeploy == 'true' && github.event.inputs.isNightly != 'true' }}
         run: npm publish kuzu-source.tar.gz --access public --tag latest
         working-directory: tools/nodejs_api
+  
+  build-wasm:
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.skipWasm != 'true' }}
+    uses: ./.github/workflows/wasm-workflow.yml
+    with:
+      isNightly: ${{ github.event_name == 'schedule' || github.event.inputs.isNightly == 'true' }}
+    secrets: inherit
+  
+  deploy-wasm:
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.skipWasm != 'true' }}
+    needs: [build-wasm]
+    runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_JS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: kuzu-deploy-wasm
+          path: tools/wasm
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Show tarball contents
+        run: tar -tvf kuzu-wasm.tar.gz
+        working-directory: tools/wasm
+
+      - name: Deploy to npm.js dry run
+        if: ${{ github.event_name != 'schedule' && github.event.inputs.isDeploy != 'true' }}
+        run: npm publish kuzu-wasm.tar.gz --access public --dry-run
+        working-directory: tools/wasm
+
+      - name: Deploy nightly to npm.js
+        if: ${{ github.event_name == 'schedule' || (github.event.inputs.isDeploy == 'true' && github.event.inputs.isNightly == 'true') }}
+        run: npm publish kuzu-wasm.tar.gz --access public --tag next
+        working-directory: tools/wasm
+
+      - name: Deploy to npm.js
+        if: ${{ github.event.inputs.isDeploy == 'true' && github.event.inputs.isNightly != 'true' }}
+        run: npm publish kuzu-wasm.tar.gz --access public --tag latest
+        working-directory: tools/wasm
 
   build-wheel-mac:
     if: ${{ github.event_name == 'schedule' || github.event.inputs.skipPython != 'true' }}
