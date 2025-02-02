@@ -1,0 +1,36 @@
+name: Build WebAssembly module
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      isNightly:
+        type: boolean
+        required: true
+        default: false
+
+jobs:
+  build-wasm:
+    runs-on: kuzu-self-hosted-testing
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update nightly version
+        if: ${{ inputs.isNightly == true }}
+        env:
+          PIP_BREAK_SYSTEM_PACKAGES: 1
+        run: |
+          python3 -m pip install packaging
+          python3 update-nightly-build-version.py
+        working-directory: scripts
+      
+      - name: Build WebAssembly package
+        working-directory: tools/wasm
+        run: |
+          source /home/runner/emsdk/emsdk_env.sh
+          npm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kuzu-deploy-wasm
+          path: tools/wasm/kuzu-wasm.tar.gz

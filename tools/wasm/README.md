@@ -1,7 +1,7 @@
 # Kùzu-Wasm
 Kùzu-Wasm is the official WebAssembly build of Kùzu in-process property graph database management system. 
 Kùzu is an embeddable property graph database management system built for query speed and scalability. 
-Please visit [kuzudb.com](https://kuzudb.com) for more information. Kùzu-Wasm enables the following:
+Please visit [Kùzu website](https://kuzudb.com) for more information. Kùzu-Wasm enables the following:
 
 - Fast, in-browser graph analysis without ever sending data to a server
 - Strong data privacy guarantees, as the data never leaves the browser
@@ -46,7 +46,9 @@ Note that this function must be called before any other function calls to the We
 For the Node.js variant, the worker script can be resolved automatically and you do not need to set the worker path.
 
 ## API documentation
-The API documentation can be found [here](https://kuzudb.com/api-docs/wasm/).
+The API documentation can be found here:
+Synchronous version: [API documentation](https://kuzudb.com/api-docs/wasm/sync/)
+Asynchronous version: [API documentation](https://kuzudb.com/api-docs/wasm/async/)
 
 ## Local development
 
