@@ -24,6 +24,10 @@ jobs:
           python3 update-nightly-build-version.py
         working-directory: scripts
       
+      - name: Install dependencies
+        working-directory: tools/wasm
+        run: npm i
+      
       - name: Build WebAssembly package
         working-directory: tools/wasm
         run: |
