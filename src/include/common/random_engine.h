@@ -25,6 +25,7 @@ public:
     uint32_t nextRandomInteger(uint32_t upper);
 
 private:
+    std::mutex mtx;
     RandomState randomState;
 };
 

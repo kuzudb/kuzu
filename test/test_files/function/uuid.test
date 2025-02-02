@@ -103,3 +103,12 @@ Conversion exception: Invalid UUID: 11111111111111111
 -STATEMENT RETURN UUID("0");
 ---- error
 Conversion exception: Invalid UUID: 0
+
+-CASE LargeRandomUUID
+-STATEMENT CREATE NODE TABLE test(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT COPY test FROM (UNWIND range(1, 200000) AS id RETURN id);
+---- ok
+-STATEMENT MATCH (t:test) WITH DISTINCT gen_random_uuid() as u RETURN count(*);
+---- 1
+200000
