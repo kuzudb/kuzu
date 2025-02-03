@@ -83,3 +83,7 @@ scripts/generate-cpp-docs/c/docs
 dataset/binary-demo
 dataset/databases/tinysnb
 dataset/ldbc-1/csv
+
+# Nix
+flake.lock
+result
