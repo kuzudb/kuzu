@@ -283,6 +283,10 @@ jobs:
           IN_MEM_MODE: true
         run: make lcov NUM_THREADS=$(nproc)
 
+      - name: Test with coverage vector capacity of 2
+        run: |
+          make lcov VECTOR_CAPACITY_LOG2=1
+
       - name: Generate coverage report
         run: |
           lcov --config-file .lcovrc -c -d ./ --no-external -o cover.info &&\
@@ -310,7 +314,7 @@ jobs:
         with:
           name: binary-demo
           path: dataset/binary-demo
-      
+
       - name: Install dependencies
         working-directory: tools/wasm
         run: npm i
@@ -320,14 +324,14 @@ jobs:
         run: |
           source /home/runner/emsdk/emsdk_env.sh
           npm run build
-      
+
       - name: API test
         working-directory: tools/wasm
         run: npm run test
 
       - name: Clean up
         run: make clean
-        
+
       - name: Kernel build & test
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
