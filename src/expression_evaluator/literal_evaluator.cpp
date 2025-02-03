@@ -21,7 +21,7 @@ void LiteralExpressionEvaluator::evaluate() {
     }
 }
 
-bool LiteralExpressionEvaluator::select(SelectionVector&) {
+bool LiteralExpressionEvaluator::selectInternal(SelectionVector&) {
     KU_ASSERT(resultVector->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
     auto pos = resultVector->state->getSelVector()[0];
     KU_ASSERT(pos == 0u);

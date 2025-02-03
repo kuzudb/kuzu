@@ -11,7 +11,7 @@ inline static bool isTrue(ValueVector& vector, uint64_t pos) {
     return !vector.isNull(pos) && vector.getValue<bool>(pos);
 }
 
-bool ReferenceExpressionEvaluator::select(SelectionVector& selVector) {
+bool ReferenceExpressionEvaluator::selectInternal(SelectionVector& selVector) {
     uint64_t numSelectedValues = 0;
     auto selectedBuffer = resultVector->state->getSelVectorUnsafe().getMutableBuffer();
     if (resultVector->state->getSelVector().isUnfiltered()) {

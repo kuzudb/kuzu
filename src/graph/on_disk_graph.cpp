@@ -247,16 +247,15 @@ std::unique_ptr<VertexScanState> OnDiskGraph::prepareVertexScan(
 bool OnDiskGraphNbrScanState::InnerIterator::next(evaluator::ExpressionEvaluator* predicate) {
     bool hasAtLeastOneSelectedValue = false;
     do {
+        restoreSelVector(*tableScanState->outState);
         if (!relTable->scan(context->getTransaction(), *tableScanState)) {
             return false;
         }
+        saveSelVector(*tableScanState->outState);
         if (predicate != nullptr) {
             hasAtLeastOneSelectedValue =
-                predicate->select(tableScanState->outState->getSelVectorUnsafe());
-            if (!tableScanState->outState->isFlat() &&
-                tableScanState->outState->getSelVector().isUnfiltered()) {
-                tableScanState->outState->getSelVectorUnsafe().setToFiltered();
-            }
+                predicate->select(tableScanState->outState->getSelVectorUnsafe(),
+                    !tableScanState->outState->isFlat());
         } else {
             hasAtLeastOneSelectedValue = tableScanState->outState->getSelVector().getSelSize() > 0;
         }

@@ -11,6 +11,7 @@
 #include "graph.h"
 #include "graph_entry.h"
 #include "main/client_context.h"
+#include "processor/operator/filtering_operator.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 
@@ -37,7 +38,7 @@ public:
 
     void startScan(common::RelDataDirection direction);
 
-    class InnerIterator {
+    class InnerIterator : public processor::SelVectorOverWriter {
     public:
         InnerIterator(const main::ClientContext* context, storage::RelTable* relTable,
             std::unique_ptr<storage::RelTableScanState> tableScanState);

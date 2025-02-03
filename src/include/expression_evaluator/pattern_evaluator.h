@@ -16,7 +16,7 @@ public:
 
     void evaluate() override;
 
-    bool select(common::SelectionVector&) override { KU_UNREACHABLE; }
+    bool selectInternal(common::SelectionVector&) override { KU_UNREACHABLE; }
 
     std::unique_ptr<ExpressionEvaluator> clone() override {
         return std::make_unique<PatternExpressionEvaluator>(expression, cloneVector(children));
