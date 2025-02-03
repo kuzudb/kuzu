@@ -242,7 +242,7 @@ Value Util::TransformNapiValue(Napi::Value napiValue) {
         }
         auto dataType = LogicalType::LIST(children[0]->getDataType().copy());
         return Value(std::move(dataType), std::move(children));
-    }    
+    }
     if (napiValue.IsBoolean()) {
         return Value(napiValue.ToBoolean().Value());
     }
@@ -279,7 +279,7 @@ Value Util::TransformNapiValue(Napi::Value napiValue) {
         auto dateVal = Timestamp::getDate(timestamp);
         return Value(dateVal);
     }
-    if(napiValue.IsObject()){
+    if (napiValue.IsObject()) {
         auto napiObject = napiValue.As<Napi::Object>();
         std::vector<std::unique_ptr<Value>> children;
         auto struct_fields = std::vector<StructField>{};
