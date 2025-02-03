@@ -85,9 +85,8 @@ binder::BoundCreateTableInfo RelGroupCatalogEntry::getBoundCreateTableInfo(
         std::move(extraInfo), isInternal);
 }
 
-static std::string getFromToStr(table_id_t tableID, const ClientContext* context) {
-    auto catalog = context->getCatalog();
-    auto transaction = context->getTransaction();
+static std::string getFromToStr(table_id_t tableID, Catalog* catalog,
+    const transaction::Transaction* transaction) {
     auto& entry =
         catalog->getTableCatalogEntry(transaction, tableID)->constCast<RelTableCatalogEntry>();
     auto srcTableName =
@@ -97,22 +96,19 @@ static std::string getFromToStr(table_id_t tableID, const ClientContext* context
     return stringFormat("FROM {} TO {}", srcTableName, dstTableName);
 }
 
-std::string RelGroupCatalogEntry::toCypher(ClientContext* clientContext) const {
+std::string RelGroupCatalogEntry::toCypher(ClientContext* context) const {
+    auto catalog = context->getCatalog();
+    auto transaction = context->getTransaction();
     std::stringstream ss;
-    ss << stringFormat("CREATE REL TABLE {} ( ", getName());
+    ss << stringFormat("CREATE REL TABLE {} (", getName());
     KU_ASSERT(!relTableIDs.empty());
-    ss << getFromToStr(relTableIDs[0], clientContext);
+    ss << getFromToStr(relTableIDs[0], catalog, transaction);
     for (auto i = 1u; i < relTableIDs.size(); ++i) {
-        ss << stringFormat(", {}", getFromToStr(relTableIDs[i], clientContext));
+        ss << stringFormat(", {}", getFromToStr(relTableIDs[i], catalog, transaction));
     }
-    auto childRelEntry = clientContext->getCatalog()->getTableCatalogEntry(
-        clientContext->getTransaction(), relTableIDs[0]);
-    if (childRelEntry->getNumProperties() > 1) { // skip internal id property.
-        auto propertyStr = stringFormat(", {}", childRelEntry->propertiesToCypher());
-        propertyStr.resize(propertyStr.size() - 1);
-        ss << propertyStr;
-    }
-    ss << ");";
+    auto childEntry =
+        catalog->getTableCatalogEntry(transaction, relTableIDs[0])->ptrCast<RelTableCatalogEntry>();
+    ss << ", " << childEntry->propertiesToCypher() << childEntry->getMultiplicityStr() << ");";
     return ss.str();
 }
 
