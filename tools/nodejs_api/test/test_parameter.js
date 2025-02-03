@@ -290,3 +290,109 @@ describe("UUID", function () {
     assert.equal(result[0]["UUID"], "123e4567-e89b-12d3-a456-426614174000");
   });
 });
+
+describe("NULL", function () {
+  it("should transform null as NULL parameter", async function () {
+    const preparedStatement = await conn.prepare(
+      "RETURN $1"
+    );
+    const queryResult = await conn.execute(preparedStatement, {
+      1: null,
+    });
+    const result = await queryResult.getAll();
+    assert.equal(result[0]["$1"], null);
+  });
+
+  it("should transform undefined as NULL parameter", async function () {
+    const preparedStatement = await conn.prepare(
+      "RETURN $1"
+    );
+    const queryResult = await conn.execute(preparedStatement, {
+      1: undefined,
+    });
+    const result = await queryResult.getAll();
+    assert.equal(result[0]["$1"], null);
+  });
+});
+
+
+describe("LIST", function () {
+  it("should transform list as LIST parameter", async function () {
+    const preparedStatement = await conn.prepare(
+      "RETURN $1"
+    );
+    const queryResult = await conn.execute(preparedStatement, {
+      1: ["Alice", "Bob"],
+    });
+    const result = await queryResult.getAll();
+    assert.deepEqual(result[0]["$1"], ["Alice", "Bob"]);
+  });
+
+  it("should transform nested list as LIST parameter", async function () {
+    const preparedStatement = await conn.prepare(
+      "RETURN $1"
+    );
+    const queryResult = await conn.execute(preparedStatement, {
+      1: [[1, 2], [3, 4], [5, 6]],
+    });
+    const result = await queryResult.getAll();
+    assert.deepEqual(result[0]["$1"], [[1, 2], [3, 4], [5, 6]]);
+  });
+
+  it("should transform empty list as LIST parameter as null", async function () {
+    const preparedStatement = await conn.prepare(
+      "RETURN $1"
+    );
+    const queryResult = await conn.execute(preparedStatement, {
+      1: [],
+    });
+    const result = await queryResult.getAll();
+    assert.deepEqual(result[0]["$1"], null);
+  });
+});
+
+describe("STRUCT", function () {
+  it("should transform struct as STRUCT parameter", async function () {
+    const preparedStatement = await conn.prepare(
+      "RETURN $1"
+    );
+    const queryResult = await conn.execute(preparedStatement, {
+      1: { name: "Alice", age: 30 },
+    });
+    const result = await queryResult.getAll();
+    assert.deepEqual(result[0]["$1"], { name: "Alice", age: 30 });
+  });
+
+  it("should transform nested struct as STRUCT parameter", async function () {
+    const preparedStatement = await conn.prepare(
+      "RETURN $1"
+    );
+    const queryResult = await conn.execute(preparedStatement, {
+      1: { name: "Alice", address: { city: "New York", country: "USA" } },
+    });
+    const result = await queryResult.getAll();
+    assert.deepEqual(result[0]["$1"], { name: "Alice", address: { city: "New York", country: "USA" } });
+  });
+
+  it("should transform empty struct as STRUCT parameter as null", async function () {
+    const preparedStatement = await conn.prepare(
+      "RETURN $1"
+    );
+    const queryResult = await conn.execute(preparedStatement, {
+      1: {},
+    });
+    const result = await queryResult.getAll();
+    assert.deepEqual(result[0]["$1"], null);
+  });
+
+  it("should transform struct with LIST fields as STRUCT parameter", async function () {
+    const preparedStatement = await conn.prepare(
+      "RETURN $1"
+    );
+    const queryResult = await conn.execute(preparedStatement, {
+      1: { name: "Alice", hobbies: ["Reading", "Swimming"] },
+    });
+    const result = await queryResult.getAll();
+    assert.deepEqual(result[0]["$1"], { name: "Alice", hobbies: ["Reading", "Swimming"] });
+  });
+});

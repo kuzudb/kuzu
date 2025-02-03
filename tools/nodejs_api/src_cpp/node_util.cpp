@@ -227,6 +227,22 @@ Napi::Object Util::ConvertNodeIdToNapiObject(const nodeID_t& nodeId, Napi::Env e
 }
 
 Value Util::TransformNapiValue(Napi::Value napiValue) {
+    if (napiValue.IsNull() || napiValue.IsUndefined()) {
+        return Value::createNullValue();
+    }
+    if (napiValue.IsArray()) {
+        auto napiArray = napiValue.As<Napi::Array>();
+        auto size = napiArray.Length();
+        if (size == 0) {
+            return Value::createNullValue();
+        }
+        std::vector<std::unique_ptr<Value>> children;
+        for (size_t i = 0; i < size; ++i) {
+            children.push_back(std::make_unique<Value>(TransformNapiValue(napiArray.Get(i))));
+        }
+        auto dataType = LogicalType::LIST(children[0]->getDataType().copy());
+        return Value(std::move(dataType), std::move(children));
+    }
     if (napiValue.IsBoolean()) {
         return Value(napiValue.ToBoolean().Value());
     }
@@ -262,6 +278,23 @@ Value Util::TransformNapiValue(Napi::Value napiValue) {
         timestamp_t timestamp = Timestamp::fromEpochMilliSeconds(napiDate.ValueOf());
         auto dateVal = Timestamp::getDate(timestamp);
         return Value(dateVal);
+    }
+    if (napiValue.IsObject()) {
+        auto napiObject = napiValue.As<Napi::Object>();
+        std::vector<std::unique_ptr<Value>> children;
+        auto struct_fields = std::vector<StructField>{};
+        auto childrenNames = napiObject.GetPropertyNames();
+        if (childrenNames.Length() == 0) {
+            return Value::createNullValue();
+        }
+        for (size_t i = 0; i < childrenNames.Length(); i++) {
+            auto key = childrenNames.Get(i).ToString().Utf8Value();
+            auto val = TransformNapiValue(napiObject.Get(key));
+            struct_fields.emplace_back(key, val.getDataType().copy());
+            children.push_back(std::make_unique<Value>(val));
+        }
+        auto dataType = LogicalType::STRUCT(std::move(struct_fields));
+        return Value(std::move(dataType), std::move(children));
     }
     return Value::createNullValue();
 }
