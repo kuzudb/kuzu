@@ -89,7 +89,7 @@ static void appendNewChunkedGroup(transaction::Transaction* transaction,
     relTable.pushInsertInfo(transaction, direction, nodeGroup, chunkedGroup.getNumRows(), source);
     if (isNewNodeGroup) {
         auto flushedChunkedGroup =
-            chunkedGroup.flushAsNewChunkedNodeGroup(transaction, *relTable.getDataFH());
+            chunkedGroup.flushAsNewChunkedNodeGroup(transaction, *relTable.getDataFH(), direction);
         nodeGroup.setPersistentChunkedGroup(std::move(flushedChunkedGroup));
     } else {
         nodeGroup.appendChunkedCSRGroup(transaction, chunkedGroup);

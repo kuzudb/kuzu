@@ -97,8 +97,16 @@ void RelTableData::initPropertyColumns(const TableCatalogEntry* tableEntry) {
         shadowFile, enableCompression);
     columns[NBR_ID_COLUMN_ID] = std::move(nbrIDColumn);
     for (auto i = 0u; i < tableEntry->getNumProperties(); i++) {
+        // Hard-coded skip
         auto& property = tableEntry->getProperty(i);
         const auto columnID = tableEntry->getColumnID(property.getName());
+
+
+        if (direction == RelDataDirection::BWD && columnID == 2) {
+            continue;
+        }
+
+
         const auto colName = StorageUtils::getColumnName(property.getName(),
             StorageUtils::ColumnType::DEFAULT, RelDirectionUtils::relDirectionToString(direction));
         columns[columnID] = ColumnFactory::createColumn(colName, property.getType().copy(), dataFH,

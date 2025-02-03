@@ -550,7 +550,12 @@ void RelTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
             columnIDs.push_back(tableEntry->getColumnID(property.getName()));
         }
         for (auto& directedRelData : directedRelData) {
-            directedRelData->checkpoint(columnIDs);
+            if (directedRelData->getDirection() == RelDataDirection::BWD) {
+                std::vector<unsigned int> BWDColumnIDs = {0, 1};
+                directedRelData->checkpoint(BWDColumnIDs);
+            } else {
+                directedRelData->checkpoint(columnIDs);
+            }
         }
         tableEntry->vacuumColumnIDs(1);
         hasChanges = false;

@@ -132,6 +132,9 @@ private:
         std::vector<common::LogicalType> types;
         types.reserve(columns.size());
         for (const auto& column : columns) {
+            if (!column) {
+                continue;
+            } 
             types.push_back(column->getDataType().copy());
         }
         return types;

@@ -10,6 +10,7 @@
 #include "storage/store/column.h"
 #include "storage/store/column_chunk.h"
 #include "storage/store/node_table.h"
+#include "storage/store/rel_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -200,6 +201,11 @@ static ZoneMapCheckResult getZoneMapResult(const Transaction* transaction,
     if (!scanState.columnPredicateSets.empty()) {
         for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
             const auto columnID = scanState.columnIDs[i];
+            // hard coded skip column for testing
+            const auto& relScanState = static_cast<const RelTableScanState&>(scanState);
+            if (columnID == 2 && relScanState.direction == RelDataDirection::BWD) {
+                continue;
+            }
             if (columnID == INVALID_COLUMN_ID || columnID == ROW_IDX_COLUMN_ID) {
                 continue;
             }
@@ -235,6 +241,11 @@ void ChunkedNodeGroup::scan(const Transaction* transaction, const TableScanState
     if (anchorSelVector.getSelSize() > 0) {
         for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
             const auto columnID = scanState.columnIDs[i];
+            // hard coded skip column 2
+            const auto& relScanState = static_cast<const RelTableScanState&>(scanState);
+            if (columnID == 2 && relScanState.direction == RelDataDirection::BWD) {
+                continue;
+            }
             if (columnID == INVALID_COLUMN_ID) {
                 scanState.outputVectors[i]->setAllNull();
                 continue;

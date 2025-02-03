@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "storage/store/chunked_node_group.h"
+#include "common/enums/rel_direction.h"
 
 namespace kuzu {
 namespace storage {
@@ -123,6 +124,9 @@ public:
 
     std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
         transaction::Transaction* transaction, FileHandle& dataFH) const override;
+
+    std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
+        transaction::Transaction* transaction, FileHandle& dataFH, common::RelDataDirection direction) const;
 
     void flush(FileHandle& dataFH) override;
 

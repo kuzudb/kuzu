@@ -91,6 +91,11 @@ void CSRNodeGroup::initScanForCommittedPersistent(const Transaction* transaction
     csrHeader.length->initializeScanState(lengthState, relScanState.csrLengthColumn);
     // Initialize the scan states of a new node group for data columns.
     for (auto i = 0u; i < relScanState.columnIDs.size(); i++) {
+        // hard code skip
+        if (relScanState.columnIDs[i] == 2 && relScanState.direction == RelDataDirection::BWD) {
+            continue;
+        }
+
         if (relScanState.columnIDs[i] == INVALID_COLUMN_ID ||
             relScanState.columnIDs[i] == ROW_IDX_COLUMN_ID) {
             continue;
@@ -187,30 +192,26 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedPersistent(const Transaction* tra
         tableState.direction == RelDataDirection::BWD && 
         tableState.forwardTableData != nullptr) {
         
-        // relID is at columnID 2 in the output vectors 
         auto& relIDVector = *tableState.outputVectors[2];
         const auto numRels = tableState.outState->getSelVector().getSelSize();
 
-        // For each relID, look up properties from forward node groups
+        // for each relID, look up properties from forward node groups
+        // hard code column for now just for testing purpsoes
         for (auto i = 0u; i < numRels; i++) {
             const auto pos = tableState.outState->getSelVector()[i];
             const auto relID = relIDVector.getValue<nodeID_t>(pos);
             const auto relOffset = relID.offset;
 
-            // Get forward node group that contains this relationship
-            auto nodeGroupIdnodeGroupIdxx = StorageUtils::getNodeGroupIdx(relOffset);
+            // auto nodeGroupIdnodeGroupIdxx = StorageUtils::getNodeGroupIdx(relOffset);
             auto offsetInGroup = relOffset % StorageConstants::NODE_GROUP_SIZE;
             
             auto* forwardNG = tableState.forwardTableData->getNodeGroup(nodeGroupIdx);
             if (!forwardNG) continue;
 
-            // Look up property values from forward node group
             auto& forwardCSRGroup = forwardNG->cast<CSRNodeGroup>();
+            const auto& chunk = forwardCSRGroup.persistentChunkGroup->getColumnChunk(2);
             
-            // copy properties to position 2 (where the property vector is)
-            const auto& chunk = forwardCSRGroup.persistentChunkGroup->getColumnChunk(2); // Property is at columnID 1
-            
-            // Initialize chunk state for the lookup
+            // initialize chunk state for the lookup
             ChunkState chunkState;
             chunk.initializeScanState(chunkState, tableState.columns[1]);
             
