@@ -47,8 +47,10 @@ For the Node.js variant, the worker script can be resolved automatically and you
 
 ## API documentation
 The API documentation can be found here:
-Synchronous version: [API documentation](https://kuzudb.com/api-docs/wasm/sync/)
-Asynchronous version: [API documentation](https://kuzudb.com/api-docs/wasm/async/)
+
+**Synchronous** version: [API documentation](https://kuzudb.com/api-docs/wasm/sync/)
+
+**Asynchronous** version: [API documentation](https://kuzudb.com/api-docs/wasm/async/)
 
 ## Local development
 
