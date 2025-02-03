@@ -118,17 +118,19 @@ std::unique_ptr<TableCatalogEntry> RelTableCatalogEntry::copy() const {
     return other;
 }
 
+std::string RelTableCatalogEntry::getMultiplicityStr() const {
+    return RelMultiplicityUtils::toString(srcMultiplicity) + "_" + RelMultiplicityUtils::toString(dstMultiplicity);
+}
+
 std::string RelTableCatalogEntry::toCypher(main::ClientContext* clientContext) const {
     std::stringstream ss;
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();
     auto srcTableName = catalog->getTableCatalogEntry(transaction, srcTableID)->getName();
     auto dstTableName = catalog->getTableCatalogEntry(transaction, dstTableID)->getName();
-    auto srcMultiStr = srcMultiplicity == RelMultiplicity::MANY ? "MANY" : "ONE";
-    auto dstMultiStr = dstMultiplicity == RelMultiplicity::MANY ? "MANY" : "ONE";
     std::string tableInfo =
         stringFormat("CREATE REL TABLE {} (FROM {} TO {}, ", getName(), srcTableName, dstTableName);
-    ss << tableInfo << propertyCollection.toCypher() << srcMultiStr << "_" << dstMultiStr << ");";
+    ss << tableInfo << propertiesToCypher() << getMultiplicityStr() << ");";
     return ss.str();
 }
 

@@ -93,6 +93,7 @@ std::string PropertyDefinitionCollection::toCypher() const {
     std::stringstream ss;
     for (auto& [_, def] : definitions) {
         auto& dataType = def.getType();
+        // Avoid exporting internal ID
         if (dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID) {
             continue;
         }

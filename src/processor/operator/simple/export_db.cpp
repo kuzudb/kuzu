@@ -55,20 +55,26 @@ static void writeStringStreamToFile(ClientContext* context, const std::string& s
 }
 
 static void writeCopyStatement(stringstream& ss, const TableCatalogEntry* entry,
-    const FileScanInfo* boundFileInfo) {
-    auto fileTypeStr = boundFileInfo->fileTypeInfo.fileTypeStr;
-    StringUtils::toLower(fileTypeStr);
-    const auto csvConfig = CSVReaderConfig::construct(boundFileInfo->options);
-    const auto tableName = entry->getName();
+    const FileScanInfo* info) {
+    const auto csvConfig = CSVReaderConfig::construct(info->options);
+    auto fileName = entry->getName() + "." + StringUtils::getLower(info->fileTypeInfo.fileTypeStr);
     std::string columns;
     const auto numProperties = entry->getNumProperties();
     for (auto i = 0u; i < numProperties; i++) {
         auto& prop = entry->getProperty(i);
+        if (prop.getType() == LogicalType::INTERNAL_ID()) {
+            continue;
+        }
         columns += prop.getName();
         columns += i == numProperties - 1 ? "" : ",";
     }
-    ss << stringFormat("COPY {} ( {} ) FROM \"{}.{}\" {};\n", tableName, columns, tableName,
-        fileTypeStr, csvConfig.option.toCypher());
+    if (columns.empty()) {
+        ss << stringFormat("COPY {} FROM \"{}\" {};\n", entry->getName(), fileName,
+            csvConfig.option.toCypher());
+    } else {
+        ss << stringFormat("COPY {} ({}) FROM \"{}\" {};\n", entry->getName(), columns, fileName,
+            csvConfig.option.toCypher());
+    }
 }
 
 std::string getSchemaCypher(ClientContext* clientContext, Transaction* transaction) {
