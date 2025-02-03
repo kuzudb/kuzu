@@ -12,35 +12,35 @@
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
 ---- ok
 -LOG SingleKeyWordUpperCase
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN node.ID, score
 ---- 2
 0|0.271133
 3|0.209476
 -LOG SingleKeyWordLowerCase
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice') RETURN node.ID, score
 ---- 2
 0|0.271133
 3|0.209476
 -LOG QueryEmptyString
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', '') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', '') RETURN node.ID, score
 ---- 0
 -LOG QueryStopWord
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'at') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'at') RETURN node.ID, score
 ---- 0
 -LOG QuerySingular
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'studys') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'studys') RETURN node.ID, score
 ---- 3
 0|0.055171
 20|0.059514
 3|0.059514
 -LOG QueryPresentTense
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'studying') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'studying') RETURN node.ID, score
 ---- 3
 0|0.055171
 20|0.059514
 3|0.059514
 -LOG QueryWithSpecialChar
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'study ->') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'study ->') RETURN node.ID, score
 ---- 3
 0|0.055171
 20|0.059514
@@ -50,23 +50,23 @@
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx2', ['content'])
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'toronto') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'toronto') RETURN node.ID, score
 ---- 1
 0|0.565815
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'toronto') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'toronto') RETURN node.ID, score
 ---- 1
 0|0.400747
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx2', 'toronto') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx2', 'toronto') RETURN node.ID, score
 ---- 1
 0|0.393753
 -LOG DropAndRecreate
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx4', ['content', 'name'])
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx4', 'waterloo') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx4', 'waterloo') RETURN node.ID, score
 ---- 2
 0|0.192034
 20|0.210752
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'studying') yield _node as studyNode, score as studyScore CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice') yield _node as aliceNode, score as aliceScore RETURN studyNode.ID, aliceNode.ID,aliceScore
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'studying') yield node as studyNode, score as studyScore CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice') yield node as aliceNode, score as aliceScore RETURN studyNode.ID, aliceNode.ID,aliceScore
 ---- 6
 0|0|0.271133
 0|3|0.209476
@@ -86,19 +86,19 @@ Binder exception: Unrecognized stemmer 'german1'. Supported stemmers are: ['arab
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'], stemmer := 'araBic')
 ---- ok
 #Note: arabic stemmer doesn't reduce studys/studying->study
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'study') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'study') RETURN node.ID, score
 ---- 1
 20|0.437146
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx1', ['content', 'author', 'name'], stemmer := 'frEnch')
 ---- ok
 #Note: french stemmer doesn't reduce studying->study
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'study') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'study') RETURN node.ID, score
 ---- 2
 0|0.194190
 20|0.209476
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx2', ['content', 'author', 'name'], stemmer := 'nOne')
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx2', 'studying') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx2', 'studying') RETURN node.ID, score
 ---- 1
 3|0.437146
 -LOG CreateFTSIncorrectParam
@@ -113,20 +113,20 @@ Binder exception: Unrecognized optional parameter: test
 ---- error
 Binder exception: 25 has data type INT64 but STRING was expected.
 -LOG QueryFTSOptionalParam
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'study', k := 0.3, B:= 0.5) RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'study', k := 0.3, B:= 0.5) RETURN node.ID, score
 ---- 2
 0|0.201218
 20|0.205603
 -LOG QueryFTSOptionalParamError
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'study', k := 0.3, c:= 0.5) RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'study', k := 0.3, c:= 0.5) RETURN node.ID, score
 ---- error
 Binder exception: Unrecognized optional parameter: c
 -LOG QueryFTSBOutOfRange
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'study', k := 0.3, B:= 3.88) RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'study', k := 0.3, B:= 3.88) RETURN node.ID, score
 ---- error
 Binder exception: BM25 model requires the Document Length Normalization(b) value to be in the range [0,1].
 -LOG QueryFTSKOutOfRange
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'study', k := -5.3, B:= 0.7) RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'study', k := -5.3, B:= 0.7) RETURN node.ID, score
 ---- error
 Binder exception: BM25 model requires the Term Frequency Saturation(k) value to be a positive number.
 
@@ -136,47 +136,47 @@ Binder exception: BM25 model requires the Term Frequency Saturation(k) value to 
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
 ---- 0
 -LOG QueryFTSConjunctiveSingleKeyword
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice', conjunctive := true) RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice', conjunctive := true) RETURN node.ID, score
 ---- 2
 0|0.271133
 3|0.209476
 -LOG QueryFTSConjunctiveMultiKeywords
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice studying', conjunctive := true) RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice studying', conjunctive := true) RETURN node.ID, score
 ---- 2
 0|0.326304
 3|0.268990
 -LOG QueryFTSConjunctiveMultiKeywordsAndStopWords
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice and studying', conjunctive := true) RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice and studying', conjunctive := true) RETURN node.ID, score
 ---- 2
 0|0.326304
 3|0.268990
 -LOG QueryFTSConjunctiveMultiKeywordsAndStopWords1
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'study in', conjunctive := true) RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'study in', conjunctive := true) RETURN node.ID, score
 ---- 3
 0|0.055171
 20|0.059514
 3|0.059514
 -LOG QueryFTSConjunctiveDuplicateKeywords
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice studying alice', conjunctive := true) RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice studying alice', conjunctive := true) RETURN node.ID, score
 ---- 2
 0|0.326304
 3|0.268990
 -LOG QueryFTSConjunctiveDuplicateSingleKeyword
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice alice', conjunctive := true) RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice alice', conjunctive := true) RETURN node.ID, score
 ---- 2
 0|0.271133
 3|0.209476
 -LOG QueryFTSConjunctiveNotExistSingleKeyword
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'carol', conjunctive := true) RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'carol', conjunctive := true) RETURN node.ID, score
 ---- 0
 -LOG QueryFTSConjunctiveNotExistMultiKeywords
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'carol dog', conjunctive := true) RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'carol dog', conjunctive := true) RETURN node.ID, score
 ---- 0
 -LOG QueryFTSConjunctivePartialExistKeyword
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice carol', conjunctive := true) RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice carol', conjunctive := true) RETURN node.ID, score
 ---- 0
 -LOG QueryFTSConjunctivePartialExistKeyword
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice waterloo', conjunctive := true) RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice waterloo', conjunctive := true) RETURN node.ID, score
 ---- 1
 0|0.465323
 
@@ -186,17 +186,17 @@ Binder exception: BM25 model requires the Term Frequency Saturation(k) value to 
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN node.ID, score
 ---- 2
 0|0.271133
 3|0.209476
 -RELOADDB
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN node.ID, score
 ---- error
 Catalog exception: function QUERY_FTS_INDEX is not defined. This function exists in the FTS extension. You can install and load the extension by running 'INSTALL FTS; LOAD EXTENSION FTS;'.
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN node.ID, score
 ---- 2
 0|0.271133
 3|0.209476
@@ -207,7 +207,7 @@ Catalog exception: function QUERY_FTS_INDEX is not defined. This function exists
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN node.ID, score
 ---- 2
 0|0.271133
 3|0.209476
@@ -216,7 +216,7 @@ Catalog exception: function QUERY_FTS_INDEX is not defined. This function exists
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_fts/small"
 -STATEMENT IMPORT DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_fts/small';
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN node.ID, score
 ---- 2
 0|0.271133
 3|0.209476
@@ -324,7 +324,7 @@ embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_HNSW_INDEX('e_hnsw_index', '
 doc|docIdx1|FTS|[detail]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx1', ['detail'], stemmer := 'english');
 doc|docIdx|FTS|[detail,author,name]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx', ['detail', 'author', 'name'], stemmer := 'english');
 embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', mu := 30, ml := 60, pu := 0.050000, distFunc := 'l2', alpha := 1.100000, efc := 200);
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN node.ID, score
 ---- 2
 0|0.271133
 3|0.209476
@@ -352,7 +352,7 @@ student|studentIdx|FTS|[firstName]|True|CALL CREATE_FTS_INDEX('student', 'studen
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN node.ID, score
 ---- 2
 0|0.271133
 3|0.209476
@@ -362,12 +362,12 @@ student|studentIdx|FTS|[firstName]|True|CALL CREATE_FTS_INDEX('student', 'studen
 -RELOADDB
 -STATEMENT IMPORT DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_fts/fts_small_export_test'
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN node.ID, score
 ---- error
 Catalog exception: function QUERY_FTS_INDEX is not defined. This function exists in the FTS extension. You can install and load the extension by running 'INSTALL FTS; LOAD EXTENSION FTS;'.
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN _node.ID, score
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN node.ID, score
 ---- 2
 0|0.271133
 3|0.209476
@@ -385,11 +385,11 @@ Catalog exception: function QUERY_FTS_INDEX is not defined. This function exists
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('Documents', 'documents_index', ['text'], stemmer := 'russian');
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'Какие') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'Какие') RETURN node.title;
 ---- 2
 one
 two
--STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'какие') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'какие') RETURN node.title;
 ---- 2
 one
 two
