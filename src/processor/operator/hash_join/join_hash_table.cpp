@@ -107,11 +107,11 @@ uint64_t JoinHashTable::appendVectorWithSorting(ValueVector* keyVector,
 
 void JoinHashTable::allocateHashSlots(uint64_t numTuples) {
     setMaxNumHashSlots(nextPowerOfTwo(numTuples * 2));
-    auto numSlotsPerBlock = static_cast<uint64_t>(1) << numSlotsPerBlockLog2;
-    auto numBlocksNeeded = (maxNumHashSlots + numSlotsPerBlock - 1) / numSlotsPerBlock;
-    while (hashSlotsBlocks.size() < numBlocksNeeded) {
-        hashSlotsBlocks.emplace_back(std::make_unique<DataBlock>(memoryManager, HASH_BLOCK_SIZE));
-    }
+    hashSlotsBlocks.emplace_back(
+        std::make_unique<DataBlock>(memoryManager, maxNumHashSlots * sizeof(uint8_t*)));
+    // auto numSlotsPerBlock = (uint64_t)1 << numSlotsPerBlockLog2;
+    // auto numBlocksNeeded = (maxNumHashSlots + numSlotsPerBlock - 1) / numSlotsPerBlock;
+    // while (hashSlotsBlocks.size() < numBlocksNeeded) {}
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
@@ -200,8 +200,7 @@ uint8_t* JoinHashTable::insertEntry(const uint8_t* tuple) const {
     const auto hash = *reinterpret_cast<const hash_t*>(tuple + getHashValueColOffset());
     const auto slotIdx = getSlotIdxForHash(hash);
     const auto slot =
-        reinterpret_cast<uint8_t**>(hashSlotsBlocks[slotIdx >> numSlotsPerBlockLog2]->getData() +
-                                    (slotIdx & slotIdxInBlockMask) * sizeof(uint8_t*));
+        reinterpret_cast<uint8_t**>(hashSlotsBlocks[0]->getData() + slotIdx * sizeof(uint8_t*));
     const auto old = reinterpret_cast<uint64_t>(*slot);
     // Remove tag from the previous tuple pointer.
     const auto prevPtr = reinterpret_cast<uint8_t*>(removeTag(old));

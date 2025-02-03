@@ -62,8 +62,7 @@ private:
     static uint64_t removeTag(uint64_t tuple) { return tuple & ~TAG_MASK; }
 
     uint8_t* getTupleForSlot(uint64_t slotIdx) const {
-        return reinterpret_cast<uint8_t**>(hashSlotsBlocks[slotIdx >> numSlotsPerBlockLog2]
-                ->getData())[slotIdx & slotIdxInBlockMask];
+        return reinterpret_cast<uint8_t**>(hashSlotsBlocks[0]->getData())[slotIdx];
     }
 
 private:

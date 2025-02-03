@@ -190,6 +190,7 @@ bool LogicalHashJoin::requireFlatProbeKeys() const {
     if (joinType == JoinType::LEFT || joinType == JoinType::COUNT) {
         return true; // TODO(Guodong): fix this. We shouldn't require flatten.
     }
+    return false;
     auto& [probeKey, buildKey] = joinConditions[0];
     // Flatten for non-ID-based join.
     if (probeKey->dataType.getLogicalTypeID() != LogicalTypeID::INTERNAL_ID) {
