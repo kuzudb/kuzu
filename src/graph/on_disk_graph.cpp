@@ -245,18 +245,23 @@ std::unique_ptr<VertexScanState> OnDiskGraph::prepareVertexScan(
 }
 
 bool OnDiskGraphNbrScanState::InnerIterator::next(evaluator::ExpressionEvaluator* predicate) {
-    while (true) {
+    bool hasAtLeastOneSelectedValue = false;
+    do {
         if (!relTable->scan(context->getTransaction(), *tableScanState)) {
             return false;
         }
         if (predicate != nullptr) {
-            predicate->select(tableScanState->outState->getSelVectorUnsafe());
-            tableScanState->outState->getSelVectorUnsafe().setToFiltered();
+            hasAtLeastOneSelectedValue =
+                predicate->select(tableScanState->outState->getSelVectorUnsafe());
+            if (!tableScanState->outState->isFlat() &&
+                tableScanState->outState->getSelVector().isUnfiltered()) {
+                tableScanState->outState->getSelVectorUnsafe().setToFiltered();
+            }
+        } else {
+            hasAtLeastOneSelectedValue = tableScanState->outState->getSelVector().getSelSize() > 0;
         }
-        if (getSelVector().getSelSize() > 0) {
-            return true;
-        }
-    }
+    } while (!hasAtLeastOneSelectedValue);
+    return true;
 }
 
 OnDiskGraphNbrScanState::InnerIterator::InnerIterator(const main::ClientContext* context,

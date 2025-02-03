@@ -100,17 +100,22 @@ struct SkipRowDriver {
     uint64_t skipNum;
 };
 
-uint64_t BaseCSVReader::handleFirstBlock() {
+BaseCSVReader::parse_result_t BaseCSVReader::handleFirstBlock() {
     uint64_t numRowsRead = 0;
+    uint64_t numErrors = 0;
     readBOM();
     if (option.skipNum > 0) {
         SkipRowDriver driver{option.skipNum};
-        numRowsRead += parseCSV(driver);
+        const auto parseResult = parseCSV(driver);
+        numRowsRead += parseResult.first;
+        numErrors += parseResult.second;
     }
     if (option.hasHeader) {
-        numRowsRead += readHeader();
+        const auto parseResult = readHeader();
+        numRowsRead += parseResult.first;
+        numErrors += parseResult.second;
     }
-    return numRowsRead;
+    return {numRowsRead, numErrors};
 }
 
 void BaseCSVReader::readBOM() {
@@ -134,8 +139,8 @@ void BaseCSVReader::resetNumRowsInCurrentBlock() {
     numRowsInCurrentBlock = 0;
 }
 
-void BaseCSVReader::increaseNumRowsInCurrentBlock(uint64_t numRows) {
-    numRowsInCurrentBlock += numRows;
+void BaseCSVReader::increaseNumRowsInCurrentBlock(uint64_t numRows, uint64_t numErrors) {
+    numRowsInCurrentBlock += numRows + numErrors;
 }
 
 uint64_t BaseCSVReader::getNumRowsInCurrentBlock() const {
@@ -146,7 +151,7 @@ uint32_t BaseCSVReader::getRowOffsetInCurrentBlock() const {
     return safeIntegerConversion<uint32_t>(numRowsInCurrentBlock + curRowIdx + numErrors);
 }
 
-uint64_t BaseCSVReader::readHeader() {
+BaseCSVReader::parse_result_t BaseCSVReader::readHeader() {
     HeaderDriver driver;
     return parseCSV(driver);
 }
@@ -261,7 +266,7 @@ WarningSourceData BaseCSVReader::getWarningSourceData() const {
 }
 
 template<typename Driver>
-uint64_t BaseCSVReader::parseCSV(Driver& driver) {
+BaseCSVReader::parse_result_t BaseCSVReader::parseCSV(Driver& driver) {
     KU_ASSERT(nullptr != errorHandler);
 
     // used for parsing algorithm
@@ -277,7 +282,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
 
         // read values into the buffer (if any)
         if (!maybeReadBuffer(&start)) {
-            return curRowIdx;
+            return {curRowIdx, numErrors};
         }
 
         // start parsing the first value
@@ -368,7 +373,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
             goto carriage_return;
         } else {
             if (driver.done(curRowIdx)) {
-                return curRowIdx;
+                return {curRowIdx, numErrors};
             }
             goto value_start;
         }
@@ -490,7 +495,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
             }
         }
         if (driver.done(curRowIdx)) {
-            return curRowIdx;
+            return {curRowIdx, numErrors};
         }
 
         goto value_start;
@@ -503,7 +508,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
             if (!addValue(driver, curRowIdx, column,
                     std::string_view(buffer.get() + start, position - start - hasQuotes),
                     escapePositions)) {
-                return curRowIdx;
+                return {curRowIdx, numErrors};
             }
             column++;
         }
@@ -511,12 +516,12 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
             curRowIdx += driver.addRow(curRowIdx, column,
                 getOptionalWarningData<Driver>(columnInfo, option, getWarningSourceData()));
         }
-        return curRowIdx;
+        return {curRowIdx, numErrors};
     ignore_error:
         // we skip the current row then restart the state machine to continue parsing
         skipCurrentLine();
         if (driver.done(curRowIdx)) {
-            return curRowIdx;
+            return {curRowIdx, numErrors};
         }
         continue;
     }
@@ -558,11 +563,16 @@ common::idx_t BaseCSVReader::getFileIdxFunc(const CopyFromFileError& error) {
     return CSVWarningSourceData::constructFrom(error.warningData).fileIdx;
 }
 
-template uint64_t BaseCSVReader::parseCSV<ParallelParsingDriver>(ParallelParsingDriver&);
-template uint64_t BaseCSVReader::parseCSV<SerialParsingDriver>(SerialParsingDriver&);
-template uint64_t BaseCSVReader::parseCSV<SniffCSVNameAndTypeDriver>(SniffCSVNameAndTypeDriver&);
-template uint64_t BaseCSVReader::parseCSV<SniffCSVDialectDriver>(SniffCSVDialectDriver&);
-template uint64_t BaseCSVReader::parseCSV<SniffCSVHeaderDriver>(SniffCSVHeaderDriver&);
+template BaseCSVReader::parse_result_t BaseCSVReader::parseCSV<ParallelParsingDriver>(
+    ParallelParsingDriver&);
+template BaseCSVReader::parse_result_t BaseCSVReader::parseCSV<SerialParsingDriver>(
+    SerialParsingDriver&);
+template BaseCSVReader::parse_result_t BaseCSVReader::parseCSV<SniffCSVNameAndTypeDriver>(
+    SniffCSVNameAndTypeDriver&);
+template BaseCSVReader::parse_result_t BaseCSVReader::parseCSV<SniffCSVDialectDriver>(
+    SniffCSVDialectDriver&);
+template BaseCSVReader::parse_result_t BaseCSVReader::parseCSV<SniffCSVHeaderDriver>(
+    SniffCSVHeaderDriver&);
 
 uint64_t BaseCSVReader::getFileOffset() const {
     KU_ASSERT(osFileOffset >= bufferSize);

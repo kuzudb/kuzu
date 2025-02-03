@@ -12,6 +12,27 @@
 
 --
 
+-CASE OrderByWithLimitFlatKeys
+-STATEMENT CREATE REL TABLE knows(FROM person TO person)
+---- ok
+-STATEMENT UNWIND RANGE(1, 1000) AS i MATCH (p:person) WHERE p.id = i CREATE (p)-[:knows]->(p)
+---- ok
+-STATEMENT MATCH (p:person)-[:knows]->(p) RETURN COUNT(*)
+---- 1
+1000
+-STATEMENT MATCH (p:person)-[:knows]->(p) RETURN p.id ORDER BY p.id DESC, p.balance ASC LIMIT 10
+---- 10
+1000
+999
+998
+997
+996
+995
+994
+993
+992
+991
+
 -CASE OrderByLargeDatasetTest
 
 -LOG OrderByWithLimitTest
