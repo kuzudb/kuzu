@@ -57,10 +57,12 @@ bool HashJoinProbe::getMatchedTuplesForFlatKey(ExecutionContext* context) {
         saveSelVector(*keyVectors[0]->state);
         sharedState->getHashTable()->probe(keyVectors, *hashVector, hashSelVec, *tmpHashVector,
             probeState->probedTuples.get());
+        probeState->numTuplesForCurrentKey = 0;
     }
     auto numMatchedTuples = sharedState->getHashTable()->matchFlatKeys(keyVectors,
         probeState->probedTuples.get(), probeState->matchedTuples.get());
     probeState->matchedSelVector.setSelSize(numMatchedTuples);
+    probeState->numTuplesForCurrentKey += numMatchedTuples;
     probeState->nextMatchedTupleIdx = 0;
     return true;
 }
@@ -124,6 +126,12 @@ static void writeLeftJoinMarkVector(ValueVector* markVector, bool flag) {
 }
 
 uint64_t HashJoinProbe::getLeftJoinResult() {
+    // If the overall probe result for the current key is empty we should emit a null tuple
+    // However if the current batch is empty but the overall probe result isn't we shouldn't emit an
+    // extra null tuple
+    if (probeState->matchedSelVector.getSelSize() == 0 && probeState->numTuplesForCurrentKey > 0) {
+        return 0;
+    }
     if (getInnerJoinResult() == 0) {
         for (auto& vector : vectorsToReadInto) {
             vector->setAsSingleNullEntry();

@@ -11,7 +11,8 @@ namespace processor {
 
 struct ProbeState {
     explicit ProbeState()
-        : matchedSelVector{common::DEFAULT_VECTOR_CAPACITY}, nextMatchedTupleIdx{0} {
+        : matchedSelVector{common::DEFAULT_VECTOR_CAPACITY}, nextMatchedTupleIdx{0},
+          numTuplesForCurrentKey(0) {
         matchedTuples = std::make_unique<uint8_t*[]>(common::DEFAULT_VECTOR_CAPACITY);
         probedTuples = std::make_unique<uint8_t*[]>(common::DEFAULT_VECTOR_CAPACITY);
         matchedSelVector.setToFiltered();
@@ -24,6 +25,7 @@ struct ProbeState {
     // Selective index mapping each probed tuple to its probe side key vector.
     common::SelectionVector matchedSelVector;
     common::sel_t nextMatchedTupleIdx;
+    common::sel_t numTuplesForCurrentKey;
 };
 
 struct ProbeDataInfo {
