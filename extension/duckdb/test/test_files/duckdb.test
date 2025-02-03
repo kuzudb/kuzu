@@ -158,7 +158,7 @@ Used database successfully.
 -STATEMENT LOAD FROM other1.person RETURN count(*);
 ---- 1
 4
--STATEMENT CALL CLEAR_ATTACHED_DB_CACHE() RETURN *;
+-STATEMENT CALL CLEAR_ATTACHED_DB_CACHE();
 ---- ok
 -STATEMENT LOAD FROM other1.person RETURN count(*);
 ---- 1

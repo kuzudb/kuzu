@@ -42,7 +42,8 @@ std::unique_ptr<main::AttachedDatabase> attachPostgres(std::string dbName, std::
 
 PostgresStorageExtension::PostgresStorageExtension(main::Database* database)
     : StorageExtension{attachPostgres} {
-    extension::ExtensionUtils::addTableFunc<duckdb_extension::ClearCacheFunction>(*database);
+    extension::ExtensionUtils::addStandaloneTableFunc<duckdb_extension::ClearCacheFunction>(
+        *database);
 }
 
 bool PostgresStorageExtension::canHandleDB(std::string dbType_) const {

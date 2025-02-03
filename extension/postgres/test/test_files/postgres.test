@@ -55,7 +55,7 @@ Runtime exception: No database named tinysnb1.
 -STATEMENT LOAD FROM pgscan.movies RETURN count(*);
 ---- 1
 3
--STATEMENT CALL CLEAR_ATTACHED_DB_CACHE() RETURN *;
+-STATEMENT CALL CLEAR_ATTACHED_DB_CACHE();
 ---- ok
 -STATEMENT LOAD FROM pgscan.movies where length > 2500 RETURN name;
 ---- 1

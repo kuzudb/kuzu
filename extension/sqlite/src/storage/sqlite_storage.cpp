@@ -36,7 +36,8 @@ std::unique_ptr<main::AttachedDatabase> attachSqlite(std::string dbName, std::st
 
 SqliteStorageExtension::SqliteStorageExtension(main::Database* database)
     : StorageExtension{attachSqlite} {
-    extension::ExtensionUtils::addTableFunc<duckdb_extension::ClearCacheFunction>(*database);
+    extension::ExtensionUtils::addStandaloneTableFunc<duckdb_extension::ClearCacheFunction>(
+        *database);
 }
 
 bool SqliteStorageExtension::canHandleDB(std::string dbType_) const {
