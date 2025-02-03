@@ -198,17 +198,17 @@ bool TopKBuffer::compareBoundaryValue(const std::vector<common::ValueVector*>& k
 }
 
 bool TopKBuffer::compareFlatKeys(idx_t vectorIdxToCompare, std::vector<ValueVector*> keyVectors) {
+    KU_ASSERT(!keyVectors.empty());
     auto selVector = std::make_shared<common::SelectionVector>(common::DEFAULT_VECTOR_CAPACITY);
     selVector->setToFiltered();
-    auto compareResult = compareFuncs[vectorIdxToCompare](*keyVectors[vectorIdxToCompare],
-        *boundaryVecs[vectorIdxToCompare], *selVector);
-    if (vectorIdxToCompare == keyVectors.size() - 1) {
-        return compareResult;
-    } else if (equalsFuncs[vectorIdxToCompare](*keyVectors[vectorIdxToCompare],
-                   *boundaryVecs[vectorIdxToCompare], *selVector)) {
+
+    if (vectorIdxToCompare < keyVectors.size() - 1 &&
+        equalsFuncs[vectorIdxToCompare](*keyVectors[vectorIdxToCompare],
+            *boundaryVecs[vectorIdxToCompare], *selVector)) {
         return compareFlatKeys(vectorIdxToCompare + 1, std::move(keyVectors));
     } else {
-        return false;
+        return compareFuncs[vectorIdxToCompare](*keyVectors[vectorIdxToCompare],
+            *boundaryVecs[vectorIdxToCompare], *selVector);
     }
 }
 

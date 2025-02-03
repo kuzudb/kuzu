@@ -35,5 +35,14 @@ void ExpressionEvaluator::resolveResultStateFromChildren(
     resultVector->state->setToFlat();
 }
 
+bool ExpressionEvaluator::select(common::SelectionVector& selVector,
+    bool shouldSetSelVectorToFiltered) {
+    bool ret = selectInternal(selVector);
+    if (shouldSetSelVectorToFiltered && selVector.isUnfiltered()) {
+        selVector.setToFiltered();
+    }
+    return ret;
+}
+
 } // namespace evaluator
 } // namespace kuzu

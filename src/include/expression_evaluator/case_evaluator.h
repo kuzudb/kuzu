@@ -50,7 +50,7 @@ public:
 
     void evaluate() override;
 
-    bool select(common::SelectionVector& selVector) override;
+    bool selectInternal(common::SelectionVector& selVector) override;
 
     std::unique_ptr<ExpressionEvaluator> clone() override {
         return std::make_unique<CaseExpressionEvaluator>(expression,

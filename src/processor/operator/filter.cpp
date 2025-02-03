@@ -28,10 +28,8 @@ bool Filter::getNextTuplesInternal(ExecutionContext* context) {
             return false;
         }
         saveSelVector(*state);
-        hasAtLeastOneSelectedValue = expressionEvaluator->select(state->getSelVectorUnsafe());
-        if (!state->isFlat() && state->getSelVector().isUnfiltered()) {
-            state->getSelVectorUnsafe().setToFiltered();
-        }
+        hasAtLeastOneSelectedValue =
+            expressionEvaluator->select(state->getSelVectorUnsafe(), !state->isFlat());
     } while (!hasAtLeastOneSelectedValue);
     metrics->numOutputTuple.increase(state->getSelVector().getSelSize());
     return true;

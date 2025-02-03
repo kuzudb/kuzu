@@ -383,10 +383,7 @@ public:
     static std::unique_ptr<NullChunkData> deserialize(MemoryManager& mm,
         common::Deserializer& deSer);
 
-    common::NullMask getNullMask() const {
-        return common::NullMask(std::span(getData<uint64_t>(), capacity / 64),
-            !noNullsGuaranteedInMem());
-    }
+    common::NullMask getNullMask() const;
 };
 
 class InternalIDChunkData final : public ColumnChunkData {

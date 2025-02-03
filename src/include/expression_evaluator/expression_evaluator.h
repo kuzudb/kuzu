@@ -51,7 +51,7 @@ public:
 
     virtual void evaluate() = 0;
 
-    virtual bool select(common::SelectionVector& selVector) = 0;
+    bool select(common::SelectionVector& selVector, bool shouldSetSelVectorToFiltered);
 
     virtual std::unique_ptr<ExpressionEvaluator> clone() = 0;
 
@@ -75,6 +75,8 @@ protected:
         storage::MemoryManager* memoryManager) = 0;
 
     void resolveResultStateFromChildren(const std::vector<ExpressionEvaluator*>& inputEvaluators);
+
+    virtual bool selectInternal(common::SelectionVector& selVector) = 0;
 
 public:
     std::shared_ptr<common::ValueVector> resultVector;

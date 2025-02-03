@@ -32,7 +32,7 @@ void FunctionExpressionEvaluator::evaluate() {
     }
 }
 
-bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
+bool FunctionExpressionEvaluator::selectInternal(SelectionVector& selVector) {
     for (auto& child : children) {
         child->evaluate();
     }

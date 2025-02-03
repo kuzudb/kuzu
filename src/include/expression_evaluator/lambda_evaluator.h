@@ -21,7 +21,7 @@ public:
 
     void evaluate() override {}
 
-    bool select(common::SelectionVector&) override { KU_UNREACHABLE; }
+    bool selectInternal(common::SelectionVector&) override { KU_UNREACHABLE; }
 
     std::unique_ptr<ExpressionEvaluator> clone() override {
         return std::make_unique<LambdaParamEvaluator>(expression);
@@ -63,7 +63,7 @@ public:
 
     void evaluate() override;
 
-    bool select(common::SelectionVector&) override { KU_UNREACHABLE; }
+    bool selectInternal(common::SelectionVector&) override { KU_UNREACHABLE; }
 
     std::unique_ptr<ExpressionEvaluator> clone() override {
         auto result = std::make_unique<ListLambdaEvaluator>(expression, cloneVector(children));

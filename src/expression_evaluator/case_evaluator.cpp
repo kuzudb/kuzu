@@ -28,7 +28,8 @@ void CaseExpressionEvaluator::evaluate() {
     filledMask.reset();
     for (auto& alternativeEvaluator : alternativeEvaluators) {
         auto whenSelVector = alternativeEvaluator.whenSelVector.get();
-        auto hasAtLeastOneValue = alternativeEvaluator.whenEvaluator->select(*whenSelVector);
+        // the sel vector is already set to filtered in init()
+        auto hasAtLeastOneValue = alternativeEvaluator.whenEvaluator->select(*whenSelVector, false);
         if (!hasAtLeastOneValue) {
             continue;
         }
@@ -47,7 +48,7 @@ void CaseExpressionEvaluator::evaluate() {
     fillAll(elseEvaluator->resultVector.get());
 }
 
-bool CaseExpressionEvaluator::select(SelectionVector& selVector) {
+bool CaseExpressionEvaluator::selectInternal(SelectionVector& selVector) {
     evaluate();
     KU_ASSERT(resultVector->state->getSelVector().getSelSize() == selVector.getSelSize());
     auto numSelectedValues = 0u;
@@ -56,7 +57,9 @@ bool CaseExpressionEvaluator::select(SelectionVector& selVector) {
         auto selVectorPos = selVector[i];
         auto resultVectorPos = resultVector->state->getSelVector()[i];
         selectedPosBuffer[numSelectedValues] = selVectorPos;
-        numSelectedValues += resultVector->getValue<bool>(resultVectorPos);
+        const bool selectCurrentValue =
+            !resultVector->isNull(resultVectorPos) && resultVector->getValue<bool>(resultVectorPos);
+        numSelectedValues += selectCurrentValue;
     }
     selVector.setSelSize(numSelectedValues);
     return numSelectedValues > 0;

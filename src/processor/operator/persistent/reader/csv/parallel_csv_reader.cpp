@@ -38,17 +38,17 @@ uint64_t ParallelCSVReader::parseBlock(block_idx_t blockIdx, DataChunk& resultCh
     if (blockIdx == 0) {
         readBOM();
         if (option.hasHeader) {
-            uint64_t headerNumRows = readHeader();
-            errorHandler->setHeaderNumRows(headerNumRows);
+            const auto [numRowsRead, numErrors] = readHeader();
+            errorHandler->setHeaderNumRows(numRowsRead + numErrors);
         }
     }
     if (finishedBlock()) {
         return 0;
     }
     ParallelParsingDriver driver(resultChunk, this);
-    const auto numRowsParsed = parseCSV(driver);
-    increaseNumRowsInCurrentBlock(numRowsParsed);
-    return numRowsParsed;
+    const auto [numRowsRead, numErrors] = parseCSV(driver);
+    increaseNumRowsInCurrentBlock(numRowsRead, numErrors);
+    return numRowsRead;
 }
 
 void ParallelCSVReader::reportFinishedBlock() {
@@ -58,8 +58,8 @@ void ParallelCSVReader::reportFinishedBlock() {
 uint64_t ParallelCSVReader::continueBlock(DataChunk& resultChunk) {
     KU_ASSERT(hasMoreToRead());
     ParallelParsingDriver driver(resultChunk, this);
-    const auto numRowsParsed = parseCSV(driver);
-    increaseNumRowsInCurrentBlock(numRowsParsed);
+    const auto [numRowsParsed, numErrors] = parseCSV(driver);
+    increaseNumRowsInCurrentBlock(numRowsParsed, numErrors);
     return numRowsParsed;
 }
 
