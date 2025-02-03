@@ -35,8 +35,11 @@ HashAggregateSharedState::HashAggregateSharedState(main::ClientContext* context,
     HashAggregateInfo aggInfo, const std::vector<function::AggregateFunction>& aggregateFunctions)
     : BaseAggregateSharedState{aggregateFunctions}, aggInfo{std::move(aggInfo)},
       globalPartitions{static_cast<size_t>(context->getMaxNumThreadForExec())},
-      limitNumber{common::INVALID_LIMIT}, numThreads{0},
-      memoryManager{context->getMemoryManager()} {
+      limitNumber{common::INVALID_LIMIT}, numThreads{0}, memoryManager{context->getMemoryManager()},
+      // .size() - 1 since we want the bit width of the largest value that could be used to index
+      // the partitions
+      shiftForPartitioning{
+          static_cast<uint8_t>(sizeof(hash_t) * 8 - std::bit_width(globalPartitions.size() - 1))} {
 
     // When copying directly into factorizedTables the table's schema's internal mayContainNulls
     // won't be updated and it's probably less work to just always check nulls
@@ -162,7 +165,7 @@ uint64_t HashAggregateSharedState::getNumTuples() const {
 }
 
 void HashAggregateSharedState::appendTuple(std::span<uint8_t> tuple, common::hash_t hash) {
-    auto& partition = globalPartitions[hash % globalPartitions.size()];
+    auto& partition = globalPartitions[(hash >> shiftForPartitioning) % globalPartitions.size()];
     while (true) {
         auto* block = partition.headBlock.load();
         KU_ASSERT(tuple.size() == block->table.getTableSchema()->getNumBytesPerTuple());
