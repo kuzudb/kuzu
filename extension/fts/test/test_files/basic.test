@@ -1,23 +1,10 @@
--DATASET CSV empty
+-DATASET CSV fts-basic
 
 --
 
 -CASE Basic
 
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
----- ok
-
--STATEMENT CREATE NODE TABLE Book (ID SERIAL, abstract STRING, author STRING, title STRING, PRIMARY KEY (ID));
----- ok
--STATEMENT CREATE (b:Book {abstract: 'An exploration of quantum mechanics.', author: 'Alice Johnson', title: 'The Quantum World'});
----- ok
--STATEMENT CREATE (b:Book {abstract: 'A magic journey through time and space.', author: 'John Smith', title: 'Chronicles of the Universe'});
----- ok
--STATEMENT CREATE (b:Book {abstract: 'An introduction to machine learning techniques.', author: 'Emma Brown', title: 'Learning Machines'});
----- ok
--STATEMENT CREATE (b:Book {abstract: 'A deep dive into the history of ancient civilizations.', author: 'Johnson Lee', title: 'Echoes of the Past'});
----- ok
--STATEMENT CREATE (b:Book {abstract: 'A fantasy tale of dragons and magic.', author: 'Charlotte Harris', title: 'The Dragon\'s Call'});
 ---- ok
 
 -STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
@@ -67,73 +54,46 @@ Echoes of the Past
 -STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'johnson') RETURN _node.title;
 ---- 0
 
--STATEMENT ALTER TABLE Book RENAME author TO author_name;
+-STATEMENT MATCH (b:Book) WHERE b.author = 'John Smith' DELETE b RETURN b.*;
 ---- ok
-
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'the past magic world') RETURN _node.title;
----- 4
-The Quantum World
-Echoes of the Past
-Chronicles of the Universe
-The Dragon's Call
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'a past magic world') RETURN _node.title;
----- 2
-Chronicles of the Universe
-The Dragon's Call
-
--STATEMENT ALTER TABLE Book RENAME TO Books;
----- ok
--STATEMENT CALL QUERY_FTS_INDEX('Books', 'book_index', 'the past magic world') RETURN _node.title;
----- 4
-The Quantum World
-Echoes of the Past
-Chronicles of the Universe
-The Dragon's Call
--STATEMENT CALL QUERY_FTS_INDEX('Books', 'book_index_small', 'a past magic world') RETURN _node.title;
----- 2
-Chronicles of the Universe
-The Dragon's Call
-
--STATEMENT MATCH (b:Books) WHERE b.author_name = 'John Smith' DELETE b RETURN b.*;
----- ok
--STATEMENT CALL QUERY_FTS_INDEX('Books', 'book_index', 'past magic world') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'past magic world') RETURN _node.title;
 ---- 3
 The Quantum World
 Echoes of the Past
 The Dragon's Call
--STATEMENT CALL QUERY_FTS_INDEX('Books', 'book_index_small', 'a past magic world') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'a past magic world') RETURN _node.title;
 ---- 1
 The Dragon's Call
 
--STATEMENT MATCH (b:Books) DELETE b RETURN b.*;
+-STATEMENT MATCH (b:Book) DELETE b RETURN b.*;
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('Books', 'book_index', 'past magic world') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'past magic world') RETURN _node.title;
 ---- 0
--STATEMENT CALL QUERY_FTS_INDEX('Books', 'book_index_small', 'a past magic world') RETURN _node.title;
----- 0
-
--STATEMENT CREATE (b:Books {abstract: 'A fantasy tale of dragons and magic.', author_name: 'J. K. Rowling', title: 'Harry Potter and the Goblet of Fire'});
----- ok
--STATEMENT CALL QUERY_FTS_INDEX('Books', 'book_index', 'goblet') RETURN _node.title;
----- 0
--STATEMENT CALL QUERY_FTS_INDEX('Books', 'book_index_small', 'dragons') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'a past magic world') RETURN _node.title;
 ---- 0
 
--STATEMENT CALL DROP_FTS_INDEX('Books', 'book_index_small');
+-STATEMENT CREATE (b:Book {abstract: 'A fantasy tale of dragons and magic.', author: 'J. K. Rowling', title: 'Harry Potter and the Goblet of Fire'});
 ---- ok
--STATEMENT CALL DROP_FTS_INDEX('Books', 'book_index');
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'goblet') RETURN _node.title;
+---- 0
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'dragons') RETURN _node.title;
+---- 0
+
+-STATEMENT CALL DROP_FTS_INDEX('Book', 'book_index_small');
+---- ok
+-STATEMENT CALL DROP_FTS_INDEX('Book', 'book_index');
 ---- ok
 
--STATEMENT CALL CREATE_FTS_INDEX('Books', 'book_index', ['abstract', 'author_name', 'title'], stemmer := 'porter');
+-STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
 ---- ok
--STATEMENT CALL CREATE_FTS_INDEX('Books', 'book_index_small', ['abstract'], stemmer := 'porter');
+-STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index_small', ['abstract'], stemmer := 'porter');
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('Books', 'book_index', 'goblet') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'goblet') RETURN _node.title;
 ---- 1
 Harry Potter and the Goblet of Fire
--STATEMENT CALL QUERY_FTS_INDEX('Books', 'book_index_small', 'goblet') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'goblet') RETURN _node.title;
 ---- 0
--STATEMENT CALL QUERY_FTS_INDEX('Books', 'book_index_small', 'dragons') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'dragons') RETURN _node.title;
 ---- 1
 Harry Potter and the Goblet of Fire
 

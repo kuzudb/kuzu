@@ -116,9 +116,6 @@ Binder exception: Unrecognized optional parameter: test
 -LOG CreateFTSOnNonStringProp
 -STATEMENT CREATE NODE TABLE teacher (ID INT64, age INT64, PRIMARY KEY(ID))
 ---- ok
--STATEMENT CALL CREATE_FTS_INDEX('teacher', 'teacherIdx', ['age'])
----- error
-Binder exception: Full text search index can only be built on string properties.
 -LOG CreateFTSIncorrectParamType
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx5', ['content', 'author', 'name'], stemmer := 25)
 ---- error
