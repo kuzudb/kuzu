@@ -207,9 +207,8 @@ bool TopKBuffer::compareFlatKeys(idx_t vectorIdxToCompare, std::vector<ValueVect
             *boundaryVecs[vectorIdxToCompare], *selVector)) {
         return compareFlatKeys(vectorIdxToCompare + 1, std::move(keyVectors));
     } else {
-        auto compareResult = compareFuncs[vectorIdxToCompare](*keyVectors[vectorIdxToCompare],
+        return compareFuncs[vectorIdxToCompare](*keyVectors[vectorIdxToCompare],
             *boundaryVecs[vectorIdxToCompare], *selVector);
-        return compareResult;
     }
 }
 
