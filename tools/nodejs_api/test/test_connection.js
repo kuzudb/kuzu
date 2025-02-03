@@ -120,49 +120,6 @@ describe("Execute", function () {
       assert.equal(e.message, "params must be a plain object.");
     }
   });
-
-  it("should throw error if a parameter is not valid", async function () {
-    try {
-      const preparedStatement = await conn.prepare(
-        "MATCH (a:person) WHERE a.ID = $1 RETURN COUNT(*)"
-      );
-      assert.exists(preparedStatement);
-      assert.isTrue(preparedStatement.isSuccess());
-      await conn.execute(preparedStatement, { 1: [] });
-      assert.fail("No error thrown when a parameter is not valid.");
-    } catch (e) {
-      assert.equal(
-        e.message,
-        "The value of each parameter must be a boolean, number, string, Date or BigInt."
-      );
-    }
-  });
-
-  it("should throw error if a parameter is undefined or null", async function () {
-    const preparedStatement = await conn.prepare(
-      "MATCH (a:person) WHERE a.ID = $1 RETURN COUNT(*)"
-    );
-    assert.exists(preparedStatement);
-    assert.isTrue(preparedStatement.isSuccess());
-    try {
-      await conn.execute(preparedStatement, { 1: undefined });
-      assert.fail("No error thrown when a parameter is undefined.");
-    } catch (e) {
-      assert.equal(
-        e.message,
-        "The value of each parameter must not be null or undefined."
-      );
-    }
-    try {
-      await conn.execute(preparedStatement, { 1: null });
-      assert.fail("No error thrown when a parameter is null.");
-    } catch (e) {
-      assert.equal(
-        e.message,
-        "The value of each parameter must not be null or undefined."
-      );
-    }
-  });
 });
 
 describe("Query", function () {
@@ -381,7 +338,7 @@ describe("Progress", function () {
         assert.isTrue(progressCalled);
     });
 
-    it("should execute multiple valid querys with progress", async function () {
+    it("should execute multiple valid queries with progress", async function () {
         let progressCalled = false;
         const progressCallback = (pipelineProgress, numPipelinesFinished, numPipelines) => {
             progressCalled = true;

@@ -108,29 +108,8 @@ class Connection {
       const paramArray = [];
       for (const key in params) {
         const value = params[key];
-        if (value === null || value === undefined) {
-          return reject(
-            new Error(
-              "The value of each parameter must not be null or undefined."
-            )
-          );
-        }
-        if (
-          typeof value === "boolean" ||
-          typeof value === "number" ||
-          typeof value === "string" ||
-          (typeof value === "object" && value.constructor.name === "Date") ||
-          typeof value === "bigint"
-        ) {
-          paramArray.push([key, value]);
-        } else {
-          return reject(
-            new Error(
-              "The value of each parameter must be a boolean, number, string, Date or BigInt."
-            )
-          );
-        }
-        }
+        paramArray.push([key, value]);
+      }
       if (progressCallback && typeof progressCallback !== "function") {
         return reject(new Error("progressCallback must be a function."));
       }
@@ -153,7 +132,7 @@ class Connection {
                   .catch((err) => {
                     return reject(err);
                   });
-                },
+              },
               progressCallback
             );
           } catch (e) {
@@ -225,7 +204,7 @@ class Connection {
                   return reject(err);
                 });
             },
-            progressCallback);
+              progressCallback);
           } catch (e) {
             return reject(e);
           }
