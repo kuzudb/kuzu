@@ -7,7 +7,7 @@
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content'])
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice') RETURN _node.content,score LIMIT 10
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice') RETURN node.content,score LIMIT 10
 ---- 10
 alice|0.000434
 alice|0.000434

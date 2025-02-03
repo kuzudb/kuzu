@@ -45,7 +45,7 @@
 -LOG VarLenJoinsMultilabel1CountDistinct
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL var_len_joins('PK2', a, 1, 30, "FWD")
-           RETURN count(distinct _node);
+           RETURN count(distinct node);
 ---- 1
 50
 

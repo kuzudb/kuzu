@@ -19,13 +19,13 @@
 #-STATEMENT PROJECT GRAPH PK (person, knows)
 #           MATCH (a:person) WHERE a.ID = 0
 #           CALL single_sp_lengths(PK, a, 2, true)
-#           RETURN a.fName, _node.name, length;
+#           RETURN a.fName, node.name, length;
 #---- error
-#Binder exception: Cannot find property name for _node.
+#Binder exception: Cannot find property name for node.
 #-STATEMENT PROJECT GRAPH PK (person, knows)
 #           MATCH (a:person) WHERE a.ID = 0
 #           CALL single_sp_lengths(PK, a, 2, true)
-#           RETURN a.fName, _node.fName, length;
+#           RETURN a.fName, node.fName, length;
 #---- 4
 #Alice|Alice|0
 #Alice|Bob|1
@@ -34,7 +34,7 @@
 #-STATEMENT PROJECT GRAPH PK (person, organisation, workAt, knows)
 #           MATCH (a:person) WHERE a.ID = 0
 #           CALL single_sp_lengths(PK, a, 2, true)
-#           RETURN a.fName, _node.fName, _node.name, length;
+#           RETURN a.fName, node.fName, node.name, length;
 #---- 6
 #Alice|Alice||0
 #Alice|Bob||1
@@ -42,7 +42,7 @@
 #Alice|Dan||1
 #Alice||CsWork|2
 #Alice||DEsWork|2
-#-STATEMENT PROJECT GRAPH PK (person, knows) CALL weakly_connected_component(PK, true) RETURN _node.fName, group_id;
+#-STATEMENT PROJECT GRAPH PK (person, knows) CALL weakly_connected_component(PK, true) RETURN node.fName, group_id;
 #---- 8
 #Alice|0
 #Bob|0
@@ -52,7 +52,7 @@
 #Farooq|1
 #Greg|1
 #Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2
-#-STATEMENT PROJECT GRAPH PK (person, organisation, knows, workAt) CALL weakly_connected_component(PK, true) RETURN _node.fName, _node.name, group_id;
+#-STATEMENT PROJECT GRAPH PK (person, organisation, knows, workAt) CALL weakly_connected_component(PK, true) RETURN node.fName, node.name, group_id;
 #---- 11
 #Alice||0
 #Bob||0
@@ -65,7 +65,7 @@
 #|ABFsUni|3
 #|CsWork|0
 #|DEsWork|0
-#-STATEMENT PROJECT GRAPH PK (person, knows) CALL page_rank(PK, true) RETURN _node.fName, rank;
+#-STATEMENT PROJECT GRAPH PK (person, knows) CALL page_rank(PK, true) RETURN node.fName, rank;
 #---- 8
 #Alice|0.125000
 #Bob|0.125000
