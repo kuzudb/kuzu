@@ -107,8 +107,6 @@ public:
 
     std::shared_ptr<BatchInsertSharedState> getSharedState() const { return sharedState; }
 
-    // bool isParallel() const override { return false; }
-
 protected:
     std::unique_ptr<BatchInsertInfo> info;
     std::shared_ptr<BatchInsertSharedState> sharedState;

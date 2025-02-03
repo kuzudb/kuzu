@@ -106,8 +106,6 @@ public:
 
     void updateProgress(const ExecutionContext* context) const;
 
-    // bool isParallel() const override { return false; }
-
 private:
     static void appendNodeGroup(transaction::Transaction* transaction,
         storage::CSRNodeGroup& nodeGroup, const RelBatchInsertInfo& relInfo,
