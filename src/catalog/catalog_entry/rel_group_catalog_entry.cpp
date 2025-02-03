@@ -85,7 +85,8 @@ binder::BoundCreateTableInfo RelGroupCatalogEntry::getBoundCreateTableInfo(
         std::move(extraInfo), isInternal);
 }
 
-static std::string getFromToStr(table_id_t tableID, Catalog* catalog, const transaction::Transaction* transaction) {
+static std::string getFromToStr(table_id_t tableID, Catalog* catalog,
+    const transaction::Transaction* transaction) {
     auto& entry =
         catalog->getTableCatalogEntry(transaction, tableID)->constCast<RelTableCatalogEntry>();
     auto srcTableName =
@@ -105,8 +106,8 @@ std::string RelGroupCatalogEntry::toCypher(ClientContext* context) const {
     for (auto i = 1u; i < relTableIDs.size(); ++i) {
         ss << stringFormat(", {}", getFromToStr(relTableIDs[i], catalog, transaction));
     }
-    auto childEntry = catalog->getTableCatalogEntry(
-        transaction, relTableIDs[0])->ptrCast<RelTableCatalogEntry>();
+    auto childEntry =
+        catalog->getTableCatalogEntry(transaction, relTableIDs[0])->ptrCast<RelTableCatalogEntry>();
     ss << ", " << childEntry->propertiesToCypher() << childEntry->getMultiplicityStr() << ");";
     return ss.str();
 }

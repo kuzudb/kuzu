@@ -119,7 +119,8 @@ std::unique_ptr<TableCatalogEntry> RelTableCatalogEntry::copy() const {
 }
 
 std::string RelTableCatalogEntry::getMultiplicityStr() const {
-    return RelMultiplicityUtils::toString(srcMultiplicity) + "_" + RelMultiplicityUtils::toString(dstMultiplicity);
+    return RelMultiplicityUtils::toString(srcMultiplicity) + "_" +
+           RelMultiplicityUtils::toString(dstMultiplicity);
 }
 
 std::string RelTableCatalogEntry::toCypher(main::ClientContext* clientContext) const {
