@@ -605,6 +605,8 @@ jobs:
 
       - name: Check source headers for include guards
         run: ./scripts/check-include-guards.sh src/include
+          ./scripts/check-include-guards.sh test/include
+          ./scripts/check-include-guards.sh extension/*/src/include
 
       - name: Check extension headers for include guards
         run: ./scripts/check-include-guards.sh extension/delta/src/include
