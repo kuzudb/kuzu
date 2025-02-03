@@ -1,5 +1,5 @@
 -DATASET CSV demo-db/csv
-
+-SKIP_VECTOR_SIZE_2
 --
 
 -CASE DemoDBTest

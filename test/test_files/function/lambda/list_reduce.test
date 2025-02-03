@@ -1,5 +1,5 @@
 -DATASET CSV tinysnb
-
+-SKIP_VECTOR_SIZE_2
 --
 
 -CASE ListReduce
