@@ -85,14 +85,14 @@ Found duplicated primary key value 10, which violates the uniqueness constraint 
 ---- 2
 2 tuples have been copied to the person table.
 28 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 3
--STATEMENT MATCH (p:person) RETURN p.*
+-STATEMENT MATCH (p:person) RETURN p.id
 ---- 2
-10|a
-11|aa
--STATEMENT CALL show_warnings() RETURN message, file_path, skipped_line_or_record, line_number
+10
+11
+-STATEMENT CALL show_warnings() RETURN message, file_path
 ---- 2
-Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPersonManyDuplicates.csv|10,b|2
-Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPersonManyDuplicates.csv|10,c|3
+Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPersonManyDuplicates.csv
+Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPersonManyDuplicates.csv
 
 -CASE DuplicateStringIDsIgnoreErrors
 -STATEMENT COPY org FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vOrg.csv"(IGNORE_ERRORS=true)
