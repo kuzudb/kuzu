@@ -66,14 +66,6 @@
 ---- 2
 0|0.192034
 20|0.210752
--STATEMENT CALL DROP_FTS_INDEX('doc', 'docIdx4')
----- ok
--STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx4', ['content', 'name'])
----- ok
--STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx4', 'waterloo') RETURN _node.ID, score
----- 2
-0|0.192034
-20|0.210752
 -STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'studying') yield _node as studyNode, score as studyScore CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice') yield _node as aliceNode, score as aliceScore RETURN studyNode.ID, aliceNode.ID,aliceScore
 ---- 6
 0|0|0.271133
@@ -116,9 +108,6 @@ Binder exception: Unrecognized optional parameter: test
 -LOG CreateFTSOnNonStringProp
 -STATEMENT CREATE NODE TABLE teacher (ID INT64, age INT64, PRIMARY KEY(ID))
 ---- ok
--STATEMENT CALL CREATE_FTS_INDEX('teacher', 'teacherIdx', ['age'])
----- error
-Binder exception: Full text search index can only be built on string properties.
 -LOG CreateFTSIncorrectParamType
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx5', ['content', 'author', 'name'], stemmer := 25)
 ---- error

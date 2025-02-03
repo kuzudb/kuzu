@@ -28,8 +28,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
 std::string dropFTSIndexQuery(ClientContext& context, const TableFuncBindData& bindData) {
     context.setToUseInternalCatalogEntry();
     auto ftsBindData = bindData.constPtrCast<FTSBindData>();
-    std::string query = stringFormat("DROP TABLE `{}`;", FTSUtils::getStopWordsTableName());
-    query += stringFormat("DROP TABLE `{}`;",
+    auto query = stringFormat("DROP TABLE `{}`;",
         FTSUtils::getAppearsInTableName(ftsBindData->tableID, ftsBindData->indexName));
     query += stringFormat("DROP TABLE `{}`;",
         FTSUtils::getDocsTableName(ftsBindData->tableID, ftsBindData->indexName));
