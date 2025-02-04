@@ -94,13 +94,13 @@ Binder exception: DROP_FTS_INDEX is only supported in auto transaction mode.
 
 -STATEMENT CALL CREATE_FTS_INDEX('movies', 'moviesIdx', ['name'])
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('movies', 'moviesIdx', 'movie') RETURN _node.name
+-STATEMENT CALL QUERY_FTS_INDEX('movies', 'moviesIdx', 'movie') RETURN node.name
 ---- 1
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 
 -STATEMENT CALL CREATE_FTS_INDEX('movies', 'moviesIdx2', ['name', 'note'])
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('movies', 'moviesIdx2', 'movie') RETURN _node.name
+-STATEMENT CALL QUERY_FTS_INDEX('movies', 'moviesIdx2', 'movie') RETURN node.name
 ---- 3
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 Sóló cón tu párejâ

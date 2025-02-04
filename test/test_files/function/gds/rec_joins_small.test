@@ -263,7 +263,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG VarLenJoins
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL var_len_joins('PK1', a, 1, 30, "FWD")
-           RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
+           RETURN a.ID, node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 6
 0|1|1|[]|[2:0]
 0|2|2|[0:1]|[2:0,2:1]
@@ -274,7 +274,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 
 -STATEMENT MATCH (a:person1) WHERE a.ID = 4
            CALL var_len_joins('PK1', a, 1, 30, "BWD")
-           RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
+           RETURN a.ID, node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 10
 4|0|3|[0:2,0:1]|[2:4,2:1,2:0]
 4|0|3|[0:2,0:1]|[2:5,2:1,2:0]
@@ -288,7 +288,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 4|3|1|[]|[2:3]
 -STATEMENT MATCH (a:person1) WHERE a.ID = 1
            CALL var_len_joins('PK1', a, 1, 2, "BOTH")
-           RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs, direction;
+           RETURN a.ID, node.ID, length, pathNodeIDs, pathEdgeIDs, direction;
 ---- 7
 1|0|1|[]|[2:0]|[False]
 1|1|2|[0:0]|[2:0,2:0]|[False,True]
@@ -303,7 +303,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG VarLenJoinsMultilabel1
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL var_len_joins('PK2', a, 1, 30, "FWD")
-           RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
+           RETURN a.ID, node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 6
 0|1|1|[]|[3:0]
 0|2|2|[1:1]|[3:0,4:1]
@@ -327,7 +327,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG VarLenJoinsLowerBoundZeroUpperBoundOne
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL var_len_joins('PK1', a, 0, 2, "FWD")
-           RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
+           RETURN a.ID, node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 3
 0|0|0|[]|[]
 0|1|1|[]|[2:0]
@@ -336,14 +336,14 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG VarLenJoinsLowerBoundZeroUpperBoundZero
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL var_len_joins('PK1', a, 0, 0, "FWD")
-           RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
+           RETURN a.ID, node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 1
 0|0|0|[]|[]
 
 -LOG VarLenJoinsLowerBound1
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL var_len_joins('PK1', a, 2, 3, "FWD")
-           RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
+           RETURN a.ID, node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 4
 0|2|2|[0:1]|[2:0,2:1]
 0|3|3|[0:1,0:2]|[2:0,2:1,2:2]
@@ -353,21 +353,21 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG VarLenJoinsLowerBound2
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL var_len_joins('PK1', a, 4, 30, "FWD")
-           RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
+           RETURN a.ID, node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 1
 0|4|4|[0:1,0:2,0:3]|[2:0,2:1,2:2,2:3]
 
 -LOG VarLenJoinsEmptyPaths
 -STATEMENT MATCH (a:person1) WHERE a.ID = 4
            CALL var_len_joins('PK1', a, 1, 4, "FWD")
-           RETURN a.ID, _node.ID, length, pathNodeIDs;
+           RETURN a.ID, node.ID, length, pathNodeIDs;
 ---- 0
 
 
 -LOG AllSPDestinations
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL all_sp_destinations('PK1', a, 30, "FWD")
-           RETURN a.ID, _node.ID;
+           RETURN a.ID, node.ID;
 ---- 5
 0|1
 0|2
@@ -378,7 +378,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG AllSPDestinationsMultilabel1
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL all_sp_destinations('PK2', a, 30, "FWD")
-           RETURN a.ID, _node.ID;
+           RETURN a.ID, node.ID;
 ---- 6
 0|1
 0|2
@@ -390,7 +390,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG AllSPDestinationsMultilabel2
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL all_sp_destinations('PK3', a, 30, "FWD")
-           RETURN a.ID, _node.ID;
+           RETURN a.ID, node.ID;
 ---- 30
 0|1
 0|1
@@ -426,7 +426,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG AllSPLengths
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL ALL_SP_DESTINATIONS('PK1', a, 30, "FWD")
-           RETURN a.ID, _node.ID, length;
+           RETURN a.ID, node.ID, length;
 ---- 5
 0|1|1
 0|2|2
@@ -437,7 +437,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG AllSPLengthsMultilabel1
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL ALL_SP_DESTINATIONS('PK2', a, 30, "FWD")
-           RETURN a.ID, _node.ID, length;
+           RETURN a.ID, node.ID, length;
 ---- 6
 0|1|1
 0|2|2
@@ -449,7 +449,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG AllSPLengthsMultilabel2
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL ALL_SP_DESTINATIONS('PK3', a, 30, "FWD")
-           RETURN a.ID, _node.ID, length;
+           RETURN a.ID, node.ID, length;
 ---- 30
 0|1|1
 0|1|1
@@ -485,7 +485,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG AllSPPaths
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL all_sp_paths('PK1', a, 5, "FWD")
-           RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
+           RETURN a.ID, node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 5
 0|1|1|[]|[2:0]
 0|2|2|[0:1]|[2:0,2:1]
@@ -494,7 +494,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4|3|[0:1,0:2]|[2:0,2:1,2:5]
 -STATEMENT MATCH (a:person1) WHERE a.ID = 4
            CALL all_sp_paths('PK1', a, 5, "BOTH")
-           RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
+           RETURN a.ID, node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 7
 4|0|3|[0:2,0:1]|[2:4,2:1,2:0]
 4|0|3|[0:2,0:1]|[2:5,2:1,2:0]
@@ -507,7 +507,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG AllSPPathsMultilabel1
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL all_sp_paths('PK2', a, 30, "FWD")
-           RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
+           RETURN a.ID, node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 6
 0|1|1|[]|[3:0]
 0|2|2|[1:1]|[3:0,4:1]
@@ -519,7 +519,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG AllSPPathsMultilabel2
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL all_sp_paths('PK3', a, 30, "FWD")
-           RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
+           RETURN a.ID, node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 30
 0|1|1|[]|[2:0]
 0|1|1|[]|[3:0]
@@ -555,7 +555,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG SingleSPDestinations
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL SINGLE_SP_DESTINATIONS('PK1', a, 30, "FWD")
-           RETURN a.ID, _node.ID;
+           RETURN a.ID, node.ID;
 ---- 4
 0|1
 0|2
@@ -565,7 +565,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG SingleSPDestinationsMultilabel1
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL SINGLE_SP_DESTINATIONS('PK2', a, 30, "FWD")
-           RETURN a.ID, _node.ID;
+           RETURN a.ID, node.ID;
 ---- 5
 0|1
 0|2
@@ -576,7 +576,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG SingleSPDestinationsMultilabel2
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL single_sp_destinations('PK3', a, 30, "FWD")
-           RETURN a.ID, _node.ID
+           RETURN a.ID, node.ID
 ---- 8
 0|1
 0|1
@@ -590,7 +590,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG SingleSPLengths
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL SINGLE_SP_DESTINATIONS('PK1', a, 30, "FWD")
-           RETURN a.ID, _node.ID, length;
+           RETURN a.ID, node.ID, length;
 ---- 4
 0|1|1
 0|2|2
@@ -600,7 +600,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG SingleSPLengthsMultilabel1
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL SINGLE_SP_DESTINATIONS('PK2', a, 30, "FWD")
-           RETURN a.ID, _node.ID, length;
+           RETURN a.ID, node.ID, length;
 ---- 5
 0|1|1
 0|2|2
@@ -611,7 +611,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG SingleSPLengthsMultilabel2
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL SINGLE_SP_DESTINATIONS('PK3', a, 30, "FWD")
-           RETURN a.ID, _node.ID, length
+           RETURN a.ID, node.ID, length
 ---- 8
 0|1|1
 0|1|1
@@ -625,7 +625,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG SingleSPPaths
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL single_sp_paths('PK1', a, 5, "FWD")
-           RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
+           RETURN a.ID, node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 4
 0|1|1|[]|[2:0]
 0|2|2|[0:1]|[2:0,2:1]
@@ -633,7 +633,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 0|4|3|[0:1,0:2]|[2:0,2:1,2:4]
 -STATEMENT MATCH (a:person1) WHERE a.ID = 2
            CALL single_sp_paths('PK1', a, 5, "BOTH")
-           RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
+           RETURN a.ID, node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 4
 2|0|2|[0:1]|[2:1,2:0]
 2|1|1|[]|[2:1]
@@ -643,7 +643,7 @@ Runtime exception: Shortest path operations only works for positive upper bound 
 -LOG SingleSPPathsMultilabel1
 -STATEMENT MATCH (a:person1) WHERE a.ID = 0
            CALL single_sp_paths('PK2', a, 30, "FWD")
-           RETURN a.ID, _node.ID, length, pathNodeIDs, pathEdgeIDs;
+           RETURN a.ID, node.ID, length, pathNodeIDs, pathEdgeIDs;
 ---- 5
 0|1|1|[]|[3:0]
 0|2|2|[1:1]|[3:0,4:1]

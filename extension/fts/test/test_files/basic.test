@@ -9,14 +9,14 @@
 
 -STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.title;
 ---- 2
 The Quantum World
 Learning Machines
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'history') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'history') RETURN node.title;
 ---- 1
 Echoes of the Past
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'past magic world') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'past magic world') RETURN node.title;
 ---- 4
 The Quantum World
 Echoes of the Past
@@ -26,7 +26,7 @@ The Dragon's Call
 # Build multiple FTS on the same table with same properties and query
 -STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index_duplicate', ['abstract', 'author', 'title'], stemmer := 'porter');
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_duplicate', 'the past magic world') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_duplicate', 'the past magic world') RETURN node.title;
 ---- 4
 The Quantum World
 Echoes of the Past
@@ -36,47 +36,47 @@ The Dragon's Call
 # Build multiple FTS on the same table with different properties and query
 -STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index_small', ['abstract'], stemmer := 'porter');
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'a past magic world') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'a past magic world') RETURN node.title;
 ---- 2
 Chronicles of the Universe
 The Dragon's Call
 
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', '') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', '') RETURN node.title;
 ---- 0
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'a an the') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'a an the') RETURN node.title;
 ---- 0
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'missing') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'missing') RETURN node.title;
 ---- 0
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'johnson') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'johnson') RETURN node.title;
 ---- 2
 The Quantum World
 Echoes of the Past
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'johnson') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'johnson') RETURN node.title;
 ---- 0
 
 -STATEMENT MATCH (b:Book) WHERE b.author = 'John Smith' DELETE b RETURN b.*;
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'past magic world') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'past magic world') RETURN node.title;
 ---- 3
 The Quantum World
 Echoes of the Past
 The Dragon's Call
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'a past magic world') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'a past magic world') RETURN node.title;
 ---- 1
 The Dragon's Call
 
 -STATEMENT MATCH (b:Book) DELETE b RETURN b.*;
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'past magic world') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'past magic world') RETURN node.title;
 ---- 0
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'a past magic world') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'a past magic world') RETURN node.title;
 ---- 0
 
 -STATEMENT CREATE (b:Book {abstract: 'A fantasy tale of dragons and magic.', author: 'J. K. Rowling', title: 'Harry Potter and the Goblet of Fire'});
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'goblet') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'goblet') RETURN node.title;
 ---- 0
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'dragons') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'dragons') RETURN node.title;
 ---- 0
 
 -STATEMENT CALL DROP_FTS_INDEX('Book', 'book_index_small');
@@ -88,12 +88,12 @@ The Dragon's Call
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index_small', ['abstract'], stemmer := 'porter');
 ---- ok
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'goblet') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'goblet') RETURN node.title;
 ---- 1
 Harry Potter and the Goblet of Fire
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'goblet') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'goblet') RETURN node.title;
 ---- 0
--STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'dragons') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'dragons') RETURN node.title;
 ---- 1
 Harry Potter and the Goblet of Fire
 
@@ -133,21 +133,21 @@ Binder exception: Property: titlee does not exist in table Book1.
 -STATEMENT CALL CREATE_FTS_INDEX('Book2', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
 ---- ok
 
--STATEMENT CALL QUERY_FTS_INDEX('Book1', 'book_index', 'quantum machine') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book1', 'book_index', 'quantum machine') RETURN node.title;
 ---- 1
 The Quantum World
 
--STATEMENT CALL QUERY_FTS_INDEX('Book2', 'book_index', 'quantum machine') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book2', 'book_index', 'quantum machine') RETURN node.title;
 ---- 1
 Learning Machines
 
 # Query FTS with incorrect index name
--STATEMENT CALL QUERY_FTS_INDEX('Book1', 'book_index_missing', 'quantum machine') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book1', 'book_index_missing', 'quantum machine') RETURN node.title;
 ---- error
 Binder exception: Table Book1 doesn't have an index with name book_index_missing.
 
 # Query FTS with incorrect table name
--STATEMENT CALL QUERY_FTS_INDEX('Book0', 'book_index', 'quantum machine') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Book0', 'book_index', 'quantum machine') RETURN node.title;
 ---- error
 Binder exception: Table Book0 does not exist.
 
@@ -169,7 +169,7 @@ Binder exception: Table Book0 does not exist.
 -STATEMENT CALL CREATE_FTS_INDEX('Documents', 'documents_index', ['title', 'text'], stemmer := 'english');
 ---- ok
 
--STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'world') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'world') RETURN node.title;
 ---- 2
 six
 eight
@@ -192,7 +192,7 @@ eight
 -STATEMENT CALL CREATE_FTS_INDEX('Documents', 'documents_index', ['text'], stemmer := 'english');
 ---- ok
 
--STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'quacked') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'quacked') RETURN node.title;
 ---- 2
 one
 two
@@ -213,7 +213,7 @@ two
 -STATEMENT CALL CREATE_FTS_INDEX('Documents', 'documents_index', ['text'], stemmer := 'english');
 ---- ok
 
--STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'the quick fox') RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'the quick fox') RETURN node.title;
 ---- 2
 four
 five
@@ -244,14 +244,14 @@ five
 -STATEMENT CALL CREATE_FTS_INDEX('Documents', 'documents_index', ['text'], stemmer := 'english');
 ---- ok
 
--STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'test-case', conjunctive := true) RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'test-case', conjunctive := true) RETURN node.title;
 ---- 4
 six
 seven
 nine
 ten
 
--STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'test-case', conjunctive := false) RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'test-case', conjunctive := false) RETURN node.title;
 ---- 7
 six
 seven
@@ -261,7 +261,7 @@ ten
 eleven
 twelve
 
--STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'test-drive', conjunctive := true) RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'test-drive', conjunctive := true) RETURN node.title;
 ---- 3
 eight
 eleven
@@ -291,14 +291,14 @@ twelve
 -STATEMENT CALL CREATE_FTS_INDEX('Documents', 'documents_index', ['text'], stemmer := 'english');
 ---- ok
 
--STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'test-case', conjunctive := true) RETURN _node.title;
+-STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'test-case', conjunctive := true) RETURN node.title;
 ---- 4
 title1
 title1
 title2
 title3
 
--STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'test-case', conjunctive := true) RETURN _node.quantity;
+-STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'test-case', conjunctive := true) RETURN node.quantity;
 ---- 4
 1
 2

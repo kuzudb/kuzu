@@ -70,7 +70,7 @@ struct GDSBindData {
 // Base class for every graph data science algorithm.
 class KUZU_API GDSAlgorithm {
 protected:
-    static constexpr char NODE_COLUMN_NAME[] = "_node";
+    static constexpr char NODE_COLUMN_NAME[] = "node";
 
 public:
     GDSAlgorithm() = default;
