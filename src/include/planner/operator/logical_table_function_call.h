@@ -1,7 +1,7 @@
 #pragma once
 
 #include "function/table/bind_data.h"
-#include "function/table_functions.h"
+#include "function/table/table_function.h"
 #include "planner/operator/logical_operator.h"
 
 namespace kuzu {

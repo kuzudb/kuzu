@@ -1,5 +1,6 @@
 #include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "function/table/bind_data.h"
 #include "function/table/hnsw/hnsw_index_functions.h"
 #include "processor/execution_context.h"
 #include "storage/index/hnsw_index_utils.h"
@@ -13,7 +14,7 @@ namespace kuzu {
 namespace function {
 
 CreateHNSWSharedState::CreateHNSWSharedState(const CreateHNSWIndexBindData& bindData)
-    : SimpleTableFuncSharedState{bindData.maxOffset}, name{bindData.indexName},
+    : TableFuncSharedState{bindData.maxOffset}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
                     ->getTable(bindData.tableEntry->getTableID())
                     ->cast<storage::NodeTable>()},
@@ -74,14 +75,14 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
 
 static void finalizeFunc(const processor::ExecutionContext* context,
     TableFuncSharedState* sharedState) {
-    auto clientContext = context->clientContext;
-    auto transaction = clientContext->getTransaction();
+    const auto clientContext = context->clientContext;
+    const auto transaction = clientContext->getTransaction();
     const auto hnswSharedState = sharedState->ptrCast<CreateHNSWSharedState>();
     const auto index = hnswSharedState->hnswIndex.get();
     index->shrink(transaction);
     index->finalize(*clientContext->getMemoryManager(), *hnswSharedState->partitionerSharedState);
 
-    const auto bindData = hnswSharedState->bindData->constPtrCast<CreateHNSWIndexBindData>();
+    const auto bindData = hnswSharedState->bindData;
     const auto catalog = clientContext->getCatalog();
     auto upperRelTableID =
         catalog
@@ -96,10 +97,9 @@ static void finalizeFunc(const processor::ExecutionContext* context,
     auto auxInfo = std::make_unique<catalog::HNSWIndexAuxInfo>(upperRelTableID, lowerRelTableID,
 
         index->getUpperEntryPoint(), index->getLowerEntryPoint(), bindData->config.copy());
-    auto indexEntry =
-        std::make_unique<catalog::IndexCatalogEntry>(catalog::HNSWIndexCatalogEntry::TYPE_NAME,
-            bindData->tableEntry->getTableID(), bindData->indexName,
-            std::vector<common::property_id_t>{bindData->propertyID}, std::move(auxInfo));
+    auto indexEntry = std::make_unique<catalog::IndexCatalogEntry>(
+        catalog::HNSWIndexCatalogEntry::TYPE_NAME, bindData->tableEntry->getTableID(),
+        bindData->indexName, std::vector{bindData->propertyID}, std::move(auxInfo));
     catalog->createIndex(transaction, std::move(indexEntry));
 }
 

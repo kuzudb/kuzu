@@ -1,7 +1,7 @@
 #pragma once
 
 #include "catalog/catalog_entry/table_catalog_entry.h"
-#include "function/table_functions.h"
+#include "function/table/table_function.h"
 
 namespace kuzu {
 namespace catalog {

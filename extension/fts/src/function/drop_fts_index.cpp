@@ -4,7 +4,9 @@
 #include "catalog/catalog.h"
 #include "function/fts_bind_data.h"
 #include "function/fts_utils.h"
+#include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
+#include "function/table/table_function.h"
 #include "processor/execution_context.h"
 #include "storage/index/index_utils.h"
 
@@ -51,8 +53,8 @@ function_set DropFTSFunction::getFunctionSet() {
         std::vector{LogicalTypeID::STRING, LogicalTypeID::STRING});
     func->tableFunc = tableFunc;
     func->bindFunc = bindFunc;
-    func->initSharedStateFunc = initSharedState;
-    func->initLocalStateFunc = initEmptyLocalState;
+    func->initSharedStateFunc = TableFunction::initSharedState;
+    func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->rewriteFunc = dropFTSIndexQuery;
     func->canParallelFunc = []() { return false; };
     functionSet.push_back(std::move(func));

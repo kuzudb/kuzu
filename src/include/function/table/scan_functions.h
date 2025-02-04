@@ -3,7 +3,7 @@
 #include <mutex>
 
 #include "common/copier_config/file_scan_info.h"
-#include "function/table_functions.h"
+#include "function/table/table_function.h"
 
 namespace kuzu {
 namespace common {
@@ -12,13 +12,13 @@ class FileSystem;
 
 namespace function {
 
-struct KUZU_API BaseScanSharedState : public TableFuncSharedState {
+struct KUZU_API BaseScanSharedState : TableFuncSharedState {
     std::mutex lock;
 
     virtual uint64_t getNumRows() const = 0;
 };
 
-struct BaseScanSharedStateWithNumRows : public BaseScanSharedState {
+struct BaseScanSharedStateWithNumRows : BaseScanSharedState {
     uint64_t numRows;
 
     explicit BaseScanSharedStateWithNumRows(uint64_t numRows) : numRows{numRows} {}
@@ -26,7 +26,7 @@ struct BaseScanSharedStateWithNumRows : public BaseScanSharedState {
     uint64_t getNumRows() const override { return numRows; }
 };
 
-struct ScanSharedState : public BaseScanSharedStateWithNumRows {
+struct ScanSharedState : BaseScanSharedStateWithNumRows {
     const common::FileScanInfo fileScanInfo;
     uint64_t fileIdx;
     uint64_t blockIdx;
@@ -35,10 +35,14 @@ struct ScanSharedState : public BaseScanSharedStateWithNumRows {
         : BaseScanSharedStateWithNumRows{numRows}, fileScanInfo{std::move(fileScanInfo)},
           fileIdx{0}, blockIdx{0} {}
 
-    std::pair<uint64_t, uint64_t> getNext();
+    std::pair<uint64_t, uint64_t> getNext() {
+        std::lock_guard guard{lock};
+        return fileIdx >= fileScanInfo.getNumFiles() ? std::make_pair(UINT64_MAX, UINT64_MAX) :
+                                                       std::make_pair(fileIdx, blockIdx++);
+    }
 };
 
-struct ScanFileSharedState : public ScanSharedState {
+struct ScanFileSharedState : ScanSharedState {
     main::ClientContext* context;
     uint64_t totalSize; // TODO(Mattias): I think we should unify the design on how we calculate the
                         // progress bar for scanning. Can we simply rely on a numRowsScaned stored

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "function/table/simple_table_functions.h"
+#include "function/function.h"
 
 namespace kuzu {
 namespace fts_extension {
 
-struct CreateFTSFunction : function::SimpleTableFunction {
+struct CreateFTSFunction {
     static constexpr const char* name = "CREATE_FTS_INDEX";
     static constexpr const char* DOC_LEN_PROP_NAME = "LEN";
 

@@ -6,7 +6,7 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
 #include "function/table/bind_data.h"
-#include "function/table/simple_table_functions.h"
+#include "function/table/table_function.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/parquet/list_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/struct_column_reader.h"
@@ -690,7 +690,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     }
 
     detectedColumnNames =
-        SimpleTableFunction::extractYieldVariables(detectedColumnNames, input->yieldVariables);
+        TableFunction::extractYieldVariables(detectedColumnNames, input->yieldVariables);
     auto resultColumns = input->binder->createVariables(detectedColumnNames, detectedColumnTypes);
     auto bindData = std::make_unique<ScanBindData>(std::move(resultColumns),
         scanInput->fileScanInfo.copy(), context);

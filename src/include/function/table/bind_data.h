@@ -17,18 +17,24 @@ struct KUZU_API TableFuncBindData {
     // the last {numWarningDataColumns} columns are for temporary internal use
     common::column_id_t numWarningDataColumns;
     common::cardinality_t cardinality;
+    common::offset_t maxOffset;
 
-    TableFuncBindData() : numWarningDataColumns{0}, cardinality{0} {}
+    TableFuncBindData() : numWarningDataColumns{0}, cardinality{0}, maxOffset{0} {}
+    explicit TableFuncBindData(common::offset_t maxOffset)
+        : numWarningDataColumns{0}, cardinality{0}, maxOffset{maxOffset} {}
     explicit TableFuncBindData(binder::expression_vector columns)
-        : columns{std::move(columns)}, numWarningDataColumns{0}, cardinality{0} {}
+        : columns{std::move(columns)}, numWarningDataColumns{0}, cardinality{0}, maxOffset{0} {}
+    TableFuncBindData(binder::expression_vector columns, common::offset_t maxOffset)
+        : columns{std::move(columns)}, numWarningDataColumns{0}, cardinality{0},
+          maxOffset{maxOffset} {}
     TableFuncBindData(binder::expression_vector columns, common::column_id_t numWarningColumns,
         common::cardinality_t cardinality)
         : columns{std::move(columns)}, numWarningDataColumns{numWarningColumns},
-          cardinality{cardinality} {}
+          cardinality{cardinality}, maxOffset{0} {}
     TableFuncBindData(const TableFuncBindData& other)
         : columns{other.columns}, numWarningDataColumns(other.numWarningDataColumns),
-          cardinality{other.cardinality}, columnSkips{other.columnSkips},
-          columnPredicates{copyVector(other.columnPredicates)} {}
+          cardinality{other.cardinality}, maxOffset{other.maxOffset},
+          columnSkips{other.columnSkips}, columnPredicates{copyVector(other.columnPredicates)} {}
     TableFuncBindData& operator=(const TableFuncBindData& other) = delete;
     virtual ~TableFuncBindData() = default;
 
@@ -48,7 +54,7 @@ struct KUZU_API TableFuncBindData {
 
     virtual bool getIgnoreErrorsOption() const;
 
-    virtual std::unique_ptr<TableFuncBindData> copy() const = 0;
+    virtual std::unique_ptr<TableFuncBindData> copy() const;
 
     template<class TARGET>
     const TARGET* constPtrCast() const {

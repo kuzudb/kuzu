@@ -1,6 +1,5 @@
 #include "function/clear_cache.h"
 
-#include "binder/binder.h"
 #include "catalog/duckdb_catalog.h"
 #include "main/database_manager.h"
 #include "storage/duckdb_storage.h"
@@ -14,7 +13,7 @@ namespace duckdb_extension {
 
 static offset_t clearCacheTableFunc(const TableFuncInput& input,
     const TableFuncOutput& /*output*/) {
-    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
+    const auto sharedState = input.sharedState->ptrCast<TableFuncSharedState>();
     const auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
@@ -34,8 +33,8 @@ function_set ClearCacheFunction::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
     function->tableFunc = clearCacheTableFunc;
     function->bindFunc = clearCacheBindFunc;
-    function->initSharedStateFunc = SimpleTableFunction::initSharedState;
-    function->initLocalStateFunc = SimpleTableFunction::initEmptyLocalState;
+    function->initSharedStateFunc = TableFunction::initSharedState;
+    function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;
 }

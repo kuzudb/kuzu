@@ -4,7 +4,7 @@
 #include "common/exception/runtime.h"
 #include "connector/duckdb_connector.h"
 #include "function/table/bind_input.h"
-#include "function/table/simple_table_functions.h"
+#include "function/table/table_function.h"
 
 using namespace kuzu::function;
 using namespace kuzu::common;
@@ -105,8 +105,8 @@ std::unique_ptr<TableFuncBindData> DuckDBScanFunction::bindFunc(
     const TableFuncBindInput* input) {
     auto result = bindData->copy();
     auto scanBindData = bindData->constPtrCast<DuckDBScanBindData>();
-    auto columnNames = SimpleTableFunction::extractYieldVariables(scanBindData->columnNames,
-        input->yieldVariables);
+    auto columnNames =
+        TableFunction::extractYieldVariables(scanBindData->columnNames, input->yieldVariables);
     result->columns =
         input->binder->createVariables(columnNames, scanBindData->getColumnTypes(*context));
     return result;

@@ -2,7 +2,8 @@
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "common/types/value/nested.h"
-#include "function/table/simple_table_functions.h"
+#include "function/table/bind_data.h"
+#include "function/table/table_function.h"
 #include "graph/graph_entry.h"
 #include "processor/execution_context.h"
 
@@ -12,14 +13,14 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace function {
 
-struct CreateProjectGraphBindData final : SimpleTableFuncBindData {
+struct CreateProjectGraphBindData final : TableFuncBindData {
     std::string graphName;
     std::vector<TableCatalogEntry*> nodeEntries;
     std::vector<TableCatalogEntry*> relEntries;
 
     CreateProjectGraphBindData(std::string graphName, std::vector<TableCatalogEntry*> nodeEntries,
         std::vector<TableCatalogEntry*> relEntries)
-        : SimpleTableFuncBindData{0}, graphName{std::move(graphName)},
+        : TableFuncBindData{0}, graphName{std::move(graphName)},
           nodeEntries{std::move(nodeEntries)}, relEntries{std::move(relEntries)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
@@ -80,8 +81,8 @@ function_set CreateProjectGraphFunction::getFunctionSet() {
         std::vector{LogicalTypeID::STRING, LogicalTypeID::LIST, LogicalTypeID::LIST});
     func->bindFunc = bindFunc;
     func->tableFunc = tableFunc;
-    func->initSharedStateFunc = initSharedState;
-    func->initLocalStateFunc = initEmptyLocalState;
+    func->initSharedStateFunc = TableFunction::initSharedState;
+    func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->canParallelFunc = []() { return false; };
     functionSet.push_back(std::move(func));
     return functionSet;

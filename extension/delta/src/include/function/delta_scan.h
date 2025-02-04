@@ -5,8 +5,7 @@
 #include "connector/delta_connector.h"
 #include "connector/duckdb_result_converter.h"
 #include "connector/duckdb_type_converter.h"
-#include "function/table/scan_functions.h"
-#include "function/table/simple_table_functions.h"
+#include "function/table/table_function.h"
 
 namespace kuzu {
 namespace delta_extension {

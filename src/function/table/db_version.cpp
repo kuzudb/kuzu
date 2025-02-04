@@ -1,5 +1,6 @@
 #include "binder/binder.h"
-#include "function/table/simple_table_functions.h"
+#include "function/table/bind_data.h"
+#include "function/table/table_function.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;
@@ -9,7 +10,7 @@ namespace function {
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
+    const auto sharedState = input.sharedState->ptrCast<TableFuncSharedState>();
     auto& outputVector = dataChunk.getValueVectorMutable(0);
     if (!sharedState->getMorsel().hasMoreToOutput()) {
         return 0;
@@ -26,9 +27,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext*,
     returnColumnNames.emplace_back("version");
     returnTypes.emplace_back(LogicalType::STRING());
     returnColumnNames =
-        SimpleTableFunction::extractYieldVariables(returnColumnNames, input->yieldVariables);
+        TableFunction::extractYieldVariables(returnColumnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(returnColumnNames, returnTypes);
-    return std::make_unique<SimpleTableFuncBindData>(std::move(columns), 1 /* one row result */);
+    return std::make_unique<TableFuncBindData>(std::move(columns), 1 /* one row result */);
 }
 
 function_set DBVersionFunction::getFunctionSet() {
@@ -36,8 +37,8 @@ function_set DBVersionFunction::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
-    function->initSharedStateFunc = initSharedState;
-    function->initLocalStateFunc = initEmptyLocalState;
+    function->initSharedStateFunc = TableFunction::initSharedState;
+    function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;
 }

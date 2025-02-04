@@ -1,11 +1,11 @@
 #pragma once
 
-#include "function/table/simple_table_functions.h"
+#include "function/function.h"
 
 namespace kuzu {
 namespace fts_extension {
 
-struct DropFTSFunction : function::SimpleTableFunction {
+struct DropFTSFunction {
     static constexpr const char* name = "DROP_FTS_INDEX";
 
     static function::function_set getFunctionSet();

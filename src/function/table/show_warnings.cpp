@@ -1,5 +1,6 @@
 #include "binder/binder.h"
-#include "function/table/simple_table_functions.h"
+#include "function/table/bind_data.h"
+#include "function/table/table_function.h"
 #include "processor/warning_context.h"
 
 using namespace kuzu::common;
@@ -7,12 +8,12 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-struct ShowWarningsBindData final : SimpleTableFuncBindData {
+struct ShowWarningsBindData final : TableFuncBindData {
     std::vector<processor::WarningInfo> warnings;
 
     ShowWarningsBindData(std::vector<processor::WarningInfo> warnings,
         binder::expression_vector columns, offset_t maxOffset)
-        : SimpleTableFuncBindData{std::move(columns), maxOffset}, warnings{std::move(warnings)} {}
+        : TableFuncBindData{std::move(columns), maxOffset}, warnings{std::move(warnings)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<ShowWarningsBindData>(warnings, columns, maxOffset);
@@ -21,7 +22,7 @@ struct ShowWarningsBindData final : SimpleTableFuncBindData {
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
+    const auto sharedState = input.sharedState->ptrCast<TableFuncSharedState>();
     const auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
@@ -49,7 +50,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     for (const auto& warning : context->getWarningContext().getPopulatedWarnings()) {
         warningInfos.emplace_back(warning);
     }
-    columnNames = SimpleTableFunction::extractYieldVariables(columnNames, input->yieldVariables);
+    columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(columnNames, columnTypes);
     return std::make_unique<ShowWarningsBindData>(std::move(warningInfos), columns,
         warningInfos.size());
@@ -60,8 +61,8 @@ function_set ShowWarningsFunction::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
-    function->initSharedStateFunc = initSharedState;
-    function->initLocalStateFunc = initEmptyLocalState;
+    function->initSharedStateFunc = TableFunction::initSharedState;
+    function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;
 }

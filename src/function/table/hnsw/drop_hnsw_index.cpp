@@ -1,4 +1,5 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "function/table/bind_data.h"
 #include "function/table/hnsw/hnsw_index_functions.h"
 #include "storage/index/hnsw_index_utils.h"
 #include "storage/index/index_utils.h"
@@ -6,12 +7,16 @@
 namespace kuzu {
 namespace function {
 
-struct DropHNSWIndexBindData final : SimpleTableFuncBindData {
+struct DropHNSWIndexBindData final : TableFuncBindData {
     common::table_id_t tableID;
     std::string indexName;
 
     DropHNSWIndexBindData(common::table_id_t tableID, std::string indexName)
-        : SimpleTableFuncBindData{0}, tableID{tableID}, indexName{std::move(indexName)} {}
+        : TableFuncBindData{0}, tableID{tableID}, indexName{std::move(indexName)} {}
+
+    std::unique_ptr<TableFuncBindData> copy() const override {
+        return std::make_unique<DropHNSWIndexBindData>(tableID, indexName);
+    }
 };
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
@@ -26,7 +31,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
 
 static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto& context = *input.context->clientContext;
-    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
+    const auto sharedState = input.sharedState->ptrCast<TableFuncSharedState>();
     const auto morsel = sharedState->getMorsel();
     if (morsel.isInvalid()) {
         return 0;
@@ -54,8 +59,8 @@ function_set DropHNSWIndexFunction::getFunctionSet() {
     auto func = std::make_unique<TableFunction>(name, inputTypes);
     func->tableFunc = tableFunc;
     func->bindFunc = bindFunc;
-    func->initSharedStateFunc = initSharedState;
-    func->initLocalStateFunc = initEmptyLocalState;
+    func->initSharedStateFunc = TableFunction::initSharedState;
+    func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->rewriteFunc = dropHNSWIndexTables;
     functionSet.push_back(std::move(func));
     return functionSet;

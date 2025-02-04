@@ -5,7 +5,7 @@
 #include "function/function.h"
 #include "function/table/bind_input.h"
 #include "function/table/scan_functions.h"
-#include "function/table_functions.h"
+#include "function/table/table_function.h"
 #include "processor/operator/persistent/reader/file_error_handler.h"
 
 namespace kuzu {

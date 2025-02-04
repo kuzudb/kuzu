@@ -1,44 +1,41 @@
-#include "function/table/simple_table_functions.h"
+#include "function/table/table_function.h"
 
 #include "common/exception/binder.h"
-
-using namespace kuzu::common;
+#include "function/table/bind_data.h"
 
 namespace kuzu {
 namespace function {
 
-SimpleTableFuncSharedState::~SimpleTableFuncSharedState() = default;
-
-SimpleTableFuncMorsel SimpleTableFuncSharedState::getMorsel() {
+TableFuncMorsel TableFuncSharedState::getMorsel() {
     std::lock_guard lck{mtx};
     KU_ASSERT(curOffset <= maxOffset);
     if (curOffset == maxOffset) {
-        return SimpleTableFuncMorsel::createInvalidMorsel();
-    } else {
-        const auto numValuesToOutput = std::min(DEFAULT_VECTOR_CAPACITY, maxOffset - curOffset);
-        curOffset += numValuesToOutput;
-        return {curOffset - numValuesToOutput, curOffset};
+        return TableFuncMorsel::createInvalidMorsel();
     }
+    const auto numValuesToOutput = std::min(common::DEFAULT_VECTOR_CAPACITY, maxOffset - curOffset);
+    curOffset += numValuesToOutput;
+    return {curOffset - numValuesToOutput, curOffset};
 }
 
-std::unique_ptr<TableFuncSharedState> SimpleTableFunction::initSharedState(
+std::unique_ptr<TableFuncSharedState> TableFunction::initSharedState(
     const TableFunctionInitInput& input) {
-    const auto bindData = ku_dynamic_cast<SimpleTableFuncBindData*>(input.bindData);
-    return std::make_unique<SimpleTableFuncSharedState>(bindData->maxOffset);
+    const auto bindData = common::ku_dynamic_cast<TableFuncBindData*>(input.bindData);
+    return std::make_unique<TableFuncSharedState>(bindData->maxOffset);
 }
 
-std::unique_ptr<TableFuncLocalState> SimpleTableFunction::initEmptyLocalState(
+std::unique_ptr<TableFuncLocalState> TableFunction::initEmptyLocalState(
     const TableFunctionInitInput&, TableFuncSharedState*, storage::MemoryManager*) {
     return std::make_unique<TableFuncLocalState>();
 }
 
-std::vector<std::string> SimpleTableFunction::extractYieldVariables(
-    const std::vector<std::string>& names, std::vector<parser::YieldVariable> yieldVariables) {
+std::vector<std::string> TableFunction::extractYieldVariables(const std::vector<std::string>& names,
+    const std::vector<parser::YieldVariable>& yieldVariables) {
     std::vector<std::string> variableNames;
     if (!yieldVariables.empty()) {
         if (yieldVariables.size() < names.size()) {
             throw common::BinderException{"Output variables must all appear in the yield clause."};
-        } else if (yieldVariables.size() > names.size()) {
+        }
+        if (yieldVariables.size() > names.size()) {
             throw common::BinderException{"The number of variables in the yield clause exceeds the "
                                           "number of output variables of the table function."};
         }

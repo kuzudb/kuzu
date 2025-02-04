@@ -1,6 +1,6 @@
 #pragma once
 
-#include "function/table_functions.h"
+#include "function/table/table_function.h"
 
 namespace kuzu {
 namespace json_extension {

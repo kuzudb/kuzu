@@ -1,13 +1,14 @@
 #pragma once
 
 #include "binder/expression/node_expression.h"
-#include "function/table/simple_table_functions.h"
+#include "function/table/bind_data.h"
+#include "function/table/table_function.h"
 #include "storage/index/hnsw_index.h"
 
 namespace kuzu {
 namespace function {
 
-struct CreateHNSWIndexBindData final : SimpleTableFuncBindData {
+struct CreateHNSWIndexBindData final : TableFuncBindData {
     main::ClientContext* context;
     std::string indexName;
     catalog::TableCatalogEntry* tableEntry;
@@ -18,7 +19,7 @@ struct CreateHNSWIndexBindData final : SimpleTableFuncBindData {
     CreateHNSWIndexBindData(main::ClientContext* context, std::string indexName,
         catalog::TableCatalogEntry* tableEntry, common::property_id_t propertyID,
         common::offset_t numNodes, common::offset_t maxOffset, storage::HNSWIndexConfig config)
-        : SimpleTableFuncBindData{maxOffset}, context{context}, indexName{std::move(indexName)},
+        : TableFuncBindData{maxOffset}, context{context}, indexName{std::move(indexName)},
           tableEntry{tableEntry}, propertyID{propertyID}, config{std::move(config)},
           numNodes{numNodes} {}
 
@@ -28,7 +29,7 @@ struct CreateHNSWIndexBindData final : SimpleTableFuncBindData {
     }
 };
 
-struct CreateHNSWSharedState final : SimpleTableFuncSharedState {
+struct CreateHNSWSharedState final : TableFuncSharedState {
     std::string name;
     std::unique_ptr<storage::InMemHNSWIndex> hnswIndex;
     storage::NodeTable& nodeTable;
@@ -56,7 +57,7 @@ struct BoundQueryHNSWIndexInput {
     uint64_t k;
 };
 
-struct QueryHNSWIndexBindData final : SimpleTableFuncBindData {
+struct QueryHNSWIndexBindData final : TableFuncBindData {
     main::ClientContext* context;
     BoundQueryHNSWIndexInput boundInput;
     common::column_id_t indexColumnID;
@@ -78,7 +79,7 @@ struct QueryHNSWIndexBindData final : SimpleTableFuncBindData {
     }
 };
 
-struct QueryHNSWIndexSharedState final : SimpleTableFuncSharedState {
+struct QueryHNSWIndexSharedState final : TableFuncSharedState {
     storage::NodeTable* nodeTable;
     common::offset_t numNodes;
 
@@ -98,19 +99,19 @@ struct QueryHNSWLocalState final : TableFuncLocalState {
     bool hasResultToOutput() const { return result.has_value(); }
 };
 
-struct CreateHNSWIndexFunction final : SimpleTableFunction {
+struct CreateHNSWIndexFunction final {
     static constexpr const char* name = "CREATE_HNSW_INDEX";
 
     static function_set getFunctionSet();
 };
 
-struct DropHNSWIndexFunction final : SimpleTableFunction {
+struct DropHNSWIndexFunction final {
     static constexpr const char* name = "DROP_HNSW_INDEX";
 
     static function_set getFunctionSet();
 };
 
-struct QueryHNSWIndexFunction final : SimpleTableFunction {
+struct QueryHNSWIndexFunction final {
     static constexpr const char* name = "QUERY_HNSW_INDEX";
 
     static function_set getFunctionSet();

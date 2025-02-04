@@ -2,7 +2,7 @@
 
 #include "common/string_utils.h"
 #include "function/delta_scan.h"
-#include "function/table/simple_table_functions.h"
+#include "function/table/table_function.h"
 
 namespace kuzu {
 namespace iceberg_extension {

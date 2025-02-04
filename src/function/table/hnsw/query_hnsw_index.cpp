@@ -4,6 +4,7 @@
 #include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/types/value/nested.h"
+#include "function/table/bind_data.h"
 #include "function/table/hnsw/hnsw_index_functions.h"
 #include "processor/execution_context.h"
 #include "storage/index/hnsw_index.h"
@@ -18,7 +19,7 @@ namespace function {
 QueryHNSWIndexBindData::QueryHNSWIndexBindData(main::ClientContext* context,
     binder::expression_vector columns, BoundQueryHNSWIndexInput boundInput,
     storage::QueryHNSWConfig config, std::shared_ptr<binder::NodeExpression> outputNode)
-    : SimpleTableFuncBindData{std::move(columns), 1 /*maxOffset*/}, context{context},
+    : TableFuncBindData{std::move(columns), 1 /*maxOffset*/}, context{context},
       boundInput{std::move(boundInput)}, config{config}, outputNode{std::move(outputNode)} {
     auto indexEntry = this->boundInput.indexEntry;
     auto& indexAuxInfo = indexEntry->getAuxInfo().cast<catalog::HNSWIndexAuxInfo>();
@@ -186,7 +187,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& 
 }
 
 QueryHNSWIndexSharedState::QueryHNSWIndexSharedState(const QueryHNSWIndexBindData& bindData)
-    : SimpleTableFuncSharedState{1 /* maxOffset */} {
+    : TableFuncSharedState{1 /* maxOffset */} {
     const auto storageManager = bindData.context->getStorageManager();
     nodeTable = storageManager->getTable(bindData.boundInput.nodeTableEntry->getTableID())
                     ->ptrCast<storage::NodeTable>();
