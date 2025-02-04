@@ -79,20 +79,22 @@ Found duplicated primary key value 10, which violates the uniqueness constraint 
 Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.
 
 -CASE SerialManyDuplicateIntIDsIgnoreErrors
+# If the vector size is 2 the CSV can be read with multiple threads which makes the reported lines non-deterministic
+-SKIP_VECTOR_SIZE_2
 -STATEMENT CALL warning_limit=2
 ---- ok
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPersonManyDuplicates.csv"(IGNORE_ERRORS=true, PARALLEL=false)
 ---- 2
 2 tuples have been copied to the person table.
 28 warnings encountered during copy. Use 'CALL show_warnings() RETURN *' to view the actual warnings. Query ID: 3
--STATEMENT MATCH (p:person) RETURN p.id
+-STATEMENT MATCH (p:person) RETURN p.*
 ---- 2
-10
-11
--STATEMENT CALL show_warnings() RETURN message, file_path
+10|a
+11|aa
+-STATEMENT CALL show_warnings() RETURN message, file_path, skipped_line_or_record, line_number
 ---- 2
-Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPersonManyDuplicates.csv
-Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPersonManyDuplicates.csv
+Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPersonManyDuplicates.csv|10,b|2
+Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPersonManyDuplicates.csv|10,c|3
 
 -CASE DuplicateStringIDsIgnoreErrors
 -STATEMENT COPY org FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vOrg.csv"(IGNORE_ERRORS=true)
