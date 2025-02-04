@@ -4,7 +4,6 @@ from __future__ import annotations
 import graphlib
 import os
 import sys
-import shutil
 import logging
 
 from typing import Optional, Set
@@ -12,8 +11,10 @@ from pathlib import Path
 
 logging.basicConfig(level=logging.WARNING)
 
+BUILD_DIR = sys.argv[1]
 SCRIPT_DIR = Path(__file__).parent
 HEADER_BASE_PATH = (SCRIPT_DIR / "../src/include").resolve()
+GENERATED_HEADERS_PATH = (Path(BUILD_DIR) / "src/include").resolve()
 MAIN_HEADER_PATH = HEADER_BASE_PATH / "main"
 START_POINT = MAIN_HEADER_PATH / "kuzu.h"
 JSON_HEADER_PATH = (SCRIPT_DIR / "../third_party/nlohmann_json/json_fwd.hpp").resolve()
@@ -37,6 +38,10 @@ def resolve_include(source_header: Path, include_path: str) -> Optional[Path]:
     main_directory_include = HEADER_BASE_PATH / include_path
     if main_directory_include.exists():
         return main_directory_include
+
+    generated_header_directory_include = GENERATED_HEADERS_PATH / include_path
+    if generated_header_directory_include.exists():
+        return generated_header_directory_include
 
     alp_directory_include = ALP_HEADERS_PATH / include_path
     if alp_directory_include.exists():
