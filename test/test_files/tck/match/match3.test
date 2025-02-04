@@ -89,8 +89,10 @@
 -STATEMENT CREATE REL TABLE T(FROM A TO Foo);
 ---- ok
 -STATEMENT CREATE (a)-[:T]->(b1), (a)-[:T]->(b2)
----- error
-Binder exception: Create node b1 with multiple node labels is not supported.
+---- ok
+-STATEMENT MATCH (a)-[:T]->(b) RETURN COUNT(*);
+---- 1
+2
 
 # Matching nodes with many labels
 #-CASE Scenario7
