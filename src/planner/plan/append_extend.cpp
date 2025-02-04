@@ -91,11 +91,9 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
     auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, rel, direction, extendFromSource,
         properties_, plan.getLastOperator());
     extend->computeFactorizedSchema();
-    // Update cost & cardinality. Note that extend does not change cardinality.
+    // Update cost & cardinality. Note that extend does not change factorized cardinality.
     const auto extensionRate =
         cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTransaction());
-    extend->setCardinality(
-        cardinalityEstimator.estimateExtend(extensionRate, plan.getLastOperatorRef()));
     plan.setCost(CostModel::computeExtendCost(plan));
     auto group = extend->getSchema()->getGroup(nbrNode->getInternalID());
     group->setMultiplier(extensionRate);
@@ -223,9 +221,6 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     // Join with input node
     auto joinConditions = expression_vector{boundNode->getInternalID()};
     appendHashJoin(joinConditions, JoinType::INNER, probePlan, plan, plan);
-    // Hash join above should not change the cardinality of probe plan.
-    // plan.setCardinality(probePlan.getCardinality());
-    // KU_ASSERT(plan.getCardinality() == plan.getLastOperator()->getCardinality());
 }
 
 void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& boundNode,
