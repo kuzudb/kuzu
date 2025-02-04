@@ -179,7 +179,7 @@ static ExtendDirection getStorageDirection(const case_insensitive_map_t<Value>& 
         return ExtendDirectionUtil::fromString(
             options.at(TableOptionConstants::REL_STORAGE_DIRECTION_OPTION).toString());
     }
-    return ExtendDirectionUtil::getDefaultExtendDirection();
+    return DEFAULT_EXTEND_DIRECTION;
 }
 
 BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info) {

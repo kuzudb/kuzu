@@ -1,3 +1,9 @@
+/*
+ * This is a template header used for generating the header 'constants.h'
+ * Any value in the format @VALUE_NAME@ can be substituted with a value passed into CMakeLists.txt
+ * See https://cmake.org/cmake/help/latest/command/configure_file.html for more details
+ */
+
 #pragma once
 
 #include <array>
@@ -107,7 +113,12 @@ struct StorageConstants {
     static constexpr uint64_t PAGE_IDX_IN_GROUP_MASK =
         (static_cast<uint64_t>(1) << PAGE_GROUP_SIZE_LOG2) - 1;
 
-    static constexpr uint64_t NODE_GROUP_SIZE_LOG2 = 17; // 64 * 2048 nodes per group
+    static constexpr uint64_t DEFAULT_NODE_GROUP_SIZE_LOG2 = 17; // 64 * 2048 nodes per group
+#ifndef KUZU_NODE_GROUP_SIZE_LOG2
+    static constexpr uint64_t NODE_GROUP_SIZE_LOG2 = DEFAULT_NODE_GROUP_SIZE_LOG2;
+#else
+    static constexpr uint64_t NODE_GROUP_SIZE_LOG2 = KUZU_NODE_GROUP_SIZE_LOG2;
+#endif
     static constexpr uint64_t NODE_GROUP_SIZE = static_cast<uint64_t>(1) << NODE_GROUP_SIZE_LOG2;
 
     static constexpr double PACKED_CSR_DENSITY = 0.8;

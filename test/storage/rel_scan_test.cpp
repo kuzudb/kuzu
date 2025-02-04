@@ -39,8 +39,7 @@ public:
         auto entry = graph::GraphEntry(nodeEntries, relEntries);
         graph = std::make_unique<kuzu::graph::OnDiskGraph>(context, std::move(entry));
 
-        fwdStorageOnly = (common::ExtendDirectionUtil::getDefaultExtendDirection() ==
-                          common::ExtendDirection::FWD);
+        fwdStorageOnly = (common::DEFAULT_EXTEND_DIRECTION == common::ExtendDirection::FWD);
     }
 
 public:
