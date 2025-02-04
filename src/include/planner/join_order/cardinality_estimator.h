@@ -32,7 +32,6 @@ public:
     void clearPerQueryGraphStats();
 
     cardinality_t estimateScanNode(const LogicalOperator& op) const;
-    cardinality_t estimateExtend(double extensionRate, const LogicalOperator& childOp) const;
     cardinality_t estimateHashJoin(const std::vector<binder::expression_pair>& joinConditions,
         const LogicalOperator& probeOp, const LogicalOperator& buildOp) const;
     cardinality_t estimateCrossProduct(const LogicalOperator& probeOp,
@@ -47,6 +46,7 @@ public:
 
     double getExtensionRate(const binder::RelExpression& rel,
         const binder::NodeExpression& boundNode, const transaction::Transaction* transaction) const;
+    cardinality_t multiply(double extensionRate, cardinality_t card) const;
 
 private:
     cardinality_t getNodeIDDom(const std::string& nodeIDName) const;

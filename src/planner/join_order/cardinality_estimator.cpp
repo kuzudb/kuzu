@@ -91,9 +91,8 @@ uint64_t CardinalityEstimator::estimateAggregate(const LogicalAggregate& op) con
     return op.getKeys().empty() ? 1 : op.getChild(0)->getCardinality();
 }
 
-cardinality_t CardinalityEstimator::estimateExtend(double extensionRate,
-    const LogicalOperator& childOp) const {
-    return atLeastOne(extensionRate * childOp.getCardinality());
+cardinality_t CardinalityEstimator::multiply(double extensionRate, cardinality_t card) const {
+    return atLeastOne(extensionRate * card);
 }
 
 uint64_t CardinalityEstimator::estimateHashJoin(
