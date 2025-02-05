@@ -3,6 +3,7 @@
 #include "binder/binder.h"
 #include "cached_import/py_cached_import.h"
 #include "common/exception/runtime.h"
+#include "common/system_config.h"
 #include "function/table/bind_input.h"
 #include "numpy/numpy_scan.h"
 #include "processor/execution_context.h"
@@ -52,7 +53,7 @@ bool sharedStateNext(const TableFuncBindData* /*bindData*/, PandasScanLocalState
     localState->start = pandasSharedState->startRow + pandasSharedState->numRowsRead;
     pandasSharedState->numRowsRead +=
         std::min(pandasSharedState->numRows - pandasSharedState->numRowsRead,
-            CopyConstants::PANDAS_PARTITION_COUNT);
+            CopyConfig::PANDAS_PARTITION_COUNT);
     localState->end = pandasSharedState->startRow + pandasSharedState->numRowsRead;
     return true;
 }

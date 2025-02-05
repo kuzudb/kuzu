@@ -62,7 +62,7 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
     }
     nodeLocalState->chunkedGroup = std::make_unique<ChunkedNodeGroup>(
         *context->clientContext->getMemoryManager(), nodeInfo->columnTypes,
-        info->compressionEnabled, StorageConstants::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
+        info->compressionEnabled, StorageConfig::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
     KU_ASSERT(resultSet->dataChunks[0]);
     nodeLocalState->columnState = resultSet->dataChunks[0]->state;
 }
@@ -148,9 +148,8 @@ void NodeBatchInsert::clearToIndex(MemoryManager* mm, std::unique_ptr<ChunkedNod
     // TODO(bmwinger): Can probably re-use the chunk and shift the values
     const auto oldNodeGroup = std::move(nodeGroup);
     const auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
-    nodeGroup =
-        std::make_unique<ChunkedNodeGroup>(*mm, nodeInfo->columnTypes, nodeInfo->compressionEnabled,
-            StorageConstants::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
+    nodeGroup = std::make_unique<ChunkedNodeGroup>(*mm, nodeInfo->columnTypes,
+        nodeInfo->compressionEnabled, StorageConfig::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
     nodeGroup->append(&transaction::DUMMY_TRANSACTION, *oldNodeGroup, startIndexInGroup,
         oldNodeGroup->getNumRows() - startIndexInGroup);
 }

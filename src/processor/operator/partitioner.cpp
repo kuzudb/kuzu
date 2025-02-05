@@ -26,13 +26,13 @@ void PartitionerFunctions::partitionRelData(ValueVector* key, ValueVector* parti
     for (auto i = 0u; i < key->state->getSelVector().getSelSize(); i++) {
         const auto pos = key->state->getSelVector()[i];
         const partition_idx_t partitionIdx =
-            key->getValue<offset_t>(pos) >> StorageConstants::NODE_GROUP_SIZE_LOG2;
+            key->getValue<offset_t>(pos) >> StorageConfig::NODE_GROUP_SIZE_LOG2;
         partitionIdxes->setValue(pos, partitionIdx);
     }
 }
 
 static partition_idx_t getNumPartitions(offset_t numRows) {
-    return (numRows + StorageConstants::NODE_GROUP_SIZE - 1) / StorageConstants::NODE_GROUP_SIZE;
+    return (numRows + StorageConfig::NODE_GROUP_SIZE - 1) / StorageConfig::NODE_GROUP_SIZE;
 }
 
 void PartitionerSharedState::initialize(const logical_type_vec_t& columnTypes,
@@ -69,7 +69,7 @@ void PartitionerSharedState::merge(
     std::unique_lock xLck{mtx};
     KU_ASSERT(partitioningBuffers.size() == localPartitioningStates.size());
     for (auto partitioningIdx = 0u; partitioningIdx < partitioningBuffers.size();
-         partitioningIdx++) {
+        partitioningIdx++) {
         partitioningBuffers[partitioningIdx]->merge(
             std::move(localPartitioningStates[partitioningIdx]));
     }

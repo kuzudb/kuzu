@@ -489,7 +489,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptions) {
 }
 
 TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsManyUpdates) {
-    std::vector<double> src(StorageConstants::NODE_GROUP_SIZE, 5.6);
+    std::vector<double> src(StorageConfig::NODE_GROUP_SIZE, 5.6);
     src[1] = 123456789012.56;
     src[3] = 1;
     for (size_t i = 11; i < src.size(); i += 10) {

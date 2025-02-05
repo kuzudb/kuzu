@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-#include "common/constants.h"
+#include "common/system_config.h"
 
 using namespace kuzu::common;
 

@@ -11,10 +11,10 @@ from pathlib import Path
 
 logging.basicConfig(level=logging.WARNING)
 
-BUILD_DIR = sys.argv[1]
+BUILD_DIR = Path(sys.argv[1]).resolve()
 SCRIPT_DIR = Path(__file__).parent
 HEADER_BASE_PATH = (SCRIPT_DIR / "../src/include").resolve()
-GENERATED_HEADERS_PATH = (Path(BUILD_DIR) / "src/include").resolve()
+GENERATED_HEADERS_PATH = BUILD_DIR / "src/include"
 MAIN_HEADER_PATH = HEADER_BASE_PATH / "main"
 START_POINT = MAIN_HEADER_PATH / "kuzu.h"
 JSON_HEADER_PATH = (SCRIPT_DIR / "../third_party/nlohmann_json/json_fwd.hpp").resolve()
@@ -55,7 +55,10 @@ headers: Set[Path] = set()
 with open(SCRIPT_DIR / "headers.txt") as file:
     for path in file:
         if not path.strip().startswith("#"):
-            headers.add((SCRIPT_DIR / ".." / path.strip()).resolve())
+            header_path = Path(path.strip().replace("${BUILD_DIR}", str(BUILD_DIR)))
+            if not header_path.is_absolute():
+                header_path = SCRIPT_DIR / ".." / header_path
+            headers.add(header_path.resolve())
 
 
 def build_graph(graph: graphlib.TopologicalSorter, source_file: Path) -> None:

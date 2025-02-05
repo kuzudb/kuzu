@@ -84,13 +84,13 @@ class NodeGroup {
 public:
     NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
         std::vector<common::LogicalType> dataTypes,
-        common::row_idx_t capacity = common::StorageConstants::NODE_GROUP_SIZE,
+        common::row_idx_t capacity = common::StorageConfig::NODE_GROUP_SIZE,
         NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR)
         : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
           numRows{0}, nextRowToAppend{0}, capacity{capacity}, dataTypes{std::move(dataTypes)} {}
     NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
         std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup,
-        common::row_idx_t capacity = common::StorageConstants::NODE_GROUP_SIZE,
+        common::row_idx_t capacity = common::StorageConfig::NODE_GROUP_SIZE,
         NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR)
         : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
           numRows{chunkedNodeGroup->getNumRows()}, nextRowToAppend{numRows}, capacity{capacity} {

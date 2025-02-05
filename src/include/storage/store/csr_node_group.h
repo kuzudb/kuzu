@@ -78,7 +78,7 @@ struct NodeCSRIndex {
 // TODO(Guodong): Split CSRIndex into two levels: one level per csr leaf region, another per node
 // under the leaf region. This should be more space efficient.
 struct CSRIndex {
-    std::array<NodeCSRIndex, common::StorageConstants::NODE_GROUP_SIZE> indices;
+    std::array<NodeCSRIndex, common::StorageConfig::NODE_GROUP_SIZE> indices;
 
     common::row_idx_t getNumRows(common::offset_t offset) const {
         return indices[offset].getNumRows();
@@ -97,7 +97,7 @@ struct CSRIndex {
 
 // TODO(Guodong): Serialize the info to disk. This should be a config per node group.
 struct PackedCSRInfo {
-    uint64_t calibratorTreeHeight = common::StorageConstants::NODE_GROUP_SIZE_LOG2 -
+    uint64_t calibratorTreeHeight = common::StorageConfig::NODE_GROUP_SIZE_LOG2 -
                                     common::StorageConstants::CSR_LEAF_REGION_SIZE_LOG2;
     double highDensityStep = (common::StorageConstants::LEAF_HIGH_CSR_DENSITY -
                                  common::StorageConstants::PACKED_CSR_DENSITY) /
@@ -132,7 +132,7 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
         : NodeGroupScanState{numChunks}, numTotalRows{0}, numCachedRows{0}, nextCachedRowToScan{0},
           source{CSRNodeGroupScanSource::COMMITTED_PERSISTENT} {
         header = std::make_unique<ChunkedCSRHeader>(mm, false,
-            common::StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
+            common::StorageConfig::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
     }
 
     bool tryScanCachedTuples(RelTableScanState& tableScanState);

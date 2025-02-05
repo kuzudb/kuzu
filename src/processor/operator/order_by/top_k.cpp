@@ -79,7 +79,7 @@ void TopKBuffer::append(const std::vector<common::ValueVector*>& keyVectors,
 }
 
 void TopKBuffer::reduce() {
-    auto reduceThreshold = std::max(OrderByConstants::MIN_SIZE_TO_REDUCE,
+    auto reduceThreshold = std::max(OrderByConfig::MIN_SIZE_TO_REDUCE,
         OrderByConstants::MIN_LIMIT_RATIO_TO_REDUCE * (limit + skip));
     if (sortState->getNumTuples() < reduceThreshold) {
         return;

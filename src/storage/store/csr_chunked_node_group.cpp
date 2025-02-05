@@ -16,9 +16,9 @@ CSRRegion::CSRRegion(idx_t regionIdx, idx_t level) : regionIdx{regionIdx}, level
     const auto leftLeafRegion = regionIdx << level;
     leftNodeOffset = leftLeafRegion << StorageConstants::CSR_LEAF_REGION_SIZE_LOG2;
     rightNodeOffset = leftNodeOffset + (StorageConstants::CSR_LEAF_REGION_SIZE << level) - 1;
-    if (rightNodeOffset >= StorageConstants::NODE_GROUP_SIZE) {
+    if (rightNodeOffset >= StorageConfig::NODE_GROUP_SIZE) {
         // The max right node offset should be NODE_GROUP_SIZE - 1.
-        rightNodeOffset = StorageConstants::NODE_GROUP_SIZE - 1;
+        rightNodeOffset = StorageConfig::NODE_GROUP_SIZE - 1;
     }
 }
 
@@ -41,13 +41,13 @@ CSRRegion CSRRegion::upgradeLevel(const std::vector<CSRRegion>& leafRegions,
     const idx_t leftLeafRegionIdx = newRegion.getLeftLeafRegionIdx();
     const idx_t rightLeafRegionIdx = newRegion.getRightLeafRegionIdx();
     for (auto leafRegionIdx = leftLeafRegionIdx; leafRegionIdx <= rightLeafRegionIdx;
-         leafRegionIdx++) {
+        leafRegionIdx++) {
         KU_ASSERT(leafRegionIdx < leafRegions.size());
         newRegion.sizeChange += leafRegions[leafRegionIdx].sizeChange;
         newRegion.hasPersistentDeletions |= leafRegions[leafRegionIdx].hasPersistentDeletions;
         newRegion.hasInsertions |= leafRegions[leafRegionIdx].hasInsertions;
         for (auto columnID = 0u; columnID < leafRegions[leafRegionIdx].hasUpdates.size();
-             columnID++) {
+            columnID++) {
             newRegion.hasUpdates[columnID] =
                 static_cast<bool>(newRegion.hasUpdates[columnID]) ||
                 static_cast<bool>(leafRegions[leafRegionIdx].hasUpdates[columnID]);
@@ -268,9 +268,8 @@ void ChunkedCSRNodeGroup::flush(FileHandle& dataFH) {
 void ChunkedCSRNodeGroup::scanCSRHeader(MemoryManager& memoryManager,
     CSRNodeGroupCheckpointState& csrState) const {
     if (!csrState.oldHeader) {
-        csrState.oldHeader =
-            std::make_unique<ChunkedCSRHeader>(memoryManager, false /*enableCompression*/,
-                StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
+        csrState.oldHeader = std::make_unique<ChunkedCSRHeader>(memoryManager,
+            false /*enableCompression*/, StorageConfig::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
     }
     ChunkState headerChunkState;
     KU_ASSERT(csrHeader.offset->getResidencyState() == ResidencyState::ON_DISK);

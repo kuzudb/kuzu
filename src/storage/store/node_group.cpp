@@ -347,7 +347,7 @@ void NodeGroup::flush(const Transaction* transaction, FileHandle& dataFH) {
         // Merge all chunkedGroups into a single one first. Then flush it to disk.
         auto mergedChunkedGroup = std::make_unique<ChunkedNodeGroup>(
             *transaction->getClientContext()->getMemoryManager(), dataTypes, enableCompression,
-            StorageConstants::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
+            StorageConfig::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
         std::vector<column_id_t> dummyColumnIDs;
         for (auto i = 0u; i < dataTypes.size(); i++) {
             dummyColumnIDs.push_back(i);

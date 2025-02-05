@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "common/assert.h"
-#include "common/constants.h"
+#include "common/system_config.h"
 
 namespace kuzu {
 namespace common {

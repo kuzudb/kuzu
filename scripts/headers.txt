@@ -7,6 +7,7 @@ src/include/common/assert.h
 src/include/common/case_insensitive_map.h
 src/include/common/cast.h
 src/include/common/constants.h
+${BUILD_DIR}/src/include/common/system_config.h
 src/include/common/copier_config/csv_reader_config.h
 src/include/common/copier_config/file_scan_info.h
 src/include/common/copy_constructors.h
@@ -14,6 +15,7 @@ src/include/common/data_chunk/data_chunk.h
 src/include/common/data_chunk/data_chunk_state.h
 src/include/common/data_chunk/sel_vector.h
 src/include/common/enums/expression_type.h
+src/include/common/enums/extend_direction.h
 src/include/common/enums/path_semantic.h
 src/include/common/enums/statement_type.h
 src/include/common/exception/binder.h

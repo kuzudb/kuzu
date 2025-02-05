@@ -90,15 +90,15 @@ float* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
 void InMemHNSWGraph::finalize(MemoryManager& mm,
     const processor::PartitionerSharedState& partitionerSharedState) {
     const auto& partitionBuffers = partitionerSharedState.partitioningBuffers[0]->partitions;
-    const auto numNodeGroups = (numNodes + common::StorageConstants::NODE_GROUP_SIZE - 1) /
-                               common::StorageConstants::NODE_GROUP_SIZE;
+    const auto numNodeGroups = (numNodes + common::StorageConfig::NODE_GROUP_SIZE - 1) /
+                               common::StorageConfig::NODE_GROUP_SIZE;
     KU_ASSERT(numNodeGroups == partitionerSharedState.numPartitions[0]);
     numRelsPerNodeGroup.resize(numNodeGroups);
     for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
         auto numRels = 0u;
         const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
         const auto numNodesInGroup =
-            std::min(common::StorageConstants::NODE_GROUP_SIZE, numNodes - startNodeOffset);
+            std::min(common::StorageConfig::NODE_GROUP_SIZE, numNodes - startNodeOffset);
         for (auto i = 0u; i < numNodesInGroup; i++) {
             numRels += getCSRLength(startNodeOffset + i);
         }
@@ -116,7 +116,7 @@ void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, common::node_group_idx
     common::table_id_t relTableID, InMemChunkedNodeGroupCollection& partition) const {
     const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     const auto numNodesInGroup =
-        std::min(common::StorageConstants::NODE_GROUP_SIZE, numNodes - startNodeOffset);
+        std::min(common::StorageConfig::NODE_GROUP_SIZE, numNodes - startNodeOffset);
     // BOUND_ID, NBR_ID, REL_ID.
     std::vector<common::LogicalType> columnTypes;
     columnTypes.push_back(common::LogicalType::INTERNAL_ID());

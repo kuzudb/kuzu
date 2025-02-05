@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "common/constants.h"
+#include "common/system_config.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "function/hash/hash_functions.h"
