@@ -1,7 +1,9 @@
 #include "function/table/table_function.h"
 
+#include "binder/query/reading_clause/bound_table_function_call.h"
 #include "common/exception/binder.h"
 #include "function/table/bind_data.h"
+#include "planner/planner.h"
 
 namespace kuzu {
 namespace function {
@@ -52,6 +54,23 @@ std::vector<std::string> TableFunction::extractYieldVariables(const std::vector<
         variableNames = names;
     }
     return variableNames;
+}
+
+void TableFunction::getLogicalPlan(const transaction::Transaction*, planner::Planner* planner,
+    const binder::BoundReadingClause& readingClause,
+    std::shared_ptr<planner::LogicalOperator> logicalOp,
+    const std::vector<std::unique_ptr<planner::LogicalPlan>>& logicalPlans) {
+    auto& call = readingClause.constCast<binder::BoundTableFunctionCall>();
+    binder::expression_vector predicatesToPull;
+    binder::expression_vector predicatesToPush;
+    planner::Planner::splitPredicates(call.getColumns(), call.getConjunctivePredicates(),
+        predicatesToPull, predicatesToPush);
+    for (auto& plan : logicalPlans) {
+        planner->planReadOp(logicalOp, predicatesToPush, *plan);
+        if (!predicatesToPull.empty()) {
+            planner->appendFilters(predicatesToPull, *plan);
+        }
+    }
 }
 
 } // namespace function

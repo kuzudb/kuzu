@@ -4,7 +4,6 @@
 #include "binder/query/reading_clause/bound_match_clause.h"
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "common/enums/join_type.h"
-#include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/planner.h"
 
@@ -92,7 +91,7 @@ static bool hasExternalDependency(const std::shared_ptr<Expression>& expression,
     return false;
 }
 
-static void splitPredicates(const expression_vector& outputExprs,
+void Planner::splitPredicates(const expression_vector& outputExprs,
     const expression_vector& predicates, expression_vector& predicatesToPull,
     expression_vector& predicatesToPush) {
     std::unordered_set<std::string> columnNameSet;
@@ -110,37 +109,11 @@ static void splitPredicates(const expression_vector& outputExprs,
 
 void Planner::planTableFunctionCall(const BoundReadingClause& readingClause,
     std::vector<std::unique_ptr<LogicalPlan>>& plans) {
-    auto& call = readingClause.constCast<BoundTableFunctionCall>();
-    expression_vector predicatesToPull;
-    expression_vector predicatesToPush;
-    splitPredicates(call.getColumns(), call.getConjunctivePredicates(), predicatesToPull,
-        predicatesToPush);
-    for (auto& plan : plans) {
-        auto op = getTableFunctionCall(readingClause);
-        op->computeFactorizedSchema();
-        planReadOp(getTableFunctionCall(readingClause), predicatesToPush, *plan);
-        if (!predicatesToPull.empty()) {
-            appendFilters(predicatesToPull, *plan);
-        }
-        auto callOp = op->ptrCast<LogicalTableFunctionCall>();
-        if (!callOp->getBindData()->hasNodeOutput()) {
-            continue;
-        }
-        auto& node = callOp->getBindData()->getNodeOutput()->constCast<NodeExpression>();
-        auto properties = getProperties(node);
-        if (properties.empty()) {
-            continue;
-        }
-        cardinalityEstimator.addNodeIDDomAndStats(clientContext->getTransaction(),
-            *node.getInternalID(), node.getTableIDs());
-        auto scanPlan = LogicalPlan();
-        appendScanNodeTable(node.getInternalID(), node.getTableIDs(), properties, scanPlan);
-        expression_vector joinConditions;
-        joinConditions.push_back(node.getInternalID());
-        appendHashJoin(joinConditions, JoinType::INNER, scanPlan, *plan, *plan);
-        plan->getLastOperator()->cast<LogicalHashJoin>().getSIPInfoUnsafe().direction =
-            SIPDirection::FORCE_BUILD_TO_PROBE;
-    }
+    const auto op = getTableFunctionCall(readingClause);
+    const auto planFunc =
+        op->ptrCast<LogicalTableFunctionCall>()->getTableFunc().getLogicalPlanFunc;
+    KU_ASSERT(planFunc);
+    planFunc(clientContext->getTransaction(), this, readingClause, op, plans);
 }
 
 void Planner::planGDSCall(const BoundReadingClause& readingClause,

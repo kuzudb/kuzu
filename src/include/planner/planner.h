@@ -326,11 +326,12 @@ public:
     void appendDistinct(const binder::expression_vector& keys, LogicalPlan& plan);
 
     const CardinalityEstimator& getCardinalityEstimator() const { return cardinalityEstimator; }
+    CardinalityEstimator& getCardinalityEstimator() { return cardinalityEstimator; }
 
     // Get operators
-    std::shared_ptr<LogicalOperator> getTableFunctionCall(
+    static std::shared_ptr<LogicalOperator> getTableFunctionCall(
         const binder::BoundTableScanSourceInfo& info);
-    std::shared_ptr<LogicalOperator> getTableFunctionCall(
+    static std::shared_ptr<LogicalOperator> getTableFunctionCall(
         const binder::BoundReadingClause& readingClause);
     std::shared_ptr<LogicalOperator> getGDSCall(const binder::BoundGDSCallInfo& info);
 
@@ -353,6 +354,10 @@ public:
     static binder::expression_vector getNewlyMatchedExprs(const binder::SubqueryGraph& leftPrev,
         const binder::SubqueryGraph& rightPrev, const binder::SubqueryGraph& new_,
         const binder::expression_vector& exprs);
+
+    static void splitPredicates(const binder::expression_vector& outputExprs,
+        const binder::expression_vector& predicates, binder::expression_vector& predicatesToPull,
+        binder::expression_vector& predicatesToPush);
 
 private:
     main::ClientContext* clientContext;
