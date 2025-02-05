@@ -69,7 +69,7 @@ void PartitionerSharedState::merge(
     std::unique_lock xLck{mtx};
     KU_ASSERT(partitioningBuffers.size() == localPartitioningStates.size());
     for (auto partitioningIdx = 0u; partitioningIdx < partitioningBuffers.size();
-        partitioningIdx++) {
+         partitioningIdx++) {
         partitioningBuffers[partitioningIdx]->merge(
             std::move(localPartitioningStates[partitioningIdx]));
     }

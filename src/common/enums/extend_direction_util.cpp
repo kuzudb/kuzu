@@ -1,4 +1,5 @@
 #include "common/enums/extend_direction_util.h"
+
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
 
