@@ -30,7 +30,7 @@ public:
         const kuzu_parquet::format::SchemaElement& schema, uint64_t fileIdx, uint64_t maxDefine,
         uint64_t maxRepeat)
         : TemplatedColumnReader<common::interval_t, IntervalValueConversion>(reader,
-              std::move(type), schema, fileIdx, maxDefine, maxRepeat) {};
+              std::move(type), schema, fileIdx, maxDefine, maxRepeat){};
 
 protected:
     void dictionary(const std::shared_ptr<ResizeableBuffer>& dictionaryData,
