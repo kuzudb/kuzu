@@ -505,5 +505,73 @@ else {
         return { error: e.message, isSuccess: false }
       }
     },
+
+    FSRename(oldPath, newPath) {
+      try {
+        FS.rename(oldPath, newPath);
+        return { isSuccess: true };
+      }
+      catch (e) {
+        return { error: e.message, isSuccess: false }
+      }
+    },
+
+    FSRmdir(path) {
+      try {
+        FS.rmdir(path);
+        return { isSuccess: true };
+      }
+      catch (e) {
+        return { error: e.message, isSuccess: false }
+      }
+    },
+
+    FSStat(path) {
+      try {
+        const result = FS.stat(path);
+        return { isSuccess: true, result };
+      }
+      catch (e) {
+        return { error: e.message, isSuccess: false }
+      }
+    },
+
+    FSReadDir(path) {
+      try {
+        const result = FS.readdir(path);
+        return { isSuccess: true, result };
+      }
+      catch (e) {
+        return { error: e.message, isSuccess: false }
+      }
+    },
+
+    FSMountIdbfs(path) {
+      try {
+        const IDBFS = FS.filesystems.IDBFS;
+        FS.mount(IDBFS, {}, path);
+        return { isSuccess: true };
+      }
+      catch (e) {
+        return { error: e.message, isSuccess: false }
+      }
+    },
+
+    async FSSyncfs(populate) {
+      try {
+        await new Promise((resolve, reject) => {
+          FS.syncfs(populate, (err) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
+        });
+        return { isSuccess: true };
+      } catch (e) {
+        return { error: e.message, isSuccess: false }
+      }
+    },
   });
 }
