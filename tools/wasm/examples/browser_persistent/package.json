@@ -11,6 +11,6 @@
   "description": "",
   "dependencies": {
     "express": "^4.21.2",
-    "kuzu-wasm": "^0.7.1-dev.12"
+    "kuzu-wasm": "^0.8.0"
   }
 }
