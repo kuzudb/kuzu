@@ -1,7 +1,6 @@
 #include "processor/operator/persistent/node_batch_insert.h"
 
 #include "common/cast.h"
-#include "common/constants.h"
 #include "common/string_format.h"
 #include "function/table/scan_functions.h"
 #include "processor/execution_context.h"

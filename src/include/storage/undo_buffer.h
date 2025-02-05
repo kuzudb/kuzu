@@ -3,7 +3,6 @@
 #include <mutex>
 
 #include "buffer_manager/memory_manager.h"
-#include "common/constants.h"
 #include "common/types/types.h"
 
 namespace kuzu {

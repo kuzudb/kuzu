@@ -1,7 +1,6 @@
 #include "storage/store/node_group.h"
 
 #include "common/assert.h"
-#include "common/constants.h"
 #include "common/types/types.h"
 #include "common/uniq_lock.h"
 #include "main/client_context.h"

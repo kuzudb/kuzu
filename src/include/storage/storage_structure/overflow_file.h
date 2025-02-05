@@ -6,7 +6,6 @@
 #include <string_view>
 #include <vector>
 
-#include "common/constants.h"
 #include "common/types/types.h"
 #include "storage//file_handle.h"
 #include "storage/index/hash_index_utils.h"

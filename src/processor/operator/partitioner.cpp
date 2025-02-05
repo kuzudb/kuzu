@@ -1,7 +1,6 @@
 #include "processor/operator/partitioner.h"
 
 #include "binder/expression/expression_util.h"
-#include "common/constants.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/rel_batch_insert.h"
 #include "storage/buffer_manager/memory_manager.h"
@@ -69,7 +68,7 @@ void PartitionerSharedState::merge(
     std::unique_lock xLck{mtx};
     KU_ASSERT(partitioningBuffers.size() == localPartitioningStates.size());
     for (auto partitioningIdx = 0u; partitioningIdx < partitioningBuffers.size();
-         partitioningIdx++) {
+        partitioningIdx++) {
         partitioningBuffers[partitioningIdx]->merge(
             std::move(localPartitioningStates[partitioningIdx]));
     }

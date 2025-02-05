@@ -2,7 +2,6 @@
 
 #include <cstdint>
 
-#include "common/constants.h"
 #include "common/types/types.h"
 #include "storage/storage_structure/disk_array.h"
 

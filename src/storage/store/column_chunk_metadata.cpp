@@ -2,7 +2,6 @@
 
 #include "alp/decode.hpp"
 #include "alp/encode.hpp"
-#include "common/constants.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/type_utils.h"

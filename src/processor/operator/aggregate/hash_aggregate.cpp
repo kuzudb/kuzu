@@ -5,7 +5,6 @@
 
 #include "binder/expression/expression_util.h"
 #include "common/assert.h"
-#include "common/constants.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
@@ -269,8 +268,7 @@ void HashAggregateSharedState::scan(std::span<uint8_t*> entries,
 }
 
 void HashAggregateSharedState::assertFinalized() const {
-    RUNTIME_CHECK(for (const auto& partition
-                       : globalPartitions) {
+    RUNTIME_CHECK(for (const auto& partition : globalPartitions) {
         KU_ASSERT(partition.finalized);
         KU_ASSERT(partition.queuedTuples.approxSize() == 0);
     });
