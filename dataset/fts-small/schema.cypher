@@ -1,1 +1,6 @@
 CREATE NODE TABLE doc (ID UINT64, content STRING, author STRING, name STRING, PRIMARY KEY (ID))
+CREATE NODE TABLE city_stopwords(word string, primary key(word))
+CREATE NODE TABLE name_stopwords(word string, primary key(word))
+CREATE REL TABLE likes (from doc to doc)
+CREATE NODE TABLE INVALID_STOPWORDS(ID1 SERIAL, word string, primary key(ID1))
+CREATE NODE TABLE INVALID_STOPWORDS_COL_TYPE(ID1 SERIAL, primary key(ID1))

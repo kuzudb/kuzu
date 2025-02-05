@@ -16,11 +16,47 @@ struct Stemmer {
     static void validate(const std::string& stemmer);
 };
 
-struct FTSConfig {
+enum class StopWordsSource : uint8_t {
+    FILE = 0,
+    TABLE = 1,
+    DEFAULT = 2,
+};
+
+struct StopWordsTableInfo {
+    std::string stopWords;
+    std::string tableName;
+    StopWordsSource source;
+
+    StopWordsTableInfo();
+    StopWordsTableInfo(std::string stopWords, std::string tableName, StopWordsSource source)
+        : stopWords{std::move(stopWords)}, tableName{std::move(tableName)}, source{source} {}
+};
+
+struct StopWords {
+    static constexpr const char* NAME = "stopwords";
+    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::STRING;
+    static constexpr const char* DEFAULT_VALUE = "default";
+
+    static StopWordsTableInfo bind(main::ClientContext& context, common::table_id_t tableID,
+        const std::string& indexName, const std::string& stopWords);
+};
+
+struct CreateFTSConfig {
     std::string stemmer = Stemmer::DEFAULT_VALUE;
+    StopWordsTableInfo stopWordsTableInfo = StopWordsTableInfo{};
+
+    CreateFTSConfig() = default;
+    CreateFTSConfig(main::ClientContext& context, common::table_id_t tableID,
+        const std::string& indexName, const function::optional_params_t& optionalParams);
+};
+
+struct FTSConfig {
+    std::string stemmer = "";
+    std::string stopWordsTableName = "";
 
     FTSConfig() = default;
-    explicit FTSConfig(const function::optional_params_t& optionalParams);
+    FTSConfig(std::string stemmer, std::string stopWordsTableName)
+        : stemmer{std::move(stemmer)}, stopWordsTableName{std::move(stopWordsTableName)} {}
 
     void serialize(common::Serializer& serializer) const;
 

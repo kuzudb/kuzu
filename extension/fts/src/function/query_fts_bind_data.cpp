@@ -51,16 +51,15 @@ struct StopWordsChecker {
     storage::NodeTable* stopWordsTable;
     transaction::Transaction* tx;
 
-    explicit StopWordsChecker(main::ClientContext& context);
+    explicit StopWordsChecker(main::ClientContext& context, const std::string& stopWordsTableName);
     bool isStopWord(const std::string& term);
 };
 
-StopWordsChecker::StopWordsChecker(main::ClientContext& context)
+StopWordsChecker::StopWordsChecker(main::ClientContext& context,
+    const std::string& stopWordsTableName)
     : termsVector{LogicalType::STRING(), context.getMemoryManager()}, tx{context.getTransaction()} {
     termsVector.state = common::DataChunkState::getSingleValueDataChunkState();
-    auto tableID = context.getCatalog()
-                       ->getTableCatalogEntry(tx, FTSUtils::getStopWordsTableName())
-                       ->getTableID();
+    auto tableID = context.getCatalog()->getTableCatalogEntry(tx, stopWordsTableName)->getTableID();
     stopWordsTable = context.getStorageManager()->getTable(tableID)->ptrCast<storage::NodeTable>();
 }
 
@@ -69,15 +68,15 @@ bool StopWordsChecker::isStopWord(const std::string& term) {
     return stopWordsTable->lookupPK(tx, &termsVector, 0 /* vectorPos */, offset);
 }
 
-static std::vector<std::string> stemTerms(std::vector<std::string> terms,
-    const std::string& stemmer, main::ClientContext& context, bool isConjunctive) {
-    if (stemmer == "none") {
+static std::vector<std::string> stemTerms(std::vector<std::string> terms, const FTSConfig& config,
+    main::ClientContext& context, bool isConjunctive) {
+    if (config.stemmer == "none") {
         return terms;
     }
-    StemFunction::validateStemmer(stemmer);
-    auto sbStemmer = sb_stemmer_new(reinterpret_cast<const char*>(stemmer.c_str()), "UTF_8");
+    StemFunction::validateStemmer(config.stemmer);
+    auto sbStemmer = sb_stemmer_new(reinterpret_cast<const char*>(config.stemmer.c_str()), "UTF_8");
     std::vector<std::string> result;
-    StopWordsChecker checker{context};
+    StopWordsChecker checker{context, config.stopWordsTableName};
     for (auto& term : terms) {
         auto stemData = sb_stemmer_stem(sbStemmer, reinterpret_cast<const sb_symbol*>(term.c_str()),
             term.length());
@@ -95,7 +94,7 @@ std::vector<std::string> QueryFTSBindData::getTerms(main::ClientContext& context
     auto queryInStr = evaluateQuery(*query);
     normalizeQuery(queryInStr);
     auto terms = StringUtils::split(queryInStr, " ");
-    return stemTerms(terms, entry.getAuxInfo().cast<FTSIndexAuxInfo>().config.stemmer, context,
+    return stemTerms(terms, entry.getAuxInfo().cast<FTSIndexAuxInfo>().config, context,
         config.isConjunctive);
 }
 
