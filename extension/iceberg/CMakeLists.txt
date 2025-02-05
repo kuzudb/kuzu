@@ -16,6 +16,7 @@ include_directories(
 
 add_subdirectory(src/function)
 add_subdirectory(src/connector)
+add_subdirectory(src/installer)
 
 add_library(iceberg_extension
         SHARED
