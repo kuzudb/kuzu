@@ -79,7 +79,7 @@ for (const line of lines) {
   }
 }
 delete packageJson.scripts;
-delete packageJson.dependencies;
+delete packageJson.devDependencies;
 await fs.promises.writeFile(path.resolve(".", 'package', 'package.json'), JSON.stringify(packageJson, null, 2), 'utf-8');
 
 console.log('Copying LICENSE...');

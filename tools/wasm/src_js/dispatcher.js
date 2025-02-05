@@ -34,7 +34,7 @@ class Dispatcher {
 
   async init() {
     const workerUrl = this.getWorkerPath();
-    this.worker = await spawn(new Worker(workerUrl));
+    this.worker = await spawn(new Worker(workerUrl), { timeout: 60000 });
     const res = await this.worker.init();
     if (res.isSuccess) {
       return res;
