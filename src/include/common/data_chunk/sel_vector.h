@@ -5,7 +5,6 @@
 #include <array>
 #include <memory>
 
-#include "common/system_config.h"
 #include "common/types/types.h"
 #include <span>
 
@@ -13,7 +12,6 @@ namespace kuzu {
 namespace common {
 
 class SelectionVector {
-    KUZU_API static const std::array<sel_t, DEFAULT_VECTOR_CAPACITY> INCREMENTAL_SELECTED_POS;
 
     // In DYNAMIC mode, selectedPositions points to a mutable buffer that can be modified through
     // getMutableBuffer In STATIC mode, selectedPositions points to the beginning of
@@ -34,20 +32,12 @@ public:
         setToUnfiltered();
     }
 
-    SelectionVector() : SelectionVector{DEFAULT_VECTOR_CAPACITY} {}
+    SelectionVector();
 
     bool isUnfiltered() const { return state == State::STATIC && selectedPositions[0] == 0; }
 
-    void setToUnfiltered() {
-        selectedPositions = const_cast<sel_t*>(INCREMENTAL_SELECTED_POS.data());
-        state = State::STATIC;
-    }
-    void setToUnfiltered(sel_t size) {
-        KU_ASSERT(size <= capacity);
-        selectedPositions = const_cast<sel_t*>(INCREMENTAL_SELECTED_POS.data());
-        selectedSize = size;
-        state = State::STATIC;
-    }
+    void setToUnfiltered();
+    void setToUnfiltered(sel_t size);
     void setRange(sel_t startPos, sel_t size) {
         KU_ASSERT(startPos + size <= capacity);
         selectedPositions = selectedPositionsBuffer.get();

@@ -3,10 +3,6 @@
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
 
-#define BOTH_REL_STORAGE 0
-#define FWD_REL_STORAGE 1
-#define BWD_REL_STORAGE 2
-
 namespace kuzu {
 namespace common {
 

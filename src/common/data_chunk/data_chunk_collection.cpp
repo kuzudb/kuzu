@@ -1,5 +1,7 @@
 #include "common/data_chunk/data_chunk_collection.h"
 
+#include "common/system_config.h"
+
 namespace kuzu {
 namespace common {
 

@@ -48,18 +48,7 @@ public:
         }
     }
 
-    uint32_t countNonNull() const {
-        if (hasNoNullsGuarantee()) {
-            return state->getSelVector().getSelSize();
-        } else if (state->getSelVector().isUnfiltered() &&
-                   state->getSelVector().getSelSize() == DEFAULT_VECTOR_CAPACITY) {
-            return DEFAULT_VECTOR_CAPACITY - nullMask.countNulls();
-        } else {
-            uint32_t count = 0;
-            forEachNonNull([&](auto) { count++; });
-            return count;
-        }
-    }
+    uint32_t countNonNull() const;
 
     void setState(const std::shared_ptr<DataChunkState>& state_);
 
@@ -167,11 +156,11 @@ public:
 struct KUZU_API BlobVector {
     static void addBlob(ValueVector* vector, uint32_t pos, const char* data, uint32_t length) {
         StringVector::addString(vector, pos, data, length);
-    }
+    } // namespace common
     static void addBlob(ValueVector* vector, uint32_t pos, const uint8_t* data, uint64_t length) {
         StringVector::addString(vector, pos, reinterpret_cast<const char*>(data), length);
     }
-};
+}; // namespace kuzu
 
 // ListVector is used for both LIST and ARRAY physical type
 class KUZU_API ListVector {

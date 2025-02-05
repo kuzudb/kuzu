@@ -1,5 +1,6 @@
 #include "function/hash/vector_hash_functions.h"
 
+#include "common/system_config.h"
 #include "common/type_utils.h"
 #include "function/hash/hash_functions.h"
 #include "function/scalar_function.h"

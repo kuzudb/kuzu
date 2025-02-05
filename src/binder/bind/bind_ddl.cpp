@@ -15,6 +15,7 @@
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
 #include "common/string_format.h"
+#include "common/system_config.h"
 #include "common/types/types.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "main/client_context.h"

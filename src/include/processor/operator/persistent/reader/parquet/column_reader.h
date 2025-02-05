@@ -2,6 +2,7 @@
 
 #include <bitset>
 
+#include "common/system_config.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "parquet_dbp_decoder.h"

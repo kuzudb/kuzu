@@ -4,9 +4,9 @@
 #include <fstream>
 #include <random>
 
-#include "common/constants.h"
 #include "common/file_system/local_file_system.h"
 #include "common/string_format.h"
+#include "common/system_config.h"
 #include "graph_test/graph_test.h"
 
 namespace kuzu {
