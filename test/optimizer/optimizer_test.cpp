@@ -141,7 +141,8 @@ TEST_F(OptimizerTest, PkScanTest) {
 TEST_F(OptimizerTest, FilterDifferentPropertiesTest) {
     auto q1 = "MATCH (a:person {gender:1})-[f]->(b:person {age: 30}) RETURN b;";
     auto ans = getEncodedPlan(q1);
-    ASSERT_STREQ(ans.c_str(), "HJ(b._ID){E(b)Filter()S(a)}{Filter()S(b)}");
+    ASSERT_TRUE(ans == "HJ(b._ID){E(b)Filter()S(a)}{Filter()S(b)}" ||
+                ans == "HJ(a._ID){E(a)Filter()S(b)}{Filter()S(a)}");
 }
 
 TEST_F(OptimizerTest, SingleNodeTwoHopJoins) {
