@@ -94,6 +94,7 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
     // Update cost & cardinality. Note that extend does not change factorized cardinality.
     const auto extensionRate =
         cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTransaction());
+    extend->setCardinality(plan.getLastOperator()->getCardinality());
     plan.setCost(CostModel::computeExtendCost(plan));
     auto group = extend->getSchema()->getGroup(nbrNode->getInternalID());
     group->setMultiplier(extensionRate);
