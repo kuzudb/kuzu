@@ -29,6 +29,7 @@
 
     <script type="module">
         import kuzu from './index.js';
+        window.kuzu = kuzu;
         const appendOutput = (text) => {
             const output = document.getElementById("output");
             output.innerText += text + "\n";

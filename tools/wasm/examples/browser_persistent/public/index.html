@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kùzu WebAssembly Example</title>
+</head>
+
+<body>
+    <h1>Kùzu WebAssembly Example</h1>
+    <p>This example demonstrates how to use Kùzu WebAssembly in a web browser with the persistent IDBFS filesystem.</p>
+    <p>The first run of the example will create a new database and load some data into it. The second run will query the
+        database and display the results.</p>
+    <p>After running the example for the first time, you can refresh the page to see the query results.</p>
+    <p>The output of the queries will be displayed below:</p>
+
+    <code id="output"
+        style="margin-top: 20px; padding: 10px; display: block; border: 1px solid #ccc; background-color: #f9f9f9; white-space: pre-wrap;"></code>
+
+    <script type="module">
+        import kuzu from './index.js';
+        window.kuzu = kuzu;
+        const appendOutput = (text) => {
+            const output = document.getElementById("output");
+            output.innerText += text + "\n";
+        };
+        (async () => {
+            const isFirstRun = window.localStorage.getItem("isFirstRun") !== "false";
+            if (isFirstRun) {
+                appendOutput("First run detected. Setting up the database...");
+                // Write the data into WASM filesystem
+                const userCSV = `Adam,30
+Karissa,40
+Zhang,50
+Noura,25`;
+                const cityCSV = `Waterloo,150000
+Kitchener,200000
+Guelph,75000`;
+                const followsCSV = `Adam,Karissa,2020
+Adam,Zhang,2020
+Karissa,Zhang,2021
+Zhang,Noura,2022`;
+                const livesInCSV = `Adam,Waterloo
+Karissa,Waterloo
+Zhang,Kitchener
+Noura,Guelph`;
+                await kuzu.FS.writeFile("/user.csv", userCSV);
+                await kuzu.FS.writeFile("/city.csv", cityCSV);
+                await kuzu.FS.writeFile("/follows.csv", followsCSV);
+                await kuzu.FS.writeFile("/lives-in.csv", livesInCSV);
+
+                // Make a persistent IDBFS directory
+                await kuzu.FS.mkdir("/database");
+                await kuzu.FS.mountIdbfs("/database");
+                appendOutput("IDBFS mounted.");
+
+                // Create an empty database and connect to it
+                const db = new kuzu.Database("/database");
+                const conn = new kuzu.Connection(db);
+
+
+                const queries = [
+                    // Create the tables
+                    "CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))",
+                    "CREATE NODE TABLE City(name STRING, population INT64, PRIMARY KEY (name))",
+                    "CREATE REL TABLE Follows(FROM User TO User, since INT64)",
+                    "CREATE REL TABLE LivesIn(FROM User TO City)",
+                    // Load the data
+                    "COPY User FROM 'user.csv'",
+                    "COPY City FROM 'city.csv'",
+                    "COPY Follows FROM 'follows.csv'",
+                    "COPY LivesIn FROM 'lives-in.csv'",
+                ];
+
+                appendOutput("Setting up the database...");
+
+                // Execute the queries to setup the database
+                for (const query of queries) {
+                    appendOutput("Executing query: " + query);
+                    const queryResult = await conn.query(query);
+                    const outputString = await queryResult.toString();
+                    appendOutput(outputString);
+                    await queryResult.close();
+                }
+                appendOutput("Database setup complete.");
+                // Close the connection
+                await conn.close();
+                appendOutput("Connection closed.");
+
+                // Close the database
+                await db.close();
+                appendOutput("Database closed.");
+
+                // Sync the filesystem
+                await kuzu.FS.syncfs(false);
+                appendOutput("Database persisted to IDBFS.");
+                await kuzu.FS.unmount("/database");
+                appendOutput("IDBFS unmounted.");
+                window.localStorage.setItem("isFirstRun", "false");
+            } else {
+                appendOutput("Second or later run detected. Querying the database...");
+                // Make a persistent IDBFS directory
+                await kuzu.FS.mkdir("/database");
+                await kuzu.FS.mountIdbfs("/database");
+                appendOutput("IDBFS mounted.");
+
+                // Sync the filesystem
+                await kuzu.FS.syncfs(true);
+                appendOutput("Database loaded from IDBFS.");
+
+                // Create a new database and connect to it
+                const db = new kuzu.Database("/database");
+                const conn = new kuzu.Connection(db);
+
+                // Query the database
+                let queryString = "MATCH (u:User) -[f:Follows]-> (v:User) RETURN u.name, f.since, v.name";
+                appendOutput("Executing query: " + queryString);
+                let queryResult = await conn.query(queryString);
+                let rows = await queryResult.getAllObjects();
+                appendOutput("Query result:");
+                for (const row of rows) {
+                    appendOutput(`User ${row['u.name']} follows ${row['v.name']} since ${row['f.since']}`);
+                }
+                await queryResult.close();
+
+                appendOutput("");
+
+                queryString = "MATCH (u:User) -[l:LivesIn]-> (c:City) RETURN u.name, c.name";
+                appendOutput("Executing query: " + queryString);
+                queryResult = await conn.query(queryString);
+                rows = await queryResult.getAllObjects();
+                appendOutput("Query result:");
+                // Print the rows
+                for (const row of rows) {
+                    appendOutput(`User ${row['u.name']} lives in ${row['c.name']}`);
+                }
+                await queryResult.close();
+                appendOutput("");
+
+                appendOutput("All queries executed successfully.");
+
+                // Close the connection
+                await conn.close();
+                appendOutput("Connection closed.");
+
+                // Close the database
+                await db.close();
+                appendOutput("Database closed.");
+
+                // Unmount the IDBFS
+                await kuzu.FS.unmount("/database");
+                appendOutput("IDBFS unmounted.");
+            }
+        })();
+    </script>
+</body>
+</html>

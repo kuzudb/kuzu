@@ -546,6 +546,16 @@ else {
       }
     },
 
+    FSUnmount(path) {
+      try {
+        FS.unmount(path);
+        return { isSuccess: true };
+      }
+      catch (e) {
+        return { error: e.message, isSuccess: false }
+      }
+    },
+
     FSMountIdbfs(path) {
       try {
         const IDBFS = FS.filesystems.IDBFS;

@@ -48,9 +48,9 @@ tools/nodejs_api/prebuilt/
 
 ### WASM
 tools/wasm/node_modules/
-tools/wasm/examples/browser/node_modules/
-tools/wasm/examples/browser/public/index.js
-tools/wasm/examples/browser/public/kuzu_wasm_worker.js
+tools/wasm/examples/browser*/node_modules/
+tools/wasm/examples/browser*/public/index.js
+tools/wasm/examples/browser*/public/kuzu_wasm_worker.js
 tools/wasm/examples/nodejs/node_modules/
 tools/wasm/package/
 

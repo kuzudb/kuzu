@@ -17,7 +17,13 @@ npm i kuzu-wasm
 ## Example usage
 
 We provide a simple example to demonstrate how to use Kùzu-Wasm. In this example, we will create a simple graph and run a few simple queries.
-We provide two versions of this example: one running in the browser and one running in Node.js. The example can be found in [the examples directory](https://github.com/kuzudb/kuzu/tree/master/tools/wasm/examples).
+
+We provide three versions of this example: 
+- `browser_in_memory`: This example demonstrates how to use Kùzu-Wasm in a web browser with an in-memory filesystem.
+- `browser_persistent`: This example demonstrates how to use Kùzu-Wasm in a web browser with a persistent IDBFS filesystem.
+- `nodejs`: This example demonstrates how to use Kùzu-Wasm in Node.js.
+
+The example can be found in [the examples directory](https://github.com/kuzudb/kuzu/tree/master/tools/wasm/examples).
 
 ## Understanding the package
 

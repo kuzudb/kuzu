@@ -140,6 +140,18 @@ class FS {
     }
   }
 
+  /**
+   * Unmount a mounted filesystem.
+   * @param {String} path the path to the filesystem.
+   * @throws {Error} if the filesystem cannot be unmounted.
+   */
+  async unmount(path) {
+    const worker = await dispatcher.getWorker();
+    const result = await worker.FSUnmount(path);
+    if (!result.isSuccess) {
+      throw new Error(result.error);
+    }
+  }
 
   /**
    * Synchronize the IDBFS filesystem with the underlying storage.
