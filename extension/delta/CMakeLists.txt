@@ -15,6 +15,7 @@ include_directories(
 
 add_subdirectory(src/connector)
 add_subdirectory(src/function)
+add_subdirectory(src/installer)
 add_subdirectory(src/main)
 
 add_library(delta_extension
