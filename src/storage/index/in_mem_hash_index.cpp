@@ -2,7 +2,6 @@
 
 #include <cstring>
 
-#include "common/constants.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "storage/index/hash_index_header.h"
