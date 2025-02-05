@@ -119,7 +119,7 @@ if(NOT KUZU_VECTOR_CAPACITY_LOG2)
 endif()
 message(STATUS "KUZU_VECTOR_CAPACITY_LOG2: ${KUZU_VECTOR_CAPACITY_LOG2}")
 
-configure_file(${CMAKE_SOURCE_DIR}/src/include/common/system_config.h.in ${CMAKE_BINARY_DIR}/src/include/common/system_config.h @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/cmake/templates/system_config.h.in ${CMAKE_BINARY_DIR}/src/include/common/system_config.h @ONLY)
 
 if(MSVC)
     # Required for M_PI on Windows

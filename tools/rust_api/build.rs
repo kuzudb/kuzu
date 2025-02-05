@@ -131,6 +131,7 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
     Ok(vec![
         kuzu_root.join("src/include"),
         build_dir.join("build/src"),
+        build_dir.join("build/src/include"),
         kuzu_root.join("third_party/nlohmann_json"),
         kuzu_root.join("third_party/fastpfor"),
         kuzu_root.join("third_party/alp/include"),
@@ -167,6 +168,7 @@ fn build_ffi(
     // Unfortunately they appear to need to be specified individually since the symlink is
     // considered to be changed each time.
     println!("cargo:rerun-if-changed=kuzu-src/src");
+    println!("cargo:rerun-if-changed=kuzu-src/cmake");
     println!("cargo:rerun-if-changed=kuzu-src/third_party");
     println!("cargo:rerun-if-changed=kuzu-src/CMakeLists.txt");
     println!("cargo:rerun-if-changed=kuzu-src/tools/CMakeLists.txt");

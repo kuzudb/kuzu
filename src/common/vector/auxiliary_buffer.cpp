@@ -2,6 +2,7 @@
 
 #include <numeric>
 
+#include "common/constants.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {

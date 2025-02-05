@@ -1,5 +1,6 @@
 #include "processor/operator/persistent/writer/parquet/struct_column_writer.h"
 
+#include "common/constants.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {

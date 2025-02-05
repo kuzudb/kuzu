@@ -1,5 +1,6 @@
 #include "processor/operator/persistent/writer/parquet/list_column_writer.h"
 
+#include "common/constants.h"
 #include "common/exception/runtime.h"
 
 namespace kuzu {

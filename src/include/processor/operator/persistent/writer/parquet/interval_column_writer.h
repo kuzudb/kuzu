@@ -1,6 +1,7 @@
 #pragma once
 
 #include "basic_column_writer.h"
+#include "common/constants.h"
 #include "common/types/interval_t.h"
 
 namespace kuzu {

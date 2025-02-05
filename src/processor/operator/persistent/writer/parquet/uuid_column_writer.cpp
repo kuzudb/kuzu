@@ -1,5 +1,6 @@
 #include "processor/operator/persistent/writer/parquet/uuid_column_writer.h"
 
+#include "common/constants.h"
 #include "common/serializer/serializer.h"
 #include "common/types/uuid.h"
 

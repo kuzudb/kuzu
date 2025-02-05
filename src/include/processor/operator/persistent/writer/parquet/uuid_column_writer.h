@@ -1,6 +1,7 @@
 #pragma once
 
 #include "basic_column_writer.h"
+#include "common/constants.h"
 
 namespace kuzu {
 namespace processor {
