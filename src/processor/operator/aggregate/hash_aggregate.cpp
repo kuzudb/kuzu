@@ -268,7 +268,8 @@ void HashAggregateSharedState::scan(std::span<uint8_t*> entries,
 }
 
 void HashAggregateSharedState::assertFinalized() const {
-    RUNTIME_CHECK(for (const auto& partition : globalPartitions) {
+    RUNTIME_CHECK(for (const auto& partition
+                       : globalPartitions) {
         KU_ASSERT(partition.finalized);
         KU_ASSERT(partition.queuedTuples.approxSize() == 0);
     });

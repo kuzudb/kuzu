@@ -148,7 +148,7 @@ void HashIndex<T>::splitSlots(const Transaction* transaction, HashIndexHeader& h
         Slot<T>* originalSlot = &*originalSlotIterator.seek(header.nextSplitSlotId);
         do {
             for (entry_pos_t originalEntryPos = 0; originalEntryPos < getSlotCapacity<T>();
-                originalEntryPos++) {
+                 originalEntryPos++) {
                 if (!originalSlot->header.isEntryValid(originalEntryPos)) {
                     continue; // Skip invalid entries.
                 }
@@ -295,9 +295,10 @@ void HashIndex<T>::mergeBulkInserts(const Transaction* transaction,
     // may not be consecutive, but we reduce the memory overhead for storing the information about
     // the sorted data and still just process each page once.
     for (uint64_t localSlotId = 0; localSlotId < insertLocalStorage.numPrimarySlots();
-        localSlotId += NUM_SLOTS_PER_PAGE) {
+         localSlotId += NUM_SLOTS_PER_PAGE) {
         for (size_t i = 0;
-            i < NUM_SLOTS_PER_PAGE && localSlotId + i < insertLocalStorage.numPrimarySlots(); i++) {
+             i < NUM_SLOTS_PER_PAGE && localSlotId + i < insertLocalStorage.numPrimarySlots();
+             i++) {
             auto localSlot =
                 typename InMemHashIndex<T>::SlotIterator(localSlotId + i, &insertLocalStorage);
             partitionedEntries[i].clear();
@@ -441,7 +442,7 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
             fileHandle->optimisticReadPage(headerPageIdx, [&](auto* frame) {
                 const auto onDiskHeaders = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);
                 for (size_t i = 0; i < INDEX_HEADERS_PER_PAGE && headerIdx < NUM_HASH_INDEXES;
-                    i++) {
+                     i++) {
                     hashIndexHeadersForReadTrx.emplace_back(onDiskHeaders[i]);
                     headerIdx++;
                 }
@@ -565,7 +566,7 @@ void PrimaryKeyIndex::writeHeaders() {
             [&](auto* frame) {
                 auto onDiskFrame = reinterpret_cast<HashIndexHeaderOnDisk*>(frame);
                 for (size_t i = 0; i < INDEX_HEADERS_PER_PAGE && headerIdx < NUM_HASH_INDEXES;
-                    i++) {
+                     i++) {
                     hashIndexHeadersForWriteTrx[headerIdx++].write(onDiskFrame[i]);
                 }
             });
