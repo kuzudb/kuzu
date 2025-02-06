@@ -694,39 +694,39 @@ namespace kuzu {
                     }
 
                     // Calculate local selectivity
-                    float filteredNbrs = 0;
-                    for (auto &neighbor: firstHopNbrs) {
-                        if (filterMask->isMasked(neighbor.offset)) {
-                            filteredNbrs += 1;
-                        }
-                    }
-                    auto localSelectivity = filteredNbrs / totalNbrs;
-
-                    // Multiply by 0.6 due to the overlapping factor
-                    auto estimatedFullTwoHopDistanceComp = (totalNbrs * filteredNbrs + filteredNbrs) * 0.4;
-                    auto estimatedDirectedDistanceComp = totalNbrs + (totalNbrs - filteredNbrs);
-                    if (localSelectivity >= 0.5) {
-                        // If the selectivity is high, we will simply do one hop search since we can find the next
-                        // closest directly from candidates priority queue.
-                        oneHopSearch(candidates, firstHopNbrs, dc, filterMask, results, visited, vectorArray, size,
-                                     efSearch, stats);
-                        stats.oneHopCalls->increase(1);
-                    } else if (estimatedFullTwoHopDistanceComp > estimatedDirectedDistanceComp) {
-                        // We will use this metric to skip
-                        // wanted distance computation in the first hop
-                        directedTwoHopSearch(candidates, candidate, totalNbrs, cachedNbrsCount,
-                                            firstHopNbrs, tableId, graph, dc, filterMask,
-                                            state, results, visited, vectorArray, size, efSearch, stats);
-                        stats.dynamicTwoHopCalls->increase(1);
-                    } else {
+//                    float filteredNbrs = 0;
+//                    for (auto &neighbor: firstHopNbrs) {
+//                        if (filterMask->isMasked(neighbor.offset)) {
+//                            filteredNbrs += 1;
+//                        }
+//                    }
+//                    auto localSelectivity = filteredNbrs / totalNbrs;
+//
+//                    // Multiply by 0.6 due to the overlapping factor
+//                    auto estimatedFullTwoHopDistanceComp = (totalNbrs * filteredNbrs + filteredNbrs) * 0.4;
+//                    auto estimatedDirectedDistanceComp = totalNbrs + (totalNbrs - filteredNbrs);
+//                    if (localSelectivity >= 0.5) {
+//                        // If the selectivity is high, we will simply do one hop search since we can find the next
+//                        // closest directly from candidates priority queue.
+//                        oneHopSearch(candidates, firstHopNbrs, dc, filterMask, results, visited, vectorArray, size,
+//                                     efSearch, stats);
+//                        stats.oneHopCalls->increase(1);
+//                    } else if (estimatedFullTwoHopDistanceComp > estimatedDirectedDistanceComp) {
+//                        // We will use this metric to skip
+//                        // wanted distance computation in the first hop
+//                        directedTwoHopSearch(candidates, candidate, totalNbrs, cachedNbrsCount,
+//                                            firstHopNbrs, tableId, graph, dc, filterMask,
+//                                            state, results, visited, vectorArray, size, efSearch, stats);
+//                        stats.dynamicTwoHopCalls->increase(1);
+//                    } else {
                         // If the selectivity is low, we will not do dynamic two hop search since it does some extra
                         // distance computations to reduce listNbrs call which are redundant.
-//                        randomTwoHopSearch(firstHopNbrs, graph, filterMask, state, totalNbrs, visited, vectorArray,
-//                                        size, stats);
-                        fullTwoHopSearch(firstHopNbrs, tableId, graph, filterMask, state, visited, vectorArray, size,
-                                         stats);
+                        randomTwoHopSearch(firstHopNbrs, graph, filterMask, state, totalNbrs, visited, vectorArray,
+                                        size, stats);
+//                        fullTwoHopSearch(firstHopNbrs, tableId, graph, filterMask, state, visited, vectorArray, size,
+//                                         stats);
                         stats.twoHopCalls->increase(1);
-                    }
+//                    }
                     batchComputeDistance(vectorArray, size, dc, candidates, results, efSearch, stats);
                 }
             }
