@@ -78,6 +78,8 @@ std::unordered_map<std::string, std::vector<std::string>> tableColumnNames;
 
 std::vector<std::string> functionAndTypeNames;
 std::vector<std::string> tableFunctionNames;
+std::vector<std::string> aggregateFunctionNames;
+std::vector<std::string> scalarFunctionNames;
 
 bool continueLine = false;
 std::string currLine;
@@ -115,16 +117,26 @@ void EmbeddedShell::updateTableNames() {
 
 void EmbeddedShell::updateFunctionAndTypeNames() {
     functionAndTypeNames.clear();
-    for (auto& entry : database->catalog->getFunctionEntries(&transaction::DUMMY_TRANSACTION)) {
-        if (entry->getType() == catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY) {
-            tableFunctionNames.push_back(entry->getName());
-        } else {
-            functionAndTypeNames.push_back(entry->getName());
-        }
-    }
     auto typeNames = LogicalTypeUtils::getAllValidLogicTypeIDs();
     for (auto& type : typeNames) {
         functionAndTypeNames.push_back(LogicalTypeUtils::toString(type));
+    }
+    for (auto& entry : database->catalog->getFunctionEntries(&transaction::DUMMY_TRANSACTION)) {
+        switch (entry->getType()) {
+        case catalog::CatalogEntryType::AGGREGATE_FUNCTION_ENTRY:
+            aggregateFunctionNames.push_back(entry->getName());
+            break;
+        case catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY:
+            scalarFunctionNames.push_back(entry->getName());
+            break;
+        case catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY:
+        case catalog::CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY:
+            tableFunctionNames.push_back(entry->getName());
+            break;
+        default:
+            functionAndTypeNames.push_back(entry->getName());
+            break;
+        }
     }
 }
 
@@ -302,6 +314,14 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
 
     for (std::string keyword : keywordList) {
         keywordCompletion(buf, prefix, keyword, lc);
+    }
+
+    for (std::string function : aggregateFunctionNames) {
+        keywordCompletion(buf, prefix, function, lc);
+    }
+
+    for (std::string function : scalarFunctionNames) {
+        keywordCompletion(buf, prefix, function, lc);
     }
 
     for (std::string function : functionAndTypeNames) {
