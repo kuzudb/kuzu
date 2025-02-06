@@ -1,5 +1,6 @@
 -DATASET CSV tinysnb
-
+# Reenable this for vector size 2 once https://github.com/kuzudb/kuzu/issues/4861 is fixed
+-SKIP_VECTOR_SIZE_2
 --
 
 -CASE CorrelatedOptionalMatch
