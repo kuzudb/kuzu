@@ -23,8 +23,8 @@ namespace function {
 CreateHNSWSharedState::CreateHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : TableFuncSharedState{bindData.maxOffset}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-              ->getTable(bindData.tableEntry->getTableID())
-              ->cast<storage::NodeTable>()},
+                    ->getTable(bindData.tableEntry->getTableID())
+                    ->cast<storage::NodeTable>()},
       numNodes{bindData.numNodes}, bindData{&bindData} {
     hnswIndex = std::make_unique<storage::InMemHNSWIndex>(bindData.context, nodeTable,
         bindData.tableEntry->getColumnID(bindData.propertyID), bindData.config.copy());
@@ -183,14 +183,16 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
         columnIDs.push_back(upperRelTableEntry->getColumnID(property.getName()));
     }
     // Create RelBatchInsert and dummy sink operators.
-    binder::BoundCopyFromInfo upperCopyFromInfo(upperRelTableEntry);
+    binder::BoundCopyFromInfo upperCopyFromInfo(upperRelTableEntry, nullptr, nullptr, {}, {},
+        nullptr);
     const auto upperBatchInsertSharedState = std::make_shared<processor::BatchInsertSharedState>(
         upperRelTable, fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
     auto copyRelUpper = planMapper->createRelBatchInsertOp(clientContext,
         partitionerSharedState->upperPartitionerSharedState, upperBatchInsertSharedState,
         upperCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD, columnIDs,
         LogicalType::copy(columnTypes), planMapper->getOperatorID());
-    binder::BoundCopyFromInfo lowerCopyFromInfo(lowerRelTableEntry);
+    binder::BoundCopyFromInfo lowerCopyFromInfo(lowerRelTableEntry, nullptr, nullptr, {}, {},
+        nullptr);
     lowerCopyFromInfo.tableEntry = lowerRelTableEntry;
     const auto lowerBatchInsertSharedState = std::make_shared<processor::BatchInsertSharedState>(
         lowerRelTable, fTable, &storageManager->getWAL(), clientContext->getMemoryManager());

@@ -82,7 +82,6 @@ private:
     std::unique_ptr<PhysicalOperator> mapAttachDatabase(
         const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCopyFrom(const planner::LogicalOperator* logicalOperator);
-    physical_op_vector_t mapCopyHNSWIndexFrom(const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCopyNodeFrom(
         const planner::LogicalOperator* logicalOperator);
     physical_op_vector_t mapCopyRelFrom(const planner::LogicalOperator* logicalOperator);
