@@ -2,7 +2,6 @@
 #include "binder/query/reading_clause/bound_gds_call.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
-#include "binder/query/reading_clause/bound_table_function_call.h"
 #include "common/enums/join_type.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/planner.h"
