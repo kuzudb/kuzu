@@ -37,6 +37,16 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
+void Planner::appendExplain(const BoundStatement& statement, LogicalPlan& plan) {
+    auto& explain = statement.constCast<BoundExplain>();
+    auto statementToExplain = explain.getStatementToExplain();
+    auto planToExplain = getBestPlan(*statementToExplain);
+    auto op = make_shared<LogicalExplain>(planToExplain->getLastOperator(),
+        statement.getStatementResult()->getSingleColumnExpr(), explain.getExplainType(),
+        explain.getStatementToExplain()->getStatementResult()->getColumns());
+    plan.setLastOperator(std::move(op));
+}
+
 void Planner::appendCreateTable(const BoundStatement& statement, LogicalPlan& plan) {
     auto& createTable = statement.constCast<BoundCreateTable>();
     auto info = createTable.getInfo();
@@ -103,16 +113,6 @@ void Planner::appendStandaloneCallFunction(const BoundStatement& statement, Logi
             std::move(op));
     }
     op->computeFactorizedSchema();
-    plan.setLastOperator(std::move(op));
-}
-
-void Planner::appendExplain(const BoundStatement& statement, LogicalPlan& plan) {
-    auto& explain = statement.constCast<BoundExplain>();
-    auto statementToExplain = explain.getStatementToExplain();
-    auto planToExplain = getBestPlan(*statementToExplain);
-    auto op = make_shared<LogicalExplain>(planToExplain->getLastOperator(),
-        statement.getStatementResult()->getSingleColumnExpr(), explain.getExplainType(),
-        explain.getStatementToExplain()->getStatementResult()->getColumns());
     plan.setLastOperator(std::move(op));
 }
 

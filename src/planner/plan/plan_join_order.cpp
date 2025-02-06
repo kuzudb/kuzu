@@ -86,7 +86,7 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraphCollection
             plans = enumerateQueryGraph(*queryGraph, newInfo);
         } break;
         case SubqueryPlanningType::CORRELATED: {
-            if (i == (uint32_t)queryGraphIdxToPlanExpressionsScan) {
+            if (i == static_cast<uint32_t>(queryGraphIdxToPlanExpressionsScan)) {
                 // Plan ExpressionsScan with current query graph.
                 plans = enumerateQueryGraph(*queryGraph, newInfo);
             } else {
@@ -318,8 +318,8 @@ void Planner::appendExtend(std::shared_ptr<NodeExpression> boundNode,
     switch (rel->getRelType()) {
     case QueryRelType::NON_RECURSIVE: {
         auto extendFromSource = *boundNode == *rel->getSrcNode();
-        appendNonRecursiveExtend(boundNode, nbrNode, rel, direction, extendFromSource, properties,
-            plan);
+        appendNonRecursiveExtend(std::move(boundNode), std::move(nbrNode), std::move(rel),
+            direction, extendFromSource, properties, plan);
 
     } break;
     case QueryRelType::VARIABLE_LENGTH_WALK:
@@ -329,9 +329,11 @@ void Planner::appendExtend(std::shared_ptr<NodeExpression> boundNode,
     case QueryRelType::ALL_SHORTEST:
     case QueryRelType::WEIGHTED_SHORTEST: {
         if (clientContext->getClientConfig()->enableGDS) {
-            appendRecursiveExtendAsGDS(boundNode, nbrNode, rel, direction, plan);
+            appendRecursiveExtendAsGDS(std::move(boundNode), std::move(nbrNode), std::move(rel),
+                direction, plan);
         } else {
-            appendRecursiveExtend(boundNode, nbrNode, rel, direction, plan);
+            appendRecursiveExtend(std::move(boundNode), std::move(nbrNode), std::move(rel),
+                direction, plan);
         }
     } break;
     default:
@@ -409,7 +411,8 @@ static bool isNodeSequentialOnPlan(const LogicalPlan& plan, const NodeExpression
 
 // As a heuristic for wcoj, we always pick rel scan that starts from the bound node.
 static std::unique_ptr<LogicalPlan> getWCOJBuildPlanForRel(
-    std::vector<std::unique_ptr<LogicalPlan>>& candidatePlans, const NodeExpression& boundNode) {
+    const std::vector<std::unique_ptr<LogicalPlan>>& candidatePlans,
+    const NodeExpression& boundNode) {
     std::unique_ptr<LogicalPlan> result;
     for (auto& candidatePlan : candidatePlans) {
         if (isNodeSequentialOnPlan(*candidatePlan, boundNode)) {
@@ -609,8 +612,8 @@ void Planner::planInnerHashJoin(const SubqueryGraph& subgraph, const SubqueryGra
 }
 
 std::vector<std::unique_ptr<LogicalPlan>> Planner::planCrossProduct(
-    std::vector<std::unique_ptr<LogicalPlan>> leftPlans,
-    std::vector<std::unique_ptr<LogicalPlan>> rightPlans) {
+    const std::vector<std::unique_ptr<LogicalPlan>>& leftPlans,
+    const std::vector<std::unique_ptr<LogicalPlan>>& rightPlans) const {
     std::vector<std::unique_ptr<LogicalPlan>> result;
     for (auto& leftPlan : leftPlans) {
         for (auto& rightPlan : rightPlans) {

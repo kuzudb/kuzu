@@ -60,29 +60,42 @@ private:
 };
 
 class Planner {
+    friend class JoinPlanSolver;
+
 public:
     explicit Planner(main::ClientContext* clientContext);
     DELETE_COPY_AND_MOVE(Planner);
 
     std::unique_ptr<LogicalPlan> getBestPlan(const binder::BoundStatement& statement);
 
-    std::vector<std::unique_ptr<LogicalPlan>> getAllPlans(const binder::BoundStatement& statement);
+    static binder::expression_vector getNewlyMatchedExprs(const binder::SubqueryGraph& leftPrev,
+        const binder::SubqueryGraph& rightPrev, const binder::SubqueryGraph& new_,
+        const binder::expression_vector& exprs);
+    static binder::expression_vector getNewlyMatchedExprs(
+        const std::vector<binder::SubqueryGraph>& prevs, const binder::SubqueryGraph& new_,
+        const binder::expression_vector& exprs);
+    static binder::expression_vector getNewlyMatchedExprs(const binder::SubqueryGraph& prev,
+        const binder::SubqueryGraph& new_, const binder::expression_vector& exprs);
 
+    const CardinalityEstimator& getCardinalityEstimator() const { return cardinalityEstimator; }
+
+private:
     // Plan simple statement.
-    void appendCreateTable(const binder::BoundStatement& statement, LogicalPlan& plan);
-    void appendCreateType(const binder::BoundStatement& statement, LogicalPlan& plan);
-    void appendCreateSequence(const binder::BoundStatement& statement, LogicalPlan& plan);
-    void appendDrop(const binder::BoundStatement& statement, LogicalPlan& plan);
-    void appendAlter(const binder::BoundStatement& statement, LogicalPlan& plan);
-    void appendStandaloneCall(const binder::BoundStatement& statement, LogicalPlan& plan);
-    void appendStandaloneCallFunction(const binder::BoundStatement& statement, LogicalPlan& plan);
     void appendExplain(const binder::BoundStatement& statement, LogicalPlan& plan);
-    void appendCreateMacro(const binder::BoundStatement& statement, LogicalPlan& plan);
-    void appendTransaction(const binder::BoundStatement& statement, LogicalPlan& plan);
-    void appendExtension(const binder::BoundStatement& statement, LogicalPlan& plan);
-    void appendAttachDatabase(const binder::BoundStatement& statement, LogicalPlan& plan);
-    void appendDetachDatabase(const binder::BoundStatement& statement, LogicalPlan& plan);
-    void appendUseDatabase(const binder::BoundStatement& statement, LogicalPlan& plan);
+    static void appendCreateTable(const binder::BoundStatement& statement, LogicalPlan& plan);
+    static void appendCreateType(const binder::BoundStatement& statement, LogicalPlan& plan);
+    static void appendCreateSequence(const binder::BoundStatement& statement, LogicalPlan& plan);
+    static void appendDrop(const binder::BoundStatement& statement, LogicalPlan& plan);
+    static void appendAlter(const binder::BoundStatement& statement, LogicalPlan& plan);
+    static void appendStandaloneCall(const binder::BoundStatement& statement, LogicalPlan& plan);
+    static void appendStandaloneCallFunction(const binder::BoundStatement& statement,
+        LogicalPlan& plan);
+    static void appendCreateMacro(const binder::BoundStatement& statement, LogicalPlan& plan);
+    static void appendTransaction(const binder::BoundStatement& statement, LogicalPlan& plan);
+    static void appendExtension(const binder::BoundStatement& statement, LogicalPlan& plan);
+    static void appendAttachDatabase(const binder::BoundStatement& statement, LogicalPlan& plan);
+    static void appendDetachDatabase(const binder::BoundStatement& statement, LogicalPlan& plan);
+    static void appendUseDatabase(const binder::BoundStatement& statement, LogicalPlan& plan);
 
     // Plan copy.
     std::unique_ptr<LogicalPlan> planCopyTo(const binder::BoundStatement& statement);
@@ -94,7 +107,7 @@ public:
 
     // Plan export/import database
     std::unique_ptr<LogicalPlan> planExportDatabase(const binder::BoundStatement& statement);
-    std::unique_ptr<LogicalPlan> planImportDatabase(const binder::BoundStatement& statement);
+    static std::unique_ptr<LogicalPlan> planImportDatabase(const binder::BoundStatement& statement);
 
     // Plan query.
     std::vector<std::unique_ptr<LogicalPlan>> planQuery(
@@ -111,7 +124,7 @@ public:
     void planMatchClause(const binder::BoundReadingClause& readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
     void planUnwindClause(const binder::BoundReadingClause& readingClause,
-        std::vector<std::unique_ptr<LogicalPlan>>& plans);
+        std::vector<std::unique_ptr<LogicalPlan>>& plans) const;
     void planTableFunctionCall(const binder::BoundReadingClause& readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
     void planGDSCall(const binder::BoundReadingClause& readingClause,
@@ -203,8 +216,8 @@ public:
         const std::vector<std::shared_ptr<binder::NodeExpression>>& joinNodes, bool flipPlan);
 
     std::vector<std::unique_ptr<LogicalPlan>> planCrossProduct(
-        std::vector<std::unique_ptr<LogicalPlan>> leftPlans,
-        std::vector<std::unique_ptr<LogicalPlan>> rightPlans);
+        const std::vector<std::unique_ptr<LogicalPlan>>& leftPlans,
+        const std::vector<std::unique_ptr<LogicalPlan>>& rightPlans) const;
 
     // Append empty result
     void appendEmptyResult(LogicalPlan& plan);
@@ -223,18 +236,12 @@ public:
     // Append projection operators
     void appendProjection(const binder::expression_vector& expressionsToProject, LogicalPlan& plan);
     void appendAggregate(const binder::expression_vector& expressionsToGroupBy,
-        const binder::expression_vector& expressionsToAggregate, LogicalPlan& plan);
+        const binder::expression_vector& expressionsToAggregate, LogicalPlan& plan) const;
     void appendOrderBy(const binder::expression_vector& expressions,
         const std::vector<bool>& isAscOrders, LogicalPlan& plan);
-    void appendMultiplicityReducer(LogicalPlan& plan);
+    static void appendMultiplicityReducer(LogicalPlan& plan);
     void appendLimit(std::shared_ptr<binder::Expression> skipNum,
         std::shared_ptr<binder::Expression> limitNum, LogicalPlan& plan);
-
-    // Append scan operators
-    void appendExpressionsScan(const binder::expression_vector& expressions, LogicalPlan& plan);
-    void appendScanNodeTable(std::shared_ptr<binder::Expression> nodeID,
-        std::vector<common::table_id_t> tableIDs, const binder::expression_vector& properties,
-        LogicalPlan& plan);
 
     // Append extend operators
     void appendNonRecursiveExtend(const std::shared_ptr<binder::NodeExpression>& boundNode,
@@ -265,94 +272,93 @@ public:
 
     // Append Join operators
     void appendHashJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
-        LogicalPlan& probePlan, LogicalPlan& buildPlan, LogicalPlan& resultPlan);
+        LogicalPlan& probePlan, LogicalPlan& buildPlan, LogicalPlan& resultPlan) const;
     void appendHashJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
         std::shared_ptr<binder::Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
-        LogicalPlan& resultPlan);
+        LogicalPlan& resultPlan) const;
     void appendHashJoin(const std::vector<binder::expression_pair>& joinConditions,
         common::JoinType joinType, std::shared_ptr<binder::Expression> mark, LogicalPlan& probePlan,
-        LogicalPlan& buildPlan, LogicalPlan& resultPlan);
+        LogicalPlan& buildPlan, LogicalPlan& resultPlan) const;
     void appendAccHashJoin(const std::vector<binder::expression_pair>& joinConditions,
         common::JoinType joinType, std::shared_ptr<binder::Expression> mark, LogicalPlan& probePlan,
-        LogicalPlan& buildPlan, LogicalPlan& resultPlan);
+        LogicalPlan& buildPlan, LogicalPlan& resultPlan) const;
     void appendMarkJoin(const binder::expression_vector& joinNodeIDs,
         const std::shared_ptr<binder::Expression>& mark, LogicalPlan& probePlan,
-        LogicalPlan& buildPlan, LogicalPlan& resultPlan);
+        LogicalPlan& buildPlan, LogicalPlan& resultPlan) const;
     void appendMarkJoin(const std::vector<binder::expression_pair>& joinConditions,
         const std::shared_ptr<binder::Expression>& mark, LogicalPlan& probePlan,
-        LogicalPlan& buildPlan, LogicalPlan& resultPlan);
+        LogicalPlan& buildPlan, LogicalPlan& resultPlan) const;
     void appendIntersect(const std::shared_ptr<binder::Expression>& intersectNodeID,
-        binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
-        std::vector<std::unique_ptr<LogicalPlan>>& buildPlans);
+        const binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
+        const std::vector<std::unique_ptr<LogicalPlan>>& buildPlans) const;
 
     void appendCrossProduct(const LogicalPlan& probePlan, const LogicalPlan& buildPlan,
-        LogicalPlan& resultPlan);
+        LogicalPlan& resultPlan) const;
     // Optional cross product produce at least one tuple for each probe tuple
     void appendOptionalCrossProduct(std::shared_ptr<binder::Expression> mark,
-        const LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan);
+        const LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan) const;
     void appendAccOptionalCrossProduct(std::shared_ptr<binder::Expression> mark,
-        LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan);
+        LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan) const;
     void appendCrossProduct(common::AccumulateType accumulateType,
         std::shared_ptr<binder::Expression> mark, const LogicalPlan& probePlan,
-        const LogicalPlan& buildPlan, LogicalPlan& resultPlan);
+        const LogicalPlan& buildPlan, LogicalPlan& resultPlan) const;
 
     /* Append accumulate */
 
     // Skip if plan has been accumulated.
-    void tryAppendAccumulate(LogicalPlan& plan);
+    void tryAppendAccumulate(LogicalPlan& plan) const;
     // Accumulate everything.
-    void appendAccumulate(LogicalPlan& plan);
+    void appendAccumulate(LogicalPlan& plan) const;
     // Accumulate everything. Append mark.
-    void appendOptionalAccumulate(std::shared_ptr<binder::Expression> mark, LogicalPlan& plan);
+    void appendOptionalAccumulate(std::shared_ptr<binder::Expression> mark,
+        LogicalPlan& plan) const;
     // Append accumulate with a set of expressions being flattened first.
-    void appendAccumulate(const binder::expression_vector& flatExprs, LogicalPlan& plan);
+    void appendAccumulate(const binder::expression_vector& flatExprs, LogicalPlan& plan) const;
     // Append accumulate with a set of expressions being flattened first. Append mark.
     void appendAccumulate(common::AccumulateType accumulateType,
         const binder::expression_vector& flatExprs, std::shared_ptr<binder::Expression> mark,
-        LogicalPlan& plan);
+        LogicalPlan& plan) const;
 
-    void appendDummyScan(LogicalPlan& plan);
+    void appendUnwind(const binder::BoundReadingClause& boundReadingClause,
+        LogicalPlan& plan) const;
 
-    void appendUnwind(const binder::BoundReadingClause& boundReadingClause, LogicalPlan& plan);
-
-    void appendFlattens(const f_group_pos_set& groupsPos, LogicalPlan& plan);
-    void appendFlattenIfNecessary(f_group_pos groupPos, LogicalPlan& plan);
+    void appendFlattens(const f_group_pos_set& groupsPos, LogicalPlan& plan) const;
+    void appendFlattenIfNecessary(f_group_pos groupPos, LogicalPlan& plan) const;
 
     void appendFilters(const binder::expression_vector& predicates, LogicalPlan& plan);
     void appendFilter(const std::shared_ptr<binder::Expression>& predicate, LogicalPlan& plan);
 
-    void appendTableFunctionCall(const binder::BoundTableScanSourceInfo& info, LogicalPlan& plan);
+    static void appendTableFunctionCall(const binder::BoundTableScanSourceInfo& info,
+        LogicalPlan& plan);
 
-    void appendDistinct(const binder::expression_vector& keys, LogicalPlan& plan);
-
-    const CardinalityEstimator& getCardinalityEstimator() const { return cardinalityEstimator; }
-
-    // Get operators
-    std::shared_ptr<LogicalOperator> getTableFunctionCall(
-        const binder::BoundTableScanSourceInfo& info);
-    std::shared_ptr<LogicalOperator> getTableFunctionCall(
-        const binder::BoundReadingClause& readingClause);
-    std::shared_ptr<LogicalOperator> getGDSCall(const binder::BoundGDSCallInfo& info);
+    void appendDistinct(const binder::expression_vector& keys, LogicalPlan& plan) const;
 
     std::unique_ptr<LogicalPlan> createUnionPlan(
-        std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);
-    std::unique_ptr<LogicalPlan> getBestPlan(std::vector<std::unique_ptr<LogicalPlan>> plans);
+        const std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll) const;
+
+    // Append scan operators
+    static void appendDummyScan(LogicalPlan& plan);
+    void appendExpressionsScan(const binder::expression_vector& expressions, LogicalPlan& plan);
+    void appendScanNodeTable(std::shared_ptr<binder::Expression> nodeID,
+        std::vector<common::table_id_t> tableIDs, const binder::expression_vector& properties,
+        LogicalPlan& plan) const;
+
+    // Get operators
+    static std::shared_ptr<LogicalOperator> getTableFunctionCall(
+        const binder::BoundTableScanSourceInfo& info);
+    static std::shared_ptr<LogicalOperator> getTableFunctionCall(
+        const binder::BoundReadingClause& readingClause);
+    static std::shared_ptr<LogicalOperator> getGDSCall(const binder::BoundGDSCallInfo& info);
 
     static std::vector<std::unique_ptr<LogicalPlan>> getInitialEmptyPlans();
 
-    binder::expression_vector getProperties(const binder::Expression& pattern);
+    binder::expression_vector getProperties(const binder::Expression& pattern) const;
 
     JoinOrderEnumeratorContext enterContext();
     void exitContext(JoinOrderEnumeratorContext prevContext);
 
-    static binder::expression_vector getNewlyMatchedExprs(
-        const std::vector<binder::SubqueryGraph>& prevs, const binder::SubqueryGraph& new_,
-        const binder::expression_vector& exprs);
-    static binder::expression_vector getNewlyMatchedExprs(const binder::SubqueryGraph& prev,
-        const binder::SubqueryGraph& new_, const binder::expression_vector& exprs);
-    static binder::expression_vector getNewlyMatchedExprs(const binder::SubqueryGraph& leftPrev,
-        const binder::SubqueryGraph& rightPrev, const binder::SubqueryGraph& new_,
-        const binder::expression_vector& exprs);
+    static std::unique_ptr<LogicalPlan> getBestPlan(
+        std::vector<std::unique_ptr<LogicalPlan>> plans);
 
 private:
     main::ClientContext* clientContext;

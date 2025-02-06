@@ -9,7 +9,7 @@ namespace kuzu {
 namespace planner {
 
 static std::vector<std::vector<std::unique_ptr<LogicalPlan>>> cartesianProductChildrenPlans(
-    std::vector<std::vector<std::unique_ptr<LogicalPlan>>> childrenLogicalPlans) {
+    const std::vector<std::vector<std::unique_ptr<LogicalPlan>>>& childrenLogicalPlans) {
     std::vector<std::vector<std::unique_ptr<LogicalPlan>>> resultChildrenPlans;
     for (auto& childLogicalPlans : childrenLogicalPlans) {
         std::vector<std::vector<std::unique_ptr<LogicalPlan>>> curChildResultLogicalPlans;
@@ -37,7 +37,7 @@ static std::vector<std::vector<std::unique_ptr<LogicalPlan>>> cartesianProductCh
 
 std::vector<std::unique_ptr<LogicalPlan>> Planner::planQuery(const BoundStatement& boundStatement) {
     std::vector<std::unique_ptr<LogicalPlan>> resultPlans;
-    auto& regularQuery = (BoundRegularQuery&)boundStatement;
+    auto& regularQuery = boundStatement.constCast<BoundRegularQuery>();
     if (regularQuery.getNumSingleQueries() == 1) {
         resultPlans = planSingleQuery(regularQuery.getSingleQuery(0));
     } else {
@@ -54,18 +54,8 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::planQuery(const BoundStatemen
     return resultPlans;
 }
 
-std::unique_ptr<LogicalPlan> Planner::getBestPlan(std::vector<std::unique_ptr<LogicalPlan>> plans) {
-    auto bestPlan = std::move(plans[0]);
-    for (auto i = 1u; i < plans.size(); ++i) {
-        if (plans[i]->getCost() < bestPlan->getCost()) {
-            bestPlan = std::move(plans[i]);
-        }
-    }
-    return bestPlan;
-}
-
 std::unique_ptr<LogicalPlan> Planner::createUnionPlan(
-    std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll) {
+    const std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll) const {
     KU_ASSERT(!childrenPlans.empty());
     auto plan = std::make_unique<LogicalPlan>();
     std::vector<std::shared_ptr<LogicalOperator>> children;
@@ -94,7 +84,7 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::getInitialEmptyPlans() {
     return plans;
 }
 
-expression_vector Planner::getProperties(const Expression& pattern) {
+expression_vector Planner::getProperties(const Expression& pattern) const {
     KU_ASSERT(pattern.expressionType == ExpressionType::PATTERN);
     return propertyExprCollection.getProperties(pattern);
 }
@@ -107,6 +97,16 @@ JoinOrderEnumeratorContext Planner::enterContext() {
 
 void Planner::exitContext(JoinOrderEnumeratorContext prevContext) {
     context = std::move(prevContext);
+}
+
+std::unique_ptr<LogicalPlan> Planner::getBestPlan(std::vector<std::unique_ptr<LogicalPlan>> plans) {
+    auto bestPlan = std::move(plans[0]);
+    for (auto i = 1u; i < plans.size(); ++i) {
+        if (plans[i]->getCost() < bestPlan->getCost()) {
+            bestPlan = std::move(plans[i]);
+        }
+    }
+    return bestPlan;
 }
 
 } // namespace planner

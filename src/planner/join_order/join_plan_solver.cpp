@@ -52,7 +52,7 @@ static std::shared_ptr<binder::NodeExpression> getOtherNode(const RelExpression&
     return rel.getSrcNode();
 }
 
-LogicalPlan JoinPlanSolver::solveNodeScanTreeNode(const JoinTreeNode& treeNode) {
+LogicalPlan JoinPlanSolver::solveNodeScanTreeNode(const JoinTreeNode& treeNode) const {
     auto& extraInfo = treeNode.extraInfo->constCast<ExtraScanTreeNodeInfo>();
     KU_ASSERT(extraInfo.nodeInfo != nullptr);
     auto& nodeInfo = *extraInfo.nodeInfo;
@@ -73,7 +73,7 @@ LogicalPlan JoinPlanSolver::solveNodeScanTreeNode(const JoinTreeNode& treeNode) 
 }
 
 LogicalPlan JoinPlanSolver::solveRelScanTreeNode(const JoinTreeNode& treeNode,
-    const JoinTreeNode& parent) {
+    const JoinTreeNode& parent) const {
     auto& extraInfo = treeNode.extraInfo->constCast<ExtraScanTreeNodeInfo>();
     auto& relInfo = extraInfo.relInfos[0];
     auto rel = std::static_pointer_cast<RelExpression>(relInfo.nodeOrRel);

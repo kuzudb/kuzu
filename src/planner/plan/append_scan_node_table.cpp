@@ -20,7 +20,8 @@ static expression_vector removeInternalIDProperty(const expression_vector& expre
 }
 
 void Planner::appendScanNodeTable(std::shared_ptr<Expression> nodeID,
-    std::vector<table_id_t> tableIDs, const expression_vector& properties, LogicalPlan& plan) {
+    std::vector<table_id_t> tableIDs, const expression_vector& properties,
+    LogicalPlan& plan) const {
     auto propertiesToScan_ = removeInternalIDProperty(properties);
     auto scan = make_shared<LogicalScanNodeTable>(std::move(nodeID), std::move(tableIDs),
         propertiesToScan_);

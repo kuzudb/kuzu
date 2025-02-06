@@ -86,13 +86,13 @@ uint64_t CardinalityEstimator::estimateScanNode(const LogicalOperator& op) const
     }
 }
 
-uint64_t CardinalityEstimator::estimateAggregate(const LogicalAggregate& op) const {
+uint64_t CardinalityEstimator::estimateAggregate(const LogicalAggregate& op) {
     // TODO(Royi) we can use HLL to better estimate the number of distinct keys here
     return op.getKeys().empty() ? 1 : op.getChild(0)->getCardinality();
 }
 
 cardinality_t CardinalityEstimator::estimateExtend(double extensionRate,
-    const LogicalOperator& childOp) const {
+    const LogicalOperator& childOp) {
     return atLeastOne(extensionRate * childOp.getCardinality());
 }
 
@@ -121,7 +121,7 @@ uint64_t CardinalityEstimator::estimateHashJoin(
 }
 
 uint64_t CardinalityEstimator::estimateCrossProduct(const LogicalOperator& probeOp,
-    const LogicalOperator& buildOp) const {
+    const LogicalOperator& buildOp) {
     return atLeastOne(probeOp.getCardinality() * buildOp.getCardinality());
 }
 
@@ -145,7 +145,7 @@ uint64_t CardinalityEstimator::estimateIntersect(const expression_vector& joinNo
 }
 
 uint64_t CardinalityEstimator::estimateFlatten(const LogicalOperator& childOp,
-    f_group_pos groupPosToFlatten) const {
+    f_group_pos groupPosToFlatten) {
     auto group = childOp.getSchema()->getGroup(groupPosToFlatten);
     return atLeastOne(childOp.getCardinality() * group->cardinalityMultiplier);
 }
@@ -154,7 +154,7 @@ static bool isPrimaryKey(const Expression& expression) {
     if (expression.expressionType != ExpressionType::PROPERTY) {
         return false;
     }
-    return ((PropertyExpression&)expression).isPrimaryKey();
+    return expression.constCast<PropertyExpression>().isPrimaryKey();
 }
 
 static bool isSingleLabelledProperty(const Expression& expression) {
@@ -164,7 +164,7 @@ static bool isSingleLabelledProperty(const Expression& expression) {
     return expression.constCast<PropertyExpression>().isSingleLabel();
 }
 
-static std::optional<cardinality_t> getTableStatsIfPossible(main::ClientContext* context,
+static std::optional<cardinality_t> getTableStatsIfPossible(const main::ClientContext* context,
     const Expression& predicate,
     const std::unordered_map<common::table_id_t, storage::TableStats>& nodeTableStats) {
     KU_ASSERT(predicate.getNumChildren() >= 1);
@@ -183,7 +183,7 @@ static std::optional<cardinality_t> getTableStatsIfPossible(main::ClientContext*
     return {};
 }
 
-uint64_t CardinalityEstimator::estimateFilter(const LogicalOperator& childPlan,
+uint64_t CardinalityEstimator::estimateFilter(const LogicalOperator& childOp,
     const Expression& predicate) const {
     if (predicate.expressionType == ExpressionType::EQUALS) {
         if (isPrimaryKey(*predicate.getChild(0)) || isPrimaryKey(*predicate.getChild(1))) {
@@ -192,14 +192,14 @@ uint64_t CardinalityEstimator::estimateFilter(const LogicalOperator& childPlan,
             const auto numDistinctValues =
                 getTableStatsIfPossible(context, predicate, nodeTableStats);
             if (numDistinctValues.has_value()) {
-                return atLeastOne(childPlan.getCardinality() / numDistinctValues.value());
+                return atLeastOne(childOp.getCardinality() / numDistinctValues.value());
             }
             return atLeastOne(
-                childPlan.getCardinality() * PlannerKnobs::EQUALITY_PREDICATE_SELECTIVITY);
+                childOp.getCardinality() * PlannerKnobs::EQUALITY_PREDICATE_SELECTIVITY);
         }
     } else {
         return atLeastOne(
-            childPlan.getCardinality() * PlannerKnobs::NON_EQUALITY_PREDICATE_SELECTIVITY);
+            childOp.getCardinality() * PlannerKnobs::NON_EQUALITY_PREDICATE_SELECTIVITY);
     }
 }
 

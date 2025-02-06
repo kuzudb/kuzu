@@ -7,7 +7,7 @@ namespace kuzu {
 namespace planner {
 
 void Planner::appendAggregate(const expression_vector& expressionsToGroupBy,
-    const expression_vector& expressionsToAggregate, LogicalPlan& plan) {
+    const expression_vector& expressionsToAggregate, LogicalPlan& plan) const {
     auto aggregate = make_shared<LogicalAggregate>(expressionsToGroupBy, expressionsToAggregate,
         plan.getLastOperator());
     appendFlattens(aggregate->getGroupsPosToFlattenForGroupBy(), plan);

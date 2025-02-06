@@ -13,12 +13,12 @@ namespace planner {
 
 expression_vector PropertyExprCollection::getProperties(const Expression& pattern) const {
     if (!patternNameToProperties.contains(pattern.getUniqueName())) {
-        return binder::expression_vector{};
+        return expression_vector{};
     }
     return patternNameToProperties.at(pattern.getUniqueName());
 }
 
-binder::expression_vector PropertyExprCollection::getProperties() const {
+expression_vector PropertyExprCollection::getProperties() const {
     expression_vector result;
     for (auto& [_, exprs] : patternNameToProperties) {
         for (auto& expr : exprs) {
@@ -29,7 +29,7 @@ binder::expression_vector PropertyExprCollection::getProperties() const {
 }
 
 void PropertyExprCollection::addProperties(const std::string& patternName,
-    std::shared_ptr<binder::Expression> property) {
+    std::shared_ptr<Expression> property) {
     if (!patternNameToProperties.contains(patternName)) {
         patternNameToProperties.insert({patternName, expression_vector{}});
     }
@@ -38,7 +38,7 @@ void PropertyExprCollection::addProperties(const std::string& patternName,
             return;
         }
     }
-    patternNameToProperties.at(patternName).push_back(property);
+    patternNameToProperties.at(patternName).push_back(std::move(property));
 }
 
 void PropertyExprCollection::clear() {
@@ -114,30 +114,6 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const BoundStatement& statemen
         KU_UNREACHABLE;
     }
     return plan;
-}
-
-std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllPlans(const BoundStatement& statement) {
-    // We enumerate all plans for our testing framework. This API should only be used for QUERY,
-    // EXPLAIN, but not DDL or COPY.
-    std::vector<std::unique_ptr<LogicalPlan>> plans;
-    switch (statement.getStatementType()) {
-    case StatementType::QUERY: {
-        for (auto& plan : planQuery(statement)) {
-            // Avoid sharing operator across plans.
-            plans.push_back(plan->deepCopy());
-        }
-    } break;
-    case StatementType::EXPLAIN: {
-        auto& explain = ku_dynamic_cast<const BoundExplain&>(statement);
-        plans = getAllPlans(*explain.getStatementToExplain());
-        for (auto& plan : plans) {
-            appendExplain(explain, *plan);
-        }
-    } break;
-    default:
-        KU_UNREACHABLE;
-    }
-    return plans;
 }
 
 } // namespace planner

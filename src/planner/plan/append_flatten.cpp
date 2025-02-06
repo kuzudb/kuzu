@@ -4,13 +4,13 @@
 namespace kuzu {
 namespace planner {
 
-void Planner::appendFlattens(const f_group_pos_set& groupsPos, LogicalPlan& plan) {
+void Planner::appendFlattens(const f_group_pos_set& groupsPos, LogicalPlan& plan) const {
     for (auto groupPos : groupsPos) {
         appendFlattenIfNecessary(groupPos, plan);
     }
 }
 
-void Planner::appendFlattenIfNecessary(f_group_pos groupPos, LogicalPlan& plan) {
+void Planner::appendFlattenIfNecessary(f_group_pos groupPos, LogicalPlan& plan) const {
     auto group = plan.getSchema()->getGroup(groupPos);
     if (group->isFlat()) {
         return;

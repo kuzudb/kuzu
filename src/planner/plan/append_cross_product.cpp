@@ -8,27 +8,29 @@ namespace kuzu {
 namespace planner {
 
 void Planner::appendCrossProduct(const LogicalPlan& probePlan, const LogicalPlan& buildPlan,
-    LogicalPlan& resultPlan) {
+    LogicalPlan& resultPlan) const {
     appendCrossProduct(AccumulateType::REGULAR, nullptr /* mark */, probePlan, buildPlan,
         resultPlan);
 }
 
 void Planner::appendOptionalCrossProduct(std::shared_ptr<Expression> mark,
-    const LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
-    appendCrossProduct(AccumulateType::OPTIONAL_, mark, probePlan, buildPlan, resultPlan);
+    const LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan) const {
+    appendCrossProduct(AccumulateType::OPTIONAL_, std::move(mark), probePlan, buildPlan,
+        resultPlan);
 }
 
 void Planner::appendAccOptionalCrossProduct(std::shared_ptr<Expression> mark,
-    LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
+    LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan) const {
     KU_ASSERT(probePlan.hasUpdate());
     tryAppendAccumulate(probePlan);
-    appendCrossProduct(AccumulateType::OPTIONAL_, mark, probePlan, buildPlan, resultPlan);
+    appendCrossProduct(AccumulateType::OPTIONAL_, std::move(mark), probePlan, buildPlan,
+        resultPlan);
     auto& sipInfo = resultPlan.getLastOperator()->cast<LogicalCrossProduct>().getSIPInfoUnsafe();
     sipInfo.direction = SIPDirection::PROBE_TO_BUILD;
 }
 
 void Planner::appendCrossProduct(AccumulateType accumulateType, std::shared_ptr<Expression> mark,
-    const LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
+    const LogicalPlan& probePlan, const LogicalPlan& buildPlan, LogicalPlan& resultPlan) const {
     auto crossProduct = make_shared<LogicalCrossProduct>(accumulateType, mark,
         probePlan.getLastOperator(), buildPlan.getLastOperator(),
         cardinalityEstimator.estimateCrossProduct(probePlan.getLastOperatorRef(),

@@ -71,7 +71,7 @@ void Planner::planMatchClause(const BoundReadingClause& readingClause,
 }
 
 void Planner::planUnwindClause(const BoundReadingClause& boundReadingClause,
-    std::vector<std::unique_ptr<LogicalPlan>>& plans) {
+    std::vector<std::unique_ptr<LogicalPlan>>& plans) const {
     for (auto& plan : plans) {
         if (plan->isEmpty()) { // UNWIND [1, 2, 3, 4] AS x RETURN x
             appendDummyScan(*plan);

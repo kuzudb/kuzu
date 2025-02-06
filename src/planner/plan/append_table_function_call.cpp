@@ -16,7 +16,7 @@ void Planner::appendTableFunctionCall(const BoundTableScanSourceInfo& info, Logi
 }
 
 std::shared_ptr<LogicalOperator> Planner::getTableFunctionCall(
-    const binder::BoundTableScanSourceInfo& info) {
+    const BoundTableScanSourceInfo& info) {
     return std::make_shared<LogicalTableFunctionCall>(info.func, info.bindData->copy(),
         info.columns);
 }

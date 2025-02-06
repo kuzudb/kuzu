@@ -92,7 +92,7 @@ private:
         return {nullptr, nullptr};
     }
 
-    bool isUnnestableJoinCondition(const Expression& left, const Expression& right) {
+    bool isUnnestableJoinCondition(const Expression& left, const Expression& right) const {
         return right.expressionType == ExpressionType::PROPERTY &&
                schema.isExpressionInScope(left) && !schema.isExpressionInScope(right);
     }
@@ -284,7 +284,7 @@ void Planner::planSubquery(const std::shared_ptr<Expression>& expression, Logica
 
 void Planner::planSubqueryIfNecessary(std::shared_ptr<Expression> expression, LogicalPlan& plan) {
     auto collector = SubqueryExprCollector();
-    collector.visit(expression);
+    collector.visit(std::move(expression));
     if (collector.hasSubquery()) {
         for (auto& expr : collector.getSubqueryExprs()) {
             if (plan.getSchema()->isExpressionInScope(*expr)) {

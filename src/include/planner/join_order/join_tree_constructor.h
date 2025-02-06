@@ -24,11 +24,11 @@ private:
     };
 
     IntermediateResult constructTreeNode(std::shared_ptr<binder::BoundJoinHintNode> hintNode);
-    IntermediateResult constructNodeScan(std::shared_ptr<binder::Expression> expr);
-    IntermediateResult constructRelScan(std::shared_ptr<binder::Expression> expr);
+    IntermediateResult constructNodeScan(std::shared_ptr<binder::Expression> expr) const;
+    IntermediateResult constructRelScan(std::shared_ptr<binder::Expression> expr) const;
 
-    std::shared_ptr<JoinTreeNode> tryConstructNestedLoopJoin(
-        std::vector<std::shared_ptr<binder::NodeExpression>> joinNodes,
+    static std::shared_ptr<JoinTreeNode> tryConstructNestedLoopJoin(
+        const std::vector<std::shared_ptr<binder::NodeExpression>>& joinNodes,
         const JoinTreeNode& leftRoot, const JoinTreeNode& rightRoot,
         const binder::expression_vector& predicates);
 

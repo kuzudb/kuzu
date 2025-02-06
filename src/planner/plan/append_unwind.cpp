@@ -8,8 +8,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
-void Planner::appendUnwind(const BoundReadingClause& readingClause, LogicalPlan& plan) {
-    auto& unwindClause = ku_dynamic_cast<const BoundUnwindClause&>(readingClause);
+void Planner::appendUnwind(const BoundReadingClause& boundReadingClause, LogicalPlan& plan) const {
+    auto& unwindClause = ku_dynamic_cast<const BoundUnwindClause&>(boundReadingClause);
     auto unwind = make_shared<LogicalUnwind>(unwindClause.getInExpr(), unwindClause.getOutExpr(),
         unwindClause.getIDExpr(), plan.getLastOperator());
     appendFlattens(unwind->getGroupsPosToFlatten(), plan);

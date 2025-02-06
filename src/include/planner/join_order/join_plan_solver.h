@@ -15,8 +15,8 @@ public:
 private:
     LogicalPlan solveTreeNode(const JoinTreeNode& current, const JoinTreeNode* parent);
 
-    LogicalPlan solveNodeScanTreeNode(const JoinTreeNode& treeNode);
-    LogicalPlan solveRelScanTreeNode(const JoinTreeNode& treeNode, const JoinTreeNode& parent);
+    LogicalPlan solveNodeScanTreeNode(const JoinTreeNode& treeNode) const;
+    LogicalPlan solveRelScanTreeNode(const JoinTreeNode& treeNode, const JoinTreeNode& parent) const;
     LogicalPlan solveBinaryJoinTreeNode(const JoinTreeNode& treeNode);
     LogicalPlan solveMultiwayJoinTreeNode(const JoinTreeNode& treeNode);
 

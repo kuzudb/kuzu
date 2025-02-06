@@ -10,23 +10,23 @@ namespace kuzu {
 namespace planner {
 
 void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType joinType,
-    LogicalPlan& probePlan, LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
+    LogicalPlan& probePlan, LogicalPlan& buildPlan, LogicalPlan& resultPlan) const {
     appendHashJoin(joinNodeIDs, joinType, nullptr /* mark */, probePlan, buildPlan, resultPlan);
 }
 
 void Planner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType joinType,
     std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
-    LogicalPlan& resultPlan) {
+    LogicalPlan& resultPlan) const {
     std::vector<join_condition_t> joinConditions;
     for (auto& joinNodeID : joinNodeIDs) {
         joinConditions.emplace_back(joinNodeID, joinNodeID);
     }
-    appendHashJoin(joinConditions, joinType, mark, probePlan, buildPlan, resultPlan);
+    appendHashJoin(joinConditions, joinType, std::move(mark), probePlan, buildPlan, resultPlan);
 }
 
 void Planner::appendHashJoin(const std::vector<expression_pair>& joinConditions, JoinType joinType,
     std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
-    LogicalPlan& resultPlan) {
+    LogicalPlan& resultPlan) const {
     auto hashJoin = make_shared<LogicalHashJoin>(joinConditions, joinType, mark,
         probePlan.getLastOperator(), buildPlan.getLastOperator());
     // Apply flattening to probe side
@@ -48,19 +48,19 @@ void Planner::appendHashJoin(const std::vector<expression_pair>& joinConditions,
     resultPlan.setLastOperator(std::move(hashJoin));
 }
 
-void Planner::appendAccHashJoin(const std::vector<binder::expression_pair>& joinConditions,
+void Planner::appendAccHashJoin(const std::vector<expression_pair>& joinConditions,
     JoinType joinType, std::shared_ptr<Expression> mark, LogicalPlan& probePlan,
-    LogicalPlan& buildPlan, LogicalPlan& resultPlan) {
+    LogicalPlan& buildPlan, LogicalPlan& resultPlan) const {
     KU_ASSERT(probePlan.hasUpdate());
     tryAppendAccumulate(probePlan);
-    appendHashJoin(joinConditions, joinType, mark, probePlan, buildPlan, resultPlan);
+    appendHashJoin(joinConditions, joinType, std::move(mark), probePlan, buildPlan, resultPlan);
     auto& sipInfo = probePlan.getLastOperator()->cast<LogicalHashJoin>().getSIPInfoUnsafe();
     sipInfo.direction = SIPDirection::PROBE_TO_BUILD;
 }
 
 void Planner::appendMarkJoin(const expression_vector& joinNodeIDs,
     const std::shared_ptr<Expression>& mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
-    LogicalPlan& resultPlan) {
+    LogicalPlan& resultPlan) const {
     std::vector<join_condition_t> joinConditions;
     for (auto& joinNodeID : joinNodeIDs) {
         joinConditions.emplace_back(joinNodeID, joinNodeID);
@@ -70,7 +70,7 @@ void Planner::appendMarkJoin(const expression_vector& joinNodeIDs,
 
 void Planner::appendMarkJoin(const std::vector<expression_pair>& joinConditions,
     const std::shared_ptr<Expression>& mark, LogicalPlan& probePlan, LogicalPlan& buildPlan,
-    LogicalPlan& resultPlan) {
+    LogicalPlan& resultPlan) const {
     auto hashJoin = make_shared<LogicalHashJoin>(joinConditions, JoinType::MARK, mark,
         probePlan.getLastOperator(), buildPlan.getLastOperator());
     // Apply flattening to probe side
@@ -87,8 +87,8 @@ void Planner::appendMarkJoin(const std::vector<expression_pair>& joinConditions,
 }
 
 void Planner::appendIntersect(const std::shared_ptr<Expression>& intersectNodeID,
-    expression_vector& boundNodeIDs, LogicalPlan& probePlan,
-    std::vector<std::unique_ptr<LogicalPlan>>& buildPlans) {
+    const expression_vector& boundNodeIDs, LogicalPlan& probePlan,
+    const std::vector<std::unique_ptr<LogicalPlan>>& buildPlans) const {
     KU_ASSERT(boundNodeIDs.size() == buildPlans.size());
     std::vector<std::shared_ptr<LogicalOperator>> buildChildren;
     expression_vector keyNodeIDs;

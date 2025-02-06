@@ -14,8 +14,8 @@ uint64_t CostModel::computeExtendCost(const LogicalPlan& childPlan) {
 
 uint64_t CostModel::computeRecursiveExtendCost(uint8_t upperBound, double extensionRate,
     const LogicalPlan& childPlan) {
-    return PlannerKnobs::BUILD_PENALTY * childPlan.getCardinality() * (uint64_t)extensionRate *
-           upperBound;
+    return PlannerKnobs::BUILD_PENALTY * childPlan.getCardinality() *
+           static_cast<uint64_t>(extensionRate) * upperBound;
 }
 
 binder::expression_vector getJoinNodeIDs(

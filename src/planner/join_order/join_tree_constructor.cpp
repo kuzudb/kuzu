@@ -11,7 +11,7 @@ namespace kuzu {
 namespace planner {
 
 JoinTree JoinTreeConstructor::construct(std::shared_ptr<BoundJoinHintNode> root) {
-    return JoinTree(constructTreeNode(root).treeNode);
+    return JoinTree(constructTreeNode(std::move(root)).treeNode);
 }
 
 static std::vector<std::shared_ptr<NodeExpression>> getJoinNodes(const SubqueryGraph& subgraph,
@@ -26,8 +26,8 @@ static std::vector<std::shared_ptr<NodeExpression>> getJoinNodes(const SubqueryG
     return joinNodes;
 }
 
-static std::vector<common::idx_t> intersect(std::vector<common::idx_t> left,
-    std::vector<common::idx_t> right) {
+static std::vector<common::idx_t> intersect(const std::vector<common::idx_t>& left,
+    const std::vector<common::idx_t>& right) {
     std::vector<common::idx_t> result;
     auto set = std::unordered_set<common::idx_t>{right.begin(), right.end()};
     for (auto idx : left) {
@@ -125,7 +125,7 @@ JoinTreeConstructor::IntermediateResult JoinTreeConstructor::constructTreeNode(
 }
 
 JoinTreeConstructor::IntermediateResult JoinTreeConstructor::constructNodeScan(
-    std::shared_ptr<Expression> expr) {
+    std::shared_ptr<Expression> expr) const {
     auto& node = expr->constCast<NodeExpression>();
     auto nodeIdx = queryGraph.getQueryNodeIdx(node.getUniqueName());
     auto emptySubgraph = SubqueryGraph(queryGraph);
@@ -143,7 +143,7 @@ JoinTreeConstructor::IntermediateResult JoinTreeConstructor::constructNodeScan(
 }
 
 JoinTreeConstructor::IntermediateResult JoinTreeConstructor::constructRelScan(
-    std::shared_ptr<binder::Expression> expr) {
+    std::shared_ptr<binder::Expression> expr) const {
     auto& rel = expr->constCast<RelExpression>();
     auto relIdx = queryGraph.getQueryRelIdx(rel.getUniqueName());
     auto emptySubgraph = SubqueryGraph(queryGraph);
@@ -152,7 +152,7 @@ JoinTreeConstructor::IntermediateResult JoinTreeConstructor::constructRelScan(
     auto properties = propertyCollection.getProperties(*expr);
     auto predicates =
         Planner::getNewlyMatchedExprs(emptySubgraph, newSubgraph, queryGraphPredicates);
-    auto relScanInfo = NodeRelScanInfo(expr, properties);
+    auto relScanInfo = NodeRelScanInfo(std::move(expr), properties);
     relScanInfo.predicates = predicates;
     auto extraInfo = std::make_unique<ExtraScanTreeNodeInfo>();
     extraInfo->relInfos.push_back(std::move(relScanInfo));
@@ -161,7 +161,7 @@ JoinTreeConstructor::IntermediateResult JoinTreeConstructor::constructRelScan(
 }
 
 std::shared_ptr<JoinTreeNode> JoinTreeConstructor::tryConstructNestedLoopJoin(
-    std::vector<std::shared_ptr<NodeExpression>> joinNodes, const JoinTreeNode& leftRoot,
+    const std::vector<std::shared_ptr<NodeExpression>>& joinNodes, const JoinTreeNode& leftRoot,
     const JoinTreeNode& rightRoot, const binder::expression_vector& predicates) {
     if (joinNodes.size() > 1) {
         return nullptr;
