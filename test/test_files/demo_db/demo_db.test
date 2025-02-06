@@ -3,7 +3,7 @@
 
 -CASE DemoDBTestListLambda
 # We currently don't support list lambda functions if the list size if larger than the vector capacity
--SKIP_VECTOR_SIZE_2
+-SKIP_VECTOR_CAPACITY_TESTS
 -LOG ConstantLambda
 -STATEMENT MATCH (n: User)
             WHERE size(list_filter(['12name'], x->x STARTS WITH '12')) > 0

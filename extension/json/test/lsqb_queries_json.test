@@ -1,6 +1,6 @@
 -DATASET JSON CSV_TO_JSON(lsqb-sf01)
 # Reenable this for vector size 2 once https://github.com/kuzudb/kuzu/issues/4861 is fixed
--SKIP_VECTOR_SIZE_2
+-SKIP_VECTOR_CAPACITY_TESTS
 -BUFFER_POOL_SIZE 1073741824
 --
 

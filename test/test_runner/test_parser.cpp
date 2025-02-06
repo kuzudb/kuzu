@@ -136,8 +136,8 @@ void TestParser::parseHeader() {
             }
             break;
         }
-        case TokenType::SKIP_VECTOR_SIZE_2: {
-            if constexpr (DEFAULT_VECTOR_CAPACITY == 2) {
+        case TokenType::SKIP_VECTOR_CAPACITY_TESTS: {
+            if constexpr (VECTOR_CAPACITY_LOG_2 != DEFAULT_VECTOR_CAPACITY_LOG_2) {
                 testGroup->group = "DISABLED_" + testGroup->group;
             }
             break;
@@ -473,8 +473,8 @@ void TestParser::parseBody() {
 #endif
             break;
         }
-        case TokenType::SKIP_VECTOR_SIZE_2: {
-            if constexpr (DEFAULT_VECTOR_CAPACITY == 2) {
+        case TokenType::SKIP_VECTOR_CAPACITY_TESTS: {
+            if constexpr (VECTOR_CAPACITY_LOG_2 != DEFAULT_VECTOR_CAPACITY_LOG_2) {
                 testCaseName = "DISABLED_" + testCaseName;
             }
             break;
