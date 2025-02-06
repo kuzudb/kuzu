@@ -8,7 +8,6 @@ namespace evaluator {
 void ExpressionEvaluator::init(const processor::ResultSet& resultSet,
     main::ClientContext* clientContext) {
     localState.clientContext = clientContext;
-    localState.count = 1;
     for (auto& child : children) {
         child->init(resultSet, clientContext);
     }

@@ -48,7 +48,7 @@ public:
 
     void init(const processor::ResultSet& resultSet, main::ClientContext* clientContext) override;
 
-    void evaluate() override;
+    void evaluate(common::sel_t count) override;
 
     bool selectInternal(common::SelectionVector& selVector) override;
 

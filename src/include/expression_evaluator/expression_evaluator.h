@@ -8,7 +8,6 @@ namespace evaluator {
 
 struct EvaluatorLocalState {
     main::ClientContext* clientContext = nullptr;
-    uint64_t count = 0;
 };
 
 enum class EvaluatorType : uint8_t {
@@ -49,13 +48,11 @@ public:
 
     virtual void init(const processor::ResultSet& resultSet, main::ClientContext* clientContext);
 
-    virtual void evaluate() = 0;
+    virtual void evaluate(common::sel_t count) = 0;
 
     bool select(common::SelectionVector& selVector, bool shouldSetSelVectorToFiltered);
 
     virtual std::unique_ptr<ExpressionEvaluator> copy() = 0;
-
-    EvaluatorLocalState& getLocalStateUnsafe() { return localState; }
 
     template<class TARGET>
     const TARGET& constCast() const {

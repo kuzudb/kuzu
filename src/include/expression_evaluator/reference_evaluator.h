@@ -17,7 +17,7 @@ public:
         const processor::DataPos& dataPos)
         : ExpressionEvaluator{type_, std::move(expression), isResultFlat}, dataPos{dataPos} {}
 
-    void evaluate() override {}
+    void evaluate(common::sel_t count) override {}
 
     bool selectInternal(common::SelectionVector& selVector) override;
 

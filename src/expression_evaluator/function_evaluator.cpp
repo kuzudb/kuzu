@@ -20,7 +20,7 @@ FunctionExpressionEvaluator::FunctionExpressionEvaluator(std::shared_ptr<Express
 }
 
 void FunctionExpressionEvaluator::evaluate() {
-    auto cnt = localState.count;
+//    auto cnt = localState.count;
     auto ctx = localState.clientContext;
     for (auto& child : children) {
         child->evaluate();

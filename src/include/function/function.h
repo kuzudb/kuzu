@@ -15,13 +15,13 @@ struct KUZU_API FunctionBindData {
     std::vector<common::LogicalType> paramTypes;
     common::LogicalType resultType;
     main::ClientContext* clientContext;
-    int64_t count;
+//    int64_t count;
 
     explicit FunctionBindData(common::LogicalType dataType)
-        : resultType{std::move(dataType)}, clientContext{nullptr}, count{1} {}
+        : resultType{std::move(dataType)}, clientContext{nullptr} {}
     FunctionBindData(std::vector<common::LogicalType> paramTypes, common::LogicalType resultType)
         : paramTypes{std::move(paramTypes)}, resultType{std::move(resultType)},
-          clientContext{nullptr}, count{1} {}
+          clientContext{nullptr} {}
     DELETE_COPY_AND_MOVE(FunctionBindData);
     virtual ~FunctionBindData() = default;
 
