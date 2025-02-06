@@ -1,5 +1,6 @@
 -DATASET CSV tinysnb
-
+# We currently don't support list lambda functions if the list size if larger than the vector capacity
+-SKIP_VECTOR_CAPACITY_TESTS
 --
 
 -CASE Any

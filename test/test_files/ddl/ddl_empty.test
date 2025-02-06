@@ -1,6 +1,18 @@
 -DATASET CSV empty
 --
 
+# Check to see if Count() correctly handles full vectors that are all null
+-CASE AddInt64PropertyWithoutDefault
+-STATEMENT create node table Comment (id int64, creationDate INT64, locationIP STRING, browserUsed STRING, content STRING, length INT32, PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY Comment FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv" ;
+---- ok
+-STATEMENT ALTER TABLE comment ADD random INT64
+---- ok
+-STATEMENT MATCH (c:Comment) return Count(c.random)
+---- 1
+0
+
 -CASE InsertNodeAfterDropAddCol
 -STATEMENT CREATE NODE TABLE person(id INT64 PRIMARY KEY, name STRING);
 ---- ok

@@ -1,9 +1,9 @@
 -DATASET CSV demo-db/csv
-
 --
 
--CASE DemoDBTest
-
+-CASE DemoDBTestListLambda
+# We currently don't support list lambda functions if the list size if larger than the vector capacity
+-SKIP_VECTOR_CAPACITY_TESTS
 -LOG ConstantLambda
 -STATEMENT MATCH (n: User)
             WHERE size(list_filter(['12name'], x->x STARTS WITH '12')) > 0
@@ -14,6 +14,17 @@ Karissa|40
 Noura|25
 Zhang|50
 
+-STATEMENT MATCH (n)-[:LivesIn]->(:City)
+           WITH collect(n.name) AS names
+           MATCH p = (u:User {name: "Adam"})-[e:Follows*]->(u2:User {name: "Noura"})
+           WHERE size(list_filter(properties(nodes(e),'name'), x->x IN names)) > 0
+           RETURN properties(nodes(p),'name')
+---- 2
+[Adam,Karissa,Zhang,Noura]
+[Adam,Zhang,Noura]
+
+
+-CASE DemoDBTest
 -LOG UndirectedRecursivePattern
 -STATEMENT MATCH p = (u:User {name: 'Adam'})-[e*1..3]-(c:User {name: 'Adam'})
            HINT (u JOIN e) JOIN c
@@ -465,12 +476,3 @@ Adam|Karissa
 Adam|Zhang
 Karissa|Zhang
 Zhang|Noura
-
--STATEMENT MATCH (n)-[:LivesIn]->(:City)
-           WITH collect(n.name) AS names
-           MATCH p = (u:User {name: "Adam"})-[e:Follows*]->(u2:User {name: "Noura"})
-           WHERE size(list_filter(properties(nodes(e),'name'), x->x IN names)) > 0
-           RETURN properties(nodes(p),'name')
----- 2
-[Adam,Karissa,Zhang,Noura]
-[Adam,Zhang,Noura]

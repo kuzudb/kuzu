@@ -54,7 +54,7 @@ public:
             return state->getSelVector().getSelSize();
         } else if (state->getSelVector().isUnfiltered() &&
                    state->getSelVector().getSelSize() == DEFAULT_VECTOR_CAPACITY) {
-            return nullMask.countNulls();
+            return DEFAULT_VECTOR_CAPACITY - nullMask.countNulls();
         } else {
             uint32_t count = 0;
             forEachNonNull([&](auto) { count++; });

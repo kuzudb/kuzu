@@ -2,6 +2,28 @@
 
 --
 
+-CASE CreateLargeTableInSeparateTransactionsCheckPKLookup
+-STATEMENT create node table account (id int64, PRIMARY KEY (id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT LOAD WITH HEADERS (id int64) FROM "${KUZU_ROOT_DIRECTORY}/dataset/snap/twitter/csv/twitter-nodes.csv" CREATE(:account{id: id})
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT LOAD WITH HEADERS (id int64) FROM "${KUZU_ROOT_DIRECTORY}/dataset/snap/twitter/csv/twitter-nodes.csv" CREATE(:account{id: id + 1000000000})
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (a:account) WHERE a.id = 567915211 RETURN a.*
+---- 1
+567915211
+-STATEMENT MATCH (a:account) WHERE a.id = 1000000190 RETURN a.*
+---- 1
+1000000190
+
 -CASE Create1
 -STATEMENT CREATE NODE TABLE test(id INT64, name STRING, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
 ---- ok

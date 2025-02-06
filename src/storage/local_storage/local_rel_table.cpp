@@ -234,6 +234,21 @@ bool LocalRelTable::scan(const Transaction* transaction, TableScanState& state) 
     }
 }
 
+static std::unique_ptr<RelTableScanState> setupLocalTableScanState(table_id_t tableID,
+    DataChunk& scanChunk, std::span<row_idx_t> intersectRows) {
+    std::vector<column_id_t> columnIDs;
+    columnIDs.push_back(LOCAL_REL_ID_COLUMN_ID);
+    auto scanState = std::make_unique<RelTableScanState>(tableID, columnIDs);
+    scanState->outState = scanChunk.state.get();
+    scanState->rowIdxVector->state = scanChunk.state;
+    scanState->outputVectors.push_back(&scanChunk.getValueVectorMutable(0));
+    scanChunk.state->getSelVectorUnsafe().setSelSize(intersectRows.size());
+    for (uint64_t i = 0; i < intersectRows.size(); i++) {
+        scanState->rowIdxVector->setValue<row_idx_t>(i, intersectRows[i]);
+    }
+    return scanState;
+}
+
 row_idx_t LocalRelTable::findMatchingRow(const Transaction* transaction,
     const std::vector<row_idx_vec_t*>& rowIndicesToCheck, offset_t relOffset) const {
     for (auto* rowIndex : rowIndicesToCheck) {
@@ -248,31 +263,32 @@ row_idx_t LocalRelTable::findMatchingRow(const Transaction* transaction,
                 return ret;
             });
     // Loop over relID column chunks to find the relID.
-    DataChunk scanChunk(1);
-    scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
-    std::vector<column_id_t> columnIDs;
-    columnIDs.push_back(LOCAL_REL_ID_COLUMN_ID);
-    const auto scanState = std::make_unique<RelTableScanState>(table.getTableID(), columnIDs);
-    scanState->outState = scanChunk.state.get();
-    scanState->rowIdxVector->state = scanChunk.state;
-    scanState->outputVectors.push_back(&scanChunk.getValueVectorMutable(0));
-    scanChunk.state->getSelVectorUnsafe().setSelSize(intersectRows.size());
-    // TODO(Guodong): We assume intersectRows is smaller than 2048 here. Should handle edge case.
-    for (auto i = 0u; i < intersectRows.size(); i++) {
-        scanState->rowIdxVector->setValue<row_idx_t>(i, intersectRows[i]);
-    }
-    auto dummyTrx = Transaction::getDummyTransactionFromExistingOne(*transaction);
-    [[maybe_unused]] auto lookupRes = localNodeGroup->lookup(&dummyTrx, *scanState);
-    const auto scannedRelIDVector = scanState->outputVectors[0];
-    KU_ASSERT(scannedRelIDVector->state->getSelVector().getSelSize() == intersectRows.size());
-    row_idx_t matchedRow = INVALID_ROW_IDX;
-    for (auto i = 0u; i < intersectRows.size(); i++) {
-        if (scannedRelIDVector->getValue<internalID_t>(i).offset == relOffset) {
-            matchedRow = intersectRows[i];
-            break;
+    const auto numVectorsToScan =
+        common::ceilDiv(static_cast<uint64_t>(intersectRows.size()), DEFAULT_VECTOR_CAPACITY);
+    for (uint64_t vectorIdx = 0; vectorIdx < numVectorsToScan; ++vectorIdx) {
+        DataChunk scanChunk(1);
+        scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
+
+        const uint64_t startRowToScan = vectorIdx * DEFAULT_VECTOR_CAPACITY;
+        const auto endRowToScan = std::min(startRowToScan + DEFAULT_VECTOR_CAPACITY,
+            static_cast<uint64_t>(intersectRows.size()));
+        std::span<row_idx_t> currentRowsToCheck{intersectRows.begin() + startRowToScan,
+            intersectRows.begin() + endRowToScan};
+        const auto scanState =
+            setupLocalTableScanState(table.getTableID(), scanChunk, currentRowsToCheck);
+
+        auto dummyTrx = Transaction::getDummyTransactionFromExistingOne(*transaction);
+        [[maybe_unused]] auto lookupRes = localNodeGroup->lookup(&dummyTrx, *scanState);
+        const auto scannedRelIDVector = scanState->outputVectors[0];
+        KU_ASSERT(
+            scannedRelIDVector->state->getSelVector().getSelSize() == currentRowsToCheck.size());
+        for (auto i = 0u; i < currentRowsToCheck.size(); i++) {
+            if (scannedRelIDVector->getValue<internalID_t>(i).offset == relOffset) {
+                return currentRowsToCheck[i];
+            }
         }
     }
-    return matchedRow;
+    return INVALID_ROW_IDX;
 }
 
 } // namespace storage

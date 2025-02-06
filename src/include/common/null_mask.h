@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <memory>
 
+#include "common/assert.h"
 #include <span>
 
 namespace kuzu {
@@ -105,6 +106,7 @@ public:
 
     static void setNull(uint64_t* nullEntries, uint32_t pos, bool isNull);
     inline void setNull(uint32_t pos, bool isNull) {
+        KU_ASSERT(pos < getNumNullBits(data));
         setNull(data.data(), pos, isNull);
         if (isNull) {
             mayContainNulls = true;
@@ -116,7 +118,14 @@ public:
         return nullEntries[entryPos] & NULL_BITMASKS_WITH_SINGLE_ONE[bitPosInEntry];
     }
 
-    inline bool isNull(uint32_t pos) const { return isNull(data.data(), pos); }
+    static uint64_t getNumNullBits(std::span<uint64_t> data) {
+        return data.size() * NullMask::NUM_BITS_PER_NULL_ENTRY;
+    }
+
+    inline bool isNull(uint32_t pos) const {
+        KU_ASSERT(pos < getNumNullBits(data));
+        return isNull(data.data(), pos);
+    }
 
     // const because updates to the data must set mayContainNulls if any value
     // becomes non-null

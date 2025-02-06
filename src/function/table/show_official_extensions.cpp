@@ -10,16 +10,16 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace function {
 
-static std::unordered_map<std::string, std::string> getOfficialExtensions() {
-    return {{"HTTPFS", "Adds support for reading and writing files over a HTTP(S)/S3 filesystem"},
-        {"DELTA", "Adds support for reading from delta tables"},
-        {"DUCKDB", "Adds support for reading from duckdb tables"},
-        {"FTS", "Adds support for full-text search indexes"},
-        {"ICEBERG", "Adds support for reading from iceberg tables"},
-        {"JSON", "Adds support for JSON operations"},
-        {"POSTGRES", "Adds support for reading from POSTGRES tables"},
-        {"SQLITE", "Adds support for reading from SQLITE tables"}};
-}
+static constexpr std::pair<std::string_view, std::string_view> extensions[] = {
+    {"HTTPFS", "Adds support for reading and writing files over a HTTP(S)/S3 filesystem"},
+    {"DELTA", "Adds support for reading from delta tables"},
+    {"DUCKDB", "Adds support for reading from duckdb tables"},
+    {"FTS", "Adds support for full-text search indexes"},
+    {"ICEBERG", "Adds support for reading from iceberg tables"},
+    {"JSON", "Adds support for JSON operations"},
+    {"POSTGRES", "Adds support for reading from POSTGRES tables"},
+    {"SQLITE", "Adds support for reading from SQLITE tables"}};
+static constexpr auto officialExtensions = std::to_array(extensions);
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
@@ -28,12 +28,11 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
-    auto officialExtensions = getOfficialExtensions();
-    auto numTuplesToOutput = officialExtensions.size();
-    auto vectorPosToWrite = 0u;
-    for (auto& [name, description] : officialExtensions) {
-        dataChunk.getValueVectorMutable(0).setValue(vectorPosToWrite, name);
-        dataChunk.getValueVectorMutable(1).setValue(vectorPosToWrite++, description);
+    auto numTuplesToOutput = morsel.endOffset - morsel.startOffset;
+    for (uint64_t i = 0; i < numTuplesToOutput; ++i) {
+        auto& [name, description] = officialExtensions[morsel.startOffset + i];
+        dataChunk.getValueVectorMutable(0).setValue(i, name);
+        dataChunk.getValueVectorMutable(1).setValue(i, description);
     }
     return numTuplesToOutput;
 }
@@ -48,7 +47,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* /*
     columnTypes.emplace_back(LogicalType::STRING());
     columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(columnNames, columnTypes);
-    return std::make_unique<TableFuncBindData>(std::move(columns), getOfficialExtensions().size());
+    return std::make_unique<TableFuncBindData>(std::move(columns), officialExtensions.size());
 }
 
 function_set ShowOfficialExtensionsFunction::getFunctionSet() {
