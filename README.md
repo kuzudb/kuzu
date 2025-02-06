@@ -26,6 +26,7 @@ on very large databases and provides a set of retrieval features, such as a full
 - Novel and very fast join algorithms
 - Multi-core query parallelism
 - Serializable ACID transactions
+- Wasm (WebAssembly) bindings for fast, secure execution in the browser
 
 Kùzu is being developed by [Kùzu Inc.](https://kuzudb.com/) and 
 is available under a permissible license. So try it out and help us make it better! We welcome your feedback and feature requests.
