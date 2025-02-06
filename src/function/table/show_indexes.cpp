@@ -1,7 +1,8 @@
 #include "binder/binder.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/index_catalog_entry.h"
-#include "function/table/simple_table_functions.h"
+#include "function/table/bind_data.h"
+#include "function/table/table_function.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -25,13 +26,12 @@ struct IndexInfo {
           dependencyLoaded{dependencyLoaded}, indexDefinition{std::move(indexDefinition)} {}
 };
 
-struct ShowIndexesBindData final : SimpleTableFuncBindData {
+struct ShowIndexesBindData final : TableFuncBindData {
     std::vector<IndexInfo> indexesInfo;
 
     ShowIndexesBindData(std::vector<IndexInfo> indexesInfo, binder::expression_vector columns,
         offset_t maxOffset)
-        : SimpleTableFuncBindData{std::move(columns), maxOffset},
-          indexesInfo{std::move(indexesInfo)} {}
+        : TableFuncBindData{std::move(columns), maxOffset}, indexesInfo{std::move(indexesInfo)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<ShowIndexesBindData>(*this);
@@ -40,7 +40,7 @@ struct ShowIndexesBindData final : SimpleTableFuncBindData {
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
+    const auto sharedState = input.sharedState->ptrCast<TableFuncSharedState>();
     const auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
@@ -80,7 +80,7 @@ static binder::expression_vector bindColumns(const TableFuncBindInput& input) {
     columnTypes.emplace_back(LogicalType::BOOL());
     columnNames.emplace_back("index definition");
     columnTypes.emplace_back(LogicalType::STRING());
-    columnNames = SimpleTableFunction::extractYieldVariables(columnNames, input.yieldVariables);
+    columnNames = TableFunction::extractYieldVariables(columnNames, input.yieldVariables);
     return input.binder->createVariables(columnNames, columnTypes);
 }
 
@@ -118,8 +118,8 @@ function_set ShowIndexesFunction::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector<common::LogicalTypeID>{});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
-    function->initSharedStateFunc = initSharedState;
-    function->initLocalStateFunc = initEmptyLocalState;
+    function->initSharedStateFunc = TableFunction::initSharedState;
+    function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;
 }

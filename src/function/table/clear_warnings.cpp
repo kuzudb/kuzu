@@ -1,4 +1,5 @@
-#include "function/table/simple_table_functions.h"
+#include "function/table/bind_data.h"
+#include "function/table/table_function.h"
 #include "processor/execution_context.h"
 #include "processor/warning_context.h"
 
@@ -14,7 +15,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
 
 static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext*,
     const TableFuncBindInput*) {
-    return std::make_unique<SimpleTableFuncBindData>(0);
+    return std::make_unique<TableFuncBindData>(0);
 }
 
 function_set ClearWarningsFunction::getFunctionSet() {
@@ -22,8 +23,8 @@ function_set ClearWarningsFunction::getFunctionSet() {
     auto func = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
     func->tableFunc = tableFunc;
     func->bindFunc = bindFunc;
-    func->initSharedStateFunc = initSharedState;
-    func->initLocalStateFunc = initEmptyLocalState;
+    func->initSharedStateFunc = TableFunction::initSharedState;
+    func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->canParallelFunc = []() { return false; };
     functionSet.push_back(std::move(func));
     return functionSet;

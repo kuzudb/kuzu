@@ -23,7 +23,7 @@
 #include "common/utils.h"
 #include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
-#include "function/table/simple_table_functions.h"
+#include "function/table/table_function.h"
 #include "pyparse.h"
 #include "storage/storage_utils.h"
 
@@ -322,7 +322,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         reader->validate(resultColumnTypes[i], numRows);
     }
     resultColumnNames =
-        SimpleTableFunction::extractYieldVariables(resultColumnNames, input->yieldVariables);
+        TableFunction::extractYieldVariables(resultColumnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(resultColumnNames, resultColumnTypes);
     return std::make_unique<ScanBindData>(columns, scanInput->fileScanInfo.copy(), context,
         0 /* numWarningColumns*/, numRows);

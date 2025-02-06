@@ -1,7 +1,8 @@
 #include "binder/binder.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/exception/binder.h"
-#include "function/table/simple_table_functions.h"
+#include "function/table/bind_data.h"
+#include "function/table/table_function.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
 
@@ -17,14 +18,14 @@ static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionIn
     return std::make_unique<TableFuncLocalState>();
 }
 
-struct StatsInfoBindData final : SimpleTableFuncBindData {
+struct StatsInfoBindData final : TableFuncBindData {
     TableCatalogEntry* tableEntry;
     storage::Table* table;
     const ClientContext* context;
 
     StatsInfoBindData(binder::expression_vector columns, TableCatalogEntry* tableEntry,
         storage::Table* table, const ClientContext* context)
-        : SimpleTableFuncBindData{std::move(columns), 1 /*maxOffset*/}, tableEntry{tableEntry},
+        : TableFuncBindData{std::move(columns), 1 /*maxOffset*/}, tableEntry{tableEntry},
           table{table}, context{context} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
@@ -35,7 +36,7 @@ struct StatsInfoBindData final : SimpleTableFuncBindData {
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     const auto& dataChunk = output.dataChunk;
     KU_ASSERT(dataChunk.state->getSelVector().isUnfiltered());
-    const auto morsel = input.sharedState->ptrCast<SimpleTableFuncSharedState>()->getMorsel();
+    const auto morsel = input.sharedState->ptrCast<TableFuncSharedState>()->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
@@ -80,7 +81,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     }
     const auto storageManager = context->getStorageManager();
     auto table = storageManager->getTable(tableEntry->getTableID());
-    columnNames = SimpleTableFunction::extractYieldVariables(columnNames, input->yieldVariables);
+    columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(columnNames, columnTypes);
     return std::make_unique<StatsInfoBindData>(columns, tableEntry, table, context);
 }
@@ -90,7 +91,7 @@ function_set StatsInfoFunction::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
-    function->initSharedStateFunc = initSharedState;
+    function->initSharedStateFunc = TableFunction::initSharedState;
     function->initLocalStateFunc = initLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;

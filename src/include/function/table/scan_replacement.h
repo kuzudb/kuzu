@@ -1,7 +1,7 @@
 #pragma once
 
 #include "function/table/bind_input.h"
-#include "function/table_functions.h"
+#include "function/table/table_function.h"
 
 namespace kuzu {
 namespace function {

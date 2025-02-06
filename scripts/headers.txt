@@ -50,10 +50,10 @@ src/include/function/pointer_function_executor.h
 src/include/function/scalar_function.h
 src/include/function/table/bind_input.h
 src/include/function/table/scan_replacement.h
-src/include/function/table_functions.h
 src/include/function/ternary_function_executor.h
 src/include/function/udf_function.h
 src/include/function/unary_function_executor.h
+src/include/function/table/table_function.h
 src/include/main/client_config.h
 src/include/main/client_context.h
 src/include/main/connection.h

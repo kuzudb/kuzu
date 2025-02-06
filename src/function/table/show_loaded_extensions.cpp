@@ -1,7 +1,8 @@
 #include "binder/binder.h"
 #include "extension/extension.h"
 #include "extension/extension_manager.h"
-#include "function/table/simple_table_functions.h"
+#include "function/table/bind_data.h"
+#include "function/table/table_function.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -21,12 +22,12 @@ struct LoadedExtensionInfo {
           extensionPath{std::move(extensionPath)} {}
 };
 
-struct ShowLoadedExtensionsBindData final : SimpleTableFuncBindData {
+struct ShowLoadedExtensionsBindData final : TableFuncBindData {
     std::vector<LoadedExtensionInfo> loadedExtensionInfo;
 
     ShowLoadedExtensionsBindData(std::vector<LoadedExtensionInfo> loadedExtensionInfo,
         binder::expression_vector columns, offset_t maxOffset)
-        : SimpleTableFuncBindData{std::move(columns), maxOffset},
+        : TableFuncBindData{std::move(columns), maxOffset},
           loadedExtensionInfo{std::move(loadedExtensionInfo)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
@@ -36,7 +37,7 @@ struct ShowLoadedExtensionsBindData final : SimpleTableFuncBindData {
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
+    const auto sharedState = input.sharedState->ptrCast<TableFuncSharedState>();
     const auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
@@ -63,7 +64,7 @@ static binder::expression_vector bindColumns(const TableFuncBindInput& input) {
     columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("extension path");
     columnTypes.emplace_back(LogicalType::STRING());
-    columnNames = SimpleTableFunction::extractYieldVariables(columnNames, input.yieldVariables);
+    columnNames = TableFunction::extractYieldVariables(columnNames, input.yieldVariables);
     return input.binder->createVariables(columnNames, columnTypes);
 }
 
@@ -84,8 +85,8 @@ function_set ShowLoadedExtensionsFunction::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector<common::LogicalTypeID>{});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
-    function->initSharedStateFunc = initSharedState;
-    function->initLocalStateFunc = initEmptyLocalState;
+    function->initSharedStateFunc = TableFunction::initSharedState;
+    function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;
 }

@@ -8,7 +8,7 @@
 #include "catalog/property_definition_collection.h"
 #include "common/enums/table_type.h"
 #include "common/types/types.h"
-#include "function/table_functions.h"
+#include "function/table/table_function.h"
 
 namespace kuzu {
 namespace binder {

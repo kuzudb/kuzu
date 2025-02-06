@@ -3,7 +3,8 @@
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
-#include "function/table/simple_table_functions.h"
+#include "function/table/bind_data.h"
+#include "function/table/table_function.h"
 #include "main/database_manager.h"
 
 using namespace kuzu::common;
@@ -25,12 +26,12 @@ struct TableInfo {
           databaseName{std::move(databaseName)}, comment{std::move(comment)} {}
 };
 
-struct ShowTablesBindData final : SimpleTableFuncBindData {
+struct ShowTablesBindData final : TableFuncBindData {
     std::vector<TableInfo> tables;
 
     ShowTablesBindData(std::vector<TableInfo> tables, binder::expression_vector columns,
         offset_t maxOffset)
-        : SimpleTableFuncBindData{std::move(columns), maxOffset}, tables{std::move(tables)} {}
+        : TableFuncBindData{std::move(columns), maxOffset}, tables{std::move(tables)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<ShowTablesBindData>(tables, columns, maxOffset);
@@ -39,7 +40,7 @@ struct ShowTablesBindData final : SimpleTableFuncBindData {
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
+    const auto sharedState = input.sharedState->ptrCast<TableFuncSharedState>();
     const auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
@@ -102,7 +103,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
             tableInfos.push_back(std::move(tableInfo));
         }
     }
-    columnNames = SimpleTableFunction::extractYieldVariables(columnNames, input->yieldVariables);
+    columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(columnNames, columnTypes);
     return std::make_unique<ShowTablesBindData>(std::move(tableInfos), std::move(columns),
         tableInfos.size());
@@ -113,8 +114,8 @@ function_set ShowTablesFunction::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
-    function->initSharedStateFunc = initSharedState;
-    function->initLocalStateFunc = initEmptyLocalState;
+    function->initSharedStateFunc = TableFunction::initSharedState;
+    function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;
 }

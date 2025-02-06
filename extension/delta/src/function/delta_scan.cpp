@@ -29,7 +29,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     }
     KU_ASSERT(returnTypes.size() == returnColumnNames.size());
     returnColumnNames =
-        SimpleTableFunction::extractYieldVariables(returnColumnNames, input->yieldVariables);
+        TableFunction::extractYieldVariables(returnColumnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(returnColumnNames, returnTypes);
     return std::make_unique<DeltaScanBindData>(std::move(query), connector,
         duckdb_extension::DuckDBResultConverter{returnTypes}, columns, FileScanInfo{}, context);

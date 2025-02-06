@@ -1,5 +1,6 @@
 #include "binder/binder.h"
-#include "function/table/simple_table_functions.h"
+#include "function/table/bind_data.h"
+#include "function/table/table_function.h"
 #include "main/database_manager.h"
 
 using namespace kuzu::common;
@@ -8,12 +9,12 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace function {
 
-struct ShowAttachedDatabasesBindData final : SimpleTableFuncBindData {
+struct ShowAttachedDatabasesBindData final : TableFuncBindData {
     std::vector<main::AttachedDatabase*> attachedDatabases;
 
     ShowAttachedDatabasesBindData(std::vector<main::AttachedDatabase*> attachedDatabases,
         binder::expression_vector columns, offset_t maxOffset)
-        : SimpleTableFuncBindData{std::move(columns), maxOffset},
+        : TableFuncBindData{std::move(columns), maxOffset},
           attachedDatabases{std::move(attachedDatabases)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
@@ -24,7 +25,7 @@ struct ShowAttachedDatabasesBindData final : SimpleTableFuncBindData {
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
+    const auto sharedState = input.sharedState->ptrCast<TableFuncSharedState>();
     const auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
@@ -49,7 +50,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     columnNames.emplace_back("database type");
     columnTypes.emplace_back(LogicalType::STRING());
     auto attachedDatabases = context->getDatabaseManager()->getAttachedDatabases();
-    columnNames = SimpleTableFunction::extractYieldVariables(columnNames, input->yieldVariables);
+    columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(columnNames, columnTypes);
     return std::make_unique<ShowAttachedDatabasesBindData>(attachedDatabases, columns,
         attachedDatabases.size());
@@ -60,8 +61,8 @@ function_set ShowAttachedDatabasesFunction::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
-    function->initSharedStateFunc = initSharedState;
-    function->initLocalStateFunc = initEmptyLocalState;
+    function->initSharedStateFunc = TableFunction::initSharedState;
+    function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;
 }

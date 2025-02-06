@@ -4,8 +4,9 @@
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/binder.h"
+#include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
-#include "function/table/simple_table_functions.h"
+#include "function/table/table_function.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -14,13 +15,13 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace function {
 
-struct ShowConnectionBindData final : SimpleTableFuncBindData {
+struct ShowConnectionBindData final : TableFuncBindData {
     const ClientContext* context;
     std::vector<TableCatalogEntry*> entries;
 
     ShowConnectionBindData(const ClientContext* context, std::vector<TableCatalogEntry*> entries,
         binder::expression_vector columns, offset_t maxOffset)
-        : SimpleTableFuncBindData{std::move(columns), maxOffset}, context{context},
+        : TableFuncBindData{std::move(columns), maxOffset}, context{context},
           entries{std::move(entries)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
@@ -53,7 +54,7 @@ static void outputRelTableConnection(const DataChunk& outputDataChunk, uint64_t 
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    const auto morsel = input.sharedState->ptrCast<SimpleTableFuncSharedState>()->getMorsel();
+    const auto morsel = input.sharedState->ptrCast<TableFuncSharedState>()->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
@@ -98,7 +99,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
         throw BinderException{"Show connection can only be called on a rel table!"};
     }
     maxOffset = entries.size();
-    columnNames = SimpleTableFunction::extractYieldVariables(columnNames, input->yieldVariables);
+    columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(columnNames, columnTypes);
     return std::make_unique<ShowConnectionBindData>(context, entries, columns, maxOffset);
 }
@@ -108,8 +109,8 @@ function_set ShowConnectionFunction::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
-    function->initSharedStateFunc = initSharedState;
-    function->initLocalStateFunc = initEmptyLocalState;
+    function->initSharedStateFunc = TableFunction::initSharedState;
+    function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;
 }

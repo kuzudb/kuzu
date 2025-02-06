@@ -1,5 +1,6 @@
 #pragma once
 
+#include "function/function.h"
 #include "function/table/bind_data.h"
 
 namespace kuzu {

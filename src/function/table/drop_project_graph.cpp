@@ -1,5 +1,6 @@
 #include "common/exception/runtime.h"
-#include "function/table/simple_table_functions.h"
+#include "function/table/bind_data.h"
+#include "function/table/table_function.h"
 #include "graph/graph_entry.h"
 #include "processor/execution_context.h"
 
@@ -8,11 +9,11 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-struct DropProjectGraphBindData final : SimpleTableFuncBindData {
+struct DropProjectGraphBindData final : TableFuncBindData {
     std::string graphName;
 
     explicit DropProjectGraphBindData(std::string graphName)
-        : SimpleTableFuncBindData{0}, graphName{std::move(graphName)} {}
+        : TableFuncBindData{0}, graphName{std::move(graphName)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<DropProjectGraphBindData>(graphName);
@@ -41,8 +42,8 @@ function_set DropProjectGraphFunction::getFunctionSet() {
     auto func = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
     func->bindFunc = bindFunc;
     func->tableFunc = tableFunc;
-    func->initSharedStateFunc = initSharedState;
-    func->initLocalStateFunc = initEmptyLocalState;
+    func->initSharedStateFunc = TableFunction::initSharedState;
+    func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->canParallelFunc = []() { return false; };
     functionSet.push_back(std::move(func));
     return functionSet;

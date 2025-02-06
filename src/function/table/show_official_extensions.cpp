@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "extension/extension.h"
-#include "function/table/simple_table_functions.h"
+#include "function/table/bind_data.h"
+#include "function/table/table_function.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -22,7 +23,7 @@ static std::unordered_map<std::string, std::string> getOfficialExtensions() {
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
+    const auto sharedState = input.sharedState->ptrCast<TableFuncSharedState>();
     const auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
@@ -45,10 +46,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* /*
     columnTypes.emplace_back(LogicalType::STRING());
     columnNames.emplace_back("description");
     columnTypes.emplace_back(LogicalType::STRING());
-    columnNames = SimpleTableFunction::extractYieldVariables(columnNames, input->yieldVariables);
+    columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(columnNames, columnTypes);
-    return std::make_unique<SimpleTableFuncBindData>(std::move(columns),
-        getOfficialExtensions().size());
+    return std::make_unique<TableFuncBindData>(std::move(columns), getOfficialExtensions().size());
 }
 
 function_set ShowOfficialExtensionsFunction::getFunctionSet() {
@@ -56,8 +56,8 @@ function_set ShowOfficialExtensionsFunction::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector<common::LogicalTypeID>{});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
-    function->initSharedStateFunc = initSharedState;
-    function->initLocalStateFunc = initEmptyLocalState;
+    function->initSharedStateFunc = TableFunction::initSharedState;
+    function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;
 }

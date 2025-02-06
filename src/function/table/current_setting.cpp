@@ -1,6 +1,7 @@
 #include "binder/binder.h"
+#include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
-#include "function/table/simple_table_functions.h"
+#include "function/table/table_function.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;
@@ -8,12 +9,12 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace function {
 
-struct CurrentSettingBindData final : SimpleTableFuncBindData {
+struct CurrentSettingBindData final : TableFuncBindData {
     std::string result;
 
     CurrentSettingBindData(std::string result, binder::expression_vector columns,
         offset_t maxOffset)
-        : SimpleTableFuncBindData{std::move(columns), maxOffset}, result{std::move(result)} {}
+        : TableFuncBindData{std::move(columns), maxOffset}, result{std::move(result)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<CurrentSettingBindData>(result, columns, maxOffset);
@@ -22,7 +23,7 @@ struct CurrentSettingBindData final : SimpleTableFuncBindData {
 
 static offset_t tableFunc(const TableFuncInput& data, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    const auto sharedState = data.sharedState->ptrCast<SimpleTableFuncSharedState>();
+    const auto sharedState = data.sharedState->ptrCast<TableFuncSharedState>();
     auto& outputVector = dataChunk.getValueVectorMutable(0);
     if (!sharedState->getMorsel().hasMoreToOutput()) {
         return 0;
@@ -40,7 +41,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     std::vector<LogicalType> columnTypes;
     columnNames.emplace_back(optionName);
     columnTypes.push_back(LogicalType::STRING());
-    columnNames = SimpleTableFunction::extractYieldVariables(columnNames, input->yieldVariables);
+    columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(columnNames, columnTypes);
     return std::make_unique<CurrentSettingBindData>(
         context->getCurrentSetting(optionName).toString(), columns, 1 /* one row result */);
@@ -51,8 +52,8 @@ function_set CurrentSettingFunction::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
-    function->initSharedStateFunc = initSharedState;
-    function->initLocalStateFunc = initEmptyLocalState;
+    function->initSharedStateFunc = TableFunction::initSharedState;
+    function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;
 }

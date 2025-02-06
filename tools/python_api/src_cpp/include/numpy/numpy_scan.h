@@ -1,9 +1,12 @@
 #pragma once
 
-#include "common/vector/value_vector.h"
 #include "pybind_include.h"
 
 namespace kuzu {
+
+namespace common {
+class ValueVector;
+} // namespace common
 
 struct PandasColumnBindData;
 
