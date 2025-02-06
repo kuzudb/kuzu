@@ -68,9 +68,14 @@ src/include/main/storage_driver.h
 src/include/main/version.h
 src/include/parser/statement.h
 src/include/parser/query/reading_clause/yield_variable.h
+src/include/planner/operator/operator_print_info.h
+src/include/processor/data_pos.h
+src/include/processor/operator/physical_operator.h
+src/include/processor/operator/persistent/reader/copy_from_error.h
+src/include/processor/result/result_set.h
+src/include/processor/result/result_set_descriptor.h
 src/include/processor/result/flat_tuple.h
 src/include/processor/warning_context.h
-src/include/processor/operator/persistent/reader/copy_from_error.h
 src/include/storage/storage_version_info.h
 src/include/transaction/transaction.h
 src/include/transaction/transaction_context.h
