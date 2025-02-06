@@ -99,7 +99,7 @@ public:
     void executeInternal(ExecutionContext* context) override;
     void finalizeInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<RelBatchInsert>(info->copy(), partitionerSharedState, sharedState,
             resultSetDescriptor->copy(), id, printInfo->copy(), progressSharedState);
     }

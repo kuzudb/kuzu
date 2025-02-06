@@ -23,29 +23,44 @@ private:
         : OPPrintInfo{other}, expressions{other.expressions} {}
 };
 
-class Projection : public PhysicalOperator {
+struct ProjectionInfo {
+    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> evaluators;
+    std::vector<DataPos> exprsOutputPos;
+    std::unordered_set<common::idx_t> outputChunkPosSet;
+    std::unordered_set<common::idx_t> discardedChunkPosSet;
+
+    ProjectionInfo() = default;
+    EXPLICIT_COPY_DEFAULT_MOVE(ProjectionInfo);
+
+    void addEvaluator(std::unique_ptr<evaluator::ExpressionEvaluator> evaluator,
+        const DataPos& outputPos) {
+        evaluators.push_back(std::move(evaluator));
+        exprsOutputPos.push_back(outputPos);
+        outputChunkPosSet.insert(outputPos.dataChunkPos);
+    }
+
+private:
+    ProjectionInfo(const ProjectionInfo& other) : evaluators{copyVector(other.evaluators)},
+          exprsOutputPos{other.exprsOutputPos}, outputChunkPosSet{other.outputChunkPosSet},
+          discardedChunkPosSet{other.discardedChunkPosSet} {}
+};
+
+class Projection final : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::PROJECTION;
 
 public:
-    Projection(std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> expressionEvaluators,
-        std::vector<DataPos> expressionsOutputPos,
-        std::unordered_set<uint32_t> discardedDataChunksPos,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+    Projection(ProjectionInfo info, std::unique_ptr<PhysicalOperator> child, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator(type_, std::move(child), id, std::move(printInfo)),
-          expressionEvaluators(std::move(expressionEvaluators)),
-          expressionsOutputPos{std::move(expressionsOutputPos)},
-          discardedDataChunksPos{std::move(discardedDataChunksPos)}, prevMultiplicity{1} {
-        for (auto i = 0u; i < this->expressionsOutputPos.size(); ++i) {
-            expressionsOutputDataChunksPos.insert(this->expressionsOutputPos[i].dataChunkPos);
-        }
-    }
+          info{std::move(info)}, prevMultiplicity{1} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override;
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return std::make_unique<Projection>(info.copy(), children[0]->copy(), id, printInfo->copy());
+    }
 
 private:
     void saveMultiplicity() { prevMultiplicity = resultSet->multiplicity; }
@@ -53,11 +68,7 @@ private:
     void restoreMultiplicity() { resultSet->multiplicity = prevMultiplicity; }
 
 private:
-    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> expressionEvaluators;
-    std::vector<DataPos> expressionsOutputPos;
-    std::unordered_set<uint32_t> expressionsOutputDataChunksPos;
-    std::unordered_set<uint32_t> discardedDataChunksPos;
-
+    ProjectionInfo info;
     uint64_t prevMultiplicity;
 };
 

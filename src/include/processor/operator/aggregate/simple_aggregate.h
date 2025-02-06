@@ -45,7 +45,7 @@ private:
         : OPPrintInfo{other}, aggregates{other.aggregates} {}
 };
 
-class SimpleAggregate : public BaseAggregate {
+class SimpleAggregate final : public BaseAggregate {
 public:
     SimpleAggregate(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::shared_ptr<SimpleAggregateSharedState> sharedState,
@@ -67,9 +67,9 @@ public:
         }
     }
 
-    inline std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return make_unique<SimpleAggregate>(resultSetDescriptor->copy(), sharedState,
-            copyVector(aggregateFunctions), copyVector(aggInfos), children[0]->clone(), id,
+            copyVector(aggregateFunctions), copyVector(aggInfos), children[0]->copy(), id,
             printInfo->copy());
     }
 

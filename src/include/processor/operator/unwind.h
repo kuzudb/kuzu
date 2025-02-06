@@ -43,9 +43,9 @@ public:
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<Unwind>(outDataPos, idPos, expressionEvaluator->clone(),
-            children[0]->clone(), id, printInfo->copy());
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return make_unique<Unwind>(outDataPos, idPos, expressionEvaluator->copy(),
+            children[0]->copy(), id, printInfo->copy());
     }
 
 private:

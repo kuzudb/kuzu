@@ -40,7 +40,10 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override;
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return std::make_unique<DeleteNode>(copyVector(executors), children[0]->copy(), id,
+            printInfo->copy());
+    }
 
 private:
     std::vector<std::unique_ptr<NodeDeleteExecutor>> executors;
@@ -79,7 +82,10 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override;
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return std::make_unique<DeleteRel>(copyVector(executors), children[0]->copy(), id,
+            printInfo->copy());
+    }
 
 private:
     std::vector<std::unique_ptr<RelDeleteExecutor>> executors;

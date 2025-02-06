@@ -24,7 +24,7 @@ private:
         : OPPrintInfo{other}, expression{other.expression} {}
 };
 
-class Filter : public PhysicalOperator, public SelVectorOverWriter {
+class Filter final : public PhysicalOperator, public SelVectorOverWriter {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::FILTER;
 
 public:
@@ -39,9 +39,9 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<Filter>(expressionEvaluator->clone(), dataChunkToSelectPos,
-            children[0]->clone(), id, printInfo->copy());
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return make_unique<Filter>(expressionEvaluator->copy(), dataChunkToSelectPos,
+            children[0]->copy(), id, printInfo->copy());
     }
 
 private:
@@ -65,7 +65,7 @@ struct NodeLabelFilterInfo {
     }
 };
 
-class NodeLabelFiler : public PhysicalOperator, public SelVectorOverWriter {
+class NodeLabelFiler final : public PhysicalOperator, public SelVectorOverWriter {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::FILTER;
 
 public:
@@ -79,8 +79,8 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<NodeLabelFiler>(info->copy(), children[0]->clone(), id,
+    std::unique_ptr<PhysicalOperator> copy() final {
+        return std::make_unique<NodeLabelFiler>(info->copy(), children[0]->copy(), id,
             printInfo->copy());
     }
 

@@ -40,9 +40,9 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<Insert>(copyVector(nodeExecutors), copyVector(relExecutors),
-            children[0]->clone(), id, printInfo->copy());
+            children[0]->copy(), id, printInfo->copy());
     }
 
 private:

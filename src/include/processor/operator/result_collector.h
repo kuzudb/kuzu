@@ -60,7 +60,7 @@ struct ResultCollectorPrintInfo final : OPPrintInfo {
     }
 };
 
-class ResultCollector : public Sink {
+class ResultCollector final : public Sink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::RESULT_COLLECTOR;
 
 public:
@@ -71,19 +71,19 @@ public:
         : Sink{std::move(resultSetDescriptor), type_, std::move(child), id, std::move(printInfo)},
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
-    void executeInternal(ExecutionContext* context) final;
+    void executeInternal(ExecutionContext* context) override;
 
-    void finalizeInternal(ExecutionContext* context) final;
+    void finalizeInternal(ExecutionContext* context) override;
 
     std::shared_ptr<FactorizedTable> getResultFactorizedTable() { return sharedState->getTable(); }
 
-    std::unique_ptr<PhysicalOperator> clone() final {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return make_unique<ResultCollector>(resultSetDescriptor->copy(), info.copy(), sharedState,
-            children[0]->clone(), id, printInfo->copy());
+            children[0]->copy(), id, printInfo->copy());
     }
 
 private:
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     void initNecessaryLocalState(ResultSet* resultSet, ExecutionContext* context);
 

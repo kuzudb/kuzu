@@ -59,7 +59,7 @@ struct MergeLocalState {
     }
 };
 
-class Merge : public PhysicalOperator {
+class Merge final : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::MERGE;
 
 public:
@@ -79,13 +79,18 @@ public:
           onMatchNodeSetExecutors{std::move(onMatchNodeSetExecutors)},
           onMatchRelSetExecutors{std::move(onMatchRelSetExecutors)}, info{std::move(info)} {}
 
-    bool isParallel() const final { return false; }
+    bool isParallel() const override { return false; }
 
-    void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) final;
+    void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) override;
 
-    bool getNextTuplesInternal(ExecutionContext* context) final;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() final;
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return std::make_unique<Merge>(copyVector(nodeInsertExecutors), copyVector(relInsertExecutors),
+            copyVector(onCreateNodeSetExecutors), copyVector(onCreateRelSetExecutors),
+            copyVector(onMatchNodeSetExecutors), copyVector(onMatchRelSetExecutors), info.copy(),
+            children[0]->copy(), id, printInfo->copy());
+    }
 
 private:
     void executeOnMatch(ExecutionContext* context);

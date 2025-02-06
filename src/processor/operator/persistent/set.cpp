@@ -21,11 +21,6 @@ bool SetNodeProperty::getNextTuplesInternal(ExecutionContext* context) {
     return true;
 }
 
-std::unique_ptr<PhysicalOperator> SetNodeProperty::clone() {
-    return std::make_unique<SetNodeProperty>(copyVector(executors), children[0]->clone(), id,
-        printInfo->copy());
-}
-
 void SetRelProperty::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& executor : executors) {
         executor->init(resultSet, context);
@@ -40,11 +35,6 @@ bool SetRelProperty::getNextTuplesInternal(ExecutionContext* context) {
         executor->set(context);
     }
     return true;
-}
-
-std::unique_ptr<PhysicalOperator> SetRelProperty::clone() {
-    return std::make_unique<SetRelProperty>(copyVector(executors), children[0]->clone(), id,
-        printInfo->copy());
 }
 
 std::string SetPropertyPrintInfo::toString() const {

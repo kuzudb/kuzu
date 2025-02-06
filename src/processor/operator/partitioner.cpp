@@ -88,7 +88,7 @@ Partitioner::Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescripto
     PartitionerInfo info, PartitionerDataInfo dataInfo,
     std::shared_ptr<PartitionerSharedState> sharedState, std::unique_ptr<PhysicalOperator> child,
     uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
-    : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::PARTITIONER, std::move(child), id,
+    : Sink{std::move(resultSetDescriptor), type_, std::move(child), id,
           std::move(printInfo)},
       dataInfo{std::move(dataInfo)}, info{std::move(info)}, sharedState{std::move(sharedState)} {
     partitionIdxes = std::make_unique<ValueVector>(LogicalTypeID::INT64);
@@ -187,9 +187,9 @@ void Partitioner::copyDataToPartitions(MemoryManager& memoryManager,
     }
 }
 
-std::unique_ptr<PhysicalOperator> Partitioner::clone() {
+std::unique_ptr<PhysicalOperator> Partitioner::copy() {
     return std::make_unique<Partitioner>(resultSetDescriptor->copy(), info.copy(), dataInfo.copy(),
-        sharedState, children[0]->clone(), id, printInfo->copy());
+        sharedState, children[0]->copy(), id, printInfo->copy());
 }
 
 } // namespace processor

@@ -90,8 +90,8 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
-    std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<PathPropertyProbe>(info.copy(), sharedState, children[0]->clone(),
+    std::unique_ptr<PhysicalOperator> copy() final {
+        return std::make_unique<PathPropertyProbe>(info.copy(), sharedState, children[0]->copy(),
             id, printInfo->copy());
     }
 

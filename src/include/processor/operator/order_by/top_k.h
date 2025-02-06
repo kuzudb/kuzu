@@ -184,9 +184,9 @@ public:
 
     void finalize(ExecutionContext* /*context*/) override { sharedState->finalize(); }
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<TopK>(resultSetDescriptor->copy(), info->copy(), sharedState,
-            skipNumber, limitNumber, children[0]->clone(), id, printInfo->copy());
+            skipNumber, limitNumber, children[0]->copy(), id, printInfo->copy());
     }
 
 private:

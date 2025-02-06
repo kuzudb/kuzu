@@ -57,7 +57,7 @@ struct NodeBatchInsertInfo final : BatchInsertInfo {
               static_cast<common::column_id_t>(other.outputDataColumns.size()),
               static_cast<common::column_id_t>(other.warningDataColumns.size())},
           columnTypes{common::LogicalType::copy(other.columnTypes)},
-          columnEvaluators{cloneVector(other.columnEvaluators)},
+          columnEvaluators{copyVector(other.columnEvaluators)},
           evaluateTypes{other.evaluateTypes} {}
 
     std::unique_ptr<BatchInsertInfo> copy() const override {
@@ -126,9 +126,9 @@ public:
     void finalize(ExecutionContext* context) override;
     void finalizeInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<NodeBatchInsert>(info->copy(), sharedState,
-            resultSetDescriptor->copy(), children[0]->clone(), id, printInfo->copy());
+            resultSetDescriptor->copy(), children[0]->copy(), id, printInfo->copy());
     }
 
     // The node group will be reset so that the only values remaining are the ones which were

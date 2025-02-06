@@ -121,7 +121,7 @@ struct PartitionerDataInfo {
 private:
     PartitionerDataInfo(const PartitionerDataInfo& other)
         : columnTypes{common::LogicalType::copy(other.columnTypes)},
-          columnEvaluators{cloneVector(other.columnEvaluators)},
+          columnEvaluators{copyVector(other.columnEvaluators)},
           evaluateTypes{other.evaluateTypes} {}
 };
 
@@ -158,6 +158,8 @@ private:
 };
 
 class Partitioner final : public Sink {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::PARTITIONER;
+
 public:
     Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, PartitionerInfo info,
         PartitionerDataInfo dataInfo, std::shared_ptr<PartitionerSharedState> sharedState,
@@ -170,7 +172,7 @@ public:
 
     std::shared_ptr<PartitionerSharedState> getSharedState() { return sharedState; }
 
-    std::unique_ptr<PhysicalOperator> clone() override;
+    std::unique_ptr<PhysicalOperator> copy() override;
 
     static void initializePartitioningStates(const common::logical_type_vec_t& columnTypes,
         std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers,

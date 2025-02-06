@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace processor {
 
-class HashAggregateScan : public BaseAggregateScan {
+class HashAggregateScan final : public BaseAggregateScan {
 public:
     HashAggregateScan(std::shared_ptr<HashAggregateSharedState> sharedState,
         std::vector<DataPos> groupByKeyVectorsPos, std::vector<DataPos> aggregatesPos,
@@ -23,13 +23,13 @@ public:
           groupByKeyVectorsPos{std::move(groupByKeyVectorsPos)},
           sharedState{std::move(sharedState)} {}
 
-    inline std::shared_ptr<HashAggregateSharedState> getSharedState() const { return sharedState; }
+    std::shared_ptr<HashAggregateSharedState> getSharedState() const { return sharedState; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<HashAggregateScan>(sharedState, groupByKeyVectorsPos, aggregatesPos,
             id, printInfo->copy());
     }

@@ -35,7 +35,7 @@ private:
         : outVecPos{other.outVecPos}, colIndicesToScan{other.colIndicesToScan} {}
 };
 
-class CrossProduct : public PhysicalOperator {
+class CrossProduct final : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::CROSS_PRODUCT;
 
 public:
@@ -56,8 +56,8 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<CrossProduct>(info.copy(), localState.copy(), children[0]->clone(),
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return std::make_unique<CrossProduct>(info.copy(), localState.copy(), children[0]->copy(),
             id, printInfo->copy());
     }
 

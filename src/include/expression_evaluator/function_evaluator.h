@@ -17,8 +17,8 @@ public:
 
     bool selectInternal(common::SelectionVector& selVector) override;
 
-    std::unique_ptr<ExpressionEvaluator> clone() override {
-        return std::make_unique<FunctionExpressionEvaluator>(expression, cloneVector(children));
+    std::unique_ptr<ExpressionEvaluator> copy() override {
+        return std::make_unique<FunctionExpressionEvaluator>(expression, copyVector(children));
     }
 
 protected:

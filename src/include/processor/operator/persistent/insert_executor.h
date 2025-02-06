@@ -52,7 +52,7 @@ struct NodeTableInsertInfo {
 
 private:
     NodeTableInsertInfo(const NodeTableInsertInfo& other)
-        : table{other.table}, columnDataEvaluators{cloneVector(other.columnDataEvaluators)},
+        : table{other.table}, columnDataEvaluators{copyVector(other.columnDataEvaluators)},
           pkVector{nullptr} {}
 };
 
@@ -119,7 +119,7 @@ struct RelTableInsertInfo {
 
 private:
     RelTableInsertInfo(const RelTableInsertInfo& other)
-        : table{other.table}, columnDataEvaluators(cloneVector(other.columnDataEvaluators)) {}
+        : table{other.table}, columnDataEvaluators(copyVector(other.columnDataEvaluators)) {}
 };
 
 class RelInsertExecutor {

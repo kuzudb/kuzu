@@ -22,7 +22,7 @@ private:
     LimitPrintInfo(const LimitPrintInfo& other) : OPPrintInfo{other}, limitNum{other.limitNum} {}
 };
 
-class Limit : public PhysicalOperator {
+class Limit final : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::LIMIT;
 
 public:
@@ -37,9 +37,9 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return make_unique<Limit>(limitNumber, counter, dataChunkToSelectPos, dataChunksPosInScope,
-            children[0]->clone(), id, printInfo->copy());
+            children[0]->copy(), id, printInfo->copy());
     }
 
 private:

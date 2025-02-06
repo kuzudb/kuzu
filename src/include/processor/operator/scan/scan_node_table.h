@@ -109,7 +109,10 @@ public:
         return *sharedStates[idx];
     }
 
-    std::unique_ptr<PhysicalOperator> clone() override;
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return std::make_unique<ScanNodeTable>(info.copy(), copyVector(nodeInfos), sharedStates, id,
+            printInfo->copy(), progressSharedState);
+    }
 
     double getProgress(ExecutionContext* context) const override;
 
