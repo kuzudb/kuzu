@@ -24,6 +24,7 @@ Kùzu is an embedded graph database built for query speed and scalability. Kùzu
 - Novel and very fast join algorithms
 - Multi-core query parallelism
 - Serializable ACID transactions
+- Wasm (WebAssembly) bindings for fast, secure execution in the browser
 
 Kùzu started as a research project at University of Waterloo and is now being 
 developed primarily by [Kùzu Inc.](https://kuzudb.com/), a spinoff company from University of Waterloo. 
