@@ -14,10 +14,12 @@
 </p>
 
 # Kùzu
-Kùzu is an embedded graph database built for query speed and scalability. Kùzu is optimized for handling complex join-heavy analytical workloads on very large databases, with the following core feature set:
+Kùzu is an embedded graph database built for query speed and scalability. Kùzu is optimized for handling complex analytical workloads 
+on very large databases and provides a set of retrieval features, such as a full text search and vector indices. Our core feature set includes:
 
 - Flexible Property Graph Data Model and Cypher query language
-- Embeddable, serverless integration into applications 
+- Embeddable, serverless integration into applications
+- Native full text search and vector index
 - Columnar disk-based storage
 - Columnar sparse row-based (CSR) adjacency list/join indices
 - Vectorized and factorized query processor
@@ -25,9 +27,8 @@ Kùzu is an embedded graph database built for query speed and scalability. Kùzu
 - Multi-core query parallelism
 - Serializable ACID transactions
 
-Kùzu started as a research project at University of Waterloo and is now being 
-developed primarily by [Kùzu Inc.](https://kuzudb.com/), a spinoff company from University of Waterloo. 
-Kùzu is available under a permissible license. So try it out and help us make it better! We welcome your feedback and feature requests.
+Kùzu is being developed by [Kùzu Inc.](https://kuzudb.com/) and 
+is available under a permissible license. So try it out and help us make it better! We welcome your feedback and feature requests.
 
 ## Installation
 
@@ -57,32 +58,9 @@ We welcome contributions to Kùzu. If you are interested in contributing to Kùz
 ## License
 By contributing to Kùzu, you agree that your contributions will be licensed under the [MIT License](LICENSE).
 
-## Citing Kùzu
-If you are a researcher and use Kùzu in your work, we encourage you to cite our work.
-You can use the following BibTeX citation:
-```
-@inproceedings{kuzu:cidr,
-  author =  {Xiyang Feng and
-             Guodong Jin and
-             Ziyi Chen and
-             Chang Liu and
-             Semih Saliho\u{g}lu},
-  title={K\`uzu Graph Database Management System},
-  booktitle={CIDR},
-  year={2023}
-}
-@misc{kuzu-github,
-  author =  {Xiyang Feng and
-             Guodong Jin and
-             Ziyi Chen and
-             Chang Liu and
-             Semih Saliho\u{g}lu},
-  title = {{K\`uzu Database Management System Source Code}},
-  howpublished = {\url{https://github.com/kuzudb/kuzu}},
-  month        = nov,
-  year         = 2022
-}
-```
+## Support 
+We provide professional support for using Kùzu, ensuring timely responses and flexible coverage. Please visit [here](https://kuzudb.com/#support) 
+for more information.
 
-## Contact Us
+## Contact
 You can contact us at [contact@kuzudb.com](mailto:contact@kuzudb.com) or [join our Discord community](https://discord.gg/VtX2gw9Rug).
