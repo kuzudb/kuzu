@@ -2,6 +2,7 @@
 
 #include "function/gds/gds_utils.h"
 #include "processor/execution_context.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 
@@ -113,6 +114,11 @@ std::shared_ptr<PathLengths> PathLengths::getFrontier(processor::ExecutionContex
     auto vc = std::make_unique<PathLengthsInitVertexCompute>(*pathLengths, initialValue);
     GDSUtils::runVertexCompute(context, graph, *vc);
     return pathLengths;
+}
+
+PathLengths::frontier_entry_t* PathLengths::getMaskData(common::table_id_t tableID) {
+    KU_ASSERT(masks.contains(tableID));
+    return reinterpret_cast<frontier_entry_t*>(masks.at(tableID)->getData());
 }
 
 bool PathLengthsInitVertexCompute::beginOnTable(common::table_id_t tableID) {

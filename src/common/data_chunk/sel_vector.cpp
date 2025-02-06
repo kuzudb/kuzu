@@ -1,5 +1,6 @@
 #include "common/data_chunk/sel_vector.h"
 
+#include <array>
 #include <numeric>
 
 #include "common/system_config.h"

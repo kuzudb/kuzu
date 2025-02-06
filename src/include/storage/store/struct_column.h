@@ -5,6 +5,7 @@
 
 namespace kuzu {
 namespace storage {
+class MemoryManager;
 
 class StructColumn final : public Column {
 public:

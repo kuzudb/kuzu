@@ -1,6 +1,7 @@
 #include "processor/operator/order_by/top_k.h"
 
 #include "binder/expression/expression_util.h"
+#include "common/system_config.h"
 #include "common/type_utils.h"
 #include "function/binary_function_executor.h"
 #include "function/comparison/comparison_functions.h"

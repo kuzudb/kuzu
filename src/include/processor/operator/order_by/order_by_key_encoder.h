@@ -41,9 +41,6 @@ namespace processor {
 using encode_function_t = std::function<void(const uint8_t*, uint8_t*, bool)>;
 
 class OrderByKeyEncoder {
-private:
-    static constexpr uint64_t DATA_BLOCK_SIZE = common::TEMP_PAGE_SIZE;
-
 public:
     OrderByKeyEncoder(const OrderByDataInfo& orderByDataInfo, storage::MemoryManager* memoryManager,
         uint8_t ftIdx, uint32_t numTuplesPerBlockInFT, uint32_t numBytesPerTuple);

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/chunked_node_group.h"
 
 namespace kuzu {

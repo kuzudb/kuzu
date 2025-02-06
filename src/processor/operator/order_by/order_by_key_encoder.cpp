@@ -13,6 +13,7 @@ using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
+static constexpr uint64_t DATA_BLOCK_SIZE = common::TEMP_PAGE_SIZE;
 
 OrderByKeyEncoder::OrderByKeyEncoder(const OrderByDataInfo& orderByDataInfo,
     MemoryManager* memoryManager, uint8_t ftIdx, uint32_t numTuplesPerBlockInFT,

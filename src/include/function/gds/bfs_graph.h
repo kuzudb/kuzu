@@ -2,9 +2,11 @@
 
 #include "compute.h"
 #include "gds_object_manager.h"
-#include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
+namespace storage {
+class MemoryManager;
+}
 namespace function {
 
 // TODO(Xiyang): optimize if edgeID is not needed.

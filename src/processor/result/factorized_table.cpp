@@ -6,12 +6,36 @@
 #include "common/exception/runtime.h"
 #include "common/null_buffer.h"
 #include "common/vector/value_vector.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
+
+DataBlock::DataBlock(storage::MemoryManager* mm, uint64_t size) : numTuples{0}, freeSize{size} {
+    block = mm->allocateBuffer(true /* initializeToZero */, size);
+}
+
+DataBlock::~DataBlock() = default;
+
+uint8_t* DataBlock::getData() const {
+    return block->getBuffer().data();
+}
+std::span<uint8_t> DataBlock::getSizedData() const {
+    return block->getBuffer();
+}
+uint8_t* DataBlock::getWritableData() const {
+    return block->getBuffer().last(freeSize).data();
+}
+void DataBlock::resetNumTuplesAndFreeSize() {
+    freeSize = block->getBuffer().size();
+    numTuples = 0;
+}
+void DataBlock::resetToZero() {
+    memset(block->getBuffer().data(), 0, block->getBuffer().size());
+}
 
 void DataBlock::copyTuples(DataBlock* blockToCopyFrom, ft_tuple_idx_t tupleIdxToCopyFrom,
     DataBlock* blockToCopyInto, ft_tuple_idx_t tupleIdxToCopyTo, uint32_t numTuplesToCopy,
