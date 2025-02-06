@@ -2,6 +2,7 @@
 
 #include "common/exception/binder.h"
 #include "common/string_format.h"
+#include "processor/execution_context.h"
 #include "storage/storage_manager.h"
 
 using namespace kuzu::catalog;

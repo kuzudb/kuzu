@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "common/enums/extend_direction.h"
 #include "common/mask.h"
 #include "processor/operator/physical_operator.h"

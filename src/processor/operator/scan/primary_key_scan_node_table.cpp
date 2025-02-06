@@ -1,6 +1,7 @@
 #include "processor/operator/scan/primary_key_scan_node_table.h"
 
 #include "binder/expression/expression_util.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

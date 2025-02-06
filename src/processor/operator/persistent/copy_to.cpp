@@ -1,5 +1,7 @@
 #include "processor/operator/persistent/copy_to.h"
 
+#include "processor/execution_context.h"
+
 namespace kuzu {
 namespace processor {
 

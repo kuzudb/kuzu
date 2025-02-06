@@ -4,6 +4,10 @@
 #include "transaction/transaction_action.h"
 
 namespace kuzu {
+namespace transaction {
+class TransactionContext;
+} // namespace transaction
+
 namespace processor {
 
 struct TransactionPrintInfo final : OPPrintInfo {

@@ -42,12 +42,7 @@ public:
         : DDL{type_, outputPos, id, std::move(printInfo)}, info{std::move(info)},
           defaultValueEvaluator{std::move(defaultValueEvaluator)} {}
 
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override {
-        DDL::initLocalStateInternal(resultSet, context);
-        if (defaultValueEvaluator) {
-            defaultValueEvaluator->init(*resultSet, context->clientContext);
-        }
-    }
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     void executeDDLInternal(ExecutionContext* context) override;
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "binder/expression/expression.h"
 #include "join_hash_table.h"
 #include "processor/operator/physical_operator.h"
 #include "processor/operator/sink.h"

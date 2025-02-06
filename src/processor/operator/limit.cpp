@@ -1,5 +1,7 @@
 #include "processor/operator/limit.h"
 
+#include "common/metric.h"
+
 namespace kuzu {
 namespace processor {
 

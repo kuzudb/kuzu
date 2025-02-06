@@ -1,5 +1,7 @@
 #include "processor/operator/unwind.h"
 
+#include "processor/execution_context.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

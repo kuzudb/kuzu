@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 #include "processor/operator/filtering_operator.h"
 #include "processor/operator/physical_operator.h"
 

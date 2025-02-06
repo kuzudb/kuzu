@@ -1,6 +1,7 @@
 #include "processor/operator/macro/create_macro.h"
 
 #include "common/string_format.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::common;
 
@@ -11,7 +12,7 @@ std::string CreateMacroPrintInfo::toString() const {
     return macroName;
 }
 
-bool CreateMacro::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) {
+bool CreateMacro::getNextTuplesInternal(ExecutionContext* context) {
     if (hasExecuted) {
         return false;
     }

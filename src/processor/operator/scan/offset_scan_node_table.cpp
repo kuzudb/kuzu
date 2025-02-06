@@ -1,5 +1,7 @@
 #include "processor/operator/scan/offset_scan_node_table.h"
 
+#include "processor/execution_context.h"
+
 using namespace kuzu::common;
 using namespace kuzu::storage;
 

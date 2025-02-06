@@ -1,5 +1,7 @@
 #include "processor/operator/cross_product.h"
 
+#include "common/metric.h"
+
 namespace kuzu {
 namespace processor {
 

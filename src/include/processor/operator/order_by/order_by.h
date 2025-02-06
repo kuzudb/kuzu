@@ -1,5 +1,6 @@
 #pragma once
 
+#include "binder/expression/expression.h"
 #include "processor/operator/sink.h"
 #include "processor/result/result_set.h"
 #include "sort_state.h"

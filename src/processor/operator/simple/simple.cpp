@@ -1,5 +1,7 @@
 #include "processor/operator/simple/simple.h"
 
+#include "common/metric.h"
+
 namespace kuzu {
 namespace processor {
 

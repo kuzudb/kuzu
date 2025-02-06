@@ -1,5 +1,6 @@
 #pragma once
 
+#include "binder/expression/expression.h"
 #include "processor/operator/sink.h"
 #include "sort_state.h"
 
@@ -177,10 +178,7 @@ public:
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    void initGlobalStateInternal(ExecutionContext* context) override {
-        sharedState->init(*info, context->clientContext->getMemoryManager(), skipNumber,
-            limitNumber);
-    }
+    void initGlobalStateInternal(ExecutionContext* context) override;
 
     void executeInternal(ExecutionContext* context) override;
 

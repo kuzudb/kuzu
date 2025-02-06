@@ -4,15 +4,12 @@
 #include <string>
 
 #include "extension/catalog_extension.h"
+#include "transaction/transaction_manager.h"
 
 namespace kuzu {
 namespace storage {
 class StorageManager;
 } // namespace storage
-
-namespace transaction {
-class TransactionManager;
-} // namespace transaction
 
 namespace main {
 

@@ -3,6 +3,7 @@
 #include <thread>
 
 #include "common/constants.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::common;
 

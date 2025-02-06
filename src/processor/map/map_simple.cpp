@@ -1,5 +1,6 @@
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
+#include "main/client_context.h"
 #include "planner/operator/simple/logical_attach_database.h"
 #include "planner/operator/simple/logical_detach_database.h"
 #include "planner/operator/simple/logical_export_db.h"

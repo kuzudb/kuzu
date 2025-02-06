@@ -2,6 +2,7 @@
 
 #include "catalog/catalog.h"
 #include "common/string_format.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

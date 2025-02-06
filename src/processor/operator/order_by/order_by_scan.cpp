@@ -1,5 +1,7 @@
 #include "processor/operator/order_by/order_by_scan.h"
 
+#include "common/metric.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

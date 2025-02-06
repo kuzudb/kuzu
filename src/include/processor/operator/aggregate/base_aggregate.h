@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "aggregate_input.h"
 #include "function/aggregate_function.h"
 #include "processor/operator/sink.h"

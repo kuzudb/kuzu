@@ -1,6 +1,7 @@
 #include "processor/processor_task.h"
 
 #include "main/settings.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::common;
 

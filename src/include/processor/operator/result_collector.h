@@ -1,5 +1,6 @@
 #pragma once
 
+#include "binder/expression/expression.h"
 #include "common/enums/accumulate_type.h"
 #include "processor/operator/sink.h"
 #include "processor/result/factorized_table.h"

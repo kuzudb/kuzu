@@ -1,6 +1,7 @@
 #include "processor/operator/aggregate/simple_aggregate.h"
 
 #include "binder/expression/expression_util.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;

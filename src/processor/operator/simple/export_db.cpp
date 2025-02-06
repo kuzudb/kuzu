@@ -13,6 +13,7 @@
 #include "common/string_utils.h"
 #include "extension/extension_manager.h"
 #include "function/scalar_macro_function.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

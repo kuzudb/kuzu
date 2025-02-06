@@ -1,6 +1,7 @@
 #include "processor/operator/scan/scan_node_table.h"
 
 #include "binder/expression/expression_util.h"
+#include "processor/execution_context.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_storage.h"
 

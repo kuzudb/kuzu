@@ -1,6 +1,7 @@
 #include "processor/operator/standalone_call.h"
 
 #include "common/cast.h"
+#include "processor/execution_context.h"
 
 namespace kuzu {
 namespace processor {

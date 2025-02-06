@@ -1,5 +1,7 @@
 #include "processor/operator/flatten.h"
 
+#include "common/metric.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

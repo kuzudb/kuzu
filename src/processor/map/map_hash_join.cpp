@@ -1,4 +1,5 @@
 #include "binder/expression/expression_util.h"
+#include "main/client_context.h"
 #include "planner/operator/logical_hash_join.h"
 #include "processor/operator/hash_join/hash_join_build.h"
 #include "processor/operator/hash_join/hash_join_probe.h"

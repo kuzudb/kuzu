@@ -5,6 +5,7 @@
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

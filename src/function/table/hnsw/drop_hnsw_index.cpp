@@ -1,6 +1,7 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "function/table/bind_data.h"
 #include "function/table/hnsw/hnsw_index_functions.h"
+#include "processor/execution_context.h"
 #include "storage/index/hnsw_index_utils.h"
 #include "storage/index/index_utils.h"
 

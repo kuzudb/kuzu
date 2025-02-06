@@ -1,6 +1,7 @@
 #include "processor/operator/table_function_call.h"
 
 #include "binder/expression/expression_util.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::common;
 

@@ -2,6 +2,7 @@
 #include "binder/expression/property_expression.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/string_utils.h"
+#include "main/client_context.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_gds_call.h"
 #include "processor/operator/gds_call.h"

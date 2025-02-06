@@ -1,5 +1,7 @@
 #include "processor/operator/simple/import_db.h"
 
+#include "processor/execution_context.h"
+
 using namespace kuzu::common;
 using namespace kuzu::transaction;
 using namespace kuzu::catalog;

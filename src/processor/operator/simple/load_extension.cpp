@@ -1,7 +1,7 @@
 #include "processor/operator/simple/load_extension.h"
 
 #include "extension/extension_manager.h"
-#include "main/database.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::common;
 
@@ -14,7 +14,7 @@ std::string LoadExtensionPrintInfo::toString() const {
     return "Load " + extensionName;
 }
 
-void LoadExtension::executeInternal(kuzu::processor::ExecutionContext* context) {
+void LoadExtension::executeInternal(ExecutionContext* context) {
     context->clientContext->getExtensionManager()->loadExtension(path, context->clientContext);
 }
 

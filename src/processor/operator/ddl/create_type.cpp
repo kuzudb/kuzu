@@ -1,6 +1,7 @@
 #include "processor/operator/ddl/create_type.h"
 
 #include "catalog/catalog.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

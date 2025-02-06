@@ -5,9 +5,9 @@
 #include "main/attached_database.h"
 #include "main/database.h"
 #include "main/database_manager.h"
+#include "processor/execution_context.h"
 #include "storage/storage_extension.h"
 #include "storage/storage_manager.h"
-#include "transaction/transaction_manager.h"
 
 namespace kuzu {
 namespace processor {

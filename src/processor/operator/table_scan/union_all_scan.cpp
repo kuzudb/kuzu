@@ -1,6 +1,7 @@
 #include "processor/operator/table_scan/union_all_scan.h"
 
 #include "binder/expression/expression_util.h"
+#include "common/metric.h"
 
 using namespace kuzu::common;
 

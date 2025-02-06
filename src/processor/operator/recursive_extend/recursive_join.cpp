@@ -1,5 +1,6 @@
 #include "processor/operator/recursive_extend/recursive_join.h"
 
+#include "processor/execution_context.h"
 #include "processor/operator/recursive_extend/all_shortest_path_state.h"
 #include "processor/operator/recursive_extend/shortest_path_state.h"
 #include "processor/operator/recursive_extend/variable_length_state.h"
