@@ -568,12 +568,12 @@ namespace kuzu {
                 std::priority_queue<NodeDistFarther> nbrsToExplore;
 
                 // First hop neighbours
-//                std::unordered_set<vector_id_t> visitedSet;
-                int visitedSetSize = 0;
+                std::unordered_set<vector_id_t> visitedSet;
+//                int visitedSetSize = 0;
                 for (auto &neighbor: firstHopNbrs) {
                     auto isNeighborMasked = filterMask->isMasked(neighbor.offset);
                     if (isNeighborMasked) {
-                        visitedSetSize++;
+                        visitedSet.insert(neighbor.offset);
                     }
                     if (visited->is_bit_set(neighbor.offset)) {
                         continue;
@@ -591,7 +591,7 @@ namespace kuzu {
                 while (!nbrsToExplore.empty()) {
                     auto neighbor = nbrsToExplore.top();
                     nbrsToExplore.pop();
-                    if (visitedSetSize >= filterNbrsToFind) {
+                    if (visitedSet.size() >= filterNbrsToFind) {
                         break;
                     }
                     if (visited->is_bit_set(neighbor.id)) {
@@ -614,7 +614,7 @@ namespace kuzu {
                     for (auto &secondHopNeighbor: secondHopNbrs) {
                         auto isNeighborMasked = filterMask->isMasked(secondHopNeighbor.offset);
                         if (isNeighborMasked) {
-                            visitedSetSize++;
+                            visitedSet.insert(secondHopNeighbor.offset);
                         }
                         if (visited->is_bit_set(secondHopNeighbor.offset)) {
                             continue;
@@ -712,7 +712,7 @@ namespace kuzu {
                                      efSearch, stats);
                         stats.oneHopCalls->increase(1);
                     } else if (estimatedFullTwoHopDistanceComp > estimatedDirectedDistanceComp) {
-                        // We will use this metric to skip 
+                        // We will use this metric to skip
                         // wanted distance computation in the first hop
                         directedTwoHopSearch(candidates, candidate, totalNbrs, cachedNbrsCount,
                                             firstHopNbrs, tableId, graph, dc, filterMask,
