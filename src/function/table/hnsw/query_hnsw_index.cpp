@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/parameter_expression.h"
+#include "binder/query/reading_clause/bound_table_function_call.h"
 #include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/types/value/nested.h"
@@ -15,7 +16,6 @@
 #include "storage/index/index_utils.h"
 #include "storage/storage_manager.h"
 #include "storage/store/rel_table.h"
-#include <binder/query/reading_clause/bound_table_function_call.h>
 
 namespace kuzu {
 namespace function {
