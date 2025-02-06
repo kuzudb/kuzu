@@ -25,7 +25,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-static std::unique_ptr<PhysicalOperator> createRelBatchInsertOp(
+std::unique_ptr<PhysicalOperator> PlanMapper::createRelBatchInsertOp(
     const main::ClientContext* clientContext,
     std::shared_ptr<PartitionerSharedState> partitionerSharedState,
     std::shared_ptr<BatchInsertSharedState> sharedState, const BoundCopyFromInfo& copyFromInfo,

@@ -4,6 +4,7 @@
 
 #include "common/data_chunk/data_chunk.h"
 #include "function/function.h"
+#include "processor/operator/physical_operator.h"
 
 namespace kuzu {
 namespace binder {
@@ -22,6 +23,7 @@ class Planner;
 
 namespace processor {
 struct ExecutionContext;
+class PlanMapper;
 } // namespace processor
 
 namespace transaction {
@@ -131,6 +133,8 @@ using table_func_rewrite_t =
 using table_func_get_logical_plan_t = std::function<void(const transaction::Transaction*,
     planner::Planner*, const binder::BoundReadingClause&, std::shared_ptr<planner::LogicalOperator>,
     const std::vector<std::unique_ptr<planner::LogicalPlan>>&)>;
+using table_func_get_physical_plan_t = std::function<std::unique_ptr<processor::PhysicalOperator>(
+    const main::ClientContext*, processor::PlanMapper*, const planner::LogicalOperator*)>;
 
 struct KUZU_API TableFunction final : Function {
     table_func_t tableFunc = nullptr;
@@ -142,6 +146,7 @@ struct KUZU_API TableFunction final : Function {
     table_func_finalize_t finalizeFunc = [](auto, auto) {};
     table_func_rewrite_t rewriteFunc = nullptr;
     table_func_get_logical_plan_t getLogicalPlanFunc = getLogicalPlan;
+    table_func_get_physical_plan_t getPhysicalPlanFunc = getPhysicalPlan;
 
     TableFunction() {}
     TableFunction(std::string name, std::vector<common::LogicalTypeID> inputTypes)
@@ -164,6 +169,9 @@ struct KUZU_API TableFunction final : Function {
         planner::Planner* planner, const binder::BoundReadingClause& readingClause,
         std::shared_ptr<planner::LogicalOperator> logicalOp,
         const std::vector<std::unique_ptr<planner::LogicalPlan>>& logicalPlans);
+    static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
+        const main::ClientContext* clientContext, processor::PlanMapper* planMapper,
+        const planner::LogicalOperator* logicalOp);
 };
 
 struct CurrentSettingFunction final {

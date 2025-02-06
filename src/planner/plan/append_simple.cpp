@@ -82,26 +82,11 @@ void Planner::appendStandaloneCall(const BoundStatement& statement, LogicalPlan&
     plan.setLastOperator(std::move(op));
 }
 
-static bool isCreateHNSWIndexFunc(const std::string& funcName) {
-    auto name = funcName;
-    common::StringUtils::toUpper(name);
-    return funcName == function::CreateHNSWIndexFunction::name;
-}
-
 void Planner::appendStandaloneCallFunction(const BoundStatement& statement, LogicalPlan& plan) {
     auto& standaloneCallFunctionClause = statement.constCast<BoundStandaloneCallFunction>();
     std::shared_ptr<LogicalOperator> op =
         std::make_shared<LogicalTableFunctionCall>(standaloneCallFunctionClause.getTableFunction(),
             standaloneCallFunctionClause.getBindData()->copy(), expression_vector{});
-    if (isCreateHNSWIndexFunc(standaloneCallFunctionClause.getTableFunction().name)) {
-        // Rework the plan of create hnsw index to tableFuncCall + CopyFrom.
-        op->computeFactorizedSchema();
-        const auto bindData = standaloneCallFunctionClause.getBindData()
-                                  ->constPtrCast<function::CreateHNSWIndexBindData>();
-        auto indexCopyInfo = BoundCopyFromInfo(bindData->tableEntry);
-        op = std::make_shared<LogicalCopyFrom>(std::move(indexCopyInfo), expression_vector{},
-            std::move(op));
-    }
     op->computeFactorizedSchema();
     plan.setLastOperator(std::move(op));
 }

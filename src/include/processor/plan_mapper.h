@@ -6,11 +6,15 @@
 #include "processor/physical_plan.h"
 
 namespace kuzu {
+namespace common {
+enum class RelDataDirection : uint8_t;
+}
 namespace main {
 class ClientContext;
 }
 
 namespace binder {
+struct BoundCopyFromInfo;
 struct BoundDeleteInfo;
 struct BoundSetPropertyInfo;
 } // namespace binder
@@ -48,6 +52,26 @@ public:
 
     std::unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(const planner::LogicalPlan* logicalPlan,
         const binder::expression_vector& expressionsToCollect);
+
+    uint32_t getOperatorID() { return physicalOperatorID++; }
+
+    static DataPos getDataPos(const binder::Expression& expression, const planner::Schema& schema) {
+        return DataPos(schema.getExpressionPos(expression));
+    }
+
+    // Assume scans all columns of table in the same order as given expressions.
+    std::unique_ptr<PhysicalOperator> createFTableScanAligned(
+        const binder::expression_vector& exprs, const planner::Schema* schema,
+        std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize,
+        physical_op_vector_t children);
+
+    static std::unique_ptr<PhysicalOperator> createRelBatchInsertOp(
+        const main::ClientContext* clientContext,
+        std::shared_ptr<PartitionerSharedState> partitionerSharedState,
+        std::shared_ptr<BatchInsertSharedState> sharedState,
+        const binder::BoundCopyFromInfo& copyFromInfo, planner::Schema* outFSchema,
+        common::RelDataDirection direction, std::vector<common::column_id_t> columnIDs,
+        std::vector<common::LogicalType> columnTypes, uint32_t operatorID);
 
 private:
     std::unique_ptr<PhysicalOperator> mapOperator(const planner::LogicalOperator* logicalOperator);
@@ -160,11 +184,6 @@ private:
     std::unique_ptr<PhysicalOperator> createEmptyFTableScan(std::shared_ptr<FactorizedTable> table,
         uint64_t maxMorselSize);
     // Assume scans all columns of table in the same order as given expressions.
-    std::unique_ptr<PhysicalOperator> createFTableScanAligned(
-        const binder::expression_vector& exprs, const planner::Schema* schema,
-        std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize,
-        physical_op_vector_t children);
-    // Assume scans all columns of table in the same order as given expressions.
     // Scan fTable without row offset.
     // Scan is the leaf operator of physical plan.
     std::unique_ptr<PhysicalOperator> createFTableScanAligned(
@@ -202,16 +221,11 @@ private:
         const binder::Expression& expr) const;
     RelTableSetInfo getRelTableSetInfo(const catalog::TableCatalogEntry& entry,
         const binder::Expression& expr) const;
-    uint32_t getOperatorID() { return physicalOperatorID++; }
 
     static void mapSIPJoin(PhysicalOperator* joinRoot);
 
     static std::vector<DataPos> getDataPos(const binder::expression_vector& expressions,
         const planner::Schema& schema);
-
-    static DataPos getDataPos(const binder::Expression& expression, const planner::Schema& schema) {
-        return DataPos(schema.getExpressionPos(expression));
-    }
 
 public:
     main::ClientContext* clientContext;

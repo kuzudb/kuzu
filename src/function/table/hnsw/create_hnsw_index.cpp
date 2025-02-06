@@ -1,8 +1,15 @@
+#include "binder/copy/bound_copy_from.h"
 #include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "function/table/bind_data.h"
 #include "function/table/hnsw/hnsw_index_functions.h"
+#include "planner/operator/logical_operator.h"
+#include "planner/operator/logical_table_function_call.h"
 #include "processor/execution_context.h"
+#include "processor/operator/persistent/batch_insert.h"
+#include "processor/operator/table_function_call.h"
+#include "processor/plan_mapper.h"
+#include "processor/result/factorized_table_util.h"
 #include "storage/index/hnsw_index_utils.h"
 #include "storage/index/index_utils.h"
 #include "storage/storage_manager.h"
@@ -16,8 +23,8 @@ namespace function {
 CreateHNSWSharedState::CreateHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : TableFuncSharedState{bindData.maxOffset}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-                    ->getTable(bindData.tableEntry->getTableID())
-                    ->cast<storage::NodeTable>()},
+              ->getTable(bindData.tableEntry->getTableID())
+              ->cast<storage::NodeTable>()},
       numNodes{bindData.numNodes}, bindData{&bindData} {
     hnswIndex = std::make_unique<storage::InMemHNSWIndex>(bindData.context, nodeTable,
         bindData.tableEntry->getColumnID(bindData.propertyID), bindData.config.copy());
@@ -129,6 +136,79 @@ static double progressFunc(TableFuncSharedState* sharedState) {
     return static_cast<double>(numNodesInserted) / hnswSharedState->numNodes;
 }
 
+static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
+    const main::ClientContext* clientContext, processor::PlanMapper* planMapper,
+    const planner::LogicalOperator* logicalOp) {
+    auto logicalCallBoundData = logicalOp->constPtrCast<planner::LogicalTableFunctionCall>()
+                                    ->getBindData()
+                                    ->constPtrCast<CreateHNSWIndexBindData>();
+    auto callOp = TableFunction::getPhysicalPlan(clientContext, planMapper, logicalOp);
+    auto tableFuncCallOp = callOp->ptrCast<processor::TableFunctionCall>();
+    KU_ASSERT(
+        tableFuncCallOp->getOperatorType() == processor::PhysicalOperatorType::TABLE_FUNCTION_CALL);
+    auto tableFuncSharedState =
+        tableFuncCallOp->getSharedState()->funcState->ptrCast<CreateHNSWSharedState>();
+    // Get tables from storage.
+    const auto storageManager = clientContext->getStorageManager();
+    auto nodeTable = storageManager->getTable(logicalCallBoundData->tableEntry->getTableID())
+                         ->ptrCast<storage::NodeTable>();
+    auto upperRelTableEntry =
+        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(),
+            storage::HNSWIndexUtils::getUpperGraphTableName(tableFuncSharedState->name));
+    auto upperRelTable =
+        storageManager->getTable(upperRelTableEntry->getTableID())->ptrCast<storage::RelTable>();
+    auto lowerRelTableEntry =
+        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(),
+            storage::HNSWIndexUtils::getLowerGraphTableName(tableFuncSharedState->name));
+    auto lowerRelTable =
+        storageManager->getTable(lowerRelTableEntry->getTableID())->ptrCast<storage::RelTable>();
+    // Initialize partitioner shared state.
+    const auto partitionerSharedState = tableFuncSharedState->partitionerSharedState;
+    partitionerSharedState->setTables(nodeTable, upperRelTable);
+    logical_type_vec_t callColumnTypes;
+    callColumnTypes.push_back(LogicalType::INTERNAL_ID());
+    callColumnTypes.push_back(LogicalType::INTERNAL_ID());
+    callColumnTypes.push_back(LogicalType::INTERNAL_ID());
+    tableFuncSharedState->partitionerSharedState->initialize(callColumnTypes, clientContext);
+    // Initialize fTable for BatchInsert.
+    auto fTable = processor::FactorizedTableUtils::getSingleStringColumnFTable(
+        clientContext->getMemoryManager());
+    // Figure out column types and IDs to COPY into.
+    std::vector<LogicalType> columnTypes;
+    std::vector<column_id_t> columnIDs;
+    columnTypes.push_back(LogicalType::INTERNAL_ID()); // NBR_ID COLUMN.
+    columnIDs.push_back(0);                            // NBR_ID COLUMN.
+    for (auto& property : upperRelTableEntry->getProperties()) {
+        columnTypes.push_back(property.getType().copy());
+        columnIDs.push_back(upperRelTableEntry->getColumnID(property.getName()));
+    }
+    // Create RelBatchInsert and dummy sink operators.
+    binder::BoundCopyFromInfo upperCopyFromInfo(upperRelTableEntry);
+    const auto upperBatchInsertSharedState = std::make_shared<processor::BatchInsertSharedState>(
+        upperRelTable, fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
+    auto copyRelUpper = planMapper->createRelBatchInsertOp(clientContext,
+        partitionerSharedState->upperPartitionerSharedState, upperBatchInsertSharedState,
+        upperCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD, columnIDs,
+        LogicalType::copy(columnTypes), planMapper->getOperatorID());
+    binder::BoundCopyFromInfo lowerCopyFromInfo(lowerRelTableEntry);
+    lowerCopyFromInfo.tableEntry = lowerRelTableEntry;
+    const auto lowerBatchInsertSharedState = std::make_shared<processor::BatchInsertSharedState>(
+        lowerRelTable, fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
+    auto copyRelLower = planMapper->createRelBatchInsertOp(clientContext,
+        partitionerSharedState->lowerPartitionerSharedState, lowerBatchInsertSharedState,
+        lowerCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD, columnIDs,
+        LogicalType::copy(columnTypes), planMapper->getOperatorID());
+    auto dummyCallSink = std::make_unique<processor::DummySink>(
+        std::make_unique<processor::ResultSetDescriptor>(logicalOp->getSchema()), std::move(callOp),
+        planMapper->getOperatorID(), std::make_unique<OPPrintInfo>());
+    processor::physical_op_vector_t children;
+    children.push_back(std::move(copyRelUpper));
+    children.push_back(std::move(copyRelLower));
+    children.push_back(std::move(dummyCallSink));
+    return planMapper->createFTableScanAligned({}, logicalOp->getSchema(), fTable,
+        DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(children));
+}
+
 function_set CreateHNSWIndexFunction::getFunctionSet() {
     function_set functionSet;
     std::vector inputTypes = {LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING};
@@ -140,6 +220,7 @@ function_set CreateHNSWIndexFunction::getFunctionSet() {
     func->progressFunc = progressFunc;
     func->finalizeFunc = finalizeFunc;
     func->rewriteFunc = createHNSWIndexTables;
+    func->getPhysicalPlanFunc = getPhysicalPlan;
     functionSet.push_back(std::move(func));
     return functionSet;
 }

@@ -3,7 +3,11 @@
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "common/exception/binder.h"
 #include "function/table/bind_data.h"
+#include "planner/operator/logical_table_function_call.h"
 #include "planner/planner.h"
+#include "processor/data_pos.h"
+#include "processor/operator/table_function_call.h"
+#include "processor/plan_mapper.h"
 
 namespace kuzu {
 namespace function {
@@ -71,6 +75,32 @@ void TableFunction::getLogicalPlan(const transaction::Transaction*, planner::Pla
             planner->appendFilters(predicatesToPull, *plan);
         }
     }
+}
+
+std::unique_ptr<processor::PhysicalOperator> TableFunction::getPhysicalPlan(
+    const main::ClientContext* clientContext, processor::PlanMapper* planMapper,
+    const planner::LogicalOperator* logicalOp) {
+    std::vector<processor::DataPos> outPosV;
+    auto& call = logicalOp->constCast<planner::LogicalTableFunctionCall>();
+    auto outSchema = call.getSchema();
+    for (auto& expr : call.getColumns()) {
+        outPosV.emplace_back(planMapper->getDataPos(*expr, *outSchema));
+    }
+    auto info = processor::TableFunctionCallInfo();
+    info.function = call.getTableFunc();
+    info.bindData = call.getBindData()->copy();
+    info.outPosV = outPosV;
+    KU_ASSERT(info.outPosV.size() >= info.bindData->numWarningDataColumns);
+    info.outputType = outPosV.empty() ? processor::TableScanOutputType::EMPTY :
+                                        processor::TableScanOutputType::SINGLE_DATA_CHUNK;
+    auto sharedState = std::make_shared<processor::TableFunctionCallSharedState>();
+    TableFunctionInitInput tableFunctionInitInput{info.bindData.get(), 0 /* queryID */,
+        *clientContext};
+    sharedState->funcState = info.function.initSharedStateFunc(tableFunctionInitInput);
+    auto printInfo =
+        std::make_unique<processor::TableFunctionCallPrintInfo>(call.getTableFunc().name);
+    return std::make_unique<processor::TableFunctionCall>(std::move(info), sharedState,
+        planMapper->getOperatorID(), std::move(printInfo));
 }
 
 } // namespace function
