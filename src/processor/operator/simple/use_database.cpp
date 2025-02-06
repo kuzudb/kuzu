@@ -1,11 +1,12 @@
 #include "processor/operator/simple/use_database.h"
 
 #include "main/database_manager.h"
+#include "processor/execution_context.h"
 
 namespace kuzu {
 namespace processor {
 
-void UseDatabase::executeInternal(kuzu::processor::ExecutionContext* context) {
+void UseDatabase::executeInternal(ExecutionContext* context) {
     auto dbManager = context->clientContext->getDatabaseManager();
     dbManager->setDefaultDatabase(dbName);
 }

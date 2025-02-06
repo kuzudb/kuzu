@@ -4,6 +4,7 @@
 
 namespace kuzu {
 namespace processor {
+class PhysicalPlan;
 
 struct ProfileInfo {
     PhysicalPlan* physicalPlan;

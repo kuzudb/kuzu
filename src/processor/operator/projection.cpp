@@ -1,6 +1,7 @@
 #include "processor/operator/projection.h"
 
 #include "binder/expression/expression_util.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::evaluator;
 

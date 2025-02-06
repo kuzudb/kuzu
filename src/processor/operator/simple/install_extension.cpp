@@ -5,7 +5,7 @@
 #include "extension/extension.h"
 #include "extension/extension_installer.h"
 #include "httplib.h"
-#include "main/database.h"
+#include "processor/execution_context.h"
 
 namespace kuzu {
 namespace processor {
@@ -17,7 +17,7 @@ std::string InstallExtensionPrintInfo::toString() const {
     return "Install " + extensionName;
 }
 
-void InstallExtension::executeInternal(kuzu::processor::ExecutionContext* context) {
+void InstallExtension::executeInternal(ExecutionContext* context) {
     installExtension(context->clientContext);
 }
 

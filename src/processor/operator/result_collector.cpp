@@ -1,6 +1,7 @@
 #include "processor/operator/result_collector.h"
 
 #include "binder/expression/expression_util.h"
+#include "processor/execution_context.h"
 #include "processor/processor_task.h"
 
 using namespace kuzu::common;

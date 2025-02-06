@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 #include "processor/operator/physical_operator.h"
 
 namespace kuzu {

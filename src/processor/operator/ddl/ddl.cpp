@@ -1,5 +1,7 @@
 #include "processor/operator/ddl/ddl.h"
 
+#include "common/metric.h"
+
 namespace kuzu {
 namespace processor {
 

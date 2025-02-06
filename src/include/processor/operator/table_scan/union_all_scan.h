@@ -1,5 +1,6 @@
 #pragma once
 
+#include "binder/expression/expression.h"
 #include "processor/operator/physical_operator.h"
 #include "processor/result/factorized_table.h"
 

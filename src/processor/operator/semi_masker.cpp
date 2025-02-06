@@ -1,5 +1,7 @@
 #include "processor/operator/semi_masker.h"
 
+#include "processor/execution_context.h"
+
 using namespace kuzu::common;
 using namespace kuzu::storage;
 

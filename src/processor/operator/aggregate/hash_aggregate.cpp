@@ -8,6 +8,7 @@
 #include "common/constants.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
+#include "processor/execution_context.h"
 #include "processor/operator/aggregate/aggregate_hash_table.h"
 #include "processor/result/factorized_table_schema.h"
 

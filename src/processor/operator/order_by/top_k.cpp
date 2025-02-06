@@ -4,6 +4,7 @@
 #include "common/type_utils.h"
 #include "function/binary_function_executor.h"
 #include "function/comparison/comparison_functions.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::common;
 
@@ -264,6 +265,10 @@ void TopK::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* contex
     for (auto& dataPos : info->keysPos) {
         orderByVectors.push_back(resultSet->getValueVector(dataPos).get());
     }
+}
+
+void TopK::initGlobalStateInternal(ExecutionContext* context) {
+    sharedState->init(*info, context->clientContext->getMemoryManager(), skipNumber, limitNumber);
 }
 
 void TopK::executeInternal(ExecutionContext* context) {

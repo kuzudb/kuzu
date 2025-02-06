@@ -1,11 +1,16 @@
 #pragma once
 
 #include "planner/operator/operator_print_info.h"
-#include "processor/execution_context.h"
 #include "processor/result/result_set.h"
 
+namespace kuzu::common {
+class Profiler;
+class NumericMetric;
+class TimeMetric;
+} // namespace kuzu::common
 namespace kuzu {
 namespace processor {
+struct ExecutionContext;
 
 using physical_op_id = uint32_t;
 
@@ -68,6 +73,7 @@ enum class PhysicalOperatorType : uint8_t {
     USE_DATABASE,
 };
 
+class PhysicalOperator;
 class PhysicalOperatorUtils {
 public:
     static std::string operatorToString(const PhysicalOperator* physicalOp);
@@ -84,7 +90,6 @@ struct OperatorMetrics {
         : executionTime{executionTime}, numOutputTuple{numOutputTuple} {}
 };
 
-class PhysicalOperator;
 using physical_op_vector_t = std::vector<std::unique_ptr<PhysicalOperator>>;
 
 class PhysicalOperator {

@@ -1,6 +1,7 @@
 #include "processor/operator/order_by/order_by.h"
 
 #include "binder/expression/expression_util.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::common;
 

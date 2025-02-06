@@ -6,6 +6,7 @@
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/alter_type.h"
 #include "common/exception/binder.h"
+#include "processor/execution_context.h"
 #include "storage/storage_manager.h"
 #include "storage/store/table.h"
 
@@ -16,6 +17,13 @@ using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace processor {
+
+void Alter::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    DDL::initLocalStateInternal(resultSet, context);
+    if (defaultValueEvaluator) {
+        defaultValueEvaluator->init(*resultSet, context->clientContext);
+    }
+}
 
 void Alter::executeDDLInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;

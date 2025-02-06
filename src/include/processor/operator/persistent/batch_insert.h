@@ -3,6 +3,7 @@
 #include <numeric>
 
 #include "processor/operator/sink.h"
+#include "processor/result/factorized_table.h"
 #include "storage/store/table.h"
 
 namespace kuzu {
