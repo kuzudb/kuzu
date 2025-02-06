@@ -68,7 +68,7 @@ void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression&
             }
         }
         if (candidates.empty()) { // No need to prune.
-            return;
+            continue;
         }
         std::vector<TableCatalogEntry*> prunedEntries;
         for (auto entry : node.getEntries()) {
