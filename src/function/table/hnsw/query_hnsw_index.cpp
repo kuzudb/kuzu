@@ -1,11 +1,15 @@
 #include "binder/binder.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/parameter_expression.h"
+#include "binder/query/reading_clause/bound_table_function_call.h"
 #include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/types/value/nested.h"
 #include "function/table/bind_data.h"
 #include "function/table/hnsw/hnsw_index_functions.h"
+#include "planner/operator/logical_hash_join.h"
+#include "planner/operator/logical_table_function_call.h"
+#include "planner/planner.h"
 #include "processor/execution_context.h"
 #include "storage/index/hnsw_index.h"
 #include "storage/index/hnsw_index_utils.h"
@@ -208,6 +212,36 @@ std::unique_ptr<TableFuncLocalState> initQueryHNSWLocalState(const TableFunction
         hnswBindData->indexColumnID, hnswSharedState->numNodes);
 }
 
+static void getLogicalPlan(const transaction::Transaction* transaction, planner::Planner* planner,
+    const binder::BoundReadingClause& readingClause,
+    std::shared_ptr<planner::LogicalOperator> logicalOp,
+    const std::vector<std::unique_ptr<planner::LogicalPlan>>& logicalPlans) {
+    auto& call = readingClause.constCast<binder::BoundTableFunctionCall>();
+    auto callOp = logicalOp->ptrCast<planner::LogicalTableFunctionCall>();
+    binder::expression_vector predicatesToPull;
+    binder::expression_vector predicatesToPush;
+    planner::Planner::splitPredicates(call.getColumns(), call.getConjunctivePredicates(),
+        predicatesToPull, predicatesToPush);
+    for (auto& plan : logicalPlans) {
+        planner->planReadOp(logicalOp, predicatesToPush, *plan);
+        if (!predicatesToPull.empty()) {
+            planner->appendFilters(predicatesToPull, *plan);
+        }
+        auto& node = callOp->getBindData()->getNodeOutput()->constCast<binder::NodeExpression>();
+        auto properties = planner->getProperties(node);
+        planner->getCardinalityEstimator().addNodeIDDomAndStats(transaction, *node.getInternalID(),
+            node.getTableIDs());
+        auto scanPlan = planner::LogicalPlan();
+        planner->appendScanNodeTable(node.getInternalID(), node.getTableIDs(), properties,
+            scanPlan);
+        binder::expression_vector joinConditions;
+        joinConditions.push_back(node.getInternalID());
+        planner->appendHashJoin(joinConditions, common::JoinType::INNER, scanPlan, *plan, *plan);
+        plan->getLastOperator()->cast<planner::LogicalHashJoin>().getSIPInfoUnsafe().direction =
+            planner::SIPDirection::FORCE_BUILD_TO_PROBE;
+    }
+}
+
 function_set QueryHNSWIndexFunction::getFunctionSet() {
     function_set functionSet;
     std::vector inputTypes{common::LogicalTypeID::STRING, common::LogicalTypeID::STRING,
@@ -218,6 +252,7 @@ function_set QueryHNSWIndexFunction::getFunctionSet() {
     tableFunction->initSharedStateFunc = initQueryHNSWSharedState;
     tableFunction->initLocalStateFunc = initQueryHNSWLocalState;
     tableFunction->canParallelFunc = [] { return false; };
+    tableFunction->getLogicalPlanFunc = getLogicalPlan;
     functionSet.push_back(std::move(tableFunction));
     return functionSet;
 }

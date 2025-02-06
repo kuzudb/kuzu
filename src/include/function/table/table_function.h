@@ -6,6 +6,9 @@
 #include "function/function.h"
 
 namespace kuzu {
+namespace binder {
+class BoundReadingClause;
+}
 namespace parser {
 struct YieldVariable;
 class ParsedExpression;
@@ -14,11 +17,16 @@ class ParsedExpression;
 namespace planner {
 class LogicalOperator;
 class LogicalPlan;
+class Planner;
 } // namespace planner
 
 namespace processor {
 struct ExecutionContext;
 } // namespace processor
+
+namespace transaction {
+class Transaction;
+} // namespace transaction
 
 namespace function {
 
@@ -97,7 +105,7 @@ struct TableFuncOutput {
     DELETE_COPY_DEFAULT_MOVE(TableFuncOutput);
 };
 
-struct TableFunctionInitInput {
+struct TableFunctionInitInput final {
     TableFuncBindData* bindData;
     uint64_t queryID;
     const main::ClientContext& context;
@@ -105,8 +113,6 @@ struct TableFunctionInitInput {
     explicit TableFunctionInitInput(TableFuncBindData* bindData, uint64_t queryID,
         const main::ClientContext& context)
         : bindData{bindData}, queryID{queryID}, context{context} {}
-
-    virtual ~TableFunctionInitInput() = default;
 };
 
 using table_func_bind_t = std::function<std::unique_ptr<TableFuncBindData>(main::ClientContext*,
@@ -122,6 +128,9 @@ using table_func_finalize_t =
     std::function<void(const processor::ExecutionContext*, TableFuncSharedState*)>;
 using table_func_rewrite_t =
     std::function<std::string(main::ClientContext&, const TableFuncBindData& bindData)>;
+using table_func_get_logical_plan_t = std::function<void(const transaction::Transaction*,
+    planner::Planner*, const binder::BoundReadingClause&, std::shared_ptr<planner::LogicalOperator>,
+    const std::vector<std::unique_ptr<planner::LogicalPlan>>&)>;
 
 struct KUZU_API TableFunction final : Function {
     table_func_t tableFunc = nullptr;
@@ -132,6 +141,7 @@ struct KUZU_API TableFunction final : Function {
     table_func_progress_t progressFunc = [](TableFuncSharedState*) { return 0.0; };
     table_func_finalize_t finalizeFunc = [](auto, auto) {};
     table_func_rewrite_t rewriteFunc = nullptr;
+    table_func_get_logical_plan_t getLogicalPlanFunc = getLogicalPlan;
 
     TableFunction() {}
     TableFunction(std::string name, std::vector<common::LogicalTypeID> inputTypes)
@@ -141,9 +151,7 @@ struct KUZU_API TableFunction final : Function {
         return common::LogicalTypeUtils::toString(parameterTypeIDs);
     }
 
-    virtual std::unique_ptr<TableFunction> copy() const {
-        return std::make_unique<TableFunction>(*this);
-    }
+    std::unique_ptr<TableFunction> copy() const { return std::make_unique<TableFunction>(*this); }
 
     static std::unique_ptr<TableFuncSharedState> initSharedState(
         const TableFunctionInitInput& input);
@@ -152,6 +160,10 @@ struct KUZU_API TableFunction final : Function {
         storage::MemoryManager* mm);
     static std::vector<std::string> extractYieldVariables(const std::vector<std::string>& names,
         const std::vector<parser::YieldVariable>& yieldVariables);
+    static void getLogicalPlan(const transaction::Transaction* transaction,
+        planner::Planner* planner, const binder::BoundReadingClause& readingClause,
+        std::shared_ptr<planner::LogicalOperator> logicalOp,
+        const std::vector<std::unique_ptr<planner::LogicalPlan>>& logicalPlans);
 };
 
 struct CurrentSettingFunction final {
