@@ -731,7 +731,7 @@ namespace kuzu {
 //                    } else {
                         // If the selectivity is low, we will not do dynamic two hop search since it does some extra
                         // distance computations to reduce listNbrs call which are redundant.
-                        randomTwoHopSearch(firstHopNbrs, tableId, graph, filterMask, state, 32, visited, vectorArray,
+                        randomTwoHopSearch(firstHopNbrs, tableId, graph, filterMask, state, 64, visited, vectorArray,
                                         size, stats);
 //                        fullTwoHopSearch(firstHopNbrs, tableId, graph, filterMask, state, visited, vectorArray, size,
 //                                         stats);
