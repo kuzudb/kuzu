@@ -32,7 +32,27 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace catalog {
 
-Catalog::Catalog() {
+Catalog::Catalog() : version{0} {
+    initCatalogSets();
+    registerBuiltInFunctions();
+}
+
+Catalog::Catalog(const std::string& directory, VirtualFileSystem* vfs) : version{0} {
+    const auto isInMemMode = main::DBConfig::isDBPathInMemory(directory);
+    if (!isInMemMode && vfs->fileOrPathExists(StorageUtils::getCatalogFilePath(vfs, directory,
+                            FileVersionType::ORIGINAL))) {
+        readFromFile(directory, vfs, FileVersionType::ORIGINAL);
+    } else {
+        initCatalogSets();
+        if (!isInMemMode) {
+            // TODO(Guodong): Ideally we should be able to remove this line. Revisit here.
+            saveToFile(directory, vfs, FileVersionType::ORIGINAL);
+        }
+    }
+    registerBuiltInFunctions();
+}
+
+void Catalog::initCatalogSets() {
     tables = std::make_unique<CatalogSet>();
     relGroups = std::make_unique<CatalogSet>();
     sequences = std::make_unique<CatalogSet>();
@@ -41,29 +61,6 @@ Catalog::Catalog() {
     indexes = std::make_unique<CatalogSet>();
     internalTables = std::make_unique<CatalogSet>(true /* isInternal */);
     internalSequences = std::make_unique<CatalogSet>(true /* isInternal */);
-    registerBuiltInFunctions();
-}
-
-Catalog::Catalog(const std::string& directory, VirtualFileSystem* vfs) {
-    const auto isInMemMode = main::DBConfig::isDBPathInMemory(directory);
-    if (!isInMemMode && vfs->fileOrPathExists(StorageUtils::getCatalogFilePath(vfs, directory,
-                            FileVersionType::ORIGINAL))) {
-        readFromFile(directory, vfs, FileVersionType::ORIGINAL);
-    } else {
-        tables = std::make_unique<CatalogSet>();
-        relGroups = std::make_unique<CatalogSet>();
-        sequences = std::make_unique<CatalogSet>();
-        functions = std::make_unique<CatalogSet>();
-        types = std::make_unique<CatalogSet>();
-        indexes = std::make_unique<CatalogSet>();
-        internalTables = std::make_unique<CatalogSet>(true /* isInternal */);
-        internalSequences = std::make_unique<CatalogSet>(true /* isInternal */);
-        if (!isInMemMode) {
-            // TODO(Guodong): Ideally we should be able to remove this line. Revisit here.
-            saveToFile(directory, vfs, FileVersionType::ORIGINAL);
-        }
-    }
-    registerBuiltInFunctions();
 }
 
 bool Catalog::containsTable(const Transaction* transaction, const std::string& tableName,
@@ -175,11 +172,11 @@ void Catalog::dropTableEntry(Transaction* transaction, const TableCatalogEntry* 
     }
 }
 
-void Catalog::alterRelGroupEntry(const Transaction* transaction, const BoundAlterInfo& info) {
+void Catalog::alterRelGroupEntry(Transaction* transaction, const BoundAlterInfo& info) {
     relGroups->alterRelGroupEntry(transaction, info);
 }
 
-void Catalog::alterTableEntry(const Transaction* transaction, const BoundAlterInfo& info) {
+void Catalog::alterTableEntry(Transaction* transaction, const BoundAlterInfo& info) {
     tables->alterTableEntry(transaction, info);
 }
 
@@ -226,8 +223,8 @@ CatalogEntry* Catalog::createRelGroupEntry(Transaction* transaction,
     for (auto& childInfo : extraInfo->infos) {
         KU_ASSERT(childInfo.hasParent);
         relTableIDs.push_back(createRelTableEntry(transaction, childInfo)
-                                  ->ptrCast<TableCatalogEntry>()
-                                  ->getTableID());
+                ->ptrCast<TableCatalogEntry>()
+                ->getTableID());
     }
     auto entry = std::make_unique<RelGroupCatalogEntry>(info.tableName, std::move(relTableIDs));
     relGroups->createEntry(transaction, std::move(entry));

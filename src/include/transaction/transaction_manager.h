@@ -33,7 +33,7 @@ public:
         TransactionType type);
 
     void commit(main::ClientContext& clientContext);
-    void rollback(main::ClientContext& clientContext, const Transaction* transaction);
+    void rollback(main::ClientContext& clientContext, Transaction* transaction);
 
     void checkpoint(main::ClientContext& clientContext);
 

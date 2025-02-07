@@ -15,12 +15,12 @@ namespace kuzu {
 namespace catalog {
 
 SequenceData SequenceCatalogEntry::getSequenceData() {
-    std::lock_guard<std::mutex> lck(mtx);
+    std::lock_guard lck(mtx);
     return sequenceData;
 }
 
 int64_t SequenceCatalogEntry::currVal() {
-    std::lock_guard<std::mutex> lck(mtx);
+    std::lock_guard lck(mtx);
     if (sequenceData.usageCount == 0) {
         throw CatalogException(
             "currval: sequence \"" + name +
@@ -67,12 +67,11 @@ void SequenceCatalogEntry::nextValNoLock() {
 }
 
 // referenced from DuckDB
-void SequenceCatalogEntry::nextKVal(const transaction::Transaction* transaction,
-    const uint64_t& count) {
+void SequenceCatalogEntry::nextKVal(transaction::Transaction* transaction, const uint64_t& count) {
     KU_ASSERT(count > 0);
     SequenceRollbackData rollbackData{};
     {
-        std::lock_guard<std::mutex> lck(mtx);
+        std::lock_guard lck(mtx);
         rollbackData = SequenceRollbackData{sequenceData.usageCount, sequenceData.currVal};
         for (auto i = 0ul; i < count; i++) {
             nextValNoLock();
@@ -81,12 +80,12 @@ void SequenceCatalogEntry::nextKVal(const transaction::Transaction* transaction,
     transaction->pushSequenceChange(this, count, rollbackData);
 }
 
-void SequenceCatalogEntry::nextKVal(const transaction::Transaction* transaction,
-    const uint64_t& count, ValueVector& resultVector) {
+void SequenceCatalogEntry::nextKVal(transaction::Transaction* transaction, const uint64_t& count,
+    ValueVector& resultVector) {
     KU_ASSERT(count > 0);
     SequenceRollbackData rollbackData{};
     {
-        std::lock_guard<std::mutex> lck(mtx);
+        std::lock_guard lck(mtx);
         rollbackData = SequenceRollbackData{sequenceData.usageCount, sequenceData.currVal};
         for (auto i = 0ul; i < count; i++) {
             nextValNoLock();
@@ -97,7 +96,7 @@ void SequenceCatalogEntry::nextKVal(const transaction::Transaction* transaction,
 }
 
 void SequenceCatalogEntry::rollbackVal(const uint64_t& usageCount, const int64_t& currVal) {
-    std::lock_guard<std::mutex> lck(mtx);
+    std::lock_guard lck(mtx);
     sequenceData.usageCount = usageCount;
     sequenceData.currVal = currVal;
 }

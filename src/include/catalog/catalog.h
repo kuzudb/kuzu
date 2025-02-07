@@ -85,11 +85,10 @@ public:
     // Drop table entry.
     void dropTableEntry(transaction::Transaction* transaction, const TableCatalogEntry* entry);
     // Alter table entry.
-    void alterTableEntry(const transaction::Transaction* transaction,
-        const binder::BoundAlterInfo& info);
+    void alterTableEntry(transaction::Transaction* transaction, const binder::BoundAlterInfo& info);
     // Alter a rel group entry
     // alterTableEntry() still needs to be called separately for each member of the group
-    void alterRelGroupEntry(const transaction::Transaction* transaction,
+    void alterRelGroupEntry(transaction::Transaction* transaction,
         const binder::BoundAlterInfo& info);
 
     // ----------------------------- Rel groups ----------------------------
@@ -198,6 +197,8 @@ public:
         const transaction::Transaction* transaction, const std::string& name) const;
     std::vector<std::string> getMacroNames(const transaction::Transaction* transaction) const;
 
+    void incrementVersion() { version++; }
+    uint64_t getVersion() const { return version; }
     void checkpoint(const std::string& databasePath, common::VirtualFileSystem* fs) const;
 
     template<class TARGET>
@@ -214,6 +215,7 @@ private:
         common::FileVersionType versionType) const;
 
 private:
+    void initCatalogSets();
     void registerBuiltInFunctions();
 
     CatalogEntry* createNodeTableEntry(transaction::Transaction* transaction,
@@ -236,6 +238,8 @@ private:
     std::unique_ptr<CatalogSet> indexes;
     std::unique_ptr<CatalogSet> internalTables;
     std::unique_ptr<CatalogSet> internalSequences;
+
+    uint64_t version;
 };
 
 } // namespace catalog

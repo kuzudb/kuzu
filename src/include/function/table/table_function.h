@@ -180,6 +180,12 @@ struct CurrentSettingFunction final {
     static function_set getFunctionSet();
 };
 
+struct CatalogVersionFunction final {
+    static constexpr const char* name = "CATALOG_VERSION";
+
+    static function_set getFunctionSet();
+};
+
 struct DBVersionFunction final {
     static constexpr const char* name = "DB_VERSION";
 

@@ -50,7 +50,7 @@ std::unique_ptr<Transaction> TransactionManager::beginTransaction(
 }
 
 void TransactionManager::commit(main::ClientContext& clientContext) {
-    std::unique_lock<std::mutex> lck{mtxForSerializingPublicFunctionCalls};
+    std::unique_lock lck{mtxForSerializingPublicFunctionCalls};
     clientContext.cleanUp();
     const auto transaction = clientContext.getTransaction();
     switch (transaction->getType()) {
@@ -76,9 +76,8 @@ void TransactionManager::commit(main::ClientContext& clientContext) {
 // Note: We take in additional `transaction` here is due to that `transactionContext` might be
 // destructed when a transaction throws exception, while we need to rollback the active transaction
 // still.
-void TransactionManager::rollback(main::ClientContext& clientContext,
-    const Transaction* transaction) {
-    std::unique_lock<std::mutex> lck{mtxForSerializingPublicFunctionCalls};
+void TransactionManager::rollback(main::ClientContext& clientContext, Transaction* transaction) {
+    std::unique_lock lck{mtxForSerializingPublicFunctionCalls};
     clientContext.cleanUp();
     switch (transaction->getType()) {
     case TransactionType::READ_ONLY: {
@@ -103,15 +102,15 @@ void TransactionManager::rollbackCheckpoint(main::ClientContext& clientContext) 
 }
 
 void TransactionManager::checkpoint(main::ClientContext& clientContext) {
-    common::UniqLock lck{mtxForSerializingPublicFunctionCalls};
+    UniqLock lck{mtxForSerializingPublicFunctionCalls};
     if (main::DBConfig::isDBPathInMemory(clientContext.getDatabasePath())) {
         return;
     }
     checkpointNoLock(clientContext);
 }
 
-common::UniqLock TransactionManager::stopNewTransactionsAndWaitUntilAllTransactionsLeave() {
-    common::UniqLock startTransactionLock{mtxForStartingNewTransactions};
+UniqLock TransactionManager::stopNewTransactionsAndWaitUntilAllTransactionsLeave() {
+    UniqLock startTransactionLock{mtxForStartingNewTransactions};
     uint64_t numTimesWaited = 0;
     while (true) {
         if (!canCheckpointNoLock()) {

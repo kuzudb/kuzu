@@ -18,7 +18,7 @@ namespace transaction {
 Transaction::Transaction(main::ClientContext& clientContext, TransactionType transactionType,
     common::transaction_t transactionID, common::transaction_t startTS)
     : type{transactionType}, ID{transactionID}, startTS{startTS},
-      commitTS{common::INVALID_TRANSACTION}, forceCheckpoint{false} {
+      commitTS{common::INVALID_TRANSACTION}, forceCheckpoint{false}, hasCatalogChanges{false} {
     this->clientContext = &clientContext;
     localStorage = std::make_unique<storage::LocalStorage>(clientContext);
     undoBuffer = std::make_unique<storage::UndoBuffer>(clientContext.getMemoryManager());
@@ -34,14 +34,15 @@ Transaction::Transaction(main::ClientContext& clientContext, TransactionType tra
 Transaction::Transaction(TransactionType transactionType) noexcept
     : type{transactionType}, ID{DUMMY_TRANSACTION_ID}, startTS{DUMMY_START_TIMESTAMP},
       commitTS{common::INVALID_TRANSACTION}, clientContext{nullptr}, undoBuffer{nullptr},
-      forceCheckpoint{false} {
+      forceCheckpoint{false}, hasCatalogChanges{false} {
     currentTS = common::Timestamp::getCurrentTimestamp().value;
 }
 
 Transaction::Transaction(TransactionType transactionType, common::transaction_t ID,
     common::transaction_t startTS) noexcept
     : type{transactionType}, ID{ID}, startTS{startTS}, commitTS{common::INVALID_TRANSACTION},
-      clientContext{nullptr}, undoBuffer{nullptr}, forceCheckpoint{false} {
+      clientContext{nullptr}, undoBuffer{nullptr}, forceCheckpoint{false},
+      hasCatalogChanges{false} {
     currentTS = common::Timestamp::getCurrentTimestamp().value;
 }
 
@@ -54,22 +55,27 @@ bool Transaction::shouldForceCheckpoint() const {
     return !main::DBConfig::isDBPathInMemory(clientContext->getDatabasePath()) && forceCheckpoint;
 }
 
-void Transaction::commit(storage::WAL* wal) const {
+void Transaction::commit(storage::WAL* wal) {
     localStorage->commit();
     undoBuffer->commit(commitTS);
     if (isWriteTransaction() && shouldLogToWAL()) {
         KU_ASSERT(wal);
         wal->logAndFlushCommit();
     }
+    if (hasCatalogChanges) {
+        clientContext->getCatalog()->incrementVersion();
+        hasCatalogChanges = false;
+    }
 }
 
-void Transaction::rollback(storage::WAL* wal) const {
+void Transaction::rollback(storage::WAL* wal) {
     localStorage->rollback();
     undoBuffer->rollback(this);
     if (isWriteTransaction() && shouldLogToWAL()) {
         KU_ASSERT(wal);
         wal->logRollback();
     }
+    hasCatalogChanges = false;
 }
 
 uint64_t Transaction::getEstimatedMemUsage() const {
@@ -77,8 +83,9 @@ uint64_t Transaction::getEstimatedMemUsage() const {
 }
 
 void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry,
-    bool isInternal, bool skipLoggingToWAL) const {
+    bool isInternal, bool skipLoggingToWAL) {
     undoBuffer->createCatalogEntry(catalogSet, catalogEntry);
+    hasCatalogChanges = true;
     if (!shouldLogToWAL() || skipLoggingToWAL) {
         return;
     }
@@ -161,8 +168,9 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
 }
 
 void Transaction::pushAlterCatalogEntry(CatalogSet& catalogSet, CatalogEntry& catalogEntry,
-    const binder::BoundAlterInfo& alterInfo) const {
+    const binder::BoundAlterInfo& alterInfo) {
     undoBuffer->createCatalogEntry(catalogSet, catalogEntry);
+    hasCatalogChanges = true;
     if (!shouldLogToWAL()) {
         return;
     }
@@ -172,8 +180,9 @@ void Transaction::pushAlterCatalogEntry(CatalogSet& catalogSet, CatalogEntry& ca
 }
 
 void Transaction::pushSequenceChange(SequenceCatalogEntry* sequenceEntry, int64_t kCount,
-    const SequenceRollbackData& data) const {
+    const SequenceRollbackData& data) {
     undoBuffer->createSequenceChange(*sequenceEntry, data);
+    hasCatalogChanges = true;
     if (clientContext->getTransaction()->shouldLogToWAL()) {
         clientContext->getWAL()->logUpdateSequenceRecord(sequenceEntry->getOID(), kCount);
     }
@@ -202,7 +211,7 @@ Transaction::Transaction(TransactionType transactionType, common::transaction_t 
     std::unordered_map<common::table_id_t, common::offset_t> maxCommittedNodeOffsets)
     : type{transactionType}, ID{ID}, startTS{startTS}, commitTS{common::INVALID_TRANSACTION},
       currentTS{INT64_MAX}, clientContext{nullptr}, undoBuffer{nullptr}, forceCheckpoint{false},
-      minUncommittedNodeOffsets{std::move(minUncommittedNodeOffsets)},
+      hasCatalogChanges{false}, minUncommittedNodeOffsets{std::move(minUncommittedNodeOffsets)},
       maxCommittedNodeOffsets{std::move(maxCommittedNodeOffsets)} {}
 
 Transaction Transaction::getDummyTransactionFromExistingOne(const Transaction& other) {

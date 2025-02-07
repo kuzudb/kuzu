@@ -73,8 +73,8 @@ public:
 
     bool shouldForceCheckpoint() const;
 
-    KUZU_API void commit(storage::WAL* wal) const;
-    void rollback(storage::WAL* wal) const;
+    KUZU_API void commit(storage::WAL* wal);
+    void rollback(storage::WAL* wal);
 
     uint64_t getEstimatedMemUsage() const;
     storage::LocalStorage* getLocalStorage() const { return localStorage.get(); }
@@ -114,11 +114,11 @@ public:
     }
 
     void pushCreateDropCatalogEntry(catalog::CatalogSet& catalogSet,
-        catalog::CatalogEntry& catalogEntry, bool isInternal, bool skipLoggingToWAL = false) const;
+        catalog::CatalogEntry& catalogEntry, bool isInternal, bool skipLoggingToWAL = false);
     void pushAlterCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry,
-        const binder::BoundAlterInfo& alterInfo) const;
+        const binder::BoundAlterInfo& alterInfo);
     void pushSequenceChange(catalog::SequenceCatalogEntry* sequenceEntry, int64_t kCount,
-        const catalog::SequenceRollbackData& data) const;
+        const catalog::SequenceRollbackData& data);
     void pushInsertInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
         common::row_idx_t numRows, const storage::VersionRecordHandler* versionRecordHandler) const;
     void pushDeleteInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
@@ -144,6 +144,7 @@ private:
     std::unique_ptr<storage::LocalStorage> localStorage;
     std::unique_ptr<storage::UndoBuffer> undoBuffer;
     bool forceCheckpoint;
+    bool hasCatalogChanges;
 
     // For each node table, we keep track of the minimum uncommitted node offset when the
     // transaction starts. This is mainly used to assign offsets to local nodes and determine if a
