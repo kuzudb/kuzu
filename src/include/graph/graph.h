@@ -96,7 +96,7 @@ public:
         }
 
     private:
-        Chunk(std::span<const common::nodeID_t> nodeIDs,
+        KUZU_API Chunk(std::span<const common::nodeID_t> nodeIDs,
             std::span<const std::shared_ptr<common::ValueVector>> propertyVectors);
 
     private:
