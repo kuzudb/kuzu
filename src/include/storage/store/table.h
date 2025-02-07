@@ -32,6 +32,12 @@ struct TableScanState {
 
     TableScanSource source = TableScanSource::NONE;
     common::node_group_idx_t nodeGroupIdx = common::INVALID_NODE_GROUP_IDX;
+
+    // For node tables in most cases we can calculate the startNodeOffset from the nodeGroupIdx
+    // However there are rare cases (such as rolling back copies) where this is not possible
+    // We have this value as an override for those cases
+    std::optional<common::row_idx_t> startNodeOffset;
+
     NodeGroup* nodeGroup = nullptr;
     std::unique_ptr<NodeGroupScanState> nodeGroupScanState;
 
@@ -58,6 +64,8 @@ struct TableScanState {
     virtual bool scanNext(transaction::Transaction*) { KU_UNREACHABLE; }
 
     void resetOutVectors();
+
+    common::row_idx_t getStartNodeOffset() const;
 
     template<class TARGET>
     TARGET& cast() {

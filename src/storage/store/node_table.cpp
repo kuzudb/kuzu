@@ -34,11 +34,16 @@ void NodeTableVersionRecordHandler::rollbackInsert(const Transaction* transactio
     node_group_idx_t nodeGroupIdx, row_idx_t startRow, row_idx_t numRows) const {
     table->rollbackPKIndexInsert(transaction, startRow, numRows, nodeGroupIdx);
 
-    VersionRecordHandler::rollbackInsert(transaction, nodeGroupIdx, startRow, numRows);
-    auto* nodeGroup = table->getNodeGroupNoLock(nodeGroupIdx);
-    const auto numRowsToRollback = std::min(numRows, nodeGroup->getNumRows() - startRow);
-    nodeGroup->rollbackInsert(startRow);
-    table->rollbackGroupCollectionInsert(numRowsToRollback);
+    // the only case where a node group would be empty (and potentially removed before) is if an
+    // exception occurred while adding its first chunk
+    KU_ASSERT(nodeGroupIdx < table->getNumNodeGroups() || startRow == 0);
+    if (nodeGroupIdx < table->getNumNodeGroups()) {
+        VersionRecordHandler::rollbackInsert(transaction, nodeGroupIdx, startRow, numRows);
+        auto* nodeGroup = table->getNodeGroupNoLock(nodeGroupIdx);
+        const auto numRowsToRollback = std::min(numRows, nodeGroup->getNumRows() - startRow);
+        nodeGroup->rollbackInsert(startRow);
+        table->rollbackGroupCollectionInsert(numRowsToRollback);
+    }
 }
 
 bool NodeTableScanState::scanNext(Transaction* transaction, offset_t startOffset,
@@ -626,20 +631,29 @@ void NodeTable::scanPKColumn(const Transaction* transaction, PKColumnScanHelper&
     auto dataChunk = constructDataChunkForPKColumn();
     auto scanState = scanHelper.initPKScanState(dataChunk, pkColumnID, columns);
 
-    node_group_idx_t nodeGroupToScan = 0u;
-    while (nodeGroupToScan < nodeGroups_.getNumNodeGroups()) {
-        scanState->nodeGroup = nodeGroups_.getNodeGroup(nodeGroupToScan);
-        scanState->nodeGroupIdx = nodeGroupToScan;
-        KU_ASSERT(scanState->nodeGroup);
-        scanState->nodeGroup->initializeScanState(transaction, *scanState);
-        while (true) {
-            auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
-            if (!scanHelper.processScanOutput(transaction, scanResult,
-                    *scanState->outputVectors[0])) {
-                break;
+    const auto numNodeGroups = nodeGroups_.getNumNodeGroups();
+    row_idx_t startNodeOffset = 0;
+    for (node_group_idx_t nodeGroupToScan = 0u; nodeGroupToScan < numNodeGroups;
+         ++nodeGroupToScan) {
+        scanState->nodeGroup = nodeGroups_.getNodeGroupNoLock(nodeGroupToScan);
+
+        // It is possible for the node group to have no chunked groups if we are rolling back due to
+        // an exception that is thrown before any chunked groups could be appended to the node group
+        if (scanState->nodeGroup->getNumChunkedGroups() > 0) {
+            scanState->nodeGroupIdx = nodeGroupToScan;
+            scanState->startNodeOffset = startNodeOffset;
+            KU_ASSERT(scanState->nodeGroup);
+            scanState->nodeGroup->initializeScanState(transaction, *scanState);
+            while (true) {
+                auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
+                if (!scanHelper.processScanOutput(transaction, scanResult,
+                        *scanState->outputVectors[0])) {
+                    break;
+                }
             }
         }
-        nodeGroupToScan++;
+
+        startNodeOffset += scanState->nodeGroup->getNumRows();
     }
 }
 
