@@ -43,12 +43,7 @@ static constexpr ExtendDirection DEFAULT_EXTEND_DIRECTION = ExtendDirection::BOT
 #endif
 
 struct StorageConfig {
-    static constexpr uint64_t DEFAULT_NODE_GROUP_SIZE_LOG2 = 17; // 64 * 2048 nodes per group
-#ifndef KUZU_NODE_GROUP_SIZE_LOG2
-    static constexpr uint64_t NODE_GROUP_SIZE_LOG2 = DEFAULT_NODE_GROUP_SIZE_LOG2;
-#else
-    static constexpr uint64_t NODE_GROUP_SIZE_LOG2 = KUZU_NODE_GROUP_SIZE_LOG2;
-#endif
+    static constexpr uint64_t NODE_GROUP_SIZE_LOG2 = @KUZU_NODE_GROUP_SIZE_LOG2@;
     static constexpr uint64_t NODE_GROUP_SIZE = static_cast<uint64_t>(1) << NODE_GROUP_SIZE_LOG2;
 };
 
