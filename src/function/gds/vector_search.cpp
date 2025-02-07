@@ -402,15 +402,15 @@ namespace kuzu {
                                            Graph *graph, NodeOffsetLevelSemiMask *filterMask, GraphScanState &state,
                                            int filterNbrsToFind, BitVectorVisitedTable *visited, vector_array_t &vectorArray,
                                            int &size, VectorSearchStats &stats) {
-                std::unordered_set<vector_id_t> visitedSet;
+//                std::unordered_set<vector_id_t> visitedSet;
                 std::queue<vector_id_t> nbrsToExplore;
 
                 // First hop neighbours
                 for (auto &neighbor: firstHopNbrs) {
                     auto isNeighborMasked = filterMask->isMasked(neighbor.offset);
-                    if (isNeighborMasked) {
-                        visitedSet.insert(neighbor.offset);
-                    }
+//                    if (isNeighborMasked) {
+//                        visitedSet.insert(neighbor.offset);
+//                    }
                     if (visited->is_bit_set(neighbor.offset)) {
                         continue;
                     }
@@ -424,7 +424,7 @@ namespace kuzu {
                 while (!nbrsToExplore.empty()) {
                     auto neighbor = nbrsToExplore.front();
                     nbrsToExplore.pop();
-                    if (visitedSet.size() >= filterNbrsToFind) {
+                    if (size >= filterNbrsToFind) {
                         break;
                     }
                     visited->set_bit(neighbor);
@@ -442,9 +442,9 @@ namespace kuzu {
 
                     for (auto &secondHopNeighbor: secondHopNbrs) {
                         auto isNeighborMasked = filterMask->isMasked(secondHopNeighbor.offset);
-                        if (isNeighborMasked) {
-                            visitedSet.insert(secondHopNeighbor.offset);
-                        }
+//                        if (isNeighborMasked) {
+//                            visitedSet.insert(secondHopNeighbor.offset);
+//                        }
                         if (visited->is_bit_set(secondHopNeighbor.offset)) {
                             continue;
                         }
@@ -728,7 +728,7 @@ namespace kuzu {
 //                    } else {
                         // If the selectivity is low, we will not do dynamic two hop search since it does some extra
                         // distance computations to reduce listNbrs call which are redundant.
-                        randomTwoHopSearch(firstHopNbrs, tableId, graph, filterMask, state, totalNbrs, visited, vectorArray,
+                        randomTwoHopSearch(firstHopNbrs, tableId, graph, filterMask, state, 32, visited, vectorArray,
                                         size, stats);
 //                        fullTwoHopSearch(firstHopNbrs, tableId, graph, filterMask, state, visited, vectorArray, size,
 //                                         stats);
