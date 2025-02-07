@@ -138,7 +138,8 @@ private:
         auto edgeCompute =
             std::make_unique<VarLenJoinsEdgeCompute>(frontierPair.get(), output->bfsGraph.get());
         return RJCompState(std::move(frontierPair), std::move(edgeCompute),
-            sharedState->getOutputNodeMaskMap(), std::move(output), std::move(outputWriter));
+            rjBindData->getStepActiveRelTableIDs(), sharedState->getOutputNodeMaskMap(),
+            std::move(output), std::move(outputWriter));
     }
 };
 

@@ -275,8 +275,8 @@ public:
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
         frontierPair->setActiveNodesForNextIter();
         frontierPair->getNextSparseFrontier().disable();
-        auto computeState =
-            GDSComputeState(std::move(frontierPair), nullptr, sharedState->getOutputNodeMaskMap());
+        auto computeState = GDSComputeState(std::move(frontierPair), nullptr, {},
+            sharedState->getOutputNodeMaskMap());
         auto pNextUpdateConstant = (1 - pageRankBindData->dampingFactor) * ((double)1 / numNodes);
         while (currentIter < pageRankBindData->maxIteration) {
             auto ec = std::make_unique<PNextUpdateEdgeCompute>(&degrees, pCurrent, pNext);

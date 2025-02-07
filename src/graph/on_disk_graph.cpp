@@ -191,12 +191,16 @@ offset_t OnDiskGraph::getNumNodes(transaction::Transaction* transaction, table_i
     return nodeIDToNodeTable.at(id)->getNumTotalRows(transaction);
 }
 
-std::vector<RelFromToEntryInfo> OnDiskGraph::getRelFromToEntryInfos() {
+std::vector<RelFromToEntryInfo> OnDiskGraph::getRelFromToEntryInfos(
+    const common::table_id_set_t& activeRelTableIDs) {
     std::vector<RelFromToEntryInfo> result;
     auto transaction = context->getTransaction();
     auto catalog = context->getCatalog();
     for (auto& [fromNodeTableID, relTables] : nodeTableIDToFwdRelTables) {
         for (auto& [relTableID, relTable] : relTables) {
+            if (!activeRelTableIDs.contains(relTableID)) {
+                continue;
+            }
             auto fromEntry = catalog->getTableCatalogEntry(transaction, fromNodeTableID);
             auto toEntry = catalog->getTableCatalogEntry(transaction, relTable->getToNodeTableID());
             auto relEntry = catalog->getTableCatalogEntry(transaction, relTableID);

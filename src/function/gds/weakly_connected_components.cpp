@@ -215,7 +215,7 @@ public:
         auto edgeCompute = std::make_unique<WCCEdgeCompute>(*frontierPair.get());
         auto writer = std::make_unique<WCCOutputWriter>(clientContext,
             sharedState->getOutputNodeMaskMap(), frontierPair.get());
-        auto computeState = GDSComputeState(std::move(frontierPair), std::move(edgeCompute),
+        auto computeState = GDSComputeState(std::move(frontierPair), std::move(edgeCompute), {},
             sharedState->getOutputNodeMaskMap());
         GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH,
             MAX_ITERATION);

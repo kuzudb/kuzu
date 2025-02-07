@@ -207,7 +207,8 @@ public:
         common::table_id_t id) const = 0;
 
     // Get all possible "forward" (fromNodeTableID, relTableID, toNodeTableID) combinations.
-    virtual std::vector<RelFromToEntryInfo> getRelFromToEntryInfos() = 0;
+    virtual std::vector<RelFromToEntryInfo> getRelFromToEntryInfos(
+        const common::table_id_set_t& activeRelTableIDs) = 0;
 
     // Prepares scan on the specified relationship table (works for backwards and forwards scans)
     virtual std::unique_ptr<NbrScanState> prepareRelScan(catalog::TableCatalogEntry* tableEntry,

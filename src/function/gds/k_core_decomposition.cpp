@@ -253,7 +253,7 @@ public:
         // Compute Core values
         auto removeVertexEdgeCompute = std::make_unique<RemoveVertexEdgeCompute>(&degrees);
         auto computeState = GDSComputeState(std::move(frontierPair),
-            std::move(removeVertexEdgeCompute), sharedState->getOutputNodeMaskMap());
+            std::move(removeVertexEdgeCompute), {}, sharedState->getOutputNodeMaskMap());
         auto coreValue = 0u;
         auto numNodes = graph->getNumNodes(clientContext->getTransaction());
         auto numNodesComputed = 0u;

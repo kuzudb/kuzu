@@ -249,7 +249,7 @@ private:
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(frontier);
         auto edgeCompute =
             std::make_unique<AllSPDestinationsEdgeCompute>(frontierPair.get(), multiplicities);
-        return RJCompState(std::move(frontierPair), std::move(edgeCompute),
+        return RJCompState(std::move(frontierPair), std::move(edgeCompute), {},
             sharedState->getOutputNodeMaskMap(), std::move(output), std::move(outputWriter));
     }
 };
@@ -286,7 +286,7 @@ private:
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(frontier);
         auto edgeCompute =
             std::make_unique<AllSPPathsEdgeCompute>(frontierPair.get(), output->bfsGraph.get());
-        return RJCompState(std::move(frontierPair), std::move(edgeCompute),
+        return RJCompState(std::move(frontierPair), std::move(edgeCompute), {},
             sharedState->getOutputNodeMaskMap(), std::move(output), std::move(outputWriter));
     }
 };

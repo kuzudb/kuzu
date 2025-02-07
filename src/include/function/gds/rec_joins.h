@@ -22,6 +22,9 @@ struct RJBindData : public GDSBindData {
 
     common::ExtendDirection extendDirection = common::ExtendDirection::FWD;
 
+    std::vector<common::table_id_set_t> stepFromLeftActivationRelInfos;
+    std::vector<common::table_id_set_t> stepFromRightActivationRelInfos;
+
     bool flipPath = false; // See PathsOutputWriterInfo::flipPath for comments.
     bool writePath = true;
 
@@ -43,6 +46,8 @@ struct RJBindData : public GDSBindData {
 
     PathsOutputWriterInfo getPathWriterInfo() const;
 
+    std::vector<common::table_id_set_t> getStepActiveRelTableIDs() const;
+
     std::unique_ptr<GDSBindData> copy() const override {
         return std::make_unique<RJBindData>(*this);
     }
@@ -56,9 +61,11 @@ struct RJCompState : public GDSComputeState {
 
     RJCompState(std::unique_ptr<function::FrontierPair> frontierPair,
         std::unique_ptr<function::EdgeCompute> edgeCompute,
+        std::vector<common::table_id_set_t> stepActiveRelTableIDs,
         processor::NodeOffsetMaskMap* outputNodeMask, std::unique_ptr<RJOutputs> outputs,
         std::unique_ptr<RJOutputWriter> outputWriter)
-        : GDSComputeState{std::move(frontierPair), std::move(edgeCompute), outputNodeMask},
+        : GDSComputeState{std::move(frontierPair), std::move(edgeCompute),
+              std::move(stepActiveRelTableIDs), outputNodeMask},
           outputs{std::move(outputs)}, outputWriter{std::move(outputWriter)} {}
 
     void initSource(common::nodeID_t sourceNodeID) const {
