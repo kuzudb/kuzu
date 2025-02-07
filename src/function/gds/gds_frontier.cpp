@@ -98,6 +98,8 @@ PathLengths::PathLengths(const common::table_id_map_t<common::offset_t>& numNode
     }
 }
 
+PathLengths::~PathLengths() = default;
+
 void PathLengths::pinCurFrontierTableID(common::table_id_t tableID) {
     curFrontier.store(getMaskData(tableID), std::memory_order_relaxed);
 }

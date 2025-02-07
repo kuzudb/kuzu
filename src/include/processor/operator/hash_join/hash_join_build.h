@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "binder/expression/expression.h"
 #include "join_hash_table.h"
 #include "processor/operator/physical_operator.h"

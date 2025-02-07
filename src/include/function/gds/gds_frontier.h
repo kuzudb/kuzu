@@ -164,6 +164,7 @@ public:
 
     PathLengths(const common::table_id_map_t<common::offset_t>& numNodesMap,
         storage::MemoryManager* mm);
+    ~PathLengths() override;
 
     uint16_t getMaskValueFromCurFrontier(common::offset_t offset) {
         return getCurFrontier()[offset].load(std::memory_order_relaxed);
