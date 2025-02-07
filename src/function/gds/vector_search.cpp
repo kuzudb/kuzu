@@ -403,7 +403,7 @@ namespace kuzu {
                                            int filterNbrsToFind, BitVectorVisitedTable *visited, vector_array_t &vectorArray,
                                            int &size, VectorSearchStats &stats) {
 //                std::unordered_set<vector_id_t> visitedSet;
-                std::queue<vector_id_t> nbrsToExplore;
+//                std::queue<vector_id_t> nbrsToExplore;
 
                 // First hop neighbours
                 for (auto &neighbor: firstHopNbrs) {
@@ -418,19 +418,19 @@ namespace kuzu {
                         visited->set_bit(neighbor.offset);
                         vectorArray[size++] = neighbor.offset;
                     }
-                    nbrsToExplore.push(neighbor.offset);
-                }
+//                    nbrsToExplore.push(neighbor.offset);
+//                }
 
-                while (!nbrsToExplore.empty()) {
-                    auto neighbor = nbrsToExplore.front();
-                    nbrsToExplore.pop();
+//                while (!nbrsToExplore.empty()) {
+//                    auto neighbor = nbrsToExplore.front();
+//                    nbrsToExplore.pop();
+
                     if (size >= filterNbrsToFind) {
                         break;
                     }
-                    visited->set_bit(neighbor);
 
                     stats.listNbrsCallTime->start();
-                    auto secondHopNbrs = graph->scanFwdRandom({neighbor, tableId}, state);
+                    auto secondHopNbrs = graph->scanFwdRandom(neighbor, state);
                     stats.listNbrsCallTime->stop();
                     stats.listNbrsMetric->increase(1);
 
@@ -452,6 +452,9 @@ namespace kuzu {
                             // TODO: Maybe there's some benefit in doing batch distance computation
                             visited->set_bit(secondHopNeighbor.offset);
                             vectorArray[size++] = secondHopNeighbor.offset;
+                            if (size >= filterNbrsToFind) {
+                                break;
+                            }
                         }
                     }
                 }
