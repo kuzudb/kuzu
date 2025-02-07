@@ -8,13 +8,18 @@ namespace fts_extension {
 
 struct FTSUtils {
 
-    static std::string getStopWordsTableName() {
+    static std::string getDefaultStopWordsTableName() {
         return common::stringFormat("default_english_stopwords");
     }
 
     static std::string getInternalTablePrefix(common::table_id_t tableID,
         const std::string& indexName) {
         return common::stringFormat("{}_{}", tableID, indexName);
+    }
+
+    static std::string getNonDefaultStopWordsTableName(common::table_id_t tableID,
+        const std::string& indexName) {
+        return common::stringFormat("{}_stopwords", getInternalTablePrefix(tableID, indexName));
     }
 
     static std::string getDocsTableName(common::table_id_t tableID, const std::string& indexName) {

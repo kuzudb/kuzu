@@ -227,16 +227,27 @@ Catalog exception: function QUERY_FTS_INDEX is not defined. This function exists
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
 ---- ok
 -STATEMENT MATCH (c) return label(c)
----- 3
+---- 9
+city_stopwords
+city_stopwords
+city_stopwords
 doc
 doc
 doc
+name_stopwords
+name_stopwords
+name_stopwords
 -STATEMENT MATCH (d:`0_docIdx_docs`) return d.*
 ---- error
 Binder exception: Table 0_docIdx_docs does not exist.
 -STATEMENT call show_tables() return *
----- 1
+---- 6
 0|doc|NODE|local(kuzu)|
+1|city_stopwords|NODE|local(kuzu)|
+2|name_stopwords|NODE|local(kuzu)|
+3|likes|REL|local(kuzu)|
+4|INVALID_STOPWORDS|NODE|local(kuzu)|
+5|INVALID_STOPWORDS_COL_TYPE|NODE|local(kuzu)|
 -STATEMENT DROP TABLE `0_docIdx_docs`
 ---- error
 Binder exception: Table 0_docIdx_docs does not exist.
