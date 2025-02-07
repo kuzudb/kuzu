@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mutex>
 #include <stack>
 
 #include "common/mask.h"

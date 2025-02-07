@@ -2,7 +2,6 @@
 
 #include <string.h>
 
-#include <array>
 #include <memory>
 
 #include "common/types/types.h"
