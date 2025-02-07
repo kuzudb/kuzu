@@ -398,11 +398,13 @@ namespace kuzu {
                 }
             }
 
-            inline void randomTwoHopSearch(std::vector<common::nodeID_t> &firstHopNbrs, Graph *graph,
-                                     NodeOffsetLevelSemiMask *filterMask, GraphScanState &state, int maxNodes,
-                                     BitVectorVisitedTable *visited, vector_array_t &vectorArray, int &size,
-                                     VectorSearchStats &stats) {
+            inline void randomTwoHopSearch(std::vector<common::nodeID_t> &firstHopNbrs, const table_id_t tableId,
+                                           Graph *graph, NodeOffsetLevelSemiMask *filterMask, GraphScanState &state,
+                                           int filterNbrsToFind, BitVectorVisitedTable *visited, vector_array_t &vectorArray,
+                                           int &size, VectorSearchStats &stats) {
                 std::unordered_set<vector_id_t> visitedSet;
+                std::queue<vector_id_t> nbrsToExplore;
+
                 // First hop neighbours
                 for (auto &neighbor: firstHopNbrs) {
                     auto isNeighborMasked = filterMask->isMasked(neighbor.offset);
@@ -416,13 +418,19 @@ namespace kuzu {
                         visited->set_bit(neighbor.offset);
                         vectorArray[size++] = neighbor.offset;
                     }
-                    if (visitedSet.size() >= maxNodes) {
+                    nbrsToExplore.push(neighbor.offset);
+                }
+
+                while (!nbrsToExplore.empty()) {
+                    auto neighbor = nbrsToExplore.front();
+                    nbrsToExplore.pop();
+                    if (visitedSet.size() >= filterNbrsToFind) {
                         break;
                     }
-                    visited->set_bit(neighbor.offset);
+                    visited->set_bit(neighbor);
 
                     stats.listNbrsCallTime->start();
-                    auto secondHopNbrs = graph->scanFwdRandom(neighbor, state);
+                    auto secondHopNbrs = graph->scanFwdRandom({neighbor, tableId}, state);
                     stats.listNbrsCallTime->stop();
                     stats.listNbrsMetric->increase(1);
 
@@ -599,7 +607,6 @@ namespace kuzu {
                     }
                     visited->set_bit(neighbor.id);
 
-                    int secondHopFilteredNbrCount = 0;
                     stats.listNbrsCallTime->start();
                     auto secondHopNbrs = graph->scanFwdRandom({neighbor.id, tableId}, state);
                     stats.listNbrsCallTime->stop();
@@ -721,7 +728,7 @@ namespace kuzu {
 //                    } else {
                         // If the selectivity is low, we will not do dynamic two hop search since it does some extra
                         // distance computations to reduce listNbrs call which are redundant.
-                        randomTwoHopSearch(firstHopNbrs, graph, filterMask, state, totalNbrs, visited, vectorArray,
+                        randomTwoHopSearch(firstHopNbrs, tableId, graph, filterMask, state, totalNbrs, visited, vectorArray,
                                         size, stats);
 //                        fullTwoHopSearch(firstHopNbrs, tableId, graph, filterMask, state, visited, vectorArray, size,
 //                                         stats);
