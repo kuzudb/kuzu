@@ -88,10 +88,10 @@ public:
         const std::string& prefix);
 
     static common::offset_t getStartOffsetOfNodeGroup(common::node_group_idx_t nodeGroupIdx) {
-        return nodeGroupIdx << common::StorageConstants::NODE_GROUP_SIZE_LOG2;
+        return nodeGroupIdx << common::StorageConfig::NODE_GROUP_SIZE_LOG2;
     }
     static common::node_group_idx_t getNodeGroupIdx(common::offset_t nodeOffset) {
-        return nodeOffset >> common::StorageConstants::NODE_GROUP_SIZE_LOG2;
+        return nodeOffset >> common::StorageConfig::NODE_GROUP_SIZE_LOG2;
     }
     static std::pair<common::node_group_idx_t, common::offset_t> getNodeGroupIdxAndOffsetInChunk(
         common::offset_t nodeOffset) {

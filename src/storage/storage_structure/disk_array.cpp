@@ -1,6 +1,5 @@
 #include "storage/storage_structure/disk_array.h"
 
-#include "common/constants.h"
 #include "common/exception/runtime.h"
 #include "common/string_format.h"
 #include "common/types/types.h"

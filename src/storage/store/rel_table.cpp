@@ -439,8 +439,8 @@ void RelTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
                                       LOCAL_BOUND_NODE_ID_COLUMN_ID :
                                       LOCAL_NBR_NODE_ID_COLUMN_ID;
         for (auto& [boundNodeOffset, rowIndices] : localRelTable.getCSRIndex(direction)) {
-            auto [nodeGroupIdx, boundOffsetInGroup] = StorageUtils::getQuotientRemainder(
-                boundNodeOffset, StorageConstants::NODE_GROUP_SIZE);
+            auto [nodeGroupIdx, boundOffsetInGroup] =
+                StorageUtils::getQuotientRemainder(boundNodeOffset, StorageConfig::NODE_GROUP_SIZE);
             auto& nodeGroup =
                 relData->getOrCreateNodeGroup(transaction, nodeGroupIdx)->cast<CSRNodeGroup>();
             pushInsertInfo(transaction, direction, nodeGroup, rowIndices.size(),

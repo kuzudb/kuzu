@@ -39,8 +39,8 @@ struct CSRRegion {
     common::idx_t getRightLeafRegionIdx() const {
         const auto rightRegionIdx =
             getLeftLeafRegionIdx() + (static_cast<common::idx_t>(1) << level) - 1;
-        constexpr auto maxNumRegions = common::StorageConstants::NODE_GROUP_SIZE /
-                                       common::StorageConstants::CSR_LEAF_REGION_SIZE;
+        constexpr auto maxNumRegions =
+            common::StorageConfig::NODE_GROUP_SIZE / common::StorageConstants::CSR_LEAF_REGION_SIZE;
         if (rightRegionIdx >= maxNumRegions) {
             return maxNumRegions - 1;
         }
@@ -96,8 +96,8 @@ public:
         ResidencyState residencyState)
         : ChunkedNodeGroup{mm, columnTypes, enableCompression, capacity, startOffset,
               residencyState, NodeGroupDataFormat::CSR},
-          csrHeader{mm, enableCompression, common::StorageConstants::NODE_GROUP_SIZE,
-              residencyState} {}
+          csrHeader{mm, enableCompression, common::StorageConfig::NODE_GROUP_SIZE, residencyState} {
+    }
     ChunkedCSRNodeGroup(ChunkedCSRNodeGroup& base,
         const std::vector<common::column_id_t>& selectedColumns)
         : ChunkedNodeGroup{base, selectedColumns}, csrHeader{std::move(base.csrHeader)} {}

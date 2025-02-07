@@ -87,7 +87,7 @@ bool LocalNodeTable::update(Transaction* transaction, TableUpdateState& updateSt
             [&](offset_t offset_) { return isVisible(transaction, offset_); });
     }
     const auto [nodeGroupIdx, rowIdxInGroup] = StorageUtils::getQuotientRemainder(
-        transaction->getLocalRowIdx(table.getTableID(), offset), StorageConstants::NODE_GROUP_SIZE);
+        transaction->getLocalRowIdx(table.getTableID(), offset), StorageConfig::NODE_GROUP_SIZE);
     const auto nodeGroup = nodeGroups.getNodeGroup(nodeGroupIdx);
     nodeGroup->update(transaction, rowIdxInGroup, nodeUpdateState.columnID,
         nodeUpdateState.propertyVector);
@@ -102,7 +102,7 @@ bool LocalNodeTable::delete_(Transaction* transaction, TableDeleteState& deleteS
     const auto offset = nodeDeleteState.nodeIDVector.readNodeOffset(pos);
     hashIndex->delete_(nodeDeleteState.pkVector);
     const auto [nodeGroupIdx, rowIdxInGroup] = StorageUtils::getQuotientRemainder(
-        transaction->getLocalRowIdx(table.getTableID(), offset), StorageConstants::NODE_GROUP_SIZE);
+        transaction->getLocalRowIdx(table.getTableID(), offset), StorageConfig::NODE_GROUP_SIZE);
     const auto nodeGroup = nodeGroups.getNodeGroup(nodeGroupIdx);
     return nodeGroup->delete_(transaction, rowIdxInGroup);
 }

@@ -6,7 +6,6 @@
 #include <optional>
 #include <shared_mutex>
 
-#include "common/constants.h"
 #include "common/copy_constructors.h"
 #include "common/types/types.h"
 #include "storage/shadow_utils.h"

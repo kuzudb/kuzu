@@ -3,6 +3,7 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
+#include "common/enums/extend_direction_util.h"
 #include "common/exception/catalog.h"
 #include "common/string_utils.h"
 #include "function/table/bind_data.h"

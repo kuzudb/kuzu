@@ -1,7 +1,6 @@
 #include "storage/store/chunked_node_group.h"
 
 #include "common/assert.h"
-#include "common/constants.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
 #include "storage/buffer_manager/buffer_manager.h"

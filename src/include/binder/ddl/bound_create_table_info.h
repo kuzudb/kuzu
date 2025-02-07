@@ -92,22 +92,12 @@ struct BoundExtraCreateRelTableInfo final : BoundExtraCreateTableInfo {
     common::table_id_t dstTableID;
 
     BoundExtraCreateRelTableInfo(common::table_id_t srcTableID, common::table_id_t dstTableID,
-        std::vector<PropertyDefinition> definitions)
-        : BoundExtraCreateRelTableInfo{common::RelMultiplicity::MANY, common::RelMultiplicity::MANY,
-              common::ExtendDirectionUtil::getDefaultExtendDirection(), srcTableID, dstTableID,
-              std::move(definitions)} {}
+        std::vector<PropertyDefinition> definitions);
     BoundExtraCreateRelTableInfo(common::RelMultiplicity srcMultiplicity,
         common::RelMultiplicity dstMultiplicity, common::ExtendDirection storageDirection,
         common::table_id_t srcTableID, common::table_id_t dstTableID,
-        std::vector<PropertyDefinition> definitions)
-        : BoundExtraCreateTableInfo{std::move(definitions)}, srcMultiplicity{srcMultiplicity},
-          dstMultiplicity{dstMultiplicity}, storageDirection(storageDirection),
-          srcTableID{srcTableID}, dstTableID{dstTableID} {}
-    BoundExtraCreateRelTableInfo(const BoundExtraCreateRelTableInfo& other)
-        : BoundExtraCreateTableInfo{copyVector(other.propertyDefinitions)},
-          srcMultiplicity{other.srcMultiplicity}, dstMultiplicity{other.dstMultiplicity},
-          storageDirection{other.storageDirection}, srcTableID{other.srcTableID},
-          dstTableID{other.dstTableID} {}
+        std::vector<PropertyDefinition> definitions);
+    BoundExtraCreateRelTableInfo(const BoundExtraCreateRelTableInfo& other);
 
     std::unique_ptr<BoundExtraCreateCatalogEntryInfo> copy() const override {
         return std::make_unique<BoundExtraCreateRelTableInfo>(*this);

@@ -1,7 +1,6 @@
 #include "processor/operator/partitioner.h"
 
 #include "binder/expression/expression_util.h"
-#include "common/constants.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/rel_batch_insert.h"
 #include "storage/buffer_manager/memory_manager.h"
@@ -26,13 +25,13 @@ void PartitionerFunctions::partitionRelData(ValueVector* key, ValueVector* parti
     for (auto i = 0u; i < key->state->getSelVector().getSelSize(); i++) {
         const auto pos = key->state->getSelVector()[i];
         const partition_idx_t partitionIdx =
-            key->getValue<offset_t>(pos) >> StorageConstants::NODE_GROUP_SIZE_LOG2;
+            key->getValue<offset_t>(pos) >> StorageConfig::NODE_GROUP_SIZE_LOG2;
         partitionIdxes->setValue(pos, partitionIdx);
     }
 }
 
 static partition_idx_t getNumPartitions(offset_t numRows) {
-    return (numRows + StorageConstants::NODE_GROUP_SIZE - 1) / StorageConstants::NODE_GROUP_SIZE;
+    return (numRows + StorageConfig::NODE_GROUP_SIZE - 1) / StorageConfig::NODE_GROUP_SIZE;
 }
 
 void PartitionerSharedState::initialize(const logical_type_vec_t& columnTypes,

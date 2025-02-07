@@ -1,6 +1,7 @@
 #include <vector>
 
 #include "binder/expression/expression_util.h"
+#include "common/enums/extend_direction_util.h"
 #include "common/types/types.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"

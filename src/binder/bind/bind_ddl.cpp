@@ -11,6 +11,7 @@
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
+#include "common/enums/extend_direction_util.h"
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
 #include "common/string_format.h"
@@ -179,7 +180,7 @@ static ExtendDirection getStorageDirection(const case_insensitive_map_t<Value>& 
         return ExtendDirectionUtil::fromString(
             options.at(TableOptionConstants::REL_STORAGE_DIRECTION_OPTION).toString());
     }
-    return ExtendDirectionUtil::getDefaultExtendDirection();
+    return DEFAULT_EXTEND_DIRECTION;
 }
 
 BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info) {

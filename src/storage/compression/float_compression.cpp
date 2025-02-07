@@ -1,7 +1,7 @@
 #include "storage/compression/float_compression.h"
 
 #include "alp/encode.hpp"
-#include "common/constants.h"
+#include "common/system_config.h"
 #include "common/utils.h"
 #include <ranges>
 

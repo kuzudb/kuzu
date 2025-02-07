@@ -4,7 +4,6 @@
 #include <cstdint>
 
 #include "common/assert.h"
-#include "common/constants.h"
 #include "common/types/int128_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"

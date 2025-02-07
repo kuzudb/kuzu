@@ -1,5 +1,6 @@
 #include "processor/operator/persistent/writer/parquet/basic_column_writer.h"
 
+#include "common/constants.h"
 #include "common/exception/runtime.h"
 #include "function/cast/functions/numeric_limits.h"
 #include "processor/operator/persistent/reader/parquet/parquet_rle_bp_decoder.h"

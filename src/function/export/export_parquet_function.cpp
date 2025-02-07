@@ -145,7 +145,7 @@ static void sinkFunc(ExportFuncSharedState& sharedState, ExportFuncLocalState& l
     // TODO(Ziyi): We should let factorizedTable::append return the numTuples appended.
     exportParquetLocalState.ft->append(extractSharedPtr(inputVectors, numTuplesToAppend));
     exportParquetLocalState.numTuplesInFT += numTuplesToAppend;
-    if (exportParquetLocalState.numTuplesInFT > StorageConstants::NODE_GROUP_SIZE) {
+    if (exportParquetLocalState.numTuplesInFT > StorageConfig::NODE_GROUP_SIZE) {
         auto& exportParquetSharedState = sharedState.cast<ExportParquetSharedState>();
         exportParquetSharedState.writer->flush(*exportParquetLocalState.ft);
         exportParquetLocalState.numTuplesInFT = 0;

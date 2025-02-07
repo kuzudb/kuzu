@@ -103,20 +103,23 @@ option(ENABLE_THREAD_SANITIZER "Enable thread sanitizer." FALSE)
 option(ENABLE_UBSAN "Enable undefined behavior sanitizer." FALSE)
 option(ENABLE_RUNTIME_CHECKS "Enable runtime coherency checks (e.g. asserts)" FALSE)
 option(ENABLE_LTO "Enable Link-Time Optimization" FALSE)
-option(DEFAULT_REL_STORAGE_DIRECTION "Only store fwd direction in rel tables by default." BOTH)
-if(NOT DEFAULT_REL_STORAGE_DIRECTION)
-    set(DEFAULT_REL_STORAGE_DIRECTION BOTH)
+
+option(KUZU_DEFAULT_REL_STORAGE_DIRECTION "Only store fwd direction in rel tables by default." BOTH)
+if(NOT KUZU_DEFAULT_REL_STORAGE_DIRECTION)
+    set(KUZU_DEFAULT_REL_STORAGE_DIRECTION BOTH)
 endif()
-option(PAGE_SIZE_LOG2 "Log2 of the page size." 12)
-if(NOT PAGE_SIZE_LOG2)
-    set(PAGE_SIZE_LOG2 12)
+option(KUZU_PAGE_SIZE_LOG2 "Log2 of the page size." 12)
+if(NOT KUZU_PAGE_SIZE_LOG2)
+    set(KUZU_PAGE_SIZE_LOG2 12)
 endif()
-message(STATUS "PAGE_SIZE_LOG2: ${PAGE_SIZE_LOG2}")
-option(VECTOR_CAPACITY_LOG2 "Log2 of the vector capacity." 11)
-if(NOT VECTOR_CAPACITY_LOG2)
-    set(VECTOR_CAPACITY_LOG2 11)
+message(STATUS "KUZU_PAGE_SIZE_LOG2: ${KUZU_PAGE_SIZE_LOG2}")
+option(KUZU_VECTOR_CAPACITY_LOG2 "Log2 of the vector capacity." 11)
+if(NOT KUZU_VECTOR_CAPACITY_LOG2)
+    set(KUZU_VECTOR_CAPACITY_LOG2 11)
 endif()
-message(STATUS "VECTOR_CAPACITY_LOG2: ${VECTOR_CAPACITY_LOG2}")
+message(STATUS "KUZU_VECTOR_CAPACITY_LOG2: ${KUZU_VECTOR_CAPACITY_LOG2}")
+
+configure_file(${CMAKE_SOURCE_DIR}/cmake/templates/system_config.h.in ${CMAKE_BINARY_DIR}/src/include/common/system_config.h @ONLY)
 
 if(MSVC)
     # Required for M_PI on Windows
@@ -126,7 +129,7 @@ if(MSVC)
     # This is a workaround for regex oom issue on windows in gtest.
     add_compile_definitions(_REGEX_MAX_STACK_COUNT=0)
     add_compile_definitions(_REGEX_MAX_COMPLEXITY_COUNT=0)
-    # Disable constexpr mutex constructor to avoid compatibility issues with 
+    # Disable constexpr mutex constructor to avoid compatibility issues with
     # older versions of the MSVC runtime library
     # See: https://github.com/microsoft/STL/wiki/Changelog#vs-2022-1710
     add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
@@ -349,9 +352,8 @@ if(${BUILD_KUZU})
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
 add_definitions(-DKUZU_EXTENSION_VERSION="0.8.0")
-add_definitions(-DKUZU_PAGE_SIZE_LOG2=${PAGE_SIZE_LOG2})
-add_definitions(-DKUZU_VECTOR_CAPACITY_LOG2=${VECTOR_CAPACITY_LOG2})
 
+include_directories(${CMAKE_BINARY_DIR}/src/include)
 include_directories(src/include)
 
 add_subdirectory(src)

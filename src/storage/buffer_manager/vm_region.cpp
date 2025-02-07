@@ -1,6 +1,7 @@
 #include "storage/buffer_manager/vm_region.h"
 
 #include "common/string_format.h"
+#include "common/system_config.h"
 #include "common/system_message.h"
 
 #ifdef _WIN32

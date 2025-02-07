@@ -4,7 +4,6 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/assert.h"
 #include "common/cast.h"
-#include "common/constants.h"
 #include "common/data_chunk/data_chunk_state.h"
 #include "common/enums/rel_direction.h"
 #include "common/types/types.h"

@@ -2,6 +2,7 @@
 
 #include "binder/expression_visitor.h"
 #include "common/enums/join_type.h"
+#include "common/enums/rel_direction.h"
 #include "common/utils.h"
 #include "main/client_context.h"
 #include "planner/join_order/cost_model.h"

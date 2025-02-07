@@ -1,6 +1,5 @@
 #include "common/data_chunk/data_chunk_state.h"
 
-#include "common/constants.h"
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"
 

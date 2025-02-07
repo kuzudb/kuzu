@@ -1,7 +1,6 @@
 #include "storage/store/node_group.h"
 
 #include "common/assert.h"
-#include "common/constants.h"
 #include "common/types/types.h"
 #include "common/uniq_lock.h"
 #include "main/client_context.h"
@@ -347,7 +346,7 @@ void NodeGroup::flush(const Transaction* transaction, FileHandle& dataFH) {
         // Merge all chunkedGroups into a single one first. Then flush it to disk.
         auto mergedChunkedGroup = std::make_unique<ChunkedNodeGroup>(
             *transaction->getClientContext()->getMemoryManager(), dataTypes, enableCompression,
-            StorageConstants::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
+            StorageConfig::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
         std::vector<column_id_t> dummyColumnIDs;
         for (auto i = 0u; i < dataTypes.size(); i++) {
             dummyColumnIDs.push_back(i);

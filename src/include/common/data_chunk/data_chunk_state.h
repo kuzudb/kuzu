@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/data_chunk/sel_vector.h"
+#include "common/system_config.h"
 
 namespace kuzu {
 namespace common {

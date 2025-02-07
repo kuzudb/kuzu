@@ -1,6 +1,5 @@
 #include "storage/storage_structure/disk_array_collection.h"
 
-#include "common/constants.h"
 #include "common/types/types.h"
 #include "storage//file_handle.h"
 #include "storage/shadow_utils.h"

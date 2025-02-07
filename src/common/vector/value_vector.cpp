@@ -2,7 +2,6 @@
 
 #include <numeric>
 
-#include "common/constants.h"
 #include "common/exception/runtime.h"
 #include "common/null_buffer.h"
 #include "common/serializer/deserializer.h"

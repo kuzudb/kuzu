@@ -2,6 +2,7 @@
 
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
+#include "common/enums/extend_direction_util.h"
 #include "common/exception/binder.h"
 #include "common/utils.h"
 

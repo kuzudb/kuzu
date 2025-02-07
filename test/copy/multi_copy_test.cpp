@@ -93,7 +93,7 @@ private:
 };
 
 TEST_F(MultiCopyTest, SingleSerialCopy) {
-    copySerial(common::StorageConstants::NODE_GROUP_SIZE * 10.5);
+    copySerial(common::StorageConfig::NODE_GROUP_SIZE * 10.5);
     validate(true /* isSerial */);
 }
 
@@ -109,11 +109,11 @@ TEST_F(MultiCopyTest, OneNodeGroup) {
 
 // Tests that a second copy that does not modify any existing node groups succeeds
 TEST_F(MultiCopyTest, FullFirstNodeGroup) {
-    copy(common::StorageConstants::NODE_GROUP_SIZE);
-    copy(common::StorageConstants::NODE_GROUP_SIZE);
-    copy(common::StorageConstants::NODE_GROUP_SIZE);
-    copy(common::StorageConstants::NODE_GROUP_SIZE);
-    copy(common::StorageConstants::NODE_GROUP_SIZE * 1.5);
+    copy(common::StorageConfig::NODE_GROUP_SIZE);
+    copy(common::StorageConfig::NODE_GROUP_SIZE);
+    copy(common::StorageConfig::NODE_GROUP_SIZE);
+    copy(common::StorageConfig::NODE_GROUP_SIZE);
+    copy(common::StorageConfig::NODE_GROUP_SIZE * 1.5);
     validate();
 }
 
@@ -123,17 +123,17 @@ TEST_F(MultiCopyTest, FullFirstNodeGroup) {
 // work each, so that each thread finishes with appendIncompleteNodeGroup and the second one fills
 // the shared group.
 TEST_F(MultiCopyTest, PartialGroupSecondCopyWrite) {
-    copy(common::StorageConstants::NODE_GROUP_SIZE / 2);
-    copy(common::StorageConstants::NODE_GROUP_SIZE);
+    copy(common::StorageConfig::NODE_GROUP_SIZE / 2);
+    copy(common::StorageConfig::NODE_GROUP_SIZE);
     validate();
 }
 
 // Tests that a second copy that modifies the existing node group and copies more than one node
 // group succeeds
 TEST_F(MultiCopyTest, PartialFirstNodeGroup) {
-    copy(common::StorageConstants::NODE_GROUP_SIZE / 2);
-    copy(common::StorageConstants::NODE_GROUP_SIZE * 2);
-    copy(common::StorageConstants::NODE_GROUP_SIZE * 2);
+    copy(common::StorageConfig::NODE_GROUP_SIZE / 2);
+    copy(common::StorageConfig::NODE_GROUP_SIZE * 2);
+    copy(common::StorageConfig::NODE_GROUP_SIZE * 2);
     validate();
 }
 
@@ -142,17 +142,17 @@ TEST_F(MultiCopyTest, PartialFirstNodeGroup) {
 // will need to write twice before it can move its remaining nodes into the shared group
 // See https://github.com/kuzudb/kuzu/issues/3714
 TEST_F(MultiCopyTest, SharedWriteToExistingNodeGroup) {
-    copy(common::StorageConstants::NODE_GROUP_SIZE * 0.75);
-    copy(common::StorageConstants::NODE_GROUP_SIZE * systemConfig->maxNumThreads * 0.75);
+    copy(common::StorageConfig::NODE_GROUP_SIZE * 0.75);
+    copy(common::StorageConfig::NODE_GROUP_SIZE * systemConfig->maxNumThreads * 0.75);
     validate();
 }
 
 // Tests that a second copy that copies a large number of node groups succeeds
 TEST_F(MultiCopyTest, MultipleNodeGroups) {
-    copy(common::StorageConstants::NODE_GROUP_SIZE * 10.1);
-    copy(common::StorageConstants::NODE_GROUP_SIZE * 20.8);
+    copy(common::StorageConfig::NODE_GROUP_SIZE * 10.1);
+    copy(common::StorageConfig::NODE_GROUP_SIZE * 20.8);
     copy(1);
-    copy(common::StorageConstants::NODE_GROUP_SIZE * 3);
+    copy(common::StorageConfig::NODE_GROUP_SIZE * 3);
     validate();
 }
 

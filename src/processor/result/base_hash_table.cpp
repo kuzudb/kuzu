@@ -2,6 +2,7 @@
 
 #include "math.h"
 
+#include "common/constants.h"
 #include "common/null_buffer.h"
 #include "common/type_utils.h"
 #include "common/types/ku_list.h"

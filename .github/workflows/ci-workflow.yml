@@ -283,10 +283,6 @@ jobs:
           IN_MEM_MODE: true
         run: make lcov NUM_THREADS=$(nproc)
 
-      - name: Test with coverage vector capacity of 2
-        run: |
-          make lcov VECTOR_CAPACITY_LOG2=1
-
       - name: Generate coverage report
         run: |
           lcov --config-file .lcovrc -c -d ./ --no-external -o cover.info &&\

@@ -2,7 +2,6 @@
 
 #include <memory>
 
-#include "common/constants.h"
 #include "common/type_utils.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/buffer_manager.h"

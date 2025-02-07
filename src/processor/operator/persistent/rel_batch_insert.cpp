@@ -111,7 +111,7 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
     }
     // Calculate num of source nodes in this node group.
     // This will be used to set the num of values of the node group.
-    const auto numNodes = std::min(StorageConstants::NODE_GROUP_SIZE,
+    const auto numNodes = std::min(StorageConfig::NODE_GROUP_SIZE,
         partitionerSharedState.numNodes[relInfo.partitioningIdx] - startNodeOffset);
     // We optimistically flush new node group directly to disk in gapped CSR format.
     // There is no benefit of leaving gaps for existing node groups, which is kept in memory.

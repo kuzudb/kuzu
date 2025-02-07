@@ -12,17 +12,6 @@ namespace common {
 
 extern const char* KUZU_VERSION;
 
-#define DEFAULT_VECTOR_CAPACITY_LOG_2 11
-#ifndef KUZU_VECTOR_CAPACITY_LOG2
-#define VECTOR_CAPACITY_LOG_2 DEFAULT_VECTOR_CAPACITY_LOG_2
-#else
-#define VECTOR_CAPACITY_LOG_2 KUZU_VECTOR_CAPACITY_LOG2
-#endif
-#if VECTOR_CAPACITY_LOG_2 > 12
-#error "Vector capacity log2 should be less than or equal to 12"
-#endif
-constexpr uint64_t DEFAULT_VECTOR_CAPACITY = static_cast<uint64_t>(1) << VECTOR_CAPACITY_LOG_2;
-
 constexpr double DEFAULT_HT_LOAD_FACTOR = 1.5;
 
 // This is the default thread sleep time we use when a thread,
@@ -60,20 +49,6 @@ enum PageSizeClass : uint8_t {
     TEMP_PAGE = 1,
 };
 
-// Currently the system supports files with 2 different pages size, which we refer to as
-// PAGE_SIZE and TEMP_PAGE_SIZE. PAGE_SIZE is the default size of the page which is the
-// unit of read/write to the database files.
-#ifdef KUZU_PAGE_SIZE_LOG2
-static constexpr uint64_t PAGE_SIZE_LOG2 = KUZU_PAGE_SIZE_LOG2;
-#else
-static constexpr uint64_t PAGE_SIZE_LOG2 = 12; // Default to 4KB.
-#endif
-static constexpr uint64_t KUZU_PAGE_SIZE = static_cast<uint64_t>(1) << PAGE_SIZE_LOG2;
-// Page size for files with large pages, e.g., temporary files that are used by operators that
-// may require large amounts of memory.
-static constexpr uint64_t TEMP_PAGE_SIZE_LOG2 = 18;
-static const uint64_t TEMP_PAGE_SIZE = static_cast<uint64_t>(1) << TEMP_PAGE_SIZE_LOG2;
-
 struct BufferPoolConstants {
     // If a user does not specify a max size for BM, we by default set the max size of BM to
     // maxPhyMemSize * DEFAULT_PHY_MEM_SIZE_RATIO_FOR_BM.
@@ -106,9 +81,6 @@ struct StorageConstants {
     static constexpr uint64_t PAGE_GROUP_SIZE = static_cast<uint64_t>(1) << PAGE_GROUP_SIZE_LOG2;
     static constexpr uint64_t PAGE_IDX_IN_GROUP_MASK =
         (static_cast<uint64_t>(1) << PAGE_GROUP_SIZE_LOG2) - 1;
-
-    static constexpr uint64_t NODE_GROUP_SIZE_LOG2 = 17; // 64 * 2048 nodes per group
-    static constexpr uint64_t NODE_GROUP_SIZE = static_cast<uint64_t>(1) << NODE_GROUP_SIZE_LOG2;
 
     static constexpr double PACKED_CSR_DENSITY = 0.8;
     static constexpr double LEAF_HIGH_CSR_DENSITY = 1.0;
@@ -164,7 +136,6 @@ struct CopyConstants {
     static constexpr std::array DEFAULT_CSV_DELIMITER_SEARCH_SPACE = {',', ';', '\t', '|'};
     static constexpr std::array DEFAULT_CSV_QUOTE_SEARCH_SPACE = {'"', '\''};
     static constexpr std::array DEFAULT_CSV_ESCAPE_SEARCH_SPACE = {'"', '\\', '\''};
-    static constexpr uint64_t PANDAS_PARTITION_COUNT = 50 * DEFAULT_VECTOR_CAPACITY;
 
     static constexpr const char* INT_CSV_PARSING_OPTIONS[] = {"SKIP", "SAMPLE_SIZE"};
     static constexpr uint64_t DEFAULT_CSV_SKIP_NUM = 0;
@@ -203,7 +174,6 @@ struct PlannerKnobs {
 
 struct OrderByConstants {
     static constexpr uint64_t NUM_BYTES_FOR_PAYLOAD_IDX = 8;
-    static constexpr uint64_t MIN_SIZE_TO_REDUCE = common::DEFAULT_VECTOR_CAPACITY * 5;
     static constexpr uint64_t MIN_LIMIT_RATIO_TO_REDUCE = 2;
 };
 

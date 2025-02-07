@@ -1,4 +1,4 @@
-#include "common/enums/extend_direction.h"
+#include "common/enums/extend_direction_util.h"
 
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
@@ -9,19 +9,6 @@
 
 namespace kuzu {
 namespace common {
-
-ExtendDirection ExtendDirectionUtil::getDefaultExtendDirection() {
-#if defined(KUZU_DEFAULT_REL_STORAGE_DIRECTION) &&                                                 \
-    (KUZU_DEFAULT_REL_STORAGE_DIRECTION == FWD_REL_STORAGE)
-    static constexpr ExtendDirection defaultExtendDirection = ExtendDirection::FWD;
-#elif defined(KUZU_DEFAULT_REL_STORAGE_DIRECTION) &&                                               \
-    (KUZU_DEFAULT_REL_STORAGE_DIRECTION == BWD_REL_STORAGE)
-    static constexpr ExtendDirection defaultExtendDirection = ExtendDirection::BWD;
-#else
-    static constexpr ExtendDirection defaultExtendDirection = ExtendDirection::BOTH;
-#endif
-    return defaultExtendDirection;
-}
 
 ExtendDirection ExtendDirectionUtil::fromString(const std::string& str) {
     auto normalizedString = StringUtils::getUpper(str);

@@ -2,9 +2,9 @@
 
 #include <memory>
 
-#include "common/constants.h"
 #include "common/serializer/reader.h"
 #include "common/serializer/writer.h"
+#include "common/system_config.h"
 
 namespace kuzu {
 namespace common {

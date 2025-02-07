@@ -2,7 +2,6 @@
 
 #include <array>
 
-#include "common/constants.h"
 #include "common/copy_constructors.h"
 #include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"

@@ -1,5 +1,7 @@
 #include "binder/ddl/bound_create_table_info.h"
 
+#include "common/system_config.h"
+
 using namespace kuzu::parser;
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -67,6 +69,26 @@ std::string BoundCreateTableInfo::toString() const {
     }
     return result;
 }
+
+BoundExtraCreateRelTableInfo::BoundExtraCreateRelTableInfo(common::table_id_t srcTableID,
+    common::table_id_t dstTableID, std::vector<PropertyDefinition> definitions)
+    : BoundExtraCreateRelTableInfo{common::RelMultiplicity::MANY, common::RelMultiplicity::MANY,
+          common::DEFAULT_EXTEND_DIRECTION, srcTableID, dstTableID, std::move(definitions)} {}
+
+BoundExtraCreateRelTableInfo::BoundExtraCreateRelTableInfo(common::RelMultiplicity srcMultiplicity,
+    common::RelMultiplicity dstMultiplicity, common::ExtendDirection storageDirection,
+    common::table_id_t srcTableID, common::table_id_t dstTableID,
+    std::vector<PropertyDefinition> definitions)
+    : BoundExtraCreateTableInfo{std::move(definitions)}, srcMultiplicity{srcMultiplicity},
+      dstMultiplicity{dstMultiplicity}, storageDirection(storageDirection), srcTableID{srcTableID},
+      dstTableID{dstTableID} {}
+
+BoundExtraCreateRelTableInfo::BoundExtraCreateRelTableInfo(
+    const BoundExtraCreateRelTableInfo& other)
+    : BoundExtraCreateTableInfo{copyVector(other.propertyDefinitions)},
+      srcMultiplicity{other.srcMultiplicity}, dstMultiplicity{other.dstMultiplicity},
+      storageDirection{other.storageDirection}, srcTableID{other.srcTableID},
+      dstTableID{other.dstTableID} {}
 
 } // namespace binder
 } // namespace kuzu

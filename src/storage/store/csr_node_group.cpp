@@ -19,7 +19,7 @@ bool CSRNodeGroupScanState::tryScanCachedTuples(RelTableScanState& tableScanStat
     }
     const auto boundNodeOffset = tableScanState.nodeIDVector->readNodeOffset(
         tableScanState.cachedBoundNodeSelVector[tableScanState.currBoundNodeIdx]);
-    const auto boundNodeOffsetInGroup = boundNodeOffset % StorageConstants::NODE_GROUP_SIZE;
+    const auto boundNodeOffsetInGroup = boundNodeOffset % StorageConfig::NODE_GROUP_SIZE;
     const auto startCSROffset = header->getStartCSROffset(boundNodeOffsetInGroup);
     const auto csrLength = header->getCSRLength(boundNodeOffsetInGroup);
     nextCachedRowToScan = std::max(nextCachedRowToScan, startCSROffset);
@@ -101,7 +101,7 @@ void CSRNodeGroup::initScanForCommittedPersistent(const Transaction* transaction
     KU_ASSERT(csrHeader.offset->getNumValues() == csrHeader.length->getNumValues());
     if (relScanState.randomLookup) {
         auto nodeOffset = relScanState.nodeIDVector->readNodeOffset(0);
-        auto offsetInGroup = nodeOffset % StorageConstants::NODE_GROUP_SIZE;
+        auto offsetInGroup = nodeOffset % StorageConfig::NODE_GROUP_SIZE;
         auto offsetToScanFrom = offsetInGroup == 0 ? 0 : offsetInGroup - 1;
         csrHeader.offset->scanCommitted<ResidencyState::ON_DISK>(transaction, offsetState,
             *nodeGroupScanState.header->offset, offsetToScanFrom, offsetInGroup + 1);
@@ -187,7 +187,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedPersistentWithCache(const Transac
         }
         const auto currNodeOffset = tableState.nodeIDVector->readNodeOffset(
             tableState.cachedBoundNodeSelVector[tableState.currBoundNodeIdx]);
-        const auto offsetInGroup = currNodeOffset % StorageConstants::NODE_GROUP_SIZE;
+        const auto offsetInGroup = currNodeOffset % StorageConfig::NODE_GROUP_SIZE;
         const auto startCSROffset = nodeGroupScanState.header->getStartCSROffset(offsetInGroup);
         if (startCSROffset > nodeGroupScanState.nextRowToScan) {
             nodeGroupScanState.nextRowToScan = startCSROffset;
@@ -218,7 +218,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedPersistentWtihoutCache(
     CSRNodeGroupScanState& nodeGroupScanState) const {
     const auto currNodeOffset = tableState.nodeIDVector->readNodeOffset(
         tableState.cachedBoundNodeSelVector[tableState.currBoundNodeIdx]);
-    const auto offsetInGroup = currNodeOffset % StorageConstants::NODE_GROUP_SIZE;
+    const auto offsetInGroup = currNodeOffset % StorageConfig::NODE_GROUP_SIZE;
     const auto csrListLength = nodeGroupScanState.header->getCSRLength(offsetInGroup);
     if (nodeGroupScanState.nextRowToScan == csrListLength) {
         return NODE_GROUP_SCAN_EMMPTY_RESULT;
@@ -244,7 +244,7 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMem(const Transaction* transact
             const auto boundNodePos =
                 tableState.cachedBoundNodeSelVector[tableState.currBoundNodeIdx];
             const auto boundNodeOffset = tableState.nodeIDVector->readNodeOffset(boundNodePos);
-            const auto offsetInGroup = boundNodeOffset % StorageConstants::NODE_GROUP_SIZE;
+            const auto offsetInGroup = boundNodeOffset % StorageConfig::NODE_GROUP_SIZE;
             nodeGroupScanState.inMemCSRList = csrIndex->indices[offsetInGroup];
         }
         if (!nodeGroupScanState.inMemCSRList.isSequential) {
@@ -474,9 +474,9 @@ void CSRNodeGroup::checkpointInMemAndOnDisk(const UniqLock& lock, NodeGroupCheck
     // Scan old csr header from disk and construct new csr header.
     persistentChunkGroup->cast<ChunkedCSRNodeGroup>().scanCSRHeader(*state.mm, csrState);
     csrState.newHeader = std::make_unique<ChunkedCSRHeader>(*state.mm, false,
-        StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
+        StorageConfig::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
     // TODO(Guodong): Find max node offset in the node group.
-    csrState.newHeader->setNumValues(StorageConstants::NODE_GROUP_SIZE);
+    csrState.newHeader->setNumValues(StorageConfig::NODE_GROUP_SIZE);
     csrState.newHeader->copyFrom(*csrState.oldHeader);
     auto leafRegions = collectLeafRegionsAndCSRLength(lock, csrState);
     KU_ASSERT(std::is_sorted(leafRegions.begin(), leafRegions.end(),
@@ -521,7 +521,7 @@ std::vector<CSRRegion> CSRNodeGroup::collectLeafRegionsAndCSRLength(const UniqLo
     const CSRNodeGroupCheckpointState& csrState) const {
     std::vector<CSRRegion> leafRegions;
     constexpr auto numLeafRegions =
-        StorageConstants::NODE_GROUP_SIZE / StorageConstants::CSR_LEAF_REGION_SIZE;
+        StorageConfig::NODE_GROUP_SIZE / StorageConstants::CSR_LEAF_REGION_SIZE;
     leafRegions.reserve(numLeafRegions);
     for (auto leafRegionIdx = 0u; leafRegionIdx < numLeafRegions; leafRegionIdx++) {
         CSRRegion region(leafRegionIdx, 0 /*level*/);
@@ -771,7 +771,7 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
     // Construct in-mem csr header chunks.
     auto& csrState = state.cast<CSRNodeGroupCheckpointState>();
     csrState.newHeader = std::make_unique<ChunkedCSRHeader>(*state.mm, false /*enableCompression*/,
-        StorageConstants::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
+        StorageConfig::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
     const auto numNodes = csrIndex->getMaxOffsetWithRels() + 1;
     csrState.newHeader->setNumValues(numNodes);
     populateCSRLengthInMemOnly(lock, numNodes, csrState);
@@ -901,7 +901,7 @@ std::vector<CSRRegion> CSRNodeGroup::mergeRegionsToCheckpoint(
     KU_ASSERT(std::is_sorted(leafRegions.begin(), leafRegions.end(),
         [](const CSRRegion& a, const CSRRegion& b) { return a.regionIdx < b.regionIdx; }));
     constexpr auto numLeafRegions =
-        StorageConstants::NODE_GROUP_SIZE / StorageConstants::CSR_LEAF_REGION_SIZE;
+        StorageConfig::NODE_GROUP_SIZE / StorageConstants::CSR_LEAF_REGION_SIZE;
     KU_ASSERT(leafRegions.size() == numLeafRegions);
     std::vector<CSRRegion> mergedRegions;
     idx_t leafRegionIdx = 0u;

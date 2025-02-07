@@ -66,7 +66,7 @@ if(${BUILD_SINGLE_FILE_HEADER})
         add_custom_command(
                 OUTPUT kuzu.hpp
                 COMMAND
-                        ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/collect-single-file-header.py
+                        ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/collect-single-file-header.py ${CMAKE_CURRENT_BINARY_DIR}/..
                 DEPENDS
                         ${PROJECT_SOURCE_DIR}/scripts/collect-single-file-header.py kuzu_shared)
         add_custom_target(single_file_header ALL DEPENDS kuzu.hpp)

@@ -4,7 +4,6 @@ from __future__ import annotations
 import graphlib
 import os
 import sys
-import shutil
 import logging
 
 from typing import Optional, Set
@@ -12,8 +11,10 @@ from pathlib import Path
 
 logging.basicConfig(level=logging.WARNING)
 
+BUILD_DIR = Path(sys.argv[1]).resolve()
 SCRIPT_DIR = Path(__file__).parent
 HEADER_BASE_PATH = (SCRIPT_DIR / "../src/include").resolve()
+GENERATED_HEADERS_PATH = BUILD_DIR / "src/include"
 MAIN_HEADER_PATH = HEADER_BASE_PATH / "main"
 START_POINT = MAIN_HEADER_PATH / "kuzu.h"
 JSON_HEADER_PATH = (SCRIPT_DIR / "../third_party/nlohmann_json/json_fwd.hpp").resolve()
@@ -38,6 +39,10 @@ def resolve_include(source_header: Path, include_path: str) -> Optional[Path]:
     if main_directory_include.exists():
         return main_directory_include
 
+    generated_header_directory_include = GENERATED_HEADERS_PATH / include_path
+    if generated_header_directory_include.exists():
+        return generated_header_directory_include
+
     alp_directory_include = ALP_HEADERS_PATH / include_path
     if alp_directory_include.exists():
         return alp_directory_include
@@ -50,7 +55,10 @@ headers: Set[Path] = set()
 with open(SCRIPT_DIR / "headers.txt") as file:
     for path in file:
         if not path.strip().startswith("#"):
-            headers.add((SCRIPT_DIR / ".." / path.strip()).resolve())
+            header_path = Path(path.strip().replace("${BUILD_DIR}", str(BUILD_DIR)))
+            if not header_path.is_absolute():
+                header_path = SCRIPT_DIR / ".." / header_path
+            headers.add(header_path.resolve())
 
 
 def build_graph(graph: graphlib.TopologicalSorter, source_file: Path) -> None:

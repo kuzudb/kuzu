@@ -1,5 +1,7 @@
 #include "processor/operator/order_by/sort_state.h"
 
+#include "common/constants.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

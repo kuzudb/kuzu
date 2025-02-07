@@ -1,5 +1,6 @@
 #include "processor/operator/persistent/writer/parquet/string_column_writer.h"
 
+#include "common/constants.h"
 #include "function/comparison/comparison_functions.h"
 #include "function/hash/hash_functions.h"
 #include "processor/operator/persistent/reader/parquet/parquet_rle_bp_decoder.h"

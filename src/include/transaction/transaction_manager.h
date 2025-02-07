@@ -4,6 +4,7 @@
 #include <mutex>
 #include <unordered_set>
 
+#include "common/constants.h"
 #include "common/uniq_lock.h"
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"

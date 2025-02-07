@@ -4,7 +4,6 @@
 
 #include "common/assert.h"
 #include "common/cast.h"
-#include "common/constants.h"
 #include "common/copy_constructors.h"
 #include "common/data_chunk/data_chunk_state.h"
 #include "common/null_mask.h"
