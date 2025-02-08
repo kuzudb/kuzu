@@ -51,8 +51,7 @@ public:
     bool isSource() const override { return true; }
     bool isParallel() const final { return false; }
 
-    void initLocalStateInternal(ResultSet* resultSet,
-        ExecutionContext* /*context*/) override {
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) override {
         outputVector = resultSet->getValueVector(createMacroInfo->outputPos).get();
     }
 

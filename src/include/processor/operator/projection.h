@@ -40,8 +40,9 @@ struct ProjectionInfo {
     }
 
 private:
-    ProjectionInfo(const ProjectionInfo& other) : evaluators{copyVector(other.evaluators)},
-          exprsOutputPos{other.exprsOutputPos}, outputChunkPosSet{other.outputChunkPosSet},
+    ProjectionInfo(const ProjectionInfo& other)
+        : evaluators{copyVector(other.evaluators)}, exprsOutputPos{other.exprsOutputPos},
+          outputChunkPosSet{other.outputChunkPosSet},
           discardedChunkPosSet{other.discardedChunkPosSet} {}
 };
 
@@ -59,7 +60,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<Projection>(info.copy(), children[0]->copy(), id, printInfo->copy());
+        return std::make_unique<Projection>(info.copy(), children[0]->copy(), id,
+            printInfo->copy());
     }
 
 private:

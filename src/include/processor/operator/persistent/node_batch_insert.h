@@ -57,8 +57,8 @@ struct NodeBatchInsertInfo final : BatchInsertInfo {
               static_cast<common::column_id_t>(other.outputDataColumns.size()),
               static_cast<common::column_id_t>(other.warningDataColumns.size())},
           columnTypes{common::LogicalType::copy(other.columnTypes)},
-          columnEvaluators{copyVector(other.columnEvaluators)},
-          evaluateTypes{other.evaluateTypes} {}
+          columnEvaluators{copyVector(other.columnEvaluators)}, evaluateTypes{other.evaluateTypes} {
+    }
 
     std::unique_ptr<BatchInsertInfo> copy() const override {
         return std::make_unique<NodeBatchInsertInfo>(*this);

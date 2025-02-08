@@ -121,8 +121,8 @@ struct PartitionerDataInfo {
 private:
     PartitionerDataInfo(const PartitionerDataInfo& other)
         : columnTypes{common::LogicalType::copy(other.columnTypes)},
-          columnEvaluators{copyVector(other.columnEvaluators)},
-          evaluateTypes{other.evaluateTypes} {}
+          columnEvaluators{copyVector(other.columnEvaluators)}, evaluateTypes{other.evaluateTypes} {
+    }
 };
 
 struct PartitionerInfo {

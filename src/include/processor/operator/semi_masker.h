@@ -87,8 +87,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<SingleTableSemiMasker>(keyPos, sharedState, children[0]->copy(),
-            id, printInfo->copy());
+        return std::make_unique<SingleTableSemiMasker>(keyPos, sharedState, children[0]->copy(), id,
+            printInfo->copy());
     }
 };
 
@@ -186,8 +186,8 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<PathSingleTableSemiMasker>(keyPos, sharedState,
-            children[0]->copy(), id, printInfo->copy(), direction);
+        return std::make_unique<PathSingleTableSemiMasker>(keyPos, sharedState, children[0]->copy(),
+            id, printInfo->copy(), direction);
     }
 };
 

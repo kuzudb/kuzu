@@ -26,8 +26,7 @@ struct CaseAlternativeEvaluator {
 
 private:
     CaseAlternativeEvaluator(const CaseAlternativeEvaluator& other)
-        : whenEvaluator{other.whenEvaluator->copy()}, thenEvaluator{other.thenEvaluator->copy()} {
-    }
+        : whenEvaluator{other.whenEvaluator->copy()}, thenEvaluator{other.thenEvaluator->copy()} {}
 };
 
 class CaseExpressionEvaluator : public ExpressionEvaluator {
