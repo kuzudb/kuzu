@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/data_chunk/sel_vector.h"
-#include "common/system_config.h"
 
 namespace kuzu {
 namespace common {
@@ -14,7 +13,7 @@ enum class FStateType : uint8_t {
 
 class KUZU_API DataChunkState {
 public:
-    DataChunkState() : DataChunkState(DEFAULT_VECTOR_CAPACITY) {}
+    DataChunkState();
     explicit DataChunkState(sel_t capacity) : fStateType{FStateType::UNFLAT} {
         selVector = std::make_shared<SelectionVector>(capacity);
     }

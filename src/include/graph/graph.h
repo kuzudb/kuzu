@@ -57,12 +57,7 @@ public:
 
     private:
         Chunk(std::span<const common::nodeID_t> nbrNodes, std::span<const common::relID_t> edges,
-            common::SelectionVector& selVector, const common::ValueVector* propertyVector)
-            : nbrNodes{nbrNodes}, edges{edges}, selVector{selVector},
-              propertyVector{propertyVector} {
-            KU_ASSERT(nbrNodes.size() == common::DEFAULT_VECTOR_CAPACITY);
-            KU_ASSERT(edges.size() == common::DEFAULT_VECTOR_CAPACITY);
-        }
+            common::SelectionVector& selVector, const common::ValueVector* propertyVector);
 
     private:
         std::span<const common::nodeID_t> nbrNodes;
@@ -101,11 +96,8 @@ public:
         }
 
     private:
-        Chunk(std::span<const common::nodeID_t> nodeIDs,
-            std::span<const std::shared_ptr<common::ValueVector>> propertyVectors)
-            : nodeIDs{nodeIDs}, propertyVectors{propertyVectors} {
-            KU_ASSERT(nodeIDs.size() <= common::DEFAULT_VECTOR_CAPACITY);
-        }
+        KUZU_API Chunk(std::span<const common::nodeID_t> nodeIDs,
+            std::span<const std::shared_ptr<common::ValueVector>> propertyVectors);
 
     private:
         std::span<const common::nodeID_t> nodeIDs;

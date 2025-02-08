@@ -1,6 +1,5 @@
 #pragma once
 
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/float_compression.h"
 #include "storage/store/column_reader_writer.h"
 

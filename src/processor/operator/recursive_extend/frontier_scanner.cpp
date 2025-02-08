@@ -1,5 +1,6 @@
 #include "processor/operator/recursive_extend/frontier_scanner.h"
 
+#include "common/system_config.h"
 #include "processor/operator/recursive_extend/recursive_join.h"
 
 using namespace kuzu::common;

@@ -1,11 +1,15 @@
 #include "processor/operator/order_by/key_block_merger.h"
 
+#include "common/system_config.h"
+
 using namespace kuzu::common;
 using namespace kuzu::processor;
 using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
+
+static constexpr uint64_t DATA_BLOCK_SIZE = common::TEMP_PAGE_SIZE;
 
 MergedKeyBlocks::MergedKeyBlocks(uint32_t numBytesPerTuple, uint64_t numTuples,
     MemoryManager* memoryManager)

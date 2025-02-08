@@ -1,5 +1,6 @@
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
+#include "common/system_config.h"
 #include "function/export/export_function.h"
 #include "main/client_context.h"
 #include "parquet_types.h"

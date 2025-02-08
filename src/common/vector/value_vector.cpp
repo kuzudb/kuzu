@@ -6,6 +6,7 @@
 #include "common/null_buffer.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
+#include "common/system_config.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/value.h"
 #include "common/vector/auxiliary_buffer.h"
@@ -38,6 +39,19 @@ void ValueVector::setState(const std::shared_ptr<DataChunkState>& state_) {
         for (auto& childVector : childrenVectors) {
             childVector->setState(state_);
         }
+    }
+}
+
+uint32_t ValueVector::countNonNull() const {
+    if (hasNoNullsGuarantee()) {
+        return state->getSelVector().getSelSize();
+    } else if (state->getSelVector().isUnfiltered() &&
+               state->getSelVector().getSelSize() == DEFAULT_VECTOR_CAPACITY) {
+        return DEFAULT_VECTOR_CAPACITY - nullMask.countNulls();
+    } else {
+        uint32_t count = 0;
+        forEachNonNull([&](auto) { count++; });
+        return count;
     }
 }
 

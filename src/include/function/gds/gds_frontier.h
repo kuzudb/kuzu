@@ -4,10 +4,12 @@
 #include <mutex>
 
 #include "compute.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include <span>
 
 namespace kuzu {
+namespace storage {
+class MemoryManager;
+}
 
 namespace processor {
 struct ExecutionContext;
@@ -162,6 +164,7 @@ public:
 
     PathLengths(const common::table_id_map_t<common::offset_t>& numNodesMap,
         storage::MemoryManager* mm);
+    ~PathLengths() override;
 
     uint16_t getMaskValueFromCurFrontier(common::offset_t offset) {
         return getCurFrontier()[offset].load(std::memory_order_relaxed);
@@ -208,10 +211,7 @@ private:
         return retVal;
     }
 
-    frontier_entry_t* getMaskData(common::table_id_t tableID) {
-        KU_ASSERT(masks.contains(tableID));
-        return reinterpret_cast<frontier_entry_t*>(masks.at(tableID)->getData());
-    }
+    frontier_entry_t* getMaskData(common::table_id_t tableID);
 
 private:
     common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> masks;

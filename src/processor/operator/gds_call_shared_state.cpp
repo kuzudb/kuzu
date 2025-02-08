@@ -1,5 +1,7 @@
 #include "processor/operator/gds_call_shared_state.h"
 
+#include <mutex>
+
 using namespace kuzu::common;
 
 namespace kuzu {

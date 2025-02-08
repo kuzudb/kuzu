@@ -5,9 +5,12 @@
 #include "common/assert.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/file_info.h"
+#include "common/system_config.h"
 
 namespace kuzu {
 namespace common {
+
+static constexpr uint64_t BUFFER_SIZE = KUZU_PAGE_SIZE;
 
 BufferedFileWriter::~BufferedFileWriter() {
     flush();

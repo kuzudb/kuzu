@@ -3,6 +3,7 @@
 #include "binder/binder.h"
 #include "cached_import/py_cached_import.h"
 #include "common/arrow/arrow_converter.h"
+#include "common/system_config.h"
 #include "function/cast/functions/numeric_limits.h"
 #include "function/table/bind_input.h"
 #include "processor/execution_context.h"

@@ -4,7 +4,6 @@
 
 #include "common/serializer/reader.h"
 #include "common/serializer/writer.h"
-#include "common/system_config.h"
 
 namespace kuzu {
 namespace common {
@@ -36,7 +35,6 @@ protected:
     std::unique_ptr<uint8_t[]> buffer;
     uint64_t fileOffset, bufferOffset;
     FileInfo& fileInfo;
-    static constexpr uint64_t BUFFER_SIZE = KUZU_PAGE_SIZE;
 };
 
 class BufferedFileReader final : public Reader {
@@ -48,8 +46,6 @@ public:
     bool finished() override;
 
 private:
-    static constexpr uint64_t BUFFER_SIZE = KUZU_PAGE_SIZE;
-
     std::unique_ptr<uint8_t[]> buffer;
     uint64_t fileOffset, bufferOffset;
     std::unique_ptr<FileInfo> fileInfo;

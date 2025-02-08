@@ -3,6 +3,7 @@
 #include "common/data_chunk/data_chunk.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
+#include "common/system_config.h"
 #include "main/client_context.h"
 #include "protocol/TCompactProtocol.h"
 

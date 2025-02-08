@@ -1,6 +1,7 @@
 #include "processor/operator/persistent/reader/csv/driver.h"
 
 #include "common/string_format.h"
+#include "common/system_config.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"

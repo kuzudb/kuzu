@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "binder/expression/expression.h"
 #include "common/enums/accumulate_type.h"
 #include "processor/operator/sink.h"

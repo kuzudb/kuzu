@@ -2,6 +2,7 @@
 
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "common/exception/binder.h"
+#include "common/system_config.h"
 #include "function/table/bind_data.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/planner.h"

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/column.h"
 
 namespace kuzu {
 namespace storage {
+class MemoryManager;
 
 class StructColumn final : public Column {
 public:

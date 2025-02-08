@@ -2,12 +2,24 @@
 
 #include <algorithm>
 
+#include "common/system_config.h"
 #include "function/comparison/comparison_functions.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
+
+static constexpr uint16_t COUNTING_ARRAY_SIZE = 256;
+static constexpr uint64_t DATA_BLOCK_SIZE = common::TEMP_PAGE_SIZE;
+
+RadixSort::RadixSort(storage::MemoryManager* memoryManager, FactorizedTable& factorizedTable,
+    OrderByKeyEncoder& orderByKeyEncoder, std::vector<StrKeyColInfo> strKeyColsInfo)
+    : tmpSortingResultBlock{std::make_unique<DataBlock>(memoryManager, DATA_BLOCK_SIZE)},
+      tmpTuplePtrSortingBlock{std::make_unique<DataBlock>(memoryManager, DATA_BLOCK_SIZE)},
+      factorizedTable{factorizedTable}, strKeyColsInfo{std::move(strKeyColsInfo)},
+      numBytesPerTuple{orderByKeyEncoder.getNumBytesPerTuple()},
+      numBytesToRadixSort{numBytesPerTuple - 8} {}
 
 void RadixSort::sortSingleKeyBlock(const DataBlock& keyBlock) {
     auto numBytesSorted = 0ul;

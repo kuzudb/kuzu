@@ -3,13 +3,16 @@
 #include <functional>
 
 #include "common/copy_constructors.h"
+#include "common/system_config.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "processor/result/factorized_table.h"
 #include "processor/result/factorized_table_schema.h"
-#include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
+namespace storage {
+class MemoryManager;
+}
 namespace processor {
 
 using compare_function_t = std::function<bool(common::ValueVector*, uint32_t, const uint8_t*)>;

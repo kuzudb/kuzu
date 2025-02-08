@@ -1,4 +1,5 @@
 #include "common/exception/buffer_manager.h"
+#include "common/system_config.h"
 #include "main_test_helper/main_test_helper.h"
 
 using namespace kuzu::common;

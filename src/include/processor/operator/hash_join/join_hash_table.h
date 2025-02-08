@@ -2,9 +2,11 @@
 
 #include "processor/result/base_hash_table.h"
 #include "processor/result/factorized_table.h"
-#include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
+namespace storage {
+class MemoryManager;
+}
 namespace processor {
 
 class JoinHashTable : public BaseHashTable {

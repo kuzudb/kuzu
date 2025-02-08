@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mutex>
 #include <queue>
 
 #include "processor/operator/order_by/order_by_key_encoder.h"
@@ -27,9 +28,6 @@ struct StrKeyColInfo {
 };
 
 class MergedKeyBlocks {
-private:
-    static constexpr uint64_t DATA_BLOCK_SIZE = common::TEMP_PAGE_SIZE;
-
 public:
     MergedKeyBlocks(uint32_t numBytesPerTuple, uint64_t numTuples,
         storage::MemoryManager* memoryManager);

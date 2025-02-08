@@ -1,10 +1,13 @@
 #include "common/data_chunk/data_chunk_state.h"
 
 #include "common/data_chunk/sel_vector.h"
+#include "common/system_config.h"
 #include "common/types/types.h"
 
 namespace kuzu {
 namespace common {
+
+DataChunkState::DataChunkState() : DataChunkState(DEFAULT_VECTOR_CAPACITY) {}
 
 std::shared_ptr<DataChunkState> DataChunkState::getSingleValueDataChunkState() {
     auto state = std::make_shared<DataChunkState>(1);

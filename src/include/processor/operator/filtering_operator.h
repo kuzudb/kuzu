@@ -11,10 +11,7 @@ namespace processor {
 
 class SelVectorOverWriter {
 public:
-    explicit SelVectorOverWriter() {
-        currentSelVector =
-            std::make_shared<common::SelectionVector>(common::DEFAULT_VECTOR_CAPACITY);
-    }
+    SelVectorOverWriter();
     virtual ~SelVectorOverWriter() = default;
 
 protected:

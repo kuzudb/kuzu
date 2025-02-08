@@ -1,7 +1,6 @@
 #pragma once
 
 #include "dictionary_chunk.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/column.h"
 
 namespace kuzu {

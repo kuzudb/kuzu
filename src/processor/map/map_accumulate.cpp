@@ -1,3 +1,4 @@
+#include "common/system_config.h"
 #include "planner/operator/logical_accumulate.h"
 #include "processor/operator/result_collector.h"
 #include "processor/plan_mapper.h"

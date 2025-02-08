@@ -3,11 +3,16 @@
 #include <cstring>
 
 #include "common/data_chunk/data_chunk_state.h"
+#include "common/system_config.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
+
+SelVectorOverWriter::SelVectorOverWriter() {
+    currentSelVector = std::make_shared<common::SelectionVector>(common::DEFAULT_VECTOR_CAPACITY);
+}
 
 void SelVectorOverWriter::restoreSelVector(DataChunkState& dataChunkState) const {
     if (prevSelVector != nullptr) {

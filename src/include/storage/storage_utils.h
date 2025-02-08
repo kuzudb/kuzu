@@ -6,6 +6,7 @@
 #include "common/constants.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/null_mask.h"
+#include "common/system_config.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
 #include "main/db_config.h"

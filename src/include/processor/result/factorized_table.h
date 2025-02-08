@@ -7,9 +7,11 @@
 #include "common/types/value/value.h"
 #include "common/vector/value_vector.h"
 #include "factorized_table_schema.h"
-#include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
+namespace storage {
+class MemoryManager;
+}
 namespace processor {
 
 struct BlockAppendingInfo {
@@ -24,18 +26,14 @@ struct BlockAppendingInfo {
 // released when this struct goes out of scope.
 class DataBlock {
 public:
-    DataBlock(storage::MemoryManager* mm, uint64_t size) : numTuples{0}, freeSize{size} {
-        block = mm->allocateBuffer(true /* initializeToZero */, size);
-    }
+    DataBlock(storage::MemoryManager* mm, uint64_t size);
+    ~DataBlock();
 
-    uint8_t* getData() const { return block->getBuffer().data(); }
-    std::span<uint8_t> getSizedData() const { return block->getBuffer(); }
-    uint8_t* getWritableData() const { return block->getBuffer().last(freeSize).data(); }
-    void resetNumTuplesAndFreeSize() {
-        freeSize = block->getBuffer().size();
-        numTuples = 0;
-    }
-    void resetToZero() { memset(block->getBuffer().data(), 0, block->getBuffer().size()); }
+    uint8_t* getData() const;
+    std::span<uint8_t> getSizedData() const;
+    uint8_t* getWritableData() const;
+    void resetNumTuplesAndFreeSize();
+    void resetToZero();
 
     static void copyTuples(DataBlock* blockToCopyFrom, ft_tuple_idx_t tupleIdxToCopyFrom,
         DataBlock* blockToCopyInto, ft_tuple_idx_t tupleIdxToCopyTo, uint32_t numTuplesToCopy,

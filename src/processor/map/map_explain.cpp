@@ -1,4 +1,5 @@
 #include "common/profiler.h"
+#include "common/system_config.h"
 #include "main/client_context.h"
 #include "main/plan_printer.h"
 #include "planner/operator/logical_explain.h"

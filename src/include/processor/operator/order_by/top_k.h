@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "binder/expression/expression.h"
 #include "processor/operator/sink.h"
 #include "sort_state.h"
