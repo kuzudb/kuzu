@@ -489,6 +489,14 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptions) {
 }
 
 TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsManyUpdates) {
+    static constexpr uint64_t STANDARD_NODE_GROUP_SIZE_LOG_2 = 17;
+
+    // if node group size is too small we will choose not to update in place due to too many
+    // exceptions messing up the compression ratio
+    if (STANDARD_NODE_GROUP_SIZE_LOG_2 != StorageConfig::NODE_GROUP_SIZE_LOG2) {
+        GTEST_SKIP();
+    }
+
     std::vector<double> src(StorageConfig::NODE_GROUP_SIZE, 5.6);
     src[1] = 123456789012.56;
     src[3] = 1;
