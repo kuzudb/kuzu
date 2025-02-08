@@ -8,7 +8,7 @@
 namespace kuzu {
 namespace processor {
 
-class OrderByMerge : public Sink {
+class OrderByMerge final : public Sink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::ORDER_BY_MERGE;
 
 public:
@@ -29,14 +29,14 @@ public:
         : Sink{nullptr /* resultSetDescriptor */, type_, id, printInfo->copy()},
           sharedState{std::move(sharedState)}, sharedDispatcher{std::move(sharedDispatcher)} {}
 
-    inline bool isSource() const override { return true; }
+    bool isSource() const override { return true; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     void executeInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<OrderByMerge>(sharedState, sharedDispatcher, id, printInfo->copy());
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return std::make_unique<OrderByMerge>(sharedState, sharedDispatcher, id, printInfo->copy());
     }
 
 private:

@@ -21,7 +21,7 @@ void ProcessorTask::run() {
         sink->initGlobalState(executionContext);
         sharedStateInitialized = true;
     }
-    auto clonedPipelineRoot = sink->clone();
+    auto clonedPipelineRoot = sink->copy();
     lck.unlock();
     auto currentSink = (Sink*)clonedPipelineRoot.get();
     auto resultSet =

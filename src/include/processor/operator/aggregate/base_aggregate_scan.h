@@ -26,7 +26,7 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override = 0;
 
-    std::unique_ptr<PhysicalOperator> clone() override = 0;
+    std::unique_ptr<PhysicalOperator> copy() override = 0;
 
 protected:
     void writeAggregateResultToVector(common::ValueVector& vector, uint64_t pos,

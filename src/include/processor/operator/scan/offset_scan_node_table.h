@@ -25,7 +25,7 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<OffsetScanNodeTable>(info.copy(),
             copyUnorderedMap(tableIDToNodeInfo), id, printInfo->copy());
     }

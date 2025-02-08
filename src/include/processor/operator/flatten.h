@@ -24,8 +24,8 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    inline std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<Flatten>(dataChunkToFlattenPos, children[0]->clone(), id,
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return make_unique<Flatten>(dataChunkToFlattenPos, children[0]->copy(), id,
             printInfo->copy());
     }
 

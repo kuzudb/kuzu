@@ -18,8 +18,8 @@ public:
 
     bool selectInternal(common::SelectionVector&) override { KU_UNREACHABLE; }
 
-    std::unique_ptr<ExpressionEvaluator> clone() override {
-        return std::make_unique<PatternExpressionEvaluator>(expression, cloneVector(children));
+    std::unique_ptr<ExpressionEvaluator> copy() override {
+        return std::make_unique<PatternExpressionEvaluator>(expression, copyVector(children));
     }
 
 protected:
@@ -45,9 +45,9 @@ public:
 
     void initFurther(const processor::ResultSet& resultSet) override;
 
-    std::unique_ptr<ExpressionEvaluator> clone() override {
-        return std::make_unique<UndirectedRelExpressionEvaluator>(expression, cloneVector(children),
-            directionEvaluator->clone());
+    std::unique_ptr<ExpressionEvaluator> copy() override {
+        return std::make_unique<UndirectedRelExpressionEvaluator>(expression, copyVector(children),
+            directionEvaluator->copy());
     }
 
 private:

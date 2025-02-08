@@ -27,8 +27,7 @@ struct CaseAlternativeEvaluator {
 
 private:
     CaseAlternativeEvaluator(const CaseAlternativeEvaluator& other)
-        : whenEvaluator{other.whenEvaluator->clone()}, thenEvaluator{other.thenEvaluator->clone()} {
-    }
+        : whenEvaluator{other.whenEvaluator->copy()}, thenEvaluator{other.thenEvaluator->copy()} {}
 };
 
 class CaseExpressionEvaluator : public ExpressionEvaluator {
@@ -53,9 +52,9 @@ public:
 
     bool selectInternal(common::SelectionVector& selVector) override;
 
-    std::unique_ptr<ExpressionEvaluator> clone() override {
+    std::unique_ptr<ExpressionEvaluator> copy() override {
         return std::make_unique<CaseExpressionEvaluator>(expression,
-            copyVector(alternativeEvaluators), elseEvaluator->clone());
+            copyVector(alternativeEvaluators), elseEvaluator->copy());
     }
 
 protected:

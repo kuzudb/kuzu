@@ -16,7 +16,7 @@ struct TopKLocalScanState {
     inline uint64_t scan() { return payloadScanner->scan(vectorsToScan); }
 };
 
-class TopKScan : public PhysicalOperator {
+class TopKScan final : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::TOP_K_SCAN;
 
 public:
@@ -27,16 +27,16 @@ public:
           outVectorPos{std::move(outVectorPos)}, localState{std::make_unique<TopKLocalScanState>()},
           sharedState{std::move(sharedState)} {}
 
-    inline bool isSource() const final { return true; }
+    bool isSource() const override { return true; }
     // Ordered table should be scanned in single-thread mode.
-    inline bool isParallel() const override { return false; }
+    bool isParallel() const override { return false; }
 
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    bool getNextTuplesInternal(ExecutionContext* context) final;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<TopKScan>(outVectorPos, sharedState, children[0]->clone(), id,
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return std::make_unique<TopKScan>(outVectorPos, sharedState, children[0]->copy(), id,
             printInfo->copy());
     }
 

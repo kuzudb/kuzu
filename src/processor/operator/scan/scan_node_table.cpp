@@ -132,11 +132,6 @@ bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     return false;
 }
 
-std::unique_ptr<PhysicalOperator> ScanNodeTable::clone() {
-    return make_unique<ScanNodeTable>(info.copy(), copyVector(nodeInfos), sharedStates, id,
-        printInfo->copy(), progressSharedState);
-}
-
 double ScanNodeTable::getProgress(ExecutionContext* /*context*/) const {
     if (currentTableIdx >= nodeInfos.size()) {
         return 1.0;

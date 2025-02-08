@@ -93,8 +93,8 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<UnionAllScan>(info->copy(), sharedState, id, printInfo->copy());
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return std::make_unique<UnionAllScan>(info->copy(), sharedState, id, printInfo->copy());
     }
 
 private:

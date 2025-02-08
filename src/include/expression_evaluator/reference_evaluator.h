@@ -21,7 +21,7 @@ public:
 
     bool selectInternal(common::SelectionVector& selVector) override;
 
-    std::unique_ptr<ExpressionEvaluator> clone() override {
+    std::unique_ptr<ExpressionEvaluator> copy() override {
         return std::make_unique<ReferenceExpressionEvaluator>(expression, isResultFlat_, dataPos);
     }
 

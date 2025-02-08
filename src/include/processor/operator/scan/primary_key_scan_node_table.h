@@ -57,9 +57,9 @@ public:
 
     bool isParallel() const override { return false; }
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<PrimaryKeyScanNodeTable>(info.copy(), copyVector(nodeInfos),
-            indexEvaluator->clone(), sharedState, id, printInfo->copy());
+            indexEvaluator->copy(), sharedState, id, printInfo->copy());
     }
 
 private:

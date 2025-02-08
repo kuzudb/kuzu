@@ -37,7 +37,7 @@ struct StandaloneCallInfo {
     }
 };
 
-class StandaloneCall : public PhysicalOperator {
+class StandaloneCall final : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::STANDALONE_CALL;
 
 public:
@@ -47,11 +47,11 @@ public:
           standaloneCallInfo{std::move(localState)} {}
 
     bool isSource() const override { return true; }
-    bool isParallel() const final { return false; }
+    bool isParallel() const override { return false; }
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<StandaloneCall>(standaloneCallInfo->copy(), id, printInfo->copy());
     }
 

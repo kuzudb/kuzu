@@ -19,7 +19,7 @@ public:
 
     std::string getOutputMsg() override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<CreateTable>(info.copy(), outputPos, id, printInfo->copy());
     }
 

@@ -99,9 +99,9 @@ public:
 
     void finalizeInternal(ExecutionContext* context) override;
 
-    inline std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return make_unique<HashJoinBuild>(resultSetDescriptor->copy(), operatorType, sharedState,
-            info->copy(), children[0]->clone(), id, printInfo->copy());
+            info->copy(), children[0]->copy(), id, printInfo->copy());
     }
 
 protected:

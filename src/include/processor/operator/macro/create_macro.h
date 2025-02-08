@@ -18,7 +18,7 @@ struct CreateMacroInfo {
         : macroName{std::move(macroName)}, macro{std::move(macro)}, outputPos{outputPos},
           catalog{catalog} {}
 
-    inline std::unique_ptr<CreateMacroInfo> copy() {
+    std::unique_ptr<CreateMacroInfo> copy() {
         return std::make_unique<CreateMacroInfo>(macroName, macro->copy(), outputPos, catalog);
     }
 };
@@ -39,7 +39,7 @@ private:
         : OPPrintInfo{other}, macroName{other.macroName} {}
 };
 
-class CreateMacro : public PhysicalOperator {
+class CreateMacro final : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::CREATE_MACRO;
 
 public:
@@ -48,17 +48,16 @@ public:
         : PhysicalOperator{type_, id, std::move(printInfo)},
           createMacroInfo{std::move(createMacroInfo)}, outputVector(nullptr) {}
 
-    inline bool isSource() const override { return true; }
-    inline bool isParallel() const final { return false; }
+    bool isSource() const override { return true; }
+    bool isParallel() const final { return false; }
 
-    inline void initLocalStateInternal(ResultSet* resultSet,
-        ExecutionContext* /*context*/) override {
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) override {
         outputVector = resultSet->getValueVector(createMacroInfo->outputPos).get();
     }
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<CreateMacro>(createMacroInfo->copy(), id, printInfo->copy());
     }
 

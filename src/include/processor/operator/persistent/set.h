@@ -23,7 +23,7 @@ private:
         : OPPrintInfo(other), expressions(other.expressions) {}
 };
 
-class SetNodeProperty : public PhysicalOperator {
+class SetNodeProperty final : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SET_PROPERTY;
 
 public:
@@ -33,19 +33,22 @@ public:
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           executors{std::move(executors)} {}
 
-    bool isParallel() const final { return false; }
+    bool isParallel() const override { return false; }
 
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    bool getNextTuplesInternal(ExecutionContext* context) final;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() final;
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return std::make_unique<SetNodeProperty>(copyVector(executors), children[0]->copy(), id,
+            printInfo->copy());
+    }
 
 private:
     std::vector<std::unique_ptr<NodeSetExecutor>> executors;
 };
 
-class SetRelProperty : public PhysicalOperator {
+class SetRelProperty final : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SET_PROPERTY;
 
 public:
@@ -55,13 +58,16 @@ public:
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
           executors{std::move(executors)} {}
 
-    inline bool isParallel() const final { return false; }
+    inline bool isParallel() const override { return false; }
 
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    bool getNextTuplesInternal(ExecutionContext* context) final;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() final;
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return std::make_unique<SetRelProperty>(copyVector(executors), children[0]->copy(), id,
+            printInfo->copy());
+    }
 
 private:
     std::vector<std::unique_ptr<RelSetExecutor>> executors;

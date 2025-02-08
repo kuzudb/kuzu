@@ -25,7 +25,7 @@ struct IndexLookupInfo {
 
 private:
     IndexLookupInfo(const IndexLookupInfo& other)
-        : nodeTable{other.nodeTable}, keyEvaluator{other.keyEvaluator->clone()},
+        : nodeTable{other.nodeTable}, keyEvaluator{other.keyEvaluator->copy()},
           resultVectorPos{other.resultVectorPos} {}
 };
 
@@ -53,7 +53,7 @@ struct IndexLookupLocalState {
     std::vector<common::ValueVector*> warningDataVectors;
 };
 
-class IndexLookup : public PhysicalOperator {
+class IndexLookup final : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::INDEX_LOOKUP;
 
 public:
@@ -67,9 +67,9 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
-    std::unique_ptr<PhysicalOperator> clone() final {
+    std::unique_ptr<PhysicalOperator> copy() final {
         return std::make_unique<IndexLookup>(copyVector(infos), warningDataVectorPos,
-            children[0]->clone(), getOperatorID(), printInfo->copy());
+            children[0]->copy(), getOperatorID(), printInfo->copy());
     }
 
 private:

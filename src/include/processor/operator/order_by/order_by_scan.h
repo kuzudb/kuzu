@@ -25,7 +25,7 @@ struct OrderByScanLocalState {
 
 // To preserve the ordering of tuples, the orderByScan operator will only
 // be executed in single-thread mode.
-class OrderByScan : public PhysicalOperator {
+class OrderByScan final : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::ORDER_BY_SCAN;
 
 public:
@@ -44,15 +44,15 @@ public:
           localState{std::make_unique<OrderByScanLocalState>()},
           sharedState{std::move(sharedState)} {}
 
-    bool isSource() const final { return true; }
+    bool isSource() const override { return true; }
     // Ordered table should be scanned in single-thread mode.
-    bool isParallel() const final { return false; }
+    bool isParallel() const override { return false; }
 
-    bool getNextTuplesInternal(ExecutionContext* context) final;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() final {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<OrderByScan>(outVectorPos, sharedState, id, printInfo->copy());
     }
 
