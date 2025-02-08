@@ -363,3 +363,31 @@ Binder exception: Unknown table function output variable name: destination table
 -STATEMENT CALL current_setting('timeout') yield `timeout`, `timeout` RETURN *;
 ---- error
 Binder exception: The number of variables in the yield clause exceeds the number of output variables of the table function.
+
+-CASE CallCatalogVersion
+-STATEMENT CALL catalog_version() return *;
+---- 1
+8
+-STATEMENT CREATE NODE TABLE test(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CALL catalog_version() return *;
+---- 1
+9
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE REL TABLE testRel(FROM test TO test);
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT CALL catalog_version() return *;
+---- 1
+9
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE REL TABLE testRel(FROM test TO test);
+---- ok
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT CALL catalog_version() return *;
+---- 1
+10

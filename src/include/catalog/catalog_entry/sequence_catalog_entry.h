@@ -63,8 +63,8 @@ public:
     // sequence functions
     //===--------------------------------------------------------------------===//
     int64_t currVal();
-    void nextKVal(const transaction::Transaction* transaction, const uint64_t& count);
-    void nextKVal(const transaction::Transaction* transaction, const uint64_t& count,
+    void nextKVal(transaction::Transaction* transaction, const uint64_t& count);
+    void nextKVal(transaction::Transaction* transaction, const uint64_t& count,
         common::ValueVector& resultVector);
     void rollbackVal(const uint64_t& usageCount, const int64_t& currVal);
 

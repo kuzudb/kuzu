@@ -63,7 +63,7 @@ CatalogEntry* CatalogSet::getEntryNoLock(const Transaction* transaction,
     return entry;
 }
 
-oid_t CatalogSet::createEntry(const Transaction* transaction, std::unique_ptr<CatalogEntry> entry) {
+oid_t CatalogSet::createEntry(Transaction* transaction, std::unique_ptr<CatalogEntry> entry) {
     CatalogEntry* entryPtr = nullptr;
     oid_t oid = INVALID_OID;
     {
@@ -145,7 +145,7 @@ CatalogEntry* CatalogSet::getCommittedEntryNoLock(CatalogEntry* entry) {
     return entry;
 }
 
-void CatalogSet::dropEntry(const Transaction* transaction, const std::string& name, oid_t oid) {
+void CatalogSet::dropEntry(Transaction* transaction, const std::string& name, oid_t oid) {
     CatalogEntry* entryPtr = nullptr;
     {
         std::unique_lock lck{mtx};
@@ -169,7 +169,7 @@ CatalogEntry* CatalogSet::dropEntryNoLock(const Transaction* transaction, const 
     return tombstonePtr->getPrev();
 }
 
-void CatalogSet::alterTableEntry(const Transaction* transaction,
+void CatalogSet::alterTableEntry(Transaction* transaction,
     const binder::BoundAlterInfo& alterInfo) {
     std::unique_lock lck{mtx};
     // LCOV_EXCL_START
@@ -206,7 +206,7 @@ void CatalogSet::alterTableEntry(const Transaction* transaction,
     }
 }
 
-void CatalogSet::alterRelGroupEntry(const Transaction* transaction,
+void CatalogSet::alterRelGroupEntry(Transaction* transaction,
     const binder::BoundAlterInfo& alterInfo) {
     std::unique_lock lck{mtx};
     // LCOV_EXCL_START
