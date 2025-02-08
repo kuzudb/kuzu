@@ -125,8 +125,8 @@ void LocalNodeTable::clear() {
 }
 
 bool LocalNodeTable::lookupPK(const Transaction* transaction, const ValueVector* keyVector,
-    offset_t& result) const {
-    result = hashIndex->lookup(*keyVector,
+    sel_t pos, offset_t& result) const {
+    result = hashIndex->lookup(*keyVector, pos,
         [&](offset_t offset) { return isVisible(transaction, offset); });
     return result != INVALID_OFFSET;
 }

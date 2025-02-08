@@ -138,6 +138,7 @@ public:
         std::optional<IndexBuilder>& indexBuilder, storage::MemoryManager* mm) const;
 
 private:
+    void evaluateExpressions(uint64_t numTuples) const;
     void appendIncompleteNodeGroup(transaction::Transaction* transaction,
         std::unique_ptr<storage::ChunkedNodeGroup> localNodeGroup,
         std::optional<IndexBuilder>& indexBuilder, storage::MemoryManager* mm) const;

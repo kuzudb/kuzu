@@ -3,7 +3,6 @@
 #include "binder/expression/expression_util.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/rel_batch_insert.h"
-#include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 
@@ -55,7 +54,7 @@ partition_idx_t PartitionerSharedState::getNextPartition(idx_t partitioningIdx,
     if (nextPartitionIdxToReturn >= numPartitions[partitioningIdx]) {
         return INVALID_PARTITION_IDX;
     }
-    progressSharedState.partitionsDone++;
+    ++progressSharedState.partitionsDone;
     return nextPartitionIdxToReturn;
 }
 
@@ -64,21 +63,20 @@ void PartitionerSharedState::resetState() {
 }
 
 void PartitionerSharedState::merge(
-    std::vector<std::unique_ptr<PartitioningBuffer>> localPartitioningStates) {
+    const std::vector<std::unique_ptr<PartitioningBuffer>>& localPartitioningStates) {
     std::unique_lock xLck{mtx};
     KU_ASSERT(partitioningBuffers.size() == localPartitioningStates.size());
     for (auto partitioningIdx = 0u; partitioningIdx < partitioningBuffers.size();
-         partitioningIdx++) {
-        partitioningBuffers[partitioningIdx]->merge(
-            std::move(localPartitioningStates[partitioningIdx]));
+        partitioningIdx++) {
+        partitioningBuffers[partitioningIdx]->merge(*localPartitioningStates[partitioningIdx]);
     }
 }
 
-void PartitioningBuffer::merge(std::unique_ptr<PartitioningBuffer> localPartitioningState) const {
-    KU_ASSERT(partitions.size() == localPartitioningState->partitions.size());
+void PartitioningBuffer::merge(const PartitioningBuffer& localPartitioningState) const {
+    KU_ASSERT(partitions.size() == localPartitioningState.partitions.size());
     for (auto partitionIdx = 0u; partitionIdx < partitions.size(); partitionIdx++) {
         auto& sharedPartition = partitions[partitionIdx];
-        auto& localPartition = localPartitioningState->partitions[partitionIdx];
+        auto& localPartition = localPartitioningState.partitions[partitionIdx];
         sharedPartition->merge(*localPartition);
     }
 }
@@ -137,18 +135,7 @@ void Partitioner::executeInternal(ExecutionContext* context) {
     while (children[0]->getNextTuple(context)) {
         KU_ASSERT(dataInfo.columnEvaluators.size() >= 1);
         const auto numRels = relOffsetVector->state->getSelVector().getSelSize();
-        for (auto i = 0u; i < dataInfo.evaluateTypes.size(); ++i) {
-            auto evaluator = dataInfo.columnEvaluators[i].get();
-            switch (dataInfo.evaluateTypes[i]) {
-            case ColumnEvaluateType::DEFAULT: {
-                evaluator->getLocalStateUnsafe().count = numRels;
-                evaluator->evaluate();
-            } break;
-            default: {
-                evaluator->evaluate();
-            }
-            }
-        }
+        evaluateExpressions(numRels);
         auto currentRelOffset = sharedState->relTable->reserveRelOffsets(numRels);
         for (auto i = 0u; i < numRels; i++) {
             const auto pos = relOffsetVector->state->getSelVector()[i];
@@ -161,14 +148,29 @@ void Partitioner::executeInternal(ExecutionContext* context) {
             partitionInfo.partitionerFunc(keyVector.get(), partitionIdxes.get());
             auto chunkToCopyFrom = constructDataChunk(keyVector->state);
             copyDataToPartitions(*context->clientContext->getMemoryManager(), partitioningIdx,
-                std::move(chunkToCopyFrom));
+                chunkToCopyFrom);
         }
     }
     sharedState->merge(std::move(localState->partitioningBuffers));
 }
 
+void Partitioner::evaluateExpressions(uint64_t numRels) const {
+    for (auto i = 0u; i < dataInfo.evaluateTypes.size(); ++i) {
+        auto evaluator = dataInfo.columnEvaluators[i].get();
+        switch (dataInfo.evaluateTypes[i]) {
+        case ColumnEvaluateType::DEFAULT: {
+            evaluator->getLocalStateUnsafe().count = numRels;
+            evaluator->evaluate();
+        } break;
+        default: {
+            evaluator->evaluate();
+        }
+        }
+    }
+}
+
 void Partitioner::copyDataToPartitions(MemoryManager& memoryManager,
-    partition_idx_t partitioningIdx, DataChunk chunkToCopyFrom) const {
+    partition_idx_t partitioningIdx, const DataChunk& chunkToCopyFrom) const {
     std::vector<ValueVector*> vectorsToAppend;
     vectorsToAppend.reserve(chunkToCopyFrom.getNumValueVectors());
     for (auto j = 0u; j < chunkToCopyFrom.getNumValueVectors(); j++) {

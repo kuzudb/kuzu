@@ -148,15 +148,13 @@ void RelTable::initScanState(Transaction* transaction, TableScanState& scanState
     const auto boundNodeID = relScanState.nodeIDVector->getValue<nodeID_t>(
         relScanState.nodeIDVector->state->getSelVector()[0]);
     NodeGroup* nodeGroup = nullptr;
-    if (!transaction->isUnCommitted(boundNodeID.tableID, boundNodeID.offset)) {
-        // Check if the node group idx is same as previous scan.
-        const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(boundNodeID.offset);
-        if (relScanState.nodeGroupIdx != nodeGroupIdx) {
-            // We need to re-initialize the node group scan state.
-            nodeGroup = getDirectedTableData(relScanState.direction)->getNodeGroup(nodeGroupIdx);
-        } else {
-            nodeGroup = relScanState.nodeGroup;
-        }
+    // Check if the node group idx is same as previous scan.
+    const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(boundNodeID.offset);
+    if (relScanState.nodeGroupIdx != nodeGroupIdx) {
+        // We need to re-initialize the node group scan state.
+        nodeGroup = getDirectedTableData(relScanState.direction)->getNodeGroup(nodeGroupIdx);
+    } else {
+        nodeGroup = relScanState.nodeGroup;
     }
     scanState.initState(transaction, nodeGroup);
 }

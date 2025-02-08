@@ -425,11 +425,6 @@ void ClientContext::validateTransaction(const PreparedStatement& preparedStateme
     if (!canExecuteWriteQuery() && !preparedStatement.isReadOnly()) {
         throw ConnectionException("Cannot execute write operations in a read-only database!");
     }
-    // TODO(Guodong): Remove this check after we support COPY FROM in manual transactions.
-    if (preparedStatement.getStatementType() == StatementType::COPY_FROM &&
-        !transactionContext->isAutoTransaction()) {
-        throw ConnectionException("COPY FROM is only supported in auto transaction mode.");
-    }
     if (preparedStatement.parsedStatement->requireTransaction() &&
         transactionContext->hasActiveTransaction()) {
         KU_ASSERT(!transactionContext->isAutoTransaction());

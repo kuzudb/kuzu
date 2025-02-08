@@ -118,17 +118,21 @@ public:
             [&](auto) { KU_UNREACHABLE; });
     }
 
-    common::offset_t lookup(const common::ValueVector& keyVector, visible_func isVisible) {
-        KU_ASSERT(keyVector.state->getSelVector().getSelSize() == 1);
+    common::offset_t lookup(const common::ValueVector& keyVector, common::sel_t pos,
+        visible_func isVisible) {
         common::offset_t result = common::INVALID_OFFSET;
         common::TypeUtils::visit(
             keyDataTypeID,
-            [&]<common::IndexHashable T>(T) {
-                const auto pos = keyVector.state->getSelVector().getSelectedPositions()[0];
-                result = lookup(keyVector.getValue<T>(pos), isVisible);
-            },
+            [&]<common::IndexHashable T>(
+                T) { result = lookup(keyVector.getValue<T>(pos), isVisible); },
             [](auto) { KU_UNREACHABLE; });
         return result;
+    }
+
+    common::offset_t lookup(const common::ValueVector& keyVector, visible_func isVisible) {
+        KU_ASSERT(keyVector.state->getSelVector().getSelSize() == 1);
+        auto pos = keyVector.state->getSelVector().getSelectedPositions()[0];
+        return lookup(keyVector, pos, isVisible);
     }
 
     common::offset_t lookup(const common::ku_string_t key, visible_func isVisible) {

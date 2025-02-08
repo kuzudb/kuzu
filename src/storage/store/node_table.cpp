@@ -489,7 +489,7 @@ void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
-         localNodeGroupIdx++) {
+        localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
         if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by
@@ -612,8 +612,8 @@ bool NodeTable::lookupPK(const Transaction* transaction, ValueVector* keyVector,
     if (transaction->getLocalStorage()) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
             LocalStorage::NotExistAction::RETURN_NULL);
-        if (localTable &&
-            localTable->cast<LocalNodeTable>().lookupPK(transaction, keyVector, result)) {
+        if (localTable && localTable->cast<LocalNodeTable>().lookupPK(transaction, keyVector,
+                              vectorPos, result)) {
             return true;
         }
     }

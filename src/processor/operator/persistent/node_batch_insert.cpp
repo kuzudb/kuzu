@@ -6,6 +6,7 @@
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/index_builder.h"
 #include "processor/result/factorized_table_util.h"
+#include "storage/local_storage/local_storage.h"
 #include "storage/store/chunked_node_group.h"
 #include "storage/store/node_table.h"
 
@@ -78,20 +79,7 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
         const auto originalSelVector = nodeLocalState->columnState->getSelVectorShared();
         // Evaluate expressions if needed.
         const auto numTuples = nodeLocalState->columnState->getSelVector().getSelSize();
-        for (auto i = 0u; i < nodeInfo->evaluateTypes.size(); ++i) {
-            switch (nodeInfo->evaluateTypes[i]) {
-            case ColumnEvaluateType::DEFAULT: {
-                auto& defaultEvaluator = nodeInfo->columnEvaluators[i];
-                defaultEvaluator->getLocalStateUnsafe().count = numTuples;
-                defaultEvaluator->evaluate();
-            } break;
-            case ColumnEvaluateType::CAST: {
-                nodeInfo->columnEvaluators[i]->evaluate();
-            } break;
-            default:
-                break;
-            }
-        }
+        evaluateExpressions(numTuples);
         copyToNodeGroup(context->clientContext->getTransaction(),
             context->clientContext->getMemoryManager());
         nodeLocalState->columnState->setSelVector(originalSelVector);
@@ -111,6 +99,24 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
     }
     sharedState->table->cast<NodeTable>().mergeStats(nodeInfo->insertColumnIDs,
         nodeLocalState->stats);
+}
+
+void NodeBatchInsert::evaluateExpressions(uint64_t numTuples) const {
+    const auto nodeInfo = info->ptrCast<NodeBatchInsertInfo>();
+    for (auto i = 0u; i < nodeInfo->evaluateTypes.size(); ++i) {
+        switch (nodeInfo->evaluateTypes[i]) {
+        case ColumnEvaluateType::DEFAULT: {
+            auto& defaultEvaluator = nodeInfo->columnEvaluators[i];
+            defaultEvaluator->getLocalStateUnsafe().count = numTuples;
+            defaultEvaluator->evaluate();
+        } break;
+        case ColumnEvaluateType::CAST: {
+            nodeInfo->columnEvaluators[i]->evaluate();
+        } break;
+        default:
+            break;
+        }
+    }
 }
 
 void NodeBatchInsert::copyToNodeGroup(transaction::Transaction* transaction,

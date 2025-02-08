@@ -29,7 +29,7 @@ struct PartitionerFunctions {
 struct PartitioningBuffer {
     std::vector<std::unique_ptr<storage::InMemChunkedNodeGroupCollection>> partitions;
 
-    void merge(std::unique_ptr<PartitioningBuffer> localPartitioningStates) const;
+    void merge(const PartitioningBuffer& localPartitioningState) const;
 };
 
 // NOTE: Currently, Partitioner is tightly coupled with RelBatchInsert. We should generalize it
@@ -64,7 +64,7 @@ struct PartitionerSharedState {
         RelBatchInsertProgressSharedState& progressSharedState);
 
     void resetState();
-    void merge(std::vector<std::unique_ptr<PartitioningBuffer>> localPartitioningStates);
+    void merge(const std::vector<std::unique_ptr<PartitioningBuffer>>& localPartitioningStates);
 
     // Must only be called once for any given parameters.
     // The data gets moved out of the shared state since some of it may be spilled to disk and will
@@ -181,12 +181,13 @@ public:
         common::idx_t numPartitioners);
 
 private:
+    void evaluateExpressions(uint64_t numRels) const;
     common::DataChunk constructDataChunk(
         const std::shared_ptr<common::DataChunkState>& state) const;
     // TODO: For now, RelBatchInsert will guarantee all data are inside one data chunk. Should be
     //  generalized to resultSet later if needed.
     void copyDataToPartitions(storage::MemoryManager& memoryManager,
-        common::partition_idx_t partitioningIdx, common::DataChunk chunkToCopyFrom) const;
+        common::partition_idx_t partitioningIdx, const common::DataChunk& chunkToCopyFrom) const;
 
 private:
     PartitionerDataInfo dataInfo;

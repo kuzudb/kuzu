@@ -42,7 +42,7 @@ public:
     NodeGroupCollection& getNodeGroups() { return nodeGroups; }
 
     bool lookupPK(const transaction::Transaction* transaction, const common::ValueVector* keyVector,
-        common::offset_t& result) const;
+        common::sel_t pos, common::offset_t& result) const;
 
     TableStats getStats() const { return nodeGroups.getStats(); }
 

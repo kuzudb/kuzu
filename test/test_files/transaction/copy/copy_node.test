@@ -15,17 +15,7 @@ Copy exception: Found duplicated primary key value \w+, which violates the uniqu
 ---- 1
 36.95.74.186
 
--CASE CopyNodeManualTransactionCheck
--STATEMENT BEGIN TRANSACTION;
----- ok
--STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
----- ok
--STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv"
----- error
-Connection exception: COPY FROM is only supported in auto transaction mode.
-
--CASE CopyNodeCommit
--SKIP
+-CASE CreateTableCopyNodeCommit
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
@@ -45,8 +35,19 @@ Connection exception: COPY FROM is only supported in auto transaction mode.
 35
 45
 
--CASE CopyNodeCommitRecovery
--SKIP
+-CASE CreateTableCopyNodeRollback
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv"
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT CALL show_tables() RETURN *;
+---- 0
+
+-CASE CreateTableCopyNodeCommitRecovery
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
@@ -66,6 +67,21 @@ Connection exception: COPY FROM is only supported in auto transaction mode.
 30
 35
 45
+
+-CASE CreateTableCopyNodeRollbackRecovery
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv"
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT CALL show_tables() RETURN *;
+---- 0
+-RELOADDB
+-STATEMENT CALL show_tables() RETURN *;
+---- 0
 
 -CASE CopyNodeRollbackDueToError
 -STATEMENT CREATE NODE TABLE person (ID INT64, name STRING, PRIMARY KEY (ID));
@@ -233,3 +249,190 @@ Copy exception: Found duplicated primary key value 0, which violates the uniquen
 -STATEMENT MATCH (p:person) return count(*);
 ---- 1
 0
+
+-CASE InsertAndCopyCommit
+-STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE (p:person {ID: 100000});
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv";
+---- ok
+-STATEMENT MATCH (p:person) RETURN COUNT(*);
+---- 1
+6
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.ID;
+---- 6
+0
+2
+3
+5
+7
+100000
+
+-CASE InsertAndCopyRollback
+-STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE (p:person {ID: 100000});
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv";
+---- ok
+-STATEMENT MATCH (p:person) RETURN COUNT(*);
+---- 1
+6
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT MATCH (p:person) RETURN COUNT(*);
+---- 1
+0
+
+-CASE InsertAndCopyCommitRecovery
+-STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE (p:person {ID: 100000});
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv";
+---- ok
+-STATEMENT MATCH (p:person) RETURN COUNT(*);
+---- 1
+6
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.ID;
+---- 6
+0
+2
+3
+5
+7
+100000
+-RELOADDB
+-STATEMENT MATCH (p:person) RETURN p.ID;
+---- 6
+0
+2
+3
+5
+7
+100000
+
+-CASE InsertAndCopyRollbackRecovery
+-STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE (p:person {ID: 100000});
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv";
+---- ok
+-STATEMENT MATCH (p:person) RETURN COUNT(*);
+---- 1
+6
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT MATCH (p:person) RETURN COUNT(*);
+---- 1
+0
+-RELOADDB
+-STATEMENT MATCH (p:person) RETURN COUNT(*);
+---- 1
+0
+
+-CASE CopyAndDeleteCommit
+-STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv";
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.fname='Bob' DELETE p;
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.ID;
+---- 4
+0
+3
+5
+7
+-STATEMENT COMMIT;
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.ID;
+---- 4
+0
+3
+5
+7
+
+-CASE CopyAndDeleteRollback
+-STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv";
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.fname='Bob' DELETE p;
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.ID;
+---- 4
+0
+3
+5
+7
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.ID;
+---- 0
+
+-CASE CopyAndDeleteCommitRecovery
+-STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv";
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.fname='Bob' DELETE p;
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.ID;
+---- 4
+0
+3
+5
+7
+-STATEMENT COMMIT;
+---- ok
+-RELOADDB
+-STATEMENT MATCH (p:person) RETURN p.ID;
+---- 4
+0
+3
+5
+7
+
+-CASE CopyAndDeleteRollbackRecovery
+-STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv";
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.fname='Bob' DELETE p;
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.ID;
+---- 4
+0
+3
+5
+7
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT MATCH (p:person) RETURN p.ID;
+---- 0
+-RELOADDB
+-STATEMENT MATCH (p:person) RETURN p.ID;
+---- 0

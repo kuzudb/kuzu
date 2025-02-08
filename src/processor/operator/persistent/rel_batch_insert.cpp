@@ -6,6 +6,7 @@
 #include "common/task_system/progress_bar.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table_util.h"
+#include "storage/local_storage/local_storage.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/rel_table.h"
@@ -47,7 +48,7 @@ void RelBatchInsert::initLocalStateInternal(ResultSet* /*resultSet_*/, Execution
     }
 }
 
-void RelBatchInsert::initGlobalStateInternal(ExecutionContext* /* context */) {
+void RelBatchInsert::initGlobalStateInternal(ExecutionContext*) {
     progressSharedState = std::make_shared<RelBatchInsertProgressSharedState>();
     progressSharedState->partitionsDone = 0;
     progressSharedState->partitionsTotal =
