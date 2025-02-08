@@ -41,7 +41,7 @@ protected:
 
     void finalizeInternal(ExecutionContext* context) override = 0;
 
-    std::unique_ptr<PhysicalOperator> clone() override = 0;
+    std::unique_ptr<PhysicalOperator> copy() override = 0;
 
 private:
     bool containDistinctAggregate() const;

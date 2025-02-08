@@ -17,7 +17,7 @@ public:
     void executeInternal(ExecutionContext* context) override;
     std::string getOutputMsg() override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<ImportDB>(query, indexQuery, outputPos, id, printInfo->copy());
     }
 

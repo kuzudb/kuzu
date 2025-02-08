@@ -64,7 +64,10 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override;
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return make_unique<ScanMultiRelTable>(info.copy(), directionInfo.copy(),
+            copyUnorderedMap(scanners), children[0]->copy(), id, printInfo->copy());
+    }
 
 private:
     void resetState();

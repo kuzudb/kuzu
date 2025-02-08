@@ -122,9 +122,9 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
-    std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<RecursiveJoin>(info.copy(), sharedState, children[0]->clone(), id,
-            recursiveRoot->clone(), printInfo->copy());
+    std::unique_ptr<PhysicalOperator> copy() final {
+        return std::make_unique<RecursiveJoin>(info.copy(), sharedState, children[0]->copy(), id,
+            recursiveRoot->copy(), printInfo->copy());
     }
 
 private:

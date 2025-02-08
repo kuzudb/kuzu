@@ -98,18 +98,6 @@ static std::vector<std::unique_ptr<T>> copyVector(const std::vector<std::unique_
     return result;
 }
 
-// TODO: remove
-template<typename T>
-static std::vector<std::unique_ptr<T>> cloneVector(const std::vector<std::unique_ptr<T>>& objects) {
-    std::vector<std::unique_ptr<T>> result;
-    result.reserve(objects.size());
-    for (auto& object : objects) {
-        T& ob = *object;
-        result.push_back(ob.clone());
-    }
-    return result;
-}
-
 template<typename K, typename V>
 static std::unordered_map<K, V> copyUnorderedMap(const std::unordered_map<K, V>& objects) {
     std::unordered_map<K, V> result;

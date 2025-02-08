@@ -22,7 +22,7 @@ private:
         : OPPrintInfo{other}, seqName{other.seqName} {}
 };
 
-class CreateSequence : public DDL {
+class CreateSequence final : public DDL {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::CREATE_SEQUENCE;
 
 public:
@@ -32,9 +32,9 @@ public:
 
     void executeDDLInternal(ExecutionContext* context) final;
 
-    std::string getOutputMsg() final;
+    std::string getOutputMsg() override;
 
-    std::unique_ptr<PhysicalOperator> clone() final {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<CreateSequence>(info.copy(), outputPos, id, printInfo->copy());
     }
 

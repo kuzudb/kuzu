@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace processor {
 
-class MultiplicityReducer : public PhysicalOperator {
+class MultiplicityReducer final : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::MULTIPLICITY_REDUCER;
 
 public:
@@ -16,8 +16,8 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<MultiplicityReducer>(children[0]->clone(), id, printInfo->copy());
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return make_unique<MultiplicityReducer>(children[0]->copy(), id, printInfo->copy());
     }
 
 private:

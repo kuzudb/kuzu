@@ -21,7 +21,7 @@ private:
     DropPrintInfo(const DropPrintInfo& other) : OPPrintInfo{other}, name{other.name} {}
 };
 
-class Drop : public DDL {
+class Drop final : public DDL {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::DROP;
 
 public:
@@ -34,7 +34,7 @@ public:
 
     std::string getOutputMsg() override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return make_unique<Drop>(dropInfo, outputPos, id, printInfo->copy());
     }
 

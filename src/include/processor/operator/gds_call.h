@@ -24,7 +24,7 @@ private:
         : OPPrintInfo{other}, funcName{other.funcName} {}
 };
 
-class GDSCall : public Sink {
+class GDSCall final : public Sink {
     static constexpr PhysicalOperatorType operatorType_ = PhysicalOperatorType::GDS_CALL;
 
 public:
@@ -51,7 +51,7 @@ public:
         sharedState->nodeProp = nodeProp;
     }
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<GDSCall>(resultSetDescriptor->copy(), gds->copy(), sharedState, id,
             printInfo->copy());
     }

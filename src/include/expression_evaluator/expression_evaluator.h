@@ -37,7 +37,7 @@ public:
         : type{type}, expression{std::move(expression)}, children{std::move(children)} {}
     ExpressionEvaluator(const ExpressionEvaluator& other)
         : type{other.type}, expression{other.expression}, isResultFlat_{other.isResultFlat_},
-          children{cloneVector(other.children)} {}
+          children{copyVector(other.children)} {}
     virtual ~ExpressionEvaluator() = default;
 
     EvaluatorType getEvaluatorType() const { return type; }
@@ -53,7 +53,7 @@ public:
 
     bool select(common::SelectionVector& selVector, bool shouldSetSelVectorToFiltered);
 
-    virtual std::unique_ptr<ExpressionEvaluator> clone() = 0;
+    virtual std::unique_ptr<ExpressionEvaluator> copy() = 0;
 
     EvaluatorLocalState& getLocalStateUnsafe() { return localState; }
 

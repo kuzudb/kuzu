@@ -15,12 +15,12 @@ std::string ProjectionPrintInfo::toString() const {
 }
 
 void Projection::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    for (auto i = 0u; i < expressionEvaluators.size(); ++i) {
-        auto& expressionEvaluator = *expressionEvaluators[i];
+    for (auto i = 0u; i < info.evaluators.size(); ++i) {
+        auto& expressionEvaluator = *info.evaluators[i];
         expressionEvaluator.init(*resultSet, context->clientContext);
-        auto [outDataChunkPos, outValueVectorPos] = expressionsOutputPos[i];
-        auto dataChunk = resultSet->dataChunks[outDataChunkPos];
-        dataChunk->valueVectors[outValueVectorPos] = expressionEvaluator.resultVector;
+        auto [dataChunkPos, vectorPos] = info.exprsOutputPos[i];
+        auto dataChunk = resultSet->dataChunks[dataChunkPos];
+        dataChunk->valueVectors[vectorPos] = expressionEvaluator.resultVector;
     }
 }
 
@@ -30,28 +30,18 @@ bool Projection::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     saveMultiplicity();
-    for (auto& expressionEvaluator : expressionEvaluators) {
-        expressionEvaluator->evaluate();
+    for (auto& evaluator : info.evaluators) {
+        evaluator->evaluate();
     }
-    if (!discardedDataChunksPos.empty()) {
+    if (!info.discardedChunkPosSet.empty()) {
         resultSet->multiplicity *=
-            resultSet->getNumTuplesWithoutMultiplicity(discardedDataChunksPos);
+            resultSet->getNumTuplesWithoutMultiplicity(info.discardedChunkPosSet);
     }
     // The if statement is added to avoid the cost of calculating numTuples when metric is disabled.
     if (metrics->numOutputTuple.enabled) [[unlikely]] {
-        metrics->numOutputTuple.increase(resultSet->getNumTuples(expressionsOutputDataChunksPos));
+        metrics->numOutputTuple.increase(resultSet->getNumTuples(info.outputChunkPosSet));
     }
     return true;
-}
-
-std::unique_ptr<PhysicalOperator> Projection::clone() {
-    std::vector<std::unique_ptr<ExpressionEvaluator>> rootExpressionsCloned;
-    rootExpressionsCloned.reserve(expressionEvaluators.size());
-    for (auto& expressionEvaluator : expressionEvaluators) {
-        rootExpressionsCloned.push_back(expressionEvaluator->clone());
-    }
-    return make_unique<Projection>(std::move(rootExpressionsCloned), expressionsOutputPos,
-        discardedDataChunksPos, children[0]->clone(), id, printInfo->copy());
 }
 
 } // namespace processor

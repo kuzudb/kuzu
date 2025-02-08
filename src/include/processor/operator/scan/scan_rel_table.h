@@ -79,8 +79,8 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<ScanRelTable>(info.copy(), relInfo.copy(), children[0]->clone(), id,
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return std::make_unique<ScanRelTable>(info.copy(), relInfo.copy(), children[0]->copy(), id,
             printInfo->copy());
     }
 

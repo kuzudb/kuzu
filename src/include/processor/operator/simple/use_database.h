@@ -32,7 +32,7 @@ public:
     void executeInternal(ExecutionContext* context) final;
     std::string getOutputMsg() final;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<UseDatabase>(dbName, outputPos, id, printInfo->copy());
     }
 

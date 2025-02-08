@@ -80,7 +80,7 @@ private:
         : OPPrintInfo(other), funcName(other.funcName), exprs(other.exprs) {}
 };
 
-class TableFunctionCall : public PhysicalOperator {
+class TableFunctionCall final : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::TABLE_FUNCTION_CALL;
 
 public:
@@ -113,7 +113,7 @@ public:
 
     double getProgress(ExecutionContext* context) const override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<TableFunctionCall>(info.copy(), sharedState, id, printInfo->copy());
     }
 

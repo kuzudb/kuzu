@@ -25,8 +25,8 @@ public:
 
     bool selectInternal(common::SelectionVector& /*selVector*/) override { KU_UNREACHABLE; }
 
-    std::unique_ptr<ExpressionEvaluator> clone() override {
-        return make_unique<PathExpressionEvaluator>(expression, cloneVector(children));
+    std::unique_ptr<ExpressionEvaluator> copy() override {
+        return make_unique<PathExpressionEvaluator>(expression, copyVector(children));
     }
 
 private:

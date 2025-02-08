@@ -95,18 +95,18 @@ using physical_op_vector_t = std::vector<std::unique_ptr<PhysicalOperator>>;
 class PhysicalOperator {
 public:
     // Leaf operator
-    PhysicalOperator(PhysicalOperatorType operatorType, uint32_t id,
+    PhysicalOperator(PhysicalOperatorType operatorType, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : id{id}, operatorType{operatorType}, resultSet(nullptr), printInfo{std::move(printInfo)} {}
     // Unary operator
     PhysicalOperator(PhysicalOperatorType operatorType, std::unique_ptr<PhysicalOperator> child,
-        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo);
+        physical_op_id id, std::unique_ptr<OPPrintInfo> printInfo);
     // Binary operator
     PhysicalOperator(PhysicalOperatorType operatorType, std::unique_ptr<PhysicalOperator> left,
-        std::unique_ptr<PhysicalOperator> right, uint32_t id,
+        std::unique_ptr<PhysicalOperator> right, physical_op_id id,
         std::unique_ptr<OPPrintInfo> printInfo);
-    PhysicalOperator(PhysicalOperatorType operatorType, physical_op_vector_t children, uint32_t id,
-        std::unique_ptr<OPPrintInfo> printInfo);
+    PhysicalOperator(PhysicalOperatorType operatorType, physical_op_vector_t children,
+        physical_op_id id, std::unique_ptr<OPPrintInfo> printInfo);
 
     virtual ~PhysicalOperator() = default;
 
@@ -119,8 +119,8 @@ public:
     virtual bool isParallel() const { return true; }
 
     void addChild(std::unique_ptr<PhysicalOperator> op) { children.push_back(std::move(op)); }
-    PhysicalOperator* getChild(uint64_t idx) const { return children[idx].get(); }
-    uint64_t getNumChildren() const { return children.size(); }
+    PhysicalOperator* getChild(common::idx_t idx) const { return children[idx].get(); }
+    common::idx_t getNumChildren() const { return children.size(); }
     std::unique_ptr<PhysicalOperator> moveUnaryChild();
 
     // Global state is initialized once.
@@ -138,7 +138,7 @@ public:
 
     const OPPrintInfo* getPrintInfo() const { return printInfo.get(); }
 
-    virtual std::unique_ptr<PhysicalOperator> clone() = 0;
+    virtual std::unique_ptr<PhysicalOperator> copy() = 0;
 
     virtual double getProgress(ExecutionContext* context) const;
 

@@ -171,9 +171,9 @@ public:
 
     void finalizeInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return make_unique<HashAggregate>(resultSetDescriptor->copy(), sharedState,
-            copyVector(aggregateFunctions), copyVector(aggInfos), children[0]->clone(), id,
+            copyVector(aggregateFunctions), copyVector(aggInfos), children[0]->copy(), id,
             printInfo->copy());
     }
 

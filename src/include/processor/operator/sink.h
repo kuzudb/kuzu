@@ -31,7 +31,7 @@ public:
         metrics->executionTime.stop();
     }
 
-    std::unique_ptr<PhysicalOperator> clone() override = 0;
+    std::unique_ptr<PhysicalOperator> copy() override = 0;
 
 protected:
     virtual void executeInternal(ExecutionContext* context) = 0;
@@ -46,15 +46,16 @@ protected:
 };
 
 class DummySink final : public Sink {
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::DUMMY_SINK;
+
 public:
     DummySink(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::DUMMY_SINK, std::move(child),
-              id, std::move(printInfo)} {}
+        : Sink{std::move(resultSetDescriptor), type_, std::move(child), id, std::move(printInfo)} {}
 
-    std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<DummySink>(resultSetDescriptor->copy(), children[0]->clone(), id,
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return std::make_unique<DummySink>(resultSetDescriptor->copy(), children[0]->copy(), id,
             printInfo->copy());
     }
 

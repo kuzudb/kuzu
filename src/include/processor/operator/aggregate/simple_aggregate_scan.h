@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace processor {
 
-class SimpleAggregateScan : public BaseAggregateScan {
+class SimpleAggregateScan final : public BaseAggregateScan {
 public:
     SimpleAggregateScan(std::shared_ptr<SimpleAggregateSharedState> sharedState,
         std::vector<DataPos> aggregatesPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
@@ -24,7 +24,7 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     // SimpleAggregateScan is the source operator of a pipeline, so it should not clone its child.
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return make_unique<SimpleAggregateScan>(sharedState, aggregatesPos, id, printInfo->copy());
     }
 

@@ -26,7 +26,7 @@ private:
         : OPPrintInfo(other), action(other.action) {}
 };
 
-class Transaction : public PhysicalOperator {
+class Transaction final : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::TRANSACTION;
 
 public:
@@ -44,7 +44,7 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<Transaction>(transactionAction, id, printInfo->copy());
     }
 

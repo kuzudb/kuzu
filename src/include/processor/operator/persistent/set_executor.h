@@ -32,7 +32,7 @@ struct NodeSetInfo {
 private:
     NodeSetInfo(const NodeSetInfo& other)
         : nodeIDPos{other.nodeIDPos}, columnVectorPos{other.columnVectorPos},
-          pkVectorPos{other.pkVectorPos}, evaluator{other.evaluator->clone()} {}
+          pkVectorPos{other.pkVectorPos}, evaluator{other.evaluator->copy()} {}
 };
 
 struct NodeTableSetInfo {
@@ -125,7 +125,7 @@ private:
     RelSetInfo(const RelSetInfo& other)
         : srcNodeIDPos{other.srcNodeIDPos}, dstNodeIDPos{other.dstNodeIDPos},
           relIDPos{other.relIDPos}, columnVectorPos{other.columnVectorPos},
-          evaluator{other.evaluator->clone()} {}
+          evaluator{other.evaluator->copy()} {}
 };
 
 struct RelTableSetInfo {

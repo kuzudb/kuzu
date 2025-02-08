@@ -104,7 +104,7 @@ public:
 
     ~BatchInsert() override = default;
 
-    std::unique_ptr<PhysicalOperator> clone() override = 0;
+    std::unique_ptr<PhysicalOperator> copy() override = 0;
 
     std::shared_ptr<BatchInsertSharedState> getSharedState() const { return sharedState; }
 

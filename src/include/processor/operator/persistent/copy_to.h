@@ -66,9 +66,9 @@ public:
 
     void executeInternal(processor::ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<CopyTo>(resultSetDescriptor->copy(), info.copy(), sharedState,
-            children[0]->clone(), id, printInfo->copy());
+            children[0]->copy(), id, printInfo->copy());
     }
 
 private:

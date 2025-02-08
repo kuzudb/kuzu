@@ -88,13 +88,13 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    inline std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> copy() override {
         return make_unique<HashJoinProbe>(sharedState, joinType, flatProbe, probeDataInfo,
-            children[0]->clone(), id, printInfo->copy());
+            children[0]->copy(), id, printInfo->copy());
     }
 
 private:
-    inline bool getMatchedTuples(ExecutionContext* context) {
+    bool getMatchedTuples(ExecutionContext* context) {
         return flatProbe ? getMatchedTuplesForFlatKey(context) :
                            getMatchedTuplesForUnFlatKey(context);
     }
@@ -102,7 +102,7 @@ private:
     // We can probe a batch of input tuples if we know they have at most one match.
     bool getMatchedTuplesForUnFlatKey(ExecutionContext* context);
 
-    inline uint64_t getInnerJoinResult() {
+    uint64_t getInnerJoinResult() {
         return flatProbe ? getInnerJoinResultForFlatKey() : getInnerJoinResultForUnFlatKey();
     }
     uint64_t getInnerJoinResultForFlatKey();
