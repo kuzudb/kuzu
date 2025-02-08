@@ -576,12 +576,12 @@ namespace kuzu {
                 std::priority_queue<NodeDistFarther> nbrsToExplore;
 
                 // First hop neighbours
-                std::unordered_set<vector_id_t> visitedSet;
-//                int visitedSetSize = 0;
+//                std::unordered_set<vector_id_t> visitedSet;
+                int visitedSetSize = 0;
                 for (auto &neighbor: firstHopNbrs) {
                     auto isNeighborMasked = filterMask->isMasked(neighbor.offset);
                     if (isNeighborMasked) {
-                        visitedSet.insert(neighbor.offset);
+                        visitedSetSize++;
                     }
                     if (visited->is_bit_set(neighbor.offset)) {
                         continue;
@@ -599,7 +599,7 @@ namespace kuzu {
                 while (!nbrsToExplore.empty()) {
                     auto neighbor = nbrsToExplore.top();
                     nbrsToExplore.pop();
-                    if (visitedSet.size() >= filterNbrsToFind) {
+                    if (visitedSetSize >= filterNbrsToFind) {
                         break;
                     }
                     if (visited->is_bit_set(neighbor.id)) {
@@ -622,7 +622,7 @@ namespace kuzu {
                     for (auto &secondHopNeighbor: secondHopNbrs) {
                         auto isNeighborMasked = filterMask->isMasked(secondHopNeighbor.offset);
                         if (isNeighborMasked) {
-                            visitedSet.insert(secondHopNeighbor.offset);
+                            visitedSetSize++;
                         }
                         if (visited->is_bit_set(secondHopNeighbor.offset)) {
                             continue;
