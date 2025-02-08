@@ -718,7 +718,7 @@ namespace kuzu {
                         oneHopSearch(candidates, firstHopNbrs, dc, filterMask, results, visited, vectorArray, size,
                                      efSearch, stats);
                         stats.oneHopCalls->increase(1);
-                    } else if (selectivity >= 0.1) {
+                    } else if (selectivity > 0.1) {
                         // We will use this metric to skip
                         // wanted distance computation in the first hop
                         directedTwoHopSearch(candidates, candidate, totalNbrs, cachedNbrsCount,
