@@ -151,7 +151,7 @@ void Partitioner::executeInternal(ExecutionContext* context) {
                 chunkToCopyFrom);
         }
     }
-    sharedState->merge(std::move(localState->partitioningBuffers));
+    sharedState->merge(localState->partitioningBuffers);
 }
 
 void Partitioner::evaluateExpressions(uint64_t numRels) const {

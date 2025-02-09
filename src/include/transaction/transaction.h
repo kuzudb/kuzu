@@ -78,12 +78,6 @@ public:
 
     uint64_t getEstimatedMemUsage() const;
     storage::LocalStorage* getLocalStorage() const { return localStorage.get(); }
-    bool hasNewlyInsertedNodes(common::table_id_t tableID) const {
-        return maxCommittedNodeOffsets.contains(tableID);
-    }
-    void setMaxCommittedNodeOffset(common::table_id_t tableID, common::offset_t offset) {
-        maxCommittedNodeOffsets[tableID] = offset;
-    }
     bool isUnCommitted(common::table_id_t tableID, common::offset_t nodeOffset) const {
         return nodeOffset >= getMinUncommittedNodeOffset(tableID);
     }
@@ -103,16 +97,6 @@ public:
         return minUncommittedNodeOffsets.contains(tableID) ? minUncommittedNodeOffsets.at(tableID) :
                                                              0;
     }
-    common::offset_t getMaxCommittedNodeOffset(common::table_id_t tableID) const {
-        KU_ASSERT(maxCommittedNodeOffsets.contains(tableID));
-        return maxCommittedNodeOffsets.at(tableID);
-    }
-    common::offset_t getCommittedOffsetFromUncommitted(common::table_id_t tableID,
-        common::offset_t uncommittedOffset) const {
-        KU_ASSERT(maxCommittedNodeOffsets.contains(tableID));
-        return maxCommittedNodeOffsets.at(tableID) + getLocalRowIdx(tableID, uncommittedOffset);
-    }
-
     void pushCreateDropCatalogEntry(catalog::CatalogSet& catalogSet,
         catalog::CatalogEntry& catalogEntry, bool isInternal, bool skipLoggingToWAL = false);
     void pushAlterCatalogEntry(catalog::CatalogSet& catalogSet, catalog::CatalogEntry& catalogEntry,
@@ -131,8 +115,7 @@ public:
 private:
     Transaction(TransactionType transactionType, common::transaction_t ID,
         common::transaction_t startTS,
-        std::unordered_map<common::table_id_t, common::offset_t> minUncommittedNodeOffsets,
-        std::unordered_map<common::table_id_t, common::offset_t> maxCommittedNodeOffsets);
+        std::unordered_map<common::table_id_t, common::offset_t> minUncommittedNodeOffsets);
 
 private:
     TransactionType type;
@@ -150,10 +133,6 @@ private:
     // transaction starts. This is mainly used to assign offsets to local nodes and determine if a
     // given node is transaction local or not.
     std::unordered_map<common::table_id_t, common::offset_t> minUncommittedNodeOffsets;
-    // For each node table, we keep track of committed node offset when the transaction commits.
-    // This is mainly used to shift bound/nbr node offsets for rel tables within the same
-    // transaction.
-    std::unordered_map<common::table_id_t, common::offset_t> maxCommittedNodeOffsets;
 };
 
 // TODO(bmwinger): These shouldn't need to be exported

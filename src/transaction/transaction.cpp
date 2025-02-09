@@ -207,16 +207,14 @@ Transaction::~Transaction() = default;
 
 Transaction::Transaction(TransactionType transactionType, common::transaction_t ID,
     common::transaction_t startTS,
-    std::unordered_map<common::table_id_t, common::offset_t> minUncommittedNodeOffsets,
-    std::unordered_map<common::table_id_t, common::offset_t> maxCommittedNodeOffsets)
+    std::unordered_map<common::table_id_t, common::offset_t> minUncommittedNodeOffsets)
     : type{transactionType}, ID{ID}, startTS{startTS}, commitTS{common::INVALID_TRANSACTION},
       currentTS{INT64_MAX}, clientContext{nullptr}, undoBuffer{nullptr}, forceCheckpoint{false},
-      hasCatalogChanges{false}, minUncommittedNodeOffsets{std::move(minUncommittedNodeOffsets)},
-      maxCommittedNodeOffsets{std::move(maxCommittedNodeOffsets)} {}
+      hasCatalogChanges{false}, minUncommittedNodeOffsets{std::move(minUncommittedNodeOffsets)} {}
 
 Transaction Transaction::getDummyTransactionFromExistingOne(const Transaction& other) {
     return Transaction(TransactionType::DUMMY, DUMMY_TRANSACTION_ID, DUMMY_START_TIMESTAMP,
-        other.minUncommittedNodeOffsets, other.maxCommittedNodeOffsets);
+        other.minUncommittedNodeOffsets);
 }
 
 Transaction DUMMY_TRANSACTION = Transaction(TransactionType::DUMMY);

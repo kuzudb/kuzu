@@ -472,7 +472,6 @@ DataChunk NodeTable::constructDataChunkForPKColumn() const {
 void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     LocalTable* localTable) {
     auto startNodeOffset = nodeGroups->getNumTotalRows();
-    transaction->setMaxCommittedNodeOffset(tableID, startNodeOffset);
     auto& localNodeTable = localTable->cast<LocalNodeTable>();
 
     std::vector<column_id_t> columnIDsToCommit;
@@ -489,7 +488,7 @@ void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
-        localNodeGroupIdx++) {
+         localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
         if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by
