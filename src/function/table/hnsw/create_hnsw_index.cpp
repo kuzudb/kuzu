@@ -23,8 +23,8 @@ namespace function {
 CreateHNSWSharedState::CreateHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : TableFuncSharedState{bindData.maxOffset}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-              ->getTable(bindData.tableEntry->getTableID())
-              ->cast<storage::NodeTable>()},
+                    ->getTable(bindData.tableEntry->getTableID())
+                    ->cast<storage::NodeTable>()},
       numNodes{bindData.numNodes}, bindData{&bindData} {
     hnswIndex = std::make_unique<storage::InMemHNSWIndex>(bindData.context, nodeTable,
         bindData.tableEntry->getColumnID(bindData.propertyID), bindData.config.copy());
@@ -223,7 +223,7 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
         DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(children));
 }
 
-function_set _CreateHNSWIndexFunction::getFunctionSet() {
+function_set InternalCreateHNSWIndexFunction::getFunctionSet() {
     function_set functionSet;
     std::vector inputTypes = {LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING};
     auto func = std::make_unique<TableFunction>(name, inputTypes);

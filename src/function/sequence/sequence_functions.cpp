@@ -16,7 +16,7 @@ struct CurrVal {
         auto catalog = ctx->getCatalog();
         auto sequenceName = input.getAsString();
         auto sequenceEntry = catalog->getSequenceEntry(ctx->getTransaction(), sequenceName,
-            ctx->shouldUseInternalCatalogEntry());
+            ctx->useInternalCatalogEntry());
         result.setValue(0, sequenceEntry->currVal());
     }
 };
@@ -28,7 +28,7 @@ struct NextVal {
         auto catalog = ctx->getCatalog();
         auto sequenceName = input.getAsString();
         auto sequenceEntry = catalog->getSequenceEntry(ctx->getTransaction(), sequenceName,
-            ctx->shouldUseInternalCatalogEntry());
+            ctx->useInternalCatalogEntry());
         sequenceEntry->nextKVal(ctx->getTransaction(), cnt, result);
         result.state->getSelVectorUnsafe().setSelSize(cnt);
     }

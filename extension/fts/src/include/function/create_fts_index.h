@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace fts_extension {
 
-struct _CreateFTSFunction {
+struct InternalCreateFTSFunction {
     static constexpr const char* name = "_CREATE_FTS_INDEX";
     static constexpr const char* DOC_LEN_PROP_NAME = "LEN";
 

@@ -130,8 +130,8 @@ public:
 
     void setDefaultDatabase(AttachedKuzuDatabase* defaultDatabase_);
     bool hasDefaultDatabase() const;
-    void setToUseInternalCatalogEntry() { this->useInternalCatalogEntry = true; }
-    bool shouldUseInternalCatalogEntry() const { return useInternalCatalogEntry; }
+    void setToUseInternalCatalogEntry() { this->useInternalCatalogEntry_ = true; }
+    bool useInternalCatalogEntry() const { return useInternalCatalogEntry_; }
 
     void addScalarFunction(std::string name, function::function_set definitions);
     void removeScalarFunction(const std::string& name);
@@ -149,9 +149,6 @@ public:
         std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams,
         std::optional<uint64_t> queryID = std::nullopt);
     std::unique_ptr<QueryResult> query(std::string_view queryStatement,
-        std::optional<uint64_t> queryID = std::nullopt);
-
-    std::unique_ptr<QueryResult> queryNoLock(std::string_view query,
         std::optional<uint64_t> queryID = std::nullopt);
 
 private:
@@ -202,6 +199,9 @@ private:
     std::unique_ptr<QueryResult> executeNoLock(PreparedStatement* preparedStatement,
         std::optional<uint64_t> queryID = std::nullopt);
 
+    std::unique_ptr<QueryResult> queryNoLock(std::string_view query,
+        std::optional<uint64_t> queryID = std::nullopt);
+
     bool canExecuteWriteQuery() const;
 
     std::unique_ptr<QueryResult> handleFailedExecution(std::optional<uint64_t> queryID,
@@ -233,7 +233,7 @@ private:
     std::unique_ptr<graph::GraphEntrySet> graphEntrySet;
     std::mutex mtx;
     // Whether the query can access internal tables/sequences or not.
-    bool useInternalCatalogEntry = false;
+    bool useInternalCatalogEntry_ = false;
 };
 
 } // namespace main

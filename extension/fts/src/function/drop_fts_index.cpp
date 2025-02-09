@@ -49,7 +49,7 @@ static offset_t internalTableFunc(const TableFuncInput& input, TableFuncOutput& 
     return 0;
 }
 
-function_set _DropFTSFunction::getFunctionSet() {
+function_set InternalDropFTSFunction::getFunctionSet() {
     function_set functionSet;
     auto func = std::make_unique<TableFunction>(name,
         std::vector{LogicalTypeID::STRING, LogicalTypeID::STRING});

@@ -17,7 +17,7 @@ std::unique_ptr<BoundStatement> Binder::bindStandaloneCallFunction(
         callStatement.getFunctionExpression()->constCast<parser::ParsedFunctionExpression>();
     auto funcName = funcExpr.getFunctionName();
     auto entry = clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(),
-        funcName, clientContext->shouldUseInternalCatalogEntry());
+        funcName, clientContext->useInternalCatalogEntry());
     KU_ASSERT(entry);
     if (entry->getType() != catalog::CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY) {
         throw BinderException(

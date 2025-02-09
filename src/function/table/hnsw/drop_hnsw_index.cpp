@@ -57,7 +57,7 @@ static std::string dropHNSWIndexTables(main::ClientContext& context,
     return query;
 }
 
-function_set _DropHNSWIndexFunction::getFunctionSet() {
+function_set InternalDropHNSWIndexFunction::getFunctionSet() {
     function_set functionSet;
     std::vector inputTypes = {common::LogicalTypeID::STRING, common::LogicalTypeID::STRING};
     auto func = std::make_unique<TableFunction>(name, inputTypes);
