@@ -47,13 +47,14 @@ struct ExtensionSourceUtils {
 };
 
 template<typename T>
-void addFunc(main::Database& database, std::string name, catalog::CatalogEntryType functionType) {
+void addFunc(main::Database& database, std::string name, catalog::CatalogEntryType functionType,
+    bool isInternal = false) {
     auto catalog = database.getCatalog();
-    if (catalog->containsFunction(&transaction::DUMMY_TRANSACTION, name)) {
+    if (catalog->containsFunction(&transaction::DUMMY_TRANSACTION, name, isInternal)) {
         return;
     }
     catalog->addFunction(&transaction::DUMMY_TRANSACTION, functionType, std::move(name),
-        T::getFunctionSet());
+        T::getFunctionSet(), isInternal);
 }
 
 struct KUZU_API ExtensionUtils {
@@ -109,8 +110,9 @@ struct KUZU_API ExtensionUtils {
     }
 
     template<typename T>
-    static void addStandaloneTableFunc(main::Database& database) {
-        addFunc<T>(database, T::name, catalog::CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY);
+    static void addStandaloneTableFunc(main::Database& database, bool isInternal = false) {
+        addFunc<T>(database, T::name, catalog::CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY,
+            isInternal);
     }
 
     template<typename T>

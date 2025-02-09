@@ -19,7 +19,7 @@ void Stemmer::validate(const std::string& stemmer) {
 }
 
 StopWordsTableInfo::StopWordsTableInfo()
-    : stopWords{}, tableName{FTSUtils::getDefaultStopWordsTableName()},
+    : stopWords{StopWords::DEFAULT_VALUE}, tableName{FTSUtils::getDefaultStopWordsTableName()},
       source{StopWordsSource::DEFAULT} {}
 
 StopWordsTableInfo StopWords::bind(main::ClientContext& context, common::table_id_t tableID,

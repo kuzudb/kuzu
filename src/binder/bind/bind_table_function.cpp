@@ -22,7 +22,7 @@ BoundTableFunction Binder::bindTableFunc(const std::string& tableFuncName,
     const parser::ParsedExpression& expr, expression_vector& columns,
     std::vector<parser::YieldVariable> yieldVariables) {
     auto entry = clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(),
-        tableFuncName);
+        tableFuncName, clientContext->shouldUseInternalCatalogEntry());
     expression_vector positionalParams;
     std::vector<LogicalType> positionalParamTypes;
     optional_params_t optionalParams;

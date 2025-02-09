@@ -227,7 +227,8 @@ FunctionCollection* FunctionCollection::getFunctions() {
         STANDALONE_TABLE_FUNCTION(ClearWarningsFunction),
         STANDALONE_TABLE_FUNCTION(CreateProjectGraphFunction),
         STANDALONE_TABLE_FUNCTION(DropProjectGraphFunction),
-        // TODO(Guodong): Move this from builtin to extension.
+        // TODO(Guodong): Move this from builtin to extension and also move _CreateHNSWIndexFunction
+        // and _DropHNSWIndexFunction to private functions.
         STANDALONE_TABLE_FUNCTION(_CreateHNSWIndexFunction),
         STANDALONE_TABLE_FUNCTION(CreateHNSWIndexFunction),
         STANDALONE_TABLE_FUNCTION(_DropHNSWIndexFunction),
