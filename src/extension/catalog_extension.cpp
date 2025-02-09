@@ -3,9 +3,9 @@
 namespace kuzu {
 namespace extension {
 
-void CatalogExtension::invalidateCache() {
+void CatalogExtension::invalidateCache(transaction::Transaction* transaction) {
     tables = std::make_unique<catalog::CatalogSet>();
-    init();
+    init(transaction);
 }
 
 } // namespace extension

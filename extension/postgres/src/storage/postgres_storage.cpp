@@ -35,15 +35,16 @@ std::unique_ptr<main::AttachedDatabase> attachPostgres(std::string dbName, std::
     connector->connect(dbPath, catalogName, schemaName, clientContext);
     auto catalog = std::make_unique<duckdb_extension::DuckDBCatalog>(dbPath, catalogName,
         schemaName, clientContext, *connector, attachOption);
-    catalog->init();
+    catalog->init(clientContext->getTransaction());
     return std::make_unique<duckdb_extension::AttachedDuckDBDatabase>(dbName,
         PostgresStorageExtension::DB_TYPE, std::move(catalog), std::move(connector));
 }
 
-PostgresStorageExtension::PostgresStorageExtension(main::Database* database)
+PostgresStorageExtension::PostgresStorageExtension(transaction::Transaction* transaction,
+    main::Database* database)
     : StorageExtension{attachPostgres} {
     extension::ExtensionUtils::addStandaloneTableFunc<duckdb_extension::ClearCacheFunction>(
-        *database);
+        transaction, *database);
 }
 
 bool PostgresStorageExtension::canHandleDB(std::string dbType_) const {

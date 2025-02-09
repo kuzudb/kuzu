@@ -72,9 +72,9 @@ std::vector<AttachedDatabase*> DatabaseManager::getAttachedDatabases() const {
     return attachedDatabasesPtr;
 }
 
-void DatabaseManager::invalidateCache() {
+void DatabaseManager::invalidateCache(transaction::Transaction* transaction) {
     for (auto& attachedDatabase : attachedDatabases) {
-        attachedDatabase->invalidateCache();
+        attachedDatabase->invalidateCache(transaction);
     }
 }
 

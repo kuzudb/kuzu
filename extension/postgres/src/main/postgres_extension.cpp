@@ -7,9 +7,10 @@
 namespace kuzu {
 namespace postgres_extension {
 
-void PostgresExtension::load(main::ClientContext* context) {
+void PostgresExtension::load(const main::ClientContext* context) {
     auto db = context->getDatabase();
-    db->registerStorageExtension(EXTENSION_NAME, std::make_unique<PostgresStorageExtension>(db));
+    db->registerStorageExtension(EXTENSION_NAME,
+        std::make_unique<PostgresStorageExtension>(context->getTransaction(), db));
 }
 
 } // namespace postgres_extension

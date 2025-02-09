@@ -2,7 +2,6 @@
 
 #include "function/iceberg_functions.h"
 #include "main/client_context.h"
-#include "main/database.h"
 #include "s3_download_options.h"
 
 namespace kuzu {
@@ -12,9 +11,9 @@ using namespace kuzu::extension;
 
 void IcebergExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
-    extension::ExtensionUtils::addTableFunc<IcebergScanFunction>(db);
-    extension::ExtensionUtils::addTableFunc<IcebergMetadataFunction>(db);
-    extension::ExtensionUtils::addTableFunc<IcebergSnapshotsFunction>(db);
+    ExtensionUtils::addTableFunc<IcebergScanFunction>(context->getTransaction(), db);
+    ExtensionUtils::addTableFunc<IcebergMetadataFunction>(context->getTransaction(), db);
+    ExtensionUtils::addTableFunc<IcebergSnapshotsFunction>(context->getTransaction(), db);
     httpfs::S3DownloadOptions::registerExtensionOptions(&db);
     httpfs::S3DownloadOptions::setEnvValue(context);
 }

@@ -2,7 +2,6 @@
 
 #include "function/delta_scan.h"
 #include "main/client_context.h"
-#include "main/database.h"
 #include "s3_download_options.h"
 
 namespace kuzu {
@@ -10,7 +9,7 @@ namespace delta_extension {
 
 void DeltaExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
-    extension::ExtensionUtils::addTableFunc<DeltaScanFunction>(db);
+    extension::ExtensionUtils::addTableFunc<DeltaScanFunction>(context->getTransaction(), db);
     httpfs::S3DownloadOptions::registerExtensionOptions(&db);
     httpfs::S3DownloadOptions::setEnvValue(context);
 }

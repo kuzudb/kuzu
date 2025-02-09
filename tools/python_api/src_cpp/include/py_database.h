@@ -1,6 +1,5 @@
 #pragma once
 
-#include "cached_import/py_cached_import.h"
 #include "main/kuzu.h"
 #include "main/storage_driver.h"
 #include "pybind_include.h" // IWYU pragma: keep (used for py:: namespace)

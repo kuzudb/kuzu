@@ -27,7 +27,7 @@ public:
 
     catalog::Catalog* getCatalog() { return catalog.get(); }
 
-    void invalidateCache();
+    void invalidateCache(transaction::Transaction* transaction);
 
 protected:
     std::string dbName;

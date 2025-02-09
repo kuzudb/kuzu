@@ -7,7 +7,6 @@
 #include "common/api.h"
 #include "function/function.h"
 #include "main/database.h"
-#include "main/db_config.h"
 #include "transaction/transaction.h"
 
 #define ADD_EXTENSION_OPTION(OPTION)                                                               \
@@ -48,13 +47,13 @@ struct ExtensionSourceUtils {
 };
 
 template<typename T>
-void addFunc(main::Database& database, std::string name, catalog::CatalogEntryType functionType) {
+void addFunc(transaction::Transaction* transaction, main::Database& database, std::string name,
+    catalog::CatalogEntryType functionType) {
     auto catalog = database.getCatalog();
-    if (catalog->containsFunction(&transaction::DUMMY_TRANSACTION, name)) {
+    if (catalog->containsFunction(transaction, name)) {
         return;
     }
-    catalog->addFunction(&transaction::DUMMY_TRANSACTION, functionType, std::move(name),
-        T::getFunctionSet());
+    catalog->addFunction(transaction, functionType, std::move(name), T::getFunctionSet());
 }
 
 struct KUZU_API ExtensionUtils {
@@ -105,29 +104,33 @@ struct KUZU_API ExtensionUtils {
     static bool isOfficialExtension(const std::string& extension);
 
     template<typename T>
-    static void addTableFunc(main::Database& database) {
-        addFunc<T>(database, T::name, catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY);
+    static void addTableFunc(transaction::Transaction* transaction, main::Database& database) {
+        addFunc<T>(transaction, database, T::name, catalog::CatalogEntryType::TABLE_FUNCTION_ENTRY);
     }
 
     template<typename T>
-    static void addStandaloneTableFunc(main::Database& database) {
-        addFunc<T>(database, T::name, catalog::CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY);
+    static void addStandaloneTableFunc(transaction::Transaction* transaction,
+        main::Database& database) {
+        addFunc<T>(transaction, database, T::name,
+            catalog::CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY);
     }
 
     template<typename T>
-    static void addScalarFunc(main::Database& database) {
-        addFunc<T>(database, T::name, catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY);
-    }
-
-    template<typename T>
-    static void addScalarFuncAlias(main::Database& database) {
-        addFunc<typename T::alias>(database, T::name,
+    static void addScalarFunc(transaction::Transaction* transaction, main::Database& database) {
+        addFunc<T>(transaction, database, T::name,
             catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY);
     }
 
     template<typename T>
-    static void addGDSFunc(main::Database& database) {
-        addFunc<T>(database, T::name, catalog::CatalogEntryType::GDS_FUNCTION_ENTRY);
+    static void addScalarFuncAlias(transaction::Transaction* transaction,
+        main::Database& database) {
+        addFunc<typename T::alias>(transaction, database, T::name,
+            catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY);
+    }
+
+    template<typename T>
+    static void addGDSFunc(transaction::Transaction* transaction, main::Database& database) {
+        addFunc<T>(transaction, database, T::name, catalog::CatalogEntryType::GDS_FUNCTION_ENTRY);
     }
 };
 

@@ -7,11 +7,11 @@ namespace extension {
 
 class KUZU_API CatalogExtension : public catalog::Catalog {
 public:
-    CatalogExtension() : Catalog() {}
+    CatalogExtension() {}
 
-    virtual void init() = 0;
+    virtual void init(transaction::Transaction* transaction) = 0;
 
-    void invalidateCache();
+    void invalidateCache(transaction::Transaction* transaction);
 };
 
 } // namespace extension

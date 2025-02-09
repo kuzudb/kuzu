@@ -12,7 +12,7 @@ struct AttachOption;
 
 namespace duckdb_extension {
 
-struct BoundExtraCreateDuckDBTableInfo : public binder::BoundExtraCreateTableInfo {
+struct BoundExtraCreateDuckDBTableInfo final : binder::BoundExtraCreateTableInfo {
     std::string catalogName;
     std::string schemaName;
 
@@ -29,13 +29,13 @@ struct BoundExtraCreateDuckDBTableInfo : public binder::BoundExtraCreateTableInf
     }
 };
 
-class DuckDBCatalog : public extension::CatalogExtension {
+class DuckDBCatalog final : public extension::CatalogExtension {
 public:
     DuckDBCatalog(std::string dbPath, std::string catalogName, std::string defaultSchemaName,
         main::ClientContext* context, const DuckDBConnector& connector,
         const binder::AttachOption& attachOption);
 
-    void init() override;
+    void init(transaction::Transaction* transaction) override;
 
     static std::string bindSchemaName(const binder::AttachOption& options,
         const std::string& defaultName);
@@ -45,11 +45,10 @@ protected:
         std::vector<binder::PropertyDefinition>& propertyDefinitions);
 
 private:
-    virtual std::unique_ptr<binder::BoundCreateTableInfo> bindCreateTableInfo(
-        const std::string& tableName);
+    std::unique_ptr<binder::BoundCreateTableInfo> bindCreateTableInfo(const std::string& tableName);
 
-private:
-    void createForeignTable(const std::string& tableName);
+    void createForeignTable(const transaction::Transaction* transaction,
+        const std::string& tableName);
 
 protected:
     std::string dbPath;
