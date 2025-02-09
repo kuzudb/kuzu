@@ -23,8 +23,8 @@ namespace function {
 CreateHNSWSharedState::CreateHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : TableFuncSharedState{bindData.maxOffset}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-                    ->getTable(bindData.tableEntry->getTableID())
-                    ->cast<storage::NodeTable>()},
+              ->getTable(bindData.tableEntry->getTableID())
+              ->cast<storage::NodeTable>()},
       numNodes{bindData.numNodes}, bindData{&bindData} {
     hnswIndex = std::make_unique<storage::InMemHNSWIndex>(bindData.context, nodeTable,
         bindData.tableEntry->getColumnID(bindData.propertyID), bindData.config.copy());
@@ -121,6 +121,18 @@ static std::string createHNSWIndexTables(main::ClientContext& context,
     query += stringFormat("CREATE REL TABLE {} (FROM {} TO {});",
         storage::HNSWIndexUtils::getLowerGraphTableName(hnswBindData->indexName),
         hnswBindData->tableEntry->getName(), hnswBindData->tableEntry->getName());
+    std::string params;
+    params += stringFormat("mu := {}, ", hnswBindData->config.mu);
+    params += stringFormat("ml := {}, ", hnswBindData->config.ml);
+    params += stringFormat("efc := {}, ", hnswBindData->config.efc);
+    params += stringFormat("distFunc := '{}', ",
+        storage::HNSWIndexConfig::distFuncToString(hnswBindData->config.distFunc));
+    params += stringFormat("alpha := {}, ", hnswBindData->config.alpha);
+    params += stringFormat("pu := {}", hnswBindData->config.pu);
+    query += stringFormat("CALL _CREATE_HNSW_INDEX('{}', '{}', '{}', {});", hnswBindData->indexName,
+        hnswBindData->tableEntry->getName(),
+        hnswBindData->tableEntry->getProperty(hnswBindData->propertyID).getName(), params);
+    query += stringFormat("RETURN 'Index {} has been created.';", hnswBindData->indexName);
     return query;
 }
 
@@ -211,7 +223,7 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
         DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(children));
 }
 
-function_set CreateHNSWIndexFunction::getFunctionSet() {
+function_set _CreateHNSWIndexFunction::getFunctionSet() {
     function_set functionSet;
     std::vector inputTypes = {LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING};
     auto func = std::make_unique<TableFunction>(name, inputTypes);
@@ -221,8 +233,20 @@ function_set CreateHNSWIndexFunction::getFunctionSet() {
     func->initLocalStateFunc = initCreateHNSWLocalState;
     func->progressFunc = progressFunc;
     func->finalizeFunc = finalizeFunc;
-    func->rewriteFunc = createHNSWIndexTables;
     func->getPhysicalPlanFunc = getPhysicalPlan;
+    functionSet.push_back(std::move(func));
+    return functionSet;
+}
+
+function_set CreateHNSWIndexFunction::getFunctionSet() {
+    function_set functionSet;
+    std::vector inputTypes = {LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING};
+    auto func = std::make_unique<TableFunction>(name, inputTypes);
+    func->tableFunc = TableFunction::emptyTableFunc;
+    func->bindFunc = bindFunc;
+    func->initSharedStateFunc = TableFunction::initSharedState;
+    func->initLocalStateFunc = TableFunction::initEmptyLocalState;
+    func->rewriteFunc = createHNSWIndexTables;
     functionSet.push_back(std::move(func));
     return functionSet;
 }

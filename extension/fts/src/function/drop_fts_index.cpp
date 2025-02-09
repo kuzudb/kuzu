@@ -30,7 +30,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
 std::string dropFTSIndexQuery(ClientContext& context, const TableFuncBindData& bindData) {
     context.setToUseInternalCatalogEntry();
     auto ftsBindData = bindData.constPtrCast<FTSBindData>();
-    auto query = stringFormat("DROP TABLE `{}`;",
+    auto query = stringFormat("CALL _DROP_FTS_INDEX('{}', '{}');", ftsBindData->tableName,
+        ftsBindData->indexName);
+    query += stringFormat("DROP TABLE `{}`;",
         FTSUtils::getAppearsInTableName(ftsBindData->tableID, ftsBindData->indexName));
     query += stringFormat("DROP TABLE `{}`;",
         FTSUtils::getDocsTableName(ftsBindData->tableID, ftsBindData->indexName));
@@ -39,7 +41,7 @@ std::string dropFTSIndexQuery(ClientContext& context, const TableFuncBindData& b
     return query;
 }
 
-static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& /*output*/) {
+static offset_t internalTableFunc(const TableFuncInput& input, TableFuncOutput& /*output*/) {
     auto& ftsBindData = *input.bindData->constPtrCast<FTSBindData>();
     auto& context = *input.context;
     context.clientContext->getCatalog()->dropIndex(input.context->clientContext->getTransaction(),
@@ -47,16 +49,29 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& /*output
     return 0;
 }
 
+function_set _DropFTSFunction::getFunctionSet() {
+    function_set functionSet;
+    auto func = std::make_unique<TableFunction>(name,
+        std::vector{LogicalTypeID::STRING, LogicalTypeID::STRING});
+    func->tableFunc = internalTableFunc;
+    func->bindFunc = bindFunc;
+    func->initSharedStateFunc = TableFunction::initSharedState;
+    func->initLocalStateFunc = TableFunction::initEmptyLocalState;
+    func->canParallelFunc = [] { return false; };
+    functionSet.push_back(std::move(func));
+    return functionSet;
+}
+
 function_set DropFTSFunction::getFunctionSet() {
     function_set functionSet;
     auto func = std::make_unique<TableFunction>(name,
         std::vector{LogicalTypeID::STRING, LogicalTypeID::STRING});
-    func->tableFunc = tableFunc;
+    func->tableFunc = TableFunction::emptyTableFunc;
     func->bindFunc = bindFunc;
     func->initSharedStateFunc = TableFunction::initSharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->rewriteFunc = dropFTSIndexQuery;
-    func->canParallelFunc = []() { return false; };
+    func->canParallelFunc = [] { return false; };
     functionSet.push_back(std::move(func));
     return functionSet;
 }

@@ -25,7 +25,7 @@ StopWordsTableInfo::StopWordsTableInfo()
 StopWordsTableInfo StopWords::bind(main::ClientContext& context, common::table_id_t tableID,
     const std::string& indexName, const std::string& stopWords) {
     auto catalog = context.getCatalog();
-    if (stopWords == StopWords::DEFAULT_VALUE) {
+    if (stopWords == DEFAULT_VALUE) {
         return StopWordsTableInfo{stopWords, FTSUtils::getDefaultStopWordsTableName(),
             StopWordsSource::DEFAULT};
     } else if (catalog->containsTable(context.getTransaction(), stopWords)) {

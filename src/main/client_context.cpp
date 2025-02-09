@@ -406,17 +406,25 @@ std::vector<std::shared_ptr<Statement>> ClientContext::parseQuery(std::string_vi
     StandaloneCallRewriter standaloneCallAnalyzer{this};
     for (auto i = 0u; i < parsedStatements.size(); i++) {
         auto rewriteQuery = standaloneCallAnalyzer.getRewriteQuery(*parsedStatements[i]);
-        if (!rewriteQuery.empty()) {
+        if (rewriteQuery.empty()) {
+            parsedStatements[i]->setParsingTime(avgParsingTime);
+            statements.push_back(std::move(parsedStatements[i]));
+        } else {
             parserTimer.start();
             auto rewrittenStatements = Parser::parseQuery(rewriteQuery);
             parserTimer.stop();
-            for (auto& statement : rewrittenStatements) {
-                statement->setToInternal();
-                statements.push_back(statement);
+            const auto avgRewriteParsingTime =
+                parserTimer.getElapsedTimeMS() / rewrittenStatements.size() / 1.0;
+            KU_ASSERT(rewrittenStatements.size() >= 1);
+            for (auto j = 0u; j < rewrittenStatements.size() - 1; j++) {
+                rewrittenStatements[j]->setParsingTime(avgParsingTime + avgRewriteParsingTime);
+                rewrittenStatements[j]->setToInternal();
+                statements.push_back(std::move(rewrittenStatements[j]));
             }
+            auto lastRewrittenStatement = rewrittenStatements.back();
+            lastRewrittenStatement->setParsingTime(avgParsingTime + avgRewriteParsingTime);
+            statements.push_back(std::move(lastRewrittenStatement));
         }
-        parsedStatements[i]->setParsingTime(avgParsingTime + parserTimer.getElapsedTimeMS());
-        statements.push_back(std::move(parsedStatements[i]));
     }
     return statements;
 }

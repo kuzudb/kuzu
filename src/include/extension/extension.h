@@ -7,7 +7,6 @@
 #include "common/api.h"
 #include "function/function.h"
 #include "main/database.h"
-#include "main/db_config.h"
 #include "transaction/transaction.h"
 
 #define ADD_EXTENSION_OPTION(OPTION)                                                               \
@@ -23,7 +22,7 @@ class Database;
 
 namespace extension {
 
-typedef void (*ext_init_func_t)(kuzu::main::ClientContext*);
+typedef void (*ext_init_func_t)(main::ClientContext*);
 typedef const char* (*ext_name_func_t)();
 using ext_load_func_t = ext_init_func_t;
 using ext_install_func_t = ext_init_func_t;

@@ -151,6 +151,9 @@ public:
     std::unique_ptr<QueryResult> query(std::string_view queryStatement,
         std::optional<uint64_t> queryID = std::nullopt);
 
+    std::unique_ptr<QueryResult> queryNoLock(std::string_view query,
+        std::optional<uint64_t> queryID = std::nullopt);
+
 private:
     struct TransactionHelper {
         enum class TransactionCommitAction : uint8_t {
@@ -197,9 +200,6 @@ private:
     }
 
     std::unique_ptr<QueryResult> executeNoLock(PreparedStatement* preparedStatement,
-        std::optional<uint64_t> queryID = std::nullopt);
-
-    std::unique_ptr<QueryResult> queryNoLock(std::string_view query,
         std::optional<uint64_t> queryID = std::nullopt);
 
     bool canExecuteWriteQuery() const;

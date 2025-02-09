@@ -99,8 +99,20 @@ struct QueryHNSWLocalState final : TableFuncLocalState {
     bool hasResultToOutput() const { return result.has_value(); }
 };
 
+struct _CreateHNSWIndexFunction final {
+    static constexpr const char* name = "_CREATE_HNSW_INDEX";
+
+    static function_set getFunctionSet();
+};
+
 struct CreateHNSWIndexFunction final {
     static constexpr const char* name = "CREATE_HNSW_INDEX";
+
+    static function_set getFunctionSet();
+};
+
+struct _DropHNSWIndexFunction final {
+    static constexpr const char* name = "_DROP_HNSW_INDEX";
 
     static function_set getFunctionSet();
 };

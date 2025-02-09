@@ -172,6 +172,7 @@ struct KUZU_API TableFunction final : Function {
     static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
         const main::ClientContext* clientContext, processor::PlanMapper* planMapper,
         const planner::LogicalOperator* logicalOp);
+    static common::offset_t emptyTableFunc(const TableFuncInput& input, TableFuncOutput& output);
 };
 
 struct CurrentSettingFunction final {

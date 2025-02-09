@@ -2,7 +2,6 @@
 
 #include "catalog/catalog.h"
 #include "catalog/fts_index_catalog_entry.h"
-#include "common/serializer/buffered_reader.h"
 #include "function/create_fts_index.h"
 #include "function/drop_fts_index.h"
 #include "function/query_fts_index.h"
@@ -28,7 +27,9 @@ void FTSExtension::load(main::ClientContext* context) {
     ExtensionUtils::addScalarFunc<StemFunction>(db);
     ExtensionUtils::addGDSFunc<QueryFTSFunction>(db);
     ExtensionUtils::addStandaloneTableFunc<CreateFTSFunction>(db);
+    ExtensionUtils::addStandaloneTableFunc<_CreateFTSFunction>(db);
     ExtensionUtils::addStandaloneTableFunc<DropFTSFunction>(db);
+    ExtensionUtils::addStandaloneTableFunc<_DropFTSFunction>(db);
     initFTSEntries(context->getTransaction(), *db.getCatalog());
 }
 

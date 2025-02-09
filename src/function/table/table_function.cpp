@@ -104,5 +104,10 @@ std::unique_ptr<processor::PhysicalOperator> TableFunction::getPhysicalPlan(
         planMapper->getOperatorID(), std::move(printInfo));
 }
 
+common::offset_t TableFunction::emptyTableFunc(const TableFuncInput&, TableFuncOutput&) {
+    // DO NOTHING.
+    return 0;
+}
+
 } // namespace function
 } // namespace kuzu
