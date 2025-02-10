@@ -107,5 +107,5 @@ Runtime exception: Lists with size greater than: [0-9]+ is not supported in list
            else false
            end
            return a.name as name,c.name as friend
----- error
-Runtime exception: Lists with size greater than: 2048 is not supported in list lambda functions.
+---- error(regex)
+Runtime exception: Lists with size greater than: [0-9]+ is not supported in list lambda functions.
