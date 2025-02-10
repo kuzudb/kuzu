@@ -113,6 +113,8 @@ fe38f9dc-f761-4184-8b8b
 foobar-ewe-j323-8nd*-ewew
 
 -CASE CreateInt8MaxWidth
+# rows span multiple node groups if node group size is 2
+-SKIP_NODE_GROUP_SIZE_TESTS
 -STATEMENT CREATE NODE TABLE test(id SERIAL, value INT8, PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE (t:test {value: 127})
@@ -131,6 +133,8 @@ UNCOMPRESSED
 -128
 
 -CASE CreateInt16MaxWidth
+# rows span multiple node groups if node group size is 2
+-SKIP_NODE_GROUP_SIZE_TESTS
 -STATEMENT CREATE NODE TABLE test(id SERIAL, value INT16, PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE (t:test {value: 32767})
@@ -149,6 +153,8 @@ UNCOMPRESSED
 -32768
 
 -CASE CreateInt32MaxWidth
+# rows span multiple node groups if node group size is 2
+-SKIP_NODE_GROUP_SIZE_TESTS
 -STATEMENT CREATE NODE TABLE test(id SERIAL, value INT32, PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE (t:test {value:2147483647})
@@ -167,6 +173,8 @@ UNCOMPRESSED
 -2147483648
 
 -CASE CreateInt64MaxWidth
+# rows span multiple node groups if node group size is 2
+-SKIP_NODE_GROUP_SIZE_TESTS
 -STATEMENT CREATE NODE TABLE test(id SERIAL, value INT64, PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE (t:test {value:9223372036854775807})
@@ -185,6 +193,8 @@ UNCOMPRESSED
 -9223372036854775808
 
 -CASE CreateInt128MaxWidth
+# rows span multiple node groups if node group size is 2
+-SKIP_NODE_GROUP_SIZE_TESTS
 -STATEMENT CREATE NODE TABLE test(id SERIAL, value INT128, PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE (t:test {value:170141183460469231731687303715884105727})
