@@ -17,19 +17,6 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-GDSComputeState::GDSComputeState(std::unique_ptr<function::FrontierPair> frontierPair,
-    std::unique_ptr<function::EdgeCompute> edgeCompute,
-    processor::NodeOffsetMaskMap* outputNodeMask)
-    : frontierPair{std::move(frontierPair)}, edgeCompute{std::move(edgeCompute)},
-      outputNodeMask{outputNodeMask} {}
-
-GDSComputeState::~GDSComputeState() = default;
-
-void GDSComputeState::beginFrontierComputeBetweenTables(common::table_id_t currTableID,
-    common::table_id_t nextTableID) {
-    frontierPair->beginFrontierComputeBetweenTables(currTableID, nextTableID);
-}
-
 static uint64_t getNumThreads(processor::ExecutionContext& context) {
     return context.clientContext->getCurrentSetting(main::ThreadsSetting::name)
         .getValue<uint64_t>();
@@ -80,24 +67,20 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
         for (auto& [fromEntry, toEntry, relEntry] : graph->getRelFromToEntryInfos()) {
             switch (extendDirection) {
             case ExtendDirection::FWD: {
-                compState.beginFrontierComputeBetweenTables(fromEntry->getTableID(),
-                    toEntry->getTableID());
+                compState.beginFrontierCompute(fromEntry->getTableID(), toEntry->getTableID());
                 scheduleFrontierTask(fromEntry, toEntry, relEntry, graph, ExtendDirection::FWD,
                     compState, context, propertyToScan);
             } break;
             case ExtendDirection::BWD: {
-                compState.beginFrontierComputeBetweenTables(toEntry->getTableID(),
-                    fromEntry->getTableID());
+                compState.beginFrontierCompute(toEntry->getTableID(), fromEntry->getTableID());
                 scheduleFrontierTask(toEntry, fromEntry, relEntry, graph, ExtendDirection::BWD,
                     compState, context, propertyToScan);
             } break;
             case ExtendDirection::BOTH: {
-                compState.beginFrontierComputeBetweenTables(fromEntry->getTableID(),
-                    toEntry->getTableID());
+                compState.beginFrontierCompute(fromEntry->getTableID(), toEntry->getTableID());
                 scheduleFrontierTask(fromEntry, toEntry, relEntry, graph, ExtendDirection::FWD,
                     compState, context, propertyToScan);
-                compState.beginFrontierComputeBetweenTables(toEntry->getTableID(),
-                    fromEntry->getTableID());
+                compState.beginFrontierCompute(toEntry->getTableID(), fromEntry->getTableID());
                 scheduleFrontierTask(toEntry, fromEntry, relEntry, graph, ExtendDirection::BWD,
                     compState, context, propertyToScan);
             } break;

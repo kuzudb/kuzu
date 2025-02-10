@@ -4,7 +4,7 @@
 #include "common/enums/path_semantic.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_frontier.h"
-#include "function/gds/gds_utils.h"
+#include "function/gds/gds_state.h"
 #include "output_writer.h"
 
 namespace kuzu {
@@ -48,38 +48,13 @@ struct RJBindData : public GDSBindData {
     }
 };
 
-// Wrapper around the data that needs to be stored during the computation of a recursive joins
-// computation from one source. Also contains several initialization functions.
-struct RJCompState : public GDSComputeState {
-    std::unique_ptr<RJOutputs> outputs;
+struct RJCompState {
+    std::unique_ptr<GDSComputeState> gdsComputeState;
     std::unique_ptr<RJOutputWriter> outputWriter;
 
-    RJCompState(std::unique_ptr<function::FrontierPair> frontierPair,
-        std::unique_ptr<function::EdgeCompute> edgeCompute,
-        processor::NodeOffsetMaskMap* outputNodeMask, std::unique_ptr<RJOutputs> outputs,
-        std::unique_ptr<RJOutputWriter> outputWriter)
-        : GDSComputeState{std::move(frontierPair), std::move(edgeCompute), outputNodeMask},
-          outputs{std::move(outputs)}, outputWriter{std::move(outputWriter)} {}
-
-    void initSource(common::nodeID_t sourceNodeID) const {
-        frontierPair->initRJFromSource(sourceNodeID);
-        outputs->initRJFromSource(sourceNodeID);
-    }
-    // When performing computations on multi-label graphs, it may be beneficial to fix a single
-    // node table of nodes in the current frontier and a single node table of nodes for the next
-    // frontier. That is because algorithms will perform extensions using a single relationship
-    // table at a time, and each relationship table R is between a single source node table S and
-    // a single destination node table T. Therefore, during execution the algorithm will need to
-    // check only the active S nodes in current frontier and update the active statuses of only the
-    // T nodes in the next frontier. The information that the algorithm is beginning and S-to-T
-    // extensions are be given to the data structures of the computation, e.g., FrontierPairs and
-    // RJOutputs, to possibly avoid them doing lookups of S and T-related data structures,
-    // e.g., maps, internally.
-    void beginFrontierComputeBetweenTables(common::table_id_t currTableID,
-        common::table_id_t nextTableID) override {
-        GDSComputeState::beginFrontierComputeBetweenTables(currTableID, nextTableID);
-        outputs->beginFrontierComputeBetweenTables(currTableID, nextTableID);
-    }
+    RJCompState(std::unique_ptr<GDSComputeState> gdsComputeState,
+        std::unique_ptr<RJOutputWriter> writer)
+        : gdsComputeState{std::move(gdsComputeState)}, outputWriter{std::move(writer)} {}
 };
 
 class RJAlgorithm : public GDSAlgorithm {
@@ -93,8 +68,11 @@ public:
     RJAlgorithm(const RJAlgorithm& other) : GDSAlgorithm{other} {}
 
     void exec(processor::ExecutionContext* context) override;
+
     virtual RJCompState getRJCompState(processor::ExecutionContext* context,
         common::nodeID_t sourceNodeID) = 0;
+
+    // Set algorithm to NOT track path
     void setToNoPath();
     binder::expression_vector getResultColumnsNoPath();
 

@@ -3,6 +3,7 @@
 #include "binder/expression/expression_util.h"
 #include "common/enums/extend_direction_util.h"
 #include "common/types/types.h"
+#include "function/gds/auxiliary_state/path_auxiliary_state.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
 #include "graph/graph.h"
@@ -17,13 +18,13 @@ namespace function {
 
 class VarLenPathsOutputWriter final : public PathsOutputWriter {
 public:
-    VarLenPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-        processor::NodeOffsetMaskMap* outputNodeMask, PathsOutputWriterInfo info)
-        : PathsOutputWriter{context, rjOutputs, outputNodeMask, info} {}
+    VarLenPathsOutputWriter(main::ClientContext* context,
+        processor::NodeOffsetMaskMap* outputNodeMask, common::nodeID_t sourceNodeID,
+        PathsOutputWriterInfo info, BFSGraph& bfsGraph)
+        : PathsOutputWriter{context, outputNodeMask, sourceNodeID, info, bfsGraph} {}
 
     bool skipInternal(common::nodeID_t dstNodeID) const override {
-        auto pathsOutputs = rjOutputs->ptrCast<PathsOutputs>();
-        auto head = pathsOutputs->bfsGraph->getParentListHead(dstNodeID.offset);
+        auto head = bfsGraph.getParentListHead(dstNodeID.offset);
         // For variable lengths joins, we skip a destination node d in the following conditions:
         //    (i) if no path has reached d from the source, except when the lower bound is 0.
         //    (ii) the longest path that has reached d, which is stored in the iter value of the
@@ -37,7 +38,8 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<VarLenPathsOutputWriter>(context, rjOutputs, outputNodeMask, info);
+        return std::make_unique<VarLenPathsOutputWriter>(context, outputNodeMask, sourceNodeID,
+            info, bfsGraph);
     }
 };
 
@@ -126,20 +128,21 @@ private:
         auto clientContext = context->clientContext;
         auto frontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto bfsGraph = getBFSGraph(context);
-        auto output = std::make_unique<PathsOutputs>(sourceNodeID, std::move(bfsGraph));
         auto rjBindData = bindData->ptrCast<RJBindData>();
         auto writerInfo = rjBindData->getPathWriterInfo();
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
-        auto outputWriter = std::make_unique<VarLenPathsOutputWriter>(clientContext, output.get(),
-            sharedState->getOutputNodeMaskMap(), writerInfo);
+        auto outputWriter = std::make_unique<VarLenPathsOutputWriter>(clientContext,
+            sharedState->getOutputNodeMaskMap(), sourceNodeID, writerInfo, *bfsGraph);
         auto currentFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto nextFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
         auto edgeCompute =
-            std::make_unique<VarLenJoinsEdgeCompute>(frontierPair.get(), output->bfsGraph.get());
-        return RJCompState(std::move(frontierPair), std::move(edgeCompute),
-            sharedState->getOutputNodeMaskMap(), std::move(output), std::move(outputWriter));
+            std::make_unique<VarLenJoinsEdgeCompute>(frontierPair.get(), bfsGraph.get());
+        auto auxiliaryState = std::make_unique<PathAuxiliaryState>(std::move(bfsGraph));
+        auto gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
+            std::move(edgeCompute), std::move(auxiliaryState), sharedState->getOutputNodeMaskMap());
+        return RJCompState(std::move(gdsState), std::move(outputWriter));
     }
 };
 

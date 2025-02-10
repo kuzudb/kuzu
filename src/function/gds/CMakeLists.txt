@@ -3,6 +3,7 @@ add_library(kuzu_function_algorithm
         all_shortest_paths.cpp
         gds.cpp
         gds_frontier.cpp
+        gds_state.cpp
         gds_task.cpp
         gds_utils.cpp
         k_core_decomposition.cpp

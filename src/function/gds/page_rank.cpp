@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "degrees.h"
+#include "function/gds/auxiliary_state/gds_auxilary_state.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
@@ -52,14 +53,14 @@ public:
     PValues(table_id_map_t<offset_t> numNodesMap, storage::MemoryManager* mm, double val) {
         for (const auto& [tableID, numNodes] : numNodesMap) {
             valueMap.allocate(tableID, numNodes, mm);
-            pin(tableID);
+            pinTable(tableID);
             for (auto i = 0u; i < numNodes; ++i) {
                 values[i].store(val, std::memory_order_relaxed);
             }
         }
     }
 
-    void pin(table_id_t tableID) { values = valueMap.getData(tableID); }
+    void pinTable(table_id_t tableID) { values = valueMap.getData(tableID); }
 
     double getValue(offset_t offset) { return values[offset].load(std::memory_order_relaxed); }
 
@@ -74,10 +75,27 @@ private:
     ObjectArraysMap<std::atomic<double>> valueMap;
 };
 
+class PageRankAuxiliaryState : public GDSAuxiliaryState {
+public:
+    PageRankAuxiliaryState(Degrees& degrees, PValues& pCurrent, PValues& pNext)
+        : degrees{degrees}, pCurrent{pCurrent}, pNext{pNext} {}
+
+    void beginFrontierCompute(table_id_t, table_id_t toTableID) override {
+        degrees.pinTable(toTableID);
+        pCurrent.pinTable(toTableID);
+        pNext.pinTable(toTableID);
+    }
+
+private:
+    Degrees& degrees;
+    PValues& pCurrent;
+    PValues& pNext;
+};
+
 // Sum the weight (current rank / degree) for each incoming edge.
 class PNextUpdateEdgeCompute : public EdgeCompute {
 public:
-    PNextUpdateEdgeCompute(Degrees* degrees, PValues* pCurrent, PValues* pNext)
+    PNextUpdateEdgeCompute(Degrees& degrees, PValues& pCurrent, PValues& pNext)
         : degrees{degrees}, pCurrent{pCurrent}, pNext{pNext} {}
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
@@ -86,9 +104,9 @@ public:
             double valToAdd = 0;
             chunk.forEach([&](auto nbrNodeID, auto) {
                 valToAdd +=
-                    pCurrent->getValue(nbrNodeID.offset) / degrees->getValue(nbrNodeID.offset);
+                    pCurrent.getValue(nbrNodeID.offset) / degrees.getValue(nbrNodeID.offset);
             });
-            pNext->addValueCAS(boundNodeID.offset, valToAdd);
+            pNext.addValueCAS(boundNodeID.offset, valToAdd);
         }
         return {boundNodeID};
     }
@@ -98,25 +116,25 @@ public:
     }
 
 private:
-    Degrees* degrees;
-    PValues* pCurrent;
-    PValues* pNext;
+    Degrees& degrees;
+    PValues& pCurrent;
+    PValues& pNext;
 };
 
 // Evaluate rank = above result * dampingFactor + {(1 - dampingFactor) / |V|} (constant)
 class PNextUpdateVertexCompute : public VertexCompute {
 public:
-    PNextUpdateVertexCompute(double dampingFactor, double constant, PValues* pNext)
+    PNextUpdateVertexCompute(double dampingFactor, double constant, PValues& pNext)
         : dampingFactor{dampingFactor}, constant{constant}, pNext{pNext} {}
 
     bool beginOnTable(table_id_t tableID) override {
-        pNext->pin(tableID);
+        pNext.pinTable(tableID);
         return true;
     }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
-            pNext->setValue(i, pNext->getValue(i) * dampingFactor + constant);
+            pNext.setValue(i, pNext.getValue(i) * dampingFactor + constant);
         }
     }
 
@@ -127,30 +145,30 @@ public:
 private:
     double dampingFactor;
     double constant;
-    PValues* pNext;
+    PValues& pNext;
 };
 
 class PDiffVertexCompute : public VertexCompute {
 public:
-    PDiffVertexCompute(std::atomic<double>& diff, PValues* pCurrent, PValues* pNext)
+    PDiffVertexCompute(std::atomic<double>& diff, PValues& pCurrent, PValues& pNext)
         : diff{diff}, pCurrent{pCurrent}, pNext{pNext} {}
 
     bool beginOnTable(table_id_t tableID) override {
-        pCurrent->pin(tableID);
-        pNext->pin(tableID);
+        pCurrent.pinTable(tableID);
+        pNext.pinTable(tableID);
         return true;
     }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
-            auto next = pNext->getValue(i);
-            auto current = pCurrent->getValue(i);
+            auto next = pNext.getValue(i);
+            auto current = pCurrent.getValue(i);
             if (next > current) {
                 addCAS(diff, next - current);
             } else {
                 addCAS(diff, current - next);
             }
-            pCurrent->setValue(i, 0);
+            pCurrent.setValue(i, 0);
         }
     }
 
@@ -160,70 +178,59 @@ public:
 
 private:
     std::atomic<double>& diff;
-    PValues* pCurrent;
-    PValues* pNext;
+    PValues& pCurrent;
+    PValues& pNext;
 };
 
 class PageRankOutputWriter : public GDSOutputWriter {
 public:
-    PageRankOutputWriter(main::ClientContext* context, processor::NodeOffsetMaskMap* outputNodeMask,
-        PValues* pNext)
-        : GDSOutputWriter{context, outputNodeMask}, pNext{pNext} {
+    explicit PageRankOutputWriter(main::ClientContext* context) : GDSOutputWriter{context} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID(), context->getMemoryManager());
         rankVector = createVector(LogicalType::DOUBLE(), context->getMemoryManager());
     }
 
-    void pinTableID(table_id_t tableID) override {
-        GDSOutputWriter::pinTableID(tableID);
-        pNext->pin(tableID);
-    }
-
-    void materialize(offset_t startOffset, offset_t endOffset, table_id_t tableID,
-        FactorizedTable& table) const {
-        for (auto i = startOffset; i < endOffset; ++i) {
-            auto nodeID = nodeID_t{i, tableID};
-            nodeIDVector->setValue<nodeID_t>(0, nodeID);
-            rankVector->setValue<double>(0, pNext->getValue(i));
-            table.append(vectors);
-        }
-    }
-
     std::unique_ptr<PageRankOutputWriter> copy() const {
-        return std::make_unique<PageRankOutputWriter>(context, outputNodeMask, pNext);
+        return std::make_unique<PageRankOutputWriter>(context);
     }
 
-private:
+public:
     std::unique_ptr<ValueVector> nodeIDVector;
     std::unique_ptr<ValueVector> rankVector;
-    PValues* pNext;
 };
 
 class OutputVertexCompute : public VertexCompute {
 public:
     OutputVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState,
-        std::unique_ptr<PageRankOutputWriter> outputWriter)
-        : mm{mm}, sharedState{sharedState}, outputWriter{std::move(outputWriter)} {
+        std::unique_ptr<PageRankOutputWriter> writer, PValues& pNext)
+        : mm{mm}, sharedState{sharedState}, writer{std::move(writer)}, pNext{pNext} {
         localFT = sharedState->claimLocalTable(mm);
     }
     ~OutputVertexCompute() override { sharedState->returnLocalTable(localFT); }
 
     bool beginOnTable(table_id_t tableID) override {
-        outputWriter->pinTableID(tableID);
+        pNext.pinTable(tableID);
         return true;
     }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t tableID) override {
-        outputWriter->materialize(startOffset, endOffset, tableID, *localFT);
+        for (auto i = startOffset; i < endOffset; ++i) {
+            auto nodeID = nodeID_t{i, tableID};
+            writer->nodeIDVector->setValue<nodeID_t>(0, nodeID);
+            writer->rankVector->setValue<double>(0, pNext.getValue(i));
+            localFT->append(writer->vectors);
+        }
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<OutputVertexCompute>(mm, sharedState, outputWriter->copy());
+        return std::make_unique<OutputVertexCompute>(mm, sharedState, writer->copy(), pNext);
     }
 
 private:
     storage::MemoryManager* mm;
     processor::GDSCallSharedState* sharedState;
-    std::unique_ptr<PageRankOutputWriter> outputWriter;
+    std::unique_ptr<PageRankOutputWriter> writer;
+    PValues& pNext;
+
     processor::FactorizedTable* localFT;
 };
 
@@ -275,20 +282,22 @@ public:
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
         frontierPair->setActiveNodesForNextIter();
         frontierPair->getNextSparseFrontier().disable();
-        auto computeState =
-            GDSComputeState(std::move(frontierPair), nullptr, sharedState->getOutputNodeMaskMap());
+        auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr,
+            sharedState->getOutputNodeMaskMap());
         auto pNextUpdateConstant = (1 - pageRankBindData->dampingFactor) * ((double)1 / numNodes);
         while (currentIter < pageRankBindData->maxIteration) {
-            auto ec = std::make_unique<PNextUpdateEdgeCompute>(&degrees, pCurrent, pNext);
-            computeState.edgeCompute = std::move(ec);
+            computeState.edgeCompute =
+                std::make_unique<PNextUpdateEdgeCompute>(degrees, *pCurrent, *pNext);
+            computeState.auxiliaryState =
+                std::make_unique<PageRankAuxiliaryState>(degrees, *pCurrent, *pNext);
             GDSUtils::runFrontiersUntilConvergence(context, computeState, graph,
                 ExtendDirection::BWD, computeState.frontierPair->getCurrentIter() + 1);
             auto pNextUpdateVC = PNextUpdateVertexCompute(pageRankBindData->dampingFactor,
-                pNextUpdateConstant, pNext);
+                pNextUpdateConstant, *pNext);
             GDSUtils::runVertexCompute(context, graph, pNextUpdateVC);
             std::atomic<double> diff;
             diff.store(0);
-            auto pDiffVC = PDiffVertexCompute(diff, pCurrent, pNext);
+            auto pDiffVC = PDiffVertexCompute(diff, *pCurrent, *pNext);
             GDSUtils::runVertexCompute(context, graph, pDiffVC);
             std::swap(pCurrent, pNext);
             if (diff.load() < pageRankBindData->delta) { // Converged.
@@ -296,10 +305,9 @@ public:
             }
             currentIter++;
         }
-        auto writer = std::make_unique<PageRankOutputWriter>(clientContext,
-            sharedState->getOutputNodeMaskMap(), pCurrent);
+        auto writer = std::make_unique<PageRankOutputWriter>(clientContext);
         auto outputVC = std::make_unique<OutputVertexCompute>(clientContext->getMemoryManager(),
-            sharedState.get(), std::move(writer));
+            sharedState.get(), std::move(writer), *pCurrent);
         GDSUtils::runVertexCompute(context, graph, *outputVC);
         sharedState->mergeLocalTables();
     }

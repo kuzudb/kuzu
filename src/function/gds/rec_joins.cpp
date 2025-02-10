@@ -149,7 +149,7 @@ public:
         if (!sharedState->inNbrTableIDs(tableID)) {
             return false;
         }
-        writer->pinTableID(tableID);
+        writer->beginWritingOutputs(tableID);
         return true;
     }
 
@@ -208,17 +208,19 @@ void RJAlgorithm::exec(processor::ExecutionContext* context) {
                 throw InterruptException{};
             }
             auto sourceNodeID = nodeID_t{offset, tableID};
-            RJCompState rjCompState = getRJCompState(context, sourceNodeID);
-            rjCompState.initSource(sourceNodeID);
+            auto rjCompState = getRJCompState(context, sourceNodeID);
+            auto gdsComputeState = rjCompState.gdsComputeState.get();
+            gdsComputeState->initSource(sourceNodeID);
             auto rjBindData = bindData->ptrCast<RJBindData>();
-            GDSUtils::runFrontiersUntilConvergence(context, rjCompState, graph,
+            GDSUtils::runFrontiersUntilConvergence(context, *gdsComputeState, graph,
                 rjBindData->extendDirection, rjBindData->upperBound,
                 rjBindData->weightPropertyName);
             auto vertexCompute =
                 std::make_unique<RJVertexCompute>(clientContext->getMemoryManager(),
                     sharedState.get(), rjCompState.outputWriter->copy());
-            auto& candidates = rjCompState.frontierPair->getVertexComputeCandidates();
-            candidates.mergeSparseFrontier(rjCompState.frontierPair->getNextSparseFrontier());
+            auto frontierPair = gdsComputeState->frontierPair.get();
+            auto& candidates = frontierPair->getVertexComputeCandidates();
+            candidates.mergeSparseFrontier(frontierPair->getNextSparseFrontier());
             if (candidates.enabled()) {
                 GDSUtils::runVertexComputeSparse(candidates, graph, *vertexCompute);
             } else {
