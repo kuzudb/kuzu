@@ -1,4 +1,5 @@
 #include "expression_evaluator/expression_evaluator.h"
+#include "common/exception/runtime.h"
 
 using namespace kuzu::common;
 
@@ -8,7 +9,6 @@ namespace evaluator {
 void ExpressionEvaluator::init(const processor::ResultSet& resultSet,
     main::ClientContext* clientContext) {
     localState.clientContext = clientContext;
-    localState.count = 1;
     for (auto& child : children) {
         child->init(resultSet, clientContext);
     }
@@ -33,6 +33,13 @@ void ExpressionEvaluator::resolveResultStateFromChildren(
     resultVector->setState(std::make_shared<DataChunkState>());
     resultVector->state->initOriginalAndSelectedSize(1);
     resultVector->state->setToFlat();
+}
+
+void ExpressionEvaluator::evaluate(common::sel_t) {
+    // LCOV_EXCL_START
+    throw RuntimeException(stringFormat("Cannot evaluate expression {} with count. This should "
+                                        "never happen.", expression->toString()));
+    // LCOV_EXCL_STOP
 }
 
 bool ExpressionEvaluator::select(common::SelectionVector& selVector,

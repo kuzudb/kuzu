@@ -471,8 +471,7 @@ void ColumnChunkData::populateWithDefaultVal(ExpressionEvaluator& defaultEvaluat
     while (numValuesAppended < numValuesToPopulate) {
         const auto numValuesToAppend =
             std::min(DEFAULT_VECTOR_CAPACITY, numValuesToPopulate - numValuesAppended);
-        defaultEvaluator.getLocalStateUnsafe().count = numValuesToAppend;
-        defaultEvaluator.evaluate();
+        defaultEvaluator.evaluate(numValuesToAppend);
         auto resultVector = defaultEvaluator.resultVector.get();
         KU_ASSERT(resultVector->state->getSelVector().getSelSize() == numValuesToAppend);
         append(resultVector, resultVector->state->getSelVector());

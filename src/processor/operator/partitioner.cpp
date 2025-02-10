@@ -159,8 +159,7 @@ void Partitioner::evaluateExpressions(uint64_t numRels) const {
         auto evaluator = dataInfo.columnEvaluators[i].get();
         switch (dataInfo.evaluateTypes[i]) {
         case ColumnEvaluateType::DEFAULT: {
-            evaluator->getLocalStateUnsafe().count = numRels;
-            evaluator->evaluate();
+            evaluator->evaluate(numRels);
         } break;
         default: {
             evaluator->evaluate();

@@ -12,6 +12,7 @@ enum class ListLambdaType : uint8_t {
     LIST_REDUCE = 2,
     DEFAULT = 3
 };
+
 class LambdaParamEvaluator : public ExpressionEvaluator {
     static constexpr EvaluatorType type_ = EvaluatorType::LAMBDA_PARAM;
 

@@ -14,6 +14,7 @@ public:
         std::vector<std::unique_ptr<ExpressionEvaluator>> children);
 
     void evaluate() override;
+    void evaluate(common::sel_t count) override;
 
     bool selectInternal(common::SelectionVector& selVector) override;
 

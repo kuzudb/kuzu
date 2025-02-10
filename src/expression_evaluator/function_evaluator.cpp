@@ -1,12 +1,14 @@
 #include "expression_evaluator/function_evaluator.h"
 
 #include "binder/expression/scalar_function_expression.h"
+#include "function/sequence/sequence_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;
 using namespace kuzu::storage;
 using namespace kuzu::main;
 using namespace kuzu::binder;
+using namespace kuzu::function;
 
 namespace kuzu {
 namespace evaluator {
@@ -20,16 +22,24 @@ FunctionExpressionEvaluator::FunctionExpressionEvaluator(std::shared_ptr<Express
 }
 
 void FunctionExpressionEvaluator::evaluate() {
-    auto cnt = localState.count;
     auto ctx = localState.clientContext;
     for (auto& child : children) {
         child->evaluate();
     }
     if (function->execFunc != nullptr) {
         bindData->clientContext = ctx;
-        bindData->count = cnt;
         function->execFunc(parameters, *resultVector, bindData.get());
     }
+}
+
+void FunctionExpressionEvaluator::evaluate(common::sel_t count) {
+    KU_ASSERT(expression->constCast<ScalarFunctionExpression>().getFunction().name == NextValFunction::name);
+    for (auto& child : children) {
+        child->evaluate(count);
+    }
+    bindData->count = count;
+    bindData->clientContext = localState.clientContext;
+    function->execFunc(parameters, *resultVector, bindData.get());
 }
 
 bool FunctionExpressionEvaluator::selectInternal(SelectionVector& selVector) {

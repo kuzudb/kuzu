@@ -8,7 +8,6 @@ namespace evaluator {
 
 struct EvaluatorLocalState {
     main::ClientContext* clientContext = nullptr;
-    uint64_t count = 0;
 };
 
 enum class EvaluatorType : uint8_t {
@@ -50,12 +49,15 @@ public:
     virtual void init(const processor::ResultSet& resultSet, main::ClientContext* clientContext);
 
     virtual void evaluate() = 0;
+    // Evaluate and duplicate result for count times. This is a fast path we implemented for
+    // bulk-insert when evaluate default values. A default value should be
+    // - a constant (after folding); or
+    // - a nextVal() function for serial column
+    virtual void evaluate(common::sel_t count);
 
     bool select(common::SelectionVector& selVector, bool shouldSetSelVectorToFiltered);
 
     virtual std::unique_ptr<ExpressionEvaluator> copy() = 0;
-
-    EvaluatorLocalState& getLocalStateUnsafe() { return localState; }
 
     template<class TARGET>
     const TARGET& constCast() const {
