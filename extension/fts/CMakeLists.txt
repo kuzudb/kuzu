@@ -1,5 +1,6 @@
 include_directories(
         ${PROJECT_SOURCE_DIR}/src/include
+        ${CMAKE_BINARY_DIR}/src/include
         src/include
         third_party/snowball/libstemmer)
 

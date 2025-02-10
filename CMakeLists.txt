@@ -353,8 +353,10 @@ add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
 add_definitions(-DKUZU_EXTENSION_VERSION="0.8.0")
 
-include_directories(${CMAKE_BINARY_DIR}/src/include)
-include_directories(src/include)
+include_directories(
+    src/include
+    ${CMAKE_BINARY_DIR}/src/include
+)
 
 add_subdirectory(src)
 if (${BUILD_TESTS} OR ${BUILD_EXTENSION_TESTS})
