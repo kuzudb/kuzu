@@ -472,7 +472,6 @@ DataChunk NodeTable::constructDataChunkForPKColumn() const {
 void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     LocalTable* localTable) {
     auto startNodeOffset = nodeGroups->getNumTotalRows();
-    transaction->setMaxCommittedNodeOffset(tableID, startNodeOffset);
     auto& localNodeTable = localTable->cast<LocalNodeTable>();
 
     std::vector<column_id_t> columnIDsToCommit;
@@ -612,8 +611,8 @@ bool NodeTable::lookupPK(const Transaction* transaction, ValueVector* keyVector,
     if (transaction->getLocalStorage()) {
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID,
             LocalStorage::NotExistAction::RETURN_NULL);
-        if (localTable &&
-            localTable->cast<LocalNodeTable>().lookupPK(transaction, keyVector, result)) {
+        if (localTable && localTable->cast<LocalNodeTable>().lookupPK(transaction, keyVector,
+                              vectorPos, result)) {
             return true;
         }
     }

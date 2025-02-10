@@ -148,15 +148,13 @@ void RelTable::initScanState(Transaction* transaction, TableScanState& scanState
     const auto boundNodeID = relScanState.nodeIDVector->getValue<nodeID_t>(
         relScanState.nodeIDVector->state->getSelVector()[0]);
     NodeGroup* nodeGroup = nullptr;
-    if (!transaction->isUnCommitted(boundNodeID.tableID, boundNodeID.offset)) {
-        // Check if the node group idx is same as previous scan.
-        const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(boundNodeID.offset);
-        if (relScanState.nodeGroupIdx != nodeGroupIdx) {
-            // We need to re-initialize the node group scan state.
-            nodeGroup = getDirectedTableData(relScanState.direction)->getNodeGroup(nodeGroupIdx);
-        } else {
-            nodeGroup = relScanState.nodeGroup;
-        }
+    // Check if the node group idx is same as previous scan.
+    const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(boundNodeID.offset);
+    if (relScanState.nodeGroupIdx != nodeGroupIdx) {
+        // We need to re-initialize the node group scan state.
+        nodeGroup = getDirectedTableData(relScanState.direction)->getNodeGroup(nodeGroupIdx);
+    } else {
+        nodeGroup = relScanState.nodeGroup;
     }
     scanState.initState(transaction, nodeGroup);
 }
@@ -417,7 +415,6 @@ void RelTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     }
     // Update relID in local storage.
     updateRelOffsets(localRelTable);
-    updateNodeOffsets(transaction, localRelTable);
     // For both forward and backward directions, re-org local storage into compact CSR node groups.
     auto& localNodeGroup = localRelTable.getLocalNodeGroup();
     // Scan from local node group and write to WAL.
@@ -467,51 +464,6 @@ void RelTable::updateRelOffsets(const LocalRelTable& localRelTable) {
             const auto committedRelOffset = getCommittedOffset(localRelOffset, maxCommittedOffset);
             internalIDData[rowIdx] = committedRelOffset;
             internalIDData.setTableID(tableID);
-        }
-    }
-}
-
-static void updateIndexNodeOffsets(const Transaction* transaction,
-    DirectedCSRIndex::index_t& localRelIndex, table_id_t nodeTableID) {
-    for (auto& [offset, rowIndices] : localRelIndex) {
-        if (transaction->isUnCommitted(nodeTableID, offset)) {
-            const auto committedOffset =
-                transaction->getCommittedOffsetFromUncommitted(nodeTableID, offset);
-            auto kvPair = localRelIndex.extract(offset);
-            kvPair.key() = committedOffset;
-            localRelIndex.insert(std::move(kvPair));
-        }
-    }
-}
-
-void RelTable::updateNodeOffsets(const Transaction* transaction,
-    LocalRelTable& localRelTable) const {
-    std::unordered_map<column_id_t, table_id_t> columnsToUpdate;
-    if (transaction->hasNewlyInsertedNodes(fromNodeTableID)) {
-        columnsToUpdate[LOCAL_BOUND_NODE_ID_COLUMN_ID] = fromNodeTableID;
-        updateIndexNodeOffsets(transaction, localRelTable.getCSRIndex(RelDataDirection::FWD),
-            fromNodeTableID);
-    }
-    if (transaction->hasNewlyInsertedNodes(toNodeTableID)) {
-        columnsToUpdate[LOCAL_NBR_NODE_ID_COLUMN_ID] = toNodeTableID;
-        updateIndexNodeOffsets(transaction, localRelTable.getCSRIndex(RelDataDirection::FWD),
-            toNodeTableID);
-    }
-    auto& localNodeGroup = localRelTable.getLocalNodeGroup();
-    for (auto i = 0u; i < localNodeGroup.getNumChunkedGroups(); i++) {
-        const auto chunkedGroup = localNodeGroup.getChunkedNodeGroup(i);
-        KU_ASSERT(chunkedGroup);
-        for (auto& [columnID, maxCommittedOffset] : columnsToUpdate) {
-            auto& nodeIDData =
-                chunkedGroup->getColumnChunk(columnID).getData().cast<InternalIDChunkData>();
-            for (auto rowIdx = 0u; rowIdx < nodeIDData.getNumValues(); rowIdx++) {
-                const auto localOffset = nodeIDData[rowIdx];
-                if (transaction->isUnCommitted(columnsToUpdate.at(columnID), localOffset)) {
-                    const auto committedOffset = transaction->getCommittedOffsetFromUncommitted(
-                        columnsToUpdate.at(columnID), localOffset);
-                    nodeIDData[rowIdx] = committedOffset;
-                }
-            }
         }
     }
 }

@@ -211,8 +211,6 @@ private:
         const row_idx_vec_t& rowIndices, common::column_id_t skippedColumn);
 
     void updateRelOffsets(const LocalRelTable& localRelTable);
-    void updateNodeOffsets(const transaction::Transaction* transaction,
-        LocalRelTable& localRelTable) const;
 
     static common::offset_t getCommittedOffset(common::offset_t uncommittedOffset,
         common::offset_t maxCommittedOffset);
