@@ -7,6 +7,7 @@ find_package(DuckDB REQUIRED)
 
 include_directories(
         ${PROJECT_SOURCE_DIR}/src/include
+        ${CMAKE_BINARY_DIR}/src/include
         src/include
         ${PROJECT_SOURCE_DIR}/extension/duckdb/src/include
         ${PROJECT_SOURCE_DIR}/extension/httpfs/src/include

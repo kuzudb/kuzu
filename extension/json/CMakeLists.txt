@@ -1,6 +1,7 @@
 include_directories(
         src/include
         ${PROJECT_SOURCE_DIR}/src/include
+        ${CMAKE_BINARY_DIR}/src/include
         third_party/yyjson/src
 )
 

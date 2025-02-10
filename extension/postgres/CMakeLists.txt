@@ -10,6 +10,7 @@ include_directories(
         src/include
         ${PROJECT_SOURCE_DIR}/extension/duckdb/src/include
         ${DuckDB_INCLUDE_DIRS}
+        ${CMAKE_BINARY_DIR}/src/include
         ${PROJECT_SOURCE_DIR}/src/include)
 
 add_subdirectory(src/connector)

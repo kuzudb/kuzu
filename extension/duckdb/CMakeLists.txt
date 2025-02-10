@@ -7,6 +7,7 @@ find_package(DuckDB REQUIRED)
 
 include_directories(
         ${PROJECT_SOURCE_DIR}/src/include
+        ${CMAKE_BINARY_DIR}/src/include
         ${PROJECT_SOURCE_DIR}/extension/httpfs/src/include  # For S3 configuration
         src/include
         ${DuckDB_INCLUDE_DIRS})
