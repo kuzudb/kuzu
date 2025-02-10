@@ -9,7 +9,7 @@ namespace kuzu {
 namespace storage {
 
 static void validateIndexExistence(const main::ClientContext& context,
-    catalog::TableCatalogEntry* tableEntry, const std::string& indexName,
+    const catalog::TableCatalogEntry* tableEntry, const std::string& indexName,
     IndexOperation indexOperation) {
     switch (indexOperation) {
     case IndexOperation::CREATE: {

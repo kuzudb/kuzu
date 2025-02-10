@@ -171,19 +171,19 @@ public:
     // ----------------------------- Functions ----------------------------
 
     // Check if function exists.
-    bool containsFunction(const transaction::Transaction* transaction,
-        const std::string& name) const;
+    bool containsFunction(const transaction::Transaction* transaction, const std::string& name,
+        bool useInternal = false) const;
     // Get function entry by name.
     // Note we cannot cast to FunctionEntry here because result could also be a MacroEntry.
     CatalogEntry* getFunctionEntry(const transaction::Transaction* transaction,
-        const std::string& name) const;
+        const std::string& name, bool useInternal = false) const;
     // Get all function entries.
     std::vector<FunctionCatalogEntry*> getFunctionEntries(
         const transaction::Transaction* transaction) const;
 
     // Add function with name.
     void addFunction(transaction::Transaction* transaction, CatalogEntryType entryType,
-        std::string name, function::function_set functionSet);
+        std::string name, function::function_set functionSet, bool isInternal = false);
     // Drop function with name.
     void dropFunction(transaction::Transaction* transaction, const std::string& name);
 
@@ -236,6 +236,7 @@ private:
     std::unique_ptr<CatalogSet> indexes;
     std::unique_ptr<CatalogSet> internalTables;
     std::unique_ptr<CatalogSet> internalSequences;
+    std::unique_ptr<CatalogSet> internalFunctions;
 };
 
 } // namespace catalog

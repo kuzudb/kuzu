@@ -166,8 +166,7 @@ BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo* info
     auto boundExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(extraInfo.pKName,
         std::move(propertyDefinitions));
     return BoundCreateTableInfo(CatalogEntryType::NODE_TABLE_ENTRY, info->tableName,
-        info->onConflict, std::move(boundExtraInfo),
-        clientContext->shouldUseInternalCatalogEntry());
+        info->onConflict, std::move(boundExtraInfo), clientContext->useInternalCatalogEntry());
 }
 
 static void validateNodeTableType(const TableCatalogEntry* entry) {
@@ -210,8 +209,7 @@ BoundCreateTableInfo Binder::bindCreateRelTableInfo(const CreateTableInfo* info,
         dstMultiplicity, storageDirection, srcEntry->getTableID(), dstEntry->getTableID(),
         std::move(propertyDefinitions));
     return BoundCreateTableInfo(CatalogEntryType::REL_TABLE_ENTRY, info->tableName,
-        info->onConflict, std::move(boundExtraInfo),
-        clientContext->shouldUseInternalCatalogEntry());
+        info->onConflict, std::move(boundExtraInfo), clientContext->useInternalCatalogEntry());
 }
 
 static void validateUniqueFromToPairs(
@@ -247,8 +245,7 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
     auto boundExtraInfo =
         std::make_unique<BoundExtraCreateRelTableGroupInfo>(std::move(boundCreateRelTableInfos));
     return BoundCreateTableInfo(CatalogEntryType::REL_GROUP_ENTRY, info->tableName,
-        info->onConflict, std::move(boundExtraInfo),
-        clientContext->shouldUseInternalCatalogEntry());
+        info->onConflict, std::move(boundExtraInfo), clientContext->useInternalCatalogEntry());
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCreateTable(const Statement& statement) {

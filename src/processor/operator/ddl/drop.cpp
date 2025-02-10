@@ -27,7 +27,7 @@ void Drop::executeDDLInternal(ExecutionContext* context) {
             return;
         }
         if (catalog->containsTable(transaction, dropInfo.name,
-                clientContext->shouldUseInternalCatalogEntry())) {
+                clientContext->useInternalCatalogEntry())) {
             dropTable(clientContext);
             return;
         }
