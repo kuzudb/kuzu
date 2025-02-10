@@ -164,61 +164,67 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: kuzudb/kuzudb.github.io
+          repository: kuzudb/api-docs
           token: ${{ secrets.DOC_PUSH_TOKEN }}
-          path: kuzudb.github.io
+          path: api-docs
         
       - name: Remove old documentations
-        run: rm -rf kuzudb.github.io/api-docs
+        run: |
+          rm -rf api-docs/python
+          rm -rf api-docs/nodejs
+          rm -rf api-docs/wasm
+          rm -rf api-docs/java
+          rm -rf api-docs/cpp
+          rm -rf api-docs/c
 
       - name: Download Python docs
         uses: actions/download-artifact@v4
         with:
           name: kuzu-python-docs
-          path: kuzudb.github.io/api-docs/python
+          path: api-docs/python
       
       - name: Download Node.js docs
         uses: actions/download-artifact@v4
         with:
           name: kuzu-nodejs-docs
-          path: kuzudb.github.io/api-docs/nodejs
+          path: api-docs/nodejs
 
       - name: Download WASM docs
         uses: actions/download-artifact@v4
         with:
           name: kuzu-wasm-docs
-          path: kuzudb.github.io/api-docs/wasm
+          path: api-docs/wasm
         
       - name: Download Java docs
         uses: actions/download-artifact@v4
         with:
           name: kuzu-java-docs
-          path: kuzudb.github.io/api-docs/java
+          path: api-docs/java
 
       - name: Download C++ docs
         uses: actions/download-artifact@v4
         with:
           name: kuzu-cpp-docs
-          path: kuzudb.github.io/api-docs/cpp
+          path: api-docs/cpp
         
       - name: Download C docs
         uses: actions/download-artifact@v4
         with:
           name: kuzu-c-docs
-          path: kuzudb.github.io/api-docs/c
+          path: api-docs/c
         
       - name: Push changes
-        working-directory: kuzudb.github.io
+        working-directory: api-docs
         run: |
           git checkout -b "api-documentation-update-${{ github.sha }}"
           git config --global user.name "CI User"
-          git config --global user.email "contact@kuzudb.com"
+          git config --global user.email "ci@kuzudb.com"
           git add .
           git commit -m "Update API documentations"
           git push -u origin "api-documentation-update-${{ github.sha }}"
       
       - name: Create pull request
-        working-directory: kuzudb.github.io
+        working-directory: api-docs
         run: |
           echo "${{ secrets.DOC_PUSH_TOKEN }}" > token.txt
           gh auth login --with-token < token.txt
