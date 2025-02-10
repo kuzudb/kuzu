@@ -40,7 +40,7 @@ row_idx_t NodeGroup::append(const Transaction* transaction,
     if (chunkedGroups.isEmpty(lock)) {
         chunkedGroups.appendGroup(lock,
             std::make_unique<ChunkedNodeGroup>(mm, dataTypes, enableCompression,
-                ChunkedNodeGroup::CHUNK_CAPACITY, 0, ResidencyState::IN_MEMORY));
+                common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY, 0, ResidencyState::IN_MEMORY));
     }
     row_idx_t numRowsAppended = 0u;
     while (numRowsAppended < numRowsToAppend) {
@@ -48,12 +48,14 @@ row_idx_t NodeGroup::append(const Transaction* transaction,
         if (!lastChunkedGroup || lastChunkedGroup->isFullOrOnDisk()) {
             chunkedGroups.appendGroup(lock,
                 std::make_unique<ChunkedNodeGroup>(mm, dataTypes, enableCompression,
-                    ChunkedNodeGroup::CHUNK_CAPACITY, numRowsBeforeAppend + numRowsAppended,
-                    ResidencyState::IN_MEMORY));
+                    common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY,
+                    numRowsBeforeAppend + numRowsAppended, ResidencyState::IN_MEMORY));
         }
         lastChunkedGroup = chunkedGroups.getLastGroup(lock);
-        KU_ASSERT(ChunkedNodeGroup::CHUNK_CAPACITY >= lastChunkedGroup->getNumRows());
-        auto numToCopyIntoChunk = ChunkedNodeGroup::CHUNK_CAPACITY - lastChunkedGroup->getNumRows();
+        KU_ASSERT(
+            common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY >= lastChunkedGroup->getNumRows());
+        auto numToCopyIntoChunk =
+            common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY - lastChunkedGroup->getNumRows();
         const auto numToAppendInChunk =
             std::min(numRowsToAppend - numRowsAppended, numToCopyIntoChunk);
         lastChunkedGroup->append(transaction, columnIDs, chunkedGroup,
@@ -72,7 +74,8 @@ void NodeGroup::append(const Transaction* transaction, const std::vector<ValueVe
     if (chunkedGroups.isEmpty(lock)) {
         chunkedGroups.appendGroup(lock,
             std::make_unique<ChunkedNodeGroup>(mm, dataTypes, enableCompression,
-                ChunkedNodeGroup::CHUNK_CAPACITY, 0 /*startOffset*/, ResidencyState::IN_MEMORY));
+                common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY, 0 /*startOffset*/,
+                ResidencyState::IN_MEMORY));
     }
     row_idx_t numRowsAppended = 0;
     while (numRowsAppended < numRowsToAppend) {
@@ -80,12 +83,12 @@ void NodeGroup::append(const Transaction* transaction, const std::vector<ValueVe
         if (!lastChunkedGroup || lastChunkedGroup->isFullOrOnDisk()) {
             chunkedGroups.appendGroup(lock,
                 std::make_unique<ChunkedNodeGroup>(mm, dataTypes, enableCompression,
-                    ChunkedNodeGroup::CHUNK_CAPACITY, numRowsBeforeAppend + numRowsAppended,
-                    ResidencyState::IN_MEMORY));
+                    common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY,
+                    numRowsBeforeAppend + numRowsAppended, ResidencyState::IN_MEMORY));
         }
         lastChunkedGroup = chunkedGroups.getLastGroup(lock);
         const auto numRowsToAppendInGroup = std::min(numRowsToAppend - numRowsAppended,
-            ChunkedNodeGroup::CHUNK_CAPACITY - lastChunkedGroup->getNumRows());
+            common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY - lastChunkedGroup->getNumRows());
         lastChunkedGroup->append(&DUMMY_TRANSACTION, vectors, startRowIdx + numRowsAppended,
             numRowsToAppendInGroup);
         numRowsAppended += numRowsToAppendInGroup;
@@ -562,8 +565,8 @@ std::pair<idx_t, row_idx_t> NodeGroup::findChunkedGroupIdxFromRowIdxNoLock(row_i
         return {0, rowIdx};
     }
     rowIdx -= numRowsInFirstGroup;
-    const auto chunkedGroupIdx = rowIdx / ChunkedNodeGroup::CHUNK_CAPACITY + 1;
-    const auto rowIdxInChunk = rowIdx % ChunkedNodeGroup::CHUNK_CAPACITY;
+    const auto chunkedGroupIdx = rowIdx / common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY + 1;
+    const auto rowIdxInChunk = rowIdx % common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY;
     if (chunkedGroupIdx >= chunkedGroups.getNumGroupsNoLock()) {
         return {INVALID_CHUNKED_GROUP_IDX, INVALID_START_ROW_IDX};
     }

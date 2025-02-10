@@ -31,8 +31,6 @@ enum class NodeGroupDataFormat : uint8_t { REGULAR = 0, CSR = 1 };
 
 class ChunkedNodeGroup {
 public:
-    static constexpr uint64_t CHUNK_CAPACITY = 2048;
-
     ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks,
         common::row_idx_t startRowIdx, NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR);
     ChunkedNodeGroup(ChunkedNodeGroup& base,

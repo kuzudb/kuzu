@@ -477,8 +477,8 @@ void RelTable::prepareCommitForNodeGroup(const Transaction* transaction,
     CSRNodeGroup& csrNodeGroup, offset_t boundOffsetInGroup, const row_idx_vec_t& rowIndices,
     column_id_t skippedColumn) {
     for (const auto row : rowIndices) {
-        auto [chunkedGroupIdx, rowInChunkedGroup] =
-            StorageUtils::getQuotientRemainder(row, ChunkedNodeGroup::CHUNK_CAPACITY);
+        auto [chunkedGroupIdx, rowInChunkedGroup] = StorageUtils::getQuotientRemainder(row,
+            common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY);
         std::vector<ColumnChunk*> chunks;
         const auto chunkedGroup = localNodeGroup.getChunkedNodeGroup(chunkedGroupIdx);
         for (auto i = 0u; i < chunkedGroup->getNumColumns(); i++) {
