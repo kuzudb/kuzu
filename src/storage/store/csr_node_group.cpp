@@ -274,9 +274,10 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMemSequential(const Transaction
     auto numRows =
         std::min(nodeGroupScanState.inMemCSRList.rowIndices[1] - nodeGroupScanState.nextRowToScan,
             DEFAULT_VECTOR_CAPACITY);
-    auto [chunkIdx, startRowInChunk] =
-        StorageUtils::getQuotientRemainder(startRow, ChunkedNodeGroup::CHUNK_CAPACITY);
-    numRows = std::min(numRows, ChunkedNodeGroup::CHUNK_CAPACITY - startRowInChunk);
+    auto [chunkIdx, startRowInChunk] = StorageUtils::getQuotientRemainder(startRow,
+        common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY);
+    numRows =
+        std::min(numRows, common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY - startRowInChunk);
     if (numRows == 0) {
         return NODE_GROUP_SCAN_EMMPTY_RESULT;
     }
@@ -305,8 +306,8 @@ NodeGroupScanResult CSRNodeGroup::scanCommittedInMemRandom(const Transaction* tr
     while (nextRow < numRows) {
         const auto rowIdx =
             nodeGroupScanState.inMemCSRList.rowIndices[nextRow + nodeGroupScanState.nextRowToScan];
-        auto [chunkIdx, rowInChunk] =
-            StorageUtils::getQuotientRemainder(rowIdx, ChunkedNodeGroup::CHUNK_CAPACITY);
+        auto [chunkIdx, rowInChunk] = StorageUtils::getQuotientRemainder(rowIdx,
+            common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY);
         if (chunkIdx != currentChunkIdx) {
             currentChunkIdx = chunkIdx;
             const auto lock = chunkedGroups.lock();
@@ -399,8 +400,8 @@ void CSRNodeGroup::update(const Transaction* transaction, CSRNodeGroupScanSource
     }
     case CSRNodeGroupScanSource::COMMITTED_IN_MEMORY: {
         KU_ASSERT(csrIndex);
-        auto [chunkIdx, rowInChunk] =
-            StorageUtils::getQuotientRemainder(rowIdxInGroup, ChunkedNodeGroup::CHUNK_CAPACITY);
+        auto [chunkIdx, rowInChunk] = StorageUtils::getQuotientRemainder(rowIdxInGroup,
+            common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY);
         const auto lock = chunkedGroups.lock();
         const auto chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);
         return chunkedGroup->update(transaction, rowInChunk, columnID, propertyVector);
@@ -421,8 +422,8 @@ bool CSRNodeGroup::delete_(const Transaction* transaction, CSRNodeGroupScanSourc
     }
     case CSRNodeGroupScanSource::COMMITTED_IN_MEMORY: {
         KU_ASSERT(csrIndex);
-        auto [chunkIdx, rowInChunk] =
-            StorageUtils::getQuotientRemainder(rowIdxInGroup, ChunkedNodeGroup::CHUNK_CAPACITY);
+        auto [chunkIdx, rowInChunk] = StorageUtils::getQuotientRemainder(rowIdxInGroup,
+            common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY);
         const auto lock = chunkedGroups.lock();
         const auto chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);
         return chunkedGroup->delete_(transaction, rowInChunk);
@@ -620,8 +621,8 @@ ChunkCheckpointState CSRNodeGroup::checkpointColumnInRegion(const UniqLock& lock
                 if (row == INVALID_ROW_IDX) {
                     continue;
                 }
-                auto [chunkIdx, rowInChunk] =
-                    StorageUtils::getQuotientRemainder(row, ChunkedNodeGroup::CHUNK_CAPACITY);
+                auto [chunkIdx, rowInChunk] = StorageUtils::getQuotientRemainder(row,
+                    common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY);
                 const auto chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);
                 KU_ASSERT(!chunkedGroup->isDeleted(&DUMMY_CHECKPOINT_TRANSACTION, rowInChunk));
                 chunkedGroup->getColumnChunk(columnID).scanCommitted<ResidencyState::IN_MEMORY>(
@@ -681,8 +682,8 @@ void CSRNodeGroup::collectInMemRegionChangesAndUpdateHeaderLength(const UniqLock
             row_idx_t numInMemDeletionsInCSR = 0;
             for (auto i = 0u; i < rows.size(); i++) {
                 const auto row = rows[i];
-                auto [chunkIdx, rowInChunk] =
-                    StorageUtils::getQuotientRemainder(row, ChunkedNodeGroup::CHUNK_CAPACITY);
+                auto [chunkIdx, rowInChunk] = StorageUtils::getQuotientRemainder(row,
+                    common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY);
                 const auto chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);
                 if (chunkedGroup->isDeleted(&DUMMY_CHECKPOINT_TRANSACTION, rowInChunk)) {
                     csrIndex->indices[nodeOffset].turnToNonSequential();
@@ -878,8 +879,8 @@ void CSRNodeGroup::populateCSRLengthInMemOnly(const UniqLock& lock, offset_t num
         auto lengthAfterDelete = length;
         for (auto i = 0u; i < rows.size(); i++) {
             const auto row = rows[i];
-            auto [chunkIdx, rowInChunk] =
-                StorageUtils::getQuotientRemainder(row, ChunkedNodeGroup::CHUNK_CAPACITY);
+            auto [chunkIdx, rowInChunk] = StorageUtils::getQuotientRemainder(row,
+                common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY);
             const auto chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);
             const auto isDeleted =
                 chunkedGroup->isDeleted(&DUMMY_CHECKPOINT_TRANSACTION, rowInChunk);
