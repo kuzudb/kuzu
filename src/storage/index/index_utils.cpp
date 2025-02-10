@@ -58,13 +58,5 @@ catalog::NodeTableCatalogEntry* IndexUtils::bindTable(const main::ClientContext&
     return tableEntry->ptrCast<catalog::NodeTableCatalogEntry>();
 }
 
-void IndexUtils::validateAutoTransaction(const main::ClientContext& context,
-    const std::string& funcName) {
-    if (!context.getTransactionContext()->isAutoTransaction()) {
-        throw common::BinderException{
-            common::stringFormat("{} is only supported in auto transaction mode.", funcName)};
-    }
-}
-
 } // namespace storage
 } // namespace kuzu
