@@ -14,5 +14,5 @@ void GDSComputeState::beginFrontierCompute(common::table_id_t currTableID,
     auxiliaryState->beginFrontierCompute(currTableID, nextTableID);
 }
 
-}
-}
+} // namespace function
+} // namespace kuzu

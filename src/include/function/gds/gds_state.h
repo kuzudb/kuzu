@@ -1,7 +1,7 @@
 #pragma once
 
-#include "gds_frontier.h"
 #include "auxiliary_state/gds_auxilary_state.h"
+#include "gds_frontier.h"
 
 namespace kuzu {
 namespace function {
@@ -34,5 +34,5 @@ struct KUZU_API GDSComputeState {
     void beginFrontierCompute(common::table_id_t currTableID, common::table_id_t nextTableID) const;
 };
 
-}
-}
+} // namespace function
+} // namespace kuzu
