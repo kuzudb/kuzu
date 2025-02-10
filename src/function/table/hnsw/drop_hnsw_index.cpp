@@ -22,7 +22,6 @@ struct DropHNSWIndexBindData final : TableFuncBindData {
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
-    storage::IndexUtils::validateAutoTransaction(*context, DropHNSWIndexFunction::name);
     const auto indexName = input->getLiteralVal<std::string>(0);
     const auto tableName = input->getLiteralVal<std::string>(1);
     const auto tableEntry = storage::IndexUtils::bindTable(*context, tableName, indexName,
@@ -30,17 +29,12 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     return std::make_unique<DropHNSWIndexBindData>(tableEntry, indexName);
 }
 
-static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
+static common::offset_t internalTableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto& context = *input.context->clientContext;
-    const auto sharedState = input.sharedState->ptrCast<TableFuncSharedState>();
-    const auto morsel = sharedState->getMorsel();
-    if (morsel.isInvalid()) {
-        return 0;
-    }
     const auto bindData = input.bindData->constPtrCast<DropHNSWIndexBindData>();
     context.getCatalog()->dropIndex(context.getTransaction(), bindData->tableEntry->getTableID(),
         bindData->indexName);
-    return 1;
+    return 0;
 }
 
 static std::string dropHNSWIndexTables(main::ClientContext& context,
@@ -48,12 +42,19 @@ static std::string dropHNSWIndexTables(main::ClientContext& context,
     const auto dropHNSWIndexBindData = bindData.constPtrCast<DropHNSWIndexBindData>();
     context.setToUseInternalCatalogEntry();
     std::string query = "";
+    auto requireNewTransaction = !context.getTransactionContext()->hasActiveTransaction();
+    if (requireNewTransaction) {
+        query += "BEGIN TRANSACTION;";
+    }
     query += common::stringFormat("CALL _DROP_HNSW_INDEX('{}', '{}');",
         dropHNSWIndexBindData->indexName, dropHNSWIndexBindData->tableEntry->getName());
     query += common::stringFormat("DROP TABLE {};",
         storage::HNSWIndexUtils::getUpperGraphTableName(dropHNSWIndexBindData->indexName));
     query += common::stringFormat("DROP TABLE {};",
         storage::HNSWIndexUtils::getLowerGraphTableName(dropHNSWIndexBindData->indexName));
+    if (requireNewTransaction) {
+        query += "COMMIT;";
+    }
     return query;
 }
 
@@ -61,10 +62,11 @@ function_set InternalDropHNSWIndexFunction::getFunctionSet() {
     function_set functionSet;
     std::vector inputTypes = {common::LogicalTypeID::STRING, common::LogicalTypeID::STRING};
     auto func = std::make_unique<TableFunction>(name, inputTypes);
-    func->tableFunc = tableFunc;
+    func->tableFunc = internalTableFunc;
     func->bindFunc = bindFunc;
     func->initSharedStateFunc = TableFunction::initSharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
+    func->canParallelFunc = [] { return false; };
     functionSet.push_back(std::move(func));
     return functionSet;
 }
@@ -78,6 +80,7 @@ function_set DropHNSWIndexFunction::getFunctionSet() {
     func->initSharedStateFunc = TableFunction::initSharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->rewriteFunc = dropHNSWIndexTables;
+    func->canParallelFunc = [] { return false; };
     functionSet.push_back(std::move(func));
     return functionSet;
 }

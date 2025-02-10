@@ -34,7 +34,6 @@ CreateHNSWSharedState::CreateHNSWSharedState(const CreateHNSWIndexBindData& bind
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
-    storage::IndexUtils::validateAutoTransaction(*context, CreateHNSWIndexFunction::name);
     const auto indexName = input->getLiteralVal<std::string>(0);
     const auto tableName = input->getLiteralVal<std::string>(1);
     const auto columnName = input->getLiteralVal<std::string>(2);
@@ -115,6 +114,10 @@ static std::string createHNSWIndexTables(main::ClientContext& context,
     context.setToUseInternalCatalogEntry();
     const auto hnswBindData = bindData.constPtrCast<CreateHNSWIndexBindData>();
     std::string query = "";
+    auto requireNewTransaction = !context.getTransactionContext()->hasActiveTransaction();
+    if (requireNewTransaction) {
+        query += "BEGIN TRANSACTION;";
+    }
     query += stringFormat("CREATE REL TABLE {} (FROM {} TO {});",
         storage::HNSWIndexUtils::getUpperGraphTableName(hnswBindData->indexName),
         hnswBindData->tableEntry->getName(), hnswBindData->tableEntry->getName());
@@ -133,6 +136,9 @@ static std::string createHNSWIndexTables(main::ClientContext& context,
         hnswBindData->tableEntry->getName(),
         hnswBindData->tableEntry->getProperty(hnswBindData->propertyID).getName(), params);
     query += stringFormat("RETURN 'Index {} has been created.';", hnswBindData->indexName);
+    if (requireNewTransaction) {
+        query += "COMMIT;";
+    }
     return query;
 }
 
