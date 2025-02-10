@@ -84,10 +84,6 @@ struct StorageConstants {
 
     static constexpr double PACKED_CSR_DENSITY = 0.8;
     static constexpr double LEAF_HIGH_CSR_DENSITY = 1.0;
-    // The number of CSR lists in a leaf region.
-    static constexpr uint64_t CSR_LEAF_REGION_SIZE_LOG2 = 10;
-    static constexpr uint64_t CSR_LEAF_REGION_SIZE = static_cast<uint64_t>(1)
-                                                     << CSR_LEAF_REGION_SIZE_LOG2;
 
     static constexpr uint64_t MAX_NUM_ROWS_IN_TABLE = static_cast<uint64_t>(1) << 62;
 
