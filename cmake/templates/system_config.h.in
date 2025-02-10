@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 
 #include "common/enums/extend_direction.h"
@@ -45,6 +46,10 @@ static constexpr ExtendDirection DEFAULT_EXTEND_DIRECTION = ExtendDirection::BOT
 struct StorageConfig {
     static constexpr uint64_t NODE_GROUP_SIZE_LOG2 = @KUZU_NODE_GROUP_SIZE_LOG2@;
     static constexpr uint64_t NODE_GROUP_SIZE = static_cast<uint64_t>(1) << NODE_GROUP_SIZE_LOG2;
+    // The number of CSR lists in a leaf region.
+    static constexpr uint64_t CSR_LEAF_REGION_SIZE_LOG2 = std::min(static_cast<uint64_t>(10), NODE_GROUP_SIZE_LOG2 - 1);
+    static constexpr uint64_t CSR_LEAF_REGION_SIZE = static_cast<uint64_t>(1)
+                                                     << CSR_LEAF_REGION_SIZE_LOG2;
 };
 
 struct OrderByConfig {

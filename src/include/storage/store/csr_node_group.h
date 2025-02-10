@@ -97,8 +97,10 @@ struct CSRIndex {
 
 // TODO(Guodong): Serialize the info to disk. This should be a config per node group.
 struct PackedCSRInfo {
+    static_assert(common::StorageConfig::NODE_GROUP_SIZE_LOG2 >
+                  common::StorageConfig::CSR_LEAF_REGION_SIZE_LOG2);
     uint64_t calibratorTreeHeight = common::StorageConfig::NODE_GROUP_SIZE_LOG2 -
-                                    common::StorageConstants::CSR_LEAF_REGION_SIZE_LOG2;
+                                    common::StorageConfig::CSR_LEAF_REGION_SIZE_LOG2;
     double highDensityStep = (common::StorageConstants::LEAF_HIGH_CSR_DENSITY -
                                  common::StorageConstants::PACKED_CSR_DENSITY) /
                              static_cast<double>(calibratorTreeHeight);

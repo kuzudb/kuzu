@@ -8,7 +8,6 @@ namespace kuzu {
 namespace storage {
 class CSRNodeGroup;
 struct ChunkedCSRHeader;
-class MemoryManager;
 } // namespace storage
 
 namespace processor {

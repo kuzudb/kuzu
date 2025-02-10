@@ -521,7 +521,7 @@ std::vector<CSRRegion> CSRNodeGroup::collectLeafRegionsAndCSRLength(const UniqLo
     const CSRNodeGroupCheckpointState& csrState) const {
     std::vector<CSRRegion> leafRegions;
     constexpr auto numLeafRegions =
-        StorageConfig::NODE_GROUP_SIZE / StorageConstants::CSR_LEAF_REGION_SIZE;
+        StorageConfig::NODE_GROUP_SIZE / StorageConfig::CSR_LEAF_REGION_SIZE;
     leafRegions.reserve(numLeafRegions);
     for (auto leafRegionIdx = 0u; leafRegionIdx < numLeafRegions; leafRegionIdx++) {
         CSRRegion region(leafRegionIdx, 0 /*level*/);
@@ -633,7 +633,7 @@ ChunkCheckpointState CSRNodeGroup::checkpointColumnInRegion(const UniqLock& lock
         while (numGaps > 0) {
             // Gaps should only happen at the end of the CSR region.
             KU_ASSERT((nodeOffset == region.rightNodeOffset - 1) ||
-                      (nodeOffset + 1) % StorageConstants::CSR_LEAF_REGION_SIZE == 0);
+                      (nodeOffset + 1) % StorageConfig::CSR_LEAF_REGION_SIZE == 0);
             const auto numGapsToFill =
                 std::min(numGaps, static_cast<int64_t>(DEFAULT_VECTOR_CAPACITY));
             dummyChunkForNulls->getData().setNumValues(numGapsToFill);
@@ -832,7 +832,7 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
         while (gapSize > 0) {
             // Gaps should only happen at the end of the CSR region.
             KU_ASSERT((offset == numNodes - 1) ||
-                      (offset + 1) % StorageConstants::CSR_LEAF_REGION_SIZE == 0);
+                      (offset + 1) % StorageConfig::CSR_LEAF_REGION_SIZE == 0);
             const auto numGapsToAppend = std::min(gapSize, DEFAULT_VECTOR_CAPACITY);
             KU_ASSERT(dummyChunk.state->getSelVector().isUnfiltered());
             dummyChunk.state->getSelVectorUnsafe().setSelSize(numGapsToAppend);
@@ -901,7 +901,7 @@ std::vector<CSRRegion> CSRNodeGroup::mergeRegionsToCheckpoint(
     KU_ASSERT(std::is_sorted(leafRegions.begin(), leafRegions.end(),
         [](const CSRRegion& a, const CSRRegion& b) { return a.regionIdx < b.regionIdx; }));
     constexpr auto numLeafRegions =
-        StorageConfig::NODE_GROUP_SIZE / StorageConstants::CSR_LEAF_REGION_SIZE;
+        StorageConfig::NODE_GROUP_SIZE / StorageConfig::CSR_LEAF_REGION_SIZE;
     KU_ASSERT(leafRegions.size() == numLeafRegions);
     std::vector<CSRRegion> mergedRegions;
     idx_t leafRegionIdx = 0u;
