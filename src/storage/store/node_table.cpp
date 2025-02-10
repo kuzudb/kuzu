@@ -501,11 +501,10 @@ void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
             // grabbing a set of deleted rows.
             for (auto row = 0u; row < localNodeGroup->getNumRows(); row++) {
                 if (localNodeGroup->isDeleted(transaction, row)) {
-                    const auto nodeOffset = numLocalRows + row;
+                    const auto nodeOffset = startNodeOffset + numLocalRows + row;
                     const auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
                     const auto rowIdxInGroup =
-                        startNodeOffset + nodeOffset -
-                        StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+                        nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
                     [[maybe_unused]] const bool isDeleted =
                         nodeGroups->getNodeGroup(nodeGroupIdx)->delete_(transaction, rowIdxInGroup);
                     KU_ASSERT(isDeleted);
