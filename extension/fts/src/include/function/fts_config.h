@@ -43,7 +43,7 @@ struct StopWords {
 
 struct CreateFTSConfig {
     std::string stemmer = Stemmer::DEFAULT_VALUE;
-    StopWordsTableInfo stopWordsTableInfo = StopWordsTableInfo{};
+    StopWordsTableInfo stopWordsTableInfo;
 
     CreateFTSConfig() = default;
     CreateFTSConfig(main::ClientContext& context, common::table_id_t tableID,

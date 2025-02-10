@@ -134,7 +134,7 @@ Binder exception: BM25 model requires the Term Frequency Saturation(k) value to 
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'])
----- 0
+---- ok
 -LOG QueryFTSConjunctiveSingleKeyword
 -STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'alice', conjunctive := true) RETURN node.ID, score
 ---- 2

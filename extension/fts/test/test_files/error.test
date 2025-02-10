@@ -132,7 +132,7 @@ Roma
 Binder exception: Cannot drop property name in table STUDENT because it is used in one or more indexes. Please remove the associated indexes before attempting to drop this property.
 
 -STATEMENT CALL DROP_FTS_INDEX('STUDENT', 'sIdx1')
----- 0
+---- ok
 
 -STATEMENT ALTER TABLE STUDENT DROP note;
 ---- error

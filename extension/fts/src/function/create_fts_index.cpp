@@ -29,11 +29,11 @@ using namespace kuzu::main;
 using namespace kuzu::function;
 
 struct CreateFTSBindData final : FTSBindData {
-    std::vector<common::property_id_t> propertyIDs;
+    std::vector<property_id_t> propertyIDs;
     CreateFTSConfig createFTSConfig;
 
     CreateFTSBindData(std::string tableName, table_id_t tableID, std::string indexName,
-        std::vector<common::property_id_t> propertyIDs, CreateFTSConfig createFTSConfig)
+        std::vector<property_id_t> propertyIDs, CreateFTSConfig createFTSConfig)
         : FTSBindData{std::move(tableName), tableID, std::move(indexName),
               binder::expression_vector{}},
           propertyIDs{std::move(propertyIDs)}, createFTSConfig{std::move(createFTSConfig)} {}
@@ -43,11 +43,10 @@ struct CreateFTSBindData final : FTSBindData {
     }
 };
 
-static std::vector<common::property_id_t> bindProperties(
-    const catalog::NodeTableCatalogEntry& entry,
+static std::vector<property_id_t> bindProperties(const catalog::NodeTableCatalogEntry& entry,
     const std::shared_ptr<binder::Expression>& properties) {
     auto propertyValue = properties->constPtrCast<binder::LiteralExpression>()->getValue();
-    std::vector<common::property_id_t> result;
+    std::vector<property_id_t> result;
     for (auto i = 0u; i < propertyValue.getChildrenSize(); i++) {
         auto propertyName = NestedVal::getChildVal(&propertyValue, i)->toString();
         if (!entry.containsProperty(propertyName)) {
@@ -212,6 +211,22 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
 
     // Drop the intermediate terms_in_doc table.
     query += stringFormat("DROP TABLE `{}`;", appearsInfoTableName);
+    std::string properties = "[";
+    for (auto i = 0u; i < ftsBindData->propertyIDs.size(); i++) {
+        properties +=
+            stringFormat("'{}'", tableEntry->getProperty(ftsBindData->propertyIDs[i]).getName());
+        if (i != ftsBindData->propertyIDs.size() - 1) {
+            properties += ", ";
+        }
+    }
+    properties += "]";
+    std::string params;
+    params += stringFormat("stemmer := '{}', ", ftsBindData->createFTSConfig.stemmer);
+    params += stringFormat("stopWords := '{}'",
+        ftsBindData->createFTSConfig.stopWordsTableInfo.stopWords);
+    query += stringFormat("CALL _CREATE_FTS_INDEX('{}', '{}', {}, {});", tableName, indexName,
+        properties, params);
+    query += stringFormat("RETURN 'Index {} has been created.';", ftsBindData->indexName);
     return query;
 }
 
@@ -247,7 +262,7 @@ void LenCompute::vertexCompute(const graph::VertexScanState::Chunk& chunk) {
 }
 
 // Do vertex compute to get the numDocs and avgDocLen.
-static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& /*output*/) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto& bindData = *input.bindData->constPtrCast<CreateFTSBindData>();
     auto& context = *input.context;
     auto docTableName = FTSUtils::getDocsTableName(bindData.tableID, bindData.indexName);
@@ -258,7 +273,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& /*output
     auto sharedState = LenComputeSharedState{};
     LenCompute lenCompute{&sharedState};
     GDSUtils::runVertexCompute(&context, &graph, lenCompute,
-        std::vector<std::string>{CreateFTSFunction::DOC_LEN_PROP_NAME});
+        std::vector<std::string>{InternalCreateFTSFunction::DOC_LEN_PROP_NAME});
     auto numDocs = sharedState.numDocs.load();
     auto avgDocLen = numDocs == 0 ? 0 : static_cast<double>(sharedState.totalLen.load()) / numDocs;
     context.clientContext->getCatalog()->createIndex(context.clientContext->getTransaction(),
@@ -270,7 +285,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& /*output
     return 0;
 }
 
-function_set CreateFTSFunction::getFunctionSet() {
+function_set InternalCreateFTSFunction::getFunctionSet() {
     function_set functionSet;
     auto func = std::make_unique<TableFunction>(name,
         std::vector{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::LIST});
@@ -278,8 +293,21 @@ function_set CreateFTSFunction::getFunctionSet() {
     func->bindFunc = bindFunc;
     func->initSharedStateFunc = TableFunction::initSharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
+    func->canParallelFunc = [] { return false; };
+    functionSet.push_back(std::move(func));
+    return functionSet;
+}
+
+function_set CreateFTSFunction::getFunctionSet() {
+    function_set functionSet;
+    auto func = std::make_unique<TableFunction>(name,
+        std::vector{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::LIST});
+    func->tableFunc = TableFunction::emptyTableFunc;
+    func->bindFunc = bindFunc;
+    func->initSharedStateFunc = TableFunction::initSharedState;
+    func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->rewriteFunc = createFTSIndexQuery;
-    func->canParallelFunc = []() { return false; };
+    func->canParallelFunc = [] { return false; };
     functionSet.push_back(std::move(func));
     return functionSet;
 }

@@ -130,8 +130,8 @@ public:
 
     void setDefaultDatabase(AttachedKuzuDatabase* defaultDatabase_);
     bool hasDefaultDatabase() const;
-    void setToUseInternalCatalogEntry() { this->useInternalCatalogEntry = true; }
-    bool shouldUseInternalCatalogEntry() const { return useInternalCatalogEntry; }
+    void setToUseInternalCatalogEntry() { this->useInternalCatalogEntry_ = true; }
+    bool useInternalCatalogEntry() const { return useInternalCatalogEntry_; }
 
     void addScalarFunction(std::string name, function::function_set definitions);
     void removeScalarFunction(const std::string& name);
@@ -233,7 +233,7 @@ private:
     std::unique_ptr<graph::GraphEntrySet> graphEntrySet;
     std::mutex mtx;
     // Whether the query can access internal tables/sequences or not.
-    bool useInternalCatalogEntry = false;
+    bool useInternalCatalogEntry_ = false;
 };
 
 } // namespace main

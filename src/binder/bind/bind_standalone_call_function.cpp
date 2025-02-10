@@ -16,10 +16,11 @@ std::unique_ptr<BoundStatement> Binder::bindStandaloneCallFunction(
     auto& funcExpr =
         callStatement.getFunctionExpression()->constCast<parser::ParsedFunctionExpression>();
     auto funcName = funcExpr.getFunctionName();
-    auto entry =
-        clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(), funcName);
+    auto entry = clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(),
+        funcName, clientContext->useInternalCatalogEntry());
+    KU_ASSERT(entry);
     if (entry->getType() != catalog::CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY) {
-        throw common::BinderException(
+        throw BinderException(
             "Only standalone table functions can be called without return statement.");
     }
     expression_vector columns;

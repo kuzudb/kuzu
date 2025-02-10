@@ -622,7 +622,7 @@ std::vector<TableCatalogEntry*> Binder::bindNodeTableEntries(
     const std::vector<std::string>& tableNames) const {
     auto transaction = clientContext->getTransaction();
     auto catalog = clientContext->getCatalog();
-    auto useInternal = clientContext->shouldUseInternalCatalogEntry();
+    auto useInternal = clientContext->useInternalCatalogEntry();
     table_catalog_entry_set_t entrySet;
     if (tableNames.empty()) {
         for (auto entry : catalog->getNodeTableEntries(transaction, useInternal)) {
@@ -644,7 +644,7 @@ std::vector<TableCatalogEntry*> Binder::bindNodeTableEntries(
 TableCatalogEntry* Binder::bindNodeTableEntry(const std::string& name) const {
     auto transaction = clientContext->getTransaction();
     auto catalog = clientContext->getCatalog();
-    auto useInternal = clientContext->shouldUseInternalCatalogEntry();
+    auto useInternal = clientContext->useInternalCatalogEntry();
     if (!catalog->containsTable(transaction, name, useInternal)) {
         throw BinderException(stringFormat("Table {} does not exist.", name));
     }
@@ -655,7 +655,7 @@ std::vector<TableCatalogEntry*> Binder::bindRelTableEntries(
     const std::vector<std::string>& tableNames) const {
     auto transaction = clientContext->getTransaction();
     auto catalog = clientContext->getCatalog();
-    auto useInternal = clientContext->shouldUseInternalCatalogEntry();
+    auto useInternal = clientContext->useInternalCatalogEntry();
     table_catalog_entry_set_t entrySet;
     if (tableNames.empty()) {
         for (auto& entry : catalog->getRelTableEntries(transaction, useInternal)) {

@@ -6,7 +6,9 @@
 
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
 ---- ok
-
+-STATEMENT CALL _CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
+---- error
+Catalog exception: function _CREATE_FTS_INDEX does not exist.
 -STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
 ---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.title;
@@ -78,7 +80,9 @@ The Dragon's Call
 ---- 0
 -STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index_small', 'dragons') RETURN node.title;
 ---- 0
-
+-STATEMENT CALL _DROP_FTS_INDEX('Book', 'book_index_small');
+---- error
+Catalog exception: function _DROP_FTS_INDEX does not exist.
 -STATEMENT CALL DROP_FTS_INDEX('Book', 'book_index_small');
 ---- ok
 -STATEMENT CALL DROP_FTS_INDEX('Book', 'book_index');

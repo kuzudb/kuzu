@@ -61,6 +61,7 @@ void Catalog::initCatalogSets() {
     indexes = std::make_unique<CatalogSet>();
     internalTables = std::make_unique<CatalogSet>(true /* isInternal */);
     internalSequences = std::make_unique<CatalogSet>(true /* isInternal */);
+    internalFunctions = std::make_unique<CatalogSet>(true /* isInternal */);
 }
 
 bool Catalog::containsTable(const Transaction* transaction, const std::string& tableName,
@@ -373,16 +374,22 @@ void Catalog::dropIndex(Transaction* transaction, table_id_t tableID,
     indexes->dropEntry(transaction, uniqueName, entry->getOID());
 }
 
-bool Catalog::containsFunction(const Transaction* transaction, const std::string& name) const {
-    return functions->containsEntry(transaction, name);
+bool Catalog::containsFunction(const Transaction* transaction, const std::string& name,
+    bool useInternal) const {
+    auto hasEntry = functions->containsEntry(transaction, name);
+    if (!hasEntry && useInternal) {
+        return internalFunctions->containsEntry(transaction, name);
+    }
+    return hasEntry;
 }
 
 void Catalog::addFunction(Transaction* transaction, CatalogEntryType entryType, std::string name,
-    function::function_set functionSet) {
-    if (functions->containsEntry(transaction, name)) {
+    function::function_set functionSet, bool isInternal) {
+    auto& catalogSet = isInternal ? internalFunctions : functions;
+    if (catalogSet->containsEntry(transaction, name)) {
         throw CatalogException{stringFormat("function {} already exists.", name)};
     }
-    functions->createEntry(transaction,
+    catalogSet->createEntry(transaction,
         std::make_unique<FunctionCatalogEntry>(entryType, std::move(name), std::move(functionSet)));
 }
 
@@ -405,12 +412,18 @@ void Catalog::dropFunction(Transaction* transaction, const std::string& name) {
     functions->dropEntry(transaction, name, entry->getOID());
 }
 
-CatalogEntry* Catalog::getFunctionEntry(const Transaction* transaction,
-    const std::string& name) const {
+CatalogEntry* Catalog::getFunctionEntry(const Transaction* transaction, const std::string& name,
+    bool useInternal) const {
+    CatalogEntry* result = nullptr;
     if (!functions->containsEntry(transaction, name)) {
-        throw CatalogException(getFunctionDoesNotExistMessage(name));
+        if (!useInternal) {
+            throw CatalogException(getFunctionDoesNotExistMessage(name));
+        }
+        result = internalFunctions->getEntry(transaction, name);
+    } else {
+        result = functions->getEntry(transaction, name);
     }
-    return functions->getEntry(transaction, name);
+    return result;
 }
 
 std::vector<FunctionCatalogEntry*> Catalog::getFunctionEntries(
@@ -503,6 +516,7 @@ void Catalog::saveToFile(const std::string& directory, VirtualFileSystem* fs,
     indexes->serialize(serializer);
     internalTables->serialize(serializer);
     internalSequences->serialize(serializer);
+    internalFunctions->serialize(serializer);
 }
 
 void Catalog::readFromFile(const std::string& directory, VirtualFileSystem* fs,
@@ -523,6 +537,7 @@ void Catalog::readFromFile(const std::string& directory, VirtualFileSystem* fs,
     indexes = CatalogSet::deserialize(deserializer);
     internalTables = CatalogSet::deserialize(deserializer);
     internalSequences = CatalogSet::deserialize(deserializer);
+    internalFunctions = CatalogSet::deserialize(deserializer);
 }
 
 void Catalog::registerBuiltInFunctions() {
