@@ -9,53 +9,13 @@
 namespace kuzu {
 namespace function {
 
-struct RJOutputs {
-    common::nodeID_t sourceNodeID;
-
-    explicit RJOutputs(common::nodeID_t sourceNodeID) : sourceNodeID{sourceNodeID} {}
-    virtual ~RJOutputs() = default;
-
-    virtual void initRJFromSource(common::nodeID_t) {}
-    virtual void beginFrontierComputeBetweenTables(common::table_id_t curFrontierTableID,
-        common::table_id_t nextFrontierTableID) = 0;
-    // This function is called after the recursive join computation stage, at the stage when the
-    // outputs that are stored in RJOutputs is being written to FactorizedTable.
-    virtual void beginWritingOutputsForDstNodesInTable(common::table_id_t tableID) = 0;
-    template<class TARGET>
-    TARGET* ptrCast() {
-        return common::ku_dynamic_cast<TARGET*>(this);
-    }
-};
-
-struct PathsOutputs : public RJOutputs {
-    std::unique_ptr<BFSGraph> bfsGraph;
-
-    PathsOutputs(common::nodeID_t sourceNodeID, std::unique_ptr<BFSGraph> bfsGraph)
-        : RJOutputs(sourceNodeID), bfsGraph{std::move(bfsGraph)} {}
-
-    void beginFrontierComputeBetweenTables(common::table_id_t,
-        common::table_id_t nextFrontierTableID) override {
-        bfsGraph->pinTableID(nextFrontierTableID);
-    };
-
-    void beginWritingOutputsForDstNodesInTable(common::table_id_t tableID) override {
-        bfsGraph->pinTableID(tableID);
-    }
-};
-
 class GDSOutputWriter {
 public:
-    GDSOutputWriter(main::ClientContext* context, processor::NodeOffsetMaskMap* outputNodeMask)
-        : context{context}, outputNodeMask{outputNodeMask} {}
+    explicit GDSOutputWriter(main::ClientContext* context) : context{context} {}
     virtual ~GDSOutputWriter() = default;
 
-    virtual void pinTableID(common::table_id_t tableID) {
-        if (outputNodeMask != nullptr) {
-            outputNodeMask->pin(tableID);
-        }
-    }
-
-    processor::NodeOffsetMaskMap* getOutputNodeMask() const { return outputNodeMask; }
+public:
+    std::vector<common::ValueVector*> vectors;
 
 protected:
     std::unique_ptr<common::ValueVector> createVector(const common::LogicalType& type,
@@ -63,16 +23,14 @@ protected:
 
 protected:
     main::ClientContext* context;
-    processor::NodeOffsetMaskMap* outputNodeMask;
-    std::vector<common::ValueVector*> vectors;
 };
 
 class RJOutputWriter : public GDSOutputWriter {
 public:
-    RJOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-        processor::NodeOffsetMaskMap* outputNodeMask);
+    RJOutputWriter(main::ClientContext* context, processor::NodeOffsetMaskMap* outputNodeMask,
+        common::nodeID_t sourceNodeID);
 
-    void pinTableID(common::table_id_t tableID) override;
+    void beginWritingOutputs(common::table_id_t tableID);
 
     bool skip(common::nodeID_t dstNodeID) const;
 
@@ -82,10 +40,13 @@ public:
     virtual std::unique_ptr<RJOutputWriter> copy() = 0;
 
 protected:
+    virtual void beginWritingOutputsInternal(common::table_id_t tableID) = 0;
     virtual bool skipInternal(common::nodeID_t dstNodeID) const = 0;
 
 protected:
-    RJOutputs* rjOutputs;
+    processor::NodeOffsetMaskMap* outputNodeMask;
+    common::nodeID_t sourceNodeID;
+
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
 };
@@ -107,14 +68,18 @@ struct PathsOutputWriterInfo {
 
 class PathsOutputWriter : public RJOutputWriter {
 public:
-    PathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-        processor::NodeOffsetMaskMap* outputNodeMask, PathsOutputWriterInfo info);
+    PathsOutputWriter(main::ClientContext* context, processor::NodeOffsetMaskMap* outputNodeMask,
+        common::nodeID_t sourceNodeID, PathsOutputWriterInfo info, BFSGraph& bfsGraph);
+
+    void beginWritingOutputsInternal(common::table_id_t tableID) override {
+        bfsGraph.pinTableID(tableID);
+    }
 
     void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
         processor::GDSOutputCounter* counter) override;
 
 private:
-    ParentList* findFirstParent(common::offset_t dstOffset, BFSGraph& bfsGraph) const;
+    ParentList* findFirstParent(common::offset_t dstOffset) const;
 
     bool checkPathNodeMask(ParentList* element) const;
 
@@ -137,6 +102,7 @@ private:
 
 protected:
     PathsOutputWriterInfo info;
+    BFSGraph& bfsGraph;
 
     std::unique_ptr<common::ValueVector> directionVector = nullptr;
     std::unique_ptr<common::ValueVector> lengthVector = nullptr;
@@ -146,21 +112,20 @@ protected:
 
 class SPPathsOutputWriter : public PathsOutputWriter {
 public:
-    SPPathsOutputWriter(main::ClientContext* context, RJOutputs* rjOutputs,
-        processor::NodeOffsetMaskMap* outputNodeMask, PathsOutputWriterInfo info)
-        : PathsOutputWriter{context, rjOutputs, outputNodeMask, info} {}
+    SPPathsOutputWriter(main::ClientContext* context, processor::NodeOffsetMaskMap* outputNodeMask,
+        common::nodeID_t sourceNodeID, PathsOutputWriterInfo info, BFSGraph& bfsGraph)
+        : PathsOutputWriter{context, outputNodeMask, sourceNodeID, info, bfsGraph} {}
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<SPPathsOutputWriter>(context, rjOutputs, outputNodeMask, info);
+        return std::make_unique<SPPathsOutputWriter>(context, outputNodeMask, sourceNodeID, info,
+            bfsGraph);
     }
 
 protected:
     bool skipInternal(common::nodeID_t dstNodeID) const override {
-        auto pathsOutputs = rjOutputs->ptrCast<PathsOutputs>();
         // For single/all shortest path computations, we do not output any results from source to
         // source. We also do not output any results if a destination node has not been reached.
-        return dstNodeID == pathsOutputs->sourceNodeID ||
-               nullptr == pathsOutputs->bfsGraph->getParentListHead(dstNodeID.offset);
+        return dstNodeID == sourceNodeID || nullptr == bfsGraph.getParentListHead(dstNodeID.offset);
     }
 };
 

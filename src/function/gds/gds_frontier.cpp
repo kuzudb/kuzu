@@ -190,7 +190,7 @@ bool FrontierPair::isCurFrontierSparse() {
     return curSparseFrontier->enabled();
 }
 
-void SinglePathLengthsFrontierPair::initRJFromSource(nodeID_t source) {
+void SinglePathLengthsFrontierPair::initSource(nodeID_t source) {
     pathLengths->pinNextFrontierTableID(source.tableID);
     pathLengths->setActive(source);
     nextSparseFrontier->pinTableID(source.tableID);
@@ -198,7 +198,7 @@ void SinglePathLengthsFrontierPair::initRJFromSource(nodeID_t source) {
     hasActiveNodesForNextIter_.store(true);
 }
 
-void DoublePathLengthsFrontierPair::initRJFromSource(nodeID_t source) {
+void DoublePathLengthsFrontierPair::initSource(nodeID_t source) {
     nextDenseFrontier->ptrCast<PathLengths>()->pinNextFrontierTableID(source.tableID);
     nextDenseFrontier->ptrCast<PathLengths>()->setActive(source);
     nextSparseFrontier->pinTableID(source.tableID);
