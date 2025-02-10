@@ -19,15 +19,29 @@ namespace function {
 
 GDSComputeState::GDSComputeState(std::unique_ptr<function::FrontierPair> frontierPair,
     std::unique_ptr<function::EdgeCompute> edgeCompute,
-    processor::NodeOffsetMaskMap* outputNodeMask)
+    std::vector<table_id_set_t> stepActiveRelTableIDs, processor::NodeOffsetMaskMap* outputNodeMask)
     : frontierPair{std::move(frontierPair)}, edgeCompute{std::move(edgeCompute)},
-      outputNodeMask{outputNodeMask} {}
+      stepActiveRelTableIDs{std::move(stepActiveRelTableIDs)}, outputNodeMask{outputNodeMask} {}
 
 GDSComputeState::~GDSComputeState() = default;
 
 void GDSComputeState::beginFrontierComputeBetweenTables(common::table_id_t currTableID,
     common::table_id_t nextTableID) {
     frontierPair->beginFrontierComputeBetweenTables(currTableID, nextTableID);
+}
+
+common::table_id_set_t GDSComputeState::getActiveRelTableIDs(size_t index, Graph* graph) {
+    if (stepActiveRelTableIDs.empty()) {
+        auto nodeIDs = graph->getRelTableIDs();
+        common::table_id_set_t set;
+        set.insert(nodeIDs.begin(), nodeIDs.end());
+        stepActiveRelTableIDs.push_back(set);
+    }
+    if (index < stepActiveRelTableIDs.size()) {
+        return stepActiveRelTableIDs[index];
+    } else {
+        return stepActiveRelTableIDs.back();
+    }
 }
 
 static uint64_t getNumThreads(processor::ExecutionContext& context) {
@@ -77,7 +91,11 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
             compState.edgeCompute->terminate(*compState.outputNodeMask)) {
             break;
         }
-        for (auto& [fromEntry, toEntry, relEntry] : graph->getRelFromToEntryInfos()) {
+
+        auto activeRelTableIDs =
+            compState.getActiveRelTableIDs(frontierPair->getCurrentIter() - 1, graph);
+        for (auto& [fromEntry, toEntry, relEntry] :
+            graph->getRelFromToEntryInfos(activeRelTableIDs)) {
             switch (extendDirection) {
             case ExtendDirection::FWD: {
                 compState.beginFrontierComputeBetweenTables(fromEntry->getTableID(),

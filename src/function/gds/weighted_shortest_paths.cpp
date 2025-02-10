@@ -216,7 +216,7 @@ private:
             outputWriter = std::make_unique<DestinationsOutputWriter<T>>(clientContext,
                 outputs.get(), sharedState->getOutputNodeMaskMap(), weight, dataType);
         });
-        return RJCompState(std::move(frontierPair), std::move(edgeCompute),
+        return RJCompState(std::move(frontierPair), std::move(edgeCompute), {},
             sharedState->getOutputNodeMaskMap(), std::move(outputs), std::move(outputWriter));
     }
 };

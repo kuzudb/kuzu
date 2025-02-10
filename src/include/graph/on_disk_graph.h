@@ -138,7 +138,7 @@ public:
     common::offset_t getNumNodes(transaction::Transaction* transaction,
         common::table_id_t id) const override;
 
-    std::vector<RelFromToEntryInfo> getRelFromToEntryInfos() override;
+    std::vector<RelFromToEntryInfo> getRelFromToEntryInfos(const common::table_id_set_t& activeRelTableIDs) override;
 
     std::unique_ptr<NbrScanState> prepareRelScan(catalog::TableCatalogEntry* tableEntry,
         const std::string& property) override;

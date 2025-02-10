@@ -34,6 +34,8 @@ RJBindData::RJBindData(const RJBindData& other) : GDSBindData{other} {
     pathEdgeIDsExpr = other.pathEdgeIDsExpr;
     weightPropertyName = other.weightPropertyName;
     weightOutputExpr = other.weightOutputExpr;
+    stepFromLeftActivationRelInfos = other.stepFromLeftActivationRelInfos;
+    stepFromRightActivationRelInfos = other.stepFromRightActivationRelInfos;
 }
 
 PathsOutputWriterInfo RJBindData::getPathWriterInfo() const {
@@ -44,6 +46,14 @@ PathsOutputWriterInfo RJBindData::getPathWriterInfo() const {
     info.writeEdgeDirection = writePath && extendDirection == ExtendDirection::BOTH;
     info.writePath = writePath;
     return info;
+}
+
+std::vector<table_id_set_t> RJBindData::getStepActiveRelTableIDs() const {
+    if (flipPath) {
+        return stepFromRightActivationRelInfos;
+    } else {
+        return stepFromLeftActivationRelInfos;
+    }
 }
 
 void RJAlgorithm::setToNoPath() {
