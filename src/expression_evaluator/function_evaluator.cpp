@@ -33,7 +33,8 @@ void FunctionExpressionEvaluator::evaluate() {
 }
 
 void FunctionExpressionEvaluator::evaluate(common::sel_t count) {
-    KU_ASSERT(expression->constCast<ScalarFunctionExpression>().getFunction().name == NextValFunction::name);
+    KU_ASSERT(expression->constCast<ScalarFunctionExpression>().getFunction().name ==
+              NextValFunction::name);
     for (auto& child : children) {
         child->evaluate(count);
     }

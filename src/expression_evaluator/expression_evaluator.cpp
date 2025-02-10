@@ -1,4 +1,5 @@
 #include "expression_evaluator/expression_evaluator.h"
+
 #include "common/exception/runtime.h"
 
 using namespace kuzu::common;
@@ -38,7 +39,8 @@ void ExpressionEvaluator::resolveResultStateFromChildren(
 void ExpressionEvaluator::evaluate(common::sel_t) {
     // LCOV_EXCL_START
     throw RuntimeException(stringFormat("Cannot evaluate expression {} with count. This should "
-                                        "never happen.", expression->toString()));
+                                        "never happen.",
+        expression->toString()));
     // LCOV_EXCL_STOP
 }
 
