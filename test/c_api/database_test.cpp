@@ -298,3 +298,40 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWildcardNoRemoval) {
     // Cleanup
     std::filesystem::remove_all("/tmp/dbHome_wildcard");
 }
+
+TEST_F(CApiDatabaseTest, APIEmptyDBTest) {
+    createDBAndConn();
+    conn->query("CREATE NODE TABLE Person (\n"
+                "        id INT64,\n"
+                "        name STRING,\n"
+                "        age INT64,\n"
+                "        PRIMARY KEY (id)\n"
+                "    );\n"
+                "\n"
+                "CREATE REL TABLE FRIEND_OF (\n"
+                "        FROM Person TO Person,\n"
+                "        since INT64\n"
+                "    );\n"
+                "\n"
+                "CREATE (a:Person {id: 1, name: 'Alice', age: 30}),\n"
+                "       (b:Person {id: 2, name: 'Bob', age: 25}),\n"
+                "       (c:Person {id: 3, name: 'Charlie', age: 35}),\n"
+                "       (a)-[:FRIEND_OF {since: 2020}]->(b),\n"
+                "       (b)-[:FRIEND_OF {since: 2021}]->(c),\n"
+                "       (c)-[:FRIEND_OF {since: 2022}]->(a);\n"
+                "\n"
+                "call var_length_extend_max_depth=100;");
+    printf("%s", conn->query("match p=(a:Person)-[b:FRIEND_OF* 1..39]->(c:Person)\n"
+                "where not case size(list_filter(nodes(p),x->x.age=30))>0\n"
+                "when True then a.name=c.name \n"
+                "else false\n"
+                "end\n"
+                "return a.name as name,c.name as friend")->toString().c_str());
+}
+
+//"MATCH (sm:Merchant)-[mt]-(t:Transaction)-[tc]-(c:Customer)-[cm]-(m2:Merchant)\n"
+//    "WITH sm,c,cm,t,m2,COUNT{ MATCH (:Customer)-[]-(m2:Merchant)} as num_cm\n"
+//    "WITH sm,c,cm,t,m2,num_cm\n"
+//    "WHERE  num_сm>3\n"
+//    "RETURN c,cm,m2\n"
+//    "ORDER BY num_cm DESC"
