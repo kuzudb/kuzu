@@ -1,8 +1,5 @@
 #include "connector/duckdb_connector.h"
 
-#include "common/exception/runtime.h"
-#include "main/client_context.h"
-
 namespace kuzu {
 namespace duckdb_extension {
 

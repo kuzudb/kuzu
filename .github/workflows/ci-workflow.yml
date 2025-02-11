@@ -82,7 +82,8 @@ jobs:
         run: |
           bash scripts/generate_binary_tinysnb.sh
           s3cmd get s3://kuzu-test/tinysnb/version.txt || echo "0" > version.txt
-          if [ "$(cat tinysnb/version.txt)" == "$(cat version.txt)" ]; then
+          gcloud storage cp gs://kuzudb-test/tinysnb/version.txt version_gcp.txt || echo "0" > version_gcp.txt
+          if [ "$(cat tinysnb/version.txt)" == "$(cat version.txt)" ] && [ "$(cat tinysnb/version.txt)" == "$(cat version_gcp.txt)" ]; then
             echo "TinySNB dataset is up to date, skipping upload"
             rm -rf tinysnb version.txt
             exit 0
@@ -90,7 +91,9 @@ jobs:
           echo "TinySNB dataset is outdated, uploading..."
           s3cmd del -r s3://kuzu-test/tinysnb/
           s3cmd sync ./tinysnb s3://kuzu-test/
-          rm -rf tinysnb version.txt
+          gcloud storage rm -r "gs://kuzudb-test/tinysnb"
+          gcloud storage cp -r ./tinysnb "gs://kuzudb-test/tinysnb"
+          rm -rf tinysnb version.txt version_gcp.txt
 
       - name: Generate and upload ldbc-sf01
         run: |
@@ -131,6 +134,8 @@ jobs:
       AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      GCS_ACCESS_KEY_ID: ${{ secrets.GCS_ACCESS_KEY_ID }}
+      GCS_SECRET_ACCESS_KEY: ${{ secrets.GCS_SECRET_ACCESS_KEY }}
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: TRUE
 
@@ -205,6 +210,8 @@ jobs:
       AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      GCS_ACCESS_KEY_ID: ${{ secrets.GCS_ACCESS_KEY_ID }}
+      GCS_SECRET_ACCESS_KEY: ${{ secrets.GCS_SECRET_ACCESS_KEY }}
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: TRUE
 
@@ -425,6 +432,8 @@ jobs:
       AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      GCS_ACCESS_KEY_ID: ${{ secrets.GCS_ACCESS_KEY_ID }}
+      GCS_SECRET_ACCESS_KEY: ${{ secrets.GCS_SECRET_ACCESS_KEY }}
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: TRUE
     steps:
@@ -499,6 +508,8 @@ jobs:
       AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      GCS_ACCESS_KEY_ID: ${{ secrets.GCS_ACCESS_KEY_ID }}
+      GCS_SECRET_ACCESS_KEY: ${{ secrets.GCS_SECRET_ACCESS_KEY }}
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: TRUE
     steps:
@@ -543,6 +554,8 @@ jobs:
       AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      GCS_ACCESS_KEY_ID: ${{ secrets.GCS_ACCESS_KEY_ID }}
+      GCS_SECRET_ACCESS_KEY: ${{ secrets.GCS_SECRET_ACCESS_KEY }}
       PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
       HTTP_CACHE_FILE: TRUE
@@ -799,6 +812,8 @@ jobs:
       AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      GCS_ACCESS_KEY_ID: ${{ secrets.GCS_ACCESS_KEY_ID }}
+      GCS_SECRET_ACCESS_KEY: ${{ secrets.GCS_SECRET_ACCESS_KEY }}
       PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: TRUE
@@ -923,6 +938,8 @@ jobs:
       AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      GCS_ACCESS_KEY_ID: ${{ secrets.GCS_ACCESS_KEY_ID }}
+      GCS_SECRET_ACCESS_KEY: ${{ secrets.GCS_SECRET_ACCESS_KEY }}
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: TRUE
       ASAN_OPTIONS: detect_leaks=1
@@ -977,6 +994,8 @@ jobs:
       AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      GCS_ACCESS_KEY_ID: ${{ secrets.GCS_ACCESS_KEY_ID }}
+      GCS_SECRET_ACCESS_KEY: ${{ secrets.GCS_SECRET_ACCESS_KEY }}
       PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: TRUE
@@ -1037,6 +1056,8 @@ jobs:
       AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+      GCS_ACCESS_KEY_ID: ${{ secrets.GCS_ACCESS_KEY_ID }}
+      GCS_SECRET_ACCESS_KEY: ${{ secrets.GCS_SECRET_ACCESS_KEY }}
       PG_HOST: ${{ secrets.PG_HOST }}
       RUN_ID: "$(hostname)-$([Math]::Floor((Get-Date).TimeOfDay.TotalSeconds))"
       HTTP_CACHE_FILE: TRUE
