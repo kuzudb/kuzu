@@ -1,0 +1,8 @@
+-DATASET CSV copy-fault-tests/non-exist-uuid-pk
+
+--
+
+-CASE NonExistUUIDPK
+-STATEMENT COPY like FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/non-exist-uuid-pk/like.csv"(header=false)
+---- error
+Copy exception: Unable to find primary key value a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11.
