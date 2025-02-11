@@ -332,16 +332,16 @@ struct NodeTableDistanceComputer {
     }
 
     inline void computeDistance(vector_id_t id, double* result) {
-//        auto embedding = getEmbedding(id + startOffset, embeddingVector1.get());
-//        delegate->computeDistance(embedding, dist);
-        computeZeroCopyDistance(id + startOffset, delegate.get(), result);
+        auto embedding = getEmbedding(id + startOffset, embeddingVector1.get());
+        delegate->computeDistance(embedding, result);
+//        computeZeroCopyDistance(id + startOffset, delegate.get(), result);
     }
 
     inline void computeDistance(vector_id_t src, vector_id_t dest, double* result) {
-//        auto srcEmbedding = getEmbedding(src + startOffset, embeddingVector1.get());
-//        auto destEmbedding = getEmbedding(dest + startOffset, embeddingVector2.get());
-//        delegate->computeDistance(srcEmbedding, destEmbedding, dist);
-        computeZeroCopyDistance(src + startOffset, dest + startOffset, delegate.get(), result);
+        auto srcEmbedding = getEmbedding(src + startOffset, embeddingVector1.get());
+        auto destEmbedding = getEmbedding(dest + startOffset, embeddingVector2.get());
+        delegate->computeDistance(srcEmbedding, destEmbedding, result);
+//        computeZeroCopyDistance(src + startOffset, dest + startOffset, delegate.get(), result);
     }
 
     inline void batchComputeDistance(const vector_id_t* vecIds, const int numIds, double* results) {
