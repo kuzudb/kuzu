@@ -3,10 +3,15 @@
 #include "main/client_context.h"
 
 namespace kuzu {
+namespace httpfs {
+struct RemoteFSConfig;
+}
+
 namespace duckdb_extension {
 
 struct DuckDBSecretManager {
-    static std::string getS3Secret(main::ClientContext* context);
+    static std::string getRemoteFSSecret(main::ClientContext* context,
+        const httpfs::RemoteFSConfig& config);
 };
 
 } // namespace duckdb_extension

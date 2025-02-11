@@ -1,6 +1,7 @@
 #include "connector/delta_connector.h"
 
 #include "connector/duckdb_secret_manager.h"
+#include "remote_fs_config.h"
 
 namespace kuzu {
 namespace delta_extension {
@@ -15,7 +16,9 @@ void DeltaConnector::connect(const std::string& /*dbPath*/, const std::string& /
     executeQuery("load delta;");
     executeQuery("install httpfs;");
     executeQuery("load httpfs;");
-    executeQuery(duckdb_extension::DuckDBSecretManager::getS3Secret(context));
+    for (auto& fsConfig : httpfs::RemoteFSConfig::getAvailableConfigs()) {
+        executeQuery(duckdb_extension::DuckDBSecretManager::getRemoteFSSecret(context, fsConfig));
+    }
 }
 
 } // namespace delta_extension

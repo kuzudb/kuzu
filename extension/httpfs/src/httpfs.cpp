@@ -137,7 +137,7 @@ std::vector<std::string> HTTPFileSystem::glob(main::ClientContext* /*context*/,
     return {path};
 }
 
-bool HTTPFileSystem::canHandleFile(const std::string& path) const {
+bool HTTPFileSystem::canHandleFile(const std::string_view path) const {
     return path.rfind("https://", 0) == 0 || path.rfind("http://", 0) == 0;
 }
 

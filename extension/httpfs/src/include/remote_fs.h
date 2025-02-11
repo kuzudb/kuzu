@@ -1,11 +1,12 @@
 #pragma once
 
 #include "httpfs.h"
+#include "remote_fs_config.h"
 
 namespace kuzu {
 namespace httpfs {
 
-struct S3AuthParams {
+struct AuthParams {
     std::string accessKeyID;
     std::string secretAccessKey;
     std::string endpoint;
@@ -13,7 +14,7 @@ struct S3AuthParams {
     std::string region;
 };
 
-struct S3UploadParams {
+struct UploadParams {
     uint64_t maxFileSize = 0;
     uint64_t maxNumPartsPerFile = 0;
     uint64_t maxUploadThreads = 0;
@@ -38,7 +39,7 @@ struct S3FileInfo final : public HTTPFileInfo {
     static constexpr uint64_t AWS_MINIMUM_PART_SIZE = 5242880;
 
     S3FileInfo(std::string path, common::FileSystem* fileSystem, int flags,
-        main::ClientContext* context, S3AuthParams authParams, S3UploadParams uploadParams);
+        main::ClientContext* context, AuthParams authParams, UploadParams uploadParams);
 
     ~S3FileInfo() override;
 
@@ -50,8 +51,8 @@ struct S3FileInfo final : public HTTPFileInfo {
 
     void rethrowIOError() const;
 
-    S3AuthParams authParams;
-    S3UploadParams uploadParams;
+    AuthParams authParams;
+    UploadParams uploadParams;
 
     // Upload related parameters
     uint64_t partSize;
@@ -92,7 +93,7 @@ struct ParsedS3URL {
     std::string getHTTPURL(std::string httpQueryString = "") const;
 };
 
-class S3FileSystem final : public HTTPFileSystem {
+class RemoteObjectFileSystem : public HTTPFileSystem {
 private:
     static constexpr char NULL_PAYLOAD_HASH[] =
         "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
@@ -101,6 +102,8 @@ private:
     static constexpr char uploadIDCloseTag[] = "</UploadId>";
 
 public:
+    explicit RemoteObjectFileSystem(RemoteFSConfig fsConfig);
+
     std::unique_ptr<common::FileInfo> openFile(const std::string& path, int flags,
         main::ClientContext* context = nullptr,
         common::FileLockType lock_type = common::FileLockType::NO_LOCK) override;
@@ -108,13 +111,13 @@ public:
     std::vector<std::string> glob(main::ClientContext* context,
         const std::string& path) const override;
 
-    bool canHandleFile(const std::string& path) const override;
+    bool canHandleFile(const std::string_view path) const override;
 
     static std::string encodeURL(const std::string& input, bool encodeSlash = false);
 
     static std::string decodeURL(std::string input);
 
-    static ParsedS3URL parseS3URL(std::string url, S3AuthParams& params);
+    ParsedS3URL parseS3URL(std::string url, AuthParams& params) const;
 
     std::string initializeMultiPartUpload(S3FileInfo* fileInfo) const;
 
@@ -128,9 +131,9 @@ public:
 
     void finalizeMultipartUpload(S3FileInfo* fileInfo);
 
-    static HeaderMap createS3Header(std::string url, std::string query, std::string host,
-        std::string service, std::string method, const S3AuthParams& authParams,
-        std::string payloadHash = "", std::string contentType = "");
+    HeaderMap createS3Header(std::string url, std::string query, std::string host,
+        std::string service, std::string method, const AuthParams& authParams,
+        std::string payloadHash = "", std::string contentType = "") const;
 
 protected:
     std::unique_ptr<HTTPResponse> headRequest(common::FileInfo* fileInfo, const std::string& url,
@@ -161,6 +164,7 @@ private:
     std::mutex bufferInfoLock;
     std::condition_variable bufferInfoCV;
     uint16_t numUsedBuffers = 0;
+    RemoteFSConfig fsConfig;
 };
 
 struct AWSListObjectV2 {
@@ -172,8 +176,8 @@ struct AWSListObjectV2 {
     static constexpr char OPEN_PREFIX_TAG[] = "<Prefix>";
     static constexpr char CLOSE_PREFIX_TAG[] = "</Prefix>";
 
-    static std::string request(std::string& path, S3AuthParams& authParams,
-        std::string& continuationToken);
+    static std::string request(const RemoteObjectFileSystem& fs, std::string& path,
+        AuthParams& authParams, std::string& continuationToken);
     static void parseKey(std::string& awsResponse, std::vector<std::string>& result);
     static std::vector<std::string> parseCommonPrefix(std::string& awsResponse);
     static std::string parseContinuationToken(std::string& awsResponse);
