@@ -99,7 +99,7 @@ template<typename T>
 class DestinationsOutputWriter : public RJOutputWriter {
 public:
     DestinationsOutputWriter(main::ClientContext* context,
-        processor::NodeOffsetMaskMap* outputNodeMask, common::nodeID_t sourceNodeID,
+        processor::NodeOffsetMaskMap* outputNodeMask, nodeID_t sourceNodeID,
         std::shared_ptr<Weights<T>> weights, const LogicalType& weightType)
         : RJOutputWriter{context, outputNodeMask, sourceNodeID}, weights{std::move(weights)} {
         weightVector = createVector(weightType, context->getMemoryManager());

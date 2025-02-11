@@ -78,11 +78,19 @@ public:
     void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
         processor::GDSOutputCounter* counter) override;
 
-private:
+protected:
+    // Fast path when there is no node predicate or semantic check
+    void dfsFast(ParentList* firstParent, processor::FactorizedTable& fTable,
+        processor::GDSOutputCounter* counter);
+    void dfsSlow(ParentList* firstParent, processor::FactorizedTable& fTable,
+        processor::GDSOutputCounter* counter);
+
+    bool updateCounterAndTerminate(processor::GDSOutputCounter* counter);
+
     ParentList* findFirstParent(common::offset_t dstOffset) const;
 
     bool checkPathNodeMask(ParentList* element) const;
-
+    // Check semantics
     bool checkAppendSemantic(const std::vector<ParentList*>& path, ParentList* candidate) const;
     bool checkReplaceTopSemantic(const std::vector<ParentList*>& path, ParentList* candidate) const;
     bool isAppendTrail(const std::vector<ParentList*>& path, ParentList* candidate) const;
