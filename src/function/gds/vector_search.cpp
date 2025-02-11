@@ -714,13 +714,14 @@ namespace kuzu {
                     // Multiply by 0.6 due to the overlapping factor
                     auto estimatedFullTwoHopDistanceComp = (totalNbrs * filteredNbrs + filteredNbrs) * 0.4;
                     auto estimatedDirectedDistanceComp = totalNbrs + (totalNbrs - filteredNbrs);
-                    if (localSelectivity >= 0.5) {
-                        // If the selectivity is high, we will simply do one hop search since we can find the next
-                        // closest directly from candidates priority queue.
-                        oneHopSearch(candidates, firstHopNbrs, dc, filterMask, results, visited, vectorArray, size,
-                                     efSearch, stats);
-                        stats.oneHopCalls->increase(1);
-                    } else if (estimatedFullTwoHopDistanceComp > estimatedDirectedDistanceComp) {
+//                    if (localSelectivity >= 0.5) {
+//                        // If the selectivity is high, we will simply do one hop search since we can find the next
+//                        // closest directly from candidates priority queue.
+//                        oneHopSearch(candidates, firstHopNbrs, dc, filterMask, results, visited, vectorArray, size,
+//                                     efSearch, stats);
+//                        stats.oneHopCalls->increase(1);
+//                    } else
+                    if (estimatedFullTwoHopDistanceComp > estimatedDirectedDistanceComp) {
                         // We will use this metric to skip
                         // wanted distance computation in the first hop
                         directedTwoHopSearch(candidates, candidate, totalNbrs, cachedNbrsCount,
