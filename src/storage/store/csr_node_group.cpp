@@ -70,6 +70,7 @@ void CSRNodeGroup::initializeScanState(const Transaction* transaction,
     if (persistentChunkGroup) {
         nodeGroupScanState.nextRowToScan = 0;
         nodeGroupScanState.numCachedRows = 0;
+        nodeGroupScanState.nextCachedRowToScan = 0;
         nodeGroupScanState.source = CSRNodeGroupScanSource::COMMITTED_PERSISTENT;
     } else if (csrIndex) {
         initScanForCommittedInMem(relScanState, nodeGroupScanState);
