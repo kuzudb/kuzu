@@ -1,0 +1,43 @@
+-DATASET CSV empty
+
+--
+
+-CASE ScanUnityCatalog
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/unity-catalog/build/libunity_catalog.kuzu_extension"
+---- ok
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/unity-catalog/build/libunity_catalog.kuzu_extension"
+---- ok
+
+-LOG DefaultCatalogScan
+-STATEMENT ATTACH 'unity' AS unity (DBTYPE UC_CATALOG);
+---- ok
+-STATEMENT LOAD FROM unity.numbers RETURN *;
+---- 15
+131|35.443732
+150|329.197303
+247|477.742227
+294|209.322436
+42|403.857969
+477|380.678561
+484|344.003740
+539|425.661029
+564|188.755356
+644|203.439559
+680|797.691220
+755|883.610563
+75|277.880219
+821|767.799854
+958|509.371273
+
+-LOG UniversityCatalogScan
+-STATEMENT ATTACH 'university' AS university (DBTYPE UC_CATALOG);
+---- ok
+-STATEMENT LOAD FROM university.grades RETURN *;
+---- 4
+Alice|True|5|100|120|50.700001|78.900000
+Bob|False|4|78|12|24.500000|68.700000
+Carol|True|2|99|41|31.000000|78.000000
+Dan|False|9|20|19|7.700000|9.200000
+# Duckdb has an issue when scanning this table, enable after duckdb fixes it.
+#-STATEMENT LOAD FROM university.person RETURN *;
+#---- 1
