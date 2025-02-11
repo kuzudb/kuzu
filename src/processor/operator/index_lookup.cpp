@@ -98,10 +98,12 @@ void fillOffsetArraysFromVector(transaction::Transaction* transaction, const Ind
                 }
                 offset_t lookupOffset = 0;
                 if (!info.nodeTable->lookupPK(transaction, keyVector, pos, lookupOffset)) {
-                    auto key = keyVector->getValue<T>(pos);
-                    errorHandler->handleError(
-                        ExceptionMessage::nonExistentPKException(TypeUtils::toString(key)),
-                        getWarningSourceData(warningDataVectors, pos));
+                    TypeUtils::visit(keyVector->dataType, [&]<typename type>(type) {
+                        errorHandler->handleError(
+                            ExceptionMessage::nonExistentPKException(
+                                TypeUtils::toString(keyVector->getValue<type>(pos), keyVector)),
+                            getWarningSourceData(warningDataVectors, pos));
+                    });
                 } else {
                     resultManager.insertEntry(lookupOffset, pos);
                 }
