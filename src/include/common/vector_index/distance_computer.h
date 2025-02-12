@@ -346,7 +346,11 @@ struct NodeTableDistanceComputer {
 
     inline void batchComputeDistance(const vector_id_t* vecIds, const int numIds, double* results) {
         KU_ASSERT(numIds <= common::FAST_LOOKUP_MAX_BATCH_SIZE && numIds >= 4);
-        batchComputeZeroCopyDistance(vecIds, numIds, delegate.get(), results);
+        for (int i = 0; i < numIds; i++) {
+            auto embedding = getEmbedding(vecIds[i] + startOffset, embeddingVector1.get());
+            delegate->computeDistance(embedding, results + i);
+        }
+//        batchComputeZeroCopyDistance(vecIds, numIds, delegate.get(), results);
     }
 
     inline void setQuery(const float* query) {
