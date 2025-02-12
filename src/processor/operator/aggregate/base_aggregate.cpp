@@ -1,22 +1,24 @@
 #include "processor/operator/aggregate/base_aggregate.h"
 
+#include "main/client_context.h"
+
 using namespace kuzu::function;
 
 namespace kuzu {
 namespace processor {
 
-BaseAggregateSharedState::BaseAggregateSharedState(
-    const std::vector<AggregateFunction>& aggregateFunctions)
-    : currentOffset{0}, aggregateFunctions{copyVector(aggregateFunctions)} {}
-
-bool BaseAggregate::containDistinctAggregate() const {
-    for (auto& function : aggregateFunctions) {
-        if (function.isFunctionDistinct()) {
-            return true;
-        }
-    }
-    return false;
+size_t getNumPartitionsForParallelism(main::ClientContext* context) {
+    return context->getMaxNumThreadForExec();
 }
+
+BaseAggregateSharedState::BaseAggregateSharedState(
+    const std::vector<AggregateFunction>& aggregateFunctions, size_t numPartitions)
+    : currentOffset{0}, aggregateFunctions{copyVector(aggregateFunctions)}, numThreads{0},
+      // numPartitions - 1 since we want the bit width of the largest value that
+      // could be used to index the partitions
+      shiftForPartitioning{
+          static_cast<uint8_t>(sizeof(common::hash_t) * 8 - std::bit_width(numPartitions - 1))},
+      readyForFinalization{false} {}
 
 void BaseAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
     for (auto& info : aggInfos) {
@@ -31,6 +33,20 @@ void BaseAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
                 resultSet->getDataChunk(dataChunkPos).get());
         }
         aggInputs.push_back(std::move(aggregateInput));
+    }
+}
+
+BaseAggregateSharedState::HashTableQueue::HashTableQueue(storage::MemoryManager* memoryManager,
+    FactorizedTableSchema tableSchema) {
+    headBlock = new TupleBlock(memoryManager, std::move(tableSchema));
+    numTuplesPerBlock = headBlock.load()->table.getNumTuplesPerBlock();
+}
+
+BaseAggregateSharedState::HashTableQueue::~HashTableQueue() {
+    delete headBlock.load();
+    TupleBlock* block = nullptr;
+    while (queuedTuples.pop(block)) {
+        delete block;
     }
 }
 

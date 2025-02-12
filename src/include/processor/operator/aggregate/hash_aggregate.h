@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "aggregate_hash_table.h"
+#include "common/cast.h"
 #include "common/copy_constructors.h"
 #include "common/in_mem_overflow_buffer.h"
 #include "common/mpsc_queue.h"
@@ -37,7 +38,8 @@ private:
 };
 
 // NOLINTNEXTLINE(cppcoreguidelines-virtual-class-destructor): This is a final class.
-class HashAggregateSharedState final : public BaseAggregateSharedState {
+class HashAggregateSharedState final : public BaseAggregateSharedState,
+                                       public AggregatePartitioningData {
 
 public:
     explicit HashAggregateSharedState(main::ClientContext* context, HashAggregateInfo hashAggInfo,
@@ -45,24 +47,29 @@ public:
         std::span<AggregateInfo> aggregateInfos, std::vector<common::LogicalType> keyTypes,
         std::vector<common::LogicalType> payloadTypes);
 
-    void appendTuple(std::span<uint8_t> tuple, common::hash_t hash) {
-        auto& partition =
-            globalPartitions[(hash >> shiftForPartitioning) % globalPartitions.size()];
-        partition.queue->appendTuple(tuple);
+    void appendTuples(const FactorizedTable& factorizedTable, ft_col_offset_t hashOffset) override {
+        auto numBytesPerTuple = factorizedTable.getTableSchema()->getNumBytesPerTuple();
+        for (ft_tuple_idx_t tupleIdx = 0; tupleIdx < factorizedTable.getNumTuples(); tupleIdx++) {
+            auto tuple = factorizedTable.getTuple(tupleIdx);
+            auto hash = *reinterpret_cast<common::hash_t*>(tuple + hashOffset);
+            auto& partition =
+                globalPartitions[(hash >> shiftForPartitioning) % globalPartitions.size()];
+            partition.queue->appendTuple(std::span(tuple, numBytesPerTuple));
+        }
     }
 
     void appendDistinctTuple(size_t distinctFuncIndex, std::span<uint8_t> tuple,
-        common::hash_t hash) {
+        common::hash_t hash) override {
         auto& partition =
             globalPartitions[(hash >> shiftForPartitioning) % globalPartitions.size()];
         partition.distinctTableQueues[distinctFuncIndex]->appendTuple(tuple);
     }
 
-    void appendOverflow(common::InMemOverflowBuffer&& overflowBuffer) {
+    void appendOverflow(common::InMemOverflowBuffer&& overflowBuffer) override {
         overflow.push(std::make_unique<common::InMemOverflowBuffer>(std::move(overflowBuffer)));
     }
 
-    void finalizeAggregateHashTable();
+    void finalizePartitions();
 
     std::pair<uint64_t, uint64_t> getNextRangeToRead() override;
 
@@ -89,56 +96,6 @@ protected:
     std::tuple<const FactorizedTable*, common::offset_t> getPartitionForOffset(
         common::offset_t offset) const;
 
-public:
-    HashAggregateInfo aggInfo;
-    common::MPSCQueue<std::unique_ptr<common::InMemOverflowBuffer>> overflow;
-    class HashTableQueue {
-    public:
-        HashTableQueue(storage::MemoryManager* memoryManager, FactorizedTableSchema tableSchema);
-
-        std::unique_ptr<HashTableQueue> copy() const {
-            return std::make_unique<HashTableQueue>(headBlock.load()->table.getMemoryManager(),
-                headBlock.load()->table.getTableSchema()->copy());
-        }
-        ~HashTableQueue();
-
-        void appendTuple(std::span<uint8_t> tuple);
-
-        void mergeInto(AggregateHashTable& hashTable);
-
-        bool empty() const {
-            auto headBlock = this->headBlock.load();
-            return (headBlock == nullptr || headBlock->numTuplesReserved == 0) &&
-                   queuedTuples.approxSize() == 0;
-        }
-
-    private:
-        struct TupleBlock {
-            TupleBlock(storage::MemoryManager* memoryManager, FactorizedTableSchema tableSchema)
-                : numTuplesReserved{0}, numTuplesWritten{0},
-                  table{memoryManager, std::move(tableSchema)} {
-                // Start at a fixed capacity of one full block (so that concurrent writes are safe).
-                // If it is not filled, we resize it to the actual capacity before writing it to the
-                // hashTable
-                table.resize(table.getNumTuplesPerBlock());
-            }
-            // numTuplesReserved may be greater than the capacity of the factorizedTable
-            // if threads try to write to it while a new block is being allocated
-            // So it should not be relied on for anything other than reserving tuples
-            std::atomic<uint64_t> numTuplesReserved;
-            // Set after the tuple has been written to the block.
-            // Once numTuplesWritten == factorizedTable.getNumTuplesPerBlock() all writes have
-            // finished
-            std::atomic<uint64_t> numTuplesWritten;
-            FactorizedTable table;
-        };
-        common::MPSCQueue<TupleBlock*> queuedTuples;
-        // When queueing tuples, they are always added to the headBlock until the headBlock is full
-        // (numTuplesReserved >= factorizedTable.getNumTuplesPerBlock()), then pushed into the
-        // queuedTuples (at which point, the numTuplesReserved may not be equal to the
-        // numTuplesWritten)
-        std::atomic<TupleBlock*> headBlock;
-    };
     struct Partition {
         std::unique_ptr<AggregateHashTable> hashTable;
         std::mutex mtx;
@@ -148,11 +105,12 @@ public:
         std::vector<std::unique_ptr<HashTableQueue>> distinctTableQueues;
         std::atomic<bool> finalized = false;
     };
-    std::vector<Partition> globalPartitions;
+
+public:
+    HashAggregateInfo aggInfo;
     uint64_t limitNumber;
     storage::MemoryManager* memoryManager;
-    uint8_t shiftForPartitioning;
-    bool readyForFinalization = false;
+    std::vector<Partition> globalPartitions;
 };
 
 struct HashAggregateLocalState {
@@ -196,30 +154,30 @@ public:
         std::vector<function::AggregateFunction> aggregateFunctions,
         std::vector<AggregateInfo> aggInfos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : BaseAggregate{std::move(resultSetDescriptor), std::move(aggregateFunctions),
-              std::move(aggInfos), std::move(child), id, std::move(printInfo)},
-          sharedState{std::move(sharedState)} {}
+        : BaseAggregate{std::move(resultSetDescriptor), std::move(sharedState),
+              std::move(aggregateFunctions), std::move(aggInfos), std::move(child), id,
+              std::move(printInfo)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     void executeInternal(ExecutionContext* context) override;
 
-    // Delegated to HashAggregateFinalize so it can be parallelized
-    void finalizeInternal(ExecutionContext* /*context*/) override {
-        sharedState->readyForFinalization = true;
-    }
-
     std::unique_ptr<PhysicalOperator> copy() override {
-        return make_unique<HashAggregate>(resultSetDescriptor->copy(), sharedState,
+        return make_unique<HashAggregate>(resultSetDescriptor->copy(),
+            std::reinterpret_pointer_cast<HashAggregateSharedState>(sharedState),
             copyVector(aggregateFunctions), copyVector(aggInfos), children[0]->copy(), id,
             printInfo->copy());
     }
 
-    std::shared_ptr<HashAggregateSharedState> getSharedState() const { return sharedState; }
+    const HashAggregateSharedState& getSharedStateReference() const {
+        return common::ku_dynamic_cast<const HashAggregateSharedState&>(*sharedState);
+    }
+    std::shared_ptr<HashAggregateSharedState> getSharedState() const {
+        return std::reinterpret_pointer_cast<HashAggregateSharedState>(sharedState);
+    }
 
 private:
     HashAggregateLocalState localState;
-    std::shared_ptr<HashAggregateSharedState> sharedState;
 };
 
 class HashAggregateFinalize final : public Sink {
@@ -237,8 +195,8 @@ public:
     bool isSource() const override { return true; }
 
     void executeInternal(ExecutionContext* /*context*/) override {
-        KU_ASSERT(sharedState->readyForFinalization);
-        sharedState->finalizeAggregateHashTable();
+        KU_ASSERT(sharedState->isReadyForFinalization());
+        sharedState->finalizePartitions();
     }
     void finalizeInternal(ExecutionContext* /*context*/) override {
         sharedState->assertFinalized();

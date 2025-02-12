@@ -1,4 +1,5 @@
 #include "binder/expression/aggregate_function_expression.h"
+#include "common/copy_constructors.h"
 #include "common/types/types.h"
 #include "planner/operator/logical_aggregate.h"
 #include "processor/operator/aggregate/hash_aggregate.h"
@@ -90,12 +91,16 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(const LogicalOperator
     auto aggFunctions = getAggFunctions(aggregates);
     auto aggOutputPos = getDataPos(aggregates, *outSchema);
     auto aggregateInputInfos = getAggregateInputInfos(agg.getAllKeys(), aggregates, *inSchema);
-    auto sharedState = make_shared<SimpleAggregateSharedState>(aggFunctions);
+    auto sharedState =
+        make_shared<SimpleAggregateSharedState>(clientContext, aggFunctions, aggregateInputInfos);
     auto printInfo = std::make_unique<SimpleAggregatePrintInfo>(aggregates);
     auto aggregate = make_unique<SimpleAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
-        sharedState, std::move(aggFunctions), std::move(aggregateInputInfos),
+        sharedState, std::move(aggFunctions), copyVector(aggregateInputInfos),
         std::move(prevOperator), getOperatorID(), printInfo->copy());
-    return make_unique<SimpleAggregateScan>(sharedState, aggOutputPos, std::move(aggregate),
+    auto finalizer = std::make_unique<SimpleAggregateFinalize>(
+        std::make_unique<ResultSetDescriptor>(inSchema), sharedState, std::move(aggregate),
+        std::move(aggregateInputInfos), getOperatorID(), printInfo->copy());
+    return make_unique<SimpleAggregateScan>(sharedState, aggOutputPos, std::move(finalizer),
         getOperatorID(), printInfo->copy());
 }
 

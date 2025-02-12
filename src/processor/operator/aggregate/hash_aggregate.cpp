@@ -9,6 +9,7 @@
 #include "processor/execution_context.h"
 #include "processor/operator/aggregate/aggregate_hash_table.h"
 #include "processor/operator/aggregate/aggregate_input.h"
+#include "processor/operator/aggregate/base_aggregate.h"
 #include "processor/result/factorized_table_schema.h"
 
 using namespace kuzu::common;
@@ -31,18 +32,26 @@ std::string HashAggregatePrintInfo::toString() const {
     }
     return result;
 }
+
+HashAggregateInfo::HashAggregateInfo(std::vector<DataPos> flatKeysPos,
+    std::vector<DataPos> unFlatKeysPos, std::vector<DataPos> dependentKeysPos,
+    FactorizedTableSchema tableSchema)
+    : flatKeysPos{std::move(flatKeysPos)}, unFlatKeysPos{std::move(unFlatKeysPos)},
+      dependentKeysPos{std::move(dependentKeysPos)}, tableSchema{std::move(tableSchema)} {}
+
+HashAggregateInfo::HashAggregateInfo(const HashAggregateInfo& other)
+    : flatKeysPos{other.flatKeysPos}, unFlatKeysPos{other.unFlatKeysPos},
+      dependentKeysPos{other.dependentKeysPos}, tableSchema{other.tableSchema.copy()} {}
+
 HashAggregateSharedState::HashAggregateSharedState(main::ClientContext* context,
     HashAggregateInfo hashAggInfo,
     const std::vector<function::AggregateFunction>& aggregateFunctions,
     std::span<AggregateInfo> aggregateInfos, std::vector<LogicalType> keyTypes,
     std::vector<LogicalType> payloadTypes)
-    : BaseAggregateSharedState{aggregateFunctions}, aggInfo{std::move(hashAggInfo)},
-      globalPartitions{static_cast<size_t>(context->getMaxNumThreadForExec())},
-      limitNumber{common::INVALID_LIMIT}, memoryManager{context->getMemoryManager()},
-      // .size() - 1 since we want the bit width of the largest value that could be used to index
-      // the partitions
-      shiftForPartitioning{
-          static_cast<uint8_t>(sizeof(hash_t) * 8 - std::bit_width(globalPartitions.size() - 1))} {
+    : BaseAggregateSharedState{aggregateFunctions, getNumPartitionsForParallelism(context)},
+      aggInfo{std::move(hashAggInfo)}, limitNumber{common::INVALID_LIMIT},
+      memoryManager{context->getMemoryManager()},
+      globalPartitions{getNumPartitionsForParallelism(context)} {
     std::vector<LogicalType> distinctAggregateKeyTypes;
     for (auto& aggInfo : aggregateInfos) {
         distinctAggregateKeyTypes.push_back(aggInfo.distinctAggKeyType.copy());
@@ -108,19 +117,6 @@ HashAggregateSharedState::HashAggregateSharedState(main::ClientContext* context,
     }
 }
 
-HashAggregateSharedState::HashTableQueue::HashTableQueue(storage::MemoryManager* memoryManager,
-    FactorizedTableSchema tableSchema) {
-    headBlock = new TupleBlock(memoryManager, std::move(tableSchema));
-}
-
-HashAggregateSharedState::HashTableQueue::~HashTableQueue() {
-    delete headBlock.load();
-    TupleBlock* block = nullptr;
-    while (queuedTuples.pop(block)) {
-        delete block;
-    }
-}
-
 std::pair<uint64_t, uint64_t> HashAggregateSharedState::getNextRangeToRead() {
     std::unique_lock lck{mtx};
     auto startOffset = currentOffset;
@@ -137,73 +133,6 @@ std::pair<uint64_t, uint64_t> HashAggregateSharedState::getNextRangeToRead() {
     return std::make_pair(startOffset, startOffset + range);
 }
 
-HashAggregateInfo::HashAggregateInfo(std::vector<DataPos> flatKeysPos,
-    std::vector<DataPos> unFlatKeysPos, std::vector<DataPos> dependentKeysPos,
-    FactorizedTableSchema tableSchema)
-    : flatKeysPos{std::move(flatKeysPos)}, unFlatKeysPos{std::move(unFlatKeysPos)},
-      dependentKeysPos{std::move(dependentKeysPos)}, tableSchema{std::move(tableSchema)} {}
-
-HashAggregateInfo::HashAggregateInfo(const HashAggregateInfo& other)
-    : flatKeysPos{other.flatKeysPos}, unFlatKeysPos{other.unFlatKeysPos},
-      dependentKeysPos{other.dependentKeysPos}, tableSchema{other.tableSchema.copy()} {}
-
-void HashAggregateLocalState::init(HashAggregateSharedState* sharedState, ResultSet& resultSet,
-    main::ClientContext* context, std::vector<function::AggregateFunction>& aggregateFunctions,
-    std::vector<common::LogicalType> distinctKeyTypes) {
-    auto& info = sharedState->getAggregateInfo();
-    std::vector<LogicalType> keyDataTypes;
-    for (auto& pos : info.flatKeysPos) {
-        auto vector = resultSet.getValueVector(pos).get();
-        flatKeyVectors.push_back(vector);
-        keyDataTypes.push_back(vector->dataType.copy());
-    }
-    for (auto& pos : info.unFlatKeysPos) {
-        auto vector = resultSet.getValueVector(pos).get();
-        unFlatKeyVectors.push_back(vector);
-        keyDataTypes.push_back(vector->dataType.copy());
-    }
-    std::vector<LogicalType> payloadDataTypes;
-    for (auto& pos : info.dependentKeysPos) {
-        auto vector = resultSet.getValueVector(pos).get();
-        dependentKeyVectors.push_back(vector);
-        payloadDataTypes.push_back(vector->dataType.copy());
-    }
-    leadingState = unFlatKeyVectors.empty() ? flatKeyVectors[0]->state.get() :
-                                              unFlatKeyVectors[0]->state.get();
-
-    aggregateHashTable = std::make_unique<PartitioningAggregateHashTable>(sharedState,
-        *context->getMemoryManager(), std::move(keyDataTypes), std::move(payloadDataTypes),
-        aggregateFunctions, std::move(distinctKeyTypes), info.tableSchema.copy());
-}
-
-uint64_t HashAggregateLocalState::append(const std::vector<AggregateInput>& aggregateInputs,
-    uint64_t multiplicity) const {
-    return aggregateHashTable->append(flatKeyVectors, unFlatKeyVectors, dependentKeyVectors,
-        leadingState, aggregateInputs, multiplicity);
-}
-
-void HashAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    BaseAggregate::initLocalStateInternal(resultSet, context);
-    std::vector<LogicalType> distinctAggKeyTypes;
-    for (auto& info : aggInfos) {
-        distinctAggKeyTypes.push_back(info.distinctAggKeyType.copy());
-    }
-    localState.init(sharedState.get(), *resultSet, context->clientContext, aggregateFunctions,
-        std::move(distinctAggKeyTypes));
-}
-
-void HashAggregate::executeInternal(ExecutionContext* context) {
-    while (children[0]->getNextTuple(context)) {
-        const auto numAppendedFlatTuples = localState.append(aggInputs, resultSet->multiplicity);
-        metrics->numOutputTuple.increase(numAppendedFlatTuples);
-        // Note: The limit count check here is only applicable to the distinct limit case.
-        if (localState.aggregateHashTable->getNumEntries() >= sharedState->getLimitNumber()) {
-            break;
-        }
-    }
-    localState.aggregateHashTable->mergeAll();
-}
-
 uint64_t HashAggregateSharedState::getNumTuples() const {
     uint64_t numTuples = 0;
     for (auto& partition : globalPartitions) {
@@ -217,7 +146,7 @@ void HashAggregateSharedState::HashTableQueue::appendTuple(std::span<uint8_t> tu
         auto* block = headBlock.load();
         KU_ASSERT(tuple.size() == block->table.getTableSchema()->getNumBytesPerTuple());
         auto posToWrite = block->numTuplesReserved++;
-        if (posToWrite < block->table.getNumTuplesPerBlock()) {
+        if (posToWrite < numTuplesPerBlock) {
             memcpy(block->table.getTuple(posToWrite), tuple.data(), tuple.size());
             block->numTuplesWritten++;
             return;
@@ -268,39 +197,29 @@ void HashAggregateSharedState::HashTableQueue::mergeInto(AggregateHashTable& has
     this->headBlock = nullptr;
 }
 
-void HashAggregateSharedState::finalizeAggregateHashTable() {
-    for (auto& partition : globalPartitions) {
-        if (!partition.finalized && partition.mtx.try_lock()) {
-            if (partition.finalized) {
-                // If there was a data race in the above && a thread may get through after another
-                // thread has finalized this partition
-                // TODO(bmwinger): While it's not currently necessary to unlock the mutexes here,
-                // we can use the locks again to start scanning before all partitions are finalized.
-                partition.mtx.unlock();
-                continue;
-            }
-            if (!partition.hashTable) {
-                // We always initialize the hash table in the first partition
-                partition.hashTable = std::make_unique<AggregateHashTable>(
-                    globalPartitions[0].hashTable->createEmptyCopy());
-            }
-            // TODO(bmwinger): ideally these can be merged into a single function.
-            // The distinct tables need to be merged first so that they exist when the other table
-            // updates the agg states when it merges
-            for (size_t i = 0; i < partition.distinctTableQueues.size(); i++) {
-                if (partition.distinctTableQueues[i]) {
-                    partition.distinctTableQueues[i]->mergeInto(
-                        *partition.hashTable->getDistinctHashTable(i));
-                }
-            }
-            partition.queue->mergeInto(*partition.hashTable);
-            partition.hashTable->mergeDistinctAggregateInfo();
-
-            partition.hashTable->finalizeAggregateStates();
-            partition.finalized = true;
-            partition.mtx.unlock();
+void HashAggregateSharedState::finalizePartitions() {
+    BaseAggregateSharedState::finalizePartitions(globalPartitions, [&](auto& partition) {
+        if (!partition.hashTable) {
+            // We always initialize the hash table in the first partition
+            partition.hashTable = std::make_unique<AggregateHashTable>(
+                globalPartitions[0].hashTable->createEmptyCopy());
         }
-    }
+        // TODO(bmwinger): ideally these can be merged into a single function.
+        // The distinct tables need to be merged first so that they exist when the other table
+        // updates the agg states when it merges
+        for (size_t i = 0; i < partition.distinctTableQueues.size(); i++) {
+            if (partition.distinctTableQueues[i]) {
+                partition.distinctTableQueues[i]->mergeInto(
+                    *partition.hashTable->getDistinctHashTable(i));
+            }
+        }
+        partition.queue->mergeInto(*partition.hashTable);
+        partition.hashTable->mergeDistinctAggregateInfo();
+
+        partition.hashTable->finalizeAggregateStates();
+        partition.finalized = true;
+        partition.mtx.unlock();
+    });
 }
 
 std::tuple<const FactorizedTable*, offset_t> HashAggregateSharedState::getPartitionForOffset(
@@ -336,6 +255,64 @@ void HashAggregateSharedState::assertFinalized() const {
         KU_ASSERT(partition.finalized);
         KU_ASSERT(partition.queue->empty());
     });
+}
+
+void HashAggregateLocalState::init(HashAggregateSharedState* sharedState, ResultSet& resultSet,
+    main::ClientContext* context, std::vector<function::AggregateFunction>& aggregateFunctions,
+    std::vector<common::LogicalType> distinctKeyTypes) {
+    auto& info = sharedState->getAggregateInfo();
+    std::vector<LogicalType> keyDataTypes;
+    for (auto& pos : info.flatKeysPos) {
+        auto vector = resultSet.getValueVector(pos).get();
+        flatKeyVectors.push_back(vector);
+        keyDataTypes.push_back(vector->dataType.copy());
+    }
+    for (auto& pos : info.unFlatKeysPos) {
+        auto vector = resultSet.getValueVector(pos).get();
+        unFlatKeyVectors.push_back(vector);
+        keyDataTypes.push_back(vector->dataType.copy());
+    }
+    std::vector<LogicalType> payloadDataTypes;
+    for (auto& pos : info.dependentKeysPos) {
+        auto vector = resultSet.getValueVector(pos).get();
+        dependentKeyVectors.push_back(vector);
+        payloadDataTypes.push_back(vector->dataType.copy());
+    }
+    leadingState = unFlatKeyVectors.empty() ? flatKeyVectors[0]->state.get() :
+                                              unFlatKeyVectors[0]->state.get();
+
+    aggregateHashTable = std::make_unique<PartitioningAggregateHashTable>(sharedState,
+        *context->getMemoryManager(), std::move(keyDataTypes), std::move(payloadDataTypes),
+        aggregateFunctions, std::move(distinctKeyTypes), info.tableSchema.copy());
+}
+
+uint64_t HashAggregateLocalState::append(const std::vector<AggregateInput>& aggregateInputs,
+    uint64_t multiplicity) const {
+    return aggregateHashTable->append(flatKeyVectors, unFlatKeyVectors, dependentKeyVectors,
+        leadingState, aggregateInputs, multiplicity);
+}
+
+void HashAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    BaseAggregate::initLocalStateInternal(resultSet, context);
+    std::vector<LogicalType> distinctAggKeyTypes;
+    for (auto& info : aggInfos) {
+        distinctAggKeyTypes.push_back(info.distinctAggKeyType.copy());
+    }
+    localState.init(common::ku_dynamic_cast<HashAggregateSharedState*>(sharedState.get()),
+        *resultSet, context->clientContext, aggregateFunctions, std::move(distinctAggKeyTypes));
+}
+
+void HashAggregate::executeInternal(ExecutionContext* context) {
+    while (children[0]->getNextTuple(context)) {
+        const auto numAppendedFlatTuples = localState.append(aggInputs, resultSet->multiplicity);
+        metrics->numOutputTuple.increase(numAppendedFlatTuples);
+        // Note: The limit count check here is only applicable to the distinct limit case.
+        if (localState.aggregateHashTable->getNumEntries() >=
+            getSharedStateReference().getLimitNumber()) {
+            break;
+        }
+    }
+    localState.aggregateHashTable->mergeAll();
 }
 
 } // namespace processor
