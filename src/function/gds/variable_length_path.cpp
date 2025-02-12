@@ -44,25 +44,23 @@ public:
 struct VarLenJoinsEdgeCompute : public EdgeCompute {
     DoublePathLengthsFrontierPair* frontierPair;
     BFSGraph* bfsGraph;
-    ObjectBlock<ParentList>* parentPtrsBlock = nullptr;
+    ObjectBlock<ParentList>* block = nullptr;
 
     VarLenJoinsEdgeCompute(DoublePathLengthsFrontierPair* frontierPair, BFSGraph* bfsGraph)
         : frontierPair{frontierPair}, bfsGraph{bfsGraph} {
-        parentPtrsBlock = bfsGraph->addNewBlock();
+        block = bfsGraph->addNewBlock();
     };
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
-        bool isFwd) override {
+        bool fwdEdge) override {
         std::vector<nodeID_t> activeNodes;
-        chunk.forEach([&](auto nbrNode, auto edgeID) {
+        chunk.forEach([&](auto nbrNodeID, auto edgeID) {
             // We should always update the nbrID in variable length joins
-            if (!parentPtrsBlock->hasSpace()) {
-                parentPtrsBlock = bfsGraph->addNewBlock();
+            if (!block->hasSpace()) {
+                block = bfsGraph->addNewBlock();
             }
-            auto parent = parentPtrsBlock->reserveNext();
-            parent->store(frontierPair->getCurrentIter(), boundNodeID, edgeID, isFwd);
-            bfsGraph->addParent(parent, nbrNode.offset);
-            activeNodes.push_back(nbrNode);
+            bfsGraph->addParent(frontierPair->getCurrentIter(), boundNodeID, edgeID, nbrNodeID, fwdEdge, block);
+            activeNodes.push_back(nbrNodeID);
         });
         return activeNodes;
     }

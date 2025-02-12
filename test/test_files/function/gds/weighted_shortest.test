@@ -6,13 +6,17 @@
 -LOG SingleWSP
 -STATEMENT MATCH p = (a)-[e* WSHORTEST(cost1) ]->(b)
         WHERE a.ID = 'A'
-        RETURN b.ID, e_weight
+        RETURN b.ID, e
 ---- 5
 B|50.000000
 C|50.000000
 D|90.000000
 E|120.000000
 F|160.000000
+
+-CASE X
+-SKIP
+
 -LOG WSP-INT128
 -STATEMENT MATCH p = (a)-[e* WSHORTEST(cost0) ]->(b)
         RETURN a.ID, b.ID, e_weight
