@@ -30,7 +30,7 @@ struct RJBindData : public GDSBindData {
     std::shared_ptr<binder::Expression> pathNodeIDsExpr = nullptr;
     std::shared_ptr<binder::Expression> pathEdgeIDsExpr = nullptr;
 
-    std::string weightPropertyName;
+    std::shared_ptr<binder::Expression> weightPropertyExpr = nullptr;
     std::shared_ptr<binder::Expression> weightOutputExpr = nullptr;
 
     RJBindData(graph::GraphEntry graphEntry, std::shared_ptr<binder::Expression> nodeOutput)

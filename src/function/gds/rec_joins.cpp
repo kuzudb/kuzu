@@ -2,6 +2,7 @@
 
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "binder/expression/property_expression.h"
 #include "common/enums/extend_direction_util.h"
 #include "common/exception/interrupt.h"
 #include "common/exception/runtime.h"
@@ -32,7 +33,7 @@ RJBindData::RJBindData(const RJBindData& other) : GDSBindData{other} {
     lengthExpr = other.lengthExpr;
     pathNodeIDsExpr = other.pathNodeIDsExpr;
     pathEdgeIDsExpr = other.pathEdgeIDsExpr;
-    weightPropertyName = other.weightPropertyName;
+    weightPropertyExpr = other.weightPropertyExpr;
     weightOutputExpr = other.weightOutputExpr;
 }
 
@@ -212,9 +213,13 @@ void RJAlgorithm::exec(processor::ExecutionContext* context) {
             auto gdsComputeState = rjCompState.gdsComputeState.get();
             gdsComputeState->initSource(sourceNodeID);
             auto rjBindData = bindData->ptrCast<RJBindData>();
+            std::string propertyName;
+            if (rjBindData->weightPropertyExpr != nullptr) {
+                propertyName = rjBindData->weightPropertyExpr->ptrCast<PropertyExpression>()
+                                   ->getPropertyName();
+            }
             GDSUtils::runFrontiersUntilConvergence(context, *gdsComputeState, graph,
-                rjBindData->extendDirection, rjBindData->upperBound,
-                rjBindData->weightPropertyName);
+                rjBindData->extendDirection, rjBindData->upperBound, propertyName);
             auto vertexCompute =
                 std::make_unique<RJVertexCompute>(clientContext->getMemoryManager(),
                     sharedState.get(), rjCompState.outputWriter->copy());
