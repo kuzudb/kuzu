@@ -309,6 +309,26 @@ static void bindProjectionListAsStructField(const expression_vector& projectionL
     }
 }
 
+static void checkWeightedShortestPathSupportedType(const LogicalType& type) {
+    switch (type.getLogicalTypeID()) {
+    case LogicalTypeID::INT8:
+    case LogicalTypeID::UINT8:
+    case LogicalTypeID::INT16:
+    case LogicalTypeID::UINT16:
+    case LogicalTypeID::INT32:
+    case LogicalTypeID::UINT32:
+    case LogicalTypeID::INT64:
+    case LogicalTypeID::UINT64:
+    case LogicalTypeID::DOUBLE:
+    case LogicalTypeID::FLOAT:
+        return;
+    default:
+        break;
+    }
+    throw BinderException(stringFormat(
+        "{} weight type is not supported for weighted shortest path.", type.toString()));
+}
+
 std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::RelPattern& relPattern,
     const std::vector<TableCatalogEntry*>& entries, std::shared_ptr<NodeExpression> srcNode,
     std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType) {
@@ -440,6 +460,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     if (relPattern.getRelType() == QueryRelType::WEIGHTED_SHORTEST) {
         auto propertyExpr = expressionBinder.bindNodeOrRelPropertyExpression(*rel,
             recursivePatternInfo->weightPropertyName);
+        checkWeightedShortestPathSupportedType(propertyExpr->getDataType());
         recursiveInfo->weightPropertyExpr = propertyExpr;
         recursiveInfo->weightOutputExpr =
             createVariable(parsedName + "_weight", LogicalType::DOUBLE());

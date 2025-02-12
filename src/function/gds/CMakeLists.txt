@@ -1,6 +1,7 @@
 add_library(kuzu_function_algorithm
         OBJECT
         all_shortest_paths.cpp
+        bfs_graph.cpp
         gds.cpp
         gds_frontier.cpp
         gds_state.cpp

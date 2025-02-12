@@ -19,9 +19,7 @@ public:
     }
 
     T* reserveNext() {
-        auto result = getData() + nextPosToWrite.load(std::memory_order_relaxed);
-        nextPosToWrite.fetch_add(1, std::memory_order_relaxed);
-        return result;
+        return getData() + nextPosToWrite.fetch_add(1, std::memory_order_relaxed);
     }
     void revertLast() { nextPosToWrite.fetch_sub(1, std::memory_order_relaxed); }
 
