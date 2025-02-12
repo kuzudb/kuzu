@@ -131,6 +131,11 @@ public:
 
     void flush(FileHandle& dataFH) override;
 
+    // this does not override ChunkedNodeGroup::merge() since clang-tidy analyzer seems to struggle
+    // with detecting the std::move of the header in that case
+    void mergeChunkedCSRGroup(ChunkedCSRNodeGroup& base,
+        const std::vector<common::column_id_t>& columnsToMergeInto);
+
 private:
     ChunkedCSRHeader csrHeader;
 };
