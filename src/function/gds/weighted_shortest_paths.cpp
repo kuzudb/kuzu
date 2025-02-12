@@ -14,9 +14,7 @@ namespace function {
 
 class Costs {
 public:
-    Costs(const table_id_map_t<offset_t>& numNodesMap, MemoryManager* mm) {
-        init(numNodesMap, mm);
-    }
+    Costs(const table_id_map_t<offset_t>& numNodesMap, MemoryManager* mm) { init(numNodesMap, mm); }
 
     void pinTable(table_id_t tableID) { costs = costsMap.getData(tableID); }
 
@@ -56,8 +54,7 @@ private:
 template<typename T>
 class DestinationsEdgeCompute : public EdgeCompute {
 public:
-    explicit DestinationsEdgeCompute(std::shared_ptr<Costs> costs)
-        : costs{std::move(costs)} {}
+    explicit DestinationsEdgeCompute(std::shared_ptr<Costs> costs) : costs{std::move(costs)} {}
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
         bool) override {

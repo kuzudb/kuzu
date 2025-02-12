@@ -2,6 +2,7 @@
 
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "binder/expression/property_expression.h"
 #include "common/enums/extend_direction_util.h"
 #include "common/exception/interrupt.h"
 #include "common/exception/runtime.h"
@@ -13,7 +14,6 @@
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_storage.h"
-#include "binder/expression/property_expression.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -215,7 +215,8 @@ void RJAlgorithm::exec(processor::ExecutionContext* context) {
             auto rjBindData = bindData->ptrCast<RJBindData>();
             std::string propertyName;
             if (rjBindData->weightPropertyExpr != nullptr) {
-                propertyName = rjBindData->weightPropertyExpr->ptrCast<PropertyExpression>()->getPropertyName();
+                propertyName = rjBindData->weightPropertyExpr->ptrCast<PropertyExpression>()
+                                   ->getPropertyName();
             }
             GDSUtils::runFrontiersUntilConvergence(context, *gdsComputeState, graph,
                 rjBindData->extendDirection, rjBindData->upperBound, propertyName);
