@@ -1,5 +1,7 @@
 #include "function/gds/gds_utils.h"
 
+#include <iostream>
+
 #include "binder/expression/property_expression.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
@@ -8,7 +10,6 @@
 #include "graph/graph.h"
 #include "graph/graph_entry.h"
 #include "main/settings.h"
-#include <iostream>
 
 using namespace kuzu::common;
 using namespace kuzu::function;

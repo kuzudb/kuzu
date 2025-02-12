@@ -2,7 +2,6 @@
 #include <thread>
 #include <tuple>
 #include <vector>
-#include <format>
 
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
@@ -17,6 +16,7 @@
 #include "graph/graph.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
+#include <format>
 
 using namespace std;
 using namespace kuzu::binder;
@@ -45,17 +45,17 @@ public:
         }
     }
 
-    void pinTable(table_id_t tableID) { componentIDs = componentIDsMap.getData(tableID); 
-        visits = visitsMap.getData(tableID);}
+    void pinTable(table_id_t tableID) {
+        componentIDs = componentIDsMap.getData(tableID);
+        visits = visitsMap.getData(tableID);
+    }
 
     bool updateVisit(common::offset_t offset, bool value) {
         visits[offset].store(value, std::memory_order_relaxed);
         return true;
     }
 
-    bool getVisit(offset_t offset) {
-        return visits[offset].load(std::memory_order_relaxed);
-    }
+    bool getVisit(offset_t offset) { return visits[offset].load(std::memory_order_relaxed); }
 
     bool updateComponentID(common::offset_t offset, offset_t value) {
         componentIDs[offset].store(value, std::memory_order_relaxed);
@@ -77,8 +77,7 @@ private:
 
 class SCCCompute {
 public:
-    SCCCompute(graph::Graph* graph, const table_id_map_t<offset_t>& numNodesMap,
-        SCCState& sccState)
+    SCCCompute(graph::Graph* graph, const table_id_map_t<offset_t>& numNodesMap, SCCState& sccState)
         : graph{graph}, sccState{sccState}, numNodesMap{numNodesMap} {};
     ~SCCCompute() = default;
 
@@ -91,9 +90,7 @@ public:
         sccState.updateVisit(node.offset, true);
         auto scanState = graph->prepareRelScan(relEntry, "");
         for (auto chunk : graph->scanFwd(node, *scanState)) {
-            chunk.forEach([&](auto nbrNodeID, auto) {
-                visit_vertex(nbrNodeID, relEntry);
-            });
+            chunk.forEach([&](auto nbrNodeID, auto) { visit_vertex(nbrNodeID, relEntry); });
         }
         queue.push_back(node);
     }
@@ -107,9 +104,7 @@ public:
         sccState.updateComponentID(node.offset, root);
         auto scanState = graph->prepareRelScan(relEntry, "");
         for (auto chunk : graph->scanBwd(node, *scanState)) {
-            chunk.forEach([&](auto nbrNodeID, auto) {
-                assign_id(nbrNodeID, root, relEntry);
-            });
+            chunk.forEach([&](auto nbrNodeID, auto) { assign_id(nbrNodeID, root, relEntry); });
         }
     }
 
@@ -137,21 +132,21 @@ private:
 };
 
 class SCCOutputWriter : public GDSOutputWriter {
-    public:
-        explicit SCCOutputWriter(main::ClientContext* context) : GDSOutputWriter{context} {
-            nodeIDVector = createVector(LogicalType::INTERNAL_ID(), context->getMemoryManager());
-            componentIDVector = createVector(LogicalType::UINT64(), context->getMemoryManager());
-        }
-    
-        std::unique_ptr<SCCOutputWriter> copy() const {
-            return std::make_unique<SCCOutputWriter>(context);
-        }
-    
-    public:
-        std::unique_ptr<ValueVector> nodeIDVector;
-        std::unique_ptr<ValueVector> componentIDVector;
-    };
-    
+public:
+    explicit SCCOutputWriter(main::ClientContext* context) : GDSOutputWriter{context} {
+        nodeIDVector = createVector(LogicalType::INTERNAL_ID(), context->getMemoryManager());
+        componentIDVector = createVector(LogicalType::UINT64(), context->getMemoryManager());
+    }
+
+    std::unique_ptr<SCCOutputWriter> copy() const {
+        return std::make_unique<SCCOutputWriter>(context);
+    }
+
+public:
+    std::unique_ptr<ValueVector> nodeIDVector;
+    std::unique_ptr<ValueVector> componentIDVector;
+};
+
 class SCCVertexCompute : public VertexCompute {
 public:
     SCCVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState,
@@ -188,7 +183,7 @@ private:
 
     processor::FactorizedTable* localFT;
 };
-    
+
 class StronglyConnectedComponent final : public GDSAlgorithm {
     static constexpr char GROUP_ID_COLUMN_NAME[] = "group_id";
     static constexpr uint8_t MAX_ITERATION = 100;
