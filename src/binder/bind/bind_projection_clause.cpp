@@ -6,6 +6,7 @@
 #include "common/exception/binder.h"
 #include "parser/expression/parsed_property_expression.h"
 #include "parser/query/return_with_clause/with_clause.h"
+#include "binder/expression/lambda_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -130,15 +131,46 @@ std::pair<expression_vector, std::vector<std::string>> Binder::bindProjectionLis
     return {projectionExprs, aliases};
 }
 
+class NestedAggCollector final : public ExpressionVisitor {
+public:
+    expression_vector exprs;
+
+protected:
+    void visitAggFunctionExpr(std::shared_ptr<Expression> expr) override {
+        exprs.push_back(expr);
+    }
+    void visitChildren(const Expression &expr) override {
+        switch (expr.expressionType) {
+        case ExpressionType::CASE_ELSE: {
+            visitCaseExprChildren(expr);
+        } break;
+        case ExpressionType::LAMBDA: {
+            auto& lambda = expr.constCast<LambdaExpression>();
+            visit(lambda.getFunctionExpr());
+        } break;
+        case ExpressionType::AGGREGATE_FUNCTION: {
+            // We do not traverse the child or aggregate because nested agg is validated recursively
+            // e.g.  WITH SUM(1) AS x WITH SUM(x) AS y RETURN SUM(y)
+            // when validating SUM(y) we only need to check y and not x.
+        } break;
+        default: {
+            for (auto& child : expr.getChildren()) {
+                visit(child);
+            }
+        }
+        }
+    }
+};
+
 static void validateNestedAggregate(const Expression& expr, const BinderScope& scope) {
     KU_ASSERT(expr.expressionType == ExpressionType::AGGREGATE_FUNCTION);
     if (expr.getNumChildren() == 0) { // Skip COUNT(*)
         return;
     }
-    auto collector = AggregateExprCollector();
+    auto collector = NestedAggCollector();
     collector.visit(expr.getChild(0));
-    for (auto& agg : collector.getAggregates()) {
-        if (!scope.contains(agg->getAlias())) {
+    for (auto& childAgg : collector.exprs) {
+        if (!scope.contains(childAgg->getAlias())) {
             throw BinderException(
                 stringFormat("Expression {} contains nested aggregation.", expr.toString()));
         }
