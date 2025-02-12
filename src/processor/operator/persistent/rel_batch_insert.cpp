@@ -153,9 +153,13 @@ void RelBatchInsert::appendNodeGroup(MemoryManager& mm, transaction::Transaction
     localState.chunkedGroup->finalize();
 
     auto* relTable = sharedState.table->ptrCast<RelTable>();
-    appendNewChunkedGroup(mm, transaction, relInfo.insertColumnIDs,
-        localState.chunkedGroup->cast<ChunkedCSRNodeGroup>(), *relTable, nodeGroup,
-        relInfo.direction);
+
+    ChunkedCSRNodeGroup sliceToWriteToDisk{localState.chunkedGroup->cast<ChunkedCSRNodeGroup>(),
+        relInfo.outputDataColumns};
+    appendNewChunkedGroup(mm, transaction, relInfo.insertColumnIDs, sliceToWriteToDisk, *relTable,
+        nodeGroup, relInfo.direction);
+    localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().mergeChunkedCSRGroup(sliceToWriteToDisk,
+        relInfo.outputDataColumns);
 
     localState.chunkedGroup->resetToEmpty();
 }
