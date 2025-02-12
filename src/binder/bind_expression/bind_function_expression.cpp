@@ -51,7 +51,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         }
         children.push_back(expr);
     }
-    return bindScalarFunctionExpression(children, functionName);
+    return bindScalarFunctionExpression(children, functionName,
+        parsedExpression.constCast<ParsedFunctionExpression>().getOptionalParams());
 }
 
 static std::vector<LogicalType> getTypes(const expression_vector& exprs) {
@@ -63,7 +64,8 @@ static std::vector<LogicalType> getTypes(const expression_vector& exprs) {
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
-    const expression_vector& children, const std::string& functionName) {
+    const expression_vector& children, const std::string& functionName,
+    std::vector<std::string> optionalParams) {
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
     auto childrenTypes = getTypes(children);
@@ -82,7 +84,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     }
     expression_vector childrenAfterCast;
     std::unique_ptr<function::FunctionBindData> bindData;
-    auto bindInput = ScalarBindFuncInput{children, function.get(), context};
+    auto bindInput =
+        ScalarBindFuncInput{children, function.get(), context, std::move(optionalParams)};
     if (functionName == CastAnyFunction::name) {
         bindData = function->bindFunc(bindInput);
         if (bindData == nullptr) { // No need to cast.
@@ -168,7 +171,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     }
     std::unique_ptr<FunctionBindData> bindData;
     if (function.bindFunc) {
-        auto bindInput = ScalarBindFuncInput{children, &function, context};
+        auto bindInput = ScalarBindFuncInput{children, &function, context,
+            std::vector<std::string>{} /* optionalParams */};
         bindData = function.bindFunc(bindInput);
     } else {
         bindData = std::make_unique<function::FunctionBindData>(LogicalType(function.returnTypeID));

@@ -43,6 +43,13 @@ public:
 
     void addChild(std::unique_ptr<ParsedExpression> child) { children.push_back(std::move(child)); }
 
+    void addOptionalParams(std::string name, std::unique_ptr<ParsedExpression> child) {
+        optionalParams.push_back(std::move(name));
+        children.push_back(std::move(child));
+    }
+
+    std::vector<std::string> getOptionalParams() const { return optionalParams; }
+
     static std::unique_ptr<ParsedFunctionExpression> deserialize(
         common::Deserializer& deserializer);
 
@@ -57,6 +64,7 @@ private:
 private:
     bool isDistinct;
     std::string functionName;
+    std::vector<std::string> optionalParams;
 };
 
 } // namespace parser
