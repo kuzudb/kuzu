@@ -172,7 +172,7 @@ class AllSPPathsEdgeCompute : public SPEdgeCompute {
 public:
     AllSPPathsEdgeCompute(SinglePathLengthsFrontierPair* frontiersPair, BFSGraph* bfsGraph)
         : SPEdgeCompute{frontiersPair}, bfsGraph{bfsGraph} {
-        parentListBlock = bfsGraph->addNewBlock();
+        parentPtrsBlock = bfsGraph->addNewBlock();
     }
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, NbrScanState::Chunk& resultChunk,
@@ -188,11 +188,12 @@ public:
             auto shouldUpdate =
                 nbrLen == PathLengths::UNVISITED || nbrLen == frontierPair->getCurrentIter();
             if (shouldUpdate) {
-                if (!parentListBlock->hasSpace()) {
-                    parentListBlock = bfsGraph->addNewBlock();
+                if (!parentPtrsBlock->hasSpace()) {
+                    parentPtrsBlock = bfsGraph->addNewBlock();
                 }
-                bfsGraph->addParent(frontierPair->getCurrentIter(), parentListBlock,
-                    nbrNodeID /* child */, boundNodeID /* parent */, edgeID, fwdEdge);
+                auto parent = parentPtrsBlock->reserveNext();
+                parent->store(frontierPair->getCurrentIter(), boundNodeID, edgeID, fwdEdge);
+                bfsGraph->addParent(parent, nbrNodeID.offset);
             }
             if (nbrLen == PathLengths::UNVISITED) {
                 activeNodes.push_back(nbrNodeID);
@@ -207,7 +208,7 @@ public:
 
 private:
     BFSGraph* bfsGraph;
-    ObjectBlock<ParentList>* parentListBlock = nullptr;
+    ObjectBlock<ParentList>* parentPtrsBlock = nullptr;
 };
 
 /**
@@ -215,7 +216,6 @@ private:
  * is returned for each destination. If paths are not returned, multiplicities indicate the
  * number of paths to each destination.
  */
-
 class AllSPDestinationsAlgorithm final : public SPAlgorithm {
 public:
     AllSPDestinationsAlgorithm() = default;

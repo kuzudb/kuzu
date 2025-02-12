@@ -65,11 +65,6 @@ static void addListEntry(ValueVector* vector, uint64_t length) {
     vector->setValue(0, entry);
 }
 
-static void setLength(ValueVector* vector, uint16_t length) {
-    KU_ASSERT(vector->dataType.getLogicalTypeID() == LogicalTypeID::UINT16);
-    vector->setValue<uint16_t>(0, length);
-}
-
 static ParentList* getTop(const std::vector<ParentList*>& path) {
     return path[path.size() - 1];
 }
@@ -82,63 +77,63 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
         if (sourceNodeID == dstNodeID && info.lowerBound == 0) {
             // We still output a path from src to src if required path length is 0.
             // This case should only run for variable length joins.
-            setLength(lengthVector.get(), 0);
-            if (info.writePath) {
-                beginWritePath(0);
-            }
+            writePath({});
             fTable.append(vectors);
             // No need to check against limit number since this is the first output.
-            if (counter != nullptr) {
-                counter->increase(1);
-            }
+            updateCounterAndTerminate(counter);
         }
         return;
     }
-    setLength(lengthVector.get(), firstParent->getIter());
+    if (!info.hasNodeMask() && info.semantic == PathSemantic::WALK) {
+        dfsFast(firstParent, fTable, counter);
+        return;
+    }
+    dfsSlow(firstParent, fTable, counter);
+}
+
+void PathsOutputWriter::dfsFast(ParentList* firstParent, FactorizedTable& fTable,
+    GDSOutputCounter* counter) {
     std::vector<ParentList*> curPath;
     curPath.push_back(firstParent);
     auto backtracking = false;
-    if (!info.hasNodeMask() && info.semantic == PathSemantic::WALK) {
-        // Fast path when there is no node predicate or semantic check
-        while (!curPath.empty()) {
-            if (context->interrupted()) {
-                throw InterruptException{};
-            }
-            auto top = curPath[curPath.size() - 1];
-            auto topNodeID = top->getNodeID();
-            if (top->getIter() == 1) {
-                writePath(curPath);
-                fTable.append(vectors);
-                if (counter != nullptr) {
-                    counter->increase(1);
-                    if (counter->exceedLimit()) {
-                        return;
-                    }
-                }
-                backtracking = true;
-            }
-            if (backtracking) {
-                auto next = getTop(curPath)->getNextPtr();
-                if (isNextViable(next, curPath)) {
-                    curPath[curPath.size() - 1] = next;
-                    if (curPath.size() == 1) {
-                        setLength(lengthVector.get(), curPath[0]->getIter());
-                    }
-                    backtracking = false;
-                } else {
-                    curPath.pop_back();
-                }
-            } else {
-                auto parent = bfsGraph.getParentListHead(topNodeID);
-                while (parent->getIter() != top->getIter() - 1) {
-                    parent = parent->getNextPtr();
-                }
-                curPath.push_back(parent);
-                backtracking = false;
-            }
+    while (!curPath.empty()) {
+        if (context->interrupted()) {
+            throw InterruptException{};
         }
-        return;
+        auto top = curPath[curPath.size() - 1];
+        auto topNodeID = top->getNodeID();
+        if (top->getIter() == 1) {
+            writePath(curPath);
+            fTable.append(vectors);
+            if (updateCounterAndTerminate(counter)) {
+                return;
+            }
+            backtracking = true;
+        }
+        if (backtracking) {
+            auto next = getTop(curPath)->getNextPtr();
+            if (isNextViable(next, curPath)) {
+                curPath[curPath.size() - 1] = next;
+                backtracking = false;
+            } else {
+                curPath.pop_back();
+            }
+        } else {
+            auto parent = bfsGraph.getParentListHead(topNodeID);
+            while (parent->getIter() != top->getIter() - 1) {
+                parent = parent->getNextPtr();
+            }
+            curPath.push_back(parent);
+            backtracking = false;
+        }
     }
+}
+
+void PathsOutputWriter::dfsSlow(kuzu::function::ParentList* firstParent,
+    processor::FactorizedTable& fTable, processor::GDSOutputCounter* counter) {
+    std::vector<ParentList*> curPath;
+    curPath.push_back(firstParent);
+    auto backtracking = false;
     while (!curPath.empty()) {
         if (context->interrupted()) {
             throw InterruptException{};
@@ -146,11 +141,8 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
         if (getTop(curPath)->getIter() == 1) {
             writePath(curPath);
             fTable.append(vectors);
-            if (counter != nullptr) {
-                counter->increase(1);
-                if (counter->exceedLimit()) {
-                    return;
-                }
+            if (updateCounterAndTerminate(counter)) {
+                return;
             }
             backtracking = true;
         }
@@ -168,9 +160,6 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
                 }
                 // Next is a valid path element. Push into stack and switch to forward track.
                 curPath[curPath.size() - 1] = next;
-                if (curPath.size() == 1) {
-                    setLength(lengthVector.get(), curPath[0]->getIter());
-                }
                 backtracking = false;
                 break;
             }
@@ -195,7 +184,14 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
             }
         }
     }
-    return;
+}
+
+bool PathsOutputWriter::updateCounterAndTerminate(GDSOutputCounter* counter) {
+    if (counter != nullptr) {
+        counter->increase(1);
+        return counter->exceedLimit();
+    }
+    return false;
 }
 
 ParentList* PathsOutputWriter::findFirstParent(offset_t dstOffset) const {
@@ -320,6 +316,11 @@ bool PathsOutputWriter::isReplaceTopAcyclic(const std::vector<ParentList*>& path
     return true;
 }
 
+static void setLength(ValueVector* vector, uint16_t length) {
+    KU_ASSERT(vector->dataType.getLogicalTypeID() == LogicalTypeID::UINT16);
+    vector->setValue<uint16_t>(0, length);
+}
+
 void PathsOutputWriter::beginWritePath(idx_t length) const {
     KU_ASSERT(info.writePath);
     addListEntry(pathNodeIDsVector.get(), length > 1 ? length - 1 : 0);
@@ -330,10 +331,14 @@ void PathsOutputWriter::beginWritePath(idx_t length) const {
 }
 
 void PathsOutputWriter::writePath(const std::vector<ParentList*>& path) const {
+    setLength(lengthVector.get(), path.size());
     if (!info.writePath) {
         return;
     }
     beginWritePath(path.size());
+    if (path.size() == 0) {
+        return;
+    }
     if (!info.flipPath) {
         // By default, write path in reverse direction because we append ParentList from dst to src.
         writePathBwd(path);
