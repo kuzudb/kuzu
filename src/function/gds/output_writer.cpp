@@ -91,7 +91,8 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
     dfsSlow(firstParent, fTable, counter);
 }
 
-void PathsOutputWriter::dfsFast(ParentList* firstParent, FactorizedTable& fTable, GDSOutputCounter* counter) {
+void PathsOutputWriter::dfsFast(ParentList* firstParent, FactorizedTable& fTable,
+    GDSOutputCounter* counter) {
     std::vector<ParentList*> curPath;
     curPath.push_back(firstParent);
     auto backtracking = false;
@@ -128,7 +129,8 @@ void PathsOutputWriter::dfsFast(ParentList* firstParent, FactorizedTable& fTable
     }
 }
 
-void PathsOutputWriter::dfsSlow(kuzu::function::ParentList* firstParent, processor::FactorizedTable& fTable, processor::GDSOutputCounter* counter) {
+void PathsOutputWriter::dfsSlow(kuzu::function::ParentList* firstParent,
+    processor::FactorizedTable& fTable, processor::GDSOutputCounter* counter) {
     std::vector<ParentList*> curPath;
     curPath.push_back(firstParent);
     auto backtracking = false;

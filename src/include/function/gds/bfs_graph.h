@@ -24,12 +24,8 @@ public:
     ParentList* getNextPtr() { return next.load(std::memory_order_relaxed); }
 
     uint16_t getIter() const { return iter; }
-    common::nodeID_t getNodeID() const {
-        return nodeID;
-    }
-    common::relID_t getEdgeID() const {
-        return edgeID;
-    }
+    common::nodeID_t getNodeID() const { return nodeID; }
+    common::relID_t getEdgeID() const { return edgeID; }
     bool isFwdEdge() const { return isFwd; }
 
 private:
@@ -92,9 +88,7 @@ public:
         }
     }
 
-    void pinTableID(common::table_id_t tableID) {
-        currParentPtrs = parentArray.getData(tableID);
-    }
+    void pinTableID(common::table_id_t tableID) { currParentPtrs = parentArray.getData(tableID); }
 
 private:
     std::mutex mtx;
@@ -127,8 +121,6 @@ public:
 private:
     BFSGraph& bfsGraph;
 };
-
-
 
 } // namespace function
 } // namespace kuzu
