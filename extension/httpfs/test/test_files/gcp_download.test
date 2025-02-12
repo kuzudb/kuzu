@@ -1,0 +1,81 @@
+-DATASET CSV empty
+
+--
+
+-CASE GCSOption
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT CALL gcs_access_key_id='kuzuGCSkeyid'
+---- ok
+-STATEMENT call current_setting('gcs_accesS_key_id') return *;
+---- 1
+kuzuGCSkeyid
+-STATEMENT CALL gcs_access_key_id='anotherkey'
+---- ok
+-STATEMENT call current_setting('gcs_access_Key_id') return *;
+---- 1
+anotherkey
+
+-CASE ScanFromGCSFile
+# In-memory mode doesn't support file cache.
+-SKIP_IN_MEM
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT CALL gcs_access_key_id='${GCS_ACCESS_KEY_ID}'
+---- ok
+-STATEMENT CALL gcs_secret_access_key='${GCS_SECRET_ACCESS_KEY}'
+---- ok
+-STATEMENT load from 'gs://kuzudb-test/user.csv' return *;
+---- 4
+Adam|30
+Karissa|40
+Noura|25
+Zhang|50
+-STATEMENT load from 'gs://kuzudb-test/follows.parquet' return *;
+---- 4
+Adam|Karissa|2020
+Adam|Zhang|2020
+Karissa|Zhang|2021
+Zhang|Noura|2022
+-LOG LoadFromWithCache
+-STATEMENT CALL HTTP_CACHE_FILE=TRUE;
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT load from 'gs://kuzudb-test/user.csv' return *;
+---- 4
+Adam|30
+Karissa|40
+Noura|25
+Zhang|50
+-STATEMENT load from 'gs://kuzudb-test/user.csv' return *;
+---- 4
+Adam|30
+Karissa|40
+Noura|25
+Zhang|50
+-STATEMENT COMMIT
+---- ok
+
+-DEFINE_STATEMENT_BLOCK GCS_SETUP [
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT CALL gcs_access_key_id='${GCS_ACCESS_KEY_ID}'
+---- ok
+-STATEMENT CALL gcs_secret_access_key='${GCS_SECRET_ACCESS_KEY}'
+---- ok
+]
+
+-CASE ScanFromDifferentAWSGCSFile
+-INSERT_STATEMENT_BLOCK GCS_SETUP
+-STATEMENT CALL gcs_region='europe-north-1'
+---- ok
+-STATEMENT CREATE NODE TABLE City(name STRING, population INT64, PRIMARY KEY (name))
+---- ok
+-STATEMENT copy City from 'gcs://kuzudb-dataset-eu/city.csv';
+---- ok
+-STATEMENT match (c:City) return c.name, c.population;
+---- 3
+Guelph|75000
+Kitchener|200000
+Waterloo|150000
