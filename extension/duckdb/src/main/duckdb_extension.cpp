@@ -1,5 +1,7 @@
 #include "main/duckdb_extension.h"
 
+#include "connector/duckdb_connector.h"
+#include "connector/duckdb_secret_manager.h"
 #include "main/client_context.h"
 #include "s3fs_config.h"
 #include "storage/duckdb_storage.h"
@@ -10,9 +12,21 @@ namespace duckdb_extension {
 void DuckDBExtension::load(main::ClientContext* context) {
     auto db = context->getDatabase();
     db->registerStorageExtension(EXTENSION_NAME, std::make_unique<DuckDBStorageExtension>(db));
+    DuckDBExtension::loadRemoteFSOptions(context);
+}
+
+void DuckDBExtension::loadRemoteFSOptions(main::ClientContext* context) {
+    auto& db = *context->getDatabase();
     for (auto& fsConfig : httpfs::S3FileSystemConfig::getAvailableConfigs()) {
-        fsConfig.registerExtensionOptions(db);
+        fsConfig.registerExtensionOptions(&db);
         fsConfig.setEnvValue(context);
+    }
+}
+
+void DuckDBExtension::initRemoteFSSecrets(duckdb_extension::DuckDBConnector& connector,
+    main::ClientContext* context) {
+    for (auto& fsConfig : httpfs::S3FileSystemConfig::getAvailableConfigs()) {
+        connector.executeQuery(DuckDBSecretManager::getRemoteFSSecret(context, fsConfig));
     }
 }
 

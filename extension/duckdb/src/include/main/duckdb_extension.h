@@ -5,6 +5,8 @@
 namespace kuzu {
 namespace duckdb_extension {
 
+class DuckDBConnector;
+
 class DuckDBExtension final : public extension::Extension {
 public:
     static constexpr char EXTENSION_NAME[] = "DUCKDB";
@@ -12,6 +14,9 @@ public:
 
 public:
     static void load(main::ClientContext* context);
+    static void loadRemoteFSOptions(main::ClientContext* context);
+    static void initRemoteFSSecrets(duckdb_extension::DuckDBConnector& connector,
+        main::ClientContext* context);
 };
 
 } // namespace duckdb_extension

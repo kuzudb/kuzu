@@ -1,7 +1,6 @@
 #include "connector/iceberg_connector.h"
 
-#include "connector/duckdb_secret_manager.h"
-#include "s3fs_config.h"
+#include "main/duckdb_extension.h"
 
 namespace kuzu {
 namespace iceberg_extension {
@@ -16,9 +15,7 @@ void IcebergConnector::connect(const std::string& /*dbPath*/, const std::string&
     executeQuery("load iceberg;");
     executeQuery("install httpfs;");
     executeQuery("load httpfs;");
-    for (auto& fsConfig : httpfs::S3FileSystemConfig::getAvailableConfigs()) {
-        executeQuery(duckdb_extension::DuckDBSecretManager::getRemoteFSSecret(context, fsConfig));
-    }
+    duckdb_extension::DuckDBExtension::initRemoteFSSecrets(*this, context);
 }
 
 } // namespace iceberg_extension
