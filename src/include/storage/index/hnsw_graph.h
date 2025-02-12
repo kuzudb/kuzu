@@ -160,7 +160,7 @@ public:
     }
 
 private:
-    constexpr uint64_t PARTITION_SIZE = common::StorageConfig::NODE_GROUP_SIZE;
+    static constexpr uint64_t PARTITION_SIZE = common::StorageConfig::NODE_GROUP_SIZE;
     struct Partition {
         common::UniqLock lock() const { return common::UniqLock{mtx}; }
         common::offset_vec_t getNeighbors([[maybe_unused]] const common::UniqLock& lock,
