@@ -80,16 +80,6 @@ std::string ParsedS3URL::getHTTPURL(std::string httpQueryString) const {
     return url;
 }
 
-AuthParams getAuthParams(main::ClientContext* context) {
-    AuthParams authParams;
-    authParams.accessKeyID = context->getCurrentSetting("s3_access_key_id").toString();
-    authParams.secretAccessKey = context->getCurrentSetting("s3_secret_access_key").toString();
-    authParams.endpoint = context->getCurrentSetting("s3_endpoint").toString();
-    authParams.urlStyle = context->getCurrentSetting("s3_url_style").toString();
-    authParams.region = context->getCurrentSetting("s3_region").toString();
-    return authParams;
-}
-
 UploadParams getS3UploadParams(main::ClientContext* context) {
     UploadParams uploadParams;
     uploadParams.maxFileSize =
@@ -105,7 +95,7 @@ RemoteObjectFileSystem::RemoteObjectFileSystem(RemoteFSConfig fsConfig) : fsConf
 
 std::unique_ptr<common::FileInfo> RemoteObjectFileSystem::openFile(const std::string& path,
     int flags, main::ClientContext* context, common::FileLockType /*lock_type*/) {
-    auto authParams = getAuthParams(context);
+    auto authParams = fsConfig.getAuthParams(context);
     auto uploadParams = getS3UploadParams(context);
     if (context->getCurrentSetting(HTTPCacheFileConfig::HTTP_CACHE_FILE_OPTION).getValue<bool>()) {
         initCachedFileManager(context);
@@ -278,7 +268,7 @@ static bool match(std::vector<std::string>::const_iterator key,
 
 std::vector<std::string> RemoteObjectFileSystem::glob(main::ClientContext* context,
     const std::string& path) const {
-    auto s3AuthParams = getAuthParams(context);
+    auto s3AuthParams = fsConfig.getAuthParams(context);
     auto parsedS3URL = parseS3URL(path, s3AuthParams);
     auto parsedGlobURL = parsedS3URL.trimmedS3URL;
     auto firstWildcardPos = parsedGlobURL.find_first_of("*[\\");

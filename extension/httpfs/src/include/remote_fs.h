@@ -6,14 +6,6 @@
 namespace kuzu {
 namespace httpfs {
 
-struct AuthParams {
-    std::string accessKeyID;
-    std::string secretAccessKey;
-    std::string endpoint;
-    std::string urlStyle;
-    std::string region;
-};
-
 struct UploadParams {
     uint64_t maxFileSize = 0;
     uint64_t maxNumPartsPerFile = 0;

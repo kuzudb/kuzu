@@ -48,6 +48,21 @@ std::vector<std::string> RemoteFSConfig::getAuthOptions() const {
     return ret;
 }
 
+AuthParams RemoteFSConfig::getAuthParams(main::ClientContext* context) const {
+    AuthParams authParams;
+    authParams.accessKeyID =
+        context->getCurrentSetting(getFSOptionName(*this, AUTH_OPTIONS[0])).toString();
+    authParams.secretAccessKey =
+        context->getCurrentSetting(getFSOptionName(*this, AUTH_OPTIONS[1])).toString();
+    authParams.endpoint =
+        context->getCurrentSetting(getFSOptionName(*this, AUTH_OPTIONS[2])).toString();
+    authParams.urlStyle =
+        context->getCurrentSetting(getFSOptionName(*this, AUTH_OPTIONS[3])).toString();
+    authParams.region =
+        context->getCurrentSetting(getFSOptionName(*this, AUTH_OPTIONS[4])).toString();
+    return authParams;
+}
+
 void RemoteFSConfig::registerExtensionOptions(main::Database* db) const {
     static constexpr LogicalTypeID optionType = common::LogicalTypeID::STRING;
     static constexpr auto defaultRegion = "us-east-1";
