@@ -89,6 +89,19 @@ Karissa|40
 Zhang|50
 Noura|25
 
+-CASE CopyNodeAfterDropAddColNewGroup
+-STATEMENT create node table Comment (id int64, creationDate INT64, locationIP STRING, browserUsed STRING, content STRING, length INT32, PRIMARY KEY (id));
+---- ok
+-STATEMENT ALTER TABLE Comment DROP length;
+---- ok
+-STATEMENT ALTER TABLE Comment ADD size INT64;
+---- ok
+-STATEMENT COPY Comment FROM '${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv';
+---- ok
+-STATEMENT MATCH (n:Comment) WHERE n.id = 1030792151057 return n.size;
+---- 1
+86
+
 -CASE CopyRelAfterDropAddCol
 -STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name));
 ---- ok
@@ -111,3 +124,23 @@ Adam|2020|Zhang
 Karissa|2021|Zhang
 Zhang|2022|Noura
 Zhang||Adam
+
+-CASE CopyRelAfterDropAddColNewGroup
+-STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name));
+---- ok
+-STATEMENT CREATE REL TABLE Follows(FROM User TO User, comment STRING);
+---- ok
+-STATEMENT COPY User FROM '${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/user.csv';
+---- ok
+-STATEMENT ALTER TABLE Follows DROP comment;
+---- ok
+-STATEMENT ALTER TABLE Follows ADD since INT64;
+---- ok
+-STATEMENT COPY Follows FROM '${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/follows.csv';
+---- ok
+-STATEMENT MATCH (a:User)-[e:Follows]->(b:User) RETURN a.name, e.since, b.name;
+---- 4
+Adam|2020|Karissa
+Adam|2020|Zhang
+Karissa|2021|Zhang
+Zhang|2022|Noura
