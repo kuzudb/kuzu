@@ -25,11 +25,11 @@ static std::string getDuckDBExtensionOptions(main::ClientContext* context,
 std::string DuckDBSecretManager::getRemoteFSSecret(main::ClientContext* context,
     const httpfs::S3FileSystemConfig& config) {
     KU_ASSERT(config.fsName == "S3" || config.fsName == "GCS");
-    std::string templateQuery = R"(CREATE SECRET s3_secret (
+    std::string templateQuery = R"(CREATE SECRET {}_secret (
         {}
         TYPE {}
     );)";
-    return common::stringFormat(templateQuery,
+    return common::stringFormat(templateQuery, config.fsName,
         getDuckDBExtensionOptions(context, config.getAuthOptions()), config.fsName);
 }
 
