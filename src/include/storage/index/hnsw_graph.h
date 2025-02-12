@@ -160,6 +160,7 @@ public:
     }
 
 private:
+    constexpr uint64_t PARTITION_SIZE = common::StorageConfig::NODE_GROUP_SIZE;
     struct Partition {
         common::UniqLock lock() const { return common::UniqLock{mtx}; }
         common::offset_vec_t getNeighbors([[maybe_unused]] const common::UniqLock& lock,
@@ -203,6 +204,7 @@ private:
     };
 
     Partition& getPartition(common::offset_t nodeOffset);
+    const Partition& getPartition(common::offset_t nodeOffset) const;
 
 private:
     std::vector<std::unique_ptr<Partition>> partitions;

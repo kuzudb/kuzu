@@ -159,7 +159,7 @@ void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, common::node_group_idx
 
 SparseInMemHNSWGraph::SparseInMemHNSWGraph(common::offset_t numNodes, common::length_t maxDegree)
     : InMemHNSWGraph{numNodes, maxDegree} {
-    auto numPartitions = StorageUtils::getNodeGroupIdx(numNodes) + 1;
+    auto numPartitions = numNodes + PARTITION_SIZE - 1 / PARTITION_SIZE;
     partitions.resize(numPartitions);
     for (auto i = 0u; i < numPartitions; i++) {
         partitions[i] = std::make_unique<Partition>();
@@ -220,7 +220,14 @@ uint16_t SparseInMemHNSWGraph::Partition::incrementNumRels(
 }
 
 SparseInMemHNSWGraph::Partition& SparseInMemHNSWGraph::getPartition(common::offset_t nodeOffset) {
-    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+    auto nodeGroupIdx = nodeOffset % PARTITION_SIZE;
+    KU_ASSERT(nodeGroupIdx < partitions.size());
+    return *partitions[nodeGroupIdx];
+}
+
+const SparseInMemHNSWGraph::Partition& SparseInMemHNSWGraph::getPartition(
+    common::offset_t nodeOffset) const {
+    auto nodeGroupIdx = nodeOffset % PARTITION_SIZE;
     KU_ASSERT(nodeGroupIdx < partitions.size());
     return *partitions[nodeGroupIdx];
 }
