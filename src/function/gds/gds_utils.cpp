@@ -8,6 +8,7 @@
 #include "graph/graph.h"
 #include "graph/graph_entry.h"
 #include "main/settings.h"
+#include <iostream>
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -60,6 +61,7 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
     compState.edgeCompute->resetSingleThreadState();
     while (frontierPair->continueNextIter(maxIteration)) {
         frontierPair->beginNewIteration();
+        std::cout << "beginNewIteration: " << frontierPair->getCurrentIter() << std::endl;
         if (compState.outputNodeMask != nullptr && compState.outputNodeMask->enabled() &&
             compState.edgeCompute->terminate(*compState.outputNodeMask)) {
             break;

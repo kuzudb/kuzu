@@ -1,0 +1,84 @@
+-DATASET CSV empty
+
+--
+
+-CASE Scc1
+-STATEMENT CREATE NODE TABLE User(id INT64, name STRING PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE FRIEND(FROM User to User);
+---- ok
+-STATEMENT CREATE (alice:User {id: 0, name: 'Alice'}),
+            (bob:User {id: 1, name: 'Bob'}),
+            (charles:User {id: 2, name: 'Charles'}),
+            (doug:User {id: 3, name: 'Doug'}),
+            (eva:User {id: 4, name: 'Eva'}),
+            (fred:User {id: 5, name: 'Fred'}),
+            (greg:User {id: 6, name: 'Greg'}),
+            (alice)-[:FRIEND]->(bob),
+            (bob)-[:FRIEND]->(charles),
+            (charles)-[:FRIEND]->(alice),
+            (charles)-[:FRIEND]->(doug),
+            (greg)-[:FRIEND]->(eva),
+            (greg)-[:FRIEND]->(fred);
+---- ok
+-STATEMENT CALL create_project_graph('WCC', ['User'], ['FRIEND'])
+---- ok
+-STATEMENT CALL strongly_connected_component('WCC') RETURN node.name, group_id;
+---- 7
+Alice|0
+Bob|0
+Charles|0
+Doug|1
+Eva|6
+Fred|5
+Greg|4
+
+-CASE Scc12
+-STATEMENT CREATE NODE TABLE User(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE FRIEND(FROM User to User);
+---- ok
+-STATEMENT CREATE (u0:User {id: 0}),
+            (u1:User {id: 1}),
+            (u2:User {id: 2}),
+            (u3:User {id: 3}),
+            (u4:User {id: 4}),
+            (u5:User {id: 5}),
+            (u6:User {id: 6}),
+            (u7:User {id: 7}),
+            (u8:User {id: 8}),
+            (u9:User {id: 9}),
+            (u10:User {id: 10}),
+            (u0)-[:FRIEND]->(u1),
+            (u0)-[:FRIEND]->(u3),
+            (u1)-[:FRIEND]->(u2),
+            (u1)-[:FRIEND]->(u4),
+            (u2)-[:FRIEND]->(u0),
+            (u2)-[:FRIEND]->(u6),
+            (u3)-[:FRIEND]->(u2),
+            (u4)-[:FRIEND]->(u5),
+            (u4)-[:FRIEND]->(u6),
+            (u5)-[:FRIEND]->(u6),
+            (u5)-[:FRIEND]->(u7),
+            (u5)-[:FRIEND]->(u8),
+            (u5)-[:FRIEND]->(u9),
+            (u6)-[:FRIEND]->(u4),
+            (u7)-[:FRIEND]->(u9),
+            (u8)-[:FRIEND]->(u9),
+            (u9)-[:FRIEND]->(u8);
+---- ok
+-STATEMENT CALL create_project_graph('WCC', ['User'], ['FRIEND']);
+---- ok
+-STATEMENT CALL strongly_connected_component('WCC') RETURN node.id, group_id;
+---- 11
+0|7
+1|7
+2|7
+3|7
+4|4
+5|4
+6|4
+7|3
+8|1
+9|1
+10|0
