@@ -68,7 +68,7 @@ void PartitionerSharedState::merge(
     std::unique_lock xLck{mtx};
     KU_ASSERT(partitioningBuffers.size() == localPartitioningStates.size());
     for (auto partitioningIdx = 0u; partitioningIdx < partitioningBuffers.size();
-         partitioningIdx++) {
+        partitioningIdx++) {
         partitioningBuffers[partitioningIdx]->merge(
             std::move(localPartitioningStates[partitioningIdx]));
     }
@@ -141,7 +141,6 @@ void Partitioner::executeInternal(ExecutionContext* context) {
             auto evaluator = dataInfo.columnEvaluators[i].get();
             switch (dataInfo.evaluateTypes[i]) {
             case ColumnEvaluateType::DEFAULT: {
-                evaluator->getLocalStateUnsafe().count = numRels;
                 evaluator->evaluate();
             } break;
             default: {

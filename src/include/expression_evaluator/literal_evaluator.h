@@ -16,6 +16,8 @@ public:
 
     void evaluate() override;
 
+    void evaluate(common::sel_t count) override;
+
     bool selectInternal(common::SelectionVector& selVector) override;
 
     std::unique_ptr<ExpressionEvaluator> copy() override {
@@ -29,7 +31,7 @@ protected:
 private:
     common::Value value;
     std::shared_ptr<common::DataChunkState> flatState;
-    std::shared_ptr<common::DataChunkState> unflatState;
+    std::shared_ptr<common::DataChunkState> unFlatState;
 };
 
 } // namespace evaluator

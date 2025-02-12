@@ -14,6 +14,7 @@ namespace function {
 struct KUZU_API FunctionBindData {
     std::vector<common::LogicalType> paramTypes;
     common::LogicalType resultType;
+    // TODO: the following two fields should be moved to FunctionLocalState.
     main::ClientContext* clientContext;
     int64_t count;
 
