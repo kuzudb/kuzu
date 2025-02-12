@@ -61,8 +61,9 @@ struct VarLenJoinsEdgeCompute : public EdgeCompute {
             if (!parentPtrsBlock->hasSpace()) {
                 parentPtrsBlock = bfsGraph->addNewBlock();
             }
-            bfsGraph->addParent(frontierPair->getCurrentIter(), parentPtrsBlock,
-                nbrNode /* child */, boundNodeID /* parent */, edgeID, isFwd);
+            auto parent = parentPtrsBlock->reserveNext();
+            parent->store(frontierPair->getCurrentIter(), boundNodeID, edgeID, isFwd);
+            bfsGraph->addParent(parent, nbrNode.offset);
             activeNodes.push_back(nbrNode);
         });
         return activeNodes;

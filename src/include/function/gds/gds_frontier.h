@@ -320,7 +320,6 @@ public:
           pathLengths{std::move(pathLengths)} {}
 
     PathLengths* getPathLengths() const { return pathLengths.get(); }
-    std::shared_ptr<PathLengths> getPathLengthsShared() const { return pathLengths; }
 
     void initSource(common::nodeID_t source) override;
 
