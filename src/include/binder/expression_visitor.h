@@ -42,7 +42,7 @@ protected:
     virtual void visitGraphExpr(std::shared_ptr<Expression>) {}
     virtual void visitLambdaExpr(std::shared_ptr<Expression>) {}
 
-    void visitChildren(const Expression& expr);
+    virtual void visitChildren(const Expression& expr);
     void visitCaseExprChildren(const Expression& expr);
 };
 
@@ -54,19 +54,6 @@ public:
 
 protected:
     void visitSubqueryExpr(std::shared_ptr<Expression> expr) override { exprs.push_back(expr); }
-
-private:
-    expression_vector exprs;
-};
-
-class AggregateExprCollector final : public ExpressionVisitor {
-public:
-    AggregateExprCollector() {}
-
-    expression_vector getAggregates() const { return exprs; }
-
-protected:
-    void visitAggFunctionExpr(std::shared_ptr<Expression> expr) override { exprs.push_back(expr); }
 
 private:
     expression_vector exprs;

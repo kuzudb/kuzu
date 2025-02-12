@@ -350,6 +350,9 @@ pure ascii characters
 -STATEMENT MATCH (a:person) WITH COUNT(*) AS x RETURN SUM(x);
 ---- 1
 8
+-STATEMENT WITH SUM(1) AS x WITH SUM(x) AS y RETURN SUM(y)
+---- 1
+1
 
 -LOG SumInt8Overflow
 -STATEMENT MATCH (a:person)-[s:studyAt]->(o:organisation) RETURN SUM(10 * s.level)
