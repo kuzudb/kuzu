@@ -12,6 +12,9 @@
 #include "processor/result/factorized_table_schema.h"
 
 namespace kuzu {
+namespace common {
+class InMemOverflowBuffer;
+}
 namespace storage {
 class MemoryManager;
 }
@@ -66,7 +69,7 @@ public:
 
     // Returns true if the value was distinct and was inserted
     // otherwise if the value already existed, returns false and the hash table is unchanged
-    bool insertAggregateValueIfDistinctForGroupByKeys(
+    virtual bool insertAggregateValueIfDistinctForGroupByKeys(
         const std::vector<common::ValueVector*>& groupByKeyVectors,
         common::ValueVector* aggregateVector);
 
@@ -271,16 +274,28 @@ struct AggregateHashTableUtils {
         storage::MemoryManager& memoryManager,
         const std::vector<common::LogicalType>& groupByKeyTypes,
         const common::LogicalType& distinctKeyType);
+
+    static FactorizedTableSchema getTableSchemaForKeys(
+        const std::vector<common::LogicalType>& groupByKeyTypes,
+        const common::LogicalType& distinctKeyType);
 };
 
-// NOLINTNEXTLINE(cppcoreguidelines-virtual-class-destructor): This is a final class.
-class HashAggregateSharedState;
+// Separate class since the SimpleAggregate has multiple different top-level destinations for
+// partitioning
+class AggregatePartitioningData {
+public:
+    virtual ~AggregatePartitioningData() = default;
+    virtual void appendTuples(const FactorizedTable& table, ft_col_offset_t hashOffset) = 0;
+    virtual void appendDistinctTuple(size_t /*distinctFuncIndex*/, std::span<uint8_t> /*tuple*/,
+        common::hash_t /*hash*/) = 0;
+    virtual void appendOverflow(common::InMemOverflowBuffer&& overflowBuffer) = 0;
+};
 
 // Fixed-sized Aggregate hash table that flushes tuples into partitions in the
 // HashAggregateSharedState when full
 class PartitioningAggregateHashTable final : public AggregateHashTable {
 public:
-    PartitioningAggregateHashTable(HashAggregateSharedState* sharedState,
+    PartitioningAggregateHashTable(AggregatePartitioningData* partitioningData,
         storage::MemoryManager& memoryManager, std::vector<common::LogicalType> keyTypes,
         std::vector<common::LogicalType> payloadTypes,
         const std::vector<function::AggregateFunction>& aggregateFunctions,
@@ -289,7 +304,7 @@ public:
         : AggregateHashTable(memoryManager, std::move(keyTypes), std::move(payloadTypes),
               aggregateFunctions, distinctAggKeyTypes,
               common::DEFAULT_VECTOR_CAPACITY /*minimum size*/, tableSchema.copy()),
-          sharedState{sharedState}, tableSchema{std::move(tableSchema)} {}
+          tableSchema{std::move(tableSchema)}, partitioningData{partitioningData} {}
 
     uint64_t append(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
@@ -299,9 +314,13 @@ public:
 
     void mergeAll();
 
+    bool insertAggregateValueIfDistinctForGroupByKeys(
+        const std::vector<common::ValueVector*>& groupByKeyVectors,
+        common::ValueVector* aggregateVector) override;
+
 private:
-    HashAggregateSharedState* sharedState;
     FactorizedTableSchema tableSchema;
+    AggregatePartitioningData* partitioningData;
 };
 
 } // namespace processor
