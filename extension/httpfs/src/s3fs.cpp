@@ -365,8 +365,8 @@ static std::string getPrefix(std::string url, std::span<const std::string_view> 
             return std::string{prefix};
         }
     }
-    // TODO(Royi) fix this
-    throw common::IOException("URL needs to start with s3://.");
+    throw common::IOException(
+        stringFormat("URL needs to start with {}.", StringUtils::join(supportedPrefixes, " or ")));
 }
 
 bool S3FileSystem::canHandleFile(const std::string_view path) const {
