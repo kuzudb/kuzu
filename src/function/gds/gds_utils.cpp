@@ -62,7 +62,6 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
     compState.edgeCompute->resetSingleThreadState();
     while (frontierPair->continueNextIter(maxIteration)) {
         frontierPair->beginNewIteration();
-        std::cout << "beginNewIteration: " << frontierPair->getCurrentIter() << std::endl;
         if (compState.outputNodeMask != nullptr && compState.outputNodeMask->enabled() &&
             compState.edgeCompute->terminate(*compState.outputNodeMask)) {
             break;
