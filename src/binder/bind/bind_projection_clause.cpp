@@ -1,12 +1,12 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "binder/expression/lambda_expression.h"
 #include "binder/expression_visitor.h"
 #include "binder/query/return_with_clause/bound_return_clause.h"
 #include "binder/query/return_with_clause/bound_with_clause.h"
 #include "common/exception/binder.h"
 #include "parser/expression/parsed_property_expression.h"
 #include "parser/query/return_with_clause/with_clause.h"
-#include "binder/expression/lambda_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -136,10 +136,8 @@ public:
     expression_vector exprs;
 
 protected:
-    void visitAggFunctionExpr(std::shared_ptr<Expression> expr) override {
-        exprs.push_back(expr);
-    }
-    void visitChildren(const Expression &expr) override {
+    void visitAggFunctionExpr(std::shared_ptr<Expression> expr) override { exprs.push_back(expr); }
+    void visitChildren(const Expression& expr) override {
         switch (expr.expressionType) {
         case ExpressionType::CASE_ELSE: {
             visitCaseExprChildren(expr);
