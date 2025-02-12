@@ -90,7 +90,7 @@ S3UploadParams getS3UploadParams(main::ClientContext* context) {
     return uploadParams;
 }
 
-S3FileSystem::S3FileSystem(S3FileSystemConfig fsConfig) : fsConfig(fsConfig) {}
+S3FileSystem::S3FileSystem(S3FileSystemConfig fsConfig) : fsConfig(std::move(fsConfig)) {}
 
 std::unique_ptr<common::FileInfo> S3FileSystem::openFile(const std::string& path, int flags,
     main::ClientContext* context, common::FileLockType /*lock_type*/) {
