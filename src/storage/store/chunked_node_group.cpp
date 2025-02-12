@@ -53,6 +53,34 @@ ChunkedNodeGroup::ChunkedNodeGroup(MemoryManager& mm, const std::vector<LogicalT
     }
 }
 
+ChunkedNodeGroup::ChunkedNodeGroup(MemoryManager& mm, ChunkedNodeGroup& base,
+    std::span<const common::LogicalType> columnTypes,
+    std::span<const common::column_id_t> baseColumnIDs)
+    : format{base.format}, residencyState{base.residencyState}, startRowIdx{base.startRowIdx},
+      capacity{base.capacity}, numRows{base.numRows.load()},
+      versionInfo(std::move(base.versionInfo)), dataInUse{true} {
+    bool enableCompression = false;
+    KU_ASSERT(!baseColumnIDs.empty());
+
+    chunks.resize(columnTypes.size());
+
+    KU_ASSERT(base.getNumColumns() == baseColumnIDs.size());
+    for (column_id_t i = 0; i < baseColumnIDs.size(); ++i) {
+        auto baseColumnID = baseColumnIDs[i];
+        KU_ASSERT(baseColumnID < chunks.size());
+        chunks[baseColumnID] = base.moveColumnChunk(i);
+        enableCompression = chunks[baseColumnID]->isCompressionEnabled();
+        KU_ASSERT(chunks[baseColumnID]->getDataType() == columnTypes[baseColumnID]);
+    }
+
+    for (column_id_t i = 0; i < columnTypes.size(); ++i) {
+        if (chunks[i] == nullptr) {
+            chunks[i] = std::make_unique<ColumnChunk>(mm, columnTypes[i].copy(), capacity,
+                enableCompression, ResidencyState::IN_MEMORY);
+        }
+    }
+}
+
 void ChunkedNodeGroup::merge(ChunkedNodeGroup& base,
     const std::vector<column_id_t>& columnsToMergeInto) {
     KU_ASSERT(base.getNumColumns() == columnsToMergeInto.size());
