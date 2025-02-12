@@ -29,7 +29,8 @@ void HTTPFileInfo::initMetadata() {
     std::string rangeLength;
     if (res->code != 200) {
         if ((flags & FileFlags::WRITE) && res->code == 404) {
-            if (!(flags & FileFlags::CREATE_IF_NOT_EXISTS)) {
+            if (!(flags & FileFlags::CREATE_IF_NOT_EXISTS) &&
+                !(flags & FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS)) {
                 throw IOException(stringFormat("Unable to open URL: \"{}\" for writing: file does "
                                                "not exist and CREATE flag is not set",
                     path));
