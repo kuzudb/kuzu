@@ -38,5 +38,21 @@ struct LabelFunction {
     static std::shared_ptr<binder::Expression> rewriteFunc(const RewriteFunctionBindInput& input);
 };
 
+struct IsIDDistinctFunction {
+    static constexpr const char* name = "IS_ID_DISTINCT";
+    static function_set getFunctionSet();
+};
+
+struct IsNodeDistinctFunction {
+    static constexpr const char* name = "IS_NODE_DISTINCT";
+    static function_set getFunctionSet();
+};
+
+struct IsRelDistinctFunction {
+    static constexpr const char* name = "IS_REL_DISTINCT";
+    static function_set getFunctionSet();
+};
+
+
 } // namespace function
 } // namespace kuzu

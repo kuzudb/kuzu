@@ -75,7 +75,7 @@ public:
     QueryGraph(const QueryGraph& other)
         : queryNodeNameToPosMap{other.queryNodeNameToPosMap},
           queryRelNameToPosMap{other.queryRelNameToPosMap}, queryNodes{other.queryNodes},
-          queryRels{other.queryRels} {}
+          queryRels{other.queryRels}, semanticExpressions{other.semanticExpressions} {}
 
     EXPLICIT_COPY_DEFAULT_MOVE(QueryGraph);
 
@@ -133,11 +133,22 @@ public:
 
     void merge(const QueryGraph& other);
 
+    bool hasRecursiveRel();
+
+    std::vector<std::shared_ptr<Expression>> getSemanticExpressions() const {
+        return semanticExpressions;
+    }
+
+    void addSemanticExpression(std::shared_ptr<Expression> _expression) {
+        semanticExpressions.push_back(_expression);
+    }
+
 private:
     std::unordered_map<std::string, uint32_t> queryNodeNameToPosMap;
     std::unordered_map<std::string, uint32_t> queryRelNameToPosMap;
     std::vector<std::shared_ptr<NodeExpression>> queryNodes;
     std::vector<std::shared_ptr<RelExpression>> queryRels;
+    std::vector<std::shared_ptr<Expression>> semanticExpressions;
 };
 
 // QueryGraphCollection represents a pattern (a set of connected components) specified in MATCH
