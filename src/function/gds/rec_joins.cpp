@@ -13,6 +13,7 @@
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_storage.h"
+#include "binder/expression/property_expression.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -32,7 +33,7 @@ RJBindData::RJBindData(const RJBindData& other) : GDSBindData{other} {
     lengthExpr = other.lengthExpr;
     pathNodeIDsExpr = other.pathNodeIDsExpr;
     pathEdgeIDsExpr = other.pathEdgeIDsExpr;
-    weightPropertyName = other.weightPropertyName;
+    weightPropertyExpr = other.weightPropertyExpr;
     weightOutputExpr = other.weightOutputExpr;
 }
 
@@ -212,9 +213,12 @@ void RJAlgorithm::exec(processor::ExecutionContext* context) {
             auto gdsComputeState = rjCompState.gdsComputeState.get();
             gdsComputeState->initSource(sourceNodeID);
             auto rjBindData = bindData->ptrCast<RJBindData>();
+            std::string propertyName;
+            if (rjBindData->weightPropertyExpr != nullptr) {
+                propertyName = rjBindData->weightPropertyExpr->ptrCast<PropertyExpression>()->getPropertyName();
+            }
             GDSUtils::runFrontiersUntilConvergence(context, *gdsComputeState, graph,
-                rjBindData->extendDirection, rjBindData->upperBound,
-                rjBindData->weightPropertyName);
+                rjBindData->extendDirection, rjBindData->upperBound, propertyName);
             auto vertexCompute =
                 std::make_unique<RJVertexCompute>(clientContext->getMemoryManager(),
                     sharedState.get(), rjCompState.outputWriter->copy());

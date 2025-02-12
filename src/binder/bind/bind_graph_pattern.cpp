@@ -442,7 +442,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
             recursivePatternInfo->weightPropertyName);
         recursiveInfo->weightPropertyExpr = propertyExpr;
         recursiveInfo->weightOutputExpr =
-            createVariable(parsedName + "_weight", propertyExpr->getDataType());
+            createVariable(parsedName + "_weight", LogicalType::DOUBLE());
     }
 
     queryRel->setRecursiveInfo(std::move(recursiveInfo));

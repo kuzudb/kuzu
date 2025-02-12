@@ -12,26 +12,25 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace function {
 
-template<typename T>
-class Weights {
+class Costs {
 public:
-    Weights(const table_id_map_t<offset_t>& numNodesMap, MemoryManager* mm) {
+    Costs(const table_id_map_t<offset_t>& numNodesMap, MemoryManager* mm) {
         init(numNodesMap, mm);
     }
 
-    void pinTable(table_id_t tableID) { weights = weightsMap.getData(tableID); }
+    void pinTable(table_id_t tableID) { costs = costsMap.getData(tableID); }
 
-    T getWeight(offset_t offset) { return weights[offset].load(std::memory_order_relaxed); }
+    double getWeight(offset_t offset) { return costs[offset].load(std::memory_order_relaxed); }
 
-    void setWeight(offset_t offset, T val) {
-        weights[offset].store(val, std::memory_order_relaxed);
+    void setWeight(offset_t offset, double val) {
+        costs[offset].store(val, std::memory_order_relaxed);
     }
 
-    bool update(offset_t boundOffset, offset_t nbrOffset, T val) {
+    bool update(offset_t boundOffset, offset_t nbrOffset, double val) {
         auto newWeight = getWeight(boundOffset) + val;
         auto tmp = getWeight(nbrOffset);
         while (newWeight < tmp) {
-            if (weights[nbrOffset].compare_exchange_strong(tmp, newWeight)) {
+            if (costs[nbrOffset].compare_exchange_strong(tmp, newWeight)) {
                 return true;
             }
         }
@@ -41,30 +40,30 @@ public:
 private:
     void init(const table_id_map_t<offset_t>& numNodesMap, MemoryManager* mm) {
         for (const auto& [tableID, numNodes] : numNodesMap) {
-            weightsMap.allocate(tableID, numNodes, mm);
+            costsMap.allocate(tableID, numNodes, mm);
             pinTable(tableID);
             for (auto i = 0u; i < numNodes; ++i) {
-                weights[i].store(std::numeric_limits<T>::max(), std::memory_order_relaxed);
+                costs[i].store(std::numeric_limits<double>::max(), std::memory_order_relaxed);
             }
         }
     }
 
 private:
-    std::atomic<T>* weights;
-    ObjectArraysMap<std::atomic<T>> weightsMap;
+    std::atomic<double>* costs = nullptr;
+    ObjectArraysMap<std::atomic<double>> costsMap;
 };
 
 template<typename T>
 class DestinationsEdgeCompute : public EdgeCompute {
 public:
-    explicit DestinationsEdgeCompute(std::shared_ptr<Weights<T>> weights)
-        : weights{std::move(weights)} {}
+    explicit DestinationsEdgeCompute(std::shared_ptr<Costs> costs)
+        : costs{std::move(costs)} {}
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
         bool) override {
         std::vector<nodeID_t> result;
         chunk.forEach<T>([&](auto nbrNodeID, auto /* edgeID */, auto weight) {
-            if (weights->update(boundNodeID.offset, nbrNodeID.offset, weight)) {
+            if (costs->update(boundNodeID.offset, nbrNodeID.offset, (double)weight)) {
                 result.push_back(nbrNodeID);
             }
         });
@@ -72,44 +71,42 @@ public:
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
-        return std::make_unique<DestinationsEdgeCompute<T>>(weights);
+        return std::make_unique<DestinationsEdgeCompute<T>>(costs);
     }
 
 private:
-    std::shared_ptr<Weights<T>> weights;
+    std::shared_ptr<Costs> costs;
 };
 
-template<typename T>
 struct WeightedSPDestinationsAuxiliaryState : public GDSAuxiliaryState {
 public:
-    explicit WeightedSPDestinationsAuxiliaryState(std::shared_ptr<Weights<T>> weights)
-        : weights{std::move(weights)} {}
+    explicit WeightedSPDestinationsAuxiliaryState(std::shared_ptr<Costs> costs)
+        : costs{std::move(costs)} {}
 
-    void initSource(nodeID_t sourceNodeID) override { weights->setWeight(sourceNodeID.offset, 0); }
+    void initSource(nodeID_t sourceNodeID) override { costs->setWeight(sourceNodeID.offset, 0); }
 
     void beginFrontierCompute(table_id_t, table_id_t toTableID) override {
-        weights->pinTable(toTableID);
+        costs->pinTable(toTableID);
     }
 
 private:
-    std::shared_ptr<Weights<T>> weights;
+    std::shared_ptr<Costs> costs;
 };
 
-template<typename T>
 class DestinationsOutputWriter : public RJOutputWriter {
 public:
     DestinationsOutputWriter(main::ClientContext* context,
-        processor::NodeOffsetMaskMap* outputNodeMask, nodeID_t sourceNodeID,
-        std::shared_ptr<Weights<T>> weights, const LogicalType& weightType)
-        : RJOutputWriter{context, outputNodeMask, sourceNodeID}, weights{std::move(weights)} {
-        weightVector = createVector(weightType, context->getMemoryManager());
+        processor::NodeOffsetMaskMap* outputNodeMask, common::nodeID_t sourceNodeID,
+        std::shared_ptr<Costs> costs)
+        : RJOutputWriter{context, outputNodeMask, sourceNodeID}, costs{std::move(costs)} {
+        costVector = createVector(LogicalType::DOUBLE(), context->getMemoryManager());
     }
 
     void write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
         processor::GDSOutputCounter* counter) override {
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
-        auto weight = weights->getWeight(dstNodeID.offset);
-        weightVector->setValue<T>(0, weight);
+        auto weight = costs->getWeight(dstNodeID.offset);
+        costVector->setValue<double>(0, weight);
         fTable.append(vectors);
         if (counter != nullptr) {
             counter->increase(1);
@@ -117,20 +114,20 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<DestinationsOutputWriter<T>>(context, outputNodeMask, sourceNodeID,
-            weights, weightVector->dataType);
+        return std::make_unique<DestinationsOutputWriter>(context, outputNodeMask, sourceNodeID,
+            costs);
     }
 
 private:
-    void beginWritingOutputsInternal(table_id_t tableID) override { weights->pinTable(tableID); }
+    void beginWritingOutputsInternal(table_id_t tableID) override { costs->pinTable(tableID); }
     bool skipInternal(nodeID_t dstNodeID) const override {
-        auto weight = weights->getWeight(dstNodeID.offset);
-        return dstNodeID == sourceNodeID || weight == std::numeric_limits<T>::max();
+        auto weight = costs->getWeight(dstNodeID.offset);
+        return dstNodeID == sourceNodeID || weight == std::numeric_limits<double>::max();
     }
 
 private:
-    std::shared_ptr<Weights<T>> weights;
-    std::unique_ptr<ValueVector> weightVector;
+    std::shared_ptr<Costs> costs;
+    std::unique_ptr<ValueVector> costVector;
 };
 
 class WeightedSPDestinationsAlgorithm : public SPAlgorithm {
@@ -176,17 +173,6 @@ private:
             return func(double());
         case LogicalTypeID::FLOAT:
             return func(float());
-        case LogicalTypeID::DECIMAL:
-            switch (dataType.getPhysicalType()) {
-            case PhysicalTypeID::INT16:
-                return func(int16_t());
-            case PhysicalTypeID::INT32:
-                return func(int32_t());
-            case PhysicalTypeID::INT64:
-                return func(int64_t());
-            default:
-                break;
-            }
         /* NOLINTEND(bugprone-branch-clone)*/
         default:
             break;
@@ -204,15 +190,13 @@ private:
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(curFrontier, nextFrontier);
         auto rjBindData = bindData->ptrCast<RJBindData>();
-        auto& dataType = rjBindData->weightOutputExpr->getDataType();
+        auto costs = std::make_shared<Costs>(numNodes, clientContext->getMemoryManager());
+        auto auxiliaryState = std::make_unique<WeightedSPDestinationsAuxiliaryState>(costs);
+        auto outputWriter = std::make_unique<DestinationsOutputWriter>(clientContext,
+            sharedState->getOutputNodeMaskMap(), sourceNodeID, costs);
         std::unique_ptr<GDSComputeState> gdsState;
-        std::unique_ptr<RJOutputWriter> outputWriter;
-        visit(dataType, [&]<typename T>(T) {
-            auto weight = std::make_shared<Weights<T>>(numNodes, clientContext->getMemoryManager());
-            auto edgeCompute = std::make_unique<DestinationsEdgeCompute<T>>(weight);
-            auto auxiliaryState = std::make_unique<WeightedSPDestinationsAuxiliaryState<T>>(weight);
-            outputWriter = std::make_unique<DestinationsOutputWriter<T>>(clientContext,
-                sharedState->getOutputNodeMaskMap(), sourceNodeID, weight, dataType);
+        visit(rjBindData->weightPropertyExpr->getDataType(), [&]<typename T>(T) {
+            auto edgeCompute = std::make_unique<DestinationsEdgeCompute<T>>(costs);
             gdsState =
                 std::make_unique<GDSComputeState>(std::move(frontierPair), std::move(edgeCompute),
                     std::move(auxiliaryState), sharedState->getOutputNodeMaskMap());

@@ -152,8 +152,7 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     bindData->pathNodeIDsExpr = recursiveInfo->pathNodeIDsExpr;
     bindData->pathEdgeIDsExpr = recursiveInfo->pathEdgeIDsExpr;
     if (recursiveInfo->weightPropertyExpr != nullptr) {
-        bindData->weightPropertyName =
-            recursiveInfo->weightPropertyExpr->ptrCast<PropertyExpression>()->getPropertyName();
+        bindData->weightPropertyExpr = recursiveInfo->weightPropertyExpr;
         bindData->weightOutputExpr = recursiveInfo->weightOutputExpr;
     }
     gdsFunction.gds->setBindData(std::move(bindData));
