@@ -70,7 +70,8 @@ ChunkedNodeGroup::ChunkedNodeGroup(MemoryManager& mm, ChunkedNodeGroup& base,
         KU_ASSERT(baseColumnID < chunks.size());
         chunks[baseColumnID] = base.moveColumnChunk(i);
         enableCompression = chunks[baseColumnID]->isCompressionEnabled();
-        KU_ASSERT(chunks[baseColumnID]->getDataType() == columnTypes[baseColumnID]);
+        KU_ASSERT(chunks[baseColumnID]->getDataType().getPhysicalType() ==
+                  columnTypes[baseColumnID].getPhysicalType());
     }
 
     for (column_id_t i = 0; i < columnTypes.size(); ++i) {
