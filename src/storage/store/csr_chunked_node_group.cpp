@@ -265,12 +265,6 @@ void ChunkedCSRNodeGroup::flush(FileHandle& dataFH) {
     }
 }
 
-void ChunkedCSRNodeGroup::mergeChunkedCSRGroup(ChunkedCSRNodeGroup& base,
-    const std::vector<common::column_id_t>& columnsToMergeInto) {
-    ChunkedNodeGroup::merge(base, columnsToMergeInto);
-    csrHeader = std::move(base.csrHeader);
-}
-
 void ChunkedCSRNodeGroup::scanCSRHeader(MemoryManager& memoryManager,
     CSRNodeGroupCheckpointState& csrState) const {
     if (!csrState.oldHeader) {
