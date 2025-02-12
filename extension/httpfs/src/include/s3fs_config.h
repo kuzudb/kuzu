@@ -17,7 +17,7 @@ namespace httpfs {
 static constexpr std::array AUTH_OPTIONS = {"ACCESS_KEY_ID", "SECRET_ACCESS_KEY", "ENDPOINT",
     "URL_STYLE", "REGION"};
 
-struct AuthParams {
+struct S3AuthParams {
     std::string accessKeyID;
     std::string secretAccessKey;
     std::string endpoint;
@@ -25,20 +25,18 @@ struct AuthParams {
     std::string region;
 };
 
-struct RemoteFSConfig {
+struct S3FileSystemConfig {
     std::span<const std::string_view> prefixes;
-    std::string_view httpHeaderPrefix;
     std::string_view fsName;
     std::string_view defaultEndpoint;
     std::string_view defaultUrlStyle;
 
-    std::string substituteHeaderPrefix(const std::string_view header) const;
     void registerExtensionOptions(main::Database* db) const;
     void setEnvValue(main::ClientContext* context) const;
     std::vector<std::string> getAuthOptions() const;
-    AuthParams getAuthParams(main::ClientContext* context) const;
+    S3AuthParams getAuthParams(main::ClientContext* context) const;
 
-    static std::span<const RemoteFSConfig> getAvailableConfigs();
+    static std::span<const S3FileSystemConfig> getAvailableConfigs();
 };
 
 } // namespace httpfs

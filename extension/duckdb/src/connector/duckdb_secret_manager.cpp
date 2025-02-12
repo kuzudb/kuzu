@@ -1,6 +1,6 @@
 #include "connector/duckdb_secret_manager.h"
 
-#include "remote_fs_config.h"
+#include "s3fs_config.h"
 
 namespace kuzu {
 namespace duckdb_extension {
@@ -11,7 +11,7 @@ static std::string getDuckDBExtensionOptions(main::ClientContext* context,
 
     static constexpr std::array DUCKDB_OPTION_NAMES = {"KEY_ID", "SECRET", "ENDPOINT", "URL_STYLE",
         "REGION"};
-    // the order should also be the same as httpfs::AUTH_OPTIONS defined in remote_fs_config.h
+    // the order should also be the same as httpfs::AUTH_OPTIONS defined in s3fs_config.h
     KU_ASSERT(DUCKDB_OPTION_NAMES.size() == kuzuOptions.size());
     for (size_t i = 0; i < DUCKDB_OPTION_NAMES.size(); ++i) {
         auto optionNameInDuckDB = DUCKDB_OPTION_NAMES[i];
@@ -23,7 +23,7 @@ static std::string getDuckDBExtensionOptions(main::ClientContext* context,
 }
 
 std::string DuckDBSecretManager::getRemoteFSSecret(main::ClientContext* context,
-    const httpfs::RemoteFSConfig& config) {
+    const httpfs::S3FileSystemConfig& config) {
     KU_ASSERT(config.fsName == "S3" || config.fsName == "GCS");
     std::string templateQuery = R"(CREATE SECRET s3_secret (
         {}

@@ -1,4 +1,4 @@
-#include "remote_fs_config.h"
+#include "s3fs_config.h"
 
 #include "extension/extension.h"
 #include "main/client_context.h"
@@ -10,37 +10,33 @@ namespace httpfs {
 using namespace common;
 
 static constexpr std::array<std::string_view, 1> s3PrefixArray = {"s3://"};
-constexpr RemoteFSConfig getS3Config() {
-    return RemoteFSConfig{.prefixes = s3PrefixArray,
-        .httpHeaderPrefix = "x-amz",
+constexpr S3FileSystemConfig getS3Config() {
+    return S3FileSystemConfig{.prefixes = s3PrefixArray,
         .fsName = "S3",
         .defaultEndpoint = "s3.amazonaws.com",
         .defaultUrlStyle = "vhost"};
 }
 
+// The S3 filesystem communicates with GCS using interoperability mode
+// https://cloud.google.com/storage/docs/aws-simple-migration
 static constexpr std::array<std::string_view, 2> gcsPrefixArray = {"gcs://", "gs://"};
-constexpr RemoteFSConfig getGCSConfig() {
-    return RemoteFSConfig{.prefixes = gcsPrefixArray,
-        .httpHeaderPrefix = "x-goog",
+constexpr S3FileSystemConfig getGCSConfig() {
+    return S3FileSystemConfig{.prefixes = gcsPrefixArray,
         .fsName = "GCS",
         .defaultEndpoint = "storage.googleapis.com",
         .defaultUrlStyle = "path"};
 }
 
-std::span<const RemoteFSConfig> RemoteFSConfig::getAvailableConfigs() {
+std::span<const S3FileSystemConfig> S3FileSystemConfig::getAvailableConfigs() {
     static constexpr std::array ret = {getS3Config(), getGCSConfig()};
     return ret;
 }
 
-std::string RemoteFSConfig::substituteHeaderPrefix(const std::string_view header) const {
-    return stringFormat(header, httpHeaderPrefix);
-}
-
-std::string getFSOptionName(const RemoteFSConfig& config, std::string_view originalOption) {
+std::string getFSOptionName(const S3FileSystemConfig& config, std::string_view originalOption) {
     return stringFormat("{}_{}", config.fsName, originalOption);
 }
 
-std::vector<std::string> RemoteFSConfig::getAuthOptions() const {
+std::vector<std::string> S3FileSystemConfig::getAuthOptions() const {
     std::vector<std::string> ret;
     for (size_t i = 0; i < AUTH_OPTIONS.size(); ++i) {
         ret.push_back(getFSOptionName(*this, AUTH_OPTIONS[i]));
@@ -48,8 +44,8 @@ std::vector<std::string> RemoteFSConfig::getAuthOptions() const {
     return ret;
 }
 
-AuthParams RemoteFSConfig::getAuthParams(main::ClientContext* context) const {
-    AuthParams authParams;
+S3AuthParams S3FileSystemConfig::getAuthParams(main::ClientContext* context) const {
+    S3AuthParams authParams;
     authParams.accessKeyID =
         context->getCurrentSetting(getFSOptionName(*this, AUTH_OPTIONS[0])).toString();
     authParams.secretAccessKey =
@@ -63,7 +59,7 @@ AuthParams RemoteFSConfig::getAuthParams(main::ClientContext* context) const {
     return authParams;
 }
 
-void RemoteFSConfig::registerExtensionOptions(main::Database* db) const {
+void S3FileSystemConfig::registerExtensionOptions(main::Database* db) const {
     static constexpr LogicalTypeID optionType = common::LogicalTypeID::STRING;
     static constexpr auto defaultRegion = "us-east-1";
     std::array defaultValues = {common::Value{""}, common::Value{""},
@@ -76,7 +72,7 @@ void RemoteFSConfig::registerExtensionOptions(main::Database* db) const {
     }
 }
 
-void RemoteFSConfig::setEnvValue(main::ClientContext* context) const {
+void S3FileSystemConfig::setEnvValue(main::ClientContext* context) const {
     for (const auto fsOption : AUTH_OPTIONS) {
         const auto fsOptionName = getFSOptionName(*this, fsOption);
         auto optionValueFromEnv = main::ClientContext::getEnvVariable(fsOptionName);

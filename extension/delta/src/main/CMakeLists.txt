@@ -1,7 +1,7 @@
 add_library(kuzu_delta_extension
         OBJECT
         delta_extension.cpp
-        ${PROJECT_SOURCE_DIR}/extension/httpfs/src/remote_fs_config.cpp)
+        ${PROJECT_SOURCE_DIR}/extension/httpfs/src/s3fs_config.cpp)
 
 target_include_directories(
         kuzu_delta_extension

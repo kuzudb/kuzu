@@ -4,14 +4,14 @@
 
 namespace kuzu {
 namespace httpfs {
-struct RemoteFSConfig;
+struct S3FileSystemConfig;
 }
 
 namespace duckdb_extension {
 
 struct DuckDBSecretManager {
     static std::string getRemoteFSSecret(main::ClientContext* context,
-        const httpfs::RemoteFSConfig& config);
+        const httpfs::S3FileSystemConfig& config);
 };
 
 } // namespace duckdb_extension

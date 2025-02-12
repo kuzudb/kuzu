@@ -22,11 +22,11 @@ add_library(httpfs
         SHARED
         src/httpfs.cpp
         src/httpfs_extension.cpp
-        src/remote_fs.cpp
+        src/s3fs.cpp
         src/crypto.cpp
         src/http_config.cpp
         src/cached_file_manager.cpp
-        src/remote_fs_config.cpp)
+        src/s3fs_config.cpp)
 
 target_link_libraries(httpfs
         PRIVATE

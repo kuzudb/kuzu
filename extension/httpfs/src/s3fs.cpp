@@ -1,4 +1,4 @@
-#include "remote_fs.h"
+#include "s3fs.h"
 
 #include "common/exception/io.h"
 #include "common/exception/runtime.h"
@@ -20,13 +20,13 @@ S3WriteBuffer::S3WriteBuffer(uint16_t partID, uint64_t startOffset, uint64_t siz
 }
 
 S3FileInfo::S3FileInfo(std::string path, common::FileSystem* fileSystem, int flags,
-    main::ClientContext* context, AuthParams authParams, UploadParams uploadParams)
+    main::ClientContext* context, S3AuthParams authParams, S3UploadParams uploadParams)
     : HTTPFileInfo{path, fileSystem, flags, context}, authParams{std::move(authParams)},
       uploadParams{uploadParams}, partSize(0), uploadsInProgress{0}, numPartsUploaded{0},
       uploadFinalized{false}, uploaderHasException{false} {}
 
 S3FileInfo::~S3FileInfo() {
-    auto s3FS = fileSystem->ptrCast<RemoteObjectFileSystem>();
+    auto s3FS = fileSystem->ptrCast<S3FileSystem>();
     if ((flags & FileFlags::WRITE) && !uploadFinalized) {
         s3FS->flushAllBuffers(this);
         if (numPartsUploaded) {
@@ -37,7 +37,7 @@ S3FileInfo::~S3FileInfo() {
 
 void S3FileInfo::initialize(main::ClientContext* context) {
     HTTPFileInfo::initialize(context);
-    auto s3FS = fileSystem->constPtrCast<RemoteObjectFileSystem>();
+    auto s3FS = fileSystem->constPtrCast<S3FileSystem>();
     if (flags & FileFlags::WRITE) {
         auto maxNumParts = uploadParams.maxNumPartsPerFile;
         auto requiredPartSize = uploadParams.maxFileSize / maxNumParts;
@@ -48,15 +48,14 @@ void S3FileInfo::initialize(main::ClientContext* context) {
 }
 
 void S3FileInfo::initializeClient() {
-    auto parsedURL =
-        fileSystem->constPtrCast<RemoteObjectFileSystem>()->parseS3URL(path, authParams);
+    auto parsedURL = fileSystem->constPtrCast<S3FileSystem>()->parseS3URL(path, authParams);
     auto protoHostPort = parsedURL.httpProto + parsedURL.host;
     httpClient = HTTPFileSystem::getClient(protoHostPort);
 }
 
 std::shared_ptr<S3WriteBuffer> S3FileInfo::getBuffer(uint16_t writeBufferIdx) {
     std::unique_lock<std::mutex> lck(writeBuffersLock);
-    auto s3FS = fileSystem->ptrCast<RemoteObjectFileSystem>();
+    auto s3FS = fileSystem->ptrCast<S3FileSystem>();
     if (writeBuffers.contains(writeBufferIdx)) {
         return writeBuffers.at(writeBufferIdx);
     }
@@ -73,15 +72,15 @@ void S3FileInfo::rethrowIOError() const {
 }
 
 std::string ParsedS3URL::getHTTPURL(std::string httpQueryString) const {
-    auto url = httpProto + host + RemoteObjectFileSystem::encodeURL(path);
+    auto url = httpProto + host + S3FileSystem::encodeURL(path);
     if (!httpQueryString.empty()) {
         url += "?" + httpQueryString;
     }
     return url;
 }
 
-UploadParams getS3UploadParams(main::ClientContext* context) {
-    UploadParams uploadParams;
+S3UploadParams getS3UploadParams(main::ClientContext* context) {
+    S3UploadParams uploadParams;
     uploadParams.maxFileSize =
         context->getCurrentSetting("s3_uploader_max_filesize").getValue<int64_t>();
     uploadParams.maxNumPartsPerFile =
@@ -91,10 +90,10 @@ UploadParams getS3UploadParams(main::ClientContext* context) {
     return uploadParams;
 }
 
-RemoteObjectFileSystem::RemoteObjectFileSystem(RemoteFSConfig fsConfig) : fsConfig(fsConfig) {}
+S3FileSystem::S3FileSystem(S3FileSystemConfig fsConfig) : fsConfig(fsConfig) {}
 
-std::unique_ptr<common::FileInfo> RemoteObjectFileSystem::openFile(const std::string& path,
-    int flags, main::ClientContext* context, common::FileLockType /*lock_type*/) {
+std::unique_ptr<common::FileInfo> S3FileSystem::openFile(const std::string& path, int flags,
+    main::ClientContext* context, common::FileLockType /*lock_type*/) {
     auto authParams = fsConfig.getAuthParams(context);
     auto uploadParams = getS3UploadParams(context);
     if (context->getCurrentSetting(HTTPCacheFileConfig::HTTP_CACHE_FILE_OPTION).getValue<bool>()) {
@@ -266,7 +265,7 @@ static bool match(std::vector<std::string>::const_iterator key,
     return key == key_end && pattern == pattern_end;
 }
 
-std::vector<std::string> RemoteObjectFileSystem::glob(main::ClientContext* context,
+std::vector<std::string> S3FileSystem::glob(main::ClientContext* context,
     const std::string& path) const {
     auto s3AuthParams = fsConfig.getAuthParams(context);
     auto parsedS3URL = parseS3URL(path, s3AuthParams);
@@ -318,7 +317,7 @@ std::vector<std::string> RemoteObjectFileSystem::glob(main::ClientContext* conte
     return globResult;
 }
 
-std::string RemoteObjectFileSystem::encodeURL(const std::string& input, bool encodeSlash) {
+std::string S3FileSystem::encodeURL(const std::string& input, bool encodeSlash) {
     static const char* hex_digit = "0123456789ABCDEF";
     std::string result;
     result.reserve(input.size());
@@ -342,7 +341,7 @@ std::string RemoteObjectFileSystem::encodeURL(const std::string& input, bool enc
     return result;
 }
 
-std::string RemoteObjectFileSystem::decodeURL(std::string input) {
+std::string S3FileSystem::decodeURL(std::string input) {
     std::string result;
     result.reserve(input.size());
     char ch = 0;
@@ -370,7 +369,7 @@ static std::string getPrefix(std::string url, std::span<const std::string_view> 
     throw common::IOException("URL needs to start with s3://.");
 }
 
-bool RemoteObjectFileSystem::canHandleFile(const std::string_view path) const {
+bool S3FileSystem::canHandleFile(const std::string_view path) const {
     int val = 1;
     for (const auto prefix : fsConfig.prefixes) {
         val *= path.rfind(prefix, 0);
@@ -378,7 +377,7 @@ bool RemoteObjectFileSystem::canHandleFile(const std::string_view path) const {
     return val == 0;
 }
 
-ParsedS3URL RemoteObjectFileSystem::parseS3URL(std::string url, AuthParams& params) const {
+ParsedS3URL S3FileSystem::parseS3URL(std::string url, S3AuthParams& params) const {
     std::string prefix, host, bucket, path, queryParameters, trimmedS3URL;
 
     prefix = getPrefix(url, fsConfig.prefixes);
@@ -425,7 +424,7 @@ ParsedS3URL RemoteObjectFileSystem::parseS3URL(std::string url, AuthParams& para
     return {"https://", prefix, host, bucket, path, queryParameters, trimmedS3URL};
 }
 
-std::string RemoteObjectFileSystem::initializeMultiPartUpload(S3FileInfo* fileInfo) const {
+std::string S3FileSystem::initializeMultiPartUpload(S3FileInfo* fileInfo) const {
     // AWS response is around 300~ chars in docs so this should be enough to not need a resize.
     fileInfo->initMetadata();
     auto responseBufferLen = DEFAULT_RESPONSE_BUFFER_SIZE;
@@ -437,8 +436,8 @@ std::string RemoteObjectFileSystem::initializeMultiPartUpload(S3FileInfo* fileIn
     return getUploadID(result);
 }
 
-void RemoteObjectFileSystem::writeFile(common::FileInfo& fileInfo, const uint8_t* buffer,
-    uint64_t numBytes, uint64_t offset) const {
+void S3FileSystem::writeFile(common::FileInfo& fileInfo, const uint8_t* buffer, uint64_t numBytes,
+    uint64_t offset) const {
     auto s3FileInfo = fileInfo.ptrCast<S3FileInfo>();
     if (!(s3FileInfo->flags & FileFlags::WRITE)) {
         throw IOException("Write called on a file which is not open in write mode.");
@@ -467,7 +466,7 @@ void RemoteObjectFileSystem::writeFile(common::FileInfo& fileInfo, const uint8_t
     }
 }
 
-std::shared_ptr<S3WriteBuffer> RemoteObjectFileSystem::allocateWriteBuffer(uint16_t writeBufferIdx,
+std::shared_ptr<S3WriteBuffer> S3FileSystem::allocateWriteBuffer(uint16_t writeBufferIdx,
     uint64_t partSize, uint16_t maxThreads) {
     std::unique_lock<std::mutex> lck(bufferInfoLock);
     if (numUsedBuffers >= maxThreads) {
@@ -477,7 +476,7 @@ std::shared_ptr<S3WriteBuffer> RemoteObjectFileSystem::allocateWriteBuffer(uint1
     return std::make_shared<S3WriteBuffer>(writeBufferIdx, writeBufferIdx * partSize, partSize);
 }
 
-void RemoteObjectFileSystem::flushAllBuffers(S3FileInfo* fileInfo) {
+void S3FileSystem::flushAllBuffers(S3FileInfo* fileInfo) {
     //  Collect references to all buffers to check
     std::vector<std::shared_ptr<S3WriteBuffer>> buffersToFlush;
     fileInfo->writeBuffersLock.lock();
@@ -521,15 +520,15 @@ static void verifyUploadResult(const std::string& result, const HTTPResponse& re
     }
 }
 
-void RemoteObjectFileSystem::finalizeMultipartUpload(S3FileInfo* fileInfo) {
-    auto s3FS = fileInfo->fileSystem->constPtrCast<RemoteObjectFileSystem>();
+void S3FileSystem::finalizeMultipartUpload(S3FileInfo* fileInfo) {
+    auto s3FS = fileInfo->fileSystem->constPtrCast<S3FileSystem>();
     fileInfo->uploadFinalized = true;
     auto finalizeUploadQueryBody = getFinalizeUploadQueryBody(fileInfo);
     auto body = finalizeUploadQueryBody.str();
     uint64_t responseBufferSize = DEFAULT_RESPONSE_BUFFER_SIZE;
     auto responseBuffer = std::make_unique<uint8_t[]>(responseBufferSize);
     std::string queryParam =
-        "uploadId=" + RemoteObjectFileSystem::encodeURL(fileInfo->multipartUploadID, true);
+        "uploadId=" + S3FileSystem::encodeURL(fileInfo->multipartUploadID, true);
     auto res = s3FS->postRequest(fileInfo, fileInfo->path, {} /* headerMap */, responseBuffer,
         responseBufferSize, reinterpret_cast<const uint8_t*>(body.c_str()), body.length(),
         queryParam);
@@ -576,8 +575,8 @@ std::string getDateTimeHeader(const timestamp_t& timestamp) {
     return common::stringFormat(formatStr, hours, minutes, seconds);
 }
 
-HeaderMap RemoteObjectFileSystem::createS3Header(std::string url, std::string query,
-    std::string host, std::string service, std::string method, const AuthParams& authParams,
+HeaderMap S3FileSystem::createS3Header(std::string url, std::string query, std::string host,
+    std::string service, std::string method, const S3AuthParams& authParams,
     std::string payloadHash, std::string contentType) const {
     HeaderMap res;
     res["Host"] = host;
@@ -592,23 +591,21 @@ HeaderMap RemoteObjectFileSystem::createS3Header(std::string url, std::string qu
     auto timestamp = common::Timestamp::getCurrentTimestamp();
     auto dateHeader = getDateHeader(timestamp);
     auto datetimeHeader = getDateTimeHeader(timestamp);
-    const auto datetimeHeaderName = fsConfig.substituteHeaderPrefix("{}-date");
-    const auto payloadHashHeaderName = fsConfig.substituteHeaderPrefix("{}-content-sha256");
-    res[datetimeHeaderName] = datetimeHeader;
-    res[payloadHashHeaderName] = payloadHash;
+    res["x-amz-date"] = datetimeHeader;
+    res["x-amz-content-sha256"] = payloadHash;
     std::string signedHeaders = "";
     hash_bytes canonicalRequestHash;
     hash_str canonicalRequestHashStr;
     if (!contentType.empty()) {
         signedHeaders += "content-type;";
     }
-    signedHeaders += stringFormat("host;{};{}", payloadHashHeaderName, datetimeHeaderName);
-    auto canonicalRequest = method + "\n" + RemoteObjectFileSystem::encodeURL(url) + "\n" + query;
+    signedHeaders += "host;x-amz-content-sha256;x-amz-date";
+    auto canonicalRequest = method + "\n" + S3FileSystem::encodeURL(url) + "\n" + query;
     if (!contentType.empty()) {
         canonicalRequest += "\ncontent-type:" + contentType;
     }
-    canonicalRequest += stringFormat("\nhost:{}\n{}:{}\n{}:{}", host, payloadHashHeaderName,
-        payloadHash, datetimeHeaderName, datetimeHeader);
+    canonicalRequest += "\nhost:" + host + "\nx-amz-content-sha256:" + payloadHash +
+                        "\nx-amz-date:" + datetimeHeader;
     canonicalRequest += "\n\n" + signedHeaders + "\n" + payloadHash;
     sha256(canonicalRequest.c_str(), canonicalRequest.length(), canonicalRequestHash);
     hex256(canonicalRequestHash, canonicalRequestHashStr);
@@ -633,7 +630,7 @@ HeaderMap RemoteObjectFileSystem::createS3Header(std::string url, std::string qu
     return res;
 }
 
-std::unique_ptr<HTTPResponse> RemoteObjectFileSystem::headRequest(common::FileInfo* fileInfo,
+std::unique_ptr<HTTPResponse> S3FileSystem::headRequest(common::FileInfo* fileInfo,
     const std::string& url, HeaderMap /*headerMap*/) const {
     auto& authParams = fileInfo->ptrCast<S3FileInfo>()->authParams;
     auto parsedS3URL = parseS3URL(url, authParams);
@@ -642,7 +639,7 @@ std::unique_ptr<HTTPResponse> RemoteObjectFileSystem::headRequest(common::FileIn
     return HTTPFileSystem::headRequest(fileInfo, httpURL, headers);
 }
 
-std::unique_ptr<HTTPResponse> RemoteObjectFileSystem::getRangeRequest(common::FileInfo* fileInfo,
+std::unique_ptr<HTTPResponse> S3FileSystem::getRangeRequest(common::FileInfo* fileInfo,
     const std::string& url, HeaderMap /*headerMap*/, uint64_t fileOffset, char* buffer,
     uint64_t bufferLen) const {
     auto& authParams = fileInfo->ptrCast<S3FileInfo>()->authParams;
@@ -653,7 +650,7 @@ std::unique_ptr<HTTPResponse> RemoteObjectFileSystem::getRangeRequest(common::Fi
         bufferLen);
 }
 
-std::unique_ptr<HTTPResponse> RemoteObjectFileSystem::postRequest(common::FileInfo* fileInfo,
+std::unique_ptr<HTTPResponse> S3FileSystem::postRequest(common::FileInfo* fileInfo,
     const std::string& url, kuzu::httpfs::HeaderMap /*headerMap*/,
     std::unique_ptr<uint8_t[]>& outputBuffer, uint64_t& outputBufferLen, const uint8_t* inputBuffer,
     uint64_t inputBufferLen, std::string httpParams) const {
@@ -667,7 +664,7 @@ std::unique_ptr<HTTPResponse> RemoteObjectFileSystem::postRequest(common::FileIn
         inputBuffer, inputBufferLen);
 }
 
-std::unique_ptr<HTTPResponse> RemoteObjectFileSystem::putRequest(common::FileInfo* fileInfo,
+std::unique_ptr<HTTPResponse> S3FileSystem::putRequest(common::FileInfo* fileInfo,
     const std::string& url, kuzu::httpfs::HeaderMap /*headerMap*/, const uint8_t* inputBuffer,
     uint64_t inputBufferLen, std::string httpParams) const {
     auto& authParams = fileInfo->ptrCast<S3FileInfo>()->authParams;
@@ -679,7 +676,7 @@ std::unique_ptr<HTTPResponse> RemoteObjectFileSystem::putRequest(common::FileInf
     return HTTPFileSystem::putRequest(fileInfo, httpURL, headers, inputBuffer, inputBufferLen);
 }
 
-std::string RemoteObjectFileSystem::getPayloadHash(const uint8_t* buffer, uint64_t bufferLen) {
+std::string S3FileSystem::getPayloadHash(const uint8_t* buffer, uint64_t bufferLen) {
     if (bufferLen > 0) {
         hash_bytes payloadHashBytes;
         hash_str payloadHashStr;
@@ -691,7 +688,7 @@ std::string RemoteObjectFileSystem::getPayloadHash(const uint8_t* buffer, uint64
     }
 }
 
-void RemoteObjectFileSystem::flushBuffer(S3FileInfo* fileInfo,
+void S3FileSystem::flushBuffer(S3FileInfo* fileInfo,
     std::shared_ptr<S3WriteBuffer> bufferToFlush) const {
     if (bufferToFlush->numBytesWritten == 0) {
         return;
@@ -717,12 +714,12 @@ void RemoteObjectFileSystem::flushBuffer(S3FileInfo* fileInfo,
     uploadThread.detach();
 }
 
-void RemoteObjectFileSystem::uploadBuffer(S3FileInfo* fileInfo,
+void S3FileSystem::uploadBuffer(S3FileInfo* fileInfo,
     std::shared_ptr<S3WriteBuffer> bufferToUpload) {
-    auto s3FileSystem = fileInfo->fileSystem->ptrCast<RemoteObjectFileSystem>();
+    auto s3FileSystem = fileInfo->fileSystem->ptrCast<S3FileSystem>();
     std::string queryParam =
         "partNumber=" + std::to_string(bufferToUpload->partID + 1) + "&" +
-        "uploadId=" + RemoteObjectFileSystem::encodeURL(fileInfo->multipartUploadID, true);
+        "uploadId=" + S3FileSystem::encodeURL(fileInfo->multipartUploadID, true);
     std::unique_ptr<HTTPResponse> res;
     case_insensitive_map_t<std::string>::iterator etagIter;
     try {
@@ -769,7 +766,7 @@ void RemoteObjectFileSystem::uploadBuffer(S3FileInfo* fileInfo,
     fileInfo->uploadsInProgressCV.notify_one();
 }
 
-std::string RemoteObjectFileSystem::getUploadID(const std::string& response) {
+std::string S3FileSystem::getUploadID(const std::string& response) {
     auto openTagPos = response.find(uploadIDOpenTag, 0);
     auto closeTagPos = response.find(uploadIDCloseTag, openTagPos);
     if (openTagPos == std::string::npos || closeTagPos == std::string::npos) {
@@ -780,8 +777,8 @@ std::string RemoteObjectFileSystem::getUploadID(const std::string& response) {
     return response.substr(openTagPos, closeTagPos - openTagPos);
 }
 
-std::string AWSListObjectV2::request(const RemoteObjectFileSystem& fs, std::string& path,
-    AuthParams& authParams, std::string& continuationToken) {
+std::string AWSListObjectV2::request(const S3FileSystem& fs, std::string& path,
+    S3AuthParams& authParams, std::string& continuationToken) {
     auto parsedURL = fs.parseS3URL(path, authParams);
     std::string requestPath;
     if (authParams.urlStyle == "path") {
@@ -795,18 +792,18 @@ std::string AWSListObjectV2::request(const RemoteObjectFileSystem& fs, std::stri
     }
     std::string requestParams = "";
     if (!continuationToken.empty()) {
-        requestParams += "continuation-token=" + RemoteObjectFileSystem::encodeURL(
-                                                     continuationToken, true /* encodeSlash */);
+        requestParams += "continuation-token=" +
+                         S3FileSystem::encodeURL(continuationToken, true /* encodeSlash */);
         requestParams += "&";
     }
     requestParams += "encoding-type=url&list-type=2";
-    requestParams += "&prefix=" + RemoteObjectFileSystem::encodeURL(prefix, true);
+    requestParams += "&prefix=" + S3FileSystem::encodeURL(prefix, true);
     std::string listObjectV2URL = requestPath + "?" + requestParams;
     auto headerMap = fs.createS3Header(requestPath, requestParams, parsedURL.host, "s3", "GET",
         authParams, "" /* payloadHash */, "" /* contentType */);
     auto headers = HTTPFileSystem::getHTTPHeaders(headerMap);
 
-    auto client = RemoteObjectFileSystem::getClient(
+    auto client = S3FileSystem::getClient(
         parsedURL.httpProto + parsedURL.host); // Get requests use fresh connection
     std::stringstream response;
     auto res = client->Get(
@@ -842,7 +839,7 @@ void AWSListObjectV2::parseKey(std::string& awsResponse, std::vector<std::string
             if (nextCloseTagPos == std::string::npos) {
                 throw RuntimeException("Failed to parse S3 result.");
             }
-            auto parsedPath = RemoteObjectFileSystem::decodeURL(
+            auto parsedPath = S3FileSystem::decodeURL(
                 awsResponse.substr(nextOpenTagPos + 5, nextCloseTagPos - nextOpenTagPos - 5));
             if (parsedPath.back() != '/') {
                 result.push_back(parsedPath);

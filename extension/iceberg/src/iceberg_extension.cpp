@@ -3,7 +3,7 @@
 #include "function/iceberg_functions.h"
 #include "main/client_context.h"
 #include "main/database.h"
-#include "remote_fs_config.h"
+#include "s3fs_config.h"
 
 namespace kuzu {
 namespace iceberg_extension {
@@ -15,7 +15,7 @@ void IcebergExtension::load(main::ClientContext* context) {
     extension::ExtensionUtils::addTableFunc<IcebergScanFunction>(db);
     extension::ExtensionUtils::addTableFunc<IcebergMetadataFunction>(db);
     extension::ExtensionUtils::addTableFunc<IcebergSnapshotsFunction>(db);
-    for (auto& fsConfig : httpfs::RemoteFSConfig::getAvailableConfigs()) {
+    for (auto& fsConfig : httpfs::S3FileSystemConfig::getAvailableConfigs()) {
         fsConfig.registerExtensionOptions(&db);
         fsConfig.setEnvValue(context);
     }

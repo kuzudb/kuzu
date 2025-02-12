@@ -1,7 +1,7 @@
 #include "main/duckdb_extension.h"
 
 #include "main/client_context.h"
-#include "remote_fs_config.h"
+#include "s3fs_config.h"
 #include "storage/duckdb_storage.h"
 
 namespace kuzu {
@@ -10,7 +10,7 @@ namespace duckdb_extension {
 void DuckDBExtension::load(main::ClientContext* context) {
     auto db = context->getDatabase();
     db->registerStorageExtension(EXTENSION_NAME, std::make_unique<DuckDBStorageExtension>(db));
-    for (auto& fsConfig : httpfs::RemoteFSConfig::getAvailableConfigs()) {
+    for (auto& fsConfig : httpfs::S3FileSystemConfig::getAvailableConfigs()) {
         fsConfig.registerExtensionOptions(db);
         fsConfig.setEnvValue(context);
     }

@@ -2,7 +2,7 @@
 
 #include "connector/duckdb_secret_manager.h"
 #include "main/client_context.h"
-#include "remote_fs_config.h"
+#include "s3fs_config.h"
 
 namespace kuzu {
 namespace duckdb_extension {
@@ -24,7 +24,7 @@ void S3DuckDBConnector::connect(const std::string& dbPath, const std::string& ca
     connection = std::make_unique<duckdb::Connection>(*instance);
     executeQuery("install httpfs;");
     executeQuery("load httpfs;");
-    for (auto& fsConfig : httpfs::RemoteFSConfig::getAvailableConfigs()) {
+    for (auto& fsConfig : httpfs::S3FileSystemConfig::getAvailableConfigs()) {
         executeQuery(duckdb_extension::DuckDBSecretManager::getRemoteFSSecret(context, fsConfig));
     }
     executeQuery(common::stringFormat("attach '{}' as {} (read_only);", dbPath, catalogName));

@@ -4,14 +4,14 @@
 #include "common/types/value/value.h"
 #include "http_config.h"
 #include "main/database.h"
-#include "remote_fs.h"
-#include "remote_fs_config.h"
+#include "s3fs.h"
+#include "s3fs_config.h"
 
 namespace kuzu {
 namespace httpfs {
 
 static void registerExtensionOptions(main::Database* db) {
-    for (auto& fsConfig : httpfs::RemoteFSConfig::getAvailableConfigs()) {
+    for (auto& fsConfig : httpfs::S3FileSystemConfig::getAvailableConfigs()) {
         fsConfig.registerExtensionOptions(db);
     }
     db->addExtensionOption("s3_uploader_max_num_parts_per_file", common::LogicalTypeID::INT64,
@@ -26,8 +26,8 @@ static void registerExtensionOptions(main::Database* db) {
 
 static void registerFileSystem(main::Database* db) {
     db->registerFileSystem(std::make_unique<HTTPFileSystem>());
-    for (auto& fsConfig : httpfs::RemoteFSConfig::getAvailableConfigs()) {
-        db->registerFileSystem(std::make_unique<RemoteObjectFileSystem>(fsConfig));
+    for (auto& fsConfig : httpfs::S3FileSystemConfig::getAvailableConfigs()) {
+        db->registerFileSystem(std::make_unique<S3FileSystem>(fsConfig));
     }
 }
 
@@ -35,7 +35,7 @@ void HttpfsExtension::load(main::ClientContext* context) {
     auto db = context->getDatabase();
     registerFileSystem(db);
     registerExtensionOptions(db);
-    for (auto& fsConfig : httpfs::RemoteFSConfig::getAvailableConfigs()) {
+    for (auto& fsConfig : httpfs::S3FileSystemConfig::getAvailableConfigs()) {
         fsConfig.setEnvValue(context);
     }
     HTTPConfigEnvProvider::setOptionValue(context);
