@@ -76,11 +76,8 @@ public:
 
     // Set algorithm to NOT track path
     void setToNoPath();
-    binder::expression_vector getResultColumnsNoPath();
 
 protected:
-    binder::expression_vector getBaseResultColumns() const;
-
     std::unique_ptr<BFSGraph> getBFSGraph(processor::ExecutionContext* context);
 };
 

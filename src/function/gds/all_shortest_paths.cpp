@@ -10,6 +10,7 @@
 #include "graph/graph.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "binder/expression/node_expression.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -172,7 +173,7 @@ class AllSPPathsEdgeCompute : public SPEdgeCompute {
 public:
     AllSPPathsEdgeCompute(SinglePathLengthsFrontierPair* frontiersPair, BFSGraph* bfsGraph)
         : SPEdgeCompute{frontiersPair}, bfsGraph{bfsGraph} {
-        parentPtrsBlock = bfsGraph->addNewBlock();
+        block = bfsGraph->addNewBlock();
     }
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, NbrScanState::Chunk& resultChunk,
@@ -188,12 +189,11 @@ public:
             auto shouldUpdate =
                 nbrLen == PathLengths::UNVISITED || nbrLen == frontierPair->getCurrentIter();
             if (shouldUpdate) {
-                if (!parentPtrsBlock->hasSpace()) {
-                    parentPtrsBlock = bfsGraph->addNewBlock();
+                if (!block->hasSpace()) {
+                    block = bfsGraph->addNewBlock();
                 }
-                auto parent = parentPtrsBlock->reserveNext();
-                parent->store(frontierPair->getCurrentIter(), boundNodeID, edgeID, fwdEdge);
-                bfsGraph->addParent(parent, nbrNodeID.offset);
+                bfsGraph->addParent(frontierPair->getCurrentIter(), boundNodeID, edgeID, nbrNodeID,
+                    fwdEdge, block);
             }
             if (nbrLen == PathLengths::UNVISITED) {
                 activeNodes.push_back(nbrNodeID);
@@ -208,7 +208,7 @@ public:
 
 private:
     BFSGraph* bfsGraph;
-    ObjectBlock<ParentList>* parentPtrsBlock = nullptr;
+    ObjectBlock<ParentList>* block = nullptr;
 };
 
 /**
@@ -222,7 +222,9 @@ public:
     AllSPDestinationsAlgorithm(const AllSPDestinationsAlgorithm& other) : RJAlgorithm{other} {}
 
     expression_vector getResultColumns(const function::GDSBindInput& /*bindInput*/) const override {
-        auto columns = getBaseResultColumns();
+        expression_vector columns;
+        columns.push_back(bindData->getNodeInput()->constCast<NodeExpression>().getInternalID());
+        columns.push_back(bindData->getNodeOutput()->constCast<NodeExpression>().getInternalID());
         columns.push_back(bindData->ptrCast<RJBindData>()->lengthExpr);
         return columns;
     }
@@ -256,9 +258,14 @@ public:
     AllSPPathsAlgorithm(const AllSPPathsAlgorithm& other) : RJAlgorithm{other} {}
 
     expression_vector getResultColumns(const function::GDSBindInput& /*bindInput*/) const override {
-        auto columns = getBaseResultColumns();
         auto rjBindData = bindData->ptrCast<RJBindData>();
+        expression_vector columns;
+        columns.push_back(bindData->getNodeInput()->constCast<NodeExpression>().getInternalID());
+        columns.push_back(bindData->getNodeOutput()->constCast<NodeExpression>().getInternalID());
         columns.push_back(rjBindData->lengthExpr);
+        if (rjBindData->extendDirection == ExtendDirection::BOTH) {
+            columns.push_back(rjBindData->directionExpr);
+        }
         columns.push_back(rjBindData->pathNodeIDsExpr);
         columns.push_back(rjBindData->pathEdgeIDsExpr);
         return columns;

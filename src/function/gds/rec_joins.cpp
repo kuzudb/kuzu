@@ -54,29 +54,6 @@ void RJAlgorithm::setToNoPath() {
     bindData->ptrCast<RJBindData>()->writePath = false;
 }
 
-binder::expression_vector RJAlgorithm::getResultColumnsNoPath() {
-    expression_vector columns;
-    auto& inputNode = bindData->getNodeInput()->constCast<NodeExpression>();
-    columns.push_back(inputNode.getInternalID());
-    auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
-    columns.push_back(outputNode.getInternalID());
-    columns.push_back(bindData->ptrCast<RJBindData>()->lengthExpr);
-    return columns;
-}
-
-expression_vector RJAlgorithm::getBaseResultColumns() const {
-    expression_vector columns;
-    auto& inputNode = bindData->getNodeInput()->constCast<NodeExpression>();
-    columns.push_back(inputNode.getInternalID());
-    auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
-    columns.push_back(outputNode.getInternalID());
-    auto rjBindData = bindData->ptrCast<RJBindData>();
-    if (rjBindData->extendDirection == ExtendDirection::BOTH) {
-        columns.push_back(rjBindData->directionExpr);
-    }
-    return columns;
-}
-
 // All recursive join computation have the same vertex compute. This vertex compute writes
 // result (could be dst, length or path) from a dst node ID to given source node ID.
 class RJVertexCompute : public VertexCompute {
