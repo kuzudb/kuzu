@@ -11,7 +11,6 @@
 #include "common/types/types.h"
 #include "common/utils.h"
 #include "common/vector/value_vector.h"
-#include "processor/operator/aggregate/hash_aggregate.h"
 #include "processor/result/factorized_table.h"
 #include "processor/result/factorized_table_schema.h"
 
@@ -59,6 +58,7 @@ uint64_t AggregateHashTable::append(const std::vector<ValueVector*>& flatKeyVect
     return numFlatTuples;
 }
 
+// TODO: Partitioning version
 bool AggregateHashTable::insertAggregateValueIfDistinctForGroupByKeys(
     const std::vector<ValueVector*>& groupByFlatKeyVectors, ValueVector* aggregateVector) {
     std::vector<ValueVector*> distinctKeyVectors(groupByFlatKeyVectors.size() + 1);
@@ -181,12 +181,14 @@ void AggregateHashTable::mergeDistinctAggregateInfo() {
 }
 
 void AggregateHashTable::finalizeAggregateStates() {
-    for (auto i = 0u; i < getNumEntries(); ++i) {
-        auto entry = factorizedTable->getTuple(i);
-        auto aggregateStatesOffset = aggStateColOffsetInFT;
-        for (auto& aggregateFunction : aggregateFunctions) {
-            aggregateFunction.finalizeState(entry + aggregateStatesOffset);
-            aggregateStatesOffset += aggregateFunction.getAggregateStateSize();
+    if (!aggregateFunctions.empty()) {
+        for (auto i = 0u; i < getNumEntries(); ++i) {
+            auto entry = factorizedTable->getTuple(i);
+            auto aggregateStatesOffset = aggStateColOffsetInFT;
+            for (auto& aggregateFunction : aggregateFunctions) {
+                aggregateFunction.finalizeState(entry + aggregateStatesOffset);
+                aggregateStatesOffset += aggregateFunction.getAggregateStateSize();
+            }
         }
     }
 }
@@ -762,16 +764,13 @@ void AggregateHashTable::updateBothUnFlatDifferentDCAggVectorState(
     });
 }
 
-std::unique_ptr<AggregateHashTable> AggregateHashTableUtils::createDistinctHashTable(
-    MemoryManager& memoryManager, const std::vector<LogicalType>& groupByKeyTypes,
-    const LogicalType& distinctKeyType) {
-    std::vector<LogicalType> hashKeyTypes(groupByKeyTypes.size() + 1);
+FactorizedTableSchema AggregateHashTableUtils::getTableSchemaForKeys(
+    const std::vector<common::LogicalType>& groupByKeyTypes,
+    const common::LogicalType& distinctKeyType) {
     auto tableSchema = FactorizedTableSchema();
-    auto i = 0u;
     // Group by key columns
-    for (; i < groupByKeyTypes.size(); i++) {
-        hashKeyTypes[i] = groupByKeyTypes[i].copy();
-        auto size = LogicalTypeUtils::getRowLayoutSize(hashKeyTypes[i]);
+    for (auto i = 0u; i < groupByKeyTypes.size(); i++) {
+        auto size = LogicalTypeUtils::getRowLayoutSize(groupByKeyTypes[i]);
         auto columnSchema = ColumnSchema(false /* isUnFlat */, 0 /* groupID */, size);
         // This isn't really necessary except in the global queues, but it's easier to just always
         // set it here
@@ -779,16 +778,29 @@ std::unique_ptr<AggregateHashTable> AggregateHashTableUtils::createDistinctHashT
         tableSchema.appendColumn(std::move(columnSchema));
     }
     // Distinct key column
-    hashKeyTypes[i] = distinctKeyType.copy();
     auto columnSchema = ColumnSchema(false /* isUnFlat */, 0 /* groupID */,
         LogicalTypeUtils::getRowLayoutSize(distinctKeyType));
     columnSchema.setMayContainsNullsToTrue();
     tableSchema.appendColumn(std::move(columnSchema));
     // Hash column
     tableSchema.appendColumn(ColumnSchema(false /* isUnFlat */, 0 /* groupID */, sizeof(hash_t)));
+    return tableSchema;
+}
+
+std::unique_ptr<AggregateHashTable> AggregateHashTableUtils::createDistinctHashTable(
+    MemoryManager& memoryManager, const std::vector<LogicalType>& groupByKeyTypes,
+    const LogicalType& distinctKeyType) {
+    std::vector<LogicalType> hashKeyTypes(groupByKeyTypes.size() + 1);
+    auto i = 0u;
+    // Group by key columns
+    for (; i < groupByKeyTypes.size(); i++) {
+        hashKeyTypes[i] = groupByKeyTypes[i].copy();
+    }
+    // Distinct key column
+    hashKeyTypes[i] = distinctKeyType.copy();
     return std::make_unique<AggregateHashTable>(memoryManager, std::move(hashKeyTypes),
         std::vector<LogicalType>{} /* empty payload types */, 0 /* numEntriesToAllocate */,
-        std::move(tableSchema));
+        getTableSchemaForKeys(groupByKeyTypes, distinctKeyType));
 }
 
 uint64_t PartitioningAggregateHashTable::append(const std::vector<ValueVector*>& flatKeyVectors,
@@ -818,7 +830,7 @@ void PartitioningAggregateHashTable::mergeAll() {
     for (uint64_t i = 0; i < factorizedTable->getNumTuples(); i++) {
         auto* tuple = factorizedTable->getTuple(i);
         auto hash = *(hash_t*)(tuple + tableSchema.getColOffset(tableSchema.getNumColumns() - 1));
-        sharedState->appendTuple(std::span(tuple, tableSchema.getNumBytesPerTuple()), hash);
+        partitioningData->appendTuple(std::span(tuple, tableSchema.getNumBytesPerTuple()), hash);
     }
     std::vector<ValueVector*> vectors;
     std::vector<std::unique_ptr<ValueVector>> keyVectors;
@@ -857,7 +869,7 @@ void PartitioningAggregateHashTable::mergeAll() {
                     // its aggregate state So we need to ignore the aggregate key when calculating
                     // the hash for partitioning
                     const auto hash = hashVector->getValue<hash_t>(tupleIdx);
-                    sharedState->appendDistinctTuple(distinctIdx,
+                    partitioningData->appendDistinctTuple(distinctIdx,
                         std::span(tuple, distinctTableSchema->getNumBytesPerTuple()), hash);
                 }
                 startTupleIdx += numTuplesToScan;
@@ -865,14 +877,14 @@ void PartitioningAggregateHashTable::mergeAll() {
                     DEFAULT_VECTOR_CAPACITY);
             }
 
-            sharedState->appendOverflow(
+            partitioningData->appendOverflow(
                 std::move(*distinctFactorizedTable->getInMemOverflowBuffer()));
             distinctHashTables[distinctIdx]->clear();
         }
     }
     // Move overflow data into the shared state so that it isn't obliterated when we clear the
     // factorized table
-    sharedState->appendOverflow(std::move(*factorizedTable->getInMemOverflowBuffer()));
+    partitioningData->appendOverflow(std::move(*factorizedTable->getInMemOverflowBuffer()));
 
     clear();
 }

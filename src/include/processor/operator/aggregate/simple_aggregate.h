@@ -1,16 +1,27 @@
 #pragma once
 
+#include "common/assert.h"
+#include "common/in_mem_overflow_buffer.h"
+#include "common/mpsc_queue.h"
+#include "processor/execution_context.h"
 #include "processor/operator/aggregate/aggregate_hash_table.h"
 #include "processor/operator/aggregate/base_aggregate.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
 namespace processor {
 
 // NOLINTNEXTLINE(cppcoreguidelines-virtual-class-destructor): This is a final class.
 class SimpleAggregateSharedState final : public BaseAggregateSharedState {
+    friend class SimpleAggregate;
+
 public:
-    explicit SimpleAggregateSharedState(
-        const std::vector<function::AggregateFunction>& aggregateFunctions);
+    explicit SimpleAggregateSharedState(main::ClientContext* clientContext,
+        const std::vector<function::AggregateFunction>& aggregateFunctions,
+        const std::vector<AggregateInfo>& aggInfos);
+
+    // The partitioningData objects need a stable pointer to this shared state
+    DELETE_COPY_AND_MOVE(SimpleAggregateSharedState);
 
     void combineAggregateStates(
         const std::vector<std::unique_ptr<function::AggregateState>>& localAggregateStates,
@@ -24,7 +35,49 @@ public:
         return globalAggregateStates[idx].get();
     }
 
+    void finalizeDistinctHashTables(
+        const std::vector<std::unique_ptr<PartitioningAggregateHashTable>>& localDistinctTables);
+
+protected:
+    struct Partition {
+        std::mutex mtx;
+        std::vector<
+            std::tuple<std::unique_ptr<AggregateHashTable>, std::unique_ptr<HashTableQueue>>>
+            distinctTables;
+        std::atomic<bool> finalized = false;
+    };
+
+    class SimpleAggregatePartitioningData : public AggregatePartitioningData {
+    public:
+        SimpleAggregatePartitioningData(SimpleAggregateSharedState* sharedState, size_t functionIdx)
+            : sharedState{sharedState}, functionIdx{functionIdx} {}
+
+        void appendTuple(std::span<uint8_t> tuple, common::hash_t hash) override {
+            KU_ASSERT(sharedState->globalPartitions.size() > 0);
+            auto& partition =
+                sharedState->globalPartitions[(hash >> sharedState->shiftForPartitioning) %
+                                              sharedState->globalPartitions.size()];
+            std::get<1>(partition.distinctTables[functionIdx])->appendTuple(tuple);
+        }
+
+        void appendDistinctTuple(size_t, std::span<uint8_t>, common::hash_t) override {
+            KU_UNREACHABLE;
+        }
+
+        void appendOverflow(common::InMemOverflowBuffer&& overflowBuffer) override {
+            sharedState->overflow.push(
+                std::make_unique<common::InMemOverflowBuffer>(std::move(overflowBuffer)));
+        }
+
+    private:
+        SimpleAggregateSharedState* sharedState;
+        size_t functionIdx;
+    };
+
 private:
+    common::MPSCQueue<std::unique_ptr<common::InMemOverflowBuffer>> overflow;
+    std::vector<Partition> globalPartitions;
+    std::vector<SimpleAggregatePartitioningData> partitioningData;
     std::vector<std::unique_ptr<function::AggregateState>> globalAggregateStates;
 };
 
@@ -54,13 +107,16 @@ public:
         std::unique_ptr<OPPrintInfo> printInfo)
         : BaseAggregate{std::move(resultSetDescriptor), std::move(aggregateFunctions),
               std::move(aggInfos), std::move(child), id, std::move(printInfo)},
-          sharedState{std::move(sharedState)} {}
+          sharedState{std::move(sharedState)}, hasDistinct{containDistinctAggregate()} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     void executeInternal(ExecutionContext* context) override;
 
-    void finalizeInternal(ExecutionContext* /*context*/) override {
+    void updateDistinctAggregateStates(storage::MemoryManager* memoryManager);
+
+    void finalizeInternal(ExecutionContext* context) override {
+        updateDistinctAggregateStates(context->clientContext->getMemoryManager());
         sharedState->finalizeAggregateStates();
         if (metrics) {
             metrics->numOutputTuple.incrementByOne();
@@ -73,12 +129,6 @@ public:
             printInfo->copy());
     }
 
-    // TODO(bmwinger): We can use the same type of partitioning to handle distinct simple aggregates
-    // It could even be the exact same pipeline, but it would perform better if we don't use the
-    // hash tables for anything but collecting the distinct values
-    // Maybe try and move the partitioning into BaseAggregate
-    bool isParallel() const final { return !containDistinctAggregate(); }
-
 private:
     void computeDistinctAggregate(AggregateHashTable* distinctHT,
         function::AggregateFunction* function, AggregateInput* input,
@@ -86,10 +136,20 @@ private:
     void computeAggregate(function::AggregateFunction* function, AggregateInput* input,
         function::AggregateState* state, storage::MemoryManager* memoryManager);
 
+    bool containDistinctAggregate() const {
+        for (auto& function : aggregateFunctions) {
+            if (function.isFunctionDistinct()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 private:
     std::shared_ptr<SimpleAggregateSharedState> sharedState;
     std::vector<std::unique_ptr<function::AggregateState>> localAggregateStates;
-    std::vector<std::unique_ptr<AggregateHashTable>> distinctHashTables;
+    std::vector<std::unique_ptr<PartitioningAggregateHashTable>> distinctHashTables;
+    bool hasDistinct;
 };
 
 } // namespace processor

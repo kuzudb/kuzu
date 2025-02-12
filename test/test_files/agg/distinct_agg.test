@@ -29,9 +29,9 @@
 5
 
 -LOG SimpleDistinctCollectINT64Test
--STATEMENT MATCH (p:person) RETURN collect(distinct p.age)
+-STATEMENT MATCH (p:person) RETURN list_sort(collect(distinct p.age), 'ASC')
 ---- 1
-[35,30,45,20,25,40,83]
+[20,25,30,35,40,45,83]
 
 -LOG HashDistinctCollectDoubleTest
 -STATEMENT MATCH (p:person) RETURN p.gender, collect(distinct p.isStudent)

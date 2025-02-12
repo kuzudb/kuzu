@@ -36,13 +36,11 @@ HashAggregateSharedState::HashAggregateSharedState(main::ClientContext* context,
     HashAggregateInfo hashAggInfo,
     const std::vector<function::AggregateFunction>& aggregateFunctions,
     std::span<AggregateInfo> aggregateInfos)
-    : BaseAggregateSharedState{aggregateFunctions}, aggInfo{std::move(hashAggInfo)},
-      globalPartitions{static_cast<size_t>(context->getMaxNumThreadForExec())},
-      limitNumber{common::INVALID_LIMIT}, numThreads{0}, memoryManager{context->getMemoryManager()},
-      // .size() - 1 since we want the bit width of the largest value that could be used to index
-      // the partitions
-      shiftForPartitioning{
-          static_cast<uint8_t>(sizeof(hash_t) * 8 - std::bit_width(globalPartitions.size() - 1))} {
+    : BaseAggregateSharedState{aggregateFunctions,
+          static_cast<size_t>(context->getMaxNumThreadForExec())},
+      aggInfo{std::move(hashAggInfo)}, limitNumber{common::INVALID_LIMIT},
+      memoryManager{context->getMemoryManager()},
+      globalPartitions{static_cast<size_t>(context->getMaxNumThreadForExec())} {
 
     // When copying directly into factorizedTables the table's schema's internal mayContainNulls
     // won't be updated and it's probably less work to just always check nulls

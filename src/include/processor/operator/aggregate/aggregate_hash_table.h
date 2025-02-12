@@ -4,6 +4,7 @@
 
 #include "aggregate_input.h"
 #include "common/copy_constructors.h"
+#include "common/in_mem_overflow_buffer.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "function/aggregate_function.h"
@@ -292,16 +293,28 @@ struct AggregateHashTableUtils {
         storage::MemoryManager& memoryManager,
         const std::vector<common::LogicalType>& groupByKeyTypes,
         const common::LogicalType& distinctKeyType);
+
+    static FactorizedTableSchema getTableSchemaForKeys(
+        const std::vector<common::LogicalType>& groupByKeyTypes,
+        const common::LogicalType& distinctKeyType);
 };
 
-// NOLINTNEXTLINE(cppcoreguidelines-virtual-class-destructor): This is a final class.
-class HashAggregateSharedState;
+// Separate class since the SimpleAggregate has multiple different top-level destinations for
+// partitioning
+class AggregatePartitioningData {
+public:
+    virtual ~AggregatePartitioningData() = default;
+    virtual void appendTuple(std::span<uint8_t> tuple, common::hash_t hash) = 0;
+    virtual void appendDistinctTuple(size_t /*distinctFuncIndex*/, std::span<uint8_t> /*tuple*/,
+        common::hash_t /*hash*/) = 0;
+    virtual void appendOverflow(common::InMemOverflowBuffer&& overflowBuffer) = 0;
+};
 
 // Fixed-sized Aggregate hash table that flushes tuples into partitions in the
 // HashAggregateSharedState when full
 class PartitioningAggregateHashTable final : public AggregateHashTable {
 public:
-    PartitioningAggregateHashTable(HashAggregateSharedState* sharedState,
+    PartitioningAggregateHashTable(AggregatePartitioningData* partitioningData,
         storage::MemoryManager& memoryManager, std::vector<common::LogicalType> keyTypes,
         std::vector<common::LogicalType> payloadTypes,
         const std::vector<function::AggregateFunction>& aggregateFunctions,
@@ -310,7 +323,7 @@ public:
         : AggregateHashTable(memoryManager, std::move(keyTypes), std::move(payloadTypes),
               aggregateFunctions, distinctAggKeyTypes,
               common::DEFAULT_VECTOR_CAPACITY /*minimum size*/, tableSchema.copy()),
-          sharedState{sharedState}, tableSchema{std::move(tableSchema)} {}
+          tableSchema{std::move(tableSchema)}, partitioningData{partitioningData} {}
 
     uint64_t append(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
@@ -321,8 +334,8 @@ public:
     void mergeAll();
 
 private:
-    HashAggregateSharedState* sharedState;
     FactorizedTableSchema tableSchema;
+    AggregatePartitioningData* partitioningData;
 };
 
 } // namespace processor

@@ -88,7 +88,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(const LogicalOperator
     auto aggFunctions = getAggFunctions(aggregates);
     auto aggOutputPos = getDataPos(aggregates, *outSchema);
     auto aggregateInputInfos = getAggregateInputInfos(agg.getAllKeys(), aggregates, *inSchema);
-    auto sharedState = make_shared<SimpleAggregateSharedState>(aggFunctions);
+    auto sharedState =
+        make_shared<SimpleAggregateSharedState>(clientContext, aggFunctions, aggregateInputInfos);
     auto printInfo = std::make_unique<SimpleAggregatePrintInfo>(aggregates);
     auto aggregate = make_unique<SimpleAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
         sharedState, std::move(aggFunctions), std::move(aggregateInputInfos),
