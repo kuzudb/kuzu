@@ -20,9 +20,14 @@ void HNSWIndexPartitionerSharedState::setTables(NodeTable* nodeTable, RelTable* 
     upperPartitionerSharedState->relTable = relTable;
 }
 
-InMemHNSWLayer::InMemHNSWLayer(MemoryManager* mm, InMemHNSWLayerInfo info)
+InMemHNSWLayer::InMemHNSWLayer(MemoryManager* mm, InMemHNSWLayerInfo info, LayerLevel level)
     : entryPoint{common::INVALID_OFFSET}, info{info} {
-    graph = std::make_unique<InMemHNSWGraph>(mm, info.numNodes, info.degreeThresholdToShrink);
+    if (level == LayerLevel::UPPER) {
+        graph = std::make_unique<SparseInMemHNSWGraph>(info.numNodes, info.degreeThresholdToShrink);
+    } else {
+        graph =
+            std::make_unique<DenseInMemHNSWGraph>(mm, info.numNodes, info.degreeThresholdToShrink);
+    }
 }
 
 void InMemHNSWLayer::insert(transaction::Transaction* transaction, common::offset_t offset,
@@ -76,12 +81,12 @@ common::offset_t InMemHNSWLayer::searchNN(transaction::Transaction* transaction,
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
 void InMemHNSWLayer::insertRel(transaction::Transaction* transaction, common::offset_t srcNode,
     common::offset_t dstNode) {
-    const auto currentLen = graph->incrementCSRLength(srcNode);
+    const auto currentLen = graph->incrementNumRels(srcNode);
     if (currentLen >= info.degreeThresholdToShrink) {
         shrinkForNode(transaction, info, graph.get(), srcNode, currentLen);
     } else {
         KU_ASSERT(srcNode < info.numNodes);
-        graph->setDstNode(srcNode * info.degreeThresholdToShrink + currentLen, dstNode);
+        graph->setDstNode(srcNode, currentLen, dstNode);
     }
 }
 
@@ -172,19 +177,19 @@ void InMemHNSWLayer::shrinkForNode(transaction::Transaction* transaction,
             }
         }
         if (keepNbr) {
-            graph->setDstNode(newSize++, nbrs[i].nodeOffset);
+            graph->setDstNode(nodeOffset, newSize++, nbrs[i].nodeOffset);
         }
         if (newSize == info.maxDegree) {
             break;
         }
     }
-    graph->setCSRLength(nodeOffset, newSize);
+    graph->setNumRels(nodeOffset, newSize);
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
 void InMemHNSWLayer::shrink(transaction::Transaction* transaction) {
     for (auto i = 0u; i < info.numNodes; i++) {
-        const auto numNbrs = graph->getCSRLength(i);
+        const auto numNbrs = graph->getNumRels(i);
         if (numNbrs <= info.maxDegree) {
             return;
         }
@@ -230,11 +235,13 @@ InMemHNSWIndex::InMemHNSWIndex(main::ClientContext* context, NodeTable& table,
     lowerLayer = std::make_unique<InMemHNSWLayer>(context->getMemoryManager(),
         InMemHNSWLayerInfo{numNodes, common::ku_dynamic_cast<InMemEmbeddings*>(embeddings.get()),
             this->config.distFunc, getDegreeThresholdToShrink(this->config.ml), this->config.ml,
-            this->config.alpha, this->config.efc});
+            this->config.alpha, this->config.efc},
+        InMemHNSWLayer::LayerLevel::LOWER);
     upperLayer = std::make_unique<InMemHNSWLayer>(context->getMemoryManager(),
         InMemHNSWLayerInfo{numNodes, common::ku_dynamic_cast<InMemEmbeddings*>(embeddings.get()),
             this->config.distFunc, getDegreeThresholdToShrink(this->config.mu), this->config.mu,
-            this->config.alpha, this->config.efc});
+            this->config.alpha, this->config.efc},
+        InMemHNSWLayer::LayerLevel::UPPER);
     embeddings->initialize(context, table, columnID);
 }
 

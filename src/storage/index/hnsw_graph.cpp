@@ -13,6 +13,7 @@ InMemEmbeddings::InMemEmbeddings(MemoryManager& mm, EmbeddingTypeInfo typeInfo,
     data = ColumnChunkFactory::createColumnChunkData(mm, columnType.copy(),
         false /*enableCompression*/, numNodes, ResidencyState::IN_MEMORY, true /*hasNullData*/,
         false /*initializeToZero*/);
+    data->cast<ListChunkData>().getDataColumnChunk()->resize(numNodes * this->typeInfo.dimension);
 }
 
 float* InMemEmbeddings::getEmbedding(common::offset_t offset) const {
@@ -100,7 +101,7 @@ void InMemHNSWGraph::finalize(MemoryManager& mm,
         const auto numNodesInGroup =
             std::min(common::StorageConfig::NODE_GROUP_SIZE, numNodes - startNodeOffset);
         for (auto i = 0u; i < numNodesInGroup; i++) {
-            numRels += getCSRLength(startNodeOffset + i);
+            numRels += getNumRels(startNodeOffset + i);
         }
         numRelsPerNodeGroup[nodeGroupIdx] = numRels;
     }
@@ -113,7 +114,7 @@ void InMemHNSWGraph::finalize(MemoryManager& mm,
 
 void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
     common::table_id_t srcNodeTableID, common::table_id_t dstNodeTableID,
-    common::table_id_t relTableID, InMemChunkedNodeGroupCollection& partition) const {
+    common::table_id_t relTableID, InMemChunkedNodeGroupCollection& partition) {
     const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     const auto numNodesInGroup =
         std::min(common::StorageConfig::NODE_GROUP_SIZE, numNodes - startNodeOffset);
@@ -136,12 +137,11 @@ void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, common::node_group_idx
     relIDColumnChunk.cast<InternalIDChunkData>().setTableID(relTableID);
     for (auto i = 0u; i < numNodesInGroup; i++) {
         const auto currNodeOffset = startNodeOffset + i;
-        const auto csrLen = getCSRLength(currNodeOffset);
-        const auto csrOffset = currNodeOffset * maxDegree;
+        const auto csrLen = getNumRels(currNodeOffset);
         for (auto j = 0u; j < csrLen; j++) {
             boundColumnChunk.setValue<common::offset_t>(currNodeOffset, currNumRels);
             relIDColumnChunk.setValue<common::offset_t>(currNumRels, currNumRels);
-            const auto nbrOffset = getDstNode(csrOffset + j);
+            const auto nbrOffset = getDstNode(currNodeOffset, j);
             KU_ASSERT(nbrOffset < numNodes);
             nbrColumnChunk.setValue<common::offset_t>(nbrOffset, currNumRels);
             currNumRels++;
@@ -158,18 +158,93 @@ void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, common::node_group_idx
     partition.merge(std::move(chunkedNodeGroup));
 }
 
-common::offset_vec_t InMemHNSWGraph::getNeighbors(transaction::Transaction* transaction,
+SparseInMemHNSWGraph::SparseInMemHNSWGraph(common::offset_t numNodes, common::length_t maxDegree)
+    : InMemHNSWGraph{numNodes, maxDegree} {
+    auto numPartitions = numNodes + PARTITION_SIZE - 1 / PARTITION_SIZE;
+    partitions.resize(numPartitions);
+    for (auto i = 0u; i < numPartitions; i++) {
+        partitions[i] = std::make_unique<Partition>();
+    }
+}
+
+common::offset_vec_t SparseInMemHNSWGraph::getNeighbors(transaction::Transaction*,
+    common::offset_t nodeOffset) {
+    auto& partition = getPartition(nodeOffset);
+    auto lock = partition.lock();
+    common::offset_vec_t neighbors;
+    auto numNbrs = partition.getNumRels(lock, nodeOffset);
+    neighbors.reserve(numNbrs);
+    for (auto& nbr : partition.getNeighbors(lock, nodeOffset)) {
+        if (nbr == common::INVALID_OFFSET) {
+            continue;
+        }
+        neighbors.push_back(nbr);
+    }
+    return neighbors;
+}
+
+common::offset_vec_t SparseInMemHNSWGraph::getNeighbors(transaction::Transaction* transaction,
+    common::offset_t nodeOffset, common::length_t numNbrs) {
+    auto result = getNeighbors(transaction, nodeOffset);
+    if (result.size() > numNbrs) {
+        result.resize(numNbrs);
+    }
+    return result;
+}
+
+void SparseInMemHNSWGraph::setDstNode(common::offset_t nodeOffset, common::offset_t offsetInCSRList,
+    common::offset_t dstNode) {
+    auto& partition = getPartition(nodeOffset);
+    auto lock = partition.lock();
+    auto& nbrs = partition.getNeighbors(lock, nodeOffset);
+    auto currNbrSize = nbrs.size();
+    if (currNbrSize < offsetInCSRList + 1) {
+        nbrs.resize(offsetInCSRList + 1);
+    }
+    for (auto i = currNbrSize; i < offsetInCSRList; i++) {
+        nbrs[i] = common::INVALID_OFFSET;
+    }
+    nbrs[offsetInCSRList] = dstNode;
+}
+
+uint16_t SparseInMemHNSWGraph::Partition::incrementNumRels(
+    [[maybe_unused]] const common::UniqLock& lock, common::offset_t nodeOffset) {
+    KU_ASSERT(lock.isLocked());
+    if (neighbors.contains(nodeOffset)) {
+        auto currSize = neighbors.at(nodeOffset).size();
+        neighbors.at(nodeOffset).resize(currSize + 1);
+        neighbors.at(nodeOffset)[currSize] = common::INVALID_OFFSET;
+        return currSize;
+    }
+    neighbors[nodeOffset].push_back(common::INVALID_OFFSET);
+    return 0;
+}
+
+SparseInMemHNSWGraph::Partition& SparseInMemHNSWGraph::getPartition(common::offset_t nodeOffset) {
+    auto nodeGroupIdx = nodeOffset % PARTITION_SIZE;
+    KU_ASSERT(nodeGroupIdx < partitions.size());
+    return *partitions[nodeGroupIdx];
+}
+
+const SparseInMemHNSWGraph::Partition& SparseInMemHNSWGraph::getPartition(
     common::offset_t nodeOffset) const {
-    const auto numNbrs = getCSRLength(nodeOffset);
+    auto nodeGroupIdx = nodeOffset % PARTITION_SIZE;
+    KU_ASSERT(nodeGroupIdx < partitions.size());
+    return *partitions[nodeGroupIdx];
+}
+
+common::offset_vec_t DenseInMemHNSWGraph::getNeighbors(transaction::Transaction* transaction,
+    common::offset_t nodeOffset) {
+    const auto numNbrs = getNumRels(nodeOffset);
     return getNeighbors(transaction, nodeOffset, numNbrs);
 }
 
-common::offset_vec_t InMemHNSWGraph::getNeighbors(transaction::Transaction*,
-    common::offset_t nodeOffset, common::length_t numNbrs) const {
+common::offset_vec_t DenseInMemHNSWGraph::getNeighbors(transaction::Transaction*,
+    common::offset_t nodeOffset, common::length_t numNbrs) {
     common::offset_vec_t neighbors;
     neighbors.reserve(numNbrs);
     for (common::offset_t i = 0; i < numNbrs; i++) {
-        auto nbr = getDstNode(nodeOffset * maxDegree + i);
+        auto nbr = getDstNode(nodeOffset, i);
         // Note: we might have INVALID_OFFSET at the end of the array of neighbor nodes. This is due
         // to that when we append a new neighbor node to node x, we don't exclusively lock the x,
         // instead, we increment the csrLength first, then set the dstNode. This design eases lock
@@ -184,12 +259,14 @@ common::offset_vec_t InMemHNSWGraph::getNeighbors(transaction::Transaction*,
     return neighbors;
 }
 
-void InMemHNSWGraph::resetCSRLengthAndDstNodes() {
-    for (common::offset_t i = 0; i < numNodes; i++) {
-        setCSRLength(i, 0);
+void DenseInMemHNSWGraph::resetCSRLengthAndDstNodes() {
+    for (auto i = 0u; i < numNodes; i++) {
+        setNumRels(i, 0);
     }
-    for (common::offset_t i = 0; i < numNodes * maxDegree; i++) {
-        setDstNode(i, common::INVALID_OFFSET);
+    for (auto i = 0u; i < numNodes; i++) {
+        for (auto j = 0u; j < maxDegree; j++) {
+            setDstNode(i, j, common::INVALID_OFFSET);
+        }
     }
 }
 
