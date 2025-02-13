@@ -304,7 +304,7 @@ struct AggregateHashTableUtils {
 class AggregatePartitioningData {
 public:
     virtual ~AggregatePartitioningData() = default;
-    virtual void appendTuple(std::span<uint8_t> tuple, common::hash_t hash) = 0;
+    virtual void appendTuples(const FactorizedTable& table, ft_col_offset_t hashOffset) = 0;
     virtual void appendDistinctTuple(size_t /*distinctFuncIndex*/, std::span<uint8_t> /*tuple*/,
         common::hash_t /*hash*/) = 0;
     virtual void appendOverflow(common::InMemOverflowBuffer&& overflowBuffer) = 0;

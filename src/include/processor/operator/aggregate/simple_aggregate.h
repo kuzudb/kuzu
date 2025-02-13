@@ -6,6 +6,8 @@
 #include "processor/execution_context.h"
 #include "processor/operator/aggregate/aggregate_hash_table.h"
 #include "processor/operator/aggregate/base_aggregate.h"
+#include "processor/result/factorized_table.h"
+#include "processor/result/factorized_table_schema.h"
 #include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
@@ -52,12 +54,20 @@ protected:
         SimpleAggregatePartitioningData(SimpleAggregateSharedState* sharedState, size_t functionIdx)
             : sharedState{sharedState}, functionIdx{functionIdx} {}
 
-        void appendTuple(std::span<uint8_t> tuple, common::hash_t hash) override {
+        void appendTuples(const FactorizedTable& factorizedTable,
+            ft_col_offset_t hashOffset) override {
             KU_ASSERT(sharedState->globalPartitions.size() > 0);
-            auto& partition =
-                sharedState->globalPartitions[(hash >> sharedState->shiftForPartitioning) %
-                                              sharedState->globalPartitions.size()];
-            std::get<1>(partition.distinctTables[functionIdx])->appendTuple(tuple);
+            auto numBytesPerTuple = factorizedTable.getTableSchema()->getNumBytesPerTuple();
+            for (ft_tuple_idx_t tupleIdx = 0; tupleIdx < factorizedTable.getNumTuples();
+                 tupleIdx++) {
+                auto tuple = factorizedTable.getTuple(tupleIdx);
+                auto hash = *reinterpret_cast<common::hash_t*>(tuple + hashOffset);
+                auto& partition =
+                    sharedState->globalPartitions[(hash >> sharedState->shiftForPartitioning) %
+                                                  sharedState->globalPartitions.size()];
+                std::get<1>(partition.distinctTables[functionIdx])
+                    ->appendTuple(std::span(tuple, numBytesPerTuple));
+            }
         }
 
         void appendDistinctTuple(size_t, std::span<uint8_t>, common::hash_t) override {

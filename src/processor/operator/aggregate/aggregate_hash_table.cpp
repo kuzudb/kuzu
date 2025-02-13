@@ -827,11 +827,8 @@ uint64_t PartitioningAggregateHashTable::append(const std::vector<ValueVector*>&
 }
 
 void PartitioningAggregateHashTable::mergeAll() {
-    for (uint64_t i = 0; i < factorizedTable->getNumTuples(); i++) {
-        auto* tuple = factorizedTable->getTuple(i);
-        auto hash = *(hash_t*)(tuple + tableSchema.getColOffset(tableSchema.getNumColumns() - 1));
-        partitioningData->appendTuple(std::span(tuple, tableSchema.getNumBytesPerTuple()), hash);
-    }
+    partitioningData->appendTuples(*factorizedTable,
+        tableSchema.getColOffset(tableSchema.getNumColumns() - 1));
     std::vector<ValueVector*> vectors;
     std::vector<std::unique_ptr<ValueVector>> keyVectors;
     std::vector<ft_col_idx_t> colIdxToScan;

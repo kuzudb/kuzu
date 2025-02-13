@@ -43,10 +43,15 @@ public:
         const std::vector<function::AggregateFunction>& aggregateFunctions,
         std::span<AggregateInfo> aggregateInfos);
 
-    void appendTuple(std::span<uint8_t> tuple, common::hash_t hash) override {
-        auto& partition =
-            globalPartitions[(hash >> shiftForPartitioning) % globalPartitions.size()];
-        partition.queue->appendTuple(tuple);
+    void appendTuples(const FactorizedTable& factorizedTable, ft_col_offset_t hashOffset) override {
+        auto numBytesPerTuple = factorizedTable.getTableSchema()->getNumBytesPerTuple();
+        for (ft_tuple_idx_t tupleIdx = 0; tupleIdx < factorizedTable.getNumTuples(); tupleIdx++) {
+            auto tuple = factorizedTable.getTuple(tupleIdx);
+            auto hash = *reinterpret_cast<common::hash_t*>(tuple + hashOffset);
+            auto& partition =
+                globalPartitions[(hash >> shiftForPartitioning) % globalPartitions.size()];
+            partition.queue->appendTuple(std::span(tuple, numBytesPerTuple));
+        }
     }
 
     void appendDistinctTuple(size_t distinctFuncIndex, std::span<uint8_t> tuple,
