@@ -1,11 +1,9 @@
 #include "function/gds/rec_joins.h"
 
 #include "binder/binder.h"
-#include "binder/expression/expression_util.h"
 #include "binder/expression/property_expression.h"
-#include "common/enums/extend_direction_util.h"
+#include "common/exception/binder.h"
 #include "common/exception/interrupt.h"
-#include "common/exception/runtime.h"
 #include "common/task_system/progress_bar.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_utils.h"
@@ -47,29 +45,13 @@ PathsOutputWriterInfo RJBindData::getPathWriterInfo() const {
     return info;
 }
 
-void RJAlgorithm::setToNoPath() {
-    bindData->ptrCast<RJBindData>()->writePath = false;
+void RJAlgorithm::bind(const kuzu::function::GDSBindInput&, main::ClientContext&) {
+    throw common::BinderException("Recursive join should not be triggered through function calls. "
+                                  "Try cypher patter ()-[*]->() instead.");
 }
 
-void RJAlgorithm::validateLowerUpperBound(int64_t lowerBound, int64_t upperBound) {
-    if (lowerBound < 0 || upperBound < 0) {
-        throw RuntimeException(
-            stringFormat("Lower and upper bound lengths of recursive join operations need to be "
-                         "non-negative. Given lower bound is: {} and upper bound is: {}.",
-                lowerBound, upperBound));
-    }
-    if (lowerBound > upperBound) {
-        throw RuntimeException(
-            stringFormat("Lower bound length of recursive join operations need to be less than or "
-                         "equal to upper bound. Given lower bound is: {} and upper bound is: {}.",
-                lowerBound, upperBound));
-    }
-    if (upperBound >= RJBindData::DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND) {
-        throw RuntimeException(
-            stringFormat("Recursive join operations only works for non-positive upper bound "
-                         "iterations that are up to {}. Given upper bound is: {}.",
-                RJBindData::DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND, upperBound));
-    }
+void RJAlgorithm::setToNoPath() {
+    bindData->ptrCast<RJBindData>()->writePath = false;
 }
 
 binder::expression_vector RJAlgorithm::getResultColumnsNoPath() {
@@ -93,46 +75,6 @@ expression_vector RJAlgorithm::getBaseResultColumns() const {
         columns.push_back(rjBindData->directionExpr);
     }
     return columns;
-}
-
-void RJAlgorithm::bindColumnExpressions(binder::Binder* binder) const {
-    auto rjBindData = bindData->ptrCast<RJBindData>();
-    if (rjBindData->extendDirection == common::ExtendDirection::BOTH) {
-        rjBindData->directionExpr =
-            binder->createVariable(DIRECTION_COLUMN_NAME, LogicalType::LIST(LogicalType::BOOL()));
-    }
-    rjBindData->lengthExpr = binder->createVariable(LENGTH_COLUMN_NAME, LogicalType::UINT16());
-    rjBindData->pathNodeIDsExpr = binder->createVariable(PATH_NODE_IDS_COLUMN_NAME,
-        LogicalType::LIST(LogicalType::INTERNAL_ID()));
-    rjBindData->pathEdgeIDsExpr = binder->createVariable(PATH_EDGE_IDS_COLUMN_NAME,
-        LogicalType::LIST(LogicalType::INTERNAL_ID()));
-}
-
-static void validateSPUpperBound(int64_t upperBound) {
-    if (upperBound == 0) {
-        throw RuntimeException(stringFormat("Shortest path operations only works for positive "
-                                            "upper bound iterations. Given upper bound is: {}.",
-            upperBound));
-    }
-}
-
-void SPAlgorithm::bind(const GDSBindInput& input, main::ClientContext& context) {
-    KU_ASSERT(input.getNumParams() == 4);
-    auto graphName = ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
-    auto graphEntry = bindGraphEntry(context, graphName);
-    auto nodeOutput = bindNodeOutput(input, graphEntry.nodeEntries);
-    auto rjBindData = std::make_unique<RJBindData>(std::move(graphEntry), nodeOutput);
-    rjBindData->nodeInput = input.getParam(1);
-    rjBindData->lowerBound = 1;
-    auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*input.getParam(2));
-    validateSPUpperBound(upperBound);
-    validateLowerUpperBound(rjBindData->lowerBound, upperBound);
-    rjBindData->upperBound = upperBound;
-    rjBindData->semantic = PathSemantic::WALK;
-    rjBindData->extendDirection = ExtendDirectionUtil::fromString(
-        ExpressionUtil::getLiteralValue<std::string>(*input.getParam(3)));
-    bindData = std::move(rjBindData);
-    bindColumnExpressions(input.binder);
 }
 
 // All recursive join computation have the same vertex compute. This vertex compute writes

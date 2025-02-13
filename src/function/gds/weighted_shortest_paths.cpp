@@ -127,11 +127,11 @@ private:
     std::unique_ptr<ValueVector> costVector;
 };
 
-class WeightedSPDestinationsAlgorithm : public SPAlgorithm {
+class WeightedSPDestinationsAlgorithm : public RJAlgorithm {
 public:
     WeightedSPDestinationsAlgorithm() = default;
     WeightedSPDestinationsAlgorithm(const WeightedSPDestinationsAlgorithm& other)
-        : SPAlgorithm{other} {}
+        : RJAlgorithm{other} {}
 
     binder::expression_vector getResultColumns(
         const function::GDSBindInput& /*bindInput*/) const override {

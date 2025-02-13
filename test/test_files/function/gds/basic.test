@@ -13,9 +13,7 @@ Runtime exception: Project graph PK already exists.
 Binder exception: Expect catalog entry type NODE_TABLE_ENTRY but got REL_TABLE_ENTRY.
 -STATEMENT CALL create_project_graph('PKWO', ['person', 'organisation'], ['knows', 'workAt'])
 ---- ok
--STATEMENT MATCH (a:person) WHERE a.ID < 6
-           CALL VAR_LEN_JOINS('PK', a, 1, 2, "FWD")
-           RETURN a.fName, COUNT(*);
+-STATEMENT MATCH (a:person)-[:knows*1..2]->(b:person) WHERE a.ID < 6 RETURN a.fName, COUNT(*);
 ---- 4
 Alice|12
 Bob|12
@@ -28,42 +26,27 @@ Runtime exception: Project graph dummy does not exists.
 ---- ok
 -STATEMENT CALL create_project_graph('PK', ['person'], ['knows'])
 ---- ok
--STATEMENT MATCH (a:person) WHERE a.ID < 6
-           CALL VAR_LEN_JOINS('PK', a, 1, 2, "BWD")
-           RETURN a.fName, COUNT(*);
+-STATEMENT CALL VAR_LEN_JOINS() RETURN *
+---- error
+Binder exception: Recursive join should not be triggered through function calls. Try cypher patter ()-[*]->() instead.
+-STATEMENT MATCH (a:person)<-[:knows*1..2]-(b:person) WHERE a.ID < 6 RETURN a.fName, COUNT(*);
 ---- 4
 Alice|12
 Bob|12
 Carol|12
 Dan|12
--STATEMENT MATCH (a:person) WHERE a.ID < 6
-           CALL VAR_LEN_JOINS('PK', a, 1, 2, "BOTH")
-           RETURN a.fName, COUNT(*);
+-STATEMENT MATCH (a:person)-[:knows*1..2]-(b:person) WHERE a.ID < 6 RETURN a.fName, COUNT(*);
 ---- 4
 Alice|42
 Bob|42
 Carol|42
 Dan|42
--STATEMENT MATCH (a:person) WHERE a.ID = 0
-           CALL SINGLE_SP_DESTINATIONS('PK', a, 2, "FWD")
-           RETURN a.fName, node.name, length;
----- error
-Binder exception: Cannot find property name for node.
--STATEMENT MATCH (a:person) WHERE a.ID = 0
-           CALL SINGLE_SP_DESTINATIONS('PK', a, 2, "X")
-           RETURN a.fName, node.name, length;
----- error
-Runtime exception: Cannot parse X as ExtendDirection.
--STATEMENT MATCH (a:person) WHERE a.ID = 0
-           CALL SINGLE_SP_DESTINATIONS('PK', a, 2, "FWD")
-           RETURN a.fName, node.fName, length;
+-STATEMENT MATCH (a:person)-[e:knows* SHORTEST 1..2]->(b:person) WHERE a.ID = 0 RETURN a.fName, b.fName, length(e);
 ---- 3
 Alice|Bob|1
 Alice|Carol|1
 Alice|Dan|1
--STATEMENT MATCH (a:person) WHERE a.ID = 0
-           CALL SINGLE_SP_DESTINATIONS('PKWO', a, 2, "FWD")
-           RETURN a.fName, node.fName, node.name, length;
+-STATEMENT MATCH (a:person)-[e:knows|:workAt* SHORTEST 1..2]->(b:person:organisation) WHERE a.ID = 0 RETURN a.fName, b.fName, b.name, length(e);
 ---- 5
 Alice|Bob||1
 Alice|Carol||1
