@@ -100,7 +100,7 @@ std::string RelGroupCatalogEntry::toCypher(ClientContext* context) const {
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
     std::stringstream ss;
-    ss << stringFormat("CREATE REL TABLE {} (", getName());
+    ss << stringFormat("CREATE REL TABLE `{}` (", getName());
     KU_ASSERT(!relTableIDs.empty());
     ss << getFromToStr(relTableIDs[0], catalog, transaction);
     for (auto i = 1u; i < relTableIDs.size(); ++i) {
