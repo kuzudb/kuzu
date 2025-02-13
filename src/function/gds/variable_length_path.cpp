@@ -1,7 +1,5 @@
 #include <vector>
 
-#include "binder/expression/expression_util.h"
-#include "common/enums/extend_direction_util.h"
 #include "common/types/types.h"
 #include "function/gds/auxiliary_state/path_auxiliary_state.h"
 #include "function/gds/gds_function_collection.h"
@@ -83,30 +81,6 @@ class VarLenJoinsAlgorithm final : public RJAlgorithm {
 public:
     VarLenJoinsAlgorithm() = default;
     VarLenJoinsAlgorithm(const VarLenJoinsAlgorithm& other) : RJAlgorithm(other) {}
-
-    // Inputs are: graph, srcNode, lowerBound, upperBound, direction
-    std::vector<LogicalTypeID> getParameterTypeIDs() const override {
-        return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64, LogicalTypeID::INT64,
-            LogicalTypeID::STRING};
-    }
-
-    void bind(const GDSBindInput& input, main::ClientContext& context) override {
-        auto graphName = ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
-        auto graphEntry = bindGraphEntry(context, graphName);
-        auto nodeOutput = bindNodeOutput(input, graphEntry.nodeEntries);
-        auto rjBindData = std::make_unique<RJBindData>(std::move(graphEntry), nodeOutput);
-        rjBindData->nodeInput = input.getParam(1);
-        auto lowerBound = ExpressionUtil::getLiteralValue<int64_t>(*input.getParam(2));
-        auto upperBound = ExpressionUtil::getLiteralValue<int64_t>(*input.getParam(3));
-        validateLowerUpperBound(lowerBound, upperBound);
-        rjBindData->lowerBound = lowerBound;
-        rjBindData->upperBound = upperBound;
-        rjBindData->semantic = PathSemantic::WALK;
-        rjBindData->extendDirection = ExtendDirectionUtil::fromString(
-            ExpressionUtil::getLiteralValue<std::string>(*input.getParam(4)));
-        bindData = std::move(rjBindData);
-        bindColumnExpressions(input.binder);
-    }
 
     binder::expression_vector getResultColumns(
         const function::GDSBindInput& /*bindInput*/) const override {
