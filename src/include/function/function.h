@@ -47,12 +47,12 @@ struct ScalarBindFuncInput {
     const binder::expression_vector& arguments;
     Function* definition;
     main::ClientContext* context;
-    std::vector<std::string> optionalParams;
+    std::vector<std::string> optionalArguments;
 
     ScalarBindFuncInput(const binder::expression_vector& arguments, Function* definition,
-        main::ClientContext* context, std::vector<std::string> optionalParams)
+        main::ClientContext* context, std::vector<std::string> optionalArguments)
         : arguments{arguments}, definition{definition}, context{context},
-          optionalParams{std::move(optionalParams)} {}
+          optionalArguments{std::move(optionalArguments)} {}
 };
 
 using scalar_bind_func =

@@ -493,7 +493,15 @@ std::unique_ptr<ParsedExpression> Transformer::transformFunctionInvocation(
         }
     } else {
         for (auto& functionParameter : ctx.kU_FunctionParameter()) {
-            expression->addChild(transformFunctionParameterExpression(*functionParameter));
+            auto parsedFunctionParameter = transformFunctionParameterExpression(*functionParameter);
+            if (functionParameter->oC_SymbolicName()) {
+                // Optional parameter
+                expression->addOptionalParams(
+                    transformSymbolicName(*functionParameter->oC_SymbolicName()),
+                    std::move(parsedFunctionParameter));
+            } else {
+                expression->addChild(std::move(parsedFunctionParameter));
+            }
         }
     }
     return expression;

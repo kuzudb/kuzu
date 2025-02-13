@@ -52,7 +52,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         children.push_back(expr);
     }
     return bindScalarFunctionExpression(children, functionName,
-        parsedExpression.constCast<ParsedFunctionExpression>().getOptionalParams());
+        parsedExpression.constCast<ParsedFunctionExpression>().getOptionalArguments());
 }
 
 static std::vector<LogicalType> getTypes(const expression_vector& exprs) {
@@ -65,7 +65,7 @@ static std::vector<LogicalType> getTypes(const expression_vector& exprs) {
 
 std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     const expression_vector& children, const std::string& functionName,
-    std::vector<std::string> optionalParams) {
+    std::vector<std::string> optionalArguments) {
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
     auto childrenTypes = getTypes(children);
@@ -85,7 +85,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     expression_vector childrenAfterCast;
     std::unique_ptr<function::FunctionBindData> bindData;
     auto bindInput =
-        ScalarBindFuncInput{children, function.get(), context, std::move(optionalParams)};
+        ScalarBindFuncInput{children, function.get(), context, std::move(optionalArguments)};
     if (functionName == CastAnyFunction::name) {
         bindData = function->bindFunc(bindInput);
         if (bindData == nullptr) { // No need to cast.

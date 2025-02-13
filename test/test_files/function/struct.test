@@ -87,3 +87,8 @@ C
 [date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
 [date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
 [date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
+
+-LOG StructPackWithOptionalParam
+-STATEMENT RETURN STRUCT_PACK(x:=2,y:=3);
+---- 1
+{x: 2, y: 3}

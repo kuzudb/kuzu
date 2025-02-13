@@ -13,7 +13,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
         if (argument->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
             argument->cast(LogicalType::STRING());
         }
-        fields.emplace_back(input.optionalParams[i], argument->getDataType().copy());
+        fields.emplace_back(input.optionalArguments[i], argument->getDataType().copy());
     }
     const auto resultType = LogicalType::STRUCT(std::move(fields));
     return FunctionBindData::getSimpleBindData(input.arguments, resultType);
