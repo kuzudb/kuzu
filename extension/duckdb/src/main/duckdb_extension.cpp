@@ -15,21 +15,6 @@ void DuckDBExtension::load(main::ClientContext* context) {
     DuckDBExtension::loadRemoteFSOptions(context);
 }
 
-void DuckDBExtension::loadRemoteFSOptions(main::ClientContext* context) {
-    auto& db = *context->getDatabase();
-    for (auto& fsConfig : httpfs::S3FileSystemConfig::getAvailableConfigs()) {
-        fsConfig.registerExtensionOptions(&db);
-        fsConfig.setEnvValue(context);
-    }
-}
-
-void DuckDBExtension::initRemoteFSSecrets(duckdb_extension::DuckDBConnector& connector,
-    main::ClientContext* context) {
-    for (auto& fsConfig : httpfs::S3FileSystemConfig::getAvailableConfigs()) {
-        connector.executeQuery(DuckDBSecretManager::getRemoteFSSecret(context, fsConfig));
-    }
-}
-
 } // namespace duckdb_extension
 } // namespace kuzu
 

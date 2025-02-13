@@ -1,7 +1,5 @@
 #include "connector/delta_connector.h"
 
-#include "main/duckdb_extension.h"
-
 namespace kuzu {
 namespace delta_extension {
 
@@ -15,7 +13,7 @@ void DeltaConnector::connect(const std::string& /*dbPath*/, const std::string& /
     executeQuery("load delta;");
     executeQuery("install httpfs;");
     executeQuery("load httpfs;");
-    duckdb_extension::DuckDBExtension::initRemoteFSSecrets(*this, context);
+    initRemoteFSSecrets(context);
 }
 
 } // namespace delta_extension
