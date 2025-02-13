@@ -12,6 +12,7 @@
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "main/client_context.h"
+#include "processor/operator/aggregate/aggregate_input.h"
 #include "processor/operator/aggregate/base_aggregate.h"
 #include "processor/result/factorized_table.h"
 #include "processor/result/factorized_table_schema.h"
@@ -37,12 +38,23 @@ private:
 class HashAggregateSharedState final : public BaseAggregateSharedState {
 
 public:
-    explicit HashAggregateSharedState(main::ClientContext* context, HashAggregateInfo aggInfo,
-        const std::vector<function::AggregateFunction>& aggregateFunctions);
+    explicit HashAggregateSharedState(main::ClientContext* context, HashAggregateInfo hashAggInfo,
+        const std::vector<function::AggregateFunction>& aggregateFunctions,
+        std::span<AggregateInfo> aggregateInfos);
 
-    ~HashAggregateSharedState();
+    void appendTuple(std::span<uint8_t> tuple, common::hash_t hash) {
+        auto& partition =
+            globalPartitions[(hash >> shiftForPartitioning) % globalPartitions.size()];
+        partition.queue->appendTuple(tuple);
+    }
 
-    void appendTuple(std::span<uint8_t> tuple, common::hash_t hash);
+    void appendDistinctTuple(size_t distinctFuncIndex, std::span<uint8_t> tuple,
+        common::hash_t hash) {
+        auto& partition =
+            globalPartitions[(hash >> shiftForPartitioning) % globalPartitions.size()];
+        partition.distinctTableQueues[distinctFuncIndex]->appendTuple(tuple);
+    }
+
     void appendOverflow(common::InMemOverflowBuffer&& overflowBuffer) {
         overflow.push(std::make_unique<common::InMemOverflowBuffer>(std::move(overflowBuffer)));
     }
@@ -82,13 +94,31 @@ protected:
 public:
     HashAggregateInfo aggInfo;
     common::MPSCQueue<std::unique_ptr<common::InMemOverflowBuffer>> overflow;
-    struct Partition {
-        std::unique_ptr<AggregateHashTable> hashTable;
-        std::mutex mtx;
+    class HashTableQueue {
+    public:
+        HashTableQueue(storage::MemoryManager* memoryManager, FactorizedTableSchema tableSchema);
+
+        std::unique_ptr<HashTableQueue> copy() const {
+            return std::make_unique<HashTableQueue>(headBlock.load()->table.getMemoryManager(),
+                headBlock.load()->table.getTableSchema()->copy());
+        }
+        ~HashTableQueue();
+
+        void appendTuple(std::span<uint8_t> tuple);
+
+        void mergeInto(AggregateHashTable& hashTable);
+
+        bool empty() const {
+            auto headBlock = this->headBlock.load();
+            return (headBlock == nullptr || headBlock->numTuplesReserved == 0) &&
+                   queuedTuples.approxSize() == 0;
+        }
+
+    private:
         struct TupleBlock {
-            TupleBlock(storage::MemoryManager* memoryManager, FactorizedTableSchema tableSchama)
+            TupleBlock(storage::MemoryManager* memoryManager, FactorizedTableSchema tableSchema)
                 : numTuplesReserved{0}, numTuplesWritten{0},
-                  table{memoryManager, std::move(tableSchama)} {
+                  table{memoryManager, std::move(tableSchema)} {
                 // Start at a fixed capacity of one full block (so that concurrent writes are safe).
                 // If it is not filled, we resize it to the actual capacity before writing it to the
                 // hashTable
@@ -110,6 +140,14 @@ public:
         // queuedTuples (at which point, the numTuplesReserved may not be equal to the
         // numTuplesWritten)
         std::atomic<TupleBlock*> headBlock;
+    };
+    struct Partition {
+        std::unique_ptr<AggregateHashTable> hashTable;
+        std::mutex mtx;
+        std::unique_ptr<HashTableQueue> queue;
+        // The tables storing the distinct values for distinct aggregate functions all get merged in
+        // the same way as the main table
+        std::vector<std::unique_ptr<HashTableQueue>> distinctTableQueues;
         std::atomic<bool> finalized = false;
     };
     std::vector<Partition> globalPartitions;

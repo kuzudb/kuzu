@@ -91,7 +91,7 @@ void SimpleAggregate::computeDistinctAggregate(AggregateHashTable* distinctHT,
     function::AggregateFunction* function, AggregateInput* input, function::AggregateState* state,
     storage::MemoryManager* memoryManager) {
     auto multiplicity = 1; // Distinct aggregate should ignore multiplicity.
-    if (distinctHT->isAggregateValueDistinctForGroupByKeys(std::vector<ValueVector*>{},
+    if (distinctHT->insertAggregateValueIfDistinctForGroupByKeys(std::vector<ValueVector*>{},
             input->aggregateVector)) {
         auto pos = input->aggregateVector->state->getSelVector()[0];
         if (!input->aggregateVector->isNull(pos)) {

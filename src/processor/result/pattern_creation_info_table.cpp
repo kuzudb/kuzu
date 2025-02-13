@@ -45,8 +45,8 @@ PatternCreationInfo PatternCreationInfoTable::getPatternCreationInfo(
 }
 
 uint64_t PatternCreationInfoTable::matchFTEntries(
-    const std::vector<common::ValueVector*>& flatKeyVectors,
-    const std::vector<common::ValueVector*>& unFlatKeyVectors, uint64_t numMayMatches,
+    std::span<const common::ValueVector*> flatKeyVectors,
+    std::span<const common::ValueVector*> unFlatKeyVectors, uint64_t numMayMatches,
     uint64_t numNoMatches) {
     KU_ASSERT(unFlatKeyVectors.empty());
     numNoMatches = AggregateHashTable::matchFTEntries(flatKeyVectors, unFlatKeyVectors,

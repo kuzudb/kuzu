@@ -161,8 +161,8 @@ uint8_t* FactorizedTable::appendEmptyTuple() {
     return tuplePtr;
 }
 
-void FactorizedTable::scan(std::vector<ValueVector*>& vectors, ft_tuple_idx_t tupleIdx,
-    uint64_t numTuplesToScan, std::vector<ft_col_idx_t>& colIdxesToScan) const {
+void FactorizedTable::scan(std::span<ValueVector*> vectors, ft_tuple_idx_t tupleIdx,
+    uint64_t numTuplesToScan, std::span<ft_col_idx_t> colIdxesToScan) const {
     KU_ASSERT(tupleIdx + numTuplesToScan <= numTuples);
     KU_ASSERT(vectors.size() == colIdxesToScan.size());
     std::unique_ptr<uint8_t*[]> tuplesToRead = std::make_unique<uint8_t*[]>(numTuplesToScan);
@@ -172,8 +172,8 @@ void FactorizedTable::scan(std::vector<ValueVector*>& vectors, ft_tuple_idx_t tu
     lookup(vectors, colIdxesToScan, tuplesToRead.get(), 0 /* startPos */, numTuplesToScan);
 }
 
-void FactorizedTable::lookup(std::vector<ValueVector*>& vectors,
-    std::vector<ft_col_idx_t>& colIdxesToScan, uint8_t** tuplesToRead, uint64_t startPos,
+void FactorizedTable::lookup(std::span<ValueVector*> vectors,
+    std::span<ft_col_idx_t> colIdxesToScan, uint8_t** tuplesToRead, uint64_t startPos,
     uint64_t numTuplesToRead) const {
     KU_ASSERT(vectors.size() == colIdxesToScan.size());
     for (auto i = 0u; i < colIdxesToScan.size(); i++) {
