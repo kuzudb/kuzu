@@ -12,28 +12,30 @@ namespace function {
 // TODO(Xiyang): optimize if edgeID is not needed.
 class ParentList {
 public:
-    void store(uint16_t iter_, common::nodeID_t nodeID_, common::relID_t edgeID_, bool isFwd_) {
-        iter = iter_;
+    void setNbrInfo(common::nodeID_t nodeID_, common::relID_t edgeID_, bool isFwd_) {
         nodeID = nodeID_;
         edgeID = edgeID_;
         isFwd = isFwd_;
     }
-
-    void setNextPtr(ParentList* ptr) { next.store(ptr, std::memory_order_relaxed); }
-
-    ParentList* getNextPtr() { return next.load(std::memory_order_relaxed); }
-
-    uint16_t getIter() const { return iter; }
     common::nodeID_t getNodeID() const { return nodeID; }
     common::relID_t getEdgeID() const { return edgeID; }
     bool isFwdEdge() const { return isFwd; }
 
-public:
-    // Iteration level
-    uint16_t iter = UINT16_MAX;
+    void setNextPtr(ParentList* ptr) { next.store(ptr, std::memory_order_relaxed); }
+    ParentList* getNextPtr() { return next.load(std::memory_order_relaxed); }
+
+    void setIter(uint16_t iter_) { iter = iter_; }
+    uint16_t getIter() const { return iter; }
+
+    void setCost(double cost_) { cost = cost_; }
+    double getCost() const { return cost; }
+
+private:
     common::nodeID_t nodeID;
     common::relID_t edgeID;
     bool isFwd = true;
+
+    uint16_t iter = UINT16_MAX;
     double cost = std::numeric_limits<double>::max();
     // Next pointer
     std::atomic<ParentList*> next;
@@ -55,7 +57,6 @@ public:
     // This function is thread safe and should be called by a worker thread Ti to grab a block
     // of memory that Ti owns and writes to.
     ObjectBlock<ParentList>* addNewBlock();
-    ObjectBlock<ParentList>* addNewBlock(uint64_t size);
 
     ParentList* getParentListHead(common::nodeID_t nodeID) {
         return parentArray.getData(nodeID.tableID)[nodeID.offset].load(std::memory_order_relaxed);

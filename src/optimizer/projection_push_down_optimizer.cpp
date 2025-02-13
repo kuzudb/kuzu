@@ -71,6 +71,11 @@ void ProjectionPushDownOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
                 auto func = AllSPDestinationsFunction::getFunction();
                 func.gds->setBindData(info.func.gds->getBindData()->copy());
                 info.func = std::move(func);
+            } else if (info.func.name == WeightedSPPathsFunction::name) {
+                auto func = WeightedSPDestinationsFunction::getFunction();
+                func.gds->setBindData(info.func.gds->getBindData()->copy());
+                info.outExprs = func.gds->cast<RJAlgorithm>().getResultColumnsNoPath();
+                info.func = std::move(func);
             }
         }
         return;

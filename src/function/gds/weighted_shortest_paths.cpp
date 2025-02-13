@@ -8,6 +8,7 @@
 using namespace kuzu::common;
 using namespace kuzu::storage;
 using namespace kuzu::processor;
+using namespace kuzu::binder;
 
 namespace kuzu {
 namespace function {
@@ -125,8 +126,8 @@ public:
         : bfsGraph{std::move(bfsGraph)} {}
 
     void initSource(nodeID_t sourceNodeID) override {
-        parent.cost = 0;
-        bfsGraph->setParentList(sourceNodeID, &parent);
+        sourceParent.setCost(0);
+        bfsGraph->setParentList(sourceNodeID, &sourceParent);
     }
 
     void beginFrontierCompute(table_id_t, table_id_t toTableID) override {
@@ -135,7 +136,7 @@ public:
 
 private:
     std::unique_ptr<BFSGraph> bfsGraph;
-    ParentList parent;
+    ParentList sourceParent;
 };
 
 class WSPDestinationsOutputWriter : public RJOutputWriter {
@@ -185,16 +186,17 @@ public:
     void write(processor::FactorizedTable &fTable, common::nodeID_t dstNodeID, processor::GDSOutputCounter *counter) override {
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
         auto parent = bfsGraph.getParentListHead(dstNodeID.offset);
-        costVector->setValue<double>(0, parent->cost);
+        costVector->setValue<double>(0, parent->getCost());
         std::vector<ParentList*> curPath;
         curPath.push_back(parent);
-        while (parent->cost != 0) {
-            parent = bfsGraph.getParentListHead(parent->nodeID.offset);
+        while (parent->getCost() != 0) {
+            parent = bfsGraph.getParentListHead(parent->getNodeID().offset);
             curPath.push_back(parent);
         }
         curPath.pop_back();
         writePath(curPath);
         fTable.append(vectors);
+        updateCounterAndTerminate(counter);
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
@@ -207,7 +209,7 @@ private:
             return true;
         }
         auto parent = bfsGraph.getParentListHead(dstNodeID.offset);
-        return parent == nullptr || parent->cost == std::numeric_limits<double>::max();
+        return parent == nullptr || parent->getCost() == std::numeric_limits<double>::max();
     }
 
 private:
@@ -256,6 +258,16 @@ public:
     binder::expression_vector getResultColumns(
         const function::GDSBindInput& /*bindInput*/) const override {
         auto columns = getBaseResultColumns();
+        columns.push_back(bindData->ptrCast<RJBindData>()->weightOutputExpr);
+        return columns;
+    }
+
+    binder::expression_vector getResultColumnsNoPath() override {
+        expression_vector columns;
+        auto& inputNode = bindData->getNodeInput()->constCast<NodeExpression>();
+        columns.push_back(inputNode.getInternalID());
+        auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
+        columns.push_back(outputNode.getInternalID());
         columns.push_back(bindData->ptrCast<RJBindData>()->weightOutputExpr);
         return columns;
     }

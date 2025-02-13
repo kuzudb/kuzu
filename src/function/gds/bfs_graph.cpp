@@ -8,20 +8,17 @@ namespace function {
 static constexpr uint64_t BFS_GRAPH_BLOCK_SIZE = (std::uint64_t)1 << 19;
 
 ObjectBlock<ParentList>* BFSGraph::addNewBlock() {
-    return addNewBlock(BFS_GRAPH_BLOCK_SIZE);
-}
-
-ObjectBlock<ParentList>* BFSGraph::addNewBlock(uint64_t size) {
     std::unique_lock lck{mtx};
-    auto memBlock = mm->allocateBuffer(false /* init to 0 */, size);
+    auto memBlock = mm->allocateBuffer(false /* init to 0 */, BFS_GRAPH_BLOCK_SIZE);
     blocks.push_back(
-        std::make_unique<ObjectBlock<ParentList>>(std::move(memBlock), size));
+        std::make_unique<ObjectBlock<ParentList>>(std::move(memBlock), BFS_GRAPH_BLOCK_SIZE));
     return blocks[blocks.size() - 1].get();
 }
 
 void BFSGraph::addParent(uint16_t iter, nodeID_t boundNodeID, relID_t edgeID, nodeID_t nbrNodeID, bool fwdEdge, ObjectBlock<ParentList>* block) {
     auto parent = block->reserveNext();
-    parent->store(iter, boundNodeID, edgeID, fwdEdge);
+    parent->setNbrInfo(boundNodeID, edgeID, fwdEdge);
+    parent->setIter(iter);
     // Since by default the parentPtr of each node is nullptr, that's what we start with.
     ParentList* expected = nullptr;
     while (!currParentPtrs[nbrNodeID.offset].compare_exchange_strong(expected, parent));
@@ -30,32 +27,35 @@ void BFSGraph::addParent(uint16_t iter, nodeID_t boundNodeID, relID_t edgeID, no
 
 void BFSGraph::addSingleParent(uint16_t iter, nodeID_t boundNodeID, relID_t edgeID, nodeID_t nbrNodeID, bool fwdEdge, ObjectBlock<kuzu::function::ParentList>* block) {
     auto parent = block->reserveNext();
-    parent->store(iter, boundNodeID, edgeID, fwdEdge);
+    parent->setNbrInfo(boundNodeID, edgeID, fwdEdge);
+    parent->setIter(iter);
     ParentList* expected = nullptr;
     if (currParentPtrs[nbrNodeID.offset].compare_exchange_strong(expected, parent)) {
         parent->setNextPtr(expected);
     } else {
-        // Do NOT add parent and revert reserved slot.
+        // Other thread has added the parent. Do NOT add parent and revert reserved slot.
         block->revertLast();
     }
 }
 
 static double getCost(ParentList* parentList) {
-    return parentList == nullptr? std::numeric_limits<double>::max() : parentList->cost;
+    return parentList == nullptr? std::numeric_limits<double>::max() : parentList->getCost();
 }
 
 bool BFSGraph::tryAddSingleParentWithWeight(nodeID_t boundNodeID, relID_t edgeID, nodeID_t nbrNodeID, bool fwdEdge,
     double weight, ObjectBlock<ParentList>* block) {
     ParentList* expected = getParentListHead(nbrNodeID.offset);
     auto parent = block->reserveNext();
-    parent->store(UINT16_MAX /* iter */, boundNodeID, edgeID, fwdEdge);
-    parent->cost = getParentListHead(boundNodeID.offset)->cost + weight;;
-    while (parent->cost < getCost(expected)) {
+    parent->setNbrInfo(boundNodeID, edgeID, fwdEdge);
+    parent->setCost(getParentListHead(boundNodeID.offset)->getCost() + weight);
+    while (parent->getCost() < getCost(expected)) {
         if (currParentPtrs[nbrNodeID.offset].compare_exchange_strong(expected, parent)) {
+            // Since each node can have one parent, set next ptr to nullptr.
             parent->setNextPtr(nullptr);
             return true;
         }
     }
+    // Other thread has added the parent. Do NOT add parent and revert reserved slot.
     block->revertLast();
     return false;
 }

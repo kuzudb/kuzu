@@ -76,7 +76,8 @@ public:
 
     // Set algorithm to NOT track path
     void setToNoPath();
-    binder::expression_vector getResultColumnsNoPath();
+    // TODO(Xiyang): consider remove this.
+    virtual binder::expression_vector getResultColumnsNoPath();
 
 protected:
     binder::expression_vector getBaseResultColumns() const;
