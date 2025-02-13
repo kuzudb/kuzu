@@ -91,6 +91,7 @@ HashAggregateInfo::HashAggregateInfo(const HashAggregateInfo& other)
 void HashAggregateLocalState::init(HashAggregateSharedState* sharedState, ResultSet& resultSet,
     main::ClientContext* context, std::vector<function::AggregateFunction>& aggregateFunctions,
     std::vector<common::LogicalType> types) {
+    sharedState->registerThread();
     auto& info = sharedState->getAggregateInfo();
     std::vector<LogicalType> keyDataTypes;
     for (auto& pos : info.flatKeysPos) {
@@ -111,8 +112,6 @@ void HashAggregateLocalState::init(HashAggregateSharedState* sharedState, Result
     }
     leadingState = unFlatKeyVectors.empty() ? flatKeyVectors[0]->state.get() :
                                               unFlatKeyVectors[0]->state.get();
-
-    sharedState->registerThread();
 
     aggregateHashTable = std::make_unique<PartitioningAggregateHashTable>(sharedState,
         *context->getMemoryManager(), std::move(keyDataTypes), std::move(payloadDataTypes),
