@@ -86,7 +86,7 @@ Binder exception: The type of format option must be a string.
 ---- error
 Binder exception: Only export to csv can have options.
 
--STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4" (header=true)
+-STATEMENT Export Database "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db4" (format="CSV", header=true)
 ---- ok
 
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_case4/demo-db5"
@@ -246,3 +246,19 @@ Binder exception: No file found that matches the pattern: ${KUZU_EXPORT_DB_DIREC
 Alice|1
 Bob|1
 Farooq|1
+
+-CASE ExportDBWithSpecialTableName
+-SKIP_WASM
+-SKIP_IN_MEM
+-STATEMENT CREATE NODE TABLE `0_idx_person` (ID SERIAL, PRIMARY KEY(ID))
+---- ok
+-STATEMENT CREATE NODE TABLE person (ID SERIAL, PRIMARY KEY(ID))
+---- ok
+-STATEMENT CREATE REL TABLE `0_idx_knows` (FROM `0_idx_person` TO  `0_idx_person`)
+---- ok
+-STATEMENT CREATE REL TABLE `0_idx_knows_group` (FROM `0_idx_person` TO  `0_idx_person`, FROM person TO `0_idx_person`)
+---- ok
+-STATEMENT EXPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/special_char" (format="csv");
+---- ok
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_special/special_char";
+---- ok

@@ -130,7 +130,7 @@ std::string RelTableCatalogEntry::toCypher(main::ClientContext* clientContext) c
     auto srcTableName = catalog->getTableCatalogEntry(transaction, srcTableID)->getName();
     auto dstTableName = catalog->getTableCatalogEntry(transaction, dstTableID)->getName();
     std::string tableInfo =
-        stringFormat("CREATE REL TABLE {} (FROM {} TO {}, ", getName(), srcTableName, dstTableName);
+        stringFormat("CREATE REL TABLE `{}` (FROM {} TO {}, ", getName(), srcTableName, dstTableName);
     ss << tableInfo << propertiesToCypher() << getMultiplicityStr() << ");";
     return ss.str();
 }

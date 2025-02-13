@@ -34,7 +34,7 @@ static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog,
 }
 
 FileTypeInfo getFileType(case_insensitive_map_t<Value>& options) {
-    auto fileTypeInfo = FileTypeInfo{FileType::CSV, "CSV"};
+    auto fileTypeInfo = FileTypeInfo{FileType::PARQUET, "PARQUET"};
     if (options.contains("FORMAT")) {
         auto value = options.at("FORMAT");
         if (value.getDataType().getLogicalTypeID() != LogicalTypeID::STRING) {
@@ -49,7 +49,7 @@ FileTypeInfo getFileType(case_insensitive_map_t<Value>& options) {
 }
 
 static void bindExportNodeTableDataQuery(const TableCatalogEntry& entry, std::string& exportQuery) {
-    exportQuery = stringFormat("match (a:{}) return a.*", entry.getName());
+    exportQuery = stringFormat("match (a:`{}`) return a.*", entry.getName());
 }
 
 static void bindExportRelTableDataQuery(const TableCatalogEntry& entry, std::string& exportQuery,
@@ -59,7 +59,7 @@ static void bindExportRelTableDataQuery(const TableCatalogEntry& entry, std::str
                               ->constCast<NodeTableCatalogEntry>();
     auto& dstTableEntry = catalog.getTableCatalogEntry(transaction, relTableEntry->getDstTableID())
                               ->constCast<NodeTableCatalogEntry>();
-    exportQuery = stringFormat("match (a:{})-[r:{}]->(b:{}) return a.{},b.{},r.*;",
+    exportQuery = stringFormat("match (a:`{}`)-[r:`{}`]->(b:`{}`) return a.{},b.{},r.*;",
         srcTableEntry.getName(), relTableEntry->getName(), dstTableEntry.getName(),
         srcTableEntry.getPrimaryKeyName(), dstTableEntry.getPrimaryKeyName());
 }
