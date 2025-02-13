@@ -3,7 +3,8 @@
 --
 
 -CASE UUIDfunctions
-
+# messing with node group size can change the output order of collect()
+-SKIP_NODE_GROUP_SIZE_TESTS
 -LOG UUIDOrderByTest
 -STATEMENT CREATE NODE TABLE Person(name STRING, u UUID, PRIMARY KEY(name));
 ---- ok
@@ -92,7 +93,7 @@ a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12
 ffffffff-ffff-ffff-ffff-ffffffffffff
 
--STATEMENT MATCH (a:Person) RETURN collect(a.u) 
+-STATEMENT MATCH (a:Person) RETURN collect(a.u)
 ---- 1
 [a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11,47183823-2574-4bfd-b411-99ed177d3e43,10203040-5060-7080-0102-030405060708,a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12,47183823-2574-4bfd-b411-99ed177d3e43,10203040-5060-7080-0102-030405060708,00000000-0000-0000-0000-000000000000,00000000-0000-0000-0000-000000000001,00000000-0000-0000-0000-000000000001,00000000-0000-0000-0000-000000000000,00000000-0000-0000-0000-000000000000,80000000-0000-0000-8fff-ffffffffffff,80000000-0000-0000-ffff-ffffffffffff,8fffffff-ffff-ffff-0000-000000000000,8fffffff-ffff-ffff-8000-000000000000,8fffffff-ffff-ffff-8fff-ffffffffffff,8fffffff-ffff-ffff-ffff-ffffffffffff,ffffffff-ffff-ffff-ffff-ffffffffffff]
 
