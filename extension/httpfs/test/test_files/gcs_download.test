@@ -1,0 +1,54 @@
+-DATASET CSV empty
+
+--
+
+-CASE GCSOption
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT CALL gcs_access_key_id='kuzuGCSkeyid'
+---- ok
+-STATEMENT call current_setting('gcs_accesS_key_id') return *;
+---- 1
+kuzuGCSkeyid
+-STATEMENT CALL gcs_access_key_id='anotherkey'
+---- ok
+-STATEMENT call current_setting('gcs_access_Key_id') return *;
+---- 1
+anotherkey
+
+-CASE ScanFromGCSFile
+# In-memory mode doesn't support file cache.
+-SKIP_IN_MEM
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT load from 'gs://kuzudb-test/user.csv' return *;
+---- 4
+Adam|30
+Karissa|40
+Noura|25
+Zhang|50
+-STATEMENT load from 'gs://kuzudb-test/follows.parquet' return *;
+---- 4
+Adam|Karissa|2020
+Adam|Zhang|2020
+Karissa|Zhang|2021
+Zhang|Noura|2022
+-LOG LoadFromWithCache
+-STATEMENT CALL HTTP_CACHE_FILE=TRUE;
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT load from 'gs://kuzudb-test/user.csv' return *;
+---- 4
+Adam|30
+Karissa|40
+Noura|25
+Zhang|50
+-STATEMENT load from 'gs://kuzudb-test/user.csv' return *;
+---- 4
+Adam|30
+Karissa|40
+Noura|25
+Zhang|50
+-STATEMENT COMMIT
+---- ok
