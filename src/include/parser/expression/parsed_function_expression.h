@@ -25,10 +25,11 @@ public:
           isDistinct{isDistinct}, functionName{std::move(functionName)} {}
 
     ParsedFunctionExpression(std::string alias, std::string rawName, parsed_expr_vector children,
-        std::string functionName, bool isDistinct)
+        std::string functionName, bool isDistinct, std::vector<std::string> optionalArguments)
         : ParsedExpression{expressionType_, std::move(alias), std::move(rawName),
               std::move(children)},
-          isDistinct{isDistinct}, functionName{std::move(functionName)} {}
+          isDistinct{isDistinct}, functionName{std::move(functionName)},
+          optionalArguments{std::move(optionalArguments)} {}
 
     ParsedFunctionExpression(std::string functionName, bool isDistinct)
         : ParsedExpression{expressionType_}, isDistinct{isDistinct},
@@ -43,12 +44,19 @@ public:
 
     void addChild(std::unique_ptr<ParsedExpression> child) { children.push_back(std::move(child)); }
 
+    void addOptionalParams(std::string name, std::unique_ptr<ParsedExpression> child) {
+        optionalArguments.push_back(std::move(name));
+        children.push_back(std::move(child));
+    }
+
+    std::vector<std::string> getOptionalArguments() const { return optionalArguments; }
+
     static std::unique_ptr<ParsedFunctionExpression> deserialize(
         common::Deserializer& deserializer);
 
     std::unique_ptr<ParsedExpression> copy() const override {
         return std::make_unique<ParsedFunctionExpression>(alias, rawName, copyVector(children),
-            functionName, isDistinct);
+            functionName, isDistinct, optionalArguments);
     }
 
 private:
@@ -57,6 +65,9 @@ private:
 private:
     bool isDistinct;
     std::string functionName;
+    // In Kuzu, function arguments must be either all required or all optional - mixing required and
+    // optional parameters in the same function is not allowed.
+    std::vector<std::string> optionalArguments;
 };
 
 } // namespace parser

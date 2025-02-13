@@ -70,7 +70,8 @@ public:
     std::shared_ptr<Expression> bindScalarFunctionExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& functionName);
     std::shared_ptr<Expression> bindScalarFunctionExpression(const expression_vector& children,
-        const std::string& functionName);
+        const std::string& functionName,
+        std::vector<std::string> optionalArguments = std::vector<std::string>{});
     std::shared_ptr<Expression> bindRewriteFunctionExpression(const parser::ParsedExpression& expr);
     std::shared_ptr<Expression> bindAggregateFunctionExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& functionName,

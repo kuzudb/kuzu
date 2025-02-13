@@ -204,7 +204,7 @@ Binder exception: Expression LIST_CREATION() has data type INT64[] but expected 
 
 -STATEMENT RETURN {x: []} AND true;
 ---- error
-Binder exception: Expression STRUCT_PACK(x) has data type STRUCT(x INT64[]) but expected BOOL. Implicit cast is not supported.
+Binder exception: Expression STRUCT_PACK(LIST_CREATION()) has data type STRUCT(x INT64[]) but expected BOOL. Implicit cast is not supported.
 
 -STATEMENT RETURN false AND 123;
 ---- error
@@ -236,7 +236,7 @@ Binder exception: Expression LIST_CREATION() has data type INT64[] but expected 
 
 -STATEMENT RETURN false AND {x: []};
 ---- error
-Binder exception: Expression STRUCT_PACK(x) has data type STRUCT(x INT64[]) but expected BOOL. Implicit cast is not supported.
+Binder exception: Expression STRUCT_PACK(LIST_CREATION()) has data type STRUCT(x INT64[]) but expected BOOL. Implicit cast is not supported.
 
 -STATEMENT RETURN 123 AND 'foo';
 ---- error
@@ -256,4 +256,4 @@ Binder exception: Expression LIST_CREATION(True) has data type BOOL[] but expect
 
 -STATEMENT RETURN {x: []} AND [123];
 ---- error
-Binder exception: Expression STRUCT_PACK(x) has data type STRUCT(x INT64[]) but expected BOOL. Implicit cast is not supported.
+Binder exception: Expression STRUCT_PACK(LIST_CREATION()) has data type STRUCT(x INT64[]) but expected BOOL. Implicit cast is not supported.
