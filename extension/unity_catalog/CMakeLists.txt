@@ -21,7 +21,7 @@ add_library(unity_catalog_extension
         SHARED
         ${UNITY_CATALOG_EXTENSION_OBJECT_FILES})
 
-set_extension_properties(unity_catalog_extension unity_catalog unity-catalog)
+set_extension_properties(unity_catalog_extension unity_catalog unity_catalog)
 
 target_link_libraries(unity_catalog_extension
         PRIVATE
@@ -31,7 +31,7 @@ if (NOT WIN32)
     add_library(unity_catalog_loader
             SHARED
             ${PROJECT_SOURCE_DIR}/extension/duckdb/src/loader/duckdb_loader.cpp)
-    set_extension_properties(unity_catalog_loader unity_catalog_loader unity-catalog)
+    set_extension_properties(unity_catalog_loader unity_catalog_loader unity_catalog)
 endif ()
 
 if (WIN32)

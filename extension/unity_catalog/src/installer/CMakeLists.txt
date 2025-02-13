@@ -3,7 +3,7 @@ if (NOT WIN32)
             SHARED
             unity_catalog_install_func.cpp
             ${PROJECT_SOURCE_DIR}/extension/duckdb/src/installer/duckdb_installer.cpp)
-    set_extension_properties(unity_catalog_installer unity_catalog_installer unity-catalog)
+    set_extension_properties(unity_catalog_installer unity_catalog_installer unity_catalog)
 endif ()
 
 if (APPLE)

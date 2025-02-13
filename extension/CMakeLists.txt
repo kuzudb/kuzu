@@ -62,6 +62,6 @@ if ("iceberg" IN_LIST BUILD_EXTENSIONS)
     add_subdirectory(iceberg)
 endif ()
 
-if ("unity-catalog" IN_LIST BUILD_EXTENSIONS)
-    add_subdirectory(unity-catalog)
+if ("unity_catalog" IN_LIST BUILD_EXTENSIONS)
+    add_subdirectory(unity_catalog)
 endif ()
