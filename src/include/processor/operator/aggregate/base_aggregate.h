@@ -73,6 +73,7 @@ protected:
         // queuedTuples (at which point, the numTuplesReserved may not be equal to the
         // numTuplesWritten)
         std::atomic<TupleBlock*> headBlock;
+        uint64_t numTuplesPerBlock;
     };
 
 protected:

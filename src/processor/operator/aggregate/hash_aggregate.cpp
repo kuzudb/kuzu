@@ -99,6 +99,7 @@ HashAggregateSharedState::HashAggregateSharedState(main::ClientContext* context,
 HashAggregateSharedState::HashTableQueue::HashTableQueue(storage::MemoryManager* memoryManager,
     FactorizedTableSchema tableSchema) {
     headBlock = new TupleBlock(memoryManager, std::move(tableSchema));
+    numTuplesPerBlock = headBlock.load()->table.getNumTuplesPerBlock();
 }
 
 HashAggregateSharedState::HashTableQueue::~HashTableQueue() {
@@ -216,7 +217,7 @@ void HashAggregateSharedState::HashTableQueue::appendTuple(std::span<uint8_t> tu
         auto* block = headBlock.load();
         KU_ASSERT(tuple.size() == block->table.getTableSchema()->getNumBytesPerTuple());
         auto posToWrite = block->numTuplesReserved++;
-        if (posToWrite < block->table.getNumTuplesPerBlock()) {
+        if (posToWrite < numTuplesPerBlock) {
             memcpy(block->table.getTuple(posToWrite), tuple.data(), tuple.size());
             block->numTuplesWritten++;
             return;
