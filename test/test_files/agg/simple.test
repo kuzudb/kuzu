@@ -354,6 +354,10 @@ pure ascii characters
 ---- 1
 1
 
+-STATEMENT with count(5) as x return count({y: x});
+---- 1
+1
+
 -LOG SumInt8Overflow
 -STATEMENT MATCH (a:person)-[s:studyAt]->(o:organisation) RETURN SUM(10 * s.level)
 ---- 1

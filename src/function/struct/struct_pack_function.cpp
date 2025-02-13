@@ -8,11 +8,12 @@ namespace function {
 
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     std::vector<StructField> fields;
-    for (auto& argument : input.arguments) {
+    for (auto i = 0u; i < input.arguments.size(); i++) {
+        auto& argument = input.arguments[i];
         if (argument->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
             argument->cast(LogicalType::STRING());
         }
-        fields.emplace_back(argument->getAlias(), argument->getDataType().copy());
+        fields.emplace_back(input.optionalArguments[i], argument->getDataType().copy());
     }
     const auto resultType = LogicalType::STRUCT(std::move(fields));
     return FunctionBindData::getSimpleBindData(input.arguments, resultType);

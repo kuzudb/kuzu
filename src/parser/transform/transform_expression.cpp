@@ -445,14 +445,13 @@ std::unique_ptr<ParsedExpression> Transformer::transformStructLiteral(
         std::make_unique<ParsedFunctionExpression>(StructPackFunctions::name, ctx.getText());
     for (auto& structField : ctx.kU_StructField()) {
         auto structExpr = transformExpression(*structField->oC_Expression());
-        std::string alias;
+        std::string paramName;
         if (structField->oC_SymbolicName()) {
-            alias = transformSymbolicName(*structField->oC_SymbolicName());
+            paramName = transformSymbolicName(*structField->oC_SymbolicName());
         } else {
-            alias = transformStringLiteral(*structField->StringLiteral());
+            paramName = transformStringLiteral(*structField->StringLiteral());
         }
-        structExpr->setAlias(alias);
-        structPack->addChild(std::move(structExpr));
+        structPack->addOptionalParams(std::move(paramName), std::move(structExpr));
     }
     return structPack;
 }
@@ -494,7 +493,15 @@ std::unique_ptr<ParsedExpression> Transformer::transformFunctionInvocation(
         }
     } else {
         for (auto& functionParameter : ctx.kU_FunctionParameter()) {
-            expression->addChild(transformFunctionParameterExpression(*functionParameter));
+            auto parsedFunctionParameter = transformFunctionParameterExpression(*functionParameter);
+            if (functionParameter->oC_SymbolicName()) {
+                // Optional parameter
+                expression->addOptionalParams(
+                    transformSymbolicName(*functionParameter->oC_SymbolicName()),
+                    std::move(parsedFunctionParameter));
+            } else {
+                expression->addChild(std::move(parsedFunctionParameter));
+            }
         }
     }
     return expression;
