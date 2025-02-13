@@ -55,7 +55,7 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
             inputType = &inputVector->dataType;
             resultType = &resultVector->dataType;
         } else if (inputType->getLogicalTypeID() == LogicalTypeID::STRUCT &&
-                   resultType->getLogicalTypeID() == LogicalTypeID::STRUCT) {
+                   resultType->getPhysicalType() == PhysicalTypeID::STRUCT) {
             // Check if struct type can be cast
             auto errorMsg = stringFormat("Unsupported casting function from {} to {}.",
                 inputType->toString(), resultType->toString());
@@ -845,6 +845,9 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(const std::string
     case LogicalTypeID::ARRAY:
     case LogicalTypeID::MAP:
     case LogicalTypeID::STRUCT: {
+        return bindCastBetweenNested<EXECUTOR>(functionName, sourceType, targetType);
+    }
+    case LogicalTypeID::UNION: {
         return bindCastBetweenNested<EXECUTOR>(functionName, sourceType, targetType);
     }
     default: {
