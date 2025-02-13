@@ -6,6 +6,7 @@
 #include "common/null_buffer.h"
 #include "common/type_utils.h"
 #include "common/types/ku_list.h"
+#include "common/types/types.h"
 #include "common/utils.h"
 #include "function/comparison/comparison_functions.h"
 #include "function/hash/vector_hash_functions.h"
@@ -28,7 +29,7 @@ void BaseHashTable::setMaxNumHashSlots(uint64_t newSize) {
     bitmask = maxNumHashSlots - 1;
 }
 
-void BaseHashTable::computeAndCombineVecHash(const std::vector<ValueVector*>& unFlatKeyVectors,
+void BaseHashTable::computeAndCombineVecHash(std::span<const ValueVector*> unFlatKeyVectors,
     uint32_t startVecIdx) {
     for (; startVecIdx < unFlatKeyVectors.size(); startVecIdx++) {
         auto keyVector = unFlatKeyVectors[startVecIdx];
@@ -45,8 +46,8 @@ void BaseHashTable::computeAndCombineVecHash(const std::vector<ValueVector*>& un
     }
 }
 
-void BaseHashTable::computeVectorHashes(const std::vector<ValueVector*>& flatKeyVectors,
-    const std::vector<ValueVector*>& unFlatKeyVectors) {
+void BaseHashTable::computeVectorHashes(std::span<const ValueVector*> flatKeyVectors,
+    std::span<const ValueVector*> unFlatKeyVectors) {
     if (!flatKeyVectors.empty()) {
         hashVector->state = flatKeyVectors[0]->state;
         VectorHashFunction::computeHash(*flatKeyVectors[0],
@@ -64,7 +65,8 @@ void BaseHashTable::computeVectorHashes(const std::vector<ValueVector*>& flatKey
 }
 
 template<typename T>
-static bool compareEntry(common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
+static bool compareEntry(const common::ValueVector* vector, uint32_t vectorPos,
+    const uint8_t* entry) {
     uint8_t result = 0;
     auto key = vector->getData() + vectorPos * vector->getNumBytesPerValue();
     function::Equals::operation(*(T*)key, *(T*)entry, result, nullptr /* leftVector */,
@@ -73,25 +75,98 @@ static bool compareEntry(common::ValueVector* vector, uint32_t vectorPos, const 
 }
 
 template<typename T>
-static bool rawCompareEntry(const uint8_t* entry1, const uint8_t* entry2) {
-    uint8_t result = 0;
-    function::Equals::operation(*(T*)entry1, *(T*)entry2, result, nullptr /* leftVector */,
-        nullptr /* rightVector */);
-    return result != 0;
+static bool factorizedTableCompareEntry(const uint8_t* entry1, const uint8_t* entry2,
+    const LogicalType&) {
+    return function::Equals::operation(*(T*)entry1, *(T*)entry2);
 }
 
-static compare_function_t getCompareEntryFunc(PhysicalTypeID type);
+static ft_compare_function_t getFactorizedTableCompareEntryFunc(const LogicalType& type);
 
 template<>
-[[maybe_unused]] bool compareEntry<list_entry_t>(common::ValueVector* vector, uint32_t vectorPos,
-    const uint8_t* entry) {
+bool factorizedTableCompareEntry<list_entry_t>(const uint8_t* entry1, const uint8_t* entry2,
+    const LogicalType& type) {
+    const auto* list1 = reinterpret_cast<const ku_list_t*>(entry1);
+    const auto* list2 = reinterpret_cast<const ku_list_t*>(entry2);
+    if (list1->size != list2->size) {
+        return false;
+    }
+    const auto& childType = ListType::getChildType(type);
+    const auto childSize = LogicalTypeUtils::getRowLayoutSize(childType);
+    const auto dataPtr1 = reinterpret_cast<const uint8_t*>(list1->overflowPtr);
+    const auto dataPtr2 = reinterpret_cast<const uint8_t*>(list2->overflowPtr);
+    auto compareFunc = getFactorizedTableCompareEntryFunc(childType);
+    for (size_t index = 0; index < list1->size; index++) {
+        if (!compareFunc(dataPtr1 + index * childSize, dataPtr2 + index * childSize, childType)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+const uint8_t* getFTStructFirstField(const uint8_t* structEntry, uint64_t numFields) {
+    return structEntry + common::NullBuffer::getNumBytesForNullValues(numFields);
+}
+
+const uint8_t* getFTStructNodeID(const uint8_t* structEntry, const LogicalType& type) {
+    return getFTStructFirstField(structEntry, common::StructType::getNumFields(type));
+}
+
+const uint8_t* getFTStructRelID(const uint8_t* structEntry, const LogicalType& type) {
+    return getFTStructFirstField(structEntry, common::StructType::getNumFields(type)) +
+           sizeof(common::internalID_t) * 2 + sizeof(common::ku_string_t);
+}
+
+static bool compareFTNodeEntry(const uint8_t* entry1, const uint8_t* entry2,
+    const LogicalType& type) {
+    return factorizedTableCompareEntry<common::internalID_t>(getFTStructNodeID(entry1, type),
+        getFTStructNodeID(entry2, type),
+        type /*not actually used; should really be the type of the field*/);
+}
+
+static bool compareFTRelEntry(const uint8_t* entry1, const uint8_t* entry2,
+    const LogicalType& type) {
+    return factorizedTableCompareEntry<common::internalID_t>(getFTStructRelID(entry1, type),
+        getFTStructRelID(entry2, type),
+        type /*not actually used; should really be the type of the field*/);
+}
+
+template<>
+bool factorizedTableCompareEntry<struct_entry_t>(const uint8_t* entry1, const uint8_t* entry2,
+    const LogicalType& type) {
+    const auto numFields = StructType::getNumFields(type);
+    auto entryToCompare1 = getFTStructFirstField(entry1, numFields);
+    auto entryToCompare2 = getFTStructFirstField(entry2, numFields);
+    for (auto i = 0u; i < numFields; i++) {
+        const auto isNullInEntry1 = NullBuffer::isNull(entry1, i);
+        const auto isNullInEntry2 = NullBuffer::isNull(entry2, i);
+        if (isNullInEntry1 != isNullInEntry2) {
+            return false;
+        }
+        const auto& fieldType = StructType::getFieldType(type, i);
+        ft_compare_function_t compareFunc = getFactorizedTableCompareEntryFunc(fieldType);
+        // If both not null, compare the value.
+        if (!isNullInEntry1 && !compareFunc(entryToCompare1, entryToCompare2, fieldType)) {
+            return false;
+        }
+        const auto fieldSize = LogicalTypeUtils::getRowLayoutSize(fieldType);
+        entryToCompare1 += fieldSize;
+        entryToCompare2 += fieldSize;
+    }
+    return true;
+}
+
+static compare_function_t getCompareEntryFunc(const LogicalType& type);
+
+template<>
+[[maybe_unused]] bool compareEntry<list_entry_t>(const common::ValueVector* vector,
+    uint32_t vectorPos, const uint8_t* entry) {
     auto dataVector = ListVector::getDataVector(vector);
     auto listToCompare = vector->getValue<list_entry_t>(vectorPos);
     auto listEntry = reinterpret_cast<const ku_list_t*>(entry);
     auto entryNullBytes = reinterpret_cast<uint8_t*>(listEntry->overflowPtr);
     auto entryValues = entryNullBytes + NullBuffer::getNumBytesForNullValues(listEntry->size);
     auto rowLayoutSize = LogicalTypeUtils::getRowLayoutSize(dataVector->dataType);
-    compare_function_t compareFunc = getCompareEntryFunc(dataVector->dataType.getPhysicalType());
+    compare_function_t compareFunc = getCompareEntryFunc(dataVector->dataType);
     if (listToCompare.size != listEntry->size) {
         return false;
     }
@@ -104,71 +179,78 @@ template<>
     return true;
 }
 
-static bool compareNodeEntry(common::ValueVector* vector, uint32_t vectorPos,
+static bool compareNodeEntry(const common::ValueVector* vector, uint32_t vectorPos,
     const uint8_t* entry) {
     KU_ASSERT(0 == common::StructType::getFieldIdx(vector->dataType, common::InternalKeyword::ID));
     auto idVector = common::StructVector::getFieldVector(vector, 0).get();
     return compareEntry<common::internalID_t>(idVector, vectorPos,
-        entry + common::NullBuffer::getNumBytesForNullValues(
-                    common::StructType::getNumFields(vector->dataType)));
+        getFTStructNodeID(entry, vector->dataType));
 }
 
-static bool compareRelEntry(common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
+static bool compareRelEntry(const common::ValueVector* vector, uint32_t vectorPos,
+    const uint8_t* entry) {
     KU_ASSERT(3 == common::StructType::getFieldIdx(vector->dataType, common::InternalKeyword::ID));
     auto idVector = common::StructVector::getFieldVector(vector, 3).get();
     return compareEntry<common::internalID_t>(idVector, vectorPos,
-        entry + sizeof(common::internalID_t) * 2 + sizeof(common::ku_string_t) +
-            common::NullBuffer::getNumBytesForNullValues(
-                common::StructType::getNumFields(vector->dataType)));
+        getFTStructRelID(entry, vector->dataType));
 }
 
 template<>
-[[maybe_unused]] bool compareEntry<struct_entry_t>(common::ValueVector* vector, uint32_t vectorPos,
-    const uint8_t* entry) {
-    switch (vector->dataType.getLogicalTypeID()) {
-    case LogicalTypeID::NODE: {
-        return compareNodeEntry(vector, vectorPos, entry);
-    }
-    case LogicalTypeID::REL: {
-        return compareRelEntry(vector, vectorPos, entry);
-    }
-    case LogicalTypeID::RECURSIVE_REL:
-    case LogicalTypeID::STRUCT: {
-        auto numFields = StructType::getNumFields(vector->dataType);
-        auto entryToCompare = entry + NullBuffer::getNumBytesForNullValues(numFields);
-        for (auto i = 0u; i < numFields; i++) {
-            auto isNullInEntry = NullBuffer::isNull(entry, i);
-            auto fieldVector = StructVector::getFieldVector(vector, i);
-            compare_function_t compareFunc =
-                getCompareEntryFunc(fieldVector->dataType.getPhysicalType());
-            // Firstly check null on left and right side.
-            if (isNullInEntry != fieldVector->isNull(vectorPos)) {
-                return false;
-            }
-            // If both not null, compare the value.
-            if (!isNullInEntry && !compareFunc(fieldVector.get(), vectorPos, entryToCompare)) {
-                return false;
-            }
-            entryToCompare += LogicalTypeUtils::getRowLayoutSize(fieldVector->dataType);
+[[maybe_unused]] bool compareEntry<struct_entry_t>(const common::ValueVector* vector,
+    uint32_t vectorPos, const uint8_t* entry) {
+    auto numFields = StructType::getNumFields(vector->dataType);
+    auto entryToCompare = getFTStructFirstField(entry, numFields);
+    for (auto i = 0u; i < numFields; i++) {
+        auto isNullInEntry = NullBuffer::isNull(entry, i);
+        auto fieldVector = StructVector::getFieldVector(vector, i);
+        // Firstly check null on left and right side.
+        if (isNullInEntry != fieldVector->isNull(vectorPos)) {
+            return false;
         }
-        return true;
+        compare_function_t compareFunc = getCompareEntryFunc(fieldVector->dataType);
+        // If both not null, compare the value.
+        if (!isNullInEntry && !compareFunc(fieldVector.get(), vectorPos, entryToCompare)) {
+            return false;
+        }
+        entryToCompare += LogicalTypeUtils::getRowLayoutSize(fieldVector->dataType);
     }
-    default:
-        KU_UNREACHABLE;
-    }
+    return true;
 }
 
-static compare_function_t getCompareEntryFunc(PhysicalTypeID type) {
+static compare_function_t getCompareEntryFunc(const LogicalType& type) {
     compare_function_t func;
-    TypeUtils::visit(
-        type, [&]<HashableTypes T>(T) { func = compareEntry<T>; }, [](auto) { KU_UNREACHABLE; });
+    switch (type.getLogicalTypeID()) {
+    case LogicalTypeID::NODE: {
+        func = compareNodeEntry;
+    } break;
+    case LogicalTypeID::REL: {
+        func = compareRelEntry;
+    } break;
+    default: {
+        TypeUtils::visit(
+            type.getPhysicalType(), [&]<HashableTypes T>(T) { func = compareEntry<T>; },
+            [](auto) { KU_UNREACHABLE; });
+    }
+    }
     return func;
 }
 
-static raw_compare_function_t getRawCompareEntryFunc(PhysicalTypeID type) {
-    raw_compare_function_t func;
-    TypeUtils::visit(
-        type, [&]<HashableTypes T>(T) { func = rawCompareEntry<T>; }, [](auto) { KU_UNREACHABLE; });
+static ft_compare_function_t getFactorizedTableCompareEntryFunc(const LogicalType& type) {
+    ft_compare_function_t func;
+    switch (type.getLogicalTypeID()) {
+    case LogicalTypeID::NODE: {
+        func = compareFTNodeEntry;
+    } break;
+    case LogicalTypeID::REL: {
+        func = compareFTRelEntry;
+    } break;
+    default: {
+        TypeUtils::visit(
+            type.getPhysicalType(),
+            [&]<HashableTypes T>(T) { func = factorizedTableCompareEntry<T>; },
+            [](auto) { KU_UNREACHABLE; });
+    }
+    }
     return func;
 }
 
@@ -188,9 +270,8 @@ bool BaseHashTable::matchFlatVecWithEntry(const std::vector<common::ValueVector*
         KU_ASSERT(keyVector->state->getSelVector().getSelSize() == 1);
         auto pos = keyVector->state->getSelVector()[0];
         auto isKeyVectorNull = keyVector->isNull(pos);
-        // FIXME: Move this somewhere
-        auto isEntryKeyNull = !getTableSchema()->getColumn(i)->hasNoNullGuarantee() &&
-                              NullBuffer::isNull(entry + getTableSchema()->getNullMapOffset(), i);
+        auto isEntryKeyNull =
+            factorizedTable->isNonOverflowColNull(entry + getTableSchema()->getNullMapOffset(), i);
         // If either key or entry is null, we shouldn't compare the value of keyVector and
         // entry.
         if (isKeyVectorNull && isEntryKeyNull) {
@@ -208,8 +289,8 @@ bool BaseHashTable::matchFlatVecWithEntry(const std::vector<common::ValueVector*
 void BaseHashTable::initCompareFuncs() {
     compareEntryFuncs.reserve(keyTypes.size());
     for (auto i = 0u; i < keyTypes.size(); ++i) {
-        compareEntryFuncs.push_back(getCompareEntryFunc(keyTypes[i].getPhysicalType()));
-        rawCompareEntryFuncs.push_back(getRawCompareEntryFunc(keyTypes[i].getPhysicalType()));
+        compareEntryFuncs.push_back(getCompareEntryFunc(keyTypes[i]));
+        ftCompareEntryFuncs.push_back(getFactorizedTableCompareEntryFunc(keyTypes[i]));
     }
 }
 

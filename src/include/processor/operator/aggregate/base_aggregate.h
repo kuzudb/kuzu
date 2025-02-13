@@ -37,13 +37,10 @@ protected:
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    bool isParallel() const final { return !containDistinctAggregate(); }
-
     void finalizeInternal(ExecutionContext* context) override = 0;
 
     std::unique_ptr<PhysicalOperator> copy() override = 0;
 
-private:
     bool containDistinctAggregate() const;
 
 protected:

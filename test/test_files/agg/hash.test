@@ -554,6 +554,29 @@ True|2
 {rating: 1223.000000, stars: 100, views: 10003, release: 2011-02-11 16:44:22, release_ns: 2011-02-11 16:44:22.123456, release_ms: 2011-02-11 16:44:22.123, release_sec: 2011-02-11 16:44:22, release_tz: 2011-02-11 16:44:22.123456+00, film: 2013-02-22, u8: 1, u16: 15, u32: 200, u64: 4, hugedata: -15}|2
 {rating: 55.000000, stars: 2, views: 88, release: 2022-01-22 00:00:00, release_ns: 2025-01-13 13:33:11.123456, release_ms: 2018-11-13 13:33:11.123, release_sec: 2011-01-11 00:00:00, release_tz: 2011-11-11 00:00:00+00, film: 2022-01-11, u8: 3, u16: 22, u32: 22, u64: 56, hugedata: 999999}|1
 
+-LOG DistinctHashOnList
+-STATEMENT MATCH (o:organisation) RETURN o.score, collect(DISTINCT [o.name])
+---- 4
+-100|[[CsWork]]
+-2|[[ABFsUni]]
+7|[[DEsWork]]
+|[[]]
+
+-LOG DistinctHashOnStruct
+-STATEMENT MATCH (o:organisation) RETURN o.score, collect(DISTINCT o.state)
+---- 4
+-100|[{revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}]
+-2|[{revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}]
+7|[{revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}]
+|[{revenue: 55, location: ['toronto'], stock: {price: [22,33], volume: 28}},{revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}},{revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}]
+-LOG DistinctHashOnListOfStruct
+-STATEMENT MATCH (o:organisation) RETURN o.score, collect(DISTINCT [o.state])
+---- 4
+-100|[[{revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}]]
+-2|[[{revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}]]
+7|[[{revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}]]
+|[[{revenue: 55, location: ['toronto'], stock: {price: [22,33], volume: 28}}],[{revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}],[{revenue: 558, location: ['very long city name','new york'], stock: {price: [22], volume: 99}}]]
+
 -LOG HashOnListOfStruct
 -STATEMENT CREATE (:organisation {ID: 22})
 ---- ok

@@ -25,8 +25,8 @@ public:
 
     PatternCreationInfo getPatternCreationInfo(const std::vector<common::ValueVector*>& keyVectors);
 
-    uint64_t matchFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
-        const std::vector<common::ValueVector*>& unFlatKeyVectors, uint64_t numMayMatches,
+    uint64_t matchFTEntries(std::span<const common::ValueVector*> flatKeyVectors,
+        std::span<const common::ValueVector*> unFlatKeyVectors, uint64_t numMayMatches,
         uint64_t numNoMatches) override;
 
 private:

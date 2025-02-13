@@ -15,8 +15,10 @@ class MemoryManager;
 }
 namespace processor {
 
-using compare_function_t = std::function<bool(common::ValueVector*, uint32_t, const uint8_t*)>;
-using raw_compare_function_t = std::function<bool(const uint8_t*, const uint8_t*)>;
+using compare_function_t =
+    std::function<bool(const common::ValueVector*, uint32_t, const uint8_t*)>;
+using ft_compare_function_t =
+    std::function<bool(const uint8_t*, const uint8_t*, const common::LogicalType& type)>;
 
 class BaseHashTable {
 public:
@@ -37,13 +39,23 @@ protected:
 
     uint64_t getSlotIdxForHash(common::hash_t hash) const { return hash & bitmask; }
     void setMaxNumHashSlots(uint64_t newSize);
-    void computeAndCombineVecHash(const std::vector<common::ValueVector*>& unFlatKeyVectors,
+    void computeAndCombineVecHash(std::span<const common::ValueVector*> unFlatKeyVectors,
         uint32_t startVecIdx);
+
     void computeVectorHashes(const std::vector<common::ValueVector*>& flatKeyVectors,
-        const std::vector<common::ValueVector*>& unFlatKeyVectors);
+        const std::vector<common::ValueVector*>& unFlatKeyVectors) {
+        computeVectorHashes(constSpan(flatKeyVectors), constSpan(unFlatKeyVectors));
+    }
+    void computeVectorHashes(std::span<const common::ValueVector*> flatKeyVectors,
+        std::span<const common::ValueVector*> unFlatKeyVectors);
     void initSlotConstant(uint64_t numSlotsPerBlock);
     bool matchFlatVecWithEntry(const std::vector<common::ValueVector*>& keyVectors,
         const uint8_t* entry);
+
+    template<typename T>
+    std::span<const T*> constSpan(const std::vector<T*>& vector) {
+        return std::span(const_cast<const T**>(vector.data()), vector.size());
+    }
 
 private:
     void initCompareFuncs();
@@ -58,7 +70,7 @@ protected:
     storage::MemoryManager* memoryManager;
     std::unique_ptr<FactorizedTable> factorizedTable;
     std::vector<compare_function_t> compareEntryFuncs;
-    std::vector<raw_compare_function_t> rawCompareEntryFuncs;
+    std::vector<ft_compare_function_t> ftCompareEntryFuncs;
     std::vector<common::LogicalType> keyTypes;
     // Temporary arrays to hold intermediate results for appending.
     std::shared_ptr<common::DataChunkState> hashState;
