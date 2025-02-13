@@ -172,7 +172,7 @@ class AllSPPathsEdgeCompute : public SPEdgeCompute {
 public:
     AllSPPathsEdgeCompute(SinglePathLengthsFrontierPair* frontiersPair, BFSGraph* bfsGraph)
         : SPEdgeCompute{frontiersPair}, bfsGraph{bfsGraph} {
-        parentPtrsBlock = bfsGraph->addNewBlock();
+        block = bfsGraph->addNewBlock();
     }
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, NbrScanState::Chunk& resultChunk,
@@ -188,12 +188,11 @@ public:
             auto shouldUpdate =
                 nbrLen == PathLengths::UNVISITED || nbrLen == frontierPair->getCurrentIter();
             if (shouldUpdate) {
-                if (!parentPtrsBlock->hasSpace()) {
-                    parentPtrsBlock = bfsGraph->addNewBlock();
+                if (!block->hasSpace()) {
+                    block = bfsGraph->addNewBlock();
                 }
-                auto parent = parentPtrsBlock->reserveNext();
-                parent->store(frontierPair->getCurrentIter(), boundNodeID, edgeID, fwdEdge);
-                bfsGraph->addParent(parent, nbrNodeID.offset);
+                bfsGraph->addParent(frontierPair->getCurrentIter(), boundNodeID, edgeID, nbrNodeID,
+                    fwdEdge, block);
             }
             if (nbrLen == PathLengths::UNVISITED) {
                 activeNodes.push_back(nbrNodeID);
@@ -208,7 +207,7 @@ public:
 
 private:
     BFSGraph* bfsGraph;
-    ObjectBlock<ParentList>* parentPtrsBlock = nullptr;
+    ObjectBlock<ParentList>* block = nullptr;
 };
 
 /**

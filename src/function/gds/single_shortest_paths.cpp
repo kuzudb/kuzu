@@ -82,7 +82,7 @@ class SingleSPPathsEdgeCompute : public SPEdgeCompute {
 public:
     SingleSPPathsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair, BFSGraph* bfsGraph)
         : SPEdgeCompute{frontierPair}, bfsGraph{bfsGraph} {
-        parentPtrsBlock = bfsGraph->addNewBlock();
+        block = bfsGraph->addNewBlock();
     }
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, NbrScanState::Chunk& resultChunk,
@@ -91,12 +91,11 @@ public:
         resultChunk.forEach([&](auto nbrNodeID, auto edgeID) {
             if (frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNodeID.offset) ==
                 PathLengths::UNVISITED) {
-                if (!parentPtrsBlock->hasSpace()) {
-                    parentPtrsBlock = bfsGraph->addNewBlock();
+                if (!block->hasSpace()) {
+                    block = bfsGraph->addNewBlock();
                 }
-                auto parent = parentPtrsBlock->reserveNext();
-                parent->store(frontierPair->getCurrentIter(), boundNodeID, edgeID, isFwd);
-                bfsGraph->tryAddSingleParent(parent, nbrNodeID.offset, parentPtrsBlock);
+                bfsGraph->addSingleParent(frontierPair->getCurrentIter(), boundNodeID, edgeID,
+                    nbrNodeID, isFwd, block);
                 activeNodes.push_back(nbrNodeID);
             }
         });
@@ -109,7 +108,7 @@ public:
 
 private:
     BFSGraph* bfsGraph;
-    ObjectBlock<ParentList>* parentPtrsBlock = nullptr;
+    ObjectBlock<ParentList>* block = nullptr;
 };
 
 /**
