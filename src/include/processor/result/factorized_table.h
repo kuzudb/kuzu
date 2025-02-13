@@ -85,7 +85,10 @@ class KUZU_API FactorizedTable {
 public:
     FactorizedTable(storage::MemoryManager* memoryManager, FactorizedTableSchema tableSchema);
 
-    void append(const std::vector<common::ValueVector*>& vectors);
+    void append(std::span<const common::ValueVector*> vectors);
+    void append(const std::vector<common::ValueVector*>& vectors) {
+        append(std::span(const_cast<const common::ValueVector**>(vectors.data()), vectors.size()));
+    }
 
     //! This function appends an empty tuple to the factorizedTable and returns a pointer to that
     //! tuple.
@@ -184,8 +187,7 @@ public:
 private:
     void setOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx, ft_tuple_idx_t tupleIdx);
 
-    uint64_t computeNumTuplesToAppend(
-        const std::vector<common::ValueVector*>& vectorsToAppend) const;
+    uint64_t computeNumTuplesToAppend(std::span<const common::ValueVector*> vectorsToAppend) const;
 
     uint8_t* getCell(ft_block_idx_t blockIdx, ft_block_offset_t blockOffset,
         ft_col_offset_t colOffset) const {

@@ -99,7 +99,7 @@ FactorizedTable::FactorizedTable(MemoryManager* memoryManager, FactorizedTableSc
     }
 }
 
-void FactorizedTable::append(const std::vector<ValueVector*>& vectors) {
+void FactorizedTable::append(std::span<const ValueVector*> vectors) {
     auto numTuplesToAppend = computeNumTuplesToAppend(vectors);
     auto appendInfos = allocateFlatTupleBlocks(numTuplesToAppend);
     for (auto i = 0u; i < vectors.size(); i++) {
@@ -335,7 +335,7 @@ void FactorizedTable::setOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colId
 
 // TODO(Guodong): change this function to not use dataChunkPos in ColumnSchema.
 uint64_t FactorizedTable::computeNumTuplesToAppend(
-    const std::vector<ValueVector*>& vectorsToAppend) const {
+    std::span<const ValueVector*> vectorsToAppend) const {
     KU_ASSERT(!vectorsToAppend.empty());
     auto numTuplesToAppend = 1ul;
     for (auto i = 0u; i < vectorsToAppend.size(); i++) {

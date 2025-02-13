@@ -16,6 +16,7 @@
 #include "processor/operator/aggregate/aggregate_hash_table.h"
 #include "processor/operator/aggregate/aggregate_input.h"
 #include "processor/operator/aggregate/base_aggregate.h"
+#include "processor/result/factorized_table.h"
 #include "processor/result/factorized_table_schema.h"
 #include "storage/buffer_manager/memory_manager.h"
 
@@ -153,14 +154,22 @@ void SimpleAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
 
 void SimpleAggregate::executeInternal(ExecutionContext* context) {
     auto memoryManager = context->clientContext->getMemoryManager();
+    std::vector<std::unique_ptr<FactorizedTable>> factorizedTables;
+    for (auto& distinctHashTable : distinctHashTables) {
+        if (distinctHashTable) {
+            factorizedTables.push_back(
+                std::make_unique<FactorizedTable>(context->clientContext->getMemoryManager(),
+                    distinctHashTable->getTableSchema()->copy()));
+        } else {
+            factorizedTables.emplace_back();
+        }
+    }
     while (children[0]->getNextTuple(context)) {
         for (auto i = 0u; i < aggregateFunctions.size(); i++) {
             auto aggregateFunction = &aggregateFunctions[i];
             if (aggregateFunction->isFunctionDistinct()) {
-                // Just add distinct value to the hash table. We'll calculate the final hash table
-                // once it's been merged into the global state
-                distinctHashTables[i].get()->insertAggregateValueIfDistinctForGroupByKeys(
-                    std::vector<ValueVector*>{}, aggInputs[i].aggregateVector);
+                factorizedTables[i]->append(
+                    std::span(const_cast<const ValueVector**>(&aggInputs[i].aggregateVector), 1));
             } else {
                 computeAggregate(aggregateFunction, &aggInputs[i], localAggregateStates[i].get(),
                     memoryManager);
@@ -168,8 +177,14 @@ void SimpleAggregate::executeInternal(ExecutionContext* context) {
         }
     }
     if (hasDistinct) {
-        for (auto& hashTable : distinctHashTables) {
-            hashTable->mergeAll();
+        for (size_t i = 0; i < distinctHashTables.size(); i++) {
+            if (distinctHashTables[i]) {
+                // Since there are no aggregate functions in the SimpleAggregate distinct hash
+                // tables, AggregateHashTable::merge combining state instead of updating for new
+                // values is not an issue
+                distinctHashTables[i]->merge(std::move(*factorizedTables[i]));
+                distinctHashTables[i]->mergeAll();
+            }
         }
         sharedState->setThreadFinishedProducing();
         while (!sharedState->allThreadsFinishedProducing()) {
