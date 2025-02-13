@@ -91,8 +91,9 @@ std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement
             if (fileTypeInfo.fileType == FileType::CSV) {
                 auto csvConfig = CSVReaderConfig::construct(
                     bindParsingOptions(copyFromStatement.getParsingOptions()));
-                query = stringFormat("COPY `{}` {} FROM \"{}\" {};", copyFromStatement.getTableName(),
-                    columnNames, copyFilePath, csvConfig.option.toCypher());
+                query =
+                    stringFormat("COPY `{}` {} FROM \"{}\" {};", copyFromStatement.getTableName(),
+                        columnNames, copyFilePath, csvConfig.option.toCypher());
             } else {
                 query = stringFormat("COPY `{}` {} FROM \"{}\";", copyFromStatement.getTableName(),
                     columnNames, copyFilePath);
