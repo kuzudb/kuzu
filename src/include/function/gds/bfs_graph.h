@@ -75,7 +75,8 @@ public:
         common::nodeID_t nbrNodeID, bool fwdEdge, ObjectBlock<ParentList>* parentListBlock);
 
     bool tryAddSingleParentWithWeight(common::nodeID_t boundNodeID, common::relID_t edgeID,
-        common::nodeID_t nbrNodeID, bool fwdEdge, double weight, ObjectBlock<ParentList>* parentListBlock);
+        common::nodeID_t nbrNodeID, bool fwdEdge, double weight,
+        ObjectBlock<ParentList>* parentListBlock);
 
     void pinTableID(common::table_id_t tableID) { currParentPtrs = parentArray.getData(tableID); }
 

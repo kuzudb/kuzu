@@ -15,17 +15,20 @@ ObjectBlock<ParentList>* BFSGraph::addNewBlock() {
     return blocks[blocks.size() - 1].get();
 }
 
-void BFSGraph::addParent(uint16_t iter, nodeID_t boundNodeID, relID_t edgeID, nodeID_t nbrNodeID, bool fwdEdge, ObjectBlock<ParentList>* block) {
+void BFSGraph::addParent(uint16_t iter, nodeID_t boundNodeID, relID_t edgeID, nodeID_t nbrNodeID,
+    bool fwdEdge, ObjectBlock<ParentList>* block) {
     auto parent = block->reserveNext();
     parent->setNbrInfo(boundNodeID, edgeID, fwdEdge);
     parent->setIter(iter);
     // Since by default the parentPtr of each node is nullptr, that's what we start with.
     ParentList* expected = nullptr;
-    while (!currParentPtrs[nbrNodeID.offset].compare_exchange_strong(expected, parent));
+    while (!currParentPtrs[nbrNodeID.offset].compare_exchange_strong(expected, parent))
+        ;
     parent->setNextPtr(expected);
 }
 
-void BFSGraph::addSingleParent(uint16_t iter, nodeID_t boundNodeID, relID_t edgeID, nodeID_t nbrNodeID, bool fwdEdge, ObjectBlock<kuzu::function::ParentList>* block) {
+void BFSGraph::addSingleParent(uint16_t iter, nodeID_t boundNodeID, relID_t edgeID,
+    nodeID_t nbrNodeID, bool fwdEdge, ObjectBlock<kuzu::function::ParentList>* block) {
     auto parent = block->reserveNext();
     parent->setNbrInfo(boundNodeID, edgeID, fwdEdge);
     parent->setIter(iter);
@@ -39,11 +42,11 @@ void BFSGraph::addSingleParent(uint16_t iter, nodeID_t boundNodeID, relID_t edge
 }
 
 static double getCost(ParentList* parentList) {
-    return parentList == nullptr? std::numeric_limits<double>::max() : parentList->getCost();
+    return parentList == nullptr ? std::numeric_limits<double>::max() : parentList->getCost();
 }
 
-bool BFSGraph::tryAddSingleParentWithWeight(nodeID_t boundNodeID, relID_t edgeID, nodeID_t nbrNodeID, bool fwdEdge,
-    double weight, ObjectBlock<ParentList>* block) {
+bool BFSGraph::tryAddSingleParentWithWeight(nodeID_t boundNodeID, relID_t edgeID,
+    nodeID_t nbrNodeID, bool fwdEdge, double weight, ObjectBlock<ParentList>* block) {
     ParentList* expected = getParentListHead(nbrNodeID.offset);
     auto parent = block->reserveNext();
     parent->setNbrInfo(boundNodeID, edgeID, fwdEdge);
@@ -60,5 +63,5 @@ bool BFSGraph::tryAddSingleParentWithWeight(nodeID_t boundNodeID, relID_t edgeID
     return false;
 }
 
-}
-}
+} // namespace function
+} // namespace kuzu

@@ -83,13 +83,15 @@ public:
         block = bfsGraph.addNewBlock();
     }
 
-    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk, bool fwdEdge) override {
+    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
+        bool fwdEdge) override {
         std::vector<nodeID_t> result;
         chunk.forEach<T>([&](auto nbrNodeID, auto edgeID, auto weight) {
             if (!block->hasSpace()) {
                 block = bfsGraph.addNewBlock();
             }
-            if (bfsGraph.tryAddSingleParentWithWeight(boundNodeID, edgeID, nbrNodeID, fwdEdge, (double)weight, block)) {
+            if (bfsGraph.tryAddSingleParentWithWeight(boundNodeID, edgeID, nbrNodeID, fwdEdge,
+                    (double)weight, block)) {
                 result.push_back(nbrNodeID);
             }
         });
@@ -167,7 +169,8 @@ public:
 private:
     void beginWritingOutputsInternal(table_id_t tableID) override { costs->pinTable(tableID); }
     bool skipInternal(nodeID_t dstNodeID) const override {
-        return dstNodeID == sourceNodeID || costs->getCost(dstNodeID.offset) == std::numeric_limits<double>::max();
+        return dstNodeID == sourceNodeID ||
+               costs->getCost(dstNodeID.offset) == std::numeric_limits<double>::max();
     }
 
 private:
@@ -183,7 +186,8 @@ public:
         costVector = createVector(LogicalType::DOUBLE(), context->getMemoryManager());
     }
 
-    void write(processor::FactorizedTable &fTable, common::nodeID_t dstNodeID, processor::GDSOutputCounter *counter) override {
+    void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
+        processor::GDSOutputCounter* counter) override {
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
         auto parent = bfsGraph.getParentListHead(dstNodeID.offset);
         costVector->setValue<double>(0, parent->getCost());
@@ -200,12 +204,13 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<WSPPathsOutputWriter>(context, outputNodeMask, sourceNodeID, info, bfsGraph);
+        return std::make_unique<WSPPathsOutputWriter>(context, outputNodeMask, sourceNodeID, info,
+            bfsGraph);
     }
 
 private:
     bool skipInternal(nodeID_t dstNodeID) const override {
-        if  (dstNodeID == sourceNodeID) {
+        if (dstNodeID == sourceNodeID) {
             return true;
         }
         auto parent = bfsGraph.getParentListHead(dstNodeID.offset);
@@ -304,8 +309,7 @@ private:
 class WeightedSPPathsAlgorithm : public RJAlgorithm {
 public:
     WeightedSPPathsAlgorithm() = default;
-    WeightedSPPathsAlgorithm(const WeightedSPPathsAlgorithm& other)
-        : RJAlgorithm{other} {}
+    WeightedSPPathsAlgorithm(const WeightedSPPathsAlgorithm& other) : RJAlgorithm{other} {}
 
     binder::expression_vector getResultColumns(
         const function::GDSBindInput& /*bindInput*/) const override {

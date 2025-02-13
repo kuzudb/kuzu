@@ -94,7 +94,8 @@ public:
                 if (!block->hasSpace()) {
                     block = bfsGraph->addNewBlock();
                 }
-                bfsGraph->addSingleParent(frontierPair->getCurrentIter(), boundNodeID, edgeID, nbrNodeID, isFwd, block);
+                bfsGraph->addSingleParent(frontierPair->getCurrentIter(), boundNodeID, edgeID,
+                    nbrNodeID, isFwd, block);
                 activeNodes.push_back(nbrNodeID);
             }
         });
