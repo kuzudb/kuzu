@@ -67,6 +67,8 @@ public:
     RJAlgorithm() = default;
     RJAlgorithm(const RJAlgorithm& other) : GDSAlgorithm{other} {}
 
+    void bind(const kuzu::function::GDSBindInput& input, main::ClientContext& context) override;
+
     void exec(processor::ExecutionContext* context) override;
 
     virtual RJCompState getRJCompState(processor::ExecutionContext* context,
@@ -77,26 +79,9 @@ public:
     binder::expression_vector getResultColumnsNoPath();
 
 protected:
-    void validateLowerUpperBound(int64_t lowerBound, int64_t upperBound);
-
     binder::expression_vector getBaseResultColumns() const;
-    void bindColumnExpressions(binder::Binder* binder) const;
 
     std::unique_ptr<BFSGraph> getBFSGraph(processor::ExecutionContext* context);
-};
-
-class SPAlgorithm : public RJAlgorithm {
-public:
-    SPAlgorithm() = default;
-    SPAlgorithm(const SPAlgorithm& other) : RJAlgorithm{other} {}
-
-    // Inputs are graph, srcNode, upperBound, direction
-    std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        return {common::LogicalTypeID::ANY, common::LogicalTypeID::NODE,
-            common::LogicalTypeID::INT64, common::LogicalTypeID::STRING};
-    }
-
-    void bind(const GDSBindInput& input, main::ClientContext&) override;
 };
 
 } // namespace function

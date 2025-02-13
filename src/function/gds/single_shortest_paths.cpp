@@ -118,11 +118,11 @@ private:
  * multiplicities of each destination is ignored (e.g., if there are 3 paths to a destination d,
  * d is returned only once).
  */
-class SingleSPDestinationsAlgorithm : public SPAlgorithm {
+class SingleSPDestinationsAlgorithm : public RJAlgorithm {
 public:
     SingleSPDestinationsAlgorithm() = default;
     SingleSPDestinationsAlgorithm(const SingleSPDestinationsAlgorithm& other)
-        : SPAlgorithm{other} {}
+        : RJAlgorithm{other} {}
 
     expression_vector getResultColumns(const function::GDSBindInput& /*bindInput*/) const override {
         auto columns = getBaseResultColumns();
@@ -149,10 +149,10 @@ private:
     }
 };
 
-class SingleSPPathsAlgorithm : public SPAlgorithm {
+class SingleSPPathsAlgorithm : public RJAlgorithm {
 public:
     SingleSPPathsAlgorithm() = default;
-    SingleSPPathsAlgorithm(const SingleSPPathsAlgorithm& other) : SPAlgorithm{other} {}
+    SingleSPPathsAlgorithm(const SingleSPPathsAlgorithm& other) : RJAlgorithm{other} {}
 
     expression_vector getResultColumns(const function::GDSBindInput& /*bindInput*/) const override {
         auto columns = getBaseResultColumns();

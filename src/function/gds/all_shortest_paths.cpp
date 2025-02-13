@@ -216,10 +216,10 @@ private:
  * is returned for each destination. If paths are not returned, multiplicities indicate the
  * number of paths to each destination.
  */
-class AllSPDestinationsAlgorithm final : public SPAlgorithm {
+class AllSPDestinationsAlgorithm final : public RJAlgorithm {
 public:
     AllSPDestinationsAlgorithm() = default;
-    AllSPDestinationsAlgorithm(const AllSPDestinationsAlgorithm& other) : SPAlgorithm{other} {}
+    AllSPDestinationsAlgorithm(const AllSPDestinationsAlgorithm& other) : RJAlgorithm{other} {}
 
     expression_vector getResultColumns(const function::GDSBindInput& /*bindInput*/) const override {
         auto columns = getBaseResultColumns();
@@ -250,10 +250,10 @@ private:
     }
 };
 
-class AllSPPathsAlgorithm final : public SPAlgorithm {
+class AllSPPathsAlgorithm final : public RJAlgorithm {
 public:
     AllSPPathsAlgorithm() = default;
-    AllSPPathsAlgorithm(const AllSPPathsAlgorithm& other) : SPAlgorithm{other} {}
+    AllSPPathsAlgorithm(const AllSPPathsAlgorithm& other) : RJAlgorithm{other} {}
 
     expression_vector getResultColumns(const function::GDSBindInput& /*bindInput*/) const override {
         auto columns = getBaseResultColumns();
