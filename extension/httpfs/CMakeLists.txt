@@ -26,7 +26,7 @@ add_library(httpfs
         src/crypto.cpp
         src/http_config.cpp
         src/cached_file_manager.cpp
-        src/s3_download_options.cpp)
+        src/s3fs_config.cpp)
 
 target_link_libraries(httpfs
         PRIVATE

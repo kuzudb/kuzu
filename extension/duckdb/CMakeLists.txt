@@ -23,7 +23,7 @@ add_subdirectory(src/loader)
 add_library(duckdb_extension
         SHARED
         ${DUCKDB_EXTENSION_OBJECT_FILES}
-        ${PROJECT_SOURCE_DIR}/extension/httpfs/src/s3_download_options.cpp)
+        ${PROJECT_SOURCE_DIR}/extension/httpfs/src/s3fs_config.cpp)
 
 target_link_libraries(duckdb_extension
         PRIVATE

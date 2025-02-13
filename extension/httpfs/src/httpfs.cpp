@@ -29,7 +29,8 @@ void HTTPFileInfo::initMetadata() {
     std::string rangeLength;
     if (res->code != 200) {
         if ((flags & FileFlags::WRITE) && res->code == 404) {
-            if (!(flags & FileFlags::CREATE_IF_NOT_EXISTS)) {
+            if (!(flags & FileFlags::CREATE_IF_NOT_EXISTS) &&
+                !(flags & FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS)) {
                 throw IOException(stringFormat("Unable to open URL: \"{}\" for writing: file does "
                                                "not exist and CREATE flag is not set",
                     path));
@@ -137,7 +138,7 @@ std::vector<std::string> HTTPFileSystem::glob(main::ClientContext* /*context*/,
     return {path};
 }
 
-bool HTTPFileSystem::canHandleFile(const std::string& path) const {
+bool HTTPFileSystem::canHandleFile(const std::string_view path) const {
     return path.rfind("https://", 0) == 0 || path.rfind("http://", 0) == 0;
 }
 
