@@ -148,6 +148,8 @@ fe38f9dc-f761-4184-8b8b
 foobar-ewe-j323-8nd*-ewew
 
 -CASE CreateInt8MaxWidth
+# rows span multiple node groups if node group size is 2
+-SKIP_NODE_GROUP_SIZE_TESTS
 -STATEMENT CALL auto_checkpoint=true;
 ---- ok
 -STATEMENT CALL checkpoint_threshold=0;
@@ -170,6 +172,8 @@ UNCOMPRESSED
 -128
 
 -CASE CreateInt16MaxWidth
+# rows span multiple node groups if node group size is 2
+-SKIP_NODE_GROUP_SIZE_TESTS
 -STATEMENT CALL auto_checkpoint=true;
 ---- ok
 -STATEMENT CALL checkpoint_threshold=0;
@@ -192,6 +196,8 @@ UNCOMPRESSED
 -32768
 
 -CASE CreateInt32MaxWidth
+# rows span multiple node groups if node group size is 2
+-SKIP_NODE_GROUP_SIZE_TESTS
 -STATEMENT CALL auto_checkpoint=true;
 ---- ok
 -STATEMENT CALL checkpoint_threshold=0;
@@ -214,6 +220,8 @@ UNCOMPRESSED
 -2147483648
 
 -CASE CreateInt64MaxWidth
+# rows span multiple node groups if node group size is 2
+-SKIP_NODE_GROUP_SIZE_TESTS
 -STATEMENT CALL auto_checkpoint=true;
 ---- ok
 -STATEMENT CALL checkpoint_threshold=0;
@@ -236,6 +244,8 @@ UNCOMPRESSED
 -9223372036854775808
 
 -CASE CreateInt128MaxWidth
+# rows span multiple node groups if node group size is 2
+-SKIP_NODE_GROUP_SIZE_TESTS
 -STATEMENT CALL auto_checkpoint=true;
 ---- ok
 -STATEMENT CALL checkpoint_threshold=0;
