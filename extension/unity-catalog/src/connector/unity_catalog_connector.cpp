@@ -15,7 +15,6 @@ void UnityCatalogConnector::connect(const std::string& dbPath, const std::string
     executeQuery("install delta;");
     executeQuery("load delta;");
     executeQuery("install delta;");
-    auto query = DuckDBUnityCatalogSecretManager::getSecret(context);
     executeQuery(DuckDBUnityCatalogSecretManager::getSecret(context));
     executeQuery(common::stringFormat("attach '{}' as {} (TYPE UC_CATALOG, read_only);", dbPath,
         catalogName));
