@@ -844,9 +844,7 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(const std::string
     case LogicalTypeID::LIST:
     case LogicalTypeID::ARRAY:
     case LogicalTypeID::MAP:
-    case LogicalTypeID::STRUCT: {
-        return bindCastBetweenNested<EXECUTOR>(functionName, sourceType, targetType);
-    }
+    case LogicalTypeID::STRUCT:
     case LogicalTypeID::UNION: {
         return bindCastBetweenNested<EXECUTOR>(functionName, sourceType, targetType);
     }
