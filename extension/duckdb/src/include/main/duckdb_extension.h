@@ -14,8 +14,8 @@ public:
 
 public:
     static void load(main::ClientContext* context);
-    static void loadRemoteFSOptions(main::ClientContext* context);
-    static void initRemoteFSSecrets(duckdb_extension::DuckDBConnector& connector,
+    KUZU_API static void loadRemoteFSOptions(main::ClientContext* context);
+    KUZU_API static void initRemoteFSSecrets(duckdb_extension::DuckDBConnector& connector,
         main::ClientContext* context);
 };
 
