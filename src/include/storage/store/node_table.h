@@ -172,7 +172,7 @@ public:
         return *columns[columnID];
     }
 
-    std::pair<common::offset_t, common::offset_t> appendToLastNodeGroup(
+    std::pair<common::offset_t, common::offset_t> appendToLastNodeGroup(MemoryManager& mm,
         transaction::Transaction* transaction, const std::vector<common::column_id_t>& columnIDs,
         ChunkedNodeGroup& chunkedGroup);
 

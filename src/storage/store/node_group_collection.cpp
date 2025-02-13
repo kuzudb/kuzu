@@ -105,7 +105,7 @@ void NodeGroupCollection::append(const Transaction* transaction,
 }
 
 std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlushWhenFull(
-    Transaction* transaction, const std::vector<column_id_t>& columnIDs,
+    MemoryManager& mm, Transaction* transaction, const std::vector<column_id_t>& columnIDs,
     ChunkedNodeGroup& chunkedGroup) {
     NodeGroup* lastNodeGroup = nullptr;
     offset_t startOffset = 0;
@@ -142,8 +142,15 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
     if (directFlushWhenAppend) {
         chunkedGroup.finalize();
         auto flushedGroup = chunkedGroup.flushAsNewChunkedNodeGroup(transaction, *dataFH);
+
+        // If there are deleted columns that haven't been vaccumed yet
+        // we need to add extra columns to the chunked group
+        // to ensure that the number of columns is consistent with the rest of the node group
+        auto groupToMerge = std::make_unique<ChunkedNodeGroup>(mm, *flushedGroup,
+            lastNodeGroup->getDataTypes(), columnIDs);
+
         KU_ASSERT(lastNodeGroup->getNumChunkedGroups() == 0);
-        lastNodeGroup->merge(transaction, std::move(flushedGroup));
+        lastNodeGroup->merge(transaction, std::move(groupToMerge));
     }
     return {startOffset, numToAppend};
 }

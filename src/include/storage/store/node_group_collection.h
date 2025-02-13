@@ -30,8 +30,8 @@ public:
     // The returned values are the startOffset and numValuesAppended.
     // NOTE: This is specially coded to only be used by NodeBatchInsert for now.
     std::pair<common::offset_t, common::offset_t> appendToLastNodeGroupAndFlushWhenFull(
-        transaction::Transaction* transaction, const std::vector<common::column_id_t>& columnIDs,
-        ChunkedNodeGroup& chunkedGroup);
+        MemoryManager& mm, transaction::Transaction* transaction,
+        const std::vector<common::column_id_t>& columnIDs, ChunkedNodeGroup& chunkedGroup);
 
     common::row_idx_t getNumTotalRows() const;
     common::node_group_idx_t getNumNodeGroups() const {
