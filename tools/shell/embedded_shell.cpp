@@ -511,7 +511,7 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
             auto queryResult = conn->query(query);
             auto isSuccess = queryResult->isSuccess();
             queryResults.push_back(std::move(queryResult));
-            if (isSuccess) {
+            if (isSuccess && !database->getConfig().readOnly) {
                 auto clientContext = conn->getClientContext();
                 auto parsedQueries = clientContext->parseQuery(query);
                 for (auto& parsedQuery : parsedQueries) {
