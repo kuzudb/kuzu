@@ -10,8 +10,8 @@ namespace httpfs {
 using namespace common;
 
 void S3DownloadOptions::registerExtensionOptions(main::Database* db) {
-    ADD_EXTENSION_OPTION(S3AccessKeyID);
-    ADD_EXTENSION_OPTION(S3SecretAccessKey);
+    ADD_CONFIDENTIAL_EXTENSION_OPTION(S3AccessKeyID);
+    ADD_CONFIDENTIAL_EXTENSION_OPTION(S3SecretAccessKey);
     ADD_EXTENSION_OPTION(S3EndPoint);
     ADD_EXTENSION_OPTION(S3URLStyle);
     ADD_EXTENSION_OPTION(S3Region);

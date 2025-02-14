@@ -46,13 +46,14 @@ std::string ExtensionManager::toCypher() {
 }
 
 void ExtensionManager::addExtensionOption(std::string name, common::LogicalTypeID type,
-    common::Value defaultValue) {
+    common::Value defaultValue, bool isConfidential) {
     if (getExtensionOption(name) != nullptr) {
         // One extension option can be shared by multiple extensions.
         return;
     }
     common::StringUtils::toLower(name);
-    extensionOptions.emplace(name, main::ExtensionOption{name, type, std::move(defaultValue)});
+    extensionOptions.emplace(name,
+        main::ExtensionOption{name, type, std::move(defaultValue), isConfidential});
 }
 
 const main::ExtensionOption* ExtensionManager::getExtensionOption(std::string name) const {
