@@ -70,10 +70,10 @@ static void writeCopyStatement(stringstream& ss, const TableCatalogEntry* entry,
         columns += i == numProperties - 1 ? "" : ",";
     }
     if (columns.empty()) {
-        ss << stringFormat("COPY {} FROM \"{}\" {};\n", entry->getName(), fileName,
+        ss << stringFormat("COPY `{}` FROM \"{}\" {};\n", entry->getName(), fileName,
             csvConfig.option.toCypher());
     } else {
-        ss << stringFormat("COPY {} ({}) FROM \"{}\" {};\n", entry->getName(), columns, fileName,
+        ss << stringFormat("COPY `{}` ({}) FROM \"{}\" {};\n", entry->getName(), columns, fileName,
             csvConfig.option.toCypher());
     }
 }
