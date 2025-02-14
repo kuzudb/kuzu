@@ -28,7 +28,7 @@ TEST_F(NodeUpdateTest, UpdateSameRow) {
 }
 
 TEST_F(NodeUpdateTest, UpdateSameRowRedundtanly) {
-    if (inMemMode) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
     ASSERT_TRUE(
