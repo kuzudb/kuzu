@@ -1,5 +1,7 @@
 #include "embedded_shell.h"
 
+#include "binder/visitor/confidential_statement_analyzer.h"
+
 #ifndef _WIN32
 #include <termios.h>
 #include <unistd.h>
@@ -14,11 +16,13 @@
 #include <regex>
 #include <sstream>
 
+#include "binder/binder.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/parser.h"
 #include "keywords.h"
+#include "parser/parser.h"
 #include "transaction/transaction.h"
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
@@ -473,6 +477,27 @@ std::string decodeEscapeSequences(const std::string& input) {
         result.replace(match.position(), match.length(), std::string(utf8Char, size));
     }
     return result;
+}
+
+void EmbeddedShell::checkConfidentialStatement(const QueryResult* queryResult) {
+    if (queryResult->isSuccess() && !database->getConfig().readOnly &&
+        queryResult->getQuerySummary()->getStatementType() ==
+            common::StatementType::STANDALONE_CALL) {
+        auto clientContext = conn->getClientContext();
+        auto parsedQueries = clientContext->parseQuery(query);
+        for (auto& parsedQuery : parsedQueries) {
+            clientContext->getTransactionContext()->beginWriteTransaction();
+            auto binder = binder::Binder(clientContext);
+            auto boundQuery = binder.bind(*parsedQuery);
+            auto boundStatementVisitor = binder::ConfidentialStatementAnalyzer{};
+            boundStatementVisitor.visit(*boundQuery);
+            if (boundStatementVisitor.isConfidential()) {
+                input = "";
+            }
+            clientContext->getTransactionContext()->commit();
+        }
+    }
+}
 }
 
 std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::string input) {

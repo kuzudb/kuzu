@@ -41,6 +41,11 @@ public:
      */
     bool isExplain() const;
 
+    /**
+     * @return the statement type of the query.
+     */
+    common::StatementType getStatementType() const;
+
 private:
     double executionTime = 0;
     PreparedSummary preparedSummary;
