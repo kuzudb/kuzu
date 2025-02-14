@@ -92,11 +92,19 @@ bool factorizedTableCompareEntry<list_entry_t>(const uint8_t* entry1, const uint
     }
     const auto& childType = ListType::getChildType(type);
     const auto childSize = LogicalTypeUtils::getRowLayoutSize(childType);
-    const auto dataPtr1 = reinterpret_cast<const uint8_t*>(list1->overflowPtr);
-    const auto dataPtr2 = reinterpret_cast<const uint8_t*>(list2->overflowPtr);
+    const auto nullPtr1 = reinterpret_cast<const uint8_t*>(list1->overflowPtr);
+    const auto nullPtr2 = reinterpret_cast<const uint8_t*>(list2->overflowPtr);
+    const auto dataPtr1 = nullPtr1 + NullBuffer::getNumBytesForNullValues(list1->size);
+    const auto dataPtr2 = nullPtr2 + NullBuffer::getNumBytesForNullValues(list2->size);
     auto compareFunc = getFactorizedTableCompareEntryFunc(childType);
     for (size_t index = 0; index < list1->size; index++) {
-        if (!compareFunc(dataPtr1 + index * childSize, dataPtr2 + index * childSize, childType)) {
+        const bool child1IsNull = NullBuffer::isNull(nullPtr1, index);
+        const bool child2IsNull = NullBuffer::isNull(nullPtr2, index);
+        if (child1IsNull != child2IsNull) {
+            return false;
+        }
+        if (!child1IsNull && !child2IsNull &&
+            !compareFunc(dataPtr1 + index * childSize, dataPtr2 + index * childSize, childType)) {
             return false;
         }
     }
@@ -171,7 +179,13 @@ template<>
         return false;
     }
     for (auto i = 0u; i < listEntry->size; i++) {
-        if (!compareFunc(dataVector, listToCompare.offset + i, entryValues)) {
+        const bool entryChildIsNull = NullBuffer::isNull(entryNullBytes, i);
+        const bool vectorChildIsNull = dataVector->isNull(listToCompare.offset + i);
+        if (entryChildIsNull != vectorChildIsNull) {
+            return false;
+        }
+        if (!entryChildIsNull && !vectorChildIsNull &&
+            !compareFunc(dataVector, listToCompare.offset + i, entryValues)) {
             return false;
         }
         entryValues += rowLayoutSize;
