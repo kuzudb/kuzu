@@ -15,7 +15,6 @@
 #include "graph/graph.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
-#include <format>
 
 using namespace std;
 using namespace kuzu::binder;
@@ -38,8 +37,8 @@ public:
             visitsMap.allocate(tableID, numNodes, mm);
             pinTable(tableID);
             for (auto i = 0u; i < numNodes; ++i) {
-                visits[i].store(false, std::memory_order_relaxed);
-                componentIDs[i].store(NOT_ASSIGNED, std::memory_order_relaxed);
+                visits[i] = false;
+                componentIDs[i] = NOT_ASSIGNED;
             }
         }
     }
@@ -50,28 +49,28 @@ public:
     }
 
     bool setVisit(common::offset_t offset, bool value) {
-        visits[offset].store(value, std::memory_order_relaxed);
+        visits[offset] = value;
         return true;
     }
 
-    bool getVisit(offset_t offset) { return visits[offset].load(std::memory_order_relaxed); }
+    bool getVisit(offset_t offset) { return visits[offset]; }
 
     bool setComponentID(common::offset_t offset, offset_t value) {
-        componentIDs[offset].store(value, std::memory_order_relaxed);
+        componentIDs[offset] = value;
         return true;
     }
 
     offset_t getComponentID(offset_t offset) {
-        return componentIDs[offset].load(std::memory_order_relaxed);
+        return componentIDs[offset];
     }
 
 private:
     // Pointers to current tableID's visits and componentIDs
-    std::atomic<bool>* visits = nullptr;
-    std::atomic<offset_t>* componentIDs = nullptr;
+    bool* visits = nullptr;
+    offset_t* componentIDs = nullptr;
     // State for visits and componentIDs
-    ObjectArraysMap<std::atomic<bool>> visitsMap;
-    ObjectArraysMap<std::atomic<offset_t>> componentIDsMap;
+    ObjectArraysMap<bool> visitsMap;
+    ObjectArraysMap<offset_t> componentIDsMap;
 };
 
 class SCCCompute {
