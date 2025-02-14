@@ -72,13 +72,14 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
                               ->getOrCreateNodeGroup(context->clientContext->getTransaction(),
                                   relLocalState->nodeGroupIdx, relInfo->direction)
                               ->cast<CSRNodeGroup>();
-        appendNodeGroup(context->clientContext->getTransaction(), nodeGroup, *relInfo,
-            *relLocalState, *sharedState, *partitionerSharedState);
+        appendNodeGroup(*context->clientContext->getMemoryManager(),
+            context->clientContext->getTransaction(), nodeGroup, *relInfo, *relLocalState,
+            *sharedState, *partitionerSharedState);
         updateProgress(context);
     }
 }
 
-static void appendNewChunkedGroup(transaction::Transaction* transaction,
+static void appendNewChunkedGroup(MemoryManager& mm, transaction::Transaction* transaction,
     const std::vector<column_id_t>& columnIDs, ChunkedCSRNodeGroup& chunkedGroup,
     RelTable& relTable, CSRNodeGroup& nodeGroup, RelDataDirection direction) {
     const bool isNewNodeGroup = nodeGroup.isEmpty();
@@ -92,15 +93,23 @@ static void appendNewChunkedGroup(transaction::Transaction* transaction,
     if (isNewNodeGroup) {
         auto flushedChunkedGroup =
             chunkedGroup.flushAsNewChunkedNodeGroup(transaction, *relTable.getDataFH());
-        nodeGroup.setPersistentChunkedGroup(std::move(flushedChunkedGroup));
+
+        // If there are deleted columns that haven't been vaccumed yet
+        // we need to add extra columns to the chunked group
+        // to ensure that the number of columns is consistent with the rest of the node group
+        auto persistentChunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(mm,
+            flushedChunkedGroup->cast<ChunkedCSRNodeGroup>(), nodeGroup.getDataTypes(), columnIDs);
+
+        nodeGroup.setPersistentChunkedGroup(std::move(persistentChunkedGroup));
     } else {
         nodeGroup.appendChunkedCSRGroup(transaction, columnIDs, chunkedGroup);
     }
 }
 
-void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRNodeGroup& nodeGroup,
-    const RelBatchInsertInfo& relInfo, const RelBatchInsertLocalState& localState,
-    BatchInsertSharedState& sharedState, const PartitionerSharedState& partitionerSharedState) {
+void RelBatchInsert::appendNodeGroup(MemoryManager& mm, transaction::Transaction* transaction,
+    CSRNodeGroup& nodeGroup, const RelBatchInsertInfo& relInfo,
+    const RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
+    const PartitionerSharedState& partitionerSharedState) {
     const auto nodeGroupIdx = localState.nodeGroupIdx;
     auto partitioningBuffer =
         partitionerSharedState.getPartitionBuffer(relInfo.partitioningIdx, localState.nodeGroupIdx);
@@ -144,9 +153,13 @@ void RelBatchInsert::appendNodeGroup(transaction::Transaction* transaction, CSRN
     localState.chunkedGroup->finalize();
 
     auto* relTable = sharedState.table->ptrCast<RelTable>();
-    appendNewChunkedGroup(transaction, relInfo.insertColumnIDs,
-        localState.chunkedGroup->cast<ChunkedCSRNodeGroup>(), *relTable, nodeGroup,
-        relInfo.direction);
+
+    ChunkedCSRNodeGroup sliceToWriteToDisk{localState.chunkedGroup->cast<ChunkedCSRNodeGroup>(),
+        relInfo.outputDataColumns};
+    appendNewChunkedGroup(mm, transaction, relInfo.insertColumnIDs, sliceToWriteToDisk, *relTable,
+        nodeGroup, relInfo.direction);
+    localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().mergeChunkedCSRGroup(sliceToWriteToDisk,
+        relInfo.outputDataColumns);
 
     localState.chunkedGroup->resetToEmpty();
 }

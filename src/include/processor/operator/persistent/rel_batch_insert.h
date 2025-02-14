@@ -107,7 +107,7 @@ public:
     void updateProgress(const ExecutionContext* context) const;
 
 private:
-    static void appendNodeGroup(transaction::Transaction* transaction,
+    static void appendNodeGroup(storage::MemoryManager& mm, transaction::Transaction* transaction,
         storage::CSRNodeGroup& nodeGroup, const RelBatchInsertInfo& relInfo,
         const RelBatchInsertLocalState& localState, BatchInsertSharedState& sharedState,
         const PartitionerSharedState& partitionerSharedState);
