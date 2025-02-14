@@ -1,6 +1,7 @@
 add_library(
         kuzu_binder_visitor
         OBJECT
+        confidential_statement_visitor.cpp
         default_type_solver.cpp
         property_collector.cpp)
 

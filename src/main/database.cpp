@@ -132,8 +132,9 @@ void Database::registerStorageExtension(std::string name,
     extensionManager->registerStorageExtension(std::move(name), std::move(storageExtension));
 }
 
-void Database::addExtensionOption(std::string name, LogicalTypeID type, Value defaultValue) {
-    extensionManager->addExtensionOption(name, type, std::move(defaultValue));
+void Database::addExtensionOption(std::string name, LogicalTypeID type, Value defaultValue,
+    bool isConfidential) {
+    extensionManager->addExtensionOption(name, type, std::move(defaultValue), isConfidential);
 }
 
 std::vector<StorageExtension*> Database::getStorageExtensions() {

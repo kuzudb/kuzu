@@ -20,7 +20,7 @@ public:
     KUZU_API std::string toCypher();
 
     KUZU_API void addExtensionOption(std::string name, common::LogicalTypeID type,
-        common::Value defaultValue);
+        common::Value defaultValue, bool isConfidential);
 
     const main::ExtensionOption* getExtensionOption(std::string name) const;
 

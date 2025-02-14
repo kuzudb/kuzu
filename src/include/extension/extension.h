@@ -12,6 +12,9 @@
 #define ADD_EXTENSION_OPTION(OPTION)                                                               \
     db->addExtensionOption(OPTION::NAME, OPTION::TYPE, OPTION::getDefaultValue())
 
+#define ADD_CONFIDENTIAL_EXTENSION_OPTION(OPTION)                                                  \
+    db->addExtensionOption(OPTION::NAME, OPTION::TYPE, OPTION::getDefaultValue(), true)
+
 namespace kuzu {
 namespace function {
 struct TableFunction;
