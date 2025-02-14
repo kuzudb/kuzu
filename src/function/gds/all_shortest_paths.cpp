@@ -1,5 +1,6 @@
 #include <utility>
 
+#include "binder/expression/node_expression.h"
 #include "common/types/types.h"
 #include "function/gds/auxiliary_state/path_auxiliary_state.h"
 #include "function/gds/bfs_graph.h"
@@ -10,7 +11,6 @@
 #include "graph/graph.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
-#include "binder/expression/node_expression.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
