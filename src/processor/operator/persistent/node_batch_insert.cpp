@@ -169,8 +169,8 @@ void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transacti
     // we only need to write the main data in the chunked node group, the extra data is only used
     // during the lifetime of this operator to populate error messages
     ChunkedNodeGroup sliceToWriteToDisk(*nodeGroup, info->outputDataColumns);
-    auto [nodeOffset, numRowsWritten] =
-        nodeTable->appendToLastNodeGroup(transaction, info->insertColumnIDs, sliceToWriteToDisk);
+    auto [nodeOffset, numRowsWritten] = nodeTable->appendToLastNodeGroup(*mm, transaction,
+        info->insertColumnIDs, sliceToWriteToDisk);
     nodeGroup->merge(sliceToWriteToDisk, info->outputDataColumns);
 
     if (indexBuilder) {

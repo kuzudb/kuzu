@@ -457,10 +457,12 @@ void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColu
     hasChanges = true;
 }
 
-std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(Transaction* transaction,
-    const std::vector<column_id_t>& columnIDs, ChunkedNodeGroup& chunkedGroup) {
+std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(MemoryManager& mm,
+    Transaction* transaction, const std::vector<column_id_t>& columnIDs,
+    ChunkedNodeGroup& chunkedGroup) {
     hasChanges = true;
-    return nodeGroups->appendToLastNodeGroupAndFlushWhenFull(transaction, columnIDs, chunkedGroup);
+    return nodeGroups->appendToLastNodeGroupAndFlushWhenFull(mm, transaction, columnIDs,
+        chunkedGroup);
 }
 
 DataChunk NodeTable::constructDataChunkForPKColumn() const {

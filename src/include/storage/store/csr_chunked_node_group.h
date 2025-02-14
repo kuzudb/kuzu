@@ -101,6 +101,11 @@ public:
     ChunkedCSRNodeGroup(ChunkedCSRNodeGroup& base,
         const std::vector<common::column_id_t>& selectedColumns)
         : ChunkedNodeGroup{base, selectedColumns}, csrHeader{std::move(base.csrHeader)} {}
+    ChunkedCSRNodeGroup(MemoryManager& mm, ChunkedCSRNodeGroup& base,
+        std::span<const common::LogicalType> columnTypes,
+        std::span<const common::column_id_t> baseColumnIDs)
+        : ChunkedNodeGroup(mm, base, columnTypes, baseColumnIDs),
+          csrHeader(std::move(base.csrHeader)) {}
     ChunkedCSRNodeGroup(ChunkedCSRHeader csrHeader,
         std::vector<std::unique_ptr<ColumnChunk>> chunks, common::row_idx_t startRowIdx)
         : ChunkedNodeGroup{std::move(chunks), startRowIdx, NodeGroupDataFormat::CSR},
@@ -125,6 +130,14 @@ public:
         transaction::Transaction* transaction, FileHandle& dataFH) const override;
 
     void flush(FileHandle& dataFH) override;
+
+    // this does not override ChunkedNodeGroup::merge() since clang-tidy analyzer
+    // seems to struggle with detecting the std::move of the header unless this is inlined
+    void mergeChunkedCSRGroup(ChunkedCSRNodeGroup& base,
+        const std::vector<common::column_id_t>& columnsToMergeInto) {
+        ChunkedNodeGroup::merge(base, columnsToMergeInto);
+        csrHeader = std::move(base.csrHeader);
+    }
 
 private:
     ChunkedCSRHeader csrHeader;
