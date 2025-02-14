@@ -1,4 +1,3 @@
-#include <iostream>
 #include <thread>
 #include <tuple>
 #include <vector>
@@ -28,7 +27,7 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-offset_t NOT_ASSIGNED = std::numeric_limits<offset_t>::max();
+static constexpr offset_t NOT_ASSIGNED = std::numeric_limits<offset_t>::max();
 
 /// State for the SCC algorithm
 class SCCState {
@@ -50,14 +49,14 @@ public:
         visits = visitsMap.getData(tableID);
     }
 
-    bool updateVisit(common::offset_t offset, bool value) {
+    bool setVisit(common::offset_t offset, bool value) {
         visits[offset].store(value, std::memory_order_relaxed);
         return true;
     }
 
     bool getVisit(offset_t offset) { return visits[offset].load(std::memory_order_relaxed); }
 
-    bool updateComponentID(common::offset_t offset, offset_t value) {
+    bool setComponentID(common::offset_t offset, offset_t value) {
         componentIDs[offset].store(value, std::memory_order_relaxed);
         return true;
     }
@@ -79,32 +78,30 @@ class SCCCompute {
 public:
     SCCCompute(graph::Graph* graph, const table_id_map_t<offset_t>& numNodesMap, SCCState& sccState)
         : graph{graph}, sccState{sccState}, numNodesMap{numNodesMap} {};
-    ~SCCCompute() = default;
 
-    // Forward DFS
-    void visit_vertex(nodeID_t node, catalog::TableCatalogEntry* relEntry) {
+    void forwardDFS(nodeID_t node, catalog::TableCatalogEntry* relEntry) {
         if (sccState.getVisit(node.offset)) {
             // Already visited
             return;
         };
-        sccState.updateVisit(node.offset, true);
+        sccState.setVisit(node.offset, true);
         auto scanState = graph->prepareRelScan(relEntry, "");
         for (auto chunk : graph->scanFwd(node, *scanState)) {
-            chunk.forEach([&](auto nbrNodeID, auto) { visit_vertex(nbrNodeID, relEntry); });
+            chunk.forEach([&](auto nbrNodeID, auto) { forwardDFS(nbrNodeID, relEntry); });
         }
         queue.push_back(node);
     }
 
     // Backwards DFS
-    void assign_id(nodeID_t node, offset_t root, catalog::TableCatalogEntry* relEntry) {
+    void backwardsDFS(nodeID_t node, offset_t root, catalog::TableCatalogEntry* relEntry) {
         if (sccState.getComponentID(node.offset) != NOT_ASSIGNED) {
             // Already assigned
             return;
         };
-        sccState.updateComponentID(node.offset, root);
+        sccState.setComponentID(node.offset, root);
         auto scanState = graph->prepareRelScan(relEntry, "");
         for (auto chunk : graph->scanBwd(node, *scanState)) {
-            chunk.forEach([&](auto nbrNodeID, auto) { assign_id(nbrNodeID, root, relEntry); });
+            chunk.forEach([&](auto nbrNodeID, auto) { backwardsDFS(nbrNodeID, root, relEntry); });
         }
     }
 
@@ -114,11 +111,11 @@ public:
             for (auto& [fromEntry, toEntry, relEntry] : graph->getRelFromToEntryInfos()) {
                 for (auto i = 0u; i < numNodes; ++i) {
                     auto nodeID = nodeID_t{i, tableID};
-                    visit_vertex(nodeID, relEntry);
+                    forwardDFS(nodeID, relEntry);
                 }
                 for (auto it = queue.rbegin(); it != queue.rend(); ++it) {
                     auto node = *it;
-                    assign_id(node, node.offset, relEntry);
+                    backwardsDFS(node, node.offset, relEntry);
                 }
             }
         }
