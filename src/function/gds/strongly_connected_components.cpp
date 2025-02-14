@@ -89,9 +89,7 @@ public:
             std::vector<offset_t> nbrs;
             auto nodeID = nodeID_t{node, tableID};
             for (auto chunk : graph->scanFwd(nodeID, scanState)) {
-                chunk.forEach([&](auto nbrNodeID, auto) {
-                    nbrs.push_back(nbrNodeID.offset);
-                 });
+                chunk.forEach([&](auto nbrNodeID, auto) { nbrs.push_back(nbrNodeID.offset); });
             }
             neighbors[node] = nbrs;
         }
@@ -112,9 +110,7 @@ public:
             std::vector<offset_t> nbrs;
             auto nodeID = nodeID_t{node, tableID};
             for (auto chunk : graph->scanBwd(nodeID, scanState)) {
-                chunk.forEach([&](auto nbrNodeID, auto) {
-                    nbrs.push_back(nbrNodeID.offset);
-                 });
+                chunk.forEach([&](auto nbrNodeID, auto) { nbrs.push_back(nbrNodeID.offset); });
             }
             neighbors[node] = nbrs;
         }
