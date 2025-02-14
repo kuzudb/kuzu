@@ -60,9 +60,7 @@ public:
         return true;
     }
 
-    offset_t getComponentID(offset_t offset) {
-        return componentIDs[offset];
-    }
+    offset_t getComponentID(offset_t offset) { return componentIDs[offset]; }
 
 private:
     // Pointers to current tableID's visits and componentIDs
