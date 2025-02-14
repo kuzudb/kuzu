@@ -71,7 +71,7 @@ public:
     std::vector<std::string> glob(main::ClientContext* context,
         const std::string& path) const override;
 
-    bool canHandleFile(const std::string& path) const override;
+    bool canHandleFile(const std::string_view path) const override;
 
     bool fileOrPathExists(const std::string& path, main::ClientContext* context = nullptr) override;
 
