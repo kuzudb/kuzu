@@ -1,0 +1,51 @@
+-DATASET CSV EMPTY
+
+--
+
+-CASE AllWeightedShortestPath
+
+-STATEMENT CREATE NODE TABLE Location(name STRING PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE ROAD (FROM Location TO Location, cost INT64);
+---- ok
+-STATEMENT CREATE (a:Location {name: 'A'}),
+                  (b:Location {name: 'B'}),
+                  (c:Location {name: 'C'}),
+                  (d:Location {name: 'D'}),
+                  (e:Location {name: 'E'}),
+                  (f:Location {name: 'F'}),
+                  (a)-[:ROAD {cost: 50}]->(b),
+                  (a)-[:ROAD {cost: 50}]->(c),
+                  (a)-[:ROAD {cost: 100}]->(d),
+                  (b)-[:ROAD {cost: 40}]->(d),
+                  (c)-[:ROAD {cost: 40}]->(d),
+                  (c)-[:ROAD {cost: 80}]->(e),
+                  (d)-[:ROAD {cost: 30}]->(e),
+                  (d)-[:ROAD {cost: 80}]->(f),
+                  (e)-[:ROAD {cost: 40}]->(f);
+---- ok
+-STATEMENT MATCH p=(a)-[e* ALL WSHORTEST(cost)]->(b) WHERE a.name='A' RETURN a.name, b.name, e_weight, properties(nodes(p), 'name'), properties(rels(p), 'cost')
+---- 8
+A|B|50.000000|[A,B]|[50]
+A|C|50.000000|[A,C]|[50]
+A|D|90.000000|[A,B,D]|[50,40]
+A|D|90.000000|[A,C,D]|[50,40]
+A|E|120.000000|[A,B,D,E]|[50,40,30]
+A|E|120.000000|[A,C,D,E]|[50,40,30]
+A|F|160.000000|[A,B,D,E,F]|[50,40,30,40]
+A|F|160.000000|[A,C,D,E,F]|[50,40,30,40]
+-STATEMENT MATCH p=(a)-[e* ALL WSHORTEST(cost)]-(b) WHERE a.name='B' RETURN a.name, b.name, e_weight, properties(nodes(p), 'name'), properties(rels(p), 'cost')
+---- 5
+B|A|50.000000|[B,A]|[50]
+B|C|80.000000|[B,D,C]|[40,40]
+B|D|40.000000|[B,D]|[40]
+B|E|70.000000|[B,D,E]|[40,30]
+B|F|110.000000|[B,D,E,F]|[40,30,40]
+-STATEMENT MATCH p=(a)-[e* ALL WSHORTEST(cost)]-(b) WHERE a.name='D' RETURN a.name, b.name, e_weight, properties(nodes(p), 'name'), properties(rels(p), 'cost')
+---- 6
+D|A|90.000000|[D,B,A]|[40,50]
+D|A|90.000000|[D,C,A]|[40,50]
+D|B|40.000000|[D,B]|[40]
+D|C|40.000000|[D,C]|[40]
+D|E|30.000000|[D,E]|[30]
+D|F|70.000000|[D,E,F]|[30,40]

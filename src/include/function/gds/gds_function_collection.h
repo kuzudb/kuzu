@@ -66,6 +66,13 @@ struct WeightedSPPathsFunction {
     static GDSFunction getFunction();
 };
 
+struct AllWeightedSPPathsFunction {
+    static constexpr const char* name = "ALL_WEIGHTED_SP_PATHS";
+
+    static function_set getFunctionSet();
+    static GDSFunction getFunction();
+};
+
 struct PageRankFunction {
     static constexpr const char* name = "PAGE_RANK";
 
