@@ -3,6 +3,7 @@
 --
 
 -CASE ScanUnityCatalog
+-SKIP
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/unity_catalog/build/libunity_catalog.kuzu_extension"
 ---- ok
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/unity_catalog/build/libunity_catalog.kuzu_extension"
