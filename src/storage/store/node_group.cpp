@@ -445,6 +445,7 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryMana
         std::make_unique<ChunkedNodeGroup>(*chunkedGroups.getGroup(lock, 0), state.columnIDs);
     KU_ASSERT(checkpointedChunkedGroup->getResidencyState() == ResidencyState::ON_DISK);
     checkpointedChunkedGroup->resetNumRowsFromChunks();
+    checkpointedChunkedGroup->resetVersionAndUpdateInfo();
     return checkpointedChunkedGroup;
 }
 
