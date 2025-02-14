@@ -63,5 +63,31 @@ bool BFSGraph::tryAddSingleParentWithWeight(nodeID_t boundNodeID, relID_t edgeID
     return false;
 }
 
+bool BFSGraph::tryAddParentWithWeight(nodeID_t boundNodeID, relID_t edgeID, nodeID_t nbrNodeID,
+    bool fwdEdge, double weight, ObjectBlock<ParentList>* block) {
+    ParentList* expected = getParentListHead(nbrNodeID.offset);
+    auto parent = block->reserveNext();
+    parent->setNbrInfo(boundNodeID, edgeID, fwdEdge);
+    parent->setCost(getParentListHead(boundNodeID.offset)->getCost() + weight);
+    while (true) {
+        if (parent->getCost() < getCost(expected)) {
+            // New parent has smaller cost, erase all existing parents and add new parent.
+            if (currParentPtrs[nbrNodeID.offset].compare_exchange_strong(expected, parent)) {
+                parent->setNextPtr(nullptr);
+                return true;
+            }
+        } else if (parent->getCost() == getCost(expected)) {
+            // New parent has the same cost, append new parent as after existing parents.
+            if (currParentPtrs[nbrNodeID.offset].compare_exchange_strong(expected, parent)) {
+                parent->setNextPtr(expected);
+                return true;
+            }
+        } else {
+            block->revertLast();
+            return false;
+        }
+    }
+}
+
 } // namespace function
 } // namespace kuzu
