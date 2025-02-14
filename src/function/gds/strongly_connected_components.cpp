@@ -79,29 +79,47 @@ public:
     SCCCompute(graph::Graph* graph, const table_id_map_t<offset_t>& numNodesMap, SCCState& sccState)
         : graph{graph}, sccState{sccState}, numNodesMap{numNodesMap} {};
 
-    void forwardDFS(nodeID_t node, catalog::TableCatalogEntry* relEntry) {
-        if (sccState.getVisit(node.offset)) {
+    void forwardDFS(offset_t node, table_id_t tableID, NbrScanState& scanState) {
+        if (sccState.getVisit(node)) {
             // Already visited
             return;
         };
-        sccState.setVisit(node.offset, true);
-        auto scanState = graph->prepareRelScan(relEntry, "");
-        for (auto chunk : graph->scanFwd(node, *scanState)) {
-            chunk.forEach([&](auto nbrNodeID, auto) { forwardDFS(nbrNodeID, relEntry); });
+        sccState.setVisit(node, true);
+        if (!neighbors.contains(node)) {
+            std::vector<offset_t> nbrs;
+            auto nodeID = nodeID_t{node, tableID};
+            for (auto chunk : graph->scanFwd(nodeID, scanState)) {
+                chunk.forEach([&](auto nbrNodeID, auto) {
+                    nbrs.push_back(nbrNodeID.offset);
+                 });
+            }
+            neighbors[node] = nbrs;
+        }
+        for (auto nbrNodeID : neighbors[node]) {
+            forwardDFS(nbrNodeID, tableID, scanState);
         }
         queue.push_back(node);
     }
 
     // Backwards DFS
-    void backwardsDFS(nodeID_t node, offset_t root, catalog::TableCatalogEntry* relEntry) {
-        if (sccState.getComponentID(node.offset) != NOT_ASSIGNED) {
+    void backwardsDFS(offset_t node, offset_t root, table_id_t tableID, NbrScanState& scanState) {
+        if (sccState.getComponentID(node) != NOT_ASSIGNED) {
             // Already assigned
             return;
         };
-        sccState.setComponentID(node.offset, root);
-        auto scanState = graph->prepareRelScan(relEntry, "");
-        for (auto chunk : graph->scanBwd(node, *scanState)) {
-            chunk.forEach([&](auto nbrNodeID, auto) { backwardsDFS(nbrNodeID, root, relEntry); });
+        sccState.setComponentID(node, root);
+        if (!neighbors.contains(node)) {
+            std::vector<offset_t> nbrs;
+            auto nodeID = nodeID_t{node, tableID};
+            for (auto chunk : graph->scanBwd(nodeID, scanState)) {
+                chunk.forEach([&](auto nbrNodeID, auto) {
+                    nbrs.push_back(nbrNodeID.offset);
+                 });
+            }
+            neighbors[node] = nbrs;
+        }
+        for (auto nbrNodeID : neighbors[node]) {
+            backwardsDFS(nbrNodeID, root, tableID, scanState);
         }
     }
 
@@ -109,23 +127,25 @@ public:
         for (const auto& [tableID, numNodes] : numNodesMap) {
             sccState.pinTable(tableID);
             for (auto& [fromEntry, toEntry, relEntry] : graph->getRelFromToEntryInfos()) {
+                auto scanState = graph->prepareRelScan(relEntry, "");
                 for (auto i = 0u; i < numNodes; ++i) {
-                    auto nodeID = nodeID_t{i, tableID};
-                    forwardDFS(nodeID, relEntry);
+                    forwardDFS(i, tableID, *scanState);
                 }
+                neighbors.clear();
                 for (auto it = queue.rbegin(); it != queue.rend(); ++it) {
                     auto node = *it;
-                    backwardsDFS(node, node.offset, relEntry);
+                    backwardsDFS(node, node, tableID, *scanState);
                 }
             }
         }
     }
 
 private:
-    std::vector<nodeID_t> queue;
+    std::vector<offset_t> queue;
     graph::Graph* graph;
     SCCState& sccState;
     const table_id_map_t<offset_t>& numNodesMap;
+    std::unordered_map<offset_t, std::vector<offset_t>> neighbors;
 };
 
 class SCCOutputWriter : public GDSOutputWriter {
