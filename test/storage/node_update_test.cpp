@@ -28,6 +28,9 @@ TEST_F(NodeUpdateTest, UpdateSameRow) {
 }
 
 TEST_F(NodeUpdateTest, UpdateSameRowRedundtanly) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
     ASSERT_TRUE(
         conn->query("CREATE NODE TABLE test (id SERIAL PRIMARY KEY, name STRING, prop STRING);")
             ->isSuccess());
