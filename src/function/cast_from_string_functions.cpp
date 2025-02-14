@@ -4,7 +4,6 @@
 #include "common/string_format.h"
 #include "common/types/blob.h"
 #include "function/list/functions/list_unique_function.h"
-#include "utf8proc.h"
 #include "utf8proc_wrapper.h"
 
 using namespace kuzu::common;
