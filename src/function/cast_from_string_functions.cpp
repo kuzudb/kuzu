@@ -172,7 +172,16 @@ void CastStringHelper::cast(const char* input, uint64_t len, ku_uuid_t& result,
 
 // ---------------------- cast String to nested types ------------------------------ //
 static void skipWhitespace(const char*& input, const char* end) {
-    while (input < end && isspace(*input)) {
+    while (input < end) {
+        if (*input & 0x80) {
+            // We only skip ASCII white spaces there.
+            break;
+        } else {
+            KU_ASSERT(*input >= -1);
+            if (!isspace(*input)) {
+                break;
+            }
+        }
         input++;
     }
 }
