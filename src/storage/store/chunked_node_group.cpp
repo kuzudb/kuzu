@@ -76,7 +76,7 @@ ChunkedNodeGroup::ChunkedNodeGroup(MemoryManager& mm, ChunkedNodeGroup& base,
 
     for (column_id_t i = 0; i < columnTypes.size(); ++i) {
         if (chunks[i] == nullptr) {
-            chunks[i] = std::make_unique<ColumnChunk>(mm, columnTypes[i].copy(), capacity,
+            chunks[i] = std::make_unique<ColumnChunk>(mm, columnTypes[i].copy(), 0,
                 enableCompression, ResidencyState::IN_MEMORY);
         }
     }
