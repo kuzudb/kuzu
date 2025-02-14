@@ -7,7 +7,7 @@ namespace binder {
 
 class ConfidentialStatementAnalyzer final : public BoundStatementVisitor {
 public:
-    bool isConfidential() { return confidentialStatement; }
+    bool isConfidential() const { return confidentialStatement; }
 
 private:
     void visitStandaloneCall(const BoundStatement& boundStatement) override;
