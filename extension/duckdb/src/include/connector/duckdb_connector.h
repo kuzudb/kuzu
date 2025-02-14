@@ -8,8 +8,9 @@
 #pragma GCC diagnostic pop
 
 #include "binder/binder.h"
-#include "common/assert.h"
+#include "connector/duckdb_secret_manager.h"
 #include "function/duckdb_scan.h"
+#include "s3fs_config.h"
 
 namespace kuzu {
 namespace main {
@@ -39,6 +40,12 @@ public:
     }
 
     std::unique_ptr<duckdb::MaterializedQueryResult> executeQuery(std::string query) const;
+
+    void initRemoteFSSecrets(main::ClientContext* context) const {
+        for (auto& fsConfig : httpfs::S3FileSystemConfig::getAvailableConfigs()) {
+            executeQuery(DuckDBSecretManager::getRemoteFSSecret(context, fsConfig));
+        }
+    }
 
 protected:
     std::unique_ptr<duckdb::DuckDB> instance;

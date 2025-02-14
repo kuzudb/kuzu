@@ -66,7 +66,7 @@ public:
 
     static std::string getFileName(const std::filesystem::path& path);
 
-    virtual bool canHandleFile(const std::string& /*path*/) const { KU_UNREACHABLE; }
+    virtual bool canHandleFile(const std::string_view /*path*/) const { KU_UNREACHABLE; }
 
     virtual void syncFile(const FileInfo& fileInfo) const = 0;
 

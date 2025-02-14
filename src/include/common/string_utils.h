@@ -6,6 +6,7 @@
 
 #include "common/api.h"
 #include "function/cast/functions/numeric_limits.h"
+#include <span>
 
 namespace kuzu {
 namespace common {
@@ -85,6 +86,8 @@ public:
 
     // join multiple strings into one string. Components are concatenated by the given separator
     static std::string join(const std::vector<std::string>& input, const std::string& separator);
+    static std::string join(const std::span<const std::string_view> input,
+        const std::string& separator);
 
     // join multiple items of container with given size, transformed to string
     // using function, into one string using the given separator
