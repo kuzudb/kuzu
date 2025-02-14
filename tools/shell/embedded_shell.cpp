@@ -508,19 +508,23 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
         ss.clear();
         ss.str(unicodeInput);
         while (getline(ss, query, ';')) {
-            queryResults.push_back(conn->query(query));
-            auto parsedQueries = parser::Parser::parseQuery(query);
-            for (auto& parsedQuery : parsedQueries) {
+            auto queryResult = conn->query(query);
+            auto isSuccess = queryResult->isSuccess();
+            queryResults.push_back(std::move(queryResult));
+            if (isSuccess) {
                 auto clientContext = conn->getClientContext();
-                clientContext->getTransactionContext()->beginWriteTransaction();
-                auto binder = binder::Binder(clientContext);
-                auto boundQuery = binder.bind(*parsedQuery);
-                auto boundStatementVisitor = binder::ConfidentialStatementAnalyzer{};
-                boundStatementVisitor.visit(*boundQuery);
-                if (boundStatementVisitor.isConfidential()) {
-                    input = "";
+                auto parsedQueries = clientContext->parseQuery(query);
+                for (auto& parsedQuery : parsedQueries) {
+                    clientContext->getTransactionContext()->beginWriteTransaction();
+                    auto binder = binder::Binder(clientContext);
+                    auto boundQuery = binder.bind(*parsedQuery);
+                    auto boundStatementVisitor = binder::ConfidentialStatementAnalyzer{};
+                    boundStatementVisitor.visit(*boundQuery);
+                    if (boundStatementVisitor.isConfidential()) {
+                        input = "";
+                    }
+                    clientContext->getTransactionContext()->commit();
                 }
-                clientContext->getTransactionContext()->commit();
             }
         }
         // set up multiline query if current query doesn't end with a semicolon
