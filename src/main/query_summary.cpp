@@ -15,6 +15,14 @@ double QuerySummary::getExecutionTime() const {
     return executionTime;
 }
 
+void QuerySummary::incrementCompilingTime(double increment) {
+    preparedSummary.compilingTime += increment;
+}
+
+void QuerySummary::incrementExecutionTime(double increment) {
+    executionTime += increment;
+}
+
 void QuerySummary::setPreparedSummary(PreparedSummary preparedSummary_) {
     preparedSummary = preparedSummary_;
 }
