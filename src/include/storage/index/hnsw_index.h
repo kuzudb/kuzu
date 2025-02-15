@@ -103,7 +103,9 @@ struct InMemHNSWLayerInfo {
 
 class InMemHNSWLayer {
 public:
-    explicit InMemHNSWLayer(MemoryManager* mm, InMemHNSWLayerInfo info);
+    enum class LayerLevel { UPPER = 0, LOWER = 1 };
+
+    explicit InMemHNSWLayer(MemoryManager* mm, InMemHNSWLayerInfo info, LayerLevel level);
     void setEntryPoint(common::offset_t offset) { entryPoint.store(offset); }
     common::offset_t getEntryPoint() const { return entryPoint.load(); }
 

@@ -11,7 +11,7 @@ enum class DistFuncType : uint8_t { Cosine = 0, L2 = 1, L2_SQUARE = 2, DotProduc
 // Max degree of the upper graph.
 struct Mu {
     static constexpr const char* NAME = "mu";
-    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::INT64;
+    static constexpr auto TYPE = common::LogicalTypeID::INT64;
     static constexpr int64_t DEFAULT_VALUE = 30;
 
     static void validate(int64_t value);
@@ -20,7 +20,7 @@ struct Mu {
 // Max degree of the lower graph.
 struct Ml {
     static constexpr const char* NAME = "ml";
-    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::INT64;
+    static constexpr auto TYPE = common::LogicalTypeID::INT64;
     static constexpr int64_t DEFAULT_VALUE = 60;
 
     static void validate(int64_t value);
@@ -29,7 +29,7 @@ struct Ml {
 // Percentage of nodes in the upper layer.
 struct Pu {
     static constexpr const char* NAME = "pu";
-    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::DOUBLE;
+    static constexpr auto TYPE = common::LogicalTypeID::DOUBLE;
     static constexpr double DEFAULT_VALUE = 0.05;
 
     static void validate(double value);
@@ -37,15 +37,15 @@ struct Pu {
 
 struct DistFunc {
     static constexpr const char* NAME = "distfunc";
-    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::STRING;
-    static constexpr DistFuncType DEFAULT_VALUE = DistFuncType::Cosine;
+    static constexpr auto TYPE = common::LogicalTypeID::STRING;
+    static constexpr auto DEFAULT_VALUE = DistFuncType::Cosine;
 
     static void validate(const std::string& distFuncName);
 };
 
 struct Alpha {
     static constexpr const char* NAME = "alpha";
-    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::DOUBLE;
+    static constexpr auto TYPE = common::LogicalTypeID::DOUBLE;
     static constexpr double DEFAULT_VALUE = 1.1;
 
     static void validate(double value);
@@ -53,7 +53,7 @@ struct Alpha {
 
 struct Efc {
     static constexpr const char* NAME = "efc";
-    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::INT64;
+    static constexpr auto TYPE = common::LogicalTypeID::INT64;
     static constexpr int64_t DEFAULT_VALUE = 200;
 
     static void validate(int64_t value);
@@ -61,7 +61,7 @@ struct Efc {
 
 struct Efs {
     static constexpr const char* NAME = "efs";
-    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::INT64;
+    static constexpr auto TYPE = common::LogicalTypeID::INT64;
     static constexpr int64_t DEFAULT_VALUE = 200;
 
     static void validate(int64_t value);
