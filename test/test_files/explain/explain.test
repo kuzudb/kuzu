@@ -65,3 +65,5 @@
 -LOG ProfileQuery
 -STATEMENT Profile MATCH (p:npytable) RETURN p.id
 ---- ok
+-STATEMENT PROFILE MATCH (a:person)-[]->(b:person) RETURN COUNT(*)
+---- ok
