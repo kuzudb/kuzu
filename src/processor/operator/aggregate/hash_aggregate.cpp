@@ -1,7 +1,6 @@
 #include "processor/operator/aggregate/hash_aggregate.h"
 
-#include <chrono>
-#include <thread>
+#include <memory>
 
 #include "binder/expression/expression_util.h"
 #include "common/assert.h"
@@ -35,14 +34,19 @@ std::string HashAggregatePrintInfo::toString() const {
 HashAggregateSharedState::HashAggregateSharedState(main::ClientContext* context,
     HashAggregateInfo hashAggInfo,
     const std::vector<function::AggregateFunction>& aggregateFunctions,
-    std::span<AggregateInfo> aggregateInfos)
+    std::span<AggregateInfo> aggregateInfos, std::vector<LogicalType> keyTypes,
+    std::vector<LogicalType> payloadTypes)
     : BaseAggregateSharedState{aggregateFunctions}, aggInfo{std::move(hashAggInfo)},
       globalPartitions{static_cast<size_t>(context->getMaxNumThreadForExec())},
-      limitNumber{common::INVALID_LIMIT}, numThreads{0}, memoryManager{context->getMemoryManager()},
+      limitNumber{common::INVALID_LIMIT}, memoryManager{context->getMemoryManager()},
       // .size() - 1 since we want the bit width of the largest value that could be used to index
       // the partitions
       shiftForPartitioning{
           static_cast<uint8_t>(sizeof(hash_t) * 8 - std::bit_width(globalPartitions.size() - 1))} {
+    std::vector<LogicalType> distinctAggregateKeyTypes;
+    for (auto& aggInfo : aggregateInfos) {
+        distinctAggregateKeyTypes.push_back(aggInfo.distinctAggKeyType.copy());
+    }
 
     // When copying directly into factorizedTables the table's schema's internal mayContainNulls
     // won't be updated and it's probably less work to just always check nulls
@@ -54,6 +58,12 @@ HashAggregateSharedState::HashAggregateSharedState(main::ClientContext* context,
     auto& partition = globalPartitions[0];
     partition.queue = std::make_unique<HashTableQueue>(context->getMemoryManager(),
         this->aggInfo.tableSchema.copy());
+
+    // Always create a hash table for the first partition. Any other partitions which are non-empty
+    // when finalizing will create an empty copy of this table
+    partition.hashTable = std::make_unique<AggregateHashTable>(*context->getMemoryManager(),
+        std::move(keyTypes), std::move(payloadTypes), aggregateFunctions, distinctAggregateKeyTypes,
+        0, this->aggInfo.tableSchema.copy());
     for (size_t functionIdx = 0; functionIdx < aggregateFunctions.size(); functionIdx++) {
         auto& function = aggregateFunctions[functionIdx];
         if (function.isFunctionDistinct()) {
@@ -139,8 +149,7 @@ HashAggregateInfo::HashAggregateInfo(const HashAggregateInfo& other)
 
 void HashAggregateLocalState::init(HashAggregateSharedState* sharedState, ResultSet& resultSet,
     main::ClientContext* context, std::vector<function::AggregateFunction>& aggregateFunctions,
-    std::vector<common::LogicalType> types) {
-    sharedState->registerThread();
+    std::vector<common::LogicalType> distinctKeyTypes) {
     auto& info = sharedState->getAggregateInfo();
     std::vector<LogicalType> keyDataTypes;
     for (auto& pos : info.flatKeysPos) {
@@ -164,7 +173,7 @@ void HashAggregateLocalState::init(HashAggregateSharedState* sharedState, Result
 
     aggregateHashTable = std::make_unique<PartitioningAggregateHashTable>(sharedState,
         *context->getMemoryManager(), std::move(keyDataTypes), std::move(payloadDataTypes),
-        aggregateFunctions, std::move(types), info.tableSchema.copy());
+        aggregateFunctions, std::move(distinctKeyTypes), info.tableSchema.copy());
 }
 
 uint64_t HashAggregateLocalState::append(const std::vector<AggregateInput>& aggregateInputs,
@@ -193,15 +202,6 @@ void HashAggregate::executeInternal(ExecutionContext* context) {
         }
     }
     localState.aggregateHashTable->mergeAll();
-    sharedState->setThreadFinishedProducing();
-    while (!sharedState->allThreadsFinishedProducing()) {
-        std::this_thread::sleep_for(std::chrono::microseconds(500));
-    }
-    sharedState->finalizeAggregateHashTable(*localState.aggregateHashTable);
-}
-
-void HashAggregate::finalizeInternal(ExecutionContext*) {
-    sharedState->assertFinalized();
 }
 
 uint64_t HashAggregateSharedState::getNumTuples() const {
@@ -268,8 +268,7 @@ void HashAggregateSharedState::HashTableQueue::mergeInto(AggregateHashTable& has
     this->headBlock = nullptr;
 }
 
-void HashAggregateSharedState::finalizeAggregateHashTable(
-    const AggregateHashTable& localHashTable) {
+void HashAggregateSharedState::finalizeAggregateHashTable() {
     for (auto& partition : globalPartitions) {
         if (!partition.finalized && partition.mtx.try_lock()) {
             if (partition.finalized) {
@@ -281,8 +280,9 @@ void HashAggregateSharedState::finalizeAggregateHashTable(
                 continue;
             }
             if (!partition.hashTable) {
-                partition.hashTable =
-                    std::make_unique<AggregateHashTable>(localHashTable.createEmptyCopy());
+                // We always initialize the hash table in the first partition
+                partition.hashTable = std::make_unique<AggregateHashTable>(
+                    globalPartitions[0].hashTable->createEmptyCopy());
             }
             // TODO(bmwinger): ideally these can be merged into a single function.
             // The distinct tables need to be merged first so that they exist when the other table

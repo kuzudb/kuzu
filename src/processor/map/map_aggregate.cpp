@@ -1,10 +1,12 @@
 #include "binder/expression/aggregate_function_expression.h"
+#include "common/types/types.h"
 #include "planner/operator/logical_aggregate.h"
 #include "processor/operator/aggregate/hash_aggregate.h"
 #include "processor/operator/aggregate/hash_aggregate_scan.h"
 #include "processor/operator/aggregate/simple_aggregate.h"
 #include "processor/operator/aggregate/simple_aggregate_scan.h"
 #include "processor/plan_mapper.h"
+#include "processor/result/result_set_descriptor.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -143,12 +145,23 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(const expressi
     auto aggregateInputInfos = getAggregateInputInfos(allKeys, aggregates, *inSchema);
     auto flatKeys = getKeyExpressions(keys, *inSchema, true /* isFlat */);
     auto unFlatKeys = getKeyExpressions(keys, *inSchema, false /* isFlat */);
+    std::vector<LogicalType> keyTypes, payloadTypes;
+    for (auto& key : flatKeys) {
+        keyTypes.push_back(key->getDataType().copy());
+    }
+    for (auto& key : unFlatKeys) {
+        keyTypes.push_back(key->getDataType().copy());
+    }
+    for (auto& payload : payloads) {
+        payloadTypes.push_back(payload->getDataType().copy());
+    }
     auto tableSchema = getFactorizedTableSchema(flatKeys, unFlatKeys, payloads, aggFunctions);
     HashAggregateInfo aggregateInfo{getDataPos(flatKeys, *inSchema),
         getDataPos(unFlatKeys, *inSchema), getDataPos(payloads, *inSchema), std::move(tableSchema)};
 
-    auto sharedState = std::make_shared<HashAggregateSharedState>(clientContext,
-        std::move(aggregateInfo), aggFunctions, aggregateInputInfos);
+    auto sharedState =
+        std::make_shared<HashAggregateSharedState>(clientContext, std::move(aggregateInfo),
+            aggFunctions, aggregateInputInfos, std::move(keyTypes), std::move(payloadTypes));
     auto printInfo = std::make_unique<HashAggregatePrintInfo>(allKeys, aggregates);
     auto aggregate = make_unique<HashAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
         sharedState, std::move(aggFunctions), std::move(aggregateInputInfos),
@@ -159,8 +172,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(const expressi
     outputExpressions.insert(outputExpressions.end(), unFlatKeys.begin(), unFlatKeys.end());
     outputExpressions.insert(outputExpressions.end(), payloads.begin(), payloads.end());
     auto aggOutputPos = getDataPos(aggregates, *outSchema);
+    auto finalizer =
+        std::make_unique<HashAggregateFinalize>(std::make_unique<ResultSetDescriptor>(inSchema),
+            sharedState, std::move(aggregate), getOperatorID(), printInfo->copy());
     return std::make_unique<HashAggregateScan>(sharedState,
-        getDataPos(outputExpressions, *outSchema), std::move(aggOutputPos), std::move(aggregate),
+        getDataPos(outputExpressions, *outSchema), std::move(aggOutputPos), std::move(finalizer),
         getOperatorID(), printInfo->copy());
 }
 

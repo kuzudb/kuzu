@@ -17,6 +17,7 @@ using physical_op_id = uint32_t;
 enum class PhysicalOperatorType : uint8_t {
     ALTER,
     AGGREGATE,
+    AGGREGATE_FINALIZE,
     AGGREGATE_SCAN,
     ATTACH_DATABASE,
     BATCH_INSERT,
