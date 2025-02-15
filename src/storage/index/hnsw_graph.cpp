@@ -13,6 +13,7 @@ InMemEmbeddings::InMemEmbeddings(MemoryManager& mm, EmbeddingTypeInfo typeInfo,
     data = ColumnChunkFactory::createColumnChunkData(mm, columnType.copy(),
         false /*enableCompression*/, numNodes, ResidencyState::IN_MEMORY, true /*hasNullData*/,
         false /*initializeToZero*/);
+    data->cast<ListChunkData>().getDataColumnChunk()->resize(numNodes * typeInfo.dimension);
 }
 
 float* InMemEmbeddings::getEmbedding(common::offset_t offset) const {
