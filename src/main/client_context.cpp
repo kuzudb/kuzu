@@ -343,6 +343,14 @@ std::unique_ptr<QueryResult> ClientContext::queryNoLock(std::string_view query,
     for (const auto& statement : parsedStatements) {
         auto preparedStatement = prepareNoLock(statement, false /*shouldCommitNewTransaction*/);
         auto currentQueryResult = executeNoLock(preparedStatement.get(), queryID);
+        if (!currentQueryResult->isSuccess()) {
+            if (!lastResult) {
+                queryResult = std::move(currentQueryResult);
+            } else {
+                queryResult->nextQueryResult = std::move(currentQueryResult);
+            }
+            break;
+        }
         if (statement->isInternal()) {
             // The result of internal statements should be invisible to end users. Skip chaining the
             // result of internal statements to the final result to end users.

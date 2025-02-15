@@ -49,7 +49,11 @@ alice|0.457137
 -STATEMENT EXPORT DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_fts/stopwords_export_test'
 ---- ok
 -RELOADDB
+# TODO(Ziyi): Fix import database here. RELOADDB is not the correct way to test export/import. The query result is incorrect after import.
+#-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_fts/stopwords_export_test"
 -STATEMENT IMPORT DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_fts/stopwords_export_test'
+---- ok
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
 ---- ok
 -INSERT_STATEMENT_BLOCK VALIDATE_CITY_STOPWORDS_IDX
 

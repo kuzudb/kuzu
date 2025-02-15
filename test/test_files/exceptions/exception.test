@@ -69,3 +69,20 @@ Overflow exception: Value 100000000 * 1000000000000 is not within UINT64 range.
 -STATEMENT RETURN cast(1000000000000, "UINT64") * cast(100000000, "UINT64");
 ---- error
 Overflow exception: Value 100000000 * 1000000000000 is not within UINT64 range.
+
+-CASE MultiStatements
+-STATEMENT create node table test(id serial primary key); create node table test(id int64 primary key); match (a) return a;
+---- ok
+---- error
+Binder exception: test already exists in catalog.
+-STATEMENT CALL show_tables() RETURN *;
+---- 1
+0|test|NODE|local(kuzu)|
+
+-CASE MultiStatementsWithTransaction
+-STATEMENT BEGIN TRANSACTION; create node table test(id serial primary key); create node table test(id int64 primary key); match (a) return a; COMMIT;
+---- ok
+---- error
+Binder exception: test already exists in catalog.
+-STATEMENT CALL show_tables() RETURN *;
+---- 0

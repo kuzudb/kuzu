@@ -132,7 +132,8 @@ static std::string createHNSWIndexTables(main::ClientContext& context,
     query += stringFormat("CALL _CREATE_HNSW_INDEX('{}', '{}', '{}', {});", hnswBindData->indexName,
         hnswBindData->tableEntry->getName(),
         hnswBindData->tableEntry->getProperty(hnswBindData->propertyID).getName(), params);
-    query += stringFormat("RETURN 'Index {} has been created.';", hnswBindData->indexName);
+    query +=
+        stringFormat("RETURN 'Index {} has been created.';", hnswBindData->indexName);
     return query;
 }
 

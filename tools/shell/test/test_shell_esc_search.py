@@ -1,6 +1,6 @@
 import pexpect
 import pytest
-from conftest import ShellTest
+
 from test_helper import KEY_ACTION
 
 
@@ -67,7 +67,8 @@ def test_accept_move_end(test, esc) -> None:
     test.send_finished_statement('RETURN ;\r')
     assert (
         test.shell_process.expect_exact(
-            ['Error: Parser exception: Invalid input <RETURN >:', pexpect.EOF],
+            ['Error: Parser exception: Invalid input <RETURN ;>: expected rule oC_RegularQuery (line: 1, offset: 7)',
+             pexpect.EOF],
         )
         == 0
     )

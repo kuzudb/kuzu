@@ -476,7 +476,6 @@ std::string decodeEscapeSequences(const std::string& input) {
 }
 
 std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::string input) {
-    std::string query;
     std::stringstream ss;
     std::vector<std::unique_ptr<QueryResult>> queryResults;
     historyLine = "";
@@ -503,8 +502,15 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
     } else if (!unicodeInput.empty() && cypherComplete((char*)unicodeInput.c_str())) {
         ss.clear();
         ss.str(unicodeInput);
-        while (getline(ss, query, ';')) {
-            queryResults.push_back(conn->query(query));
+        auto result = conn->query(unicodeInput);
+        auto curr = result.get();
+        while (true) {
+            queryResults.push_back(std::move(result));
+            if (!curr->getNextQueryResult()) {
+                break;
+            }
+            result = std::move(curr->nextQueryResult);
+            curr = result.get();
         }
         // set up multiline query if current query doesn't end with a semicolon
     } else if (!input.empty() && input[0] != ':') {
