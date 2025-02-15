@@ -26,7 +26,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDistinct(const LogicalOperator*
     }
     auto op = createDistinctHashAggregate(distinct->getKeys(), distinct->getPayloads(), inSchema,
         outSchema, std::move(prevOperator));
-    auto hashAggregate = op->getChild(0)->ptrCast<HashAggregate>();
+    auto hashAggregate = op->getChild(0)->getChild(0)->ptrCast<HashAggregate>();
     hashAggregate->getSharedState()->setLimitNumber(limitNum);
     auto printInfo = static_cast<const HashAggregatePrintInfo*>(hashAggregate->getPrintInfo());
     const_cast<HashAggregatePrintInfo*>(printInfo)->limitNum = limitNum;

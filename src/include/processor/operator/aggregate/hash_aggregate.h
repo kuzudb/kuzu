@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 #include "aggregate_hash_table.h"
 #include "common/copy_constructors.h"
@@ -14,6 +15,7 @@
 #include "main/client_context.h"
 #include "processor/operator/aggregate/aggregate_input.h"
 #include "processor/operator/aggregate/base_aggregate.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/result/factorized_table.h"
 #include "processor/result/factorized_table_schema.h"
 
@@ -40,7 +42,8 @@ class HashAggregateSharedState final : public BaseAggregateSharedState {
 public:
     explicit HashAggregateSharedState(main::ClientContext* context, HashAggregateInfo hashAggInfo,
         const std::vector<function::AggregateFunction>& aggregateFunctions,
-        std::span<AggregateInfo> aggregateInfos);
+        std::span<AggregateInfo> aggregateInfos, std::vector<common::LogicalType> keyTypes,
+        std::vector<common::LogicalType> payloadTypes);
 
     void appendTuple(std::span<uint8_t> tuple, common::hash_t hash) {
         auto& partition =
@@ -59,7 +62,7 @@ public:
         overflow.push(std::make_unique<common::InMemOverflowBuffer>(std::move(overflowBuffer)));
     }
 
-    void finalizeAggregateHashTable(const AggregateHashTable& localHashTable);
+    void finalizeAggregateHashTable();
 
     std::pair<uint64_t, uint64_t> getNextRangeToRead() override;
 
@@ -78,14 +81,9 @@ public:
         return globalPartitions[0].hashTable->getTableSchema();
     }
 
-    void setThreadFinishedProducing() { numThreadsFinishedProducing++; }
-    bool allThreadsFinishedProducing() const { return numThreadsFinishedProducing >= numThreads; }
-
-    void registerThread() { numThreads++; }
+    const HashAggregateInfo& getAggregateInfo() const { return aggInfo; }
 
     void assertFinalized() const;
-
-    const HashAggregateInfo& getAggregateInfo() const { return aggInfo; }
 
 protected:
     std::tuple<const FactorizedTable*, common::offset_t> getPartitionForOffset(
@@ -152,10 +150,9 @@ public:
     };
     std::vector<Partition> globalPartitions;
     uint64_t limitNumber;
-    std::atomic<size_t> numThreadsFinishedProducing;
-    std::atomic<size_t> numThreads;
     storage::MemoryManager* memoryManager;
     uint8_t shiftForPartitioning;
+    bool readyForFinalization = false;
 };
 
 struct HashAggregateLocalState {
@@ -207,7 +204,10 @@ public:
 
     void executeInternal(ExecutionContext* context) override;
 
-    void finalizeInternal(ExecutionContext* context) override;
+    // Delegated to HashAggregateFinalize so it can be parallelized
+    void finalizeInternal(ExecutionContext* /*context*/) override {
+        sharedState->readyForFinalization = true;
+    }
 
     std::unique_ptr<PhysicalOperator> copy() override {
         return make_unique<HashAggregate>(resultSetDescriptor->copy(), sharedState,
@@ -219,6 +219,37 @@ public:
 
 private:
     HashAggregateLocalState localState;
+    std::shared_ptr<HashAggregateSharedState> sharedState;
+};
+
+class HashAggregateFinalize final : public Sink {
+public:
+    HashAggregateFinalize(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
+        std::shared_ptr<HashAggregateSharedState> sharedState,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo)
+        : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::AGGREGATE_FINALIZE,
+              std::move(child), id, std::move(printInfo)},
+          sharedState{std::move(sharedState)} {}
+
+    // Otherwise the runtime metrics for this operator are negative
+    // since it doesn't call children[0]->getNextTuple
+    bool isSource() const override { return true; }
+
+    void executeInternal(ExecutionContext* /*context*/) override {
+        KU_ASSERT(sharedState->readyForFinalization);
+        sharedState->finalizeAggregateHashTable();
+    }
+    void finalizeInternal(ExecutionContext* /*context*/) override {
+        sharedState->assertFinalized();
+    }
+
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return make_unique<HashAggregateFinalize>(resultSetDescriptor->copy(), sharedState,
+            children[0]->copy(), id, printInfo->copy());
+    }
+
+private:
     std::shared_ptr<HashAggregateSharedState> sharedState;
 };
 
