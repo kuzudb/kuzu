@@ -16,7 +16,7 @@ public:
 
     void serialize(common::Serializer& /*serializer*/) const override { KU_UNREACHABLE; }
     std::string toCypher(main::ClientContext* /*clientContext*/,
-        std::string /* exportPath */) const override {
+        const common::FileScanInfo& /*exportFileInfo*/) const override {
         KU_UNREACHABLE;
     }
 };

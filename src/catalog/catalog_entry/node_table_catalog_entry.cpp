@@ -51,7 +51,7 @@ std::unique_ptr<NodeTableCatalogEntry> NodeTableCatalogEntry::deserialize(
 }
 
 std::string NodeTableCatalogEntry::toCypher(main::ClientContext* /*clientContext*/,
-    std::string /* exportPath */) const {
+    const common::FileScanInfo& /*exportFileInfo*/) const {
     return common::stringFormat("CREATE NODE TABLE `{}` ({} PRIMARY KEY({}));", getName(),
         propertyCollection.toCypher(), primaryKeyName);
 }

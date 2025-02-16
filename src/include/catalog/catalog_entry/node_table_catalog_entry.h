@@ -39,8 +39,8 @@ public:
     static std::unique_ptr<NodeTableCatalogEntry> deserialize(common::Deserializer& deserializer);
 
     std::unique_ptr<TableCatalogEntry> copy() const override;
-    std::string toCypher(main::ClientContext* /*clientContext*/,
-        std::string /* exportPath */) const override;
+    std::string toCypher(main::ClientContext* clientContext,
+        const common::FileScanInfo& exportFileInfo) const override;
 
 private:
     std::unique_ptr<binder::BoundExtraCreateCatalogEntryInfo> getBoundExtraCreateInfo(

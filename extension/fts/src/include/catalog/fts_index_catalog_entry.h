@@ -28,10 +28,13 @@ struct FTSIndexAuxInfo final : catalog::IndexAuxInfo {
         return std::make_unique<FTSIndexAuxInfo>(*this);
     }
 
-    std::string toCypher(const catalog::IndexCatalogEntry& indexEntry,
-        const main::ClientContext* context, std::string exportPat) const override;
+    std::string getStopWordsName(const common::FileScanInfo& exportFileInfo) const;
 
-    catalog::TableCatalogEntry* getTableEntriesToExport(
+    std::string toCypher(const catalog::IndexCatalogEntry& indexEntry,
+        const main::ClientContext* context,
+        const common::FileScanInfo& exportFileInfo) const override;
+
+    catalog::TableCatalogEntry* getTableEntryToExport(
         const main::ClientContext* context) const override;
 };
 

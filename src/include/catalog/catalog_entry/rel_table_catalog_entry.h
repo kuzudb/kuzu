@@ -51,7 +51,7 @@ public:
 
     std::string getMultiplicityStr() const;
     std::string toCypher(main::ClientContext* clientContext,
-        std::string /* exportPath */) const override;
+        const common::FileScanInfo& exportFileInfo) const override;
 
 private:
     std::unique_ptr<binder::BoundExtraCreateCatalogEntryInfo> getBoundExtraCreateInfo(

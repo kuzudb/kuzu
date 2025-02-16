@@ -4,6 +4,7 @@
 
 #include "catalog_entry_type.h"
 #include "common/assert.h"
+#include "common/copier_config/file_scan_info.h"
 #include "common/copy_constructors.h"
 #include "common/serializer/serializer.h"
 #include "common/types/types.h"
@@ -67,7 +68,7 @@ public:
     static std::unique_ptr<CatalogEntry> deserialize(common::Deserializer& deserializer);
 
     virtual std::string toCypher(main::ClientContext* /*clientContext*/,
-        std::string /*exportPath*/) const {
+        const common::FileScanInfo& /*exportFileInfo*/) const {
         KU_UNREACHABLE;
     }
 

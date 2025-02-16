@@ -40,7 +40,7 @@ static common::offset_t internalTableFunc(const TableFuncInput& input, TableFunc
 static std::string dropHNSWIndexTables(main::ClientContext& context,
     const TableFuncBindData& bindData) {
     const auto dropHNSWIndexBindData = bindData.constPtrCast<DropHNSWIndexBindData>();
-    context.setToUseInternalCatalogEntry();
+    context.setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     std::string query = "";
     auto requireNewTransaction = !context.getTransactionContext()->hasActiveTransaction();
     if (requireNewTransaction) {

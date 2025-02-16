@@ -27,13 +27,13 @@ static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog,
     auto transaction = context->getTransaction();
     std::vector<ExportedTableData> exportData;
     for (auto tableEntry : catalog.getTableEntries(transaction)) {
-        ExportedTableData tableData{ExportedTableType::USER_TABLE};
+        ExportedTableData tableData;
         if (binder->bindExportTableData(tableData, *tableEntry, catalog, transaction)) {
             exportData.push_back(std::move(tableData));
         }
     }
     for (auto indexEntry : catalog.getIndexEntries(transaction)) {
-        ExportedTableData tableData{ExportedTableType::INTERNAL_TABLE};
+        ExportedTableData tableData;
         auto tableToExport = indexEntry->getTableEntryToExport(context);
         if (tableToExport == nullptr) {
             continue;
@@ -100,9 +100,9 @@ bool Binder::bindExportTableData(ExportedTableData& tableData, const TableCatalo
     auto parsedStatement = Parser::parseQuery(exportQuery);
     KU_ASSERT(parsedStatement.size() == 1);
     auto parsedQuery = parsedStatement[0]->constPtrCast<RegularQuery>();
-    clientContext->setToUseInternalCatalogEntry();
+    clientContext->setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     auto query = bindQuery(*parsedQuery);
-    clientContext->setNotToUseInternalCatalogEntry();
+    clientContext->setUseInternalCatalogEntry(false /* useInternalCatalogEntry */);
     auto columns = query->getStatementResult()->getColumns();
     for (auto& column : columns) {
         auto columnName = column->hasAlias() ? column->getAlias() : column->toString();

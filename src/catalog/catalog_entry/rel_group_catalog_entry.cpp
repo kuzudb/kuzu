@@ -97,7 +97,7 @@ static std::string getFromToStr(table_id_t tableID, Catalog* catalog,
 }
 
 std::string RelGroupCatalogEntry::toCypher(ClientContext* context,
-    std::string /* exportPath */) const {
+    const common::FileScanInfo& /*exportFileInfo*/) const {
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
     std::stringstream ss;

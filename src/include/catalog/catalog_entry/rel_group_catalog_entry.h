@@ -28,7 +28,7 @@ public:
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<RelGroupCatalogEntry> deserialize(common::Deserializer& deserializer);
     std::string toCypher(main::ClientContext* clientContext,
-        std::string /* exportPath */) const override;
+        const common::FileScanInfo& exportFileInfo) const override;
 
     binder::BoundCreateTableInfo getBoundCreateTableInfo(transaction::Transaction* transaction,
         const Catalog* catalog, bool isInternal) const;

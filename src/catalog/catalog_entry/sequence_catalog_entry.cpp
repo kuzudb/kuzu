@@ -155,7 +155,7 @@ std::unique_ptr<SequenceCatalogEntry> SequenceCatalogEntry::deserialize(
 }
 
 std::string SequenceCatalogEntry::toCypher(main::ClientContext* /*clientContext*/,
-    std::string /* exportPath */) const {
+    const common::FileScanInfo& /*exportFileInfo*/) const {
     return stringFormat("DROP SEQUENCE IF EXISTS `{}`;\n"
                         "CREATE SEQUENCE IF NOT EXISTS `{}` START {} INCREMENT {} MINVALUE {} "
                         "MAXVALUE {} {} CYCLE;\n"

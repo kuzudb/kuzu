@@ -3,6 +3,7 @@
 #include "catalog/catalog.h"
 #include "common/serializer/buffered_reader.h"
 #include "common/serializer/buffered_serializer.h"
+#include "common/string_utils.h"
 #include "function/fts_utils.h"
 #include "main/client_context.h"
 
@@ -29,8 +30,28 @@ std::unique_ptr<FTSIndexAuxInfo> FTSIndexAuxInfo::deserialize(
     return std::make_unique<FTSIndexAuxInfo>(numDocs, avgDocLen, std::move(config));
 }
 
+std::string FTSIndexAuxInfo::getStopWordsName(const common::FileScanInfo& exportFileInfo) const {
+    std::string stopWordsName = "default";
+    switch (exportFileInfo.fileTypeInfo.fileType) {
+    case common::FileType::UNKNOWN: {
+        stopWordsName = config.stopWordsSource;
+    } break;
+    case common::FileType::CSV:
+    case common::FileType::PARQUET: {
+        if (config.stopWordsTableName != FTSUtils::getDefaultStopWordsTableName()) {
+            stopWordsName = common::stringFormat("{}/{}.{}", exportFileInfo.filePaths[0],
+                config.stopWordsTableName,
+                common::StringUtils::getLower(exportFileInfo.fileTypeInfo.fileTypeStr));
+        }
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
+    return stopWordsName;
+}
+
 std::string FTSIndexAuxInfo::toCypher(const catalog::IndexCatalogEntry& indexEntry,
-    const main::ClientContext* context, std::string exportPath) const {
+    const main::ClientContext* context, const common::FileScanInfo& exportFileInfo) const {
     std::string cypher;
     auto catalog = context->getCatalog();
     auto tableCatalogEntry =
@@ -43,18 +64,15 @@ std::string FTSIndexAuxInfo::toCypher(const catalog::IndexCatalogEntry& indexEnt
             common::stringFormat("'{}'{}", tableCatalogEntry->getProperty(propertyIDs[i]).getName(),
                 i == propertyIDs.size() - 1 ? "" : ", ");
     }
-    std::string stopWordsName = "default";
-    if (config.stopWordsTableName != FTSUtils::getDefaultStopWordsTableName()) {
-        stopWordsName = common::stringFormat("{}/{}.csv", exportPath, config.stopWordsTableName);
-    }
+
     cypher += common::stringFormat("CALL CREATE_FTS_INDEX('{}', '{}', [{}], stemmer := '{}', "
                                    "stopWords := '{}');",
         tableName, indexEntry.getIndexName(), std::move(propertyStr), config.stemmer,
-        stopWordsName);
+        getStopWordsName(exportFileInfo));
     return cypher;
 }
 
-catalog::TableCatalogEntry* FTSIndexAuxInfo::getTableEntriesToExport(
+catalog::TableCatalogEntry* FTSIndexAuxInfo::getTableEntryToExport(
     const main::ClientContext* context) const {
     if (config.stopWordsTableName == FTSUtils::getDefaultStopWordsTableName()) {
         return nullptr;

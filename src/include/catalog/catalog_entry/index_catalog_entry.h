@@ -31,10 +31,9 @@ struct KUZU_API IndexAuxInfo {
     }
 
     virtual std::string toCypher(const IndexCatalogEntry& indexEntry,
-        const main::ClientContext* context, std::string exportPath) const = 0;
+        const main::ClientContext* context, const common::FileScanInfo& exportFileInfo) const = 0;
 
-    virtual TableCatalogEntry* getTableEntriesToExport(
-        const main::ClientContext* /*context*/) const {
+    virtual TableCatalogEntry* getTableEntryToExport(const main::ClientContext* /*context*/) const {
         return nullptr;
     }
 };
@@ -69,8 +68,9 @@ public:
     // using the auxBuffer.
     static std::unique_ptr<IndexCatalogEntry> deserialize(common::Deserializer& deserializer);
 
-    std::string toCypher(main::ClientContext* context, std::string exportPath) const override {
-        return isLoaded() ? auxInfo->toCypher(*this, context, exportPath) : "";
+    std::string toCypher(main::ClientContext* context,
+        const common::FileScanInfo& exportFileInfo) const override {
+        return isLoaded() ? auxInfo->toCypher(*this, context, exportFileInfo) : "";
     }
     std::unique_ptr<IndexCatalogEntry> copy() const {
         return std::make_unique<IndexCatalogEntry>(type, tableID, indexName, propertyIDs,
@@ -87,7 +87,7 @@ public:
     bool isLoaded() const { return auxBuffer == nullptr; }
 
     TableCatalogEntry* getTableEntryToExport(main::ClientContext* context) {
-        return isLoaded() ? auxInfo->getTableEntriesToExport(context) : nullptr;
+        return isLoaded() ? auxInfo->getTableEntryToExport(context) : nullptr;
     }
 
 protected:
