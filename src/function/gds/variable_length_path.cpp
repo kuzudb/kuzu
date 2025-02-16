@@ -1,12 +1,12 @@
 #include <vector>
 
+#include "binder/expression/node_expression.h"
 #include "common/types/types.h"
 #include "function/gds/auxiliary_state/path_auxiliary_state.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
 #include "graph/graph.h"
 #include "processor/execution_context.h"
-#include "binder/expression/node_expression.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -83,7 +83,7 @@ public:
     VarLenJoinsAlgorithm(const VarLenJoinsAlgorithm& other) : RJAlgorithm(other) {}
 
     // return srcNodeID, dstNodeID, length, [direction, pathNodeIDs, pathEdgeIDs] (if track path)
-    binder::expression_vector getResultColumns(const function::GDSBindInput& ) const override {
+    binder::expression_vector getResultColumns(const function::GDSBindInput&) const override {
         auto rjBindData = bindData->ptrCast<RJBindData>();
         expression_vector columns;
         columns.push_back(bindData->getNodeInput()->constCast<NodeExpression>().getInternalID());

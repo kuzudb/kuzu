@@ -18,9 +18,7 @@ public:
         nextPosToWrite.store(0, std::memory_order_relaxed);
     }
 
-    T* reserveNext() {
-        return getData() + nextPosToWrite.fetch_add(1, std::memory_order_relaxed);
-    }
+    T* reserveNext() { return getData() + nextPosToWrite.fetch_add(1, std::memory_order_relaxed); }
     void revertLast() { nextPosToWrite.fetch_sub(1, std::memory_order_relaxed); }
 
     bool hasSpace() const {
