@@ -1,5 +1,6 @@
 #include <vector>
 
+#include "binder/expression/node_expression.h"
 #include "common/types/types.h"
 #include "function/gds/auxiliary_state/path_auxiliary_state.h"
 #include "function/gds/gds_function_collection.h"
@@ -44,25 +45,24 @@ public:
 struct VarLenJoinsEdgeCompute : public EdgeCompute {
     DoublePathLengthsFrontierPair* frontierPair;
     BFSGraph* bfsGraph;
-    ObjectBlock<ParentList>* parentPtrsBlock = nullptr;
+    ObjectBlock<ParentList>* block = nullptr;
 
     VarLenJoinsEdgeCompute(DoublePathLengthsFrontierPair* frontierPair, BFSGraph* bfsGraph)
         : frontierPair{frontierPair}, bfsGraph{bfsGraph} {
-        parentPtrsBlock = bfsGraph->addNewBlock();
+        block = bfsGraph->addNewBlock();
     };
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
-        bool isFwd) override {
+        bool fwdEdge) override {
         std::vector<nodeID_t> activeNodes;
-        chunk.forEach([&](auto nbrNode, auto edgeID) {
+        chunk.forEach([&](auto nbrNodeID, auto edgeID) {
             // We should always update the nbrID in variable length joins
-            if (!parentPtrsBlock->hasSpace()) {
-                parentPtrsBlock = bfsGraph->addNewBlock();
+            if (!block->hasSpace()) {
+                block = bfsGraph->addNewBlock();
             }
-            auto parent = parentPtrsBlock->reserveNext();
-            parent->store(frontierPair->getCurrentIter(), boundNodeID, edgeID, isFwd);
-            bfsGraph->addParent(parent, nbrNode.offset);
-            activeNodes.push_back(nbrNode);
+            bfsGraph->addParent(frontierPair->getCurrentIter(), boundNodeID, edgeID, nbrNodeID,
+                fwdEdge, block);
+            activeNodes.push_back(nbrNodeID);
         });
         return activeNodes;
     }
@@ -82,12 +82,17 @@ public:
     VarLenJoinsAlgorithm() = default;
     VarLenJoinsAlgorithm(const VarLenJoinsAlgorithm& other) : RJAlgorithm(other) {}
 
-    binder::expression_vector getResultColumns(
-        const function::GDSBindInput& /*bindInput*/) const override {
-        auto columns = getBaseResultColumns();
+    // return srcNodeID, dstNodeID, length, [direction, pathNodeIDs, pathEdgeIDs] (if track path)
+    binder::expression_vector getResultColumns(const function::GDSBindInput&) const override {
         auto rjBindData = bindData->ptrCast<RJBindData>();
+        expression_vector columns;
+        columns.push_back(bindData->getNodeInput()->constCast<NodeExpression>().getInternalID());
+        columns.push_back(bindData->getNodeOutput()->constCast<NodeExpression>().getInternalID());
         columns.push_back(rjBindData->lengthExpr);
         if (rjBindData->writePath) {
+            if (rjBindData->extendDirection == ExtendDirection::BOTH) {
+                columns.push_back(rjBindData->directionExpr);
+            }
             columns.push_back(rjBindData->pathNodeIDsExpr);
             columns.push_back(rjBindData->pathEdgeIDsExpr);
         }
