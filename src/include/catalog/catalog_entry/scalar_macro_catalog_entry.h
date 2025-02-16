@@ -25,8 +25,7 @@ public:
     //===--------------------------------------------------------------------===//
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<ScalarMacroCatalogEntry> deserialize(common::Deserializer& deserializer);
-    std::string toCypher(main::ClientContext* clientContext,
-        const common::FileScanInfo& exportFileInfo) const override;
+    std::string toCypher(const ToCypherInfo& info) const override;
 
 private:
     std::unique_ptr<function::ScalarMacroFunction> macroFunction;

@@ -31,8 +31,7 @@ struct FTSIndexAuxInfo final : catalog::IndexAuxInfo {
     std::string getStopWordsName(const common::FileScanInfo& exportFileInfo) const;
 
     std::string toCypher(const catalog::IndexCatalogEntry& indexEntry,
-        const main::ClientContext* context,
-        const common::FileScanInfo& exportFileInfo) const override;
+        const catalog::ToCypherInfo& info) const override;
 
     catalog::TableCatalogEntry* getTableEntryToExport(
         const main::ClientContext* context) const override;

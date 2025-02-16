@@ -51,11 +51,12 @@ std::string FTSIndexAuxInfo::getStopWordsName(const common::FileScanInfo& export
 }
 
 std::string FTSIndexAuxInfo::toCypher(const catalog::IndexCatalogEntry& indexEntry,
-    const main::ClientContext* context, const common::FileScanInfo& exportFileInfo) const {
+    const catalog::ToCypherInfo& info) const {
+    auto& indexToCypherInfo = info.constCast<catalog::IndexToCypherInfo>();
     std::string cypher;
-    auto catalog = context->getCatalog();
-    auto tableCatalogEntry =
-        catalog->getTableCatalogEntry(context->getTransaction(), indexEntry.getTableID());
+    auto catalog = indexToCypherInfo.context->getCatalog();
+    auto tableCatalogEntry = catalog->getTableCatalogEntry(
+        indexToCypherInfo.context->getTransaction(), indexEntry.getTableID());
     auto tableName = tableCatalogEntry->getName();
     std::string propertyStr;
     auto propertyIDs = indexEntry.getPropertyIDs();
@@ -68,7 +69,7 @@ std::string FTSIndexAuxInfo::toCypher(const catalog::IndexCatalogEntry& indexEnt
     cypher += common::stringFormat("CALL CREATE_FTS_INDEX('{}', '{}', [{}], stemmer := '{}', "
                                    "stopWords := '{}');",
         tableName, indexEntry.getIndexName(), std::move(propertyStr), config.stemmer,
-        getStopWordsName(exportFileInfo));
+        getStopWordsName(indexToCypherInfo.exportFileInfo));
     return cypher;
 }
 

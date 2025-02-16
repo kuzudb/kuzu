@@ -74,8 +74,7 @@ public:
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<SequenceCatalogEntry> deserialize(common::Deserializer& deserializer);
 
-    std::string toCypher(main::ClientContext* /*clientContext*/,
-        const common::FileScanInfo& exportFileInfo) const override;
+    std::string toCypher(const ToCypherInfo& info) const override;
 
     binder::BoundCreateSequenceInfo getBoundCreateSequenceInfo(bool isInternal) const;
 

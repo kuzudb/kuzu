@@ -16,6 +16,15 @@ class ClientContext;
 
 namespace catalog {
 
+struct ToCypherInfo {
+    virtual ~ToCypherInfo() = default;
+
+    template<class TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const TARGET&>(*this);
+    }
+};
+
 class KUZU_API CatalogEntry {
 public:
     //===--------------------------------------------------------------------===//
@@ -67,10 +76,7 @@ public:
     virtual void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<CatalogEntry> deserialize(common::Deserializer& deserializer);
 
-    virtual std::string toCypher(main::ClientContext* /*clientContext*/,
-        const common::FileScanInfo& /*exportFileInfo*/) const {
-        KU_UNREACHABLE;
-    }
+    virtual std::string toCypher(const ToCypherInfo& /*info*/) const { KU_UNREACHABLE; }
 
     template<class TARGET>
     TARGET& cast() {

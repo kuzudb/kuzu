@@ -37,8 +37,8 @@ struct HNSWIndexAuxInfo final : IndexAuxInfo {
         return std::make_unique<HNSWIndexAuxInfo>(*this);
     }
 
-    std::string toCypher(const IndexCatalogEntry& indexEntry, const main::ClientContext* context,
-        const common::FileScanInfo& exportFileInfo) const override;
+    std::string toCypher(const IndexCatalogEntry& indexEntry,
+        const ToCypherInfo& info) const override;
 };
 
 struct HNSWIndexCatalogEntry {

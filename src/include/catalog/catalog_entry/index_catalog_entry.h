@@ -14,6 +14,15 @@ class BufferedSerializer;
 namespace kuzu {
 namespace catalog {
 
+struct IndexToCypherInfo : public ToCypherInfo {
+    const main::ClientContext* context;
+    const common::FileScanInfo& exportFileInfo;
+
+    IndexToCypherInfo(const main::ClientContext* context,
+        const common::FileScanInfo& exportFileInfo)
+        : context{context}, exportFileInfo{exportFileInfo} {}
+};
+
 class IndexCatalogEntry;
 struct KUZU_API IndexAuxInfo {
     virtual ~IndexAuxInfo() = default;
@@ -31,7 +40,7 @@ struct KUZU_API IndexAuxInfo {
     }
 
     virtual std::string toCypher(const IndexCatalogEntry& indexEntry,
-        const main::ClientContext* context, const common::FileScanInfo& exportFileInfo) const = 0;
+        const ToCypherInfo& info) const = 0;
 
     virtual TableCatalogEntry* getTableEntryToExport(const main::ClientContext* /*context*/) const {
         return nullptr;
@@ -68,9 +77,8 @@ public:
     // using the auxBuffer.
     static std::unique_ptr<IndexCatalogEntry> deserialize(common::Deserializer& deserializer);
 
-    std::string toCypher(main::ClientContext* context,
-        const common::FileScanInfo& exportFileInfo) const override {
-        return isLoaded() ? auxInfo->toCypher(*this, context, exportFileInfo) : "";
+    std::string toCypher(const ToCypherInfo& info) const override {
+        return isLoaded() ? auxInfo->toCypher(*this, info) : "";
     }
     std::unique_ptr<IndexCatalogEntry> copy() const {
         return std::make_unique<IndexCatalogEntry>(type, tableID, indexName, propertyIDs,

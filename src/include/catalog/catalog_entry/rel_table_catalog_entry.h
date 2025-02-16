@@ -8,6 +8,12 @@
 namespace kuzu {
 namespace catalog {
 
+struct RelTableToCypherInfo : public ToCypherInfo {
+    const main::ClientContext* context;
+
+    explicit RelTableToCypherInfo(const main::ClientContext* context) : context{context} {}
+};
+
 class RelGroupCatalogEntry;
 class RelTableCatalogEntry final : public TableCatalogEntry {
     static constexpr auto entryType_ = CatalogEntryType::REL_TABLE_ENTRY;
@@ -50,8 +56,7 @@ public:
     std::unique_ptr<TableCatalogEntry> copy() const override;
 
     std::string getMultiplicityStr() const;
-    std::string toCypher(main::ClientContext* clientContext,
-        const common::FileScanInfo& exportFileInfo) const override;
+    std::string toCypher(const ToCypherInfo& info) const override;
 
 private:
     std::unique_ptr<binder::BoundExtraCreateCatalogEntryInfo> getBoundExtraCreateInfo(
