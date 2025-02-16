@@ -1,7 +1,8 @@
 import os
 
-import pytest
 import pexpect
+import pytest
+
 from conftest import ShellTest
 from test_helper import deleteIfExists
 
@@ -68,20 +69,19 @@ def test_multi_queries_one_line(temp_db) -> None:
     result.check_stdout("\u2502 kuzu is cool \u2502")
 
     # one success one failure
-    test = ShellTest().add_argument(temp_db).statement('RETURN "databases rule" AS a;      ;')
+    test = ShellTest().add_argument(temp_db).statement('RETURN "databases rule" AS a; RETURN s;')
     result = test.run()
     result.check_stdout("\u2502 databases rule \u2502")
-    result.check_stdout("Error: Parser exception: Cannot parse empty query. This should be handled in connection.")
+    result.check_stdout("Error: Binder exception: Variable s is not in scope.")
 
     # two failing queries
-    test = ShellTest().add_argument(temp_db).statement('RETURN "databases rule" S a;      ;')
+    test = ShellTest().add_argument(temp_db).statement('RETURN "databases rule" S a; RETURN s;')
     result = test.run()
     result.check_stdout(
         [
             "Error: Parser exception: Invalid input < S>: expected rule ku_Statements (line: 1, offset: 24)",
-            '"RETURN "databases rule" S a"',
+            '"RETURN "databases rule" S a; RETURN s;"',
             "                         ^",
-            "Error: Parser exception: Cannot parse empty query. This should be handled in connection.",
         ],
     )
 
@@ -160,7 +160,7 @@ def test_kuzurc(temp_db) -> None:
 
     # create a .kuzurc file with errors
     with open(".kuzurc", "w") as f:
-        f.write('RETURN "databases rule" S a;      ;\n')
+        f.write('RETURN "databases rule" S a; RETURN s;\n')
         f.write(":max_rows\n")
         f.write(":mode table\n")
         f.write("CREATE NODE TABLE b(i STRING, PRIMARY KEY(i));\n")
@@ -173,9 +173,8 @@ def test_kuzurc(temp_db) -> None:
     result.check_stdout(
         [
             "Error: Parser exception: Invalid input < S>: expected rule ku_Statements (line: 1, offset: 24)",
-            '"RETURN "databases rule" S a"',
+            '"RETURN "databases rule" S a; RETURN s;"',
             "                         ^",
-            "Error: Parser exception: Cannot parse empty query. This should be handled in connection.",
         ],
     )
     result.check_stdout("Cannot parse '' as number of rows. Expect integer.")
