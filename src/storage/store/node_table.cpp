@@ -280,7 +280,6 @@ void NodeTable::initScanState(Transaction* transaction, TableScanState& scanStat
         scanState.source = TableScanSource::UNCOMMITTED;
         scanState.nodeGroupIdx =
             StorageUtils::getNodeGroupIdx(transaction->getLocalRowIdx(tableID, startOffset));
-
     } else {
         scanState.source = TableScanSource::COMMITTED;
         scanState.nodeGroupIdx = StorageUtils::getNodeGroupIdx(startOffset);

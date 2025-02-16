@@ -86,7 +86,6 @@ Binder exception: CREATE_FTS_INDEX is only supported in auto transaction mode.
 Binder exception: DROP_FTS_INDEX is only supported in auto transaction mode.
 
 
-
 -CASE DuplicateIndexes
 
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
