@@ -24,6 +24,13 @@ alice|0.219056
 alice|0.457137
 ]
 
+-DEFINE_STATEMENT_BLOCK VALIDATE_SHOW_INDEXES [
+-STATEMENT CALL SHOW_INDEXES() RETURN *;
+---- 2
+doc|docIdx1|FTS|[content,author,name]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx1', ['content', 'author', 'name'], stemmer := 'porter', stopWords := 'name_stopwords');
+doc|docIdx|FTS|[content,author,name]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'], stemmer := 'porter', stopWords := 'city_stopwords');
+]
+
 -CASE CustomizedStopWordsTable
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
 ---- ok
@@ -46,9 +53,12 @@ alice|0.457137
 ---- ok
 -INSERT_STATEMENT_BLOCK VALIDATE_CITY_STOPWORDS_IDX
 
+-INSERT_STATEMENT_BLOCK VALIDATE_SHOW_INDEXES
+
 -STATEMENT EXPORT DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_fts/stopwords_export_test'
 ---- ok
 -RELOADDB
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_fts/stopwords_export_test"
 -STATEMENT IMPORT DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_fts/stopwords_export_test'
 ---- ok
 -INSERT_STATEMENT_BLOCK VALIDATE_CITY_STOPWORDS_IDX
@@ -115,7 +125,7 @@ Binder exception: Given stopwords: 's3://kuzu-test/fts/city_stopwords.csv' is no
 ---- ok
 -STATEMENT CREATE (d:doc {ID: 101, content: '有趣', author: '小红', name: '故事'})
 ---- ok
--STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'], stopWords := '${KUZU_ROOT_DIRECTORY}/dataset/fts-small/utf8_stopwords.txt', stemmer := 'porter')
+-STATEMENT CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'], stopWords := '${KUZU_ROOT_DIRECTORY}/dataset/fts-small/utf8_stopwords.csv', stemmer := 'porter')
 ---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', '小明 有趣') RETURN node.author, score
 ---- 1
