@@ -39,7 +39,7 @@ QueryHNSWIndexBindData::QueryHNSWIndexBindData(main::ClientContext* context,
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
-    context->setToUseInternalCatalogEntry();
+    context->setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     const auto indexName = input->getLiteralVal<std::string>(0);
     const auto tableName = input->getLiteralVal<std::string>(1);
     auto inputQueryExpression = input->params[2];

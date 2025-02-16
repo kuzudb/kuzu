@@ -315,7 +315,7 @@ static std::string getParamVal(const GDSBindInput& input, idx_t idx) {
 }
 
 void QueryFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& context) {
-    context.setToUseInternalCatalogEntry();
+    context.setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     // For queryFTS, the table and index name must be given at compile time while the user
     // can give the query at runtime.
     auto inputTableName = getParamVal(input, 0);

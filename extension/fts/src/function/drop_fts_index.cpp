@@ -28,7 +28,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
 }
 
 std::string dropFTSIndexQuery(ClientContext& context, const TableFuncBindData& bindData) {
-    context.setToUseInternalCatalogEntry();
+    context.setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     auto ftsBindData = bindData.constPtrCast<FTSBindData>();
     auto query = stringFormat("CALL _DROP_FTS_INDEX('{}', '{}');", ftsBindData->tableName,
         ftsBindData->indexName);

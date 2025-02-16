@@ -21,7 +21,8 @@ std::unique_ptr<ScalarMacroCatalogEntry> ScalarMacroCatalogEntry::deserialize(
     return scalarMacroCatalogEntry;
 }
 
-std::string ScalarMacroCatalogEntry::toCypher(main::ClientContext* /*clientContext*/) const {
+std::string ScalarMacroCatalogEntry::toCypher(main::ClientContext* /*clientContext*/,
+    const common::FileScanInfo& /*exportFileInfo*/) const {
     return macroFunction->toCypher(getName());
 }
 

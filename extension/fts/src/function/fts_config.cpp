@@ -74,19 +74,21 @@ CreateFTSConfig::CreateFTSConfig(main::ClientContext& context, common::table_id_
 void FTSConfig::serialize(common::Serializer& serializer) const {
     serializer.serializeValue(stemmer);
     serializer.serializeValue(stopWordsTableName);
+    serializer.serializeValue(stopWordsSource);
 }
 
 FTSConfig FTSConfig::deserialize(common::Deserializer& deserializer) {
     auto config = FTSConfig{};
     deserializer.deserializeValue(config.stemmer);
     deserializer.deserializeValue(config.stopWordsTableName);
+    deserializer.deserializeValue(config.stopWordsSource);
     return config;
 }
 
 // We store the length + the string itself. So the total size is sizeof(length) + string length.
 uint64_t FTSConfig::getNumBytesForSerialization() const {
     return sizeof(stemmer.size()) + stemmer.size() + sizeof(stopWordsTableName.size()) +
-           stopWordsTableName.size();
+           stopWordsTableName.size() + sizeof(stopWordsSource.size()) + stopWordsSource.size();
 }
 
 void K::validate(double value) {

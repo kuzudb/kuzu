@@ -304,16 +304,16 @@ Binder exception: Table: 0_docIdx4_appears_in already exists. Please drop or ren
 ---- ok
 -STATEMENT CALL SHOW_INDEXES() RETURN *
 ---- 2
-doc|docIdx1|FTS|[content]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx1', ['content'], stemmer := 'english');
-doc|docIdx|FTS|[content,author,name]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'], stemmer := 'english');
+doc|docIdx1|FTS|[content]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx1', ['content'], stemmer := 'english', stopWords := 'default');
+doc|docIdx|FTS|[content,author,name]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'], stemmer := 'english', stopWords := 'default');
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', distFunc := 'l2');
 ---- ok
 -STATEMENT CALL SHOW_INDEXES() RETURN *
 ---- 3
-doc|docIdx1|FTS|[content]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx1', ['content'], stemmer := 'english');
-doc|docIdx|FTS|[content,author,name]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'], stemmer := 'english');
+doc|docIdx1|FTS|[content]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx1', ['content'], stemmer := 'english', stopWords := 'default');
+doc|docIdx|FTS|[content,author,name]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'], stemmer := 'english', stopWords := 'default');
 embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', mu := 30, ml := 60, pu := 0.050000, distFunc := 'l2', alpha := 1.100000, efc := 200);
 -RELOADDB
 -STATEMENT CALL SHOW_INDEXES() RETURN *
@@ -325,15 +325,15 @@ embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_HNSW_INDEX('e_hnsw_index', '
 ---- ok
 -STATEMENT CALL SHOW_INDEXES() RETURN *
 ---- 3
-doc|docIdx1|FTS|[content]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx1', ['content'], stemmer := 'english');
-doc|docIdx|FTS|[content,author,name]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'], stemmer := 'english');
+doc|docIdx1|FTS|[content]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx1', ['content'], stemmer := 'english', stopWords := 'default');
+doc|docIdx|FTS|[content,author,name]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx', ['content', 'author', 'name'], stemmer := 'english', stopWords := 'default');
 embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', mu := 30, ml := 60, pu := 0.050000, distFunc := 'l2', alpha := 1.100000, efc := 200);
 -STATEMENT ALTER TABLE doc RENAME content to detail
 ---- ok
 -STATEMENT CALL SHOW_INDEXES() RETURN *
 ---- 3
-doc|docIdx1|FTS|[detail]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx1', ['detail'], stemmer := 'english');
-doc|docIdx|FTS|[detail,author,name]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx', ['detail', 'author', 'name'], stemmer := 'english');
+doc|docIdx1|FTS|[detail]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx1', ['detail'], stemmer := 'english', stopWords := 'default');
+doc|docIdx|FTS|[detail,author,name]|True|CALL CREATE_FTS_INDEX('doc', 'docIdx', ['detail', 'author', 'name'], stemmer := 'english', stopWords := 'default');
 embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', mu := 30, ml := 60, pu := 0.050000, distFunc := 'l2', alpha := 1.100000, efc := 200);
 -STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx', 'Alice') RETURN node.ID, score
 ---- 2
@@ -345,17 +345,17 @@ embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_HNSW_INDEX('e_hnsw_index', '
 ---- ok
 -STATEMENT CALL SHOW_INDEXES() WHERE `table name` = 'student' RETURN *
 ---- 1
-student|studentIdx|FTS|[name]|True|CALL CREATE_FTS_INDEX('student', 'studentIdx', ['name'], stemmer := 'english');
+student|studentIdx|FTS|[name]|True|CALL CREATE_FTS_INDEX('student', 'studentIdx', ['name'], stemmer := 'english', stopWords := 'default');
 -STATEMENT ALTER TABLE student drop age
 ---- ok
 -STATEMENT CALL SHOW_INDEXES() WHERE `table name` = 'student' RETURN *
 ---- 1
-student|studentIdx|FTS|[name]|True|CALL CREATE_FTS_INDEX('student', 'studentIdx', ['name'], stemmer := 'english');
+student|studentIdx|FTS|[name]|True|CALL CREATE_FTS_INDEX('student', 'studentIdx', ['name'], stemmer := 'english', stopWords := 'default');
 -STATEMENT ALTER TABLE student rename name to firstName
 ---- ok
 -STATEMENT CALL SHOW_INDEXES() WHERE `table name` = 'student' RETURN *
 ---- 1
-student|studentIdx|FTS|[firstName]|True|CALL CREATE_FTS_INDEX('student', 'studentIdx', ['firstName'], stemmer := 'english');
+student|studentIdx|FTS|[firstName]|True|CALL CREATE_FTS_INDEX('student', 'studentIdx', ['firstName'], stemmer := 'english', stopWords := 'default');
 
 -CASE FTSWithPortDBUnloadedExtension
 -SKIP_IN_MEM
