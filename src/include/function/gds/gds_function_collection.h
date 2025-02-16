@@ -11,6 +11,12 @@ struct WeaklyConnectedComponentsFunction {
     static function_set getFunctionSet();
 };
 
+struct StronglyConnectedComponentsFunction {
+    static constexpr const char* name = "STRONGLY_CONNECTED_COMPONENT";
+
+    static function_set getFunctionSet();
+};
+
 struct KCoreDecompositionFunction {
     static constexpr const char* name = "K_CORE_DECOMPOSITION";
 

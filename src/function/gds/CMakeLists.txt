@@ -14,6 +14,7 @@ add_library(kuzu_function_algorithm
         single_shortest_paths.cpp
         variable_length_path.cpp
         weakly_connected_components.cpp
+        strongly_connected_components.cpp
         weighted_shortest_paths.cpp
         )
 
