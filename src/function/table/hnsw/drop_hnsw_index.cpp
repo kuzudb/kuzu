@@ -46,7 +46,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
 static std::string dropHNSWIndexTables(main::ClientContext& context,
     const TableFuncBindData& bindData) {
     const auto dropHNSWIndexBindData = bindData.constPtrCast<DropHNSWIndexBindData>();
-    context.setToUseInternalCatalogEntry();
+    context.setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     std::string query = "";
     query += common::stringFormat("CALL _DROP_HNSW_INDEX('{}', '{}');",
         dropHNSWIndexBindData->indexName, dropHNSWIndexBindData->tableEntry->getName());

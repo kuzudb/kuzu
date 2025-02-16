@@ -112,7 +112,7 @@ static void finalizeFunc(const processor::ExecutionContext* context,
 
 static std::string createHNSWIndexTables(main::ClientContext& context,
     const TableFuncBindData& bindData) {
-    context.setToUseInternalCatalogEntry();
+    context.setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     const auto hnswBindData = bindData.constPtrCast<CreateHNSWIndexBindData>();
     std::string query = "";
     query += stringFormat("CREATE REL TABLE {} (FROM {} TO {});",

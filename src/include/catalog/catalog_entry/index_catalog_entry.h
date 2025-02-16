@@ -1,8 +1,10 @@
 #pragma once
 
 #include "catalog_entry.h"
+#include "common/copier_config/file_scan_info.h"
 #include "common/serializer/buffered_reader.h"
 #include "common/serializer/deserializer.h"
+#include "table_catalog_entry.h"
 
 namespace kuzu::common {
 struct BufferReader;
@@ -12,6 +14,15 @@ class BufferedSerializer;
 }
 namespace kuzu {
 namespace catalog {
+
+struct IndexToCypherInfo : public ToCypherInfo {
+    const main::ClientContext* context;
+    const common::FileScanInfo& exportFileInfo;
+
+    IndexToCypherInfo(const main::ClientContext* context,
+        const common::FileScanInfo& exportFileInfo)
+        : context{context}, exportFileInfo{exportFileInfo} {}
+};
 
 class IndexCatalogEntry;
 struct KUZU_API IndexAuxInfo {
@@ -30,7 +41,11 @@ struct KUZU_API IndexAuxInfo {
     }
 
     virtual std::string toCypher(const IndexCatalogEntry& indexEntry,
-        const main::ClientContext* context) const = 0;
+        const ToCypherInfo& info) const = 0;
+
+    virtual TableCatalogEntry* getTableEntryToExport(const main::ClientContext* /*context*/) const {
+        return nullptr;
+    }
 };
 
 class KUZU_API IndexCatalogEntry final : public CatalogEntry {
@@ -63,8 +78,8 @@ public:
     // using the auxBuffer.
     static std::unique_ptr<IndexCatalogEntry> deserialize(common::Deserializer& deserializer);
 
-    std::string toCypher(main::ClientContext* context) const override {
-        return isLoaded() ? auxInfo->toCypher(*this, context) : "";
+    std::string toCypher(const ToCypherInfo& info) const override {
+        return isLoaded() ? auxInfo->toCypher(*this, info) : "";
     }
     std::unique_ptr<IndexCatalogEntry> copy() const {
         return std::make_unique<IndexCatalogEntry>(type, tableID, indexName, propertyIDs,
@@ -79,6 +94,10 @@ public:
     const IndexAuxInfo& getAuxInfo() const { return *auxInfo; }
 
     bool isLoaded() const { return auxBuffer == nullptr; }
+
+    TableCatalogEntry* getTableEntryToExport(main::ClientContext* context) {
+        return isLoaded() ? auxInfo->getTableEntryToExport(context) : nullptr;
+    }
 
 protected:
     std::string type;

@@ -53,10 +53,14 @@ struct CreateFTSConfig {
 struct FTSConfig {
     std::string stemmer = "";
     std::string stopWordsTableName = "";
+    // The original stopwords that the user used when creating the index. This field is only
+    // used by show_index.
+    std::string stopWordsSource = "";
 
     FTSConfig() = default;
-    FTSConfig(std::string stemmer, std::string stopWordsTableName)
-        : stemmer{std::move(stemmer)}, stopWordsTableName{std::move(stopWordsTableName)} {}
+    FTSConfig(std::string stemmer, std::string stopWordsTableName, std::string stopWordsSource)
+        : stemmer{std::move(stemmer)}, stopWordsTableName{std::move(stopWordsTableName)},
+          stopWordsSource{std::move(stopWordsSource)} {}
 
     void serialize(common::Serializer& serializer) const;
 

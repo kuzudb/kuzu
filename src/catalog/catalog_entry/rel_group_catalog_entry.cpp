@@ -96,9 +96,10 @@ static std::string getFromToStr(table_id_t tableID, Catalog* catalog,
     return stringFormat("FROM {} TO {}", srcTableName, dstTableName);
 }
 
-std::string RelGroupCatalogEntry::toCypher(ClientContext* context) const {
-    auto catalog = context->getCatalog();
-    auto transaction = context->getTransaction();
+std::string RelGroupCatalogEntry::toCypher(const ToCypherInfo& info) const {
+    auto relGroupInfo = info.constCast<RelGroupToCypherInfo>();
+    auto catalog = relGroupInfo.context->getCatalog();
+    auto transaction = relGroupInfo.context->getTransaction();
     std::stringstream ss;
     ss << stringFormat("CREATE REL TABLE `{}` (", getName());
     KU_ASSERT(!relTableIDs.empty());

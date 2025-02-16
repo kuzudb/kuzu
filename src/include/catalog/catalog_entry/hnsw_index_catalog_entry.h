@@ -38,13 +38,14 @@ struct HNSWIndexAuxInfo final : IndexAuxInfo {
     }
 
     std::string toCypher(const IndexCatalogEntry& indexEntry,
-        const main::ClientContext* context) const override;
+        const ToCypherInfo& info) const override;
 };
 
 struct HNSWIndexCatalogEntry {
     static constexpr char TYPE_NAME[] = "HNSW";
 
-    static std::string toCypher(const IndexCatalogEntry& indexEntry, main::ClientContext* context);
+    static std::string toCypher(const IndexCatalogEntry& indexEntry, main::ClientContext* context,
+        const common::FileScanInfo& exportFileInfo);
 };
 
 } // namespace catalog

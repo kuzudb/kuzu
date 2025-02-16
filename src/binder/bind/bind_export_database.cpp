@@ -1,6 +1,7 @@
 #include "binder/bound_export_database.h"
 #include "binder/query/bound_regular_query.h"
 #include "catalog/catalog.h"
+#include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/binder.h"
@@ -22,13 +23,23 @@ namespace kuzu {
 namespace binder {
 
 static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog,
-    const Transaction* transaction, Binder* binder) {
+    main::ClientContext* context, Binder* binder) {
+    auto transaction = context->getTransaction();
     std::vector<ExportedTableData> exportData;
     for (auto tableEntry : catalog.getTableEntries(transaction)) {
         ExportedTableData tableData;
         if (binder->bindExportTableData(tableData, *tableEntry, catalog, transaction)) {
             exportData.push_back(std::move(tableData));
         }
+    }
+    for (auto indexEntry : catalog.getIndexEntries(transaction)) {
+        ExportedTableData tableData;
+        auto tableToExport = indexEntry->getTableEntryToExport(context);
+        if (tableToExport == nullptr) {
+            continue;
+        }
+        binder->bindExportTableData(tableData, *tableToExport, catalog, transaction);
+        exportData.push_back(std::move(tableData));
     }
     return exportData;
 }
@@ -89,7 +100,9 @@ bool Binder::bindExportTableData(ExportedTableData& tableData, const TableCatalo
     auto parsedStatement = Parser::parseQuery(exportQuery);
     KU_ASSERT(parsedStatement.size() == 1);
     auto parsedQuery = parsedStatement[0]->constPtrCast<RegularQuery>();
+    clientContext->setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     auto query = bindQuery(*parsedQuery);
+    clientContext->setUseInternalCatalogEntry(false /* useInternalCatalogEntry */);
     auto columns = query->getStatementResult()->getColumns();
     for (auto& column : columns) {
         auto columnName = column->hasAlias() ? column->getAlias() : column->toString();
@@ -104,8 +117,7 @@ std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement
     auto& exportDB = statement.constCast<ExportDB>();
     auto boundFilePath =
         clientContext->getVFSUnsafe()->expandPath(clientContext, exportDB.getFilePath());
-    auto exportData =
-        getExportInfo(*clientContext->getCatalog(), clientContext->getTransaction(), this);
+    auto exportData = getExportInfo(*clientContext->getCatalog(), clientContext, this);
     auto parsedOptions = bindParsingOptions(exportDB.getParsingOptionsRef());
     auto fileTypeInfo = getFileType(parsedOptions);
     switch (fileTypeInfo.fileType) {

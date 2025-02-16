@@ -1,8 +1,5 @@
 #include "function/create_fts_index.h"
 
-#include <fstream>
-
-#include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "catalog/fts_index_catalog_entry.h"
 #include "common/exception/binder.h"
@@ -123,8 +120,7 @@ static std::string createStopWordsTable(const ClientContext& context,
     case StopWordsSource::FILE: {
         query +=
             stringFormat("CREATE NODE TABLE `{}` (sw STRING, PRIMARY KEY(sw));", info.tableName);
-        query += stringFormat("COPY `{}` FROM '{}' (file_format='csv');", info.tableName,
-            info.stopWords);
+        query += stringFormat("COPY `{}` FROM '{}';", info.tableName, info.stopWords);
     } break;
     default:
         KU_UNREACHABLE;
@@ -138,7 +134,7 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
     auto indexName = ftsBindData->indexName;
     validateInternalTablesNotExist(ftsBindData->tableID, ftsBindData->indexName,
         *context.getCatalog(), context.getTransaction());
-    context.setToUseInternalCatalogEntry();
+    context.setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     // TODO(Ziyi): Copy statement can't be wrapped in manual transaction, so we can't wrap all
     // statements in a single transaction there.
     // Create the tokenize macro.
@@ -281,7 +277,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
             bindData.tableID, bindData.indexName, bindData.propertyIDs,
             std::make_unique<FTSIndexAuxInfo>(numDocs, avgDocLen,
                 FTSConfig{bindData.createFTSConfig.stemmer,
-                    bindData.createFTSConfig.stopWordsTableInfo.tableName})));
+                    bindData.createFTSConfig.stopWordsTableInfo.tableName,
+                    bindData.createFTSConfig.stopWordsTableInfo.stopWords})));
     return 0;
 }
 
