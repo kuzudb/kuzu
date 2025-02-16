@@ -86,6 +86,7 @@ static void validateInternalTablesNotExist(table_id_t tableID, const std::string
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     const TableFuncBindInput* input) {
+    storage::IndexUtils::validateAutoTransaction(*context, CreateFTSFunction::name);
     auto indexName = input->getLiteralVal<std::string>(1);
     auto nodeTableEntry = storage::IndexUtils::bindTable(*context,
         input->getLiteralVal<std::string>(0), indexName, storage::IndexOperation::CREATE);
@@ -138,12 +139,10 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
     validateInternalTablesNotExist(ftsBindData->tableID, ftsBindData->indexName,
         *context.getCatalog(), context.getTransaction());
     context.setToUseInternalCatalogEntry();
+    // TODO(Ziyi): Copy statement can't be wrapped in manual transaction, so we can't wrap all
+    // statements in a single transaction there.
     // Create the tokenize macro.
     std::string query = "";
-    auto requireNewTransaction = !context.getTransactionContext()->hasActiveTransaction();
-    if (requireNewTransaction) {
-        query += "BEGIN TRANSACTION;";
-    }
     if (!context.getCatalog()->containsMacro(context.getTransaction(), "tokenize")) {
         query += R"(CREATE MACRO tokenize(query) AS
                             string_split(lower(regexp_replace(
@@ -228,9 +227,6 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
     query += stringFormat("CALL _CREATE_FTS_INDEX('{}', '{}', {}, {});", tableName, indexName,
         properties, params);
     query += stringFormat("RETURN 'Index {} has been created.';", ftsBindData->indexName);
-    if (requireNewTransaction) {
-        query += "COMMIT;";
-    }
     return query;
 }
 

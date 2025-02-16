@@ -20,6 +20,9 @@ enum class IndexOperation { CREATE, QUERY, DROP };
 struct IndexUtils {
     static KUZU_API catalog::NodeTableCatalogEntry* bindTable(const main::ClientContext& context,
         const std::string& tableName, const std::string& indexName, IndexOperation indexOperation);
+
+    static KUZU_API void validateAutoTransaction(const main::ClientContext& context,
+        const std::string& funcName);
 };
 
 } // namespace storage
