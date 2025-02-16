@@ -340,6 +340,7 @@ std::unique_ptr<QueryResult> ClientContext::queryNoLock(std::string_view query,
     }
     std::unique_ptr<QueryResult> queryResult;
     QueryResult* lastResult = nullptr;
+    double internalCompilingTime = 0.0, internalExecutionTime = 0.0;
     for (const auto& statement : parsedStatements) {
         auto preparedStatement = prepareNoLock(statement, false /*shouldCommitNewTransaction*/);
         auto currentQueryResult = executeNoLock(preparedStatement.get(), queryID);
@@ -351,11 +352,16 @@ std::unique_ptr<QueryResult> ClientContext::queryNoLock(std::string_view query,
             }
             break;
         }
+        auto currentQuerySummary = currentQueryResult->getQuerySummary();
         if (statement->isInternal()) {
             // The result of internal statements should be invisible to end users. Skip chaining the
             // result of internal statements to the final result to end users.
+            internalCompilingTime = currentQuerySummary->getCompilingTime();
+            internalExecutionTime = currentQuerySummary->getExecutionTime();
             continue;
         }
+        currentQuerySummary->incrementCompilingTime(internalCompilingTime);
+        currentQuerySummary->incrementExecutionTime(internalExecutionTime);
         if (!lastResult) {
             // first result of the query
             queryResult = std::move(currentQueryResult);

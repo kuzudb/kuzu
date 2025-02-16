@@ -23,8 +23,8 @@ namespace function {
 CreateHNSWSharedState::CreateHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : TableFuncSharedState{bindData.maxOffset}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-                    ->getTable(bindData.tableEntry->getTableID())
-                    ->cast<storage::NodeTable>()},
+              ->getTable(bindData.tableEntry->getTableID())
+              ->cast<storage::NodeTable>()},
       numNodes{bindData.numNodes}, bindData{&bindData} {
     hnswIndex = std::make_unique<storage::InMemHNSWIndex>(bindData.context, nodeTable,
         bindData.tableEntry->getColumnID(bindData.propertyID), bindData.config.copy());
@@ -132,7 +132,8 @@ static std::string createHNSWIndexTables(main::ClientContext& context,
     query += stringFormat("CALL _CREATE_HNSW_INDEX('{}', '{}', '{}', {});", hnswBindData->indexName,
         hnswBindData->tableEntry->getName(),
         hnswBindData->tableEntry->getProperty(hnswBindData->propertyID).getName(), params);
-    query += stringFormat("RETURN 'Index {} has been created.';", hnswBindData->indexName);
+    query +=
+        stringFormat("RETURN 'Index {} has been created.' as result;", hnswBindData->indexName);
     return query;
 }
 

@@ -31,6 +31,9 @@ public:
      */
     KUZU_API double getExecutionTime() const;
 
+    void incrementCompilingTime(double increment);
+    void incrementExecutionTime(double increment);
+
     void setPreparedSummary(PreparedSummary preparedSummary_);
 
     /**

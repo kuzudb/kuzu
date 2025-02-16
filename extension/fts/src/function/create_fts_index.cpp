@@ -226,7 +226,7 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
         ftsBindData->createFTSConfig.stopWordsTableInfo.stopWords);
     query += stringFormat("CALL _CREATE_FTS_INDEX('{}', '{}', {}, {});", tableName, indexName,
         properties, params);
-    query += stringFormat("RETURN 'Index {} has been created.';", ftsBindData->indexName);
+    query += stringFormat("RETURN 'Index {} has been created.' as result;", ftsBindData->indexName);
     return query;
 }
 
