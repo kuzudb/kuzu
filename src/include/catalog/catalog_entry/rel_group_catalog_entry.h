@@ -5,6 +5,12 @@
 namespace kuzu {
 namespace catalog {
 
+struct RelGroupToCypherInfo : public ToCypherInfo {
+    const main::ClientContext* context;
+
+    explicit RelGroupToCypherInfo(const main::ClientContext* context) : context{context} {}
+};
+
 class Catalog;
 class RelGroupCatalogEntry final : public CatalogEntry {
     static constexpr CatalogEntryType type_ = CatalogEntryType::REL_GROUP_ENTRY;
@@ -27,7 +33,7 @@ public:
     //===--------------------------------------------------------------------===//
     void serialize(common::Serializer& serializer) const override;
     static std::unique_ptr<RelGroupCatalogEntry> deserialize(common::Deserializer& deserializer);
-    std::string toCypher(main::ClientContext* clientContext) const override;
+    std::string toCypher(const ToCypherInfo& info) const override;
 
     binder::BoundCreateTableInfo getBoundCreateTableInfo(transaction::Transaction* transaction,
         const Catalog* catalog, bool isInternal) const;

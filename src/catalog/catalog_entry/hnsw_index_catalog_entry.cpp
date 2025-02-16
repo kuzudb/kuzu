@@ -38,7 +38,9 @@ std::unique_ptr<HNSWIndexAuxInfo> HNSWIndexAuxInfo::deserialize(
 }
 
 std::string HNSWIndexAuxInfo::toCypher(const IndexCatalogEntry& indexEntry,
-    const main::ClientContext* context) const {
+    const ToCypherInfo& info) const {
+    auto& indexToCypherInfo = info.constCast<IndexToCypherInfo>();
+    auto context = indexToCypherInfo.context;
     std::string cypher;
     auto catalog = context->getCatalog();
     auto tableEntry =

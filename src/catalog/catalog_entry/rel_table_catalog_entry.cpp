@@ -123,7 +123,9 @@ std::string RelTableCatalogEntry::getMultiplicityStr() const {
            RelMultiplicityUtils::toString(dstMultiplicity);
 }
 
-std::string RelTableCatalogEntry::toCypher(main::ClientContext* clientContext) const {
+std::string RelTableCatalogEntry::toCypher(const ToCypherInfo& info) const {
+    auto& relTableToCypherInfo = info.constCast<RelTableToCypherInfo>();
+    auto clientContext = relTableToCypherInfo.context;
     std::stringstream ss;
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();
