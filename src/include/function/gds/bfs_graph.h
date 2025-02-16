@@ -12,35 +12,37 @@ namespace function {
 // TODO(Xiyang): optimize if edgeID is not needed.
 class ParentList {
 public:
-    void store(uint16_t iter_, common::nodeID_t nodeID_, common::relID_t edgeID_, bool isFwd_) {
-        iter = iter_;
+    void setNbrInfo(common::nodeID_t nodeID_, common::relID_t edgeID_, bool isFwd_) {
         nodeID = nodeID_;
         edgeID = edgeID_;
         isFwd = isFwd_;
     }
-
-    void setNextPtr(ParentList* ptr) { next.store(ptr, std::memory_order_relaxed); }
-
-    ParentList* getNextPtr() { return next.load(std::memory_order_relaxed); }
-
-    uint16_t getIter() const { return iter; }
     common::nodeID_t getNodeID() const { return nodeID; }
     common::relID_t getEdgeID() const { return edgeID; }
     bool isFwdEdge() const { return isFwd; }
 
+    void setNextPtr(ParentList* ptr) { next.store(ptr, std::memory_order_relaxed); }
+    ParentList* getNextPtr() { return next.load(std::memory_order_relaxed); }
+
+    void setIter(uint16_t iter_) { iter = iter_; }
+    uint16_t getIter() const { return iter; }
+
+    void setCost(double cost_) { cost = cost_; }
+    double getCost() const { return cost; }
+
 private:
-    // Iteration level
-    uint16_t iter = UINT16_MAX;
     common::nodeID_t nodeID;
     common::relID_t edgeID;
     bool isFwd = true;
+
+    uint16_t iter = UINT16_MAX;
+    double cost = std::numeric_limits<double>::max();
     // Next pointer
     std::atomic<ParentList*> next;
 };
 
 class BFSGraph {
     friend class BFSGraphInitVertexCompute;
-    static constexpr uint64_t BFS_GRAPH_BLOCK_SIZE = (std::uint64_t)1 << 19;
     // Data type that is allocated to max num nodes per node table.
     using parent_entry_t = std::atomic<ParentList*>;
 
@@ -54,13 +56,7 @@ public:
 
     // This function is thread safe and should be called by a worker thread Ti to grab a block
     // of memory that Ti owns and writes to.
-    ObjectBlock<ParentList>* addNewBlock() {
-        std::unique_lock lck{mtx};
-        auto memBlock = mm->allocateBuffer(false /* init to 0 */, BFS_GRAPH_BLOCK_SIZE);
-        blocks.push_back(
-            std::make_unique<ObjectBlock<ParentList>>(std::move(memBlock), BFS_GRAPH_BLOCK_SIZE));
-        return blocks[blocks.size() - 1].get();
-    }
+    ObjectBlock<ParentList>* addNewBlock();
 
     ParentList* getParentListHead(common::nodeID_t nodeID) {
         return parentArray.getData(nodeID.tableID)[nodeID.offset].load(std::memory_order_relaxed);
@@ -68,25 +64,20 @@ public:
     ParentList* getParentListHead(common::offset_t offset) {
         return currParentPtrs[offset].load(std::memory_order_relaxed);
     }
-
-    void addParent(ParentList* parentPtr, common::offset_t childNodeOffset) {
-        // Since by default the parentPtr of each node is nullptr, that's what we start with.
-        ParentList* expected = nullptr;
-        while (!currParentPtrs[childNodeOffset].compare_exchange_strong(expected, parentPtr))
-            ;
-        parentPtr->setNextPtr(expected);
+    void setParentList(common::nodeID_t nodeID, ParentList* parentList) {
+        parentArray.getData(nodeID.tableID)[nodeID.offset].store(parentList);
     }
 
-    void tryAddSingleParent(ParentList* parentPtr, common::offset_t childNodeOffset,
-        ObjectBlock<ParentList>* parentListBlock) {
-        ParentList* expected = nullptr;
-        if (currParentPtrs[childNodeOffset].compare_exchange_strong(expected, parentPtr)) {
-            parentPtr->setNextPtr(expected);
-        } else {
-            // Do NOT add parent and revert reserved slot.
-            parentListBlock->revertLast();
-        }
-    }
+    // Used to track path for all shortest path & variable length path.
+    void addParent(uint16_t iter, common::nodeID_t boundNodeID, common::relID_t edgeID,
+        common::nodeID_t nbrNodeID, bool fwdEdge, ObjectBlock<ParentList>* parentListBlock);
+    // Used to track path for single shortest path. Assume each offset has at most one parent.
+    void addSingleParent(uint16_t iter, common::nodeID_t boundNodeID, common::relID_t edgeID,
+        common::nodeID_t nbrNodeID, bool fwdEdge, ObjectBlock<ParentList>* parentListBlock);
+
+    bool tryAddSingleParentWithWeight(common::nodeID_t boundNodeID, common::relID_t edgeID,
+        common::nodeID_t nbrNodeID, bool fwdEdge, double weight,
+        ObjectBlock<ParentList>* parentListBlock);
 
     void pinTableID(common::table_id_t tableID) { currParentPtrs = parentArray.getData(tableID); }
 

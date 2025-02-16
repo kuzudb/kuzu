@@ -55,21 +55,25 @@ void ProjectionPushDownOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
             pathPropertyProbe.setJoinType(planner::RecursiveJoinType::TRACK_NONE);
             auto call = child->ptrCast<LogicalGDSCall>();
             auto& info = call->getInfoUnsafe();
+            auto dummyInput = GDSBindInput();
             if (info.func.name == VarLenJoinsFunction::name) {
                 auto& rjAlg = info.func.gds->cast<RJAlgorithm>();
                 rjAlg.setToNoPath();
-                info.outExprs = rjAlg.getResultColumnsNoPath();
+                info.outExprs = rjAlg.getResultColumns(dummyInput);
             } else if (info.func.name == SingleSPPathsFunction::name) {
-                auto& rjAlg = info.func.gds->cast<RJAlgorithm>();
-                info.outExprs = rjAlg.getResultColumnsNoPath();
                 auto func = SingleSPDestinationsFunction::getFunction();
                 func.gds->setBindData(info.func.gds->getBindData()->copy());
+                info.outExprs = func.gds->cast<RJAlgorithm>().getResultColumns(dummyInput);
                 info.func = std::move(func);
             } else if (info.func.name == AllSPPathsFunction::name) {
-                auto& rjAlg = info.func.gds->cast<RJAlgorithm>();
-                info.outExprs = rjAlg.getResultColumnsNoPath();
                 auto func = AllSPDestinationsFunction::getFunction();
                 func.gds->setBindData(info.func.gds->getBindData()->copy());
+                info.outExprs = func.gds->cast<RJAlgorithm>().getResultColumns(dummyInput);
+                info.func = std::move(func);
+            } else if (info.func.name == WeightedSPPathsFunction::name) {
+                auto func = WeightedSPDestinationsFunction::getFunction();
+                func.gds->setBindData(info.func.gds->getBindData()->copy());
+                info.outExprs = func.gds->cast<RJAlgorithm>().getResultColumns(dummyInput);
                 info.func = std::move(func);
             }
         }

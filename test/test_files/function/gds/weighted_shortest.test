@@ -13,11 +13,22 @@ C|50.000000
 D|90.000000
 E|120.000000
 F|160.000000
+
+-STATEMENT MATCH p = (a)-[e* WSHORTEST(cost1) ]->(b)
+        WHERE a.ID = 'A'
+        RETURN b.ID, e_weight, properties(nodes(p), "ID"), properties(rels(p), "cost1")
+---- 5
+B|50.000000|[A,B]|[50]
+C|50.000000|[A,C]|[50]
+D|90.000000|[A,B,D]|[50,40]
+E|120.000000|[A,B,D,E]|[50,40,30]
+F|160.000000|[A,B,D,E,F]|[50,40,30,40]
+
 -LOG WSP-INT128
 -STATEMENT MATCH p = (a)-[e* WSHORTEST(cost0) ]->(b)
         RETURN a.ID, b.ID, e_weight
 ---- error
-Runtime exception: INT128 weight type is not supported for weighted shortest path.
+Binder exception: INT128 weight type is not supported for weighted shortest path.
 -LOG WSP-INT64
 -STATEMENT MATCH p = (a)-[e* WSHORTEST(cost1) ]->(b)
         RETURN a.ID, b.ID, e_weight
@@ -202,4 +213,4 @@ E|F|40.000000
 -STATEMENT MATCH p = (a)-[e* WSHORTEST(cost14) ]->(b)
         RETURN a.ID, b.ID, e_weight
 ---- error
-Runtime exception: DECIMAL(38, 4) weight type is not supported for weighted shortest path.
+Binder exception: DECIMAL(38, 4) weight type is not supported for weighted shortest path.

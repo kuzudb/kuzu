@@ -48,10 +48,10 @@ PathsOutputWriter::PathsOutputWriter(main::ClientContext* context,
     BFSGraph& bfsGraph)
     : RJOutputWriter{context, outputNodeMask, sourceNodeID}, info{info}, bfsGraph{bfsGraph} {
     auto mm = context->getMemoryManager();
+    lengthVector = createVector(LogicalType::UINT16(), mm);
     if (info.writeEdgeDirection) {
         directionVector = createVector(LogicalType::LIST(LogicalType::BOOL()), mm);
     }
-    lengthVector = createVector(LogicalType::UINT16(), mm);
     if (info.writePath) {
         pathNodeIDsVector = createVector(LogicalType::LIST(LogicalType::INTERNAL_ID()), mm);
         pathEdgeIDsVector = createVector(LogicalType::LIST(LogicalType::INTERNAL_ID()), mm);

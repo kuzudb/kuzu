@@ -130,7 +130,7 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
         gdsFunction = AllSPPathsFunction::getFunction();
     } break;
     case QueryRelType::WEIGHTED_SHORTEST: {
-        gdsFunction = WeightedSPDestinationsFunction::getFunction();
+        gdsFunction = WeightedSPPathsFunction::getFunction();
     } break;
     default:
         KU_UNREACHABLE;
