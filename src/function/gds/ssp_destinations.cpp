@@ -1,8 +1,8 @@
-#include "function/gds/gds_function_collection.h"
-#include "processor/execution_context.h"
 #include "binder/expression/node_expression.h"
-#include "function/gds/rec_joins.h"
 #include "function/gds/auxiliary_state/path_auxiliary_state.h"
+#include "function/gds/gds_function_collection.h"
+#include "function/gds/rec_joins.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -13,9 +13,8 @@ namespace function {
 
 class SSPDestinationsOutputWriter : public RJOutputWriter {
 public:
-    SSPDestinationsOutputWriter(main::ClientContext* context,
-        NodeOffsetMaskMap* outputNodeMask, nodeID_t sourceNodeID,
-        std::shared_ptr<PathLengths> pathLengths)
+    SSPDestinationsOutputWriter(main::ClientContext* context, NodeOffsetMaskMap* outputNodeMask,
+        nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths)
         : RJOutputWriter{context, outputNodeMask, sourceNodeID},
           pathLengths{std::move(pathLengths)} {
         lengthVector = createVector(LogicalType::UINT16(), context->getMemoryManager());
@@ -36,8 +35,8 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<SSPDestinationsOutputWriter>(context, outputNodeMask,
-            sourceNodeID, pathLengths);
+        return std::make_unique<SSPDestinationsOutputWriter>(context, outputNodeMask, sourceNodeID,
+            pathLengths);
     }
 
 private:
@@ -56,7 +55,8 @@ public:
     explicit SSPDestinationsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair)
         : SPEdgeCompute{frontierPair} {};
 
-    std::vector<nodeID_t> edgeCompute(nodeID_t, graph::NbrScanState::Chunk& resultChunk, bool) override {
+    std::vector<nodeID_t> edgeCompute(nodeID_t, graph::NbrScanState::Chunk& resultChunk,
+        bool) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNode, auto) {
             if (frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNode.offset) ==

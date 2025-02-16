@@ -1,8 +1,8 @@
+#include "binder/expression/node_expression.h"
+#include "function/gds/auxiliary_state/path_auxiliary_state.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
-#include "binder/expression/node_expression.h"
 #include "processor/execution_context.h"
-#include "function/gds/auxiliary_state/path_auxiliary_state.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -106,8 +106,8 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<ASPDestinationsOutputWriter>(context, outputNodeMask,
-            sourceNodeID, pathLengths, multiplicities);
+        return std::make_unique<ASPDestinationsOutputWriter>(context, outputNodeMask, sourceNodeID,
+            pathLengths, multiplicities);
     }
 
 private:
