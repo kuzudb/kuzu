@@ -188,6 +188,8 @@ FunctionCollection* FunctionCollection::getFunctions() {
         SCALAR_FUNCTION(OffsetFunction), REWRITE_FUNCTION(IDFunction),
         REWRITE_FUNCTION(StartNodeFunction), REWRITE_FUNCTION(EndNodeFunction),
         REWRITE_FUNCTION(LabelFunction),
+        SCALAR_FUNCTION(IsIDDistinctFunction),SCALAR_FUNCTION(IsNodeDistinctFunction),
+        SCALAR_FUNCTION(IsRelDistinctFunction),
 
         // Path functions
         SCALAR_FUNCTION(NodesFunction), SCALAR_FUNCTION(RelsFunction),
