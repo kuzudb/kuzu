@@ -1,6 +1,7 @@
 #pragma once
 
 #include "catalog_entry.h"
+#include "common/copier_config/file_scan_info.h"
 #include "common/serializer/buffered_reader.h"
 #include "common/serializer/deserializer.h"
 #include "table_catalog_entry.h"
