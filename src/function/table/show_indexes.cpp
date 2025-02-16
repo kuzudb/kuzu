@@ -104,7 +104,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
         std::string indexDefinition;
         if (dependencyLoaded) {
             auto& auxInfo = indexEntry->getAuxInfo();
-            indexDefinition = auxInfo.toCypher(*indexEntry, context);
+            indexDefinition = auxInfo.toCypher(*indexEntry, context, "" /* exportPath */);
         }
         indexesInfo.emplace_back(std::move(tableName), std::move(indexName), std::move(indexType),
             std::move(propertyNames), dependencyLoaded, std::move(indexDefinition));

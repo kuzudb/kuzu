@@ -15,7 +15,10 @@ public:
     }
 
     void serialize(common::Serializer& /*serializer*/) const override { KU_UNREACHABLE; }
-    std::string toCypher(main::ClientContext* /*clientContext*/) const override { KU_UNREACHABLE; }
+    std::string toCypher(main::ClientContext* /*clientContext*/,
+        std::string /* exportPath */) const override {
+        KU_UNREACHABLE;
+    }
 };
 
 } // namespace catalog

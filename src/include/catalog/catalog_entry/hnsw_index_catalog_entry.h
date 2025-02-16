@@ -37,14 +37,15 @@ struct HNSWIndexAuxInfo final : IndexAuxInfo {
         return std::make_unique<HNSWIndexAuxInfo>(*this);
     }
 
-    std::string toCypher(const IndexCatalogEntry& indexEntry,
-        const main::ClientContext* context) const override;
+    std::string toCypher(const IndexCatalogEntry& indexEntry, const main::ClientContext* context,
+        std::string /* exportPath */) const override;
 };
 
 struct HNSWIndexCatalogEntry {
     static constexpr char TYPE_NAME[] = "HNSW";
 
-    static std::string toCypher(const IndexCatalogEntry& indexEntry, main::ClientContext* context);
+    static std::string toCypher(const IndexCatalogEntry& indexEntry, main::ClientContext* context,
+        std::string /* exportPath */);
 };
 
 } // namespace catalog

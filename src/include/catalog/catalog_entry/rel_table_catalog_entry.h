@@ -50,7 +50,8 @@ public:
     std::unique_ptr<TableCatalogEntry> copy() const override;
 
     std::string getMultiplicityStr() const;
-    std::string toCypher(main::ClientContext* clientContext) const override;
+    std::string toCypher(main::ClientContext* clientContext,
+        std::string /* exportPath */) const override;
 
 private:
     std::unique_ptr<binder::BoundExtraCreateCatalogEntryInfo> getBoundExtraCreateInfo(

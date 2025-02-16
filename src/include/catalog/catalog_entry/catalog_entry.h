@@ -66,7 +66,10 @@ public:
     virtual void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<CatalogEntry> deserialize(common::Deserializer& deserializer);
 
-    virtual std::string toCypher(main::ClientContext* /*clientContext*/) const { KU_UNREACHABLE; }
+    virtual std::string toCypher(main::ClientContext* /*clientContext*/,
+        std::string /*exportPath*/) const {
+        KU_UNREACHABLE;
+    }
 
     template<class TARGET>
     TARGET& cast() {

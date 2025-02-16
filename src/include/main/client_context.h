@@ -131,6 +131,7 @@ public:
     void setDefaultDatabase(AttachedKuzuDatabase* defaultDatabase_);
     bool hasDefaultDatabase() const;
     void setToUseInternalCatalogEntry() { this->useInternalCatalogEntry_ = true; }
+    void setNotToUseInternalCatalogEntry() { this->useInternalCatalogEntry_ = false; }
     bool useInternalCatalogEntry() const { return useInternalCatalogEntry_; }
 
     void addScalarFunction(std::string name, function::function_set definitions);

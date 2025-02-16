@@ -78,24 +78,25 @@ static void writeCopyStatement(stringstream& ss, const TableCatalogEntry* entry,
     }
 }
 
-std::string getSchemaCypher(ClientContext* clientContext, Transaction* transaction) {
+std::string getSchemaCypher(ClientContext* clientContext, Transaction* transaction,
+    std::string exportPath) {
     stringstream ss;
     const auto catalog = clientContext->getCatalog();
     for (const auto& nodeTableEntry :
         catalog->getNodeTableEntries(transaction, false /* useInternal */)) {
-        ss << nodeTableEntry->toCypher(clientContext) << std::endl;
+        ss << nodeTableEntry->toCypher(clientContext, exportPath) << std::endl;
     }
     for (const auto& entry : catalog->getRelTableEntries(transaction, false /* useInternal */)) {
         if (entry->hasParentRelGroup(catalog, transaction)) {
             continue;
         }
-        ss << entry->toCypher(clientContext) << std::endl;
+        ss << entry->toCypher(clientContext, exportPath) << std::endl;
     }
     for (const auto& relGroupEntry : catalog->getRelGroupEntries(transaction)) {
-        ss << relGroupEntry->toCypher(clientContext) << std::endl;
+        ss << relGroupEntry->toCypher(clientContext, exportPath) << std::endl;
     }
     for (const auto sequenceEntry : catalog->getSequenceEntries(transaction)) {
-        ss << sequenceEntry->toCypher(clientContext) << std::endl;
+        ss << sequenceEntry->toCypher(clientContext, exportPath) << std::endl;
     }
     for (auto macroName : catalog->getMacroNames(transaction)) {
         ss << catalog->getScalarMacroFunction(transaction, macroName)->toCypher(macroName)
@@ -118,11 +119,11 @@ std::string getCopyCypher(const Catalog* catalog, Transaction* transaction,
     return ss.str();
 }
 
-std::string getIndexCypher(ClientContext* clientContext) {
+std::string getIndexCypher(ClientContext* clientContext, std::string& exportFilePath) {
     stringstream ss;
     for (auto entry :
         clientContext->getCatalog()->getIndexEntries(clientContext->getTransaction())) {
-        ss << entry->toCypher(clientContext) << std::endl;
+        ss << entry->toCypher(clientContext, exportFilePath) << std::endl;
     }
     return ss.str();
 }
@@ -132,14 +133,16 @@ void ExportDB::executeInternal(ExecutionContext* context) {
     const auto transaction = clientContext->getTransaction();
     const auto catalog = clientContext->getCatalog();
     // write the schema.cypher file
-    writeStringStreamToFile(clientContext, getSchemaCypher(clientContext, transaction),
+    writeStringStreamToFile(clientContext,
+        getSchemaCypher(clientContext, transaction, boundFileInfo.filePaths[0]),
         boundFileInfo.filePaths[0] + "/" + PortDBConstants::SCHEMA_FILE_NAME);
     // write the copy.cypher file
     // for every table, we write COPY FROM statement
     writeStringStreamToFile(clientContext, getCopyCypher(catalog, transaction, &boundFileInfo),
         boundFileInfo.filePaths[0] + "/" + PortDBConstants::COPY_FILE_NAME);
     // write the index.cypher file
-    writeStringStreamToFile(clientContext, getIndexCypher(clientContext),
+    writeStringStreamToFile(clientContext,
+        getIndexCypher(clientContext, boundFileInfo.filePaths[0]),
         boundFileInfo.filePaths[0] + "/" + PortDBConstants::INDEX_FILE_NAME);
 }
 

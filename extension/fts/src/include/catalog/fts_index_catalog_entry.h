@@ -29,6 +29,9 @@ struct FTSIndexAuxInfo final : catalog::IndexAuxInfo {
     }
 
     std::string toCypher(const catalog::IndexCatalogEntry& indexEntry,
+        const main::ClientContext* context, std::string exportPat) const override;
+
+    catalog::TableCatalogEntry* getTableEntriesToExport(
         const main::ClientContext* context) const override;
 };
 

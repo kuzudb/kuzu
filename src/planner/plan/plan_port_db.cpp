@@ -27,22 +27,46 @@ std::unique_ptr<LogicalPlan> Planner::planExportDatabase(const BoundStatement& s
     auto plan = std::make_unique<LogicalPlan>();
     auto fileTypeStr = FileTypeUtils::toString(fileType);
     StringUtils::toLower(fileTypeStr);
-    auto copyToSuffix = "." + fileTypeStr;
-    std::string name = common::stringFormat("COPY_{}", FileTypeUtils::toString(fileType));
-    auto entry =
-        clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(), name);
-    auto func = function::BuiltInFunctionsUtils::matchFunction(name,
-        entry->ptrCast<FunctionCatalogEntry>());
-    KU_ASSERT(func != nullptr);
-    auto exportFunc = *func->constPtrCast<function::ExportFunction>();
+    auto userFileSuffix = "." + fileTypeStr;
+    auto internalFileSuffix = "." + StringUtils::getLower(FileTypeUtils::toString(FileType::CSV));
+    auto userTableCopyToFuncName =
+        common::stringFormat("COPY_{}", FileTypeUtils::toString(fileType));
+    auto internalTableCopyToFuncName =
+        common::stringFormat("COPY_{}", FileTypeUtils::toString(FileType::CSV));
+    auto userTableCopyFunc = function::BuiltInFunctionsUtils::matchFunction(userTableCopyToFuncName,
+        clientContext->getCatalog()
+            ->getFunctionEntry(clientContext->getTransaction(), userTableCopyToFuncName)
+            ->ptrCast<FunctionCatalogEntry>());
+    auto internalTableCopyFunc =
+        function::BuiltInFunctionsUtils::matchFunction(internalTableCopyToFuncName,
+            clientContext->getCatalog()
+                ->getFunctionEntry(clientContext->getTransaction(), internalTableCopyToFuncName)
+                ->ptrCast<FunctionCatalogEntry>());
+    KU_ASSERT(userTableCopyFunc != nullptr && internalTableCopyFunc != nullptr);
+    auto userTableExportFunc = userTableCopyFunc->constPtrCast<function::ExportFunction>();
+    auto internalTableExportFunc = internalTableCopyFunc->constPtrCast<function::ExportFunction>();
     for (auto& exportTableData : *exportData) {
         auto regularQuery = exportTableData.getRegularQuery();
         KU_ASSERT(regularQuery->getStatementType() == StatementType::QUERY);
         auto tablePlan = getBestPlan(*regularQuery);
-        auto path = filePath + "/" + exportTableData.tableName + copyToSuffix;
+        std::string fileSuffix;
+        const function::ExportFunction* exportFunc = nullptr;
+        switch (exportTableData.exportedTableType) {
+        case ExportedTableType::USER_TABLE: {
+            fileSuffix = userFileSuffix;
+            exportFunc = userTableExportFunc;
+        } break;
+        case ExportedTableType::INTERNAL_TABLE: {
+            fileSuffix = internalFileSuffix;
+            exportFunc = internalTableExportFunc;
+        } break;
+        default:
+            KU_UNREACHABLE;
+        }
+        auto path = filePath + "/" + exportTableData.tableName + fileSuffix;
         function::ExportFuncBindInput bindInput{exportTableData.columnNames, std::move(path),
             boundExportDatabase.getExportOptions()};
-        auto copyTo = std::make_shared<LogicalCopyTo>(exportFunc.bind(bindInput), exportFunc,
+        auto copyTo = std::make_shared<LogicalCopyTo>(exportFunc->bind(bindInput), *exportFunc,
             tablePlan->getLastOperator());
         logicalOperators.push_back(std::move(copyTo));
     }

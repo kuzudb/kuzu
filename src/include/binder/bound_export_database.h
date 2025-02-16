@@ -7,12 +7,17 @@
 namespace kuzu {
 namespace binder {
 
+enum class ExportedTableType : uint8_t { USER_TABLE = 0, INTERNAL_TABLE = 1 };
+
 struct ExportedTableData {
+    ExportedTableType exportedTableType;
     std::string tableName;
     std::unique_ptr<BoundRegularQuery> regularQuery;
     std::vector<std::string> columnNames;
     std::vector<common::LogicalType> columnTypes;
 
+    explicit ExportedTableData(ExportedTableType exportedTableType)
+        : exportedTableType{exportedTableType} {}
     const std::vector<common::LogicalType>& getColumnTypesRef() const { return columnTypes; }
     const BoundRegularQuery* getRegularQuery() const { return regularQuery.get(); }
 };

@@ -1,9 +1,9 @@
 #include "catalog/fts_index_catalog_entry.h"
 
 #include "catalog/catalog.h"
-#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/serializer/buffered_reader.h"
 #include "common/serializer/buffered_serializer.h"
+#include "function/fts_utils.h"
 #include "main/client_context.h"
 
 namespace kuzu {
@@ -30,7 +30,7 @@ std::unique_ptr<FTSIndexAuxInfo> FTSIndexAuxInfo::deserialize(
 }
 
 std::string FTSIndexAuxInfo::toCypher(const catalog::IndexCatalogEntry& indexEntry,
-    const main::ClientContext* context) const {
+    const main::ClientContext* context, std::string exportPath) const {
     std::string cypher;
     auto catalog = context->getCatalog();
     auto tableCatalogEntry =
@@ -43,9 +43,24 @@ std::string FTSIndexAuxInfo::toCypher(const catalog::IndexCatalogEntry& indexEnt
             common::stringFormat("'{}'{}", tableCatalogEntry->getProperty(propertyIDs[i]).getName(),
                 i == propertyIDs.size() - 1 ? "" : ", ");
     }
-    cypher += common::stringFormat("CALL CREATE_FTS_INDEX('{}', '{}', [{}], stemmer := '{}');",
-        tableName, indexEntry.getIndexName(), std::move(propertyStr), config.stemmer);
+    std::string stopWordsName = "default";
+    if (config.stopWordsTableName != FTSUtils::getDefaultStopWordsTableName()) {
+        stopWordsName = common::stringFormat("{}/{}.csv", exportPath, config.stopWordsTableName);
+    }
+    cypher += common::stringFormat("CALL CREATE_FTS_INDEX('{}', '{}', [{}], stemmer := '{}', "
+                                   "stopWords := '{}');",
+        tableName, indexEntry.getIndexName(), std::move(propertyStr), config.stemmer,
+        stopWordsName);
     return cypher;
+}
+
+catalog::TableCatalogEntry* FTSIndexAuxInfo::getTableEntriesToExport(
+    const main::ClientContext* context) const {
+    if (config.stopWordsTableName == FTSUtils::getDefaultStopWordsTableName()) {
+        return nullptr;
+    }
+    return context->getCatalog()->getTableCatalogEntry(context->getTransaction(),
+        config.stopWordsTableName);
 }
 
 } // namespace fts_extension
