@@ -34,8 +34,8 @@ float* InMemEmbeddings::getEmbedding(common::offset_t offset) const {
 
 void InMemEmbeddings::initialize(main::ClientContext* context, NodeTable& table,
     common::column_id_t columnID) {
-    common::Timer timer;
-    timer.start();
+    common::TimeMetric timeMetric(true);
+    timeMetric.start();
     std::vector<common::column_id_t> columnIDs;
     columnIDs.push_back(columnID);
     std::vector<const Column*> columns;
@@ -49,8 +49,8 @@ void InMemEmbeddings::initialize(main::ClientContext* context, NodeTable& table,
         column.scan(context->getTransaction(), scanState->nodeGroupScanState->chunkStates[0],
             data[i].get());
     }
-    timer.stop();
-    auto duration = timer.getElapsedTimeInMS();
+    timeMetric.stop();
+    auto duration = timeMetric.getElapsedTimeMS();
     std::cout << "Initialize embeddings: " << duration << " ms." << std::endl;
     uint64_t memUsageInMB = 0;
     for (auto i = 0u; i < data.size(); i++) {
@@ -102,8 +102,8 @@ void InMemHNSWGraph::finalize(MemoryManager& mm,
     auto bufferMemUsage = csrLengthBuffer->getBuffer().size() + dstNodesBuffer->getBuffer().size();
     auto bufferMemUsageInMB = bufferMemUsage * 1.0 / 1024.0 / 1024.0;
     std::cout << "CSR buffer mem usage " << bufferMemUsageInMB << " MB." << std::endl;
-    common::Timer timer;
-    timer.start();
+    common::TimeMetric timeMetric(true);
+    timeMetric.start();
     const auto& partitionBuffers = partitionerSharedState.partitioningBuffers[0]->partitions;
     const auto numNodeGroups = (numNodes + common::StorageConfig::NODE_GROUP_SIZE - 1) /
                                common::StorageConfig::NODE_GROUP_SIZE;
@@ -126,8 +126,8 @@ void InMemHNSWGraph::finalize(MemoryManager& mm,
             partitionerSharedState.relTable->getTableID(), *partitionBuffers[nodeGroupIdx]);
         memUsage += partitionBuffers[nodeGroupIdx]->getChunkedGroup(0).getEstimatedMemoryUsage();
     }
-    timer.stop();
-    auto duration = timer.getElapsedTimeInMS();
+    timeMetric.stop();
+    auto duration = timeMetric.getElapsedTimeMS();
     std::cout << "Finalize HNSW graph: " << duration << " ms." << std::endl;
     auto memUsageInMB = memUsage * 1.0 / 1024.0 / 1024.0;
     std::cout << "Finalized partitioning buffers memory usage: " << memUsageInMB << " MB."

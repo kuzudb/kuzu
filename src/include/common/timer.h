@@ -25,7 +25,17 @@ public:
     double getDuration() const {
         if (finished) {
             auto duration = stopTime - startTime;
-            return (double)std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
+            return static_cast<double>(
+                std::chrono::duration_cast<std::chrono::microseconds>(duration).count());
+        }
+        throw Exception("Timer is still running.");
+    }
+
+    double getDurationInMS() const {
+        if (finished) {
+            auto duration = stopTime - startTime;
+            return static_cast<double>(
+                std::chrono::duration_cast<std::chrono::milliseconds>(duration).count());
         }
         throw Exception("Timer is still running.");
     }
