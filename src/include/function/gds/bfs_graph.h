@@ -77,12 +77,10 @@ public:
     // Used to track path for single weighted shortest path. Assume each offset has at most one
     // parent.
     bool tryAddSingleParentWithWeight(common::nodeID_t boundNodeID, common::relID_t edgeID,
-        common::nodeID_t nbrNodeID, bool fwdEdge, double weight,
-        ObjectBlock<ParentList>* block);
+        common::nodeID_t nbrNodeID, bool fwdEdge, double weight, ObjectBlock<ParentList>* block);
     // Used to track path for all weighted shortest path.
     bool tryAddParentWithWeight(common::nodeID_t boundNodeID, common::relID_t edgeID,
-        common::nodeID_t nbrNodeID, bool fwdEdge, double weight,
-        ObjectBlock<ParentList>* block);
+        common::nodeID_t nbrNodeID, bool fwdEdge, double weight, ObjectBlock<ParentList>* block);
 
     void pinTableID(common::table_id_t tableID) { currParentPtrs = parentArray.getData(tableID); }
 

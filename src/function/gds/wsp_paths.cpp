@@ -1,10 +1,10 @@
 #include "binder/binder.h"
+#include "function/gds/auxiliary_state/path_auxiliary_state.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
 #include "function/gds_function.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
-#include "function/gds/auxiliary_state/path_auxiliary_state.h"
 #include "wsp_utils.h"
 
 using namespace kuzu::common;

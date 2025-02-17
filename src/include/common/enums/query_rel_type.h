@@ -19,12 +19,11 @@ enum class QueryRelType : uint8_t {
 };
 
 struct QueryRelTypeUtils {
-    static bool isRecursive(QueryRelType type) {
-        return type != QueryRelType::NON_RECURSIVE;
-    }
+    static bool isRecursive(QueryRelType type) { return type != QueryRelType::NON_RECURSIVE; }
 
     static bool isWeighted(QueryRelType type) {
-        return type == QueryRelType::WEIGHTED_SHORTEST || type == QueryRelType::ALL_WEIGHTED_SHORTEST;
+        return type == QueryRelType::WEIGHTED_SHORTEST ||
+               type == QueryRelType::ALL_WEIGHTED_SHORTEST;
     }
 
     static PathSemantic getPathSemantic(QueryRelType queryRelType);

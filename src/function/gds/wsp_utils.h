@@ -1,6 +1,6 @@
-#include "common/types/types.h"
 #include "common/exception/runtime.h"
 #include "common/type_utils.h"
+#include "common/types/types.h"
 
 namespace kuzu {
 namespace function {
@@ -40,6 +40,5 @@ static auto visit(const common::LogicalType& dataType, Fs... funcs) {
     // LCOV_EXCL_STOP
 }
 
-
-}
-}
+} // namespace function
+} // namespace kuzu
