@@ -479,7 +479,8 @@ std::string decodeEscapeSequences(const std::string& input) {
     return result;
 }
 
-void EmbeddedShell::checkConfidentialStatement(const QueryResult* queryResult) {
+void EmbeddedShell::checkConfidentialStatement(const std::string& query,
+    const QueryResult* queryResult, std::string& input) {
     if (queryResult->isSuccess() && !database->getConfig().readOnly &&
         queryResult->getQuerySummary()->getStatementType() ==
             common::StatementType::STANDALONE_CALL) {
@@ -497,7 +498,6 @@ void EmbeddedShell::checkConfidentialStatement(const QueryResult* queryResult) {
             clientContext->getTransactionContext()->commit();
         }
     }
-}
 }
 
 std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::string input) {
@@ -529,6 +529,7 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
         ss.str(unicodeInput);
         auto result = conn->query(unicodeInput);
         auto curr = result.get();
+        checkConfidentialStatement(unicodeInput, curr, input);
         while (true) {
             queryResults.push_back(std::move(result));
             if (!curr->getNextQueryResult()) {
@@ -536,6 +537,7 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
             }
             result = std::move(curr->nextQueryResult);
             curr = result.get();
+            checkConfidentialStatement(unicodeInput, curr, input);
         }
         // set up multiline query if current query doesn't end with a semicolon
     } else if (!input.empty() && input[0] != ':') {
