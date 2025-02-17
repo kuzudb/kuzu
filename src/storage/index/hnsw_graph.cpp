@@ -1,5 +1,7 @@
 #include "storage/index/hnsw_graph.h"
 
+#include <iostream>
+
 #include "storage/store/list_chunk_data.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
@@ -10,43 +12,51 @@ namespace storage {
 InMemEmbeddings::InMemEmbeddings(MemoryManager& mm, EmbeddingTypeInfo typeInfo,
     common::offset_t numNodes, const common::LogicalType& columnType)
     : EmbeddingColumn{std::move(typeInfo)} {
-    data = ColumnChunkFactory::createColumnChunkData(mm, columnType.copy(),
-        false /*enableCompression*/, numNodes, ResidencyState::IN_MEMORY, true /*hasNullData*/,
-        false /*initializeToZero*/);
+    auto numNodeGroups = StorageUtils::getNodeGroupIdx(numNodes) + 1;
+    data.resize(numNodeGroups);
+    for (auto i = 0u; i < numNodeGroups; i++) {
+        auto numNodesInGroup = std::min(common::StorageConfig::NODE_GROUP_SIZE,
+            numNodes - i * common::StorageConfig::NODE_GROUP_SIZE);
+        data[i] = ColumnChunkFactory::createColumnChunkData(mm, columnType.copy(),
+            false /*enableCompression*/, numNodesInGroup, ResidencyState::IN_MEMORY,
+            true /*hasNullData*/, false /*initializeToZero*/);
+        data[i]->cast<ListChunkData>().getDataColumnChunk()->resize(
+            numNodesInGroup * this->typeInfo.dimension);
+    }
 }
 
 float* InMemEmbeddings::getEmbedding(common::offset_t offset) const {
-    const auto& listChunk = data->cast<ListChunkData>();
-    return &listChunk.getDataColumnChunk()->getData<float>()[offset * typeInfo.dimension];
+    auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
+    KU_ASSERT(nodeGroupIdx < data.size());
+    const auto& listChunk = data[nodeGroupIdx]->cast<ListChunkData>();
+    return &listChunk.getDataColumnChunk()->getData<float>()[offsetInGroup * typeInfo.dimension];
 }
 
 void InMemEmbeddings::initialize(main::ClientContext* context, NodeTable& table,
     common::column_id_t columnID) {
-    // Prepare scan state.
+    common::Timer timer;
+    timer.start();
     std::vector<common::column_id_t> columnIDs;
     columnIDs.push_back(columnID);
     std::vector<const Column*> columns;
-    columns.push_back(&table.getColumn(columnID));
+    auto& column = table.getColumn(columnID);
+    columns.push_back(&column);
     const auto scanState =
         std::make_unique<NodeTableScanState>(table.getTableID(), columnIDs, columns);
-    const auto chunkState = std::make_shared<common::DataChunkState>();
-    common::DataChunk dataChunk(2, chunkState);
-    dataChunk.insert(0, std::make_shared<common::ValueVector>(common::LogicalType::INTERNAL_ID()));
-    dataChunk.insert(1, std::make_shared<common::ValueVector>(columns[0]->getDataType().copy()));
-    scanState->nodeIDVector = &dataChunk.getValueVectorMutable(0);
-    scanState->outputVectors.push_back(&dataChunk.getValueVectorMutable(1));
-    scanState->rowIdxVector->state = chunkState;
-    scanState->outState = chunkState.get();
-    // Scan from base table. Copy into embeddings.
-    const auto numCommittedNodeGroups = table.getNumCommittedNodeGroups();
     scanState->source = TableScanSource::COMMITTED;
-    for (auto i = 0u; i < numCommittedNodeGroups; i++) {
+    for (auto i = 0u; i < data.size(); i++) {
         scanState->nodeGroupIdx = i;
-        table.initScanState(context->getTransaction(), *scanState);
-        while (table.scan(context->getTransaction(), *scanState)) {
-            data->append(scanState->outputVectors[0], scanState->outState->getSelVector());
-        }
+        column.scan(context->getTransaction(), scanState->nodeGroupScanState->chunkStates[0],
+            data[i].get());
     }
+    timer.stop();
+    auto duration = timer.getElapsedTimeInMS();
+    std::cout << "Initialize embeddings: " << duration << " ms." << std::endl;
+    uint64_t memUsageInMB = 0;
+    for (auto i = 0u; i < data.size(); i++) {
+        memUsageInMB += data[i]->getEstimatedMemoryUsage() * 1.0 / 1024.0 / 1024.0;
+    }
+    std::cout << "Embeddings mem usage: " << memUsageInMB << " MB." << std::endl;
 }
 
 OnDiskEmbeddingScanState::OnDiskEmbeddingScanState(MemoryManager* mm, NodeTable& nodeTable,
@@ -89,6 +99,11 @@ float* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
 
 void InMemHNSWGraph::finalize(MemoryManager& mm,
     const processor::PartitionerSharedState& partitionerSharedState) {
+    auto bufferMemUsage = csrLengthBuffer->getBuffer().size() + dstNodesBuffer->getBuffer().size();
+    auto bufferMemUsageInMB = bufferMemUsage * 1.0 / 1024.0 / 1024.0;
+    std::cout << "CSR buffer mem usage " << bufferMemUsageInMB << " MB." << std::endl;
+    common::Timer timer;
+    timer.start();
     const auto& partitionBuffers = partitionerSharedState.partitioningBuffers[0]->partitions;
     const auto numNodeGroups = (numNodes + common::StorageConfig::NODE_GROUP_SIZE - 1) /
                                common::StorageConfig::NODE_GROUP_SIZE;
@@ -104,11 +119,19 @@ void InMemHNSWGraph::finalize(MemoryManager& mm,
         }
         numRelsPerNodeGroup[nodeGroupIdx] = numRels;
     }
+    uint64_t memUsage = 0u;
     for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
         finalizeNodeGroup(mm, nodeGroupIdx, partitionerSharedState.srcNodeTable->getTableID(),
             partitionerSharedState.dstNodeTable->getTableID(),
             partitionerSharedState.relTable->getTableID(), *partitionBuffers[nodeGroupIdx]);
+        memUsage += partitionBuffers[nodeGroupIdx]->getChunkedGroup(0).getEstimatedMemoryUsage();
     }
+    timer.stop();
+    auto duration = timer.getElapsedTimeInMS();
+    std::cout << "Finalize HNSW graph: " << duration << " ms." << std::endl;
+    auto memUsageInMB = memUsage * 1.0 / 1024.0 / 1024.0;
+    std::cout << "Finalized partitioning buffers memory usage: " << memUsageInMB << " MB."
+              << std::endl;
 }
 
 void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
