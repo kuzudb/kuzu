@@ -12,7 +12,7 @@ namespace storage {
 InMemEmbeddings::InMemEmbeddings(MemoryManager& mm, EmbeddingTypeInfo typeInfo,
     common::offset_t numNodes, const common::LogicalType& columnType)
     : EmbeddingColumn{std::move(typeInfo)} {
-    auto numNodeGroups = StorageUtils::getNodeGroupIdx(numNodes) + 1;
+    auto numNodeGroups = numNodes == 0 ? 0 : StorageUtils::getNodeGroupIdx(numNodes - 1) + 1;
     data.resize(numNodeGroups);
     for (auto i = 0u; i < numNodeGroups; i++) {
         auto numNodesInGroup = std::min(common::StorageConfig::NODE_GROUP_SIZE,
@@ -46,6 +46,7 @@ void InMemEmbeddings::initialize(main::ClientContext* context, NodeTable& table,
     scanState->source = TableScanSource::COMMITTED;
     for (auto i = 0u; i < data.size(); i++) {
         scanState->nodeGroupIdx = i;
+        table.initScanState(context->getTransaction(), *scanState);
         column.scan(context->getTransaction(), scanState->nodeGroupScanState->chunkStates[0],
             data[i].get());
     }
@@ -99,11 +100,11 @@ float* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
 
 void InMemHNSWGraph::finalize(MemoryManager& mm,
     const processor::PartitionerSharedState& partitionerSharedState) {
-    auto bufferMemUsage = csrLengthBuffer->getBuffer().size() + dstNodesBuffer->getBuffer().size();
-    auto bufferMemUsageInMB = bufferMemUsage * 1.0 / 1024.0 / 1024.0;
-    std::cout << "CSR buffer mem usage " << bufferMemUsageInMB << " MB." << std::endl;
-    common::TimeMetric timeMetric(true);
-    timeMetric.start();
+    // auto bufferMemUsage = csrLengthBuffer->getBuffer().size() +
+    // dstNodesBuffer->getBuffer().size(); auto bufferMemUsageInMB = bufferMemUsage * 1.0 / 1024.0 /
+    // 1024.0; std::cout << "CSR buffer mem usage " << bufferMemUsageInMB << " MB." << std::endl;
+    // common::TimeMetric timeMetric(true);
+    // timeMetric.start();
     const auto& partitionBuffers = partitionerSharedState.partitioningBuffers[0]->partitions;
     const auto numNodeGroups = (numNodes + common::StorageConfig::NODE_GROUP_SIZE - 1) /
                                common::StorageConfig::NODE_GROUP_SIZE;
@@ -126,12 +127,12 @@ void InMemHNSWGraph::finalize(MemoryManager& mm,
             partitionerSharedState.relTable->getTableID(), *partitionBuffers[nodeGroupIdx]);
         memUsage += partitionBuffers[nodeGroupIdx]->getChunkedGroup(0).getEstimatedMemoryUsage();
     }
-    timeMetric.stop();
-    auto duration = timeMetric.getElapsedTimeMS();
-    std::cout << "Finalize HNSW graph: " << duration << " ms." << std::endl;
-    auto memUsageInMB = memUsage * 1.0 / 1024.0 / 1024.0;
-    std::cout << "Finalized partitioning buffers memory usage: " << memUsageInMB << " MB."
-              << std::endl;
+    // timeMetric.stop();
+    // auto duration = timeMetric.getElapsedTimeMS();
+    // std::cout << "Finalize HNSW graph: " << duration << " ms." << std::endl;
+    // auto memUsageInMB = memUsage * 1.0 / 1024.0 / 1024.0;
+    // std::cout << "Finalized partitioning buffers memory usage: " << memUsageInMB << " MB."
+    // << std::endl;
 }
 
 void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
