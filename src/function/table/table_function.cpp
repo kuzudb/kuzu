@@ -13,13 +13,23 @@
 namespace kuzu {
 namespace function {
 
+TableFuncSharedState::TableFuncSharedState()
+    : maxOffset{0}, curOffset{0}, maxMorselSize{common::DEFAULT_VECTOR_CAPACITY} {}
+
+TableFuncSharedState::TableFuncSharedState(common::offset_t maxOffset)
+    : maxOffset{maxOffset}, curOffset{0}, maxMorselSize{common::DEFAULT_VECTOR_CAPACITY} {}
+
+TableFuncSharedState::TableFuncSharedState(common::offset_t maxOffset,
+    common::offset_t maxMorselSize)
+    : maxOffset{maxOffset}, curOffset{0}, maxMorselSize{maxMorselSize} {}
+
 TableFuncMorsel TableFuncSharedState::getMorsel() {
     std::lock_guard lck{mtx};
     KU_ASSERT(curOffset <= maxOffset);
     if (curOffset == maxOffset) {
         return TableFuncMorsel::createInvalidMorsel();
     }
-    const auto numValuesToOutput = std::min(common::DEFAULT_VECTOR_CAPACITY, maxOffset - curOffset);
+    const auto numValuesToOutput = std::min(maxMorselSize, maxOffset - curOffset);
     curOffset += numValuesToOutput;
     return {curOffset - numValuesToOutput, curOffset};
 }

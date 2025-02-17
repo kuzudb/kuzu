@@ -2,6 +2,7 @@
 
 #include "processor/operator/partitioner.h"
 #include "storage/index/hnsw_config.h"
+#include "storage/local_cached_column.h"
 #include "storage/store/column_chunk_data.h"
 
 namespace kuzu {
@@ -20,26 +21,19 @@ public:
     const EmbeddingTypeInfo& getTypeInfo() const { return typeInfo; }
     common::length_t getDimension() const { return typeInfo.dimension; }
 
-    virtual void initialize(main::ClientContext*, NodeTable&, common::column_id_t) {
-        // DO NOTHING.
-    }
-
 protected:
     EmbeddingTypeInfo typeInfo;
 };
 
 class InMemEmbeddings final : public EmbeddingColumn {
 public:
-    InMemEmbeddings(MemoryManager& mm, EmbeddingTypeInfo typeInfo, common::offset_t numNodes,
-        const common::LogicalType& columnType);
+    InMemEmbeddings(transaction::Transaction* transaction, EmbeddingTypeInfo typeInfo,
+        common::table_id_t tableID, common::column_id_t columnID);
 
     float* getEmbedding(common::offset_t offset) const;
 
-    void initialize(main::ClientContext* context, NodeTable& table,
-        common::column_id_t columnID) override;
-
 private:
-    std::unique_ptr<ColumnChunkData> data;
+    CachedColumn* data;
 };
 
 struct NodeTableScanState;

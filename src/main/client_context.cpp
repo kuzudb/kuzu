@@ -356,8 +356,8 @@ std::unique_ptr<QueryResult> ClientContext::queryNoLock(std::string_view query,
         if (statement->isInternal()) {
             // The result of internal statements should be invisible to end users. Skip chaining the
             // result of internal statements to the final result to end users.
-            internalCompilingTime = currentQuerySummary->getCompilingTime();
-            internalExecutionTime = currentQuerySummary->getExecutionTime();
+            internalCompilingTime += currentQuerySummary->getCompilingTime();
+            internalExecutionTime += currentQuerySummary->getExecutionTime();
             continue;
         }
         currentQuerySummary->incrementCompilingTime(internalCompilingTime);

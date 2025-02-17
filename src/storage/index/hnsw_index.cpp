@@ -215,7 +215,7 @@ static int64_t getDegreeThresholdToShrink(int64_t degree) {
     return std::ceil(degree * 1.25);
 }
 
-InMemHNSWIndex::InMemHNSWIndex(main::ClientContext* context, NodeTable& table,
+InMemHNSWIndex::InMemHNSWIndex(const main::ClientContext* context, NodeTable& table,
     common::column_id_t columnID, HNSWIndexConfig config)
     : HNSWIndex{std::move(config)} {
     auto& columnType = table.getColumn(columnID).getDataType();
@@ -223,8 +223,8 @@ InMemHNSWIndex::InMemHNSWIndex(main::ClientContext* context, NodeTable& table,
     const auto extraInfo = columnType.getExtraTypeInfo()->constPtrCast<common::ArrayTypeInfo>();
     EmbeddingTypeInfo typeInfo{extraInfo->getChildType().copy(), extraInfo->getNumElements()};
     const auto numNodes = table.getNumTotalRows(context->getTransaction());
-    embeddings = std::make_unique<InMemEmbeddings>(*context->getMemoryManager(),
-        std::move(typeInfo), numNodes, columnType);
+    embeddings = std::make_unique<InMemEmbeddings>(context->getTransaction(), std::move(typeInfo),
+        table.getTableID(), columnID);
     lowerLayer = std::make_unique<InMemHNSWLayer>(context->getMemoryManager(),
         InMemHNSWLayerInfo{numNodes, common::ku_dynamic_cast<InMemEmbeddings*>(embeddings.get()),
             this->config.distFunc, getDegreeThresholdToShrink(this->config.ml), this->config.ml,
@@ -233,7 +233,6 @@ InMemHNSWIndex::InMemHNSWIndex(main::ClientContext* context, NodeTable& table,
         InMemHNSWLayerInfo{numNodes, common::ku_dynamic_cast<InMemEmbeddings*>(embeddings.get()),
             this->config.distFunc, getDegreeThresholdToShrink(this->config.mu), this->config.mu,
             this->config.alpha, this->config.efc});
-    embeddings->initialize(context, table, columnID);
 }
 
 void InMemHNSWIndex::insert(common::offset_t offset, VisitedState& upperVisited,

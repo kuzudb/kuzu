@@ -59,8 +59,6 @@ struct FinalizeHNSWSharedState final : TableFuncSharedState {
     explicit FinalizeHNSWSharedState(storage::MemoryManager& mm) {
         partitionerSharedState = std::make_shared<storage::HNSWIndexPartitionerSharedState>(mm);
     }
-
-    TableFuncMorsel getMorsel() override;
 };
 
 struct BoundQueryHNSWIndexInput {

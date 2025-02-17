@@ -5,6 +5,7 @@ add_library(kuzu_table_function
         bind_data.cpp
         bind_input.cpp
         bm_info.cpp
+        cache_column.cpp
         catalog_version.cpp
         clear_warnings.cpp
         create_project_graph.cpp

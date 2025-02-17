@@ -4,6 +4,7 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "main/client_context.h"
+#include <binder/binder.h>
 
 namespace kuzu {
 namespace storage {
@@ -33,27 +34,12 @@ static void validateIndexExistence(const main::ClientContext& context,
     }
 }
 
-static void validateTableExistence(const main::ClientContext& context,
-    const std::string& tableName) {
-    if (!context.getCatalog()->containsTable(context.getTransaction(), tableName)) {
-        throw common::BinderException{common::stringFormat("Table {} does not exist.", tableName)};
-    }
-}
-
-static void validateNodeTable(const catalog::TableCatalogEntry* tableEntry) {
-    if (tableEntry->getTableType() != common::TableType::NODE) {
-        throw common::BinderException(common::stringFormat(
-            "Table {} is not a node table. Only a node table is supported for this function.",
-            tableEntry->getName()));
-    }
-}
-
 catalog::NodeTableCatalogEntry* IndexUtils::bindTable(const main::ClientContext& context,
     const std::string& tableName, const std::string& indexName, IndexOperation indexOperation) {
-    validateTableExistence(context, tableName);
+    binder::Binder::validateTableExistence(context, tableName);
     const auto tableEntry =
         context.getCatalog()->getTableCatalogEntry(context.getTransaction(), tableName);
-    validateNodeTable(tableEntry);
+    binder::Binder::validateNodeTableType(tableEntry);
     validateIndexExistence(context, tableEntry, indexName, indexOperation);
     return tableEntry->ptrCast<catalog::NodeTableCatalogEntry>();
 }

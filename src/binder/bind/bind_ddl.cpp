@@ -7,7 +7,6 @@
 #include "binder/expression_visitor.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/index_catalog_entry.h"
-#include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
@@ -169,9 +168,24 @@ BoundCreateTableInfo Binder::bindCreateNodeTableInfo(const CreateTableInfo* info
         info->onConflict, std::move(boundExtraInfo), clientContext->useInternalCatalogEntry());
 }
 
-static void validateNodeTableType(const TableCatalogEntry* entry) {
+void Binder::validateNodeTableType(const TableCatalogEntry* entry) {
     if (entry->getType() != CatalogEntryType::NODE_TABLE_ENTRY) {
         throw BinderException(stringFormat("{} is not of type NODE.", entry->getName()));
+    }
+}
+
+void Binder::validateTableExistence(const main::ClientContext& context,
+    const std::string& tableName) {
+    if (!context.getCatalog()->containsTable(context.getTransaction(), tableName)) {
+        throw BinderException{stringFormat("Table {} does not exist.", tableName)};
+    }
+}
+
+void Binder::validateColumnExistence(const TableCatalogEntry* entry,
+    const std::string& columnName) {
+    if (!entry->containsProperty(columnName)) {
+        throw BinderException{
+            stringFormat("Column {} does not exist in table {}.", columnName, entry->getName())};
     }
 }
 
