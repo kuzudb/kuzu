@@ -1,6 +1,7 @@
 add_library(kuzu_function_algorithm
         OBJECT
-        all_shortest_paths.cpp
+        asp_destinations.cpp
+        asp_paths.cpp
         bfs_graph.cpp
         gds.cpp
         gds_frontier.cpp
@@ -11,7 +12,8 @@ add_library(kuzu_function_algorithm
         output_writer.cpp
         page_rank.cpp
         rec_joins.cpp
-        single_shortest_paths.cpp
+        ssp_destinations.cpp
+        ssp_paths.cpp
         variable_length_path.cpp
         weakly_connected_components.cpp
         weighted_shortest_paths.cpp
