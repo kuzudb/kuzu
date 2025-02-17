@@ -257,6 +257,7 @@ void InMemHNSWIndex::shrink(transaction::Transaction* transaction) {
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
 void InMemHNSWIndex::finalize(MemoryManager& mm,
     const HNSWIndexPartitionerSharedState& partitionerSharedState) {
+    embeddings.reset();
     upperLayer->finalize(mm, *partitionerSharedState.upperPartitionerSharedState);
     lowerLayer->finalize(mm, *partitionerSharedState.lowerPartitionerSharedState);
 }
