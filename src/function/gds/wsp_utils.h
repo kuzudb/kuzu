@@ -1,6 +1,5 @@
 #include "common/types/types.h"
 #include "common/exception/runtime.h"
-#include "common/string_utils.h"
 #include "common/type_utils.h"
 
 namespace kuzu {

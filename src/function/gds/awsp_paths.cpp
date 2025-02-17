@@ -116,7 +116,7 @@ public:
     AllWeightedSPPathsAlgorithm(const AllWeightedSPPathsAlgorithm& other) : RJAlgorithm{other} {}
 
     // return srcNodeID, dstNodeID, length, [direction], pathNodeIDs, pathEdgeIDs, weight
-    binder::expression_vector getResultColumns(const function::GDSBindInput &bindInput) const override {
+    expression_vector getResultColumns(const GDSBindInput &) const override {
         auto rjBindData = bindData->ptrCast<RJBindData>();
         expression_vector columns;
         columns.push_back(bindData->getNodeInput()->constCast<NodeExpression>().getInternalID());
