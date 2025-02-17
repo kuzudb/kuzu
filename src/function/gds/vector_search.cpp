@@ -730,10 +730,10 @@ namespace kuzu {
                     } else {
                         // If the selectivity is low, we will not do dynamic two hop search since it does some extra
                         // distance computations to reduce listNbrs call which are redundant.
-//                        randomTwoHopSearch(firstHopNbrs, tableId, graph, filterMask, state, totalNbrs, visited, vectorArray,
-//                                        size, stats);
-                        fullTwoHopSearch(firstHopNbrs, tableId, graph, filterMask, state, visited, vectorArray, size,
-                                         stats);
+                        randomTwoHopSearch(firstHopNbrs, tableId, graph, filterMask, state, totalNbrs, visited, vectorArray,
+                                        size, stats);
+//                        fullTwoHopSearch(firstHopNbrs, tableId, graph, filterMask, state, visited, vectorArray, size,
+//                                         stats);
                         stats.twoHopCalls->increase(1);
                     }
                     batchComputeDistance(vectorArray, size, dc, candidates, results, efSearch, stats);
