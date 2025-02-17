@@ -51,6 +51,7 @@ class DatabaseManager;
 class AttachedKuzuDatabase;
 struct SpillToDiskSetting;
 struct ExtensionOption;
+class EmbeddedShell;
 
 struct ActiveQuery {
     explicit ActiveQuery();
@@ -72,6 +73,7 @@ class KUZU_API ClientContext {
     friend class processor::TableFunctionCall;
     friend class parser::StandaloneCallRewriter;
     friend struct SpillToDiskSetting;
+    friend class main::EmbeddedShell;
 
 public:
     explicit ClientContext(Database* database);

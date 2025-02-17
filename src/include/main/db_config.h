@@ -24,9 +24,12 @@ struct Option {
     std::string name;
     common::LogicalTypeID parameterType;
     OptionType optionType;
+    bool isConfidential;
 
-    Option(std::string name, common::LogicalTypeID parameterType, OptionType optionType)
-        : name{std::move(name)}, parameterType{parameterType}, optionType{optionType} {}
+    Option(std::string name, common::LogicalTypeID parameterType, OptionType optionType,
+        bool isConfidential)
+        : name{std::move(name)}, parameterType{parameterType}, optionType{optionType},
+          isConfidential{isConfidential} {}
 
     virtual ~Option() = default;
 };
@@ -37,16 +40,17 @@ struct ConfigurationOption final : Option {
 
     ConfigurationOption(std::string name, common::LogicalTypeID parameterType,
         set_context setContext, get_setting getSetting)
-        : Option{std::move(name), parameterType, OptionType::CONFIGURATION}, setContext{setContext},
-          getSetting{getSetting} {}
+        : Option{std::move(name), parameterType, OptionType::CONFIGURATION,
+              false /* isConfidential */},
+          setContext{setContext}, getSetting{getSetting} {}
 };
 
 struct ExtensionOption final : Option {
     common::Value defaultValue;
 
     ExtensionOption(std::string name, common::LogicalTypeID parameterType,
-        common::Value defaultValue)
-        : Option{std::move(name), parameterType, OptionType::EXTENSION},
+        common::Value defaultValue, bool isConfidential)
+        : Option{std::move(name), parameterType, OptionType::EXTENSION, isConfidential},
           defaultValue{std::move(defaultValue)} {}
 };
 

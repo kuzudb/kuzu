@@ -107,7 +107,7 @@ public:
         std::unique_ptr<storage::StorageExtension> storageExtension);
 
     KUZU_API void addExtensionOption(std::string name, common::LogicalTypeID type,
-        common::Value defaultValue);
+        common::Value defaultValue, bool isConfidential = false);
 
     KUZU_API catalog::Catalog* getCatalog() { return catalog.get(); }
 
