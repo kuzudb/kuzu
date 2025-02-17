@@ -9,9 +9,12 @@ class TableCatalogEntry;
 } // namespace catalog
 
 namespace storage {
-class EmbeddingColumn;
 
 struct HNSWIndexUtils {
+
+    static double computeDistance(DistFuncType funcType, const float* left, const float* right,
+        uint32_t dimension);
+
     static void validateColumnType(const catalog::TableCatalogEntry& tableEntry,
         const std::string& columnName);
 
@@ -28,9 +31,6 @@ struct HNSWIndexUtils {
         auto& listChunk = embeddings.cast<ListChunkData>();
         return &listChunk.getDataColumnChunk()->getData<T>()[offset * dimension];
     }
-
-    static double computeDistance(DistFuncType funcType, const float* left, const float* right,
-        uint32_t dimension);
 
 private:
     static void validateColumnType(const common::LogicalType& type);

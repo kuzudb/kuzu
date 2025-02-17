@@ -64,6 +64,11 @@ struct VisitedState {
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
     void add(common::offset_t offset) { visited[offset] = 1; }
     bool contains(common::offset_t offset) const { return visited[offset]; }
+    bool set(common::offset_t offset) {
+        auto wasVisited = visited[offset];
+        visited[offset] = 1;
+        return wasVisited;
+    }
 };
 
 class HNSWIndex {
@@ -107,23 +112,18 @@ public:
     void setEntryPoint(common::offset_t offset) { entryPoint.store(offset); }
     common::offset_t getEntryPoint() const { return entryPoint.load(); }
 
-    void insert(transaction::Transaction* transaction, common::offset_t offset,
-        common::offset_t entryPoint_, VisitedState& visited);
-    common::offset_t searchNN(transaction::Transaction* transaction, common::offset_t node,
-        common::offset_t entryNode) const;
-    void shrink(transaction::Transaction* transaction);
-    void finalize(MemoryManager& mm,
+    void insert(common::offset_t offset, common::offset_t entryPoint_, VisitedState& visited);
+    common::offset_t searchNN(common::offset_t node, common::offset_t entryNode) const;
+    void finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
         const processor::PartitionerSharedState& partitionerSharedState) const;
 
 private:
-    std::vector<NodeWithDistance> searchKNN(transaction::Transaction* transaction,
-        const float* queryVector, common::offset_t entryNode, common::length_t k,
-        uint64_t configuredEf, VisitedState& visited) const;
-    static void shrinkForNode(transaction::Transaction* transaction, const InMemHNSWLayerInfo& info,
-        InMemHNSWGraph* graph, common::offset_t nodeOffset, common::length_t numNbrs);
+    std::vector<NodeWithDistance> searchKNN(const float* queryVector, common::offset_t entryNode,
+        common::length_t k, uint64_t configuredEf, VisitedState& visited) const;
+    static void shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGraph* graph,
+        common::offset_t nodeOffset, common::length_t numNbrs);
 
-    void insertRel(transaction::Transaction* transaction, common::offset_t srcNode,
-        common::offset_t dstNode);
+    void insertRel(common::offset_t srcNode, common::offset_t dstNode);
 
 private:
     std::atomic<common::offset_t> entryPoint;
@@ -145,10 +145,11 @@ public:
     common::offset_t getLowerEntryPoint() const override { return lowerLayer->getEntryPoint(); }
 
     // Note that the input is only `offset`, as we assume embeddings are already cached in memory.
-    void insert(common::offset_t offset, transaction::Transaction* transaction,
-        VisitedState& upperVisited, VisitedState& lowerVisited);
-    void shrink(transaction::Transaction* transaction);
-    void finalize(MemoryManager& mm, const HNSWIndexPartitionerSharedState& partitionerSharedState);
+    void insert(common::offset_t offset, VisitedState& upperVisited, VisitedState& lowerVisited);
+    void finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
+        const HNSWIndexPartitionerSharedState& partitionerSharedState);
+
+    void resetEmbeddings() { embeddings.reset(); }
 
 private:
     static constexpr int64_t INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND = 100;
