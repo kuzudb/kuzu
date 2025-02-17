@@ -34,13 +34,12 @@ public:
         const common::LogicalType& columnType);
 
     float* getEmbedding(common::offset_t offset) const;
-    ColumnChunkData& getData() const { return *data; }
 
     void initialize(main::ClientContext* context, NodeTable& table,
         common::column_id_t columnID) override;
 
 private:
-    std::unique_ptr<ColumnChunkData> data;
+    std::vector<std::unique_ptr<ColumnChunkData>> data;
 };
 
 struct NodeTableScanState;
