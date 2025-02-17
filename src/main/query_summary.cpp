@@ -31,5 +31,9 @@ bool QuerySummary::isExplain() const {
     return preparedSummary.statementType == StatementType::EXPLAIN;
 }
 
+common::StatementType QuerySummary::getStatementType() const {
+    return preparedSummary.statementType;
+}
+
 } // namespace main
 } // namespace kuzu

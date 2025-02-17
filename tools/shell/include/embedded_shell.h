@@ -71,6 +71,9 @@ private:
 
     void setComplete(const std::string& completeString);
 
+    void checkConfidentialStatement(const std::string& query, const QueryResult* queryResult,
+        std::string& input);
+
 private:
     std::shared_ptr<Database> database;
     std::shared_ptr<Connection> conn;

@@ -1,5 +1,7 @@
 #include "embedded_shell.h"
 
+#include "binder/visitor/confidential_statement_analyzer.h"
+
 #ifndef _WIN32
 #include <termios.h>
 #include <unistd.h>
@@ -14,11 +16,13 @@
 #include <regex>
 #include <sstream>
 
+#include "binder/binder.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/parser.h"
 #include "keywords.h"
+#include "parser/parser.h"
 #include "transaction/transaction.h"
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
@@ -475,6 +479,27 @@ std::string decodeEscapeSequences(const std::string& input) {
     return result;
 }
 
+void EmbeddedShell::checkConfidentialStatement(const std::string& query,
+    const QueryResult* queryResult, std::string& input) {
+    if (queryResult->isSuccess() && !database->getConfig().readOnly &&
+        queryResult->getQuerySummary()->getStatementType() ==
+            common::StatementType::STANDALONE_CALL) {
+        auto clientContext = conn->getClientContext();
+        auto parsedQueries = clientContext->parseQuery(query);
+        for (auto& parsedQuery : parsedQueries) {
+            clientContext->getTransactionContext()->beginWriteTransaction();
+            auto binder = binder::Binder(clientContext);
+            auto boundQuery = binder.bind(*parsedQuery);
+            auto boundStatementVisitor = binder::ConfidentialStatementAnalyzer{};
+            boundStatementVisitor.visit(*boundQuery);
+            if (boundStatementVisitor.isConfidential()) {
+                input = "";
+            }
+            clientContext->getTransactionContext()->commit();
+        }
+    }
+}
+
 std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::string input) {
     std::stringstream ss;
     std::vector<std::unique_ptr<QueryResult>> queryResults;
@@ -504,6 +529,7 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
         ss.str(unicodeInput);
         auto result = conn->query(unicodeInput);
         auto curr = result.get();
+        checkConfidentialStatement(unicodeInput, curr, input);
         while (true) {
             queryResults.push_back(std::move(result));
             if (!curr->getNextQueryResult()) {
@@ -511,6 +537,7 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
             }
             result = std::move(curr->nextQueryResult);
             curr = result.get();
+            checkConfidentialStatement(unicodeInput, curr, input);
         }
         // set up multiline query if current query doesn't end with a semicolon
     } else if (!input.empty() && input[0] != ':') {
