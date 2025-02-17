@@ -23,8 +23,8 @@ namespace function {
 CreateHNSWSharedState::CreateHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : TableFuncSharedState{bindData.maxOffset}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-                    ->getTable(bindData.tableEntry->getTableID())
-                    ->cast<storage::NodeTable>()},
+              ->getTable(bindData.tableEntry->getTableID())
+              ->cast<storage::NodeTable>()},
       numNodes{bindData.numNodes}, bindData{&bindData} {
     hnswIndex = std::make_unique<storage::InMemHNSWIndex>(bindData.context, nodeTable,
         bindData.tableEntry->getColumnID(bindData.propertyID), bindData.config.copy());
@@ -32,7 +32,7 @@ CreateHNSWSharedState::CreateHNSWSharedState(const CreateHNSWIndexBindData& bind
         *bindData.context->getMemoryManager());
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
+static std::unique_ptr<TableFuncBindData> internalBindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
     const auto indexName = input->getLiteralVal<std::string>(0);
     const auto tableName = input->getLiteralVal<std::string>(1);
@@ -48,6 +48,12 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto maxOffset = numNodes > 0 ? numNodes - 1 : 0;
     return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, propertyID,
         numNodes, maxOffset, std::move(config));
+}
+
+static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
+    const TableFuncBindInput* input) {
+    storage::IndexUtils::validateAutoTransaction(*context, CreateHNSWIndexFunction::name);
+    return internalBindFunc(context, input);
 }
 
 static std::unique_ptr<TableFuncSharedState> initCreateHNSWSharedState(
@@ -235,7 +241,7 @@ function_set InternalCreateHNSWIndexFunction::getFunctionSet() {
     std::vector inputTypes = {LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING};
     auto func = std::make_unique<TableFunction>(name, inputTypes);
     func->tableFunc = tableFunc;
-    func->bindFunc = bindFunc;
+    func->bindFunc = internalBindFunc;
     func->initSharedStateFunc = initCreateHNSWSharedState;
     func->initLocalStateFunc = initCreateHNSWLocalState;
     func->progressFunc = progressFunc;
