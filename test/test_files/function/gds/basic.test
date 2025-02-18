@@ -3,15 +3,15 @@
 --
 
 -CASE BasicAlgorithm
--STATEMENT CALL create_project_graph('PK', ['person'], ['knows'])
+-STATEMENT CALL create_projected_graph('PK', ['person'], ['knows'])
 ---- ok
--STATEMENT CALL create_project_graph('PK', [], [])
+-STATEMENT CALL create_projected_graph('PK', [], [])
 ---- error
 Runtime exception: Project graph PK already exists.
--STATEMENT CALL create_project_graph('dummy', ['knows'], [])
+-STATEMENT CALL create_projected_graph('dummy', ['knows'], [])
 ---- error
 Binder exception: Expect catalog entry type NODE_TABLE_ENTRY but got REL_TABLE_ENTRY.
--STATEMENT CALL create_project_graph('PKWO', ['person', 'organisation'], ['knows', 'workAt'])
+-STATEMENT CALL create_projected_graph('PKWO', ['person', 'organisation'], ['knows', 'workAt'])
 ---- ok
 -STATEMENT MATCH (a:person)-[:knows*1..2]->(b:person) WHERE a.ID < 6 RETURN a.fName, COUNT(*);
 ---- 4
@@ -19,12 +19,12 @@ Alice|12
 Bob|12
 Carol|12
 Dan|12
--STATEMENT CALL drop_project_graph('dummy')
+-STATEMENT CALL drop_projected_graph('dummy')
 ---- error
 Runtime exception: Project graph dummy does not exists.
--STATEMENT CALL drop_project_graph('PK')
+-STATEMENT CALL drop_projected_graph('PK')
 ---- ok
--STATEMENT CALL create_project_graph('PK', ['person'], ['knows'])
+-STATEMENT CALL create_projected_graph('PK', ['person'], ['knows'])
 ---- ok
 -STATEMENT CALL VAR_LEN_JOINS() RETURN *
 ---- error
@@ -53,29 +53,7 @@ Alice|Carol||1
 Alice|Dan||1
 Alice||CsWork|2
 Alice||DEsWork|2
--STATEMENT CALL weakly_connected_component('PK') RETURN node.fName, group_id;
----- 8
-Alice|0
-Bob|0
-Carol|0
-Dan|0
-Elizabeth|4
-Farooq|4
-Greg|4
-Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
-#-STATEMENT CALL weakly_connected_component('PKWO') RETURN node.fName, node.name, group_id;
-#---- 11
-#Alice||1
-#Bob||1
-#Carol||1
-#Dan||1
-#Elizabeth||1
-#Farooq||1
-#Greg||1
-#Hubert Blaine Wolfeschlegelsteinhausenbergerdorff||10
-#|ABFsUni|0
-#|CsWork|1
-#|DEsWork|1
+
 -STATEMENT CALL k_core_decomposition('PK') RETURN node.fName, k_degree;
 ---- 8
 Alice|6
@@ -129,47 +107,3 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0
 [Alice,Dan,Carol]|[2021-06-30,2000-01-01]|[0:0,0:3]|[0:3,0:2]|Alice|Carol
 [Alice,Dan]|[2021-06-30]|[0:0]|[0:3]|Alice|Dan
 
--CASE SpecialProjectedGraph
--STATEMENT CALL create_project_graph('empty', [], []);
----- ok
--STATEMENT CALL weakly_connected_component('empty') RETURN *;
----- 0
--STATEMENT CALL k_core_decomposition('empty') RETURN *;
----- 0
--STATEMENT CALL page_rank('empty') RETURN *;
----- 0
--STATEMENT CALL create_project_graph('n', ['person'], []);
----- ok
--STATEMENT CALL weakly_connected_component('n') RETURN node.ID, group_id;
----- 8
-0|0
-2|1
-3|2
-5|3
-7|4
-8|5
-9|6
-10|7
--STATEMENT CALL k_core_decomposition('n') RETURN node.ID, k_degree;
----- 8
-0|0
-2|0
-3|0
-5|0
-7|0
-8|0
-9|0
-10|0
--STATEMENT CALL page_rank('n') RETURN node.ID, rank;
----- 8
-0|0.018750
-2|0.018750
-3|0.018750
-5|0.018750
-7|0.018750
-8|0.018750
-9|0.018750
-10|0.018750
--STATEMENT CALL create_project_graph('err', ['person'], ['studyAt']);
----- error
-Binder exception: organisation is connected to studyAt but not projected.

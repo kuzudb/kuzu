@@ -259,14 +259,14 @@ struct ShowFunctionsFunction final {
     static function_set getFunctionSet();
 };
 
-struct CreateProjectGraphFunction final {
-    static constexpr const char* name = "CREATE_PROJECT_GRAPH";
+struct CreateProjectedGraphFunction final {
+    static constexpr const char* name = "CREATE_PROJECTED_GRAPH";
 
     static function_set getFunctionSet();
 };
 
-struct DropProjectGraphFunction final {
-    static constexpr const char* name = "DROP_PROJECT_GRAPH";
+struct DropProjectedGraphFunction final {
+    static constexpr const char* name = "DROP_PROJECTED_GRAPH";
 
     static function_set getFunctionSet();
 };

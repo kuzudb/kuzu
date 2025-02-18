@@ -3,7 +3,7 @@
 --
 
 -CASE PageRank1
--STATEMENT CALL create_project_graph('PK', ['person'], ['knows'])
+-STATEMENT CALL create_projected_graph('PK', ['person'], ['knows'])
 ---- ok
 -STATEMENT CALL page_rank('PK') RETURN node.fName, rank;
 ---- 8
