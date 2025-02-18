@@ -133,7 +133,7 @@ public:
     void setUseInternalCatalogEntry(bool useInternalCatalogEntry) {
         this->useInternalCatalogEntry_ = useInternalCatalogEntry;
     }
-    bool useInternalCatalogEntry() const { return true; }
+    bool useInternalCatalogEntry() const { return useInternalCatalogEntry_; }
 
     void addScalarFunction(std::string name, function::function_set definitions);
     void removeScalarFunction(const std::string& name);

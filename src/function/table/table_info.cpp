@@ -83,7 +83,7 @@ struct TableInfoBindData final : TableFuncBindData {
     }
 };
 
-static offset_t internalCreateInMemHNSWTableFunc(const TableFuncInput& input, TableFuncOutput& output) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
     auto sharedState = input.sharedState->ptrCast<TableFuncSharedState>();
     auto morsel = sharedState->getMorsel();
@@ -227,7 +227,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
 function_set TableInfoFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
-    function->tableFunc = internalCreateInMemHNSWTableFunc;
+    function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = TableFunction::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;

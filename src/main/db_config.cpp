@@ -10,7 +10,7 @@ namespace kuzu {
 namespace main {
 
 #define GET_CONFIGURATION(_PARAM)                                                                  \
-    { _PARAM::name, _PARAM::inputType, _PARAM::setContext, _PARAM::getSetting }
+    {_PARAM::name, _PARAM::inputType, _PARAM::setContext, _PARAM::getSetting}
 
 static ConfigurationOption options[] = { // NOLINT(cert-err58-cpp):
     GET_CONFIGURATION(ThreadsSetting), GET_CONFIGURATION(TimeoutSetting),
@@ -22,7 +22,8 @@ static ConfigurationOption options[] = { // NOLINT(cert-err58-cpp):
     GET_CONFIGURATION(RecursivePatternFactorSetting), GET_CONFIGURATION(EnableMVCCSetting),
     GET_CONFIGURATION(CheckpointThresholdSetting), GET_CONFIGURATION(AutoCheckpointSetting),
     GET_CONFIGURATION(ForceCheckpointClosingDBSetting), GET_CONFIGURATION(SpillToDiskSetting),
-    GET_CONFIGURATION(EnableGDSSetting), GET_CONFIGURATION(EnableOptimizerSetting)};
+    GET_CONFIGURATION(EnableGDSSetting), GET_CONFIGURATION(EnableOptimizerSetting),
+    GET_CONFIGURATION(EnableInternalCatalogSetting)};
 
 DBConfig::DBConfig(const SystemConfig& systemConfig)
     : bufferPoolSize{systemConfig.bufferPoolSize}, maxNumThreads{systemConfig.maxNumThreads},

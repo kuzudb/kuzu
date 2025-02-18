@@ -28,7 +28,7 @@ struct CreateProjectGraphBindData final : TableFuncBindData {
     }
 };
 
-static offset_t internalCreateInMemHNSWTableFunc(const TableFuncInput& input, TableFuncOutput&) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto bindData = ku_dynamic_cast<CreateProjectGraphBindData*>(input.bindData);
     auto& graphEntrySet = input.context->clientContext->getGraphEntrySetUnsafe();
     if (graphEntrySet.hasGraph(bindData->graphName)) {
@@ -80,7 +80,7 @@ function_set CreateProjectGraphFunction::getFunctionSet() {
     auto func = std::make_unique<TableFunction>(name,
         std::vector{LogicalTypeID::STRING, LogicalTypeID::LIST, LogicalTypeID::LIST});
     func->bindFunc = bindFunc;
-    func->tableFunc = internalCreateInMemHNSWTableFunc;
+    func->tableFunc = tableFunc;
     func->initSharedStateFunc = TableFunction::initSharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->canParallelFunc = []() { return false; };

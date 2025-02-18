@@ -8,7 +8,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static offset_t internalCreateInMemHNSWTableFunc(const TableFuncInput& input, TableFuncOutput&) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     input.context->clientContext->getWarningContextUnsafe().clearPopulatedWarnings();
     return 0;
 }
@@ -21,7 +21,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext*,
 function_set ClearWarningsFunction::getFunctionSet() {
     function_set functionSet;
     auto func = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
-    func->tableFunc = internalCreateInMemHNSWTableFunc;
+    func->tableFunc = tableFunc;
     func->bindFunc = bindFunc;
     func->initSharedStateFunc = TableFunction::initSharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
