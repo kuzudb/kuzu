@@ -181,20 +181,21 @@ void InMemHNSWLayer::shrinkForNode(transaction::Transaction* transaction,
     graph->setCSRLength(nodeOffset, newSize);
 }
 
-// NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
-void InMemHNSWLayer::shrink(transaction::Transaction* transaction) {
-    for (auto i = 0u; i < info.numNodes; i++) {
-        const auto numNbrs = graph->getCSRLength(i);
+void InMemHNSWLayer::finalize(transaction::Transaction* transaction, MemoryManager& mm,
+    common::node_group_idx_t nodeGroupIdx,
+    const processor::PartitionerSharedState& partitionerSharedState) const {
+    const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+    const auto numNodesInGroup =
+        std::min(common::StorageConfig::NODE_GROUP_SIZE, info.numNodes - startNodeOffset);
+    for (auto i = 0u; i < numNodesInGroup; i++) {
+        auto nodeOffset = startNodeOffset + i;
+        const auto numNbrs = graph->getCSRLength(nodeOffset);
         if (numNbrs <= info.maxDegree) {
             continue;
         }
-        shrinkForNode(transaction, info, graph.get(), i, numNbrs);
+        shrinkForNode(transaction, info, graph.get(), nodeOffset, numNbrs);
     }
-}
-
-void InMemHNSWLayer::finalize(MemoryManager& mm,
-    const processor::PartitionerSharedState& partitionerSharedState) const {
-    graph->finalize(mm, partitionerSharedState);
+    graph->finalize(mm, nodeGroupIdx, partitionerSharedState);
 }
 
 std::vector<NodeWithDistance> HNSWIndex::popTopK(max_node_priority_queue_t& result,
@@ -249,16 +250,13 @@ void InMemHNSWIndex::insert(common::offset_t offset, transaction::Transaction* t
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
-void InMemHNSWIndex::shrink(transaction::Transaction* transaction) {
-    upperLayer->shrink(transaction);
-    lowerLayer->shrink(transaction);
-}
-
-// NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
-void InMemHNSWIndex::finalize(MemoryManager& mm,
+void InMemHNSWIndex::finalize(transaction::Transaction* transaction, MemoryManager& mm,
+    common::node_group_idx_t nodeGroupIdx,
     const HNSWIndexPartitionerSharedState& partitionerSharedState) {
-    upperLayer->finalize(mm, *partitionerSharedState.upperPartitionerSharedState);
-    lowerLayer->finalize(mm, *partitionerSharedState.lowerPartitionerSharedState);
+    upperLayer->finalize(transaction, mm, nodeGroupIdx,
+        *partitionerSharedState.upperPartitionerSharedState);
+    lowerLayer->finalize(transaction, mm, nodeGroupIdx,
+        *partitionerSharedState.lowerPartitionerSharedState);
 }
 
 OnDiskHNSWIndex::OnDiskHNSWIndex(main::ClientContext* context,

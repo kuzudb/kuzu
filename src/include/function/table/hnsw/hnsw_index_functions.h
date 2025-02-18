@@ -31,13 +31,12 @@ struct CreateHNSWIndexBindData final : TableFuncBindData {
 
 struct CreateHNSWSharedState final : TableFuncSharedState {
     std::string name;
-    std::unique_ptr<storage::InMemHNSWIndex> hnswIndex;
+    std::shared_ptr<storage::InMemHNSWIndex> hnswIndex;
     storage::NodeTable& nodeTable;
     common::offset_t numNodes;
     std::atomic<common::offset_t> numNodesInserted = 0;
 
     const CreateHNSWIndexBindData* bindData;
-    std::shared_ptr<storage::HNSWIndexPartitionerSharedState> partitionerSharedState;
 
     explicit CreateHNSWSharedState(const CreateHNSWIndexBindData& bindData);
 };
@@ -48,6 +47,18 @@ struct CreateHNSWLocalState final : TableFuncLocalState {
 
     explicit CreateHNSWLocalState(common::offset_t numNodes)
         : upperVisited{numNodes}, lowerVisited{numNodes} {}
+};
+
+struct FinalizeHNSWSharedState final : TableFuncSharedState {
+    std::shared_ptr<storage::InMemHNSWIndex> hnswIndex;
+    std::shared_ptr<storage::HNSWIndexPartitionerSharedState> partitionerSharedState;
+    std::unique_ptr<TableFuncBindData> bindData;
+
+    std::atomic<common::node_group_idx_t> numNodeGroupsFinalized = 0;
+
+    explicit FinalizeHNSWSharedState(storage::MemoryManager& mm) {
+        partitionerSharedState = std::make_shared<storage::HNSWIndexPartitionerSharedState>(mm);
+    }
 };
 
 struct BoundQueryHNSWIndexInput {
@@ -101,6 +112,12 @@ struct QueryHNSWLocalState final : TableFuncLocalState {
 
 struct InternalCreateHNSWIndexFunction final {
     static constexpr const char* name = "_CREATE_HNSW_INDEX";
+
+    static function_set getFunctionSet();
+};
+
+struct InternalFinalizeHNSWIndexFunction final {
+    static constexpr const char* name = "_FINALIZE_HNSW_INDEX";
 
     static function_set getFunctionSet();
 };

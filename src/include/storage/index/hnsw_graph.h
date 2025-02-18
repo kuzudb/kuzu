@@ -119,14 +119,14 @@ public:
         dstNodes[csrOffset].store(dstNode, std::memory_order_relaxed);
     }
 
-    void finalize(MemoryManager& mm,
+    void finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
         const processor::PartitionerSharedState& partitionerSharedState);
 
 private:
     void resetCSRLengthAndDstNodes();
 
     void finalizeNodeGroup(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
-        common::table_id_t srcNodeTableID, common::table_id_t dstNodeTableID,
+        uint64_t numRels, common::table_id_t srcNodeTableID, common::table_id_t dstNodeTableID,
         common::table_id_t relTableID, InMemChunkedNodeGroupCollection& partition) const;
 
     common::offset_t getDstNode(common::offset_t csrOffset) const {
@@ -141,8 +141,6 @@ private:
     std::atomic<common::offset_t>* dstNodes;
     // Max allowed degree of a node in the graph before shrinking.
     common::length_t maxDegree;
-
-    std::vector<common::length_t> numRelsPerNodeGroup;
 };
 
 } // namespace storage

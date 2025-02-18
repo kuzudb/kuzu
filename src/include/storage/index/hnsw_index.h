@@ -111,8 +111,8 @@ public:
         common::offset_t entryPoint_, VisitedState& visited);
     common::offset_t searchNN(transaction::Transaction* transaction, common::offset_t node,
         common::offset_t entryNode) const;
-    void shrink(transaction::Transaction* transaction);
-    void finalize(MemoryManager& mm,
+    void finalize(transaction::Transaction* transaction, MemoryManager& mm,
+        common::node_group_idx_t nodeGroupIdx,
         const processor::PartitionerSharedState& partitionerSharedState) const;
 
 private:
@@ -147,8 +147,9 @@ public:
     // Note that the input is only `offset`, as we assume embeddings are already cached in memory.
     void insert(common::offset_t offset, transaction::Transaction* transaction,
         VisitedState& upperVisited, VisitedState& lowerVisited);
-    void shrink(transaction::Transaction* transaction);
-    void finalize(MemoryManager& mm, const HNSWIndexPartitionerSharedState& partitionerSharedState);
+    void finalize(transaction::Transaction* transaction, MemoryManager& mm,
+        common::node_group_idx_t nodeGroupIdx,
+        const HNSWIndexPartitionerSharedState& partitionerSharedState);
 
 private:
     static constexpr int64_t INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND = 100;

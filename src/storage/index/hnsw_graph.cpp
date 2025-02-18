@@ -87,32 +87,27 @@ float* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
     return reinterpret_cast<float*>(dataVector->getData()) + value.offset;
 }
 
-void InMemHNSWGraph::finalize(MemoryManager& mm,
+// NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
+void InMemHNSWGraph::finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
     const processor::PartitionerSharedState& partitionerSharedState) {
     const auto& partitionBuffers = partitionerSharedState.partitioningBuffers[0]->partitions;
-    const auto numNodeGroups = (numNodes + common::StorageConfig::NODE_GROUP_SIZE - 1) /
-                               common::StorageConfig::NODE_GROUP_SIZE;
-    KU_ASSERT(numNodeGroups == partitionerSharedState.numPartitions[0]);
-    numRelsPerNodeGroup.resize(numNodeGroups);
-    for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
-        auto numRels = 0u;
-        const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-        const auto numNodesInGroup =
-            std::min(common::StorageConfig::NODE_GROUP_SIZE, numNodes - startNodeOffset);
-        for (auto i = 0u; i < numNodesInGroup; i++) {
-            numRels += getCSRLength(startNodeOffset + i);
-        }
-        numRelsPerNodeGroup[nodeGroupIdx] = numRels;
+    // const auto numNodeGroups = (numNodes + common::StorageConfig::NODE_GROUP_SIZE - 1) /
+    // common::StorageConfig::NODE_GROUP_SIZE;
+    // KU_ASSERT(numNodeGroups == partitionerSharedState.numPartitions[0]);
+    auto numRels = 0u;
+    const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+    const auto numNodesInGroup =
+        std::min(common::StorageConfig::NODE_GROUP_SIZE, numNodes - startNodeOffset);
+    for (auto i = 0u; i < numNodesInGroup; i++) {
+        numRels += getCSRLength(startNodeOffset + i);
     }
-    for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
-        finalizeNodeGroup(mm, nodeGroupIdx, partitionerSharedState.srcNodeTable->getTableID(),
-            partitionerSharedState.dstNodeTable->getTableID(),
-            partitionerSharedState.relTable->getTableID(), *partitionBuffers[nodeGroupIdx]);
-    }
+    finalizeNodeGroup(mm, nodeGroupIdx, numRels, partitionerSharedState.srcNodeTable->getTableID(),
+        partitionerSharedState.dstNodeTable->getTableID(),
+        partitionerSharedState.relTable->getTableID(), *partitionBuffers[nodeGroupIdx]);
 }
 
 void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
-    common::table_id_t srcNodeTableID, common::table_id_t dstNodeTableID,
+    uint64_t numRels, common::table_id_t srcNodeTableID, common::table_id_t dstNodeTableID,
     common::table_id_t relTableID, InMemChunkedNodeGroupCollection& partition) const {
     const auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     const auto numNodesInGroup =
@@ -122,10 +117,8 @@ void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, common::node_group_idx
     columnTypes.push_back(common::LogicalType::INTERNAL_ID());
     columnTypes.push_back(common::LogicalType::INTERNAL_ID());
     columnTypes.push_back(common::LogicalType::INTERNAL_ID());
-    auto numRelsInGroup = numRelsPerNodeGroup[nodeGroupIdx];
-    auto chunkedNodeGroup =
-        std::make_unique<ChunkedNodeGroup>(mm, columnTypes, false /* enableCompression */,
-            numRelsInGroup, 0 /* startRowIdx */, ResidencyState::IN_MEMORY);
+    auto chunkedNodeGroup = std::make_unique<ChunkedNodeGroup>(mm, columnTypes,
+        false /* enableCompression */, numRels, 0 /* startRowIdx */, ResidencyState::IN_MEMORY);
 
     auto currNumRels = 0u;
     auto& boundColumnChunk = chunkedNodeGroup->getColumnChunk(0).getData();
