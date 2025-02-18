@@ -3,7 +3,8 @@
 --
 
 -CASE AggHash
-
+# If node group size is too small the order of the collected list is non-deterministic
+-SKIP_NODE_GROUP_SIZE_TESTS
 -STATEMENT MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) WHERE b.ID > 3 WITH a.fName AS n, COLLECT(b) AS b_list RETURN n, size(b_list)
 ---- 8
 Alice|1
@@ -529,6 +530,8 @@ True|2
 2 years 3 days|2
 
 -CASE StructHashTest
+# If node group size is too small the order of the collected list is non-deterministic
+-SKIP_NODE_GROUP_SIZE_TESTS
 -STATEMENT CREATE (:organisation {ID: 17, state: {'revenue': 55, 'location': ["'toronto'"], 'stock': {'price': [22, 33], 'volume': 28}}})
 ---- ok
 -STATEMENT CREATE (:organisation {ID: 25, state: {'revenue': 138, 'location': ["'toronto'", "'montr,eal'"], 'stock': {'price': [96, 56], 'volume': 1000}}})

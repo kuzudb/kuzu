@@ -192,6 +192,8 @@ ${test_long_string}
 
 
 -CASE SetFlatUnFlatTest
+# The output of this test depends on which rel was processed last which can be affected by node group size
+-SKIP_NODE_GROUP_SIZE_TESTS
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.ID=0 SET a.age=b.age
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID < 4 RETURN a.ID, a.age
