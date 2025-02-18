@@ -6,6 +6,7 @@
 #include "function/table/table_function.h"
 #include "graph/graph_entry.h"
 #include "processor/execution_context.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -54,32 +55,52 @@ static std::vector<std::string> getAsStringVector(const Value& value) {
     return result;
 }
 
-static std::vector<TableCatalogEntry*> getTableEntries(const std::vector<std::string>& tableNames,
-    CatalogEntryType expectedType, const main::ClientContext& context) {
-    std::vector<TableCatalogEntry*> entries;
-    for (auto& tableName : tableNames) {
-        auto entry = context.getCatalog()->getTableCatalogEntry(context.getTransaction(), tableName,
-            false /* useInternal */);
-        if (entry->getType() != expectedType) {
-            throw BinderException(stringFormat("Expect catalog entry type {} but got {}.",
-                CatalogEntryTypeUtils::toString(expectedType),
-                CatalogEntryTypeUtils::toString(entry->getType())));
-        }
-        entries.push_back(entry);
+static void validateEntryType(const TableCatalogEntry& entry, CatalogEntryType type) {
+    if (entry.getType() != type) {
+        throw BinderException(stringFormat("Expect catalog entry type {} but got {}.",
+            CatalogEntryTypeUtils::toString(type),
+            CatalogEntryTypeUtils::toString(entry.getType())));
     }
-    return entries;
+}
+
+static void validateNodeProjected(table_id_t tableID, const table_id_set_t& projectedNodeIDSet, const std::string& relName, Catalog* catalog, transaction::Transaction* transaction) {
+    if (projectedNodeIDSet.contains(tableID)) {
+        return;
+    }
+    auto entryName = catalog->getTableCatalogEntry(transaction, tableID)->getName();
+    throw BinderException(stringFormat("{} is connected to {} but not projected.", entryName, relName));
+}
+
+static void validateRelSrcDstNodeAreProjected(const TableCatalogEntry& entry, const table_id_set_t& projectedNodeIDSet, Catalog* catalog, transaction::Transaction* transaction) {
+    auto& relEntry = entry.constCast<RelTableCatalogEntry>();
+    validateNodeProjected(relEntry.getSrcTableID(), projectedNodeIDSet, entry.getName(), catalog, transaction);
+    validateNodeProjected(relEntry.getDstTableID(), projectedNodeIDSet, entry.getName(), catalog, transaction);
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* context,
     const TableFuncBindInput* input) {
+    auto catalog = context->getCatalog();
+    auto transaction = context->getTransaction();
     auto graphName = input->getLiteralVal<std::string>(0);
     auto arg2 = input->getValue(1);
     auto arg3 = input->getValue(2);
     const auto nodeTableNames = getAsStringVector(arg2);
     const auto relTableNames = getAsStringVector(arg3);
-    auto nodeEntries =
-        getTableEntries(nodeTableNames, CatalogEntryType::NODE_TABLE_ENTRY, *context);
-    auto relEntries = getTableEntries(relTableNames, CatalogEntryType::REL_TABLE_ENTRY, *context);
+    std::vector<TableCatalogEntry*> nodeEntries;
+    common::table_id_set_t nodeTableIDSet;
+    for (auto& name : nodeTableNames) {
+        auto entry = catalog->getTableCatalogEntry(transaction, name, false /* useInternal */);
+        validateEntryType(*entry, CatalogEntryType::NODE_TABLE_ENTRY);
+        nodeEntries.push_back(entry);
+        nodeTableIDSet.insert(entry->getTableID());
+    }
+    std::vector<TableCatalogEntry*> relEntries;
+    for (auto& name : relTableNames) {
+        auto entry = catalog->getTableCatalogEntry(transaction, name, false /* useInternal */);
+        validateEntryType(*entry, CatalogEntryType::REL_TABLE_ENTRY);
+        validateRelSrcDstNodeAreProjected(*entry, nodeTableIDSet, catalog, transaction);
+        relEntries.push_back(entry);
+    }
     return std::make_unique<CreateProjectGraphBindData>(graphName, nodeEntries, relEntries);
 }
 

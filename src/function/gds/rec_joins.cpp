@@ -46,8 +46,10 @@ PathsOutputWriterInfo RJBindData::getPathWriterInfo() const {
 }
 
 void RJAlgorithm::bind(const kuzu::function::GDSBindInput&, main::ClientContext&) {
+    // LCOV_EXCL_START
     throw common::BinderException("Recursive join should not be triggered through function calls. "
                                   "Try cypher patter ()-[*]->() instead.");
+    // LCOV_EXCL_STOP
 }
 
 void RJAlgorithm::setToNoPath() {
