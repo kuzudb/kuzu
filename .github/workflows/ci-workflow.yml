@@ -564,6 +564,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
       RUN_ID: "$(hostname)-$(date +%s)"
       HTTP_CACHE_FILE: TRUE
+      BUFFER_POOL_SIZE: 1073741824
     steps:
       - uses: actions/checkout@v4
 

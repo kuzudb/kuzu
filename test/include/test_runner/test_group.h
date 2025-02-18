@@ -76,7 +76,7 @@ struct TestGroup {
     std::unordered_map<std::string, std::vector<std::unique_ptr<TestStatement>>> testCases;
     std::unordered_map<std::string, std::vector<std::unique_ptr<TestStatement>>>
         testCasesStatementBlocks;
-    uint64_t bufferPoolSize = common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING;
+    std::optional<uint64_t> bufferPoolSize;
     // for multiple connections
     uint64_t checkpointWaitTimeout = common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_IN_MICROS;
     std::unordered_map<std::string, std::set<std::string>> testCasesConnNames;

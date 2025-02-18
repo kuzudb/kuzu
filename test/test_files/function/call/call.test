@@ -222,6 +222,8 @@ height
 2:2|UNION(firstmet DATE, type INT16, comment STRING)
 
 -CASE CallNodeTableWith300ColumnsInfo
+# Node group size tests run with different buffer pool size
+-SKIP_NODE_GROUP_SIZE_TESTS
 -DEFINE COLS REPEAT 2400 "col${count} INT64,"
 
 -STATEMENT CREATE NODE TABLE person1(${COLS} PRIMARY KEY(col1));
