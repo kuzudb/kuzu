@@ -34,7 +34,7 @@ private:
     std::vector<std::string> tokens;
 };
 
-std::vector<std::string> readQueriesFromFile(const std::string &filePath, int efSearch, int maxK, bool useQ, bool useKnn) {
+std::vector<std::string> readQueriesFromFile(const std::string &filePath, int efSearch, int maxK, bool useQ, bool useKnn, std::string &searchType) {
     std::ifstream inputFile(filePath);
     std::vector<std::string> queries;
 
@@ -74,6 +74,11 @@ std::vector<std::string> readQueriesFromFile(const std::string &filePath, int ef
             }
         }
 
+        // Replace <searchType> with the value of searchType
+        while ((pos = line.find("<searchType>")) != std::string::npos) {
+            line.replace(pos, 12, "'" + searchType + "'");
+        }
+
         queries.push_back(line); // Push the modified line as a query
     }
 
@@ -100,6 +105,7 @@ int main(int argc, char **argv) {
     bool useQ = (bool) stoi(input.getCmdOption("-useQ"));
     bool useKnn = (bool) stoi(input.getCmdOption("-useKnn"));
     auto maxNumThreadsStr = input.getCmdOption("-maxNumThreads");
+    std::string searchTypeStr = input.getCmdOption("-searchType");
     int maxNumThreads = 32;
     if (!maxNumThreadsStr.empty()) {
         maxNumThreads = stoi(maxNumThreadsStr);
@@ -115,7 +121,7 @@ int main(int argc, char **argv) {
 
     for (auto &queriesPath: testQueries) {
         printf("Running queries from: %s\n", queriesPath.c_str());
-        auto queries = readQueriesFromFile(queriesPath, efSearch, maxK, useQ, useKnn);
+        auto queries = readQueriesFromFile(queriesPath, efSearch, maxK, useQ, useKnn, searchTypeStr);
         auto queryNumVectors = queries.size();
         if (nQueries < queryNumVectors) {
             queryNumVectors = nQueries;
