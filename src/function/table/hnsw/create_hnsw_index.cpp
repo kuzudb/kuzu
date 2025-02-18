@@ -102,7 +102,6 @@ static void finalizeFunc(const processor::ExecutionContext* context,
                 storage::HNSWIndexUtils::getLowerGraphTableName(bindData->indexName))
             ->getTableID();
     auto auxInfo = std::make_unique<catalog::HNSWIndexAuxInfo>(upperRelTableID, lowerRelTableID,
-
         index->getUpperEntryPoint(), index->getLowerEntryPoint(), bindData->config.copy());
     auto indexEntry = std::make_unique<catalog::IndexCatalogEntry>(
         catalog::HNSWIndexCatalogEntry::TYPE_NAME, bindData->tableEntry->getTableID(),
