@@ -14,7 +14,7 @@ namespace testing {
 class CSVConverter {
 public:
     explicit CSVConverter(std::string csvDatasetPath, std::string outputDatasetPath,
-        uint64_t bufferPoolSize, std::string outputFileExtension)
+        std::optional<uint64_t> bufferPoolSize, std::string outputFileExtension)
         : csvDatasetPath{csvDatasetPath}, outputDatasetPath{outputDatasetPath},
           bufferPoolSize{bufferPoolSize}, fileExtension{outputFileExtension} {}
 
@@ -54,7 +54,7 @@ private:
     std::string outputDatasetPath;
     std::vector<std::shared_ptr<TableInfo>> tables;
     std::unordered_map<std::string, std::shared_ptr<TableInfo>> tableNameMap;
-    uint64_t bufferPoolSize;
+    std::optional<uint64_t> bufferPoolSize;
     std::string fileExtension;
     std::unique_ptr<main::SystemConfig> systemConfig;
     std::unique_ptr<main::Database> tempDb;

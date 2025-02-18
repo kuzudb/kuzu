@@ -9,8 +9,6 @@ class ApiTest : public BaseGraphTest {
 public:
     void SetUp() override {
         BaseGraphTest::SetUp();
-        systemConfig->bufferPoolSize =
-            common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING;
         createDBAndConn();
         initGraph();
     }
