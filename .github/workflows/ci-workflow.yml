@@ -593,9 +593,9 @@ jobs:
       - name: Test
         run: |
           if [ ${{ matrix.node_group_size_log2 }} -ge 11 ]; then
-            make test VECTOR_CAPACITY_LOG2=11 NODE_GROUP_SIZE_LOG2=${{ matrix.page_size_log2 }}
+            make test VECTOR_CAPACITY_LOG2=11 NODE_GROUP_SIZE_LOG2=${{ matrix.node_group_size_log2 }}
           else
-            make test VECTOR_CAPACITY_LOG2=${{ matrix.node_group_size_log2 }} NODE_GROUP_SIZE_LOG2=${{ matrix.page_size_log2 }}
+            make test VECTOR_CAPACITY_LOG2=${{ matrix.node_group_size_log2 }} NODE_GROUP_SIZE_LOG2=${{ matrix.node_group_size_log2 }}
           fi
 
   msvc-build-test:
