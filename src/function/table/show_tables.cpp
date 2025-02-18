@@ -76,7 +76,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     auto transaction = context->getTransaction();
     if (!context->hasDefaultDatabase()) {
         auto catalog = context->getCatalog();
-        for (auto& entry : catalog->getTableEntries(transaction)) {
+        for (auto& entry :
+            catalog->getTableEntries(transaction, context->useInternalCatalogEntry())) {
             if (entry->getType() == CatalogEntryType::REL_TABLE_ENTRY &&
                 entry->constCast<RelTableCatalogEntry>().hasParentRelGroup(catalog, transaction)) {
                 continue;
@@ -95,8 +96,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     for (auto attachedDatabase : databaseManager->getAttachedDatabases()) {
         auto databaseName = attachedDatabase->getDBName();
         auto databaseType = attachedDatabase->getDBType();
-        for (auto& entry :
-            attachedDatabase->getCatalog()->getTableEntries(context->getTransaction())) {
+        for (auto& entry : attachedDatabase->getCatalog()->getTableEntries(
+                 context->getTransaction(), context->useInternalCatalogEntry())) {
             auto tableInfo = TableInfo{entry->getName(), entry->getTableID(),
                 TableTypeUtils::toString(entry->getTableType()),
                 stringFormat("{}({})", databaseName, databaseType), entry->getComment()};
