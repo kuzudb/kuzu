@@ -283,7 +283,7 @@ public:
         frontierPair->setActiveNodesForNextIter();
         frontierPair->getNextSparseFrontier().disable();
         auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr,
-            sharedState->getOutputNodeMaskMap());
+            std::vector<common::table_id_set_t>(), sharedState->getOutputNodeMaskMap());
         auto pNextUpdateConstant = (1 - pageRankBindData->dampingFactor) * ((double)1 / numNodes);
         while (currentIter < pageRankBindData->maxIteration) {
             computeState.edgeCompute =

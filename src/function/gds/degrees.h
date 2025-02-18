@@ -72,7 +72,7 @@ struct DegreesUtils {
         auto ec = std::make_unique<DegreeEdgeCompute>(degrees);
         auto auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
         auto computeState = GDSComputeState(std::move(frontierPair), std::move(ec),
-            std::move(auxiliaryState), nullptr);
+            std::move(auxiliaryState), {}, nullptr);
         GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, direction,
             1 /* maxIters */);
     }

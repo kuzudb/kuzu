@@ -17,3 +17,7 @@ add_library(kuzu_main
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_main>
         PARENT_SCOPE)
+
+
+add_executable(wq_test main.cpp)
+target_link_libraries(wq_test kuzu)
