@@ -48,7 +48,7 @@ void S3FileInfo::initialize(main::ClientContext* context) {
 }
 
 void S3FileInfo::initializeClient() {
-    auto parsedURL = S3FileSystem::parseS3URL(path, authParams);
+    auto parsedURL = fileSystem->constPtrCast<S3FileSystem>()->parseS3URL(path, authParams);
     auto protoHostPort = parsedURL.httpProto + parsedURL.host;
     httpClient = HTTPFileSystem::getClient(protoHostPort);
 }
@@ -79,16 +79,6 @@ std::string ParsedS3URL::getHTTPURL(std::string httpQueryString) const {
     return url;
 }
 
-S3AuthParams getS3AuthParams(main::ClientContext* context) {
-    S3AuthParams authParams;
-    authParams.accessKeyID = context->getCurrentSetting("s3_access_key_id").toString();
-    authParams.secretAccessKey = context->getCurrentSetting("s3_secret_access_key").toString();
-    authParams.endpoint = context->getCurrentSetting("s3_endpoint").toString();
-    authParams.urlStyle = context->getCurrentSetting("s3_url_style").toString();
-    authParams.region = context->getCurrentSetting("s3_region").toString();
-    return authParams;
-}
-
 S3UploadParams getS3UploadParams(main::ClientContext* context) {
     S3UploadParams uploadParams;
     uploadParams.maxFileSize =
@@ -100,9 +90,11 @@ S3UploadParams getS3UploadParams(main::ClientContext* context) {
     return uploadParams;
 }
 
+S3FileSystem::S3FileSystem(S3FileSystemConfig fsConfig) : fsConfig(std::move(fsConfig)) {}
+
 std::unique_ptr<common::FileInfo> S3FileSystem::openFile(const std::string& path, int flags,
     main::ClientContext* context, common::FileLockType /*lock_type*/) {
-    auto authParams = getS3AuthParams(context);
+    auto authParams = fsConfig.getAuthParams(context);
     auto uploadParams = getS3UploadParams(context);
     if (context->getCurrentSetting(HTTPCacheFileConfig::HTTP_CACHE_FILE_OPTION).getValue<bool>()) {
         initCachedFileManager(context);
@@ -275,7 +267,7 @@ static bool match(std::vector<std::string>::const_iterator key,
 
 std::vector<std::string> S3FileSystem::glob(main::ClientContext* context,
     const std::string& path) const {
-    auto s3AuthParams = getS3AuthParams(context);
+    auto s3AuthParams = fsConfig.getAuthParams(context);
     auto parsedS3URL = parseS3URL(path, s3AuthParams);
     auto parsedGlobURL = parsedS3URL.trimmedS3URL;
     auto firstWildcardPos = parsedGlobURL.find_first_of("*[\\");
@@ -287,7 +279,7 @@ std::vector<std::string> S3FileSystem::glob(main::ClientContext* context,
     std::string mainContinuationToken = "";
     do {
         std::string response =
-            AWSListObjectV2::request(sharedPath, s3AuthParams, mainContinuationToken);
+            AWSListObjectV2::request(*this, sharedPath, s3AuthParams, mainContinuationToken);
         mainContinuationToken = AWSListObjectV2::parseContinuationToken(response);
         AWSListObjectV2::parseKey(response, s3Keys);
         // Repeat requests until the keys of all common prefixes are parsed.
@@ -297,7 +289,7 @@ std::vector<std::string> S3FileSystem::glob(main::ClientContext* context,
             commonPrefixes.pop_back();
             std::string commonPrefixContinuationToken = "";
             do {
-                auto prefixRequest = AWSListObjectV2::request(prefixPath, s3AuthParams,
+                auto prefixRequest = AWSListObjectV2::request(*this, prefixPath, s3AuthParams,
                     commonPrefixContinuationToken);
                 AWSListObjectV2::parseKey(prefixRequest, s3Keys);
                 auto commonPrefixesToInsert = AWSListObjectV2::parseCommonPrefix(prefixRequest);
@@ -323,10 +315,6 @@ std::vector<std::string> S3FileSystem::glob(main::ClientContext* context,
         }
     }
     return globResult;
-}
-
-bool S3FileSystem::canHandleFile(const std::string& path) const {
-    return path.rfind("s3://", 0) == 0;
 }
 
 std::string S3FileSystem::encodeURL(const std::string& input, bool encodeSlash) {
@@ -371,21 +359,28 @@ std::string S3FileSystem::decodeURL(std::string input) {
     return result;
 }
 
-static std::string getPrefix(std::string url) {
-    // TODO(Ziyi): support more filesystems (gcp, azure, etc.)
-    const std::string prefixes[] = {"s3://"};
-    for (auto& prefix : prefixes) {
+static std::string getPrefix(std::string url, std::span<const std::string_view> supportedPrefixes) {
+    for (auto& prefix : supportedPrefixes) {
         if (url.starts_with(prefix)) {
-            return prefix;
+            return std::string{prefix};
         }
     }
-    throw IOException("URL needs to start with s3://.");
+    throw common::IOException(
+        stringFormat("URL needs to start with {}.", StringUtils::join(supportedPrefixes, " or ")));
 }
 
-ParsedS3URL S3FileSystem::parseS3URL(std::string url, S3AuthParams& params) {
+bool S3FileSystem::canHandleFile(const std::string_view path) const {
+    int val = 1;
+    for (const auto prefix : fsConfig.prefixes) {
+        val *= path.rfind(prefix, 0);
+    }
+    return val == 0;
+}
+
+ParsedS3URL S3FileSystem::parseS3URL(std::string url, S3AuthParams& params) const {
     std::string prefix, host, bucket, path, queryParameters, trimmedS3URL;
 
-    prefix = getPrefix(url);
+    prefix = getPrefix(url, fsConfig.prefixes);
     auto prefixEndPos = url.find("//") + 2;
     auto slashPos = url.find('/', prefixEndPos);
     if (slashPos == std::string::npos) {
@@ -582,7 +577,7 @@ std::string getDateTimeHeader(const timestamp_t& timestamp) {
 
 HeaderMap S3FileSystem::createS3Header(std::string url, std::string query, std::string host,
     std::string service, std::string method, const S3AuthParams& authParams,
-    std::string payloadHash, std::string contentType) {
+    std::string payloadHash, std::string contentType) const {
     HeaderMap res;
     res["Host"] = host;
     // If access key is not set, we don't set the headers at all to allow accessing public files
@@ -782,9 +777,9 @@ std::string S3FileSystem::getUploadID(const std::string& response) {
     return response.substr(openTagPos, closeTagPos - openTagPos);
 }
 
-std::string AWSListObjectV2::request(std::string& path, S3AuthParams& authParams,
-    std::string& continuationToken) {
-    auto parsedURL = S3FileSystem::parseS3URL(path, authParams);
+std::string AWSListObjectV2::request(const S3FileSystem& fs, std::string& path,
+    S3AuthParams& authParams, std::string& continuationToken) {
+    auto parsedURL = fs.parseS3URL(path, authParams);
     std::string requestPath;
     if (authParams.urlStyle == "path") {
         requestPath = "/" + parsedURL.bucket + "/";
@@ -804,8 +799,8 @@ std::string AWSListObjectV2::request(std::string& path, S3AuthParams& authParams
     requestParams += "encoding-type=url&list-type=2";
     requestParams += "&prefix=" + S3FileSystem::encodeURL(prefix, true);
     std::string listObjectV2URL = requestPath + "?" + requestParams;
-    auto headerMap = S3FileSystem::createS3Header(requestPath, requestParams, parsedURL.host, "s3",
-        "GET", authParams, "" /* payloadHash */, "" /* contentType */);
+    auto headerMap = fs.createS3Header(requestPath, requestParams, parsedURL.host, "s3", "GET",
+        authParams, "" /* payloadHash */, "" /* contentType */);
     auto headers = HTTPFileSystem::getHTTPHeaders(headerMap);
 
     auto client = S3FileSystem::getClient(

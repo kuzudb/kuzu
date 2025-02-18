@@ -4,14 +4,16 @@
 #include "common/types/value/value.h"
 #include "http_config.h"
 #include "main/database.h"
-#include "s3_download_options.h"
 #include "s3fs.h"
+#include "s3fs_config.h"
 
 namespace kuzu {
 namespace httpfs {
 
 static void registerExtensionOptions(main::Database* db) {
-    S3DownloadOptions::registerExtensionOptions(db);
+    for (auto& fsConfig : httpfs::S3FileSystemConfig::getAvailableConfigs()) {
+        fsConfig.registerExtensionOptions(db);
+    }
     db->addExtensionOption("s3_uploader_max_num_parts_per_file", common::LogicalTypeID::INT64,
         common::Value{(int64_t)800000000000});
     db->addExtensionOption("s3_uploader_max_filesize", common::LogicalTypeID::INT64,
@@ -24,14 +26,18 @@ static void registerExtensionOptions(main::Database* db) {
 
 static void registerFileSystem(main::Database* db) {
     db->registerFileSystem(std::make_unique<HTTPFileSystem>());
-    db->registerFileSystem(std::make_unique<S3FileSystem>());
+    for (auto& fsConfig : httpfs::S3FileSystemConfig::getAvailableConfigs()) {
+        db->registerFileSystem(std::make_unique<S3FileSystem>(fsConfig));
+    }
 }
 
 void HttpfsExtension::load(main::ClientContext* context) {
     auto db = context->getDatabase();
     registerFileSystem(db);
     registerExtensionOptions(db);
-    S3DownloadOptions::setEnvValue(context);
+    for (auto& fsConfig : httpfs::S3FileSystemConfig::getAvailableConfigs()) {
+        fsConfig.setEnvValue(context);
+    }
     HTTPConfigEnvProvider::setOptionValue(context);
 }
 

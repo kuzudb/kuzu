@@ -1,32 +1,29 @@
 #include "connector/duckdb_secret_manager.h"
 
-#include "s3_download_options.h"
+#include "s3fs_config.h"
 
 namespace kuzu {
 namespace duckdb_extension {
 
-static std::string getDuckDBExtensionOptions(main::ClientContext* context, std::string optionName) {
-    static common::case_insensitive_map_t<std::string> DUCKDB_OPTION_NAMES = {
-        {httpfs::S3AccessKeyID::NAME, "KEY_ID"}, {httpfs::S3SecretAccessKey::NAME, "SECRET"},
-        {httpfs::S3EndPoint::NAME, "ENDPOINT"}, {httpfs::S3URLStyle::NAME, "URL_STYLE"},
-        {httpfs::S3Region::NAME, "REGION"}};
-    auto optionNameInDuckDB = DUCKDB_OPTION_NAMES.at(optionName);
-    auto optionValueInKuzu = context->getCurrentSetting(optionName).toString();
-    return common::stringFormat("{} '{}',", optionNameInDuckDB, optionValueInKuzu);
+static std::string getDuckDBExtensionOptions(httpfs::S3AuthParams kuzuOptions) {
+    std::string options = "";
+    options.append(common::stringFormat("KEY_ID '{}',", kuzuOptions.accessKeyID));
+    options.append(common::stringFormat("SECRET '{}',", kuzuOptions.secretAccessKey));
+    options.append(common::stringFormat("ENDPOINT '{}',", kuzuOptions.endpoint));
+    options.append(common::stringFormat("URL_STYLE '{}',", kuzuOptions.urlStyle));
+    options.append(common::stringFormat("REGION '{}',", kuzuOptions.region));
+    return options;
 }
 
-std::string DuckDBSecretManager::getS3Secret(main::ClientContext* context) {
-    std::string templateQuery = R"(CREATE SECRET s3_secret (
+std::string DuckDBSecretManager::getRemoteFSSecret(main::ClientContext* context,
+    const httpfs::S3FileSystemConfig& config) {
+    KU_ASSERT(config.fsName == "S3" || config.fsName == "GCS");
+    std::string templateQuery = R"(CREATE SECRET {}_secret (
         {}
-        TYPE S3
+        TYPE {}
     );)";
-    std::string options = "";
-    options += getDuckDBExtensionOptions(context, httpfs::S3AccessKeyID::NAME);
-    options += getDuckDBExtensionOptions(context, httpfs::S3SecretAccessKey::NAME);
-    options += getDuckDBExtensionOptions(context, httpfs::S3Region::NAME);
-    options += getDuckDBExtensionOptions(context, httpfs::S3URLStyle::NAME);
-    options += getDuckDBExtensionOptions(context, httpfs::S3EndPoint::NAME);
-    return common::stringFormat(templateQuery, options);
+    return common::stringFormat(templateQuery, config.fsName,
+        getDuckDBExtensionOptions(config.getAuthParams(context)), config.fsName);
 }
 
 } // namespace duckdb_extension

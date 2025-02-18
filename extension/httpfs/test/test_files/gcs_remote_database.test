@@ -1,0 +1,49 @@
+-DATASET CSV empty
+
+--
+
+-DEFINE_STATEMENT_BLOCK GCS_SETUP [
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT CALL gcs_access_key_id='${GCS_ACCESS_KEY_ID}'
+---- ok
+-STATEMENT CALL gcs_secret_access_key='${GCS_SECRET_ACCESS_KEY}'
+---- ok
+]
+
+-CASE AttachTinysnb
+-INSERT_STATEMENT_BLOCK GCS_SETUP
+-STATEMENT CALL HTTP_CACHE_FILE=FALSE
+---- ok
+-STATEMENT ATTACH 'gcs://kuzudb-test/tinysnb/' as tinysnb (dbtype kuzu)
+---- 1
+Attached database successfully.
+-STATEMENT match (p0:person) return p0.id
+---- 8
+0
+2
+3
+5
+7
+8
+9
+10
+-STATEMENT match (p0:person)-[:knows]->(p1:person) return p0.ID, p1.ID
+---- 14
+0|2
+0|3
+0|5
+2|0
+2|3
+2|5
+3|0
+3|2
+3|5
+5|0
+5|2
+5|3
+7|8
+7|9
+-STATEMENT CALL spill_to_disk=true
+---- error(regex)
+^Runtime exception: Cannot set spill_to_disk to true .*$

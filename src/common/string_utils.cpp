@@ -228,6 +228,12 @@ std::string StringUtils::join(const std::vector<std::string>& input, const std::
         [](const std::string& s) { return s; });
 }
 
+std::string StringUtils::join(const std::span<const std::string_view> input,
+    const std::string& separator) {
+    return StringUtils::join(input, input.size(), separator,
+        [](const std::string_view s) { return std::string{s}; });
+}
+
 template<typename C, typename S, typename Func>
 std::string StringUtils::join(const C& input, S count, const std::string& separator, Func f) {
     std::string result;
