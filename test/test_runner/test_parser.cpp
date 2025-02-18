@@ -26,9 +26,6 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace testing {
 
-static constexpr uint64_t STANDARD_VECTOR_CAPACITY_LOG_2 = 11;
-static constexpr uint64_t STANDARD_NODE_GROUP_SIZE_LOG_2 = 17;
-
 std::unique_ptr<TestGroup> TestParser::parseTestFile() {
     openFile();
     genGroupName();

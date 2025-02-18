@@ -93,6 +93,9 @@ public:
 
 class TestParser {
 public:
+    static constexpr uint64_t STANDARD_VECTOR_CAPACITY_LOG_2 = 11;
+    static constexpr uint64_t STANDARD_NODE_GROUP_SIZE_LOG_2 = 17;
+
     explicit TestParser(const std::string& path)
         : path{path}, testGroup{std::make_unique<TestGroup>()}, currentToken{} {}
     std::unique_ptr<TestGroup> parseTestFile();
