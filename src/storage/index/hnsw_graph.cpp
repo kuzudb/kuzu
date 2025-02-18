@@ -154,7 +154,7 @@ void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, common::node_group_idx
         KU_ASSERT(offset < numNodes);
         KU_UNUSED(offset);
     }
-
+    chunkedNodeGroup->setUnused(mm);
     partition.merge(std::move(chunkedNodeGroup));
 }
 
