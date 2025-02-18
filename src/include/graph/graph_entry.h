@@ -20,6 +20,9 @@ struct KUZU_API GraphEntryTableInfo {
 
     explicit GraphEntryTableInfo(catalog::TableCatalogEntry* entry)
         : entry{entry}, predicate{nullptr} {}
+    GraphEntryTableInfo(catalog::TableCatalogEntry* entry,
+        std::shared_ptr<binder::Expression> predicate)
+        : entry{entry}, predicate{std::move(predicate)} {}
 
     void setPredicate(std::shared_ptr<binder::Expression> predicate_);
 };
