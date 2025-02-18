@@ -9,10 +9,6 @@
 ---- ok
 -STATEMENT CALL gcs_secret_access_key='${GCS_SECRET_ACCESS_KEY}'
 ---- ok
--STATEMENT CALL gcs_url_style='path'
----- ok
--STATEMENT CALL gcs_region='us-east-1'
----- ok
 ]
 
 -CASE AttachTinysnb
