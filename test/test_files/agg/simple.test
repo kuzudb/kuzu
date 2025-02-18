@@ -195,6 +195,8 @@ False
 [[[10,8],[6,7,8]],[[8,9],[9,10]],[[8,10]],[[7,4],[8,8],[9]],[[6],[7],[8]],[[8]],[[10]],[[7],[10],[6,7]]]
 
 -LOG SimpleCollectLISTOfINT64MultiThreadTest
+# If node group size is too small the order of the outputted list is non-deterministic
+-SKIP_NODE_GROUP_SIZE_TESTS
 -STATEMENT MATCH (p:person) RETURN collect(p.workedHours)
 -PARALLELISM 8
 ---- 1

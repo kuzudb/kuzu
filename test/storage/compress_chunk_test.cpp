@@ -196,6 +196,10 @@ TEST_F(CompressChunkTest, TestDoubleSimpleSingleRead) {
     std::vector<double> bufferToCompress(128, -5.5);
     bufferToCompress[5] = -1;
 
+    if (StorageConfig::NODE_GROUP_SIZE < bufferToCompress.size()) {
+        GTEST_SKIP();
+    }
+
     auto checkFunc = [&bufferToCompress](ColumnReadWriter* reader,
                          transaction::Transaction* transaction, ChunkState& state,
                          const LogicalType& dataType) {
