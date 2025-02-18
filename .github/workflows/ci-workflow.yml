@@ -543,10 +543,10 @@ jobs:
         run: |
           make test PAGE_SIZE_LOG2=${{ matrix.page_size_log2 }}
 
-          clang-build-test-various-node-group-sizes:
+  clang-build-test-various-node-group-sizes:
     strategy:
       matrix:
-        node_group_size_log2: [ 1, 12, 19 ]
+        node_group_size_log2: [ 4, 12, 19 ]
     name: clang build & test with node_group_size_log2=${{ matrix.node_group_size_log2 }}
     needs: [ clang-build-test ]
     runs-on: kuzu-self-hosted-testing
@@ -579,7 +579,11 @@ jobs:
       - name: Build
         run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
-          make release NODE_GROUP_SIZE_LOG2=${{ matrix.node_group_size_log2 }}
+          if [ ${{ matrix.node_group_size_log2 }} -ge 11 ]; then
+            make release VECTOR_CAPACITY_LOG2=11 NODE_GROUP_SIZE_LOG2=${{ matrix.node_group_size_log2 }}
+          else
+            make release VECTOR_CAPACITY_LOG2=${{ matrix.node_group_size_log2 }} NODE_GROUP_SIZE_LOG2=${{ matrix.node_group_size_log2 }}
+          fi
 
       - name: Generate binary demo
         run: |
@@ -587,7 +591,11 @@ jobs:
 
       - name: Test
         run: |
-          make test NODE_GROUP_SIZE_LOG2=${{ matrix.page_size_log2 }}
+          if [ ${{ matrix.node_group_size_log2 }} -ge 11 ]; then
+            make test VECTOR_CAPACITY_LOG2=11 NODE_GROUP_SIZE_LOG2=${{ matrix.page_size_log2 }}
+          else
+            make test VECTOR_CAPACITY_LOG2=${{ matrix.node_group_size_log2 }} NODE_GROUP_SIZE_LOG2=${{ matrix.page_size_log2 }}
+          fi
 
   msvc-build-test:
     name: msvc build & test
