@@ -149,7 +149,7 @@ static const common::LogicalType& getIndexColumnType(const BoundQueryHNSWIndexIn
     return boundInput.nodeTableEntry->getProperty(columnName).getType();
 }
 
-static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
+static common::offset_t internalCreateInMemHNSWTableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     const auto localState = input.localState->ptrCast<QueryHNSWLocalState>();
     const auto bindData = input.bindData->constPtrCast<QueryHNSWIndexBindData>();
     // As `k` can be larger than the default vector capacity, we run the actual search in the first
@@ -247,7 +247,7 @@ function_set QueryHNSWIndexFunction::getFunctionSet() {
     std::vector inputTypes{common::LogicalTypeID::STRING, common::LogicalTypeID::STRING,
         common::LogicalTypeID::ARRAY, common::LogicalTypeID::INT64};
     auto tableFunction = std::make_unique<TableFunction>("query_hnsw_index", inputTypes);
-    tableFunction->tableFunc = tableFunc;
+    tableFunction->tableFunc = internalCreateInMemHNSWTableFunc;
     tableFunction->bindFunc = bindFunc;
     tableFunction->initSharedStateFunc = initQueryHNSWSharedState;
     tableFunction->initLocalStateFunc = initQueryHNSWLocalState;

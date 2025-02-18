@@ -8,7 +8,7 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace function {
 
-static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
+static offset_t internalCreateInMemHNSWTableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
     const auto sharedState = input.sharedState->ptrCast<TableFuncSharedState>();
     auto& outputVector = dataChunk.getValueVectorMutable(0);
@@ -35,7 +35,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext*,
 function_set DBVersionFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
-    function->tableFunc = tableFunc;
+    function->tableFunc = internalCreateInMemHNSWTableFunc;
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = TableFunction::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;

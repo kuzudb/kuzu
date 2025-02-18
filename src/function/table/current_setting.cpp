@@ -21,7 +21,7 @@ struct CurrentSettingBindData final : TableFuncBindData {
     }
 };
 
-static offset_t tableFunc(const TableFuncInput& data, TableFuncOutput& output) {
+static offset_t internalCreateInMemHNSWTableFunc(const TableFuncInput& data, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
     const auto sharedState = data.sharedState->ptrCast<TableFuncSharedState>();
     auto& outputVector = dataChunk.getValueVectorMutable(0);
@@ -50,7 +50,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
 function_set CurrentSettingFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
-    function->tableFunc = tableFunc;
+    function->tableFunc = internalCreateInMemHNSWTableFunc;
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = TableFunction::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;

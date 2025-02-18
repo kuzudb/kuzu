@@ -245,7 +245,7 @@ static void appendStorageInfoForNodeGroup(StorageInfoLocalState* localState, Dat
     }
 }
 
-static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
+static offset_t internalCreateInMemHNSWTableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
     auto localState = ku_dynamic_cast<StorageInfoLocalState*>(input.localState);
     KU_ASSERT(dataChunk.state->getSelVector().isUnfiltered());
@@ -356,7 +356,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
 function_set StorageInfoFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
-    function->tableFunc = tableFunc;
+    function->tableFunc = internalCreateInMemHNSWTableFunc;
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = TableFunction::initSharedState;
     function->initLocalStateFunc = initLocalState;

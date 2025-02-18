@@ -52,7 +52,7 @@ static void outputRelTableConnection(const DataChunk& outputDataChunk, uint64_t 
     outputDataChunk.getValueVectorMutable(3).setValue(outputPos, dstTablePrimaryKey);
 }
 
-static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
+static offset_t internalCreateInMemHNSWTableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
     const auto morsel = input.sharedState->ptrCast<TableFuncSharedState>()->getMorsel();
     if (!morsel.hasMoreToOutput()) {
@@ -107,7 +107,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
 function_set ShowConnectionFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
-    function->tableFunc = tableFunc;
+    function->tableFunc = internalCreateInMemHNSWTableFunc;
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = TableFunction::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;
