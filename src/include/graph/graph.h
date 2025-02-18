@@ -20,14 +20,12 @@ namespace graph {
 
 struct GraphEntry;
 
-struct RelFromToEntryInfo {
-    catalog::TableCatalogEntry* fromEntry;
-    catalog::TableCatalogEntry* toEntry;
+struct NbrTableInfo {
+    catalog::TableCatalogEntry* nodeEntry;
     catalog::TableCatalogEntry* relEntry;
 
-    RelFromToEntryInfo(catalog::TableCatalogEntry* fromEntry, catalog::TableCatalogEntry* toEntry,
-        catalog::TableCatalogEntry* relEntry)
-        : fromEntry{fromEntry}, toEntry{toEntry}, relEntry{relEntry} {}
+    NbrTableInfo(catalog::TableCatalogEntry* nodeEntry, catalog::TableCatalogEntry* relEntry)
+        : nodeEntry{nodeEntry}, relEntry{relEntry} {}
 };
 
 class NbrScanState {
@@ -197,8 +195,9 @@ public:
     virtual common::offset_t getNumNodes(transaction::Transaction* transaction,
         common::table_id_t id) const = 0;
 
-    // Get all possible "forward" (fromNodeTableID, relTableID, toNodeTableID) combinations.
-    virtual std::vector<RelFromToEntryInfo> getRelFromToEntryInfos() = 0;
+    // Get all possible forward (toNodeTable, relTable)s.
+    virtual std::vector<NbrTableInfo> getForwardNbrTableInfos(
+        common::table_id_t srcNodeTableID) = 0;
 
     // Prepares scan on the specified relationship table (works for backwards and forwards scans)
     virtual std::unique_ptr<NbrScanState> prepareRelScan(catalog::TableCatalogEntry* tableEntry,

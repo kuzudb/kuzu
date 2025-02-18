@@ -240,7 +240,7 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto graph = sharedState->graph.get();
     auto graphEntry = graph->getGraphEntry();
     auto qFTSBindData = bindData->ptrCast<QueryFTSBindData>();
-    auto& termsEntry = graphEntry->nodeEntries[0]->constCast<catalog::NodeTableCatalogEntry>();
+    auto& termsEntry = graphEntry->nodeInfos[0].entry->constCast<catalog::NodeTableCatalogEntry>();
     auto terms = bindData->ptrCast<QueryFTSBindData>()->getTerms(*executionContext->clientContext);
     auto dfs = getDFs(*executionContext->clientContext, termsEntry, terms);
     // Do edge compute to extend terms -> docs and save the term frequency and document frequency
@@ -276,7 +276,7 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto vc = std::make_unique<QFTSVertexCompute>(mm, sharedState.get(), std::move(writer));
     auto vertexPropertiesToScan = std::vector<std::string>{QueryFTSAlgorithm::DOC_LEN_PROP_NAME,
         QueryFTSAlgorithm::DOC_ID_PROP_NAME};
-    auto docsEntry = graphEntry->nodeEntries[1];
+    auto docsEntry = graphEntry->nodeInfos[1].entry;
     auto numDocs = storageManager->getTable(docsEntry->getTableID())->getNumTotalRows(transaction);
     if (scores.size() < getSparseFrontierSize(numDocs)) {
         auto vertexScanState = graph->prepareVertexScan(docsEntry, vertexPropertiesToScan);

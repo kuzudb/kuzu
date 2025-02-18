@@ -205,7 +205,7 @@ public:
     void bind(const GDSBindInput& input, main::ClientContext& context) override {
         auto graphName = binder::ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
         auto graphEntry = bindGraphEntry(context, graphName);
-        auto nodeOutput = bindNodeOutput(input, graphEntry.nodeEntries);
+        auto nodeOutput = bindNodeOutput(input, graphEntry.getNodeEntries());
         bindData = std::make_unique<GDSBindData>(std::move(graphEntry), nodeOutput);
     }
 

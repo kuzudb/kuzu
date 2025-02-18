@@ -64,28 +64,33 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
             compState.edgeCompute->terminate(*compState.outputNodeMask)) {
             break;
         }
-        for (auto& [fromEntry, toEntry, relEntry] : graph->getRelFromToEntryInfos()) {
-            switch (extendDirection) {
-            case ExtendDirection::FWD: {
-                compState.beginFrontierCompute(fromEntry->getTableID(), toEntry->getTableID());
-                scheduleFrontierTask(fromEntry, toEntry, relEntry, graph, ExtendDirection::FWD,
-                    compState, context, propertyToScan);
-            } break;
-            case ExtendDirection::BWD: {
-                compState.beginFrontierCompute(toEntry->getTableID(), fromEntry->getTableID());
-                scheduleFrontierTask(toEntry, fromEntry, relEntry, graph, ExtendDirection::BWD,
-                    compState, context, propertyToScan);
-            } break;
-            case ExtendDirection::BOTH: {
-                compState.beginFrontierCompute(fromEntry->getTableID(), toEntry->getTableID());
-                scheduleFrontierTask(fromEntry, toEntry, relEntry, graph, ExtendDirection::FWD,
-                    compState, context, propertyToScan);
-                compState.beginFrontierCompute(toEntry->getTableID(), fromEntry->getTableID());
-                scheduleFrontierTask(toEntry, fromEntry, relEntry, graph, ExtendDirection::BWD,
-                    compState, context, propertyToScan);
-            } break;
-            default:
-                KU_UNREACHABLE;
+        for (auto info : graph->getGraphEntry()->nodeInfos) {
+            auto fromEntry = info.entry;
+            for (auto& nbrInfo : graph->getForwardNbrTableInfos(fromEntry->getTableID())) {
+                auto toEntry = nbrInfo.nodeEntry;
+                auto relEntry = nbrInfo.relEntry;
+                switch (extendDirection) {
+                case ExtendDirection::FWD: {
+                    compState.beginFrontierCompute(fromEntry->getTableID(), toEntry->getTableID());
+                    scheduleFrontierTask(fromEntry, toEntry, relEntry, graph, ExtendDirection::FWD,
+                        compState, context, propertyToScan);
+                } break;
+                case ExtendDirection::BWD: {
+                    compState.beginFrontierCompute(toEntry->getTableID(), fromEntry->getTableID());
+                    scheduleFrontierTask(toEntry, fromEntry, relEntry, graph, ExtendDirection::BWD,
+                        compState, context, propertyToScan);
+                } break;
+                case ExtendDirection::BOTH: {
+                    compState.beginFrontierCompute(fromEntry->getTableID(), toEntry->getTableID());
+                    scheduleFrontierTask(fromEntry, toEntry, relEntry, graph, ExtendDirection::FWD,
+                        compState, context, propertyToScan);
+                    compState.beginFrontierCompute(toEntry->getTableID(), fromEntry->getTableID());
+                    scheduleFrontierTask(toEntry, fromEntry, relEntry, graph, ExtendDirection::BWD,
+                        compState, context, propertyToScan);
+                } break;
+                default:
+                    KU_UNREACHABLE;
+                }
             }
         }
     }
@@ -105,7 +110,8 @@ void GDSUtils::runVertexCompute(processor::ExecutionContext* context, graph::Gra
     VertexCompute& vc, std::vector<std::string> propertiesToScan) {
     auto maxThreads = context->clientContext->getMaxNumThreadForExec();
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
-    for (auto& entry : graph->getGraphEntry()->nodeEntries) {
+    for (auto& nodeInfo : graph->getGraphEntry()->nodeInfos) {
+        auto entry = nodeInfo.entry;
         if (!vc.beginOnTable(entry->getTableID())) {
             continue;
         }
