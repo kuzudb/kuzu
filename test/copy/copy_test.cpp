@@ -28,14 +28,19 @@ public:
           canFailDuringExecute(canFailDuringExecute) {}
 
     bool reserve(uint64_t sizeToReserve) override {
+        // we currently can't handle exceptions thrown during rollback
+        const bool inRollback = std::current_exception().operator bool();
+
+        const bool inDBInit = ctx == nullptr;
+
         const bool inCheckpoint =
             ctx && !ctx->getTransactionManagerUnsafe()->hasActiveWriteTransactionNoLock();
         const bool inCommit = !inCheckpoint && ctx &&
                               ctx->getTransaction()->getCommitTS() != common::INVALID_TRANSACTION;
         const bool inExecute = (!inCommit && !inCheckpoint);
         reserveCount = (reserveCount + 1) % failureFrequency;
-        if ((canFailDuringCheckpoint || !inCheckpoint) && (canFailDuringExecute || !inExecute) &&
-            reserveCount == 0) {
+        if (!inRollback && !inDBInit && (canFailDuringCheckpoint || !inCheckpoint) &&
+            (canFailDuringExecute || !inExecute) && reserveCount == 0) {
             failureFrequency *= 2;
             return false;
         }
@@ -316,8 +321,10 @@ TEST_F(CopyTest, NodeInsertBMExceptionDuringCheckpointRecovery) {
     BMExceptionRecoveryTest(cfg);
 }
 
+static constexpr uint64_t STANDARD_NODE_GROUP_SIZE_LOG2 = 17;
+
 TEST_F(CopyTest, OutOfMemoryRecovery) {
-    if (inMemMode) {
+    if (inMemMode || common::StorageConfig::NODE_GROUP_SIZE_LOG2 != STANDARD_NODE_GROUP_SIZE_LOG2) {
         GTEST_SKIP();
     }
     // Needs to be small enough that we cannot successfully complete the rel table copy
@@ -355,7 +362,7 @@ TEST_F(CopyTest, OutOfMemoryRecovery) {
 }
 
 TEST_F(CopyTest, OutOfMemoryRecoveryDropTable) {
-    if (inMemMode) {
+    if (inMemMode || common::StorageConfig::NODE_GROUP_SIZE_LOG2 != STANDARD_NODE_GROUP_SIZE_LOG2) {
         GTEST_SKIP();
     }
     // Needs to be small enough that we cannot successfully complete the rel table copy

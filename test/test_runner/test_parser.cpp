@@ -27,6 +27,7 @@ namespace kuzu {
 namespace testing {
 
 static constexpr uint64_t STANDARD_VECTOR_CAPACITY_LOG_2 = 11;
+static constexpr uint64_t STANDARD_NODE_GROUP_SIZE_LOG_2 = 17;
 
 std::unique_ptr<TestGroup> TestParser::parseTestFile() {
     openFile();
@@ -141,6 +142,13 @@ void TestParser::parseHeader() {
         }
         case TokenType::SKIP_VECTOR_CAPACITY_TESTS: {
             if constexpr (VECTOR_CAPACITY_LOG_2 != STANDARD_VECTOR_CAPACITY_LOG_2) {
+                testGroup->group = "DISABLED_" + testGroup->group;
+            }
+            break;
+        }
+        case TokenType::SKIP_NODE_GROUP_SIZE_TESTS: {
+            if constexpr (common::StorageConfig::NODE_GROUP_SIZE_LOG2 !=
+                          STANDARD_NODE_GROUP_SIZE_LOG_2) {
                 testGroup->group = "DISABLED_" + testGroup->group;
             }
             break;
@@ -478,6 +486,13 @@ void TestParser::parseBody() {
         }
         case TokenType::SKIP_VECTOR_CAPACITY_TESTS: {
             if constexpr (VECTOR_CAPACITY_LOG_2 != STANDARD_VECTOR_CAPACITY_LOG_2) {
+                testCaseName = "DISABLED_" + testCaseName;
+            }
+            break;
+        }
+        case TokenType::SKIP_NODE_GROUP_SIZE_TESTS: {
+            if constexpr (common::StorageConfig::NODE_GROUP_SIZE_LOG2 !=
+                          STANDARD_NODE_GROUP_SIZE_LOG_2) {
                 testCaseName = "DISABLED_" + testCaseName;
             }
             break;

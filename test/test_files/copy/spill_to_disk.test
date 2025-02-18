@@ -3,6 +3,8 @@
 
 --
 -CASE DisableSpillToDisk
+# Reducing the node group size may cause the buffer manager exception to not trigger
+-SKIP_NODE_GROUP_SIZE_TESTS
 -STATEMENT CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE follows(FROM account TO account);

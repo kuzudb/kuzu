@@ -26,7 +26,7 @@ static void copyDir(const std::string& from, const std::string& to) {
 class EndToEndTest : public DBTest {
 public:
     explicit EndToEndTest(TestGroup::DatasetType datasetType, std::string dataset,
-        uint64_t bufferPoolSize, uint64_t checkpointWaitTimeout,
+        std::optional<uint64_t> bufferPoolSize, uint64_t checkpointWaitTimeout,
         const std::set<std::string>& connNames,
         std::vector<std::unique_ptr<TestStatement>> testStatements)
         : datasetType{datasetType}, dataset{std::move(dataset)}, bufferPoolSize{bufferPoolSize},
@@ -36,7 +36,9 @@ public:
     void SetUp() override {
         setUpDataset();
         BaseGraphTest::SetUp();
-        systemConfig->bufferPoolSize = bufferPoolSize;
+        if (bufferPoolSize) {
+            systemConfig->bufferPoolSize = *bufferPoolSize;
+        }
         bool generateBinaryDemo =
             !std::getenv("USE_EXISTING_BINARY_DATASET") && dataset.ends_with("binary-demo");
         if (datasetType == TestGroup::DatasetType::KUZU && dataset != "empty" &&
@@ -90,7 +92,7 @@ private:
     TestGroup::DatasetType datasetType;
     std::string dataset;
     std::string tempDatasetPath;
-    uint64_t bufferPoolSize;
+    std::optional<uint64_t> bufferPoolSize;
     uint64_t checkpointWaitTimeout;
     std::vector<std::unique_ptr<TestStatement>> testStatements;
     std::set<std::string> connNames;

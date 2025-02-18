@@ -452,13 +452,15 @@ void RelTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
 
 void RelTable::updateRelOffsets(const LocalRelTable& localRelTable) {
     auto& localNodeGroup = localRelTable.getLocalNodeGroup();
+    const offset_t maxCommittedOffset = reserveRelOffsets(localNodeGroup.getNumRows());
+    RUNTIME_CHECK(uint64_t totalNumRows = 0);
     for (auto i = 0u; i < localNodeGroup.getNumChunkedGroups(); i++) {
         const auto chunkedGroup = localNodeGroup.getChunkedNodeGroup(i);
         KU_ASSERT(chunkedGroup);
         auto& internalIDData = chunkedGroup->getColumnChunk(LOCAL_REL_ID_COLUMN_ID)
                                    .getData()
                                    .cast<InternalIDChunkData>();
-        const offset_t maxCommittedOffset = reserveRelOffsets(internalIDData.getNumValues());
+        RUNTIME_CHECK(totalNumRows += internalIDData.getNumValues());
         for (auto rowIdx = 0u; rowIdx < internalIDData.getNumValues(); rowIdx++) {
             const auto localRelOffset = internalIDData[rowIdx];
             const auto committedRelOffset = getCommittedOffset(localRelOffset, maxCommittedOffset);
@@ -466,6 +468,7 @@ void RelTable::updateRelOffsets(const LocalRelTable& localRelTable) {
             internalIDData.setTableID(tableID);
         }
     }
+    KU_ASSERT(totalNumRows == localNodeGroup.getNumRows());
 }
 
 offset_t RelTable::getCommittedOffset(offset_t uncommittedOffset, offset_t maxCommittedOffset) {
@@ -477,8 +480,8 @@ void RelTable::prepareCommitForNodeGroup(const Transaction* transaction,
     CSRNodeGroup& csrNodeGroup, offset_t boundOffsetInGroup, const row_idx_vec_t& rowIndices,
     column_id_t skippedColumn) {
     for (const auto row : rowIndices) {
-        auto [chunkedGroupIdx, rowInChunkedGroup] =
-            StorageUtils::getQuotientRemainder(row, ChunkedNodeGroup::CHUNK_CAPACITY);
+        auto [chunkedGroupIdx, rowInChunkedGroup] = StorageUtils::getQuotientRemainder(row,
+            common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY);
         std::vector<ColumnChunk*> chunks;
         const auto chunkedGroup = localNodeGroup.getChunkedNodeGroup(chunkedGroupIdx);
         for (auto i = 0u; i < chunkedGroup->getNumColumns(); i++) {

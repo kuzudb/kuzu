@@ -2,6 +2,8 @@
 --
 
 -CASE CreateIntegerStats
+# rows span multiple node groups if node group size is 2
+-SKIP_NODE_GROUP_SIZE_TESTS
 # Note that integer compression means that values get re-compressed and are updated out of place
 -STATEMENT CREATE NODE TABLE test(id SERIAL, value INT8, PRIMARY KEY(id));
 ---- ok
@@ -27,7 +29,9 @@
 1|6
 
 -CASE CreateDoubleStats
-# Note that integer compression means that values get re-compressed and are updated out of place
+# rows span multiple node groups if node group size is 2
+-SKIP_NODE_GROUP_SIZE_TESTS
+# Note that compression means that values get re-compressed and are updated out of place
 -STATEMENT CREATE NODE TABLE test(id SERIAL, value DOUBLE, PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE (a:test {value:1})

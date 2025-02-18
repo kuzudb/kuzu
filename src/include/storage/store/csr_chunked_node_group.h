@@ -40,7 +40,7 @@ struct CSRRegion {
         const auto rightRegionIdx =
             getLeftLeafRegionIdx() + (static_cast<common::idx_t>(1) << level) - 1;
         constexpr auto maxNumRegions =
-            common::StorageConfig::NODE_GROUP_SIZE / common::StorageConstants::CSR_LEAF_REGION_SIZE;
+            common::StorageConfig::NODE_GROUP_SIZE / common::StorageConfig::CSR_LEAF_REGION_SIZE;
         if (rightRegionIdx >= maxNumRegions) {
             return maxNumRegions - 1;
         }

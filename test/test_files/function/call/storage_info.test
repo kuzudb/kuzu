@@ -2,6 +2,8 @@
 --
 
 -CASE CallStorageInfo
+# Expected outputs depend on number of node groups
+-SKIP_NODE_GROUP_SIZE_TESTS
 -STATEMENT MATCH (p:person) RETURN COUNT(p)
 ---- 1
 8

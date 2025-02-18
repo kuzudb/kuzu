@@ -119,6 +119,13 @@ if(NOT KUZU_VECTOR_CAPACITY_LOG2)
 endif()
 message(STATUS "KUZU_VECTOR_CAPACITY_LOG2: ${KUZU_VECTOR_CAPACITY_LOG2}")
 
+# 64 * 2048 nodes per group
+option(KUZU_NODE_GROUP_SIZE_LOG2 "Log2 of the vector capacity." 17)
+if(NOT KUZU_NODE_GROUP_SIZE_LOG2)
+    set(KUZU_NODE_GROUP_SIZE_LOG2 17)
+endif()
+message(STATUS "KUZU_NODE_GROUP_SIZE_LOG2: ${KUZU_NODE_GROUP_SIZE_LOG2}")
+
 configure_file(${CMAKE_SOURCE_DIR}/cmake/templates/system_config.h.in ${CMAKE_BINARY_DIR}/src/include/common/system_config.h @ONLY)
 
 if(MSVC)
