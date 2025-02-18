@@ -26,9 +26,10 @@ class OnDiskGraphNbrScanState : public NbrScanState {
 
 public:
     OnDiskGraphNbrScanState(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
-        const GraphEntry& graphEntry);
+        std::shared_ptr<binder::Expression> predicate);
     OnDiskGraphNbrScanState(main::ClientContext* context, catalog::TableCatalogEntry* tableEntry,
-        const GraphEntry& graphEntry, const std::string& propertyName, bool randomLookup = false);
+        std::shared_ptr<binder::Expression> predicate, const std::string& propertyName,
+        bool randomLookup = false);
 
     Chunk getChunk() override {
         return createChunk(currentIter->getNbrNodes(), currentIter->getEdges(),
@@ -128,8 +129,12 @@ public:
 
     GraphEntry* getGraphEntry() override { return &graphEntry; }
 
-    std::vector<common::table_id_t> getNodeTableIDs() const override;
-    std::vector<common::table_id_t> getRelTableIDs() const override;
+    std::vector<common::table_id_t> getNodeTableIDs() const override {
+        return graphEntry.getNodeTableIDs();
+    }
+    std::vector<common::table_id_t> getRelTableIDs() const override {
+        return graphEntry.getRelTableIDs();
+    }
 
     common::table_id_map_t<common::offset_t> getNumNodesMap(
         transaction::Transaction* transaction) const override;
@@ -138,7 +143,7 @@ public:
     common::offset_t getNumNodes(transaction::Transaction* transaction,
         common::table_id_t id) const override;
 
-    std::vector<RelFromToEntryInfo> getRelFromToEntryInfos() override;
+    std::vector<NbrTableInfo> getForwardNbrTableInfos(common::table_id_t srcNodeTableID) override;
 
     std::unique_ptr<NbrScanState> prepareRelScan(catalog::TableCatalogEntry* tableEntry,
         const std::string& property) override;
@@ -159,8 +164,7 @@ private:
     GraphEntry graphEntry;
 
     common::table_id_map_t<storage::NodeTable*> nodeIDToNodeTable;
-    common::table_id_map_t<common::table_id_map_t<storage::RelTable*>> nodeTableIDToFwdRelTables;
-    common::table_id_map_t<common::table_id_map_t<storage::RelTable*>> nodeTableIDToBwdRelTables;
+    common::table_id_map_t<std::vector<NbrTableInfo>> nodeIDToNbrTableInfos;
 };
 
 } // namespace graph
