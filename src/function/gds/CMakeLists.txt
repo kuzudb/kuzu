@@ -2,6 +2,7 @@ add_library(kuzu_function_algorithm
         OBJECT
         asp_destinations.cpp
         asp_paths.cpp
+        awsp_paths.cpp
         bfs_graph.cpp
         gds.cpp
         gds_frontier.cpp
@@ -16,7 +17,8 @@ add_library(kuzu_function_algorithm
         ssp_paths.cpp
         variable_length_path.cpp
         weakly_connected_components.cpp
-        weighted_shortest_paths.cpp
+        wsp_destinations.cpp
+        wsp_paths.cpp
         )
 
 set(ALL_OBJECT_FILES

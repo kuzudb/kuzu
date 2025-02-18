@@ -22,7 +22,10 @@ std::string RelExpression::detailsToString() const {
     } break;
     case QueryRelType::WEIGHTED_SHORTEST: {
         result += "WEIGHTED SHORTEST";
-    }
+    } break;
+    case QueryRelType::ALL_WEIGHTED_SHORTEST: {
+        result += "ALL WEIGHTED SHORTEST";
+    } break;
     default:
         break;
     }

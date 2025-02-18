@@ -328,7 +328,8 @@ void Planner::appendExtend(std::shared_ptr<NodeExpression> boundNode,
     case QueryRelType::VARIABLE_LENGTH_ACYCLIC:
     case QueryRelType::SHORTEST:
     case QueryRelType::ALL_SHORTEST:
-    case QueryRelType::WEIGHTED_SHORTEST: {
+    case QueryRelType::WEIGHTED_SHORTEST:
+    case QueryRelType::ALL_WEIGHTED_SHORTEST: {
         if (clientContext->getClientConfig()->enableGDS) {
             appendRecursiveExtendAsGDS(boundNode, nbrNode, rel, direction, plan);
         } else {

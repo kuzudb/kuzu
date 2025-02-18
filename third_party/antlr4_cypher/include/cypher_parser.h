@@ -1897,10 +1897,10 @@ public:
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *WSHORTEST();
     OC_PropertyKeyNameContext *oC_PropertyKeyName();
+    antlr4::tree::TerminalNode *ALL();
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
     antlr4::tree::TerminalNode *SHORTEST();
-    antlr4::tree::TerminalNode *ALL();
     antlr4::tree::TerminalNode *TRAIL();
     antlr4::tree::TerminalNode *ACYCLIC();
 

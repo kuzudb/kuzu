@@ -15,6 +15,7 @@ PathSemantic QueryRelTypeUtils::getPathSemantic(QueryRelType queryRelType) {
     case QueryRelType::SHORTEST:
     case QueryRelType::ALL_SHORTEST:
     case QueryRelType::WEIGHTED_SHORTEST:
+    case QueryRelType::ALL_WEIGHTED_SHORTEST:
         return PathSemantic::ACYCLIC;
     default:
         KU_UNREACHABLE;

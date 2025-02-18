@@ -457,7 +457,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     recursiveInfo->pathEdgeDirectionsExpr =
         createInvisibleVariable("pathEdgeDirections", LogicalType::LIST(LogicalType::BOOL()));
 
-    if (relPattern.getRelType() == QueryRelType::WEIGHTED_SHORTEST) {
+    if (QueryRelTypeUtils::isWeighted(queryRel->getRelType())) {
         auto propertyExpr = expressionBinder.bindNodeOrRelPropertyExpression(*rel,
             recursivePatternInfo->weightPropertyName);
         checkWeightedShortestPathSupportedType(propertyExpr->getDataType());

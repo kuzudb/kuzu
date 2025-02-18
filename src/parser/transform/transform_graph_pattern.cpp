@@ -102,7 +102,13 @@ RelPattern Transformer::transformRelationshipPattern(
         auto recursiveType = recursiveDetail->kU_RecursiveType();
         if (recursiveType) {
             if (recursiveType->ALL()) {
-                relType = QueryRelType::ALL_SHORTEST;
+                if (recursiveType->WSHORTEST()) {
+                    relType = QueryRelType::ALL_WEIGHTED_SHORTEST;
+                    recursiveInfo.weightPropertyName =
+                        transformPropertyKeyName(*recursiveType->oC_PropertyKeyName());
+                } else {
+                    relType = QueryRelType::ALL_SHORTEST;
+                }
             } else if (recursiveType->WSHORTEST()) {
                 relType = QueryRelType::WEIGHTED_SHORTEST;
                 recursiveInfo.weightPropertyName =
