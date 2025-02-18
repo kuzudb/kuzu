@@ -1,4 +1,5 @@
 #include "catalog/catalog.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "common/types/value/nested.h"
@@ -6,7 +7,6 @@
 #include "function/table/table_function.h"
 #include "graph/graph_entry.h"
 #include "processor/execution_context.h"
-#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -63,18 +63,24 @@ static void validateEntryType(const TableCatalogEntry& entry, CatalogEntryType t
     }
 }
 
-static void validateNodeProjected(table_id_t tableID, const table_id_set_t& projectedNodeIDSet, const std::string& relName, Catalog* catalog, transaction::Transaction* transaction) {
+static void validateNodeProjected(table_id_t tableID, const table_id_set_t& projectedNodeIDSet,
+    const std::string& relName, Catalog* catalog, transaction::Transaction* transaction) {
     if (projectedNodeIDSet.contains(tableID)) {
         return;
     }
     auto entryName = catalog->getTableCatalogEntry(transaction, tableID)->getName();
-    throw BinderException(stringFormat("{} is connected to {} but not projected.", entryName, relName));
+    throw BinderException(
+        stringFormat("{} is connected to {} but not projected.", entryName, relName));
 }
 
-static void validateRelSrcDstNodeAreProjected(const TableCatalogEntry& entry, const table_id_set_t& projectedNodeIDSet, Catalog* catalog, transaction::Transaction* transaction) {
+static void validateRelSrcDstNodeAreProjected(const TableCatalogEntry& entry,
+    const table_id_set_t& projectedNodeIDSet, Catalog* catalog,
+    transaction::Transaction* transaction) {
     auto& relEntry = entry.constCast<RelTableCatalogEntry>();
-    validateNodeProjected(relEntry.getSrcTableID(), projectedNodeIDSet, entry.getName(), catalog, transaction);
-    validateNodeProjected(relEntry.getDstTableID(), projectedNodeIDSet, entry.getName(), catalog, transaction);
+    validateNodeProjected(relEntry.getSrcTableID(), projectedNodeIDSet, entry.getName(), catalog,
+        transaction);
+    validateNodeProjected(relEntry.getDstTableID(), projectedNodeIDSet, entry.getName(), catalog,
+        transaction);
 }
 
 static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* context,
