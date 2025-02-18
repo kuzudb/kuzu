@@ -14,35 +14,38 @@ class Schema;
 }
 namespace graph {
 
+struct KUZU_API GraphEntryTableInfo {
+    catalog::TableCatalogEntry* entry;
+    std::shared_ptr<binder::Expression> predicate;
+
+    explicit GraphEntryTableInfo(catalog::TableCatalogEntry* entry)
+        : entry{entry}, predicate{nullptr} {}
+
+    void setPredicate(std::shared_ptr<binder::Expression> predicate_);
+};
+
 // Organize projected graph similar to CatalogEntry. When we want to share projected graph across
 // statements, we need to migrate this class to catalog (or client context).
-struct GraphEntry {
-    std::vector<catalog::TableCatalogEntry*> nodeEntries;
-    std::vector<catalog::TableCatalogEntry*> relEntries;
+struct KUZU_API GraphEntry {
+    std::vector<GraphEntryTableInfo> nodeInfos;
+    std::vector<GraphEntryTableInfo> relInfos;
 
+    GraphEntry() = default;
     GraphEntry(std::vector<catalog::TableCatalogEntry*> nodeEntries,
-        std::vector<catalog::TableCatalogEntry*> relEntries)
-        : nodeEntries{std::move(nodeEntries)}, relEntries{std::move(relEntries)} {}
+        std::vector<catalog::TableCatalogEntry*> relEntries);
     EXPLICIT_COPY_DEFAULT_MOVE(GraphEntry);
 
-    bool hasRelEntry(common::table_id_t tableID) const { return getRelEntry(tableID) != nullptr; }
-    const catalog::TableCatalogEntry* getRelEntry(common::table_id_t tableID) const;
+    std::vector<common::table_id_t> getNodeTableIDs() const;
+    std::vector<common::table_id_t> getRelTableIDs() const;
+    std::vector<catalog::TableCatalogEntry*> getNodeEntries() const;
+    std::vector<catalog::TableCatalogEntry*> getRelEntries() const;
 
-    bool hasRelPredicate() const { return relPredicate != nullptr; }
-    std::shared_ptr<binder::Expression> getRelPredicate() const { return relPredicate; }
+    const GraphEntryTableInfo& getRelInfo(common::table_id_t tableID) const;
+
     void setRelPredicate(std::shared_ptr<binder::Expression> predicate);
-    binder::expression_vector getRelProperties() const { return relProperties; }
-
-    planner::Schema getRelPropertiesSchema() const;
 
 private:
-    GraphEntry(const GraphEntry& other)
-        : nodeEntries{other.nodeEntries}, relEntries{other.relEntries},
-          relProperties{other.relProperties}, relPredicate{other.relPredicate} {}
-
-private:
-    binder::expression_vector relProperties;
-    std::shared_ptr<binder::Expression> relPredicate;
+    GraphEntry(const GraphEntry& other) : nodeInfos{other.nodeInfos}, relInfos{other.relInfos} {}
 };
 
 class GraphEntrySet {

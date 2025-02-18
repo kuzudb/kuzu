@@ -35,7 +35,13 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         throw RuntimeException(
             stringFormat("Project graph {} already exists.", bindData->graphName));
     }
-    const auto entry = graph::GraphEntry(bindData->nodeEntries, bindData->relEntries);
+    auto entry = graph::GraphEntry();
+    for (auto& nodeEntry : bindData->nodeEntries) {
+        entry.nodeInfos.emplace_back(nodeEntry);
+    }
+    for (auto& relEntry : bindData->relEntries) {
+        entry.relInfos.emplace_back(relEntry);
+    }
     graphEntrySet.addGraph(bindData->graphName, entry);
     return 0;
 }
@@ -67,8 +73,10 @@ static std::vector<TableCatalogEntry*> getTableEntries(const std::vector<std::st
 static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* context,
     const TableFuncBindInput* input) {
     auto graphName = input->getLiteralVal<std::string>(0);
-    const auto nodeTableNames = getAsStringVector(input->getValue(1));
-    const auto relTableNames = getAsStringVector(input->getValue(2));
+    auto arg2 = input->getValue(1);
+    auto arg3 = input->getValue(2);
+    const auto nodeTableNames = getAsStringVector(arg2);
+    const auto relTableNames = getAsStringVector(arg3);
     auto nodeEntries =
         getTableEntries(nodeTableNames, CatalogEntryType::NODE_TABLE_ENTRY, *context);
     auto relEntries = getTableEntries(relTableNames, CatalogEntryType::REL_TABLE_ENTRY, *context);
