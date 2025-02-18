@@ -1,0 +1,30 @@
+-DATASET CSV ldbc-sf01
+-BUFFER_POOL_SIZE 268435456
+
+--
+-CASE AggHash
+-LOG TestAggregateListsWithNulls
+# p.language, p.content and p.imageFile both include nulls
+-STATEMENT MATCH (p:Post) RETURN [p.language], [p.language, p.content], COUNT(p) as n ORDER BY n DESC LIMIT 5;
+---- 5
+[]|[,]|120256
+[tk]|[tk,Rudyard Kipling's WorksRudyard Kipling's WorksRudyard Kipling's WorksRudyard Kipling's WorksRudyar]|2
+[tk]|[tk,Rudyard Kipling's WorksRudyard Kipling's WorksRudyard Kipling's WorksRudyard Kipling's WorksRudyard Kipling's WorksRudy]|2
+[uz]|[uz,About Humayun, is half-brother Kamran Mirza, who was to become a rather bitter rival, obtained the sovere]|2
+[uz]|[uz,Cliff Richards (born 1964, Belo Horizonte, Brazil) is a comic book artist.About Cliff Richar]|2
+-STATEMENT MATCH (p:Post) RETURN p.browserUsed, [p.language], [p.language, p.content], COUNT(p) as n ORDER BY n DESC LIMIT 5;
+-CHECK_ORDER
+---- 5
+Firefox|[]|[,]|47533
+Internet Explorer|[]|[,]|32861
+Chrome|[]|[,]|30514
+Safari|[]|[,]|5410
+Opera|[]|[,]|3938
+-STATEMENT MATCH (p:Post) WHERE p.language is NULL XOR p.imageFile is NULL RETURN p.browserUsed, [p.language, p.imageFile], COUNT(p) as n ORDER BY n DESC LIMIT 5;
+-CHECK_ORDER
+---- 5
+Firefox|[uz,]|2910
+Chrome|[uz,]|2501
+Firefox|[tk,]|2216
+Internet Explorer|[tk,]|1789
+Chrome|[tk,]|1710
