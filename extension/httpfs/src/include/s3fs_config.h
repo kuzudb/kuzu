@@ -26,6 +26,7 @@ struct S3AuthParams {
 
 struct S3AuthOption {
     common::Value defaultValue;
+    bool isConfidential = false;
     bool isConfigurable = true;
 };
 

@@ -16,8 +16,8 @@ static constexpr std::array<std::string_view, 1> s3PrefixArray = {"s3://"};
 S3FileSystemConfig getS3Config() {
     return S3FileSystemConfig{.prefixes = s3PrefixArray,
         .fsName = "S3",
-        .accessKeyIDOption = {common::Value{""}},
-        .secretAccessKeyOption = {common::Value{""}},
+        .accessKeyIDOption = {common::Value{""}, true},
+        .secretAccessKeyOption = {common::Value{""}, true},
         .endpointOption = {common::Value{"s3.amazonaws.com"}},
         .urlStyleOption = {{common::Value{"vhost"}}},
         .regionOption = {common::Value{"us-east-1"}}};
@@ -29,11 +29,11 @@ static constexpr std::array<std::string_view, 2> gcsPrefixArray = {"gcs://", "gs
 S3FileSystemConfig getGCSConfig() {
     return S3FileSystemConfig{.prefixes = gcsPrefixArray,
         .fsName = "GCS",
-        .accessKeyIDOption = {common::Value{""}},
-        .secretAccessKeyOption = {common::Value{""}},
-        .endpointOption = {common::Value{"storage.googleapis.com"}},
-        .urlStyleOption = {{common::Value{"path"}}},
-        .regionOption = {common::Value{"us-east-1"}}};
+        .accessKeyIDOption = {common::Value{""}, true},
+        .secretAccessKeyOption = {common::Value{""}, true},
+        .endpointOption = {common::Value{"storage.googleapis.com"}, false, false},
+        .urlStyleOption = {{common::Value{"path"}}, false, false},
+        .regionOption = {common::Value{"us-east-1"}, false, false}};
 }
 
 std::span<const S3FileSystemConfig> S3FileSystemConfig::getAvailableConfigs() {
@@ -75,7 +75,7 @@ void S3FileSystemConfig::registerExtensionOptions(main::Database* db) const {
         static constexpr LogicalTypeID optionType = common::LogicalTypeID::STRING;
         if (authOptions[i]->isConfigurable) {
             db->addExtensionOption(getFSOptionName(*this, AUTH_OPTION_NAMES[i]), optionType,
-                authOptions[i]->defaultValue);
+                authOptions[i]->defaultValue, authOptions[i]->isConfidential);
         }
     }
 }
