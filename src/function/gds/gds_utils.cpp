@@ -64,11 +64,16 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
             compState.edgeCompute->terminate(*compState.outputNodeMask)) {
             break;
         }
+        auto activeRelTableIDs =
+            compState.getActiveRelTableIDs(frontierPair->getCurrentIter() - 1, graph);
         for (auto info : graph->getGraphEntry()->nodeInfos) {
             auto fromEntry = info.entry;
             for (auto& nbrInfo : graph->getForwardNbrTableInfos(fromEntry->getTableID())) {
                 auto toEntry = nbrInfo.nodeEntry;
                 auto relEntry = nbrInfo.relEntry;
+                if (!activeRelTableIDs.contains(relEntry->getTableID())) {
+                    continue;
+                }
                 switch (extendDirection) {
                 case ExtendDirection::FWD: {
                     compState.beginFrontierCompute(fromEntry->getTableID(), toEntry->getTableID());

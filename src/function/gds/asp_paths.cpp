@@ -91,7 +91,8 @@ private:
             std::make_unique<ASPPathsEdgeCompute>(frontierPair.get(), bfsGraph.get());
         auto auxiliaryState = std::make_unique<PathAuxiliaryState>(std::move(bfsGraph));
         auto gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
-            std::move(edgeCompute), std::move(auxiliaryState), sharedState->getOutputNodeMaskMap());
+            std::move(edgeCompute), std::move(auxiliaryState),
+            std::vector<common::table_id_set_t>(), sharedState->getOutputNodeMaskMap());
         return RJCompState(std::move(gdsState), std::move(outputWriter));
     }
 };
