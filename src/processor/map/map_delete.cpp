@@ -25,6 +25,26 @@ static void checkDetachDeleteRelDirection(const RelTable* relTable, const NodeTa
     }
 }
 
+table_id_set_t getFwdRelTableIDs(table_id_t nodeTableID, Catalog* catalog, transaction::Transaction* transaction) {
+    table_id_set_t result;
+    for (const auto& relEntry : catalog->getRelTableEntries(transaction)) {
+        if (relEntry->getSrcTableID() == nodeTableID) {
+            result.insert(relEntry->getTableID());
+        }
+    }
+    return result;
+}
+
+table_id_set_t getBwdRelTableIDs(table_id_t nodeTableID, Catalog* catalog, transaction::Transaction* transaction) {
+    table_id_set_t result;
+    for (const auto& relEntry : catalog->getRelTableEntries(transaction)) {
+        if (relEntry->getDstTableID() == nodeTableID) {
+            result.insert(relEntry->getTableID());
+        }
+    }
+    return result;
+}
+
 NodeTableDeleteInfo PlanMapper::getNodeTableDeleteInfo(const TableCatalogEntry& entry,
     DataPos pkPos) const {
     auto storageManager = clientContext->getStorageManager();
@@ -35,12 +55,12 @@ NodeTableDeleteInfo PlanMapper::getNodeTableDeleteInfo(const TableCatalogEntry& 
     std::unordered_set<RelTable*> fwdRelTables;
     std::unordered_set<RelTable*> bwdRelTables;
     auto& nodeEntry = entry.constCast<NodeTableCatalogEntry>();
-    for (auto id : nodeEntry.getFwdRelTableIDs(catalog, transaction)) {
+    for (auto id : getFwdRelTableIDs(nodeEntry.getTableID(), catalog, transaction)) {
         auto* relTable = storageManager->getTable(id)->ptrCast<RelTable>();
         checkDetachDeleteRelDirection(relTable, table);
         fwdRelTables.insert(relTable);
     }
-    for (auto id : nodeEntry.getBwdRelTableIDs(catalog, transaction)) {
+    for (auto id : getBwdRelTableIDs(nodeEntry.getTableID(), catalog, transaction)) {
         auto* relTable = storageManager->getTable(id)->ptrCast<RelTable>();
         checkDetachDeleteRelDirection(relTable, table);
         bwdRelTables.insert(relTable);
