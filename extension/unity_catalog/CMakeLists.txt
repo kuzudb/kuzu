@@ -9,6 +9,7 @@ include_directories(
         ${PROJECT_SOURCE_DIR}/src/include
         src/include
         ${PROJECT_SOURCE_DIR}/extension/duckdb/src/include
+        ${PROJECT_SOURCE_DIR}/extension/httpfs/src/include  # For S3 configuration
         ${DuckDB_INCLUDE_DIRS})
 
 add_subdirectory(src/installer)

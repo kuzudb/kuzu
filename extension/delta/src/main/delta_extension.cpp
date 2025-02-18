@@ -3,7 +3,8 @@
 #include "function/delta_scan.h"
 #include "main/client_context.h"
 #include "main/database.h"
-#include "s3_download_options.h"
+#include "main/duckdb_extension.h"
+#include "s3fs_config.h"
 
 namespace kuzu {
 namespace delta_extension {
@@ -11,8 +12,7 @@ namespace delta_extension {
 void DeltaExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
     extension::ExtensionUtils::addTableFunc<DeltaScanFunction>(db);
-    httpfs::S3DownloadOptions::registerExtensionOptions(&db);
-    httpfs::S3DownloadOptions::setEnvValue(context);
+    duckdb_extension::DuckDBExtension::loadRemoteFSOptions(context);
 }
 
 } // namespace delta_extension

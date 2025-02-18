@@ -1,17 +1,10 @@
 #pragma once
 
 #include "httpfs.h"
+#include "s3fs_config.h"
 
 namespace kuzu {
 namespace httpfs {
-
-struct S3AuthParams {
-    std::string accessKeyID;
-    std::string secretAccessKey;
-    std::string endpoint;
-    std::string urlStyle;
-    std::string region;
-};
 
 struct S3UploadParams {
     uint64_t maxFileSize = 0;
@@ -101,6 +94,8 @@ private:
     static constexpr char uploadIDCloseTag[] = "</UploadId>";
 
 public:
+    explicit S3FileSystem(S3FileSystemConfig fsConfig);
+
     std::unique_ptr<common::FileInfo> openFile(const std::string& path, int flags,
         main::ClientContext* context = nullptr,
         common::FileLockType lock_type = common::FileLockType::NO_LOCK) override;
@@ -108,13 +103,13 @@ public:
     std::vector<std::string> glob(main::ClientContext* context,
         const std::string& path) const override;
 
-    bool canHandleFile(const std::string& path) const override;
+    bool canHandleFile(const std::string_view path) const override;
 
     static std::string encodeURL(const std::string& input, bool encodeSlash = false);
 
     static std::string decodeURL(std::string input);
 
-    static ParsedS3URL parseS3URL(std::string url, S3AuthParams& params);
+    ParsedS3URL parseS3URL(std::string url, S3AuthParams& params) const;
 
     std::string initializeMultiPartUpload(S3FileInfo* fileInfo) const;
 
@@ -128,9 +123,9 @@ public:
 
     void finalizeMultipartUpload(S3FileInfo* fileInfo);
 
-    static HeaderMap createS3Header(std::string url, std::string query, std::string host,
+    HeaderMap createS3Header(std::string url, std::string query, std::string host,
         std::string service, std::string method, const S3AuthParams& authParams,
-        std::string payloadHash = "", std::string contentType = "");
+        std::string payloadHash = "", std::string contentType = "") const;
 
 protected:
     std::unique_ptr<HTTPResponse> headRequest(common::FileInfo* fileInfo, const std::string& url,
@@ -161,6 +156,7 @@ private:
     std::mutex bufferInfoLock;
     std::condition_variable bufferInfoCV;
     uint16_t numUsedBuffers = 0;
+    S3FileSystemConfig fsConfig;
 };
 
 struct AWSListObjectV2 {
@@ -172,7 +168,7 @@ struct AWSListObjectV2 {
     static constexpr char OPEN_PREFIX_TAG[] = "<Prefix>";
     static constexpr char CLOSE_PREFIX_TAG[] = "</Prefix>";
 
-    static std::string request(std::string& path, S3AuthParams& authParams,
+    static std::string request(const S3FileSystem& fs, std::string& path, S3AuthParams& authParams,
         std::string& continuationToken);
     static void parseKey(std::string& awsResponse, std::vector<std::string>& result);
     static std::vector<std::string> parseCommonPrefix(std::string& awsResponse);
