@@ -1,4 +1,5 @@
 #include "graph/graph_entry.h"
+
 #include "common/exception/runtime.h"
 
 using namespace kuzu::planner;
