@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "common/types/internal_id_t.h"
+#include "common/vector/value_vector.h"
 #include <span>
 
 namespace kuzu {
@@ -47,7 +48,8 @@ public:
     virtual std::vector<RelTableIDInfo> getRelTableIDInfos() = 0;
 
     // Prepares scan on the specified relationship table (works for backwards and forwards scans)
-    virtual std::unique_ptr<GraphScanState> prepareScan(common::table_id_t relTableID) = 0;
+    virtual std::unique_ptr<GraphScanState>
+    prepareScan(common::table_id_t relTableID, common::node_group_idx_t numNodeGroups = 1) = 0;
     // Prepares scan on all connected relationship tables using forward adjList.
     virtual std::unique_ptr<GraphScanState> prepareMultiTableScanFwd(
         std::span<common::table_id_t> nodeTableIDs) = 0;
@@ -63,6 +65,9 @@ public:
     // caching of CSR headers.
     virtual std::vector<common::nodeID_t> scanFwdRandom(common::nodeID_t nodeID,
         GraphScanState& state) = 0;
+
+    virtual common::ValueVector* scanFwdRandomFast(common::nodeID_t nodeID,
+                                                        GraphScanState& state) = 0;
 
     // We don't use scanBwd currently. I'm adding them because they are the mirroring to scanFwd.
     // Also, algorithm may only need adjList index in single direction so we should make double

@@ -32,8 +32,9 @@ private:
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
 
     explicit OnDiskGraphScanStates(std::span<common::table_id_t> tableIDs,
-        storage::MemoryManager* mm);
+        storage::MemoryManager* mm, common::node_group_idx_t numNodeGroups);
     std::vector<std::pair<common::table_id_t, OnDiskGraphScanState>> scanStates;
+    std::vector<OnDiskGraphScanState> scanStatesPerNodeGroup;
 };
 
 class OnDiskGraph final : public Graph {
@@ -52,7 +53,8 @@ public:
 
     std::vector<RelTableIDInfo> getRelTableIDInfos() override;
 
-    std::unique_ptr<GraphScanState> prepareScan(common::table_id_t relTableID) override;
+    std::unique_ptr<GraphScanState>
+    prepareScan(common::table_id_t relTableID, common::node_group_idx_t numNodeGroups = 1) override;
     std::unique_ptr<GraphScanState> prepareMultiTableScanFwd(
         std::span<common::table_id_t> nodeTableIDs) override;
     std::unique_ptr<GraphScanState> prepareMultiTableScanBwd(
@@ -61,6 +63,8 @@ public:
     std::vector<common::nodeID_t> scanFwd(common::nodeID_t nodeID, GraphScanState& state) override;
     std::vector<common::nodeID_t> scanFwdRandom(common::nodeID_t nodeID,
         GraphScanState& state) override;
+    common::ValueVector* scanFwdRandomFast(common::nodeID_t nodeID,
+                                                GraphScanState& state) override;
     std::vector<common::nodeID_t> scanBwd(common::nodeID_t nodeID, GraphScanState& state) override;
     std::vector<common::nodeID_t> scanBwdRandom(common::nodeID_t nodeID,
         GraphScanState& state) override;
@@ -69,6 +73,9 @@ private:
     void scan(common::nodeID_t nodeID, storage::RelTable* relTable,
         OnDiskGraphScanStates& scanState, storage::RelTableScanState& relTableScanState,
         std::vector<common::nodeID_t>& nbrNodeIDs);
+
+    void scanRandom(common::nodeID_t nodeID, storage::RelTable* relTable,
+              OnDiskGraphScanStates& scanState, storage::RelTableScanState& relTableScanState);
 
 private:
     main::ClientContext* context;
