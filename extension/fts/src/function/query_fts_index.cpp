@@ -339,6 +339,7 @@ void QueryFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& con
     auto graphEntry = graph::GraphEntry({termsEntry, docsEntry}, {appearsInEntry});
     bindData = std::make_unique<QueryFTSBindData>(std::move(graphEntry), nodeOutput,
         std::move(query), *ftsIndexEntry, QueryFTSConfig{input.optionalParams});
+    context.setUseInternalCatalogEntry(false /* useInternalCatalogEntry */);
 }
 
 function_set QueryFTSFunction::getFunctionSet() {
