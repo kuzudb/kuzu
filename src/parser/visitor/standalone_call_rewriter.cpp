@@ -2,6 +2,8 @@
 
 #include "binder/binder.h"
 #include "binder/bound_standalone_call_function.h"
+#include "common/exception/connection.h"
+#include "main/database.h"
 #include "parser/standalone_call_function.h"
 
 namespace kuzu {
@@ -27,7 +29,7 @@ void StandaloneCallRewriter::visitStandaloneCallFunction(const Statement& statem
                 rewriteQuery = func->rewriteFunc(*context, *boundStandaloneCall.getBindData());
             }
         },
-        false /*readOnlyStatement*/, false /*isTransactionStatement*/,
+        true /*readOnlyStatement*/, false /*isTransactionStatement*/,
         main::ClientContext::TransactionHelper::TransactionCommitAction::COMMIT_IF_NEW);
 }
 
