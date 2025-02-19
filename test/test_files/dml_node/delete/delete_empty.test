@@ -68,3 +68,22 @@
 -STATEMENT MATCH (t:test) RETURN MIN(t.id), MAX(t.id);
 ---- 1
 100|4000
+
+-CASE DeleteLocalNodeAtLargeOffset
+-STATEMENT create node table Comment (id int64, creationDate INT64, locationIP STRING, browserUsed STRING, content STRING, length INT32, PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY Comment FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-sf01/Comment.csv";
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:Comment {id: 8933535696141})
+---- ok
+-STATEMENT MATCH (c:Comment) WHERE c.id = 8933535696141 RETURN c.id
+---- 1
+8933535696141
+-STATEMENT MATCH (c:Comment) WHERE c.id = 8933535696141 DELETE c
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (c:Comment) WHERE c.id = 8933535696141 RETURN c.id, c.creationDate
+---- 0
