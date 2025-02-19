@@ -628,16 +628,14 @@ void NodeTable::scanPKColumn(const Transaction* transaction, PKColumnScanHelper&
     auto scanState = scanHelper.initPKScanState(dataChunk, pkColumnID, columns);
 
     const auto numNodeGroups = nodeGroups_.getNumNodeGroups();
-    row_idx_t startNodeOffset = 0;
     for (node_group_idx_t nodeGroupToScan = 0u; nodeGroupToScan < numNodeGroups;
-         ++nodeGroupToScan) {
+        ++nodeGroupToScan) {
         scanState->nodeGroup = nodeGroups_.getNodeGroupNoLock(nodeGroupToScan);
 
         // It is possible for the node group to have no chunked groups if we are rolling back due to
         // an exception that is thrown before any chunked groups could be appended to the node group
         if (scanState->nodeGroup->getNumChunkedGroups() > 0) {
             scanState->nodeGroupIdx = nodeGroupToScan;
-            scanState->startNodeOffset = startNodeOffset;
             KU_ASSERT(scanState->nodeGroup);
             scanState->nodeGroup->initializeScanState(transaction, *scanState);
             while (true) {
@@ -648,8 +646,6 @@ void NodeTable::scanPKColumn(const Transaction* transaction, PKColumnScanHelper&
                 }
             }
         }
-
-        startNodeOffset += scanState->nodeGroup->getNumRows();
     }
 }
 
