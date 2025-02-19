@@ -1,4 +1,5 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+
 #include "binder/ddl/bound_create_table_info.h"
 #include "common/serializer/deserializer.h"
 
