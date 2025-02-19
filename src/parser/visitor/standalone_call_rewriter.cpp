@@ -27,7 +27,7 @@ void StandaloneCallRewriter::visitStandaloneCallFunction(const Statement& statem
                 rewriteQuery = func->rewriteFunc(*context, *boundStandaloneCall.getBindData());
             }
         },
-        false /*readOnlyStatement*/, false /*isTransactionStatement*/,
+        true /*readOnlyStatement*/, false /*isTransactionStatement*/,
         main::ClientContext::TransactionHelper::TransactionCommitAction::COMMIT_IF_NEW);
 }
 
