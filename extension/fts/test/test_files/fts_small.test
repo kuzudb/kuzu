@@ -75,6 +75,27 @@
 3|0|0.271133
 3|3|0.209476
 
+-STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx4', 'waterloo') with node.ID as ID, score as score MATCH (n) RETURN ID, score, label(n)
+---- 18
+0|0.192034|city_stopwords
+0|0.192034|city_stopwords
+0|0.192034|city_stopwords
+20|0.210752|city_stopwords
+20|0.210752|city_stopwords
+20|0.210752|city_stopwords
+0|0.192034|doc
+0|0.192034|doc
+0|0.192034|doc
+20|0.210752|doc
+20|0.210752|doc
+20|0.210752|doc
+0|0.192034|name_stopwords
+0|0.192034|name_stopwords
+0|0.192034|name_stopwords
+20|0.210752|name_stopwords
+20|0.210752|name_stopwords
+20|0.210752|name_stopwords
+
 -CASE FTSWithParams
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
 ---- ok
