@@ -173,7 +173,7 @@ TEST_F(CopyTest, NodeCopyBMExceptionRecoverySameConnection) {
 
 TEST_F(CopyTest, RelCopyBMExceptionRecoverySameConnection) {
     if (inMemMode ||
-        common::StorageConfig::NODE_GROUP_SIZE_LOG2 != TestParser::STANDARD_NODE_GROUP_SIZE_LOG_2) {
+        common::StorageConfig::NODE_GROUP_SIZE_LOG2 > TestParser::STANDARD_NODE_GROUP_SIZE_LOG_2) {
         GTEST_SKIP();
     }
     BMExceptionRecoveryTestConfig cfg{.canFailDuringExecute = true,
@@ -299,7 +299,7 @@ TEST_F(CopyTest, NodeCopyBMExceptionDuringCheckpointRecovery) {
 
 TEST_F(CopyTest, NodeInsertBMExceptionDuringCheckpointRecovery) {
     if (inMemMode ||
-        common::StorageConfig::NODE_GROUP_SIZE_LOG2 != TestParser::STANDARD_NODE_GROUP_SIZE_LOG_2) {
+        common::StorageConfig::NODE_GROUP_SIZE_LOG2 > TestParser::STANDARD_NODE_GROUP_SIZE_LOG_2) {
         GTEST_SKIP();
     }
     static constexpr uint64_t numValues = 200000;
@@ -324,10 +324,9 @@ TEST_F(CopyTest, NodeInsertBMExceptionDuringCheckpointRecovery) {
     BMExceptionRecoveryTest(cfg);
 }
 
-static constexpr uint64_t STANDARD_NODE_GROUP_SIZE_LOG2 = 17;
-
 TEST_F(CopyTest, OutOfMemoryRecovery) {
-    if (inMemMode || common::StorageConfig::NODE_GROUP_SIZE_LOG2 > STANDARD_NODE_GROUP_SIZE_LOG2) {
+    if (inMemMode ||
+        common::StorageConfig::NODE_GROUP_SIZE_LOG2 != TestParser::STANDARD_NODE_GROUP_SIZE_LOG_2) {
         GTEST_SKIP();
     }
     // Needs to be small enough that we cannot successfully complete the rel table copy
@@ -365,7 +364,8 @@ TEST_F(CopyTest, OutOfMemoryRecovery) {
 }
 
 TEST_F(CopyTest, OutOfMemoryRecoveryDropTable) {
-    if (inMemMode || common::StorageConfig::NODE_GROUP_SIZE_LOG2 > STANDARD_NODE_GROUP_SIZE_LOG2) {
+    if (inMemMode ||
+        common::StorageConfig::NODE_GROUP_SIZE_LOG2 != TestParser::STANDARD_NODE_GROUP_SIZE_LOG_2) {
         GTEST_SKIP();
     }
     // Needs to be small enough that we cannot successfully complete the rel table copy
