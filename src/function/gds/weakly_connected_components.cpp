@@ -189,7 +189,8 @@ public:
             sharedState.get(), std::move(writer), componentIDs);
         auto auxiliaryState = std::make_unique<WCCAuxiliaryState>(componentIDs);
         auto computeState = GDSComputeState(std::move(frontierPair), std::move(edgeCompute),
-            std::move(auxiliaryState), sharedState->getOutputNodeMaskMap());
+            std::move(auxiliaryState), std::vector<common::table_id_set_t>(),
+            sharedState->getOutputNodeMaskMap());
         GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH,
             MAX_ITERATION);
         GDSUtils::runVertexCompute(context, graph, *vertexCompute);

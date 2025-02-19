@@ -71,6 +71,7 @@ public:
     inline void finalizeCurrentLevel() { moveNextLevelAsCurrentLevel(); }
     inline size_t getNumFrontiers() const { return frontiers.size(); }
     inline Frontier* getFrontier(common::idx_t idx) const { return frontiers[idx].get(); }
+    inline uint8_t getCurrentLevel() { return currentLevel; }
 
 protected:
     inline bool isCurrentFrontierEmpty() const { return currentFrontier->nodeIDs.empty(); }

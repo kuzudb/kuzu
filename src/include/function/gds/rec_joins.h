@@ -22,7 +22,10 @@ struct RJBindData : public GDSBindData {
 
     common::ExtendDirection extendDirection = common::ExtendDirection::FWD;
 
-    bool flipPath = false; // See PathsOutputWriterInfo::flipPath for comments.
+    std::vector<common::table_id_set_t> stepFromLeftActivationRelInfos;
+    std::vector<common::table_id_set_t> stepFromRightActivationRelInfos;
+
+    bool extendRightToLeft = false; // See PathsOutputWriterInfo::extendLeftToRight for comments.
     bool writePath = true;
 
     std::shared_ptr<binder::Expression> directionExpr = nullptr;
@@ -42,6 +45,8 @@ struct RJBindData : public GDSBindData {
     bool hasNodeOutput() const override { return true; }
 
     PathsOutputWriterInfo getPathWriterInfo() const;
+
+    std::vector<common::table_id_set_t> getStepActiveRelTableIDs() const;
 
     std::unique_ptr<GDSBindData> copy() const override {
         return std::make_unique<RJBindData>(*this);

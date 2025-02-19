@@ -10,15 +10,19 @@ struct KUZU_API GDSComputeState {
     std::unique_ptr<function::FrontierPair> frontierPair = nullptr;
     std::unique_ptr<function::EdgeCompute> edgeCompute = nullptr;
     std::unique_ptr<function::GDSAuxiliaryState> auxiliaryState = nullptr;
+    // While stepActiveRelTableIDs is empty, using all relTableIDs in graph
+    std::vector<common::table_id_set_t> stepActiveRelTableIDs;
 
     processor::NodeOffsetMaskMap* outputNodeMask = nullptr;
 
     GDSComputeState(std::unique_ptr<function::FrontierPair> frontierPair,
         std::unique_ptr<function::EdgeCompute> edgeCompute,
         std::unique_ptr<function::GDSAuxiliaryState> auxiliaryState,
+        std::vector<common::table_id_set_t> stepActiveRelTableIDs,
         processor::NodeOffsetMaskMap* outputNodeMask)
         : frontierPair{std::move(frontierPair)}, edgeCompute{std::move(edgeCompute)},
-          auxiliaryState{std::move(auxiliaryState)}, outputNodeMask{outputNodeMask} {}
+          auxiliaryState{std::move(auxiliaryState)},
+          stepActiveRelTableIDs{std::move(stepActiveRelTableIDs)}, outputNodeMask{outputNodeMask} {}
 
     void initSource(common::nodeID_t sourceNodeID) const;
     // When performing computations on multi-label graphs, it is beneficial to fix a single
@@ -32,6 +36,8 @@ struct KUZU_API GDSComputeState {
     // RJOutputs, to possibly avoid them doing lookups of S and T-related data structures,
     // e.g., maps, internally.
     void beginFrontierCompute(common::table_id_t currTableID, common::table_id_t nextTableID) const;
+
+    common::table_id_set_t getActiveRelTableIDs(size_t index, graph::Graph* graph);
 };
 
 } // namespace function

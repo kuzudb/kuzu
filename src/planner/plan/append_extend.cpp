@@ -143,8 +143,10 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     bindData->upperBound = recursiveInfo->upperBound;
     bindData->semantic = semantic;
     bindData->extendDirection = direction;
+    bindData->stepFromLeftActivationRelInfos = recursiveInfo->stepFromLeftActivationRelInfos;
+    bindData->stepFromRightActivationRelInfos = recursiveInfo->stepFromRightActivationRelInfos;
     // If we extend from right to left, we need to print path in reverse direction.
-    bindData->flipPath = *boundNode == *rel->getRightNode();
+    bindData->extendRightToLeft = *boundNode == *rel->getRightNode();
     if (direction == common::ExtendDirection::BOTH) {
         bindData->directionExpr = recursiveInfo->pathEdgeDirectionsExpr;
     }

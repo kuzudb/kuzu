@@ -196,7 +196,8 @@ private:
             std::make_unique<ASPDestinationsEdgeCompute>(frontierPair.get(), multiplicities);
         auto auxiliaryState = std::make_unique<ASPDestinationsAuxiliaryState>(multiplicities);
         auto gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
-            std::move(edgeCompute), std::move(auxiliaryState), sharedState->getOutputNodeMaskMap());
+            std::move(edgeCompute), std::move(auxiliaryState),
+            std::vector<common::table_id_set_t>(), sharedState->getOutputNodeMaskMap());
         return RJCompState(std::move(gdsState), std::move(outputWriter));
     }
 };
