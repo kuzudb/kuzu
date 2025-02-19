@@ -1,15 +1,15 @@
+#include "binder/binder.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
+#include "common/string_utils.h"
 #include "common/types/value/nested.h"
 #include "function/table/bind_data.h"
 #include "function/table/table_function.h"
 #include "graph/graph_entry.h"
-#include "processor/execution_context.h"
-#include "common/string_utils.h"
-#include "binder/binder.h"
 #include "parser/parser.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -23,19 +23,16 @@ struct CreateProjectedGraphBindData final : TableFuncBindData {
     std::vector<GraphEntryTableInfo> nodeInfos;
     std::vector<GraphEntryTableInfo> relInfos;
 
-    explicit CreateProjectedGraphBindData(std::string graphName) : graphName{std::move(graphName)} {}
+    explicit CreateProjectedGraphBindData(std::string graphName)
+        : graphName{std::move(graphName)} {}
     CreateProjectedGraphBindData(std::string graphName, std::vector<GraphEntryTableInfo> nodeInfos,
         std::vector<GraphEntryTableInfo> relInfos)
-        : TableFuncBindData{0}, graphName{std::move(graphName)},
-          nodeInfos{std::move(nodeInfos)}, relInfos{std::move(relInfos)} {}
+        : TableFuncBindData{0}, graphName{std::move(graphName)}, nodeInfos{std::move(nodeInfos)},
+          relInfos{std::move(relInfos)} {}
 
-    void addNodeInfo(TableCatalogEntry* entry) {
-        nodeInfos.emplace_back(entry);
-    }
+    void addNodeInfo(TableCatalogEntry* entry) { nodeInfos.emplace_back(entry); }
 
-    void addRelInfo(TableCatalogEntry* entry) {
-        relInfos.emplace_back(entry);
-    }
+    void addRelInfo(TableCatalogEntry* entry) { relInfos.emplace_back(entry); }
 
     void addRelInfo(TableCatalogEntry* entry, std::shared_ptr<binder::Expression> predicate) {
         relInfos.emplace_back(entry, std::move(predicate));
@@ -127,32 +124,38 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     case LogicalTypeID::STRUCT: {
         for (auto i = 0u; i < StructType::getNumFields(arg3.getDataType()); ++i) {
             auto& field = StructType::getField(arg3.getDataType(), i);
-            auto entry = catalog->getTableCatalogEntry(transaction, field.getName(), false /* useInternal */);
+            auto entry = catalog->getTableCatalogEntry(transaction, field.getName(),
+                false /* useInternal */);
             validateEntryType(*entry, CatalogEntryType::REL_TABLE_ENTRY);
             auto childVal = NestedVal::getChildVal(&arg3, i);
             auto& childType = childVal->getDataType();
             if (childType.getLogicalTypeID() != LogicalTypeID::STRUCT) {
-                throw BinderException(stringFormat("{} has data type {}. STRUCT was expected.", childVal->toString(), childType.toString()));
+                throw BinderException(stringFormat("{} has data type {}. STRUCT was expected.",
+                    childVal->toString(), childType.toString()));
             }
             std::shared_ptr<binder::Expression> predicate;
             for (auto j = 0u; j < StructType::getNumFields(childType); ++j) {
                 auto fieldName = StructType::getField(childType, j).getName();
                 if (StringUtils::getUpper(fieldName) == "FILTER") {
-                    auto predicateStr = NestedVal::getChildVal(childVal, j)->getValue<std::string>();
-                    auto statementStr = stringFormat("MATCH ()-[r:{}]->() RETURN {}", entry->getName(), predicateStr);
+                    auto predicateStr =
+                        NestedVal::getChildVal(childVal, j)->getValue<std::string>();
+                    auto statementStr = stringFormat("MATCH ()-[r:{}]->() RETURN {}",
+                        entry->getName(), predicateStr);
                     auto parsedStatements = parser::Parser::parseQuery(statementStr);
                     KU_ASSERT(parsedStatements.size() == 1);
                     auto boundStatement = input->binder->bind(*parsedStatements[0]);
                     predicate = boundStatement->getStatementResult()->getColumns()[0];
                 } else {
-                    throw BinderException(stringFormat("Unrecognized configuration {}.", fieldName));
+                    throw BinderException(
+                        stringFormat("Unrecognized configuration {}.", fieldName));
                 }
             }
             bindData->addRelInfo(entry, predicate);
         }
     } break;
     default:
-        throw BinderException(stringFormat("{} has data type {}. STRUCT or LIST was expected.", arg3.toString(), arg3.getDataType().toString()));
+        throw BinderException(stringFormat("{} has data type {}. STRUCT or LIST was expected.",
+            arg3.toString(), arg3.getDataType().toString()));
     }
     return bindData;
 }
