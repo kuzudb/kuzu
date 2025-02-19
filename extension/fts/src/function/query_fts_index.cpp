@@ -265,7 +265,7 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto edgeCompute = std::make_unique<QFTSEdgeCompute>(scores, dfs);
     auto auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
     auto compState = GDSComputeState(std::move(frontierPair), std::move(edgeCompute),
-        std::move(auxiliaryState), nullptr /* outputNodeMask */);
+        std::move(auxiliaryState), {}, nullptr /* outputNodeMask */);
     GDSUtils::runFrontiersUntilConvergence(executionContext, compState, graph, ExtendDirection::FWD,
         1 /* maxIters */, QueryFTSAlgorithm::TERM_FREQUENCY_PROP_NAME);
 

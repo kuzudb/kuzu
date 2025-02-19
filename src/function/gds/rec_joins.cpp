@@ -25,7 +25,7 @@ RJBindData::RJBindData(const RJBindData& other) : GDSBindData{other} {
     upperBound = other.upperBound;
     semantic = other.semantic;
     extendDirection = other.extendDirection;
-    flipPath = other.flipPath;
+    extendRightToLeft = other.extendRightToLeft;
     writePath = other.writePath;
     directionExpr = other.directionExpr;
     lengthExpr = other.lengthExpr;
@@ -33,13 +33,15 @@ RJBindData::RJBindData(const RJBindData& other) : GDSBindData{other} {
     pathEdgeIDsExpr = other.pathEdgeIDsExpr;
     weightPropertyExpr = other.weightPropertyExpr;
     weightOutputExpr = other.weightOutputExpr;
+    stepFromLeftActivationRelInfos = other.stepFromLeftActivationRelInfos;
+    stepFromRightActivationRelInfos = other.stepFromRightActivationRelInfos;
 }
 
 PathsOutputWriterInfo RJBindData::getPathWriterInfo() const {
     auto info = PathsOutputWriterInfo();
     info.semantic = semantic;
     info.lowerBound = lowerBound;
-    info.flipPath = flipPath;
+    info.extendRightToLeft = extendRightToLeft;
     info.writeEdgeDirection = writePath && extendDirection == ExtendDirection::BOTH;
     info.writePath = writePath;
     return info;
@@ -50,6 +52,14 @@ void RJAlgorithm::bind(const kuzu::function::GDSBindInput&, main::ClientContext&
     throw common::BinderException("Recursive join should not be triggered through function calls. "
                                   "Try cypher patter ()-[*]->() instead.");
     // LCOV_EXCL_STOP
+}
+
+std::vector<table_id_set_t> RJBindData::getStepActiveRelTableIDs() const {
+    if (extendRightToLeft) {
+        return stepFromRightActivationRelInfos;
+    } else {
+        return stepFromLeftActivationRelInfos;
+    }
 }
 
 void RJAlgorithm::setToNoPath() {

@@ -224,9 +224,9 @@ public:
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
         // Compute Core values
         auto removeVertexEdgeCompute = std::make_unique<RemoveVertexEdgeCompute>(degrees);
-        auto computeState =
-            GDSComputeState(std::move(frontierPair), std::move(removeVertexEdgeCompute),
-                std::move(auxiliaryState), sharedState->getOutputNodeMaskMap());
+        auto computeState = GDSComputeState(std::move(frontierPair),
+            std::move(removeVertexEdgeCompute), std::move(auxiliaryState),
+            std::vector<common::table_id_set_t>(), sharedState->getOutputNodeMaskMap());
         auto coreValue = 0u;
         auto numNodes = graph->getNumNodes(clientContext->getTransaction());
         auto numNodesComputed = 0u;

@@ -292,9 +292,9 @@ private:
         std::unique_ptr<GDSComputeState> gdsState;
         visit(rjBindData->weightPropertyExpr->getDataType(), [&]<typename T>(T) {
             auto edgeCompute = std::make_unique<DestinationsEdgeCompute<T>>(costs);
-            gdsState =
-                std::make_unique<GDSComputeState>(std::move(frontierPair), std::move(edgeCompute),
-                    std::move(auxiliaryState), sharedState->getOutputNodeMaskMap());
+            gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
+                std::move(edgeCompute), std::move(auxiliaryState),
+                std::vector<common::table_id_set_t>(), sharedState->getOutputNodeMaskMap());
         });
         return RJCompState(std::move(gdsState), std::move(outputWriter));
     }
@@ -343,9 +343,9 @@ private:
         visit(rjBindData->weightPropertyExpr->getDataType(), [&]<typename T>(T) {
             auto edgeCompute = std::make_unique<PathsEdgeCompute<T>>(*bfsGraph);
             auto auxiliaryState = std::make_unique<WSPPathsAuxiliaryState>(std::move(bfsGraph));
-            gdsState =
-                std::make_unique<GDSComputeState>(std::move(frontierPair), std::move(edgeCompute),
-                    std::move(auxiliaryState), sharedState->getOutputNodeMaskMap());
+            gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
+                std::move(edgeCompute), std::move(auxiliaryState),
+                std::vector<common::table_id_set_t>(), sharedState->getOutputNodeMaskMap());
         });
         return RJCompState(std::move(gdsState), std::move(outputWriter));
     }

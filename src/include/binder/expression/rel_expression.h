@@ -3,6 +3,7 @@
 #include "common/constants.h"
 #include "common/enums/extend_direction.h"
 #include "common/enums/query_rel_type.h"
+#include "common/types/types.h"
 #include "node_expression.h"
 
 namespace kuzu {
@@ -55,6 +56,9 @@ struct RecursiveInfo {
     // Edge property representing weight
     std::shared_ptr<Expression> weightPropertyExpr = nullptr;
     std::shared_ptr<Expression> weightOutputExpr = nullptr;
+
+    std::vector<common::table_id_set_t> stepFromLeftActivationRelInfos;
+    std::vector<common::table_id_set_t> stepFromRightActivationRelInfos;
 };
 
 class RelExpression final : public NodeOrRelExpression {
@@ -102,6 +106,7 @@ public:
         recursiveInfo = std::move(recursiveInfo_);
     }
     const RecursiveInfo* getRecursiveInfo() const { return recursiveInfo.get(); }
+    RecursiveInfo* getRecursiveInfoUnsafe() { return recursiveInfo.get(); }
     size_t getLowerBound() const { return recursiveInfo->lowerBound; }
     size_t getUpperBound() const { return recursiveInfo->upperBound; }
     std::shared_ptr<Expression> getLengthExpression() const {
