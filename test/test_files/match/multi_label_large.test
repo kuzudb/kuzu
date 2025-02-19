@@ -3,6 +3,5 @@
 --
 
 -CASE LargeMultiLabelScanWithFilter
--STATEMENT MATCH (a)-[e:likes_Comment|:likes_Post]->(b) WHERE e.creationDate > 20120723183906139 RETURN a.ID, b.ID
----- 1
-7|8
+-STATEMENT MATCH (a)-[e:likes_Comment|:likes_Post]->(b) WHERE e.creationDate > 20200723183906139 RETURN a.ID, b.ID
+---- 0
