@@ -9,6 +9,7 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
+#include "extension/extension_manager.h"
 #include "function/table/bind_input.h"
 #include "main/database_manager.h"
 #include "parser/scan_source.h"
@@ -49,7 +50,11 @@ std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& f
         // When we read delta/iceberg tables from s3/httpfs, we don't have the httpfs extension
         // loaded meaning that we cannot handle remote paths. So we pass the file path to duckdb
         // for validation when we bindFileScanSource.
-        if (!LocalFileSystem::isLocalPath(filePath)) {
+        const auto& loadedExtensions = clientContext->getExtensionManager()->getLoadedExtensions();
+        const bool httpfsExtensionLoaded =
+            std::any_of(loadedExtensions.begin(), loadedExtensions.end(),
+                [](const auto& extension) { return extension.getExtensionName() == "HTTPFS"; });
+        if (!httpfsExtensionLoaded && !LocalFileSystem::isLocalPath(filePath)) {
             boundFilePaths.push_back(filePath);
             continue;
         }
