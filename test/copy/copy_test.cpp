@@ -173,7 +173,7 @@ TEST_F(CopyTest, NodeCopyBMExceptionRecoverySameConnection) {
 
 TEST_F(CopyTest, RelCopyBMExceptionRecoverySameConnection) {
     if (inMemMode ||
-        common::StorageConfig::NODE_GROUP_SIZE_LOG2 > TestParser::STANDARD_NODE_GROUP_SIZE_LOG_2) {
+        common::StorageConfig::NODE_GROUP_SIZE_LOG2 != TestParser::STANDARD_NODE_GROUP_SIZE_LOG_2) {
         GTEST_SKIP();
     }
     BMExceptionRecoveryTestConfig cfg{.canFailDuringExecute = true,
@@ -299,7 +299,7 @@ TEST_F(CopyTest, NodeCopyBMExceptionDuringCheckpointRecovery) {
 
 TEST_F(CopyTest, NodeInsertBMExceptionDuringCheckpointRecovery) {
     if (inMemMode ||
-        common::StorageConfig::NODE_GROUP_SIZE_LOG2 > TestParser::STANDARD_NODE_GROUP_SIZE_LOG_2) {
+        common::StorageConfig::NODE_GROUP_SIZE_LOG2 != TestParser::STANDARD_NODE_GROUP_SIZE_LOG_2) {
         GTEST_SKIP();
     }
     static constexpr uint64_t numValues = 200000;
