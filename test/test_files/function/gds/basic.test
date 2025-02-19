@@ -28,7 +28,7 @@ Runtime exception: Project graph dummy does not exists.
 ---- ok
 -STATEMENT CALL VAR_LEN_JOINS() RETURN *
 ---- error
-Binder exception: Recursive join should not be triggered through function calls. Try cypher patter ()-[*]->() instead.
+Catalog exception: function VAR_LEN_JOINS does not exist.
 -STATEMENT MATCH (a:person)<-[:knows*1..2]-(b:person) WHERE a.ID < 6 RETURN a.fName, COUNT(*);
 ---- 4
 Alice|12
@@ -128,3 +128,48 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0
 [Alice,Dan,Bob]|[2021-06-30,1950-05-14]|[0:0,0:3]|[0:3,0:1]|Alice|Bob
 [Alice,Dan,Carol]|[2021-06-30,2000-01-01]|[0:0,0:3]|[0:3,0:2]|Alice|Carol
 [Alice,Dan]|[2021-06-30]|[0:0]|[0:3]|Alice|Dan
+
+-CASE SpecialProjectedGraph
+-STATEMENT CALL create_project_graph('empty', [], []);
+---- ok
+-STATEMENT CALL weakly_connected_component('empty') RETURN *;
+---- 0
+-STATEMENT CALL k_core_decomposition('empty') RETURN *;
+---- 0
+-STATEMENT CALL page_rank('empty') RETURN *;
+---- 0
+-STATEMENT CALL create_project_graph('n', ['person'], []);
+---- ok
+-STATEMENT CALL weakly_connected_component('n') RETURN node.ID, group_id;
+---- 8
+0|0
+2|1
+3|2
+5|3
+7|4
+8|5
+9|6
+10|7
+-STATEMENT CALL k_core_decomposition('n') RETURN node.ID, k_degree;
+---- 8
+0|0
+2|0
+3|0
+5|0
+7|0
+8|0
+9|0
+10|0
+-STATEMENT CALL page_rank('n') RETURN node.ID, rank;
+---- 8
+0|0.018750
+2|0.018750
+3|0.018750
+5|0.018750
+7|0.018750
+8|0.018750
+9|0.018750
+10|0.018750
+-STATEMENT CALL create_project_graph('err', ['person'], ['studyAt']);
+---- error
+Binder exception: organisation is connected to studyAt but not projected.
