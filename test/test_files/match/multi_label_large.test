@@ -1,5 +1,7 @@
 -DATASET CSV ldbc-sf01
-
+# This test is intended for testing with smaller node group size
+# Which can cause the BM to run out of memory
+-SKIP_IN_MEM
 --
 
 -CASE LargeMultiLabelScanWithFilter
