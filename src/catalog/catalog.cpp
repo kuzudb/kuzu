@@ -59,6 +59,7 @@ Catalog::Catalog(const std::string& directory, VirtualFileSystem* vfs) {
         indexes = std::make_unique<CatalogSet>();
         internalTables = std::make_unique<CatalogSet>(true /* isInternal */);
         internalSequences = std::make_unique<CatalogSet>(true /* isInternal */);
+        internalFunctions = std::make_unique<CatalogSet>(true /* isInternal */);
         if (!isInMemMode) {
             // TODO(Guodong): Ideally we should be able to remove this line. Revisit here.
             saveToFile(directory, vfs, FileVersionType::ORIGINAL);
