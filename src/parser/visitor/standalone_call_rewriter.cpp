@@ -2,8 +2,6 @@
 
 #include "binder/binder.h"
 #include "binder/bound_standalone_call_function.h"
-#include "common/exception/connection.h"
-#include "main/database.h"
 #include "parser/standalone_call_function.h"
 
 namespace kuzu {
