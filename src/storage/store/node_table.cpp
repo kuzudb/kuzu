@@ -563,10 +563,7 @@ void NodeTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
 
 void NodeTable::rollbackPKIndexInsert(const Transaction* transaction, row_idx_t startRow,
     row_idx_t numRows_, node_group_idx_t nodeGroupIdx_) {
-    row_idx_t startNodeOffset = startRow;
-    for (node_group_idx_t i = 0; i < nodeGroupIdx_; ++i) {
-        startNodeOffset += nodeGroups->getNodeGroupNoLock(i)->getNumRows();
-    }
+    row_idx_t startNodeOffset = startRow + StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx_);
 
     RollbackPKDeleter pkDeleter{startNodeOffset, numRows_, tableID, pkIndex.get()};
     scanPKColumn(transaction, pkDeleter, *nodeGroups);

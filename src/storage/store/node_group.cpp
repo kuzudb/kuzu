@@ -144,7 +144,8 @@ void NodeGroup::initializeScanState(const Transaction*, const UniqLock& lock,
 void applySemiMaskFilter(const TableScanState& state, row_idx_t numRowsToScan,
     SelectionVector& selVector) {
     auto& nodeGroupScanState = *state.nodeGroupScanState;
-    const auto startNodeOffset = nodeGroupScanState.nextRowToScan + state.getStartNodeOffset();
+    const auto startNodeOffset = nodeGroupScanState.nextRowToScan +
+                                 StorageUtils::getStartOffsetOfNodeGroup(state.nodeGroupIdx);
     const auto endNodeOffset = startNodeOffset + numRowsToScan;
     const auto& arr = state.semiMask->range(startNodeOffset, endNodeOffset);
     if (arr.empty()) {

@@ -3,10 +3,10 @@
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/types/date_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
-#include "gmock/gmock-matchers.h"
 #include "graph/graph_entry.h"
 #include "graph/on_disk_graph.h"
 #include "main/client_context.h"
@@ -49,32 +49,9 @@ public:
     bool fwdStorageOnly;
 };
 
-class RelScanTestManyNeighbours : public BaseGraphTest {
+class RelScanTestAmazon : public RelScanTest {
     std::string getInputDir() override {
         return kuzu::testing::TestHelper::appendKuzuRootPath("dataset/snap/amazon0601/csv/");
-    }
-
-    void resetDB(uint64_t bufferPoolSize) {
-        systemConfig->bufferPoolSize = bufferPoolSize;
-        database.reset();
-        conn.reset();
-        createDBAndConn();
-    }
-
-    void queryAndCheck(std::string_view query) { ASSERT_TRUE(conn->query(query)); }
-
-    void SetUp() override {
-        BaseGraphTest::SetUp();
-        resetDB(1024 * 1024 * 1024);
-        queryAndCheck("CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID));");
-        queryAndCheck("CREATE REL TABLE follows(FROM account TO account);");
-        queryAndCheck(
-            common::stringFormat("COPY account FROM '{}amazon-nodes.csv'", getInputDir()));
-        queryAndCheck("COPY follows FROM (MATCH "
-                      "(b:account) RETURN 0, b.id)");
-        queryAndCheck("COPY follows FROM (RETURN 1, 2)");
-        queryAndCheck("COPY follows FROM (MATCH "
-                      "(b:account) RETURN 2, b.id)");
     }
 };
 
@@ -181,37 +158,6 @@ TEST_F(RelScanTest, ScanVertexProperties) {
     compare(0, 3, {{0, "Alice", 1.731}, {1, "Bob", 0.99}, {2, "Carol", 1.0}});
     compare(1, 3, {{1, "Bob", 0.99}, {2, "Carol", 1.0}});
     compare(2, 4, {{2, "Carol", 1.0}, {3, "Dan", 1.3}});
-}
-
-TEST_F(RelScanTestManyNeighbours, ScanLarge) {
-    // TODO(Royi) remove
-    GTEST_SKIP();
-    if (inMemMode) {
-        GTEST_SKIP();
-    }
-
-    auto nodes = conn->query("MATCH (a:account) RETURN a.id");
-    std::vector<int64_t> nodeIDs;
-    while (nodes->hasNext()) {
-        nodeIDs.push_back(nodes->getNext()->getValue(0)->getValue<int64_t>());
-    }
-    std::sort(nodeIDs.begin(), nodeIDs.end());
-
-    auto result = conn->query("MATCH (a)-[f:follows]->(b) RETURN a.ID, b.ID");
-    std::array<std::vector<int64_t>, 3> neighbours;
-    while (result->hasNext()) {
-        auto tuple = result->getNext();
-        auto boundNode = tuple->getValue(0)->getValue<int64_t>();
-        ASSERT_TRUE((size_t)boundNode < neighbours.size());
-        neighbours[boundNode].push_back(tuple->getValue(1)->getValue<int64_t>());
-    }
-    for (auto& adj : neighbours) {
-        std::sort(adj.begin(), adj.end());
-    }
-    EXPECT_EQ(neighbours[0], nodeIDs);
-    EXPECT_EQ(neighbours[1].size(), 1);
-    EXPECT_EQ(neighbours[1][0], 2);
-    EXPECT_EQ(neighbours[2], nodeIDs);
 }
 
 } // namespace testing

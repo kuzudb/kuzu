@@ -10,11 +10,6 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-common::row_idx_t TableScanState::getStartNodeOffset() const {
-    return startNodeOffset.has_value() ? *startNodeOffset :
-                                         StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-}
-
 void TableScanState::resetOutVectors() {
     for (const auto& outputVector : outputVectors) {
         KU_ASSERT(outputVector->state.get() == outState);
