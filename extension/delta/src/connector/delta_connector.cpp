@@ -9,10 +9,6 @@ void DeltaConnector::connect(const std::string& /*dbPath*/, const std::string& /
     instance = std::make_unique<duckdb::DuckDB>(nullptr);
     connection = std::make_unique<duckdb::Connection>(*instance);
     // Install the Desired Extension on DuckDB
-    executeQuery("install delta;");
-    executeQuery("load delta;");
-    executeQuery("install httpfs;");
-    executeQuery("load httpfs;");
     initRemoteFSSecrets(context);
 }
 
