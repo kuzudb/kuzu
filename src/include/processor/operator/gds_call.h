@@ -46,10 +46,6 @@ public:
 
     void executeInternal(ExecutionContext* executionContext) override;
 
-    void setNodeProperty(common::node_id_map_t<uint64_t>* nodeProp) {
-        sharedState->nodeProp = nodeProp;
-    }
-
     std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<GDSCall>(resultSetDescriptor->copy(), gds->copy(), sharedState, id,
             printInfo->copy());

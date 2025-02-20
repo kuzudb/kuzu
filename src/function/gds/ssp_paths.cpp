@@ -74,7 +74,6 @@ private:
         auto bfsGraph = getBFSGraph(context);
         auto rjBindData = bindData->ptrCast<RJBindData>();
         auto writerInfo = rjBindData->getPathWriterInfo();
-        writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
         auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext,
             sharedState->getOutputNodeMaskMap(), sourceNodeID, writerInfo, *bfsGraph);
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(frontier);

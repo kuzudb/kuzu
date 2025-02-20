@@ -11,7 +11,8 @@ namespace processor {
 
 class BaseSemiMasker;
 
-using mask_vector = std::vector<common::RoaringBitmapSemiMask*>;
+// Each mask corresponds to a scan operator.
+using semi_mask_vector_t = std::vector<common::RoaringBitmapSemiMask*>;
 
 struct SemiMaskerLocalState {
     common::table_id_map_t<std::unique_ptr<common::RoaringBitmapSemiMask>> localMasksPerTable;
@@ -26,7 +27,7 @@ struct SemiMaskerLocalState {
 
 class SemiMaskerSharedState {
 public:
-    explicit SemiMaskerSharedState(common::table_id_map_t<mask_vector> masksPerTable)
+    explicit SemiMaskerSharedState(common::table_id_map_t<semi_mask_vector_t> masksPerTable)
         : masksPerTable{std::move(masksPerTable)} {}
 
     SemiMaskerLocalState* appendLocalState();
@@ -34,7 +35,7 @@ public:
     void mergeToGlobal();
 
 private:
-    common::table_id_map_t<mask_vector> masksPerTable;
+    common::table_id_map_t<semi_mask_vector_t> masksPerTable;
     std::vector<std::shared_ptr<SemiMaskerLocalState>> localInfos;
     std::mutex mtx;
 };

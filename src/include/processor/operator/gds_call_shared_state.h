@@ -33,10 +33,6 @@ public:
         return masks;
     }
 
-    const common::table_id_map_t<std::unique_ptr<common::RoaringBitmapSemiMask>>&
-    getMaskMap() const {
-        return maskMap;
-    }
     bool containsTableID(common::table_id_t tableID) const { return maskMap.contains(tableID); }
     common::RoaringBitmapSemiMask* getOffsetMask(common::table_id_t tableID) const {
         KU_ASSERT(containsTableID(tableID));
@@ -85,11 +81,10 @@ struct KUZU_API GDSCallSharedState {
     std::shared_ptr<FactorizedTable> fTable;
     std::unique_ptr<graph::Graph> graph;
     std::unique_ptr<GDSOutputCounter> counter = nullptr;
-    common::node_id_map_t<uint64_t>* nodeProp;
 
     GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable, std::unique_ptr<graph::Graph> graph,
         common::offset_t limitNumber)
-        : fTable{std::move(fTable)}, graph{std::move(graph)}, nodeProp{nullptr} {
+        : fTable{std::move(fTable)}, graph{std::move(graph)} {
         if (limitNumber != common::INVALID_LIMIT) {
             counter = std::make_unique<GDSOutputCounter>(limitNumber);
         }
@@ -117,7 +112,6 @@ struct KUZU_API GDSCallSharedState {
     void setPathNodeMask(std::unique_ptr<NodeOffsetMaskMap> maskMap) {
         pathNodeMask = std::move(maskMap);
     }
-    bool hasPathNodeMask() const { return pathNodeMask != nullptr; }
     std::vector<common::RoaringBitmapSemiMask*> getPathNodeMasks() const {
         return pathNodeMask->getMasks();
     }
@@ -140,6 +134,7 @@ private:
     std::unique_ptr<NodeOffsetMaskMap> inputNodeMask = nullptr;
     std::unique_ptr<NodeOffsetMaskMap> outputNodeMask = nullptr;
     std::unique_ptr<NodeOffsetMaskMap> pathNodeMask = nullptr;
+
     // We implement a local ftable pool to avoid generate many small ftables when running GDS.
     // Alternative solutions are directly writing to global ftable with partition so conflict is
     // minimized. Or we optimize ftable to be more memory efficient when number of tuples is small.

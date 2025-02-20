@@ -11,7 +11,7 @@ namespace common {
 // unsafe
 class RoaringBitmapSemiMask {
 public:
-    explicit RoaringBitmapSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
+    RoaringBitmapSemiMask(common::table_id_t tableID, common::offset_t maxOffset)
         : tableID{tableID}, maxOffset{maxOffset}, enabled{false} {}
 
     virtual ~RoaringBitmapSemiMask() = default;
@@ -21,7 +21,7 @@ public:
 
     virtual bool isMasked(common::offset_t startNodeOffset) = 0;
 
-    // include&exclude
+    // include & exclude
     virtual offset_vec_t range(uint32_t start, uint32_t end) = 0;
 
     virtual uint64_t getNumMaskedNodes() const = 0;
