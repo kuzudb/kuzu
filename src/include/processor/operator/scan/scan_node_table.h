@@ -11,10 +11,12 @@ class ScanNodeTableSharedState {
 public:
     explicit ScanNodeTableSharedState(std::unique_ptr<NodeVectorLevelSemiMask> semiMask,
                                       common::node_group_idx_t startNodeGroupIdx = 0,
-                                      common::node_group_idx_t endNodeGroupIdx = common::INVALID_NODE_GROUP_IDX)
+                                      common::node_group_idx_t endNodeGroupIdx = common::INVALID_NODE_GROUP_IDX,
+                                      bool randomMorsels = false)
             : table{nullptr}, currentCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX},
               currentUnCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX}, numCommittedNodeGroups{0},
-              semiMask{std::move(semiMask)}, startNodeGroupIdx(startNodeGroupIdx), endNodeGroupIdx(endNodeGroupIdx) {};
+              semiMask{std::move(semiMask)}, startNodeGroupIdx(startNodeGroupIdx), endNodeGroupIdx(endNodeGroupIdx),
+              randomMorsels(randomMorsels) {};
 
     void initialize(transaction::Transaction* transaction, storage::NodeTable* table);
 
@@ -23,6 +25,8 @@ public:
     void markNodeGroupAsFinished(storage::NodeTableScanState& scanState);
 
     void updateVectorIdx(storage::NodeTableScanState& scanState);
+
+    void randomNextMorsel(storage::NodeTableScanState& scanState);
 
     void nextMorsel(storage::NodeTableScanState& scanState);
 
@@ -40,6 +44,7 @@ private:
     std::unique_ptr<NodeVectorLevelSemiMask> semiMask;
     common::node_group_idx_t startNodeGroupIdx;
     common::node_group_idx_t endNodeGroupIdx;
+    bool randomMorsels = false;
 };
 
 struct ScanNodeTableInfo {

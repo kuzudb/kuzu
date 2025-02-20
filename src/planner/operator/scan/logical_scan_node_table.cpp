@@ -8,7 +8,7 @@ LogicalScanNodeTable::LogicalScanNodeTable(const LogicalScanNodeTable& other)
       nodeTableIDs{other.nodeTableIDs}, properties{other.properties},
       propertyPredicates{copyVector(other.propertyPredicates)},
       startNodeGroupId{other.startNodeGroupId},
-      endNodeGroupId{other.endNodeGroupId} {
+      endNodeGroupId{other.endNodeGroupId}, randomMorsels{other.randomMorsels} {
     if (other.extraInfo != nullptr) {
         setExtraInfo(other.extraInfo->copy());
     }

@@ -56,7 +56,7 @@ void Planner::appendUpdateVectorIndex(const binder::BoundStatement& statement, L
     auto mainPartition = header->getPartitionHeader(0);
     KU_ASSERT_MSG(mainPartition != nullptr, "First partition header not found");
     appendScanNodeTable(offset, {tableEntry->getTableID()}, {embedding}, plan, mainPartition->getStartNodeGroupId(),
-                        mainPartition->getEndNodeGroupId());
+                        mainPartition->getEndNodeGroupId(), true);
     auto children = logical_op_vector_t();
     children.push_back(plan.getLastOperator());
     auto mainOp = make_shared<LogicalUpdateVectorIndex>(tableEntry->getName(),
@@ -67,7 +67,7 @@ void Planner::appendUpdateVectorIndex(const binder::BoundStatement& statement, L
         auto partition = header->getPartitionHeader(i);
         KU_ASSERT_MSG(partition != nullptr, "Partition header not found");
         appendScanNodeTable(offset, {tableEntry->getTableID()}, {embedding}, plan, partition->getStartNodeGroupId(),
-            partition->getEndNodeGroupId());
+            partition->getEndNodeGroupId(), true);
         auto children = logical_op_vector_t();
         children.push_back(plan.getLastOperator());
         auto op = make_shared<LogicalUpdateVectorIndex>(tableEntry->getName(),

@@ -56,10 +56,11 @@ public:
     LogicalScanNodeTable(std::shared_ptr<binder::Expression> nodeID,
                          std::vector<common::table_id_t> nodeTableIDs, binder::expression_vector properties,
                          common::node_group_idx_t startNodeGroupId = 0,
-                         common::node_group_idx_t endNodeGroupId = common::INVALID_NODE_GROUP_IDX)
+                         common::node_group_idx_t endNodeGroupId = common::INVALID_NODE_GROUP_IDX,
+                         bool randomMorsels = false)
             : LogicalOperator{type_}, scanType{defaultScanType}, nodeID{std::move(nodeID)},
               nodeTableIDs{std::move(nodeTableIDs)}, properties{std::move(properties)},
-              startNodeGroupId(startNodeGroupId), endNodeGroupId(endNodeGroupId) {}
+              startNodeGroupId(startNodeGroupId), endNodeGroupId(endNodeGroupId), randomMorsels(randomMorsels) {}
     LogicalScanNodeTable(const LogicalScanNodeTable& other);
 
     void computeFactorizedSchema() override;
@@ -99,6 +100,8 @@ public:
 
     common::node_group_idx_t getEndNodeGroupId() const { return endNodeGroupId; }
 
+    bool isRandomMorsels() const { return randomMorsels; }
+
     std::unique_ptr<LogicalOperator> copy() override;
 
 private:
@@ -110,6 +113,7 @@ private:
     std::unique_ptr<ExtraScanNodeTableInfo> extraInfo;
     common::node_group_idx_t startNodeGroupId;
     common::node_group_idx_t endNodeGroupId;
+    bool randomMorsels = false;
 };
 
 } // namespace planner

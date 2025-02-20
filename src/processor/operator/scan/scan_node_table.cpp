@@ -72,8 +72,34 @@ namespace kuzu {
             committedNodeGroupFinished[scanState.nodeGroupIdx - startNodeGroupIdx] = true;
         }
 
+        void ScanNodeTableSharedState::randomNextMorsel(storage::NodeTableScanState &scanState) {
+            if (committedNodeGroupFinished[currentCommittedGroupIdx]) {
+                currentCommittedGroupIdx++;
+            }
+
+            if (currentCommittedGroupIdx < numCommittedNodeGroups) {
+                // First try to give separate node groups to different threads.
+                scanState.nodeGroupIdx = (currentCommittedGroupIdx + startNodeGroupIdx);
+                scanState.source = TableScanSource::COMMITTED;
+                return;
+            }
+
+            if (currentUnCommittedGroupIdx < localNodeGroups.size()) {
+                scanState.localNodeGroup = ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(
+                        localNodeGroups[currentUnCommittedGroupIdx++]);
+                scanState.source = TableScanSource::UNCOMMITTED;
+                return;
+            }
+            scanState.source = TableScanSource::NONE;
+        }
+
         void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState) {
+            // In case of vector index, we need to get the next morsel in more randomized fashion.
             std::unique_lock lck{mtx};
+            if (randomMorsels) {
+                randomNextMorsel(scanState);
+                return;
+            }
             // First try to give separate node groups to different threads.
             if (currentCommittedGroupIdx < numCommittedNodeGroups) {
                 scanState.nodeGroupIdx = (currentCommittedGroupIdx++ + startNodeGroupIdx);

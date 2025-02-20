@@ -241,7 +241,8 @@ public:
     void appendScanNodeTable(std::shared_ptr<binder::Expression> nodeID,
                              std::vector<common::table_id_t> tableIDs, const binder::expression_vector &properties,
                              LogicalPlan &plan, common::node_group_idx_t startNodeGroupId = 0,
-                             common::node_group_idx_t endNodeGroupId = common::INVALID_NODE_GROUP_IDX);
+                             common::node_group_idx_t endNodeGroupId = common::INVALID_NODE_GROUP_IDX,
+                             bool randomMorsels = false);
 
     // Append extend operators
     void appendNonRecursiveExtend(const std::shared_ptr<binder::NodeExpression>& boundNode,

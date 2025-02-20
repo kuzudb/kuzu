@@ -58,7 +58,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(LogicalOperator* 
             table->getMaxNodeOffset(clientContext->getTx()));
         sharedStates.push_back(
                 std::make_shared<ScanNodeTableSharedState>(std::move(semiMask), scan.getStartNodeGroupId(),
-                                                           scan.getEndNodeGroupId()));
+                                                           scan.getEndNodeGroupId(), scan.isRandomMorsels()));
     }
 
     auto printInfo = std::make_unique<OPPrintInfo>(scan.getExpressionsForPrinting());
