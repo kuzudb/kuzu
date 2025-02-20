@@ -86,7 +86,8 @@ struct RollbackPKDeleter final : PKColumnScanHelper {
     RollbackPKDeleter(row_idx_t startNodeOffset, row_idx_t numRows, table_id_t tableID,
         PrimaryKeyIndex* pkIndex)
         : PKColumnScanHelper(pkIndex, tableID),
-          semiMask(RoaringBitmapSemiMaskUtil::createRoaringBitmapSemiMask(startNodeOffset + numRows)) {
+          semiMask(
+              RoaringBitmapSemiMaskUtil::createRoaringBitmapSemiMask(startNodeOffset + numRows)) {
         semiMask->maskRange(startNodeOffset, startNodeOffset + numRows);
         semiMask->enable();
     }

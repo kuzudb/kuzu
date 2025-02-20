@@ -17,7 +17,8 @@ static std::shared_ptr<RecursiveJoinSharedState> createSharedState(const NodeExp
     for (auto entry : nbrNode.getEntries()) {
         auto tableID = entry->getTableID();
         auto table = context.getStorageManager()->getTable(tableID)->ptrCast<storage::NodeTable>();
-        auto semiMask = RoaringBitmapSemiMaskUtil::createRoaringBitmapSemiMask(table->getNumTotalRows(context.getTransaction()));
+        auto semiMask = RoaringBitmapSemiMaskUtil::createRoaringBitmapSemiMask(
+            table->getNumTotalRows(context.getTransaction()));
         semiMasks.emplace(tableID, std::move(semiMask));
     }
     return std::make_shared<RecursiveJoinSharedState>(std::move(semiMasks));

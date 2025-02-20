@@ -24,7 +24,8 @@ struct SemiMaskerLocalState {
 
 class SemiMaskerSharedState {
 public:
-    explicit SemiMaskerSharedState(common::table_id_map_t<std::vector<common::semi_mask_t*>> masksPerTable)
+    explicit SemiMaskerSharedState(
+        common::table_id_map_t<std::vector<common::semi_mask_t*>> masksPerTable)
         : masksPerTable{std::move(masksPerTable)} {}
 
     SemiMaskerLocalState* appendLocalState();

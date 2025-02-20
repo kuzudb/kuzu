@@ -32,7 +32,6 @@ public:
         return result;
     }
 
-
     bool containsTableID(common::table_id_t tableID) const { return maskMap.contains(tableID); }
     common::semi_mask_t* getOffsetMask(common::table_id_t tableID) const {
         KU_ASSERT(containsTableID(tableID));

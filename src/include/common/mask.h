@@ -43,8 +43,7 @@ private:
 class Roaring32BitmapSemiMask : public RoaringBitmapSemiMask {
 public:
     explicit Roaring32BitmapSemiMask(common::offset_t maxOffset)
-        : RoaringBitmapSemiMask(maxOffset), roaring(std::make_shared<roaring::Roaring>()) {
-    }
+        : RoaringBitmapSemiMask(maxOffset), roaring(std::make_shared<roaring::Roaring>()) {}
 
     void mask(common::offset_t nodeOffset) override { roaring->add(nodeOffset); }
     void maskRange(common::offset_t startNodeOffset, common::offset_t endNodeOffset) override {
@@ -78,8 +77,7 @@ public:
 class Roaring64BitmapSemiMask : public RoaringBitmapSemiMask {
 public:
     explicit Roaring64BitmapSemiMask(common::offset_t maxOffset)
-        : RoaringBitmapSemiMask(maxOffset),
-          roaring(std::make_shared<roaring::Roaring64Map>()) {}
+        : RoaringBitmapSemiMask(maxOffset), roaring(std::make_shared<roaring::Roaring64Map>()) {}
 
     void mask(common::offset_t nodeOffset) override { roaring->add(nodeOffset); }
     void maskRange(common::offset_t startNodeOffset, common::offset_t endNodeOffset) override {

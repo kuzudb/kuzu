@@ -11,7 +11,8 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-static void initMask(table_id_map_t<std::vector<semi_mask_t*>>& masksPerTable, const table_id_map_t<semi_mask_t*>& maskPerTable) {
+static void initMask(table_id_map_t<std::vector<semi_mask_t*>>& masksPerTable,
+    const table_id_map_t<semi_mask_t*>& maskPerTable) {
     for (auto& [tableID, mask] : maskPerTable) {
         mask->enable();
         KU_ASSERT(maskPerTable.contains(tableID));

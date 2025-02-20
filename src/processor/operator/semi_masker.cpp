@@ -13,7 +13,8 @@ SemiMaskerLocalState* SemiMaskerSharedState::appendLocalState() {
     bool isSingle = masksPerTable.size() == 1;
     for (const auto& [tableID, vector] : masksPerTable) {
         auto& mask = vector.front();
-        auto newOne = common::RoaringBitmapSemiMaskUtil::createRoaringBitmapSemiMask(mask->getMaxOffset());
+        auto newOne =
+            common::RoaringBitmapSemiMaskUtil::createRoaringBitmapSemiMask(mask->getMaxOffset());
         if (isSingle) {
             localInfo->singleTableRef = newOne.get();
         }
