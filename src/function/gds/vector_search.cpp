@@ -33,7 +33,8 @@ namespace kuzu {
             DIRECTED,
             ADAPTIVE_G,
             ADAPTIVE_L,
-            NAVIX
+            NAVIX,
+            ONE_HOP,
         };
 
         struct VectorSearchBindData final : public GDSBindData {
@@ -235,6 +236,8 @@ namespace kuzu {
                     searchType = SearchType::ADAPTIVE_L;
                 } else if (searchTypeStr == "navix") {
                     searchType = SearchType::NAVIX;
+                } else if (searchTypeStr == "one_hop") {
+                    searchType = SearchType::ONE_HOP;
                 } else {
                     throw BinderException("Invalid search type: " + searchTypeStr);
                 }
@@ -851,6 +854,52 @@ namespace kuzu {
             }
 
             template<typename T>
+            void oneHopFilteredSearch(const table_id_t tableId, Graph *graph,
+                                        NodeTableDistanceComputer<T> *dc, NodeOffsetLevelSemiMask *filterMask,
+                                        GraphScanState &state, const vector_id_t entrypoint, const double entrypointDist,
+                                        BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
+                                        const int efSearch, const int numFilteredNodesToAdd, VectorSearchStats &stats) {
+                vector_array_t vectorArray;
+                int size = 0;
+                std::priority_queue<NodeDistFarther> candidates;
+                candidates.emplace(entrypoint, entrypointDist);
+                if (filterMask->isMasked(entrypoint)) {
+                    results.push(NodeDistFarther(entrypoint, entrypointDist));
+                }
+                visited->set_bit(entrypoint);
+
+                // Handle for neg correlation cases
+                addFilteredNodesToCandidates(dc, candidates, results, visited, filterMask, numFilteredNodesToAdd, stats);
+                while (!candidates.empty()) {
+                    auto candidate = candidates.top();
+                    if (candidate.dist > results.top()->dist && results.size() > 0) {
+                        break;
+                    }
+                    candidates.pop();
+
+                    // Get the first hop neighbours
+                    stats.listNbrsCallTime->start();
+                    auto firstHopNbrs = graph->scanFwdRandomFast({candidate.id, tableId}, state);
+                    stats.listNbrsCallTime->stop();
+                    stats.listNbrsMetric->increase(1);
+
+                    // Reduce density!!
+                    auto totalNbrs = firstHopNbrs->state->getSelVector().getSelSize();
+
+                    // Try prefetching
+                    for (int i = 0; i < totalNbrs; i++) {
+                        auto neighbor = firstHopNbrs->getValue<nodeID_t>(i);
+                        visited->prefetch(neighbor.offset);
+                        filterMask->prefetchMaskValue(neighbor.offset);
+                    }
+
+                    oneHopSearch(firstHopNbrs, filterMask, visited, vectorArray, size);
+                    stats.oneHopCalls->increase(1);
+                    batchComputeDistance(vectorArray, size, dc, candidates, results, efSearch, stats);
+                }
+            }
+
+            template<typename T>
             void blindFilteredSearch(const table_id_t tableId, Graph *graph,
                                      NodeTableDistanceComputer<T> *dc, NodeOffsetLevelSemiMask *filterMask,
                                      GraphScanState &state, const vector_id_t entrypoint, const double entrypointDist,
@@ -983,7 +1032,12 @@ namespace kuzu {
                         filterMask->prefetchMaskValue(neighbor.offset);
                     }
 
-                    if (selectivity > 0.08) {
+                    if (selectivity >= 0.5) {
+                        // If the selectivity is high, we will simply do one hop search since we can find the next
+                        // closest directly from candidates priority queue.
+                        oneHopSearch(firstHopNbrs, filterMask, visited, vectorArray, size);
+                        stats.oneHopCalls->increase(1);
+                    } else if (selectivity > 0.08) {
                         // We will use this metric to skip
                         // wanted distance computation in the first hop
                         directedTwoHopSearch(candidates, totalNbrs,
@@ -1121,6 +1175,9 @@ namespace kuzu {
                     } else if (searchType == SearchType::DIRECTED) {
                         directedFilteredSearch(nodeTableId, graph, dc, filterMask, state, entrypoint, entrypointDist,
                                             results, visited, efSearch, maxK, stats);
+                    } else if (searchType == SearchType::ONE_HOP) {
+                        oneHopFilteredSearch(nodeTableId, graph, dc, filterMask, state, entrypoint, entrypointDist,
+                                               results, visited, efSearch, maxK, stats);
                     } else {
                         printf("Invalid search type\n");
                     }
