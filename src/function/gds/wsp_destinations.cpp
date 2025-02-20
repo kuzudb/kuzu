@@ -1,7 +1,7 @@
+#include "binder/expression/node_expression.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
 #include "processor/execution_context.h"
-#include "binder/expression/node_expression.h"
 #include "wsp_utils.h"
 
 using namespace kuzu::binder;
@@ -183,5 +183,5 @@ GDSFunction WeightedSPDestinationsFunction::getFunction() {
     return GDSFunction(name, std::move(params), std::move(algo));
 }
 
-}
-}
+} // namespace function
+} // namespace kuzu

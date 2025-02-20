@@ -1,11 +1,11 @@
+#include "binder/expression/node_expression.h"
+#include "common/exception/interrupt.h"
+#include "function/gds/auxiliary_state/path_auxiliary_state.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
-#include "binder/expression/node_expression.h"
-#include "function/gds/auxiliary_state/path_auxiliary_state.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "wsp_utils.h"
-#include "common/exception/interrupt.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -20,7 +20,8 @@ public:
         block = bfsGraph.addNewBlock();
     }
 
-    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk &chunk, bool fwdEdge) override {
+    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
+        bool fwdEdge) override {
         std::vector<nodeID_t> result;
         chunk.forEach<T>([&](auto nbrNodeID, auto edgeID, auto weight) {
             if (!block->hasSpace()) {
@@ -45,8 +46,9 @@ private:
 
 class AWSPPathsOutputWriter : public PathsOutputWriter {
 public:
-    AWSPPathsOutputWriter(main::ClientContext* context, processor::NodeOffsetMaskMap* outputNodeMask,
-        common::nodeID_t sourceNodeID, PathsOutputWriterInfo info, BFSGraph& bfsGraph)
+    AWSPPathsOutputWriter(main::ClientContext* context,
+        processor::NodeOffsetMaskMap* outputNodeMask, common::nodeID_t sourceNodeID,
+        PathsOutputWriterInfo info, BFSGraph& bfsGraph)
         : PathsOutputWriter{context, outputNodeMask, sourceNodeID, info, bfsGraph} {
         costVector = createVector(LogicalType::DOUBLE(), context->getMemoryManager());
     }
@@ -65,7 +67,7 @@ public:
                 throw InterruptException{};
             }
             if (curPath[curPath.size() - 1]->getCost() == 0) { // Find source. Start writing path.
-                curPath.pop_back(); // avoid writing source node.
+                curPath.pop_back();                            // avoid writing source node.
                 writePath(curPath);
                 fTable.append(vectors);
                 if (updateCounterAndTerminate(counter)) {
@@ -116,7 +118,7 @@ public:
     AllWeightedSPPathsAlgorithm(const AllWeightedSPPathsAlgorithm& other) : RJAlgorithm{other} {}
 
     // return srcNodeID, dstNodeID, length, [direction], pathNodeIDs, pathEdgeIDs, weight
-    expression_vector getResultColumns(const GDSBindInput &) const override {
+    expression_vector getResultColumns(const GDSBindInput&) const override {
         auto rjBindData = bindData->ptrCast<RJBindData>();
         expression_vector columns;
         columns.push_back(bindData->getNodeInput()->constCast<NodeExpression>().getInternalID());
@@ -136,7 +138,8 @@ public:
     }
 
 private:
-    RJCompState getRJCompState(processor::ExecutionContext *context, nodeID_t sourceNodeID) override {
+    RJCompState getRJCompState(processor::ExecutionContext* context,
+        nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
         auto numNodes = sharedState->graph->getNumNodesMap(clientContext->getTransaction());
         auto curFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
@@ -172,5 +175,5 @@ GDSFunction AllWeightedSPPathsFunction::getFunction() {
     return GDSFunction(name, std::move(params), std::move(algo));
 }
 
-}
-}
+} // namespace function
+} // namespace kuzu
