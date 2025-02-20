@@ -1,6 +1,7 @@
 -DATASET CSV ldbc-sf01
 # This test is intended for testing with smaller node group size
 # Which can cause the BM to run out of memory
+# Since we need to store metadata for each node group
 -SKIP_IN_MEM
 --
 

@@ -3,8 +3,6 @@
 --
 
 -CASE AggSimple
-# If node group size is too small the order of the outputted list is non-deterministic
--SKIP_NODE_GROUP_SIZE_TESTS
 -LOG OneHopSimpleAggTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN COUNT(a.ID), MIN(a.fName), MAX(c.ID),count(a.grades)
 -PARALLELISM 8
