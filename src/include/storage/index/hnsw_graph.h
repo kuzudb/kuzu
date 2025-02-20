@@ -70,8 +70,6 @@ struct NodeWithDistance {
 
     NodeWithDistance(common::offset_t nodeOffset, double_t distance)
         : nodeOffset{nodeOffset}, distance{distance} {}
-
-    bool operator<(NodeWithDistance other) const noexcept { return distance < other.distance; }
 };
 
 struct HNSWGraphInfo {
@@ -98,10 +96,8 @@ public:
         resetCSRLengthAndDstNodes();
     }
 
-    std::span<std::atomic<common::offset_t>> getNeighbors(common::offset_t nodeOffset) const {
-        const auto numNbrs = getCSRLength(nodeOffset);
-        return {&dstNodes[nodeOffset * maxDegree], numNbrs};
-    }
+    common::offset_vec_t getNeighbors(common::offset_t nodeOffset) const;
+    common::offset_vec_t getNeighbors(common::offset_t nodeOffset, common::length_t numNbrs) const;
 
     common::length_t getMaxDegree() const { return maxDegree; }
 

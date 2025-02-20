@@ -60,16 +60,12 @@ common::offset_t InMemHNSWLayer::searchNN(common::offset_t node, common::offset_
         lastMinDist = minDist;
         auto neighbors = graph->getNeighbors(currentNodeOffset);
         for (const auto& nbr : neighbors) {
-            auto nbrOffset = nbr.load(std::memory_order::relaxed);
-            if (nbrOffset == common::INVALID_OFFSET) {
-                break;
-            }
-            const auto nbrVector = info.embeddings->getEmbedding(nbrOffset);
+            const auto nbrVector = info.embeddings->getEmbedding(nbr);
             const auto dist = HNSWIndexUtils::computeDistance(info.distFunc, queryVector, nbrVector,
                 info.embeddings->getDimension());
             if (dist < minDist) {
                 minDist = dist;
-                currentNodeOffset = nbrOffset;
+                currentNodeOffset = nbr;
             }
         }
     }
@@ -133,13 +129,9 @@ std::vector<NodeWithDistance> InMemHNSWLayer::searchKNN(const float* queryVector
         candidates.pop();
         auto neighbors = graph->getNeighbors(candidate);
         for (const auto& neighbor : neighbors) {
-            auto nbrOffset = neighbor.load(std::memory_order::relaxed);
-            if (nbrOffset == common::INVALID_OFFSET) {
-                break;
-            }
-            if (!visited.set(nbrOffset)) {
-                const auto nbrVector = info.embeddings->getEmbedding(nbrOffset);
-                processNbrNodeInKNNSearch(queryVector, nbrVector, nbrOffset, ef, visited,
+            if (!visited.set(neighbor)) {
+                const auto nbrVector = info.embeddings->getEmbedding(neighbor);
+                processNbrNodeInKNNSearch(queryVector, nbrVector, neighbor, ef, visited,
                     info.distFunc, info.embeddings, candidates, result);
             }
         }
@@ -152,13 +144,9 @@ void InMemHNSWLayer::shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGrap
     common::offset_t nodeOffset, common::length_t numNbrs) {
     std::vector<NodeWithDistance> nbrs;
     const auto vector = info.embeddings->getEmbedding(nodeOffset);
-    const auto neighborOffsets = graph->getNeighbors(nodeOffset);
-    nbrs.reserve(numNbrs);
-    for (auto i = 0u; i < numNbrs; i++) {
-        const auto nbrOffset = neighborOffsets[i].load(std::memory_order::relaxed);
-        if (nbrOffset == common::INVALID_OFFSET) {
-            break;
-        }
+    const auto neighborOffsets = graph->getNeighbors(nodeOffset, numNbrs);
+    nbrs.reserve(neighborOffsets.size());
+    for (const auto nbrOffset : neighborOffsets) {
         const auto nbrVector = info.embeddings->getEmbedding(nbrOffset);
         const auto dist = HNSWIndexUtils::computeDistance(info.distFunc, vector, nbrVector,
             info.embeddings->getDimension());
