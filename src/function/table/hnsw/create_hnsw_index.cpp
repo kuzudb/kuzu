@@ -1,6 +1,7 @@
 #include "binder/copy/bound_copy_from.h"
 #include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "function/built_in_function_utils.h"
 #include "function/table/bind_data.h"
 #include "function/table/hnsw/hnsw_index_functions.h"
 #include "planner/operator/logical_operator.h"
@@ -20,19 +21,17 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-CreateHNSWSharedState::CreateHNSWSharedState(const CreateHNSWIndexBindData& bindData)
+CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : TableFuncSharedState{bindData.maxOffset}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
                     ->getTable(bindData.tableEntry->getTableID())
                     ->cast<storage::NodeTable>()},
       numNodes{bindData.numNodes}, bindData{&bindData} {
-    hnswIndex = std::make_unique<storage::InMemHNSWIndex>(bindData.context, nodeTable,
+    hnswIndex = std::make_shared<storage::InMemHNSWIndex>(bindData.context, nodeTable,
         bindData.tableEntry->getColumnID(bindData.propertyID), bindData.config.copy());
-    partitionerSharedState = std::make_shared<storage::HNSWIndexPartitionerSharedState>(
-        *bindData.context->getMemoryManager());
 }
 
-static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
+static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
     const auto indexName = input->getLiteralVal<std::string>(0);
     const auto tableName = input->getLiteralVal<std::string>(1);
@@ -50,45 +49,211 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         numNodes, maxOffset, std::move(config));
 }
 
-static std::unique_ptr<TableFuncSharedState> initCreateHNSWSharedState(
+static std::unique_ptr<TableFuncSharedState> initCreateInMemHNSWSharedState(
     const TableFunctionInitInput& input) {
     const auto bindData = input.bindData->constPtrCast<CreateHNSWIndexBindData>();
-    return std::make_unique<CreateHNSWSharedState>(*bindData);
+    return std::make_unique<CreateInMemHNSWSharedState>(*bindData);
 }
 
-static std::unique_ptr<TableFuncLocalState> initCreateHNSWLocalState(
+static std::unique_ptr<TableFuncLocalState> initCreateInMemHNSWLocalState(
     const TableFunctionInitInput& input, TableFuncSharedState*, storage::MemoryManager*) {
     const auto bindData = input.bindData->constPtrCast<CreateHNSWIndexBindData>();
-    return std::make_unique<CreateHNSWLocalState>(bindData->maxOffset + 1);
+    return std::make_unique<CreateInMemHNSWLocalState>(bindData->maxOffset + 1);
 }
 
-static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
-    const auto& context = *input.context->clientContext;
-    const auto sharedState = input.sharedState->ptrCast<CreateHNSWSharedState>();
+static offset_t createInMemHNSWTableFunc(const TableFuncInput& input, TableFuncOutput&) {
+    const auto sharedState = input.sharedState->ptrCast<CreateInMemHNSWSharedState>();
     const auto morsel = sharedState->getMorsel();
     if (morsel.isInvalid()) {
         return 0;
     }
     const auto& hnswIndex = sharedState->hnswIndex;
     for (auto i = morsel.startOffset; i <= morsel.endOffset; i++) {
-        hnswIndex->insert(i, context.getTransaction(),
-            input.localState->ptrCast<CreateHNSWLocalState>()->upperVisited,
-            input.localState->ptrCast<CreateHNSWLocalState>()->lowerVisited);
+        hnswIndex->insert(i, input.localState->ptrCast<CreateInMemHNSWLocalState>()->upperVisited,
+            input.localState->ptrCast<CreateInMemHNSWLocalState>()->lowerVisited);
     }
     sharedState->numNodesInserted.fetch_add(morsel.endOffset - morsel.startOffset);
     return morsel.endOffset - morsel.startOffset;
 }
 
-static void finalizeFunc(const processor::ExecutionContext* context,
+static double createInMemHNSWProgressFunc(TableFuncSharedState* sharedState) {
+    const auto hnswSharedState = sharedState->ptrCast<CreateInMemHNSWSharedState>();
+    const auto numNodesInserted = hnswSharedState->numNodesInserted.load();
+    if (hnswSharedState->numNodes == 0) {
+        return 1.0;
+    }
+    if (numNodesInserted == 0) {
+        return 0.0;
+    }
+    return static_cast<double>(numNodesInserted) / hnswSharedState->numNodes;
+}
+
+static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
+    const main::ClientContext* clientContext, processor::PlanMapper* planMapper,
+    const planner::LogicalOperator* logicalOp) {
+    // _CreateHNSWIndex table function.
+    auto logicalCallBoundData = logicalOp->constPtrCast<planner::LogicalTableFunctionCall>()
+                                    ->getBindData()
+                                    ->constPtrCast<CreateHNSWIndexBindData>();
+    auto createHNSWCallOp = TableFunction::getPhysicalPlan(clientContext, planMapper, logicalOp);
+    auto createHNSWTableFuncCall = createHNSWCallOp->ptrCast<processor::TableFunctionCall>();
+    KU_ASSERT(createHNSWTableFuncCall->getOperatorType() ==
+              processor::PhysicalOperatorType::TABLE_FUNCTION_CALL);
+    auto createHNSWFuncSharedState =
+        createHNSWTableFuncCall->getSharedState()->funcState->ptrCast<CreateInMemHNSWSharedState>();
+    auto indexName = createHNSWFuncSharedState->name;
+    // Append a dummy sink to end the first pipeline
+    auto createHNSWDummySink = std::make_unique<processor::DummySink>(
+        std::make_unique<processor::ResultSetDescriptor>(logicalOp->getSchema()),
+        std::move(createHNSWCallOp), planMapper->getOperatorID(), std::make_unique<OPPrintInfo>());
+    // Append _FinalizeHNSWIndex table function.
+    auto finalizeHNSWTableFuncEntry = clientContext->getCatalog()->getFunctionEntry(
+        clientContext->getTransaction(), InternalFinalizeHNSWIndexFunction::name);
+    auto func = BuiltInFunctionsUtils::matchFunction(InternalFinalizeHNSWIndexFunction::name,
+        finalizeHNSWTableFuncEntry->ptrCast<catalog::FunctionCatalogEntry>())
+                    ->constPtrCast<TableFunction>()
+                    ->copy();
+    auto info = processor::TableFunctionCallInfo();
+    info.function = *func;
+    info.bindData = std::make_unique<TableFuncBindData>();
+    auto finalizeHNSWCallSharedState = std::make_shared<processor::TableFunctionCallSharedState>();
+    TableFunctionInitInput finalizeHNSWTableFuncInitInput{info.bindData.get(), 0 /* queryID */,
+        *clientContext};
+    finalizeHNSWCallSharedState->funcState =
+        info.function.initSharedStateFunc(finalizeHNSWTableFuncInitInput);
+    auto finalizeHNSWFuncSharedState =
+        finalizeHNSWCallSharedState->funcState->ptrCast<FinalizeHNSWSharedState>();
+    finalizeHNSWFuncSharedState->hnswIndex = createHNSWFuncSharedState->hnswIndex;
+    finalizeHNSWFuncSharedState->maxOffset =
+        (logicalCallBoundData->numNodes + StorageConfig::NODE_GROUP_SIZE - 1) /
+        StorageConfig::NODE_GROUP_SIZE;
+    finalizeHNSWFuncSharedState->bindData = logicalCallBoundData->copy();
+    auto finalizeCallOp = std::make_unique<processor::TableFunctionCall>(std::move(info),
+        finalizeHNSWCallSharedState, planMapper->getOperatorID(), std::make_unique<OPPrintInfo>());
+    finalizeCallOp->addChild(std::move(createHNSWDummySink));
+    // Append a dummy sink to the end of the second pipeline
+    auto finalizeHNSWDummySink = std::make_unique<processor::DummySink>(
+        std::make_unique<processor::ResultSetDescriptor>(logicalOp->getSchema()),
+        std::move(finalizeCallOp), planMapper->getOperatorID(), std::make_unique<OPPrintInfo>());
+    // Append RelBatchInsert pipelines.
+    // Get tables from storage.
+    const auto storageManager = clientContext->getStorageManager();
+    auto nodeTable = storageManager->getTable(logicalCallBoundData->tableEntry->getTableID())
+                         ->ptrCast<storage::NodeTable>();
+    auto upperRelTableEntry =
+        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(),
+            storage::HNSWIndexUtils::getUpperGraphTableName(indexName));
+    auto upperRelTable =
+        storageManager->getTable(upperRelTableEntry->getTableID())->ptrCast<storage::RelTable>();
+    auto lowerRelTableEntry =
+        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(),
+            storage::HNSWIndexUtils::getLowerGraphTableName(indexName));
+    auto lowerRelTable =
+        storageManager->getTable(lowerRelTableEntry->getTableID())->ptrCast<storage::RelTable>();
+    // Initialize partitioner shared state.
+    const auto partitionerSharedState = finalizeHNSWFuncSharedState->partitionerSharedState;
+    partitionerSharedState->setTables(nodeTable, upperRelTable);
+    logical_type_vec_t callColumnTypes;
+    callColumnTypes.push_back(LogicalType::INTERNAL_ID());
+    callColumnTypes.push_back(LogicalType::INTERNAL_ID());
+    callColumnTypes.push_back(LogicalType::INTERNAL_ID());
+    finalizeHNSWFuncSharedState->partitionerSharedState->initialize(callColumnTypes, clientContext);
+    // Initialize fTable for BatchInsert.
+    auto fTable = processor::FactorizedTableUtils::getSingleStringColumnFTable(
+        clientContext->getMemoryManager());
+    // Figure out column types and IDs to COPY into.
+    std::vector<LogicalType> columnTypes;
+    std::vector<column_id_t> columnIDs;
+    columnTypes.push_back(LogicalType::INTERNAL_ID()); // NBR_ID COLUMN.
+    columnIDs.push_back(0);                            // NBR_ID COLUMN.
+    for (auto& property : upperRelTableEntry->getProperties()) {
+        columnTypes.push_back(property.getType().copy());
+        columnIDs.push_back(upperRelTableEntry->getColumnID(property.getName()));
+    }
+    // Create RelBatchInsert and dummy sink operators.
+    binder::BoundCopyFromInfo upperCopyFromInfo(upperRelTableEntry, nullptr, nullptr, {}, {},
+        nullptr);
+    const auto upperBatchInsertSharedState = std::make_shared<processor::BatchInsertSharedState>(
+        upperRelTable, fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
+    auto copyRelUpper = planMapper->createRelBatchInsertOp(clientContext,
+        partitionerSharedState->upperPartitionerSharedState, upperBatchInsertSharedState,
+        upperCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD, columnIDs,
+        LogicalType::copy(columnTypes), planMapper->getOperatorID());
+    binder::BoundCopyFromInfo lowerCopyFromInfo(lowerRelTableEntry, nullptr, nullptr, {}, {},
+        nullptr);
+    lowerCopyFromInfo.tableEntry = lowerRelTableEntry;
+    const auto lowerBatchInsertSharedState = std::make_shared<processor::BatchInsertSharedState>(
+        lowerRelTable, fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
+    auto copyRelLower = planMapper->createRelBatchInsertOp(clientContext,
+        partitionerSharedState->lowerPartitionerSharedState, lowerBatchInsertSharedState,
+        lowerCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD, columnIDs,
+        LogicalType::copy(columnTypes), planMapper->getOperatorID());
+    processor::physical_op_vector_t children;
+    children.push_back(std::move(copyRelUpper));
+    children.push_back(std::move(copyRelLower));
+    children.push_back(std::move(finalizeHNSWDummySink));
+    return planMapper->createFTableScanAligned({}, logicalOp->getSchema(), fTable,
+        DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(children));
+}
+
+function_set InternalCreateHNSWIndexFunction::getFunctionSet() {
+    function_set functionSet;
+    std::vector inputTypes = {LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING};
+    auto func = std::make_unique<TableFunction>(name, inputTypes);
+    func->bindFunc = createInMemHNSWBindFunc;
+    func->initSharedStateFunc = initCreateInMemHNSWSharedState;
+    func->initLocalStateFunc = initCreateInMemHNSWLocalState;
+    func->tableFunc = createInMemHNSWTableFunc;
+    func->canParallelFunc = [] { return true; };
+    func->progressFunc = createInMemHNSWProgressFunc;
+    func->getPhysicalPlanFunc = getPhysicalPlan;
+    functionSet.push_back(std::move(func));
+    return functionSet;
+}
+
+static std::unique_ptr<TableFuncBindData> finalizeHNSWBindFunc(main::ClientContext*,
+    const TableFuncBindInput*) {
+    return std::make_unique<TableFuncBindData>();
+}
+
+TableFuncMorsel FinalizeHNSWSharedState::getMorsel() {
+    std::unique_lock lck{mtx};
+    KU_ASSERT(curOffset <= maxOffset);
+    if (curOffset == maxOffset) {
+        return TableFuncMorsel::createInvalidMorsel();
+    }
+    const auto numNodeGroups = std::min(static_cast<uint64_t>(1), maxOffset - curOffset);
+    curOffset += numNodeGroups;
+    return {curOffset - numNodeGroups, curOffset};
+}
+
+static std::unique_ptr<TableFuncSharedState> initFinalizeHNSWSharedState(
+    const TableFunctionInitInput& input) {
+    return std::make_unique<FinalizeHNSWSharedState>(*input.context.getMemoryManager());
+}
+
+static offset_t finalizeHNSWTableFunc(const TableFuncInput& input, TableFuncOutput&) {
+    const auto& context = *input.context->clientContext;
+    const auto sharedState = input.sharedState->ptrCast<FinalizeHNSWSharedState>();
+    const auto& hnswIndex = input.sharedState->ptrCast<FinalizeHNSWSharedState>()->hnswIndex;
+    const auto morsel = sharedState->getMorsel();
+    if (morsel.isInvalid()) {
+        return 0;
+    }
+    for (auto i = morsel.startOffset; i < morsel.endOffset; i++) {
+        hnswIndex->finalize(*context.getMemoryManager(), i, *sharedState->partitionerSharedState);
+    }
+    sharedState->numNodeGroupsFinalized.fetch_add(morsel.endOffset - morsel.startOffset);
+    return morsel.endOffset - morsel.startOffset;
+}
+
+static void finalizeHNSWTableFinalizeFunc(const processor::ExecutionContext* context,
     TableFuncSharedState* sharedState) {
     const auto clientContext = context->clientContext;
     const auto transaction = clientContext->getTransaction();
-    const auto hnswSharedState = sharedState->ptrCast<CreateHNSWSharedState>();
+    const auto hnswSharedState = sharedState->ptrCast<FinalizeHNSWSharedState>();
     const auto index = hnswSharedState->hnswIndex.get();
-    index->shrink(transaction);
-    index->finalize(*clientContext->getMemoryManager(), *hnswSharedState->partitionerSharedState);
-
-    const auto bindData = hnswSharedState->bindData;
+    const auto bindData = hnswSharedState->bindData->constPtrCast<CreateHNSWIndexBindData>();
     const auto catalog = clientContext->getCatalog();
     auto upperRelTableID =
         catalog
@@ -108,7 +273,39 @@ static void finalizeFunc(const processor::ExecutionContext* context,
     catalog->createIndex(transaction, std::move(indexEntry));
 }
 
-static std::string createHNSWIndexTables(main::ClientContext& context,
+static double finalizeHNSWProgressFunc(TableFuncSharedState* sharedState) {
+    const auto hnswSharedState = sharedState->ptrCast<FinalizeHNSWSharedState>();
+    const auto numNodeGroupsFinalized = hnswSharedState->numNodeGroupsFinalized.load();
+    if (hnswSharedState->maxOffset == 0) {
+        return 1.0;
+    }
+    if (numNodeGroupsFinalized == 0) {
+        return 0.0;
+    }
+    return static_cast<double>(numNodeGroupsFinalized) / hnswSharedState->maxOffset;
+}
+
+function_set InternalFinalizeHNSWIndexFunction::getFunctionSet() {
+    function_set functionSet;
+    std::vector<LogicalTypeID> inputTypes = {};
+    auto func = std::make_unique<TableFunction>(name, inputTypes);
+    func->bindFunc = finalizeHNSWBindFunc;
+    func->initSharedStateFunc = initFinalizeHNSWSharedState;
+    func->initLocalStateFunc = TableFunction::initEmptyLocalState;
+    func->tableFunc = finalizeHNSWTableFunc;
+    func->finalizeFunc = finalizeHNSWTableFinalizeFunc;
+    func->progressFunc = finalizeHNSWProgressFunc;
+    func->canParallelFunc = [] { return true; };
+    functionSet.push_back(std::move(func));
+    return functionSet;
+}
+
+static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
+    const TableFuncBindInput* input) {
+    return createInMemHNSWBindFunc(context, input);
+}
+
+static std::string rewriteCreateHNSWQuery(main::ClientContext& context,
     const TableFuncBindData& bindData) {
     context.setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     const auto hnswBindData = bindData.constPtrCast<CreateHNSWIndexBindData>();
@@ -142,117 +339,15 @@ static std::string createHNSWIndexTables(main::ClientContext& context,
     return query;
 }
 
-static double progressFunc(TableFuncSharedState* sharedState) {
-    const auto hnswSharedState = sharedState->ptrCast<CreateHNSWSharedState>();
-    const auto numNodesInserted = hnswSharedState->numNodesInserted.load();
-    if (hnswSharedState->numNodes == 0) {
-        return 1.0;
-    }
-    if (numNodesInserted == 0) {
-        return 0.0;
-    }
-    return static_cast<double>(numNodesInserted) / hnswSharedState->numNodes;
-}
-
-static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
-    const main::ClientContext* clientContext, processor::PlanMapper* planMapper,
-    const planner::LogicalOperator* logicalOp) {
-    auto logicalCallBoundData = logicalOp->constPtrCast<planner::LogicalTableFunctionCall>()
-                                    ->getBindData()
-                                    ->constPtrCast<CreateHNSWIndexBindData>();
-    auto callOp = TableFunction::getPhysicalPlan(clientContext, planMapper, logicalOp);
-    auto tableFuncCallOp = callOp->ptrCast<processor::TableFunctionCall>();
-    KU_ASSERT(
-        tableFuncCallOp->getOperatorType() == processor::PhysicalOperatorType::TABLE_FUNCTION_CALL);
-    auto tableFuncSharedState =
-        tableFuncCallOp->getSharedState()->funcState->ptrCast<CreateHNSWSharedState>();
-    // Get tables from storage.
-    const auto storageManager = clientContext->getStorageManager();
-    auto nodeTable = storageManager->getTable(logicalCallBoundData->tableEntry->getTableID())
-                         ->ptrCast<storage::NodeTable>();
-    auto upperRelTableEntry =
-        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(),
-            storage::HNSWIndexUtils::getUpperGraphTableName(tableFuncSharedState->name));
-    auto upperRelTable =
-        storageManager->getTable(upperRelTableEntry->getTableID())->ptrCast<storage::RelTable>();
-    auto lowerRelTableEntry =
-        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(),
-            storage::HNSWIndexUtils::getLowerGraphTableName(tableFuncSharedState->name));
-    auto lowerRelTable =
-        storageManager->getTable(lowerRelTableEntry->getTableID())->ptrCast<storage::RelTable>();
-    // Initialize partitioner shared state.
-    const auto partitionerSharedState = tableFuncSharedState->partitionerSharedState;
-    partitionerSharedState->setTables(nodeTable, upperRelTable);
-    logical_type_vec_t callColumnTypes;
-    callColumnTypes.push_back(LogicalType::INTERNAL_ID());
-    callColumnTypes.push_back(LogicalType::INTERNAL_ID());
-    callColumnTypes.push_back(LogicalType::INTERNAL_ID());
-    tableFuncSharedState->partitionerSharedState->initialize(callColumnTypes, clientContext);
-    // Initialize fTable for BatchInsert.
-    auto fTable = processor::FactorizedTableUtils::getSingleStringColumnFTable(
-        clientContext->getMemoryManager());
-    // Figure out column types and IDs to COPY into.
-    std::vector<LogicalType> columnTypes;
-    std::vector<column_id_t> columnIDs;
-    columnTypes.push_back(LogicalType::INTERNAL_ID()); // NBR_ID COLUMN.
-    columnIDs.push_back(0);                            // NBR_ID COLUMN.
-    for (auto& property : upperRelTableEntry->getProperties()) {
-        columnTypes.push_back(property.getType().copy());
-        columnIDs.push_back(upperRelTableEntry->getColumnID(property.getName()));
-    }
-    // Create RelBatchInsert and dummy sink operators.
-    binder::BoundCopyFromInfo upperCopyFromInfo(upperRelTableEntry, nullptr, nullptr, {}, {},
-        nullptr);
-    const auto upperBatchInsertSharedState = std::make_shared<processor::BatchInsertSharedState>(
-        upperRelTable, fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
-    auto copyRelUpper = planMapper->createRelBatchInsertOp(clientContext,
-        partitionerSharedState->upperPartitionerSharedState, upperBatchInsertSharedState,
-        upperCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD, columnIDs,
-        LogicalType::copy(columnTypes), planMapper->getOperatorID());
-    binder::BoundCopyFromInfo lowerCopyFromInfo(lowerRelTableEntry, nullptr, nullptr, {}, {},
-        nullptr);
-    lowerCopyFromInfo.tableEntry = lowerRelTableEntry;
-    const auto lowerBatchInsertSharedState = std::make_shared<processor::BatchInsertSharedState>(
-        lowerRelTable, fTable, &storageManager->getWAL(), clientContext->getMemoryManager());
-    auto copyRelLower = planMapper->createRelBatchInsertOp(clientContext,
-        partitionerSharedState->lowerPartitionerSharedState, lowerBatchInsertSharedState,
-        lowerCopyFromInfo, logicalOp->getSchema(), RelDataDirection::FWD, columnIDs,
-        LogicalType::copy(columnTypes), planMapper->getOperatorID());
-    auto dummyCallSink = std::make_unique<processor::DummySink>(
-        std::make_unique<processor::ResultSetDescriptor>(logicalOp->getSchema()), std::move(callOp),
-        planMapper->getOperatorID(), std::make_unique<OPPrintInfo>());
-    processor::physical_op_vector_t children;
-    children.push_back(std::move(copyRelUpper));
-    children.push_back(std::move(copyRelLower));
-    children.push_back(std::move(dummyCallSink));
-    return planMapper->createFTableScanAligned({}, logicalOp->getSchema(), fTable,
-        DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(children));
-}
-
-function_set InternalCreateHNSWIndexFunction::getFunctionSet() {
-    function_set functionSet;
-    std::vector inputTypes = {LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING};
-    auto func = std::make_unique<TableFunction>(name, inputTypes);
-    func->tableFunc = tableFunc;
-    func->bindFunc = bindFunc;
-    func->initSharedStateFunc = initCreateHNSWSharedState;
-    func->initLocalStateFunc = initCreateHNSWLocalState;
-    func->progressFunc = progressFunc;
-    func->finalizeFunc = finalizeFunc;
-    func->getPhysicalPlanFunc = getPhysicalPlan;
-    functionSet.push_back(std::move(func));
-    return functionSet;
-}
-
 function_set CreateHNSWIndexFunction::getFunctionSet() {
     function_set functionSet;
     std::vector inputTypes = {LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING};
     auto func = std::make_unique<TableFunction>(name, inputTypes);
-    func->tableFunc = TableFunction::emptyTableFunc;
     func->bindFunc = bindFunc;
     func->initSharedStateFunc = TableFunction::initSharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
-    func->rewriteFunc = createHNSWIndexTables;
+    func->tableFunc = TableFunction::emptyTableFunc;
+    func->rewriteFunc = rewriteCreateHNSWQuery;
     functionSet.push_back(std::move(func));
     return functionSet;
 }

@@ -231,6 +231,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
         // TODO(Guodong): Move this from builtin to extension and also move _CreateHNSWIndexFunction
         // and _DropHNSWIndexFunction to private functions.
         STANDALONE_TABLE_FUNCTION(InternalCreateHNSWIndexFunction),
+        STANDALONE_TABLE_FUNCTION(InternalFinalizeHNSWIndexFunction),
         STANDALONE_TABLE_FUNCTION(CreateHNSWIndexFunction),
         STANDALONE_TABLE_FUNCTION(InternalDropHNSWIndexFunction),
         STANDALONE_TABLE_FUNCTION(DropHNSWIndexFunction),

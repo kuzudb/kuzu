@@ -34,7 +34,6 @@ public:
         const common::LogicalType& columnType);
 
     float* getEmbedding(common::offset_t offset) const;
-    ColumnChunkData& getData() const { return *data; }
 
     void initialize(main::ClientContext* context, NodeTable& table,
         common::column_id_t columnID) override;
@@ -97,10 +96,8 @@ public:
         resetCSRLengthAndDstNodes();
     }
 
-    common::offset_vec_t getNeighbors(transaction::Transaction* transaction,
-        common::offset_t nodeOffset) const;
-    common::offset_vec_t getNeighbors(transaction::Transaction* transaction,
-        common::offset_t nodeOffset, common::length_t numNbrs) const;
+    common::offset_vec_t getNeighbors(common::offset_t nodeOffset) const;
+    common::offset_vec_t getNeighbors(common::offset_t nodeOffset, common::length_t numNbrs) const;
 
     common::length_t getMaxDegree() const { return maxDegree; }
 
@@ -120,14 +117,14 @@ public:
         dstNodes[csrOffset].store(dstNode, std::memory_order_relaxed);
     }
 
-    void finalize(MemoryManager& mm,
+    void finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
         const processor::PartitionerSharedState& partitionerSharedState);
 
 private:
     void resetCSRLengthAndDstNodes();
 
     void finalizeNodeGroup(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
-        common::table_id_t srcNodeTableID, common::table_id_t dstNodeTableID,
+        uint64_t numRels, common::table_id_t srcNodeTableID, common::table_id_t dstNodeTableID,
         common::table_id_t relTableID, InMemChunkedNodeGroupCollection& partition) const;
 
     common::offset_t getDstNode(common::offset_t csrOffset) const {
@@ -142,8 +139,6 @@ private:
     std::atomic<common::offset_t>* dstNodes;
     // Max allowed degree of a node in the graph before shrinking.
     common::length_t maxDegree;
-
-    std::vector<common::length_t> numRelsPerNodeGroup;
 };
 
 } // namespace storage
