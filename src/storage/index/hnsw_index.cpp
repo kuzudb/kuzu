@@ -59,7 +59,7 @@ common::offset_t InMemHNSWLayer::searchNN(common::offset_t node, common::offset_
     while (minDist < lastMinDist) {
         lastMinDist = minDist;
         auto neighbors = graph->getNeighbors(currentNodeOffset);
-        for (const auto& nbr : neighbors) {
+        for (const auto nbr : neighbors) {
             const auto nbrVector = info.embeddings->getEmbedding(nbr);
             const auto dist = HNSWIndexUtils::computeDistance(info.distFunc, queryVector, nbrVector,
                 info.embeddings->getDimension());
@@ -129,7 +129,7 @@ std::vector<NodeWithDistance> InMemHNSWLayer::searchKNN(const float* queryVector
         candidates.pop();
         auto neighbors = graph->getNeighbors(candidate);
         for (const auto& neighbor : neighbors) {
-            if (!visited.set(neighbor)) {
+            if (!visited.contains(neighbor)) {
                 const auto nbrVector = info.embeddings->getEmbedding(neighbor);
                 processNbrNodeInKNNSearch(queryVector, nbrVector, neighbor, ef, visited,
                     info.distFunc, info.embeddings, candidates, result);
@@ -331,11 +331,11 @@ std::vector<NodeWithDistance> OnDiskHNSWIndex::searchKNNInLowerLayer(
     NodeTableScanState& embeddingScanState) const {
     min_node_priority_queue_t candidates;
     max_node_priority_queue_t result;
-    const auto ef = std::max(k, configuredEf);
     visited.reset();
     const auto entryVector = embeddings->getEmbedding(transaction, embeddingScanState, entryNode);
     processEntryNodeInKNNSearch(queryVector, entryVector, entryNode, visited, config.distFunc,
         embeddings.get(), candidates, result);
+    const auto ef = std::max(k, configuredEf);
     while (!candidates.empty()) {
         auto [candidate, candidateDist] = candidates.top();
         // Break here if adding closestNode to result will exceed efs or not improve the results.

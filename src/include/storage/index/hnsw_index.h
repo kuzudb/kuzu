@@ -64,11 +64,6 @@ struct VisitedState {
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
     void add(common::offset_t offset) { visited[offset] = 1; }
     bool contains(common::offset_t offset) const { return visited[offset]; }
-    bool set(common::offset_t offset) {
-        auto wasVisited = visited[offset];
-        visited[offset] = 1;
-        return wasVisited;
-    }
 };
 
 class HNSWIndex {
