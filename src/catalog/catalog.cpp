@@ -146,10 +146,16 @@ std::vector<RelTableCatalogEntry*> Catalog::getRelTableEntries(const Transaction
     return result;
 }
 
-std::vector<TableCatalogEntry*> Catalog::getTableEntries(const Transaction* transaction) const {
+std::vector<TableCatalogEntry*> Catalog::getTableEntries(const Transaction* transaction,
+    bool useInternal) const {
     std::vector<TableCatalogEntry*> result;
     for (auto& [_, entry] : tables->getEntries(transaction)) {
         result.push_back(entry->ptrCast<TableCatalogEntry>());
+    }
+    if (useInternal) {
+        for (auto& [_, entry] : internalTables->getEntries(transaction)) {
+            result.push_back(entry->ptrCast<RelTableCatalogEntry>());
+        }
     }
     return result;
 }

@@ -103,7 +103,8 @@ DWORD oldOutputCP;
 void EmbeddedShell::updateTableNames() {
     nodeTableNames.clear();
     relTableNames.clear();
-    for (auto& tableEntry : database->catalog->getTableEntries(&transaction::DUMMY_TRANSACTION)) {
+    for (auto& tableEntry : database->catalog->getTableEntries(&transaction::DUMMY_TRANSACTION,
+             false /*useInternal*/)) {
         if (tableEntry->getType() == catalog::CatalogEntryType::NODE_TABLE_ENTRY) {
             nodeTableNames.push_back(tableEntry->getName());
         } else if (tableEntry->getType() == catalog::CatalogEntryType::REL_TABLE_ENTRY) {

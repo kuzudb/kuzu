@@ -186,7 +186,7 @@ void InMemHNSWLayer::shrink(transaction::Transaction* transaction) {
     for (auto i = 0u; i < info.numNodes; i++) {
         const auto numNbrs = graph->getCSRLength(i);
         if (numNbrs <= info.maxDegree) {
-            return;
+            continue;
         }
         shrinkForNode(transaction, info, graph.get(), i, numNbrs);
     }

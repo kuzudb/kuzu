@@ -26,7 +26,7 @@ static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog,
     main::ClientContext* context, Binder* binder) {
     auto transaction = context->getTransaction();
     std::vector<ExportedTableData> exportData;
-    for (auto tableEntry : catalog.getTableEntries(transaction)) {
+    for (auto tableEntry : catalog.getTableEntries(transaction, false /*useInternal*/)) {
         ExportedTableData tableData;
         if (binder->bindExportTableData(tableData, *tableEntry, catalog, transaction)) {
             exportData.push_back(std::move(tableData));

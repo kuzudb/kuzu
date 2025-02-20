@@ -241,5 +241,17 @@ struct EnableOptimizerSetting {
     }
 };
 
+struct EnableInternalCatalogSetting {
+    static constexpr auto name = "enable_internal_catalog";
+    static constexpr auto inputType = common::LogicalTypeID::BOOL;
+    static void setContext(ClientContext* context, const common::Value& parameter) {
+        parameter.validateType(inputType);
+        context->getClientConfigUnsafe()->enableInternalCatalog = parameter.getValue<bool>();
+    }
+    static common::Value getSetting(const ClientContext* context) {
+        return common::Value::createValue(context->getClientConfig()->enableInternalCatalog);
+    }
+};
+
 } // namespace main
 } // namespace kuzu
