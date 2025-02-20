@@ -135,7 +135,9 @@ public:
     void setUseInternalCatalogEntry(bool useInternalCatalogEntry) {
         this->useInternalCatalogEntry_ = useInternalCatalogEntry;
     }
-    bool useInternalCatalogEntry() const { return useInternalCatalogEntry_; }
+    bool useInternalCatalogEntry() const {
+        return clientConfig.enableInternalCatalog ? true : useInternalCatalogEntry_;
+    }
 
     void addScalarFunction(std::string name, function::function_set definitions);
     void removeScalarFunction(const std::string& name);

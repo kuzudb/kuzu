@@ -146,10 +146,16 @@ std::vector<RelTableCatalogEntry*> Catalog::getRelTableEntries(const Transaction
     return result;
 }
 
-std::vector<TableCatalogEntry*> Catalog::getTableEntries(const Transaction* transaction) const {
+std::vector<TableCatalogEntry*> Catalog::getTableEntries(const Transaction* transaction,
+    bool useInternal) const {
     std::vector<TableCatalogEntry*> result;
     for (auto& [_, entry] : tables->getEntries(transaction)) {
         result.push_back(entry->ptrCast<TableCatalogEntry>());
+    }
+    if (useInternal) {
+        for (auto& [_, entry] : internalTables->getEntries(transaction)) {
+            result.push_back(entry->ptrCast<RelTableCatalogEntry>());
+        }
     }
     return result;
 }
@@ -224,8 +230,8 @@ CatalogEntry* Catalog::createRelGroupEntry(Transaction* transaction,
     for (auto& childInfo : extraInfo->infos) {
         KU_ASSERT(childInfo.hasParent);
         relTableIDs.push_back(createRelTableEntry(transaction, childInfo)
-                                  ->ptrCast<TableCatalogEntry>()
-                                  ->getTableID());
+                ->ptrCast<TableCatalogEntry>()
+                ->getTableID());
     }
     auto entry = std::make_unique<RelGroupCatalogEntry>(info.tableName, std::move(relTableIDs));
     relGroups->createEntry(transaction, std::move(entry));

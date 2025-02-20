@@ -72,8 +72,8 @@ public:
     std::vector<RelTableCatalogEntry*> getRelTableEntries(
         const transaction::Transaction* transaction, bool useInternal = true) const;
     // Get all table entries.
-    std::vector<TableCatalogEntry*> getTableEntries(
-        const transaction::Transaction* transaction) const;
+    std::vector<TableCatalogEntry*> getTableEntries(const transaction::Transaction* transaction,
+        bool useInternal = true) const;
 
     // Create table catalog entry.
     CatalogEntry* createTableEntry(transaction::Transaction* transaction,
