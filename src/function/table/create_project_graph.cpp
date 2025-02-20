@@ -146,16 +146,18 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
                     auto boundStatement = input->binder->bind(*parsedStatements[0]);
                     predicate = boundStatement->getStatementResult()->getColumns()[0];
                 } else {
-                    throw BinderException(
-                        stringFormat("Unrecognized configuration {}. Supported configuration is 'filter'.", fieldName));
+                    throw BinderException(stringFormat(
+                        "Unrecognized configuration {}. Supported configuration is 'filter'.",
+                        fieldName));
                 }
             }
             bindData->addRelInfo(entry, predicate);
         }
     } break;
     default:
-        throw BinderException(stringFormat("Input argument {} has data type {}. STRUCT or LIST was expected.",
-            arg3.toString(), arg3.getDataType().toString()));
+        throw BinderException(
+            stringFormat("Input argument {} has data type {}. STRUCT or LIST was expected.",
+                arg3.toString(), arg3.getDataType().toString()));
     }
     return bindData;
 }
