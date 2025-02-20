@@ -620,7 +620,7 @@ kU_RecursiveDetail
     : '*' ( SP? kU_RecursiveType)? ( SP? oC_RangeLiteral )? ( SP? kU_RecursiveComprehension )? ;
 
 kU_RecursiveType
-    : WSHORTEST SP? '(' SP? oC_PropertyKeyName SP? ')'
+    : (ALL SP)? WSHORTEST SP? '(' SP? oC_PropertyKeyName SP? ')'
         | SHORTEST
         | ALL SP SHORTEST
         | TRAIL
