@@ -13,12 +13,12 @@ namespace processor {
 
 static std::shared_ptr<RecursiveJoinSharedState> createSharedState(const NodeExpression& nbrNode,
     const main::ClientContext& context) {
-    std::vector<std::unique_ptr<RoaringBitmapSemiMask>> semiMasks;
+    common::table_id_map_t<std::unique_ptr<semi_mask_t>> semiMasks;
     for (auto entry : nbrNode.getEntries()) {
         auto tableID = entry->getTableID();
         auto table = context.getStorageManager()->getTable(tableID)->ptrCast<storage::NodeTable>();
-        semiMasks.push_back(RoaringBitmapSemiMaskUtil::createRoaringBitmapSemiMask(tableID,
-            table->getNumTotalRows(context.getTransaction())));
+        auto semiMask = RoaringBitmapSemiMaskUtil::createRoaringBitmapSemiMask(table->getNumTotalRows(context.getTransaction()));
+        semiMasks.emplace(tableID, std::move(semiMask));
     }
     return std::make_shared<RecursiveJoinSharedState>(std::move(semiMasks));
 }

@@ -4,7 +4,6 @@
 #include <stack>
 
 #include "common/mask.h"
-#include "common/types/internal_id_util.h"
 #include "graph/graph.h"
 #include "processor/result/factorized_table.h"
 
@@ -20,25 +19,22 @@ public:
 
     common::offset_t getNumMaskedNode() const;
 
-    void addMask(common::table_id_t tableID, std::unique_ptr<common::RoaringBitmapSemiMask> mask) {
+    void addMask(common::table_id_t tableID, std::unique_ptr<common::semi_mask_t> mask) {
         KU_ASSERT(!maskMap.contains(tableID));
         maskMap.insert({tableID, std::move(mask)});
     }
 
-    std::vector<common::RoaringBitmapSemiMask*> getMasks() const {
-        std::vector<common::RoaringBitmapSemiMask*> masks;
-        for (auto& [_, mask] : maskMap) {
-            masks.push_back(mask.get());
+    common::table_id_map_t<common::semi_mask_t*> getMasks() const {
+        common::table_id_map_t<common::semi_mask_t*> result;
+        for (auto& [tableID, mask] : maskMap) {
+            result.emplace(tableID, mask.get());
         }
-        return masks;
+        return result;
     }
 
-    const common::table_id_map_t<std::unique_ptr<common::RoaringBitmapSemiMask>>&
-    getMaskMap() const {
-        return maskMap;
-    }
+
     bool containsTableID(common::table_id_t tableID) const { return maskMap.contains(tableID); }
-    common::RoaringBitmapSemiMask* getOffsetMask(common::table_id_t tableID) const {
+    common::semi_mask_t* getOffsetMask(common::table_id_t tableID) const {
         KU_ASSERT(containsTableID(tableID));
         return maskMap.at(tableID).get();
     }
@@ -51,7 +47,7 @@ public:
         }
     }
     bool hasPinnedMask() const { return pinnedMask != nullptr; }
-    common::RoaringBitmapSemiMask* getPinnedMask() const { return pinnedMask; }
+    common::semi_mask_t* getPinnedMask() const { return pinnedMask; }
 
     bool valid(common::nodeID_t nodeID) {
         KU_ASSERT(maskMap.contains(nodeID.tableID));
@@ -59,8 +55,8 @@ public:
     }
 
 private:
-    common::table_id_map_t<std::unique_ptr<common::RoaringBitmapSemiMask>> maskMap;
-    common::RoaringBitmapSemiMask* pinnedMask = nullptr;
+    common::table_id_map_t<std::unique_ptr<common::semi_mask_t>> maskMap;
+    common::semi_mask_t* pinnedMask = nullptr;
     // If mask map is enabled, then some nodes might be masked.
     bool enabled_;
 };
@@ -85,11 +81,10 @@ struct KUZU_API GDSCallSharedState {
     std::shared_ptr<FactorizedTable> fTable;
     std::unique_ptr<graph::Graph> graph;
     std::unique_ptr<GDSOutputCounter> counter = nullptr;
-    common::node_id_map_t<uint64_t>* nodeProp;
 
     GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable, std::unique_ptr<graph::Graph> graph,
         common::offset_t limitNumber)
-        : fTable{std::move(fTable)}, graph{std::move(graph)}, nodeProp{nullptr} {
+        : fTable{std::move(fTable)}, graph{std::move(graph)} {
         if (limitNumber != common::INVALID_LIMIT) {
             counter = std::make_unique<GDSOutputCounter>(limitNumber);
         }
@@ -100,7 +95,7 @@ struct KUZU_API GDSCallSharedState {
         inputNodeMask = std::move(maskMap);
     }
     void enableInputNodeMask() { inputNodeMask->enable(); }
-    std::vector<common::RoaringBitmapSemiMask*> getInputNodeMasks() const {
+    common::table_id_map_t<common::semi_mask_t*> getInputNodeMasks() const {
         return inputNodeMask->getMasks();
     }
     NodeOffsetMaskMap* getInputNodeMaskMap() const { return inputNodeMask.get(); }
@@ -109,7 +104,7 @@ struct KUZU_API GDSCallSharedState {
         outputNodeMask = std::move(maskMap);
     }
     void enableOutputNodeMask() { outputNodeMask->enable(); }
-    std::vector<common::RoaringBitmapSemiMask*> getOutputNodeMasks() const {
+    common::table_id_map_t<common::semi_mask_t*> getOutputNodeMasks() const {
         return outputNodeMask->getMasks();
     }
     NodeOffsetMaskMap* getOutputNodeMaskMap() const { return outputNodeMask.get(); }
@@ -118,7 +113,7 @@ struct KUZU_API GDSCallSharedState {
         pathNodeMask = std::move(maskMap);
     }
     bool hasPathNodeMask() const { return pathNodeMask != nullptr; }
-    std::vector<common::RoaringBitmapSemiMask*> getPathNodeMasks() const {
+    common::table_id_map_t<common::semi_mask_t*> getPathNodeMasks() const {
         return pathNodeMask->getMasks();
     }
     NodeOffsetMaskMap* getPathNodeMaskMap() const { return pathNodeMask.get(); }

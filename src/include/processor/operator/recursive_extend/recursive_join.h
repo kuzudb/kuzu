@@ -14,10 +14,10 @@ namespace processor {
 class OffsetScanNodeTable;
 
 struct RecursiveJoinSharedState {
-    std::vector<std::unique_ptr<common::RoaringBitmapSemiMask>> semiMasks;
+    common::table_id_map_t<std::unique_ptr<common::semi_mask_t>> semiMasks;
 
     explicit RecursiveJoinSharedState(
-        std::vector<std::unique_ptr<common::RoaringBitmapSemiMask>> semiMasks)
+        common::table_id_map_t<std::unique_ptr<common::semi_mask_t>> semiMasks)
         : semiMasks{std::move(semiMasks)} {}
 };
 
@@ -116,7 +116,7 @@ public:
           info{std::move(info)}, sharedState{std::move(sharedState)},
           recursiveRoot{std::move(recursiveRoot)}, recursiveSource{nullptr} {}
 
-    std::vector<common::RoaringBitmapSemiMask*> getSemiMask() const;
+    common::table_id_map_t<common::semi_mask_t*> getSemiMasks() const;
 
     void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) final;
 

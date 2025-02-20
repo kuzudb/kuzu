@@ -24,7 +24,7 @@ struct TableScanState {
     std::vector<common::ValueVector*> outputVectors;
     common::DataChunkState* outState;
     std::vector<common::column_id_t> columnIDs;
-    common::RoaringBitmapSemiMask* semiMask;
+    common::semi_mask_t* semiMask;
     bool randomLookup = false;
 
     // Only used when scan from persistent data.
