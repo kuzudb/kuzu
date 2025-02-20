@@ -1,48 +1,58 @@
+#include "binder/binder.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
+#include "common/string_utils.h"
 #include "common/types/value/nested.h"
 #include "function/table/bind_data.h"
 #include "function/table/table_function.h"
 #include "graph/graph_entry.h"
+#include "parser/parser.h"
 #include "processor/execution_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
+using namespace kuzu::graph;
 
 namespace kuzu {
 namespace function {
 
-struct CreateProjectGraphBindData final : TableFuncBindData {
+struct CreateProjectedGraphBindData final : TableFuncBindData {
     std::string graphName;
-    std::vector<TableCatalogEntry*> nodeEntries;
-    std::vector<TableCatalogEntry*> relEntries;
+    std::vector<GraphEntryTableInfo> nodeInfos;
+    std::vector<GraphEntryTableInfo> relInfos;
 
-    CreateProjectGraphBindData(std::string graphName, std::vector<TableCatalogEntry*> nodeEntries,
-        std::vector<TableCatalogEntry*> relEntries)
-        : TableFuncBindData{0}, graphName{std::move(graphName)},
-          nodeEntries{std::move(nodeEntries)}, relEntries{std::move(relEntries)} {}
+    explicit CreateProjectedGraphBindData(std::string graphName)
+        : graphName{std::move(graphName)} {}
+    CreateProjectedGraphBindData(std::string graphName, std::vector<GraphEntryTableInfo> nodeInfos,
+        std::vector<GraphEntryTableInfo> relInfos)
+        : TableFuncBindData{0}, graphName{std::move(graphName)}, nodeInfos{std::move(nodeInfos)},
+          relInfos{std::move(relInfos)} {}
+
+    void addNodeInfo(TableCatalogEntry* entry) { nodeInfos.emplace_back(entry); }
+
+    void addRelInfo(TableCatalogEntry* entry) { relInfos.emplace_back(entry); }
+
+    void addRelInfo(TableCatalogEntry* entry, std::shared_ptr<binder::Expression> predicate) {
+        relInfos.emplace_back(entry, std::move(predicate));
+    }
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<CreateProjectGraphBindData>(graphName, nodeEntries, relEntries);
+        return std::make_unique<CreateProjectedGraphBindData>(graphName, nodeInfos, relInfos);
     }
 };
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
-    const auto bindData = ku_dynamic_cast<CreateProjectGraphBindData*>(input.bindData);
+    const auto bindData = ku_dynamic_cast<CreateProjectedGraphBindData*>(input.bindData);
     auto& graphEntrySet = input.context->clientContext->getGraphEntrySetUnsafe();
     if (graphEntrySet.hasGraph(bindData->graphName)) {
         throw RuntimeException(
             stringFormat("Project graph {} already exists.", bindData->graphName));
     }
     auto entry = graph::GraphEntry();
-    for (auto& nodeEntry : bindData->nodeEntries) {
-        entry.nodeInfos.emplace_back(nodeEntry);
-    }
-    for (auto& relEntry : bindData->relEntries) {
-        entry.relInfos.emplace_back(relEntry);
-    }
+    entry.nodeInfos = bindData->nodeInfos;
+    entry.relInfos = bindData->relInfos;
     graphEntrySet.addGraph(bindData->graphName, entry);
     return 0;
 }
@@ -87,33 +97,75 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     const TableFuncBindInput* input) {
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
+    // Bind graph name
     auto graphName = input->getLiteralVal<std::string>(0);
+    auto bindData = std::make_unique<CreateProjectedGraphBindData>(graphName);
+    // Bind node table
     auto arg2 = input->getValue(1);
-    auto arg3 = input->getValue(2);
     const auto nodeTableNames = getAsStringVector(arg2);
-    const auto relTableNames = getAsStringVector(arg3);
-    std::vector<TableCatalogEntry*> nodeEntries;
     common::table_id_set_t nodeTableIDSet;
     for (auto& name : nodeTableNames) {
         auto entry = catalog->getTableCatalogEntry(transaction, name, false /* useInternal */);
         validateEntryType(*entry, CatalogEntryType::NODE_TABLE_ENTRY);
-        nodeEntries.push_back(entry);
+        bindData->addNodeInfo(entry);
         nodeTableIDSet.insert(entry->getTableID());
     }
-    std::vector<TableCatalogEntry*> relEntries;
-    for (auto& name : relTableNames) {
-        auto entry = catalog->getTableCatalogEntry(transaction, name, false /* useInternal */);
-        validateEntryType(*entry, CatalogEntryType::REL_TABLE_ENTRY);
-        validateRelSrcDstNodeAreProjected(*entry, nodeTableIDSet, catalog, transaction);
-        relEntries.push_back(entry);
+    auto arg3 = input->getValue(2);
+    switch (arg3.getDataType().getLogicalTypeID()) {
+    case LogicalTypeID::LIST: {
+        const auto relTableNames = getAsStringVector(arg3);
+        for (auto& name : relTableNames) {
+            auto entry = catalog->getTableCatalogEntry(transaction, name, false /* useInternal */);
+            validateEntryType(*entry, CatalogEntryType::REL_TABLE_ENTRY);
+            validateRelSrcDstNodeAreProjected(*entry, nodeTableIDSet, catalog, transaction);
+            bindData->addRelInfo(entry);
+        }
+    } break;
+    case LogicalTypeID::STRUCT: {
+        for (auto i = 0u; i < StructType::getNumFields(arg3.getDataType()); ++i) {
+            auto& field = StructType::getField(arg3.getDataType(), i);
+            auto entry = catalog->getTableCatalogEntry(transaction, field.getName(),
+                false /* useInternal */);
+            validateEntryType(*entry, CatalogEntryType::REL_TABLE_ENTRY);
+            auto childVal = NestedVal::getChildVal(&arg3, i);
+            auto& childType = childVal->getDataType();
+            if (childType.getLogicalTypeID() != LogicalTypeID::STRUCT) {
+                throw BinderException(stringFormat("{} has data type {}. STRUCT was expected.",
+                    childVal->toString(), childType.toString()));
+            }
+            std::shared_ptr<binder::Expression> predicate;
+            for (auto j = 0u; j < StructType::getNumFields(childType); ++j) {
+                auto fieldName = StructType::getField(childType, j).getName();
+                if (StringUtils::getUpper(fieldName) == "FILTER") {
+                    auto predicateStr =
+                        NestedVal::getChildVal(childVal, j)->getValue<std::string>();
+                    auto statementStr = stringFormat("MATCH ()-[r:{}]->() RETURN {}",
+                        entry->getName(), predicateStr);
+                    auto parsedStatements = parser::Parser::parseQuery(statementStr);
+                    KU_ASSERT(parsedStatements.size() == 1);
+                    auto boundStatement = input->binder->bind(*parsedStatements[0]);
+                    predicate = boundStatement->getStatementResult()->getColumns()[0];
+                } else {
+                    throw BinderException(stringFormat(
+                        "Unrecognized configuration {}. Supported configuration is 'filter'.",
+                        fieldName));
+                }
+            }
+            bindData->addRelInfo(entry, predicate);
+        }
+    } break;
+    default:
+        throw BinderException(
+            stringFormat("Input argument {} has data type {}. STRUCT or LIST was expected.",
+                arg3.toString(), arg3.getDataType().toString()));
     }
-    return std::make_unique<CreateProjectGraphBindData>(graphName, nodeEntries, relEntries);
+    return bindData;
 }
 
-function_set CreateProjectGraphFunction::getFunctionSet() {
+function_set CreateProjectedGraphFunction::getFunctionSet() {
     function_set functionSet;
     auto func = std::make_unique<TableFunction>(name,
-        std::vector{LogicalTypeID::STRING, LogicalTypeID::LIST, LogicalTypeID::LIST});
+        std::vector{LogicalTypeID::STRING, LogicalTypeID::LIST, LogicalTypeID::ANY});
     func->bindFunc = bindFunc;
     func->tableFunc = tableFunc;
     func->initSharedStateFunc = TableFunction::initSharedState;

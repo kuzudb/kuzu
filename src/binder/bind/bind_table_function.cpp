@@ -44,7 +44,8 @@ BoundTableFunction Binder::bindTableFunc(const std::string& tableFuncName,
     auto tableFunc = func->constPtrCast<TableFunction>();
     for (auto i = 0u; i < positionalParams.size(); ++i) {
         auto parameterTypeID = tableFunc->parameterTypeIDs[i];
-        if (positionalParams[i]->expressionType == ExpressionType::LITERAL) {
+        if (positionalParams[i]->expressionType == ExpressionType::LITERAL &&
+            parameterTypeID != LogicalTypeID::ANY) {
             ExpressionUtil::validateDataType(*positionalParams[i], parameterTypeID);
         }
     }
