@@ -103,7 +103,7 @@ struct BinaryBooleanFunctionExecutor {
     template<typename FUNC>
     static void executeBothUnFlat(common::SelectedVector left, common::SelectedVector right,
         common::SelectedVector result) {
-        KU_ASSERT(&left.sel == &right.sel);
+        KU_ASSERT(left.sel == right.sel);
         auto& leftSelVector = *left.sel;
         if (leftSelVector.isUnfiltered()) {
             if (left.vec.hasNoNullsGuarantee() && right.vec.hasNoNullsGuarantee()) {

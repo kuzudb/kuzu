@@ -65,7 +65,7 @@ void StructPackFunctions::execFunc(std::span<const common::SelectedVector> param
     common::SelectedVector result, void* /*dataPtr*/) {
     for (auto i = 0u; i < parameters.size(); i++) {
         auto& parameter = parameters[i];
-        if (&parameter.sel == &result.sel) {
+        if (parameter.sel == result.sel) {
             continue;
         }
         // If the parameter's state is inconsistent with the result's state, we need to copy the

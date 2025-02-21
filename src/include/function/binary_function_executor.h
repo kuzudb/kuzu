@@ -155,7 +155,7 @@ struct BinaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeBothUnFlat(common::SelectedVector left, common::SelectedVector right,
         common::SelectedVector result, void* dataPtr) {
-        KU_ASSERT(&left.sel == &right.sel);
+        KU_ASSERT(left.sel == right.sel);
         auto& resultSelVector = *result.sel;
         if (left.vec.hasNoNullsGuarantee() && right.vec.hasNoNullsGuarantee()) {
             result.vec.setAllNonNull();
