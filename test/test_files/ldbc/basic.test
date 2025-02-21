@@ -1,0 +1,16 @@
+-DATASET CSV ldbc-sf01
+-BUFFER_POOL_SIZE 536870912
+
+--
+
+-CASE LDBCBasic
+-SKIP_WASM
+
+# If semi mask is not probably configured. This test should not finish
+-LOG GDSSemiMask
+-STATEMENT  MATCH (a) WHERE a.ID = 0
+            AND EXISTS { MATCH (a)-[e* SHORTEST 1..10]->(b) WHERE b.ID <> 0}
+            AND NOT EXISTS { MATCH (a)-[e* SHORTEST 1..10]->(c) WHERE c.ID <> 0}
+            RETURN COUNT(*)
+---- 1
+0

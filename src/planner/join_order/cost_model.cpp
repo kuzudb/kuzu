@@ -2,6 +2,7 @@
 
 #include "common/constants.h"
 #include "planner/join_order/join_order_util.h"
+#include "planner/operator/logical_hash_join.h"
 
 using namespace kuzu::common;
 
@@ -18,21 +19,9 @@ uint64_t CostModel::computeRecursiveExtendCost(uint8_t upperBound, double extens
            upperBound;
 }
 
-binder::expression_vector getJoinNodeIDs(
-    const std::vector<binder::expression_pair>& joinConditions) {
-    binder::expression_vector joinNodeIDs;
-    for (auto& [left, _] : joinConditions) {
-        if (left->expressionType == ExpressionType::PROPERTY &&
-            left->getDataType().getLogicalTypeID() == LogicalTypeID::INTERNAL_ID) {
-            joinNodeIDs.push_back(left);
-        }
-    }
-    return joinNodeIDs;
-}
-
 uint64_t CostModel::computeHashJoinCost(const std::vector<binder::expression_pair>& joinConditions,
     const LogicalPlan& probe, const LogicalPlan& build) {
-    return computeHashJoinCost(getJoinNodeIDs(joinConditions), probe, build);
+    return computeHashJoinCost(LogicalHashJoin::getJoinNodeIDs(joinConditions), probe, build);
 }
 
 uint64_t CostModel::computeHashJoinCost(const binder::expression_vector& joinNodeIDs,
@@ -48,7 +37,7 @@ uint64_t CostModel::computeHashJoinCost(const binder::expression_vector& joinNod
 
 uint64_t CostModel::computeMarkJoinCost(const std::vector<binder::expression_pair>& joinConditions,
     const LogicalPlan& probe, const LogicalPlan& build) {
-    return computeMarkJoinCost(getJoinNodeIDs(joinConditions), probe, build);
+    return computeMarkJoinCost(LogicalHashJoin::getJoinNodeIDs(joinConditions), probe, build);
 }
 
 uint64_t CostModel::computeMarkJoinCost(const binder::expression_vector& joinNodeIDs,

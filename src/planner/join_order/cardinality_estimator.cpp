@@ -99,9 +99,9 @@ cardinality_t CardinalityEstimator::estimateExtend(double extensionRate,
 uint64_t CardinalityEstimator::estimateHashJoin(
     const std::vector<binder::expression_pair>& joinConditions, const LogicalOperator& probeOp,
     const LogicalOperator& buildOp) const {
-    if (planner::LogicalHashJoin::isNodeIDOnlyJoin(joinConditions)) {
+    if (LogicalHashJoin::isNodeIDOnlyJoin(joinConditions)) {
         cardinality_t denominator = 1u;
-        auto joinKeys = planner::LogicalHashJoin::getJoinNodeIDs(joinConditions);
+        auto joinKeys = LogicalHashJoin::getJoinNodeIDs(joinConditions);
         for (auto& joinKey : joinKeys) {
             if (nodeIDName2dom.contains(joinKey->getUniqueName())) {
                 denominator *= getNodeIDDom(joinKey->getUniqueName());

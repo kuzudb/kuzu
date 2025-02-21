@@ -19,6 +19,7 @@
 ---- ok
 -STATEMENT CALL create_projected_graph('PK3', ['person1', 'person2'], ['knows11', 'knows12', 'knows21', 'knows22'])
 ---- ok
+
 # Layer by layer: p1_1 (len 1): 10, p1_2 (len 2):100, p1_3 (len 3): 1000, p1_4 (len 3): 100*20=2000, p1_4 (len 4): 1000*10=10000
 -LOG VarLenJoins
 -STATEMENT MATCH (a:person1)-[e:knows11 * 1..30]->(b:person1) WHERE a.ID=0

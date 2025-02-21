@@ -152,17 +152,6 @@ static bool isProbeSideQualified(LogicalOperator* probeRoot) {
         // No Acc hash join if probe side has already been accumulated. This can be solved.
         return false;
     }
-    auto collector = LogicalGDSCallCollector();
-    collector.collect(probeRoot);
-    if (collector.hasOperators()) {
-        // We assume GDS always output large result set and we don't want to materialize it.
-        for (auto& op : collector.getOperators()) {
-            if (op->cast<LogicalGDSCall>().getLimitNum() != INVALID_LIMIT) {
-                return true;
-            }
-        }
-        return false;
-    }
     // Probe side is not selective. So we don't apply acc hash join.
     return subPlanContainsFilter(probeRoot);
 }
@@ -296,10 +285,27 @@ static bool tryProbeToBuildHJSIP(LogicalOperator* op) {
     return true;
 }
 
+static bool isBuildSideQualified(LogicalOperator* buildRoot) {
+    if (subPlanContainsFilter(buildRoot)) {
+        return true;
+    }
+    // TODO(Xiyang): this may not be the best solution. Most of the time we will pass a semi mask
+    // to GDS (recursive join) operator and make it generate small result. Though there are also
+    // exceptions. In such case we will pay a bit overhead.
+    auto op = buildRoot;
+    while (op->getNumChildren() == 1) {
+        op = op->getChild(0).get();
+    }
+    return op->getOperatorType() == LogicalOperatorType::GDS_CALL;
+}
+
 static bool tryBuildToProbeHJSIP(LogicalOperator* op) {
     auto& hashJoin = op->cast<LogicalHashJoin>();
+    if (hashJoin.getJoinType() != JoinType::INNER) {
+        return false;
+    }
     if (hashJoin.getSIPInfo().direction != SIPDirection::FORCE_BUILD_TO_PROBE &&
-        !subPlanContainsFilter(hashJoin.getChild(1).get())) {
+        !isBuildSideQualified(op->getChild(1).get())) {
         return false;
     }
     auto probeRoot = hashJoin.getChild(0);
@@ -329,9 +335,6 @@ void HashJoinSIPOptimizer::visitHashJoin(LogicalOperator* op) {
         return;
     }
     if (hashJoin.getSIPInfo().position == SemiMaskPosition::PROHIBIT) {
-        return;
-    }
-    if (hashJoin.getJoinType() != JoinType::INNER) {
         return;
     }
     if (tryBuildToProbeHJSIP(op)) { // Try build to probe SIP first.
