@@ -134,10 +134,11 @@ double measureRecall(Connection &conn, const std::string &queriesPath, int efSea
 
 int
 printCommands(std::string &databasePath, std::string &queriesPath, std::string &gtPath, int warmup, int nQueries, int k,
-              int efSearch, int maxK, bool useQ, bool useKnn, std::string &searchType, int maxNumThreads) {
-    printf("./kuzu/build/release/tools/benchmark_vector/kuzu_benchmark_vector -databasePath %s -queriesPath %s -gtPath %s -warmup %d -k %d -efSearch %d -maxK %d -useQ %d -useKnn %d -nQueries %d -maxNumThreads %d -searchType %s\n",
+              int efSearch, int maxK, bool useQ, bool useKnn, std::string &searchType, int maxNumThreads,
+              std::string &selectivityStr, std::string &outputDir) {
+    printf("./kuzu/build/release/tools/benchmark_vector/kuzu_benchmark_vector -databasePath %s -queriesPath %s -gtPath %s -warmup %d -k %d -efSearch %d -maxK %d -useQ %d -useKnn %d -nQueries %d -maxNumThreads %d -searchType %s -selectivity %s -outputDir %s\n",
            databasePath.c_str(), queriesPath.c_str(), gtPath.c_str(), warmup, k, efSearch, maxK, useQ, useKnn, nQueries,
-           maxNumThreads, searchType.c_str());
+           maxNumThreads, searchType.c_str(), selectivityStr.c_str(), outputDir.c_str());
     return 0;
 }
 
@@ -165,16 +166,22 @@ int main(int argc, char **argv) {
     }
 
     // New: get output file for JSON results (only used in standard mode)
-    std::string outputFile = input.getCmdOption("-outputFile");
+    std::string outputDir = input.getCmdOption("-outputDir");
 
     int maxK = std::stoi(input.getCmdOption("-maxK"));
     bool useQ = (bool) std::stoi(input.getCmdOption("-useQ"));
     bool useKnn = (bool) std::stoi(input.getCmdOption("-useKnn"));
     std::string searchTypeStr = input.getCmdOption("-searchType");
+    std::string selectivityStr = input.getCmdOption("-selectivity");
     std::string maxNumThreadsStr = input.getCmdOption("-maxNumThreads");
     int maxNumThreads = 32;
     if (!maxNumThreadsStr.empty()) {
         maxNumThreads = std::stoi(maxNumThreadsStr);
+    }
+
+    std::string outputFile = "";
+    if (!outputDir.empty()) {
+        outputFile = outputDir + "/output_" + selectivityStr + "_" + searchTypeStr + ".json";
     }
 
     auto db = Database(databasePath);
@@ -197,7 +204,7 @@ int main(int argc, char **argv) {
             printf("# Binary Search: Trying efSearch = %d, recall = %.2f%%\n", lowEf, lowRecall);
             bestEfSearch = lowEf;
             bestRecall = lowRecall;
-            printCommands(databasePath, queryPath, gtPath, warmupTimes, nQueries, k, bestEfSearch, maxK, useQ, useKnn, searchTypeStr, maxNumThreads);
+            printCommands(databasePath, queryPath, gtPath, warmupTimes, nQueries, k, bestEfSearch, maxK, useQ, useKnn, searchTypeStr, maxNumThreads, selectivityStr, outputDir);
             return 0;
         }
 
@@ -206,7 +213,7 @@ int main(int argc, char **argv) {
             printf("# Binary Search: Trying efSearch = %d, recall = %.2f%%\n", highEf, highRecall);
             bestEfSearch = highEf;
             bestRecall = highRecall;
-            printCommands(databasePath, queryPath, gtPath, warmupTimes, nQueries, k, bestEfSearch, maxK, useQ, useKnn, searchTypeStr, maxNumThreads);
+            printCommands(databasePath, queryPath, gtPath, warmupTimes, nQueries, k, bestEfSearch, maxK, useQ, useKnn, searchTypeStr, maxNumThreads, selectivityStr, outputDir);
             return 0;
         }
 
@@ -241,7 +248,7 @@ int main(int argc, char **argv) {
         }
         efSearch = bestEfSearch;
         printf("# Optimal efSearch found: %d with recall: %.2f%%\n", efSearch, bestRecall);
-        printCommands(databasePath, queryPath, gtPath, warmupTimes, nQueries, k, bestEfSearch, maxK, useQ, useKnn, searchTypeStr, maxNumThreads);
+        printCommands(databasePath, queryPath, gtPath, warmupTimes, nQueries, k, bestEfSearch, maxK, useQ, useKnn, searchTypeStr, maxNumThreads, selectivityStr, outputDir);
         return 0;
     }
 
@@ -363,6 +370,8 @@ int main(int argc, char **argv) {
     jsonStream << "  \"avg_dynamic_two_hop_calls\": " << avgDynamicTwoHopCalls << ",\n";
     jsonStream << "  \"total_queries_skipped\": " << totalQueriesSkipped << ",\n";
     jsonStream << "  \"recall_percentage\": " << recallPercentage << "\n";
+    jsonStream << "  \"selectivity\": " << stoi(selectivityStr) << "\n";
+    jsonStream << "  \"efSearch\": " << efSearch << "\n";
     jsonStream << "}\n";
 
     // Write JSON output to file if provided.
