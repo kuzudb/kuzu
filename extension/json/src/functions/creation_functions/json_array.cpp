@@ -12,12 +12,12 @@ using namespace common;
 static void execFunc(std::span<const common::SelectedVector> parameters,
     common::SelectedVector result, void* /*dataPtr*/) {
     result.vec.resetAuxiliaryBuffer();
-    for (auto i = 0u; i < result.sel.getSelSize(); ++i) {
-        auto resultPos = result.sel[i];
+    for (auto i = 0u; i < result.sel->getSelSize(); ++i) {
+        auto resultPos = (*result.sel)[i];
         JsonMutWrapper wrapper;
         auto mutArray = yyjson_mut_arr(wrapper.ptr);
         for (auto& param : parameters) {
-            auto paramPos = param.vec.state->isFlat() ? param.sel[0] : param.sel[i];
+            auto paramPos = param.vec.state->isFlat() ? (*param.sel)[0] : (*param.sel)[i];
             yyjson_mut_arr_append(mutArray, jsonify(wrapper, param.vec, paramPos));
         }
         yyjson_mut_doc_set_root(wrapper.ptr, mutArray);

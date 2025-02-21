@@ -72,7 +72,7 @@ struct UDF {
                    common::SelectedVector result, void* /*dataPtr*/ = nullptr) -> void {
             (void)params;
             KU_ASSERT(params.size() == 0);
-            auto& resultSelVector = result.sel;
+            auto& resultSelVector = *result.sel;
             for (auto i = 0u; i < resultSelVector.getSelSize(); ++i) {
                 auto resultPos = resultSelVector[i];
                 result.vec.copyFromValue(resultPos, common::Value(udfFunc()));

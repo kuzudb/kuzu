@@ -91,9 +91,9 @@ struct BinaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeBothFlat(common::SelectedVector left, common::SelectedVector right,
         common::SelectedVector result, void* dataPtr) {
-        auto lPos = left.sel[0];
-        auto rPos = right.sel[0];
-        auto resPos = result.sel[0];
+        auto lPos = (*left.sel)[0];
+        auto rPos = (*right.sel)[0];
+        auto resPos = (*result.sel)[0];
         result.vec.setNull(resPos, left.vec.isNull(lPos) || right.vec.isNull(rPos));
         if (!result.vec.isNull(resPos)) {
             executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left.vec,
@@ -105,8 +105,8 @@ struct BinaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeFlatUnFlat(common::SelectedVector left, common::SelectedVector right,
         common::SelectedVector result, void* dataPtr) {
-        auto lPos = left.sel[0];
-        auto& rightSelVector = right.sel;
+        auto lPos = (*left.sel)[0];
+        auto& rightSelVector = *right.sel;
         if (left.vec.isNull(lPos)) {
             result.vec.setAllNull();
         } else if (right.vec.hasNoNullsGuarantee()) {
@@ -130,8 +130,8 @@ struct BinaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeUnFlatFlat(common::SelectedVector left, common::SelectedVector right,
         common::SelectedVector result, void* dataPtr) {
-        auto rPos = right.sel[0];
-        auto& leftSelVector = left.sel;
+        auto rPos = (*right.sel)[0];
+        auto& leftSelVector = *left.sel;
         if (right.vec.isNull(rPos)) {
             result.vec.setAllNull();
         } else if (left.vec.hasNoNullsGuarantee()) {
@@ -156,7 +156,7 @@ struct BinaryFunctionExecutor {
     static void executeBothUnFlat(common::SelectedVector left, common::SelectedVector right,
         common::SelectedVector result, void* dataPtr) {
         KU_ASSERT(&left.sel == &right.sel);
-        auto& resultSelVector = result.sel;
+        auto& resultSelVector = *result.sel;
         if (left.vec.hasNoNullsGuarantee() && right.vec.hasNoNullsGuarantee()) {
             result.vec.setAllNonNull();
             resultSelVector.forEach([&](auto i) {

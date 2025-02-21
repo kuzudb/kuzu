@@ -23,8 +23,8 @@ static void execFunc(std::span<const common::SelectedVector>, common::SelectedVe
     void* dataPtr) {
     result.vec.resetAuxiliaryBuffer();
     auto typeData = reinterpret_cast<FunctionStringBindData*>(dataPtr);
-    for (auto i = 0u; i < result.sel.getSelSize(); ++i) {
-        auto resultPos = result.sel[i];
+    for (auto i = 0u; i < result.sel->getSelSize(); ++i) {
+        auto resultPos = (*result.sel)[i];
         StringVector::addString(&result.vec, resultPos, typeData->str);
     }
 }

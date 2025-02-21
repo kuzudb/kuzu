@@ -120,10 +120,10 @@ static void execFunc(std::span<const common::SelectedVector> parameters,
     common::SelectedVector result, void* /*dataPtr*/) {
     const auto& param1 = parameters[0];
     const auto& param2 = parameters[1];
-    for (auto selectedPos = 0u; selectedPos < result.sel.getSelSize(); ++selectedPos) {
-        auto resultPos = result.sel[selectedPos];
-        auto param1Pos = param1.sel[param1.vec.state->isFlat() ? 0 : selectedPos];
-        auto param2Pos = param2.sel[param2.vec.state->isFlat() ? 0 : selectedPos];
+    for (auto selectedPos = 0u; selectedPos < result.sel->getSelSize(); ++selectedPos) {
+        auto resultPos = (*result.sel)[selectedPos];
+        auto param1Pos = (*param1.sel)[param1.vec.state->isFlat() ? 0 : selectedPos];
+        auto param2Pos = (*param2.sel)[param2.vec.state->isFlat() ? 0 : selectedPos];
         auto isNull = param1.vec.isNull(param1Pos) || param2.vec.isNull(param2Pos);
         result.vec.setNull(resultPos, isNull);
         if (!isNull) {

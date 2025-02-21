@@ -10,15 +10,15 @@ namespace function {
 void ListCreationFunction::execFunc(std::span<const common::SelectedVector> parameters,
     common::SelectedVector result, void* /*dataPtr*/) {
     result.vec.resetAuxiliaryBuffer();
-    for (auto selectedPos = 0u; selectedPos < result.sel.getSelSize(); ++selectedPos) {
-        auto pos = result.sel[selectedPos];
+    for (auto selectedPos = 0u; selectedPos < result.sel->getSelSize(); ++selectedPos) {
+        auto pos = (*result.sel)[selectedPos];
         auto resultEntry = ListVector::addList(&result.vec, parameters.size());
         result.vec.setValue(pos, resultEntry);
         auto resultDataVector = ListVector::getDataVector(&result.vec);
         auto resultPos = resultEntry.offset;
         for (auto i = 0u; i < parameters.size(); i++) {
             const auto& parameter = parameters[i];
-            auto paramPos = parameter.vec.state->isFlat() ? parameter.sel[0] : pos;
+            auto paramPos = parameter.vec.state->isFlat() ? (*parameter.sel)[0] : pos;
             resultDataVector->copyFromVectorData(resultPos++, &parameter.vec, paramPos);
         }
     }

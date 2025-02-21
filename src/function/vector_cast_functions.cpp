@@ -26,8 +26,8 @@ struct CastChildFunctionExecutor {
         for (auto i = 0u; i < numOfEntries; i++) {
             result.vec.setNull(i, operand.vec.isNull(i));
             if (!result.vec.isNull(i)) {
-                OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>((void*)(&operand),
-                    i, (void*)(&result), i, dataPtr);
+                OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>(
+                    (void*)(&operand.vec), i, (void*)(&result.vec), i, dataPtr);
             }
         }
     }
@@ -115,19 +115,19 @@ static void nestedTypesCastExecFunction(std::span<const common::SelectedVector> 
 
     // check if all selcted list entry have the requried fixed list size
     if (CastArrayHelper::containsListToArray(inputVector.vec.dataType, result.vec.dataType)) {
-        for (auto i = 0u; i < inputVector.sel.getSelSize(); i++) {
-            auto pos = inputVector.sel[i];
+        for (auto i = 0u; i < inputVector.sel->getSelSize(); i++) {
+            auto pos = (*inputVector.sel)[i];
             CastArrayHelper::validateListEntry(&inputVector.vec, result.vec.dataType, pos);
         }
     };
 
-    auto& selVector = inputVector.sel;
+    auto& selVector = *inputVector.sel;
     auto bindData = CastFunctionBindData(result.vec.dataType.copy());
     auto numOfEntries = selVector[selVector.getSelSize() - 1] + 1;
     resolveNestedVector(&inputVector.vec, &result.vec, numOfEntries, &bindData);
     if (inputVector.vec.state->isFlat()) {
         result.vec.state->getSelVectorUnsafe().setToFiltered();
-        result.vec.state->getSelVectorUnsafe()[0] = inputVector.sel[0];
+        result.vec.state->getSelVectorUnsafe()[0] = (*inputVector.sel)[0];
     }
 }
 

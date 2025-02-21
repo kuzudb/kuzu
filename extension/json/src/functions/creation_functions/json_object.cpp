@@ -14,8 +14,8 @@ static void execFunc(std::span<const common::SelectedVector> parameters,
     common::SelectedVector result, void* /*dataPtr*/) {
     KU_ASSERT(parameters.size() % 2 == 0);
     result.vec.resetAuxiliaryBuffer();
-    for (auto i = 0u; i < result.sel.getSelSize(); ++i) {
-        auto resultPos = result.sel[i];
+    for (auto i = 0u; i < result.sel->getSelSize(); ++i) {
+        auto resultPos = (*result.sel)[i];
         JsonMutWrapper wrapper;
         auto obj = yyjson_mut_obj(wrapper.ptr);
         for (auto j = 0u; j < parameters.size() / 2; j++) {
@@ -26,8 +26,9 @@ static void execFunc(std::span<const common::SelectedVector> parameters,
             auto valParam = parameters[j * 2 + 1];
             yyjson_mut_obj_add(obj,
                 jsonifyAsString(wrapper, keyParam.vec,
-                    keyParam.sel[keyParam.vec.state->isFlat() ? 0 : i]),
-                jsonify(wrapper, valParam.vec, valParam.sel[valParam.vec.state->isFlat() ? 0 : i]));
+                    (*keyParam.sel)[keyParam.vec.state->isFlat() ? 0 : i]),
+                jsonify(wrapper, valParam.vec,
+                    (*valParam.sel)[valParam.vec.state->isFlat() ? 0 : i]));
         }
         yyjson_mut_doc_set_root(wrapper.ptr, obj);
         StringVector::addString(&result.vec, resultPos,

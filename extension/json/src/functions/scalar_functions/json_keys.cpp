@@ -17,9 +17,9 @@ static void execFunc(std::span<const common::SelectedVector> parameters,
     const auto& param = parameters[0];
     size_t idx = 0, max = 0;
     yyjson_val *key = nullptr, *childVal = nullptr;
-    for (auto selectedPos = 0u; selectedPos < result.sel.getSelSize(); ++selectedPos) {
-        auto resultPos = result.sel[selectedPos];
-        auto paramPos = param.sel[param.vec.state->isFlat() ? 0 : selectedPos];
+    for (auto selectedPos = 0u; selectedPos < result.sel->getSelSize(); ++selectedPos) {
+        auto resultPos = (*result.sel)[selectedPos];
+        auto paramPos = (*param.sel)[param.vec.state->isFlat() ? 0 : selectedPos];
         auto isNull = param.vec.isNull(paramPos);
         result.vec.setNull(resultPos, isNull);
         if (!isNull) {

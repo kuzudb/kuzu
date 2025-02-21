@@ -23,7 +23,7 @@ void execQuantifierFunc(quantifier_handler handler, std::span<const common::Sele
                               filterVector.getValue<bool>(filterVector.state->getSelVector()[0]);
     listLambdaBindData->rootEvaluator->evaluate();
     KU_ASSERT(input.size() == 2);
-    auto& listInputSelVector = input[0].sel;
+    auto& listInputSelVector = *input[0].sel;
     uint64_t numSelectedValues = 0;
     for (auto i = 0u; i < listInputSelVector.getSelSize(); ++i) {
         numSelectedValues = 0;
@@ -34,7 +34,7 @@ void execQuantifierFunc(quantifier_handler handler, std::span<const common::Sele
                 numSelectedValues++;
             }
         }
-        result.vec.setValue(result.sel[i], handler(numSelectedValues, srcListEntry.size));
+        result.vec.setValue((*result.sel)[i], handler(numSelectedValues, srcListEntry.size));
     }
 }
 

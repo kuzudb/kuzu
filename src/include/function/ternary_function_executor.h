@@ -62,10 +62,10 @@ struct TernaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeAllFlat(common::SelectedVector a, common::SelectedVector b,
         common::SelectedVector c, common::SelectedVector result, void* dataPtr) {
-        auto aPos = a.sel[0];
-        auto bPos = b.sel[0];
-        auto cPos = c.sel[0];
-        auto resPos = result.sel[0];
+        auto aPos = (*a.sel)[0];
+        auto bPos = (*b.sel)[0];
+        auto cPos = (*c.sel)[0];
+        auto resPos = (*result.sel)[0];
         result.vec.setNull(resPos, a.vec.isNull(aPos) || b.vec.isNull(bPos) || c.vec.isNull(cPos));
         if (!result.vec.isNull(resPos)) {
             executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a.vec, b.vec,
@@ -77,9 +77,9 @@ struct TernaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeFlatFlatUnflat(common::SelectedVector a, common::SelectedVector b,
         common::SelectedVector c, common::SelectedVector result, void* dataPtr) {
-        auto aPos = a.sel[0];
-        auto bPos = b.sel[0];
-        auto& cSelVector = c.sel;
+        auto aPos = (*a.sel)[0];
+        auto bPos = (*b.sel)[0];
+        auto& cSelVector = *c.sel;
         if (a.vec.isNull(aPos) || b.vec.isNull(bPos)) {
             result.vec.setAllNull();
         } else if (c.vec.hasNoNullsGuarantee()) {
@@ -122,8 +122,8 @@ struct TernaryFunctionExecutor {
     static void executeFlatUnflatUnflat(common::SelectedVector a, common::SelectedVector b,
         common::SelectedVector c, common::SelectedVector result, void* dataPtr) {
         KU_ASSERT(&b.sel == &c.sel);
-        auto aPos = a.sel[0];
-        auto& bSelVector = b.sel;
+        auto aPos = (*a.sel)[0];
+        auto& bSelVector = *b.sel;
         if (a.vec.isNull(aPos)) {
             result.vec.setAllNull();
         } else if (b.vec.hasNoNullsGuarantee() && c.vec.hasNoNullsGuarantee()) {
@@ -165,9 +165,9 @@ struct TernaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeFlatUnflatFlat(common::SelectedVector a, common::SelectedVector b,
         common::SelectedVector c, common::SelectedVector result, void* dataPtr) {
-        auto aPos = a.sel[0];
-        auto cPos = c.sel[0];
-        auto& bSelVector = b.sel;
+        auto aPos = (*a.sel)[0];
+        auto cPos = (*c.sel)[0];
+        auto& bSelVector = *b.sel;
         if (a.vec.isNull(aPos) || c.vec.isNull(cPos)) {
             result.vec.setAllNull();
         } else if (b.vec.hasNoNullsGuarantee()) {
@@ -210,7 +210,7 @@ struct TernaryFunctionExecutor {
     static void executeAllUnFlat(common::SelectedVector a, common::SelectedVector b,
         common::SelectedVector c, common::SelectedVector result, void* dataPtr) {
         KU_ASSERT(&a.sel == &b.sel && &b.sel == &c.sel);
-        auto& aSelVector = a.sel;
+        auto& aSelVector = *a.sel;
         if (a.vec.hasNoNullsGuarantee() && b.vec.hasNoNullsGuarantee() &&
             c.vec.hasNoNullsGuarantee()) {
             if (aSelVector.isUnfiltered()) {
@@ -252,9 +252,9 @@ struct TernaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeUnflatFlatFlat(common::SelectedVector a, common::SelectedVector b,
         common::SelectedVector c, common::SelectedVector result, void* dataPtr) {
-        auto bPos = b.sel[0];
-        auto cPos = c.sel[0];
-        auto& aSelVector = a.sel;
+        auto bPos = (*b.sel)[0];
+        auto cPos = (*c.sel)[0];
+        auto& aSelVector = *a.sel;
         if (b.vec.isNull(bPos) || c.vec.isNull(cPos)) {
             result.vec.setAllNull();
         } else if (a.vec.hasNoNullsGuarantee()) {
@@ -297,8 +297,8 @@ struct TernaryFunctionExecutor {
     static void executeUnflatFlatUnflat(common::SelectedVector a, common::SelectedVector b,
         common::SelectedVector c, common::SelectedVector result, void* dataPtr) {
         KU_ASSERT(&a.sel == &c.sel);
-        auto& aSelVector = a.sel;
-        auto bPos = b.sel[0];
+        auto& aSelVector = *a.sel;
+        auto bPos = (*b.sel)[0];
         if (b.vec.isNull(bPos)) {
             result.vec.setAllNull();
         } else if (a.vec.hasNoNullsGuarantee() && c.vec.hasNoNullsGuarantee()) {
@@ -325,7 +325,7 @@ struct TernaryFunctionExecutor {
                 }
             } else {
                 for (auto i = 0u; i < aSelVector.getSelSize(); ++i) {
-                    auto pos = b.sel[i];
+                    auto pos = (*b.sel)[i];
                     result.vec.setNull(pos, a.vec.isNull(pos) || c.vec.isNull(pos));
                     if (!result.vec.isNull(pos)) {
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a.vec,
@@ -341,8 +341,8 @@ struct TernaryFunctionExecutor {
     static void executeUnflatUnFlatFlat(common::SelectedVector a, common::SelectedVector b,
         common::SelectedVector c, common::SelectedVector result, void* dataPtr) {
         KU_ASSERT(&a.sel == &b.sel);
-        auto& aSelVector = a.sel;
-        auto cPos = c.sel[0];
+        auto& aSelVector = *a.sel;
+        auto cPos = (*c.sel)[0];
         if (c.vec.isNull(cPos)) {
             result.vec.setAllNull();
         } else if (a.vec.hasNoNullsGuarantee() && b.vec.hasNoNullsGuarantee()) {

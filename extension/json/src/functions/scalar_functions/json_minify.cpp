@@ -12,9 +12,9 @@ using namespace common;
 static void execFunc(std::span<const common::SelectedVector> parameters,
     common::SelectedVector result, void* /*dataPtr*/) {
     result.vec.resetAuxiliaryBuffer();
-    for (auto selectedPos = 0u; selectedPos < result.sel.getSelSize(); ++selectedPos) {
-        auto inputPos = parameters[0].sel[selectedPos];
-        auto resultPos = result.sel[selectedPos];
+    for (auto selectedPos = 0u; selectedPos < result.sel->getSelSize(); ++selectedPos) {
+        auto inputPos = (*parameters[0].sel)[selectedPos];
+        auto resultPos = (*result.sel)[selectedPos];
         auto isNull = parameters[0].vec.isNull(inputPos);
         result.vec.setNull(resultPos, isNull);
         if (!isNull) {

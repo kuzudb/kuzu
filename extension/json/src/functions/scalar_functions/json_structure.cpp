@@ -12,9 +12,9 @@ static void execFunc(std::span<const common::SelectedVector> parameters,
     common::SelectedVector result, void* /*dataPtr*/) {
     result.vec.resetAuxiliaryBuffer();
     const auto& param = parameters[0];
-    for (auto selectedPos = 0u; selectedPos < result.sel.getSelSize(); ++selectedPos) {
-        auto resultPos = result.sel[selectedPos];
-        auto paramPos = param.sel[param.vec.state->isFlat() ? 0 : selectedPos];
+    for (auto selectedPos = 0u; selectedPos < result.sel->getSelSize(); ++selectedPos) {
+        auto resultPos = (*result.sel)[selectedPos];
+        auto paramPos = (*param.sel)[param.vec.state->isFlat() ? 0 : selectedPos];
         auto isNull = parameters[0].vec.isNull(paramPos);
         result.vec.setNull(resultPos, isNull);
         if (!isNull) {

@@ -25,9 +25,9 @@ static void execFunc(std::span<const common::SelectedVector> input, common::Sele
     void* bindData) {
     auto listLambdaBindData = reinterpret_cast<evaluator::ListLambdaBindData*>(bindData);
     auto& inputVector = input[0].vec;
-    const auto& inputSelVector = input[0].sel;
+    const auto& inputSelVector = *input[0].sel;
     auto& resultVec = result.vec;
-    auto& resultSelVector = result.sel;
+    auto& resultSelVector = *result.sel;
 
     auto listSize = ListVector::getDataVectorSize(&inputVector);
     for (auto& lambdaParamEvaluator : listLambdaBindData->lambdaParamEvaluators) {

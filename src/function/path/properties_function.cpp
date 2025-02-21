@@ -51,8 +51,8 @@ static void compileFunc(FunctionBindData* bindData,
 
 static void execFunc(std::span<const common::SelectedVector> parameters,
     common::SelectedVector result, void* /*dataPtr*/) {
-    ListVector::copyListEntryAndBufferMetaData(result.vec, result.sel, parameters[0].vec,
-        parameters[0].sel);
+    ListVector::copyListEntryAndBufferMetaData(result.vec, *result.sel, parameters[0].vec,
+        *parameters[0].sel);
 }
 
 function_set PropertiesFunction::getFunctionSet() {

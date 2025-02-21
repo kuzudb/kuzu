@@ -24,10 +24,10 @@ static void execFunc(std::span<const common::SelectedVector> params, common::Sel
     void* /*dataPtr*/) {
     KU_ASSERT(params.size() == 2);
     result.vec.resetAuxiliaryBuffer();
-    for (auto i = 0u; i < result.sel.getSelSize(); ++i) {
-        auto resultPos = result.sel[i];
-        auto firstParamPos = params[0].vec.state->isFlat() ? params[0].sel[0] : resultPos;
-        auto secondParamPos = params[1].vec.state->isFlat() ? params[1].sel[0] : resultPos;
+    for (auto i = 0u; i < result.sel->getSelSize(); ++i) {
+        auto resultPos = (*result.sel)[i];
+        auto firstParamPos = params[0].vec.state->isFlat() ? (*params[0].sel)[0] : resultPos;
+        auto secondParamPos = params[1].vec.state->isFlat() ? (*params[1].sel)[0] : resultPos;
         if (params[1].vec.isNull(secondParamPos) || params[0].vec.isNull(firstParamPos)) {
             result.vec.setNull(resultPos, true);
         } else {

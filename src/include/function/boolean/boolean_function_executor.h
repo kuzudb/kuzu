@@ -34,17 +34,17 @@ struct BinaryBooleanFunctionExecutor {
     template<typename FUNC>
     static inline void executeBothFlat(common::SelectedVector left, common::SelectedVector right,
         common::SelectedVector result) {
-        auto lPos = left.sel[0];
-        auto rPos = right.sel[0];
-        auto resPos = result.sel[0];
+        auto lPos = (*left.sel)[0];
+        auto rPos = (*right.sel)[0];
+        auto resPos = (*result.sel)[0];
         executeOnValue<FUNC>(left.vec, right.vec, result.vec, lPos, rPos, resPos);
     }
 
     template<typename FUNC>
     static void executeFlatUnFlat(common::SelectedVector left, common::SelectedVector right,
         common::SelectedVector result) {
-        auto lPos = left.sel[0];
-        auto& rightSelVector = right.sel;
+        auto lPos = (*left.sel)[0];
+        auto& rightSelVector = *right.sel;
         if (rightSelVector.isUnfiltered()) {
             if (right.vec.hasNoNullsGuarantee() && !left.vec.isNull(lPos)) {
                 for (auto i = 0u; i < rightSelVector.getSelSize(); ++i) {
@@ -58,12 +58,12 @@ struct BinaryBooleanFunctionExecutor {
         } else {
             if (right.vec.hasNoNullsGuarantee() && !left.vec.isNull(lPos)) {
                 for (auto i = 0u; i < rightSelVector.getSelSize(); ++i) {
-                    auto rPos = right.sel[i];
+                    auto rPos = (*right.sel)[i];
                     executeOnValueNoNull<FUNC>(left.vec, right.vec, result.vec, lPos, rPos, rPos);
                 }
             } else {
                 for (auto i = 0u; i < rightSelVector.getSelSize(); ++i) {
-                    auto rPos = right.sel[i];
+                    auto rPos = (*right.sel)[i];
                     executeOnValue<FUNC>(left.vec, right.vec, result.vec, lPos, rPos, rPos);
                 }
             }
@@ -73,8 +73,8 @@ struct BinaryBooleanFunctionExecutor {
     template<typename FUNC>
     static void executeUnFlatFlat(common::SelectedVector left, common::SelectedVector right,
         common::SelectedVector result) {
-        auto rPos = right.sel[0];
-        auto& leftSelVector = left.sel;
+        auto rPos = (*right.sel)[0];
+        auto& leftSelVector = *left.sel;
         if (leftSelVector.isUnfiltered()) {
             if (left.vec.hasNoNullsGuarantee() && !right.vec.isNull(rPos)) {
                 for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
@@ -88,12 +88,12 @@ struct BinaryBooleanFunctionExecutor {
         } else {
             if (left.vec.hasNoNullsGuarantee() && !right.vec.isNull(rPos)) {
                 for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
-                    auto lPos = left.sel[i];
+                    auto lPos = (*left.sel)[i];
                     executeOnValueNoNull<FUNC>(left.vec, right.vec, result.vec, lPos, rPos, lPos);
                 }
             } else {
                 for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
-                    auto lPos = left.sel[i];
+                    auto lPos = (*left.sel)[i];
                     executeOnValue<FUNC>(left.vec, right.vec, result.vec, lPos, rPos, lPos);
                 }
             }
@@ -104,7 +104,7 @@ struct BinaryBooleanFunctionExecutor {
     static void executeBothUnFlat(common::SelectedVector left, common::SelectedVector right,
         common::SelectedVector result) {
         KU_ASSERT(&left.sel == &right.sel);
-        auto& leftSelVector = left.sel;
+        auto& leftSelVector = *left.sel;
         if (leftSelVector.isUnfiltered()) {
             if (left.vec.hasNoNullsGuarantee() && right.vec.hasNoNullsGuarantee()) {
                 for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
@@ -118,12 +118,12 @@ struct BinaryBooleanFunctionExecutor {
         } else {
             if (left.vec.hasNoNullsGuarantee() && right.vec.hasNoNullsGuarantee()) {
                 for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
-                    auto pos = left.sel[i];
+                    auto pos = (*left.sel)[i];
                     executeOnValueNoNull<FUNC>(left.vec, right.vec, result.vec, pos, pos, pos);
                 }
             } else {
                 for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
-                    auto pos = left.sel[i];
+                    auto pos = (*left.sel)[i];
                     executeOnValue<FUNC>(left.vec, right.vec, result.vec, pos, pos, pos);
                 }
             }
@@ -267,10 +267,10 @@ struct UnaryBooleanOperationExecutor {
     template<typename FUNC>
     static void executeSwitch(common::SelectedVector operand, common::SelectedVector result) {
         result.vec.resetAuxiliaryBuffer();
-        auto& operandSelVector = operand.sel;
+        auto& operandSelVector = *operand.sel;
         if (operand.vec.state->isFlat()) {
-            auto pos = operand.sel[0];
-            auto resultPos = result.sel[0];
+            auto pos = (*operand.sel)[0];
+            auto resultPos = (*result.sel)[0];
             executeOnValue<FUNC>(operand.vec, pos, result.vec, resultPos);
         } else {
             if (operandSelVector.isUnfiltered()) {
@@ -279,7 +279,7 @@ struct UnaryBooleanOperationExecutor {
                 }
             } else {
                 for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
-                    auto pos = operand.sel[i];
+                    auto pos = (*operand.sel)[i];
                     executeOnValue<FUNC>(operand.vec, pos, result.vec, pos);
                 }
             }

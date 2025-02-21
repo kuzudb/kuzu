@@ -47,9 +47,9 @@ static void execFunc(std::span<const common::SelectedVector> input, common::Sele
     }
     listLambdaBindData->rootEvaluator->evaluate();
     KU_ASSERT(input.size() == 2);
-    auto& listInputSelVector = input[0].sel;
+    auto& listInputSelVector = *input[0].sel;
     auto& filterVector = input[1].vec;
-    auto& filterSelVector = input[1].sel;
+    auto& filterSelVector = *input[1].sel;
     auto srcDataVector = ListVector::getDataVector(&inputVector);
     auto dstDataVector = ListVector::getDataVector(&result.vec);
     for (auto i = 0u; i < listInputSelVector.getSelSize(); ++i) {
@@ -77,7 +77,7 @@ static void execFunc(std::span<const common::SelectedVector> input, common::Sele
                 }
             }
         }
-        result.vec.setValue(result.sel[i], dstListEntry);
+        result.vec.setValue((*result.sel)[i], dstListEntry);
     }
 }
 

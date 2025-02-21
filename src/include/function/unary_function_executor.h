@@ -111,10 +111,10 @@ struct UnaryFunctionExecutor {
     static void executeSwitch(common::SelectedVector operand, common::SelectedVector result,
         void* dataPtr) {
         result.vec.resetAuxiliaryBuffer();
-        auto& operandSelVector = operand.sel;
+        auto& operandSelVector = *operand.sel;
         if (operand.vec.state->isFlat()) {
             auto inputPos = operandSelVector[0];
-            auto resultPos = result.sel[0];
+            auto resultPos = (*result.sel)[0];
             result.vec.setNull(resultPos, operand.vec.isNull(inputPos));
             if (!result.vec.isNull(resultPos)) {
                 executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand.vec, inputPos,
@@ -168,8 +168,8 @@ struct UnaryFunctionExecutor {
     static void executeSequence(common::SelectedVector operand, common::SelectedVector result,
         void* dataPtr) {
         result.vec.resetAuxiliaryBuffer();
-        auto inputPos = operand.sel[0];
-        auto resultPos = result.sel[0];
+        auto inputPos = (*operand.sel)[0];
+        auto resultPos = (*result.sel)[0];
         executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, UnarySequenceFunctionWrapper>(operand.vec,
             inputPos, result.vec, resultPos, dataPtr);
     }

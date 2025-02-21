@@ -13,9 +13,9 @@ static void execFunc(std::span<const common::SelectedVector> parameters,
     common::SelectedVector result, void* /*dataPtr*/) {
     KU_ASSERT(parameters.size() == 1);
     result.vec.resetAuxiliaryBuffer();
-    for (auto i = 0u; i < result.sel.getSelSize(); ++i) {
-        auto inputPos = parameters[0].sel[i];
-        auto resultPos = result.sel[i];
+    for (auto i = 0u; i < result.sel->getSelSize(); ++i) {
+        auto inputPos = (*parameters[0].sel)[i];
+        auto resultPos = (*result.sel)[i];
         result.vec.setNull(resultPos, parameters[0].vec.isNull(inputPos));
         if (!parameters[0].vec.isNull(inputPos)) {
             StringVector::addString(&result.vec, resultPos,
