@@ -10,10 +10,10 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result,
+static void execFunc(std::span<const common::SelectedVector> params, common::SelectedVector result,
     void* /*dataPtr*/ = nullptr) {
     KU_ASSERT(params.size() == 1);
-    UnaryFunctionExecutor::execute<internalID_t, int64_t, Offset>(*params[0], result);
+    UnaryFunctionExecutor::execute<internalID_t, int64_t, Offset>(params[0], result);
 }
 
 function_set OffsetFunction::getFunctionSet() {

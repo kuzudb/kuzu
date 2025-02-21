@@ -17,9 +17,9 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     return FunctionBindData::getSimpleBindData(input.arguments, resultType);
 }
 
-static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& /*parameters*/,
-    ValueVector& result, void* /*dataPtr*/) {
-    UnionVector::setTagField(&result, UnionType::TAG_FIELD_IDX);
+static void execFunc(std::span<const common::SelectedVector>, common::SelectedVector result,
+    void* /*dataPtr*/) {
+    UnionVector::setTagField(&result.vec, UnionType::TAG_FIELD_IDX);
 }
 
 static void valueCompileFunc(FunctionBindData* /*bindData*/,

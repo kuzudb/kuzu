@@ -37,47 +37,47 @@ static uint64_t getSelectedListSize(const list_entry_t& srcListEntry,
     return counter;
 }
 
-static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& input, ValueVector& result,
+static void execFunc(std::span<const common::SelectedVector> input, common::SelectedVector result,
     void* bindData) {
     auto listLambdaBindData = reinterpret_cast<evaluator::ListLambdaBindData*>(bindData);
-    auto inputVector = input[0].get();
-    auto listSize = ListVector::getDataVectorSize(inputVector);
+    const auto& inputVector = input[0].vec;
+    auto listSize = ListVector::getDataVectorSize(&inputVector);
     for (auto& lambdaParam : listLambdaBindData->lambdaParamEvaluators) {
         lambdaParam->resultVector.get()->state->getSelVectorUnsafe().setSelSize(listSize);
     }
     listLambdaBindData->rootEvaluator->evaluate();
     KU_ASSERT(input.size() == 2);
-    auto& listInputSelVector = input[0]->state->getSelVector();
-    auto filterVector = input[1].get();
-    auto srcDataVector = ListVector::getDataVector(inputVector);
-    auto dstDataVector = ListVector::getDataVector(&result);
+    auto& listInputSelVector = input[0].sel;
+    auto& filterVector = input[1].vec;
+    auto& filterSelVector = input[1].sel;
+    auto srcDataVector = ListVector::getDataVector(&inputVector);
+    auto dstDataVector = ListVector::getDataVector(&result.vec);
     for (auto i = 0u; i < listInputSelVector.getSelSize(); ++i) {
-        auto srcListEntry = inputVector->getValue<list_entry_t>(listInputSelVector[i]);
+        auto srcListEntry = inputVector.getValue<list_entry_t>(listInputSelVector[i]);
         list_entry_t dstListEntry;
         if (listLambdaBindData->lambdaParamEvaluators.empty()) {
             // Constant evaluate
-            auto filterResult =
-                filterVector->getValue<bool>(filterVector->state->getSelVector()[0]);
+            auto filterResult = filterVector.getValue<bool>(filterSelVector[0]);
             if (filterResult) {
-                dstListEntry = ListVector::addList(&result, listSize);
-                ListVector::copyFromVectorData(&result, (uint8_t*)&dstListEntry, inputVector,
+                dstListEntry = ListVector::addList(&result.vec, listSize);
+                ListVector::copyFromVectorData(&result.vec, (uint8_t*)&dstListEntry, &inputVector,
                     (uint8_t*)&srcListEntry);
             } else {
-                dstListEntry = ListVector::addList(&result, 0 /* listSize */);
+                dstListEntry = ListVector::addList(&result.vec, 0 /* listSize */);
             }
         } else {
             dstListEntry =
-                ListVector::addList(&result, getSelectedListSize(srcListEntry, *filterVector));
+                ListVector::addList(&result.vec, getSelectedListSize(srcListEntry, filterVector));
             auto dstListOffset = dstListEntry.offset;
             for (auto j = 0u; j < srcListEntry.size; j++) {
                 auto pos = srcListEntry.offset + j;
-                if (filterVector->getValue<bool>(pos)) {
+                if (filterVector.getValue<bool>(pos)) {
                     dstDataVector->copyFromVectorData(dstListOffset, srcDataVector, pos);
                     dstListOffset++;
                 }
             }
         }
-        result.setValue(result.state->getSelVector()[i], dstListEntry);
+        result.vec.setValue(result.sel[i], dstListEntry);
     }
 }
 

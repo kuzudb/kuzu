@@ -29,11 +29,12 @@ struct Label {
     }
 };
 
-static void execFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
-    common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
+static void execFunction(std::span<const common::SelectedVector> params,
+    common::SelectedVector result, void* dataPtr = nullptr) {
     KU_ASSERT(params.size() == 2);
-    BinaryFunctionExecutor::executeListExtract<common::internalID_t, common::list_entry_t,
-        common::ku_string_t, Label>(*params[0], *params[1], result);
+    BinaryFunctionExecutor::executeSwitch<common::internalID_t, common::list_entry_t,
+        common::ku_string_t, Label, BinaryListExtractFunctionWrapper>(params[0], params[1], result,
+        dataPtr);
 }
 
 static std::shared_ptr<binder::Expression> getLabelsAsLiteral(main::ClientContext* context,

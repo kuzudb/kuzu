@@ -19,13 +19,13 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     return bindData;
 }
 
-static void execFunc(const std::vector<std::shared_ptr<ValueVector>>&, ValueVector& result,
+static void execFunc(std::span<const common::SelectedVector>, common::SelectedVector result,
     void* dataPtr) {
-    result.resetAuxiliaryBuffer();
+    result.vec.resetAuxiliaryBuffer();
     auto typeData = reinterpret_cast<FunctionStringBindData*>(dataPtr);
-    for (auto i = 0u; i < result.state->getSelVector().getSelSize(); ++i) {
-        auto resultPos = result.state->getSelVector()[i];
-        StringVector::addString(&result, resultPos, typeData->str);
+    for (auto i = 0u; i < result.sel.getSelSize(); ++i) {
+        auto resultPos = result.sel[i];
+        StringVector::addString(&result.vec, resultPos, typeData->str);
     }
 }
 

@@ -9,11 +9,11 @@ namespace kuzu {
 namespace function {
 
 template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-static void BinaryExecListExtractFunction(const std::vector<std::shared_ptr<ValueVector>>& params,
-    ValueVector& result, void* /*dataPtr*/ = nullptr) {
+static void BinaryExecListExtractFunction(std::span<const common::SelectedVector> params,
+    common::SelectedVector result, void* dataPtr = nullptr) {
     KU_ASSERT(params.size() == 2);
-    BinaryFunctionExecutor::executeListExtract<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(*params[0],
-        *params[1], result);
+    BinaryFunctionExecutor::executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC,
+        BinaryListExtractFunctionWrapper>(params[0], params[1], result, dataPtr);
 }
 
 static std::unique_ptr<FunctionBindData> ListExtractBindFunc(const ScalarBindFuncInput& input) {

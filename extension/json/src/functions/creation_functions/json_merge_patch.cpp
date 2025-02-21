@@ -9,22 +9,21 @@ namespace json_extension {
 using namespace function;
 using namespace common;
 
-static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/) {
-    result.resetAuxiliaryBuffer();
+static void execFunc(std::span<const common::SelectedVector> parameters,
+    common::SelectedVector result, void* /*dataPtr*/) {
+    result.vec.resetAuxiliaryBuffer();
     const auto& param1 = parameters[0];
     const auto& param2 = parameters[1];
-    for (auto selectedPos = 0u; selectedPos < result.state->getSelVector().getSelSize();
-         ++selectedPos) {
-        auto resultPos = result.state->getSelVector()[selectedPos];
-        auto param1Pos = param1->state->getSelVector()[param1->state->isFlat() ? 0 : selectedPos];
-        auto param2Pos = param2->state->getSelVector()[param2->state->isFlat() ? 0 : selectedPos];
-        auto isNull = parameters[0]->isNull(param1Pos) || parameters[1]->isNull(param2Pos);
-        result.setNull(resultPos, isNull);
+    for (auto selectedPos = 0u; selectedPos < result.sel.getSelSize(); ++selectedPos) {
+        auto resultPos = result.sel[selectedPos];
+        auto param1Pos = param1.sel[param1.vec.state->isFlat() ? 0 : selectedPos];
+        auto param2Pos = param2.sel[param2.vec.state->isFlat() ? 0 : selectedPos];
+        auto isNull = parameters[0].vec.isNull(param1Pos) || parameters[1].vec.isNull(param2Pos);
+        result.vec.setNull(resultPos, isNull);
         if (!isNull) {
-            auto param1Str = param1->getValue<ku_string_t>(param1Pos).getAsString();
-            auto param2Str = param2->getValue<ku_string_t>(param2Pos).getAsString();
-            StringVector::addString(&result, resultPos,
+            auto param1Str = param1.vec.getValue<ku_string_t>(param1Pos).getAsString();
+            auto param2Str = param2.vec.getValue<ku_string_t>(param2Pos).getAsString();
+            StringVector::addString(&result.vec, resultPos,
                 jsonToString(mergeJson(stringToJson(param1Str), stringToJson(param2Str))));
         }
     }

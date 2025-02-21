@@ -22,8 +22,8 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
         ListType::getChildType(input.arguments[0]->getDataType()).copy());
 }
 
-static void reduceList(const list_entry_t& listEntry, uint64_t pos, common::ValueVector& result,
-    common::ValueVector& inputDataVector, const common::ValueVector& tmpResultVector,
+static void reduceList(const list_entry_t& listEntry, uint64_t pos, common::SelectedVector result,
+    common::ValueVector& inputDataVector, common::SelectedVector tmpResultVector,
     evaluator::ListLambdaBindData& bindData) {
     const auto& paramIndices = bindData.paramIndices;
     std::vector<ValueVector*> params(bindData.lambdaParamEvaluators.size());
@@ -32,18 +32,17 @@ static void reduceList(const list_entry_t& listEntry, uint64_t pos, common::Valu
         params[i] = param;
     }
     auto paramPos = params[0]->state->getSelVector()[0];
-    auto tmpResultPos = tmpResultVector.state->getSelVector()[0];
+    auto tmpResultPos = tmpResultVector.sel[0];
     if (listEntry.size == 0) {
         throw common::RuntimeException{"Cannot execute list_reduce on an empty list."};
     }
     if (listEntry.size == 1) {
-        result.copyFromVectorData(result.state->getSelVector()[pos], &inputDataVector,
-            listEntry.offset);
+        result.vec.copyFromVectorData(result.sel[pos], &inputDataVector, listEntry.offset);
     } else {
         for (auto j = 0u; j < listEntry.size - 1; j++) {
             for (auto k = 0u; k < params.size(); k++) {
                 if (0u == paramIndices[k] && 0u != j) {
-                    params[k]->copyFromVectorData(paramPos, &tmpResultVector, tmpResultPos);
+                    params[k]->copyFromVectorData(paramPos, &tmpResultVector.vec, tmpResultPos);
                 } else {
                     params[k]->copyFromVectorData(paramPos, &inputDataVector,
                         listEntry.offset + j + paramIndices[k]);
@@ -52,19 +51,18 @@ static void reduceList(const list_entry_t& listEntry, uint64_t pos, common::Valu
             }
             bindData.rootEvaluator->evaluate();
         }
-        result.copyFromVectorData(result.state->getSelVector()[pos], &tmpResultVector,
-            tmpResultPos);
+        result.vec.copyFromVectorData(result.sel[pos], &tmpResultVector.vec, tmpResultPos);
     }
 }
 
-static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& input, ValueVector& result,
+static void execFunc(std::span<const common::SelectedVector> input, common::SelectedVector result,
     void* bindData) {
     KU_ASSERT(input.size() == 2);
     auto listLambdaBindData = reinterpret_cast<evaluator::ListLambdaBindData*>(bindData);
-    auto inputVector = input[0].get();
-    for (auto i = 0u; i < inputVector->state->getSelVector().getSelSize(); i++) {
-        auto listEntry = inputVector->getValue<list_entry_t>(inputVector->state->getSelVector()[i]);
-        reduceList(listEntry, i, result, *ListVector::getDataVector(inputVector), *input[1].get(),
+    const auto& inputVector = input[0];
+    for (auto i = 0u; i < inputVector.sel.getSelSize(); i++) {
+        auto listEntry = inputVector.vec.getValue<list_entry_t>(inputVector.sel[i]);
+        reduceList(listEntry, i, result, *ListVector::getDataVector(&inputVector.vec), input[1],
             *listLambdaBindData);
     }
 }

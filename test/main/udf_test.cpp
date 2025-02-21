@@ -360,19 +360,19 @@ TEST_F(ApiTest, TernaryUDFMoreParamType) {
         "Catalog exception: Expected exactly three parameter types for ternary udf. Got: 4.");
 }
 
-static void addFour(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/ = nullptr) {
+static void addFour(std::span<const common::SelectedVector> parameters,
+    common::SelectedVector result, void* /*dataPtr*/ = nullptr) {
     KU_ASSERT(parameters.size() == 1);
     auto parameter = parameters[0];
-    result.resetAuxiliaryBuffer();
-    result.state = parameter->state;
-    if (parameter->state->isFlat()) {
-        auto pos = parameter->state->getSelVector()[0];
-        result.setValue(pos, parameter->getValue<int64_t>(pos) + 4);
+    result.vec.resetAuxiliaryBuffer();
+    result.vec.state = parameter.vec.state;
+    if (parameter.vec.state->isFlat()) {
+        auto pos = parameter.sel[0];
+        result.vec.setValue(pos, parameter.vec.getValue<int64_t>(pos) + 4);
     } else {
-        for (auto i = 0u; i < parameter->state->getSelVector().getSelSize(); i++) {
-            auto pos = parameter->state->getSelVector()[i];
-            result.setValue(pos, parameter->getValue<int64_t>(pos) + 4);
+        for (auto i = 0u; i < parameter.sel.getSelSize(); i++) {
+            auto pos = parameter.sel[i];
+            result.vec.setValue(pos, parameter.vec.getValue<int64_t>(pos) + 4);
         }
     }
 }
@@ -391,11 +391,11 @@ struct AddDate {
     }
 };
 
-static void addDate(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/ = nullptr) {
+static void addDate(std::span<const common::SelectedVector> parameters,
+    common::SelectedVector result, void* /*dataPtr*/ = nullptr) {
     KU_ASSERT(parameters.size() == 2);
-    function::BinaryFunctionExecutor::execute<date_t, int64_t, date_t, AddDate>(*parameters[0],
-        *parameters[1], result);
+    function::BinaryFunctionExecutor::execute<date_t, int64_t, date_t, AddDate>(parameters[0],
+        parameters[1], result);
 }
 
 TEST_F(ApiTest, vectorizedBinaryAddDate) {
@@ -436,11 +436,12 @@ struct ConditionalConcat {
     }
 };
 
-static void conditionalConcat(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/ = nullptr) {
+static void conditionalConcat(std::span<const common::SelectedVector> parameters,
+    common::SelectedVector result, void* dataPtr = nullptr) {
     KU_ASSERT(parameters.size() == 3);
-    function::TernaryFunctionExecutor::executeString<ku_string_t, bool, ku_string_t, ku_string_t,
-        ConditionalConcat>(*parameters[0], *parameters[1], *parameters[2], result);
+    function::TernaryFunctionExecutor::executeSwitch<ku_string_t, bool, ku_string_t, ku_string_t,
+        ConditionalConcat, function::TernaryUDFFunctionWrapper>(parameters[0], parameters[1],
+        parameters[2], result, dataPtr);
 }
 
 TEST_F(ApiTest, vectorizedTernaryConditionalAdd) {

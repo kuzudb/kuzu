@@ -1,0 +1,4 @@
+[
+{"p.id":20,"p.description":{"height":52,"age":32,"scores":[1,2,5]}},
+{"p.id":40,"p.description":{"age":55,"scores":[1,32,5,null],"name":"dan"}}
+]
