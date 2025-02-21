@@ -520,7 +520,7 @@ oC_Quantifier
         ;
 
 oC_FilterExpression
-    :  oC_IdInColl ( SP? oC_Where )? ;
+    :  oC_IdInColl SP oC_Where ;
 
 oC_IdInColl
     :  oC_Variable SP IN SP oC_Expression ;

@@ -80,6 +80,30 @@ protected:
 
     virtual bool selectInternal(common::SelectionVector& selVector) = 0;
 
+    bool updateSelectedPos(common::SelectionVector& selVector) const {
+        auto& resultSelVector = resultVector->state->getSelVector();
+        if (resultSelVector.getSelSize() > 1) {
+            auto numSelectedValues = 0u;
+            for (auto i = 0u; i < resultSelVector.getSelSize(); ++i) {
+                auto pos = resultSelVector[i];
+                auto selectedPosBuffer = selVector.getMutableBuffer();
+                selectedPosBuffer[numSelectedValues] = pos;
+                numSelectedValues +=
+                    resultVector->isNull(pos) ? 0 : resultVector->getValue<bool>(pos);
+            }
+            selVector.setSelSize(numSelectedValues);
+            return numSelectedValues > 0;
+        } else {
+            // If result state is flat (i.e. all children are flat), we shouldn't try to update
+            // selectedPos because we don't know which one is leading, i.e. the one being selected
+            // by filter.
+            // So we forget about selectedPos and directly return true/false. This doesn't change
+            // the correctness, because when all children are flat the check is done on tuple.
+            auto pos = resultVector->state->getSelVector()[0];
+            return resultVector->isNull(pos) ? 0 : resultVector->getValue<bool>(pos);
+        }
+    }
+
 public:
     std::shared_ptr<common::ValueVector> resultVector;
 
