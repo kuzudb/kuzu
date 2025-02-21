@@ -3,7 +3,8 @@
 --
 
 -CASE ProjectionSingleLabel
-
+# Having more node groups can affect the order in which duplicate map keys are found
+-SKIP_NODE_GROUP_SIZE_TESTS
 -LOG ReturnLiteral3
 -STATEMENT RETURN "abc", MIN(1)
 ---- 1

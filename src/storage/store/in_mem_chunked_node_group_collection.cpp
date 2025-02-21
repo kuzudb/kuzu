@@ -13,22 +13,22 @@ void InMemChunkedNodeGroupCollection::append(MemoryManager& memoryManager,
     const std::vector<ValueVector*>& vectors, row_idx_t startRowInVectors,
     row_idx_t numRowsToAppend) {
     if (chunkedGroups.empty()) {
-        chunkedGroups.push_back(
-            std::make_unique<ChunkedNodeGroup>(memoryManager, types, false /*enableCompression*/,
-                ChunkedNodeGroup::CHUNK_CAPACITY, 0 /*startOffset*/, ResidencyState::IN_MEMORY));
+        chunkedGroups.push_back(std::make_unique<ChunkedNodeGroup>(memoryManager, types,
+            false /*enableCompression*/, common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY,
+            0 /*startOffset*/, ResidencyState::IN_MEMORY));
     }
     row_idx_t numRowsAppended = 0;
     while (numRowsAppended < numRowsToAppend) {
         auto& lastChunkedGroup = chunkedGroups.back();
         auto numRowsToAppendInGroup = std::min(numRowsToAppend - numRowsAppended,
-            ChunkedNodeGroup::CHUNK_CAPACITY - lastChunkedGroup->getNumRows());
+            common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY - lastChunkedGroup->getNumRows());
         lastChunkedGroup->append(&DUMMY_TRANSACTION, vectors, startRowInVectors,
             numRowsToAppendInGroup);
-        if (lastChunkedGroup->getNumRows() == ChunkedNodeGroup::CHUNK_CAPACITY) {
+        if (lastChunkedGroup->getNumRows() == common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY) {
             lastChunkedGroup->setUnused(memoryManager);
             chunkedGroups.push_back(std::make_unique<ChunkedNodeGroup>(memoryManager, types,
-                false /*enableCompression*/, ChunkedNodeGroup::CHUNK_CAPACITY, 0 /* startRowIdx */,
-                ResidencyState::IN_MEMORY));
+                false /*enableCompression*/, common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY,
+                0 /* startRowIdx */, ResidencyState::IN_MEMORY));
         }
         numRowsAppended += numRowsToAppendInGroup;
     }

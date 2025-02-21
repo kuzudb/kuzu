@@ -14,8 +14,8 @@ namespace storage {
 
 CSRRegion::CSRRegion(idx_t regionIdx, idx_t level) : regionIdx{regionIdx}, level{level} {
     const auto leftLeafRegion = regionIdx << level;
-    leftNodeOffset = leftLeafRegion << StorageConstants::CSR_LEAF_REGION_SIZE_LOG2;
-    rightNodeOffset = leftNodeOffset + (StorageConstants::CSR_LEAF_REGION_SIZE << level) - 1;
+    leftNodeOffset = leftLeafRegion << StorageConfig::CSR_LEAF_REGION_SIZE_LOG2;
+    rightNodeOffset = leftNodeOffset + (StorageConfig::CSR_LEAF_REGION_SIZE << level) - 1;
     if (rightNodeOffset >= StorageConfig::NODE_GROUP_SIZE) {
         // The max right node offset should be NODE_GROUP_SIZE - 1.
         rightNodeOffset = StorageConfig::NODE_GROUP_SIZE - 1;
@@ -201,8 +201,8 @@ void ChunkedCSRHeader::finalizeCSRRegionEndOffsets(
 idx_t ChunkedCSRHeader::getNumRegions() const {
     const auto numNodes = length->getNumValues();
     KU_ASSERT(offset->getNumValues() == numNodes);
-    return (numNodes + StorageConstants::CSR_LEAF_REGION_SIZE - 1) /
-           StorageConstants::CSR_LEAF_REGION_SIZE;
+    return (numNodes + StorageConfig::CSR_LEAF_REGION_SIZE - 1) /
+           StorageConfig::CSR_LEAF_REGION_SIZE;
 }
 
 void ChunkedCSRHeader::populateRegionCSROffsets(const CSRRegion& region,

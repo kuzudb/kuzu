@@ -2,6 +2,8 @@
 --
 
 -CASE CreateIntegerStats
+# The number of rows in storage_info() output depends on node group size
+-SKIP_NODE_GROUP_SIZE_TESTS
 # Note that integer compression means that values get re-compressed and are updated out of place
 -STATEMENT CREATE NODE TABLE N1(id INT64, PRIMARY KEY(id));
 ---- ok
@@ -49,6 +51,8 @@
 6
 
 -CASE CreateDoubleStats
+# The number of rows in storage_info() output depends on node group size
+-SKIP_NODE_GROUP_SIZE_TESTS
 # Note that integer compression means that values get re-compressed and are updated out of place
 -STATEMENT CREATE NODE TABLE N1(id INT64, PRIMARY KEY(id));
 ---- ok

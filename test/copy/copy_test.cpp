@@ -4,6 +4,7 @@
 #include "graph_test/graph_test.h"
 #include "main/database.h"
 #include "storage/buffer_manager/buffer_manager.h"
+#include "test_runner/test_parser.h"
 #include "transaction/transaction_manager.h"
 
 namespace kuzu {
@@ -28,14 +29,19 @@ public:
           canFailDuringExecute(canFailDuringExecute) {}
 
     bool reserve(uint64_t sizeToReserve) override {
+        // we currently can't handle exceptions thrown during rollback
+        const bool inRollback = std::current_exception().operator bool();
+
+        const bool inDBInit = ctx == nullptr;
+
         const bool inCheckpoint =
             ctx && !ctx->getTransactionManagerUnsafe()->hasActiveWriteTransactionNoLock();
         const bool inCommit = !inCheckpoint && ctx &&
                               ctx->getTransaction()->getCommitTS() != common::INVALID_TRANSACTION;
         const bool inExecute = (!inCommit && !inCheckpoint);
         reserveCount = (reserveCount + 1) % failureFrequency;
-        if ((canFailDuringCheckpoint || !inCheckpoint) && (canFailDuringExecute || !inExecute) &&
-            reserveCount == 0) {
+        if (!inRollback && !inDBInit && (canFailDuringCheckpoint || !inCheckpoint) &&
+            (canFailDuringExecute || !inExecute) && reserveCount == 0) {
             failureFrequency *= 2;
             return false;
         }
@@ -166,7 +172,8 @@ TEST_F(CopyTest, NodeCopyBMExceptionRecoverySameConnection) {
 }
 
 TEST_F(CopyTest, RelCopyBMExceptionRecoverySameConnection) {
-    if (inMemMode) {
+    if (inMemMode ||
+        common::StorageConfig::NODE_GROUP_SIZE_LOG2 != TestParser::STANDARD_NODE_GROUP_SIZE_LOG_2) {
         GTEST_SKIP();
     }
     BMExceptionRecoveryTestConfig cfg{.canFailDuringExecute = true,
@@ -291,7 +298,8 @@ TEST_F(CopyTest, NodeCopyBMExceptionDuringCheckpointRecovery) {
 }
 
 TEST_F(CopyTest, NodeInsertBMExceptionDuringCheckpointRecovery) {
-    if (inMemMode) {
+    if (inMemMode ||
+        common::StorageConfig::NODE_GROUP_SIZE_LOG2 != TestParser::STANDARD_NODE_GROUP_SIZE_LOG_2) {
         GTEST_SKIP();
     }
     static constexpr uint64_t numValues = 200000;
@@ -317,7 +325,8 @@ TEST_F(CopyTest, NodeInsertBMExceptionDuringCheckpointRecovery) {
 }
 
 TEST_F(CopyTest, OutOfMemoryRecovery) {
-    if (inMemMode) {
+    if (inMemMode ||
+        common::StorageConfig::NODE_GROUP_SIZE_LOG2 != TestParser::STANDARD_NODE_GROUP_SIZE_LOG_2) {
         GTEST_SKIP();
     }
     // Needs to be small enough that we cannot successfully complete the rel table copy
@@ -355,7 +364,8 @@ TEST_F(CopyTest, OutOfMemoryRecovery) {
 }
 
 TEST_F(CopyTest, OutOfMemoryRecoveryDropTable) {
-    if (inMemMode) {
+    if (inMemMode ||
+        common::StorageConfig::NODE_GROUP_SIZE_LOG2 != TestParser::STANDARD_NODE_GROUP_SIZE_LOG_2) {
         GTEST_SKIP();
     }
     // Needs to be small enough that we cannot successfully complete the rel table copy

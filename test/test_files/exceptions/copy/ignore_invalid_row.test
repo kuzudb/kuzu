@@ -114,6 +114,8 @@ Conversion exception: Cast failed. Could not convert "2147483650" to INT32.|${KU
 Conversion exception: Cast failed. Could not convert "01abc" to INT32.|${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv|5|5,01abc
 
 -CASE ParallelSkipInvalidNodeTableRowsClearWarnings
+# Small node group sizes can change which warnings are output
+-SKIP_NODE_GROUP_SIZE_TESTS
 -STATEMENT CALL warning_limit=2
 ---- ok
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson.csv" (IGNORE_ERRORS=true, AUTO_DETECT=false)
