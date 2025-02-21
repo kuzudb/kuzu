@@ -61,18 +61,26 @@ uint64_t AggregateHashTable::append(const std::vector<ValueVector*>& flatKeyVect
 
 bool AggregateHashTable::insertAggregateValueIfDistinctForGroupByKeys(
     const std::vector<ValueVector*>& groupByFlatKeyVectors, ValueVector* aggregateVector) {
-    std::vector<ValueVector*> distinctKeyVectors(groupByFlatKeyVectors.size() + 1);
-    for (auto i = 0u; i < groupByFlatKeyVectors.size(); i++) {
-        distinctKeyVectors[i] = groupByFlatKeyVectors[i];
+    sel_t pos = 0;
+    if (groupByFlatKeyVectors.empty()) {
+        pos = aggregateVector->state->getSelVector()[0];
+    } else {
+        pos = groupByFlatKeyVectors[0]->state->getSelVector()[0];
     }
-    distinctKeyVectors[groupByFlatKeyVectors.size()] = aggregateVector;
-    computeVectorHashes(distinctKeyVectors, std::vector<ValueVector*>() /* unFlatKeyVectors */);
-    auto hash = hashVector->getValue<hash_t>(hashVector->state->getSelVector()[0]);
-    auto distinctHTEntry = findEntryInDistinctHT(distinctKeyVectors, hash);
-    if (distinctHTEntry == nullptr) {
-        resizeHashTableIfNecessary(1);
-        createEntryInDistinctHT(distinctKeyVectors, hash);
-        return true;
+    if (!aggregateVector->isNull(pos)) {
+        std::vector<ValueVector*> distinctKeyVectors(groupByFlatKeyVectors.size() + 1);
+        for (auto i = 0u; i < groupByFlatKeyVectors.size(); i++) {
+            distinctKeyVectors[i] = groupByFlatKeyVectors[i];
+        }
+        distinctKeyVectors[groupByFlatKeyVectors.size()] = aggregateVector;
+        computeVectorHashes(distinctKeyVectors, std::vector<ValueVector*>() /* unFlatKeyVectors */);
+        auto hash = hashVector->getValue<hash_t>(hashVector->state->getSelVector()[0]);
+        auto distinctHTEntry = findEntryInDistinctHT(distinctKeyVectors, hash);
+        if (distinctHTEntry == nullptr) {
+            resizeHashTableIfNecessary(1);
+            createEntryInDistinctHT(distinctKeyVectors, hash);
+            return true;
+        }
     }
     return false;
 }
@@ -152,6 +160,9 @@ void AggregateHashTable::mergeDistinctAggregateInfo() {
                 for (size_t i = 0; i < numTuplesToScan; i++) {
                     // Find slot in current hash table corresponding to the entry in the distinct
                     // hash table
+                    // updatePosState may not check nulls, and we avoid inserting any nulls into
+                    // distinct hash tables
+                    KU_ASSERT(!vectors.back()->isNull(i));
                     auto hash = hashVector->getValue<hash_t>(i);
                     // matchFTEntries expects that the index is the same as the index in the vector
                     // Doesn't need to be done each time, but maybe this can be vectorized so that
@@ -589,18 +600,16 @@ void AggregateHashTable::updateDistinctAggState(const std::vector<ValueVector*>&
     KU_ASSERT(distinctHT != nullptr);
     if (distinctHT->insertAggregateValueIfDistinctForGroupByKeys(flatKeyVectors, aggregateVector)) {
         auto pos = aggregateVector->state->getSelVector()[0];
-        if (!aggregateVector->isNull(pos)) {
-            aggregateFunction.updatePosState(
-                hashSlotsToUpdateAggState[flatKeyVectors.empty() ?
-                                              0 :
-                                              flatKeyVectors[0]->state->getSelVector()[0]]
-                        ->entry +
-                    aggStateOffset,
-                aggregateVector, 1 /* Distinct aggregate should ignore multiplicity
-                                          since they are known to be non-distinct. */
-                ,
-                pos, memoryManager);
-        }
+        aggregateFunction.updatePosState(
+            hashSlotsToUpdateAggState[flatKeyVectors.empty() ?
+                                          0 :
+                                          flatKeyVectors[0]->state->getSelVector()[0]]
+                    ->entry +
+                aggStateOffset,
+            aggregateVector, 1 /* Distinct aggregate should ignore multiplicity
+                                      since they are known to be non-distinct. */
+            ,
+            pos, memoryManager);
     }
 }
 
