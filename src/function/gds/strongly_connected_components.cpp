@@ -146,6 +146,7 @@ private:
     Graph* graph;
     SCCState& sccState;
     stack<offset_t> toProcess;
+    stack<offset_t> dfsStack;
 };
 
 class SCCOutputWriter : public GDSOutputWriter {
