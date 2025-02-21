@@ -26,9 +26,9 @@ protected:
     void resolveResultVector(const processor::ResultSet& resultSet,
         storage::MemoryManager* memoryManager) override;
 
-    void runExecFunc() {
+    void runExecFunc(void* dataPtr = nullptr) {
         function->execFunc(common::SelectedVector::constructVector(parameters),
-            common::SelectedVector{*resultVector}, nullptr);
+            common::SelectedVector{*resultVector}, dataPtr);
     }
 
 private:

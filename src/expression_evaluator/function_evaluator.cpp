@@ -28,7 +28,7 @@ void FunctionExpressionEvaluator::evaluate() {
     }
     if (function->execFunc != nullptr) {
         bindData->clientContext = ctx;
-        runExecFunc();
+        runExecFunc(bindData.get());
     }
 }
 
@@ -40,7 +40,7 @@ void FunctionExpressionEvaluator::evaluate(common::sel_t count) {
     }
     bindData->count = count;
     bindData->clientContext = localState.clientContext;
-    runExecFunc();
+    runExecFunc(bindData.get());
 }
 
 bool FunctionExpressionEvaluator::selectInternal(SelectionVector& selVector) {
