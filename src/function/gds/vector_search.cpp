@@ -1032,7 +1032,7 @@ namespace kuzu {
                         filterMask->prefetchMaskValue(neighbor.offset);
                     }
 
-                    if (selectivity >= 0.5) {
+                    if (selectivity >= 0.4) {
                         // If the selectivity is high, we will simply do one hop search since we can find the next
                         // closest directly from candidates priority queue.
                         oneHopSearch(firstHopNbrs, filterMask, visited, vectorArray, size);
@@ -1114,7 +1114,7 @@ namespace kuzu {
                     // Multiply by 0.6 due to the overlapping factor
                     auto estimatedFullTwoHopDistanceComp = (totalNbrs * filteredNbrs + filteredNbrs) * 0.4;
                     auto estimatedDirectedDistanceComp = totalNbrs + (totalNbrs - filteredNbrs);
-                    if (enableHighSelectivityOpt && localSelectivity >= 0.5) {
+                    if (enableHighSelectivityOpt && localSelectivity >= 0.4) {
                         // If the selectivity is high, we will simply do one hop search since we can find the next
                         // closest directly from candidates priority queue.
                         oneHopSearch(firstHopNbrs, filterMask, visited, vectorArray, size);
