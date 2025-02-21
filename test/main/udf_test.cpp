@@ -440,7 +440,7 @@ static void conditionalConcat(std::span<const common::SelectedVector> parameters
     common::SelectedVector result, void* dataPtr = nullptr) {
     KU_ASSERT(parameters.size() == 3);
     function::TernaryFunctionExecutor::executeSwitch<ku_string_t, bool, ku_string_t, ku_string_t,
-        ConditionalConcat, function::TernaryUDFFunctionWrapper>(parameters[0], parameters[1],
+        ConditionalConcat, function::TernaryStringFunctionWrapper>(parameters[0], parameters[1],
         parameters[2], result, dataPtr);
 }
 

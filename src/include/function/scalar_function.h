@@ -108,7 +108,7 @@ struct KUZU_API ScalarFunction : public ScalarOrAggregateFunction {
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::SelectionVector& selVector) {
         KU_ASSERT(params.size() == 2);
-        return BinaryFunctionExecutor::select<LEFT_TYPE, RIGHT_TYPE, FUNC>(params[0], params[1],
+        return BinaryFunctionExecutor::select<LEFT_TYPE, RIGHT_TYPE, FUNC>(*params[0], *params[1],
             selVector);
     }
 
@@ -176,7 +176,7 @@ struct KUZU_API ScalarFunction : public ScalarOrAggregateFunction {
         common::SelectedVector result, void* /*dataPtr*/ = nullptr) {
         KU_ASSERT(params.empty());
         (void)params;
-        ConstFunctionExecutor::execute<RESULT_TYPE, FUNC>(result);
+        ConstFunctionExecutor::execute<RESULT_TYPE, FUNC>(result.vec);
     }
 
     template<typename RESULT_TYPE, typename FUNC>
@@ -184,7 +184,7 @@ struct KUZU_API ScalarFunction : public ScalarOrAggregateFunction {
         common::SelectedVector result, void* dataPtr) {
         KU_ASSERT(params.empty());
         (void)params;
-        PointerFunctionExecutor::execute<RESULT_TYPE, FUNC>(result, dataPtr);
+        PointerFunctionExecutor::execute<RESULT_TYPE, FUNC>(result.vec, dataPtr);
     }
 
     virtual std::unique_ptr<ScalarFunction> copy() const {

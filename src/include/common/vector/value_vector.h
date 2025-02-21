@@ -327,6 +327,8 @@ struct SelectedVector {
 
     static std::vector<common::SelectedVector> constructVector(
         const std::vector<std::shared_ptr<common::ValueVector>>& params);
+    static std::vector<common::SelectedVector> constructVector(
+        std::vector<common::ValueVector*>& params);
 };
 
 } // namespace common

@@ -27,7 +27,7 @@ private:
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::SelectionVector& selVector) {
         KU_ASSERT(params.size() == 2);
-        return BinaryBooleanFunctionExecutor::select<FUNC>(params[0], params[1], selVector);
+        return BinaryBooleanFunctionExecutor::select<FUNC>(*params[0], *params[1], selVector);
     }
 
     template<typename FUNC>

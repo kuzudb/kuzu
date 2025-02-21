@@ -702,5 +702,13 @@ std::vector<common::SelectedVector> SelectedVector::constructVector(
     return ret;
 }
 
+std::vector<common::SelectedVector> SelectedVector::constructVector(
+    std::vector<common::ValueVector*>& params) {
+    std::vector<common::SelectedVector> ret;
+    std::transform(params.begin(), params.end(), std::back_inserter(ret),
+        [](auto* vec) { return SelectedVector{*vec}; });
+    return ret;
+}
+
 } // namespace common
 } // namespace kuzu

@@ -20,12 +20,12 @@ namespace function {
 
 struct CastChildFunctionExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
-    static void executeSwitch(common::ValueVector& operand, common::ValueVector& result,
+    static void executeSwitch(common::SelectedVector operand, common::SelectedVector result,
         void* dataPtr) {
         auto numOfEntries = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
         for (auto i = 0u; i < numOfEntries; i++) {
-            result.setNull(i, operand.isNull(i));
-            if (!result.isNull(i)) {
+            result.vec.setNull(i, operand.vec.isNull(i));
+            if (!result.vec.isNull(i)) {
                 OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>((void*)(&operand),
                     i, (void*)(&result), i, dataPtr);
             }
@@ -33,7 +33,7 @@ struct CastChildFunctionExecutor {
     }
 };
 
-static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueVector* resultVector,
+static void resolveNestedVector(ValueVector* inputVector, ValueVector* resultVector,
     uint64_t numOfEntries, CastFunctionBindData* dataPtr) {
     const auto* inputType = &inputVector->dataType;
     const auto* resultType = &resultVector->dataType;
@@ -47,10 +47,10 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
                 numOfEntries * resultVector->getNumBytesPerValue());
             resultVector->setNullFromBits(inputVector->getNullMask().getData(), 0, 0, numOfEntries);
 
-            numOfEntries = ListVector::getDataVectorSize(inputVector.get());
+            numOfEntries = ListVector::getDataVectorSize(inputVector);
             ListVector::resizeDataVector(resultVector, numOfEntries);
 
-            inputVector = ListVector::getSharedDataVector(inputVector.get());
+            inputVector = ListVector::getDataVector(inputVector);
             resultVector = ListVector::getDataVector(resultVector);
             inputType = &inputVector->dataType;
             resultType = &resultVector->dataType;
@@ -79,11 +79,11 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
                 numOfEntries * resultVector->getNumBytesPerValue());
             resultVector->setNullFromBits(inputVector->getNullMask().getData(), 0, 0, numOfEntries);
 
-            auto inputFieldVectors = StructVector::getFieldVectors(inputVector.get());
+            auto inputFieldVectors = StructVector::getFieldVectors(inputVector);
             auto resultFieldVectors = StructVector::getFieldVectors(resultVector);
             for (auto i = 0u; i < inputFieldVectors.size(); i++) {
-                resolveNestedVector(inputFieldVectors[i], resultFieldVectors[i].get(), numOfEntries,
-                    dataPtr);
+                resolveNestedVector(inputFieldVectors[i].get(), resultFieldVectors[i].get(),
+                    numOfEntries, dataPtr);
             }
             return;
         } else {
@@ -96,37 +96,38 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
         auto func = CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST", *inputType,
             *resultType)
                         ->execFunc;
-        std::vector<std::shared_ptr<ValueVector>> childParams{inputVector};
+        std::vector<ValueVector*> childParams{inputVector};
         dataPtr->numOfEntries = numOfEntries;
-        func(childParams, *resultVector, (void*)dataPtr);
+        func(common::SelectedVector::constructVector(childParams),
+            common::SelectedVector{*resultVector}, (void*)dataPtr);
     } else {
         for (auto i = 0u; i < numOfEntries; i++) {
-            resultVector->copyFromVectorData(i, inputVector.get(), i);
+            resultVector->copyFromVectorData(i, inputVector, i);
         }
     }
 }
 
-static void nestedTypesCastExecFunction(const std::vector<std::shared_ptr<ValueVector>>& params,
-    ValueVector& result, void*) {
+static void nestedTypesCastExecFunction(std::span<const common::SelectedVector> params,
+    common::SelectedVector result, void*) {
     KU_ASSERT(params.size() == 1);
-    result.resetAuxiliaryBuffer();
+    result.vec.resetAuxiliaryBuffer();
     const auto& inputVector = params[0];
 
     // check if all selcted list entry have the requried fixed list size
-    if (CastArrayHelper::containsListToArray(inputVector->dataType, result.dataType)) {
-        for (auto i = 0u; i < inputVector->state->getSelVector().getSelSize(); i++) {
-            auto pos = inputVector->state->getSelVector()[i];
-            CastArrayHelper::validateListEntry(inputVector.get(), result.dataType, pos);
+    if (CastArrayHelper::containsListToArray(inputVector.vec.dataType, result.vec.dataType)) {
+        for (auto i = 0u; i < inputVector.sel.getSelSize(); i++) {
+            auto pos = inputVector.sel[i];
+            CastArrayHelper::validateListEntry(&inputVector.vec, result.vec.dataType, pos);
         }
     };
 
-    auto& selVector = inputVector->state->getSelVector();
-    auto bindData = CastFunctionBindData(result.dataType.copy());
+    auto& selVector = inputVector.sel;
+    auto bindData = CastFunctionBindData(result.vec.dataType.copy());
     auto numOfEntries = selVector[selVector.getSelSize() - 1] + 1;
-    resolveNestedVector(inputVector, &result, numOfEntries, &bindData);
-    if (inputVector->state->isFlat()) {
-        result.state->getSelVectorUnsafe().setToFiltered();
-        result.state->getSelVectorUnsafe()[0] = inputVector->state->getSelVector()[0];
+    resolveNestedVector(&inputVector.vec, &result.vec, numOfEntries, &bindData);
+    if (inputVector.vec.state->isFlat()) {
+        result.vec.state->getSelVectorUnsafe().setToFiltered();
+        result.vec.state->getSelVectorUnsafe()[0] = inputVector.sel[0];
     }
 }
 

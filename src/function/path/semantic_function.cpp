@@ -13,9 +13,9 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     return FunctionBindData::getSimpleBindData(input.arguments, LogicalType::BOOL());
 }
 
-static void IsTrailExecFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/) {
-    UnaryPathExecutor::executeRelIDs(*parameters[0], result);
+static void IsTrailExecFunc(std::span<const common::SelectedVector> parameters,
+    common::SelectedVector result, void* /*dataPtr*/) {
+    UnaryPathExecutor::executeRelIDs(parameters[0].vec, result.vec);
 }
 
 static bool IsTrailSelectFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
@@ -33,9 +33,9 @@ function_set IsTrailFunction::getFunctionSet() {
     return functionSet;
 }
 
-static void IsACyclicExecFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/) {
-    UnaryPathExecutor::executeNodeIDs(*parameters[0], result);
+static void IsACyclicExecFunc(std::span<const common::SelectedVector> parameters,
+    common::SelectedVector result, void* /*dataPtr*/) {
+    UnaryPathExecutor::executeNodeIDs(parameters[0].vec, result.vec);
 }
 
 static bool IsACyclicSelectFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,

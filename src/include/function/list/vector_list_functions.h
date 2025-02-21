@@ -173,9 +173,8 @@ struct ListReduceFunction {
 
 using quantifier_handler = std::function<bool(uint64_t numSelectedValues, uint64_t originalSize)>;
 
-void execQuantifierFunc(quantifier_handler handler,
-    const std::vector<std::shared_ptr<common::ValueVector>>& input, common::ValueVector& result,
-    void* bindData);
+void execQuantifierFunc(quantifier_handler handler, std::span<const common::SelectedVector> input,
+    common::SelectedVector result, void* bindData);
 
 std::unique_ptr<FunctionBindData> bindQuantifierFunc(const ScalarBindFuncInput& input);
 
