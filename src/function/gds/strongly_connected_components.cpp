@@ -167,7 +167,7 @@ class SCCVertexCompute : public VertexCompute {
 public:
     SCCVertexCompute(MemoryManager* mm, GDSCallSharedState* sharedState,
         unique_ptr<SCCOutputWriter> writer, SCCState& sccState)
-        : mm{mm}, sharedState{sharedState}, writer{move(writer)}, sccState{sccState} {
+        : mm{mm}, sharedState{sharedState}, writer{std::move(writer)}, sccState{sccState} {
         localFT = sharedState->claimLocalTable(mm);
     }
     ~SCCVertexCompute() override { sharedState->returnLocalTable(localFT); }
@@ -225,7 +225,7 @@ public:
         auto graphName = ExpressionUtil::getLiteralValue<string>(*input.getParam(0));
         auto graphEntry = bindGraphEntry(context, graphName);
         auto nodeOutput = bindNodeOutput(input, graphEntry.getNodeEntries());
-        bindData = make_unique<GDSBindData>(move(graphEntry), nodeOutput);
+        bindData = make_unique<GDSBindData>(std::move(graphEntry), nodeOutput);
     }
 
     void exec(ExecutionContext* context) override {
@@ -241,7 +241,7 @@ public:
 
         auto writer = make_unique<SCCOutputWriter>(clientContext);
         auto vertexCompute =
-            make_unique<SCCVertexCompute>(mm, sharedState.get(), move(writer), sccState);
+            make_unique<SCCVertexCompute>(mm, sharedState.get(), std::move(writer), sccState);
         GDSUtils::runVertexCompute(context, graph, *vertexCompute);
 
         sharedState->mergeLocalTables();
@@ -251,8 +251,8 @@ public:
 function_set StronglyConnectedComponentsFunction::getFunctionSet() {
     function_set result;
     auto algo = make_unique<StronglyConnectedComponent>();
-    auto function = make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), move(algo));
-    result.push_back(move(function));
+    auto function = make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo));
+    result.push_back(std::move(function));
     return result;
 }
 
