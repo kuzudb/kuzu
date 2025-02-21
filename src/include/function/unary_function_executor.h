@@ -101,28 +101,28 @@ struct UnaryUDFFunctionWrapper {
 
 struct UnaryFunctionExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
-    static void executeOnValue(common::ValueVector& inputVector, uint64_t inputPos,
-        common::ValueVector& resultVector, uint64_t resultPos, void* dataPtr) {
+    static void executeOnValue(common::SelectedVector inputVector, uint64_t inputPos,
+        common::SelectedVector resultVector, uint64_t resultPos, void* dataPtr) {
         OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>((void*)&inputVector,
             inputPos, (void*)&resultVector, resultPos, dataPtr);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
-    static void executeSwitch(common::ValueVector& operand, common::ValueVector& result,
+    static void executeSwitch(common::SelectedVector operand, common::SelectedVector result,
         void* dataPtr) {
-        result.resetAuxiliaryBuffer();
-        auto& operandSelVector = operand.state->getSelVector();
-        if (operand.state->isFlat()) {
+        result.vec.resetAuxiliaryBuffer();
+        auto& operandSelVector = operand.sel;
+        if (operand.vec.state->isFlat()) {
             auto inputPos = operandSelVector[0];
-            auto resultPos = result.state->getSelVector()[0];
-            result.setNull(resultPos, operand.isNull(inputPos));
-            if (!result.isNull(resultPos)) {
+            auto resultPos = result.sel[0];
+            result.vec.setNull(resultPos, operand.vec.isNull(inputPos));
+            if (!result.vec.isNull(resultPos)) {
                 executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand, inputPos,
                     result, resultPos, dataPtr);
             }
         } else {
-            if (operand.hasNoNullsGuarantee()) {
-                result.setAllNonNull();
+            if (operand.vec.hasNoNullsGuarantee()) {
+                result.vec.setAllNonNull();
                 if (operandSelVector.isUnfiltered()) {
                     for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
                         executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand, i,
@@ -138,8 +138,8 @@ struct UnaryFunctionExecutor {
             } else {
                 if (operandSelVector.isUnfiltered()) {
                     for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
-                        result.setNull(i, operand.isNull(i));
-                        if (!result.isNull(i)) {
+                        result.vec.setNull(i, operand.vec.isNull(i));
+                        if (!result.vec.isNull(i)) {
                             executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand, i,
                                 result, i, dataPtr);
                         }
@@ -147,8 +147,8 @@ struct UnaryFunctionExecutor {
                 } else {
                     for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
                         auto pos = operandSelVector[i];
-                        result.setNull(pos, operand.isNull(pos));
-                        if (!result.isNull(pos)) {
+                        result.vec.setNull(pos, operand.vec.isNull(pos));
+                        if (!result.vec.isNull(pos)) {
                             executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand,
                                 pos, result, pos, dataPtr);
                         }
@@ -159,24 +159,17 @@ struct UnaryFunctionExecutor {
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void execute(common::ValueVector& operand, common::ValueVector& result) {
+    static void execute(common::SelectedVector operand, common::SelectedVector result) {
         executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryFunctionWrapper>(operand, result,
             nullptr /* dataPtr */);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeUDF(common::ValueVector& operand, common::ValueVector& result,
+    static void executeSequence(common::SelectedVector operand, common::SelectedVector result,
         void* dataPtr) {
-        executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryUDFFunctionWrapper>(operand, result,
-            dataPtr);
-    }
-
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeSequence(common::ValueVector& operand, common::ValueVector& result,
-        void* dataPtr) {
-        result.resetAuxiliaryBuffer();
-        auto inputPos = operand.state->getSelVector()[0];
-        auto resultPos = result.state->getSelVector()[0];
+        result.vec.resetAuxiliaryBuffer();
+        auto inputPos = operand.sel[0];
+        auto resultPos = result.sel[0];
         executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, UnarySequenceFunctionWrapper>(operand,
             inputPos, result, resultPos, dataPtr);
     }

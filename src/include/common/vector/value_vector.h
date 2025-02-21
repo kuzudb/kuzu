@@ -179,7 +179,9 @@ public:
         auto& listBuffer = getAuxBufferUnsafe(*vector);
         listBuffer.setDataVector(std::move(dataVector));
     }
-    static void copyListEntryAndBufferMetaData(ValueVector& vector, const ValueVector& other);
+    static void copyListEntryAndBufferMetaData(ValueVector& vector,
+        const SelectionVector& selVector, const ValueVector& other,
+        const SelectionVector& otherSelVector);
     static ValueVector* getDataVector(const ValueVector* vector) {
         KU_ASSERT(validateType(*vector));
         return getAuxBuffer(*vector).getDataVector();
@@ -313,6 +315,11 @@ public:
         auto valueVector = getValueVector(vector);
         return valueVector->getData() + valueVector->getNumBytesPerValue() * listEntry.offset;
     }
+};
+
+struct SelectedVector {
+    common::ValueVector& vec;
+    common::SelectionVector& sel;
 };
 
 } // namespace common

@@ -16,11 +16,10 @@ public:
 
 private:
     template<typename FUNC>
-    static void BinaryBooleanExecFunction(
-        const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
+    static void BinaryBooleanExecFunction(std::span<const common::SelectedVector> params,
+        common::SelectedVector result, void* /*dataPtr*/ = nullptr) {
         KU_ASSERT(params.size() == 2);
-        BinaryBooleanFunctionExecutor::execute<FUNC>(*params[0], *params[1], result);
+        BinaryBooleanFunctionExecutor::execute<FUNC>(params[0], params[1], result);
     }
 
     template<typename FUNC>
@@ -28,15 +27,14 @@ private:
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::SelectionVector& selVector) {
         KU_ASSERT(params.size() == 2);
-        return BinaryBooleanFunctionExecutor::select<FUNC>(*params[0], *params[1], selVector);
+        return BinaryBooleanFunctionExecutor::select<FUNC>(params[0], params[1], selVector);
     }
 
     template<typename FUNC>
-    static void UnaryBooleanExecFunction(
-        const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
+    static void UnaryBooleanExecFunction(std::span<const common::SelectedVector> params,
+        common::SelectedVector result, void* /*dataPtr*/ = nullptr) {
         KU_ASSERT(params.size() == 1);
-        UnaryBooleanOperationExecutor::execute<FUNC>(*params[0], result);
+        UnaryBooleanOperationExecutor::execute<FUNC>(params[0], result);
     }
 
     template<typename FUNC>

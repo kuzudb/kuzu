@@ -16,11 +16,10 @@ public:
 
 private:
     template<typename FUNC>
-    static void UnaryNullExecFunction(
-        const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
+    static void UnaryNullExecFunction(std::span<const common::SelectedVector> params,
+        common::SelectedVector result, void* /*dataPtr*/ = nullptr) {
         KU_ASSERT(params.size() == 1);
-        NullOperationExecutor::execute<FUNC>(*params[0], result);
+        NullOperationExecutor::execute<FUNC>(params[0], result);
     }
 
     template<typename FUNC>
