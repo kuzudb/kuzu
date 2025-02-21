@@ -694,5 +694,13 @@ void StructVector::copyFromVectorData(ValueVector* dstVector, const uint8_t* dst
     }
 }
 
+std::vector<common::SelectedVector> SelectedVector::constructVector(
+    const std::vector<std::shared_ptr<common::ValueVector>>& params) {
+    std::vector<common::SelectedVector> ret;
+    std::transform(params.begin(), params.end(), std::back_inserter(ret),
+        [](const auto& vec) { return SelectedVector{*vec}; });
+    return ret;
+}
+
 } // namespace common
 } // namespace kuzu

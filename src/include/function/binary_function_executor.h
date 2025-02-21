@@ -96,8 +96,8 @@ struct BinaryFunctionExecutor {
         auto resPos = result.sel[0];
         result.vec.setNull(resPos, left.vec.isNull(lPos) || right.vec.isNull(rPos));
         if (!result.vec.isNull(resPos)) {
-            executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
-                result, lPos, rPos, resPos, dataPtr);
+            executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left.vec,
+                right.vec, result.vec, lPos, rPos, resPos, dataPtr);
         }
     }
 
@@ -112,15 +112,15 @@ struct BinaryFunctionExecutor {
         } else if (right.vec.hasNoNullsGuarantee()) {
             result.vec.setAllNonNull();
             rightSelVector.forEach([&](auto i) {
-                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
-                    result, lPos, i, i, dataPtr);
+                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left.vec,
+                    right.vec, result.vec, lPos, i, i, dataPtr);
             });
         } else {
             rightSelVector.forEach([&](auto i) {
                 result.vec.setNull(i, right.vec.isNull(i)); // left is always not null
                 if (!result.vec.isNull(i)) {
-                    executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
-                        right, result, lPos, i, i, dataPtr);
+                    executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left.vec,
+                        right.vec, result.vec, lPos, i, i, dataPtr);
                 }
             });
         }
@@ -137,15 +137,15 @@ struct BinaryFunctionExecutor {
         } else if (left.vec.hasNoNullsGuarantee()) {
             result.vec.setAllNonNull();
             leftSelVector.forEach([&](auto i) {
-                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
-                    result, i, rPos, i, dataPtr);
+                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left.vec,
+                    right.vec, result.vec, i, rPos, i, dataPtr);
             });
         } else {
             leftSelVector.forEach([&](auto i) {
                 result.vec.setNull(i, left.vec.isNull(i)); // right is always not null
                 if (!result.vec.isNull(i)) {
-                    executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
-                        right, result, i, rPos, i, dataPtr);
+                    executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left.vec,
+                        right.vec, result.vec, i, rPos, i, dataPtr);
                 }
             });
         }
@@ -160,15 +160,15 @@ struct BinaryFunctionExecutor {
         if (left.vec.hasNoNullsGuarantee() && right.vec.hasNoNullsGuarantee()) {
             result.vec.setAllNonNull();
             resultSelVector.forEach([&](auto i) {
-                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
-                    result, i, i, i, dataPtr);
+                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left.vec,
+                    right.vec, result.vec, i, i, i, dataPtr);
             });
         } else {
             resultSelVector.forEach([&](auto i) {
                 result.vec.setNull(i, left.vec.isNull(i) || right.vec.isNull(i));
                 if (!result.vec.isNull(i)) {
-                    executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
-                        right, result, i, i, i, dataPtr);
+                    executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left.vec,
+                        right.vec, result.vec, i, i, i, dataPtr);
                 }
             });
         }

@@ -69,7 +69,8 @@ void ListLambdaEvaluator::evaluate() {
     KU_ASSERT(children.size() == 1);
     children[0]->evaluate();
     validateListLen(params);
-    execFunc(params, *resultVector, &bindData);
+    execFunc(common::SelectedVector::constructVector(params), common::SelectedVector{*resultVector},
+        &bindData);
 }
 
 bool ListLambdaEvaluator::selectInternal(common::SelectionVector& selVector) {

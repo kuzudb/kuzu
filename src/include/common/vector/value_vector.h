@@ -318,8 +318,15 @@ public:
 };
 
 struct SelectedVector {
+    SelectedVector(common::ValueVector& vec, common::SelectionVector& sel) : vec(vec), sel(sel) {}
+    explicit SelectedVector(common::ValueVector& vec)
+        : vec(vec), sel(vec.state->getSelVectorUnsafe()) {}
+
     common::ValueVector& vec;
     common::SelectionVector& sel;
+
+    static std::vector<common::SelectedVector> constructVector(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params);
 };
 
 } // namespace common
