@@ -21,9 +21,9 @@
             (greg)-[:FRIEND]->(eva),
             (greg)-[:FRIEND]->(fred);
 ---- ok
--STATEMENT CALL create_project_graph('WCC', ['User'], ['FRIEND'])
+-STATEMENT CALL create_projected_graph('SCC', ['User'], ['FRIEND'])
 ---- ok
--STATEMENT CALL strongly_connected_component('WCC') RETURN node.name, group_id;
+-STATEMENT CALL strongly_connected_component('SCC') RETURN node.name, group_id;
 ---- 7
 Alice|0
 Bob|0
@@ -67,9 +67,9 @@ Greg|4
             (u8)-[:FRIEND]->(u9),
             (u9)-[:FRIEND]->(u8);
 ---- ok
--STATEMENT CALL create_project_graph('WCC', ['User'], ['FRIEND']);
+-STATEMENT CALL create_projected_graph('SCC', ['User'], ['FRIEND']);
 ---- ok
--STATEMENT CALL strongly_connected_component('WCC') RETURN node.id, group_id;
+-STATEMENT CALL strongly_connected_component('SCC') RETURN node.id, group_id;
 ---- 11
 0|7
 1|7
@@ -115,9 +115,9 @@ Greg|4
             (u7)-[:FRIEND]->(u9),
             (u8)-[:FRIEND]->(u9);
 ---- ok
--STATEMENT CALL create_project_graph('WCC', ['User'], ['FRIEND']);
+-STATEMENT CALL create_projected_graph('SCC', ['User'], ['FRIEND']);
 ---- ok
--STATEMENT CALL strongly_connected_component('WCC') RETURN node.id, group_id;
+-STATEMENT CALL strongly_connected_component('SCC') RETURN node.id, group_id;
 ---- 11
 0|10
 1|9
