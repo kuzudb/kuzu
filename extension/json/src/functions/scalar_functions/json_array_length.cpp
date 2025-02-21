@@ -8,18 +8,18 @@ namespace json_extension {
 using namespace function;
 using namespace common;
 
-static void jsonArrayLength(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/) {
+static void jsonArrayLength(std::span<const common::SelectedVector> parameters,
+    common::SelectedVector result, void* /*dataPtr*/) {
     KU_ASSERT(parameters.size() == 1);
-    for (auto i = 0u; i < result.state->getSelVector().getSelSize(); ++i) {
-        auto inputPos = parameters[0]->state->getSelVector()[i];
-        auto resultPos = result.state->getSelVector()[i];
-        auto isNull = parameters[0]->isNull(inputPos);
-        result.setNull(resultPos, isNull);
+    for (auto i = 0u; i < result.sel->getSelSize(); ++i) {
+        auto inputPos = (*parameters[0].sel)[i];
+        auto resultPos = (*result.sel)[i];
+        auto isNull = parameters[0].vec.isNull(inputPos);
+        result.vec.setNull(resultPos, isNull);
         if (!isNull) {
-            result.setValue<uint32_t>(resultPos,
+            result.vec.setValue<uint32_t>(resultPos,
                 jsonArraySize(
-                    stringToJson(parameters[0]->getValue<ku_string_t>(inputPos).getAsString())));
+                    stringToJson(parameters[0].vec.getValue<ku_string_t>(inputPos).getAsString())));
         }
     }
 }
