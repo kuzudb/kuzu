@@ -4,7 +4,6 @@
 #include "storage/index/hnsw_config.h"
 #include "storage/local_cached_column.h"
 #include "storage/store/column_chunk_data.h"
-#include <storage/local_cached_column.h>
 
 namespace kuzu {
 namespace storage {
