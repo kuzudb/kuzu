@@ -1,12 +1,9 @@
-#include <thread>
-#include <tuple>
-#include <vector>
+#include <stack>
 
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "common/exception/binder.h"
 #include "common/types/types.h"
-#include "function/gds/auxiliary_state/gds_auxilary_state.h"
-#include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_object_manager.h"
 #include "function/gds/gds_utils.h"
@@ -26,121 +23,129 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-static constexpr offset_t NOT_ASSIGNED = std::numeric_limits<offset_t>::max();
+// Use the two largest offset_t values as special boolean values instead of
+// using a separate second array.
+static constexpr offset_t NOT_VISITED = numeric_limits<offset_t>::max();
+static constexpr offset_t VISITED = numeric_limits<offset_t>::max() - 1u;
 
-/// State for the SCC algorithm
 class SCCState {
 public:
     SCCState(const table_id_map_t<offset_t>& numNodesMap, MemoryManager* mm) {
+        if (numNodesMap.size() != 1) {
+            throw BinderException("SCC only supports operations on one node table.");
+        }
         for (const auto& [tableID, numNodes] : numNodesMap) {
+            this->numNodes = numNodes;
+            this->tableID = tableID;
             componentIDsMap.allocate(tableID, numNodes, mm);
-            visitsMap.allocate(tableID, numNodes, mm);
-            pinTable(tableID);
+            componentIDs = componentIDsMap.getData(tableID);
             for (auto i = 0u; i < numNodes; ++i) {
-                visits[i] = false;
-                componentIDs[i] = NOT_ASSIGNED;
+                componentIDs[i] = NOT_VISITED;
             }
         }
     }
 
-    void pinTable(table_id_t tableID) {
-        componentIDs = componentIDsMap.getData(tableID);
-        visits = visitsMap.getData(tableID);
-    }
+    void setVisited(const offset_t offset) const { componentIDs[offset] = VISITED; }
 
-    bool setVisit(common::offset_t offset, bool value) {
-        visits[offset] = value;
-        return true;
-    }
+    bool visited(const offset_t offset) const { return componentIDs[offset] == VISITED; }
 
-    bool getVisit(offset_t offset) { return visits[offset]; }
+    bool componentIDSet(const offset_t offset) const { return componentIDs[offset] < VISITED; }
 
-    bool setComponentID(common::offset_t offset, offset_t value) {
+    void setComponentID(const offset_t offset, const offset_t value) const {
         componentIDs[offset] = value;
-        return true;
     }
 
-    offset_t getComponentID(offset_t offset) {
-        return componentIDs[offset];
-    }
+    offset_t getComponentID(const offset_t offset) const { return componentIDs[offset]; }
+
+    offset_t getNumNodes() const { return numNodes; }
+
+    table_id_t getTableID() const { return tableID; }
 
 private:
-    // Pointers to current tableID's visits and componentIDs
-    bool* visits = nullptr;
     offset_t* componentIDs = nullptr;
-    // State for visits and componentIDs
-    ObjectArraysMap<bool> visitsMap;
     ObjectArraysMap<offset_t> componentIDsMap;
+
+    offset_t numNodes;
+    table_id_t tableID;
 };
 
 class SCCCompute {
 public:
-    SCCCompute(graph::Graph* graph, const table_id_map_t<offset_t>& numNodesMap, SCCState& sccState)
-        : graph{graph}, sccState{sccState}, numNodesMap{numNodesMap} {};
-
-    void forwardDFS(offset_t node, table_id_t tableID, NbrScanState& scanState) {
-        if (sccState.getVisit(node)) {
-            // Already visited
-            return;
-        };
-        sccState.setVisit(node, true);
-        if (!neighbors.contains(node)) {
-            std::vector<offset_t> nbrs;
-            auto nodeID = nodeID_t{node, tableID};
-            for (auto chunk : graph->scanFwd(nodeID, scanState)) {
-                chunk.forEach([&](auto nbrNodeID, auto) { nbrs.push_back(nbrNodeID.offset); });
-            }
-            neighbors[node] = nbrs;
-        }
-        for (auto nbrNodeID : neighbors[node]) {
-            forwardDFS(nbrNodeID, tableID, scanState);
-        }
-        queue.push_back(node);
-    }
-
-    // Backwards DFS
-    void backwardsDFS(offset_t node, offset_t root, table_id_t tableID, NbrScanState& scanState) {
-        if (sccState.getComponentID(node) != NOT_ASSIGNED) {
-            // Already assigned
-            return;
-        };
-        sccState.setComponentID(node, root);
-        if (!neighbors.contains(node)) {
-            std::vector<offset_t> nbrs;
-            auto nodeID = nodeID_t{node, tableID};
-            for (auto chunk : graph->scanBwd(nodeID, scanState)) {
-                chunk.forEach([&](auto nbrNodeID, auto) { nbrs.push_back(nbrNodeID.offset); });
-            }
-            neighbors[node] = nbrs;
-        }
-        for (auto nbrNodeID : neighbors[node]) {
-            backwardsDFS(nbrNodeID, root, tableID, scanState);
-        }
-    }
+    SCCCompute(Graph* graph, SCCState& sccState) : graph{graph}, sccState{sccState} {}
 
     void compute() {
-        for (const auto& [tableID, numNodes] : numNodesMap) {
-            sccState.pinTable(tableID);
-            for (auto& [fromEntry, toEntry, relEntry] : graph->getRelFromToEntryInfos()) {
-                auto scanState = graph->prepareRelScan(relEntry, "");
-                for (auto i = 0u; i < numNodes; ++i) {
-                    forwardDFS(i, tableID, *scanState);
-                }
-                neighbors.clear();
-                for (auto it = queue.rbegin(); it != queue.rend(); ++it) {
-                    auto node = *it;
-                    backwardsDFS(node, node, tableID, *scanState);
-                }
+        auto nbrTables = graph->getForwardNbrTableInfos(sccState.getTableID());
+        if (nbrTables.size() != 1) {
+            throw BinderException("SCC only supports operations on one edge table.");
+        }
+        auto nbrInfo = nbrTables[0];
+        auto relEntry = nbrInfo.relEntry;
+        auto scanState = graph->prepareRelScan(relEntry, "");
+        for (auto i = 0u; i < sccState.getNumNodes(); ++i) {
+            if (!sccState.visited(i)) {
+                forwardDFS(i, *scanState);
+            }
+        }
+        while (!dfsStack.empty()) {
+            auto node = dfsStack.top();
+            dfsStack.pop();
+            if (!sccState.componentIDSet(node)) {
+                backwardsDFS(node, node, *scanState);
+            }
+        }
+    }
+
+    void forwardDFS(offset_t node, NbrScanState& scanState) {
+        toProcess.push(node);
+
+        while (!toProcess.empty()) {
+            auto nextNode = toProcess.top();
+
+            if (sccState.visited(nextNode)) {
+                toProcess.pop();
+                dfsStack.push(nextNode);
+                continue;
+            }
+
+            sccState.setVisited(nextNode);
+
+            auto nextNodeID = nodeID_t{nextNode, sccState.getTableID()};
+            for (auto chunk : graph->scanFwd(nextNodeID, scanState)) {
+                chunk.forEach([&](auto nbrNodeID, auto) {
+                    if (!sccState.visited(nbrNodeID.offset)) {
+                        toProcess.push(nbrNodeID.offset);
+                    }
+                });
+            }
+        }
+    }
+
+    void backwardsDFS(offset_t node, const offset_t root, NbrScanState& scanState) {
+        toProcess.push(node);
+
+        while (!toProcess.empty()) {
+            auto nextNode = toProcess.top();
+            toProcess.pop();
+
+            if (!sccState.componentIDSet(nextNode)) {
+                sccState.setComponentID(nextNode, root);
+            }
+
+            auto nextNodeID = nodeID_t{nextNode, sccState.getTableID()};
+            for (auto chunk : graph->scanBwd(nextNodeID, scanState)) {
+                chunk.forEach([&](auto nbrNodeID, auto) {
+                    if (!sccState.componentIDSet(nbrNodeID.offset)) {
+                        toProcess.push(nbrNodeID.offset);
+                    }
+                });
             }
         }
     }
 
 private:
-    std::vector<offset_t> queue;
-    graph::Graph* graph;
+    Graph* graph;
     SCCState& sccState;
-    const table_id_map_t<offset_t>& numNodesMap;
-    std::unordered_map<offset_t, std::vector<offset_t>> neighbors;
+    stack<offset_t> toProcess;
 };
 
 class SCCOutputWriter : public GDSOutputWriter {
@@ -150,31 +155,26 @@ public:
         componentIDVector = createVector(LogicalType::UINT64(), context->getMemoryManager());
     }
 
-    std::unique_ptr<SCCOutputWriter> copy() const {
-        return std::make_unique<SCCOutputWriter>(context);
-    }
+    unique_ptr<SCCOutputWriter> copy() const { return make_unique<SCCOutputWriter>(context); }
 
 public:
-    std::unique_ptr<ValueVector> nodeIDVector;
-    std::unique_ptr<ValueVector> componentIDVector;
+    unique_ptr<ValueVector> nodeIDVector;
+    unique_ptr<ValueVector> componentIDVector;
 };
 
 class SCCVertexCompute : public VertexCompute {
 public:
-    SCCVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState,
-        std::unique_ptr<SCCOutputWriter> writer, SCCState& sccState)
-        : mm{mm}, sharedState{sharedState}, writer{std::move(writer)}, sccState{sccState} {
+    SCCVertexCompute(MemoryManager* mm, GDSCallSharedState* sharedState,
+        unique_ptr<SCCOutputWriter> writer, SCCState& sccState)
+        : mm{mm}, sharedState{sharedState}, writer{move(writer)}, sccState{sccState} {
         localFT = sharedState->claimLocalTable(mm);
     }
     ~SCCVertexCompute() override { sharedState->returnLocalTable(localFT); }
 
-    bool beginOnTable(common::table_id_t tableID) override {
-        sccState.pinTable(tableID);
-        return true;
-    }
+    bool beginOnTable(table_id_t /*tableID*/) override { return true; }
 
-    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset,
-        common::table_id_t tableID) override {
+    void vertexCompute(const offset_t startOffset, const offset_t endOffset,
+        const table_id_t tableID) override {
         for (auto i = startOffset; i < endOffset; ++i) {
             auto nodeID = nodeID_t{i, tableID};
             writer->nodeIDVector->setValue<nodeID_t>(0, nodeID);
@@ -183,33 +183,35 @@ public:
         }
     }
 
-    std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<SCCVertexCompute>(mm, sharedState, writer->copy(), sccState);
+    unique_ptr<VertexCompute> copy() override {
+        return make_unique<SCCVertexCompute>(mm, sharedState, writer->copy(), sccState);
     }
 
 private:
-    storage::MemoryManager* mm;
-    processor::GDSCallSharedState* sharedState;
-    std::unique_ptr<SCCOutputWriter> writer;
+    MemoryManager* mm;
+    GDSCallSharedState* sharedState;
+    unique_ptr<SCCOutputWriter> writer;
     SCCState& sccState;
 
-    processor::FactorizedTable* localFT;
+    FactorizedTable* localFT;
 };
 
 class StronglyConnectedComponent final : public GDSAlgorithm {
     static constexpr char GROUP_ID_COLUMN_NAME[] = "group_id";
-    static constexpr uint8_t MAX_ITERATION = 100;
 
 public:
     StronglyConnectedComponent() = default;
     StronglyConnectedComponent(const StronglyConnectedComponent& other) : GDSAlgorithm{other} {}
 
-    std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        return std::vector<LogicalTypeID>{LogicalTypeID::ANY};
+    unique_ptr<GDSAlgorithm> copy() const override {
+        return make_unique<StronglyConnectedComponent>(*this);
     }
 
-    binder::expression_vector getResultColumns(
-        const function::GDSBindInput& bindInput) const override {
+    vector<LogicalTypeID> getParameterTypeIDs() const override {
+        return vector<LogicalTypeID>{LogicalTypeID::ANY};
+    }
+
+    expression_vector getResultColumns(const GDSBindInput& bindInput) const override {
         expression_vector columns;
         auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
         columns.push_back(outputNode.getInternalID());
@@ -219,37 +221,37 @@ public:
     }
 
     void bind(const GDSBindInput& input, main::ClientContext& context) override {
-        auto graphName = binder::ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
+        auto graphName = ExpressionUtil::getLiteralValue<string>(*input.getParam(0));
         auto graphEntry = bindGraphEntry(context, graphName);
-        auto nodeOutput = bindNodeOutput(input, graphEntry.nodeEntries);
-        bindData = std::make_unique<GDSBindData>(std::move(graphEntry), nodeOutput);
+        auto nodeOutput = bindNodeOutput(input, graphEntry.getNodeEntries());
+        bindData = make_unique<GDSBindData>(move(graphEntry), nodeOutput);
     }
 
-    void exec(processor::ExecutionContext* context) override {
+    void exec(ExecutionContext* context) override {
         auto clientContext = context->clientContext;
+        auto mm = clientContext->getMemoryManager();
         auto graph = sharedState->graph.get();
         auto numNodesMap = graph->getNumNodesMap(clientContext->getTransaction());
-        auto sccState = SCCState(numNodesMap, clientContext->getMemoryManager());
-        auto writer = std::make_unique<SCCOutputWriter>(clientContext);
-        auto vertexCompute = std::make_unique<SCCVertexCompute>(clientContext->getMemoryManager(),
-            sharedState.get(), std::move(writer), sccState);
-        auto edgeCompute = std::make_unique<SCCCompute>(graph, numNodesMap, sccState);
-        edgeCompute->compute();
-        GDSUtils::runVertexCompute(context, graph, *vertexCompute);
-        sharedState->mergeLocalTables();
-    }
 
-    std::unique_ptr<GDSAlgorithm> copy() const override {
-        return std::make_unique<StronglyConnectedComponent>(*this);
+        auto sccState = SCCState(numNodesMap, mm);
+
+        auto edgeCompute = make_unique<SCCCompute>(graph, sccState);
+        edgeCompute->compute();
+
+        auto writer = make_unique<SCCOutputWriter>(clientContext);
+        auto vertexCompute =
+            make_unique<SCCVertexCompute>(mm, sharedState.get(), move(writer), sccState);
+        GDSUtils::runVertexCompute(context, graph, *vertexCompute);
+
+        sharedState->mergeLocalTables();
     }
 };
 
 function_set StronglyConnectedComponentsFunction::getFunctionSet() {
     function_set result;
-    auto algo = std::make_unique<StronglyConnectedComponent>();
-    auto function =
-        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo));
-    result.push_back(std::move(function));
+    auto algo = make_unique<StronglyConnectedComponent>();
+    auto function = make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), move(algo));
+    result.push_back(move(function));
     return result;
 }
 
