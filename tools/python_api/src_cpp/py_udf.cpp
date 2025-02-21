@@ -154,19 +154,18 @@ static PyUDFSignature analyzeSignature(const py::function& udf) {
 
 static scalar_func_exec_t getUDFExecFunc(const py::function& udf, bool defaultNull,
     bool catchExceptions) {
-    return [=](const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result,
+    return [=](std::span<const common::SelectedVector> params, common::SelectedVector result,
                void* /* dataPtr */) -> void {
         py::gil_scoped_acquire acquire;
-        result.resetAuxiliaryBuffer();
-        auto& resultSelVector = result.state->getSelVector();
+        result.vec.resetAuxiliaryBuffer();
+        auto& resultSelVector = *result.sel;
         for (auto i = 0u; i < resultSelVector.getSelSize(); ++i) {
             auto resultPos = resultSelVector[i];
             py::list pyParams;
             bool hasNull = false;
             for (const auto& param : params) {
-                auto paramPos =
-                    param->state->isFlat() ? param->state->getSelVector()[0] : resultPos;
-                auto value = param->getAsValue(paramPos);
+                auto paramPos = param.vec.state->isFlat() ? (*param.sel)[0] : resultPos;
+                auto value = param.vec.getAsValue(paramPos);
                 if (value->isNull()) {
                     hasNull = true;
                 }
@@ -174,16 +173,16 @@ static scalar_func_exec_t getUDFExecFunc(const py::function& udf, bool defaultNu
                 pyParams.append(pyValue);
             }
             if (defaultNull && hasNull) {
-                result.setNull(resultPos, true);
+                result.vec.setNull(resultPos, true);
             } else {
                 try {
                     auto pyResult = udf(*pyParams);
                     auto resultValue =
-                        PyConnection::transformPythonValueAs(pyResult, result.dataType);
-                    result.copyFromValue(resultPos, resultValue);
+                        PyConnection::transformPythonValueAs(pyResult, result.vec.dataType);
+                    result.vec.copyFromValue(resultPos, resultValue);
                 } catch (py::error_already_set& e) {
                     if (catchExceptions) {
-                        result.setNull(resultPos, true);
+                        result.vec.setNull(resultPos, true);
                     } else {
                         throw common::RuntimeException(e.what());
                     }
