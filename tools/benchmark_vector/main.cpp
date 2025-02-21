@@ -136,7 +136,7 @@ int
 printCommands(std::string &databasePath, std::string &queriesPath, std::string &gtPath, int warmup, int nQueries, int k,
               int efSearch, int maxK, bool useQ, bool useKnn, std::string &searchType, int maxNumThreads,
               std::string &selectivityStr, std::string &outputDir) {
-    printf("./kuzu/build/release/tools/benchmark_vector/kuzu_benchmark_vector -databasePath %s -queriesPath %s -gtPath %s -warmup %d -k %d -efSearch %d -maxK %d -useQ %d -useKnn %d -nQueries %d -maxNumThreads %d -searchType %s -selectivity %s -outputDir %s\n",
+    printf("${SLURM_TMPDIR}/kuzu/build/release/tools/benchmark_vector/kuzu_benchmark_vector -databasePath %s -queriesPath %s -gtPath %s -warmup %d -k %d -efSearch %d -maxK %d -useQ %d -useKnn %d -nQueries %d -maxNumThreads %d -searchType %s -selectivity %s -outputDir %s\n",
            databasePath.c_str(), queriesPath.c_str(), gtPath.c_str(), warmup, k, efSearch, maxK, useQ, useKnn, nQueries,
            maxNumThreads, searchType.c_str(), selectivityStr.c_str(), outputDir.c_str());
     return 0;
