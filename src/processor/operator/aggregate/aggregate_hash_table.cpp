@@ -61,26 +61,22 @@ uint64_t AggregateHashTable::append(const std::vector<ValueVector*>& flatKeyVect
 
 bool AggregateHashTable::insertAggregateValueIfDistinctForGroupByKeys(
     const std::vector<ValueVector*>& groupByFlatKeyVectors, ValueVector* aggregateVector) {
-    sel_t pos = 0;
-    if (groupByFlatKeyVectors.empty()) {
-        pos = aggregateVector->state->getSelVector()[0];
-    } else {
-        pos = groupByFlatKeyVectors[0]->state->getSelVector()[0];
+    auto pos = aggregateVector->state->getSelVector()[0];
+    if (aggregateVector->isNull(pos)) {
+        return false;
     }
-    if (!aggregateVector->isNull(pos)) {
-        std::vector<ValueVector*> distinctKeyVectors(groupByFlatKeyVectors.size() + 1);
-        for (auto i = 0u; i < groupByFlatKeyVectors.size(); i++) {
-            distinctKeyVectors[i] = groupByFlatKeyVectors[i];
-        }
-        distinctKeyVectors[groupByFlatKeyVectors.size()] = aggregateVector;
-        computeVectorHashes(distinctKeyVectors, std::vector<ValueVector*>() /* unFlatKeyVectors */);
-        auto hash = hashVector->getValue<hash_t>(hashVector->state->getSelVector()[0]);
-        auto distinctHTEntry = findEntryInDistinctHT(distinctKeyVectors, hash);
-        if (distinctHTEntry == nullptr) {
-            resizeHashTableIfNecessary(1);
-            createEntryInDistinctHT(distinctKeyVectors, hash);
-            return true;
-        }
+    std::vector<ValueVector*> distinctKeyVectors(groupByFlatKeyVectors.size() + 1);
+    for (auto i = 0u; i < groupByFlatKeyVectors.size(); i++) {
+        distinctKeyVectors[i] = groupByFlatKeyVectors[i];
+    }
+    distinctKeyVectors[groupByFlatKeyVectors.size()] = aggregateVector;
+    computeVectorHashes(distinctKeyVectors, std::vector<ValueVector*>() /* unFlatKeyVectors */);
+    auto hash = hashVector->getValue<hash_t>(hashVector->state->getSelVector()[0]);
+    auto distinctHTEntry = findEntryInDistinctHT(distinctKeyVectors, hash);
+    if (distinctHTEntry == nullptr) {
+        resizeHashTableIfNecessary(1);
+        createEntryInDistinctHT(distinctKeyVectors, hash);
+        return true;
     }
     return false;
 }
