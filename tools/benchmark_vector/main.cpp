@@ -209,7 +209,7 @@ int main(int argc, char **argv) {
         }
 
         double highRecall = measureRecall(conn, queryPath, highEf, maxK, useQ, useKnn, searchTypeStr, gtPath, nQueries, k);
-        if (highRecall <= maxRecall) {
+        if (highRecall <= minRecall) {
             printf("# Binary Search: Trying efSearch = %d, recall = %.2f%%\n", highEf, highRecall);
             bestEfSearch = highEf;
             bestRecall = highRecall;
