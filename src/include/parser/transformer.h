@@ -174,10 +174,8 @@ private:
         CypherParser::KU_FunctionParameterContext& ctx);
     std::unique_ptr<ParsedExpression> transformPathPattern(
         CypherParser::OC_PathPatternsContext& ctx);
-    std::unique_ptr<ParsedExpression> transformExistSubquery(
-        CypherParser::OC_ExistSubqueryContext& ctx);
-    std::unique_ptr<ParsedExpression> transformCountSubquery(
-        CypherParser::KU_CountSubqueryContext& ctx);
+    std::unique_ptr<ParsedExpression> transformExistCountSubquery(
+        CypherParser::OC_ExistCountSubqueryContext& ctx);
     std::unique_ptr<ParsedExpression> transformOcQuantifier(
         CypherParser::OC_QuantifierContext& ctx);
     std::unique_ptr<ParsedExpression> createPropertyExpression(

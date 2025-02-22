@@ -2,26 +2,10 @@
 
 #include "binder/query/query_graph.h"
 #include "bound_reading_clause.h"
+#include "bound_join_hint.h"
 
 namespace kuzu {
 namespace binder {
-
-struct BoundJoinHintNode {
-    std::shared_ptr<Expression> nodeOrRel;
-    std::vector<std::shared_ptr<BoundJoinHintNode>> children;
-
-    BoundJoinHintNode() = default;
-    explicit BoundJoinHintNode(std::shared_ptr<Expression> nodeOrRel)
-        : nodeOrRel{std::move(nodeOrRel)} {}
-
-    void addChild(std::shared_ptr<BoundJoinHintNode> child) {
-        children.push_back(std::move(child));
-    }
-
-    bool isLeaf() const { return children.empty(); }
-    bool isBinary() const { return children.size() == 2; }
-    bool isMultiWay() const { return children.size() > 2; }
-};
 
 class BoundMatchClause final : public BoundReadingClause {
     static constexpr common::ClauseType clauseType_ = common::ClauseType::MATCH;

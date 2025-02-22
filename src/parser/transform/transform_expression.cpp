@@ -376,10 +376,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformAtom(CypherParser::OC_At
         return transformFunctionInvocation(*ctx.oC_FunctionInvocation());
     } else if (ctx.oC_PathPatterns()) {
         return transformPathPattern(*ctx.oC_PathPatterns());
-    } else if (ctx.oC_ExistSubquery()) {
-        return transformExistSubquery(*ctx.oC_ExistSubquery());
-    } else if (ctx.kU_CountSubquery()) {
-        return transformCountSubquery(*ctx.kU_CountSubquery());
+    } else if (ctx.oC_ExistCountSubquery()) {
+        return transformExistCountSubquery(*ctx.oC_ExistCountSubquery());
     } else if (ctx.oC_Quantifier()) {
         return transformOcQuantifier(*ctx.oC_Quantifier());
     } else {
@@ -553,22 +551,16 @@ std::unique_ptr<ParsedExpression> Transformer::transformPathPattern(
     return subquery;
 }
 
-std::unique_ptr<ParsedExpression> Transformer::transformExistSubquery(
-    CypherParser::OC_ExistSubqueryContext& ctx) {
-    auto subquery = std::make_unique<ParsedSubqueryExpression>(SubqueryType::EXISTS, ctx.getText());
+std::unique_ptr<ParsedExpression> Transformer::transformExistCountSubquery(
+    CypherParser::OC_ExistCountSubqueryContext& ctx) {
+    auto type = ctx.EXISTS() ? SubqueryType::EXISTS : SubqueryType::COUNT;
+    auto subquery = std::make_unique<ParsedSubqueryExpression>(type, ctx.getText());
     subquery->setPatternElements(transformPattern(*ctx.oC_Pattern()));
     if (ctx.oC_Where()) {
         subquery->setWhereClause(transformWhere(*ctx.oC_Where()));
     }
-    return subquery;
-}
-
-std::unique_ptr<ParsedExpression> Transformer::transformCountSubquery(
-    CypherParser::KU_CountSubqueryContext& ctx) {
-    auto subquery = std::make_unique<ParsedSubqueryExpression>(SubqueryType::COUNT, ctx.getText());
-    subquery->setPatternElements(transformPattern(*ctx.oC_Pattern()));
-    if (ctx.oC_Where()) {
-        subquery->setWhereClause(transformWhere(*ctx.oC_Where()));
+    if (ctx.kU_Hint()) {
+        subquery->setHint(transformJoinHint(*ctx.kU_Hint()->kU_JoinNode()));
     }
     return subquery;
 }

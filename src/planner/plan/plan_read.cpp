@@ -49,7 +49,7 @@ void Planner::planMatchClause(const BoundReadingClause& readingClause,
             plans = enumerateQueryGraphCollection(*queryGraphCollection, info);
         } else {
             for (auto& plan : plans) {
-                planRegularMatch(*queryGraphCollection, predicates, *plan);
+                planRegularMatch(*queryGraphCollection, predicates, *plan , boundMatchClause.getHint());
             }
         }
     } break;
@@ -60,7 +60,7 @@ void Planner::planMatchClause(const BoundReadingClause& readingClause,
                 corrExprs =
                     getCorrelatedExprs(*queryGraphCollection, predicates, plan->getSchema());
             }
-            planOptionalMatch(*queryGraphCollection, predicates, corrExprs, *plan);
+            planOptionalMatch(*queryGraphCollection, predicates, corrExprs, *plan, boundMatchClause.getHint());
         }
     } break;
     default:

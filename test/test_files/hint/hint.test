@@ -4,6 +4,13 @@
 
 -CASE Hint
 
+-STATEMENT MATCH (a:person)
+           WITH *
+           OPTIONAL MATCH (a)-[e:knows]->(b:person) WHERE a.ID <> b.ID
+           HINT (a JOIN e) JOIN b
+           RETURN a.ID
+---- error
+Hint join pattern has correlation with previous patterns. This is not supported yet.
 -STATEMENT MATCH (a:person)-[e:knows]->(:person)
             HINT (a JOIN e)
             RETURN a.ID

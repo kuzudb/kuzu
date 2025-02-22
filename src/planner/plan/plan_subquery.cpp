@@ -107,14 +107,15 @@ private:
 
 void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
     const expression_vector& predicates, const binder::expression_vector& corrExprs,
-    LogicalPlan& leftPlan) {
-    planOptionalMatch(queryGraphCollection, predicates, corrExprs, nullptr /* mark */, leftPlan);
+    LogicalPlan& leftPlan, std::shared_ptr<BoundJoinHintNode> hint) {
+    planOptionalMatch(queryGraphCollection, predicates, corrExprs, nullptr /* mark */, leftPlan, std::move(hint));
 }
 
 void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
     const expression_vector& predicates, const binder::expression_vector& correlatedExprs,
-    std::shared_ptr<Expression> mark, LogicalPlan& leftPlan) {
+    std::shared_ptr<Expression> mark, LogicalPlan& leftPlan, std::shared_ptr<BoundJoinHintNode> hint) {
     auto info = QueryGraphPlanningInfo();
+    info.hint = hint;
     if (leftPlan.isEmpty()) {
         // Optional match is the first clause, e.g. OPTIONAL MATCH <pattern> RETURN *
         info.predicates = predicates;
@@ -165,7 +166,7 @@ void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection
 }
 
 void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
-    const expression_vector& predicates, LogicalPlan& leftPlan) {
+    const expression_vector& predicates, LogicalPlan& leftPlan, std::shared_ptr<BoundJoinHintNode> hint) {
     expression_vector predicatesToPushDown, predicatesToPullUp;
     // E.g. MATCH (a) WITH COUNT(*) AS s MATCH (b) WHERE b.age > s
     // "b.age > s" should be pulled up after both MATCH clauses are joined.
@@ -182,6 +183,7 @@ void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
         ExpressionUtil::getExpressionsWithDataType(correlatedExprs, LogicalTypeID::INTERNAL_ID);
     auto info = QueryGraphPlanningInfo();
     info.predicates = predicatesToPushDown;
+    info.hint = hint;
     if (joinNodeIDs.empty()) {
         info.subqueryType = SubqueryPlanningType::NONE;
         auto rightPlan = planQueryGraphCollectionInNewContext(queryGraphCollection, info);
@@ -216,6 +218,7 @@ void Planner::planSubquery(const std::shared_ptr<Expression>& expression, Logica
     auto predicates = subquery->getPredicatesSplitOnAnd();
     std::unique_ptr<LogicalPlan> innerPlan;
     auto info = QueryGraphPlanningInfo();
+    info.hint = subquery->getHint();
     if (correlatedExprs.empty()) {
         // Plan uncorrelated subquery
         info.subqueryType = SubqueryPlanningType::NONE;

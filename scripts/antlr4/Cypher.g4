@@ -735,8 +735,7 @@ oC_Atom
         | oC_ParenthesizedExpression
         | oC_FunctionInvocation
         | oC_PathPatterns
-        | oC_ExistSubquery
-        | kU_CountSubquery
+        | oC_ExistCountSubquery
         | oC_Variable
         | oC_Quantifier
         ;
@@ -805,11 +804,8 @@ kU_LambdaVars
 oC_PathPatterns
     : oC_NodePattern ( SP? oC_PatternElementChain )+;
 
-oC_ExistSubquery
-    : EXISTS SP? '{' SP? MATCH SP? oC_Pattern ( SP? oC_Where )? SP? '}' ;
-
-kU_CountSubquery
-    : COUNT SP? '{' SP? MATCH SP? oC_Pattern ( SP? oC_Where )? SP? '}' ;
+oC_ExistCountSubquery
+    : (EXISTS | COUNT) SP? '{' SP? MATCH SP? oC_Pattern ( SP? oC_Where )? ( SP? kU_Hint )? SP? '}' ;
 
 oC_PropertyLookup
     : '.' SP? ( oC_PropertyKeyName | STAR ) ;

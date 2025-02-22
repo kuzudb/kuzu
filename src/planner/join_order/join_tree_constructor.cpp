@@ -2,7 +2,9 @@
 
 #include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
+#include "common/exception/not_implemented.h"
 #include "planner/planner.h"
+#include "binder/query/reading_clause/bound_join_hint.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -11,6 +13,10 @@ namespace kuzu {
 namespace planner {
 
 JoinTree JoinTreeConstructor::construct(std::shared_ptr<BoundJoinHintNode> root) {
+    if (planningInfo.subqueryType == SubqueryPlanningType::CORRELATED) {
+        throw NotImplementedException(stringFormat("Hint join pattern has correlation with previous "
+                                                   "patterns. This is not supported yet."));
+    }
     return JoinTree(constructTreeNode(root).treeNode);
 }
 
@@ -131,12 +137,18 @@ JoinTreeConstructor::IntermediateResult JoinTreeConstructor::constructNodeScan(
     auto emptySubgraph = SubqueryGraph(queryGraph);
     auto newSubgraph = SubqueryGraph(queryGraph);
     newSubgraph.addQueryNode(nodeIdx);
+    auto extraInfo = std::make_unique<ExtraScanTreeNodeInfo>();
+    // See Planner::planBaseTableScans for how we plan unnest correlated subqueries.
+    if (planningInfo.subqueryType == SubqueryPlanningType::UNNEST_CORRELATED && planningInfo.containsCorrExpr(*node.getInternalID())) {
+        extraInfo->nodeInfo =  std::make_unique<NodeRelScanInfo>(expr, expression_vector{});;
+        auto treeNode = std::make_shared<JoinTreeNode>(TreeNodeType::NODE_SCAN, std::move(extraInfo));
+        return {treeNode, newSubgraph};
+    }
     auto properties = propertyCollection.getProperties(*expr);
     auto predicates =
         Planner::getNewlyMatchedExprs(emptySubgraph, newSubgraph, queryGraphPredicates);
     auto nodeScanInfo = std::make_unique<NodeRelScanInfo>(expr, properties);
     nodeScanInfo->predicates = predicates;
-    auto extraInfo = std::make_unique<ExtraScanTreeNodeInfo>();
     extraInfo->nodeInfo = std::move(nodeScanInfo);
     auto treeNode = std::make_shared<JoinTreeNode>(TreeNodeType::NODE_SCAN, std::move(extraInfo));
     return {treeNode, newSubgraph};

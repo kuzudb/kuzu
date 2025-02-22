@@ -173,5 +173,29 @@ TEST_F(OptimizerTest, PlanUndirectedInnerJoin) {
                 (encodedPlan == "HJ(a._ID){E(a)S(b)}{S(a)}"));
 }
 
+TEST_F(OptimizerTest, SubqueryHint) {
+    auto q1 =
+        "MATCH (a:person) WITH * MATCH (a)-[e:knows]->(b:person) WHERE b.ID > 0 HINT (a JOIN e) JOIN b RETURN *;";
+    ASSERT_STREQ(getEncodedPlan(q1).c_str(),
+        "HJ(a._ID){S(a)}{HJ(b._ID){E(b)S(a)}{Filter()S(b)}}");
+    auto q2 =
+        "MATCH (a:person) WITH * MATCH (a)-[e:knows]->(b:person) WHERE b.ID > 0 HINT a JOIN (e JOIN b)RETURN *;";
+    ASSERT_STREQ(getEncodedPlan(q2).c_str(), "HJ(a._ID){S(a)}{E(a)Filter()S(b)}");
+    auto q3 =
+        "MATCH (a:person) WITH * OPTIONAL MATCH (a)-[e:knows]->(b:person) WHERE b.ID > 0 HINT (a JOIN e) JOIN b RETURN *;";
+    ASSERT_STREQ(getEncodedPlan(q3).c_str(),
+        "HJ(a._ID){S(a)}{HJ(b._ID){E(b)S(a)}{Filter()S(b)}}");
+    auto q4 =
+        "MATCH (a:person) WITH * OPTIONAL MATCH (a)-[e:knows]->(b:person) WHERE b.ID > 0 HINT a JOIN (e JOIN b) RETURN *;";
+    ASSERT_STREQ(getEncodedPlan(q4).c_str(), "HJ(a._ID){S(a)}{E(a)Filter()S(b)}");
+    auto q5 =
+        "MATCH (a:person) WHERE EXISTS { MATCH (a)-[e:knows]->(b:person) WHERE b.ID > 0 HINT (a JOIN e) JOIN b } RETURN *;";
+    ASSERT_STREQ(getEncodedPlan(q5).c_str(),
+        "Filter()HJ(a._ID){S(a)}{HJ(b._ID){E(b)S(a)}{Filter()S(b)}}");
+    auto q6 =
+        "MATCH (a:person) WHERE EXISTS { MATCH (a)-[e:knows]->(b:person) WHERE b.ID > 0 HINT a JOIN (e JOIN b) } RETURN *;";
+    ASSERT_STREQ(getEncodedPlan(q6).c_str(),"Filter()HJ(a._ID){S(a)}{E(a)Filter()S(b)}");
+}
+
 } // namespace testing
 } // namespace kuzu

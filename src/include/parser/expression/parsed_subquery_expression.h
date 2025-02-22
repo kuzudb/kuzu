@@ -4,31 +4,37 @@
 #include "common/enums/subquery_type.h"
 #include "parsed_expression.h"
 #include "parser/query/graph_pattern/pattern_element.h"
+#include "parser/query/reading_clause/join_hint.h"
 
 namespace kuzu {
 namespace parser {
 
 class ParsedSubqueryExpression : public ParsedExpression {
+    static constexpr common::ExpressionType type_ = common::ExpressionType::SUBQUERY;
+
 public:
     ParsedSubqueryExpression(common::SubqueryType subqueryType, std::string rawName)
-        : ParsedExpression{common::ExpressionType::SUBQUERY, std::move(rawName)},
-          subqueryType{subqueryType} {}
+        : ParsedExpression{type_, std::move(rawName)}, subqueryType{subqueryType} {}
 
-    inline common::SubqueryType getSubqueryType() const { return subqueryType; }
+    common::SubqueryType getSubqueryType() const { return subqueryType; }
 
-    inline void addPatternElement(PatternElement element) {
+    void addPatternElement(PatternElement element) {
         patternElements.push_back(std::move(element));
     }
-    inline void setPatternElements(std::vector<PatternElement> elements) {
+    void setPatternElements(std::vector<PatternElement> elements) {
         patternElements = std::move(elements);
     }
-    inline const std::vector<PatternElement>& getPatternElements() const { return patternElements; }
+    const std::vector<PatternElement>& getPatternElements() const { return patternElements; }
 
-    inline void setWhereClause(std::unique_ptr<ParsedExpression> expression) {
+    void setWhereClause(std::unique_ptr<ParsedExpression> expression) {
         whereClause = std::move(expression);
     }
-    inline bool hasWhereClause() const { return whereClause != nullptr; }
-    inline const ParsedExpression* getWhereClause() const { return whereClause.get(); }
+    bool hasWhereClause() const { return whereClause != nullptr; }
+    const ParsedExpression* getWhereClause() const { return whereClause.get(); }
+
+    void setHint(std::shared_ptr<JoinHintNode> root) { hintRoot = std::move(root); }
+    bool hasHint() const { return hintRoot != nullptr; }
+    std::shared_ptr<JoinHintNode> getHint() const { return hintRoot; }
 
     static std::unique_ptr<ParsedSubqueryExpression> deserialize(common::Deserializer&) {
         KU_UNREACHABLE;
@@ -43,6 +49,7 @@ private:
     common::SubqueryType subqueryType;
     std::vector<PatternElement> patternElements;
     std::unique_ptr<ParsedExpression> whereClause;
+    std::shared_ptr<JoinHintNode> hintRoot = nullptr;
 };
 
 } // namespace parser

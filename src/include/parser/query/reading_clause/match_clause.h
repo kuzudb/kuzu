@@ -2,19 +2,10 @@
 
 #include "parser/query/graph_pattern/pattern_element.h"
 #include "reading_clause.h"
+#include "join_hint.h"
 
 namespace kuzu {
 namespace parser {
-
-struct JoinHintNode {
-    std::string variableName;
-    std::vector<std::shared_ptr<JoinHintNode>> children;
-
-    JoinHintNode() = default;
-    explicit JoinHintNode(std::string name) : variableName{std::move(name)} {}
-    void addChild(std::shared_ptr<JoinHintNode> child) { children.push_back(std::move(child)); }
-    bool isLeaf() const { return children.empty(); }
-};
 
 class MatchClause : public ReadingClause {
     static constexpr common::ClauseType clauseType_ = common::ClauseType::MATCH;
