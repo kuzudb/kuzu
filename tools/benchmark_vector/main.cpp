@@ -113,9 +113,7 @@ double measureRecall(Connection &conn, const std::string &queriesPath, int efSea
     for (int i = 0; i < queryNumVectors; i++) {
         auto res = conn.query(queries[i]);
         // If fewer than k tuples are returned, skip this query.
-        if (res->getNumTuples() < k) {
-            continue;
-        }
+        assert(res->getNumTuples() <= k);
         validQueries++;
         while (res->hasNext()) {
             auto row = res->getNext();
@@ -319,7 +317,6 @@ int main(int argc, char **argv) {
             if (res->getNumTuples() < k) {
                 totalQueriesSkipped++;
                 printf("Skipped query %d\n", i);
-                continue;
             }
             totalQueries++;
             vector_id_t *gt = gtVecs + i * k;
