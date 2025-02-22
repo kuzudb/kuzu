@@ -126,30 +126,27 @@ void InMemHNSWGraph::finalizeNodeGroup(MemoryManager& mm, common::node_group_idx
     partition.merge(std::move(chunkedNodeGroup));
 }
 
-common::offset_vec_t InMemHNSWGraph::getNeighbors(common::offset_t nodeOffset) const {
-    const auto numNbrs = getCSRLength(nodeOffset);
-    return getNeighbors(nodeOffset, numNbrs);
-}
-
-common::offset_vec_t InMemHNSWGraph::getNeighbors(common::offset_t nodeOffset,
-    common::length_t numNbrs) const {
-    common::offset_vec_t neighbors;
-    neighbors.reserve(numNbrs);
-    for (common::offset_t i = 0; i < numNbrs; i++) {
-        auto nbr = getDstNode(nodeOffset * maxDegree + i);
-        // Note: we might have INVALID_OFFSET at the end of the array of neighbor nodes. This is due
-        // to that when we append a new neighbor node to node x, we don't exclusively lock the
-        // x, instead, we increment the csrLength first, then set the dstNode. This design eases
-        // lock contentions. However, if this function (`getNeighbors`) is called before the dstNode
-        // is set, we will get INVALID_OFFSET. As csrLength is always synchorized, this design
-        // shouldn't have correctness issue.
-        if (nbr == common::INVALID_OFFSET) {
-            continue;
-        }
-        neighbors.push_back(nbr);
-    }
-    return neighbors;
-}
+// common::offset_vec_t InMemHNSWGraph::getNeighbors(common::offset_t nodeOffset,
+//     common::length_t numNbrs) const {
+//     common::offset_vec_t neighbors;
+//     neighbors.reserve(numNbrs);
+//     for (common::offset_t i = 0; i < numNbrs; i++) {
+//         auto nbr = getDstNode(nodeOffset * maxDegree + i);
+//         // Note: we might have INVALID_OFFSET at the end of the array of neighbor nodes. This is
+//         due
+//         // to that when we append a new neighbor node to node x, we don't exclusively lock the
+//         // x, instead, we increment the csrLength first, then set the dstNode. This design eases
+//         // lock contentions. However, if this function (`getNeighbors`) is called before the
+//         dstNode
+//         // is set, we will get INVALID_OFFSET. As csrLength is always synchorized, this design
+//         // shouldn't have correctness issue.
+//         if (nbr == common::INVALID_OFFSET) {
+//             continue;
+//         }
+//         neighbors.push_back(nbr);
+//     }
+//     return neighbors;
+// }
 
 void InMemHNSWGraph::resetCSRLengthAndDstNodes() {
     for (common::offset_t i = 0; i < numNodes; i++) {
