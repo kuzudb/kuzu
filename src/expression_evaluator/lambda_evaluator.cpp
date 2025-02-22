@@ -72,6 +72,15 @@ void ListLambdaEvaluator::evaluate() {
     execFunc(params, *resultVector, &bindData);
 }
 
+bool ListLambdaEvaluator::selectInternal(common::SelectionVector& selVector) {
+    KU_ASSERT(children.size() == 1);
+    children[0]->evaluate();
+    validateListLen(params);
+    KU_ASSERT(resultVector->dataType.getLogicalTypeID() == common::LogicalTypeID::BOOL);
+    execFunc(params, *resultVector, &bindData);
+    return updateSelectedPos(selVector);
+}
+
 void ListLambdaEvaluator::resolveResultVector(const ResultSet&, MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(expression->getDataType().copy(), memoryManager);
     resultVector->state = children[0]->resultVector->state;

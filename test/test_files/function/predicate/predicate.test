@@ -134,3 +134,53 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|True
 -STATEMENT RETURN any(name in NULL WHERE name = 5)
 ---- error
 Binder exception:  has data type ANY but LIST was expected.
+
+
+-CASE ListPredicateWithoutWhereError
+-STATEMENT RETURN NONE(x in [1,2,3])
+---- error
+Parser exception: Invalid input <RETURN NONE(x in [1,2,3])>: expected rule oC_RegularQuery (line: 1, offset: 24)
+"RETURN NONE(x in [1,2,3])"
+                         ^
+
+-STATEMENT RETURN ALL(x in [1,2,3])
+---- error
+Parser exception: Invalid input <RETURN ALL(x in [1,2,3])>: expected rule oC_RegularQuery (line: 1, offset: 23)
+"RETURN ALL(x in [1,2,3])"
+                        ^
+
+-STATEMENT RETURN ANY(x in [1,2,3])
+---- error
+Parser exception: Invalid input <RETURN ANY(x in [1,2,3])>: expected rule oC_RegularQuery (line: 1, offset: 23)
+"RETURN ANY(x in [1,2,3])"
+                        ^
+
+-STATEMENT RETURN SINGLE(x in [1,2,3])
+---- error
+Parser exception: Invalid input <RETURN SINGLE(x in [1,2,3])>: expected rule oC_RegularQuery (line: 1, offset: 26)
+"RETURN SINGLE(x in [1,2,3])"
+                           ^
+-CASE ListPredicateInWhere
+-STATEMENT MATCH (a:person) WHERE none(name in a.usedNames WHERE name = 'Aida') RETURN a.fName
+---- 7
+Bob
+Carol
+Dan
+Elizabeth
+Farooq
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-STATEMENT MATCH (a:person) WHERE any(courseScore in a.courseScoresPerTerm WHERE courseScore = [8,8]) RETURN a.fName
+---- 1
+Dan
+
+-STATEMENT MATCH (a:person) WHERE all(workedHours in a.workedHours WHERE workedHours >= 5) RETURN a.fName
+---- 2
+Alice
+Bob
+
+-STATEMENT MATCH (a:person) WHERE single(usedName in a.usedNames WHERE usedName in ['Daniel', 'Bobby']) RETURN a.fName
+---- 2
+Bob
+Dan
