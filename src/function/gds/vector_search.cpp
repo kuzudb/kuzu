@@ -925,12 +925,15 @@ namespace kuzu {
 
                     // Get the first hop neighbours
                     stats.listNbrsCallTime->start();
-                    auto firstHopNbrs = graph->scanFwdRandom({candidate.id, tableId}, state);
+                    auto firstHopNbrs = graph->scanFwdRandomFast({candidate.id, tableId}, state);
                     stats.listNbrsCallTime->stop();
                     stats.listNbrsMetric->increase(1);
 
+                    auto totalNbrs = firstHopNbrs->state->getSelVector().getSelSize();
+
                     // Try prefetching
-                    for (auto &neighbor: firstHopNbrs) {
+                    for (int i = 0; i < totalNbrs; i++) {
+                        auto neighbor = firstHopNbrs->getValue<nodeID_t>(i);
                         visited->prefetch(neighbor.offset);
                         filterMask->prefetchMaskValue(neighbor.offset);
                     }
@@ -1047,12 +1050,7 @@ namespace kuzu {
                     } else {
                         // If the selectivity is low, we will not do dynamic two hop search since it does some extra
                         // distance computations to reduce listNbrs call which are redundant.
-                        std::vector<common::nodeID_t> firstHopNbrsVec;
-                        for (int i = 0; i < totalNbrs; i++) {
-                            auto neighbor = firstHopNbrs->getValue<nodeID_t>(i);
-                            firstHopNbrsVec.push_back(neighbor);
-                        }
-                        blindTwoHopSearch(firstHopNbrsVec, graph, filterMask, state, 64, visited, vectorArray, size,
+                        blindTwoHopSearch(firstHopNbrs, graph, filterMask, state, 64, visited, vectorArray, size,
                                           stats);
                         stats.twoHopCalls->increase(1);
                     }
