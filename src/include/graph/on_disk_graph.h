@@ -28,13 +28,16 @@ public:
 private:
     std::shared_ptr<common::DataChunkState> srcNodeIDVectorState;
     std::shared_ptr<common::DataChunkState> dstNodeIDVectorState;
+    std::shared_ptr<common::DataChunkState> dstNodeIDVectorState2;
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
+    std::unique_ptr<common::ValueVector> dstNodeIDVector2;
 
     explicit OnDiskGraphScanStates(std::span<common::table_id_t> tableIDs,
         storage::MemoryManager* mm, common::node_group_idx_t numNodeGroups);
     std::vector<std::pair<common::table_id_t, OnDiskGraphScanState>> scanStates;
     std::vector<OnDiskGraphScanState> scanStatesPerNodeGroup;
+    std::vector<OnDiskGraphScanState> scanStatesPerNodeGroup2;
 };
 
 class OnDiskGraph final : public Graph {
@@ -65,6 +68,8 @@ public:
         GraphScanState& state) override;
     common::ValueVector* scanFwdRandomFast(common::nodeID_t nodeID,
                                                 GraphScanState& state) override;
+    common::ValueVector* scanFwdRandomFast2(common::nodeID_t nodeID,
+                                           GraphScanState& state) override;
     std::vector<common::nodeID_t> scanBwd(common::nodeID_t nodeID, GraphScanState& state) override;
     std::vector<common::nodeID_t> scanBwdRandom(common::nodeID_t nodeID,
         GraphScanState& state) override;

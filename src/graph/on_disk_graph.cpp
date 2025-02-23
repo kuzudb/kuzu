@@ -40,12 +40,16 @@ OnDiskGraphScanStates::OnDiskGraphScanStates(std::span<common::table_id_t> table
     storage::MemoryManager* mm, common::node_group_idx_t numNodeGroups) {
     scanStates.reserve(tableIDs.size());
     scanStatesPerNodeGroup.reserve(numNodeGroups);
+    scanStatesPerNodeGroup2.reserve(numNodeGroups);
     srcNodeIDVectorState = DataChunkState::getSingleValueDataChunkState();
     dstNodeIDVectorState = std::make_shared<DataChunkState>();
+    dstNodeIDVectorState2 = std::make_shared<DataChunkState>();
     srcNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
     srcNodeIDVector->state = srcNodeIDVectorState;
     dstNodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
     dstNodeIDVector->state = dstNodeIDVectorState;
+    dstNodeIDVector2 = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID(), mm);
+    dstNodeIDVector2->state = dstNodeIDVectorState2;
 
     for (auto tableID : tableIDs) {
         scanStates.emplace_back(std::make_pair(tableID,
@@ -54,6 +58,8 @@ OnDiskGraphScanStates::OnDiskGraphScanStates(std::span<common::table_id_t> table
     for (auto i = 0u; i < numNodeGroups; ++i) {
         scanStatesPerNodeGroup.emplace_back(OnDiskGraphScanState(srcNodeIDVector.get(),
             dstNodeIDVector.get()));
+        scanStatesPerNodeGroup2.emplace_back(OnDiskGraphScanState(srcNodeIDVector.get(),
+            dstNodeIDVector2.get()));
     }
 }
 
@@ -210,6 +216,23 @@ common::ValueVector* OnDiskGraph::scanFwdRandomFast(nodeID_t nodeID, GraphScanSt
     scanRandom(nodeID, relTablePair->second, onDiskScanState,
                *fwdScanState);
     return onDiskScanState.dstNodeIDVector.get();
+}
+
+common::ValueVector* OnDiskGraph::scanFwdRandomFast2(nodeID_t nodeID, GraphScanState& state) {
+    auto& onDiskScanState = ku_dynamic_cast<GraphScanState&, OnDiskGraphScanStates&>(state);
+    KU_ASSERT(nodeTableIDToFwdRelTables.contains(nodeID.tableID));
+    auto& relTables = nodeTableIDToFwdRelTables.at(nodeID.tableID);
+    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeID.offset);
+    auto fwdScanState = onDiskScanState.scanStatesPerNodeGroup2[nodeGroupIdx].fwdScanState.get();
+    auto tableID = onDiskScanState.scanStates[0].first;
+    auto relTablePair = relTables.find(tableID);
+    KU_ASSERT(relTablePair != relTables.end());
+    // set random access to true
+    ku_dynamic_cast<TableDataScanState*, RelDataReadState*>(fwdScanState->dataScanState.get())
+            ->randomAccess = true;
+    scanRandom(nodeID, relTablePair->second, onDiskScanState,
+               *fwdScanState);
+    return onDiskScanState.dstNodeIDVector2.get();
 }
 
 std::vector<nodeID_t> OnDiskGraph::scanBwd(nodeID_t nodeID, GraphScanState& state) {

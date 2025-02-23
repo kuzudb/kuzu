@@ -486,12 +486,14 @@ namespace kuzu {
                 }
             }
 
-            inline void blindTwoHopSearch(std::vector<common::nodeID_t> &firstHopNbrs,
+            inline void blindTwoHopSearch(ValueVector* firstHopNbrs,
                                            Graph *graph, NodeOffsetLevelSemiMask *filterMask, GraphScanState &state,
                                            int filterNbrsToFind, BitVectorVisitedTable *visited, vector_array_t &vectorArray,
                                            int &size, VectorSearchStats &stats) {
+                auto totalNbrs = firstHopNbrs->state->getSelVector().getSelSize();
                 // First hop neighbours
-                for (auto &neighbor: firstHopNbrs) {
+                for (size_t i = 0; i < totalNbrs; i++) {
+                    auto neighbor = firstHopNbrs->getValue<nodeID_t>(i);
                     auto isNeighborMasked = filterMask->isMasked(neighbor.offset);
                     if (visited->is_bit_set(neighbor.offset)) {
                         continue;
@@ -506,26 +508,24 @@ namespace kuzu {
                     }
 
                     stats.listNbrsCallTime->start();
-                    auto secondHopNbrs = graph->scanFwdRandom(neighbor, state);
+                    auto secondHopNbrs = graph->scanFwdRandomFast2(neighbor, state);
                     stats.listNbrsCallTime->stop();
                     stats.listNbrsMetric->increase(1);
 
+                    auto secondHopNbrsSize = secondHopNbrs->state->getSelVector().getSelSize();
                     // Try prefetching
-                    for (auto &secondHopNeighbor: secondHopNbrs) {
+                    for (int i = 0; i < secondHopNbrsSize; i++) {
+                        auto secondHopNeighbor = secondHopNbrs->getValue<nodeID_t>(i);
                         visited->prefetch(secondHopNeighbor.offset);
                         filterMask->prefetchMaskValue(secondHopNeighbor.offset);
                     }
-
-                    for (auto &secondHopNeighbor: secondHopNbrs) {
+                    for (int i = 0; i < secondHopNbrsSize; i++) {
+                        auto secondHopNeighbor = secondHopNbrs->getValue<nodeID_t>(i);
                         auto isNeighborMasked = filterMask->isMasked(secondHopNeighbor.offset);
-//                        if (isNeighborMasked) {
-//                            visitedSet.insert(secondHopNeighbor.offset);
-//                        }
                         if (visited->is_bit_set(secondHopNeighbor.offset)) {
                             continue;
                         }
                         if (isNeighborMasked) {
-                            // TODO: Maybe there's some benefit in doing batch distance computation
                             visited->set_bit(secondHopNeighbor.offset);
                             vectorArray[size++] = secondHopNeighbor.offset;
                             if (size >= filterNbrsToFind) {

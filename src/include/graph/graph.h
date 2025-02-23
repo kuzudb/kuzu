@@ -69,6 +69,9 @@ public:
     virtual common::ValueVector* scanFwdRandomFast(common::nodeID_t nodeID,
                                                         GraphScanState& state) = 0;
 
+    virtual common::ValueVector* scanFwdRandomFast2(common::nodeID_t nodeID,
+                                                   GraphScanState& state) = 0;
+
     // We don't use scanBwd currently. I'm adding them because they are the mirroring to scanFwd.
     // Also, algorithm may only need adjList index in single direction so we should make double
     // indexing optional.
