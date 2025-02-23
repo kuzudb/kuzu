@@ -349,7 +349,7 @@ int main(int argc, char **argv) {
     double avgOneHopCalls = totalQueries > 0 ? (double) oneHopCalls / totalQueries : 0;
     double avgTwoHopCalls = totalQueries > 0 ? (double) twoHopCalls / totalQueries : 0;
     double avgDynamicTwoHopCalls = totalQueries > 0 ? (double) dynamicTwoHopCalls / totalQueries : 0;
-    double recallPercentage = (double) recallCount / (nQueries * k) * 100.0;
+    double recallPercentage = (double) recallCount / (totalQueries * k) * 100.0;
 
     // Build JSON output for benchmark summary.
     std::ostringstream jsonStream;
