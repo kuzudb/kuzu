@@ -10,6 +10,8 @@
 namespace kuzu {
 namespace common {
 
+class ValueVector;
+
 class SelectionVector {
 
     // In DYNAMIC mode, selectedPositions points to a mutable buffer that can be modified through
@@ -104,6 +106,9 @@ public:
         KU_ASSERT(index < capacity);
         return selectedPositions[index];
     }
+
+    static std::vector<SelectionVector*> constructFromValueVectors(
+        const std::vector<std::shared_ptr<common::ValueVector>>& vec);
 
 private:
     sel_t selectedSize;

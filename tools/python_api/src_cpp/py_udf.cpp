@@ -154,17 +154,20 @@ static PyUDFSignature analyzeSignature(const py::function& udf) {
 
 static scalar_func_exec_t getUDFExecFunc(const py::function& udf, bool defaultNull,
     bool catchExceptions) {
-    return [=](std::span<const common::SelectedVector> params, common::SelectedVector result,
+    return [=](const std::vector<std::shared_ptr<common::ValueVector>>& params,
+               const std::vector<common::SelectionVector*>& paramSelVectors,
+               common::ValueVector& result, common::SelectionVector* resultSelVector,
                void* /* dataPtr */) -> void {
         py::gil_scoped_acquire acquire;
         result.resetAuxiliaryBuffer();
-        auto& resultSelVector = *result.sel;
-        for (auto i = 0u; i < resultSelVector.getSelSize(); ++i) {
-            auto resultPos = resultSelVector[i];
+        for (auto i = 0u; i < resultSelVector->getSelSize(); ++i) {
+            auto resultPos = (*resultSelVector)[i];
             py::list pyParams;
             bool hasNull = false;
-            for (const auto& param : params) {
-                auto paramPos = param.state->isFlat() ? (*param.sel)[0] : resultPos;
+            for (size_t i = 0; i < params.size(); ++i) {
+                const auto& param = *params[i];
+                const auto& paramSelVector = *paramSelVectors[i];
+                auto paramPos = param.state->isFlat() ? paramSelVector[0] : resultPos;
                 auto value = param.getAsValue(paramPos);
                 if (value->isNull()) {
                     hasNull = true;

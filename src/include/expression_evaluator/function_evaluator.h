@@ -27,8 +27,9 @@ protected:
         storage::MemoryManager* memoryManager) override;
 
     void runExecFunc(void* dataPtr = nullptr) {
-        function->execFunc(common::SelectedVector::constructVector(parameters),
-            common::SelectedVector{*resultVector}, dataPtr);
+        function->execFunc(parameters,
+            common::SelectionVector::constructFromValueVectors(parameters), *resultVector,
+            resultVector->getSelVectorPtr(), dataPtr);
     }
 
 private:

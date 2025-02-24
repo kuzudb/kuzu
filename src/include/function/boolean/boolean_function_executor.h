@@ -32,118 +32,125 @@ struct BinaryBooleanFunctionExecutor {
     }
 
     template<typename FUNC>
-    static inline void executeBothFlat(common::SelectedVector left, common::SelectedVector right,
-        common::SelectedVector result) {
-        auto lPos = (*left.sel)[0];
-        auto rPos = (*right.sel)[0];
-        auto resPos = (*result.sel)[0];
-        executeOnValue<FUNC>(*left, *right, *result, lPos, rPos, resPos);
+    static inline void executeBothFlat(common::ValueVector& left,
+        common::SelectionVector* leftSelVector, common::ValueVector& right,
+        common::SelectionVector* rightSelVector, common::ValueVector& result,
+        common::SelectionVector* resultSelVector) {
+        auto lPos = (*leftSelVector)[0];
+        auto rPos = (*rightSelVector)[0];
+        auto resPos = (*resultSelVector)[0];
+        executeOnValue<FUNC>(left, right, result, lPos, rPos, resPos);
     }
 
     template<typename FUNC>
-    static void executeFlatUnFlat(common::SelectedVector left, common::SelectedVector right,
-        common::SelectedVector result) {
-        auto lPos = (*left.sel)[0];
-        auto& rightSelVector = *right.sel;
-        if (rightSelVector.isUnfiltered()) {
+    static void executeFlatUnFlat(common::ValueVector& left, common::SelectionVector* leftSelVector,
+        common::ValueVector& right, common::SelectionVector* rightSelVector,
+        common::ValueVector& result, common::SelectionVector*) {
+        auto lPos = (*leftSelVector)[0];
+        if (rightSelVector->isUnfiltered()) {
             if (right.hasNoNullsGuarantee() && !left.isNull(lPos)) {
-                for (auto i = 0u; i < rightSelVector.getSelSize(); ++i) {
-                    executeOnValueNoNull<FUNC>(*left, *right, *result, lPos, i, i);
+                for (auto i = 0u; i < rightSelVector->getSelSize(); ++i) {
+                    executeOnValueNoNull<FUNC>(left, right, result, lPos, i, i);
                 }
             } else {
-                for (auto i = 0u; i < rightSelVector.getSelSize(); ++i) {
-                    executeOnValue<FUNC>(*left, *right, *result, lPos, i, i);
+                for (auto i = 0u; i < rightSelVector->getSelSize(); ++i) {
+                    executeOnValue<FUNC>(left, right, result, lPos, i, i);
                 }
             }
         } else {
             if (right.hasNoNullsGuarantee() && !left.isNull(lPos)) {
-                for (auto i = 0u; i < rightSelVector.getSelSize(); ++i) {
-                    auto rPos = (*right.sel)[i];
-                    executeOnValueNoNull<FUNC>(*left, *right, *result, lPos, rPos, rPos);
+                for (auto i = 0u; i < rightSelVector->getSelSize(); ++i) {
+                    auto rPos = (*rightSelVector)[i];
+                    executeOnValueNoNull<FUNC>(left, right, result, lPos, rPos, rPos);
                 }
             } else {
-                for (auto i = 0u; i < rightSelVector.getSelSize(); ++i) {
-                    auto rPos = (*right.sel)[i];
-                    executeOnValue<FUNC>(*left, *right, *result, lPos, rPos, rPos);
+                for (auto i = 0u; i < rightSelVector->getSelSize(); ++i) {
+                    auto rPos = (*rightSelVector)[i];
+                    executeOnValue<FUNC>(left, right, result, lPos, rPos, rPos);
                 }
             }
         }
     }
 
     template<typename FUNC>
-    static void executeUnFlatFlat(common::SelectedVector left, common::SelectedVector right,
-        common::SelectedVector result) {
-        auto rPos = (*right.sel)[0];
-        auto& leftSelVector = *left.sel;
-        if (leftSelVector.isUnfiltered()) {
+    static void executeUnFlatFlat(common::ValueVector& left, common::SelectionVector* leftSelVector,
+        common::ValueVector& right, common::SelectionVector* rightSelVector,
+        common::ValueVector& result, common::SelectionVector*) {
+        auto rPos = (*rightSelVector)[0];
+        if (leftSelVector->isUnfiltered()) {
             if (left.hasNoNullsGuarantee() && !right.isNull(rPos)) {
-                for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
-                    executeOnValueNoNull<FUNC>(*left, *right, *result, i, rPos, i);
+                for (auto i = 0u; i < leftSelVector->getSelSize(); ++i) {
+                    executeOnValueNoNull<FUNC>(left, right, result, i, rPos, i);
                 }
             } else {
-                for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
-                    executeOnValue<FUNC>(*left, *right, *result, i, rPos, i);
+                for (auto i = 0u; i < leftSelVector->getSelSize(); ++i) {
+                    executeOnValue<FUNC>(left, right, result, i, rPos, i);
                 }
             }
         } else {
             if (left.hasNoNullsGuarantee() && !right.isNull(rPos)) {
-                for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
-                    auto lPos = (*left.sel)[i];
-                    executeOnValueNoNull<FUNC>(*left, *right, *result, lPos, rPos, lPos);
+                for (auto i = 0u; i < leftSelVector->getSelSize(); ++i) {
+                    auto lPos = (*leftSelVector)[i];
+                    executeOnValueNoNull<FUNC>(left, right, result, lPos, rPos, lPos);
                 }
             } else {
-                for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
-                    auto lPos = (*left.sel)[i];
-                    executeOnValue<FUNC>(*left, *right, *result, lPos, rPos, lPos);
+                for (auto i = 0u; i < leftSelVector->getSelSize(); ++i) {
+                    auto lPos = (*leftSelVector)[i];
+                    executeOnValue<FUNC>(left, right, result, lPos, rPos, lPos);
                 }
             }
         }
     }
 
     template<typename FUNC>
-    static void executeBothUnFlat(common::SelectedVector left, common::SelectedVector right,
-        common::SelectedVector result) {
-        KU_ASSERT(left.sel == right.sel);
-        auto& leftSelVector = *left.sel;
-        if (leftSelVector.isUnfiltered()) {
+    static void executeBothUnFlat(common::ValueVector& left, common::SelectionVector* leftSelVector,
+        common::ValueVector& right, common::SelectionVector* rightSelVector,
+        common::ValueVector& result, common::SelectionVector*) {
+        KU_ASSERT(leftSelVector == rightSelVector);
+        if (leftSelVector->isUnfiltered()) {
             if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
-                for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
-                    executeOnValueNoNull<FUNC>(*left, *right, *result, i, i, i);
+                for (auto i = 0u; i < leftSelVector->getSelSize(); ++i) {
+                    executeOnValueNoNull<FUNC>(left, right, result, i, i, i);
                 }
             } else {
-                for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
-                    executeOnValue<FUNC>(*left, *right, *result, i, i, i);
+                for (auto i = 0u; i < leftSelVector->getSelSize(); ++i) {
+                    executeOnValue<FUNC>(left, right, result, i, i, i);
                 }
             }
         } else {
             if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
-                for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
-                    auto pos = (*left.sel)[i];
-                    executeOnValueNoNull<FUNC>(*left, *right, *result, pos, pos, pos);
+                for (auto i = 0u; i < leftSelVector->getSelSize(); ++i) {
+                    auto pos = (*leftSelVector)[i];
+                    executeOnValueNoNull<FUNC>(left, right, result, pos, pos, pos);
                 }
             } else {
-                for (auto i = 0u; i < leftSelVector.getSelSize(); ++i) {
-                    auto pos = (*left.sel)[i];
-                    executeOnValue<FUNC>(*left, *right, *result, pos, pos, pos);
+                for (auto i = 0u; i < leftSelVector->getSelSize(); ++i) {
+                    auto pos = (*leftSelVector)[i];
+                    executeOnValue<FUNC>(left, right, result, pos, pos, pos);
                 }
             }
         }
     }
 
     template<typename FUNC>
-    static void execute(common::SelectedVector left, common::SelectedVector right,
-        common::SelectedVector result) {
+    static void execute(common::ValueVector& left, common::SelectionVector* leftSelVector,
+        common::ValueVector& right, common::SelectionVector* rightSelVector,
+        common::ValueVector& result, common::SelectionVector* resultSelVector) {
         KU_ASSERT(left.dataType.getLogicalTypeID() == common::LogicalTypeID::BOOL &&
                   right.dataType.getLogicalTypeID() == common::LogicalTypeID::BOOL &&
                   result.dataType.getLogicalTypeID() == common::LogicalTypeID::BOOL);
         if (left.state->isFlat() && right.state->isFlat()) {
-            executeBothFlat<FUNC>(left, right, result);
+            executeBothFlat<FUNC>(left, leftSelVector, right, rightSelVector, result,
+                resultSelVector);
         } else if (left.state->isFlat() && !right.state->isFlat()) {
-            executeFlatUnFlat<FUNC>(left, right, result);
+            executeFlatUnFlat<FUNC>(left, leftSelVector, right, rightSelVector, result,
+                resultSelVector);
         } else if (!left.state->isFlat() && right.state->isFlat()) {
-            executeUnFlatFlat<FUNC>(left, right, result);
+            executeUnFlatFlat<FUNC>(left, leftSelVector, right, rightSelVector, result,
+                resultSelVector);
         } else {
-            executeBothUnFlat<FUNC>(left, right, result);
+            executeBothUnFlat<FUNC>(left, leftSelVector, right, rightSelVector, result,
+                resultSelVector);
         }
     }
 
@@ -265,30 +272,33 @@ struct UnaryBooleanOperationExecutor {
     }
 
     template<typename FUNC>
-    static void executeSwitch(common::SelectedVector operand, common::SelectedVector result) {
+    static void executeSwitch(common::ValueVector& operand,
+        common::SelectionVector* operandSelVector, common::ValueVector& result,
+        common::SelectionVector* resultSelVector) {
         result.resetAuxiliaryBuffer();
-        auto& operandSelVector = *operand.sel;
         if (operand.state->isFlat()) {
-            auto pos = (*operand.sel)[0];
-            auto resultPos = (*result.sel)[0];
-            executeOnValue<FUNC>(*operand, pos, *result, resultPos);
+            auto pos = (*operandSelVector)[0];
+            auto resultPos = (*resultSelVector)[0];
+            executeOnValue<FUNC>(operand, pos, result, resultPos);
         } else {
-            if (operandSelVector.isUnfiltered()) {
-                for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
-                    executeOnValue<FUNC>(*operand, i, *result, i);
+            if (operandSelVector->isUnfiltered()) {
+                for (auto i = 0u; i < operandSelVector->getSelSize(); i++) {
+                    executeOnValue<FUNC>(operand, i, result, i);
                 }
             } else {
-                for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
-                    auto pos = (*operand.sel)[i];
-                    executeOnValue<FUNC>(*operand, pos, *result, pos);
+                for (auto i = 0u; i < operandSelVector->getSelSize(); i++) {
+                    auto pos = (*operandSelVector)[i];
+                    executeOnValue<FUNC>(operand, pos, result, pos);
                 }
             }
         }
     }
 
     template<typename FUNC>
-    static inline void execute(common::SelectedVector operand, common::SelectedVector result) {
-        executeSwitch<FUNC>(operand, result);
+    static inline void execute(common::ValueVector& operand,
+        common::SelectionVector* operandSelVector, common::ValueVector& result,
+        common::SelectionVector* resultSelVector) {
+        executeSwitch<FUNC>(operand, operandSelVector, result, resultSelVector);
     }
 
     template<typename FUNC>

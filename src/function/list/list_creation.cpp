@@ -7,19 +7,22 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-void ListCreationFunction::execFunc(std::span<const common::SelectedVector> parameters,
-    common::SelectedVector result, void* /*dataPtr*/) {
+void ListCreationFunction::execFunc(
+    const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    const std::vector<common::SelectionVector*>& parameterSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
     result.resetAuxiliaryBuffer();
-    for (auto selectedPos = 0u; selectedPos < result.sel->getSelSize(); ++selectedPos) {
-        auto pos = (*result.sel)[selectedPos];
-        auto resultEntry = ListVector::addList(result, parameters.size());
+    for (auto selectedPos = 0u; selectedPos < resultSelVector->getSelSize(); ++selectedPos) {
+        auto pos = (*resultSelVector)[selectedPos];
+        auto resultEntry = ListVector::addList(&result, parameters.size());
         result.setValue(pos, resultEntry);
-        auto resultDataVector = ListVector::getDataVector(result);
+        auto resultDataVector = ListVector::getDataVector(&result);
         auto resultPos = resultEntry.offset;
         for (auto i = 0u; i < parameters.size(); i++) {
             const auto& parameter = parameters[i];
-            auto paramPos = parameter.state->isFlat() ? (*parameter.sel)[0] : pos;
-            resultDataVector->copyFromVectorData(resultPos++, parameter, paramPos);
+            const auto& parameterSelVector = *parameterSelVectors[i];
+            auto paramPos = parameter->state->isFlat() ? parameterSelVector[0] : pos;
+            resultDataVector->copyFromVectorData(resultPos++, parameter.get(), paramPos);
         }
     }
 }

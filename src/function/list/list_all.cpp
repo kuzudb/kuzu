@@ -15,7 +15,7 @@ function_set ListAllFunction::getFunctionSet() {
     auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::ANY}, LogicalTypeID::BOOL,
         std::bind(execQuantifierFunc, allHandler, std::placeholders::_1, std::placeholders::_2,
-            std::placeholders::_3));
+            std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
     function->bindFunc = bindQuantifierFunc;
     function->isListLambda = true;
     result.push_back(std::move(function));

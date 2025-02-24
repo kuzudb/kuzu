@@ -16,7 +16,9 @@ using scalar_func_compile_exec_t =
         std::shared_ptr<common::ValueVector>&)>;
 // Execute function.
 using scalar_func_exec_t =
-    std::function<void(std::span<const common::SelectedVector>, common::SelectedVector, void*)>;
+    std::function<void(const std::vector<std::shared_ptr<common::ValueVector>>&,
+        const std::vector<common::SelectionVector*>&, common::ValueVector&,
+        common::SelectionVector*, void*)>;
 // Execute boolean function and write result to selection vector. Fast path for filter.
 using scalar_func_select_t = std::function<bool(
     const std::vector<std::shared_ptr<common::ValueVector>>&, common::SelectionVector&)>;
@@ -41,66 +43,87 @@ struct KUZU_API ScalarFunction : public ScalarOrAggregateFunction {
           execFunc{std::move(execFunc)}, selectFunc{std::move(selectFunc)} {}
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void TernaryExecFunction(std::span<const common::SelectedVector> params,
-        common::SelectedVector result, void* dataPtr = nullptr) {
+    static void TernaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr = nullptr) {
         KU_ASSERT(params.size() == 3);
         TernaryFunctionExecutor::executeSwitch<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC,
-            TernaryFunctionWrapper>(params[0], params[1], params[2], result, dataPtr);
+            TernaryFunctionWrapper>(*params[0], paramSelVectors[0], *params[1], paramSelVectors[1],
+            *params[2], paramSelVectors[2], result, resultSelVector, dataPtr);
     }
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void TernaryStringExecFunction(std::span<const common::SelectedVector> params,
-        common::SelectedVector result, void* dataPtr = nullptr) {
+    static void TernaryStringExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr = nullptr) {
         KU_ASSERT(params.size() == 3);
         TernaryFunctionExecutor::executeSwitch<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC,
-            TernaryStringFunctionWrapper>(params[0], params[1], params[2], result, dataPtr);
+            TernaryStringFunctionWrapper>(*params[0], paramSelVectors[0], *params[1],
+            paramSelVectors[1], *params[2], paramSelVectors[2], result, resultSelVector, dataPtr);
     }
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void TernaryRegexExecFunction(std::span<const common::SelectedVector> params,
-        common::SelectedVector result, void* dataPtr) {
+    static void TernaryRegexExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr) {
         TernaryFunctionExecutor::executeSwitch<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC,
-            TernaryRegexFunctionWrapper>(params[0], params[1], params[2], result, dataPtr);
+            TernaryRegexFunctionWrapper>(*params[0], paramSelVectors[0], *params[1],
+            paramSelVectors[1], *params[2], paramSelVectors[2], result, resultSelVector, dataPtr);
     }
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void TernaryExecListStructFunction(std::span<const common::SelectedVector> params,
-        common::SelectedVector result, void* dataPtr = nullptr) {
+    static void TernaryExecListStructFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr = nullptr) {
         KU_ASSERT(params.size() == 3);
         TernaryFunctionExecutor::executeSwitch<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC,
-            TernaryListFunctionWrapper>(params[0], params[1], params[2], result, dataPtr);
+            TernaryListFunctionWrapper>(*params[0], paramSelVectors[0], *params[1],
+            paramSelVectors[1], *params[2], paramSelVectors[2], result, resultSelVector, dataPtr);
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void BinaryExecFunction(std::span<const common::SelectedVector> params,
-        common::SelectedVector result, void* /*dataPtr*/ = nullptr) {
+    static void BinaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* /*dataPtr*/ = nullptr) {
         KU_ASSERT(params.size() == 2);
-        BinaryFunctionExecutor::execute<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(params[0],
-            params[1], result);
+        BinaryFunctionExecutor::execute<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(*params[0],
+            paramSelVectors[0], *params[1], paramSelVectors[1], result, resultSelVector);
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void BinaryStringExecFunction(std::span<const common::SelectedVector> params,
-        common::SelectedVector result, void* dataPtr = nullptr) {
-        KU_ASSERT(params.size() == 2);
-        BinaryFunctionExecutor::executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC,
-            BinaryStringFunctionWrapper>(params[0], params[1], result, dataPtr);
-    }
-
-    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void BinaryExecListStructFunction(std::span<const common::SelectedVector> params,
-        common::SelectedVector result, void* dataPtr = nullptr) {
+    static void BinaryStringExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr = nullptr) {
         KU_ASSERT(params.size() == 2);
         BinaryFunctionExecutor::executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC,
-            BinaryListStructFunctionWrapper>(params[0], params[1], result, dataPtr);
+            BinaryStringFunctionWrapper>(*params[0], paramSelVectors[0], *params[1],
+            paramSelVectors[1], result, resultSelVector, dataPtr);
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void BinaryExecMapCreationFunction(std::span<const common::SelectedVector> params,
-        common::SelectedVector result, void* dataPtr) {
+    static void BinaryExecListStructFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr = nullptr) {
         KU_ASSERT(params.size() == 2);
         BinaryFunctionExecutor::executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC,
-            BinaryMapCreationFunctionWrapper>(params[0], params[1], result, dataPtr);
+            BinaryListStructFunctionWrapper>(*params[0], paramSelVectors[0], *params[1],
+            paramSelVectors[1], result, resultSelVector, dataPtr);
+    }
+
+    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void BinaryExecMapCreationFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr) {
+        KU_ASSERT(params.size() == 2);
+        BinaryFunctionExecutor::executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC,
+            BinaryMapCreationFunctionWrapper>(*params[0], paramSelVectors[0], *params[1],
+            paramSelVectors[1], result, resultSelVector, dataPtr);
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename FUNC>
@@ -114,77 +137,97 @@ struct KUZU_API ScalarFunction : public ScalarOrAggregateFunction {
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC,
         typename EXECUTOR = UnaryFunctionExecutor>
-    static void UnaryExecFunction(std::span<const common::SelectedVector> params,
-        common::SelectedVector result, void* dataPtr) {
+    static void UnaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr) {
         KU_ASSERT(params.size() == 1);
         EXECUTOR::template executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryFunctionWrapper>(
-            params[0], result, dataPtr);
+            *params[0], paramSelVectors[0], result, resultSelVector, dataPtr);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void UnarySequenceExecFunction(std::span<const common::SelectedVector> params,
-        common::SelectedVector result, void* dataPtr) {
+    static void UnarySequenceExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr) {
         KU_ASSERT(params.size() == 1);
-        UnaryFunctionExecutor::executeSequence<OPERAND_TYPE, RESULT_TYPE, FUNC>(params[0], result,
+        UnaryFunctionExecutor::executeSequence<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0],
+            paramSelVectors[0], result, resultSelVector, dataPtr);
+    }
+
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void UnaryStringExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* /*dataPtr*/ = nullptr) {
+        KU_ASSERT(params.size() == 1);
+        UnaryFunctionExecutor::executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC,
+            UnaryStringFunctionWrapper>(*params[0], paramSelVectors[0], result, resultSelVector,
+            nullptr /* dataPtr */);
+    }
+
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC,
+        typename EXECUTOR = UnaryFunctionExecutor>
+    static void UnaryCastStringExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr) {
+        KU_ASSERT(params.size() == 1);
+        EXECUTOR::template executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC,
+            UnaryCastStringFunctionWrapper>(*params[0], paramSelVectors[0], result, resultSelVector,
             dataPtr);
     }
 
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void UnaryStringExecFunction(std::span<const common::SelectedVector> params,
-        common::SelectedVector result, void* /*dataPtr*/ = nullptr) {
-        KU_ASSERT(params.size() == 1);
-        UnaryFunctionExecutor::executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC,
-            UnaryStringFunctionWrapper>(params[0], result, nullptr /* dataPtr */);
-    }
-
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC,
         typename EXECUTOR = UnaryFunctionExecutor>
-    static void UnaryCastStringExecFunction(std::span<const common::SelectedVector> params,
-        common::SelectedVector result, void* dataPtr) {
-        KU_ASSERT(params.size() == 1);
-        EXECUTOR::template executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC,
-            UnaryCastStringFunctionWrapper>(params[0], result, dataPtr);
-    }
-
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC,
-        typename EXECUTOR = UnaryFunctionExecutor>
-    static void UnaryCastExecFunction(std::span<const common::SelectedVector> params,
-        common::SelectedVector result, void* dataPtr) {
+    static void UnaryCastExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr) {
         KU_ASSERT(params.size() == 1);
         EXECUTOR::template executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryCastFunctionWrapper>(
-            params[0], result, dataPtr);
+            *params[0], paramSelVectors[0], result, resultSelVector, dataPtr);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void UnaryExecNestedTypeFunction(std::span<const common::SelectedVector> params,
-        common::SelectedVector result, void* /*dataPtr*/ = nullptr) {
+    static void UnaryExecNestedTypeFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* /*dataPtr*/ = nullptr) {
         KU_ASSERT(params.size() == 1);
         UnaryFunctionExecutor::executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC,
-            UnaryNestedTypeFunctionWrapper>(params[0], result, nullptr /* dataPtr */);
+            UnaryNestedTypeFunctionWrapper>(*params[0], paramSelVectors[0], result, resultSelVector,
+            nullptr /* dataPtr */);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void UnaryExecStructFunction(std::span<const common::SelectedVector> params,
-        common::SelectedVector result, void* dataPtr) {
+    static void UnaryExecStructFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr) {
         KU_ASSERT(params.size() == 1);
         UnaryFunctionExecutor::executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC,
-            UnaryStructFunctionWrapper>(params[0], result, dataPtr);
+            UnaryStructFunctionWrapper>(*params[0], paramSelVectors[0], result, resultSelVector,
+            dataPtr);
     }
 
     template<typename RESULT_TYPE, typename FUNC>
-    static void NullaryExecFunction(std::span<const common::SelectedVector> params,
-        common::SelectedVector result, void* /*dataPtr*/ = nullptr) {
-        KU_ASSERT(params.empty());
-        (void)params;
-        ConstFunctionExecutor::execute<RESULT_TYPE, FUNC>(*result);
+    static void NullaryExecFunction(
+        [[maybe_unused]] const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        [[maybe_unused]] const std::vector<common::SelectionVector*>& paramSelVectors,
+        common::ValueVector& result, common::SelectionVector* resultSelVector,
+        void* /*dataPtr*/ = nullptr) {
+        KU_ASSERT(params.empty() && paramSelVectors.empty());
+        ConstFunctionExecutor::execute<RESULT_TYPE, FUNC>(result, *resultSelVector);
     }
 
     template<typename RESULT_TYPE, typename FUNC>
-    static void NullaryAuxilaryExecFunction(std::span<const common::SelectedVector> params,
-        common::SelectedVector result, void* dataPtr) {
-        KU_ASSERT(params.empty());
-        (void)params;
-        PointerFunctionExecutor::execute<RESULT_TYPE, FUNC>(*result, dataPtr);
+    static void NullaryAuxilaryExecFunction(
+        [[maybe_unused]] const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        [[maybe_unused]] const std::vector<common::SelectionVector*>& paramSelVectors,
+        common::ValueVector& result, common::SelectionVector* resultSelVector, void* dataPtr) {
+        KU_ASSERT(params.empty() && paramSelVectors.empty());
+        PointerFunctionExecutor::execute<RESULT_TYPE, FUNC>(result, *resultSelVector, dataPtr);
     }
 
     virtual std::unique_ptr<ScalarFunction> copy() const {

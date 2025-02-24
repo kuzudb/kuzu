@@ -230,7 +230,7 @@ void UndoBuffer::commitVersionInfo(UndoRecordType recordType, const uint8_t* rec
 
 void UndoBuffer::commitVectorUpdateInfo(const uint8_t* record, transaction_t commitTS) {
     auto& undoRecord = *reinterpret_cast<VectorUpdateRecord const*>(record);
-    *undoRecordtorUpdateInfo->version = commitTS;
+    undoRecord.vectorUpdateInfo->version = commitTS;
 }
 
 void UndoBuffer::rollbackRecord(const transaction::Transaction* transaction,
@@ -308,23 +308,23 @@ void UndoBuffer::rollbackVectorUpdateInfo(const transaction::Transaction* transa
     const uint8_t* record) {
     auto& undoRecord = *reinterpret_cast<VectorUpdateRecord const*>(record);
     KU_ASSERT(undoRecord.updateInfo);
-    if (undoRecord.updateInfo->getVectorInfo(transaction, *undoRecordtorIdx) !=
-        *undoRecordtorUpdateInfo) {
+    if (undoRecord.updateInfo->getVectorInfo(transaction, undoRecord.vectorIdx) !=
+        undoRecord.vectorUpdateInfo) {
         // The version chain has been updated. No need to rollback.
         return;
     }
-    if (*undoRecordtorUpdateInfo->getNext()) {
+    if (undoRecord.vectorUpdateInfo->getNext()) {
         // Has newer versions. Simply remove the current one from the version chain.
-        const auto newerVersion = *undoRecordtorUpdateInfo->getNext();
-        auto prevVersion = *undoRecordtorUpdateInfo->movePrev();
+        const auto newerVersion = undoRecord.vectorUpdateInfo->getNext();
+        auto prevVersion = undoRecord.vectorUpdateInfo->movePrev();
         prevVersion->next = newerVersion;
         newerVersion->setPrev(std::move(prevVersion));
     } else {
         // This is the begin of the version chain.
-        if (auto prevVersion = *undoRecordtorUpdateInfo->movePrev()) {
-            undoRecord.updateInfo->setVectorInfo(*undoRecordtorIdx, std::move(prevVersion));
+        if (auto prevVersion = undoRecord.vectorUpdateInfo->movePrev()) {
+            undoRecord.updateInfo->setVectorInfo(undoRecord.vectorIdx, std::move(prevVersion));
         } else {
-            undoRecord.updateInfo->clearVectorInfo(*undoRecordtorIdx);
+            undoRecord.updateInfo->clearVectorInfo(undoRecord.vectorIdx);
         }
     }
 }

@@ -61,18 +61,21 @@ static void copyParameterValueToStructFieldVector(const ValueVector* parameter,
     }
 }
 
-void StructPackFunctions::execFunc(std::span<const common::SelectedVector> parameters,
-    common::SelectedVector result, void* /*dataPtr*/) {
+void StructPackFunctions::execFunc(
+    const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    const std::vector<common::SelectionVector*>& parameterSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
     for (auto i = 0u; i < parameters.size(); i++) {
-        auto& parameter = parameters[i];
-        if (parameter.sel == result.sel) {
+        auto* parameter = parameters[i].get();
+        auto* parameterSelVector = parameterSelVectors[i];
+        if (parameterSelVector == resultSelVector) {
             continue;
         }
         // If the parameter's state is inconsistent with the result's state, we need to copy the
         // parameter's value to the corresponding child vector.
-        StructVector::getFieldVector(result, i)->resetAuxiliaryBuffer();
+        StructVector::getFieldVector(&result, i)->resetAuxiliaryBuffer();
         copyParameterValueToStructFieldVector(parameter,
-            StructVector::getFieldVector(result, i).get(), result.state.get());
+            StructVector::getFieldVector(&result, i).get(), result.state.get());
     }
 }
 

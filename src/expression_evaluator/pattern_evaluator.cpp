@@ -23,8 +23,9 @@ void PatternExpressionEvaluator::evaluate() {
     for (auto& child : children) {
         child->evaluate();
     }
-    StructPackFunctions::execFunc(common::SelectedVector::constructVector(parameters),
-        common::SelectedVector{*resultVector});
+    StructPackFunctions::execFunc(parameters,
+        SelectionVector::constructFromValueVectors(parameters), *resultVector,
+        resultVector->getSelVectorPtr());
     updateNullPattern(*resultVector, *idVector);
 }
 

@@ -67,7 +67,7 @@ std::unique_ptr<CompressionMetadata> getFloatMetadata(const std::vector<T>& buff
         1) { // Only if more than 1 found top combinations we sample and search
         alp::AlpEncode<T>::find_best_exponent_factor_from_combinations(
             alpMetadata.best_k_combinations, alpMetadata.k_combinations, bufferToCompress.data(),
-            *alpMetadatator_size, alpMetadata.fac, alpMetadata.exp);
+            alpMetadata.vector_size, alpMetadata.fac, alpMetadata.exp);
     } else if (alpMetadata.best_k_combinations.size() > 0) {
         alpMetadata.exp = alpMetadata.best_k_combinations[0].first;
         alpMetadata.fac = alpMetadata.best_k_combinations[0].second;

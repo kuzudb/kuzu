@@ -5,6 +5,7 @@
 
 #include "common/system_config.h"
 #include "common/types/types.h"
+#include "common/vector/value_vector.h"
 
 namespace kuzu {
 namespace common {
@@ -28,6 +29,14 @@ void SelectionVector::setToUnfiltered(sel_t size) {
     selectedPositions = const_cast<sel_t*>(INCREMENTAL_SELECTED_POS.data());
     selectedSize = size;
     state = State::STATIC;
+}
+
+std::vector<SelectionVector*> SelectionVector::constructFromValueVectors(
+    const std::vector<std::shared_ptr<common::ValueVector>>& vec) {
+    std::vector<SelectionVector*> ret;
+    std::transform(vec.begin(), vec.end(), std::back_inserter(ret),
+        [](const auto& vec) -> SelectionVector* { return &vec->state->getSelVectorUnsafe(); });
+    return ret;
 }
 
 } // namespace common

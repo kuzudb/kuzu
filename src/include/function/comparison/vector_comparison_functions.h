@@ -22,11 +22,14 @@ struct ComparisonFunction {
 
 private:
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void BinaryComparisonExecFunction(std::span<const common::SelectedVector> params,
-        common::SelectedVector result, void* dataPtr = nullptr) {
+    static void BinaryComparisonExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr = nullptr) {
         KU_ASSERT(params.size() == 2);
         BinaryFunctionExecutor::executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC,
-            BinaryComparisonFunctionWrapper>(params[0], params[1], result, dataPtr);
+            BinaryComparisonFunctionWrapper>(*params[0], paramSelVectors[0], *params[1],
+            paramSelVectors[1], result, resultSelVector, dataPtr);
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename FUNC>

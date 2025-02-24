@@ -105,25 +105,28 @@ function_set ArrayExtractFunction::getFunctionSet() {
     return functionSet;
 }
 
-void ConcatFunction::execFunc(std::span<const common::SelectedVector> parameters,
-    common::SelectedVector result, void* /*dataPtr*/) {
+void ConcatFunction::execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    const std::vector<common::SelectionVector*>& parameterSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
     result.resetAuxiliaryBuffer();
-    for (auto selectedPos = 0u; selectedPos < result.sel->getSelSize(); ++selectedPos) {
-        auto pos = (*result.sel)[selectedPos];
+    for (auto selectedPos = 0u; selectedPos < resultSelVector->getSelSize(); ++selectedPos) {
+        auto pos = (*resultSelVector)[selectedPos];
         auto strLen = 0u;
         for (auto i = 0u; i < parameters.size(); i++) {
-            const auto& parameter = parameters[i];
-            auto paramPos = parameter.state->isFlat() ? (*parameter.sel)[0] : pos;
+            const auto& parameter = *parameters[i];
+            const auto& parameterSelVector = parameterSelVectors[i];
+            auto paramPos = parameter.state->isFlat() ? (*parameterSelVector)[0] : pos;
             strLen += parameter.getValue<ku_string_t>(paramPos).len;
         }
         auto& resultStr = result.getValue<ku_string_t>(pos);
-        StringVector::reserveString(result, resultStr, strLen);
+        StringVector::reserveString(&result, resultStr, strLen);
         auto dstData = strLen <= ku_string_t::SHORT_STR_LENGTH ?
                            resultStr.prefix :
                            reinterpret_cast<uint8_t*>(resultStr.overflowPtr);
         for (auto i = 0u; i < parameters.size(); i++) {
-            const auto& parameter = parameters[i];
-            auto paramPos = parameter.state->isFlat() ? (*parameter.sel)[0] : pos;
+            const auto& parameter = *parameters[i];
+            const auto& parameterSelVector = parameterSelVectors[i];
+            auto paramPos = parameter.state->isFlat() ? (*parameterSelVector)[0] : pos;
             auto srcStr = parameter.getValue<ku_string_t>(paramPos);
             memcpy(dstData, srcStr.getData(), srcStr.len);
             dstData += srcStr.len;

@@ -116,14 +116,17 @@ static bool jsonContains(yyjson_val* haystack, yyjson_val* needle) {
     }
 }
 
-static void execFunc(std::span<const common::SelectedVector> parameters,
-    common::SelectedVector result, void* /*dataPtr*/) {
-    const auto& param1 = parameters[0];
-    const auto& param2 = parameters[1];
-    for (auto selectedPos = 0u; selectedPos < result.sel->getSelSize(); ++selectedPos) {
-        auto resultPos = (*result.sel)[selectedPos];
-        auto param1Pos = (*param1.sel)[param1.state->isFlat() ? 0 : selectedPos];
-        auto param2Pos = (*param2.sel)[param2.state->isFlat() ? 0 : selectedPos];
+static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    const std::vector<common::SelectionVector*>& parameterSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
+    const auto& param1 = *parameters[0];
+    const auto& param2 = *parameters[1];
+    const auto& param1SelVector = *parameterSelVectors[0];
+    const auto& param2SelVector = *parameterSelVectors[1];
+    for (auto selectedPos = 0u; selectedPos < resultSelVector->getSelSize(); ++selectedPos) {
+        auto resultPos = (*resultSelVector)[selectedPos];
+        auto param1Pos = param1SelVector[param1.state->isFlat() ? 0 : selectedPos];
+        auto param2Pos = param2SelVector[param2.state->isFlat() ? 0 : selectedPos];
         auto isNull = param1.isNull(param1Pos) || param2.isNull(param2Pos);
         result.setNull(resultPos, isNull);
         if (!isNull) {

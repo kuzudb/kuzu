@@ -9,19 +9,22 @@ namespace json_extension {
 using namespace function;
 using namespace common;
 
-static void execFunc(std::span<const common::SelectedVector> parameters,
-    common::SelectedVector result, void* /*dataPtr*/) {
+static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    const std::vector<common::SelectionVector*>& parameterSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
     result.resetAuxiliaryBuffer();
-    for (auto i = 0u; i < result.sel->getSelSize(); ++i) {
-        auto resultPos = (*result.sel)[i];
+    for (auto i = 0u; i < resultSelVector->getSelSize(); ++i) {
+        auto resultPos = (*resultSelVector)[i];
         JsonMutWrapper wrapper;
         auto mutArray = yyjson_mut_arr(wrapper.ptr);
-        for (auto& param : parameters) {
-            auto paramPos = param.state->isFlat() ? (*param.sel)[0] : (*param.sel)[i];
-            yyjson_mut_arr_append(mutArray, jsonify(wrapper, *param, paramPos));
+        for (size_t i = 0; i < parameters.size(); ++i) {
+            const auto& param = *parameters[i];
+            const auto& paramSelVector = *parameterSelVectors[i];
+            auto paramPos = param.state->isFlat() ? paramSelVector[0] : paramSelVector[i];
+            yyjson_mut_arr_append(mutArray, jsonify(wrapper, param, paramPos));
         }
         yyjson_mut_doc_set_root(wrapper.ptr, mutArray);
-        StringVector::addString(result, resultPos,
+        StringVector::addString(&result, resultPos,
             jsonToString(JsonWrapper(yyjson_mut_doc_imut_copy(wrapper.ptr, nullptr /* alc */))));
     }
 }

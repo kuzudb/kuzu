@@ -9,18 +9,19 @@ namespace json_extension {
 using namespace function;
 using namespace common;
 
-static void execFunc(std::span<const common::SelectedVector> parameters,
-    common::SelectedVector result, void* /*dataPtr*/) {
+static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    const std::vector<common::SelectionVector*>& parameterSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
     result.resetAuxiliaryBuffer();
-    for (auto selectedPos = 0u; selectedPos < result.sel->getSelSize(); ++selectedPos) {
-        auto inputPos = (*parameters[0].sel)[selectedPos];
-        auto resultPos = (*result.sel)[selectedPos];
-        auto isNull = parameters[0].isNull(inputPos);
+    for (auto selectedPos = 0u; selectedPos < resultSelVector->getSelSize(); ++selectedPos) {
+        auto inputPos = (*parameterSelVectors[0])[selectedPos];
+        auto resultPos = (*resultSelVector)[selectedPos];
+        auto isNull = parameters[0]->isNull(inputPos);
         result.setNull(resultPos, isNull);
         if (!isNull) {
-            StringVector::addString(result, resultPos,
+            StringVector::addString(&result, resultPos,
                 jsonToString(
-                    stringToJson(parameters[0].getValue<ku_string_t>(inputPos).getAsString())));
+                    stringToJson(parameters[0]->getValue<ku_string_t>(inputPos).getAsString())));
         }
     }
 }

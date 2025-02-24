@@ -21,13 +21,12 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
         LogicalType::LIST(input.arguments[1]->getDataType().copy()));
 }
 
-static void execFunc(std::span<const common::SelectedVector> input, common::SelectedVector result,
-    void* bindData) {
+static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& input,
+    const std::vector<common::SelectionVector*>& inputSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void* bindData) {
     auto listLambdaBindData = reinterpret_cast<evaluator::ListLambdaBindData*>(bindData);
     auto& inputVector = *input[0];
-    const auto& inputSelVector = *input[0].sel;
-    auto& resultVec = *result;
-    auto& resultSelVector = *result.sel;
+    const auto& inputSelVector = *inputSelVectors[0];
 
     auto listSize = ListVector::getDataVectorSize(&inputVector);
     for (auto& lambdaParamEvaluator : listLambdaBindData->lambdaParamEvaluators) {
@@ -37,16 +36,16 @@ static void execFunc(std::span<const common::SelectedVector> input, common::Sele
     listLambdaBindData->rootEvaluator->evaluate();
     KU_ASSERT(input.size() == 2);
     if (!listLambdaBindData->lambdaParamEvaluators.empty()) {
-        ListVector::copyListEntryAndBufferMetaData(resultVec, resultSelVector, inputVector,
+        ListVector::copyListEntryAndBufferMetaData(result, *resultSelVector, inputVector,
             inputSelVector);
     } else {
         auto srcPos = inputSelVector[0];
-        auto dstDataVector = ListVector::getDataVector(&resultVec);
+        auto dstDataVector = ListVector::getDataVector(&result);
         for (auto i = 0u; i < inputSelVector.getSelSize(); ++i) {
             auto inputList = inputVector.getValue<list_entry_t>(inputSelVector[0]);
-            auto pos = resultSelVector[i];
+            auto pos = (*resultSelVector)[i];
             if (inputVector.isNull(srcPos)) {
-                resultVec.setNull(pos, true);
+                result.setNull(pos, true);
             } else {
                 auto dstLst = ListVector::addList(&inputVector, inputList.size);
                 for (auto j = 0u; j < dstLst.size; j++) {
@@ -54,7 +53,7 @@ static void execFunc(std::span<const common::SelectedVector> input, common::Sele
                         listLambdaBindData->rootEvaluator->resultVector.get(),
                         listLambdaBindData->rootEvaluator->resultVector->state->getSelVector()[0]);
                 }
-                resultVec.setValue(pos, dstLst);
+                result.setValue(pos, dstLst);
             }
         }
     }

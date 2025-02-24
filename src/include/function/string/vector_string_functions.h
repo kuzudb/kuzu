@@ -33,8 +33,9 @@ struct ArrayExtractFunction {
 struct ConcatFunction : public VectorStringFunction {
     static constexpr const char* name = "CONCAT";
 
-    static void execFunc(std::span<const common::SelectedVector> parameters,
-        common::SelectedVector result, void* /*dataPtr*/);
+    static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+        const std::vector<common::SelectionVector*>& parameterSelVectors,
+        common::ValueVector& result, common::SelectionVector* resultSelVector, void* /*dataPtr*/);
 
     static function_set getFunctionSet();
 };

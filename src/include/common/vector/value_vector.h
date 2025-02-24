@@ -113,6 +113,10 @@ public:
     static std::unique_ptr<ValueVector> deSerialize(Deserializer& deSer, storage::MemoryManager* mm,
         std::shared_ptr<DataChunkState> dataChunkState);
 
+    SelectionVector* getSelVectorPtr() const {
+        return state ? &state->getSelVectorUnsafe() : nullptr;
+    }
+
 private:
     uint32_t getDataTypeSize(const LogicalType& type);
     void initializeValueBuffer();
@@ -286,10 +290,11 @@ public:
             std::move(vectorToReference));
     }
 
-    static inline void setTagField(ValueVector* vector, union_field_idx_t tag) {
-        KU_ASSERT(vector->dataType.getLogicalTypeID() == LogicalTypeID::UNION);
-        for (auto i = 0u; i < vector->state->getSelVector().getSelSize(); i++) {
-            vector->setValue<struct_field_idx_t>(vector->state->getSelVector()[i], tag);
+    static inline void setTagField(ValueVector& vector, SelectionVector& sel,
+        union_field_idx_t tag) {
+        KU_ASSERT(vector.dataType.getLogicalTypeID() == LogicalTypeID::UNION);
+        for (auto i = 0u; i < sel.getSelSize(); i++) {
+            vector.setValue<struct_field_idx_t>(sel[i], tag);
         }
     }
 };
@@ -315,20 +320,6 @@ public:
         auto valueVector = getValueVector(vector);
         return valueVector->getData() + valueVector->getNumBytesPerValue() * listEntry.offset;
     }
-};
-
-struct SelectedVector {
-    SelectedVector(common::ValueVector& vec, common::SelectionVector* sel) : vec(vec), sel(sel) {}
-    explicit SelectedVector(common::ValueVector& vec)
-        : vec(vec), sel(vec.state ? &vec.state->getSelVectorUnsafe() : nullptr) {}
-
-    common::ValueVector& vec;
-    common::SelectionVector* sel;
-
-    static std::vector<common::SelectedVector> constructVector(
-        const std::vector<std::shared_ptr<common::ValueVector>>& params);
-    static std::vector<common::SelectedVector> constructVector(
-        std::vector<common::ValueVector*>& params);
 };
 
 } // namespace common

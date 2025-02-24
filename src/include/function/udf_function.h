@@ -68,13 +68,14 @@ struct UDF {
     static function::scalar_func_exec_t createEmptyParameterExecFunc(RESULT_TYPE (*udfFunc)(),
         const std::vector<common::LogicalTypeID>&) {
         KU_UNUSED(udfFunc); // Disable compiler warnings.
-        return [udfFunc](std::span<const common::SelectedVector> params,
-                   common::SelectedVector result, void* /*dataPtr*/ = nullptr) -> void {
-            (void)params;
-            KU_ASSERT(params.size() == 0);
-            auto& resultSelVector = *result.sel;
-            for (auto i = 0u; i < resultSelVector.getSelSize(); ++i) {
-                auto resultPos = resultSelVector[i];
+        return [udfFunc](
+                   [[maybe_unused]] const std::vector<std::shared_ptr<common::ValueVector>>& params,
+                   [[maybe_unused]] const std::vector<common::SelectionVector*>& paramSelVectors,
+                   common::ValueVector& result, common::SelectionVector* resultSelVector,
+                   void* /*dataPtr*/ = nullptr) -> void {
+            KU_ASSERT(params.empty() && paramSelVectors.empty());
+            for (auto i = 0u; i < resultSelVector->getSelSize(); ++i) {
+                auto resultPos = (*resultSelVector)[i];
                 result.copyFromValue(resultPos, common::Value(udfFunc()));
             }
         };
@@ -96,11 +97,14 @@ struct UDF {
         }
         validateType<OPERAND_TYPE>(parameterTypes[0]);
         function::scalar_func_exec_t execFunc =
-            [udfFunc](std::span<const common::SelectedVector> params, common::SelectedVector result,
+            [udfFunc](const std::vector<std::shared_ptr<common::ValueVector>>& params,
+                const std::vector<common::SelectionVector*>& paramSelVectors,
+                common::ValueVector& result, common::SelectionVector* resultSelVector,
                 void* /*dataPtr*/ = nullptr) -> void {
             KU_ASSERT(params.size() == 1);
             UnaryFunctionExecutor::executeSwitch<OPERAND_TYPE, RESULT_TYPE, UnaryUDFExecutor,
-                UnaryUDFFunctionWrapper>(params[0], result, (void*)udfFunc);
+                UnaryUDFFunctionWrapper>(*params[0], paramSelVectors[0], result, resultSelVector,
+                (void*)udfFunc);
         };
         return execFunc;
     }
@@ -123,12 +127,14 @@ struct UDF {
         validateType<LEFT_TYPE>(parameterTypes[0]);
         validateType<RIGHT_TYPE>(parameterTypes[1]);
         function::scalar_func_exec_t execFunc =
-            [udfFunc](std::span<const common::SelectedVector> params, common::SelectedVector result,
+            [udfFunc](const std::vector<std::shared_ptr<common::ValueVector>>& params,
+                const std::vector<common::SelectionVector*>& paramSelVectors,
+                common::ValueVector& result, common::SelectionVector* resultSelVector,
                 void* /*dataPtr*/ = nullptr) -> void {
             KU_ASSERT(params.size() == 2);
             BinaryFunctionExecutor::executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE,
-                BinaryUDFExecutor, BinaryUDFFunctionWrapper>(params[0], params[1], result,
-                (void*)udfFunc);
+                BinaryUDFExecutor, BinaryUDFFunctionWrapper>(*params[0], paramSelVectors[0],
+                *params[1], paramSelVectors[1], result, resultSelVector, (void*)udfFunc);
         };
         return execFunc;
     }
@@ -152,12 +158,15 @@ struct UDF {
         validateType<B_TYPE>(parameterTypes[1]);
         validateType<C_TYPE>(parameterTypes[2]);
         function::scalar_func_exec_t execFunc =
-            [udfFunc](std::span<const common::SelectedVector> params, common::SelectedVector result,
+            [udfFunc](const std::vector<std::shared_ptr<common::ValueVector>>& params,
+                const std::vector<common::SelectionVector*>& paramSelVectors,
+                common::ValueVector& result, common::SelectionVector* resultSelVector,
                 void* /*dataPtr*/ = nullptr) -> void {
             KU_ASSERT(params.size() == 3);
             TernaryFunctionExecutor::executeSwitch<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE,
-                TernaryUDFExecutor, TernaryUDFFunctionWrapper>(params[0], params[1], params[2],
-                result, (void*)udfFunc);
+                TernaryUDFExecutor, TernaryUDFFunctionWrapper>(*params[0], paramSelVectors[0],
+                *params[1], paramSelVectors[1], *params[2], paramSelVectors[2], result,
+                resultSelVector, (void*)udfFunc);
         };
         return execFunc;
     }

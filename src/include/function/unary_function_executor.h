@@ -100,6 +100,10 @@ struct UnaryUDFFunctionWrapper {
 };
 
 struct UnaryFunctionExecutor {
+    using unary_execute_func_t = void (*)(common::ValueVector& operand,
+        common::SelectionVector* operandSelVector, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr);
+
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
     static void executeOnValue(common::ValueVector& inputVector, uint64_t inputPos,
         common::ValueVector& resultVector, uint64_t resultPos, void* dataPtr) {
@@ -108,49 +112,49 @@ struct UnaryFunctionExecutor {
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
-    static void executeSwitch(common::SelectedVector operand, common::SelectedVector result,
-        void* dataPtr) {
+    static void executeSwitch(common::ValueVector& operand,
+        common::SelectionVector* operandSelVector, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr) {
         result.resetAuxiliaryBuffer();
-        auto& operandSelVector = *operand.sel;
         if (operand.state->isFlat()) {
-            auto inputPos = operandSelVector[0];
-            auto resultPos = (*result.sel)[0];
+            auto inputPos = (*operandSelVector)[0];
+            auto resultPos = (*resultSelVector)[0];
             result.setNull(resultPos, operand.isNull(inputPos));
             if (!result.isNull(resultPos)) {
-                executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(*operand, inputPos,
-                    *result, resultPos, dataPtr);
+                executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand, inputPos,
+                    result, resultPos, dataPtr);
             }
         } else {
             if (operand.hasNoNullsGuarantee()) {
                 result.setAllNonNull();
-                if (operandSelVector.isUnfiltered()) {
-                    for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
-                        executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(*operand, i,
-                            *result, i, dataPtr);
+                if (operandSelVector->isUnfiltered()) {
+                    for (auto i = 0u; i < operandSelVector->getSelSize(); i++) {
+                        executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand, i,
+                            result, i, dataPtr);
                     }
                 } else {
-                    for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
-                        auto pos = operandSelVector[i];
-                        executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(*operand, pos,
-                            *result, pos, dataPtr);
+                    for (auto i = 0u; i < operandSelVector->getSelSize(); i++) {
+                        auto pos = (*operandSelVector)[i];
+                        executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand, pos,
+                            result, pos, dataPtr);
                     }
                 }
             } else {
-                if (operandSelVector.isUnfiltered()) {
-                    for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
+                if (operandSelVector->isUnfiltered()) {
+                    for (auto i = 0u; i < operandSelVector->getSelSize(); i++) {
                         result.setNull(i, operand.isNull(i));
                         if (!result.isNull(i)) {
-                            executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(*operand, i,
-                                *result, i, dataPtr);
+                            executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand, i,
+                                result, i, dataPtr);
                         }
                     }
                 } else {
-                    for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
-                        auto pos = operandSelVector[i];
+                    for (auto i = 0u; i < operandSelVector->getSelSize(); i++) {
+                        auto pos = (*operandSelVector)[i];
                         result.setNull(pos, operand.isNull(pos));
                         if (!result.isNull(pos)) {
-                            executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(*operand,
-                                pos, *result, pos, dataPtr);
+                            executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand,
+                                pos, result, pos, dataPtr);
                         }
                     }
                 }
@@ -159,19 +163,21 @@ struct UnaryFunctionExecutor {
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void execute(common::SelectedVector operand, common::SelectedVector result) {
-        executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryFunctionWrapper>(operand, result,
-            nullptr /* dataPtr */);
+    static void execute(common::ValueVector& operand, common::SelectionVector* operandSelVector,
+        common::ValueVector& result, common::SelectionVector* resultSelVector) {
+        executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryFunctionWrapper>(operand,
+            operandSelVector, result, resultSelVector, nullptr /* dataPtr */);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeSequence(common::SelectedVector operand, common::SelectedVector result,
-        void* dataPtr) {
+    static void executeSequence(common::ValueVector& operand,
+        common::SelectionVector* operandSelVector, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr) {
         result.resetAuxiliaryBuffer();
-        auto inputPos = (*operand.sel)[0];
-        auto resultPos = (*result.sel)[0];
-        executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, UnarySequenceFunctionWrapper>(*operand,
-            inputPos, *result, resultPos, dataPtr);
+        auto inputPos = (*operandSelVector)[0];
+        auto resultPos = (*resultSelVector)[0];
+        executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, UnarySequenceFunctionWrapper>(operand,
+            inputPos, result, resultPos, dataPtr);
     }
 };
 

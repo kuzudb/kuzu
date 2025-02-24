@@ -198,8 +198,9 @@ static void writeRows(const ExportCSVBindData& exportCSVBindData, ExportCSVLocal
     auto& serializer = localState.serializer;
     for (auto i = 0u; i < inputVectors.size(); i++) {
         auto vectorToCast = {inputVectors[i]};
-        exportCSVLocalState.castFuncs[i](common::SelectedVector::constructVector(vectorToCast),
-            common::SelectedVector{*castVectors[i]}, nullptr /* dataPtr */);
+        exportCSVLocalState.castFuncs[i](vectorToCast,
+            common::SelectionVector::constructFromValueVectors(vectorToCast), *castVectors[i],
+            castVectors[i]->getSelVectorPtr(), nullptr /* dataPtr */);
     }
 
     uint64_t numRowsToWrite = 1;

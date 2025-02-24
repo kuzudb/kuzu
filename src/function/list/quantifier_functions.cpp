@@ -9,8 +9,10 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-void execQuantifierFunc(quantifier_handler handler, std::span<const common::SelectedVector> input,
-    common::SelectedVector result, void* bindData) {
+void execQuantifierFunc(quantifier_handler handler,
+    const std::vector<std::shared_ptr<common::ValueVector>>& input,
+    const std::vector<common::SelectionVector*>& inputSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void* bindData) {
     auto listLambdaBindData = reinterpret_cast<evaluator::ListLambdaBindData*>(bindData);
     auto& inputVector = *input[0];
     if (!listLambdaBindData->lambdaParamEvaluators.empty()) {
@@ -23,7 +25,7 @@ void execQuantifierFunc(quantifier_handler handler, std::span<const common::Sele
                               filterVector.getValue<bool>(filterVector.state->getSelVector()[0]);
     listLambdaBindData->rootEvaluator->evaluate();
     KU_ASSERT(input.size() == 2);
-    auto& listInputSelVector = *input[0].sel;
+    auto& listInputSelVector = *inputSelVectors[0];
     uint64_t numSelectedValues = 0;
     for (auto i = 0u; i < listInputSelVector.getSelSize(); ++i) {
         numSelectedValues = 0;
@@ -34,7 +36,7 @@ void execQuantifierFunc(quantifier_handler handler, std::span<const common::Sele
                 numSelectedValues++;
             }
         }
-        result.setValue((*result.sel)[i], handler(numSelectedValues, srcListEntry.size));
+        result.setValue((*resultSelVector)[i], handler(numSelectedValues, srcListEntry.size));
     }
 }
 
