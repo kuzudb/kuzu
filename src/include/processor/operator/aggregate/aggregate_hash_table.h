@@ -4,6 +4,8 @@
 
 #include "aggregate_input.h"
 #include "common/copy_constructors.h"
+#include "common/data_chunk/data_chunk_state.h"
+#include "common/data_chunk/sel_vector.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "function/aggregate_function.h"
@@ -67,17 +69,11 @@ public:
         const std::vector<common::LogicalType>& distinctAggKeyTypes, uint64_t numEntriesToAllocate,
         FactorizedTableSchema tableSchema);
 
-    // Returns true if the value was distinct and was inserted
-    // otherwise if the value already existed, returns false and the hash table is unchanged
-    virtual bool insertAggregateValueIfDistinctForGroupByKeys(
-        const std::vector<common::ValueVector*>& groupByKeyVectors,
-        common::ValueVector* aggregateVector);
-
     //! merge aggregate hash table by combining aggregate states under the same key
     void merge(FactorizedTable&& other);
     void merge(AggregateHashTable&& other) { merge(std::move(*other.factorizedTable)); }
-    // Must be called after merging hash tables with distinct functions, but only when the merged
-    // distinct tuples match the merged non-distinct tuples
+    // Must be called after merging hash tables with distinct functions, but only when the
+    // merged distinct tuples match the merged non-distinct tuples
     void mergeDistinctAggregateInfo();
 
     void finalizeAggregateStates();
@@ -93,7 +89,27 @@ public:
         return distinctHashTables[aggregateFunctionIdx].get();
     }
 
+    std::unique_ptr<common::DataChunkState> appendDistinct(
+        const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors,
+        common::ValueVector* aggregateVector);
+
 protected:
+    virtual uint64_t append(const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors,
+        common::DataChunkState* leadingState, const std::vector<AggregateInput>& aggregateInputs,
+        uint64_t resultSetMultiplicity, common::SelectionVector* distinctOutputState) {
+        return append(flatKeyVectors, unFlatKeyVectors,
+            std::vector<common::ValueVector*>{} /*dependentKeyVectors*/, leadingState,
+            aggregateInputs, resultSetMultiplicity, distinctOutputState);
+    }
+
+    virtual uint64_t append(const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors,
+        const std::vector<common::ValueVector*>& dependentKeyVectors,
+        common::DataChunkState* leadingState, const std::vector<AggregateInput>& aggregateInputs,
+        uint64_t resultSetMultiplicity, common::SelectionVector* distinctOutputState);
+
     virtual uint64_t matchFTEntries(std::span<const common::ValueVector*> flatKeyVectors,
         std::span<const common::ValueVector*> unFlatKeyVectors, uint64_t numMayMatches,
         uint64_t numNoMatches);
@@ -117,7 +133,8 @@ protected:
     void findHashSlots(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
         const std::vector<common::ValueVector*>& dependentKeyVectors,
-        common::DataChunkState* leadingState);
+        common::DataChunkState* leadingState,
+        common::SelectionVector* distinctOutputState = nullptr);
 
     void findHashSlots(const FactorizedTable& data, uint64_t startOffset, uint64_t numTuples);
 
@@ -129,8 +146,8 @@ protected:
 
     void initializeTmpVectors();
 
-    // ! This function will only be used by distinct aggregate, which assumes that all groupByKeys
-    // are flat.
+    // ! This function will only be used by distinct aggregate, which assumes that all
+    // groupByKeys are flat.
     uint8_t* findEntryInDistinctHT(const std::vector<common::ValueVector*>& groupByKeyVectors,
         common::hash_t hash);
 
@@ -162,7 +179,8 @@ protected:
 
     void fillEntryWithInitialNullAggregateState(FactorizedTable& table, uint8_t* entry);
 
-    //! find an uninitialized hash slot for given hash and fill hash slot with block id and offset
+    //! find an uninitialized hash slot for given hash and fill hash slot with block id and
+    //! offset
     void fillHashSlot(common::hash_t hash, uint8_t* groupByKeysAndAggregateStateBuffer);
 
     inline HashSlot* getHashSlot(uint64_t slotIdx) {
@@ -310,13 +328,10 @@ public:
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
         const std::vector<common::ValueVector*>& dependentKeyVectors,
         common::DataChunkState* leadingState, const std::vector<AggregateInput>& aggregateInputs,
-        uint64_t resultSetMultiplicity);
+        uint64_t resultSetMultiplicity,
+        common::SelectionVector* distinctOutputState = nullptr) override;
 
     void mergeIfFull(uint64_t tuplesToAdd, bool mergeAll = false);
-
-    bool insertAggregateValueIfDistinctForGroupByKeys(
-        const std::vector<common::ValueVector*>& groupByKeyVectors,
-        common::ValueVector* aggregateVector) override;
 
 private:
     FactorizedTableSchema tableSchema;
