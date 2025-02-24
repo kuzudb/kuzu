@@ -51,8 +51,7 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraphCollection
     if (info.subqueryType == SubqueryPlanningType::CORRELATED) {
         // Pick a query graph to plan ExpressionsScan. If -1 is returned, we fall back to cross
         // product.
-        queryGraphIdxToPlanExpressionsScan =
-            getConnectedQueryGraphIdx(queryGraphCollection, info);
+        queryGraphIdxToPlanExpressionsScan = getConnectedQueryGraphIdx(queryGraphCollection, info);
     }
     std::unordered_set<uint32_t> evaluatedPredicatesIndices;
     std::vector<std::vector<std::unique_ptr<LogicalPlan>>> plansPerQueryGraph;
@@ -136,7 +135,8 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraph(const Que
     context.init(&queryGraph, info.predicates);
     cardinalityEstimator.initNodeIDDom(clientContext->getTransaction(), queryGraph);
     if (info.hint != nullptr) {
-        auto constructor = JoinTreeConstructor(queryGraph, propertyExprCollection, info.predicates, info);
+        auto constructor =
+            JoinTreeConstructor(queryGraph, propertyExprCollection, info.predicates, info);
         auto joinTree = constructor.construct(info.hint);
         auto plan = JoinPlanSolver(this).solve(joinTree);
         std::vector<std::unique_ptr<LogicalPlan>> result;

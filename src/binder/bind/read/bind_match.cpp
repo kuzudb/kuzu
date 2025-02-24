@@ -44,13 +44,15 @@ std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause&
     auto boundMatch = std::make_unique<BoundMatchClause>(
         std::move(boundGraphPattern.queryGraphCollection), matchClause.getMatchClauseType());
     if (matchClause.hasHint()) {
-        boundMatch->setHint(bindJoinHint(*boundMatch->getQueryGraphCollection(), *matchClause.getHint()));
+        boundMatch->setHint(
+            bindJoinHint(*boundMatch->getQueryGraphCollection(), *matchClause.getHint()));
     }
     boundMatch->setPredicate(boundGraphPattern.where);
     return boundMatch;
 }
 
-std::shared_ptr<BoundJoinHintNode> Binder::bindJoinHint(const QueryGraphCollection& queryGraphCollection, const JoinHintNode& joinHintNode) {
+std::shared_ptr<BoundJoinHintNode> Binder::bindJoinHint(
+    const QueryGraphCollection& queryGraphCollection, const JoinHintNode& joinHintNode) {
     if (queryGraphCollection.getNumQueryGraphs() > 1) {
         throw BinderException("Join hint on disconnected match pattern is not supported.");
     }

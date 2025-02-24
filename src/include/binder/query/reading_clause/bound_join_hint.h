@@ -22,5 +22,5 @@ struct BoundJoinHintNode {
     bool isMultiWay() const { return children.size() > 2; }
 };
 
-}
-}
+} // namespace binder
+} // namespace kuzu

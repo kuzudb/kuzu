@@ -1,8 +1,8 @@
 #pragma once
 
+#include "join_hint.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 #include "reading_clause.h"
-#include "join_hint.h"
 
 namespace kuzu {
 namespace parser {

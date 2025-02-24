@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vector>
 #include <memory>
+#include <vector>
 
 namespace kuzu {
 namespace parser {
@@ -16,5 +16,5 @@ struct JoinHintNode {
     bool isLeaf() const { return children.empty(); }
 };
 
-}
-}
+} // namespace parser
+} // namespace kuzu

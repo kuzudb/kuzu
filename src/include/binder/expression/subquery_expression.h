@@ -1,9 +1,9 @@
 #pragma once
 
 #include "binder/query/query_graph.h"
+#include "binder/query/reading_clause/bound_join_hint.h"
 #include "common/enums/subquery_type.h"
 #include "expression.h"
-#include "binder/query/reading_clause/bound_join_hint.h"
 
 namespace kuzu {
 namespace binder {

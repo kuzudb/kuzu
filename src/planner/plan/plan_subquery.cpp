@@ -108,12 +108,14 @@ private:
 void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
     const expression_vector& predicates, const binder::expression_vector& corrExprs,
     LogicalPlan& leftPlan, std::shared_ptr<BoundJoinHintNode> hint) {
-    planOptionalMatch(queryGraphCollection, predicates, corrExprs, nullptr /* mark */, leftPlan, std::move(hint));
+    planOptionalMatch(queryGraphCollection, predicates, corrExprs, nullptr /* mark */, leftPlan,
+        std::move(hint));
 }
 
 void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
     const expression_vector& predicates, const binder::expression_vector& correlatedExprs,
-    std::shared_ptr<Expression> mark, LogicalPlan& leftPlan, std::shared_ptr<BoundJoinHintNode> hint) {
+    std::shared_ptr<Expression> mark, LogicalPlan& leftPlan,
+    std::shared_ptr<BoundJoinHintNode> hint) {
     auto info = QueryGraphPlanningInfo();
     info.hint = hint;
     if (leftPlan.isEmpty()) {
@@ -166,7 +168,8 @@ void Planner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection
 }
 
 void Planner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
-    const expression_vector& predicates, LogicalPlan& leftPlan, std::shared_ptr<BoundJoinHintNode> hint) {
+    const expression_vector& predicates, LogicalPlan& leftPlan,
+    std::shared_ptr<BoundJoinHintNode> hint) {
     expression_vector predicatesToPushDown, predicatesToPullUp;
     // E.g. MATCH (a) WITH COUNT(*) AS s MATCH (b) WHERE b.age > s
     // "b.age > s" should be pulled up after both MATCH clauses are joined.

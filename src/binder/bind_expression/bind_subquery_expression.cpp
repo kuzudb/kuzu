@@ -63,7 +63,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindSubqueryExpression(
     projectionExpr->setUniqueName(uniqueName);
     boundSubqueryExpr->setProjectionExpr(projectionExpr);
     if (subqueryExpr.hasHint()) {
-        boundSubqueryExpr->setHint(binder->bindJoinHint(*boundSubqueryExpr->getQueryGraphCollection(), *subqueryExpr.getHint()));
+        boundSubqueryExpr->setHint(binder->bindJoinHint(
+            *boundSubqueryExpr->getQueryGraphCollection(), *subqueryExpr.getHint()));
     }
     binder->restoreScope(std::move(prevScope));
     return boundSubqueryExpr;
