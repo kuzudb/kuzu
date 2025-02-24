@@ -20,8 +20,8 @@ namespace function {
 
 struct CastChildFunctionExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
-    static void executeSwitch(common::ValueVector& operand, common::ValueVector& result,
-        void* dataPtr) {
+    static void executeSwitch(common::ValueVector& operand, common::SelectionVector*,
+        common::ValueVector& result, common::SelectionVector*, void* dataPtr) {
         auto numOfEntries = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
         for (auto i = 0u; i < numOfEntries; i++) {
             result.setNull(i, operand.isNull(i));
@@ -98,7 +98,8 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
                         ->execFunc;
         std::vector<std::shared_ptr<ValueVector>> childParams{inputVector};
         dataPtr->numOfEntries = numOfEntries;
-        func(childParams, *resultVector, (void*)dataPtr);
+        func(childParams, SelectionVector::fromValueVectors(childParams), *resultVector,
+            resultVector->getSelVectorPtr(), (void*)dataPtr);
     } else {
         for (auto i = 0u; i < numOfEntries; i++) {
             resultVector->copyFromVectorData(i, inputVector.get(), i);
@@ -106,27 +107,30 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
     }
 }
 
-static void nestedTypesCastExecFunction(const std::vector<std::shared_ptr<ValueVector>>& params,
-    ValueVector& result, void*) {
+static void nestedTypesCastExecFunction(
+    const std::vector<std::shared_ptr<common::ValueVector>>& params,
+    const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void*) {
     KU_ASSERT(params.size() == 1);
     result.resetAuxiliaryBuffer();
     const auto& inputVector = params[0];
+    const auto* inputVectorSelVector = paramSelVectors[0];
 
     // check if all selcted list entry have the requried fixed list size
     if (CastArrayHelper::containsListToArray(inputVector->dataType, result.dataType)) {
-        for (auto i = 0u; i < inputVector->state->getSelVector().getSelSize(); i++) {
-            auto pos = inputVector->state->getSelVector()[i];
+        for (auto i = 0u; i < inputVectorSelVector->getSelSize(); i++) {
+            auto pos = (*inputVectorSelVector)[i];
             CastArrayHelper::validateListEntry(inputVector.get(), result.dataType, pos);
         }
     };
 
-    auto& selVector = inputVector->state->getSelVector();
+    auto& selVector = *inputVectorSelVector;
     auto bindData = CastFunctionBindData(result.dataType.copy());
     auto numOfEntries = selVector[selVector.getSelSize() - 1] + 1;
     resolveNestedVector(inputVector, &result, numOfEntries, &bindData);
     if (inputVector->state->isFlat()) {
-        result.state->getSelVectorUnsafe().setToFiltered();
-        result.state->getSelVectorUnsafe()[0] = inputVector->state->getSelVector()[0];
+        resultSelVector->setToFiltered();
+        (*resultSelVector)[0] = (*inputVectorSelVector)[0];
     }
 }
 

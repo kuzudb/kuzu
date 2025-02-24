@@ -360,19 +360,21 @@ TEST_F(ApiTest, TernaryUDFMoreParamType) {
         "Catalog exception: Expected exactly three parameter types for ternary udf. Got: 4.");
 }
 
-static void addFour(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/ = nullptr) {
+static void addFour(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    const std::vector<common::SelectionVector*>& parameterSelVectors, common::ValueVector& result,
+    common::SelectionVector*, void* /*dataPtr*/ = nullptr) {
     KU_ASSERT(parameters.size() == 1);
-    auto parameter = parameters[0];
+    const auto& parameter = *parameters[0];
+    const auto& parameterSelVector = *parameterSelVectors[0];
     result.resetAuxiliaryBuffer();
-    result.state = parameter->state;
-    if (parameter->state->isFlat()) {
-        auto pos = parameter->state->getSelVector()[0];
-        result.setValue(pos, parameter->getValue<int64_t>(pos) + 4);
+    result.state = parameter.state;
+    if (parameter.state->isFlat()) {
+        auto pos = parameterSelVector[0];
+        result.setValue(pos, parameter.getValue<int64_t>(pos) + 4);
     } else {
-        for (auto i = 0u; i < parameter->state->getSelVector().getSelSize(); i++) {
-            auto pos = parameter->state->getSelVector()[i];
-            result.setValue(pos, parameter->getValue<int64_t>(pos) + 4);
+        for (auto i = 0u; i < parameterSelVector.getSelSize(); i++) {
+            auto pos = parameterSelVector[i];
+            result.setValue(pos, parameter.getValue<int64_t>(pos) + 4);
         }
     }
 }
@@ -391,11 +393,12 @@ struct AddDate {
     }
 };
 
-static void addDate(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/ = nullptr) {
+static void addDate(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    const std::vector<common::SelectionVector*>& parameterSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void* /*dataPtr*/ = nullptr) {
     KU_ASSERT(parameters.size() == 2);
     function::BinaryFunctionExecutor::execute<date_t, int64_t, date_t, AddDate>(*parameters[0],
-        *parameters[1], result);
+        parameterSelVectors[0], *parameters[1], parameterSelVectors[1], result, resultSelVector);
 }
 
 TEST_F(ApiTest, vectorizedBinaryAddDate) {
@@ -436,11 +439,14 @@ struct ConditionalConcat {
     }
 };
 
-static void conditionalConcat(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/ = nullptr) {
+static void conditionalConcat(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    const std::vector<common::SelectionVector*>& parameterSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void* dataPtr = nullptr) {
     KU_ASSERT(parameters.size() == 3);
-    function::TernaryFunctionExecutor::executeString<ku_string_t, bool, ku_string_t, ku_string_t,
-        ConditionalConcat>(*parameters[0], *parameters[1], *parameters[2], result);
+    function::TernaryFunctionExecutor::executeSwitch<ku_string_t, bool, ku_string_t, ku_string_t,
+        ConditionalConcat, function::TernaryStringFunctionWrapper>(*parameters[0],
+        parameterSelVectors[0], *parameters[1], parameterSelVectors[1], *parameters[2],
+        parameterSelVectors[2], result, resultSelVector, dataPtr);
 }
 
 TEST_F(ApiTest, vectorizedTernaryConditionalAdd) {

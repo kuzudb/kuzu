@@ -546,9 +546,9 @@ void StringVector::copyToRowData(const ValueVector* vector, uint32_t pos, uint8_
     }
 }
 
-void ListVector::copyListEntryAndBufferMetaData(ValueVector& vector, const ValueVector& other) {
-    auto& selVector = vector.state->getSelVector();
-    auto& otherSelVector = other.state->getSelVector();
+void ListVector::copyListEntryAndBufferMetaData(ValueVector& vector,
+    const SelectionVector& selVector, const ValueVector& other,
+    const SelectionVector& otherSelVector) {
     KU_ASSERT(selVector.getSelSize() == otherSelVector.getSelSize());
     // Copy list entries
     for (auto i = 0u; i < otherSelVector.getSelSize(); ++i) {

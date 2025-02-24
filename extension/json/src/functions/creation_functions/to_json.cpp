@@ -9,13 +9,14 @@ namespace json_extension {
 using namespace function;
 using namespace common;
 
-static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/) {
+static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    const std::vector<common::SelectionVector*>& parameterSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
     KU_ASSERT(parameters.size() == 1);
     result.resetAuxiliaryBuffer();
-    for (auto i = 0u; i < result.state->getSelVector().getSelSize(); ++i) {
-        auto inputPos = parameters[0]->state->getSelVector()[i];
-        auto resultPos = result.state->getSelVector()[i];
+    for (auto i = 0u; i < resultSelVector->getSelSize(); ++i) {
+        auto inputPos = (*parameterSelVectors[0])[i];
+        auto resultPos = (*resultSelVector)[i];
         result.setNull(resultPos, parameters[0]->isNull(inputPos));
         if (!parameters[0]->isNull(inputPos)) {
             StringVector::addString(&result, resultPos,

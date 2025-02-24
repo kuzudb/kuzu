@@ -25,22 +25,24 @@ static bool isAllInternalIDDistinct(common::ValueVector* dataVector, common::off
 // pay attention to the performance drop. Depends on how bad it becomes, we may want to implement
 // customized executors.
 struct UnaryPathExecutor {
-    static void executeNodeIDs(common::ValueVector& input, common::ValueVector& result) {
+    static void executeNodeIDs(common::ValueVector& input, common::SelectionVector& inputSelVector,
+        common::ValueVector& result) {
         auto nodesFieldIdx = 0;
         KU_ASSERT(nodesFieldIdx ==
                   common::StructType::getFieldIdx(input.dataType, common::InternalKeyword::NODES));
         auto nodesVector = common::StructVector::getFieldVector(&input, nodesFieldIdx).get();
         auto internalIDFieldIdx = 0;
-        execute(input.state->getSelVector(), *nodesVector, internalIDFieldIdx, result);
+        execute(inputSelVector, *nodesVector, internalIDFieldIdx, result);
     }
 
-    static void executeRelIDs(common::ValueVector& input, common::ValueVector& result) {
+    static void executeRelIDs(common::ValueVector& input, common::SelectionVector& inputSelVector,
+        common::ValueVector& result) {
         auto relsFieldIdx = 1;
         KU_ASSERT(relsFieldIdx ==
                   common::StructType::getFieldIdx(input.dataType, common::InternalKeyword::RELS));
         auto relsVector = common::StructVector::getFieldVector(&input, relsFieldIdx).get();
         auto internalIDFieldIdx = 3;
-        execute(input.state->getSelVector(), *relsVector, internalIDFieldIdx, result);
+        execute(inputSelVector, *relsVector, internalIDFieldIdx, result);
     }
 
     static bool selectNodeIDs(common::ValueVector& input,

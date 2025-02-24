@@ -10,25 +10,27 @@ namespace json_extension {
 using namespace function;
 using namespace common;
 
-static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/) {
+static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    const std::vector<common::SelectionVector*>& parameterSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
     KU_ASSERT(parameters.size() % 2 == 0);
     result.resetAuxiliaryBuffer();
-    for (auto i = 0u; i < result.state->getSelVector().getSelSize(); ++i) {
-        auto resultPos = result.state->getSelVector()[i];
+    for (auto i = 0u; i < resultSelVector->getSelSize(); ++i) {
+        auto resultPos = (*resultSelVector)[i];
         JsonMutWrapper wrapper;
         auto obj = yyjson_mut_obj(wrapper.ptr);
         for (auto j = 0u; j < parameters.size() / 2; j++) {
-            auto keyParam = parameters[j * 2];
-            if (keyParam->isNull(keyParam->state->isFlat() ? 0 : i)) {
+            auto& keyParam = *parameters[j * 2];
+            auto& keyParamSelVector = *parameterSelVectors[j * 2];
+            if (keyParam.isNull(keyParam.state->isFlat() ? 0 : i)) {
                 continue;
             }
-            auto valParam = parameters[j * 2 + 1];
+            auto& valParam = *parameters[j * 2 + 1];
+            auto& valParamSelVector = *parameterSelVectors[j * 2 + 1];
             yyjson_mut_obj_add(obj,
-                jsonifyAsString(wrapper, *keyParam,
-                    keyParam->state->getSelVector()[keyParam->state->isFlat() ? 0 : i]),
-                jsonify(wrapper, *valParam,
-                    valParam->state->getSelVector()[valParam->state->isFlat() ? 0 : i]));
+                jsonifyAsString(wrapper, keyParam,
+                    keyParamSelVector[keyParam.state->isFlat() ? 0 : i]),
+                jsonify(wrapper, valParam, valParamSelVector[valParam.state->isFlat() ? 0 : i]));
         }
         yyjson_mut_doc_set_root(wrapper.ptr, obj);
         StringVector::addString(&result, resultPos,

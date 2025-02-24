@@ -49,9 +49,11 @@ static void compileFunc(FunctionBindData* bindData,
     ListVector::setDataVector(result.get(), fieldVector);
 }
 
-static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/) {
-    ListVector::copyListEntryAndBufferMetaData(result, *parameters[0]);
+static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    const std::vector<common::SelectionVector*>& parameterSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
+    ListVector::copyListEntryAndBufferMetaData(result, *resultSelVector, *parameters[0],
+        *parameterSelVectors[0]);
 }
 
 function_set PropertiesFunction::getFunctionSet() {

@@ -28,7 +28,7 @@ void FunctionExpressionEvaluator::evaluate() {
     }
     if (function->execFunc != nullptr) {
         bindData->clientContext = ctx;
-        function->execFunc(parameters, *resultVector, bindData.get());
+        runExecFunc(bindData.get());
     }
 }
 
@@ -40,7 +40,7 @@ void FunctionExpressionEvaluator::evaluate(common::sel_t count) {
     }
     bindData->count = count;
     bindData->clientContext = localState.clientContext;
-    function->execFunc(parameters, *resultVector, bindData.get());
+    runExecFunc(bindData.get());
 }
 
 bool FunctionExpressionEvaluator::selectInternal(SelectionVector& selVector) {
@@ -51,7 +51,7 @@ bool FunctionExpressionEvaluator::selectInternal(SelectionVector& selVector) {
     // implemented (e.g. list_contains). We should remove this if statement eventually.
     if (function->selectFunc == nullptr) {
         KU_ASSERT(resultVector->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
-        function->execFunc(parameters, *resultVector, nullptr);
+        runExecFunc();
         return updateSelectedPos(selVector);
     }
     return function->selectFunc(parameters, selVector);

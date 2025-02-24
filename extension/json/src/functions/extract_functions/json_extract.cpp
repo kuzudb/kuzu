@@ -10,26 +10,29 @@ namespace json_extension {
 using namespace function;
 using namespace common;
 
-static void jsonExtractSinglePath(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/) {
+static void jsonExtractSinglePath(
+    const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    const std::vector<common::SelectionVector*>& parameterSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
     result.resetAuxiliaryBuffer();
-    const auto& param1 = parameters[0];
-    const auto& param2 = parameters[1];
-    for (auto selectedPos = 0u; selectedPos < result.state->getSelVector().getSelSize();
-         ++selectedPos) {
-        auto resultPos = result.state->getSelVector()[selectedPos];
-        auto param1Pos = param1->state->getSelVector()[param1->state->isFlat() ? 0 : selectedPos];
-        auto param2Pos = param2->state->getSelVector()[param2->state->isFlat() ? 0 : selectedPos];
-        auto isNull = parameters[0]->isNull(param1Pos) || parameters[1]->isNull(param2Pos);
+    const auto& param1 = *parameters[0];
+    const auto& param2 = *parameters[1];
+    const auto& param1SelVector = *parameterSelVectors[0];
+    const auto& param2SelVector = *parameterSelVectors[1];
+    for (auto selectedPos = 0u; selectedPos < resultSelVector->getSelSize(); ++selectedPos) {
+        auto resultPos = (*resultSelVector)[selectedPos];
+        auto param1Pos = param1SelVector[param1.state->isFlat() ? 0 : selectedPos];
+        auto param2Pos = param2SelVector[param2.state->isFlat() ? 0 : selectedPos];
+        auto isNull = param1.isNull(param1Pos) || param2.isNull(param2Pos);
         result.setNull(resultPos, isNull);
         if (!isNull) {
-            auto param1Str = param1->getValue<ku_string_t>(param1Pos).getAsString();
+            auto param1Str = param1.getValue<ku_string_t>(param1Pos).getAsString();
             std::string output;
-            if (param2->dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
-                auto param2Str = param2->getAsValue(param2Pos)->toString();
+            if (param2.dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
+                auto param2Str = param2.getAsValue(param2Pos)->toString();
                 output = jsonExtractToString(stringToJson(param1Str), param2Str);
-            } else if (param2->dataType.getLogicalTypeID() == LogicalTypeID::INT64) {
-                auto param2Int = param2->getValue<int64_t>(param2Pos);
+            } else if (param2.dataType.getLogicalTypeID() == LogicalTypeID::INT64) {
+                auto param2Int = param2.getValue<int64_t>(param2Pos);
                 output = jsonExtractToString(stringToJson(param1Str), param2Int);
             } else {
                 KU_UNREACHABLE;
@@ -47,23 +50,26 @@ static std::unique_ptr<FunctionBindData> bindJsonExtractSinglePath(ScalarBindFun
     return std::make_unique<FunctionBindData>(std::move(types), JsonType::getJsonType());
 }
 
-static void jsonExtractMultiPath(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/) {
+static void jsonExtractMultiPath(
+    const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    const std::vector<common::SelectionVector*>& parameterSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
     result.resetAuxiliaryBuffer();
     const auto resultDataVector = ListVector::getDataVector(&result);
-    const auto& param1 = parameters[0];
-    const auto& param2 = parameters[1];
-    const auto param2DataVector = ListVector::getDataVector(param2.get());
-    for (auto selectedPos = 0u; selectedPos < result.state->getSelVector().getSelSize();
-         ++selectedPos) {
-        auto resultPos = result.state->getSelVector()[selectedPos];
-        auto param1Pos = param1->state->getSelVector()[param1->state->isFlat() ? 0 : selectedPos];
-        auto param2Pos = param2->state->getSelVector()[param2->state->isFlat() ? 0 : selectedPos];
-        auto isNull = parameters[0]->isNull(param1Pos) || parameters[1]->isNull(param2Pos);
+    const auto& param1 = *parameters[0];
+    const auto& param2 = *parameters[1];
+    const auto& param1SelVector = *parameterSelVectors[0];
+    const auto& param2SelVector = *parameterSelVectors[1];
+    const auto param2DataVector = ListVector::getDataVector(&param2);
+    for (auto selectedPos = 0u; selectedPos < resultSelVector->getSelSize(); ++selectedPos) {
+        auto resultPos = (*resultSelVector)[selectedPos];
+        auto param1Pos = param1SelVector[param1.state->isFlat() ? 0 : selectedPos];
+        auto param2Pos = param2SelVector[param2.state->isFlat() ? 0 : selectedPos];
+        auto isNull = param1.isNull(param1Pos) || param2.isNull(param2Pos);
         result.setNull(resultPos, isNull);
         if (!isNull) {
-            auto param1Str = param1->getValue<ku_string_t>(param1Pos).getAsString();
-            auto param2List = param2->getValue<list_entry_t>(param2Pos);
+            auto param1Str = param1.getValue<ku_string_t>(param1Pos).getAsString();
+            auto param2List = param2.getValue<list_entry_t>(param2Pos);
             auto resultList = ListVector::addList(&result, param2List.size);
             result.setValue<list_entry_t>(resultPos, resultList);
             for (auto i = 0u; i < resultList.size; ++i) {

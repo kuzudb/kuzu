@@ -9,22 +9,23 @@ namespace json_extension {
 using namespace function;
 using namespace common;
 
-static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/) {
+static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    const std::vector<common::SelectionVector*>& parameterSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
     result.resetAuxiliaryBuffer();
     auto resultDataVector = ListVector::getDataVector(&result);
     resultDataVector->resetAuxiliaryBuffer();
-    const auto& param = parameters[0];
+    const auto& param = *parameters[0];
+    const auto& paramSelVector = parameterSelVectors[0];
     size_t idx = 0, max = 0;
     yyjson_val *key = nullptr, *childVal = nullptr;
-    for (auto selectedPos = 0u; selectedPos < result.state->getSelVector().getSelSize();
-         ++selectedPos) {
-        auto resultPos = result.state->getSelVector()[selectedPos];
-        auto paramPos = param->state->getSelVector()[param->state->isFlat() ? 0 : selectedPos];
-        auto isNull = parameters[0]->isNull(paramPos);
+    for (auto selectedPos = 0u; selectedPos < resultSelVector->getSelSize(); ++selectedPos) {
+        auto resultPos = (*resultSelVector)[selectedPos];
+        auto paramPos = (*paramSelVector)[param.state->isFlat() ? 0 : selectedPos];
+        auto isNull = param.isNull(paramPos);
         result.setNull(resultPos, isNull);
         if (!isNull) {
-            auto paramStr = param->getValue<ku_string_t>(paramPos).getAsString();
+            auto paramStr = param.getValue<ku_string_t>(paramPos).getAsString();
             auto doc = JsonWrapper{JSONCommon::readDocument(paramStr, JSONCommon::READ_FLAG)};
             auto numKeys = yyjson_obj_size(yyjson_doc_get_root(doc.ptr));
             auto resultList = ListVector::addList(&result, numKeys);

@@ -76,6 +76,10 @@ struct BinaryUDFFunctionWrapper {
 };
 
 struct BinaryFunctionExecutor {
+    using binary_execute_func_t = void (*)(common::ValueVector&, common::SelectionVector*,
+        common::ValueVector&, common::SelectionVector*, common::ValueVector&,
+        common::SelectionVector*, void*);
+
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
     static inline void executeOnValue(common::ValueVector& left, common::ValueVector& right,
@@ -89,11 +93,12 @@ struct BinaryFunctionExecutor {
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
-    static void executeBothFlat(common::ValueVector& left, common::ValueVector& right,
-        common::ValueVector& result, void* dataPtr) {
-        auto lPos = left.state->getSelVector()[0];
-        auto rPos = right.state->getSelVector()[0];
-        auto resPos = result.state->getSelVector()[0];
+    static void executeBothFlat(common::ValueVector& left, common::SelectionVector* leftSelVector,
+        common::ValueVector& right, common::SelectionVector* rightSelVector,
+        common::ValueVector& result, common::SelectionVector* resultSelVector, void* dataPtr) {
+        auto lPos = (*leftSelVector)[0];
+        auto rPos = (*rightSelVector)[0];
+        auto resPos = (*resultSelVector)[0];
         result.setNull(resPos, left.isNull(lPos) || right.isNull(rPos));
         if (!result.isNull(resPos)) {
             executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
@@ -103,20 +108,20 @@ struct BinaryFunctionExecutor {
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
-    static void executeFlatUnFlat(common::ValueVector& left, common::ValueVector& right,
-        common::ValueVector& result, void* dataPtr) {
-        auto lPos = left.state->getSelVector()[0];
-        auto& rightSelVector = right.state->getSelVector();
+    static void executeFlatUnFlat(common::ValueVector& left, common::SelectionVector* leftSelVector,
+        common::ValueVector& right, common::SelectionVector* rightSelVector,
+        common::ValueVector& result, common::SelectionVector*, void* dataPtr) {
+        auto lPos = (*leftSelVector)[0];
         if (left.isNull(lPos)) {
             result.setAllNull();
         } else if (right.hasNoNullsGuarantee()) {
             result.setAllNonNull();
-            rightSelVector.forEach([&](auto i) {
+            rightSelVector->forEach([&](auto i) {
                 executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
                     result, lPos, i, i, dataPtr);
             });
         } else {
-            rightSelVector.forEach([&](auto i) {
+            rightSelVector->forEach([&](auto i) {
                 result.setNull(i, right.isNull(i)); // left is always not null
                 if (!result.isNull(i)) {
                     executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
@@ -128,20 +133,20 @@ struct BinaryFunctionExecutor {
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
-    static void executeUnFlatFlat(common::ValueVector& left, common::ValueVector& right,
-        common::ValueVector& result, void* dataPtr) {
-        auto rPos = right.state->getSelVector()[0];
-        auto& leftSelVector = left.state->getSelVector();
+    static void executeUnFlatFlat(common::ValueVector& left, common::SelectionVector* leftSelVector,
+        common::ValueVector& right, common::SelectionVector* rightSelVector,
+        common::ValueVector& result, common::SelectionVector*, void* dataPtr) {
+        auto rPos = (*rightSelVector)[0];
         if (right.isNull(rPos)) {
             result.setAllNull();
         } else if (left.hasNoNullsGuarantee()) {
             result.setAllNonNull();
-            leftSelVector.forEach([&](auto i) {
+            leftSelVector->forEach([&](auto i) {
                 executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
                     result, i, rPos, i, dataPtr);
             });
         } else {
-            leftSelVector.forEach([&](auto i) {
+            leftSelVector->forEach([&](auto i) {
                 result.setNull(i, left.isNull(i)); // right is always not null
                 if (!result.isNull(i)) {
                     executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
@@ -153,18 +158,18 @@ struct BinaryFunctionExecutor {
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
-    static void executeBothUnFlat(common::ValueVector& left, common::ValueVector& right,
-        common::ValueVector& result, void* dataPtr) {
-        KU_ASSERT(left.state == right.state);
-        auto& resultSelVector = result.state->getSelVector();
+    static void executeBothUnFlat(common::ValueVector& left, common::SelectionVector* leftSelVector,
+        common::ValueVector& right, common::SelectionVector* rightSelVector,
+        common::ValueVector& result, common::SelectionVector* resultSelVector, void* dataPtr) {
+        KU_ASSERT(leftSelVector == rightSelVector);
         if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
             result.setAllNonNull();
-            resultSelVector.forEach([&](auto i) {
+            resultSelVector->forEach([&](auto i) {
                 executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
                     result, i, i, i, dataPtr);
             });
         } else {
-            resultSelVector.forEach([&](auto i) {
+            resultSelVector->forEach([&](auto i) {
                 result.setNull(i, left.isNull(i) || right.isNull(i));
                 if (!result.isNull(i)) {
                     executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
@@ -176,73 +181,30 @@ struct BinaryFunctionExecutor {
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
-    static void executeSwitch(common::ValueVector& left, common::ValueVector& right,
-        common::ValueVector& result, void* dataPtr) {
+    static void executeSwitch(common::ValueVector& left, common::SelectionVector* leftSelVector,
+        common::ValueVector& right, common::SelectionVector* rightSelVector,
+        common::ValueVector& result, common::SelectionVector* resultSelVector, void* dataPtr) {
         result.resetAuxiliaryBuffer();
+        binary_execute_func_t executeFunc = nullptr;
         if (left.state->isFlat() && right.state->isFlat()) {
-            executeBothFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
-                result, dataPtr);
+            executeFunc = executeBothFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>;
         } else if (left.state->isFlat() && !right.state->isFlat()) {
-            executeFlatUnFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
-                result, dataPtr);
+            executeFunc = executeFlatUnFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>;
         } else if (!left.state->isFlat() && right.state->isFlat()) {
-            executeUnFlatFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
-                result, dataPtr);
+            executeFunc = executeUnFlatFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>;
         } else if (!left.state->isFlat() && !right.state->isFlat()) {
-            executeBothUnFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
-                result, dataPtr);
-        } else {
-            KU_ASSERT(false);
+            executeFunc = executeBothUnFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>;
         }
+        KU_ASSERT(executeFunc);
+        executeFunc(left, leftSelVector, right, rightSelVector, result, resultSelVector, dataPtr);
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void execute(common::ValueVector& left, common::ValueVector& right,
-        common::ValueVector& result) {
-        executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, BinaryFunctionWrapper>(left, right,
-            result, nullptr /* dataPtr */);
-    }
-
-    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeString(common::ValueVector& left, common::ValueVector& right,
-        common::ValueVector& result) {
-        executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, BinaryStringFunctionWrapper>(left,
-            right, result, nullptr /* dataPtr */);
-    }
-
-    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeListStruct(common::ValueVector& left, common::ValueVector& right,
-        common::ValueVector& result) {
-        executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, BinaryListStructFunctionWrapper>(
-            left, right, result, nullptr /* dataPtr */);
-    }
-
-    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeMapCreation(common::ValueVector& left, common::ValueVector& right,
-        common::ValueVector& result, void* dataPtr) {
-        executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, BinaryMapCreationFunctionWrapper>(
-            left, right, result, dataPtr);
-    }
-
-    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeListExtract(common::ValueVector& left, common::ValueVector& right,
-        common::ValueVector& result) {
-        executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, BinaryListExtractFunctionWrapper>(
-            left, right, result, nullptr /* dataPtr */);
-    }
-
-    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeComparison(common::ValueVector& left, common::ValueVector& right,
-        common::ValueVector& result) {
-        executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, BinaryComparisonFunctionWrapper>(
-            left, right, result, nullptr /* dataPtr */);
-    }
-
-    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeUDF(common::ValueVector& left, common::ValueVector& right,
-        common::ValueVector& result, void* dataPtr) {
-        executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, BinaryUDFFunctionWrapper>(left,
-            right, result, dataPtr);
+    static void execute(common::ValueVector& left, common::SelectionVector* leftSelVector,
+        common::ValueVector& right, common::SelectionVector* rightSelVector,
+        common::ValueVector& result, common::SelectionVector* resultSelVector) {
+        executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, BinaryFunctionWrapper>(left,
+            leftSelVector, right, rightSelVector, result, resultSelVector, nullptr /* dataPtr */);
     }
 
     struct BinarySelectWrapper {

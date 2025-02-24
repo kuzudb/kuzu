@@ -24,10 +24,12 @@ private:
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
     static void BinaryComparisonExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
+        const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr = nullptr) {
         KU_ASSERT(params.size() == 2);
-        BinaryFunctionExecutor::executeComparison<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
-            *params[0], *params[1], result);
+        BinaryFunctionExecutor::executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC,
+            BinaryComparisonFunctionWrapper>(*params[0], paramSelVectors[0], *params[1],
+            paramSelVectors[1], result, resultSelVector, dataPtr);
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename FUNC>

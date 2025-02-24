@@ -113,6 +113,10 @@ public:
     static std::unique_ptr<ValueVector> deSerialize(Deserializer& deSer, storage::MemoryManager* mm,
         std::shared_ptr<DataChunkState> dataChunkState);
 
+    SelectionVector* getSelVectorPtr() const {
+        return state ? &state->getSelVectorUnsafe() : nullptr;
+    }
+
 private:
     uint32_t getDataTypeSize(const LogicalType& type);
     void initializeValueBuffer();
@@ -179,7 +183,9 @@ public:
         auto& listBuffer = getAuxBufferUnsafe(*vector);
         listBuffer.setDataVector(std::move(dataVector));
     }
-    static void copyListEntryAndBufferMetaData(ValueVector& vector, const ValueVector& other);
+    static void copyListEntryAndBufferMetaData(ValueVector& vector,
+        const SelectionVector& selVector, const ValueVector& other,
+        const SelectionVector& otherSelVector);
     static ValueVector* getDataVector(const ValueVector* vector) {
         KU_ASSERT(validateType(*vector));
         return getAuxBuffer(*vector).getDataVector();
@@ -284,10 +290,11 @@ public:
             std::move(vectorToReference));
     }
 
-    static inline void setTagField(ValueVector* vector, union_field_idx_t tag) {
-        KU_ASSERT(vector->dataType.getLogicalTypeID() == LogicalTypeID::UNION);
-        for (auto i = 0u; i < vector->state->getSelVector().getSelSize(); i++) {
-            vector->setValue<struct_field_idx_t>(vector->state->getSelVector()[i], tag);
+    static inline void setTagField(ValueVector& vector, SelectionVector& sel,
+        union_field_idx_t tag) {
+        KU_ASSERT(vector.dataType.getLogicalTypeID() == LogicalTypeID::UNION);
+        for (auto i = 0u; i < sel.getSelSize(); i++) {
+            vector.setValue<struct_field_idx_t>(sel[i], tag);
         }
     }
 };

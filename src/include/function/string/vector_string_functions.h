@@ -34,7 +34,8 @@ struct ConcatFunction : public VectorStringFunction {
     static constexpr const char* name = "CONCAT";
 
     static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
-        common::ValueVector& result, void* /*dataPtr*/);
+        const std::vector<common::SelectionVector*>& parameterSelVectors,
+        common::ValueVector& result, common::SelectionVector* resultSelVector, void* /*dataPtr*/);
 
     static function_set getFunctionSet();
 };

@@ -8,18 +8,19 @@ namespace json_extension {
 using namespace function;
 using namespace common;
 
-static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/) {
+static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    const std::vector<common::SelectionVector*>& parameterSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
     result.resetAuxiliaryBuffer();
-    const auto& param = parameters[0];
-    for (auto selectedPos = 0u; selectedPos < result.state->getSelVector().getSelSize();
-         ++selectedPos) {
-        auto resultPos = result.state->getSelVector()[selectedPos];
-        auto paramPos = param->state->getSelVector()[param->state->isFlat() ? 0 : selectedPos];
+    const auto& param = *parameters[0];
+    const auto& paramSelVector = *parameterSelVectors[0];
+    for (auto selectedPos = 0u; selectedPos < resultSelVector->getSelSize(); ++selectedPos) {
+        auto resultPos = (*resultSelVector)[selectedPos];
+        auto paramPos = paramSelVector[param.state->isFlat() ? 0 : selectedPos];
         auto isNull = parameters[0]->isNull(paramPos);
         result.setNull(resultPos, isNull);
         if (!isNull) {
-            auto paramStr = param->getValue<ku_string_t>(paramPos).getAsString();
+            auto paramStr = param.getValue<ku_string_t>(paramPos).getAsString();
             auto schema = jsonSchema(stringToJson(paramStr));
             result.setNull(resultPos, false /* isNull */);
             StringVector::addString(&result, resultPos, schema.toString());

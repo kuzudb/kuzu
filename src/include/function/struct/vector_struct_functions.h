@@ -12,7 +12,9 @@ struct StructPackFunctions {
     static function_set getFunctionSet();
 
     static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
-        common::ValueVector& result, void* /*dataPtr*/ = nullptr);
+        const std::vector<common::SelectionVector*>& parameterSelVectors,
+        common::ValueVector& result, common::SelectionVector* resultSelVector,
+        void* /*dataPtr*/ = nullptr);
     static void undirectedRelPackExecFunc(
         const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr);

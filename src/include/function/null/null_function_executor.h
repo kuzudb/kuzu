@@ -8,10 +8,10 @@ namespace function {
 struct NullOperationExecutor {
 
     template<typename FUNC>
-    static void execute(common::ValueVector& operand, common::ValueVector& result) {
+    static void execute(common::ValueVector& operand, common::SelectionVector& operandSelVector,
+        common::ValueVector& result) {
         KU_ASSERT(result.dataType.getLogicalTypeID() == common::LogicalTypeID::BOOL);
         auto resultValues = (uint8_t*)result.getData();
-        auto& operandSelVector = operand.state->getSelVector();
         if (operand.state->isFlat()) {
             auto pos = operandSelVector[0];
             auto resultPos = result.state->getSelVector()[0];

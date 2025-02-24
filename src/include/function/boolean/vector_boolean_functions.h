@@ -18,9 +18,11 @@ private:
     template<typename FUNC>
     static void BinaryBooleanExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
+        const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* /*dataPtr*/ = nullptr) {
         KU_ASSERT(params.size() == 2);
-        BinaryBooleanFunctionExecutor::execute<FUNC>(*params[0], *params[1], result);
+        BinaryBooleanFunctionExecutor::execute<FUNC>(*params[0], paramSelVectors[0], *params[1],
+            paramSelVectors[1], result, resultSelVector);
     }
 
     template<typename FUNC>
@@ -34,9 +36,11 @@ private:
     template<typename FUNC>
     static void UnaryBooleanExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
+        const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* /*dataPtr*/ = nullptr) {
         KU_ASSERT(params.size() == 1);
-        UnaryBooleanOperationExecutor::execute<FUNC>(*params[0], result);
+        UnaryBooleanOperationExecutor::execute<FUNC>(*params[0], paramSelVectors[0], result,
+            resultSelVector);
     }
 
     template<typename FUNC>

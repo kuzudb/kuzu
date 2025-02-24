@@ -11,7 +11,9 @@ struct ListCreationFunction {
 
     static function_set getFunctionSet();
     static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
-        common::ValueVector& result, void* /*dataPtr*/ = nullptr);
+        const std::vector<common::SelectionVector*>& parameterSelVectors,
+        common::ValueVector& result, common::SelectionVector* resultSelVector,
+        void* /*dataPtr*/ = nullptr);
 };
 
 struct ListRangeFunction {
@@ -174,8 +176,9 @@ struct ListReduceFunction {
 using quantifier_handler = std::function<bool(uint64_t numSelectedValues, uint64_t originalSize)>;
 
 void execQuantifierFunc(quantifier_handler handler,
-    const std::vector<std::shared_ptr<common::ValueVector>>& input, common::ValueVector& result,
-    void* bindData);
+    const std::vector<std::shared_ptr<common::ValueVector>>& input,
+    const std::vector<common::SelectionVector*>& inputSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void* bindData);
 
 std::unique_ptr<FunctionBindData> bindQuantifierFunc(const ScalarBindFuncInput& input);
 

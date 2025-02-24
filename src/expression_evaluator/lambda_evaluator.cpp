@@ -69,7 +69,8 @@ void ListLambdaEvaluator::evaluate() {
     KU_ASSERT(children.size() == 1);
     children[0]->evaluate();
     validateListLen(params);
-    execFunc(params, *resultVector, &bindData);
+    execFunc(params, SelectionVector::fromValueVectors(params), *resultVector,
+        resultVector->getSelVectorPtr(), &bindData);
 }
 
 bool ListLambdaEvaluator::selectInternal(common::SelectionVector& selVector) {
@@ -77,7 +78,8 @@ bool ListLambdaEvaluator::selectInternal(common::SelectionVector& selVector) {
     children[0]->evaluate();
     validateListLen(params);
     KU_ASSERT(resultVector->dataType.getLogicalTypeID() == common::LogicalTypeID::BOOL);
-    execFunc(params, *resultVector, &bindData);
+    execFunc(params, SelectionVector::fromValueVectors(params), *resultVector,
+        resultVector->getSelVectorPtr(), &bindData);
     return updateSelectedPos(selVector);
 }
 

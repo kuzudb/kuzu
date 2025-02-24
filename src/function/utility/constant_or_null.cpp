@@ -20,16 +20,15 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     return bindData;
 }
 
-static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result,
-    void* /*dataPtr*/) {
+static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& params,
+    const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
     KU_ASSERT(params.size() == 2);
     result.resetAuxiliaryBuffer();
-    for (auto i = 0u; i < result.state->getSelVector().getSelSize(); ++i) {
-        auto resultPos = result.state->getSelVector()[i];
-        auto firstParamPos =
-            params[0]->state->isFlat() ? params[0]->state->getSelVector()[0] : resultPos;
-        auto secondParamPos =
-            params[1]->state->isFlat() ? params[1]->state->getSelVector()[0] : resultPos;
+    for (auto i = 0u; i < resultSelVector->getSelSize(); ++i) {
+        auto resultPos = (*resultSelVector)[i];
+        auto firstParamPos = params[0]->state->isFlat() ? (*paramSelVectors[0])[0] : resultPos;
+        auto secondParamPos = params[1]->state->isFlat() ? (*paramSelVectors[1])[0] : resultPos;
         if (params[1]->isNull(secondParamPos) || params[0]->isNull(firstParamPos)) {
             result.setNull(resultPos, true);
         } else {

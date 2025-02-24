@@ -26,6 +26,11 @@ protected:
     void resolveResultVector(const processor::ResultSet& resultSet,
         storage::MemoryManager* memoryManager) override;
 
+    void runExecFunc(void* dataPtr = nullptr) {
+        function->execFunc(parameters, common::SelectionVector::fromValueVectors(parameters),
+            *resultVector, resultVector->getSelVectorPtr(), dataPtr);
+    }
+
 private:
     std::vector<std::shared_ptr<common::ValueVector>> parameters;
     std::unique_ptr<function::ScalarFunction> function;

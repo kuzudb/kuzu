@@ -8,12 +8,12 @@ namespace json_extension {
 using namespace function;
 using namespace common;
 
-static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    ValueVector& result, void* /*dataPtr*/) {
-    for (auto selectedPos = 0u; selectedPos < result.state->getSelVector().getSelSize();
-         ++selectedPos) {
-        auto inputPos = parameters[0]->state->getSelVector()[selectedPos];
-        auto resultPos = result.state->getSelVector()[selectedPos];
+static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    const std::vector<common::SelectionVector*>& parameterSelVectors, common::ValueVector& result,
+    common::SelectionVector* resultSelVector, void* /*dataPtr*/) {
+    for (auto selectedPos = 0u; selectedPos < resultSelVector->getSelSize(); ++selectedPos) {
+        auto inputPos = (*parameterSelVectors[0])[selectedPos];
+        auto resultPos = (*resultSelVector)[selectedPos];
         auto isNull = parameters[0]->isNull(inputPos);
         result.setNull(resultPos, isNull);
         if (!isNull) {
