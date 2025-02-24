@@ -17,9 +17,9 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
         auto resultPos = (*resultSelVector)[i];
         JsonMutWrapper wrapper;
         auto mutArray = yyjson_mut_arr(wrapper.ptr);
-        for (size_t i = 0; i < parameters.size(); ++i) {
-            const auto& param = *parameters[i];
-            const auto& paramSelVector = *parameterSelVectors[i];
+        for (size_t j = 0; j < parameters.size(); ++j) {
+            const auto& param = *parameters[j];
+            const auto& paramSelVector = *parameterSelVectors[j];
             auto paramPos = param.state->isFlat() ? paramSelVector[0] : paramSelVector[i];
             yyjson_mut_arr_append(mutArray, jsonify(wrapper, param, paramPos));
         }

@@ -35,9 +35,7 @@ std::vector<SelectionVector*> SelectionVector::constructFromValueVectors(
     const std::vector<std::shared_ptr<common::ValueVector>>& vec) {
     std::vector<SelectionVector*> ret;
     std::transform(vec.begin(), vec.end(), std::back_inserter(ret),
-        [](const auto& vec) -> SelectionVector* {
-            return vec->state ? &vec->state->getSelVectorUnsafe() : nullptr;
-        });
+        [](const auto& vec) -> SelectionVector* { return vec->getSelVectorPtr(); });
     return ret;
 }
 
