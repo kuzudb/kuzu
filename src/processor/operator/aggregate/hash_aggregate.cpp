@@ -206,12 +206,12 @@ void HashAggregateLocalState::init(HashAggregateSharedState* sharedState, Result
     std::vector<LogicalType> keyDataTypes;
     for (auto& pos : info.flatKeysPos) {
         auto vector = resultSet.getValueVector(pos).get();
-        flatKeyVectors.push_back(vector);
+        keyVectors.push_back(vector);
         keyDataTypes.push_back(vector->dataType.copy());
     }
     for (auto& pos : info.unFlatKeysPos) {
         auto vector = resultSet.getValueVector(pos).get();
-        unFlatKeyVectors.push_back(vector);
+        keyVectors.push_back(vector);
         keyDataTypes.push_back(vector->dataType.copy());
     }
     std::vector<LogicalType> payloadDataTypes;
@@ -220,8 +220,6 @@ void HashAggregateLocalState::init(HashAggregateSharedState* sharedState, Result
         dependentKeyVectors.push_back(vector);
         payloadDataTypes.push_back(vector->dataType.copy());
     }
-    leadingState = unFlatKeyVectors.empty() ? flatKeyVectors[0]->state.get() :
-                                              unFlatKeyVectors[0]->state.get();
 
     aggregateHashTable = std::make_unique<PartitioningAggregateHashTable>(sharedState,
         *context->getMemoryManager(), std::move(keyDataTypes), std::move(payloadDataTypes),
@@ -230,8 +228,8 @@ void HashAggregateLocalState::init(HashAggregateSharedState* sharedState, Result
 
 uint64_t HashAggregateLocalState::append(const std::vector<AggregateInput>& aggregateInputs,
     uint64_t multiplicity) const {
-    return aggregateHashTable->append(flatKeyVectors, unFlatKeyVectors, dependentKeyVectors,
-        leadingState, aggregateInputs, multiplicity);
+    return aggregateHashTable->append(keyVectors, dependentKeyVectors, aggregateInputs,
+        multiplicity);
 }
 
 void HashAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {

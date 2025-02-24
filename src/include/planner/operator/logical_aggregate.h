@@ -66,7 +66,6 @@ public:
     }
 
 private:
-    bool hasDistinctAggregate();
     void insertAllExpressionsToGroupAndScope(f_group_pos groupPos);
 
 private:
