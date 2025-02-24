@@ -237,11 +237,12 @@ void VectorHashFunction::combineHash(const ValueVector& left, const SelectionVec
 
 static void HashExecFunc(const std::vector<std::shared_ptr<common::ValueVector>>& params,
     const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
-    common::SelectionVector* resultSelVector, void* /*dataPtr*/ = nullptr) {
+    common::SelectionVector*, void* /*dataPtr*/ = nullptr) {
     KU_ASSERT(params.size() == 1);
     // TODO(Ziyi): evaluators should resolve the state for result vector.
     result.state = params[0]->state;
-    VectorHashFunction::computeHash(*params[0], *paramSelVectors[0], result, *resultSelVector);
+    VectorHashFunction::computeHash(*params[0], *paramSelVectors[0], result,
+        result.state->getSelVectorUnsafe());
 }
 
 function_set HashFunction::getFunctionSet() {
