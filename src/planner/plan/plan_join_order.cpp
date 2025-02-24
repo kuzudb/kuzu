@@ -31,11 +31,11 @@ std::unique_ptr<LogicalPlan> Planner::planQueryGraphCollectionInNewContext(
 }
 
 static int32_t getConnectedQueryGraphIdx(const QueryGraphCollection& queryGraphCollection,
-    const expression_set& expressionSet) {
+    const QueryGraphPlanningInfo& info) {
     for (auto i = 0u; i < queryGraphCollection.getNumQueryGraphs(); ++i) {
         auto queryGraph = queryGraphCollection.getQueryGraph(i);
         for (auto& queryNode : queryGraph->getQueryNodes()) {
-            if (expressionSet.contains(queryNode->getInternalID())) {
+            if (info.containsCorrExpr(*queryNode->getInternalID())) {
                 return i;
             }
         }
@@ -47,13 +47,11 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraphCollection
     const QueryGraphCollection& queryGraphCollection, const QueryGraphPlanningInfo& info) {
     KU_ASSERT(queryGraphCollection.getNumQueryGraphs() > 0);
     auto& corrExprs = info.corrExprs;
-    auto corrExprsSet = binder::expression_set{corrExprs.begin(), corrExprs.end()};
     int32_t queryGraphIdxToPlanExpressionsScan = -1;
     if (info.subqueryType == SubqueryPlanningType::CORRELATED) {
         // Pick a query graph to plan ExpressionsScan. If -1 is returned, we fall back to cross
         // product.
-        queryGraphIdxToPlanExpressionsScan =
-            getConnectedQueryGraphIdx(queryGraphCollection, corrExprsSet);
+        queryGraphIdxToPlanExpressionsScan = getConnectedQueryGraphIdx(queryGraphCollection, info);
     }
     std::unordered_set<uint32_t> evaluatedPredicatesIndices;
     std::vector<std::vector<std::unique_ptr<LogicalPlan>>> plansPerQueryGraph;
@@ -137,7 +135,8 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::enumerateQueryGraph(const Que
     context.init(&queryGraph, info.predicates);
     cardinalityEstimator.initNodeIDDom(clientContext->getTransaction(), queryGraph);
     if (info.hint != nullptr) {
-        auto constructor = JoinTreeConstructor(queryGraph, propertyExprCollection, info.predicates);
+        auto constructor =
+            JoinTreeConstructor(queryGraph, propertyExprCollection, info.predicates, info);
         auto joinTree = constructor.construct(info.hint);
         auto plan = JoinPlanSolver(this).solve(joinTree);
         std::vector<std::unique_ptr<LogicalPlan>> result;
@@ -186,8 +185,6 @@ void Planner::planLevelApproximately(uint32_t level) {
 
 void Planner::planBaseTableScans(const QueryGraphPlanningInfo& info) {
     auto queryGraph = context.getQueryGraph();
-    auto& corrExprs = info.corrExprs;
-    auto corrExprsSet = expression_set{corrExprs.begin(), corrExprs.end()};
     switch (info.subqueryType) {
     case SubqueryPlanningType::NONE: {
         for (auto nodePos = 0u; nodePos < queryGraph->getNumQueryNodes(); ++nodePos) {
@@ -197,7 +194,7 @@ void Planner::planBaseTableScans(const QueryGraphPlanningInfo& info) {
     case SubqueryPlanningType::UNNEST_CORRELATED: {
         for (auto nodePos = 0u; nodePos < queryGraph->getNumQueryNodes(); ++nodePos) {
             auto queryNode = queryGraph->getQueryNode(nodePos);
-            if (corrExprsSet.contains(queryNode->getInternalID())) {
+            if (info.containsCorrExpr(*queryNode->getInternalID())) {
                 // In un-nested subquery, e.g. MATCH (a) OPTIONAL MATCH (a)-[e1]->(b), the inner
                 // query ("(a)-[e1]->(b)") needs to scan a, which is already scanned in the outer
                 // query (a). To avoid scanning storage twice, we keep track of node table "a" and
@@ -211,7 +208,7 @@ void Planner::planBaseTableScans(const QueryGraphPlanningInfo& info) {
     case SubqueryPlanningType::CORRELATED: {
         for (auto nodePos = 0u; nodePos < queryGraph->getNumQueryNodes(); ++nodePos) {
             auto queryNode = queryGraph->getQueryNode(nodePos);
-            if (corrExprsSet.contains(queryNode->getInternalID())) {
+            if (info.containsCorrExpr(*queryNode->getInternalID())) {
                 continue;
             }
             planNodeScan(nodePos);
@@ -230,10 +227,9 @@ void Planner::planCorrelatedExpressionsScan(const QueryGraphPlanningInfo& info) 
     auto queryGraph = context.getQueryGraph();
     auto newSubgraph = context.getEmptySubqueryGraph();
     auto& corrExprs = info.corrExprs;
-    auto corrExprsSet = expression_set{corrExprs.begin(), corrExprs.end()};
     for (auto nodePos = 0u; nodePos < queryGraph->getNumQueryNodes(); ++nodePos) {
         auto queryNode = queryGraph->getQueryNode(nodePos);
-        if (corrExprsSet.contains(queryNode->getInternalID())) {
+        if (info.containsCorrExpr(*queryNode->getInternalID())) {
             newSubgraph.addQueryNode(nodePos);
         }
     }

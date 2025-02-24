@@ -1,7 +1,7 @@
 #pragma once
 
-#include "binder/query/reading_clause/bound_match_clause.h"
 #include "join_tree.h"
+#include "planner/planner.h"
 
 namespace kuzu {
 namespace planner {
@@ -11,9 +11,10 @@ class PropertyExprCollection;
 class JoinTreeConstructor {
 public:
     JoinTreeConstructor(const binder::QueryGraph& queryGraph,
-        const PropertyExprCollection& propertyCollection, binder::expression_vector predicates)
+        const PropertyExprCollection& propertyCollection, binder::expression_vector predicates,
+        const QueryGraphPlanningInfo& planningInfo)
         : queryGraph{queryGraph}, propertyCollection{propertyCollection},
-          queryGraphPredicates{std::move(predicates)} {}
+          queryGraphPredicates{std::move(predicates)}, planningInfo{planningInfo} {}
 
     JoinTree construct(std::shared_ptr<binder::BoundJoinHintNode> root);
 
@@ -36,6 +37,7 @@ private:
     const binder::QueryGraph& queryGraph;
     const PropertyExprCollection& propertyCollection;
     binder::expression_vector queryGraphPredicates;
+    const QueryGraphPlanningInfo& planningInfo;
 };
 
 } // namespace planner

@@ -43,6 +43,8 @@ struct QueryGraphPlanningInfo {
     cardinality_t corrExprsCard = 0;
     // Join hint info.
     std::shared_ptr<binder::BoundJoinHintNode> hint = nullptr;
+
+    bool containsCorrExpr(const binder::Expression& expr) const;
 };
 
 // Group property expressions based on node/relationship.
@@ -143,13 +145,15 @@ public:
     // Plan subquery
     void planOptionalMatch(const binder::QueryGraphCollection& queryGraphCollection,
         const binder::expression_vector& predicates, const binder::expression_vector& corrExprs,
-        LogicalPlan& leftPlan);
+        LogicalPlan& leftPlan, std::shared_ptr<binder::BoundJoinHintNode> hint);
     // Write whether optional match succeed or not to mark.
     void planOptionalMatch(const binder::QueryGraphCollection& queryGraphCollection,
         const binder::expression_vector& predicates, const binder::expression_vector& corrExprs,
-        std::shared_ptr<binder::Expression> mark, LogicalPlan& leftPlan);
+        std::shared_ptr<binder::Expression> mark, LogicalPlan& leftPlan,
+        std::shared_ptr<binder::BoundJoinHintNode> hint);
     void planRegularMatch(const binder::QueryGraphCollection& queryGraphCollection,
-        const binder::expression_vector& predicates, LogicalPlan& leftPlan);
+        const binder::expression_vector& predicates, LogicalPlan& leftPlan,
+        std::shared_ptr<binder::BoundJoinHintNode> hint);
     void planSubquery(const std::shared_ptr<binder::Expression>& subquery, LogicalPlan& outerPlan);
     void planSubqueryIfNecessary(std::shared_ptr<binder::Expression> expression, LogicalPlan& plan);
 

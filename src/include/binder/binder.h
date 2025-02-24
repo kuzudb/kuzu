@@ -195,7 +195,9 @@ public:
     std::unique_ptr<BoundReadingClause> bindReadingClause(
         const parser::ReadingClause& readingClause);
     std::unique_ptr<BoundReadingClause> bindMatchClause(const parser::ReadingClause& readingClause);
-    std::shared_ptr<BoundJoinHintNode> bindJoinHint(const parser::JoinHintNode& joinHintNode);
+    std::shared_ptr<BoundJoinHintNode> bindJoinHint(
+        const QueryGraphCollection& queryGraphCollection, const parser::JoinHintNode& joinHintNode);
+    std::shared_ptr<BoundJoinHintNode> bindJoinNode(const parser::JoinHintNode& joinHintNode);
     void rewriteMatchPattern(BoundGraphPattern& boundGraphPattern);
     std::unique_ptr<BoundReadingClause> bindUnwindClause(
         const parser::ReadingClause& readingClause);

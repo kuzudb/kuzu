@@ -44,18 +44,24 @@ std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause&
     auto boundMatch = std::make_unique<BoundMatchClause>(
         std::move(boundGraphPattern.queryGraphCollection), matchClause.getMatchClauseType());
     if (matchClause.hasHint()) {
-        if (boundMatch->getQueryGraphCollection()->getNumQueryGraphs() > 1) {
-            throw BinderException("Join hint on disconnected match pattern is not supported.");
-        }
-        auto hint = bindJoinHint((*matchClause.getHint()));
-        validateHintCompleteness(*hint, *boundMatch->getQueryGraphCollection()->getQueryGraph(0));
-        boundMatch->setHint(std::move(hint));
+        boundMatch->setHint(
+            bindJoinHint(*boundMatch->getQueryGraphCollection(), *matchClause.getHint()));
     }
     boundMatch->setPredicate(boundGraphPattern.where);
     return boundMatch;
 }
 
-std::shared_ptr<BoundJoinHintNode> Binder::bindJoinHint(const parser::JoinHintNode& joinHintNode) {
+std::shared_ptr<BoundJoinHintNode> Binder::bindJoinHint(
+    const QueryGraphCollection& queryGraphCollection, const JoinHintNode& joinHintNode) {
+    if (queryGraphCollection.getNumQueryGraphs() > 1) {
+        throw BinderException("Join hint on disconnected match pattern is not supported.");
+    }
+    auto hint = bindJoinNode(joinHintNode);
+    validateHintCompleteness(*hint, *queryGraphCollection.getQueryGraph(0));
+    return hint;
+}
+
+std::shared_ptr<BoundJoinHintNode> Binder::bindJoinNode(const JoinHintNode& joinHintNode) {
     if (joinHintNode.isLeaf()) {
         std::shared_ptr<Expression> pattern = nullptr;
         if (scope.contains(joinHintNode.variableName)) {
@@ -69,7 +75,7 @@ std::shared_ptr<BoundJoinHintNode> Binder::bindJoinHint(const parser::JoinHintNo
     }
     auto node = std::make_shared<BoundJoinHintNode>();
     for (auto& child : joinHintNode.children) {
-        node->addChild(bindJoinHint(*child));
+        node->addChild(bindJoinNode(*child));
     }
     return node;
 }

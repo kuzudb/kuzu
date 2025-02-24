@@ -11,6 +11,15 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace planner {
 
+bool QueryGraphPlanningInfo::containsCorrExpr(const Expression& expr) const {
+    for (auto& corrExpr : corrExprs) {
+        if (*corrExpr == expr) {
+            return true;
+        }
+    }
+    return false;
+}
+
 expression_vector PropertyExprCollection::getProperties(const Expression& pattern) const {
     if (!patternNameToProperties.contains(pattern.getUniqueName())) {
         return binder::expression_vector{};
