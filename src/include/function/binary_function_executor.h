@@ -94,10 +94,10 @@ struct BinaryFunctionExecutor {
         auto lPos = (*left.sel)[0];
         auto rPos = (*right.sel)[0];
         auto resPos = (*result.sel)[0];
-        result.vec.setNull(resPos, left.vec.isNull(lPos) || right.vec.isNull(rPos));
-        if (!result.vec.isNull(resPos)) {
-            executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left.vec,
-                right.vec, result.vec, lPos, rPos, resPos, dataPtr);
+        result.setNull(resPos, left.isNull(lPos) || right.isNull(rPos));
+        if (!result.isNull(resPos)) {
+            executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(*left, *right,
+                *result, lPos, rPos, resPos, dataPtr);
         }
     }
 
@@ -107,20 +107,20 @@ struct BinaryFunctionExecutor {
         common::SelectedVector result, void* dataPtr) {
         auto lPos = (*left.sel)[0];
         auto& rightSelVector = *right.sel;
-        if (left.vec.isNull(lPos)) {
-            result.vec.setAllNull();
-        } else if (right.vec.hasNoNullsGuarantee()) {
-            result.vec.setAllNonNull();
+        if (left.isNull(lPos)) {
+            result.setAllNull();
+        } else if (right.hasNoNullsGuarantee()) {
+            result.setAllNonNull();
             rightSelVector.forEach([&](auto i) {
-                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left.vec,
-                    right.vec, result.vec, lPos, i, i, dataPtr);
+                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(*left, *right,
+                    *result, lPos, i, i, dataPtr);
             });
         } else {
             rightSelVector.forEach([&](auto i) {
-                result.vec.setNull(i, right.vec.isNull(i)); // left is always not null
-                if (!result.vec.isNull(i)) {
-                    executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left.vec,
-                        right.vec, result.vec, lPos, i, i, dataPtr);
+                result.setNull(i, right.isNull(i)); // left is always not null
+                if (!result.isNull(i)) {
+                    executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(*left,
+                        *right, *result, lPos, i, i, dataPtr);
                 }
             });
         }
@@ -132,20 +132,20 @@ struct BinaryFunctionExecutor {
         common::SelectedVector result, void* dataPtr) {
         auto rPos = (*right.sel)[0];
         auto& leftSelVector = *left.sel;
-        if (right.vec.isNull(rPos)) {
-            result.vec.setAllNull();
-        } else if (left.vec.hasNoNullsGuarantee()) {
-            result.vec.setAllNonNull();
+        if (right.isNull(rPos)) {
+            result.setAllNull();
+        } else if (left.hasNoNullsGuarantee()) {
+            result.setAllNonNull();
             leftSelVector.forEach([&](auto i) {
-                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left.vec,
-                    right.vec, result.vec, i, rPos, i, dataPtr);
+                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(*left, *right,
+                    *result, i, rPos, i, dataPtr);
             });
         } else {
             leftSelVector.forEach([&](auto i) {
-                result.vec.setNull(i, left.vec.isNull(i)); // right is always not null
-                if (!result.vec.isNull(i)) {
-                    executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left.vec,
-                        right.vec, result.vec, i, rPos, i, dataPtr);
+                result.setNull(i, left.isNull(i)); // right is always not null
+                if (!result.isNull(i)) {
+                    executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(*left,
+                        *right, *result, i, rPos, i, dataPtr);
                 }
             });
         }
@@ -157,18 +157,18 @@ struct BinaryFunctionExecutor {
         common::SelectedVector result, void* dataPtr) {
         KU_ASSERT(left.sel == right.sel);
         auto& resultSelVector = *result.sel;
-        if (left.vec.hasNoNullsGuarantee() && right.vec.hasNoNullsGuarantee()) {
-            result.vec.setAllNonNull();
+        if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
+            result.setAllNonNull();
             resultSelVector.forEach([&](auto i) {
-                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left.vec,
-                    right.vec, result.vec, i, i, i, dataPtr);
+                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(*left, *right,
+                    *result, i, i, i, dataPtr);
             });
         } else {
             resultSelVector.forEach([&](auto i) {
-                result.vec.setNull(i, left.vec.isNull(i) || right.vec.isNull(i));
-                if (!result.vec.isNull(i)) {
-                    executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left.vec,
-                        right.vec, result.vec, i, i, i, dataPtr);
+                result.setNull(i, left.isNull(i) || right.isNull(i));
+                if (!result.isNull(i)) {
+                    executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(*left,
+                        *right, *result, i, i, i, dataPtr);
                 }
             });
         }
@@ -178,17 +178,17 @@ struct BinaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeSwitch(common::SelectedVector left, common::SelectedVector right,
         common::SelectedVector result, void* dataPtr) {
-        result.vec.resetAuxiliaryBuffer();
-        if (left.vec.state->isFlat() && right.vec.state->isFlat()) {
+        result.resetAuxiliaryBuffer();
+        if (left.state->isFlat() && right.state->isFlat()) {
             executeBothFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
                 result, dataPtr);
-        } else if (left.vec.state->isFlat() && !right.vec.state->isFlat()) {
+        } else if (left.state->isFlat() && !right.state->isFlat()) {
             executeFlatUnFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
                 result, dataPtr);
-        } else if (!left.vec.state->isFlat() && right.vec.state->isFlat()) {
+        } else if (!left.state->isFlat() && right.state->isFlat()) {
             executeUnFlatFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
                 result, dataPtr);
-        } else if (!left.vec.state->isFlat() && !right.vec.state->isFlat()) {
+        } else if (!left.state->isFlat() && !right.state->isFlat()) {
             executeBothUnFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
                 result, dataPtr);
         } else {

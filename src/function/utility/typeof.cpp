@@ -21,11 +21,11 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
 
 static void execFunc(std::span<const common::SelectedVector>, common::SelectedVector result,
     void* dataPtr) {
-    result.vec.resetAuxiliaryBuffer();
+    result.resetAuxiliaryBuffer();
     auto typeData = reinterpret_cast<FunctionStringBindData*>(dataPtr);
     for (auto i = 0u; i < result.sel->getSelSize(); ++i) {
         auto resultPos = (*result.sel)[i];
-        StringVector::addString(&result.vec, resultPos, typeData->str);
+        StringVector::addString(result, resultPos, typeData->str);
     }
 }
 

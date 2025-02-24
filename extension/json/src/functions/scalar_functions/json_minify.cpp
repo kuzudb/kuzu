@@ -11,16 +11,16 @@ using namespace common;
 
 static void execFunc(std::span<const common::SelectedVector> parameters,
     common::SelectedVector result, void* /*dataPtr*/) {
-    result.vec.resetAuxiliaryBuffer();
+    result.resetAuxiliaryBuffer();
     for (auto selectedPos = 0u; selectedPos < result.sel->getSelSize(); ++selectedPos) {
         auto inputPos = (*parameters[0].sel)[selectedPos];
         auto resultPos = (*result.sel)[selectedPos];
-        auto isNull = parameters[0].vec.isNull(inputPos);
-        result.vec.setNull(resultPos, isNull);
+        auto isNull = parameters[0].isNull(inputPos);
+        result.setNull(resultPos, isNull);
         if (!isNull) {
-            StringVector::addString(&result.vec, resultPos,
+            StringVector::addString(result, resultPos,
                 jsonToString(
-                    stringToJson(parameters[0].vec.getValue<ku_string_t>(inputPos).getAsString())));
+                    stringToJson(parameters[0].getValue<ku_string_t>(inputPos).getAsString())));
         }
     }
 }

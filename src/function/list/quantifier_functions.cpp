@@ -12,13 +12,13 @@ namespace function {
 void execQuantifierFunc(quantifier_handler handler, std::span<const common::SelectedVector> input,
     common::SelectedVector result, void* bindData) {
     auto listLambdaBindData = reinterpret_cast<evaluator::ListLambdaBindData*>(bindData);
-    auto& inputVector = input[0].vec;
+    auto& inputVector = *input[0];
     if (!listLambdaBindData->lambdaParamEvaluators.empty()) {
         auto listSize = ListVector::getDataVectorSize(&inputVector);
         auto lambdaParamVector = listLambdaBindData->lambdaParamEvaluators[0]->resultVector.get();
         lambdaParamVector->state->getSelVectorUnsafe().setSelSize(listSize);
     }
-    auto& filterVector = input[1].vec;
+    auto& filterVector = *input[1];
     bool isConstantTrueExpr = listLambdaBindData->lambdaParamEvaluators.empty() &&
                               filterVector.getValue<bool>(filterVector.state->getSelVector()[0]);
     listLambdaBindData->rootEvaluator->evaluate();
@@ -34,7 +34,7 @@ void execQuantifierFunc(quantifier_handler handler, std::span<const common::Sele
                 numSelectedValues++;
             }
         }
-        result.vec.setValue((*result.sel)[i], handler(numSelectedValues, srcListEntry.size));
+        result.setValue((*result.sel)[i], handler(numSelectedValues, srcListEntry.size));
     }
 }
 

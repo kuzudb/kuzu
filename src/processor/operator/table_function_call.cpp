@@ -37,13 +37,12 @@ void TableFunctionCall::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
         localState.funcOutput.dataChunk = DataChunk(info.outPosV.size(), state);
         for (auto i = 0u; i < info.outPosV.size(); ++i) {
             localState.funcOutput.dataChunk.insert(i, resultSet->getValueVector(info.outPosV[i]));
-            localState.funcOutput.vectors.push_back(
-                resultSet->getValueVector(info.outPosV[i]).get());
+            *localState.funcOutputtors.push_back(resultSet->getValueVector(info.outPosV[i]).get());
         }
     } break;
     case TableScanOutputType::MULTI_DATA_CHUNK: {
         for (auto& pos : info.outPosV) {
-            localState.funcOutput.vectors.push_back(resultSet->getValueVector(pos).get());
+            *localState.funcOutputtors.push_back(resultSet->getValueVector(pos).get());
         }
     } break;
     default:

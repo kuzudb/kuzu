@@ -37,12 +37,12 @@ static void reduceList(const list_entry_t& listEntry, uint64_t pos, common::Sele
         throw common::RuntimeException{"Cannot execute list_reduce on an empty list."};
     }
     if (listEntry.size == 1) {
-        result.vec.copyFromVectorData((*result.sel)[pos], &inputDataVector, listEntry.offset);
+        result.copyFromVectorData((*result.sel)[pos], &inputDataVector, listEntry.offset);
     } else {
         for (auto j = 0u; j < listEntry.size - 1; j++) {
             for (auto k = 0u; k < params.size(); k++) {
                 if (0u == paramIndices[k] && 0u != j) {
-                    params[k]->copyFromVectorData(paramPos, &tmpResultVector.vec, tmpResultPos);
+                    params[k]->copyFromVectorData(paramPos, tmpResultVector, tmpResultPos);
                 } else {
                     params[k]->copyFromVectorData(paramPos, &inputDataVector,
                         listEntry.offset + j + paramIndices[k]);
@@ -51,7 +51,7 @@ static void reduceList(const list_entry_t& listEntry, uint64_t pos, common::Sele
             }
             bindData.rootEvaluator->evaluate();
         }
-        result.vec.copyFromVectorData((*result.sel)[pos], &tmpResultVector.vec, tmpResultPos);
+        result.copyFromVectorData((*result.sel)[pos], tmpResultVector, tmpResultPos);
     }
 }
 
@@ -61,8 +61,8 @@ static void execFunc(std::span<const common::SelectedVector> input, common::Sele
     auto listLambdaBindData = reinterpret_cast<evaluator::ListLambdaBindData*>(bindData);
     const auto& inputVector = input[0];
     for (auto i = 0u; i < inputVector.sel->getSelSize(); i++) {
-        auto listEntry = inputVector.vec.getValue<list_entry_t>((*inputVector.sel)[i]);
-        reduceList(listEntry, i, result, *ListVector::getDataVector(&inputVector.vec), input[1],
+        auto listEntry = inputVector.getValue<list_entry_t>((*inputVector.sel)[i]);
+        reduceList(listEntry, i, result, *ListVector::getDataVector(inputVector), input[1],
             *listLambdaBindData);
     }
 }

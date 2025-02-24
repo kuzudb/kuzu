@@ -40,8 +40,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
         return 0;
     }
     auto numTuples = morsel.endOffset - morsel.startOffset;
-    sharedState->table->scan(output.vectors, morsel.startOffset, numTuples,
-        bindData->columnIndices);
+    sharedState->table->scan(*outputtors, morsel.startOffset, numTuples, bindData->columnIndices);
     return numTuples;
 }
 

@@ -13,11 +13,11 @@ static void execFunc(std::span<const common::SelectedVector> parameters,
     for (auto selectedPos = 0u; selectedPos < result.sel->getSelSize(); ++selectedPos) {
         auto inputPos = (*parameters[0].sel)[selectedPos];
         auto resultPos = (*result.sel)[selectedPos];
-        auto isNull = parameters[0].vec.isNull(inputPos);
-        result.vec.setNull(resultPos, isNull);
+        auto isNull = parameters[0].isNull(inputPos);
+        result.setNull(resultPos, isNull);
         if (!isNull) {
-            result.vec.setValue<bool>(resultPos,
-                stringToJsonNoError(parameters[0].vec.getValue<ku_string_t>(inputPos).getAsString())
+            result.setValue<bool>(resultPos,
+                stringToJsonNoError(parameters[0].getValue<ku_string_t>(inputPos).getAsString())
                         .ptr != nullptr);
         }
     }

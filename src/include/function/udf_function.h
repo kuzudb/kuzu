@@ -75,7 +75,7 @@ struct UDF {
             auto& resultSelVector = *result.sel;
             for (auto i = 0u; i < resultSelVector.getSelSize(); ++i) {
                 auto resultPos = resultSelVector[i];
-                result.vec.copyFromValue(resultPos, common::Value(udfFunc()));
+                result.copyFromValue(resultPos, common::Value(udfFunc()));
             }
         };
     }

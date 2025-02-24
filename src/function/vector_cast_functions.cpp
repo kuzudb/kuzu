@@ -24,10 +24,10 @@ struct CastChildFunctionExecutor {
         void* dataPtr) {
         auto numOfEntries = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
         for (auto i = 0u; i < numOfEntries; i++) {
-            result.vec.setNull(i, operand.vec.isNull(i));
-            if (!result.vec.isNull(i)) {
-                OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>(
-                    (void*)(&operand.vec), i, (void*)(&result.vec), i, dataPtr);
+            result.setNull(i, operand.isNull(i));
+            if (!result.isNull(i)) {
+                OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>((void*)(operand), i,
+                    (void*)(result), i, dataPtr);
             }
         }
     }
@@ -110,24 +110,24 @@ static void resolveNestedVector(ValueVector* inputVector, ValueVector* resultVec
 static void nestedTypesCastExecFunction(std::span<const common::SelectedVector> params,
     common::SelectedVector result, void*) {
     KU_ASSERT(params.size() == 1);
-    result.vec.resetAuxiliaryBuffer();
+    result.resetAuxiliaryBuffer();
     const auto& inputVector = params[0];
 
     // check if all selcted list entry have the requried fixed list size
-    if (CastArrayHelper::containsListToArray(inputVector.vec.dataType, result.vec.dataType)) {
+    if (CastArrayHelper::containsListToArray(inputVector.dataType, result.dataType)) {
         for (auto i = 0u; i < inputVector.sel->getSelSize(); i++) {
             auto pos = (*inputVector.sel)[i];
-            CastArrayHelper::validateListEntry(&inputVector.vec, result.vec.dataType, pos);
+            CastArrayHelper::validateListEntry(inputVector, result.dataType, pos);
         }
     };
 
     auto& selVector = *inputVector.sel;
-    auto bindData = CastFunctionBindData(result.vec.dataType.copy());
+    auto bindData = CastFunctionBindData(result.dataType.copy());
     auto numOfEntries = selVector[selVector.getSelSize() - 1] + 1;
-    resolveNestedVector(&inputVector.vec, &result.vec, numOfEntries, &bindData);
-    if (inputVector.vec.state->isFlat()) {
-        result.vec.state->getSelVectorUnsafe().setToFiltered();
-        result.vec.state->getSelVectorUnsafe()[0] = (*inputVector.sel)[0];
+    resolveNestedVector(inputVector, result, numOfEntries, &bindData);
+    if (inputVector.state->isFlat()) {
+        result.state->getSelVectorUnsafe().setToFiltered();
+        result.state->getSelVectorUnsafe()[0] = (*inputVector.sel)[0];
     }
 }
 

@@ -70,9 +70,9 @@ void StructPackFunctions::execFunc(std::span<const common::SelectedVector> param
         }
         // If the parameter's state is inconsistent with the result's state, we need to copy the
         // parameter's value to the corresponding child vector.
-        StructVector::getFieldVector(&result.vec, i)->resetAuxiliaryBuffer();
-        copyParameterValueToStructFieldVector(&parameter.vec,
-            StructVector::getFieldVector(&result.vec, i).get(), result.vec.state.get());
+        StructVector::getFieldVector(result, i)->resetAuxiliaryBuffer();
+        copyParameterValueToStructFieldVector(parameter,
+            StructVector::getFieldVector(result, i).get(), result.state.get());
     }
 }
 

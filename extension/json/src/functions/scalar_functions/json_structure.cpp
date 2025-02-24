@@ -10,18 +10,18 @@ using namespace common;
 
 static void execFunc(std::span<const common::SelectedVector> parameters,
     common::SelectedVector result, void* /*dataPtr*/) {
-    result.vec.resetAuxiliaryBuffer();
+    result.resetAuxiliaryBuffer();
     const auto& param = parameters[0];
     for (auto selectedPos = 0u; selectedPos < result.sel->getSelSize(); ++selectedPos) {
         auto resultPos = (*result.sel)[selectedPos];
-        auto paramPos = (*param.sel)[param.vec.state->isFlat() ? 0 : selectedPos];
-        auto isNull = parameters[0].vec.isNull(paramPos);
-        result.vec.setNull(resultPos, isNull);
+        auto paramPos = (*param.sel)[param.state->isFlat() ? 0 : selectedPos];
+        auto isNull = parameters[0].isNull(paramPos);
+        result.setNull(resultPos, isNull);
         if (!isNull) {
-            auto paramStr = param.vec.getValue<ku_string_t>(paramPos).getAsString();
+            auto paramStr = param.getValue<ku_string_t>(paramPos).getAsString();
             auto schema = jsonSchema(stringToJson(paramStr));
-            result.vec.setNull(resultPos, false /* isNull */);
-            StringVector::addString(&result.vec, resultPos, schema.toString());
+            result.setNull(resultPos, false /* isNull */);
+            StringVector::addString(result, resultPos, schema.toString());
         }
     }
 }

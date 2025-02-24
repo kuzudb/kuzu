@@ -239,9 +239,9 @@ static void HashExecFunc(std::span<const common::SelectedVector> params,
     common::SelectedVector result, void* /*dataPtr*/ = nullptr) {
     KU_ASSERT(params.size() == 1);
     // TODO(Ziyi): evaluators should resolve the state for result vector.
-    result.vec.state = params[0].vec.state;
-    VectorHashFunction::computeHash(params[0].vec, params[0].vec.state->getSelVector(), result.vec,
-        result.vec.state->getSelVectorUnsafe());
+    result.state = params[0].state;
+    VectorHashFunction::computeHash(*params[0], params[0].state->getSelVector(), *result,
+        result.state->getSelVectorUnsafe());
 }
 
 function_set HashFunction::getFunctionSet() {

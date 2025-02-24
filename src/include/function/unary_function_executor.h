@@ -110,47 +110,47 @@ struct UnaryFunctionExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
     static void executeSwitch(common::SelectedVector operand, common::SelectedVector result,
         void* dataPtr) {
-        result.vec.resetAuxiliaryBuffer();
+        result.resetAuxiliaryBuffer();
         auto& operandSelVector = *operand.sel;
-        if (operand.vec.state->isFlat()) {
+        if (operand.state->isFlat()) {
             auto inputPos = operandSelVector[0];
             auto resultPos = (*result.sel)[0];
-            result.vec.setNull(resultPos, operand.vec.isNull(inputPos));
-            if (!result.vec.isNull(resultPos)) {
-                executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand.vec, inputPos,
-                    result.vec, resultPos, dataPtr);
+            result.setNull(resultPos, operand.isNull(inputPos));
+            if (!result.isNull(resultPos)) {
+                executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(*operand, inputPos,
+                    *result, resultPos, dataPtr);
             }
         } else {
-            if (operand.vec.hasNoNullsGuarantee()) {
-                result.vec.setAllNonNull();
+            if (operand.hasNoNullsGuarantee()) {
+                result.setAllNonNull();
                 if (operandSelVector.isUnfiltered()) {
                     for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
-                        executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand.vec, i,
-                            result.vec, i, dataPtr);
+                        executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(*operand, i,
+                            *result, i, dataPtr);
                     }
                 } else {
                     for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
                         auto pos = operandSelVector[i];
-                        executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand.vec,
-                            pos, result.vec, pos, dataPtr);
+                        executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(*operand, pos,
+                            *result, pos, dataPtr);
                     }
                 }
             } else {
                 if (operandSelVector.isUnfiltered()) {
                     for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
-                        result.vec.setNull(i, operand.vec.isNull(i));
-                        if (!result.vec.isNull(i)) {
-                            executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand.vec,
-                                i, result.vec, i, dataPtr);
+                        result.setNull(i, operand.isNull(i));
+                        if (!result.isNull(i)) {
+                            executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(*operand, i,
+                                *result, i, dataPtr);
                         }
                     }
                 } else {
                     for (auto i = 0u; i < operandSelVector.getSelSize(); i++) {
                         auto pos = operandSelVector[i];
-                        result.vec.setNull(pos, operand.vec.isNull(pos));
-                        if (!result.vec.isNull(pos)) {
-                            executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand.vec,
-                                pos, result.vec, pos, dataPtr);
+                        result.setNull(pos, operand.isNull(pos));
+                        if (!result.isNull(pos)) {
+                            executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(*operand,
+                                pos, *result, pos, dataPtr);
                         }
                     }
                 }
@@ -167,11 +167,11 @@ struct UnaryFunctionExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static void executeSequence(common::SelectedVector operand, common::SelectedVector result,
         void* dataPtr) {
-        result.vec.resetAuxiliaryBuffer();
+        result.resetAuxiliaryBuffer();
         auto inputPos = (*operand.sel)[0];
         auto resultPos = (*result.sel)[0];
-        executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, UnarySequenceFunctionWrapper>(operand.vec,
-            inputPos, result.vec, resultPos, dataPtr);
+        executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, UnarySequenceFunctionWrapper>(*operand,
+            inputPos, *result, resultPos, dataPtr);
     }
 };
 

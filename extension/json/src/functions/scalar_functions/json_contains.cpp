@@ -122,18 +122,18 @@ static void execFunc(std::span<const common::SelectedVector> parameters,
     const auto& param2 = parameters[1];
     for (auto selectedPos = 0u; selectedPos < result.sel->getSelSize(); ++selectedPos) {
         auto resultPos = (*result.sel)[selectedPos];
-        auto param1Pos = (*param1.sel)[param1.vec.state->isFlat() ? 0 : selectedPos];
-        auto param2Pos = (*param2.sel)[param2.vec.state->isFlat() ? 0 : selectedPos];
-        auto isNull = param1.vec.isNull(param1Pos) || param2.vec.isNull(param2Pos);
-        result.vec.setNull(resultPos, isNull);
+        auto param1Pos = (*param1.sel)[param1.state->isFlat() ? 0 : selectedPos];
+        auto param2Pos = (*param2.sel)[param2.state->isFlat() ? 0 : selectedPos];
+        auto isNull = param1.isNull(param1Pos) || param2.isNull(param2Pos);
+        result.setNull(resultPos, isNull);
         if (!isNull) {
-            auto haystackStr = param1.vec.getValue<ku_string_t>(param1Pos).getAsString();
-            auto needleStr = param2.vec.getValue<ku_string_t>(param2Pos).getAsString();
+            auto haystackStr = param1.getValue<ku_string_t>(param1Pos).getAsString();
+            auto needleStr = param2.getValue<ku_string_t>(param2Pos).getAsString();
             auto haystackDoc =
                 JsonWrapper{JSONCommon::readDocument(haystackStr, JSONCommon::READ_FLAG)};
             auto needleDoc =
                 JsonWrapper{JSONCommon::readDocument(needleStr, JSONCommon::READ_FLAG)};
-            result.vec.setValue<bool>(resultPos,
+            result.setValue<bool>(resultPos,
                 jsonContains(haystackDoc.ptr->root, needleDoc.ptr->root));
         }
     }

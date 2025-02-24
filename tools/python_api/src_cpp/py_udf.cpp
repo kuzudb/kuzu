@@ -157,15 +157,15 @@ static scalar_func_exec_t getUDFExecFunc(const py::function& udf, bool defaultNu
     return [=](std::span<const common::SelectedVector> params, common::SelectedVector result,
                void* /* dataPtr */) -> void {
         py::gil_scoped_acquire acquire;
-        result.vec.resetAuxiliaryBuffer();
+        result.resetAuxiliaryBuffer();
         auto& resultSelVector = *result.sel;
         for (auto i = 0u; i < resultSelVector.getSelSize(); ++i) {
             auto resultPos = resultSelVector[i];
             py::list pyParams;
             bool hasNull = false;
             for (const auto& param : params) {
-                auto paramPos = param.vec.state->isFlat() ? (*param.sel)[0] : resultPos;
-                auto value = param.vec.getAsValue(paramPos);
+                auto paramPos = param.state->isFlat() ? (*param.sel)[0] : resultPos;
+                auto value = param.getAsValue(paramPos);
                 if (value->isNull()) {
                     hasNull = true;
                 }
@@ -173,16 +173,16 @@ static scalar_func_exec_t getUDFExecFunc(const py::function& udf, bool defaultNu
                 pyParams.append(pyValue);
             }
             if (defaultNull && hasNull) {
-                result.vec.setNull(resultPos, true);
+                result.setNull(resultPos, true);
             } else {
                 try {
                     auto pyResult = udf(*pyParams);
                     auto resultValue =
-                        PyConnection::transformPythonValueAs(pyResult, result.vec.dataType);
-                    result.vec.copyFromValue(resultPos, resultValue);
+                        PyConnection::transformPythonValueAs(pyResult, result.dataType);
+                    result.copyFromValue(resultPos, resultValue);
                 } catch (py::error_already_set& e) {
                     if (catchExceptions) {
-                        result.vec.setNull(resultPos, true);
+                        result.setNull(resultPos, true);
                     } else {
                         throw common::RuntimeException(e.what());
                     }

@@ -19,7 +19,7 @@ private:
     static void UnaryNullExecFunction(std::span<const common::SelectedVector> params,
         common::SelectedVector result, void* /*dataPtr*/ = nullptr) {
         KU_ASSERT(params.size() == 1);
-        NullOperationExecutor::execute<FUNC>(params[0].vec, result.vec);
+        NullOperationExecutor::execute<FUNC>(*params[0], *result);
     }
 
     template<typename FUNC>

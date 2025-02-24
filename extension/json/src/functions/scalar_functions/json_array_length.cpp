@@ -14,12 +14,12 @@ static void jsonArrayLength(std::span<const common::SelectedVector> parameters,
     for (auto i = 0u; i < result.sel->getSelSize(); ++i) {
         auto inputPos = (*parameters[0].sel)[i];
         auto resultPos = (*result.sel)[i];
-        auto isNull = parameters[0].vec.isNull(inputPos);
-        result.vec.setNull(resultPos, isNull);
+        auto isNull = parameters[0].isNull(inputPos);
+        result.setNull(resultPos, isNull);
         if (!isNull) {
-            result.vec.setValue<uint32_t>(resultPos,
+            result.setValue<uint32_t>(resultPos,
                 jsonArraySize(
-                    stringToJson(parameters[0].vec.getValue<ku_string_t>(inputPos).getAsString())));
+                    stringToJson(parameters[0].getValue<ku_string_t>(inputPos).getAsString())));
         }
     }
 }

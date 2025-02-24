@@ -12,28 +12,28 @@ using namespace common;
 
 static void jsonExtractSinglePath(std::span<const common::SelectedVector> parameters,
     common::SelectedVector result, void* /*dataPtr*/) {
-    result.vec.resetAuxiliaryBuffer();
+    result.resetAuxiliaryBuffer();
     const auto& param1 = parameters[0];
     const auto& param2 = parameters[1];
     for (auto selectedPos = 0u; selectedPos < result.sel->getSelSize(); ++selectedPos) {
         auto resultPos = (*result.sel)[selectedPos];
-        auto param1Pos = (*param1.sel)[param1.vec.state->isFlat() ? 0 : selectedPos];
-        auto param2Pos = (*param2.sel)[param2.vec.state->isFlat() ? 0 : selectedPos];
-        auto isNull = parameters[0].vec.isNull(param1Pos) || parameters[1].vec.isNull(param2Pos);
-        result.vec.setNull(resultPos, isNull);
+        auto param1Pos = (*param1.sel)[param1.state->isFlat() ? 0 : selectedPos];
+        auto param2Pos = (*param2.sel)[param2.state->isFlat() ? 0 : selectedPos];
+        auto isNull = parameters[0].isNull(param1Pos) || parameters[1].isNull(param2Pos);
+        result.setNull(resultPos, isNull);
         if (!isNull) {
-            auto param1Str = param1.vec.getValue<ku_string_t>(param1Pos).getAsString();
+            auto param1Str = param1.getValue<ku_string_t>(param1Pos).getAsString();
             std::string output;
-            if (param2.vec.dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
-                auto param2Str = param2.vec.getAsValue(param2Pos)->toString();
+            if (param2.dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
+                auto param2Str = param2.getAsValue(param2Pos)->toString();
                 output = jsonExtractToString(stringToJson(param1Str), param2Str);
-            } else if (param2.vec.dataType.getLogicalTypeID() == LogicalTypeID::INT64) {
-                auto param2Int = param2.vec.getValue<int64_t>(param2Pos);
+            } else if (param2.dataType.getLogicalTypeID() == LogicalTypeID::INT64) {
+                auto param2Int = param2.getValue<int64_t>(param2Pos);
                 output = jsonExtractToString(stringToJson(param1Str), param2Int);
             } else {
                 KU_UNREACHABLE;
             }
-            StringVector::addString(&result.vec, resultPos, output);
+            StringVector::addString(result, resultPos, output);
         }
     }
 }
@@ -48,22 +48,22 @@ static std::unique_ptr<FunctionBindData> bindJsonExtractSinglePath(ScalarBindFun
 
 static void jsonExtractMultiPath(std::span<const common::SelectedVector> parameters,
     common::SelectedVector result, void* /*dataPtr*/) {
-    result.vec.resetAuxiliaryBuffer();
-    const auto resultDataVector = ListVector::getDataVector(&result.vec);
+    result.resetAuxiliaryBuffer();
+    const auto resultDataVector = ListVector::getDataVector(result);
     const auto& param1 = parameters[0];
     const auto& param2 = parameters[1];
-    const auto param2DataVector = ListVector::getDataVector(&param2.vec);
+    const auto param2DataVector = ListVector::getDataVector(param2);
     for (auto selectedPos = 0u; selectedPos < result.sel->getSelSize(); ++selectedPos) {
         auto resultPos = (*result.sel)[selectedPos];
-        auto param1Pos = (*param1.sel)[param1.vec.state->isFlat() ? 0 : selectedPos];
-        auto param2Pos = (*param2.sel)[param2.vec.state->isFlat() ? 0 : selectedPos];
-        auto isNull = parameters[0].vec.isNull(param1Pos) || parameters[1].vec.isNull(param2Pos);
-        result.vec.setNull(resultPos, isNull);
+        auto param1Pos = (*param1.sel)[param1.state->isFlat() ? 0 : selectedPos];
+        auto param2Pos = (*param2.sel)[param2.state->isFlat() ? 0 : selectedPos];
+        auto isNull = parameters[0].isNull(param1Pos) || parameters[1].isNull(param2Pos);
+        result.setNull(resultPos, isNull);
         if (!isNull) {
-            auto param1Str = param1.vec.getValue<ku_string_t>(param1Pos).getAsString();
-            auto param2List = param2.vec.getValue<list_entry_t>(param2Pos);
-            auto resultList = ListVector::addList(&result.vec, param2List.size);
-            result.vec.setValue<list_entry_t>(resultPos, resultList);
+            auto param1Str = param1.getValue<ku_string_t>(param1Pos).getAsString();
+            auto param2List = param2.getValue<list_entry_t>(param2Pos);
+            auto resultList = ListVector::addList(result, param2List.size);
+            result.setValue<list_entry_t>(resultPos, resultList);
             for (auto i = 0u; i < resultList.size; ++i) {
                 auto curPath =
                     param2DataVector->getValue<ku_string_t>(param2List.offset + i).getAsString();

@@ -364,15 +364,15 @@ static void addFour(std::span<const common::SelectedVector> parameters,
     common::SelectedVector result, void* /*dataPtr*/ = nullptr) {
     KU_ASSERT(parameters.size() == 1);
     auto parameter = parameters[0];
-    result.vec.resetAuxiliaryBuffer();
-    result.vec.state = parameter.vec.state;
-    if (parameter.vec.state->isFlat()) {
+    result.resetAuxiliaryBuffer();
+    result.state = parameter.state;
+    if (parameter.state->isFlat()) {
         auto pos = (*parameter.sel)[0];
-        result.vec.setValue(pos, parameter.vec.getValue<int64_t>(pos) + 4);
+        result.setValue(pos, parameter.getValue<int64_t>(pos) + 4);
     } else {
         for (auto i = 0u; i < parameter.sel->getSelSize(); i++) {
             auto pos = (*parameter.sel)[i];
-            result.vec.setValue(pos, parameter.vec.getValue<int64_t>(pos) + 4);
+            result.setValue(pos, parameter.getValue<int64_t>(pos) + 4);
         }
     }
 }

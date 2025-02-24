@@ -24,9 +24,9 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
 static void execFunc(std::span<const common::SelectedVector> input, common::SelectedVector result,
     void* bindData) {
     auto listLambdaBindData = reinterpret_cast<evaluator::ListLambdaBindData*>(bindData);
-    auto& inputVector = input[0].vec;
+    auto& inputVector = *input[0];
     const auto& inputSelVector = *input[0].sel;
-    auto& resultVec = result.vec;
+    auto& resultVec = *result;
     auto& resultSelVector = *result.sel;
 
     auto listSize = ListVector::getDataVectorSize(&inputVector);

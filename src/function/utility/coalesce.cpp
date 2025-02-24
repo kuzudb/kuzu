@@ -27,19 +27,19 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
 
 static void execFunc(std::span<const common::SelectedVector> params, common::SelectedVector result,
     void* /*dataPtr*/) {
-    result.vec.resetAuxiliaryBuffer();
+    result.resetAuxiliaryBuffer();
     for (auto i = 0u; i < result.sel->getSelSize(); ++i) {
         auto resultPos = (*result.sel)[i];
         auto isNull = true;
         for (auto& param : params) {
-            auto paramPos = param.vec.state->isFlat() ? (*param.sel)[0] : resultPos;
-            if (!param.vec.isNull(paramPos)) {
-                result.vec.copyFromVectorData(resultPos, &param.vec, paramPos);
+            auto paramPos = param.state->isFlat() ? (*param.sel)[0] : resultPos;
+            if (!param.isNull(paramPos)) {
+                result.copyFromVectorData(resultPos, param, paramPos);
                 isNull = false;
                 break;
             }
         }
-        result.vec.setNull(resultPos, isNull);
+        result.setNull(resultPos, isNull);
     }
 }
 
