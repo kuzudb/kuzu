@@ -46,19 +46,6 @@ AggregateHashTable::AggregateHashTable(MemoryManager& memoryManager,
     initializeTmpVectors();
 }
 
-uint64_t AggregateHashTable::append(const std::vector<ValueVector*>& flatKeyVectors,
-    const std::vector<ValueVector*>& unFlatKeyVectors,
-    const std::vector<ValueVector*>& dependentKeyVectors, DataChunkState* leadingState,
-    const std::vector<AggregateInput>& aggregateInputs, uint64_t resultSetMultiplicity) {
-    const auto numFlatTuples = leadingState->getSelVector().getSelSize();
-    resizeHashTableIfNecessary(numFlatTuples);
-    computeVectorHashes(flatKeyVectors, unFlatKeyVectors);
-    findHashSlots(flatKeyVectors, unFlatKeyVectors, dependentKeyVectors, leadingState);
-    updateAggStates(flatKeyVectors, unFlatKeyVectors, aggregateInputs, resultSetMultiplicity,
-        true /*updateDistinct*/);
-    return numFlatTuples;
-}
-
 bool AggregateHashTable::insertAggregateValueIfDistinctForGroupByKeys(
     const std::vector<ValueVector*>& groupByFlatKeyVectors, ValueVector* aggregateVector) {
     auto pos = aggregateVector->state->getSelVector()[0];
@@ -210,13 +197,9 @@ void AggregateHashTable::initializeFT(const std::vector<AggregateFunction>& aggF
     aggStateColOffsetInFT = numBytesForKeys + numBytesForDependentKeys;
 
     aggregateFunctions.reserve(aggFuncs.size());
-    updateAggFuncs.reserve(aggFuncs.size());
     for (auto i = 0u; i < aggFuncs.size(); i++) {
         auto& aggFunc = aggFuncs[i];
         aggregateFunctions.push_back(aggFunc.copy());
-        updateAggFuncs.push_back(aggFunc.isFunctionDistinct() ?
-                                     &AggregateHashTable::updateDistinctAggState :
-                                     &AggregateHashTable::updateAggState);
     }
     hashColIdxInFT = tableSchema.getNumColumns() - 1;
     hashColOffsetInFT = tableSchema.getColOffset(hashColIdxInFT);
@@ -588,27 +571,6 @@ void AggregateHashTable::findHashSlots(const FactorizedTable& srcTable, uint64_t
     }
 }
 
-void AggregateHashTable::updateDistinctAggState(const std::vector<ValueVector*>& flatKeyVectors,
-    const std::vector<ValueVector*>& /*unFlatKeyVectors*/, AggregateFunction& aggregateFunction,
-    ValueVector* aggregateVector, uint64_t /*multiplicity*/, uint32_t colIdx,
-    uint32_t aggStateOffset) {
-    auto distinctHT = distinctHashTables[colIdx].get();
-    KU_ASSERT(distinctHT != nullptr);
-    if (distinctHT->insertAggregateValueIfDistinctForGroupByKeys(flatKeyVectors, aggregateVector)) {
-        auto pos = aggregateVector->state->getSelVector()[0];
-        aggregateFunction.updatePosState(
-            hashSlotsToUpdateAggState[flatKeyVectors.empty() ?
-                                          0 :
-                                          flatKeyVectors[0]->state->getSelVector()[0]]
-                    ->entry +
-                aggStateOffset,
-            aggregateVector, 1 /* Distinct aggregate should ignore multiplicity
-                                      since they are known to be non-distinct. */
-            ,
-            pos, memoryManager);
-    }
-}
-
 void AggregateHashTable::updateAggState(const std::vector<ValueVector*>& flatKeyVectors,
     const std::vector<ValueVector*>& unFlatKeyVectors, AggregateFunction& aggregateFunction,
     ValueVector* aggVector, uint64_t multiplicity, uint32_t /*colIdx*/, uint32_t aggStateOffset) {
@@ -635,16 +597,15 @@ void AggregateHashTable::updateAggState(const std::vector<ValueVector*>& flatKey
 
 void AggregateHashTable::updateAggStates(const std::vector<ValueVector*>& flatKeyVectors,
     const std::vector<ValueVector*>& unFlatKeyVectors,
-    const std::vector<AggregateInput>& aggregateInputs, uint64_t resultSetMultiplicity,
-    bool updateDistinct) {
+    const std::vector<AggregateInput>& aggregateInputs, uint64_t resultSetMultiplicity) {
     auto aggregateStateOffset = aggStateColOffsetInFT;
     for (auto i = 0u; i < aggregateFunctions.size(); i++) {
-        if (!aggregateFunctions[i].isDistinct || updateDistinct) {
+        if (!aggregateFunctions[i].isDistinct) {
             auto multiplicity = resultSetMultiplicity;
             for (auto& dataChunk : aggregateInputs[i].multiplicityChunks) {
                 multiplicity *= dataChunk->state->getSelVector().getSelSize();
             }
-            updateAggFuncs[i](this, flatKeyVectors, unFlatKeyVectors, aggregateFunctions[i],
+            updateAggState(flatKeyVectors, unFlatKeyVectors, aggregateFunctions[i],
                 aggregateInputs[i].aggregateVector, multiplicity, i, aggregateStateOffset);
             aggregateStateOffset += aggregateFunctions[i].getAggregateStateSize();
         } else {
@@ -814,8 +775,7 @@ uint64_t PartitioningAggregateHashTable::append(const std::vector<ValueVector*>&
     findHashSlots(flatKeyVectors, unFlatKeyVectors, dependentKeyVectors, leadingState);
     // Don't update distinct states since they can't be merged into the global hash tables. Instead
     // we'll calculate them from scratch when merging.
-    updateAggStates(flatKeyVectors, unFlatKeyVectors, aggregateInputs, resultSetMultiplicity,
-        false /*updateDistinct*/);
+    updateAggStates(flatKeyVectors, unFlatKeyVectors, aggregateInputs, resultSetMultiplicity);
     return numFlatTuples;
 }
 
