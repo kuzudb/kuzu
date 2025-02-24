@@ -114,10 +114,8 @@ public:
 };
 
 struct HashAggregateLocalState {
-    std::vector<common::ValueVector*> flatKeyVectors;
-    std::vector<common::ValueVector*> unFlatKeyVectors;
+    std::vector<common::ValueVector*> keyVectors;
     std::vector<common::ValueVector*> dependentKeyVectors;
-    common::DataChunkState* leadingState = nullptr;
     std::unique_ptr<PartitioningAggregateHashTable> aggregateHashTable;
 
     void init(HashAggregateSharedState* sharedState, ResultSet& resultSet,
