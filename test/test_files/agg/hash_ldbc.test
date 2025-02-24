@@ -37,3 +37,14 @@ Internet Explorer|[ar,tk,uz]|32861
 Chrome|[ar,tk,uz]|30514
 Safari|[ar,tk,uz]|5410
 Opera|[ar,tk,uz]|3938
+
+-STATEMENT
+    MATCH (p:Post)
+    OPTIONAL MATCH (c:Comment)-[]->(p:Post)
+    RETURN p.browserUsed, list_sort(COLLECT(DISTINCT c.browserUsed), 'ASC');
+---- 5
+Firefox|[Chrome,Firefox,Internet Explorer,Opera,Safari]
+Internet Explorer|[Chrome,Firefox,Internet Explorer,Opera,Safari]
+Chrome|[Chrome,Firefox,Internet Explorer,Opera,Safari]
+Safari|[Chrome,Firefox,Internet Explorer,Opera,Safari]
+Opera|[Chrome,Firefox,Internet Explorer,Opera,Safari]
