@@ -1,6 +1,5 @@
 #include "planner/operator/logical_aggregate.h"
 
-#include "binder/expression/aggregate_function_expression.h"
 #include "binder/expression/expression_util.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 
@@ -29,17 +28,10 @@ void LogicalAggregate::computeFlatSchema() {
 }
 
 f_group_pos_set LogicalAggregate::getGroupsPosToFlattenForGroupBy() {
-    if (hasDistinctAggregate()) {
-        return FlattenAll::getGroupsPosToFlatten(getAllKeys(), *children[0]->getSchema());
-    } else {
-        return FlattenAllButOne::getGroupsPosToFlatten(getAllKeys(), *children[0]->getSchema());
-    }
+    return FlattenAllButOne::getGroupsPosToFlatten(getAllKeys(), *children[0]->getSchema());
 }
 
 f_group_pos_set LogicalAggregate::getGroupsPosToFlattenForAggregate() {
-    if (hasDistinctAggregate()) {
-        return FlattenAll::getGroupsPosToFlatten(aggregates, *children[0]->getSchema());
-    }
     return f_group_pos_set{};
 }
 
@@ -57,16 +49,6 @@ std::string LogicalAggregate::getExpressionsForPrinting() const {
     }
     result += "]";
     return result;
-}
-
-bool LogicalAggregate::hasDistinctAggregate() {
-    for (auto& expression : aggregates) {
-        auto funcExpr = expression->constPtrCast<binder::AggregateFunctionExpression>();
-        if (funcExpr->isDistinct()) {
-            return true;
-        }
-    }
-    return false;
 }
 
 void LogicalAggregate::insertAllExpressionsToGroupAndScope(f_group_pos groupPos) {
