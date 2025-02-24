@@ -1,8 +1,8 @@
-#include <stack>
+#include <vector>
 
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
-#include "common/exception/binder.h"
+#include "common/exception/runtime.h"
 #include "common/types/types.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_object_manager.h"
@@ -32,7 +32,7 @@ class SCCState {
 public:
     SCCState(const table_id_map_t<offset_t>& numNodesMap, MemoryManager* mm) {
         if (numNodesMap.size() != 1) {
-            throw BinderException("SCC only supports operations on one node table.");
+            throw RuntimeException("SCC only supports operations on one node table.");
         }
         for (const auto& [tableID, numNodes] : numNodesMap) {
             this->numNodes = numNodes;
@@ -76,7 +76,7 @@ public:
     void compute() {
         auto nbrTables = graph->getForwardNbrTableInfos(sccState.getTableID());
         if (nbrTables.size() != 1) {
-            throw BinderException("SCC only supports operations on one edge table.");
+            throw RuntimeException("SCC only supports operations on one edge table.");
         }
         auto nbrInfo = nbrTables[0];
         auto relEntry = nbrInfo.relEntry;
@@ -86,9 +86,8 @@ public:
                 forwardDFS(i, *scanState);
             }
         }
-        while (!dfsStack.empty()) {
-            auto node = dfsStack.top();
-            dfsStack.pop();
+        for (auto it = dfsStack.end() - 1; it >= dfsStack.begin(); --it) {
+            auto node = *it;
             if (!sccState.componentIDSet(node)) {
                 backwardsDFS(node, node, *scanState);
             }
@@ -96,24 +95,21 @@ public:
     }
 
     void forwardDFS(offset_t node, NbrScanState& scanState) {
-        toProcess.push(node);
+        toProcess.push_back(node);
 
         while (!toProcess.empty()) {
-            auto nextNode = toProcess.top();
-
+            auto nextNode = toProcess.back();
             if (sccState.visited(nextNode)) {
-                toProcess.pop();
-                dfsStack.push(nextNode);
+                toProcess.pop_back();
+                dfsStack.push_back(nextNode);
                 continue;
             }
-
             sccState.setVisited(nextNode);
-
             auto nextNodeID = nodeID_t{nextNode, sccState.getTableID()};
             for (auto chunk : graph->scanFwd(nextNodeID, scanState)) {
                 chunk.forEach([&](auto nbrNodeID, auto) {
                     if (!sccState.visited(nbrNodeID.offset)) {
-                        toProcess.push(nbrNodeID.offset);
+                        toProcess.push_back(nbrNodeID.offset);
                     }
                 });
             }
@@ -121,21 +117,17 @@ public:
     }
 
     void backwardsDFS(offset_t node, const offset_t root, NbrScanState& scanState) {
-        toProcess.push(node);
+        toProcess.push_back(node);
 
         while (!toProcess.empty()) {
-            auto nextNode = toProcess.top();
-            toProcess.pop();
-
-            if (!sccState.componentIDSet(nextNode)) {
-                sccState.setComponentID(nextNode, root);
-            }
-
+            auto nextNode = toProcess.back();
+            toProcess.pop_back();
+            sccState.setComponentID(nextNode, root);
             auto nextNodeID = nodeID_t{nextNode, sccState.getTableID()};
             for (auto chunk : graph->scanBwd(nextNodeID, scanState)) {
                 chunk.forEach([&](auto nbrNodeID, auto) {
                     if (!sccState.componentIDSet(nbrNodeID.offset)) {
-                        toProcess.push(nbrNodeID.offset);
+                        toProcess.push_back(nbrNodeID.offset);
                     }
                 });
             }
@@ -145,8 +137,8 @@ public:
 private:
     Graph* graph;
     SCCState& sccState;
-    stack<offset_t> toProcess;
-    stack<offset_t> dfsStack;
+    vector<offset_t> toProcess;
+    vector<offset_t> dfsStack;
 };
 
 class SCCOutputWriter : public GDSOutputWriter {

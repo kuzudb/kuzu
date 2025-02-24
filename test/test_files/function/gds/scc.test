@@ -2,72 +2,156 @@
 
 --
 
--CASE Scc1
--STATEMENT CREATE NODE TABLE User(id INT64, name STRING PRIMARY KEY);
+-CASE SingleSCC
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
--STATEMENT CREATE REL TABLE FRIEND(FROM User to User);
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
 ---- ok
--STATEMENT CREATE (alice:User {id: 0, name: 'Alice'}),
-            (bob:User {id: 1, name: 'Bob'}),
-            (charles:User {id: 2, name: 'Charles'}),
-            (doug:User {id: 3, name: 'Doug'}),
-            (eva:User {id: 4, name: 'Eva'}),
-            (fred:User {id: 5, name: 'Fred'}),
-            (greg:User {id: 6, name: 'Greg'}),
-            (alice)-[:FRIEND]->(bob),
-            (bob)-[:FRIEND]->(charles),
-            (charles)-[:FRIEND]->(alice),
-            (charles)-[:FRIEND]->(doug),
-            (greg)-[:FRIEND]->(eva),
-            (greg)-[:FRIEND]->(fred);
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u4:Node {id: 4}),
+            (u5:Node {id: 5}),
+            (u6:Node {id: 6}),
+            (u7:Node {id: 7}),
+            (u8:Node {id: 8}),
+            (u0)-[:Edge]->(u1),
+            (u1)-[:Edge]->(u2),
+            (u2)-[:Edge]->(u0),
+            (u2)-[:Edge]->(u3),
+            (u2)-[:Edge]->(u4),
+            (u5)-[:Edge]->(u4),
+            (u6)-[:Edge]->(u4),
+            (u6)-[:Edge]->(u5),
+            (u6)-[:Edge]->(u7),
+            (u7)-[:Edge]->(u4),
+            (u6)-[:Edge]->(u5);
 ---- ok
--STATEMENT CALL create_projected_graph('SCC', ['User'], ['FRIEND'])
+-STATEMENT CALL create_projected_graph('SCC', ['Node'], ['Edge'])
 ---- ok
--STATEMENT CALL strongly_connected_component('SCC') RETURN node.name, group_id;
+-STATEMENT CALL strongly_connected_component('SCC') RETURN node.id, group_id;
+---- 9
+0|5
+1|5
+2|5
+3|6
+4|4
+5|2
+6|1
+7|3
+8|0
+
+-CASE SingleSCCIsolated
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u4:Node {id: 4}),
+            (u5:Node {id: 5}),
+            (u6:Node {id: 6}),
+            (u0)-[:Edge]->(u1),
+            (u1)-[:Edge]->(u2),
+            (u2)-[:Edge]->(u0),
+            (u2)-[:Edge]->(u3),
+            (u6)-[:Edge]->(u4),
+            (u6)-[:Edge]->(u5);
+---- ok
+-STATEMENT CALL create_projected_graph('SCC', ['Node'], ['Edge'])
+---- ok
+-STATEMENT CALL strongly_connected_component('SCC') RETURN node.id, group_id;
 ---- 7
-Alice|0
-Bob|0
-Charles|0
-Doug|1
-Eva|6
-Fred|5
-Greg|4
+0|0
+1|0
+2|0
+3|1
+4|6
+5|5
+6|4
+
+-CASE SCCMultiple
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u4:Node {id: 4}),
+            (u5:Node {id: 5}),
+            (u6:Node {id: 6}),
+            (u7:Node {id: 7}),
+            (u8:Node {id: 8}),
+            (u0)-[:Edge]->(u1),
+            (u1)-[:Edge]->(u2),
+            (u1)-[:Edge]->(u4),
+            (u2)-[:Edge]->(u2),
+            (u2)-[:Edge]->(u5),
+            (u3)-[:Edge]->(u1),
+            (u3)-[:Edge]->(u6),
+            (u4)-[:Edge]->(u0),
+            (u4)-[:Edge]->(u5),
+            (u4)-[:Edge]->(u3),
+            (u5)-[:Edge]->(u7),
+            (u6)-[:Edge]->(u4),
+            (u6)-[:Edge]->(u5),
+            (u7)-[:Edge]->(u8),
+            (u8)-[:Edge]->(u5);
+---- ok
+-STATEMENT CALL create_projected_graph('SCC', ['Node'], ['Edge'])
+---- ok
+-STATEMENT CALL strongly_connected_component('SCC') RETURN node.id, group_id;
+---- 9
+0|3
+1|3
+2|8
+3|3
+4|3
+5|0
+6|3
+7|0
+8|0
 
 -CASE Scc2
--STATEMENT CREATE NODE TABLE User(id INT64 PRIMARY KEY);
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
--STATEMENT CREATE REL TABLE FRIEND(FROM User to User);
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
 ---- ok
--STATEMENT CREATE (u0:User {id: 0}),
-            (u1:User {id: 1}),
-            (u2:User {id: 2}),
-            (u3:User {id: 3}),
-            (u4:User {id: 4}),
-            (u5:User {id: 5}),
-            (u6:User {id: 6}),
-            (u7:User {id: 7}),
-            (u8:User {id: 8}),
-            (u9:User {id: 9}),
-            (u10:User {id: 10}),
-            (u0)-[:FRIEND]->(u1),
-            (u0)-[:FRIEND]->(u3),
-            (u1)-[:FRIEND]->(u2),
-            (u1)-[:FRIEND]->(u4),
-            (u2)-[:FRIEND]->(u0),
-            (u2)-[:FRIEND]->(u6),
-            (u3)-[:FRIEND]->(u2),
-            (u4)-[:FRIEND]->(u5),
-            (u4)-[:FRIEND]->(u6),
-            (u5)-[:FRIEND]->(u6),
-            (u5)-[:FRIEND]->(u7),
-            (u5)-[:FRIEND]->(u8),
-            (u5)-[:FRIEND]->(u9),
-            (u6)-[:FRIEND]->(u4),
-            (u7)-[:FRIEND]->(u9),
-            (u8)-[:FRIEND]->(u9),
-            (u9)-[:FRIEND]->(u8);
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u4:Node {id: 4}),
+            (u5:Node {id: 5}),
+            (u6:Node {id: 6}),
+            (u7:Node {id: 7}),
+            (u8:Node {id: 8}),
+            (u9:Node {id: 9}),
+            (u10:Node {id: 10}),
+            (u0)-[:Edge]->(u1),
+            (u0)-[:Edge]->(u3),
+            (u1)-[:Edge]->(u2),
+            (u1)-[:Edge]->(u4),
+            (u2)-[:Edge]->(u0),
+            (u2)-[:Edge]->(u6),
+            (u3)-[:Edge]->(u2),
+            (u4)-[:Edge]->(u5),
+            (u4)-[:Edge]->(u6),
+            (u5)-[:Edge]->(u6),
+            (u5)-[:Edge]->(u7),
+            (u5)-[:Edge]->(u8),
+            (u5)-[:Edge]->(u9),
+            (u6)-[:Edge]->(u4),
+            (u7)-[:Edge]->(u9),
+            (u8)-[:Edge]->(u9),
+            (u9)-[:Edge]->(u8);
 ---- ok
--STATEMENT CALL create_projected_graph('SCC', ['User'], ['FRIEND']);
+-STATEMENT CALL create_projected_graph('SCC', ['Node'], ['Edge']);
 ---- ok
 -STATEMENT CALL strongly_connected_component('SCC') RETURN node.id, group_id;
 ---- 11
@@ -84,38 +168,38 @@ Greg|4
 10|0
 
 -CASE NoScc
--STATEMENT CREATE NODE TABLE User(id INT64 PRIMARY KEY);
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
--STATEMENT CREATE REL TABLE FRIEND(FROM User to User);
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
 ---- ok
--STATEMENT CREATE (u0:User {id: 0}),
-            (u1:User {id: 1}),
-            (u2:User {id: 2}),
-            (u3:User {id: 3}),
-            (u4:User {id: 4}),
-            (u5:User {id: 5}),
-            (u6:User {id: 6}),
-            (u7:User {id: 7}),
-            (u8:User {id: 8}),
-            (u9:User {id: 9}),
-            (u10:User {id: 10}),
-            (u0)-[:FRIEND]->(u1),
-            (u0)-[:FRIEND]->(u3),
-            (u1)-[:FRIEND]->(u2),
-            (u1)-[:FRIEND]->(u4),
-            (u2)-[:FRIEND]->(u3),
-            (u2)-[:FRIEND]->(u6),
-            (u3)-[:FRIEND]->(u4),
-            (u4)-[:FRIEND]->(u5),
-            (u4)-[:FRIEND]->(u6),
-            (u5)-[:FRIEND]->(u6),
-            (u5)-[:FRIEND]->(u7),
-            (u5)-[:FRIEND]->(u8),
-            (u5)-[:FRIEND]->(u9),
-            (u7)-[:FRIEND]->(u9),
-            (u8)-[:FRIEND]->(u9);
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u4:Node {id: 4}),
+            (u5:Node {id: 5}),
+            (u6:Node {id: 6}),
+            (u7:Node {id: 7}),
+            (u8:Node {id: 8}),
+            (u9:Node {id: 9}),
+            (u10:Node {id: 10}),
+            (u0)-[:Edge]->(u1),
+            (u0)-[:Edge]->(u3),
+            (u1)-[:Edge]->(u2),
+            (u1)-[:Edge]->(u4),
+            (u2)-[:Edge]->(u3),
+            (u2)-[:Edge]->(u6),
+            (u3)-[:Edge]->(u4),
+            (u4)-[:Edge]->(u5),
+            (u4)-[:Edge]->(u6),
+            (u5)-[:Edge]->(u6),
+            (u5)-[:Edge]->(u7),
+            (u5)-[:Edge]->(u8),
+            (u5)-[:Edge]->(u9),
+            (u7)-[:Edge]->(u9),
+            (u8)-[:Edge]->(u9);
 ---- ok
--STATEMENT CALL create_projected_graph('SCC', ['User'], ['FRIEND']);
+-STATEMENT CALL create_projected_graph('SCC', ['Node'], ['Edge']);
 ---- ok
 -STATEMENT CALL strongly_connected_component('SCC') RETURN node.id, group_id;
 ---- 11
