@@ -199,7 +199,7 @@ static void writeRows(const ExportCSVBindData& exportCSVBindData, ExportCSVLocal
     for (auto i = 0u; i < inputVectors.size(); i++) {
         auto vectorToCast = {inputVectors[i]};
         exportCSVLocalState.castFuncs[i](vectorToCast,
-            common::SelectionVector::constructFromValueVectors(vectorToCast), *castVectors[i],
+            common::SelectionVector::fromValueVectors(vectorToCast), *castVectors[i],
             castVectors[i]->getSelVectorPtr(), nullptr /* dataPtr */);
     }
 

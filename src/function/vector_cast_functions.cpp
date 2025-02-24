@@ -98,7 +98,7 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
                         ->execFunc;
         std::vector<std::shared_ptr<ValueVector>> childParams{inputVector};
         dataPtr->numOfEntries = numOfEntries;
-        func(childParams, SelectionVector::constructFromValueVectors(childParams), *resultVector,
+        func(childParams, SelectionVector::fromValueVectors(childParams), *resultVector,
             resultVector->getSelVectorPtr(), (void*)dataPtr);
     } else {
         for (auto i = 0u; i < numOfEntries; i++) {

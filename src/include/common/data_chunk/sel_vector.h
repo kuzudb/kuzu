@@ -107,7 +107,7 @@ public:
         return selectedPositions[index];
     }
 
-    static std::vector<SelectionVector*> constructFromValueVectors(
+    static std::vector<SelectionVector*> fromValueVectors(
         const std::vector<std::shared_ptr<common::ValueVector>>& vec);
 
 private:

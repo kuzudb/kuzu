@@ -31,7 +31,7 @@ void SelectionVector::setToUnfiltered(sel_t size) {
     state = State::STATIC;
 }
 
-std::vector<SelectionVector*> SelectionVector::constructFromValueVectors(
+std::vector<SelectionVector*> SelectionVector::fromValueVectors(
     const std::vector<std::shared_ptr<common::ValueVector>>& vec) {
     std::vector<SelectionVector*> ret;
     std::transform(vec.begin(), vec.end(), std::back_inserter(ret),
