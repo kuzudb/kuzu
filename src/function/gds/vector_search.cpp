@@ -30,6 +30,7 @@ namespace kuzu {
         enum class SearchType {
             NAIVE,
             BLIND,
+            RANDOM,
             DIRECTED,
             ADAPTIVE_G,
             ADAPTIVE_L,
@@ -228,6 +229,8 @@ namespace kuzu {
                     searchType = SearchType::NAIVE;
                 } else if (searchTypeStr == "blind") {
                     searchType = SearchType::BLIND;
+                } else if (searchTypeStr == "random") {
+                    searchType = SearchType::RANDOM;
                 } else if (searchTypeStr == "directed") {
                     searchType = SearchType::DIRECTED;
                 } else if (searchTypeStr == "adaptive_g") {
@@ -946,6 +949,52 @@ namespace kuzu {
             }
 
             template<typename T>
+            void randomFilteredSearch(const table_id_t tableId, Graph *graph,
+                                     NodeTableDistanceComputer<T> *dc, NodeOffsetLevelSemiMask *filterMask,
+                                     GraphScanState &state, const vector_id_t entrypoint, const double entrypointDist,
+                                     BinaryHeap<NodeDistFarther> &results, BitVectorVisitedTable *visited,
+                                     const int efSearch, const int numFilteredNodesToAdd, VectorSearchStats &stats) {
+                vector_array_t vectorArray;
+                int size = 0;
+                std::priority_queue<NodeDistFarther> candidates;
+                candidates.emplace(entrypoint, entrypointDist);
+                if (filterMask->isMasked(entrypoint)) {
+                    results.push(NodeDistFarther(entrypoint, entrypointDist));
+                }
+                visited->set_bit(entrypoint);
+
+                // Handle for neg correlation cases
+                addFilteredNodesToCandidates(dc, candidates, results, visited, filterMask, numFilteredNodesToAdd, stats);
+                while (!candidates.empty()) {
+                    auto candidate = candidates.top();
+                    if (candidate.dist > results.top()->dist && results.size() > 0) {
+                        break;
+                    }
+                    candidates.pop();
+
+                    // Get the first hop neighbours
+                    stats.listNbrsCallTime->start();
+                    auto firstHopNbrs = graph->scanFwdRandomFast({candidate.id, tableId}, state);
+                    stats.listNbrsCallTime->stop();
+                    stats.listNbrsMetric->increase(1);
+
+                    auto totalNbrs = firstHopNbrs->state->getSelVector().getSelSize();
+
+                    // Try prefetching
+                    for (int i = 0; i < totalNbrs; i++) {
+                        auto neighbor = firstHopNbrs->getValue<nodeID_t>(i);
+                        visited->prefetch(neighbor.offset);
+                        filterMask->prefetchMaskValue(neighbor.offset);
+                    }
+
+                    randomTwoHopSearch(firstHopNbrs, tableId, graph, filterMask, state, totalNbrs, visited, vectorArray, size,
+                                      stats);
+                    stats.twoHopCalls->increase(1);
+                    batchComputeDistance(vectorArray, size, dc, candidates, results, efSearch, stats);
+                }
+            }
+
+            template<typename T>
             void directedFilteredSearch(const table_id_t tableId, Graph *graph,
                                      NodeTableDistanceComputer<T> *dc, NodeOffsetLevelSemiMask *filterMask,
                                      GraphScanState &state, const vector_id_t entrypoint, const double entrypointDist,
@@ -1169,6 +1218,9 @@ namespace kuzu {
                                         results, visited, efSearch, stats);
                     } else if (searchType == SearchType::BLIND) {
                         blindFilteredSearch(nodeTableId, graph, dc, filterMask, state, entrypoint, entrypointDist,
+                                        results, visited, efSearch, maxK, stats);
+                    } else if (searchType == SearchType::RANDOM) {
+                        randomFilteredSearch(nodeTableId, graph, dc, filterMask, state, entrypoint, entrypointDist,
                                         results, visited, efSearch, maxK, stats);
                     } else if (searchType == SearchType::DIRECTED) {
                         directedFilteredSearch(nodeTableId, graph, dc, filterMask, state, entrypoint, entrypointDist,
