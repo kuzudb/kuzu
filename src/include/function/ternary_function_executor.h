@@ -124,8 +124,8 @@ struct TernaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeFlatUnflatUnflat(common::ValueVector& a, common::SelectionVector* aSelVector,
         common::ValueVector& b, common::SelectionVector* bSelVector, common::ValueVector& c,
-        common::SelectionVector* cSelVector, common::ValueVector& result, common::SelectionVector*,
-        void* dataPtr) {
+        [[maybe_unused]] common::SelectionVector* cSelVector, common::ValueVector& result,
+        common::SelectionVector*, void* dataPtr) {
         KU_ASSERT(bSelVector == cSelVector);
         auto aPos = (*aSelVector)[0];
         if (a.isNull(aPos)) {
@@ -213,9 +213,9 @@ struct TernaryFunctionExecutor {
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
     static void executeAllUnFlat(common::ValueVector& a, common::SelectionVector* aSelVector,
-        common::ValueVector& b, common::SelectionVector* bSelVector, common::ValueVector& c,
-        common::SelectionVector* cSelVector, common::ValueVector& result, common::SelectionVector*,
-        void* dataPtr) {
+        common::ValueVector& b, [[maybe_unused]] common::SelectionVector* bSelVector,
+        common::ValueVector& c, [[maybe_unused]] common::SelectionVector* cSelVector,
+        common::ValueVector& result, common::SelectionVector*, void* dataPtr) {
         KU_ASSERT(aSelVector == bSelVector && bSelVector == cSelVector);
         if (a.hasNoNullsGuarantee() && b.hasNoNullsGuarantee() && c.hasNoNullsGuarantee()) {
             if (aSelVector->isUnfiltered()) {
@@ -301,8 +301,8 @@ struct TernaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeUnflatFlatUnflat(common::ValueVector& a, common::SelectionVector* aSelVector,
         common::ValueVector& b, common::SelectionVector* bSelVector, common::ValueVector& c,
-        common::SelectionVector* cSelVector, common::ValueVector& result, common::SelectionVector*,
-        void* dataPtr) {
+        [[maybe_unused]] common::SelectionVector* cSelVector, common::ValueVector& result,
+        common::SelectionVector*, void* dataPtr) {
         KU_ASSERT(aSelVector == cSelVector);
         auto bPos = (*bSelVector)[0];
         if (b.isNull(bPos)) {
@@ -345,9 +345,9 @@ struct TernaryFunctionExecutor {
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
     static void executeUnflatUnFlatFlat(common::ValueVector& a, common::SelectionVector* aSelVector,
-        common::ValueVector& b, common::SelectionVector* bSelVector, common::ValueVector& c,
-        common::SelectionVector* cSelVector, common::ValueVector& result, common::SelectionVector*,
-        void* dataPtr) {
+        common::ValueVector& b, [[maybe_unused]] common::SelectionVector* bSelVector,
+        common::ValueVector& c, common::SelectionVector* cSelVector, common::ValueVector& result,
+        common::SelectionVector*, void* dataPtr) {
         KU_ASSERT(aSelVector == bSelVector);
         auto cPos = (*cSelVector)[0];
         if (c.isNull(cPos)) {

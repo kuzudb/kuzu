@@ -158,9 +158,10 @@ struct BinaryFunctionExecutor {
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
-    static void executeBothUnFlat(common::ValueVector& left, common::SelectionVector* leftSelVector,
-        common::ValueVector& right, common::SelectionVector* rightSelVector,
-        common::ValueVector& result, common::SelectionVector* resultSelVector, void* dataPtr) {
+    static void executeBothUnFlat(common::ValueVector& left,
+        [[maybe_unused]] common::SelectionVector* leftSelVector, common::ValueVector& right,
+        [[maybe_unused]] common::SelectionVector* rightSelVector, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr) {
         KU_ASSERT(leftSelVector == rightSelVector);
         if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
             result.setAllNonNull();
