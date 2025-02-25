@@ -549,14 +549,14 @@ namespace kuzu {
                                      VectorSearchStats &stats) {
                 auto totalNbrs = firstHopNbrs->state->getSelVector().getSelSize();
                 std::queue<vector_id_t> nbrsToExplore;
-                int visitedSetSize = 0;
+                std::unordered_set<vector_id_t> visitedSet;
 
                 // First hop neighbours
                 for (int i = 0; i < totalNbrs; i++) {
                     auto neighbor = firstHopNbrs->getValue<nodeID_t>(i);
                     auto isNeighborMasked = filterMask->isMasked(neighbor.offset);
                     if (isNeighborMasked) {
-                        visitedSetSize++;
+                        visitedSet.insert(neighbor.offset);
                     }
                     if (visited->is_bit_set(neighbor.offset)) {
                         continue;
@@ -571,7 +571,7 @@ namespace kuzu {
                 while (!nbrsToExplore.empty()) {
                     auto neighbor = nbrsToExplore.front();
                     nbrsToExplore.pop();
-                    if (visitedSetSize >= filterNbrsToFind) {
+                    if (visitedSet.size() >= filterNbrsToFind) {
                         break;
                     }
                     if (visited->is_bit_set(neighbor)) {
@@ -596,7 +596,7 @@ namespace kuzu {
                         auto secondHopNeighbor = secondHopNbrs->getValue<nodeID_t>(i);
                         auto isNeighborMasked = filterMask->isMasked(secondHopNeighbor.offset);
                         if (isNeighborMasked) {
-                            visitedSetSize++;
+                            visitedSet.insert(secondHopNeighbor.offset);
                         }
                         if (visited->is_bit_set(secondHopNeighbor.offset)) {
                             continue;
