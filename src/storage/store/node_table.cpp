@@ -91,8 +91,8 @@ struct RollbackPKDeleter final : PKColumnScanHelper {
     RollbackPKDeleter(row_idx_t startNodeOffset, row_idx_t numRows, table_id_t tableID,
         PrimaryKeyIndex* pkIndex)
         : PKColumnScanHelper(pkIndex, tableID),
-          semiMask(RoaringBitmapSemiMaskUtil::createRoaringBitmapSemiMask(tableID,
-              startNodeOffset + numRows)) {
+          semiMask(
+              RoaringBitmapSemiMaskUtil::createRoaringBitmapSemiMask(startNodeOffset + numRows)) {
         semiMask->maskRange(startNodeOffset, startNodeOffset + numRows);
         semiMask->enable();
     }
@@ -103,7 +103,7 @@ struct RollbackPKDeleter final : PKColumnScanHelper {
     bool processScanOutput(const Transaction* transaction, NodeGroupScanResult scanResult,
         const ValueVector& scannedVector) override;
 
-    std::unique_ptr<RoaringBitmapSemiMask> semiMask;
+    std::unique_ptr<semi_mask_t> semiMask;
 };
 
 void insertPK(const Transaction* transaction, const ValueVector& nodeIDVector,

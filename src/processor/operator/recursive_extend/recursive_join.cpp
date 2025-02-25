@@ -12,12 +12,12 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::vector<RoaringBitmapSemiMask*> RecursiveJoin::getSemiMask() const {
-    std::vector<RoaringBitmapSemiMask*> maskVector;
-    for (auto& mask : sharedState->semiMasks) {
-        maskVector.push_back(mask.get());
+table_id_map_t<semi_mask_t*> RecursiveJoin::getSemiMasks() const {
+    table_id_map_t<semi_mask_t*> result;
+    for (auto& [tableID, mask] : sharedState->semiMasks) {
+        result.emplace(tableID, mask.get());
     }
-    return maskVector;
+    return result;
 }
 
 void RecursiveJoin::initLocalStateInternal(ResultSet*, ExecutionContext* context) {
@@ -277,12 +277,12 @@ void RecursiveJoin::initLocalRecursivePlan(ExecutionContext* context) {
 void RecursiveJoin::populateTargetDstNodes(ExecutionContext*) {
     node_id_set_t targetNodeIDs;
     uint64_t numTargetNodes = 0;
-    for (auto& mask : sharedState->semiMasks) {
+    for (auto& [tableID, mask] : sharedState->semiMasks) {
         auto numNodes = mask->getMaxOffset() + 1;
         if (mask->isEnabled()) {
             for (auto offset = 0u; offset < numNodes; ++offset) {
                 if (mask->isMasked(offset)) {
-                    targetNodeIDs.insert(nodeID_t{offset, mask->getTableID()});
+                    targetNodeIDs.insert(nodeID_t{offset, tableID});
                     numTargetNodes++;
                 }
             }

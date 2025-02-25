@@ -11,10 +11,11 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-static void initMask(table_id_map_t<mask_vector>& masksPerTable, mask_vector masks) {
-    for (auto& mask : masks) {
-        auto tableID = mask->getTableID();
+static void initMask(table_id_map_t<std::vector<semi_mask_t*>>& masksPerTable,
+    const table_id_map_t<semi_mask_t*>& maskPerTable) {
+    for (auto& [tableID, mask] : maskPerTable) {
         mask->enable();
+        KU_ASSERT(maskPerTable.contains(tableID));
         masksPerTable.at(tableID).emplace_back(mask);
     }
 }
@@ -25,9 +26,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(
     const auto inSchema = semiMasker.getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     const auto tableIDs = semiMasker.getNodeTableIDs();
-    table_id_map_t<mask_vector> masksPerTable;
+    table_id_map_t<std::vector<semi_mask_t*>> masksPerTable;
     for (auto tableID : tableIDs) {
-        masksPerTable.insert({tableID, std::vector<RoaringBitmapSemiMask*>{}});
+        masksPerTable.insert({tableID, std::vector<semi_mask_t*>{}});
     }
     std::vector<std::string> operatorNames;
     for (auto& op : semiMasker.getTargetOperators()) {
@@ -42,7 +43,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(
         case PhysicalOperatorType::RECURSIVE_JOIN: {
             KU_ASSERT(semiMasker.getTargetType() == SemiMaskTargetType::RECURSIVE_JOIN_TARGET_NODE);
             auto& recursiveJoin = physicalOp->constCast<RecursiveJoin>();
-            initMask(masksPerTable, recursiveJoin.getSemiMask());
+            initMask(masksPerTable, recursiveJoin.getSemiMasks());
         } break;
         case PhysicalOperatorType::GDS_CALL: {
             auto sharedState = physicalOp->ptrCast<GDSCall>()->getSharedState();
