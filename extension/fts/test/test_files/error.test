@@ -20,7 +20,7 @@ Binder exception: Index personIdx already exists in table person.
 
 -STATEMENT CALL CREATE_FTS_INDEX('knows', 'personIdx', ['fName'])
 ---- error
-Binder exception: Table knows is not a node table. Only a node table is supported for this function.
+Binder exception: knows is not of type NODE.
 
 -STATEMENT CALL CREATE_FTS_INDEX('person', 'personIdx1', ['fName1'])
 ---- error
@@ -48,7 +48,7 @@ Binder exception: Table person1 does not exist.
 
 -STATEMENT CALL QUERY_FTS_INDEX('knows', 'personIdx', 'alice') RETURN *
 ---- error
-Binder exception: Table knows is not a node table. Only a node table is supported for this function.
+Binder exception: knows is not of type NODE.
 
 -STATEMENT CALL QUERY_FTS_INDEX('movies', 'personIdx', 'alice') RETURN *
 ---- error
@@ -60,7 +60,7 @@ Binder exception: Table person1 does not exist.
 
 -STATEMENT CALL DROP_FTS_INDEX('knows', 'personIdx')
 ---- error
-Binder exception: Table knows is not a node table. Only a node table is supported for this function.
+Binder exception: knows is not of type NODE.
 
 -STATEMENT CALL DROP_FTS_INDEX('person', 'personIdx1')
 ---- error
