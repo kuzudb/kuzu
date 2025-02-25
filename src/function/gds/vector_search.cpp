@@ -678,7 +678,6 @@ namespace kuzu {
                     BinaryHeap<NodeDistFarther> &results,
                     const int efSearch,
                     VectorSearchStats &stats) {
-                stats.candidateNodesExplored->increase(size);
                 int i = 0;
                 constexpr int batch_size = 4;
                 std::array<double, batch_size> dists;
@@ -742,6 +741,7 @@ namespace kuzu {
                     }
                     if (isNeighborMasked) {
                         visited->set_bit(neighbor.offset);
+                        stats.candidateNodesExplored->increase(1);
                     }
                     vectorArray[size++] = neighbor.offset;
                 }
