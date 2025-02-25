@@ -64,21 +64,6 @@ public:
         const std::vector<common::LogicalType>& distinctAggKeyTypes, uint64_t numEntriesToAllocate,
         FactorizedTableSchema tableSchema);
 
-    void append(const std::vector<common::ValueVector*>& flatKeyVectors,
-        const std::vector<common::ValueVector*>& unFlatKeyVectors,
-        common::DataChunkState* leadingState, const std::vector<AggregateInput>& aggregateInputs,
-        uint64_t resultSetMultiplicity) {
-        append(flatKeyVectors, unFlatKeyVectors, std::vector<common::ValueVector*>(), leadingState,
-            aggregateInputs, resultSetMultiplicity);
-    }
-
-    //! update aggregate states for an input
-    uint64_t append(const std::vector<common::ValueVector*>& flatKeyVectors,
-        const std::vector<common::ValueVector*>& unFlatKeyVectors,
-        const std::vector<common::ValueVector*>& dependentKeyVectors,
-        common::DataChunkState* leadingState, const std::vector<AggregateInput>& aggregateInputs,
-        uint64_t resultSetMultiplicity);
-
     // Returns true if the value was distinct and was inserted
     // otherwise if the value already existed, returns false and the hash table is unchanged
     bool insertAggregateValueIfDistinctForGroupByKeys(
@@ -163,11 +148,6 @@ protected:
 
     void increaseHashSlotIdxes(uint64_t numNoMatches);
 
-    void updateDistinctAggState(const std::vector<common::ValueVector*>& flatKeyVectors,
-        const std::vector<common::ValueVector*>& unFlatKeyVectors,
-        function::AggregateFunction& aggregateFunction, common::ValueVector* aggregateVector,
-        uint64_t multiplicity, uint32_t colIdx, uint32_t aggStateOffset);
-
     void updateAggState(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
         function::AggregateFunction& aggregateFunction, common::ValueVector* aggVector,
@@ -175,8 +155,7 @@ protected:
 
     void updateAggStates(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,
-        const std::vector<AggregateInput>& aggregateInputs, uint64_t resultSetMultiplicity,
-        bool updateDistinct);
+        const std::vector<AggregateInput>& aggregateInputs, uint64_t resultSetMultiplicity);
 
     void fillEntryWithInitialNullAggregateState(FactorizedTable& table, uint8_t* entry);
 

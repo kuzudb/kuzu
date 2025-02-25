@@ -94,10 +94,8 @@ void SimpleAggregate::computeDistinctAggregate(AggregateHashTable* distinctHT,
     if (distinctHT->insertAggregateValueIfDistinctForGroupByKeys(std::vector<ValueVector*>{},
             input->aggregateVector)) {
         auto pos = input->aggregateVector->state->getSelVector()[0];
-        if (!input->aggregateVector->isNull(pos)) {
-            function->updatePosState((uint8_t*)state, input->aggregateVector, multiplicity, pos,
-                memoryManager);
-        }
+        function->updatePosState((uint8_t*)state, input->aggregateVector, multiplicity, pos,
+            memoryManager);
     }
 }
 

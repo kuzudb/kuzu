@@ -28,3 +28,23 @@ Chrome|[uz,]|2501
 Firefox|[tk,]|2216
 Internet Explorer|[tk,]|1789
 Chrome|[tk,]|1710
+-STATEMENT MATCH (p:Post) RETURN p.browserUsed, list_sort(COLLECT(DISTINCT p.language), 'ASC'), COUNT(DISTINCT p.imageFile) as n ORDER BY n DESC;
+# The 3 distinct languages are easy to verify, but the distinct image files are just the results computed from a version we think are correct, and are just to give warning of nondeterministic behaviour or unexpected changes
+-CHECK_ORDER
+---- 5
+Firefox|[ar,tk,uz]|47533
+Internet Explorer|[ar,tk,uz]|32861
+Chrome|[ar,tk,uz]|30514
+Safari|[ar,tk,uz]|5410
+Opera|[ar,tk,uz]|3938
+
+-STATEMENT
+    MATCH (p:Post)
+    OPTIONAL MATCH (c:Comment)-[]->(p:Post)
+    RETURN p.browserUsed, list_sort(COLLECT(DISTINCT c.browserUsed), 'ASC');
+---- 5
+Firefox|[Chrome,Firefox,Internet Explorer,Opera,Safari]
+Internet Explorer|[Chrome,Firefox,Internet Explorer,Opera,Safari]
+Chrome|[Chrome,Firefox,Internet Explorer,Opera,Safari]
+Safari|[Chrome,Firefox,Internet Explorer,Opera,Safari]
+Opera|[Chrome,Firefox,Internet Explorer,Opera,Safari]
