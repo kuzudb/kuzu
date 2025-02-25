@@ -23,10 +23,11 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-// Use the two largest offset_t values as special boolean values instead of
-// using a separate second array.
-static constexpr offset_t NOT_VISITED = numeric_limits<offset_t>::max();
-static constexpr offset_t VISITED = numeric_limits<offset_t>::max() - 1u;
+// Use the three largest offset_t values as special markers to avoid allocating another array.
+// PROCESSED implies node has been VISITED and added to the backward DFS stack.
+static constexpr offset_t PROCESSED = numeric_limits<offset_t>::max();
+static constexpr offset_t VISITED = numeric_limits<offset_t>::max() - 1;
+static constexpr offset_t NOT_VISITED = numeric_limits<offset_t>::max() - 2;
 
 class SCCState {
 public:
@@ -47,9 +48,13 @@ public:
 
     void setVisited(const offset_t offset) const { componentIDs[offset] = VISITED; }
 
-    bool visited(const offset_t offset) const { return componentIDs[offset] == VISITED; }
+    bool visited(const offset_t offset) const { return componentIDs[offset] >= VISITED; }
 
-    bool componentIDSet(const offset_t offset) const { return componentIDs[offset] < VISITED; }
+    void setProcessed(const offset_t offset) const { componentIDs[offset] = PROCESSED; }
+
+    bool processed(const offset_t offset) const { return componentIDs[offset] == PROCESSED; }
+
+    bool componentIDSet(const offset_t offset) const { return componentIDs[offset] < NOT_VISITED; }
 
     void setComponentID(const offset_t offset, const offset_t value) const {
         componentIDs[offset] = value;
@@ -86,6 +91,7 @@ public:
                 forwardDFS(i, *scanState);
             }
         }
+        KU_ASSERT(toProcess.size() == 0);
         for (auto it = dfsStack.end() - 1; it >= dfsStack.begin(); --it) {
             auto node = *it;
             if (!sccState.componentIDSet(node)) {
@@ -101,7 +107,10 @@ public:
             auto nextNode = toProcess.back();
             if (sccState.visited(nextNode)) {
                 toProcess.pop_back();
-                dfsStack.push_back(nextNode);
+                if (!sccState.processed(nextNode)) {
+                    dfsStack.push_back(nextNode);
+                    sccState.setProcessed(nextNode);
+                }
                 continue;
             }
             sccState.setVisited(nextNode);
