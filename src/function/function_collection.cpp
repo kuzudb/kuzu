@@ -242,8 +242,8 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Algorithm functions
         ALGORITHM_FUNCTION(WeaklyConnectedComponentsFunction),
-        ALGORITHM_FUNCTION(StronglyConnectedComponentsFunction),
-        ALGORITHM_FUNCTION(KCoreDecompositionFunction), ALGORITHM_FUNCTION(PageRankFunction),
+        ALGORITHM_FUNCTION(SCCKosarajuFunction), ALGORITHM_FUNCTION(KCoreDecompositionFunction),
+        ALGORITHM_FUNCTION(PageRankFunction),
 
         // Export functions
         EXPORT_FUNCTION(ExportCSVFunction), EXPORT_FUNCTION(ExportParquetFunction),

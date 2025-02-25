@@ -198,16 +198,14 @@ private:
     FactorizedTable* localFT;
 };
 
-class StronglyConnectedComponent final : public GDSAlgorithm {
+class SCCKosaraju final : public GDSAlgorithm {
     static constexpr char GROUP_ID_COLUMN_NAME[] = "group_id";
 
 public:
-    StronglyConnectedComponent() = default;
-    StronglyConnectedComponent(const StronglyConnectedComponent& other) : GDSAlgorithm{other} {}
+    SCCKosaraju() = default;
+    SCCKosaraju(const SCCKosaraju& other) : GDSAlgorithm{other} {}
 
-    unique_ptr<GDSAlgorithm> copy() const override {
-        return make_unique<StronglyConnectedComponent>(*this);
-    }
+    unique_ptr<GDSAlgorithm> copy() const override { return make_unique<SCCKosaraju>(*this); }
 
     vector<LogicalTypeID> getParameterTypeIDs() const override {
         return vector<LogicalTypeID>{LogicalTypeID::ANY};
@@ -249,9 +247,9 @@ public:
     }
 };
 
-function_set StronglyConnectedComponentsFunction::getFunctionSet() {
+function_set SCCKosarajuFunction::getFunctionSet() {
     function_set result;
-    auto algo = make_unique<StronglyConnectedComponent>();
+    auto algo = make_unique<SCCKosaraju>();
     auto function = make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo));
     result.push_back(std::move(function));
     return result;

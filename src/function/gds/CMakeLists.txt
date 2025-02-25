@@ -17,10 +17,10 @@ add_library(kuzu_function_algorithm
         ssp_paths.cpp
         variable_length_path.cpp
         weakly_connected_components.cpp
-        strongly_connected_components.cpp
+        strongly_connected_components_kosaraju.cpp
         wsp_destinations.cpp
         wsp_paths.cpp
-        )
+)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_function_algorithm>

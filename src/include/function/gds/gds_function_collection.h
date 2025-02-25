@@ -11,8 +11,8 @@ struct WeaklyConnectedComponentsFunction {
     static function_set getFunctionSet();
 };
 
-struct StronglyConnectedComponentsFunction {
-    static constexpr const char* name = "STRONGLY_CONNECTED_COMPONENT";
+struct SCCKosarajuFunction {
+    static constexpr const char* name = "STRONGLY_CONNECTED_COMPONENTS_KOSARAJU";
 
     static function_set getFunctionSet();
 };
