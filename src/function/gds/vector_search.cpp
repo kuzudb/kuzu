@@ -1221,10 +1221,10 @@ namespace kuzu {
                                         results, visited, efSearch, maxK, stats);
                     } else if (searchType == SearchType::RANDOM) {
                         randomFilteredSearch(nodeTableId, graph, dc, filterMask, state, entrypoint, entrypointDist,
-                                        results, visited, efSearch, maxK, stats);
+                                             results, visited, efSearch, maxK, stats);
                     } else if (searchType == SearchType::DIRECTED) {
                         directedFilteredSearch(nodeTableId, graph, dc, filterMask, state, entrypoint, entrypointDist,
-                                            results, visited, efSearch, maxK, stats);
+                                               results, visited, efSearch, maxK, stats);
                     } else if (searchType == SearchType::ONE_HOP) {
                         oneHopFilteredSearch(nodeTableId, graph, dc, filterMask, state, entrypoint, entrypointDist,
                                                results, visited, efSearch, maxK, stats);
