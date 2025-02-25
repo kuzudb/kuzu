@@ -33,7 +33,7 @@ class SCCState {
 public:
     SCCState(const table_id_map_t<offset_t>& numNodesMap, MemoryManager* mm) {
         if (numNodesMap.size() != 1) {
-            throw RuntimeException("SCC only supports operations on one node table.");
+            throw RuntimeException("Kosaraju's SCC only supports operations on one node table.");
         }
         for (const auto& [tableID, numNodes] : numNodesMap) {
             this->numNodes = numNodes;
@@ -81,7 +81,7 @@ public:
     void compute() {
         auto nbrTables = graph->getForwardNbrTableInfos(sccState.getTableID());
         if (nbrTables.size() != 1) {
-            throw RuntimeException("SCC only supports operations on one edge table.");
+            throw RuntimeException("Kosaraju's SCC only supports operations on one edge table.");
         }
         auto nbrInfo = nbrTables[0];
         auto relEntry = nbrInfo.relEntry;
