@@ -151,6 +151,7 @@ namespace kuzu {
             NumericMetric* oneHopCalls;
             NumericMetric* twoHopCalls;
             NumericMetric* dynamicTwoHopCalls;
+            NumericMetric* candidateNodesExplored;
 
             explicit VectorSearchStats(ExecutionContext *context) {
                 vectorSearchTimeMetric = context->profiler->registerTimeMetricForce("vectorSearchTime");
@@ -161,6 +162,7 @@ namespace kuzu {
                 oneHopCalls = context->profiler->registerNumericMetricForce("oneHopCalls");
                 twoHopCalls = context->profiler->registerNumericMetricForce("twoHopCalls");
                 dynamicTwoHopCalls = context->profiler->registerNumericMetricForce("dynamicTwoHopCalls");
+                candidateNodesExplored = context->profiler->registerNumericMetricForce("candidateNodesExplored");
             }
         };
 
@@ -350,6 +352,7 @@ namespace kuzu {
                     BinaryHeap<NodeDistFarther> &results,
                     const int efSearch,
                     VectorSearchStats &stats) {
+                stats.candidateNodesExplored->increase(size);
                 int i = 0;
                 constexpr int batch_size = 4;
                 std::array<double, batch_size> dists;
@@ -437,6 +440,7 @@ namespace kuzu {
                     BinaryHeap<NodeDistFarther> &results,
                     const int efSearch,
                     VectorSearchStats &stats) {
+                stats.candidateNodesExplored->increase(size);
                 int i = 0;
                 constexpr int batch_size = 4;
                 std::array<double, batch_size> dists;
@@ -598,7 +602,6 @@ namespace kuzu {
                             continue;
                         }
                         if (isNeighborMasked) {
-                            // TODO: Maybe there's some benefit in doing batch distance computation
                             visited->set_bit(secondHopNeighbor.offset);
                             vectorArray[size++] = secondHopNeighbor.offset;
                         }
@@ -675,6 +678,7 @@ namespace kuzu {
                     BinaryHeap<NodeDistFarther> &results,
                     const int efSearch,
                     VectorSearchStats &stats) {
+                stats.candidateNodesExplored->increase(size);
                 int i = 0;
                 constexpr int batch_size = 4;
                 std::array<double, batch_size> dists;
@@ -804,6 +808,7 @@ namespace kuzu {
                         visited->set_bit(i);
                         nbrsAdded++;
                         stats.distCompMetric->increase(1);
+                        stats.candidateNodesExplored->increase(1);
                     }
                     if (nbrsAdded >= maxNodesToAdd) {
                         break;

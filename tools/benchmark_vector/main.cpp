@@ -268,6 +268,7 @@ int main(int argc, char **argv) {
     long oneHopCalls = 0;
     long twoHopCalls = 0;
     long dynamicTwoHopCalls = 0;
+    double candidateNodesExplored = 0;
 
     for (auto &queriesPath : testQueries) {
         printf("Running queries from: %s\n", queriesPath.c_str());
@@ -313,7 +314,7 @@ int main(int argc, char **argv) {
             oneHopCalls += vectorStats.oneHopCalls;
             twoHopCalls += vectorStats.twoHopCalls;
             dynamicTwoHopCalls += vectorStats.dynamicTwoHopCalls;
-
+            candidateNodesExplored += vectorStats.candidateNodesExplored;
             if (res->getNumTuples() < k) {
                 totalQueriesSkipped++;
                 printf("Skipped query %d\n", i);
@@ -349,6 +350,7 @@ int main(int argc, char **argv) {
     double avgOneHopCalls = totalQueries > 0 ? (double) oneHopCalls / totalQueries : 0;
     double avgTwoHopCalls = totalQueries > 0 ? (double) twoHopCalls / totalQueries : 0;
     double avgDynamicTwoHopCalls = totalQueries > 0 ? (double) dynamicTwoHopCalls / totalQueries : 0;
+    double avgCandidateNodesExplored = totalQueries > 0 ? (double) candidateNodesExplored / totalQueries : 0;
     double recallPercentage = (double) recallCount / (totalQueries * k) * 100.0;
 
     // Build JSON output for benchmark summary.
@@ -365,9 +367,10 @@ int main(int argc, char **argv) {
     jsonStream << "  \"avg_one_hop_calls\": " << avgOneHopCalls << ",\n";
     jsonStream << "  \"avg_two_hop_calls\": " << avgTwoHopCalls << ",\n";
     jsonStream << "  \"avg_dynamic_two_hop_calls\": " << avgDynamicTwoHopCalls << ",\n";
+    jsonStream << "  \"avg_candidate_nodes_explored\": " << avgCandidateNodesExplored << ",\n";
     jsonStream << "  \"total_queries_skipped\": " << totalQueriesSkipped << ",\n";
-    jsonStream << "  \"recall_percentage\": " << recallPercentage << "\n";
-    jsonStream << "  \"selectivity\": " << stoi(selectivityStr) << "\n";
+    jsonStream << "  \"recall_percentage\": " << recallPercentage << ",\n";
+    jsonStream << "  \"selectivity\": " << stoi(selectivityStr) << ",\n";
     jsonStream << "  \"efSearch\": " << efSearch << "\n";
     jsonStream << "}\n";
 

@@ -526,7 +526,8 @@ std::unique_ptr<QueryResult> ClientContext::executeAndAutoCommitIfNecessaryNoLoc
             profiler->sumAllTimeMetricsWithKey("listNbrsCallTime"),
             profiler->sumAllNumericMetricsWithKey("oneHopCalls"),
             profiler->sumAllNumericMetricsWithKey("twoHopCalls"),
-            profiler->sumAllNumericMetricsWithKey("dynamicTwoHopCalls"));
+            profiler->sumAllNumericMetricsWithKey("dynamicTwoHopCalls"),
+            profiler->sumAllNumericMetricsWithKey("candidateNodesExplored"));
     queryResult->initResultTableAndIterator(std::move(resultFT),
         preparedStatement->statementResult->getColumns());
     return queryResult;
