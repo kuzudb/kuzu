@@ -104,7 +104,7 @@ struct BinaryBooleanFunctionExecutor {
 
     template<typename FUNC>
     static void executeBothUnFlat(common::ValueVector& left, common::SelectionVector* leftSelVector,
-        common::ValueVector& right, common::SelectionVector* rightSelVector,
+        common::ValueVector& right, [[maybe_unused]] common::SelectionVector* rightSelVector,
         common::ValueVector& result, common::SelectionVector*) {
         KU_ASSERT(leftSelVector == rightSelVector);
         if (leftSelVector->isUnfiltered()) {
