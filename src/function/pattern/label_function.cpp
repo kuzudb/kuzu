@@ -82,8 +82,8 @@ std::shared_ptr<Expression> LabelFunction::rewriteFunc(const RewriteFunctionBind
                 return expressionBinder->createLiteralExpression("");
             }
             if (!node.isMultiLabeled()) {
-                auto label =
-                    node.getSingleEntry()->getLabel(context->getCatalog(), context->getTransaction());
+                auto label = node.getSingleEntry()->getLabel(context->getCatalog(),
+                    context->getTransaction());
                 return expressionBinder->createLiteralExpression(label);
             }
         }
@@ -96,8 +96,8 @@ std::shared_ptr<Expression> LabelFunction::rewriteFunc(const RewriteFunctionBind
                 return expressionBinder->createLiteralExpression("");
             }
             if (!rel.isMultiLabeled()) {
-                auto label =
-                    rel.getSingleEntry()->getLabel(context->getCatalog(), context->getTransaction());
+                auto label = rel.getSingleEntry()->getLabel(context->getCatalog(),
+                    context->getTransaction());
                 return expressionBinder->createLiteralExpression(label);
             }
         }

@@ -393,7 +393,9 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
             auto dependOnNode = dependentVariableNames.contains(node->getUniqueName());
             auto dependOnRel = dependentVariableNames.contains(rel->getUniqueName());
             if (dependOnNode && dependOnRel) {
-                throw BinderException(stringFormat("Cannot evaluate {} because it depends on both {} and {}.", predicate->toString(), node->toString(), rel->toString()));
+                throw BinderException(
+                    stringFormat("Cannot evaluate {} because it depends on both {} and {}.",
+                        predicate->toString(), node->toString(), rel->toString()));
             } else if (dependOnNode) {
                 nodePredicate = expressionBinder.combineBooleanExpressions(ExpressionType::AND,
                     nodePredicate, predicate);
@@ -402,7 +404,10 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
                     relPredicate, predicate);
             } else {
                 if (!ExpressionUtil::isBoolLiteral(*predicate)) {
-                    throw BinderException(stringFormat("Cannot evaluate {} because it does not depend on {} or {}. Treating it as a node or relationship predicate is ambiguous." , predicate->toString(), node->toString(), rel->toString()));
+                    throw BinderException(stringFormat(
+                        "Cannot evaluate {} because it does not depend on {} or {}. Treating it as "
+                        "a node or relationship predicate is ambiguous.",
+                        predicate->toString(), node->toString(), rel->toString()));
                 }
                 // If predicate is true literal, we ignore.
                 // If predicate is false literal, we mark this recursive relationship as empty
