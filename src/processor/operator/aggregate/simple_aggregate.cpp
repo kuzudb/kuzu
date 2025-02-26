@@ -219,7 +219,7 @@ void SimpleAggregate::executeInternal(ExecutionContext* context) {
     }
     if (getSharedState().hasDistinct) {
         for (auto& hashTable : distinctHashTables) {
-            hashTable->mergeAll();
+            hashTable->mergeIfFull(0 /*tuplesToAdd*/, true /*mergeAll*/);
         }
     }
     getSharedState().combineAggregateStates(localAggregateStates, memoryManager);

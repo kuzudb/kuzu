@@ -312,7 +312,7 @@ void HashAggregate::executeInternal(ExecutionContext* context) {
             break;
         }
     }
-    localState.aggregateHashTable->mergeAll();
+    localState.aggregateHashTable->mergeIfFull(0 /*tuplesToAdd*/, true /*mergeAll*/);
 }
 
 } // namespace processor
