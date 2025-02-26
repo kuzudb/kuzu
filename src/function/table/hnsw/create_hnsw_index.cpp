@@ -96,41 +96,40 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
                                     ->getBindData()
                                     ->constPtrCast<CreateHNSWIndexBindData>();
     auto createHNSWCallOp = TableFunction::getPhysicalPlan(clientContext, planMapper, logicalOp);
-    auto createHNSWTableFuncCall = createHNSWCallOp->ptrCast<processor::TableFunctionCall>();
-    KU_ASSERT(createHNSWTableFuncCall->getOperatorType() ==
+    KU_ASSERT(createHNSWCallOp->getOperatorType() ==
               processor::PhysicalOperatorType::TABLE_FUNCTION_CALL);
-    auto createHNSWFuncSharedState =
-        createHNSWTableFuncCall->getSharedState()->funcState->ptrCast<CreateInMemHNSWSharedState>();
-    auto indexName = createHNSWFuncSharedState->name;
+    auto createFuncCall = createHNSWCallOp->ptrCast<processor::TableFunctionCall>();
+    auto createFuncSharedState =
+        createFuncCall->getSharedState()->funcState->ptrCast<CreateInMemHNSWSharedState>();
+    auto indexName = createFuncSharedState->name;
     // Append a dummy sink to end the first pipeline
-    auto createHNSWDummySink = std::make_unique<processor::DummySink>(
+    auto createDummySink = std::make_unique<processor::DummySink>(
         std::make_unique<processor::ResultSetDescriptor>(logicalOp->getSchema()),
         std::move(createHNSWCallOp), planMapper->getOperatorID(), std::make_unique<OPPrintInfo>());
     // Append _FinalizeHNSWIndex table function.
-    auto finalizeHNSWTableFuncEntry = clientContext->getCatalog()->getFunctionEntry(
+    auto finalizeFuncEntry = clientContext->getCatalog()->getFunctionEntry(
         clientContext->getTransaction(), InternalFinalizeHNSWIndexFunction::name);
     auto func = BuiltInFunctionsUtils::matchFunction(InternalFinalizeHNSWIndexFunction::name,
-        finalizeHNSWTableFuncEntry->ptrCast<catalog::FunctionCatalogEntry>())
-                    ->constPtrCast<TableFunction>()
-                    ->copy();
+        finalizeFuncEntry->ptrCast<catalog::FunctionCatalogEntry>())
+                    ->constPtrCast<TableFunction>();
     auto info = processor::TableFunctionCallInfo();
     info.function = *func;
     info.bindData = std::make_unique<TableFuncBindData>();
-    auto finalizeHNSWCallSharedState = std::make_shared<processor::TableFunctionCallSharedState>();
-    TableFunctionInitInput finalizeHNSWTableFuncInitInput{info.bindData.get(), 0 /* queryID */,
+    auto finalizeSharedState = std::make_shared<processor::TableFunctionCallSharedState>();
+    TableFunctionInitInput finalizeFuncInitInput{info.bindData.get(), 0 /* queryID */,
         *clientContext};
-    finalizeHNSWCallSharedState->funcState =
-        info.function.initSharedStateFunc(finalizeHNSWTableFuncInitInput);
-    auto finalizeHNSWFuncSharedState =
-        finalizeHNSWCallSharedState->funcState->ptrCast<FinalizeHNSWSharedState>();
-    finalizeHNSWFuncSharedState->hnswIndex = createHNSWFuncSharedState->hnswIndex;
-    finalizeHNSWFuncSharedState->maxOffset =
+    finalizeSharedState->funcState = info.function.initSharedStateFunc(finalizeFuncInitInput);
+    auto finalizeFuncSharedState =
+        finalizeSharedState->funcState->ptrCast<FinalizeHNSWSharedState>();
+    finalizeFuncSharedState->hnswIndex = createFuncSharedState->hnswIndex;
+    finalizeFuncSharedState->maxOffset =
         (logicalCallBoundData->numNodes + StorageConfig::NODE_GROUP_SIZE - 1) /
         StorageConfig::NODE_GROUP_SIZE;
-    finalizeHNSWFuncSharedState->bindData = logicalCallBoundData->copy();
+    finalizeFuncSharedState->maxMorselSize = 1;
+    finalizeFuncSharedState->bindData = logicalCallBoundData->copy();
     auto finalizeCallOp = std::make_unique<processor::TableFunctionCall>(std::move(info),
-        finalizeHNSWCallSharedState, planMapper->getOperatorID(), std::make_unique<OPPrintInfo>());
-    finalizeCallOp->addChild(std::move(createHNSWDummySink));
+        finalizeSharedState, planMapper->getOperatorID(), std::make_unique<OPPrintInfo>());
+    finalizeCallOp->addChild(std::move(createDummySink));
     // Append a dummy sink to the end of the second pipeline
     auto finalizeHNSWDummySink = std::make_unique<processor::DummySink>(
         std::make_unique<processor::ResultSetDescriptor>(logicalOp->getSchema()),
@@ -151,13 +150,13 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
     auto lowerRelTable =
         storageManager->getTable(lowerRelTableEntry->getTableID())->ptrCast<storage::RelTable>();
     // Initialize partitioner shared state.
-    const auto partitionerSharedState = finalizeHNSWFuncSharedState->partitionerSharedState;
+    const auto partitionerSharedState = finalizeFuncSharedState->partitionerSharedState;
     partitionerSharedState->setTables(nodeTable, upperRelTable);
     logical_type_vec_t callColumnTypes;
     callColumnTypes.push_back(LogicalType::INTERNAL_ID());
     callColumnTypes.push_back(LogicalType::INTERNAL_ID());
     callColumnTypes.push_back(LogicalType::INTERNAL_ID());
-    finalizeHNSWFuncSharedState->partitionerSharedState->initialize(callColumnTypes, clientContext);
+    finalizeFuncSharedState->partitionerSharedState->initialize(callColumnTypes, clientContext);
     // Initialize fTable for BatchInsert.
     auto fTable = processor::FactorizedTableUtils::getSingleStringColumnFTable(
         clientContext->getMemoryManager());
@@ -214,17 +213,6 @@ function_set InternalCreateHNSWIndexFunction::getFunctionSet() {
 static std::unique_ptr<TableFuncBindData> finalizeHNSWBindFunc(main::ClientContext*,
     const TableFuncBindInput*) {
     return std::make_unique<TableFuncBindData>();
-}
-
-TableFuncMorsel FinalizeHNSWSharedState::getMorsel() {
-    std::unique_lock lck{mtx};
-    KU_ASSERT(curOffset <= maxOffset);
-    if (curOffset == maxOffset) {
-        return TableFuncMorsel::createInvalidMorsel();
-    }
-    const auto numNodeGroups = std::min(static_cast<uint64_t>(1), maxOffset - curOffset);
-    curOffset += numNodeGroups;
-    return {curOffset - numNodeGroups, curOffset};
 }
 
 static std::unique_ptr<TableFuncSharedState> initFinalizeHNSWSharedState(
@@ -302,6 +290,7 @@ function_set InternalFinalizeHNSWIndexFunction::getFunctionSet() {
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
+    storage::IndexUtils::validateAutoTransaction(*context, CreateHNSWIndexFunction::name);
     return createInMemHNSWBindFunc(context, input);
 }
 
@@ -309,33 +298,28 @@ static std::string rewriteCreateHNSWQuery(main::ClientContext& context,
     const TableFuncBindData& bindData) {
     context.setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     const auto hnswBindData = bindData.constPtrCast<CreateHNSWIndexBindData>();
-    std::string query = "";
-    auto requireNewTransaction = !context.getTransactionContext()->hasActiveTransaction();
-    if (requireNewTransaction) {
-        query += "BEGIN TRANSACTION;";
-    }
+    std::string query = "BEGIN TRANSACTION;";
+    auto indexName = hnswBindData->indexName;
+    auto tableName = hnswBindData->tableEntry->getName();
     query += stringFormat("CREATE REL TABLE {} (FROM {} TO {});",
-        storage::HNSWIndexUtils::getUpperGraphTableName(hnswBindData->indexName),
-        hnswBindData->tableEntry->getName(), hnswBindData->tableEntry->getName());
+        storage::HNSWIndexUtils::getUpperGraphTableName(indexName), tableName, tableName);
     query += stringFormat("CREATE REL TABLE {} (FROM {} TO {});",
-        storage::HNSWIndexUtils::getLowerGraphTableName(hnswBindData->indexName),
-        hnswBindData->tableEntry->getName(), hnswBindData->tableEntry->getName());
+        storage::HNSWIndexUtils::getLowerGraphTableName(indexName), tableName, tableName);
     std::string params;
-    params += stringFormat("mu := {}, ", hnswBindData->config.mu);
-    params += stringFormat("ml := {}, ", hnswBindData->config.ml);
-    params += stringFormat("efc := {}, ", hnswBindData->config.efc);
+    auto& config = hnswBindData->config;
+    params += stringFormat("mu := {}, ", config.mu);
+    params += stringFormat("ml := {}, ", config.ml);
+    params += stringFormat("efc := {}, ", config.efc);
     params += stringFormat("distFunc := '{}', ",
-        storage::HNSWIndexConfig::distFuncToString(hnswBindData->config.distFunc));
-    params += stringFormat("alpha := {}, ", hnswBindData->config.alpha);
-    params += stringFormat("pu := {}", hnswBindData->config.pu);
-    query += stringFormat("CALL _CREATE_HNSW_INDEX('{}', '{}', '{}', {});", hnswBindData->indexName,
-        hnswBindData->tableEntry->getName(),
-        hnswBindData->tableEntry->getProperty(hnswBindData->propertyID).getName(), params);
-    query +=
-        stringFormat("RETURN 'Index {} has been created.' as result;", hnswBindData->indexName);
-    if (requireNewTransaction) {
-        query += "COMMIT;";
-    }
+        storage::HNSWIndexConfig::distFuncToString(config.distFunc));
+    params += stringFormat("alpha := {}, ", config.alpha);
+    params += stringFormat("pu := {}", config.pu);
+    auto columnName = hnswBindData->tableEntry->getProperty(hnswBindData->propertyID).getName();
+    query += stringFormat("CALL _CACHE_ARRAY_COLUMN_LOCALLY('{}', '{}');", tableName, columnName);
+    query += stringFormat("CALL _CREATE_HNSW_INDEX('{}', '{}', '{}', {});", indexName, tableName,
+        columnName, params);
+    query += stringFormat("RETURN 'Index {} has been created.' as result;", indexName);
+    query += "COMMIT;";
     return query;
 }
 

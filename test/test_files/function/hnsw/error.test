@@ -5,6 +5,12 @@
 -CASE Error
 -STATEMENT CREATE NODE TABLE test(id int64 primary key, vec double[90]);
 ---- ok
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'test2', 'vec');
+---- error
+Binder exception: Table test2 does not exist.
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'test', 'vec2');
+---- error
+Binder exception: Column vec2 does not exist in table test.
 -STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'test', 'vec');
 ---- error
 Binder exception: HNSW_INDEX only supports FLOAT ARRAY columns.

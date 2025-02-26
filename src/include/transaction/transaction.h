@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "common/enums/statement_type.h"
 #include "common/types/types.h"
 
@@ -30,6 +32,46 @@ namespace transaction {
 class TransactionManager;
 
 enum class TransactionType : uint8_t { READ_ONLY, WRITE, CHECKPOINT, DUMMY, RECOVERY };
+
+class LocalCacheManager;
+class LocalCacheObject {
+public:
+    explicit LocalCacheObject(std::string key) : key{std::move(key)} {}
+
+    virtual ~LocalCacheObject() = default;
+
+    std::string getKey() const { return key; }
+
+    template<typename T>
+    T* cast() {
+        return common::ku_dynamic_cast<T*>(this);
+    }
+
+private:
+    std::string key;
+};
+
+class LocalCacheManager {
+public:
+    bool contains(const std::string& key) {
+        std::unique_lock lck{mtx};
+        return cachedObjects.contains(key);
+    }
+    LocalCacheObject& at(const std::string& key) {
+        std::unique_lock lck{mtx};
+        return *cachedObjects.at(key);
+    }
+    bool put(std::unique_ptr<LocalCacheObject> object);
+
+    void remove(const std::string& key) {
+        std::unique_lock lck{mtx};
+        cachedObjects.erase(key);
+    }
+
+private:
+    std::unordered_map<std::string, std::unique_ptr<LocalCacheObject>> cachedObjects;
+    std::mutex mtx;
+};
 
 class Transaction {
     friend class TransactionManager;
@@ -78,6 +120,7 @@ public:
 
     uint64_t getEstimatedMemUsage() const;
     storage::LocalStorage* getLocalStorage() const { return localStorage.get(); }
+    LocalCacheManager& getLocalCacheManager() { return localCacheManager; }
     bool isUnCommitted(common::table_id_t tableID, common::offset_t nodeOffset) const {
         return nodeOffset >= getMinUncommittedNodeOffset(tableID);
     }
@@ -126,6 +169,7 @@ private:
     main::ClientContext* clientContext;
     std::unique_ptr<storage::LocalStorage> localStorage;
     std::unique_ptr<storage::UndoBuffer> undoBuffer;
+    LocalCacheManager localCacheManager;
     bool forceCheckpoint;
     bool hasCatalogChanges;
 

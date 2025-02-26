@@ -3,50 +3,28 @@
 #include "storage/store/list_chunk_data.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
+#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace storage {
 
-InMemEmbeddings::InMemEmbeddings(MemoryManager& mm, EmbeddingTypeInfo typeInfo,
-    common::offset_t numNodes, const common::LogicalType& columnType)
+InMemEmbeddings::InMemEmbeddings(transaction::Transaction* transaction, EmbeddingTypeInfo typeInfo,
+    common::table_id_t tableID, common::column_id_t columnID)
     : EmbeddingColumn{std::move(typeInfo)} {
-    data = ColumnChunkFactory::createColumnChunkData(mm, columnType.copy(),
-        false /*enableCompression*/, numNodes, ResidencyState::IN_MEMORY, true /*hasNullData*/,
-        false /*initializeToZero*/);
+    auto key = common::stringFormat("{}-{}", tableID, columnID);
+    auto& cacheManager = transaction->getLocalCacheManager();
+    if (cacheManager.contains(key)) {
+        data = transaction->getLocalCacheManager().at(key).cast<CachedColumn>();
+    } else {
+        throw common::RuntimeException("Miss cached column, which should never happen.");
+    }
 }
 
 float* InMemEmbeddings::getEmbedding(common::offset_t offset) const {
-    const auto& listChunk = data->cast<ListChunkData>();
-    return &listChunk.getDataColumnChunk()->getData<float>()[offset * typeInfo.dimension];
-}
-
-void InMemEmbeddings::initialize(main::ClientContext* context, NodeTable& table,
-    common::column_id_t columnID) {
-    // Prepare scan state.
-    std::vector<common::column_id_t> columnIDs;
-    columnIDs.push_back(columnID);
-    std::vector<const Column*> columns;
-    columns.push_back(&table.getColumn(columnID));
-    const auto scanState =
-        std::make_unique<NodeTableScanState>(table.getTableID(), columnIDs, columns);
-    const auto chunkState = std::make_shared<common::DataChunkState>();
-    common::DataChunk dataChunk(2, chunkState);
-    dataChunk.insert(0, std::make_shared<common::ValueVector>(common::LogicalType::INTERNAL_ID()));
-    dataChunk.insert(1, std::make_shared<common::ValueVector>(columns[0]->getDataType().copy()));
-    scanState->nodeIDVector = &dataChunk.getValueVectorMutable(0);
-    scanState->outputVectors.push_back(&dataChunk.getValueVectorMutable(1));
-    scanState->rowIdxVector->state = chunkState;
-    scanState->outState = chunkState.get();
-    // Scan from base table. Copy into embeddings.
-    const auto numCommittedNodeGroups = table.getNumCommittedNodeGroups();
-    scanState->source = TableScanSource::COMMITTED;
-    for (auto i = 0u; i < numCommittedNodeGroups; i++) {
-        scanState->nodeGroupIdx = i;
-        table.initScanState(context->getTransaction(), *scanState);
-        while (table.scan(context->getTransaction(), *scanState)) {
-            data->append(scanState->outputVectors[0], scanState->outState->getSelVector());
-        }
-    }
+    auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
+    KU_ASSERT(nodeGroupIdx < data->columnChunks.size());
+    const auto& listChunk = data->columnChunks[nodeGroupIdx]->cast<ListChunkData>();
+    return &listChunk.getDataColumnChunk()->getData<float>()[offsetInGroup * typeInfo.dimension];
 }
 
 OnDiskEmbeddingScanState::OnDiskEmbeddingScanState(MemoryManager* mm, NodeTable& nodeTable,

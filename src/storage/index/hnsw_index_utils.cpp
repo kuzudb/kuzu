@@ -1,5 +1,6 @@
 #include "storage/index/hnsw_index_utils.h"
 
+#include "binder/binder.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/types/types.h"
@@ -34,6 +35,7 @@ static void l2SquareDistance(const float* left, const float* right, common::leng
 
 void HNSWIndexUtils::validateColumnType(const catalog::TableCatalogEntry& tableEntry,
     const std::string& columnName) {
+    binder::Binder::validateColumnExistence(&tableEntry, columnName);
     auto& type = tableEntry.getProperty(columnName).getType();
     validateColumnType(type);
 }

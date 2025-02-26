@@ -128,13 +128,8 @@ private:
 
 class InMemHNSWIndex final : public HNSWIndex {
 public:
-    InMemHNSWIndex(main::ClientContext* context, NodeTable& table, common::column_id_t columnID,
-        HNSWIndexConfig config);
-
-    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
-    void initialize(main::ClientContext* context, NodeTable& table, common::column_id_t columnID) {
-        embeddings->initialize(context, table, columnID);
-    }
+    InMemHNSWIndex(const main::ClientContext* context, NodeTable& table,
+        common::column_id_t columnID, HNSWIndexConfig config);
 
     common::offset_t getUpperEntryPoint() const override { return upperLayer->getEntryPoint(); }
     common::offset_t getLowerEntryPoint() const override { return lowerLayer->getEntryPoint(); }

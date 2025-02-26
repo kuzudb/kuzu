@@ -15,6 +15,16 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace transaction {
 
+bool LocalCacheManager::put(std::unique_ptr<LocalCacheObject> object) {
+    std::unique_lock lck{mtx};
+    auto key = object->getKey();
+    if (cachedObjects.contains(key)) {
+        return false;
+    }
+    cachedObjects[object->getKey()] = std::move(object);
+    return true;
+}
+
 Transaction::Transaction(main::ClientContext& clientContext, TransactionType transactionType,
     common::transaction_t transactionID, common::transaction_t startTS)
     : type{transactionType}, ID{transactionID}, startTS{startTS},

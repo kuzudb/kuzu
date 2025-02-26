@@ -56,11 +56,12 @@ struct TableFuncMorsel {
 struct KUZU_API TableFuncSharedState {
     common::offset_t maxOffset;
     common::offset_t curOffset;
+    common::offset_t maxMorselSize;
     std::mutex mtx;
 
-    explicit TableFuncSharedState() : maxOffset{0}, curOffset{0} {}
-    explicit TableFuncSharedState(common::offset_t maxOffset)
-        : maxOffset{maxOffset}, curOffset{0} {}
+    explicit TableFuncSharedState();
+    explicit TableFuncSharedState(common::offset_t maxOffset);
+    TableFuncSharedState(common::offset_t maxOffset, common::offset_t maxMorselSize);
     virtual ~TableFuncSharedState() = default;
 
     virtual TableFuncMorsel getMorsel();
@@ -285,6 +286,14 @@ struct ShowOfficialExtensionsFunction final {
 
 struct ShowIndexesFunction final {
     static constexpr const char* name = "SHOW_INDEXES";
+
+    static function_set getFunctionSet();
+};
+
+// Cache a table column to the transaction local cache.
+// Note this is only used for internal purpose, and only supports node tables for now.
+struct LocalCacheArrayColumnFunction final {
+    static constexpr const char* name = "_CACHE_ARRAY_COLUMN_LOCALLY";
 
     static function_set getFunctionSet();
 };
