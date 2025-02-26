@@ -2,7 +2,7 @@
 
 #include "linenoise.h"
 #include "main/kuzu.h"
-#include "output.h"
+#include "printer/printer.h"
 
 namespace kuzu {
 namespace main {
@@ -13,7 +13,7 @@ struct ShellConfig {
     const char* path_to_history = "";
     uint64_t maxRowSize = defaultMaxRows;
     uint32_t maxPrintWidth = 0;
-    std::unique_ptr<DrawingCharacters> drawingCharacters = std::make_unique<BoxDrawingCharacters>();
+    std::unique_ptr<Printer> printer = std::make_unique<BoxPrinter>();
     bool stats = true;
 };
 
@@ -80,7 +80,7 @@ private:
     const char* path_to_history;
     uint64_t maxRowSize;
     uint32_t maxPrintWidth;
-    std::unique_ptr<DrawingCharacters> drawingCharacters;
+    std::unique_ptr<Printer> printer;
     bool stats;
 };
 

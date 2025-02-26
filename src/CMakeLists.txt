@@ -23,7 +23,7 @@ add_subdirectory(extension)
 add_library(kuzu STATIC ${ALL_OBJECT_FILES})
 add_library(kuzu_shared SHARED ${ALL_OBJECT_FILES})
 
-set(KUZU_LIBRARIES antlr4_cypher antlr4_runtime brotlidec brotlicommon fast_float utf8proc re2 fastpfor parquet snappy thrift zstd miniz mbedtls lz4 roaring_bitmap)
+set(KUZU_LIBRARIES antlr4_cypher antlr4_runtime brotlidec brotlicommon fast_float utf8proc re2 fastpfor parquet snappy thrift yyjson zstd miniz mbedtls lz4 roaring_bitmap)
 if (NOT __SINGLE_THREADED__)
         set(KUZU_LIBRARIES ${KUZU_LIBRARIES} Threads::Threads)
 endif()

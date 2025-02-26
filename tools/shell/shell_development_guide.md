@@ -33,7 +33,7 @@ struct  ShellConfig {
 	const  char* path_to_history = "";
 	uint64_t  maxRowSize = defaultMaxRows;
 	uint32_t  maxPrintWidth = 0;
-	std::unique_ptr<DrawingCharacters> drawingCharacters = std::make_unique<BoxDrawingCharacters>();
+	std::unique_ptr<Printer> printer = std::make_unique<BoxPrinter>();
 	bool  stats = true;
 };
 ```
@@ -74,13 +74,13 @@ If the input received by `linenoise` does not begin with `:`, the input is then 
 #### Printing Results
 The error message printing for the shell is simple. If the query was not successful, we print the error provided by the query result using `queryResult.getErrorMessage()`. However, if the query is only one word long, chances are the user was trying to type a shell command, so we use the `damerauLevenshteinDistance()` function again and also inform the user the closest shell command to their query.
 
-For printing successful query results, there are currently 13 different modes. These output modes are defined in the `output.h` file. Each output mode is defined in the `PrintType` enum and have a `DrawingCharacters` struct associated with that type which contain all the different symbols used to create the output.
+For printing successful query results, there are currently 13 different modes. These output modes are defined in the `output.h` file. Each output mode is defined in the `PrinterType` enum and have a `Printer` struct associated with that type which contain all the different symbols used to create the output.
 
 If you are adding a new output mode, the following is needed:
 
-- `PrintType`
-- `PrintType` added to struct  `PrintTypeUtils::fromString()`
-- `DrawingCharacters` struct with needed characters
+- `PrinterType`
+- `PrinterType` added to struct  `PrinterTypeUtils::fromString()`
+- `Printer` struct with needed characters
 - Mode added to `printModeInfo()`
 - Case added to `setMode()`
 - If table truncation is required, add it to the `isTableType()` function
