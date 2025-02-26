@@ -560,3 +560,14 @@ Binder exception: Table rel2 does not exist.
 [2,3]
 -STATEMENT COMMIT;
 ---- ok
+
+-CASE 4918
+-STATEMENT CREATE NODE TABLE V (id int PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE E (FROM V TO V, val STRING);
+---- ok
+-STATEMENT CREATE (:V {id: 1})-[:E {val: "foo"}]->(:V {id: 2});
+---- ok
+-STATEMENT MATCH (a)-[:E * (r,n | WHERE label(n) = "X")]->(b) RETURN *;
+---- 1
+{_ID: 0:0, _LABEL: V, id: 1}|{_ID: 0:1, _LABEL: V, id: 2}

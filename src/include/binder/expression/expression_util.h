@@ -35,6 +35,7 @@ struct KUZU_API ExpressionUtil {
     static bool isRelPattern(const Expression& expression);
     static bool isRecursiveRelPattern(const Expression& expression);
     static bool isNullLiteral(const Expression& expression);
+    static bool isBoolLiteral(const Expression& expression);
     static bool isFalseLiteral(const Expression& expression);
     static bool isEmptyList(const Expression& expression);
 

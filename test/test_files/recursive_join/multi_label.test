@@ -78,4 +78,4 @@
 [2,0,2,1]|[3:3,7:0,4:1]
 -STATEMENT MATCH p = (a)-[e*2..3 (r, n | WHERE n.ID + offset(id(r)) < 3)]->(b) RETURN p
 ---- error
-Binder exception: Cannot evaluate LESS_THAN(+(n.ID,OFFSET(r._ID)),3) in recursive pattern e.
+Binder exception: Cannot evaluate LESS_THAN(+(n.ID,OFFSET(r._ID)),3) because it depends on both n and r.

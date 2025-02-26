@@ -74,27 +74,32 @@ std::shared_ptr<Expression> LabelFunction::rewriteFunc(const RewriteFunctionBind
         return expressionBinder->bindScalarFunctionExpression(children,
             StructExtractFunctions::name);
     }
+    auto disableLiteralRewrite = expressionBinder->getConfig().disableLabelFunctionLiteralRewrite;
     if (ExpressionUtil::isNodePattern(*argument)) {
         auto& node = argument->constCast<NodeExpression>();
-        if (node.isEmpty()) {
-            return expressionBinder->createLiteralExpression("");
-        }
-        if (!node.isMultiLabeled()) {
-            auto label =
-                node.getSingleEntry()->getLabel(context->getCatalog(), context->getTransaction());
-            return expressionBinder->createLiteralExpression(label);
+        if (!disableLiteralRewrite) {
+            if (node.isEmpty()) {
+                return expressionBinder->createLiteralExpression("");
+            }
+            if (!node.isMultiLabeled()) {
+                auto label =
+                    node.getSingleEntry()->getLabel(context->getCatalog(), context->getTransaction());
+                return expressionBinder->createLiteralExpression(label);
+            }
         }
         children.push_back(node.getInternalID());
         children.push_back(getLabelsAsLiteral(context, node.getEntries(), expressionBinder));
     } else if (ExpressionUtil::isRelPattern(*argument)) {
         auto& rel = argument->constCast<RelExpression>();
-        if (rel.isEmpty()) {
-            return expressionBinder->createLiteralExpression("");
-        }
-        if (!rel.isMultiLabeled()) {
-            auto label =
-                rel.getSingleEntry()->getLabel(context->getCatalog(), context->getTransaction());
-            return expressionBinder->createLiteralExpression(label);
+        if (!disableLiteralRewrite) {
+            if (rel.isEmpty()) {
+                return expressionBinder->createLiteralExpression("");
+            }
+            if (!rel.isMultiLabeled()) {
+                auto label =
+                    rel.getSingleEntry()->getLabel(context->getCatalog(), context->getTransaction());
+                return expressionBinder->createLiteralExpression(label);
+            }
         }
         children.push_back(rel.getInternalIDProperty());
         children.push_back(getLabelsAsLiteral(context, rel.getEntries(), expressionBinder));

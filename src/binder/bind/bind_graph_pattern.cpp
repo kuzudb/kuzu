@@ -1,6 +1,5 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
-#include "binder/expression/literal_expression.h"
 #include "binder/expression/path_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression_visitor.h"
@@ -381,21 +380,20 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
             predicate);
     }
     // Bind predicates in (r, n | WHERE )
-    std::shared_ptr<Expression> nodePredicate;
     bool emptyRecursivePattern = false;
+    std::shared_ptr<Expression> nodePredicate;
     if (recursivePatternInfo->whereExpression != nullptr) {
+        expressionBinder.config.disableLabelFunctionLiteralRewrite = true;
         auto wherePredicate = bindWhereExpression(*recursivePatternInfo->whereExpression);
+        expressionBinder.config.disableLabelFunctionLiteralRewrite = false;
         for (auto& predicate : wherePredicate->splitOnAND()) {
             auto collector = DependentVarNameCollector();
             collector.visit(predicate);
             auto dependentVariableNames = collector.getVarNames();
             auto dependOnNode = dependentVariableNames.contains(node->getUniqueName());
             auto dependOnRel = dependentVariableNames.contains(rel->getUniqueName());
-            auto canNotEvaluatePredicateMessage =
-                stringFormat("Cannot evaluate {} in recursive pattern {}.", predicate->toString(),
-                    relPattern.getVariableName());
             if (dependOnNode && dependOnRel) {
-                throw BinderException(canNotEvaluatePredicateMessage);
+                throw BinderException(stringFormat("Cannot evaluate {} because it depends on both {} and {}.", predicate->toString(), node->toString(), rel->toString()));
             } else if (dependOnNode) {
                 nodePredicate = expressionBinder.combineBooleanExpressions(ExpressionType::AND,
                     nodePredicate, predicate);
@@ -403,14 +401,13 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
                 relPredicate = expressionBinder.combineBooleanExpressions(ExpressionType::AND,
                     relPredicate, predicate);
             } else {
-                if (predicate->expressionType != ExpressionType::LITERAL ||
-                    predicate->dataType != LogicalType::BOOL()) {
-                    throw BinderException(canNotEvaluatePredicateMessage);
+                if (!ExpressionUtil::isBoolLiteral(*predicate)) {
+                    throw BinderException(stringFormat("Cannot evaluate {} because it does not depend on {} or {}. Treating it as a node or relationship predicate is ambiguous." , predicate->toString(), node->toString(), rel->toString()));
                 }
                 // If predicate is true literal, we ignore.
                 // If predicate is false literal, we mark this recursive relationship as empty
                 // and later in planner we replace it with EmptyResult.
-                if (!predicate->constCast<LiteralExpression>().getValue().getValue<bool>()) {
+                if (!ExpressionUtil::getLiteralValue<bool>(*predicate)) {
                     emptyRecursivePattern = true;
                 }
             }
@@ -421,13 +418,13 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     // Bind rel
     restoreScope(std::move(prevScope));
     auto parsedName = relPattern.getVariableName();
-    auto tmpRelEntries = entries;
+    auto prunedRelEntries = entries;
     if (emptyRecursivePattern) {
-        tmpRelEntries.clear();
+        prunedRelEntries.clear();
     }
     auto queryRel = std::make_shared<RelExpression>(
         getRecursiveRelLogicalType(node->getDataType(), rel->getDataType()),
-        getUniqueExpressionName(parsedName), parsedName, tmpRelEntries, std::move(srcNode),
+        getUniqueExpressionName(parsedName), parsedName, prunedRelEntries, std::move(srcNode),
         std::move(dstNode), directionType, relPattern.getRelType());
     auto lengthExpression =
         PropertyExpression::construct(LogicalType::INT64(), InternalKeyword::LENGTH, *queryRel);

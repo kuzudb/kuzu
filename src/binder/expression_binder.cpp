@@ -27,7 +27,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
     // An exception is order by binding, e.g. RETURN a, COUNT(*) ORDER BY COUNT(*)
     // the later COUNT(*) should reference the one in projection list. So we need to explicitly
     // check scope when binding order by list.
-    if (bindOrderByAfterAggregation && binder->scope.contains(parsedExpression.toString())) {
+    if (config.bindOrderByAfterAggregate && binder->scope.contains(parsedExpression.toString())) {
         return binder->scope.getExpression(parsedExpression.toString());
     }
     auto collector = ParsedParamExprCollector();
