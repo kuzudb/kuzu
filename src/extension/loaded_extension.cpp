@@ -8,7 +8,8 @@ namespace extension {
 std::string LoadedExtension::toCypher() {
     switch (source) {
     case ExtensionSource::OFFICIAL:
-        return common::stringFormat("INSTALL {};\nLOAD EXTENSION {};\n", extensionName);
+        return common::stringFormat("INSTALL {};\nLOAD EXTENSION {};\n", extensionName,
+            extensionName);
     case ExtensionSource::USER:
         return common::stringFormat("LOAD EXTENSION '{}';\n", fullPath);
     default:
