@@ -9,6 +9,7 @@
 #include "processor/execution_context.h"
 #include "processor/operator/aggregate/aggregate_hash_table.h"
 #include "processor/operator/aggregate/aggregate_input.h"
+#include "processor/operator/aggregate/base_aggregate.h"
 #include "processor/result/factorized_table_schema.h"
 
 using namespace kuzu::common;
@@ -31,18 +32,26 @@ std::string HashAggregatePrintInfo::toString() const {
     }
     return result;
 }
+
+HashAggregateInfo::HashAggregateInfo(std::vector<DataPos> flatKeysPos,
+    std::vector<DataPos> unFlatKeysPos, std::vector<DataPos> dependentKeysPos,
+    FactorizedTableSchema tableSchema)
+    : flatKeysPos{std::move(flatKeysPos)}, unFlatKeysPos{std::move(unFlatKeysPos)},
+      dependentKeysPos{std::move(dependentKeysPos)}, tableSchema{std::move(tableSchema)} {}
+
+HashAggregateInfo::HashAggregateInfo(const HashAggregateInfo& other)
+    : flatKeysPos{other.flatKeysPos}, unFlatKeysPos{other.unFlatKeysPos},
+      dependentKeysPos{other.dependentKeysPos}, tableSchema{other.tableSchema.copy()} {}
+
 HashAggregateSharedState::HashAggregateSharedState(main::ClientContext* context,
     HashAggregateInfo hashAggInfo,
     const std::vector<function::AggregateFunction>& aggregateFunctions,
     std::span<AggregateInfo> aggregateInfos, std::vector<LogicalType> keyTypes,
     std::vector<LogicalType> payloadTypes)
-    : BaseAggregateSharedState{aggregateFunctions}, aggInfo{std::move(hashAggInfo)},
-      globalPartitions{static_cast<size_t>(context->getMaxNumThreadForExec())},
-      limitNumber{common::INVALID_LIMIT}, memoryManager{context->getMemoryManager()},
-      // .size() - 1 since we want the bit width of the largest value that could be used to index
-      // the partitions
-      shiftForPartitioning{
-          static_cast<uint8_t>(sizeof(hash_t) * 8 - std::bit_width(globalPartitions.size() - 1))} {
+    : BaseAggregateSharedState{aggregateFunctions, getNumPartitionsForParallelism(context)},
+      aggInfo{std::move(hashAggInfo)}, limitNumber{common::INVALID_LIMIT},
+      memoryManager{context->getMemoryManager()},
+      globalPartitions{getNumPartitionsForParallelism(context)} {
     std::vector<LogicalType> distinctAggregateKeyTypes;
     for (auto& aggInfo : aggregateInfos) {
         distinctAggregateKeyTypes.push_back(aggInfo.distinctAggKeyType.copy());
@@ -108,19 +117,6 @@ HashAggregateSharedState::HashAggregateSharedState(main::ClientContext* context,
     }
 }
 
-HashAggregateSharedState::HashTableQueue::HashTableQueue(storage::MemoryManager* memoryManager,
-    FactorizedTableSchema tableSchema) {
-    headBlock = new TupleBlock(memoryManager, std::move(tableSchema));
-}
-
-HashAggregateSharedState::HashTableQueue::~HashTableQueue() {
-    delete headBlock.load();
-    TupleBlock* block = nullptr;
-    while (queuedTuples.pop(block)) {
-        delete block;
-    }
-}
-
 std::pair<uint64_t, uint64_t> HashAggregateSharedState::getNextRangeToRead() {
     std::unique_lock lck{mtx};
     auto startOffset = currentOffset;
@@ -137,15 +133,71 @@ std::pair<uint64_t, uint64_t> HashAggregateSharedState::getNextRangeToRead() {
     return std::make_pair(startOffset, startOffset + range);
 }
 
-HashAggregateInfo::HashAggregateInfo(std::vector<DataPos> flatKeysPos,
-    std::vector<DataPos> unFlatKeysPos, std::vector<DataPos> dependentKeysPos,
-    FactorizedTableSchema tableSchema)
-    : flatKeysPos{std::move(flatKeysPos)}, unFlatKeysPos{std::move(unFlatKeysPos)},
-      dependentKeysPos{std::move(dependentKeysPos)}, tableSchema{std::move(tableSchema)} {}
+uint64_t HashAggregateSharedState::getNumTuples() const {
+    uint64_t numTuples = 0;
+    for (auto& partition : globalPartitions) {
+        numTuples += partition.hashTable->getNumEntries();
+    }
+    return numTuples;
+}
 
-HashAggregateInfo::HashAggregateInfo(const HashAggregateInfo& other)
-    : flatKeysPos{other.flatKeysPos}, unFlatKeysPos{other.unFlatKeysPos},
-      dependentKeysPos{other.dependentKeysPos}, tableSchema{other.tableSchema.copy()} {}
+void HashAggregateSharedState::finalizePartitions() {
+    BaseAggregateSharedState::finalizePartitions(globalPartitions, [&](auto& partition) {
+        if (!partition.hashTable) {
+            // We always initialize the hash table in the first partition
+            partition.hashTable = std::make_unique<AggregateHashTable>(
+                globalPartitions[0].hashTable->createEmptyCopy());
+        }
+        // TODO(bmwinger): ideally these can be merged into a single function.
+        // The distinct tables need to be merged first so that they exist when the other table
+        // updates the agg states when it merges
+        for (size_t i = 0; i < partition.distinctTableQueues.size(); i++) {
+            if (partition.distinctTableQueues[i]) {
+                partition.distinctTableQueues[i]->mergeInto(
+                    *partition.hashTable->getDistinctHashTable(i));
+            }
+        }
+        partition.queue->mergeInto(*partition.hashTable);
+        partition.hashTable->mergeDistinctAggregateInfo();
+
+        partition.hashTable->finalizeAggregateStates();
+    });
+}
+
+std::tuple<const FactorizedTable*, offset_t> HashAggregateSharedState::getPartitionForOffset(
+    offset_t offset) const {
+    auto factorizedTableStartOffset = 0;
+    auto partitionIdx = 0;
+    const auto* table = globalPartitions[partitionIdx].hashTable->getFactorizedTable();
+    while (factorizedTableStartOffset + table->getNumTuples() <= offset) {
+        factorizedTableStartOffset += table->getNumTuples();
+        table = globalPartitions[++partitionIdx].hashTable->getFactorizedTable();
+    }
+    return std::make_tuple(table, factorizedTableStartOffset);
+}
+
+void HashAggregateSharedState::scan(std::span<uint8_t*> entries,
+    std::vector<common::ValueVector*>& keyVectors, offset_t startOffset, offset_t numTuplesToScan,
+    std::vector<uint32_t>& columnIndices) {
+    auto [table, tableStartOffset] = getPartitionForOffset(startOffset);
+    // Due to the way FactorizedTable::lookup works, it's necessary to read one partition
+    // at a time.
+    KU_ASSERT(startOffset - tableStartOffset + numTuplesToScan <= table->getNumTuples());
+    for (size_t pos = 0; pos < numTuplesToScan; pos++) {
+        auto posInTable = startOffset + pos - tableStartOffset;
+        entries[pos] = table->getTuple(posInTable);
+    }
+    table->lookup(keyVectors, columnIndices, entries.data(), 0, numTuplesToScan);
+    KU_ASSERT(true);
+}
+
+void HashAggregateSharedState::assertFinalized() const {
+    RUNTIME_CHECK(for (const auto& partition
+                       : globalPartitions) {
+        KU_ASSERT(partition.finalized);
+        KU_ASSERT(partition.queue->empty());
+    });
+}
 
 void HashAggregateLocalState::init(HashAggregateSharedState* sharedState, ResultSet& resultSet,
     main::ClientContext* context, std::vector<function::AggregateFunction>& aggregateFunctions,
@@ -188,8 +240,8 @@ void HashAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     for (auto& info : aggInfos) {
         distinctAggKeyTypes.push_back(info.distinctAggKeyType.copy());
     }
-    localState.init(sharedState.get(), *resultSet, context->clientContext, aggregateFunctions,
-        std::move(distinctAggKeyTypes));
+    localState.init(common::ku_dynamic_cast<HashAggregateSharedState*>(sharedState.get()),
+        *resultSet, context->clientContext, aggregateFunctions, std::move(distinctAggKeyTypes));
 }
 
 void HashAggregate::executeInternal(ExecutionContext* context) {
@@ -197,145 +249,12 @@ void HashAggregate::executeInternal(ExecutionContext* context) {
         const auto numAppendedFlatTuples = localState.append(aggInputs, resultSet->multiplicity);
         metrics->numOutputTuple.increase(numAppendedFlatTuples);
         // Note: The limit count check here is only applicable to the distinct limit case.
-        if (localState.aggregateHashTable->getNumEntries() >= sharedState->getLimitNumber()) {
+        if (localState.aggregateHashTable->getNumEntries() >=
+            getSharedStateReference().getLimitNumber()) {
             break;
         }
     }
     localState.aggregateHashTable->mergeAll();
-}
-
-uint64_t HashAggregateSharedState::getNumTuples() const {
-    uint64_t numTuples = 0;
-    for (auto& partition : globalPartitions) {
-        numTuples += partition.hashTable->getNumEntries();
-    }
-    return numTuples;
-}
-
-void HashAggregateSharedState::HashTableQueue::appendTuple(std::span<uint8_t> tuple) {
-    while (true) {
-        auto* block = headBlock.load();
-        KU_ASSERT(tuple.size() == block->table.getTableSchema()->getNumBytesPerTuple());
-        auto posToWrite = block->numTuplesReserved++;
-        if (posToWrite < block->table.getNumTuplesPerBlock()) {
-            memcpy(block->table.getTuple(posToWrite), tuple.data(), tuple.size());
-            block->numTuplesWritten++;
-            return;
-        } else {
-            // No more space in the block, allocate and replace it
-            auto* newBlock = new TupleBlock(block->table.getMemoryManager(),
-                block->table.getTableSchema()->copy());
-            if (headBlock.compare_exchange_strong(block, newBlock)) {
-                // TODO(bmwinger): if the queuedTuples has at least a certain size (benchmark to see
-                // if there's a benefit to waiting for multiple blocks) then cycle through the queue
-                // and flush any blocks which have been fully written
-                queuedTuples.push(block);
-            } else {
-                // If the block was replaced by another thread, discard the block we created and try
-                // again with the block allocated by the other thread
-                delete newBlock;
-            }
-        }
-    }
-}
-
-void HashAggregateSharedState::HashTableQueue::mergeInto(AggregateHashTable& hashTable) {
-    std::vector<TupleBlock*> partitionsToMerge;
-    partitionsToMerge.reserve(queuedTuples.approxSize());
-    TupleBlock* partitionToMerge = nullptr;
-    // Over-estimate the total number of distinct groups using the total number of tuples
-    // after the per-thread pre-aggregation
-    // This will probably use more memory than necessary, but will greatly reduce the need
-    // to resize the hash table. It will only use memory proportional to what is already
-    // used by the queuedTuples already, and the hash slots are usually small in comparison
-    // to the full tuple data.
-    auto headBlock = this->headBlock.load();
-    KU_ASSERT(headBlock != nullptr);
-    hashTable.resizeHashTableIfNecessary(
-        queuedTuples.approxSize() * headBlock->table.getNumTuplesPerBlock() +
-        headBlock->numTuplesWritten);
-    while (queuedTuples.pop(partitionToMerge)) {
-        KU_ASSERT(
-            partitionToMerge->numTuplesWritten == partitionToMerge->table.getNumTuplesPerBlock());
-        hashTable.merge(std::move(partitionToMerge->table));
-        delete partitionToMerge;
-    }
-    if (headBlock->numTuplesWritten > 0) {
-        headBlock->table.resize(headBlock->numTuplesWritten);
-        hashTable.merge(std::move(headBlock->table));
-    }
-    delete headBlock;
-    this->headBlock = nullptr;
-}
-
-void HashAggregateSharedState::finalizeAggregateHashTable() {
-    for (auto& partition : globalPartitions) {
-        if (!partition.finalized && partition.mtx.try_lock()) {
-            if (partition.finalized) {
-                // If there was a data race in the above && a thread may get through after another
-                // thread has finalized this partition
-                // TODO(bmwinger): While it's not currently necessary to unlock the mutexes here,
-                // we can use the locks again to start scanning before all partitions are finalized.
-                partition.mtx.unlock();
-                continue;
-            }
-            if (!partition.hashTable) {
-                // We always initialize the hash table in the first partition
-                partition.hashTable = std::make_unique<AggregateHashTable>(
-                    globalPartitions[0].hashTable->createEmptyCopy());
-            }
-            // TODO(bmwinger): ideally these can be merged into a single function.
-            // The distinct tables need to be merged first so that they exist when the other table
-            // updates the agg states when it merges
-            for (size_t i = 0; i < partition.distinctTableQueues.size(); i++) {
-                if (partition.distinctTableQueues[i]) {
-                    partition.distinctTableQueues[i]->mergeInto(
-                        *partition.hashTable->getDistinctHashTable(i));
-                }
-            }
-            partition.queue->mergeInto(*partition.hashTable);
-            partition.hashTable->mergeDistinctAggregateInfo();
-
-            partition.hashTable->finalizeAggregateStates();
-            partition.finalized = true;
-            partition.mtx.unlock();
-        }
-    }
-}
-
-std::tuple<const FactorizedTable*, offset_t> HashAggregateSharedState::getPartitionForOffset(
-    offset_t offset) const {
-    auto factorizedTableStartOffset = 0;
-    auto partitionIdx = 0;
-    const auto* table = globalPartitions[partitionIdx].hashTable->getFactorizedTable();
-    while (factorizedTableStartOffset + table->getNumTuples() <= offset) {
-        factorizedTableStartOffset += table->getNumTuples();
-        table = globalPartitions[++partitionIdx].hashTable->getFactorizedTable();
-    }
-    return std::make_tuple(table, factorizedTableStartOffset);
-}
-
-void HashAggregateSharedState::scan(std::span<uint8_t*> entries,
-    std::vector<common::ValueVector*>& keyVectors, offset_t startOffset, offset_t numTuplesToScan,
-    std::vector<uint32_t>& columnIndices) {
-    auto [table, tableStartOffset] = getPartitionForOffset(startOffset);
-    // Due to the way FactorizedTable::lookup works, it's necessary to read one partition
-    // at a time.
-    KU_ASSERT(startOffset - tableStartOffset + numTuplesToScan <= table->getNumTuples());
-    for (size_t pos = 0; pos < numTuplesToScan; pos++) {
-        auto posInTable = startOffset + pos - tableStartOffset;
-        entries[pos] = table->getTuple(posInTable);
-    }
-    table->lookup(keyVectors, columnIndices, entries.data(), 0, numTuplesToScan);
-    KU_ASSERT(true);
-}
-
-void HashAggregateSharedState::assertFinalized() const {
-    RUNTIME_CHECK(for (const auto& partition
-                       : globalPartitions) {
-        KU_ASSERT(partition.finalized);
-        KU_ASSERT(partition.queue->empty());
-    });
 }
 
 } // namespace processor
