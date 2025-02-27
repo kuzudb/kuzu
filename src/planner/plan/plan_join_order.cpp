@@ -24,7 +24,7 @@ std::unique_ptr<LogicalPlan> Planner::planQueryGraphCollection(
 
 std::unique_ptr<LogicalPlan> Planner::planQueryGraphCollectionInNewContext(
     const QueryGraphCollection& queryGraphCollection, const QueryGraphPlanningInfo& info) {
-    auto prevContext = enterContext();
+    auto prevContext = enterNewContext();
     auto plans = enumerateQueryGraphCollection(queryGraphCollection, info);
     exitContext(std::move(prevContext));
     return getBestPlan(std::move(plans));

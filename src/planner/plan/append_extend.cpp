@@ -328,11 +328,16 @@ void Planner::createRecursivePlan(const RecursiveInfo& recursiveInfo, ExtendDire
 
 void Planner::createPathNodeFilterPlan(const std::shared_ptr<NodeExpression>& node,
     std::shared_ptr<Expression> nodePredicate, LogicalPlan& plan) {
+    auto prevCollection = enterNewPropertyExprCollection();
     auto collector = PropertyExprCollector();
     collector.visit(nodePredicate);
-    auto properties = ExpressionUtil::removeDuplication(collector.getPropertyExprs());
-    appendScanNodeTable(node->getInternalID(), node->getTableIDs(), properties, plan);
+    for (auto& expr : ExpressionUtil::removeDuplication(collector.getPropertyExprs())) {
+        auto& propExpr = expr->constCast<PropertyExpression>();
+        propertyExprCollection.addProperties(propExpr.getVariableName(), expr);
+    }
+    appendScanNodeTable(node->getInternalID(), node->getTableIDs(), getProperties(*node), plan);
     appendFilter(nodePredicate, plan);
+    exitPropertyExprCollection(std::move(prevCollection));
     auto semiMasker = std::make_shared<LogicalSemiMasker>(SemiMaskKeyType::NODE,
         SemiMaskTargetType::GDS_PATH_NODE, node->getInternalID(), node->getTableIDs(),
         plan.getLastOperator());

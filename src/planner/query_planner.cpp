@@ -99,7 +99,7 @@ expression_vector Planner::getProperties(const Expression& pattern) {
     return propertyExprCollection.getProperties(pattern);
 }
 
-JoinOrderEnumeratorContext Planner::enterContext() {
+JoinOrderEnumeratorContext Planner::enterNewContext() {
     auto prevContext = std::move(context);
     context = JoinOrderEnumeratorContext();
     return prevContext;
@@ -107,6 +107,16 @@ JoinOrderEnumeratorContext Planner::enterContext() {
 
 void Planner::exitContext(JoinOrderEnumeratorContext prevContext) {
     context = std::move(prevContext);
+}
+
+PropertyExprCollection Planner::enterNewPropertyExprCollection() {
+    auto prevCollection = std::move(propertyExprCollection);
+    propertyExprCollection = PropertyExprCollection();
+    return prevCollection;
+}
+
+void Planner::exitPropertyExprCollection(PropertyExprCollection collection) {
+    propertyExprCollection = std::move(collection);
 }
 
 } // namespace planner
