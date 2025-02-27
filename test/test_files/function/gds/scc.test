@@ -214,3 +214,25 @@
 8|1
 9|2
 10|0
+
+-CASE ErrorHandling
+-STATEMENT CREATE NODE TABLE Person(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE NODE TABLE City(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Knows(FROM Person to Person);
+---- ok
+-STATEMENT CREATE REL TABLE LivesWith(FROM Person to Person);
+---- ok
+-STATEMENT CREATE REL TABLE LivesIn(FROM Person to City);
+---- ok
+-STATEMENT CALL create_projected_graph('SCC1', ['Person', 'City'], ['Knows', 'LivesIn']);
+---- ok
+-STATEMENT CALL strongly_connected_components_kosaraju('SCC1') RETURN node.id, group_id;
+---- error
+Runtime exception: Kosaraju's SCC only supports operations on one node table.
+-STATEMENT CALL create_projected_graph('SCC2', ['Person'], ['Knows', 'LivesWith']);
+---- ok
+-STATEMENT CALL strongly_connected_components_kosaraju('SCC2') RETURN node.id, group_id;
+---- error
+Runtime exception: Kosaraju's SCC only supports operations on one edge table.

@@ -31,18 +31,11 @@ static constexpr offset_t NOT_VISITED = numeric_limits<offset_t>::max() - 2;
 
 class SCCState {
 public:
-    SCCState(const table_id_map_t<offset_t>& numNodesMap, MemoryManager* mm) {
-        if (numNodesMap.size() != 1) {
-            throw RuntimeException("Kosaraju's SCC only supports operations on one node table.");
-        }
-        for (const auto& [tableID, numNodes] : numNodesMap) {
-            this->numNodes = numNodes;
-            this->tableID = tableID;
-            componentIDsMap.allocate(tableID, numNodes, mm);
-            componentIDs = componentIDsMap.getData(tableID);
-            for (auto i = 0u; i < numNodes; ++i) {
-                componentIDs[i] = NOT_VISITED;
-            }
+    SCCState(const offset_t tableID, const offset_t numNodes, MemoryManager* mm) {
+        componentIDsMap.allocate(tableID, numNodes, mm);
+        componentIDs = componentIDsMap.getData(tableID);
+        for (auto i = 0u; i < numNodes; ++i) {
+            componentIDs[i] = NOT_VISITED;
         }
     }
 
@@ -62,47 +55,39 @@ public:
 
     offset_t getComponentID(const offset_t offset) const { return componentIDs[offset]; }
 
-    offset_t getNumNodes() const { return numNodes; }
-
-    table_id_t getTableID() const { return tableID; }
-
 private:
     offset_t* componentIDs = nullptr;
     ObjectArraysMap<offset_t> componentIDsMap;
-
-    offset_t numNodes;
-    table_id_t tableID;
 };
 
 class SCCCompute {
 public:
     SCCCompute(Graph* graph, SCCState& sccState) : graph{graph}, sccState{sccState} {}
 
-    void compute() {
-        auto nbrTables = graph->getForwardNbrTableInfos(sccState.getTableID());
-        if (nbrTables.size() != 1) {
-            throw RuntimeException("Kosaraju's SCC only supports operations on one edge table.");
-        }
+    void compute(const offset_t tableID, const offset_t numNodes) {
+        auto nbrTables = graph->getForwardNbrTableInfos(tableID);
         auto nbrInfo = nbrTables[0];
         auto relEntry = nbrInfo.relEntry;
         auto scanState = graph->prepareRelScan(relEntry, "");
-        for (auto i = 0u; i < sccState.getNumNodes(); ++i) {
+        vector<offset_t> toProcess;
+        vector<offset_t> dfsStack;
+        for (auto i = 0u; i < numNodes; ++i) {
             if (!sccState.visited(i)) {
-                forwardDFS(i, *scanState);
+                forwardDFS(i, tableID, *scanState, toProcess, dfsStack);
             }
         }
         KU_ASSERT(toProcess.size() == 0);
         for (auto it = dfsStack.end() - 1; it >= dfsStack.begin(); --it) {
             auto node = *it;
             if (!sccState.componentIDSet(node)) {
-                backwardsDFS(node, node, *scanState);
+                backwardsDFS(node, node, tableID, *scanState, toProcess);
             }
         }
     }
 
-    void forwardDFS(offset_t node, NbrScanState& scanState) {
+    void forwardDFS(const offset_t node, const offset_t tableID, NbrScanState& scanState,
+        vector<offset_t>& toProcess, vector<offset_t>& dfsStack) {
         toProcess.push_back(node);
-
         while (!toProcess.empty()) {
             auto nextNode = toProcess.back();
             if (sccState.visited(nextNode)) {
@@ -114,7 +99,7 @@ public:
                 continue;
             }
             sccState.setVisited(nextNode);
-            auto nextNodeID = nodeID_t{nextNode, sccState.getTableID()};
+            auto nextNodeID = nodeID_t{nextNode, tableID};
             for (auto chunk : graph->scanFwd(nextNodeID, scanState)) {
                 chunk.forEach([&](auto nbrNodeID, auto) {
                     if (!sccState.visited(nbrNodeID.offset)) {
@@ -125,14 +110,14 @@ public:
         }
     }
 
-    void backwardsDFS(offset_t node, const offset_t root, NbrScanState& scanState) {
+    void backwardsDFS(offset_t node, const offset_t root, const offset_t tableID,
+        NbrScanState& scanState, vector<offset_t>& toProcess) {
         toProcess.push_back(node);
-
         while (!toProcess.empty()) {
             auto nextNode = toProcess.back();
             toProcess.pop_back();
             sccState.setComponentID(nextNode, root);
-            auto nextNodeID = nodeID_t{nextNode, sccState.getTableID()};
+            auto nextNodeID = nodeID_t{nextNode, tableID};
             for (auto chunk : graph->scanBwd(nextNodeID, scanState)) {
                 chunk.forEach([&](auto nbrNodeID, auto) {
                     if (!sccState.componentIDSet(nbrNodeID.offset)) {
@@ -146,8 +131,6 @@ public:
 private:
     Graph* graph;
     SCCState& sccState;
-    vector<offset_t> toProcess;
-    vector<offset_t> dfsStack;
 };
 
 class SCCOutputWriter : public GDSOutputWriter {
@@ -223,6 +206,12 @@ public:
     void bind(const GDSBindInput& input, main::ClientContext& context) override {
         auto graphName = ExpressionUtil::getLiteralValue<string>(*input.getParam(0));
         auto graphEntry = bindGraphEntry(context, graphName);
+        if (graphEntry.nodeInfos.size() != 1) {
+            throw RuntimeException("Kosaraju's SCC only supports operations on one node table.");
+        }
+        if (graphEntry.relInfos.size() != 1) {
+            throw RuntimeException("Kosaraju's SCC only supports operations on one edge table.");
+        }
         auto nodeOutput = bindNodeOutput(input, graphEntry.getNodeEntries());
         bindData = make_unique<GDSBindData>(std::move(graphEntry), nodeOutput);
     }
@@ -232,11 +221,13 @@ public:
         auto mm = clientContext->getMemoryManager();
         auto graph = sharedState->graph.get();
         auto numNodesMap = graph->getNumNodesMap(clientContext->getTransaction());
+        auto it = numNodesMap.begin();
+        const table_id_t tableID = it->first;
+        const offset_t numNodes = it->second;
 
-        auto sccState = SCCState(numNodesMap, mm);
-
+        auto sccState = SCCState(tableID, numNodes, mm);
         auto edgeCompute = make_unique<SCCCompute>(graph, sccState);
-        edgeCompute->compute();
+        edgeCompute->compute(tableID, numNodes);
 
         auto writer = make_unique<SCCOutputWriter>(clientContext);
         auto vertexCompute =
