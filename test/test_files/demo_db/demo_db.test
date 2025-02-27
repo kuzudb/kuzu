@@ -1,6 +1,8 @@
 -DATASET CSV demo-db/csv
 --
 
+
+
 -CASE DemoDBTestListLambda
 # We currently don't support list lambda functions if the list size if larger than the vector capacity
 -SKIP_VECTOR_CAPACITY_TESTS
@@ -25,6 +27,13 @@ Zhang|50
 
 
 -CASE DemoDBTest
+
+-LOG RecursiveSubqueryPredicate
+-STATEMENT MATCH (a:User {name: "Adam"})-[e:Follows* (r, n | WHERE EXISTS {MATCH (n)-[:LivesIn]->(:City {name: "Waterloo"})})]->(b:User) RETURN properties(nodes(e), 'name'), b.name;
+---- 3
+[Karissa]|Zhang
+[]|Karissa
+[]|Zhang
 -LOG UndirectedRecursivePattern
 -STATEMENT MATCH p = (u:User {name: 'Adam'})-[e*1..3]-(c:User {name: 'Adam'})
            HINT (u JOIN e) JOIN c

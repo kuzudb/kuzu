@@ -347,8 +347,10 @@ public:
 
     binder::expression_vector getProperties(const binder::Expression& pattern);
 
-    JoinOrderEnumeratorContext enterContext();
+    JoinOrderEnumeratorContext enterNewContext();
     void exitContext(JoinOrderEnumeratorContext prevContext);
+    PropertyExprCollection enterNewPropertyExprCollection();
+    void exitPropertyExprCollection(PropertyExprCollection collection);
 
     static binder::expression_vector getNewlyMatchedExprs(
         const std::vector<binder::SubqueryGraph>& prevs, const binder::SubqueryGraph& new_,
