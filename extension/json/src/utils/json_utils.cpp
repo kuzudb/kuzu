@@ -5,7 +5,6 @@
 #include "common/exception/not_implemented.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
-#include "common/types/value/value.h"
 #include "function/cast/functions/cast_decimal.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "function/cast/functions/cast_string_non_nested_functions.h"

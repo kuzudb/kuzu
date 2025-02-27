@@ -6,38 +6,14 @@
 #include "embedded_shell.h"
 #include "linenoise.h"
 #include "main/db_config.h"
+#include "printer/printer_factory.h"
 
 using namespace kuzu::main;
 using namespace kuzu::common;
 
 int setConfigOutputMode(const std::string& mode, ShellConfig& shell) {
-    if (mode == "box") {
-        shell.drawingCharacters = std::make_unique<BoxDrawingCharacters>();
-    } else if (mode == "table") {
-        shell.drawingCharacters = std::make_unique<TableDrawingCharacters>();
-    } else if (mode == "csv") {
-        shell.drawingCharacters = std::make_unique<CSVDrawingCharacters>();
-    } else if (mode == "tsv") {
-        shell.drawingCharacters = std::make_unique<TSVDrawingCharacters>();
-    } else if (mode == "markdown") {
-        shell.drawingCharacters = std::make_unique<MarkdownDrawingCharacters>();
-    } else if (mode == "column") {
-        shell.drawingCharacters = std::make_unique<ColumnDrawingCharacters>();
-    } else if (mode == "list") {
-        shell.drawingCharacters = std::make_unique<ListDrawingCharacters>();
-    } else if (mode == "trash") {
-        shell.drawingCharacters = std::make_unique<TrashDrawingCharacters>();
-    } else if (mode == "json") {
-        shell.drawingCharacters = std::make_unique<JSONDrawingCharacters>();
-    } else if (mode == "jsonlines") {
-        shell.drawingCharacters = std::make_unique<JSONLinesDrawingCharacters>();
-    } else if (mode == "html") {
-        shell.drawingCharacters = std::make_unique<HTMLDrawingCharacters>();
-    } else if (mode == "latex") {
-        shell.drawingCharacters = std::make_unique<LatexDrawingCharacters>();
-    } else if (mode == "line") {
-        shell.drawingCharacters = std::make_unique<LineDrawingCharacters>();
-    } else {
+    shell.printer = PrinterFactory::getPrinter(PrinterTypeUtils::fromString(mode));
+    if (shell.printer == nullptr) {
         std::cerr << "Cannot parse '" << mode << "' as output mode." << '\n';
         return 1;
     }

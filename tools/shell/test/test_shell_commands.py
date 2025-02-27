@@ -284,7 +284,7 @@ def test_set_mode(temp_db) -> None:
         .statement('RETURN "Databases Rule" AS a, "kuzu is cool" AS b;')
     )
     result = test.run()
-    result.check_stdout('[{"a":"Databases Rule","b":"kuzu is cool"}]')
+    result.check_stdout('[\n{"a":"Databases Rule","b":"kuzu is cool"}\n]')
 
     # test json escaping
     test = (
@@ -294,7 +294,7 @@ def test_set_mode(temp_db) -> None:
         .statement('RETURN "This is a \\"test\\" with backslashes \\\\, newlines\n, and tabs \t." AS a;')
     )
     result = test.run()
-    result.check_stdout('[{"a":"This is a \\"test\\" with backslashes \\\\, newlines\\n, and tabs \\t."}]')
+    result.check_stdout('[\n{"a":"This is a \\"test\\" with backslashes \\\\, newlines\\n, and tabs \\t."}\n]')
 
     # test jsonlines mode
     test = (

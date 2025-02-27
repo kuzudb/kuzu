@@ -1,11 +1,15 @@
+#pragma once
+
 #include <algorithm>
 #include <cstdint>
 #include <string>
 
+#include "common/cast.h"
+
 namespace kuzu {
 namespace main {
 
-enum class PrintType : uint8_t {
+enum class PrinterType : uint8_t {
     BOX,
     TABLE,
     CSV,
@@ -22,57 +26,66 @@ enum class PrintType : uint8_t {
     UNKNOWN,
 };
 
-struct PrintTypeUtils {
-    static PrintType fromString(const std::string& str) {
+struct PrinterTypeUtils {
+    static PrinterType fromString(const std::string& str) {
         std::string strLower = str;
         std::transform(strLower.begin(), strLower.end(), strLower.begin(), ::tolower);
         if (str == "box") {
-            return PrintType::BOX;
+            return PrinterType::BOX;
         } else if (str == "table") {
-            return PrintType::TABLE;
+            return PrinterType::TABLE;
         } else if (str == "csv") {
-            return PrintType::CSV;
+            return PrinterType::CSV;
         } else if (str == "tsv") {
-            return PrintType::TSV;
+            return PrinterType::TSV;
         } else if (str == "markdown") {
-            return PrintType::MARKDOWN;
+            return PrinterType::MARKDOWN;
         } else if (str == "column") {
-            return PrintType::COLUMN;
+            return PrinterType::COLUMN;
         } else if (str == "list") {
-            return PrintType::LIST;
+            return PrinterType::LIST;
         } else if (str == "trash") {
-            return PrintType::TRASH;
+            return PrinterType::TRASH;
         } else if (str == "json") {
-            return PrintType::JSON;
+            return PrinterType::JSON;
         } else if (str == "jsonlines") {
-            return PrintType::JSONLINES;
+            return PrinterType::JSONLINES;
         } else if (str == "html") {
-            return PrintType::HTML;
+            return PrinterType::HTML;
         } else if (str == "latex") {
-            return PrintType::LATEX;
+            return PrinterType::LATEX;
         } else if (str == "line") {
-            return PrintType::LINE;
+            return PrinterType::LINE;
         }
-        return PrintType::UNKNOWN;
+        return PrinterType::UNKNOWN;
     }
 
-    static bool isTableType(PrintType type) {
-        return type == PrintType::TABLE || type == PrintType::BOX || type == PrintType::MARKDOWN ||
-               type == PrintType::COLUMN;
+    static bool isTableType(PrinterType type) {
+        return type == PrinterType::TABLE || type == PrinterType::BOX ||
+               type == PrinterType::MARKDOWN || type == PrinterType::COLUMN;
     }
 };
 
-struct DrawingCharacters {
-    const PrintType printType;
+struct Printer {
+    const PrinterType printType;
     const char* TupleDelimiter = " ";
 
-    virtual ~DrawingCharacters() = default;
+    template<class TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const TARGET&>(*this);
+    }
+
+    virtual ~Printer() = default;
 
 protected:
-    explicit DrawingCharacters(PrintType pt) : printType(pt) {}
+    explicit Printer(PrinterType pt) : printType(pt) {}
 };
 
-struct BaseTableDrawingCharacters : public DrawingCharacters {
+// TODO(Ziyi): Refactor printers to separate files.
+struct BaseTablePrinter : public Printer {
+    static constexpr uint64_t SMALL_TABLE_SEPERATOR_LENGTH = 3;
+    static constexpr uint64_t MIN_TRUNCATED_WIDTH = 20;
+
     const char* DownAndRight = "";
     const char* Horizontal = "";
     const char* DownAndHorizontal = "";
@@ -91,11 +104,11 @@ struct BaseTableDrawingCharacters : public DrawingCharacters {
     bool Types = true;
 
 protected:
-    explicit BaseTableDrawingCharacters(PrintType pt) : DrawingCharacters(pt){};
+    explicit BaseTablePrinter(PrinterType pt) : Printer(pt){};
 };
 
-struct BoxDrawingCharacters : public BaseTableDrawingCharacters {
-    BoxDrawingCharacters() : BaseTableDrawingCharacters(PrintType::BOX) {
+struct BoxPrinter : public BaseTablePrinter {
+    BoxPrinter() : BaseTablePrinter(PrinterType::BOX) {
         DownAndRight = "\u250C";
         Horizontal = "\u2500";
         DownAndHorizontal = "\u252C";
@@ -111,8 +124,8 @@ struct BoxDrawingCharacters : public BaseTableDrawingCharacters {
     }
 };
 
-struct TableDrawingCharacters : public BaseTableDrawingCharacters {
-    TableDrawingCharacters() : BaseTableDrawingCharacters(PrintType::TABLE) {
+struct TablePrinter : public BaseTablePrinter {
+    TablePrinter() : BaseTablePrinter(PrinterType::TABLE) {
         DownAndRight = "+";
         Horizontal = "-";
         DownAndHorizontal = "+";
@@ -127,16 +140,16 @@ struct TableDrawingCharacters : public BaseTableDrawingCharacters {
     }
 };
 
-struct CSVDrawingCharacters : public DrawingCharacters {
-    CSVDrawingCharacters() : DrawingCharacters(PrintType::CSV) { TupleDelimiter = ","; }
+struct CSVPrinter : public Printer {
+    CSVPrinter() : Printer(PrinterType::CSV) { TupleDelimiter = ","; }
 };
 
-struct TSVDrawingCharacters : public DrawingCharacters {
-    TSVDrawingCharacters() : DrawingCharacters(PrintType::TSV) { TupleDelimiter = "\t"; }
+struct TSVPrinter : public Printer {
+    TSVPrinter() : Printer(PrinterType::TSV) { TupleDelimiter = "\t"; }
 };
 
-struct MarkdownDrawingCharacters : public BaseTableDrawingCharacters {
-    MarkdownDrawingCharacters() : BaseTableDrawingCharacters(PrintType::MARKDOWN) {
+struct MarkdownPrinter : public BaseTablePrinter {
+    MarkdownPrinter() : BaseTablePrinter(PrinterType::MARKDOWN) {
         DownAndRight = "|";
         Horizontal = "-";
         DownAndHorizontal = "|";
@@ -154,8 +167,8 @@ struct MarkdownDrawingCharacters : public BaseTableDrawingCharacters {
     }
 };
 
-struct ColumnDrawingCharacters : public BaseTableDrawingCharacters {
-    ColumnDrawingCharacters() : BaseTableDrawingCharacters(PrintType::COLUMN) {
+struct ColumnPrinter : public BaseTablePrinter {
+    ColumnPrinter() : BaseTablePrinter(PrinterType::COLUMN) {
         DownAndRight = "";
         Horizontal = "-";
         DownAndHorizontal = "";
@@ -172,34 +185,15 @@ struct ColumnDrawingCharacters : public BaseTableDrawingCharacters {
     }
 };
 
-struct ListDrawingCharacters : public DrawingCharacters {
-    ListDrawingCharacters() : DrawingCharacters(PrintType::LIST) { TupleDelimiter = "|"; }
+struct ListPrinter : public Printer {
+    ListPrinter() : Printer(PrinterType::LIST) { TupleDelimiter = "|"; }
 };
 
-struct TrashDrawingCharacters : public DrawingCharacters {
-    TrashDrawingCharacters() : DrawingCharacters(PrintType::TRASH) {}
+struct TrashPrinter : public Printer {
+    TrashPrinter() : Printer(PrinterType::TRASH) {}
 };
 
-struct JSONDrawingCharacters : public DrawingCharacters {
-    const char* ArrayOpen = "[";
-    const char* ArrayClose = "]";
-    const char* ObjectOpen = "{";
-    const char* ObjectClose = "}";
-    const char* KeyValue = "\"";
-    const char* KeyDelimiter = ":";
-    JSONDrawingCharacters() : DrawingCharacters(PrintType::JSON) { TupleDelimiter = ","; }
-
-protected:
-    explicit JSONDrawingCharacters(PrintType pt) : DrawingCharacters(pt) {}
-};
-
-struct JSONLinesDrawingCharacters : public JSONDrawingCharacters {
-    JSONLinesDrawingCharacters() : JSONDrawingCharacters(PrintType::JSONLINES) {
-        TupleDelimiter = ",";
-    }
-};
-
-struct HTMLDrawingCharacters : public DrawingCharacters {
+struct HTMLPrinter : public Printer {
     const char* TableOpen = "<table>";
     const char* TableClose = "</table>";
     const char* RowOpen = "<tr>";
@@ -209,10 +203,10 @@ struct HTMLDrawingCharacters : public DrawingCharacters {
     const char* HeaderOpen = "<th>";
     const char* HeaderClose = "</th>";
     const char* LineBreak = "<br>";
-    HTMLDrawingCharacters() : DrawingCharacters(PrintType::HTML) {}
+    HTMLPrinter() : Printer(PrinterType::HTML) {}
 };
 
-struct LatexDrawingCharacters : public DrawingCharacters {
+struct LatexPrinter : public Printer {
     const char* TableOpen = "\\begin{tabular}";
     const char* TableClose = "\\end{tabular}";
     const char* AlignOpen = "{";
@@ -220,11 +214,11 @@ struct LatexDrawingCharacters : public DrawingCharacters {
     const char* Line = "\\hline";
     const char* EndLine = "\\\\";
     const char* ColumnAlign = "l";
-    LatexDrawingCharacters() : DrawingCharacters(PrintType::LATEX) { TupleDelimiter = "&"; }
+    LatexPrinter() : Printer(PrinterType::LATEX) { TupleDelimiter = "&"; }
 };
 
-struct LineDrawingCharacters : public DrawingCharacters {
-    LineDrawingCharacters() : DrawingCharacters(PrintType::LINE) { TupleDelimiter = " = "; }
+struct LinePrinter : public Printer {
+    LinePrinter() : Printer(PrinterType::LINE) { TupleDelimiter = " = "; }
 };
 
 } // namespace main
