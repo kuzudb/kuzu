@@ -1,7 +1,5 @@
 #include "printer/printer_factory.h"
 
-#include <memory>
-
 #include "printer/json_printer.h"
 
 namespace kuzu {

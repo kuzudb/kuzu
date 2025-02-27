@@ -1,3 +1,5 @@
+#include <memory>
+
 #include "printer/printer.h"
 
 namespace kuzu {
