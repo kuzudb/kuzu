@@ -6,7 +6,6 @@ add_subdirectory(visitor)
 add_library(kuzu_parser
         OBJECT
         create_macro.cpp
-        parsed_expression_visitor.cpp
         parser.cpp
         parsed_statement_visitor.cpp
         transformer.cpp)

@@ -17,6 +17,7 @@
 #include "common/system_config.h"
 #include "common/types/types.h"
 #include "function/cast/functions/cast_from_string_functions.h"
+#include "function/sequence/sequence_functions.h"
 #include "main/client_context.h"
 #include "parser/ddl/alter.h"
 #include "parser/ddl/create_sequence.h"
@@ -24,6 +25,7 @@
 #include "parser/ddl/create_table_info.h"
 #include "parser/ddl/create_type.h"
 #include "parser/ddl/drop.h"
+#include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
 
 using namespace kuzu::common;
@@ -68,7 +70,9 @@ std::unique_ptr<parser::ParsedExpression> Binder::resolvePropertyDefault(
     if (parsedDefault == nullptr) { // No default provided.
         if (type.getLogicalTypeID() == LogicalTypeID::SERIAL) {
             auto serialName = SequenceCatalogEntry::getSerialName(tableName, propertyName);
-            return ParsedExpressionUtils::getSerialDefaultExpr(serialName);
+            auto literalExpr = std::make_unique<ParsedLiteralExpression>(Value(serialName), "");
+            return std::make_unique<ParsedFunctionExpression>(function::NextValFunction::name,
+                std::move(literalExpr), "" /* rawName */);
         } else {
             return std::make_unique<ParsedLiteralExpression>(Value::createNullValue(type), "NULL");
         }

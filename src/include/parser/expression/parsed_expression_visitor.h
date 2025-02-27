@@ -10,8 +10,9 @@ public:
     virtual ~ParsedExpressionVisitor() = default;
 
     void visit(const ParsedExpression* expr);
+    void visitUnsafe(ParsedExpression* expr);
 
-    void visitSwitch(const ParsedExpression* expr);
+    virtual void visitSwitch(const ParsedExpression* expr);
     virtual void visitFunctionExpr(const ParsedExpression*) {}
     virtual void visitAggFunctionExpr(const ParsedExpression*) {}
     virtual void visitPropertyExpr(const ParsedExpression*) {}
@@ -25,10 +26,13 @@ public:
     virtual void visitGraphExpr(const ParsedExpression*) {}
     virtual void visitLambdaExpr(const ParsedExpression*) {}
     virtual void visitStar(const ParsedExpression*) {}
-    virtual void visitQuantifierExpr(const ParsedExpression*) {}
 
     void visitChildren(const ParsedExpression& expr);
-    void visitCaseExprChildren(const ParsedExpression& expr);
+    void visitCaseChildren(const ParsedExpression& expr);
+
+    virtual void visitSwitchUnsafe(ParsedExpression*) {}
+    virtual void visitChildrenUnsafe(ParsedExpression& expr);
+    virtual void visitCaseChildrenUnsafe(ParsedExpression& expr);
 };
 
 class ParsedParamExprCollector : public ParsedExpressionVisitor {
@@ -49,6 +53,23 @@ public:
 
 private:
     bool hasSeqUpdate_ = false;
+};
+
+class MacroParameterReplacer : public ParsedExpressionVisitor {
+public:
+    explicit MacroParameterReplacer(
+        const std::unordered_map<std::string, ParsedExpression*>& nameToExpr)
+        : nameToExpr{nameToExpr} {}
+
+    std::unique_ptr<ParsedExpression> replace(std::unique_ptr<ParsedExpression> input);
+
+private:
+    void visitSwitchUnsafe(ParsedExpression* expr) override;
+
+    std::unique_ptr<ParsedExpression> getReplace(const std::string& name);
+
+private:
+    const std::unordered_map<std::string, ParsedExpression*>& nameToExpr;
 };
 
 } // namespace parser

@@ -49,15 +49,17 @@ public:
     common::ExpressionType getExpressionType() const { return type; }
 
     void setAlias(std::string name) { alias = std::move(name); }
-
     bool hasAlias() const { return !alias.empty(); }
-
     std::string getAlias() const { return alias; }
 
     std::string getRawName() const { return rawName; }
 
-    uint32_t getNumChildren() const { return children.size(); }
-    ParsedExpression* getChild(uint32_t idx) const { return children[idx].get(); }
+    common::idx_t getNumChildren() const { return children.size(); }
+    ParsedExpression* getChild(common::idx_t idx) const { return children[idx].get(); }
+    void setChild(common::idx_t idx, std::unique_ptr<ParsedExpression> child) {
+        KU_ASSERT(idx < children.size());
+        children[idx] = std::move(child);
+    }
 
     std::string toString() const { return rawName; }
 
@@ -93,14 +95,6 @@ protected:
 };
 
 using options_t = std::unordered_map<std::string, std::unique_ptr<parser::ParsedExpression>>;
-
-struct KUZU_API ParsedExpressionUtils {
-    static std::unique_ptr<ParsedExpression> getSerialDefaultExpr(const std::string& sequenceName);
-    static void validateExpressionType(const kuzu::parser::ParsedExpression& expr,
-        common::ExpressionType type);
-    static void validateDataType(const ParsedExpression& expr, const common::LogicalType& type);
-    static std::string getStringLiteralValue(const kuzu::parser::ParsedExpression& expr);
-};
 
 } // namespace parser
 } // namespace kuzu
