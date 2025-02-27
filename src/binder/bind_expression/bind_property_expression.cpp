@@ -74,11 +74,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     ExpressionUtil::validateDataType(*child,
         std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::STRUCT,
             LogicalTypeID::ANY});
-    if (bindOrderByAfterAggregation) {
-        // If a property is not in projection list but required in order by after aggregation,
-        // we need to bind it as struct extraction because node/rel must have been evaluated as
-        // struct during aggregate
-        // e.g. RETURN a, COUNT(*) ORDER BY a.ID
+    if (config.bindOrderByAfterAggregate) {
+        // See the declaration of this field for more information.
         return bindStructPropertyExpression(child, propertyName);
     }
     if (isNodeOrRelPattern(*child)) {

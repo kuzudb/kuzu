@@ -231,9 +231,9 @@ BoundProjectionBody Binder::bindProjectionBody(const parser::ProjectionBody& pro
                 tmpAliases.push_back(expr->hasAlias() ? expr->getAlias() : expr->toString());
             }
             addToScope(tmpAliases, projectionExprs);
-            expressionBinder.bindOrderByAfterAggregation = true;
+            expressionBinder.config.bindOrderByAfterAggregate = true;
             orderByExprs = bindOrderByExpressions(projectionBody.getOrderByExpressions());
-            expressionBinder.bindOrderByAfterAggregation = false;
+            expressionBinder.config.bindOrderByAfterAggregate = false;
         } else {
             addToScope(aliases, projectionExprs);
             orderByExprs = bindOrderByExpressions(projectionBody.getOrderByExpressions());

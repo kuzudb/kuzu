@@ -18,6 +18,20 @@ namespace binder {
 class Binder;
 struct CaseAlternative;
 
+struct ExpressionBinderConfig {
+    // If a property is not in projection list but required in order by after aggregation,
+    // we need to bind it as struct extraction because node/rel must have been evaluated as
+    // struct during aggregate
+    // e.g. RETURN a, COUNT(*) ORDER BY a.ID
+    bool bindOrderByAfterAggregate = false;
+    // If a node is single labeled, we rewrite its label function as string literal. This however,
+    // should be applied to recursive pattern predicate because if path is of length <= 1, there
+    // is no intermediate node and thus the predicate should be a noop. If we try to evaluate, it
+    // may lead to empty result.
+    // e.g. [* (r, n | WHERE label(n)='dummy') ]
+    bool disableLabelFunctionLiteralRewrite = false;
+};
+
 class ExpressionBinder {
     friend class Binder;
 
@@ -116,11 +130,13 @@ public:
 
     std::string getUniqueName(const std::string& name) const;
 
+    const ExpressionBinderConfig& getConfig() { return config; }
+
 private:
     Binder* binder;
     main::ClientContext* context;
     std::unordered_map<std::string, std::shared_ptr<common::Value>> parameterMap;
-    bool bindOrderByAfterAggregation = false;
+    ExpressionBinderConfig config;
 };
 
 } // namespace binder

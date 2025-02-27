@@ -162,6 +162,13 @@ bool ExpressionUtil::isNullLiteral(const Expression& expression) {
     return expression.constCast<LiteralExpression>().getValue().isNull();
 }
 
+bool ExpressionUtil::isBoolLiteral(const Expression& expression) {
+    if (expression.expressionType != ExpressionType::LITERAL) {
+        return false;
+    }
+    return expression.dataType == LogicalType::BOOL();
+}
+
 bool ExpressionUtil::isFalseLiteral(const Expression& expression) {
     if (expression.expressionType != ExpressionType::LITERAL) {
         return false;
