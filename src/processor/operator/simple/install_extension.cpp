@@ -23,16 +23,6 @@ std::string InstallExtension::getOutputMsg() {
         info.repo);
 }
 
-// static void saveExtensionToLocalFile(const std::string& extensionData, const std::string& name,
-//     main::ClientContext* context) {
-//     auto extensionPath = ExtensionUtils::getLocalPathForExtensionInstaller(context, name);
-//     auto fileInfo = context->getVFSUnsafe()->openFile(extensionPath,
-//         FileFlags::WRITE | FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS);
-//     fileInfo->writeFile(reinterpret_cast<const uint8_t*>(extensionData.c_str()),
-//         extensionData.size(), 0 /* offset */);
-//     fileInfo->syncFile();
-// }
-
 void InstallExtension::installExtension(main::ClientContext* context) {
     extension::ExtensionInstaller installer{info, *context};
     installer.install();
