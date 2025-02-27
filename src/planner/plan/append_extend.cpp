@@ -216,7 +216,8 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     pathPropertyProbe->computeFactorizedSchema();
     auto extensionRate =
         cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTransaction());
-    auto resultCard = cardinalityEstimator.multiply(extensionRate, plan.getLastOperator()->getCardinality());
+    auto resultCard =
+        cardinalityEstimator.multiply(extensionRate, plan.getLastOperator()->getCardinality());
     pathPropertyProbe->setCardinality(resultCard);
     probePlan.setLastOperator(pathPropertyProbe);
     probePlan.setCost(plan.getCardinality());
