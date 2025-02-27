@@ -17,6 +17,7 @@ add_library(kuzu_function_algorithm
         ssp_paths.cpp
         variable_length_path.cpp
         weakly_connected_components.cpp
+        strongly_connected_components_kosaraju.cpp
         wsp_destinations.cpp
         wsp_paths.cpp
         )
