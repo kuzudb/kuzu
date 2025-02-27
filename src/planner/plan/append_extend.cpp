@@ -91,11 +91,10 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
     auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, rel, direction, extendFromSource,
         properties_, plan.getLastOperator());
     extend->computeFactorizedSchema();
-    // Update cost & cardinality. Note that extend does not change cardinality.
+    // Update cost & cardinality. Note that extend does not change factorized cardinality.
     const auto extensionRate =
         cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTransaction());
-    extend->setCardinality(
-        cardinalityEstimator.estimateExtend(extensionRate, plan.getLastOperatorRef()));
+    extend->setCardinality(plan.getLastOperator()->getCardinality());
     plan.setCost(CostModel::computeExtendCost(plan));
     auto group = extend->getSchema()->getGroup(nbrNode->getInternalID());
     group->setMultiplier(extensionRate);
@@ -217,17 +216,18 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     pathPropertyProbe->computeFactorizedSchema();
     auto extensionRate =
         cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTransaction());
-    pathPropertyProbe->setCardinality(
-        cardinalityEstimator.estimateExtend(extensionRate, plan.getLastOperatorRef()));
+    auto resultCard =
+        cardinalityEstimator.multiply(extensionRate, plan.getLastOperator()->getCardinality());
+    pathPropertyProbe->setCardinality(resultCard);
     probePlan.setLastOperator(pathPropertyProbe);
     probePlan.setCost(plan.getCardinality());
 
     // Join with input node
     auto joinConditions = expression_vector{boundNode->getInternalID()};
     appendHashJoin(joinConditions, JoinType::INNER, probePlan, plan, plan);
-    // Hash join above should not change the cardinality of probe plan.
-    // plan.setCardinality(probePlan.getCardinality());
-    // KU_ASSERT(plan.getCardinality() == plan.getLastOperator()->getCardinality());
+    // Hash join above is joining input node with its properties. So 1-1 match is guaranteed and
+    // thus should not change cardinality.
+    plan.getLastOperator()->setCardinality(resultCard);
 }
 
 void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& boundNode,
@@ -284,7 +284,7 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     auto extensionRate =
         cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTransaction());
     pathPropertyProbe->setCardinality(
-        cardinalityEstimator.estimateExtend(extensionRate, plan.getLastOperatorRef()));
+        cardinalityEstimator.multiply(extensionRate, plan.getLastOperator()->getCardinality()));
     plan.setLastOperator(std::move(pathPropertyProbe));
     // Update cost
     plan.setCost(CostModel::computeRecursiveExtendCost(rel->getUpperBound(), extensionRate, plan));
