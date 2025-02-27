@@ -12,16 +12,13 @@ using namespace kuzu::extension;
 
 class ExtensionStatement final : public Statement {
 public:
-    explicit ExtensionStatement(ExtensionAction action, std::string path)
-        : Statement{common::StatementType::EXTENSION}, action{action}, path{std::move(path)} {}
+    explicit ExtensionStatement(std::unique_ptr<ExtensionAuxInfo> info)
+        : Statement{common::StatementType::EXTENSION}, info{std::move(info)} {}
 
-    inline ExtensionAction getAction() const { return action; }
-
-    inline std::string getPath() const { return path; }
+    std::unique_ptr<ExtensionAuxInfo> getAuxInfo() const { return info->copy(); }
 
 private:
-    ExtensionAction action;
-    std::string path;
+    std::unique_ptr<ExtensionAuxInfo> info;
 };
 
 } // namespace parser

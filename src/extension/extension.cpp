@@ -67,29 +67,35 @@ std::string ExtensionSourceUtils::toString(ExtensionSource source) {
     }
 }
 
-ExtensionRepoInfo ExtensionUtils::getExtensionLibRepoInfo(const std::string& extensionName) {
-    auto extensionURL = common::stringFormat(EXTENSION_FILE_REPO, KUZU_EXTENSION_VERSION,
-        getPlatform(), extensionName, getExtensionFileName(extensionName));
+static ExtensionRepoInfo getExtensionFilePath(const std::string& extensionName,
+    const std::string& extensionRepo, const std::string& fileName) {
+    auto extensionURL =
+        common::stringFormat(extensionRepo + ExtensionUtils::EXTENSION_FILE_REPO_PATH,
+            KUZU_EXTENSION_VERSION, getPlatform(), extensionName, fileName);
     return getExtensionRepoInfo(extensionURL);
 }
 
-ExtensionRepoInfo ExtensionUtils::getExtensionLoaderRepoInfo(const std::string& extensionName) {
-    auto extensionURL =
-        common::stringFormat(EXTENSION_FILE_REPO, KUZU_EXTENSION_VERSION, getPlatform(),
-            extensionName, getExtensionFileName(extensionName + EXTENSION_LOADER_SUFFIX));
-    return getExtensionRepoInfo(extensionURL);
+ExtensionRepoInfo ExtensionUtils::getExtensionLibRepoInfo(const std::string& extensionName,
+    const std::string& extensionRepo) {
+    return getExtensionFilePath(extensionName, extensionRepo, getExtensionFileName(extensionName));
 }
 
-ExtensionRepoInfo ExtensionUtils::getExtensionInstallerRepoInfo(const std::string& extensionName) {
-    auto extensionURL =
-        common::stringFormat(EXTENSION_FILE_REPO, KUZU_EXTENSION_VERSION, getPlatform(),
-            extensionName, getExtensionFileName(extensionName + EXTENSION_INSTALLER_SUFFIX));
-    return getExtensionRepoInfo(extensionURL);
+ExtensionRepoInfo ExtensionUtils::getExtensionLoaderRepoInfo(const std::string& extensionName,
+    const std::string& extensionRepo) {
+    return getExtensionFilePath(extensionName, extensionRepo,
+        getExtensionFileName(extensionName + EXTENSION_LOADER_SUFFIX));
 }
 
-ExtensionRepoInfo ExtensionUtils::getSharedLibRepoInfo(const std::string& fileName) {
-    auto extensionURL =
-        common::stringFormat(SHARED_LIB_REPO, KUZU_EXTENSION_VERSION, getPlatform(), fileName);
+ExtensionRepoInfo ExtensionUtils::getExtensionInstallerRepoInfo(const std::string& extensionName,
+    const std::string& extensionRepo) {
+    return getExtensionFilePath(extensionName, extensionRepo,
+        getExtensionFileName(extensionName + EXTENSION_INSTALLER_SUFFIX));
+}
+
+ExtensionRepoInfo ExtensionUtils::getSharedLibRepoInfo(const std::string& fileName,
+    const std::string& extensionRepo) {
+    auto extensionURL = common::stringFormat(extensionRepo + SHARED_LIB_REPO,
+        KUZU_EXTENSION_VERSION, getPlatform(), fileName);
     return getExtensionRepoInfo(extensionURL);
 }
 

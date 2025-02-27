@@ -308,3 +308,16 @@ title3
 2
 4
 5
+
+-CASE InstallOfficialExtension
+-STATEMENT INSTALL fts FROM 'http://localhost/extension/repo/'
+---- 1
+Extension: fts has been installed from repo: http://localhost/extension/repo/.
+-STATEMENT load extension fts
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.title;
+---- 2
+The Quantum World
+Learning Machines

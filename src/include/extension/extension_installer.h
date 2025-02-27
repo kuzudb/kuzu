@@ -11,21 +11,30 @@ class ClientContext;
 }
 namespace extension {
 
+struct InstallExtensionInfo {
+    std::string name;
+    std::string repo;
+};
+
 class KUZU_API ExtensionInstaller {
 public:
-    explicit ExtensionInstaller(std::string extensionName)
-        : extensionName{std::move(extensionName)} {}
+    ExtensionInstaller(const InstallExtensionInfo& info, main::ClientContext& context)
+        : info{info}, context{context} {}
 
     virtual ~ExtensionInstaller() = default;
 
-    virtual void install(main::ClientContext* context);
+    virtual void install();
 
 protected:
-    void tryDownloadExtensionFile(main::ClientContext* context, const ExtensionRepoInfo& info,
-        const std::string& localFilePath);
+    void tryDownloadExtensionFile(const ExtensionRepoInfo& info, const std::string& localFilePath);
+
+private:
+    void installExtension();
+    void installDependencies();
 
 protected:
-    std::string extensionName;
+    const InstallExtensionInfo& info;
+    main::ClientContext& context;
 };
 
 } // namespace extension

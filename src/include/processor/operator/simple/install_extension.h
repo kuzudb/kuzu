@@ -1,5 +1,6 @@
 #pragma once
 
+#include "extension/extension_installer.h"
 #include "processor/operator/simple/simple.h"
 
 namespace kuzu {
@@ -26,22 +27,22 @@ class InstallExtension final : public Simple {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::INSTALL_EXTENSION;
 
 public:
-    InstallExtension(std::string name, const DataPos& outputPos, uint32_t id,
+    InstallExtension(extension::InstallExtensionInfo info, const DataPos& outputPos, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : Simple{type_, outputPos, id, std::move(printInfo)}, name{std::move(name)} {}
+        : Simple{type_, outputPos, id, std::move(printInfo)}, info{std::move(info)} {}
 
     void executeInternal(ExecutionContext* context) override;
     std::string getOutputMsg() override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<InstallExtension>(name, outputPos, id, printInfo->copy());
+        return std::make_unique<InstallExtension>(info, outputPos, id, printInfo->copy());
     }
 
 private:
     void installExtension(main::ClientContext* context);
 
 private:
-    std::string name;
+    extension::InstallExtensionInfo info;
 };
 
 } // namespace processor

@@ -10,22 +10,21 @@ using namespace kuzu::extension;
 
 class LogicalExtension final : public LogicalSimple {
 public:
-    LogicalExtension(ExtensionAction action, std::string path,
+    LogicalExtension(std::unique_ptr<ExtensionAuxInfo> auxInfo,
         std::shared_ptr<binder::Expression> outputExpression)
         : LogicalSimple{LogicalOperatorType::EXTENSION, std::move(outputExpression)},
-          action{action}, path{std::move(path)} {}
+          auxInfo{std::move(auxInfo)} {}
 
     std::string getExpressionsForPrinting() const override { return path; }
 
-    ExtensionAction getAction() const { return action; }
-    std::string getPath() const { return path; }
+    const ExtensionAuxInfo& getAuxInfo() const { return *auxInfo; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalExtension>(action, path, outputExpression);
+        return std::make_unique<LogicalExtension>(auxInfo->copy(), outputExpression);
     }
 
 private:
-    ExtensionAction action;
+    std::unique_ptr<ExtensionAuxInfo> auxInfo;
     std::string path;
 };
 
