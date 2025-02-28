@@ -110,9 +110,9 @@ struct UnaryFunctionExecutor {
 
     static std::pair<common::sel_t, common::sel_t> getSelectedPos(common::idx_t selIdx,
         common::SelectionVector* operandSelVector, common::SelectionVector* resultSelVector,
-        bool operandIsFiltered, bool resultIsFiltered) {
-        common::sel_t operandPos = operandIsFiltered ? selIdx : (*operandSelVector)[selIdx];
-        common::sel_t resultPos = resultIsFiltered ? selIdx : (*resultSelVector)[selIdx];
+        bool operandIsUnfiltered, bool resultIsUnfiltered) {
+        common::sel_t operandPos = operandIsUnfiltered ? selIdx : (*operandSelVector)[selIdx];
+        common::sel_t resultPos = resultIsUnfiltered ? selIdx : (*resultSelVector)[selIdx];
         return {operandPos, resultPos};
     }
 
@@ -125,12 +125,12 @@ struct UnaryFunctionExecutor {
             result.setAllNonNull();
         }
 
-        const bool operandIsFiltered = !operandSelVector->isUnfiltered();
-        const bool resultIsFiltered = !resultSelVector->isUnfiltered();
+        const bool operandIsUnfiltered = operandSelVector->isUnfiltered();
+        const bool resultIsUnfiltered = resultSelVector->isUnfiltered();
 
         for (auto i = 0u; i < operandSelVector->getSelSize(); i++) {
             const auto [operandPos, resultPos] = getSelectedPos(i, operandSelVector,
-                resultSelVector, operandIsFiltered, resultIsFiltered);
+                resultSelVector, operandIsUnfiltered, resultIsUnfiltered);
             if (noNullsGuaranteed) {
                 executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand, operandPos,
                     result, resultPos, dataPtr);
