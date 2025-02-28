@@ -30,7 +30,37 @@ private:
     std::vector<common::sel_t> listEntries;
 };
 
-// TODO(Royi) add comment on how to use
+/**
+ * List data vectors can their number of elements exceed DEFAULT_VECTOR_CAPACITY
+ * However, most expression evaluators can only process elements in batches of size
+ * DEFAULT_VECTOR_CAPACITY
+ * This means that in order for lambda evaluators to work it must pass in its data in slices of size
+ * DEFAULT_VECTOR_CAPACITY for processing by child evaluators
+ *
+ * A consequence of this is that some lists may have their data vectors split into different slices
+ * and thus it is unreasonable to have execFuncs operate on a list-by-list basis. Instead, they
+ * should operate on each data vector entry individually.
+ *
+ * Instead, any lambda execFunc should follow this pattern using the ListSliceInfo struct
+ * void execFunc(...) {
+ *   auto& sliceInfo = *listLambdaBindData->sliceInfo;
+ *   // loop through each data vector entry in the slice
+ *   for (sel_t i = 0; i < sliceInfo.getSliceSize(); ++i) {
+ *       // dataOffset: the offset of the current entry in the input data vector
+ *       // listEntryPos: the pos of the list entry containing to the data entry in the list vector
+ *       const auto [listEntryPos, dataOffset] = sliceInfo.getPos(i);
+ *       doSomething(listEntryPos, dataOffset);
+ *   }
+ *
+ *   // do any final processing required on each list entry vector
+ *   // only do this once for all slices
+ *   if (sliceInfo.done()) {
+ *       for (uint64_t i = 0; i < inputSelVector.getSelSize(); ++i) {
+ *           auto pos = inputSelVector[i];
+ *           doSomething(inputVector, pos);
+ *       }
+ *   }
+ */
 class ListSliceInfo {
 public:
     explicit ListSliceInfo(common::ValueVector* listVector)
