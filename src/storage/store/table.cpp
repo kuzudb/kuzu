@@ -19,6 +19,15 @@ void TableScanState::resetOutVectors() {
     outState->getSelVectorUnsafe().setToUnfiltered();
 }
 
+void TableScanState::setToTable(Table* table_, std::vector<column_id_t> columnIDs_,
+    std::vector<ColumnPredicateSet> columnPredicateSets_, RelDataDirection) {
+    table = table_;
+    columnIDs = std::move(columnIDs_);
+    tableID = table->getTableID();
+    columnPredicateSets = std::move(columnPredicateSets_);
+    nodeGroupScanState->chunkStates.resize(columnIDs.size());
+}
+
 Table::Table(const catalog::TableCatalogEntry* tableEntry, const StorageManager* storageManager,
     MemoryManager* memoryManager)
     : tableType{tableEntry->getTableType()}, tableID{tableEntry->getTableID()},

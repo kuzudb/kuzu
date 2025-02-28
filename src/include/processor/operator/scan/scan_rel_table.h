@@ -18,16 +18,12 @@ struct ScanRelTableInfo {
     std::vector<common::column_id_t> columnIDs;
     std::vector<storage::ColumnPredicateSet> columnPredicates;
 
-    std::unique_ptr<storage::RelTableScanState> scanState;
-
     ScanRelTableInfo(storage::RelTable* table, common::RelDataDirection direction,
         std::vector<common::column_id_t> columnIDs,
         std::vector<storage::ColumnPredicateSet> columnPredicates)
         : table{table}, direction{direction}, columnIDs{std::move(columnIDs)},
           columnPredicates{std::move(columnPredicates)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(ScanRelTableInfo);
-
-    void initScanState(const ExecutionContext* context);
 
 private:
     ScanRelTableInfo(const ScanRelTableInfo& other)
@@ -89,6 +85,7 @@ private:
 
 protected:
     ScanRelTableInfo relInfo;
+    std::unique_ptr<storage::RelTableScanState> scanState;
 };
 
 } // namespace processor

@@ -44,15 +44,11 @@ struct ScanNodeTableInfo {
     std::vector<common::column_id_t> columnIDs;
     std::vector<storage::ColumnPredicateSet> columnPredicates;
 
-    std::unique_ptr<storage::NodeTableScanState> localScanState = nullptr;
-
     ScanNodeTableInfo(storage::NodeTable* table, std::vector<common::column_id_t> columnIDs,
         std::vector<storage::ColumnPredicateSet> columnPredicates)
         : table{table}, columnIDs{std::move(columnIDs)},
           columnPredicates{std::move(columnPredicates)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(ScanNodeTableInfo);
-
-    void initScanState(common::semi_mask_t* semiMask);
 
 private:
     ScanNodeTableInfo(const ScanNodeTableInfo& other)
@@ -91,7 +87,8 @@ public:
         std::unique_ptr<OPPrintInfo> printInfo,
         std::shared_ptr<ScanNodeTableProgressSharedState> progressSharedState)
         : ScanTable{type_, std::move(info), id, std::move(printInfo)}, currentTableIdx{0},
-          nodeInfos{std::move(nodeInfos)}, sharedStates{std::move(sharedStates)},
+          scanState{nullptr}, nodeInfos{std::move(nodeInfos)},
+          sharedStates{std::move(sharedStates)},
           progressSharedState{std::move(progressSharedState)} {
         KU_ASSERT(this->nodeInfos.size() == this->sharedStates.size());
     }
@@ -118,10 +115,10 @@ public:
 
 private:
     void initGlobalStateInternal(ExecutionContext* context) override;
-    void initVectors(storage::TableScanState& state, const ResultSet& resultSet) const override;
 
 private:
     common::idx_t currentTableIdx;
+    std::unique_ptr<storage::NodeTableScanState> scanState;
     std::vector<ScanNodeTableInfo> nodeInfos;
     std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates;
     std::shared_ptr<ScanNodeTableProgressSharedState> progressSharedState;

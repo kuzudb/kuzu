@@ -1,6 +1,7 @@
 #pragma once
 
 #include "catalog/catalog_entry/table_catalog_entry.h"
+#include "common/enums/rel_direction.h"
 #include "common/mask.h"
 #include "storage/predicate/column_predicate.h"
 #include "storage/store/column.h"
@@ -13,10 +14,11 @@ class ExpressionEvaluator;
 } // namespace evaluator
 namespace storage {
 class MemoryManager;
+class Table;
 
 enum class TableScanSource : uint8_t { COMMITTED = 0, UNCOMMITTED = 1, NONE = UINT8_MAX };
 
-struct TableScanState {
+struct KUZU_API TableScanState {
     common::table_id_t tableID;
     std::unique_ptr<common::ValueVector> rowIdxVector;
     // Node/Rel ID vector. We assume all output vectors are within the same DataChunk as this one.
@@ -27,6 +29,7 @@ struct TableScanState {
     common::semi_mask_t* semiMask;
     bool randomLookup = false;
 
+    Table* table = nullptr;
     // Only used when scan from persistent data.
     std::vector<const Column*> columns;
 
@@ -36,6 +39,16 @@ struct TableScanState {
     std::unique_ptr<NodeGroupScanState> nodeGroupScanState;
 
     std::vector<ColumnPredicateSet> columnPredicateSets;
+
+    TableScanState(common::ValueVector* nodeIDVector,
+        std::vector<common::ValueVector*> outputVectors,
+        std::shared_ptr<common::DataChunkState> outChunkState)
+        : tableID{common::INVALID_TABLE_ID}, nodeIDVector(nodeIDVector),
+          outputVectors{std::move(outputVectors)}, outState{outChunkState.get()},
+          semiMask{nullptr} {
+        rowIdxVector = std::make_unique<common::ValueVector>(common::LogicalType::INT64());
+        rowIdxVector->state = std::move(outChunkState);
+    }
 
     TableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
         std::vector<const Column*> columns = {},
@@ -49,7 +62,13 @@ struct TableScanState {
     virtual ~TableScanState() = default;
     DELETE_COPY_DEFAULT_MOVE(TableScanState);
 
-    virtual void initState(transaction::Transaction* transaction, NodeGroup* nodeGroup) {
+    virtual void setToTable(Table* table_, std::vector<common::column_id_t> columnIDs_,
+        std::vector<ColumnPredicateSet> columnPredicateSets_,
+        common::RelDataDirection direction = common::RelDataDirection::INVALID);
+
+    // Note that `resetCachedBoundNodeSelVec` is only applicable to RelTable for now.
+    virtual void initState(transaction::Transaction* transaction, NodeGroup* nodeGroup,
+        bool /*resetCachedBoundNodeSelVev*/ = true) {
         KU_ASSERT(nodeGroup);
         this->nodeGroup = nodeGroup;
         this->nodeGroup->initializeScanState(transaction, *this);
@@ -144,8 +163,9 @@ public:
     std::string getTableName() const { return tableName; }
     FileHandle* getDataFH() const { return dataFH; }
 
-    virtual void initScanState(transaction::Transaction* transaction,
-        TableScanState& readState) const = 0;
+    // Note that `resetCachedBoundNodeIDs` is only applicable to RelTable for now.
+    virtual void initScanState(transaction::Transaction* transaction, TableScanState& readState,
+        bool resetCachedBoundNodeSelVec = true) const = 0;
     bool scan(transaction::Transaction* transaction, TableScanState& scanState);
 
     virtual void insert(transaction::Transaction* transaction, TableInsertState& insertState) = 0;

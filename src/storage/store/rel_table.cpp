@@ -27,15 +27,32 @@ RelTableScanState::RelTableScanState(MemoryManager& mm, table_id_t tableID,
       direction{direction}, currBoundNodeIdx{0}, csrOffsetColumn{csrOffsetCol},
       csrLengthColumn{csrLengthCol}, localTableScanState{nullptr} {
     nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(mm, this->columnIDs.size());
-    if (!this->columnPredicateSets.empty()) {
-        // Since we insert a nbr column. We need to pad an empty nbr column predicate set.
-        this->columnPredicateSets.insert(this->columnPredicateSets.begin(), ColumnPredicateSet());
-    }
 }
 
-void RelTableScanState::initState(Transaction* transaction, NodeGroup* nodeGroup) {
+void RelTableScanState::setToTable(Table* table_, std::vector<column_id_t> columnIDs_,
+    std::vector<ColumnPredicateSet> columnPredicateSets_, RelDataDirection direction_) {
+    TableScanState::setToTable(table_, columnIDs_, std::move(columnPredicateSets_));
+    columns.resize(columnIDs.size());
+    direction = direction_;
+    for (size_t i = 0; i < columnIDs.size(); ++i) {
+        auto columnID = columnIDs[i];
+        if (columnID == INVALID_COLUMN_ID || columnID == ROW_IDX_COLUMN_ID) {
+            columns[i] = nullptr;
+        } else {
+            columns[i] = table->cast<RelTable>().getColumn(columnIDs[i], direction);
+        }
+    }
+    csrOffsetColumn = table->cast<RelTable>().getCSROffsetColumn(direction);
+    csrLengthColumn = table->cast<RelTable>().getCSRLengthColumn(direction);
+    nodeGroupIdx = INVALID_NODE_GROUP_IDX;
+}
+
+void RelTableScanState::initState(Transaction* transaction, NodeGroup* nodeGroup,
+    bool resetCachedBoundNodeIDs) {
     this->nodeGroup = nodeGroup;
-    initCachedBoundNodeIDSelVector();
+    if (resetCachedBoundNodeIDs) {
+        initCachedBoundNodeIDSelVector();
+    }
     if (this->nodeGroup) {
         initStateForCommitted(transaction);
     } else if (hasUnComittedData()) {
@@ -141,7 +158,8 @@ std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog
     return relTable;
 }
 
-void RelTable::initScanState(Transaction* transaction, TableScanState& scanState) const {
+void RelTable::initScanState(Transaction* transaction, TableScanState& scanState,
+    bool resetCachedBoundNodeSelVec) const {
     auto& relScanState = scanState.cast<RelTableScanState>();
     // Note there we directly read node at pos 0 here regardless the selVector is filtered or not.
     // This is because we're assuming the nodeIDVector is always a sequence here.
@@ -156,7 +174,7 @@ void RelTable::initScanState(Transaction* transaction, TableScanState& scanState
     } else {
         nodeGroup = relScanState.nodeGroup;
     }
-    scanState.initState(transaction, nodeGroup);
+    scanState.initState(transaction, nodeGroup, resetCachedBoundNodeSelVec);
 }
 
 bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState) {

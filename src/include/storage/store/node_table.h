@@ -24,6 +24,13 @@ namespace storage {
 class NodeTable;
 
 struct KUZU_API NodeTableScanState final : TableScanState {
+    NodeTableScanState(common::ValueVector* nodeIDVector,
+        std::vector<common::ValueVector*> outputVectors,
+        std::shared_ptr<common::DataChunkState> outChunkState)
+        : TableScanState{nodeIDVector, std::move(outputVectors), std::move(outChunkState)} {
+        nodeGroupScanState = std::make_unique<NodeGroupScanState>(this->columnIDs.size());
+    }
+
     // Scan state for un-committed data.
     // Ideally we shouldn't need columns to scan un-checkpointed but committed data.
     NodeTableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
@@ -45,6 +52,10 @@ struct KUZU_API NodeTableScanState final : TableScanState {
         this->nodeIDVector = nodeIDVector;
         rowIdxVector->state = this->nodeIDVector->state;
     }
+
+    void setToTable(Table* table_, std::vector<common::column_id_t> columnIDs_,
+        std::vector<ColumnPredicateSet> columnPredicateSets_,
+        common::RelDataDirection direction = common::RelDataDirection::INVALID) override;
 
     bool scanNext(transaction::Transaction* transaction) override;
 
@@ -129,8 +140,8 @@ public:
 
     common::row_idx_t getNumTotalRows(const transaction::Transaction* transaction) override;
 
-    void initScanState(transaction::Transaction* transaction,
-        TableScanState& scanState) const override;
+    void initScanState(transaction::Transaction* transaction, TableScanState& scanState,
+        bool resetCachedBoundNodeIDs = true) const override;
     void initScanState(transaction::Transaction* transaction, TableScanState& scanState,
         common::table_id_t tableID, common::offset_t startOffset) const;
 
