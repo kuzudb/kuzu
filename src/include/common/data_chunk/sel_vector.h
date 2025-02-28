@@ -109,7 +109,6 @@ public:
 
     static std::vector<SelectionVector*> fromValueVectors(
         const std::vector<std::shared_ptr<common::ValueVector>>& vec);
-    void slice(offset_t offset, offset_t numValues, SelectionVector& outputSelVector) const;
 
 private:
     sel_t selectedSize;

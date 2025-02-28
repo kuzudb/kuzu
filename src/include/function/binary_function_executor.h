@@ -137,9 +137,10 @@ struct BinaryFunctionExecutor {
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER, bool leftFlat, bool rightFlat>
-    static void executeImpl(common::ValueVector& left, common::SelectionVector* leftSelVector,
-        common::ValueVector& right, common::SelectionVector* rightSelVector,
-        common::ValueVector& result, common::SelectionVector* resultSelVector, void* dataPtr) {
+    static void executeSwitchOnNulls(common::ValueVector& left,
+        common::SelectionVector* leftSelVector, common::ValueVector& right,
+        common::SelectionVector* rightSelVector, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr) {
         const bool allNullsGuaranteed = (rightFlat && right.isNull((*rightSelVector)[0])) ||
                                         (leftFlat && left.isNull((*leftSelVector)[0]));
         if (allNullsGuaranteed) {
@@ -167,17 +168,18 @@ struct BinaryFunctionExecutor {
         common::ValueVector& result, common::SelectionVector* resultSelVector, void* dataPtr) {
         result.resetAuxiliaryBuffer();
         if (left.state->isFlat() && right.state->isFlat()) {
-            executeImpl<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, true, true>(left,
-                leftSelVector, right, rightSelVector, result, resultSelVector, dataPtr);
+            executeSwitchOnNulls<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, true, true>(
+                left, leftSelVector, right, rightSelVector, result, resultSelVector, dataPtr);
         } else if (left.state->isFlat() && !right.state->isFlat()) {
-            executeImpl<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, true, false>(left,
-                leftSelVector, right, rightSelVector, result, resultSelVector, dataPtr);
+            executeSwitchOnNulls<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, true, false>(
+                left, leftSelVector, right, rightSelVector, result, resultSelVector, dataPtr);
         } else if (!left.state->isFlat() && right.state->isFlat()) {
-            executeImpl<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, false, true>(left,
-                leftSelVector, right, rightSelVector, result, resultSelVector, dataPtr);
+            executeSwitchOnNulls<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, false, true>(
+                left, leftSelVector, right, rightSelVector, result, resultSelVector, dataPtr);
         } else if (!left.state->isFlat() && !right.state->isFlat()) {
-            executeImpl<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, false, false>(left,
-                leftSelVector, right, rightSelVector, result, resultSelVector, dataPtr);
+            executeSwitchOnNulls<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, false,
+                false>(left, leftSelVector, right, rightSelVector, result, resultSelVector,
+                dataPtr);
         } else {
             KU_UNREACHABLE;
         }

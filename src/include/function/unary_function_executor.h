@@ -128,7 +128,7 @@ struct UnaryFunctionExecutor {
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER,
         bool noNullsGuaranteed, bool operandIsFiltered, bool resultIsFiltered>
-    static void executeOnValueWrapper(common::ValueVector& operand,
+    static void executeOnSelValues(common::ValueVector& operand,
         common::SelectionVector* operandSelVector, common::ValueVector& result,
         common::SelectionVector* resultSelVector, void* dataPtr) {
         for (auto i = 0u; i < operandSelVector->getSelSize(); i++) {
@@ -148,6 +148,22 @@ struct UnaryFunctionExecutor {
         }
     }
 
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER,
+        bool operandIsFiltered, bool resultIsFiltered>
+    static void executeNullSwitch(common::ValueVector& operand,
+        common::SelectionVector* operandSelVector, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr) {
+        if (operand.hasNoNullsGuarantee()) {
+            result.setAllNonNull();
+            executeOnSelValues<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, true, operandIsFiltered,
+                resultIsFiltered>(operand, operandSelVector, result, resultSelVector, dataPtr);
+        } else {
+            executeOnSelValues<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, false,
+                operandIsFiltered, resultIsFiltered>(operand, operandSelVector, result,
+                resultSelVector, dataPtr);
+        }
+    }
+
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
     static void executeSwitch(common::ValueVector& operand,
         common::SelectionVector* operandSelVector, common::ValueVector& result,
@@ -161,53 +177,18 @@ struct UnaryFunctionExecutor {
                 executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand, inputPos,
                     result, resultPos, dataPtr);
             }
+        } else if (operandSelVector->isUnfiltered() && resultSelVector->isUnfiltered()) {
+            executeNullSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, false, false>(operand,
+                operandSelVector, result, resultSelVector, dataPtr);
+        } else if (operandSelVector->isUnfiltered() && !resultSelVector->isUnfiltered()) {
+            executeNullSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, false, true>(operand,
+                operandSelVector, result, resultSelVector, dataPtr);
+        } else if (!operandSelVector->isUnfiltered() && resultSelVector->isUnfiltered()) {
+            executeNullSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, true, false>(operand,
+                operandSelVector, result, resultSelVector, dataPtr);
         } else {
-            if (operand.hasNoNullsGuarantee()) {
-                result.setAllNonNull();
-                if (operandSelVector->isUnfiltered()) {
-                    if (resultSelVector->isUnfiltered()) {
-                        executeOnValueWrapper<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, true,
-                            false, false>(operand, operandSelVector, result, resultSelVector,
-                            dataPtr);
-                    } else {
-                        executeOnValueWrapper<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, true,
-                            false, true>(operand, operandSelVector, result, resultSelVector,
-                            dataPtr);
-                    }
-                } else {
-                    if (resultSelVector->isUnfiltered()) {
-                        executeOnValueWrapper<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, true,
-                            true, false>(operand, operandSelVector, result, resultSelVector,
-                            dataPtr);
-                    } else {
-                        executeOnValueWrapper<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, true,
-                            true, true>(operand, operandSelVector, result, resultSelVector,
-                            dataPtr);
-                    }
-                }
-            } else {
-                if (operandSelVector->isUnfiltered()) {
-                    if (resultSelVector->isUnfiltered()) {
-                        executeOnValueWrapper<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, false,
-                            false, false>(operand, operandSelVector, result, resultSelVector,
-                            dataPtr);
-                    } else {
-                        executeOnValueWrapper<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, false,
-                            false, true>(operand, operandSelVector, result, resultSelVector,
-                            dataPtr);
-                    }
-                } else {
-                    if (resultSelVector->isUnfiltered()) {
-                        executeOnValueWrapper<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, false,
-                            true, false>(operand, operandSelVector, result, resultSelVector,
-                            dataPtr);
-                    } else {
-                        executeOnValueWrapper<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, false,
-                            true, true>(operand, operandSelVector, result, resultSelVector,
-                            dataPtr);
-                    }
-                }
-            }
+            executeNullSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, true, true>(operand,
+                operandSelVector, result, resultSelVector, dataPtr);
         }
     }
 

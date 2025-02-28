@@ -42,13 +42,11 @@ static void copyListEntriesToResult(const common::ValueVector& inputVector,
     const common::SelectionVector& inputSelVector, common::ValueVector& result) {
     for (uint64_t i = 0; i < inputSelVector.getSelSize(); ++i) {
         auto pos = inputSelVector[i];
-        if (inputVector.isNull(pos)) {
-            result.setNull(pos, true);
-        } else {
-            auto inputList = inputVector.getValue<list_entry_t>(pos);
-            ListVector::addList(&result, inputList.size);
-            result.setValue(pos, inputList);
-        }
+        result.setNull(pos, inputVector.isNull(pos));
+
+        auto inputList = inputVector.getValue<list_entry_t>(pos);
+        ListVector::addList(&result, inputList.size);
+        result.setValue(pos, inputList);
     }
 }
 
