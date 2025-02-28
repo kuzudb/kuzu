@@ -24,18 +24,18 @@ static uint64_t getNumThreads(processor::ExecutionContext& context) {
 
 static void scheduleFrontierTask(catalog::TableCatalogEntry* fromEntry,
     catalog::TableCatalogEntry* toEntry, catalog::TableCatalogEntry* relEntry, graph::Graph* graph,
-    ExtendDirection extendDirection, GDSComputeState& gdsComputeState,
+    ExtendDirection extendDirection, GDSComputeState& computeState,
     processor::ExecutionContext* context, const std::string& propertyToScan) {
     auto clientContext = context->clientContext;
     auto transaction = clientContext->getTransaction();
     auto info = FrontierTaskInfo(fromEntry, toEntry, relEntry, graph, extendDirection,
-        *gdsComputeState.edgeCompute, propertyToScan);
+        *computeState.edgeCompute, propertyToScan);
     auto numThreads = getNumThreads(*context);
     auto sharedState =
-        std::make_shared<FrontierTaskSharedState>(numThreads, *gdsComputeState.frontierPair);
+        std::make_shared<FrontierTaskSharedState>(numThreads, *computeState.frontierPair);
     auto task = std::make_shared<FrontierTask>(numThreads, info, sharedState);
 
-    if (gdsComputeState.frontierPair->isCurFrontierSparse()) {
+    if (computeState.frontierPair->isCurFrontierSparse()) {
         task->runSparse();
         return;
     }

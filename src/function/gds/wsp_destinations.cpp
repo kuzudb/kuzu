@@ -151,8 +151,8 @@ private:
         nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
         auto numNodes = sharedState->graph->getNumNodesMap(clientContext->getTransaction());
-        auto curFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
-        auto nextFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
+        auto curFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
+        auto nextFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(curFrontier, nextFrontier);
         auto rjBindData = bindData->ptrCast<RJBindData>();

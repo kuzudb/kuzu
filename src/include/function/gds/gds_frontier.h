@@ -156,7 +156,6 @@ private:
  * However, this is not necessary and the caller can also use this to represent a single frontier.
  */
 class KUZU_API PathLengths : public GDSFrontier {
-    friend class PathLengthsInitVertexCompute;
     using frontier_entry_t = std::atomic<uint16_t>;
 
 public:
@@ -186,6 +185,9 @@ public:
     void setActive(common::offset_t offset) {
         getNextFrontier()[offset].store(getCurIter(), std::memory_order_relaxed);
     }
+    void setCurFrontierValue(common::offset_t offset, uint16_t val) {
+        getCurFrontier()[offset].store(val, std::memory_order_relaxed);
+    }
 
     void incrementCurIter() { curIter.fetch_add(1, std::memory_order_relaxed); }
 
@@ -193,8 +195,15 @@ public:
     void pinCurFrontierTableID(common::table_id_t tableID);
     void pinNextFrontierTableID(common::table_id_t tableID);
 
-    static std::shared_ptr<PathLengths> getFrontier(processor::ExecutionContext* context,
-        graph::Graph* graph, uint16_t initialValue);
+    // Init frontier to UNVISITED
+    static std::shared_ptr<PathLengths> getUnvisitedFrontier(processor::ExecutionContext* context,
+        graph::Graph* graph);
+    // Init frontier to 0 (first iteration)
+    static std::shared_ptr<PathLengths> getVisitedFrontier(processor::ExecutionContext* context,
+        graph::Graph* graph);
+    // Init frontier to 0 according to mask
+    static std::shared_ptr<PathLengths> getVisitedFrontier(processor::ExecutionContext* context,
+        graph::Graph* graph, processor::NodeOffsetMaskMap* maskMap);
 
 private:
     uint16_t getCurIter() { return curIter.load(std::memory_order_relaxed); }
@@ -260,7 +269,10 @@ public:
 
     void beginNewIteration();
 
+    // Initialize for recursive computation which always starts from a single source.
     virtual void initSource(common::nodeID_t source) = 0;
+    // Initialize for gds computation which usually starts from a large number of nodes;
+    void initGDS();
 
     virtual void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
         common::table_id_t nextTableID);
@@ -275,12 +287,10 @@ public:
     uint16_t getCurrentIter() { return curIter.load(std::memory_order_relaxed); }
 
     GDSFrontier& getCurDenseFrontier() const { return *curDenseFrontier; }
-    GDSFrontier& getNextDenseFrontier() const { return *nextDenseFrontier; }
     SparseFrontier& getCurSparseFrontier() const { return *curSparseFrontier; }
     SparseFrontier& getNextSparseFrontier() const { return *nextSparseFrontier; }
     SparseFrontier& getVertexComputeCandidates() const { return *vertexComputeCandidates; }
 
-    bool hasActiveNodes() { return hasActiveNodesForNextIter_.load(std::memory_order_relaxed); }
     bool continueNextIter(uint16_t maxIter);
 
     void addNodeToNextDenseFrontier(common::nodeID_t nodeID);

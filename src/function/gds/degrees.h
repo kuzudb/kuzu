@@ -1,3 +1,5 @@
+#pragma once
+
 #include "function/gds/compute.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_object_manager.h"
@@ -62,13 +64,13 @@ struct DegreeEdgeCompute : public EdgeCompute {
 
 struct DegreesUtils {
     static void computeDegree(processor::ExecutionContext* context, graph::Graph* graph,
-        Degrees* degrees, ExtendDirection direction) {
-        auto currentFrontier = PathLengths::getFrontier(context, graph, PathLengths::UNVISITED);
-        auto nextFrontier = PathLengths::getFrontier(context, graph, 0);
+        processor::NodeOffsetMaskMap* nodeOffsetMaskMap, Degrees* degrees,
+        ExtendDirection direction) {
+        auto currentFrontier = PathLengths::getUnvisitedFrontier(context, graph);
+        auto nextFrontier = PathLengths::getVisitedFrontier(context, graph, nodeOffsetMaskMap);
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
-        frontierPair->setActiveNodesForNextIter();
-        frontierPair->getNextSparseFrontier().disable();
+        frontierPair->initGDS();
         auto ec = std::make_unique<DegreeEdgeCompute>(degrees);
         auto auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
         auto computeState = GDSComputeState(std::move(frontierPair), std::move(ec),

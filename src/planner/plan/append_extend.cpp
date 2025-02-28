@@ -1,8 +1,5 @@
 #include <utility>
 
-#include "binder/expression/expression_util.h"
-#include "binder/expression/property_expression.h"
-#include "binder/expression_visitor.h"
 #include "binder/query/reading_clause/bound_gds_call.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
@@ -18,7 +15,6 @@
 #include "planner/operator/logical_gds_call.h"
 #include "planner/operator/logical_node_label_filter.h"
 #include "planner/operator/logical_path_property_probe.h"
-#include "planner/operator/sip/logical_semi_masker.h"
 #include "planner/planner.h"
 
 using namespace kuzu::common;
@@ -163,11 +159,10 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     auto gdsInfo = BoundGDSCallInfo(gdsFunction.copy(), std::move(resultColumns));
     auto probePlan = LogicalPlan();
     auto gdsCall = getGDSCall(gdsInfo);
-    gdsCall->computeFactorizedSchema();
     if (recursiveInfo->nodePredicate != nullptr) {
-        auto p = LogicalPlan();
-        createPathNodeFilterPlan(recursiveInfo->node, recursiveInfo->nodePredicate, p);
-        gdsCall->ptrCast<LogicalGDSCall>()->setNodePredicateRoot(p.getLastOperator());
+        auto p = planNodeSemiMask(SemiMaskTargetType::GDS_PATH_NODE, *recursiveInfo->node,
+            recursiveInfo->nodePredicate);
+        gdsCall->ptrCast<LogicalGDSCall>()->addPathNodeMask(p.getLastOperator());
     }
     // E.g. Given schema person-knows->person & person-knows->animal
     // And query MATCH (a:person:animal)-[e*]->(b:person)
@@ -228,25 +223,6 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     // Hash join above is joining input node with its properties. So 1-1 match is guaranteed and
     // thus should not change cardinality.
     plan.getLastOperator()->setCardinality(resultCard);
-}
-
-void Planner::createPathNodeFilterPlan(const std::shared_ptr<NodeExpression>& node,
-    std::shared_ptr<Expression> nodePredicate, LogicalPlan& plan) {
-    auto prevCollection = enterNewPropertyExprCollection();
-    auto collector = PropertyExprCollector();
-    collector.visit(nodePredicate);
-    for (auto& expr : ExpressionUtil::removeDuplication(collector.getPropertyExprs())) {
-        auto& propExpr = expr->constCast<PropertyExpression>();
-        propertyExprCollection.addProperties(propExpr.getVariableName(), expr);
-    }
-    appendScanNodeTable(node->getInternalID(), node->getTableIDs(), getProperties(*node), plan);
-    appendFilter(nodePredicate, plan);
-    exitPropertyExprCollection(std::move(prevCollection));
-    auto semiMasker = std::make_shared<LogicalSemiMasker>(SemiMaskKeyType::NODE,
-        SemiMaskTargetType::GDS_PATH_NODE, node->getInternalID(), node->getTableIDs(),
-        plan.getLastOperator());
-    semiMasker->computeFactorizedSchema();
-    plan.setLastOperator(semiMasker);
 }
 
 void Planner::createPathNodePropertyScanPlan(const std::shared_ptr<NodeExpression>& node,

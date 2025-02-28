@@ -2,18 +2,25 @@
 
 #include <mutex>
 
+#include "graph/on_disk_graph.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
 
 offset_t NodeOffsetMaskMap::getNumMaskedNode() const {
-    KU_ASSERT(enabled_);
     offset_t numNodes = 0;
     for (auto& [tableID, mask] : maskMap) {
         numNodes += mask->getNumMaskedNodes();
     }
     return numNodes;
+}
+
+void GDSCallSharedState::setGraphNodeMask(std::unique_ptr<NodeOffsetMaskMap> maskMap) {
+    auto onDiskGraph = ku_dynamic_cast<graph::OnDiskGraph*>(graph.get());
+    onDiskGraph->setNodeOffsetMask(maskMap.get());
+    graphNodeMask = std::move(maskMap);
 }
 
 FactorizedTable* GDSCallSharedState::claimLocalTable(storage::MemoryManager* mm) {

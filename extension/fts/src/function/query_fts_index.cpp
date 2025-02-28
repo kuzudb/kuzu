@@ -247,8 +247,8 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     // for each term-doc pair. The reason why we store the term frequency and document frequency
     // is that: we need the `len` property from the docs table which is only available during the
     // vertex compute.
-    auto currentFrontier = getPathLengthsFrontier(executionContext, PathLengths::UNVISITED);
-    auto nextFrontier = getPathLengthsFrontier(executionContext, PathLengths::UNVISITED);
+    auto currentFrontier = PathLengths::getUnvisitedFrontier(executionContext, graph);
+    auto nextFrontier = PathLengths::getUnvisitedFrontier(executionContext, graph);
     auto frontierPair =
         std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
     auto termsTableID = termsEntry.getTableID();

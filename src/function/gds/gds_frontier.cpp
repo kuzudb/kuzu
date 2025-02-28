@@ -1,10 +1,13 @@
 #include "function/gds/gds_frontier.h"
 
 #include "function/gds/gds_utils.h"
+#include "graph/on_disk_graph.h"
 #include "processor/execution_context.h"
 #include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
+using namespace kuzu::graph;
+using namespace kuzu::processor;
 
 namespace kuzu {
 namespace function {
@@ -108,14 +111,49 @@ void PathLengths::pinNextFrontierTableID(common::table_id_t tableID) {
     nextFrontier.store(getMaskData(tableID), std::memory_order_relaxed);
 }
 
-std::shared_ptr<PathLengths> PathLengths::getFrontier(processor::ExecutionContext* context,
-    graph::Graph* graph, uint16_t initialValue) {
+std::shared_ptr<PathLengths> PathLengths::getUnvisitedFrontier(ExecutionContext* context,
+    Graph* graph) {
     auto tx = context->clientContext->getTransaction();
     auto mm = context->clientContext->getMemoryManager();
-    auto pathLengths = std::make_shared<PathLengths>(graph->getNumNodesMap(tx), mm);
-    auto vc = std::make_unique<PathLengthsInitVertexCompute>(*pathLengths, initialValue);
+    auto frontier = std::make_shared<PathLengths>(graph->getNumNodesMap(tx), mm);
+    auto vc = std::make_unique<PathLengthsInitVertexCompute>(*frontier, UNVISITED);
     GDSUtils::runVertexCompute(context, graph, *vc);
-    return pathLengths;
+    return frontier;
+}
+
+static constexpr uint16_t INITIAL_VISITED = 0;
+
+std::shared_ptr<PathLengths> PathLengths::getVisitedFrontier(processor::ExecutionContext* context,
+    graph::Graph* graph) {
+    auto tx = context->clientContext->getTransaction();
+    auto mm = context->clientContext->getMemoryManager();
+    auto frontier = std::make_shared<PathLengths>(graph->getNumNodesMap(tx), mm);
+    auto vc = std::make_unique<PathLengthsInitVertexCompute>(*frontier, INITIAL_VISITED);
+    GDSUtils::runVertexCompute(context, graph, *vc);
+    return frontier;
+}
+
+std::shared_ptr<PathLengths> PathLengths::getVisitedFrontier(processor::ExecutionContext* context,
+    graph::Graph* graph, processor::NodeOffsetMaskMap* maskMap) {
+    if (maskMap == nullptr) {
+        return getVisitedFrontier(context, graph);
+    }
+    auto tx = context->clientContext->getTransaction();
+    auto mm = context->clientContext->getMemoryManager();
+    auto frontier = std::make_shared<PathLengths>(graph->getNumNodesMap(tx), mm);
+    auto vc = std::make_unique<PathLengthsInitVertexCompute>(*frontier, UNVISITED);
+    GDSUtils::runVertexCompute(context, graph, *vc);
+    // TODO(Xiyang): we should use a vertex compute to do the following.
+    for (auto [tableID, numNodes] : graph->getNumNodesMap(tx)) {
+        frontier->pinTableID(tableID);
+        auto mask = maskMap->getOffsetMask(tableID);
+        for (auto i = 0u; i < numNodes; ++i) {
+            if (mask->isMasked(i)) {
+                frontier->setCurFrontierValue(i, INITIAL_VISITED);
+            }
+        }
+    }
+    return frontier;
 }
 
 PathLengths::frontier_entry_t* PathLengths::getMaskData(common::table_id_t tableID) {
@@ -130,9 +168,8 @@ bool PathLengthsInitVertexCompute::beginOnTable(common::table_id_t tableID) {
 
 void PathLengthsInitVertexCompute::vertexCompute(common::offset_t startOffset,
     common::offset_t endOffset, common::table_id_t) {
-    auto frontier = pathLengths.getCurFrontier();
     for (auto i = startOffset; i < endOffset; ++i) {
-        frontier[i].store(val);
+        pathLengths.setCurFrontierValue(i, val);
     }
 }
 
@@ -154,6 +191,14 @@ void FrontierPair::beginNewIteration() {
     std::swap(curSparseFrontier, nextSparseFrontier);
     nextSparseFrontier->resetState();
     beginNewIterationInternalNoLock();
+}
+
+void FrontierPair::initGDS() {
+    // This function should be called before beginNewIteration.
+    // After beginNewIteration, next frontier will become current frontier.
+    setActiveNodesForNextIter();
+    // GDS initial frontier is usually large so we disable sparse frontier by default.
+    nextSparseFrontier->disable();
 }
 
 void FrontierPair::beginFrontierComputeBetweenTables(common::table_id_t curTableID,

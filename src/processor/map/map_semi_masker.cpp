@@ -10,12 +10,18 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
+// masksPerTable is collected from semiMasker.
+// maskPerTable is collected from target operator, i.e. GDS, scan, ...
+// Normally the two maps should have the same tableIDs.
+// An exception is in GDS with filtered projected graph, multiple semiMasker will work on
+// the same target GDS operator so masksPerTable may have fewer tableIDs.
 static void initMask(table_id_map_t<std::vector<semi_mask_t*>>& masksPerTable,
     const table_id_map_t<semi_mask_t*>& maskPerTable) {
-    for (auto& [tableID, mask] : maskPerTable) {
-        mask->enable();
+    for (auto& [tableID, masks] : masksPerTable) {
         KU_ASSERT(maskPerTable.contains(tableID));
-        masksPerTable.at(tableID).emplace_back(mask);
+        auto mask = maskPerTable.at(tableID);
+        mask->enable();
+        masks.emplace_back(mask);
     }
 }
 
@@ -43,15 +49,18 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(
             auto sharedState = physicalOp->ptrCast<GDSCall>()->getSharedState();
             switch (semiMasker.getTargetType()) {
             case SemiMaskTargetType::GDS_INPUT_NODE: {
-                initMask(masksPerTable, sharedState->getInputNodeMasks());
+                initMask(masksPerTable, sharedState->getInputNodeMaskMap()->getMasks());
                 sharedState->enableInputNodeMask();
             } break;
             case SemiMaskTargetType::GDS_OUTPUT_NODE: {
-                initMask(masksPerTable, sharedState->getOutputNodeMasks());
+                initMask(masksPerTable, sharedState->getOutputNodeMaskMap()->getMasks());
                 sharedState->enableOutputNodeMask();
             } break;
             case SemiMaskTargetType::GDS_PATH_NODE: {
-                initMask(masksPerTable, sharedState->getPathNodeMasks());
+                initMask(masksPerTable, sharedState->getPathNodeMaskMap()->getMasks());
+            } break;
+            case SemiMaskTargetType::GDS_GRAPH_NODE: {
+                initMask(masksPerTable, sharedState->getGraphNodeMaskMap()->getMasks());
             } break;
             default:
                 KU_UNREACHABLE;

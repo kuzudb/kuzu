@@ -11,6 +11,7 @@
 #include "parser/parser.h"
 #include "processor/execution_context.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::catalog;
 using namespace kuzu::graph;
@@ -31,11 +32,15 @@ struct CreateProjectedGraphBindData final : TableFuncBindData {
           relInfos{std::move(relInfos)} {}
 
     void addNodeInfo(TableCatalogEntry* entry) { nodeInfos.emplace_back(entry); }
+    void addNodeInfo(TableCatalogEntry* entry, std::shared_ptr<Expression> node,
+        std::shared_ptr<Expression> predicate) {
+        nodeInfos.emplace_back(entry, std::move(node), std::move(predicate));
+    }
 
     void addRelInfo(TableCatalogEntry* entry) { relInfos.emplace_back(entry); }
-
-    void addRelInfo(TableCatalogEntry* entry, std::shared_ptr<binder::Expression> predicate) {
-        relInfos.emplace_back(entry, std::move(predicate));
+    void addRelInfo(TableCatalogEntry* entry, std::shared_ptr<Expression> rel,
+        std::shared_ptr<Expression> predicate) {
+        relInfos.emplace_back(entry, std::move(rel), std::move(predicate));
     }
 
     std::unique_ptr<TableFuncBindData> copy() const override {
@@ -93,6 +98,34 @@ static void validateRelSrcDstNodeAreProjected(const TableCatalogEntry& entry,
         transaction);
 }
 
+static expression_pair getFilterField(Value& val, const std::string& cypherTemplate,
+    Binder* binder) {
+    auto& type = val.getDataType();
+    if (type.getLogicalTypeID() != LogicalTypeID::STRUCT) {
+        throw BinderException(stringFormat("{} has data type {}. STRUCT was expected.",
+            val.toString(), type.toString()));
+    }
+    for (auto j = 0u; j < StructType::getNumFields(type); ++j) {
+        auto fieldName = StructType::getField(type, j).getName();
+        if (StringUtils::getUpper(fieldName) == "FILTER") {
+            auto childVal = NestedVal::getChildVal(&val, j);
+            childVal->validateType(LogicalTypeID::STRING);
+            auto predicateStr = childVal->getValue<std::string>();
+            auto statementStr = stringFormat(cypherTemplate, predicateStr);
+            auto parsedStatements = parser::Parser::parseQuery(statementStr);
+            KU_ASSERT(parsedStatements.size() == 1);
+            auto boundStatement = binder->bind(*parsedStatements[0]);
+            auto columns = boundStatement->getStatementResult()->getColumns();
+            KU_ASSERT(columns.size() == 2);
+            return {columns[0], columns[1]};
+        } else {
+            throw BinderException(stringFormat(
+                "Unrecognized configuration {}. Supported configuration is 'filter'.", fieldName));
+        }
+    }
+    return {};
+}
+
 static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* context,
     const TableFuncBindInput* input) {
     auto catalog = context->getCatalog();
@@ -101,20 +134,40 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     auto graphName = input->getLiteralVal<std::string>(0);
     auto bindData = std::make_unique<CreateProjectedGraphBindData>(graphName);
     // Bind node table
-    auto arg2 = input->getValue(1);
-    const auto nodeTableNames = getAsStringVector(arg2);
+    auto argNode = input->getValue(1);
     common::table_id_set_t nodeTableIDSet;
-    for (auto& name : nodeTableNames) {
-        auto entry = catalog->getTableCatalogEntry(transaction, name, false /* useInternal */);
-        validateEntryType(*entry, CatalogEntryType::NODE_TABLE_ENTRY);
-        bindData->addNodeInfo(entry);
-        nodeTableIDSet.insert(entry->getTableID());
-    }
-    auto arg3 = input->getValue(2);
-    switch (arg3.getDataType().getLogicalTypeID()) {
+    switch (argNode.getDataType().getLogicalTypeID()) {
     case LogicalTypeID::LIST: {
-        const auto relTableNames = getAsStringVector(arg3);
-        for (auto& name : relTableNames) {
+        for (auto& name : getAsStringVector(argNode)) {
+            auto entry = catalog->getTableCatalogEntry(transaction, name, false /* useInternal */);
+            validateEntryType(*entry, CatalogEntryType::NODE_TABLE_ENTRY);
+            bindData->addNodeInfo(entry);
+            nodeTableIDSet.insert(entry->getTableID());
+        }
+    } break;
+    case LogicalTypeID::STRUCT: {
+        for (auto i = 0u; i < StructType::getNumFields(argNode.getDataType()); ++i) {
+            auto& field = StructType::getField(argNode.getDataType(), i);
+            auto entry = catalog->getTableCatalogEntry(transaction, field.getName(),
+                false /* useInternal */);
+            validateEntryType(*entry, CatalogEntryType::NODE_TABLE_ENTRY);
+            auto matchPattern = stringFormat("MATCH (n:{}) ", entry->getName());
+            auto [node, predicate] = getFilterField(*NestedVal::getChildVal(&argNode, i),
+                matchPattern + " RETURN n, {}", input->binder);
+            bindData->addNodeInfo(entry, node, predicate);
+            nodeTableIDSet.insert(entry->getTableID());
+        }
+    } break;
+    default:
+        throw BinderException(
+            stringFormat("Input argument {} has data type {}. STRUCT or LIST was expected.",
+                argNode.toString(), argNode.getDataType().toString()));
+    }
+    // Bind rel table
+    auto argRel = input->getValue(2);
+    switch (argRel.getDataType().getLogicalTypeID()) {
+    case LogicalTypeID::LIST: {
+        for (auto& name : getAsStringVector(argRel)) {
             auto entry = catalog->getTableCatalogEntry(transaction, name, false /* useInternal */);
             validateEntryType(*entry, CatalogEntryType::REL_TABLE_ENTRY);
             validateRelSrcDstNodeAreProjected(*entry, nodeTableIDSet, catalog, transaction);
@@ -122,42 +175,22 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
         }
     } break;
     case LogicalTypeID::STRUCT: {
-        for (auto i = 0u; i < StructType::getNumFields(arg3.getDataType()); ++i) {
-            auto& field = StructType::getField(arg3.getDataType(), i);
+        for (auto i = 0u; i < StructType::getNumFields(argRel.getDataType()); ++i) {
+            auto& field = StructType::getField(argRel.getDataType(), i);
             auto entry = catalog->getTableCatalogEntry(transaction, field.getName(),
                 false /* useInternal */);
             validateEntryType(*entry, CatalogEntryType::REL_TABLE_ENTRY);
-            auto childVal = NestedVal::getChildVal(&arg3, i);
-            auto& childType = childVal->getDataType();
-            if (childType.getLogicalTypeID() != LogicalTypeID::STRUCT) {
-                throw BinderException(stringFormat("{} has data type {}. STRUCT was expected.",
-                    childVal->toString(), childType.toString()));
-            }
-            std::shared_ptr<binder::Expression> predicate;
-            for (auto j = 0u; j < StructType::getNumFields(childType); ++j) {
-                auto fieldName = StructType::getField(childType, j).getName();
-                if (StringUtils::getUpper(fieldName) == "FILTER") {
-                    auto predicateStr =
-                        NestedVal::getChildVal(childVal, j)->getValue<std::string>();
-                    auto statementStr = stringFormat("MATCH ()-[r:{}]->() RETURN {}",
-                        entry->getName(), predicateStr);
-                    auto parsedStatements = parser::Parser::parseQuery(statementStr);
-                    KU_ASSERT(parsedStatements.size() == 1);
-                    auto boundStatement = input->binder->bind(*parsedStatements[0]);
-                    predicate = boundStatement->getStatementResult()->getColumns()[0];
-                } else {
-                    throw BinderException(stringFormat(
-                        "Unrecognized configuration {}. Supported configuration is 'filter'.",
-                        fieldName));
-                }
-            }
-            bindData->addRelInfo(entry, predicate);
+            validateRelSrcDstNodeAreProjected(*entry, nodeTableIDSet, catalog, transaction);
+            auto matchPattern = stringFormat("MATCH ()-[r:{}]->() ", entry->getName());
+            auto [rel, predicate] = getFilterField(*NestedVal::getChildVal(&argRel, i),
+                matchPattern + " RETURN r, {}", input->binder);
+            bindData->addRelInfo(entry, rel, predicate);
         }
     } break;
     default:
         throw BinderException(
             stringFormat("Input argument {} has data type {}. STRUCT or LIST was expected.",
-                arg3.toString(), arg3.getDataType().toString()));
+                argRel.toString(), argRel.getDataType().toString()));
     }
     return bindData;
 }
@@ -165,7 +198,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
 function_set CreateProjectedGraphFunction::getFunctionSet() {
     function_set functionSet;
     auto func = std::make_unique<TableFunction>(name,
-        std::vector{LogicalTypeID::STRING, LogicalTypeID::LIST, LogicalTypeID::ANY});
+        std::vector{LogicalTypeID::STRING, LogicalTypeID::ANY, LogicalTypeID::ANY});
     func->bindFunc = bindFunc;
     func->tableFunc = tableFunc;
     func->initSharedStateFunc = TableFunction::initSharedState;

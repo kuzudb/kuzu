@@ -1,16 +1,11 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
-#include "common/types/types.h"
-#include "function/gds/auxiliary_state/gds_auxilary_state.h"
-#include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
-#include "function/gds/gds_object_manager.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/output_writer.h"
 #include "function/gds_function.h"
-#include "graph/graph.h"
+#include "gds_vertex_compute.h"
 #include "processor/execution_context.h"
-#include "processor/result/factorized_table.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -104,23 +99,21 @@ public:
     std::unique_ptr<ValueVector> componentIDVector;
 };
 
-class WCCVertexCompute : public VertexCompute {
+class WCCVertexCompute : public GDSResultVertexCompute {
 public:
     WCCVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState,
         std::unique_ptr<WCCOutputWriter> writer, ComponentIDs& componentIDs)
-        : mm{mm}, sharedState{sharedState}, writer{std::move(writer)}, componentIDs{componentIDs} {
-        localFT = sharedState->claimLocalTable(mm);
-    }
-    ~WCCVertexCompute() override { sharedState->returnLocalTable(localFT); }
+        : GDSResultVertexCompute{mm, sharedState}, writer{std::move(writer)},
+          componentIDs{componentIDs} {}
 
-    bool beginOnTable(common::table_id_t tableID) override {
-        componentIDs.pinTable(tableID);
-        return true;
-    }
+    void beginOnTableInternal(table_id_t tableID) override { componentIDs.pinTable(tableID); }
 
     void vertexCompute(common::offset_t startOffset, common::offset_t endOffset,
         common::table_id_t tableID) override {
         for (auto i = startOffset; i < endOffset; ++i) {
+            if (skip(i)) {
+                continue;
+            }
             auto nodeID = nodeID_t{i, tableID};
             writer->nodeIDVector->setValue<nodeID_t>(0, nodeID);
             writer->componentIDVector->setValue<uint64_t>(0, componentIDs.getComponentID(i));
@@ -133,12 +126,8 @@ public:
     }
 
 private:
-    storage::MemoryManager* mm;
-    processor::GDSCallSharedState* sharedState;
     std::unique_ptr<WCCOutputWriter> writer;
     ComponentIDs& componentIDs;
-
-    processor::FactorizedTable* localFT;
 };
 
 class WeaklyConnectedComponent final : public GDSAlgorithm {
@@ -174,14 +163,13 @@ public:
         auto clientContext = context->clientContext;
         auto graph = sharedState->graph.get();
         auto numNodesMap = graph->getNumNodesMap(clientContext->getTransaction());
-        auto currentFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
-        auto nextFrontier = getPathLengthsFrontier(context, 0);
+        auto currentFrontier = PathLengths::getUnvisitedFrontier(context, graph);
+        auto nextFrontier =
+            PathLengths::getVisitedFrontier(context, graph, sharedState->getGraphNodeMaskMap());
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
-        // Initialize starting nodes in the next frontier.
-        // When beginNewIteration, next frontier will become current frontier
-        frontierPair->setActiveNodesForNextIter();
-        frontierPair->getNextSparseFrontier().disable();
+        frontierPair->initGDS();
+
         auto componentIDs = ComponentIDs(numNodesMap, clientContext->getMemoryManager());
         auto edgeCompute = std::make_unique<WCCEdgeCompute>(componentIDs);
         auto writer = std::make_unique<WCCOutputWriter>(clientContext);
@@ -190,6 +178,7 @@ public:
         auto auxiliaryState = std::make_unique<WCCAuxiliaryState>(componentIDs);
         auto computeState = GDSComputeState(std::move(frontierPair), std::move(edgeCompute),
             std::move(auxiliaryState), sharedState->getOutputNodeMaskMap());
+
         GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, ExtendDirection::BOTH,
             MAX_ITERATION);
         GDSUtils::runVertexCompute(context, graph, *vertexCompute);

@@ -1,17 +1,12 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
-#include "common/types/types.h"
 #include "degrees.h"
-#include "function/gds/auxiliary_state/gds_auxilary_state.h"
-#include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
-#include "function/gds/gds_object_manager.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/output_writer.h"
 #include "function/gds_function.h"
-#include "graph/graph.h"
+#include "gds_vertex_compute.h"
 #include "processor/execution_context.h"
-#include "processor/result/factorized_table.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -104,22 +99,20 @@ public:
     std::unique_ptr<ValueVector> kValueVector;
 };
 
-class OutputVertexCompute : public VertexCompute {
+class KCoreResultVertexCompute : public GDSResultVertexCompute {
 public:
-    OutputVertexCompute(MemoryManager* mm, processor::GDSCallSharedState* sharedState,
+    KCoreResultVertexCompute(MemoryManager* mm, processor::GDSCallSharedState* sharedState,
         std::unique_ptr<KCoreOutputWriter> writer, CoreValues& coreValues)
-        : mm{mm}, sharedState{sharedState}, writer{std::move(writer)}, coreValues{coreValues} {
-        localFT = sharedState->claimLocalTable(mm);
-    }
-    ~OutputVertexCompute() override { sharedState->returnLocalTable(localFT); }
+        : GDSResultVertexCompute{mm, sharedState}, writer{std::move(writer)},
+          coreValues{coreValues} {}
 
-    bool beginOnTable(table_id_t tableID) override {
-        coreValues.pinTable(tableID);
-        return true;
-    }
+    void beginOnTableInternal(table_id_t tableID) override { coreValues.pinTable(tableID); }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t tableID) override {
         for (auto i = startOffset; i < endOffset; ++i) {
+            if (skip(i)) {
+                continue;
+            }
             auto nodeID = nodeID_t{i, tableID};
             writer->nodeIDVector->setValue<nodeID_t>(0, nodeID);
             writer->kValueVector->setValue<uint64_t>(0, coreValues.getValue(i));
@@ -128,34 +121,34 @@ public:
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<OutputVertexCompute>(mm, sharedState, writer->copy(), coreValues);
+        return std::make_unique<KCoreResultVertexCompute>(mm, sharedState, writer->copy(),
+            coreValues);
     }
 
 private:
-    MemoryManager* mm;
-    processor::GDSCallSharedState* sharedState;
     std::unique_ptr<KCoreOutputWriter> writer;
     CoreValues& coreValues;
-
-    processor::FactorizedTable* localFT;
 };
 
-class DegreeLessThanCoreVertexCompute : public VertexCompute {
+class DegreeLessThanCoreVertexCompute : public GDSVertexCompute {
 public:
     DegreeLessThanCoreVertexCompute(Degrees& degrees, CoreValues& coreValues,
-        FrontierPair* frontierPair, degree_t coreValue, std::atomic<offset_t>& numActiveNodes)
-        : degrees{degrees}, coreValues{coreValues}, frontierPair{frontierPair},
-          coreValue{coreValue}, numActiveNodes{numActiveNodes} {}
+        FrontierPair* frontierPair, degree_t coreValue, std::atomic<offset_t>& numActiveNodes,
+        processor::NodeOffsetMaskMap* nodeMask)
+        : GDSVertexCompute{nodeMask}, degrees{degrees}, coreValues{coreValues},
+          frontierPair{frontierPair}, coreValue{coreValue}, numActiveNodes{numActiveNodes} {}
 
-    bool beginOnTable(table_id_t tableID) override {
+    void beginOnTableInternal(table_id_t tableID) override {
         frontierPair->pinNextFrontier(tableID);
         degrees.pinTable(tableID);
         coreValues.pinTable(tableID);
-        return true;
     }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t tableID) override {
         for (auto i = startOffset; i < endOffset; ++i) {
+            if (skip(i)) {
+                continue;
+            }
             if (coreValues.isValid(i)) { // Core has been computed
                 continue;
             }
@@ -170,7 +163,7 @@ public:
 
     std::unique_ptr<VertexCompute> copy() override {
         return std::make_unique<DegreeLessThanCoreVertexCompute>(degrees, coreValues, frontierPair,
-            coreValue, numActiveNodes);
+            coreValue, numActiveNodes, nodeMask);
     }
 
 private:
@@ -215,11 +208,12 @@ public:
         auto graph = sharedState->graph.get();
         auto numNodesMap = graph->getNumNodesMap(clientContext->getTransaction());
         auto degrees = Degrees(numNodesMap, mm);
-        DegreesUtils::computeDegree(context, graph, &degrees, ExtendDirection::BOTH);
+        DegreesUtils::computeDegree(context, graph, sharedState->getGraphNodeMaskMap(), &degrees,
+            ExtendDirection::BOTH);
         auto coreValues = CoreValues(numNodesMap, mm);
         auto auxiliaryState = std::make_unique<KCoreAuxiliaryState>(degrees, coreValues);
-        auto currentFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
-        auto nextFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
+        auto currentFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
+        auto nextFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
         // Compute Core values
@@ -237,15 +231,15 @@ public:
                 numActiveNodes.store(0);
                 // Find nodes with degree less than current core.
                 auto vc = DegreeLessThanCoreVertexCompute(degrees, coreValues,
-                    computeState.frontierPair.get(), coreValue, numActiveNodes);
+                    computeState.frontierPair.get(), coreValue, numActiveNodes,
+                    sharedState->getGraphNodeMaskMap());
                 GDSUtils::runVertexCompute(context, sharedState->graph.get(), vc);
                 numNodesComputed += numActiveNodes.load();
                 if (numActiveNodes.load() == 0) {
                     break;
                 }
                 // Remove found nodes by decreasing their nbrs degree by one.
-                computeState.frontierPair->setActiveNodesForNextIter();
-                computeState.frontierPair->getNextSparseFrontier().disable();
+                computeState.frontierPair->initGDS();
                 GDSUtils::runFrontiersUntilConvergence(context, computeState, graph,
                     ExtendDirection::BOTH,
                     computeState.frontierPair->getCurrentIter() + 1 /* maxIters */);
@@ -255,7 +249,7 @@ public:
         }
         // Write output
         auto writer = std::make_unique<KCoreOutputWriter>(clientContext);
-        auto vertexCompute = OutputVertexCompute(clientContext->getMemoryManager(),
+        auto vertexCompute = KCoreResultVertexCompute(clientContext->getMemoryManager(),
             sharedState.get(), std::move(writer), coreValues);
         GDSUtils::runVertexCompute(context, sharedState->graph.get(), vertexCompute);
         sharedState->mergeLocalTables();

@@ -3,7 +3,6 @@
 --
 
 -CASE WCC
-
 -STATEMENT CALL create_projected_graph('PK', ['person'], ['knows'])
 ---- ok
 -STATEMENT CALL weakly_connected_component('PK') RETURN node.fName, group_id;
@@ -24,6 +23,38 @@ Alice|0
 Bob|0
 Carol|0
 Dan|0
+Elizabeth|4
+Farooq|5
+Greg|6
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
+
+-STATEMENT CALL create_projected_graph('PK3', {'person': {'filter': 'n.ID > 2'}}, ['knows'])
+---- ok
+-STATEMENT CALL weakly_connected_component('PK3') RETURN node.fName, group_id;
+---- 6
+Carol|2
+Dan|2
+Elizabeth|4
+Farooq|4
+Greg|4
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
+
+-STATEMENT CALL create_projected_graph('PK4', {'person': {'filter': 'n.ID <> 7'}}, ['knows'])
+---- ok
+-STATEMENT CALL weakly_connected_component('PK4') RETURN node.fName, group_id;
+---- 7
+Alice|0
+Bob|0
+Carol|0
+Dan|0
+Farooq|5
+Greg|6
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
+
+-STATEMENT CALL create_projected_graph('PK5', {'person': {'filter': 'n.ID > 5'}}, {'knows': {'filter': 'r.date > date("1999-01-01")'}})
+---- ok
+-STATEMENT CALL weakly_connected_component('PK5') RETURN node.fName, group_id;
+---- 4
 Elizabeth|4
 Farooq|5
 Greg|6

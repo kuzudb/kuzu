@@ -3,6 +3,7 @@
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
 #include "common/enums/join_type.h"
+#include "planner/operator/logical_gds_call.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/planner.h"
 
@@ -125,26 +126,20 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
     splitPredicates(call.getInfo().outExprs, call.getConjunctivePredicates(), predicatesToPull,
         predicatesToPush);
     auto bindData = call.getInfo().func.gds->getBindData();
-    if (bindData->hasNodeInput()) {
-        auto& node = bindData->getNodeInput()->constCast<NodeExpression>();
-        expression_vector joinConditions;
-        joinConditions.push_back(node.getInternalID());
-        for (auto& plan : plans) {
-            auto probePlan = LogicalPlan();
-            auto gdsCall = getGDSCall(call.getInfo());
-            gdsCall->computeFactorizedSchema();
-            probePlan.setLastOperator(gdsCall);
-            if (!predicatesToPush.empty()) {
-                appendFilters(predicatesToPush, probePlan);
-            }
-            appendHashJoin(joinConditions, JoinType::INNER, probePlan, *plan, *plan);
+    KU_ASSERT(!bindData->hasNodeInput());
+    std::vector<std::shared_ptr<LogicalOperator>> nodePredicateRoots;
+    for (auto& info : bindData->graphEntry.nodeInfos) {
+        if (info.predicate == nullptr) {
+            continue;
         }
-    } else {
-        for (auto& plan : plans) {
-            auto gdsCall = getGDSCall(call.getInfo());
-            gdsCall->computeFactorizedSchema();
-            planReadOp(getGDSCall(call.getInfo()), predicatesToPush, *plan);
-        }
+        auto p = planNodeSemiMask(SemiMaskTargetType::GDS_GRAPH_NODE,
+            info.nodeOrRel->constCast<NodeExpression>(), info.predicate);
+        nodePredicateRoots.push_back(p.getLastOperator());
+    }
+    for (auto& plan : plans) {
+        auto gdsCall = getGDSCall(call.getInfo());
+        gdsCall->cast<LogicalGDSCall>().addGraphNodeMask(nodePredicateRoots);
+        planReadOp(std::move(gdsCall), predicatesToPush, *plan);
     }
 
     auto nodeOutput = bindData->getNodeOutput();

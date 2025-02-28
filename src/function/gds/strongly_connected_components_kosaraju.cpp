@@ -67,8 +67,7 @@ public:
     void compute(const offset_t tableID, const offset_t numNodes) {
         auto nbrTables = graph->getForwardNbrTableInfos(tableID);
         auto nbrInfo = nbrTables[0];
-        auto relEntry = nbrInfo.relEntry;
-        auto scanState = graph->prepareRelScan(relEntry, "");
+        auto scanState = graph->prepareRelScan(nbrInfo.relEntry, nbrInfo.nodeEntry, "");
         vector<offset_t> toProcess;
         vector<offset_t> dfsStack;
         for (auto i = 0u; i < numNodes; ++i) {

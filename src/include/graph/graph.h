@@ -200,8 +200,8 @@ public:
         common::table_id_t srcNodeTableID) = 0;
 
     // Prepares scan on the specified relationship table (works for backwards and forwards scans)
-    virtual std::unique_ptr<NbrScanState> prepareRelScan(catalog::TableCatalogEntry* tableEntry,
-        const std::string& property) = 0;
+    virtual std::unique_ptr<NbrScanState> prepareRelScan(catalog::TableCatalogEntry* relEntry,
+        catalog::TableCatalogEntry* nbrNodeEntry, const std::string& relProperty) = 0;
 
     // Get dst nodeIDs for given src nodeID using forward adjList.
     virtual EdgeIterator scanFwd(common::nodeID_t nodeID, NbrScanState& state) = 0;
@@ -244,6 +244,11 @@ public:
 
     virtual VertexIterator scanVertices(common::offset_t startNodeOffset,
         common::offset_t endNodeOffsetExclusive, VertexScanState& scanState) = 0;
+
+    template<class TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const TARGET&>(*this);
+    }
 };
 
 } // namespace graph

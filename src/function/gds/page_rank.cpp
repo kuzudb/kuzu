@@ -3,18 +3,13 @@
 #include "common/exception/binder.h"
 #include "common/string_utils.h"
 #include "degrees.h"
-#include "function/gds/auxiliary_state/gds_auxilary_state.h"
 #include "function/gds/config/page_rank_config.h"
-#include "function/gds/gds.h"
-#include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/output_writer.h"
 #include "function/gds_function.h"
-#include "graph/graph.h"
-#include "main/client_context.h"
+#include "gds_vertex_compute.h"
 #include "processor/execution_context.h"
-#include "processor/result/factorized_table.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -168,24 +163,26 @@ private:
 };
 
 // Evaluate rank = above result * dampingFactor + {(1 - dampingFactor) / |V|} (constant)
-class PNextUpdateVertexCompute : public VertexCompute {
+class PNextUpdateVertexCompute : public GDSVertexCompute {
 public:
-    PNextUpdateVertexCompute(double dampingFactor, double constant, PValues& pNext)
-        : dampingFactor{dampingFactor}, constant{constant}, pNext{pNext} {}
+    PNextUpdateVertexCompute(double dampingFactor, double constant, PValues& pNext,
+        NodeOffsetMaskMap* nodeMask)
+        : GDSVertexCompute{nodeMask}, dampingFactor{dampingFactor}, constant{constant},
+          pNext{pNext} {}
 
-    bool beginOnTable(table_id_t tableID) override {
-        pNext.pinTable(tableID);
-        return true;
-    }
+    void beginOnTableInternal(common::table_id_t tableID) override { pNext.pinTable(tableID); }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
+            if (skip(i)) {
+                continue;
+            }
             pNext.setValue(i, pNext.getValue(i) * dampingFactor + constant);
         }
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<PNextUpdateVertexCompute>(dampingFactor, constant, pNext);
+        return std::make_unique<PNextUpdateVertexCompute>(dampingFactor, constant, pNext, nodeMask);
     }
 
 private:
@@ -194,19 +191,22 @@ private:
     PValues& pNext;
 };
 
-class PDiffVertexCompute : public VertexCompute {
+class PDiffVertexCompute : public GDSVertexCompute {
 public:
-    PDiffVertexCompute(std::atomic<double>& diff, PValues& pCurrent, PValues& pNext)
-        : diff{diff}, pCurrent{pCurrent}, pNext{pNext} {}
+    PDiffVertexCompute(std::atomic<double>& diff, PValues& pCurrent, PValues& pNext,
+        NodeOffsetMaskMap* nodeMask)
+        : GDSVertexCompute{nodeMask}, diff{diff}, pCurrent{pCurrent}, pNext{pNext} {}
 
-    bool beginOnTable(table_id_t tableID) override {
+    void beginOnTableInternal(table_id_t tableID) override {
         pCurrent.pinTable(tableID);
         pNext.pinTable(tableID);
-        return true;
     }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
+            if (skip(i)) {
+                continue;
+            }
             auto next = pNext.getValue(i);
             auto current = pCurrent.getValue(i);
             if (next > current) {
@@ -219,7 +219,7 @@ public:
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<PDiffVertexCompute>(diff, pCurrent, pNext);
+        return std::make_unique<PDiffVertexCompute>(diff, pCurrent, pNext, nodeMask);
     }
 
 private:
@@ -244,22 +244,20 @@ public:
     std::unique_ptr<ValueVector> rankVector;
 };
 
-class OutputVertexCompute : public VertexCompute {
+class PageRankResultVertexCompute : public GDSResultVertexCompute {
 public:
-    OutputVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState,
-        std::unique_ptr<PageRankOutputWriter> writer, PValues& pNext)
-        : mm{mm}, sharedState{sharedState}, writer{std::move(writer)}, pNext{pNext} {
-        localFT = sharedState->claimLocalTable(mm);
-    }
-    ~OutputVertexCompute() override { sharedState->returnLocalTable(localFT); }
+    PageRankResultVertexCompute(storage::MemoryManager* mm,
+        processor::GDSCallSharedState* sharedState, std::unique_ptr<PageRankOutputWriter> writer,
+        PValues& pNext)
+        : GDSResultVertexCompute{mm, sharedState}, writer{std::move(writer)}, pNext{pNext} {}
 
-    bool beginOnTable(table_id_t tableID) override {
-        pNext.pinTable(tableID);
-        return true;
-    }
+    void beginOnTableInternal(table_id_t tableID) override { pNext.pinTable(tableID); }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t tableID) override {
         for (auto i = startOffset; i < endOffset; ++i) {
+            if (skip(i)) {
+                continue;
+            }
             auto nodeID = nodeID_t{i, tableID};
             writer->nodeIDVector->setValue<nodeID_t>(0, nodeID);
             writer->rankVector->setValue<double>(0, pNext.getValue(i));
@@ -268,16 +266,13 @@ public:
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<OutputVertexCompute>(mm, sharedState, writer->copy(), pNext);
+        return std::make_unique<PageRankResultVertexCompute>(mm, sharedState, writer->copy(),
+            pNext);
     }
 
 private:
-    storage::MemoryManager* mm;
-    processor::GDSCallSharedState* sharedState;
     std::unique_ptr<PageRankOutputWriter> writer;
     PValues& pNext;
-
-    processor::FactorizedTable* localFT;
 };
 
 class PageRank final : public GDSAlgorithm {
@@ -322,14 +317,15 @@ public:
         auto pageRankBindData = bindData->ptrCast<PageRankBindData>();
         auto config = pageRankBindData->getConfig();
         auto currentIter = 1u;
-        auto currentFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
-        auto nextFrontier = getPathLengthsFrontier(context, 0);
+        auto currentFrontier = PathLengths::getUnvisitedFrontier(context, graph);
+        auto nextFrontier =
+            PathLengths::getVisitedFrontier(context, graph, sharedState->getGraphNodeMaskMap());
         auto degrees = Degrees(numNodesMap, clientContext->getMemoryManager());
-        DegreesUtils::computeDegree(context, graph, &degrees, ExtendDirection::FWD);
+        DegreesUtils::computeDegree(context, graph, sharedState->getGraphNodeMaskMap(), &degrees,
+            ExtendDirection::FWD);
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
-        frontierPair->setActiveNodesForNextIter();
-        frontierPair->getNextSparseFrontier().disable();
+        frontierPair->initGDS();
         auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr,
             sharedState->getOutputNodeMaskMap());
         auto pNextUpdateConstant = (1 - config.dampingFactor) * ((double)1 / numNodes);
@@ -341,11 +337,12 @@ public:
             GDSUtils::runFrontiersUntilConvergence(context, computeState, graph,
                 ExtendDirection::BWD, computeState.frontierPair->getCurrentIter() + 1);
             auto pNextUpdateVC =
-                PNextUpdateVertexCompute(config.dampingFactor, pNextUpdateConstant, *pNext);
+                PNextUpdateVertexCompute(config.dampingFactor, pNextUpdateConstant, *pNext, sharedState->getGraphNodeMaskMap());
             GDSUtils::runVertexCompute(context, graph, pNextUpdateVC);
             std::atomic<double> diff;
             diff.store(0);
-            auto pDiffVC = PDiffVertexCompute(diff, *pCurrent, *pNext);
+            auto pDiffVC =
+                PDiffVertexCompute(diff, *pCurrent, *pNext, sharedState->getGraphNodeMaskMap());
             GDSUtils::runVertexCompute(context, graph, pDiffVC);
             std::swap(pCurrent, pNext);
             if (diff.load() < config.tolerance) { // Converged.
@@ -354,8 +351,8 @@ public:
             currentIter++;
         }
         auto writer = std::make_unique<PageRankOutputWriter>(clientContext);
-        auto outputVC = std::make_unique<OutputVertexCompute>(clientContext->getMemoryManager(),
-            sharedState.get(), std::move(writer), *pCurrent);
+        auto outputVC = std::make_unique<PageRankResultVertexCompute>(
+            clientContext->getMemoryManager(), sharedState.get(), std::move(writer), *pCurrent);
         GDSUtils::runVertexCompute(context, graph, *outputVC);
         sharedState->mergeLocalTables();
     }
