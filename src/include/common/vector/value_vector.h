@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <utility>
 
 #include "common/assert.h"
@@ -34,6 +35,25 @@ public:
 
     DELETE_COPY_AND_MOVE(ValueVector);
     ~ValueVector() = default;
+
+    template<typename T>
+    std::optional<T> firstNonNull() const {
+        sel_t selectedSize = state->getSelSize();
+        if (selectedSize == 0) {
+            return std::nullopt;
+        }
+        if (hasNoNullsGuarantee()) {
+            return getValue<T>(state->getSelVector()[0]);
+        } else {
+            for (size_t i = 0; i < selectedSize; i++) {
+                auto pos = state->getSelVector()[i];
+                if (!isNull(pos)) {
+                    return std::make_optional(getValue<T>(pos));
+                }
+            }
+        }
+        return std::nullopt;
+    }
 
     template<class Func>
     void forEachNonNull(Func&& func) const {
