@@ -67,7 +67,7 @@ static void evaluateFilterResult(const common::ValueVector& inputVector,
     auto srcDataVector = ListVector::getDataVector(&inputVector);
     auto dstDataVector = ListVector::getDataVector(&result);
 
-    offset_t& resultDataOffset = sliceInfo->getResultSliceOffset();
+    auto& resultDataOffset = sliceInfo->getResultSliceOffset();
     for (sel_t i = 0; i < sliceInfo->getSliceSize(); ++i) {
         const auto [listEntryPos, dataOffset] = sliceInfo->getPos(i);
         const auto listEntry = inputVector.getValue<list_entry_t>(listEntryPos);

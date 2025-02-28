@@ -108,34 +108,30 @@ struct UnaryFunctionExecutor {
             inputPos, (void*)&resultVector, resultPos, dataPtr);
     }
 
-    template<bool operandIsFiltered, bool resultIsFiltered>
     static std::pair<common::sel_t, common::sel_t> getSelectedPos(common::idx_t selIdx,
-        [[maybe_unused]] common::SelectionVector* operandSelVector,
-        [[maybe_unused]] common::SelectionVector* resultSelVector) {
-        common::sel_t operandPos{}, resultPos{};
-        if constexpr (operandIsFiltered) {
-            operandPos = (*operandSelVector)[selIdx];
-        } else {
-            operandPos = selIdx;
-        }
-        if constexpr (resultIsFiltered) {
-            resultPos = (*resultSelVector)[selIdx];
-        } else {
-            resultPos = selIdx;
-        }
+        common::SelectionVector* operandSelVector, common::SelectionVector* resultSelVector,
+        bool operandIsFiltered, bool resultIsFiltered) {
+        common::sel_t operandPos = operandIsFiltered ? selIdx : (*operandSelVector)[selIdx];
+        common::sel_t resultPos = resultIsFiltered ? selIdx : (*resultSelVector)[selIdx];
         return {operandPos, resultPos};
     }
 
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER,
-        bool noNullsGuaranteed, bool operandIsFiltered, bool resultIsFiltered>
-    static void executeOnSelValues(common::ValueVector& operand,
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
+    static void executeOnSelectedValues(common::ValueVector& operand,
         common::SelectionVector* operandSelVector, common::ValueVector& result,
         common::SelectionVector* resultSelVector, void* dataPtr) {
+        const bool noNullsGuaranteed = operand.hasNoNullsGuarantee();
+        if (noNullsGuaranteed) {
+            result.setAllNonNull();
+        }
+
+        const bool operandIsFiltered = !operandSelVector->isUnfiltered();
+        const bool resultIsFiltered = !resultSelVector->isUnfiltered();
+
         for (auto i = 0u; i < operandSelVector->getSelSize(); i++) {
-            const auto [operandPos, resultPos] =
-                getSelectedPos<operandIsFiltered, resultIsFiltered>(i, operandSelVector,
-                    resultSelVector);
-            if constexpr (noNullsGuaranteed) {
+            const auto [operandPos, resultPos] = getSelectedPos(i, operandSelVector,
+                resultSelVector, operandIsFiltered, resultIsFiltered);
+            if (noNullsGuaranteed) {
                 executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand, operandPos,
                     result, resultPos, dataPtr);
             } else {
@@ -145,22 +141,6 @@ struct UnaryFunctionExecutor {
                         result, resultPos, dataPtr);
                 }
             }
-        }
-    }
-
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER,
-        bool operandIsFiltered, bool resultIsFiltered>
-    static void executeNullSwitch(common::ValueVector& operand,
-        common::SelectionVector* operandSelVector, common::ValueVector& result,
-        common::SelectionVector* resultSelVector, void* dataPtr) {
-        if (operand.hasNoNullsGuarantee()) {
-            result.setAllNonNull();
-            executeOnSelValues<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, true, operandIsFiltered,
-                resultIsFiltered>(operand, operandSelVector, result, resultSelVector, dataPtr);
-        } else {
-            executeOnSelValues<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, false,
-                operandIsFiltered, resultIsFiltered>(operand, operandSelVector, result,
-                resultSelVector, dataPtr);
         }
     }
 
@@ -177,17 +157,8 @@ struct UnaryFunctionExecutor {
                 executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand, inputPos,
                     result, resultPos, dataPtr);
             }
-        } else if (operandSelVector->isUnfiltered() && resultSelVector->isUnfiltered()) {
-            executeNullSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, false, false>(operand,
-                operandSelVector, result, resultSelVector, dataPtr);
-        } else if (operandSelVector->isUnfiltered() && !resultSelVector->isUnfiltered()) {
-            executeNullSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, false, true>(operand,
-                operandSelVector, result, resultSelVector, dataPtr);
-        } else if (!operandSelVector->isUnfiltered() && resultSelVector->isUnfiltered()) {
-            executeNullSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, true, false>(operand,
-                operandSelVector, result, resultSelVector, dataPtr);
         } else {
-            executeNullSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, true, true>(operand,
+            executeOnSelectedValues<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(operand,
                 operandSelVector, result, resultSelVector, dataPtr);
         }
     }

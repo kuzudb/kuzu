@@ -88,59 +88,25 @@ struct BinaryFunctionExecutor {
             resPos, dataPtr);
     }
 
-    template<bool leftFlat, bool rightFlat>
     static inline std::tuple<common::sel_t, common::sel_t, common::sel_t> getSelectedPositions(
         common::SelectionVector* leftSelVector, common::SelectionVector* rightSelVector,
-        common::SelectionVector* resultSelVector, common::sel_t selPos) {
-        common::sel_t lPos{}, rPos{}, resPos{};
-        if constexpr (leftFlat) {
-            lPos = (*leftSelVector)[0];
-        } else {
-            lPos = (*leftSelVector)[selPos];
-        }
-        if constexpr (rightFlat) {
-            rPos = (*rightSelVector)[0];
-        } else {
-            rPos = (*rightSelVector)[selPos];
-        }
-        if constexpr (leftFlat && rightFlat) {
-            resPos = (*resultSelVector)[0];
-        } else {
-            resPos = (*resultSelVector)[selPos];
-        }
+        common::SelectionVector* resultSelVector, common::sel_t selPos, bool leftFlat,
+        bool rightFlat) {
+        common::sel_t lPos = (*leftSelVector)[leftFlat ? 0 : selPos];
+        common::sel_t rPos = (*rightSelVector)[rightFlat ? 0 : selPos];
+        common::sel_t resPos = (*resultSelVector)[leftFlat && rightFlat ? 0 : selPos];
         return {lPos, rPos, resPos};
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
-        typename OP_WRAPPER, bool leftFlat, bool rightFlat, bool noNulls>
-    static inline void executeOnSelValues(common::ValueVector& left,
+        typename OP_WRAPPER>
+    static void executeOnSelectedValues(common::ValueVector& left,
         common::SelectionVector* leftSelVector, common::ValueVector& right,
         common::SelectionVector* rightSelVector, common::ValueVector& result,
         common::SelectionVector* resultSelVector, void* dataPtr) {
-        const auto numSelectedValues =
-            leftFlat ? rightSelVector->getSelSize() : leftSelVector->getSelSize();
-        for (common::sel_t selPos = 0; selPos < numSelectedValues; ++selPos) {
-            auto [lPos, rPos, resPos] = getSelectedPositions<leftFlat, rightFlat>(leftSelVector,
-                rightSelVector, resultSelVector, selPos);
-            if constexpr (noNulls) {
-                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
-                    result, lPos, rPos, resPos, dataPtr);
-            } else {
-                result.setNull(resPos, left.isNull(lPos) || right.isNull(rPos));
-                if (!result.isNull(resPos)) {
-                    executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
-                        right, result, lPos, rPos, resPos, dataPtr);
-                }
-            }
-        }
-    }
+        const bool leftFlat = left.state->isFlat();
+        const bool rightFlat = right.state->isFlat();
 
-    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
-        typename OP_WRAPPER, bool leftFlat, bool rightFlat>
-    static void executeSwitchOnNulls(common::ValueVector& left,
-        common::SelectionVector* leftSelVector, common::ValueVector& right,
-        common::SelectionVector* rightSelVector, common::ValueVector& result,
-        common::SelectionVector* resultSelVector, void* dataPtr) {
         const bool allNullsGuaranteed = (rightFlat && right.isNull((*rightSelVector)[0])) ||
                                         (leftFlat && left.isNull((*leftSelVector)[0]));
         if (allNullsGuaranteed) {
@@ -150,13 +116,23 @@ struct BinaryFunctionExecutor {
                                            (rightFlat || right.hasNoNullsGuarantee());
             if (noNullsGuaranteed) {
                 result.setAllNonNull();
-                executeOnSelValues<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, leftFlat,
-                    rightFlat, true>(left, leftSelVector, right, rightSelVector, result,
-                    resultSelVector, dataPtr);
-            } else {
-                executeOnSelValues<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, leftFlat,
-                    rightFlat, false>(left, leftSelVector, right, rightSelVector, result,
-                    resultSelVector, dataPtr);
+            }
+
+            const auto numSelectedValues =
+                leftFlat ? rightSelVector->getSelSize() : leftSelVector->getSelSize();
+            for (common::sel_t selPos = 0; selPos < numSelectedValues; ++selPos) {
+                auto [lPos, rPos, resPos] = getSelectedPositions(leftSelVector, rightSelVector,
+                    resultSelVector, selPos, leftFlat, rightFlat);
+                if (noNullsGuaranteed) {
+                    executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
+                        right, result, lPos, rPos, resPos, dataPtr);
+                } else {
+                    result.setNull(resPos, left.isNull(lPos) || right.isNull(rPos));
+                    if (!result.isNull(resPos)) {
+                        executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
+                            right, result, lPos, rPos, resPos, dataPtr);
+                    }
+                }
             }
         }
     }
@@ -167,22 +143,8 @@ struct BinaryFunctionExecutor {
         common::ValueVector& right, common::SelectionVector* rightSelVector,
         common::ValueVector& result, common::SelectionVector* resultSelVector, void* dataPtr) {
         result.resetAuxiliaryBuffer();
-        if (left.state->isFlat() && right.state->isFlat()) {
-            executeSwitchOnNulls<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, true, true>(
-                left, leftSelVector, right, rightSelVector, result, resultSelVector, dataPtr);
-        } else if (left.state->isFlat() && !right.state->isFlat()) {
-            executeSwitchOnNulls<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, true, false>(
-                left, leftSelVector, right, rightSelVector, result, resultSelVector, dataPtr);
-        } else if (!left.state->isFlat() && right.state->isFlat()) {
-            executeSwitchOnNulls<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, false, true>(
-                left, leftSelVector, right, rightSelVector, result, resultSelVector, dataPtr);
-        } else if (!left.state->isFlat() && !right.state->isFlat()) {
-            executeSwitchOnNulls<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER, false,
-                false>(left, leftSelVector, right, rightSelVector, result, resultSelVector,
-                dataPtr);
-        } else {
-            KU_UNREACHABLE;
-        }
+        executeOnSelectedValues<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
+            leftSelVector, right, rightSelVector, result, resultSelVector, dataPtr);
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>

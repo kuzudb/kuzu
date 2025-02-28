@@ -28,7 +28,7 @@ static void copyEvaluatedDataToResult(common::ValueVector& result,
     auto dstDataVector = ListVector::getDataVector(&result);
     for (sel_t i = 0; i < sliceInfo.getSliceSize(); ++i) {
         const auto [listEntryPos, dataOffset] = sliceInfo.getPos(i);
-        idx_t srcIdx = listLambdaBindData->lambdaParamEvaluators.empty() ? 0 : i;
+        const auto srcIdx = listLambdaBindData->lambdaParamEvaluators.empty() ? 0 : i;
         sel_t srcPos =
             listLambdaBindData->rootEvaluator->resultVector->state->getSelVector()[srcIdx];
         dstDataVector->copyFromVectorData(dataOffset,
