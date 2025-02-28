@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string>
-
 #include "extension/extension_action.h"
 #include "statement.h"
 

@@ -1,6 +1,5 @@
 #include "processor/operator/simple/install_extension.h"
 
-#include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
 #include "processor/execution_context.h"
 
