@@ -10,7 +10,7 @@ extern "C" {
 #endif
 INIT_EXPORT void install(const std::string& repo, kuzu::main::ClientContext& context) {
     kuzu::extension::InstallExtensionInfo info{"duckdb", repo};
-    kuzu::duckdb_extension::DuckDBInstaller installer{std::move(info), context};
+    kuzu::duckdb_extension::DuckDBInstaller installer{info, context};
     installer.install();
 }
 }
