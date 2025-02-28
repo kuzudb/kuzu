@@ -115,7 +115,7 @@ void ConcatFunction::execFunc(const std::vector<std::shared_ptr<common::ValueVec
         for (auto i = 0u; i < parameters.size(); i++) {
             const auto& parameter = *parameters[i];
             const auto& parameterSelVector = parameterSelVectors[i];
-            auto paramPos = parameter.state->isFlat() ? (*parameterSelVector)[0] : pos;
+            auto paramPos = (*parameterSelVector)[parameter.state->isFlat() ? 0 : selectedPos];
             strLen += parameter.getValue<ku_string_t>(paramPos).len;
         }
         auto& resultStr = result.getValue<ku_string_t>(pos);
@@ -126,7 +126,7 @@ void ConcatFunction::execFunc(const std::vector<std::shared_ptr<common::ValueVec
         for (auto i = 0u; i < parameters.size(); i++) {
             const auto& parameter = *parameters[i];
             const auto& parameterSelVector = parameterSelVectors[i];
-            auto paramPos = parameter.state->isFlat() ? (*parameterSelVector)[0] : pos;
+            auto paramPos = (*parameterSelVector)[parameter.state->isFlat() ? 0 : selectedPos];
             auto srcStr = parameter.getValue<ku_string_t>(paramPos);
             memcpy(dstData, srcStr.getData(), srcStr.len);
             dstData += srcStr.len;

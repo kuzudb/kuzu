@@ -1,6 +1,4 @@
 -DATASET CSV tinysnb
-# We currently don't support list lambda functions if the list size if larger than the vector capacity
--SKIP_VECTOR_CAPACITY_TESTS
 --
 
 -CASE ListFilter
@@ -83,29 +81,13 @@ Binder exception: LIST_FILTER requires the result type of lambda expression be B
 [6,7]
 []
 [10,6,7]
--STATEMENT unwind range(1, 5000) as t with collect(t) as lst return list_filter(lst, x->x > 3);
----- error(regex)
-Runtime exception: Lists with size greater than: [0-9]+ is not supported in list lambda functions.
+-STATEMENT MATCH (a:person) WITH CASE WHEN a.age <= 30 THEN a.workedHours ELSE null END as workedHours RETURN LIST_FILTER(workedHours, x->x < 9)
+---- 8
 
--CASE LambdaListSizeGreaterThanVectorCap
--STATEMENT CREATE NODE TABLE People (id INT64,name STRING,age INT64,PRIMARY KEY (id));
----- ok
--STATEMENT CREATE REL TABLE FRIEND_OF (FROM People TO People,since INT64);
----- ok
--STATEMENT CREATE (a:People {id: 1, name: 'Alice', age: 30}),
-                  (b:People {id: 2, name: 'Bob', age: 25}),
-                  (c:People {id: 3, name: 'Charlie', age: 35}),
-                  (a)-[:FRIEND_OF {since: 2020}]->(b),
-                  (b)-[:FRIEND_OF {since: 2021}]->(c),
-                  (c)-[:FRIEND_OF {since: 2022}]->(a);
----- ok
--STATEMENT call var_length_extend_max_depth=100;
----- ok
--STATEMENT match p=(a:People)-[b:FRIEND_OF* 1..39]->(c:People)
-           where not case size(list_filter(nodes(p),x->x.age=30))>0
-           when True then a.name=c.name
-           else false
-           end
-           return a.name as name,c.name as friend
----- error(regex)
-Runtime exception: Lists with size greater than: [0-9]+ is not supported in list lambda functions.
+
+
+
+[8]
+[1]
+[2]
+[3,4,5,6,7]

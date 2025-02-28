@@ -23,6 +23,10 @@ ListAuxiliaryBuffer::ListAuxiliaryBuffer(const LogicalType& dataVectorType,
     : capacity{DEFAULT_VECTOR_CAPACITY}, size{0},
       dataVector{std::make_shared<ValueVector>(dataVectorType.copy(), memoryManager)} {}
 
+void ListAuxiliaryBuffer::setDataVector(std::shared_ptr<ValueVector> vector) {
+    dataVector = std::move(vector);
+}
+
 list_entry_t ListAuxiliaryBuffer::addList(list_size_t listSize) {
     auto listEntry = list_entry_t{size, listSize};
     bool needResizeDataVector = size + listSize > capacity;

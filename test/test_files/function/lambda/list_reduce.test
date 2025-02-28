@@ -1,6 +1,4 @@
 -DATASET CSV tinysnb
-# We currently don't support list lambda functions if the list size if larger than the vector capacity
--SKIP_VECTOR_CAPACITY_TESTS
 --
 
 -CASE ListReduce
@@ -39,9 +37,15 @@ KUZU IS AWESOME:LONG LONG STRING
 -19
 1
 -38
+-STATEMENT MATCH (a:person) WHERE a.id <= 7 WITH CASE WHEN a.age <= 30 THEN [] ELSE a.workedHours END as workedHours RETURN LIST_REDUCE(workedHours, (x, y) -> x - y)
+---- error
+Runtime exception: Cannot execute list_reduce on an empty list.
 -STATEMENT MATCH (a:person) RETURN LIST_REDUCE([], (x, y) -> x - y)
 ---- error
 Runtime exception: Cannot execute list_reduce on an empty list.
+-STATEMENT RETURN LIST_REDUCE(cast(null, 'int64[]'), (x, y) -> x - y)
+---- 1
+
 -STATEMENT RETURN LIST_REDUCE([null, 52, 223], (x, y) -> x + y)
 ---- 1
 
@@ -54,6 +58,3 @@ a:b:a:c:a:b:a:d:a:b:a:c:a:b:a:
 -STATEMENT RETURN LIST_REDUCE(['a:', 'b:', 'c:', 'd:'], (x, y) -> y+x+y)
 ---- 1
 d:c:b:a:b:c:d:
--STATEMENT unwind range(1, 5000) as t with collect(t) as lst return list_reduce(lst, (x, y) -> y+x+y);
----- error(regex)
-Runtime exception: Lists with size greater than: [0-9]+ is not supported in list lambda functions.

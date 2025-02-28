@@ -57,6 +57,11 @@ bool FunctionExpressionEvaluator::selectInternal(SelectionVector& selVector) {
     return function->selectFunc(parameters, selVector);
 }
 
+void FunctionExpressionEvaluator::runExecFunc(void* dataPtr) {
+    function->execFunc(parameters, common::SelectionVector::fromValueVectors(parameters),
+        *resultVector, resultVector->getSelVectorPtr(), dataPtr);
+}
+
 void FunctionExpressionEvaluator::resolveResultVector(const ResultSet& /*resultSet*/,
     MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(expression->dataType.copy(), memoryManager);

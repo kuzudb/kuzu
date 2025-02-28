@@ -1,5 +1,6 @@
 #include "common/exception/binder.h"
 #include "expression_evaluator/lambda_evaluator.h"
+#include "expression_evaluator/list_slice_info.h"
 #include "function/list/vector_list_functions.h"
 #include "function/scalar_function.h"
 
@@ -21,42 +22,63 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
         LogicalType::LIST(input.arguments[1]->getDataType().copy()));
 }
 
+static void copyEvaluatedDataToResult(common::ValueVector& result,
+    evaluator::ListLambdaBindData* listLambdaBindData) {
+    auto& sliceInfo = *listLambdaBindData->sliceInfo;
+    auto dstDataVector = ListVector::getDataVector(&result);
+    for (sel_t i = 0; i < sliceInfo.getSliceSize(); ++i) {
+        const auto [listEntryPos, dataOffset] = sliceInfo.getPos(i);
+        idx_t srcIdx = listLambdaBindData->lambdaParamEvaluators.empty() ? 0 : i;
+        sel_t srcPos =
+            listLambdaBindData->rootEvaluator->resultVector->state->getSelVector()[srcIdx];
+        dstDataVector->copyFromVectorData(dataOffset,
+            listLambdaBindData->rootEvaluator->resultVector.get(), srcPos);
+        dstDataVector->setNull(dataOffset,
+            listLambdaBindData->rootEvaluator->resultVector->isNull(srcPos));
+    }
+}
+
+static void copyListEntriesToResult(const common::ValueVector& inputVector,
+    const common::SelectionVector& inputSelVector, common::ValueVector& result) {
+    for (uint64_t i = 0; i < inputSelVector.getSelSize(); ++i) {
+        auto pos = inputSelVector[i];
+        if (inputVector.isNull(pos)) {
+            result.setNull(pos, true);
+        } else {
+            auto inputList = inputVector.getValue<list_entry_t>(pos);
+            ListVector::addList(&result, inputList.size);
+            result.setValue(pos, inputList);
+        }
+    }
+}
+
 static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& input,
     const std::vector<common::SelectionVector*>& inputSelVectors, common::ValueVector& result,
     common::SelectionVector* resultSelVector, void* bindData) {
     auto listLambdaBindData = reinterpret_cast<evaluator::ListLambdaBindData*>(bindData);
+    auto* sliceInfo = listLambdaBindData->sliceInfo;
+    auto savedParamStates =
+        sliceInfo->overrideAndSaveParamStates(listLambdaBindData->lambdaParamEvaluators);
+
+    listLambdaBindData->rootEvaluator->evaluate();
+    copyEvaluatedDataToResult(result, listLambdaBindData);
+
     auto& inputVector = *input[0];
     const auto& inputSelVector = *inputSelVectors[0];
-
-    auto listSize = ListVector::getDataVectorSize(&inputVector);
-    for (auto& lambdaParamEvaluator : listLambdaBindData->lambdaParamEvaluators) {
-        auto param = lambdaParamEvaluator->resultVector.get();
-        param->state->getSelVectorUnsafe().setSelSize(listSize);
-    }
-    listLambdaBindData->rootEvaluator->evaluate();
     KU_ASSERT(input.size() == 2);
     if (!listLambdaBindData->lambdaParamEvaluators.empty()) {
-        ListVector::copyListEntryAndBufferMetaData(result, *resultSelVector, inputVector,
-            inputSelVector);
+        if (sliceInfo->done()) {
+            ListVector::copyListEntryAndBufferMetaData(result, *resultSelVector, inputVector,
+                inputSelVector);
+        }
     } else {
-        auto srcPos = inputSelVector[0];
-        auto dstDataVector = ListVector::getDataVector(&result);
-        for (auto i = 0u; i < inputSelVector.getSelSize(); ++i) {
-            auto inputList = inputVector.getValue<list_entry_t>(inputSelVector[0]);
-            auto pos = (*resultSelVector)[i];
-            if (inputVector.isNull(srcPos)) {
-                result.setNull(pos, true);
-            } else {
-                auto dstLst = ListVector::addList(&inputVector, inputList.size);
-                for (auto j = 0u; j < dstLst.size; j++) {
-                    dstDataVector->copyFromVectorData(dstLst.offset + j,
-                        listLambdaBindData->rootEvaluator->resultVector.get(),
-                        listLambdaBindData->rootEvaluator->resultVector->state->getSelVector()[0]);
-                }
-                result.setValue(pos, dstLst);
-            }
+        if (sliceInfo->done()) {
+            copyListEntriesToResult(inputVector, inputSelVector, result);
         }
     }
+
+    sliceInfo->restoreParamStates(listLambdaBindData->lambdaParamEvaluators,
+        std::move(savedParamStates));
 }
 
 function_set ListTransformFunction::getFunctionSet() {

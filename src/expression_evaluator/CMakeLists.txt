@@ -6,6 +6,7 @@ add_library(kuzu_expression_evaluator
         expression_evaluator_visitor.cpp
         function_evaluator.cpp
         lambda_evaluator.cpp
+        list_slice_info.cpp
         literal_evaluator.cpp
         pattern_evaluator.cpp
         path_evaluator.cpp

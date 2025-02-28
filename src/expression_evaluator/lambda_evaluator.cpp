@@ -1,10 +1,9 @@
 #include "expression_evaluator/lambda_evaluator.h"
 
 #include "binder/expression/lambda_expression.h"
-#include "binder/expression/scalar_function_expression.h"
 #include "common/exception/runtime.h"
-#include "common/system_config.h"
 #include "expression_evaluator/expression_evaluator_visitor.h"
+#include "expression_evaluator/list_slice_info.h"
 #include "function/list/vector_list_functions.h"
 #include "parser/expression/parsed_lambda_expression.h"
 
@@ -47,50 +46,40 @@ void ListLambdaEvaluator::init(const ResultSet& resultSet, ClientContext* client
     params.push_back(lambdaRootEvaluator->resultVector);
     auto paramIndices = getParamIndices();
     bindData = ListLambdaBindData{lambdaParamEvaluators, paramIndices, lambdaRootEvaluator.get()};
+    memoryManager = clientContext->getMemoryManager();
 }
 
-// TODO(Ziyi): we currently do not support evaluating a list with size > DEFAULT_VECTOR_CAPACITY in
-// lambda.
-static void validateListLen(std::vector<std::shared_ptr<ValueVector>> params) {
-    for (auto& param : params) {
-        if (param->dataType.getLogicalTypeID() == LogicalTypeID::LIST) {
-            if (common::ListVector::getDataVectorSize(param.get()) > DEFAULT_VECTOR_CAPACITY) {
-                throw common::RuntimeException{
-                    common::stringFormat("Lists with size greater than: {} is not "
-                                         "supported in list lambda functions.",
-                        DEFAULT_VECTOR_CAPACITY),
-                };
-            }
-        }
+void ListLambdaEvaluator::evaluateInternal() {
+    auto* inputVector = params[0].get();
+    if (resultVector->dataType.getPhysicalType() == common::PhysicalTypeID::LIST) {
+        const auto inputDataVectorSize = ListVector::getDataVectorSize(inputVector);
+        ListVector::resizeDataVector(resultVector.get(), inputDataVectorSize);
     }
+    ListSliceInfo sliceInfo{inputVector};
+    bindData.sliceInfo = &sliceInfo;
+    do {
+        sliceInfo.nextSlice();
+        execFunc(params, SelectionVector::fromValueVectors(params), *resultVector,
+            resultVector->getSelVectorPtr(), &bindData);
+    } while (!sliceInfo.done());
 }
 
 void ListLambdaEvaluator::evaluate() {
     KU_ASSERT(children.size() == 1);
     children[0]->evaluate();
-    validateListLen(params);
-    execFunc(params, SelectionVector::fromValueVectors(params), *resultVector,
-        resultVector->getSelVectorPtr(), &bindData);
+    evaluateInternal();
 }
 
 bool ListLambdaEvaluator::selectInternal(common::SelectionVector& selVector) {
     KU_ASSERT(children.size() == 1);
     children[0]->evaluate();
-    validateListLen(params);
-    KU_ASSERT(resultVector->dataType.getLogicalTypeID() == common::LogicalTypeID::BOOL);
-    execFunc(params, SelectionVector::fromValueVectors(params), *resultVector,
-        resultVector->getSelVectorPtr(), &bindData);
+    evaluateInternal();
     return updateSelectedPos(selVector);
 }
 
 void ListLambdaEvaluator::resolveResultVector(const ResultSet&, MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(expression->getDataType().copy(), memoryManager);
     resultVector->state = children[0]->resultVector->state;
-    // Performance optimization to avoid copy data vector for list_transform
-    if (expression->cast<binder::ScalarFunctionExpression>().getFunction().name ==
-        function::ListTransformFunction::name) {
-        ListVector::setDataVector(resultVector.get(), lambdaRootEvaluator->resultVector);
-    }
     isResultFlat_ = children[0]->isResultFlat();
 }
 std::vector<common::idx_t> ListLambdaEvaluator::getParamIndices() {

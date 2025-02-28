@@ -39,5 +39,14 @@ std::vector<SelectionVector*> SelectionVector::fromValueVectors(
     return ret;
 }
 
+void SelectionVector::slice(offset_t offset, offset_t numValues,
+    SelectionVector& outputSelVector) const {
+    KU_ASSERT(numValues <= getSelSize() - offset);
+    for (offset_t i = 0; i < numValues; i++) {
+        outputSelVector.getMutableBuffer()[i] = selectedPositions[i + offset];
+    }
+    outputSelVector.setToFiltered(numValues);
+}
+
 } // namespace common
 } // namespace kuzu

@@ -82,7 +82,7 @@ class KUZU_API ListAuxiliaryBuffer : public AuxiliaryBuffer {
 public:
     ListAuxiliaryBuffer(const LogicalType& dataVectorType, storage::MemoryManager* memoryManager);
 
-    void setDataVector(std::shared_ptr<ValueVector> vector) { dataVector = std::move(vector); }
+    void setDataVector(std::shared_ptr<ValueVector> vector);
     ValueVector* getDataVector() const { return dataVector.get(); }
     std::shared_ptr<ValueVector> getSharedDataVector() const { return dataVector; }
 
