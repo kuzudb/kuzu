@@ -1,9 +1,9 @@
 #pragma once
 
-#include "planner/operator/extend/recursive_join_type.h"
-#include "planner/operator/sip/side_way_info_passing.h"
-#include "planner/operator/logical_operator.h"
 #include "binder/expression/rel_expression.h"
+#include "planner/operator/extend/recursive_join_type.h"
+#include "planner/operator/logical_operator.h"
+#include "planner/operator/sip/side_way_info_passing.h"
 
 namespace kuzu {
 namespace planner {

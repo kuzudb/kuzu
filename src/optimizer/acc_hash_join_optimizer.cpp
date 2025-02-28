@@ -2,11 +2,11 @@
 
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "optimizer/logical_operator_collector.h"
-#include "planner/operator/logical_path_property_probe.h"
 #include "planner/operator/logical_accumulate.h"
 #include "planner/operator/logical_gds_call.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_intersect.h"
+#include "planner/operator/logical_path_property_probe.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
 #include "planner/operator/sip/logical_semi_masker.h"
 
@@ -386,8 +386,7 @@ void HashJoinSIPOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
     if (opsToApplySemiMask.empty()) {
         return;
     }
-    KU_ASSERT(
-        pathPropertyProbe.getChild(0)->getOperatorType() == LogicalOperatorType::GDS_CALL);
+    KU_ASSERT(pathPropertyProbe.getChild(0)->getOperatorType() == LogicalOperatorType::GDS_CALL);
     auto semiMasker = appendSemiMasker(SemiMaskKeyType::NODE_ID_LIST, SemiMaskTargetType::SCAN_NODE,
         recursiveRel->getRecursiveInfo()->pathNodeIDsExpr, opsToApplySemiMask,
         pathPropertyProbe.getChild(0));
