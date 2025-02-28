@@ -91,3 +91,6 @@ Binder exception: LIST_FILTER requires the result type of lambda expression be B
 [1]
 [2]
 [3,4,5,6,7]
+-STATEMENT unwind range(1, 5000) as t with collect(t) as lst return list_filter(lst, x->x < 3);
+---- 1
+[1,2]
