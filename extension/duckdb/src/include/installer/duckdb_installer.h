@@ -7,10 +7,10 @@ namespace duckdb_extension {
 
 class KUZU_API DuckDBInstaller final : public extension::ExtensionInstaller {
 public:
-    explicit DuckDBInstaller(std::string extensionName)
-        : ExtensionInstaller{std::move(extensionName)} {}
+    DuckDBInstaller(const extension::InstallExtensionInfo& info, main::ClientContext& context)
+        : ExtensionInstaller{info, context} {}
 
-    void install(main::ClientContext* context) override;
+    void install() override;
 };
 
 } // namespace duckdb_extension

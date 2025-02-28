@@ -157,3 +157,15 @@ Unable to find primary key value 6.|${KUZU_ROOT_DIRECTORY}/dataset/json-error/in
 8246337208329|2012-07-20 23:08:15.828|31.13.184.200|Firefox|About George Frideric Handel, ful with hisAbout Erwin Rommel, mandy. As onAbout|79
 8246337208330|2012-07-20 06:31:37.85|62.100.246.118|Internet Explorer|good|4
 8246337208331|2012-07-21 03:07:22.319|46.30.7.107|Firefox|no|2
+
+-CASE InstallOfficialExtension
+-STATEMENT INSTALL json FROM 'http://localhost/extension/repo/'
+---- 1
+Extension: json has been installed from repo: http://localhost/extension/repo/.
+-STATEMENT load extension json
+---- ok
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb_json/vMovies.json" RETURN *;
+---- 3
+Roma|298|the movie is very interesting and funny|{rating: 1223.000000, stars: 100, views: 10003, release: 2011-02-11 16:44:22, release_ns: 2011-02-11 16:44:22.123456, release_ms: 2011-02-11 16:44:22.123456, release_sec: 2011-02-11 16:44:22.123456, release_tz: 2011-02-11 16:44:22.123456, film: 2013-02-22, u8: 1, u16: 15, u32: 200, u64: 4, hugedata: 7210}|pure ascii characters|{}|254
+Sóló cón tu párejâ|126|this is a very very good movie|{rating: 5.300000, stars: 2, views: 152, release: 2011-08-20 11:25:30, release_ns: 2011-08-20 11:25:30.123456, release_ms: 2011-08-20 11:25:30.123456, release_sec: 2011-08-20 11:25:30.123456, release_tz: 2011-08-20 11:25:30.123456, film: 2012-05-11, u8: 220, u16: 20, u32: 1, u64: 180, hugedata: 114514}||{audience1= 52,audience53= 42}|True
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|2544|the movie is very very good|{rating: 7.000000, stars: 10, views: 982, release: 2018-11-13 13:33:11, release_ns: 2018-11-13 13:33:11.123456, release_ms: 2018-11-13 13:33:11.123456, release_sec: 2018-11-13 13:33:11.123456, release_tz: 2018-11-13 13:33:11.123456, film: 2014-09-12, u8: 12, u16: 120, u32: 55, u64: 1, hugedata: 1919810}||{audience1= 33}|8.989000

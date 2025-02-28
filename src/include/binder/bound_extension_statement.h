@@ -10,18 +10,15 @@ using namespace kuzu::extension;
 
 class BoundExtensionStatement final : public BoundStatement {
 public:
-    explicit BoundExtensionStatement(ExtensionAction action, std::string path)
+    explicit BoundExtensionStatement(std::unique_ptr<ExtensionAuxInfo> info)
         : BoundStatement{common::StatementType::EXTENSION,
               BoundStatementResult::createSingleStringColumnResult()},
-          action{action}, path{std::move(path)} {}
+          info{std::move(info)} {}
 
-    inline ExtensionAction getAction() const { return action; }
-
-    inline std::string getPath() const { return path; }
+    std::unique_ptr<ExtensionAuxInfo> getAuxInfo() const { return info->copy(); }
 
 private:
-    ExtensionAction action;
-    std::string path;
+    std::unique_ptr<ExtensionAuxInfo> info;
 };
 
 } // namespace binder

@@ -28,7 +28,7 @@ namespace extension {
 typedef void (*ext_init_func_t)(main::ClientContext*);
 typedef const char* (*ext_name_func_t)();
 using ext_load_func_t = ext_init_func_t;
-using ext_install_func_t = ext_init_func_t;
+typedef void (*ext_install_func_t)(const std::string&, main::ClientContext&);
 
 std::string getPlatform();
 
@@ -61,9 +61,11 @@ void addFunc(main::Database& database, std::string name, catalog::CatalogEntryTy
 }
 
 struct KUZU_API ExtensionUtils {
-    static constexpr const char* EXTENSION_FILE_REPO = "http://extension.kuzudb.com/v{}/{}/{}/{}";
+    static constexpr const char* OFFICIAL_EXTENSION_REPO = "http://extension.kuzudb.com/";
 
-    static constexpr const char* SHARED_LIB_REPO = "http://extension.kuzudb.com/v{}/{}/common/{}";
+    static constexpr const char* EXTENSION_FILE_REPO_PATH = "v{}/{}/{}/{}";
+
+    static constexpr const char* SHARED_LIB_REPO = "v{}/{}/common/{}";
 
     static constexpr const char* EXTENSION_FILE_NAME = "lib{}.kuzu_extension";
 
@@ -76,13 +78,17 @@ struct KUZU_API ExtensionUtils {
 
     static bool isFullPath(const std::string& extension);
 
-    static ExtensionRepoInfo getExtensionLibRepoInfo(const std::string& extensionName);
+    static ExtensionRepoInfo getExtensionLibRepoInfo(const std::string& extensionName,
+        const std::string& extensionRepo);
 
-    static ExtensionRepoInfo getExtensionLoaderRepoInfo(const std::string& extensionName);
+    static ExtensionRepoInfo getExtensionLoaderRepoInfo(const std::string& extensionName,
+        const std::string& extensionRepo);
 
-    static ExtensionRepoInfo getExtensionInstallerRepoInfo(const std::string& extensionName);
+    static ExtensionRepoInfo getExtensionInstallerRepoInfo(const std::string& extensionName,
+        const std::string& extensionRepo);
 
-    static ExtensionRepoInfo getSharedLibRepoInfo(const std::string& fileName);
+    static ExtensionRepoInfo getSharedLibRepoInfo(const std::string& fileName,
+        const std::string& extensionRepo);
 
     static std::string getExtensionFileName(const std::string& name);
 

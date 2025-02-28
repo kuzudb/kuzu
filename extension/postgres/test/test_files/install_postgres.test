@@ -1,0 +1,10 @@
+-DATASET CSV empty
+
+--
+
+-CASE InstallOfficialExtension
+-STATEMENT INSTALL postgres FROM 'http://localhost/extension/repo/'
+---- 1
+Extension: postgres has been installed from repo: http://localhost/extension/repo/.
+-STATEMENT load extension postgres
+---- ok

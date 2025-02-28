@@ -1018,7 +1018,7 @@ jobs:
           cat postgres.test
 
       - name: Install dependencies
-        run: pip install rangehttpserver
+        run: pip install rangehttpserver requests
 
       # shell needs to be built first to generate the dataset provided by the server
       - name: Extension test build
@@ -1027,7 +1027,7 @@ jobs:
       - name: Extension test
         run: |
           python3 scripts/generate-tinysnb.py
-          cd scripts/ && python3 http-server.py &
+          python3 scripts/setup-extension-repo.py &
           make extension-test
 
       - name: Extension test in mem
@@ -1082,7 +1082,7 @@ jobs:
           cat postgres.test
 
       - name: Install dependencies
-        run: pip3 install rangehttpserver
+        run: pip3 install rangehttpserver requests
 
       # shell needs to be built first to generate the dataset provided by the server
       - name: Extension test build
@@ -1091,7 +1091,7 @@ jobs:
       - name: Extension test
         run: |
           python3 scripts/generate-tinysnb.py
-          cd scripts/ && python3 http-server.py &
+          python3 scripts/setup-extension-repo.py &
           make extension-test
 
       - name: Extension test in mem
@@ -1127,7 +1127,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: pip install rangehttpserver
+        run: pip install rangehttpserver requests
 
       - name: Update PostgreSQL host
         working-directory: extension/postgres/test/test_files
@@ -1155,7 +1155,7 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           python3 scripts/generate-tinysnb.py
           if %errorlevel% neq 0 exit /b %errorlevel%
-          cd scripts/ && start /b python http-server.py && cd ..
+          start /b python scripts/setup-extension-repo.py
           make extension-test
 
       - name: Extension test in mem
@@ -1167,7 +1167,7 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           python3 scripts/generate-tinysnb.py
           if %errorlevel% neq 0 exit /b %errorlevel%
-          cd scripts/ && start /b python http-server.py && cd ..
+          start /b python scripts/setup-extension-repo.py
           make extension-test
 
       - name: Clean

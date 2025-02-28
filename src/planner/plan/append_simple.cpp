@@ -113,8 +113,8 @@ void Planner::appendTransaction(const BoundStatement& statement, LogicalPlan& pl
 
 void Planner::appendExtension(const BoundStatement& statement, LogicalPlan& plan) {
     auto& extensionStatement = statement.constCast<BoundExtensionStatement>();
-    auto op = std::make_shared<LogicalExtension>(extensionStatement.getAction(),
-        extensionStatement.getPath(), statement.getStatementResult()->getSingleColumnExpr());
+    auto op = std::make_shared<LogicalExtension>(extensionStatement.getAuxInfo(),
+        statement.getStatementResult()->getSingleColumnExpr());
     plan.setLastOperator(std::move(op));
 }
 

@@ -210,7 +210,7 @@ kU_LoadExtension
     : LOAD SP EXTENSION SP ( StringLiteral | oC_Variable ) ;
 
 kU_InstallExtension
-    : INSTALL SP oC_Variable ;
+    : INSTALL SP oC_Variable (SP FROM SP StringLiteral)?;
 
 oC_Query
     : oC_RegularQuery ;

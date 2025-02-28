@@ -93,15 +93,21 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtension(const LogicalOperator
     auto logicalExtension = logicalOperator->constPtrCast<LogicalExtension>();
     auto outputPos = getOutputPos(logicalExtension);
     std::unique_ptr<OPPrintInfo> printInfo;
-    switch (logicalExtension->getAction()) {
-    case ExtensionAction::INSTALL:
-        printInfo = std::make_unique<InstallExtensionPrintInfo>(logicalExtension->getPath());
-        return std::make_unique<InstallExtension>(logicalExtension->getPath(), outputPos,
-            getOperatorID(), std::move(printInfo));
-    case ExtensionAction::LOAD:
-        printInfo = std::make_unique<LoadExtensionPrintInfo>(logicalExtension->getPath());
-        return std::make_unique<LoadExtension>(logicalExtension->getPath(), outputPos,
-            getOperatorID(), std::move(printInfo));
+    auto& auxInfo = logicalExtension->getAuxInfo();
+    auto path = auxInfo.path;
+    switch (auxInfo.action) {
+    case ExtensionAction::INSTALL: {
+        extension::InstallExtensionInfo info{path,
+            auxInfo.contCast<InstallExtensionAuxInfo>().extensionRepo};
+        printInfo = std::make_unique<InstallExtensionPrintInfo>(path);
+        return std::make_unique<InstallExtension>(std::move(info), outputPos, getOperatorID(),
+            std::move(printInfo));
+    }
+    case ExtensionAction::LOAD: {
+        printInfo = std::make_unique<LoadExtensionPrintInfo>(path);
+        return std::make_unique<LoadExtension>(path, outputPos, getOperatorID(),
+            std::move(printInfo));
+    }
     default:
         KU_UNREACHABLE;
     }
