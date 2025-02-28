@@ -115,8 +115,8 @@ struct list_entry_t {
     offset_t offset;
     list_size_t size;
 
-    list_entry_t() : offset{INVALID_OFFSET}, size{UINT32_MAX} {}
-    list_entry_t(offset_t offset, list_size_t size) : offset{offset}, size{size} {}
+    constexpr list_entry_t() : offset{INVALID_OFFSET}, size{UINT32_MAX} {}
+    constexpr list_entry_t(offset_t offset, list_size_t size) : offset{offset}, size{size} {}
 };
 
 struct struct_entry_t {

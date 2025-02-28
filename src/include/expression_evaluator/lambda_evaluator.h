@@ -6,6 +6,9 @@
 namespace kuzu {
 namespace evaluator {
 
+class ListSliceInfo;
+class ListEntryTracker;
+
 enum class ListLambdaType : uint8_t {
     LIST_TRANSFORM = 0,
     LIST_FILTER = 1,
@@ -38,6 +41,7 @@ struct ListLambdaBindData {
     std::vector<LambdaParamEvaluator*> lambdaParamEvaluators;
     std::vector<common::idx_t> paramIndices;
     ExpressionEvaluator* rootEvaluator = nullptr;
+    ListSliceInfo* sliceInfo = nullptr;
 };
 
 // E.g. for function list_transform([0,1,2], x->x+1)
@@ -50,7 +54,7 @@ class ListLambdaEvaluator : public ExpressionEvaluator {
 
 public:
     ListLambdaEvaluator(std::shared_ptr<binder::Expression> expression, evaluator_vector_t children)
-        : ExpressionEvaluator{type_, expression, std::move(children)} {
+        : ExpressionEvaluator{type_, expression, std::move(children)}, memoryManager(nullptr) {
         execFunc = expression->constCast<binder::ScalarFunctionExpression>().getFunction().execFunc;
         listLambdaType = checkListLambdaTypeWithFunctionName(
             expression->constCast<binder::ScalarFunctionExpression>().getFunction().name);
@@ -79,6 +83,8 @@ protected:
         storage::MemoryManager* memoryManager) override;
 
 private:
+    void evaluateInternal();
+
     function::scalar_func_exec_t execFunc;
     ListLambdaBindData bindData;
 
@@ -87,6 +93,8 @@ private:
     std::vector<LambdaParamEvaluator*> lambdaParamEvaluators;
     std::vector<std::shared_ptr<common::ValueVector>> params;
     ListLambdaType listLambdaType;
+
+    storage::MemoryManager* memoryManager;
 };
 
 } // namespace evaluator

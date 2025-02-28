@@ -1,6 +1,7 @@
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "expression_evaluator/lambda_evaluator.h"
+#include "expression_evaluator/list_slice_info.h"
 #include "function/list/vector_list_functions.h"
 #include "function/scalar_function.h"
 
@@ -22,37 +23,54 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
         ListType::getChildType(input.arguments[0]->getDataType()).copy());
 }
 
-static void reduceList(const list_entry_t& listEntry, uint64_t pos, common::ValueVector& result,
-    common::SelectionVector* resultSelVector, common::ValueVector& inputDataVector,
-    common::ValueVector& tmpResultVector, common::SelectionVector* tmpResultVectorSelVector,
+static void processDataEntry(offset_t curOffset, sel_t listEntryPos, common::ValueVector& result,
+    const common::ValueVector& inputVector, common::ValueVector& tmpResultVector,
+    const common::SelectionVector& tmpResultVectorSelVector,
+    const std::vector<ValueVector*>& params, const std::vector<common::idx_t>& paramIndices,
     evaluator::ListLambdaBindData& bindData) {
+    common::ValueVector& inputDataVector = *ListVector::getDataVector(&inputVector);
+    const auto listEntry = inputVector.getValue<list_entry_t>(listEntryPos);
+    KU_ASSERT(listEntry.size > 0);
+    offset_t offsetInList = curOffset - listEntry.offset;
+    if (offsetInList == 0 && listEntry.size == 1) {
+        // if list size is 1 the reduce result is equal to the single value
+        result.copyFromVectorData(listEntryPos, &inputDataVector, listEntry.offset);
+    } else {
+        auto paramPos = params[0]->state->getSelVector()[0];
+        auto tmpResultPos = tmpResultVectorSelVector[0];
+        if (offsetInList < listEntry.size - 1) {
+            // continue reducing
+            for (auto i = 0u; i < params.size(); i++) {
+                if (0u == paramIndices[i] && 0u != offsetInList) {
+                    params[i]->copyFromVectorData(paramPos, &tmpResultVector, tmpResultPos);
+                } else {
+                    params[i]->copyFromVectorData(paramPos, &inputDataVector,
+                        listEntry.offset + offsetInList + paramIndices[i]);
+                }
+                params[i]->state->getSelVectorUnsafe().setSelSize(1);
+            }
+            bindData.rootEvaluator->evaluate();
+        } else {
+            // we are done reducing, copy the result from the intermediate result vector
+            result.copyFromVectorData(listEntryPos, &tmpResultVector, tmpResultPos);
+        }
+    }
+}
+
+static void reduceSlice(evaluator::ListSliceInfo& sliceInfo, common::ValueVector& result,
+    const common::ValueVector& inputVector, common::ValueVector& tmpResultVector,
+    common::SelectionVector& tmpResultVectorSelVector, evaluator::ListLambdaBindData& bindData) {
     const auto& paramIndices = bindData.paramIndices;
     std::vector<ValueVector*> params(bindData.lambdaParamEvaluators.size());
     for (auto i = 0u; i < bindData.lambdaParamEvaluators.size(); i++) {
         auto param = bindData.lambdaParamEvaluators[i]->resultVector.get();
         params[i] = param;
     }
-    auto paramPos = params[0]->state->getSelVector()[0];
-    auto tmpResultPos = (*tmpResultVectorSelVector)[0];
-    if (listEntry.size == 0) {
-        throw common::RuntimeException{"Cannot execute list_reduce on an empty list."};
-    }
-    if (listEntry.size == 1) {
-        result.copyFromVectorData((*resultSelVector)[pos], &inputDataVector, listEntry.offset);
-    } else {
-        for (auto j = 0u; j < listEntry.size - 1; j++) {
-            for (auto k = 0u; k < params.size(); k++) {
-                if (0u == paramIndices[k] && 0u != j) {
-                    params[k]->copyFromVectorData(paramPos, &tmpResultVector, tmpResultPos);
-                } else {
-                    params[k]->copyFromVectorData(paramPos, &inputDataVector,
-                        listEntry.offset + j + paramIndices[k]);
-                }
-                params[k]->state->getSelVectorUnsafe().setSelSize(1);
-            }
-            bindData.rootEvaluator->evaluate();
-        }
-        result.copyFromVectorData((*resultSelVector)[pos], &tmpResultVector, tmpResultPos);
+
+    for (sel_t i = 0; i < sliceInfo.getSliceSize(); ++i) {
+        const auto [listEntryPos, dataOffset] = sliceInfo.getPos(i);
+        processDataEntry(dataOffset, listEntryPos, result, inputVector, tmpResultVector,
+            tmpResultVectorSelVector, params, paramIndices, bindData);
     }
 }
 
@@ -62,10 +80,19 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& in
     KU_ASSERT(input.size() == 2);
     auto listLambdaBindData = reinterpret_cast<evaluator::ListLambdaBindData*>(bindData);
     const auto* inputVector = input[0].get();
-    for (auto i = 0u; i < inputSelVectors[0]->getSelSize(); i++) {
-        auto listEntry = inputVector->getValue<list_entry_t>((*inputSelVectors[0])[i]);
-        reduceList(listEntry, i, result, resultSelVector, *ListVector::getDataVector(inputVector),
-            *input[1].get(), inputSelVectors[1], *listLambdaBindData);
+    reduceSlice(*listLambdaBindData->sliceInfo, result, *inputVector, *input[1].get(),
+        *inputSelVectors[1], *listLambdaBindData);
+
+    if (listLambdaBindData->sliceInfo->done()) {
+        for (idx_t i = 0; i < inputSelVectors[0]->getSelSize(); ++i) {
+            const auto pos = (*inputSelVectors[0])[i];
+            const auto resPos = (*resultSelVector)[i];
+            if (inputVector->isNull(pos)) {
+                result.setNull(resPos, true);
+            } else if (inputVector->getValue<list_entry_t>(pos).size == 0) {
+                throw common::RuntimeException{"Cannot execute list_reduce on an empty list."};
+            }
+        }
     }
 }
 

@@ -76,9 +76,6 @@ struct BinaryUDFFunctionWrapper {
 };
 
 struct BinaryFunctionExecutor {
-    using binary_execute_func_t = void (*)(common::ValueVector&, common::SelectionVector*,
-        common::ValueVector&, common::SelectionVector*, common::ValueVector&,
-        common::SelectionVector*, void*);
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
@@ -91,92 +88,52 @@ struct BinaryFunctionExecutor {
             resPos, dataPtr);
     }
 
-    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
-        typename OP_WRAPPER>
-    static void executeBothFlat(common::ValueVector& left, common::SelectionVector* leftSelVector,
-        common::ValueVector& right, common::SelectionVector* rightSelVector,
-        common::ValueVector& result, common::SelectionVector* resultSelVector, void* dataPtr) {
-        auto lPos = (*leftSelVector)[0];
-        auto rPos = (*rightSelVector)[0];
-        auto resPos = (*resultSelVector)[0];
-        result.setNull(resPos, left.isNull(lPos) || right.isNull(rPos));
-        if (!result.isNull(resPos)) {
-            executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
-                result, lPos, rPos, resPos, dataPtr);
-        }
+    static inline std::tuple<common::sel_t, common::sel_t, common::sel_t> getSelectedPositions(
+        common::SelectionVector* leftSelVector, common::SelectionVector* rightSelVector,
+        common::SelectionVector* resultSelVector, common::sel_t selPos, bool leftFlat,
+        bool rightFlat) {
+        common::sel_t lPos = (*leftSelVector)[leftFlat ? 0 : selPos];
+        common::sel_t rPos = (*rightSelVector)[rightFlat ? 0 : selPos];
+        common::sel_t resPos = (*resultSelVector)[leftFlat && rightFlat ? 0 : selPos];
+        return {lPos, rPos, resPos};
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
-    static void executeFlatUnFlat(common::ValueVector& left, common::SelectionVector* leftSelVector,
-        common::ValueVector& right, common::SelectionVector* rightSelVector,
-        common::ValueVector& result, common::SelectionVector*, void* dataPtr) {
-        auto lPos = (*leftSelVector)[0];
-        if (left.isNull(lPos)) {
-            result.setAllNull();
-        } else if (right.hasNoNullsGuarantee()) {
-            result.setAllNonNull();
-            rightSelVector->forEach([&](auto i) {
-                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
-                    result, lPos, i, i, dataPtr);
-            });
-        } else {
-            rightSelVector->forEach([&](auto i) {
-                result.setNull(i, right.isNull(i)); // left is always not null
-                if (!result.isNull(i)) {
-                    executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
-                        right, result, lPos, i, i, dataPtr);
-                }
-            });
-        }
-    }
-
-    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
-        typename OP_WRAPPER>
-    static void executeUnFlatFlat(common::ValueVector& left, common::SelectionVector* leftSelVector,
-        common::ValueVector& right, common::SelectionVector* rightSelVector,
-        common::ValueVector& result, common::SelectionVector*, void* dataPtr) {
-        auto rPos = (*rightSelVector)[0];
-        if (right.isNull(rPos)) {
-            result.setAllNull();
-        } else if (left.hasNoNullsGuarantee()) {
-            result.setAllNonNull();
-            leftSelVector->forEach([&](auto i) {
-                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
-                    result, i, rPos, i, dataPtr);
-            });
-        } else {
-            leftSelVector->forEach([&](auto i) {
-                result.setNull(i, left.isNull(i)); // right is always not null
-                if (!result.isNull(i)) {
-                    executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
-                        right, result, i, rPos, i, dataPtr);
-                }
-            });
-        }
-    }
-
-    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
-        typename OP_WRAPPER>
-    static void executeBothUnFlat(common::ValueVector& left,
-        [[maybe_unused]] common::SelectionVector* leftSelVector, common::ValueVector& right,
-        [[maybe_unused]] common::SelectionVector* rightSelVector, common::ValueVector& result,
+    static void executeOnSelectedValues(common::ValueVector& left,
+        common::SelectionVector* leftSelVector, common::ValueVector& right,
+        common::SelectionVector* rightSelVector, common::ValueVector& result,
         common::SelectionVector* resultSelVector, void* dataPtr) {
-        KU_ASSERT(leftSelVector == rightSelVector);
-        if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
-            result.setAllNonNull();
-            resultSelVector->forEach([&](auto i) {
-                executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left, right,
-                    result, i, i, i, dataPtr);
-            });
+        const bool leftFlat = left.state->isFlat();
+        const bool rightFlat = right.state->isFlat();
+
+        const bool allNullsGuaranteed = (rightFlat && right.isNull((*rightSelVector)[0])) ||
+                                        (leftFlat && left.isNull((*leftSelVector)[0]));
+        if (allNullsGuaranteed) {
+            result.setAllNull();
         } else {
-            resultSelVector->forEach([&](auto i) {
-                result.setNull(i, left.isNull(i) || right.isNull(i));
-                if (!result.isNull(i)) {
+            const bool noNullsGuaranteed = (leftFlat || left.hasNoNullsGuarantee()) &&
+                                           (rightFlat || right.hasNoNullsGuarantee());
+            if (noNullsGuaranteed) {
+                result.setAllNonNull();
+            }
+
+            const auto numSelectedValues =
+                leftFlat ? rightSelVector->getSelSize() : leftSelVector->getSelSize();
+            for (common::sel_t selPos = 0; selPos < numSelectedValues; ++selPos) {
+                auto [lPos, rPos, resPos] = getSelectedPositions(leftSelVector, rightSelVector,
+                    resultSelVector, selPos, leftFlat, rightFlat);
+                if (noNullsGuaranteed) {
                     executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
-                        right, result, i, i, i, dataPtr);
+                        right, result, lPos, rPos, resPos, dataPtr);
+                } else {
+                    result.setNull(resPos, left.isNull(lPos) || right.isNull(rPos));
+                    if (!result.isNull(resPos)) {
+                        executeOnValue<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
+                            right, result, lPos, rPos, resPos, dataPtr);
+                    }
                 }
-            });
+            }
         }
     }
 
@@ -186,18 +143,8 @@ struct BinaryFunctionExecutor {
         common::ValueVector& right, common::SelectionVector* rightSelVector,
         common::ValueVector& result, common::SelectionVector* resultSelVector, void* dataPtr) {
         result.resetAuxiliaryBuffer();
-        binary_execute_func_t executeFunc = nullptr;
-        if (left.state->isFlat() && right.state->isFlat()) {
-            executeFunc = executeBothFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>;
-        } else if (left.state->isFlat() && !right.state->isFlat()) {
-            executeFunc = executeFlatUnFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>;
-        } else if (!left.state->isFlat() && right.state->isFlat()) {
-            executeFunc = executeUnFlatFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>;
-        } else if (!left.state->isFlat() && !right.state->isFlat()) {
-            executeFunc = executeBothUnFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>;
-        }
-        KU_ASSERT(executeFunc);
-        executeFunc(left, leftSelVector, right, rightSelVector, result, resultSelVector, dataPtr);
+        executeOnSelectedValues<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(left,
+            leftSelVector, right, rightSelVector, result, resultSelVector, dataPtr);
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>

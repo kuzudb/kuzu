@@ -554,17 +554,16 @@ void ListVector::copyListEntryAndBufferMetaData(ValueVector& vector,
     for (auto i = 0u; i < otherSelVector.getSelSize(); ++i) {
         auto pos = selVector[i];
         auto otherPos = otherSelVector[i];
-        if (other.isNull(otherPos)) {
-            vector.setNull(pos, true);
-        } else {
+        vector.setNull(pos, other.isNull(pos));
+        if (!other.isNull(otherPos)) {
             vector.setValue(pos, other.getValue<list_entry_t>(otherPos));
         }
     }
     // Copy buffer metadata
     auto& buffer = getAuxBufferUnsafe(vector);
     auto& otherBuffer = getAuxBuffer(other);
-    buffer.size = otherBuffer.size;
     buffer.capacity = otherBuffer.capacity;
+    buffer.size = otherBuffer.size;
 }
 
 void ListVector::copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData) {
