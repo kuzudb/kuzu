@@ -32,20 +32,12 @@ idx_t PrimaryKeyScanSharedState::getTableIdx() {
 
 void PrimaryKeyScanNodeTable::initLocalStateInternal(ResultSet* resultSet,
     ExecutionContext* context) {
-    for (auto& nodeInfo : nodeInfos) {
-        std::vector<const Column*> columns;
-        columns.reserve(nodeInfo.columnIDs.size());
-        for (const auto columnID : nodeInfo.columnIDs) {
-            if (columnID == INVALID_COLUMN_ID) {
-                columns.push_back(nullptr);
-            } else {
-                columns.push_back(&nodeInfo.table->getColumn(columnID));
-            }
-        }
-        nodeInfo.localScanState = std::make_unique<NodeTableScanState>(nodeInfo.table->getTableID(),
-            nodeInfo.columnIDs, columns);
-        initVectors(*nodeInfo.localScanState, *resultSet);
+    std::vector<ValueVector*> outVectors;
+    for (auto& pos : info.outVectorsPos) {
+        outVectors.push_back(resultSet->getValueVector(pos).get());
     }
+    scanState = std::make_unique<NodeTableScanState>(
+        resultSet->getValueVector(info.nodeIDPos).get(), outVectors, outVectors[0]->state);
     indexEvaluator->init(*resultSet, context->clientContext);
 }
 
@@ -79,11 +71,12 @@ bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     auto nodeID = nodeID_t{nodeOffset, nodeInfo.table->getTableID()};
-    nodeInfo.localScanState->nodeIDVector->setValue<nodeID_t>(pos, nodeID);
-    nodeInfo.table->initScanState(transaction, *nodeInfo.localScanState, nodeID.tableID,
-        nodeOffset);
+    scanState->setToTable(nodeInfo.table, nodeInfo.columnIDs,
+        copyVector(nodeInfo.columnPredicates));
+    scanState->nodeIDVector->setValue<nodeID_t>(pos, nodeID);
+    nodeInfo.table->initScanState(transaction, *scanState, nodeID.tableID, nodeOffset);
     metrics->numOutputTuple.incrementByOne();
-    return nodeInfo.table->lookup(transaction, *nodeInfo.localScanState);
+    return nodeInfo.table->lookup(transaction, *scanState);
 }
 
 } // namespace processor

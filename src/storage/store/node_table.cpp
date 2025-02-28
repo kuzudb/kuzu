@@ -176,11 +176,25 @@ bool RollbackPKDeleter::processScanOutput(const Transaction* transaction,
 }
 } // namespace
 
+void NodeTableScanState::setToTable(Table* table_, std::vector<column_id_t> columnIDs_,
+    std::vector<ColumnPredicateSet> columnPredicateSets_, RelDataDirection) {
+    TableScanState::setToTable(table_, columnIDs_, std::move(columnPredicateSets_));
+    columns.resize(columnIDs.size());
+    for (auto i = 0u; i < columnIDs.size(); i++) {
+        auto columnID = columnIDs[i];
+        if (columnID == INVALID_COLUMN_ID || columnID == ROW_IDX_COLUMN_ID) {
+            columns[i] = nullptr;
+        } else {
+            columns[i] = &table->cast<NodeTable>().getColumn(columnID);
+        }
+    }
+}
+
 bool NodeTableScanState::scanNext(Transaction* transaction) {
-    KU_ASSERT(columns.size() == outputVectors.size());
     if (source == TableScanSource::NONE) {
         return false;
     }
+    KU_ASSERT(columns.size() == outputVectors.size());
     const NodeGroupScanResult scanResult = nodeGroup->scan(transaction, *this);
     if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
         return false;
@@ -254,7 +268,7 @@ row_idx_t NodeTable::getNumTotalRows(const Transaction* transaction) {
     return numLocalRows + nodeGroups->getNumTotalRows();
 }
 
-void NodeTable::initScanState(Transaction* transaction, TableScanState& scanState) const {
+void NodeTable::initScanState(Transaction* transaction, TableScanState& scanState, bool) const {
     auto& nodeScanState = scanState.cast<NodeTableScanState>();
     NodeGroup* nodeGroup = nullptr;
     switch (nodeScanState.source) {

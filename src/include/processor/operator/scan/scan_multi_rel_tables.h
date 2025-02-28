@@ -34,7 +34,7 @@ public:
         nextTableIdx = 0;
     }
 
-    bool scan(transaction::Transaction* transaction);
+    bool scan(transaction::Transaction* transaction, storage::RelTableScanState& scanState);
 
 private:
     RelTableCollectionScanner(const RelTableCollectionScanner& other)
@@ -57,7 +57,7 @@ public:
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : ScanTable{type_, std::move(info), std::move(child), id, std::move(printInfo)},
-          directionInfo{std::move(directionInfo)}, boundNodeIDVector{nullptr}, outState{nullptr},
+          directionInfo{std::move(directionInfo)}, scanState{nullptr}, boundNodeIDVector{nullptr},
           scanners{std::move(scanners)}, currentScanner{nullptr} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
@@ -76,8 +76,9 @@ private:
 
 private:
     DirectionInfo directionInfo;
+    std::unique_ptr<storage::RelTableScanState> scanState;
+
     common::ValueVector* boundNodeIDVector;
-    common::DataChunkState* outState;
     common::table_id_map_t<RelTableCollectionScanner> scanners;
     RelTableCollectionScanner* currentScanner;
 };

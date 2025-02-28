@@ -20,9 +20,14 @@ static ScanRelTableInfo getRelTableScanInfo(const TableCatalogEntry& tableCatalo
     const expression_vector& properties, const std::vector<ColumnPredicateSet>& columnPredicates) {
     auto relTableID = tableCatalogEntry.getTableID();
     std::vector<column_id_t> columnIDs;
+    std::vector<ColumnPredicateSet> columnPredicateSets = copyVector(columnPredicates);
     // We always should scan nbrID from relTable. This is not a property in the schema label, so
     // cannot be bound to a column in the front-end.
     columnIDs.push_back(shouldScanNbrID ? NBR_ID_COLUMN_ID : INVALID_COLUMN_ID);
+    if (!columnPredicateSets.empty()) {
+        // Since we insert a nbr column. We need to pad an empty nbr column predicate set.
+        columnPredicateSets.insert(columnPredicateSets.begin(), ColumnPredicateSet());
+    }
     for (auto& expr : properties) {
         auto& property = expr->constCast<PropertyExpression>();
         if (property.hasProperty(relTableID)) {
@@ -32,7 +37,7 @@ static ScanRelTableInfo getRelTableScanInfo(const TableCatalogEntry& tableCatalo
         }
     }
     return ScanRelTableInfo(relTable, direction, std::move(columnIDs),
-        copyVector(columnPredicates));
+        std::move(columnPredicateSets));
 }
 
 static RelTableCollectionScanner populateRelTableCollectionScanner(table_id_t boundNodeTableID,

@@ -45,7 +45,7 @@ public:
         std::unique_ptr<evaluator::ExpressionEvaluator> indexEvaluator,
         std::shared_ptr<PrimaryKeyScanSharedState> sharedState, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : ScanTable{type_, std::move(info), id, std::move(printInfo)},
+        : ScanTable{type_, std::move(info), id, std::move(printInfo)}, scanState{nullptr},
           nodeInfos{std::move(nodeInfos)}, indexEvaluator{std::move(indexEvaluator)},
           sharedState{std::move(sharedState)} {}
 
@@ -66,6 +66,7 @@ private:
     void initVectors(storage::TableScanState& state, const ResultSet& resultSet) const override;
 
 private:
+    std::unique_ptr<storage::NodeTableScanState> scanState;
     std::vector<ScanNodeTableInfo> nodeInfos;
     std::unique_ptr<evaluator::ExpressionEvaluator> indexEvaluator;
     std::shared_ptr<PrimaryKeyScanSharedState> sharedState;

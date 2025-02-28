@@ -63,21 +63,6 @@ void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState,
     scanState.source = TableScanSource::NONE;
 }
 
-void ScanNodeTableInfo::initScanState(semi_mask_t* semiMask) {
-    std::vector<const Column*> columns;
-    columns.reserve(columnIDs.size());
-    for (const auto columnID : columnIDs) {
-        if (columnID == INVALID_COLUMN_ID) {
-            columns.push_back(nullptr);
-        } else {
-            columns.push_back(&table->getColumn(columnID));
-        }
-    }
-    localScanState = std::make_unique<NodeTableScanState>(table->getTableID(), columnIDs, columns,
-        copyVector(columnPredicates));
-    localScanState->semiMask = semiMask;
-}
-
 table_id_map_t<semi_mask_t*> ScanNodeTable::getSemiMasks() const {
     table_id_map_t<semi_mask_t*> result;
     KU_ASSERT(nodeInfos.size() == sharedStates.size());
@@ -87,26 +72,26 @@ table_id_map_t<semi_mask_t*> ScanNodeTable::getSemiMasks() const {
     return result;
 }
 
-void ScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    ScanTable::initLocalStateInternal(resultSet, context);
-    for (auto i = 0u; i < nodeInfos.size(); ++i) {
-        auto& nodeInfo = nodeInfos[i];
-        nodeInfo.initScanState(sharedStates[i]->getSemiMask());
-        initVectors(*nodeInfo.localScanState, *resultSet);
+void ScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*) {
+    std::vector<ValueVector*> outVectors;
+    for (auto& pos : info.outVectorsPos) {
+        outVectors.push_back(resultSet->getValueVector(pos).get());
     }
-}
-
-void ScanNodeTable::initVectors(TableScanState& state, const ResultSet& resultSet) const {
-    ScanTable::initVectors(state, resultSet);
-    state.rowIdxVector->state = state.nodeIDVector->state;
-    state.outState = state.rowIdxVector->state.get();
+    auto nodeIDVector = resultSet->getValueVector(info.nodeIDPos);
+    scanState =
+        std::make_unique<NodeTableScanState>(nodeIDVector.get(), outVectors, nodeIDVector->state);
+    KU_ASSERT(nodeInfos.size() >= 1 && sharedStates.size() >= 1);
+    auto& firstNodeInfo = nodeInfos[0];
+    scanState->setToTable(firstNodeInfo.table, firstNodeInfo.columnIDs,
+        copyVector(firstNodeInfo.columnPredicates));
+    scanState->semiMask = sharedStates[0]->getSemiMask();
 }
 
 void ScanNodeTable::initGlobalStateInternal(ExecutionContext* context) {
     KU_ASSERT(sharedStates.size() == nodeInfos.size());
     for (auto i = 0u; i < nodeInfos.size(); i++) {
-        sharedStates[i]->initialize(context->clientContext->getTransaction(), nodeInfos[i].table,
-            *progressSharedState);
+        sharedStates[i]->initialize(context->clientContext->getTransaction(),
+            nodeInfos[i].table->ptrCast<NodeTable>(), *progressSharedState);
     }
 }
 
@@ -114,20 +99,25 @@ bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     const auto transaction = context->clientContext->getTransaction();
     while (currentTableIdx < nodeInfos.size()) {
         const auto& info = nodeInfos[currentTableIdx];
-        auto& scanState = *info.localScanState;
-        while (info.table->scan(transaction, scanState)) {
-            const auto outputSize = scanState.outState->getSelVector().getSelSize();
+        while (info.table->scan(transaction, *scanState)) {
+            const auto outputSize = scanState->outState->getSelVector().getSelSize();
             if (outputSize > 0) {
-                scanState.outState->setToUnflat();
+                scanState->outState->setToUnflat();
                 metrics->numOutputTuple.increase(outputSize);
                 return true;
             }
         }
-        sharedStates[currentTableIdx]->nextMorsel(scanState, *progressSharedState);
-        if (scanState.source == TableScanSource::NONE) {
+        sharedStates[currentTableIdx]->nextMorsel(*scanState, *progressSharedState);
+        if (scanState->source == TableScanSource::NONE) {
             currentTableIdx++;
+            if (currentTableIdx < nodeInfos.size()) {
+                auto& currentInfo = nodeInfos[currentTableIdx];
+                scanState->setToTable(currentInfo.table, currentInfo.columnIDs,
+                    copyVector(currentInfo.columnPredicates));
+                scanState->semiMask = sharedStates[currentTableIdx]->getSemiMask();
+            }
         } else {
-            info.table->initScanState(transaction, scanState);
+            info.table->initScanState(transaction, *scanState);
         }
     }
     return false;
