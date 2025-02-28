@@ -49,7 +49,6 @@ enum class LogicalOperatorType : uint8_t {
     PARTITIONER,
     PATH_PROPERTY_PROBE,
     PROJECTION,
-    RECURSIVE_EXTEND,
     SCAN_NODE_TABLE,
     SEMI_MASKER,
     SET_PROPERTY,

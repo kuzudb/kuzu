@@ -4,7 +4,7 @@
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
 #include "planner/operator/extend/logical_extend.h"
-#include "planner/operator/extend/logical_recursive_extend.h"
+#include "planner/operator/logical_path_property_probe.h"
 #include "planner/operator/logical_accumulate.h"
 #include "planner/operator/logical_filter.h"
 #include "planner/operator/logical_gds_call.h"
@@ -49,46 +49,35 @@ void ProjectionPushDownOptimizer::visitOperator(LogicalOperator* op) {
 void ProjectionPushDownOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
     auto& pathPropertyProbe = op->cast<LogicalPathPropertyProbe>();
     auto child = pathPropertyProbe.getChild(0);
-    if (child->getOperatorType() == LogicalOperatorType::GDS_CALL) {
-        if (!nodeOrRelInUse.contains(pathPropertyProbe.getRel())) {
-            // Path is not needed
-            pathPropertyProbe.setJoinType(planner::RecursiveJoinType::TRACK_NONE);
-            auto call = child->ptrCast<LogicalGDSCall>();
-            auto& info = call->getInfoUnsafe();
-            auto dummyInput = GDSBindInput();
-            if (info.func.name == VarLenJoinsFunction::name) {
-                auto& rjAlg = info.func.gds->cast<RJAlgorithm>();
-                rjAlg.setToNoPath();
-                info.outExprs = rjAlg.getResultColumns(dummyInput);
-            } else if (info.func.name == SingleSPPathsFunction::name) {
-                auto func = SingleSPDestinationsFunction::getFunction();
-                func.gds->setBindData(info.func.gds->getBindData()->copy());
-                info.outExprs = func.gds->cast<RJAlgorithm>().getResultColumns(dummyInput);
-                info.func = std::move(func);
-            } else if (info.func.name == AllSPPathsFunction::name) {
-                auto func = AllSPDestinationsFunction::getFunction();
-                func.gds->setBindData(info.func.gds->getBindData()->copy());
-                info.outExprs = func.gds->cast<RJAlgorithm>().getResultColumns(dummyInput);
-                info.func = std::move(func);
-            } else if (info.func.name == WeightedSPPathsFunction::name) {
-                auto func = WeightedSPDestinationsFunction::getFunction();
-                func.gds->setBindData(info.func.gds->getBindData()->copy());
-                info.outExprs = func.gds->cast<RJAlgorithm>().getResultColumns(dummyInput);
-                info.func = std::move(func);
-            }
+    KU_ASSERT(child->getOperatorType() == LogicalOperatorType::GDS_CALL);
+    if (!nodeOrRelInUse.contains(pathPropertyProbe.getRel())) {
+        // Path is not needed
+        pathPropertyProbe.setJoinType(planner::RecursiveJoinType::TRACK_NONE);
+        auto call = child->ptrCast<LogicalGDSCall>();
+        auto& info = call->getInfoUnsafe();
+        auto dummyInput = GDSBindInput();
+        if (info.func.name == VarLenJoinsFunction::name) {
+            auto& rjAlg = info.func.gds->cast<RJAlgorithm>();
+            rjAlg.setToNoPath();
+            info.outExprs = rjAlg.getResultColumns(dummyInput);
+        } else if (info.func.name == SingleSPPathsFunction::name) {
+            auto func = SingleSPDestinationsFunction::getFunction();
+            func.gds->setBindData(info.func.gds->getBindData()->copy());
+            info.outExprs = func.gds->cast<RJAlgorithm>().getResultColumns(dummyInput);
+            info.func = std::move(func);
+        } else if (info.func.name == AllSPPathsFunction::name) {
+            auto func = AllSPDestinationsFunction::getFunction();
+            func.gds->setBindData(info.func.gds->getBindData()->copy());
+            info.outExprs = func.gds->cast<RJAlgorithm>().getResultColumns(dummyInput);
+            info.func = std::move(func);
+        } else if (info.func.name == WeightedSPPathsFunction::name) {
+            auto func = WeightedSPDestinationsFunction::getFunction();
+            func.gds->setBindData(info.func.gds->getBindData()->copy());
+            info.outExprs = func.gds->cast<RJAlgorithm>().getResultColumns(dummyInput);
+            info.func = std::move(func);
         }
-        return;
     }
-    KU_ASSERT(child->getOperatorType() == LogicalOperatorType::RECURSIVE_EXTEND);
-    auto& recursiveExtend = pathPropertyProbe.getChild(0)->cast<LogicalRecursiveExtend>();
-    auto boundNodeID = recursiveExtend.getBoundNode()->getInternalID();
-    collectExpressionsInUse(boundNodeID);
-    auto rel = recursiveExtend.getRel();
-    // set TRACK_NONE only when PathSemantic=walk
-    if (!nodeOrRelInUse.contains(rel) && semantic == common::PathSemantic::WALK) {
-        pathPropertyProbe.setJoinType(RecursiveJoinType::TRACK_NONE);
-        recursiveExtend.setJoinType(RecursiveJoinType::TRACK_NONE);
-    }
+    return;
 }
 
 void ProjectionPushDownOptimizer::visitExtend(LogicalOperator* op) {

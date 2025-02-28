@@ -7,7 +7,6 @@ add_subdirectory(persistent)
 add_subdirectory(scan)
 add_subdirectory(simple)
 add_subdirectory(table_scan)
-add_subdirectory(recursive_extend)
 add_subdirectory(macro)
 
 add_library(kuzu_processor_operator
@@ -23,6 +22,7 @@ add_library(kuzu_processor_operator
         limit.cpp
         multiplicity_reducer.cpp
         partitioner.cpp
+        path_property_probe.cpp
         physical_operator.cpp
         projection.cpp
         profile.cpp

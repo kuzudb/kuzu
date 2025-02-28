@@ -9,8 +9,7 @@ namespace planner {
 
 enum class LogicalScanNodeTableType : uint8_t {
     SCAN = 0,
-    OFFSET_SCAN = 1,
-    PRIMARY_KEY_SCAN = 2,
+    PRIMARY_KEY_SCAN = 1,
 };
 
 struct ExtraScanNodeTableInfo {
@@ -20,20 +19,6 @@ struct ExtraScanNodeTableInfo {
     template<class TARGET>
     const TARGET& constCast() const {
         return common::ku_dynamic_cast<const TARGET&>(*this);
-    }
-};
-
-// LogicalScanNodeTable now is also the source for recursive plan. Recursive plan node predicate
-// need additional variable to evaluate. I cannot think of other operator that can put it into
-// recursive plan schema.
-struct RecursiveJoinScanInfo final : ExtraScanNodeTableInfo {
-    std::shared_ptr<binder::Expression> nodePredicateExecFlag;
-
-    explicit RecursiveJoinScanInfo(std::shared_ptr<binder::Expression> expr)
-        : nodePredicateExecFlag{std::move(expr)} {}
-
-    std::unique_ptr<ExtraScanNodeTableInfo> copy() const override {
-        return std::make_unique<RecursiveJoinScanInfo>(nodePredicateExecFlag);
     }
 };
 

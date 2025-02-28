@@ -1,6 +1,5 @@
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/gds_call.h"
-#include "processor/operator/recursive_extend/recursive_join.h"
 #include "processor/operator/scan/scan_node_table.h"
 #include "processor/operator/semi_masker.h"
 #include "processor/plan_mapper.h"
@@ -39,11 +38,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(
             KU_ASSERT(semiMasker.getTargetType() == SemiMaskTargetType::SCAN_NODE);
             auto scan = physicalOp->ptrCast<ScanNodeTable>();
             initMask(masksPerTable, scan->getSemiMasks());
-        } break;
-        case PhysicalOperatorType::RECURSIVE_JOIN: {
-            KU_ASSERT(semiMasker.getTargetType() == SemiMaskTargetType::RECURSIVE_JOIN_TARGET_NODE);
-            auto& recursiveJoin = physicalOp->constCast<RecursiveJoin>();
-            initMask(masksPerTable, recursiveJoin.getSemiMasks());
         } break;
         case PhysicalOperatorType::GDS_CALL: {
             auto sharedState = physicalOp->ptrCast<GDSCall>()->getSharedState();

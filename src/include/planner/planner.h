@@ -245,16 +245,10 @@ public:
         const std::shared_ptr<binder::NodeExpression>& nbrNode,
         const std::shared_ptr<binder::RelExpression>& rel, common::ExtendDirection direction,
         bool extendFromSource, const binder::expression_vector& properties, LogicalPlan& plan);
-    void appendRecursiveExtend(const std::shared_ptr<binder::NodeExpression>& boundNode,
-        const std::shared_ptr<binder::NodeExpression>& nbrNode,
-        const std::shared_ptr<binder::RelExpression>& rel, common::ExtendDirection direction,
-        LogicalPlan& plan);
     void appendRecursiveExtendAsGDS(const std::shared_ptr<binder::NodeExpression>& boundNode,
         const std::shared_ptr<binder::NodeExpression>& nbrNode,
         const std::shared_ptr<binder::RelExpression>& rel, common::ExtendDirection direction,
         LogicalPlan& plan);
-    void createRecursivePlan(const binder::RecursiveInfo& recursiveInfo,
-        common::ExtendDirection direction, bool extendFromSource, LogicalPlan& plan);
     void createPathNodeFilterPlan(const std::shared_ptr<binder::NodeExpression>& node,
         std::shared_ptr<binder::Expression> nodePredicate, LogicalPlan& plan);
     void createPathNodePropertyScanPlan(const std::shared_ptr<binder::NodeExpression>& node,

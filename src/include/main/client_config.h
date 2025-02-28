@@ -14,7 +14,6 @@ struct ClientConfigDefault {
     static constexpr uint32_t VAR_LENGTH_MAX_DEPTH = 30;
     static constexpr bool ENABLE_SEMI_MASK = true;
     static constexpr bool ENABLE_ZONE_MAP = true;
-    static constexpr bool ENABLE_GDS = true;
     static constexpr bool ENABLE_PROGRESS_BAR = false;
     static constexpr uint64_t SHOW_PROGRESS_AFTER = 1000;
     static constexpr common::PathSemantic RECURSIVE_PATTERN_SEMANTIC = common::PathSemantic::WALK;
@@ -34,8 +33,6 @@ struct ClientConfig {
     bool enableSemiMask = ClientConfigDefault::ENABLE_SEMI_MASK;
     // If using zone map in scan.
     bool enableZoneMap = ClientConfigDefault::ENABLE_ZONE_MAP;
-    // If compiling recursive pattern as GDS.
-    bool enableGDS = ClientConfigDefault::ENABLE_GDS;
     // Number of threads for execution.
     uint64_t numThreads = 1;
     // Timeout (milliseconds).

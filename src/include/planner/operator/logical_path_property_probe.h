@@ -1,42 +1,12 @@
 #pragma once
 
-#include "planner/operator/extend/base_logical_extend.h"
 #include "planner/operator/extend/recursive_join_type.h"
 #include "planner/operator/sip/side_way_info_passing.h"
+#include "planner/operator/logical_operator.h"
+#include "binder/expression/rel_expression.h"
 
 namespace kuzu {
 namespace planner {
-
-class LogicalRecursiveExtend : public BaseLogicalExtend {
-    static constexpr LogicalOperatorType type_ = LogicalOperatorType::RECURSIVE_EXTEND;
-
-public:
-    LogicalRecursiveExtend(std::shared_ptr<binder::NodeExpression> boundNode,
-        std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
-        common::ExtendDirection direction, bool extendFromSource, RecursiveJoinType joinType,
-        std::shared_ptr<LogicalOperator> child, std::shared_ptr<LogicalOperator> recursiveChild)
-        : BaseLogicalExtend{type_, std::move(boundNode), std::move(nbrNode), std::move(rel),
-              direction, extendFromSource, std::move(child)},
-          joinType{joinType}, recursiveChild{std::move(recursiveChild)} {}
-
-    f_group_pos_set getGroupsPosToFlatten() override;
-
-    void computeFactorizedSchema() override;
-    void computeFlatSchema() override;
-
-    void setJoinType(RecursiveJoinType joinType_) { joinType = joinType_; }
-    RecursiveJoinType getJoinType() const { return joinType; }
-    std::shared_ptr<LogicalOperator> getRecursiveChild() const { return recursiveChild; }
-
-    std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalRecursiveExtend>(boundNode, nbrNode, rel, direction,
-            extendFromSource_, joinType, children[0]->copy(), recursiveChild->copy());
-    }
-
-private:
-    RecursiveJoinType joinType;
-    std::shared_ptr<LogicalOperator> recursiveChild;
-};
 
 class LogicalPathPropertyProbe : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::PATH_PROPERTY_PROBE;

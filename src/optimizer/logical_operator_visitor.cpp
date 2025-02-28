@@ -70,9 +70,6 @@ void LogicalOperatorVisitor::visitOperatorSwitch(LogicalOperator* op) {
     case LogicalOperatorType::PROJECTION: {
         visitProjection(op);
     } break;
-    case LogicalOperatorType::RECURSIVE_EXTEND: {
-        visitRecursiveExtend(op);
-    } break;
     case LogicalOperatorType::SCAN_NODE_TABLE: {
         visitScanNodeTable(op);
     } break;
@@ -161,9 +158,6 @@ std::shared_ptr<LogicalOperator> LogicalOperatorVisitor::visitOperatorReplaceSwi
     }
     case LogicalOperatorType::PROJECTION: {
         return visitProjectionReplace(op);
-    }
-    case LogicalOperatorType::RECURSIVE_EXTEND: {
-        return visitRecursiveExtendReplace(op);
     }
     case LogicalOperatorType::SCAN_NODE_TABLE: {
         return visitScanNodeTableReplace(op);

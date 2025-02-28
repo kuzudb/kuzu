@@ -1,4 +1,4 @@
-#include "processor/operator/recursive_extend/path_property_probe.h"
+#include "processor/operator/path_property_probe.h"
 
 #include "common/constants.h"
 #include "function/hash/hash_functions.h"

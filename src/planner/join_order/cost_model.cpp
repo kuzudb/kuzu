@@ -13,12 +13,6 @@ uint64_t CostModel::computeExtendCost(const LogicalPlan& childPlan) {
     return childPlan.getCost() + childPlan.getCardinality();
 }
 
-uint64_t CostModel::computeRecursiveExtendCost(uint8_t upperBound, double extensionRate,
-    const LogicalPlan& childPlan) {
-    return PlannerKnobs::BUILD_PENALTY * childPlan.getCardinality() * (uint64_t)extensionRate *
-           upperBound;
-}
-
 uint64_t CostModel::computeHashJoinCost(const std::vector<binder::expression_pair>& joinConditions,
     const LogicalPlan& probe, const LogicalPlan& build) {
     return computeHashJoinCost(LogicalHashJoin::getJoinNodeIDs(joinConditions), probe, build);

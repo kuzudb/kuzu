@@ -105,18 +105,6 @@ struct EnableZoneMapSetting {
     }
 };
 
-struct EnableGDSSetting {
-    static constexpr auto name = "enable_gds";
-    static constexpr auto inputType = common::LogicalTypeID::BOOL;
-    static void setContext(ClientContext* context, const common::Value& parameter) {
-        parameter.validateType(inputType);
-        context->getClientConfigUnsafe()->enableGDS = parameter.getValue<bool>();
-    }
-    static common::Value getSetting(const ClientContext* context) {
-        return common::Value(context->getClientConfig()->enableGDS);
-    }
-};
-
 struct HomeDirectorySetting {
     static constexpr auto name = "home_directory";
     static constexpr auto inputType = common::LogicalTypeID::STRING;

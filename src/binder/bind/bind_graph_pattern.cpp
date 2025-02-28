@@ -370,7 +370,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     auto relExtraInfo = std::make_unique<StructTypeInfo>(std::move(relFields));
     rel->setExtraTypeInfo(std::move(relExtraInfo));
     // Bind predicates in {}, e.g. [e* {date=1999-01-01}]
-    std::shared_ptr<Expression> relPredicate;
+    std::shared_ptr<Expression> relPredicate = nullptr;
     for (auto& [propertyName, rhs] : relPattern.getPropertyKeyVals()) {
         auto boundLhs = expressionBinder.bindNodeOrRelPropertyExpression(*rel, propertyName);
         auto boundRhs = expressionBinder.bindExpression(*rhs);
@@ -381,7 +381,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     }
     // Bind predicates in (r, n | WHERE )
     bool emptyRecursivePattern = false;
-    std::shared_ptr<Expression> nodePredicate;
+    std::shared_ptr<Expression> nodePredicate = nullptr;
     if (recursivePatternInfo->whereExpression != nullptr) {
         expressionBinder.config.disableLabelFunctionLiteralRewrite = true;
         auto wherePredicate = bindWhereExpression(*recursivePatternInfo->whereExpression);
@@ -418,8 +418,6 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
             }
         }
     }
-    auto nodePredicateExecutionFlag = expressionBinder.createVariableExpression(LogicalType::BOOL(),
-        std::string(InternalKeyword::ANONYMOUS));
     // Bind rel
     restoreScope(std::move(prevScope));
     auto parsedName = relPattern.getVariableName();
@@ -441,13 +439,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     recursiveInfo->nodeCopy = nodeCopy;
     recursiveInfo->rel = rel;
     recursiveInfo->lengthExpression = std::move(lengthExpression);
-    recursiveInfo->nodePredicateExecFlag = nodePredicateExecutionFlag;
-    recursiveInfo->originalNodePredicate = nodePredicate;
-    if (nodePredicate != nullptr) {
-        recursiveInfo->nodePredicate = expressionBinder.combineBooleanExpressions(
-            ExpressionType::OR, nodePredicate, nodePredicateExecutionFlag);
-    }
-
+    recursiveInfo->nodePredicate = std::move(nodePredicate);
     recursiveInfo->relPredicate = std::move(relPredicate);
     recursiveInfo->nodeProjectionList = std::move(nodeProjectionList);
     recursiveInfo->relProjectionList = std::move(relProjectionList);
