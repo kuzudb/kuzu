@@ -1,0 +1,11 @@
+-NAME wcc
+-CALL create_projected_graph('Graph', ['Nodes'], ['Edges']);
+---- ok
+-CALL CALL weakly_connected_component('Graph') RETURN group_id, count(*) as count order by count desc limit 10;
+---- 1
+0|1706561
+
+# Matches Neo4j. Probably needs a better datase with more connected components.
+# CALL gds.graph.project('GraphUndirected', 'Node', {Edge: {orientation: 'UNDIRECTED'}});
+# CALL gds.wcc.stream('GraphUndirected') YIELD componentId RETURN componentId, count(*) as count order by count desc limit 10;
+# |0          │1706561│

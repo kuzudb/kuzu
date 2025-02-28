@@ -1,0 +1,39 @@
+-NAME kcore
+-CALL create_projected_graph('Graph', ['Nodes'], ['Edges']);
+---- ok
+-CALL K_CORE_DECOMPOSITION('Graph') RETURN k_degree, count(*) as count order by count desc limit 10;
+---- 10
+122|437703
+2|35067
+1|35051
+121|30231
+20|28891
+120|18671
+23|17851
+14|17730
+12|17675
+16|17673
+
+# Exactly matches Neo4j:
+# CALL gds.graph.project('GraphUndirected', 'Node', {Edge: {orientation: 'UNDIRECTED'}});
+# CALL gds.kcore.stream('GraphUndirected') YIELD coreValue RETURN coreValue, count(*) as count order by count desc limit 10;
+# │122      │437703│
+# ├─────────┼──────┤
+# │2        │35067 │
+# ├─────────┼──────┤
+# │1        │35051 │
+# ├─────────┼──────┤
+# │121      │30231 │
+# ├─────────┼──────┤
+# │20       │28891 │
+# ├─────────┼──────┤
+# │120      │18671 │
+# ├─────────┼──────┤
+# │23       │17851 │
+# ├─────────┼──────┤
+# │14       │17730 │
+# ├─────────┼──────┤
+# │12       │17675 │
+# ├─────────┼──────┤
+# │16       │17673 |
+
