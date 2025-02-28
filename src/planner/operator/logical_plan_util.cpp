@@ -2,7 +2,6 @@
 
 #include "binder/expression/property_expression.h"
 #include "planner/operator/extend/logical_extend.h"
-#include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_intersect.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
@@ -52,10 +51,6 @@ void LogicalPlanUtil::encodeRecursive(LogicalOperator* logicalOperator, std::str
         encodeExtend(logicalOperator, encodeString);
         encodeRecursive(logicalOperator->getChild(0).get(), encodeString);
     } break;
-    case LogicalOperatorType::RECURSIVE_EXTEND: {
-        encodeRecursiveExtend(logicalOperator, encodeString);
-        encodeRecursive(logicalOperator->getChild(0).get(), encodeString);
-    } break;
     case LogicalOperatorType::SCAN_NODE_TABLE: {
         encodeScanNodeTable(logicalOperator, encodeString);
     } break;
@@ -88,17 +83,6 @@ void LogicalPlanUtil::encodeHashJoin(LogicalOperator* logicalOperator, std::stri
 void LogicalPlanUtil::encodeExtend(LogicalOperator* logicalOperator, std::string& encodeString) {
     auto& logicalExtend = logicalOperator->constCast<LogicalExtend>();
     encodeString += "E(" + logicalExtend.getNbrNode()->toString() + ")";
-}
-
-void LogicalPlanUtil::encodeRecursiveExtend(LogicalOperator* logicalOperator,
-    std::string& encodeString) {
-    auto& logicalExtend = logicalOperator->constCast<LogicalRecursiveExtend>();
-    if (logicalExtend.getJoinType() == RecursiveJoinType::TRACK_NONE) {
-        encodeString += "RE_NO_TRACK";
-    } else {
-        encodeString += "RE";
-    }
-    encodeString += "(" + logicalExtend.getNbrNode()->toString() + ")";
 }
 
 void LogicalPlanUtil::encodeScanNodeTable(LogicalOperator* logicalOperator,

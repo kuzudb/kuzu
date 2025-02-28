@@ -24,7 +24,6 @@ enum class SemiMaskKeyType : uint8_t {
 
 enum class SemiMaskTargetType : uint8_t {
     SCAN_NODE = 0,
-    RECURSIVE_JOIN_TARGET_NODE = 1,
     GDS_INPUT_NODE = 2,
     GDS_PATH_NODE = 3,
     GDS_OUTPUT_NODE = 4,

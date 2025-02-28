@@ -84,8 +84,6 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "PATH_PROPERTY_PROBE";
     case LogicalOperatorType::PROJECTION:
         return "PROJECTION";
-    case LogicalOperatorType::RECURSIVE_EXTEND:
-        return "RECURSIVE_EXTEND";
     case LogicalOperatorType::SCAN_NODE_TABLE:
         return "SCAN_NODE_TABLE";
     case LogicalOperatorType::SEMI_MASKER:

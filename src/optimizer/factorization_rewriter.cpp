@@ -1,7 +1,6 @@
 #include "optimizer/factorization_rewriter.h"
 
 #include "binder/expression_visitor.h"
-#include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/operator/logical_accumulate.h"
 #include "planner/operator/logical_aggregate.h"
@@ -39,12 +38,6 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
     }
     visitOperatorSwitch(op);
     op->computeFactorizedSchema();
-}
-
-void FactorizationRewriter::visitRecursiveExtend(planner::LogicalOperator* op) {
-    auto& extend = op->cast<LogicalRecursiveExtend>();
-    auto groupsPosToFlatten = extend.getGroupsPosToFlatten();
-    extend.setChild(0, appendFlattens(extend.getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitHashJoin(planner::LogicalOperator* op) {

@@ -317,7 +317,6 @@ void Planner::appendExtend(std::shared_ptr<NodeExpression> boundNode,
         auto extendFromSource = *boundNode == *rel->getSrcNode();
         appendNonRecursiveExtend(boundNode, nbrNode, rel, direction, extendFromSource, properties,
             plan);
-
     } break;
     case QueryRelType::VARIABLE_LENGTH_WALK:
     case QueryRelType::VARIABLE_LENGTH_TRAIL:
@@ -326,11 +325,7 @@ void Planner::appendExtend(std::shared_ptr<NodeExpression> boundNode,
     case QueryRelType::ALL_SHORTEST:
     case QueryRelType::WEIGHTED_SHORTEST:
     case QueryRelType::ALL_WEIGHTED_SHORTEST: {
-        if (clientContext->getClientConfig()->enableGDS) {
-            appendRecursiveExtendAsGDS(boundNode, nbrNode, rel, direction, plan);
-        } else {
-            appendRecursiveExtend(boundNode, nbrNode, rel, direction, plan);
-        }
+        appendRecursiveExtendAsGDS(boundNode, nbrNode, rel, direction, plan);
     } break;
     default:
         KU_UNREACHABLE;

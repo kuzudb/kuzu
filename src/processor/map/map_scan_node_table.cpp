@@ -1,7 +1,6 @@
 #include "binder/expression/property_expression.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
 #include "processor/expression_mapper.h"
-#include "processor/operator/scan/offset_scan_node_table.h"
 #include "processor/operator/scan/primary_key_scan_node_table.h"
 #include "processor/operator/scan/scan_node_table.h"
 #include "processor/plan_mapper.h"
@@ -56,15 +55,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(
         auto progressSharedState = std::make_shared<ScanNodeTableProgressSharedState>();
         return std::make_unique<ScanNodeTable>(std::move(scanInfo), std::move(tableInfos),
             std::move(sharedStates), getOperatorID(), std::move(printInfo), progressSharedState);
-    }
-    case LogicalScanNodeTableType::OFFSET_SCAN: {
-        table_id_map_t<ScanNodeTableInfo> tableInfosMap;
-        for (auto& info : tableInfos) {
-            tableInfosMap.insert({info.table->getTableID(), info.copy()});
-        }
-        auto printInfo = std::make_unique<OPPrintInfo>();
-        return std::make_unique<OffsetScanNodeTable>(std::move(scanInfo), std::move(tableInfosMap),
-            getOperatorID(), std::move(printInfo));
     }
     case LogicalScanNodeTableType::PRIMARY_KEY_SCAN: {
         auto& primaryKeyScanInfo = scan.getExtraInfo()->constCast<PrimaryKeyScanInfo>();

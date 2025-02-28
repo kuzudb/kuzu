@@ -78,8 +78,6 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "MERGE";
     case PhysicalOperatorType::MULTIPLICITY_REDUCER:
         return "MULTIPLICITY_REDUCER";
-    case PhysicalOperatorType::OFFSET_SCAN_NODE_TABLE:
-        return "OFFSET_SCAN_NODE_TABLE";
     case PhysicalOperatorType::PARTITIONER:
         return "PARTITIONER";
     case PhysicalOperatorType::PATH_PROPERTY_PROBE:
@@ -90,8 +88,6 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "PROJECTION";
     case PhysicalOperatorType::PROFILE:
         return "PROFILE";
-    case PhysicalOperatorType::RECURSIVE_JOIN:
-        return "RECURSIVE_JOIN";
     case PhysicalOperatorType::RESULT_COLLECTOR:
         return "RESULT_COLLECTOR";
     case PhysicalOperatorType::SCAN_NODE_TABLE:

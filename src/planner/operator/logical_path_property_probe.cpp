@@ -1,51 +1,10 @@
-#include "planner/operator/extend/logical_recursive_extend.h"
+#include "planner/operator/logical_path_property_probe.h"
 
 #include "optimizer/factorization_rewriter.h"
 #include "optimizer/remove_factorization_rewriter.h"
 
 namespace kuzu {
 namespace planner {
-
-f_group_pos_set LogicalRecursiveExtend::getGroupsPosToFlatten() {
-    f_group_pos_set result;
-    auto inSchema = children[0]->getSchema();
-    auto boundNodeGroupPos = inSchema->getGroupPos(*boundNode->getInternalID());
-    if (!inSchema->getGroup(boundNodeGroupPos)->isFlat()) {
-        result.insert(boundNodeGroupPos);
-    }
-    return result;
-}
-
-void LogicalRecursiveExtend::computeFlatSchema() {
-    copyChildSchema(0);
-    schema->insertToGroupAndScope(nbrNode->getInternalID(), 0);
-    schema->insertToGroupAndScope(rel->getLengthExpression(), 0);
-    switch (joinType) {
-    case RecursiveJoinType::TRACK_PATH: {
-        schema->insertToGroupAndScope(rel, 0);
-    } break;
-    default:
-        break;
-    }
-    auto rewriter = optimizer::RemoveFactorizationRewriter();
-    rewriter.visitOperator(recursiveChild);
-}
-
-void LogicalRecursiveExtend::computeFactorizedSchema() {
-    copyChildSchema(0);
-    auto nbrGroupPos = schema->createGroup();
-    schema->insertToGroupAndScope(nbrNode->getInternalID(), nbrGroupPos);
-    schema->insertToGroupAndScope(rel->getLengthExpression(), nbrGroupPos);
-    switch (joinType) {
-    case RecursiveJoinType::TRACK_PATH: {
-        schema->insertToGroupAndScope(rel, nbrGroupPos);
-    } break;
-    default:
-        break;
-    }
-    auto rewriter = optimizer::FactorizationRewriter();
-    rewriter.visitOperator(recursiveChild.get());
-}
 
 void LogicalPathPropertyProbe::computeFactorizedSchema() {
     copyChildSchema(0);

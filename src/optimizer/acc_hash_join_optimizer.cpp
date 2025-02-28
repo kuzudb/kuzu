@@ -2,11 +2,11 @@
 
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "optimizer/logical_operator_collector.h"
-#include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_accumulate.h"
 #include "planner/operator/logical_gds_call.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_intersect.h"
+#include "planner/operator/logical_path_property_probe.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
 #include "planner/operator/sip/logical_semi_masker.h"
 
@@ -38,10 +38,6 @@ static std::vector<table_id_t> getTableIDs(const LogicalOperator* op,
     switch (op->getOperatorType()) {
     case LogicalOperatorType::SCAN_NODE_TABLE: {
         return op->constCast<LogicalScanNodeTable>().getTableIDs();
-    }
-    case LogicalOperatorType::RECURSIVE_EXTEND: {
-        auto node = op->constCast<LogicalRecursiveExtend>().getNbrNode();
-        return getTableIDs(node->getEntries());
     }
     case LogicalOperatorType::GDS_CALL: {
         auto bindData = op->constCast<LogicalGDSCall>().getInfo().getBindData();
@@ -208,24 +204,6 @@ static std::vector<const LogicalOperator*> getGDSCallOutputNodeCandidates(const 
     return result;
 }
 
-// Find all ShortestPathExtend under root which extend to parameter nodeID. There will be at
-// most one match because rel table is scanned exactly once.
-static std::vector<const LogicalOperator*> getRecursiveJoinCandidates(const Expression& nodeID,
-    LogicalOperator* root) {
-    std::vector<const LogicalOperator*> result;
-    auto collector = LogicalRecursiveExtendCollector();
-    collector.collect(root);
-    for (const auto& op : collector.getOperators()) {
-        const auto& recursiveJoin = op->constCast<LogicalRecursiveExtend>();
-        const auto& node = recursiveJoin.getNbrNode();
-        if (nodeID == *node->getInternalID()) {
-            result.push_back(op);
-            return result;
-        }
-    }
-    return result;
-}
-
 static std::shared_ptr<LogicalOperator> tryApplySemiMask(std::shared_ptr<Expression> nodeID,
     std::shared_ptr<LogicalOperator> fromRoot, LogicalOperator* toRoot) {
     // TODO(Xiyang): Check if a semi mask can/need to be applied to ScanNodeTable, RecursiveJoin &
@@ -248,13 +226,6 @@ static std::shared_ptr<LogicalOperator> tryApplySemiMask(std::shared_ptr<Express
     if (!scanNodeCandidates.empty()) {
         return appendSemiMasker(SemiMaskKeyType::NODE, SemiMaskTargetType::SCAN_NODE,
             std::move(nodeID), scanNodeCandidates, std::move(fromRoot));
-    }
-    auto recursiveExtendCandidates = getRecursiveJoinCandidates(*nodeID, toRoot);
-    if (!recursiveExtendCandidates.empty()) {
-        auto targetType = SemiMaskTargetType::RECURSIVE_JOIN_TARGET_NODE;
-        KU_ASSERT(sanityCheckCandidates(recursiveExtendCandidates, targetType));
-        return appendSemiMasker(SemiMaskKeyType::NODE, targetType, std::move(nodeID),
-            recursiveExtendCandidates, std::move(fromRoot));
     }
     return nullptr;
 }
@@ -415,24 +386,15 @@ void HashJoinSIPOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
     if (opsToApplySemiMask.empty()) {
         return;
     }
-    std::shared_ptr<LogicalSemiMasker> semiMasker;
-    if (pathPropertyProbe.getChild(0)->getOperatorType() == LogicalOperatorType::RECURSIVE_EXTEND) {
-        semiMasker = appendSemiMasker(SemiMaskKeyType::PATH, SemiMaskTargetType::SCAN_NODE,
-            recursiveRel, opsToApplySemiMask, pathPropertyProbe.getChild(0));
-        auto direction = op->getChild(0)->cast<LogicalRecursiveExtend>().getDirection();
-        semiMasker->setExtraKeyInfo(std::make_unique<ExtraPathKeyInfo>(direction));
-        pathPropertyProbe.setChild(0, appendAccumulate(semiMasker));
-    } else {
-        KU_ASSERT(
-            pathPropertyProbe.getChild(0)->getOperatorType() == LogicalOperatorType::GDS_CALL);
-        semiMasker = appendSemiMasker(SemiMaskKeyType::NODE_ID_LIST, SemiMaskTargetType::SCAN_NODE,
-            recursiveRel->getRecursiveInfo()->pathNodeIDsExpr, opsToApplySemiMask,
-            pathPropertyProbe.getChild(0));
-        auto srcNodeID = recursiveRel->getSrcNode()->getInternalID();
-        auto dstNodeID = recursiveRel->getDstNode()->getInternalID();
-        semiMasker->setExtraKeyInfo(std::make_unique<ExtraNodeIDListKeyInfo>(srcNodeID, dstNodeID));
-        pathPropertyProbe.setChild(0, semiMasker);
-    }
+    KU_ASSERT(pathPropertyProbe.getChild(0)->getOperatorType() == LogicalOperatorType::GDS_CALL);
+    auto semiMasker = appendSemiMasker(SemiMaskKeyType::NODE_ID_LIST, SemiMaskTargetType::SCAN_NODE,
+        recursiveRel->getRecursiveInfo()->pathNodeIDsExpr, opsToApplySemiMask,
+        pathPropertyProbe.getChild(0));
+    auto srcNodeID = recursiveRel->getSrcNode()->getInternalID();
+    auto dstNodeID = recursiveRel->getDstNode()->getInternalID();
+    semiMasker->setExtraKeyInfo(std::make_unique<ExtraNodeIDListKeyInfo>(srcNodeID, dstNodeID));
+    pathPropertyProbe.setChild(0, semiMasker);
+
     auto& sipInfo = pathPropertyProbe.getSIPInfoUnsafe();
     sipInfo.position = SemiMaskPosition::ON_PROBE;
     sipInfo.dependency = SIPDependency::PROBE_DEPENDS_ON_BUILD;

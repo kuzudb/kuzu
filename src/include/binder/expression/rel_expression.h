@@ -35,15 +35,7 @@ struct RecursiveInfo {
     std::shared_ptr<RelExpression> rel = nullptr;
 
     std::shared_ptr<Expression> lengthExpression = nullptr;
-    // Node predicate should only be applied to intermediate node. So we need to avoid executing
-    // predicate for src and dst node. This is done by rewriting node predicate 'P' as 'Flag OR P'
-    // During recursive computation, we set 'Flag' to True to avoid executing 'P'.
-    std::shared_ptr<Expression> nodePredicateExecFlag = nullptr;
     std::shared_ptr<Expression> nodePredicate = nullptr;
-    // The node predicate we use for recursive join & gds is different. Until we migrate recursive
-    // extend to GDS, we need to keep this field.
-    std::shared_ptr<Expression> originalNodePredicate = nullptr;
-
     std::shared_ptr<Expression> relPredicate = nullptr;
     // Projection list
     expression_vector nodeProjectionList;

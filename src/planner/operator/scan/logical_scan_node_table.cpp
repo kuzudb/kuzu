@@ -22,11 +22,6 @@ void LogicalScanNodeTable::computeFactorizedSchema() {
         schema->insertToGroupAndScope(property, groupPos);
     }
     switch (scanType) {
-    case LogicalScanNodeTableType::OFFSET_SCAN: {
-        schema->setGroupAsSingleState(groupPos);
-        auto recursiveJoinInfo = extraInfo->constCast<RecursiveJoinScanInfo>();
-        schema->insertToGroupAndScope(recursiveJoinInfo.nodePredicateExecFlag, groupPos);
-    } break;
     case LogicalScanNodeTableType::PRIMARY_KEY_SCAN: {
         schema->setGroupAsSingleState(groupPos);
     } break;
@@ -41,10 +36,6 @@ void LogicalScanNodeTable::computeFlatSchema() {
     schema->insertToGroupAndScope(nodeID, 0);
     for (auto& property : properties) {
         schema->insertToGroupAndScope(property, 0);
-    }
-    if (scanType == LogicalScanNodeTableType::OFFSET_SCAN) {
-        auto recursiveJoinInfo = extraInfo->constCast<RecursiveJoinScanInfo>();
-        schema->insertToGroupAndScope(recursiveJoinInfo.nodePredicateExecFlag, 0);
     }
 }
 

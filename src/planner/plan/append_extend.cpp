@@ -14,10 +14,10 @@
 #include "main/client_context.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/operator/extend/logical_extend.h"
-#include "planner/operator/extend/logical_recursive_extend.h"
+#include "planner/operator/extend/recursive_join_type.h"
 #include "planner/operator/logical_gds_call.h"
 #include "planner/operator/logical_node_label_filter.h"
-#include "planner/operator/scan/logical_scan_node_table.h"
+#include "planner/operator/logical_path_property_probe.h"
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "planner/planner.h"
 
@@ -166,7 +166,7 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     gdsCall->computeFactorizedSchema();
     if (recursiveInfo->nodePredicate != nullptr) {
         auto p = LogicalPlan();
-        createPathNodeFilterPlan(recursiveInfo->node, recursiveInfo->originalNodePredicate, p);
+        createPathNodeFilterPlan(recursiveInfo->node, recursiveInfo->nodePredicate, p);
         gdsCall->ptrCast<LogicalGDSCall>()->setNodePredicateRoot(p.getLastOperator());
     }
     // E.g. Given schema person-knows->person & person-knows->animal
@@ -228,102 +228,6 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     // Hash join above is joining input node with its properties. So 1-1 match is guaranteed and
     // thus should not change cardinality.
     plan.getLastOperator()->setCardinality(resultCard);
-}
-
-void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& boundNode,
-    const std::shared_ptr<NodeExpression>& nbrNode, const std::shared_ptr<RelExpression>& rel,
-    ExtendDirection direction, LogicalPlan& plan) {
-    auto recursiveInfo = rel->getRecursiveInfo();
-    appendAccumulate(plan);
-    // Create recursive plan
-    auto recursivePlan = std::make_unique<LogicalPlan>();
-    bool extendFromSource = *boundNode == *rel->getSrcNode();
-    createRecursivePlan(*recursiveInfo, direction, extendFromSource, *recursivePlan);
-    // Create recursive extend
-    if (boundNode->getNumEntries() > recursiveInfo->node->getNumEntries()) {
-        appendNodeLabelFilter(boundNode->getInternalID(), recursiveInfo->node->getTableIDsSet(),
-            plan);
-    }
-    auto extend = std::make_shared<LogicalRecursiveExtend>(boundNode, nbrNode, rel, direction,
-        extendFromSource, RecursiveJoinType::TRACK_PATH, plan.getLastOperator(),
-        recursivePlan->getLastOperator());
-    appendFlattens(extend->getGroupsPosToFlatten(), plan);
-    extend->setChild(0, plan.getLastOperator());
-    extend->computeFactorizedSchema();
-    plan.setLastOperator(extend);
-    // Create path node property scan plan
-    std::shared_ptr<LogicalOperator> nodeScanRoot;
-    if (!recursiveInfo->nodeProjectionList.empty()) {
-        auto pathNodePropertyScanPlan = std::make_unique<LogicalPlan>();
-        createPathNodePropertyScanPlan(recursiveInfo->node, recursiveInfo->nodeProjectionList,
-            *pathNodePropertyScanPlan);
-        nodeScanRoot = pathNodePropertyScanPlan->getLastOperator();
-    }
-    // Create path rel property scan plan
-    uint64_t relScanCardinality = 1u;
-    std::shared_ptr<LogicalOperator> relScanRoot;
-    if (!recursiveInfo->relProjectionList.empty()) {
-        auto pathRelPropertyScanPlan = std::make_unique<LogicalPlan>();
-        auto relProperties = recursiveInfo->relProjectionList;
-        relProperties.push_back(recursiveInfo->rel->getInternalIDProperty());
-        createPathRelPropertyScanPlan(recursiveInfo->node, recursiveInfo->nodeCopy,
-            recursiveInfo->rel, direction, extendFromSource, relProperties,
-            *pathRelPropertyScanPlan);
-        relScanRoot = pathRelPropertyScanPlan->getLastOperator();
-        relScanCardinality = pathRelPropertyScanPlan->getCardinality();
-    }
-    // Create path property probe
-    auto pathPropertyProbe = std::make_shared<LogicalPathPropertyProbe>(rel, extend, nodeScanRoot,
-        relScanRoot, RecursiveJoinType::TRACK_PATH);
-    pathPropertyProbe->computeFactorizedSchema();
-    // Check for sip
-    auto ratio = plan.getCardinality() / relScanCardinality;
-    if (ratio > PlannerKnobs::SIP_RATIO) {
-        pathPropertyProbe->getSIPInfoUnsafe().position = SemiMaskPosition::PROHIBIT_PROBE_TO_BUILD;
-    }
-    auto extensionRate =
-        cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTransaction());
-    pathPropertyProbe->setCardinality(
-        cardinalityEstimator.multiply(extensionRate, plan.getLastOperator()->getCardinality()));
-    plan.setLastOperator(std::move(pathPropertyProbe));
-    // Update cost
-    plan.setCost(CostModel::computeRecursiveExtendCost(rel->getUpperBound(), extensionRate, plan));
-    // Update cardinality
-    auto group = plan.getSchema()->getGroup(nbrNode->getInternalID());
-    group->setMultiplier(extensionRate);
-}
-
-static expression_vector collectPropertiesToRead(const std::shared_ptr<Expression>& expression) {
-    if (expression == nullptr) {
-        return expression_vector{};
-    }
-    auto collector = PropertyExprCollector();
-    collector.visit(expression);
-    return collector.getPropertyExprs();
-}
-
-void Planner::createRecursivePlan(const RecursiveInfo& recursiveInfo, ExtendDirection direction,
-    bool extendFromSource, LogicalPlan& plan) {
-    auto boundNode = recursiveInfo.node;
-    auto nbrNode = recursiveInfo.nodeCopy;
-    auto rel = recursiveInfo.rel;
-    auto nodeProperties = collectPropertiesToRead(recursiveInfo.nodePredicate);
-    appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(),
-        ExpressionUtil::removeDuplication(nodeProperties), plan);
-    auto& scan = plan.getLastOperator()->cast<LogicalScanNodeTable>();
-    scan.setScanType(LogicalScanNodeTableType::OFFSET_SCAN);
-    scan.setExtraInfo(std::make_unique<RecursiveJoinScanInfo>(recursiveInfo.nodePredicateExecFlag));
-    scan.computeFactorizedSchema();
-    if (recursiveInfo.nodePredicate) {
-        appendFilters(recursiveInfo.nodePredicate->splitOnAND(), plan);
-    }
-    auto relProperties = collectPropertiesToRead(recursiveInfo.relPredicate);
-    relProperties.push_back(rel->getInternalIDProperty());
-    appendNonRecursiveExtend(boundNode, nbrNode, rel, direction, extendFromSource,
-        ExpressionUtil::removeDuplication(relProperties), plan);
-    if (recursiveInfo.relPredicate) {
-        appendFilters(recursiveInfo.relPredicate->splitOnAND(), plan);
-    }
 }
 
 void Planner::createPathNodeFilterPlan(const std::shared_ptr<NodeExpression>& node,
