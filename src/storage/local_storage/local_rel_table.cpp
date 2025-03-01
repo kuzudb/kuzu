@@ -3,7 +3,6 @@
 #include <algorithm>
 
 #include "common/enums/rel_direction.h"
-#include "main/client_context.h"
 #include "storage/store/rel_table.h"
 #include "transaction/transaction.h"
 

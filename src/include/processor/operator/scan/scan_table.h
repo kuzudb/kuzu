@@ -1,7 +1,6 @@
 #pragma once
 
 #include "processor/operator/physical_operator.h"
-#include "storage/store/table.h"
 
 namespace kuzu {
 namespace processor {
