@@ -312,7 +312,7 @@ public:
         common::DataChunkState* leadingState, const std::vector<AggregateInput>& aggregateInputs,
         uint64_t resultSetMultiplicity);
 
-    void mergeAll();
+    void mergeIfFull(uint64_t tuplesToAdd, bool mergeAll = false);
 
     bool insertAggregateValueIfDistinctForGroupByKeys(
         const std::vector<common::ValueVector*>& groupByKeyVectors,
