@@ -16,6 +16,11 @@ void ParsedExpressionVisitor::visit(const ParsedExpression* expr) {
     visitSwitch(expr);
 }
 
+void ParsedExpressionVisitor::visitUnsafe(ParsedExpression* expr) {
+    visitChildrenUnsafe(*expr);
+    visitSwitchUnsafe(expr);
+}
+
 void ParsedExpressionVisitor::visitSwitch(const ParsedExpression* expr) {
     switch (expr->getExpressionType()) {
     case ExpressionType::OR:
@@ -79,7 +84,7 @@ void ParsedExpressionVisitor::visitSwitch(const ParsedExpression* expr) {
 void ParsedExpressionVisitor::visitChildren(const ParsedExpression& expr) {
     switch (expr.getExpressionType()) {
     case ExpressionType::CASE_ELSE: {
-        visitCaseExprChildren(expr);
+        visitCaseChildren(expr);
     } break;
     case ExpressionType::LAMBDA: {
         auto& lambda = expr.constCast<ParsedLambdaExpression>();
@@ -93,7 +98,20 @@ void ParsedExpressionVisitor::visitChildren(const ParsedExpression& expr) {
     }
 }
 
-void ParsedExpressionVisitor::visitCaseExprChildren(const ParsedExpression& expr) {
+void ParsedExpressionVisitor::visitChildrenUnsafe(ParsedExpression& expr) {
+    switch (expr.getExpressionType()) {
+    case ExpressionType::CASE_ELSE: {
+        visitCaseChildrenUnsafe(expr);
+    } break;
+    default: {
+        for (auto i = 0u; i < expr.getNumChildren(); ++i) {
+            visitUnsafe(expr.getChild(i));
+        }
+    }
+    }
+}
+
+void ParsedExpressionVisitor::visitCaseChildren(const ParsedExpression& expr) {
     auto& caseExpr = expr.constCast<ParsedCaseExpression>();
     if (caseExpr.hasCaseExpression()) {
         visit(caseExpr.getCaseExpression());
@@ -108,6 +126,21 @@ void ParsedExpressionVisitor::visitCaseExprChildren(const ParsedExpression& expr
     }
 }
 
+void ParsedExpressionVisitor::visitCaseChildrenUnsafe(ParsedExpression& expr) {
+    auto& caseExpr = expr.cast<ParsedCaseExpression>();
+    if (caseExpr.hasCaseExpression()) {
+        visitUnsafe(caseExpr.getCaseExpression());
+    }
+    for (auto i = 0u; i < caseExpr.getNumCaseAlternative(); ++i) {
+        auto alternative = caseExpr.getCaseAlternative(i);
+        visitUnsafe(alternative->whenExpression.get());
+        visitUnsafe(alternative->thenExpression.get());
+    }
+    if (caseExpr.hasElseExpression()) {
+        visitUnsafe(caseExpr.getElseExpression());
+    }
+}
+
 void ParsedSequenceFunctionCollector::visitFunctionExpr(const ParsedExpression* expr) {
     if (expr->getExpressionType() != ExpressionType::FUNCTION) {
         return;
@@ -116,6 +149,62 @@ void ParsedSequenceFunctionCollector::visitFunctionExpr(const ParsedExpression* 
     if (StringUtils::getUpper(funName) == function::NextValFunction::name) {
         hasSeqUpdate_ = true;
     }
+}
+
+std::unique_ptr<ParsedExpression> MacroParameterReplacer::replace(
+    std::unique_ptr<ParsedExpression> input) {
+    if (nameToExpr.contains(input->getRawName())) {
+        return nameToExpr.at(input->getRawName())->copy();
+    }
+    visitUnsafe(input.get());
+    return input;
+}
+
+void MacroParameterReplacer::visitSwitchUnsafe(ParsedExpression* expr) {
+    switch (expr->getExpressionType()) {
+    case ExpressionType::CASE_ELSE: {
+        auto& caseExpr = expr->cast<ParsedCaseExpression>();
+        if (caseExpr.hasCaseExpression()) {
+            auto replace = getReplace(caseExpr.getCaseExpression()->getRawName());
+            if (replace) {
+                caseExpr.setCaseExpression(std::move(replace));
+            }
+        }
+        for (auto i = 0u; i < caseExpr.getNumCaseAlternative(); i++) {
+            auto caseAlternative = caseExpr.getCaseAlternativeUnsafe(i);
+            auto whenReplace = getReplace(caseAlternative->whenExpression->getRawName());
+            auto thenReplace = getReplace(caseAlternative->thenExpression->getRawName());
+            if (whenReplace) {
+                caseAlternative->whenExpression = std::move(whenReplace);
+            }
+            if (thenReplace) {
+                caseAlternative->thenExpression = std::move(thenReplace);
+            }
+        }
+        if (caseExpr.hasElseExpression()) {
+            auto replace = getReplace(caseExpr.getElseExpression()->getRawName());
+            if (replace) {
+                caseExpr.setElseExpression(std::move(replace));
+            }
+        }
+    } break;
+    default: {
+        for (auto i = 0u; i < expr->getNumChildren(); ++i) {
+            auto child = expr->getChild(i);
+            auto replace = getReplace(child->getRawName());
+            if (replace) {
+                expr->setChild(i, std::move(replace));
+            }
+        }
+    }
+    }
+}
+
+std::unique_ptr<ParsedExpression> MacroParameterReplacer::getReplace(const std::string& name) {
+    if (nameToExpr.contains(name)) {
+        return nameToExpr.at(name)->copy();
+    }
+    return nullptr;
 }
 
 } // namespace parser

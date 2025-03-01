@@ -10,8 +10,8 @@
 #include "function/rewrite_function.h"
 #include "function/scalar_macro_function.h"
 #include "main/client_context.h"
+#include "parser/expression/parsed_expression_visitor.h"
 #include "parser/expression/parsed_function_expression.h"
-#include "parser/parsed_expression_visitor.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -203,8 +203,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindMacroExpression(
             scalarMacroFunction->getDefaultParameterName(i - positionalArgs.size());
         parameterVals[parameterName] = parsedFuncExpr.getChild(i);
     }
-    auto macroParameterReplacer = std::make_unique<MacroParameterReplacer>(parameterVals);
-    return bindExpression(*macroParameterReplacer->visit(std::move(macroExpr)));
+    auto replacer = MacroParameterReplacer(parameterVals);
+    return bindExpression(*replacer.replace(std::move(macroExpr)));
 }
 
 } // namespace binder

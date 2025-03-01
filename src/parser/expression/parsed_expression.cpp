@@ -1,9 +1,7 @@
 #include "parser/expression/parsed_expression.h"
 
-#include "common/exception/binder.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
-#include "function/sequence/sequence_functions.h"
 #include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
@@ -78,39 +76,6 @@ std::unique_ptr<ParsedExpression> ParsedExpression::deserialize(Deserializer& de
     parsedExpression->rawName = std::move(rawName);
     parsedExpression->children = std::move(children);
     return parsedExpression;
-}
-
-std::unique_ptr<ParsedExpression> ParsedExpressionUtils::getSerialDefaultExpr(
-    const std::string& sequenceName) {
-    auto literalExpr = std::make_unique<parser::ParsedLiteralExpression>(Value(sequenceName), "");
-    return std::make_unique<parser::ParsedFunctionExpression>(function::NextValFunction::name,
-        std::move(literalExpr), "");
-}
-
-void ParsedExpressionUtils::validateExpressionType(const kuzu::parser::ParsedExpression& expr,
-    common::ExpressionType type) {
-    if (expr.getExpressionType() == type) {
-        return;
-    }
-    throw common::BinderException(stringFormat("{} has type {} but {} was expected.",
-        expr.toString(), ExpressionTypeUtil::toString(expr.getExpressionType()),
-        ExpressionTypeUtil::toString(type)));
-}
-
-void ParsedExpressionUtils::validateDataType(const kuzu::parser::ParsedExpression& expr,
-    const common::LogicalType& type) {
-    KU_ASSERT(expr.getExpressionType() == ExpressionType::LITERAL);
-    auto& literalExpr = expr.constCast<ParsedLiteralExpression>();
-    if (literalExpr.getValue().getDataType() == type) {
-        return;
-    }
-    throw common::BinderException(stringFormat("{} has type {} but {} was expected.",
-        expr.toString(), literalExpr.getValue().getDataType().toString(), type.toString()));
-}
-
-std::string ParsedExpressionUtils::getStringLiteralValue(
-    const kuzu::parser::ParsedExpression& expr) {
-    return expr.constCast<parser::ParsedLiteralExpression>().getValue().getValue<std::string>();
 }
 
 } // namespace parser
