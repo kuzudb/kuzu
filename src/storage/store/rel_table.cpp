@@ -19,19 +19,11 @@ using namespace kuzu::evaluator;
 namespace kuzu {
 namespace storage {
 
-RelTableScanState::RelTableScanState(MemoryManager& mm, table_id_t tableID,
-    const std::vector<column_id_t>& columnIDs, const std::vector<const Column*>& columns,
-    Column* csrOffsetCol, Column* csrLengthCol, RelDataDirection direction,
-    std::vector<ColumnPredicateSet> columnPredicateSets)
-    : TableScanState{tableID, columnIDs, columns, std::move(columnPredicateSets)},
-      direction{direction}, currBoundNodeIdx{0}, csrOffsetColumn{csrOffsetCol},
-      csrLengthColumn{csrLengthCol}, localTableScanState{nullptr} {
-    nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(mm, this->columnIDs.size());
-}
-
-void RelTableScanState::setToTable(Table* table_, std::vector<column_id_t> columnIDs_,
-    std::vector<ColumnPredicateSet> columnPredicateSets_, RelDataDirection direction_) {
-    TableScanState::setToTable(table_, columnIDs_, std::move(columnPredicateSets_));
+void RelTableScanState::setToTable(const Transaction* transaction, Table* table_,
+    std::vector<column_id_t> columnIDs_, std::vector<ColumnPredicateSet> columnPredicateSets_,
+    RelDataDirection direction_) {
+    TableScanState::setToTable(transaction, table_, std::move(columnIDs_),
+        std::move(columnPredicateSets_));
     columns.resize(columnIDs.size());
     direction = direction_;
     for (size_t i = 0; i < columnIDs.size(); ++i) {
@@ -39,12 +31,19 @@ void RelTableScanState::setToTable(Table* table_, std::vector<column_id_t> colum
         if (columnID == INVALID_COLUMN_ID || columnID == ROW_IDX_COLUMN_ID) {
             columns[i] = nullptr;
         } else {
-            columns[i] = table->cast<RelTable>().getColumn(columnIDs[i], direction);
+            columns[i] = table->cast<RelTable>().getColumn(columnID, direction);
         }
     }
     csrOffsetColumn = table->cast<RelTable>().getCSROffsetColumn(direction);
     csrLengthColumn = table->cast<RelTable>().getCSRLengthColumn(direction);
     nodeGroupIdx = INVALID_NODE_GROUP_IDX;
+    if (const auto localRelTable = transaction->getLocalStorage()->getLocalTable(
+            table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
+        auto localTableColumnIDs = LocalRelTable::rewriteLocalColumnIDs(direction, columnIDs);
+        localTableScanState = std::make_unique<LocalRelTableScanState>(
+            *transaction->getClientContext()->getMemoryManager(), *this,
+            localRelTable->ptrCast<LocalRelTable>(), localTableColumnIDs);
+    }
 }
 
 void RelTableScanState::initState(Transaction* transaction, NodeGroup* nodeGroup,
@@ -293,29 +292,16 @@ void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction
     RelTableDeleteState* deleteState) {
     // TODO(Royi) we currently do not support detached deleting from single-direction rel tables
     KU_ASSERT(directedRelData.size() == NUM_REL_DIRECTIONS);
-
     KU_ASSERT(deleteState->srcNodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto tableData = getDirectedTableData(direction);
     const auto reverseTableData =
         getDirectedTableData(RelDirectionUtils::getOppositeDirection(direction));
-    std::vector<column_id_t> columnsToScan = {NBR_ID_COLUMN_ID, REL_ID_COLUMN_ID};
-    const auto relReadState =
-        std::make_unique<RelTableScanState>(*transaction->getClientContext()->getMemoryManager(),
-            tableID, columnsToScan, tableData->getColumns(), tableData->getCSROffsetColumn(),
-            tableData->getCSRLengthColumn(), direction);
-    relReadState->nodeIDVector = &deleteState->srcNodeIDVector;
-    relReadState->outputVectors =
-        std::vector<ValueVector*>{&deleteState->dstNodeIDVector, &deleteState->relIDVector};
-    relReadState->outState = relReadState->outputVectors[0]->state.get();
-    relReadState->rowIdxVector->state = relReadState->outputVectors[0]->state;
-    if (const auto localRelTable = transaction->getLocalStorage()->getLocalTable(tableID,
-            LocalStorage::NotExistAction::RETURN_NULL)) {
-        auto localTableColumnIDs =
-            LocalRelTable::rewriteLocalColumnIDs(direction, relReadState->columnIDs);
-        relReadState->localTableScanState = std::make_unique<LocalRelTableScanState>(*relReadState,
-            localTableColumnIDs, localRelTable->ptrCast<LocalRelTable>());
-        relReadState->localTableScanState->rowIdxVector->state = relReadState->rowIdxVector->state;
-    }
+    auto relReadState = std::make_unique<RelTableScanState>(
+        *transaction->getClientContext()->getMemoryManager(), &deleteState->srcNodeIDVector,
+        std::vector{&deleteState->dstNodeIDVector, &deleteState->relIDVector},
+        deleteState->dstNodeIDVector.state);
+    relReadState->setToTable(transaction, this, {NBR_ID_COLUMN_ID, REL_ID_COLUMN_ID}, {},
+        direction);
     initScanState(transaction, *relReadState);
     detachDeleteForCSRRels(transaction, tableData, reverseTableData, relReadState.get(),
         deleteState);
@@ -345,7 +331,7 @@ bool RelTable::checkIfNodeHasRels(Transaction* transaction, RelDataDirection dir
         hasRels = localTable->cast<LocalRelTable>().checkIfNodeHasRels(srcNodeIDVector, direction);
     }
     hasRels = hasRels ||
-              (getDirectedTableData(direction)->checkIfNodeHasRels(transaction, srcNodeIDVector));
+              getDirectedTableData(direction)->checkIfNodeHasRels(transaction, srcNodeIDVector);
     return hasRels;
 }
 
@@ -498,8 +484,8 @@ void RelTable::prepareCommitForNodeGroup(const Transaction* transaction,
     CSRNodeGroup& csrNodeGroup, offset_t boundOffsetInGroup, const row_idx_vec_t& rowIndices,
     column_id_t skippedColumn) {
     for (const auto row : rowIndices) {
-        auto [chunkedGroupIdx, rowInChunkedGroup] = StorageUtils::getQuotientRemainder(row,
-            common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY);
+        auto [chunkedGroupIdx, rowInChunkedGroup] =
+            StorageUtils::getQuotientRemainder(row, StorageConfig::CHUNKED_NODE_GROUP_CAPACITY);
         std::vector<ColumnChunk*> chunks;
         const auto chunkedGroup = localNodeGroup.getChunkedNodeGroup(chunkedGroupIdx);
         for (auto i = 0u; i < chunkedGroup->getNumColumns(); i++) {

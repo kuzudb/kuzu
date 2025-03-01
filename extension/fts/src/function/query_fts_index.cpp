@@ -41,10 +41,10 @@ struct ScoreInfo {
 
 struct QFTSEdgeCompute final : EdgeCompute {
     node_id_map_t<ScoreInfo>& scores;
-    const std::unordered_map<common::offset_t, uint64_t>& dfs;
+    const std::unordered_map<offset_t, uint64_t>& dfs;
 
     QFTSEdgeCompute(node_id_map_t<ScoreInfo>& scores,
-        const std::unordered_map<common::offset_t, uint64_t>& dfs)
+        const std::unordered_map<offset_t, uint64_t>& dfs)
         : scores{scores}, dfs{dfs} {}
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& resultChunk,
@@ -68,7 +68,7 @@ struct QFTSEdgeCompute final : EdgeCompute {
 };
 
 static void initDenseFrontier(PathLengths& frontier, table_id_t termsTableID,
-    const std::unordered_map<common::offset_t, uint64_t>& dfs) {
+    const std::unordered_map<offset_t, uint64_t>& dfs) {
     frontier.pinNextFrontierTableID(termsTableID);
     for (auto& [offset, _] : dfs) {
         frontier.setActive(offset);
@@ -76,7 +76,7 @@ static void initDenseFrontier(PathLengths& frontier, table_id_t termsTableID,
 }
 
 static void initSparseFrontier(SparseFrontier& frontier, table_id_t termsTableID,
-    const std::unordered_map<common::offset_t, uint64_t>& dfs) {
+    const std::unordered_map<offset_t, uint64_t>& dfs) {
     frontier.pinTableID(termsTableID);
     for (auto& [offset, _] : dfs) {
         frontier.addNode(offset);
@@ -86,7 +86,7 @@ static void initSparseFrontier(SparseFrontier& frontier, table_id_t termsTableID
 
 class QFTSOutputWriter {
 public:
-    QFTSOutputWriter(const node_id_map_t<ScoreInfo>& scores, storage::MemoryManager* mm,
+    QFTSOutputWriter(const node_id_map_t<ScoreInfo>& scores, MemoryManager* mm,
         const QueryFTSBindData& bindData, uint64_t numUniqueTerms);
 
     void write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len,
@@ -97,11 +97,11 @@ public:
     }
 
 private:
-    std::unique_ptr<common::ValueVector> createVector(const LogicalType& type);
+    std::unique_ptr<ValueVector> createVector(const LogicalType& type);
 
 private:
     const node_id_map_t<ScoreInfo>& scores;
-    storage::MemoryManager* mm;
+    MemoryManager* mm;
     const QueryFTSBindData& bindData;
 
     std::unique_ptr<ValueVector> docsVector;
@@ -110,14 +110,14 @@ private:
     uint64_t numUniqueTerms;
 };
 
-QFTSOutputWriter::QFTSOutputWriter(const node_id_map_t<ScoreInfo>& scores,
-    storage::MemoryManager* mm, const QueryFTSBindData& bindData, uint64_t numUniqueTerms)
+QFTSOutputWriter::QFTSOutputWriter(const node_id_map_t<ScoreInfo>& scores, MemoryManager* mm,
+    const QueryFTSBindData& bindData, uint64_t numUniqueTerms)
     : scores{scores}, mm{mm}, bindData{bindData}, numUniqueTerms{numUniqueTerms} {
     docsVector = createVector(LogicalType::INTERNAL_ID());
     scoreVector = createVector(LogicalType::UINT64());
 }
 
-std::unique_ptr<common::ValueVector> QFTSOutputWriter::createVector(const LogicalType& type) {
+std::unique_ptr<ValueVector> QFTSOutputWriter::createVector(const LogicalType& type) {
     auto vector = std::make_unique<ValueVector>(type.copy(), mm);
     vector->state = DataChunkState::getSingleValueDataChunkState();
     vectors.push_back(vector.get());
@@ -155,7 +155,7 @@ void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNo
 
 class QFTSVertexCompute final : public VertexCompute {
 public:
-    QFTSVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState,
+    QFTSVertexCompute(MemoryManager* mm, processor::GDSCallSharedState* sharedState,
         std::unique_ptr<QFTSOutputWriter> writer)
         : mm{mm}, sharedState{sharedState}, writer{std::move(writer)} {
         localFT = sharedState->claimLocalTable(mm);
@@ -176,33 +176,32 @@ public:
     }
 
 private:
-    storage::MemoryManager* mm;
+    MemoryManager* mm;
     processor::GDSCallSharedState* sharedState;
     processor::FactorizedTable* localFT;
     std::unique_ptr<QFTSOutputWriter> writer;
 };
 
-static std::unordered_map<common::offset_t, uint64_t> getDFs(main::ClientContext& context,
+static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& context,
     const catalog::NodeTableCatalogEntry& termsEntry, const std::vector<std::string>& terms) {
     auto storageManager = context.getStorageManager();
     auto tableID = termsEntry.getTableID();
-    auto& termsNodeTable = storageManager->getTable(tableID)->cast<storage::NodeTable>();
+    auto& termsNodeTable = storageManager->getTable(tableID)->cast<NodeTable>();
     auto tx = context.getTransaction();
     auto dfColumnID = termsEntry.getColumnID(QueryFTSAlgorithm::DOC_FREQUENCY_PROP_NAME);
-    auto dfColumn = &termsNodeTable.getColumn(dfColumnID);
-    std::vector<common::LogicalType> vectorTypes;
-    vectorTypes.push_back(LogicalType::UINT64());
+    std::vector<LogicalType> vectorTypes;
     vectorTypes.push_back(LogicalType::INTERNAL_ID());
-    auto dataChunk =
-        storage::Table::constructDataChunk(context.getMemoryManager(), std::move(vectorTypes));
+    vectorTypes.push_back(LogicalType::UINT64());
+    auto dataChunk = Table::constructDataChunk(context.getMemoryManager(), std::move(vectorTypes));
     dataChunk.state->getSelVectorUnsafe().setSelSize(1);
-    auto dfVector = &dataChunk.getValueVector(0);
-    auto nodeIDVector = &dataChunk.getValueVectorMutable(1);
+    auto nodeIDVector = &dataChunk.getValueVectorMutable(0);
+    auto dfVector = &dataChunk.getValueVectorMutable(1);
     auto termsVector = ValueVector(LogicalType::STRING(), context.getMemoryManager());
     termsVector.state = dataChunk.state;
     auto nodeTableScanState =
-        storage::NodeTableScanState{tableID, {dfColumnID}, {dfColumn}, dataChunk, nodeIDVector};
-    std::unordered_map<common::offset_t, uint64_t> dfs;
+        NodeTableScanState(nodeIDVector, std::vector{dfVector}, dataChunk.state);
+    nodeTableScanState.setToTable(context.getTransaction(), &termsNodeTable, {dfColumnID}, {});
+    std::unordered_map<offset_t, uint64_t> dfs;
     for (auto& term : terms) {
         termsVector.setValue(0, term);
         offset_t offset = 0;
@@ -212,7 +211,7 @@ static std::unordered_map<common::offset_t, uint64_t> getDFs(main::ClientContext
         auto nodeID = nodeID_t{offset, tableID};
         nodeIDVector->setValue(0, nodeID);
         termsNodeTable.initScanState(tx, nodeTableScanState, tableID, offset);
-        termsNodeTable.lookup(tx, nodeTableScanState);
+        [[maybe_unused]] auto res = termsNodeTable.lookup(tx, nodeTableScanState);
         dfs.emplace(offset, dfVector->getValue<uint64_t>(0));
     }
     return dfs;
@@ -267,15 +266,14 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto compState = GDSComputeState(std::move(frontierPair), std::move(edgeCompute),
         std::move(auxiliaryState), nullptr /* outputNodeMask */);
     GDSUtils::runFrontiersUntilConvergence(executionContext, compState, graph, ExtendDirection::FWD,
-        1 /* maxIters */, QueryFTSAlgorithm::TERM_FREQUENCY_PROP_NAME);
+        1 /* maxIters */, TERM_FREQUENCY_PROP_NAME);
 
     // Do vertex compute to calculate the score for doc with the length property.
     auto mm = clientContext->getMemoryManager();
     auto numUniqueTerms = getNumUniqueTerms(terms);
     auto writer = std::make_unique<QFTSOutputWriter>(scores, mm, *qFTSBindData, numUniqueTerms);
     auto vc = std::make_unique<QFTSVertexCompute>(mm, sharedState.get(), std::move(writer));
-    auto vertexPropertiesToScan = std::vector<std::string>{QueryFTSAlgorithm::DOC_LEN_PROP_NAME,
-        QueryFTSAlgorithm::DOC_ID_PROP_NAME};
+    auto vertexPropertiesToScan = std::vector<std::string>{DOC_LEN_PROP_NAME, DOC_ID_PROP_NAME};
     auto docsEntry = graphEntry->nodeInfos[1].entry;
     auto numDocs = storageManager->getTable(docsEntry->getTableID())->getNumTotalRows(transaction);
     if (scores.size() < getSparseFrontierSize(numDocs)) {
@@ -292,12 +290,11 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     sharedState->mergeLocalTables();
 }
 
-expression_vector QueryFTSAlgorithm::getResultColumns(
-    const function::GDSBindInput& bindInput) const {
+expression_vector QueryFTSAlgorithm::getResultColumns(const GDSBindInput& bindInput) const {
     expression_vector columns;
     auto& docsNode = bindData->getNodeOutput()->constCast<NodeExpression>();
     columns.push_back(docsNode.getInternalID());
-    std::string scoreColumnName = QueryFTSAlgorithm::SCORE_PROP_NAME;
+    std::string scoreColumnName = SCORE_PROP_NAME;
     if (!bindInput.yieldVariables.empty()) {
         scoreColumnName = bindColumnName(bindInput.yieldVariables[1], scoreColumnName);
     }
@@ -322,8 +319,8 @@ void QueryFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& con
     auto indexName = getParamVal(input, 1);
     auto query = input.getParam(2);
 
-    auto tableEntry = storage::IndexUtils::bindTable(context, inputTableName, indexName,
-        storage::IndexOperation::QUERY);
+    auto tableEntry =
+        IndexUtils::bindTable(context, inputTableName, indexName, IndexOperation::QUERY);
     auto ftsIndexEntry = context.getCatalog()->getIndex(context.getTransaction(),
         tableEntry->getTableID(), indexName);
     auto entry =

@@ -19,17 +19,16 @@ class Table;
 enum class TableScanSource : uint8_t { COMMITTED = 0, UNCOMMITTED = 1, NONE = UINT8_MAX };
 
 struct KUZU_API TableScanState {
-    common::table_id_t tableID;
+    Table* table;
     std::unique_ptr<common::ValueVector> rowIdxVector;
     // Node/Rel ID vector. We assume all output vectors are within the same DataChunk as this one.
     common::ValueVector* nodeIDVector;
     std::vector<common::ValueVector*> outputVectors;
-    common::DataChunkState* outState;
+    std::shared_ptr<common::DataChunkState> outState;
     std::vector<common::column_id_t> columnIDs;
     common::semi_mask_t* semiMask;
     bool randomLookup = false;
 
-    Table* table = nullptr;
     // Only used when scan from persistent data.
     std::vector<const Column*> columns;
 
@@ -43,26 +42,21 @@ struct KUZU_API TableScanState {
     TableScanState(common::ValueVector* nodeIDVector,
         std::vector<common::ValueVector*> outputVectors,
         std::shared_ptr<common::DataChunkState> outChunkState)
-        : tableID{common::INVALID_TABLE_ID}, nodeIDVector(nodeIDVector),
-          outputVectors{std::move(outputVectors)}, outState{outChunkState.get()},
-          semiMask{nullptr} {
+        : table{nullptr}, nodeIDVector(nodeIDVector), outputVectors{std::move(outputVectors)},
+          outState{std::move(outChunkState)}, semiMask{nullptr} {
         rowIdxVector = std::make_unique<common::ValueVector>(common::LogicalType::INT64());
-        rowIdxVector->state = std::move(outChunkState);
+        rowIdxVector->state = outState;
     }
 
-    TableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
-        std::vector<const Column*> columns = {},
-        std::vector<ColumnPredicateSet> columnPredicateSets = {})
-        : tableID{tableID}, nodeIDVector(nullptr), outState{nullptr},
-          columnIDs{std::move(columnIDs)}, semiMask{nullptr}, columns{std::move(columns)},
-          columnPredicateSets{std::move(columnPredicateSets)} {
-        rowIdxVector = std::make_unique<common::ValueVector>(common::LogicalType::INT64());
-    }
+    TableScanState(std::vector<common::column_id_t> columnIDs, std::vector<const Column*> columns)
+        : table{nullptr}, nodeIDVector(nullptr), outState{nullptr}, columnIDs{std::move(columnIDs)},
+          semiMask{nullptr}, columns{std::move(columns)} {}
 
     virtual ~TableScanState() = default;
     DELETE_COPY_DEFAULT_MOVE(TableScanState);
 
-    virtual void setToTable(Table* table_, std::vector<common::column_id_t> columnIDs_,
+    virtual void setToTable(const transaction::Transaction* transaction, Table* table_,
+        std::vector<common::column_id_t> columnIDs_,
         std::vector<ColumnPredicateSet> columnPredicateSets_,
         common::RelDataDirection direction = common::RelDataDirection::INVALID);
 

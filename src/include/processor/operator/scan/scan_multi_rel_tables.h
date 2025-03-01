@@ -72,7 +72,6 @@ public:
 private:
     void resetState();
     void initCurrentScanner(const common::nodeID_t& nodeID);
-    void initVectors(storage::TableScanState& state, const ResultSet& resultSet) const override;
 
 private:
     DirectionInfo directionInfo;

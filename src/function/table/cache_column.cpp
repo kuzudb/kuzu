@@ -94,20 +94,17 @@ struct CacheArrayColumnLocalState final : TableFuncLocalState {
     CacheArrayColumnLocalState(const main::ClientContext& context, table_id_t tableID,
         column_id_t columnID)
         : dataChunk{2, std::make_shared<DataChunkState>()} {
+        auto& table = context.getStorageManager()->getTable(tableID)->cast<storage::NodeTable>();
+        dataChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
+        dataChunk.insert(1,
+            std::make_shared<ValueVector>(table.getColumn(columnID).getDataType().copy()));
         std::vector<column_id_t> columnIDs;
         columnIDs.push_back(columnID);
-        auto& table = context.getStorageManager()->getTable(tableID)->cast<storage::NodeTable>();
-        std::vector<const storage::Column*> columns;
-        columns.push_back(&table.getColumn(columnID));
         scanState =
-            std::make_unique<storage::NodeTableScanState>(table.getTableID(), columnIDs, columns);
-        dataChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
-        dataChunk.insert(1, std::make_shared<ValueVector>(columns[0]->getDataType().copy()));
-        scanState->nodeIDVector = &dataChunk.getValueVectorMutable(0);
-        scanState->outputVectors.push_back(&dataChunk.getValueVectorMutable(1));
-        scanState->outState = dataChunk.state.get();
-        scanState->rowIdxVector->state = dataChunk.state;
+            std::make_unique<storage::NodeTableScanState>(&dataChunk.getValueVectorMutable(0),
+                std::vector{&dataChunk.getValueVectorMutable(1)}, dataChunk.state);
         scanState->source = storage::TableScanSource::COMMITTED;
+        scanState->setToTable(context.getTransaction(), &table, columnIDs, {});
     }
 
     DataChunk dataChunk;

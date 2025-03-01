@@ -72,7 +72,7 @@ table_id_map_t<semi_mask_t*> ScanNodeTable::getSemiMasks() const {
     return result;
 }
 
-void ScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*) {
+void ScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     std::vector<ValueVector*> outVectors;
     for (auto& pos : info.outVectorsPos) {
         outVectors.push_back(resultSet->getValueVector(pos).get());
@@ -82,8 +82,8 @@ void ScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
         std::make_unique<NodeTableScanState>(nodeIDVector.get(), outVectors, nodeIDVector->state);
     KU_ASSERT(nodeInfos.size() >= 1 && sharedStates.size() >= 1);
     auto& firstNodeInfo = nodeInfos[0];
-    scanState->setToTable(firstNodeInfo.table, firstNodeInfo.columnIDs,
-        copyVector(firstNodeInfo.columnPredicates));
+    scanState->setToTable(context->clientContext->getTransaction(), firstNodeInfo.table,
+        firstNodeInfo.columnIDs, copyVector(firstNodeInfo.columnPredicates));
     scanState->semiMask = sharedStates[0]->getSemiMask();
 }
 
@@ -112,7 +112,7 @@ bool ScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
             currentTableIdx++;
             if (currentTableIdx < nodeInfos.size()) {
                 auto& currentInfo = nodeInfos[currentTableIdx];
-                scanState->setToTable(currentInfo.table, currentInfo.columnIDs,
+                scanState->setToTable(transaction, currentInfo.table, currentInfo.columnIDs,
                     copyVector(currentInfo.columnPredicates));
                 scanState->semiMask = sharedStates[currentTableIdx]->getSemiMask();
             }

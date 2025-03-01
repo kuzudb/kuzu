@@ -27,8 +27,8 @@ float* InMemEmbeddings::getEmbedding(common::offset_t offset) const {
     return &listChunk.getDataColumnChunk()->getData<float>()[offsetInGroup * typeInfo.dimension];
 }
 
-OnDiskEmbeddingScanState::OnDiskEmbeddingScanState(MemoryManager* mm, NodeTable& nodeTable,
-    common::column_id_t columnID) {
+OnDiskEmbeddingScanState::OnDiskEmbeddingScanState(const transaction::Transaction* transaction,
+    MemoryManager* mm, NodeTable& nodeTable, common::column_id_t columnID) {
     std::vector<common::column_id_t> columnIDs;
     columnIDs.push_back(columnID);
     std::vector<const Column*> columns;
@@ -38,8 +38,13 @@ OnDiskEmbeddingScanState::OnDiskEmbeddingScanState(MemoryManager* mm, NodeTable&
     propertyVectors = Table::constructDataChunk(mm, std::move(types));
     nodeIDVector = std::make_unique<common::ValueVector>(common::LogicalType::INTERNAL_ID(), mm,
         propertyVectors.state);
-    scanState = std::make_unique<NodeTableScanState>(nodeTable.getTableID(), std::move(columnIDs),
-        std::move(columns), propertyVectors, nodeIDVector.get());
+    std::vector<common::ValueVector*> outVectors;
+    for (auto i = 0u; i < propertyVectors.valueVectors.size(); i++) {
+        outVectors.push_back(propertyVectors.valueVectors[i].get());
+    }
+    scanState =
+        std::make_unique<NodeTableScanState>(nodeIDVector.get(), outVectors, propertyVectors.state);
+    scanState->setToTable(transaction, &nodeTable, std::move(columnIDs));
 }
 
 OnDiskEmbeddings::OnDiskEmbeddings(EmbeddingTypeInfo typeInfo, NodeTable& nodeTable,

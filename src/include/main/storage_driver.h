@@ -20,12 +20,12 @@ public:
         common::offset_t* offsets, size_t numOffsets, uint8_t* result, size_t numThreads);
 
     // TODO: Should merge following two functions into a single one.
-    uint64_t getNumNodes(const std::string& nodeName);
-    uint64_t getNumRels(const std::string& relName);
+    uint64_t getNumNodes(const std::string& nodeName) const;
+    uint64_t getNumRels(const std::string& relName) const;
 
 private:
-    void scanColumn(storage::Table* table, common::column_id_t columnID, common::offset_t* offsets,
-        size_t size, uint8_t* result);
+    void scanColumn(storage::Table* table, common::column_id_t columnID,
+        const common::offset_t* offsets, size_t size, uint8_t* result) const;
 
 private:
     Database* database;

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "processor/operator/physical_operator.h"
-#include "storage/store/table.h"
 
 namespace kuzu {
 namespace processor {
@@ -32,9 +31,6 @@ public:
     ScanTable(PhysicalOperatorType operatorType, ScanTableInfo info, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{operatorType, id, std::move(printInfo)}, info{std::move(info)} {}
-
-protected:
-    virtual void initVectors(storage::TableScanState& state, const ResultSet& resultSet) const;
 
 protected:
     ScanTableInfo info;

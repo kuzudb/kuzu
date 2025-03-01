@@ -54,8 +54,7 @@ ChunkedNodeGroup::ChunkedNodeGroup(MemoryManager& mm, const std::vector<LogicalT
 }
 
 ChunkedNodeGroup::ChunkedNodeGroup(MemoryManager& mm, ChunkedNodeGroup& base,
-    std::span<const common::LogicalType> columnTypes,
-    std::span<const common::column_id_t> baseColumnIDs)
+    std::span<const LogicalType> columnTypes, std::span<const column_id_t> baseColumnIDs)
     : format{base.format}, residencyState{base.residencyState}, startRowIdx{base.startRowIdx},
       capacity{base.capacity}, numRows{base.numRows.load()},
       versionInfo(std::move(base.versionInfo)), dataInUse{true} {
@@ -296,23 +295,21 @@ void ChunkedNodeGroup::scan(const Transaction* transaction, const TableScanState
 
 template<ResidencyState SCAN_RESIDENCY_STATE>
 void ChunkedNodeGroup::scanCommitted(Transaction* transaction, TableScanState& scanState,
-    NodeGroupScanState& nodeGroupScanState, ChunkedNodeGroup& output) const {
+    ChunkedNodeGroup& output) const {
     if (residencyState != SCAN_RESIDENCY_STATE) {
         return;
     }
     for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
         const auto columnID = scanState.columnIDs[i];
         chunks[columnID]->scanCommitted<SCAN_RESIDENCY_STATE>(transaction,
-            nodeGroupScanState.chunkStates[i], output.getColumnChunk(i));
+            scanState.nodeGroupScanState->chunkStates[i], output.getColumnChunk(i));
     }
 }
 
 template void ChunkedNodeGroup::scanCommitted<ResidencyState::ON_DISK>(Transaction* transaction,
-    TableScanState& scanState, NodeGroupScanState& nodeGroupScanState,
-    ChunkedNodeGroup& output) const;
+    TableScanState& scanState, ChunkedNodeGroup& output) const;
 template void ChunkedNodeGroup::scanCommitted<ResidencyState::IN_MEMORY>(Transaction* transaction,
-    TableScanState& scanState, NodeGroupScanState& nodeGroupScanState,
-    ChunkedNodeGroup& output) const;
+    TableScanState& scanState, ChunkedNodeGroup& output) const;
 
 bool ChunkedNodeGroup::hasDeletions(const Transaction* transaction) const {
     return versionInfo && versionInfo->hasDeletions(transaction);

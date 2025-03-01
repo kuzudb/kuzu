@@ -41,12 +41,6 @@ void PrimaryKeyScanNodeTable::initLocalStateInternal(ResultSet* resultSet,
     indexEvaluator->init(*resultSet, context->clientContext);
 }
 
-void PrimaryKeyScanNodeTable::initVectors(TableScanState& state, const ResultSet& resultSet) const {
-    ScanTable::initVectors(state, resultSet);
-    state.rowIdxVector->state = state.nodeIDVector->state;
-    state.outState = state.rowIdxVector->state.get();
-}
-
 bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     auto transaction = context->clientContext->getTransaction();
     auto tableIdx = sharedState->getTableIdx();
@@ -71,7 +65,7 @@ bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     auto nodeID = nodeID_t{nodeOffset, nodeInfo.table->getTableID()};
-    scanState->setToTable(nodeInfo.table, nodeInfo.columnIDs,
+    scanState->setToTable(transaction, nodeInfo.table, nodeInfo.columnIDs,
         copyVector(nodeInfo.columnPredicates));
     scanState->nodeIDVector->setValue<nodeID_t>(pos, nodeID);
     nodeInfo.table->initScanState(transaction, *scanState, nodeID.tableID, nodeOffset);

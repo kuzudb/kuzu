@@ -4,6 +4,7 @@
 #include "common/enums/rel_direction.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
+#include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/store/node_group.h"
 #include "storage/store/rel_table.h"
@@ -124,6 +125,7 @@ bool RelTableData::update(Transaction* transaction, ValueVector& boundNodeIDVect
     return true;
 }
 
+// NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
 bool RelTableData::delete_(Transaction* transaction, ValueVector& boundNodeIDVector,
     const ValueVector& relIDVector) {
     const auto boundNodePos = boundNodeIDVector.state->getSelVector()[0];
@@ -165,19 +167,17 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
     DataChunk scanChunk(1);
     // RelID output vector.
     scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
-    std::vector<column_id_t> columnIDs = {REL_ID_COLUMN_ID, ROW_IDX_COLUMN_ID};
+    std::vector columnIDs = {REL_ID_COLUMN_ID, ROW_IDX_COLUMN_ID};
     std::vector<const Column*> columns{getColumn(REL_ID_COLUMN_ID), nullptr};
-    const auto scanState = std::make_unique<RelTableScanState>(
-        *transaction->getClientContext()->getMemoryManager(), tableID, columnIDs, columns,
-        csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
-    scanState->nodeIDVector = &boundNodeIDVector;
-    scanState->outputVectors.push_back(&scanChunk.getValueVectorMutable(0));
-    const auto scannedIDVector = scanState->outputVectors[0];
-    scanState->outState = scannedIDVector->state.get();
-    scanState->rowIdxVector->state = scannedIDVector->state;
+    auto scanState =
+        std::make_unique<RelTableScanState>(*transaction->getClientContext()->getMemoryManager(),
+            &boundNodeIDVector, std::vector{&scanChunk.getValueVectorMutable(0)}, scanChunk.state);
+    auto table = transaction->getClientContext()->getStorageManager()->getTable(tableID);
+    scanState->setToTable(transaction, table, columnIDs, {}, direction);
     scanState->initState(transaction, getNodeGroup(nodeGroupIdx));
     row_idx_t matchingRowIdx = INVALID_ROW_IDX;
     auto source = CSRNodeGroupScanSource::NONE;
+    const auto scannedIDVector = scanState->outputVectors[0];
     while (true) {
         const auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
         if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
@@ -211,14 +211,13 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction,
     DataChunk scanChunk(1);
     // RelID output vector.
     scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
-    std::vector<column_id_t> columnIDs = {REL_ID_COLUMN_ID};
+    std::vector columnIDs = {REL_ID_COLUMN_ID};
     std::vector<const Column*> columns{getColumn(REL_ID_COLUMN_ID)};
-    const auto scanState = std::make_unique<RelTableScanState>(
-        *transaction->getClientContext()->getMemoryManager(), tableID, columnIDs, columns,
-        csrHeaderColumns.offset.get(), csrHeaderColumns.length.get(), direction);
-    scanState->nodeIDVector = srcNodeIDVector;
-    scanState->outputVectors.push_back(&scanChunk.getValueVectorMutable(0));
-    scanState->outState = scanState->outputVectors[0]->state.get();
+    auto scanState =
+        std::make_unique<RelTableScanState>(*transaction->getClientContext()->getMemoryManager(),
+            srcNodeIDVector, std::vector{&scanChunk.getValueVectorMutable(0)}, scanChunk.state);
+    auto table = transaction->getClientContext()->getStorageManager()->getTable(tableID);
+    scanState->setToTable(transaction, table, columnIDs, {}, direction);
     scanState->initState(transaction, getNodeGroup(nodeGroupIdx));
     while (true) {
         const auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
@@ -232,6 +231,7 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction,
     return false;
 }
 
+// NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
 void RelTableData::pushInsertInfo(const Transaction* transaction, const CSRNodeGroup& nodeGroup,
     row_idx_t numRows_, CSRNodeGroupScanSource source) {
     // we shouldn't be appending directly to the to the persistent data
@@ -281,6 +281,7 @@ const VersionRecordHandler* RelTableData::getVersionRecordHandler(
     }
 }
 
+// NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
 void RelTableData::rollbackGroupCollectionInsert(row_idx_t numRows_, bool isPersistent) {
     nodeGroups->rollbackInsert(numRows_, !isPersistent);
 }

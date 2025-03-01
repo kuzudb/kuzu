@@ -164,7 +164,6 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& 
             auxInfo.config.copy());
         index->setDefaultUpperEntryPoint(auxInfo.upperEntryPoint);
         index->setDefaultLowerEntryPoint(auxInfo.lowerEntryPoint);
-
         auto dimension =
             common::ArrayType::getNumElements(getIndexColumnType(bindData->boundInput));
         auto queryVector = getQueryVector(*bindData->boundInput.queryExpression, dimension);
@@ -208,8 +207,8 @@ std::unique_ptr<TableFuncLocalState> initQueryHNSWLocalState(const TableFunction
     TableFuncSharedState* sharedState, storage::MemoryManager* mm) {
     const auto hnswBindData = input.bindData->constPtrCast<QueryHNSWIndexBindData>();
     const auto hnswSharedState = sharedState->ptrCast<QueryHNSWIndexSharedState>();
-    return std::make_unique<QueryHNSWLocalState>(mm, *hnswSharedState->nodeTable,
-        hnswBindData->indexColumnID, hnswSharedState->numNodes);
+    return std::make_unique<QueryHNSWLocalState>(input.context.getTransaction(), mm,
+        *hnswSharedState->nodeTable, hnswBindData->indexColumnID, hnswSharedState->numNodes);
 }
 
 static void getLogicalPlan(const transaction::Transaction* transaction, planner::Planner* planner,

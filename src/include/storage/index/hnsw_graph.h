@@ -42,7 +42,8 @@ struct OnDiskEmbeddingScanState {
     std::unique_ptr<common::ValueVector> nodeIDVector;
     std::unique_ptr<NodeTableScanState> scanState;
 
-    OnDiskEmbeddingScanState(MemoryManager* mm, NodeTable& nodeTable, common::column_id_t columnID);
+    OnDiskEmbeddingScanState(const transaction::Transaction* transaction, MemoryManager* mm,
+        NodeTable& nodeTable, common::column_id_t columnID);
 };
 
 class OnDiskEmbeddings final : public EmbeddingColumn {
