@@ -103,9 +103,9 @@ struct QueryHNSWLocalState final : TableFuncLocalState {
     uint64_t numRowsOutput = 0;
     storage::OnDiskEmbeddingScanState embeddingScanState;
 
-    QueryHNSWLocalState(storage::MemoryManager* mm, storage::NodeTable& nodeTable,
-        common::column_id_t columnID, common::offset_t numNodes)
-        : visited{numNodes}, embeddingScanState{mm, nodeTable, columnID} {}
+    QueryHNSWLocalState(const transaction::Transaction* transaction, storage::MemoryManager* mm,
+        storage::NodeTable& nodeTable, common::column_id_t columnID, common::offset_t numNodes)
+        : visited{numNodes}, embeddingScanState{transaction, mm, nodeTable, columnID} {}
 
     bool hasResultToOutput() const { return result.has_value(); }
 };

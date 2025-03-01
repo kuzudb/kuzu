@@ -98,7 +98,7 @@ public:
 
     template<ResidencyState SCAN_RESIDENCY_STATE>
     void scanCommitted(transaction::Transaction* transaction, TableScanState& scanState,
-        NodeGroupScanState& nodeGroupScanState, ChunkedNodeGroup& output) const;
+        ChunkedNodeGroup& output) const;
 
     bool hasUpdates() const;
     bool hasDeletions(const transaction::Transaction* transaction) const;

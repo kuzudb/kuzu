@@ -34,9 +34,6 @@ public:
         : PhysicalOperator{operatorType, id, std::move(printInfo)}, info{std::move(info)} {}
 
 protected:
-    virtual void initVectors(storage::TableScanState& state, const ResultSet& resultSet) const;
-
-protected:
     ScanTableInfo info;
 };
 

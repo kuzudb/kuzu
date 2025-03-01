@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "common/enums/rel_direction.h"
+#include "main/client_context.h"
 #include "storage/store/rel_table.h"
 #include "transaction/transaction.h"
 
@@ -169,7 +170,6 @@ void LocalRelTable::initializeScan(TableScanState& state) {
     KU_ASSERT(relScanState.source == TableScanSource::UNCOMMITTED);
     KU_ASSERT(relScanState.localTableScanState);
     auto& localScanState = *relScanState.localTableScanState;
-    localScanState.rowIdxVector->setState(relScanState.rowIdxVector->state);
     localScanState.rowIndices.clear();
     localScanState.nextRowToScan = 0;
 }
@@ -234,14 +234,12 @@ bool LocalRelTable::scan(const Transaction* transaction, TableScanState& state) 
     }
 }
 
-static std::unique_ptr<RelTableScanState> setupLocalTableScanState(table_id_t tableID,
-    DataChunk& scanChunk, std::span<row_idx_t> intersectRows) {
-    std::vector<column_id_t> columnIDs;
-    columnIDs.push_back(LOCAL_REL_ID_COLUMN_ID);
-    auto scanState = std::make_unique<RelTableScanState>(tableID, columnIDs);
-    scanState->outState = scanChunk.state.get();
-    scanState->rowIdxVector->state = scanChunk.state;
-    scanState->outputVectors.push_back(&scanChunk.getValueVectorMutable(0));
+static std::unique_ptr<RelTableScanState> setupLocalTableScanState(DataChunk& scanChunk,
+    std::span<row_idx_t> intersectRows) {
+    std::vector columnIDs{LOCAL_REL_ID_COLUMN_ID};
+    auto scanState = std::make_unique<RelTableScanState>(nullptr,
+        std::vector{&scanChunk.getValueVectorMutable(0)}, scanChunk.state);
+    scanState->columnIDs = columnIDs;
     scanChunk.state->getSelVectorUnsafe().setSelSize(intersectRows.size());
     for (uint64_t i = 0; i < intersectRows.size(); i++) {
         scanState->rowIdxVector->setValue<row_idx_t>(i, intersectRows[i]);
@@ -264,7 +262,7 @@ row_idx_t LocalRelTable::findMatchingRow(const Transaction* transaction,
             });
     // Loop over relID column chunks to find the relID.
     const auto numVectorsToScan =
-        common::ceilDiv(static_cast<uint64_t>(intersectRows.size()), DEFAULT_VECTOR_CAPACITY);
+        ceilDiv(static_cast<uint64_t>(intersectRows.size()), DEFAULT_VECTOR_CAPACITY);
     for (uint64_t vectorIdx = 0; vectorIdx < numVectorsToScan; ++vectorIdx) {
         DataChunk scanChunk(1);
         scanChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
@@ -272,10 +270,9 @@ row_idx_t LocalRelTable::findMatchingRow(const Transaction* transaction,
         const uint64_t startRowToScan = vectorIdx * DEFAULT_VECTOR_CAPACITY;
         const auto endRowToScan = std::min(startRowToScan + DEFAULT_VECTOR_CAPACITY,
             static_cast<uint64_t>(intersectRows.size()));
-        std::span<row_idx_t> currentRowsToCheck{intersectRows.begin() + startRowToScan,
+        std::span currentRowsToCheck{intersectRows.begin() + startRowToScan,
             intersectRows.begin() + endRowToScan};
-        const auto scanState =
-            setupLocalTableScanState(table.getTableID(), scanChunk, currentRowsToCheck);
+        const auto scanState = setupLocalTableScanState(scanChunk, currentRowsToCheck);
 
         auto dummyTrx = Transaction::getDummyTransactionFromExistingOne(*transaction);
         [[maybe_unused]] auto lookupRes = localNodeGroup->lookup(&dummyTrx, *scanState);

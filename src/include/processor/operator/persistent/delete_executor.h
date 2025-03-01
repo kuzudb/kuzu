@@ -5,7 +5,6 @@
 
 #include "common/enums/delete_type.h"
 #include "common/vector/value_vector.h"
-#include "processor/execution_context.h"
 #include "processor/result/result_set.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"

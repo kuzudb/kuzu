@@ -58,6 +58,7 @@ bool NodeTableScanState::scanNext(Transaction* transaction, offset_t startOffset
         return false;
     }
     auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+    auto tableID = table->getTableID();
     if (source == TableScanSource::UNCOMMITTED) {
         nodeGroupStartOffset = transaction->getUncommittedOffset(tableID, nodeGroupStartOffset);
     }
@@ -71,13 +72,13 @@ bool NodeTableScanState::scanNext(Transaction* transaction, offset_t startOffset
 namespace {
 
 struct UncommittedPKInserter final : PKColumnScanHelper {
-    UncommittedPKInserter(row_idx_t startNodeOffset, table_id_t tableID, PrimaryKeyIndex* pkIndex,
+    UncommittedPKInserter(row_idx_t startNodeOffset, NodeTable* table, PrimaryKeyIndex* pkIndex,
         visible_func isVisible)
-        : PKColumnScanHelper(pkIndex, tableID), startNodeOffset(startNodeOffset),
+        : PKColumnScanHelper(table, pkIndex), startNodeOffset(startNodeOffset),
           nodeIDVector(LogicalType::INTERNAL_ID()), isVisible(std::move(isVisible)) {}
 
-    std::unique_ptr<NodeTableScanState> initPKScanState(DataChunk& dataChunk,
-        column_id_t pkColumnID, const std::vector<std::unique_ptr<Column>>& columns) override;
+    std::unique_ptr<NodeTableScanState> initPKScanState(const Transaction* transaction,
+        DataChunk& dataChunk, column_id_t pkColumnID) override;
 
     bool processScanOutput(const Transaction* transaction, NodeGroupScanResult scanResult,
         const ValueVector& scannedVector) override;
@@ -88,17 +89,17 @@ struct UncommittedPKInserter final : PKColumnScanHelper {
 };
 
 struct RollbackPKDeleter final : PKColumnScanHelper {
-    RollbackPKDeleter(row_idx_t startNodeOffset, row_idx_t numRows, table_id_t tableID,
+    RollbackPKDeleter(row_idx_t startNodeOffset, row_idx_t numRows, NodeTable* table,
         PrimaryKeyIndex* pkIndex)
-        : PKColumnScanHelper(pkIndex, tableID),
+        : PKColumnScanHelper(table, pkIndex),
           semiMask(
               RoaringBitmapSemiMaskUtil::createRoaringBitmapSemiMask(startNodeOffset + numRows)) {
         semiMask->maskRange(startNodeOffset, startNodeOffset + numRows);
         semiMask->enable();
     }
 
-    std::unique_ptr<NodeTableScanState> initPKScanState(DataChunk& dataChunk,
-        column_id_t pkColumnID, const std::vector<std::unique_ptr<Column>>& columns) override;
+    std::unique_ptr<NodeTableScanState> initPKScanState(const Transaction* transaction,
+        DataChunk& dataChunk, column_id_t pkColumnID) override;
 
     bool processScanOutput(const Transaction* transaction, NodeGroupScanResult scanResult,
         const ValueVector& scannedVector) override;
@@ -122,9 +123,9 @@ void insertPK(const Transaction* transaction, const ValueVector& nodeIDVector,
     }
 }
 
-std::unique_ptr<NodeTableScanState> UncommittedPKInserter::initPKScanState(DataChunk& dataChunk,
-    column_id_t pkColumnID, const std::vector<std::unique_ptr<Column>>& columns) {
-    auto scanState = PKColumnScanHelper::initPKScanState(dataChunk, pkColumnID, columns);
+std::unique_ptr<NodeTableScanState> UncommittedPKInserter::initPKScanState(
+    const Transaction* transaction, DataChunk& dataChunk, column_id_t pkColumnID) {
+    auto scanState = PKColumnScanHelper::initPKScanState(transaction, dataChunk, pkColumnID);
     nodeIDVector.setState(dataChunk.state);
     scanState->source = TableScanSource::UNCOMMITTED;
     return scanState;
@@ -136,16 +137,16 @@ bool UncommittedPKInserter::processScanOutput(const Transaction* transaction,
         return false;
     }
     for (auto i = 0u; i < scanResult.numRows; i++) {
-        nodeIDVector.setValue(i, nodeID_t{startNodeOffset + i, tableID});
+        nodeIDVector.setValue(i, nodeID_t{startNodeOffset + i, table->getTableID()});
     }
     insertPK(transaction, nodeIDVector, scannedVector, pkIndex, isVisible);
     startNodeOffset += scanResult.numRows;
     return true;
 }
 
-std::unique_ptr<NodeTableScanState> RollbackPKDeleter::initPKScanState(DataChunk& dataChunk,
-    column_id_t pkColumnID, const std::vector<std::unique_ptr<Column>>& columns) {
-    auto scanState = PKColumnScanHelper::initPKScanState(dataChunk, pkColumnID, columns);
+std::unique_ptr<NodeTableScanState> RollbackPKDeleter::initPKScanState(
+    const Transaction* transaction, DataChunk& dataChunk, column_id_t pkColumnID) {
+    auto scanState = PKColumnScanHelper::initPKScanState(transaction, dataChunk, pkColumnID);
     scanState->source = TableScanSource::COMMITTED;
     scanState->semiMask = semiMask.get();
     return scanState;
@@ -176,9 +177,10 @@ bool RollbackPKDeleter::processScanOutput(const Transaction* transaction,
 }
 } // namespace
 
-void NodeTableScanState::setToTable(Table* table_, std::vector<column_id_t> columnIDs_,
-    std::vector<ColumnPredicateSet> columnPredicateSets_, RelDataDirection) {
-    TableScanState::setToTable(table_, columnIDs_, std::move(columnPredicateSets_));
+void NodeTableScanState::setToTable(const Transaction* transaction, Table* table_,
+    std::vector<column_id_t> columnIDs_, std::vector<ColumnPredicateSet> columnPredicateSets_,
+    RelDataDirection) {
+    TableScanState::setToTable(transaction, table_, columnIDs_, std::move(columnPredicateSets_));
     columns.resize(columnIDs.size());
     for (auto i = 0u; i < columnIDs.size(); i++) {
         auto columnID = columnIDs[i];
@@ -200,6 +202,7 @@ bool NodeTableScanState::scanNext(Transaction* transaction) {
         return false;
     }
     auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+    auto tableID = table->getTableID();
     if (source == TableScanSource::UNCOMMITTED) {
         nodeGroupStartOffset = transaction->getUncommittedOffset(tableID, nodeGroupStartOffset);
     }
@@ -508,7 +511,7 @@ void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
-         localNodeGroupIdx++) {
+        localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
         if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by
@@ -533,7 +536,7 @@ void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     }
 
     // 3. Scan pk column for newly inserted tuples that are not deleted and insert into pk index.
-    UncommittedPKInserter pkInserter{startNodeOffset, tableID, pkIndex.get(),
+    UncommittedPKInserter pkInserter{startNodeOffset, this, pkIndex.get(),
         getVisibleFunc(transaction)};
     // We need to scan from local storage here because some tuples in local node groups might
     // have been deleted.
@@ -579,10 +582,11 @@ void NodeTable::rollbackPKIndexInsert(const Transaction* transaction, row_idx_t 
     row_idx_t numRows_, node_group_idx_t nodeGroupIdx_) {
     row_idx_t startNodeOffset = startRow + StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx_);
 
-    RollbackPKDeleter pkDeleter{startNodeOffset, numRows_, tableID, pkIndex.get()};
+    RollbackPKDeleter pkDeleter{startNodeOffset, numRows_, this, pkIndex.get()};
     scanPKColumn(transaction, pkDeleter, *nodeGroups);
 }
 
+// NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
 void NodeTable::rollbackGroupCollectionInsert(row_idx_t numRows_) {
     nodeGroups->rollbackInsert(numRows_);
 }
@@ -639,11 +643,11 @@ bool NodeTable::lookupPK(const Transaction* transaction, ValueVector* keyVector,
 void NodeTable::scanPKColumn(const Transaction* transaction, PKColumnScanHelper& scanHelper,
     const NodeGroupCollection& nodeGroups_) const {
     auto dataChunk = constructDataChunkForPKColumn();
-    auto scanState = scanHelper.initPKScanState(dataChunk, pkColumnID, columns);
+    auto scanState = scanHelper.initPKScanState(transaction, dataChunk, pkColumnID);
 
     const auto numNodeGroups = nodeGroups_.getNumNodeGroups();
     for (node_group_idx_t nodeGroupToScan = 0u; nodeGroupToScan < numNodeGroups;
-         ++nodeGroupToScan) {
+        ++nodeGroupToScan) {
         scanState->nodeGroup = nodeGroups_.getNodeGroupNoLock(nodeGroupToScan);
 
         // It is possible for the node group to have no chunked groups if we are rolling back due to
@@ -663,17 +667,15 @@ void NodeTable::scanPKColumn(const Transaction* transaction, PKColumnScanHelper&
     }
 }
 
-std::unique_ptr<NodeTableScanState> PKColumnScanHelper::initPKScanState(DataChunk& dataChunk,
-    column_id_t pkColumnID, const std::vector<std::unique_ptr<Column>>& columns) {
-    std::vector<column_id_t> columnIDs{pkColumnID};
-    auto scanState = std::make_unique<NodeTableScanState>(tableID, columnIDs);
+std::unique_ptr<NodeTableScanState> PKColumnScanHelper::initPKScanState(
+    const Transaction* transaction, DataChunk& dataChunk, column_id_t pkColumnID) {
+    std::vector columnIDs{pkColumnID};
+    std::vector<ValueVector*> outVectors;
     for (auto& vector : dataChunk.valueVectors) {
-        scanState->outputVectors.push_back(vector.get());
+        outVectors.push_back(vector.get());
     }
-    scanState->outState = dataChunk.state.get();
-    for (const auto& column : columns) {
-        scanState->columns.push_back(column.get());
-    }
+    auto scanState = std::make_unique<NodeTableScanState>(nullptr, outVectors, dataChunk.state);
+    scanState->setToTable(transaction, table, columnIDs, {});
     return scanState;
 }
 

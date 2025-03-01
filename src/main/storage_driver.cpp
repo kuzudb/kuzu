@@ -107,7 +107,7 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
     clientContext->query("COMMIT");
 }
 
-uint64_t StorageDriver::getNumNodes(const std::string& nodeName) {
+uint64_t StorageDriver::getNumNodes(const std::string& nodeName) const {
     clientContext->query("BEGIN TRANSACTION READ ONLY;");
     auto result =
         getTable(*clientContext, nodeName)->getNumTotalRows(clientContext->getTransaction());
@@ -115,7 +115,7 @@ uint64_t StorageDriver::getNumNodes(const std::string& nodeName) {
     return result;
 }
 
-uint64_t StorageDriver::getNumRels(const std::string& relName) {
+uint64_t StorageDriver::getNumRels(const std::string& relName) const {
     clientContext->query("BEGIN TRANSACTION READ ONLY;");
     auto result =
         getTable(*clientContext, relName)->getNumTotalRows(clientContext->getTransaction());
@@ -123,13 +123,11 @@ uint64_t StorageDriver::getNumRels(const std::string& relName) {
     return result;
 }
 
-void StorageDriver::scanColumn(storage::Table* table, column_id_t columnID, offset_t* offsets,
-    size_t size, uint8_t* result) {
+void StorageDriver::scanColumn(Table* table, column_id_t columnID, const offset_t* offsets,
+    size_t size, uint8_t* result) const {
     // Create scan state.
     auto nodeTable = table->ptrCast<NodeTable>();
     auto column = &nodeTable->getColumn(columnID);
-    auto scanState = std::make_unique<NodeTableScanState>(table->getTableID(),
-        std::vector<column_id_t>{columnID}, std::vector<const Column*>{column});
     // Create value vectors
     auto idVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID());
     auto columnVector = std::make_unique<ValueVector>(column->getDataType().copy(),
@@ -137,13 +135,9 @@ void StorageDriver::scanColumn(storage::Table* table, column_id_t columnID, offs
     auto vectorState = DataChunkState::getSingleValueDataChunkState();
     idVector->state = vectorState;
     columnVector->state = vectorState;
-    scanState->rowIdxVector->state = vectorState;
-    scanState->nodeIDVector = idVector.get();
-    scanState->outputVectors.push_back(columnVector.get());
-    // Scan
-    // TODO: validate not more than 1 level nested
-    auto physicalType = column->getDataType().getPhysicalType();
-    switch (physicalType) {
+    auto scanState = std::make_unique<NodeTableScanState>(idVector.get(),
+        std::vector{columnVector.get()}, vectorState);
+    switch (auto physicalType = column->getDataType().getPhysicalType()) {
     case PhysicalTypeID::BOOL:
     case PhysicalTypeID::INT128:
     case PhysicalTypeID::INT64:
@@ -158,7 +152,8 @@ void StorageDriver::scanColumn(storage::Table* table, column_id_t columnID, offs
     case PhysicalTypeID::FLOAT: {
         for (auto i = 0u; i < size; ++i) {
             idVector->setValue(0, nodeID_t{offsets[i], table->getTableID()});
-            nodeTable->lookup(clientContext->getTransaction(), *scanState);
+            [[maybe_unused]] auto res =
+                nodeTable->lookup(clientContext->getTransaction(), *scanState);
             memcpy(result, columnVector->getData(),
                 PhysicalTypeUtils::getFixedTypeSize(physicalType));
         }
@@ -170,13 +165,15 @@ void StorageDriver::scanColumn(storage::Table* table, column_id_t columnID, offs
         auto arraySize = elementSize * numElements;
         for (auto i = 0u; i < size; ++i) {
             idVector->setValue(0, nodeID_t{offsets[i], table->getTableID()});
-            nodeTable->lookup(clientContext->getTransaction(), *scanState);
+            [[maybe_unused]] auto res =
+                nodeTable->lookup(clientContext->getTransaction(), *scanState);
             auto dataVector = ListVector::getDataVector(columnVector.get());
             memcpy(result, dataVector->getData() + i * arraySize, arraySize);
         }
     } break;
     default:
-        KU_UNREACHABLE;
+        throw RuntimeException(stringFormat("Not supported data type in StorageDriver::scanColumn",
+            PhysicalTypeUtils::toString(physicalType)));
     }
 }
 
