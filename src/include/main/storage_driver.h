@@ -25,8 +25,7 @@ public:
 
 private:
     void scanColumn(storage::Table* table, common::column_id_t columnID,
-        const common::offset_t* offsets,
-        size_t size, uint8_t* result) const;
+        const common::offset_t* offsets, size_t size, uint8_t* result) const;
 
 private:
     Database* database;
