@@ -12,7 +12,7 @@ public:
               BoundStatementResult::createSingleStringColumnResult()},
           info{std::move(info)} {}
 
-    inline const BoundCreateSequenceInfo* getInfo() const { return &info; }
+    const BoundCreateSequenceInfo* getInfo() const { return &info; }
 
 private:
     BoundCreateSequenceInfo info;

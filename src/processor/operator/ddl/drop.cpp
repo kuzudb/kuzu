@@ -13,7 +13,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void Drop::executeDDLInternal(ExecutionContext* context) {
+void Drop::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();

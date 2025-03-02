@@ -14,19 +14,19 @@ std::string CreateSequencePrintInfo::toString() const {
     return seqName;
 }
 
-void CreateSequence::executeDDLInternal(ExecutionContext* context) {
+void CreateSequence::executeInternal(ExecutionContext* context) {
     auto catalog = context->clientContext->getCatalog();
+    auto transaction = context->clientContext->getTransaction();
     switch (info.onConflict) {
     case common::ConflictAction::ON_CONFLICT_DO_NOTHING: {
-        if (catalog->containsSequence(context->clientContext->getTransaction(),
-                info.sequenceName)) {
+        if (catalog->containsSequence(transaction, info.sequenceName)) {
             return;
         }
     }
     default:
         break;
     }
-    catalog->createSequence(context->clientContext->getTransaction(), info);
+    catalog->createSequence(transaction, info);
 }
 
 std::string CreateSequence::getOutputMsg() {

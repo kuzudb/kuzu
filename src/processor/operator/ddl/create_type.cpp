@@ -13,7 +13,7 @@ std::string CreateTypePrintInfo::toString() const {
     return typeName + " AS " + type;
 }
 
-void CreateType::executeDDLInternal(ExecutionContext* context) {
+void CreateType::executeInternal(ExecutionContext* context) {
     auto catalog = context->clientContext->getCatalog();
     catalog->createType(context->clientContext->getTransaction(), name, type.copy());
 }

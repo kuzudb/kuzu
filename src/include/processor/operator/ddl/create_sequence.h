@@ -1,7 +1,7 @@
 #pragma once
 
 #include "binder/ddl/bound_create_sequence_info.h"
-#include "processor/operator/ddl/ddl.h"
+#include "processor/operator/simple/simple.h"
 
 namespace kuzu {
 namespace processor {
@@ -22,15 +22,15 @@ private:
         : OPPrintInfo{other}, seqName{other.seqName} {}
 };
 
-class CreateSequence final : public DDL {
+class CreateSequence final : public Simple {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::CREATE_SEQUENCE;
 
 public:
     CreateSequence(binder::BoundCreateSequenceInfo info, const DataPos& outputPos, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : DDL{type_, outputPos, id, std::move(printInfo)}, info{std::move(info)} {}
+        : Simple{type_, outputPos, id, std::move(printInfo)}, info{std::move(info)} {}
 
-    void executeDDLInternal(ExecutionContext* context) final;
+    void executeInternal(ExecutionContext* context) final;
 
     std::string getOutputMsg() override;
 

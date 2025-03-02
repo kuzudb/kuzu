@@ -2,7 +2,7 @@
 
 #include "binder/ddl/bound_alter_info.h"
 #include "expression_evaluator/expression_evaluator.h"
-#include "processor/operator/ddl/ddl.h"
+#include "processor/operator/simple/simple.h"
 
 namespace kuzu {
 namespace catalog {
@@ -32,19 +32,19 @@ private:
           info{other.info.copy()} {}
 };
 
-class Alter final : public DDL {
+class Alter final : public Simple {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::ALTER;
 
 public:
     Alter(binder::BoundAlterInfo info,
         std::unique_ptr<evaluator::ExpressionEvaluator> defaultValueEvaluator,
         const DataPos& outputPos, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
-        : DDL{type_, outputPos, id, std::move(printInfo)}, info{std::move(info)},
+        : Simple{type_, outputPos, id, std::move(printInfo)}, info{std::move(info)},
           defaultValueEvaluator{std::move(defaultValueEvaluator)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    void executeDDLInternal(ExecutionContext* context) override;
+    void executeInternal(ExecutionContext* context) override;
 
     std::string getOutputMsg() override;
 

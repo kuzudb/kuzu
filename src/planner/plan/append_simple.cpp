@@ -37,7 +37,7 @@ namespace planner {
 void Planner::appendCreateTable(const BoundStatement& statement, LogicalPlan& plan) {
     auto& createTable = statement.constCast<BoundCreateTable>();
     auto info = createTable.getInfo();
-    auto op = make_shared<LogicalCreateTable>(info->tableName, info->copy(),
+    auto op = make_shared<LogicalCreateTable>(info->copy(),
         statement.getStatementResult()->getSingleColumnExpr());
     plan.setLastOperator(std::move(op));
 }
@@ -52,7 +52,7 @@ void Planner::appendCreateType(const BoundStatement& statement, LogicalPlan& pla
 void Planner::appendCreateSequence(const BoundStatement& statement, LogicalPlan& plan) {
     auto& createSequence = statement.constCast<BoundCreateSequence>();
     auto info = createSequence.getInfo();
-    auto op = make_shared<LogicalCreateSequence>(info->sequenceName, info->copy(),
+    auto op = make_shared<LogicalCreateSequence>(info->copy(),
         statement.getStatementResult()->getSingleColumnExpr());
     plan.setLastOperator(std::move(op));
 }
@@ -67,7 +67,7 @@ void Planner::appendDrop(const BoundStatement& statement, LogicalPlan& plan) {
 void Planner::appendAlter(const BoundStatement& statement, LogicalPlan& plan) {
     auto& alter = statement.constCast<BoundAlter>();
     auto info = alter.getInfo();
-    auto op = std::make_shared<LogicalAlter>(info->copy(), info->tableName,
+    auto op = std::make_shared<LogicalAlter>(info->copy(),
         statement.getStatementResult()->getSingleColumnExpr());
     plan.setLastOperator(std::move(op));
 }

@@ -1,21 +1,21 @@
 #pragma once
 
 #include "binder/ddl/bound_create_table_info.h"
-#include "processor/operator/ddl/ddl.h"
+#include "processor/operator/simple/simple.h"
 
 namespace kuzu {
 namespace processor {
 
-class CreateTable final : public DDL {
+class CreateTable final : public Simple {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::CREATE_TABLE;
 
 public:
     CreateTable(binder::BoundCreateTableInfo info, const DataPos& outputPos, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : DDL{type_, outputPos, id, std::move(printInfo)}, info{std::move(info)},
+        : Simple{type_, outputPos, id, std::move(printInfo)}, info{std::move(info)},
           tableCreated{false} {}
 
-    void executeDDLInternal(ExecutionContext* context) override;
+    void executeInternal(ExecutionContext* context) override;
 
     std::string getOutputMsg() override;
 
