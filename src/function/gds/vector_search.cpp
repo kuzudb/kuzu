@@ -82,6 +82,8 @@ namespace kuzu {
 
                 indexHeader = context->getStorageManager()->getVectorIndexHeaderReadOnlyVersion(nodeTableId,
                                                                                                 embeddingPropertyId);
+                totalNodeGroups = ku_dynamic_cast<Table *, NodeTable *>(
+                        context->getStorageManager()->getTable(nodeTableId))->getNumCommittedNodeGroups();
                 // TODO: Handle multiple partitions
                 auto partitionHeader = indexHeader->getPartitionHeader(0);
                 auto startOffset = partitionHeader->getStartNodeGroupId() * StorageConstants::NODE_GROUP_SIZE;
@@ -122,6 +124,7 @@ namespace kuzu {
             VectorIndexHeader *indexHeader;
             std::unique_ptr<NodeTableDistanceComputer<float>> dc;
             std::unique_ptr<NodeTableDistanceComputer<uint8_t>> qdc;
+            node_group_idx_t totalNodeGroups;
         };
 
         struct VectorSearchStats {
@@ -450,11 +453,20 @@ namespace kuzu {
 
                     // Get graph neighbours
                     stats.listNbrsCallTime->start();
-                    auto nbrs = graph->scanFwdRandom({candidate.id, tableId}, state);
+                    auto nbrs = graph->scanFwdRandomFast({candidate.id, tableId}, state);
                     stats.listNbrsCallTime->stop();
                     stats.listNbrsMetric->increase(1);
 
-                    for (auto &neighbor: nbrs) {
+                    auto totalNbrs = nbrs->state->getSelVector().getSelSize();
+
+                    // Try prefetching
+                    for (int i = 0; i < totalNbrs; i++) {
+                        auto neighbor = nbrs->getValue<nodeID_t>(i);
+                        visited->prefetch(neighbor.offset);
+                    }
+
+                    for (int i = 0; i < totalNbrs; i++) {
+                        auto neighbor = nbrs->getValue<nodeID_t>(i);
                         if (visited->is_bit_set(neighbor.offset)) {
                             continue;
                         }
@@ -466,12 +478,13 @@ namespace kuzu {
             }
 
             inline void acornTwoHopSearch(
-                    std::vector<common::nodeID_t> &firstHopNbrs,
+                    ValueVector* firstHopNbrs,
                     VectorIndexConfig *config, Graph *graph,
                     NodeOffsetLevelSemiMask *filterMask, GraphScanState &state,
                     BitVectorVisitedTable *visited,
                     vector_array_t &vectorArray, int &size,
                     VectorSearchStats &stats) {
+                auto totalNbrs = firstHopNbrs->state->getSelVector().getSelSize();
                 int gamma = config->gamma;
                 int maxNbrs = config->maxNbrs;
                 int maxNbrsBeta = config->maxNbrsBeta;
@@ -480,7 +493,8 @@ namespace kuzu {
                 // Get the first hop neighbours
                 // First hop neighbours
                 int numIter = 0;
-                for (auto &neighbor: firstHopNbrs) {
+                for (size_t i = 0; i < totalNbrs; i++) {
+                    auto neighbor = firstHopNbrs->getValue<nodeID_t>(i);
                     numIter++;
                     auto isNeighborMasked = filterMask->isMasked(neighbor.offset);
                     if (visited->is_bit_set(neighbor.offset)) {
@@ -496,16 +510,20 @@ namespace kuzu {
                     // Second hop neighbours
                     if (((numIter >= maxNbrsBeta) && keep_expanding) || gamma == 1) {
                         stats.listNbrsCallTime->start();
-                        auto secondHopNbrs = graph->scanFwdRandom(neighbor, state);
+                        auto secondHopNbrs = graph->scanFwdRandomFast2(neighbor, state);
                         stats.listNbrsCallTime->stop();
                         stats.listNbrsMetric->increase(1);
 
+                        auto secondHopNbrsSize = secondHopNbrs->state->getSelVector().getSelSize();
                         // Try prefetching
-                        for (auto &secondHopNeighbor: secondHopNbrs) {
+                        for (int j = 0; j < secondHopNbrsSize; j++) {
+                            auto secondHopNeighbor = secondHopNbrs->getValue<nodeID_t>(j);
+                            visited->prefetch(secondHopNeighbor.offset);
                             filterMask->prefetchMaskValue(secondHopNeighbor.offset);
                         }
 
-                        for (auto &secondHopNeighbor: secondHopNbrs) {
+                        for (int j = 0; j < secondHopNbrsSize; j++) {
+                            auto secondHopNeighbor = secondHopNbrs->getValue<nodeID_t>(j);
                             auto isNeighborMasked = filterMask->isMasked(secondHopNeighbor.offset);
                             if (visited->is_bit_set(secondHopNeighbor.offset)) {
                                 continue;
@@ -577,12 +595,17 @@ namespace kuzu {
 
                     // Get the first hop neighbours
                     stats.listNbrsCallTime->start();
-                    auto firstHopNbrs = graph->scanFwdRandom({candidate.id, tableId}, state);
+                    auto firstHopNbrs = graph->scanFwdRandomFast({candidate.id, tableId}, state);
                     stats.listNbrsCallTime->stop();
                     stats.listNbrsMetric->increase(1);
 
+                    // Reduce density!!
+                    auto totalNbrs = firstHopNbrs->state->getSelVector().getSelSize();
+
                     // Try prefetching
-                    for (auto &neighbor: firstHopNbrs) {
+                    for (int i = 0; i < totalNbrs; i++) {
+                        auto neighbor = firstHopNbrs->getValue<nodeID_t>(i);
+                        visited->prefetch(neighbor.offset);
                         filterMask->prefetchMaskValue(neighbor.offset);
                     }
 
@@ -708,7 +731,7 @@ namespace kuzu {
                 auto k = bindState->k;
                 KU_ASSERT(bindState->queryVector.size() == indexHeader->getDim());
                 auto query = bindState->queryVector.data();
-                auto state = graph->prepareScan(header->getCSRRelTableId());
+                auto state = graph->prepareScan(header->getCSRRelTableId(), searchLocalState->totalNodeGroups);
                 auto visited = std::make_unique<BitVectorVisitedTable>(header->getNumVectors());
                 auto filterMask = sharedState->inputNodeOffsetMasks.at(indexHeader->getNodeTableId()).get();
                 auto config = indexHeader->getConfig();

@@ -378,6 +378,13 @@ public:
         data_[i_byte] |= (1 << i_bit);
     }
 
+    void prefetch(const uint32_t x)
+    {
+#ifdef __AVX__
+        _mm_prefetch((const char*)(data_ + (uint32_t)(x >> 3)), _MM_HINT_T2);
+#endif
+    }
+
     void reset()
     {
         memset(data_, 0, num_bytes_);
