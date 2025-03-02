@@ -1,6 +1,6 @@
 #pragma once
 
-#include "planner/operator/ddl/logical_ddl.h"
+#include "planner/operator/simple/logical_simple.h"
 
 namespace kuzu {
 namespace planner {
@@ -23,25 +23,28 @@ private:
         : OPPrintInfo(other), typeName(other.typeName), type(other.type) {}
 };
 
-class LogicalCreateType : public LogicalDDL {
+class LogicalCreateType : public LogicalSimple {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::CREATE_TYPE;
 
 public:
-    LogicalCreateType(std::string name, common::LogicalType type,
+    LogicalCreateType(std::string typeName, common::LogicalType type,
         std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalDDL{type_, std::move(name), std::move(outputExpression)}, type{std::move(type)} {}
+        : LogicalSimple{type_, std::move(outputExpression)}, typeName{std::move(typeName)}, type{std::move(type)} {}
+
+    std::string getExpressionsForPrinting() const override { return typeName; }
 
     const common::LogicalType& getType() const { return type; }
 
     std::unique_ptr<OPPrintInfo> getPrintInfo() const override {
-        return std::make_unique<LogicalCreateTypePrintInfo>(tableName, type.toString());
+        return std::make_unique<LogicalCreateTypePrintInfo>(typeName, type.toString());
     }
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalCreateType>(tableName, type.copy(), outputExpression);
+        return std::make_unique<LogicalCreateType>(typeName, type.copy(), outputExpression);
     }
 
 private:
+    std::string typeName;
     common::LogicalType type;
 };
 

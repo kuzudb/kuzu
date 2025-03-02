@@ -18,9 +18,9 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-static DataPos getOutputPos(const LogicalDDL& logicalDDL) {
-    auto outSchema = logicalDDL.getSchema();
-    auto outputExpression = logicalDDL.getOutputExpression();
+static DataPos getOutputPos(const LogicalSimple& simple) {
+    auto outSchema = simple.getSchema();
+    auto outputExpression = simple.getOutputExpression();
     return DataPos(outSchema->getExpressionPos(*outputExpression));
 }
 
@@ -35,16 +35,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateTable(
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateType(
     const LogicalOperator* logicalOperator) {
     auto& createType = logicalOperator->constCast<LogicalCreateType>();
-    auto printInfo = std::make_unique<CreateTypePrintInfo>(createType.getTableName(),
+    auto typeName = createType.getExpressionsForPrinting();
+    auto printInfo = std::make_unique<CreateTypePrintInfo>(typeName,
         createType.getType().toString());
-    return std::make_unique<CreateType>(createType.getTableName(), createType.getType().copy(),
+    return std::make_unique<CreateType>(typeName, createType.getType().copy(),
         getOutputPos(createType), getOperatorID(), std::move(printInfo));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateSequence(
     const LogicalOperator* logicalOperator) {
     auto& createSequence = logicalOperator->constCast<LogicalCreateSequence>();
-    auto printInfo = std::make_unique<CreateSequencePrintInfo>(createSequence.getTableName());
+    auto printInfo = std::make_unique<CreateSequencePrintInfo>(createSequence.getInfo().sequenceName);
     return std::make_unique<CreateSequence>(createSequence.getInfo(), getOutputPos(createSequence),
         getOperatorID(), std::move(printInfo));
 }

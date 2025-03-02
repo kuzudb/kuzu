@@ -1,7 +1,7 @@
 #pragma once
 
 #include "binder/ddl/bound_create_sequence_info.h"
-#include "planner/operator/ddl/logical_ddl.h"
+#include "planner/operator/simple/logical_simple.h"
 
 namespace kuzu {
 namespace planner {
@@ -24,22 +24,26 @@ private:
         : OPPrintInfo(other), sequenceName(other.sequenceName) {}
 };
 
-class LogicalCreateSequence : public LogicalDDL {
+class LogicalCreateSequence : public LogicalSimple {
+    static constexpr LogicalOperatorType type_ = LogicalOperatorType::CREATE_SEQUENCE;
+
 public:
-    LogicalCreateSequence(std::string sequenceName, binder::BoundCreateSequenceInfo info,
+    LogicalCreateSequence(binder::BoundCreateSequenceInfo info,
         std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalDDL{LogicalOperatorType::CREATE_SEQUENCE, std::move(sequenceName),
-              std::move(outputExpression)},
-          info{std::move(info)} {}
+        : LogicalSimple{type_, std::move(outputExpression)}, info{std::move(info)} {}
+
+    std::string getExpressionsForPrinting() const override {
+        return info.sequenceName;
+    }
 
     binder::BoundCreateSequenceInfo getInfo() const { return info.copy(); }
 
     std::unique_ptr<OPPrintInfo> getPrintInfo() const override {
-        return std::make_unique<LogicalCreateSequencePrintInfo>(tableName);
+        return std::make_unique<LogicalCreateSequencePrintInfo>(info.sequenceName);
     }
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalCreateSequence>(tableName, info.copy(), outputExpression);
+        return std::make_unique<LogicalCreateSequence>(info.copy(), outputExpression);
     }
 
 private:

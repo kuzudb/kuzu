@@ -19,13 +19,13 @@ namespace kuzu {
 namespace processor {
 
 void Alter::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    DDL::initLocalStateInternal(resultSet, context);
+    Simple::initLocalStateInternal(resultSet, context);
     if (defaultValueEvaluator) {
         defaultValueEvaluator->init(*resultSet, context->clientContext);
     }
 }
 
-void Alter::executeDDLInternal(ExecutionContext* context) {
+void Alter::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();

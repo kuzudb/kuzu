@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ddl.h"
+#include "processor/operator/simple/simple.h"
 #include "parser/ddl/drop_info.h"
 
 namespace kuzu {
@@ -21,16 +21,16 @@ private:
     DropPrintInfo(const DropPrintInfo& other) : OPPrintInfo{other}, name{other.name} {}
 };
 
-class Drop final : public DDL {
+class Drop final : public Simple {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::DROP;
 
 public:
     Drop(parser::DropInfo dropInfo, const DataPos& outputPos, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : DDL{type_, outputPos, id, std::move(printInfo)}, dropInfo{std::move(dropInfo)},
+        : Simple{type_, outputPos, id, std::move(printInfo)}, dropInfo{std::move(dropInfo)},
           entryDropped{false} {}
 
-    void executeDDLInternal(ExecutionContext* context) override;
+    void executeInternal(ExecutionContext* context) override;
 
     std::string getOutputMsg() override;
 

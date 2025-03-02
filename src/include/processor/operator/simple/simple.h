@@ -11,11 +11,6 @@ public:
         std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{operatorType, id, std::move(printInfo)}, outputPos{outputPos},
           outputVector{nullptr}, hasExecuted{false} {}
-    Simple(PhysicalOperatorType operatorType,
-        std::vector<std::unique_ptr<PhysicalOperator>> children, const DataPos& outputPos,
-        uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
-        : PhysicalOperator{operatorType, std::move(children), id, std::move(printInfo)},
-          outputPos{outputPos}, outputVector{nullptr}, hasExecuted{false} {}
 
     bool isSource() const final { return true; }
     bool isParallel() const final { return false; }

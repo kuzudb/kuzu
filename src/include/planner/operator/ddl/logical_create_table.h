@@ -1,7 +1,7 @@
 #pragma once
 
 #include "binder/ddl/bound_create_table_info.h"
-#include "planner/operator/ddl/logical_ddl.h"
+#include "planner/operator/simple/logical_simple.h"
 
 namespace kuzu {
 namespace planner {
@@ -22,13 +22,15 @@ struct LogicalCreateTablePrintInfo final : OPPrintInfo {
         : info{other.info.copy()} {}
 };
 
-class LogicalCreateTable final : public LogicalDDL {
+class LogicalCreateTable final : public LogicalSimple {
+    static constexpr LogicalOperatorType type_ = LogicalOperatorType::CREATE_TABLE;
+
 public:
-    LogicalCreateTable(std::string tableName, binder::BoundCreateTableInfo info,
+    LogicalCreateTable(binder::BoundCreateTableInfo info,
         std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalDDL{LogicalOperatorType::CREATE_TABLE, std::move(tableName),
-              std::move(outputExpression)},
-          info{std::move(info)} {}
+        : LogicalSimple{type_, std::move(outputExpression)}, info{std::move(info)} {}
+
+    std::string getExpressionsForPrinting() const override { return info.tableName; }
 
     const binder::BoundCreateTableInfo* getInfo() const { return &info; }
 
@@ -37,7 +39,7 @@ public:
     }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalCreateTable>(tableName, info.copy(), outputExpression);
+        return std::make_unique<LogicalCreateTable>(info.copy(), outputExpression);
     }
 
 private:
