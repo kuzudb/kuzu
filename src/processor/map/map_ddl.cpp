@@ -36,8 +36,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateType(
     const LogicalOperator* logicalOperator) {
     auto& createType = logicalOperator->constCast<LogicalCreateType>();
     auto typeName = createType.getExpressionsForPrinting();
-    auto printInfo = std::make_unique<CreateTypePrintInfo>(typeName,
-        createType.getType().toString());
+    auto printInfo =
+        std::make_unique<CreateTypePrintInfo>(typeName, createType.getType().toString());
     return std::make_unique<CreateType>(typeName, createType.getType().copy(),
         getOutputPos(createType), getOperatorID(), std::move(printInfo));
 }
@@ -45,7 +45,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateType(
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateSequence(
     const LogicalOperator* logicalOperator) {
     auto& createSequence = logicalOperator->constCast<LogicalCreateSequence>();
-    auto printInfo = std::make_unique<CreateSequencePrintInfo>(createSequence.getInfo().sequenceName);
+    auto printInfo =
+        std::make_unique<CreateSequencePrintInfo>(createSequence.getInfo().sequenceName);
     return std::make_unique<CreateSequence>(createSequence.getInfo(), getOutputPos(createSequence),
         getOperatorID(), std::move(printInfo));
 }

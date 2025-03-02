@@ -27,9 +27,7 @@ public:
     LogicalAlter(binder::BoundAlterInfo info, std::shared_ptr<binder::Expression> outputExpression)
         : LogicalSimple{type_, std::move(outputExpression)}, info{std::move(info)} {}
 
-    std::string getExpressionsForPrinting() const override {
-        return info.tableName;
-    }
+    std::string getExpressionsForPrinting() const override { return info.tableName; }
 
     const binder::BoundAlterInfo* getInfo() const { return &info; }
 

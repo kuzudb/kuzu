@@ -1,7 +1,7 @@
 #pragma once
 
-#include "processor/operator/simple/simple.h"
 #include "parser/ddl/drop_info.h"
+#include "processor/operator/simple/simple.h"
 
 namespace kuzu {
 namespace processor {

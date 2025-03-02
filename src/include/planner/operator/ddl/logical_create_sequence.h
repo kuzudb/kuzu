@@ -32,9 +32,7 @@ public:
         std::shared_ptr<binder::Expression> outputExpression)
         : LogicalSimple{type_, std::move(outputExpression)}, info{std::move(info)} {}
 
-    std::string getExpressionsForPrinting() const override {
-        return info.sequenceName;
-    }
+    std::string getExpressionsForPrinting() const override { return info.sequenceName; }
 
     binder::BoundCreateSequenceInfo getInfo() const { return info.copy(); }
 
