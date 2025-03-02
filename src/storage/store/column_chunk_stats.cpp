@@ -27,7 +27,12 @@ void ColumnChunkStats::update(std::optional<StorageValue> newMin,
 }
 
 void ColumnChunkStats::update(StorageValue val, common::PhysicalTypeID dataType) {
-    update(val, val, dataType);
+    if (!min.has_value() || min->gt(val, dataType)) {
+        min = val;
+    }
+    if (!max.has_value() || val.gt(*max, dataType)) {
+        max = val;
+    }
 }
 
 void ColumnChunkStats::reset() {
