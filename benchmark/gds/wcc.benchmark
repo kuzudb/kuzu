@@ -1,0 +1,30 @@
+-NAME wcc
+-CALL create_projected_graph('Graph', ['Nodes'], ['Edges']);
+---- ok
+-CALL weakly_connected_component('Graph') RETURN group_id, min(node.id) as idmin, count(*) as count, sum(node.id) as idsum ORDER BY count DESC, idmin LIMIT 10;
+---- 10
+0|0|107319|5759958890
+94866|107287|10|1073652
+94689|107127|9|964728
+94527|106982|8|856074
+94334|106808|7|748231
+94132|106626|6|640205
+94083|106582|5|533039
+94041|106544|4|426229
+54070|106506|3|320595
+54092|106500|2|214085
+
+# ComponentIds come from different internal mappings but normalized node ids match:
+# neo4j> CALL gds.graph.project('GraphUndirected', 'Node', {Edge: {orientation: 'UNDIRECTED'}});
+# neo4j> CALL gds.wcc.stream('GraphUndirected') YIELD nodeId, componentId RETURN componentId, MIN(gds.util.asNode(nodeId).id) as idmin, count(*) AS count, SUM(gds.util.asNode(nodeId).id) as idsum ORDER BY count DESC, idmin LIMIT 10;
+#   componentId  idmin   count   idsum
+#   0            0       107319  5759958890
+#   8100         107287  10      1073652
+#   7923         107127  9       964728
+#   7761         106982  8       856074
+#   7568         106808  7       748231
+#   7366         106626  6       640205
+#   7317         106582  5       533039
+#   7275         106544  4       426229
+#   7233         106506  3       320595
+#   7227         106500  2       214085
