@@ -214,20 +214,29 @@ void ColumnChunkData::updateStats(const common::ValueVector* vector,
     } else {
         TypeUtils::visit(
             getDataType().getPhysicalType(),
-            [this, vector]<StorageValueType T>(T) {
+            [&]<StorageValueType T>(T) {
                 auto firstValue = vector->firstNonNull<T>();
                 if (!firstValue) {
                     return;
                 }
                 T min = *firstValue, max = *firstValue;
-                vector->forEachNonNull([&](auto pos) {
+                auto update = [&](sel_t pos) {
                     const auto val = vector->getValue<T>(pos);
                     if (val < min) {
                         min = val;
                     } else if (val > max) {
                         max = val;
                     }
-                });
+                };
+                if (vector->hasNoNullsGuarantee()) {
+                    selVector.forEach(update);
+                } else {
+                    selVector.forEach([&](auto pos) {
+                        if (!vector->isNull(pos)) {
+                            update(pos);
+                        }
+                    });
+                }
                 inMemoryStats.update(StorageValue(min), StorageValue(max),
                     getDataType().getPhysicalType());
             },
