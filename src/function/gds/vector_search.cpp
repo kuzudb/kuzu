@@ -167,7 +167,7 @@ namespace kuzu {
             std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
                 return {LogicalTypeID::ANY, LogicalTypeID::NODE, LogicalTypeID::INT64, LogicalTypeID::LIST,
                         LogicalTypeID::INT64, LogicalTypeID::INT64, LogicalTypeID::INT64, LogicalTypeID::BOOL,
-                        LogicalTypeID::BOOL};
+                        LogicalTypeID::BOOL, LogicalTypeID::STRING};
             }
 
             /*
@@ -773,11 +773,6 @@ namespace kuzu {
                 }
                 searchLocalState->materialize(reversed, *sharedState->fTable, k);
                 stats.vectorSearchTimeMetric->stop();
-                printf("vector search time: %f ms\n", stats.vectorSearchTimeMetric->getElapsedTimeMS());
-                printf("distance computation time: %f ms\n", stats.distanceComputationTime->getElapsedTimeMS());
-                printf("distance computations: %ld\n", stats.distCompMetric->accumulatedValue);
-                printf("list nbrs calls: %ld\n", stats.listNbrsMetric->accumulatedValue);
-                printf("list nbrs call time: %f ms\n", stats.listNbrsCallTime->getElapsedTimeMS());
             }
 
             std::unique_ptr<GDSAlgorithm> copy() const override {
