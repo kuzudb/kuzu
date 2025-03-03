@@ -3,7 +3,7 @@
 #include "binder/expression/node_expression.h"
 #include "function/table/bind_data.h"
 #include "function/table/table_function.h"
-#include "storage/index/hnsw_index.h"
+#include "index/hnsw_index.h"
 
 namespace kuzu {
 namespace function {

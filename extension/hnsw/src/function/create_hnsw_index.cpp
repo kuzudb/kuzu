@@ -1,9 +1,10 @@
 #include "binder/copy/bound_copy_from.h"
-#include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/hnsw_index_catalog_entry.h"
 #include "function/built_in_function_utils.h"
+#include "function/hnsw_index_functions.h"
 #include "function/table/bind_data.h"
-#include "function/table/hnsw/hnsw_index_functions.h"
+#include "index/hnsw_index_utils.h"
 #include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "processor/execution_context.h"
@@ -11,7 +12,6 @@
 #include "processor/operator/table_function_call.h"
 #include "processor/plan_mapper.h"
 #include "processor/result/factorized_table_util.h"
-#include "storage/index/hnsw_index_utils.h"
 #include "storage/index/index_utils.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
@@ -24,8 +24,8 @@ namespace function {
 CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : TableFuncSharedState{bindData.maxOffset}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-                    ->getTable(bindData.tableEntry->getTableID())
-                    ->cast<storage::NodeTable>()},
+              ->getTable(bindData.tableEntry->getTableID())
+              ->cast<storage::NodeTable>()},
       numNodes{bindData.numNodes}, bindData{&bindData} {
     hnswIndex = std::make_shared<storage::InMemHNSWIndex>(bindData.context, nodeTable,
         bindData.tableEntry->getColumnID(bindData.propertyID), bindData.config.copy());

@@ -119,9 +119,14 @@ struct KUZU_API ExtensionUtils {
     }
 
     template<typename T>
-    static void addStandaloneTableFunc(main::Database& database, bool isInternal = false) {
+    static void addStandaloneTableFunc(main::Database& database) {
         addFunc<T>(database, T::name, catalog::CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY,
-            isInternal);
+            false /* isInternal */);
+    }
+    template<typename T>
+    static void addInternalStandaloneTableFunc(main::Database& database) {
+        addFunc<T>(database, T::name, catalog::CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY,
+            true /* isInternal */);
     }
 
     template<typename T>

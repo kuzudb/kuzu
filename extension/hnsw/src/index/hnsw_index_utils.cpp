@@ -1,4 +1,4 @@
-#include "storage/index/hnsw_index_utils.h"
+#include "index/hnsw_index_utils.h"
 
 #include "binder/binder.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
