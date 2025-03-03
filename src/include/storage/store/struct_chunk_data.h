@@ -54,7 +54,7 @@ public:
 protected:
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
-    void append(common::ValueVector* vector, const common::SelectionVector& selVector) override;
+    void append(common::ValueVector* vector, const common::SelectionView& selView) override;
 
     void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
         common::sel_t posInOutputVector = 0) const override;

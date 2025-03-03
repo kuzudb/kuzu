@@ -127,8 +127,8 @@ void ListChunkData::resetNumValuesFromMetadata() {
     dataColumnChunk->resetNumValuesFromMetadata();
 }
 
-void ListChunkData::append(ValueVector* vector, const SelectionVector& selVector) {
-    auto numToAppend = selVector.getSelSize();
+void ListChunkData::append(ValueVector* vector, const SelectionView& selView) {
+    auto numToAppend = selView.getSelSize();
     auto newCapacity = capacity;
     while (numValues + numToAppend >= newCapacity) {
         newCapacity = std::ceil(newCapacity * 1.5);
@@ -138,8 +138,8 @@ void ListChunkData::append(ValueVector* vector, const SelectionVector& selVector
     }
     offset_t nextListOffsetInChunk = dataColumnChunk->getNumValues();
     const offset_t appendBaseOffset = numValues;
-    for (auto i = 0u; i < selVector.getSelSize(); i++) {
-        auto pos = selVector[i];
+    for (auto i = 0u; i < selView.getSelSize(); i++) {
+        auto pos = selView[i];
         auto listLen = vector->isNull(pos) ? 0 : vector->getValue<list_entry_t>(pos).size;
         sizeColumnChunk->setValue<list_size_t>(listLen, appendBaseOffset + i);
 
@@ -153,8 +153,8 @@ void ListChunkData::append(ValueVector* vector, const SelectionVector& selVector
     // TODO(Guodong): we should not set vector to a new state.
     dataVector->setState(std::make_unique<DataChunkState>());
     dataVector->state->getSelVectorUnsafe().setToFiltered();
-    for (auto i = 0u; i < selVector.getSelSize(); i++) {
-        auto pos = selVector[i];
+    for (auto i = 0u; i < selView.getSelSize(); i++) {
+        auto pos = selView[i];
         if (vector->isNull(pos)) {
             continue;
         }

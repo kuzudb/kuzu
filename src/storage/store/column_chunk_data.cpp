@@ -208,8 +208,8 @@ MergedColumnChunkStats ColumnChunkData::getMergedColumnChunkStats() const {
 }
 
 void ColumnChunkData::updateStats(const common::ValueVector* vector,
-    const common::SelectionVector& selVector) {
-    if (selVector.isUnfiltered()) {
+    const common::SelectionView& selView) {
+    if (selView.isUnfiltered()) {
         updateInMemoryStats(inMemoryStats, *vector);
     } else {
         TypeUtils::visit(
@@ -229,9 +229,9 @@ void ColumnChunkData::updateStats(const common::ValueVector* vector,
                     }
                 };
                 if (vector->hasNoNullsGuarantee()) {
-                    selVector.forEach(update);
+                    selView.forEach(update);
                 } else {
-                    selVector.forEach([&](auto pos) {
+                    selView.forEach([&](auto pos) {
                         if (!vector->isNull(pos)) {
                             update(pos);
                         }
@@ -266,11 +266,11 @@ ColumnChunkMetadata ColumnChunkData::getMetadataToFlush() const {
     return getMetadataFunction(buffer->getBuffer(), capacity, numValues, minValue, maxValue);
 }
 
-void ColumnChunkData::append(ValueVector* vector, const SelectionVector& selVector) {
+void ColumnChunkData::append(ValueVector* vector, const SelectionView& selView) {
     KU_ASSERT(vector->dataType.getPhysicalType() == dataType.getPhysicalType());
-    copyVectorToBuffer(vector, numValues, selVector);
-    numValues += selVector.getSelSize();
-    updateStats(vector, selVector);
+    copyVectorToBuffer(vector, numValues, selView);
+    numValues += selView.getSelSize();
+    updateStats(vector, selView);
 }
 
 void ColumnChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
@@ -503,28 +503,27 @@ void ColumnChunkData::populateWithDefaultVal(ExpressionEvaluator& defaultEvaluat
 }
 
 void ColumnChunkData::copyVectorToBuffer(ValueVector* vector, offset_t startPosInChunk,
-    const SelectionVector& selVector) {
+    const SelectionView& selView) {
     auto bufferToWrite = buffer->getBuffer().data() + startPosInChunk * numBytesPerValue;
-    KU_ASSERT(startPosInChunk + selVector.getSelSize() <= capacity);
+    KU_ASSERT(startPosInChunk + selView.getSelSize() <= capacity);
     const auto vectorDataToWriteFrom = vector->getData();
-    if (selVector.isUnfiltered()) {
-        memcpy(bufferToWrite, vectorDataToWriteFrom, selVector.getSelSize() * numBytesPerValue);
+    if (selView.isUnfiltered()) {
+        memcpy(bufferToWrite, vectorDataToWriteFrom, selView.getSelSize() * numBytesPerValue);
         if (nullData) {
             // TODO(Guodong): Should be wrapped into nullChunk->append(vector);
-            for (auto i = 0u; i < selVector.getSelSize(); i++) {
+            for (auto i = 0u; i < selView.getSelSize(); i++) {
                 nullData->setNull(startPosInChunk + i, vector->isNull(i));
             }
         }
     } else {
-        for (auto i = 0u; i < selVector.getSelSize(); i++) {
-            const auto pos = selVector[i];
+        selView.forEach([&](auto pos) {
             memcpy(bufferToWrite, vectorDataToWriteFrom + pos * numBytesPerValue, numBytesPerValue);
             bufferToWrite += numBytesPerValue;
-        }
+        });
         if (nullData) {
             // TODO(Guodong): Should be wrapped into nullChunk->append(vector);
-            for (auto i = 0u; i < selVector.getSelSize(); i++) {
-                const auto pos = selVector[i];
+            for (auto i = 0u; i < selView.getSelSize(); i++) {
+                const auto pos = selView[i];
                 nullData->setNull(startPosInChunk + i, vector->isNull(pos));
             }
         }
@@ -614,20 +613,20 @@ std::unique_ptr<ColumnChunkData> ColumnChunkData::deserialize(MemoryManager& mem
     return chunkData;
 }
 
-void BoolChunkData::append(ValueVector* vector, const SelectionVector& selVector) {
+void BoolChunkData::append(ValueVector* vector, const SelectionView& selView) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::BOOL);
-    for (auto i = 0u; i < selVector.getSelSize(); i++) {
-        const auto pos = selVector[i];
+    for (auto i = 0u; i < selView.getSelSize(); i++) {
+        const auto pos = selView[i];
         NullMask::setNull(getData<uint64_t>(), numValues + i, vector->getValue<bool>(pos));
     }
     if (nullData) {
-        for (auto i = 0u; i < selVector.getSelSize(); i++) {
-            const auto pos = selVector[i];
+        for (auto i = 0u; i < selView.getSelSize(); i++) {
+            const auto pos = selView[i];
             nullData->setNull(numValues + i, vector->isNull(pos));
         }
     }
-    numValues += selVector.getSelSize();
-    updateStats(vector, selVector);
+    numValues += selView.getSelSize();
+    updateStats(vector, selView);
 }
 
 void BoolChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
@@ -781,30 +780,30 @@ void NullChunkData::scan(ValueVector& output, offset_t offset, length_t length,
     output.setNullFromBits(getNullMask().getData(), offset, posInOutputVector, length);
 }
 
-void InternalIDChunkData::append(ValueVector* vector, const SelectionVector& selVector) {
+void InternalIDChunkData::append(ValueVector* vector, const SelectionView& selView) {
     switch (vector->dataType.getPhysicalType()) {
     case PhysicalTypeID::INTERNAL_ID: {
-        copyVectorToBuffer(vector, numValues, selVector);
+        copyVectorToBuffer(vector, numValues, selView);
     } break;
     case PhysicalTypeID::INT64: {
-        copyInt64VectorToBuffer(vector, numValues, selVector);
+        copyInt64VectorToBuffer(vector, numValues, selView);
     } break;
     default: {
         KU_UNREACHABLE;
     }
     }
-    numValues += selVector.getSelSize();
+    numValues += selView.getSelSize();
 }
 
 void InternalIDChunkData::copyVectorToBuffer(ValueVector* vector, offset_t startPosInChunk,
-    const SelectionVector& selVector) {
+    const SelectionView& selView) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
     const auto relIDsInVector = reinterpret_cast<internalID_t*>(vector->getData());
     if (commonTableID == INVALID_TABLE_ID) {
-        commonTableID = relIDsInVector[selVector[0]].tableID;
+        commonTableID = relIDsInVector[selView[0]].tableID;
     }
-    for (auto i = 0u; i < selVector.getSelSize(); i++) {
-        const auto pos = selVector[i];
+    for (auto i = 0u; i < selView.getSelSize(); i++) {
+        const auto pos = selView[i];
         if (vector->isNull(pos)) {
             continue;
         }
@@ -815,10 +814,10 @@ void InternalIDChunkData::copyVectorToBuffer(ValueVector* vector, offset_t start
 }
 
 void InternalIDChunkData::copyInt64VectorToBuffer(ValueVector* vector, offset_t startPosInChunk,
-    const SelectionVector& selVector) const {
+    const SelectionView& selView) const {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
-    for (auto i = 0u; i < selVector.getSelSize(); i++) {
-        const auto pos = selVector[i];
+    for (auto i = 0u; i < selView.getSelSize(); i++) {
+        const auto pos = selView[i];
         if (vector->isNull(pos)) {
             continue;
         }

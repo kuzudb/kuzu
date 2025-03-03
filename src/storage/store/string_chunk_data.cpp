@@ -72,21 +72,19 @@ void StringChunkData::resetToEmpty() {
     dictionaryChunk->resetToEmpty();
 }
 
-void StringChunkData::append(ValueVector* vector, const SelectionVector& selVector) {
-    for (auto i = 0u; i < selVector.getSelSize(); i++) {
+void StringChunkData::append(ValueVector* vector, const SelectionView& selView) {
+    selView.forEach([&](auto pos) {
         // index is stored in main chunk, data is stored in the data chunk
-        auto pos = selVector[i];
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
         // index is stored in main chunk, data is stored in the data chunk
         nullData->setNull(numValues, vector->isNull(pos));
         auto dstPos = numValues;
         updateNumValues(numValues + 1);
-        if (vector->isNull(pos)) {
-            continue;
+        if (!vector->isNull(pos)) {
+            auto kuString = vector->getValue<ku_string_t>(pos);
+            setValueFromString(kuString.getAsStringView(), dstPos);
         }
-        auto kuString = vector->getValue<ku_string_t>(pos);
-        setValueFromString(kuString.getAsStringView(), dstPos);
-    }
+    });
 }
 
 void StringChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,

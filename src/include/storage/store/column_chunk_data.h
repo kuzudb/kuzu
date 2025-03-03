@@ -148,7 +148,7 @@ public:
     // Note that the startPageIdx is not known, so it will always be common::INVALID_PAGE_IDX
     virtual ColumnChunkMetadata getMetadataToFlush() const;
 
-    virtual void append(common::ValueVector* vector, const common::SelectionVector& selVector);
+    virtual void append(common::ValueVector* vector, const common::SelectionView& selView);
     virtual void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend);
 
@@ -230,7 +230,7 @@ public:
 
     MergedColumnChunkStats getMergedColumnChunkStats() const;
 
-    void updateStats(const common::ValueVector* vector, const common::SelectionVector& selVector);
+    void updateStats(const common::ValueVector* vector, const common::SelectionView& selVector);
 
 protected:
     // Initializes the data buffer and functions. They are (and should be) only called in
@@ -243,7 +243,7 @@ protected:
     void setToOnDisk(const ColumnChunkMetadata& metadata);
 
     virtual void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk,
-        const common::SelectionVector& selVector);
+        const common::SelectionView& selView);
 
     void resetInMemoryStats();
 
@@ -304,7 +304,7 @@ public:
         : ColumnChunkData{mm, common::LogicalType::BOOL(), enableCompression, metadata, hasNullData,
               true} {}
 
-    void append(common::ValueVector* vector, const common::SelectionVector& sel) final;
+    void append(common::ValueVector* vector, const common::SelectionView& sel) final;
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
 
@@ -400,13 +400,13 @@ public:
               false /*hasNullData*/},
           commonTableID{common::INVALID_TABLE_ID} {}
 
-    void append(common::ValueVector* vector, const common::SelectionVector& selVector) override;
+    void append(common::ValueVector* vector, const common::SelectionView& selView) override;
 
     void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk,
-        const common::SelectionVector& selVector) override;
+        const common::SelectionView& selView) override;
 
     void copyInt64VectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk,
-        const common::SelectionVector& selVector) const;
+        const common::SelectionView& selView) const;
 
     void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
         common::sel_t posInOutputVector = 0) const override;

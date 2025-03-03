@@ -100,15 +100,15 @@ void StructChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
     numValues += numValuesToAppend;
 }
 
-void StructChunkData::append(ValueVector* vector, const SelectionVector& selVector) {
+void StructChunkData::append(ValueVector* vector, const SelectionView& selView) {
     const auto numFields = StructType::getNumFields(dataType);
     for (auto i = 0u; i < numFields; i++) {
-        childChunks[i]->append(StructVector::getFieldVector(vector, i).get(), selVector);
+        childChunks[i]->append(StructVector::getFieldVector(vector, i).get(), selView);
     }
-    for (auto i = 0u; i < selVector.getSelSize(); i++) {
-        nullData->setNull(numValues + i, vector->isNull(selVector[i]));
+    for (auto i = 0u; i < selView.getSelSize(); i++) {
+        nullData->setNull(numValues + i, vector->isNull(selView[i]));
     }
-    numValues += selVector.getSelSize();
+    numValues += selView.getSelSize();
 }
 
 void StructChunkData::scan(ValueVector& output, offset_t offset, length_t length,

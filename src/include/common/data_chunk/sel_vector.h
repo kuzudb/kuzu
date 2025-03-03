@@ -12,30 +12,87 @@ namespace common {
 
 class ValueVector;
 
-class SelectionVector {
-
+// A lightweight, immutable view over a SelectionVector, or a subsequence of a selection vector
+// SelectionVectors are also SelectionViews so that you can pass a SelectionVector to functions
+// which take a SelectionView&
+class SelectionView {
+protected:
     // In DYNAMIC mode, selectedPositions points to a mutable buffer that can be modified through
-    // getMutableBuffer In STATIC mode, selectedPositions points to the beginning of
-    // INCREMENTAL_SELECTED_POS In STATIC_FILTERED mode, selectedPositions points to some position
-    // in INCREMENTAL_SELECTED_POS
-    //      If reading manually in STATIC_FILTERED mode, you should read getSelectedPositions()[0],
-    //      and then you can assume that the next getSelSize() positions are selected
-    //      (This also works in STATIC mode)
+    // getMutableBuffer In STATIC mode, selectedPositions points to somewhere in
+    // INCREMENTAL_SELECTED_POS
+    // Note that the vector is considered unfiltered only if it is both STATIC and the first
+    // selected position is 0
     enum class State {
         DYNAMIC,
         STATIC,
     };
 
 public:
+    // STATIC selectionView over 0..selectedSize
+    explicit SelectionView(sel_t selectedSize) : SelectionView{0, selectedSize} {}
+    // STATIC selectionView over startPos..selectedSize
+    explicit SelectionView(sel_t startPos, sel_t selectedSize);
+
+    template<class Func>
+    void forEach(Func&& func) const {
+        if (state == State::DYNAMIC) {
+            for (size_t i = 0; i < selectedSize; i++) {
+                func(selectedPositions[i]);
+            }
+        } else {
+            const auto start = selectedPositions[0];
+            for (size_t i = start; i < start + selectedSize; i++) {
+                func(i);
+            }
+        }
+    }
+
+    sel_t getSelSize() const { return selectedSize; }
+
+    sel_t operator[](sel_t index) const {
+        KU_ASSERT(index < selectedSize);
+        return selectedPositions[index];
+    }
+
+    bool isUnfiltered() const { return state == State::STATIC && selectedPositions[0] == 0; }
+    bool isStatic() const { return state == State::STATIC; }
+
+    std::span<const sel_t> getSelectedPositions() const {
+        return std::span<const sel_t>(selectedPositions, selectedSize);
+    }
+
+protected:
+    static SelectionView slice(std::span<const sel_t> selectedPositions, State state) {
+        return SelectionView(selectedPositions, state);
+    }
+
+    // Intended to be used only as a subsequence of a SelectionVector in SelectionVector::slice
+    explicit SelectionView(std::span<const sel_t> selectedPositions, State state)
+        : selectedPositions{selectedPositions.data()}, selectedSize{selectedPositions.size()},
+          state{state} {}
+
+protected:
+    const sel_t* selectedPositions;
+    sel_t selectedSize;
+    State state;
+};
+
+class SelectionVector : public SelectionView {
+public:
     explicit SelectionVector(sel_t capacity)
-        : selectedSize{0}, capacity{capacity}, selectedPositions{nullptr}, state{State::STATIC} {
-        selectedPositionsBuffer = std::make_unique<sel_t[]>(capacity);
+        : SelectionView{std::span<const sel_t>(), State::STATIC},
+          selectedPositionsBuffer{std::make_unique<sel_t[]>(capacity)}, capacity{capacity} {
         setToUnfiltered();
     }
 
-    SelectionVector();
+    // This View should be considered invalid if the SelectionVector it was created from has been
+    // modified
+    SelectionView slice(sel_t startIndex, sel_t selectedSize) const {
+        return SelectionView::slice(getSelectedPositions().subspan(startIndex, selectedSize),
+            state);
+    }
 
-    bool isUnfiltered() const { return state == State::STATIC && selectedPositions[0] == 0; }
+    SelectionVector();
 
     void setToUnfiltered();
     void setToUnfiltered(sel_t size);
@@ -43,7 +100,7 @@ public:
         KU_ASSERT(startPos + size <= capacity);
         selectedPositions = selectedPositionsBuffer.get();
         for (auto i = 0u; i < size; ++i) {
-            selectedPositions[i] = startPos + i;
+            selectedPositionsBuffer[i] = startPos + i;
         }
         selectedSize = size;
         state = State::DYNAMIC;
@@ -70,25 +127,7 @@ public:
     std::span<sel_t> getMutableBuffer() const {
         return std::span<sel_t>(selectedPositionsBuffer.get(), capacity);
     }
-    std::span<const sel_t> getSelectedPositions() const {
-        return std::span<const sel_t>(selectedPositions, selectedSize);
-    }
 
-    template<class Func>
-    void forEach(Func&& func) const {
-        if (state == State::DYNAMIC) {
-            for (size_t i = 0; i < selectedSize; i++) {
-                func(selectedPositions[i]);
-            }
-        } else {
-            const auto start = selectedPositions[0];
-            for (size_t i = start; i < start + selectedSize; i++) {
-                func(i);
-            }
-        }
-    }
-
-    sel_t getSelSize() const { return selectedSize; }
     void setSelSize(sel_t size) {
         KU_ASSERT(size <= capacity);
         selectedSize = size;
@@ -100,22 +139,19 @@ public:
 
     sel_t operator[](sel_t index) const {
         KU_ASSERT(index < capacity);
-        return selectedPositions[index];
+        return const_cast<sel_t&>(selectedPositions[index]);
     }
     sel_t& operator[](sel_t index) {
         KU_ASSERT(index < capacity);
-        return selectedPositions[index];
+        return const_cast<sel_t&>(selectedPositions[index]);
     }
 
     static std::vector<SelectionVector*> fromValueVectors(
         const std::vector<std::shared_ptr<common::ValueVector>>& vec);
 
 private:
-    sel_t selectedSize;
-    sel_t capacity;
     std::unique_ptr<sel_t[]> selectedPositionsBuffer;
-    sel_t* selectedPositions;
-    State state;
+    sel_t capacity;
 };
 
 } // namespace common

@@ -151,16 +151,9 @@ uint64_t ChunkedNodeGroup::append(const Transaction* transaction,
     KU_ASSERT(columnVectors.size() == chunks.size());
     const auto numRowsToAppendInChunk = std::min(numValuesToAppend, capacity - numRows);
     for (auto i = 0u; i < columnVectors.size(); i++) {
-        const auto chunk = chunks[i].get();
         const auto columnVector = columnVectors[i];
-        // TODO(Guodong): Should add `slice` interface to SelVector.
-        SelectionVector selVector(numRowsToAppendInChunk);
-        for (auto row = 0u; row < numRowsToAppendInChunk; row++) {
-            selVector.getMutableBuffer()[row] =
-                columnVector->state->getSelVector()[startRowInVectors + row];
-        }
-        selVector.setToFiltered(numRowsToAppendInChunk);
-        chunk->getData().append(columnVector, selVector);
+        chunks[i]->getData().append(columnVector,
+            columnVector->state->getSelVector().slice(startRowInVectors, numRowsToAppendInChunk));
     }
     if (transaction->getID() != Transaction::DUMMY_TRANSACTION_ID) {
         if (!versionInfo) {

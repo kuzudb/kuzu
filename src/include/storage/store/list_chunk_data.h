@@ -54,7 +54,7 @@ public:
         metadata.numValues = numValues;
     }
 
-    void append(common::ValueVector* vector, const common::SelectionVector& selVector) override;
+    void append(common::ValueVector* vector, const common::SelectionView& selVector) override;
 
     void initializeScanState(ChunkState& state, const Column* column) const override;
     void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
