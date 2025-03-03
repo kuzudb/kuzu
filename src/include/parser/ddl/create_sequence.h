@@ -7,9 +7,10 @@ namespace kuzu {
 namespace parser {
 
 class CreateSequence final : public Statement {
+    static constexpr common::StatementType type_ = common::StatementType::CREATE_SEQUENCE;
+
 public:
-    explicit CreateSequence(CreateSequenceInfo info)
-        : Statement{common::StatementType::CREATE_SEQUENCE}, info{std::move(info)} {}
+    explicit CreateSequence(CreateSequenceInfo info) : Statement{type_}, info{std::move(info)} {}
 
     CreateSequenceInfo getInfo() const { return info.copy(); }
 

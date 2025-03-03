@@ -3,7 +3,6 @@ add_library(kuzu_processor_operator_ddl
         alter.cpp
         create_table.cpp
         create_type.cpp
-        ddl.cpp
         drop.cpp
         create_sequence.cpp)
 

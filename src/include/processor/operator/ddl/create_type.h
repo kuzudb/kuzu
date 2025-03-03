@@ -1,7 +1,6 @@
-
 #pragma once
 
-#include "processor/operator/ddl/ddl.h"
+#include "processor/operator/simple/simple.h"
 
 namespace kuzu {
 namespace processor {
@@ -24,16 +23,16 @@ private:
         : OPPrintInfo{other}, typeName{other.typeName}, type{other.type} {}
 };
 
-class CreateType final : public DDL {
+class CreateType final : public Simple {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::CREATE_TYPE;
 
 public:
     CreateType(std::string name, common::LogicalType type, DataPos outputPos, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
-        : DDL{type_, outputPos, id, std::move(printInfo)}, name{std::move(name)},
+        : Simple{type_, outputPos, id, std::move(printInfo)}, name{std::move(name)},
           type{std::move(type)} {}
 
-    void executeDDLInternal(ExecutionContext* context) override;
+    void executeInternal(ExecutionContext* context) override;
 
     std::string getOutputMsg() override;
 
