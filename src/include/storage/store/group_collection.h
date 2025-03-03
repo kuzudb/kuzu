@@ -20,10 +20,12 @@ public:
 
     common::UniqLock lock() const { return common::UniqLock{mtx}; }
 
-    void deserializeGroups(MemoryManager& memoryManager, common::Deserializer& deSer) {
+    void deserializeGroups(MemoryManager& memoryManager, common::Deserializer& deSer,
+        const std::vector<common::LogicalType>& columnTypes) {
         auto lockGuard = lock();
-        deSer.deserializeVectorOfPtrs<T>(groups,
-            [&](common::Deserializer& deser) { return T::deserialize(memoryManager, deser); });
+        deSer.deserializeVectorOfPtrs<T>(groups, [&](common::Deserializer& deser) {
+            return T::deserialize(memoryManager, deser, columnTypes);
+        });
     }
 
     void removeTrailingGroups([[maybe_unused]] const common::UniqLock& lock,
