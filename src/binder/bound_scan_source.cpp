@@ -18,5 +18,11 @@ bool BoundTableScanSource::getIgnoreErrorsOption() const {
     return info.bindData->getIgnoreErrorsOption();
 }
 
+bool BoundQueryScanSource::getIgnoreErrorsOption() const {
+    return info.options.contains(CopyConstants::IGNORE_ERRORS_OPTION_NAME) ?
+               info.options.at(CopyConstants::IGNORE_ERRORS_OPTION_NAME).getValue<bool>() :
+               CopyConstants::DEFAULT_IGNORE_ERRORS;
+}
+
 } // namespace binder
 } // namespace kuzu
