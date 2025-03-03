@@ -144,7 +144,7 @@ nodejs:
 	$(call run-cmake-release, -DBUILD_NODEJS=TRUE)
 
 python:
-	$(call run-cmake-release, -DBUILD_PYTHON=TRUE)
+	$(call run-cmake-release, -DBUILD_PYTHON=TRUE -DBUILD_SHELL=FALSE)
 
 python-debug:
 	$(call run-cmake-debug, -DBUILD_PYTHON=TRUE)
