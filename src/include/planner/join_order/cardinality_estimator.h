@@ -26,7 +26,7 @@ public:
     // TODO(Xiyang): revisit this init at some point. Maybe we should init while enumerating.
     void initNodeIDDom(const transaction::Transaction* transaction,
         const binder::QueryGraph& queryGraph);
-    void addNodeIDDomAndStats(const transaction::Transaction* transaction,
+    KUZU_API void addNodeIDDomAndStats(const transaction::Transaction* transaction,
         const binder::Expression& nodeID, const std::vector<common::table_id_t>& tableIDs);
     void addPerQueryGraphNodeIDDom(const binder::Expression& nodeID, cardinality_t numNodes);
     void clearPerQueryGraphStats();

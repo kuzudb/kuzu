@@ -65,12 +65,12 @@ public:
     }
 
     // Assume scans all columns of table in the same order as given expressions.
-    std::unique_ptr<PhysicalOperator> createFTableScanAligned(
+    KUZU_API std::unique_ptr<PhysicalOperator> createFTableScanAligned(
         const binder::expression_vector& exprs, const planner::Schema* schema,
         std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize,
         physical_op_vector_t children);
 
-    static std::unique_ptr<PhysicalOperator> createRelBatchInsertOp(
+    static KUZU_API std::unique_ptr<PhysicalOperator> createRelBatchInsertOp(
         const main::ClientContext* clientContext,
         std::shared_ptr<PartitionerSharedState> partitionerSharedState,
         std::shared_ptr<BatchInsertSharedState> sharedState,

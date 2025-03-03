@@ -20,7 +20,7 @@ namespace storage {
 class Table;
 class DiskArrayCollection;
 
-class StorageManager {
+class KUZU_API StorageManager {
 public:
     StorageManager(const std::string& databasePath, bool readOnly, const catalog::Catalog& catalog,
         MemoryManager& memoryManager, bool enableCompression, common::VirtualFileSystem* vfs,
@@ -34,7 +34,7 @@ public:
     void checkpoint(main::ClientContext& clientContext);
     void rollbackCheckpoint(main::ClientContext& clientContext);
 
-    Table* getTable(common::table_id_t tableID) {
+    KUZU_API Table* getTable(common::table_id_t tableID) {
         std::lock_guard lck{mtx};
         KU_ASSERT(tables.contains(tableID));
         return tables.at(tableID).get();

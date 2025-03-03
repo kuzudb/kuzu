@@ -1,9 +1,11 @@
 #include "binder/copy/bound_copy_from.h"
-#include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
+#include "catalog/catalog_entry/function_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/hnsw_index_catalog_entry.h"
 #include "function/built_in_function_utils.h"
+#include "function/hnsw_index_functions.h"
 #include "function/table/bind_data.h"
-#include "function/table/hnsw/hnsw_index_functions.h"
+#include "index/hnsw_index_utils.h"
 #include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "processor/execution_context.h"
@@ -11,8 +13,6 @@
 #include "processor/operator/table_function_call.h"
 #include "processor/plan_mapper.h"
 #include "processor/result/factorized_table_util.h"
-#include "storage/index/hnsw_index_utils.h"
-#include "storage/index/index_utils.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
 
@@ -24,8 +24,8 @@ namespace function {
 CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : SimpleTableFuncSharedState{bindData.numRows}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-                    ->getTable(bindData.tableEntry->getTableID())
-                    ->cast<storage::NodeTable>()},
+              ->getTable(bindData.tableEntry->getTableID())
+              ->cast<storage::NodeTable>()},
       numNodes{bindData.numRows}, bindData{&bindData} {
     hnswIndex = std::make_shared<storage::InMemHNSWIndex>(bindData.context, nodeTable,
         bindData.tableEntry->getColumnID(bindData.propertyID), bindData.config.copy());
@@ -36,8 +36,8 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
     const auto tableName = input->getLiteralVal<std::string>(0);
     const auto indexName = input->getLiteralVal<std::string>(1);
     const auto columnName = input->getLiteralVal<std::string>(2);
-    auto tableEntry = storage::IndexUtils::bindNodeTable(*context, tableName, indexName,
-        storage::IndexOperation::CREATE);
+    auto tableEntry = storage::HNSWIndexUtils::bindNodeTable(*context, tableName, indexName,
+        storage::HNSWIndexUtils::IndexOperation::CREATE);
     const auto tableID = tableEntry->getTableID();
     storage::HNSWIndexUtils::validateColumnType(*tableEntry, columnName);
     const auto& table = context->getStorageManager()->getTable(tableID)->cast<storage::NodeTable>();
@@ -108,13 +108,13 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
         std::move(createHNSWCallOp), planMapper->getOperatorID(), std::make_unique<OPPrintInfo>());
     // Append _FinalizeHNSWIndex table function.
     auto clientContext = planMapper->clientContext;
-    auto finalizeFuncEntry = clientContext->getCatalog()->getFunctionEntry(
-        clientContext->getTransaction(), InternalFinalizeHNSWIndexFunction::name);
+    auto finalizeFuncEntry =
+        clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(),
+            InternalFinalizeHNSWIndexFunction::name, true /* useInternal */);
     auto func = BuiltInFunctionsUtils::matchFunction(InternalFinalizeHNSWIndexFunction::name,
-        finalizeFuncEntry->ptrCast<catalog::FunctionCatalogEntry>())
-                    ->constPtrCast<TableFunction>();
+        finalizeFuncEntry->ptrCast<catalog::FunctionCatalogEntry>());
     auto info = processor::TableFunctionCallInfo();
-    info.function = *func;
+    info.function = *func->constPtrCast<TableFunction>();
     info.bindData = std::make_unique<TableFuncBindData>();
     auto initInput =
         TableFuncInitSharedStateInput(info.bindData.get(), planMapper->executionContext);
@@ -290,7 +290,7 @@ function_set InternalFinalizeHNSWIndexFunction::getFunctionSet() {
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
-    storage::IndexUtils::validateAutoTransaction(*context, CreateHNSWIndexFunction::name);
+    storage::HNSWIndexUtils::validateAutoTransaction(*context, CreateHNSWIndexFunction::name);
     return createInMemHNSWBindFunc(context, input);
 }
 

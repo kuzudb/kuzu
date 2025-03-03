@@ -39,7 +39,7 @@ struct PartitioningInfo;
 struct PartitionerDataInfo;
 struct PartitionerInfo;
 struct RelBatchInsertProgressSharedState;
-struct PartitionerSharedState {
+struct KUZU_API PartitionerSharedState {
     std::mutex mtx;
     storage::NodeTable* srcNodeTable;
     storage::NodeTable* dstNodeTable;

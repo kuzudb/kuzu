@@ -1,7 +1,7 @@
 #pragma once
 
 #include "catalog/catalog_entry/index_catalog_entry.h"
-#include "storage/index/hnsw_config.h"
+#include "index/hnsw_config.h"
 
 namespace kuzu::common {
 struct BufferReader;

@@ -1,10 +1,11 @@
-#include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
+#include "catalog/hnsw_index_catalog_entry.h"
 
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/serializer/buffered_reader.h"
 #include "common/serializer/buffered_serializer.h"
 #include "common/serializer/deserializer.h"
+#include "index/hnsw_config.h"
 #include "main/client_context.h"
 
 namespace kuzu {

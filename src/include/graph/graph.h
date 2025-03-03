@@ -28,9 +28,9 @@ struct NbrTableInfo {
         : nodeEntry{nodeEntry}, relEntry{relEntry} {}
 };
 
-class NbrScanState {
+class KUZU_API NbrScanState {
 public:
-    struct Chunk {
+    struct KUZU_API Chunk {
         friend class NbrScanState;
 
         // Any neighbour for which the given function returns false

@@ -1,10 +1,11 @@
-#include "storage/index/hnsw_config.h"
+#include "index/hnsw_config.h"
 
 #include "common/exception/binder.h"
+#include "common/exception/runtime.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/string_utils.h"
-#include "function/table/hnsw/hnsw_index_functions.h"
+#include "function/hnsw_index_functions.h"
 
 namespace kuzu {
 namespace storage {

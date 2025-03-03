@@ -273,7 +273,7 @@ public:
     std::shared_ptr<NodeExpression> bindQueryNode(const parser::NodePattern& nodePattern,
         QueryGraph& queryGraph);
     std::shared_ptr<NodeExpression> createQueryNode(const parser::NodePattern& nodePattern);
-    std::shared_ptr<NodeExpression> createQueryNode(const std::string& parsedName,
+    KUZU_API std::shared_ptr<NodeExpression> createQueryNode(const std::string& parsedName,
         const std::vector<catalog::TableCatalogEntry*>& entries);
     static void bindQueryNodeProperties(NodeExpression& node);
 
@@ -289,10 +289,10 @@ public:
         const BoundProjectionBody& boundProjectionBody);
     static bool isOrderByKeyTypeSupported(const common::LogicalType& dataType);
 
-    static void validateTableExistence(const main::ClientContext& context,
+    KUZU_API static void validateTableExistence(const main::ClientContext& context,
         const std::string& tableName);
-    static void validateNodeTableType(const catalog::TableCatalogEntry* entry);
-    static void validateColumnExistence(const catalog::TableCatalogEntry* entry,
+    KUZU_API static void validateNodeTableType(const catalog::TableCatalogEntry* entry);
+    KUZU_API static void validateColumnExistence(const catalog::TableCatalogEntry* entry,
         const std::string& columnName);
 
     void validateNoIndexOnProperty(const std::string& tableName,
@@ -304,7 +304,7 @@ public:
     static bool reservedInPropertyLookup(const std::string& name);
 
     void addToScope(const std::vector<std::string>& names, const expression_vector& exprs);
-    void addToScope(const std::string& name, std::shared_ptr<Expression> expr);
+    KUZU_API void addToScope(const std::string& name, std::shared_ptr<Expression> expr);
     BinderScope saveScope() const;
     void restoreScope(BinderScope prevScope);
     void replaceExpressionInScope(const std::string& oldName, const std::string& newName,

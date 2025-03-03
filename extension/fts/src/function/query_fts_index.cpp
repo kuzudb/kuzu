@@ -6,11 +6,11 @@
 #include "catalog/fts_index_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/types/internal_id_util.h"
+#include "function/fts_index_utils.h"
 #include "function/fts_utils.h"
 #include "function/gds/gds_utils.h"
 #include "function/query_fts_bind_data.h"
 #include "processor/execution_context.h"
-#include "storage/index/index_utils.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
 
@@ -313,8 +313,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto indexName = getParamVal(*input, 1);
     auto query = input->getParam(2);
 
-    auto tableEntry =
-        IndexUtils::bindNodeTable(*context, inputTableName, indexName, IndexOperation::QUERY);
+    auto tableEntry = FTSIndexUtils::bindNodeTable(*context, inputTableName, indexName,
+        FTSIndexUtils::IndexOperation::QUERY);
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
     auto ftsIndexEntry = catalog->getIndex(transaction, tableEntry->getTableID(), indexName);

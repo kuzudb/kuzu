@@ -34,7 +34,7 @@ class TransactionManager;
 enum class TransactionType : uint8_t { READ_ONLY, WRITE, CHECKPOINT, DUMMY, RECOVERY };
 
 class LocalCacheManager;
-class LocalCacheObject {
+class KUZU_API LocalCacheObject {
 public:
     explicit LocalCacheObject(std::string key) : key{std::move(key)} {}
 

@@ -27,9 +27,9 @@ void FTSExtension::load(main::ClientContext* context) {
     ExtensionUtils::addScalarFunc<StemFunction>(db);
     ExtensionUtils::addTableFunc<QueryFTSFunction>(db);
     ExtensionUtils::addStandaloneTableFunc<CreateFTSFunction>(db);
-    ExtensionUtils::addStandaloneTableFunc<InternalCreateFTSFunction>(db, true /* isInternal */);
+    ExtensionUtils::addInternalStandaloneTableFunc<InternalCreateFTSFunction>(db);
     ExtensionUtils::addStandaloneTableFunc<DropFTSFunction>(db);
-    ExtensionUtils::addStandaloneTableFunc<InternalDropFTSFunction>(db, true /* isInternal */);
+    ExtensionUtils::addInternalStandaloneTableFunc<InternalDropFTSFunction>(db);
     initFTSEntries(context->getTransaction(), *db.getCatalog());
 }
 

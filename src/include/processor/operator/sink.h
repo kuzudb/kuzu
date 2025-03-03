@@ -45,7 +45,7 @@ protected:
     std::unique_ptr<ResultSetDescriptor> resultSetDescriptor;
 };
 
-class DummySink final : public Sink {
+class KUZU_API DummySink final : public Sink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::DUMMY_SINK;
 
 public:

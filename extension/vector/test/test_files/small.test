@@ -3,6 +3,8 @@
 --
 
 -CASE NullVecs
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CREATE (e:embeddings{id: 0})
@@ -23,6 +25,8 @@
 995
 
 -CASE DeletedVecs
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -41,6 +45,8 @@
 995
 
 -CASE NullAndDeletedVecs
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -63,6 +69,8 @@
 995
 
 -CASE 8DimL2
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -77,6 +85,8 @@
 133
 
 -CASE 8DimCos
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -92,6 +102,8 @@
 
 # DP: DotProduct
 -CASE 8DimDP
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -106,6 +118,8 @@
 58
 
 -CASE 960Dim
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[960], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-960-1k.csv" (deLim=',');
@@ -136,6 +150,8 @@
 6
 
 -CASE DropHNSW
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -152,6 +168,8 @@
 0|embeddings|NODE|local(kuzu)|
 
 -CASE EmptyTbl
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index','vec', distFunc := 'l2');
@@ -160,6 +178,8 @@
 ---- 0
 
 -CASE Tiny
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-tiny.csv" (deLim=',');
@@ -176,6 +196,8 @@
 
 -CASE TinyReload
 -SKIP_IN_MEM
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-tiny.csv" (deLim=',');
@@ -190,12 +212,16 @@
 0
 1
 -RELOADDB
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CALL QUERY_HNSW_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 3) RETURN nn.id ORDER BY _distance;
 ---- 2
 0
 1
 
 -CASE 8DimDPImportExport
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -246,6 +272,8 @@ embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_HNSW_INDEX('embeddings', 'e_
 
 -CASE ShowIndexes
 -SKIP_IN_MEM
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', distFunc := 'l2');
@@ -254,6 +282,11 @@ embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_HNSW_INDEX('embeddings', 'e_
 ---- 1
 embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', mu := 30, ml := 60, pu := 0.050000, distFunc := 'l2', alpha := 1.100000, efc := 200);
 -RELOADDB
+-STATEMENT CALL SHOW_INDEXES() RETURN *
+---- 1
+embeddings|e_hnsw_index|HNSW|[vec]|False|
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CALL SHOW_INDEXES() RETURN *
 ---- 1
 embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', mu := 30, ml := 60, pu := 0.050000, distFunc := 'l2', alpha := 1.100000, efc := 200);

@@ -3,6 +3,8 @@
 --
 
 -CASE Error
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE test(id int64 primary key, vec double[90]);
 ---- ok
 -STATEMENT CALL CREATE_HNSW_INDEX('test2', 'e_hnsw_index', 'vec');
@@ -31,6 +33,8 @@ Binder exception: Table embeddings doesn't have an index with name e_hnsw_index2
 Binder exception: Table embeddingssss does not exist.
 
 -CASE ParamError
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -66,6 +70,8 @@ Binder exception: Unrecognized optional parameter unknown_param in QUERY_HNSW_IN
 Binder exception: Efs must be a positive integer.
 
 -CASE CastingError
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -81,6 +87,8 @@ Binder exception: Cannot match a built-in function for given function QUERY_HNSW
 (STRING,STRING,ARRAY,INT64)
 
 -CASE ProjectedGraphError
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');

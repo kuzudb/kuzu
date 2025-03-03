@@ -2,21 +2,20 @@
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/query/reading_clause/bound_table_function_call.h"
-#include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/hnsw_index_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/mask.h"
 #include "common/types/value/nested.h"
 #include "expression_evaluator/expression_evaluator_utils.h"
+#include "function/hnsw_index_functions.h"
 #include "function/table/bind_data.h"
-#include "function/table/hnsw/hnsw_index_functions.h"
+#include "index/hnsw_index.h"
+#include "index/hnsw_index_utils.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/planner.h"
 #include "processor/execution_context.h"
-#include "storage/index/hnsw_index.h"
-#include "storage/index/hnsw_index_utils.h"
-#include "storage/index/index_utils.h"
 #include "storage/storage_manager.h"
 
 using namespace kuzu::common;
@@ -69,8 +68,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     catalog::NodeTableCatalogEntry* nodeTableEntry = nullptr;
     const graph::GraphEntry* graphEntry = nullptr;
     if (context->getCatalog()->containsTable(context->getTransaction(), tableOrGraphName)) {
-        nodeTableEntry = storage::IndexUtils::bindNodeTable(*context, tableOrGraphName, indexName,
-            storage::IndexOperation::QUERY);
+        nodeTableEntry = storage::HNSWIndexUtils::bindNodeTable(*context, tableOrGraphName,
+            indexName, storage::HNSWIndexUtils::IndexOperation::QUERY);
     } else if (context->getGraphEntrySetUnsafe().hasGraph(tableOrGraphName)) {
         graphEntry = &context->getGraphEntrySetUnsafe().getEntry(tableOrGraphName);
         if (graphEntry->nodeInfos.size() > 1 || !graphEntry->relInfos.empty()) {
@@ -81,8 +80,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
                 tableOrGraphName)};
         }
         nodeTableEntry = graphEntry->nodeInfos[0].entry->ptrCast<catalog::NodeTableCatalogEntry>();
-        storage::IndexUtils::validateIndexExistence(*context, nodeTableEntry, indexName,
-            storage::IndexOperation::QUERY);
+        storage::HNSWIndexUtils::validateIndexExistence(*context, nodeTableEntry, indexName,
+            storage::HNSWIndexUtils::IndexOperation::QUERY);
     } else {
         throw BinderException{
             stringFormat("Cannot find table or projected graph named as {}.", tableOrGraphName)};

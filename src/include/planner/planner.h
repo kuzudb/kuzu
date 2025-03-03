@@ -61,7 +61,7 @@ private:
     std::unordered_map<std::string, binder::expression_vector> patternNameToProperties;
 };
 
-class Planner {
+class KUZU_API Planner {
 public:
     explicit Planner(main::ClientContext* clientContext);
     DELETE_COPY_AND_MOVE(Planner);
@@ -117,7 +117,7 @@ public:
     void planTableFunctionCall(const binder::BoundReadingClause& readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
 
-    void planReadOp(std::shared_ptr<LogicalOperator> op,
+    KUZU_API void planReadOp(std::shared_ptr<LogicalOperator> op,
         const binder::expression_vector& predicates, LogicalPlan& plan);
     void planLoadFrom(const binder::BoundReadingClause& readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
@@ -340,7 +340,7 @@ public:
 
     static std::vector<std::unique_ptr<LogicalPlan>> getInitialEmptyPlans();
 
-    binder::expression_vector getProperties(const binder::Expression& pattern);
+    binder::expression_vector getProperties(const binder::Expression& pattern) const;
 
     JoinOrderEnumeratorContext enterNewContext();
     void exitContext(JoinOrderEnumeratorContext prevContext);
