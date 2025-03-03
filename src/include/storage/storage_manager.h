@@ -34,7 +34,7 @@ public:
     void checkpoint(main::ClientContext& clientContext);
     void rollbackCheckpoint(main::ClientContext& clientContext);
 
-    Table* getTable(common::table_id_t tableID) {
+    KUZU_API Table* getTable(common::table_id_t tableID) {
         std::lock_guard lck{mtx};
         KU_ASSERT(tables.contains(tableID));
         return tables.at(tableID).get();

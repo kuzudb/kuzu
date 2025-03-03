@@ -1,8 +1,8 @@
-#include "storage/index/hnsw_index.h"
+#include "index/hnsw_index.h"
 
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "index/hnsw_index_utils.h"
 #include "main/client_context.h"
-#include "storage/index/hnsw_index_utils.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"

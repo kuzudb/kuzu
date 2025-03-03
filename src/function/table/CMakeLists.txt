@@ -1,5 +1,3 @@
-add_subdirectory(hnsw)
-
 add_library(kuzu_table_function
         OBJECT
         bind_data.cpp

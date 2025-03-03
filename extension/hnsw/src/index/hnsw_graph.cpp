@@ -1,4 +1,4 @@
-#include "storage/index/hnsw_graph.h"
+#include "index/hnsw_graph.h"
 
 #include "storage/store/list_chunk_data.h"
 #include "storage/store/node_table.h"

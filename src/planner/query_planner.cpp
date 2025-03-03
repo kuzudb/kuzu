@@ -94,7 +94,7 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::getInitialEmptyPlans() {
     return plans;
 }
 
-expression_vector Planner::getProperties(const Expression& pattern) {
+expression_vector Planner::getProperties(const Expression& pattern) const {
     KU_ASSERT(pattern.expressionType == ExpressionType::PATTERN);
     return propertyExprCollection.getProperties(pattern);
 }

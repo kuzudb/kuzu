@@ -22,7 +22,7 @@ struct ExtraBoundCopyFromInfo {
     }
 };
 
-struct BoundCopyFromInfo {
+struct KUZU_API BoundCopyFromInfo {
     // Table entry to copy into.
     catalog::TableCatalogEntry* tableEntry;
     // Data source.

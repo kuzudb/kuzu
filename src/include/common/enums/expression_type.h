@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <string>
 
+#include <common/api.h>
+
 namespace kuzu {
 namespace common {
 
@@ -64,7 +66,7 @@ struct ExpressionTypeUtil {
 
     static ExpressionType reverseComparisonDirection(ExpressionType type);
 
-    static std::string toString(ExpressionType type);
+    static KUZU_API std::string toString(ExpressionType type);
     static std::string toParsableString(ExpressionType type);
 };
 

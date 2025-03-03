@@ -42,7 +42,7 @@ struct BatchInsertInfo {
     }
 };
 
-struct BatchInsertSharedState {
+struct KUZU_API BatchInsertSharedState {
     std::mutex mtx;
     std::atomic<common::row_idx_t> numRows;
 

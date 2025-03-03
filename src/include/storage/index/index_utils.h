@@ -17,7 +17,7 @@ namespace storage {
 
 enum class IndexOperation { CREATE, QUERY, DROP };
 
-struct IndexUtils {
+struct KUZU_API IndexUtils {
     static KUZU_API catalog::NodeTableCatalogEntry* bindTable(const main::ClientContext& context,
         const std::string& tableName, const std::string& indexName, IndexOperation indexOperation);
 
