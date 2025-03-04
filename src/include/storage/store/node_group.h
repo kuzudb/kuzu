@@ -163,7 +163,7 @@ public:
 
     virtual void serialize(common::Serializer& serializer);
     static std::unique_ptr<NodeGroup> deserialize(MemoryManager& memoryManager,
-        common::Deserializer& deSer);
+        common::Deserializer& deSer, const std::vector<common::LogicalType>& columnTypes);
 
     common::node_group_idx_t getNumChunkedGroups() const {
         const auto lock = chunkedGroups.lock();

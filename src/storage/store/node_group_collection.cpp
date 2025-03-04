@@ -253,7 +253,7 @@ void NodeGroupCollection::deserialize(Deserializer& deSer, MemoryManager& memory
     std::string key;
     deSer.validateDebuggingInfo(key, "node_groups");
     KU_ASSERT(dataFH);
-    nodeGroups.deserializeGroups(memoryManager, deSer);
+    nodeGroups.deserializeGroups(memoryManager, deSer, types);
     deSer.validateDebuggingInfo(key, "stats");
     stats.deserialize(deSer);
 }

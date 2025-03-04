@@ -512,8 +512,8 @@ void NodeGroup::serialize(Serializer& serializer) {
     }
 }
 
-std::unique_ptr<NodeGroup> NodeGroup::deserialize(MemoryManager& memoryManager,
-    Deserializer& deSer) {
+std::unique_ptr<NodeGroup> NodeGroup::deserialize(MemoryManager& memoryManager, Deserializer& deSer,
+    const std::vector<common::LogicalType>& columnTypes) {
     std::string key;
     node_group_idx_t nodeGroupIdx = INVALID_NODE_GROUP_IDX;
     bool enableCompression = false;
@@ -527,15 +527,17 @@ std::unique_ptr<NodeGroup> NodeGroup::deserialize(MemoryManager& memoryManager,
     deSer.deserializeValue<NodeGroupDataFormat>(format);
     deSer.validateDebuggingInfo(key, "has_checkpointed_data");
     deSer.deserializeValue<bool>(hasCheckpointedData);
-    deSer.validateDebuggingInfo(key, "checkpointed_data");
+    if (hasCheckpointedData) {
+        deSer.validateDebuggingInfo(key, "checkpointed_data");
+    }
     std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup;
     switch (format) {
     case NodeGroupDataFormat::REGULAR: {
         if (hasCheckpointedData) {
             chunkedNodeGroup = ChunkedNodeGroup::deserialize(memoryManager, deSer);
         } else {
-            chunkedNodeGroup =
-                std::make_unique<ChunkedNodeGroup>(std::vector<std::unique_ptr<ColumnChunk>>(), 0);
+            chunkedNodeGroup = std::make_unique<ChunkedNodeGroup>(memoryManager, columnTypes,
+                enableCompression, 0, 0, ResidencyState::IN_MEMORY);
         }
         return std::make_unique<NodeGroup>(nodeGroupIdx, enableCompression,
             std::move(chunkedNodeGroup));
@@ -543,13 +545,12 @@ std::unique_ptr<NodeGroup> NodeGroup::deserialize(MemoryManager& memoryManager,
     case NodeGroupDataFormat::CSR: {
         if (hasCheckpointedData) {
             chunkedNodeGroup = ChunkedCSRNodeGroup::deserialize(memoryManager, deSer);
+            return std::make_unique<CSRNodeGroup>(nodeGroupIdx, enableCompression,
+                std::move(chunkedNodeGroup));
         } else {
-            std::vector<LogicalType> columnTypes;
-            chunkedNodeGroup = std::make_unique<ChunkedCSRNodeGroup>(memoryManager, columnTypes,
-                true, 0, 0, ResidencyState::IN_MEMORY);
+            return std::make_unique<CSRNodeGroup>(nodeGroupIdx, enableCompression,
+                copyVector(columnTypes));
         }
-        return std::make_unique<CSRNodeGroup>(nodeGroupIdx, enableCompression,
-            std::move(chunkedNodeGroup));
     }
     default: {
         KU_UNREACHABLE;
