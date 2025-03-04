@@ -24,7 +24,7 @@
 
 -STATEMENT return cast ('4' as json);
 ---- 1
-4
+"4"
 
 -STATEMENT return cast(cast ('{"duck": 42}' as json) as struct(duck int64));
 ---- 1
