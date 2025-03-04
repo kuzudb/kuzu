@@ -106,7 +106,7 @@ struct BaseTablePrinter : public Printer {
     bool Types = true;
 
 protected:
-    explicit BaseTablePrinter(PrinterType pt) : Printer(pt) {};
+    explicit BaseTablePrinter(PrinterType pt) : Printer(pt){};
 };
 
 struct BoxPrinter : public BaseTablePrinter {
