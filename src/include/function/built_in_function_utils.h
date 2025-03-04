@@ -18,7 +18,7 @@ class BuiltInFunctionsUtils {
 public:
     // TODO(Ziyi): We should have a unified interface for matching table, aggregate and scalar
     // functions.
-    static Function* matchFunction(const std::string& name,
+    static KUZU_API Function* matchFunction(const std::string& name,
         const catalog::FunctionCatalogEntry* catalogEntry) {
         return matchFunction(name, {}, catalogEntry);
     }
