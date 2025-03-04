@@ -7,6 +7,7 @@
 #include "common/exception/copy.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
+#include "common/system_config.h"
 #include "common/type_utils.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
@@ -213,11 +214,31 @@ void ColumnChunkData::updateStats(const common::ValueVector* vector,
     } else {
         TypeUtils::visit(
             getDataType().getPhysicalType(),
-            [this, vector]<StorageValueType T>(T) {
-                vector->forEachNonNull([this, vector](auto pos) {
+            [&]<StorageValueType T>(T) {
+                auto firstValue = vector->firstNonNull<T>();
+                if (!firstValue) {
+                    return;
+                }
+                T min = *firstValue, max = *firstValue;
+                auto update = [&](sel_t pos) {
                     const auto val = vector->getValue<T>(pos);
-                    inMemoryStats.update(StorageValue{val}, getDataType().getPhysicalType());
-                });
+                    if (val < min) {
+                        min = val;
+                    } else if (val > max) {
+                        max = val;
+                    }
+                };
+                if (vector->hasNoNullsGuarantee()) {
+                    selVector.forEach(update);
+                } else {
+                    selVector.forEach([&](auto pos) {
+                        if (!vector->isNull(pos)) {
+                            update(pos);
+                        }
+                    });
+                }
+                inMemoryStats.update(StorageValue(min), StorageValue(max),
+                    getDataType().getPhysicalType());
             },
             []<typename T>(T) { static_assert(!StorageValueType<T>); });
     }
