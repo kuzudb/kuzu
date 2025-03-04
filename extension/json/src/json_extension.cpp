@@ -1,5 +1,6 @@
 #include "json_extension.h"
 
+#include "json_cast_functions.h"
 #include "json_creation_functions.h"
 #include "json_export.h"
 #include "json_extract_functions.h"
@@ -19,7 +20,7 @@ static void addJsonCreationFunction(main::Database& db) {
     ExtensionUtils::addScalarFuncAlias<JsonQuoteFunction>(db);
     ExtensionUtils::addScalarFuncAlias<ArrayToJsonFunction>(db);
     ExtensionUtils::addScalarFuncAlias<RowToJsonFunction>(db);
-    ExtensionUtils::addScalarFuncAlias<CastToJsonFunction>(db);
+    ExtensionUtils::addScalarFunc<CastToJsonFunction>(db);
     ExtensionUtils::addScalarFunc<JsonArrayFunction>(db);
     ExtensionUtils::addScalarFunc<JsonObjectFunction>(db);
     ExtensionUtils::addScalarFunc<JsonMergePatchFunction>(db);

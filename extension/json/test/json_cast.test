@@ -7,15 +7,19 @@
 ---- ok
 -STATEMENT return cast ('{"duck": 42}' as json)
 ---- 1
-{"duck":42}
+{"duck": 42}
 
 -STATEMENT return cast(cast ('2023-11-14' as DATE) as json);
 ---- 1
 "2023-11-14"
 
 -STATEMENT return cast(cast ('"{\"duck\": 42}"' as json) as STRING);
+---- error
+Conversion exception: Cannot convert "{"duck": 42}" to JSON.
+
+-STATEMENT return cast(cast ('"{\\"duck\\": 42}"' as json) as STRING);
 ---- 1
-"\"{\"duck\": 42}\""
+"{\"duck\": 42}"
 
 -STATEMENT return cast (4 as json);
 ---- 1
@@ -24,7 +28,7 @@
 
 -STATEMENT return cast ('4' as json);
 ---- 1
-"4"
+4
 
 -STATEMENT return cast(cast ('{"duck": 42}' as json) as struct(duck int64));
 ---- 1
