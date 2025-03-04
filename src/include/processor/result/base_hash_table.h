@@ -32,6 +32,7 @@ public:
         return factorizedTable->getTableSchema();
     }
     uint64_t getNumEntries() const { return factorizedTable->getNumTuples(); }
+    uint64_t getCapacity() const { return maxNumHashSlots; }
     const FactorizedTable* getFactorizedTable() const { return factorizedTable.get(); }
 
 protected:

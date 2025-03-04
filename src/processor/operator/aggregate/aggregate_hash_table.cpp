@@ -45,18 +45,9 @@ AggregateHashTable::AggregateHashTable(MemoryManager& memoryManager,
     initializeTmpVectors();
 }
 
-bool shouldMergeAll(uint64_t startingNumTuples, uint64_t newNumTuples, uint64_t currentMax) {
-    return startingNumTuples + newNumTuples > currentMax ||
-           static_cast<double>(startingNumTuples) + newNumTuples >
-               static_cast<double>(currentMax) / DEFAULT_HT_LOAD_FACTOR;
-}
-
 bool PartitioningAggregateHashTable::insertAggregateValueIfDistinctForGroupByKeys(
     const std::vector<ValueVector*>& groupByFlatKeyVectors, ValueVector* aggregateVector) {
-    auto startingNumTuples = getNumEntries();
-    if (shouldMergeAll(startingNumTuples, 1, maxNumHashSlots)) {
-        mergeAll();
-    }
+    mergeIfFull(1);
     return AggregateHashTable::insertAggregateValueIfDistinctForGroupByKeys(groupByFlatKeyVectors,
         aggregateVector);
 }
@@ -790,10 +781,7 @@ uint64_t PartitioningAggregateHashTable::append(const std::vector<ValueVector*>&
     const std::vector<AggregateInput>& aggregateInputs, uint64_t resultSetMultiplicity) {
     const auto numFlatTuples = leadingState->getSelVector().getSelSize();
 
-    auto startingNumTuples = getNumEntries();
-    if (shouldMergeAll(startingNumTuples, numFlatTuples, maxNumHashSlots)) {
-        mergeAll();
-    }
+    mergeIfFull(numFlatTuples);
 
     // mergeAll makes use of the hashVector, so it needs to be called before computeVectorHashes
     computeVectorHashes(flatKeyVectors, unFlatKeyVectors);
@@ -804,9 +792,34 @@ uint64_t PartitioningAggregateHashTable::append(const std::vector<ValueVector*>&
     return numFlatTuples;
 }
 
-void PartitioningAggregateHashTable::mergeAll() {
-    partitioningData->appendTuples(*factorizedTable,
-        tableSchema.getColOffset(tableSchema.getNumColumns() - 1));
+bool outOfSpace(const AggregateHashTable& hashTable, uint64_t newNumTuples) {
+    return hashTable.getNumEntries() + newNumTuples > hashTable.getCapacity() ||
+           static_cast<double>(hashTable.getNumEntries()) + newNumTuples >
+               static_cast<double>(hashTable.getCapacity()) / DEFAULT_HT_LOAD_FACTOR;
+}
+
+void PartitioningAggregateHashTable::mergeIfFull(uint64_t tuplesToAdd, bool mergeAll) {
+    if (mergeAll || outOfSpace(*this, tuplesToAdd)) {
+        partitioningData->appendTuples(*factorizedTable,
+            tableSchema.getColOffset(tableSchema.getNumColumns() - 1));
+        // Move overflow data into the shared state so that it isn't obliterated when we clear the
+        // factorized table
+        partitioningData->appendOverflow(std::move(*factorizedTable->getInMemOverflowBuffer()));
+        clear();
+    }
+    bool anyToMerge = mergeAll;
+    if (!mergeAll) {
+        for (const auto& hashTable : distinctHashTables) {
+            if (hashTable && outOfSpace(*hashTable, tuplesToAdd)) {
+                anyToMerge = true;
+                break;
+            }
+        }
+    }
+    // If no distinct hash tables need to be merged, skip the setup needed for merging
+    if (!anyToMerge) {
+        return;
+    }
     std::vector<ValueVector*> vectors;
     std::vector<std::unique_ptr<ValueVector>> keyVectors;
     std::vector<ft_col_idx_t> colIdxToScan;
@@ -828,7 +841,8 @@ void PartitioningAggregateHashTable::mergeAll() {
         }
     }
     for (size_t distinctIdx = 0; distinctIdx < distinctHashTables.size(); distinctIdx++) {
-        if (distinctHashTables[distinctIdx]) {
+        auto& distinctHashTable = distinctHashTables[distinctIdx];
+        if (distinctHashTable && (mergeAll || outOfSpace(*distinctHashTable, tuplesToAdd))) {
             auto* distinctFactorizedTable = distinctHashTables[distinctIdx]->getFactorizedTable();
             auto distinctTableSchema = distinctFactorizedTable->getTableSchema();
             uint64_t startTupleIdx = 0;
@@ -854,14 +868,9 @@ void PartitioningAggregateHashTable::mergeAll() {
 
             partitioningData->appendOverflow(
                 std::move(*distinctFactorizedTable->getInMemOverflowBuffer()));
-            distinctHashTables[distinctIdx]->clear();
+            distinctHashTable->clear();
         }
     }
-    // Move overflow data into the shared state so that it isn't obliterated when we clear the
-    // factorized table
-    partitioningData->appendOverflow(std::move(*factorizedTable->getInMemOverflowBuffer()));
-
-    clear();
 }
 
 void AggregateHashTable::clear() {
