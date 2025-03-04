@@ -24,9 +24,11 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
         auto doc = JSONCommon::readDocumentUnsafe(str.getDataUnsafe(), str.len,
             JSONCommon::READ_FLAG, &error);
         if (!doc) {
+            yyjson_doc_free(doc);
             throw common::ConversionException{
                 common::stringFormat("Cannot convert {} to JSON.", str.getAsString())};
         }
+        yyjson_doc_free(doc);
         StringVector::addString(&result, resultPos, str);
     }
 }
