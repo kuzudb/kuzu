@@ -1,4 +1,4 @@
--DATASET CSV empty
+-DATASET CSV tinysnb
 
 --
 
@@ -23,3 +23,17 @@ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
 ---- error
 Binder exception: Cannot match a built-in function for given function SHA256. Supported inputs are
 (STRING) -> STRING
+
+-STATEMENT create (p:person {ID: 12, fName: sha256('Alice')})
+---- ok
+-STATEMENT match (p:person) optional match (p1:person {fName: sha256(p.fName)}) RETURN p.fName, p1.ID
+---- 9
+Alice|12
+Bob|
+Carol|
+Dan|
+Elizabeth|
+Farooq|
+Greg|
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|
+3bc51062973c458d5a6f2d8d64a023246354ad7e064b1e4e009ec8a0699a3043|

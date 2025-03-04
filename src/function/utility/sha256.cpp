@@ -14,6 +14,9 @@ struct SHA256Operator {
         SHA256 hasher;
         hasher.addString(operand.getAsString());
         hasher.finishSHA256(reinterpret_cast<char*>(result.getDataUnsafe()));
+        if (!ku_string_t::isShortString(result.len)) {
+            memcpy(result.prefix, result.getData(), ku_string_t::PREFIX_LENGTH);
+        }
     }
 };
 
