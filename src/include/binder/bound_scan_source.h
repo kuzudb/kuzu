@@ -1,6 +1,7 @@
 #pragma once
 
 #include "binder/bound_statement.h"
+#include "binder/copy/bound_query_scan_info.h"
 #include "binder/copy/bound_table_scan_info.h"
 #include "common/enums/scan_source_type.h"
 
@@ -66,11 +67,15 @@ struct BoundQueryScanSource final : BoundBaseScanSource {
     // Use shared ptr to avoid copy BoundStatement.
     // We should consider implement a copy constructor though.
     std::shared_ptr<BoundStatement> statement;
+    BoundQueryScanSourceInfo info;
 
-    explicit BoundQueryScanSource(std::shared_ptr<BoundStatement> statement)
-        : BoundBaseScanSource{common::ScanSourceType::QUERY}, statement{std::move(statement)} {}
-    BoundQueryScanSource(const BoundQueryScanSource& other)
-        : BoundBaseScanSource{other}, statement{other.statement} {}
+    explicit BoundQueryScanSource(std::shared_ptr<BoundStatement> statement,
+        BoundQueryScanSourceInfo info)
+        : BoundBaseScanSource{common::ScanSourceType::QUERY}, statement{std::move(statement)},
+          info(std::move(info)) {}
+    BoundQueryScanSource(const BoundQueryScanSource& other) = default;
+
+    bool getIgnoreErrorsOption() const override;
 
     expression_vector getColumns() override {
         return statement->getStatementResult()->getColumns();

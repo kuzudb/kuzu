@@ -91,7 +91,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(const BaseScanSource
         return bindFileScanSource(*source, options, columnNames, columnTypes);
     }
     case ScanSourceType::QUERY: {
-        return bindQueryScanSource(*source, columnNames, columnTypes);
+        return bindQueryScanSource(*source, options, columnNames, columnTypes);
     }
     case ScanSourceType::OBJECT: {
         return bindObjectScanSource(*source, options, columnNames, columnTypes);
@@ -155,7 +155,8 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
 }
 
 std::unique_ptr<BoundBaseScanSource> Binder::bindQueryScanSource(const BaseScanSource& scanSource,
-    const std::vector<std::string>& columnNames, const std::vector<LogicalType>& columnTypes) {
+    const options_t& options, const std::vector<std::string>& columnNames,
+    const std::vector<LogicalType>& columnTypes) {
     auto querySource = scanSource.constPtrCast<QueryScanSource>();
     auto boundStatement = bind(*querySource->statement);
     auto columns = boundStatement->getStatementResult()->getColumns();
@@ -167,7 +168,8 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindQueryScanSource(const BaseScanS
         ExpressionUtil::validateDataType(*columns[i], columnTypes[i]);
         columns[i]->setAlias(columnNames[i]);
     }
-    return std::make_unique<BoundQueryScanSource>(std::move(boundStatement));
+    auto scanInfo = BoundQueryScanSourceInfo(bindParsingOptions(options));
+    return std::make_unique<BoundQueryScanSource>(std::move(boundStatement), std::move(scanInfo));
 }
 
 static TableFunction getObjectScanFunc(const std::string& dbName, const std::string& tableName,
