@@ -14,7 +14,7 @@
 </p>
 
 # Kùzu
-Kùzu is an embedded graph database built for query speed and scalability. Kùzu is optimized for handling complex analytical workloads 
+Kuzu is an embedded graph database built for query speed and scalability. Kuzu is optimized for handling complex analytical workloads 
 on very large databases and provides a set of retrieval features, such as a full text search and vector indices. Our core feature set includes:
 
 - Flexible Property Graph Data Model and Cypher query language
@@ -28,7 +28,7 @@ on very large databases and provides a set of retrieval features, such as a full
 - Serializable ACID transactions
 - Wasm (WebAssembly) bindings for fast, secure execution in the browser
 
-Kùzu is being developed by [Kùzu Inc.](https://kuzudb.com/) and 
+Kuzu is being developed by [Kùzu Inc.](https://kuzudb.com/) and 
 is available under a permissible license. So try it out and help us make it better! We welcome your feedback and feature requests.
 
 ## Installation
@@ -54,13 +54,13 @@ Refer to our [Getting Started](https://docs.kuzudb.com/get-started/) page for yo
 You can build from source using the instructions provided in the [developer guide](https://docs.kuzudb.com/developer-guide).
 
 ## Contributing
-We welcome contributions to Kùzu. If you are interested in contributing to Kùzu, please read our [Contributing Guide](CONTRIBUTING.md).
+We welcome contributions to Kuzu. If you are interested in contributing to Kuzu, please read our [Contributing Guide](CONTRIBUTING.md).
 
 ## License
-By contributing to Kùzu, you agree that your contributions will be licensed under the [MIT License](LICENSE).
+By contributing to Kuzu, you agree that your contributions will be licensed under the [MIT License](LICENSE).
 
 ## Support 
-We provide professional support for using Kùzu, ensuring timely responses and flexible coverage. Please visit [here](https://kuzudb.com/#support) 
+We provide professional support for using Kuzu, ensuring timely responses and flexible coverage. Please visit [here](https://kuzudb.com/#support) 
 for more information.
 
 ## Contact

@@ -1,6 +1,6 @@
 # Contributing
 
-Welcome to Kùzu! We are excited that you are interested in contributing to Kùzu.
+Welcome! We are excited that you are interested in contributing to Kuzu.
 Before submitting your contribution though, please make sure to take a moment and read through the following guidelines.
 
 Join our project's [Discord community](https://discord.gg/VtX2gw9Rug) for real-time communication with the core team and other contributors.
@@ -24,4 +24,4 @@ Whether or not you state this explicitly, by submitting any copyrighted material
 * Avoid large pull requests - they are much less likely to be merged as they are incredibly hard to review.
 * We reserve full and final discretion over whether or not we will merge a pull request. Adhering to these guidelines is not a complete guarantee that your pull request will be merged.
 
-Thank you for your contribution to Kùzu! We're grateful for your time and effort, and we look forward to working with you.
+Thank you for your contribution to Kuzu! We're grateful for your time and effort, and we look forward to working with you.
