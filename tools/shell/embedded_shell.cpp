@@ -714,6 +714,7 @@ void EmbeddedShell::setMode(const std::string& modeString) {
         printModeInfo();
         return;
     }
+    stats = modePrinter->defaultPrintStats();
     printer = std::move(modePrinter);
     printf("mode set as %s\n", modeString.c_str());
 }

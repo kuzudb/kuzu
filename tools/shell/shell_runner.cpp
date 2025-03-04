@@ -17,6 +17,7 @@ int setConfigOutputMode(const std::string& mode, ShellConfig& shell) {
         std::cerr << "Cannot parse '" << mode << "' as output mode." << '\n';
         return 1;
     }
+    shell.stats = shell.printer->defaultPrintStats();
     return 0;
 }
 
@@ -168,13 +169,15 @@ int main(int argc, char* argv[]) {
     try {
         auto shell = EmbeddedShell(database, conn, shellConfig);
         processRunCommands(shell, initFile);
-        if (DBConfig::isDBPathInMemory(databasePath)) {
-            std::cout << "Opening the database under in-memory mode." << '\n';
-        } else {
-            std::cout << "Opening the database at path: " << databasePath << " in "
-                      << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << '\n';
+        if (shellConfig.stats) {
+            if (DBConfig::isDBPathInMemory(databasePath)) {
+                std::cout << "Opening the database under in-memory mode." << '\n';
+            } else {
+                std::cout << "Opening the database at path: " << databasePath << " in "
+                          << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << '\n';
+            }
+            std::cout << "Enter \":help\" for usage hints." << '\n' << std::flush;
         }
-        std::cout << "Enter \":help\" for usage hints." << '\n' << std::flush;
         shell.run();
     } catch (std::exception& e) {
         std::cerr << e.what() << '\n';
