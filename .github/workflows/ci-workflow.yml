@@ -271,7 +271,7 @@ jobs:
 
   code-coverage:
     name: code coverage
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: [ sanity-checks, python-lint-check, generate-binary-datasets ]
     env:
       TEST_JOBS: 10
