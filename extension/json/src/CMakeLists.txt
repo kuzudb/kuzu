@@ -1,3 +1,4 @@
+add_subdirectory(functions/cast_functions)
 add_subdirectory(functions/creation_functions)
 add_subdirectory(functions/export_functions)
 add_subdirectory(functions/extract_functions)

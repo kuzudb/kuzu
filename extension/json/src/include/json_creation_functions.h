@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/vector/value_vector.h"
 #include "function/function.h"
 
 namespace kuzu {
@@ -9,6 +10,10 @@ struct ToJsonFunction {
     static constexpr const char* name = "to_json";
 
     static function::function_set getFunctionSet();
+
+    static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+        const std::vector<common::SelectionVector*>& parameterSelVectors,
+        common::ValueVector& result, common::SelectionVector* resultSelVector, void* /*dataPtr*/);
 };
 
 struct JsonQuoteFunction {
@@ -27,12 +32,6 @@ struct RowToJsonFunction {
     using alias = ToJsonFunction;
 
     static constexpr const char* name = "row_to_json";
-};
-
-struct CastToJsonFunction {
-    using alias = ToJsonFunction;
-
-    static constexpr const char* name = "cast_to_json";
 };
 
 struct JsonArrayFunction {

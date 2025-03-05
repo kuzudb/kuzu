@@ -75,3 +75,11 @@ null
 
 -STATEMENT RETURN json_extract(NULL, '$.x');
 ---- 1
+
+-STATEMENT RETURN json_extract(json_object("foo", "5"), "foo") = to_json("5");
+---- 1
+True
+
+-STATEMENT RETURN json_extract(json_object("foo", "true"), "foo") = to_json("true");
+---- 1
+True
