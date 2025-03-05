@@ -6,6 +6,7 @@
 #include "binder/expression/node_rel_expression.h"
 #include "binder/expression/parameter_expression.h"
 #include "common/exception/binder.h"
+#include "common/exception/runtime.h"
 #include "common/types/value/nested.h"
 
 using namespace kuzu::common;
@@ -436,6 +437,46 @@ Value ExpressionUtil::evaluateAsLiteralValue(const Expression& expr) {
     }
     return value;
 }
+
+template<typename T>
+T ExpressionUtil::evaluateLiteral(const Expression& expression, const common::LogicalType& type,
+    validate_param_func<T> validateParamFunc) {
+    if (!canEvaluateAsLiteral(expression)) {
+        std::string errMsg;
+        switch (expression.expressionType) {
+        case common::ExpressionType::PARAMETER: {
+            errMsg = "The query is a parameter expression. Please assign it a value.";
+        } break;
+        default: {
+            errMsg = "The query must be a parameter/literal expression.";
+        } break;
+        }
+        throw common::RuntimeException{errMsg};
+    }
+    auto value = binder::ExpressionUtil::evaluateAsLiteralValue(expression);
+    if (value.getDataType() != type) {
+        throw RuntimeException{common::stringFormat("Parameter: {} must be a {} literal.",
+            expression.getAlias(), type.toString())};
+    }
+    T val = value.getValue<T>();
+    if (validateParamFunc != nullptr) {
+        validateParamFunc(val);
+    }
+    return val;
+}
+
+template KUZU_API std::string ExpressionUtil::evaluateLiteral<std::string>(
+    const Expression& expression, const common::LogicalType& type,
+    validate_param_func<std::string> validateParamFunc);
+
+template KUZU_API double_t ExpressionUtil::evaluateLiteral<double_t>(const Expression& expression,
+    const common::LogicalType& type, validate_param_func<double_t> validateParamFunc);
+
+template KUZU_API int64_t ExpressionUtil::evaluateLiteral<int64_t>(const Expression& expression,
+    const common::LogicalType& type, validate_param_func<int64_t> validateParamFunc);
+
+template KUZU_API bool ExpressionUtil::evaluateLiteral<bool>(const Expression& expression,
+    const common::LogicalType& type, validate_param_func<bool> validateParamFunc);
 
 } // namespace binder
 } // namespace kuzu

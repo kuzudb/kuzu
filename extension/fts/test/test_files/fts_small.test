@@ -141,7 +141,7 @@ Binder exception: 25 has data type INT64 but STRING was expected.
 -LOG QueryFTSOptionalParamError
 -STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'study', k := 0.3, c:= 0.5) RETURN node.ID, score
 ---- error
-Binder exception: Unrecognized optional parameter: c
+Binder exception: Unknown optional parameter: c
 -LOG QueryFTSBOutOfRange
 -STATEMENT CALL QUERY_FTS_INDEX('doc', 'docIdx1', 'study', k := 0.3, B:= 3.88) RETURN node.ID, score
 ---- error

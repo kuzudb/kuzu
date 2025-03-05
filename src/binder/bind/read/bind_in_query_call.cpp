@@ -38,17 +38,17 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     case CatalogEntryType::GDS_FUNCTION_ENTRY: {
         expression_vector children;
         std::vector<LogicalType> childrenTypes;
-        optional_params_t optionalParams;
+        expression_vector optionalParams;
         for (auto i = 0u; i < functionExpr->getNumChildren(); i++) {
             auto child = expressionBinder.bindExpression(*functionExpr->getChild(i));
             if (!functionExpr->getChild(i)->hasAlias()) {
                 children.push_back(child);
                 childrenTypes.push_back(child->getDataType().copy());
             } else {
-                ExpressionUtil::validateExpressionType(*child, ExpressionType::LITERAL);
-                auto literalExpr = child->constPtrCast<LiteralExpression>();
-                optionalParams.emplace(functionExpr->getChild(i)->getAlias(),
-                    literalExpr->getValue());
+                ExpressionUtil::validateExpressionType(*child,
+                    {ExpressionType::LITERAL, ExpressionType::PARAMETER});
+                child->setAlias(functionExpr->getChild(i)->getAlias());
+                optionalParams.push_back(child);
             }
         }
         auto func = BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes,

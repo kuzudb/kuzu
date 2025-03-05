@@ -3,6 +3,7 @@
 #include "binder/expression/expression_util.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog/fts_index_catalog_entry.h"
+#include "common/exception/binder.h"
 #include "common/string_utils.h"
 #include "function/fts_utils.h"
 #include "function/stem.h"
@@ -18,24 +19,36 @@ using namespace kuzu::common;
 using namespace kuzu::binder;
 using namespace kuzu::storage;
 
-static std::string evaluateQuery(const Expression& query) {
-    if (!ExpressionUtil::canEvaluateAsLiteral(query)) {
-        std::string errMsg;
-        switch (query.expressionType) {
-        case ExpressionType::PARAMETER: {
-            errMsg = "The query is a parameter expression. Please assign it a value.";
-        } break;
-        default: {
-            errMsg = "The query must be a parameter/literal expression.";
-        } break;
+QueryFTSOptionalParams::QueryFTSOptionalParams(const binder::expression_vector& optionalParams) {
+    for (auto& optionalParam : optionalParams) {
+        auto paramName = StringUtils::getLower(optionalParam->getAlias());
+        if (paramName == K::NAME) {
+            k = optionalParam;
+        } else if (paramName == B::NAME) {
+            b = optionalParam;
+        } else if (paramName == Conjunctive::NAME) {
+            conjunctive = optionalParam;
+        } else {
+            throw common::BinderException{"Unknown optional parameter: " + paramName};
         }
-        throw RuntimeException{errMsg};
     }
-    auto value = binder::ExpressionUtil::evaluateAsLiteralValue(query);
-    if (value.getDataType() != common::LogicalType::STRING()) {
-        throw RuntimeException{"The query must be a string literal."};
+}
+
+QueryFTSConfig QueryFTSOptionalParams::getConfig() const {
+    QueryFTSConfig config;
+    if (k != nullptr) {
+        config.k =
+            ExpressionUtil::evaluateLiteral<double_t>(*k, LogicalType::DOUBLE(), K::validate);
     }
-    return value.getValue<std::string>();
+    if (b != nullptr) {
+        config.b =
+            ExpressionUtil::evaluateLiteral<double_t>(*b, LogicalType::DOUBLE(), B::validate);
+    }
+    if (conjunctive != nullptr) {
+        config.isConjunctive =
+            ExpressionUtil::evaluateLiteral<bool>(*conjunctive, LogicalType::BOOL());
+    }
+    return config;
 }
 
 static void normalizeQuery(std::string& query) {
@@ -90,12 +103,32 @@ static std::vector<std::string> stemTerms(std::vector<std::string> terms, const 
     return result;
 }
 
+static std::string evaluateQuery(const Expression& query) {
+    if (!ExpressionUtil::canEvaluateAsLiteral(query)) {
+        std::string errMsg;
+        switch (query.expressionType) {
+        case ExpressionType::PARAMETER: {
+            errMsg = "The query is a parameter expression. Please assign it a value.";
+        } break;
+        default: {
+            errMsg = "The query must be a parameter/literal expression.";
+        } break;
+        }
+        throw RuntimeException{errMsg};
+    }
+    auto value = binder::ExpressionUtil::evaluateAsLiteralValue(query);
+    if (value.getDataType() != common::LogicalType::STRING()) {
+        throw RuntimeException{"The query must be a string literal."};
+    }
+    return value.getValue<std::string>();
+}
+
 std::vector<std::string> QueryFTSBindData::getTerms(main::ClientContext& context) const {
     auto queryInStr = evaluateQuery(*query);
     normalizeQuery(queryInStr);
     auto terms = StringUtils::split(queryInStr, " ");
     return stemTerms(terms, entry.getAuxInfo().cast<FTSIndexAuxInfo>().config, context,
-        config.isConjunctive);
+        getConfig().isConjunctive);
 }
 
 } // namespace fts_extension

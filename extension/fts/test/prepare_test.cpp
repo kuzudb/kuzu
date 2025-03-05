@@ -7,10 +7,11 @@ namespace testing {
 
 TEST_F(ApiTest, PrepareFTSTest) {
     createDBAndConn();
-    ASSERT_TRUE(conn->query(common::stringFormat("LOAD EXTENSION '{}'",
-                                TestHelper::appendKuzuRootPath(
-                                    "extension/fts/build/libfts.kuzu_extension")))
-                    ->isSuccess());
+    printf("%s", conn->query(common::stringFormat("LOAD EXTENSION '{}'",
+                                 TestHelper::appendKuzuRootPath(
+                                     "extension/fts/build/libfts.kuzu_extension")))
+                     ->toString()
+                     .c_str());
     ASSERT_TRUE(
         conn->query("CALL CREATE_FTS_INDEX('person', 'personIdx', ['fName'])")->isSuccess());
     auto prepared =

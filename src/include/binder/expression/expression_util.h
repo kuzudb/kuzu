@@ -63,6 +63,13 @@ struct KUZU_API ExpressionUtil {
     static bool canEvaluateAsLiteral(const Expression& expr);
 
     static common::Value evaluateAsLiteralValue(const Expression& expr);
+
+    template<typename T>
+    using validate_param_func = void(T);
+
+    template<typename T>
+    static T evaluateLiteral(const Expression& expression, const common::LogicalType& type,
+        validate_param_func<T> validateParamFunc = nullptr);
 };
 
 } // namespace binder
