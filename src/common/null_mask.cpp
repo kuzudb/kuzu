@@ -22,15 +22,33 @@ void NullMask::setNull(uint64_t* nullEntries, uint32_t pos, bool isNull) {
 
 bool NullMask::copyNullMask(const uint64_t* srcNullEntries, uint64_t srcOffset,
     uint64_t* dstNullEntries, uint64_t dstOffset, uint64_t numBitsToCopy, bool invert) {
+    // From benchmarks using setNull/isNull is faster for up to 3 bits
+    // (~4x faster for a single bit copy)
+    if (numBitsToCopy <= 3) {
+        bool anyNull = false;
+        for (size_t i = 0; i < numBitsToCopy; i++) {
+            bool isNull = NullMask::isNull(srcNullEntries, srcOffset + i);
+            if (invert) {
+                NullMask::setNull(dstNullEntries, dstOffset + i, !isNull);
+            } else {
+                NullMask::setNull(dstNullEntries, dstOffset + i, isNull);
+            }
+            anyNull |= isNull;
+        }
+        return anyNull;
+    }
     // If both offsets are aligned relative to each other then copy up to the first byte using the
     // non-aligned method, then copy aligned, then copy the end unaligned again.
     if (!invert && (srcOffset % 8 == dstOffset % 8) && numBitsToCopy >= 8 &&
         numBitsToCopy - (srcOffset % 8) >= 8) {
-        auto numBitsInFirstByte = 8 - (srcOffset % 8);
+        auto numBitsInFirstByte = 0;
         bool hasNullInSrcNullMask = false;
-        if (copyUnaligned(srcNullEntries, srcOffset, dstNullEntries, dstOffset, numBitsInFirstByte,
-                false)) {
-            hasNullInSrcNullMask = true;
+        if (srcOffset != 0) {
+            numBitsInFirstByte = 8 - (srcOffset % 8);
+            if (copyUnaligned(srcNullEntries, srcOffset, dstNullEntries, dstOffset,
+                    numBitsInFirstByte, false)) {
+                hasNullInSrcNullMask = true;
+            }
         }
         auto* src =
             reinterpret_cast<const uint8_t*>(srcNullEntries) + (srcOffset + numBitsInFirstByte) / 8;
@@ -43,9 +61,13 @@ bool NullMask::copyNullMask(const uint64_t* srcNullEntries, uint64_t srcOffset,
         }
         auto lastByteStart = numBitsInFirstByte + numBytesForAlignedCopy * 8;
         auto numBitsInLastByte = numBitsToCopy - numBitsInFirstByte - numBytesForAlignedCopy * 8;
-        return copyUnaligned(srcNullEntries, srcOffset + lastByteStart, dstNullEntries,
-                   dstOffset + lastByteStart, numBitsInLastByte, false) ||
-               hasNullInSrcNullMask;
+        if (numBitsInLastByte > 0) {
+            return copyUnaligned(srcNullEntries, srcOffset + lastByteStart, dstNullEntries,
+                       dstOffset + lastByteStart, numBitsInLastByte, false) ||
+                   hasNullInSrcNullMask;
+        } else {
+            return hasNullInSrcNullMask;
+        }
     } else {
         return copyUnaligned(srcNullEntries, srcOffset, dstNullEntries, dstOffset, numBitsToCopy,
             invert);

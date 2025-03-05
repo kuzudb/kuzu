@@ -355,7 +355,7 @@ public:
         inMemoryStats.min = inMemoryStats.max = true;
     }
 
-    void copyFromBuffer(uint64_t* srcBuffer, uint64_t srcOffset, uint64_t dstOffset,
+    void copyFromBuffer(const uint64_t* srcBuffer, uint64_t srcOffset, uint64_t dstOffset,
         uint64_t numBits, bool invert = false) {
         if (common::NullMask::copyNullMask(srcBuffer, srcOffset, getData<uint64_t>(), dstOffset,
                 numBits, invert)) {
@@ -365,6 +365,9 @@ public:
             inMemoryStats.max = true;
         }
     }
+
+    void append(const common::ValueVector* vector, const common::SelectionView& selView,
+        common::offset_t startPosInChunk);
 
     // NullChunkData::scan updates the null mask of output vector
     void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
