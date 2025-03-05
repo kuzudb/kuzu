@@ -274,7 +274,7 @@ jobs:
     runs-on: ubuntu-24.04
     container:
       image: debian:bookworm-slim
-    # needs: [ sanity-checks, python-lint-check, generate-binary-datasets ]
+    needs: [ sanity-checks, python-lint-check, generate-binary-datasets ]
     env:
       TEST_JOBS: 10
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
