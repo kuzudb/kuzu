@@ -469,8 +469,8 @@ template KUZU_API std::string ExpressionUtil::evaluateLiteral<std::string>(
     const Expression& expression, const common::LogicalType& type,
     validate_param_func<std::string> validateParamFunc);
 
-template KUZU_API double_t ExpressionUtil::evaluateLiteral<double_t>(const Expression& expression,
-    const common::LogicalType& type, validate_param_func<double_t> validateParamFunc);
+template KUZU_API double ExpressionUtil::evaluateLiteral<double>(const Expression& expression,
+    const common::LogicalType& type, validate_param_func<double> validateParamFunc);
 
 template KUZU_API int64_t ExpressionUtil::evaluateLiteral<int64_t>(const Expression& expression,
     const common::LogicalType& type, validate_param_func<int64_t> validateParamFunc);
