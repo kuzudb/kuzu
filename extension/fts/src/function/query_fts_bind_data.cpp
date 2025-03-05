@@ -37,12 +37,10 @@ QueryFTSOptionalParams::QueryFTSOptionalParams(const binder::expression_vector& 
 QueryFTSConfig QueryFTSOptionalParams::getConfig() const {
     QueryFTSConfig config;
     if (k != nullptr) {
-        config.k =
-            ExpressionUtil::evaluateLiteral<double_t>(*k, LogicalType::DOUBLE(), K::validate);
+        config.k = ExpressionUtil::evaluateLiteral<double>(*k, LogicalType::DOUBLE(), K::validate);
     }
     if (b != nullptr) {
-        config.b =
-            ExpressionUtil::evaluateLiteral<double_t>(*b, LogicalType::DOUBLE(), B::validate);
+        config.b = ExpressionUtil::evaluateLiteral<double>(*b, LogicalType::DOUBLE(), B::validate);
     }
     if (conjunctive != nullptr) {
         config.isConjunctive =

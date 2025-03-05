@@ -54,7 +54,7 @@ PageRankOptionalParams::PageRankOptionalParams(const binder::expression_vector& 
 PageRankConfig PageRankOptionalParams::getConfig() const {
     PageRankConfig config;
     if (dampingFactor != nullptr) {
-        config.dampingFactor = ExpressionUtil::evaluateLiteral<double_t>(*dampingFactor,
+        config.dampingFactor = ExpressionUtil::evaluateLiteral<double>(*dampingFactor,
             LogicalType::DOUBLE(), DampingFactor::validate);
     }
     if (maxIteration != nullptr) {
@@ -63,7 +63,7 @@ PageRankConfig PageRankOptionalParams::getConfig() const {
     }
     if (tolerance != nullptr) {
         config.tolerance =
-            ExpressionUtil::evaluateLiteral<double_t>(*tolerance, LogicalType::DOUBLE());
+            ExpressionUtil::evaluateLiteral<double>(*tolerance, LogicalType::DOUBLE());
     }
     return config;
 }
