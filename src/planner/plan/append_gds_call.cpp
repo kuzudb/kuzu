@@ -8,7 +8,17 @@ namespace kuzu {
 namespace planner {
 
 std::shared_ptr<LogicalOperator> Planner::getGDSCall(const BoundGDSCallInfo& info) {
-    auto op = std::make_shared<LogicalGDSCall>(info.copy());
+    auto bindData = info.func.gds->getBindData();
+    std::vector<std::shared_ptr<LogicalOperator>> nodeMaskRoots;
+    for (auto& nodeInfo : bindData->graphEntry.nodeInfos) {
+        if (nodeInfo.predicate == nullptr) {
+            continue;
+        }
+        auto p = planNodeSemiMask(SemiMaskTargetType::GDS_GRAPH_NODE,
+            nodeInfo.nodeOrRel->constCast<NodeExpression>(), nodeInfo.predicate);
+        nodeMaskRoots.push_back(p.getLastOperator());
+    }
+    auto op = std::make_shared<LogicalGDSCall>(info.copy(), std::move(nodeMaskRoots));
     op->computeFactorizedSchema();
     return op;
 }

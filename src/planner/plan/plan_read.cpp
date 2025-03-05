@@ -3,7 +3,6 @@
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
 #include "common/enums/join_type.h"
-#include "planner/operator/logical_gds_call.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/planner.h"
 
@@ -127,18 +126,8 @@ void Planner::planGDSCall(const BoundReadingClause& readingClause,
         predicatesToPush);
     auto bindData = call.getInfo().func.gds->getBindData();
     KU_ASSERT(!bindData->hasNodeInput());
-    std::vector<std::shared_ptr<LogicalOperator>> nodePredicateRoots;
-    for (auto& info : bindData->graphEntry.nodeInfos) {
-        if (info.predicate == nullptr) {
-            continue;
-        }
-        auto p = planNodeSemiMask(SemiMaskTargetType::GDS_GRAPH_NODE,
-            info.nodeOrRel->constCast<NodeExpression>(), info.predicate);
-        nodePredicateRoots.push_back(p.getLastOperator());
-    }
     for (auto& plan : plans) {
         auto gdsCall = getGDSCall(call.getInfo());
-        gdsCall->cast<LogicalGDSCall>().addGraphNodeMask(nodePredicateRoots);
         planReadOp(std::move(gdsCall), predicatesToPush, *plan);
     }
 

@@ -37,9 +37,6 @@ void LogicalOperatorVisitor::visitOperatorSwitch(LogicalOperator* op) {
     case LogicalOperatorType::FILTER: {
         visitFilter(op);
     } break;
-    case LogicalOperatorType::NODE_LABEL_FILTER: {
-        visitNodeLabelFilter(op);
-    } break;
     case LogicalOperatorType::FLATTEN: {
         visitFlatten(op);
     } break;
@@ -61,6 +58,9 @@ void LogicalOperatorVisitor::visitOperatorSwitch(LogicalOperator* op) {
     case LogicalOperatorType::MERGE: {
         visitMerge(op);
     } break;
+    case LogicalOperatorType::NODE_LABEL_FILTER: {
+        visitNodeLabelFilter(op);
+    } break;
     case LogicalOperatorType::ORDER_BY: {
         visitOrderBy(op);
     } break;
@@ -69,6 +69,9 @@ void LogicalOperatorVisitor::visitOperatorSwitch(LogicalOperator* op) {
     } break;
     case LogicalOperatorType::PROJECTION: {
         visitProjection(op);
+    } break;
+    case LogicalOperatorType::RECURSIVE_EXTEND: {
+        visitRecursiveExtend(op);
     } break;
     case LogicalOperatorType::SCAN_NODE_TABLE: {
         visitScanNodeTable(op);
@@ -126,9 +129,6 @@ std::shared_ptr<LogicalOperator> LogicalOperatorVisitor::visitOperatorReplaceSwi
     case LogicalOperatorType::FILTER: {
         return visitFilterReplace(op);
     }
-    case LogicalOperatorType::NODE_LABEL_FILTER: {
-        return visitNodeLabelFilterReplace(op);
-    }
     case LogicalOperatorType::FLATTEN: {
         return visitFlattenReplace(op);
     }
@@ -150,6 +150,9 @@ std::shared_ptr<LogicalOperator> LogicalOperatorVisitor::visitOperatorReplaceSwi
     case LogicalOperatorType::MERGE: {
         return visitMergeReplace(op);
     }
+    case LogicalOperatorType::NODE_LABEL_FILTER: {
+        return visitNodeLabelFilterReplace(op);
+    }
     case LogicalOperatorType::ORDER_BY: {
         return visitOrderByReplace(op);
     }
@@ -158,6 +161,9 @@ std::shared_ptr<LogicalOperator> LogicalOperatorVisitor::visitOperatorReplaceSwi
     }
     case LogicalOperatorType::PROJECTION: {
         return visitProjectionReplace(op);
+    }
+    case LogicalOperatorType::RECURSIVE_EXTEND: {
+        return visitRecursiveExtendReplace(op);
     }
     case LogicalOperatorType::SCAN_NODE_TABLE: {
         return visitScanNodeTableReplace(op);

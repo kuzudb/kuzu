@@ -2,8 +2,8 @@
 
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "optimizer/logical_operator_collector.h"
+#include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_accumulate.h"
-#include "planner/operator/logical_gds_call.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_intersect.h"
 #include "planner/operator/logical_path_property_probe.h"
@@ -39,15 +39,15 @@ static std::vector<table_id_t> getTableIDs(const LogicalOperator* op,
     case LogicalOperatorType::SCAN_NODE_TABLE: {
         return op->constCast<LogicalScanNodeTable>().getTableIDs();
     }
-    case LogicalOperatorType::GDS_CALL: {
-        auto bindData = op->constCast<LogicalGDSCall>().getInfo().getBindData();
+    case LogicalOperatorType::RECURSIVE_EXTEND: {
+        auto bindData = op->constCast<LogicalRecursiveExtend>().getInfo().getBindData();
         switch (targetType) {
-        case SemiMaskTargetType::GDS_INPUT_NODE: {
+        case SemiMaskTargetType::RECURSIVE_EXTEND_INPUT_NODE: {
             KU_ASSERT(bindData->hasNodeInput());
             auto& node = bindData->getNodeInput()->constCast<NodeExpression>();
             return getTableIDs(node.getEntries());
         }
-        case SemiMaskTargetType::GDS_OUTPUT_NODE: {
+        case SemiMaskTargetType::RECURSIVE_EXTEND_OUTPUT_NODE: {
             KU_ASSERT(bindData->hasNodeOutput());
             auto& node = bindData->getNodeOutput()->constCast<NodeExpression>();
             return getTableIDs(node.getEntries());
@@ -172,14 +172,14 @@ static std::vector<const LogicalOperator*> getScanNodeCandidates(const Expressio
     return result;
 }
 
-static std::vector<const LogicalOperator*> getGDSCallInputNodeCandidates(const Expression& nodeID,
-    LogicalOperator* root) {
+static std::vector<const LogicalOperator*> getRecursiveExtendInputNodeCandidates(
+    const Expression& nodeID, LogicalOperator* root) {
     std::vector<const LogicalOperator*> result;
-    auto collector = LogicalGDSCallCollector();
+    auto collector = LogicalRecursiveExtendCollector();
     collector.collect(root);
     for (auto& op : collector.getOperators()) {
-        auto& gdsCall = op->constCast<LogicalGDSCall>();
-        auto bindData = gdsCall.getInfo().getBindData();
+        auto& recursiveExtend = op->constCast<LogicalRecursiveExtend>();
+        auto bindData = recursiveExtend.getInfo().getBindData();
         if (bindData->hasNodeInput() &&
             nodeID == *bindData->getNodeInput()->constCast<NodeExpression>().getInternalID()) {
             result.push_back(op);
@@ -188,14 +188,14 @@ static std::vector<const LogicalOperator*> getGDSCallInputNodeCandidates(const E
     return result;
 }
 
-static std::vector<const LogicalOperator*> getGDSCallOutputNodeCandidates(const Expression& nodeID,
-    LogicalOperator* root) {
+static std::vector<const LogicalOperator*> getRecursiveExtendOutputNodeCandidates(
+    const Expression& nodeID, LogicalOperator* root) {
     std::vector<const LogicalOperator*> result;
-    auto collector = LogicalGDSCallCollector();
+    auto collector = LogicalRecursiveExtendCollector();
     collector.collect(root);
     for (auto& op : collector.getOperators()) {
-        auto& gdsCall = op->constCast<LogicalGDSCall>();
-        auto bindData = gdsCall.getInfo().getBindData();
+        auto& recursiveExtend = op->constCast<LogicalRecursiveExtend>();
+        auto bindData = recursiveExtend.getInfo().getBindData();
         if (bindData->hasNodeOutput() &&
             nodeID == *bindData->getNodeOutput()->constCast<NodeExpression>().getInternalID()) {
             result.push_back(op);
@@ -208,19 +208,20 @@ static std::shared_ptr<LogicalOperator> tryApplySemiMask(std::shared_ptr<Express
     std::shared_ptr<LogicalOperator> fromRoot, LogicalOperator* toRoot) {
     // TODO(Xiyang): Check if a semi mask can/need to be applied to ScanNodeTable, RecursiveJoin &
     // GDS at the same time
-    auto gdsInputNodeCandidates = getGDSCallInputNodeCandidates(*nodeID, toRoot);
-    if (!gdsInputNodeCandidates.empty()) {
-        auto targetType = SemiMaskTargetType::GDS_INPUT_NODE;
-        KU_ASSERT(sanityCheckCandidates(gdsInputNodeCandidates, targetType));
+    auto recursiveExtendInputNodeCandidates =
+        getRecursiveExtendInputNodeCandidates(*nodeID, toRoot);
+    if (!recursiveExtendInputNodeCandidates.empty()) {
+        auto targetType = SemiMaskTargetType::RECURSIVE_EXTEND_INPUT_NODE;
+        KU_ASSERT(sanityCheckCandidates(recursiveExtendInputNodeCandidates, targetType));
         return appendSemiMasker(SemiMaskKeyType::NODE, targetType, std::move(nodeID),
-            gdsInputNodeCandidates, std::move(fromRoot));
+            recursiveExtendInputNodeCandidates, std::move(fromRoot));
     }
-    auto gdsOutputNodeCandidates = getGDSCallOutputNodeCandidates(*nodeID, toRoot);
-    if (!gdsOutputNodeCandidates.empty()) {
-        auto targetType = SemiMaskTargetType::GDS_OUTPUT_NODE;
-        KU_ASSERT(sanityCheckCandidates(gdsOutputNodeCandidates, targetType));
+    auto recursiveExtendNodeCandidates = getRecursiveExtendOutputNodeCandidates(*nodeID, toRoot);
+    if (!recursiveExtendNodeCandidates.empty()) {
+        auto targetType = SemiMaskTargetType::RECURSIVE_EXTEND_OUTPUT_NODE;
+        KU_ASSERT(sanityCheckCandidates(recursiveExtendNodeCandidates, targetType));
         return appendSemiMasker(SemiMaskKeyType::NODE, targetType, std::move(nodeID),
-            gdsOutputNodeCandidates, std::move(fromRoot));
+            recursiveExtendNodeCandidates, std::move(fromRoot));
     }
     auto scanNodeCandidates = getScanNodeCandidates(*nodeID, toRoot);
     if (!scanNodeCandidates.empty()) {
@@ -386,7 +387,8 @@ void HashJoinSIPOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
     if (opsToApplySemiMask.empty()) {
         return;
     }
-    KU_ASSERT(pathPropertyProbe.getChild(0)->getOperatorType() == LogicalOperatorType::GDS_CALL);
+    KU_ASSERT(
+        pathPropertyProbe.getChild(0)->getOperatorType() == LogicalOperatorType::RECURSIVE_EXTEND);
     auto semiMasker = appendSemiMasker(SemiMaskKeyType::NODE_ID_LIST, SemiMaskTargetType::SCAN_NODE,
         recursiveRel->getRecursiveInfo()->pathNodeIDsExpr, opsToApplySemiMask,
         pathPropertyProbe.getChild(0));

@@ -11,8 +11,8 @@
 #include "main/client_context.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/operator/extend/logical_extend.h"
+#include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/extend/recursive_join_type.h"
-#include "planner/operator/logical_gds_call.h"
 #include "planner/operator/logical_node_label_filter.h"
 #include "planner/operator/logical_path_property_probe.h"
 #include "planner/planner.h"
@@ -101,16 +101,18 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
     }
 }
 
-void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& boundNode,
+void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& boundNode,
     const std::shared_ptr<NodeExpression>& nbrNode, const std::shared_ptr<RelExpression>& rel,
     ExtendDirection direction, LogicalPlan& plan) {
     // GDS pipeline
     auto recursiveInfo = rel->getRecursiveInfo();
+    // Bind graph entry.
     auto graphEntry =
         graph::GraphEntry(recursiveInfo->node->getEntries(), recursiveInfo->rel->getEntries());
     if (recursiveInfo->relPredicate != nullptr) {
         graphEntry.setRelPredicate(recursiveInfo->relPredicate);
     }
+
     GDSFunction gdsFunction;
     switch (rel->getRelType()) {
     case QueryRelType::VARIABLE_LENGTH_WALK:
@@ -157,12 +159,12 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
     GDSBindInput input;
     auto resultColumns = gdsFunction.gds->getResultColumns(input);
     auto gdsInfo = BoundGDSCallInfo(gdsFunction.copy(), std::move(resultColumns));
-    auto probePlan = LogicalPlan();
-    auto gdsCall = getGDSCall(gdsInfo);
+
+    std::shared_ptr<LogicalOperator> nodeMaskRoot = nullptr;
     if (recursiveInfo->nodePredicate != nullptr) {
-        auto p = planNodeSemiMask(SemiMaskTargetType::GDS_PATH_NODE, *recursiveInfo->node,
-            recursiveInfo->nodePredicate);
-        gdsCall->ptrCast<LogicalGDSCall>()->addPathNodeMask(p.getLastOperator());
+        auto p = planNodeSemiMask(SemiMaskTargetType::RECURSIVE_EXTEND_PATH_NODE,
+            *recursiveInfo->node, recursiveInfo->nodePredicate);
+        nodeMaskRoot = p.getLastOperator();
     }
     // E.g. Given schema person-knows->person & person-knows->animal
     // And query MATCH (a:person:animal)-[e*]->(b:person)
@@ -176,10 +178,14 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
             nbrTableIDSet.insert(tableID);
         }
     }
-    if (nbrTableIDSet.size() < recursiveNbrTableIDSet.size()) {
-        gdsCall->ptrCast<LogicalGDSCall>()->setNbrTableIDSet(nbrTableIDSet);
+    if (nbrTableIDSet.size() >= recursiveNbrTableIDSet.size()) {
+        nbrTableIDSet.clear(); // No need to prune nbr table id.
     }
-    probePlan.setLastOperator(std::move(gdsCall));
+    auto probePlan = LogicalPlan();
+    auto recursiveExtend =
+        std::make_shared<LogicalRecursiveExtend>(gdsInfo.copy(), nbrTableIDSet, nodeMaskRoot);
+    recursiveExtend->computeFactorizedSchema();
+    probePlan.setLastOperator(std::move(recursiveExtend));
     // Scan path node property pipeline
     std::shared_ptr<LogicalOperator> pathNodePropertyScanRoot = nullptr;
     if (!recursiveInfo->nodeProjectionList.empty()) {
@@ -189,7 +195,7 @@ void Planner::appendRecursiveExtendAsGDS(const std::shared_ptr<NodeExpression>& 
         pathNodePropertyScanRoot = pathNodePropertyScanPlan.getLastOperator();
     }
     // Scan path rel property pipeline
-    std::shared_ptr<LogicalOperator> pathRelPropertyScanRoot;
+    std::shared_ptr<LogicalOperator> pathRelPropertyScanRoot = nullptr;
     if (!recursiveInfo->relProjectionList.empty()) {
         auto pathRelPropertyScanPlan = std::make_unique<LogicalPlan>();
         auto relProperties = recursiveInfo->relProjectionList;

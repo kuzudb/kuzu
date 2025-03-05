@@ -7,11 +7,9 @@ namespace planner {
 
 enum class SemiMaskTargetType : uint8_t {
     SCAN_NODE = 0,
-    GDS_INPUT_NODE = 2,
-    GDS_OUTPUT_NODE = 3,
-    // Used for recursive join.
-    GDS_PATH_NODE = 4,
-    // Used for GDS algorithms.
+    RECURSIVE_EXTEND_INPUT_NODE = 2,
+    RECURSIVE_EXTEND_OUTPUT_NODE = 3,
+    RECURSIVE_EXTEND_PATH_NODE = 4,
     GDS_GRAPH_NODE = 5,
 };
 

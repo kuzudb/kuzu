@@ -48,15 +48,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(
         case PhysicalOperatorType::GDS_CALL: {
             auto sharedState = physicalOp->ptrCast<GDSCall>()->getSharedState();
             switch (semiMasker.getTargetType()) {
-            case SemiMaskTargetType::GDS_INPUT_NODE: {
+            case SemiMaskTargetType::RECURSIVE_EXTEND_INPUT_NODE: {
                 initMask(masksPerTable, sharedState->getInputNodeMaskMap()->getMasks());
                 sharedState->enableInputNodeMask();
             } break;
-            case SemiMaskTargetType::GDS_OUTPUT_NODE: {
+            case SemiMaskTargetType::RECURSIVE_EXTEND_OUTPUT_NODE: {
                 initMask(masksPerTable, sharedState->getOutputNodeMaskMap()->getMasks());
                 sharedState->enableOutputNodeMask();
             } break;
-            case SemiMaskTargetType::GDS_PATH_NODE: {
+            case SemiMaskTargetType::RECURSIVE_EXTEND_PATH_NODE: {
                 initMask(masksPerTable, sharedState->getPathNodeMaskMap()->getMasks());
             } break;
             case SemiMaskTargetType::GDS_GRAPH_NODE: {

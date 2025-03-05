@@ -1,8 +1,8 @@
 #include "optimizer/limit_push_down_optimizer.h"
 
 #include "common/exception/runtime.h"
+#include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_distinct.h"
-#include "planner/operator/logical_gds_call.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_limit.h"
 
@@ -57,13 +57,13 @@ void LimitPushDownOptimizer::visitOperator(planner::LogicalOperator* op) {
         }
         if (op->getChild(0)->getOperatorType() == LogicalOperatorType::PATH_PROPERTY_PROBE) {
             // LCOV_EXCL_START
-            if (op->getChild(0)->getChild(0)->getOperatorType() != LogicalOperatorType::GDS_CALL) {
+            if (op->getChild(0)->getChild(0)->getOperatorType() != LogicalOperatorType::RECURSIVE_EXTEND) {
                 throw RuntimeException(
-                    "Trying to push limit to a non-GDS operator. This should never happen.");
+                    "Trying to push limit to a non RECURSIVE_EXTEND operator. This should never happen.");
             }
             // LCOV_EXCL_STOP
-            auto& gds = op->getChild(0)->getChild(0)->cast<LogicalGDSCall>();
-            gds.setLimitNum(skipNumber + limitNumber);
+            auto& extend = op->getChild(0)->getChild(0)->cast<LogicalRecursiveExtend>();
+            extend.setLimitNum(skipNumber + limitNumber);
         }
         return;
     }
