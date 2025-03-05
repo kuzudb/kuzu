@@ -4,7 +4,6 @@
 
 #include "common/exception/binder.h"
 #include "common/types/types.h"
-#include "function/table/bind_input.h"
 
 namespace kuzu {
 namespace function {

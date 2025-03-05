@@ -1,6 +1,5 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
-#include "binder/expression/literal_expression.h"
 #include "binder/query/reading_clause/bound_gds_call.h"
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "catalog/catalog.h"
