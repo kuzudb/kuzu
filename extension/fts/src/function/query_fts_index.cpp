@@ -113,8 +113,7 @@ private:
 
 QFTSOutputWriter::QFTSOutputWriter(const node_id_map_t<ScoreInfo>& scores, MemoryManager* mm,
     QueryFTSConfig config, const QueryFTSBindData& bindData, uint64_t numUniqueTerms)
-    : scores{scores}, mm{mm}, config{std::move(config)}, bindData{bindData},
-      numUniqueTerms{numUniqueTerms} {
+    : scores{scores}, mm{mm}, config{config}, bindData{bindData}, numUniqueTerms{numUniqueTerms} {
     docsVector = createVector(LogicalType::INTERNAL_ID());
     scoreVector = createVector(LogicalType::UINT64());
 }
