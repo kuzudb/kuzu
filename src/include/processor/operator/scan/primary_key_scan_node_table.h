@@ -63,9 +63,6 @@ public:
     }
 
 private:
-    void initVectors(storage::TableScanState& state, const ResultSet& resultSet) const override;
-
-private:
     std::unique_ptr<storage::NodeTableScanState> scanState;
     std::vector<ScanNodeTableInfo> nodeInfos;
     std::unique_ptr<evaluator::ExpressionEvaluator> indexEvaluator;

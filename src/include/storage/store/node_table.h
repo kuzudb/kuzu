@@ -31,30 +31,9 @@ struct KUZU_API NodeTableScanState final : TableScanState {
         nodeGroupScanState = std::make_unique<NodeGroupScanState>(this->columnIDs.size());
     }
 
-    // Scan state for un-committed data.
-    // Ideally we shouldn't need columns to scan un-checkpointed but committed data.
-    NodeTableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
-        std::vector<const Column*> columns = {},
-        std::vector<ColumnPredicateSet> columnPredicateSets = {})
-        : TableScanState{tableID, std::move(columnIDs), std::move(columns),
-              std::move(columnPredicateSets)} {
-        nodeGroupScanState = std::make_unique<NodeGroupScanState>(this->columnIDs.size());
-    }
-
-    NodeTableScanState(common::table_id_t tableID, std::vector<common::column_id_t> columnIDs,
-        std::vector<const Column*> columns, const common::DataChunk& dataChunk,
-        common::ValueVector* nodeIDVector)
-        : NodeTableScanState{tableID, std::move(columnIDs), std::move(columns)} {
-        for (auto& vector : dataChunk.valueVectors) {
-            outputVectors.push_back(vector.get());
-        }
-        outState = dataChunk.state.get();
-        this->nodeIDVector = nodeIDVector;
-        rowIdxVector->state = this->nodeIDVector->state;
-    }
-
-    void setToTable(Table* table_, std::vector<common::column_id_t> columnIDs_,
-        std::vector<ColumnPredicateSet> columnPredicateSets_,
+    void setToTable(const transaction::Transaction* transaction, Table* table_,
+        std::vector<common::column_id_t> columnIDs_,
+        std::vector<ColumnPredicateSet> columnPredicateSets_ = {},
         common::RelDataDirection direction = common::RelDataDirection::INVALID) override;
 
     bool scanNext(transaction::Transaction* transaction) override;
@@ -93,16 +72,17 @@ struct NodeTableDeleteState final : TableDeleteState {
 };
 
 struct PKColumnScanHelper {
-    explicit PKColumnScanHelper(PrimaryKeyIndex* pkIndex, common::table_id_t tableID)
-        : tableID(tableID), pkIndex(pkIndex) {}
+    explicit PKColumnScanHelper(NodeTable* table, PrimaryKeyIndex* pkIndex)
+        : table{table}, pkIndex(pkIndex) {}
     virtual ~PKColumnScanHelper() = default;
 
-    virtual std::unique_ptr<NodeTableScanState> initPKScanState(common::DataChunk& dataChunk,
-        common::column_id_t pkColumnID, const std::vector<std::unique_ptr<Column>>& columns);
+    virtual std::unique_ptr<NodeTableScanState> initPKScanState(
+        const transaction::Transaction* transaction, common::DataChunk& dataChunk,
+        common::column_id_t pkColumnID);
     virtual bool processScanOutput(const transaction::Transaction* transaction,
         NodeGroupScanResult scanResult, const common::ValueVector& scannedVector) = 0;
 
-    common::table_id_t tableID;
+    NodeTable* table;
     PrimaryKeyIndex* pkIndex;
 };
 

@@ -10,20 +10,21 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
+// NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
 void TableScanState::resetOutVectors() {
     for (const auto& outputVector : outputVectors) {
-        KU_ASSERT(outputVector->state.get() == outState);
+        KU_ASSERT(outputVector->state.get() == outState.get());
         KU_UNUSED(outputVector);
         outputVector->resetAuxiliaryBuffer();
     }
     outState->getSelVectorUnsafe().setToUnfiltered();
 }
 
-void TableScanState::setToTable(Table* table_, std::vector<column_id_t> columnIDs_,
-    std::vector<ColumnPredicateSet> columnPredicateSets_, RelDataDirection) {
+void TableScanState::setToTable(const transaction::Transaction*, Table* table_,
+    std::vector<column_id_t> columnIDs_, std::vector<ColumnPredicateSet> columnPredicateSets_,
+    RelDataDirection) {
     table = table_;
     columnIDs = std::move(columnIDs_);
-    tableID = table->getTableID();
     columnPredicateSets = std::move(columnPredicateSets_);
     nodeGroupScanState->chunkStates.resize(columnIDs.size());
 }

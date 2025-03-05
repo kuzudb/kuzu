@@ -80,9 +80,6 @@ public:
             printInfo->copy());
     }
 
-private:
-    void initVectors(storage::TableScanState& state, const ResultSet& resultSet) const override;
-
 protected:
     ScanRelTableInfo relInfo;
     std::unique_ptr<storage::RelTableScanState> scanState;

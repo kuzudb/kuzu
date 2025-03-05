@@ -3,7 +3,6 @@
 #include <array>
 #include <bitset>
 
-#include "common/data_chunk/data_chunk.h"
 #include "storage/enums/csr_node_group_scan_source.h"
 #include "storage/store/csr_chunked_node_group.h"
 #include "storage/store/node_group.h"
@@ -127,6 +126,7 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
 
     CSRNodeGroupScanSource source;
 
+    // This is for local scan state where we don't need `header`.
     explicit CSRNodeGroupScanState(common::idx_t numChunks)
         : NodeGroupScanState{numChunks}, header{nullptr}, numTotalRows{0}, numCachedRows{0},
           nextCachedRowToScan{0}, source{CSRNodeGroupScanSource::COMMITTED_PERSISTENT} {}
@@ -262,12 +262,10 @@ private:
     common::row_idx_t getNumDeletionsForNodeInPersistentData(common::offset_t nodeOffset,
         const CSRNodeGroupCheckpointState& csrState) const;
 
-    static void initScanStateFromScanChunk(const CSRNodeGroupCheckpointState& csrState,
-        const common::DataChunk& dataChunk, TableScanState& scanState);
     static void redistributeCSRRegions(const CSRNodeGroupCheckpointState& csrState,
         const std::vector<CSRRegion>& leafRegions);
     static std::vector<CSRRegion> mergeRegionsToCheckpoint(
-        const CSRNodeGroupCheckpointState& csrState, std::vector<CSRRegion>& leafRegions);
+        const CSRNodeGroupCheckpointState& csrState, const std::vector<CSRRegion>& leafRegions);
     static bool isWithinDensityBound(const ChunkedCSRHeader& header,
         const std::vector<CSRRegion>& leafRegions, const CSRRegion& region);
 

@@ -616,12 +616,12 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanAllInsertedAndVersions(
     }
     auto mergedInMemGroup = std::make_unique<ChunkedNodeGroup>(memoryManager, columnTypes,
         enableCompression, numResidentRows, 0, ResidencyState::IN_MEMORY);
-    auto scanState = std::make_unique<TableScanState>(INVALID_TABLE_ID, columnIDs, columns);
+    auto scanState = std::make_unique<TableScanState>(columnIDs, columns);
     scanState->nodeGroupScanState = std::make_unique<NodeGroupScanState>(columnIDs.size());
     initializeScanState(&DUMMY_CHECKPOINT_TRANSACTION, lock, *scanState);
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
         chunkedGroup->scanCommitted<RESIDENCY_STATE>(&DUMMY_CHECKPOINT_TRANSACTION, *scanState,
-            *scanState->nodeGroupScanState, *mergedInMemGroup);
+            *mergedInMemGroup);
     }
     for (auto i = 0u; i < columnIDs.size(); i++) {
         if (columnIDs[i] != 0) {

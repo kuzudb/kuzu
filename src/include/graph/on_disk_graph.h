@@ -72,7 +72,7 @@ public:
         }
 
         bool next(evaluator::ExpressionEvaluator* predicate);
-        void initScan();
+        void initScan() const;
 
         common::RelDataDirection getDirection() const { return tableScanState->direction; }
 
@@ -99,7 +99,8 @@ private:
 
 class OnDiskGraphVertexScanState final : public VertexScanState {
 public:
-    OnDiskGraphVertexScanState(main::ClientContext& context, catalog::TableCatalogEntry* tableEntry,
+    OnDiskGraphVertexScanState(main::ClientContext& context,
+        const catalog::TableCatalogEntry* tableEntry,
         const std::vector<std::string>& propertyNames);
 
     void startScan(common::offset_t beginOffset, common::offset_t endOffsetExclusive);
