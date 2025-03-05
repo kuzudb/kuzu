@@ -13,7 +13,7 @@
     <img src="https://img.shields.io/badge/follow-@kuzudb-1DA1F2?logo=twitter" alt="twitter"></a>
 </p>
 
-# Kùzu
+# Kuzu
 Kuzu is an embedded graph database built for query speed and scalability. Kuzu is optimized for handling complex analytical workloads 
 on very large databases and provides a set of retrieval features, such as a full text search and vector indices. Our core feature set includes:
 
