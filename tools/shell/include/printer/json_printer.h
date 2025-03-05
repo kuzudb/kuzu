@@ -16,6 +16,8 @@ public:
 
     std::string print(QueryResult& queryResult, storage::MemoryManager& mm) const;
 
+    bool defaultPrintStats() const override { return false; }
+
 private:
     virtual std::string printHeader() const = 0;
     virtual std::string printFooter() const = 0;

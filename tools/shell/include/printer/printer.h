@@ -77,6 +77,8 @@ struct Printer {
 
     virtual ~Printer() = default;
 
+    virtual bool defaultPrintStats() const { return true; }
+
 protected:
     explicit Printer(PrinterType pt) : printType(pt) {}
 };
