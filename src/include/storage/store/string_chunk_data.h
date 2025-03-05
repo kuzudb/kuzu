@@ -23,7 +23,7 @@ public:
 
     void resetToEmpty() override;
 
-    void append(common::ValueVector* vector, const common::SelectionVector& selVector) override;
+    void append(common::ValueVector* vector, const common::SelectionView& selView) override;
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
     ColumnChunkData* getIndexColumnChunk();
