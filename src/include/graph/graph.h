@@ -185,16 +185,17 @@ public:
     // Get id for all relationship tables.
     virtual std::vector<common::table_id_t> getRelTableIDs() const = 0;
 
-    // Get num rows of each table as a map
-    virtual common::table_id_map_t<common::offset_t> getNumNodesMap(
+    // Get max offset of each table as a map.
+    virtual common::table_id_map_t<common::offset_t> getMaxOffsetMap(
         transaction::Transaction* transaction) const = 0;
 
-    // Get num rows for all node tables.
-    virtual common::offset_t getNumNodes(transaction::Transaction* transaction) const = 0;
-    // Get num rows for given node table.
-    virtual common::offset_t getNumNodes(transaction::Transaction* transaction,
-        common::table_id_t id) const = 0;
+    // Get max offset of given table.
+    virtual common::offset_t getMaxOffset(transaction::Transaction* transaction,  common::table_id_t id) const = 0;
 
+    // Get num nodes for all node tables.
+    virtual common::offset_t getNumNodes(transaction::Transaction* transaction) const = 0;
+
+    
     // Get all possible forward (toNodeTable, relTable)s.
     virtual std::vector<NbrTableInfo> getForwardNbrTableInfos(
         common::table_id_t srcNodeTableID) = 0;

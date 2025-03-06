@@ -19,8 +19,8 @@ namespace function {
 
 class CoreValues {
 public:
-    CoreValues(const table_id_map_t<offset_t>& numNodesMap, MemoryManager* mm) {
-        init(numNodesMap, mm);
+    CoreValues(const table_id_map_t<offset_t>& maxOffsetMap, MemoryManager* mm) {
+        init(maxOffsetMap, mm);
     }
 
     void pinTable(table_id_t tableID) { coreValues = coreValuesMap.getData(tableID); }
@@ -36,11 +36,11 @@ public:
     }
 
 private:
-    void init(const table_id_map_t<offset_t>& numNodesMap, MemoryManager* mm) {
-        for (const auto& [tableID, numNodes] : numNodesMap) {
-            coreValuesMap.allocate(tableID, numNodes, mm);
+    void init(const table_id_map_t<offset_t>& maxOffsetMap, MemoryManager* mm) {
+        for (const auto& [tableID, maxOffset] : maxOffsetMap) {
+            coreValuesMap.allocate(tableID, maxOffset, mm);
             pinTable(tableID);
-            for (auto i = 0u; i < numNodes; ++i) {
+            for (auto i = 0u; i < maxOffset; ++i) {
                 coreValues[i].store(INVALID_DEGREE, std::memory_order_relaxed);
             }
         }
@@ -206,11 +206,11 @@ public:
         auto clientContext = context->clientContext;
         auto mm = clientContext->getMemoryManager();
         auto graph = sharedState->graph.get();
-        auto numNodesMap = graph->getNumNodesMap(clientContext->getTransaction());
-        auto degrees = Degrees(numNodesMap, mm);
+        auto transaction = clientContext->getTransaction();
+        auto degrees = Degrees(graph->getMaxOffsetMap(transaction), mm);
         DegreesUtils::computeDegree(context, graph, sharedState->getGraphNodeMaskMap(), &degrees,
             ExtendDirection::BOTH);
-        auto coreValues = CoreValues(numNodesMap, mm);
+        auto coreValues = CoreValues(graph->getMaxOffsetMap(transaction), mm);
         auto auxiliaryState = std::make_unique<KCoreAuxiliaryState>(degrees, coreValues);
         auto currentFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
         auto nextFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());

@@ -18,11 +18,11 @@ namespace function {
 
 class ComponentIDs {
 public:
-    ComponentIDs(const table_id_map_t<offset_t>& numNodesMap, MemoryManager* mm) {
-        for (const auto& [tableID, numNodes] : numNodesMap) {
-            componentIDsMap.allocate(tableID, numNodes, mm);
+    ComponentIDs(const table_id_map_t<offset_t>& maxOffsetMap, MemoryManager* mm) {
+        for (const auto& [tableID, maxOffset] : maxOffsetMap) {
+            componentIDsMap.allocate(tableID, maxOffset, mm);
             pinTable(tableID);
-            for (auto i = 0u; i < numNodes; ++i) {
+            for (auto i = 0u; i < maxOffset; ++i) {
                 componentIDs[i].store(i, std::memory_order_relaxed);
             }
         }
@@ -162,15 +162,13 @@ public:
     void exec(processor::ExecutionContext* context) override {
         auto clientContext = context->clientContext;
         auto graph = sharedState->graph.get();
-        auto numNodesMap = graph->getNumNodesMap(clientContext->getTransaction());
         auto currentFrontier = PathLengths::getUnvisitedFrontier(context, graph);
         auto nextFrontier =
             PathLengths::getVisitedFrontier(context, graph, sharedState->getGraphNodeMaskMap());
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
         frontierPair->initGDS();
-
-        auto componentIDs = ComponentIDs(numNodesMap, clientContext->getMemoryManager());
+        auto componentIDs = ComponentIDs(graph->getMaxOffsetMap(clientContext->getTransaction()), clientContext->getMemoryManager());
         auto edgeCompute = std::make_unique<WCCEdgeCompute>(componentIDs);
         auto writer = std::make_unique<WCCOutputWriter>(clientContext);
         auto vertexCompute = std::make_unique<WCCVertexCompute>(clientContext->getMemoryManager(),

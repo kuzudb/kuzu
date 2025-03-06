@@ -17,11 +17,11 @@ static constexpr degree_t INVALID_DEGREE = UINT64_MAX;
 
 class Degrees {
 public:
-    Degrees(const table_id_map_t<offset_t>& numNodesMap, MemoryManager* mm) {
-        for (const auto& [tableID, numNodes] : numNodesMap) {
-            degreeValuesMap.allocate(tableID, numNodes, mm);
+    Degrees(const table_id_map_t<offset_t>& maxOffsetMap, MemoryManager* mm) {
+        for (const auto& [tableID, maxOffset] : maxOffsetMap) {
+            degreeValuesMap.allocate(tableID, maxOffset, mm);
             pinTable(tableID);
-            for (auto i = 0u; i < numNodes; ++i) {
+            for (auto i = 0u; i < maxOffset; ++i) {
                 degreeValues[i].store(0, std::memory_order_relaxed);
             }
         }

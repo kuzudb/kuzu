@@ -119,9 +119,9 @@ private:
     RJCompState getRJCompState(processor::ExecutionContext* context,
         nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
-        auto numNodes = sharedState->graph->getNumNodesMap(clientContext->getTransaction());
-        auto curFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
-        auto nextFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
+        auto graph = sharedState->graph.get();
+        auto curFrontier = PathLengths::getUnvisitedFrontier(context, graph);
+        auto nextFrontier = PathLengths::getUnvisitedFrontier(context, graph);
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(curFrontier, nextFrontier);
         auto bfsGraph = getBFSGraph(context);
