@@ -1,4 +1,4 @@
-# Kùzu implementation
+# Kuzu implementation
 
 To run the benchmark, execute the following commands:
 

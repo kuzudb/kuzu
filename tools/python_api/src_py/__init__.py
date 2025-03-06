@@ -1,7 +1,7 @@
 """
-# Kùzu Python API bindings.
+# Kuzu Python API bindings.
 
-This package provides a Python API for Kùzu graph database management system.
+This package provides a Python API for Kuzu graph database management system.
 
 To install the package, run:
 ```

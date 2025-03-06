@@ -1,6 +1,6 @@
 /**
  * @file database.js is the file for the Database class. Database class is the 
- * main class of Kùzu. It manages all database components.
+ * main class of Kuzu. It manages all database components.
  */
 "use strict";
 

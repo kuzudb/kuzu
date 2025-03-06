@@ -1,4 +1,4 @@
-## Kùzu Node.js API
+## Kuzu Node.js API
 
 ### Install
 

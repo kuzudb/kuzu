@@ -1,7 +1,7 @@
-# Kùzu-Wasm
-Kùzu-Wasm is the official WebAssembly build of Kùzu in-process property graph database management system. 
-Kùzu is an embeddable property graph database management system built for query speed and scalability. 
-Please visit [Kùzu website](https://kuzudb.com) for more information. Kùzu-Wasm enables the following:
+# Kuzu-Wasm
+Kuzu-Wasm is the official WebAssembly build of Kuzu in-process property graph database management system. 
+Kuzu is an embeddable property graph database management system built for query speed and scalability. 
+Please visit [Kuzu website](https://kuzudb.com) for more information. Kuzu-Wasm enables the following:
 
 - Fast, in-browser graph analysis without ever sending data to a server
 - Strong data privacy guarantees, as the data never leaves the browser
@@ -16,12 +16,12 @@ npm i kuzu-wasm
 
 ## Example usage
 
-We provide a simple example to demonstrate how to use Kùzu-Wasm. In this example, we will create a simple graph and run a few simple queries.
+We provide a simple example to demonstrate how to use Kuzu-Wasm. In this example, we will create a simple graph and run a few simple queries.
 
 We provide three versions of this example: 
-- `browser_in_memory`: This example demonstrates how to use Kùzu-Wasm in a web browser with an in-memory filesystem.
-- `browser_persistent`: This example demonstrates how to use Kùzu-Wasm in a web browser with a persistent IDBFS filesystem.
-- `nodejs`: This example demonstrates how to use Kùzu-Wasm in Node.js.
+- `browser_in_memory`: This example demonstrates how to use Kuzu-Wasm in a web browser with an in-memory filesystem.
+- `browser_persistent`: This example demonstrates how to use Kuzu-Wasm in a web browser with a persistent IDBFS filesystem.
+- `nodejs`: This example demonstrates how to use Kuzu-Wasm in Node.js.
 
 The example can be found in [the examples directory](https://github.com/kuzudb/kuzu/tree/master/tools/wasm/examples).
 
@@ -60,7 +60,7 @@ The API documentation can be found here:
 
 ## Local development
 
-This section is relevant if you are interested in contributing to Kùzu's Wasm API. Note that you need to have Emscripten installed on your machine to build the WebAssembly module. You can follow the instructions [here](https://emscripten.org/docs/getting_started/downloads.html) to install Emscripten. You also need to have a C++ 20 compatible compiler installed on your machine to build the C++ code.
+This section is relevant if you are interested in contributing to Kuzu's Wasm API. Note that you need to have Emscripten installed on your machine to build the WebAssembly module. You can follow the instructions [here](https://emscripten.org/docs/getting_started/downloads.html) to install Emscripten. You also need to have a C++ 20 compatible compiler installed on your machine to build the C++ code.
 
 All the instructions below assume that you are in the `tools/wasm` directory.
 

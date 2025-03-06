@@ -195,7 +195,7 @@ impl From<(u64, u64)> for InternalID {
     }
 }
 
-/// Data types supported by Kùzu
+/// Data types supported by Kuzu
 ///
 /// Also see <https://kuzudb.com/docusaurus/cypher/data-types/overview.html>
 #[derive(Clone, Debug, PartialEq)]

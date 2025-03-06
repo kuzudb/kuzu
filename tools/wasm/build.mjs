@@ -19,10 +19,10 @@ const ES_BUILD_CONFIG = {
   }
 };
 
-console.log(`Using ${THREADS} threads to build Kùzu.`);
+console.log(`Using ${THREADS} threads to build Kuzu.`);
 console.log('Cleaning up...');
 execSync("npm run clean", { stdio: "inherit" });
-console.log('Building single-threaded version of Kùzu WebAssembly module...')
+console.log('Building single-threaded version of Kuzu WebAssembly module...')
 execSync(`make wasm NUM_THREADS=${THREADS} SINGLE_THREADED=true`, {
   cwd: SRC_PATH,
   stdio: "inherit",
@@ -33,7 +33,7 @@ await esbuild.build(ES_BUILD_CONFIG);
 
 console.log('Cleaning up...');
 execSync("npm run clean exclude-package", { stdio: "inherit" });
-console.log("Building multi-threaded version of Kùzu WebAssembly module...");
+console.log("Building multi-threaded version of Kuzu WebAssembly module...");
 execSync(`make wasm NUM_THREADS=${THREADS} SINGLE_THREADED=false`, {
   cwd: SRC_PATH,
   stdio: "inherit",
@@ -45,7 +45,7 @@ await esbuild.build(ES_BUILD_CONFIG_MULTI);
 
 console.log('Cleaning up...');
 execSync("npm run clean exclude-package", { stdio: "inherit" });
-console.log("Building Node.js version of Kùzu WebAssembly module...");
+console.log("Building Node.js version of Kuzu WebAssembly module...");
 execSync(`make wasm NUM_THREADS=${THREADS} SINGLE_THREADED=false WASM_NODEFS=true`, {
   cwd: SRC_PATH,
   stdio: "inherit",

@@ -1,4 +1,4 @@
-//! Bindings to Kùzu: an in-process property graph database management system built for query speed and scalability.
+//! Bindings to Kuzu: an in-process property graph database management system built for query speed and scalability.
 //!
 //! ## Example Usage
 //! ```
@@ -48,9 +48,9 @@ mod logical_type;
 mod query_result;
 mod value;
 
-/// The version of the Kùzu crate as reported by Cargo's CARGO_PKG_VERSION environment variable
+/// The version of the Kuzu crate as reported by Cargo's CARGO_PKG_VERSION environment variable
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
-/// Returns the storage version of the Kùzu library
+/// Returns the storage version of the Kuzu library
 pub fn get_storage_version() -> u64 {
     crate::ffi::ffi::get_storage_version()
 }

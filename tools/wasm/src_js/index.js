@@ -1,5 +1,5 @@
 /**
- * @file index.js is the root file for the Kùzu WebAssembly module. 
+ * @file index.js is the root file for the Kuzu WebAssembly module.
  * It exports the module's public interface.
  */
 "use strict";
@@ -12,12 +12,12 @@ const QueryResult = require("./query_result");
 const FS = require("./fs");
 
 /**
- * The default asynchronous version of Kùzu WebAssembly module.
+ * The default asynchronous version of Kuzu WebAssembly module.
  * @module kuzu-wasm
  */
 module.exports = {
   /**
-   * Initialize the Kùzu WebAssembly module. Calling this function is optional, 
+   * Initialize the Kuzu WebAssembly module. Calling this function is optional,
    * as the module is initialized automatically when the first query is executed.
    * @memberof module:kuzu-wasm
    */
@@ -26,9 +26,9 @@ module.exports = {
   },
 
   /**
-   * Get the version of the Kùzu WebAssembly module.
+   * Get the version of the Kuzu WebAssembly module.
    * @memberof module:kuzu-wasm
-   * @returns {String} the version of the Kùzu WebAssembly module.
+   * @returns {String} the version of the Kuzu WebAssembly module.
    */
   getVersion: async () => {
     const worker = await dispatcher.getWorker();
@@ -37,9 +37,9 @@ module.exports = {
   },
 
   /**
-   * Get the storage version of the Kùzu WebAssembly module.
+   * Get the storage version of the Kuzu WebAssembly module.
    * @memberof module:kuzu-wasm
-   * @returns {BigInt} the storage version of the Kùzu WebAssembly module.
+   * @returns {BigInt} the storage version of the Kuzu WebAssembly module.
    */
   getStorageVersion: async () => {
     const worker = await dispatcher.getWorker();
@@ -63,7 +63,7 @@ module.exports = {
   },
 
   /**
-   * Destroy the Kùzu WebAssembly module and kill the worker. This function
+   * Destroy the Kuzu WebAssembly module and kill the worker. This function
    * should be called when the module is no longer needed to free up resources.
    * @memberof module:kuzu-wasm
    */

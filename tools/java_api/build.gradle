@@ -44,7 +44,7 @@ publishing {
         mavenJava(MavenPublication) {
             pom {
                 name = 'kuzu'
-                description = 'Kùzu is an embedded graph database built for query speed and scalability.'
+                description = 'Kuzu is an embedded graph database built for query speed and scalability.'
                 url = 'http://kuzudb.com'
                 inceptionYear = '2020'
                 properties = [

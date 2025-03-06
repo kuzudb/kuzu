@@ -1,7 +1,7 @@
 {
   "name": "kuzu-wasm",
   "version": "0.0.1",
-  "description": "Official WebAssembly build of Kùzu in-process property graph database management system.",
+  "description": "Official WebAssembly build of Kuzu in-process property graph database management system.",
   "main": "index.js",
   "homepage": "https://kuzudb.com/",
   "repository": {

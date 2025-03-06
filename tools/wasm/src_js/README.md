@@ -1,5 +1,5 @@
 # kuzu-wasm
-Welcome to the documentation of `kuzu-wasm`, the WebAssembly build of Kùzu in-process property graph database management system. 
+Welcome to the documentation of `kuzu-wasm`, the WebAssembly build of Kuzu in-process property graph database management system. 
 You are currently viewing the *asynchronous* JavaScript API documentation. 
 This version dispatches all the function calls to the WebAssembly module to a Web Worker or Node.js worker thread to prevent blocking the main thread. However, this version may have a slight overhead due to the serialization and deserialization of the data required by the worker threads. 
 

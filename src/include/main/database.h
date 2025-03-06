@@ -75,7 +75,7 @@ struct KUZU_API SystemConfig {
 };
 
 /**
- * @brief Database class is the main class of KùzuDB. It manages all database components.
+ * @brief Database class is the main class of Kuzu. It manages all database components.
  */
 class Database {
     friend class EmbeddedShell;

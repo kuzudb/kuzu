@@ -1,12 +1,12 @@
 name: Performance optimization suggestion
-description: Suggestion a new performance optimization idea for Kùzu
+description: Suggestion a new performance optimization idea for Kuzu
 title: "Optimization: "
 labels: [performance optimization]
 body:
   - type: markdown
     attributes:
       value: |
-        Share a new idea for improving Kùzu's performance.
+        Share a new idea for improving Kuzu's performance.
   - type: textarea
     id: description
     attributes:

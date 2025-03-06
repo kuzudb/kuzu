@@ -1411,7 +1411,7 @@ KUZU_C_API kuzu_state kuzu_rel_val_get_property_value_at(kuzu_value* rel_val, ui
  */
 KUZU_C_API kuzu_state kuzu_rel_val_to_string(kuzu_value* rel_val, char** out_result);
 /**
- * @brief Destroys any string created by the Kùzu C API, including both the error message and the
+ * @brief Destroys any string created by the Kuzu C API, including both the error message and the
  * values returned by the API functions. This function is provided to avoid the inconsistency
  * between the memory allocation and deallocation across different libraries and is preferred over
  * using the standard C free function.
@@ -1419,7 +1419,7 @@ KUZU_C_API kuzu_state kuzu_rel_val_to_string(kuzu_value* rel_val, char** out_res
  */
 KUZU_C_API void kuzu_destroy_string(char* str);
 /**
- * @brief Destroys any blob created by the Kùzu C API. This function is provided to avoid the
+ * @brief Destroys any blob created by the Kuzu C API. This function is provided to avoid the
  * inconsistency between the memory allocation and deallocation across different libraries and
  * is preferred over using the standard C free function.
  * @param blob The blob to destroy.
@@ -1558,12 +1558,12 @@ KUZU_C_API void kuzu_interval_from_difftime(double difftime, kuzu_interval_t* ou
 
 // Version
 /**
- * @brief Returns the version of the Kùzu library.
+ * @brief Returns the version of the Kuzu library.
  */
 KUZU_C_API char* kuzu_get_version();
 
 /**
- * @brief Returns the storage version of the Kùzu library.
+ * @brief Returns the storage version of the Kuzu library.
  */
 KUZU_C_API uint64_t kuzu_get_storage_version();
 #undef KUZU_C_API
