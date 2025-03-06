@@ -14,6 +14,7 @@
 #include "function/rewrite_function.h"
 #include "function/schema/vector_node_rel_functions.h"
 #include "main/client_context.h"
+#include "function/gds/rec_joins.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -266,6 +267,21 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
     return queryRel;
 }
 
+static std::vector<StructField> getBaseNodeStructFields() {
+    std::vector<StructField> fields;
+    fields.emplace_back(InternalKeyword::ID, LogicalType::INTERNAL_ID());
+    fields.emplace_back(InternalKeyword::LABEL, LogicalType::STRING());
+    return fields;
+}
+
+static std::vector<StructField> getBaseRelStructFields() {
+    std::vector<StructField> fields;
+    fields.emplace_back(InternalKeyword::SRC, LogicalType::INTERNAL_ID());
+    fields.emplace_back(InternalKeyword::DST, LogicalType::INTERNAL_ID());
+    fields.emplace_back(InternalKeyword::LABEL, LogicalType::STRING());
+    return fields;
+}
+
 std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::string& parsedName,
     const std::vector<TableCatalogEntry*>& entries, std::shared_ptr<NodeExpression> srcNode,
     std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType) {
@@ -278,15 +294,11 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     }
     queryRel->setAlias(parsedName);
     bindQueryRelProperties(*queryRel);
-    std::vector<StructField> fields;
-    fields.emplace_back(InternalKeyword::SRC, LogicalType::INTERNAL_ID());
-    fields.emplace_back(InternalKeyword::DST, LogicalType::INTERNAL_ID());
     // Bind internal expressions.
     auto input = function::RewriteFunctionBindInput(clientContext, &expressionBinder, {queryRel});
     queryRel->setLabelExpression(function::LabelFunction::rewriteFunc(input));
-    fields.emplace_back(InternalKeyword::LABEL,
-        queryRel->getLabelExpression()->getDataType().copy());
     // Bind properties.
+    auto fields = getBaseRelStructFields();
     for (auto& expression : queryRel->getPropertyExprsRef()) {
         auto& property = expression->constCast<PropertyExpression>();
         fields.emplace_back(property.getPropertyName(), property.getDataType().copy());
@@ -346,14 +358,10 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     auto node = createQueryNode(recursivePatternInfo->nodeName,
         std::vector<TableCatalogEntry*>{entrySet.begin(), entrySet.end()});
     addToScope(node->toString(), node);
-    std::vector<StructField> nodeFields;
-    nodeFields.emplace_back(InternalKeyword::ID, node->getInternalID()->getDataType().copy());
-    nodeFields.emplace_back(InternalKeyword::LABEL,
-        node->getLabelExpression()->getDataType().copy());
+    auto nodeFields = getBaseNodeStructFields();
     auto nodeProjectionList = bindRecursivePatternNodeProjectionList(*recursivePatternInfo, *node);
     bindProjectionListAsStructField(nodeProjectionList, nodeFields);
-    auto nodeExtraInfo = std::make_unique<StructTypeInfo>(std::move(nodeFields));
-    node->setExtraTypeInfo(std::move(nodeExtraInfo));
+    node->setExtraTypeInfo(std::make_unique<StructTypeInfo>(std::move(nodeFields)));
     auto nodeCopy = createQueryNode(recursivePatternInfo->nodeName,
         std::vector<TableCatalogEntry*>{entrySet.begin(), entrySet.end()});
     // Bind intermediate rel
@@ -361,14 +369,10 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
         nullptr /* srcNode */, nullptr /* dstNode */, directionType);
     addToScope(rel->toString(), rel);
     auto relProjectionList = bindRecursivePatternRelProjectionList(*recursivePatternInfo, *rel);
-    std::vector<StructField> relFields;
-    relFields.emplace_back(InternalKeyword::SRC, LogicalType::INTERNAL_ID());
-    relFields.emplace_back(InternalKeyword::DST, LogicalType::INTERNAL_ID());
-    relFields.emplace_back(InternalKeyword::LABEL, rel->getLabelExpression()->getDataType().copy());
+    auto relFields = getBaseRelStructFields();
     relFields.emplace_back(InternalKeyword::ID, LogicalType::INTERNAL_ID());
     bindProjectionListAsStructField(relProjectionList, relFields);
-    auto relExtraInfo = std::make_unique<StructTypeInfo>(std::move(relFields));
-    rel->setExtraTypeInfo(std::move(relExtraInfo));
+    rel->setExtraTypeInfo(std::make_unique<StructTypeInfo>(std::move(relFields)));
     // Bind predicates in {}, e.g. [e* {date=1999-01-01}]
     std::shared_ptr<Expression> relPredicate = nullptr;
     for (auto& [propertyName, rhs] : relPattern.getPropertyKeyVals()) {
@@ -429,37 +433,44 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
         getRecursiveRelLogicalType(node->getDataType(), rel->getDataType()),
         getUniqueExpressionName(parsedName), parsedName, prunedRelEntries, std::move(srcNode),
         std::move(dstNode), directionType, relPattern.getRelType());
-    auto lengthExpression =
-        PropertyExpression::construct(LogicalType::INT64(), InternalKeyword::LENGTH, *queryRel);
+    // Bind graph entry.
+    auto graphEntry = graph::GraphEntry(node->getEntries(), rel->getEntries());
+    graphEntry.setRelPredicate(relPredicate); // TODO: revisit me
+
+    auto bindData = std::make_unique<function::RJBindData>(graphEntry.copy());
+    // Bind lower upper bound.
     auto [lowerBound, upperBound] = bindVariableLengthRelBound(relPattern);
-    auto recursiveInfo = std::make_unique<RecursiveInfo>();
-    recursiveInfo->lowerBound = lowerBound;
-    recursiveInfo->upperBound = upperBound;
-    recursiveInfo->node = node;
-    recursiveInfo->nodeCopy = nodeCopy;
-    recursiveInfo->rel = rel;
-    recursiveInfo->lengthExpression = std::move(lengthExpression);
-    recursiveInfo->nodePredicate = std::move(nodePredicate);
-    recursiveInfo->relPredicate = std::move(relPredicate);
-    recursiveInfo->nodeProjectionList = std::move(nodeProjectionList);
-    recursiveInfo->relProjectionList = std::move(relProjectionList);
-
-    recursiveInfo->pathNodeIDsExpr =
-        createInvisibleVariable("pathNodeIDs", LogicalType::LIST(LogicalType::INTERNAL_ID()));
-    recursiveInfo->pathEdgeIDsExpr =
-        createInvisibleVariable("pathEdgeIDs", LogicalType::LIST(LogicalType::INTERNAL_ID()));
-    recursiveInfo->pathEdgeDirectionsExpr =
-        createInvisibleVariable("pathEdgeDirections", LogicalType::LIST(LogicalType::BOOL()));
-
+    bindData->lowerBound = lowerBound;
+    bindData->upperBound = upperBound;
+    // Bind semantic.
+    bindData->semantic = QueryRelTypeUtils::getPathSemantic(queryRel->getRelType());
+    // Bind path related expressions.
+    bindData->lengthExpr =  PropertyExpression::construct(LogicalType::INT64(), InternalKeyword::LENGTH, *queryRel);
+    bindData->pathNodeIDsExpr = createInvisibleVariable("pathNodeIDs", LogicalType::LIST(LogicalType::INTERNAL_ID()));
+    bindData->pathEdgeIDsExpr = createInvisibleVariable("pathEdgeIDs", LogicalType::LIST(LogicalType::INTERNAL_ID()));
+    if (queryRel->getDirectionType() == RelDirectionType::BOTH) {
+        bindData->directionExpr =
+            createInvisibleVariable("pathEdgeDirections", LogicalType::LIST(LogicalType::BOOL()));
+    }
+    // Bind weighted path related experssions.
     if (QueryRelTypeUtils::isWeighted(queryRel->getRelType())) {
         auto propertyExpr = expressionBinder.bindNodeOrRelPropertyExpression(*rel,
             recursivePatternInfo->weightPropertyName);
         checkWeightedShortestPathSupportedType(propertyExpr->getDataType());
-        recursiveInfo->weightPropertyExpr = propertyExpr;
-        recursiveInfo->weightOutputExpr =
-            createVariable(parsedName + "_weight", LogicalType::DOUBLE());
+        bindData->weightPropertyExpr = propertyExpr;
+        bindData->weightOutputExpr = createVariable(parsedName + "_weight", LogicalType::DOUBLE());
     }
 
+    auto recursiveInfo = std::make_unique<RecursiveInfo>();
+    recursiveInfo->node = node;
+    recursiveInfo->nodeCopy = nodeCopy;
+    recursiveInfo->rel = rel;
+    recursiveInfo->nodePredicate = std::move(nodePredicate);
+    recursiveInfo->relPredicate = std::move(relPredicate);
+    recursiveInfo->nodeProjectionList = std::move(nodeProjectionList);
+    recursiveInfo->relProjectionList = std::move(relProjectionList);
+    recursiveInfo->function = QueryRelTypeUtils::getFunction(queryRel->getRelType());
+    recursiveInfo->bindData = std::move(bindData);
     queryRel->setRecursiveInfo(std::move(recursiveInfo));
     return queryRel;
 }
@@ -589,25 +600,19 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(const std::string& parse
     auto queryNode = make_shared<NodeExpression>(LogicalType(LogicalTypeID::NODE),
         getUniqueExpressionName(parsedName), parsedName, entries);
     queryNode->setAlias(parsedName);
-    std::vector<std::string> fieldNames;
-    std::vector<LogicalType> fieldTypes;
     // Bind internal expressions
     queryNode->setInternalID(
         PropertyExpression::construct(LogicalType::INTERNAL_ID(), InternalKeyword::ID, *queryNode));
     auto input = function::RewriteFunctionBindInput(clientContext, &expressionBinder, {queryNode});
     queryNode->setLabelExpression(function::LabelFunction::rewriteFunc(input));
-    fieldNames.emplace_back(InternalKeyword::ID);
-    fieldNames.emplace_back(InternalKeyword::LABEL);
-    fieldTypes.push_back(queryNode->getInternalID()->getDataType().copy());
-    fieldTypes.push_back(queryNode->getLabelExpression()->getDataType().copy());
+    auto structFields = getBaseNodeStructFields();
     // Bind properties.
     bindQueryNodeProperties(*queryNode);
     for (auto& expression : queryNode->getPropertyExprsRef()) {
         auto property = ku_dynamic_cast<PropertyExpression*>(expression.get());
-        fieldNames.emplace_back(property->getPropertyName());
-        fieldTypes.emplace_back(property->dataType.copy());
+        structFields.emplace_back(property->getPropertyName(), property->getDataType().copy());
     }
-    auto extraInfo = std::make_unique<StructTypeInfo>(fieldNames, fieldTypes);
+    auto extraInfo = std::make_unique<StructTypeInfo>(std::move(structFields));
     queryNode->setExtraTypeInfo(std::move(extraInfo));
     return queryNode;
 }

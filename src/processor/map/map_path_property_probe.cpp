@@ -132,7 +132,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
         pathProbeInfo.extendDirection = logicalProbe.direction;
         if (logicalProbe.direction == ExtendDirection::BOTH) {
             pathProbeInfo.directionPos =
-                getDataPos(*recursiveInfo->pathEdgeDirectionsExpr, *schema);
+                getDataPos(*recursiveInfo->bindData->directionExpr, *schema);
         }
         for (auto entry : recursiveInfo->node->getEntries()) {
             pathProbeInfo.tableIDToName.insert(

@@ -5,6 +5,10 @@
 #include "path_semantic.h"
 
 namespace kuzu {
+namespace function {
+struct GDSFunction;
+}
+
 namespace common {
 
 enum class QueryRelType : uint8_t {
@@ -27,6 +31,8 @@ struct QueryRelTypeUtils {
     }
 
     static PathSemantic getPathSemantic(QueryRelType queryRelType);
+
+    static function::GDSFunction getFunction(QueryRelType type);
 };
 
 } // namespace common
