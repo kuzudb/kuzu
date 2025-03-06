@@ -48,6 +48,10 @@ public:
     bool hasPinnedMask() const { return pinnedMask != nullptr; }
     common::semi_mask_t* getPinnedMask() const { return pinnedMask; }
 
+    bool valid(common::offset_t offset) {
+        KU_ASSERT(pinnedMask != nullptr);
+        return pinnedMask->isMasked(offset);
+    }
     bool valid(common::nodeID_t nodeID) {
         KU_ASSERT(maskMap.contains(nodeID.tableID));
         return maskMap.at(nodeID.tableID)->isMasked(nodeID.offset);
@@ -94,28 +98,22 @@ struct KUZU_API GDSCallSharedState {
         inputNodeMask = std::move(maskMap);
     }
     void enableInputNodeMask() { inputNodeMask->enable(); }
-    common::table_id_map_t<common::semi_mask_t*> getInputNodeMasks() const {
-        return inputNodeMask->getMasks();
-    }
     NodeOffsetMaskMap* getInputNodeMaskMap() const { return inputNodeMask.get(); }
 
     void setOutputNodeMask(std::unique_ptr<NodeOffsetMaskMap> maskMap) {
         outputNodeMask = std::move(maskMap);
     }
     void enableOutputNodeMask() { outputNodeMask->enable(); }
-    common::table_id_map_t<common::semi_mask_t*> getOutputNodeMasks() const {
-        return outputNodeMask->getMasks();
-    }
     NodeOffsetMaskMap* getOutputNodeMaskMap() const { return outputNodeMask.get(); }
 
     void setPathNodeMask(std::unique_ptr<NodeOffsetMaskMap> maskMap) {
         pathNodeMask = std::move(maskMap);
     }
-    bool hasPathNodeMask() const { return pathNodeMask != nullptr; }
-    common::table_id_map_t<common::semi_mask_t*> getPathNodeMasks() const {
-        return pathNodeMask->getMasks();
-    }
     NodeOffsetMaskMap* getPathNodeMaskMap() const { return pathNodeMask.get(); }
+
+    void setGraphNodeMask(std::unique_ptr<NodeOffsetMaskMap> maskMap);
+    bool hasGraphNodeMask() const { return graphNodeMask != nullptr; }
+    NodeOffsetMaskMap* getGraphNodeMaskMap() const { return graphNodeMask.get(); }
 
     FactorizedTable* claimLocalTable(storage::MemoryManager* mm);
     void returnLocalTable(FactorizedTable* table);
@@ -134,6 +132,8 @@ private:
     std::unique_ptr<NodeOffsetMaskMap> inputNodeMask = nullptr;
     std::unique_ptr<NodeOffsetMaskMap> outputNodeMask = nullptr;
     std::unique_ptr<NodeOffsetMaskMap> pathNodeMask = nullptr;
+    std::unique_ptr<NodeOffsetMaskMap> graphNodeMask = nullptr;
+
     // We implement a local ftable pool to avoid generate many small ftables when running GDS.
     // Alternative solutions are directly writing to global ftable with partition so conflict is
     // minimized. Or we optimize ftable to be more memory efficient when number of tuples is small.

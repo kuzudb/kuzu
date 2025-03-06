@@ -8,6 +8,7 @@
 #include "planner/join_order/cardinality_estimator.h"
 #include "planner/join_order_enumerator_context.h"
 #include "planner/operator/logical_plan.h"
+#include "planner/operator/sip/semi_mask_target_type.h"
 
 namespace kuzu {
 namespace binder {
@@ -210,6 +211,10 @@ public:
         std::vector<std::unique_ptr<LogicalPlan>> leftPlans,
         std::vector<std::unique_ptr<LogicalPlan>> rightPlans);
 
+    // Plan semi mask
+    LogicalPlan planNodeSemiMask(SemiMaskTargetType targetType, const binder::NodeExpression& node,
+        std::shared_ptr<binder::Expression> nodePredicate);
+
     // Append empty result
     void appendEmptyResult(LogicalPlan& plan);
 
@@ -249,8 +254,6 @@ public:
         const std::shared_ptr<binder::NodeExpression>& nbrNode,
         const std::shared_ptr<binder::RelExpression>& rel, common::ExtendDirection direction,
         LogicalPlan& plan);
-    void createPathNodeFilterPlan(const std::shared_ptr<binder::NodeExpression>& node,
-        std::shared_ptr<binder::Expression> nodePredicate, LogicalPlan& plan);
     void createPathNodePropertyScanPlan(const std::shared_ptr<binder::NodeExpression>& node,
         const binder::expression_vector& properties, LogicalPlan& plan);
     void createPathRelPropertyScanPlan(const std::shared_ptr<binder::NodeExpression>& boundNode,
@@ -294,8 +297,7 @@ public:
         std::shared_ptr<binder::Expression> mark, const LogicalPlan& probePlan,
         const LogicalPlan& buildPlan, LogicalPlan& resultPlan);
 
-    /* Append accumulate */
-
+    // Append accumulate operators
     // Skip if plan has been accumulated.
     void tryAppendAccumulate(LogicalPlan& plan);
     // Accumulate everything.

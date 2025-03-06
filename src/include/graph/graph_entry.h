@@ -16,13 +16,16 @@ namespace graph {
 
 struct KUZU_API GraphEntryTableInfo {
     catalog::TableCatalogEntry* entry;
+
+    std::shared_ptr<binder::Expression> nodeOrRel;
     std::shared_ptr<binder::Expression> predicate;
 
     explicit GraphEntryTableInfo(catalog::TableCatalogEntry* entry)
         : entry{entry}, predicate{nullptr} {}
     GraphEntryTableInfo(catalog::TableCatalogEntry* entry,
+        std::shared_ptr<binder::Expression> nodeOrRel,
         std::shared_ptr<binder::Expression> predicate)
-        : entry{entry}, predicate{std::move(predicate)} {}
+        : entry{entry}, nodeOrRel{std::move(nodeOrRel)}, predicate{std::move(predicate)} {}
 
     void setPredicate(std::shared_ptr<binder::Expression> predicate_);
 };

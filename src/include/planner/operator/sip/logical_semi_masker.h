@@ -3,6 +3,7 @@
 #include "common/enums/extend_direction.h"
 #include "common/exception/runtime.h"
 #include "planner/operator/logical_operator.h"
+#include "semi_mask_target_type.h"
 
 namespace kuzu {
 namespace planner {
@@ -20,13 +21,6 @@ enum class SemiMaskKeyType : uint8_t {
     NODE = 0,
     PATH = 1,
     NODE_ID_LIST = 2,
-};
-
-enum class SemiMaskTargetType : uint8_t {
-    SCAN_NODE = 0,
-    GDS_INPUT_NODE = 2,
-    GDS_PATH_NODE = 3,
-    GDS_OUTPUT_NODE = 4,
 };
 
 struct ExtraKeyInfo {

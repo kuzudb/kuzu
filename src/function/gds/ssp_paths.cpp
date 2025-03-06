@@ -70,7 +70,7 @@ public:
 private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
-        auto frontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
+        auto frontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
         auto bfsGraph = getBFSGraph(context);
         auto rjBindData = bindData->ptrCast<RJBindData>();
         auto writerInfo = rjBindData->getPathWriterInfo();

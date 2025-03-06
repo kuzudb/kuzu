@@ -46,6 +46,9 @@
 -STATEMENT CALL create_projected_graph('err', ['person'], ['studyAt']);
 ---- error
 Binder exception: organisation is connected to studyAt but not projected.
+-STATEMENT CALL create_projected_graph('err', true, 'studyAt');
+---- error
+Binder exception: Input argument True has data type BOOL. STRUCT or LIST was expected.
 -STATEMENT CALL create_projected_graph('err', ['person'], 'studyAt');
 ---- error
 Binder exception: Input argument studyAt has data type STRING. STRUCT or LIST was expected.

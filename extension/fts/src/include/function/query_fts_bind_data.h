@@ -35,8 +35,6 @@ struct QueryFTSBindData final : function::GDSBindData {
         : GDSBindData{other}, query{other.query}, entry{other.entry},
           optionalParams{other.optionalParams}, outputTableID{other.outputTableID} {}
 
-    bool hasNodeInput() const override { return false; }
-
     std::vector<std::string> getTerms(main::ClientContext& context) const;
 
     QueryFTSConfig getConfig() const { return optionalParams.getConfig(); }

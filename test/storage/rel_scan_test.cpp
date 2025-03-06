@@ -57,9 +57,11 @@ class RelScanTestAmazon : public RelScanTest {
 
 // Test correctness of scan fwd
 TEST_F(RelScanTest, ScanFwd) {
-    auto tableID = catalog->getTableCatalogEntry(context->getTransaction(), "person")->getTableID();
-    auto relEntry = catalog->getTableCatalogEntry(context->getTransaction(), "knows");
-    auto scanState = graph->prepareRelScan(relEntry, "date");
+    auto transaction = context->getTransaction();
+    auto nodeEntry = catalog->getTableCatalogEntry(transaction, "person");
+    auto tableID = nodeEntry->getTableID();
+    auto relEntry = catalog->getTableCatalogEntry(transaction, "knows");
+    auto scanState = graph->prepareRelScan(relEntry, nodeEntry, "date");
 
     std::unordered_map<offset_t, common::date_t> expectedDates = {
         {0, Date::fromDate(2021, 6, 30)},

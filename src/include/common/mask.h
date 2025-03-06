@@ -109,8 +109,7 @@ public:
 };
 
 struct RoaringBitmapSemiMaskUtil {
-    static std::unique_ptr<RoaringBitmapSemiMask> createRoaringBitmapSemiMask(
-        common::offset_t maxOffset) {
+    static std::unique_ptr<RoaringBitmapSemiMask> createMask(common::offset_t maxOffset) {
         if (maxOffset > std::numeric_limits<uint32_t>::max()) {
             return std::make_unique<Roaring64BitmapSemiMask>(maxOffset);
         } else {

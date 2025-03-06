@@ -106,15 +106,15 @@ public:
 private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
-        auto frontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
+        auto frontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
         auto bfsGraph = getBFSGraph(context);
         auto rjBindData = bindData->ptrCast<RJBindData>();
         auto writerInfo = rjBindData->getPathWriterInfo();
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
         auto outputWriter = std::make_unique<VarLenPathsOutputWriter>(clientContext,
             sharedState->getOutputNodeMaskMap(), sourceNodeID, writerInfo, *bfsGraph);
-        auto currentFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
-        auto nextFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
+        auto currentFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
+        auto nextFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
         auto edgeCompute =

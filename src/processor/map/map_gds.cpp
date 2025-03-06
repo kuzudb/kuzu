@@ -16,15 +16,10 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-static std::unique_ptr<NodeOffsetMaskMap> getNodeOffsetMaskMap(const main::ClientContext* context,
-    const std::vector<table_id_t>& tableIDs, StorageManager* storageManager) {
-    auto map = std::make_unique<NodeOffsetMaskMap>();
-    for (auto tableID : tableIDs) {
-        auto nodeTable = storageManager->getTable(tableID)->ptrCast<NodeTable>();
-        map->addMask(tableID, RoaringBitmapSemiMaskUtil::createRoaringBitmapSemiMask(
-                                  nodeTable->getNumTotalRows(context->getTransaction())));
-    }
-    return map;
+static std::unique_ptr<RoaringBitmapSemiMask> getTableMask(table_id_t tableID,
+    StorageManager* storageManager, transaction::Transaction* transaction) {
+    auto table = storageManager->getTable(tableID)->ptrCast<NodeTable>();
+    return RoaringBitmapSemiMaskUtil::createMask(table->getNumTotalRows(transaction));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(const LogicalOperator* logicalOperator) {
@@ -50,15 +45,22 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(const LogicalOperator* 
         sharedState->setNbrTableIDSet(call.getNbrTableIDSet());
     }
     auto bindData = call.getInfo().getBindData();
+    auto transaction = clientContext->getTransaction();
     if (bindData->hasNodeInput()) {
         auto& node = bindData->getNodeInput()->constCast<NodeExpression>();
-        sharedState->setInputNodeMask(
-            getNodeOffsetMaskMap(clientContext, node.getTableIDs(), storageManager));
+        auto maskMap = std::make_unique<NodeOffsetMaskMap>();
+        for (auto tableID : node.getTableIDs()) {
+            maskMap->addMask(tableID, getTableMask(tableID, storageManager, transaction));
+        }
+        sharedState->setInputNodeMask(std::move(maskMap));
     }
     if (bindData->hasNodeOutput()) {
         auto& node = bindData->getNodeOutput()->constCast<NodeExpression>();
-        sharedState->setOutputNodeMask(
-            getNodeOffsetMaskMap(clientContext, node.getTableIDs(), storageManager));
+        auto maskMap = std::make_unique<NodeOffsetMaskMap>();
+        for (auto tableID : node.getTableIDs()) {
+            maskMap->addMask(tableID, getTableMask(tableID, storageManager, transaction));
+        }
+        sharedState->setOutputNodeMask(std::move(maskMap));
     }
     auto printInfo = std::make_unique<GDSCallPrintInfo>(call.getInfo().func.name);
     auto gdsAlgorithm = call.getInfo().getGDS()->copy();
@@ -67,20 +69,43 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(const LogicalOperator* 
         sharedState, getOperatorID(), std::move(printInfo));
     // Map node predicate pipeline
     if (call.hasNodePredicate()) {
-        auto logicalRoot = call.getNodePredicateRoot();
-        auto logicalSemiMasker = logicalRoot->ptrCast<LogicalSemiMasker>();
-        logicalSemiMasker->addTarget(logicalOperator);
-        sharedState->setPathNodeMask(getNodeOffsetMaskMap(clientContext,
-            logicalSemiMasker->getNodeTableIDs(), storageManager));
+        auto& maskInfo = call.getMaskInfo();
         logicalOpToPhysicalOpMap.insert({logicalOperator, gdsCall.get()});
-        auto root = mapOperator(logicalRoot.get());
-        auto dummySink = std::make_unique<DummySink>(
-            std::make_unique<ResultSetDescriptor>(logicalRoot->getSchema()), std::move(root),
-            getOperatorID(), std::make_unique<OPPrintInfo>());
-        gdsCall->addChild(std::move(dummySink));
+        if (maskInfo.isPathNodeMask) {
+            sharedState->setPathNodeMask(std::make_unique<NodeOffsetMaskMap>());
+            auto maskMap = sharedState->getPathNodeMaskMap();
+            KU_ASSERT(maskInfo.maskRoots.size() == 1);
+            auto logicalRoot = maskInfo.maskRoots[0];
+            auto logicalSemiMasker = logicalRoot->ptrCast<LogicalSemiMasker>();
+            logicalSemiMasker->addTarget(logicalOperator);
+            for (auto tableID : logicalSemiMasker->getNodeTableIDs()) {
+                maskMap->addMask(tableID, getTableMask(tableID, storageManager, transaction));
+            }
+            auto root = mapOperator(logicalRoot.get());
+            auto dummySink = std::make_unique<DummySink>(
+                std::make_unique<ResultSetDescriptor>(logicalRoot->getSchema()), std::move(root),
+                getOperatorID(), std::make_unique<OPPrintInfo>());
+            gdsCall->addChild(std::move(dummySink));
+        } else {
+            sharedState->setGraphNodeMask(std::make_unique<NodeOffsetMaskMap>());
+
+            auto maskMap = sharedState->getGraphNodeMaskMap();
+            for (auto logicalRoot : maskInfo.maskRoots) {
+                auto logicalSemiMasker = logicalRoot->ptrCast<LogicalSemiMasker>();
+                logicalSemiMasker->addTarget(logicalOperator);
+                KU_ASSERT(logicalSemiMasker->getNodeTableIDs().size() == 1);
+                for (auto tableID : logicalSemiMasker->getNodeTableIDs()) {
+                    maskMap->addMask(tableID, getTableMask(tableID, storageManager, transaction));
+                }
+                auto root = mapOperator(logicalRoot.get());
+                auto dummySink = std::make_unique<DummySink>(
+                    std::make_unique<ResultSetDescriptor>(logicalRoot->getSchema()),
+                    std::move(root), getOperatorID(), std::make_unique<OPPrintInfo>());
+                gdsCall->addChild(std::move(dummySink));
+            }
+        }
         logicalOpToPhysicalOpMap.erase(logicalOperator);
     }
-
     logicalOpToPhysicalOpMap.insert({logicalOperator, gdsCall.get()});
     physical_op_vector_t children;
     children.push_back(std::move(gdsCall));

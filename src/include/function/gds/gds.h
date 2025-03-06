@@ -121,9 +121,6 @@ protected:
     std::shared_ptr<binder::Expression> bindNodeOutput(const GDSBindInput& bindInput,
         const std::vector<catalog::TableCatalogEntry*>& nodeEntries);
 
-    std::shared_ptr<PathLengths> getPathLengthsFrontier(processor::ExecutionContext* context,
-        uint16_t initialVal);
-
     static std::string bindColumnName(const parser::YieldVariable& yieldVariable,
         std::string expressionName);
 

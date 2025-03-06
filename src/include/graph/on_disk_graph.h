@@ -6,6 +6,7 @@
 #include "common/copy_constructors.h"
 #include "common/data_chunk/sel_vector.h"
 #include "common/enums/rel_direction.h"
+#include "common/mask.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "graph.h"
@@ -19,6 +20,11 @@ namespace kuzu {
 namespace storage {
 class MemoryManager;
 }
+
+namespace processor {
+class NodeOffsetMaskMap;
+}
+
 namespace graph {
 
 class OnDiskGraphNbrScanState : public NbrScanState {
@@ -71,7 +77,7 @@ public:
             return tableScanState->outState->getSelVector();
         }
 
-        bool next(evaluator::ExpressionEvaluator* predicate);
+        bool next(evaluator::ExpressionEvaluator* predicate, common::semi_mask_t* nbrNodeMask);
         void initScan() const;
 
         common::RelDataDirection getDirection() const { return tableScanState->direction; }
@@ -92,6 +98,7 @@ private:
     std::unique_ptr<common::ValueVector> propertyVector;
 
     std::unique_ptr<evaluator::ExpressionEvaluator> relPredicateEvaluator;
+    common::semi_mask_t* nbrNodeMask = nullptr;
 
     std::vector<InnerIterator> directedIterators;
     InnerIterator* currentIter = nullptr;
@@ -130,6 +137,8 @@ public:
 
     GraphEntry* getGraphEntry() override { return &graphEntry; }
 
+    void setNodeOffsetMask(processor::NodeOffsetMaskMap* maskMap) { nodeOffsetMaskMap = maskMap; }
+
     std::vector<common::table_id_t> getNodeTableIDs() const override {
         return graphEntry.getNodeTableIDs();
     }
@@ -147,9 +156,7 @@ public:
     std::vector<NbrTableInfo> getForwardNbrTableInfos(common::table_id_t srcNodeTableID) override;
 
     std::unique_ptr<NbrScanState> prepareRelScan(catalog::TableCatalogEntry* tableEntry,
-        const std::string& property) override;
-    std::unique_ptr<VertexScanState> prepareVertexScan(catalog::TableCatalogEntry* tableEntry,
-        const std::vector<std::string>& propertiesToScan) override;
+        catalog::TableCatalogEntry* nbrNodeEntry, const std::string& property) override;
     // This is used for few random lookups in the relationship table. Internally we skip caching the
     // CSR header during scan.
     std::unique_ptr<NbrScanState> prepareRelLookup(catalog::TableCatalogEntry* tableEntry) const;
@@ -157,13 +164,15 @@ public:
     EdgeIterator scanFwd(common::nodeID_t nodeID, NbrScanState& state) override;
     EdgeIterator scanBwd(common::nodeID_t nodeID, NbrScanState& state) override;
 
+    std::unique_ptr<VertexScanState> prepareVertexScan(catalog::TableCatalogEntry* tableEntry,
+        const std::vector<std::string>& propertiesToScan) override;
     VertexIterator scanVertices(common::offset_t beginOffset, common::offset_t endOffsetExclusive,
         VertexScanState& state) override;
 
 private:
     main::ClientContext* context;
     GraphEntry graphEntry;
-
+    processor::NodeOffsetMaskMap* nodeOffsetMaskMap = nullptr;
     common::table_id_map_t<storage::NodeTable*> nodeIDToNodeTable;
     common::table_id_map_t<std::vector<NbrTableInfo>> nodeIDToNbrTableInfos;
 };

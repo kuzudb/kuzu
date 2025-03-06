@@ -2,8 +2,7 @@
 
 #include "binder/binder.h"
 #include "common/exception/binder.h"
-#include "function/gds/gds_frontier.h"
-#include "processor/execution_context.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -31,11 +30,6 @@ std::shared_ptr<Expression> GDSAlgorithm::bindNodeOutput(const GDSBindInput& bin
     auto node = bindInput.binder->createQueryNode(nodeColumnName, nodeEntries);
     bindInput.binder->addToScope(nodeColumnName, node);
     return node;
-}
-
-std::shared_ptr<PathLengths> GDSAlgorithm::getPathLengthsFrontier(
-    processor::ExecutionContext* context, uint16_t initialVal) {
-    return PathLengths::getFrontier(context, sharedState->graph.get(), initialVal);
 }
 
 std::string GDSAlgorithm::bindColumnName(const parser::YieldVariable& yieldVariable,

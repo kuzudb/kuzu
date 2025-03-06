@@ -15,6 +15,7 @@
 #include "main/client_context.h"
 #include "planner/operator/schema.h"
 #include "processor/expression_mapper.h"
+#include "processor/operator/gds_call_shared_state.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/storage_manager.h"
@@ -160,6 +161,9 @@ table_id_map_t<offset_t> OnDiskGraph::getNumNodesMap(transaction::Transaction* t
 }
 
 offset_t OnDiskGraph::getNumNodes(transaction::Transaction* transaction) const {
+    if (nodeOffsetMaskMap != nullptr) {
+        return nodeOffsetMaskMap->getNumMaskedNode();
+    }
     offset_t numNodes = 0u;
     for (auto id : getNodeTableIDs()) {
         numNodes += getNumNodes(transaction, id);
@@ -177,10 +181,17 @@ std::vector<NbrTableInfo> OnDiskGraph::getForwardNbrTableInfos(table_id_t srcNod
     return nodeIDToNbrTableInfos.at(srcNodeTableID);
 }
 
-std::unique_ptr<NbrScanState> OnDiskGraph::prepareRelScan(TableCatalogEntry* tableEntry,
-    const std::string& property) {
-    auto& info = graphEntry.getRelInfo(tableEntry->getTableID());
-    return std::make_unique<OnDiskGraphNbrScanState>(context, tableEntry, info.predicate, property);
+// TODO(Xiyang): since now we need to provide nbr info at prepare stage. It no longer make sense to
+// have scanFwd&scanBwd. The direction has already been decided in this function.
+std::unique_ptr<NbrScanState> OnDiskGraph::prepareRelScan(TableCatalogEntry* relEntry,
+    catalog::TableCatalogEntry* nbrNodeEntry, const std::string& property) {
+    auto& info = graphEntry.getRelInfo(relEntry->getTableID());
+    auto state =
+        std::make_unique<OnDiskGraphNbrScanState>(context, relEntry, info.predicate, property);
+    if (nodeOffsetMaskMap != nullptr) {
+        state->nbrNodeMask = nodeOffsetMaskMap->getOffsetMask(nbrNodeEntry->getTableID());
+    }
+    return state;
 }
 
 std::unique_ptr<NbrScanState> OnDiskGraph::prepareRelLookup(TableCatalogEntry* tableEntry) const {
@@ -217,7 +228,8 @@ std::unique_ptr<VertexScanState> OnDiskGraph::prepareVertexScan(TableCatalogEntr
     return std::make_unique<OnDiskGraphVertexScanState>(*context, tableEntry, propertiesToScan);
 }
 
-bool OnDiskGraphNbrScanState::InnerIterator::next(evaluator::ExpressionEvaluator* predicate) {
+bool OnDiskGraphNbrScanState::InnerIterator::next(evaluator::ExpressionEvaluator* predicate,
+    semi_mask_t* nbrNodeMask_) {
     bool hasAtLeastOneSelectedValue = false;
     do {
         restoreSelVector(*tableScanState->outState);
@@ -225,12 +237,23 @@ bool OnDiskGraphNbrScanState::InnerIterator::next(evaluator::ExpressionEvaluator
             return false;
         }
         saveSelVector(*tableScanState->outState);
+        hasAtLeastOneSelectedValue = tableScanState->outState->getSelVector().getSelSize() > 0;
         if (predicate != nullptr) {
             hasAtLeastOneSelectedValue =
                 predicate->select(tableScanState->outState->getSelVectorUnsafe(),
                     !tableScanState->outState->isFlat());
-        } else {
-            hasAtLeastOneSelectedValue = tableScanState->outState->getSelVector().getSelSize() > 0;
+        }
+        if (nbrNodeMask_ != nullptr) {
+            auto selectedSize = 0u;
+            auto buffer = tableScanState->outState->getSelVectorUnsafe().getMutableBuffer();
+            for (auto i = 0u; i < tableScanState->outState->getSelSize(); ++i) {
+                auto pos = tableScanState->outState->getSelVector()[i];
+                buffer[selectedSize] = pos;
+                auto nbrNodeID = tableScanState->outputVectors[0]->getValue<nodeID_t>(pos);
+                selectedSize += nbrNodeMask_->isMasked(nbrNodeID.offset);
+            }
+            tableScanState->outState->getSelVectorUnsafe().setToFiltered(selectedSize);
+            hasAtLeastOneSelectedValue = selectedSize > 0;
         }
     } while (!hasAtLeastOneSelectedValue);
     return true;
@@ -253,7 +276,7 @@ void OnDiskGraphNbrScanState::startScan(RelDataDirection direction) {
 
 bool OnDiskGraphNbrScanState::next() {
     KU_ASSERT(currentIter != nullptr);
-    if (currentIter->next(relPredicateEvaluator.get())) {
+    if (currentIter->next(relPredicateEvaluator.get(), nbrNodeMask)) {
         return true;
     }
     return false;
