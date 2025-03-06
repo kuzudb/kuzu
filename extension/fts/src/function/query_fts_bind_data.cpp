@@ -101,28 +101,8 @@ static std::vector<std::string> stemTerms(std::vector<std::string> terms, const 
     return result;
 }
 
-static std::string evaluateQuery(const Expression& query) {
-    if (!ExpressionUtil::canEvaluateAsLiteral(query)) {
-        std::string errMsg;
-        switch (query.expressionType) {
-        case ExpressionType::PARAMETER: {
-            errMsg = "The query is a parameter expression. Please assign it a value.";
-        } break;
-        default: {
-            errMsg = "The query must be a parameter/literal expression.";
-        } break;
-        }
-        throw RuntimeException{errMsg};
-    }
-    auto value = binder::ExpressionUtil::evaluateAsLiteralValue(query);
-    if (value.getDataType() != common::LogicalType::STRING()) {
-        throw RuntimeException{"The query must be a string literal."};
-    }
-    return value.getValue<std::string>();
-}
-
 std::vector<std::string> QueryFTSBindData::getTerms(main::ClientContext& context) const {
-    auto queryInStr = evaluateQuery(*query);
+    auto queryInStr = ExpressionUtil::evaluateLiteral<std::string>(*query, LogicalType::STRING());
     normalizeQuery(queryInStr);
     auto terms = StringUtils::split(queryInStr, " ");
     return stemTerms(terms, entry.getAuxInfo().cast<FTSIndexAuxInfo>().config, context,
