@@ -87,13 +87,13 @@ static void initSparseFrontier(SparseFrontier& frontier, table_id_t termsTableID
 class QFTSOutputWriter {
 public:
     QFTSOutputWriter(const node_id_map_t<ScoreInfo>& scores, MemoryManager* mm,
-        const QueryFTSBindData& bindData, uint64_t numUniqueTerms);
+        QueryFTSConfig config, const QueryFTSBindData& bindData, uint64_t numUniqueTerms);
 
     void write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len,
         int64_t docsID);
 
     std::unique_ptr<QFTSOutputWriter> copy() {
-        return std::make_unique<QFTSOutputWriter>(scores, mm, bindData, numUniqueTerms);
+        return std::make_unique<QFTSOutputWriter>(scores, mm, config, bindData, numUniqueTerms);
     }
 
 private:
@@ -102,6 +102,7 @@ private:
 private:
     const node_id_map_t<ScoreInfo>& scores;
     MemoryManager* mm;
+    QueryFTSConfig config;
     const QueryFTSBindData& bindData;
 
     std::unique_ptr<ValueVector> docsVector;
@@ -111,8 +112,8 @@ private:
 };
 
 QFTSOutputWriter::QFTSOutputWriter(const node_id_map_t<ScoreInfo>& scores, MemoryManager* mm,
-    const QueryFTSBindData& bindData, uint64_t numUniqueTerms)
-    : scores{scores}, mm{mm}, bindData{bindData}, numUniqueTerms{numUniqueTerms} {
+    QueryFTSConfig config, const QueryFTSBindData& bindData, uint64_t numUniqueTerms)
+    : scores{scores}, mm{mm}, config{config}, bindData{bindData}, numUniqueTerms{numUniqueTerms} {
     docsVector = createVector(LogicalType::INTERNAL_ID());
     scoreVector = createVector(LogicalType::UINT64());
 }
@@ -126,8 +127,8 @@ std::unique_ptr<ValueVector> QFTSOutputWriter::createVector(const LogicalType& t
 
 void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len,
     int64_t docsID) {
-    auto k = bindData.config.k;
-    auto b = bindData.config.b;
+    auto k = config.k;
+    auto b = config.b;
 
     if (!scores.contains(docNodeID)) {
         return;
@@ -136,7 +137,7 @@ void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNo
     double score = 0;
     // If the query is conjunctive, the numbers of distinct terms in the doc and the number of
     // distinct terms in the query must be equal to each other.
-    if (bindData.config.isConjunctive && scoreInfo.scoreData.size() != numUniqueTerms) {
+    if (config.isConjunctive && scoreInfo.scoreData.size() != numUniqueTerms) {
         return;
     }
     auto auxInfo = bindData.entry.getAuxInfo().cast<FTSIndexAuxInfo>();
@@ -271,7 +272,8 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     // Do vertex compute to calculate the score for doc with the length property.
     auto mm = clientContext->getMemoryManager();
     auto numUniqueTerms = getNumUniqueTerms(terms);
-    auto writer = std::make_unique<QFTSOutputWriter>(scores, mm, *qFTSBindData, numUniqueTerms);
+    auto writer = std::make_unique<QFTSOutputWriter>(scores, mm, qFTSBindData->getConfig(),
+        *qFTSBindData, numUniqueTerms);
     auto vc = std::make_unique<QFTSVertexCompute>(mm, sharedState.get(), std::move(writer));
     auto vertexPropertiesToScan = std::vector<std::string>{DOC_LEN_PROP_NAME, DOC_ID_PROP_NAME};
     auto docsEntry = graphEntry->nodeInfos[1].entry;
@@ -335,7 +337,7 @@ void QueryFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& con
         FTSUtils::getAppearsInTableName(tableEntry->getTableID(), indexName));
     auto graphEntry = graph::GraphEntry({termsEntry, docsEntry}, {appearsInEntry});
     bindData = std::make_unique<QueryFTSBindData>(std::move(graphEntry), nodeOutput,
-        std::move(query), *ftsIndexEntry, QueryFTSConfig{input.optionalParams});
+        std::move(query), *ftsIndexEntry, QueryFTSOptionalParams{input.optionalParams});
     context.setUseInternalCatalogEntry(false /* useInternalCatalogEntry */);
 }
 

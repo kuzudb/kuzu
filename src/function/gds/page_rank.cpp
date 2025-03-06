@@ -1,7 +1,10 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "common/exception/binder.h"
+#include "common/string_utils.h"
 #include "degrees.h"
 #include "function/gds/auxiliary_state/gds_auxilary_state.h"
+#include "function/gds/config/page_rank_config.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
@@ -22,17 +25,60 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-struct PageRankBindData final : public GDSBindData {
-    double dampingFactor = 0.85;
-    int64_t maxIteration = 20;
-    double delta = 0.0000001; // Convergence delta
+struct PageRankOptionalParams {
+    std::shared_ptr<binder::Expression> dampingFactor;
+    std::shared_ptr<binder::Expression> maxIteration;
+    std::shared_ptr<binder::Expression> tolerance;
 
-    explicit PageRankBindData(graph::GraphEntry graphEntry,
-        std::shared_ptr<binder::Expression> nodeOutput)
-        : GDSBindData{std::move(graphEntry), std::move(nodeOutput)} {};
+    explicit PageRankOptionalParams(const binder::expression_vector& optionalParams);
+
+    PageRankConfig getConfig() const;
+};
+
+PageRankOptionalParams::PageRankOptionalParams(const binder::expression_vector& optionalParams) {
+    for (auto& optionalParam : optionalParams) {
+        auto paramName = StringUtils::getLower(optionalParam->getAlias());
+        if (paramName == DampingFactor::NAME) {
+            dampingFactor = optionalParam;
+        } else if (paramName == MaxIterations::NAME) {
+            maxIteration = optionalParam;
+        } else if (paramName == Tolerance::NAME) {
+            tolerance = optionalParam;
+        } else {
+            throw common::BinderException{
+                "Unknown optional parameter: " + optionalParam->getAlias()};
+        }
+    }
+}
+
+PageRankConfig PageRankOptionalParams::getConfig() const {
+    PageRankConfig config;
+    if (dampingFactor != nullptr) {
+        config.dampingFactor = ExpressionUtil::evaluateLiteral<double>(*dampingFactor,
+            LogicalType::DOUBLE(), DampingFactor::validate);
+    }
+    if (maxIteration != nullptr) {
+        config.maxIterations = ExpressionUtil::evaluateLiteral<int64_t>(*maxIteration,
+            LogicalType::INT64(), MaxIterations::validate);
+    }
+    if (tolerance != nullptr) {
+        config.tolerance =
+            ExpressionUtil::evaluateLiteral<double>(*tolerance, LogicalType::DOUBLE());
+    }
+    return config;
+}
+
+struct PageRankBindData final : public GDSBindData {
+    PageRankOptionalParams optionalParams;
+
+    PageRankBindData(graph::GraphEntry graphEntry, std::shared_ptr<binder::Expression> nodeOutput,
+        PageRankOptionalParams optionalParams)
+        : GDSBindData{std::move(graphEntry), std::move(nodeOutput)},
+          optionalParams{std::move(optionalParams)} {}
     PageRankBindData(const PageRankBindData& other)
-        : GDSBindData{other}, dampingFactor{other.dampingFactor}, maxIteration{other.maxIteration},
-          delta{other.delta} {}
+        : GDSBindData{other}, optionalParams{other.optionalParams} {}
+
+    PageRankConfig getConfig() const { return optionalParams.getConfig(); }
 
     std::unique_ptr<GDSBindData> copy() const override {
         return std::make_unique<PageRankBindData>(*this);
@@ -259,7 +305,8 @@ public:
         auto graphName = binder::ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
         auto graphEntry = bindGraphEntry(context, graphName);
         auto nodeOutput = bindNodeOutput(input, graphEntry.getNodeEntries());
-        bindData = std::make_unique<PageRankBindData>(std::move(graphEntry), nodeOutput);
+        bindData = std::make_unique<PageRankBindData>(std::move(graphEntry), nodeOutput,
+            PageRankOptionalParams(input.optionalParams));
     }
 
     void exec(processor::ExecutionContext* context) override {
@@ -273,6 +320,7 @@ public:
         PValues* pCurrent = &p1;
         PValues* pNext = &p2;
         auto pageRankBindData = bindData->ptrCast<PageRankBindData>();
+        auto config = pageRankBindData->getConfig();
         auto currentIter = 1u;
         auto currentFrontier = getPathLengthsFrontier(context, PathLengths::UNVISITED);
         auto nextFrontier = getPathLengthsFrontier(context, 0);
@@ -284,23 +332,23 @@ public:
         frontierPair->getNextSparseFrontier().disable();
         auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr,
             sharedState->getOutputNodeMaskMap());
-        auto pNextUpdateConstant = (1 - pageRankBindData->dampingFactor) * ((double)1 / numNodes);
-        while (currentIter < pageRankBindData->maxIteration) {
+        auto pNextUpdateConstant = (1 - config.dampingFactor) * ((double)1 / numNodes);
+        while (currentIter < config.maxIterations) {
             computeState.edgeCompute =
                 std::make_unique<PNextUpdateEdgeCompute>(degrees, *pCurrent, *pNext);
             computeState.auxiliaryState =
                 std::make_unique<PageRankAuxiliaryState>(degrees, *pCurrent, *pNext);
             GDSUtils::runFrontiersUntilConvergence(context, computeState, graph,
                 ExtendDirection::BWD, computeState.frontierPair->getCurrentIter() + 1);
-            auto pNextUpdateVC = PNextUpdateVertexCompute(pageRankBindData->dampingFactor,
-                pNextUpdateConstant, *pNext);
+            auto pNextUpdateVC =
+                PNextUpdateVertexCompute(config.dampingFactor, pNextUpdateConstant, *pNext);
             GDSUtils::runVertexCompute(context, graph, pNextUpdateVC);
             std::atomic<double> diff;
             diff.store(0);
             auto pDiffVC = PDiffVertexCompute(diff, *pCurrent, *pNext);
             GDSUtils::runVertexCompute(context, graph, pDiffVC);
             std::swap(pCurrent, pNext);
-            if (diff.load() < pageRankBindData->delta) { // Converged.
+            if (diff.load() < config.tolerance) { // Converged.
                 break;
             }
             currentIter++;

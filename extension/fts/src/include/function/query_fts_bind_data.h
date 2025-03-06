@@ -8,26 +8,38 @@
 namespace kuzu {
 namespace fts_extension {
 
+struct QueryFTSOptionalParams {
+    std::shared_ptr<binder::Expression> k;
+    std::shared_ptr<binder::Expression> b;
+    std::shared_ptr<binder::Expression> conjunctive;
+
+    explicit QueryFTSOptionalParams(const binder::expression_vector& optionalParams);
+
+    QueryFTSConfig getConfig() const;
+};
+
 struct QueryFTSBindData final : function::GDSBindData {
     std::shared_ptr<binder::Expression> query;
     const catalog::IndexCatalogEntry& entry;
-    QueryFTSConfig config;
+    QueryFTSOptionalParams optionalParams;
     common::table_id_t outputTableID;
 
     QueryFTSBindData(graph::GraphEntry graphEntry, std::shared_ptr<binder::Expression> docs,
         std::shared_ptr<binder::Expression> query, const catalog::IndexCatalogEntry& entry,
-        QueryFTSConfig config)
+        QueryFTSOptionalParams optionalParams)
         : GDSBindData{std::move(graphEntry), std::move(docs)}, query{std::move(query)},
-          entry{entry}, config{config},
+          entry{entry}, optionalParams{std::move(optionalParams)},
           outputTableID{
               nodeOutput->constCast<binder::NodeExpression>().getSingleEntry()->getTableID()} {}
     QueryFTSBindData(const QueryFTSBindData& other)
-        : GDSBindData{other}, query{other.query}, entry{other.entry}, config{other.config},
-          outputTableID{other.outputTableID} {}
+        : GDSBindData{other}, query{other.query}, entry{other.entry},
+          optionalParams{other.optionalParams}, outputTableID{other.outputTableID} {}
 
     bool hasNodeInput() const override { return false; }
 
     std::vector<std::string> getTerms(main::ClientContext& context) const;
+
+    QueryFTSConfig getConfig() const { return optionalParams.getConfig(); }
 
     std::unique_ptr<GDSBindData> copy() const override {
         return std::make_unique<QueryFTSBindData>(*this);

@@ -19,19 +19,20 @@ struct ExecutionContext;
 
 namespace function {
 
-using optional_params_t = common::case_insensitive_map_t<common::Value>;
-
 class PathLengths;
 
 struct GDSBindInput {
     binder::expression_vector params;
-    optional_params_t optionalParams;
+    binder::expression_vector optionalParams;
     binder::Binder* binder = nullptr;
     std::vector<parser::YieldVariable> yieldVariables;
 
     GDSBindInput() = default;
 
     std::shared_ptr<binder::Expression> getParam(common::idx_t idx) const { return params[idx]; }
+    std::shared_ptr<binder::Expression> getOptionalParam(common::idx_t idx) const {
+        return optionalParams[idx];
+    }
     common::idx_t getNumParams() const { return params.size(); }
 };
 
