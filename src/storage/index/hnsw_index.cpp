@@ -270,7 +270,8 @@ OnDiskHNSWIndex::OnDiskHNSWIndex(main::ClientContext* context,
     catalog::RelTableCatalogEntry* upperRelTableEntry,
     catalog::RelTableCatalogEntry* lowerRelTableEntry, HNSWIndexConfig config)
     : HNSWIndex{std::move(config)}, nodeTableID{nodeTableEntry->getTableID()},
-      upperRelTableEntry{upperRelTableEntry}, lowerRelTableEntry{lowerRelTableEntry} {
+      upperRelTableEntry{upperRelTableEntry}, lowerRelTableEntry{lowerRelTableEntry},
+      semiMask{nullptr} {
     auto& nodeTable =
         context->getStorageManager()->getTable(nodeTableEntry->getTableID())->cast<NodeTable>();
     const auto& indexColumnType = nodeTable.getColumn(columnID).getDataType();
@@ -341,6 +342,16 @@ std::vector<NodeWithDistance> OnDiskHNSWIndex::searchKNNInLowerLayer(
     transaction::Transaction* transaction, const float* queryVector, common::offset_t entryNode,
     common::length_t k, uint64_t configuredEf, VisitedState& visited,
     NodeTableScanState& embeddingScanState) const {
+    return semiMask ? searchFilteredKNNInLowerLayer(transaction, queryVector, entryNode, k,
+                          configuredEf, visited, embeddingScanState) :
+                      searchUnfilteredKNNInLowerLayer(transaction, queryVector, entryNode, k,
+                          configuredEf, visited, embeddingScanState);
+}
+
+std::vector<NodeWithDistance> OnDiskHNSWIndex::searchUnfilteredKNNInLowerLayer(
+    transaction::Transaction* transaction, const float* queryVector, common::offset_t entryNode,
+    common::length_t k, uint64_t configuredEf, VisitedState& visited,
+    NodeTableScanState& embeddingScanState) const {
     min_node_priority_queue_t candidates;
     max_node_priority_queue_t result;
     visited.reset();
@@ -370,6 +381,183 @@ std::vector<NodeWithDistance> OnDiskHNSWIndex::searchKNNInLowerLayer(
         }
     }
     return popTopK(result, k);
+}
+
+std::vector<NodeWithDistance> OnDiskHNSWIndex::searchFilteredKNNInLowerLayer(
+    transaction::Transaction* transaction, const float* queryVector, common::offset_t entryNode,
+    common::length_t k, uint64_t configuredEf, VisitedState& visited,
+    NodeTableScanState& embeddingScanState) const {
+    min_node_priority_queue_t candidates;
+    max_node_priority_queue_t result;
+    visited.reset();
+
+    // Process entry node.
+    const auto entryVector = embeddings->getEmbedding(transaction, embeddingScanState, entryNode);
+    auto dist = HNSWIndexUtils::computeDistance(config.distFunc, queryVector, entryVector,
+        embeddings->getDimension());
+    candidates.push({entryNode, dist});
+    visited.add(entryNode);
+    if (semiMask->isMasked(entryNode)) {
+        result.push({entryNode, dist});
+    }
+
+    const auto selectivity =
+        1.0 * semiMask->getNumMaskedNodes() / lowerGraph->getNumNodes(transaction);
+    const auto ef = std::max(k, configuredEf);
+
+    while (!candidates.empty()) {
+        auto [candidate, candidateDist] = candidates.top();
+        // Break here if adding closestNode to result will exceed efs or not improve the results.
+        if (result.size() >= ef && candidateDist > result.top().distance) {
+            break;
+        }
+        candidates.pop();
+        auto scanState = lowerGraph->prepareRelLookup(lowerRelTableEntry);
+        auto neighborItr =
+            lowerGraph->scanFwd(common::nodeID_t{candidate, nodeTableID}, *scanState);
+        common::offset_vec_t neighbors;
+        if (selectivity < BLIND_SEARCH_UP_SEL_THRESHOLD) {
+            // Go for blind search.
+            neighbors = blindTwoHopFilteredSearch(ef, neighborItr, visited);
+        } else if (selectivity < DIRECTED_SEARCH_UP_SEL_THRESHOLD) {
+            // Go for directed search.
+            neighbors = directedTwoHopFilteredSearch(transaction, queryVector, ef, neighborItr,
+                visited, embeddingScanState);
+        } else {
+            // Go for one-hop search.
+            neighbors = oneHopFilteredSearch(ef, neighborItr, visited);
+        }
+        for (auto nbr : neighbors) {
+            auto nbrVector = embeddings->getEmbedding(transaction, embeddingScanState, nbr);
+            dist = HNSWIndexUtils::computeDistance(config.distFunc, queryVector, nbrVector,
+                embeddings->getDimension());
+            if (result.size() < ef || dist < result.top().distance) {
+                if (result.size() == ef) {
+                    result.pop();
+                }
+                result.push({nbr, dist});
+                candidates.push({nbr, dist});
+            }
+        }
+    }
+
+    return popTopK(result, k);
+}
+
+common::offset_vec_t OnDiskHNSWIndex::oneHopFilteredSearch(uint64_t ef,
+    graph::Graph::EdgeIterator& nbrItr, VisitedState& visited) const {
+    common::offset_vec_t result;
+    result.reserve(ef);
+    for (const auto& neighborChunk : nbrItr) {
+        neighborChunk.forEach([&](auto neighbor, auto) {
+            if (!visited.contains(neighbor.offset)) {
+                visited.add(neighbor.offset);
+                if (semiMask->isMasked(neighbor.offset)) {
+                    result.push_back(neighbor.offset);
+                }
+            }
+        });
+    }
+    return result;
+}
+
+common::offset_vec_t OnDiskHNSWIndex::directedTwoHopFilteredSearch(
+    transaction::Transaction* transaction, const float* queryVector, uint64_t ef,
+    graph::Graph::EdgeIterator& nbrItr, VisitedState& visited,
+    NodeTableScanState& embeddingScanState) const {
+    min_node_priority_queue_t candidates;
+    max_node_priority_queue_t firstHopResult;
+    common::offset_vec_t result;
+
+    for (const auto& neighborChunk : nbrItr) {
+        neighborChunk.forEach([&](auto neighbor, auto) {
+            auto nbrOffset = neighbor.offset;
+            if (!visited.contains(nbrOffset)) {
+                const auto nbrVector =
+                    embeddings->getEmbedding(transaction, embeddingScanState, neighbor.offset);
+                auto dist = HNSWIndexUtils::computeDistance(config.distFunc, queryVector, nbrVector,
+                    embeddings->getDimension());
+                if (result.size() < ef || dist < firstHopResult.top().distance) {
+                    if (result.size() == ef) {
+                        firstHopResult.pop();
+                    }
+                    firstHopResult.push({nbrOffset, dist});
+                    candidates.push({nbrOffset, dist});
+                }
+                if (semiMask->isMasked(neighbor.offset)) {
+                    visited.add(nbrOffset);
+                    result.push_back(neighbor.offset);
+                }
+            }
+        });
+    }
+
+    while (!candidates.empty()) {
+        auto [candidate, candidateDist] = candidates.top();
+        candidates.pop();
+        if (result.size() >= ef) {
+            break;
+        }
+        if (visited.contains(candidate)) {
+            continue;
+        }
+        visited.add(candidate);
+        auto scanState = lowerGraph->prepareRelLookup(lowerRelTableEntry);
+        auto secondHopNbrItr =
+            lowerGraph->scanFwd(common::nodeID_t{candidate, nodeTableID}, *scanState);
+        for (const auto& secondHopNbrChunk : secondHopNbrItr) {
+            secondHopNbrChunk.forEach([&](auto neighbor, auto) {
+                if (!visited.contains(neighbor.offset)) {
+                    visited.add(neighbor.offset);
+                    if (semiMask->isMasked(neighbor.offset)) {
+                        result.push_back(neighbor.offset);
+                    }
+                }
+            });
+        }
+    }
+    return result;
+}
+
+common::offset_vec_t OnDiskHNSWIndex::blindTwoHopFilteredSearch(uint64_t ef,
+    graph::Graph::EdgeIterator& nbrItr, VisitedState& visited) const {
+    common::offset_vec_t result;
+    result.reserve(ef);
+    for (const auto& neighborChunk : nbrItr) {
+        neighborChunk.forEach([&](auto neighbor, auto) {
+            // TODO(Guodong): Ideally we should break the outer for loop here.
+            if (result.size() >= ef) {
+                return;
+            }
+            if (!visited.contains(neighbor.offset)) {
+                visited.add(neighbor.offset);
+                if (semiMask->isMasked(neighbor.offset)) {
+                    result.push_back(neighbor.offset);
+                }
+                if (result.size() >= ef) {
+                    return;
+                }
+                // Second hop lookups from the current node.
+                const auto secondHopScanState = lowerGraph->prepareRelLookup(lowerRelTableEntry);
+                auto secondHopNbrItr = lowerGraph->scanFwd(
+                    common::nodeID_t{neighbor.offset, nodeTableID}, *secondHopScanState);
+                for (const auto& secondHopNbrChunk : secondHopNbrItr) {
+                    secondHopNbrChunk.forEach([&](auto nbr, auto) {
+                        if (result.size() >= ef) {
+                            return;
+                        }
+                        if (!visited.contains(nbr.offset)) {
+                            visited.add(nbr.offset);
+                            if (semiMask->isMasked(nbr.offset)) {
+                                result.push_back(nbr.offset);
+                            }
+                        }
+                    });
+                }
+            }
+        });
+    }
+    return result;
 }
 
 } // namespace storage

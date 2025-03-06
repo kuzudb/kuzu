@@ -176,8 +176,26 @@ private:
     std::vector<NodeWithDistance> searchKNNInLowerLayer(transaction::Transaction* transaction,
         const float* queryVector, common::offset_t entryNode, common::length_t k,
         uint64_t configuredEf, VisitedState& visited, NodeTableScanState& embeddingScanState) const;
+    std::vector<NodeWithDistance> searchFilteredKNNInLowerLayer(
+        transaction::Transaction* transaction, const float* queryVector, common::offset_t entryNode,
+        common::length_t k, uint64_t configuredEf, VisitedState& visited,
+        NodeTableScanState& embeddingScanState) const;
+    std::vector<NodeWithDistance> searchUnfilteredKNNInLowerLayer(
+        transaction::Transaction* transaction, const float* queryVector, common::offset_t entryNode,
+        common::length_t k, uint64_t configuredEf, VisitedState& visited,
+        NodeTableScanState& embeddingScanState) const;
+
+    common::offset_vec_t oneHopFilteredSearch(uint64_t ef, graph::Graph::EdgeIterator& nbrItr,
+        VisitedState& visited) const;
+    common::offset_vec_t directedTwoHopFilteredSearch(transaction::Transaction* transaction,
+        const float* queryVector, uint64_t ef, graph::Graph::EdgeIterator& nbrItr,
+        VisitedState& visited, NodeTableScanState& embeddingScanState) const;
+    common::offset_vec_t blindTwoHopFilteredSearch(uint64_t ef, graph::Graph::EdgeIterator& nbrItr,
+        VisitedState& visited) const;
 
 private:
+    static constexpr double BLIND_SEARCH_UP_SEL_THRESHOLD = 0.08;
+    static constexpr double DIRECTED_SEARCH_UP_SEL_THRESHOLD = 0.4;
     common::table_id_t nodeTableID;
     catalog::RelTableCatalogEntry* upperRelTableEntry;
     catalog::RelTableCatalogEntry* lowerRelTableEntry;
@@ -189,6 +207,7 @@ private:
     std::atomic<common::offset_t> defaultLowerEntryPoint;
     std::unique_ptr<graph::OnDiskGraph> upperGraph;
     std::unique_ptr<graph::OnDiskGraph> lowerGraph;
+    common::semi_mask_t* semiMask;
     std::unique_ptr<OnDiskEmbeddings> embeddings;
 };
 
