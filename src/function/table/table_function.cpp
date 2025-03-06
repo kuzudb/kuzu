@@ -4,6 +4,7 @@
 #include "common/exception/binder.h"
 #include "function/table/bind_data.h"
 #include "planner/operator/logical_table_function_call.h"
+#include "planner/operator/sip/logical_semi_masker.h"
 #include "planner/planner.h"
 #include "processor/data_pos.h"
 #include "processor/operator/table_function_call.h"
@@ -81,6 +82,13 @@ std::unique_ptr<processor::PhysicalOperator> TableFunction::getPhysicalPlan(
     TableFunctionInitInput tableFunctionInitInput{info.bindData.get(), 0 /* queryID */,
         *clientContext};
     sharedState->funcState = info.function.initSharedStateFunc(tableFunctionInitInput);
+    if (!sharedState->funcState->semiMasks.getMasks().empty()) {
+        for (const auto& logicalRoot : call.getNodeMaskRoots()) {
+            auto logicalSemiMasker = planMapper->findSemiMaskerInPlan(logicalRoot.get());
+            KU_ASSERT(logicalSemiMasker);
+            logicalSemiMasker->addTarget(logicalOp);
+        }
+    }
     auto printInfo =
         std::make_unique<processor::TableFunctionCallPrintInfo>(call.getTableFunc().name);
     return std::make_unique<processor::TableFunctionCall>(std::move(info), sharedState,

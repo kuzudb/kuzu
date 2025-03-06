@@ -1,5 +1,6 @@
 #include "planner/operator/logical_table_function_call.h"
 #include "processor/plan_mapper.h"
+#include <planner/operator/sip/logical_semi_masker.h>
 
 using namespace kuzu::planner;
 using namespace kuzu::common;
@@ -12,7 +13,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapTableFunctionCall(
     auto& call = logicalOperator->constCast<LogicalTableFunctionCall>();
     auto getPhysicalPlanFunc = call.getTableFunc().getPhysicalPlanFunc;
     KU_ASSERT(getPhysicalPlanFunc);
-    return getPhysicalPlanFunc(clientContext, this, logicalOperator);
+    auto res = getPhysicalPlanFunc(clientContext, this, logicalOperator);
+    logicalOpToPhysicalOpMap.insert({logicalOperator, res.get()});
+    for (auto i = 0u; i < call.getNumChildren(); ++i) {
+        res->addChild(mapOperator(call.getChild(i).get()));
+    }
+    return res;
 }
 
 } // namespace processor

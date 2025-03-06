@@ -3,6 +3,7 @@
 #include "processor/operator/recursive_extend.h"
 #include "processor/operator/scan/scan_node_table.h"
 #include "processor/operator/semi_masker.h"
+#include "processor/operator/table_function_call.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::common;
@@ -73,6 +74,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(
             default:
                 KU_UNREACHABLE;
             }
+        } break;
+        case PhysicalOperatorType::TABLE_FUNCTION_CALL: {
+            auto tableFunc = physicalOp->ptrCast<TableFunctionCall>();
+            auto funcState = tableFunc->getSharedState()->funcState.get();
+            initMask(masksPerTable, funcState->getSemiMasks());
         } break;
         default:
             KU_UNREACHABLE;

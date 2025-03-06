@@ -1,14 +1,11 @@
 #pragma once
 
-#include <memory>
-
 #include "common/types/types.h"
-#include "roaring.hh"
 
 namespace kuzu {
 namespace common {
 
-// Note that this class is not thread-safe.
+// Note that this class is NOT thread-safe.
 class SemiMask {
 public:
     explicit SemiMask(offset_t maxOffset) : maxOffset{maxOffset}, enabled{false} {}
@@ -24,6 +21,8 @@ public:
     virtual offset_vec_t range(uint32_t start, uint32_t end) = 0;
 
     virtual uint64_t getNumMaskedNodes() const = 0;
+
+    virtual offset_vec_t collectMaskedNodes(uint64_t size) const = 0;
 
     offset_t getMaxOffset() const { return maxOffset; }
 
