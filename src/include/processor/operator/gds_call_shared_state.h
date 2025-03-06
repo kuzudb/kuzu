@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <mutex>
 #include <stack>
 
@@ -19,13 +20,13 @@ public:
 
     common::offset_t getNumMaskedNode() const;
 
-    void addMask(common::table_id_t tableID, std::unique_ptr<common::semi_mask_t> mask) {
+    void addMask(common::table_id_t tableID, std::unique_ptr<common::SemiMask> mask) {
         KU_ASSERT(!maskMap.contains(tableID));
         maskMap.insert({tableID, std::move(mask)});
     }
 
-    common::table_id_map_t<common::semi_mask_t*> getMasks() const {
-        common::table_id_map_t<common::semi_mask_t*> result;
+    common::table_id_map_t<common::SemiMask*> getMasks() const {
+        common::table_id_map_t<common::SemiMask*> result;
         for (auto& [tableID, mask] : maskMap) {
             result.emplace(tableID, mask.get());
         }
@@ -33,7 +34,7 @@ public:
     }
 
     bool containsTableID(common::table_id_t tableID) const { return maskMap.contains(tableID); }
-    common::semi_mask_t* getOffsetMask(common::table_id_t tableID) const {
+    common::SemiMask* getOffsetMask(common::table_id_t tableID) const {
         KU_ASSERT(containsTableID(tableID));
         return maskMap.at(tableID).get();
     }
@@ -46,7 +47,7 @@ public:
         }
     }
     bool hasPinnedMask() const { return pinnedMask != nullptr; }
-    common::semi_mask_t* getPinnedMask() const { return pinnedMask; }
+    common::SemiMask* getPinnedMask() const { return pinnedMask; }
 
     bool valid(common::offset_t offset) {
         KU_ASSERT(pinnedMask != nullptr);
@@ -58,8 +59,8 @@ public:
     }
 
 private:
-    common::table_id_map_t<std::unique_ptr<common::semi_mask_t>> maskMap;
-    common::semi_mask_t* pinnedMask = nullptr;
+    common::table_id_map_t<std::unique_ptr<common::SemiMask>> maskMap;
+    common::SemiMask* pinnedMask = nullptr;
     // If mask map is enabled, then some nodes might be masked.
     bool enabled_;
 };

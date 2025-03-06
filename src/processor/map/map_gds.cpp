@@ -25,7 +25,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(const LogicalOperator* 
     auto sharedState = std::make_shared<GDSCallSharedState>(table, std::move(graph));
     auto bindData = logicalInfo.getBindData();
     if (bindData->hasNodeOutput()) {
-        sharedState->setOutputNodeMask(getNodeOffsetMaskMap(*bindData->getNodeOutput()));
+        sharedState->setOutputNodeMask(createNodeOffsetMaskMap(*bindData->getNodeOutput()));
     }
     auto printInfo = std::make_unique<GDSCallPrintInfo>(call.getInfo().func.name);
     auto gdsAlgorithm = call.getInfo().getGDS()->copy();
@@ -41,7 +41,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(const LogicalOperator* 
             logicalSemiMasker->addTarget(logicalOperator);
             KU_ASSERT(logicalSemiMasker->getNodeTableIDs().size() == 1);
             for (auto tableID : logicalSemiMasker->getNodeTableIDs()) {
-                maskMap->addMask(tableID, getSemiMask(tableID));
+                maskMap->addMask(tableID, createSemiMask(tableID));
             }
             auto root = mapOperator(logicalRoot.get());
             gdsCall->addChild(createDummySink(logicalRoot->getSchema(), std::move(root)));

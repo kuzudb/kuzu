@@ -231,7 +231,7 @@ std::unique_ptr<VertexScanState> OnDiskGraph::prepareVertexScan(TableCatalogEntr
 }
 
 bool OnDiskGraphNbrScanState::InnerIterator::next(evaluator::ExpressionEvaluator* predicate,
-    semi_mask_t* nbrNodeMask_) {
+    SemiMask* nbrNodeMask_) {
     bool hasAtLeastOneSelectedValue = false;
     do {
         restoreSelVector(*tableScanState->outState);

@@ -16,16 +16,18 @@ add_library(kuzu_common
         constants.cpp
         expression_type.cpp
         in_mem_overflow_buffer.cpp
+        mask.cpp
         md5.cpp
         metric.cpp
         null_mask.cpp
         profiler.cpp
-        type_utils.cpp
-        utils.cpp
+        random_engine.cpp
+        roaring_mask.cpp
         sha256.cpp
         string_utils.cpp
         system_message.cpp
-        random_engine.cpp
+        type_utils.cpp
+        utils.cpp
         windows_utils.cpp)
 
 set(ALL_OBJECT_FILES

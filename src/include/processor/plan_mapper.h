@@ -8,7 +8,7 @@
 namespace kuzu {
 namespace common {
 enum class RelDataDirection : uint8_t;
-class RoaringBitmapSemiMask;
+class SemiMask;
 } // namespace common
 namespace main {
 class ClientContext;
@@ -231,8 +231,8 @@ private:
         const planner::Schema& schema);
     FactorizedTableSchema createFlatFTableSchema(const binder::expression_vector& expressions,
         const planner::Schema& schema);
-    std::unique_ptr<common::RoaringBitmapSemiMask> getSemiMask(common::table_id_t tableID) const;
-    std::unique_ptr<NodeOffsetMaskMap> getNodeOffsetMaskMap(const binder::Expression& expr);
+    std::unique_ptr<common::SemiMask> createSemiMask(common::table_id_t tableID) const;
+    std::unique_ptr<NodeOffsetMaskMap> createNodeOffsetMaskMap(const binder::Expression& expr);
 
 public:
     main::ClientContext* clientContext;
