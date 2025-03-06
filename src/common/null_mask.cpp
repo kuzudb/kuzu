@@ -217,30 +217,64 @@ void NullMask::operator|=(const NullMask& other) {
     }
 }
 
-std::pair<bool, bool> NullMask::getMinMax(const uint64_t* nullEntries, uint64_t numValues) {
-    bool min = false, max = false;
-    auto firstWord = *nullEntries;
-    if (numValues >= 64) {
-        if (firstWord == 0) {
-            min = false;
-            max = false;
-        } else if (firstWord == ~static_cast<uint64_t>(0u)) {
-            min = true;
-            max = true;
+std::pair<bool, bool> NullMask::getMinMax(const uint64_t* nullEntries, uint64_t offset,
+    uint64_t numValues) {
+    nullEntries += offset / NUM_BITS_PER_NULL_ENTRY;
+    offset = offset % NUM_BITS_PER_NULL_ENTRY;
+
+    // If the offset+numValues are both within a word, just combine the appropriate masks and
+    // compare to 0/mask to determine if they are all 1s/all 0s (else a mix)
+    if (offset + numValues <= NUM_BITS_PER_NULL_ENTRY) {
+        auto mask = NULL_HIGH_MASKS[NUM_BITS_PER_NULL_ENTRY - offset] &
+                    NULL_LOWER_MASKS[offset + numValues];
+        auto masked = *nullEntries & mask;
+        if (masked == 0) {
+            return std::make_pair(false, false);
+        } else if (masked == mask) {
+            return std::make_pair(true, true);
         } else {
             return std::make_pair(false, true);
         }
-    } else {
-        // First word will be handled in loop below
-        min = max = NullMask::isNull(nullEntries, 0);
     }
-    for (size_t i = 0; i < numValues / 64; i++) {
-        if (nullEntries[i] != firstWord) {
+    // If the range spans multiple entries, check the first one by masking the start
+    bool min = false, max = false;
+    if (offset > 0) {
+        auto mask = NULL_HIGH_MASKS[NUM_BITS_PER_NULL_ENTRY - offset];
+        auto masked = *nullEntries & mask;
+        if (masked == 0) {
+            min = max = false;
+        } else if (masked == mask) {
+            min = max = true;
+        } else {
+            return std::make_pair(false, true);
+        }
+        nullEntries++;
+        numValues -= NUM_BITS_PER_NULL_ENTRY - offset;
+    } else {
+        // Rest of the entry will be checked in the loop below
+        min = max = isNull(nullEntries, 0);
+    }
+
+    // Check central full bytes, which can be compared in a single operation since we don't ignore
+    // any bits If there was no offset, then we calculate the baseline based on the first bit, and
+    // compare that to the actual entry
+    auto baseline = min ? ~static_cast<uint64_t>(0) : 0;
+    for (size_t i = 0; i < numValues / NUM_BITS_PER_NULL_ENTRY; i++) {
+        if (nullEntries[i] != baseline) {
             return std::make_pair(false, true);
         }
     }
-    for (size_t i = numValues / 64 * 64; i < numValues; i++) {
-        if (min != NullMask::isNull(nullEntries, i)) {
+    nullEntries += numValues / NUM_BITS_PER_NULL_ENTRY;
+    numValues = numValues % NUM_BITS_PER_NULL_ENTRY;
+    if (numValues > 0) {
+        // Check last entry
+        auto mask = NULL_LOWER_MASKS[numValues];
+        auto masked = *nullEntries & mask;
+        if (masked == 0 && !min) {
+            return std::make_pair(false, false);
+        } else if (masked == mask && max) {
+            return std::make_pair(true, true);
+        } else {
             return std::make_pair(false, true);
         }
     }

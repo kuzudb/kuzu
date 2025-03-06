@@ -509,7 +509,7 @@ void ColumnChunkData::copyVectorToBuffer(ValueVector* vector, offset_t startPosI
     KU_ASSERT(startPosInChunk + selView.getSelSize() <= capacity);
     const auto vectorDataToWriteFrom = vector->getData();
     if (nullData) {
-        nullData->append(vector, selView, startPosInChunk);
+        nullData->appendNulls(vector, selView, startPosInChunk);
     }
     if (selView.isUnfiltered()) {
         memcpy(bufferToWrite, vectorDataToWriteFrom, selView.getSelSize() * numBytesPerValue);
@@ -611,7 +611,7 @@ void BoolChunkData::append(ValueVector* vector, const SelectionView& selView) {
         NullMask::setNull(getData<uint64_t>(), numValues + i, vector->getValue<bool>(pos));
     }
     if (nullData) {
-        nullData->append(vector, selView, numValues);
+        nullData->appendNulls(vector, selView, numValues);
     }
     numValues += selView.getSelSize();
     updateStats(vector, selView);
@@ -723,20 +723,20 @@ void NullChunkData::write(const ValueVector* vector, offset_t offsetInVector,
 
 void NullChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
+    if (numValuesToCopy == 0) {
+        return;
+    }
+    KU_ASSERT(srcChunk->getBufferSize() >= sizeof(uint64_t));
+    copyFromBuffer(srcChunk->getData<uint64_t>(), srcOffsetInChunk, dstOffsetInChunk,
+        numValuesToCopy);
     if ((dstOffsetInChunk + numValuesToCopy) >= numValues) {
         numValues = dstOffsetInChunk + numValuesToCopy;
     }
-    copyFromBuffer(srcChunk->getData<uint64_t>(), srcOffsetInChunk, dstOffsetInChunk,
-        numValuesToCopy);
-    updateInMemoryStats(inMemoryStats, srcChunk, srcOffsetInChunk, numValuesToCopy);
 }
 
 void NullChunkData::append(ColumnChunkData* other, offset_t startOffsetInOtherChunk,
     uint32_t numValuesToAppend) {
-    copyFromBuffer(other->getData<uint64_t>(), startOffsetInOtherChunk, numValues,
-        numValuesToAppend);
-    numValues += numValuesToAppend;
-    updateInMemoryStats(inMemoryStats, other, startOffsetInOtherChunk, numValuesToAppend);
+    write(other, startOffsetInOtherChunk, numValues, numValuesToAppend);
 }
 
 bool NullChunkData::haveNoNullsGuaranteed() const {
@@ -768,8 +768,8 @@ void NullChunkData::scan(ValueVector& output, offset_t offset, length_t length,
     output.setNullFromBits(getNullMask().getData(), offset, posInOutputVector, length);
 }
 
-void NullChunkData::append(const common::ValueVector* vector, const common::SelectionView& selView,
-    common::offset_t startPosInChunk) {
+void NullChunkData::appendNulls(const common::ValueVector* vector,
+    const common::SelectionView& selView, common::offset_t startPosInChunk) {
     if (selView.isUnfiltered()) {
         copyFromBuffer(vector->getNullMask().getData(), 0, startPosInChunk, selView.getSelSize());
         numValues += selView.getSelSize();
