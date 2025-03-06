@@ -30,6 +30,12 @@ struct ArrayDistanceFunction {
     static function_set getFunctionSet();
 };
 
+struct ArraySquaredDistanceFunction {
+    static constexpr const char* name = "ARRAY_SQUARED_DISTANCE";
+
+    static function_set getFunctionSet();
+};
+
 struct ArrayInnerProductFunction {
     static constexpr const char* name = "ARRAY_INNER_PRODUCT";
 

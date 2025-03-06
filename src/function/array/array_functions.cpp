@@ -4,6 +4,7 @@
 #include "function/array/functions/array_cross_product.h"
 #include "function/array/functions/array_distance.h"
 #include "function/array/functions/array_inner_product.h"
+#include "function/array/functions/array_squared_distance.h"
 #include "function/array/vector_array_functions.h"
 #include "function/scalar_function.h"
 
@@ -186,6 +187,10 @@ function_set ArrayCosineSimilarityFunction::getFunctionSet() {
 
 function_set ArrayDistanceFunction::getFunctionSet() {
     return templateGetFunctionSet<ArrayDistance>(name);
+}
+
+function_set ArraySquaredDistanceFunction::getFunctionSet() {
+    return templateGetFunctionSet<ArraySquaredDistance>(name);
 }
 
 function_set ArrayInnerProductFunction::getFunctionSet() {

@@ -3,6 +3,7 @@
 #include "math.h"
 
 #include "common/vector/value_vector.h"
+#include "function/array/functions/array_squared_distance.h"
 
 namespace kuzu {
 namespace function {
@@ -12,15 +13,8 @@ struct ArrayDistance {
     template<typename T>
     static inline void operation(common::list_entry_t& left, common::list_entry_t& right, T& result,
         common::ValueVector& leftVector, common::ValueVector& rightVector,
-        common::ValueVector& /*resultVector*/) {
-        auto leftElements = (T*)common::ListVector::getListValues(&leftVector, left);
-        auto rightElements = (T*)common::ListVector::getListValues(&rightVector, right);
-        KU_ASSERT(left.size == right.size);
-        result = 0;
-        for (auto i = 0u; i < left.size; i++) {
-            auto diff = leftElements[i] - rightElements[i];
-            result += diff * diff;
-        }
+        common::ValueVector& resultVector) {
+        ArraySquaredDistance::operation(left, right, result, leftVector, rightVector, resultVector);
         result = std::sqrt(result);
     }
 };

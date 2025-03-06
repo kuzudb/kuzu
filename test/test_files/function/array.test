@@ -108,6 +108,21 @@ Binder exception: ARRAY_COSINE_SIMILARITY requires argument type to be FLOAT[] o
 ---- 1
 5.000000
 
+-LOG ArraySquaredDistance
+-STATEMENT MATCH (p:person)-[e:meets]->(p1:person) return round(ARRAY_SQUARED_DISTANCE(e.location, array_value(to_float(3.4), to_float(2.7))),2)
+---- 7
+1.820000
+2.570000
+2.620000
+20.240000
+33.010000
+41.130000
+6.410000
+
+-STATEMENT RETURN ARRAY_SQUARED_DISTANCE([-1, -2, -3.0], [2, -6.0, -3])
+---- 1
+25.000000
+
 -LOG ArrayInnerProduct
 -STATEMENT MATCH (p:person)-[e:meets]->(p1:person) return round(ARRAY_INNER_PRODUCT(e.location, array_value(to_float(3.4), to_float(2.7))),2)
 ---- 7
