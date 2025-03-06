@@ -390,7 +390,7 @@ void HashJoinSIPOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
     KU_ASSERT(
         pathPropertyProbe.getChild(0)->getOperatorType() == LogicalOperatorType::RECURSIVE_EXTEND);
     auto semiMasker = appendSemiMasker(SemiMaskKeyType::NODE_ID_LIST, SemiMaskTargetType::SCAN_NODE,
-        recursiveRel->getRecursiveInfo()->pathNodeIDsExpr, opsToApplySemiMask,
+        recursiveRel->getRecursiveInfo()->bindData->pathNodeIDsExpr, opsToApplySemiMask,
         pathPropertyProbe.getChild(0));
     auto srcNodeID = recursiveRel->getSrcNode()->getInternalID();
     auto dstNodeID = recursiveRel->getDstNode()->getInternalID();

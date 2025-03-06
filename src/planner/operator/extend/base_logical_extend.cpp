@@ -18,9 +18,10 @@ static std::string relToString(const binder::RelExpression& rel) {
         break;
     }
     if (QueryRelTypeUtils::isRecursive(rel.getRelType())) {
-        result += std::to_string(rel.getLowerBound());
+        auto bindData = rel.getRecursiveInfo()->bindData.get();
+        result += std::to_string(bindData->lowerBound);
         result += "..";
-        result += std::to_string(rel.getUpperBound());
+        result += std::to_string(bindData->upperBound);
     }
     return result;
 }
