@@ -728,7 +728,6 @@ void NullChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     }
     copyFromBuffer(srcChunk->getData<uint64_t>(), srcOffsetInChunk, dstOffsetInChunk,
         numValuesToCopy);
-    updateInMemoryStats(inMemoryStats, srcChunk, srcOffsetInChunk, numValuesToCopy);
 }
 
 void NullChunkData::append(ColumnChunkData* other, offset_t startOffsetInOtherChunk,
@@ -736,7 +735,6 @@ void NullChunkData::append(ColumnChunkData* other, offset_t startOffsetInOtherCh
     copyFromBuffer(other->getData<uint64_t>(), startOffsetInOtherChunk, numValues,
         numValuesToAppend);
     numValues += numValuesToAppend;
-    updateInMemoryStats(inMemoryStats, other, startOffsetInOtherChunk, numValuesToAppend);
 }
 
 bool NullChunkData::haveNoNullsGuaranteed() const {
