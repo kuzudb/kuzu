@@ -12,6 +12,7 @@ struct ArraySquaredDistance {
         common::ValueVector& /*resultVector*/) {
         auto leftElements = (T*)common::ListVector::getListValues(&leftVector, left);
         auto rightElements = (T*)common::ListVector::getListValues(&rightVector, right);
+        KU_ASSERT(left.size == right.size);
         result = 0;
         for (auto i = 0u; i < left.size; i++) {
             const auto diff = leftElements[i] - rightElements[i];
