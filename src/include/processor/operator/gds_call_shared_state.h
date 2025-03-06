@@ -85,6 +85,8 @@ struct KUZU_API GDSCallSharedState {
     std::unique_ptr<graph::Graph> graph;
     std::unique_ptr<GDSOutputCounter> counter = nullptr;
 
+    GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable, std::unique_ptr<graph::Graph> graph)
+        : GDSCallSharedState{std::move(fTable), std::move(graph), common::INVALID_LIMIT} {}
     GDSCallSharedState(std::shared_ptr<FactorizedTable> fTable, std::unique_ptr<graph::Graph> graph,
         common::offset_t limitNumber)
         : fTable{std::move(fTable)}, graph{std::move(graph)} {

@@ -325,7 +325,7 @@ void Planner::appendExtend(std::shared_ptr<NodeExpression> boundNode,
     case QueryRelType::ALL_SHORTEST:
     case QueryRelType::WEIGHTED_SHORTEST:
     case QueryRelType::ALL_WEIGHTED_SHORTEST: {
-        appendRecursiveExtendAsGDS(boundNode, nbrNode, rel, direction, plan);
+        appendRecursiveExtend(boundNode, nbrNode, rel, direction, plan);
     } break;
     default:
         KU_UNREACHABLE;

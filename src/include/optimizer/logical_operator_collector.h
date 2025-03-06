@@ -44,5 +44,10 @@ protected:
     void visitGDSCall(planner::LogicalOperator* op) override { ops.push_back(op); }
 };
 
+class LogicalRecursiveExtendCollector final : public LogicalOperatorCollector {
+protected:
+    void visitRecursiveExtend(planner::LogicalOperator* op) override { ops.push_back(op); }
+};
+
 } // namespace optimizer
 } // namespace kuzu

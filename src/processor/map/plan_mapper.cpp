@@ -1,9 +1,16 @@
 #include "processor/plan_mapper.h"
 
+#include "binder/expression/node_expression.h"
+#include "common/mask.h"
+#include "processor/operator/gds_call_shared_state.h"
 #include "processor/operator/profile.h"
+#include "storage/storage_manager.h"
+#include "storage/store/node_table.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::planner;
+using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
@@ -142,6 +149,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(const LogicalOperator*
     case LogicalOperatorType::PROJECTION: {
         physicalOperator = mapProjection(logicalOperator);
     } break;
+    case LogicalOperatorType::RECURSIVE_EXTEND: {
+        physicalOperator = mapRecursiveExtend(logicalOperator);
+    } break;
     case LogicalOperatorType::SCAN_NODE_TABLE: {
         physicalOperator = mapScanNodeTable(logicalOperator);
     } break;
@@ -178,13 +188,41 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(const LogicalOperator*
     return physicalOperator;
 }
 
-std::vector<DataPos> PlanMapper::getDataPos(const binder::expression_vector& expressions,
+std::vector<DataPos> PlanMapper::getDataPos(const expression_vector& expressions,
     const Schema& schema) {
     std::vector<DataPos> result;
     for (auto& expression : expressions) {
         result.emplace_back(getDataPos(*expression, schema));
     }
     return result;
+}
+
+FactorizedTableSchema PlanMapper::createFlatFTableSchema(const expression_vector& expressions,
+    const Schema& schema) {
+    auto tableSchema = FactorizedTableSchema();
+    for (auto& expr : expressions) {
+        auto dataPos = getDataPos(*expr, schema);
+        auto columnSchema = ColumnSchema(false /* isUnFlat */, dataPos.dataChunkPos,
+            LogicalTypeUtils::getRowLayoutSize(expr->getDataType()));
+        tableSchema.appendColumn(std::move(columnSchema));
+    }
+    return tableSchema;
+}
+
+std::unique_ptr<RoaringBitmapSemiMask> PlanMapper::getSemiMask(table_id_t tableID) const {
+    auto table = clientContext->getStorageManager()->getTable(tableID)->ptrCast<NodeTable>();
+    return RoaringBitmapSemiMaskUtil::createMask(
+        table->getNumTotalRows(clientContext->getTransaction()));
+}
+
+std::unique_ptr<NodeOffsetMaskMap> PlanMapper::getNodeOffsetMaskMap(
+    const binder::Expression& expr) {
+    auto& node = expr.constCast<NodeExpression>();
+    auto maskMap = std::make_unique<NodeOffsetMaskMap>();
+    for (auto tableID : node.getTableIDs()) {
+        maskMap->addMask(tableID, getSemiMask(tableID));
+    }
+    return maskMap;
 }
 
 } // namespace processor

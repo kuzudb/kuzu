@@ -11,6 +11,11 @@
 
 -CASE GDSSmall
 
+-LOG RJLimitPushDown
+-STATEMENT MATCH p = (a:person1)-[e:knows11*2..2]->(b:person1) HINT (a JOIN e) JOIN b WITH b LIMIT 1 RETURN COUNT(*);
+---- 1
+1
+
 -STATEMENT MATCH p = (b:person1)<-[e:knows11*3..3]-(a:person1)-[e2:knows11*2..2]->(c:person1)
         WHERE a.ID = 0
         RETURN properties(nodes(p),'ID')

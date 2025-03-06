@@ -8,7 +8,8 @@
 namespace kuzu {
 namespace common {
 enum class RelDataDirection : uint8_t;
-}
+class RoaringBitmapSemiMask;
+} // namespace common
 namespace main {
 class ClientContext;
 }
@@ -41,9 +42,9 @@ class RelDeleteExecutor;
 struct NodeTableDeleteInfo;
 struct NodeTableSetInfo;
 struct RelTableSetInfo;
-
 struct BatchInsertSharedState;
 struct PartitionerSharedState;
+class NodeOffsetMaskMap;
 
 class PlanMapper {
 public:
@@ -137,6 +138,8 @@ private:
         const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapProjection(
         const planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapRecursiveExtend(
+        const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapScanNodeTable(
         const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSemiMasker(
@@ -160,6 +163,9 @@ private:
 
     std::unique_ptr<ResultCollector> createResultCollector(common::AccumulateType accumulateType,
         const binder::expression_vector& expressions, planner::Schema* schema,
+        std::unique_ptr<PhysicalOperator> prevOperator);
+
+    std::unique_ptr<PhysicalOperator> createDummySink(planner::Schema* schema,
         std::unique_ptr<PhysicalOperator> prevOperator);
 
     // Scan fTable
@@ -223,6 +229,10 @@ private:
 
     static std::vector<DataPos> getDataPos(const binder::expression_vector& expressions,
         const planner::Schema& schema);
+    FactorizedTableSchema createFlatFTableSchema(const binder::expression_vector& expressions,
+        const planner::Schema& schema);
+    std::unique_ptr<common::RoaringBitmapSemiMask> getSemiMask(common::table_id_t tableID) const;
+    std::unique_ptr<NodeOffsetMaskMap> getNodeOffsetMaskMap(const binder::Expression& expr);
 
 public:
     main::ClientContext* clientContext;
