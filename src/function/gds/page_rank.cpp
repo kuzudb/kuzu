@@ -336,8 +336,8 @@ public:
                 std::make_unique<PageRankAuxiliaryState>(degrees, *pCurrent, *pNext);
             GDSUtils::runFrontiersUntilConvergence(context, computeState, graph,
                 ExtendDirection::BWD, computeState.frontierPair->getCurrentIter() + 1);
-            auto pNextUpdateVC =
-                PNextUpdateVertexCompute(config.dampingFactor, pNextUpdateConstant, *pNext, sharedState->getGraphNodeMaskMap());
+            auto pNextUpdateVC = PNextUpdateVertexCompute(config.dampingFactor, pNextUpdateConstant,
+                *pNext, sharedState->getGraphNodeMaskMap());
             GDSUtils::runVertexCompute(context, graph, pNextUpdateVC);
             std::atomic<double> diff;
             diff.store(0);

@@ -239,8 +239,9 @@ bool OnDiskGraphNbrScanState::InnerIterator::next(evaluator::ExpressionEvaluator
         saveSelVector(*tableScanState->outState);
         hasAtLeastOneSelectedValue = tableScanState->outState->getSelVector().getSelSize() > 0;
         if (predicate != nullptr) {
-            hasAtLeastOneSelectedValue = predicate->select(tableScanState->outState->getSelVectorUnsafe(),
-                !tableScanState->outState->isFlat());
+            hasAtLeastOneSelectedValue =
+                predicate->select(tableScanState->outState->getSelVectorUnsafe(),
+                    !tableScanState->outState->isFlat());
         }
         if (nbrNodeMask_ != nullptr) {
             auto selectedSize = 0u;
