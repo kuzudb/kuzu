@@ -5,6 +5,8 @@
 namespace kuzu {
 namespace binder {
 
+NodeExpression::~NodeExpression() = default;
+
 std::shared_ptr<Expression> NodeExpression::getPrimaryKey(common::table_id_t tableID) const {
     for (auto& e : propertyExprs) {
         if (e->constCast<PropertyExpression>().isPrimaryKey(tableID)) {

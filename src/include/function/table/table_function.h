@@ -152,6 +152,7 @@ struct KUZU_API TableFunction final : Function {
     TableFunction() {}
     TableFunction(std::string name, std::vector<common::LogicalTypeID> inputTypes)
         : Function{std::move(name), std::move(inputTypes)} {}
+    ~TableFunction() override;
 
     std::string signatureToString() const override {
         return common::LogicalTypeUtils::toString(parameterTypeIDs);
