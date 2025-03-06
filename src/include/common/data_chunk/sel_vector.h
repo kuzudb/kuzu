@@ -47,6 +47,24 @@ public:
         }
     }
 
+    template<class Func>
+    void forEachBreakWhenFalse(Func&& func) const {
+        if (state == State::DYNAMIC) {
+            for (size_t i = 0; i < selectedSize; i++) {
+                if (!func(selectedPositions[i])) {
+                    break;
+                }
+            }
+        } else {
+            const auto start = selectedPositions[0];
+            for (size_t i = start; i < start + selectedSize; i++) {
+                if (!func(i)) {
+                    break;
+                }
+            }
+        }
+    }
+
     sel_t getSelSize() const { return selectedSize; }
 
     sel_t operator[](sel_t index) const {

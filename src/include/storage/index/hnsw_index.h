@@ -8,8 +8,9 @@
 
 namespace kuzu {
 namespace function {
+struct HNSWSearchState;
 struct QueryHNSWLocalState;
-}
+} // namespace function
 namespace processor {
 struct PartitionerSharedState;
 }
@@ -155,6 +156,40 @@ private:
     common::RandomEngine randomEngine;
 };
 
+enum class SearchType : uint8_t {
+    BLIND_TWO_HOP = 0,
+    DIRECTED_TWO_HOP = 1,
+    ONE_HOP_FILTERED = 2,
+    UNFILTERED = 3,
+};
+
+struct HNSWSearchState {
+    VisitedState visited;
+    OnDiskEmbeddingScanState embeddingScanState;
+    uint64_t k;
+    QueryHNSWConfig config;
+    uint64_t ef;
+    common::SemiMask* semiMask;
+
+    SearchType searchType;
+    std::unique_ptr<graph::NbrScanState> nbrScanState;
+    std::unique_ptr<graph::NbrScanState> secondHopNbrScanState;
+
+    HNSWSearchState(const transaction::Transaction* transaction, MemoryManager* mm,
+        NodeTable& nodeTable, common::column_id_t columnID, common::offset_t numNodes, uint64_t k,
+        QueryHNSWConfig config)
+        : visited{numNodes}, embeddingScanState{transaction, mm, nodeTable, columnID}, k{k},
+          config{config}, semiMask{nullptr}, searchType{SearchType::UNFILTERED},
+          nbrScanState{nullptr}, secondHopNbrScanState{nullptr} {
+        ef = std::max(k, static_cast<uint64_t>(config.efs));
+    }
+
+    bool isMasked(common::offset_t offset) const {
+        return !hasMask() || semiMask->isMasked(offset);
+    }
+    bool hasMask() const { return semiMask != nullptr; }
+};
+
 class OnDiskHNSWIndex final : public HNSWIndex {
 public:
     OnDiskHNSWIndex(main::ClientContext* context, catalog::NodeTableCatalogEntry* nodeTableEntry,
@@ -171,24 +206,48 @@ public:
     common::offset_t getLowerEntryPoint() const override { return defaultLowerEntryPoint.load(); }
 
     std::vector<NodeWithDistance> search(transaction::Transaction* transaction,
-        const std::vector<float>& queryVector, common::length_t k, const QueryHNSWConfig& config,
-        VisitedState& visited, NodeTableScanState& embeddingScanState) const;
+        const std::vector<float>& queryVector, HNSWSearchState& searchState) const;
 
-private:
     common::offset_t searchNNInUpperLayer(transaction::Transaction* transaction,
         const float* queryVector, NodeTableScanState& embeddingScanState) const;
     std::vector<NodeWithDistance> searchKNNInLowerLayer(transaction::Transaction* transaction,
-        const float* queryVector, common::offset_t entryNode, common::length_t k,
-        uint64_t configuredEf, VisitedState& visited, NodeTableScanState& embeddingScanState) const;
+        const float* queryVector, common::offset_t entryNode, HNSWSearchState& searchState) const;
+
+    void initLowerLayerSearchState(transaction::Transaction* transaction,
+        HNSWSearchState& searchState) const;
+    void oneHopSearch(transaction::Transaction* transaction, const float* queryVector,
+        graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
+        min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
+    void directedTwoHopFilteredSearch(transaction::Transaction* transaction,
+        const float* queryVector, graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
+        min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
+    void blindTwoHopFilteredSearch(transaction::Transaction* transaction, const float* queryVector,
+        graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
+        min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
+
+    // Return false if we've hit Ml limit.
+    bool searchOverSecondHopNbrs(transaction::Transaction* transaction, const float* queryVector,
+        uint64_t ef, HNSWSearchState& searchState, common::offset_t cand, int64_t& numVisitedNbrs,
+        min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
+
+    SearchType getFilteredSearchType(transaction::Transaction* transaction,
+        const HNSWSearchState& searchState) const;
+    void initSearchCandidates(transaction::Transaction* transaction, const float* queryVector,
+        HNSWSearchState& searchState, min_node_priority_queue_t& candidates,
+        max_node_priority_queue_t& results) const;
 
 private:
+    static constexpr double BLIND_SEARCH_UP_SEL_THRESHOLD = 0.08;
+    static constexpr double DIRECTED_SEARCH_UP_SEL_THRESHOLD = 0.4;
+    static constexpr uint64_t FILTERED_SEARCH_INITIAL_CANDIDATES = 10;
+
     common::table_id_t nodeTableID;
     catalog::RelTableCatalogEntry* upperRelTableEntry;
     catalog::RelTableCatalogEntry* lowerRelTableEntry;
 
     // The search starts in the upper layer to find the closest node, which serves as the entry
-    // point for the lower layer search. If the upper layer does not return a valid entry point, the
-    // search falls back to the defaultLowerEntryPoint in the lower layer.
+    // point for the lower layer search. If the upper layer does not return a valid entry point,
+    // the search falls back to the defaultLowerEntryPoint in the lower layer.
     std::atomic<common::offset_t> defaultUpperEntryPoint;
     std::atomic<common::offset_t> defaultLowerEntryPoint;
     std::unique_ptr<graph::OnDiskGraph> upperGraph;

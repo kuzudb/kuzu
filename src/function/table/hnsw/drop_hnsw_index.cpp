@@ -24,7 +24,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
     const auto tableName = input->getLiteralVal<std::string>(0);
     const auto indexName = input->getLiteralVal<std::string>(1);
-    const auto tableEntry = storage::IndexUtils::bindTable(*context, tableName, indexName,
+    const auto tableEntry = storage::IndexUtils::bindNodeTable(*context, tableName, indexName,
         storage::IndexOperation::DROP);
     return std::make_unique<DropHNSWIndexBindData>(tableEntry, indexName);
 }

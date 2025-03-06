@@ -8,9 +8,8 @@ namespace common {
 std::unique_ptr<SemiMask> SemiMaskUtil::createMask(offset_t maxOffset) {
     if (maxOffset > std::numeric_limits<uint32_t>::max()) {
         return std::make_unique<Roaring64BitmapSemiMask>(maxOffset);
-    } else {
-        return std::make_unique<Roaring32BitmapSemiMask>(maxOffset);
     }
+    return std::make_unique<Roaring32BitmapSemiMask>(maxOffset);
 }
 
 offset_t NodeOffsetMaskMap::getNumMaskedNode() const {

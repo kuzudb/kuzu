@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/mask.h"
+#include "roaring.hh"
 
 namespace kuzu {
 namespace common {
@@ -18,6 +19,8 @@ public:
     bool isMasked(offset_t startNodeOffset) override { return roaring->contains(startNodeOffset); }
 
     uint64_t getNumMaskedNodes() const override { return roaring->cardinality(); }
+
+    offset_vec_t collectMaskedNodes(uint64_t size) const override;
 
     // include&exclude
     offset_vec_t range(uint32_t start, uint32_t end) override;
@@ -38,6 +41,8 @@ public:
     bool isMasked(offset_t startNodeOffset) override { return roaring->contains(startNodeOffset); }
 
     uint64_t getNumMaskedNodes() const override { return roaring->cardinality(); }
+
+    offset_vec_t collectMaskedNodes(uint64_t size) const override;
 
     // include&exclude
     offset_vec_t range(uint32_t start, uint32_t end) override;

@@ -39,8 +39,7 @@ private:
 
 struct NodeTableScanState;
 struct OnDiskEmbeddingScanState {
-    common::DataChunk propertyVectors;
-    std::unique_ptr<common::ValueVector> nodeIDVector;
+    common::DataChunk scanChunk;
     std::unique_ptr<NodeTableScanState> scanState;
 
     OnDiskEmbeddingScanState(const transaction::Transaction* transaction, MemoryManager* mm,

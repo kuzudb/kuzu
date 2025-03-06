@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace planner {
 
-class LogicalTableFunctionCall : public LogicalOperator {
+class LogicalTableFunctionCall final : public LogicalOperator {
     static constexpr LogicalOperatorType operatorType_ = LogicalOperatorType::TABLE_FUNCTION_CALL;
 
 public:
@@ -46,6 +46,7 @@ private:
     function::TableFunction tableFunc;
     std::unique_ptr<function::TableFuncBindData> bindData;
 
+    // TODO(Xiyang): We should unify how masks are planned in GDS and HNSW.
     std::vector<std::shared_ptr<LogicalOperator>> nodeMaskRoots;
 };
 

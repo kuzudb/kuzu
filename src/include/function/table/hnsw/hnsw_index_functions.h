@@ -61,6 +61,7 @@ struct FinalizeHNSWSharedState final : public SimpleTableFuncSharedState {
 
 struct BoundQueryHNSWIndexInput {
     catalog::NodeTableCatalogEntry* nodeTableEntry;
+    const graph::GraphEntry* graphEntry;
     catalog::IndexCatalogEntry* indexEntry;
     std::shared_ptr<binder::Expression> queryExpression;
     uint64_t k;
@@ -96,14 +97,12 @@ struct QueryHNSWIndexSharedState final : TableFuncSharedState {
 };
 
 struct QueryHNSWLocalState final : TableFuncLocalState {
-    storage::VisitedState visited;
     std::optional<std::vector<storage::NodeWithDistance>> result;
-    uint64_t numRowsOutput = 0;
-    storage::OnDiskEmbeddingScanState embeddingScanState;
+    storage::HNSWSearchState searchState;
+    uint64_t numRowsOutput;
 
-    QueryHNSWLocalState(const transaction::Transaction* transaction, storage::MemoryManager* mm,
-        storage::NodeTable& nodeTable, common::column_id_t columnID, common::offset_t numNodes)
-        : visited{numNodes}, embeddingScanState{transaction, mm, nodeTable, columnID} {}
+    explicit QueryHNSWLocalState(storage::HNSWSearchState searchState)
+        : searchState{std::move(searchState)}, numRowsOutput{0} {}
 
     bool hasResultToOutput() const { return result.has_value(); }
 };

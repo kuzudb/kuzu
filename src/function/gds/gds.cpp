@@ -32,7 +32,7 @@ graph::GraphEntry GDSFunction::bindGraphEntry(main::ClientContext& context,
     if (!context.getGraphEntrySetUnsafe().hasGraph(name)) {
         throw BinderException(stringFormat("Cannot find graph {}.", name));
     }
-    return context.getGraphEntrySetUnsafe().getEntry(name);
+    return context.getGraphEntrySetUnsafe().getEntry(name).copy();
 }
 
 std::shared_ptr<Expression> GDSFunction::bindNodeOutput(const TableFuncBindInput& bindInput,
@@ -148,7 +148,7 @@ std::unique_ptr<PhysicalOperator> GDSFunction::getPhysicalPlan(PlanMapper* planM
             auto logicalSemiMasker = child->ptrCast<LogicalSemiMasker>();
             logicalSemiMasker->addTarget(logicalOp);
             for (auto tableID : logicalSemiMasker->getNodeTableIDs()) {
-                maskMap->addMask(tableID, planMapper->getSemiMask(tableID));
+                maskMap->addMask(tableID, planMapper->createSemiMask(tableID));
             }
             auto root = planMapper->mapOperator(logicalRoot.get());
             call->addChild(std::move(root));

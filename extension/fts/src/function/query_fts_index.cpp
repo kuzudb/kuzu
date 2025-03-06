@@ -314,7 +314,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto query = input->getParam(2);
 
     auto tableEntry =
-        IndexUtils::bindTable(*context, inputTableName, indexName, IndexOperation::QUERY);
+        IndexUtils::bindNodeTable(*context, inputTableName, indexName, IndexOperation::QUERY);
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
     auto ftsIndexEntry = catalog->getIndex(transaction, tableEntry->getTableID(), indexName);

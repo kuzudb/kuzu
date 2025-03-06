@@ -40,6 +40,11 @@ public:
         void forEach(Func&& func) const {
             selVector.forEach([&](auto i) { func(nbrNodes[i], edges[i]); });
         }
+        template<class Func>
+        void forEachBreakWhenFalse(Func&& func) const {
+            selVector.forEachBreakWhenFalse(
+                [&](auto i) -> bool { return func(nbrNodes[i], edges[i]); });
+        }
 
         // Any neighbour for which the given function returns false
         // will be omitted from future iterations
