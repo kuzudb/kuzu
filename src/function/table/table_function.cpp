@@ -34,6 +34,8 @@ TableFuncMorsel TableFuncSharedState::getMorsel() {
     return {curOffset - numValuesToOutput, curOffset};
 }
 
+TableFunction::~TableFunction() = default;
+
 std::unique_ptr<TableFuncSharedState> TableFunction::initSharedState(
     const TableFunctionInitInput& input) {
     const auto bindData = common::ku_dynamic_cast<TableFuncBindData*>(input.bindData);

@@ -99,7 +99,7 @@
  *          used to compile the library or the downstream application.
  */
 #ifndef SIMSIMD_DYNAMIC_DISPATCH
-#define SIMSIMD_DYNAMIC_DISPATCH (0) // true or false
+#define SIMSIMD_DYNAMIC_DISPATCH (1) // true or false
 #endif
 
 #include "binary.h"      // Hamming, Jaccard

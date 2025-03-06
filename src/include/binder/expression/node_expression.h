@@ -12,6 +12,8 @@ public:
         : NodeOrRelExpression{std::move(dataType), std::move(uniqueName), std::move(variableName),
               std::move(entries)} {}
 
+    ~NodeExpression() override;
+
     void setInternalID(std::unique_ptr<Expression> expression) {
         internalID = std::move(expression);
     }
