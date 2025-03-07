@@ -168,7 +168,8 @@ public:
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
         frontierPair->initGDS();
-        auto componentIDs = ComponentIDs(graph->getMaxOffsetMap(clientContext->getTransaction()), clientContext->getMemoryManager());
+        auto componentIDs = ComponentIDs(graph->getMaxOffsetMap(clientContext->getTransaction()),
+            clientContext->getMemoryManager());
         auto edgeCompute = std::make_unique<WCCEdgeCompute>(componentIDs);
         auto writer = std::make_unique<WCCOutputWriter>(clientContext);
         auto vertexCompute = std::make_unique<WCCVertexCompute>(clientContext->getMemoryManager(),

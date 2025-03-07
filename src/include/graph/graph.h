@@ -190,12 +190,12 @@ public:
         transaction::Transaction* transaction) const = 0;
 
     // Get max offset of given table.
-    virtual common::offset_t getMaxOffset(transaction::Transaction* transaction,  common::table_id_t id) const = 0;
+    virtual common::offset_t getMaxOffset(transaction::Transaction* transaction,
+        common::table_id_t id) const = 0;
 
     // Get num nodes for all node tables.
     virtual common::offset_t getNumNodes(transaction::Transaction* transaction) const = 0;
 
-    
     // Get all possible forward (toNodeTable, relTable)s.
     virtual std::vector<NbrTableInfo> getForwardNbrTableInfos(
         common::table_id_t srcNodeTableID) = 0;

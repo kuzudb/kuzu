@@ -188,7 +188,8 @@ private:
         auto graph = sharedState->graph.get();
         auto frontier = PathLengths::getUnvisitedFrontier(context, graph);
         auto mm = clientContext->getMemoryManager();
-        auto multiplicities = std::make_shared<Multiplicities>(graph->getMaxOffsetMap(clientContext->getTransaction()), mm);
+        auto multiplicities = std::make_shared<Multiplicities>(
+            graph->getMaxOffsetMap(clientContext->getTransaction()), mm);
         auto outputWriter = std::make_unique<ASPDestinationsOutputWriter>(clientContext,
             sharedState->getOutputNodeMaskMap(), sourceNodeID, frontier, multiplicities);
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(frontier);

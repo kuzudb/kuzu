@@ -128,7 +128,9 @@ public:
         storage::MemoryManager* mm);
     ~PathLengths();
 
-    const common::table_id_map_t<common::offset_t>& getNodeMaxOffsetMap() const { return nodeMaxOffsetMap; }
+    const common::table_id_map_t<common::offset_t>& getNodeMaxOffsetMap() const {
+        return nodeMaxOffsetMap;
+    }
 
     uint16_t getMaskValueFromCurFrontier(common::offset_t offset) {
         return curFrontier[offset].load(std::memory_order_relaxed);
@@ -137,9 +139,7 @@ public:
         return nextFrontier[offset].load(std::memory_order_relaxed);
     }
 
-    bool isActive(common::offset_t offset) {
-        return curFrontier[offset] == curIter - 1;
-    }
+    bool isActive(common::offset_t offset) { return curFrontier[offset] == curIter - 1; }
 
     void setActive(std::span<const common::nodeID_t> nodeIDs) {
         for (const auto nodeID : nodeIDs) {
@@ -157,12 +157,8 @@ public:
     void incrementCurIter() { curIter++; }
 
     void pinTableID(common::table_id_t tableID) { pinCurFrontierTableID(tableID); }
-    void pinCurFrontierTableID(common::table_id_t tableID) {
-        curFrontier = getMaskData(tableID);
-    }
-    void pinNextFrontierTableID(common::table_id_t tableID) {
-        nextFrontier = getMaskData(tableID);
-    }
+    void pinCurFrontierTableID(common::table_id_t tableID) { curFrontier = getMaskData(tableID); }
+    void pinNextFrontierTableID(common::table_id_t tableID) { nextFrontier = getMaskData(tableID); }
 
     // Init frontier to UNVISITED
     static std::shared_ptr<PathLengths> getUnvisitedFrontier(processor::ExecutionContext* context,

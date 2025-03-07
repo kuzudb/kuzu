@@ -152,7 +152,8 @@ OnDiskGraph::OnDiskGraph(ClientContext* context, GraphEntry entry)
     }
 }
 
-common::table_id_map_t<common::offset_t> OnDiskGraph::getMaxOffsetMap(transaction::Transaction* transaction) const {
+common::table_id_map_t<common::offset_t> OnDiskGraph::getMaxOffsetMap(
+    transaction::Transaction* transaction) const {
     table_id_map_t<offset_t> result;
     for (auto tableID : getNodeTableIDs()) {
         result[tableID] = getMaxOffset(transaction, tableID);
@@ -160,7 +161,8 @@ common::table_id_map_t<common::offset_t> OnDiskGraph::getMaxOffsetMap(transactio
     return result;
 }
 
-common::offset_t OnDiskGraph::getMaxOffset(transaction::Transaction* transaction, table_id_t id) const {
+common::offset_t OnDiskGraph::getMaxOffset(transaction::Transaction* transaction,
+    table_id_t id) const {
     KU_ASSERT(nodeIDToNodeTable.contains(id));
     return nodeIDToNodeTable.at(id)->getNumTotalRows(transaction);
 }
