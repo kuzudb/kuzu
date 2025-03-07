@@ -35,6 +35,24 @@ private:
     std::atomic<uint64_t> nextPosToWrite;
 };
 
+// Pre-allocated array of objects.
+template<typename T>
+class ObjectArray {
+public:
+    ObjectArray() = default;
+    ObjectArray(common::offset_t size, storage::MemoryManager* mm, bool initializeToZero = false)
+        : allocation{mm->allocateBuffer(initializeToZero, size * sizeof(T))} {
+        data = std::span<T>(reinterpret_cast<T*>(allocation->getData()), size);
+    }
+    T& operator[](common::offset_t pos) {
+        KU_ASSERT(pos < data.size());
+        return data[pos];
+    }
+private:
+    std::span<T> data;
+    std::unique_ptr<storage::MemoryBuffer> allocation;
+};
+
 // ObjectArraysMap represents a pre-allocated amount of object per tableID.
 template<typename T>
 class ObjectArraysMap {

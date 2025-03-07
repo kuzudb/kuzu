@@ -1,0 +1,353 @@
+#include "binder/binder.h"
+#include "binder/expression/expression_util.h"
+#include "common/exception/runtime.h"
+#include "common/types/types.h"
+#include "function/gds/auxiliary_state/gds_auxilary_state.h"
+#include "function/gds/gds_frontier.h"
+#include "function/gds/gds_function_collection.h"
+#include "function/gds/gds_object_manager.h"
+#include "function/gds/gds_utils.h"
+#include "function/gds/output_writer.h"
+#include "function/gds_function.h"
+#include "gds_vertex_compute.h"
+#include "graph/graph.h"
+#include "processor/execution_context.h"
+#include "processor/result/factorized_table.h"
+
+using namespace kuzu::binder;
+using namespace kuzu::common;
+using namespace kuzu::processor;
+using namespace kuzu::storage;
+using namespace kuzu::graph;
+
+namespace kuzu {
+namespace function {
+
+static constexpr offset_t SCC_UNSET = std::numeric_limits<offset_t>::max();
+
+class SCCComputationState {
+public:
+    bool allSccIdsSet;
+    ObjectArray<offset_t> sccIDs;
+    ObjectArray<std::atomic<offset_t>> fwdWccIDs;
+    ObjectArray<std::atomic<offset_t>> bwdWccIDs;
+
+    SCCComputationState(const offset_t numNodes, MemoryManager* mm) {
+        allSccIdsSet = false;
+        sccIDs = ObjectArray<offset_t>(numNodes, mm);
+        fwdWccIDs = ObjectArray<std::atomic<offset_t>>(numNodes, mm);
+        bwdWccIDs = ObjectArray<std::atomic<offset_t>>(numNodes, mm);
+    }
+
+    bool update(offset_t boundOffset, offset_t nbrOffset, bool isFwd) {
+        auto& wccIds = isFwd ? fwdWccIDs : bwdWccIDs;
+        auto boundValue = wccIds[boundOffset].load(std::memory_order_relaxed);
+        auto nbrValue = wccIds[nbrOffset].load(std::memory_order_relaxed);
+        while (nbrValue < boundValue) {
+            if (wccIds[nbrOffset].compare_exchange_strong(nbrValue, boundValue)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool isSccIdSet(offset_t nodeId) { return sccIDs[nodeId] != SCC_UNSET; }
+};
+
+class SetInitialSccIds : public VertexCompute {
+public:
+    SetInitialSccIds(SCCComputationState& computationState) : computationState{computationState} {}
+
+    bool beginOnTable(table_id_t) override { return true; }
+
+    void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
+        for (auto i = startOffset; i < endOffset; ++i) {
+            computationState.sccIDs[i] = SCC_UNSET;
+        }
+    }
+
+    std::unique_ptr<VertexCompute> copy() override {
+        return std::make_unique<SetInitialSccIds>(computationState);
+    }
+
+private:
+    SCCComputationState& computationState;
+};
+
+class SetNewSccIds : public VertexCompute {
+public:
+    SetNewSccIds(SCCComputationState& computationState) : computationState{computationState} {}
+
+    bool beginOnTable(table_id_t) override { return true; }
+
+    void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
+        for (auto i = startOffset; i < endOffset; ++i) {
+            if (!computationState.isSccIdSet(i)) {
+                auto fwdColor = computationState.fwdWccIDs[i].load(std::memory_order_relaxed);
+                auto bwdColor = computationState.bwdWccIDs[i].load(std::memory_order_relaxed);
+                if (fwdColor == bwdColor) {
+                    computationState.sccIDs[i] = fwdColor;
+                } else {
+                    // If any of the threads find an unset scc id, they will set the flag to false.
+                    // `allSccIdsSet` is never read and written concurrently, so it does
+                    // not need to be atomic.
+                    computationState.allSccIdsSet = false;
+                }
+            }
+        }
+    }
+
+    void reset() { computationState.allSccIdsSet = true; }
+
+    std::unique_ptr<VertexCompute> copy() override {
+        return std::make_unique<SetNewSccIds>(computationState);
+    }
+
+private:
+    SCCComputationState& computationState;
+};
+
+class SetInitialWccIds : public VertexCompute {
+public:
+    SetInitialWccIds(SCCComputationState& computationState) : computationState{computationState} {}
+
+    bool beginOnTable(table_id_t) override { return true; }
+
+    void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
+        for (auto i = startOffset; i < endOffset; ++i) {
+            computationState.fwdWccIDs[i].store(i, std::memory_order_relaxed);
+            computationState.bwdWccIDs[i].store(i, std::memory_order_relaxed);
+        }
+    }
+
+    std::unique_ptr<VertexCompute> copy() override {
+        return std::make_unique<SetInitialWccIds>(computationState);
+    }
+
+private:
+    SCCComputationState& computationState;
+};
+
+class InitializeFrontiers : public VertexCompute {
+public:
+    InitializeFrontiers(FrontierPair& frontierPair, SCCComputationState& computationState)
+        : frontierPair{frontierPair}, computationState{computationState} {}
+
+    bool beginOnTable(table_id_t) override { return true; }
+
+    void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
+        frontierPair.getCurDenseFrontier().ptrCast<PathLengths>()->resetCurIter();
+        frontierPair.getNextDenseFrontier().ptrCast<PathLengths>()->resetCurIter();
+        for (auto i = startOffset; i < endOffset; ++i) {
+            // If the SCC ID has already been computed, the node should not be activated.
+            auto initialState = computationState.isSccIdSet(i) ? PathLengths::INITIAL_VISITED :
+                                                                 PathLengths::UNVISITED;
+            // FIXME: avoid dynamic casts?
+            frontierPair.getCurDenseFrontier().ptrCast<PathLengths>()->setCurFrontierValue(i,
+                initialState);
+            frontierPair.getNextDenseFrontier().ptrCast<PathLengths>()->setCurFrontierValue(i,
+                PathLengths::INITIAL_VISITED);
+        }
+    }
+
+    std::unique_ptr<VertexCompute> copy() override {
+        return std::make_unique<InitializeFrontiers>(frontierPair, computationState);
+    }
+
+private:
+    FrontierPair& frontierPair;
+    SCCComputationState& computationState;
+};
+
+struct ComputeWccIds : public EdgeCompute {
+    SCCComputationState& computationState;
+
+    ComputeWccIds(SCCComputationState& computationState) : computationState{computationState} {}
+
+    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
+        bool isFwd) override {
+        std::vector<nodeID_t> result;
+        if (computationState.isSccIdSet(boundNodeID.offset)) {
+            return result;
+        }
+        chunk.forEach([&](auto nbrNodeID, auto) {
+            if (computationState.isSccIdSet(nbrNodeID.offset)) {
+            } else if (computationState.update(boundNodeID.offset, nbrNodeID.offset, isFwd)) {
+                result.push_back(nbrNodeID);
+            }
+        });
+        return result;
+    }
+
+    std::unique_ptr<EdgeCompute> copy() override {
+        return std::make_unique<ComputeWccIds>(computationState);
+    }
+};
+
+class SccAuxiliaryState : public GDSAuxiliaryState {
+public:
+    SccAuxiliaryState() {}
+
+    void beginFrontierCompute(table_id_t, table_id_t) override {}
+};
+
+class SccOutputWriter : public GDSOutputWriter {
+public:
+    SccOutputWriter(main::ClientContext* context) : GDSOutputWriter{context} {
+        nodeIDVector = createVector(LogicalType::INTERNAL_ID(), context->getMemoryManager());
+        sccIDVector = createVector(LogicalType::UINT64(), context->getMemoryManager());
+    }
+
+    std::unique_ptr<SccOutputWriter> copy() const {
+        return std::make_unique<SccOutputWriter>(context);
+    }
+
+public:
+    std::unique_ptr<ValueVector> nodeIDVector;
+    std::unique_ptr<ValueVector> sccIDVector;
+};
+
+class WriteSccIdsToOutput : public GDSResultVertexCompute {
+public:
+    WriteSccIdsToOutput(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState,
+        std::unique_ptr<SccOutputWriter> writer, SCCComputationState& computationState)
+        : GDSResultVertexCompute{mm, sharedState}, writer{std::move(writer)},
+          computationState{computationState} {}
+
+    void beginOnTableInternal(table_id_t) override {}
+
+    void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t tableID) override {
+        for (auto i = startOffset; i < endOffset; ++i) {
+            if (skip(i)) {
+                continue;
+            }
+            auto nodeID = nodeID_t{i, tableID};
+            writer->nodeIDVector->setValue<nodeID_t>(0, nodeID);
+            writer->sccIDVector->setValue<uint64_t>(0, computationState.sccIDs[i]);
+            localFT->append(writer->vectors);
+        }
+    }
+
+    std::unique_ptr<VertexCompute> copy() override {
+        return std::make_unique<WriteSccIdsToOutput>(mm, sharedState, writer->copy(),
+            computationState);
+    }
+
+private:
+    std::unique_ptr<SccOutputWriter> writer;
+    SCCComputationState& computationState;
+};
+
+class SCC final : public GDSAlgorithm {
+    static constexpr char GROUP_ID_COLUMN_NAME[] = "group_id";
+    static constexpr uint8_t MAX_ITERATION = 100;
+
+public:
+    SCC() = default;
+    SCC(const SCC& other) : GDSAlgorithm{other} {}
+
+    std::vector<LogicalTypeID> getParameterTypeIDs() const override {
+        return std::vector<LogicalTypeID>{LogicalTypeID::ANY};
+    }
+
+    binder::expression_vector getResultColumns(
+        const function::GDSBindInput& bindInput) const override {
+        expression_vector columns;
+        auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
+        columns.push_back(outputNode.getInternalID());
+        columns.push_back(
+            bindInput.binder->createVariable(GROUP_ID_COLUMN_NAME, LogicalType::INT64()));
+        return columns;
+    }
+
+    void bind(const GDSBindInput& input, main::ClientContext& context) override {
+        auto graphName = binder::ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
+        auto graphEntry = bindGraphEntry(context, graphName);
+        if (graphEntry.nodeInfos.size() != 1) {
+            throw RuntimeException("Parallel SCC only supports operations on one node table.");
+        }
+        if (graphEntry.relInfos.size() != 1) {
+            throw RuntimeException("Parallel SCC only supports operations on one edge table.");
+        }
+        auto nodeOutput = bindNodeOutput(input, graphEntry.getNodeEntries());
+        bindData = std::make_unique<GDSBindData>(std::move(graphEntry), nodeOutput);
+    }
+
+    void exec(processor::ExecutionContext* context) override {
+        auto clientContext = context->clientContext;
+        auto mm = clientContext->getMemoryManager();
+        auto graph = sharedState->graph.get();
+        auto numNodesMap = graph->getNumNodesMap(clientContext->getTransaction());
+        auto it = numNodesMap.begin();
+        auto tableId = it->first;
+        auto numNodes = it->second;
+
+        auto computationState = SCCComputationState(numNodes, mm);
+        // Initialize SCC IDs to unset.
+        auto setInitialSccIds = std::make_unique<SetInitialSccIds>(computationState);
+        GDSUtils::runVertexCompute(context, graph, *setInitialSccIds);
+
+        // The frontiers will be initialized inside the loop.
+        auto currentFrontier = std::make_shared<PathLengths>(numNodesMap, mm);
+        auto nextFrontier = std::make_shared<PathLengths>(numNodesMap, mm);
+        currentFrontier->pinCurFrontierTableID(tableId);
+        nextFrontier->pinCurFrontierTableID(tableId);
+        auto frontierPair =
+            std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
+        frontierPair->getCurSparseFrontier().disable();
+        frontierPair->getNextSparseFrontier().disable();
+
+        auto setNewSccIds = std::make_unique<SetNewSccIds>(computationState);
+        auto setInitialWccIds = std::make_unique<SetInitialWccIds>(computationState);
+        auto computeWccIds = std::make_unique<ComputeWccIds>(computationState);
+        auto auxiliaryState = std::make_unique<SccAuxiliaryState>();
+        auto computeState = GDSComputeState(std::move(frontierPair), std::move(computeWccIds),
+            std::move(auxiliaryState), sharedState->getOutputNodeMaskMap());
+        auto initializeFrontiers =
+            std::make_unique<InitializeFrontiers>(*computeState.frontierPair, computationState);
+
+        for (auto i = 0; i < MAX_ITERATION; i++) {
+            GDSUtils::runVertexCompute(context, graph, *setInitialWccIds);
+
+            // Fwd WCC.
+            computeState.frontierPair->reset();
+            computeState.frontierPair->initGDS();
+            GDSUtils::runVertexCompute(context, graph, *initializeFrontiers);
+            GDSUtils::runFrontiersUntilConvergence(context, computeState, graph,
+                ExtendDirection::FWD, MAX_ITERATION);
+
+            // Bwd WCC.
+            computeState.frontierPair->reset();
+            computeState.frontierPair->initGDS();
+            GDSUtils::runVertexCompute(context, graph, *initializeFrontiers);
+            GDSUtils::runFrontiersUntilConvergence(context, computeState, graph,
+                ExtendDirection::BWD, MAX_ITERATION);
+
+            // Find new SCC IDs and exit if all IDs have been found.
+            setNewSccIds->reset();
+            GDSUtils::runVertexCompute(context, graph, *setNewSccIds);
+            if (computationState.allSccIdsSet) {
+                break;
+            }
+        }
+
+        auto sccOutputWriter = std::make_unique<SccOutputWriter>(clientContext);
+        auto writeSccIdsToOutput = std::make_unique<WriteSccIdsToOutput>(mm, sharedState.get(),
+            std::move(sccOutputWriter), computationState);
+        GDSUtils::runVertexCompute(context, graph, *writeSccIdsToOutput);
+
+        sharedState->mergeLocalTables();
+    }
+
+    std::unique_ptr<GDSAlgorithm> copy() const override { return std::make_unique<SCC>(*this); }
+};
+
+function_set SCCFunction::getFunctionSet() {
+    function_set result;
+    auto algo = std::make_unique<SCC>();
+    result.push_back(std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
+    return result;
+}
+
+} // namespace function
+} // namespace kuzu
