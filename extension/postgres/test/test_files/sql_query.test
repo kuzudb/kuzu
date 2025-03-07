@@ -68,3 +68,11 @@ Binder Error: No fields returned by query "INSERT INTO PERSON VALUES(5)" - the q
 Binder Error: Failed to prepare query "SELECT * PERSON": ERROR:  syntax error at or near "PERSON"
 LINE 1: SELECT * PERSON
                  ^
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/sqlite/build/libsqlite.kuzu_extension"
+---- ok
+-STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/sqlite/test/sqlite_database/tinysnb' as sqlitets (dbtype sqlite);
+---- 1
+Attached database successfully.
+-STATEMENT CALL SQL_QUERY('sqlitets', "SELECT * FROM PERSON") RETURN *
+---- error
+Binder exception: sql queries can only be executed in attached postgres.
