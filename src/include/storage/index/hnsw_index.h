@@ -135,7 +135,7 @@ public:
     common::offset_t getLowerEntryPoint() const override { return lowerLayer->getEntryPoint(); }
 
     // Note that the input is only `offset`, as we assume embeddings are already cached in memory.
-    void insert(common::offset_t offset, VisitedState& upperVisited, VisitedState& lowerVisited);
+    bool insert(common::offset_t offset, VisitedState& upperVisited, VisitedState& lowerVisited);
     void finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
         const HNSWIndexPartitionerSharedState& partitionerSharedState);
 
