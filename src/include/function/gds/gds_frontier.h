@@ -118,7 +118,7 @@ private:
  *
  * However, this is not necessary and the caller can also use this to represent a single frontier.
  */
-class PathLengths {
+class KUZU_API PathLengths {
     using frontier_entry_t = std::atomic<uint16_t>;
 
 public:
@@ -126,6 +126,8 @@ public:
 
     PathLengths(const common::table_id_map_t<common::offset_t>& nodeMaxOffsetMap,
         storage::MemoryManager* mm);
+    PathLengths(const PathLengths& other) = delete;
+    PathLengths(const PathLengths&& other) = delete;
     ~PathLengths();
 
     const common::table_id_map_t<common::offset_t>& getNodeMaxOffsetMap() const {
