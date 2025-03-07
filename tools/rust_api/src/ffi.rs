@@ -14,7 +14,7 @@ pub struct StringView<'a> {
     borrow: PhantomData<&'a [c_char]>,
 }
 
-unsafe impl<'a> ExternType for StringView<'a> {
+unsafe impl ExternType for StringView<'_> {
     type Id = type_id!("std::string_view");
     type Kind = cxx::kind::Trivial;
 }
@@ -167,30 +167,30 @@ pub(crate) mod ffi {
     unsafe extern "C++" {
         // The C++ Connection class includes a pointer to the database.
         // We must not destroy a referenced database while a connection is open.
-        type Connection<'a>;
+        type Connection<'db>;
 
         #[namespace = "kuzu_rs"]
         fn database_connect<'a>(
             database: Pin<&'a mut Database>,
         ) -> Result<UniquePtr<Connection<'a>>>;
 
-        fn prepare<'a>(
+        fn prepare(
             self: Pin<&mut Connection>,
-            query: StringView<'a>,
+            query: StringView<'_>,
         ) -> Result<UniquePtr<PreparedStatement>>;
 
         #[namespace = "kuzu_rs"]
-        fn connection_execute(
-            connection: Pin<&mut Connection>,
+        fn connection_execute<'db>(
+            connection: Pin<&mut Connection<'db>>,
             query: Pin<&mut PreparedStatement>,
             params: UniquePtr<QueryParams>,
-        ) -> Result<UniquePtr<QueryResult>>;
+        ) -> Result<UniquePtr<QueryResult<'db>>>;
 
         #[namespace = "kuzu_rs"]
-        fn connection_query<'a>(
-            connection: Pin<&mut Connection>,
+        fn connection_query<'a, 'db>(
+            connection: Pin<&mut Connection<'db>>,
             query: StringView<'a>,
-        ) -> Result<UniquePtr<QueryResult>>;
+        ) -> Result<UniquePtr<QueryResult<'db>>>;
 
         fn getMaxNumThreadForExec(self: Pin<&mut Connection>) -> u64;
         fn setMaxNumThreadForExec(self: Pin<&mut Connection>, num_threads: u64);
@@ -200,7 +200,9 @@ pub(crate) mod ffi {
 
     #[namespace = "kuzu::main"]
     unsafe extern "C++" {
-        type QueryResult;
+        // The C++ QueryResult class includes a pointer to part of the Database
+        // (at minimum, the FactorizedTable references the MemoryManager)
+        type QueryResult<'db>;
 
         #[namespace = "kuzu_rs"]
         fn query_result_to_string(query_result: Pin<&mut QueryResult>) -> String;

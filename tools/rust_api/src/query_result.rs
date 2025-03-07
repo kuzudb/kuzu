@@ -6,12 +6,12 @@ use std::convert::TryInto;
 use std::fmt;
 
 /// Stores the result of a query execution
-pub struct QueryResult {
-    pub(crate) result: UniquePtr<ffi::QueryResult>,
+pub struct QueryResult<'a> {
+    pub(crate) result: UniquePtr<ffi::QueryResult<'a>>,
 }
 
 // Should be safe to move across threads, however access is not synchronized
-unsafe impl Send for ffi::QueryResult {}
+unsafe impl Send for ffi::QueryResult<'_> {}
 
 /// Options for writing CSV files
 pub struct CSVOptions {
@@ -54,7 +54,7 @@ impl CSVOptions {
     }
 }
 
-impl QueryResult {
+impl<'db> QueryResult<'db> {
     /// Displays the query result as a string
     pub fn display(&mut self) -> String {
         ffi::query_result_to_string(self.result.pin_mut())
@@ -103,7 +103,10 @@ impl QueryResult {
     /// split into chunks of the given size.
     ///
     /// *Requires the `arrow` feature*
-    pub fn iter_arrow(&mut self, chunk_size: usize) -> Result<ArrowIterator, crate::error::Error> {
+    pub fn iter_arrow<'qr>(
+        &'qr mut self,
+        chunk_size: usize,
+    ) -> Result<ArrowIterator<'qr, 'db>, crate::error::Error> {
         let schema = crate::ffi::arrow::ffi_arrow::query_result_get_arrow_schema(
             self.result.as_ref().unwrap(),
         )?
@@ -117,7 +120,7 @@ impl QueryResult {
 }
 
 // the underlying C++ type is both data and an iterator (sort-of)
-impl Iterator for QueryResult {
+impl Iterator for QueryResult<'_> {
     type Item = Vec<Value>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -146,14 +149,14 @@ impl Iterator for QueryResult {
 /// The result is split into chunks of a size specified in [iter_arrow](QueryResult::iter_arrow).
 ///
 /// *Requires the `arrow` feature*
-pub struct ArrowIterator<'qr> {
+pub struct ArrowIterator<'qr, 'db: 'qr> {
     pub(crate) chunk_size: usize,
-    pub(crate) result: &'qr mut UniquePtr<ffi::QueryResult>,
+    pub(crate) result: &'qr mut UniquePtr<ffi::QueryResult<'db>>,
     pub(crate) schema: arrow::ffi::FFI_ArrowSchema,
 }
 
 #[cfg(feature = "arrow")]
-impl<'qr> Iterator for ArrowIterator<'qr> {
+impl Iterator for ArrowIterator<'_, '_> {
     type Item = arrow::record_batch::RecordBatch;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -178,7 +181,7 @@ impl<'qr> Iterator for ArrowIterator<'qr> {
     }
 }
 
-impl fmt::Debug for QueryResult {
+impl fmt::Debug for QueryResult<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("QueryResult")
             .field(
@@ -225,6 +228,29 @@ mod tests {
             result.get_column_data_types(),
             vec![LogicalType::String, LogicalType::Int64]
         );
+        temp_dir.close()?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_query_result_move() -> anyhow::Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
+        let mut result = {
+            let connection = Connection::new(&db)?;
+
+            // Create schema.
+            connection
+                .query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
+            // Create nodes.
+            connection.query("CREATE (:Person {name: 'Alice', age: 25});")?;
+            connection.query("CREATE (:Person {name: 'Bob', age: 30});")?;
+
+            // Execute a simple query.
+            connection.query("MATCH (a:Person) RETURN a.name AS NAME, a.age AS AGE;")?
+        };
+
+        assert_eq!(result.display().to_string(), "NAME|AGE\nAlice|25\nBob|30\n");
         temp_dir.close()?;
         Ok(())
     }

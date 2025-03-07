@@ -71,8 +71,8 @@ pub struct Connection<'a> {
 
 // Connections are synchronized on the C++ side and should be safe to move and access across
 // threads
-unsafe impl<'a> Send for Connection<'a> {}
-unsafe impl<'a> Sync for Connection<'a> {}
+unsafe impl Send for Connection<'_> {}
+unsafe impl Sync for Connection<'_> {}
 
 impl<'a> Connection<'a> {
     /// Creates a connection to the database.
@@ -132,7 +132,7 @@ impl<'a> Connection<'a> {
     // let result: QueryResult<kuzu::value::Int64> = conn.query("...")?;
     //
     // But this would really just be syntactic sugar wrapping the current system
-    pub fn query(&self, query: &str) -> Result<QueryResult, Error> {
+    pub fn query(&self, query: &str) -> Result<QueryResult<'a>, Error> {
         let conn = unsafe { (*self.conn.get()).pin_mut() };
         let result = ffi::connection_query(conn, ffi::StringView::new(query))?;
         if !result.isSuccess() {

@@ -82,10 +82,7 @@ impl NodeVal {
     }
 }
 
-fn properties_display(
-    f: &mut fmt::Formatter<'_>,
-    properties: &Vec<(String, Value)>,
-) -> fmt::Result {
+fn properties_display(f: &mut fmt::Formatter<'_>, properties: &[(String, Value)]) -> fmt::Result {
     write!(f, "{{")?;
     for (index, (name, value)) in properties.iter().enumerate() {
         write!(f, "{}:{}", name, value)?;
@@ -269,7 +266,7 @@ pub enum Value {
     Decimal(rust_decimal::Decimal),
 }
 
-fn display_list<T: std::fmt::Display>(f: &mut fmt::Formatter<'_>, list: &Vec<T>) -> fmt::Result {
+fn display_list<T: std::fmt::Display>(f: &mut fmt::Formatter<'_>, list: &[T]) -> fmt::Result {
     write!(f, "[")?;
     for (i, value) in list.iter().enumerate() {
         write!(f, "{}", value)?;

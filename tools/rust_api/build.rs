@@ -16,16 +16,12 @@ fn get_target() -> String {
 fn link_libraries() {
     if cfg!(windows) && link_mode() == "dylib" {
         println!("cargo:rustc-link-lib=dylib=kuzu_shared");
+    } else if link_mode() == "dylib" {
+        println!("cargo:rustc-link-lib={}=kuzu", link_mode());
+    } else if rustversion::cfg!(since(1.82)) {
+        println!("cargo:rustc-link-lib=static:+whole-archive=kuzu");
     } else {
-        if link_mode() == "dylib" {
-            println!("cargo:rustc-link-lib={}=kuzu", link_mode());
-        } else {
-            if rustversion::cfg!(since(1.82)) {
-                println!("cargo:rustc-link-lib=static:+whole-archive=kuzu");
-            } else {
-                println!("cargo:rustc-link-lib=static=kuzu");
-            }
-        }
+        println!("cargo:rustc-link-lib=static=kuzu");
     }
     if link_mode() == "static" {
         if cfg!(windows) {
