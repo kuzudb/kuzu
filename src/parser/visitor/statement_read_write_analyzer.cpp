@@ -7,20 +7,9 @@
 namespace kuzu {
 namespace parser {
 
-bool StatementReadWriteAnalyzer::isReadOnly(const Statement& statement) {
-    visit(statement);
-    return readOnly;
-}
-
-static bool hasSequenceUpdate(const ParsedExpression* expr) {
-    auto collector = ParsedSequenceFunctionCollector();
-    collector.visit(expr);
-    return collector.hasSeqUpdate();
-}
-
 void StatementReadWriteAnalyzer::visitReadingClause(const ReadingClause* readingClause) {
     if (readingClause->hasWherePredicate()) {
-        if (hasSequenceUpdate(readingClause->getWherePredicate())) {
+        if (!isExprReadOnly(readingClause->getWherePredicate())) {
             readOnly = false;
         }
     }
@@ -28,7 +17,7 @@ void StatementReadWriteAnalyzer::visitReadingClause(const ReadingClause* reading
 
 void StatementReadWriteAnalyzer::visitWithClause(const WithClause* withClause) {
     for (auto& expr : withClause->getProjectionBody()->getProjectionExpressions()) {
-        if (hasSequenceUpdate(expr.get())) {
+        if (!isExprReadOnly(expr.get())) {
             readOnly = false;
             return;
         }
@@ -37,11 +26,17 @@ void StatementReadWriteAnalyzer::visitWithClause(const WithClause* withClause) {
 
 void StatementReadWriteAnalyzer::visitReturnClause(const ReturnClause* returnClause) {
     for (auto& expr : returnClause->getProjectionBody()->getProjectionExpressions()) {
-        if (hasSequenceUpdate(expr.get())) {
+        if (!isExprReadOnly(expr.get())) {
             readOnly = false;
             return;
         }
     }
+}
+
+bool StatementReadWriteAnalyzer::isExprReadOnly(const ParsedExpression* expr) {
+    auto analyzer = ReadWriteExprAnalyzer(context);
+    analyzer.visit(expr);
+    return analyzer.isReadOnly();
 }
 
 } // namespace parser

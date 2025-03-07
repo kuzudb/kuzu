@@ -1,0 +1,40 @@
+name: SimSIMD Dispatch Test
+on:
+  # TODO(Royi) remove once done testing
+  pull_request:
+    branches:
+      - master
+  schedule:
+    - cron: "0 5 * * *"
+
+  workflow_dispatch:
+
+jobs:
+  build-precompiled-bin-linux:
+    if: ${{ github.event_name == 'schedule' || github.event.inputs.skipBinaries != 'true' }}
+    uses: ./.github/workflows/linux-precompiled-bin-workflow.yml
+    with:
+      isNightly: true
+    secrets: inherit
+
+  simsimd-dispatch-test:
+    name: simsimd-dispatch-test
+    needs: build-precompiled-bin-linux
+    runs-on: kuzu-self-hosted-testing
+    env:
+      NUM_THREADS: 32
+      GEN: Ninja
+      CC: gcc
+      CXX: g++
+    steps:
+      - name: Download nightly build
+        uses: actions/download-artifact@v4
+        with:
+          name: kuzu_cli-linux-x86_64
+
+      - name: Extract kuzu shell
+        run: |
+          tar xf kuzu_cli-linux-x86_64.tar.gz
+
+      - name: Test
+        run: gdb --batch -x scripts/test-simsimd-dispatch.py --args ./kuzu

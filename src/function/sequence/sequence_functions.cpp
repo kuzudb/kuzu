@@ -45,10 +45,12 @@ function_set CurrValFunction::getFunctionSet() {
 
 function_set NextValFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::INT64,
+    auto func = make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING},
+        LogicalTypeID::INT64,
         ScalarFunction::UnarySequenceExecFunction<common::ku_string_t, common::ValueVector,
-            NextVal>));
+            NextVal>);
+    func->isReadOnly = false;
+    functionSet.push_back(std::move(func));
     return functionSet;
 }
 

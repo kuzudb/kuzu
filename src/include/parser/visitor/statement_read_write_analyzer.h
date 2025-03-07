@@ -1,5 +1,6 @@
 #pragma once
 
+#include "parser/expression/parsed_expression.h"
 #include "parser/parsed_statement_visitor.h"
 
 namespace kuzu {
@@ -7,9 +8,10 @@ namespace parser {
 
 class StatementReadWriteAnalyzer final : public StatementVisitor {
 public:
-    StatementReadWriteAnalyzer() : StatementVisitor{}, readOnly{true} {}
+    explicit StatementReadWriteAnalyzer(main::ClientContext* context)
+        : StatementVisitor{}, readOnly{true}, context{context} {}
 
-    bool isReadOnly(const Statement& statement);
+    bool isReadOnly() const { return readOnly; }
 
 private:
     void visitCreateSequence(const Statement& /*statement*/) override { readOnly = false; }
@@ -31,8 +33,11 @@ private:
         readOnly = false;
     }
 
+    bool isExprReadOnly(const ParsedExpression* expr);
+
 private:
     bool readOnly;
+    main::ClientContext* context;
 };
 
 } // namespace parser

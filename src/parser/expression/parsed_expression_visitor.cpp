@@ -1,12 +1,15 @@
 #include "parser/expression/parsed_expression_visitor.h"
 
+#include "catalog/catalog.h"
+#include "catalog/catalog_entry/function_catalog_entry.h"
 #include "common/exception/not_implemented.h"
-#include "function/sequence/sequence_functions.h"
+#include "main/client_context.h"
 #include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_lambda_expression.h"
 
 using namespace kuzu::common;
+using namespace kuzu::catalog;
 
 namespace kuzu {
 namespace parser {
@@ -141,13 +144,28 @@ void ParsedExpressionVisitor::visitCaseChildrenUnsafe(ParsedExpression& expr) {
     }
 }
 
-void ParsedSequenceFunctionCollector::visitFunctionExpr(const ParsedExpression* expr) {
+void ReadWriteExprAnalyzer::visitFunctionExpr(const ParsedExpression* expr) {
     if (expr->getExpressionType() != ExpressionType::FUNCTION) {
+        // Can be AND/OR/... which guarantees to be readonly.
         return;
     }
-    auto funName = expr->constCast<ParsedFunctionExpression>().getFunctionName();
-    if (StringUtils::getUpper(funName) == function::NextValFunction::name) {
-        hasSeqUpdate_ = true;
+    auto funcName = expr->constCast<ParsedFunctionExpression>().getFunctionName();
+    auto catalog = context->getCatalog();
+    // Assume user cannot add function with sideeffect, i.e. all non-readonly function is
+    // registered when database starts.
+    auto transaction = &transaction::DUMMY_TRANSACTION;
+    if (!catalog->containsFunction(transaction, funcName)) {
+        return;
+    }
+    auto entry = catalog->getFunctionEntry(transaction, funcName);
+    if (entry->getType() != CatalogEntryType::SCALAR_FUNCTION_ENTRY) {
+        // Can be macro function which guarantees to be readonly.
+        return;
+    }
+    auto& funcSet = entry->constPtrCast<FunctionCatalogEntry>()->getFunctionSet();
+    KU_ASSERT(!funcSet.empty());
+    if (!funcSet[0]->isReadOnly) {
+        readOnly = false;
     }
 }
 

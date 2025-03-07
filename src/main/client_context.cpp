@@ -462,7 +462,12 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareNoLock(
     prepareTimer.start();
     try {
         preparedStatement->preparedSummary.statementType = parsedStatement->getStatementType();
-        preparedStatement->readOnly = StatementReadWriteAnalyzer().isReadOnly(*parsedStatement);
+        auto readWriteAnalyzer = StatementReadWriteAnalyzer(this);
+        TransactionHelper::runFuncInTransaction(
+            *transactionContext, [&]() -> void { readWriteAnalyzer.visit(*parsedStatement); },
+            true /* readOnly */, false /* */,
+            TransactionHelper::TransactionCommitAction::COMMIT_IF_NEW);
+        preparedStatement->readOnly = readWriteAnalyzer.isReadOnly();
         preparedStatement->parsedStatement = std::move(parsedStatement);
         validateTransaction(*preparedStatement);
 
