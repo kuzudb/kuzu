@@ -55,11 +55,6 @@ impl CSVOptions {
 }
 
 impl QueryResult {
-    /// Displays the query result as a string
-    pub fn display(&mut self) -> String {
-        ffi::query_result_to_string(self.result.pin_mut())
-    }
-
     /// Returns the time spent compiling the query in milliseconds
     pub fn get_compiling_time(&self) -> f64 {
         ffi::query_result_get_compiling_time(self.result.as_ref().unwrap())
@@ -183,19 +178,21 @@ impl fmt::Debug for QueryResult {
         f.debug_struct("QueryResult")
             .field(
                 "result",
-                &"Opaque C++ data which whose toString method requires mutation".to_string(),
+                &ffi::query_result_to_string(self.result.as_ref().unwrap()),
             )
             .finish()
     }
 }
 
-/* TODO: QueryResult.toString() needs to be const
 impl std::fmt::Display for QueryResult {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", ffi::query_result_to_string(self.result.as_ref().unwrap()))
+        write!(
+            f,
+            "{}",
+            ffi::query_result_to_string(self.result.as_ref().unwrap())
+        )
     }
 }
-*/
 
 #[cfg(test)]
 mod tests {
