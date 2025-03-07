@@ -160,6 +160,7 @@ class KUZU_API PathLengths : public GDSFrontier {
 
 public:
     static constexpr uint16_t UNVISITED = UINT16_MAX;
+    static constexpr uint16_t INITIAL_VISITED = 0;
 
     PathLengths(const common::table_id_map_t<common::offset_t>& numNodesMap,
         storage::MemoryManager* mm);
@@ -173,7 +174,7 @@ public:
     }
 
     bool isActive(common::offset_t offset) override {
-        return getCurFrontier()[offset] == curIter.load(std::memory_order_relaxed) - 1;
+        return getCurFrontier()[offset].load(std::memory_order_relaxed) == curIter.load(std::memory_order_relaxed) - 1;
     }
 
     void setActive(std::span<const common::nodeID_t> nodeIDs) override {
@@ -190,6 +191,7 @@ public:
     }
 
     void incrementCurIter() { curIter.fetch_add(1, std::memory_order_relaxed); }
+    void resetCurIter() { curIter.store(0, std::memory_order_relaxed); }
 
     void pinTableID(common::table_id_t tableID) override { pinCurFrontierTableID(tableID); }
     void pinCurFrontierTableID(common::table_id_t tableID);
@@ -273,6 +275,7 @@ public:
     virtual void initSource(common::nodeID_t source) = 0;
     // Initialize for gds computation which usually starts from a large number of nodes;
     void initGDS();
+    void reset();
 
     virtual void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
         common::table_id_t nextTableID);
@@ -288,6 +291,7 @@ public:
 
     GDSFrontier& getCurDenseFrontier() const { return *curDenseFrontier; }
     SparseFrontier& getCurSparseFrontier() const { return *curSparseFrontier; }
+    GDSFrontier& getNextDenseFrontier() const { return *nextDenseFrontier; }
     SparseFrontier& getNextSparseFrontier() const { return *nextSparseFrontier; }
     SparseFrontier& getVertexComputeCandidates() const { return *vertexComputeCandidates; }
 
