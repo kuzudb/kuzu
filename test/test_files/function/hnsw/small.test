@@ -40,6 +40,28 @@
 996
 995
 
+-CASE NullAndDeletedVecs
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+---- ok
+-STATEMENT MATCH (e:embeddings) WHERE e.id < 995 DELETE e
+---- ok
+-STATEMENT CREATE (e:embeddings{id: 0})
+---- ok
+-STATEMENT CREATE (e:embeddings{id: 1000})
+---- ok
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', distFunc := 'l2');
+---- ok
+-STATEMENT CALL QUERY_HNSW_INDEX('e_hnsw_index', 'embeddings', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 6) RETURN nn.id ORDER BY _distance;
+-CHECK_ORDER
+---- 5
+998
+999
+997
+996
+995
+
 -CASE 8DimL2
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
