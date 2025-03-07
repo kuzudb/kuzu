@@ -1,0 +1,19 @@
+-DATASET CSV empty
+
+--
+
+-CASE SqlQueryInPG
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/postgres/build/libpostgres.kuzu_extension"
+---- ok
+-STATEMENT ATTACH 'dbname=pgscan user=ci host=localhost' as tinysnb (dbtype POSTGRES);
+---- ok
+-STATEMENT CALL SQL_QUERY('tinysnb', 'create table tep(id int)') RETURN *
+---- 1
+
+
+-STATEMENT CREATE NODE TABLE PERSON (ID INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT COPY PERSON FROM (CALL SQL_QUERY('tinysnb', 'select id from person') RETURN *);
+---- ok
+-STATEMENT MATCH (p:person) return p.*
+---- 1
