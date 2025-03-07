@@ -55,11 +55,6 @@ impl CSVOptions {
 }
 
 impl<'db> QueryResult<'db> {
-    /// Displays the query result as a string
-    pub fn display(&mut self) -> String {
-        ffi::query_result_to_string(self.result.pin_mut())
-    }
-
     /// Returns the time spent compiling the query in milliseconds
     pub fn get_compiling_time(&self) -> f64 {
         ffi::query_result_get_compiling_time(self.result.as_ref().unwrap())
@@ -186,19 +181,21 @@ impl fmt::Debug for QueryResult<'_> {
         f.debug_struct("QueryResult")
             .field(
                 "result",
-                &"Opaque C++ data which whose toString method requires mutation".to_string(),
+                &ffi::query_result_to_string(self.result.as_ref().unwrap()),
             )
             .finish()
     }
 }
 
-/* TODO: QueryResult.toString() needs to be const
-impl std::fmt::Display for QueryResult {
+impl std::fmt::Display for QueryResult<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", ffi::query_result_to_string(self.result.as_ref().unwrap()))
+        write!(
+            f,
+            "{}",
+            ffi::query_result_to_string(self.result.as_ref().unwrap())
+        )
     }
 }
-*/
 
 #[cfg(test)]
 mod tests {
@@ -236,7 +233,7 @@ mod tests {
     fn test_query_result_move() -> anyhow::Result<()> {
         let temp_dir = tempfile::tempdir()?;
         let db = Database::new(temp_dir.path(), SystemConfig::default())?;
-        let mut result = {
+        let result = {
             let connection = Connection::new(&db)?;
 
             // Create schema.
@@ -250,7 +247,7 @@ mod tests {
             connection.query("MATCH (a:Person) RETURN a.name AS NAME, a.age AS AGE;")?
         };
 
-        assert_eq!(result.display().to_string(), "NAME|AGE\nAlice|25\nBob|30\n");
+        assert_eq!(result.to_string(), "NAME|AGE\nAlice|25\nBob|30\n");
         temp_dir.close()?;
         Ok(())
     }
