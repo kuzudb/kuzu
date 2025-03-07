@@ -46,13 +46,17 @@ private:
     std::vector<const ParsedExpression*> paramExprs;
 };
 
-class ParsedSequenceFunctionCollector : public ParsedExpressionVisitor {
+class ReadWriteExprAnalyzer : public ParsedExpressionVisitor {
 public:
-    bool hasSeqUpdate() const { return hasSeqUpdate_; }
+    explicit ReadWriteExprAnalyzer(main::ClientContext* context)
+        : ParsedExpressionVisitor{}, context{context} {}
+
+    bool isReadOnly() const { return readOnly; }
     void visitFunctionExpr(const ParsedExpression* expr) override;
 
 private:
-    bool hasSeqUpdate_ = false;
+    main::ClientContext* context;
+    bool readOnly = true;
 };
 
 class MacroParameterReplacer : public ParsedExpressionVisitor {
