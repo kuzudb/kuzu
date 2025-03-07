@@ -25,33 +25,30 @@ namespace function {
 
 static constexpr offset_t SCC_UNSET = std::numeric_limits<offset_t>::max();
 
-class SCCComputationState {
-public:
+struct SCCComputationState {
     bool allSccIdsSet;
     ObjectArray<offset_t> sccIDs;
-    ObjectArray<std::atomic<offset_t>> fwdWccIDs;
-    ObjectArray<std::atomic<offset_t>> bwdWccIDs;
+    AtomicObjectArray<offset_t> fwdWccIDs;
+    AtomicObjectArray<offset_t> bwdWccIDs;
 
-    SCCComputationState(const offset_t numNodes, MemoryManager* mm) {
-        allSccIdsSet = false;
-        sccIDs = ObjectArray<offset_t>(numNodes, mm);
-        fwdWccIDs = ObjectArray<std::atomic<offset_t>>(numNodes, mm);
-        bwdWccIDs = ObjectArray<std::atomic<offset_t>>(numNodes, mm);
-    }
+    SCCComputationState(const offset_t numNodes, MemoryManager* mm)
+        : allSccIdsSet{false}, sccIDs{ObjectArray<offset_t>(numNodes, mm)},
+          fwdWccIDs{AtomicObjectArray<offset_t>(numNodes, mm)},
+          bwdWccIDs{AtomicObjectArray<offset_t>(numNodes, mm)} {}
 
     bool update(offset_t boundOffset, offset_t nbrOffset, bool isFwd) {
         auto& wccIds = isFwd ? fwdWccIDs : bwdWccIDs;
-        auto boundValue = wccIds[boundOffset].load(std::memory_order_relaxed);
-        auto nbrValue = wccIds[nbrOffset].load(std::memory_order_relaxed);
+        auto boundValue = wccIds.get(boundOffset);
+        auto nbrValue = wccIds.get(nbrOffset);
         while (nbrValue < boundValue) {
-            if (wccIds[nbrOffset].compare_exchange_strong(nbrValue, boundValue)) {
+            if (wccIds.compare_exchange_strong(nbrOffset, nbrValue, boundValue)) {
                 return true;
             }
         }
         return false;
     }
 
-    bool isSccIdSet(offset_t nodeId) { return sccIDs[nodeId] != SCC_UNSET; }
+    bool isSccIdSet(offset_t nodeId) { return sccIDs.get(nodeId) != SCC_UNSET; }
 };
 
 class SetInitialSccIds : public VertexCompute {
@@ -62,7 +59,7 @@ public:
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
-            computationState.sccIDs[i] = SCC_UNSET;
+            computationState.sccIDs.set(i, SCC_UNSET);
         }
     }
 
@@ -83,10 +80,10 @@ public:
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
             if (!computationState.isSccIdSet(i)) {
-                auto fwdColor = computationState.fwdWccIDs[i].load(std::memory_order_relaxed);
-                auto bwdColor = computationState.bwdWccIDs[i].load(std::memory_order_relaxed);
+                auto fwdColor = computationState.fwdWccIDs.get(i);
+                auto bwdColor = computationState.bwdWccIDs.get(i);
                 if (fwdColor == bwdColor) {
-                    computationState.sccIDs[i] = fwdColor;
+                    computationState.sccIDs.set(i, fwdColor);
                 } else {
                     // If any of the threads find an unset scc id, they will set the flag to false.
                     // `allSccIdsSet` is never read and written concurrently, so it does
@@ -115,8 +112,8 @@ public:
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
-            computationState.fwdWccIDs[i].store(i, std::memory_order_relaxed);
-            computationState.bwdWccIDs[i].store(i, std::memory_order_relaxed);
+            computationState.fwdWccIDs.set(i, i);
+            computationState.bwdWccIDs.set(i, i);
         }
     }
 
@@ -223,7 +220,7 @@ public:
             }
             auto nodeID = nodeID_t{i, tableID};
             writer->nodeIDVector->setValue<nodeID_t>(0, nodeID);
-            writer->sccIDVector->setValue<uint64_t>(0, computationState.sccIDs[i]);
+            writer->sccIDVector->setValue<uint64_t>(0, computationState.sccIDs.get(i));
             localFT->append(writer->vectors);
         }
     }
@@ -345,7 +342,8 @@ public:
 function_set SCCFunction::getFunctionSet() {
     function_set result;
     auto algo = std::make_unique<SCC>();
-    result.push_back(std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
+    result.push_back(
+        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
     return result;
 }
 

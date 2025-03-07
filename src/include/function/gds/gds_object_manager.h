@@ -39,18 +39,50 @@ private:
 template<typename T>
 class ObjectArray {
 public:
-    ObjectArray() = default;
     ObjectArray(common::offset_t size, storage::MemoryManager* mm, bool initializeToZero = false)
         : allocation{mm->allocateBuffer(initializeToZero, size * sizeof(T))} {
         data = std::span<T>(reinterpret_cast<T*>(allocation->getData()), size);
     }
-    T& operator[](common::offset_t pos) {
+
+    void set(common::offset_t pos, T value) {
+        KU_ASSERT(pos < data.size());
+        data[pos] = value;
+    }
+
+    T get(common::offset_t pos) {
         KU_ASSERT(pos < data.size());
         return data[pos];
     }
 private:
+    template<typename U> friend class AtomicObjectArray;
     std::span<T> data;
     std::unique_ptr<storage::MemoryBuffer> allocation;
+};
+
+// Pre-allocated array of atomic objects.
+template<typename T>
+class AtomicObjectArray {
+public:
+    AtomicObjectArray(common::offset_t size, storage::MemoryManager* mm, bool initializeToZero = false)
+        : array{ObjectArray<std::atomic<T>>(size, mm, initializeToZero)} {
+    }
+
+    void set(common::offset_t pos, T& value) {
+        KU_ASSERT(pos < array.data.size());
+        array.data[pos].store(value, std::memory_order_relaxed);
+    }
+
+    T get(common::offset_t pos) {
+        KU_ASSERT(pos < data.size());
+        return array.data[pos].load(std::memory_order_relaxed);
+    }
+
+    bool compare_exchange_strong(common::offset_t pos, T expected, T desired) {
+        KU_ASSERT(pos < data.size());
+        return array.data[pos].compare_exchange_strong(expected, desired);
+    }
+private:
+    ObjectArray<std::atomic<T>> array;
 };
 
 // ObjectArraysMap represents a pre-allocated amount of object per tableID.
