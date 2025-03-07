@@ -7,12 +7,6 @@
 #define SIMSIMD_NATIVE_F16 0
 #define SIMSIMD_NATIVE_BF16 0
 
-/*  Override the primary serial operations to avoid the LibC dependency.
- */
-#define SIMSIMD_SQRT(x) simsimd_approximate_square_root(x)
-#define SIMSIMD_RSQRT(x) simsimd_approximate_inverse_square_root(x)
-#define SIMSIMD_LOG(x) simsimd_approximate_log(x)
-
 /*  Depending on the Operating System, the following intrinsics are available
  *  on recent compiler toolchains:
  *
