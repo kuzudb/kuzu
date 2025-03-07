@@ -1,0 +1,39 @@
+-DATASET CSV empty
+
+--
+
+-CASE 8DimL2Naive
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+---- ok
+-STATEMENT match (a:embeddings) with array_distance(CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), a.vec) as distance, a return a.id order by distance limit 3
+-CHECK_ORDER
+---- 3
+333
+444
+133
+
+-CASE 8DimCosNaive
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+---- ok
+-STATEMENT match (a:embeddings) with 1 - array_cosine_similarity(CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), a.vec) as distance, a return a.id order by distance limit 3
+-CHECK_ORDER
+---- 3
+333
+444
+146
+
+-CASE 8DimDPNaive
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+---- ok
+-STATEMENT match (a:embeddings) with array_dot_product(CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), a.vec) as distance, a return a.id order by distance limit 3
+-CHECK_ORDER
+---- 3
+499
+581
+58
