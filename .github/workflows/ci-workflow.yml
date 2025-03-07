@@ -1015,11 +1015,12 @@ jobs:
       - name: Update PostgreSQL host
         working-directory: extension/postgres/test/test_files
         env:
-          FNAME: postgres.test
+          PG_FNAME: postgres.test
+          SQL_FNAME: sql_query.test
           FIND: "localhost"
         run: |
-          node -e 'fs=require("fs");fs.readFile(process.env.FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
-          cat postgres.test
+          node -e 'fs=require("fs");fs.readFile(process.env.PG_FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.PG_FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
+          node -e 'fs=require("fs");fs.readFile(process.env.SQL_FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.SQL_FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
 
       - name: Install dependencies
         run: pip install rangehttpserver requests
@@ -1079,11 +1080,12 @@ jobs:
       - name: Update PostgreSQL host
         working-directory: extension/postgres/test/test_files
         env:
-          FNAME: postgres.test
+          PG_TEST_FNAME: postgres.test
+          SQL_TEST_FNAME: sql_query.test
           FIND: "localhost"
         run: |
-          node -e 'fs=require("fs");fs.readFile(process.env.FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
-          cat postgres.test
+          node -e 'fs=require("fs");fs.readFile(process.env.PG_TEST_FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.PG_TEST_FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
+          node -e 'fs=require("fs");fs.readFile(process.env.SQL_TEST_FNAME,"utf8",(err,data)=>{if(err!=null)throw err;fs.writeFile(process.env.SQL_TEST_FNAME,data.replaceAll(process.env.FIND,process.env.PG_HOST),"utf8",e=>{if(e!=null)throw e;});});'
 
       - name: Install dependencies
         run: pip3 install rangehttpserver requests
@@ -1136,16 +1138,22 @@ jobs:
       - name: Update PostgreSQL host
         working-directory: extension/postgres/test/test_files
         env:
-          FNAME: postgres.test
+          PG_FNAME: postgres.test
+          SQL_FNAME: sql_query.test
           FIND: "localhost"
         run: |
-          $fname = $env:FNAME
+          $fname = $env:PG_FNAME
           $find = $env:FIND
           $replace = $env:PG_HOST
           $content = Get-Content -Path $fname
           $content = $content -replace [regex]::Escape($find), $replace
           Set-Content -Path $fname -Value $content
-          cat $fname
+          $fname = $env:SQL_FNAME
+          $find = $env:FIND
+          $replace = $env:PG_HOST
+          $content = Get-Content -Path $fname
+          $content = $content -replace [regex]::Escape($find), $replace
+          Set-Content -Path $fname -Value $content
 
       - name: Extension test build
         shell: cmd
