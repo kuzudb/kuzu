@@ -203,7 +203,7 @@ pub(crate) mod ffi {
         type QueryResult;
 
         #[namespace = "kuzu_rs"]
-        fn query_result_to_string(query_result: Pin<&mut QueryResult>) -> String;
+        fn query_result_to_string(query_result: &QueryResult) -> String;
         fn isSuccess(&self) -> bool;
         #[namespace = "kuzu_rs"]
         fn query_result_get_error_message(query_result: &QueryResult) -> String;
