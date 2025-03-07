@@ -248,10 +248,10 @@ InMemHNSWIndex::InMemHNSWIndex(const main::ClientContext* context, NodeTable& ta
             this->config.alpha, this->config.efc});
 }
 
-void InMemHNSWIndex::insert(common::offset_t offset, VisitedState& upperVisited,
+bool InMemHNSWIndex::insert(common::offset_t offset, VisitedState& upperVisited,
     VisitedState& lowerVisited) {
     if (embeddings->isNull(offset)) {
-        return;
+        return false;
     }
     auto lowerEntryPoint = upperLayer->searchNN(offset, upperLayer->getEntryPoint());
     lowerLayer->insert(offset, lowerEntryPoint, lowerVisited);
@@ -259,6 +259,7 @@ void InMemHNSWIndex::insert(common::offset_t offset, VisitedState& upperVisited,
     if (rand <= INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND * config.pu) {
         upperLayer->insert(offset, upperLayer->getEntryPoint(), upperVisited);
     }
+    return true;
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.

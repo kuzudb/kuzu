@@ -68,12 +68,14 @@ static offset_t createInMemHNSWTableFunc(const TableFuncInput& input, TableFuncO
         return 0;
     }
     const auto& hnswIndex = sharedState->hnswIndex;
+    offset_t numNodesInserted = 0;
     for (auto i = morsel.startOffset; i <= morsel.endOffset; i++) {
-        hnswIndex->insert(i, input.localState->ptrCast<CreateInMemHNSWLocalState>()->upperVisited,
+        numNodesInserted += hnswIndex->insert(i,
+            input.localState->ptrCast<CreateInMemHNSWLocalState>()->upperVisited,
             input.localState->ptrCast<CreateInMemHNSWLocalState>()->lowerVisited);
     }
-    sharedState->numNodesInserted.fetch_add(morsel.endOffset - morsel.startOffset);
-    return morsel.endOffset - morsel.startOffset;
+    sharedState->numNodesInserted.fetch_add(numNodesInserted);
+    return numNodesInserted;
 }
 
 static double createInMemHNSWProgressFunc(TableFuncSharedState* sharedState) {

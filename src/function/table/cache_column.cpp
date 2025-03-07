@@ -85,9 +85,8 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunction
     auto& table = input.context.getStorageManager()
                       ->getTable(bindData->tableEntry->getTableID())
                       ->cast<storage::NodeTable>();
-    auto numCommitedNodeGroups = table.getNumCommittedNodeGroups();
-    return std::make_unique<CacheArrayColumnSharedState>(table,
-        numCommitedNodeGroups == 0 ? 0 : numCommitedNodeGroups, *bindData);
+    return std::make_unique<CacheArrayColumnSharedState>(table, table.getNumCommittedNodeGroups(),
+        *bindData);
 }
 
 struct CacheArrayColumnLocalState final : TableFuncLocalState {
@@ -143,8 +142,18 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
                 numRows * arrayTypeInfo->getNumElements());
         }
         table.initScanState(context->getTransaction(), *localState->scanState);
+        data->getNullData()->resetToAllNull();
         while (table.scan(context->getTransaction(), scanState)) {
-            data->append(scanState.outputVectors[0], scanState.outState->getSelVector());
+            // We want to ensure that the offsets in the cached column match the offsets in the
+            // table To do this we write to the same offsets and set any non-selected (e.g. deleted)
+            // rows to null
+            const auto& selVector = scanState.outState->getSelVector();
+            selVector.forEach([&](auto vectorIdx) {
+                const auto dataOffsetInGroup =
+                    scanState.nodeIDVector->getValue<nodeID_t>(vectorIdx).offset -
+                    storage::StorageUtils::getStartOffsetOfNodeGroup(i);
+                data->write(scanState.outputVectors[0], vectorIdx, dataOffsetInGroup);
+            });
         }
         sharedState->merge(i, std::move(data));
     }

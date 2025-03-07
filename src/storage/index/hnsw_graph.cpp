@@ -11,8 +11,8 @@ namespace storage {
 InMemEmbeddings::InMemEmbeddings(transaction::Transaction* transaction, EmbeddingTypeInfo typeInfo,
     common::table_id_t tableID, common::column_id_t columnID)
     : EmbeddingColumn{std::move(typeInfo)} {
-    auto key = common::stringFormat("{}-{}", tableID, columnID);
     auto& cacheManager = transaction->getLocalCacheManager();
+    auto key = CachedColumn::getKey(tableID, columnID);
     if (cacheManager.contains(key)) {
         data = transaction->getLocalCacheManager().at(key).cast<CachedColumn>();
     } else {
