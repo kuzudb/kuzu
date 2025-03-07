@@ -118,6 +118,28 @@ static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionIn
     return std::make_unique<CacheArrayColumnLocalState>(input.context, tableID, columnID);
 }
 
+static void scanTableDataToChunk(const node_group_idx_t nodeGroupIdx,
+    storage::NodeTableScanState& scanState, storage::ColumnChunkData* data,
+    transaction::Transaction* transaction, storage::NodeTable& table) {
+    scanState.nodeGroupIdx = nodeGroupIdx;
+    table.initScanState(transaction, scanState);
+
+    // We want to ensure that the offsets in the cached column match the offsets in the
+    // table
+    // To do this we write to the same offsets and set any non-selected (e.g. deleted)
+    // rows to null
+    data->getNullData()->resetToAllNull();
+    while (table.scan(transaction, scanState)) {
+        const auto& selVector = scanState.outState->getSelVector();
+        selVector.forEach([&](auto vectorIdx) {
+            const auto dataOffsetInGroup =
+                scanState.nodeIDVector->getValue<nodeID_t>(vectorIdx).offset -
+                storage::StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+            data->write(scanState.outputVectors[0], vectorIdx, dataOffsetInGroup);
+        });
+    }
+}
+
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto& bindData = input.bindData->cast<CacheArrayColumnBindData>();
     const auto sharedState = input.sharedState->ptrCast<CacheArrayColumnSharedState>();
@@ -131,7 +153,6 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto& table = sharedState->table;
     auto& scanState = *localState->scanState;
     for (auto i = morsel.startOffset; i < morsel.endOffset; i++) {
-        scanState.nodeGroupIdx = i;
         auto numRows = table.getNumTuplesInNodeGroup(i);
         auto data = storage::ColumnChunkFactory::createColumnChunkData(*context->getMemoryManager(),
             columnType.copy(), false /*enableCompression*/, numRows,
@@ -141,20 +162,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
             data->cast<storage::ListChunkData>().getDataColumnChunk()->resize(
                 numRows * arrayTypeInfo->getNumElements());
         }
-        table.initScanState(context->getTransaction(), *localState->scanState);
-        data->getNullData()->resetToAllNull();
-        while (table.scan(context->getTransaction(), scanState)) {
-            // We want to ensure that the offsets in the cached column match the offsets in the
-            // table To do this we write to the same offsets and set any non-selected (e.g. deleted)
-            // rows to null
-            const auto& selVector = scanState.outState->getSelVector();
-            selVector.forEach([&](auto vectorIdx) {
-                const auto dataOffsetInGroup =
-                    scanState.nodeIDVector->getValue<nodeID_t>(vectorIdx).offset -
-                    storage::StorageUtils::getStartOffsetOfNodeGroup(i);
-                data->write(scanState.outputVectors[0], vectorIdx, dataOffsetInGroup);
-            });
-        }
+        scanTableDataToChunk(i, scanState, data.get(), context->getTransaction(), table);
         sharedState->merge(i, std::move(data));
     }
     return morsel.endOffset - morsel.startOffset;
