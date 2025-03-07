@@ -123,6 +123,7 @@ class KUZU_API PathLengths {
 
 public:
     static constexpr uint16_t UNVISITED = UINT16_MAX;
+    static constexpr uint16_t INITIAL_VISITED = 0;
 
     PathLengths(const common::table_id_map_t<common::offset_t>& nodeMaxOffsetMap,
         storage::MemoryManager* mm);
@@ -157,6 +158,7 @@ public:
     }
 
     void incrementCurIter() { curIter++; }
+    void resetCurIter() { curIter = 0; }
 
     void pinTableID(common::table_id_t tableID) { pinCurFrontierTableID(tableID); }
     void pinCurFrontierTableID(common::table_id_t tableID) { curFrontier = getMaskData(tableID); }
@@ -227,6 +229,7 @@ public:
     virtual void initSource(common::nodeID_t source);
     // Initialize for gds computation which usually starts from a large number of nodes;
     void initGDS();
+    void reset();
 
     virtual void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
         common::table_id_t nextTableID);
@@ -244,6 +247,7 @@ public:
 
     PathLengths& getCurDenseFrontier() const { return *curDenseFrontier; }
     SparseFrontier& getCurSparseFrontier() const { return *curSparseFrontier; }
+    GDSFrontier& getNextDenseFrontier() const { return *nextDenseFrontier; }
     SparseFrontier& getNextSparseFrontier() const { return *nextSparseFrontier; }
     SparseFrontier& getVertexComputeCandidates() const { return *vertexComputeCandidates; }
 
