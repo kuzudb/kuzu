@@ -27,6 +27,13 @@ float* InMemEmbeddings::getEmbedding(common::offset_t offset) const {
     return &listChunk.getDataColumnChunk()->getData<float>()[offsetInGroup * typeInfo.dimension];
 }
 
+bool InMemEmbeddings::isNull(common::offset_t offset) const {
+    auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
+    KU_ASSERT(nodeGroupIdx < data->columnChunks.size());
+    const auto& listChunk = data->columnChunks[nodeGroupIdx]->cast<ListChunkData>();
+    return listChunk.isNull(offsetInGroup);
+}
+
 OnDiskEmbeddingScanState::OnDiskEmbeddingScanState(const transaction::Transaction* transaction,
     MemoryManager* mm, NodeTable& nodeTable, common::column_id_t columnID) {
     std::vector<common::column_id_t> columnIDs;

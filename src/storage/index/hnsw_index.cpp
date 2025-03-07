@@ -250,6 +250,9 @@ InMemHNSWIndex::InMemHNSWIndex(const main::ClientContext* context, NodeTable& ta
 
 void InMemHNSWIndex::insert(common::offset_t offset, VisitedState& upperVisited,
     VisitedState& lowerVisited) {
+    if (embeddings->isNull(offset)) {
+        return;
+    }
     auto lowerEntryPoint = upperLayer->searchNN(offset, upperLayer->getEntryPoint());
     lowerLayer->insert(offset, lowerEntryPoint, lowerVisited);
     const auto rand = randomEngine.nextRandomInteger(INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND);

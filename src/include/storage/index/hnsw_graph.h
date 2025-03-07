@@ -31,6 +31,7 @@ public:
         common::table_id_t tableID, common::column_id_t columnID);
 
     float* getEmbedding(common::offset_t offset) const;
+    bool isNull(common::offset_t offset) const;
 
 private:
     CachedColumn* data;
