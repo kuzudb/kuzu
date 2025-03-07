@@ -118,7 +118,7 @@ private:
  *
  * However, this is not necessary and the caller can also use this to represent a single frontier.
  */
-class KUZU_API PathLengths {
+class PathLengths {
     using frontier_entry_t = std::atomic<uint16_t>;
 
 public:

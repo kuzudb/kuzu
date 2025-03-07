@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace function {
 
-struct KUZU_API GDSComputeState {
+struct GDSComputeState {
     std::unique_ptr<function::FrontierPair> frontierPair = nullptr;
     std::unique_ptr<function::EdgeCompute> edgeCompute = nullptr;
     std::unique_ptr<function::GDSAuxiliaryState> auxiliaryState = nullptr;
@@ -20,7 +20,7 @@ struct KUZU_API GDSComputeState {
         : frontierPair{std::move(frontierPair)}, edgeCompute{std::move(edgeCompute)},
           auxiliaryState{std::move(auxiliaryState)}, outputNodeMask{outputNodeMask} {}
 
-    void initSource(common::nodeID_t sourceNodeID) const;
+    KUZU_API void initSource(common::nodeID_t sourceNodeID) const;
     // When performing computations on multi-label graphs, it is beneficial to fix a single
     // node table of nodes in the current frontier and a single node table of nodes for the next
     // frontier. That is because algorithms will perform extensions using a single relationship
@@ -31,7 +31,7 @@ struct KUZU_API GDSComputeState {
     // extensions are be given to the data structures of the computation, e.g., FrontierPairs and
     // RJOutputs, to possibly avoid them doing lookups of S and T-related data structures,
     // e.g., maps, internally.
-    void beginFrontierCompute(common::table_id_t currTableID, common::table_id_t nextTableID) const;
+    KUZU_API void beginFrontierCompute(common::table_id_t currTableID, common::table_id_t nextTableID) const;
 };
 
 } // namespace function
