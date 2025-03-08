@@ -1,5 +1,5 @@
 # kuzu-wasm/sync
-Welcome to the documentation of `kuzu-wasm`, the WebAssembly build of Kùzu in-process property graph database management system. 
+Welcome to the documentation of `kuzu-wasm`, the WebAssembly build of Kuzu in-process property graph database management system. 
 You are currently viewing the *synchronous* JavaScript API documentation. 
 This version of the module is synchronous and does not require any callbacks (other than the module initialization).
 This version is good for scripting / CLI / prototyping purposes,

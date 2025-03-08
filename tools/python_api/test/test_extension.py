@@ -50,7 +50,7 @@ def test_extension_install_httpfs(conn_db_readwrite: ConnDB, tmpdir: str, extens
         .resolve()
     )
     opener = urllib.request.build_opener()
-    opener.addheaders = [("User-agent", "Kùzu Test Suite")]
+    opener.addheaders = [("User-agent", "Kuzu Test Suite")]
     urllib.request.install_opener(opener)
     download_url = f"http://extension.kuzudb.com/v{extension_version}/{extension_extension_dir_prefix}/httpfs/libhttpfs.kuzu_extension"
     temp_path = Path(tmpdir) / "libhttpfs.kuzu_extension"

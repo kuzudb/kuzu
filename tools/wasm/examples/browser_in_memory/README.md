@@ -1,5 +1,5 @@
-# Kùzu WebAssembly In-Browser Example
-This example demonstrates how to use the Kùzu WebAssembly build in a web browser. The example uses the asynchronous JavaScript API to interact with the WebAssembly module.
+# Kuzu WebAssembly In-Browser Example
+This example demonstrates how to use the Kuzu WebAssembly build in a web browser. The example uses the asynchronous JavaScript API to interact with the WebAssembly module.
 
 ## Usage
 ### Install Dependencies

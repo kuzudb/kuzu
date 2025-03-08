@@ -10,8 +10,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: Kùzu version
-      description: What version of Kùzu are you using?
+      label: Kuzu version
+      description: What version of Kuzu are you using?
       placeholder: v0.4.0
     validations:
       required: false

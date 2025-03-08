@@ -37,7 +37,7 @@ static void validateEmptyWAL(const std::string& path, ClientContext* context) {
             common::FileFlags::READ_ONLY, context);
     if (walFile->getFileSize() > 0) {
         throw common::RuntimeException(common::stringFormat(
-            "Cannot attach an external Kùzu database with non-empty wal file. Try manually "
+            "Cannot attach an external Kuzu database with non-empty wal file. Try manually "
             "checkpointing the external database (i.e., run \"CHECKPOINT;\")."));
     }
 }
@@ -47,8 +47,8 @@ AttachedKuzuDatabase::AttachedKuzuDatabase(std::string dbPath, std::string dbNam
     : AttachedDatabase{std::move(dbName), std::move(dbType), nullptr /* catalog */} {
     auto vfs = clientContext->getVFSUnsafe();
     if (DBConfig::isDBPathInMemory(dbPath)) {
-        throw common::RuntimeException("Cannot attach an in-memory Kùzu database. Please give a "
-                                       "path to an on-disk Kùzu database directory.");
+        throw common::RuntimeException("Cannot attach an in-memory Kuzu database. Please give a "
+                                       "path to an on-disk Kuzu database directory.");
     }
     auto path = vfs->expandPath(clientContext, dbPath);
     // Note: S3 directory path may end with a '/'.

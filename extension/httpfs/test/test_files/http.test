@@ -155,7 +155,7 @@ Runtime exception: Cannot attach a remote kuzu database due to invalid path: htt
 ---- ok
 -STATEMENT attach 'http://localhost/dataset/databases/non-empty-wal' as test (dbtype kuzu)
 ---- error
-Runtime exception: Cannot attach an external Kùzu database with non-empty wal file. Try manually checkpointing the external database (i.e., run "CHECKPOINT;").
+Runtime exception: Cannot attach an external Kuzu database with non-empty wal file. Try manually checkpointing the external database (i.e., run "CHECKPOINT;").
 
 -CASE AttachKuzuWithRelativePath
 -STATEMENT attach '${KUZU_ROOT_DIRECTORY}/dataset/databases/tinysnb/./' (dbtype kuzu)

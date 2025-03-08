@@ -1,5 +1,5 @@
 /**
- * @file index.js is the root file for the synchronous version of Kùzu 
+ * @file index.js is the root file for the synchronous version of Kuzu
  * WebAssembly module. It exports the module's public interface.
  */
 "use strict";
@@ -11,12 +11,12 @@ const PreparedStatement = require("./prepared_statement.js");
 const QueryResult = require("./query_result.js");
 
 /**
- * The synchronous version of Kùzu WebAssembly module. 
+ * The synchronous version of Kuzu WebAssembly module.
  * @module kuzu-wasm
  */
 module.exports = {
   /**
-   * Initialize the Kùzu WebAssembly module.
+   * Initialize the Kuzu WebAssembly module.
    * @memberof module:kuzu-wasm
    * @returns {Promise<void>} a promise that resolves when the module is 
    * initialized. The promise is rejected if the module fails to initialize.
@@ -26,18 +26,18 @@ module.exports = {
   },
 
   /**
-   * Get the version of the Kùzu WebAssembly module.
+   * Get the version of the Kuzu WebAssembly module.
    * @memberof module:kuzu-wasm
-   * @returns {String} the version of the Kùzu WebAssembly module.
+   * @returns {String} the version of the Kuzu WebAssembly module.
    */
   getVersion: () => {
     return KuzuWasm.getVersion();
   },
 
   /**
-   * Get the storage version of the Kùzu WebAssembly module.
+   * Get the storage version of the Kuzu WebAssembly module.
    * @memberof module:kuzu-wasm
-   * @returns {BigInt} the storage version of the Kùzu WebAssembly module.
+   * @returns {BigInt} the storage version of the Kuzu WebAssembly module.
    */
   getStorageVersion: () => {
     return KuzuWasm.getStorageVersion();

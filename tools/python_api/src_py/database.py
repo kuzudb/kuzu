@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 class Database:
-    """Kùzu database instance."""
+    """Kuzu database instance."""
 
     def __init__(
         self,

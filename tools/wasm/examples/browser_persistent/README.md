@@ -1,5 +1,5 @@
-# Kùzu WebAssembly In-Browser Example with Persistent IDBFS
-This example demonstrates how to use the Kùzu WebAssembly build in a web browser with the persistent IDBFS filesystem. The first run of the example will create a new database and load some data into it. The second run will query the database and display the results. After running the example for the first time, you can refresh the page to see the query results.
+# Kuzu WebAssembly In-Browser Example with Persistent IDBFS
+This example demonstrates how to use the Kuzu WebAssembly build in a web browser with the persistent IDBFS filesystem. The first run of the example will create a new database and load some data into it. The second run will query the database and display the results. After running the example for the first time, you can refresh the page to see the query results.
 
 ## Usage
 ### Install Dependencies
