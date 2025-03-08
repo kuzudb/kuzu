@@ -6,6 +6,10 @@
 #include "extension/catalog_extension.h"
 #include "transaction/transaction_manager.h"
 
+namespace duckdb {
+class MaterializedQueryResult;
+}
+
 namespace kuzu {
 namespace storage {
 class StorageManager;
@@ -27,7 +31,14 @@ public:
 
     catalog::Catalog* getCatalog() { return catalog.get(); }
 
+    std::unique_ptr<duckdb::MaterializedQueryResult> executeQuery(const std::string& query);
+
     void invalidateCache();
+
+    template<class TARGET>
+    const TARGET& constCast() const {
+        return common::ku_dynamic_cast<const TARGET&>(*this);
+    }
 
 protected:
     std::string dbName;

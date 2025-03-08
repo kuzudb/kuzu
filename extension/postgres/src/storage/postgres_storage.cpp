@@ -8,8 +8,7 @@
 #include "connector/postgres_connector.h"
 #include "extension/extension.h"
 #include "function/clear_cache.h"
-#include "storage/attached_duckdb_database.h"
-#include "storage/duckdb_storage.h"
+#include "storage/attached_postgres_database.h"
 
 namespace kuzu {
 namespace postgres_extension {
@@ -36,8 +35,8 @@ std::unique_ptr<main::AttachedDatabase> attachPostgres(std::string dbName, std::
     auto catalog = std::make_unique<duckdb_extension::DuckDBCatalog>(dbPath, catalogName,
         schemaName, clientContext, *connector, attachOption);
     catalog->init();
-    return std::make_unique<duckdb_extension::AttachedDuckDBDatabase>(dbName,
-        PostgresStorageExtension::DB_TYPE, std::move(catalog), std::move(connector));
+    return std::make_unique<AttachedPostgresDatabase>(dbName, PostgresStorageExtension::DB_TYPE,
+        std::move(catalog), std::move(connector), catalogName);
 }
 
 PostgresStorageExtension::PostgresStorageExtension(main::Database* database)

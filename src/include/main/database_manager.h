@@ -11,7 +11,7 @@ public:
 
     void registerAttachedDatabase(std::unique_ptr<AttachedDatabase> attachedDatabase);
     bool hasAttachedDatabase(const std::string& name);
-    AttachedDatabase* getAttachedDatabase(const std::string& name);
+    KUZU_API AttachedDatabase* getAttachedDatabase(const std::string& name);
     void detachDatabase(const std::string& databaseName);
     std::string getDefaultDatabase() const { return defaultDatabase; }
     bool hasDefaultDatabase() const { return defaultDatabase != ""; }
