@@ -133,16 +133,14 @@ public:
     bool beginOnTable(table_id_t) override { return true; }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
-        frontierPair.getCurDenseFrontier().ptrCast<PathLengths>()->resetCurIter();
-        frontierPair.getNextDenseFrontier().ptrCast<PathLengths>()->resetCurIter();
+        frontierPair.getCurDenseFrontier().resetCurIter();
+        frontierPair.getNextDenseFrontier().resetCurIter();
         for (auto i = startOffset; i < endOffset; ++i) {
             // If the SCC ID has already been computed, the node should not be activated.
             auto initialState = computationState.isSccIdSet(i) ? PathLengths::INITIAL_VISITED :
                                                                  PathLengths::UNVISITED;
-            // FIXME: avoid dynamic casts?
-            frontierPair.getCurDenseFrontier().ptrCast<PathLengths>()->setCurFrontierValue(i,
-                initialState);
-            frontierPair.getNextDenseFrontier().ptrCast<PathLengths>()->setCurFrontierValue(i,
+            frontierPair.getCurDenseFrontier().setCurFrontierValue(i, initialState);
+            frontierPair.getNextDenseFrontier().setCurFrontierValue(i,
                 PathLengths::INITIAL_VISITED);
         }
     }
@@ -274,8 +272,8 @@ public:
         auto clientContext = context->clientContext;
         auto mm = clientContext->getMemoryManager();
         auto graph = sharedState->graph.get();
-        auto numNodesMap = graph->getNumNodesMap(clientContext->getTransaction());
-        auto it = numNodesMap.begin();
+        auto getMaxOffsetMap = graph->getMaxOffsetMap(clientContext->getTransaction());
+        auto it = getMaxOffsetMap.begin();
         auto tableId = it->first;
         auto numNodes = it->second;
 
@@ -285,8 +283,8 @@ public:
         GDSUtils::runVertexCompute(context, graph, *setInitialSccIds);
 
         // The frontiers will be initialized inside the loop.
-        auto currentFrontier = std::make_shared<PathLengths>(numNodesMap, mm);
-        auto nextFrontier = std::make_shared<PathLengths>(numNodesMap, mm);
+        auto currentFrontier = std::make_shared<PathLengths>(getMaxOffsetMap, mm);
+        auto nextFrontier = std::make_shared<PathLengths>(getMaxOffsetMap, mm);
         currentFrontier->pinCurFrontierTableID(tableId);
         nextFrontier->pinCurFrontierTableID(tableId);
         auto frontierPair =
