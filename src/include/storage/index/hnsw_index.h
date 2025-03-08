@@ -104,7 +104,11 @@ struct InMemHNSWLayerInfo {
 class InMemHNSWLayer {
 public:
     explicit InMemHNSWLayer(MemoryManager* mm, InMemHNSWLayerInfo info);
-    void setEntryPoint(common::offset_t offset) { entryPoint.store(offset); }
+    common::offset_t compareAndSwapEntryPoint(common::offset_t offset) {
+        common::offset_t oldOffset = common::INVALID_OFFSET;
+        entryPoint.compare_exchange_strong(oldOffset, offset);
+        return oldOffset;
+    }
     common::offset_t getEntryPoint() const { return entryPoint.load(); }
 
     void insert(common::offset_t offset, common::offset_t entryPoint_, VisitedState& visited);

@@ -28,9 +28,8 @@ InMemHNSWLayer::InMemHNSWLayer(MemoryManager* mm, InMemHNSWLayerInfo info)
 void InMemHNSWLayer::insert(common::offset_t offset, common::offset_t entryPoint_,
     VisitedState& visited) {
     if (entryPoint_ == common::INVALID_OFFSET) {
-        const auto entryPointInCurrentLayer = getEntryPoint();
+        const auto entryPointInCurrentLayer = compareAndSwapEntryPoint(offset);
         if (entryPointInCurrentLayer == common::INVALID_OFFSET) {
-            setEntryPoint(offset);
             // The layer is empty. No edges need to be created.
             return;
         }
