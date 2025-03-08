@@ -20,15 +20,15 @@ pub(crate) mod ffi_arrow {
         include!("kuzu/include/kuzu_arrow.h");
 
         #[namespace = "kuzu::main"]
-        type QueryResult = crate::ffi::ffi::QueryResult;
+        type QueryResult<'db> = crate::ffi::ffi::QueryResult<'db>;
     }
 
     unsafe extern "C++" {
         type ArrowArray = crate::ffi::arrow::ArrowArray;
 
         #[namespace = "kuzu_arrow"]
-        fn query_result_get_next_arrow_chunk(
-            result: Pin<&mut QueryResult>,
+        fn query_result_get_next_arrow_chunk<'db>(
+            result: Pin<&mut QueryResult<'db>>,
             chunk_size: u64,
         ) -> Result<ArrowArray>;
     }
@@ -37,6 +37,6 @@ pub(crate) mod ffi_arrow {
         type ArrowSchema = crate::ffi::arrow::ArrowSchema;
 
         #[namespace = "kuzu_arrow"]
-        fn query_result_get_arrow_schema(result: &QueryResult) -> Result<ArrowSchema>;
+        fn query_result_get_arrow_schema<'db>(result: &QueryResult<'db>) -> Result<ArrowSchema>;
     }
 }
