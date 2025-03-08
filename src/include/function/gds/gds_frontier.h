@@ -247,7 +247,7 @@ public:
 
     PathLengths& getCurDenseFrontier() const { return *curDenseFrontier; }
     SparseFrontier& getCurSparseFrontier() const { return *curSparseFrontier; }
-    GDSFrontier& getNextDenseFrontier() const { return *nextDenseFrontier; }
+    PathLengths& getNextDenseFrontier() const { return *nextDenseFrontier; }
     SparseFrontier& getNextSparseFrontier() const { return *nextSparseFrontier; }
     SparseFrontier& getVertexComputeCandidates() const { return *vertexComputeCandidates; }
 
