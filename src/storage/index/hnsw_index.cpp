@@ -28,9 +28,8 @@ InMemHNSWLayer::InMemHNSWLayer(MemoryManager* mm, InMemHNSWLayerInfo info)
 void InMemHNSWLayer::insert(common::offset_t offset, common::offset_t entryPoint_,
     VisitedState& visited) {
     if (entryPoint_ == common::INVALID_OFFSET) {
-        const auto entryPointInCurrentLayer = getEntryPoint();
+        const auto entryPointInCurrentLayer = compareAndSwapEntryPoint(offset);
         if (entryPointInCurrentLayer == common::INVALID_OFFSET) {
-            setEntryPoint(offset);
             // The layer is empty. No edges need to be created.
             return;
         }
@@ -248,14 +247,18 @@ InMemHNSWIndex::InMemHNSWIndex(const main::ClientContext* context, NodeTable& ta
             this->config.alpha, this->config.efc});
 }
 
-void InMemHNSWIndex::insert(common::offset_t offset, VisitedState& upperVisited,
+bool InMemHNSWIndex::insert(common::offset_t offset, VisitedState& upperVisited,
     VisitedState& lowerVisited) {
+    if (embeddings->isNull(offset)) {
+        return false;
+    }
     auto lowerEntryPoint = upperLayer->searchNN(offset, upperLayer->getEntryPoint());
     lowerLayer->insert(offset, lowerEntryPoint, lowerVisited);
     const auto rand = randomEngine.nextRandomInteger(INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND);
     if (rand <= INSERT_TO_UPPER_LAYER_RAND_UPPER_BOUND * config.pu) {
         upperLayer->insert(offset, upperLayer->getEntryPoint(), upperVisited);
     }
+    return true;
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
