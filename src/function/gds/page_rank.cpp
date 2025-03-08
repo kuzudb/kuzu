@@ -91,11 +91,11 @@ static void addCAS(std::atomic<double>& origin, double valToAdd) {
 // Represents PageRank value for all nodes
 class PValues {
 public:
-    PValues(table_id_map_t<offset_t> numNodesMap, storage::MemoryManager* mm, double val) {
-        for (const auto& [tableID, numNodes] : numNodesMap) {
-            valueMap.allocate(tableID, numNodes, mm);
+    PValues(table_id_map_t<offset_t> maxOffsetMap, storage::MemoryManager* mm, double val) {
+        for (const auto& [tableID, maxOffset] : maxOffsetMap) {
+            valueMap.allocate(tableID, maxOffset, mm);
             pinTable(tableID);
-            for (auto i = 0u; i < numNodes; ++i) {
+            for (auto i = 0u; i < maxOffset; ++i) {
                 values[i].store(val, std::memory_order_relaxed);
             }
         }
@@ -308,10 +308,10 @@ public:
         auto clientContext = context->clientContext;
         auto transaction = clientContext->getTransaction();
         auto graph = sharedState->graph.get();
-        auto numNodesMap = graph->getNumNodesMap(transaction);
+        auto maxOffsetMap = graph->getMaxOffsetMap(transaction);
         auto numNodes = graph->getNumNodes(transaction);
-        auto p1 = PValues(numNodesMap, clientContext->getMemoryManager(), (double)1 / numNodes);
-        auto p2 = PValues(numNodesMap, clientContext->getMemoryManager(), 0);
+        auto p1 = PValues(maxOffsetMap, clientContext->getMemoryManager(), (double)1 / numNodes);
+        auto p2 = PValues(maxOffsetMap, clientContext->getMemoryManager(), 0);
         PValues* pCurrent = &p1;
         PValues* pNext = &p2;
         auto pageRankBindData = bindData->ptrCast<PageRankBindData>();
@@ -320,7 +320,7 @@ public:
         auto currentFrontier = PathLengths::getUnvisitedFrontier(context, graph);
         auto nextFrontier =
             PathLengths::getVisitedFrontier(context, graph, sharedState->getGraphNodeMaskMap());
-        auto degrees = Degrees(numNodesMap, clientContext->getMemoryManager());
+        auto degrees = Degrees(maxOffsetMap, clientContext->getMemoryManager());
         DegreesUtils::computeDegree(context, graph, sharedState->getGraphNodeMaskMap(), &degrees,
             ExtendDirection::FWD);
         auto frontierPair =

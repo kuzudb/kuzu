@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace function {
 
-struct KUZU_API GDSComputeState {
+struct GDSComputeState {
     std::unique_ptr<function::FrontierPair> frontierPair = nullptr;
     std::unique_ptr<function::EdgeCompute> edgeCompute = nullptr;
     std::unique_ptr<function::GDSAuxiliaryState> auxiliaryState = nullptr;

@@ -13,7 +13,9 @@ namespace function {
 
 class Costs {
 public:
-    Costs(const table_id_map_t<offset_t>& numNodesMap, MemoryManager* mm) { init(numNodesMap, mm); }
+    Costs(const table_id_map_t<offset_t>& maxOffsetMap, MemoryManager* mm) {
+        init(maxOffsetMap, mm);
+    }
 
     void pinTable(table_id_t tableID) { costs = costsMap.getData(tableID); }
 
@@ -36,11 +38,11 @@ public:
     }
 
 private:
-    void init(const table_id_map_t<offset_t>& numNodesMap, MemoryManager* mm) {
-        for (const auto& [tableID, numNodes] : numNodesMap) {
-            costsMap.allocate(tableID, numNodes, mm);
+    void init(const table_id_map_t<offset_t>& maxOffsetMap, MemoryManager* mm) {
+        for (const auto& [tableID, maxOffset] : maxOffsetMap) {
+            costsMap.allocate(tableID, maxOffset, mm);
             pinTable(tableID);
-            for (auto i = 0u; i < numNodes; ++i) {
+            for (auto i = 0u; i < maxOffset; ++i) {
                 costs[i].store(std::numeric_limits<double>::max(), std::memory_order_relaxed);
             }
         }
@@ -150,13 +152,15 @@ private:
     RJCompState getRJCompState(processor::ExecutionContext* context,
         nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
-        auto numNodes = sharedState->graph->getNumNodesMap(clientContext->getTransaction());
+        auto graph = sharedState->graph.get();
         auto curFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
         auto nextFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(curFrontier, nextFrontier);
         auto rjBindData = bindData->ptrCast<RJBindData>();
-        auto costs = std::make_shared<Costs>(numNodes, clientContext->getMemoryManager());
+        auto costs =
+            std::make_shared<Costs>(graph->getMaxOffsetMap(clientContext->getTransaction()),
+                clientContext->getMemoryManager());
         auto auxiliaryState = std::make_unique<WSPDestinationsAuxiliaryState>(costs);
         auto outputWriter = std::make_unique<WSPDestinationsOutputWriter>(clientContext,
             sharedState->getOutputNodeMaskMap(), sourceNodeID, costs);

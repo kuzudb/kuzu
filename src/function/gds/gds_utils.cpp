@@ -47,8 +47,8 @@ static void scheduleFrontierTask(catalog::TableCatalogEntry* fromEntry,
     // more generally decrease the number of worker threads by 1. Therefore, we instruct
     // scheduleTaskAndWaitOrError to start a new thread by passing true as the last
     // argument.
-    auto numNodes = graph->getNumNodes(transaction, fromEntry->getTableID());
-    sharedState->morselDispatcher.init(numNodes);
+    auto maxOffset = graph->getMaxOffset(transaction, fromEntry->getTableID());
+    sharedState->morselDispatcher.init(maxOffset);
     clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context,
         true /* launchNewWorkerThread */);
 }
@@ -98,10 +98,10 @@ void GDSUtils::runFrontiersUntilConvergence(processor::ExecutionContext* context
 
 static void runVertexComputeInternal(catalog::TableCatalogEntry* currentEntry, graph::Graph* graph,
     std::shared_ptr<VertexComputeTask> task, processor::ExecutionContext* context) {
-    auto numNodes =
-        graph->getNumNodes(context->clientContext->getTransaction(), currentEntry->getTableID());
+    auto maxOffset =
+        graph->getMaxOffset(context->clientContext->getTransaction(), currentEntry->getTableID());
     auto sharedState = task->getSharedState();
-    sharedState->morselDispatcher.init(numNodes);
+    sharedState->morselDispatcher.init(maxOffset);
     context->clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context,
         true /* launchNewWorkerThread */);
 }

@@ -47,10 +47,10 @@ class BFSGraph {
     using parent_entry_t = std::atomic<ParentList*>;
 
 public:
-    BFSGraph(common::table_id_map_t<common::offset_t> numNodesMap, storage::MemoryManager* mm)
+    BFSGraph(common::table_id_map_t<common::offset_t> maxOffsetMap, storage::MemoryManager* mm)
         : mm{mm} {
-        for (auto& [tableID, numNodes] : numNodesMap) {
-            parentArray.allocate(tableID, numNodes, mm);
+        for (auto& [tableID, maxOffset] : maxOffsetMap) {
+            parentArray.allocate(tableID, maxOffset, mm);
         }
     }
 

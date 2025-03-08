@@ -91,31 +91,22 @@ void SparseFrontier::mergeSparseFrontier(const SparseFrontier& other) {
     }
 }
 
-PathLengths::PathLengths(const common::table_id_map_t<common::offset_t>& numNodesMap_,
+PathLengths::PathLengths(const common::table_id_map_t<common::offset_t>& nodeMaxOffsetMap,
     storage::MemoryManager* mm)
-    : GDSFrontier{numNodesMap_} {
-    curIter.store(0);
-    for (const auto& [tableID, numNodes] : numNodesMap_) {
-        auto memBuffer = mm->allocateBuffer(false, numNodes * sizeof(frontier_entry_t));
+    : nodeMaxOffsetMap{nodeMaxOffsetMap}, curIter{0} {
+    for (const auto& [tableID, maxOffset] : nodeMaxOffsetMap) {
+        auto memBuffer = mm->allocateBuffer(false, maxOffset * sizeof(frontier_entry_t));
         masks.insert({tableID, std::move(memBuffer)});
     }
 }
 
 PathLengths::~PathLengths() = default;
 
-void PathLengths::pinCurFrontierTableID(common::table_id_t tableID) {
-    curFrontier.store(getMaskData(tableID), std::memory_order_relaxed);
-}
-
-void PathLengths::pinNextFrontierTableID(common::table_id_t tableID) {
-    nextFrontier.store(getMaskData(tableID), std::memory_order_relaxed);
-}
-
 std::shared_ptr<PathLengths> PathLengths::getUnvisitedFrontier(ExecutionContext* context,
     Graph* graph) {
     auto tx = context->clientContext->getTransaction();
     auto mm = context->clientContext->getMemoryManager();
-    auto frontier = std::make_shared<PathLengths>(graph->getNumNodesMap(tx), mm);
+    auto frontier = std::make_shared<PathLengths>(graph->getMaxOffsetMap(tx), mm);
     auto vc = std::make_unique<PathLengthsInitVertexCompute>(*frontier, UNVISITED);
     GDSUtils::runVertexCompute(context, graph, *vc);
     return frontier;
@@ -127,7 +118,7 @@ std::shared_ptr<PathLengths> PathLengths::getVisitedFrontier(processor::Executio
     graph::Graph* graph) {
     auto tx = context->clientContext->getTransaction();
     auto mm = context->clientContext->getMemoryManager();
-    auto frontier = std::make_shared<PathLengths>(graph->getNumNodesMap(tx), mm);
+    auto frontier = std::make_shared<PathLengths>(graph->getMaxOffsetMap(tx), mm);
     auto vc = std::make_unique<PathLengthsInitVertexCompute>(*frontier, INITIAL_VISITED);
     GDSUtils::runVertexCompute(context, graph, *vc);
     return frontier;
@@ -140,11 +131,11 @@ std::shared_ptr<PathLengths> PathLengths::getVisitedFrontier(processor::Executio
     }
     auto tx = context->clientContext->getTransaction();
     auto mm = context->clientContext->getMemoryManager();
-    auto frontier = std::make_shared<PathLengths>(graph->getNumNodesMap(tx), mm);
+    auto frontier = std::make_shared<PathLengths>(graph->getMaxOffsetMap(tx), mm);
     auto vc = std::make_unique<PathLengthsInitVertexCompute>(*frontier, UNVISITED);
     GDSUtils::runVertexCompute(context, graph, *vc);
     // TODO(Xiyang): we should use a vertex compute to do the following.
-    for (auto [tableID, numNodes] : graph->getNumNodesMap(tx)) {
+    for (auto [tableID, numNodes] : graph->getMaxOffsetMap(tx)) {
         frontier->pinTableID(tableID);
         auto mask = maskMap->getOffsetMask(tableID);
         for (auto i = 0u; i < numNodes; ++i) {
@@ -173,8 +164,8 @@ void PathLengthsInitVertexCompute::vertexCompute(common::offset_t startOffset,
     }
 }
 
-FrontierPair::FrontierPair(std::shared_ptr<GDSFrontier> curFrontier,
-    std::shared_ptr<GDSFrontier> nextFrontier)
+FrontierPair::FrontierPair(std::shared_ptr<PathLengths> curFrontier,
+    std::shared_ptr<PathLengths> nextFrontier)
     : curDenseFrontier{std::move(curFrontier)}, nextDenseFrontier{std::move(nextFrontier)} {
     curSparseFrontier = std::make_shared<SparseFrontier>();
     nextSparseFrontier = std::make_shared<SparseFrontier>();
@@ -235,17 +226,9 @@ bool FrontierPair::isCurFrontierSparse() {
     return curSparseFrontier->enabled();
 }
 
-void SinglePathLengthsFrontierPair::initSource(nodeID_t source) {
-    pathLengths->pinNextFrontierTableID(source.tableID);
-    pathLengths->setActive(source);
-    nextSparseFrontier->pinTableID(source.tableID);
-    nextSparseFrontier->addNode(source.offset);
-    hasActiveNodesForNextIter_.store(true);
-}
-
-void DoublePathLengthsFrontierPair::initSource(nodeID_t source) {
-    nextDenseFrontier->ptrCast<PathLengths>()->pinNextFrontierTableID(source.tableID);
-    nextDenseFrontier->ptrCast<PathLengths>()->setActive(source);
+void FrontierPair::initSource(common::nodeID_t source) {
+    nextDenseFrontier->pinNextFrontierTableID(source.tableID);
+    nextDenseFrontier->setActive(source);
     nextSparseFrontier->pinTableID(source.tableID);
     nextSparseFrontier->addNode(source.offset);
     hasActiveNodesForNextIter_.store(true);
@@ -253,8 +236,8 @@ void DoublePathLengthsFrontierPair::initSource(nodeID_t source) {
 
 void DoublePathLengthsFrontierPair::beginNewIterationInternalNoLock() {
     std::swap(curDenseFrontier, nextDenseFrontier);
-    curDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();
-    nextDenseFrontier->ptrCast<PathLengths>()->incrementCurIter();
+    curDenseFrontier->incrementCurIter();
+    nextDenseFrontier->incrementCurIter();
 }
 
 static constexpr uint64_t EARLY_TERM_NUM_NODES_THRESHOLD = 100;
@@ -267,7 +250,7 @@ bool SPEdgeCompute::terminate(processor::NodeOffsetMaskMap& maskMap) {
     }
 
     auto& frontier = frontierPair->getCurDenseFrontier();
-    for (auto& [tableID, maxNumNodes] : frontier.getNumNodesMap()) {
+    for (auto& [tableID, maxNumNodes] : frontier.getNodeMaxOffsetMap()) {
         frontier.pinTableID(tableID);
         if (!maskMap.containsTableID(tableID)) {
             continue;

@@ -146,12 +146,13 @@ public:
         return graphEntry.getRelTableIDs();
     }
 
-    common::table_id_map_t<common::offset_t> getNumNodesMap(
+    common::table_id_map_t<common::offset_t> getMaxOffsetMap(
         transaction::Transaction* transaction) const override;
 
-    common::offset_t getNumNodes(transaction::Transaction* transaction) const override;
-    common::offset_t getNumNodes(transaction::Transaction* transaction,
+    common::offset_t getMaxOffset(transaction::Transaction* transaction,
         common::table_id_t id) const override;
+
+    common::offset_t getNumNodes(transaction::Transaction* transaction) const override;
 
     std::vector<NbrTableInfo> getForwardNbrTableInfos(common::table_id_t srcNodeTableID) override;
 

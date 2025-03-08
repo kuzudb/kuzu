@@ -39,9 +39,9 @@ private:
 template<typename T>
 class ObjectArraysMap {
 public:
-    void allocate(common::table_id_t tableID, common::offset_t numNodes,
+    void allocate(common::table_id_t tableID, common::offset_t maxOffset,
         storage::MemoryManager* mm) {
-        auto buffer = mm->allocateBuffer(false, numNodes * sizeof(T));
+        auto buffer = mm->allocateBuffer(false, maxOffset * sizeof(T));
         bufferPerTable.insert({tableID, std::move(buffer)});
     }
 

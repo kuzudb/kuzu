@@ -152,12 +152,19 @@ OnDiskGraph::OnDiskGraph(ClientContext* context, GraphEntry entry)
     }
 }
 
-table_id_map_t<offset_t> OnDiskGraph::getNumNodesMap(transaction::Transaction* transaction) const {
-    table_id_map_t<offset_t> retVal;
+common::table_id_map_t<common::offset_t> OnDiskGraph::getMaxOffsetMap(
+    transaction::Transaction* transaction) const {
+    table_id_map_t<offset_t> result;
     for (auto tableID : getNodeTableIDs()) {
-        retVal[tableID] = getNumNodes(transaction, tableID);
+        result[tableID] = getMaxOffset(transaction, tableID);
     }
-    return retVal;
+    return result;
+}
+
+common::offset_t OnDiskGraph::getMaxOffset(transaction::Transaction* transaction,
+    table_id_t id) const {
+    KU_ASSERT(nodeIDToNodeTable.contains(id));
+    return nodeIDToNodeTable.at(id)->getNumTotalRows(transaction);
 }
 
 offset_t OnDiskGraph::getNumNodes(transaction::Transaction* transaction) const {
@@ -166,14 +173,9 @@ offset_t OnDiskGraph::getNumNodes(transaction::Transaction* transaction) const {
     }
     offset_t numNodes = 0u;
     for (auto id : getNodeTableIDs()) {
-        numNodes += getNumNodes(transaction, id);
+        numNodes += getMaxOffset(transaction, id);
     }
     return numNodes;
-}
-
-offset_t OnDiskGraph::getNumNodes(transaction::Transaction* transaction, table_id_t id) const {
-    KU_ASSERT(nodeIDToNodeTable.contains(id));
-    return nodeIDToNodeTable.at(id)->getNumTotalRows(transaction);
 }
 
 std::vector<NbrTableInfo> OnDiskGraph::getForwardNbrTableInfos(table_id_t srcNodeTableID) {

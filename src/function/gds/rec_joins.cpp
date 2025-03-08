@@ -117,7 +117,7 @@ void RJAlgorithm::exec(processor::ExecutionContext* context) {
         totalNumNodes = inputNodeMaskMap->getNumMaskedNode();
     } else {
         for (auto& tableID : graph->getNodeTableIDs()) {
-            totalNumNodes += graph->getNumNodes(clientContext->getTransaction(), tableID);
+            totalNumNodes += graph->getMaxOffset(clientContext->getTransaction(), tableID);
         }
     }
     common::offset_t completedNumNodes = 0;
@@ -153,10 +153,10 @@ void RJAlgorithm::exec(processor::ExecutionContext* context) {
                 GDSUtils::runVertexCompute(context, graph, *vertexCompute);
             }
         };
-        auto numNodes = graph->getNumNodes(clientContext->getTransaction(), tableID);
+        auto maxOffset = graph->getMaxOffset(clientContext->getTransaction(), tableID);
         auto mask = inputNodeMaskMap->getOffsetMask(tableID);
         if (mask->isEnabled()) {
-            for (const auto& offset : mask->range(0, numNodes)) {
+            for (const auto& offset : mask->range(0, maxOffset)) {
                 calcFunc(offset);
                 clientContext->getProgressBar()->updateProgress(context->queryID,
                     getRJProgress(totalNumNodes, completedNumNodes++));
@@ -165,7 +165,7 @@ void RJAlgorithm::exec(processor::ExecutionContext* context) {
                 }
             }
         } else {
-            for (auto offset = 0u; offset < numNodes; ++offset) {
+            for (auto offset = 0u; offset < maxOffset; ++offset) {
                 calcFunc(offset);
                 clientContext->getProgressBar()->updateProgress(context->queryID,
                     getRJProgress(totalNumNodes, completedNumNodes++));
@@ -182,7 +182,7 @@ std::unique_ptr<BFSGraph> RJAlgorithm::getBFSGraph(processor::ExecutionContext* 
     auto tx = context->clientContext->getTransaction();
     auto mm = context->clientContext->getMemoryManager();
     auto graph = sharedState->graph.get();
-    auto bfsGraph = std::make_unique<BFSGraph>(graph->getNumNodesMap(tx), mm);
+    auto bfsGraph = std::make_unique<BFSGraph>(graph->getMaxOffsetMap(tx), mm);
     auto vc = std::make_unique<BFSGraphInitVertexCompute>(*bfsGraph);
     GDSUtils::runVertexCompute(context, graph, *vc);
     return bfsGraph;

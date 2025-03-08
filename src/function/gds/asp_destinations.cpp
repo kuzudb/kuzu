@@ -14,13 +14,13 @@ namespace function {
 
 class Multiplicities {
 public:
-    Multiplicities(const std::unordered_map<table_id_t, uint64_t>& numNodesMap,
+    Multiplicities(const std::unordered_map<table_id_t, uint64_t>& maxOffsetMap,
         storage::MemoryManager* mm) {
-        for (auto& [tableID, numNodes] : numNodesMap) {
-            multiplicityArray.allocate(tableID, numNodes, mm);
+        for (auto& [tableID, maxOffset] : maxOffsetMap) {
+            multiplicityArray.allocate(tableID, maxOffset, mm);
             // Question to Trevor: Do I need to use atomics? If so, why?
             auto data = multiplicityArray.getData(tableID);
-            for (uint64_t i = 0; i < numNodes; ++i) {
+            for (uint64_t i = 0; i < maxOffset; ++i) {
                 data[i].store(0);
             }
         }
@@ -185,10 +185,11 @@ public:
 private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
         auto clientContext = context->clientContext;
-        auto frontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
-        auto numNodesMap = sharedState->graph->getNumNodesMap(clientContext->getTransaction());
+        auto graph = sharedState->graph.get();
+        auto frontier = PathLengths::getUnvisitedFrontier(context, graph);
         auto mm = clientContext->getMemoryManager();
-        auto multiplicities = std::make_shared<Multiplicities>(numNodesMap, mm);
+        auto multiplicities = std::make_shared<Multiplicities>(
+            graph->getMaxOffsetMap(clientContext->getTransaction()), mm);
         auto outputWriter = std::make_unique<ASPDestinationsOutputWriter>(clientContext,
             sharedState->getOutputNodeMaskMap(), sourceNodeID, frontier, multiplicities);
         auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(frontier);

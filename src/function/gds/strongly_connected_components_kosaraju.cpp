@@ -219,14 +219,13 @@ public:
         auto clientContext = context->clientContext;
         auto mm = clientContext->getMemoryManager();
         auto graph = sharedState->graph.get();
-        auto numNodesMap = graph->getNumNodesMap(clientContext->getTransaction());
-        auto it = numNodesMap.begin();
-        const table_id_t tableID = it->first;
-        const offset_t numNodes = it->second;
+        KU_ASSERT(graph->getNodeTableIDs().size() == 1);
+        auto tableID = graph->getNodeTableIDs()[0];
+        auto maxOffset = graph->getMaxOffset(clientContext->getTransaction(), tableID);
 
-        auto sccState = SCCState(tableID, numNodes, mm);
+        auto sccState = SCCState(tableID, maxOffset, mm);
         auto edgeCompute = make_unique<SCCCompute>(graph, sccState);
-        edgeCompute->compute(tableID, numNodes);
+        edgeCompute->compute(tableID, maxOffset);
 
         auto writer = make_unique<SCCOutputWriter>(clientContext);
         auto vertexCompute =
