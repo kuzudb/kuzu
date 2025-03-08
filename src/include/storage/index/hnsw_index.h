@@ -8,8 +8,9 @@
 
 namespace kuzu {
 namespace function {
+struct HNSWSearchState;
 struct QueryHNSWLocalState;
-}
+} // namespace function
 namespace processor {
 struct PartitionerSharedState;
 }
@@ -151,6 +152,19 @@ private:
     common::RandomEngine randomEngine;
 };
 
+struct HNSWSearchState {
+    VisitedState visited;
+    OnDiskEmbeddingScanState embeddingScanState;
+    uint64_t k;
+    QueryHNSWConfig config;
+    common::SemiMask* semiMask;
+
+    HNSWSearchState(const transaction::Transaction* transaction, MemoryManager* mm,
+        NodeTable& nodeTable, common::column_id_t columnID, common::offset_t numNodes)
+        : visited{numNodes}, embeddingScanState{transaction, mm, nodeTable, columnID}, k{0},
+          semiMask{nullptr} {}
+};
+
 class OnDiskHNSWIndex final : public HNSWIndex {
 public:
     OnDiskHNSWIndex(main::ClientContext* context, catalog::NodeTableCatalogEntry* nodeTableEntry,
@@ -167,31 +181,28 @@ public:
     common::offset_t getLowerEntryPoint() const override { return defaultLowerEntryPoint.load(); }
 
     std::vector<NodeWithDistance> search(transaction::Transaction* transaction,
-        const std::vector<float>& queryVector, common::length_t k, const QueryHNSWConfig& config,
-        VisitedState& visited, NodeTableScanState& embeddingScanState) const;
+        const std::vector<float>& queryVector, HNSWSearchState& searchState) const;
 
 private:
     common::offset_t searchNNInUpperLayer(transaction::Transaction* transaction,
         const float* queryVector, NodeTableScanState& embeddingScanState) const;
     std::vector<NodeWithDistance> searchKNNInLowerLayer(transaction::Transaction* transaction,
-        const float* queryVector, common::offset_t entryNode, common::length_t k,
-        uint64_t configuredEf, VisitedState& visited, NodeTableScanState& embeddingScanState) const;
+        const float* queryVector, common::offset_t entryNode, HNSWSearchState& searchState) const;
     std::vector<NodeWithDistance> searchFilteredKNNInLowerLayer(
         transaction::Transaction* transaction, const float* queryVector, common::offset_t entryNode,
-        common::length_t k, uint64_t configuredEf, VisitedState& visited,
-        NodeTableScanState& embeddingScanState) const;
+        HNSWSearchState& searchState) const;
     std::vector<NodeWithDistance> searchUnfilteredKNNInLowerLayer(
         transaction::Transaction* transaction, const float* queryVector, common::offset_t entryNode,
-        common::length_t k, uint64_t configuredEf, VisitedState& visited,
-        NodeTableScanState& embeddingScanState) const;
+        HNSWSearchState& searchState) const;
 
-    common::offset_vec_t oneHopFilteredSearch(uint64_t ef, graph::Graph::EdgeIterator& nbrItr,
-        VisitedState& visited) const;
+    common::offset_vec_t oneHopFilteredSearch(common::SemiMask* semiMask, uint64_t ef,
+        graph::Graph::EdgeIterator& nbrItr, VisitedState& visited) const;
     common::offset_vec_t directedTwoHopFilteredSearch(transaction::Transaction* transaction,
-        const float* queryVector, uint64_t ef, graph::Graph::EdgeIterator& nbrItr,
-        VisitedState& visited, NodeTableScanState& embeddingScanState) const;
-    common::offset_vec_t blindTwoHopFilteredSearch(uint64_t ef, graph::Graph::EdgeIterator& nbrItr,
-        VisitedState& visited) const;
+        common::SemiMask* semiMask, const float* queryVector, uint64_t ef,
+        graph::Graph::EdgeIterator& nbrItr, VisitedState& visited,
+        NodeTableScanState& embeddingScanState) const;
+    common::offset_vec_t blindTwoHopFilteredSearch(common::SemiMask* semiMask, uint64_t ef,
+        graph::Graph::EdgeIterator& nbrItr, VisitedState& visited) const;
 
 private:
     static constexpr double BLIND_SEARCH_UP_SEL_THRESHOLD = 0.08;
@@ -207,7 +218,6 @@ private:
     std::atomic<common::offset_t> defaultLowerEntryPoint;
     std::unique_ptr<graph::OnDiskGraph> upperGraph;
     std::unique_ptr<graph::OnDiskGraph> lowerGraph;
-    common::semi_mask_t* semiMask;
     std::unique_ptr<OnDiskEmbeddings> embeddings;
 };
 

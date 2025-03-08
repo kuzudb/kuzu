@@ -156,14 +156,14 @@ binder::expression_vector LogicalHashJoin::getJoinNodeIDs() const {
 binder::expression_vector LogicalHashJoin::getJoinNodeIDs(
     const std::vector<join_condition_t>& joinConditions) {
     binder::expression_vector result;
-    for (auto& [probeKey, _] : joinConditions) {
-        if (probeKey->expressionType != ExpressionType::PROPERTY) {
+    for (auto& [_, buildKey] : joinConditions) {
+        if (buildKey->expressionType != ExpressionType::PROPERTY) {
             continue;
         }
-        if (probeKey->dataType.getLogicalTypeID() != LogicalTypeID::INTERNAL_ID) {
+        if (buildKey->dataType.getLogicalTypeID() != LogicalTypeID::INTERNAL_ID) {
             continue;
         }
-        result.push_back(probeKey);
+        result.push_back(buildKey);
     }
     return result;
 }

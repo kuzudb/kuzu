@@ -92,7 +92,7 @@ struct RollbackPKDeleter final : PKColumnScanHelper {
     RollbackPKDeleter(row_idx_t startNodeOffset, row_idx_t numRows, NodeTable* table,
         PrimaryKeyIndex* pkIndex)
         : PKColumnScanHelper(table, pkIndex),
-          semiMask(RoaringBitmapSemiMaskUtil::createMask(startNodeOffset + numRows)) {
+          semiMask(SemiMaskUtil::createMask(startNodeOffset + numRows)) {
         semiMask->maskRange(startNodeOffset, startNodeOffset + numRows);
         semiMask->enable();
     }
@@ -103,7 +103,7 @@ struct RollbackPKDeleter final : PKColumnScanHelper {
     bool processScanOutput(const Transaction* transaction, NodeGroupScanResult scanResult,
         const ValueVector& scannedVector) override;
 
-    std::unique_ptr<semi_mask_t> semiMask;
+    std::unique_ptr<SemiMask> semiMask;
 };
 
 void insertPK(const Transaction* transaction, const ValueVector& nodeIDVector,
@@ -510,7 +510,7 @@ void NodeTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
     // 2. Set deleted flag for tuples that are deleted in local storage.
     row_idx_t numLocalRows = 0u;
     for (auto localNodeGroupIdx = 0u; localNodeGroupIdx < localNodeTable.getNumNodeGroups();
-         localNodeGroupIdx++) {
+        localNodeGroupIdx++) {
         const auto localNodeGroup = localNodeTable.getNodeGroup(localNodeGroupIdx);
         if (localNodeGroup->hasDeletions(transaction)) {
             // TODO(Guodong): Assume local storage is small here. Should optimize the loop away by
@@ -646,7 +646,7 @@ void NodeTable::scanPKColumn(const Transaction* transaction, PKColumnScanHelper&
 
     const auto numNodeGroups = nodeGroups_.getNumNodeGroups();
     for (node_group_idx_t nodeGroupToScan = 0u; nodeGroupToScan < numNodeGroups;
-         ++nodeGroupToScan) {
+        ++nodeGroupToScan) {
         scanState->nodeGroup = nodeGroups_.getNodeGroupNoLock(nodeGroupToScan);
 
         // It is possible for the node group to have no chunked groups if we are rolling back due to

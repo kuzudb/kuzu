@@ -1,4 +1,5 @@
 #include "binder/expression/property_expression.h"
+#include "common/roaring_mask.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
 #include "processor/expression_mapper.h"
 #include "processor/operator/scan/primary_key_scan_node_table.h"
@@ -43,7 +44,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeTable(
     std::vector<std::shared_ptr<ScanNodeTableSharedState>> sharedStates;
     for (auto& tableID : tableIDs) {
         auto table = storageManager->getTable(tableID)->ptrCast<storage::NodeTable>();
-        auto semiMask = RoaringBitmapSemiMaskUtil::createMask(table->getNumTotalRows(transaction));
+        auto semiMask = SemiMaskUtil::createMask(table->getNumTotalRows(transaction));
         sharedStates.push_back(std::make_shared<ScanNodeTableSharedState>(std::move(semiMask)));
     }
     auto alias = scan.getNodeID()->cast<PropertyExpression>().getRawVariableName();
