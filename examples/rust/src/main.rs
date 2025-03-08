@@ -19,6 +19,6 @@ fn main() -> Result<(), Error> {
     let mut result = connection.query("MATCH (a:Person) RETURN a.name AS NAME, a.age AS AGE;")?;
 
     // Print query result.
-    println!("{}", result.display());
+    println!("{}", result);
     Ok(())
 }

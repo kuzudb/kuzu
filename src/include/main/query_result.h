@@ -104,7 +104,7 @@ public:
     /**
      * @return string of first query result.
      */
-    KUZU_API std::string toString();
+    KUZU_API std::string toString() const;
 
     /**
      * @brief Resets the result tuple iterator.
@@ -140,6 +140,8 @@ private:
         std::vector<common::LogicalType> columnTypes);
     void initResultTableAndIterator(std::shared_ptr<processor::FactorizedTable> factorizedTable_);
     void validateQuerySucceed() const;
+    std::pair<std::unique_ptr<processor::FlatTuple>, std::unique_ptr<processor::FlatTupleIterator>>
+    getIterator() const;
 
 private:
     // execution status

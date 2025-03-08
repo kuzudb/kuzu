@@ -15,7 +15,7 @@
 //! conn.query("CREATE (:Person {name: 'Bob', age: 30});")?;
 //!
 //! let mut result = conn.query("MATCH (a:Person) RETURN a.name AS NAME, a.age AS AGE;")?;
-//! println!("{}", result.display());
+//! println!("{}", result);
 //! # temp_dir.close()?;
 //! # Ok(())
 //! # }

@@ -100,7 +100,7 @@ rust::String prepared_statement_error_message(const kuzu::main::PreparedStatemen
     return rust::String(statement.getErrorMessage());
 }
 
-rust::String query_result_to_string(kuzu::main::QueryResult& result) {
+rust::String query_result_to_string(const kuzu::main::QueryResult& result) {
     return rust::String(result.toString());
 }
 

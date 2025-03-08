@@ -112,7 +112,7 @@ inline std::unique_ptr<kuzu::main::QueryResult> connection_query(kuzu::main::Con
 rust::String prepared_statement_error_message(const kuzu::main::PreparedStatement& statement);
 
 /* QueryResult */
-rust::String query_result_to_string(kuzu::main::QueryResult& result);
+rust::String query_result_to_string(const kuzu::main::QueryResult& result);
 rust::String query_result_get_error_message(const kuzu::main::QueryResult& result);
 
 double query_result_get_compiling_time(const kuzu::main::QueryResult& result);
