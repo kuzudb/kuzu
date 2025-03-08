@@ -14,18 +14,16 @@ struct CreateHNSWIndexBindData final : TableFuncBindData {
     catalog::TableCatalogEntry* tableEntry;
     common::property_id_t propertyID;
     storage::HNSWIndexConfig config;
-    common::offset_t numNodes;
 
     CreateHNSWIndexBindData(main::ClientContext* context, std::string indexName,
         catalog::TableCatalogEntry* tableEntry, common::property_id_t propertyID,
-        common::offset_t numNodes, common::offset_t maxOffset, storage::HNSWIndexConfig config)
-        : TableFuncBindData{maxOffset}, context{context}, indexName{std::move(indexName)},
-          tableEntry{tableEntry}, propertyID{propertyID}, config{std::move(config)},
-          numNodes{numNodes} {}
+        common::offset_t numNodes, storage::HNSWIndexConfig config)
+        : TableFuncBindData{numNodes}, context{context}, indexName{std::move(indexName)},
+          tableEntry{tableEntry}, propertyID{propertyID}, config{std::move(config)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, propertyID,
-            numNodes, numRows, config.copy());
+            numRows, config.copy());
     }
 };
 
