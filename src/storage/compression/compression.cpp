@@ -1144,12 +1144,12 @@ std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxSto
             if (numValues > 0) {
                 const auto boolData = reinterpret_cast<const uint64_t*>(data);
                 if (!nullMask || nullMask->hasNoNullsGuarantee()) {
-                    auto [minRaw, maxRaw] = NullMask::getMinMax(boolData, numValues);
+                    auto [minRaw, maxRaw] = NullMask::getMinMax(boolData, offset, numValues);
                     returnValue = std::make_pair(std::optional(StorageValue(minRaw)),
                         std::optional(StorageValue(maxRaw)));
                 } else {
                     std::optional<StorageValue> min, max;
-                    for (size_t i = 0; i < numValues; i++) {
+                    for (size_t i = offset; i < offset + numValues; i++) {
                         if (!nullMask || !nullMask->isNull(i)) {
                             auto boolValue = NullMask::isNull(boolData, i);
                             if (!max || boolValue > max->get<bool>()) {
