@@ -1,30 +1,30 @@
 -NAME wcc
 -CALL create_projected_graph('Graph', ['Nodes'], ['Edges']);
 ---- ok
--CALL strongly_connected_components_kosaraju('Graph') RETURN group_id, min(node.id) as idmin, count(*) AS count, sum(node.id) AS idsum ORDER BY count DESC, idmin LIMIT 10;
+-CALL strongly_connected_components_kosaraju('Graph') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, sum(node.id) as nodeIdSum RETURN sccId, nodeCount, nodeIdSum ORDER BY nodeCount DESC, sccId LIMIT 10;
 ---- 10
-12|0|69066|3508648615
-35392|6168|36|1090404
-59608|55744|13|726770
-44851|33282|11|557946
-39423|44428|11|542871
-46322|48480|11|536370
-13017|3969|8|69133
-43124|28380|7|198716
-85107|4026|6|39292
-4254|31998|5|160232
+0|69066|3508648615
+6168|36|1090404
+55744|13|726770
+33282|11|557946
+44428|11|542871
+48480|11|536370
+3969|8|69133
+28380|7|198716
+4026|6|39292
+31998|5|160232
 
 # ComponentIds come from different internal mappings but normalized node ids match:
 # neo4j> CALL gds.graph.project('GraphDirected', 'Node', 'Edge');
-# neo4j> CALL gds.scc.stream('GraphDirected') YIELD nodeId, componentId RETURN componentId, MIN(gds.util.asNode(nodeId).id) as idmin, count(*) AS count, SUM(gds.util.asNode(nodeId).id) as idsum ORDER BY count DESC, idmin LIMIT 10;
-#   componentId  idmin  count  idsum
-#   0            0      69066  3508648615
-#   8472         6168   36     1090404
-#   1246         55744  13     726770
-#   83500        33282  11     557946
-#   97702        44428  11     542871
-#   100733       48480  11     536370
-#   90630        3969   8      69133
-#   78071        28380  7      198716
-#   106930       4026   6      39292
-#   82104        31998  5      160232
+# neo4j> CALL gds.scc.stream('GraphDirected') YIELD nodeId, componentId WITH componentId, MIN(gds.util.asNode(nodeId).id) as sccId, count(*) AS nodeCount, SUM(gds.util.asNode(nodeId).id) as nodeIdSum RETURN sccId, nodeCount, nodeIdSum ORDER BY nodeCount DESC, sccId LIMIT 10;
+#   sccId  nodeCount  nodeIdSum
+#   0      69066      3508648615
+#   6168   36         1090404
+#   55744  13         726770
+#   33282  11         557946
+#   44428  11         542871
+#   48480  11         536370
+#   3969   8          69133
+#   28380  7          198716
+#   4026   6          39292
+#   31998  5          160232
