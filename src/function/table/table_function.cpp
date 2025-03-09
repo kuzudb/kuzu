@@ -5,6 +5,7 @@
 #include "common/system_config.h"
 #include "function/table/bind_data.h"
 #include "planner/operator/logical_table_function_call.h"
+#include "planner/operator/sip/logical_semi_masker.h"
 #include "planner/planner.h"
 #include "processor/data_pos.h"
 #include "processor/operator/table_function_call.h"
@@ -110,6 +111,11 @@ std::unique_ptr<processor::PhysicalOperator> TableFunction::getPhysicalPlan(
     TableFunctionInitInput tableFunctionInitInput{info.bindData.get(), 0 /* queryID */,
         *clientContext};
     sharedState->funcState = info.function.initSharedStateFunc(tableFunctionInitInput);
+    if (!sharedState->funcState->semiMasks.empty()) {
+        for (const auto& logicalRoot : call.getNodeMaskRoots()) {
+            logicalRoot->ptrCast<planner::LogicalSemiMasker>()->addTarget(logicalOp);
+        }
+    }
     auto printInfo =
         std::make_unique<processor::TableFunctionCallPrintInfo>(call.getTableFunc().name);
     return std::make_unique<processor::TableFunctionCall>(std::move(info), sharedState,

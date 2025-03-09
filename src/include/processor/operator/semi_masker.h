@@ -3,7 +3,7 @@
 #include <mutex>
 
 #include "common/enums/extend_direction.h"
-#include "common/mask.h"
+#include "common/roaring_mask.h"
 #include "processor/operator/physical_operator.h"
 
 namespace kuzu {
@@ -12,8 +12,8 @@ namespace processor {
 class BaseSemiMasker;
 
 struct SemiMaskerLocalState {
-    common::table_id_map_t<std::unique_ptr<common::semi_mask_t>> localMasksPerTable;
-    common::semi_mask_t* singleTableRef = nullptr;
+    common::table_id_map_t<std::unique_ptr<common::SemiMask>> localMasksPerTable;
+    common::SemiMask* singleTableRef = nullptr;
 
     void maskSingleTable(common::offset_t offset) const { singleTableRef->mask(offset); }
     void maskMultiTable(common::nodeID_t nodeID) const {
@@ -25,7 +25,7 @@ struct SemiMaskerLocalState {
 class SemiMaskerSharedState {
 public:
     explicit SemiMaskerSharedState(
-        common::table_id_map_t<std::vector<common::semi_mask_t*>> masksPerTable)
+        common::table_id_map_t<std::vector<common::SemiMask*>> masksPerTable)
         : masksPerTable{std::move(masksPerTable)} {}
 
     SemiMaskerLocalState* appendLocalState();
@@ -33,7 +33,7 @@ public:
     void mergeToGlobal();
 
 private:
-    common::table_id_map_t<std::vector<common::semi_mask_t*>> masksPerTable;
+    common::table_id_map_t<std::vector<common::SemiMask*>> masksPerTable;
     std::vector<std::shared_ptr<SemiMaskerLocalState>> localInfos;
     std::mutex mtx;
 };

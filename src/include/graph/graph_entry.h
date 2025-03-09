@@ -61,6 +61,10 @@ public:
         KU_ASSERT(hasGraph(name));
         return nameToEntry.at(name).copy();
     }
+    const GraphEntry& getEntryRef(const std::string& name) const {
+        KU_ASSERT(hasGraph(name));
+        return nameToEntry.at(name);
+    }
     void addGraph(const std::string& name, const GraphEntry& entry) {
         nameToEntry.insert({name, entry.copy()});
     }

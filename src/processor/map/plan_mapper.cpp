@@ -1,7 +1,7 @@
 #include "processor/plan_mapper.h"
 
 #include "binder/expression/node_expression.h"
-#include "common/mask.h"
+#include "common/roaring_mask.h"
 #include "processor/operator/gds_call_shared_state.h"
 #include "processor/operator/profile.h"
 #include "storage/storage_manager.h"
@@ -209,18 +209,17 @@ FactorizedTableSchema PlanMapper::createFlatFTableSchema(const expression_vector
     return tableSchema;
 }
 
-std::unique_ptr<RoaringBitmapSemiMask> PlanMapper::getSemiMask(table_id_t tableID) const {
+std::unique_ptr<SemiMask> PlanMapper::createSemiMask(table_id_t tableID) const {
     auto table = clientContext->getStorageManager()->getTable(tableID)->ptrCast<NodeTable>();
-    return RoaringBitmapSemiMaskUtil::createMask(
-        table->getNumTotalRows(clientContext->getTransaction()));
+    return SemiMaskUtil::createMask(table->getNumTotalRows(clientContext->getTransaction()));
 }
 
-std::unique_ptr<NodeOffsetMaskMap> PlanMapper::getNodeOffsetMaskMap(
+std::unique_ptr<NodeOffsetMaskMap> PlanMapper::createNodeOffsetMaskMap(
     const binder::Expression& expr) {
     auto& node = expr.constCast<NodeExpression>();
     auto maskMap = std::make_unique<NodeOffsetMaskMap>();
     for (auto tableID : node.getTableIDs()) {
-        maskMap->addMask(tableID, getSemiMask(tableID));
+        maskMap->addMask(tableID, createSemiMask(tableID));
     }
     return maskMap;
 }
