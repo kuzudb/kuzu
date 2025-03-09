@@ -1,8 +1,8 @@
 #include "common/enums/query_rel_type.h"
 
 #include "common/assert.h"
-#include "function/gds/gds_function_collection.h"
 #include "common/exception/binder.h"
+#include "function/gds/gds_function_collection.h"
 
 using namespace kuzu::function;
 

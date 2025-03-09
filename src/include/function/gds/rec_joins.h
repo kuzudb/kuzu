@@ -33,8 +33,7 @@ struct RJBindData : public GDSBindData {
     std::shared_ptr<binder::Expression> weightPropertyExpr = nullptr;
     std::shared_ptr<binder::Expression> weightOutputExpr = nullptr;
 
-    RJBindData(graph::GraphEntry graphEntry)
-        : GDSBindData{std::move(graphEntry), nullptr} {}
+    RJBindData(graph::GraphEntry graphEntry) : GDSBindData{std::move(graphEntry), nullptr} {}
     RJBindData(const RJBindData& other);
 
     bool hasNodeInput() const override { return true; }
