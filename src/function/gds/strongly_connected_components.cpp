@@ -44,6 +44,7 @@ struct SCCComputationState {
             if (wccIds.compare_exchange_strong(nbrOffset, nbrValue, boundValue)) {
                 return true;
             }
+            nbrValue = wccIds.get(nbrOffset);
         }
         return false;
     }
