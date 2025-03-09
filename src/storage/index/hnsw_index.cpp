@@ -444,8 +444,8 @@ std::vector<NodeWithDistance> OnDiskHNSWIndex::searchFilteredKNNInLowerLayer(
     return popTopK(result, searchState.k);
 }
 
-common::offset_vec_t OnDiskHNSWIndex::oneHopFilteredSearch(common::SemiMask* semiMask,
-    uint64_t ef, graph::Graph::EdgeIterator& nbrItr, VisitedState& visited) const {
+common::offset_vec_t OnDiskHNSWIndex::oneHopFilteredSearch(common::SemiMask* semiMask, uint64_t ef,
+    graph::Graph::EdgeIterator& nbrItr, VisitedState& visited) const {
     common::offset_vec_t result;
     result.reserve(ef);
     for (const auto& neighborChunk : nbrItr) {
