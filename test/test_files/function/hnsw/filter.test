@@ -17,12 +17,56 @@
 58|0.614133
 93|0.625494
 28|0.642188
--STATEMENT MATCH (n:embeddings) WHERE n.id<100 WITH n.id as id, array_dot_product(n.vec, CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]')) AS dist RETURN id,dist ORDER BY dist LIMIT 3;
+-STATEMENT MATCH (n:embeddings) WHERE n.id < 100 WITH n.id as id, array_dot_product(n.vec, CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]')) AS dist RETURN id,dist ORDER BY dist LIMIT 3;
 -CHECK_ORDER
 ---- 3
 58|0.614133
 93|0.625494
 28|0.642188
+
+-CASE Filtered8DimDotProduct2
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+---- ok
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', distFunc := 'dotproduct');
+---- ok
+-STATEMENT CALL create_projected_graph('emb-graph', {'embeddings': {'filter': 'n.id < 50'}}, []);
+---- ok
+-STATEMENT CALL QUERY_HNSW_INDEX('e_hnsw_index', 'emb-graph', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id, _distance ORDER BY _distance;
+-CHECK_ORDER
+---- 3
+28|0.642188
+0|0.726249
+30|0.862597
+-STATEMENT MATCH (n:embeddings) WHERE n.id < 50 WITH n.id as id, array_dot_product(n.vec, CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]')) AS dist RETURN id,dist ORDER BY dist LIMIT 3;
+-CHECK_ORDER
+---- 3
+28|0.642188
+0|0.726249
+30|0.862597
+
+-CASE Filtered8DimDotProduct3
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+---- ok
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', distFunc := 'dotproduct');
+---- ok
+-STATEMENT CALL create_projected_graph('emb-graph', {'embeddings': {'filter': 'n.id < 600'}}, []);
+---- ok
+-STATEMENT CALL QUERY_HNSW_INDEX('e_hnsw_index', 'emb-graph', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id, _distance ORDER BY _distance;
+-CHECK_ORDER
+---- 3
+499|0.516378
+581|0.542726
+58|0.614133
+-STATEMENT MATCH (n:embeddings) WHERE n.id < 600 WITH n.id as id, array_dot_product(n.vec, CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]')) AS dist RETURN id,dist ORDER BY dist LIMIT 3;
+-CHECK_ORDER
+---- 3
+499|0.516378
+581|0.542726
+58|0.614133
 
 -CASE Filtered8DimL2
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
@@ -39,12 +83,56 @@
 37|0.481469
 40|0.527261
 52|0.539195
--STATEMENT MATCH (n:embeddings) WHERE n.id<100 WITH n.id as id, array_distance(n.vec, CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]')) AS dist RETURN id,dist ORDER BY dist LIMIT 3;
+-STATEMENT MATCH (n:embeddings) WHERE n.id < 100 WITH n.id as id, array_distance(n.vec, CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]')) AS dist RETURN id,dist ORDER BY dist LIMIT 3;
 -CHECK_ORDER
 ---- 3
 37|0.481469
 40|0.527261
 52|0.539195
+
+-CASE Filtered8DimL22
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+---- ok
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', distFunc := 'l2');
+---- ok
+-STATEMENT CALL create_projected_graph('emb-graph', {'embeddings': {'filter': 'n.id < 50'}}, []);
+---- ok
+-STATEMENT CALL QUERY_HNSW_INDEX('e_hnsw_index', 'emb-graph', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id, _distance ORDER BY _distance;
+-CHECK_ORDER
+---- 3
+37|0.481469
+40|0.527261
+43|0.565294
+-STATEMENT MATCH (n:embeddings) WHERE n.id < 50 WITH n.id as id, array_distance(n.vec, CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]')) AS dist RETURN id,dist ORDER BY dist LIMIT 3;
+-CHECK_ORDER
+---- 3
+37|0.481469
+40|0.527261
+43|0.565294
+
+-CASE Filtered8DimL23
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+---- ok
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec', distFunc := 'l2');
+---- ok
+-STATEMENT CALL create_projected_graph('emb-graph', {'embeddings': {'filter': 'n.id < 600'}}, []);
+---- ok
+-STATEMENT CALL QUERY_HNSW_INDEX('e_hnsw_index', 'emb-graph', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id, _distance ORDER BY _distance;
+-CHECK_ORDER
+---- 3
+333|0.344015
+444|0.353626
+133|0.363592
+-STATEMENT MATCH (n:embeddings) WHERE n.id < 600 WITH n.id as id, array_distance(n.vec, CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]')) AS dist RETURN id,dist ORDER BY dist LIMIT 3;
+-CHECK_ORDER
+---- 3
+333|0.344015
+444|0.353626
+133|0.363592
 
 -CASE Filtered8DimCos
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
@@ -61,9 +149,53 @@
 37|0.045113
 86|0.055260
 40|0.058424
--STATEMENT MATCH (n:embeddings) WHERE n.id<100 WITH n.id as id, 1-array_cosine_similarity(n.vec, CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]')) AS dist RETURN id,dist ORDER BY dist LIMIT 3;
+-STATEMENT MATCH (n:embeddings) WHERE n.id < 100 WITH n.id as id, 1-array_cosine_similarity(n.vec, CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]')) AS dist RETURN id,dist ORDER BY dist LIMIT 3;
 -CHECK_ORDER
 ---- 3
 37|0.045113
 86|0.055260
 40|0.058424
+
+-CASE Filtered8DimCos2
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+---- ok
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec');
+---- ok
+-STATEMENT CALL create_projected_graph('emb-graph', {'embeddings': {'filter': 'n.id < 50'}}, []);
+---- ok
+-STATEMENT CALL QUERY_HNSW_INDEX('e_hnsw_index', 'emb-graph', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id, _distance ORDER BY _distance;
+-CHECK_ORDER
+---- 3
+37|0.045113
+40|0.058424
+43|0.071805
+-STATEMENT MATCH (n:embeddings) WHERE n.id < 50 WITH n.id as id, 1-array_cosine_similarity(n.vec, CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]')) AS dist RETURN id,dist ORDER BY dist LIMIT 3;
+-CHECK_ORDER
+---- 3
+37|0.045113
+40|0.058424
+43|0.071805
+
+-CASE Filtered8DimCos3
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+---- ok
+-STATEMENT CALL CREATE_HNSW_INDEX('e_hnsw_index', 'embeddings', 'vec');
+---- ok
+-STATEMENT CALL create_projected_graph('emb-graph', {'embeddings': {'filter': 'n.id < 600'}}, []);
+---- ok
+-STATEMENT CALL QUERY_HNSW_INDEX('e_hnsw_index', 'emb-graph', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id, _distance ORDER BY _distance;
+-CHECK_ORDER
+---- 3
+333|0.032290
+444|0.032299
+146|0.032556
+-STATEMENT MATCH (n:embeddings) WHERE n.id < 600 WITH n.id as id, 1-array_cosine_similarity(n.vec, CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]')) AS dist RETURN id,dist ORDER BY dist LIMIT 3;
+-CHECK_ORDER
+---- 3
+333|0.032290
+444|0.032299
+146|0.032556
