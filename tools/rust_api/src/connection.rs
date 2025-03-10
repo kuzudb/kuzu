@@ -102,7 +102,8 @@ impl<'a> Connection<'a> {
         unsafe { (*self.conn.get()).pin_mut().getMaxNumThreadForExec() }
     }
 
-    /// Prepares the given query and returns the prepared statement.
+    /// Prepares the given query and returns the prepared statement. [`PreparedStatement`]s can be run
+    /// using [`Connection::execute`]
     ///
     /// # Arguments
     /// * `query`: The query to prepare.
@@ -148,6 +149,25 @@ impl<'a> Connection<'a> {
     ///
     /// # Arguments
     /// * `prepared_statement`: The prepared statement to execute
+    ///```
+    /// # use kuzu::{Database, SystemConfig, Connection, Value};
+    /// # use anyhow::Error;
+    /// #
+    /// # fn main() -> Result<(), Error> {
+    /// # let temp_dir = tempfile::tempdir()?;
+    /// # let path = temp_dir.path();
+    /// # let db = Database::new(path, SystemConfig::default())?;
+    /// let conn = Connection::new(&db)?;
+    /// conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
+    /// let mut prepared = conn.prepare("CREATE (:Person {name: $name, age: $age});")?;
+    /// conn.execute(&mut prepared,
+    ///     vec![("name", Value::String("Alice".to_string())), ("age", Value::Int64(25))])?;
+    /// conn.execute(&mut prepared,
+    ///     vec![("name", Value::String("Bob".to_string())), ("age", Value::Int64(30))])?;
+    /// # temp_dir.close()?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn execute(
         &self,
         prepared_statement: &mut PreparedStatement,
