@@ -3,7 +3,6 @@
 #include "binder/expression/expression.h"
 #include "graph/graph_entry.h"
 #include "parser/query/reading_clause/yield_variable.h"
-#include "processor/operator/gds_call_shared_state.h"
 
 namespace kuzu {
 namespace binder {
@@ -15,6 +14,7 @@ class ClientContext;
 namespace processor {
 class FactorizedTable;
 struct ExecutionContext;
+struct GDSCallSharedState;
 } // namespace processor
 
 namespace function {
@@ -91,9 +91,6 @@ public:
         const function::GDSBindInput& bindInput) const = 0;
 
     virtual void bind(const GDSBindInput& input, main::ClientContext& context) = 0;
-    // When compiling recursive pattern (e.g. [e*1..2]) as GDS.
-    // We skip binding and directly set bind data.
-    void setBindData(std::unique_ptr<GDSBindData> bindData_) { bindData = std::move(bindData_); }
 
     const GDSBindData* getBindData() const { return bindData.get(); }
 

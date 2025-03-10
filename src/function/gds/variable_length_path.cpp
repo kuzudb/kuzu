@@ -1,7 +1,4 @@
-#include <vector>
-
 #include "binder/expression/node_expression.h"
-#include "common/types/types.h"
 #include "function/gds/auxiliary_state/path_auxiliary_state.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
@@ -17,9 +14,8 @@ namespace function {
 
 class VarLenPathsOutputWriter final : public PathsOutputWriter {
 public:
-    VarLenPathsOutputWriter(main::ClientContext* context,
-        processor::NodeOffsetMaskMap* outputNodeMask, common::nodeID_t sourceNodeID,
-        PathsOutputWriterInfo info, BFSGraph& bfsGraph)
+    VarLenPathsOutputWriter(main::ClientContext* context, common::NodeOffsetMaskMap* outputNodeMask,
+        common::nodeID_t sourceNodeID, PathsOutputWriterInfo info, BFSGraph& bfsGraph)
         : PathsOutputWriter{context, outputNodeMask, sourceNodeID, info, bfsGraph} {}
 
     bool skipInternal(common::nodeID_t dstNodeID) const override {
@@ -79,37 +75,35 @@ struct VarLenJoinsEdgeCompute : public EdgeCompute {
  */
 class VarLenJoinsAlgorithm final : public RJAlgorithm {
 public:
-    VarLenJoinsAlgorithm() = default;
-    VarLenJoinsAlgorithm(const VarLenJoinsAlgorithm& other) : RJAlgorithm(other) {}
+    std::string getFunctionName() const override { return VarLenJoinsFunction::name; }
 
     // return srcNodeID, dstNodeID, length, [direction, pathNodeIDs, pathEdgeIDs] (if track path)
-    binder::expression_vector getResultColumns(const function::GDSBindInput&) const override {
-        auto rjBindData = bindData->ptrCast<RJBindData>();
+    binder::expression_vector getResultColumns(const RJBindData& bindData) const override {
         expression_vector columns;
-        columns.push_back(bindData->getNodeInput()->constCast<NodeExpression>().getInternalID());
-        columns.push_back(bindData->getNodeOutput()->constCast<NodeExpression>().getInternalID());
-        columns.push_back(rjBindData->lengthExpr);
-        if (rjBindData->writePath) {
-            if (rjBindData->extendDirection == ExtendDirection::BOTH) {
-                columns.push_back(rjBindData->directionExpr);
+        columns.push_back(bindData.nodeInput->constCast<NodeExpression>().getInternalID());
+        columns.push_back(bindData.nodeOutput->constCast<NodeExpression>().getInternalID());
+        columns.push_back(bindData.lengthExpr);
+        if (bindData.writePath) {
+            if (bindData.extendDirection == ExtendDirection::BOTH) {
+                columns.push_back(bindData.directionExpr);
             }
-            columns.push_back(rjBindData->pathNodeIDsExpr);
-            columns.push_back(rjBindData->pathEdgeIDsExpr);
+            columns.push_back(bindData.pathNodeIDsExpr);
+            columns.push_back(bindData.pathEdgeIDsExpr);
         }
         return columns;
     }
 
-    std::unique_ptr<GDSAlgorithm> copy() const override {
+    std::unique_ptr<RJAlgorithm> copy() const override {
         return std::make_unique<VarLenJoinsAlgorithm>(*this);
     }
 
 private:
-    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
+    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID,
+        const RJBindData& bindData, processor::RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
         auto frontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
-        auto bfsGraph = getBFSGraph(context);
-        auto rjBindData = bindData->ptrCast<RJBindData>();
-        auto writerInfo = rjBindData->getPathWriterInfo();
+        auto bfsGraph = getBFSGraph(context, sharedState->graph.get());
+        auto writerInfo = bindData.getPathWriterInfo();
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
         auto outputWriter = std::make_unique<VarLenPathsOutputWriter>(clientContext,
             sharedState->getOutputNodeMaskMap(), sourceNodeID, writerInfo, *bfsGraph);
@@ -126,16 +120,8 @@ private:
     }
 };
 
-function_set VarLenJoinsFunction::getFunctionSet() {
-    function_set result;
-    result.push_back(std::make_unique<GDSFunction>(getFunction()));
-    return result;
-}
-
-GDSFunction VarLenJoinsFunction::getFunction() {
-    auto algo = std::make_unique<VarLenJoinsAlgorithm>();
-    auto params = algo->getParameterTypeIDs();
-    return GDSFunction(name, std::move(params), std::move(algo));
+std::unique_ptr<RJAlgorithm> VarLenJoinsFunction::getAlgorithm() {
+    return std::make_unique<VarLenJoinsAlgorithm>();
 }
 
 } // namespace function

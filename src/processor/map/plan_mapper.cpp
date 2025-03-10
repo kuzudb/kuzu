@@ -2,7 +2,6 @@
 
 #include "binder/expression/node_expression.h"
 #include "common/mask.h"
-#include "processor/operator/gds_call_shared_state.h"
 #include "processor/operator/profile.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"

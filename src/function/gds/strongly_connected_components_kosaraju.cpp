@@ -1,17 +1,11 @@
-#include <vector>
-
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
-#include "common/exception/runtime.h"
-#include "common/types/types.h"
 #include "function/gds/gds_function_collection.h"
-#include "function/gds/gds_object_manager.h"
 #include "function/gds/gds_utils.h"
-#include "function/gds/output_writer.h"
 #include "function/gds_function.h"
-#include "graph/graph.h"
 #include "processor/execution_context.h"
-#include "processor/result/factorized_table.h"
+#include "common/exception/runtime.h"
+#include "processor/operator/gds_call_shared_state.h"
 
 using namespace std;
 using namespace kuzu::binder;
@@ -151,9 +145,9 @@ public:
     SCCVertexCompute(MemoryManager* mm, GDSCallSharedState* sharedState,
         unique_ptr<SCCOutputWriter> writer, SCCState& sccState)
         : mm{mm}, sharedState{sharedState}, writer{std::move(writer)}, sccState{sccState} {
-        localFT = sharedState->claimLocalTable(mm);
+        localFT = sharedState->factorizedTablePool.claimLocalTable(mm);
     }
-    ~SCCVertexCompute() override { sharedState->returnLocalTable(localFT); }
+    ~SCCVertexCompute() override { sharedState->factorizedTablePool.returnLocalTable(localFT); }
 
     bool beginOnTable(table_id_t /*tableID*/) override { return true; }
 
@@ -232,7 +226,7 @@ public:
             make_unique<SCCVertexCompute>(mm, sharedState.get(), std::move(writer), sccState);
         GDSUtils::runVertexCompute(context, graph, *vertexCompute);
 
-        sharedState->mergeLocalTables();
+        sharedState->factorizedTablePool.mergeLocalTables();
     }
 };
 

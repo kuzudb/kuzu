@@ -5,9 +5,9 @@
 #include "main/client_context.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_path_property_probe.h"
-#include "processor/operator/gds_call.h"
 #include "processor/operator/hash_join/hash_join_build.h"
 #include "processor/operator/path_property_probe.h"
+#include "processor/operator/recursive_extend.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::binder;
@@ -110,12 +110,13 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
             std::make_unique<ResultSetDescriptor>(logicalChild->getSchema()),
             std::move(prevOperator), getOperatorID(), std::make_unique<OPPrintInfo>());
         auto extend = logicalChild->getChild(0)->ptrCast<LogicalRecursiveExtend>();
-        auto columns = extend->getInfo().outExprs;
-        auto physicalCall = logicalOpToPhysicalOpMap.at(extend)->ptrCast<GDSCall>();
+        auto columns = extend->getResultColumns();
+        auto physicalCall = logicalOpToPhysicalOpMap.at(extend)->ptrCast<RecursiveExtend>();
         physical_op_vector_t children;
         children.push_back(std::move(prevOperator));
         prevOperator = createFTableScanAligned(columns, extend->getSchema(),
-            physicalCall->getSharedState()->fTable, DEFAULT_VECTOR_CAPACITY, std::move(children));
+            physicalCall->getSharedState()->factorizedTablePool.getGlobalTable(),
+            DEFAULT_VECTOR_CAPACITY, std::move(children));
     }
     // Map probe
     auto pathProbeInfo = PathPropertyProbeInfo();

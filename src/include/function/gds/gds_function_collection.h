@@ -1,6 +1,7 @@
 #pragma once
 
-#include "function/gds_function.h"
+#include "function/gds/rec_joins.h"
+#include "function/function.h"
 
 namespace kuzu {
 namespace function {
@@ -23,66 +24,58 @@ struct KCoreDecompositionFunction {
     static function_set getFunctionSet();
 };
 
+struct PageRankFunction {
+    static constexpr const char* name = "PAGE_RANK";
+
+    static function_set getFunctionSet();
+};
+
 struct VarLenJoinsFunction {
     static constexpr const char* name = "VAR_LEN_JOINS";
 
-    static function_set getFunctionSet();
-    static GDSFunction getFunction();
+    static std::unique_ptr<RJAlgorithm> getAlgorithm();
 };
 
 struct AllSPDestinationsFunction {
     static constexpr const char* name = "ALL_SP_DESTINATIONS";
 
-    static function_set getFunctionSet();
-    static GDSFunction getFunction();
+    static std::unique_ptr<RJAlgorithm> getAlgorithm();
 };
 
 struct AllSPPathsFunction {
     static constexpr const char* name = "ALL_SP_PATHS";
 
-    static function_set getFunctionSet();
-    static GDSFunction getFunction();
+    static std::unique_ptr<RJAlgorithm> getAlgorithm();
 };
 
 struct SingleSPDestinationsFunction {
     static constexpr const char* name = "SINGLE_SP_DESTINATIONS";
 
-    static function_set getFunctionSet();
-    static GDSFunction getFunction();
+    static std::unique_ptr<RJAlgorithm> getAlgorithm();
 };
 
 struct SingleSPPathsFunction {
     static constexpr const char* name = "SINGLE_SP_PATHS";
 
-    static function_set getFunctionSet();
-    static GDSFunction getFunction();
+    static std::unique_ptr<RJAlgorithm> getAlgorithm();
 };
 
 struct WeightedSPDestinationsFunction {
     static constexpr const char* name = "WEIGHTED_SP_DESTINATIONS";
 
-    static function_set getFunctionSet();
-    static GDSFunction getFunction();
+    static std::unique_ptr<RJAlgorithm> getAlgorithm();
 };
 
 struct WeightedSPPathsFunction {
     static constexpr const char* name = "WEIGHTED_SP_PATHS";
 
-    static function_set getFunctionSet();
-    static GDSFunction getFunction();
+    static std::unique_ptr<RJAlgorithm> getAlgorithm();
 };
 
 struct AllWeightedSPPathsFunction {
     static constexpr const char* name = "ALL_WEIGHTED_SP_PATHS";
 
-    static function_set getFunctionSet();
-    static GDSFunction getFunction();
-};
-
-struct PageRankFunction {
-    static constexpr const char* name = "PAGE_RANK";
-
-    static function_set getFunctionSet();
+    static std::unique_ptr<RJAlgorithm> getAlgorithm();
 };
 
 } // namespace function

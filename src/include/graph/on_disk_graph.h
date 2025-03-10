@@ -21,10 +21,6 @@ namespace storage {
 class MemoryManager;
 }
 
-namespace processor {
-class NodeOffsetMaskMap;
-}
-
 namespace graph {
 
 class OnDiskGraphNbrScanState : public NbrScanState {
@@ -137,7 +133,7 @@ public:
 
     GraphEntry* getGraphEntry() override { return &graphEntry; }
 
-    void setNodeOffsetMask(processor::NodeOffsetMaskMap* maskMap) { nodeOffsetMaskMap = maskMap; }
+    void setNodeOffsetMask(common::NodeOffsetMaskMap* maskMap) { nodeOffsetMaskMap = maskMap; }
 
     std::vector<common::table_id_t> getNodeTableIDs() const override {
         return graphEntry.getNodeTableIDs();
@@ -173,7 +169,7 @@ public:
 private:
     main::ClientContext* context;
     GraphEntry graphEntry;
-    processor::NodeOffsetMaskMap* nodeOffsetMaskMap = nullptr;
+    common::NodeOffsetMaskMap* nodeOffsetMaskMap = nullptr;
     common::table_id_map_t<storage::NodeTable*> nodeIDToNodeTable;
     common::table_id_map_t<std::vector<NbrTableInfo>> nodeIDToNbrTableInfos;
 };

@@ -23,7 +23,7 @@ public:
         pathLengths->pinCurFrontierTableID(tableID);
     }
 
-    void write(FactorizedTable& fTable, nodeID_t dstNodeID, GDSOutputCounter* counter) override {
+    void write(FactorizedTable& fTable, nodeID_t dstNodeID, LimitCounter* counter) override {
         auto length = pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset);
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
         lengthVector->setValue<uint16_t>(0, length);
@@ -79,24 +79,23 @@ public:
  */
 class SingleSPDestinationsAlgorithm : public RJAlgorithm {
 public:
-    SingleSPDestinationsAlgorithm() = default;
-    SingleSPDestinationsAlgorithm(const SingleSPDestinationsAlgorithm& other)
-        : RJAlgorithm{other} {}
+    std::string getFunctionName() const override { return SingleSPDestinationsFunction::name; }
 
-    expression_vector getResultColumns(const function::GDSBindInput& /*bindInput*/) const override {
+    expression_vector getResultColumns(const RJBindData& bindData) const override {
         expression_vector columns;
-        columns.push_back(bindData->getNodeInput()->constCast<NodeExpression>().getInternalID());
-        columns.push_back(bindData->getNodeOutput()->constCast<NodeExpression>().getInternalID());
-        columns.push_back(bindData->ptrCast<RJBindData>()->lengthExpr);
+        columns.push_back(bindData.nodeInput->constCast<NodeExpression>().getInternalID());
+        columns.push_back(bindData.nodeOutput->constCast<NodeExpression>().getInternalID());
+        columns.push_back(bindData.lengthExpr);
         return columns;
     }
 
-    std::unique_ptr<GDSAlgorithm> copy() const override {
+    std::unique_ptr<RJAlgorithm> copy() const override {
         return std::make_unique<SingleSPDestinationsAlgorithm>(*this);
     }
 
 private:
-    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
+    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID, const RJBindData&,
+        processor::RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
         auto frontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
         auto outputWriter = std::make_unique<SSPDestinationsOutputWriter>(clientContext,
@@ -110,16 +109,8 @@ private:
     }
 };
 
-function_set SingleSPDestinationsFunction::getFunctionSet() {
-    function_set result;
-    result.push_back(std::make_unique<GDSFunction>(getFunction()));
-    return result;
-}
-
-GDSFunction SingleSPDestinationsFunction::getFunction() {
-    auto algo = std::make_unique<SingleSPDestinationsAlgorithm>();
-    auto params = algo->getParameterTypeIDs();
-    return GDSFunction(name, std::move(params), std::move(algo));
+std::unique_ptr<RJAlgorithm> SingleSPDestinationsFunction::getAlgorithm() {
+    return std::make_unique<SingleSPDestinationsAlgorithm>();
 }
 
 } // namespace function

@@ -5,18 +5,15 @@
 #include "binder/expression/literal_expression.h"
 #include "catalog/fts_index_catalog_entry.h"
 #include "common/exception/binder.h"
-#include "common/task_system/task_scheduler.h"
 #include "common/types/internal_id_util.h"
 #include "function/fts_utils.h"
-#include "function/gds/gds_frontier.h"
-#include "function/gds/gds_task.h"
 #include "function/gds/gds_utils.h"
 #include "function/query_fts_bind_data.h"
-#include "graph/on_disk_graph.h"
 #include "processor/execution_context.h"
-#include "processor/result/factorized_table.h"
+#include "processor/operator/gds_call_shared_state.h"
 #include "storage/index/index_utils.h"
 #include "storage/storage_manager.h"
+#include "storage/store/node_table.h"
 
 namespace kuzu {
 namespace fts_extension {
@@ -159,10 +156,10 @@ public:
     QFTSVertexCompute(MemoryManager* mm, processor::GDSCallSharedState* sharedState,
         std::unique_ptr<QFTSOutputWriter> writer)
         : mm{mm}, sharedState{sharedState}, writer{std::move(writer)} {
-        localFT = sharedState->claimLocalTable(mm);
+        localFT = sharedState->factorizedTablePool.claimLocalTable(mm);
     }
 
-    ~QFTSVertexCompute() override { sharedState->returnLocalTable(localFT); }
+    ~QFTSVertexCompute() override { sharedState->factorizedTablePool.returnLocalTable(localFT); }
 
     void vertexCompute(const graph::VertexScanState::Chunk& chunk) override {
         auto docLens = chunk.getProperties<uint64_t>(0);
@@ -289,7 +286,7 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     } else {
         GDSUtils::runVertexCompute(executionContext, graph, *vc, docsEntry, vertexPropertiesToScan);
     }
-    sharedState->mergeLocalTables();
+    sharedState->factorizedTablePool.mergeLocalTables();
 }
 
 expression_vector QueryFTSAlgorithm::getResultColumns(const GDSBindInput& bindInput) const {

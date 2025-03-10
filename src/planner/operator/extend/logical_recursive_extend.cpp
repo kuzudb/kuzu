@@ -6,7 +6,7 @@ namespace planner {
 void LogicalRecursiveExtend::computeFlatSchema() {
     createEmptySchema();
     schema->createGroup();
-    for (auto& expr : info.outExprs) {
+    for (auto& expr : resultColumns) {
         schema->insertToGroupAndScope(expr, 0);
     }
 }
@@ -14,7 +14,7 @@ void LogicalRecursiveExtend::computeFlatSchema() {
 void LogicalRecursiveExtend::computeFactorizedSchema() {
     createEmptySchema();
     auto pos = schema->createGroup();
-    for (auto& e : info.outExprs) {
+    for (auto& e : resultColumns) {
         schema->insertToGroupAndScope(e, pos);
     }
 }

@@ -55,34 +55,32 @@ private:
 
 class AllSPPathsAlgorithm final : public RJAlgorithm {
 public:
-    AllSPPathsAlgorithm() = default;
-    AllSPPathsAlgorithm(const AllSPPathsAlgorithm& other) : RJAlgorithm{other} {}
+    std::string getFunctionName() const override { return AllSPPathsFunction::name; }
 
-    expression_vector getResultColumns(const function::GDSBindInput& /*bindInput*/) const override {
-        auto rjBindData = bindData->ptrCast<RJBindData>();
+    expression_vector getResultColumns(const RJBindData& bindData) const override {
         expression_vector columns;
-        columns.push_back(bindData->getNodeInput()->constCast<NodeExpression>().getInternalID());
-        columns.push_back(bindData->getNodeOutput()->constCast<NodeExpression>().getInternalID());
-        columns.push_back(rjBindData->lengthExpr);
-        if (rjBindData->extendDirection == ExtendDirection::BOTH) {
-            columns.push_back(rjBindData->directionExpr);
+        columns.push_back(bindData.nodeInput->constCast<NodeExpression>().getInternalID());
+        columns.push_back(bindData.nodeOutput->constCast<NodeExpression>().getInternalID());
+        columns.push_back(bindData.lengthExpr);
+        if (bindData.extendDirection == ExtendDirection::BOTH) {
+            columns.push_back(bindData.directionExpr);
         }
-        columns.push_back(rjBindData->pathNodeIDsExpr);
-        columns.push_back(rjBindData->pathEdgeIDsExpr);
+        columns.push_back(bindData.pathNodeIDsExpr);
+        columns.push_back(bindData.pathEdgeIDsExpr);
         return columns;
     }
 
-    std::unique_ptr<GDSAlgorithm> copy() const override {
+    std::unique_ptr<RJAlgorithm> copy() const override {
         return std::make_unique<AllSPPathsAlgorithm>(*this);
     }
 
 private:
-    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
+    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID,
+        const RJBindData& bindData, processor::RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
         auto frontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
-        auto bfsGraph = getBFSGraph(context);
-        auto rjBindData = bindData->ptrCast<RJBindData>();
-        auto writerInfo = rjBindData->getPathWriterInfo();
+        auto bfsGraph = getBFSGraph(context, sharedState->graph.get());
+        auto writerInfo = bindData.getPathWriterInfo();
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
         auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext,
             sharedState->getOutputNodeMaskMap(), sourceNodeID, writerInfo, *bfsGraph);
@@ -96,16 +94,8 @@ private:
     }
 };
 
-function_set AllSPPathsFunction::getFunctionSet() {
-    function_set result;
-    result.push_back(std::make_unique<GDSFunction>(getFunction()));
-    return result;
-}
-
-GDSFunction AllSPPathsFunction::getFunction() {
-    auto algo = std::make_unique<AllSPPathsAlgorithm>();
-    auto params = algo->getParameterTypeIDs();
-    return GDSFunction(name, std::move(params), std::move(algo));
+std::unique_ptr<RJAlgorithm> AllSPPathsFunction::getAlgorithm() {
+    return std::make_unique<AllSPPathsAlgorithm>();
 }
 
 } // namespace function

@@ -1,5 +1,6 @@
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/gds_call.h"
+#include "processor/operator/recursive_extend.h"
 #include "processor/operator/scan/scan_node_table.h"
 #include "processor/operator/semi_masker.h"
 #include "processor/plan_mapper.h"
@@ -48,6 +49,16 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(
         case PhysicalOperatorType::GDS_CALL: {
             auto sharedState = physicalOp->ptrCast<GDSCall>()->getSharedState();
             switch (semiMasker.getTargetType()) {
+            case SemiMaskTargetType::GDS_GRAPH_NODE: {
+                initMask(masksPerTable, sharedState->getGraphNodeMaskMap()->getMasks());
+            } break;
+            default:
+                KU_UNREACHABLE;
+            }
+        } break;
+        case PhysicalOperatorType::RECURSIVE_EXTEND: {
+            auto sharedState = physicalOp->ptrCast<RecursiveExtend>()->getSharedState();
+            switch (semiMasker.getTargetType()) {
             case SemiMaskTargetType::RECURSIVE_EXTEND_INPUT_NODE: {
                 initMask(masksPerTable, sharedState->getInputNodeMaskMap()->getMasks());
                 sharedState->enableInputNodeMask();
@@ -58,9 +69,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(
             } break;
             case SemiMaskTargetType::RECURSIVE_EXTEND_PATH_NODE: {
                 initMask(masksPerTable, sharedState->getPathNodeMaskMap()->getMasks());
-            } break;
-            case SemiMaskTargetType::GDS_GRAPH_NODE: {
-                initMask(masksPerTable, sharedState->getGraphNodeMaskMap()->getMasks());
             } break;
             default:
                 KU_UNREACHABLE;
