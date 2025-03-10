@@ -28,10 +28,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(
     }
     auto bindData = logicalInfo.getBindData();
     if (bindData->hasNodeInput()) {
-        sharedState->setInputNodeMask(getNodeOffsetMaskMap(*bindData->getNodeInput()));
+        sharedState->setInputNodeMask(createNodeOffsetMaskMap(*bindData->getNodeInput()));
     }
     if (bindData->hasNodeOutput()) {
-        sharedState->setOutputNodeMask(getNodeOffsetMaskMap(*bindData->getNodeOutput()));
+        sharedState->setOutputNodeMask(createNodeOffsetMaskMap(*bindData->getNodeOutput()));
     }
     auto printInfo = std::make_unique<GDSCallPrintInfo>(logicalInfo.func.name);
     auto gdsAlgorithm = logicalInfo.getGDS()->copy();
@@ -47,7 +47,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(
         auto logicalSemiMasker = logicalRoot->ptrCast<LogicalSemiMasker>();
         logicalSemiMasker->addTarget(logicalOperator);
         for (auto tableID : logicalSemiMasker->getNodeTableIDs()) {
-            maskMap->addMask(tableID, getSemiMask(tableID));
+            maskMap->addMask(tableID, createSemiMask(tableID));
         }
         auto root = mapOperator(logicalRoot.get());
         gdsCall->addChild(createDummySink(logicalRoot->getSchema(), std::move(root)));

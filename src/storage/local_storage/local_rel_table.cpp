@@ -1,6 +1,7 @@
 #include "storage/local_storage/local_rel_table.h"
 
 #include <algorithm>
+#include <numeric>
 
 #include "common/enums/rel_direction.h"
 #include "storage/store/rel_table.h"

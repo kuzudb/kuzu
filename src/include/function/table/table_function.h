@@ -3,6 +3,7 @@
 #include <mutex>
 
 #include "common/data_chunk/data_chunk.h"
+#include "common/mask.h"
 #include "function/function.h"
 #include "processor/operator/physical_operator.h"
 
@@ -57,6 +58,11 @@ struct KUZU_API TableFuncSharedState {
     common::offset_t maxOffset;
     common::offset_t curOffset;
     common::offset_t maxMorselSize;
+    // This for now is only used for QueryHNSWIndex.
+    // TODO(Guodong): This is not a good way to pass semiMasks to QueryHNSWIndex function.
+    // However, to avoid function specific logic when we handle semi mask in mapper, so we can move
+    // HNSW into an extension, we have to let semiMasks be owned by a base class.
+    common::table_id_map_t<std::unique_ptr<common::SemiMask>> semiMasks;
     std::mutex mtx;
 
     explicit TableFuncSharedState();
@@ -65,6 +71,14 @@ struct KUZU_API TableFuncSharedState {
     virtual ~TableFuncSharedState() = default;
 
     virtual TableFuncMorsel getMorsel();
+
+    common::table_id_map_t<common::SemiMask*> getSemiMasks() {
+        common::table_id_map_t<common::SemiMask*> semiMasks;
+        for (auto& [tableID, semiMask] : this->semiMasks) {
+            semiMasks.insert({tableID, semiMask.get()});
+        }
+        return semiMasks;
+    }
 
     template<class TARGET>
     TARGET* ptrCast() {

@@ -27,6 +27,10 @@ public:
     void setColumnPredicates(std::vector<storage::ColumnPredicateSet> predicates) {
         bindData->setColumnPredicates(std::move(predicates));
     }
+    void setNodeMaskRoots(std::vector<std::shared_ptr<LogicalOperator>> nodeMaskRoots_) {
+        nodeMaskRoots = std::move(nodeMaskRoots_);
+    }
+    std::vector<std::shared_ptr<LogicalOperator>> getNodeMaskRoots() const { return nodeMaskRoots; }
 
     void computeFlatSchema() override;
     void computeFactorizedSchema() override;
@@ -43,6 +47,7 @@ private:
     function::TableFunction tableFunc;
     std::unique_ptr<function::TableFuncBindData> bindData;
     binder::expression_vector columns;
+    std::vector<std::shared_ptr<LogicalOperator>> nodeMaskRoots;
 };
 
 } // namespace planner
