@@ -73,7 +73,7 @@ public:
     }
 
     T getRelaxed(const common::offset_t pos) {
-        KU_ASSERT(pos < data.size());
+        KU_ASSERT(pos < array.data.size());
         return array.data[pos].load(std::memory_order_relaxed);
     }
 
