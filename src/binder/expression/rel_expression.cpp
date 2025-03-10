@@ -30,9 +30,9 @@ std::string RelExpression::detailsToString() const {
         break;
     }
     if (QueryRelTypeUtils::isRecursive(relType)) {
-        result += std::to_string(getLowerBound());
+        result += std::to_string(recursiveInfo->bindData->lowerBound);
         result += "..";
-        result += std::to_string(getUpperBound());
+        result += std::to_string(recursiveInfo->bindData->upperBound);
     }
     return result;
 }

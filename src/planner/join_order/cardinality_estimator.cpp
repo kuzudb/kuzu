@@ -234,7 +234,8 @@ double CardinalityEstimator::getExtensionRate(const RelExpression& rel,
     case QueryRelType::VARIABLE_LENGTH_WALK:
     case QueryRelType::VARIABLE_LENGTH_TRAIL:
     case QueryRelType::VARIABLE_LENGTH_ACYCLIC: {
-        auto rate = oneHopExtensionRate * std::max<uint16_t>(rel.getUpperBound(), 1);
+        auto rate = oneHopExtensionRate *
+                    std::max<uint16_t>(rel.getRecursiveInfo()->bindData->upperBound, 1);
         return rate * context->getClientConfig()->recursivePatternCardinalityScaleFactor;
     }
     case QueryRelType::SHORTEST:
@@ -242,7 +243,9 @@ double CardinalityEstimator::getExtensionRate(const RelExpression& rel,
     case QueryRelType::WEIGHTED_SHORTEST:
     case QueryRelType::ALL_WEIGHTED_SHORTEST: {
         auto rate = std::min<double>(
-            oneHopExtensionRate * std::max<uint16_t>(rel.getUpperBound(), 1), numRels);
+            oneHopExtensionRate *
+                std::max<uint16_t>(rel.getRecursiveInfo()->bindData->upperBound, 1),
+            numRels);
         return rate * context->getClientConfig()->recursivePatternCardinalityScaleFactor;
     }
     default:

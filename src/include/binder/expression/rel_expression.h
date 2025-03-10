@@ -3,6 +3,8 @@
 #include "common/constants.h"
 #include "common/enums/extend_direction.h"
 #include "common/enums/query_rel_type.h"
+#include "function/gds/rec_joins.h"
+#include "function/gds_function.h"
 #include "node_expression.h"
 
 namespace kuzu {
@@ -19,34 +21,25 @@ class RelExpression;
 struct RecursiveInfo {
     /*
      * E.g. [e*1..2 (r, n) | WHERE n.age > 10 AND r.year = 2012 ]
-     * lowerBound = 1
-     * upperBound = 2
      * node = n
      * nodeCopy = n (see comment below)
      * rel = r
      * predicates = [n.age > 10, r.year = 2012]
      * */
-    uint64_t lowerBound = 0;
-    uint64_t upperBound = 0;
     std::shared_ptr<NodeExpression> node = nullptr;
     // NodeCopy has the same fields as node but a different unique name.
     // We use nodeCopy to plan recursive plan because boundNode&nbrNode cannot be the same.
     std::shared_ptr<NodeExpression> nodeCopy = nullptr;
     std::shared_ptr<RelExpression> rel = nullptr;
-
-    std::shared_ptr<Expression> lengthExpression = nullptr;
+    // Predicates
     std::shared_ptr<Expression> nodePredicate = nullptr;
     std::shared_ptr<Expression> relPredicate = nullptr;
     // Projection list
     expression_vector nodeProjectionList;
     expression_vector relProjectionList;
-    // Path expressions
-    std::shared_ptr<Expression> pathNodeIDsExpr = nullptr;
-    std::shared_ptr<Expression> pathEdgeIDsExpr = nullptr;
-    std::shared_ptr<Expression> pathEdgeDirectionsExpr = nullptr;
-    // Edge property representing weight
-    std::shared_ptr<Expression> weightPropertyExpr = nullptr;
-    std::shared_ptr<Expression> weightOutputExpr = nullptr;
+    // Function information
+    function::GDSFunction function;
+    std::unique_ptr<function::RJBindData> bindData;
 };
 
 class RelExpression final : public NodeOrRelExpression {
@@ -94,10 +87,9 @@ public:
         recursiveInfo = std::move(recursiveInfo_);
     }
     const RecursiveInfo* getRecursiveInfo() const { return recursiveInfo.get(); }
-    size_t getLowerBound() const { return recursiveInfo->lowerBound; }
-    size_t getUpperBound() const { return recursiveInfo->upperBound; }
     std::shared_ptr<Expression> getLengthExpression() const {
-        return recursiveInfo->lengthExpression;
+        KU_ASSERT(recursiveInfo != nullptr);
+        return recursiveInfo->bindData->lengthExpr;
     }
 
     bool isSelfLoop() const { return *srcNode == *dstNode; }

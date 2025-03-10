@@ -4,8 +4,6 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/join_type.h"
-#include "function/gds/gds_function_collection.h"
-#include "function/gds/rec_joins.h"
 #include "function/gds_function.h"
 #include "graph/graph_entry.h"
 #include "main/client_context.h"
@@ -106,59 +104,19 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     ExtendDirection direction, LogicalPlan& plan) {
     // GDS pipeline
     auto recursiveInfo = rel->getRecursiveInfo();
-    // Bind graph entry.
-    auto graphEntry =
-        graph::GraphEntry(recursiveInfo->node->getEntries(), recursiveInfo->rel->getEntries());
-    if (recursiveInfo->relPredicate != nullptr) {
-        graphEntry.setRelPredicate(recursiveInfo->relPredicate);
-    }
-
-    GDSFunction gdsFunction;
-    switch (rel->getRelType()) {
-    case QueryRelType::VARIABLE_LENGTH_WALK:
-    case QueryRelType::VARIABLE_LENGTH_TRAIL:
-    case QueryRelType::VARIABLE_LENGTH_ACYCLIC: {
-        gdsFunction = VarLenJoinsFunction::getFunction();
-    } break;
-    case QueryRelType::SHORTEST: {
-        gdsFunction = SingleSPPathsFunction::getFunction();
-    } break;
-    case QueryRelType::ALL_SHORTEST: {
-        gdsFunction = AllSPPathsFunction::getFunction();
-    } break;
-    case QueryRelType::WEIGHTED_SHORTEST: {
-        gdsFunction = WeightedSPPathsFunction::getFunction();
-    } break;
-    case QueryRelType::ALL_WEIGHTED_SHORTEST: {
-        gdsFunction = AllWeightedSPPathsFunction::getFunction();
-    } break;
-    default:
-        KU_UNREACHABLE;
-    }
-    auto semantic = QueryRelTypeUtils::getPathSemantic(rel->getRelType());
-
-    auto bindData = std::make_unique<RJBindData>(graphEntry.copy(), nbrNode);
+    // Fill bind data with direction information. This can only be decided at planning time.
+    auto bindData = recursiveInfo->bindData.get();
+    bindData->nodeOutput = nbrNode;
     bindData->nodeInput = boundNode;
-    bindData->lowerBound = recursiveInfo->lowerBound;
-    bindData->upperBound = recursiveInfo->upperBound;
-    bindData->semantic = semantic;
     bindData->extendDirection = direction;
     // If we extend from right to left, we need to print path in reverse direction.
     bindData->flipPath = *boundNode == *rel->getRightNode();
-    if (direction == common::ExtendDirection::BOTH) {
-        bindData->directionExpr = recursiveInfo->pathEdgeDirectionsExpr;
-    }
-    bindData->lengthExpr = recursiveInfo->lengthExpression;
-    bindData->pathNodeIDsExpr = recursiveInfo->pathNodeIDsExpr;
-    bindData->pathEdgeIDsExpr = recursiveInfo->pathEdgeIDsExpr;
-    if (recursiveInfo->weightPropertyExpr != nullptr) {
-        bindData->weightPropertyExpr = recursiveInfo->weightPropertyExpr;
-        bindData->weightOutputExpr = recursiveInfo->weightOutputExpr;
-    }
-    gdsFunction.gds->setBindData(std::move(bindData));
+
+    auto function = recursiveInfo->function.copy();
+    function.gds->setBindData(bindData->copy());
     GDSBindInput input;
-    auto resultColumns = gdsFunction.gds->getResultColumns(input);
-    auto gdsInfo = BoundGDSCallInfo(gdsFunction.copy(), std::move(resultColumns));
+    auto resultColumns = function.gds->getResultColumns(input);
+    auto gdsInfo = BoundGDSCallInfo(std::move(function), std::move(resultColumns));
 
     std::shared_ptr<LogicalOperator> nodeMaskRoot = nullptr;
     if (recursiveInfo->nodePredicate != nullptr) {
@@ -212,8 +170,8 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
             pathNodePropertyScanRoot, pathRelPropertyScanRoot, RecursiveJoinType::TRACK_PATH);
     pathPropertyProbe->direction = direction;
     pathPropertyProbe->extendFromLeft = *boundNode == *rel->getLeftNode();
-    pathPropertyProbe->pathNodeIDs = recursiveInfo->pathNodeIDsExpr;
-    pathPropertyProbe->pathEdgeIDs = recursiveInfo->pathEdgeIDsExpr;
+    pathPropertyProbe->pathNodeIDs = recursiveInfo->bindData->pathNodeIDsExpr;
+    pathPropertyProbe->pathEdgeIDs = recursiveInfo->bindData->pathEdgeIDsExpr;
     pathPropertyProbe->computeFactorizedSchema();
     auto extensionRate =
         cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTransaction());
