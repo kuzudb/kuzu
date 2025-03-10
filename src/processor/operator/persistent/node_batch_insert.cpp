@@ -2,7 +2,6 @@
 
 #include "common/cast.h"
 #include "common/string_format.h"
-#include "function/table/scan_functions.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/index_builder.h"
 #include "processor/result/factorized_table_util.h"

@@ -6,6 +6,7 @@
 
 #include "common/copy_constructors.h"
 #include "common/enums/scan_source_type.h"
+#include "expression/parsed_expression.h"
 #include "parser/statement.h"
 
 namespace kuzu {
@@ -52,7 +53,7 @@ struct QueryScanSource : public BaseScanSource {
 };
 
 struct TableFuncScanSource : public BaseScanSource {
-    std::unique_ptr<ParsedExpression> functionExpression;
+    std::unique_ptr<ParsedExpression> functionExpression = nullptr;
 
     explicit TableFuncScanSource(std::unique_ptr<ParsedExpression> functionExpression)
         : BaseScanSource{common::ScanSourceType::TABLE_FUNC},

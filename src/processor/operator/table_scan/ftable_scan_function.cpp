@@ -1,6 +1,5 @@
 #include "processor/operator/table_scan/ftable_scan_function.h"
 
-#include "function/table/scan_functions.h"
 #include "function/table/simple_table_function.h"
 #include "processor/result/factorized_table.h"
 
@@ -16,7 +15,7 @@ struct FTableScanSharedState final : public SimpleTableFuncSharedState {
     offset_t nextTupleIdx;
 
     FTableScanSharedState(std::shared_ptr<FactorizedTable> table, uint64_t morselSize)
-        : SimpleTableFuncSharedState{table->getNumTuples() - 1}, table{std::move(table)},
+        : SimpleTableFuncSharedState{table->getNumTuples()}, table{std::move(table)},
           morselSize{morselSize}, nextTupleIdx{0} {}
 
     TableFuncMorsel getMorsel() override {
