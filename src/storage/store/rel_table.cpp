@@ -251,9 +251,9 @@ std::pair<offset_t, offset_t> RelTable::appendToLastNodeGroup(const Transaction*
 void RelTable::lookup(transaction::Transaction* transaction, common::ValueVector* IDs,
     std::vector<common::column_id_t>& columnIDs,
     std::vector<common::ValueVector*>& outputVectors) const {
-    //
+    // TODO(Rui): Implement lookup here. Refer NodeTable::lookup please.
+    // You can change this function's interface to mimick NodeTable:lookup if you want.
 }
-
 
 void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
     checkRelMultiplicityConstraint(transaction, insertState);

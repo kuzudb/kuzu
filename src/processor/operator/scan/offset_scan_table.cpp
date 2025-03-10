@@ -15,7 +15,7 @@ bool OffsetScanTable::getNextTuplesInternal(ExecutionContext* context) {
             return false;
         }
         auto transaction = context->clientContext->getTransaction();
-        offsetScanInfo.table;
+        // TODO(Rui): Finish this to perform lookups into the rel table.
     }
 }
 

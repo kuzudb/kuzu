@@ -94,6 +94,8 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
     if (nbrNodeTableIDSet.size() > nbrNode->getNumEntries()) {
         appendNodeLabelFilter(nbrNode->getInternalID(), nbrNode->getTableIDsSet(), plan);
     }
+    // TODO(Rui): Add a new logical operator: LogicalOffsetScan. and append the new operator into
+    // the logical plan. It should be the last operator in the plan inside this function.
 }
 
 void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& boundNode,
