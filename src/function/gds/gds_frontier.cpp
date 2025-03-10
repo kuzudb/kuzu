@@ -165,11 +165,7 @@ void PathLengthsInitVertexCompute::vertexCompute(common::offset_t startOffset,
 FrontierPair::FrontierPair(std::shared_ptr<PathLengths> curFrontier,
     std::shared_ptr<PathLengths> nextFrontier)
     : curDenseFrontier{std::move(curFrontier)}, nextDenseFrontier{std::move(nextFrontier)} {
-    curSparseFrontier = std::make_shared<SparseFrontier>();
-    nextSparseFrontier = std::make_shared<SparseFrontier>();
-    vertexComputeCandidates = std::make_shared<SparseFrontier>();
-    hasActiveNodesForNextIter_.store(false);
-    curIter.store(0u);
+    initState();
 }
 
 void FrontierPair::beginNewIteration() {
@@ -190,7 +186,7 @@ void FrontierPair::initGDS() {
     nextSparseFrontier->disable();
 }
 
-void FrontierPair::reset() {
+void FrontierPair::initState() {
     curSparseFrontier = std::make_shared<SparseFrontier>();
     nextSparseFrontier = std::make_shared<SparseFrontier>();
     vertexComputeCandidates = std::make_shared<SparseFrontier>();

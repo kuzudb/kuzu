@@ -229,7 +229,7 @@ public:
     virtual void initSource(common::nodeID_t source);
     // Initialize for gds computation which usually starts from a large number of nodes;
     void initGDS();
-    void reset();
+    void initState();
 
     virtual void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
         common::table_id_t nextTableID);
