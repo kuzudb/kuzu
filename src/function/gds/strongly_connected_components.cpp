@@ -28,19 +28,19 @@ static constexpr offset_t SCC_UNSET = std::numeric_limits<offset_t>::max();
 struct SCCComputationState {
     std::atomic<bool> allSccIdsSet;
     AtomicObjectArray<offset_t> sccIDs;
-    AtomicObjectArray<offset_t> fwdWccIDs;
-    AtomicObjectArray<offset_t> bwdWccIDs;
+    AtomicObjectArray<offset_t> fwdColors;
+    AtomicObjectArray<offset_t> bwdColors;
 
     SCCComputationState(const offset_t numNodes, MemoryManager* mm)
         : sccIDs{AtomicObjectArray<offset_t>(numNodes, mm)},
-          fwdWccIDs{AtomicObjectArray<offset_t>(numNodes, mm)},
-          bwdWccIDs{AtomicObjectArray<offset_t>(numNodes, mm)} {
+          fwdColors{AtomicObjectArray<offset_t>(numNodes, mm)},
+          bwdColors{AtomicObjectArray<offset_t>(numNodes, mm)} {
         allSccIdsSet.store(false, std::memory_order_relaxed);
     }
 
     bool update(offset_t boundOffset, offset_t nbrOffset, bool isFwd) {
-        auto& wccIds = isFwd ? fwdWccIDs : bwdWccIDs;
-        return wccIds.compare_exchange_max(boundOffset, nbrOffset);
+        auto& colors = isFwd ? fwdColors : bwdColors;
+        return colors.compare_exchange_max(boundOffset, nbrOffset);
     }
 
     bool isSccIdSet(offset_t nodeId) { return sccIDs.getRelaxed(nodeId) != SCC_UNSET; }
@@ -66,17 +66,17 @@ private:
     SCCComputationState& computationState;
 };
 
-class SetNewSccIds : public VertexCompute {
+class FindNewSccIds : public VertexCompute {
 public:
-    SetNewSccIds(SCCComputationState& computationState) : computationState{computationState} {}
+    FindNewSccIds(SCCComputationState& computationState) : computationState{computationState} {}
 
     bool beginOnTable(table_id_t) override { return true; }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
             if (!computationState.isSccIdSet(i)) {
-                auto fwdColor = computationState.fwdWccIDs.getRelaxed(i);
-                auto bwdColor = computationState.bwdWccIDs.getRelaxed(i);
+                auto fwdColor = computationState.fwdColors.getRelaxed(i);
+                auto bwdColor = computationState.bwdColors.getRelaxed(i);
                 if (fwdColor == bwdColor) {
                     computationState.sccIDs.setRelaxed(i, fwdColor);
                 } else {
@@ -92,28 +92,28 @@ public:
     void reset() { computationState.allSccIdsSet.store(true, std::memory_order_relaxed); }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<SetNewSccIds>(computationState);
+        return std::make_unique<FindNewSccIds>(computationState);
     }
 
 private:
     SCCComputationState& computationState;
 };
 
-class SetInitialWccIds : public VertexCompute {
+class SetInitialColors : public VertexCompute {
 public:
-    SetInitialWccIds(SCCComputationState& computationState) : computationState{computationState} {}
+    SetInitialColors(SCCComputationState& computationState) : computationState{computationState} {}
 
     bool beginOnTable(table_id_t) override { return true; }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
-            computationState.fwdWccIDs.setRelaxed(i, i);
-            computationState.bwdWccIDs.setRelaxed(i, i);
+            computationState.fwdColors.setRelaxed(i, i);
+            computationState.bwdColors.setRelaxed(i, i);
         }
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<SetInitialWccIds>(computationState);
+        return std::make_unique<SetInitialColors>(computationState);
     }
 
 private:
@@ -149,10 +149,10 @@ private:
     SCCComputationState& computationState;
 };
 
-struct ComputeWccIds : public EdgeCompute {
+struct ComputeColors : public EdgeCompute {
     SCCComputationState& computationState;
 
-    ComputeWccIds(SCCComputationState& computationState) : computationState{computationState} {}
+    ComputeColors(SCCComputationState& computationState) : computationState{computationState} {}
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
         bool isFwd) override {
@@ -170,7 +170,7 @@ struct ComputeWccIds : public EdgeCompute {
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
-        return std::make_unique<ComputeWccIds>(computationState);
+        return std::make_unique<ComputeColors>(computationState);
     }
 };
 
@@ -287,26 +287,26 @@ public:
         frontierPair->getCurSparseFrontier().disable();
         frontierPair->getNextSparseFrontier().disable();
 
-        auto setNewSccIds = std::make_unique<SetNewSccIds>(computationState);
-        auto setInitialWccIds = std::make_unique<SetInitialWccIds>(computationState);
-        auto computeWccIds = std::make_unique<ComputeWccIds>(computationState);
+        auto setNewSccIds = std::make_unique<FindNewSccIds>(computationState);
+        auto setInitialColors = std::make_unique<SetInitialColors>(computationState);
+        auto computeColors = std::make_unique<ComputeColors>(computationState);
         auto auxiliaryState = std::make_unique<SccAuxiliaryState>();
-        auto computeState = GDSComputeState(std::move(frontierPair), std::move(computeWccIds),
+        auto computeState = GDSComputeState(std::move(frontierPair), std::move(computeColors),
             std::move(auxiliaryState), sharedState->getOutputNodeMaskMap());
         auto initializeFrontiers =
             std::make_unique<InitializeFrontiers>(*computeState.frontierPair, computationState);
 
         for (auto i = 0; i < MAX_ITERATION; i++) {
-            GDSUtils::runVertexCompute(context, graph, *setInitialWccIds);
+            GDSUtils::runVertexCompute(context, graph, *setInitialColors);
 
-            // Fwd WCC.
+            // Fwd colors.
             computeState.frontierPair->reset();
             computeState.frontierPair->initGDS();
             GDSUtils::runVertexCompute(context, graph, *initializeFrontiers);
             GDSUtils::runFrontiersUntilConvergence(context, computeState, graph,
                 ExtendDirection::FWD, MAX_ITERATION);
 
-            // Bwd WCC.
+            // Bwd colors.
             computeState.frontierPair->reset();
             computeState.frontierPair->initGDS();
             GDSUtils::runVertexCompute(context, graph, *initializeFrontiers);
