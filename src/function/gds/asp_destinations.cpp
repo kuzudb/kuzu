@@ -91,7 +91,7 @@ public:
         multiplicities->pinTargetTable(tableID);
     }
 
-    void write(FactorizedTable& fTable, nodeID_t dstNodeID, GDSOutputCounter* counter) override {
+    void write(FactorizedTable& fTable, nodeID_t dstNodeID, LimitCounter* counter) override {
         auto length = pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset);
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
         lengthVector->setValue<uint16_t>(0, length);
@@ -167,23 +167,23 @@ private:
  */
 class AllSPDestinationsAlgorithm final : public RJAlgorithm {
 public:
-    AllSPDestinationsAlgorithm() = default;
-    AllSPDestinationsAlgorithm(const AllSPDestinationsAlgorithm& other) : RJAlgorithm{other} {}
+    std::string getFunctionName() const override { return AllSPDestinationsFunction::name; }
 
-    expression_vector getResultColumns(const function::GDSBindInput& /*bindInput*/) const override {
+    expression_vector getResultColumns(const RJBindData& bindData) const override {
         expression_vector columns;
-        columns.push_back(bindData->getNodeInput()->constCast<NodeExpression>().getInternalID());
-        columns.push_back(bindData->getNodeOutput()->constCast<NodeExpression>().getInternalID());
-        columns.push_back(bindData->ptrCast<RJBindData>()->lengthExpr);
+        columns.push_back(bindData.nodeInput->constCast<NodeExpression>().getInternalID());
+        columns.push_back(bindData.nodeOutput->constCast<NodeExpression>().getInternalID());
+        columns.push_back(bindData.lengthExpr);
         return columns;
     }
 
-    std::unique_ptr<GDSAlgorithm> copy() const override {
+    std::unique_ptr<RJAlgorithm> copy() const override {
         return std::make_unique<AllSPDestinationsAlgorithm>(*this);
     }
 
 private:
-    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID) override {
+    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID, const RJBindData&,
+        processor::RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
         auto graph = sharedState->graph.get();
         auto frontier = PathLengths::getUnvisitedFrontier(context, graph);
@@ -202,16 +202,8 @@ private:
     }
 };
 
-function_set AllSPDestinationsFunction::getFunctionSet() {
-    function_set result;
-    result.push_back(std::make_unique<GDSFunction>(getFunction()));
-    return result;
-}
-
-GDSFunction AllSPDestinationsFunction::getFunction() {
-    auto algo = std::make_unique<AllSPDestinationsAlgorithm>();
-    auto params = algo->getParameterTypeIDs();
-    return GDSFunction(name, std::move(params), std::move(algo));
+std::unique_ptr<RJAlgorithm> AllSPDestinationsFunction::getAlgorithm() {
+    return std::make_unique<AllSPDestinationsAlgorithm>();
 }
 
 } // namespace function

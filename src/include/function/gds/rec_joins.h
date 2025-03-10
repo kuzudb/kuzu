@@ -3,17 +3,18 @@
 #include "common/enums/extend_direction.h"
 #include "common/enums/path_semantic.h"
 #include "function/gds/gds.h"
-#include "function/gds/gds_frontier.h"
 #include "function/gds/gds_state.h"
 #include "output_writer.h"
+#include "processor/operator/recursive_extend_shared_state.h"
 
 namespace kuzu {
 namespace function {
 
-struct RJBindData : public GDSBindData {
-    static constexpr uint16_t DEFAULT_MAXIMUM_ALLOWED_UPPER_BOUND = (uint16_t)255;
+struct RJBindData {
+    graph::GraphEntry graphEntry;
 
     std::shared_ptr<binder::Expression> nodeInput = nullptr;
+    std::shared_ptr<binder::Expression> nodeOutput = nullptr;
     // For any form of shortest path lower bound must always be 1.
     // If lowerBound equals to 0, an empty path with source node only will be returned.
     uint16_t lowerBound = 0;
@@ -33,19 +34,10 @@ struct RJBindData : public GDSBindData {
     std::shared_ptr<binder::Expression> weightPropertyExpr = nullptr;
     std::shared_ptr<binder::Expression> weightOutputExpr = nullptr;
 
-    explicit RJBindData(graph::GraphEntry graphEntry)
-        : GDSBindData{std::move(graphEntry), nullptr} {}
+    explicit RJBindData(graph::GraphEntry graphEntry) : graphEntry{std::move(graphEntry)} {}
     RJBindData(const RJBindData& other);
 
-    bool hasNodeInput() const override { return true; }
-    std::shared_ptr<binder::Expression> getNodeInput() const override { return nodeInput; }
-    bool hasNodeOutput() const override { return true; }
-
     PathsOutputWriterInfo getPathWriterInfo() const;
-
-    std::unique_ptr<GDSBindData> copy() const override {
-        return std::make_unique<RJBindData>(*this);
-    }
 };
 
 struct RJCompState {
@@ -57,28 +49,21 @@ struct RJCompState {
         : gdsComputeState{std::move(gdsComputeState)}, outputWriter{std::move(writer)} {}
 };
 
-class RJAlgorithm : public GDSAlgorithm {
-    static constexpr char DIRECTION_COLUMN_NAME[] = "direction";
-    static constexpr char LENGTH_COLUMN_NAME[] = "length";
-    static constexpr char PATH_NODE_IDS_COLUMN_NAME[] = "pathNodeIDs";
-    static constexpr char PATH_EDGE_IDS_COLUMN_NAME[] = "pathEdgeIDs";
-
+class RJAlgorithm {
 public:
-    RJAlgorithm() = default;
-    RJAlgorithm(const RJAlgorithm& other) : GDSAlgorithm{other} {}
+    virtual ~RJAlgorithm() = default;
 
-    void bind(const kuzu::function::GDSBindInput& input, main::ClientContext& context) override;
-
-    void exec(processor::ExecutionContext* context) override;
-
+    virtual std::string getFunctionName() const = 0;
+    virtual binder::expression_vector getResultColumns(const RJBindData& bindData) const = 0;
     virtual RJCompState getRJCompState(processor::ExecutionContext* context,
-        common::nodeID_t sourceNodeID) = 0;
+        common::nodeID_t sourceNodeID, const RJBindData& bindData,
+        processor::RecursiveExtendSharedState* sharedState) = 0;
 
-    // Set algorithm to NOT track path
-    void setToNoPath();
+    virtual std::unique_ptr<RJAlgorithm> copy() const = 0;
 
 protected:
-    std::unique_ptr<BFSGraph> getBFSGraph(processor::ExecutionContext* context);
+    std::unique_ptr<BFSGraph> getBFSGraph(processor::ExecutionContext* context,
+        graph::Graph* graph);
 };
 
 } // namespace function

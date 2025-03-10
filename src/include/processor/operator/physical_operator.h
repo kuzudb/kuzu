@@ -53,6 +53,7 @@ enum class PhysicalOperatorType : uint8_t {
     PRIMARY_KEY_SCAN_NODE_TABLE,
     PROJECTION,
     PROFILE,
+    RECURSIVE_EXTEND,
     RESULT_COLLECTOR,
     SCAN_NODE_TABLE,
     SCAN_REL_TABLE,

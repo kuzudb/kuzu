@@ -159,10 +159,10 @@ public:
     QFTSVertexCompute(MemoryManager* mm, processor::GDSCallSharedState* sharedState,
         std::unique_ptr<QFTSOutputWriter> writer)
         : mm{mm}, sharedState{sharedState}, writer{std::move(writer)} {
-        localFT = sharedState->claimLocalTable(mm);
+        localFT = sharedState->factorizedTablePool.claimLocalTable(mm);
     }
 
-    ~QFTSVertexCompute() override { sharedState->returnLocalTable(localFT); }
+    ~QFTSVertexCompute() override { sharedState->factorizedTablePool.returnLocalTable(localFT); }
 
     void vertexCompute(const graph::VertexScanState::Chunk& chunk) override {
         auto docLens = chunk.getProperties<uint64_t>(0);
@@ -289,7 +289,7 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     } else {
         GDSUtils::runVertexCompute(executionContext, graph, *vc, docsEntry, vertexPropertiesToScan);
     }
-    sharedState->mergeLocalTables();
+    sharedState->factorizedTablePool.mergeLocalTables();
 }
 
 expression_vector QueryFTSAlgorithm::getResultColumns(const GDSBindInput& bindInput) const {

@@ -170,7 +170,7 @@ public:
         graph::Graph* graph);
     // Init frontier to 0 according to mask
     static std::shared_ptr<PathLengths> getVisitedFrontier(processor::ExecutionContext* context,
-        graph::Graph* graph, processor::NodeOffsetMaskMap* maskMap);
+        graph::Graph* graph, common::NodeOffsetMaskMap* maskMap);
 
 private:
     frontier_entry_t* getMaskData(common::table_id_t tableID);
@@ -309,7 +309,7 @@ public:
 
     void resetSingleThreadState() override { numNodesReached = 0; }
 
-    bool terminate(processor::NodeOffsetMaskMap& maskMap) override;
+    bool terminate(common::NodeOffsetMaskMap& maskMap) override;
 
 protected:
     SinglePathLengthsFrontierPair* frontierPair;

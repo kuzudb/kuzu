@@ -125,7 +125,7 @@ std::shared_ptr<PathLengths> PathLengths::getVisitedFrontier(processor::Executio
 }
 
 std::shared_ptr<PathLengths> PathLengths::getVisitedFrontier(processor::ExecutionContext* context,
-    graph::Graph* graph, processor::NodeOffsetMaskMap* maskMap) {
+    graph::Graph* graph, common::NodeOffsetMaskMap* maskMap) {
     if (maskMap == nullptr) {
         return getVisitedFrontier(context, graph);
     }
@@ -242,7 +242,7 @@ void DoublePathLengthsFrontierPair::beginNewIterationInternalNoLock() {
 
 static constexpr uint64_t EARLY_TERM_NUM_NODES_THRESHOLD = 100;
 
-bool SPEdgeCompute::terminate(processor::NodeOffsetMaskMap& maskMap) {
+bool SPEdgeCompute::terminate(common::NodeOffsetMaskMap& maskMap) {
     auto targetNumNodes = maskMap.getNumMaskedNode();
     if (targetNumNodes > EARLY_TERM_NUM_NODES_THRESHOLD) {
         // Skip checking if it's unlikely to early terminate.

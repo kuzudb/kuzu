@@ -9,6 +9,7 @@ namespace kuzu {
 namespace common {
 enum class RelDataDirection : uint8_t;
 class RoaringBitmapSemiMask;
+class NodeOffsetMaskMap;
 } // namespace common
 namespace main {
 class ClientContext;
@@ -44,7 +45,6 @@ struct NodeTableSetInfo;
 struct RelTableSetInfo;
 struct BatchInsertSharedState;
 struct PartitionerSharedState;
-class NodeOffsetMaskMap;
 
 class PlanMapper {
 public:
@@ -232,7 +232,7 @@ private:
     FactorizedTableSchema createFlatFTableSchema(const binder::expression_vector& expressions,
         const planner::Schema& schema);
     std::unique_ptr<common::RoaringBitmapSemiMask> getSemiMask(common::table_id_t tableID) const;
-    std::unique_ptr<NodeOffsetMaskMap> getNodeOffsetMaskMap(const binder::Expression& expr);
+    std::unique_ptr<common::NodeOffsetMaskMap> getNodeOffsetMaskMap(const binder::Expression& expr);
 
 public:
     main::ClientContext* clientContext;

@@ -56,28 +56,17 @@ void ProjectionPushDownOptimizer::visitPathPropertyProbe(LogicalOperator* op) {
     // Path is not needed
     pathPropertyProbe.setJoinType(planner::RecursiveJoinType::TRACK_NONE);
     auto extend = child->ptrCast<LogicalRecursiveExtend>();
-    auto& info = extend->getInfoUnsafe();
-    auto dummyInput = GDSBindInput();
-    if (info.func.name == VarLenJoinsFunction::name) {
-        auto& rjAlg = info.func.gds->cast<RJAlgorithm>();
-        rjAlg.setToNoPath();
-        info.outExprs = rjAlg.getResultColumns(dummyInput);
-    } else if (info.func.name == SingleSPPathsFunction::name) {
-        auto func = SingleSPDestinationsFunction::getFunction();
-        func.gds->setBindData(info.func.gds->getBindData()->copy());
-        info.outExprs = func.gds->cast<RJAlgorithm>().getResultColumns(dummyInput);
-        info.func = std::move(func);
-    } else if (info.func.name == AllSPPathsFunction::name) {
-        auto func = AllSPDestinationsFunction::getFunction();
-        func.gds->setBindData(info.func.gds->getBindData()->copy());
-        info.outExprs = func.gds->cast<RJAlgorithm>().getResultColumns(dummyInput);
-        info.func = std::move(func);
-    } else if (info.func.name == WeightedSPPathsFunction::name) {
-        auto func = WeightedSPDestinationsFunction::getFunction();
-        func.gds->setBindData(info.func.gds->getBindData()->copy());
-        info.outExprs = func.gds->cast<RJAlgorithm>().getResultColumns(dummyInput);
-        info.func = std::move(func);
+    auto functionName = extend->getFunction().getFunctionName();
+    if (functionName == VarLenJoinsFunction::name) {
+        extend->getBindDataUnsafe().writePath = false;
+    } else if (functionName == SingleSPPathsFunction::name) {
+        extend->setFunction(SingleSPDestinationsFunction::getAlgorithm());
+    } else if (functionName == AllSPPathsFunction::name) {
+        extend->setFunction(AllSPDestinationsFunction::getAlgorithm());
+    } else if (functionName == WeightedSPPathsFunction::name) {
+        extend->setFunction(WeightedSPDestinationsFunction::getAlgorithm());
     }
+    extend->setResultColumns(extend->getFunction().getResultColumns(extend->getBindData()));
 }
 
 void ProjectionPushDownOptimizer::visitExtend(LogicalOperator* op) {

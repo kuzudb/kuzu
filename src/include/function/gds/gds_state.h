@@ -11,12 +11,12 @@ struct GDSComputeState {
     std::unique_ptr<function::EdgeCompute> edgeCompute = nullptr;
     std::unique_ptr<function::GDSAuxiliaryState> auxiliaryState = nullptr;
 
-    processor::NodeOffsetMaskMap* outputNodeMask = nullptr;
+    common::NodeOffsetMaskMap* outputNodeMask = nullptr;
 
     GDSComputeState(std::unique_ptr<function::FrontierPair> frontierPair,
         std::unique_ptr<function::EdgeCompute> edgeCompute,
         std::unique_ptr<function::GDSAuxiliaryState> auxiliaryState,
-        processor::NodeOffsetMaskMap* outputNodeMask)
+        common::NodeOffsetMaskMap* outputNodeMask)
         : frontierPair{std::move(frontierPair)}, edgeCompute{std::move(edgeCompute)},
           auxiliaryState{std::move(auxiliaryState)}, outputNodeMask{outputNodeMask} {}
 

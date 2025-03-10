@@ -57,19 +57,7 @@ public:
     uint64_t getNumMaskedNodes() const override { return roaring->cardinality(); }
 
     // include&exclude
-    offset_vec_t range(uint32_t start, uint32_t end) override {
-        auto it = roaring->begin();
-        it.equalorlarger(start);
-        offset_vec_t ans;
-        for (; it != roaring->end(); it++) {
-            auto value = *it;
-            if (value >= end) {
-                break;
-            }
-            ans.push_back(value);
-        }
-        return ans;
-    };
+    offset_vec_t range(uint32_t start, uint32_t end) override;
 
     std::shared_ptr<roaring::Roaring> roaring;
 };
@@ -91,31 +79,67 @@ public:
     uint64_t getNumMaskedNodes() const override { return roaring->cardinality(); }
 
     // include&exclude
-    offset_vec_t range(uint32_t start, uint32_t end) override {
-        auto it = roaring->begin();
-        it.move(start);
-        offset_vec_t ans;
-        for (; it != roaring->end(); it++) {
-            auto value = *it;
-            if (value >= end) {
-                break;
-            }
-            ans.push_back(value);
-        }
-        return ans;
-    };
+    offset_vec_t range(uint32_t start, uint32_t end) override;
 
     std::shared_ptr<roaring::Roaring64Map> roaring;
 };
 
 struct RoaringBitmapSemiMaskUtil {
-    static std::unique_ptr<RoaringBitmapSemiMask> createMask(common::offset_t maxOffset) {
-        if (maxOffset > std::numeric_limits<uint32_t>::max()) {
-            return std::make_unique<Roaring64BitmapSemiMask>(maxOffset);
+    static std::unique_ptr<RoaringBitmapSemiMask> createMask(common::offset_t maxOffset);
+};
+
+class NodeOffsetMaskMap {
+public:
+    NodeOffsetMaskMap() : enabled_{false} {}
+
+    void enable() { enabled_ = true; }
+    bool enabled() const { return enabled_; }
+
+    common::offset_t getNumMaskedNode() const;
+
+    void addMask(common::table_id_t tableID, std::unique_ptr<common::semi_mask_t> mask) {
+        KU_ASSERT(!maskMap.contains(tableID));
+        maskMap.insert({tableID, std::move(mask)});
+    }
+
+    common::table_id_map_t<common::semi_mask_t*> getMasks() const {
+        common::table_id_map_t<common::semi_mask_t*> result;
+        for (auto& [tableID, mask] : maskMap) {
+            result.emplace(tableID, mask.get());
+        }
+        return result;
+    }
+
+    bool containsTableID(common::table_id_t tableID) const { return maskMap.contains(tableID); }
+    common::semi_mask_t* getOffsetMask(common::table_id_t tableID) const {
+        KU_ASSERT(containsTableID(tableID));
+        return maskMap.at(tableID).get();
+    }
+
+    void pin(common::table_id_t tableID) {
+        if (maskMap.contains(tableID)) {
+            pinnedMask = maskMap.at(tableID).get();
         } else {
-            return std::make_unique<Roaring32BitmapSemiMask>(maxOffset);
+            pinnedMask = nullptr;
         }
     }
+    bool hasPinnedMask() const { return pinnedMask != nullptr; }
+    common::semi_mask_t* getPinnedMask() const { return pinnedMask; }
+
+    bool valid(common::offset_t offset) {
+        KU_ASSERT(pinnedMask != nullptr);
+        return pinnedMask->isMasked(offset);
+    }
+    bool valid(common::nodeID_t nodeID) {
+        KU_ASSERT(maskMap.contains(nodeID.tableID));
+        return maskMap.at(nodeID.tableID)->isMasked(nodeID.offset);
+    }
+
+private:
+    common::table_id_map_t<std::unique_ptr<common::semi_mask_t>> maskMap;
+    common::semi_mask_t* pinnedMask = nullptr;
+    // If mask map is enabled, then some nodes might be masked.
+    bool enabled_;
 };
 
 } // namespace common

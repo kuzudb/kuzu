@@ -7,7 +7,7 @@ namespace function {
 
 class GDSVertexCompute : public VertexCompute {
 public:
-    explicit GDSVertexCompute(processor::NodeOffsetMaskMap* nodeMask) : nodeMask{nodeMask} {}
+    explicit GDSVertexCompute(common::NodeOffsetMaskMap* nodeMask) : nodeMask{nodeMask} {}
 
     bool beginOnTable(common::table_id_t tableID) override {
         if (nodeMask != nullptr) {
@@ -28,16 +28,18 @@ protected:
     virtual void beginOnTableInternal(common::table_id_t tableID) = 0;
 
 protected:
-    processor::NodeOffsetMaskMap* nodeMask;
+    common::NodeOffsetMaskMap* nodeMask;
 };
 
 class GDSResultVertexCompute : public GDSVertexCompute {
 public:
     GDSResultVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState)
         : GDSVertexCompute{sharedState->getGraphNodeMaskMap()}, sharedState{sharedState}, mm{mm} {
-        localFT = sharedState->claimLocalTable(mm);
+        localFT = sharedState->factorizedTablePool.claimLocalTable(mm);
     }
-    ~GDSResultVertexCompute() override { sharedState->returnLocalTable(localFT); }
+    ~GDSResultVertexCompute() override {
+        sharedState->factorizedTablePool.returnLocalTable(localFT);
+    }
 
 protected:
     processor::GDSCallSharedState* sharedState;

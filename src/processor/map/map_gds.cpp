@@ -23,10 +23,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(const LogicalOperator* 
     auto graph =
         std::make_unique<OnDiskGraph>(clientContext, logicalInfo.getBindData()->graphEntry.copy());
     auto sharedState = std::make_shared<GDSCallSharedState>(table, std::move(graph));
-    auto bindData = logicalInfo.getBindData();
-    if (bindData->hasNodeOutput()) {
-        sharedState->setOutputNodeMask(getNodeOffsetMaskMap(*bindData->getNodeOutput()));
-    }
     auto printInfo = std::make_unique<GDSCallPrintInfo>(call.getInfo().func.name);
     auto gdsAlgorithm = call.getInfo().getGDS()->copy();
     auto gdsCall = std::make_unique<GDSCall>(std::make_unique<ResultSetDescriptor>(),
