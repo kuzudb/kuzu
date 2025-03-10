@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stack>
 #include <mutex>
+#include <stack>
 
 #include "processor/result/factorized_table.h"
 
