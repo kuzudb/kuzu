@@ -302,14 +302,14 @@ public:
             GDSUtils::runVertexCompute(context, graph, *setInitialColors);
 
             // Fwd colors.
-            computeState.frontierPair->reset();
+            computeState.frontierPair->initState();
             computeState.frontierPair->initGDS();
             GDSUtils::runVertexCompute(context, graph, *initializeFrontiers);
             GDSUtils::runFrontiersUntilConvergence(context, computeState, graph,
                 ExtendDirection::FWD, MAX_ITERATION);
 
             // Bwd colors.
-            computeState.frontierPair->reset();
+            computeState.frontierPair->initState();
             computeState.frontierPair->initGDS();
             GDSUtils::runVertexCompute(context, graph, *initializeFrontiers);
             GDSUtils::runFrontiersUntilConvergence(context, computeState, graph,
