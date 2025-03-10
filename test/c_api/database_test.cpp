@@ -298,17 +298,3 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWildcardNoRemoval) {
     // Cleanup
     std::filesystem::remove_all("/tmp/dbHome_wildcard");
 }
-
-TEST_F(CApiDatabaseTest, dasdasd) {
-    createDBAndConn();
-    conn->query(
-        "load extension "
-        "'/Users/z473chen/Desktop/code/kuzu/extension/postgres/build/libpostgres.kuzu_extension'");
-    conn->query("ATTACH 'dbname=pgscan user=ci host=localhost' as tinysnb (dbtype POSTGRES);");
-    conn->query("create node table person_copy_from (ID INt64, fName StRING, gender INT64, "
-                "isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, "
-                "registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames "
-                "STRING[], height double, u UUID, PRIMARY KEY (ID));");
-    conn->query("COPY person_copy_from FROM SQL_QUERY('tinysnb', 'select * from person');");
-    conn->query("COPY person_copy_from FROM SQL_QUERY('tinysnb', 'select * from person');");
-}
