@@ -89,7 +89,9 @@ public:
         }
     }
 
-    void reset() { computationState.allSccIdsSet.store(true, std::memory_order_relaxed); }
+    // Start by assuming all scc ids are set. `memory_order_seq_cst` is used to ensure that
+    // all threads see the initial value of `allSccIdsSet`.
+    void reset() { computationState.allSccIdsSet.store(true, std::memory_order_seq_cst); }
 
     std::unique_ptr<VertexCompute> copy() override {
         return std::make_unique<FindNewSccIds>(computationState);
