@@ -38,15 +38,7 @@ struct SCCComputationState {
 
     bool update(offset_t boundOffset, offset_t nbrOffset, bool isFwd) {
         auto& wccIds = isFwd ? fwdWccIDs : bwdWccIDs;
-        auto boundValue = wccIds.get(boundOffset);
-        auto nbrValue = wccIds.get(nbrOffset);
-        while (nbrValue < boundValue) {
-            if (wccIds.compare_exchange_strong(nbrOffset, nbrValue, boundValue)) {
-                return true;
-            }
-            nbrValue = wccIds.get(nbrOffset);
-        }
-        return false;
+        return wccIds.compare_exchange_max(boundOffset, nbrOffset);
     }
 
     bool isSccIdSet(offset_t nodeId) { return sccIDs.get(nodeId) != SCC_UNSET; }
@@ -81,8 +73,8 @@ public:
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
             if (!computationState.isSccIdSet(i)) {
-                auto fwdColor = computationState.fwdWccIDs.get(i);
-                auto bwdColor = computationState.bwdWccIDs.get(i);
+                auto fwdColor = computationState.fwdWccIDs.getRelaxed(i);
+                auto bwdColor = computationState.bwdWccIDs.getRelaxed(i);
                 if (fwdColor == bwdColor) {
                     computationState.sccIDs.set(i, fwdColor);
                 } else {
@@ -113,8 +105,8 @@ public:
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
-            computationState.fwdWccIDs.set(i, i);
-            computationState.bwdWccIDs.set(i, i);
+            computationState.fwdWccIDs.setRelaxed(i, i);
+            computationState.bwdWccIDs.setRelaxed(i, i);
         }
     }
 

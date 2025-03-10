@@ -67,19 +67,25 @@ public:
         : array{ObjectArray<std::atomic<T>>(size, mm, initializeToZero)} {
     }
 
-    void set(common::offset_t pos, T& value) {
+    void setRelaxed(common::offset_t pos, T& value) {
         KU_ASSERT(pos < array.data.size());
         array.data[pos].store(value, std::memory_order_relaxed);
     }
 
-    T get(common::offset_t pos) {
+    T getRelaxed(common::offset_t pos) {
         KU_ASSERT(pos < data.size());
         return array.data[pos].load(std::memory_order_relaxed);
     }
 
-    bool compare_exchange_strong(common::offset_t pos, T expected, T desired) {
-        KU_ASSERT(pos < data.size());
-        return array.data[pos].compare_exchange_strong(expected, desired);
+    bool compare_exchange_max(common::offset_t src, common::offset_t dest) {
+        auto srcValue = getRelaxed(src);
+        auto dstValue = getRelaxed(dest);
+        while (dstValue < srcValue) {
+            if (array.data[dest].compare_exchange_strong(dstValue, srcValue)) {
+                return true;
+            }
+        }
+        return false;
     }
 private:
     ObjectArray<std::atomic<T>> array;
