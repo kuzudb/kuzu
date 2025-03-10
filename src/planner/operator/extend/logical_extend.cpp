@@ -12,7 +12,7 @@ void LogicalExtend::computeFactorizedSchema() {
     uint32_t nbrGroupPos = 0u;
     nbrGroupPos = schema->createGroup();
     schema->insertToGroupAndScope(nbrNode->getInternalID(), nbrGroupPos);
-    for (auto& property : properties) {
+    for (auto& property : getProperties()) {
         schema->insertToGroupAndScope(property, nbrGroupPos);
     }
     if (rel->hasDirectionExpr()) {
@@ -23,7 +23,7 @@ void LogicalExtend::computeFactorizedSchema() {
 void LogicalExtend::computeFlatSchema() {
     copyChildSchema(0);
     schema->insertToGroupAndScope(nbrNode->getInternalID(), 0);
-    for (auto& property : properties) {
+    for (auto& property : getProperties()) {
         schema->insertToGroupAndScope(property, 0);
     }
     if (rel->hasDirectionExpr()) {
@@ -33,8 +33,7 @@ void LogicalExtend::computeFlatSchema() {
 
 std::unique_ptr<LogicalOperator> LogicalExtend::copy() {
     auto extend = std::make_unique<LogicalExtend>(boundNode, nbrNode, rel, direction,
-        extendFromSource_, properties, children[0]->copy(), cardinality);
-    extend->setPropertyPredicates(copyVector(propertyPredicates));
+        extendFromSource_, children[0]->copy(), cardinality);
     extend->scanNbrID = scanNbrID;
     return extend;
 }

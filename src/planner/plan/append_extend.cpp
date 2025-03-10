@@ -78,10 +78,9 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
     if (boundNode->getNumEntries() > boundNodeTableIDSet.size()) {
         appendNodeLabelFilter(boundNode->getInternalID(), boundNodeTableIDSet, plan);
     }
-    auto properties_ = properties;
     // Append extend
     auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, rel, direction, extendFromSource,
-        properties_, plan.getLastOperator());
+        plan.getLastOperator());
     extend->computeFactorizedSchema();
     // Update cost & cardinality. Note that extend does not change factorized cardinality.
     const auto extensionRate =

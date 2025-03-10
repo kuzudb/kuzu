@@ -174,11 +174,9 @@ physical_op_vector_t PlanMapper::mapCopyRelFrom(const LogicalOperator* logicalOp
     std::vector<LogicalType> columnTypes;
     std::vector<column_id_t> columnIDs;
     columnTypes.push_back(LogicalType::INTERNAL_ID()); // NBR_ID COLUMN.
+    columnTypes.push_back(LogicalType::INTERNAL_ID()); // REL_ID COLUMN.
     columnIDs.push_back(0);                            // NBR_ID COLUMN.
-    for (auto& property : relTableEntry.getProperties()) {
-        columnTypes.push_back(property.getType().copy());
-        columnIDs.push_back(relTableEntry.getColumnID(property.getName()));
-    }
+    columnIDs.push_back(1);                            // REL_ID COLUMN.
     auto fTable =
         FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
     const auto batchInsertSharedState = std::make_shared<BatchInsertSharedState>(relTable, fTable,
