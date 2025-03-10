@@ -37,7 +37,8 @@ kU_ScanSource
     : kU_FilePaths
         | '(' SP? oC_Query SP? ')'
         | oC_Variable
-        | oC_Variable '.' SP? oC_SchemaName ;
+        | oC_Variable '.' SP? oC_SchemaName
+        | oC_FunctionInvocation ;
 
 kU_CopyFromByColumn
     : COPY SP oC_SchemaName SP FROM SP '(' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ')' SP BY SP COLUMN ;

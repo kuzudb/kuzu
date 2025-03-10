@@ -157,6 +157,10 @@ public:
         const parser::BaseScanSource& scanSource, const parser::options_t& options,
         const std::vector<std::string>& columnNames,
         const std::vector<common::LogicalType>& columnTypes);
+    std::unique_ptr<BoundBaseScanSource> bindTableFuncScanSource(
+        const parser::BaseScanSource& scanSource, const parser::options_t& options,
+        const std::vector<std::string>& columnNames,
+        const std::vector<common::LogicalType>& columnTypes);
 
     common::case_insensitive_map_t<common::Value> bindParsingOptions(
         const parser::options_t& parsingOptions);

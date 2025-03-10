@@ -591,7 +591,7 @@ ParquetScanSharedState::ParquetScanSharedState(FileScanInfo fileScanInfo, uint64
 
 static bool parquetSharedStateNext(ParquetScanLocalState& localState,
     ParquetScanSharedState& sharedState) {
-    std::lock_guard<std::mutex> mtx{sharedState.lock};
+    std::lock_guard<std::mutex> mtx{sharedState.mtx};
     while (true) {
         if (sharedState.fileIdx >= sharedState.fileScanInfo.getNumFiles()) {
             return false;

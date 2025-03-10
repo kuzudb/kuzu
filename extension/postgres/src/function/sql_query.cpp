@@ -1,5 +1,6 @@
 #include "function/sql_query.h"
 
+#include "binder/binder.h"
 #include "catalog/duckdb_catalog.h"
 #include "common/exception/binder.h"
 #include "connector/duckdb_type_converter.h"

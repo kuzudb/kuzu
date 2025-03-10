@@ -12,31 +12,17 @@ class FileSystem;
 
 namespace function {
 
-struct KUZU_API BaseScanSharedState : TableFuncSharedState {
-    std::mutex lock;
-
-    virtual uint64_t getNumRows() const = 0;
-};
-
-struct BaseScanSharedStateWithNumRows : BaseScanSharedState {
-    uint64_t numRows;
-
-    explicit BaseScanSharedStateWithNumRows(uint64_t numRows) : numRows{numRows} {}
-
-    uint64_t getNumRows() const override { return numRows; }
-};
-
-struct ScanSharedState : BaseScanSharedStateWithNumRows {
+struct ScanSharedState : public TableFuncSharedState {
     const common::FileScanInfo fileScanInfo;
     uint64_t fileIdx;
     uint64_t blockIdx;
 
     ScanSharedState(common::FileScanInfo fileScanInfo, uint64_t numRows)
-        : BaseScanSharedStateWithNumRows{numRows}, fileScanInfo{std::move(fileScanInfo)},
-          fileIdx{0}, blockIdx{0} {}
+        : TableFuncSharedState{numRows - 1}, fileScanInfo{std::move(fileScanInfo)}, fileIdx{0},
+          blockIdx{0} {}
 
     std::pair<uint64_t, uint64_t> getNext() {
-        std::lock_guard guard{lock};
+        std::lock_guard guard{mtx};
         return fileIdx >= fileScanInfo.getNumFiles() ? std::make_pair(UINT64_MAX, UINT64_MAX) :
                                                        std::make_pair(fileIdx, blockIdx++);
     }

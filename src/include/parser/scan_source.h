@@ -51,5 +51,13 @@ struct QueryScanSource : public BaseScanSource {
         : BaseScanSource{common::ScanSourceType::QUERY}, statement{std::move(statement)} {}
 };
 
+struct TableFuncScanSource : public BaseScanSource {
+    std::unique_ptr<ParsedExpression> functionExpression;
+
+    explicit TableFuncScanSource(std::unique_ptr<ParsedExpression> functionExpression)
+        : BaseScanSource{common::ScanSourceType::TABLE_FUNC},
+          functionExpression{std::move(functionExpression)} {}
+};
+
 } // namespace parser
 } // namespace kuzu

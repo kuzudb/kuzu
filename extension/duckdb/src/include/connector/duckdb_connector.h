@@ -7,7 +7,6 @@
 #include "duckdb.hpp"
 #pragma GCC diagnostic pop
 
-#include "binder/binder.h"
 #include "connector/duckdb_secret_manager.h"
 #include "function/duckdb_scan.h"
 #include "s3fs_config.h"

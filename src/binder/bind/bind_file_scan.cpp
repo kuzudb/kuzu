@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "binder/bound_scan_source.h"
+#include "binder/bound_table_function.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "common/exception/binder.h"
@@ -12,6 +13,7 @@
 #include "extension/extension_manager.h"
 #include "function/table/bind_input.h"
 #include "main/database_manager.h"
+#include "parser/expression/parsed_function_expression.h"
 #include "parser/scan_source.h"
 
 using namespace kuzu::parser;
@@ -95,6 +97,9 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(const BaseScanSource
     }
     case ScanSourceType::OBJECT: {
         return bindObjectScanSource(*source, options, columnNames, columnTypes);
+    }
+    case ScanSourceType::TABLE_FUNC: {
+        return bindTableFuncScanSource(*source, options, columnNames, columnTypes);
     }
     default:
         KU_UNREACHABLE;
@@ -236,6 +241,33 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindObjectScanSource(const BaseScan
         }
     }
     auto info = BoundTableScanSourceInfo(func, std::move(bindData), columns);
+    return std::make_unique<BoundTableScanSource>(ScanSourceType::OBJECT, std::move(info));
+}
+
+std::unique_ptr<BoundBaseScanSource> Binder::bindTableFuncScanSource(
+    const BaseScanSource& scanSource, const options_t& options,
+    const std::vector<std::string>& columnNames, const std::vector<LogicalType>& columnTypes) {
+    auto tableFuncScanSource = scanSource.constPtrCast<TableFuncScanSource>();
+    auto& parsedFuncExpression =
+        tableFuncScanSource->functionExpression->constCast<parser::ParsedFunctionExpression>();
+    expression_vector columns;
+    auto boundTableFunc = bindTableFunc(parsedFuncExpression.getFunctionName(),
+        *tableFuncScanSource->functionExpression, columns, {} /* yieldVariables */);
+    if (boundTableFunc.bindData->getNumColumns() != columnTypes.size()) {
+        throw BinderException(stringFormat("{} has {} columns but {} columns were expected.",
+            parsedFuncExpression.getFunctionName(), boundTableFunc.bindData->getNumColumns(),
+            columnTypes.size()));
+    }
+    expression_vector columnsToCopy;
+    for (auto i = 0u; i < columns.size(); i++) {
+        auto columnToCopy = createInvisibleVariable(columnNames[i],
+            boundTableFunc.bindData->columns[i]->getDataType());
+        scope.replaceExpression(boundTableFunc.bindData->columns[i]->toString(), columnNames[i],
+            columnToCopy);
+        columnsToCopy.push_back(columnToCopy);
+    }
+    auto info = BoundTableScanSourceInfo(*boundTableFunc.tableFunction,
+        std::move(boundTableFunc.bindData), columnsToCopy);
     return std::make_unique<BoundTableScanSource>(ScanSourceType::OBJECT, std::move(info));
 }
 

@@ -63,6 +63,7 @@ struct KUZU_API TableFuncSharedState {
     explicit TableFuncSharedState(common::offset_t maxOffset);
     TableFuncSharedState(common::offset_t maxOffset, common::offset_t maxMorselSize);
     virtual ~TableFuncSharedState() = default;
+    virtual uint64_t getNumRows() const { return maxOffset + 1; }
 
     virtual TableFuncMorsel getMorsel();
 

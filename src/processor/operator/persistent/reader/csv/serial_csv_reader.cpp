@@ -95,7 +95,7 @@ populate_func_t SerialCSVScanSharedState::constructPopulateFunc() const {
 }
 
 void SerialCSVScanSharedState::read(DataChunk& outputChunk) {
-    std::lock_guard<std::mutex> mtx{lock};
+    std::lock_guard<std::mutex> lck{mtx};
     do {
         if (fileIdx >= fileScanInfo.getNumFiles()) {
             return;
