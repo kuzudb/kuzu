@@ -11,10 +11,10 @@
 #include "common/string_format.h"
 #include "common/utils.h"
 #include "function/cast/functions/cast_from_string_functions.h"
+#include "function/gds/rec_joins.h"
 #include "function/rewrite_function.h"
 #include "function/schema/vector_node_rel_functions.h"
 #include "main/client_context.h"
-#include "function/gds/rec_joins.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -445,9 +445,12 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     // Bind semantic.
     bindData->semantic = QueryRelTypeUtils::getPathSemantic(queryRel->getRelType());
     // Bind path related expressions.
-    bindData->lengthExpr =  PropertyExpression::construct(LogicalType::INT64(), InternalKeyword::LENGTH, *queryRel);
-    bindData->pathNodeIDsExpr = createInvisibleVariable("pathNodeIDs", LogicalType::LIST(LogicalType::INTERNAL_ID()));
-    bindData->pathEdgeIDsExpr = createInvisibleVariable("pathEdgeIDs", LogicalType::LIST(LogicalType::INTERNAL_ID()));
+    bindData->lengthExpr =
+        PropertyExpression::construct(LogicalType::INT64(), InternalKeyword::LENGTH, *queryRel);
+    bindData->pathNodeIDsExpr =
+        createInvisibleVariable("pathNodeIDs", LogicalType::LIST(LogicalType::INTERNAL_ID()));
+    bindData->pathEdgeIDsExpr =
+        createInvisibleVariable("pathEdgeIDs", LogicalType::LIST(LogicalType::INTERNAL_ID()));
     if (queryRel->getDirectionType() == RelDirectionType::BOTH) {
         bindData->directionExpr =
             createInvisibleVariable("pathEdgeDirections", LogicalType::LIST(LogicalType::BOOL()));

@@ -3,9 +3,9 @@
 #include "common/constants.h"
 #include "common/enums/extend_direction.h"
 #include "common/enums/query_rel_type.h"
-#include "node_expression.h"
-#include "function/gds_function.h"
 #include "function/gds/rec_joins.h"
+#include "function/gds_function.h"
+#include "node_expression.h"
 
 namespace kuzu {
 namespace binder {
