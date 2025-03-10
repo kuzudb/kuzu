@@ -68,7 +68,7 @@ private:
 
 class FindNewSccIds : public VertexCompute {
 public:
-    FindNewSccIds(SCCComputationState& computationState) : computationState{computationState} {}
+    explicit FindNewSccIds(SCCComputationState& computationState) : computationState{computationState} {}
 
     bool beginOnTable(table_id_t) override { return true; }
 
@@ -103,7 +103,7 @@ private:
 
 class SetInitialColors : public VertexCompute {
 public:
-    SetInitialColors(SCCComputationState& computationState) : computationState{computationState} {}
+    explicit SetInitialColors(SCCComputationState& computationState) : computationState{computationState} {}
 
     bool beginOnTable(table_id_t) override { return true; }
 
@@ -154,7 +154,7 @@ private:
 struct ComputeColors : public EdgeCompute {
     SCCComputationState& computationState;
 
-    ComputeColors(SCCComputationState& computationState) : computationState{computationState} {}
+    explicit ComputeColors(SCCComputationState& computationState) : computationState{computationState} {}
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
         bool isFwd) override {
@@ -185,7 +185,7 @@ public:
 
 class SccOutputWriter : public GDSOutputWriter {
 public:
-    SccOutputWriter(main::ClientContext* context) : GDSOutputWriter{context} {
+    explicit SccOutputWriter(main::ClientContext* context) : GDSOutputWriter{context} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID(), context->getMemoryManager());
         sccIDVector = createVector(LogicalType::UINT64(), context->getMemoryManager());
     }
