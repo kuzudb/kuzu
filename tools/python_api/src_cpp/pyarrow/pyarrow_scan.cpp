@@ -67,7 +67,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext*,
 }
 
 ArrowArrayWrapper* PyArrowTableScanSharedState::getNextChunk() {
-    std::lock_guard<std::mutex> lck{lock};
+    std::lock_guard<std::mutex> lck{mtx};
     if (currentChunk == chunks.size()) {
         return nullptr;
     }
