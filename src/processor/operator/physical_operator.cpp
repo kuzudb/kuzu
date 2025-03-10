@@ -88,6 +88,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "PROJECTION";
     case PhysicalOperatorType::PROFILE:
         return "PROFILE";
+    case PhysicalOperatorType::RECURSIVE_EXTEND:
+        return "RECURSIVE_EXTEND";
     case PhysicalOperatorType::RESULT_COLLECTOR:
         return "RESULT_COLLECTOR";
     case PhysicalOperatorType::SCAN_NODE_TABLE:

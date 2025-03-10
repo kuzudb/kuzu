@@ -326,8 +326,7 @@ public:
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
         frontierPair->initGDS();
-        auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr,
-            sharedState->getOutputNodeMaskMap());
+        auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr, nullptr);
         auto pNextUpdateConstant = (1 - config.dampingFactor) * ((double)1 / numNodes);
         while (currentIter < config.maxIterations) {
             computeState.edgeCompute =
@@ -354,7 +353,7 @@ public:
         auto outputVC = std::make_unique<PageRankResultVertexCompute>(
             clientContext->getMemoryManager(), sharedState.get(), std::move(writer), *pCurrent);
         GDSUtils::runVertexCompute(context, graph, *outputVC);
-        sharedState->mergeLocalTables();
+        sharedState->factorizedTablePool.mergeLocalTables();
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {

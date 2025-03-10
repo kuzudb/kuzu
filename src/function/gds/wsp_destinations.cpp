@@ -95,14 +95,14 @@ private:
 class WSPDestinationsOutputWriter : public RJOutputWriter {
 public:
     WSPDestinationsOutputWriter(main::ClientContext* context,
-        processor::NodeOffsetMaskMap* outputNodeMask, common::nodeID_t sourceNodeID,
+        common::NodeOffsetMaskMap* outputNodeMask, common::nodeID_t sourceNodeID,
         std::shared_ptr<Costs> costs)
         : RJOutputWriter{context, outputNodeMask, sourceNodeID}, costs{std::move(costs)} {
         costVector = createVector(LogicalType::DOUBLE(), context->getMemoryManager());
     }
 
     void write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
-        processor::GDSOutputCounter* counter) override {
+        LimitCounter* counter) override {
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
         auto cost = costs->getCost(dstNodeID.offset);
         costVector->setValue<double>(0, cost);
@@ -131,33 +131,30 @@ private:
 
 class WeightedSPDestinationsAlgorithm : public RJAlgorithm {
 public:
-    WeightedSPDestinationsAlgorithm() = default;
-    WeightedSPDestinationsAlgorithm(const WeightedSPDestinationsAlgorithm& other)
-        : RJAlgorithm{other} {}
+    std::string getFunctionName() const override { return WeightedSPDestinationsFunction::name; }
 
     // return srcNodeID, dstNodeID, weight
-    expression_vector getResultColumns(const GDSBindInput&) const override {
+    expression_vector getResultColumns(const RJBindData& bindData) const override {
         expression_vector columns;
-        columns.push_back(bindData->getNodeInput()->constCast<NodeExpression>().getInternalID());
-        columns.push_back(bindData->getNodeOutput()->constCast<NodeExpression>().getInternalID());
-        columns.push_back(bindData->ptrCast<RJBindData>()->weightOutputExpr);
+        columns.push_back(bindData.nodeInput->constCast<NodeExpression>().getInternalID());
+        columns.push_back(bindData.nodeOutput->constCast<NodeExpression>().getInternalID());
+        columns.push_back(bindData.weightOutputExpr);
         return columns;
     }
 
-    std::unique_ptr<GDSAlgorithm> copy() const override {
+    std::unique_ptr<RJAlgorithm> copy() const override {
         return std::make_unique<WeightedSPDestinationsAlgorithm>(*this);
     }
 
 private:
-    RJCompState getRJCompState(processor::ExecutionContext* context,
-        nodeID_t sourceNodeID) override {
+    RJCompState getRJCompState(processor::ExecutionContext* context, nodeID_t sourceNodeID,
+        const RJBindData& bindData, processor::RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
         auto graph = sharedState->graph.get();
         auto curFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
         auto nextFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(curFrontier, nextFrontier);
-        auto rjBindData = bindData->ptrCast<RJBindData>();
         auto costs =
             std::make_shared<Costs>(graph->getMaxOffsetMap(clientContext->getTransaction()),
                 clientContext->getMemoryManager());
@@ -165,7 +162,7 @@ private:
         auto outputWriter = std::make_unique<WSPDestinationsOutputWriter>(clientContext,
             sharedState->getOutputNodeMaskMap(), sourceNodeID, costs);
         std::unique_ptr<GDSComputeState> gdsState;
-        visit(rjBindData->weightPropertyExpr->getDataType(), [&]<typename T>(T) {
+        visit(bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
             auto edgeCompute = std::make_unique<WSPDestinationsEdgeCompute<T>>(costs);
             gdsState =
                 std::make_unique<GDSComputeState>(std::move(frontierPair), std::move(edgeCompute),
@@ -175,16 +172,8 @@ private:
     }
 };
 
-function_set WeightedSPDestinationsFunction::getFunctionSet() {
-    function_set result;
-    result.push_back(std::make_unique<GDSFunction>(getFunction()));
-    return result;
-}
-
-GDSFunction WeightedSPDestinationsFunction::getFunction() {
-    auto algo = std::make_unique<WeightedSPDestinationsAlgorithm>();
-    auto params = algo->getParameterTypeIDs();
-    return GDSFunction(name, std::move(params), std::move(algo));
+std::unique_ptr<RJAlgorithm> WeightedSPDestinationsFunction::getAlgorithm() {
+    return std::make_unique<WeightedSPDestinationsAlgorithm>();
 }
 
 } // namespace function

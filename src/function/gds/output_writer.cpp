@@ -18,7 +18,7 @@ std::unique_ptr<ValueVector> GDSOutputWriter::createVector(const LogicalType& ty
 }
 
 RJOutputWriter::RJOutputWriter(main::ClientContext* context,
-    processor::NodeOffsetMaskMap* outputNodeMask, nodeID_t sourceNodeID)
+    common::NodeOffsetMaskMap* outputNodeMask, nodeID_t sourceNodeID)
     : GDSOutputWriter{context}, outputNodeMask{outputNodeMask}, sourceNodeID{sourceNodeID} {
     auto mm = context->getMemoryManager();
     srcNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm);
@@ -44,7 +44,7 @@ bool RJOutputWriter::skip(nodeID_t dstNodeID) const {
 }
 
 PathsOutputWriter::PathsOutputWriter(main::ClientContext* context,
-    processor::NodeOffsetMaskMap* outputNodeMask, nodeID_t sourceNodeID, PathsOutputWriterInfo info,
+    common::NodeOffsetMaskMap* outputNodeMask, nodeID_t sourceNodeID, PathsOutputWriterInfo info,
     BFSGraph& bfsGraph)
     : RJOutputWriter{context, outputNodeMask, sourceNodeID}, info{info}, bfsGraph{bfsGraph} {
     auto mm = context->getMemoryManager();
@@ -70,7 +70,7 @@ static ParentList* getTop(const std::vector<ParentList*>& path) {
 }
 
 void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
-    GDSOutputCounter* counter) {
+    LimitCounter* counter) {
     dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
     auto firstParent = findFirstParent(dstNodeID.offset);
     if (firstParent == nullptr) {
@@ -92,7 +92,7 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
 }
 
 void PathsOutputWriter::dfsFast(ParentList* firstParent, FactorizedTable& fTable,
-    GDSOutputCounter* counter) {
+    LimitCounter* counter) {
     std::vector<ParentList*> curPath;
     curPath.push_back(firstParent);
     auto backtracking = false;
@@ -130,7 +130,7 @@ void PathsOutputWriter::dfsFast(ParentList* firstParent, FactorizedTable& fTable
 }
 
 void PathsOutputWriter::dfsSlow(kuzu::function::ParentList* firstParent,
-    processor::FactorizedTable& fTable, processor::GDSOutputCounter* counter) {
+    processor::FactorizedTable& fTable, LimitCounter* counter) {
     std::vector<ParentList*> curPath;
     curPath.push_back(firstParent);
     auto backtracking = false;
@@ -186,7 +186,7 @@ void PathsOutputWriter::dfsSlow(kuzu::function::ParentList* firstParent,
     }
 }
 
-bool PathsOutputWriter::updateCounterAndTerminate(GDSOutputCounter* counter) {
+bool PathsOutputWriter::updateCounterAndTerminate(LimitCounter* counter) {
     if (counter != nullptr) {
         counter->increase(1);
         return counter->exceedLimit();

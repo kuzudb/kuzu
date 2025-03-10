@@ -134,7 +134,7 @@ class DegreeLessThanCoreVertexCompute : public GDSVertexCompute {
 public:
     DegreeLessThanCoreVertexCompute(Degrees& degrees, CoreValues& coreValues,
         FrontierPair* frontierPair, degree_t coreValue, std::atomic<offset_t>& numActiveNodes,
-        processor::NodeOffsetMaskMap* nodeMask)
+        common::NodeOffsetMaskMap* nodeMask)
         : GDSVertexCompute{nodeMask}, degrees{degrees}, coreValues{coreValues},
           frontierPair{frontierPair}, coreValue{coreValue}, numActiveNodes{numActiveNodes} {}
 
@@ -218,9 +218,8 @@ public:
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
         // Compute Core values
         auto removeVertexEdgeCompute = std::make_unique<RemoveVertexEdgeCompute>(degrees);
-        auto computeState =
-            GDSComputeState(std::move(frontierPair), std::move(removeVertexEdgeCompute),
-                std::move(auxiliaryState), sharedState->getOutputNodeMaskMap());
+        auto computeState = GDSComputeState(std::move(frontierPair),
+            std::move(removeVertexEdgeCompute), std::move(auxiliaryState), nullptr);
         auto coreValue = 0u;
         auto numNodes = graph->getNumNodes(clientContext->getTransaction());
         auto numNodesComputed = 0u;
@@ -252,7 +251,7 @@ public:
         auto vertexCompute = KCoreResultVertexCompute(clientContext->getMemoryManager(),
             sharedState.get(), std::move(writer), coreValues);
         GDSUtils::runVertexCompute(context, sharedState->graph.get(), vertexCompute);
-        sharedState->mergeLocalTables();
+        sharedState->factorizedTablePool.mergeLocalTables();
     }
 
     std::unique_ptr<GDSAlgorithm> copy() const override {

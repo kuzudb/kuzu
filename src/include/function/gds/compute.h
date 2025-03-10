@@ -1,8 +1,8 @@
 #pragma once
 
+#include "common/mask.h"
 #include "common/types/types.h"
 #include "graph/graph.h"
-#include "processor/operator/gds_call_shared_state.h"
 
 namespace kuzu {
 namespace function {
@@ -26,7 +26,7 @@ public:
 
     virtual void resetSingleThreadState() {}
 
-    virtual bool terminate(processor::NodeOffsetMaskMap&) { return false; }
+    virtual bool terminate(common::NodeOffsetMaskMap&) { return false; }
 
     virtual std::unique_ptr<EdgeCompute> copy() = 0;
 };

@@ -151,9 +151,9 @@ public:
     SCCVertexCompute(MemoryManager* mm, GDSCallSharedState* sharedState,
         unique_ptr<SCCOutputWriter> writer, SCCState& sccState)
         : mm{mm}, sharedState{sharedState}, writer{std::move(writer)}, sccState{sccState} {
-        localFT = sharedState->claimLocalTable(mm);
+        localFT = sharedState->factorizedTablePool.claimLocalTable(mm);
     }
-    ~SCCVertexCompute() override { sharedState->returnLocalTable(localFT); }
+    ~SCCVertexCompute() override { sharedState->factorizedTablePool.returnLocalTable(localFT); }
 
     bool beginOnTable(table_id_t /*tableID*/) override { return true; }
 
@@ -232,7 +232,7 @@ public:
             make_unique<SCCVertexCompute>(mm, sharedState.get(), std::move(writer), sccState);
         GDSUtils::runVertexCompute(context, graph, *vertexCompute);
 
-        sharedState->mergeLocalTables();
+        sharedState->factorizedTablePool.mergeLocalTables();
     }
 };
 

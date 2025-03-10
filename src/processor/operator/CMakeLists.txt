@@ -26,6 +26,7 @@ add_library(kuzu_processor_operator
         physical_operator.cpp
         projection.cpp
         profile.cpp
+        recursive_extend.cpp
         result_collector.cpp
         semi_masker.cpp
         skip.cpp

@@ -64,8 +64,7 @@ struct DegreeEdgeCompute : public EdgeCompute {
 
 struct DegreesUtils {
     static void computeDegree(processor::ExecutionContext* context, graph::Graph* graph,
-        processor::NodeOffsetMaskMap* nodeOffsetMaskMap, Degrees* degrees,
-        ExtendDirection direction) {
+        common::NodeOffsetMaskMap* nodeOffsetMaskMap, Degrees* degrees, ExtendDirection direction) {
         auto currentFrontier = PathLengths::getUnvisitedFrontier(context, graph);
         auto nextFrontier = PathLengths::getVisitedFrontier(context, graph, nodeOffsetMaskMap);
         auto frontierPair =

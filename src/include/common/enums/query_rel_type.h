@@ -1,12 +1,13 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 
 #include "path_semantic.h"
 
 namespace kuzu {
 namespace function {
-struct GDSFunction;
+class RJAlgorithm;
 }
 
 namespace common {
@@ -32,7 +33,7 @@ struct QueryRelTypeUtils {
 
     static PathSemantic getPathSemantic(QueryRelType queryRelType);
 
-    static function::GDSFunction getFunction(QueryRelType type);
+    static std::unique_ptr<function::RJAlgorithm> getFunction(QueryRelType type);
 };
 
 } // namespace common
