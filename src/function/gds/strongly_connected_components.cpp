@@ -26,22 +26,24 @@ namespace function {
 static constexpr offset_t SCC_UNSET = std::numeric_limits<offset_t>::max();
 
 struct SCCComputationState {
-    bool allSccIdsSet;
-    ObjectArray<offset_t> sccIDs;
+    std::atomic<bool> allSccIdsSet;
+    AtomicObjectArray<offset_t> sccIDs;
     AtomicObjectArray<offset_t> fwdWccIDs;
     AtomicObjectArray<offset_t> bwdWccIDs;
 
     SCCComputationState(const offset_t numNodes, MemoryManager* mm)
-        : allSccIdsSet{false}, sccIDs{ObjectArray<offset_t>(numNodes, mm)},
+        : sccIDs{AtomicObjectArray<offset_t>(numNodes, mm)},
           fwdWccIDs{AtomicObjectArray<offset_t>(numNodes, mm)},
-          bwdWccIDs{AtomicObjectArray<offset_t>(numNodes, mm)} {}
+          bwdWccIDs{AtomicObjectArray<offset_t>(numNodes, mm)} {
+        allSccIdsSet.store(false, std::memory_order_relaxed);
+    }
 
     bool update(offset_t boundOffset, offset_t nbrOffset, bool isFwd) {
         auto& wccIds = isFwd ? fwdWccIDs : bwdWccIDs;
         return wccIds.compare_exchange_max(boundOffset, nbrOffset);
     }
 
-    bool isSccIdSet(offset_t nodeId) { return sccIDs.get(nodeId) != SCC_UNSET; }
+    bool isSccIdSet(offset_t nodeId) { return sccIDs.getRelaxed(nodeId) != SCC_UNSET; }
 };
 
 class SetInitialSccIds : public VertexCompute {
@@ -52,7 +54,7 @@ public:
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
-            computationState.sccIDs.set(i, SCC_UNSET);
+            computationState.sccIDs.setRelaxed(i, SCC_UNSET);
         }
     }
 
@@ -76,18 +78,18 @@ public:
                 auto fwdColor = computationState.fwdWccIDs.getRelaxed(i);
                 auto bwdColor = computationState.bwdWccIDs.getRelaxed(i);
                 if (fwdColor == bwdColor) {
-                    computationState.sccIDs.set(i, fwdColor);
+                    computationState.sccIDs.setRelaxed(i, fwdColor);
                 } else {
                     // If any of the threads find an unset scc id, they will set the flag to false.
                     // `allSccIdsSet` is never read and written concurrently, so it does
                     // not need to be atomic.
-                    computationState.allSccIdsSet = false;
+                    computationState.allSccIdsSet.store(false, std::memory_order_relaxed);
                 }
             }
         }
     }
 
-    void reset() { computationState.allSccIdsSet = true; }
+    void reset() { computationState.allSccIdsSet.store(true, std::memory_order_relaxed); }
 
     std::unique_ptr<VertexCompute> copy() override {
         return std::make_unique<SetNewSccIds>(computationState);
@@ -211,7 +213,7 @@ public:
             }
             auto nodeID = nodeID_t{i, tableID};
             writer->nodeIDVector->setValue<nodeID_t>(0, nodeID);
-            writer->sccIDVector->setValue<uint64_t>(0, computationState.sccIDs.get(i));
+            writer->sccIDVector->setValue<uint64_t>(0, computationState.sccIDs.getRelaxed(i));
             localFT->append(writer->vectors);
         }
     }
@@ -314,7 +316,7 @@ public:
             // Find new SCC IDs and exit if all IDs have been found.
             setNewSccIds->reset();
             GDSUtils::runVertexCompute(context, graph, *setNewSccIds);
-            if (computationState.allSccIdsSet) {
+            if (computationState.allSccIdsSet.load(std::memory_order_relaxed)) {
                 break;
             }
         }
