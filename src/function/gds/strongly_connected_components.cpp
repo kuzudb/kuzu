@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
 #include "common/exception/runtime.h"
@@ -132,11 +134,7 @@ public:
     InitializeFrontiers(FrontierPair& frontierPair, SCCComputationState& computationState)
         : frontierPair{frontierPair}, computationState{computationState} {}
 
-    bool beginOnTable(table_id_t tableId) override {
-        frontierPair.pinCurrFrontier(tableId);
-        frontierPair.pinNextFrontier(tableId);
-        return true;
-    }
+    bool beginOnTable(table_id_t) override { return true; }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
@@ -272,6 +270,7 @@ public:
         auto graph = sharedState->graph.get();
         auto getMaxOffsetMap = graph->getMaxOffsetMap(clientContext->getTransaction());
         auto it = getMaxOffsetMap.begin();
+        auto tableId = it->first;
         auto numNodes = it->second;
 
         auto computationState = SCCComputationState(numNodes, mm);
@@ -284,6 +283,8 @@ public:
         auto nextFrontier = std::make_shared<PathLengths>(getMaxOffsetMap, mm);
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
+        frontierPair->pinCurrFrontier(tableId);
+        frontierPair->pinNextFrontier(tableId);
 
         auto setNewSccIds = std::make_unique<FindNewSccIds>(computationState);
         auto setInitialColors = std::make_unique<SetInitialColors>(computationState);
