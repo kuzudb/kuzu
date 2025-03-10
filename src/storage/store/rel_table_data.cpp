@@ -87,20 +87,17 @@ void RelTableData::initCSRHeaderColumns() {
 }
 
 void RelTableData::initPropertyColumns(const TableCatalogEntry* tableEntry) {
-    const auto maxColumnID = tableEntry->getMaxColumnID();
-    columns.resize(maxColumnID + 1);
+    columns.resize(2);
     auto nbrIDColName = StorageUtils::getColumnName("NBR_ID", StorageUtils::ColumnType::DEFAULT,
         RelDirectionUtils::relDirectionToString(direction));
     auto nbrIDColumn = std::make_unique<InternalIDColumn>(nbrIDColName, dataFH, memoryManager,
         shadowFile, enableCompression);
+    auto relIDColumnName = StorageUtils::getColumnName("REL_ID", StorageUtils::ColumnType::DEFAULT,
+        RelDirectionUtils::relDirectionToString(direction));
+    auto relIDColumn = std::make_unique<InternalIDColumn>(relIDColumnName, dataFH, memoryManager,
+        shadowFile, enableCompression);
     columns[NBR_ID_COLUMN_ID] = std::move(nbrIDColumn);
-    for (auto& property : tableEntry->getProperties()) {
-        const auto columnID = tableEntry->getColumnID(property.getName());
-        const auto colName = StorageUtils::getColumnName(property.getName(),
-            StorageUtils::ColumnType::DEFAULT, RelDirectionUtils::relDirectionToString(direction));
-        columns[columnID] = ColumnFactory::createColumn(colName, property.getType().copy(), dataFH,
-            memoryManager, shadowFile, enableCompression);
-    }
+    columns[REL_ID_COLUMN_ID] = std::move(relIDColumn);
     // Set common tableID for nbrIDColumn and relIDColumn.
     const auto nbrTableID = tableEntry->constCast<RelTableCatalogEntry>().getNbrTableID(direction);
     columns[NBR_ID_COLUMN_ID]->cast<InternalIDColumn>().setCommonTableID(nbrTableID);

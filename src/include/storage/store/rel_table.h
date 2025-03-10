@@ -13,6 +13,22 @@ class Transaction;
 }
 namespace storage {
 class MemoryManager;
+class RelTable;
+
+class RelTableVersionRecordHandler final : public VersionRecordHandler {
+public:
+    explicit RelTableVersionRecordHandler(RelTable* table);
+
+    void applyFuncToChunkedGroups(version_record_handler_op_t func,
+        common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+        common::row_idx_t numRows, common::transaction_t commitTS) const override;
+    void rollbackInsert(const transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
+        common::row_idx_t numRows) const override;
+
+private:
+    RelTable* table;
+};
 
 struct LocalRelTableScanState;
 struct RelTableScanState : TableScanState {
@@ -153,9 +169,16 @@ public:
 
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
 
+    std::pair<common::offset_t, common::offset_t> appendToLastNodeGroup(
+        const transaction::Transaction* transaction, const common::DataChunk& chunk);
+
     void insert(transaction::Transaction* transaction, TableInsertState& insertState) override;
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
+
+    void lookup(transaction::Transaction* transaction, common::ValueVector* IDs,
+        std::vector<common::column_id_t>& columnIDs,
+        std::vector<common::ValueVector*>& outputVectors) const;
 
     void detachDelete(transaction::Transaction* transaction, common::RelDataDirection direction,
         RelTableDeleteState* deleteState);
@@ -175,8 +198,7 @@ public:
     }
     common::column_id_t getNumColumns() const {
         KU_ASSERT(directedRelData.size() >= 1);
-        RUNTIME_CHECK(for (const auto& relData
-                           : directedRelData) {
+        RUNTIME_CHECK(for (const auto& relData : directedRelData) {
             KU_ASSERT(relData->getNumColumns() == directedRelData[0]->getNumColumns());
         });
         return directedRelData[0]->getNumColumns();
@@ -187,6 +209,8 @@ public:
 
     NodeGroup* getOrCreateNodeGroup(const transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::RelDataDirection direction) const;
+
+    NodeGroup* getPropertyNodeGroup(common::node_group_idx_t nodeGroupIdx);
 
     void commit(transaction::Transaction* transaction, catalog::TableCatalogEntry* tableEntry,
         LocalTable* localTable) override;
@@ -235,6 +259,13 @@ private:
     common::table_id_t toNodeTableID;
     std::mutex relOffsetMtx;
     common::offset_t nextRelOffset;
+
+    // Properties.
+    std::unique_ptr<NodeGroupCollection> nodeGroups;
+    std::vector<std::unique_ptr<Column>> columns;
+    RelTableVersionRecordHandler versionRecordHandler;
+
+    // CSR indices.
     std::vector<std::unique_ptr<RelTableData>> directedRelData;
 };
 

@@ -25,7 +25,7 @@ NodeGroupCollection::NodeGroupCollection(MemoryManager& memoryManager,
     }
 }
 
-void NodeGroupCollection::append(const Transaction* transaction,
+std::pair<offset_t, offset_t> NodeGroupCollection::append(const Transaction* transaction,
     const std::vector<ValueVector*>& vectors) {
     const auto numRowsToAppend = vectors[0]->state->getSelVector().getSelSize();
     KU_ASSERT(numRowsToAppend == vectors[0]->state->getSelVector().getSelSize());
@@ -35,6 +35,7 @@ void NodeGroupCollection::append(const Transaction* transaction,
     // TODO(Guodong): Optimize the lock contention here. We should first lock to reserve a set of
     // rows to append, then append in parallel without locking.
     const auto lock = nodeGroups.lock();
+    auto startOffset = numTotalRows;
     if (nodeGroups.isEmpty(lock)) {
         auto newGroup = std::make_unique<NodeGroup>(0, enableCompression, LogicalType::copy(types));
         nodeGroups.appendGroup(lock, std::move(newGroup));
@@ -57,6 +58,7 @@ void NodeGroupCollection::append(const Transaction* transaction,
         numRowsAppended += numToAppendInNodeGroup;
     }
     stats.update(vectors);
+    return {startOffset, numRowsAppended};
 }
 
 void NodeGroupCollection::append(const Transaction* transaction,

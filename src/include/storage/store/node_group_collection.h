@@ -17,7 +17,8 @@ public:
         bool enableCompression, FileHandle* dataFH = nullptr, common::Deserializer* deSer = nullptr,
         const VersionRecordHandler* versionRecordHandler = nullptr);
 
-    void append(const transaction::Transaction* transaction,
+    std::pair<common::offset_t, common::offset_t> append(
+        const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& vectors);
     void append(const transaction::Transaction* transaction,
         const std::vector<common::column_id_t>& columnIDs, const NodeGroupCollection& other);

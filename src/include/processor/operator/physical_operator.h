@@ -50,6 +50,7 @@ enum class PhysicalOperatorType : uint8_t {
     PARTITIONER,
     PATH_PROPERTY_PROBE,
     PRIMARY_KEY_SCAN_NODE_TABLE,
+    OFFSET_SCAN_TABLE,
     PROJECTION,
     PROFILE,
     RECURSIVE_EXTEND,

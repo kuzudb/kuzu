@@ -226,7 +226,7 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitExtendReplace(
     // Apply column predicates.
     auto columnPredicates =
         getColumnPredicateSets(extend.getProperties(), predicateSet.getAllPredicates());
-    extend.setPropertyPredicates(std::move(columnPredicates));
+    // extend.setPropertyPredicates(std::move(columnPredicates));
     return visitChildren(op);
 }
 

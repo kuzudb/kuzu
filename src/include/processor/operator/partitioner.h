@@ -182,7 +182,9 @@ public:
 
 private:
     void evaluateExpressions(uint64_t numRels) const;
-    common::DataChunk constructDataChunk(
+    common::DataChunk constructCSRDataChunk(
+        const std::shared_ptr<common::DataChunkState>& state) const;
+    common::DataChunk constructPropertyDataChunk(
         const std::shared_ptr<common::DataChunkState>& state) const;
     // TODO: For now, RelBatchInsert will guarantee all data are inside one data chunk. Should be
     //  generalized to resultSet later if needed.

@@ -50,7 +50,7 @@ void PartitionerSharedState::initialize(const logical_type_vec_t& columnTypes,
 
 partition_idx_t PartitionerSharedState::getNextPartition(idx_t partitioningIdx,
     RelBatchInsertProgressSharedState& progressSharedState) {
-    auto nextPartitionIdxToReturn = nextPartitionIdx++;
+    const auto nextPartitionIdxToReturn = nextPartitionIdx++;
     if (nextPartitionIdxToReturn >= numPartitions[partitioningIdx]) {
         return INVALID_PARTITION_IDX;
     }
@@ -67,7 +67,7 @@ void PartitionerSharedState::merge(
     std::unique_lock xLck{mtx};
     KU_ASSERT(partitioningBuffers.size() == localPartitioningStates.size());
     for (auto partitioningIdx = 0u; partitioningIdx < partitioningBuffers.size();
-         partitioningIdx++) {
+        partitioningIdx++) {
         partitioningBuffers[partitioningIdx]->merge(*localPartitioningStates[partitioningIdx]);
     }
 }
@@ -91,24 +91,41 @@ Partitioner::Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescripto
 }
 
 void Partitioner::initGlobalStateInternal(ExecutionContext* context) {
-    sharedState->initialize(dataInfo.columnTypes, info.infos.size(), context->clientContext);
+    std::vector<LogicalType> columnTypes;
+    columnTypes.push_back(LogicalType::INTERNAL_ID());
+    columnTypes.push_back(LogicalType::INTERNAL_ID());
+    columnTypes.push_back(LogicalType::INTERNAL_ID());
+    sharedState->initialize(std::move(columnTypes), info.infos.size(), context->clientContext);
 }
 
 void Partitioner::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     localState = std::make_unique<PartitionerLocalState>();
-    initializePartitioningStates(dataInfo.columnTypes, localState->partitioningBuffers,
+    std::vector<LogicalType> columnTypes;
+    columnTypes.push_back(LogicalType::INTERNAL_ID());
+    columnTypes.push_back(LogicalType::INTERNAL_ID());
+    columnTypes.push_back(LogicalType::INTERNAL_ID());
+    initializePartitioningStates(columnTypes, localState->partitioningBuffers,
         sharedState->numPartitions, info.infos.size());
     for (const auto& evaluator : dataInfo.columnEvaluators) {
         evaluator->init(*resultSet, context->clientContext);
     }
 }
 
-DataChunk Partitioner::constructDataChunk(const std::shared_ptr<DataChunkState>& state) const {
-    const auto numColumns = dataInfo.columnEvaluators.size();
-    DataChunk dataChunk(numColumns, state);
-    for (auto i = 0u; i < numColumns; ++i) {
+DataChunk Partitioner::constructCSRDataChunk(const std::shared_ptr<DataChunkState>& state) const {
+    DataChunk dataChunk(3, state);
+    for (auto i = 0u; i < 3; ++i) {
         auto& evaluator = dataInfo.columnEvaluators[i];
         dataChunk.insert(i, evaluator->resultVector);
+    }
+    return dataChunk;
+}
+
+DataChunk Partitioner::constructPropertyDataChunk(
+    const std::shared_ptr<DataChunkState>& state) const {
+    DataChunk dataChunk(dataInfo.columnEvaluators.size() - 3, state);
+    for (auto i = 3u; i < dataInfo.columnEvaluators.size(); ++i) {
+        auto& evaluator = dataInfo.columnEvaluators[i];
+        dataChunk.insert(i - 3, evaluator->resultVector);
     }
     return dataChunk;
 }
@@ -132,23 +149,32 @@ void Partitioner::initializePartitioningStates(const logical_type_vec_t& columnT
 
 void Partitioner::executeInternal(ExecutionContext* context) {
     const auto relOffsetVector = resultSet->getValueVector(info.relOffsetDataPos);
+    std::vector<column_id_t> propertyColumnIDs;
+    propertyColumnIDs.reserve(dataInfo.columnEvaluators.size() - 3);
+    for (auto i = 3u; i < dataInfo.columnEvaluators.size(); ++i) {
+        propertyColumnIDs.push_back(i);
+    }
     while (children[0]->getNextTuple(context)) {
         KU_ASSERT(dataInfo.columnEvaluators.size() >= 1);
         const auto numRels = relOffsetVector->state->getSelVector().getSelSize();
         evaluateExpressions(numRels);
-        auto currentRelOffset = sharedState->relTable->reserveRelOffsets(numRels);
+        auto propertyChunkToCopyFrom =
+            constructPropertyDataChunk(dataInfo.columnEvaluators[0]->resultVector->state);
+        auto [startRelOffset, appendedNumRels] = sharedState->relTable->appendToLastNodeGroup(
+            context->clientContext->getTransaction(), propertyChunkToCopyFrom);
+        KU_ASSERT(numRels == appendedNumRels);
         for (auto i = 0u; i < numRels; i++) {
             const auto pos = relOffsetVector->state->getSelVector()[i];
-            relOffsetVector->setValue<offset_t>(pos, currentRelOffset++);
+            relOffsetVector->setValue<offset_t>(pos, startRelOffset++);
         }
         for (auto partitioningIdx = 0u; partitioningIdx < info.infos.size(); partitioningIdx++) {
             auto& partitionInfo = info.infos[partitioningIdx];
             auto keyVector = dataInfo.columnEvaluators[partitionInfo.keyIdx]->resultVector;
             partitionIdxes->state = keyVector->state;
             partitionInfo.partitionerFunc(keyVector.get(), partitionIdxes.get());
-            auto chunkToCopyFrom = constructDataChunk(keyVector->state);
+            auto csrChunkToCopyFrom = constructCSRDataChunk(keyVector->state);
             copyDataToPartitions(*context->clientContext->getMemoryManager(), partitioningIdx,
-                chunkToCopyFrom);
+                csrChunkToCopyFrom);
         }
     }
     sharedState->merge(localState->partitioningBuffers);

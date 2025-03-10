@@ -19,6 +19,29 @@ using namespace kuzu::evaluator;
 namespace kuzu {
 namespace storage {
 
+RelTableVersionRecordHandler::RelTableVersionRecordHandler(RelTable* table) : table{table} {}
+
+void RelTableVersionRecordHandler::applyFuncToChunkedGroups(version_record_handler_op_t func,
+    node_group_idx_t nodeGroupIdx, row_idx_t startRow, row_idx_t numRows,
+    transaction_t commitTS) const {
+    auto* nodeGroup = table->getPropertyNodeGroup(nodeGroupIdx);
+    nodeGroup->applyFuncToChunkedGroups(func, startRow, numRows, commitTS);
+}
+
+void RelTableVersionRecordHandler::rollbackInsert(const Transaction* transaction,
+    node_group_idx_t nodeGroupIdx, row_idx_t startRow, row_idx_t numRows) const {
+    // the only case where a node group would be empty (and potentially removed before) is if an
+    // exception occurred while adding its first chunk
+    // KU_ASSERT(nodeGroupIdx < table->getNumNodeGroups() || startRow == 0);
+    // if (nodeGroupIdx < table->getNumNodeGroups()) {
+    //     VersionRecordHandler::rollbackInsert(transaction, nodeGroupIdx, startRow, numRows);
+    //     auto* nodeGroup = table->getNodeGroupNoLock(nodeGroupIdx);
+    //     const auto numRowsToRollback = std::min(numRows, nodeGroup->getNumRows() - startRow);
+    //     nodeGroup->rollbackInsert(startRow);
+    //     table->rollbackGroupCollectionInsert(numRowsToRollback);
+    // }
+}
+
 void RelTableScanState::setToTable(const Transaction* transaction, Table* table_,
     std::vector<column_id_t> columnIDs_, std::vector<ColumnPredicateSet> columnPredicateSets_,
     RelDataDirection direction_) {
@@ -128,11 +151,25 @@ RelTable::RelTable(RelTableCatalogEntry* relTableEntry, const StorageManager* st
     MemoryManager* memoryManager, Deserializer* deSer)
     : Table{relTableEntry, storageManager, memoryManager},
       fromNodeTableID{relTableEntry->getSrcTableID()},
-      toNodeTableID{relTableEntry->getDstTableID()}, nextRelOffset{0} {
+      toNodeTableID{relTableEntry->getDstTableID()}, nextRelOffset{0}, versionRecordHandler{this} {
     for (auto direction : relTableEntry->getRelDataDirections()) {
         directedRelData.emplace_back(std::make_unique<RelTableData>(dataFH, memoryManager,
             shadowFile, relTableEntry, direction, enableCompression, deSer));
     }
+    const auto numPropertyColumns = relTableEntry->getNumProperties() - 1;
+    std::vector<LogicalType> propertyTypes(numPropertyColumns);
+    columns.resize(numPropertyColumns);
+    for (auto i = 0u; i < numPropertyColumns; i++) {
+        auto propertyIdx = i + 1;
+        auto& property = relTableEntry->getProperty(propertyIdx);
+        const auto columnName =
+            StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT, "");
+        propertyTypes[i] = property.getType().copy();
+        columns[i] = ColumnFactory::createColumn(columnName, property.getType().copy(), dataFH,
+            memoryManager, shadowFile, enableCompression);
+    }
+    nodeGroups = std::make_unique<NodeGroupCollection>(*memoryManager, std::move(propertyTypes),
+        enableCompression, storageManager->getDataFH(), deSer, &versionRecordHandler);
 }
 
 std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog& catalog,
@@ -198,6 +235,23 @@ void RelTable::checkRelMultiplicityConstraint(Transaction* transaction,
                 throwRelMultiplicityConstraintError);
         }
     }
+}
+
+std::pair<offset_t, offset_t> RelTable::appendToLastNodeGroup(const Transaction* transaction,
+    const DataChunk& chunk) {
+    hasChanges = true;
+    std::vector<ValueVector*> vectors;
+    for (auto i = 0u; i < chunk.getNumValueVectors(); i++) {
+        vectors.push_back(&chunk.getValueVectorMutable(i));
+    }
+    return nodeGroups->append(transaction, vectors);
+}
+
+void RelTable::lookup(transaction::Transaction* transaction, common::ValueVector* IDs,
+    std::vector<common::column_id_t>& columnIDs,
+    std::vector<common::ValueVector*>& outputVectors) const {
+    // TODO(Rui): Implement lookup here. Refer NodeTable::lookup please.
+    // You can change this function's interface to mimick NodeTable:lookup if you want.
 }
 
 void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
@@ -404,6 +458,10 @@ NodeGroup* RelTable::getOrCreateNodeGroup(const Transaction* transaction,
     return getDirectedTableData(direction)->getOrCreateNodeGroup(transaction, nodeGroupIdx);
 }
 
+NodeGroup* RelTable::getPropertyNodeGroup(node_group_idx_t nodeGroupIdx) {
+    return nodeGroups->getNodeGroup(nodeGroupIdx);
+}
+
 void RelTable::pushInsertInfo(const Transaction* transaction, RelDataDirection direction,
     const CSRNodeGroup& nodeGroup, row_idx_t numRows_, CSRNodeGroupScanSource source) const {
     getDirectedTableData(direction)->pushInsertInfo(transaction, nodeGroup, numRows_, source);
@@ -500,14 +558,21 @@ void RelTable::prepareCommitForNodeGroup(const Transaction* transaction,
 
 void RelTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
     if (hasChanges) {
-        // Deleted columns are vaccumed and not checkpointed or serialized.
-        std::vector<column_id_t> columnIDs;
-        columnIDs.push_back(0);
-        for (auto& property : tableEntry->getProperties()) {
-            columnIDs.push_back(tableEntry->getColumnID(property.getName()));
+        std::vector<column_id_t> propColumnIDs;
+        std::vector<Column*> checkpointColumnPtrs;
+        for (auto i = 0u; i < columns.size(); i++) {
+            propColumnIDs.push_back(i);
+            checkpointColumnPtrs.push_back(columns[i].get());
         }
+        NodeGroupCheckpointState state{propColumnIDs, std::move(checkpointColumnPtrs), *dataFH,
+            memoryManager};
+        nodeGroups->checkpoint(*memoryManager, state);
+
+        std::vector<column_id_t> csrColumnIDs;
+        csrColumnIDs.push_back(0); // NBR column.
+        csrColumnIDs.push_back(1); // REL_ID column.
         for (auto& directedRelData : directedRelData) {
-            directedRelData->checkpoint(columnIDs);
+            directedRelData->checkpoint(csrColumnIDs);
         }
         tableEntry->vacuumColumnIDs(1);
         hasChanges = false;
@@ -515,6 +580,7 @@ void RelTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
     Table::serialize(ser);
     ser.writeDebuggingInfo("next_rel_offset");
     ser.write<offset_t>(nextRelOffset);
+    nodeGroups->serialize(ser);
     for (auto& directedRelData : directedRelData) {
         directedRelData->serialize(ser);
     }

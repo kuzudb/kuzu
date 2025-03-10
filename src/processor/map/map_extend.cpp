@@ -120,7 +120,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(const LogicalOperator* l
         auto relDataDirection = ExtendDirectionUtil::getRelDataDirection(extendDirection);
         auto relTable = storageManager->getTable(entry->getTableID())->ptrCast<RelTable>();
         auto scanRelInfo = getRelTableScanInfo(*entry, relDataDirection, relTable,
-            extend->shouldScanNbrID(), extend->getProperties(), extend->getPropertyPredicates());
+            extend->shouldScanNbrID(), extend->getProperties(), {});
         return std::make_unique<ScanRelTable>(std::move(scanInfo), std::move(scanRelInfo),
             std::move(prevOperator), getOperatorID(), printInfo->copy());
     }
@@ -134,7 +134,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(const LogicalOperator* l
     for (auto boundNodeTableID : boundNode->getTableIDs()) {
         auto scanner = populateRelTableCollectionScanner(boundNodeTableID,
             nbrNode->getTableIDsSet(), *rel, extendDirection, extend->shouldScanNbrID(),
-            extend->getProperties(), extend->getPropertyPredicates(), *clientContext);
+            extend->getProperties(), {}, *clientContext);
         if (!scanner.empty()) {
             scanners.insert({boundNodeTableID, std::move(scanner)});
         }

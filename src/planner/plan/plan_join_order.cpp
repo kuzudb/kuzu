@@ -298,15 +298,21 @@ void Planner::planRelScan(uint32_t relPos) {
     newSubgraph.addQueryRel(relPos);
     const auto predicates = getNewlyMatchedExprs(context.getEmptySubqueryGraph(), newSubgraph,
         context.getWhereExpressions());
-    for (const auto direction : rel->getExtendDirections()) {
-        auto plan = std::make_unique<LogicalPlan>();
-        auto [boundNode, nbrNode] = getBoundAndNbrNodes(*rel, direction);
-        const auto extendDirection = getExtendDirection(*rel, *boundNode);
-        appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(), {}, *plan);
-        appendExtend(boundNode, nbrNode, rel, extendDirection, getProperties(*rel), *plan);
-        appendFilters(predicates, *plan);
-        context.addPlan(newSubgraph, std::move(plan));
-    }
+    auto properties = getProperties(*rel);
+    auto plan = std::make_unique<LogicalPlan>();
+    appendScanNodeTable(rel->getInternalIDProperty(), rel->getTableIDs(), properties, *plan);
+    appendFilters(predicates, *plan);
+    context.addPlan(newSubgraph, std::move(plan));
+
+    // for (const auto direction : rel->getExtendDirections()) {
+    // auto plan = std::make_unique<LogicalPlan>();
+    // auto [boundNode, nbrNode] = getBoundAndNbrNodes(*rel, direction);
+    // const auto extendDirection = getExtendDirection(*rel, *boundNode);
+    // appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(), {}, *plan);
+    // appendExtend(boundNode, nbrNode, rel, extendDirection, getProperties(*rel), *plan);
+    // appendFilters(predicates, *plan);
+    // context.addPlan(newSubgraph, std::move(plan));
+    // }
 }
 
 void Planner::appendExtend(std::shared_ptr<NodeExpression> boundNode,
@@ -515,9 +521,9 @@ void Planner::planInnerJoin(uint32_t leftLevel, uint32_t rightLevel) {
                 continue;
             }
             // If index nested loop (INL) join is possible, we prune hash join plans
-            if (tryPlanINLJoin(rightSubgraph, nbrSubgraph, joinNodes)) {
-                continue;
-            }
+            // if (tryPlanINLJoin(rightSubgraph, nbrSubgraph, joinNodes)) {
+            // continue;
+            // }
             planInnerHashJoin(rightSubgraph, nbrSubgraph, joinNodes, leftLevel != rightLevel);
         }
     }
