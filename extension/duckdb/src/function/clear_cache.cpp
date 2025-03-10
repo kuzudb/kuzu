@@ -30,6 +30,7 @@ function_set ClearCacheFunction::getFunctionSet() {
     function->bindFunc = clearCacheBindFunc;
     function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;
+    function->canParallelFunc = [] { return false; };
     functionSet.push_back(std::move(function));
     return functionSet;
 }
