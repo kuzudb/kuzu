@@ -25,7 +25,7 @@ namespace function {
 
 static constexpr offset_t SCC_UNSET = std::numeric_limits<offset_t>::max();
 
-struct SCCComputationState {
+struct SCCComputationState : GDSAuxiliaryState {
     std::atomic<bool> allSccIdsSet;
     AtomicObjectArray<offset_t> sccIDs;
     AtomicObjectArray<offset_t> fwdColors;
@@ -44,11 +44,18 @@ struct SCCComputationState {
     }
 
     bool isSccIdSet(offset_t nodeId) { return sccIDs.getRelaxed(nodeId) != SCC_UNSET; }
+
+    // Start by assuming all scc ids are set. `memory_order_seq_cst` is used to ensure that
+    // all threads see the initial value of `allSccIdsSet`.
+    void reset() { allSccIdsSet.store(true, std::memory_order_seq_cst); }
+
+    void beginFrontierCompute(common::table_id_t, common::table_id_t) override {}
 };
 
 class SetInitialSccIds : public VertexCompute {
 public:
-    SetInitialSccIds(SCCComputationState& computationState) : computationState{computationState} {}
+    explicit SetInitialSccIds(SCCComputationState& computationState)
+        : computationState{computationState} {}
 
     bool beginOnTable(table_id_t) override { return true; }
 
@@ -68,7 +75,8 @@ private:
 
 class FindNewSccIds : public VertexCompute {
 public:
-    explicit FindNewSccIds(SCCComputationState& computationState) : computationState{computationState} {}
+    explicit FindNewSccIds(SCCComputationState& computationState)
+        : computationState{computationState} {}
 
     bool beginOnTable(table_id_t) override { return true; }
 
@@ -89,10 +97,6 @@ public:
         }
     }
 
-    // Start by assuming all scc ids are set. `memory_order_seq_cst` is used to ensure that
-    // all threads see the initial value of `allSccIdsSet`.
-    void reset() { computationState.allSccIdsSet.store(true, std::memory_order_seq_cst); }
-
     std::unique_ptr<VertexCompute> copy() override {
         return std::make_unique<FindNewSccIds>(computationState);
     }
@@ -103,7 +107,8 @@ private:
 
 class SetInitialColors : public VertexCompute {
 public:
-    explicit SetInitialColors(SCCComputationState& computationState) : computationState{computationState} {}
+    explicit SetInitialColors(SCCComputationState& computationState)
+        : computationState{computationState} {}
 
     bool beginOnTable(table_id_t) override { return true; }
 
@@ -127,11 +132,13 @@ public:
     InitializeFrontiers(FrontierPair& frontierPair, SCCComputationState& computationState)
         : frontierPair{frontierPair}, computationState{computationState} {}
 
-    bool beginOnTable(table_id_t) override { return true; }
+    bool beginOnTable(table_id_t tableId) override {
+        frontierPair.pinCurrFrontier(tableId);
+        frontierPair.pinNextFrontier(tableId);
+        return true;
+    }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
-        frontierPair.getCurDenseFrontier().resetCurIter();
-        frontierPair.getNextDenseFrontier().resetCurIter();
         for (auto i = startOffset; i < endOffset; ++i) {
             // If the SCC ID has already been computed, the node should not be activated.
             auto initialState = computationState.isSccIdSet(i) ? PathLengths::INITIAL_VISITED :
@@ -154,7 +161,8 @@ private:
 struct ComputeColors : public EdgeCompute {
     SCCComputationState& computationState;
 
-    explicit ComputeColors(SCCComputationState& computationState) : computationState{computationState} {}
+    explicit ComputeColors(SCCComputationState& computationState)
+        : computationState{computationState} {}
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
         bool isFwd) override {
@@ -174,13 +182,6 @@ struct ComputeColors : public EdgeCompute {
     std::unique_ptr<EdgeCompute> copy() override {
         return std::make_unique<ComputeColors>(computationState);
     }
-};
-
-class SccAuxiliaryState : public GDSAuxiliaryState {
-public:
-    SccAuxiliaryState() {}
-
-    void beginFrontierCompute(table_id_t, table_id_t) override {}
 };
 
 class SccOutputWriter : public GDSOutputWriter {
@@ -271,7 +272,6 @@ public:
         auto graph = sharedState->graph.get();
         auto getMaxOffsetMap = graph->getMaxOffsetMap(clientContext->getTransaction());
         auto it = getMaxOffsetMap.begin();
-        auto tableId = it->first;
         auto numNodes = it->second;
 
         auto computationState = SCCComputationState(numNodes, mm);
@@ -282,17 +282,13 @@ public:
         // The frontiers will be initialized inside the loop.
         auto currentFrontier = std::make_shared<PathLengths>(getMaxOffsetMap, mm);
         auto nextFrontier = std::make_shared<PathLengths>(getMaxOffsetMap, mm);
-        currentFrontier->pinCurFrontierTableID(tableId);
-        nextFrontier->pinCurFrontierTableID(tableId);
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
-        frontierPair->getCurSparseFrontier().disable();
-        frontierPair->getNextSparseFrontier().disable();
 
         auto setNewSccIds = std::make_unique<FindNewSccIds>(computationState);
         auto setInitialColors = std::make_unique<SetInitialColors>(computationState);
         auto computeColors = std::make_unique<ComputeColors>(computationState);
-        auto auxiliaryState = std::make_unique<SccAuxiliaryState>();
+        auto auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
         auto computeState = GDSComputeState(std::move(frontierPair), std::move(computeColors),
             std::move(auxiliaryState), sharedState->getOutputNodeMaskMap());
         auto initializeFrontiers =
@@ -316,7 +312,7 @@ public:
                 ExtendDirection::BWD, MAX_ITERATION);
 
             // Find new SCC IDs and exit if all IDs have been found.
-            setNewSccIds->reset();
+            computationState.reset();
             GDSUtils::runVertexCompute(context, graph, *setNewSccIds);
             if (computationState.allSccIdsSet.load(std::memory_order_relaxed)) {
                 break;

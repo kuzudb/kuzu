@@ -192,6 +192,8 @@ void FrontierPair::initState() {
     vertexComputeCandidates = std::make_shared<SparseFrontier>();
     hasActiveNodesForNextIter_.store(false);
     curIter.store(0u);
+    getCurDenseFrontier().resetCurIter();
+    getNextDenseFrontier().resetCurIter();
 }
 
 void FrontierPair::beginFrontierComputeBetweenTables(common::table_id_t curTableID,
