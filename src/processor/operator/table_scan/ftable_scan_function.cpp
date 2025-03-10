@@ -1,7 +1,7 @@
 #include "processor/operator/table_scan/ftable_scan_function.h"
 
 #include "function/table/scan_functions.h"
-#include "function/table/table_function.h"
+#include "function/table/simple_table_function.h"
 #include "processor/result/factorized_table.h"
 
 using namespace kuzu::common;
@@ -10,13 +10,13 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace processor {
 
-struct FTableScanSharedState final : public TableFuncSharedState {
+struct FTableScanSharedState final : public SimpleTableFuncSharedState {
     std::shared_ptr<FactorizedTable> table;
     uint64_t morselSize;
     offset_t nextTupleIdx;
 
     FTableScanSharedState(std::shared_ptr<FactorizedTable> table, uint64_t morselSize)
-        : TableFuncSharedState{table->getNumTuples() - 1}, table{std::move(table)},
+        : SimpleTableFuncSharedState{table->getNumTuples() - 1}, table{std::move(table)},
           morselSize{morselSize}, nextTupleIdx{0} {}
 
     TableFuncMorsel getMorsel() override {

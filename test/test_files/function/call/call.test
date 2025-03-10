@@ -4,6 +4,7 @@
 
 -CASE CallSetGetConfig
 
+
 -LOG SetGetEnablePlanOptimizer
 -STATEMENT CALL enable_plan_optimizer=false
 ---- ok

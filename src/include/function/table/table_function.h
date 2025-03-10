@@ -35,37 +35,14 @@ namespace function {
 struct TableFuncBindInput;
 struct TableFuncBindData;
 
-struct TableFuncMorsel {
-    common::offset_t startOffset;
-    common::offset_t endOffset;
-
-    TableFuncMorsel(common::offset_t startOffset, common::offset_t endOffset)
-        : startOffset{startOffset}, endOffset{endOffset} {}
-
-    bool hasMoreToOutput() const { return startOffset != common::INVALID_OFFSET; }
-
-    static TableFuncMorsel createInvalidMorsel() {
-        return {common::INVALID_OFFSET, common::INVALID_OFFSET};
-    }
-
-    bool isInvalid() const {
-        return startOffset == common::INVALID_OFFSET && endOffset == common::INVALID_OFFSET;
-    }
-};
-
 struct KUZU_API TableFuncSharedState {
-    common::offset_t maxOffset;
-    common::offset_t curOffset;
-    common::offset_t maxMorselSize;
+    common::row_idx_t numRows = 0;
     std::mutex mtx;
 
-    explicit TableFuncSharedState();
-    explicit TableFuncSharedState(common::offset_t maxOffset);
-    TableFuncSharedState(common::offset_t maxOffset, common::offset_t maxMorselSize);
+    explicit TableFuncSharedState() = default;
+    explicit TableFuncSharedState(common::row_idx_t numRows) : numRows{numRows} {}
     virtual ~TableFuncSharedState() = default;
-    virtual uint64_t getNumRows() const { return maxOffset + 1; }
-
-    virtual TableFuncMorsel getMorsel();
+    virtual uint64_t getNumRows() const { return numRows; }
 
     template<class TARGET>
     TARGET* ptrCast() {
@@ -164,8 +141,6 @@ struct KUZU_API TableFunction final : Function {
 
     std::unique_ptr<TableFunction> copy() const { return std::make_unique<TableFunction>(*this); }
 
-    static std::unique_ptr<TableFuncSharedState> initSharedState(
-        const TableFunctionInitInput& input);
     static std::unique_ptr<TableFuncLocalState> initEmptyLocalState(
         const TableFunctionInitInput& input, TableFuncSharedState* state,
         storage::MemoryManager* mm);
@@ -179,128 +154,6 @@ struct KUZU_API TableFunction final : Function {
         const main::ClientContext* clientContext, processor::PlanMapper* planMapper,
         const planner::LogicalOperator* logicalOp);
     static common::offset_t emptyTableFunc(const TableFuncInput& input, TableFuncOutput& output);
-};
-
-struct CurrentSettingFunction final {
-    static constexpr const char* name = "CURRENT_SETTING";
-
-    static function_set getFunctionSet();
-};
-
-struct CatalogVersionFunction final {
-    static constexpr const char* name = "CATALOG_VERSION";
-
-    static function_set getFunctionSet();
-};
-
-struct DBVersionFunction final {
-    static constexpr const char* name = "DB_VERSION";
-
-    static function_set getFunctionSet();
-};
-
-struct ShowTablesFunction final {
-    static constexpr const char* name = "SHOW_TABLES";
-
-    static function_set getFunctionSet();
-};
-
-struct ShowWarningsFunction final {
-    static constexpr const char* name = "SHOW_WARNINGS";
-
-    static function_set getFunctionSet();
-};
-
-struct ClearWarningsFunction final {
-    static constexpr const char* name = "CLEAR_WARNINGS";
-
-    static function_set getFunctionSet();
-};
-
-struct TableInfoFunction final {
-    static constexpr const char* name = "TABLE_INFO";
-
-    static function_set getFunctionSet();
-};
-
-struct ShowSequencesFunction final {
-    static constexpr const char* name = "SHOW_SEQUENCES";
-
-    static function_set getFunctionSet();
-};
-
-struct ShowConnectionFunction final {
-    static constexpr const char* name = "SHOW_CONNECTION";
-
-    static function_set getFunctionSet();
-};
-
-struct StorageInfoFunction final {
-    static constexpr const char* name = "STORAGE_INFO";
-
-    static function_set getFunctionSet();
-};
-
-struct StatsInfoFunction final {
-    static constexpr const char* name = "STATS_INFO";
-
-    static function_set getFunctionSet();
-};
-
-struct BMInfoFunction final {
-    static constexpr const char* name = "BM_INFO";
-
-    static function_set getFunctionSet();
-};
-
-struct ShowAttachedDatabasesFunction final {
-    static constexpr const char* name = "SHOW_ATTACHED_DATABASES";
-
-    static function_set getFunctionSet();
-};
-
-struct ShowFunctionsFunction final {
-    static constexpr const char* name = "SHOW_FUNCTIONS";
-
-    static function_set getFunctionSet();
-};
-
-struct CreateProjectedGraphFunction final {
-    static constexpr const char* name = "CREATE_PROJECTED_GRAPH";
-
-    static function_set getFunctionSet();
-};
-
-struct DropProjectedGraphFunction final {
-    static constexpr const char* name = "DROP_PROJECTED_GRAPH";
-
-    static function_set getFunctionSet();
-};
-
-struct ShowLoadedExtensionsFunction final {
-    static constexpr const char* name = "SHOW_LOADED_EXTENSIONS";
-
-    static function_set getFunctionSet();
-};
-
-struct ShowOfficialExtensionsFunction final {
-    static constexpr const char* name = "SHOW_OFFICIAL_EXTENSIONS";
-
-    static function_set getFunctionSet();
-};
-
-struct ShowIndexesFunction final {
-    static constexpr const char* name = "SHOW_INDEXES";
-
-    static function_set getFunctionSet();
-};
-
-// Cache a table column to the transaction local cache.
-// Note this is only used for internal purpose, and only supports node tables for now.
-struct LocalCacheArrayColumnFunction final {
-    static constexpr const char* name = "_CACHE_ARRAY_COLUMN_LOCALLY";
-
-    static function_set getFunctionSet();
 };
 
 } // namespace function

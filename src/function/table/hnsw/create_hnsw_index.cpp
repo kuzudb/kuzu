@@ -22,10 +22,10 @@ namespace kuzu {
 namespace function {
 
 CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBindData& bindData)
-    : TableFuncSharedState{bindData.maxOffset}, name{bindData.indexName},
+    : SimpleTableFuncSharedState{bindData.numRows}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-                    ->getTable(bindData.tableEntry->getTableID())
-                    ->cast<storage::NodeTable>()},
+              ->getTable(bindData.tableEntry->getTableID())
+              ->cast<storage::NodeTable>()},
       numNodes{bindData.numNodes}, bindData{&bindData} {
     hnswIndex = std::make_shared<storage::InMemHNSWIndex>(bindData.context, nodeTable,
         bindData.tableEntry->getColumnID(bindData.propertyID), bindData.config.copy());
@@ -58,7 +58,7 @@ static std::unique_ptr<TableFuncSharedState> initCreateInMemHNSWSharedState(
 static std::unique_ptr<TableFuncLocalState> initCreateInMemHNSWLocalState(
     const TableFunctionInitInput& input, TableFuncSharedState*, storage::MemoryManager*) {
     const auto bindData = input.bindData->constPtrCast<CreateHNSWIndexBindData>();
-    return std::make_unique<CreateInMemHNSWLocalState>(bindData->maxOffset + 1);
+    return std::make_unique<CreateInMemHNSWLocalState>(bindData->numRows + 1);
 }
 
 static offset_t createInMemHNSWTableFunc(const TableFuncInput& input, TableFuncOutput&) {
@@ -122,7 +122,7 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
     auto finalizeFuncSharedState =
         finalizeSharedState->funcState->ptrCast<FinalizeHNSWSharedState>();
     finalizeFuncSharedState->hnswIndex = createFuncSharedState->hnswIndex;
-    finalizeFuncSharedState->maxOffset =
+    finalizeFuncSharedState->numRows =
         (logicalCallBoundData->numNodes + StorageConfig::NODE_GROUP_SIZE - 1) /
         StorageConfig::NODE_GROUP_SIZE;
     finalizeFuncSharedState->maxMorselSize = 1;
@@ -264,13 +264,13 @@ static void finalizeHNSWTableFinalizeFunc(const processor::ExecutionContext* con
 static double finalizeHNSWProgressFunc(TableFuncSharedState* sharedState) {
     const auto hnswSharedState = sharedState->ptrCast<FinalizeHNSWSharedState>();
     const auto numNodeGroupsFinalized = hnswSharedState->numNodeGroupsFinalized.load();
-    if (hnswSharedState->maxOffset == 0) {
+    if (hnswSharedState->numRows == 0) {
         return 1.0;
     }
     if (numNodeGroupsFinalized == 0) {
         return 0.0;
     }
-    return static_cast<double>(numNodeGroupsFinalized) / hnswSharedState->maxOffset;
+    return static_cast<double>(numNodeGroupsFinalized) / hnswSharedState->numRows;
 }
 
 function_set InternalFinalizeHNSWIndexFunction::getFunctionSet() {
@@ -328,7 +328,7 @@ function_set CreateHNSWIndexFunction::getFunctionSet() {
     std::vector inputTypes = {LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING};
     auto func = std::make_unique<TableFunction>(name, inputTypes);
     func->bindFunc = bindFunc;
-    func->initSharedStateFunc = TableFunction::initSharedState;
+    func->initSharedStateFunc = SimpleTableFunc::initSharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->tableFunc = TableFunction::emptyTableFunc;
     func->rewriteFunc = rewriteCreateHNSWQuery;

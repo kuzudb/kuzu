@@ -23,6 +23,7 @@ add_library(kuzu_table_function
         show_warnings.cpp
         stats_info.cpp
         storage_info.cpp
+        simple_table_function.cpp
         table_function.cpp
         table_info.cpp
         )

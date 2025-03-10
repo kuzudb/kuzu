@@ -309,6 +309,8 @@ public:
     void addToScope(const std::string& name, std::shared_ptr<Expression> expr);
     BinderScope saveScope() const;
     void restoreScope(BinderScope prevScope);
+    void replaceExpressionInScope(const std::string& oldName, const std::string& newName,
+        std::shared_ptr<Expression> expression);
 
     function::TableFunction getScanFunction(const common::FileTypeInfo& typeInfo,
         const common::FileScanInfo& fileScanInfo) const;

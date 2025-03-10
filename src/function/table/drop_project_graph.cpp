@@ -1,6 +1,6 @@
 #include "common/exception/runtime.h"
 #include "function/table/bind_data.h"
-#include "function/table/table_function.h"
+#include "function/table/simple_table_function.h"
 #include "graph/graph_entry.h"
 #include "processor/execution_context.h"
 
@@ -33,7 +33,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
 
 static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext*,
     const TableFuncBindInput* input) {
-    auto graphName = input->getLiteralVal<std::string>(0);
+    auto graphName = input->getLiteralVal<std::string>(0 /* maxOffset */);
     return std::make_unique<DropProjectedGraphBindData>(graphName);
 }
 
@@ -42,7 +42,7 @@ function_set DropProjectedGraphFunction::getFunctionSet() {
     auto func = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
     func->bindFunc = bindFunc;
     func->tableFunc = tableFunc;
-    func->initSharedStateFunc = TableFunction::initSharedState;
+    func->initSharedStateFunc = SimpleTableFunc::initSharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->canParallelFunc = []() { return false; };
     functionSet.push_back(std::move(func));

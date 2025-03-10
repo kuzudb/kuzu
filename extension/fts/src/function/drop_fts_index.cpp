@@ -1,12 +1,11 @@
 #include "function/drop_fts_index.h"
 
-#include "binder/expression/expression_util.h"
 #include "catalog/catalog.h"
 #include "function/fts_bind_data.h"
 #include "function/fts_utils.h"
 #include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
-#include "function/table/table_function.h"
+#include "function/table/simple_table_function.h"
 #include "processor/execution_context.h"
 #include "storage/index/index_utils.h"
 
@@ -55,7 +54,7 @@ function_set InternalDropFTSFunction::getFunctionSet() {
         std::vector{LogicalTypeID::STRING, LogicalTypeID::STRING});
     func->tableFunc = internalTableFunc;
     func->bindFunc = bindFunc;
-    func->initSharedStateFunc = TableFunction::initSharedState;
+    func->initSharedStateFunc = SimpleTableFunc::initSharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->canParallelFunc = [] { return false; };
     functionSet.push_back(std::move(func));
@@ -68,7 +67,7 @@ function_set DropFTSFunction::getFunctionSet() {
         std::vector{LogicalTypeID::STRING, LogicalTypeID::STRING});
     func->tableFunc = TableFunction::emptyTableFunc;
     func->bindFunc = bindFunc;
-    func->initSharedStateFunc = TableFunction::initSharedState;
+    func->initSharedStateFunc = SimpleTableFunc::initSharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->rewriteFunc = dropFTSIndexQuery;
     func->canParallelFunc = [] { return false; };

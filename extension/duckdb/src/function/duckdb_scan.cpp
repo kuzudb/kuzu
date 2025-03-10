@@ -20,7 +20,7 @@ DuckDBScanBindData::DuckDBScanBindData(std::string query,
 
 DuckDBScanSharedState::DuckDBScanSharedState(
     std::unique_ptr<duckdb::MaterializedQueryResult> queryResult)
-    : BaseScanSharedStateWithNumRows{queryResult->RowCount()}, queryResult{std::move(queryResult)} {
+    : function::TableFuncSharedState{queryResult->RowCount()}, queryResult{std::move(queryResult)} {
 }
 
 struct DuckDBScanFunction {
@@ -87,7 +87,7 @@ offset_t DuckDBScanFunction::tableFunc(const TableFuncInput& input, TableFuncOut
     std::unique_ptr<duckdb::DataChunk> result;
     try {
         // Duckdb queryResult.fetch() is not thread safe, we have to acquire a lock there.
-        std::lock_guard<std::mutex> lock{duckdbScanSharedState->lock};
+        std::lock_guard<std::mutex> lock{duckdbScanSharedState->mtx};
         result = duckdbScanSharedState->queryResult->Fetch();
     } catch (std::exception& e) {
         return 0;

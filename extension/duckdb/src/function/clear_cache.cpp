@@ -13,14 +13,9 @@ namespace duckdb_extension {
 
 static offset_t clearCacheTableFunc(const TableFuncInput& input,
     const TableFuncOutput& /*output*/) {
-    const auto sharedState = input.sharedState->ptrCast<TableFuncSharedState>();
-    const auto morsel = sharedState->getMorsel();
-    if (!morsel.hasMoreToOutput()) {
-        return 0;
-    }
     const auto bindData = input.bindData->constPtrCast<ClearCacheBindData>();
     bindData->databaseManager->invalidateCache();
-    return 1;
+    return 0;
 }
 
 static std::unique_ptr<TableFuncBindData> clearCacheBindFunc(const ClientContext* context,
@@ -33,7 +28,7 @@ function_set ClearCacheFunction::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
     function->tableFunc = clearCacheTableFunc;
     function->bindFunc = clearCacheBindFunc;
-    function->initSharedStateFunc = TableFunction::initSharedState;
+    function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;

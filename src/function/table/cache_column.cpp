@@ -3,7 +3,7 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "function/table/bind_data.h"
-#include "function/table/table_function.h"
+#include "function/table/simple_table_function.h"
 #include "processor/execution_context.h"
 #include "storage/local_cached_column.h"
 #include "storage/storage_manager.h"
@@ -57,10 +57,10 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     return std::make_unique<CacheArrayColumnBindData>(tableEntry, propertyID);
 }
 
-struct CacheArrayColumnSharedState final : TableFuncSharedState {
+struct CacheArrayColumnSharedState final : public SimpleTableFuncSharedState {
     explicit CacheArrayColumnSharedState(storage::NodeTable& table,
         node_group_idx_t maxNodeGroupIdx, const CacheArrayColumnBindData& bindData)
-        : TableFuncSharedState{maxNodeGroupIdx, 1 /*maxMorselSize*/}, table{table} {
+        : SimpleTableFuncSharedState{maxNodeGroupIdx, 1 /*maxMorselSize*/}, table{table} {
         cachedColumn = std::make_unique<storage::CachedColumn>(bindData.tableEntry->getTableID(),
             bindData.propertyID);
         cachedColumn->columnChunks.resize(maxNodeGroupIdx + 1);
@@ -154,13 +154,13 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
 static double progressFunc(TableFuncSharedState* sharedState) {
     const auto cacheColumnSharedState = sharedState->ptrCast<CacheArrayColumnSharedState>();
     const auto numNodeGroupsCached = cacheColumnSharedState->numNodeGroupsCached.load();
-    if (cacheColumnSharedState->maxOffset == 0) {
+    if (cacheColumnSharedState->numRows == 0) {
         return 1.0;
     }
     if (numNodeGroupsCached == 0) {
         return 0.0;
     }
-    return static_cast<double>(numNodeGroupsCached) / cacheColumnSharedState->maxOffset;
+    return static_cast<double>(numNodeGroupsCached) / cacheColumnSharedState->numRows;
 }
 
 static void finalizeFunc(const processor::ExecutionContext* context,

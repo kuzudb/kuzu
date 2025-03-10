@@ -35,7 +35,7 @@ struct DuckDBScanBindData : function::TableFuncBindData {
     }
 };
 
-struct DuckDBScanSharedState final : function::BaseScanSharedStateWithNumRows {
+struct DuckDBScanSharedState final : function::TableFuncSharedState {
     explicit DuckDBScanSharedState(std::unique_ptr<duckdb::MaterializedQueryResult> queryResult);
 
     std::unique_ptr<duckdb::MaterializedQueryResult> queryResult;

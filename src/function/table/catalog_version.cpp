@@ -1,15 +1,15 @@
 #include "binder/binder.h"
+#include "catalog/catalog.h"
 #include "function/table/bind_data.h"
-#include "function/table/table_function.h"
-#include <catalog/catalog.h>
-#include <processor/execution_context.h>
+#include "function/table/simple_table_function.h"
+#include "processor/execution_context.h"
 
 namespace kuzu {
 namespace function {
 
 static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    const auto sharedState = input.sharedState->ptrCast<TableFuncSharedState>();
+    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
     auto& outputVector = dataChunk.getValueVectorMutable(0);
     if (!sharedState->getMorsel().hasMoreToOutput()) {
         return 0;
@@ -36,7 +36,7 @@ function_set CatalogVersionFunction::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector<common::LogicalTypeID>{});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
-    function->initSharedStateFunc = TableFunction::initSharedState;
+    function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;

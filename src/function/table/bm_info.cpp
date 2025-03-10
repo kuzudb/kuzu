@@ -1,6 +1,6 @@
 #include "binder/binder.h"
 #include "function/table/bind_data.h"
-#include "function/table/table_function.h"
+#include "function/table/simple_table_function.h"
 #include "main/database.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
@@ -22,7 +22,7 @@ struct BMInfoBindData final : TableFuncBindData {
 
 static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     KU_ASSERT(output.dataChunk.getNumValueVectors() == 2);
-    const auto sharedState = input.sharedState->ptrCast<TableFuncSharedState>();
+    auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
     const auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
@@ -52,7 +52,7 @@ function_set BMInfoFunction::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector<common::LogicalTypeID>{});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
-    function->initSharedStateFunc = TableFunction::initSharedState;
+    function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;

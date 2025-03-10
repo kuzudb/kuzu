@@ -35,11 +35,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         duckdb_extension::DuckDBResultConverter{returnTypes}, columns, FileScanInfo{}, context);
 }
 
-struct DeltaScanSharedState final : BaseScanSharedState {
+struct DeltaScanSharedState final : TableFuncSharedState {
     explicit DeltaScanSharedState(std::unique_ptr<duckdb::MaterializedQueryResult> queryResult)
-        : BaseScanSharedState{}, queryResult{std::move(queryResult)} {}
-
-    uint64_t getNumRows() const override { return queryResult->RowCount(); }
+        : TableFuncSharedState{queryResult->RowCount()}, queryResult{std::move(queryResult)} {}
 
     std::unique_ptr<duckdb::MaterializedQueryResult> queryResult;
 };
@@ -57,7 +55,7 @@ offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     std::unique_ptr<duckdb::DataChunk> result;
     try {
         // Duckdb queryResult.fetch() is not thread safe, we have to acquire a lock there.
-        std::lock_guard lock{sharedState->lock};
+        std::lock_guard lock{sharedState->mtx};
         result = sharedState->queryResult->Fetch();
     } catch (std::exception& e) {
         return 0;

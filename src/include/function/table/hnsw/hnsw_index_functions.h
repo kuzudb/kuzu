@@ -2,7 +2,7 @@
 
 #include "binder/expression/node_expression.h"
 #include "function/table/bind_data.h"
-#include "function/table/table_function.h"
+#include "function/table/simple_table_function.h"
 #include "storage/index/hnsw_index.h"
 
 namespace kuzu {
@@ -25,11 +25,11 @@ struct CreateHNSWIndexBindData final : TableFuncBindData {
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, propertyID,
-            numNodes, maxOffset, config.copy());
+            numNodes, numRows, config.copy());
     }
 };
 
-struct CreateInMemHNSWSharedState final : TableFuncSharedState {
+struct CreateInMemHNSWSharedState final : SimpleTableFuncSharedState {
     std::string name;
     std::shared_ptr<storage::InMemHNSWIndex> hnswIndex;
     storage::NodeTable& nodeTable;
@@ -49,14 +49,14 @@ struct CreateInMemHNSWLocalState final : TableFuncLocalState {
         : upperVisited{numNodes}, lowerVisited{numNodes} {}
 };
 
-struct FinalizeHNSWSharedState final : TableFuncSharedState {
+struct FinalizeHNSWSharedState final : public SimpleTableFuncSharedState {
     std::shared_ptr<storage::InMemHNSWIndex> hnswIndex;
     std::shared_ptr<storage::HNSWIndexPartitionerSharedState> partitionerSharedState;
     std::unique_ptr<TableFuncBindData> bindData;
 
     std::atomic<common::node_group_idx_t> numNodeGroupsFinalized = 0;
 
-    explicit FinalizeHNSWSharedState(storage::MemoryManager& mm) {
+    explicit FinalizeHNSWSharedState(storage::MemoryManager& mm) : SimpleTableFuncSharedState{} {
         partitionerSharedState = std::make_shared<storage::HNSWIndexPartitionerSharedState>(mm);
     }
 };

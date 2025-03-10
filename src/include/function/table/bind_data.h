@@ -17,24 +17,23 @@ struct KUZU_API TableFuncBindData {
     // the last {numWarningDataColumns} columns are for temporary internal use
     common::column_id_t numWarningDataColumns;
     common::cardinality_t cardinality;
-    common::offset_t maxOffset;
+    common::row_idx_t numRows;
 
-    TableFuncBindData() : numWarningDataColumns{0}, cardinality{0}, maxOffset{0} {}
-    explicit TableFuncBindData(common::offset_t maxOffset)
-        : numWarningDataColumns{0}, cardinality{0}, maxOffset{maxOffset} {}
+    TableFuncBindData() : numWarningDataColumns{0}, cardinality{0}, numRows{0} {}
+    explicit TableFuncBindData(common::row_idx_t numRows)
+        : numWarningDataColumns{0}, cardinality{0}, numRows{numRows} {}
     explicit TableFuncBindData(binder::expression_vector columns)
-        : columns{std::move(columns)}, numWarningDataColumns{0}, cardinality{0}, maxOffset{0} {}
-    TableFuncBindData(binder::expression_vector columns, common::offset_t maxOffset)
-        : columns{std::move(columns)}, numWarningDataColumns{0}, cardinality{0},
-          maxOffset{maxOffset} {}
+        : columns{std::move(columns)}, numWarningDataColumns{0}, cardinality{0}, numRows{0} {}
+    TableFuncBindData(binder::expression_vector columns, common::row_idx_t numRows)
+        : columns{std::move(columns)}, numWarningDataColumns{0}, cardinality{0}, numRows{numRows} {}
     TableFuncBindData(binder::expression_vector columns, common::column_id_t numWarningColumns,
         common::cardinality_t cardinality)
         : columns{std::move(columns)}, numWarningDataColumns{numWarningColumns},
-          cardinality{cardinality}, maxOffset{0} {}
+          cardinality{cardinality}, numRows{0} {}
     TableFuncBindData(const TableFuncBindData& other)
         : columns{other.columns}, numWarningDataColumns(other.numWarningDataColumns),
-          cardinality{other.cardinality}, maxOffset{other.maxOffset},
-          columnSkips{other.columnSkips}, columnPredicates{copyVector(other.columnPredicates)} {}
+          cardinality{other.cardinality}, numRows{other.numRows}, columnSkips{other.columnSkips},
+          columnPredicates{copyVector(other.columnPredicates)} {}
     TableFuncBindData& operator=(const TableFuncBindData& other) = delete;
     virtual ~TableFuncBindData() = default;
 

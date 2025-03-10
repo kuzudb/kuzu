@@ -1,5 +1,5 @@
 #include "function/table/bind_data.h"
-#include "function/table/table_function.h"
+#include "function/table/simple_table_function.h"
 #include "processor/execution_context.h"
 #include "processor/warning_context.h"
 
@@ -23,7 +23,7 @@ function_set ClearWarningsFunction::getFunctionSet() {
     auto func = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
     func->tableFunc = tableFunc;
     func->bindFunc = bindFunc;
-    func->initSharedStateFunc = TableFunction::initSharedState;
+    func->initSharedStateFunc = SimpleTableFunc::initSharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->canParallelFunc = []() { return false; };
     functionSet.push_back(std::move(func));

@@ -8,7 +8,7 @@
 #include "common/string_utils.h"
 #include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
-#include "function/table/table_function.h"
+#include "function/table/simple_table_function.h"
 #include "main/database_manager.h"
 
 using namespace kuzu::catalog;
@@ -85,7 +85,7 @@ struct TableInfoBindData final : TableFuncBindData {
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    auto sharedState = input.sharedState->ptrCast<TableFuncSharedState>();
+    auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
     auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
@@ -229,7 +229,7 @@ function_set TableInfoFunction::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
-    function->initSharedStateFunc = TableFunction::initSharedState;
+    function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;

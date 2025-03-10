@@ -18,7 +18,7 @@ struct ScanSharedState : public TableFuncSharedState {
     uint64_t blockIdx;
 
     ScanSharedState(common::FileScanInfo fileScanInfo, uint64_t numRows)
-        : TableFuncSharedState{numRows - 1}, fileScanInfo{std::move(fileScanInfo)}, fileIdx{0},
+        : TableFuncSharedState{numRows}, fileScanInfo{std::move(fileScanInfo)}, fileIdx{0},
           blockIdx{0} {}
 
     std::pair<uint64_t, uint64_t> getNext() {

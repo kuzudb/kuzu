@@ -96,21 +96,19 @@ JsonScanConfig::JsonScanConfig(const case_insensitive_map_t<Value>& options) {
     }
 }
 
-struct JSONScanSharedState : public BaseScanSharedState {
+struct JSONScanSharedState : public TableFuncSharedState {
     std::mutex lock;
     std::unique_ptr<BufferedJsonReader> jsonReader;
-    uint64_t numRows;
     processor::populate_func_t populateErrorFunc;
     processor::SharedFileErrorHandler sharedErrorHandler;
 
     JSONScanSharedState(main::ClientContext& context, std::string fileName, JsonScanFormat format,
         uint64_t numRows)
-        : BaseScanSharedState{}, jsonReader{std::make_unique<BufferedJsonReader>(context,
-                                     std::move(fileName), BufferedJSONReaderOptions{format})},
-          numRows{numRows}, populateErrorFunc(constructPopulateFunc()),
+        : TableFuncSharedState{numRows},
+          jsonReader{std::make_unique<BufferedJsonReader>(context, std::move(fileName),
+              BufferedJSONReaderOptions{format})},
+          populateErrorFunc(constructPopulateFunc()),
           sharedErrorHandler(JsonExtension::JSON_SCAN_FILE_IDX, &lock, populateErrorFunc) {}
-
-    uint64_t getNumRows() const override { return numRows; }
 
     processor::populate_func_t constructPopulateFunc() const {
         return [this](const processor::CopyFromFileError& error,
@@ -835,7 +833,7 @@ static decltype(auto) getWarningDataVectors(const DataChunk& chunk, column_id_t 
 
     std::vector<ValueVector*> ret;
     for (column_id_t i = chunk.getNumValueVectors() - numWarningColumns;
-         i < chunk.getNumValueVectors(); ++i) {
+        i < chunk.getNumValueVectors(); ++i) {
         ret.push_back(&chunk.getValueVectorMutable(i));
     }
     return ret;

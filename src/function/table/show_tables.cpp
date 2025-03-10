@@ -4,7 +4,7 @@
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "function/table/bind_data.h"
-#include "function/table/table_function.h"
+#include "function/table/simple_table_function.h"
 #include "main/database_manager.h"
 
 using namespace kuzu::common;
@@ -34,13 +34,13 @@ struct ShowTablesBindData final : TableFuncBindData {
         : TableFuncBindData{std::move(columns), maxOffset}, tables{std::move(tables)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ShowTablesBindData>(tables, columns, maxOffset);
+        return std::make_unique<ShowTablesBindData>(tables, columns, numRows);
     }
 };
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    const auto sharedState = input.sharedState->ptrCast<TableFuncSharedState>();
+    auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
     const auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
@@ -115,7 +115,7 @@ function_set ShowTablesFunction::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
-    function->initSharedStateFunc = TableFunction::initSharedState;
+    function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;
