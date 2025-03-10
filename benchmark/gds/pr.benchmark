@@ -1,0 +1,30 @@
+-NAME pr
+-CALL create_projected_graph('Graph', ['Nodes'], ['Edges']);
+---- ok
+-CALL CALL page_rank('Graph') RETURN node.id, rank ORDER BY rank DESC LIMIT 10;
+---- 10
+136|0.000747
+208|0.000613
+227|0.000534
+418|0.000518
+249|0.000427
+611|0.000424
+934|0.000394
+516|0.000373
+81|0.000356
+674|0.000351
+
+# Ranks in Neo4j are different but top 10 nodes match:
+# neo4j> CALL gds.graph.project('GraphDirected', 'Node', 'Edge');
+# neo4j> CALL gds.pageRank.stream('GraphDirected') YIELD nodeId, score RETURN gds.util.asNode(nodeId).id AS id, score ORDER BY score DESC LIMIT 10;
+#   id   score
+#   136  80.36149965415957
+#   208  65.91147859296011
+#   227  57.37433397645221
+#   418  55.69043288944399
+#   249  45.965052953910956
+#   611  45.586395905081744
+#   934  42.30273360085721
+#   516  40.14216291046115
+#   81   38.308788611550256
+#   674  37.748774574025084
