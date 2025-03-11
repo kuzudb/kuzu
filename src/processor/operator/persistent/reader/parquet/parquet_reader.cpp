@@ -577,7 +577,8 @@ uint64_t ParquetReader::getGroupOffset(ParquetReaderScanState& state) {
 
 ParquetScanSharedState::ParquetScanSharedState(FileScanInfo fileScanInfo, uint64_t numRows,
     main::ClientContext* context, std::vector<bool> columnSkips)
-    : ScanFileWithProgressSharedState{std::move(fileScanInfo), numRows, context}, columnSkips{columnSkips} {
+    : ScanFileWithProgressSharedState{std::move(fileScanInfo), numRows, context},
+      columnSkips{columnSkips} {
     readers.push_back(std::make_unique<ParquetReader>(this->fileScanInfo.filePaths[fileIdx],
         columnSkips, context));
     totalRowsGroups = 0;
