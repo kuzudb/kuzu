@@ -35,6 +35,62 @@ private:
     std::atomic<uint64_t> nextPosToWrite;
 };
 
+// Pre-allocated array of objects.
+template<typename T>
+class ObjectArray {
+public:
+    ObjectArray(const common::offset_t size, storage::MemoryManager* mm, bool initializeToZero = false)
+        : allocation{mm->allocateBuffer(initializeToZero, size * sizeof(T))} {
+        data = std::span<T>(reinterpret_cast<T*>(allocation->getData()), size);
+    }
+
+    void set(const common::offset_t pos, const T value) {
+        KU_ASSERT(pos < data.size());
+        data[pos] = value;
+    }
+
+    T get(const common::offset_t pos) {
+        KU_ASSERT(pos < data.size());
+        return data[pos];
+    }
+private:
+    template<typename U> friend class AtomicObjectArray;
+    std::span<T> data;
+    std::unique_ptr<storage::MemoryBuffer> allocation;
+};
+
+// Pre-allocated array of atomic objects.
+template<typename T>
+class AtomicObjectArray {
+public:
+    AtomicObjectArray(const common::offset_t size, storage::MemoryManager* mm, bool initializeToZero = false)
+        : array{ObjectArray<std::atomic<T>>(size, mm, initializeToZero)} {
+    }
+
+    void setRelaxed(common::offset_t pos, const T& value) {
+        KU_ASSERT(pos < array.data.size());
+        array.data[pos].store(value, std::memory_order_relaxed);
+    }
+
+    T getRelaxed(const common::offset_t pos) {
+        KU_ASSERT(pos < array.data.size());
+        return array.data[pos].load(std::memory_order_relaxed);
+    }
+
+    bool compare_exchange_strong_max(const common::offset_t src, const common::offset_t dest) {
+        auto srcValue = getRelaxed(src);
+        auto dstValue = getRelaxed(dest);
+        while (dstValue < srcValue) {
+            if (array.data[dest].compare_exchange_strong(dstValue, srcValue)) {
+                return true;
+            }
+        }
+        return false;
+    }
+private:
+    ObjectArray<std::atomic<T>> array;
+};
+
 // ObjectArraysMap represents a pre-allocated amount of object per tableID.
 template<typename T>
 class ObjectArraysMap {

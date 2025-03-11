@@ -18,6 +18,12 @@ struct SCCKosarajuFunction {
     static function_set getFunctionSet();
 };
 
+struct SCCFunction {
+    static constexpr const char* name = "STRONGLY_CONNECTED_COMPONENTS";
+
+    static function_set getFunctionSet();
+};
+
 struct KCoreDecompositionFunction {
     static constexpr const char* name = "K_CORE_DECOMPOSITION";
 

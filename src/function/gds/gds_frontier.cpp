@@ -112,8 +112,6 @@ std::shared_ptr<PathLengths> PathLengths::getUnvisitedFrontier(ExecutionContext*
     return frontier;
 }
 
-static constexpr uint16_t INITIAL_VISITED = 0;
-
 std::shared_ptr<PathLengths> PathLengths::getVisitedFrontier(processor::ExecutionContext* context,
     graph::Graph* graph) {
     auto tx = context->clientContext->getTransaction();
@@ -167,11 +165,7 @@ void PathLengthsInitVertexCompute::vertexCompute(common::offset_t startOffset,
 FrontierPair::FrontierPair(std::shared_ptr<PathLengths> curFrontier,
     std::shared_ptr<PathLengths> nextFrontier)
     : curDenseFrontier{std::move(curFrontier)}, nextDenseFrontier{std::move(nextFrontier)} {
-    curSparseFrontier = std::make_shared<SparseFrontier>();
-    nextSparseFrontier = std::make_shared<SparseFrontier>();
-    vertexComputeCandidates = std::make_shared<SparseFrontier>();
-    hasActiveNodesForNextIter_.store(false);
-    curIter.store(0u);
+    initState();
 }
 
 void FrontierPair::beginNewIteration() {
@@ -190,6 +184,16 @@ void FrontierPair::initGDS() {
     setActiveNodesForNextIter();
     // GDS initial frontier is usually large so we disable sparse frontier by default.
     nextSparseFrontier->disable();
+}
+
+void FrontierPair::initState() {
+    curSparseFrontier = std::make_shared<SparseFrontier>();
+    nextSparseFrontier = std::make_shared<SparseFrontier>();
+    vertexComputeCandidates = std::make_shared<SparseFrontier>();
+    hasActiveNodesForNextIter_.store(false);
+    curIter.store(0u);
+    getCurDenseFrontier().resetCurIter();
+    getNextDenseFrontier().resetCurIter();
 }
 
 void FrontierPair::beginFrontierComputeBetweenTables(common::table_id_t curTableID,
