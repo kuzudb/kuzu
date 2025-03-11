@@ -1,10 +1,10 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "common/exception/runtime.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds_function.h"
 #include "processor/execution_context.h"
-#include "common/exception/runtime.h"
 #include "processor/operator/gds_call_shared_state.h"
 
 using namespace std;

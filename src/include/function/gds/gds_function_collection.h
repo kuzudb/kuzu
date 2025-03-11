@@ -1,7 +1,7 @@
 #pragma once
 
-#include "function/gds/rec_joins.h"
 #include "function/function.h"
+#include "function/gds/rec_joins.h"
 
 namespace kuzu {
 namespace function {
