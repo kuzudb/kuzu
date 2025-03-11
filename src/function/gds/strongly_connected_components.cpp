@@ -280,6 +280,7 @@ public:
         // The frontiers will be initialized inside the loop.
         auto currentFrontier = std::make_shared<PathLengths>(getMaxOffsetMap, mm);
         auto nextFrontier = std::make_shared<PathLengths>(getMaxOffsetMap, mm);
+        // TODO(sdht): refactor when a better FrontierPair API is available.
         currentFrontier->pinCurFrontierTableID(tableId);
         nextFrontier->pinCurFrontierTableID(tableId);
         auto frontierPair =
