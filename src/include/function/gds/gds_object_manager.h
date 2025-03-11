@@ -91,6 +91,14 @@ public:
         return false;
     }
 
+    void compare_and_swap(const common::offset_t pos, double valToAdd) {
+        auto expected = getRelaxed(pos);
+        auto desired = expected + valToAdd;
+        while (!array.data[pos].compare_exchange_strong(expected, desired)) {
+            desired = expected + valToAdd;
+        }
+    }
+
 private:
     ObjectArray<std::atomic<T>> array;
 };
