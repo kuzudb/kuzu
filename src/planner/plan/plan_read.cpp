@@ -159,7 +159,7 @@ void Planner::planLoadFrom(const BoundReadingClause& readingClause,
     auto& loadFrom = readingClause.constCast<BoundLoadFrom>();
     expression_vector predicatesToPull;
     expression_vector predicatesToPush;
-    splitPredicates(loadFrom.getInfo()->columns, loadFrom.getConjunctivePredicates(),
+    splitPredicates(loadFrom.getInfo()->bindData->columns, loadFrom.getConjunctivePredicates(),
         predicatesToPull, predicatesToPush);
     for (auto& plan : plans) {
         auto op = getTableFunctionCall(*loadFrom.getInfo());

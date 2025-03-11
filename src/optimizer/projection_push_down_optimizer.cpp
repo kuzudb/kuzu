@@ -260,7 +260,7 @@ void ProjectionPushDownOptimizer::visitCopyFrom(LogicalOperator* op) {
 void ProjectionPushDownOptimizer::visitTableFunctionCall(LogicalOperator* op) {
     auto& tableFunctionCall = op->cast<LogicalTableFunctionCall>();
     std::vector<bool> columnSkips;
-    for (auto& column : tableFunctionCall.getColumns()) {
+    for (auto& column : tableFunctionCall.getBindData()->columns) {
         columnSkips.push_back(!variablesInUse.contains(column));
     }
     tableFunctionCall.setColumnSkips(std::move(columnSkips));

@@ -7,9 +7,10 @@ namespace binder {
 
 expression_vector BoundTableScanSource::getWarningColumns() const {
     expression_vector warningDataExprs;
+    auto& columns = info.bindData->columns;
     for (common::column_id_t i = info.bindData->numWarningDataColumns; i >= 1; --i) {
-        KU_ASSERT(i < info.columns.size());
-        warningDataExprs.push_back(info.columns[info.columns.size() - i]);
+        KU_ASSERT(i < columns.size());
+        warningDataExprs.push_back(columns[columns.size() - i]);
     }
     return warningDataExprs;
 }

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "binder/bound_statement.h"
-#include "bound_table_function.h"
+#include "bound_table_scan_info.h"
 
 namespace kuzu {
 namespace binder {
@@ -11,16 +11,16 @@ class BoundStandaloneCallFunction final : public BoundStatement {
         common::StatementType::STANDALONE_CALL_FUNCTION;
 
 public:
-    explicit BoundStandaloneCallFunction(BoundTableFunction tableFunc)
+    explicit BoundStandaloneCallFunction(BoundTableScanInfo info)
         : BoundStatement{statementType, BoundStatementResult::createEmptyResult()},
-          tableFunc{std::move(tableFunc)} {}
+          info{std::move(info)} {}
 
-    const function::TableFunction& getTableFunction() const { return *tableFunc.tableFunction; }
+    const function::TableFunction& getTableFunction() const { return info.func; }
 
-    function::TableFuncBindData* getBindData() const { return tableFunc.bindData.get(); }
+    const function::TableFuncBindData* getBindData() const { return info.bindData.get(); }
 
 private:
-    BoundTableFunction tableFunc;
+    BoundTableScanInfo info;
 };
 
 } // namespace binder

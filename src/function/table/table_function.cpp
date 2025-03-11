@@ -52,7 +52,7 @@ void TableFunction::getLogicalPlan(const transaction::Transaction*, planner::Pla
     auto& call = readingClause.constCast<binder::BoundTableFunctionCall>();
     binder::expression_vector predicatesToPull;
     binder::expression_vector predicatesToPush;
-    planner::Planner::splitPredicates(call.getColumns(), call.getConjunctivePredicates(),
+    planner::Planner::splitPredicates(call.getBindData()->columns, call.getConjunctivePredicates(),
         predicatesToPull, predicatesToPush);
     for (auto& plan : logicalPlans) {
         planner->planReadOp(logicalOp, predicatesToPush, *plan);
@@ -68,7 +68,7 @@ std::unique_ptr<processor::PhysicalOperator> TableFunction::getPhysicalPlan(
     std::vector<processor::DataPos> outPosV;
     auto& call = logicalOp->constCast<planner::LogicalTableFunctionCall>();
     auto outSchema = call.getSchema();
-    for (auto& expr : call.getColumns()) {
+    for (auto& expr : call.getBindData()->columns) {
         outPosV.emplace_back(planMapper->getDataPos(*expr, *outSchema));
     }
     auto info = processor::TableFunctionCallInfo();

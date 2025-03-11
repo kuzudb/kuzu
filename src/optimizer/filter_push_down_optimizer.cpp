@@ -209,8 +209,8 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitScanNodeTableRepl
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitTableFunctionCallReplace(
     const std::shared_ptr<LogicalOperator>& op) {
     auto& tableFunctionCall = op->cast<LogicalTableFunctionCall>();
-    auto columnPredicates =
-        getColumnPredicateSets(tableFunctionCall.getColumns(), predicateSet.getAllPredicates());
+    auto columnPredicates = getColumnPredicateSets(tableFunctionCall.getBindData()->columns,
+        predicateSet.getAllPredicates());
     tableFunctionCall.setColumnPredicates(std::move(columnPredicates));
     return finishPushDown(op);
 }

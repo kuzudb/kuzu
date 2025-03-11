@@ -1,6 +1,5 @@
 #include "binder/binder.h"
 #include "binder/bound_scan_source.h"
-#include "binder/bound_table_function.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "common/exception/binder.h"
@@ -154,8 +153,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     bindInput.extraInput = std::move(extraInput);
     bindInput.binder = this;
     auto bindData = func.bindFunc(clientContext, &bindInput);
-    auto columns = bindData->columns;
-    auto info = BoundTableScanSourceInfo(func, std::move(bindData), columns);
+    auto info = BoundTableScanInfo(func, std::move(bindData));
     return std::make_unique<BoundTableScanSource>(ScanSourceType::FILE, std::move(info));
 }
 
@@ -186,12 +184,11 @@ static TableFunction getObjectScanFunc(const std::string& dbName, const std::str
     return entry->ptrCast<TableCatalogEntry>()->getScanFunction();
 }
 
-BoundTableScanSourceInfo bindTableScanSourceInfo(Binder& binder, TableFunction func,
+BoundTableScanInfo bindTableScanSourceInfo(Binder& binder, TableFunction func,
     const std::string& sourceName, std::unique_ptr<TableFuncBindData> bindData,
     const std::vector<std::string>& columnNames, const std::vector<LogicalType>& columnTypes) {
     expression_vector columns;
     if (columnTypes.empty()) {
-        columns = bindData->columns;
     } else {
         if (bindData->getNumColumns() != columnTypes.size()) {
             throw BinderException(stringFormat("{} has {} columns but {} columns were expected.",
@@ -204,8 +201,9 @@ BoundTableScanSourceInfo bindTableScanSourceInfo(Binder& binder, TableFunction f
                 column);
             columns.push_back(column);
         }
+        bindData->columns = columns;
     }
-    return BoundTableScanSourceInfo(func, std::move(bindData), columns);
+    return BoundTableScanInfo(func, std::move(bindData));
 }
 
 std::unique_ptr<BoundBaseScanSource> Binder::bindObjectScanSource(const BaseScanSource& scanSource,
@@ -261,11 +259,10 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindTableFuncScanSource(
     auto tableFuncScanSource = scanSource.constPtrCast<TableFuncScanSource>();
     auto& parsedFuncExpression =
         tableFuncScanSource->functionExpression->constCast<parser::ParsedFunctionExpression>();
-    expression_vector columns;
     auto boundTableFunc = bindTableFunc(parsedFuncExpression.getFunctionName(),
-        *tableFuncScanSource->functionExpression, columns, {} /* yieldVariables */);
-    auto& tableFunc = boundTableFunc.tableFunction;
-    auto info = bindTableScanSourceInfo(*this, *tableFunc, tableFunc->name,
+        *tableFuncScanSource->functionExpression, {} /* yieldVariables */);
+    auto& tableFunc = boundTableFunc.func;
+    auto info = bindTableScanSourceInfo(*this, tableFunc, tableFunc.name,
         std::move(boundTableFunc.bindData), columnNames, columnTypes);
     return std::make_unique<BoundTableScanSource>(ScanSourceType::OBJECT, std::move(info));
 }
