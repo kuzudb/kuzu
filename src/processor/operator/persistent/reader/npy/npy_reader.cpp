@@ -253,7 +253,7 @@ void NpyMultiFileReader::readBlock(block_idx_t blockIdx, DataChunk& dataChunkToR
 }
 
 NpyScanSharedState::NpyScanSharedState(FileScanInfo fileScanInfo, uint64_t numRows)
-    : ScanSharedState{std::move(fileScanInfo), numRows} {
+    : ScanFileSharedState{std::move(fileScanInfo), numRows} {
     npyMultiFileReader = std::make_unique<NpyMultiFileReader>(this->fileScanInfo.filePaths);
 }
 

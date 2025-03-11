@@ -12,12 +12,12 @@ class FileSystem;
 
 namespace function {
 
-struct ScanSharedState : public TableFuncSharedState {
+struct ScanFileSharedState : public TableFuncSharedState {
     const common::FileScanInfo fileScanInfo;
     uint64_t fileIdx;
     uint64_t blockIdx;
 
-    ScanSharedState(common::FileScanInfo fileScanInfo, uint64_t numRows)
+    ScanFileSharedState(common::FileScanInfo fileScanInfo, uint64_t numRows)
         : TableFuncSharedState{numRows}, fileScanInfo{std::move(fileScanInfo)}, fileIdx{0},
           blockIdx{0} {}
 
@@ -28,14 +28,14 @@ struct ScanSharedState : public TableFuncSharedState {
     }
 };
 
-struct ScanFileSharedState : ScanSharedState {
+struct ScanFileWithProgressSharedState : ScanFileSharedState {
     main::ClientContext* context;
     uint64_t totalSize; // TODO(Mattias): I think we should unify the design on how we calculate the
                         // progress bar for scanning. Can we simply rely on a numRowsScaned stored
                         // in the TableFuncSharedState to determine the progress.
-    ScanFileSharedState(common::FileScanInfo fileScanInfo, uint64_t numRows,
+    ScanFileWithProgressSharedState(common::FileScanInfo fileScanInfo, uint64_t numRows,
         main::ClientContext* context)
-        : ScanSharedState{std::move(fileScanInfo), numRows}, context{context}, totalSize{0} {}
+        : ScanFileSharedState{std::move(fileScanInfo), numRows}, context{context}, totalSize{0} {}
 };
 
 } // namespace function

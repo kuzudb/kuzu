@@ -9,7 +9,7 @@
 #include "common/json_common.h"
 #include "common/string_utils.h"
 #include "function/table/bind_data.h"
-#include "function/table/scan_functions.h"
+#include scan_file_functions.h
 #include "function/table/table_function.h"
 #include "json_extension.h"
 #include "json_utils.h"

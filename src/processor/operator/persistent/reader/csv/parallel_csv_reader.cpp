@@ -122,7 +122,7 @@ bool ParallelCSVReader::finishedBlock() const {
 
 ParallelCSVScanSharedState::ParallelCSVScanSharedState(FileScanInfo fileScanInfo, uint64_t numRows,
     main::ClientContext* context, CSVOption csvOption, CSVColumnInfo columnInfo)
-    : ScanFileSharedState{std::move(fileScanInfo), numRows, context},
+    : ScanFileWithProgressSharedState{std::move(fileScanInfo), numRows, context},
       csvOption{std::move(csvOption)}, columnInfo{std::move(columnInfo)}, numBlocksReadByFiles{0} {
     errorHandlers.reserve(this->fileScanInfo.getNumFiles());
     for (idx_t i = 0; i < this->fileScanInfo.getNumFiles(); ++i) {

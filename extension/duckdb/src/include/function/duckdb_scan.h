@@ -3,7 +3,7 @@
 #include "common/types/types.h"
 #include "connector/duckdb_result_converter.h"
 #include "function/table/bind_data.h"
-#include "function/table/scan_functions.h"
+#include "function/table/scan_file_function.h"
 
 namespace kuzu {
 namespace duckdb_extension {
