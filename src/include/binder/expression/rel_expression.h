@@ -4,7 +4,6 @@
 #include "common/enums/extend_direction.h"
 #include "common/enums/query_rel_type.h"
 #include "function/gds/rec_joins.h"
-#include "function/gds_function.h"
 #include "node_expression.h"
 
 namespace kuzu {
@@ -38,7 +37,7 @@ struct RecursiveInfo {
     expression_vector nodeProjectionList;
     expression_vector relProjectionList;
     // Function information
-    function::GDSFunction function;
+    std::unique_ptr<function::RJAlgorithm> function;
     std::unique_ptr<function::RJBindData> bindData;
 };
 

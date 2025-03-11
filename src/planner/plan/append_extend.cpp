@@ -1,10 +1,8 @@
 #include <utility>
 
-#include "binder/query/reading_clause/bound_gds_call.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_table_catalog_entry.h"
 #include "common/enums/join_type.h"
-#include "function/gds_function.h"
 #include "graph/graph_entry.h"
 #include "main/client_context.h"
 #include "planner/join_order/cost_model.h"
@@ -112,11 +110,7 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     // If we extend from right to left, we need to print path in reverse direction.
     bindData->flipPath = *boundNode == *rel->getRightNode();
 
-    auto function = recursiveInfo->function.copy();
-    function.gds->setBindData(bindData->copy());
-    GDSBindInput input;
-    auto resultColumns = function.gds->getResultColumns(input);
-    auto gdsInfo = BoundGDSCallInfo(std::move(function), std::move(resultColumns));
+    auto resultColumns = recursiveInfo->function->getResultColumns(*bindData);
 
     std::shared_ptr<LogicalOperator> nodeMaskRoot = nullptr;
     if (recursiveInfo->nodePredicate != nullptr) {
@@ -140,8 +134,8 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
         nbrTableIDSet.clear(); // No need to prune nbr table id.
     }
     auto probePlan = LogicalPlan();
-    auto recursiveExtend =
-        std::make_shared<LogicalRecursiveExtend>(gdsInfo.copy(), nbrTableIDSet, nodeMaskRoot);
+    auto recursiveExtend = std::make_shared<LogicalRecursiveExtend>(recursiveInfo->function->copy(),
+        *recursiveInfo->bindData, resultColumns, nbrTableIDSet, nodeMaskRoot);
     recursiveExtend->computeFactorizedSchema();
     probePlan.setLastOperator(std::move(recursiveExtend));
     // Scan path node property pipeline

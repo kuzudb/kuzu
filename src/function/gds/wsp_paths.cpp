@@ -2,7 +2,6 @@
 #include "function/gds/auxiliary_state/path_auxiliary_state.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
-#include "function/gds_function.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "wsp_utils.h"
@@ -48,14 +47,14 @@ private:
 
 class WSPPathsOutputWriter : public PathsOutputWriter {
 public:
-    WSPPathsOutputWriter(main::ClientContext* context, processor::NodeOffsetMaskMap* outputNodeMask,
+    WSPPathsOutputWriter(main::ClientContext* context, common::NodeOffsetMaskMap* outputNodeMask,
         common::nodeID_t sourceNodeID, PathsOutputWriterInfo info, BFSGraph& bfsGraph)
         : PathsOutputWriter{context, outputNodeMask, sourceNodeID, info, bfsGraph} {
         costVector = createVector(LogicalType::DOUBLE(), context->getMemoryManager());
     }
 
     void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
-        processor::GDSOutputCounter* counter) override {
+        LimitCounter* counter) override {
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
         auto parent = bfsGraph.getParentListHead(dstNodeID.offset);
         costVector->setValue<double>(0, parent->getCost());
@@ -91,46 +90,42 @@ private:
 
 class WeightedSPPathsAlgorithm : public RJAlgorithm {
 public:
-    WeightedSPPathsAlgorithm() = default;
-    WeightedSPPathsAlgorithm(const WeightedSPPathsAlgorithm& other) : RJAlgorithm{other} {}
+    std::string getFunctionName() const override { return WeightedSPPathsFunction::name; }
 
     // return srcNodeID, dstNodeID, length, [direction], pathNodeIDs, pathEdgeIDs, weight
-    binder::expression_vector getResultColumns(
-        const function::GDSBindInput& /*bindInput*/) const override {
-        auto rjBindData = bindData->ptrCast<RJBindData>();
+    binder::expression_vector getResultColumns(const RJBindData& bindData) const override {
         expression_vector columns;
-        columns.push_back(bindData->getNodeInput()->constCast<NodeExpression>().getInternalID());
-        columns.push_back(bindData->getNodeOutput()->constCast<NodeExpression>().getInternalID());
-        columns.push_back(rjBindData->lengthExpr);
-        if (rjBindData->extendDirection == ExtendDirection::BOTH) {
-            columns.push_back(rjBindData->directionExpr);
+        columns.push_back(bindData.nodeInput->constCast<NodeExpression>().getInternalID());
+        columns.push_back(bindData.nodeOutput->constCast<NodeExpression>().getInternalID());
+        columns.push_back(bindData.lengthExpr);
+        if (bindData.extendDirection == ExtendDirection::BOTH) {
+            columns.push_back(bindData.directionExpr);
         }
-        columns.push_back(rjBindData->pathNodeIDsExpr);
-        columns.push_back(rjBindData->pathEdgeIDsExpr);
-        columns.push_back(rjBindData->weightOutputExpr);
+        columns.push_back(bindData.pathNodeIDsExpr);
+        columns.push_back(bindData.pathEdgeIDsExpr);
+        columns.push_back(bindData.weightOutputExpr);
         return columns;
     }
 
-    std::unique_ptr<GDSAlgorithm> copy() const override {
+    std::unique_ptr<RJAlgorithm> copy() const override {
         return std::make_unique<WeightedSPPathsAlgorithm>(*this);
     }
 
 private:
-    RJCompState getRJCompState(processor::ExecutionContext* context,
-        nodeID_t sourceNodeID) override {
+    RJCompState getRJCompState(processor::ExecutionContext* context, nodeID_t sourceNodeID,
+        const RJBindData& bindData, processor::RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
         auto graph = sharedState->graph.get();
         auto curFrontier = PathLengths::getUnvisitedFrontier(context, graph);
         auto nextFrontier = PathLengths::getUnvisitedFrontier(context, graph);
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(curFrontier, nextFrontier);
-        auto bfsGraph = getBFSGraph(context);
-        auto rjBindData = bindData->ptrCast<RJBindData>();
-        auto writerInfo = rjBindData->getPathWriterInfo();
+        auto bfsGraph = getBFSGraph(context, graph);
+        auto writerInfo = bindData.getPathWriterInfo();
         auto outputWriter = std::make_unique<WSPPathsOutputWriter>(clientContext,
             sharedState->getOutputNodeMaskMap(), sourceNodeID, writerInfo, *bfsGraph);
         std::unique_ptr<GDSComputeState> gdsState;
-        visit(rjBindData->weightPropertyExpr->getDataType(), [&]<typename T>(T) {
+        visit(bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
             auto edgeCompute = std::make_unique<WSPPathsEdgeCompute<T>>(*bfsGraph);
             auto auxiliaryState = std::make_unique<WSPPathsAuxiliaryState>(std::move(bfsGraph));
             gdsState =
@@ -141,16 +136,8 @@ private:
     }
 };
 
-function_set WeightedSPPathsFunction::getFunctionSet() {
-    function_set result;
-    result.push_back(std::make_unique<GDSFunction>(getFunction()));
-    return result;
-}
-
-GDSFunction WeightedSPPathsFunction::getFunction() {
-    auto algo = std::make_unique<WeightedSPPathsAlgorithm>();
-    auto params = algo->getParameterTypeIDs();
-    return GDSFunction(name, std::move(params), std::move(algo));
+std::unique_ptr<RJAlgorithm> WeightedSPPathsFunction::getAlgorithm() {
+    return std::make_unique<WeightedSPPathsAlgorithm>();
 }
 
 } // namespace function

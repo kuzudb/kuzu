@@ -25,24 +25,24 @@ PathSemantic QueryRelTypeUtils::getPathSemantic(QueryRelType queryRelType) {
     }
 }
 
-function::GDSFunction QueryRelTypeUtils::getFunction(QueryRelType type) {
+std::unique_ptr<function::RJAlgorithm> QueryRelTypeUtils::getFunction(QueryRelType type) {
     switch (type) {
     case QueryRelType::VARIABLE_LENGTH_WALK:
     case QueryRelType::VARIABLE_LENGTH_TRAIL:
     case QueryRelType::VARIABLE_LENGTH_ACYCLIC: {
-        return VarLenJoinsFunction::getFunction();
+        return VarLenJoinsFunction::getAlgorithm();
     }
     case QueryRelType::SHORTEST: {
-        return SingleSPPathsFunction::getFunction();
+        return SingleSPPathsFunction::getAlgorithm();
     }
     case QueryRelType::ALL_SHORTEST: {
-        return AllSPPathsFunction::getFunction();
+        return AllSPPathsFunction::getAlgorithm();
     }
     case QueryRelType::WEIGHTED_SHORTEST: {
-        return WeightedSPPathsFunction::getFunction();
+        return WeightedSPPathsFunction::getAlgorithm();
     }
     case QueryRelType::ALL_WEIGHTED_SHORTEST: {
-        return AllWeightedSPPathsFunction::getFunction();
+        return AllWeightedSPPathsFunction::getAlgorithm();
     }
     default:
         KU_UNREACHABLE;

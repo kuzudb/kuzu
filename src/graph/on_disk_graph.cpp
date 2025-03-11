@@ -15,7 +15,6 @@
 #include "main/client_context.h"
 #include "planner/operator/schema.h"
 #include "processor/expression_mapper.h"
-#include "processor/operator/gds_call_shared_state.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/storage_manager.h"

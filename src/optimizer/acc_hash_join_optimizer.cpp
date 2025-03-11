@@ -40,16 +40,14 @@ static std::vector<table_id_t> getTableIDs(const LogicalOperator* op,
         return op->constCast<LogicalScanNodeTable>().getTableIDs();
     }
     case LogicalOperatorType::RECURSIVE_EXTEND: {
-        auto bindData = op->constCast<LogicalRecursiveExtend>().getInfo().getBindData();
+        auto& bindData = op->constCast<LogicalRecursiveExtend>().getBindData();
         switch (targetType) {
         case SemiMaskTargetType::RECURSIVE_EXTEND_INPUT_NODE: {
-            KU_ASSERT(bindData->hasNodeInput());
-            auto& node = bindData->getNodeInput()->constCast<NodeExpression>();
+            auto& node = bindData.nodeInput->constCast<NodeExpression>();
             return getTableIDs(node.getEntries());
         }
         case SemiMaskTargetType::RECURSIVE_EXTEND_OUTPUT_NODE: {
-            KU_ASSERT(bindData->hasNodeOutput());
-            auto& node = bindData->getNodeOutput()->constCast<NodeExpression>();
+            auto& node = bindData.nodeOutput->constCast<NodeExpression>();
             return getTableIDs(node.getEntries());
         }
         default:
@@ -179,9 +177,8 @@ static std::vector<const LogicalOperator*> getRecursiveExtendInputNodeCandidates
     collector.collect(root);
     for (auto& op : collector.getOperators()) {
         auto& recursiveExtend = op->constCast<LogicalRecursiveExtend>();
-        auto bindData = recursiveExtend.getInfo().getBindData();
-        if (bindData->hasNodeInput() &&
-            nodeID == *bindData->getNodeInput()->constCast<NodeExpression>().getInternalID()) {
+        auto& bindData = recursiveExtend.getBindData();
+        if (nodeID == *bindData.nodeInput->constCast<NodeExpression>().getInternalID()) {
             result.push_back(op);
         }
     }
@@ -195,9 +192,8 @@ static std::vector<const LogicalOperator*> getRecursiveExtendOutputNodeCandidate
     collector.collect(root);
     for (auto& op : collector.getOperators()) {
         auto& recursiveExtend = op->constCast<LogicalRecursiveExtend>();
-        auto bindData = recursiveExtend.getInfo().getBindData();
-        if (bindData->hasNodeOutput() &&
-            nodeID == *bindData->getNodeOutput()->constCast<NodeExpression>().getInternalID()) {
+        auto& bindData = recursiveExtend.getBindData();
+        if (nodeID == *bindData.nodeOutput->constCast<NodeExpression>().getInternalID()) {
             result.push_back(op);
         }
     }
