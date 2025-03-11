@@ -38,11 +38,6 @@ struct SccComputationState : GDSAuxiliaryState {
         allSccIdsSet.store(false, std::memory_order_relaxed);
     }
 
-    bool update(offset_t boundOffset, offset_t nbrOffset, bool isFwd) {
-        auto& colors = isFwd ? fwdColors : bwdColors;
-        return colors.compare_exchange_strong_max(boundOffset, nbrOffset);
-    }
-
     bool isSccIdSet(offset_t nodeId) { return sccIDs.getRelaxed(nodeId) != SCC_UNSET; }
 
     // Start by assuming all scc ids are set. `memory_order_seq_cst` is used to ensure that
@@ -52,6 +47,7 @@ struct SccComputationState : GDSAuxiliaryState {
     void beginFrontierCompute(common::table_id_t, common::table_id_t) override {}
 };
 
+// Initializes `sccIDs` to `SCC_UNSET`.
 class SccSetInitialSccIds : public VertexCompute {
 public:
     explicit SccSetInitialSccIds(SccComputationState& computationState)
@@ -73,6 +69,8 @@ private:
     SccComputationState& computationState;
 };
 
+// Sets the sccId for vertices whose forward and backward colors are the same.
+// Also sets `allSccIdsSet` to false if any vertex's `sccId` is unset.
 class SccFindNewSccIds : public VertexCompute {
 public:
     explicit SccFindNewSccIds(SccComputationState& computationState)
@@ -88,9 +86,6 @@ public:
                 if (fwdColor == bwdColor) {
                     computationState.sccIDs.setRelaxed(i, fwdColor);
                 } else {
-                    // If any of the threads find an unset scc id, they will set the flag to false.
-                    // `allSccIdsSet` is never read and written concurrently, so it does
-                    // not need to be atomic.
                     computationState.allSccIdsSet.store(false, std::memory_order_relaxed);
                 }
             }
@@ -105,6 +100,7 @@ private:
     SccComputationState& computationState;
 };
 
+// Initializes each vertex's forward and backward colors to its own ID.
 class SccSetInitialColors : public VertexCompute {
 public:
     explicit SccSetInitialColors(SccComputationState& computationState)
@@ -127,6 +123,8 @@ private:
     SccComputationState& computationState;
 };
 
+// Initializes the current and next frontiers. Only activates the vertices whose sccId has not yet
+// been computed.
 class SccInitializeFrontiers : public VertexCompute {
 public:
     SccInitializeFrontiers(FrontierPair& frontierPair, SccComputationState& computationState)
@@ -154,6 +152,7 @@ private:
     SccComputationState& computationState;
 };
 
+// Propagates a node's color to its neighbors when it is larger.
 struct SccComputeColors : public EdgeCompute {
     SccComputationState& computationState;
 
@@ -167,9 +166,11 @@ struct SccComputeColors : public EdgeCompute {
             return result;
         }
         chunk.forEach([&](auto nbrNodeID, auto) {
-            if (computationState.isSccIdSet(nbrNodeID.offset)) {
-            } else if (computationState.update(boundNodeID.offset, nbrNodeID.offset, isFwd)) {
-                result.push_back(nbrNodeID);
+            if (!computationState.isSccIdSet(nbrNodeID.offset)) {
+                auto& colors = isFwd ? computationState.fwdColors : computationState.bwdColors;
+                if (colors.compare_exchange_strong_max(boundNodeID.offset, nbrNodeID.offset)) {
+                    result.push_back(nbrNodeID);
+                }
             }
         });
         return result;
