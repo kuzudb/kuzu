@@ -33,7 +33,7 @@
 ---- ok
 -STATEMENT CALL create_projected_graph('PK', ['User'], ['FRIEND']);
 ---- ok
--STATEMENT CALL k_core_decomposition('PK') RETURN node.name, k_degree;
+-STATEMENT CALL gds_kcore('PK') RETURN node.name, k_degree;
 ---- 10
 Alice|1
 Bridget|1
@@ -47,7 +47,7 @@ Ian|1
 James|1
 -STATEMENT CALL create_projected_graph('PK2', ['User'], {'friend': {'filter': 'r.id < 10'}});
 ---- ok
--STATEMENT CALL k_core_decomposition('PK2') RETURN node.name, k_degree;
+-STATEMENT CALL gds_kcore('PK2') RETURN node.name, k_degree;
 ---- 10
 Alice|1
 Bridget|1
@@ -61,7 +61,7 @@ Ian|0
 James|0
 -STATEMENT CALL create_projected_graph('PK3', {'User': {'filter': 'n.id > 3'}}, {'friend': {'filter': 'r.id <= 11'}});
 ---- ok
--STATEMENT CALL k_core_decomposition('PK3') RETURN node.name, k_degree;
+-STATEMENT CALL gds_kcore('PK3') RETURN node.name, k_degree;
 ---- 7
 Doug|3
 Eli|3
@@ -72,7 +72,7 @@ Ian|0
 James|0
 -STATEMENT CALL create_projected_graph('PK4', {'User': {'filter': 'n.id > 3 AND n.id < 7'}}, {'friend': {'filter': 'r.id >= 0'}});
 ---- ok
--STATEMENT CALL k_core_decomposition('PK4') RETURN node.name, k_degree;
+-STATEMENT CALL gds_kcore('PK4') RETURN node.name, k_degree;
 ---- 3
 Doug|2
 Eli|2

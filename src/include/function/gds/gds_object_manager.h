@@ -39,7 +39,8 @@ private:
 template<typename T>
 class ObjectArray {
 public:
-    ObjectArray(const common::offset_t size, storage::MemoryManager* mm, bool initializeToZero = false)
+    ObjectArray(const common::offset_t size, storage::MemoryManager* mm,
+        bool initializeToZero = false)
         : allocation{mm->allocateBuffer(initializeToZero, size * sizeof(T))} {
         data = std::span<T>(reinterpret_cast<T*>(allocation->getData()), size);
     }
@@ -53,8 +54,10 @@ public:
         KU_ASSERT(pos < data.size());
         return data[pos];
     }
+
 private:
-    template<typename U> friend class AtomicObjectArray;
+    template<typename U>
+    friend class AtomicObjectArray;
     std::span<T> data;
     std::unique_ptr<storage::MemoryBuffer> allocation;
 };
@@ -63,9 +66,9 @@ private:
 template<typename T>
 class AtomicObjectArray {
 public:
-    AtomicObjectArray(const common::offset_t size, storage::MemoryManager* mm, bool initializeToZero = false)
-        : array{ObjectArray<std::atomic<T>>(size, mm, initializeToZero)} {
-    }
+    AtomicObjectArray(const common::offset_t size, storage::MemoryManager* mm,
+        bool initializeToZero = false)
+        : array{ObjectArray<std::atomic<T>>(size, mm, initializeToZero)} {}
 
     void setRelaxed(common::offset_t pos, const T& value) {
         KU_ASSERT(pos < array.data.size());
@@ -87,6 +90,15 @@ public:
         }
         return false;
     }
+
+    void compare_and_swap(const common::offset_t pos, double valToAdd) {
+        auto expected = getRelaxed(pos);
+        auto desired = expected + valToAdd;
+        while (!array.data[pos].compare_exchange_strong(expected, desired)) {
+            desired = expected + valToAdd;
+        }
+    }
+
 private:
     ObjectArray<std::atomic<T>> array;
 };
@@ -110,6 +122,43 @@ public:
 
 private:
     common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> bufferPerTable;
+};
+
+// ObjectArraysMap represents a pre-allocated amount of object per tableID.
+template<typename T>
+class AtomicObjectArraysMap {
+public:
+    void allocateArray(common::table_id_t tableID, common::offset_t maxOffset,
+        storage::MemoryManager* mm) {
+        auto array = std::make_unique<AtomicObjectArray<T>>(maxOffset, mm);
+        arrayPerTable.insert({tableID, std::move(array)});
+    }
+
+    bool containsTable(common::table_id_t tableID) const { return arrayPerTable.contains(tableID); }
+
+    void pinTable(common::table_id_t tableID) {
+        KU_ASSERT(arrayPerTable.contains(tableID));
+        array = arrayPerTable.at(tableID).get();
+    }
+
+    T getValueRelaxed(common::offset_t offset) {
+        KU_ASSERT(array != nullptr);
+        return array->getRelaxed(offset);
+    }
+
+    void setValueRelaxed(common::offset_t offset, T value) {
+        KU_ASSERT(array != nullptr);
+        array->setRelaxed(offset, value);
+    }
+
+    AtomicObjectArray<T>* getArray() {
+        KU_ASSERT(array != nullptr);
+        return array;
+    }
+
+private:
+    common::table_id_map_t<std::unique_ptr<AtomicObjectArray<T>>> arrayPerTable;
+    AtomicObjectArray<T>* array = nullptr;
 };
 
 } // namespace function

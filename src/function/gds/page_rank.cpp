@@ -88,54 +88,48 @@ static void addCAS(std::atomic<double>& origin, double valToAdd) {
 }
 
 // Represents PageRank value for all nodes
-class PValues {
-public:
-    PValues(table_id_map_t<offset_t> maxOffsetMap, storage::MemoryManager* mm, double val) {
+struct PrComputationState {
+    AtomicObjectArraysMap<double> valueMap;
+
+    PrComputationState(table_id_map_t<offset_t> maxOffsetMap, storage::MemoryManager* mm,
+        double val) {
         for (const auto& [tableID, maxOffset] : maxOffsetMap) {
-            valueMap.allocate(tableID, maxOffset, mm);
-            pinTable(tableID);
+            valueMap.allocateArray(tableID, maxOffset, mm);
+            valueMap.pinTable(tableID);
             for (auto i = 0u; i < maxOffset; ++i) {
-                values[i].store(val, std::memory_order_relaxed);
+                valueMap.setValueRelaxed(i, val);
             }
         }
     }
 
-    void pinTable(table_id_t tableID) { values = valueMap.getData(tableID); }
-
-    double getValue(offset_t offset) { return values[offset].load(std::memory_order_relaxed); }
-
-    void addValueCAS(offset_t offset, double val) { addCAS(values[offset], val); }
-
-    void setValue(offset_t offset, double val) {
-        values[offset].store(val, std::memory_order_relaxed);
+    void addValueCAS(offset_t offset, double val) {
+        valueMap.getArray()->compare_and_swap(offset, val);
     }
-
-private:
-    std::atomic<double>* values = nullptr;
-    ObjectArraysMap<std::atomic<double>> valueMap;
 };
 
 class PageRankAuxiliaryState : public GDSAuxiliaryState {
 public:
-    PageRankAuxiliaryState(Degrees& degrees, PValues& pCurrent, PValues& pNext)
+    PageRankAuxiliaryState(Degrees& degrees, PrComputationState& pCurrent,
+        PrComputationState& pNext)
         : degrees{degrees}, pCurrent{pCurrent}, pNext{pNext} {}
 
     void beginFrontierCompute(table_id_t, table_id_t toTableID) override {
         degrees.pinTable(toTableID);
-        pCurrent.pinTable(toTableID);
-        pNext.pinTable(toTableID);
+        pCurrent.valueMap.pinTable(toTableID);
+        pNext.valueMap.pinTable(toTableID);
     }
 
 private:
     Degrees& degrees;
-    PValues& pCurrent;
-    PValues& pNext;
+    PrComputationState& pCurrent;
+    PrComputationState& pNext;
 };
 
 // Sum the weight (current rank / degree) for each incoming edge.
 class PNextUpdateEdgeCompute : public EdgeCompute {
 public:
-    PNextUpdateEdgeCompute(Degrees& degrees, PValues& pCurrent, PValues& pNext)
+    PNextUpdateEdgeCompute(Degrees& degrees, PrComputationState& pCurrent,
+        PrComputationState& pNext)
         : degrees{degrees}, pCurrent{pCurrent}, pNext{pNext} {}
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
@@ -143,8 +137,8 @@ public:
         if (chunk.size() > 0) {
             double valToAdd = 0;
             chunk.forEach([&](auto nbrNodeID, auto) {
-                valToAdd +=
-                    pCurrent.getValue(nbrNodeID.offset) / degrees.getValue(nbrNodeID.offset);
+                valToAdd += pCurrent.valueMap.getValueRelaxed(nbrNodeID.offset) /
+                            degrees.getValue(nbrNodeID.offset);
             });
             pNext.addValueCAS(boundNodeID.offset, valToAdd);
         }
@@ -157,26 +151,29 @@ public:
 
 private:
     Degrees& degrees;
-    PValues& pCurrent;
-    PValues& pNext;
+    PrComputationState& pCurrent;
+    PrComputationState& pNext;
 };
 
 // Evaluate rank = above result * dampingFactor + {(1 - dampingFactor) / |V|} (constant)
 class PNextUpdateVertexCompute : public GDSVertexCompute {
 public:
-    PNextUpdateVertexCompute(double dampingFactor, double constant, PValues& pNext,
+    PNextUpdateVertexCompute(double dampingFactor, double constant, PrComputationState& pNext,
         NodeOffsetMaskMap* nodeMask)
         : GDSVertexCompute{nodeMask}, dampingFactor{dampingFactor}, constant{constant},
           pNext{pNext} {}
 
-    void beginOnTableInternal(common::table_id_t tableID) override { pNext.pinTable(tableID); }
+    void beginOnTableInternal(common::table_id_t tableID) override {
+        pNext.valueMap.pinTable(tableID);
+    }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
             if (skip(i)) {
                 continue;
             }
-            pNext.setValue(i, pNext.getValue(i) * dampingFactor + constant);
+            pNext.valueMap.setValueRelaxed(i,
+                pNext.valueMap.getValueRelaxed(i) * dampingFactor + constant);
         }
     }
 
@@ -187,18 +184,18 @@ public:
 private:
     double dampingFactor;
     double constant;
-    PValues& pNext;
+    PrComputationState& pNext;
 };
 
 class PDiffVertexCompute : public GDSVertexCompute {
 public:
-    PDiffVertexCompute(std::atomic<double>& diff, PValues& pCurrent, PValues& pNext,
-        NodeOffsetMaskMap* nodeMask)
+    PDiffVertexCompute(std::atomic<double>& diff, PrComputationState& pCurrent,
+        PrComputationState& pNext, NodeOffsetMaskMap* nodeMask)
         : GDSVertexCompute{nodeMask}, diff{diff}, pCurrent{pCurrent}, pNext{pNext} {}
 
     void beginOnTableInternal(table_id_t tableID) override {
-        pCurrent.pinTable(tableID);
-        pNext.pinTable(tableID);
+        pCurrent.valueMap.pinTable(tableID);
+        pNext.valueMap.pinTable(tableID);
     }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
@@ -206,14 +203,14 @@ public:
             if (skip(i)) {
                 continue;
             }
-            auto next = pNext.getValue(i);
-            auto current = pCurrent.getValue(i);
+            auto next = pNext.valueMap.getValueRelaxed(i);
+            auto current = pCurrent.valueMap.getValueRelaxed(i);
             if (next > current) {
                 addCAS(diff, next - current);
             } else {
                 addCAS(diff, current - next);
             }
-            pCurrent.setValue(i, 0);
+            pCurrent.valueMap.setValueRelaxed(i, 0);
         }
     }
 
@@ -223,20 +220,20 @@ public:
 
 private:
     std::atomic<double>& diff;
-    PValues& pCurrent;
-    PValues& pNext;
+    PrComputationState& pCurrent;
+    PrComputationState& pNext;
 };
 
 class PageRankResultVertexCompute : public GDSResultVertexCompute {
 public:
     PageRankResultVertexCompute(storage::MemoryManager* mm,
-        processor::GDSCallSharedState* sharedState, PValues& pNext)
+        processor::GDSCallSharedState* sharedState, PrComputationState& pNext)
         : GDSResultVertexCompute{mm, sharedState}, pNext{pNext} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID());
         rankVector = createVector(LogicalType::DOUBLE());
     }
 
-    void beginOnTableInternal(table_id_t tableID) override { pNext.pinTable(tableID); }
+    void beginOnTableInternal(table_id_t tableID) override { pNext.valueMap.pinTable(tableID); }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t tableID) override {
         for (auto i = startOffset; i < endOffset; ++i) {
@@ -245,7 +242,7 @@ public:
             }
             auto nodeID = nodeID_t{i, tableID};
             nodeIDVector->setValue<nodeID_t>(0, nodeID);
-            rankVector->setValue<double>(0, pNext.getValue(i));
+            rankVector->setValue<double>(0, pNext.valueMap.getValueRelaxed(i));
             localFT->append(vectors);
         }
     }
@@ -255,7 +252,7 @@ public:
     }
 
 private:
-    PValues& pNext;
+    PrComputationState& pNext;
     std::unique_ptr<ValueVector> nodeIDVector;
     std::unique_ptr<ValueVector> rankVector;
 };
@@ -295,10 +292,11 @@ public:
         auto graph = sharedState->graph.get();
         auto maxOffsetMap = graph->getMaxOffsetMap(transaction);
         auto numNodes = graph->getNumNodes(transaction);
-        auto p1 = PValues(maxOffsetMap, clientContext->getMemoryManager(), (double)1 / numNodes);
-        auto p2 = PValues(maxOffsetMap, clientContext->getMemoryManager(), 0);
-        PValues* pCurrent = &p1;
-        PValues* pNext = &p2;
+        auto p1 = PrComputationState(maxOffsetMap, clientContext->getMemoryManager(),
+            (double)1 / numNodes);
+        auto p2 = PrComputationState(maxOffsetMap, clientContext->getMemoryManager(), 0);
+        PrComputationState* pCurrent = &p1;
+        PrComputationState* pNext = &p2;
         auto pageRankBindData = bindData->ptrCast<PageRankBindData>();
         auto config = pageRankBindData->getConfig();
         auto currentIter = 1u;
