@@ -83,7 +83,7 @@ public:
         std::shared_ptr<Multiplicities> multiplicities)
         : RJOutputWriter{context, outputNodeMask, sourceNodeID},
           pathLengths{std::move(pathLengths)}, multiplicities{std::move(multiplicities)} {
-        lengthVector = createVector(LogicalType::UINT16(), context->getMemoryManager());
+        lengthVector = createVector(LogicalType::UINT16());
     }
 
     void beginWritingOutputsInternal(common::table_id_t tableID) override {

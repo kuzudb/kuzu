@@ -16,7 +16,7 @@ public:
         nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths)
         : RJOutputWriter{context, outputNodeMask, sourceNodeID},
           pathLengths{std::move(pathLengths)} {
-        lengthVector = createVector(LogicalType::UINT16(), context->getMemoryManager());
+        lengthVector = createVector(LogicalType::UINT16());
     }
 
     void beginWritingOutputsInternal(common::table_id_t tableID) override {

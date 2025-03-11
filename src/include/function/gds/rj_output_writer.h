@@ -9,26 +9,11 @@
 namespace kuzu {
 namespace function {
 
-class GDSOutputWriter {
-public:
-    explicit GDSOutputWriter(main::ClientContext* context) : context{context} {}
-    virtual ~GDSOutputWriter() = default;
-
-public:
-    std::vector<common::ValueVector*> vectors;
-
-protected:
-    std::unique_ptr<common::ValueVector> createVector(const common::LogicalType& type,
-        storage::MemoryManager* mm);
-
-protected:
-    main::ClientContext* context;
-};
-
-class RJOutputWriter : public GDSOutputWriter {
+class RJOutputWriter {
 public:
     RJOutputWriter(main::ClientContext* context, common::NodeOffsetMaskMap* outputNodeMask,
         common::nodeID_t sourceNodeID);
+    virtual ~RJOutputWriter() = default;
 
     void beginWritingOutputs(common::table_id_t tableID);
 
@@ -42,11 +27,14 @@ public:
 protected:
     virtual void beginWritingOutputsInternal(common::table_id_t tableID) = 0;
     virtual bool skipInternal(common::nodeID_t dstNodeID) const = 0;
+    std::unique_ptr<common::ValueVector> createVector(const common::LogicalType& type);
 
 protected:
+    main::ClientContext* context;
     common::NodeOffsetMaskMap* outputNodeMask;
     common::nodeID_t sourceNodeID;
 
+    std::vector<common::ValueVector*> vectors;
     std::unique_ptr<common::ValueVector> srcNodeIDVector;
     std::unique_ptr<common::ValueVector> dstNodeIDVector;
 };

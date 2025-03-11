@@ -98,7 +98,7 @@ public:
         common::NodeOffsetMaskMap* outputNodeMask, common::nodeID_t sourceNodeID,
         std::shared_ptr<Costs> costs)
         : RJOutputWriter{context, outputNodeMask, sourceNodeID}, costs{std::move(costs)} {
-        costVector = createVector(LogicalType::DOUBLE(), context->getMemoryManager());
+        costVector = createVector(LogicalType::DOUBLE());
     }
 
     void write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,

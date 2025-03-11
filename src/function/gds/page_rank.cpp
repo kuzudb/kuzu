@@ -6,7 +6,6 @@
 #include "function/gds/config/page_rank_config.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
-#include "function/gds/output_writer.h"
 #include "function/gds_function.h"
 #include "gds_vertex_compute.h"
 #include "processor/execution_context.h"
@@ -228,28 +227,14 @@ private:
     PValues& pNext;
 };
 
-class PageRankOutputWriter : public GDSOutputWriter {
-public:
-    explicit PageRankOutputWriter(main::ClientContext* context) : GDSOutputWriter{context} {
-        nodeIDVector = createVector(LogicalType::INTERNAL_ID(), context->getMemoryManager());
-        rankVector = createVector(LogicalType::DOUBLE(), context->getMemoryManager());
-    }
-
-    std::unique_ptr<PageRankOutputWriter> copy() const {
-        return std::make_unique<PageRankOutputWriter>(context);
-    }
-
-public:
-    std::unique_ptr<ValueVector> nodeIDVector;
-    std::unique_ptr<ValueVector> rankVector;
-};
-
 class PageRankResultVertexCompute : public GDSResultVertexCompute {
 public:
     PageRankResultVertexCompute(storage::MemoryManager* mm,
-        processor::GDSCallSharedState* sharedState, std::unique_ptr<PageRankOutputWriter> writer,
-        PValues& pNext)
-        : GDSResultVertexCompute{mm, sharedState}, writer{std::move(writer)}, pNext{pNext} {}
+        processor::GDSCallSharedState* sharedState, PValues& pNext)
+        : GDSResultVertexCompute{mm, sharedState}, pNext{pNext} {
+        nodeIDVector = createVector(LogicalType::INTERNAL_ID());
+        rankVector = createVector(LogicalType::DOUBLE());
+    }
 
     void beginOnTableInternal(table_id_t tableID) override { pNext.pinTable(tableID); }
 
@@ -259,20 +244,20 @@ public:
                 continue;
             }
             auto nodeID = nodeID_t{i, tableID};
-            writer->nodeIDVector->setValue<nodeID_t>(0, nodeID);
-            writer->rankVector->setValue<double>(0, pNext.getValue(i));
-            localFT->append(writer->vectors);
+            nodeIDVector->setValue<nodeID_t>(0, nodeID);
+            rankVector->setValue<double>(0, pNext.getValue(i));
+            localFT->append(vectors);
         }
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<PageRankResultVertexCompute>(mm, sharedState, writer->copy(),
-            pNext);
+        return std::make_unique<PageRankResultVertexCompute>(mm, sharedState, pNext);
     }
 
 private:
-    std::unique_ptr<PageRankOutputWriter> writer;
     PValues& pNext;
+    std::unique_ptr<ValueVector> nodeIDVector;
+    std::unique_ptr<ValueVector> rankVector;
 };
 
 class PageRank final : public GDSAlgorithm {
@@ -349,9 +334,8 @@ public:
             }
             currentIter++;
         }
-        auto writer = std::make_unique<PageRankOutputWriter>(clientContext);
         auto outputVC = std::make_unique<PageRankResultVertexCompute>(
-            clientContext->getMemoryManager(), sharedState.get(), std::move(writer), *pCurrent);
+            clientContext->getMemoryManager(), sharedState.get(), *pCurrent);
         GDSUtils::runVertexCompute(context, graph, *outputVC);
         sharedState->factorizedTablePool.mergeLocalTables();
     }
@@ -359,9 +343,6 @@ public:
     std::unique_ptr<GDSAlgorithm> copy() const override {
         return std::make_unique<PageRank>(*this);
     }
-
-private:
-    std::unique_ptr<PageRankOutputWriter> localState;
 };
 
 function_set PageRankFunction::getFunctionSet() {
