@@ -279,10 +279,10 @@ public:
         // The frontiers will be initialized inside the loop.
         auto currentFrontier = std::make_shared<PathLengths>(getMaxOffsetMap, mm);
         auto nextFrontier = std::make_shared<PathLengths>(getMaxOffsetMap, mm);
+        currentFrontier->pinCurFrontierTableID(tableId);
+        nextFrontier->pinCurFrontierTableID(tableId);
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
-        frontierPair->pinCurrFrontier(tableId);
-        frontierPair->pinNextFrontier(tableId);
 
         auto setNewSccIds = std::make_unique<SccFindNewSccIds>(computationState);
         auto setInitialColors = std::make_unique<SccSetInitialColors>(computationState);
