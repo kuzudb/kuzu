@@ -16,20 +16,17 @@ namespace kuzu {
 namespace function {
 
 struct WccComputationState {
-    AtomicObjectArray<offset_t>* wccIDs = nullptr;
     AtomicObjectArraysMap<offset_t> wccIDsMap;
 
     WccComputationState(const table_id_map_t<offset_t>& maxOffsetMap, MemoryManager* mm) {
         for (const auto& [tableID, maxOffset] : maxOffsetMap) {
-            wccIDsMap.insert(tableID, maxOffset, mm);
-            pinTable(tableID);
+            wccIDsMap.allocateArray(tableID, maxOffset, mm);
+            wccIDsMap.pinTable(tableID);
             for (auto i = 0u; i < maxOffset; ++i) {
-                wccIDs->setRelaxed(i, i);
+                wccIDsMap.setValueRelaxed(i, i);
             }
         }
     }
-
-    void pinTable(table_id_t tableID) { wccIDs = wccIDsMap.getArray(tableID); }
 };
 
 class WCCAuxiliaryState : public GDSAuxiliaryState {
@@ -38,7 +35,7 @@ public:
         : wccComputationState{wccComputationState} {}
 
     void beginFrontierCompute(common::table_id_t, common::table_id_t toTableID) override {
-        wccComputationState.pinTable(toTableID);
+        wccComputationState.wccIDsMap.pinTable(toTableID);
     }
 
 private:
@@ -55,8 +52,8 @@ struct WCCEdgeCompute : public EdgeCompute {
         bool) override {
         std::vector<nodeID_t> result;
         chunk.forEach([&](auto nbrNodeID, auto) {
-            if (wccComputationState.wccIDs->compare_exchange_strong_max(boundNodeID.offset,
-                    nbrNodeID.offset)) {
+            if (wccComputationState.wccIDsMap.getArray()->compare_exchange_strong_max(
+                    boundNodeID.offset, nbrNodeID.offset)) {
                 result.push_back(nbrNodeID);
             }
         });
@@ -78,7 +75,7 @@ public:
     }
 
     void beginOnTableInternal(table_id_t tableID) override {
-        wccComputationState.pinTable(tableID);
+        wccComputationState.wccIDsMap.pinTable(tableID);
     }
 
     void vertexCompute(common::offset_t startOffset, common::offset_t endOffset,
@@ -89,7 +86,8 @@ public:
             }
             auto nodeID = nodeID_t{i, tableID};
             nodeIDVector->setValue<nodeID_t>(0, nodeID);
-            componentIDVector->setValue<uint64_t>(0, wccComputationState.wccIDs->getRelaxed(i));
+            componentIDVector->setValue<uint64_t>(0,
+                wccComputationState.wccIDsMap.getValueRelaxed(i));
             localFT->append(vectors);
         }
     }

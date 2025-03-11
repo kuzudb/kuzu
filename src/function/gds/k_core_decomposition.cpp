@@ -16,53 +16,37 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-class CoreValues {
-public:
-    CoreValues(const table_id_map_t<offset_t>& maxOffsetMap, MemoryManager* mm) {
-        init(maxOffsetMap, mm);
-    }
+struct KcoreComputationState {
+    AtomicObjectArraysMap<degree_t> coreValuesMap;
 
-    void pinTable(table_id_t tableID) { coreValues = coreValuesMap.getData(tableID); }
-
-    bool isValid(offset_t offset) {
-        return coreValues[offset].load(std::memory_order_relaxed) != INVALID_DEGREE;
-    }
-    degree_t getValue(offset_t offset) {
-        return coreValues[offset].load(std::memory_order_relaxed);
-    }
-    void setCoreValue(offset_t offset, degree_t value) {
-        coreValues[offset].store(value, std::memory_order_relaxed);
-    }
-
-private:
-    void init(const table_id_map_t<offset_t>& maxOffsetMap, MemoryManager* mm) {
+    KcoreComputationState(const table_id_map_t<offset_t>& maxOffsetMap, MemoryManager* mm) {
         for (const auto& [tableID, maxOffset] : maxOffsetMap) {
-            coreValuesMap.allocate(tableID, maxOffset, mm);
-            pinTable(tableID);
+            coreValuesMap.allocateArray(tableID, maxOffset, mm);
+            coreValuesMap.pinTable(tableID);
             for (auto i = 0u; i < maxOffset; ++i) {
-                coreValues[i].store(INVALID_DEGREE, std::memory_order_relaxed);
+                coreValuesMap.setValueRelaxed(i, INVALID_DEGREE);
             }
         }
     }
 
-private:
-    std::atomic<degree_t>* coreValues = nullptr;
-    ObjectArraysMap<std::atomic<degree_t>> coreValuesMap;
+    bool isValid(offset_t offset) {
+        return coreValuesMap.getValueRelaxed(offset) != INVALID_DEGREE;
+    }
 };
 
 class KCoreAuxiliaryState : public GDSAuxiliaryState {
 public:
-    KCoreAuxiliaryState(Degrees& degrees, CoreValues& coreValues)
-        : degrees{degrees}, coreValues{coreValues} {}
+    KCoreAuxiliaryState(Degrees& degrees, KcoreComputationState& kcoreState)
+        : degrees{degrees}, kcoreState{kcoreState} {}
 
     void beginFrontierCompute(table_id_t, table_id_t toTableID) override {
         degrees.pinTable(toTableID);
-        coreValues.pinTable(toTableID);
+        kcoreState.coreValuesMap.pinTable(toTableID);
     }
 
 private:
     Degrees& degrees;
-    CoreValues& coreValues;
+    KcoreComputationState& kcoreState;
 };
 
 class RemoveVertexEdgeCompute : public EdgeCompute {
@@ -85,13 +69,15 @@ private:
 class KCoreResultVertexCompute : public GDSResultVertexCompute {
 public:
     KCoreResultVertexCompute(MemoryManager* mm, processor::GDSCallSharedState* sharedState,
-        CoreValues& coreValues)
+        KcoreComputationState& coreValues)
         : GDSResultVertexCompute{mm, sharedState}, coreValues{coreValues} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID());
         kValueVector = createVector(LogicalType::UINT64());
     }
 
-    void beginOnTableInternal(table_id_t tableID) override { coreValues.pinTable(tableID); }
+    void beginOnTableInternal(table_id_t tableID) override {
+        coreValues.coreValuesMap.pinTable(tableID);
+    }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t tableID) override {
         for (auto i = startOffset; i < endOffset; ++i) {
@@ -100,7 +86,7 @@ public:
             }
             auto nodeID = nodeID_t{i, tableID};
             nodeIDVector->setValue<nodeID_t>(0, nodeID);
-            kValueVector->setValue<uint64_t>(0, coreValues.getValue(i));
+            kValueVector->setValue<uint64_t>(0, coreValues.coreValuesMap.getValueRelaxed(i));
             localFT->append(vectors);
         }
     }
@@ -110,14 +96,14 @@ public:
     }
 
 private:
-    CoreValues& coreValues;
+    KcoreComputationState& coreValues;
     std::unique_ptr<ValueVector> nodeIDVector;
     std::unique_ptr<ValueVector> kValueVector;
 };
 
 class DegreeLessThanCoreVertexCompute : public GDSVertexCompute {
 public:
-    DegreeLessThanCoreVertexCompute(Degrees& degrees, CoreValues& coreValues,
+    DegreeLessThanCoreVertexCompute(Degrees& degrees, KcoreComputationState& coreValues,
         FrontierPair* frontierPair, degree_t coreValue, std::atomic<offset_t>& numActiveNodes,
         common::NodeOffsetMaskMap* nodeMask)
         : GDSVertexCompute{nodeMask}, degrees{degrees}, coreValues{coreValues},
@@ -126,7 +112,7 @@ public:
     void beginOnTableInternal(table_id_t tableID) override {
         frontierPair->pinNextFrontier(tableID);
         degrees.pinTable(tableID);
-        coreValues.pinTable(tableID);
+        coreValues.coreValuesMap.pinTable(tableID);
     }
 
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t tableID) override {
@@ -140,7 +126,7 @@ public:
             auto degree = degrees.getValue(i);
             if (degree <= coreValue) {
                 frontierPair->addNodeToNextDenseFrontier(nodeID_t{i, tableID});
-                coreValues.setCoreValue(i, coreValue);
+                coreValues.coreValuesMap.setValueRelaxed(i, coreValue);
                 numActiveNodes.fetch_add(1, std::memory_order_relaxed);
             }
         }
@@ -153,7 +139,7 @@ public:
 
 private:
     Degrees& degrees;
-    CoreValues& coreValues;
+    KcoreComputationState& coreValues;
     FrontierPair* frontierPair;
     degree_t coreValue;
     std::atomic<offset_t>& numActiveNodes;
@@ -195,7 +181,7 @@ public:
         auto degrees = Degrees(graph->getMaxOffsetMap(transaction), mm);
         DegreesUtils::computeDegree(context, graph, sharedState->getGraphNodeMaskMap(), &degrees,
             ExtendDirection::BOTH);
-        auto coreValues = CoreValues(graph->getMaxOffsetMap(transaction), mm);
+        auto coreValues = KcoreComputationState(graph->getMaxOffsetMap(transaction), mm);
         auto auxiliaryState = std::make_unique<KCoreAuxiliaryState>(degrees, coreValues);
         auto currentFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
         auto nextFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
