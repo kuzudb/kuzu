@@ -5,7 +5,7 @@
 -CASE PageRank1
 -STATEMENT CALL create_projected_graph('PK', ['person'], ['knows'])
 ---- ok
--STATEMENT CALL page_rank('PK') RETURN node.fName, rank;
+-STATEMENT CALL gds_pr('PK') RETURN node.fName, rank;
 ---- 8
 Alice|0.125000
 Bob|0.125000
@@ -17,7 +17,7 @@ Greg|0.026719
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0.018750
 -STATEMENT CALL create_projected_graph('PK2', ['person'], {'knows': {'filter': 'r.date > date("1906-01-01")'}})
 ---- ok
--STATEMENT CALL page_rank('PK2') RETURN node.fName, rank;
+-STATEMENT CALL gds_pr('PK2') RETURN node.fName, rank;
 ---- 8
 Alice|0.125000
 Bob|0.125000
@@ -29,14 +29,14 @@ Greg|0.018750
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0.018750
 -STATEMENT CALL create_projected_graph('PK3', {'person': {'filter': 'n.ID > 3'}}, {'knows': {'filter': 'r.date > date("1906-01-01")'}})
 ---- ok
--STATEMENT CALL page_rank('PK3') RETURN node.fName, rank;
+-STATEMENT CALL gds_pr('PK3') RETURN node.fName, rank;
 ---- 5
 Dan|0.030000
 Elizabeth|0.030000
 Farooq|0.030000
 Greg|0.030000
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0.030000
--STATEMENT CALL page_rank('PK', dampingFactor := 0.5) RETURN node.fName, rank;
+-STATEMENT CALL gds_pr('PK', dampingFactor := 0.5) RETURN node.fName, rank;
 ---- 8
 Alice|0.125000
 Bob|0.125000
@@ -46,7 +46,7 @@ Elizabeth|0.062500
 Farooq|0.078125
 Greg|0.078125
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0.062500
--STATEMENT CALL page_rank('PK', dampingFactor := 0.3, maxIterations := 10) RETURN node.fName, rank;
+-STATEMENT CALL gds_pr('PK', dampingFactor := 0.3, maxIterations := 10) RETURN node.fName, rank;
 ---- 8
 Alice|0.125000
 Bob|0.125000
@@ -56,7 +56,7 @@ Elizabeth|0.087500
 Farooq|0.100625
 Greg|0.100625
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0.087500
--STATEMENT CALL page_rank('PK', dampingFactor := 0.1, maxIterations := 15, tolerance := 0.00024) RETURN node.fName, rank;
+-STATEMENT CALL gds_pr('PK', dampingFactor := 0.1, maxIterations := 15, tolerance := 0.00024) RETURN node.fName, rank;
 ---- 8
 Alice|0.125000
 Bob|0.125000
@@ -66,12 +66,12 @@ Elizabeth|0.112500
 Farooq|0.118125
 Greg|0.118125
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0.112500
--STATEMENT CALL page_rank('PK', dampingFactOR := 5.2) RETURN node.fName, rank;
+-STATEMENT CALL gds_pr('PK', dampingFactOR := 5.2) RETURN node.fName, rank;
 ---- error
 Binder exception: Damping factor must be in the [0, 1).
--STATEMENT CALL page_rank('PK', MAXITerations := -9) RETURN node.fName, rank;
+-STATEMENT CALL gds_pr('PK', MAXITerations := -9) RETURN node.fName, rank;
 ---- error
 Binder exception: Max iteration must be a positive integer.
--STATEMENT CALL page_rank('PK', maxIteratioN := 4) RETURN node.fName, rank;
+-STATEMENT CALL gds_pr('PK', maxIteratioN := 4) RETURN node.fName, rank;
 ---- error
 Binder exception: Unknown optional parameter: maxIteratioN

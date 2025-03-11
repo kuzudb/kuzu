@@ -7,31 +7,31 @@ namespace kuzu {
 namespace function {
 
 struct WeaklyConnectedComponentsFunction {
-    static constexpr const char* name = "WEAKLY_CONNECTED_COMPONENT";
+    static constexpr const char* name = "GDS_WCC";
 
     static function_set getFunctionSet();
 };
 
 struct SCCKosarajuFunction {
-    static constexpr const char* name = "STRONGLY_CONNECTED_COMPONENTS_KOSARAJU";
+    static constexpr const char* name = "GDS_SCC_KOSARAJU";
 
     static function_set getFunctionSet();
 };
 
 struct SCCFunction {
-    static constexpr const char* name = "STRONGLY_CONNECTED_COMPONENTS";
+    static constexpr const char* name = "GDS_SCC";
 
     static function_set getFunctionSet();
 };
 
 struct KCoreDecompositionFunction {
-    static constexpr const char* name = "K_CORE_DECOMPOSITION";
+    static constexpr const char* name = "GDS_KCORE";
 
     static function_set getFunctionSet();
 };
 
 struct PageRankFunction {
-    static constexpr const char* name = "PAGE_RANK";
+    static constexpr const char* name = "GDS_PR";
 
     static function_set getFunctionSet();
 };

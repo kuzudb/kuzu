@@ -24,7 +24,7 @@
 ---- ok
 -STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge']);
 ---- ok
--STATEMENT CALL weakly_connected_component('Graph')
+-STATEMENT CALL gds_wcc('Graph')
     WITH group_id, min(node.id) as wccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds
     RETURN wccId, nodeCount, nodeIds ORDER BY wccId;
 ---- 5
@@ -60,7 +60,7 @@
 ---- ok
 -STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge']);
 ---- ok
--STATEMENT CALL weakly_connected_component('Graph')
+-STATEMENT CALL gds_wcc('Graph')
     WITH group_id, min(node.id) as wccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds
     RETURN wccId, nodeCount, nodeIds ORDER BY wccId;
 ---- 3
@@ -86,7 +86,7 @@
 ---- ok
 -STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge']);
 ---- ok
--STATEMENT CALL weakly_connected_component('Graph')
+-STATEMENT CALL gds_wcc('Graph')
     WITH group_id, min(node.id) as wccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds
     RETURN wccId, nodeCount, nodeIds ORDER BY wccId;
 ---- 10
