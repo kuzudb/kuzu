@@ -24,40 +24,34 @@ static constexpr offset_t PROCESSED = numeric_limits<offset_t>::max();
 static constexpr offset_t VISITED = numeric_limits<offset_t>::max() - 1;
 static constexpr offset_t NOT_VISITED = numeric_limits<offset_t>::max() - 2;
 
-class SCCState {
-public:
-    SCCState(const offset_t tableID, const offset_t numNodes, MemoryManager* mm) {
-        componentIDsMap.allocate(tableID, numNodes, mm);
-        componentIDs = componentIDsMap.getData(tableID);
+struct SccComputationState {
+    ObjectArray<offset_t> sccIDs;
+
+    SccComputationState(const offset_t numNodes, MemoryManager* mm)
+        : sccIDs{ObjectArray<offset_t>(numNodes, mm)} {
         for (auto i = 0u; i < numNodes; ++i) {
-            componentIDs[i] = NOT_VISITED;
+            sccIDs.set(i, NOT_VISITED);
         }
     }
 
-    void setVisited(const offset_t offset) const { componentIDs[offset] = VISITED; }
+    void setVisited(const offset_t offset) { sccIDs.set(offset, VISITED); }
 
-    bool visited(const offset_t offset) const { return componentIDs[offset] >= VISITED; }
+    bool visited(const offset_t offset) { return sccIDs.get(offset) >= VISITED; }
 
-    void setProcessed(const offset_t offset) const { componentIDs[offset] = PROCESSED; }
+    void setProcessed(const offset_t offset) { sccIDs.set(offset, PROCESSED); }
 
-    bool processed(const offset_t offset) const { return componentIDs[offset] == PROCESSED; }
+    bool processed(const offset_t offset) { return sccIDs.get(offset) == PROCESSED; }
 
-    bool componentIDSet(const offset_t offset) const { return componentIDs[offset] < NOT_VISITED; }
+    bool componentIDSet(const offset_t offset) { return sccIDs.get(offset) < NOT_VISITED; }
 
-    void setComponentID(const offset_t offset, const offset_t value) const {
-        componentIDs[offset] = value;
-    }
+    void setComponentID(const offset_t offset, const offset_t value) { sccIDs.set(offset, value); }
 
-    offset_t getComponentID(const offset_t offset) const { return componentIDs[offset]; }
-
-private:
-    offset_t* componentIDs = nullptr;
-    ObjectArraysMap<offset_t> componentIDsMap;
+    offset_t getComponentID(const offset_t offset) { return sccIDs.get(offset); }
 };
 
 class SCCCompute {
 public:
-    SCCCompute(Graph* graph, SCCState& sccState) : graph{graph}, sccState{sccState} {}
+    SCCCompute(Graph* graph, SccComputationState& sccState) : graph{graph}, sccState{sccState} {}
 
     void compute(const offset_t tableID, const offset_t numNodes) {
         auto nbrTables = graph->getForwardNbrTableInfos(tableID);
@@ -124,12 +118,13 @@ public:
 
 private:
     Graph* graph;
-    SCCState& sccState;
+    SccComputationState& sccState;
 };
 
 class SCCVertexCompute : public GDSResultVertexCompute {
 public:
-    SCCVertexCompute(MemoryManager* mm, GDSCallSharedState* sharedState, SCCState& sccState)
+    SCCVertexCompute(MemoryManager* mm, GDSCallSharedState* sharedState,
+        SccComputationState& sccState)
         : GDSResultVertexCompute{mm, sharedState}, sccState{sccState} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID());
         componentIDVector = createVector(LogicalType::UINT64());
@@ -152,7 +147,7 @@ public:
     }
 
 private:
-    SCCState& sccState;
+    SccComputationState& sccState;
     unique_ptr<ValueVector> nodeIDVector;
     unique_ptr<ValueVector> componentIDVector;
 };
@@ -200,7 +195,7 @@ public:
         auto tableID = graph->getNodeTableIDs()[0];
         auto maxOffset = graph->getMaxOffset(clientContext->getTransaction(), tableID);
 
-        auto sccState = SCCState(tableID, maxOffset, mm);
+        auto sccState = SccComputationState(maxOffset, mm);
         auto edgeCompute = make_unique<SCCCompute>(graph, sccState);
         edgeCompute->compute(tableID, maxOffset);
 
