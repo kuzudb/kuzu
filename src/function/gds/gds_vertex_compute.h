@@ -43,9 +43,18 @@ public:
     }
 
 protected:
+    std::unique_ptr<common::ValueVector> createVector(const common::LogicalType& type) {
+        auto vector = std::make_unique<common::ValueVector>(type.copy(), mm);
+        vector->state = common::DataChunkState::getSingleValueDataChunkState();
+        vectors.push_back(vector.get());
+        return vector;
+    }
+
+protected:
     processor::GDSCallSharedState* sharedState;
     storage::MemoryManager* mm;
     processor::FactorizedTable* localFT = nullptr;
+    std::vector<common::ValueVector*> vectors;
 };
 
 } // namespace function

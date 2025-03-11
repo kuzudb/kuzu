@@ -50,7 +50,7 @@ public:
     WSPPathsOutputWriter(main::ClientContext* context, common::NodeOffsetMaskMap* outputNodeMask,
         common::nodeID_t sourceNodeID, PathsOutputWriterInfo info, BFSGraph& bfsGraph)
         : PathsOutputWriter{context, outputNodeMask, sourceNodeID, info, bfsGraph} {
-        costVector = createVector(LogicalType::DOUBLE(), context->getMemoryManager());
+        costVector = createVector(LogicalType::DOUBLE());
     }
 
     void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,

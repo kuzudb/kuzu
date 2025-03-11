@@ -4,8 +4,8 @@
 #include "common/enums/path_semantic.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_state.h"
-#include "output_writer.h"
 #include "processor/operator/recursive_extend_shared_state.h"
+#include "rj_output_writer.h"
 
 namespace kuzu {
 namespace function {

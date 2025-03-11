@@ -3,7 +3,6 @@
 #include "degrees.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
-#include "function/gds/output_writer.h"
 #include "function/gds_function.h"
 #include "gds_vertex_compute.h"
 #include "processor/execution_context.h"
@@ -83,28 +82,14 @@ private:
     Degrees& degrees;
 };
 
-class KCoreOutputWriter : public GDSOutputWriter {
-public:
-    explicit KCoreOutputWriter(main::ClientContext* context) : GDSOutputWriter{context} {
-        nodeIDVector = createVector(LogicalType::INTERNAL_ID(), context->getMemoryManager());
-        kValueVector = createVector(LogicalType::UINT64(), context->getMemoryManager());
-    }
-
-    std::unique_ptr<KCoreOutputWriter> copy() const {
-        return std::make_unique<KCoreOutputWriter>(context);
-    }
-
-public:
-    std::unique_ptr<ValueVector> nodeIDVector;
-    std::unique_ptr<ValueVector> kValueVector;
-};
-
 class KCoreResultVertexCompute : public GDSResultVertexCompute {
 public:
     KCoreResultVertexCompute(MemoryManager* mm, processor::GDSCallSharedState* sharedState,
-        std::unique_ptr<KCoreOutputWriter> writer, CoreValues& coreValues)
-        : GDSResultVertexCompute{mm, sharedState}, writer{std::move(writer)},
-          coreValues{coreValues} {}
+        CoreValues& coreValues)
+        : GDSResultVertexCompute{mm, sharedState}, coreValues{coreValues} {
+        nodeIDVector = createVector(LogicalType::INTERNAL_ID());
+        kValueVector = createVector(LogicalType::UINT64());
+    }
 
     void beginOnTableInternal(table_id_t tableID) override { coreValues.pinTable(tableID); }
 
@@ -114,20 +99,20 @@ public:
                 continue;
             }
             auto nodeID = nodeID_t{i, tableID};
-            writer->nodeIDVector->setValue<nodeID_t>(0, nodeID);
-            writer->kValueVector->setValue<uint64_t>(0, coreValues.getValue(i));
-            localFT->append(writer->vectors);
+            nodeIDVector->setValue<nodeID_t>(0, nodeID);
+            kValueVector->setValue<uint64_t>(0, coreValues.getValue(i));
+            localFT->append(vectors);
         }
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<KCoreResultVertexCompute>(mm, sharedState, writer->copy(),
-            coreValues);
+        return std::make_unique<KCoreResultVertexCompute>(mm, sharedState, coreValues);
     }
 
 private:
-    std::unique_ptr<KCoreOutputWriter> writer;
     CoreValues& coreValues;
+    std::unique_ptr<ValueVector> nodeIDVector;
+    std::unique_ptr<ValueVector> kValueVector;
 };
 
 class DegreeLessThanCoreVertexCompute : public GDSVertexCompute {
@@ -247,9 +232,8 @@ public:
             coreValue++;
         }
         // Write output
-        auto writer = std::make_unique<KCoreOutputWriter>(clientContext);
         auto vertexCompute = KCoreResultVertexCompute(clientContext->getMemoryManager(),
-            sharedState.get(), std::move(writer), coreValues);
+            sharedState.get(), coreValues);
         GDSUtils::runVertexCompute(context, sharedState->graph.get(), vertexCompute);
         sharedState->factorizedTablePool.mergeLocalTables();
     }

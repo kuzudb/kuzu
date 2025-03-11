@@ -4,6 +4,7 @@
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds_function.h"
+#include "gds_vertex_compute.h"
 #include "processor/execution_context.h"
 #include "processor/operator/gds_call_shared_state.h"
 
@@ -126,52 +127,34 @@ private:
     SCCState& sccState;
 };
 
-class SCCOutputWriter : public GDSOutputWriter {
+class SCCVertexCompute : public GDSResultVertexCompute {
 public:
-    explicit SCCOutputWriter(main::ClientContext* context) : GDSOutputWriter{context} {
-        nodeIDVector = createVector(LogicalType::INTERNAL_ID(), context->getMemoryManager());
-        componentIDVector = createVector(LogicalType::UINT64(), context->getMemoryManager());
+    SCCVertexCompute(MemoryManager* mm, GDSCallSharedState* sharedState, SCCState& sccState)
+        : GDSResultVertexCompute{mm, sharedState}, sccState{sccState} {
+        nodeIDVector = createVector(LogicalType::INTERNAL_ID());
+        componentIDVector = createVector(LogicalType::UINT64());
     }
 
-    unique_ptr<SCCOutputWriter> copy() const { return make_unique<SCCOutputWriter>(context); }
-
-public:
-    unique_ptr<ValueVector> nodeIDVector;
-    unique_ptr<ValueVector> componentIDVector;
-};
-
-class SCCVertexCompute : public VertexCompute {
-public:
-    SCCVertexCompute(MemoryManager* mm, GDSCallSharedState* sharedState,
-        unique_ptr<SCCOutputWriter> writer, SCCState& sccState)
-        : mm{mm}, sharedState{sharedState}, writer{std::move(writer)}, sccState{sccState} {
-        localFT = sharedState->factorizedTablePool.claimLocalTable(mm);
-    }
-    ~SCCVertexCompute() override { sharedState->factorizedTablePool.returnLocalTable(localFT); }
-
-    bool beginOnTable(table_id_t /*tableID*/) override { return true; }
+    void beginOnTableInternal(table_id_t /*tableID*/) override {}
 
     void vertexCompute(const offset_t startOffset, const offset_t endOffset,
         const table_id_t tableID) override {
         for (auto i = startOffset; i < endOffset; ++i) {
             auto nodeID = nodeID_t{i, tableID};
-            writer->nodeIDVector->setValue<nodeID_t>(0, nodeID);
-            writer->componentIDVector->setValue<uint64_t>(0, sccState.getComponentID(i));
-            localFT->append(writer->vectors);
+            nodeIDVector->setValue<nodeID_t>(0, nodeID);
+            componentIDVector->setValue<uint64_t>(0, sccState.getComponentID(i));
+            localFT->append(vectors);
         }
     }
 
     unique_ptr<VertexCompute> copy() override {
-        return make_unique<SCCVertexCompute>(mm, sharedState, writer->copy(), sccState);
+        return std::make_unique<SCCVertexCompute>(mm, sharedState, sccState);
     }
 
 private:
-    MemoryManager* mm;
-    GDSCallSharedState* sharedState;
-    unique_ptr<SCCOutputWriter> writer;
     SCCState& sccState;
-
-    FactorizedTable* localFT;
+    unique_ptr<ValueVector> nodeIDVector;
+    unique_ptr<ValueVector> componentIDVector;
 };
 
 class SCCKosaraju final : public GDSAlgorithm {
@@ -221,9 +204,7 @@ public:
         auto edgeCompute = make_unique<SCCCompute>(graph, sccState);
         edgeCompute->compute(tableID, maxOffset);
 
-        auto writer = make_unique<SCCOutputWriter>(clientContext);
-        auto vertexCompute =
-            make_unique<SCCVertexCompute>(mm, sharedState.get(), std::move(writer), sccState);
+        auto vertexCompute = make_unique<SCCVertexCompute>(mm, sharedState.get(), sccState);
         GDSUtils::runVertexCompute(context, graph, *vertexCompute);
 
         sharedState->factorizedTablePool.mergeLocalTables();

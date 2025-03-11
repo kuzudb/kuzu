@@ -2,7 +2,6 @@
 #include "binder/expression/expression_util.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
-#include "function/gds/output_writer.h"
 #include "function/gds_function.h"
 #include "gds_vertex_compute.h"
 #include "processor/execution_context.h"
@@ -83,28 +82,14 @@ struct WCCEdgeCompute : public EdgeCompute {
     }
 };
 
-class WCCOutputWriter : public GDSOutputWriter {
-public:
-    explicit WCCOutputWriter(main::ClientContext* context) : GDSOutputWriter{context} {
-        nodeIDVector = createVector(LogicalType::INTERNAL_ID(), context->getMemoryManager());
-        componentIDVector = createVector(LogicalType::UINT64(), context->getMemoryManager());
-    }
-
-    std::unique_ptr<WCCOutputWriter> copy() const {
-        return std::make_unique<WCCOutputWriter>(context);
-    }
-
-public:
-    std::unique_ptr<ValueVector> nodeIDVector;
-    std::unique_ptr<ValueVector> componentIDVector;
-};
-
 class WCCVertexCompute : public GDSResultVertexCompute {
 public:
     WCCVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState,
-        std::unique_ptr<WCCOutputWriter> writer, ComponentIDs& componentIDs)
-        : GDSResultVertexCompute{mm, sharedState}, writer{std::move(writer)},
-          componentIDs{componentIDs} {}
+        ComponentIDs& componentIDs)
+        : GDSResultVertexCompute{mm, sharedState}, componentIDs{componentIDs} {
+        nodeIDVector = createVector(LogicalType::INTERNAL_ID());
+        componentIDVector = createVector(LogicalType::UINT64());
+    }
 
     void beginOnTableInternal(table_id_t tableID) override { componentIDs.pinTable(tableID); }
 
@@ -115,19 +100,20 @@ public:
                 continue;
             }
             auto nodeID = nodeID_t{i, tableID};
-            writer->nodeIDVector->setValue<nodeID_t>(0, nodeID);
-            writer->componentIDVector->setValue<uint64_t>(0, componentIDs.getComponentID(i));
-            localFT->append(writer->vectors);
+            nodeIDVector->setValue<nodeID_t>(0, nodeID);
+            componentIDVector->setValue<uint64_t>(0, componentIDs.getComponentID(i));
+            localFT->append(vectors);
         }
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<WCCVertexCompute>(mm, sharedState, writer->copy(), componentIDs);
+        return std::make_unique<WCCVertexCompute>(mm, sharedState, componentIDs);
     }
 
 private:
-    std::unique_ptr<WCCOutputWriter> writer;
     ComponentIDs& componentIDs;
+    std::unique_ptr<ValueVector> nodeIDVector;
+    std::unique_ptr<ValueVector> componentIDVector;
 };
 
 class WeaklyConnectedComponent final : public GDSAlgorithm {
@@ -171,9 +157,8 @@ public:
         auto componentIDs = ComponentIDs(graph->getMaxOffsetMap(clientContext->getTransaction()),
             clientContext->getMemoryManager());
         auto edgeCompute = std::make_unique<WCCEdgeCompute>(componentIDs);
-        auto writer = std::make_unique<WCCOutputWriter>(clientContext);
         auto vertexCompute = std::make_unique<WCCVertexCompute>(clientContext->getMemoryManager(),
-            sharedState.get(), std::move(writer), componentIDs);
+            sharedState.get(), componentIDs);
         auto auxiliaryState = std::make_unique<WCCAuxiliaryState>(componentIDs);
         auto computeState = GDSComputeState(std::move(frontierPair), std::move(edgeCompute),
             std::move(auxiliaryState), nullptr);

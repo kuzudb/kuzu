@@ -1,6 +1,5 @@
-#include "function/gds/output_writer.h"
-
 #include "common/exception/interrupt.h"
+#include "function/gds/rj_output_writer.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;
@@ -9,20 +8,11 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace function {
 
-std::unique_ptr<ValueVector> GDSOutputWriter::createVector(const LogicalType& type,
-    storage::MemoryManager* mm) {
-    auto vector = std::make_unique<ValueVector>(type.copy(), mm);
-    vector->state = DataChunkState::getSingleValueDataChunkState();
-    vectors.push_back(vector.get());
-    return vector;
-}
-
 RJOutputWriter::RJOutputWriter(main::ClientContext* context,
     common::NodeOffsetMaskMap* outputNodeMask, nodeID_t sourceNodeID)
-    : GDSOutputWriter{context}, outputNodeMask{outputNodeMask}, sourceNodeID{sourceNodeID} {
-    auto mm = context->getMemoryManager();
-    srcNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm);
-    dstNodeIDVector = createVector(LogicalType::INTERNAL_ID(), mm);
+    : context{context}, outputNodeMask{outputNodeMask}, sourceNodeID{sourceNodeID} {
+    srcNodeIDVector = createVector(LogicalType::INTERNAL_ID());
+    dstNodeIDVector = createVector(LogicalType::INTERNAL_ID());
     srcNodeIDVector->setValue<nodeID_t>(0, sourceNodeID);
 }
 
@@ -43,18 +33,24 @@ bool RJOutputWriter::skip(nodeID_t dstNodeID) const {
     return skipInternal(dstNodeID);
 }
 
+std::unique_ptr<ValueVector> RJOutputWriter::createVector(const LogicalType& type) {
+    auto vector = std::make_unique<ValueVector>(type.copy(), context->getMemoryManager());
+    vector->state = DataChunkState::getSingleValueDataChunkState();
+    vectors.push_back(vector.get());
+    return vector;
+}
+
 PathsOutputWriter::PathsOutputWriter(main::ClientContext* context,
     common::NodeOffsetMaskMap* outputNodeMask, nodeID_t sourceNodeID, PathsOutputWriterInfo info,
     BFSGraph& bfsGraph)
     : RJOutputWriter{context, outputNodeMask, sourceNodeID}, info{info}, bfsGraph{bfsGraph} {
-    auto mm = context->getMemoryManager();
-    lengthVector = createVector(LogicalType::UINT16(), mm);
+    lengthVector = createVector(LogicalType::UINT16());
     if (info.writeEdgeDirection) {
-        directionVector = createVector(LogicalType::LIST(LogicalType::BOOL()), mm);
+        directionVector = createVector(LogicalType::LIST(LogicalType::BOOL()));
     }
     if (info.writePath) {
-        pathNodeIDsVector = createVector(LogicalType::LIST(LogicalType::INTERNAL_ID()), mm);
-        pathEdgeIDsVector = createVector(LogicalType::LIST(LogicalType::INTERNAL_ID()), mm);
+        pathNodeIDsVector = createVector(LogicalType::LIST(LogicalType::INTERNAL_ID()));
+        pathEdgeIDsVector = createVector(LogicalType::LIST(LogicalType::INTERNAL_ID()));
     }
 }
 
