@@ -112,5 +112,26 @@ private:
     common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> bufferPerTable;
 };
 
+// ObjectArraysMap represents a pre-allocated amount of object per tableID.
+template<typename T>
+class AtomicObjectArraysMap {
+public:
+    void insert(common::table_id_t tableID, common::offset_t maxOffset,
+        storage::MemoryManager* mm) {
+        auto array = std::make_unique<AtomicObjectArray<T>>(maxOffset, mm);
+        arrayPerTable.insert({tableID, std::move(array)});
+    }
+
+    bool contains(common::table_id_t tableID) const { return arrayPerTable.contains(tableID); }
+
+    AtomicObjectArray<T>* getArray(common::table_id_t tableID) const {
+        KU_ASSERT(arrayPerTable.contains(tableID));
+        return arrayPerTable.at(tableID).get();
+    }
+
+private:
+    common::table_id_map_t<std::unique_ptr<AtomicObjectArray<T>>> arrayPerTable;
+};
+
 } // namespace function
 } // namespace kuzu
