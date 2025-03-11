@@ -1,7 +1,7 @@
 name: CI Workflow
 
 on:
-  pull_request:
+  pull_request_target:
     branches:
       - master
   push:
@@ -38,6 +38,11 @@ on:
         required: false
         default: 16777216
         type: number
+
+permissions:
+  contents: write
+  pull-requests: write
+
 env:
   RUNTIME_CHECKS: 1
   USE_EXISTING_BINARY_DATASET: 1
