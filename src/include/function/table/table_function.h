@@ -114,6 +114,8 @@ using table_func_get_logical_plan_t = std::function<void(const transaction::Tran
     const std::vector<std::unique_ptr<planner::LogicalPlan>>&)>;
 using table_func_get_physical_plan_t = std::function<std::unique_ptr<processor::PhysicalOperator>(
     const main::ClientContext*, processor::PlanMapper*, const planner::LogicalOperator*)>;
+using table_func_infer_input_types =
+    std::function<std::vector<common::LogicalType>(const binder::expression_vector&)>;
 
 struct KUZU_API TableFunction final : Function {
     table_func_t tableFunc = nullptr;
@@ -126,6 +128,7 @@ struct KUZU_API TableFunction final : Function {
     table_func_rewrite_t rewriteFunc = nullptr;
     table_func_get_logical_plan_t getLogicalPlanFunc = getLogicalPlan;
     table_func_get_physical_plan_t getPhysicalPlanFunc = getPhysicalPlan;
+    table_func_infer_input_types inferInputTypes = nullptr;
 
     TableFunction() {}
     TableFunction(std::string name, std::vector<common::LogicalTypeID> inputTypes)

@@ -4,6 +4,7 @@
 #include "common/exception/binder.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/standalone_call_function.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 

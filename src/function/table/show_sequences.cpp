@@ -3,6 +3,7 @@
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "function/table/bind_data.h"
 #include "function/table/simple_table_function.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;

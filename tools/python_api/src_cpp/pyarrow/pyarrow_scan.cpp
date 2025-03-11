@@ -78,7 +78,6 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunction
     py::gil_scoped_acquire acquire;
     PyArrowTableScanFunctionData* bindData =
         dynamic_cast<PyArrowTableScanFunctionData*>(input.bindData);
-
     return std::make_unique<PyArrowTableScanSharedState>(bindData->cardinality,
         bindData->arrowArrayBatches);
 }

@@ -232,12 +232,12 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     for (auto& column : warningColumns) {
         resultColumns.push_back(column);
     }
-    return std::make_unique<ScanBindData>(std::move(resultColumns), scanInput->fileScanInfo.copy(),
+    return std::make_unique<ScanFileBindData>(std::move(resultColumns), scanInput->fileScanInfo.copy(),
         context, numWarningDataColumns, 0 /* estCardinality */);
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
-    auto bindData = input.bindData->constPtrCast<ScanBindData>();
+    auto bindData = input.bindData->constPtrCast<ScanFileBindData>();
     auto csvOption = CSVReaderConfig::construct(bindData->fileScanInfo.options).option;
     row_idx_t numRows = 0;
     auto columnInfo = CSVColumnInfo(bindData->getNumColumns() - bindData->numWarningDataColumns,

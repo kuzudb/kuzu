@@ -4,6 +4,7 @@
 #include "main/database.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "main/client_context.h"
 
 namespace kuzu {
 namespace function {

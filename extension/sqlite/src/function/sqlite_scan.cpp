@@ -1,5 +1,7 @@
 #include "function/sqlite_scan.h"
 
+#include "main/client_context.h"
+
 namespace kuzu {
 namespace sqlite_extension {
 

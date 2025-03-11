@@ -6,6 +6,7 @@
 #include "function/table/bind_data.h"
 #include "function/table/simple_table_function.h"
 #include "main/database_manager.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;

@@ -324,12 +324,12 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     resultColumnNames =
         TableFunction::extractYieldVariables(resultColumnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(resultColumnNames, resultColumnTypes);
-    return std::make_unique<ScanBindData>(columns, scanInput->fileScanInfo.copy(), context,
+    return std::make_unique<ScanFileBindData>(columns, scanInput->fileScanInfo.copy(), context,
         0 /* numWarningColumns*/, numRows);
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
-    auto bindData = input.bindData->constPtrCast<ScanBindData>();
+    auto bindData = input.bindData->constPtrCast<ScanFileBindData>();
     auto reader = make_unique<NpyReader>(bindData->fileScanInfo.filePaths[0]);
     return std::make_unique<NpyScanSharedState>(bindData->fileScanInfo.copy(),
         reader->getNumRows());

@@ -37,12 +37,26 @@ QueryHNSWIndexBindData::QueryHNSWIndexBindData(main::ClientContext* context,
             ->ptrCast<catalog::RelTableCatalogEntry>();
 }
 
+static std::vector<common::LogicalType> inferInputTypes(const binder::expression_vector& params) {
+    auto inputQueryExpression = params[2];
+    auto val = inputQueryExpression->constCast<binder::LiteralExpression>().getValue();
+    std::vector<common::LogicalType> inputTypes;
+    inputTypes.push_back(common::LogicalType::STRING());
+    inputTypes.push_back(common::LogicalType::STRING());
+    inputTypes.push_back(
+        common::LogicalType::ARRAY(common::LogicalType::DOUBLE(), val.getChildrenSize()));
+    inputTypes.push_back(common::LogicalType::INT64());
+    return inputTypes;
+}
+
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
     context->setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     const auto indexName = input->getLiteralVal<std::string>(0);
     const auto tableName = input->getLiteralVal<std::string>(1);
     auto inputQueryExpression = input->params[2];
+    auto kExpr = input->binder->getExpressionBinder()->implicitCastIfNecessary(input->getParam(3),
+        common::LogicalType::INT64());
     const auto k = input->getLiteralVal<int64_t>(3);
 
     auto nodeTableEntry = storage::IndexUtils::bindTable(*context, tableName, indexName,
@@ -252,6 +266,7 @@ function_set QueryHNSWIndexFunction::getFunctionSet() {
     tableFunction->initLocalStateFunc = initQueryHNSWLocalState;
     tableFunction->canParallelFunc = [] { return false; };
     tableFunction->getLogicalPlanFunc = getLogicalPlan;
+    tableFunction->inferInputTypes = inferInputTypes;
     functionSet.push_back(std::move(tableFunction));
     return functionSet;
 }

@@ -663,7 +663,7 @@ static void bindColumns(const ExtraScanTableFuncBindInput* bindInput,
     }
 }
 
-static row_idx_t getNumRows(const ScanBindData* bindData) {
+static row_idx_t getNumRows(const ScanFileBindData* bindData) {
     row_idx_t numRows = 0;
     for (const auto& path : bindData->fileScanInfo.filePaths) {
         auto reader =
@@ -693,14 +693,14 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     detectedColumnNames =
         TableFunction::extractYieldVariables(detectedColumnNames, input->yieldVariables);
     auto resultColumns = input->binder->createVariables(detectedColumnNames, detectedColumnTypes);
-    auto bindData = std::make_unique<ScanBindData>(std::move(resultColumns),
+    auto bindData = std::make_unique<ScanFileBindData>(std::move(resultColumns),
         scanInput->fileScanInfo.copy(), context);
     bindData->cardinality = getNumRows(bindData.get());
     return bindData;
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
-    auto bindData = input.bindData->constPtrCast<ScanBindData>();
+    auto bindData = input.bindData->constPtrCast<ScanFileBindData>();
     return std::make_unique<ParquetScanSharedState>(bindData->fileScanInfo.copy(),
         getNumRows(bindData), bindData->context, bindData->getColumnSkips());
 }

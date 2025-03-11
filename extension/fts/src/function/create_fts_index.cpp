@@ -282,6 +282,15 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     return 0;
 }
 
+static std::vector<common::LogicalType> inferInputTypes(const binder::expression_vector& params) {
+    auto inputQueryExpression = params[2];
+    std::vector<common::LogicalType> inputTypes;
+    inputTypes.push_back(common::LogicalType::STRING());
+    inputTypes.push_back(common::LogicalType::STRING());
+    inputTypes.push_back(common::LogicalType::LIST(common::LogicalType::STRING()));
+    return inputTypes;
+}
+
 function_set InternalCreateFTSFunction::getFunctionSet() {
     function_set functionSet;
     auto func = std::make_unique<TableFunction>(name,
@@ -291,6 +300,7 @@ function_set InternalCreateFTSFunction::getFunctionSet() {
     func->initSharedStateFunc = SimpleTableFunc::initSharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->canParallelFunc = [] { return false; };
+    func->inferInputTypes = inferInputTypes;
     functionSet.push_back(std::move(func));
     return functionSet;
 }
@@ -305,6 +315,7 @@ function_set CreateFTSFunction::getFunctionSet() {
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->rewriteFunc = createFTSIndexQuery;
     func->canParallelFunc = [] { return false; };
+    func->inferInputTypes = inferInputTypes;
     functionSet.push_back(std::move(func));
     return functionSet;
 }
