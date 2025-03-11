@@ -1,7 +1,7 @@
 #include "binder/binder.h"
 #include "extension/extension.h"
 #include "function/table/bind_data.h"
-#include "function/table/table_function.h"
+#include "function/table/simple_table_function.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -23,7 +23,7 @@ static constexpr auto officialExtensions = std::to_array(extensions);
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    const auto sharedState = input.sharedState->ptrCast<TableFuncSharedState>();
+    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
     const auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
@@ -55,7 +55,7 @@ function_set ShowOfficialExtensionsFunction::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector<common::LogicalTypeID>{});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
-    function->initSharedStateFunc = TableFunction::initSharedState;
+    function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;

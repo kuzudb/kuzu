@@ -1,0 +1,50 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE CopyFromTableFunc
+-STATEMENT CREATE NODE TABLE person_info(rowid serial, id int64, name string, type string, defaultVal string, pk bool, primary key(rowid))
+---- ok
+-STATEMENT COPY person_info from TABLE_INFO('person')
+---- ok
+-STATEMENT MATCH (p:person_info) RETURN p.*
+---- 16
+0|0|ID|INT64|NULL|True
+1|1|fName|STRING|NULL|False
+2|2|gender|INT64|NULL|False
+3|3|isStudent|BOOL|NULL|False
+4|4|isWorker|BOOL|NULL|False
+5|5|age|INT64|NULL|False
+6|6|eyeSight|DOUBLE|NULL|False
+7|7|birthdate|DATE|NULL|False
+8|8|registerTime|TIMESTAMP|NULL|False
+9|9|lastJobDuration|INTERVAL|NULL|False
+10|10|workedHours|INT64[]|NULL|False
+11|11|usedNames|STRING[]|NULL|False
+12|12|courseScoresPerTerm|INT64[][]|NULL|False
+13|13|grades|INT64[4]|NULL|False
+14|14|height|FLOAT|NULL|False
+15|15|u|UUID|NULL|False
+
+-STATEMENT CREATE NODE TABLE db_info(name string, threads int32, id int64, primary key(threads))
+---- ok
+-STATEMENT COPY db_info(threads) from current_setting('threads')
+---- ok
+-STATEMENT MATCH (p:db_info) RETURN p.*
+---- 1
+|4|
+
+-STATEMENT CREATE NODE TABLE column_mismatch(name string, primary key(name))
+---- ok
+-STATEMENT COPY column_mismatch from SHOW_OFFICIAL_EXTENSIONS();
+---- error
+Binder exception: SHOW_OFFICIAL_EXTENSIONS has 2 columns but 1 columns were expected.
+
+-STATEMENT CREATE NODE TABLE type_mismatch(name int64, primary key(name))
+---- ok
+-STATEMENT COPY type_mismatch from current_setting('enable_plan_optimizer');
+---- error
+Conversion exception: Cast failed. Could not convert "True" to INT64.
+-STATEMENT COPY type_mismatch from current_setting('threads') (type = 'parquet');
+---- error
+Binder exception: No option is supported when copying from table functions.

@@ -81,7 +81,7 @@ uint64_t SerialCSVReader::parseBlock(block_idx_t blockIdx, DataChunk& resultChun
 
 SerialCSVScanSharedState::SerialCSVScanSharedState(FileScanInfo fileScanInfo, uint64_t numRows,
     main::ClientContext* context, CSVOption csvOption, CSVColumnInfo columnInfo, uint64_t queryID)
-    : ScanFileSharedState{std::move(fileScanInfo), numRows, context},
+    : ScanFileWithProgressSharedState{std::move(fileScanInfo), numRows, context},
       csvOption{std::move(csvOption)}, columnInfo{std::move(columnInfo)}, totalReadSizeByFile{0},
       queryID(queryID), populateErrorFunc(constructPopulateFunc()) {
     initReader(context);
@@ -95,7 +95,7 @@ populate_func_t SerialCSVScanSharedState::constructPopulateFunc() const {
 }
 
 void SerialCSVScanSharedState::read(DataChunk& outputChunk) {
-    std::lock_guard<std::mutex> mtx{lock};
+    std::lock_guard<std::mutex> lck{mtx};
     do {
         if (fileIdx >= fileScanInfo.getNumFiles()) {
             return;

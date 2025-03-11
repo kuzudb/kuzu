@@ -1,7 +1,6 @@
 #include "processor/operator/table_scan/ftable_scan_function.h"
 
-#include "function/table/scan_functions.h"
-#include "function/table/table_function.h"
+#include "function/table/simple_table_function.h"
 #include "processor/result/factorized_table.h"
 
 using namespace kuzu::common;
@@ -10,21 +9,17 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace processor {
 
-struct FTableScanSharedState final : BaseScanSharedState {
+struct FTableScanSharedState final : public SimpleTableFuncSharedState {
     std::shared_ptr<FactorizedTable> table;
     uint64_t morselSize;
     offset_t nextTupleIdx;
 
     FTableScanSharedState(std::shared_ptr<FactorizedTable> table, uint64_t morselSize)
-        : BaseScanSharedState{}, table{std::move(table)}, morselSize{morselSize}, nextTupleIdx{0} {}
-
-    uint64_t getNumRows() const override {
-        KU_ASSERT(table->getNumTuples() == table->getTotalNumFlatTuples());
-        return table->getNumTuples();
-    }
+        : SimpleTableFuncSharedState{table->getNumTuples()}, table{std::move(table)},
+          morselSize{morselSize}, nextTupleIdx{0} {}
 
     TableFuncMorsel getMorsel() override {
-        std::unique_lock lck{lock};
+        std::unique_lock lck{mtx};
         auto numTuplesToScan = std::min(morselSize, table->getNumTuples() - nextTupleIdx);
         auto morsel = TableFuncMorsel(nextTupleIdx, nextTupleIdx + numTuplesToScan);
         nextTupleIdx += numTuplesToScan;

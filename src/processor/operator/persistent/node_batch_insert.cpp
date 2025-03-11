@@ -2,7 +2,6 @@
 
 #include "common/cast.h"
 #include "common/string_format.h"
-#include "function/table/scan_functions.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/index_builder.h"
 #include "processor/result/factorized_table_util.h"
@@ -26,9 +25,7 @@ std::string NodeBatchInsertPrintInfo::toString() const {
 void NodeBatchInsertSharedState::initPKIndex(const ExecutionContext* context) {
     uint64_t numRows = 0;
     if (readerSharedState != nullptr) {
-        const auto scanSharedState =
-            readerSharedState->funcState->ptrCast<function::BaseScanSharedState>();
-        numRows = scanSharedState->getNumRows();
+        numRows = readerSharedState->funcState->getNumRows();
     }
     auto* nodeTable = ku_dynamic_cast<NodeTable*>(table);
     nodeTable->getPKIndex()->bulkReserve(numRows);

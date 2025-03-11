@@ -2,7 +2,6 @@
 
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "common/exception/binder.h"
-#include "common/system_config.h"
 #include "function/table/bind_data.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/planner.h"
@@ -13,34 +12,7 @@
 namespace kuzu {
 namespace function {
 
-TableFuncSharedState::TableFuncSharedState()
-    : maxOffset{0}, curOffset{0}, maxMorselSize{common::DEFAULT_VECTOR_CAPACITY} {}
-
-TableFuncSharedState::TableFuncSharedState(common::offset_t maxOffset)
-    : maxOffset{maxOffset}, curOffset{0}, maxMorselSize{common::DEFAULT_VECTOR_CAPACITY} {}
-
-TableFuncSharedState::TableFuncSharedState(common::offset_t maxOffset,
-    common::offset_t maxMorselSize)
-    : maxOffset{maxOffset}, curOffset{0}, maxMorselSize{maxMorselSize} {}
-
-TableFuncMorsel TableFuncSharedState::getMorsel() {
-    std::lock_guard lck{mtx};
-    KU_ASSERT(curOffset <= maxOffset);
-    if (curOffset == maxOffset) {
-        return TableFuncMorsel::createInvalidMorsel();
-    }
-    const auto numValuesToOutput = std::min(maxMorselSize, maxOffset - curOffset);
-    curOffset += numValuesToOutput;
-    return {curOffset - numValuesToOutput, curOffset};
-}
-
 TableFunction::~TableFunction() = default;
-
-std::unique_ptr<TableFuncSharedState> TableFunction::initSharedState(
-    const TableFunctionInitInput& input) {
-    const auto bindData = common::ku_dynamic_cast<TableFuncBindData*>(input.bindData);
-    return std::make_unique<TableFuncSharedState>(bindData->maxOffset);
-}
 
 std::unique_ptr<TableFuncLocalState> TableFunction::initEmptyLocalState(
     const TableFunctionInitInput&, TableFuncSharedState*, storage::MemoryManager*) {

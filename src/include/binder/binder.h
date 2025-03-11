@@ -157,6 +157,10 @@ public:
         const parser::BaseScanSource& scanSource, const parser::options_t& options,
         const std::vector<std::string>& columnNames,
         const std::vector<common::LogicalType>& columnTypes);
+    std::unique_ptr<BoundBaseScanSource> bindTableFuncScanSource(
+        const parser::BaseScanSource& scanSource, const parser::options_t& options,
+        const std::vector<std::string>& columnNames,
+        const std::vector<common::LogicalType>& columnTypes);
 
     common::case_insensitive_map_t<common::Value> bindParsingOptions(
         const parser::options_t& parsingOptions);
@@ -305,6 +309,8 @@ public:
     void addToScope(const std::string& name, std::shared_ptr<Expression> expr);
     BinderScope saveScope() const;
     void restoreScope(BinderScope prevScope);
+    void replaceExpressionInScope(const std::string& oldName, const std::string& newName,
+        std::shared_ptr<Expression> expression);
 
     function::TableFunction getScanFunction(const common::FileTypeInfo& typeInfo,
         const common::FileScanInfo& fileScanInfo) const;

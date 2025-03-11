@@ -6,7 +6,7 @@
 #include "common/exception/binder.h"
 #include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
-#include "function/table/table_function.h"
+#include "function/table/simple_table_function.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -25,7 +25,7 @@ struct ShowConnectionBindData final : TableFuncBindData {
           entries{std::move(entries)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ShowConnectionBindData>(context, entries, columns, maxOffset);
+        return std::make_unique<ShowConnectionBindData>(context, entries, columns, numRows);
     }
 };
 
@@ -54,7 +54,7 @@ static void outputRelTableConnection(const DataChunk& outputDataChunk, uint64_t 
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    const auto morsel = input.sharedState->ptrCast<TableFuncSharedState>()->getMorsel();
+    const auto morsel = input.sharedState->ptrCast<SimpleTableFuncSharedState>()->getMorsel();
     if (!morsel.hasMoreToOutput()) {
         return 0;
     }
@@ -109,7 +109,7 @@ function_set ShowConnectionFunction::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
-    function->initSharedStateFunc = TableFunction::initSharedState;
+    function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;

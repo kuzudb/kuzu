@@ -214,6 +214,11 @@ void Binder::restoreScope(BinderScope prevScope) {
     scope = std::move(prevScope);
 }
 
+void Binder::replaceExpressionInScope(const std::string& oldName, const std::string& newName,
+    std::shared_ptr<Expression> expression) {
+    scope.replaceExpression(oldName, newName, expression);
+}
+
 TableFunction Binder::getScanFunction(const FileTypeInfo& typeInfo,
     const FileScanInfo& fileScanInfo) const {
     Function* func = nullptr;

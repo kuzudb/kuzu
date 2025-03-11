@@ -5,7 +5,7 @@
 #include "common/arrow/arrow.h"
 #include "function/scalar_function.h"
 #include "function/table/bind_data.h"
-#include "function/table/scan_functions.h"
+#include "function/table/scan_file_function.h"
 #include "function/table/table_function.h"
 #include "pybind_include.h"
 
@@ -17,13 +17,13 @@ struct PyArrowTableScanLocalState final : public function::TableFuncLocalState {
     explicit PyArrowTableScanLocalState(ArrowArrayWrapper* arrowArray) : arrowArray{arrowArray} {}
 };
 
-struct PyArrowTableScanSharedState final : public function::BaseScanSharedStateWithNumRows {
+struct PyArrowTableScanSharedState final : public function::TableFuncSharedState {
     std::vector<std::shared_ptr<ArrowArrayWrapper>> chunks;
     uint64_t currentChunk;
 
     PyArrowTableScanSharedState(uint64_t numRows,
         std::vector<std::shared_ptr<ArrowArrayWrapper>> chunks)
-        : BaseScanSharedStateWithNumRows{numRows}, chunks{std::move(chunks)}, currentChunk{0} {}
+        : TableFuncSharedState{numRows}, chunks{std::move(chunks)}, currentChunk{0} {}
 
     ArrowArrayWrapper* getNextChunk();
 };

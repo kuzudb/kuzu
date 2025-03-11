@@ -75,6 +75,9 @@ std::unique_ptr<BaseScanSource> Transformer::transformScanSource(
             objectNames.push_back(transformSchemaName(*ctx.oC_SchemaName()));
         }
         return std::make_unique<ObjectScanSource>(std::move(objectNames));
+    } else if (ctx.oC_FunctionInvocation()) {
+        auto functionExpression = transformFunctionInvocation(*ctx.oC_FunctionInvocation());
+        return std::make_unique<TableFuncScanSource>(std::move(functionExpression));
     }
     KU_UNREACHABLE;
 }

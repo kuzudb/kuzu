@@ -46,7 +46,7 @@ std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* /*context*/,
 bool sharedStateNext(const TableFuncBindData* /*bindData*/, PandasScanLocalState* localState,
     TableFuncSharedState* sharedState) {
     auto pandasSharedState = sharedState->ptrCast<PandasScanSharedState>();
-    std::lock_guard<std::mutex> lck{pandasSharedState->lock};
+    std::lock_guard<std::mutex> lck{pandasSharedState->mtx};
     if (pandasSharedState->numRowsRead >= pandasSharedState->numRows) {
         return false;
     }

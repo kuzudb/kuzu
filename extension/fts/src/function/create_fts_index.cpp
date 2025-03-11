@@ -12,7 +12,7 @@
 #include "function/gds/gds_utils.h"
 #include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
-#include "function/table/table_function.h"
+#include "function/table/simple_table_function.h"
 #include "graph/graph_entry.h"
 #include "graph/on_disk_graph.h"
 #include "processor/execution_context.h"
@@ -288,7 +288,7 @@ function_set InternalCreateFTSFunction::getFunctionSet() {
         std::vector{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::LIST});
     func->tableFunc = tableFunc;
     func->bindFunc = bindFunc;
-    func->initSharedStateFunc = TableFunction::initSharedState;
+    func->initSharedStateFunc = SimpleTableFunc::initSharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->canParallelFunc = [] { return false; };
     functionSet.push_back(std::move(func));
@@ -301,7 +301,7 @@ function_set CreateFTSFunction::getFunctionSet() {
         std::vector{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::LIST});
     func->tableFunc = TableFunction::emptyTableFunc;
     func->bindFunc = bindFunc;
-    func->initSharedStateFunc = TableFunction::initSharedState;
+    func->initSharedStateFunc = SimpleTableFunc::initSharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->rewriteFunc = createFTSIndexQuery;
     func->canParallelFunc = [] { return false; };

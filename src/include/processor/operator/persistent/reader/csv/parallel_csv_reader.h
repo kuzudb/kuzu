@@ -4,7 +4,7 @@
 #include "common/types/types.h"
 #include "function/function.h"
 #include "function/table/bind_input.h"
-#include "function/table/scan_functions.h"
+#include "function/table/scan_file_function.h"
 #include "function/table/table_function.h"
 #include "processor/operator/persistent/reader/file_error_handler.h"
 
@@ -40,7 +40,7 @@ struct ParallelCSVLocalState final : public function::TableFuncLocalState {
     common::idx_t fileIdx = common::INVALID_IDX;
 };
 
-struct ParallelCSVScanSharedState final : public function::ScanFileSharedState {
+struct ParallelCSVScanSharedState final : public function::ScanFileWithProgressSharedState {
     common::CSVOption csvOption;
     CSVColumnInfo columnInfo;
     uint64_t numBlocksReadByFiles = 0;

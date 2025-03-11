@@ -1,5 +1,6 @@
 #include "function/sql_query.h"
 
+#include "binder/binder.h"
 #include "catalog/duckdb_catalog.h"
 #include "common/exception/binder.h"
 #include "connector/duckdb_type_converter.h"
@@ -14,10 +15,9 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace postgres_extension {
 
-struct SqlQuerySharedState final : function::BaseScanSharedStateWithNumRows {
+struct SqlQuerySharedState final : function::TableFuncSharedState {
     explicit SqlQuerySharedState(std::shared_ptr<duckdb::MaterializedQueryResult> queryResult)
-        : BaseScanSharedStateWithNumRows{queryResult->RowCount()},
-          queryResult{std::move(queryResult)} {}
+        : TableFuncSharedState{queryResult->RowCount()}, queryResult{std::move(queryResult)} {}
 
     std::shared_ptr<duckdb::MaterializedQueryResult> queryResult;
 };
@@ -74,7 +74,7 @@ offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     std::unique_ptr<duckdb::DataChunk> result;
     try {
         // Duckdb queryResult.fetch() is not thread safe, we have to acquire a lock there.
-        std::lock_guard<std::mutex> lock{sharedState->lock};
+        std::lock_guard<std::mutex> lock{sharedState->mtx};
         result = sharedState->queryResult->Fetch();
     } catch (std::exception& e) {
         return 0;

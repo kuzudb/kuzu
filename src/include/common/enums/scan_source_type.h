@@ -11,6 +11,7 @@ enum class ScanSourceType : uint8_t {
     FILE = 1,
     OBJECT = 2,
     QUERY = 3,
+    TABLE_FUNC = 4,
 };
 
 class ScanSourceTypeUtils {

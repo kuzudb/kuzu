@@ -1,7 +1,7 @@
 #include "binder/binder.h"
 #include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
-#include "function/table/table_function.h"
+#include "function/table/simple_table_function.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;
@@ -17,13 +17,13 @@ struct CurrentSettingBindData final : TableFuncBindData {
         : TableFuncBindData{std::move(columns), maxOffset}, result{std::move(result)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<CurrentSettingBindData>(result, columns, maxOffset);
+        return std::make_unique<CurrentSettingBindData>(result, columns, numRows);
     }
 };
 
 static offset_t tableFunc(const TableFuncInput& data, TableFuncOutput& output) {
     auto& dataChunk = output.dataChunk;
-    const auto sharedState = data.sharedState->ptrCast<TableFuncSharedState>();
+    const auto sharedState = data.sharedState->ptrCast<SimpleTableFuncSharedState>();
     auto& outputVector = dataChunk.getValueVectorMutable(0);
     if (!sharedState->getMorsel().hasMoreToOutput()) {
         return 0;
@@ -52,7 +52,7 @@ function_set CurrentSettingFunction::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
-    function->initSharedStateFunc = TableFunction::initSharedState;
+    function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;

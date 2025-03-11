@@ -5,7 +5,7 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/types/types.h"
 #include "function/function.h"
-#include "function/table/scan_functions.h"
+#include "function/table/scan_file_function.h"
 #include "parquet_types.h"
 #include "protocol/TCompactProtocol.h"
 #include "resizable_buffer.h"
@@ -91,7 +91,7 @@ private:
     main::ClientContext* context;
 };
 
-struct ParquetScanSharedState final : function::ScanFileSharedState {
+struct ParquetScanSharedState final : function::ScanFileWithProgressSharedState {
     explicit ParquetScanSharedState(common::FileScanInfo fileScanInfo, uint64_t numRows,
         main::ClientContext* context, std::vector<bool> columnSkips);
 

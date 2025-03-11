@@ -7,7 +7,7 @@
 #include "common/types/types.h"
 #include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
-#include "function/table/table_function.h"
+#include "function/table/simple_table_function.h"
 #include "storage/storage_manager.h"
 #include "storage/store/list_chunk_data.h"
 #include "storage/store/list_column.h"
@@ -266,7 +266,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
             localState->currChunkIdx++;
             return numValuesToOutput;
         }
-        auto morsel = input.sharedState->ptrCast<TableFuncSharedState>()->getMorsel();
+        auto morsel = input.sharedState->ptrCast<SimpleTableFuncSharedState>()->getMorsel();
         if (!morsel.hasMoreToOutput()) {
             return 0;
         }
@@ -358,7 +358,7 @@ function_set StorageInfoFunction::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
-    function->initSharedStateFunc = TableFunction::initSharedState;
+    function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = initLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;

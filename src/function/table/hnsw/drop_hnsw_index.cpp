@@ -64,7 +64,7 @@ function_set InternalDropHNSWIndexFunction::getFunctionSet() {
     auto func = std::make_unique<TableFunction>(name, inputTypes);
     func->tableFunc = internalTableFunc;
     func->bindFunc = bindFunc;
-    func->initSharedStateFunc = TableFunction::initSharedState;
+    func->initSharedStateFunc = SimpleTableFunc::initSharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->canParallelFunc = [] { return false; };
     functionSet.push_back(std::move(func));
@@ -77,7 +77,7 @@ function_set DropHNSWIndexFunction::getFunctionSet() {
     auto func = std::make_unique<TableFunction>(name, inputTypes);
     func->tableFunc = TableFunction::emptyTableFunc;
     func->bindFunc = bindFunc;
-    func->initSharedStateFunc = TableFunction::initSharedState;
+    func->initSharedStateFunc = SimpleTableFunc::initSharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->rewriteFunc = dropHNSWIndexTables;
     func->canParallelFunc = [] { return false; };

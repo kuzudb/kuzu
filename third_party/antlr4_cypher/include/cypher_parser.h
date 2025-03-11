@@ -396,6 +396,7 @@ public:
     antlr4::tree::TerminalNode* SP(size_t i);
     OC_VariableContext *oC_Variable();
     OC_SchemaNameContext *oC_SchemaName();
+    OC_FunctionInvocationContext *oC_FunctionInvocation();
 
    
   };

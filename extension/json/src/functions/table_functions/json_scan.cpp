@@ -9,7 +9,6 @@
 #include "common/json_common.h"
 #include "common/string_utils.h"
 #include "function/table/bind_data.h"
-#include "function/table/scan_functions.h"
 #include "function/table/table_function.h"
 #include "json_extension.h"
 #include "json_utils.h"
@@ -96,21 +95,19 @@ JsonScanConfig::JsonScanConfig(const case_insensitive_map_t<Value>& options) {
     }
 }
 
-struct JSONScanSharedState : public BaseScanSharedState {
+struct JSONScanSharedState : public TableFuncSharedState {
     std::mutex lock;
     std::unique_ptr<BufferedJsonReader> jsonReader;
-    uint64_t numRows;
     processor::populate_func_t populateErrorFunc;
     processor::SharedFileErrorHandler sharedErrorHandler;
 
     JSONScanSharedState(main::ClientContext& context, std::string fileName, JsonScanFormat format,
         uint64_t numRows)
-        : BaseScanSharedState{}, jsonReader{std::make_unique<BufferedJsonReader>(context,
-                                     std::move(fileName), BufferedJSONReaderOptions{format})},
-          numRows{numRows}, populateErrorFunc(constructPopulateFunc()),
+        : TableFuncSharedState{numRows},
+          jsonReader{std::make_unique<BufferedJsonReader>(context, std::move(fileName),
+              BufferedJSONReaderOptions{format})},
+          populateErrorFunc(constructPopulateFunc()),
           sharedErrorHandler(JsonExtension::JSON_SCAN_FILE_IDX, &lock, populateErrorFunc) {}
-
-    uint64_t getNumRows() const override { return numRows; }
 
     processor::populate_func_t constructPopulateFunc() const {
         return [this](const processor::CopyFromFileError& error,

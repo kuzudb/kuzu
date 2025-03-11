@@ -3,7 +3,7 @@
 #include "base_csv_reader.h"
 #include "function/function.h"
 #include "function/table/bind_input.h"
-#include "function/table/scan_functions.h"
+#include "function/table/scan_file_function.h"
 #include "processor/operator/persistent/reader/csv/dialect_detection.h"
 #include "processor/operator/persistent/reader/file_error_handler.h"
 
@@ -32,7 +32,7 @@ private:
     bool detectHeader(std::vector<std::pair<std::string, common::LogicalType>>& detectedTypes);
 };
 
-struct SerialCSVScanSharedState final : public function::ScanFileSharedState {
+struct SerialCSVScanSharedState final : public function::ScanFileWithProgressSharedState {
     std::unique_ptr<SerialCSVReader> reader;
     common::CSVOption csvOption;
     CSVColumnInfo columnInfo;

@@ -6,7 +6,7 @@
 #include "common/data_chunk/data_chunk.h"
 #include "common/types/types.h"
 #include "function/function.h"
-#include "function/table/scan_functions.h"
+#include "function/table/scan_file_function.h"
 
 namespace kuzu {
 namespace processor {
@@ -55,7 +55,7 @@ private:
     std::vector<std::unique_ptr<NpyReader>> fileReaders;
 };
 
-struct NpyScanSharedState final : public function::ScanSharedState {
+struct NpyScanSharedState final : public function::ScanFileSharedState {
     explicit NpyScanSharedState(const common::FileScanInfo fileScanInfo, uint64_t numRows);
 
     std::unique_ptr<NpyMultiFileReader> npyMultiFileReader;

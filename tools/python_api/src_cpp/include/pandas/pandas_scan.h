@@ -1,7 +1,7 @@
 #pragma once
 
 #include "function/table/bind_data.h"
-#include "function/table/scan_functions.h"
+#include "function/table/scan_file_function.h"
 #include "function/table/table_function.h"
 #include "pandas_bind.h"
 #include "py_scan_config.h"
@@ -15,9 +15,9 @@ struct PandasScanLocalState final : public function::TableFuncLocalState {
     uint64_t end;
 };
 
-struct PandasScanSharedState final : public function::BaseScanSharedStateWithNumRows {
+struct PandasScanSharedState final : public function::TableFuncSharedState {
     PandasScanSharedState(uint64_t startRow, uint64_t numRows)
-        : BaseScanSharedStateWithNumRows{numRows}, startRow(startRow), numRowsRead{0} {}
+        : function::TableFuncSharedState{numRows}, startRow(startRow), numRowsRead{0} {}
 
     uint64_t startRow;
     uint64_t numRowsRead;
