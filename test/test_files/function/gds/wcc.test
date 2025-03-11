@@ -1,61 +1,102 @@
--DATASET CSV tinysnb
+-DATASET CSV empty
 
 --
 
--CASE WCC
--STATEMENT CALL create_projected_graph('PK', ['person'], ['knows'])
+-CASE SingleWCC
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
--STATEMENT CALL weakly_connected_component('PK') RETURN node.fName, group_id;
----- 8
-Alice|0
-Bob|0
-Carol|0
-Dan|0
-Elizabeth|4
-Farooq|4
-Greg|4
-Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
--STATEMENT CALL create_projected_graph('PK2', ['person'], {'knows': {'filter': 'r.date > date("1999-01-01")'}})
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
 ---- ok
--STATEMENT CALL weakly_connected_component('PK2') RETURN node.fName, group_id;
----- 8
-Alice|0
-Bob|0
-Carol|0
-Dan|0
-Elizabeth|4
-Farooq|5
-Greg|6
-Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u4:Node {id: 4}),
+            (u5:Node {id: 5}),
+            (u6:Node {id: 6}),
+            (u7:Node {id: 7}),
+            (u8:Node {id: 8}),
+            (u0)-[:Edge]->(u1),
+            (u1)-[:Edge]->(u2),
+            (u2)-[:Edge]->(u0),
+            (u2)-[:Edge]->(u3),
+            (u2)-[:Edge]->(u4);
+---- ok
+-STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge']);
+---- ok
+-STATEMENT CALL weakly_connected_component('Graph')
+    WITH group_id, min(node.id) as wccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds
+    RETURN wccId, nodeCount, nodeIds ORDER BY wccId;
+---- 5
+0|5|[0,1,2,3,4]
+5|1|[5]
+6|1|[6]
+7|1|[7]
+8|1|[8]
 
--STATEMENT CALL create_projected_graph('PK3', {'person': {'filter': 'n.ID > 2'}}, ['knows'])
+-CASE WCCMultiple
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
--STATEMENT CALL weakly_connected_component('PK3') RETURN node.fName, group_id;
----- 6
-Carol|2
-Dan|2
-Elizabeth|4
-Farooq|4
-Greg|4
-Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u4:Node {id: 4}),
+            (u5:Node {id: 5}),
+            (u6:Node {id: 6}),
+            (u7:Node {id: 7}),
+            (u8:Node {id: 8}),
+            (u9:Node {id: 9}),
+            (u0)-[:Edge]->(u1),
+            (u1)-[:Edge]->(u2),
+            (u2)-[:Edge]->(u0),
+            (u2)-[:Edge]->(u3),
+            (u2)-[:Edge]->(u4),
+            (u8)-[:Edge]->(u5),
+            (u6)-[:Edge]->(u7),
+            (u7)-[:Edge]->(u5);
+---- ok
+-STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge']);
+---- ok
+-STATEMENT CALL weakly_connected_component('Graph')
+    WITH group_id, min(node.id) as wccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds
+    RETURN wccId, nodeCount, nodeIds ORDER BY wccId;
+---- 3
+0|5|[0,1,2,3,4]
+5|4|[5,6,7,8]
+9|1|[9]
 
--STATEMENT CALL create_projected_graph('PK4', {'person': {'filter': 'n.ID <> 7'}}, ['knows'])
+-CASE NoWcc
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
 ---- ok
--STATEMENT CALL weakly_connected_component('PK4') RETURN node.fName, group_id;
----- 7
-Alice|0
-Bob|0
-Carol|0
-Dan|0
-Farooq|5
-Greg|6
-Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
-
--STATEMENT CALL create_projected_graph('PK5', {'person': {'filter': 'n.ID > 5'}}, {'knows': {'filter': 'r.date > date("1999-01-01")'}})
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
 ---- ok
--STATEMENT CALL weakly_connected_component('PK5') RETURN node.fName, group_id;
----- 4
-Elizabeth|4
-Farooq|5
-Greg|6
-Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|7
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u4:Node {id: 4}),
+            (u5:Node {id: 5}),
+            (u6:Node {id: 6}),
+            (u7:Node {id: 7}),
+            (u8:Node {id: 8}),
+            (u9:Node {id: 9});
+---- ok
+-STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge']);
+---- ok
+-STATEMENT CALL weakly_connected_component('Graph')
+    WITH group_id, min(node.id) as wccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds
+    RETURN wccId, nodeCount, nodeIds ORDER BY wccId;
+---- 10
+0|1|[0]
+1|1|[1]
+2|1|[2]
+3|1|[3]
+4|1|[4]
+5|1|[5]
+6|1|[6]
+7|1|[7]
+8|1|[8]
+9|1|[9]

@@ -15,62 +15,48 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
-class ComponentIDs {
-public:
-    ComponentIDs(const table_id_map_t<offset_t>& maxOffsetMap, MemoryManager* mm) {
+struct WccComputationState {
+    AtomicObjectArray<offset_t>* wccIDs = nullptr;
+    AtomicObjectArraysMap<offset_t> wccIDsMap;
+
+    WccComputationState(const table_id_map_t<offset_t>& maxOffsetMap, MemoryManager* mm) {
         for (const auto& [tableID, maxOffset] : maxOffsetMap) {
-            componentIDsMap.allocate(tableID, maxOffset, mm);
+            wccIDsMap.insert(tableID, maxOffset, mm);
             pinTable(tableID);
             for (auto i = 0u; i < maxOffset; ++i) {
-                componentIDs[i].store(i, std::memory_order_relaxed);
+                wccIDs->setRelaxed(i, i);
             }
         }
     }
 
-    void pinTable(table_id_t tableID) { componentIDs = componentIDsMap.getData(tableID); }
-
-    bool update(common::offset_t boundOffset, common::offset_t nbrOffset) {
-        auto boundValue = componentIDs[boundOffset].load(std::memory_order_relaxed);
-        auto tmp = componentIDs[nbrOffset].load(std::memory_order_relaxed);
-        while (tmp > boundValue) {
-            if (componentIDs[nbrOffset].compare_exchange_strong(tmp, boundValue)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    common::offset_t getComponentID(offset_t offset) {
-        return componentIDs[offset].load(std::memory_order_relaxed);
-    }
-
-private:
-    std::atomic<common::offset_t>* componentIDs = nullptr;
-    ObjectArraysMap<std::atomic<common::offset_t>> componentIDsMap;
+    void pinTable(table_id_t tableID) { wccIDs = wccIDsMap.getArray(tableID); }
 };
 
 class WCCAuxiliaryState : public GDSAuxiliaryState {
 public:
-    explicit WCCAuxiliaryState(ComponentIDs& componentIDs) : componentIDs{componentIDs} {}
+    explicit WCCAuxiliaryState(WccComputationState& wccComputationState)
+        : wccComputationState{wccComputationState} {}
 
     void beginFrontierCompute(common::table_id_t, common::table_id_t toTableID) override {
-        componentIDs.pinTable(toTableID);
+        wccComputationState.pinTable(toTableID);
     }
 
 private:
-    ComponentIDs& componentIDs;
+    WccComputationState& wccComputationState;
 };
 
 struct WCCEdgeCompute : public EdgeCompute {
-    ComponentIDs& componentIDs;
+    WccComputationState& wccComputationState;
 
-    explicit WCCEdgeCompute(ComponentIDs& componentIDs) : componentIDs{componentIDs} {}
+    explicit WCCEdgeCompute(WccComputationState& wccComputationState)
+        : wccComputationState{wccComputationState} {}
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
         bool) override {
         std::vector<nodeID_t> result;
         chunk.forEach([&](auto nbrNodeID, auto) {
-            if (componentIDs.update(boundNodeID.offset, nbrNodeID.offset)) {
+            if (wccComputationState.wccIDs->compare_exchange_strong_max(boundNodeID.offset,
+                    nbrNodeID.offset)) {
                 result.push_back(nbrNodeID);
             }
         });
@@ -78,20 +64,22 @@ struct WCCEdgeCompute : public EdgeCompute {
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
-        return std::make_unique<WCCEdgeCompute>(componentIDs);
+        return std::make_unique<WCCEdgeCompute>(wccComputationState);
     }
 };
 
 class WCCVertexCompute : public GDSResultVertexCompute {
 public:
     WCCVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState,
-        ComponentIDs& componentIDs)
-        : GDSResultVertexCompute{mm, sharedState}, componentIDs{componentIDs} {
+        WccComputationState& wccComputationState)
+        : GDSResultVertexCompute{mm, sharedState}, wccComputationState{wccComputationState} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID());
         componentIDVector = createVector(LogicalType::UINT64());
     }
 
-    void beginOnTableInternal(table_id_t tableID) override { componentIDs.pinTable(tableID); }
+    void beginOnTableInternal(table_id_t tableID) override {
+        wccComputationState.pinTable(tableID);
+    }
 
     void vertexCompute(common::offset_t startOffset, common::offset_t endOffset,
         common::table_id_t tableID) override {
@@ -101,17 +89,17 @@ public:
             }
             auto nodeID = nodeID_t{i, tableID};
             nodeIDVector->setValue<nodeID_t>(0, nodeID);
-            componentIDVector->setValue<uint64_t>(0, componentIDs.getComponentID(i));
+            componentIDVector->setValue<uint64_t>(0, wccComputationState.wccIDs->getRelaxed(i));
             localFT->append(vectors);
         }
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<WCCVertexCompute>(mm, sharedState, componentIDs);
+        return std::make_unique<WCCVertexCompute>(mm, sharedState, wccComputationState);
     }
 
 private:
-    ComponentIDs& componentIDs;
+    WccComputationState& wccComputationState;
     std::unique_ptr<ValueVector> nodeIDVector;
     std::unique_ptr<ValueVector> componentIDVector;
 };
@@ -154,12 +142,13 @@ public:
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
         frontierPair->initGDS();
-        auto componentIDs = ComponentIDs(graph->getMaxOffsetMap(clientContext->getTransaction()),
-            clientContext->getMemoryManager());
-        auto edgeCompute = std::make_unique<WCCEdgeCompute>(componentIDs);
+        auto wccComputationState =
+            WccComputationState(graph->getMaxOffsetMap(clientContext->getTransaction()),
+                clientContext->getMemoryManager());
+        auto edgeCompute = std::make_unique<WCCEdgeCompute>(wccComputationState);
         auto vertexCompute = std::make_unique<WCCVertexCompute>(clientContext->getMemoryManager(),
-            sharedState.get(), componentIDs);
-        auto auxiliaryState = std::make_unique<WCCAuxiliaryState>(componentIDs);
+            sharedState.get(), wccComputationState);
+        auto auxiliaryState = std::make_unique<WCCAuxiliaryState>(wccComputationState);
         auto computeState = GDSComputeState(std::move(frontierPair), std::move(edgeCompute),
             std::move(auxiliaryState), nullptr);
 
