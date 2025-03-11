@@ -12,9 +12,9 @@ class LogicalTableFunctionCall : public LogicalOperator {
 
 public:
     LogicalTableFunctionCall(function::TableFunction tableFunc,
-        std::unique_ptr<function::TableFuncBindData> bindData, binder::expression_vector columns)
+        std::unique_ptr<function::TableFuncBindData> bindData)
         : LogicalOperator{operatorType_}, tableFunc{std::move(tableFunc)},
-          bindData{std::move(bindData)}, columns{std::move(columns)} {
+          bindData{std::move(bindData)} {
         cardinality = this->bindData->cardinality;
     }
 
@@ -31,18 +31,15 @@ public:
     void computeFlatSchema() override;
     void computeFactorizedSchema() override;
 
-    binder::expression_vector getColumns() const { return columns; }
-
     std::string getExpressionsForPrinting() const override { return tableFunc.name; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalTableFunctionCall>(tableFunc, bindData->copy(), columns);
+        return std::make_unique<LogicalTableFunctionCall>(tableFunc, bindData->copy());
     }
 
 private:
     function::TableFunction tableFunc;
     std::unique_ptr<function::TableFuncBindData> bindData;
-    binder::expression_vector columns;
 };
 
 } // namespace planner

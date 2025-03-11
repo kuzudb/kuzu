@@ -1,7 +1,6 @@
 #pragma once
 
-#include "binder/bound_table_function.h"
-#include "binder/expression/expression.h"
+#include "binder/bound_table_scan_info.h"
 #include "binder/query/reading_clause/bound_reading_clause.h"
 #include "function/table/table_function.h"
 
@@ -12,17 +11,14 @@ class BoundTableFunctionCall final : public BoundReadingClause {
     static constexpr common::ClauseType clauseType_ = common::ClauseType::TABLE_FUNCTION_CALL;
 
 public:
-    BoundTableFunctionCall(BoundTableFunction tableFunc, expression_vector columns)
-        : BoundReadingClause{clauseType_}, tableFunc{std::move(tableFunc)},
-          columns{std::move(columns)} {}
+    explicit BoundTableFunctionCall(BoundTableScanInfo info)
+        : BoundReadingClause{clauseType_}, info{std::move(info)} {}
 
-    const function::TableFunction& getTableFunc() const { return *tableFunc.tableFunction; }
-    const function::TableFuncBindData* getBindData() const { return tableFunc.bindData.get(); }
-    expression_vector getColumns() const { return columns; }
+    const function::TableFunction& getTableFunc() const { return info.func; }
+    const function::TableFuncBindData* getBindData() const { return info.bindData.get(); }
 
 private:
-    BoundTableFunction tableFunc;
-    expression_vector columns;
+    BoundTableScanInfo info;
 };
 
 } // namespace binder

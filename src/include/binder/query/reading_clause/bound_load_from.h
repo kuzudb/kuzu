@@ -1,6 +1,6 @@
 #pragma once
 
-#include "binder/copy/bound_table_scan_info.h"
+#include "binder/bound_table_scan_info.h"
 #include "bound_reading_clause.h"
 
 namespace kuzu {
@@ -10,13 +10,13 @@ class BoundLoadFrom final : public BoundReadingClause {
     static constexpr common::ClauseType clauseType_ = common::ClauseType::LOAD_FROM;
 
 public:
-    explicit BoundLoadFrom(BoundTableScanSourceInfo info)
+    explicit BoundLoadFrom(BoundTableScanInfo info)
         : BoundReadingClause{clauseType_}, info{std::move(info)} {}
 
-    const BoundTableScanSourceInfo* getInfo() const { return &info; }
+    const BoundTableScanInfo* getInfo() const { return &info; }
 
 private:
-    BoundTableScanSourceInfo info;
+    BoundTableScanInfo info;
 };
 
 } // namespace binder

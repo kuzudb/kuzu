@@ -49,7 +49,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
     if (!columnTypes.empty()) {
         auto info = boundLoadFrom->getInfo();
         for (auto i = 0u; i < columnTypes.size(); ++i) {
-            ExpressionUtil::validateDataType(*info->columns[i], columnTypes[i]);
+            ExpressionUtil::validateDataType(*info->bindData->columns[i], columnTypes[i]);
         }
     }
     if (loadFrom.hasWherePredicate()) {

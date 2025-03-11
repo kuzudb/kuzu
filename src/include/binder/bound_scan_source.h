@@ -2,7 +2,7 @@
 
 #include "binder/bound_statement.h"
 #include "binder/copy/bound_query_scan_info.h"
-#include "binder/copy/bound_table_scan_info.h"
+#include "bound_table_scan_info.h"
 #include "common/enums/scan_source_type.h"
 
 namespace kuzu {
@@ -32,26 +32,15 @@ protected:
     BoundBaseScanSource(const BoundBaseScanSource& other) : type{other.type} {}
 };
 
-struct BoundEmptyScanSource final : BoundBaseScanSource {
-    BoundEmptyScanSource() : BoundBaseScanSource{common::ScanSourceType::EMPTY} {}
-    BoundEmptyScanSource(const BoundEmptyScanSource& other) : BoundBaseScanSource{other} {}
-
-    expression_vector getColumns() override { return expression_vector{}; }
-
-    std::unique_ptr<BoundBaseScanSource> copy() const override {
-        return std::make_unique<BoundEmptyScanSource>(*this);
-    }
-};
-
 struct BoundTableScanSource final : BoundBaseScanSource {
-    BoundTableScanSourceInfo info;
+    BoundTableScanInfo info;
 
-    explicit BoundTableScanSource(common::ScanSourceType type, BoundTableScanSourceInfo info)
+    explicit BoundTableScanSource(common::ScanSourceType type, BoundTableScanInfo info)
         : BoundBaseScanSource{type}, info{std::move(info)} {}
     BoundTableScanSource(const BoundTableScanSource& other)
         : BoundBaseScanSource{other}, info{other.info.copy()} {}
 
-    expression_vector getColumns() override { return info.columns; }
+    expression_vector getColumns() override { return info.bindData->columns; }
     expression_vector getWarningColumns() const override;
     bool getIgnoreErrorsOption() const override;
     common::column_id_t getNumWarningDataColumns() const override {

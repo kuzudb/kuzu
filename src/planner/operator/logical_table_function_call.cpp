@@ -6,7 +6,7 @@ namespace planner {
 void LogicalTableFunctionCall::computeFlatSchema() {
     createEmptySchema();
     auto groupPos = schema->createGroup();
-    for (auto& expr : columns) {
+    for (auto& expr : bindData->columns) {
         schema->insertToGroupAndScope(expr, groupPos);
     }
 }
@@ -14,7 +14,7 @@ void LogicalTableFunctionCall::computeFlatSchema() {
 void LogicalTableFunctionCall::computeFactorizedSchema() {
     createEmptySchema();
     auto groupPos = schema->createGroup();
-    for (auto& expr : columns) {
+    for (auto& expr : bindData->columns) {
         schema->insertToGroupAndScope(expr, groupPos);
     }
 }

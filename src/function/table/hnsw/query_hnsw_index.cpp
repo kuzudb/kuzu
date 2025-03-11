@@ -219,7 +219,7 @@ static void getLogicalPlan(const transaction::Transaction* transaction, planner:
     auto callOp = logicalOp->ptrCast<planner::LogicalTableFunctionCall>();
     binder::expression_vector predicatesToPull;
     binder::expression_vector predicatesToPush;
-    planner::Planner::splitPredicates(call.getColumns(), call.getConjunctivePredicates(),
+    planner::Planner::splitPredicates(call.getBindData()->columns, call.getConjunctivePredicates(),
         predicatesToPull, predicatesToPush);
     for (auto& plan : logicalPlans) {
         planner->planReadOp(logicalOp, predicatesToPush, *plan);

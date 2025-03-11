@@ -1,5 +1,5 @@
 #include "binder/binder.h"
-#include "binder/bound_table_function.h"
+#include "binder/bound_table_scan_info.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "catalog/catalog.h"
@@ -18,9 +18,8 @@ static void validateParameterType(const expression_vector& positionalParams) {
     }
 }
 
-BoundTableFunction Binder::bindTableFunc(const std::string& tableFuncName,
-    const parser::ParsedExpression& expr, expression_vector& columns,
-    std::vector<parser::YieldVariable> yieldVariables) {
+BoundTableScanInfo Binder::bindTableFunc(const std::string& tableFuncName,
+    const parser::ParsedExpression& expr, std::vector<parser::YieldVariable> yieldVariables) {
     auto entry = clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(),
         tableFuncName, clientContext->useInternalCatalogEntry());
     expression_vector positionalParams;
@@ -54,9 +53,7 @@ BoundTableFunction Binder::bindTableFunc(const std::string& tableFuncName,
     bindInput.optionalParams = std::move(optionalParams);
     bindInput.binder = this;
     bindInput.yieldVariables = std::move(yieldVariables);
-    auto bindData = tableFunc->bindFunc(clientContext, &bindInput);
-    columns = bindData->columns;
-    return BoundTableFunction{tableFunc->copy(), std::move(bindData)};
+    return BoundTableScanInfo{*tableFunc, tableFunc->bindFunc(clientContext, &bindInput)};
 }
 
 } // namespace binder

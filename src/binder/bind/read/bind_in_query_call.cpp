@@ -24,15 +24,14 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     auto functionExpr = expr->constPtrCast<ParsedFunctionExpression>();
     auto functionName = functionExpr->getFunctionName();
     std::unique_ptr<BoundReadingClause> boundReadingClause;
-    expression_vector columns;
     auto entry = clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(),
         functionName);
     switch (entry->getType()) {
     case CatalogEntryType::TABLE_FUNCTION_ENTRY: {
         auto boundTableFunction =
-            bindTableFunc(functionName, *functionExpr, columns, call.getYieldVariables());
-        boundReadingClause = std::make_unique<BoundTableFunctionCall>(std::move(boundTableFunction),
-            std::move(columns));
+            bindTableFunc(functionName, *functionExpr, call.getYieldVariables());
+        boundReadingClause =
+            std::make_unique<BoundTableFunctionCall>(std::move(boundTableFunction));
     } break;
     case CatalogEntryType::GDS_FUNCTION_ENTRY: {
         expression_vector children;
@@ -59,7 +58,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         input.optionalParams = std::move(optionalParams);
         input.yieldVariables = call.getYieldVariables();
         gdsFunc.gds->bind(input, *clientContext);
-        columns = gdsFunc.gds->getResultColumns(input);
+        auto columns = gdsFunc.gds->getResultColumns(input);
         auto info = BoundGDSCallInfo(gdsFunc.copy(), std::move(columns));
         boundReadingClause = std::make_unique<BoundGDSCall>(std::move(info));
     } break;

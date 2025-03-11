@@ -12,7 +12,7 @@
 
 namespace kuzu {
 namespace binder {
-struct BoundTableScanSourceInfo;
+struct BoundTableScanInfo;
 struct BoundCopyFromInfo;
 struct BoundInsertInfo;
 struct BoundSetPropertyInfo;
@@ -321,7 +321,7 @@ public:
     void appendFilters(const binder::expression_vector& predicates, LogicalPlan& plan);
     void appendFilter(const std::shared_ptr<binder::Expression>& predicate, LogicalPlan& plan);
 
-    void appendTableFunctionCall(const binder::BoundTableScanSourceInfo& info, LogicalPlan& plan);
+    void appendTableFunctionCall(const binder::BoundTableScanInfo& info, LogicalPlan& plan);
 
     void appendDistinct(const binder::expression_vector& keys, LogicalPlan& plan);
 
@@ -330,7 +330,7 @@ public:
 
     // Get operators
     static std::shared_ptr<LogicalOperator> getTableFunctionCall(
-        const binder::BoundTableScanSourceInfo& info);
+        const binder::BoundTableScanInfo& info);
     static std::shared_ptr<LogicalOperator> getTableFunctionCall(
         const binder::BoundReadingClause& readingClause);
     std::shared_ptr<LogicalOperator> getGDSCall(const binder::BoundGDSCallInfo& info);
