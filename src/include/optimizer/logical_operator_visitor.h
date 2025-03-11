@@ -81,12 +81,6 @@ protected:
         return op;
     }
 
-    virtual void visitGDSCall(planner::LogicalOperator* /*op*/) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitGDSCallReplace(
-        std::shared_ptr<planner::LogicalOperator> op) {
-        return op;
-    }
-
     virtual void visitHashJoin(planner::LogicalOperator* /*op*/) {}
     virtual std::shared_ptr<planner::LogicalOperator> visitHashJoinReplace(
         std::shared_ptr<planner::LogicalOperator> op) {

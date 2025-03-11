@@ -23,7 +23,6 @@ class NormalizedQueryPart;
 class BoundReadingClause;
 class BoundUpdatingClause;
 class BoundProjectionBody;
-struct BoundGDSCallInfo;
 } // namespace binder
 namespace planner {
 
@@ -117,8 +116,7 @@ public:
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
     void planTableFunctionCall(const binder::BoundReadingClause& readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
-    void planGDSCall(const binder::BoundReadingClause& readingClause,
-        std::vector<std::unique_ptr<LogicalPlan>>& plans);
+
     void planReadOp(std::shared_ptr<LogicalOperator> op,
         const binder::expression_vector& predicates, LogicalPlan& plan);
     void planLoadFrom(const binder::BoundReadingClause& readingClause,
@@ -333,7 +331,6 @@ public:
         const binder::BoundTableScanInfo& info);
     static std::shared_ptr<LogicalOperator> getTableFunctionCall(
         const binder::BoundReadingClause& readingClause);
-    std::shared_ptr<LogicalOperator> getGDSCall(const binder::BoundGDSCallInfo& info);
 
     std::unique_ptr<LogicalPlan> createUnionPlan(
         std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);
@@ -361,8 +358,10 @@ public:
         const binder::expression_vector& predicates, binder::expression_vector& predicatesToPull,
         binder::expression_vector& predicatesToPush);
 
-private:
+public:
     main::ClientContext* clientContext;
+
+private:
     PropertyExprCollection propertyExprCollection;
     CardinalityEstimator cardinalityEstimator;
     JoinOrderEnumeratorContext context;

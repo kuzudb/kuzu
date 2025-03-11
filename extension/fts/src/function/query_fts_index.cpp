@@ -10,7 +10,6 @@
 #include "function/gds/gds_utils.h"
 #include "function/query_fts_bind_data.h"
 #include "processor/execution_context.h"
-#include "processor/operator/gds_call_shared_state.h"
 #include "storage/index/index_utils.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
@@ -153,7 +152,7 @@ void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNo
 
 class QFTSVertexCompute final : public VertexCompute {
 public:
-    QFTSVertexCompute(MemoryManager* mm, processor::GDSCallSharedState* sharedState,
+    QFTSVertexCompute(MemoryManager* mm, GDSFuncSharedState* sharedState,
         std::unique_ptr<QFTSOutputWriter> writer)
         : mm{mm}, sharedState{sharedState}, writer{std::move(writer)} {
         localFT = sharedState->factorizedTablePool.claimLocalTable(mm);
@@ -175,10 +174,16 @@ public:
 
 private:
     MemoryManager* mm;
-    processor::GDSCallSharedState* sharedState;
+    GDSFuncSharedState* sharedState;
     processor::FactorizedTable* localFT;
     std::unique_ptr<QFTSOutputWriter> writer;
 };
+
+static constexpr char SCORE_PROP_NAME[] = "score";
+static constexpr char DOC_FREQUENCY_PROP_NAME[] = "df";
+static constexpr char TERM_FREQUENCY_PROP_NAME[] = "tf";
+static constexpr char DOC_LEN_PROP_NAME[] = "len";
+static constexpr char DOC_ID_PROP_NAME[] = "docID";
 
 static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& context,
     const catalog::NodeTableCatalogEntry& termsEntry, const std::vector<std::string>& terms) {
@@ -186,7 +191,7 @@ static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& contex
     auto tableID = termsEntry.getTableID();
     auto& termsNodeTable = storageManager->getTable(tableID)->cast<NodeTable>();
     auto tx = context.getTransaction();
-    auto dfColumnID = termsEntry.getColumnID(QueryFTSAlgorithm::DOC_FREQUENCY_PROP_NAME);
+    auto dfColumnID = termsEntry.getColumnID(DOC_FREQUENCY_PROP_NAME);
     std::vector<LogicalType> vectorTypes;
     vectorTypes.push_back(LogicalType::INTERNAL_ID());
     vectorTypes.push_back(LogicalType::UINT64());
@@ -231,21 +236,22 @@ static uint64_t getSparseFrontierSize(uint64_t numRows) {
     return size;
 }
 
-void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
-    auto clientContext = executionContext->clientContext;
+static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
+    auto clientContext = input.context->clientContext;
     auto transaction = clientContext->getTransaction();
+    auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
     auto graph = sharedState->graph.get();
     auto graphEntry = graph->getGraphEntry();
-    auto qFTSBindData = bindData->ptrCast<QueryFTSBindData>();
+    auto qFTSBindData = input.bindData->constPtrCast<QueryFTSBindData>();
     auto& termsEntry = graphEntry->nodeInfos[0].entry->constCast<catalog::NodeTableCatalogEntry>();
-    auto terms = bindData->ptrCast<QueryFTSBindData>()->getTerms(*executionContext->clientContext);
-    auto dfs = getDFs(*executionContext->clientContext, termsEntry, terms);
+    auto terms = qFTSBindData->getTerms(*input.context->clientContext);
+    auto dfs = getDFs(*input.context->clientContext, termsEntry, terms);
     // Do edge compute to extend terms -> docs and save the term frequency and document frequency
     // for each term-doc pair. The reason why we store the term frequency and document frequency
     // is that: we need the `len` property from the docs table which is only available during the
     // vertex compute.
-    auto currentFrontier = PathLengths::getUnvisitedFrontier(executionContext, graph);
-    auto nextFrontier = PathLengths::getUnvisitedFrontier(executionContext, graph);
+    auto currentFrontier = PathLengths::getUnvisitedFrontier(input.context, graph);
+    auto nextFrontier = PathLengths::getUnvisitedFrontier(input.context, graph);
     auto frontierPair =
         std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
     auto termsTableID = termsEntry.getTableID();
@@ -263,7 +269,7 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
     auto compState = GDSComputeState(std::move(frontierPair), std::move(edgeCompute),
         std::move(auxiliaryState), nullptr /* outputNodeMask */);
-    GDSUtils::runFrontiersUntilConvergence(executionContext, compState, graph, ExtendDirection::FWD,
+    GDSUtils::runFrontiersUntilConvergence(input.context, compState, graph, ExtendDirection::FWD,
         1 /* maxIters */, TERM_FREQUENCY_PROP_NAME);
 
     // Do vertex compute to calculate the score for doc with the length property.
@@ -271,7 +277,7 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
     auto numUniqueTerms = getNumUniqueTerms(terms);
     auto writer = std::make_unique<QFTSOutputWriter>(scores, mm, qFTSBindData->getConfig(),
         *qFTSBindData, numUniqueTerms);
-    auto vc = std::make_unique<QFTSVertexCompute>(mm, sharedState.get(), std::move(writer));
+    auto vc = std::make_unique<QFTSVertexCompute>(mm, sharedState, std::move(writer));
     auto vertexPropertiesToScan = std::vector<std::string>{DOC_LEN_PROP_NAME, DOC_ID_PROP_NAME};
     auto docsEntry = graphEntry->nodeInfos[1].entry;
     auto numDocs = storageManager->getTable(docsEntry->getTableID())->getNumTotalRows(transaction);
@@ -284,25 +290,13 @@ void QueryFTSAlgorithm::exec(processor::ExecutionContext* executionContext) {
             }
         }
     } else {
-        GDSUtils::runVertexCompute(executionContext, graph, *vc, docsEntry, vertexPropertiesToScan);
+        GDSUtils::runVertexCompute(input.context, graph, *vc, docsEntry, vertexPropertiesToScan);
     }
     sharedState->factorizedTablePool.mergeLocalTables();
+    return 0;
 }
 
-expression_vector QueryFTSAlgorithm::getResultColumns(const GDSBindInput& bindInput) const {
-    expression_vector columns;
-    auto& docsNode = bindData->getNodeOutput()->constCast<NodeExpression>();
-    columns.push_back(docsNode.getInternalID());
-    std::string scoreColumnName = SCORE_PROP_NAME;
-    if (!bindInput.yieldVariables.empty()) {
-        scoreColumnName = bindColumnName(bindInput.yieldVariables[1], scoreColumnName);
-    }
-    auto scoreColumn = bindInput.binder->createVariable(scoreColumnName, LogicalType::DOUBLE());
-    columns.push_back(scoreColumn);
-    return columns;
-}
-
-static std::string getParamVal(const GDSBindInput& input, idx_t idx) {
+static std::string getParamVal(const TableFuncBindInput& input, idx_t idx) {
     if (input.getParam(idx)->expressionType != ExpressionType::LITERAL) {
         throw BinderException{"The table and index name must be literal expressions."};
     }
@@ -310,39 +304,61 @@ static std::string getParamVal(const GDSBindInput& input, idx_t idx) {
         input.getParam(idx)->constCast<LiteralExpression>());
 }
 
-void QueryFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& context) {
-    context.setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
+static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
+    const TableFuncBindInput* input) {
+    context->setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     // For queryFTS, the table and index name must be given at compile time while the user
     // can give the query at runtime.
-    auto inputTableName = getParamVal(input, 0);
-    auto indexName = getParamVal(input, 1);
-    auto query = input.getParam(2);
+    auto inputTableName = getParamVal(*input, 0);
+    auto indexName = getParamVal(*input, 1);
+    auto query = input->getParam(2);
 
     auto tableEntry =
-        IndexUtils::bindTable(context, inputTableName, indexName, IndexOperation::QUERY);
-    auto ftsIndexEntry = context.getCatalog()->getIndex(context.getTransaction(),
-        tableEntry->getTableID(), indexName);
-    auto entry =
-        context.getCatalog()->getTableCatalogEntry(context.getTransaction(), inputTableName);
-    auto nodeOutput = bindNodeOutput(input, {entry});
+        IndexUtils::bindTable(*context, inputTableName, indexName, IndexOperation::QUERY);
+    auto catalog = context->getCatalog();
+    auto transaction = context->getTransaction();
+    auto ftsIndexEntry = catalog->getIndex(transaction, tableEntry->getTableID(), indexName);
+    auto entry = catalog->getTableCatalogEntry(transaction, inputTableName);
+    auto nodeOutput = GDSFunction::bindNodeOutput(*input, {entry});
 
-    auto termsEntry = context.getCatalog()->getTableCatalogEntry(context.getTransaction(),
+    auto termsEntry = catalog->getTableCatalogEntry(transaction,
         FTSUtils::getTermsTableName(tableEntry->getTableID(), indexName));
-    auto docsEntry = context.getCatalog()->getTableCatalogEntry(context.getTransaction(),
+    auto docsEntry = catalog->getTableCatalogEntry(transaction,
         FTSUtils::getDocsTableName(tableEntry->getTableID(), indexName));
-    auto appearsInEntry = context.getCatalog()->getTableCatalogEntry(context.getTransaction(),
+    auto appearsInEntry = catalog->getTableCatalogEntry(transaction,
         FTSUtils::getAppearsInTableName(tableEntry->getTableID(), indexName));
     auto graphEntry = graph::GraphEntry({termsEntry, docsEntry}, {appearsInEntry});
-    bindData = std::make_unique<QueryFTSBindData>(std::move(graphEntry), nodeOutput,
-        std::move(query), *ftsIndexEntry, QueryFTSOptionalParams{input.optionalParams});
-    context.setUseInternalCatalogEntry(false /* useInternalCatalogEntry */);
+
+    expression_vector columns;
+    auto& docsNode = nodeOutput->constCast<NodeExpression>();
+    columns.push_back(docsNode.getInternalID());
+    std::string scoreColumnName = SCORE_PROP_NAME;
+    if (!input->yieldVariables.empty()) {
+        scoreColumnName = GDSFunction::bindColumnName(input->yieldVariables[1], scoreColumnName);
+    }
+    auto scoreColumn = input->binder->createVariable(scoreColumnName, LogicalType::DOUBLE());
+    columns.push_back(scoreColumn);
+    auto bindData =
+        std::make_unique<QueryFTSBindData>(std::move(columns), std::move(graphEntry), nodeOutput,
+            std::move(query), *ftsIndexEntry, QueryFTSOptionalParams{input->optionalParamsLegacy});
+    context->setUseInternalCatalogEntry(false /* useInternalCatalogEntry */);
+    return bindData;
 }
 
 function_set QueryFTSFunction::getFunctionSet() {
     function_set result;
-    auto algo = std::make_unique<QueryFTSAlgorithm>();
-    result.push_back(
-        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
+    // inputs are tableName, indexName, query
+    auto func = std::make_unique<TableFunction>(QueryFTSFunction::name,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
+            LogicalTypeID::STRING});
+    func->bindFunc = bindFunc;
+    func->tableFunc = tableFunc;
+    func->initSharedStateFunc = GDSFunction::initSharedState;
+    func->initLocalStateFunc = TableFunction::initEmptyLocalState;
+    func->canParallelFunc = [] { return false; };
+    func->getLogicalPlanFunc = GDSFunction::getLogicalPlan;
+    func->getPhysicalPlanFunc = GDSFunction::getPhysicalPlan;
+    result.push_back(std::move(func));
     return result;
 }
 

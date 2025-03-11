@@ -12,7 +12,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapTableFunctionCall(
     auto& call = logicalOperator->constCast<LogicalTableFunctionCall>();
     auto getPhysicalPlanFunc = call.getTableFunc().getPhysicalPlanFunc;
     KU_ASSERT(getPhysicalPlanFunc);
-    return getPhysicalPlanFunc(clientContext, this, logicalOperator);
+    return getPhysicalPlanFunc(this, logicalOperator);
 }
 
 } // namespace processor

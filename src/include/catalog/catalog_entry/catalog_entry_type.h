@@ -19,7 +19,6 @@ enum class CatalogEntryType : uint8_t {
     SCALAR_FUNCTION_ENTRY = 21,
     REWRITE_FUNCTION_ENTRY = 22,
     TABLE_FUNCTION_ENTRY = 23,
-    GDS_FUNCTION_ENTRY = 24,
     COPY_FUNCTION_ENTRY = 25,
     STANDALONE_TABLE_FUNCTION_ENTRY = 26,
     // Sequence entries

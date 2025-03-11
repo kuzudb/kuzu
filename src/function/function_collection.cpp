@@ -51,8 +51,6 @@ namespace function {
     { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::TABLE_FUNCTION_ENTRY }
 #define STANDALONE_TABLE_FUNCTION(_PARAM)                                                          \
     { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY }
-#define ALGORITHM_FUNCTION(_PARAM)                                                                 \
-    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::GDS_FUNCTION_ENTRY }
 #define FINAL_FUNCTION                                                                             \
     { nullptr, nullptr, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
 
@@ -244,9 +242,9 @@ FunctionCollection* FunctionCollection::getFunctions() {
         TABLE_FUNCTION(SerialCSVScan), TABLE_FUNCTION(ParallelCSVScan), TABLE_FUNCTION(FTableScan),
 
         // Algorithm functions
-        ALGORITHM_FUNCTION(WeaklyConnectedComponentsFunction),
-        ALGORITHM_FUNCTION(SCCKosarajuFunction), ALGORITHM_FUNCTION(SCCFunction),
-        ALGORITHM_FUNCTION(KCoreDecompositionFunction), ALGORITHM_FUNCTION(PageRankFunction),
+        TABLE_FUNCTION(WeaklyConnectedComponentsFunction), TABLE_FUNCTION(SCCKosarajuFunction),
+        TABLE_FUNCTION(SCCFunction), TABLE_FUNCTION(KCoreDecompositionFunction),
+        TABLE_FUNCTION(PageRankFunction),
 
         // Export functions
         EXPORT_FUNCTION(ExportCSVFunction), EXPORT_FUNCTION(ExportParquetFunction),

@@ -75,7 +75,6 @@ public:
         common::RelDataDirection direction, std::vector<common::column_id_t> columnIDs,
         std::vector<common::LogicalType> columnTypes, uint32_t operatorID);
 
-private:
     std::unique_ptr<PhysicalOperator> mapOperator(const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapAccumulate(
         const planner::LogicalOperator* logicalOperator);
@@ -119,7 +118,6 @@ private:
         const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapFilter(const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapFlatten(const planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapGDSCall(const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapHashJoin(const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapImportDatabase(
         const planner::LogicalOperator* logicalOperator);
@@ -231,19 +229,17 @@ private:
 
     static std::vector<DataPos> getDataPos(const binder::expression_vector& expressions,
         const planner::Schema& schema);
-    FactorizedTableSchema createFlatFTableSchema(const binder::expression_vector& expressions,
-        const planner::Schema& schema);
+    static FactorizedTableSchema createFlatFTableSchema(
+        const binder::expression_vector& expressions, const planner::Schema& schema);
     std::unique_ptr<common::SemiMask> getSemiMask(common::table_id_t tableID) const;
-    std::unique_ptr<common::NodeOffsetMaskMap> getNodeOffsetMaskMap(const binder::Expression& expr);
-
-    static planner::LogicalSemiMasker* findSemiMaskerInPlan(
-        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<common::NodeOffsetMaskMap> getNodeOffsetMaskMap(
+        const binder::Expression& expr) const;
 
 public:
     main::ClientContext* clientContext;
+    std::unordered_map<const planner::LogicalOperator*, PhysicalOperator*> logicalOpToPhysicalOpMap;
 
 private:
-    std::unordered_map<const planner::LogicalOperator*, PhysicalOperator*> logicalOpToPhysicalOpMap;
     uint32_t physicalOperatorID;
 };
 

@@ -134,11 +134,6 @@ struct KUZU_API ExtensionUtils {
         addFunc<typename T::alias>(database, T::name,
             catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY);
     }
-
-    template<typename T>
-    static void addGDSFunc(main::Database& database) {
-        addFunc<T>(database, T::name, catalog::CatalogEntryType::GDS_FUNCTION_ENTRY);
-    }
 };
 
 class KUZU_API ExtensionLibLoader {

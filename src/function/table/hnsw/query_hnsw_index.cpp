@@ -227,7 +227,7 @@ std::unique_ptr<TableFuncLocalState> initQueryHNSWLocalState(const TableFunction
         *hnswSharedState->nodeTable, hnswBindData->indexColumnID, hnswSharedState->numNodes);
 }
 
-static void getLogicalPlan(const transaction::Transaction* transaction, planner::Planner* planner,
+static void getLogicalPlan(planner::Planner* planner,
     const binder::BoundReadingClause& readingClause,
     std::shared_ptr<planner::LogicalOperator> logicalOp,
     const std::vector<std::unique_ptr<planner::LogicalPlan>>& logicalPlans) {
@@ -244,8 +244,8 @@ static void getLogicalPlan(const transaction::Transaction* transaction, planner:
         }
         auto& node = callOp->getBindData()->getNodeOutput()->constCast<binder::NodeExpression>();
         auto properties = planner->getProperties(node);
-        planner->getCardinalityEstimator().addNodeIDDomAndStats(transaction, *node.getInternalID(),
-            node.getTableIDs());
+        planner->getCardinalityEstimator().addNodeIDDomAndStats(
+            planner->clientContext->getTransaction(), *node.getInternalID(), node.getTableIDs());
         auto scanPlan = planner::LogicalPlan();
         planner->appendScanNodeTable(node.getInternalID(), node.getTableIDs(), properties,
             scanPlan);

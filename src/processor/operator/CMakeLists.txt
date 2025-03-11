@@ -16,8 +16,6 @@ add_library(kuzu_processor_operator
         filter.cpp
         filtering_operator.cpp
         flatten.cpp
-        gds_call.cpp
-        gds_call_shared_state.cpp
         index_lookup.cpp
         limit.cpp
         multiplicity_reducer.cpp

@@ -39,6 +39,7 @@ struct ExtraTableFuncBindInput {
 struct KUZU_API TableFuncBindInput {
     binder::expression_vector params;
     optional_params_t optionalParams;
+    binder::expression_vector optionalParamsLegacy;
     std::unique_ptr<ExtraTableFuncBindInput> extraInput = nullptr;
     binder::Binder* binder = nullptr;
     std::vector<parser::YieldVariable> yieldVariables;

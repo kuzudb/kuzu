@@ -1,12 +1,9 @@
 #include "binder/binder.h"
-#include "binder/expression/expression_util.h"
 #include "common/exception/runtime.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
-#include "function/gds_function.h"
 #include "gds_vertex_compute.h"
 #include "processor/execution_context.h"
-#include "processor/operator/gds_call_shared_state.h"
 
 using namespace std;
 using namespace kuzu::binder;
@@ -129,7 +126,7 @@ private:
 
 class SCCVertexCompute : public GDSResultVertexCompute {
 public:
-    SCCVertexCompute(MemoryManager* mm, GDSCallSharedState* sharedState, SCCState& sccState)
+    SCCVertexCompute(MemoryManager* mm, GDSFuncSharedState* sharedState, SCCState& sccState)
         : GDSResultVertexCompute{mm, sharedState}, sccState{sccState} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID());
         componentIDVector = createVector(LogicalType::UINT64());
@@ -157,65 +154,57 @@ private:
     unique_ptr<ValueVector> componentIDVector;
 };
 
-class SCCKosaraju final : public GDSAlgorithm {
-    static constexpr char GROUP_ID_COLUMN_NAME[] = "group_id";
+static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
+    auto clientContext = input.context->clientContext;
+    auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
+    auto mm = clientContext->getMemoryManager();
+    auto graph = sharedState->graph.get();
+    KU_ASSERT(graph->getNodeTableIDs().size() == 1);
+    auto tableID = graph->getNodeTableIDs()[0];
+    auto maxOffset = graph->getMaxOffset(clientContext->getTransaction(), tableID);
 
-public:
-    SCCKosaraju() = default;
-    SCCKosaraju(const SCCKosaraju& other) : GDSAlgorithm{other} {}
+    auto sccState = SCCState(tableID, maxOffset, mm);
+    auto edgeCompute = make_unique<SCCCompute>(graph, sccState);
+    edgeCompute->compute(tableID, maxOffset);
 
-    unique_ptr<GDSAlgorithm> copy() const override { return make_unique<SCCKosaraju>(*this); }
+    auto vertexCompute = make_unique<SCCVertexCompute>(mm, sharedState, sccState);
+    GDSUtils::runVertexCompute(input.context, graph, *vertexCompute);
 
-    vector<LogicalTypeID> getParameterTypeIDs() const override {
-        return vector<LogicalTypeID>{LogicalTypeID::ANY};
+    sharedState->factorizedTablePool.mergeLocalTables();
+    return 0;
+}
+
+static constexpr char GROUP_ID_COLUMN_NAME[] = "group_id";
+
+static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
+    const TableFuncBindInput* input) {
+    auto graphName = input->getLiteralVal<std::string>(0);
+    auto graphEntry = GDSFunction::bindGraphEntry(*context, graphName);
+    if (graphEntry.nodeInfos.size() != 1) {
+        throw RuntimeException("Kosaraju's SCC only supports operations on one node table.");
     }
-
-    expression_vector getResultColumns(const GDSBindInput& bindInput) const override {
-        expression_vector columns;
-        auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
-        columns.push_back(outputNode.getInternalID());
-        columns.push_back(
-            bindInput.binder->createVariable(GROUP_ID_COLUMN_NAME, LogicalType::INT64()));
-        return columns;
+    if (graphEntry.relInfos.size() != 1) {
+        throw RuntimeException("Kosaraju's SCC only supports operations on one edge table.");
     }
-
-    void bind(const GDSBindInput& input, main::ClientContext& context) override {
-        auto graphName = ExpressionUtil::getLiteralValue<string>(*input.getParam(0));
-        auto graphEntry = bindGraphEntry(context, graphName);
-        if (graphEntry.nodeInfos.size() != 1) {
-            throw RuntimeException("Kosaraju's SCC only supports operations on one node table.");
-        }
-        if (graphEntry.relInfos.size() != 1) {
-            throw RuntimeException("Kosaraju's SCC only supports operations on one edge table.");
-        }
-        auto nodeOutput = bindNodeOutput(input, graphEntry.getNodeEntries());
-        bindData = make_unique<GDSBindData>(std::move(graphEntry), nodeOutput);
-    }
-
-    void exec(ExecutionContext* context) override {
-        auto clientContext = context->clientContext;
-        auto mm = clientContext->getMemoryManager();
-        auto graph = sharedState->graph.get();
-        KU_ASSERT(graph->getNodeTableIDs().size() == 1);
-        auto tableID = graph->getNodeTableIDs()[0];
-        auto maxOffset = graph->getMaxOffset(clientContext->getTransaction(), tableID);
-
-        auto sccState = SCCState(tableID, maxOffset, mm);
-        auto edgeCompute = make_unique<SCCCompute>(graph, sccState);
-        edgeCompute->compute(tableID, maxOffset);
-
-        auto vertexCompute = make_unique<SCCVertexCompute>(mm, sharedState.get(), sccState);
-        GDSUtils::runVertexCompute(context, graph, *vertexCompute);
-
-        sharedState->factorizedTablePool.mergeLocalTables();
-    }
-};
+    expression_vector columns;
+    auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries());
+    columns.push_back(nodeOutput->constPtrCast<NodeExpression>()->getInternalID());
+    columns.push_back(input->binder->createVariable(GROUP_ID_COLUMN_NAME, LogicalType::INT64()));
+    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput);
+}
 
 function_set SCCKosarajuFunction::getFunctionSet() {
     function_set result;
-    auto algo = make_unique<SCCKosaraju>();
-    auto function = make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo));
-    result.push_back(std::move(function));
+    auto func = std::make_unique<TableFunction>(SCCKosarajuFunction::name,
+        std::vector<LogicalTypeID>{LogicalTypeID::ANY});
+    func->bindFunc = bindFunc;
+    func->tableFunc = tableFunc;
+    func->initSharedStateFunc = GDSFunction::initSharedState;
+    func->initLocalStateFunc = TableFunction::initEmptyLocalState;
+    func->canParallelFunc = [] { return false; };
+    func->getLogicalPlanFunc = GDSFunction::getLogicalPlan;
+    func->getPhysicalPlanFunc = GDSFunction::getPhysicalPlan;
+    result.push_back(std::move(func));
     return result;
 }
 

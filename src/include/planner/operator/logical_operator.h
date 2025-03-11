@@ -36,7 +36,6 @@ enum class LogicalOperatorType : uint8_t {
     EXPORT_DATABASE,
     FILTER,
     FLATTEN,
-    GDS_CALL,
     HASH_JOIN,
     IMPORT_DATABASE,
     INDEX_LOOK_UP,

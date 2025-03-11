@@ -6,7 +6,6 @@
 #include "function/gds/config/page_rank_config.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
-#include "function/gds_function.h"
 #include "gds_vertex_compute.h"
 #include "processor/execution_context.h"
 
@@ -65,16 +64,16 @@ PageRankConfig PageRankOptionalParams::getConfig() const {
 struct PageRankBindData final : public GDSBindData {
     PageRankOptionalParams optionalParams;
 
-    PageRankBindData(graph::GraphEntry graphEntry, std::shared_ptr<binder::Expression> nodeOutput,
-        PageRankOptionalParams optionalParams)
-        : GDSBindData{std::move(graphEntry), std::move(nodeOutput)},
+    PageRankBindData(binder::expression_vector columns, graph::GraphEntry graphEntry,
+        std::shared_ptr<binder::Expression> nodeOutput, PageRankOptionalParams optionalParams)
+        : GDSBindData{std::move(columns), std::move(graphEntry), std::move(nodeOutput)},
           optionalParams{std::move(optionalParams)} {}
     PageRankBindData(const PageRankBindData& other)
         : GDSBindData{other}, optionalParams{other.optionalParams} {}
 
     PageRankConfig getConfig() const { return optionalParams.getConfig(); }
 
-    std::unique_ptr<GDSBindData> copy() const override {
+    std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<PageRankBindData>(*this);
     }
 };
@@ -229,8 +228,8 @@ private:
 
 class PageRankResultVertexCompute : public GDSResultVertexCompute {
 public:
-    PageRankResultVertexCompute(storage::MemoryManager* mm,
-        processor::GDSCallSharedState* sharedState, PValues& pNext)
+    PageRankResultVertexCompute(storage::MemoryManager* mm, GDSFuncSharedState* sharedState,
+        PValues& pNext)
         : GDSResultVertexCompute{mm, sharedState}, pNext{pNext} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID());
         rankVector = createVector(LogicalType::DOUBLE());
@@ -260,97 +259,85 @@ private:
     std::unique_ptr<ValueVector> rankVector;
 };
 
-class PageRank final : public GDSAlgorithm {
-    static constexpr char RANK_COLUMN_NAME[] = "rank";
-
-public:
-    PageRank() = default;
-    PageRank(const PageRank& other) : GDSAlgorithm{other} {}
-
-    std::vector<common::LogicalTypeID> getParameterTypeIDs() const override {
-        return {LogicalTypeID::ANY};
-    }
-
-    binder::expression_vector getResultColumns(
-        const function::GDSBindInput& bindInput) const override {
-        expression_vector columns;
-        auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
-        columns.push_back(outputNode.getInternalID());
-        columns.push_back(
-            bindInput.binder->createVariable(RANK_COLUMN_NAME, LogicalType::DOUBLE()));
-        return columns;
-    }
-
-    void bind(const GDSBindInput& input, main::ClientContext& context) override {
-        auto graphName = binder::ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
-        auto graphEntry = bindGraphEntry(context, graphName);
-        auto nodeOutput = bindNodeOutput(input, graphEntry.getNodeEntries());
-        bindData = std::make_unique<PageRankBindData>(std::move(graphEntry), nodeOutput,
-            PageRankOptionalParams(input.optionalParams));
-    }
-
-    void exec(processor::ExecutionContext* context) override {
-        auto clientContext = context->clientContext;
-        auto transaction = clientContext->getTransaction();
-        auto graph = sharedState->graph.get();
-        auto maxOffsetMap = graph->getMaxOffsetMap(transaction);
-        auto numNodes = graph->getNumNodes(transaction);
-        auto p1 = PValues(maxOffsetMap, clientContext->getMemoryManager(), (double)1 / numNodes);
-        auto p2 = PValues(maxOffsetMap, clientContext->getMemoryManager(), 0);
-        PValues* pCurrent = &p1;
-        PValues* pNext = &p2;
-        auto pageRankBindData = bindData->ptrCast<PageRankBindData>();
-        auto config = pageRankBindData->getConfig();
-        auto currentIter = 1u;
-        auto currentFrontier = PathLengths::getUnvisitedFrontier(context, graph);
-        auto nextFrontier =
-            PathLengths::getVisitedFrontier(context, graph, sharedState->getGraphNodeMaskMap());
-        auto degrees = Degrees(maxOffsetMap, clientContext->getMemoryManager());
-        DegreesUtils::computeDegree(context, graph, sharedState->getGraphNodeMaskMap(), &degrees,
-            ExtendDirection::FWD);
-        auto frontierPair =
-            std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
-        frontierPair->initGDS();
-        auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr, nullptr);
-        auto pNextUpdateConstant = (1 - config.dampingFactor) * ((double)1 / numNodes);
-        while (currentIter < config.maxIterations) {
-            computeState.edgeCompute =
-                std::make_unique<PNextUpdateEdgeCompute>(degrees, *pCurrent, *pNext);
-            computeState.auxiliaryState =
-                std::make_unique<PageRankAuxiliaryState>(degrees, *pCurrent, *pNext);
-            GDSUtils::runFrontiersUntilConvergence(context, computeState, graph,
-                ExtendDirection::BWD, computeState.frontierPair->getCurrentIter() + 1);
-            auto pNextUpdateVC = PNextUpdateVertexCompute(config.dampingFactor, pNextUpdateConstant,
-                *pNext, sharedState->getGraphNodeMaskMap());
-            GDSUtils::runVertexCompute(context, graph, pNextUpdateVC);
-            std::atomic<double> diff;
-            diff.store(0);
-            auto pDiffVC =
-                PDiffVertexCompute(diff, *pCurrent, *pNext, sharedState->getGraphNodeMaskMap());
-            GDSUtils::runVertexCompute(context, graph, pDiffVC);
-            std::swap(pCurrent, pNext);
-            if (diff.load() < config.tolerance) { // Converged.
-                break;
-            }
-            currentIter++;
+static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
+    auto clientContext = input.context->clientContext;
+    auto transaction = clientContext->getTransaction();
+    auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
+    auto graph = sharedState->graph.get();
+    auto maxOffsetMap = graph->getMaxOffsetMap(transaction);
+    auto numNodes = graph->getNumNodes(transaction);
+    auto p1 = PValues(maxOffsetMap, clientContext->getMemoryManager(), (double)1 / numNodes);
+    auto p2 = PValues(maxOffsetMap, clientContext->getMemoryManager(), 0);
+    PValues* pCurrent = &p1;
+    PValues* pNext = &p2;
+    auto pageRankBindData = input.bindData->constPtrCast<PageRankBindData>();
+    auto config = pageRankBindData->getConfig();
+    auto currentIter = 1u;
+    auto currentFrontier = PathLengths::getUnvisitedFrontier(input.context, graph);
+    auto nextFrontier =
+        PathLengths::getVisitedFrontier(input.context, graph, sharedState->getGraphNodeMaskMap());
+    auto degrees = Degrees(maxOffsetMap, clientContext->getMemoryManager());
+    DegreesUtils::computeDegree(input.context, graph, sharedState->getGraphNodeMaskMap(), &degrees,
+        ExtendDirection::FWD);
+    auto frontierPair =
+        std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
+    frontierPair->initGDS();
+    auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr, nullptr);
+    auto pNextUpdateConstant = (1 - config.dampingFactor) * ((double)1 / numNodes);
+    while (currentIter < config.maxIterations) {
+        computeState.edgeCompute =
+            std::make_unique<PNextUpdateEdgeCompute>(degrees, *pCurrent, *pNext);
+        computeState.auxiliaryState =
+            std::make_unique<PageRankAuxiliaryState>(degrees, *pCurrent, *pNext);
+        GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph,
+            ExtendDirection::BWD, computeState.frontierPair->getCurrentIter() + 1);
+        auto pNextUpdateVC = PNextUpdateVertexCompute(config.dampingFactor, pNextUpdateConstant,
+            *pNext, sharedState->getGraphNodeMaskMap());
+        GDSUtils::runVertexCompute(input.context, graph, pNextUpdateVC);
+        std::atomic<double> diff;
+        diff.store(0);
+        auto pDiffVC =
+            PDiffVertexCompute(diff, *pCurrent, *pNext, sharedState->getGraphNodeMaskMap());
+        GDSUtils::runVertexCompute(input.context, graph, pDiffVC);
+        std::swap(pCurrent, pNext);
+        if (diff.load() < config.tolerance) { // Converged.
+            break;
         }
-        auto outputVC = std::make_unique<PageRankResultVertexCompute>(
-            clientContext->getMemoryManager(), sharedState.get(), *pCurrent);
-        GDSUtils::runVertexCompute(context, graph, *outputVC);
-        sharedState->factorizedTablePool.mergeLocalTables();
+        currentIter++;
     }
+    auto outputVC = std::make_unique<PageRankResultVertexCompute>(clientContext->getMemoryManager(),
+        sharedState, *pCurrent);
+    GDSUtils::runVertexCompute(input.context, graph, *outputVC);
+    sharedState->factorizedTablePool.mergeLocalTables();
+    return 0;
+}
 
-    std::unique_ptr<GDSAlgorithm> copy() const override {
-        return std::make_unique<PageRank>(*this);
-    }
-};
+static constexpr char RANK_COLUMN_NAME[] = "rank";
+
+static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
+    const TableFuncBindInput* input) {
+    auto graphName = input->getLiteralVal<std::string>(0);
+    auto graphEntry = GDSFunction::bindGraphEntry(*context, graphName);
+    auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries());
+    expression_vector columns;
+    columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
+    columns.push_back(input->binder->createVariable(RANK_COLUMN_NAME, LogicalType::DOUBLE()));
+    return std::make_unique<PageRankBindData>(std::move(columns), std::move(graphEntry), nodeOutput,
+        PageRankOptionalParams(input->optionalParamsLegacy));
+}
 
 function_set PageRankFunction::getFunctionSet() {
     function_set result;
-    auto algo = std::make_unique<PageRank>();
-    auto function =
-        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo));
-    result.push_back(std::move(function));
+    auto func = std::make_unique<TableFunction>(PageRankFunction::name,
+        std::vector<LogicalTypeID>{LogicalTypeID::ANY});
+    func->bindFunc = bindFunc;
+    func->tableFunc = tableFunc;
+    func->initSharedStateFunc = GDSFunction::initSharedState;
+    func->initLocalStateFunc = TableFunction::initEmptyLocalState;
+    func->canParallelFunc = [] { return false; };
+    func->getLogicalPlanFunc = GDSFunction::getLogicalPlan;
+    func->getPhysicalPlanFunc = GDSFunction::getPhysicalPlan;
+    result.push_back(std::move(func));
     return result;
 }
 

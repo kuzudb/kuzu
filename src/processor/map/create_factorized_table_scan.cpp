@@ -30,6 +30,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScan(const expression_
         clientContext->getTransaction(), FTableScan::name);
     auto function = BuiltInFunctionsUtils::matchFunction(FTableScan::name,
         functionEntry->ptrCast<catalog::FunctionCatalogEntry>());
+
     auto info = TableFunctionCallInfo();
     info.function = *ku_dynamic_cast<TableFunction*>(function);
     info.bindData = std::move(bindData);
@@ -44,7 +45,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createFTableScan(const expression_
         return std::make_unique<TableFunctionCall>(std::move(info), sharedState, getOperatorID(),
             std::move(printInfo));
     }
-
     return std::make_unique<TableFunctionCall>(std::move(info), sharedState, std::move(children),
         getOperatorID(), std::move(printInfo));
 }

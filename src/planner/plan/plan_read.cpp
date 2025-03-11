@@ -1,9 +1,6 @@
 #include "binder/expression_visitor.h"
-#include "binder/query/reading_clause/bound_gds_call.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
-#include "common/enums/join_type.h"
-#include "main/client_context.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/planner.h"
 
@@ -24,9 +21,6 @@ void Planner::planReadingClause(const BoundReadingClause& readingClause,
     } break;
     case ClauseType::TABLE_FUNCTION_CALL: {
         planTableFunctionCall(readingClause, prevPlans);
-    } break;
-    case ClauseType::GDS_CALL: {
-        planGDSCall(readingClause, prevPlans);
     } break;
     case ClauseType::LOAD_FROM: {
         planLoadFrom(readingClause, prevPlans);
@@ -115,44 +109,7 @@ void Planner::planTableFunctionCall(const BoundReadingClause& readingClause,
     const auto planFunc =
         op->ptrCast<LogicalTableFunctionCall>()->getTableFunc().getLogicalPlanFunc;
     KU_ASSERT(planFunc);
-    planFunc(clientContext->getTransaction(), this, readingClause, op, plans);
-}
-
-void Planner::planGDSCall(const BoundReadingClause& readingClause,
-    std::vector<std::unique_ptr<LogicalPlan>>& plans) {
-    auto& call = readingClause.constCast<BoundGDSCall>();
-    expression_vector predicatesToPull;
-    expression_vector predicatesToPush;
-    splitPredicates(call.getInfo().outExprs, call.getConjunctivePredicates(), predicatesToPull,
-        predicatesToPush);
-    auto bindData = call.getInfo().func.gds->getBindData();
-    KU_ASSERT(!bindData->hasNodeInput());
-    for (auto& plan : plans) {
-        auto gdsCall = getGDSCall(call.getInfo());
-        planReadOp(std::move(gdsCall), predicatesToPush, *plan);
-    }
-
-    auto nodeOutput = bindData->getNodeOutput();
-    KU_ASSERT(nodeOutput != nullptr);
-    auto properties = getProperties(*nodeOutput);
-    if (!properties.empty()) {
-        auto& node = bindData->getNodeOutput()->constCast<NodeExpression>();
-        auto scanPlan = LogicalPlan();
-        cardinalityEstimator.addNodeIDDomAndStats(clientContext->getTransaction(),
-            *node.getInternalID(), node.getTableIDs());
-        appendScanNodeTable(node.getInternalID(), node.getTableIDs(), properties, scanPlan);
-        expression_vector joinConditions;
-        joinConditions.push_back(node.getInternalID());
-        for (auto& plan : plans) {
-            appendHashJoin(joinConditions, JoinType::INNER, *plan, scanPlan, *plan);
-        }
-    }
-
-    for (auto& plan : plans) {
-        if (!predicatesToPull.empty()) {
-            appendFilters(predicatesToPull, *plan);
-        }
-    }
+    planFunc(this, readingClause, op, plans);
 }
 
 void Planner::planLoadFrom(const BoundReadingClause& readingClause,

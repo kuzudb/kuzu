@@ -109,9 +109,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(const LogicalOperator*
     case LogicalOperatorType::FILTER: {
         physicalOperator = mapFilter(logicalOperator);
     } break;
-    case LogicalOperatorType::GDS_CALL: {
-        physicalOperator = mapGDSCall(logicalOperator);
-    } break;
     case LogicalOperatorType::HASH_JOIN: {
         physicalOperator = mapHashJoin(logicalOperator);
     } break;
@@ -217,7 +214,7 @@ std::unique_ptr<SemiMask> PlanMapper::getSemiMask(table_id_t tableID) const {
 }
 
 std::unique_ptr<NodeOffsetMaskMap> PlanMapper::getNodeOffsetMaskMap(
-    const binder::Expression& expr) {
+    const binder::Expression& expr) const {
     auto& node = expr.constCast<NodeExpression>();
     auto maskMap = std::make_unique<NodeOffsetMaskMap>();
     for (auto tableID : node.getTableIDs()) {

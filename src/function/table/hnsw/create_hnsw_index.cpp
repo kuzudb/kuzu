@@ -90,13 +90,12 @@ static double createInMemHNSWProgressFunc(TableFuncSharedState* sharedState) {
 }
 
 static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
-    const main::ClientContext* clientContext, processor::PlanMapper* planMapper,
-    const planner::LogicalOperator* logicalOp) {
+    processor::PlanMapper* planMapper, const planner::LogicalOperator* logicalOp) {
     // _CreateHNSWIndex table function.
     auto logicalCallBoundData = logicalOp->constPtrCast<planner::LogicalTableFunctionCall>()
                                     ->getBindData()
                                     ->constPtrCast<CreateHNSWIndexBindData>();
-    auto createHNSWCallOp = TableFunction::getPhysicalPlan(clientContext, planMapper, logicalOp);
+    auto createHNSWCallOp = TableFunction::getPhysicalPlan(planMapper, logicalOp);
     KU_ASSERT(createHNSWCallOp->getOperatorType() ==
               processor::PhysicalOperatorType::TABLE_FUNCTION_CALL);
     auto createFuncCall = createHNSWCallOp->ptrCast<processor::TableFunctionCall>();
@@ -108,6 +107,7 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
         std::make_unique<processor::ResultSetDescriptor>(logicalOp->getSchema()),
         std::move(createHNSWCallOp), planMapper->getOperatorID(), std::make_unique<OPPrintInfo>());
     // Append _FinalizeHNSWIndex table function.
+    auto clientContext = planMapper->clientContext;
     auto finalizeFuncEntry = clientContext->getCatalog()->getFunctionEntry(
         clientContext->getTransaction(), InternalFinalizeHNSWIndexFunction::name);
     auto func = BuiltInFunctionsUtils::matchFunction(InternalFinalizeHNSWIndexFunction::name,

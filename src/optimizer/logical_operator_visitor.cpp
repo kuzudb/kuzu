@@ -40,9 +40,6 @@ void LogicalOperatorVisitor::visitOperatorSwitch(LogicalOperator* op) {
     case LogicalOperatorType::FLATTEN: {
         visitFlatten(op);
     } break;
-    case LogicalOperatorType::GDS_CALL: {
-        visitGDSCall(op);
-    } break;
     case LogicalOperatorType::HASH_JOIN: {
         visitHashJoin(op);
     } break;
@@ -131,9 +128,6 @@ std::shared_ptr<LogicalOperator> LogicalOperatorVisitor::visitOperatorReplaceSwi
     }
     case LogicalOperatorType::FLATTEN: {
         return visitFlattenReplace(op);
-    }
-    case LogicalOperatorType::GDS_CALL: {
-        return visitGDSCallReplace(op);
     }
     case LogicalOperatorType::HASH_JOIN: {
         return visitHashJoinReplace(op);

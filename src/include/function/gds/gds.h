@@ -1,129 +1,80 @@
 #pragma once
 
-#include "binder/expression/expression.h"
+#include "common/mask.h"
+#include "function/table/bind_data.h"
+#include "graph/graph.h"
 #include "graph/graph_entry.h"
-#include "parser/query/reading_clause/yield_variable.h"
+#include "processor/result/factorized_table_pool.h"
 
 namespace kuzu {
-namespace binder {
-class Binder;
-}
+
 namespace main {
 class ClientContext;
 }
-namespace processor {
-class FactorizedTable;
-struct ExecutionContext;
-struct GDSCallSharedState;
-} // namespace processor
 
 namespace function {
 
-class PathLengths;
-
-struct GDSBindInput {
-    binder::expression_vector params;
-    binder::expression_vector optionalParams;
-    binder::Binder* binder = nullptr;
-    std::vector<parser::YieldVariable> yieldVariables;
-
-    GDSBindInput() = default;
-
-    std::shared_ptr<binder::Expression> getParam(common::idx_t idx) const { return params[idx]; }
-    std::shared_ptr<binder::Expression> getOptionalParam(common::idx_t idx) const {
-        return optionalParams[idx];
-    }
-    common::idx_t getNumParams() const { return params.size(); }
-};
-
-struct GDSBindData {
+struct KUZU_API GDSBindData : public TableFuncBindData {
     graph::GraphEntry graphEntry;
     std::shared_ptr<binder::Expression> nodeOutput;
 
-    GDSBindData(graph::GraphEntry graphEntry, std::shared_ptr<binder::Expression> nodeOutput)
-        : graphEntry{graphEntry.copy()}, nodeOutput{std::move(nodeOutput)} {}
+    GDSBindData(binder::expression_vector columns, graph::GraphEntry graphEntry,
+        std::shared_ptr<binder::Expression> nodeOutput)
+        : TableFuncBindData{std::move(columns)}, graphEntry{graphEntry.copy()},
+          nodeOutput{std::move(nodeOutput)} {}
     GDSBindData(const GDSBindData& other)
-        : graphEntry{other.graphEntry.copy()}, nodeOutput{other.nodeOutput} {}
+        : TableFuncBindData{other}, graphEntry{other.graphEntry.copy()},
+          nodeOutput{other.nodeOutput}, resultTable{other.resultTable} {}
 
-    virtual ~GDSBindData() = default;
-
-    virtual bool hasNodeInput() const { return false; }
-
-    virtual std::shared_ptr<binder::Expression> getNodeInput() const { return nullptr; }
-
-    virtual bool hasNodeOutput() const { return false; }
-
-    virtual std::shared_ptr<binder::Expression> getNodeOutput() const {
-        KU_ASSERT(nodeOutput != nullptr);
-        return nodeOutput;
+    void setResultFTable(std::shared_ptr<processor::FactorizedTable> table) {
+        resultTable = std::move(table);
     }
+    std::shared_ptr<processor::FactorizedTable> getResultTable() const { return resultTable; }
 
-    virtual std::unique_ptr<GDSBindData> copy() const {
+    std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<GDSBindData>(*this);
     }
 
-    template<class TARGET>
-    TARGET* ptrCast() {
-        return common::ku_dynamic_cast<TARGET*>(this);
-    }
+private:
+    std::shared_ptr<processor::FactorizedTable> resultTable;
+};
+
+struct KUZU_API GDSFuncSharedState : public TableFuncSharedState {
+    std::unique_ptr<graph::Graph> graph;
+
+    GDSFuncSharedState(std::shared_ptr<processor::FactorizedTable> fTable,
+        std::unique_ptr<graph::Graph> graph)
+        : TableFuncSharedState{}, graph{std::move(graph)}, factorizedTablePool{std::move(fTable)} {}
+
+    void setGraphNodeMask(std::unique_ptr<common::NodeOffsetMaskMap> maskMap);
+    common::NodeOffsetMaskMap* getGraphNodeMaskMap() const { return graphNodeMask.get(); }
+
+public:
+    processor::FactorizedTablePool factorizedTablePool;
+
+private:
+    std::unique_ptr<common::NodeOffsetMaskMap> graphNodeMask = nullptr;
 };
 
 // Base class for every graph data science algorithm.
-class KUZU_API GDSAlgorithm {
-protected:
+class KUZU_API GDSFunction {
     static constexpr char NODE_COLUMN_NAME[] = "node";
 
 public:
-    GDSAlgorithm() = default;
-
-    GDSAlgorithm(const GDSAlgorithm& other) {
-        if (other.bindData != nullptr) {
-            bindData = other.bindData->copy();
-        }
-        sharedState = other.sharedState;
-    }
-
-    virtual ~GDSAlgorithm() = default;
-
-    virtual std::vector<common::LogicalTypeID> getParameterTypeIDs() const { return {}; }
-
-    virtual binder::expression_vector getResultColumns(
-        const function::GDSBindInput& bindInput) const = 0;
-
-    virtual void bind(const GDSBindInput& input, main::ClientContext& context) = 0;
-
-    const GDSBindData* getBindData() const { return bindData.get(); }
-
-    // Note: The reason this field is set separately here and not inside constructor is that the
-    // original GDSAlgorithm is constructed in the binding stage. In contrast, sharedState is
-    // constructed during mapping phase. Also as a coding pattern, "shared state objects" used
-    // inside physical operators are set inside the init functions inside the operators. Although
-    // GDSAlgorithm is not an operator, it is close to an operator. It is simply used by the GDSCall
-    // operator, which is basically a wrapper around a GDSAlgorithm.
-    void setSharedState(std::shared_ptr<processor::GDSCallSharedState> _sharedState) {
-        sharedState = _sharedState;
-    }
-
-    virtual void exec(processor::ExecutionContext* executionContext) = 0;
-
-    virtual std::unique_ptr<GDSAlgorithm> copy() const = 0;
-
-    template<class TARGET>
-    TARGET& cast() {
-        return common::ku_dynamic_cast<TARGET&>(*this);
-    }
-
-protected:
-    graph::GraphEntry bindGraphEntry(main::ClientContext& context, const std::string& name);
-    std::shared_ptr<binder::Expression> bindNodeOutput(const GDSBindInput& bindInput,
+    static graph::GraphEntry bindGraphEntry(main::ClientContext& context, const std::string& name);
+    static std::shared_ptr<binder::Expression> bindNodeOutput(const TableFuncBindInput& bindInput,
         const std::vector<catalog::TableCatalogEntry*>& nodeEntries);
-
     static std::string bindColumnName(const parser::YieldVariable& yieldVariable,
         std::string expressionName);
 
-protected:
-    std::unique_ptr<GDSBindData> bindData;
-    std::shared_ptr<processor::GDSCallSharedState> sharedState;
+    static std::unique_ptr<TableFuncSharedState> initSharedState(
+        const TableFunctionInitInput& input);
+    static void getLogicalPlan(planner::Planner* planner,
+        const binder::BoundReadingClause& readingClause,
+        std::shared_ptr<planner::LogicalOperator> logicalOp,
+        const std::vector<std::unique_ptr<planner::LogicalPlan>>& logicalPlans);
+    static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
+        processor::PlanMapper* planMapper, const planner::LogicalOperator* logicalOp);
 };
 
 } // namespace function
