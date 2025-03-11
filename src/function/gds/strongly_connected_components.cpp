@@ -40,7 +40,7 @@ struct SccComputationState : GDSAuxiliaryState {
 
     bool update(offset_t boundOffset, offset_t nbrOffset, bool isFwd) {
         auto& colors = isFwd ? fwdColors : bwdColors;
-        return colors.compare_exchange_max(boundOffset, nbrOffset);
+        return colors.compare_exchange_strong_max(boundOffset, nbrOffset);
     }
 
     bool isSccIdSet(offset_t nodeId) { return sccIDs.getRelaxed(nodeId) != SCC_UNSET; }

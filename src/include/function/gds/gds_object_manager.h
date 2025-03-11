@@ -77,7 +77,7 @@ public:
         return array.data[pos].load(std::memory_order_relaxed);
     }
 
-    bool compare_exchange_max(const common::offset_t src, const common::offset_t dest) {
+    bool compare_exchange_strong_max(const common::offset_t src, const common::offset_t dest) {
         auto srcValue = getRelaxed(src);
         auto dstValue = getRelaxed(dest);
         while (dstValue < srcValue) {
