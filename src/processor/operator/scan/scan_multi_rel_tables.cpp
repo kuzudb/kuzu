@@ -27,7 +27,8 @@ bool RelTableCollectionScanner::scan(Transaction* transaction, RelTableScanState
         if (relInfo.table->scan(transaction, scanState)) {
             if (directionVector != nullptr) {
                 for (auto i = 0u; i < scanState.outState->getSelVector().getSelSize(); ++i) {
-                    directionVector->setValue<bool>(i, directionValues[currentTableIdx]);
+                    auto pos = scanState.outState->getSelVector()[i];
+                    directionVector->setValue<bool>(pos, directionValues[currentTableIdx]);
                 }
             }
             if (scanState.outState->getSelVector().getSelSize() > 0) {
