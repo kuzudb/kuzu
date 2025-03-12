@@ -1,5 +1,4 @@
 #include "binder/query/reading_clause/bound_gds_call.h"
-#include "planner/operator/logical_dummy_sink.h"
 #include "planner/operator/logical_gds_call.h"
 #include "planner/planner.h"
 

@@ -56,8 +56,8 @@ static std::vector<common::LogicalType> inferInputTypes(const binder::expression
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
     context->setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
-    const auto indexName = input->getLiteralVal<std::string>(0);
-    const auto tableName = input->getLiteralVal<std::string>(1);
+    const auto tableName = input->getLiteralVal<std::string>(0);
+    const auto indexName = input->getLiteralVal<std::string>(1);
     auto inputQueryExpression = input->params[2];
     const auto k = input->getLiteralVal<int64_t>(3);
 
