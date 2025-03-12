@@ -4,9 +4,6 @@ on:
   pull_request:
     branches:
       - master
-  pull_request_target:
-    branches:
-      - master
   push:
     branches:
       - master
@@ -41,11 +38,6 @@ on:
         required: false
         default: 16777216
         type: number
-
-permissions:
-  contents: write
-  pull-requests: write
-
 env:
   RUNTIME_CHECKS: 1
   USE_EXISTING_BINARY_DATASET: 1
