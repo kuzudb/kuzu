@@ -28,6 +28,9 @@ ListChunkData::ListChunkData(MemoryManager& memoryManager, LogicalType dataType,
     sizeColumnChunk =
         ColumnChunkFactory::createColumnChunkData(memoryManager, LogicalType::UINT32(),
             enableCompression, capacity, ResidencyState::IN_MEMORY, false /*hasNull*/);
+    if (ListColumn::disableCompressionOnData(this->dataType)) {
+        enableCompression = false;
+    }
     dataColumnChunk = ColumnChunkFactory::createColumnChunkData(memoryManager,
         ListType::getChildType(this->dataType).copy(), enableCompression, 0 /* capacity */,
         ResidencyState::IN_MEMORY);
@@ -40,14 +43,18 @@ ListChunkData::ListChunkData(MemoryManager& memoryManager, LogicalType dataType,
     bool enableCompression, const ColumnChunkMetadata& metadata)
     : ColumnChunkData{memoryManager, std::move(dataType), enableCompression, metadata,
           true /*hasNullData*/},
-      offsetColumnChunk{ColumnChunkFactory::createColumnChunkData(memoryManager,
-          LogicalType::UINT64(), enableCompression, 0, ResidencyState::ON_DISK)},
-      sizeColumnChunk{ColumnChunkFactory::createColumnChunkData(memoryManager,
-          LogicalType::UINT32(), enableCompression, 0, ResidencyState::ON_DISK)},
-      dataColumnChunk{ColumnChunkFactory::createColumnChunkData(memoryManager,
-          ListType::getChildType(this->dataType).copy(), enableCompression, 0 /* capacity */,
-          ResidencyState::ON_DISK)},
-      checkOffsetSortedAsc{false} {}
+      checkOffsetSortedAsc{false} {
+    offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(memoryManager,
+        LogicalType::UINT64(), enableCompression, 0, ResidencyState::ON_DISK);
+    sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(memoryManager,
+        LogicalType::UINT32(), enableCompression, 0, ResidencyState::ON_DISK);
+    if (ListColumn::disableCompressionOnData(this->dataType)) {
+        enableCompression = false;
+    }
+    dataColumnChunk = ColumnChunkFactory::createColumnChunkData(memoryManager,
+        ListType::getChildType(this->dataType).copy(), enableCompression, 0 /* capacity */,
+        ResidencyState::ON_DISK);
+}
 
 bool ListChunkData::isOffsetsConsecutiveAndSortedAscending(uint64_t startPos,
     uint64_t endPos) const {
