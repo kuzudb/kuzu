@@ -1,6 +1,6 @@
 #pragma once
 
-#include "function/table/table_function.h"
+#include "function/function.h"
 
 namespace kuzu {
 namespace function {
