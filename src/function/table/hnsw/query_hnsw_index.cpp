@@ -1,6 +1,6 @@
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
-#include "binder/expression/parameter_expression.h"
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
@@ -45,7 +45,7 @@ static std::vector<common::LogicalType> inferInputTypes(const binder::expression
     if (inputQueryExpression->expressionType == common::ExpressionType::LITERAL) {
         auto val = inputQueryExpression->constCast<binder::LiteralExpression>().getValue();
         inputTypes.push_back(
-            common::LogicalType::ARRAY(common::LogicalType::DOUBLE(), val.getChildrenSize()));
+            common::LogicalType::ARRAY(common::LogicalType::FLOAT(), val.getChildrenSize()));
     } else {
         inputTypes.push_back(common::LogicalType::ANY());
     }
@@ -83,81 +83,25 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         outputNode);
 }
 
-static common::PhysicalTypeID getChildQueryValType(const common::Value& value) {
-    auto childValType = common::PhysicalTypeID::ANY;
-    switch (value.getDataType().getPhysicalType()) {
-    case common::PhysicalTypeID::ARRAY: {
-        childValType = value.getDataType()
-                           .getExtraTypeInfo()
-                           ->constPtrCast<common::ArrayTypeInfo>()
-                           ->getChildType()
-                           .getPhysicalType();
-    } break;
-    case common::PhysicalTypeID::LIST: {
-        childValType = value.getDataType()
-                           .getExtraTypeInfo()
-                           ->constPtrCast<common::ListTypeInfo>()
-                           ->getChildType()
-                           .getPhysicalType();
-    } break;
-    default: {
-        throw common::RuntimeException(
-            common::stringFormat("Unsupported data type {} as a query vector in {}",
-                value.getDataType().toString(), QueryHNSWIndexFunction::name));
-    }
-    }
-    return childValType;
-}
-
-template<typename T>
-static void convertQueryVector(const common::Value& value, std::vector<float>& queryVector) {
+static std::vector<float> convertQueryVector(const common::Value& value) {
+    std::vector<float> queryVector;
     auto numElements = value.getChildrenSize();
-    queryVector.resize(numElements);
-    for (auto i = 0u; i < queryVector.size(); i++) {
-        queryVector[i] = common::NestedVal::getChildVal(&value, i)->getValue<T>();
+    queryVector.reserve(numElements);
+    for (auto i = 0u; i < numElements; i++) {
+        queryVector[i] = common::NestedVal::getChildVal(&value, i)->getValue<float>();
     }
-}
-
-static common::Value getQueryValue(const binder::Expression& queryExpression) {
-    auto value = common::Value::createDefaultValue(queryExpression.dataType);
-    switch (queryExpression.expressionType) {
-    case common::ExpressionType::LITERAL: {
-        value = queryExpression.constCast<binder::LiteralExpression>().getValue();
-    } break;
-    case common::ExpressionType::PARAMETER: {
-        value = queryExpression.constCast<binder::ParameterExpression>().getValue();
-    } break;
-    default: {
-        throw common::RuntimeException(common::stringFormat("Unsupported expression type {} in {}",
-            common::ExpressionTypeUtil::toString(queryExpression.expressionType),
-            QueryHNSWIndexFunction::name));
-    }
-    }
-    return value;
+    return queryVector;
 }
 
 static std::vector<float> getQueryVector(const binder::Expression& queryExpression,
     uint64_t dimension) {
-    auto value = getQueryValue(queryExpression);
-    common::PhysicalTypeID childValType = getChildQueryValType(value);
-    std::vector<float> queryVector;
+    auto value = binder::ExpressionUtil::evaluateAsLiteralValue(queryExpression);
     if (value.getChildrenSize() != dimension) {
         throw common::RuntimeException("Query vector dimension does not match index dimension.");
     }
-    switch (childValType) {
-    case common::PhysicalTypeID::FLOAT: {
-        convertQueryVector<float>(value, queryVector);
-    } break;
-    case common::PhysicalTypeID::DOUBLE: {
-        convertQueryVector<double>(value, queryVector);
-    } break;
-    default: {
-        throw common::RuntimeException(
-            common::stringFormat("Unsupported data type {} as a query vector in {}",
-                value.getDataType().toString(), QueryHNSWIndexFunction::name));
-    }
-    }
-    return queryVector;
+    KU_ASSERT(
+        common::NestedVal::getChildVal(&value, 0)->getDataType() == common::LogicalType::FLOAT());
+    return convertQueryVector(value);
 }
 
 static const common::LogicalType& getIndexColumnType(const BoundQueryHNSWIndexInput& boundInput) {
