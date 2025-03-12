@@ -22,8 +22,8 @@ struct DropHNSWIndexBindData final : TableFuncBindData {
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
-    const auto indexName = input->getLiteralVal<std::string>(0);
-    const auto tableName = input->getLiteralVal<std::string>(1);
+    const auto tableName = input->getLiteralVal<std::string>(0);
+    const auto indexName = input->getLiteralVal<std::string>(1);
     const auto tableEntry = storage::IndexUtils::bindTable(*context, tableName, indexName,
         storage::IndexOperation::DROP);
     return std::make_unique<DropHNSWIndexBindData>(tableEntry, indexName);
@@ -47,7 +47,7 @@ static std::string dropHNSWIndexTables(main::ClientContext& context,
         query += "BEGIN TRANSACTION;";
     }
     query += common::stringFormat("CALL _DROP_HNSW_INDEX('{}', '{}');",
-        dropHNSWIndexBindData->indexName, dropHNSWIndexBindData->tableEntry->getName());
+        dropHNSWIndexBindData->tableEntry->getName(), dropHNSWIndexBindData->indexName);
     query += common::stringFormat("DROP TABLE {};",
         storage::HNSWIndexUtils::getUpperGraphTableName(dropHNSWIndexBindData->indexName));
     query += common::stringFormat("DROP TABLE {};",

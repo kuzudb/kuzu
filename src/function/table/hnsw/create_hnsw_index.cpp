@@ -33,8 +33,8 @@ CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBind
 
 static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
-    const auto indexName = input->getLiteralVal<std::string>(0);
-    const auto tableName = input->getLiteralVal<std::string>(1);
+    const auto tableName = input->getLiteralVal<std::string>(0);
+    const auto indexName = input->getLiteralVal<std::string>(1);
     const auto columnName = input->getLiteralVal<std::string>(2);
     auto tableEntry = storage::IndexUtils::bindTable(*context, tableName, indexName,
         storage::IndexOperation::CREATE);
@@ -316,7 +316,7 @@ static std::string rewriteCreateHNSWQuery(main::ClientContext& context,
     params += stringFormat("pu := {}", config.pu);
     auto columnName = hnswBindData->tableEntry->getProperty(hnswBindData->propertyID).getName();
     query += stringFormat("CALL _CACHE_ARRAY_COLUMN_LOCALLY('{}', '{}');", tableName, columnName);
-    query += stringFormat("CALL _CREATE_HNSW_INDEX('{}', '{}', '{}', {});", indexName, tableName,
+    query += stringFormat("CALL _CREATE_HNSW_INDEX('{}', '{}', '{}', {});", tableName, indexName,
         columnName, params);
     query += stringFormat("RETURN 'Index {} has been created.' as result;", indexName);
     query += "COMMIT;";
