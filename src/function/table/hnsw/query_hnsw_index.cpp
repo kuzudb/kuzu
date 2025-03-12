@@ -5,6 +5,7 @@
 #include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/types/value/nested.h"
+#include "expression_evaluator/expression_evaluator_utils.h"
 #include "function/table/bind_data.h"
 #include "function/table/hnsw/hnsw_index_functions.h"
 #include "planner/operator/logical_hash_join.h"
@@ -93,9 +94,15 @@ static std::vector<float> convertQueryVector(const common::Value& value) {
     return queryVector;
 }
 
-static std::vector<float> getQueryVector(const binder::Expression& queryExpression,
-    uint64_t dimension) {
-    auto value = binder::ExpressionUtil::evaluateAsLiteralValue(queryExpression);
+static std::vector<float> getQueryVector(main::ClientContext* context,
+    const std::shared_ptr<binder::Expression> queryExpression, uint64_t dimension) {
+    binder::Binder binder{context};
+    auto literalExpression = std::make_shared<binder::LiteralExpression>(
+        binder::ExpressionUtil::evaluateAsLiteralValue(*queryExpression),
+        queryExpression->getUniqueName());
+    auto expr = binder.getExpressionBinder()->implicitCastIfNecessary(literalExpression,
+        common::LogicalType::ARRAY(common::LogicalType::FLOAT(), dimension));
+    auto value = evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(expr, context);
     if (value.getChildrenSize() != dimension) {
         throw common::RuntimeException("Query vector dimension does not match index dimension.");
     }
@@ -126,7 +133,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& 
         index->setDefaultLowerEntryPoint(auxInfo.lowerEntryPoint);
         auto dimension =
             common::ArrayType::getNumElements(getIndexColumnType(bindData->boundInput));
-        auto queryVector = getQueryVector(*bindData->boundInput.queryExpression, dimension);
+        auto queryVector = getQueryVector(input.context->clientContext,
+            bindData->boundInput.queryExpression, dimension);
         localState->result = index->search(input.context->clientContext->getTransaction(),
             queryVector, bindData->boundInput.k, bindData->config, localState->visited,
             *localState->embeddingScanState.scanState);
