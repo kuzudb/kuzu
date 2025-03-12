@@ -96,16 +96,16 @@ static std::vector<float> convertQueryVector(const common::Value& value) {
 
 static std::vector<float> getQueryVector(main::ClientContext* context,
     const std::shared_ptr<binder::Expression> queryExpression, uint64_t dimension) {
+    std::shared_ptr<binder::Expression> literalExpression = queryExpression;
+    if (queryExpression->expressionType == common::ExpressionType::PARAMETER) {
+        literalExpression = std::make_shared<binder::LiteralExpression>(
+            binder::ExpressionUtil::evaluateAsLiteralValue(*queryExpression),
+            queryExpression->getUniqueName());
+    }
     binder::Binder binder{context};
-    auto literalExpression = std::make_shared<binder::LiteralExpression>(
-        binder::ExpressionUtil::evaluateAsLiteralValue(*queryExpression),
-        queryExpression->getUniqueName());
     auto expr = binder.getExpressionBinder()->implicitCastIfNecessary(literalExpression,
         common::LogicalType::ARRAY(common::LogicalType::FLOAT(), dimension));
     auto value = evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(expr, context);
-    if (value.getChildrenSize() != dimension) {
-        throw common::RuntimeException("Query vector dimension does not match index dimension.");
-    }
     KU_ASSERT(
         common::NestedVal::getChildVal(&value, 0)->getDataType() == common::LogicalType::FLOAT());
     return convertQueryVector(value);
