@@ -210,8 +210,7 @@ FactorizedTableSchema PlanMapper::createFlatFTableSchema(const expression_vector
 
 std::unique_ptr<SemiMask> PlanMapper::getSemiMask(table_id_t tableID) const {
     auto table = clientContext->getStorageManager()->getTable(tableID)->ptrCast<NodeTable>();
-    return SemiMaskUtil::createMask(
-        table->getNumTotalRows(clientContext->getTransaction()));
+    return SemiMaskUtil::createMask(table->getNumTotalRows(clientContext->getTransaction()));
 }
 
 std::unique_ptr<NodeOffsetMaskMap> PlanMapper::getNodeOffsetMaskMap(

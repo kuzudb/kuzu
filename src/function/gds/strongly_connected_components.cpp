@@ -305,8 +305,8 @@ public:
             }
         }
 
-        auto writeSccIdsToOutput = std::make_unique<SccWriteIdsToOutput>(mm, sharedState.get(),
-            computationState);
+        auto writeSccIdsToOutput =
+            std::make_unique<SccWriteIdsToOutput>(mm, sharedState.get(), computationState);
         GDSUtils::runVertexCompute(context, graph, *writeSccIdsToOutput);
 
         sharedState->factorizedTablePool.mergeLocalTables();

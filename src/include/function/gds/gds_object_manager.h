@@ -39,7 +39,8 @@ private:
 template<typename T>
 class ObjectArray {
 public:
-    ObjectArray(const common::offset_t size, storage::MemoryManager* mm, bool initializeToZero = false)
+    ObjectArray(const common::offset_t size, storage::MemoryManager* mm,
+        bool initializeToZero = false)
         : allocation{mm->allocateBuffer(initializeToZero, size * sizeof(T))} {
         data = std::span<T>(reinterpret_cast<T*>(allocation->getData()), size);
     }
@@ -53,8 +54,10 @@ public:
         KU_ASSERT(pos < data.size());
         return data[pos];
     }
+
 private:
-    template<typename U> friend class AtomicObjectArray;
+    template<typename U>
+    friend class AtomicObjectArray;
     std::span<T> data;
     std::unique_ptr<storage::MemoryBuffer> allocation;
 };
@@ -63,9 +66,9 @@ private:
 template<typename T>
 class AtomicObjectArray {
 public:
-    AtomicObjectArray(const common::offset_t size, storage::MemoryManager* mm, bool initializeToZero = false)
-        : array{ObjectArray<std::atomic<T>>(size, mm, initializeToZero)} {
-    }
+    AtomicObjectArray(const common::offset_t size, storage::MemoryManager* mm,
+        bool initializeToZero = false)
+        : array{ObjectArray<std::atomic<T>>(size, mm, initializeToZero)} {}
 
     void setRelaxed(common::offset_t pos, const T& value) {
         KU_ASSERT(pos < array.data.size());
@@ -87,6 +90,7 @@ public:
         }
         return false;
     }
+
 private:
     ObjectArray<std::atomic<T>> array;
 };
