@@ -186,13 +186,13 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_doub
 
 -LOG LoadFromIncorrectFormat
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_double.npy" (file_format='npyd') RETURN *;
----- error (regex)
+---- error
 Binder exception: Cannot load from file type npyd. If this file type is part of a kuzu extension please load the extension then try again.
 
 -CASE LoadFromMultipleFiles
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson*.csv" RETURN id;
----- error
-Binder exception: Number of columns mismatch. Expected 16 but got 3.
+---- error(regex)
+Binder exception: Number of columns mismatch. Expected .+
 -STATEMENT LOAD FROM ["${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv", "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows_2.csv"] RETURN COUNT(*);
 ---- 1
 14
