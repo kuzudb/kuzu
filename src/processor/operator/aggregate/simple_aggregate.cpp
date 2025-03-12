@@ -210,7 +210,7 @@ void SimpleAggregate::executeInternal(ExecutionContext* context) {
                 // Just add distinct value to the hash table. We'll calculate the aggregate state
                 // once it's been merged into the shared state
                 distinctHashTables[i]->appendDistinct(std::vector<ValueVector*>{},
-                    aggInputs[i].aggregateVector);
+                    aggInputs[i].aggregateVector, aggInputs[i].aggregateVector->state.get());
             } else {
                 computeAggregate(aggregateFunction, &aggInputs[i], localAggregateStates[i].get(),
                     memoryManager);
