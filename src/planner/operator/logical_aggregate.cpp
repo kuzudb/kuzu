@@ -2,6 +2,7 @@
 
 #include "binder/expression/expression_util.h"
 #include "planner/operator/factorization/flatten_resolver.h"
+#include "planner/operator/schema.h"
 
 namespace kuzu {
 namespace planner {
@@ -27,12 +28,26 @@ void LogicalAggregate::computeFlatSchema() {
     insertAllExpressionsToGroupAndScope(0 /* groupPos */);
 }
 
-f_group_pos_set LogicalAggregate::getGroupsPosToFlattenForGroupBy() {
-    return FlattenAllButOne::getGroupsPosToFlatten(getAllKeys(), *children[0]->getSchema());
-}
-
-f_group_pos_set LogicalAggregate::getGroupsPosToFlattenForAggregate() {
-    return f_group_pos_set{};
+f_group_pos_set LogicalAggregate::getGroupsPosToFlatten() {
+    auto [unflatGroup, flattenedGroups] =
+        FlattenAllButOne::getGroupsPosToFlatten(getAllKeys(), *children[0]->getSchema());
+    // Flatten aggregates if they are from a different group than the unflat key group
+    if (unflatGroup != INVALID_F_GROUP_POS) {
+        for (const auto& aggregate : aggregates) {
+            auto analyzer = GroupDependencyAnalyzer(false /* collectDependentExpr */,
+                *children[0]->getSchema());
+            analyzer.visit(aggregate);
+            for (const auto& group : analyzer.getRequiredFlatGroups()) {
+                flattenedGroups.insert(group);
+            }
+            for (const auto& group : analyzer.getDependentGroups()) {
+                if (group != unflatGroup) {
+                    flattenedGroups.insert(group);
+                }
+            }
+        }
+    }
+    return flattenedGroups;
 }
 
 std::string LogicalAggregate::getExpressionsForPrinting() const {

@@ -8,8 +8,8 @@ namespace planner {
 class GroupDependencyAnalyzer;
 
 struct FlattenAllButOne {
-    static f_group_pos_set getGroupsPosToFlatten(const binder::expression_vector& exprs,
-        const Schema& schema);
+    static std::pair<f_group_pos, f_group_pos_set> getGroupsPosToFlatten(
+        const binder::expression_vector& exprs, const Schema& schema);
     static f_group_pos_set getGroupsPosToFlatten(std::shared_ptr<binder::Expression> expr,
         const Schema& schema);
     // Assume no requiredFlatGroups
