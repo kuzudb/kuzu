@@ -5,9 +5,9 @@
 namespace kuzu {
 namespace hnsw_extension {
 
-class HNSWExtension final : public extension::Extension {
+class VectorExtension final : public extension::Extension {
 public:
-    static constexpr char EXTENSION_NAME[] = "HNSW";
+    static constexpr char EXTENSION_NAME[] = "VECTOR";
 
 public:
     static void load(main::ClientContext* context);

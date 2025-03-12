@@ -6,21 +6,21 @@ include_directories(
 
 add_subdirectory(src)
 
-add_library(hnsw_extension
+add_library(vector_extension
         SHARED
-        ${HNSW_OBJECT_FILES})
+        ${VECTOR_OBJECT_FILES})
 
-target_link_libraries(hnsw_extension
+target_link_libraries(vector_extension
         PRIVATE
         simsimd)
 
-set_extension_properties(hnsw_extension hnsw hnsw)
+set_extension_properties(vector_extension vector vector)
 
 if (WIN32)
     # See comment in extension/httpfs/CMakeLists.txt
-    target_link_libraries(hnsw_extension PRIVATE kuzu)
+    target_link_libraries(vector_extension PRIVATE kuzu)
 endif ()
 
 if (APPLE)
-    set_apple_dynamic_lookup(hnsw_extension)
+    set_apple_dynamic_lookup(vector_extension)
 endif ()

@@ -1,4 +1,4 @@
-#include "hnsw_extension.h"
+#include "vector_extension.h"
 
 #include "catalog/hnsw_index_catalog_entry.h"
 #include "function/hnsw_index_functions.h"
@@ -18,7 +18,7 @@ static void initHNSWEntries(const transaction::Transaction* transaction,
     }
 }
 
-void HNSWExtension::load(main::ClientContext* context) {
+void VectorExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
     extension::ExtensionUtils::addTableFunc<function::QueryHNSWIndexFunction>(db);
     extension::ExtensionUtils::addInternalStandaloneTableFunc<
@@ -44,10 +44,10 @@ extern "C" {
 #define INIT_EXPORT __attribute__((visibility("default")))
 #endif
 INIT_EXPORT void init(kuzu::main::ClientContext* context) {
-    kuzu::hnsw_extension::HNSWExtension::load(context);
+    kuzu::hnsw_extension::VectorExtension::load(context);
 }
 
 INIT_EXPORT const char* name() {
-    return kuzu::hnsw_extension::HNSWExtension::EXTENSION_NAME;
+    return kuzu::hnsw_extension::VectorExtension::EXTENSION_NAME;
 }
 }

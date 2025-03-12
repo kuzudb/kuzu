@@ -95,7 +95,7 @@ allconfig:
 	$(call config-cmake-release, \
 		-DBUILD_BENCHMARK=TRUE \
 		-DBUILD_EXAMPLES=TRUE \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog;hnsw" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog;vector" \
 		-DBUILD_JAVA=TRUE \
 		-DBUILD_NODEJS=TRUE \
 		-DBUILD_PYTHON=TRUE \
@@ -110,7 +110,7 @@ alldebug:
 	$(call run-cmake-debug, \
 		-DBUILD_BENCHMARK=TRUE \
 		-DBUILD_EXAMPLES=TRUE \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog;hnsw" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog;vector" \
 		-DBUILD_JAVA=TRUE \
 		-DBUILD_NODEJS=TRUE \
 		-DBUILD_PYTHON=TRUE \
@@ -199,7 +199,7 @@ example:
 
 extension-test-build:
 	$(call run-cmake-relwithdebinfo, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog;hnsw" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog;vector" \
 		-DBUILD_EXTENSION_TESTS=TRUE \
 		-DBUILD_TESTS=TRUE \
 	)
@@ -226,13 +226,13 @@ extension-json-test: extension-json-test-build
 
 extension-debug:
 	$(call run-cmake-debug, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog;hnsw" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog;vector" \
 		-DBUILD_KUZU=FALSE \
 	)
 
 extension-release:
 	$(call run-cmake-release, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog;hnsw" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog;vector" \
 		-DBUILD_KUZU=FALSE \
 	)
 
