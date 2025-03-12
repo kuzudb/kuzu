@@ -33,11 +33,6 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& re
         boundLoadFrom = std::make_unique<BoundLoadFrom>(scanInfo.copy());
     } break;
     case ScanSourceType::FILE: {
-        auto fileSource = source->constPtrCast<FileScanSource>();
-        auto filePaths = bindFilePaths(fileSource->filePaths);
-        if (filePaths.size() > 1) {
-            throw BinderException("Load from multiple files is not supported.");
-        }
         auto boundScanSource =
             bindFileScanSource(*source, loadFrom.getParsingOptions(), columnNames, columnTypes);
         auto& scanInfo = boundScanSource->constCast<BoundTableScanSource>().info;
