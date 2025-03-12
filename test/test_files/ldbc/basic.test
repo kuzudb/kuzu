@@ -14,3 +14,16 @@
             RETURN COUNT(*)
 ---- 1
 0
+
+-STATEMENT MATCH p=(:Post)-[:containerOf]-(:Forum) WITH CAST(struct_extract(rels(p)[1],'_src'), 'STRING') AS s RETURN string_split(s, ':')[1]  LIMIT 10;
+---- 10
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
