@@ -32,7 +32,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         TableFunction::extractYieldVariables(returnColumnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(returnColumnNames, returnTypes);
     return std::make_unique<DeltaScanBindData>(std::move(query), connector,
-        duckdb_extension::DuckDBResultConverter{returnTypes}, columns);
+        duckdb_extension::DuckDBResultConverter{returnTypes}, columns, context);
 }
 
 std::unique_ptr<TableFuncSharedState> initDeltaScanSharedState(
