@@ -34,7 +34,7 @@ PatternCreationInfo PatternCreationInfoTable::getPatternCreationInfo(
     } else {
         resizeHashTableIfNecessary(1);
         computeVectorHashes(keyVectors);
-        findHashSlots(keyVectors, std::vector<common::ValueVector*>{});
+        findHashSlots(keyVectors, std::vector<common::ValueVector*>{}, keyVectors[0]->state.get());
         hasCreated = tuple != nullptr;
         auto idTuple = tuple == nullptr ?
                            factorizedTable->getTuple(factorizedTable->getNumTuples() - 1) :

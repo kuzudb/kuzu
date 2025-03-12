@@ -89,17 +89,19 @@ public:
     }
 
     void appendDistinct(const std::vector<common::ValueVector*>& keyVectors,
-        common::ValueVector* aggregateVector);
+        common::ValueVector* aggregateVector, const common::DataChunkState* leadingState);
 
 protected:
     virtual uint64_t append(const std::vector<common::ValueVector*>& keyVectors,
+        const common::DataChunkState* leadingState,
         const std::vector<AggregateInput>& aggregateInputs, uint64_t resultSetMultiplicity) {
         return append(keyVectors, std::vector<common::ValueVector*>{} /*dependentKeyVectors*/,
-            aggregateInputs, resultSetMultiplicity);
+            leadingState, aggregateInputs, resultSetMultiplicity);
     }
 
     virtual uint64_t append(const std::vector<common::ValueVector*>& keyVectors,
         const std::vector<common::ValueVector*>& dependentKeyVectors,
+        const common::DataChunkState* leadingState,
         const std::vector<AggregateInput>& aggregateInputs, uint64_t resultSetMultiplicity);
 
     virtual uint64_t matchFTEntries(std::span<const common::ValueVector*> keyVectors,
@@ -121,7 +123,8 @@ protected:
         uint64_t& numNoMatches, uint32_t colIdx);
 
     void findHashSlots(const std::vector<common::ValueVector*>& keyVectors,
-        const std::vector<common::ValueVector*>& dependentKeyVectors);
+        const std::vector<common::ValueVector*>& dependentKeyVectors,
+        const common::DataChunkState* leadingState);
 
     void findHashSlots(const FactorizedTable& data, uint64_t startOffset, uint64_t numTuples);
 
@@ -304,6 +307,7 @@ public:
 
     uint64_t append(const std::vector<common::ValueVector*>& keyVectors,
         const std::vector<common::ValueVector*>& dependentKeyVectors,
+        const common::DataChunkState* leadingState,
         const std::vector<AggregateInput>& aggregateInputs,
         uint64_t resultSetMultiplicity) override;
 

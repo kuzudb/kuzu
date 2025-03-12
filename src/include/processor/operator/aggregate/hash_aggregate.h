@@ -9,6 +9,7 @@
 #include "aggregate_hash_table.h"
 #include "common/cast.h"
 #include "common/copy_constructors.h"
+#include "common/data_chunk/data_chunk_state.h"
 #include "common/in_mem_overflow_buffer.h"
 #include "common/mpsc_queue.h"
 #include "common/types/types.h"
@@ -116,6 +117,7 @@ public:
 struct HashAggregateLocalState {
     std::vector<common::ValueVector*> keyVectors;
     std::vector<common::ValueVector*> dependentKeyVectors;
+    common::DataChunkState* leadingState = nullptr;
     std::unique_ptr<PartitioningAggregateHashTable> aggregateHashTable;
 
     void init(HashAggregateSharedState* sharedState, ResultSet& resultSet,
