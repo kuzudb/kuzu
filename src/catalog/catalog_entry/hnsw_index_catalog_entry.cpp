@@ -50,7 +50,7 @@ std::string HNSWIndexAuxInfo::toCypher(const IndexCatalogEntry& indexEntry,
     auto distFuncName = storage::HNSWIndexConfig::distFuncToString(config.distFunc);
     cypher += common::stringFormat("CALL CREATE_HNSW_INDEX('{}', '{}', '{}', mu := {}, ml := {}, "
                                    "pu := {}, distFunc := '{}', alpha := {}, efc := {});",
-        indexEntry.getIndexName(), tableName, propertyName, config.mu, config.ml, config.pu,
+        tableName, indexEntry.getIndexName(), propertyName, config.mu, config.ml, config.pu,
         distFuncName, config.alpha, config.efc);
     return cypher;
 }

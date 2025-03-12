@@ -13,9 +13,9 @@ public:
     LogicalRecursiveExtend(std::unique_ptr<function::RJAlgorithm> function,
         function::RJBindData bindData, binder::expression_vector resultColumns,
         common::table_id_set_t nbrTableIDSet)
-        : LogicalOperator{operatorType_}, function{std::move(function)},
-          bindData{std::move(bindData)}, resultColumns{std::move(resultColumns)},
-          nbrTableIDSet{std::move(nbrTableIDSet)}, limitNum{common::INVALID_LIMIT} {}
+        : LogicalOperator{operatorType_}, function{std::move(function)}, bindData{bindData},
+          resultColumns{std::move(resultColumns)}, nbrTableIDSet{std::move(nbrTableIDSet)},
+          limitNum{common::INVALID_LIMIT} {}
 
     void computeFlatSchema() override;
     void computeFactorizedSchema() override;
