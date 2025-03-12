@@ -4,8 +4,8 @@
 #include "binder/expression/literal_expression.h"
 #include "catalog/catalog.h"
 #include "function/built_in_function_utils.h"
-#include "main/client_context.h"
 #include "function/table/bind_data.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;

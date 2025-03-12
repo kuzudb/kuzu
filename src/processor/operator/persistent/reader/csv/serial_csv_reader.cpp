@@ -232,8 +232,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     for (auto& column : warningColumns) {
         resultColumns.push_back(column);
     }
-    return std::make_unique<ScanFileBindData>(std::move(resultColumns), scanInput->fileScanInfo.copy(),
-        context, numWarningDataColumns, 0 /* estCardinality */);
+    return std::make_unique<ScanFileBindData>(std::move(resultColumns),
+        scanInput->fileScanInfo.copy(), context, numWarningDataColumns, 0 /* estCardinality */);
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {

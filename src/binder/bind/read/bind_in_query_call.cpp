@@ -6,9 +6,9 @@
 #include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
 #include "function/gds_function.h"
+#include "main/client_context.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
-#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
