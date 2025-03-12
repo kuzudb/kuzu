@@ -57,18 +57,31 @@ bool ListOffsetSizeInfo::isOffsetSortedAscending(uint64_t startPos, uint64_t end
 
 ListColumn::ListColumn(std::string name, LogicalType dataType, FileHandle* dataFH,
     MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression)
-    : Column{name, std::move(dataType), dataFH, mm, shadowFile, enableCompression,
+    : Column{std::move(name), std::move(dataType), dataFH, mm, shadowFile, enableCompression,
           true /* requireNullColumn */} {
     auto offsetColName =
-        StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "offset_");
-    auto sizeColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "");
-    auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
+        StorageUtils::getColumnName(this->name, StorageUtils::ColumnType::OFFSET, "offset_");
+    auto sizeColName =
+        StorageUtils::getColumnName(this->name, StorageUtils::ColumnType::OFFSET, "");
+    auto dataColName = StorageUtils::getColumnName(this->name, StorageUtils::ColumnType::DATA, "");
     sizeColumn = std::make_unique<Column>(sizeColName, LogicalType::UINT32(), dataFH, mm,
         shadowFile, enableCompression, false /*requireNullColumn*/);
-    dataColumn = ColumnFactory::createColumn(dataColName,
-        ListType::getChildType(this->dataType).copy(), dataFH, mm, shadowFile, enableCompression);
     offsetColumn = std::make_unique<Column>(offsetColName, LogicalType::UINT64(), dataFH, mm,
         shadowFile, enableCompression, false /*requireNullColumn*/);
+    if (disableCompressionOnData(this->dataType)) {
+        enableCompression = false;
+    }
+    dataColumn = ColumnFactory::createColumn(dataColName,
+        ListType::getChildType(this->dataType).copy(), dataFH, mm, shadowFile, enableCompression);
+}
+
+bool ListColumn::disableCompressionOnData(const LogicalType& dataType) {
+    if (ListType::getChildType(dataType).getPhysicalType() == PhysicalTypeID::FLOAT ||
+        ListType::getChildType(dataType).getPhysicalType() == PhysicalTypeID::DOUBLE) {
+        // Force disable compression for floating point types.
+        return true;
+    }
+    return false;
 }
 
 std::unique_ptr<ColumnChunkData> ListColumn::flushChunkData(const ColumnChunkData& chunk,

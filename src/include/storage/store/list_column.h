@@ -52,6 +52,8 @@ public:
     ListColumn(std::string name, common::LogicalType dataType, FileHandle* dataFH,
         MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression);
 
+    static bool disableCompressionOnData(const common::LogicalType& dataType);
+
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunk,
         FileHandle& dataFH);
 

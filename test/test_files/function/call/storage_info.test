@@ -22,3 +22,11 @@
 -STATEMENT CALL storage_info('person') WHERE column_name='person_null' AND compression<>'CONSTANT' RETURN COUNT(*)
 ---- 1
 0
+
+-CASE DisableFloatListDataCompression
+-STATEMENT CALL storage_info('meets') WHERE column_name='fwd_location_data' AND compression <> 'UNCOMPRESSED' RETURN COUNT(*);
+---- 1
+0
+-STATEMENT CALL storage_info('meets') WHERE column_name='bwd_location_data' AND compression <> 'UNCOMPRESSED' RETURN COUNT(*);
+---- 1
+0
