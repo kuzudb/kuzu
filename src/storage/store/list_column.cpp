@@ -76,8 +76,9 @@ ListColumn::ListColumn(std::string name, LogicalType dataType, FileHandle* dataF
 }
 
 bool ListColumn::disableCompressionOnData(const LogicalType& dataType) {
-    if (ListType::getChildType(dataType).getPhysicalType() == PhysicalTypeID::FLOAT ||
-        ListType::getChildType(dataType).getPhysicalType() == PhysicalTypeID::DOUBLE) {
+    if (dataType.getLogicalTypeID() == LogicalTypeID::ARRAY &&
+        (ListType::getChildType(dataType).getPhysicalType() == PhysicalTypeID::FLOAT ||
+            ListType::getChildType(dataType).getPhysicalType() == PhysicalTypeID::DOUBLE)) {
         // Force disable compression for floating point types.
         return true;
     }
