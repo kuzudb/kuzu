@@ -581,24 +581,7 @@ void AggregateHashTable::appendDistinct(const std::vector<ValueVector*>& keyVect
     ValueVector* aggregateVector) {
     std::vector<ValueVector*> distinctKeyVectors(keyVectors);
     distinctKeyVectors.push_back(aggregateVector);
-    if (!keyVectors.empty() && !aggregateVector->state->isFlat() &&
-        getFirstUnflatState(keyVectors) != aggregateVector->state.get()) {
-        // If the aggregateVector is unFlat, with a different state from the unflat vectors in the
-        // keys, flatten the aggregate vector and append values one by one since there can be at
-        // most one unflat group in the keyVectors.
-        auto oldState = std::move(aggregateVector->state);
-        aggregateVector->state = std::make_unique<DataChunkState>(1);
-        aggregateVector->state->setToFlat();
-        aggregateVector->state->getSelVectorUnsafe().setToFiltered(1);
-        // Append sets the leading state to select all distinct positions inserted
-        oldState->getSelVector().forEach([&](auto pos) {
-            aggregateVector->state->getSelVectorUnsafe()[0] = pos;
-            append(distinctKeyVectors, std::vector<AggregateInput>{}, 1 /*multiplicity*/);
-        });
-        aggregateVector->state = oldState;
-    } else {
-        append(distinctKeyVectors, std::vector<AggregateInput>{}, 1 /*multiplicity*/);
-    }
+    append(distinctKeyVectors, std::vector<AggregateInput>{}, 1 /*multiplicity*/);
 }
 
 void AggregateHashTable::updateAggState(const std::vector<ValueVector*>& keyVectors,
