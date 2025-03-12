@@ -263,7 +263,7 @@ Binder exception: Cannot match a built-in function for given function table_info
 -LOG WrongParameterType
 -STATEMENT CALL show_connection(123) RETURN *
 ---- error
-Binder exception: 123 has data type INT64 but STRING was expected.
+Binder exception: Show connection can only be called on a rel table!
 
 -LOG WrongParameterExprType
 -STATEMENT CALL show_connection(upper("person")) RETURN *

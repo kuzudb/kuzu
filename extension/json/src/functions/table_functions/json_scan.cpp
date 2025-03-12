@@ -9,7 +9,7 @@
 #include "common/json_common.h"
 #include "common/string_utils.h"
 #include "function/table/bind_data.h"
-#include "function/table/table_function.h"
+#include "function/table/scan_file_function.h"
 #include "json_extension.h"
 #include "json_utils.h"
 #include "processor/execution_context.h"
@@ -679,14 +679,15 @@ uint64_t JSONScanLocalState::readNext(
     return numValuesToOutput;
 }
 
-struct JsonScanBindData : public ScanBindData {
+struct JsonScanBindData : public ScanFileBindData {
     case_insensitive_map_t<idx_t> colNameToIdx;
     JsonScanFormat format;
 
     JsonScanBindData(binder::expression_vector columns, column_id_t numWarningDataColumns,
         FileScanInfo fileScanInfo, main::ClientContext* ctx,
         case_insensitive_map_t<idx_t> colNameToIdx, JsonScanFormat format)
-        : ScanBindData(columns, std::move(fileScanInfo), ctx, numWarningDataColumns, 0),
+        : ScanFileBindData(columns, std::move(fileScanInfo), ctx, numWarningDataColumns,
+              0 /* cardinality */),
           colNameToIdx{std::move(colNameToIdx)}, format{format} {}
 
     uint64_t getFieldIdx(const std::string& fieldName) const;
@@ -697,7 +698,7 @@ struct JsonScanBindData : public ScanBindData {
 
 private:
     JsonScanBindData(const JsonScanBindData& other)
-        : ScanBindData{other}, colNameToIdx{other.colNameToIdx}, format{other.format} {}
+        : ScanFileBindData{other}, colNameToIdx{other.colNameToIdx}, format{other.format} {}
 };
 
 uint64_t JsonScanBindData::getFieldIdx(const std::string& fieldName) const {

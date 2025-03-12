@@ -4,6 +4,7 @@
 #include "binder/expression/literal_expression.h"
 #include "catalog/catalog.h"
 #include "function/built_in_function_utils.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -41,11 +42,25 @@ BoundTableScanInfo Binder::bindTableFunc(const std::string& tableFuncName,
         entry->ptrCast<catalog::FunctionCatalogEntry>());
     validateParameterType(positionalParams);
     auto tableFunc = func->constPtrCast<TableFunction>();
+    std::vector<common::LogicalType> inputTypes;
+    if (tableFunc->inferInputTypes) {
+        // For functions which take in nested data types, we have to use the input parameters to
+        // detect the input types. (E.g. query_hnsw_index takes in an ARRAY which needs the user
+        // input parameters to decide the array dimension).
+        inputTypes = tableFunc->inferInputTypes(positionalParams);
+    } else {
+        // For functions which don't have nested type parameters, we can simply use the types
+        // declared in the function signature.
+        for (auto i = 0u; i < tableFunc->parameterTypeIDs.size(); i++) {
+            inputTypes.push_back(common::LogicalType(tableFunc->parameterTypeIDs[i]));
+        }
+    }
     for (auto i = 0u; i < positionalParams.size(); ++i) {
         auto parameterTypeID = tableFunc->parameterTypeIDs[i];
         if (positionalParams[i]->expressionType == ExpressionType::LITERAL &&
             parameterTypeID != LogicalTypeID::ANY) {
-            ExpressionUtil::validateDataType(*positionalParams[i], parameterTypeID);
+            positionalParams[i] = expressionBinder.foldExpression(
+                expressionBinder.implicitCastIfNecessary(positionalParams[i], inputTypes[i]));
         }
     }
     auto bindInput = TableFuncBindInput();

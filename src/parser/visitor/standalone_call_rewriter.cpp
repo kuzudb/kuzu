@@ -2,6 +2,7 @@
 
 #include "binder/binder.h"
 #include "binder/bound_standalone_call_function.h"
+#include "main/client_context.h"
 #include "parser/standalone_call_function.h"
 
 namespace kuzu {

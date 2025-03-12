@@ -16,7 +16,7 @@ struct DeltaScanFunction {
     static function::function_set getFunctionSet();
 };
 
-struct DeltaScanBindData final : function::ScanBindData {
+struct DeltaScanBindData final : function::ScanFileBindData {
     std::string query;
     std::shared_ptr<duckdb_extension::DuckDBConnector> connector;
     duckdb_extension::DuckDBResultConverter converter;
@@ -25,8 +25,9 @@ struct DeltaScanBindData final : function::ScanBindData {
         std::shared_ptr<duckdb_extension::DuckDBConnector> connector,
         duckdb_extension::DuckDBResultConverter converter, binder::expression_vector columns,
         common::FileScanInfo fileScanInfo, main::ClientContext* ctx)
-        : ScanBindData{std::move(columns), std::move(fileScanInfo), ctx}, query{std::move(query)},
-          connector{std::move(connector)}, converter{std::move(converter)} {}
+        : ScanFileBindData{std::move(columns), std::move(fileScanInfo), ctx},
+          query{std::move(query)}, connector{std::move(connector)},
+          converter{std::move(converter)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<DeltaScanBindData>(*this);

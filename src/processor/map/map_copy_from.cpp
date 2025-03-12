@@ -105,7 +105,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
         columnTypes.push_back(expr->getDataType().copy());
         columnEvaluators.push_back(exprMapper.getEvaluator(expr));
     }
-
     const auto numWarningDataColumns = copyFromInfo->source->getNumWarningDataColumns();
     KU_ASSERT(columnTypes.size() >= numWarningDataColumns);
     auto info = std::make_unique<NodeBatchInsertInfo>(nodeTableEntry,

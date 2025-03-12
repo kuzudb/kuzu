@@ -37,9 +37,10 @@ struct PyArrowTableScanFunctionData final : public function::TableFuncBindData {
         std::shared_ptr<ArrowSchemaWrapper> schema,
         std::vector<std::shared_ptr<ArrowArrayWrapper>> arrowArrayBatches, uint64_t numRows,
         bool ignoreErrors)
-        : TableFuncBindData{std::move(columns), 0 /* numWarningDataColumns */, numRows},
-          schema{std::move(schema)}, arrowArrayBatches{std::move(arrowArrayBatches)},
-          ignoreErrors(ignoreErrors) {}
+        : TableFuncBindData{std::move(columns), numRows}, schema{std::move(schema)},
+          arrowArrayBatches{std::move(arrowArrayBatches)}, ignoreErrors(ignoreErrors) {
+        this->cardinality = numRows;
+    }
 
     ~PyArrowTableScanFunctionData() override {}
 

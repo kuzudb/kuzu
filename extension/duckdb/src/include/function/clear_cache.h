@@ -3,6 +3,7 @@
 #include "common/types/types.h"
 #include "function/table/bind_data.h"
 #include "function/table/simple_table_function.h"
+#include "main/database_manager.h"
 
 namespace kuzu {
 namespace duckdb_extension {

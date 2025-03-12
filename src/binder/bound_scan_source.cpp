@@ -8,9 +8,16 @@ namespace binder {
 expression_vector BoundTableScanSource::getWarningColumns() const {
     expression_vector warningDataExprs;
     auto& columns = info.bindData->columns;
-    for (common::column_id_t i = info.bindData->numWarningDataColumns; i >= 1; --i) {
-        KU_ASSERT(i < columns.size());
-        warningDataExprs.push_back(columns[columns.size() - i]);
+    switch (type) {
+    case ScanSourceType::FILE: {
+        auto bindData = info.bindData->constPtrCast<function::ScanFileBindData>();
+        for (auto i = bindData->numWarningDataColumns; i >= 1; --i) {
+            KU_ASSERT(i < columns.size());
+            warningDataExprs.push_back(columns[columns.size() - i]);
+        }
+    } break;
+    default:
+        break;
     }
     return warningDataExprs;
 }

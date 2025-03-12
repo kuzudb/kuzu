@@ -4,6 +4,7 @@
 #include "binder/copy/bound_query_scan_info.h"
 #include "bound_table_scan_info.h"
 #include "common/enums/scan_source_type.h"
+#include "function/table/scan_file_function.h"
 
 namespace kuzu {
 namespace binder {
@@ -44,7 +45,12 @@ struct BoundTableScanSource final : BoundBaseScanSource {
     expression_vector getWarningColumns() const override;
     bool getIgnoreErrorsOption() const override;
     common::column_id_t getNumWarningDataColumns() const override {
-        return info.bindData->numWarningDataColumns;
+        switch (type) {
+        case common::ScanSourceType::FILE:
+            return info.bindData->constPtrCast<function::ScanFileBindData>()->numWarningDataColumns;
+        default:
+            return 0;
+        }
     }
 
     std::unique_ptr<BoundBaseScanSource> copy() const override {

@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "function/table/bind_data.h"
+#include "function/table/bind_input.h"
 #include "function/table/simple_table_function.h"
 
 using namespace kuzu::common;

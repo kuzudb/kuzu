@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "function/table/bind_data.h"
 #include "function/table/simple_table_function.h"
+#include "main/client_context.h"
 #include "main/database.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"

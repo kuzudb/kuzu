@@ -37,6 +37,22 @@ QueryHNSWIndexBindData::QueryHNSWIndexBindData(main::ClientContext* context,
             ->ptrCast<catalog::RelTableCatalogEntry>();
 }
 
+static std::vector<common::LogicalType> inferInputTypes(const binder::expression_vector& params) {
+    auto inputQueryExpression = params[2];
+    std::vector<common::LogicalType> inputTypes;
+    inputTypes.push_back(common::LogicalType::STRING());
+    inputTypes.push_back(common::LogicalType::STRING());
+    if (inputQueryExpression->expressionType == common::ExpressionType::LITERAL) {
+        auto val = inputQueryExpression->constCast<binder::LiteralExpression>().getValue();
+        inputTypes.push_back(
+            common::LogicalType::ARRAY(common::LogicalType::DOUBLE(), val.getChildrenSize()));
+    } else {
+        inputTypes.push_back(common::LogicalType::ANY());
+    }
+    inputTypes.push_back(common::LogicalType::INT64());
+    return inputTypes;
+}
+
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
     context->setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
@@ -252,6 +268,7 @@ function_set QueryHNSWIndexFunction::getFunctionSet() {
     tableFunction->initLocalStateFunc = initQueryHNSWLocalState;
     tableFunction->canParallelFunc = [] { return false; };
     tableFunction->getLogicalPlanFunc = getLogicalPlan;
+    tableFunction->inferInputTypes = inferInputTypes;
     functionSet.push_back(std::move(tableFunction));
     return functionSet;
 }

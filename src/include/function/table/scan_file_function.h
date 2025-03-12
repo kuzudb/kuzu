@@ -2,7 +2,9 @@
 
 #include <mutex>
 
+#include "common/constants.h"
 #include "common/copier_config/file_scan_info.h"
+#include "function/table/bind_data.h"
 #include "function/table/table_function.h"
 
 namespace kuzu {
@@ -36,6 +38,36 @@ struct ScanFileWithProgressSharedState : ScanFileSharedState {
     ScanFileWithProgressSharedState(common::FileScanInfo fileScanInfo, uint64_t numRows,
         main::ClientContext* context)
         : ScanFileSharedState{std::move(fileScanInfo), numRows}, context{context}, totalSize{0} {}
+};
+
+struct KUZU_API ScanFileBindData : public TableFuncBindData {
+    common::FileScanInfo fileScanInfo;
+    main::ClientContext* context;
+    common::column_id_t numWarningDataColumns = 0;
+
+    ScanFileBindData(binder::expression_vector columns, common::FileScanInfo fileScanInfo,
+        main::ClientContext* context)
+        : TableFuncBindData{std::move(columns)}, fileScanInfo{std::move(fileScanInfo)},
+          context{context} {}
+    ScanFileBindData(binder::expression_vector columns, common::FileScanInfo fileScanInfo,
+        main::ClientContext* context, common::column_id_t numWarningDataColumns,
+        common::cardinality_t cardinality)
+        : TableFuncBindData{std::move(columns)}, fileScanInfo{std::move(fileScanInfo)},
+          context{context}, numWarningDataColumns{numWarningDataColumns} {
+        this->cardinality = cardinality;
+    }
+    ScanFileBindData(const ScanFileBindData& other)
+        : TableFuncBindData{other}, fileScanInfo{other.fileScanInfo.copy()}, context{other.context},
+          numWarningDataColumns{other.numWarningDataColumns} {}
+
+    bool getIgnoreErrorsOption() const override {
+        return fileScanInfo.getOption(common::CopyConstants::IGNORE_ERRORS_OPTION_NAME,
+            common::CopyConstants::DEFAULT_IGNORE_ERRORS);
+    }
+
+    std::unique_ptr<TableFuncBindData> copy() const override {
+        return std::make_unique<ScanFileBindData>(*this);
+    }
 };
 
 } // namespace function

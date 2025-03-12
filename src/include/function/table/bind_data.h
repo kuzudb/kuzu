@@ -1,8 +1,6 @@
 #pragma once
 
-#include "common/copier_config/file_scan_info.h"
 #include "common/types/types.h"
-#include "main/client_context.h"
 #include "storage/predicate/column_predicate.h"
 
 namespace kuzu {
@@ -14,26 +12,18 @@ namespace function {
 
 struct KUZU_API TableFuncBindData {
     binder::expression_vector columns;
-    // the last {numWarningDataColumns} columns are for temporary internal use
-    common::column_id_t numWarningDataColumns;
-    common::cardinality_t cardinality;
+    common::cardinality_t cardinality = 0;
     common::row_idx_t numRows;
 
-    TableFuncBindData() : numWarningDataColumns{0}, cardinality{0}, numRows{0} {}
-    explicit TableFuncBindData(common::row_idx_t numRows)
-        : numWarningDataColumns{0}, cardinality{0}, numRows{numRows} {}
+    TableFuncBindData() : numRows{0} {}
+    explicit TableFuncBindData(common::row_idx_t numRows) : numRows{numRows} {}
     explicit TableFuncBindData(binder::expression_vector columns)
-        : columns{std::move(columns)}, numWarningDataColumns{0}, cardinality{0}, numRows{0} {}
+        : columns{std::move(columns)}, numRows{0} {}
     TableFuncBindData(binder::expression_vector columns, common::row_idx_t numRows)
-        : columns{std::move(columns)}, numWarningDataColumns{0}, cardinality{0}, numRows{numRows} {}
-    TableFuncBindData(binder::expression_vector columns, common::column_id_t numWarningColumns,
-        common::cardinality_t cardinality)
-        : columns{std::move(columns)}, numWarningDataColumns{numWarningColumns},
-          cardinality{cardinality}, numRows{0} {}
+        : columns{std::move(columns)}, numRows{numRows} {}
     TableFuncBindData(const TableFuncBindData& other)
-        : columns{other.columns}, numWarningDataColumns(other.numWarningDataColumns),
-          cardinality{other.cardinality}, numRows{other.numRows}, columnSkips{other.columnSkips},
-          columnPredicates{copyVector(other.columnPredicates)} {}
+        : columns{other.columns}, cardinality{other.cardinality}, numRows{other.numRows},
+          columnSkips{other.columnSkips}, columnPredicates{copyVector(other.columnPredicates)} {}
     TableFuncBindData& operator=(const TableFuncBindData& other) = delete;
     virtual ~TableFuncBindData() = default;
 
@@ -67,30 +57,6 @@ struct KUZU_API TableFuncBindData {
 private:
     std::vector<bool> columnSkips;
     std::vector<storage::ColumnPredicateSet> columnPredicates;
-};
-
-struct KUZU_API ScanBindData : TableFuncBindData {
-    common::FileScanInfo fileScanInfo;
-    main::ClientContext* context;
-
-    ScanBindData(binder::expression_vector columns, common::FileScanInfo fileScanInfo,
-        main::ClientContext* context)
-        : TableFuncBindData{std::move(columns)}, fileScanInfo{std::move(fileScanInfo)},
-          context{context} {}
-    ScanBindData(binder::expression_vector columns, common::FileScanInfo fileScanInfo,
-        main::ClientContext* context, common::column_id_t numWarningDataColumns,
-        common::row_idx_t estCardinality)
-        : TableFuncBindData{std::move(columns), numWarningDataColumns, estCardinality},
-          fileScanInfo{std::move(fileScanInfo)}, context{context} {}
-    ScanBindData(const ScanBindData& other)
-        : TableFuncBindData{other}, fileScanInfo{other.fileScanInfo.copy()},
-          context{other.context} {}
-
-    bool getIgnoreErrorsOption() const override;
-
-    std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<ScanBindData>(*this);
-    }
 };
 
 } // namespace function

@@ -2,6 +2,7 @@
 
 #include "function/table/bind_data.h"
 #include "function/table/scan_file_function.h"
+#include "function/table/scan_replacement.h"
 #include "function/table/table_function.h"
 #include "pandas_bind.h"
 #include "py_scan_config.h"
@@ -37,8 +38,10 @@ struct PandasScanFunctionData : public function::TableFuncBindData {
 
     PandasScanFunctionData(binder::expression_vector columns, py::handle df, uint64_t numRows,
         std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData, PyScanConfig scanConfig)
-        : TableFuncBindData{std::move(columns), 0 /* numWarningDataColumns */, numRows}, df{df},
-          columnBindData{std::move(columnBindData)}, scanConfig(scanConfig) {}
+        : TableFuncBindData{std::move(columns), numRows}, df{df},
+          columnBindData{std::move(columnBindData)}, scanConfig(scanConfig) {
+        this->cardinality = numRows;
+    }
 
     ~PandasScanFunctionData() override {
         py::gil_scoped_acquire acquire;

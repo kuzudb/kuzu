@@ -75,7 +75,6 @@ std::unique_ptr<processor::PhysicalOperator> TableFunction::getPhysicalPlan(
     info.function = call.getTableFunc();
     info.bindData = call.getBindData()->copy();
     info.outPosV = outPosV;
-    KU_ASSERT(info.outPosV.size() >= info.bindData->numWarningDataColumns);
     info.outputType = outPosV.empty() ? processor::TableScanOutputType::EMPTY :
                                         processor::TableScanOutputType::SINGLE_DATA_CHUNK;
     auto sharedState = std::make_shared<processor::TableFunctionCallSharedState>();

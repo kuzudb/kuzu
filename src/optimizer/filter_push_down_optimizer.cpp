@@ -3,6 +3,7 @@
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression/scalar_function_expression.h"
+#include "main/client_context.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/logical_empty_result.h"
 #include "planner/operator/logical_filter.h"

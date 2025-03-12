@@ -2,6 +2,7 @@
 
 #include "catalog/catalog.h"
 #include "function/built_in_function_utils.h"
+#include "main/client_context.h"
 #include "processor/operator/table_function_call.h"
 #include "processor/operator/table_scan/ftable_scan_function.h"
 #include "processor/plan_mapper.h"

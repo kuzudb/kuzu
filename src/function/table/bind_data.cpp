@@ -24,10 +24,5 @@ std::unique_ptr<TableFuncBindData> TableFuncBindData::copy() const {
     return std::make_unique<TableFuncBindData>(*this);
 }
 
-bool ScanBindData::getIgnoreErrorsOption() const {
-    return fileScanInfo.getOption(common::CopyConstants::IGNORE_ERRORS_OPTION_NAME,
-        common::CopyConstants::DEFAULT_IGNORE_ERRORS);
-}
-
 } // namespace function
 } // namespace kuzu
