@@ -26,7 +26,7 @@ struct KUZU_API TableScanState {
     std::vector<common::ValueVector*> outputVectors;
     std::shared_ptr<common::DataChunkState> outState;
     std::vector<common::column_id_t> columnIDs;
-    common::semi_mask_t* semiMask;
+    common::SemiMask* semiMask;
     bool randomLookup = false;
 
     // Only used when scan from persistent data.

@@ -16,8 +16,8 @@ namespace processor {
 // Normally the two maps should have the same tableIDs.
 // An exception is in GDS with filtered projected graph, multiple semiMasker will work on
 // the same target GDS operator so masksPerTable may have fewer tableIDs.
-static void initMask(table_id_map_t<std::vector<semi_mask_t*>>& masksPerTable,
-    const table_id_map_t<semi_mask_t*>& maskPerTable) {
+static void initMask(table_id_map_t<std::vector<SemiMask*>>& masksPerTable,
+    const table_id_map_t<SemiMask*>& maskPerTable) {
     for (auto& [tableID, masks] : masksPerTable) {
         KU_ASSERT(maskPerTable.contains(tableID));
         auto mask = maskPerTable.at(tableID);
@@ -32,9 +32,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(
     const auto inSchema = semiMasker.getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     const auto tableIDs = semiMasker.getNodeTableIDs();
-    table_id_map_t<std::vector<semi_mask_t*>> masksPerTable;
+    table_id_map_t<std::vector<SemiMask*>> masksPerTable;
     for (auto tableID : tableIDs) {
-        masksPerTable.insert({tableID, std::vector<semi_mask_t*>{}});
+        masksPerTable.insert({tableID, std::vector<SemiMask*>{}});
     }
     std::vector<std::string> operatorNames;
     for (auto& op : semiMasker.getTargetOperators()) {

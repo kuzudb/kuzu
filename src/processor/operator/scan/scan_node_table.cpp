@@ -63,8 +63,8 @@ void ScanNodeTableSharedState::nextMorsel(NodeTableScanState& scanState,
     scanState.source = TableScanSource::NONE;
 }
 
-table_id_map_t<semi_mask_t*> ScanNodeTable::getSemiMasks() const {
-    table_id_map_t<semi_mask_t*> result;
+table_id_map_t<SemiMask*> ScanNodeTable::getSemiMasks() const {
+    table_id_map_t<SemiMask*> result;
     KU_ASSERT(nodeInfos.size() == sharedStates.size());
     for (auto i = 0u; i < sharedStates.size(); ++i) {
         result.insert({nodeInfos[i].table->getTableID(), sharedStates[i]->getSemiMask()});
