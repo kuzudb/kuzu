@@ -19,10 +19,15 @@ struct TableFuncMorsel {
         return {common::INVALID_OFFSET, common::INVALID_OFFSET};
     }
 
+    uint64_t getMorselSize() const { return endOffset - startOffset; }
+
     bool isInvalid() const {
         return startOffset == common::INVALID_OFFSET && endOffset == common::INVALID_OFFSET;
     }
 };
+
+using simple_internal_table_func = std::function<common::offset_t(const TableFuncMorsel&,
+    const TableFuncInput&, common::DataChunk& output)>;
 
 class KUZU_API SimpleTableFuncSharedState : public TableFuncSharedState {
 public:
@@ -41,6 +46,8 @@ public:
 struct KUZU_API SimpleTableFunc {
     static std::unique_ptr<TableFuncSharedState> initSharedState(
         const TableFunctionInitInput& input);
+
+    static table_func_t getTableFunc(simple_internal_table_func internalTableFunc);
 };
 
 struct CurrentSettingFunction final {
@@ -69,12 +76,6 @@ struct ShowTablesFunction final {
 
 struct ShowWarningsFunction final {
     static constexpr const char* name = "SHOW_WARNINGS";
-
-    static function_set getFunctionSet();
-};
-
-struct ClearWarningsFunction final {
-    static constexpr const char* name = "CLEAR_WARNINGS";
 
     static function_set getFunctionSet();
 };
@@ -123,18 +124,6 @@ struct ShowAttachedDatabasesFunction final {
 
 struct ShowFunctionsFunction final {
     static constexpr const char* name = "SHOW_FUNCTIONS";
-
-    static function_set getFunctionSet();
-};
-
-struct CreateProjectedGraphFunction final {
-    static constexpr const char* name = "CREATE_PROJECTED_GRAPH";
-
-    static function_set getFunctionSet();
-};
-
-struct DropProjectedGraphFunction final {
-    static constexpr const char* name = "DROP_PROJECTED_GRAPH";
 
     static function_set getFunctionSet();
 };

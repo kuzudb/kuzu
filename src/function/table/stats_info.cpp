@@ -25,7 +25,7 @@ struct StatsInfoBindData final : TableFuncBindData {
 
     StatsInfoBindData(binder::expression_vector columns, TableCatalogEntry* tableEntry,
         storage::Table* table, const ClientContext* context)
-        : TableFuncBindData{std::move(columns), 1 /*maxOffset*/}, tableEntry{tableEntry},
+        : TableFuncBindData{std::move(columns), 1 /*numRows*/}, tableEntry{tableEntry},
           table{table}, context{context} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
@@ -33,24 +33,18 @@ struct StatsInfoBindData final : TableFuncBindData {
     }
 };
 
-static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
-    const auto& dataChunk = output.dataChunk;
-    KU_ASSERT(dataChunk.state->getSelVector().isUnfiltered());
-    const auto morsel = input.sharedState->ptrCast<SimpleTableFuncSharedState>()->getMorsel();
-    if (!morsel.hasMoreToOutput()) {
-        return 0;
-    }
+static offset_t internalTableFunc(const TableFuncMorsel& /*morsel*/, const TableFuncInput& input,
+    DataChunk& output) {
     const auto bindData = input.bindData->constPtrCast<StatsInfoBindData>();
     const auto table = bindData->table;
     switch (table->getTableType()) {
     case TableType::NODE: {
         const auto& nodeTable = table->cast<storage::NodeTable>();
         const auto stats = nodeTable.getStats(bindData->context->getTransaction());
-        dataChunk.getValueVectorMutable(0).setValue<cardinality_t>(0, stats.getTableCard());
+        output.getValueVectorMutable(0).setValue<cardinality_t>(0, stats.getTableCard());
         for (auto i = 0u; i < nodeTable.getNumColumns(); ++i) {
-            dataChunk.getValueVectorMutable(i + 1).setValue(0, stats.getNumDistinctValues(i));
+            output.getValueVectorMutable(i + 1).setValue(0, stats.getNumDistinctValues(i));
         }
-        dataChunk.state->getSelVectorUnsafe().setToUnfiltered(1);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -89,7 +83,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
 function_set StatsInfoFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
-    function->tableFunc = tableFunc;
+    function->tableFunc = SimpleTableFunc::getTableFunc(internalTableFunc);
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = initLocalState;

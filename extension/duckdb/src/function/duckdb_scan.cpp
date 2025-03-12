@@ -19,7 +19,7 @@ DuckDBScanBindData::DuckDBScanBindData(std::string query,
       columnNames{std::move(columnNames)}, converter{columnTypes}, connector{connector} {}
 
 DuckDBScanSharedState::DuckDBScanSharedState(
-    std::unique_ptr<duckdb::MaterializedQueryResult> queryResult)
+    std::shared_ptr<duckdb::MaterializedQueryResult> queryResult)
     : function::TableFuncSharedState{queryResult->RowCount()}, queryResult{std::move(queryResult)} {
 }
 

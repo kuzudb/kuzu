@@ -21,6 +21,7 @@
 #include "function/struct/vector_struct_functions.h"
 #include "function/table/hnsw/hnsw_index_functions.h"
 #include "function/table/simple_table_function.h"
+#include "function/table/standalone_call_function.h"
 #include "function/timestamp/vector_timestamp_functions.h"
 #include "function/union/vector_union_functions.h"
 #include "function/utility/vector_utility_functions.h"
@@ -37,23 +38,22 @@ namespace kuzu {
 namespace function {
 
 #define SCALAR_FUNCTION_BASE(_PARAM, _NAME)                                                        \
-    { _PARAM::getFunctionSet, _NAME, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _NAME, CatalogEntryType::SCALAR_FUNCTION_ENTRY}
 #define SCALAR_FUNCTION(_PARAM) SCALAR_FUNCTION_BASE(_PARAM, _PARAM::name)
 #define SCALAR_FUNCTION_ALIAS(_PARAM) SCALAR_FUNCTION_BASE(_PARAM::alias, _PARAM::name)
 #define REWRITE_FUNCTION(_PARAM)                                                                   \
-    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::REWRITE_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::REWRITE_FUNCTION_ENTRY}
 #define AGGREGATE_FUNCTION(_PARAM)                                                                 \
-    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::AGGREGATE_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::AGGREGATE_FUNCTION_ENTRY}
 #define EXPORT_FUNCTION(_PARAM)                                                                    \
-    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::COPY_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::COPY_FUNCTION_ENTRY}
 #define TABLE_FUNCTION(_PARAM)                                                                     \
-    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::TABLE_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::TABLE_FUNCTION_ENTRY}
 #define STANDALONE_TABLE_FUNCTION(_PARAM)                                                          \
-    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY}
 #define ALGORITHM_FUNCTION(_PARAM)                                                                 \
-    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::GDS_FUNCTION_ENTRY }
-#define FINAL_FUNCTION                                                                             \
-    { nullptr, nullptr, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::GDS_FUNCTION_ENTRY}
+#define FINAL_FUNCTION {nullptr, nullptr, CatalogEntryType::SCALAR_FUNCTION_ENTRY}
 
 FunctionCollection* FunctionCollection::getFunctions() {
     static FunctionCollection functions[] = {

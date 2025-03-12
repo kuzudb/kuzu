@@ -1,6 +1,6 @@
 #include "common/exception/runtime.h"
 #include "function/table/bind_data.h"
-#include "function/table/simple_table_function.h"
+#include "function/table/standalone_call_function.h"
 #include "graph/graph_entry.h"
 #include "processor/execution_context.h"
 
@@ -42,7 +42,7 @@ function_set DropProjectedGraphFunction::getFunctionSet() {
     auto func = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
     func->bindFunc = bindFunc;
     func->tableFunc = tableFunc;
-    func->initSharedStateFunc = SimpleTableFunc::initSharedState;
+    func->initSharedStateFunc = TableFunction::initEmptySharedState;
     func->initLocalStateFunc = TableFunction::initEmptyLocalState;
     func->canParallelFunc = []() { return false; };
     functionSet.push_back(std::move(func));

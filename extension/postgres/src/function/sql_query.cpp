@@ -15,13 +15,6 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace postgres_extension {
 
-struct SqlQuerySharedState final : function::TableFuncSharedState {
-    explicit SqlQuerySharedState(std::shared_ptr<duckdb::MaterializedQueryResult> queryResult)
-        : TableFuncSharedState{queryResult->RowCount()}, queryResult{std::move(queryResult)} {}
-
-    std::shared_ptr<duckdb::MaterializedQueryResult> queryResult;
-};
-
 struct SqlQueryBindData final : function::TableFuncBindData {
     std::shared_ptr<duckdb::MaterializedQueryResult> queryResult;
     duckdb_extension::DuckDBResultConverter converter;
@@ -65,11 +58,11 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
 
 std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
     auto scanBindData = input.bindData->constPtrCast<SqlQueryBindData>();
-    return std::make_unique<SqlQuerySharedState>(scanBindData->queryResult);
+    return std::make_unique<duckdb_extension::DuckDBScanSharedState>(scanBindData->queryResult);
 }
 
 offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
-    auto sharedState = input.sharedState->ptrCast<SqlQuerySharedState>();
+    auto sharedState = input.sharedState->ptrCast<duckdb_extension::DuckDBScanSharedState>();
     auto bindData = input.bindData->constPtrCast<SqlQueryBindData>();
     std::unique_ptr<duckdb::DataChunk> result;
     try {

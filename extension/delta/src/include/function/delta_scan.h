@@ -16,16 +16,15 @@ struct DeltaScanFunction {
     static function::function_set getFunctionSet();
 };
 
-struct DeltaScanBindData final : function::ScanFileBindData {
+struct DeltaScanBindData final : function::TableFuncBindData {
     std::string query;
     std::shared_ptr<duckdb_extension::DuckDBConnector> connector;
     duckdb_extension::DuckDBResultConverter converter;
 
     DeltaScanBindData(std::string query,
         std::shared_ptr<duckdb_extension::DuckDBConnector> connector,
-        duckdb_extension::DuckDBResultConverter converter, binder::expression_vector columns,
-        common::FileScanInfo fileScanInfo, main::ClientContext* ctx)
-        : ScanFileBindData{std::move(columns), 0 /* numRows */, std::move(fileScanInfo), ctx},
+        duckdb_extension::DuckDBResultConverter converter, binder::expression_vector columns, main::ClientContext* ctx)
+        : ScanFileBindData{std::move(columns), 0 /* numRows */, FileScanInfo, ctx},
           query{std::move(query)}, connector{std::move(connector)},
           converter{std::move(converter)} {}
 

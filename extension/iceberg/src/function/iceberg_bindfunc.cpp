@@ -74,7 +74,7 @@ std::unique_ptr<TableFuncBindData> bindFuncHelper(main::ClientContext* context,
         TableFunction::extractYieldVariables(returnColumnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(returnColumnNames, returnTypes);
     return std::make_unique<delta_extension::DeltaScanBindData>(std::move(query), connector,
-        duckdb_extension::DuckDBResultConverter{returnTypes}, columns, FileScanInfo{}, context);
+        duckdb_extension::DuckDBResultConverter{returnTypes}, columns);
 }
 } // namespace iceberg_extension
 } // namespace kuzu

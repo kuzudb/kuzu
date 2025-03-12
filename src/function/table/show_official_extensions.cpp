@@ -19,21 +19,17 @@ static constexpr std::pair<std::string_view, std::string_view> extensions[] = {
     {"ICEBERG", "Adds support for reading from iceberg tables"},
     {"JSON", "Adds support for JSON operations"},
     {"POSTGRES", "Adds support for reading from POSTGRES tables"},
-    {"SQLITE", "Adds support for reading from SQLITE tables"}};
+    {"SQLITE", "Adds support for reading from SQLITE tables"},
+    {"UNITY_CATALOG", "Adds support for scanning delta tables registered in unity catalog"}};
 static constexpr auto officialExtensions = std::to_array(extensions);
 
-static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
-    auto& dataChunk = output.dataChunk;
-    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
-    const auto morsel = sharedState->getMorsel();
-    if (!morsel.hasMoreToOutput()) {
-        return 0;
-    }
-    auto numTuplesToOutput = morsel.endOffset - morsel.startOffset;
-    for (uint64_t i = 0; i < numTuplesToOutput; ++i) {
+static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFuncInput& /*input*/,
+    DataChunk& output) {
+    auto numTuplesToOutput = morsel.getMorselSize();
+    for (auto i = 0u; i < numTuplesToOutput; ++i) {
         auto& [name, description] = officialExtensions[morsel.startOffset + i];
-        dataChunk.getValueVectorMutable(0).setValue(i, name);
-        dataChunk.getValueVectorMutable(1).setValue(i, description);
+        output.getValueVectorMutable(0).setValue(i, name);
+        output.getValueVectorMutable(1).setValue(i, description);
     }
     return numTuplesToOutput;
 }
@@ -54,7 +50,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* /*
 function_set ShowOfficialExtensionsFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<TableFunction>(name, std::vector<common::LogicalTypeID>{});
-    function->tableFunc = tableFunc;
+    function->tableFunc = SimpleTableFunc::getTableFunc(internalTableFunc);
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;

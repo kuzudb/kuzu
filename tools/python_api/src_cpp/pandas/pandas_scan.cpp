@@ -5,6 +5,7 @@
 #include "common/exception/runtime.h"
 #include "common/system_config.h"
 #include "function/table/bind_input.h"
+#include "function/table/simple_table_function.h"
 #include "numpy/numpy_scan.h"
 #include "processor/execution_context.h"
 #include "py_connection.h"
@@ -43,26 +44,9 @@ std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* /*context*/,
         scanConfig);
 }
 
-bool sharedStateNext(const TableFuncBindData* /*bindData*/, PandasScanLocalState* localState,
-    TableFuncSharedState* sharedState) {
-    auto pandasSharedState = sharedState->ptrCast<PandasScanSharedState>();
-    std::lock_guard<std::mutex> lck{pandasSharedState->mtx};
-    if (pandasSharedState->numRowsRead >= pandasSharedState->numRows) {
-        return false;
-    }
-    localState->start = pandasSharedState->startRow + pandasSharedState->numRowsRead;
-    pandasSharedState->numRowsRead +=
-        std::min(pandasSharedState->numRows - pandasSharedState->numRowsRead,
-            CopyConfig::PANDAS_PARTITION_COUNT);
-    localState->end = pandasSharedState->startRow + pandasSharedState->numRowsRead;
-    return true;
-}
-
-std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput& input,
-    TableFuncSharedState* sharedState, storage::MemoryManager* /*mm*/) {
-    auto localState = std::make_unique<PandasScanLocalState>(0 /* start */, 0 /* end */);
-    sharedStateNext(input.bindData, localState.get(), sharedState);
-    return localState;
+std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput& /*input*/,
+    TableFuncSharedState* /*sharedState*/, storage::MemoryManager* /*mm*/) {
+    return std::make_unique<PandasScanLocalState>(0 /* start */, 0 /* end */);
 }
 
 std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
@@ -71,9 +55,9 @@ std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInp
         throw RuntimeException("PandasScan called but GIL was already held!");
     }
     // LCOV_EXCL_STOP
-    auto scanBindData = ku_dynamic_cast<PandasScanFunctionData*>(input.bindData);
-    return std::make_unique<PandasScanSharedState>(scanBindData->scanConfig.skipNum,
-        scanBindData->numRows);
+    auto scanBindData = input.bindData->constPtrCast<PandasScanFunctionData>();
+    return std::make_unique<SimpleTableFuncSharedState>(scanBindData->numRows,
+        CopyConfig::PANDAS_PARTITION_COUNT);
 }
 
 void pandasBackendScanSwitch(PandasColumnBindData* bindData, uint64_t count, uint64_t offset,
@@ -91,10 +75,14 @@ void pandasBackendScanSwitch(PandasColumnBindData* bindData, uint64_t count, uin
 offset_t tableFunc(const TableFuncInput& input, const TableFuncOutput& output) {
     auto pandasScanData = input.bindData->constPtrCast<PandasScanFunctionData>();
     auto pandasLocalState = input.localState->ptrCast<PandasScanLocalState>();
+    auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
     if (pandasLocalState->start >= pandasLocalState->end) {
-        if (!sharedStateNext(input.bindData, pandasLocalState, input.sharedState)) {
+        auto morsel = sharedState->getMorsel();
+        if (!morsel.hasMoreToOutput()) {
             return 0;
         }
+        pandasLocalState->start = pandasScanData->scanConfig.skipNum + morsel.startOffset;
+        pandasLocalState->end = pandasScanData->scanConfig.skipNum + morsel.endOffset;
     }
     auto numValuesToOutput =
         std::min(DEFAULT_VECTOR_CAPACITY, pandasLocalState->end - pandasLocalState->start);
@@ -110,22 +98,12 @@ offset_t tableFunc(const TableFuncInput& input, const TableFuncOutput& output) {
     return numValuesToOutput;
 }
 
-std::vector<std::unique_ptr<PandasColumnBindData>>
-PandasScanFunctionData::copyColumnBindData() const {
-    std::vector<std::unique_ptr<PandasColumnBindData>> result;
-    result.reserve(columnBindData.size());
-    for (auto& bindData : columnBindData) {
-        result.push_back(bindData->copy());
-    }
-    return result;
-}
-
 static double progressFunc(TableFuncSharedState* sharedState) {
-    auto pandasSharedState = sharedState->ptrCast<PandasScanSharedState>();
+    auto pandasSharedState = sharedState->ptrCast<SimpleTableFuncSharedState>();
     if (pandasSharedState->numRows == 0) {
         return 0.0;
     }
-    return static_cast<double>(pandasSharedState->numRowsRead) / pandasSharedState->numRows;
+    return static_cast<double>(pandasSharedState->curRowIdx) / pandasSharedState->numRows;
 }
 
 static void finalizeFunc(const processor::ExecutionContext* ctx, TableFuncSharedState*) {

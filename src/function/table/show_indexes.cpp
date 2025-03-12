@@ -39,29 +39,24 @@ struct ShowIndexesBindData final : TableFuncBindData {
     }
 };
 
-static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
-    auto& dataChunk = output.dataChunk;
-    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
-    const auto morsel = sharedState->getMorsel();
-    if (!morsel.hasMoreToOutput()) {
-        return 0;
-    }
+static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFuncInput& input,
+    DataChunk& output) {
     auto& indexesInfo = input.bindData->constPtrCast<ShowIndexesBindData>()->indexesInfo;
-    auto numTuplesToOutput = morsel.endOffset - morsel.startOffset;
-    auto& propertyVector = dataChunk.getValueVectorMutable(3);
+    auto numTuplesToOutput = morsel.getMorselSize();
+    auto& propertyVector = output.getValueVectorMutable(3);
     auto propertyDataVec = ListVector::getDataVector(&propertyVector);
     for (auto i = 0u; i < numTuplesToOutput; i++) {
         auto indexInfo = indexesInfo[morsel.startOffset + i];
-        dataChunk.getValueVectorMutable(0).setValue(i, indexInfo.tableName);
-        dataChunk.getValueVectorMutable(1).setValue(i, indexInfo.indexName);
-        dataChunk.getValueVectorMutable(2).setValue(i, indexInfo.indexType);
+        output.getValueVectorMutable(0).setValue(i, indexInfo.tableName);
+        output.getValueVectorMutable(1).setValue(i, indexInfo.indexName);
+        output.getValueVectorMutable(2).setValue(i, indexInfo.indexType);
         auto listEntry = ListVector::addList(&propertyVector, indexInfo.properties.size());
         for (auto j = 0u; j < indexInfo.properties.size(); j++) {
             propertyDataVec->setValue(listEntry.offset + j, indexInfo.properties[j]);
         }
         propertyVector.setValue(i, listEntry);
-        dataChunk.getValueVectorMutable(4).setValue(i, indexInfo.dependencyLoaded);
-        dataChunk.getValueVectorMutable(5).setValue(i, indexInfo.indexDefinition);
+        output.getValueVectorMutable(4).setValue(i, indexInfo.dependencyLoaded);
+        output.getValueVectorMutable(5).setValue(i, indexInfo.indexDefinition);
     }
     return numTuplesToOutput;
 }
@@ -119,7 +114,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
 function_set ShowIndexesFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<TableFunction>(name, std::vector<common::LogicalTypeID>{});
-    function->tableFunc = tableFunc;
+    function->tableFunc = SimpleTableFunc::getTableFunc(internalTableFunc);
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;
