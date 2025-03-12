@@ -73,7 +73,7 @@ std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInp
     // LCOV_EXCL_STOP
     auto scanBindData = ku_dynamic_cast<PandasScanFunctionData*>(input.bindData);
     return std::make_unique<PandasScanSharedState>(scanBindData->scanConfig.skipNum,
-        scanBindData->cardinality);
+        scanBindData->numRows);
 }
 
 void pandasBackendScanSwitch(PandasColumnBindData* bindData, uint64_t count, uint64_t offset,

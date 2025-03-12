@@ -40,7 +40,7 @@ NpyReader::NpyReader(const std::string& filePath)
     if (fd == -1) {
         throw CopyException("Failed to open NPY file.");
     }
-    struct stat fileStatus {};
+    struct stat fileStatus{};
     fstat(fd, &fileStatus);
     fileSize = fileStatus.st_size;
 
@@ -324,15 +324,14 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     resultColumnNames =
         TableFunction::extractYieldVariables(resultColumnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(resultColumnNames, resultColumnTypes);
-    return std::make_unique<ScanFileBindData>(columns, scanInput->fileScanInfo.copy(), context,
-        0 /* numWarningColumns*/, numRows);
+    return std::make_unique<ScanFileBindData>(columns, numRows, scanInput->fileScanInfo.copy(),
+        context);
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
     auto bindData = input.bindData->constPtrCast<ScanFileBindData>();
     auto reader = make_unique<NpyReader>(bindData->fileScanInfo.filePaths[0]);
-    return std::make_unique<NpyScanSharedState>(bindData->fileScanInfo.copy(),
-        reader->getNumRows());
+    return std::make_unique<NpyScanSharedState>(bindData->fileScanInfo.copy(), bindData->numRows);
 }
 
 static void finalizeFunc(const ExecutionContext* ctx, TableFuncSharedState*) {

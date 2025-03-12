@@ -25,7 +25,7 @@ struct DeltaScanBindData final : function::ScanFileBindData {
         std::shared_ptr<duckdb_extension::DuckDBConnector> connector,
         duckdb_extension::DuckDBResultConverter converter, binder::expression_vector columns,
         common::FileScanInfo fileScanInfo, main::ClientContext* ctx)
-        : ScanFileBindData{std::move(columns), std::move(fileScanInfo), ctx},
+        : ScanFileBindData{std::move(columns), 0 /* numRows */, std::move(fileScanInfo), ctx},
           query{std::move(query)}, connector{std::move(connector)},
           converter{std::move(converter)} {}
 

@@ -12,7 +12,6 @@ namespace function {
 
 struct KUZU_API TableFuncBindData {
     binder::expression_vector columns;
-    common::cardinality_t cardinality = 0;
     common::row_idx_t numRows;
 
     TableFuncBindData() : numRows{0} {}
@@ -22,8 +21,8 @@ struct KUZU_API TableFuncBindData {
     TableFuncBindData(binder::expression_vector columns, common::row_idx_t numRows)
         : columns{std::move(columns)}, numRows{numRows} {}
     TableFuncBindData(const TableFuncBindData& other)
-        : columns{other.columns}, cardinality{other.cardinality}, numRows{other.numRows},
-          columnSkips{other.columnSkips}, columnPredicates{copyVector(other.columnPredicates)} {}
+        : columns{other.columns}, numRows{other.numRows}, columnSkips{other.columnSkips},
+          columnPredicates{copyVector(other.columnPredicates)} {}
     TableFuncBindData& operator=(const TableFuncBindData& other) = delete;
     virtual ~TableFuncBindData() = default;
 

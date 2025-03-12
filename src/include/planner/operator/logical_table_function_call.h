@@ -15,7 +15,7 @@ public:
         std::unique_ptr<function::TableFuncBindData> bindData)
         : LogicalOperator{operatorType_}, tableFunc{std::move(tableFunc)},
           bindData{std::move(bindData)} {
-        cardinality = this->bindData->cardinality;
+        setCardinality(this->bindData->numRows);
     }
 
     const function::TableFunction& getTableFunc() const { return tableFunc; }

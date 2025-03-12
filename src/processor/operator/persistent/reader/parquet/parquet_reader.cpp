@@ -663,11 +663,12 @@ static void bindColumns(const ExtraScanTableFuncBindInput* bindInput,
     }
 }
 
-static row_idx_t getNumRows(const ScanFileBindData* bindData) {
+static row_idx_t getNumRows(std::vector<std::string> filePaths, uint64_t numColumns,
+    main::ClientContext* context) {
+    std::vector<bool> dummyColumnSkips(false, numColumns);
     row_idx_t numRows = 0;
-    for (const auto& path : bindData->fileScanInfo.filePaths) {
-        auto reader =
-            std::make_unique<ParquetReader>(path, bindData->getColumnSkips(), bindData->context);
+    for (const auto& path : filePaths) {
+        auto reader = std::make_unique<ParquetReader>(path, dummyColumnSkips, context);
         numRows += reader->getMetadata()->num_rows;
     }
     return numRows;
@@ -694,15 +695,15 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         TableFunction::extractYieldVariables(detectedColumnNames, input->yieldVariables);
     auto resultColumns = input->binder->createVariables(detectedColumnNames, detectedColumnTypes);
     auto bindData = std::make_unique<ScanFileBindData>(std::move(resultColumns),
+        getNumRows(scanInput->fileScanInfo.filePaths, detectedColumnNames.size(), context),
         scanInput->fileScanInfo.copy(), context);
-    bindData->cardinality = getNumRows(bindData.get());
     return bindData;
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
     auto bindData = input.bindData->constPtrCast<ScanFileBindData>();
     return std::make_unique<ParquetScanSharedState>(bindData->fileScanInfo.copy(),
-        getNumRows(bindData), bindData->context, bindData->getColumnSkips());
+        bindData->numRows, bindData->context, bindData->getColumnSkips());
 }
 
 static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput&,

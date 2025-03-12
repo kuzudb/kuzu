@@ -101,9 +101,8 @@ struct JSONScanSharedState : public TableFuncSharedState {
     processor::populate_func_t populateErrorFunc;
     processor::SharedFileErrorHandler sharedErrorHandler;
 
-    JSONScanSharedState(main::ClientContext& context, std::string fileName, JsonScanFormat format,
-        uint64_t numRows)
-        : TableFuncSharedState{numRows},
+    JSONScanSharedState(main::ClientContext& context, std::string fileName, JsonScanFormat format)
+        : TableFuncSharedState{0 /* numRows */},
           jsonReader{std::make_unique<BufferedJsonReader>(context, std::move(fileName),
               BufferedJSONReaderOptions{format})},
           populateErrorFunc(constructPopulateFunc()),
@@ -686,8 +685,8 @@ struct JsonScanBindData : public ScanFileBindData {
     JsonScanBindData(binder::expression_vector columns, column_id_t numWarningDataColumns,
         FileScanInfo fileScanInfo, main::ClientContext* ctx,
         case_insensitive_map_t<idx_t> colNameToIdx, JsonScanFormat format)
-        : ScanFileBindData(columns, std::move(fileScanInfo), ctx, numWarningDataColumns,
-              0 /* cardinality */),
+        : ScanFileBindData(columns, 0 /* numRows */, std::move(fileScanInfo), ctx,
+              numWarningDataColumns),
           colNameToIdx{std::move(colNameToIdx)}, format{format} {}
 
     uint64_t getFieldIdx(const std::string& fieldName) const;
@@ -720,7 +719,7 @@ static JsonScanFormat autoDetect(main::ClientContext* context, const std::string
     JsonScanConfig& config, std::vector<LogicalType>& types, std::vector<std::string>& names,
     case_insensitive_map_t<idx_t>& colNameToIdx) {
     auto numRowsToDetect = config.breadth;
-    JSONScanSharedState sharedState(*context, filePath, config.format, 0);
+    JSONScanSharedState sharedState(*context, filePath, config.format);
     JSONScanLocalState localState(*context->getMemoryManager(), sharedState, context);
     while (numRowsToDetect != 0) {
         auto numTuplesRead = localState.readNext();
@@ -789,7 +788,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         if (scanConfig.format == JsonScanFormat::AUTO_DETECT) {
             JSONScanSharedState sharedState(*context,
                 scanInput->fileScanInfo.getFilePath(JsonExtension::JSON_SCAN_FILE_IDX),
-                scanConfig.format, 0);
+                scanConfig.format);
             JSONScanLocalState localState(*context->getMemoryManager(), sharedState, context);
             localState.readNext();
             scanConfig.format = sharedState.jsonReader->getFormat();
@@ -833,7 +832,7 @@ static decltype(auto) getWarningDataVectors(const DataChunk& chunk, column_id_t 
 
     std::vector<ValueVector*> ret;
     for (column_id_t i = chunk.getNumValueVectors() - numWarningColumns;
-         i < chunk.getNumValueVectors(); ++i) {
+        i < chunk.getNumValueVectors(); ++i) {
         ret.push_back(&chunk.getValueVectorMutable(i));
     }
     return ret;
@@ -871,7 +870,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
 static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
     auto jsonBindData = input.bindData->constPtrCast<JsonScanBindData>();
     return std::make_unique<JSONScanSharedState>(*jsonBindData->context,
-        jsonBindData->fileScanInfo.filePaths[0], jsonBindData->format, 0);
+        jsonBindData->fileScanInfo.filePaths[0], jsonBindData->format);
 }
 
 static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput& input,

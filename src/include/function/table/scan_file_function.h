@@ -45,17 +45,15 @@ struct KUZU_API ScanFileBindData : public TableFuncBindData {
     main::ClientContext* context;
     common::column_id_t numWarningDataColumns = 0;
 
-    ScanFileBindData(binder::expression_vector columns, common::FileScanInfo fileScanInfo,
-        main::ClientContext* context)
-        : TableFuncBindData{std::move(columns)}, fileScanInfo{std::move(fileScanInfo)},
+    ScanFileBindData(binder::expression_vector columns, uint64_t numRows,
+        common::FileScanInfo fileScanInfo, main::ClientContext* context)
+        : TableFuncBindData{std::move(columns), numRows}, fileScanInfo{std::move(fileScanInfo)},
           context{context} {}
-    ScanFileBindData(binder::expression_vector columns, common::FileScanInfo fileScanInfo,
-        main::ClientContext* context, common::column_id_t numWarningDataColumns,
-        common::cardinality_t cardinality)
-        : TableFuncBindData{std::move(columns)}, fileScanInfo{std::move(fileScanInfo)},
-          context{context}, numWarningDataColumns{numWarningDataColumns} {
-        this->cardinality = cardinality;
-    }
+    ScanFileBindData(binder::expression_vector columns, uint64_t numRows,
+        common::FileScanInfo fileScanInfo, main::ClientContext* context,
+        common::column_id_t numWarningDataColumns)
+        : TableFuncBindData{std::move(columns), numRows}, fileScanInfo{std::move(fileScanInfo)},
+          context{context}, numWarningDataColumns{numWarningDataColumns} {}
     ScanFileBindData(const ScanFileBindData& other)
         : TableFuncBindData{other}, fileScanInfo{other.fileScanInfo.copy()}, context{other.context},
           numWarningDataColumns{other.numWarningDataColumns} {}
