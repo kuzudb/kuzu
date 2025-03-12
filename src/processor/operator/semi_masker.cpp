@@ -1,5 +1,6 @@
 #include "processor/operator/semi_masker.h"
 
+#include "common/roaring_mask.h"
 #include "processor/execution_context.h"
 
 using namespace kuzu::common;
@@ -13,7 +14,7 @@ SemiMaskerLocalState* SemiMaskerSharedState::appendLocalState() {
     bool isSingle = masksPerTable.size() == 1;
     for (const auto& [tableID, vector] : masksPerTable) {
         auto& mask = vector.front();
-        auto newOne = common::RoaringBitmapSemiMaskUtil::createMask(mask->getMaxOffset());
+        auto newOne = SemiMaskUtil::createMask(mask->getMaxOffset());
         if (isSingle) {
             localInfo->singleTableRef = newOne.get();
         }
@@ -30,7 +31,7 @@ void SemiMaskerSharedState::mergeToGlobal() {
             std::vector<roaring::Roaring64Map*> masks;
             for (const auto& localInfo : localInfos) {
                 const auto& mask = localInfo->localMasksPerTable.at(tableID);
-                auto mask64 = static_cast<common::Roaring64BitmapSemiMask*>(mask.get());
+                auto mask64 = static_cast<Roaring64BitmapSemiMask*>(mask.get());
                 if (!mask64->roaring->isEmpty()) {
                     masks.push_back(mask64->roaring.get());
                 }
@@ -39,14 +40,14 @@ void SemiMaskerSharedState::mergeToGlobal() {
                 roaring::Roaring64Map::fastunion(masks.size(),
                     const_cast<const roaring::Roaring64Map**>(masks.data())));
             for (const auto& item : globalVector) {
-                auto mask64 = static_cast<common::Roaring64BitmapSemiMask*>(item);
+                auto mask64 = static_cast<Roaring64BitmapSemiMask*>(item);
                 mask64->roaring = mergedMask;
             }
         } else {
             std::vector<roaring::Roaring*> masks;
             for (const auto& localInfo : localInfos) {
                 const auto& mask = localInfo->localMasksPerTable.at(tableID);
-                auto mask32 = static_cast<common::Roaring32BitmapSemiMask*>(mask.get());
+                auto mask32 = static_cast<Roaring32BitmapSemiMask*>(mask.get());
                 if (!mask32->roaring->isEmpty()) {
                     masks.push_back(mask32->roaring.get());
                 }
@@ -54,7 +55,7 @@ void SemiMaskerSharedState::mergeToGlobal() {
             auto mergedMask = std::make_shared<roaring::Roaring>(roaring::Roaring::fastunion(
                 masks.size(), const_cast<const roaring::Roaring**>(masks.data())));
             for (const auto& item : globalVector) {
-                auto mask32 = static_cast<common::Roaring32BitmapSemiMask*>(item);
+                auto mask32 = static_cast<Roaring32BitmapSemiMask*>(item);
                 mask32->roaring = mergedMask;
             }
         }
