@@ -39,12 +39,16 @@ QueryHNSWIndexBindData::QueryHNSWIndexBindData(main::ClientContext* context,
 
 static std::vector<common::LogicalType> inferInputTypes(const binder::expression_vector& params) {
     auto inputQueryExpression = params[2];
-    auto val = inputQueryExpression->constCast<binder::LiteralExpression>().getValue();
     std::vector<common::LogicalType> inputTypes;
     inputTypes.push_back(common::LogicalType::STRING());
     inputTypes.push_back(common::LogicalType::STRING());
-    inputTypes.push_back(
-        common::LogicalType::ARRAY(common::LogicalType::DOUBLE(), val.getChildrenSize()));
+    if (inputQueryExpression->expressionType == common::ExpressionType::LITERAL) {
+        auto val = inputQueryExpression->constCast<binder::LiteralExpression>().getValue();
+        inputTypes.push_back(
+            common::LogicalType::ARRAY(common::LogicalType::DOUBLE(), val.getChildrenSize()));
+    } else {
+        inputTypes.push_back(common::LogicalType::ANY());
+    }
     inputTypes.push_back(common::LogicalType::INT64());
     return inputTypes;
 }
@@ -55,8 +59,6 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const auto indexName = input->getLiteralVal<std::string>(0);
     const auto tableName = input->getLiteralVal<std::string>(1);
     auto inputQueryExpression = input->params[2];
-    auto kExpr = input->binder->getExpressionBinder()->implicitCastIfNecessary(input->getParam(3),
-        common::LogicalType::INT64());
     const auto k = input->getLiteralVal<int64_t>(3);
 
     auto nodeTableEntry = storage::IndexUtils::bindTable(*context, tableName, indexName,
