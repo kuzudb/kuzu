@@ -18,7 +18,7 @@ graph::GraphEntry GDSAlgorithm::bindGraphEntry(main::ClientContext& context,
     if (!context.getGraphEntrySetUnsafe().hasGraph(name)) {
         throw BinderException(stringFormat("Cannot find graph {}.", name));
     }
-    return context.getGraphEntrySetUnsafe().getEntry(name);
+    return context.getGraphEntrySetUnsafe().getEntry(name).copy();
 }
 
 std::shared_ptr<Expression> GDSAlgorithm::bindNodeOutput(const GDSBindInput& bindInput,

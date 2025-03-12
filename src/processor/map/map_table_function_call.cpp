@@ -1,6 +1,5 @@
 #include "planner/operator/logical_table_function_call.h"
 #include "processor/plan_mapper.h"
-#include <planner/operator/sip/logical_semi_masker.h>
 
 using namespace kuzu::planner;
 using namespace kuzu::common;

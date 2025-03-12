@@ -18,7 +18,6 @@
 #include "storage/index/index_utils.h"
 #include "storage/storage_manager.h"
 #include "storage/store/rel_table.h"
-#include <planner/operator/logical_dummy_sink.h>
 
 namespace kuzu {
 namespace function {
@@ -70,7 +69,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         nodeTableEntry = storage::IndexUtils::bindNodeTable(*context, tableOrGraphName, indexName,
             storage::IndexOperation::QUERY);
     } else if (context->getGraphEntrySetUnsafe().hasGraph(tableOrGraphName)) {
-        graphEntry = &context->getGraphEntrySetUnsafe().getEntryRef(tableOrGraphName);
+        graphEntry = &context->getGraphEntrySetUnsafe().getEntry(tableOrGraphName);
         if (graphEntry->nodeInfos.size() > 1 || !graphEntry->relInfos.empty()) {
             throw common::BinderException{common::stringFormat(
                 "Graph {} has multiple node tables or contain rel tables, please limit it to only "

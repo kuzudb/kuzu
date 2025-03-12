@@ -3,7 +3,7 @@
 #include <mutex>
 
 #include "common/enums/extend_direction.h"
-#include "common/roaring_mask.h"
+#include "common/mask.h"
 #include "processor/operator/physical_operator.h"
 
 namespace kuzu {

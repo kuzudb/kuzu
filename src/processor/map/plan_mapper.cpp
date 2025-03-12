@@ -1,7 +1,6 @@
 #include "processor/plan_mapper.h"
 
 #include "binder/expression/node_expression.h"
-#include "common/roaring_mask.h"
 #include "processor/operator/profile.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"

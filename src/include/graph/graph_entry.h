@@ -57,11 +57,7 @@ private:
 class GraphEntrySet {
 public:
     bool hasGraph(const std::string& name) const { return nameToEntry.contains(name); }
-    GraphEntry getEntry(const std::string& name) const {
-        KU_ASSERT(hasGraph(name));
-        return nameToEntry.at(name).copy();
-    }
-    const GraphEntry& getEntryRef(const std::string& name) const {
+    const GraphEntry& getEntry(const std::string& name) const {
         KU_ASSERT(hasGraph(name));
         return nameToEntry.at(name);
     }
