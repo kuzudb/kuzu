@@ -135,7 +135,10 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     }
     auto probePlan = LogicalPlan();
     auto recursiveExtend = std::make_shared<LogicalRecursiveExtend>(recursiveInfo->function->copy(),
-        *recursiveInfo->bindData, resultColumns, nbrTableIDSet, nodeMaskRoot);
+        *recursiveInfo->bindData, resultColumns, nbrTableIDSet);
+    if (nodeMaskRoot != nullptr) {
+        recursiveExtend->addChild(nodeMaskRoot);
+    }
     recursiveExtend->computeFactorizedSchema();
     probePlan.setLastOperator(std::move(recursiveExtend));
     // Scan path node property pipeline

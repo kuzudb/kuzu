@@ -2,6 +2,7 @@
 #include "binder/expression/property_expression.h"
 #include "binder/expression_visitor.h"
 #include "main/client_context.h"
+#include "planner/operator/logical_dummy_sink.h"
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "planner/planner.h"
 
@@ -30,7 +31,9 @@ LogicalPlan Planner::planNodeSemiMask(SemiMaskTargetType targetType, const NodeE
     auto semiMasker = std::make_shared<LogicalSemiMasker>(SemiMaskKeyType::NODE, targetType,
         node.getInternalID(), node.getTableIDs(), plan.getLastOperator());
     semiMasker->computeFactorizedSchema();
-    plan.setLastOperator(semiMasker);
+    auto dummySink = std::make_shared<LogicalDummySink>(semiMasker);
+    dummySink->computeFactorizedSchema();
+    plan.setLastOperator(dummySink);
     return plan;
 }
 

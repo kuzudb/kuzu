@@ -1,4 +1,5 @@
 #include "graph/on_disk_graph.h"
+#include "planner/operator/logical_dummy_sink.h"
 #include "planner/operator/logical_gds_call.h"
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/gds_call.h"
@@ -13,6 +14,19 @@ using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
+
+LogicalSemiMasker* PlanMapper::findSemiMaskerInPlan(LogicalOperator* logicalOperator) {
+    if (logicalOperator->getOperatorType() == LogicalOperatorType::SEMI_MASKER) {
+        return logicalOperator->ptrCast<LogicalSemiMasker>();
+    }
+    for (auto& child : logicalOperator->getChildren()) {
+        auto result = findSemiMaskerInPlan(child.get());
+        if (result != nullptr) {
+            return result;
+        }
+    }
+    return nullptr;
+}
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(const LogicalOperator* logicalOperator) {
     auto& call = logicalOperator->constCast<LogicalGDSCall>();
@@ -33,14 +47,16 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(const LogicalOperator* 
         sharedState->setGraphNodeMask(std::make_unique<NodeOffsetMaskMap>());
         auto maskMap = sharedState->getGraphNodeMaskMap();
         for (auto logicalRoot : call.getNodeMaskRoots()) {
-            auto logicalSemiMasker = logicalRoot->ptrCast<LogicalSemiMasker>();
+            auto dummySink = logicalRoot->ptrCast<LogicalDummySink>();
+            auto logicalSemiMasker = findSemiMaskerInPlan(dummySink);
+            KU_ASSERT(logicalSemiMasker);
             logicalSemiMasker->addTarget(logicalOperator);
             KU_ASSERT(logicalSemiMasker->getNodeTableIDs().size() == 1);
             for (auto tableID : logicalSemiMasker->getNodeTableIDs()) {
                 maskMap->addMask(tableID, getSemiMask(tableID));
             }
             auto root = mapOperator(logicalRoot.get());
-            gdsCall->addChild(createDummySink(logicalRoot->getSchema(), std::move(root)));
+            gdsCall->addChild(std::move(root));
         }
         logicalOpToPhysicalOpMap.erase(logicalOperator);
     }
