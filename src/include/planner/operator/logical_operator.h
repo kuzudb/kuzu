@@ -27,6 +27,7 @@ enum class LogicalOperatorType : uint8_t {
     DISTINCT,
     DROP,
     DUMMY_SCAN,
+    DUMMY_SINK,
     EMPTY_RESULT,
     EXPLAIN,
     EXPRESSIONS_SCAN,
@@ -89,6 +90,7 @@ public:
     void setChild(uint64_t idx, std::shared_ptr<LogicalOperator> child) {
         children[idx] = std::move(child);
     }
+    void addChild(std::shared_ptr<LogicalOperator> child) { children.push_back(std::move(child)); }
     void setCardinality(common::cardinality_t cardinality_) { this->cardinality = cardinality_; }
 
     // Operator type.

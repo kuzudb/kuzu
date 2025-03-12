@@ -26,6 +26,7 @@ class TableCatalogEntry;
 }
 
 namespace planner {
+class LogicalSemiMasker;
 struct LogicalInsertInfo;
 class LogicalCopyFrom;
 } // namespace planner
@@ -106,6 +107,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapDistinct(const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDrop(const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDummyScan(const planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapDummySink(const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapEmptyResult(
         const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapExplain(const planner::LogicalOperator* logicalOperator);
@@ -233,6 +235,9 @@ private:
         const planner::Schema& schema);
     std::unique_ptr<common::SemiMask> getSemiMask(common::table_id_t tableID) const;
     std::unique_ptr<common::NodeOffsetMaskMap> getNodeOffsetMaskMap(const binder::Expression& expr);
+
+    static planner::LogicalSemiMasker* findSemiMaskerInPlan(
+        planner::LogicalOperator* logicalOperator);
 
 public:
     main::ClientContext* clientContext;

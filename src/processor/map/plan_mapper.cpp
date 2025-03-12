@@ -82,6 +82,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(const LogicalOperator*
     case LogicalOperatorType::DUMMY_SCAN: {
         physicalOperator = mapDummyScan(logicalOperator);
     } break;
+    case LogicalOperatorType::DUMMY_SINK: {
+        physicalOperator = mapDummySink(logicalOperator);
+    } break;
     case LogicalOperatorType::EMPTY_RESULT: {
         physicalOperator = mapEmptyResult(logicalOperator);
     } break;

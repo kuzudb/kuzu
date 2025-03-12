@@ -13,6 +13,7 @@ add_library(kuzu_planner_operator
         logical_cross_product.cpp
         logical_distinct.cpp
         logical_dummy_scan.cpp
+        logical_dummy_sink.cpp
         logical_explain.cpp
         logical_filter.cpp
         logical_flatten.cpp

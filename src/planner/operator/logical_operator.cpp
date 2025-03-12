@@ -40,6 +40,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "DROP";
     case LogicalOperatorType::DUMMY_SCAN:
         return "DUMMY_SCAN";
+    case LogicalOperatorType::DUMMY_SINK:
+        return "DUMMY_SINK";
     case LogicalOperatorType::EMPTY_RESULT:
         return "EMPTY_RESULT";
     case LogicalOperatorType::EXPLAIN:

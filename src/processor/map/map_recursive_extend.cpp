@@ -1,5 +1,6 @@
 #include "graph/on_disk_graph.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
+#include "planner/operator/logical_dummy_sink.h"
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/recursive_extend.h"
 #include "processor/plan_mapper.h"
@@ -39,13 +40,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(
         sharedState->setPathNodeMask(std::make_unique<NodeOffsetMaskMap>());
         auto maskMap = sharedState->getPathNodeMaskMap();
         auto logicalRoot = extend.getNodeMaskRoot();
-        auto logicalSemiMasker = logicalRoot->ptrCast<LogicalSemiMasker>();
+        auto dummySink = logicalRoot->ptrCast<LogicalDummySink>();
+        auto logicalSemiMasker = findSemiMaskerInPlan(dummySink);
+        KU_ASSERT(logicalSemiMasker);
         logicalSemiMasker->addTarget(logicalOperator);
         for (auto tableID : logicalSemiMasker->getNodeTableIDs()) {
             maskMap->addMask(tableID, getSemiMask(tableID));
         }
         auto root = mapOperator(logicalRoot.get());
-        recursiveExtend->addChild(createDummySink(logicalRoot->getSchema(), std::move(root)));
+        recursiveExtend->addChild(std::move(root));
         logicalOpToPhysicalOpMap.erase(logicalOperator);
     }
     logicalOpToPhysicalOpMap.insert({logicalOperator, recursiveExtend.get()});
