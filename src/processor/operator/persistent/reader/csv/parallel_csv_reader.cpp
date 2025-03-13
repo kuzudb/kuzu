@@ -263,18 +263,17 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     for (auto& column : warningColumns) {
         resultColumns.push_back(column);
     }
-    return std::make_unique<ScanFileBindData>(std::move(resultColumns),
-        scanInput->fileScanInfo.copy(), context, numWarningDataColumns, 0 /* estCardinality */);
+    return std::make_unique<ScanFileBindData>(std::move(resultColumns), 0 /* numRows */,
+        scanInput->fileScanInfo.copy(), context, numWarningDataColumns);
 }
 
 static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
     auto bindData = input.bindData->constPtrCast<ScanFileBindData>();
     auto csvOption = CSVReaderConfig::construct(bindData->fileScanInfo.options).option;
-    row_idx_t numRows = 0;
     auto columnInfo = CSVColumnInfo(bindData->getNumColumns() - bindData->numWarningDataColumns,
         bindData->getColumnSkips(), bindData->numWarningDataColumns);
     auto sharedState = std::make_unique<ParallelCSVScanSharedState>(bindData->fileScanInfo.copy(),
-        numRows, bindData->context, csvOption.copy(), columnInfo.copy());
+        0 /* numRows */, bindData->context, csvOption.copy(), columnInfo.copy());
 
     for (idx_t i = 0; i < sharedState->fileScanInfo.getNumFiles(); ++i) {
         auto filePath = sharedState->fileScanInfo.filePaths[i];
