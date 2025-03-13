@@ -1,8 +1,8 @@
 #pragma once
 
-#include "common/api.h"
 #include <mutex>
 
+#include "common/api.h"
 #include "pcg_random.hpp"
 
 namespace kuzu {
