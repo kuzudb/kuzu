@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/api.h"
 #include <mutex>
 
 #include "pcg_random.hpp"
@@ -18,7 +19,7 @@ struct RandomState {
     RandomState() {}
 };
 
-class RandomEngine {
+class KUZU_API RandomEngine {
 public:
     RandomEngine();
     RandomEngine(uint64_t seed, uint64_t stream);

@@ -292,7 +292,7 @@ public:
     static void validateTableExistence(const main::ClientContext& context,
         const std::string& tableName);
     static void validateNodeTableType(const catalog::TableCatalogEntry* entry);
-    static void validateColumnExistence(const catalog::TableCatalogEntry* entry,
+    KUZU_API static void validateColumnExistence(const catalog::TableCatalogEntry* entry,
         const std::string& columnName);
 
     void validateNoIndexOnProperty(const std::string& tableName,
