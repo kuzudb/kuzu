@@ -272,9 +272,6 @@ void ListChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets, R
 void ListChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     offset_t offsetInChunk) {
     checkOffsetSortedAsc = true;
-    auto selVector = std::make_unique<SelectionVector>(1);
-    selVector->setToFiltered();
-    selVector->operator[](0) = offsetInVector;
     auto appendSize =
         vector->isNull(offsetInVector) ? 0 : vector->getValue<list_entry_t>(offsetInVector).size;
     dataColumnChunk->resize(dataColumnChunk->getNumValues() + appendSize);

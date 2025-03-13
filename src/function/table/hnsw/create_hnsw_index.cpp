@@ -26,7 +26,7 @@ CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBind
       nodeTable{bindData.context->getStorageManager()
                     ->getTable(bindData.tableEntry->getTableID())
                     ->cast<storage::NodeTable>()},
-      numNodes{bindData.maxOffset}, bindData{&bindData} {
+      numNodes{bindData.numRows}, bindData{&bindData} {
     hnswIndex = std::make_shared<storage::InMemHNSWIndex>(bindData.context, nodeTable,
         bindData.tableEntry->getColumnID(bindData.propertyID), bindData.config.copy());
 }
