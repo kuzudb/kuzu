@@ -275,17 +275,18 @@ void ListChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     auto appendSize =
         vector->isNull(offsetInVector) ? 0 : vector->getValue<list_entry_t>(offsetInVector).size;
     dataColumnChunk->resize(dataColumnChunk->getNumValues() + appendSize);
-    // TODO(Guodong): Do not set vector to a new state.
-    auto dataVector = ListVector::getDataVector(vector);
-    dataVector->setState(std::make_unique<DataChunkState>());
-    dataVector->state->getSelVectorUnsafe().setToFiltered();
-    copyListValues(vector->getValue<list_entry_t>(offsetInVector), dataVector);
     while (offsetInChunk >= numValues) {
         appendNullList();
     }
     auto isNull = vector->isNull(offsetInVector);
     nullData->setNull(offsetInChunk, isNull);
     if (!isNull) {
+        // TODO(Guodong): Do not set vector to a new state.
+        auto dataVector = ListVector::getDataVector(vector);
+        dataVector->setState(std::make_unique<DataChunkState>());
+        dataVector->state->getSelVectorUnsafe().setToFiltered();
+        copyListValues(vector->getValue<list_entry_t>(offsetInVector), dataVector);
+
         sizeColumnChunk->setValue<list_size_t>(appendSize, offsetInChunk);
         setOffsetChunkValue(dataColumnChunk->getNumValues(), offsetInChunk);
     }
