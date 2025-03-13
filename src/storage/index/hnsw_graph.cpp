@@ -11,8 +11,8 @@ namespace storage {
 InMemEmbeddings::InMemEmbeddings(transaction::Transaction* transaction, EmbeddingTypeInfo typeInfo,
     common::table_id_t tableID, common::column_id_t columnID)
     : EmbeddingColumn{std::move(typeInfo)} {
-    auto key = common::stringFormat("{}-{}", tableID, columnID);
     auto& cacheManager = transaction->getLocalCacheManager();
+    auto key = CachedColumn::getKey(tableID, columnID);
     if (cacheManager.contains(key)) {
         data = transaction->getLocalCacheManager().at(key).cast<CachedColumn>();
     } else {
@@ -25,6 +25,13 @@ float* InMemEmbeddings::getEmbedding(common::offset_t offset) const {
     KU_ASSERT(nodeGroupIdx < data->columnChunks.size());
     const auto& listChunk = data->columnChunks[nodeGroupIdx]->cast<ListChunkData>();
     return &listChunk.getDataColumnChunk()->getData<float>()[offsetInGroup * typeInfo.dimension];
+}
+
+bool InMemEmbeddings::isNull(common::offset_t offset) const {
+    auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
+    KU_ASSERT(nodeGroupIdx < data->columnChunks.size());
+    const auto& listChunk = data->columnChunks[nodeGroupIdx]->cast<ListChunkData>();
+    return listChunk.isNull(offsetInGroup);
 }
 
 OnDiskEmbeddingScanState::OnDiskEmbeddingScanState(const transaction::Transaction* transaction,

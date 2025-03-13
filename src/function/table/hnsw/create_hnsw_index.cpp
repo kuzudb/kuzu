@@ -26,7 +26,7 @@ CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBind
       nodeTable{bindData.context->getStorageManager()
                     ->getTable(bindData.tableEntry->getTableID())
                     ->cast<storage::NodeTable>()},
-      numNodes{bindData.numNodes}, bindData{&bindData} {
+      numNodes{bindData.numRows}, bindData{&bindData} {
     hnswIndex = std::make_shared<storage::InMemHNSWIndex>(bindData.context, nodeTable,
         bindData.tableEntry->getColumnID(bindData.propertyID), bindData.config.copy());
 }
@@ -44,9 +44,8 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
     auto propertyID = tableEntry->getPropertyID(columnName);
     auto config = storage::HNSWIndexConfig{input->optionalParams};
     auto numNodes = table.getStats(context->getTransaction()).getTableCard();
-    auto maxOffset = numNodes > 0 ? numNodes - 1 : 0;
     return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, propertyID,
-        numNodes, maxOffset, std::move(config));
+        numNodes, std::move(config));
 }
 
 static std::unique_ptr<TableFuncSharedState> initCreateInMemHNSWSharedState(
@@ -68,11 +67,13 @@ static offset_t createInMemHNSWTableFunc(const TableFuncInput& input, TableFuncO
         return 0;
     }
     const auto& hnswIndex = sharedState->hnswIndex;
-    for (auto i = morsel.startOffset; i <= morsel.endOffset; i++) {
-        hnswIndex->insert(i, input.localState->ptrCast<CreateInMemHNSWLocalState>()->upperVisited,
+    offset_t numNodesInserted = 0;
+    for (auto i = morsel.startOffset; i < morsel.endOffset; i++) {
+        numNodesInserted += hnswIndex->insert(i,
+            input.localState->ptrCast<CreateInMemHNSWLocalState>()->upperVisited,
             input.localState->ptrCast<CreateInMemHNSWLocalState>()->lowerVisited);
     }
-    sharedState->numNodesInserted.fetch_add(morsel.endOffset - morsel.startOffset);
+    sharedState->numNodesInserted.fetch_add(numNodesInserted);
     return morsel.endOffset - morsel.startOffset;
 }
 
@@ -123,7 +124,7 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
         finalizeSharedState->funcState->ptrCast<FinalizeHNSWSharedState>();
     finalizeFuncSharedState->hnswIndex = createFuncSharedState->hnswIndex;
     finalizeFuncSharedState->numRows =
-        (logicalCallBoundData->numNodes + StorageConfig::NODE_GROUP_SIZE - 1) /
+        (logicalCallBoundData->numRows + StorageConfig::NODE_GROUP_SIZE - 1) /
         StorageConfig::NODE_GROUP_SIZE;
     finalizeFuncSharedState->maxMorselSize = 1;
     finalizeFuncSharedState->bindData = logicalCallBoundData->copy();
