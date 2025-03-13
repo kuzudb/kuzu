@@ -32,25 +32,18 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         TableFunction::extractYieldVariables(returnColumnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(returnColumnNames, returnTypes);
     return std::make_unique<DeltaScanBindData>(std::move(query), connector,
-        duckdb_extension::DuckDBResultConverter{returnTypes}, columns, FileScanInfo{}, context);
+        duckdb_extension::DuckDBResultConverter{returnTypes}, columns, context);
 }
-
-struct DeltaScanSharedState final : TableFuncSharedState {
-    explicit DeltaScanSharedState(std::unique_ptr<duckdb::MaterializedQueryResult> queryResult)
-        : TableFuncSharedState{queryResult->RowCount()}, queryResult{std::move(queryResult)} {}
-
-    std::unique_ptr<duckdb::MaterializedQueryResult> queryResult;
-};
 
 std::unique_ptr<TableFuncSharedState> initDeltaScanSharedState(
     const TableFunctionInitInput& input) {
     auto deltaScanBindData = input.bindData->constPtrCast<DeltaScanBindData>();
     auto queryResult = deltaScanBindData->connector->executeQuery(deltaScanBindData->query);
-    return std::make_unique<DeltaScanSharedState>(std::move(queryResult));
+    return std::make_unique<duckdb_extension::DuckDBScanSharedState>(std::move(queryResult));
 }
 
 offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
-    auto sharedState = input.sharedState->ptrCast<DeltaScanSharedState>();
+    auto sharedState = input.sharedState->ptrCast<duckdb_extension::DuckDBScanSharedState>();
     auto deltaScanBindData = input.bindData->constPtrCast<DeltaScanBindData>();
     std::unique_ptr<duckdb::DataChunk> result;
     try {

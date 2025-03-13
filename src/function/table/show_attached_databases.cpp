@@ -23,20 +23,15 @@ struct ShowAttachedDatabasesBindData final : TableFuncBindData {
     }
 };
 
-static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
-    auto& dataChunk = output.dataChunk;
-    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
-    const auto morsel = sharedState->getMorsel();
-    if (!morsel.hasMoreToOutput()) {
-        return 0;
-    }
+static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFuncInput& input,
+    DataChunk& output) {
     auto& attachedDatabases =
         input.bindData->constPtrCast<ShowAttachedDatabasesBindData>()->attachedDatabases;
-    const auto numDatabasesToOutput = morsel.endOffset - morsel.startOffset;
+    auto numDatabasesToOutput = morsel.getMorselSize();
     for (auto i = 0u; i < numDatabasesToOutput; i++) {
         const auto attachedDatabase = attachedDatabases[morsel.startOffset + i];
-        dataChunk.getValueVectorMutable(0).setValue(i, attachedDatabase->getDBName());
-        dataChunk.getValueVectorMutable(1).setValue(i, attachedDatabase->getDBType());
+        output.getValueVectorMutable(0).setValue(i, attachedDatabase->getDBName());
+        output.getValueVectorMutable(1).setValue(i, attachedDatabase->getDBType());
     }
     return numDatabasesToOutput;
 }
@@ -59,7 +54,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
 function_set ShowAttachedDatabasesFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
-    function->tableFunc = tableFunc;
+    function->tableFunc = SimpleTableFunc::getTableFunc(internalTableFunc);
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;

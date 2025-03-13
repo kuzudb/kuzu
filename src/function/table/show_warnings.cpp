@@ -22,22 +22,17 @@ struct ShowWarningsBindData final : TableFuncBindData {
     }
 };
 
-static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
-    auto& dataChunk = output.dataChunk;
-    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
-    const auto morsel = sharedState->getMorsel();
-    if (!morsel.hasMoreToOutput()) {
-        return 0;
-    }
+static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFuncInput& input,
+    DataChunk& output) {
     const auto warnings = input.bindData->constPtrCast<ShowWarningsBindData>()->warnings;
     const auto numWarningsToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numWarningsToOutput; i++) {
         const auto tableInfo = warnings[morsel.startOffset + i];
-        dataChunk.getValueVectorMutable(0).setValue(i, tableInfo.queryID);
-        dataChunk.getValueVectorMutable(1).setValue(i, tableInfo.warning.message);
-        dataChunk.getValueVectorMutable(2).setValue(i, tableInfo.warning.filePath);
-        dataChunk.getValueVectorMutable(3).setValue(i, tableInfo.warning.lineNumber);
-        dataChunk.getValueVectorMutable(4).setValue(i, tableInfo.warning.skippedLineOrRecord);
+        output.getValueVectorMutable(0).setValue(i, tableInfo.queryID);
+        output.getValueVectorMutable(1).setValue(i, tableInfo.warning.message);
+        output.getValueVectorMutable(2).setValue(i, tableInfo.warning.filePath);
+        output.getValueVectorMutable(3).setValue(i, tableInfo.warning.lineNumber);
+        output.getValueVectorMutable(4).setValue(i, tableInfo.warning.skippedLineOrRecord);
     }
     return numWarningsToOutput;
 }
@@ -61,7 +56,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
 function_set ShowWarningsFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
-    function->tableFunc = tableFunc;
+    function->tableFunc = SimpleTableFunc::getTableFunc(internalTableFunc);
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;

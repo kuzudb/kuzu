@@ -84,30 +84,25 @@ struct TableInfoBindData final : TableFuncBindData {
     }
 };
 
-static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
-    auto& dataChunk = output.dataChunk;
-    auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
-    auto morsel = sharedState->getMorsel();
-    if (!morsel.hasMoreToOutput()) {
-        return 0;
-    }
+static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFuncInput& input,
+    DataChunk& output) {
     auto bindData = input.bindData->constPtrCast<TableInfoBindData>();
     auto i = 0u;
-    auto size = morsel.endOffset - morsel.startOffset;
+    auto size = morsel.getMorselSize();
     for (; i < size; i++) {
         auto& info = bindData->infos[morsel.startOffset + i];
-        dataChunk.getValueVectorMutable(0).setValue(i, info.propertyID);
-        dataChunk.getValueVectorMutable(1).setValue(i, info.name);
-        dataChunk.getValueVectorMutable(2).setValue(i, info.type);
-        dataChunk.getValueVectorMutable(3).setValue(i, info.defaultVal);
+        output.getValueVectorMutable(0).setValue(i, info.propertyID);
+        output.getValueVectorMutable(1).setValue(i, info.name);
+        output.getValueVectorMutable(2).setValue(i, info.type);
+        output.getValueVectorMutable(3).setValue(i, info.defaultVal);
         switch (bindData->type) {
         case CatalogEntryType::NODE_TABLE_ENTRY: {
             auto extraInfo = info.extraInfo->ptrCast<ExtraNodePropertyInfo>();
-            dataChunk.getValueVectorMutable(4).setValue(i, extraInfo->isPrimaryKey);
+            output.getValueVectorMutable(4).setValue(i, extraInfo->isPrimaryKey);
         } break;
         case CatalogEntryType::REL_TABLE_ENTRY: {
             auto extraInfo = info.extraInfo->ptrCast<ExtraRelPropertyInfo>();
-            dataChunk.getValueVectorMutable(4).setValue(i, extraInfo->storageDirection);
+            output.getValueVectorMutable(4).setValue(i, extraInfo->storageDirection);
         } break;
         default:
             break;
@@ -228,7 +223,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
 function_set TableInfoFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
-    function->tableFunc = tableFunc;
+    function->tableFunc = SimpleTableFunc::getTableFunc(internalTableFunc);
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;

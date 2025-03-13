@@ -21,16 +21,12 @@ struct BMInfoBindData final : TableFuncBindData {
     }
 };
 
-static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
-    KU_ASSERT(output.dataChunk.getNumValueVectors() == 2);
-    auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
-    const auto morsel = sharedState->getMorsel();
-    if (!morsel.hasMoreToOutput()) {
-        return 0;
-    }
-    const auto bindData = input.bindData->constPtrCast<BMInfoBindData>();
-    output.dataChunk.getValueVectorMutable(0).setValue<uint64_t>(0, bindData->memLimit);
-    output.dataChunk.getValueVectorMutable(1).setValue<uint64_t>(0, bindData->memUsage);
+static common::offset_t internalTableFunc(const TableFuncMorsel& /*morsel*/,
+    const TableFuncInput& input, common::DataChunk& output) {
+    KU_ASSERT(output.getNumValueVectors() == 2);
+    auto bmInfoBindData = input.bindData->constPtrCast<BMInfoBindData>();
+    output.getValueVectorMutable(0).setValue<uint64_t>(0, bmInfoBindData->memLimit);
+    output.getValueVectorMutable(1).setValue<uint64_t>(0, bmInfoBindData->memUsage);
     return 1;
 }
 
@@ -51,7 +47,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
 function_set BMInfoFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<TableFunction>(name, std::vector<common::LogicalTypeID>{});
-    function->tableFunc = tableFunc;
+    function->tableFunc = SimpleTableFunc::getTableFunc(internalTableFunc);
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;

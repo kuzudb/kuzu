@@ -16,14 +16,6 @@ struct PandasScanLocalState final : public function::TableFuncLocalState {
     uint64_t end;
 };
 
-struct PandasScanSharedState final : public function::TableFuncSharedState {
-    PandasScanSharedState(uint64_t startRow, uint64_t numRows)
-        : function::TableFuncSharedState{numRows}, startRow(startRow), numRowsRead{0} {}
-
-    uint64_t startRow;
-    uint64_t numRowsRead;
-};
-
 struct PandasScanFunction {
     static constexpr const char* name = "READ_PANDAS";
 

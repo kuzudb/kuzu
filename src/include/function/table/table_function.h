@@ -147,6 +147,8 @@ struct KUZU_API TableFunction final : Function {
     static std::unique_ptr<TableFuncLocalState> initEmptyLocalState(
         const TableFunctionInitInput& input, TableFuncSharedState* state,
         storage::MemoryManager* mm);
+    static std::unique_ptr<TableFuncSharedState> initEmptySharedState(
+        const TableFunctionInitInput& input);
     static std::vector<std::string> extractYieldVariables(const std::vector<std::string>& names,
         const std::vector<parser::YieldVariable>& yieldVariables);
     static void getLogicalPlan(const transaction::Transaction* transaction,

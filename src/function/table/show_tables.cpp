@@ -31,30 +31,25 @@ struct ShowTablesBindData final : TableFuncBindData {
     std::vector<TableInfo> tables;
 
     ShowTablesBindData(std::vector<TableInfo> tables, binder::expression_vector columns,
-        offset_t maxOffset)
-        : TableFuncBindData{std::move(columns), maxOffset}, tables{std::move(tables)} {}
+        row_idx_t numRows)
+        : TableFuncBindData{std::move(columns), numRows}, tables{std::move(tables)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<ShowTablesBindData>(tables, columns, numRows);
     }
 };
 
-static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
-    auto& dataChunk = output.dataChunk;
-    auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
-    const auto morsel = sharedState->getMorsel();
-    if (!morsel.hasMoreToOutput()) {
-        return 0;
-    }
+static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFuncInput& input,
+    DataChunk& output) {
     const auto tables = input.bindData->constPtrCast<ShowTablesBindData>()->tables;
     const auto numTablesToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numTablesToOutput; i++) {
         const auto tableInfo = tables[morsel.startOffset + i];
-        dataChunk.getValueVectorMutable(0).setValue(i, tableInfo.id);
-        dataChunk.getValueVectorMutable(1).setValue(i, tableInfo.name);
-        dataChunk.getValueVectorMutable(2).setValue(i, tableInfo.type);
-        dataChunk.getValueVectorMutable(3).setValue(i, tableInfo.databaseName);
-        dataChunk.getValueVectorMutable(4).setValue(i, tableInfo.comment);
+        output.getValueVectorMutable(0).setValue(i, tableInfo.id);
+        output.getValueVectorMutable(1).setValue(i, tableInfo.name);
+        output.getValueVectorMutable(2).setValue(i, tableInfo.type);
+        output.getValueVectorMutable(3).setValue(i, tableInfo.databaseName);
+        output.getValueVectorMutable(4).setValue(i, tableInfo.comment);
     }
     return numTablesToOutput;
 }
@@ -114,7 +109,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
 function_set ShowTablesFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
-    function->tableFunc = tableFunc;
+    function->tableFunc = SimpleTableFunc::getTableFunc(internalTableFunc);
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;

@@ -21,5 +21,19 @@ std::unique_ptr<TableFuncSharedState> SimpleTableFunc::initSharedState(
     return std::make_unique<SimpleTableFuncSharedState>(input.bindData->numRows);
 }
 
+common::offset_t tableFunc(simple_internal_table_func internalTableFunc,
+    const TableFuncInput& input, TableFuncOutput& output) {
+    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
+    auto morsel = sharedState->getMorsel();
+    if (!morsel.hasMoreToOutput()) {
+        return 0;
+    }
+    return internalTableFunc(morsel, input, output.dataChunk);
+}
+
+table_func_t SimpleTableFunc::getTableFunc(simple_internal_table_func internalTableFunc) {
+    return std::bind(tableFunc, internalTableFunc, std::placeholders::_1, std::placeholders::_2);
+}
+
 } // namespace function
 } // namespace kuzu

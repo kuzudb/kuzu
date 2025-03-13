@@ -21,6 +21,7 @@
 #include "function/struct/vector_struct_functions.h"
 #include "function/table/hnsw/hnsw_index_functions.h"
 #include "function/table/simple_table_function.h"
+#include "function/table/standalone_call_function.h"
 #include "function/timestamp/vector_timestamp_functions.h"
 #include "function/union/vector_union_functions.h"
 #include "function/utility/vector_utility_functions.h"

@@ -19,6 +19,11 @@ std::unique_ptr<TableFuncLocalState> TableFunction::initEmptyLocalState(
     return std::make_unique<TableFuncLocalState>();
 }
 
+std::unique_ptr<TableFuncSharedState> TableFunction::initEmptySharedState(
+    const kuzu::function::TableFunctionInitInput& /*input*/) {
+    return std::make_unique<TableFuncSharedState>();
+}
+
 std::vector<std::string> TableFunction::extractYieldVariables(const std::vector<std::string>& names,
     const std::vector<parser::YieldVariable>& yieldVariables) {
     std::vector<std::string> variableNames;

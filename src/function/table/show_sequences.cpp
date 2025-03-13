@@ -38,24 +38,19 @@ struct ShowSequencesBindData final : TableFuncBindData {
     }
 };
 
-static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
-    auto& dataChunk = output.dataChunk;
-    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
-    const auto morsel = sharedState->getMorsel();
-    if (!morsel.hasMoreToOutput()) {
-        return 0;
-    }
+static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFuncInput& input,
+    DataChunk& output) {
     const auto sequences = input.bindData->constPtrCast<ShowSequencesBindData>()->sequences;
     const auto numSequencesToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numSequencesToOutput; i++) {
         const auto sequenceInfo = sequences[morsel.startOffset + i];
-        dataChunk.getValueVectorMutable(0).setValue(i, sequenceInfo.name);
-        dataChunk.getValueVectorMutable(1).setValue(i, sequenceInfo.databaseName);
-        dataChunk.getValueVectorMutable(2).setValue(i, sequenceInfo.startValue);
-        dataChunk.getValueVectorMutable(3).setValue(i, sequenceInfo.increment);
-        dataChunk.getValueVectorMutable(4).setValue(i, sequenceInfo.minValue);
-        dataChunk.getValueVectorMutable(5).setValue(i, sequenceInfo.maxValue);
-        dataChunk.getValueVectorMutable(6).setValue(i, sequenceInfo.cycle);
+        output.getValueVectorMutable(0).setValue(i, sequenceInfo.name);
+        output.getValueVectorMutable(1).setValue(i, sequenceInfo.databaseName);
+        output.getValueVectorMutable(2).setValue(i, sequenceInfo.startValue);
+        output.getValueVectorMutable(3).setValue(i, sequenceInfo.increment);
+        output.getValueVectorMutable(4).setValue(i, sequenceInfo.minValue);
+        output.getValueVectorMutable(5).setValue(i, sequenceInfo.maxValue);
+        output.getValueVectorMutable(6).setValue(i, sequenceInfo.cycle);
     }
     return numSequencesToOutput;
 }
@@ -112,7 +107,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
 function_set ShowSequencesFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
-    function->tableFunc = tableFunc;
+    function->tableFunc = SimpleTableFunc::getTableFunc(internalTableFunc);
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;

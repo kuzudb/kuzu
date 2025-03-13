@@ -31,20 +31,15 @@ struct ShowFunctionsBindData final : TableFuncBindData {
     }
 };
 
-static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
-    auto& dataChunk = output.dataChunk;
-    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
-    const auto morsel = sharedState->getMorsel();
-    if (!morsel.hasMoreToOutput()) {
-        return 0;
-    }
-    const auto sequences = input.bindData->constPtrCast<ShowFunctionsBindData>()->sequences;
-    const auto numSequencesToOutput = morsel.endOffset - morsel.startOffset;
+static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFuncInput& input,
+    DataChunk& output) {
+    auto sequences = input.bindData->constPtrCast<ShowFunctionsBindData>()->sequences;
+    auto numSequencesToOutput = morsel.getMorselSize();
     for (auto i = 0u; i < numSequencesToOutput; i++) {
         const auto functionInfo = sequences[morsel.startOffset + i];
-        dataChunk.getValueVectorMutable(0).setValue(i, functionInfo.name);
-        dataChunk.getValueVectorMutable(1).setValue(i, functionInfo.type);
-        dataChunk.getValueVectorMutable(2).setValue(i, functionInfo.signature);
+        output.getValueVectorMutable(0).setValue(i, functionInfo.name);
+        output.getValueVectorMutable(1).setValue(i, functionInfo.type);
+        output.getValueVectorMutable(2).setValue(i, functionInfo.signature);
     }
     return numSequencesToOutput;
 }
@@ -77,7 +72,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
 function_set ShowFunctionsFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
-    function->tableFunc = tableFunc;
+    function->tableFunc = SimpleTableFunc::getTableFunc(internalTableFunc);
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;

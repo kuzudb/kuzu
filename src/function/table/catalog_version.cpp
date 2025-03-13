@@ -7,14 +7,10 @@
 namespace kuzu {
 namespace function {
 
-static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
-    auto& dataChunk = output.dataChunk;
-    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
-    auto& outputVector = dataChunk.getValueVectorMutable(0);
-    if (!sharedState->getMorsel().hasMoreToOutput()) {
-        return 0;
-    }
-    const auto pos = dataChunk.state->getSelVector()[0];
+static common::offset_t internalTableFunc(const TableFuncMorsel& /*morsel*/,
+    const TableFuncInput& input, common::DataChunk& output) {
+    auto& outputVector = output.getValueVectorMutable(0);
+    auto pos = outputVector.state->getSelVector()[0];
     outputVector.setValue(pos, input.context->clientContext->getCatalog()->getVersion());
     return 1;
 }
@@ -34,7 +30,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext*,
 function_set CatalogVersionFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<TableFunction>(name, std::vector<common::LogicalTypeID>{});
-    function->tableFunc = tableFunc;
+    function->tableFunc = SimpleTableFunc::getTableFunc(internalTableFunc);
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;

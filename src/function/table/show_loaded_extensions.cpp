@@ -35,22 +35,17 @@ struct ShowLoadedExtensionsBindData final : TableFuncBindData {
     }
 };
 
-static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
-    auto& dataChunk = output.dataChunk;
-    const auto sharedState = input.sharedState->ptrCast<SimpleTableFuncSharedState>();
-    const auto morsel = sharedState->getMorsel();
-    if (!morsel.hasMoreToOutput()) {
-        return 0;
-    }
+static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFuncInput& input,
+    DataChunk& output) {
     auto& loadedExtensions =
         input.bindData->constPtrCast<ShowLoadedExtensionsBindData>()->loadedExtensionInfo;
-    auto numTuplesToOutput = morsel.endOffset - morsel.startOffset;
+    auto numTuplesToOutput = morsel.getMorselSize();
     for (auto i = 0u; i < numTuplesToOutput; i++) {
         auto loadedExtension = loadedExtensions[morsel.startOffset + i];
-        dataChunk.getValueVectorMutable(0).setValue(i, loadedExtension.name);
-        dataChunk.getValueVectorMutable(1).setValue(i,
+        output.getValueVectorMutable(0).setValue(i, loadedExtension.name);
+        output.getValueVectorMutable(1).setValue(i,
             extension::ExtensionSourceUtils::toString(loadedExtension.extensionSource));
-        dataChunk.getValueVectorMutable(2).setValue(i, loadedExtension.extensionPath);
+        output.getValueVectorMutable(2).setValue(i, loadedExtension.extensionPath);
     }
     return numTuplesToOutput;
 }
@@ -83,7 +78,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
 function_set ShowLoadedExtensionsFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<TableFunction>(name, std::vector<common::LogicalTypeID>{});
-    function->tableFunc = tableFunc;
+    function->tableFunc = SimpleTableFunc::getTableFunc(internalTableFunc);
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = SimpleTableFunc::initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;
