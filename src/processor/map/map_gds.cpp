@@ -53,7 +53,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapGDSCall(const LogicalOperator* 
             logicalSemiMasker->addTarget(logicalOperator);
             KU_ASSERT(logicalSemiMasker->getNodeTableIDs().size() == 1);
             for (auto tableID : logicalSemiMasker->getNodeTableIDs()) {
-                maskMap->addMask(tableID, getSemiMask(tableID));
+                maskMap->addMask(tableID, createSemiMask(tableID));
             }
             auto root = mapOperator(logicalRoot.get());
             gdsCall->addChild(std::move(root));

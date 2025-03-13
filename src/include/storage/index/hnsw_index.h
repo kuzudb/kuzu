@@ -8,8 +8,9 @@
 
 namespace kuzu {
 namespace function {
+struct HNSWSearchState;
 struct QueryHNSWLocalState;
-}
+} // namespace function
 namespace processor {
 struct PartitionerSharedState;
 }
@@ -151,6 +152,19 @@ private:
     common::RandomEngine randomEngine;
 };
 
+struct HNSWSearchState {
+    VisitedState visited;
+    OnDiskEmbeddingScanState embeddingScanState;
+    uint64_t k;
+    QueryHNSWConfig config;
+    common::SemiMask* semiMask;
+
+    HNSWSearchState(const transaction::Transaction* transaction, MemoryManager* mm,
+        NodeTable& nodeTable, common::column_id_t columnID, common::offset_t numNodes)
+        : visited{numNodes}, embeddingScanState{transaction, mm, nodeTable, columnID}, k{0},
+          semiMask{nullptr} {}
+};
+
 class OnDiskHNSWIndex final : public HNSWIndex {
 public:
     OnDiskHNSWIndex(main::ClientContext* context, catalog::NodeTableCatalogEntry* nodeTableEntry,
@@ -167,17 +181,53 @@ public:
     common::offset_t getLowerEntryPoint() const override { return defaultLowerEntryPoint.load(); }
 
     std::vector<NodeWithDistance> search(transaction::Transaction* transaction,
-        const std::vector<float>& queryVector, common::length_t k, const QueryHNSWConfig& config,
-        VisitedState& visited, NodeTableScanState& embeddingScanState) const;
+        const std::vector<float>& queryVector, HNSWSearchState& searchState) const;
 
 private:
+    enum class FilteredSearchType : uint8_t {
+        BLIND_TWO_HOP = 0,
+        DIRECTED_TWO_HOP = 1,
+        ONE_HOP = 2
+    };
+
     common::offset_t searchNNInUpperLayer(transaction::Transaction* transaction,
         const float* queryVector, NodeTableScanState& embeddingScanState) const;
     std::vector<NodeWithDistance> searchKNNInLowerLayer(transaction::Transaction* transaction,
-        const float* queryVector, common::offset_t entryNode, common::length_t k,
-        uint64_t configuredEf, VisitedState& visited, NodeTableScanState& embeddingScanState) const;
+        const float* queryVector, common::offset_t entryNode, HNSWSearchState& searchState) const;
+    std::vector<NodeWithDistance> searchFilteredKNNInLowerLayer(
+        transaction::Transaction* transaction, const float* queryVector, common::offset_t entryNode,
+        HNSWSearchState& searchState) const;
+    std::vector<NodeWithDistance> searchUnfilteredKNNInLowerLayer(
+        transaction::Transaction* transaction, const float* queryVector, common::offset_t entryNode,
+        HNSWSearchState& searchState) const;
+
+    common::offset_vec_t searchFilteredNeighbors(transaction::Transaction* transaction,
+        common::offset_t nodeOffset, const float* queryVector, FilteredSearchType searchType,
+        HNSWSearchState& searchState, graph::NbrScanState& nbrScanState,
+        graph::NbrScanState& secondHopNbrScanState, uint64_t ef,
+        min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
+    static common::offset_vec_t oneHopFilteredSearch(common::SemiMask* semiMask, uint64_t ef,
+        graph::Graph::EdgeIterator& nbrItr, VisitedState& visited);
+    common::offset_vec_t directedTwoHopFilteredSearch(transaction::Transaction* transaction,
+        common::SemiMask* semiMask, const float* queryVector, uint64_t ef,
+        graph::Graph::EdgeIterator& nbrItr, VisitedState& visited,
+        NodeTableScanState& embeddingScanState, graph::NbrScanState& secondHopScanState,
+        min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
+    common::offset_vec_t blindTwoHopFilteredSearch(common::SemiMask* semiMask, uint64_t ef,
+        graph::Graph::EdgeIterator& nbrItr, VisitedState& visited,
+        graph::NbrScanState& secondHopScanState) const;
+
+    static bool visitNodeInBlindSearch(common::offset_t offset, common::SemiMask* semiMask,
+        VisitedState& visited, common::offset_vec_t& result, uint64_t ef);
+
+    FilteredSearchType getFilteredSearchType(transaction::Transaction* transaction,
+        const HNSWSearchState& searchState) const;
 
 private:
+    static constexpr double BLIND_SEARCH_UP_SEL_THRESHOLD = 0.08;
+    static constexpr double DIRECTED_SEARCH_UP_SEL_THRESHOLD = 0.4;
+    static constexpr uint64_t FILTERED_SEARCH_INITIAL_CANDIDATES = 10;
+
     common::table_id_t nodeTableID;
     catalog::RelTableCatalogEntry* upperRelTableEntry;
     catalog::RelTableCatalogEntry* lowerRelTableEntry;

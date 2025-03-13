@@ -10,6 +10,7 @@ namespace common {
 enum class RelDataDirection : uint8_t;
 class SemiMask;
 class NodeOffsetMaskMap;
+class SemiMask;
 } // namespace common
 namespace main {
 class ClientContext;
@@ -74,6 +75,9 @@ public:
         const binder::BoundCopyFromInfo& copyFromInfo, planner::Schema* outFSchema,
         common::RelDataDirection direction, std::vector<common::column_id_t> columnIDs,
         std::vector<common::LogicalType> columnTypes, uint32_t operatorID);
+
+    static planner::LogicalSemiMasker* findSemiMaskerInPlan(
+        planner::LogicalOperator* logicalOperator);
 
 private:
     std::unique_ptr<PhysicalOperator> mapOperator(const planner::LogicalOperator* logicalOperator);
@@ -231,13 +235,11 @@ private:
 
     static std::vector<DataPos> getDataPos(const binder::expression_vector& expressions,
         const planner::Schema& schema);
-    FactorizedTableSchema createFlatFTableSchema(const binder::expression_vector& expressions,
-        const planner::Schema& schema);
-    std::unique_ptr<common::SemiMask> getSemiMask(common::table_id_t tableID) const;
-    std::unique_ptr<common::NodeOffsetMaskMap> getNodeOffsetMaskMap(const binder::Expression& expr);
-
-    static planner::LogicalSemiMasker* findSemiMaskerInPlan(
-        planner::LogicalOperator* logicalOperator);
+    static FactorizedTableSchema createFlatFTableSchema(
+        const binder::expression_vector& expressions, const planner::Schema& schema);
+    std::unique_ptr<common::SemiMask> createSemiMask(common::table_id_t tableID) const;
+    std::unique_ptr<common::NodeOffsetMaskMap> createNodeOffsetMaskMap(
+        const binder::Expression& expr) const;
 
 public:
     main::ClientContext* clientContext;

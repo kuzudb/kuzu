@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace planner {
 
-class LogicalTableFunctionCall : public LogicalOperator {
+class LogicalTableFunctionCall final : public LogicalOperator {
     static constexpr LogicalOperatorType operatorType_ = LogicalOperatorType::TABLE_FUNCTION_CALL;
 
 public:
@@ -27,6 +27,10 @@ public:
     void setColumnPredicates(std::vector<storage::ColumnPredicateSet> predicates) {
         bindData->setColumnPredicates(std::move(predicates));
     }
+    void setNodeMaskRoots(std::vector<std::shared_ptr<LogicalOperator>> nodeMaskRoots_) {
+        nodeMaskRoots = std::move(nodeMaskRoots_);
+    }
+    std::vector<std::shared_ptr<LogicalOperator>> getNodeMaskRoots() const { return nodeMaskRoots; }
 
     void computeFlatSchema() override;
     void computeFactorizedSchema() override;
@@ -40,6 +44,7 @@ public:
 private:
     function::TableFunction tableFunc;
     std::unique_ptr<function::TableFuncBindData> bindData;
+    std::vector<std::shared_ptr<LogicalOperator>> nodeMaskRoots;
 };
 
 } // namespace planner

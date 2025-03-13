@@ -319,7 +319,7 @@ void QueryFTSAlgorithm::bind(const GDSBindInput& input, main::ClientContext& con
     auto query = input.getParam(2);
 
     auto tableEntry =
-        IndexUtils::bindTable(context, inputTableName, indexName, IndexOperation::QUERY);
+        IndexUtils::bindNodeTable(context, inputTableName, indexName, IndexOperation::QUERY);
     auto ftsIndexEntry = context.getCatalog()->getIndex(context.getTransaction(),
         tableEntry->getTableID(), indexName);
     auto entry =

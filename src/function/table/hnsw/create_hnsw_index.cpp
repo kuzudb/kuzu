@@ -36,7 +36,7 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
     const auto tableName = input->getLiteralVal<std::string>(0);
     const auto indexName = input->getLiteralVal<std::string>(1);
     const auto columnName = input->getLiteralVal<std::string>(2);
-    auto tableEntry = storage::IndexUtils::bindTable(*context, tableName, indexName,
+    auto tableEntry = storage::IndexUtils::bindNodeTable(*context, tableName, indexName,
         storage::IndexOperation::CREATE);
     const auto tableID = tableEntry->getTableID();
     storage::HNSWIndexUtils::validateColumnType(*tableEntry, columnName);

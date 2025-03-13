@@ -85,7 +85,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     const TableFuncBindInput* input) {
     storage::IndexUtils::validateAutoTransaction(*context, CreateFTSFunction::name);
     auto indexName = input->getLiteralVal<std::string>(1);
-    auto nodeTableEntry = storage::IndexUtils::bindTable(*context,
+    auto nodeTableEntry = storage::IndexUtils::bindNodeTable(*context,
         input->getLiteralVal<std::string>(0), indexName, storage::IndexOperation::CREATE);
     auto propertyIDs = bindProperties(*nodeTableEntry, input->getParam(2));
     auto createFTSConfig =
