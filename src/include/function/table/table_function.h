@@ -86,7 +86,7 @@ struct TableFuncOutput {
     DELETE_COPY_DEFAULT_MOVE(TableFuncOutput);
 };
 
-struct TableFunctionInitInput final {
+struct KUZU_API TableFunctionInitInput final {
     TableFuncBindData* bindData;
     uint64_t queryID;
     const main::ClientContext& context;

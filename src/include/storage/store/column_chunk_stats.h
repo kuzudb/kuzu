@@ -3,7 +3,7 @@
 #include "storage/compression/compression.h"
 namespace kuzu::storage {
 
-struct ColumnChunkStats {
+struct KUZU_API ColumnChunkStats {
     std::optional<StorageValue> max;
     std::optional<StorageValue> min;
 

@@ -92,7 +92,7 @@ struct OperatorMetrics {
 
 using physical_op_vector_t = std::vector<std::unique_ptr<PhysicalOperator>>;
 
-class PhysicalOperator {
+class KUZU_API PhysicalOperator {
 public:
     // Leaf operator
     PhysicalOperator(PhysicalOperatorType operatorType, physical_op_id id,

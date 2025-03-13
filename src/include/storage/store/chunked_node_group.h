@@ -29,7 +29,7 @@ class ColumnStats;
 
 enum class NodeGroupDataFormat : uint8_t { REGULAR = 0, CSR = 1 };
 
-class ChunkedNodeGroup {
+class KUZU_API ChunkedNodeGroup {
 public:
     ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks,
         common::row_idx_t startRowIdx, NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR);

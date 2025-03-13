@@ -2,6 +2,7 @@
 
 #include <mutex>
 
+#include "common/api.h"
 #include "pcg_random.hpp"
 
 namespace kuzu {
@@ -18,7 +19,7 @@ struct RandomState {
     RandomState() {}
 };
 
-class RandomEngine {
+class KUZU_API RandomEngine {
 public:
     RandomEngine();
     RandomEngine(uint64_t seed, uint64_t stream);
