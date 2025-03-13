@@ -57,10 +57,10 @@ void ListLambdaEvaluator::evaluateInternal() {
     }
     ListSliceInfo sliceInfo{inputVector};
     bindData.sliceInfo = &sliceInfo;
+    auto selVectors = SelectionVector::fromValueVectors(params);
     do {
         sliceInfo.nextSlice();
-        execFunc(params, SelectionVector::fromValueVectors(params), *resultVector,
-            resultVector->getSelVectorPtr(), &bindData);
+        execFunc(params, selVectors, *resultVector, resultVector->getSelVectorPtr(), &bindData);
     } while (!sliceInfo.done());
 }
 

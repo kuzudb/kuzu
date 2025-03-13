@@ -36,10 +36,11 @@ void SelectionVector::setToUnfiltered(sel_t size) {
 }
 
 std::vector<SelectionVector*> SelectionVector::fromValueVectors(
-    const std::vector<std::shared_ptr<common::ValueVector>>& vec) {
-    std::vector<SelectionVector*> ret;
-    std::transform(vec.begin(), vec.end(), std::back_inserter(ret),
-        [](const auto& vec) -> SelectionVector* { return vec->getSelVectorPtr(); });
+    const std::vector<std::shared_ptr<ValueVector>>& vec) {
+    std::vector<SelectionVector*> ret(vec.size());
+    for (size_t i = 0; i < vec.size(); ++i) {
+        ret[i] = vec[i]->getSelVectorPtr();
+    }
     return ret;
 }
 
