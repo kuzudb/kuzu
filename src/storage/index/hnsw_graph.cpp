@@ -144,9 +144,7 @@ void CompressedDstNodesBuffer::setNodeID(common::offset_t csrOffset, common::off
 CompressedNbrNodes CompressedDstNodesBuffer::getNeighbors(common::offset_t nodeOffset,
     common::offset_t maxDegree, common::offset_t numNbrs) const {
     auto startOffset = nodeOffset * maxDegree;
-    return CompressedNbrNodes{.buffer = *this,
-        .startOffset = startOffset,
-        .endOffset = startOffset + numNbrs};
+    return CompressedNbrNodes{CompressedNbrNodesLookup{*this}, startOffset, startOffset + numNbrs};
 }
 
 InMemHNSWGraph::InMemHNSWGraph(MemoryManager* mm, common::offset_t numNodes,
@@ -225,6 +223,10 @@ void InMemHNSWGraph::resetCSRLengthAndDstNodes() {
     for (common::offset_t i = 0; i < numNodes * maxDegree; i++) {
         setDstNode(i, common::INVALID_OFFSET);
     }
+}
+
+common::offset_t CompressedNbrNodesLookup::at(common::offset_t offset) const {
+    return buffer.getNodeID(offset);
 }
 
 } // namespace storage
