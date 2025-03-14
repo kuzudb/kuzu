@@ -28,11 +28,7 @@ bool NullMask::copyNullMask(const uint64_t* srcNullEntries, uint64_t srcOffset,
         bool anyNull = false;
         for (size_t i = 0; i < numBitsToCopy; i++) {
             bool isNull = NullMask::isNull(srcNullEntries, srcOffset + i);
-            if (invert) {
-                NullMask::setNull(dstNullEntries, dstOffset + i, !isNull);
-            } else {
-                NullMask::setNull(dstNullEntries, dstOffset + i, isNull);
-            }
+            NullMask::setNull(dstNullEntries, dstOffset + i, isNull ^ invert);
             anyNull |= isNull;
         }
         return anyNull;
