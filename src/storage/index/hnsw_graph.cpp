@@ -98,7 +98,7 @@ struct TypedCompressedNbrNodesView : CompressedNbrNodesView {
 common::offset_t minNumBytesToStore(common::offset_t value) {
     const auto bitWidth = std::bit_width(value);
     static constexpr decltype(bitWidth) bitsPerByte = 8;
-    return std::bit_ceil(common::ceilDiv(bitWidth, bitsPerByte));
+    return std::bit_ceil(static_cast<common::offset_t>(common::ceilDiv(bitWidth, bitsPerByte)));
 }
 
 template<std::integral CompressedType>
