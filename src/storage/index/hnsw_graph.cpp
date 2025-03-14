@@ -75,24 +75,20 @@ float* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
 namespace {
 template<std::integral CompressedType>
 struct TypedCompressedNbrNodesView : CompressedNbrNodesView {
-    explicit TypedCompressedNbrNodesView(const CompressedDstNodesBuffer& buffer)
-        : CompressedNbrNodesView(buffer) {}
-
-    common::offset_t elementSizeBytes() const override {
-        return sizeof(std::atomic<CompressedType>);
-    }
-
-    uint8_t* getDstNodesBuffer() const { return buffer.dstNodesBuffer->getData(); }
+    explicit TypedCompressedNbrNodesView(const CompressedDstNodesBuffer& buffer,
+        common::offset_t numEntries)
+        : dstNodes(reinterpret_cast<std::atomic<CompressedType>*>(buffer.dstNodesBuffer->getData()),
+              numEntries) {}
 
     common::offset_t getNodeIDAtomic(common::offset_t idx) const override {
-        return reinterpret_cast<const std::atomic<CompressedType>*>(getDstNodesBuffer())[idx].load(
-            std::memory_order_relaxed);
+        return dstNodes[idx].load(std::memory_order_relaxed);
     }
 
     void setNodeIDAtomic(common::offset_t idx, common::offset_t nodeID) override {
-        reinterpret_cast<std::atomic<CompressedType>*>(getDstNodesBuffer())[idx].store(nodeID,
-            std::memory_order_relaxed);
+        dstNodes[idx].store(nodeID, std::memory_order_relaxed);
     }
+
+    std::span<std::atomic<CompressedType>> dstNodes;
 };
 
 common::offset_t minNumBytesToStore(common::offset_t value) {
@@ -100,27 +96,35 @@ common::offset_t minNumBytesToStore(common::offset_t value) {
     static constexpr decltype(bitWidth) bitsPerByte = 8;
     return std::bit_ceil(common::ceilDiv(bitWidth, bitsPerByte));
 }
+
+template<std::integral CompressedType>
+static void initDstNodesBuffer(MemoryManager* mm, CompressedDstNodesBuffer& buf,
+    common::offset_t numEntries) {
+    buf.dstNodesBuffer =
+        mm->allocateBuffer(false, numEntries * sizeof(std::atomic<CompressedType>));
+    buf.view = std::make_unique<TypedCompressedNbrNodesView<CompressedType>>(buf, numEntries);
+}
 } // namespace
 
 CompressedDstNodesBuffer::CompressedDstNodesBuffer(MemoryManager* mm, common::offset_t numNodes,
     common::length_t maxDegree) {
+    const auto numEntries = numNodes * maxDegree;
     switch (minNumBytesToStore(numNodes)) {
     case 8:
-        view = std::make_unique<TypedCompressedNbrNodesView<uint64_t>>(*this);
+        initDstNodesBuffer<uint64_t>(mm, *this, numEntries);
         break;
     case 4:
-        view = std::make_unique<TypedCompressedNbrNodesView<uint32_t>>(*this);
+        initDstNodesBuffer<uint32_t>(mm, *this, numEntries);
         break;
     case 2:
-        view = std::make_unique<TypedCompressedNbrNodesView<uint16_t>>(*this);
+        initDstNodesBuffer<uint16_t>(mm, *this, numEntries);
         break;
     case 1:
-        view = std::make_unique<TypedCompressedNbrNodesView<uint8_t>>(*this);
+        initDstNodesBuffer<uint8_t>(mm, *this, numEntries);
         break;
     default:
         KU_UNREACHABLE;
     }
-    dstNodesBuffer = mm->allocateBuffer(false, numNodes * maxDegree * view->elementSizeBytes());
 }
 
 CompressedNbrNodes CompressedDstNodesBuffer::getNeighbors(common::offset_t nodeOffset,
