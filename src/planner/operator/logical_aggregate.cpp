@@ -1,8 +1,8 @@
 #include "planner/operator/logical_aggregate.h"
 
-#include "binder/expression/aggregate_function_expression.h"
 #include "binder/expression/expression_util.h"
 #include "planner/operator/factorization/flatten_resolver.h"
+#include "planner/operator/schema.h"
 
 namespace kuzu {
 namespace planner {
@@ -28,19 +28,26 @@ void LogicalAggregate::computeFlatSchema() {
     insertAllExpressionsToGroupAndScope(0 /* groupPos */);
 }
 
-f_group_pos_set LogicalAggregate::getGroupsPosToFlattenForGroupBy() {
-    if (hasDistinctAggregate()) {
-        return FlattenAll::getGroupsPosToFlatten(getAllKeys(), *children[0]->getSchema());
-    } else {
-        return FlattenAllButOne::getGroupsPosToFlatten(getAllKeys(), *children[0]->getSchema());
+f_group_pos_set LogicalAggregate::getGroupsPosToFlatten() {
+    auto [unflatGroup, flattenedGroups] =
+        FlattenAllButOne::getGroupsPosToFlatten(getAllKeys(), *children[0]->getSchema());
+    // Flatten aggregates if they are from a different group than the unflat key group
+    if (unflatGroup != INVALID_F_GROUP_POS) {
+        for (const auto& aggregate : aggregates) {
+            auto analyzer = GroupDependencyAnalyzer(false /* collectDependentExpr */,
+                *children[0]->getSchema());
+            analyzer.visit(aggregate);
+            for (const auto& group : analyzer.getRequiredFlatGroups()) {
+                flattenedGroups.insert(group);
+            }
+            for (const auto& group : analyzer.getDependentGroups()) {
+                if (group != unflatGroup) {
+                    flattenedGroups.insert(group);
+                }
+            }
+        }
     }
-}
-
-f_group_pos_set LogicalAggregate::getGroupsPosToFlattenForAggregate() {
-    if (hasDistinctAggregate()) {
-        return FlattenAll::getGroupsPosToFlatten(aggregates, *children[0]->getSchema());
-    }
-    return f_group_pos_set{};
+    return flattenedGroups;
 }
 
 std::string LogicalAggregate::getExpressionsForPrinting() const {
@@ -57,16 +64,6 @@ std::string LogicalAggregate::getExpressionsForPrinting() const {
     }
     result += "]";
     return result;
-}
-
-bool LogicalAggregate::hasDistinctAggregate() {
-    for (auto& expression : aggregates) {
-        auto funcExpr = expression->constPtrCast<binder::AggregateFunctionExpression>();
-        if (funcExpr->isDistinct()) {
-            return true;
-        }
-    }
-    return false;
 }
 
 void LogicalAggregate::insertAllExpressionsToGroupAndScope(f_group_pos groupPos) {

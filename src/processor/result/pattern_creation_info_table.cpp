@@ -33,9 +33,8 @@ PatternCreationInfo PatternCreationInfoTable::getPatternCreationInfo(
         return PatternCreationInfo{tuple, hasCreated};
     } else {
         resizeHashTableIfNecessary(1);
-        computeVectorHashes(keyVectors, std::vector<common::ValueVector*>{});
-        findHashSlots(keyVectors, std::vector<common::ValueVector*>{},
-            std::vector<common::ValueVector*>{}, keyVectors[0]->state.get());
+        computeVectorHashes(keyVectors);
+        findHashSlots(keyVectors, std::vector<common::ValueVector*>{}, keyVectors[0]->state.get());
         hasCreated = tuple != nullptr;
         auto idTuple = tuple == nullptr ?
                            factorizedTable->getTuple(factorizedTable->getNumTuples() - 1) :
@@ -44,13 +43,9 @@ PatternCreationInfo PatternCreationInfoTable::getPatternCreationInfo(
     }
 }
 
-uint64_t PatternCreationInfoTable::matchFTEntries(
-    std::span<const common::ValueVector*> flatKeyVectors,
-    std::span<const common::ValueVector*> unFlatKeyVectors, uint64_t numMayMatches,
-    uint64_t numNoMatches) {
-    KU_ASSERT(unFlatKeyVectors.empty());
-    numNoMatches = AggregateHashTable::matchFTEntries(flatKeyVectors, unFlatKeyVectors,
-        numMayMatches, numNoMatches);
+uint64_t PatternCreationInfoTable::matchFTEntries(std::span<const common::ValueVector*> keyVectors,
+    uint64_t numMayMatches, uint64_t numNoMatches) {
+    numNoMatches = AggregateHashTable::matchFTEntries(keyVectors, numMayMatches, numNoMatches);
     KU_ASSERT(numMayMatches <= 1);
     // If we found the entry for the target key, we set tuple to the key tuple. Otherwise, simply
     // set tuple to nullptr.

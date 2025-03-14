@@ -92,10 +92,8 @@ void FactorizationRewriter::visitAccumulate(planner::LogicalOperator* op) {
 
 void FactorizationRewriter::visitAggregate(planner::LogicalOperator* op) {
     auto& aggregate = op->cast<LogicalAggregate>();
-    auto groupsPosToFlattenForGroupBy = aggregate.getGroupsPosToFlattenForGroupBy();
-    aggregate.setChild(0, appendFlattens(aggregate.getChild(0), groupsPosToFlattenForGroupBy));
-    auto groupsPosToFlattenForAggregate = aggregate.getGroupsPosToFlattenForAggregate();
-    aggregate.setChild(0, appendFlattens(aggregate.getChild(0), groupsPosToFlattenForAggregate));
+    auto groupsPosToFlatten = aggregate.getGroupsPosToFlatten();
+    aggregate.setChild(0, appendFlattens(aggregate.getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitOrderBy(planner::LogicalOperator* op) {
