@@ -72,6 +72,86 @@ float* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
     return reinterpret_cast<float*>(dataVector->getData()) + value.offset;
 }
 
+namespace {
+template<std::integral T>
+struct DstNodeIDView {
+    static constexpr uint64_t sizeBytes = sizeof(std::atomic<T>);
+
+    static common::offset_t getNodeID(const uint8_t* dstNodesBuffer, common::offset_t idx) {
+        return reinterpret_cast<const std::atomic<T>*>(dstNodesBuffer)[idx].load(
+            std::memory_order_relaxed);
+    }
+
+    // NOLINTNEXTLINE
+    static void setNodeID(uint8_t* dstNodesBuffer, common::offset_t idx, common::offset_t nodeID) {
+        reinterpret_cast<std::atomic<T>*>(dstNodesBuffer)[idx].store(nodeID,
+            std::memory_order_relaxed);
+    }
+};
+
+static common::offset_t minNumBytesToStore(common::offset_t value) {
+    static constexpr uint64_t bitsPerByte = 8;
+    return std::bit_ceil(common::ceilDiv(std::bit_width(value), bitsPerByte));
+}
+} // namespace
+
+CompressedDstNodesBuffer::CompressedDstNodesBuffer(MemoryManager* mm, common::offset_t numNodes,
+    common::length_t maxDegree)
+    : numNodes(numNodes) {
+    dstNodesBuffer = mm->allocateBuffer(false, numNodes * maxDegree * minNumBytesToStore(numNodes));
+}
+
+common::offset_t CompressedDstNodesBuffer::getNodeID(common::offset_t csrOffset) const {
+    switch (minNumBytesToStore(numNodes)) {
+    case 8:
+        return DstNodeIDView<uint64_t>::getNodeID(dstNodesBuffer->getData(), csrOffset);
+    case 4:
+        return DstNodeIDView<uint32_t>::getNodeID(dstNodesBuffer->getData(), csrOffset);
+    case 2:
+        return DstNodeIDView<uint16_t>::getNodeID(dstNodesBuffer->getData(), csrOffset);
+    case 1:
+        return DstNodeIDView<uint8_t>::getNodeID(dstNodesBuffer->getData(), csrOffset);
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
+// NOLINTNEXTLINE
+void CompressedDstNodesBuffer::setNodeID(common::offset_t csrOffset, common::offset_t nodeID) {
+    switch (minNumBytesToStore(numNodes)) {
+    case 8:
+        DstNodeIDView<uint64_t>::setNodeID(dstNodesBuffer->getData(), csrOffset, nodeID);
+        break;
+    case 4:
+        DstNodeIDView<uint32_t>::setNodeID(dstNodesBuffer->getData(), csrOffset, nodeID);
+        break;
+    case 2:
+        DstNodeIDView<uint16_t>::setNodeID(dstNodesBuffer->getData(), csrOffset, nodeID);
+        break;
+    case 1:
+        DstNodeIDView<uint8_t>::setNodeID(dstNodesBuffer->getData(), csrOffset, nodeID);
+        break;
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
+CompressedNbrNodes CompressedDstNodesBuffer::getNeighbors(common::offset_t nodeOffset,
+    common::offset_t maxDegree, common::offset_t numNbrs) const {
+    auto startOffset = nodeOffset * maxDegree;
+    return CompressedNbrNodes{.buffer = *this,
+        .startOffset = startOffset,
+        .endOffset = startOffset + numNbrs};
+}
+
+InMemHNSWGraph::InMemHNSWGraph(MemoryManager* mm, common::offset_t numNodes,
+    common::length_t maxDegree)
+    : numNodes{numNodes}, dstNodes(mm, numNodes, maxDegree), maxDegree{maxDegree} {
+    csrLengthBuffer = mm->allocateBuffer(true, numNodes * sizeof(std::atomic<uint16_t>));
+    csrLengths = reinterpret_cast<std::atomic<uint16_t>*>(csrLengthBuffer->getData());
+    resetCSRLengthAndDstNodes();
+}
+
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
 void InMemHNSWGraph::finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
     const processor::PartitionerSharedState& partitionerSharedState) {
