@@ -59,7 +59,7 @@ common::offset_t InMemHNSWLayer::searchNN(common::offset_t node, common::offset_
         lastMinDist = minDist;
         auto neighbors = graph->getNeighbors(currentNodeOffset);
         for (auto nbrOffset : neighbors) {
-            if (nbrOffset == common::INVALID_OFFSET) {
+            if (nbrOffset == graph->getInvalidOffset()) {
                 break;
             }
             const auto nbrVector = info.embeddings->getEmbedding(nbrOffset);
@@ -131,7 +131,7 @@ std::vector<NodeWithDistance> InMemHNSWLayer::searchKNN(const float* queryVector
         candidates.pop();
         auto neighbors = graph->getNeighbors(candidate);
         for (auto nbrOffset : neighbors) {
-            if (nbrOffset == common::INVALID_OFFSET) {
+            if (nbrOffset == graph->getInvalidOffset()) {
                 break;
             }
             if (!visited.contains(nbrOffset)) {
@@ -153,7 +153,7 @@ void InMemHNSWLayer::shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGrap
     nbrs.reserve(numNbrs);
     common::length_t nbrIdx = 0;
     for (auto nbrOffset : neighbors) {
-        if (nbrIdx >= numNbrs || nbrOffset == common::INVALID_OFFSET) {
+        if (nbrIdx >= numNbrs || nbrOffset == graph->getInvalidOffset()) {
             break;
         }
         const auto nbrVector = info.embeddings->getEmbedding(nbrOffset);
