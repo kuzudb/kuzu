@@ -83,6 +83,7 @@ struct CompressedNbrNodesView {
     explicit CompressedNbrNodesView(const CompressedDstNodesBuffer& buffer) : buffer(buffer) {}
     virtual ~CompressedNbrNodesView() = default;
 
+    virtual common::offset_t elementSizeBytes() const = 0;
     virtual common::offset_t getNodeIDAtomic(common::offset_t csrOffset) const = 0;
     virtual void setNodeIDAtomic(common::offset_t csrOffset, common::offset_t nodeID) = 0;
     common::offset_t at(common::offset_t offset) const { return getNodeIDAtomic(offset); };
