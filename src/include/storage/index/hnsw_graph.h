@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/offset_iterator.h"
 #include "processor/operator/partitioner.h"
 #include "storage/index/hnsw_config.h"
 #include "storage/local_cached_column.h"
@@ -76,7 +77,13 @@ struct HNSWGraphInfo {
         : numNodes{numNodes}, embeddings{embeddings}, distFunc{distFunc} {}
 };
 
-struct CompressedNbrNodes;
+struct CompressedDstNodesBuffer;
+
+struct CompressedNbrNodesLookup {
+    common::offset_t at(common::offset_t offset) const;
+    const CompressedDstNodesBuffer& buffer;
+};
+using CompressedNbrNodes = common::OffsetRange<common::offset_t, CompressedNbrNodesLookup>;
 
 struct CompressedDstNodesBuffer {
     CompressedDstNodesBuffer(MemoryManager* mm, common::offset_t numNodes,
@@ -89,27 +96,6 @@ struct CompressedDstNodesBuffer {
 
     CompressedNbrNodes getNeighbors(common::offset_t nodeOffset, common::offset_t maxDegree,
         common::offset_t numNbrs) const;
-};
-
-struct CompressedNbrNodes {
-    struct Iterator {
-        Iterator(const CompressedDstNodesBuffer& buffer, common::offset_t offset)
-            : buffer(buffer), offset(offset) {}
-
-        bool operator!=(const Iterator& o) const { return offset != o.offset; }
-        common::offset_t operator*() const { return buffer.getNodeID(offset); }
-        void operator++() { ++offset; }
-
-        const CompressedDstNodesBuffer& buffer;
-        common::offset_t offset;
-    };
-
-    Iterator begin() const { return Iterator{buffer, startOffset}; }
-    Iterator end() const { return Iterator{buffer, endOffset}; }
-
-    const CompressedDstNodesBuffer& buffer;
-    common::offset_t startOffset;
-    common::offset_t endOffset;
 };
 
 class InMemHNSWGraph {
@@ -140,7 +126,6 @@ public:
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
     void setDstNode(common::offset_t csrOffset, common::offset_t dstNode) {
         dstNodes.setNodeID(csrOffset, dstNode);
-        // dstNodes[csrOffset].store(dstNode, std::memory_order_relaxed);
     }
 
     void finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
@@ -155,7 +140,6 @@ private:
 
     common::offset_t getDstNode(common::offset_t csrOffset) const {
         return dstNodes.getNodeID(csrOffset);
-        // return dstNodes[csrOffset].load(std::memory_order_relaxed);
     }
 
 private:
