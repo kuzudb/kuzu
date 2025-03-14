@@ -74,6 +74,76 @@ float* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
     return reinterpret_cast<float*>(dataVector->getData()) + value.offset;
 }
 
+namespace {
+template<std::integral CompressedType>
+struct TypedCompressedView final : CompressedOffsetsView {
+    explicit TypedCompressedView(uint8_t* data, common::offset_t numEntries)
+        : dstNodes(reinterpret_cast<std::atomic<CompressedType>*>(data), numEntries),
+          invalidOffset{std::numeric_limits<CompressedType>::max()} {}
+
+    common::offset_t getNodeOffsetAtomic(common::offset_t idx) const override {
+        return dstNodes[idx].load(std::memory_order_relaxed);
+    }
+
+    void setNodeOffsetAtomic(common::offset_t idx, common::offset_t nodeOffset) override {
+        KU_ASSERT(nodeOffset <= invalidOffset);
+        dstNodes[idx].store(static_cast<CompressedType>(nodeOffset), std::memory_order_relaxed);
+    }
+
+    common::offset_t getInvalidOffset() const override { return invalidOffset; }
+
+    std::span<std::atomic<CompressedType>> dstNodes;
+    common::offset_t invalidOffset;
+};
+
+common::offset_t minNumBytesToStore(common::offset_t value) {
+    const auto bitWidth = std::bit_width(value);
+    static constexpr decltype(bitWidth) bitsPerByte = 8;
+    return std::bit_ceil(static_cast<common::offset_t>(common::ceilDiv(bitWidth, bitsPerByte)));
+}
+} // namespace
+
+CompressedNodeOffsetBuffer::CompressedNodeOffsetBuffer(MemoryManager* mm, common::offset_t numNodes,
+    common::length_t maxDegree) {
+    const auto numEntries = numNodes * maxDegree;
+    switch (minNumBytesToStore(numNodes)) {
+    case 8: {
+        buffer = mm->allocateBuffer(false, numEntries * sizeof(std::atomic<uint64_t>));
+        view = std::make_unique<TypedCompressedView<uint64_t>>(buffer->getData(), numEntries);
+    } break;
+    case 4: {
+        buffer = mm->allocateBuffer(false, numEntries * sizeof(std::atomic<uint32_t>));
+        view = std::make_unique<TypedCompressedView<uint32_t>>(buffer->getData(), numEntries);
+    } break;
+    case 2: {
+        buffer = mm->allocateBuffer(false, numEntries * sizeof(std::atomic<uint16_t>));
+        view = std::make_unique<TypedCompressedView<uint16_t>>(buffer->getData(), numEntries);
+    } break;
+    case 1: {
+        buffer = mm->allocateBuffer(false, numEntries * sizeof(std::atomic<uint8_t>));
+        view = std::make_unique<TypedCompressedView<uint8_t>>(buffer->getData(), numEntries);
+    } break;
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
+compressed_offsets_t CompressedNodeOffsetBuffer::getNeighbors(common::offset_t nodeOffset,
+    common::offset_t maxDegree, common::offset_t numNbrs) const {
+    auto startOffset = nodeOffset * maxDegree;
+    return compressed_offsets_t{*view, startOffset, startOffset + numNbrs};
+}
+
+InMemHNSWGraph::InMemHNSWGraph(MemoryManager* mm, common::offset_t numNodes,
+    common::length_t maxDegree)
+    : numNodes{numNodes}, dstNodes(mm, numNodes, maxDegree), maxDegree{maxDegree},
+      invalidOffset(dstNodes.getInvalidOffset()) {
+    KU_ASSERT(invalidOffset > 0);
+    csrLengthBuffer = mm->allocateBuffer(true, numNodes * sizeof(std::atomic<uint16_t>));
+    csrLengths = reinterpret_cast<std::atomic<uint16_t>*>(csrLengthBuffer->getData());
+    resetCSRLengthAndDstNodes();
+}
+
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
 void InMemHNSWGraph::finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
     const processor::PartitionerSharedState& partitionerSharedState) {
@@ -140,7 +210,7 @@ void InMemHNSWGraph::resetCSRLengthAndDstNodes() {
         setCSRLength(i, 0);
     }
     for (common::offset_t i = 0; i < numNodes * maxDegree; i++) {
-        setDstNode(i, common::INVALID_OFFSET);
+        setDstNode(i, getInvalidOffset());
     }
 }
 
