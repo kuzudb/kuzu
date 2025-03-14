@@ -266,10 +266,10 @@ std::pair<bool, bool> NullMask::getMinMax(const uint64_t* nullEntries, uint64_t 
         // Check last entry
         auto mask = NULL_LOWER_MASKS[numValues];
         auto masked = *nullEntries & mask;
-        if (masked == 0 && !min) {
-            return std::make_pair(false, false);
-        } else if (masked == mask && max) {
-            return std::make_pair(true, true);
+        if (masked == 0) {
+            return std::make_pair(false, max);
+        } else if (masked == mask) {
+            return std::make_pair(min, true);
         } else {
             return std::make_pair(false, true);
         }
