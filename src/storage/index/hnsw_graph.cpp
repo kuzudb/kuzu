@@ -96,8 +96,9 @@ struct TypedCompressedNbrNodesView : CompressedNbrNodesView {
 };
 
 common::offset_t minNumBytesToStore(common::offset_t value) {
-    static constexpr uint64_t bitsPerByte = 8;
-    return std::bit_ceil(common::ceilDiv(std::bit_width(value), bitsPerByte));
+    const auto bitWidth = std::bit_width(value);
+    static constexpr decltype(bitWidth) bitsPerByte = 8;
+    return std::bit_ceil(common::ceilDiv(bitWidth, bitsPerByte));
 }
 } // namespace
 
