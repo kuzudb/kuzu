@@ -83,6 +83,10 @@ struct TypedCompressedNbrNodesView : CompressedNbrNodesView {
     explicit TypedCompressedNbrNodesView(const CompressedDstNodesBuffer& buffer)
         : CompressedNbrNodesView(buffer) {}
 
+    common::offset_t elementSizeBytes() const override {
+        return sizeof(std::atomic<CompressedType>);
+    }
+
     uint8_t* getDstNodesBuffer() const { return buffer.dstNodesBuffer->getData(); }
 
     common::offset_t getNodeIDAtomic(common::offset_t idx) const override {
@@ -104,7 +108,6 @@ common::offset_t minNumBytesToStore(common::offset_t value) {
 
 CompressedDstNodesBuffer::CompressedDstNodesBuffer(MemoryManager* mm, common::offset_t numNodes,
     common::length_t maxDegree) {
-    dstNodesBuffer = mm->allocateBuffer(false, numNodes * maxDegree * minNumBytesToStore(numNodes));
     switch (minNumBytesToStore(numNodes)) {
     case 8:
         view = std::make_unique<TypedCompressedNbrNodesView<uint64_t>>(*this);
@@ -121,6 +124,7 @@ CompressedDstNodesBuffer::CompressedDstNodesBuffer(MemoryManager* mm, common::of
     default:
         KU_UNREACHABLE;
     }
+    dstNodesBuffer = mm->allocateBuffer(false, numNodes * maxDegree * view->elementSizeBytes());
 }
 
 CompressedNbrNodes CompressedDstNodesBuffer::getNeighbors(common::offset_t nodeOffset,
