@@ -62,6 +62,18 @@ struct DegreeEdgeCompute : public EdgeCompute {
     }
 };
 
+class DegreesGDSAuxiliaryState : public GDSAuxiliaryState {
+public:
+    explicit DegreesGDSAuxiliaryState(Degrees* degrees) : degrees{degrees} {};
+
+    void beginFrontierCompute(common::table_id_t curTableID, common::table_id_t) override {
+        degrees->pinTable(curTableID);
+    }
+
+private:
+    Degrees* degrees;
+};
+
 struct DegreesUtils {
     static void computeDegree(processor::ExecutionContext* context, graph::Graph* graph,
         common::NodeOffsetMaskMap* nodeOffsetMaskMap, Degrees* degrees, ExtendDirection direction) {
@@ -71,7 +83,7 @@ struct DegreesUtils {
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
         frontierPair->initGDS();
         auto ec = std::make_unique<DegreeEdgeCompute>(degrees);
-        auto auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
+        auto auxiliaryState = std::make_unique<DegreesGDSAuxiliaryState>(degrees);
         auto computeState = GDSComputeState(std::move(frontierPair), std::move(ec),
             std::move(auxiliaryState), nullptr);
         GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, direction,

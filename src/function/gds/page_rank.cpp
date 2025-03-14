@@ -120,16 +120,47 @@ public:
     PageRankAuxiliaryState(Degrees& degrees, PValues& pCurrent, PValues& pNext)
         : degrees{degrees}, pCurrent{pCurrent}, pNext{pNext} {}
 
-    void beginFrontierCompute(table_id_t, table_id_t toTableID) override {
+    void beginFrontierCompute(table_id_t fromTableID, table_id_t toTableID) override {
         degrees.pinTable(toTableID);
         pCurrent.pinTable(toTableID);
-        pNext.pinTable(toTableID);
+        pNext.pinTable(fromTableID);
     }
 
 private:
     Degrees& degrees;
     PValues& pCurrent;
     PValues& pNext;
+};
+
+class KUZU_API PageRankFrontierPair : public FrontierPair {
+public:
+    PageRankFrontierPair(std::shared_ptr<PathLengths> curFrontier,
+        std::shared_ptr<PathLengths> nextFrontier)
+        : FrontierPair{curFrontier, nextFrontier} {}
+
+    void pageRankPinCurrFrontier(common::table_id_t tableID) {
+        curSparseFrontier->pinTableID(tableID);
+        curDenseFrontier->pinCurFrontierTableID(tableID);
+        // In PNextUpdateEdgeCompute, addNodesToNextDenseFrontier is boundID
+        // should pin fromTableID in there.
+        nextDenseFrontier->pinNextFrontierTableID(tableID);
+    }
+
+    void pageRankPinNextFrontier(common::table_id_t tableID) {
+        nextSparseFrontier->pinTableID(tableID);
+    }
+
+    void beginNewIterationInternalNoLock() override {
+        std::swap(curDenseFrontier, nextDenseFrontier);
+        curDenseFrontier->incrementCurIter();
+        nextDenseFrontier->incrementCurIter();
+    };
+
+    void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
+        common::table_id_t nextTableID) override {
+        pageRankPinCurrFrontier(curTableID);
+        pageRankPinNextFrontier(nextTableID);
+    };
 };
 
 // Sum the weight (current rank / degree) for each incoming edge.
@@ -308,8 +339,7 @@ public:
         auto degrees = Degrees(maxOffsetMap, clientContext->getMemoryManager());
         DegreesUtils::computeDegree(context, graph, sharedState->getGraphNodeMaskMap(), &degrees,
             ExtendDirection::FWD);
-        auto frontierPair =
-            std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
+        auto frontierPair = std::make_unique<PageRankFrontierPair>(currentFrontier, nextFrontier);
         frontierPair->initGDS();
         auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr, nullptr);
         auto pNextUpdateConstant = (1 - config.dampingFactor) * ((double)1 / numNodes);
