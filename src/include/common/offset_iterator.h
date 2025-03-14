@@ -19,6 +19,7 @@ concept OffsetRangeLookup = requires(T t, common::offset_t offset) {
 template<typename ReferenceType, OffsetRangeLookup<ReferenceType> Lookup>
 struct OffsetRange {
     struct Iterator {
+        bool operator==(const Iterator& o) const { return !(*this != o); }
         bool operator!=(const Iterator& o) const { return offset != o.offset; }
         ReferenceType operator*() const { return lookup.at(offset); }
         void operator++() { ++offset; }
