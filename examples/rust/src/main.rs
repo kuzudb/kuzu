@@ -16,9 +16,9 @@ fn main() -> Result<(), Error> {
     connection.query("CREATE (:Person {name: 'Bob', age: 30});")?;
 
     // Execute a simple query.
-    let mut result = connection.query("MATCH (a:Person) RETURN a.name AS NAME, a.age AS AGE;")?;
+    let result = connection.query("MATCH (a:Person) RETURN a.name AS NAME, a.age AS AGE;")?;
 
     // Print query result.
-    println!("{}", result.display());
+    println!("{}", result);
     Ok(())
 }
