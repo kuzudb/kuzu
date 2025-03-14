@@ -1,9 +1,10 @@
 #pragma once
 
+#include "binder/expression/expression.h"
 #include "common/enums/extend_direction.h"
 #include "common/enums/path_semantic.h"
-#include "function/gds/gds.h"
 #include "function/gds/gds_state.h"
+#include "graph/graph_entry.h"
 #include "processor/operator/recursive_extend_shared_state.h"
 #include "rj_output_writer.h"
 

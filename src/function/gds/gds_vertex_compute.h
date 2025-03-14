@@ -1,7 +1,7 @@
 #pragma once
 
 #include "function/gds/compute.h"
-#include "processor/operator/gds_call_shared_state.h"
+#include "function/gds/gds.h"
 
 namespace kuzu {
 namespace function {
@@ -34,7 +34,7 @@ protected:
 
 class GDSResultVertexCompute : public GDSVertexCompute {
 public:
-    GDSResultVertexCompute(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState)
+    GDSResultVertexCompute(storage::MemoryManager* mm, GDSFuncSharedState* sharedState)
         : GDSVertexCompute{sharedState->getGraphNodeMaskMap()}, sharedState{sharedState}, mm{mm} {
         localFT = sharedState->factorizedTablePool.claimLocalTable(mm);
     }
@@ -51,7 +51,7 @@ protected:
     }
 
 protected:
-    processor::GDSCallSharedState* sharedState;
+    GDSFuncSharedState* sharedState;
     storage::MemoryManager* mm;
     processor::FactorizedTable* localFT = nullptr;
     std::vector<common::ValueVector*> vectors;

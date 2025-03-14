@@ -264,7 +264,7 @@ static bool isBuildSideQualified(LogicalOperator* buildRoot) {
     while (op->getNumChildren() == 1) {
         op = op->getChild(0).get();
     }
-    return op->getOperatorType() == LogicalOperatorType::GDS_CALL;
+    return op->getOperatorType() == LogicalOperatorType::RECURSIVE_EXTEND;
 }
 
 static bool tryBuildToProbeHJSIP(LogicalOperator* op) {

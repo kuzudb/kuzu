@@ -2,7 +2,6 @@ add_library(kuzu_planner_plan_operator
         OBJECT
         append_accumulate.cpp
         append_aggregate.cpp
-        append_gds_call.cpp
         append_insert.cpp
         append_cross_product.cpp
         append_delete.cpp

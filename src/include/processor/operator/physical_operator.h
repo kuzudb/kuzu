@@ -35,7 +35,6 @@ enum class PhysicalOperatorType : uint8_t {
     EXPORT_DATABASE,
     FILTER,
     FLATTEN,
-    GDS_CALL,
     HASH_JOIN_BUILD,
     HASH_JOIN_PROBE,
     IMPORT_DATABASE,

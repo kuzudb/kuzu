@@ -12,13 +12,6 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace binder {
 
-static void validateParameterType(const expression_vector& positionalParams) {
-    for (auto& param : positionalParams) {
-        ExpressionUtil::validateExpressionType(*param,
-            {ExpressionType::LITERAL, ExpressionType::PARAMETER});
-    }
-}
-
 BoundTableScanInfo Binder::bindTableFunc(const std::string& tableFuncName,
     const parser::ParsedExpression& expr, std::vector<parser::YieldVariable> yieldVariables) {
     auto entry = clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(),
@@ -26,21 +19,28 @@ BoundTableScanInfo Binder::bindTableFunc(const std::string& tableFuncName,
     expression_vector positionalParams;
     std::vector<LogicalType> positionalParamTypes;
     optional_params_t optionalParams;
+    expression_vector optionalParamsLegacy;
     for (auto i = 0u; i < expr.getNumChildren(); i++) {
         auto& childExpr = *expr.getChild(i);
         auto param = expressionBinder.bindExpression(childExpr);
         if (!childExpr.hasAlias()) {
+            ExpressionUtil::validateExpressionType(*param,
+                {ExpressionType::LITERAL, ExpressionType::PARAMETER});
             positionalParams.push_back(param);
             positionalParamTypes.push_back(param->getDataType().copy());
         } else {
-            ExpressionUtil::validateExpressionType(*param, ExpressionType::LITERAL);
-            auto literalExpr = param->constPtrCast<LiteralExpression>();
-            optionalParams.emplace(childExpr.getAlias(), literalExpr->getValue());
+            ExpressionUtil::validateExpressionType(*param,
+                {ExpressionType::LITERAL, ExpressionType::PARAMETER});
+            if (param->expressionType == ExpressionType::LITERAL) {
+                auto literalExpr = param->constPtrCast<LiteralExpression>();
+                optionalParams.emplace(childExpr.getAlias(), literalExpr->getValue());
+            }
+            param->setAlias(expr.getChild(i)->getAlias());
+            optionalParamsLegacy.push_back(param);
         }
     }
     auto func = BuiltInFunctionsUtils::matchFunction(tableFuncName, positionalParamTypes,
         entry->ptrCast<catalog::FunctionCatalogEntry>());
-    validateParameterType(positionalParams);
     auto tableFunc = func->constPtrCast<TableFunction>();
     std::vector<common::LogicalType> inputTypes;
     if (tableFunc->inferInputTypes) {
@@ -66,6 +66,7 @@ BoundTableScanInfo Binder::bindTableFunc(const std::string& tableFuncName,
     auto bindInput = TableFuncBindInput();
     bindInput.params = std::move(positionalParams);
     bindInput.optionalParams = std::move(optionalParams);
+    bindInput.optionalParamsLegacy = std::move(optionalParamsLegacy);
     bindInput.binder = this;
     bindInput.yieldVariables = std::move(yieldVariables);
     return BoundTableScanInfo{*tableFunc, tableFunc->bindFunc(clientContext, &bindInput)};

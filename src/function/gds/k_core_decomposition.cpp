@@ -1,9 +1,7 @@
 #include "binder/binder.h"
-#include "binder/expression/expression_util.h"
 #include "degrees.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
-#include "function/gds_function.h"
 #include "gds_vertex_compute.h"
 #include "processor/execution_context.h"
 
@@ -84,7 +82,7 @@ private:
 
 class KCoreResultVertexCompute : public GDSResultVertexCompute {
 public:
-    KCoreResultVertexCompute(MemoryManager* mm, processor::GDSCallSharedState* sharedState,
+    KCoreResultVertexCompute(MemoryManager* mm, GDSFuncSharedState* sharedState,
         CoreValues& coreValues)
         : GDSResultVertexCompute{mm, sharedState}, coreValues{coreValues} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID());
@@ -159,96 +157,85 @@ private:
     std::atomic<offset_t>& numActiveNodes;
 };
 
-class KCoreDecomposition final : public GDSAlgorithm {
-    static constexpr char GROUP_ID_COLUMN_NAME[] = "k_degree";
-
-public:
-    KCoreDecomposition() = default;
-    KCoreDecomposition(const KCoreDecomposition& other) : GDSAlgorithm{other} {}
-
-    std::vector<LogicalTypeID> getParameterTypeIDs() const override {
-        return std::vector<LogicalTypeID>{LogicalTypeID::ANY};
-    }
-
-    binder::expression_vector getResultColumns(
-        const function::GDSBindInput& bindInput) const override {
-        expression_vector columns;
-        auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
-        columns.push_back(outputNode.getInternalID());
-        columns.push_back(
-            bindInput.binder->createVariable(GROUP_ID_COLUMN_NAME, LogicalType::INT64()));
-        return columns;
-    }
-
-    void bind(const GDSBindInput& input, main::ClientContext& context) override {
-        auto graphName = binder::ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
-        auto graphEntry = bindGraphEntry(context, graphName);
-        auto nodeOutput = bindNodeOutput(input, graphEntry.getNodeEntries());
-        bindData = std::make_unique<GDSBindData>(std::move(graphEntry), nodeOutput);
-    }
-
-    void exec(processor::ExecutionContext* context) override {
-        auto clientContext = context->clientContext;
-        auto mm = clientContext->getMemoryManager();
-        auto graph = sharedState->graph.get();
-        auto transaction = clientContext->getTransaction();
-        auto degrees = Degrees(graph->getMaxOffsetMap(transaction), mm);
-        DegreesUtils::computeDegree(context, graph, sharedState->getGraphNodeMaskMap(), &degrees,
-            ExtendDirection::BOTH);
-        auto coreValues = CoreValues(graph->getMaxOffsetMap(transaction), mm);
-        auto auxiliaryState = std::make_unique<KCoreAuxiliaryState>(degrees, coreValues);
-        auto currentFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
-        auto nextFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
-        auto frontierPair =
-            std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
-        // Compute Core values
-        auto removeVertexEdgeCompute = std::make_unique<RemoveVertexEdgeCompute>(degrees);
-        auto computeState = GDSComputeState(std::move(frontierPair),
-            std::move(removeVertexEdgeCompute), std::move(auxiliaryState), nullptr);
-        auto coreValue = 0u;
-        auto numNodes = graph->getNumNodes(clientContext->getTransaction());
-        auto numNodesComputed = 0u;
-        while (numNodes != numNodesComputed) {
-            // Compute current core value
-            while (true) {
-                std::atomic<offset_t> numActiveNodes;
-                numActiveNodes.store(0);
-                // Find nodes with degree less than current core.
-                auto vc = DegreeLessThanCoreVertexCompute(degrees, coreValues,
-                    computeState.frontierPair.get(), coreValue, numActiveNodes,
-                    sharedState->getGraphNodeMaskMap());
-                GDSUtils::runVertexCompute(context, sharedState->graph.get(), vc);
-                numNodesComputed += numActiveNodes.load();
-                if (numActiveNodes.load() == 0) {
-                    break;
-                }
-                // Remove found nodes by decreasing their nbrs degree by one.
-                computeState.frontierPair->initGDS();
-                GDSUtils::runFrontiersUntilConvergence(context, computeState, graph,
-                    ExtendDirection::BOTH,
-                    computeState.frontierPair->getCurrentIter() + 1 /* maxIters */);
-                // Repeat until all remaining nodes has degree greater than current core.
+static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
+    auto clientContext = input.context->clientContext;
+    auto mm = clientContext->getMemoryManager();
+    auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
+    auto graph = sharedState->graph.get();
+    auto transaction = clientContext->getTransaction();
+    auto degrees = Degrees(graph->getMaxOffsetMap(transaction), mm);
+    DegreesUtils::computeDegree(input.context, graph, sharedState->getGraphNodeMaskMap(), &degrees,
+        ExtendDirection::BOTH);
+    auto coreValues = CoreValues(graph->getMaxOffsetMap(transaction), mm);
+    auto auxiliaryState = std::make_unique<KCoreAuxiliaryState>(degrees, coreValues);
+    auto currentFrontier =
+        PathLengths::getUnvisitedFrontier(input.context, sharedState->graph.get());
+    auto nextFrontier = PathLengths::getUnvisitedFrontier(input.context, sharedState->graph.get());
+    auto frontierPair =
+        std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
+    // Compute Core values
+    auto removeVertexEdgeCompute = std::make_unique<RemoveVertexEdgeCompute>(degrees);
+    auto computeState = GDSComputeState(std::move(frontierPair), std::move(removeVertexEdgeCompute),
+        std::move(auxiliaryState), nullptr);
+    auto coreValue = 0u;
+    auto numNodes = graph->getNumNodes(clientContext->getTransaction());
+    auto numNodesComputed = 0u;
+    while (numNodes != numNodesComputed) {
+        // Compute current core value
+        while (true) {
+            std::atomic<offset_t> numActiveNodes;
+            numActiveNodes.store(0);
+            // Find nodes with degree less than current core.
+            auto vc = DegreeLessThanCoreVertexCompute(degrees, coreValues,
+                computeState.frontierPair.get(), coreValue, numActiveNodes,
+                sharedState->getGraphNodeMaskMap());
+            GDSUtils::runVertexCompute(input.context, sharedState->graph.get(), vc);
+            numNodesComputed += numActiveNodes.load();
+            if (numActiveNodes.load() == 0) {
+                break;
             }
-            coreValue++;
+            // Remove found nodes by decreasing their nbrs degree by one.
+            computeState.frontierPair->initGDS();
+            GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph,
+                ExtendDirection::BOTH,
+                computeState.frontierPair->getCurrentIter() + 1 /* maxIters */);
+            // Repeat until all remaining nodes has degree greater than current core.
         }
-        // Write output
-        auto vertexCompute = KCoreResultVertexCompute(clientContext->getMemoryManager(),
-            sharedState.get(), coreValues);
-        GDSUtils::runVertexCompute(context, sharedState->graph.get(), vertexCompute);
-        sharedState->factorizedTablePool.mergeLocalTables();
+        coreValue++;
     }
+    // Write output
+    auto vertexCompute =
+        KCoreResultVertexCompute(clientContext->getMemoryManager(), sharedState, coreValues);
+    GDSUtils::runVertexCompute(input.context, graph, vertexCompute);
+    sharedState->factorizedTablePool.mergeLocalTables();
+    return 0;
+}
 
-    std::unique_ptr<GDSAlgorithm> copy() const override {
-        return std::make_unique<KCoreDecomposition>(*this);
-    }
-};
+static constexpr char GROUP_ID_COLUMN_NAME[] = "k_degree";
+
+static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
+    const TableFuncBindInput* input) {
+    auto graphName = input->getLiteralVal<std::string>(0);
+    auto graphEntry = GDSFunction::bindGraphEntry(*context, graphName);
+    auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries());
+    expression_vector columns;
+    columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
+    columns.push_back(input->binder->createVariable(GROUP_ID_COLUMN_NAME, LogicalType::INT64()));
+    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput);
+}
 
 function_set KCoreDecompositionFunction::getFunctionSet() {
     function_set result;
-    auto algo = std::make_unique<KCoreDecomposition>();
-    auto function =
-        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo));
-    result.push_back(std::move(function));
+    auto func = std::make_unique<TableFunction>(KCoreDecompositionFunction::name,
+        std::vector<LogicalTypeID>{LogicalTypeID::ANY});
+    func->bindFunc = bindFunc;
+    func->tableFunc = tableFunc;
+    func->initSharedStateFunc = GDSFunction::initSharedState;
+    func->initLocalStateFunc = TableFunction::initEmptyLocalState;
+    func->canParallelFunc = [] { return false; };
+    func->getLogicalPlanFunc = GDSFunction::getLogicalPlan;
+    func->getPhysicalPlanFunc = GDSFunction::getPhysicalPlan;
+    result.push_back(std::move(func));
     return result;
 }
 

@@ -1,17 +1,10 @@
 #include "binder/binder.h"
-#include "binder/expression/expression_util.h"
 #include "common/exception/runtime.h"
-#include "common/types/types.h"
-#include "function/gds/auxiliary_state/gds_auxilary_state.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_function_collection.h"
-#include "function/gds/gds_object_manager.h"
 #include "function/gds/gds_utils.h"
-#include "function/gds_function.h"
 #include "gds_vertex_compute.h"
-#include "graph/graph.h"
 #include "processor/execution_context.h"
-#include "processor/result/factorized_table.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -182,7 +175,7 @@ struct SccComputeColors : public EdgeCompute {
 
 class SccWriteIdsToOutput : public GDSResultVertexCompute {
 public:
-    SccWriteIdsToOutput(storage::MemoryManager* mm, processor::GDSCallSharedState* sharedState,
+    SccWriteIdsToOutput(storage::MemoryManager* mm, GDSFuncSharedState* sharedState,
         SccComputationState& computationState)
         : GDSResultVertexCompute{mm, sharedState}, computationState{computationState} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID());
@@ -213,113 +206,105 @@ private:
     std::unique_ptr<ValueVector> componentIDVector;
 };
 
-class Scc final : public GDSAlgorithm {
-    static constexpr char GROUP_ID_COLUMN_NAME[] = "group_id";
-    static constexpr uint8_t MAX_ITERATION = 100;
+static constexpr uint8_t MAX_ITERATION = 100;
 
-public:
-    Scc() = default;
-    Scc(const Scc& other) : GDSAlgorithm{other} {}
+static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
+    auto clientContext = input.context->clientContext;
+    auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
+    auto mm = clientContext->getMemoryManager();
+    auto graph = sharedState->graph.get();
+    auto getMaxOffsetMap = graph->getMaxOffsetMap(clientContext->getTransaction());
+    auto it = getMaxOffsetMap.begin();
+    auto tableId = it->first;
+    auto numNodes = it->second;
 
-    std::vector<LogicalTypeID> getParameterTypeIDs() const override {
-        return std::vector<LogicalTypeID>{LogicalTypeID::ANY};
-    }
+    auto computationState = SccComputationState(numNodes, mm);
+    // Initialize SCC IDs to unset.
+    auto setInitialSccIds = std::make_unique<SccSetInitialSccIds>(computationState);
+    GDSUtils::runVertexCompute(input.context, graph, *setInitialSccIds);
 
-    binder::expression_vector getResultColumns(
-        const function::GDSBindInput& bindInput) const override {
-        expression_vector columns;
-        auto& outputNode = bindData->getNodeOutput()->constCast<NodeExpression>();
-        columns.push_back(outputNode.getInternalID());
-        columns.push_back(
-            bindInput.binder->createVariable(GROUP_ID_COLUMN_NAME, LogicalType::INT64()));
-        return columns;
-    }
+    // The frontiers will be initialized inside the loop.
+    auto currentFrontier = std::make_shared<PathLengths>(getMaxOffsetMap, mm);
+    auto nextFrontier = std::make_shared<PathLengths>(getMaxOffsetMap, mm);
+    // TODO(sdht): refactor when a better FrontierPair API is available.
+    currentFrontier->pinCurFrontierTableID(tableId);
+    nextFrontier->pinCurFrontierTableID(tableId);
+    auto frontierPair =
+        std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
 
-    void bind(const GDSBindInput& input, main::ClientContext& context) override {
-        auto graphName = binder::ExpressionUtil::getLiteralValue<std::string>(*input.getParam(0));
-        auto graphEntry = bindGraphEntry(context, graphName);
-        if (graphEntry.nodeInfos.size() != 1) {
-            throw RuntimeException("Parallel SCC only supports operations on one node table.");
+    auto setNewSccIds = std::make_unique<SccFindNewSccIds>(computationState);
+    auto setInitialColors = std::make_unique<SccSetInitialColors>(computationState);
+    auto computeColors = std::make_unique<SccComputeColors>(computationState);
+    auto auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
+    auto computeState = GDSComputeState(std::move(frontierPair), std::move(computeColors),
+        std::move(auxiliaryState), nullptr);
+    auto initializeFrontiers =
+        std::make_unique<SccInitializeFrontiers>(*computeState.frontierPair, computationState);
+
+    for (auto i = 0; i < MAX_ITERATION; i++) {
+        GDSUtils::runVertexCompute(input.context, graph, *setInitialColors);
+
+        // Fwd colors.
+        computeState.frontierPair->initState();
+        computeState.frontierPair->initGDS();
+        GDSUtils::runVertexCompute(input.context, graph, *initializeFrontiers);
+        GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph,
+            ExtendDirection::FWD, MAX_ITERATION);
+
+        // Bwd colors.
+        computeState.frontierPair->initState();
+        computeState.frontierPair->initGDS();
+        GDSUtils::runVertexCompute(input.context, graph, *initializeFrontiers);
+        GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph,
+            ExtendDirection::BWD, MAX_ITERATION);
+
+        // Find new SCC IDs and exit if all IDs have been found.
+        computationState.reset();
+        GDSUtils::runVertexCompute(input.context, graph, *setNewSccIds);
+        if (computationState.allSccIdsSet.load(std::memory_order_relaxed)) {
+            break;
         }
-        if (graphEntry.relInfos.size() != 1) {
-            throw RuntimeException("Parallel SCC only supports operations on one edge table.");
-        }
-        auto nodeOutput = bindNodeOutput(input, graphEntry.getNodeEntries());
-        bindData = std::make_unique<GDSBindData>(std::move(graphEntry), nodeOutput);
     }
 
-    void exec(processor::ExecutionContext* context) override {
-        auto clientContext = context->clientContext;
-        auto mm = clientContext->getMemoryManager();
-        auto graph = sharedState->graph.get();
-        auto getMaxOffsetMap = graph->getMaxOffsetMap(clientContext->getTransaction());
-        auto it = getMaxOffsetMap.begin();
-        auto tableId = it->first;
-        auto numNodes = it->second;
+    auto writeSccIdsToOutput =
+        std::make_unique<SccWriteIdsToOutput>(mm, sharedState, computationState);
+    GDSUtils::runVertexCompute(input.context, graph, *writeSccIdsToOutput);
 
-        auto computationState = SccComputationState(numNodes, mm);
-        // Initialize SCC IDs to unset.
-        auto setInitialSccIds = std::make_unique<SccSetInitialSccIds>(computationState);
-        GDSUtils::runVertexCompute(context, graph, *setInitialSccIds);
+    sharedState->factorizedTablePool.mergeLocalTables();
+    return 0;
+}
 
-        // The frontiers will be initialized inside the loop.
-        auto currentFrontier = std::make_shared<PathLengths>(getMaxOffsetMap, mm);
-        auto nextFrontier = std::make_shared<PathLengths>(getMaxOffsetMap, mm);
-        // TODO(sdht): refactor when a better FrontierPair API is available.
-        currentFrontier->pinCurFrontierTableID(tableId);
-        nextFrontier->pinCurFrontierTableID(tableId);
-        auto frontierPair =
-            std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
+static constexpr char GROUP_ID_COLUMN_NAME[] = "group_id";
 
-        auto setNewSccIds = std::make_unique<SccFindNewSccIds>(computationState);
-        auto setInitialColors = std::make_unique<SccSetInitialColors>(computationState);
-        auto computeColors = std::make_unique<SccComputeColors>(computationState);
-        auto auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
-        auto computeState = GDSComputeState(std::move(frontierPair), std::move(computeColors),
-            std::move(auxiliaryState), nullptr);
-        auto initializeFrontiers =
-            std::make_unique<SccInitializeFrontiers>(*computeState.frontierPair, computationState);
-
-        for (auto i = 0; i < MAX_ITERATION; i++) {
-            GDSUtils::runVertexCompute(context, graph, *setInitialColors);
-
-            // Fwd colors.
-            computeState.frontierPair->initState();
-            computeState.frontierPair->initGDS();
-            GDSUtils::runVertexCompute(context, graph, *initializeFrontiers);
-            GDSUtils::runFrontiersUntilConvergence(context, computeState, graph,
-                ExtendDirection::FWD, MAX_ITERATION);
-
-            // Bwd colors.
-            computeState.frontierPair->initState();
-            computeState.frontierPair->initGDS();
-            GDSUtils::runVertexCompute(context, graph, *initializeFrontiers);
-            GDSUtils::runFrontiersUntilConvergence(context, computeState, graph,
-                ExtendDirection::BWD, MAX_ITERATION);
-
-            // Find new SCC IDs and exit if all IDs have been found.
-            computationState.reset();
-            GDSUtils::runVertexCompute(context, graph, *setNewSccIds);
-            if (computationState.allSccIdsSet.load(std::memory_order_relaxed)) {
-                break;
-            }
-        }
-
-        auto writeSccIdsToOutput =
-            std::make_unique<SccWriteIdsToOutput>(mm, sharedState.get(), computationState);
-        GDSUtils::runVertexCompute(context, graph, *writeSccIdsToOutput);
-
-        sharedState->factorizedTablePool.mergeLocalTables();
+static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
+    const TableFuncBindInput* input) {
+    auto graphName = input->getLiteralVal<std::string>(0);
+    auto graphEntry = GDSFunction::bindGraphEntry(*context, graphName);
+    if (graphEntry.nodeInfos.size() != 1) {
+        throw RuntimeException("Parallel SCC only supports operations on one node table.");
     }
-
-    std::unique_ptr<GDSAlgorithm> copy() const override { return std::make_unique<Scc>(*this); }
-};
+    if (graphEntry.relInfos.size() != 1) {
+        throw RuntimeException("Parallel SCC only supports operations on one edge table.");
+    }
+    auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries());
+    expression_vector columns;
+    columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
+    columns.push_back(input->binder->createVariable(GROUP_ID_COLUMN_NAME, LogicalType::INT64()));
+    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput);
+}
 
 function_set SCCFunction::getFunctionSet() {
     function_set result;
-    auto algo = std::make_unique<Scc>();
-    result.push_back(
-        std::make_unique<GDSFunction>(name, algo->getParameterTypeIDs(), std::move(algo)));
+    auto func = std::make_unique<TableFunction>(SCCFunction::name,
+        std::vector<LogicalTypeID>{LogicalTypeID::ANY});
+    func->bindFunc = bindFunc;
+    func->tableFunc = tableFunc;
+    func->initSharedStateFunc = GDSFunction::initSharedState;
+    func->initLocalStateFunc = TableFunction::initEmptyLocalState;
+    func->canParallelFunc = [] { return false; };
+    func->getLogicalPlanFunc = GDSFunction::getLogicalPlan;
+    func->getPhysicalPlanFunc = GDSFunction::getPhysicalPlan;
+    result.push_back(std::move(func));
     return result;
 }
 

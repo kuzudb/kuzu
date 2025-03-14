@@ -1,8 +1,9 @@
+#include "function/gds/gds.h"
 #include "planner/operator/sip/logical_semi_masker.h"
-#include "processor/operator/gds_call.h"
 #include "processor/operator/recursive_extend.h"
 #include "processor/operator/scan/scan_node_table.h"
 #include "processor/operator/semi_masker.h"
+#include "processor/operator/table_function_call.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::common;
@@ -46,11 +47,13 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(
             auto scan = physicalOp->ptrCast<ScanNodeTable>();
             initMask(masksPerTable, scan->getSemiMasks());
         } break;
-        case PhysicalOperatorType::GDS_CALL: {
-            auto sharedState = physicalOp->ptrCast<GDSCall>()->getSharedState();
+        case PhysicalOperatorType::TABLE_FUNCTION_CALL: {
+            auto sharedState = physicalOp->ptrCast<TableFunctionCall>()->getSharedState();
             switch (semiMasker.getTargetType()) {
             case SemiMaskTargetType::GDS_GRAPH_NODE: {
-                initMask(masksPerTable, sharedState->getGraphNodeMaskMap()->getMasks());
+                auto funcSharedState =
+                    sharedState->funcState->ptrCast<function::GDSFuncSharedState>();
+                initMask(masksPerTable, funcSharedState->getGraphNodeMaskMap()->getMasks());
             } break;
             default:
                 KU_UNREACHABLE;

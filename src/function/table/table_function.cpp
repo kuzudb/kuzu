@@ -3,6 +3,7 @@
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "common/exception/binder.h"
 #include "function/table/bind_data.h"
+#include "parser/query/reading_clause/yield_variable.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/planner.h"
 #include "processor/data_pos.h"
@@ -50,7 +51,7 @@ std::vector<std::string> TableFunction::extractYieldVariables(const std::vector<
     return variableNames;
 }
 
-void TableFunction::getLogicalPlan(const transaction::Transaction*, planner::Planner* planner,
+void TableFunction::getLogicalPlan(planner::Planner* planner,
     const binder::BoundReadingClause& readingClause,
     std::shared_ptr<planner::LogicalOperator> logicalOp,
     const std::vector<std::unique_ptr<planner::LogicalPlan>>& logicalPlans) {
@@ -61,15 +62,16 @@ void TableFunction::getLogicalPlan(const transaction::Transaction*, planner::Pla
         predicatesToPull, predicatesToPush);
     for (auto& plan : logicalPlans) {
         planner->planReadOp(logicalOp, predicatesToPush, *plan);
-        if (!predicatesToPull.empty()) {
+    }
+    if (!predicatesToPull.empty()) {
+        for (auto& plan : logicalPlans) {
             planner->appendFilters(predicatesToPull, *plan);
         }
     }
 }
 
 std::unique_ptr<processor::PhysicalOperator> TableFunction::getPhysicalPlan(
-    const main::ClientContext* clientContext, processor::PlanMapper* planMapper,
-    const planner::LogicalOperator* logicalOp) {
+    processor::PlanMapper* planMapper, const planner::LogicalOperator* logicalOp) {
     std::vector<processor::DataPos> outPosV;
     auto& call = logicalOp->constCast<planner::LogicalTableFunctionCall>();
     auto outSchema = call.getSchema();
@@ -83,8 +85,8 @@ std::unique_ptr<processor::PhysicalOperator> TableFunction::getPhysicalPlan(
     info.outputType = outPosV.empty() ? processor::TableScanOutputType::EMPTY :
                                         processor::TableScanOutputType::SINGLE_DATA_CHUNK;
     auto sharedState = std::make_shared<processor::TableFunctionCallSharedState>();
-    TableFunctionInitInput tableFunctionInitInput{info.bindData.get(), 0 /* queryID */,
-        *clientContext};
+    TableFunctionInitInput tableFunctionInitInput{info.bindData.get(), 0,
+        *planMapper->clientContext};
     sharedState->funcState = info.function.initSharedStateFunc(tableFunctionInitInput);
     auto printInfo =
         std::make_unique<processor::TableFunctionCallPrintInfo>(call.getTableFunc().name);

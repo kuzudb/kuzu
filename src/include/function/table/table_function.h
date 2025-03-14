@@ -89,10 +89,10 @@ struct TableFuncOutput {
 struct TableFunctionInitInput final {
     TableFuncBindData* bindData;
     uint64_t queryID;
-    const main::ClientContext& context;
+    main::ClientContext& context;
 
     explicit TableFunctionInitInput(TableFuncBindData* bindData, uint64_t queryID,
-        const main::ClientContext& context)
+        main::ClientContext& context)
         : bindData{bindData}, queryID{queryID}, context{context} {}
 };
 
@@ -109,11 +109,11 @@ using table_func_finalize_t =
     std::function<void(const processor::ExecutionContext*, TableFuncSharedState*)>;
 using table_func_rewrite_t =
     std::function<std::string(main::ClientContext&, const TableFuncBindData& bindData)>;
-using table_func_get_logical_plan_t = std::function<void(const transaction::Transaction*,
-    planner::Planner*, const binder::BoundReadingClause&, std::shared_ptr<planner::LogicalOperator>,
+using table_func_get_logical_plan_t = std::function<void(planner::Planner*,
+    const binder::BoundReadingClause&, std::shared_ptr<planner::LogicalOperator>,
     const std::vector<std::unique_ptr<planner::LogicalPlan>>&)>;
 using table_func_get_physical_plan_t = std::function<std::unique_ptr<processor::PhysicalOperator>(
-    const main::ClientContext*, processor::PlanMapper*, const planner::LogicalOperator*)>;
+    processor::PlanMapper*, const planner::LogicalOperator*)>;
 using table_func_infer_input_types =
     std::function<std::vector<common::LogicalType>(const binder::expression_vector&)>;
 
@@ -151,13 +151,12 @@ struct KUZU_API TableFunction final : Function {
         const TableFunctionInitInput& input);
     static std::vector<std::string> extractYieldVariables(const std::vector<std::string>& names,
         const std::vector<parser::YieldVariable>& yieldVariables);
-    static void getLogicalPlan(const transaction::Transaction* transaction,
-        planner::Planner* planner, const binder::BoundReadingClause& readingClause,
+    static void getLogicalPlan(planner::Planner* planner,
+        const binder::BoundReadingClause& readingClause,
         std::shared_ptr<planner::LogicalOperator> logicalOp,
         const std::vector<std::unique_ptr<planner::LogicalPlan>>& logicalPlans);
     static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
-        const main::ClientContext* clientContext, processor::PlanMapper* planMapper,
-        const planner::LogicalOperator* logicalOp);
+        processor::PlanMapper* planMapper, const planner::LogicalOperator* logicalOp);
     static common::offset_t emptyTableFunc(const TableFuncInput& input, TableFuncOutput& output);
 };
 

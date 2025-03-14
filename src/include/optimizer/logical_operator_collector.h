@@ -39,11 +39,6 @@ protected:
     void visitScanNodeTable(planner::LogicalOperator* op) override;
 };
 
-class LogicalGDSCallCollector final : public LogicalOperatorCollector {
-protected:
-    void visitGDSCall(planner::LogicalOperator* op) override { ops.push_back(op); }
-};
-
 class LogicalRecursiveExtendCollector final : public LogicalOperatorCollector {
 protected:
     void visitRecursiveExtend(planner::LogicalOperator* op) override { ops.push_back(op); }

@@ -24,11 +24,11 @@ struct QueryFTSBindData final : function::GDSBindData {
     QueryFTSOptionalParams optionalParams;
     common::table_id_t outputTableID;
 
-    QueryFTSBindData(graph::GraphEntry graphEntry, std::shared_ptr<binder::Expression> docs,
-        std::shared_ptr<binder::Expression> query, const catalog::IndexCatalogEntry& entry,
-        QueryFTSOptionalParams optionalParams)
-        : GDSBindData{std::move(graphEntry), std::move(docs)}, query{std::move(query)},
-          entry{entry}, optionalParams{std::move(optionalParams)},
+    QueryFTSBindData(binder::expression_vector columns, graph::GraphEntry graphEntry,
+        std::shared_ptr<binder::Expression> docs, std::shared_ptr<binder::Expression> query,
+        const catalog::IndexCatalogEntry& entry, QueryFTSOptionalParams optionalParams)
+        : GDSBindData{std::move(columns), std::move(graphEntry), std::move(docs)},
+          query{std::move(query)}, entry{entry}, optionalParams{std::move(optionalParams)},
           outputTableID{
               nodeOutput->constCast<binder::NodeExpression>().getSingleEntry()->getTableID()} {}
     QueryFTSBindData(const QueryFTSBindData& other)
@@ -39,7 +39,7 @@ struct QueryFTSBindData final : function::GDSBindData {
 
     QueryFTSConfig getConfig() const { return optionalParams.getConfig(); }
 
-    std::unique_ptr<GDSBindData> copy() const override {
+    std::unique_ptr<function::TableFuncBindData> copy() const override {
         return std::make_unique<QueryFTSBindData>(*this);
     }
 };

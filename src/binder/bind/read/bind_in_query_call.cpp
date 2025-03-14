@@ -1,11 +1,7 @@
 #include "binder/binder.h"
-#include "binder/expression/expression_util.h"
-#include "binder/query/reading_clause/bound_gds_call.h"
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "catalog/catalog.h"
 #include "common/exception/binder.h"
-#include "function/built_in_function_utils.h"
-#include "function/gds_function.h"
 #include "main/client_context.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
@@ -33,35 +29,6 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
             bindTableFunc(functionName, *functionExpr, call.getYieldVariables());
         boundReadingClause =
             std::make_unique<BoundTableFunctionCall>(std::move(boundTableFunction));
-    } break;
-    case CatalogEntryType::GDS_FUNCTION_ENTRY: {
-        expression_vector children;
-        std::vector<LogicalType> childrenTypes;
-        expression_vector optionalParams;
-        for (auto i = 0u; i < functionExpr->getNumChildren(); i++) {
-            auto child = expressionBinder.bindExpression(*functionExpr->getChild(i));
-            if (!functionExpr->getChild(i)->hasAlias()) {
-                children.push_back(child);
-                childrenTypes.push_back(child->getDataType().copy());
-            } else {
-                ExpressionUtil::validateExpressionType(*child,
-                    {ExpressionType::LITERAL, ExpressionType::PARAMETER});
-                child->setAlias(functionExpr->getChild(i)->getAlias());
-                optionalParams.push_back(child);
-            }
-        }
-        auto func = BuiltInFunctionsUtils::matchFunction(functionName, childrenTypes,
-            entry->ptrCast<FunctionCatalogEntry>());
-        auto gdsFunc = func->constPtrCast<GDSFunction>()->copy();
-        auto input = GDSBindInput();
-        input.params = children;
-        input.binder = this;
-        input.optionalParams = std::move(optionalParams);
-        input.yieldVariables = call.getYieldVariables();
-        gdsFunc.gds->bind(input, *clientContext);
-        auto columns = gdsFunc.gds->getResultColumns(input);
-        auto info = BoundGDSCallInfo(gdsFunc.copy(), std::move(columns));
-        boundReadingClause = std::make_unique<BoundGDSCall>(std::move(info));
     } break;
     default:
         throw BinderException(

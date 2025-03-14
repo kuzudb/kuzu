@@ -7,7 +7,6 @@ add_library(kuzu_processor_mapper
         map_acc_hash_join.cpp
         map_accumulate.cpp
         map_aggregate.cpp
-        map_gds.cpp
         map_standalone_call.cpp
         map_table_function_call.cpp
         map_copy_to.cpp

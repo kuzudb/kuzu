@@ -25,7 +25,7 @@ static void initFTSEntries(const transaction::Transaction* transaction, catalog:
 void FTSExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
     ExtensionUtils::addScalarFunc<StemFunction>(db);
-    ExtensionUtils::addGDSFunc<QueryFTSFunction>(db);
+    ExtensionUtils::addTableFunc<QueryFTSFunction>(db);
     ExtensionUtils::addStandaloneTableFunc<CreateFTSFunction>(db);
     ExtensionUtils::addStandaloneTableFunc<InternalCreateFTSFunction>(db, true /* isInternal */);
     ExtensionUtils::addStandaloneTableFunc<DropFTSFunction>(db);
