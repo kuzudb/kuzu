@@ -93,6 +93,10 @@ struct TypedCompressedNbrNodesView : CompressedNbrNodesView {
         dstNodes[idx].store(nodeID, std::memory_order_relaxed);
     }
 
+    common::offset_t getInvalidOffset() const override {
+        return std::numeric_limits<CompressedType>::max();
+    }
+
     std::span<std::atomic<CompressedType>> dstNodes;
 };
 
@@ -140,7 +144,9 @@ CompressedNbrNodes CompressedDstNodesBuffer::getNeighbors(common::offset_t nodeO
 
 InMemHNSWGraph::InMemHNSWGraph(MemoryManager* mm, common::offset_t numNodes,
     common::length_t maxDegree)
-    : numNodes{numNodes}, dstNodes(mm, numNodes, maxDegree), maxDegree{maxDegree} {
+    : numNodes{numNodes}, dstNodes(mm, numNodes, maxDegree), maxDegree{maxDegree},
+      invalidOffset(dstNodes.view->getInvalidOffset()) {
+    KU_ASSERT(invalidOffset > 0);
     csrLengthBuffer = mm->allocateBuffer(true, numNodes * sizeof(std::atomic<uint16_t>));
     csrLengths = reinterpret_cast<std::atomic<uint16_t>*>(csrLengthBuffer->getData());
     resetCSRLengthAndDstNodes();

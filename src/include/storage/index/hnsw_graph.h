@@ -86,6 +86,7 @@ struct CompressedNbrNodesView {
     virtual common::offset_t getNodeIDAtomic(common::offset_t csrOffset) const = 0;
     virtual void setNodeIDAtomic(common::offset_t csrOffset, common::offset_t nodeID) = 0;
     common::offset_t at(common::offset_t offset) const { return getNodeIDAtomic(offset); };
+    virtual common::offset_t getInvalidOffset() const = 0;
 };
 
 using CompressedNbrNodes = common::OffsetRange<common::offset_t, CompressedNbrNodesView>;
@@ -134,6 +135,10 @@ public:
     void finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
         const processor::PartitionerSharedState& partitionerSharedState);
 
+    // In the current implementation race conditions can result in dstNode entries being skipped
+    // during insertion. Skipped entries will be marked with this value
+    common::offset_t getInvalidOffset() const { return invalidOffset; }
+
 private:
     void resetCSRLengthAndDstNodes();
 
@@ -152,6 +157,7 @@ private:
     std::atomic<uint16_t>* csrLengths;
     // Max allowed degree of a node in the graph before shrinking.
     common::length_t maxDegree;
+    common::offset_t invalidOffset;
 };
 
 } // namespace storage
