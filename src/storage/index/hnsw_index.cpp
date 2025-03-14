@@ -151,17 +151,16 @@ void InMemHNSWLayer::shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGrap
     const auto vector = info.embeddings->getEmbedding(nodeOffset);
     const auto neighbors = graph->getNeighbors(nodeOffset);
     nbrs.reserve(numNbrs);
-    common::length_t nbrIdx = 0;
-    for (auto nbrOffset : neighbors) {
-        if (nbrIdx >= numNbrs || nbrOffset == graph->getInvalidOffset()) {
+    auto nbrItr = neighbors.begin();
+    for (common::length_t i = 0; i < numNbrs; ++i, ++nbrItr) {
+        if (nbrItr == neighbors.end()) {
             break;
         }
+        const auto nbrOffset = *nbrItr;
         const auto nbrVector = info.embeddings->getEmbedding(nbrOffset);
         const auto dist = HNSWIndexUtils::computeDistance(info.distFunc, vector, nbrVector,
             info.embeddings->getDimension());
         nbrs.emplace_back(nbrOffset, dist);
-
-        ++nbrIdx;
     }
     std::ranges::sort(nbrs, [](const NodeWithDistance& l, const NodeWithDistance& r) {
         return l.distance < r.distance;
