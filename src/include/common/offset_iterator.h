@@ -23,14 +23,14 @@ struct OffsetRange {
         ReferenceType operator*() const { return lookup.at(offset); }
         void operator++() { ++offset; }
 
-        Lookup lookup;
+        const Lookup& lookup;
         common::offset_t offset;
     };
 
     Iterator begin() const { return Iterator{lookup, startOffset}; }
     Iterator end() const { return Iterator{lookup, endOffset}; }
 
-    Lookup lookup;
+    const Lookup& lookup;
     common::offset_t startOffset;
     common::offset_t endOffset;
 };

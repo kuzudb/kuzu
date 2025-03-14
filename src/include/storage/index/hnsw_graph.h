@@ -79,23 +79,28 @@ struct HNSWGraphInfo {
 
 struct CompressedDstNodesBuffer;
 
-struct CompressedNbrNodesLookup {
-    common::offset_t at(common::offset_t offset) const;
+struct CompressedNbrNodesView {
+    explicit CompressedNbrNodesView(const CompressedDstNodesBuffer& buffer) : buffer(buffer) {}
+    virtual ~CompressedNbrNodesView() = default;
+
+    virtual common::offset_t getNodeIDAtomic(common::offset_t csrOffset) const = 0;
+    virtual void setNodeIDAtomic(common::offset_t csrOffset, common::offset_t nodeID) = 0;
+    common::offset_t at(common::offset_t offset) const { return getNodeIDAtomic(offset); };
+
     const CompressedDstNodesBuffer& buffer;
 };
-using CompressedNbrNodes = common::OffsetRange<common::offset_t, CompressedNbrNodesLookup>;
+
+using CompressedNbrNodes = common::OffsetRange<common::offset_t, CompressedNbrNodesView>;
 
 struct CompressedDstNodesBuffer {
     CompressedDstNodesBuffer(MemoryManager* mm, common::offset_t numNodes,
         common::length_t maxDegree);
-    std::unique_ptr<MemoryBuffer> dstNodesBuffer;
-    common::offset_t numNodes;
-
-    common::offset_t getNodeID(common::offset_t csrOffset) const;
-    void setNodeID(common::offset_t csrOffset, common::offset_t nodeID);
 
     CompressedNbrNodes getNeighbors(common::offset_t nodeOffset, common::offset_t maxDegree,
         common::offset_t numNbrs) const;
+
+    std::unique_ptr<MemoryBuffer> dstNodesBuffer;
+    std::unique_ptr<CompressedNbrNodesView> view;
 };
 
 class InMemHNSWGraph {
@@ -125,7 +130,7 @@ public:
     }
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
     void setDstNode(common::offset_t csrOffset, common::offset_t dstNode) {
-        dstNodes.setNodeID(csrOffset, dstNode);
+        dstNodes.view->setNodeIDAtomic(csrOffset, dstNode);
     }
 
     void finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
@@ -139,7 +144,7 @@ private:
         common::table_id_t relTableID, InMemChunkedNodeGroupCollection& partition) const;
 
     common::offset_t getDstNode(common::offset_t csrOffset) const {
-        return dstNodes.getNodeID(csrOffset);
+        return dstNodes.view->getNodeIDAtomic(csrOffset);
     }
 
 private:
