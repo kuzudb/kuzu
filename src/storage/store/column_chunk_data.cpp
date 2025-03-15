@@ -5,6 +5,7 @@
 
 #include "common/data_chunk/sel_vector.h"
 #include "common/exception/copy.h"
+#include "common/null_mask.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/system_config.h"
@@ -507,26 +508,16 @@ void ColumnChunkData::copyVectorToBuffer(ValueVector* vector, offset_t startPosI
     auto bufferToWrite = buffer->getBuffer().data() + startPosInChunk * numBytesPerValue;
     KU_ASSERT(startPosInChunk + selView.getSelSize() <= capacity);
     const auto vectorDataToWriteFrom = vector->getData();
+    if (nullData) {
+        nullData->appendNulls(vector, selView, startPosInChunk);
+    }
     if (selView.isUnfiltered()) {
         memcpy(bufferToWrite, vectorDataToWriteFrom, selView.getSelSize() * numBytesPerValue);
-        if (nullData) {
-            // TODO(Guodong): Should be wrapped into nullChunk->append(vector);
-            for (auto i = 0u; i < selView.getSelSize(); i++) {
-                nullData->setNull(startPosInChunk + i, vector->isNull(i));
-            }
-        }
     } else {
         selView.forEach([&](auto pos) {
             memcpy(bufferToWrite, vectorDataToWriteFrom + pos * numBytesPerValue, numBytesPerValue);
             bufferToWrite += numBytesPerValue;
         });
-        if (nullData) {
-            // TODO(Guodong): Should be wrapped into nullChunk->append(vector);
-            for (auto i = 0u; i < selView.getSelSize(); i++) {
-                const auto pos = selView[i];
-                nullData->setNull(startPosInChunk + i, vector->isNull(pos));
-            }
-        }
     }
 }
 
@@ -620,10 +611,7 @@ void BoolChunkData::append(ValueVector* vector, const SelectionView& selView) {
         NullMask::setNull(getData<uint64_t>(), numValues + i, vector->getValue<bool>(pos));
     }
     if (nullData) {
-        for (auto i = 0u; i < selView.getSelSize(); i++) {
-            const auto pos = selView[i];
-            nullData->setNull(numValues + i, vector->isNull(pos));
-        }
+        nullData->appendNulls(vector, selView, numValues);
     }
     numValues += selView.getSelSize();
     updateStats(vector, selView);
@@ -735,20 +723,20 @@ void NullChunkData::write(const ValueVector* vector, offset_t offsetInVector,
 
 void NullChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
+    if (numValuesToCopy == 0) {
+        return;
+    }
+    KU_ASSERT(srcChunk->getBufferSize() >= sizeof(uint64_t));
+    copyFromBuffer(srcChunk->getData<uint64_t>(), srcOffsetInChunk, dstOffsetInChunk,
+        numValuesToCopy);
     if ((dstOffsetInChunk + numValuesToCopy) >= numValues) {
         numValues = dstOffsetInChunk + numValuesToCopy;
     }
-    copyFromBuffer(srcChunk->getData<uint64_t>(), srcOffsetInChunk, dstOffsetInChunk,
-        numValuesToCopy);
-    updateInMemoryStats(inMemoryStats, srcChunk, srcOffsetInChunk, numValuesToCopy);
 }
 
 void NullChunkData::append(ColumnChunkData* other, offset_t startOffsetInOtherChunk,
     uint32_t numValuesToAppend) {
-    copyFromBuffer(other->getData<uint64_t>(), startOffsetInOtherChunk, numValues,
-        numValuesToAppend);
-    numValues += numValuesToAppend;
-    updateInMemoryStats(inMemoryStats, other, startOffsetInOtherChunk, numValuesToAppend);
+    write(other, startOffsetInOtherChunk, numValues, numValuesToAppend);
 }
 
 bool NullChunkData::haveNoNullsGuaranteed() const {
@@ -778,6 +766,19 @@ std::unique_ptr<NullChunkData> NullChunkData::deserialize(MemoryManager& memoryM
 void NullChunkData::scan(ValueVector& output, offset_t offset, length_t length,
     sel_t posInOutputVector) const {
     output.setNullFromBits(getNullMask().getData(), offset, posInOutputVector, length);
+}
+
+void NullChunkData::appendNulls(const common::ValueVector* vector,
+    const common::SelectionView& selView, common::offset_t startPosInChunk) {
+    if (selView.isUnfiltered()) {
+        copyFromBuffer(vector->getNullMask().getData(), 0, startPosInChunk, selView.getSelSize());
+        numValues += selView.getSelSize();
+    } else {
+        for (auto i = 0u; i < selView.getSelSize(); i++) {
+            const auto pos = selView[i];
+            setNull(startPosInChunk + i, vector->isNull(pos));
+        }
+    }
 }
 
 void InternalIDChunkData::append(ValueVector* vector, const SelectionView& selView) {

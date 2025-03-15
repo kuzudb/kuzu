@@ -1,6 +1,8 @@
+#include <array>
 #include <vector>
 
 #include "common/null_mask.h"
+#include "common/utils.h"
 #include "gtest/gtest.h"
 
 using namespace kuzu::common;
@@ -70,6 +72,22 @@ TEST(NullMaskTests, CopyNullMaskOffset) {
     ASSERT_EQ(dest[4], 0);
 }
 
+TEST(NullMaskTests, CopyNullMaskSmall) {
+    uint64_t src = 0;
+    for (size_t bit = 0; bit < 64; bit++) {
+        src = 1ull << bit;
+        uint64_t dest = 0;
+        NullMask::copyNullMask(&src, bit, &dest, bit, 1);
+        EXPECT_EQ(src, dest) << "Failed copy for bit " << bit;
+    }
+    for (size_t bits = 0; bits < 64; bits++) {
+        src = kuzu::common::BitmaskUtils::all1sMaskForLeastSignificantBits<uint64_t>(bits);
+        uint64_t dest = 0;
+        NullMask::copyNullMask(&src, 0, &dest, 0, bits);
+        EXPECT_EQ(src, dest) << "Failed copy for first " << bits << " bits";
+    }
+}
+
 TEST(NullMaskTests, CopyNullMaskOffsetInvert) {
     const int size = 10;
     std::vector<uint64_t> source(size);
@@ -113,4 +131,50 @@ TEST(NullMaskTests, ResizeNullMask) {
     mask.resize(128);
     ASSERT_TRUE(mask.isNull(63));
     mask.setNull(127, true);
+}
+
+TEST(NullMaskTests, TestMinMax) {
+    for (size_t i = 0; i < 63; i++) {
+        uint64_t value = static_cast<uint64_t>(1) << i;
+        {
+            auto [min, max] = NullMask::getMinMax(&value, i, 1);
+            EXPECT_TRUE(min) << "Min was incorrect for bit " << i;
+            EXPECT_TRUE(max) << "Max was incorrect for bit " << i;
+        }
+        {
+            auto [min, max] = NullMask::getMinMax(&value, 0, 64);
+            EXPECT_FALSE(min);
+            EXPECT_TRUE(max);
+        }
+    }
+    {
+        uint64_t value = ~0ull;
+        auto [min, max] = NullMask::getMinMax(&value, 0, 64);
+        EXPECT_TRUE(min);
+        EXPECT_TRUE(max);
+    }
+    {
+        std::array<uint64_t, 5> values = {0, 0, 0, 0, 0b111111111};
+        auto [min, max] = NullMask::getMinMax(values.data(), 9, 64 * 4);
+        EXPECT_FALSE(min);
+        EXPECT_TRUE(max);
+    }
+    {
+        std::array<uint64_t, 5> values = {~0ull, ~0ull, ~0ull, ~0ull, ~0b111111111ull};
+        auto [min, max] = NullMask::getMinMax(values.data(), 9, 64 * 4);
+        EXPECT_FALSE(min);
+        EXPECT_TRUE(max);
+    }
+    {
+        std::array<uint64_t, 5> values = {0, 0, 0, 0, 0};
+        auto [min, max] = NullMask::getMinMax(values.data(), 23, 64 * 4);
+        EXPECT_FALSE(min);
+        EXPECT_FALSE(max);
+    }
+    {
+        std::array<uint64_t, 5> values = {~0ull, ~0ull, ~0ull, ~0ull, ~0ull};
+        auto [min, max] = NullMask::getMinMax(values.data(), 23, 64 * 4);
+        EXPECT_TRUE(min);
+        EXPECT_TRUE(max);
+    }
 }

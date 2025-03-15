@@ -171,7 +171,8 @@ public:
 
     // Fast calculation of the minimum and maximum null values
     // (essentially just three states, all null, all non-null and some null)
-    static std::pair<bool, bool> getMinMax(const uint64_t* nullEntries, uint64_t numValues);
+    static std::pair<bool, bool> getMinMax(const uint64_t* nullEntries, uint64_t offset,
+        uint64_t numValues);
 
 private:
     static inline std::pair<uint64_t, uint64_t> getNullEntryAndBitPos(uint64_t pos) {

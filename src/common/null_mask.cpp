@@ -22,15 +22,29 @@ void NullMask::setNull(uint64_t* nullEntries, uint32_t pos, bool isNull) {
 
 bool NullMask::copyNullMask(const uint64_t* srcNullEntries, uint64_t srcOffset,
     uint64_t* dstNullEntries, uint64_t dstOffset, uint64_t numBitsToCopy, bool invert) {
+    // From benchmarks using setNull/isNull is faster for up to 3 bits
+    // (~4x faster for a single bit copy)
+    if (numBitsToCopy <= 3) {
+        bool anyNull = false;
+        for (size_t i = 0; i < numBitsToCopy; i++) {
+            bool isNull = NullMask::isNull(srcNullEntries, srcOffset + i);
+            NullMask::setNull(dstNullEntries, dstOffset + i, isNull ^ invert);
+            anyNull |= isNull;
+        }
+        return anyNull;
+    }
     // If both offsets are aligned relative to each other then copy up to the first byte using the
     // non-aligned method, then copy aligned, then copy the end unaligned again.
     if (!invert && (srcOffset % 8 == dstOffset % 8) && numBitsToCopy >= 8 &&
         numBitsToCopy - (srcOffset % 8) >= 8) {
-        auto numBitsInFirstByte = 8 - (srcOffset % 8);
+        auto numBitsInFirstByte = 0;
         bool hasNullInSrcNullMask = false;
-        if (copyUnaligned(srcNullEntries, srcOffset, dstNullEntries, dstOffset, numBitsInFirstByte,
-                false)) {
-            hasNullInSrcNullMask = true;
+        if (srcOffset != 0) {
+            numBitsInFirstByte = 8 - (srcOffset % 8);
+            if (copyUnaligned(srcNullEntries, srcOffset, dstNullEntries, dstOffset,
+                    numBitsInFirstByte, false)) {
+                hasNullInSrcNullMask = true;
+            }
         }
         auto* src =
             reinterpret_cast<const uint8_t*>(srcNullEntries) + (srcOffset + numBitsInFirstByte) / 8;
@@ -43,9 +57,13 @@ bool NullMask::copyNullMask(const uint64_t* srcNullEntries, uint64_t srcOffset,
         }
         auto lastByteStart = numBitsInFirstByte + numBytesForAlignedCopy * 8;
         auto numBitsInLastByte = numBitsToCopy - numBitsInFirstByte - numBytesForAlignedCopy * 8;
-        return copyUnaligned(srcNullEntries, srcOffset + lastByteStart, dstNullEntries,
-                   dstOffset + lastByteStart, numBitsInLastByte, false) ||
-               hasNullInSrcNullMask;
+        if (numBitsInLastByte > 0) {
+            return copyUnaligned(srcNullEntries, srcOffset + lastByteStart, dstNullEntries,
+                       dstOffset + lastByteStart, numBitsInLastByte, false) ||
+                   hasNullInSrcNullMask;
+        } else {
+            return hasNullInSrcNullMask;
+        }
     } else {
         return copyUnaligned(srcNullEntries, srcOffset, dstNullEntries, dstOffset, numBitsToCopy,
             invert);
@@ -195,30 +213,64 @@ void NullMask::operator|=(const NullMask& other) {
     }
 }
 
-std::pair<bool, bool> NullMask::getMinMax(const uint64_t* nullEntries, uint64_t numValues) {
-    bool min = false, max = false;
-    auto firstWord = *nullEntries;
-    if (numValues >= 64) {
-        if (firstWord == 0) {
-            min = false;
-            max = false;
-        } else if (firstWord == ~static_cast<uint64_t>(0u)) {
-            min = true;
-            max = true;
+std::pair<bool, bool> NullMask::getMinMax(const uint64_t* nullEntries, uint64_t offset,
+    uint64_t numValues) {
+    nullEntries += offset / NUM_BITS_PER_NULL_ENTRY;
+    offset = offset % NUM_BITS_PER_NULL_ENTRY;
+
+    // If the offset+numValues are both within a word, just combine the appropriate masks and
+    // compare to 0/mask to determine if they are all 1s/all 0s (else a mix)
+    if (offset + numValues <= NUM_BITS_PER_NULL_ENTRY) {
+        auto mask = NULL_HIGH_MASKS[NUM_BITS_PER_NULL_ENTRY - offset] &
+                    NULL_LOWER_MASKS[offset + numValues];
+        auto masked = *nullEntries & mask;
+        if (masked == 0) {
+            return std::make_pair(false, false);
+        } else if (masked == mask) {
+            return std::make_pair(true, true);
         } else {
             return std::make_pair(false, true);
         }
-    } else {
-        // First word will be handled in loop below
-        min = max = NullMask::isNull(nullEntries, 0);
     }
-    for (size_t i = 0; i < numValues / 64; i++) {
-        if (nullEntries[i] != firstWord) {
+    // If the range spans multiple entries, check the first one by masking the start
+    bool min = false, max = false;
+    if (offset > 0) {
+        auto mask = NULL_HIGH_MASKS[NUM_BITS_PER_NULL_ENTRY - offset];
+        auto masked = *nullEntries & mask;
+        if (masked == 0) {
+            min = max = false;
+        } else if (masked == mask) {
+            min = max = true;
+        } else {
+            return std::make_pair(false, true);
+        }
+        nullEntries++;
+        numValues -= NUM_BITS_PER_NULL_ENTRY - offset;
+    } else {
+        // Rest of the entry will be checked in the loop below
+        min = max = isNull(nullEntries, 0);
+    }
+
+    // Check central full bytes, which can be compared in a single operation since we don't ignore
+    // any bits If there was no offset, then we calculate the baseline based on the first bit, and
+    // compare that to the actual entry
+    auto baseline = min ? ~static_cast<uint64_t>(0) : 0;
+    for (size_t i = 0; i < numValues / NUM_BITS_PER_NULL_ENTRY; i++) {
+        if (nullEntries[i] != baseline) {
             return std::make_pair(false, true);
         }
     }
-    for (size_t i = numValues / 64 * 64; i < numValues; i++) {
-        if (min != NullMask::isNull(nullEntries, i)) {
+    nullEntries += numValues / NUM_BITS_PER_NULL_ENTRY;
+    numValues = numValues % NUM_BITS_PER_NULL_ENTRY;
+    if (numValues > 0) {
+        // Check last entry
+        auto mask = NULL_LOWER_MASKS[numValues];
+        auto masked = *nullEntries & mask;
+        if (masked == 0) {
+            return std::make_pair(false, max);
+        } else if (masked == mask) {
+            return std::make_pair(min, true);
+        } else {
             return std::make_pair(false, true);
         }
     }

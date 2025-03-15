@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <optional>
 #include <variant>
 
 #include "common/data_chunk/sel_vector.h"
@@ -343,8 +344,9 @@ public:
     bool haveAllNullsGuaranteed() const;
 
     void resetToEmpty() override {
-        resetToNoNull();
+        memset(getData(), 0 /* non null */, getBufferSize());
         numValues = 0;
+        inMemoryStats.min = inMemoryStats.max = std::nullopt;
     }
     void resetToNoNull() {
         memset(getData(), 0 /* non null */, getBufferSize());
@@ -355,16 +357,23 @@ public:
         inMemoryStats.min = inMemoryStats.max = true;
     }
 
-    void copyFromBuffer(uint64_t* srcBuffer, uint64_t srcOffset, uint64_t dstOffset,
-        uint64_t numBits, bool invert = false) {
-        if (common::NullMask::copyNullMask(srcBuffer, srcOffset, getData<uint64_t>(), dstOffset,
-                numBits, invert)) {
-            // we pessimistically assume that the buffer contains both true/false values
-            // so the zone map won't skip scans
-            inMemoryStats.min = false;
-            inMemoryStats.max = true;
+    void copyFromBuffer(const uint64_t* srcBuffer, uint64_t srcOffset, uint64_t dstOffset,
+        uint64_t numBits) {
+        KU_ASSERT(numBits > 0);
+        common::NullMask::copyNullMask(srcBuffer, srcOffset, getData<uint64_t>(), dstOffset,
+            numBits);
+        auto [min, max] = common::NullMask::getMinMax(srcBuffer, srcOffset, numBits);
+        if (!inMemoryStats.min.has_value() || min < inMemoryStats.min->get<bool>()) {
+            inMemoryStats.min = min;
+        }
+        if (!inMemoryStats.max.has_value() || max > inMemoryStats.max->get<bool>()) {
+            inMemoryStats.max = max;
         }
     }
+
+    // Appends the null data from the vector's null mask
+    void appendNulls(const common::ValueVector* vector, const common::SelectionView& selView,
+        common::offset_t startPosInChunk);
 
     // NullChunkData::scan updates the null mask of output vector
     void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
