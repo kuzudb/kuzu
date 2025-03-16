@@ -37,7 +37,7 @@ class Database {
       throw new Error("Buffer manager size must be a positive integer.");
     }
     if (typeof maxDBSize !== "number" || maxDBSize < 0) {
-    throw new Error("Max DB size must be a positive integer.");
+      throw new Error("Max DB size must be a positive integer.");
     }
     if (typeof checkpointThreshold !== "number" || maxDBSize < -1) {
       throw new Error("Checkpoint threshold must be a positive integer.");
@@ -121,12 +121,28 @@ class Database {
   /**
    * Internal function to get the underlying native database object.
    * @returns {KuzuNative.NodeDatabase} the underlying native database.
+   * @throws {Error} if the database is closed.
    */
   async _getDatabase() {
     if (this._isClosed) {
       throw new Error("Database is closed.");
     }
     await this.init();
+    return this._database;
+  }
+
+  /**
+   * Internal function to get the underlying native database object synchronously.
+   * @returns {KuzuNative.NodeDatabase} the underlying native database.
+   * @throws {Error} if the database is closed.
+   */
+  _getDatabaseSync() {
+    if (this._isClosed) {
+      throw new Error("Database is closed.");
+    }
+    if (!this._isInitialized) {
+      this.initSync();
+    }
     return this._database;
   }
 
@@ -150,6 +166,25 @@ class Database {
       }
     }
     // Database is initialized, close it.
+    this._database.close();
+    delete this._database;
+    this._isClosed = true;
+  }
+
+  closeSync() {
+    if (this._isClosed) {
+      return;
+    }
+    if (!this._isInitialized) {
+      if (this._initPromise) {
+        throw new Error("There is an ongoing asynchronous initialization. Please wait for it to finish.");
+      } else {
+        this._isInitialized = true;
+        this._isClosed = true;
+        delete this._database;
+        return;
+      }
+    }
     this._database.close();
     delete this._database;
     this._isClosed = true;

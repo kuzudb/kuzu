@@ -66,6 +66,11 @@ class QueryResult {
     });
   }
 
+  getNextSync() {
+    this._checkClosed();
+    return this._queryResult.getNextSync();
+  }
+
   /**
    * Iterate through the query result with callback functions.
    * @param {Function} resultCallback the callback function that is called for each row of the query result.
@@ -97,6 +102,16 @@ class QueryResult {
     const result = [];
     while (this.hasNext()) {
       result.push(await this.getNext());
+    }
+    return result;
+  }
+
+  getAllSync() {
+    this._checkClosed();
+    this._queryResult.resetIterator();
+    const result = [];
+    while (this.hasNext()) {
+      result.push(this.getNextSync());
     }
     return result;
   }
@@ -133,6 +148,11 @@ class QueryResult {
     });
   }
 
+  getColumnDataTypesSync() {
+    this._checkClosed();
+    return this._queryResult.getColumnDataTypesSync();
+  }
+
   /**
    * Get the names of the columns of the query result.
    * @returns {Promise<Array<String>>} a promise that resolves to the names of the columns of the query result. The promise is rejected if there is an error.
@@ -147,6 +167,11 @@ class QueryResult {
         return resolve(result);
       });
     });
+  }
+
+  getColumnNamesSync() {
+    this._checkClosed();
+    return this._queryResult.getColumnNamesSync();
   }
 
   /**

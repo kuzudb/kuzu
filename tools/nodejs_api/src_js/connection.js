@@ -69,14 +69,51 @@ class Connection {
   }
 
   /**
+   * Initialize the connection synchronously. Calling this function is optional, as the
+   * connection is initialized automatically when the first query is executed. This function
+   * may block the main thread, so use it with caution.
+   */
+  initSync() {
+    if (this._isClosed) {
+      throw new Error("Connection is closed.");
+    }
+    if (this._isInitialized) {
+      return;
+    }
+    if (this._initPromise) {
+      throw new Error("There is an ongoing asynchronous initialization. Please wait for it to finish.");
+    }
+    if (!this._connection) {
+      const database = this._database._getDatabaseSync();
+      this._connection = new KuzuNative.NodeConnection(database);
+    }
+    this._connection.initSync();
+    this._isInitialized = true;
+  }
+
+  /**
    * Internal function to get the underlying native connection object.
    * @returns {KuzuNative.NodeConnection} the underlying native connection.
+   * @throws {Error} if the connection is closed.
    */
   async _getConnection() {
     if (this._isClosed) {
       throw new Error("Connection is closed.");
     }
     await this.init();
+    return this._connection;
+  }
+
+  /**
+   * Internal function to get the underlying native connection object synchronously.
+   * @returns {KuzuNative.NodeConnection} the underlying native connection.
+   * @throws {Error} if the connection is closed.
+   */
+  _getConnectionSync() {
+    if (this._isClosed) {
+      throw new Error("Connection is closed.");
+    }
+    this.initSync();
     return this._connection;
   }
 
@@ -146,6 +183,37 @@ class Connection {
   }
 
   /**
+   * Execute a prepared statement with the given parameters synchronously. This function blocks the main thread for the duration of the query, so use it with caution.
+   * @param {kuzu.PreparedStatement} preparedStatement the prepared statement
+   * @param {Object} params a plain object mapping parameter names to values.
+   * @returns {Array<kuzu.QueryResult> | kuzu.QueryResult} an array of query results. If there is only one query result, the function returns the query result directly.
+   * @throws {Error} if there is an error.
+   */
+  executeSync(preparedStatement, params = {}) {
+    if (
+      !typeof preparedStatement === "object" ||
+      preparedStatement.constructor.name !== "PreparedStatement"
+    ) {
+      throw new Error("preparedStatement must be a valid PreparedStatement object.");
+    }
+    if (!preparedStatement.isSuccess()) {
+      throw new Error(preparedStatement.getErrorMessage());
+    }
+    if (params.constructor !== Object) {
+      throw new Error("params must be a plain object.");
+    }
+    const paramArray = [];
+    for (const key in params) {
+      const value = params[key];
+      paramArray.push([key, value]);
+    }
+    const connection = this._getConnectionSync();
+    const nodeQueryResult = new KuzuNative.NodeQueryResult();
+    connection.executeSync(preparedStatement._preparedStatement, nodeQueryResult, paramArray);
+    return this._unwrapMultipleQueryResultsSync(nodeQueryResult);
+  }
+
+  /**
    * Prepare a statement for execution.
    * @param {String} statement the statement to prepare.
    * @returns {Promise<kuzu.PreparedStatement>} a promise that resolves to the prepared statement. The promise is rejected if there is an error.
@@ -172,6 +240,25 @@ class Connection {
           return reject(err);
         });
     });
+  }
+
+  /**
+   * Prepare a statement for execution synchronously. This function blocks the main thread so use it with caution.
+   * @param {String} statement the statement to prepare. 
+   * @returns {kuzu.PreparedStatement} the prepared statement.
+   * @throws {Error} if there is an error.
+   */
+  prepareSync(statement) {
+    if (typeof statement !== "string") {
+      throw new Error("statement must be a string.");
+    }
+    const connection = this._getConnectionSync();
+    const preparedStatement = new KuzuNative.NodePreparedStatement(
+      connection,
+      statement
+    );
+    preparedStatement.initSync();
+    return new PreparedStatement(this, preparedStatement);
   }
 
   /**
@@ -216,6 +303,24 @@ class Connection {
   }
 
   /**
+   * Execute a query synchronously.
+   * @param {String} statement the statement to execute. This function blocks the main thread for the duration of the query, so use it with caution.
+   * @returns {Array<kuzu.QueryResult> | kuzu.QueryResult} an array of query results. If there is only one query result, the function returns the query result directly.
+   * @throws {Error} if there is an error.
+   * @throws {Error} if the statement is not a string.
+   * @throws {Error} if the connection is closed.
+   */
+  querySync(statement) {
+    if (typeof statement !== "string") {
+      throw new Error("statement must be a string.");
+    }
+    const connection = this._getConnectionSync();
+    const nodeQueryResult = new KuzuNative.NodeQueryResult();
+    connection.querySync(statement, nodeQueryResult);
+    return this._unwrapMultipleQueryResultsSync(nodeQueryResult);
+  }
+
+  /**
    * Internal function to get the next query result for multiple query results.
    * @param {KuzuNative.NodeQueryResult} nodeQueryResult the current node query result.
    * @returns {Promise<kuzu.QueryResult>} a promise that resolves to the next query result. The promise is rejected if there is an error.
@@ -247,6 +352,29 @@ class Connection {
     while (currentQueryResult.hasNextQueryResult()) {
       queryResults.push(await this._getNextQueryResult(currentQueryResult));
       currentQueryResult = queryResults[queryResults.length - 1]._queryResult;
+    }
+    return queryResults;
+  }
+
+  /**
+   * Internal function to unwrap multiple query results into an array of query results synchronously.
+   * @param {KuzuNative.NodeQueryResult} nodeQueryResult the node query result.
+   * @returns {Array<kuzu.QueryResult> | kuzu.QueryResult} an array of query results.
+   * @throws {Error} if there is an error.
+   */
+  _unwrapMultipleQueryResultsSync(nodeQueryResult) {
+    const wrappedQueryResult = new QueryResult(this, nodeQueryResult);
+    if (!nodeQueryResult.hasNextQueryResult()) {
+      return wrappedQueryResult;
+    }
+    const queryResults = [wrappedQueryResult];
+    let currentQueryResult = nodeQueryResult;
+    while (currentQueryResult.hasNextQueryResult()) {
+      const nextNodeQueryResult = new KuzuNative.NodeQueryResult();
+      currentQueryResult.getNextQueryResultSync(nextNodeQueryResult);
+      const nextQueryResult = new QueryResult(this, nextNodeQueryResult);
+      queryResults.push(nextQueryResult);
+      currentQueryResult = nextNodeQueryResult;
     }
     return queryResults;
   }
@@ -311,6 +439,24 @@ class Connection {
       }
     }
     // Connection is initialized, close it.
+    this._connection.close();
+    delete this._connection;
+    this._isClosed = true;
+  }
+
+  closeSync() {
+    if (this._isClosed) {
+      return;
+    }
+    if (!this._isInitialized) {
+      if (this._initPromise) {
+        throw new Error("There is an ongoing asynchronous initialization. Please wait for it to finish.");
+      }
+      this._isInitialized = true;
+      this._isClosed = true;
+      delete this._connection;
+      return;
+    }
     this._connection.close();
     delete this._connection;
     this._isClosed = true;
