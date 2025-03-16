@@ -11,8 +11,7 @@ Napi::Object NodeConnection::Init(Napi::Env env, Napi::Object exports) {
     Napi::HandleScope scope(env);
 
     Napi::Function t = DefineClass(env, "NodeConnection",
-        {
-            InstanceMethod("initAsync", &NodeConnection::InitAsync),
+        {InstanceMethod("initAsync", &NodeConnection::InitAsync),
             InstanceMethod("initSync", &NodeConnection::InitSync),
             InstanceMethod("executeAsync", &NodeConnection::ExecuteAsync),
             InstanceMethod("queryAsync", &NodeConnection::QueryAsync),
@@ -20,8 +19,7 @@ Napi::Object NodeConnection::Init(Napi::Env env, Napi::Object exports) {
             InstanceMethod("querySync", &NodeConnection::QuerySync),
             InstanceMethod("setMaxNumThreadForExec", &NodeConnection::SetMaxNumThreadForExec),
             InstanceMethod("setQueryTimeout", &NodeConnection::SetQueryTimeout),
-            InstanceMethod("close", &NodeConnection::Close)
-        });
+            InstanceMethod("close", &NodeConnection::Close)});
 
     exports.Set("NodeConnection", t);
     return exports;
@@ -135,7 +133,8 @@ Napi::Value NodeConnection::ExecuteSync(const Napi::CallbackInfo& info) {
     try {
         auto params = Util::TransformParametersForExec(info[2].As<Napi::Array>());
         auto result = connection
-                          ->executeWithParams(nodePreparedStatement->preparedStatement.get(), std::move(params))
+                          ->executeWithParams(nodePreparedStatement->preparedStatement.get(),
+                              std::move(params))
                           .release();
         nodeQueryResult->SetQueryResult(result, true);
         if (!result->isSuccess()) {

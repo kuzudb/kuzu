@@ -92,7 +92,8 @@ Napi::Value NodeQueryResult::GetNextQueryResultSync(const Napi::CallbackInfo& in
         if (!nextResult->isSuccess()) {
             Napi::Error::New(env, nextResult->getErrorMessage()).ThrowAsJavaScriptException();
         }
-        auto nodeQueryResult = Napi::ObjectWrap<NodeQueryResult>::Unwrap(info[0].As<Napi::Object>());
+        auto nodeQueryResult =
+            Napi::ObjectWrap<NodeQueryResult>::Unwrap(info[0].As<Napi::Object>());
         nodeQueryResult->SetQueryResult(nextResult, false);
     } catch (const std::exception& exc) {
         Napi::Error::New(env, std::string(exc.what())).ThrowAsJavaScriptException();
