@@ -17,6 +17,7 @@ public:
 
 private:
     Napi::Value InitAsync(const Napi::CallbackInfo& info);
+    Napi::Value InitSync(const Napi::CallbackInfo& info);
     void InitCppPreparedStatement();
     Napi::Value IsSuccess(const Napi::CallbackInfo& info);
     Napi::Value GetErrorMessage(const Napi::CallbackInfo& info);

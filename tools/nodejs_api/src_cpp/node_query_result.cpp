@@ -15,10 +15,14 @@ Napi::Object NodeQueryResult::Init(Napi::Env env, Napi::Object exports) {
             InstanceMethod("hasNext", &NodeQueryResult::HasNext),
             InstanceMethod("hasNextQueryResult", &NodeQueryResult::HasNextQueryResult),
             InstanceMethod("getNextQueryResultAsync", &NodeQueryResult::GetNextQueryResultAsync),
+            InstanceMethod("getNextQueryResultSync", &NodeQueryResult::GetNextQueryResultSync),
             InstanceMethod("getNumTuples", &NodeQueryResult::GetNumTuples),
+            InstanceMethod("getNextSync", &NodeQueryResult::GetNextSync),
             InstanceMethod("getNextAsync", &NodeQueryResult::GetNextAsync),
             InstanceMethod("getColumnDataTypesAsync", &NodeQueryResult::GetColumnDataTypesAsync),
+            InstanceMethod("getColumnDataTypesSync", &NodeQueryResult::GetColumnDataTypesSync),
             InstanceMethod("getColumnNamesAsync", &NodeQueryResult::GetColumnNamesAsync),
+            InstanceMethod("getColumnNamesSync", &NodeQueryResult::GetColumnNamesSync),
             InstanceMethod("close", &NodeQueryResult::Close)});
 
     exports.Set("NodeQueryResult", t);
@@ -80,6 +84,23 @@ Napi::Value NodeQueryResult::GetNextQueryResultAsync(const Napi::CallbackInfo& i
     return info.Env().Undefined();
 }
 
+Napi::Value NodeQueryResult::GetNextQueryResultSync(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::HandleScope scope(env);
+    try {
+        auto nextResult = this->queryResult->getNextQueryResult();
+        if (!nextResult->isSuccess()) {
+            Napi::Error::New(env, nextResult->getErrorMessage()).ThrowAsJavaScriptException();
+        }
+        auto nodeQueryResult =
+            Napi::ObjectWrap<NodeQueryResult>::Unwrap(info[0].As<Napi::Object>());
+        nodeQueryResult->SetQueryResult(nextResult, false);
+    } catch (const std::exception& exc) {
+        Napi::Error::New(env, std::string(exc.what())).ThrowAsJavaScriptException();
+    }
+    return info.Env().Undefined();
+}
+
 Napi::Value NodeQueryResult::GetNumTuples(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     Napi::HandleScope scope(env);
@@ -100,6 +121,27 @@ Napi::Value NodeQueryResult::GetNextAsync(const Napi::CallbackInfo& info) {
     return info.Env().Undefined();
 }
 
+Napi::Value NodeQueryResult::GetNextSync(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::HandleScope scope(env);
+    try {
+        if (!this->queryResult->hasNext()) {
+            return env.Null();
+        }
+        auto cppTuple = this->queryResult->getNext();
+        Napi::Object nodeTuple = Napi::Object::New(env);
+        PopulateColumnNames();
+        for (auto i = 0u; i < cppTuple->len(); ++i) {
+            Napi::Value value = Util::ConvertToNapiObject(*cppTuple->getValue(i), env);
+            nodeTuple.Set(columnNames->at(i), value);
+        }
+        return nodeTuple;
+    } catch (const std::exception& exc) {
+        Napi::Error::New(env, std::string(exc.what())).ThrowAsJavaScriptException();
+    }
+    return env.Undefined();
+}
+
 Napi::Value NodeQueryResult::GetColumnDataTypesAsync(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     Napi::HandleScope scope(env);
@@ -110,6 +152,22 @@ Napi::Value NodeQueryResult::GetColumnDataTypesAsync(const Napi::CallbackInfo& i
     return info.Env().Undefined();
 }
 
+Napi::Value NodeQueryResult::GetColumnDataTypesSync(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::HandleScope scope(env);
+    try {
+        auto columnDataTypes = this->queryResult->getColumnDataTypes();
+        Napi::Array nodeColumnDataTypes = Napi::Array::New(env, columnDataTypes.size());
+        for (auto i = 0u; i < columnDataTypes.size(); ++i) {
+            nodeColumnDataTypes.Set(i, Napi::String::New(env, columnDataTypes[i].toString()));
+        }
+        return nodeColumnDataTypes;
+    } catch (const std::exception& exc) {
+        Napi::Error::New(env, std::string(exc.what())).ThrowAsJavaScriptException();
+    }
+    return env.Undefined();
+}
+
 Napi::Value NodeQueryResult::GetColumnNamesAsync(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     Napi::HandleScope scope(env);
@@ -118,6 +176,30 @@ Napi::Value NodeQueryResult::GetColumnNamesAsync(const Napi::CallbackInfo& info)
         GetColumnMetadataType::NAME);
     asyncWorker->Queue();
     return info.Env().Undefined();
+}
+
+Napi::Value NodeQueryResult::GetColumnNamesSync(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::HandleScope scope(env);
+    PopulateColumnNames();
+    try {
+        Napi::Array nodeColumnNames = Napi::Array::New(env, columnNames->size());
+        for (auto i = 0u; i < columnNames->size(); ++i) {
+            nodeColumnNames.Set(i, Napi::String::New(env, columnNames->at(i)));
+        }
+        return nodeColumnNames;
+    } catch (const std::exception& exc) {
+        Napi::Error::New(env, std::string(exc.what())).ThrowAsJavaScriptException();
+    }
+    return env.Undefined();
+}
+
+void NodeQueryResult::PopulateColumnNames() {
+    if (this->columnNames != nullptr) {
+        return;
+    }
+    this->columnNames =
+        std::make_unique<std::vector<std::string>>(this->queryResult->getColumnNames());
 }
 
 void NodeQueryResult::Close(const Napi::CallbackInfo& info) {

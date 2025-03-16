@@ -26,15 +26,21 @@ private:
     Napi::Value HasNext(const Napi::CallbackInfo& info);
     Napi::Value HasNextQueryResult(const Napi::CallbackInfo& info);
     Napi::Value GetNextQueryResultAsync(const Napi::CallbackInfo& info);
+    Napi::Value GetNextQueryResultSync(const Napi::CallbackInfo& info);
     Napi::Value GetNumTuples(const Napi::CallbackInfo& info);
     Napi::Value GetNextAsync(const Napi::CallbackInfo& info);
+    Napi::Value GetNextSync(const Napi::CallbackInfo& info);
     Napi::Value GetColumnDataTypesAsync(const Napi::CallbackInfo& info);
+    Napi::Value GetColumnDataTypesSync(const Napi::CallbackInfo& info);
     Napi::Value GetColumnNamesAsync(const Napi::CallbackInfo& info);
+    Napi::Value GetColumnNamesSync(const Napi::CallbackInfo& info);
+    void PopulateColumnNames();
     void Close(const Napi::CallbackInfo& info);
     void Close();
 
 private:
     QueryResult* queryResult = nullptr;
+    std::unique_ptr<std::vector<std::string>> columnNames = nullptr;
     bool isOwned = false;
 };
 
@@ -57,7 +63,8 @@ public:
                     result[i] = columnDataTypes[i].toString();
                 }
             } else {
-                result = nodeQueryResult->queryResult->getColumnNames();
+                nodeQueryResult->PopulateColumnNames();
+                result = *nodeQueryResult->columnNames;
             }
         } catch (const std::exception& exc) {
             SetError(std::string(exc.what()));

@@ -67,6 +67,15 @@ class QueryResult {
   }
 
   /**
+   * Get the next row of the query result synchronously.
+   * @returns {Object} the next row of the query result.
+   */
+  getNextSync() {
+    this._checkClosed();
+    return this._queryResult.getNextSync();
+  }
+
+  /**
    * Iterate through the query result with callback functions.
    * @param {Function} resultCallback the callback function that is called for each row of the query result.
    * @param {Function} doneCallback the callback function that is called when the iteration is done.
@@ -97,6 +106,20 @@ class QueryResult {
     const result = [];
     while (this.hasNext()) {
       result.push(await this.getNext());
+    }
+    return result;
+  }
+
+  /**
+   * Get all rows of the query result synchronously. Note that this function can block the main thread if the number of rows is large, so use it with caution.
+   * @returns {Array<Object>} all rows of the query result.
+   */
+  getAllSync() {
+    this._checkClosed();
+    this._queryResult.resetIterator();
+    const result = [];
+    while (this.hasNext()) {
+      result.push(this.getNextSync());
     }
     return result;
   }
@@ -134,6 +157,15 @@ class QueryResult {
   }
 
   /**
+   * Get the data types of the columns of the query result synchronously.
+   * @returns {Array<String>} the data types of the columns of the query result.
+   */
+  getColumnDataTypesSync() {
+    this._checkClosed();
+    return this._queryResult.getColumnDataTypesSync();
+  }
+
+  /**
    * Get the names of the columns of the query result.
    * @returns {Promise<Array<String>>} a promise that resolves to the names of the columns of the query result. The promise is rejected if there is an error.
    */
@@ -147,6 +179,15 @@ class QueryResult {
         return resolve(result);
       });
     });
+  }
+
+  /**
+   * Get the names of the columns of the query result synchronously.
+   * @returns {Array<String>} the names of the columns of the query result.
+   */
+  getColumnNamesSync() {
+    this._checkClosed();
+    return this._queryResult.getColumnNamesSync();
   }
 
   /**
