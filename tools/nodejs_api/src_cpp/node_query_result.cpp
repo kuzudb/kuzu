@@ -130,10 +130,10 @@ Napi::Value NodeQueryResult::GetNextSync(const Napi::CallbackInfo& info) {
         }
         auto cppTuple = this->queryResult->getNext();
         Napi::Object nodeTuple = Napi::Object::New(env);
-        auto columnNames = this->queryResult->getColumnNames();
+        PopulateColumnNames();
         for (auto i = 0u; i < cppTuple->len(); ++i) {
             Napi::Value value = Util::ConvertToNapiObject(*cppTuple->getValue(i), env);
-            nodeTuple.Set(columnNames[i], value);
+            nodeTuple.Set(columnNames->at(i), value);
         }
         return nodeTuple;
     } catch (const std::exception& exc) {
@@ -181,17 +181,25 @@ Napi::Value NodeQueryResult::GetColumnNamesAsync(const Napi::CallbackInfo& info)
 Napi::Value NodeQueryResult::GetColumnNamesSync(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     Napi::HandleScope scope(env);
+    PopulateColumnNames();
     try {
-        auto columnNames = this->queryResult->getColumnNames();
-        Napi::Array nodeColumnNames = Napi::Array::New(env, columnNames.size());
-        for (auto i = 0u; i < columnNames.size(); ++i) {
-            nodeColumnNames.Set(i, Napi::String::New(env, columnNames[i]));
+        Napi::Array nodeColumnNames = Napi::Array::New(env, columnNames->size());
+        for (auto i = 0u; i < columnNames->size(); ++i) {
+            nodeColumnNames.Set(i, Napi::String::New(env, columnNames->at(i)));
         }
         return nodeColumnNames;
     } catch (const std::exception& exc) {
         Napi::Error::New(env, std::string(exc.what())).ThrowAsJavaScriptException();
     }
     return env.Undefined();
+}
+
+void NodeQueryResult::PopulateColumnNames() {
+    if (this->columnNames != nullptr) {
+        return;
+    }
+        this->columnNames = std::make_unique<std::vector<std::string>>(
+            this->queryResult->getColumnNames());
 }
 
 void NodeQueryResult::Close(const Napi::CallbackInfo& info) {
