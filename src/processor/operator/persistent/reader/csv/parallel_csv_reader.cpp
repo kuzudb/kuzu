@@ -267,7 +267,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         scanInput->fileScanInfo.copy(), context, numWarningDataColumns);
 }
 
-static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
+static std::unique_ptr<TableFuncSharedState> initSharedState(
+    const TableFuncInitSharedStateInput& input) {
     auto bindData = input.bindData->constPtrCast<ScanFileBindData>();
     auto csvOption = CSVReaderConfig::construct(bindData->fileScanInfo.options).option;
     auto columnInfo = CSVColumnInfo(bindData->getNumColumns() - bindData->numWarningDataColumns,
@@ -285,11 +286,9 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunction
     return sharedState;
 }
 
-static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput&,
-    const TableFuncSharedState*, storage::MemoryManager*) {
+static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFuncInitLocalStateInput&) {
     auto localState = std::make_unique<ParallelCSVLocalState>();
     localState->fileIdx = std::numeric_limits<decltype(localState->fileIdx)>::max();
-
     return localState;
 }
 

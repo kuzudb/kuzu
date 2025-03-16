@@ -7,31 +7,10 @@
 namespace kuzu {
 namespace processor {
 
-struct TableFunctionCallSharedState {
-    std::unique_ptr<function::TableFuncSharedState> funcState;
-    std::mutex mtx;
-};
-
-struct TableFunctionCallLocalState {
-    std::unique_ptr<function::TableFuncLocalState> funcState = nullptr;
-    function::TableFuncInput funcInput{};
-    function::TableFuncOutput funcOutput{};
-
-    TableFunctionCallLocalState() = default;
-    DELETE_COPY_DEFAULT_MOVE(TableFunctionCallLocalState);
-};
-
-enum class TableScanOutputType : uint8_t {
-    EMPTY = 0,
-    SINGLE_DATA_CHUNK = 1,
-    MULTI_DATA_CHUNK = 2,
-};
-
 struct TableFunctionCallInfo {
     function::TableFunction function{};
     std::unique_ptr<function::TableFuncBindData> bindData;
     std::vector<DataPos> outPosV;
-    TableScanOutputType outputType = TableScanOutputType::EMPTY;
 
     TableFunctionCallInfo() = default;
     EXPLICIT_COPY_DEFAULT_MOVE(TableFunctionCallInfo);
@@ -41,7 +20,6 @@ private:
         function = other.function;
         bindData = other.bindData->copy();
         outPosV = other.outPosV;
-        outputType = other.outputType;
     }
 };
 
@@ -85,21 +63,20 @@ class TableFunctionCall final : public PhysicalOperator {
 
 public:
     TableFunctionCall(TableFunctionCallInfo info,
-        std::shared_ptr<TableFunctionCallSharedState> sharedState, uint32_t id,
+        std::shared_ptr<function::TableFuncSharedState> sharedState, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, id, std::move(printInfo)}, info{std::move(info)},
           sharedState{std::move(sharedState)} {}
     // When exporting a kuzu database, we may have multiple copy to statements as children of the
     // FactorizedTableScan function.
     TableFunctionCall(TableFunctionCallInfo info,
-        std::shared_ptr<TableFunctionCallSharedState> sharedState, physical_op_vector_t children,
+        std::shared_ptr<function::TableFuncSharedState> sharedState, physical_op_vector_t children,
         uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(children), id, std::move(printInfo)},
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
-    TableFunctionCallSharedState* getSharedState() { return sharedState.get(); }
-
     const TableFunctionCallInfo& getInfo() const { return info; }
+    std::shared_ptr<function::TableFuncSharedState> getSharedState() const { return sharedState; }
 
     bool isSource() const override { return true; }
 
@@ -119,8 +96,10 @@ public:
 
 private:
     TableFunctionCallInfo info;
-    std::shared_ptr<TableFunctionCallSharedState> sharedState;
-    TableFunctionCallLocalState localState;
+    std::shared_ptr<function::TableFuncSharedState> sharedState;
+    std::unique_ptr<function::TableFuncLocalState> localState = nullptr;
+    std::unique_ptr<function::TableFuncInput> funcInput = nullptr;
+    std::unique_ptr<function::TableFuncOutput> funcOutput = nullptr;
 };
 
 } // namespace processor

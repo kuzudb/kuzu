@@ -80,9 +80,10 @@ struct CacheArrayColumnSharedState final : public SimpleTableFuncSharedState {
     std::atomic<node_group_idx_t> numNodeGroupsCached;
 };
 
-static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
+static std::unique_ptr<TableFuncSharedState> initSharedState(
+    const TableFuncInitSharedStateInput& input) {
     const auto bindData = input.bindData->constPtrCast<CacheArrayColumnBindData>();
-    auto& table = input.context.getStorageManager()
+    auto& table = input.context->clientContext->getStorageManager()
                       ->getTable(bindData->tableEntry->getTableID())
                       ->cast<storage::NodeTable>();
     return std::make_unique<CacheArrayColumnSharedState>(table, table.getNumCommittedNodeGroups(),
@@ -110,12 +111,12 @@ struct CacheArrayColumnLocalState final : TableFuncLocalState {
     std::unique_ptr<storage::NodeTableScanState> scanState;
 };
 
-static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput& input,
-    TableFuncSharedState*, storage::MemoryManager*) {
-    const auto bindData = input.bindData->constPtrCast<CacheArrayColumnBindData>();
+static std::unique_ptr<TableFuncLocalState> initLocalState(
+    const TableFuncInitLocalStateInput& input) {
+    const auto bindData = input.bindData.constPtrCast<CacheArrayColumnBindData>();
     auto tableID = bindData->tableEntry->getTableID();
     auto columnID = bindData->tableEntry->getColumnID(bindData->propertyID);
-    return std::make_unique<CacheArrayColumnLocalState>(input.context, tableID, columnID);
+    return std::make_unique<CacheArrayColumnLocalState>(*input.clientContext, tableID, columnID);
 }
 
 static void scanTableDataToChunk(const node_group_idx_t nodeGroupIdx,

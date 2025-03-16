@@ -13,11 +13,6 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput&,
-    const TableFuncSharedState*, const storage::MemoryManager*) {
-    return std::make_unique<TableFuncLocalState>();
-}
-
 struct StatsInfoBindData final : TableFuncBindData {
     TableCatalogEntry* tableEntry;
     storage::Table* table;
@@ -86,7 +81,7 @@ function_set StatsInfoFunction::getFunctionSet() {
     function->tableFunc = SimpleTableFunc::getTableFunc(internalTableFunc);
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = SimpleTableFunc::initSharedState;
-    function->initLocalStateFunc = initLocalState;
+    function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;
 }

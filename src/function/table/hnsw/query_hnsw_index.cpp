@@ -16,7 +16,6 @@
 #include "storage/index/hnsw_index_utils.h"
 #include "storage/index/index_utils.h"
 #include "storage/storage_manager.h"
-#include "storage/store/rel_table.h"
 
 namespace kuzu {
 namespace function {
@@ -166,17 +165,19 @@ QueryHNSWIndexSharedState::QueryHNSWIndexSharedState(const QueryHNSWIndexBindDat
 }
 
 static std::unique_ptr<TableFuncSharedState> initQueryHNSWSharedState(
-    const TableFunctionInitInput& input) {
+    const TableFuncInitSharedStateInput& input) {
     const auto bindData = input.bindData->constPtrCast<QueryHNSWIndexBindData>();
     return std::make_unique<QueryHNSWIndexSharedState>(*bindData);
 }
 
-std::unique_ptr<TableFuncLocalState> initQueryHNSWLocalState(const TableFunctionInitInput& input,
-    TableFuncSharedState* sharedState, storage::MemoryManager* mm) {
-    const auto hnswBindData = input.bindData->constPtrCast<QueryHNSWIndexBindData>();
-    const auto hnswSharedState = sharedState->ptrCast<QueryHNSWIndexSharedState>();
-    return std::make_unique<QueryHNSWLocalState>(input.context.getTransaction(), mm,
-        *hnswSharedState->nodeTable, hnswBindData->indexColumnID, hnswSharedState->numNodes);
+std::unique_ptr<TableFuncLocalState> initQueryHNSWLocalState(
+    const TableFuncInitLocalStateInput& input) {
+    const auto hnswBindData = input.bindData.constPtrCast<QueryHNSWIndexBindData>();
+    const auto hnswSharedState = input.sharedState.ptrCast<QueryHNSWIndexSharedState>();
+    auto context = input.clientContext;
+    return std::make_unique<QueryHNSWLocalState>(context->getTransaction(),
+        context->getMemoryManager(), *hnswSharedState->nodeTable, hnswBindData->indexColumnID,
+        hnswSharedState->numNodes);
 }
 
 static void getLogicalPlan(planner::Planner* planner,

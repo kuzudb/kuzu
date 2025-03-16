@@ -36,7 +36,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
 }
 
 std::unique_ptr<TableFuncSharedState> initDeltaScanSharedState(
-    const TableFunctionInitInput& input) {
+    const TableFuncInitSharedStateInput& input) {
     auto deltaScanBindData = input.bindData->constPtrCast<DeltaScanBindData>();
     auto queryResult = deltaScanBindData->connector->executeQuery(deltaScanBindData->query);
     return std::make_unique<duckdb_extension::DuckDBScanSharedState>(std::move(queryResult));
@@ -60,18 +60,13 @@ offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     return output.dataChunk.state->getSelVector().getSelSize();
 }
 
-std::unique_ptr<TableFuncLocalState> initEmptyLocalState(const TableFunctionInitInput&,
-    TableFuncSharedState*, storage::MemoryManager*) {
-    return std::make_unique<TableFuncLocalState>();
-}
-
 function_set DeltaScanFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = initDeltaScanSharedState;
-    function->initLocalStateFunc = initEmptyLocalState;
+    function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;
 }

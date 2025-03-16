@@ -56,7 +56,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
         std::move(duckdbResultConverter), columns);
 }
 
-std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
+std::unique_ptr<TableFuncSharedState> initSharedState(const TableFuncInitSharedStateInput& input) {
     auto scanBindData = input.bindData->constPtrCast<SqlQueryBindData>();
     return std::make_unique<duckdb_extension::DuckDBScanSharedState>(scanBindData->queryResult);
 }

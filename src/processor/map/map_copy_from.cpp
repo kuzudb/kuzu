@@ -91,7 +91,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
 
     if (prevOperator->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL) {
         const auto call = prevOperator->ptrCast<TableFunctionCall>();
-        sharedState->readerSharedState = call->getSharedState();
+        sharedState->tableFuncSharedState = call->getSharedState().get();
     }
     // Map copy node.
     std::vector<column_id_t> columnIDs;

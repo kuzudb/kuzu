@@ -68,7 +68,7 @@ public:
         std::string expressionName);
 
     static std::unique_ptr<TableFuncSharedState> initSharedState(
-        const TableFunctionInitInput& input);
+        const TableFuncInitSharedStateInput& input);
     static void getLogicalPlan(planner::Planner* planner,
         const binder::BoundReadingClause& readingClause,
         std::shared_ptr<planner::LogicalOperator> logicalOp,

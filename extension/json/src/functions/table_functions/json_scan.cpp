@@ -867,18 +867,19 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
     return count;
 }
 
-static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
+static std::unique_ptr<TableFuncSharedState> initSharedState(
+    const TableFuncInitSharedStateInput& input) {
     auto jsonBindData = input.bindData->constPtrCast<JsonScanBindData>();
     return std::make_unique<JSONScanSharedState>(*jsonBindData->context,
         jsonBindData->fileScanInfo.filePaths[0], jsonBindData->format);
 }
 
-static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput& input,
-    TableFuncSharedState* state, storage::MemoryManager* mm) {
-    auto jsonBindData = input.bindData->constPtrCast<JsonScanBindData>();
-    auto sharedState = state->ptrCast<JSONScanSharedState>();
-    auto localState =
-        std::make_unique<JSONScanLocalState>(*mm, *sharedState, jsonBindData->context);
+static std::unique_ptr<TableFuncLocalState> initLocalState(
+    const TableFuncInitLocalStateInput& input) {
+    auto jsonBindData = input.bindData.constPtrCast<JsonScanBindData>();
+    auto sharedState = input.sharedState.ptrCast<JSONScanSharedState>();
+    auto localState = std::make_unique<JSONScanLocalState>(*input.clientContext->getMemoryManager(),
+        *sharedState, jsonBindData->context);
     return localState;
 }
 

@@ -27,6 +27,24 @@ struct FTableScanSharedState final : public SimpleTableFuncSharedState {
     }
 };
 
+// FTableScan has an exceptional output where vectors can be in different dataChunks. So we give
+// a dummy dataChunk during initialization and never use it.
+struct FTableScanTableFuncOutput : TableFuncOutput {
+    std::vector<common::ValueVector*> vectors;
+
+    explicit FTableScanTableFuncOutput(std::vector<common::ValueVector*> vectors)
+        : TableFuncOutput(common::DataChunk{} /* dummy DataChunk */), vectors{std::move(vectors)} {}
+};
+
+static std::unique_ptr<TableFuncOutput> initFTableScanOutput(
+    const TableFuncInitOutputInput& input) {
+    std::vector<ValueVector*> vectors;
+    for (auto i = 0u; i < input.outColumnPositions.size(); ++i) {
+        vectors.push_back(input.resultSet.getValueVector(input.outColumnPositions[i]).get());
+    }
+    return std::make_unique<FTableScanTableFuncOutput>(std::move(vectors));
+}
+
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto sharedState = ku_dynamic_cast<FTableScanSharedState*>(input.sharedState);
     auto bindData = ku_dynamic_cast<FTableScanBindData*>(input.bindData);
@@ -35,19 +53,16 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
         return 0;
     }
     auto numTuples = morsel.endOffset - morsel.startOffset;
-    sharedState->table->scan(output.vectors, morsel.startOffset, numTuples,
+    auto& output_ = ku_dynamic_cast<FTableScanTableFuncOutput&>(output);
+    sharedState->table->scan(output_.vectors, morsel.startOffset, numTuples,
         bindData->columnIndices);
     return numTuples;
 }
 
-static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
+static std::unique_ptr<TableFuncSharedState> initSharedState(
+    const TableFuncInitSharedStateInput& input) {
     auto bindData = ku_dynamic_cast<FTableScanBindData*>(input.bindData);
     return std::make_unique<FTableScanSharedState>(bindData->table, bindData->morselSize);
-}
-
-static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput&,
-    TableFuncSharedState*, storage::MemoryManager*) {
-    return std::make_unique<TableFuncLocalState>();
 }
 
 function_set FTableScan::getFunctionSet() {
@@ -55,7 +70,8 @@ function_set FTableScan::getFunctionSet() {
     auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
     function->tableFunc = tableFunc;
     function->initSharedStateFunc = initSharedState;
-    function->initLocalStateFunc = initLocalState;
+    function->initLocalStateFunc = TableFunction::initEmptyLocalState;
+    function->initOutputFunc = initFTableScanOutput;
     functionSet.push_back(std::move(function));
     return functionSet;
 }

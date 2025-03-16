@@ -514,17 +514,12 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     this->startTimer();
     auto executingTimer = TimeMetric(true /* enable */);
     executingTimer.start();
-    auto mapper = PlanMapper(this);
     std::shared_ptr<FactorizedTable> resultFT;
     std::unique_ptr<QueryResult> queryResult;
     try {
         TransactionHelper::runFuncInTransaction(
             *transactionContext,
             [&]() -> void {
-                const auto physicalPlan =
-                    mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get(),
-                        preparedStatement->statementResult->getColumns());
-                queryResult = std::make_unique<QueryResult>(preparedStatement->preparedSummary);
                 const auto profiler = std::make_unique<Profiler>();
                 profiler->enabled = preparedStatement->isProfile();
                 if (!queryID) {
@@ -532,6 +527,11 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
                 }
                 const auto executionContext =
                     std::make_unique<ExecutionContext>(profiler.get(), this, *queryID);
+                auto mapper = PlanMapper(executionContext.get());
+                const auto physicalPlan =
+                    mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlan.get(),
+                        preparedStatement->statementResult->getColumns());
+                queryResult = std::make_unique<QueryResult>(preparedStatement->preparedSummary);
                 if (preparedStatement->isTransactionStatement()) {
                     resultFT = localDatabase->queryProcessor->execute(physicalPlan.get(),
                         executionContext.get());

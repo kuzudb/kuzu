@@ -84,9 +84,9 @@ struct StorageInfoBindData final : TableFuncBindData {
     }
 };
 
-static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput& /*input*/,
-    const TableFuncSharedState* /*state*/, MemoryManager* mm) {
-    return std::make_unique<StorageInfoLocalState>(mm);
+static std::unique_ptr<TableFuncLocalState> initLocalState(
+    const TableFuncInitLocalStateInput& input) {
+    return std::make_unique<StorageInfoLocalState>(input.clientContext->getMemoryManager());
 }
 
 struct StorageInfoOutputData {

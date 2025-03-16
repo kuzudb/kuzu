@@ -49,14 +49,14 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
 }
 
 static std::unique_ptr<TableFuncSharedState> initCreateInMemHNSWSharedState(
-    const TableFunctionInitInput& input) {
+    const TableFuncInitSharedStateInput& input) {
     const auto bindData = input.bindData->constPtrCast<CreateHNSWIndexBindData>();
     return std::make_unique<CreateInMemHNSWSharedState>(*bindData);
 }
 
 static std::unique_ptr<TableFuncLocalState> initCreateInMemHNSWLocalState(
-    const TableFunctionInitInput& input, TableFuncSharedState*, storage::MemoryManager*) {
-    const auto bindData = input.bindData->constPtrCast<CreateHNSWIndexBindData>();
+    const TableFuncInitLocalStateInput& input) {
+    const auto bindData = input.bindData.constPtrCast<CreateHNSWIndexBindData>();
     return std::make_unique<CreateInMemHNSWLocalState>(bindData->numRows + 1);
 }
 
@@ -100,7 +100,7 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
               processor::PhysicalOperatorType::TABLE_FUNCTION_CALL);
     auto createFuncCall = createHNSWCallOp->ptrCast<processor::TableFunctionCall>();
     auto createFuncSharedState =
-        createFuncCall->getSharedState()->funcState->ptrCast<CreateInMemHNSWSharedState>();
+        createFuncCall->getSharedState()->ptrCast<CreateInMemHNSWSharedState>();
     auto indexName = createFuncSharedState->name;
     // Append a dummy sink to end the first pipeline
     auto createDummySink = std::make_unique<processor::DummySink>(
@@ -116,12 +116,10 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
     auto info = processor::TableFunctionCallInfo();
     info.function = *func;
     info.bindData = std::make_unique<TableFuncBindData>();
-    auto finalizeSharedState = std::make_shared<processor::TableFunctionCallSharedState>();
-    TableFunctionInitInput finalizeFuncInitInput{info.bindData.get(), 0 /* queryID */,
-        *clientContext};
-    finalizeSharedState->funcState = info.function.initSharedStateFunc(finalizeFuncInitInput);
-    auto finalizeFuncSharedState =
-        finalizeSharedState->funcState->ptrCast<FinalizeHNSWSharedState>();
+    auto initInput =
+        TableFuncInitSharedStateInput(info.bindData.get(), planMapper->executionContext);
+    auto sharedState = info.function.initSharedStateFunc(initInput);
+    auto finalizeFuncSharedState = sharedState->ptrCast<FinalizeHNSWSharedState>();
     finalizeFuncSharedState->hnswIndex = createFuncSharedState->hnswIndex;
     finalizeFuncSharedState->numRows =
         (logicalCallBoundData->numRows + StorageConfig::NODE_GROUP_SIZE - 1) /
@@ -129,7 +127,7 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
     finalizeFuncSharedState->maxMorselSize = 1;
     finalizeFuncSharedState->bindData = logicalCallBoundData->copy();
     auto finalizeCallOp = std::make_unique<processor::TableFunctionCall>(std::move(info),
-        finalizeSharedState, planMapper->getOperatorID(), std::make_unique<OPPrintInfo>());
+        sharedState, planMapper->getOperatorID(), std::make_unique<OPPrintInfo>());
     finalizeCallOp->addChild(std::move(createDummySink));
     // Append a dummy sink to the end of the second pipeline
     auto finalizeHNSWDummySink = std::make_unique<processor::DummySink>(
@@ -217,8 +215,9 @@ static std::unique_ptr<TableFuncBindData> finalizeHNSWBindFunc(main::ClientConte
 }
 
 static std::unique_ptr<TableFuncSharedState> initFinalizeHNSWSharedState(
-    const TableFunctionInitInput& input) {
-    return std::make_unique<FinalizeHNSWSharedState>(*input.context.getMemoryManager());
+    const TableFuncInitSharedStateInput& input) {
+    return std::make_unique<FinalizeHNSWSharedState>(
+        *input.context->clientContext->getMemoryManager());
 }
 
 static offset_t finalizeHNSWTableFunc(const TableFuncInput& input, TableFuncOutput&) {

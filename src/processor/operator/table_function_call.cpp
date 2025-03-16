@@ -4,6 +4,7 @@
 #include "processor/execution_context.h"
 
 using namespace kuzu::common;
+using namespace kuzu::function;
 
 namespace kuzu {
 namespace processor {
@@ -25,57 +26,36 @@ std::string FTableScanFunctionCallPrintInfo::toString() const {
 }
 
 void TableFunctionCall::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    // Init local state.
-    localState = TableFunctionCallLocalState();
-    // Init table function output.
-    switch (info.outputType) {
-    case TableScanOutputType::EMPTY:
-        break; // Do nothing.
-    case TableScanOutputType::SINGLE_DATA_CHUNK: {
-        KU_ASSERT(!info.outPosV.empty());
-        auto state = resultSet->getDataChunk(info.outPosV[0].dataChunkPos)->state;
-        localState.funcOutput.dataChunk = DataChunk(info.outPosV.size(), state);
-        for (auto i = 0u; i < info.outPosV.size(); ++i) {
-            localState.funcOutput.dataChunk.insert(i, resultSet->getValueVector(info.outPosV[i]));
-            localState.funcOutput.vectors.push_back(
-                resultSet->getValueVector(info.outPosV[i]).get());
-        }
-    } break;
-    case TableScanOutputType::MULTI_DATA_CHUNK: {
-        for (auto& pos : info.outPosV) {
-            localState.funcOutput.vectors.push_back(resultSet->getValueVector(pos).get());
-        }
-    } break;
-    default:
-        KU_UNREACHABLE;
+    auto initLocalStateInput =
+        TableFuncInitLocalStateInput(*sharedState, *info.bindData, context->clientContext);
+    localState = info.function.initLocalStateFunc(initLocalStateInput);
+    funcInput = std::make_unique<TableFuncInput>(info.bindData.get(), localState.get(),
+        sharedState.get(), context);
+    auto initOutputInput = TableFuncInitOutputInput(info.outPosV, *resultSet);
+    // Technically we should make all table function has its own initOutputFunc. But since most
+    // table function is using initSingleDataChunkScanOutput. For simplicity, we assume if no
+    // initOutputFunc provided then we use to initSingleDataChunkScanOutput.
+    if (info.function.initOutputFunc == nullptr) {
+        funcOutput = TableFunction::initSingleDataChunkScanOutput(initOutputInput);
+    } else {
+        funcOutput = info.function.initOutputFunc(initOutputInput);
     }
-    // Init table function input.
-    function::TableFunctionInitInput tableFunctionInitInput{info.bindData.get(), context->queryID,
-        *context->clientContext};
-    localState.funcState = info.function.initLocalStateFunc(tableFunctionInitInput,
-        sharedState->funcState.get(), context->clientContext->getMemoryManager());
-    localState.funcInput = function::TableFuncInput{info.bindData.get(), localState.funcState.get(),
-        sharedState->funcState.get(), context};
 }
 
 bool TableFunctionCall::getNextTuplesInternal(ExecutionContext*) {
-    localState.funcOutput.dataChunk.state->getSelVectorUnsafe().setSelSize(0);
-    localState.funcOutput.dataChunk.resetAuxiliaryBuffer();
-    for (auto i = 0u; i < localState.funcOutput.dataChunk.getNumValueVectors(); i++) {
-        localState.funcOutput.dataChunk.getValueVectorMutable(i).setAllNonNull();
-    }
-    auto numTuplesScanned = info.function.tableFunc(localState.funcInput, localState.funcOutput);
-    localState.funcOutput.dataChunk.state->getSelVectorUnsafe().setToUnfiltered(numTuplesScanned);
+    funcOutput->resetState();
+    auto numTuplesScanned = info.function.tableFunc(*funcInput, *funcOutput);
+    funcOutput->setOutputSize(numTuplesScanned);
     metrics->numOutputTuple.increase(numTuplesScanned);
     return numTuplesScanned != 0;
 }
 
 void TableFunctionCall::finalizeInternal(ExecutionContext* context) {
-    info.function.finalizeFunc(context, sharedState->funcState.get());
+    info.function.finalizeFunc(context, sharedState.get());
 }
 
 double TableFunctionCall::getProgress(ExecutionContext* /*context*/) const {
-    return info.function.progressFunc(sharedState->funcState.get());
+    return info.function.progressFunc(sharedState.get());
 }
 
 } // namespace processor
