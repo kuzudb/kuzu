@@ -6,6 +6,7 @@ Napi::Object NodeDatabase::Init(Napi::Env env, Napi::Object exports) {
     Napi::Function t = DefineClass(env, "NodeDatabase",
         {
             InstanceMethod("initAsync", &NodeDatabase::InitAsync),
+            InstanceMethod("initSync", &NodeDatabase::InitSync),
             InstanceMethod("close", &NodeDatabase::Close),
             StaticMethod("getVersion", &NodeDatabase::GetVersion),
             StaticMethod("getStorageVersion", &NodeDatabase::GetStorageVersion),
@@ -25,6 +26,17 @@ NodeDatabase::NodeDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<No
     maxDBSize = info[4].As<Napi::Number>().Int64Value();
     autoCheckpoint = info[5].As<Napi::Boolean>().Value();
     checkpointThreshold = info[6].As<Napi::Number>().Int64Value();
+}
+
+Napi::Value NodeDatabase::InitSync(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::HandleScope scope(env);
+    try {
+        InitCppDatabase();
+    } catch (const std::exception& exc) {
+        Napi::Error::New(env, exc.what()).ThrowAsJavaScriptException();
+    }
+    return env.Undefined();
 }
 
 Napi::Value NodeDatabase::InitAsync(const Napi::CallbackInfo& info) {

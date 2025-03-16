@@ -103,6 +103,22 @@ class Database {
   }
 
   /**
+   * Initialize the database synchronously. Calling this function is optional, as the
+   * database is initialized automatically when the first query is executed. This function
+   * may block the main thread, so use it with caution.
+   */
+  initSync() {
+    if (this._initPromise) {
+      throw new Error("There is an ongoing asynchronous initialization. Please wait for it to finish.");
+    }
+    if (this._isInitialized) {
+      return;
+    }
+    this._database.initSync();
+    this._isInitialized = true;
+  }
+
+  /**
    * Internal function to get the underlying native database object.
    * @returns {KuzuNative.NodeDatabase} the underlying native database.
    */

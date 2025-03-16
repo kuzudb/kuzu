@@ -6,6 +6,7 @@ Napi::Object NodePreparedStatement::Init(Napi::Env env, Napi::Object exports) {
     Napi::Function t = DefineClass(env, "NodePreparedStatement",
         {
             InstanceMethod("initAsync", &NodePreparedStatement::InitAsync),
+            InstanceMethod("initSync", &NodePreparedStatement::InitSync),
             InstanceMethod("isSuccess", &NodePreparedStatement::IsSuccess),
             InstanceMethod("getErrorMessage", &NodePreparedStatement::GetErrorMessage),
         });
@@ -30,6 +31,11 @@ Napi::Value NodePreparedStatement::InitAsync(const Napi::CallbackInfo& info) {
     auto callback = info[0].As<Napi::Function>();
     auto* asyncWorker = new PreparedStatementInitAsyncWorker(callback, this);
     asyncWorker->Queue();
+    return info.Env().Undefined();
+}
+
+Napi::Value NodePreparedStatement::InitSync(const Napi::CallbackInfo& info) {
+    InitCppPreparedStatement();
     return info.Env().Undefined();
 }
 
