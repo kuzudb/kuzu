@@ -198,8 +198,8 @@ void NodeQueryResult::PopulateColumnNames() {
     if (this->columnNames != nullptr) {
         return;
     }
-        this->columnNames = std::make_unique<std::vector<std::string>>(
-            this->queryResult->getColumnNames());
+    this->columnNames =
+        std::make_unique<std::vector<std::string>>(this->queryResult->getColumnNames());
 }
 
 void NodeQueryResult::Close(const Napi::CallbackInfo& info) {
