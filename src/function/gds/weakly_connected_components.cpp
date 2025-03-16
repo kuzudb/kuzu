@@ -27,9 +27,7 @@ struct OffsetManager {
         }
     }
 
-    offset_t getStartOffset(table_id_t tableID) const {
-        return tableIDToStartOffset.at(tableID);
-    }
+    offset_t getStartOffset(table_id_t tableID) const { return tableIDToStartOffset.at(tableID); }
 
 private:
     table_id_map_t<offset_t> tableIDToStartOffset;
@@ -37,7 +35,8 @@ private:
 
 class ComponentIDs {
 public:
-    ComponentIDs(const table_id_map_t<offset_t>& maxOffsetMap, const OffsetManager& offsetManager, MemoryManager* mm) {
+    ComponentIDs(const table_id_map_t<offset_t>& maxOffsetMap, const OffsetManager& offsetManager,
+        MemoryManager* mm) {
         for (const auto& [tableID, maxOffset] : maxOffsetMap) {
             componentIDsMap.allocate(tableID, maxOffset, mm);
             pinTable(tableID);
@@ -75,10 +74,10 @@ private:
 
 class WCCAuxiliaryState : public GDSAuxiliaryState {
 public:
-    explicit WCCAuxiliaryState(ComponentIDs& componentIDs)
-        : componentIDs{componentIDs} {}
+    explicit WCCAuxiliaryState(ComponentIDs& componentIDs) : componentIDs{componentIDs} {}
 
-    void beginFrontierCompute(common::table_id_t fromTableID, common::table_id_t toTableID) override {
+    void beginFrontierCompute(common::table_id_t fromTableID,
+        common::table_id_t toTableID) override {
         componentIDs.pinFromTable(fromTableID);
         componentIDs.pinToTable(toTableID);
     }
@@ -160,7 +159,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     frontierPair->initGDS();
     auto maxOffsetMap = graph->getMaxOffsetMap(clientContext->getTransaction());
     auto offsetManager = OffsetManager(maxOffsetMap);
-    auto componentIDs = ComponentIDs(maxOffsetMap, offsetManager, clientContext->getMemoryManager());
+    auto componentIDs =
+        ComponentIDs(maxOffsetMap, offsetManager, clientContext->getMemoryManager());
     auto auxiliaryState = std::make_unique<WCCAuxiliaryState>(componentIDs);
     auto edgeCompute = std::make_unique<WCCEdgeCompute>(*auxiliaryState);
     auto vertexCompute = std::make_unique<WCCVertexCompute>(clientContext->getMemoryManager(),
