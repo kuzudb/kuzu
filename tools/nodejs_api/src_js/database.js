@@ -171,6 +171,10 @@ class Database {
     this._isClosed = true;
   }
 
+  /**
+   * Close the database synchronously.
+   * @throws {Error} if there is an ongoing asynchronous initialization.
+   */
   closeSync() {
     if (this._isClosed) {
       return;

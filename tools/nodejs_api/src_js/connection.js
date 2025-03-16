@@ -444,6 +444,10 @@ class Connection {
     this._isClosed = true;
   }
 
+  /**
+   * Close the connection synchronously.
+   * @throws {Error} if there is an undergoing asynchronous initialization.
+   */
   closeSync() {
     if (this._isClosed) {
       return;

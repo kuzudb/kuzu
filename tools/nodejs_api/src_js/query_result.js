@@ -66,6 +66,10 @@ class QueryResult {
     });
   }
 
+  /**
+   * Get the next row of the query result synchronously.
+   * @returns {Object} the next row of the query result.
+   */
   getNextSync() {
     this._checkClosed();
     return this._queryResult.getNextSync();
@@ -106,6 +110,10 @@ class QueryResult {
     return result;
   }
 
+  /**
+   * Get all rows of the query result synchronously. Note that this function can block the main thread if the number of rows is large, so use it with caution.
+   * @returns {Array<Object>} all rows of the query result.
+   */
   getAllSync() {
     this._checkClosed();
     this._queryResult.resetIterator();
@@ -148,6 +156,10 @@ class QueryResult {
     });
   }
 
+  /**
+   * Get the data types of the columns of the query result synchronously.
+   * @returns {Array<String>} the data types of the columns of the query result.
+   */
   getColumnDataTypesSync() {
     this._checkClosed();
     return this._queryResult.getColumnDataTypesSync();
@@ -169,6 +181,10 @@ class QueryResult {
     });
   }
 
+  /**
+   * Get the names of the columns of the query result synchronously.
+   * @returns {Array<String>} the names of the columns of the query result.
+   */
   getColumnNamesSync() {
     this._checkClosed();
     return this._queryResult.getColumnNamesSync();
