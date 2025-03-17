@@ -22,23 +22,7 @@ if TYPE_CHECKING:
 
 
 class AsyncConnection:
-    """AsyncConnection enables asynchronous execution of queries with a pool of connections and threads.
-
-    Initialise the async connection.
-
-    Parameters
-    ----------
-    database : Database
-        Database to connect to.
-
-    max_concurrent_queries : int
-        Maximum number of concurrent queries to execute. This corresponds to the
-        number of connections and thread pool size. Default is 4.
-
-    max_threads_per_query : int
-        Controls the maximum number of threads per connection that can be used
-        to execute one query. Default is 0, which means no limit.
-    """
+    """AsyncConnection enables asynchronous execution of queries with a pool of connections and threads."""
 
     def __init__(
         self,
@@ -46,6 +30,22 @@ class AsyncConnection:
         max_concurrent_queries: int = 4,
         max_threads_per_query: int = 0,
     ) -> None:
+        """
+        Initialise the async connection.
+
+        Parameters
+        ----------
+        database : Database
+            Database to connect to.
+
+        max_concurrent_queries : int
+            Maximum number of concurrent queries to execute. This corresponds to the
+            number of connections and thread pool size. Default is 4.
+
+        max_threads_per_query : int
+            Controls the maximum number of threads per connection that can be used
+            to execute one query. Default is 0, which means no limit.
+        """
         self.database = database
         self.connections = [Connection(database) for _ in range(max_concurrent_queries)]
         self.connections_counter = [0 for _ in range(max_concurrent_queries)]
