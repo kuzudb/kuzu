@@ -22,9 +22,8 @@ if TYPE_CHECKING:
 
 
 class AsyncConnection:
-    """AsyncConnection enables asynchronous execution of queries with a pool of connections and threads."""
+    """AsyncConnection enables asynchronous execution of queries with a pool of connections and threads.
 
-    """
     Initialise the async connection.
 
     Parameters
