@@ -11,6 +11,8 @@ async def test_async_prepare_and_execute(async_dispatcher_readonly):
     assert result.get_next() == [35]
     assert not result.has_next()
     result.close()
+    for i in async_dispatcher_readonly.connections_counter:
+        assert i == 0
 
 @pytest.mark.asyncio
 async def test_async_prepare_and_execute_concurrent(async_dispatcher_readonly):
@@ -23,6 +25,8 @@ async def test_async_prepare_and_execute_concurrent(async_dispatcher_readonly):
         assert result.get_next() == [i]
         assert not result.has_next()
         result.close()
+    for i in async_dispatcher_readonly.connections_counter:
+        assert i == 0
 
 @pytest.mark.asyncio
 async def test_async_query(async_dispatcher_readonly):
@@ -39,6 +43,8 @@ async def test_async_query(async_dispatcher_readonly):
     assert result.get_next() == [30]
     assert not result.has_next()
     result.close()
+    for i in async_dispatcher_readonly.connections_counter:
+        assert i == 0
 
 @pytest.mark.asyncio
 async def test_async_query_concurrent(async_dispatcher_readonly):
@@ -50,6 +56,8 @@ async def test_async_query_concurrent(async_dispatcher_readonly):
         assert result.get_next() == [i]
         assert not result.has_next()
         result.close()
+    for i in async_dispatcher_readonly.connections_counter:
+        assert i == 0
 
 @pytest.mark.asyncio
 async def test_async_query_multiple_results(async_dispatcher_readonly):
@@ -67,6 +75,8 @@ async def test_async_query_multiple_results(async_dispatcher_readonly):
     assert not result.has_next()
     for result in results:
         result.close()
+    for i in async_dispatcher_readonly.connections_counter:
+        assert i == 0
 
 @pytest.mark.asyncio
 async def test_async_dispatcher_create_and_close():
@@ -88,3 +98,16 @@ async def test_async_dispatcher_create_and_close():
         result.close()
     async_dispatcher.close()
     db.close()
+
+def test_acquire_connection(async_dispatcher_readonly):
+    conn = async_dispatcher_readonly.acquire_connection()
+    assert conn is not None
+    assert async_dispatcher_readonly.connections_counter[0] == 1
+    result = conn.execute("RETURN 1;")
+    assert result.has_next()
+    assert result.get_next() == [1]
+    assert not result.has_next()
+    result.close()
+    async_dispatcher_readonly.release_connection(conn)
+    for i in async_dispatcher_readonly.connections_counter:
+        assert i == 0

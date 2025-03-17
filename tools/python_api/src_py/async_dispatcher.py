@@ -81,6 +81,8 @@ class AsyncDispatcher:
         """Decrement the query counter for a connection."""
         with self.lock:
             self.connections_counter[conn_index] -= 1
+            if self.connections_counter[conn_index] < 0:
+                self.connections_counter[conn_index] = 0
 
     def acquire_connection(self) -> "Connection":
         """
@@ -162,6 +164,8 @@ class AsyncDispatcher:
             for i, existing_conn in enumerate(self.connections):
                 if existing_conn == conn:
                     conn_index = i
+                    with self.lock:
+                        self.connections_counter[conn_index] += 1
                     break
         else:
             conn, conn_index = self.__get_connection_with_least_queries()
