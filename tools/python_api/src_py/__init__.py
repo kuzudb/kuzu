@@ -48,7 +48,7 @@ if sys.platform == "linux":
     original_dlopen_flags = sys.getdlopenflags()
     sys.setdlopenflags(os.RTLD_GLOBAL | os.RTLD_LAZY)
 
-from .async_dispatcher import AsyncDispatcher
+from .async_connection import AsyncConnection
 from .connection import Connection
 from .database import Database
 from .prepared_statement import PreparedStatement
@@ -71,7 +71,7 @@ if sys.platform == "linux":
     sys.setdlopenflags(original_dlopen_flags)
 
 __all__ = [
-    "AsyncDispatcher",
+    "AsyncConnection",
     "Connection",
     "Database",
     "PreparedStatement",

@@ -21,11 +21,11 @@ if TYPE_CHECKING:
         from typing_extensions import Self
 
 
-class AsyncDispatcher:
-    """AsyncDispatcher enables asynchronous execution of queries with a pool of connections and threads."""
+class AsyncConnection:
+    """AsyncConnection enables asynchronous execution of queries with a pool of connections and threads."""
 
     """
-    Initialise the async dispatcher.
+    Initialise the async connection.
 
     Parameters
     ----------
