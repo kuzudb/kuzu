@@ -111,13 +111,22 @@ static expression_pair getFilterField(Value& val, const std::string& cypherTempl
             auto childVal = NestedVal::getChildVal(&val, j);
             childVal->validateType(LogicalTypeID::STRING);
             auto predicateStr = childVal->getValue<std::string>();
-            auto statementStr = stringFormat(cypherTemplate, predicateStr);
+            std::string statementStr;
+            if (!predicateStr.empty()) {
+                statementStr = stringFormat(cypherTemplate + ", {}", predicateStr);
+            } else {
+                statementStr = cypherTemplate;
+            }
             auto parsedStatements = parser::Parser::parseQuery(statementStr);
             KU_ASSERT(parsedStatements.size() == 1);
             auto boundStatement = binder->bind(*parsedStatements[0]);
             auto columns = boundStatement->getStatementResult()->getColumns();
-            KU_ASSERT(columns.size() == 2);
-            return {columns[0], columns[1]};
+            if (columns.size() == 1) {
+                return {columns[0], nullptr};
+            } else {
+                KU_ASSERT(columns.size() == 2);
+                return {columns[0], columns[1]};
+            }
         } else {
             throw BinderException(stringFormat(
                 "Unrecognized configuration {}. Supported configuration is 'filter'.", fieldName));
@@ -153,7 +162,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
             validateEntryType(*entry, CatalogEntryType::NODE_TABLE_ENTRY);
             auto matchPattern = stringFormat("MATCH (n:{}) ", entry->getName());
             auto [node, predicate] = getFilterField(*NestedVal::getChildVal(&argNode, i),
-                matchPattern + " RETURN n, {}", input->binder);
+                matchPattern + " RETURN n", input->binder);
             bindData->addNodeInfo(entry, node, predicate);
             nodeTableIDSet.insert(entry->getTableID());
         }
@@ -183,7 +192,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
             validateRelSrcDstNodeAreProjected(*entry, nodeTableIDSet, catalog, transaction);
             auto matchPattern = stringFormat("MATCH ()-[r:{}]->() ", entry->getName());
             auto [rel, predicate] = getFilterField(*NestedVal::getChildVal(&argRel, i),
-                matchPattern + " RETURN r, {}", input->binder);
+                matchPattern + " RETURN r", input->binder);
             bindData->addRelInfo(entry, rel, predicate);
         }
     } break;

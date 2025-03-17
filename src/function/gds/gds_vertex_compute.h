@@ -20,7 +20,7 @@ public:
 
 protected:
     bool skip(common::offset_t offset) {
-        if (nodeMask != nullptr) {
+        if (nodeMask != nullptr && nodeMask->hasPinnedMask()) {
             return !nodeMask->valid(offset);
         }
         return false;

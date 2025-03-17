@@ -167,12 +167,13 @@ common::offset_t OnDiskGraph::getMaxOffset(transaction::Transaction* transaction
 }
 
 offset_t OnDiskGraph::getNumNodes(transaction::Transaction* transaction) const {
-    if (nodeOffsetMaskMap != nullptr) {
-        return nodeOffsetMaskMap->getNumMaskedNode();
-    }
     offset_t numNodes = 0u;
     for (auto id : getNodeTableIDs()) {
-        numNodes += getMaxOffset(transaction, id);
+        if (nodeOffsetMaskMap != nullptr && nodeOffsetMaskMap->containsTableID(id)) {
+            numNodes += nodeOffsetMaskMap->getOffsetMask(id)->getNumMaskedNodes();
+        } else {
+            numNodes += getMaxOffset(transaction, id);
+        }
     }
     return numNodes;
 }
@@ -189,7 +190,8 @@ std::unique_ptr<NbrScanState> OnDiskGraph::prepareRelScan(TableCatalogEntry* rel
     auto& info = graphEntry.getRelInfo(relEntry->getTableID());
     auto state =
         std::make_unique<OnDiskGraphNbrScanState>(context, relEntry, info.predicate, property);
-    if (nodeOffsetMaskMap != nullptr) {
+    if (nodeOffsetMaskMap != nullptr &&
+        nodeOffsetMaskMap->containsTableID(nbrNodeEntry->getTableID())) {
         state->nbrNodeMask = nodeOffsetMaskMap->getOffsetMask(nbrNodeEntry->getTableID());
     }
     return state;
