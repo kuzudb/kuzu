@@ -190,7 +190,8 @@ std::unique_ptr<NbrScanState> OnDiskGraph::prepareRelScan(TableCatalogEntry* rel
     auto& info = graphEntry.getRelInfo(relEntry->getTableID());
     auto state =
         std::make_unique<OnDiskGraphNbrScanState>(context, relEntry, info.predicate, property);
-    if (nodeOffsetMaskMap != nullptr && nodeOffsetMaskMap->containsTableID(nbrNodeEntry->getTableID())) {
+    if (nodeOffsetMaskMap != nullptr &&
+        nodeOffsetMaskMap->containsTableID(nbrNodeEntry->getTableID())) {
         state->nbrNodeMask = nodeOffsetMaskMap->getOffsetMask(nbrNodeEntry->getTableID());
     }
     return state;

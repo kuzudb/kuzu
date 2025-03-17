@@ -113,7 +113,7 @@ static expression_pair getFilterField(Value& val, const std::string& cypherTempl
             auto predicateStr = childVal->getValue<std::string>();
             std::string statementStr;
             if (!predicateStr.empty()) {
-                statementStr = stringFormat(cypherTemplate+ ", {}", predicateStr);
+                statementStr = stringFormat(cypherTemplate + ", {}", predicateStr);
             } else {
                 statementStr = cypherTemplate;
             }
