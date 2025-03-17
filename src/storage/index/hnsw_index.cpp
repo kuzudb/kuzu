@@ -152,11 +152,11 @@ void InMemHNSWLayer::shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGrap
     const auto neighbors = graph->getNeighbors(nodeOffset);
     nbrs.reserve(numNbrs);
     auto nbrItr = neighbors.begin();
-    for (common::length_t i = 0; i < numNbrs; ++i, ++nbrItr) {
-        if (nbrItr == neighbors.end()) {
+    for (common::length_t i = 0; i < numNbrs && nbrItr != neighbors.end(); ++i, ++nbrItr) {
+        const auto nbrOffset = *nbrItr;
+        if (nbrOffset == graph->getInvalidOffset()) {
             break;
         }
-        const auto nbrOffset = *nbrItr;
         const auto nbrVector = info.embeddings->getEmbedding(nbrOffset);
         const auto dist = HNSWIndexUtils::computeDistance(info.distFunc, vector, nbrVector,
             info.embeddings->getDimension());
