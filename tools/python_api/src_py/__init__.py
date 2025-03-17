@@ -50,6 +50,7 @@ if sys.platform == "linux":
 
 from .connection import Connection
 from .database import Database
+from .async_dispatcher import AsyncDispatcher
 from .prepared_statement import PreparedStatement
 from .query_result import QueryResult
 from .types import Type
@@ -72,6 +73,7 @@ if sys.platform == "linux":
 __all__ = [
     "Connection",
     "Database",
+    "AsyncDispatcher",
     "PreparedStatement",
     "QueryResult",
     "Type",

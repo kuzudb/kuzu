@@ -156,7 +156,15 @@ class AsyncDispatcher:
 
         """
         loop = asyncio.get_running_loop()
-        conn, conn_index = self.__get_connection_with_least_queries()
+        # If the query is a prepared statement, use the connection associated with it
+        if isinstance(query, PreparedStatement):
+            conn = query._connection
+            for i, existing_conn in enumerate(self.connections):
+                if existing_conn == conn:
+                    conn_index = i
+                    break
+        else:
+            conn, conn_index = self.__get_connection_with_least_queries()
 
         try:
             return await loop.run_in_executor(
@@ -184,7 +192,8 @@ class AsyncDispatcher:
         conn, conn_index = self.__get_connection_with_least_queries()
 
         try:
-            return await loop.run_in_executor(self.executor, conn.prepare, query)
+            preparedStatement = await loop.run_in_executor(self.executor, conn.prepare, query)
+            return preparedStatement
         finally:
             self.__decrement_connection_counter(conn_index)
 
@@ -199,4 +208,3 @@ class AsyncDispatcher:
             conn.close()
 
         self.executor.shutdown(wait=True)
-        

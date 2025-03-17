@@ -100,6 +100,9 @@ uint64_t ClientContext::getQueryTimeOut() const {
 
 void ClientContext::setMaxNumThreadForExec(uint64_t numThreads) {
     lock_t lck{mtx};
+    if (numThreads == 0 || numThreads > localDatabase->dbConfig.maxNumThreads) {
+        numThreads = localDatabase->dbConfig.maxNumThreads;
+    }
     clientConfig.numThreads = numThreads;
 }
 

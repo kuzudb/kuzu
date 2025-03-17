@@ -160,7 +160,7 @@ def init_db(path: Path) -> Path:
 
 
 _READONLY_CONN_DB_: ConnDB | None = None
-
+_READONLY_ASYNC_DISPATCHER_: kuzu.AsyncDispatcher | None = None
 
 def create_conn_db(path: Path, *, read_only: bool) -> ConnDB:
     """Return a new connection and database."""
@@ -182,6 +182,16 @@ def conn_db_readonly(tmp_path: Path) -> ConnDB:
 def conn_db_readwrite(tmp_path: Path) -> ConnDB:
     """Return a new writable connection and database."""
     return create_conn_db(init_db(tmp_path), read_only=False)
+
+@pytest.fixture()
+def async_dispatcher_readonly(tmp_path: Path) -> kuzu.AsyncDispatcher:
+    """Return a cached read-only async dispatcher."""
+    global _READONLY_ASYNC_DISPATCHER_
+    if _READONLY_ASYNC_DISPATCHER_ is None:
+        conn, db = create_conn_db(init_db(tmp_path), read_only=True)
+        conn.close()
+        _READONLY_ASYNC_DISPATCHER_ = kuzu.AsyncDispatcher(db)
+    return _READONLY_ASYNC_DISPATCHER_
 
 
 @pytest.fixture()
