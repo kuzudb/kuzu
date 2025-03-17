@@ -131,21 +131,6 @@ private:
     PValues& pNext;
 };
 
-class KUZU_API PageRankFrontierPair : public FrontierPair {
-public:
-    PageRankFrontierPair(std::shared_ptr<PathLengths> curFrontier,
-        std::shared_ptr<PathLengths> nextFrontier)
-        : FrontierPair{curFrontier, nextFrontier} {}
-
-    void pageRankPinCurrFrontier(common::table_id_t tableID) {
-        curDenseFrontier->pinCurFrontierTableID(tableID);
-    }
-    void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
-        common::table_id_t /*nextTableID*/) override {
-        pageRankPinCurrFrontier(curTableID);
-    };
-};
-
 // Sum the weight (current rank / degree) for each incoming edge.
 class PNextUpdateEdgeCompute : public EdgeCompute {
 public:
@@ -288,25 +273,26 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto pageRankBindData = input.bindData->constPtrCast<PageRankBindData>();
     auto config = pageRankBindData->getConfig();
     auto currentIter = 1u;
-    auto currentFrontier = PathLengths::getVisitedFrontier(input.context, graph);
+    auto currentFrontier =
+        PathLengths::getVisitedFrontier(input.context, graph, sharedState->getGraphNodeMaskMap());
     auto nextFrontier =
         PathLengths::getVisitedFrontier(input.context, graph, sharedState->getGraphNodeMaskMap());
     auto degrees = Degrees(maxOffsetMap, clientContext->getMemoryManager());
     DegreesUtils::computeDegree(input.context, graph, sharedState->getGraphNodeMaskMap(), &degrees,
         ExtendDirection::FWD);
     auto frontierPair =
-        std::make_unique<PageRankFrontierPair>(currentFrontier, nextFrontier);
+        std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
     auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr, nullptr);
     auto pNextUpdateConstant = (1 - config.dampingFactor) * ((double)1 / numNodes);
-    currentFrontier->incrementCurIter();
     while (currentIter < config.maxIterations) {
+        computeState.frontierPair->initState();
         computeState.frontierPair->initGDS();
         computeState.edgeCompute =
             std::make_unique<PNextUpdateEdgeCompute>(degrees, *pCurrent, *pNext);
         computeState.auxiliaryState =
             std::make_unique<PageRankAuxiliaryState>(degrees, *pCurrent, *pNext);
         GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph,
-            ExtendDirection::BWD, computeState.frontierPair->getCurrentIter() + 1);
+            ExtendDirection::BWD, 1);
         auto pNextUpdateVC = PNextUpdateVertexCompute(config.dampingFactor, pNextUpdateConstant,
             *pNext, sharedState->getGraphNodeMaskMap());
         GDSUtils::runVertexCompute(input.context, graph, pNextUpdateVC);

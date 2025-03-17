@@ -135,10 +135,16 @@ std::shared_ptr<PathLengths> PathLengths::getVisitedFrontier(processor::Executio
     // TODO(Xiyang): we should use a vertex compute to do the following.
     for (auto [tableID, numNodes] : graph->getMaxOffsetMap(tx)) {
         frontier->pinTableID(tableID);
-        auto mask = maskMap->getOffsetMask(tableID);
-        for (auto i = 0u; i < numNodes; ++i) {
-            if (mask->isMasked(i)) {
+        if (!maskMap->containsTableID(tableID)) {
+            for (auto i = 0u; i < numNodes; ++i) {
                 frontier->setCurFrontierValue(i, INITIAL_VISITED);
+            }
+        } else {
+            auto mask = maskMap->getOffsetMask(tableID);
+            for (auto i = 0u; i < numNodes; ++i) {
+                if (mask->isMasked(i)) {
+                    frontier->setCurFrontierValue(i, INITIAL_VISITED);
+                }
             }
         }
     }
