@@ -1,8 +1,10 @@
-import pytest
 import asyncio
-import kuzu
 
-@pytest.mark.asyncio
+import kuzu
+import pytest
+
+
+@pytest.mark.asyncio()
 async def test_async_prepare_and_execute(async_dispatcher_readonly):
     query = "MATCH (a:person) WHERE a.ID = $1 RETURN a.age;"
     prepared = await async_dispatcher_readonly.prepare(query)
@@ -14,12 +16,15 @@ async def test_async_prepare_and_execute(async_dispatcher_readonly):
     for i in async_dispatcher_readonly.connections_counter:
         assert i == 0
 
-@pytest.mark.asyncio
+
+@pytest.mark.asyncio()
 async def test_async_prepare_and_execute_concurrent(async_dispatcher_readonly):
     num_queries = 100
     query = "RETURN $1;"
     prepared_statements = await asyncio.gather(*[async_dispatcher_readonly.prepare(query) for _ in range(num_queries)])
-    results = await asyncio.gather(*[async_dispatcher_readonly.execute(prepared, {"1": i}) for i, prepared in enumerate(prepared_statements)])
+    results = await asyncio.gather(*[
+        async_dispatcher_readonly.execute(prepared, {"1": i}) for i, prepared in enumerate(prepared_statements)
+    ])
     for i, result in enumerate(results):
         assert result.has_next()
         assert result.get_next() == [i]
@@ -28,7 +33,8 @@ async def test_async_prepare_and_execute_concurrent(async_dispatcher_readonly):
     for i in async_dispatcher_readonly.connections_counter:
         assert i == 0
 
-@pytest.mark.asyncio
+
+@pytest.mark.asyncio()
 async def test_async_query(async_dispatcher_readonly):
     query = "MATCH (a:person) WHERE a.ID = 0 RETURN a.age;"
     result = await async_dispatcher_readonly.execute(query)
@@ -46,7 +52,8 @@ async def test_async_query(async_dispatcher_readonly):
     for i in async_dispatcher_readonly.connections_counter:
         assert i == 0
 
-@pytest.mark.asyncio
+
+@pytest.mark.asyncio()
 async def test_async_query_concurrent(async_dispatcher_readonly):
     num_queries = 100
     queries = [f"RETURN {i};" for i in range(num_queries)]
@@ -59,7 +66,8 @@ async def test_async_query_concurrent(async_dispatcher_readonly):
     for i in async_dispatcher_readonly.connections_counter:
         assert i == 0
 
-@pytest.mark.asyncio
+
+@pytest.mark.asyncio()
 async def test_async_query_multiple_results(async_dispatcher_readonly):
     query = "MATCH (a:person) WHERE a.ID = 0 RETURN a.age; MATCH (a:person) WHERE a.ID = 2 RETURN a.age;"
     results = await async_dispatcher_readonly.execute(query)
@@ -68,7 +76,7 @@ async def test_async_query_multiple_results(async_dispatcher_readonly):
     assert result.has_next()
     assert result.get_next() == [35]
     assert not result.has_next()
-    
+
     result = results[1]
     assert result.has_next()
     assert result.get_next() == [30]
@@ -78,7 +86,8 @@ async def test_async_query_multiple_results(async_dispatcher_readonly):
     for i in async_dispatcher_readonly.connections_counter:
         assert i == 0
 
-@pytest.mark.asyncio
+
+@pytest.mark.asyncio()
 async def test_async_dispatcher_create_and_close():
     db = kuzu.Database(":memory:", buffer_pool_size=2**28)
     async_dispatcher = kuzu.AsyncDispatcher(db)
@@ -98,6 +107,7 @@ async def test_async_dispatcher_create_and_close():
         result.close()
     async_dispatcher.close()
     db.close()
+
 
 def test_acquire_connection(async_dispatcher_readonly):
     conn = async_dispatcher_readonly.acquire_connection()

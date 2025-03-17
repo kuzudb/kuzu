@@ -1,19 +1,19 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
-
-from .database import Database
-from .connection import Connection
-from .prepared_statement import PreparedStatement
-from .query_result import QueryResult
-from concurrent.futures import ThreadPoolExecutor
 import asyncio
 import threading
+from concurrent.futures import ThreadPoolExecutor
+from typing import TYPE_CHECKING, Any
+
+from .connection import Connection
+from .prepared_statement import PreparedStatement
 
 if TYPE_CHECKING:
     import sys
     from types import TracebackType
-    from .types import Type
+
+    from .database import Database
+    from .query_result import QueryResult
 
     if sys.version_info >= (3, 11):
         from typing import Self
@@ -31,15 +31,16 @@ class AsyncDispatcher:
     ----------
     database : Database
         Database to connect to.
-    
+
     max_concurrent_queries : int
-        Maximum number of concurrent queries to execute. This corresponds to the 
+        Maximum number of concurrent queries to execute. This corresponds to the
         number of connections and thread pool size. Default is 4.
-    
+
     max_threads_per_query : int
-        Controls the maximum number of threads per connection that can be used 
+        Controls the maximum number of threads per connection that can be used
         to execute one query. Default is 0, which means no limit.
     """
+
     def __init__(
         self,
         database: Database,
@@ -71,7 +72,7 @@ class AsyncDispatcher:
     def __del__(self) -> None:
         self.close()
 
-    def __get_connection_with_least_queries(self) -> tuple["Connection", int]:
+    def __get_connection_with_least_queries(self) -> tuple[Connection, int]:
         with self.lock:
             conn_index = self.connections_counter.index(min(self.connections_counter))
             self.connections_counter[conn_index] += 1
@@ -84,12 +85,12 @@ class AsyncDispatcher:
             if self.connections_counter[conn_index] < 0:
                 self.connections_counter[conn_index] = 0
 
-    def acquire_connection(self) -> "Connection":
+    def acquire_connection(self) -> Connection:
         """
-        Acquire a connection from the connection pool for temporary synchronous 
-        calls. If the connection pool is oversubscribed, the method will return 
-        the connection with the least number of queued queries. It is required 
-        to release the connection by calling `release_connection` after the 
+        Acquire a connection from the connection pool for temporary synchronous
+        calls. If the connection pool is oversubscribed, the method will return
+        the connection with the least number of queued queries. It is required
+        to release the connection by calling `release_connection` after the
         connection is no longer needed.
 
         Returns
@@ -100,7 +101,7 @@ class AsyncDispatcher:
         conn, _ = self.__get_connection_with_least_queries()
         return conn
 
-    def release_connection(self, conn) -> None:
+    def release_connection(self, conn: Connection) -> None:
         """
         Release a connection acquired by `acquire_connection` back to the
         connection pool. Calling this method is required when the connection is
@@ -111,10 +112,6 @@ class AsyncDispatcher:
         conn : Connection
             Connection object to release.
 
-        Returns
-        -------
-        QueryResult
-            Query result.
 
         """
         for i, existing_conn in enumerate(self.connections):
@@ -122,7 +119,7 @@ class AsyncDispatcher:
                 self.__decrement_connection_counter(i)
                 break
 
-    def set_query_timeout(self, timeout: int) -> None:
+    def set_query_timeout(self, timeout_in_ms: int) -> None:
         """
         Set the query timeout value in ms for executing queries.
 
@@ -133,11 +130,11 @@ class AsyncDispatcher:
 
         """
         for conn in self.connections:
-            conn.set_query_timeout(timeout)
+            conn.set_query_timeout(timeout_in_ms)
 
     async def execute(
-        self, query: str | "PreparedStatement", parameters: dict[str, Any] | None = None
-    ) -> "QueryResult" | list["QueryResult"]:
+        self, query: str | PreparedStatement, parameters: dict[str, Any] | None = None
+    ) -> QueryResult | list[QueryResult]:
         """
         Execute a query asynchronously.
 
@@ -171,13 +168,11 @@ class AsyncDispatcher:
             conn, conn_index = self.__get_connection_with_least_queries()
 
         try:
-            return await loop.run_in_executor(
-                self.executor, conn.execute, query, parameters
-            )
+            return await loop.run_in_executor(self.executor, conn.execute, query, parameters)
         finally:
             self.__decrement_connection_counter(conn_index)
 
-    async def prepare(self, query: str) -> "PreparedStatement":
+    async def prepare(self, query: str) -> PreparedStatement:
         """
         Create a prepared statement for a query asynchronously.
 
@@ -204,7 +199,7 @@ class AsyncDispatcher:
     def close(self) -> None:
         """
         Close all connections and shutdown the thread pool.
-        
+
         Note: Call to this method is optional. The connections and thread pool
         will be closed automatically when the instance is garbage collected.
         """

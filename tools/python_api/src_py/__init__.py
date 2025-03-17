@@ -48,9 +48,9 @@ if sys.platform == "linux":
     original_dlopen_flags = sys.getdlopenflags()
     sys.setdlopenflags(os.RTLD_GLOBAL | os.RTLD_LAZY)
 
+from .async_dispatcher import AsyncDispatcher
 from .connection import Connection
 from .database import Database
-from .async_dispatcher import AsyncDispatcher
 from .prepared_statement import PreparedStatement
 from .query_result import QueryResult
 from .types import Type
@@ -71,9 +71,9 @@ if sys.platform == "linux":
     sys.setdlopenflags(original_dlopen_flags)
 
 __all__ = [
+    "AsyncDispatcher",
     "Connection",
     "Database",
-    "AsyncDispatcher",
     "PreparedStatement",
     "QueryResult",
     "Type",
