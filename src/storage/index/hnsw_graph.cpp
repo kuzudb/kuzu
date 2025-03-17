@@ -24,7 +24,8 @@ float* InMemEmbeddings::getEmbedding(common::offset_t offset) const {
     auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
     KU_ASSERT(nodeGroupIdx < data->columnChunks.size());
     const auto& listChunk = data->columnChunks[nodeGroupIdx]->cast<ListChunkData>();
-    return &listChunk.getDataColumnChunk()->getData<float>()[offsetInGroup * typeInfo.dimension];
+    return &listChunk.getDataColumnChunk()
+                ->getData<float>()[listChunk.getListStartOffset(offsetInGroup)];
 }
 
 bool InMemEmbeddings::isNull(common::offset_t offset) const {
