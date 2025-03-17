@@ -22,6 +22,7 @@ class PreparedStatement:
             Query to prepare.
         """
         self._prepared_statement = connection._connection.prepare(query)
+        self._connection = connection
 
     def is_success(self) -> bool:
         """
