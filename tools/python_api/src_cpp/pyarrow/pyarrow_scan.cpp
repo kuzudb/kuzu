@@ -74,7 +74,8 @@ ArrowArrayWrapper* PyArrowTableScanSharedState::getNextChunk() {
     return chunks[currentChunk++].get();
 }
 
-static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFuncInitSharedStateInput& input) {
+static std::unique_ptr<TableFuncSharedState> initSharedState(
+    const TableFuncInitSharedStateInput& input) {
     py::gil_scoped_acquire acquire;
     PyArrowTableScanFunctionData* bindData =
         dynamic_cast<PyArrowTableScanFunctionData*>(input.bindData);
@@ -82,7 +83,8 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFuncInit
         bindData->arrowArrayBatches);
 }
 
-static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFuncInitLocalStateInput& input) {
+static std::unique_ptr<TableFuncLocalState> initLocalState(
+    const TableFuncInitLocalStateInput& input) {
     PyArrowTableScanSharedState* pyArrowShared =
         dynamic_cast<PyArrowTableScanSharedState*>(&input.sharedState);
     return std::make_unique<PyArrowTableScanLocalState>(pyArrowShared->getNextChunk());
