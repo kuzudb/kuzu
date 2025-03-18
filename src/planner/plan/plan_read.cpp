@@ -1,7 +1,7 @@
 #include "binder/expression_visitor.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
-#include "planner/operator/logical_table_function_call.h"
+#include "binder/query/reading_clause/bound_table_function_call.h"
 #include "planner/planner.h"
 
 using namespace kuzu::binder;
@@ -75,63 +75,79 @@ void Planner::planUnwindClause(const BoundReadingClause& boundReadingClause,
     }
 }
 
-static bool hasExternalDependency(const std::shared_ptr<Expression>& expression,
-    const std::unordered_set<std::string>& variableNameSet) {
-    auto collector = DependentVarNameCollector();
-    collector.visit(expression);
-    for (auto& name : collector.getVarNames()) {
-        if (!variableNameSet.contains(name)) {
-            return true;
+class PredicatesDependencyAnalyzer {
+public:
+    explicit PredicatesDependencyAnalyzer(const expression_vector& outputColumns) {
+        for (auto& column : outputColumns) {
+            columnNameSet.insert(column->getUniqueName());
         }
     }
-    return false;
-}
 
-void Planner::splitPredicates(const expression_vector& outputExprs,
-    const expression_vector& predicates, expression_vector& predicatesToPull,
-    expression_vector& predicatesToPush) {
-    std::unordered_set<std::string> columnNameSet;
-    for (auto& column : outputExprs) {
-        columnNameSet.insert(column->getUniqueName());
-    }
-    for (auto& predicate : predicates) {
-        if (hasExternalDependency(predicate, columnNameSet)) {
-            predicatesToPull.push_back(predicate);
-        } else {
-            predicatesToPush.push_back(predicate);
+    void analyze(const expression_vector& predicates) {
+        predicatesDependsOnlyOnOutputColumns.clear();
+        predicatesWithOtherDependencies.clear();
+        for (auto& predicate : predicates) {
+            if (hasExternalDependency(predicate)) {
+                predicatesWithOtherDependencies.push_back(predicate);
+            } else {
+                predicatesDependsOnlyOnOutputColumns.push_back(predicate);
+            }
         }
     }
-}
+
+private:
+    bool hasExternalDependency(const std::shared_ptr<Expression>& expression) {
+        auto collector = DependentVarNameCollector();
+        collector.visit(expression);
+        for (auto& name : collector.getVarNames()) {
+            if (!columnNameSet.contains(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+public:
+    expression_vector predicatesDependsOnlyOnOutputColumns;
+    expression_vector predicatesWithOtherDependencies;
+
+private:
+    std::unordered_set<std::string> columnNameSet;
+};
 
 void Planner::planTableFunctionCall(const BoundReadingClause& readingClause,
     std::vector<std::unique_ptr<LogicalPlan>>& plans) {
-    const auto op = getTableFunctionCall(readingClause);
-    const auto planFunc =
-        op->ptrCast<LogicalTableFunctionCall>()->getTableFunc().getLogicalPlanFunc;
-    KU_ASSERT(planFunc);
-    planFunc(this, readingClause, op, plans);
+    auto& boundCall = readingClause.constCast<BoundTableFunctionCall>();
+    auto analyzer = PredicatesDependencyAnalyzer(boundCall.getBindData()->columns);
+    analyzer.analyze(boundCall.getConjunctivePredicates());
+    KU_ASSERT(boundCall.getTableFunc().getLogicalPlanFunc);
+    boundCall.getTableFunc().getLogicalPlanFunc(this, readingClause,
+        analyzer.predicatesDependsOnlyOnOutputColumns, plans);
+    if (!analyzer.predicatesWithOtherDependencies.empty()) {
+        for (auto& plan : plans) {
+            appendFilters(analyzer.predicatesWithOtherDependencies, *plan);
+        }
+    }
 }
 
 void Planner::planLoadFrom(const BoundReadingClause& readingClause,
     std::vector<std::unique_ptr<LogicalPlan>>& plans) {
     auto& loadFrom = readingClause.constCast<BoundLoadFrom>();
-    expression_vector predicatesToPull;
-    expression_vector predicatesToPush;
-    splitPredicates(loadFrom.getInfo()->bindData->columns, loadFrom.getConjunctivePredicates(),
-        predicatesToPull, predicatesToPush);
+    auto analyzer = PredicatesDependencyAnalyzer(loadFrom.getInfo()->bindData->columns);
+    analyzer.analyze(loadFrom.getConjunctivePredicates());
     for (auto& plan : plans) {
         auto op = getTableFunctionCall(*loadFrom.getInfo());
-        op->computeFactorizedSchema();
-        planReadOp(std::move(op), predicatesToPush, *plan);
-        if (!predicatesToPull.empty()) {
-            appendFilters(predicatesToPull, *plan);
+        planReadOp(std::move(op), analyzer.predicatesDependsOnlyOnOutputColumns, *plan);
+    }
+    if (!analyzer.predicatesWithOtherDependencies.empty()) {
+        for (auto& plan : plans) {
+            appendFilters(analyzer.predicatesWithOtherDependencies, *plan);
         }
     }
 }
 
 void Planner::planReadOp(std::shared_ptr<LogicalOperator> op, const expression_vector& predicates,
     LogicalPlan& plan) {
-    op->computeFactorizedSchema();
     if (!plan.isEmpty()) {
         auto tmpPlan = LogicalPlan();
         tmpPlan.setLastOperator(std::move(op));

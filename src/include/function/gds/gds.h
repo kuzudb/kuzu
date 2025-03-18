@@ -70,9 +70,8 @@ public:
     static std::unique_ptr<TableFuncSharedState> initSharedState(
         const TableFuncInitSharedStateInput& input);
     static void getLogicalPlan(planner::Planner* planner,
-        const binder::BoundReadingClause& readingClause,
-        std::shared_ptr<planner::LogicalOperator> logicalOp,
-        const std::vector<std::unique_ptr<planner::LogicalPlan>>& logicalPlans);
+        const binder::BoundReadingClause& readingClause, binder::expression_vector predicates,
+        std::vector<std::unique_ptr<planner::LogicalPlan>>& logicalPlans);
     static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
         processor::PlanMapper* planMapper, const planner::LogicalOperator* logicalOp);
 };

@@ -15,14 +15,18 @@ void Planner::appendTableFunctionCall(const BoundTableScanInfo& info, LogicalPla
 }
 
 std::shared_ptr<LogicalOperator> Planner::getTableFunctionCall(const BoundTableScanInfo& info) {
-    return std::make_shared<LogicalTableFunctionCall>(info.func, info.bindData->copy());
+    auto call = std::make_shared<LogicalTableFunctionCall>(info.func, info.bindData->copy());
+    call->computeFactorizedSchema();
+    return call;
 }
 
 std::shared_ptr<LogicalOperator> Planner::getTableFunctionCall(
     const BoundReadingClause& readingClause) {
     auto& call = readingClause.constCast<BoundTableFunctionCall>();
-    return std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(),
-        call.getBindData()->copy());
+    auto op =
+        std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(), call.getBindData()->copy());
+    op->computeFactorizedSchema();
+    return op;
 }
 
 } // namespace planner

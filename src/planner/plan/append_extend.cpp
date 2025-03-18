@@ -114,7 +114,7 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
 
     std::shared_ptr<LogicalOperator> nodeMaskRoot = nullptr;
     if (recursiveInfo->nodePredicate != nullptr) {
-        auto p = planNodeSemiMask(SemiMaskTargetType::RECURSIVE_EXTEND_PATH_NODE,
+        auto p = getNodeSemiMaskPlan(SemiMaskTargetType::RECURSIVE_EXTEND_PATH_NODE,
             *recursiveInfo->node, recursiveInfo->nodePredicate);
         nodeMaskRoot = p.getLastOperator();
     }

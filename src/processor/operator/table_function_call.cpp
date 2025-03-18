@@ -12,12 +12,6 @@ namespace processor {
 std::string TableFunctionCallPrintInfo::toString() const {
     std::string result = "Function: ";
     result += funcName;
-    return result;
-}
-
-std::string FTableScanFunctionCallPrintInfo::toString() const {
-    std::string result = "Function: ";
-    result += funcName;
     if (!exprs.empty()) {
         result += ", Expressions: ";
         result += binder::ExpressionUtil::toString(exprs);

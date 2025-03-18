@@ -13,7 +13,7 @@ namespace kuzu {
 namespace planner {
 
 // Create a plan with a root semi masker for given node and node predicate.
-LogicalPlan Planner::planNodeSemiMask(SemiMaskTargetType targetType, const NodeExpression& node,
+LogicalPlan Planner::getNodeSemiMaskPlan(SemiMaskTargetType targetType, const NodeExpression& node,
     std::shared_ptr<Expression> nodePredicate) {
     auto plan = LogicalPlan();
     auto prevCollection = enterNewPropertyExprCollection();

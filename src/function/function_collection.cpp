@@ -30,7 +30,6 @@
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "processor/operator/persistent/reader/npy/npy_reader.h"
 #include "processor/operator/persistent/reader/parquet/parquet_reader.h"
-#include "processor/operator/table_scan/ftable_scan_function.h"
 
 using namespace kuzu::processor;
 
@@ -239,7 +238,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Scan functions
         TABLE_FUNCTION(ParquetScanFunction), TABLE_FUNCTION(NpyScanFunction),
-        TABLE_FUNCTION(SerialCSVScan), TABLE_FUNCTION(ParallelCSVScan), TABLE_FUNCTION(FTableScan),
+        TABLE_FUNCTION(SerialCSVScan), TABLE_FUNCTION(ParallelCSVScan),
 
         // Algorithm functions
         TABLE_FUNCTION(WeaklyConnectedComponentsFunction), TABLE_FUNCTION(SCCKosarajuFunction),

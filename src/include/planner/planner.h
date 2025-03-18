@@ -209,9 +209,11 @@ public:
         std::vector<std::unique_ptr<LogicalPlan>> leftPlans,
         std::vector<std::unique_ptr<LogicalPlan>> rightPlans);
 
-    // Plan semi mask
-    LogicalPlan planNodeSemiMask(SemiMaskTargetType targetType, const binder::NodeExpression& node,
-        std::shared_ptr<binder::Expression> nodePredicate);
+    LogicalPlan getNodeSemiMaskPlan(SemiMaskTargetType targetType,
+        const binder::NodeExpression& node, std::shared_ptr<binder::Expression> nodePredicate);
+    // This is mostly used when we try to reinterpret function output as node and read its
+    // properties, e.g. query_vector_index, gds algorithms ...
+    LogicalPlan getNodePropertyScanPlan(const binder::NodeExpression& node);
 
     // Append empty result
     void appendEmptyResult(LogicalPlan& plan);
@@ -354,14 +356,8 @@ public:
         const binder::SubqueryGraph& rightPrev, const binder::SubqueryGraph& new_,
         const binder::expression_vector& exprs);
 
-    static void splitPredicates(const binder::expression_vector& outputExprs,
-        const binder::expression_vector& predicates, binder::expression_vector& predicatesToPull,
-        binder::expression_vector& predicatesToPush);
-
-public:
-    main::ClientContext* clientContext;
-
 private:
+    main::ClientContext* clientContext;
     PropertyExprCollection propertyExprCollection;
     CardinalityEstimator cardinalityEstimator;
     JoinOrderEnumeratorContext context;
