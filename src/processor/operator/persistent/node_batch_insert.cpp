@@ -24,8 +24,8 @@ std::string NodeBatchInsertPrintInfo::toString() const {
 
 void NodeBatchInsertSharedState::initPKIndex(const ExecutionContext* context) {
     uint64_t numRows = 0;
-    if (readerSharedState != nullptr) {
-        numRows = readerSharedState->funcState->getNumRows();
+    if (tableFuncSharedState != nullptr) {
+        numRows = tableFuncSharedState->getNumRows();
     }
     auto* nodeTable = ku_dynamic_cast<NodeTable*>(table);
     nodeTable->getPKIndex()->bulkReserve(numRows);

@@ -17,7 +17,7 @@ TableFuncMorsel SimpleTableFuncSharedState::getMorsel() {
 }
 
 std::unique_ptr<TableFuncSharedState> SimpleTableFunc::initSharedState(
-    const TableFunctionInitInput& input) {
+    const TableFuncInitSharedStateInput& input) {
     return std::make_unique<SimpleTableFuncSharedState>(input.bindData->numRows);
 }
 

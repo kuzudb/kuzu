@@ -700,15 +700,16 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     return bindData;
 }
 
-static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
+static std::unique_ptr<TableFuncSharedState> initSharedState(
+    const TableFuncInitSharedStateInput& input) {
     auto bindData = input.bindData->constPtrCast<ScanFileBindData>();
     return std::make_unique<ParquetScanSharedState>(bindData->fileScanInfo.copy(),
         bindData->numRows, bindData->context, bindData->getColumnSkips());
 }
 
-static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput&,
-    TableFuncSharedState* state, storage::MemoryManager*) {
-    auto sharedState = state->ptrCast<ParquetScanSharedState>();
+static std::unique_ptr<TableFuncLocalState> initLocalState(
+    const TableFuncInitLocalStateInput& input) {
+    auto sharedState = input.sharedState.ptrCast<ParquetScanSharedState>();
     auto localState = std::make_unique<ParquetScanLocalState>();
     if (!parquetSharedStateNext(*localState, *sharedState)) {
         return nullptr;

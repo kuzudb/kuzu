@@ -44,12 +44,11 @@ std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* /*context*/,
         scanConfig);
 }
 
-std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput& /*input*/,
-    TableFuncSharedState* /*sharedState*/, storage::MemoryManager* /*mm*/) {
+std::unique_ptr<TableFuncLocalState> initLocalState(const TableFuncInitLocalStateInput& /*input*/) {
     return std::make_unique<PandasScanLocalState>(0 /* start */, 0 /* end */);
 }
 
-std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
+std::unique_ptr<TableFuncSharedState> initSharedState(const TableFuncInitSharedStateInput& input) {
     // LCOV_EXCL_START
     if (PyGILState_Check()) {
         throw RuntimeException("PandasScan called but GIL was already held!");

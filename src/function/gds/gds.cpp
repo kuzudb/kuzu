@@ -56,9 +56,10 @@ std::string GDSFunction::bindColumnName(const parser::YieldVariable& yieldVariab
 }
 
 std::unique_ptr<TableFuncSharedState> GDSFunction::initSharedState(
-    const TableFunctionInitInput& input) {
+    const TableFuncInitSharedStateInput& input) {
     auto bindData = input.bindData->constPtrCast<GDSBindData>();
-    auto graph = std::make_unique<OnDiskGraph>(&input.context, bindData->graphEntry.copy());
+    auto graph =
+        std::make_unique<OnDiskGraph>(input.context->clientContext, bindData->graphEntry.copy());
     return std::make_unique<GDSFuncSharedState>(bindData->getResultTable(), std::move(graph));
 }
 
@@ -129,16 +130,14 @@ std::unique_ptr<PhysicalOperator> GDSFunction::getPhysicalPlan(PlanMapper* planM
     auto info = TableFunctionCallInfo();
     info.function = logicalCall->getTableFunc();
     info.bindData = std::move(bindData);
-    info.outputType = TableScanOutputType::EMPTY;
-    auto sharedState = std::make_shared<TableFunctionCallSharedState>();
-    TableFunctionInitInput initInput{info.bindData.get(), 0 /* queryID */,
-        *planMapper->clientContext};
-    sharedState->funcState = info.function.initSharedStateFunc(initInput);
+    auto initInput =
+        TableFuncInitSharedStateInput(info.bindData.get(), planMapper->executionContext);
+    auto sharedState = info.function.initSharedStateFunc(initInput);
     auto printInfo = std::make_unique<TableFunctionCallPrintInfo>("");
     auto call = std::make_unique<TableFunctionCall>(std::move(info), sharedState,
         planMapper->getOperatorID(), std::move(printInfo));
     if (!logicalCall->getNodeMaskRoots().empty()) {
-        auto funcSharedState = sharedState->funcState->ptrCast<GDSFuncSharedState>();
+        auto funcSharedState = sharedState->ptrCast<GDSFuncSharedState>();
         funcSharedState->setGraphNodeMask(std::make_unique<NodeOffsetMaskMap>());
         auto maskMap = funcSharedState->getGraphNodeMaskMap();
         planMapper->logicalOpToPhysicalOpMap.insert({logicalOp, call.get()});

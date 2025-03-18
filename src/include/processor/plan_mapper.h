@@ -2,6 +2,7 @@
 
 #include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_plan.h"
+#include "processor/execution_context.h"
 #include "processor/operator/result_collector.h"
 #include "processor/physical_plan.h"
 
@@ -49,8 +50,9 @@ struct PartitionerSharedState;
 
 class PlanMapper {
 public:
-    explicit PlanMapper(main::ClientContext* clientContext)
-        : clientContext{clientContext}, physicalOperatorID{0} {}
+    explicit PlanMapper(processor::ExecutionContext* executionContext)
+        : executionContext{executionContext}, clientContext{executionContext->clientContext},
+          physicalOperatorID{0} {}
 
     std::unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(const planner::LogicalPlan* logicalPlan,
         const binder::expression_vector& expressionsToCollect);
@@ -236,6 +238,7 @@ public:
         const binder::Expression& expr) const;
 
 public:
+    processor::ExecutionContext* executionContext;
     main::ClientContext* clientContext;
     std::unordered_map<const planner::LogicalOperator*, PhysicalOperator*> logicalOpToPhysicalOpMap;
 

@@ -5,6 +5,7 @@
 #include "connector/duckdb_connector.h"
 #include "function/table/bind_input.h"
 #include "function/table/table_function.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::function;
 using namespace kuzu::common;
@@ -32,14 +33,14 @@ struct DuckDBScanFunction {
         main::ClientContext* /*context*/, const TableFuncBindInput* input);
 
     static std::unique_ptr<TableFuncSharedState> initSharedState(
-        const TableFunctionInitInput& input);
+        const TableFuncInitSharedStateInput& input);
 
-    static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput& input,
-        TableFuncSharedState* state, storage::MemoryManager*);
+    static std::unique_ptr<TableFuncLocalState> initLocalState(
+        const TableFuncInitLocalStateInput& input);
 };
 
 std::unique_ptr<TableFuncSharedState> DuckDBScanFunction::initSharedState(
-    const TableFunctionInitInput& input) {
+    const TableFuncInitSharedStateInput& input) {
     auto scanBindData = input.bindData->constPtrCast<DuckDBScanBindData>();
     std::string columnNames = "";
     auto columnSkips = scanBindData->getColumnSkips();
@@ -67,7 +68,8 @@ std::unique_ptr<TableFuncSharedState> DuckDBScanFunction::initSharedState(
         }
     }
     auto finalQuery =
-        stringFormat(scanBindData->getQuery(input.context), columnNames) + predicatesString;
+        stringFormat(scanBindData->getQuery(*input.context->clientContext), columnNames) +
+        predicatesString;
     auto result = scanBindData->connector.executeQuery(finalQuery);
     if (result->HasError()) {
         throw RuntimeException(
@@ -77,7 +79,7 @@ std::unique_ptr<TableFuncSharedState> DuckDBScanFunction::initSharedState(
 }
 
 std::unique_ptr<TableFuncLocalState> DuckDBScanFunction::initLocalState(
-    const TableFunctionInitInput&, TableFuncSharedState*, storage::MemoryManager*) {
+    const TableFuncInitLocalStateInput&) {
     return std::make_unique<TableFuncLocalState>();
 }
 

@@ -37,11 +37,7 @@ struct DeltaScanBindData final : function::ScanFileBindData {
 
 // Functions and structs exposed for use
 std::unique_ptr<function::TableFuncSharedState> initDeltaScanSharedState(
-    const function::TableFunctionInitInput& input);
-
-std::unique_ptr<function::TableFuncLocalState> initEmptyLocalState(
-    const function::TableFunctionInitInput&, function::TableFuncSharedState*,
-    storage::MemoryManager*);
+    const function::TableFuncInitSharedStateInput& input);
 
 common::offset_t tableFunc(const function::TableFuncInput& input,
     function::TableFuncOutput& output);

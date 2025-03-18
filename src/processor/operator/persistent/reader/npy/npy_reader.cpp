@@ -328,7 +328,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         context);
 }
 
-static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
+static std::unique_ptr<TableFuncSharedState> initSharedState(
+    const TableFuncInitSharedStateInput& input) {
     auto bindData = input.bindData->constPtrCast<ScanFileBindData>();
     auto reader = make_unique<NpyReader>(bindData->fileScanInfo.filePaths[0]);
     return std::make_unique<NpyScanSharedState>(bindData->fileScanInfo.copy(), bindData->numRows);
@@ -338,18 +339,13 @@ static void finalizeFunc(const ExecutionContext* ctx, TableFuncSharedState*) {
     ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
 }
 
-static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput&,
-    TableFuncSharedState*, MemoryManager*) {
-    return std::make_unique<TableFuncLocalState>();
-}
-
 function_set NpyScanFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<TableFunction>(name, std::vector{LogicalTypeID::STRING});
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = initSharedState;
-    function->initLocalStateFunc = initLocalState;
+    function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     function->finalizeFunc = finalizeFunc;
     functionSet.push_back(std::move(function));
     return functionSet;

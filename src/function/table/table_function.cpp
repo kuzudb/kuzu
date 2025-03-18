@@ -10,19 +10,46 @@
 #include "processor/operator/table_function_call.h"
 #include "processor/plan_mapper.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace function {
+
+void TableFuncOutput::resetState() {
+    dataChunk.state->getSelVectorUnsafe().setSelSize(0);
+    dataChunk.resetAuxiliaryBuffer();
+    for (auto i = 0u; i < dataChunk.getNumValueVectors(); i++) {
+        dataChunk.getValueVectorMutable(i).setAllNonNull();
+    }
+}
+
+void TableFuncOutput::setOutputSize(common::offset_t size) const {
+    dataChunk.state->getSelVectorUnsafe().setToUnfiltered(size);
+}
 
 TableFunction::~TableFunction() = default;
 
 std::unique_ptr<TableFuncLocalState> TableFunction::initEmptyLocalState(
-    const TableFunctionInitInput&, TableFuncSharedState*, storage::MemoryManager*) {
+    const TableFuncInitLocalStateInput&) {
     return std::make_unique<TableFuncLocalState>();
 }
 
 std::unique_ptr<TableFuncSharedState> TableFunction::initEmptySharedState(
-    const kuzu::function::TableFunctionInitInput& /*input*/) {
+    const kuzu::function::TableFuncInitSharedStateInput& /*input*/) {
     return std::make_unique<TableFuncSharedState>();
+}
+
+std::unique_ptr<TableFuncOutput> TableFunction::initSingleDataChunkScanOutput(
+    const TableFuncInitOutputInput& input) {
+    if (input.outColumnPositions.empty()) {
+        return std::make_unique<TableFuncOutput>(DataChunk{});
+    }
+    auto state = input.resultSet.getDataChunk(input.outColumnPositions[0].dataChunkPos)->state;
+    auto dataChunk = DataChunk(input.outColumnPositions.size(), state);
+    for (auto i = 0u; i < input.outColumnPositions.size(); ++i) {
+        dataChunk.insert(i, input.resultSet.getValueVector(input.outColumnPositions[i]));
+    }
+    return std::make_unique<TableFuncOutput>(std::move(dataChunk));
 }
 
 std::vector<std::string> TableFunction::extractYieldVariables(const std::vector<std::string>& names,
@@ -82,12 +109,9 @@ std::unique_ptr<processor::PhysicalOperator> TableFunction::getPhysicalPlan(
     info.function = call.getTableFunc();
     info.bindData = call.getBindData()->copy();
     info.outPosV = outPosV;
-    info.outputType = outPosV.empty() ? processor::TableScanOutputType::EMPTY :
-                                        processor::TableScanOutputType::SINGLE_DATA_CHUNK;
-    auto sharedState = std::make_shared<processor::TableFunctionCallSharedState>();
-    TableFunctionInitInput tableFunctionInitInput{info.bindData.get(), 0,
-        *planMapper->clientContext};
-    sharedState->funcState = info.function.initSharedStateFunc(tableFunctionInitInput);
+    auto initInput =
+        TableFuncInitSharedStateInput(info.bindData.get(), planMapper->executionContext);
+    auto sharedState = info.function.initSharedStateFunc(initInput);
     auto printInfo =
         std::make_unique<processor::TableFunctionCallPrintInfo>(call.getTableFunc().name);
     return std::make_unique<processor::TableFunctionCall>(std::move(info), sharedState,

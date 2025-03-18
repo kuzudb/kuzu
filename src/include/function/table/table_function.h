@@ -26,15 +26,12 @@ struct ExecutionContext;
 class PlanMapper;
 } // namespace processor
 
-namespace transaction {
-class Transaction;
-} // namespace transaction
-
 namespace function {
 
 struct TableFuncBindInput;
 struct TableFuncBindData;
 
+// Shared state
 struct KUZU_API TableFuncSharedState {
     common::row_idx_t numRows = 0;
     std::mutex mtx;
@@ -50,6 +47,7 @@ struct KUZU_API TableFuncSharedState {
     }
 };
 
+// Local state
 struct TableFuncLocalState {
     virtual ~TableFuncLocalState() = default;
 
@@ -59,6 +57,7 @@ struct TableFuncLocalState {
     }
 };
 
+// Execution input
 struct TableFuncInput {
     TableFuncBindData* bindData;
     TableFuncLocalState* localState;
@@ -72,37 +71,60 @@ struct TableFuncInput {
     DELETE_COPY_DEFAULT_MOVE(TableFuncInput);
 };
 
-// We are in the middle of merging different scan operators into table function. But they organize
-// output vectors in different ways. E.g.
-// - Call functions and scan file functions put all vectors into single data chunk
-// - Factorized table scan instead
-// We introduce this as a temporary solution to unify the interface. In the long term, we should aim
-// to use ResultSet as TableFuncOutput.
+// Execution output.
+// We might want to merge this with TableFuncLocalState. Also not all table function output vectors
+// in a single dataChunk, e.g. FTableScan. In future, if we have more cases, we should consider
+// make TableFuncOutput pure virtual.
 struct TableFuncOutput {
     common::DataChunk dataChunk;
-    std::vector<common::ValueVector*> vectors;
 
-    TableFuncOutput() = default;
-    DELETE_COPY_DEFAULT_MOVE(TableFuncOutput);
+    explicit TableFuncOutput(common::DataChunk dataChunk) : dataChunk{std::move(dataChunk)} {}
+    virtual ~TableFuncOutput() = default;
+
+    void resetState();
+    void setOutputSize(common::offset_t size) const;
 };
 
-struct TableFunctionInitInput final {
+// Init shared state
+struct TableFuncInitSharedStateInput {
     TableFuncBindData* bindData;
-    uint64_t queryID;
-    main::ClientContext& context;
+    processor::ExecutionContext* context;
 
-    explicit TableFunctionInitInput(TableFuncBindData* bindData, uint64_t queryID,
-        main::ClientContext& context)
-        : bindData{bindData}, queryID{queryID}, context{context} {}
+    TableFuncInitSharedStateInput(TableFuncBindData* bindData, processor::ExecutionContext* context)
+        : bindData{bindData}, context{context} {}
+};
+
+// Init local state
+struct TableFuncInitLocalStateInput {
+    TableFuncSharedState& sharedState;
+    TableFuncBindData& bindData;
+    main::ClientContext* clientContext;
+
+    TableFuncInitLocalStateInput(TableFuncSharedState& sharedState, TableFuncBindData& bindData,
+        main::ClientContext* clientContext)
+        : sharedState{sharedState}, bindData{bindData}, clientContext{clientContext} {}
+};
+
+// Init output
+struct TableFuncInitOutputInput {
+    std::vector<processor::DataPos> outColumnPositions;
+    processor::ResultSet& resultSet;
+
+    TableFuncInitOutputInput(std::vector<processor::DataPos> outColumnPositions,
+        processor::ResultSet& resultSet)
+        : outColumnPositions{std::move(outColumnPositions)}, resultSet{resultSet} {}
 };
 
 using table_func_bind_t = std::function<std::unique_ptr<TableFuncBindData>(main::ClientContext*,
     const TableFuncBindInput*)>;
-using table_func_t = std::function<common::offset_t(const TableFuncInput&, TableFuncOutput&)>;
+using table_func_t =
+    std::function<common::offset_t(const TableFuncInput&, TableFuncOutput& output)>;
 using table_func_init_shared_t =
-    std::function<std::unique_ptr<TableFuncSharedState>(const TableFunctionInitInput&)>;
-using table_func_init_local_t = std::function<std::unique_ptr<TableFuncLocalState>(
-    const TableFunctionInitInput&, TableFuncSharedState*, storage::MemoryManager*)>;
+    std::function<std::shared_ptr<TableFuncSharedState>(const TableFuncInitSharedStateInput&)>;
+using table_func_init_local_t =
+    std::function<std::unique_ptr<TableFuncLocalState>(const TableFuncInitLocalStateInput&)>;
+using table_func_init_output_t =
+    std::function<std::unique_ptr<TableFuncOutput>(const TableFuncInitOutputInput&)>;
 using table_func_can_parallel_t = std::function<bool()>;
 using table_func_progress_t = std::function<double(TableFuncSharedState* sharedState)>;
 using table_func_finalize_t =
@@ -122,6 +144,7 @@ struct KUZU_API TableFunction final : Function {
     table_func_bind_t bindFunc = nullptr;
     table_func_init_shared_t initSharedStateFunc = nullptr;
     table_func_init_local_t initLocalStateFunc = nullptr;
+    table_func_init_output_t initOutputFunc = nullptr;
     table_func_can_parallel_t canParallelFunc = [] { return true; };
     table_func_progress_t progressFunc = [](TableFuncSharedState*) { return 0.0; };
     table_func_finalize_t finalizeFunc = [](auto, auto) {};
@@ -144,19 +167,27 @@ struct KUZU_API TableFunction final : Function {
 
     std::unique_ptr<TableFunction> copy() const { return std::make_unique<TableFunction>(*this); }
 
+    // Init local state func
     static std::unique_ptr<TableFuncLocalState> initEmptyLocalState(
-        const TableFunctionInitInput& input, TableFuncSharedState* state,
-        storage::MemoryManager* mm);
+        const TableFuncInitLocalStateInput& input);
+    // Init shared state func
     static std::unique_ptr<TableFuncSharedState> initEmptySharedState(
-        const TableFunctionInitInput& input);
+        const TableFuncInitSharedStateInput& input);
+    // Init output func
+    static std::unique_ptr<TableFuncOutput> initSingleDataChunkScanOutput(
+        const TableFuncInitOutputInput& input);
+    // Utility functions
     static std::vector<std::string> extractYieldVariables(const std::vector<std::string>& names,
         const std::vector<parser::YieldVariable>& yieldVariables);
+    // Get logical plan func
     static void getLogicalPlan(planner::Planner* planner,
         const binder::BoundReadingClause& readingClause,
         std::shared_ptr<planner::LogicalOperator> logicalOp,
         const std::vector<std::unique_ptr<planner::LogicalPlan>>& logicalPlans);
+    // Get physical plan func
     static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
         processor::PlanMapper* planMapper, const planner::LogicalOperator* logicalOp);
+    // Table func
     static common::offset_t emptyTableFunc(const TableFuncInput& input, TableFuncOutput& output);
 };
 

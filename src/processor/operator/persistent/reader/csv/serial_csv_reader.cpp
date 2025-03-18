@@ -236,13 +236,15 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         scanInput->fileScanInfo.copy(), context, numWarningDataColumns);
 }
 
-static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunctionInitInput& input) {
+static std::unique_ptr<TableFuncSharedState> initSharedState(
+    const TableFuncInitSharedStateInput& input) {
     auto bindData = input.bindData->constPtrCast<ScanFileBindData>();
     auto csvOption = CSVReaderConfig::construct(bindData->fileScanInfo.options).option;
     auto columnInfo = CSVColumnInfo(bindData->getNumColumns() - bindData->numWarningDataColumns,
         bindData->getColumnSkips(), bindData->numWarningDataColumns);
-    auto sharedState = std::make_unique<SerialCSVScanSharedState>(bindData->fileScanInfo.copy(),
-        0 /* numRows */, bindData->context, csvOption.copy(), columnInfo.copy(), input.queryID);
+    auto sharedState =
+        std::make_unique<SerialCSVScanSharedState>(bindData->fileScanInfo.copy(), 0 /* numRows */,
+            bindData->context, csvOption.copy(), columnInfo.copy(), input.context->queryID);
     for (idx_t i = 0; i < sharedState->fileScanInfo.filePaths.size(); ++i) {
         const auto& filePath = sharedState->fileScanInfo.filePaths[i];
         auto reader = std::make_unique<SerialCSVReader>(filePath, i, csvOption.copy(),
@@ -250,11 +252,6 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(const TableFunction
         sharedState->totalSize += reader->getFileSize();
     }
     return sharedState;
-}
-
-static std::unique_ptr<TableFuncLocalState> initLocalState(const TableFunctionInitInput&,
-    const TableFuncSharedState*, storage::MemoryManager*) {
-    return std::make_unique<TableFuncLocalState>();
 }
 
 static void finalizeFunc(const ExecutionContext* ctx, TableFuncSharedState* sharedState) {
@@ -279,7 +276,7 @@ function_set SerialCSVScan::getFunctionSet() {
     function->tableFunc = tableFunc;
     function->bindFunc = bindFunc;
     function->initSharedStateFunc = initSharedState;
-    function->initLocalStateFunc = initLocalState;
+    function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     function->progressFunc = progressFunc;
     function->finalizeFunc = finalizeFunc;
     functionSet.push_back(std::move(function));

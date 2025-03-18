@@ -17,7 +17,7 @@ function_set IcebergMetadataFunction::getFunctionSet() {
     function->tableFunc = delta_extension::tableFunc;
     function->bindFunc = metadataBindFunc;
     function->initSharedStateFunc = delta_extension::initDeltaScanSharedState;
-    function->initLocalStateFunc = delta_extension::initEmptyLocalState;
+    function->initLocalStateFunc = function::TableFunction::initEmptyLocalState;
     functionSet.push_back(std::move(function));
     return functionSet;
 }

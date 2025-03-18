@@ -45,7 +45,7 @@ public:
 
 struct KUZU_API SimpleTableFunc {
     static std::unique_ptr<TableFuncSharedState> initSharedState(
-        const TableFunctionInitInput& input);
+        const TableFuncInitSharedStateInput& input);
 
     static table_func_t getTableFunc(simple_internal_table_func internalTableFunc);
 };

@@ -5,9 +5,8 @@
 #include "expression_evaluator/expression_evaluator.h"
 #include "processor/operator/persistent/batch_insert.h"
 #include "processor/operator/persistent/index_builder.h"
-#include "processor/operator/table_function_call.h"
+#include "storage/stats/table_stats.h"
 #include "storage/store/chunked_node_group.h"
-#include <storage/stats/table_stats.h>
 
 namespace kuzu {
 namespace storage {
@@ -71,7 +70,7 @@ struct NodeBatchInsertSharedState final : BatchInsertSharedState {
     common::LogicalType pkType;
     std::optional<IndexBuilder> globalIndexBuilder;
 
-    TableFunctionCallSharedState* readerSharedState;
+    function::TableFuncSharedState* tableFuncSharedState;
 
     std::vector<common::column_id_t> mainDataColumns;
 
@@ -83,8 +82,8 @@ struct NodeBatchInsertSharedState final : BatchInsertSharedState {
         common::LogicalType pkType, std::shared_ptr<FactorizedTable> fTable, storage::WAL* wal,
         storage::MemoryManager* mm)
         : BatchInsertSharedState{table, std::move(fTable), wal, mm}, pkColumnID{pkColumnID},
-          pkType{std::move(pkType)}, globalIndexBuilder(std::nullopt), readerSharedState{nullptr},
-          sharedNodeGroup{nullptr} {}
+          pkType{std::move(pkType)}, globalIndexBuilder(std::nullopt),
+          tableFuncSharedState{nullptr}, sharedNodeGroup{nullptr} {}
 
     void initPKIndex(const ExecutionContext* context);
 };
@@ -101,8 +100,6 @@ struct NodeBatchInsertLocalState final : BatchInsertLocalState {
 
     explicit NodeBatchInsertLocalState(std::span<common::LogicalType> outputDataTypes)
         : stats{outputDataTypes} {}
-
-    void append();
 };
 
 class NodeBatchInsert final : public BatchInsert {
