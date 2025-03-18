@@ -5,6 +5,7 @@
 #include "common/static_vector.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/index/hash_index_header.h"
 #include "storage/index/hash_index_slot.h"
 #include "storage/index/hash_index_utils.h"
@@ -67,7 +68,7 @@ class InMemHashIndex final {
                   common::HashIndexConstants::SLOT_CAPACITY_BYTES / 2);
 
 public:
-    explicit InMemHashIndex(OverflowFileHandle* overflowFileHandle);
+    explicit InMemHashIndex(MemoryManager& memoryManager, OverflowFileHandle* overflowFileHandle);
 
     // Reserves space for at least the specified number of elements.
     // This reserves space for numEntries in total, regardless of existing entries in the builder
@@ -318,6 +319,7 @@ private:
     std::unique_ptr<BlockVector<Slot<T>>> pSlots;
     std::unique_ptr<BlockVector<Slot<T>>> oSlots;
     HashIndexHeader indexHeader;
+    MemoryManager& memoryManager;
 };
 
 } // namespace storage

@@ -8,6 +8,7 @@
 
 #include "common/copy_constructors.h"
 #include "common/types/types.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/shadow_utils.h"
 #include "storage/storage_utils.h"
 #include "transaction/transaction.h"
@@ -342,7 +343,8 @@ private:
 
 class BlockVectorInternal {
 public:
-    explicit BlockVectorInternal(size_t elementSize) : storageInfo{elementSize}, numElements{0} {}
+    explicit BlockVectorInternal(MemoryManager& memoryManager, size_t elementSize)
+        : storageInfo{elementSize}, numElements{0}, memoryManager{memoryManager} {}
 
     // This function is designed to be used during building of a disk array, i.e., during loading.
     // In particular, it changes the needed capacity non-transactionally, i.e., without writing
@@ -358,15 +360,6 @@ public:
 
     uint64_t getMemUsage() const { return inMemArrayPages.size() * common::KUZU_PAGE_SIZE; }
 
-protected:
-    inline uint64_t addInMemoryArrayPage(bool setToZero) {
-        inMemArrayPages.emplace_back(std::make_unique<uint8_t[]>(common::KUZU_PAGE_SIZE));
-        if (setToZero) {
-            memset(inMemArrayPages[inMemArrayPages.size() - 1].get(), 0, common::KUZU_PAGE_SIZE);
-        }
-        return inMemArrayPages.size() - 1;
-    }
-
 private:
     inline uint64_t getNumArrayPagesNeededForElements(uint64_t numElements) const {
         return (numElements + this->storageInfo.numElementsPerPage - 1) /
@@ -375,15 +368,19 @@ private:
     void addNewArrayPageForBuilding();
 
 protected:
-    std::vector<std::unique_ptr<uint8_t[]>> inMemArrayPages;
+    std::vector<std::unique_ptr<MemoryBuffer>> inMemArrayPages;
     PageStorageInfo storageInfo;
     uint64_t numElements;
+    MemoryManager& memoryManager;
 };
 
 template<typename U>
 class BlockVector {
 public:
-    explicit BlockVector(uint64_t numElements = 0) : vector(sizeof(U)) { resize(numElements); }
+    explicit BlockVector(MemoryManager& memoryManager, uint64_t numElements = 0)
+        : vector(memoryManager, sizeof(U)) {
+        resize(numElements);
+    }
 
     inline U& operator[](uint64_t idx) { return *(U*)vector[idx]; }
 

@@ -16,6 +16,9 @@ class MultiCopyTest : public EmptyDBTest {
 public:
     void SetUp() override {
         EmptyDBTest::SetUp();
+        // TODO(bmwinger): Set back to default when the hash index is able to reduce its memory
+        // usage
+        systemConfig->bufferPoolSize = 256 * 1024 * 1024;
         createDBAndConn();
         auto result = conn->query("CREATE NODE TABLE Test(id int32, primary key(id))");
         ASSERT_TRUE(result->isSuccess()) << result->toString();
