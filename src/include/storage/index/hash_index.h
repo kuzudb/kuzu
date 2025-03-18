@@ -11,6 +11,7 @@
 #include "common/types/types.h"
 #include "hash_index_header.h"
 #include "hash_index_slot.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/index/hash_index_utils.h"
 #include "storage/index/in_mem_hash_index.h"
 #include "storage/local_storage/local_hash_index.h"
@@ -66,7 +67,7 @@ public:
 template<typename T>
 class HashIndex final : public OnDiskHashIndex {
 public:
-    HashIndex(DBFileIDAndName dbFileIDAndName, FileHandle* fileHandle,
+    HashIndex(MemoryManager& memoryManager, DBFileIDAndName dbFileIDAndName, FileHandle* fileHandle,
         OverflowFileHandle* overflowFileHandle, DiskArrayCollection& diskArrays, uint64_t indexPos,
         ShadowFile* shadowFile, const HashIndexHeader& indexHeaderForReadTrx,
         HashIndexHeader& indexHeaderForWriteTrx);
@@ -287,6 +288,7 @@ private:
     std::unique_ptr<HashIndexLocalStorage<T>> localStorage;
     const HashIndexHeader& indexHeaderForReadTrx;
     HashIndexHeader& indexHeaderForWriteTrx;
+    MemoryManager& memoryManager;
 };
 
 template<>
@@ -306,7 +308,7 @@ inline bool HashIndex<common::ku_string_t>::equals(const transaction::Transactio
 class PrimaryKeyIndex {
 public:
     PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly, bool inMemMode,
-        common::PhysicalTypeID keyDataType, BufferManager& bufferManager, ShadowFile* shadowFile,
+        common::PhysicalTypeID keyDataType, MemoryManager& memoryManager, ShadowFile* shadowFile,
         common::VirtualFileSystem* vfs, main::ClientContext* context);
 
     ~PrimaryKeyIndex();

@@ -4,6 +4,7 @@
 
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/index/hash_index_header.h"
 #include "storage/index/hash_index_slot.h"
 #include "storage/index/hash_index_utils.h"
@@ -16,9 +17,12 @@ namespace kuzu {
 namespace storage {
 
 template<typename T>
-InMemHashIndex<T>::InMemHashIndex(OverflowFileHandle* overflowFileHandle)
-    : overflowFileHandle(overflowFileHandle), pSlots{std::make_unique<BlockVector<Slot<T>>>()},
-      oSlots{std::make_unique<BlockVector<Slot<T>>>()}, indexHeader{} {
+InMemHashIndex<T>::InMemHashIndex(MemoryManager& memoryManager,
+    OverflowFileHandle* overflowFileHandle)
+    : overflowFileHandle(overflowFileHandle),
+      pSlots{std::make_unique<BlockVector<Slot<T>>>(memoryManager)},
+      oSlots{std::make_unique<BlockVector<Slot<T>>>(memoryManager)}, indexHeader{},
+      memoryManager{memoryManager} {
     // Match HashIndex in allocating at least one page of slots so that we don't split within the
     // same page
     allocateSlots(KUZU_PAGE_SIZE / pSlots->getAlignedElementSize());
@@ -27,8 +31,8 @@ InMemHashIndex<T>::InMemHashIndex(OverflowFileHandle* overflowFileHandle)
 template<typename T>
 void InMemHashIndex<T>::clear() {
     indexHeader = HashIndexHeader();
-    pSlots = std::make_unique<BlockVector<Slot<T>>>();
-    oSlots = std::make_unique<BlockVector<Slot<T>>>();
+    pSlots = std::make_unique<BlockVector<Slot<T>>>(memoryManager);
+    oSlots = std::make_unique<BlockVector<Slot<T>>>(memoryManager);
     allocateSlots(KUZU_PAGE_SIZE / pSlots->getAlignedElementSize());
 }
 

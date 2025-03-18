@@ -258,8 +258,8 @@ void NodeTable::initializePKIndex(const std::string& databasePath,
     pkIndex = std::make_unique<PrimaryKeyIndex>(
         StorageUtils::getNodeIndexIDAndFName(vfs, databasePath, tableID), readOnly,
         main::DBConfig::isDBPathInMemory(databasePath),
-        nodeTableEntry->getPrimaryKeyDefinition().getType().getPhysicalType(),
-        *memoryManager->getBufferManager(), shadowFile, vfs, context);
+        nodeTableEntry->getPrimaryKeyDefinition().getType().getPhysicalType(), *memoryManager,
+        shadowFile, vfs, context);
 }
 
 row_idx_t NodeTable::getNumTotalRows(const Transaction* transaction) {

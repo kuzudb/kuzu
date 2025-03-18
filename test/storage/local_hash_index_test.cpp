@@ -1,4 +1,6 @@
 #include "gtest/gtest.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/local_storage/local_hash_index.h"
 #include "storage/storage_structure/overflow_file.h"
 
@@ -14,8 +16,11 @@ TEST(LocalHashIndexTests, LocalInserts) {
     auto overflowFile = std::make_unique<InMemOverflowFile>(dbFileIDAndName);
     PageCursor dummyCursor{0, 0};
     auto overflowFileHandle = std::make_unique<OverflowFileHandle>(*overflowFile, dummyCursor);
-    auto hashIndex =
-        std::make_unique<LocalHashIndex>(PhysicalTypeID::INT64, overflowFileHandle.get());
+    BufferManager bm(":memory:", "", 256 * 1024 * 1024 /*bufferPoolSize*/,
+        256 * 1024 * 1024 /*maxDBSize*/, nullptr, true);
+    MemoryManager memoryManager(&bm, nullptr);
+    auto hashIndex = std::make_unique<LocalHashIndex>(memoryManager, PhysicalTypeID::INT64,
+        overflowFileHandle.get());
 
     for (int64_t i = 0u; i < 100000; i++) {
         ASSERT_TRUE(hashIndex->insert(i, i * 2, isVisible));
@@ -51,8 +56,11 @@ TEST(LocalHashIndexTests, LocalStringInserts) {
     auto overflowFile = std::make_unique<InMemOverflowFile>(dbFileIDAndName);
     PageCursor dummyCursor{INVALID_PAGE_IDX, 0};
     auto overflowFileHandle = std::make_unique<OverflowFileHandle>(*overflowFile, dummyCursor);
-    auto hashIndex =
-        std::make_unique<LocalHashIndex>(PhysicalTypeID::STRING, overflowFileHandle.get());
+    BufferManager bm(":memory:", "", 256 * 1024 * 1024 /*bufferPoolSize*/,
+        256 * 1024 * 1024 /*maxDBSize*/, nullptr, true);
+    MemoryManager memoryManager(&bm, nullptr);
+    auto hashIndex = std::make_unique<LocalHashIndex>(memoryManager, PhysicalTypeID::STRING,
+        overflowFileHandle.get());
 
     std::vector<std::string> keys;
     for (int64_t i = 0u; i < 100; i++) {
