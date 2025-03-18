@@ -70,7 +70,7 @@ std::vector<std::shared_ptr<LogicalOperator>> getNodeMaskPlanRoots(const GDSBind
         if (nodeInfo.predicate == nullptr) {
             continue;
         }
-        auto p = planner->planNodeSemiMask(SemiMaskTargetType::GDS_GRAPH_NODE,
+        auto p = planner->getNodeSemiMaskPlan(SemiMaskTargetType::GDS_GRAPH_NODE,
             nodeInfo.nodeOrRel->constCast<NodeExpression>(), nodeInfo.predicate);
         nodeMaskPlanRoots.push_back(p.getLastOperator());
     }
@@ -78,43 +78,26 @@ std::vector<std::shared_ptr<LogicalOperator>> getNodeMaskPlanRoots(const GDSBind
 };
 
 void GDSFunction::getLogicalPlan(Planner* planner, const BoundReadingClause& readingClause,
-    std::shared_ptr<LogicalOperator>,
-    const std::vector<std::unique_ptr<LogicalPlan>>& logicalPlans) {
+    binder::expression_vector predicates, std::vector<std::unique_ptr<LogicalPlan>>& logicalPlans) {
     auto& call = readingClause.constCast<binder::BoundTableFunctionCall>();
-    expression_vector predicatesToPull;
-    expression_vector predicatesToPush;
-    planner::Planner::splitPredicates(call.getBindData()->columns, call.getConjunctivePredicates(),
-        predicatesToPull, predicatesToPush);
-
     auto bindData = call.getBindData()->constPtrCast<GDSBindData>();
     auto maskRoots = getNodeMaskPlanRoots(*bindData, planner);
     for (auto& plan : logicalPlans) {
         auto op = std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(), bindData->copy());
         op->setNodeMaskRoots(maskRoots);
         op->computeFactorizedSchema();
-        planner->planReadOp(std::move(op), predicatesToPush, *plan);
+        planner->planReadOp(std::move(op), predicates, *plan);
     }
-    auto nodeOutput = bindData->nodeOutput;
+    auto nodeOutput = bindData->nodeOutput->ptrCast<NodeExpression>();
     KU_ASSERT(nodeOutput != nullptr);
-    auto properties = planner->getProperties(*nodeOutput);
-    if (!properties.empty()) {
-        auto& node = nodeOutput->constCast<NodeExpression>();
-        auto scanPlan = LogicalPlan();
-        planner->getCardinalityEstimator().addNodeIDDomAndStats(
-            planner->clientContext->getTransaction(), *node.getInternalID(), node.getTableIDs());
-        planner->appendScanNodeTable(node.getInternalID(), node.getTableIDs(), properties,
-            scanPlan);
-        expression_vector joinConditions;
-        joinConditions.push_back(node.getInternalID());
-        for (auto& plan : logicalPlans) {
-            planner->appendHashJoin(joinConditions, JoinType::INNER, *plan, scanPlan, *plan);
-        }
+    auto scanPlan = planner->getNodePropertyScanPlan(*nodeOutput);
+    if (scanPlan.isEmpty()) {
+        return;
     }
-
+    expression_vector joinConditions;
+    joinConditions.push_back(nodeOutput->getInternalID());
     for (auto& plan : logicalPlans) {
-        if (!predicatesToPull.empty()) {
-            planner->appendFilters(predicatesToPull, *plan);
-        }
+        planner->appendHashJoin(joinConditions, JoinType::INNER, *plan, scanPlan, *plan);
     }
 }
 
@@ -133,7 +116,7 @@ std::unique_ptr<PhysicalOperator> GDSFunction::getPhysicalPlan(PlanMapper* planM
     auto initInput =
         TableFuncInitSharedStateInput(info.bindData.get(), planMapper->executionContext);
     auto sharedState = info.function.initSharedStateFunc(initInput);
-    auto printInfo = std::make_unique<TableFunctionCallPrintInfo>("");
+    auto printInfo = std::make_unique<TableFunctionCallPrintInfo>(info.function.name, info.bindData->columns);
     auto call = std::make_unique<TableFunctionCall>(std::move(info), sharedState,
         planMapper->getOperatorID(), std::move(printInfo));
     if (!logicalCall->getNodeMaskRoots().empty()) {

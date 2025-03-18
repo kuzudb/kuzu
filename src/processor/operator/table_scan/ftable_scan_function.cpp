@@ -65,15 +65,13 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(
     return std::make_unique<FTableScanSharedState>(bindData->table, bindData->morselSize);
 }
 
-function_set FTableScan::getFunctionSet() {
-    function_set functionSet;
+std::unique_ptr<TableFunction> FTableScan::getFunction() {
     auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
     function->tableFunc = tableFunc;
     function->initSharedStateFunc = initSharedState;
     function->initLocalStateFunc = TableFunction::initEmptyLocalState;
     function->initOutputFunc = initFTableScanOutput;
-    functionSet.push_back(std::move(function));
-    return functionSet;
+    return function;
 }
 
 } // namespace processor

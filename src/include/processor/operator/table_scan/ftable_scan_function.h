@@ -1,6 +1,6 @@
 #pragma once
 
-#include "function/function.h"
+#include "function/table/table_function.h"
 #include "function/table/bind_data.h"
 #include "processor/result/factorized_table.h"
 
@@ -28,7 +28,7 @@ struct FTableScanBindData : public function::TableFuncBindData {
 struct FTableScan {
     static constexpr const char* name = "READ_FTABLE";
 
-    static function::function_set getFunctionSet();
+    static std::unique_ptr<function::TableFunction> getFunction();
 };
 
 } // namespace processor

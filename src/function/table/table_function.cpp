@@ -1,8 +1,7 @@
 #include "function/table/table_function.h"
 
-#include "binder/query/reading_clause/bound_table_function_call.h"
+
 #include "common/exception/binder.h"
-#include "function/table/bind_data.h"
 #include "parser/query/reading_clause/yield_variable.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/operator/sip/logical_semi_masker.h"
@@ -12,6 +11,8 @@
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::common;
+using namespace kuzu::planner;
+using namespace kuzu::processor;
 
 namespace kuzu {
 namespace function {
@@ -24,7 +25,7 @@ void TableFuncOutput::resetState() {
     }
 }
 
-void TableFuncOutput::setOutputSize(common::offset_t size) const {
+void TableFuncOutput::setOutputSize(offset_t size) const {
     dataChunk.state->getSelVectorUnsafe().setToUnfiltered(size);
 }
 
@@ -58,15 +59,15 @@ std::vector<std::string> TableFunction::extractYieldVariables(const std::vector<
     std::vector<std::string> variableNames;
     if (!yieldVariables.empty()) {
         if (yieldVariables.size() < names.size()) {
-            throw common::BinderException{"Output variables must all appear in the yield clause."};
+            throw BinderException{"Output variables must all appear in the yield clause."};
         }
         if (yieldVariables.size() > names.size()) {
-            throw common::BinderException{"The number of variables in the yield clause exceeds the "
+            throw BinderException{"The number of variables in the yield clause exceeds the "
                                           "number of output variables of the table function."};
         }
         for (auto i = 0u; i < names.size(); i++) {
             if (names[i] != yieldVariables[i].name) {
-                throw common::BinderException{common::stringFormat(
+                throw BinderException{stringFormat(
                     "Unknown table function output variable name: {}.", yieldVariables[i].name)};
             }
             auto variableName =
@@ -80,21 +81,11 @@ std::vector<std::string> TableFunction::extractYieldVariables(const std::vector<
 }
 
 void TableFunction::getLogicalPlan(planner::Planner* planner,
-    const binder::BoundReadingClause& readingClause,
-    std::shared_ptr<planner::LogicalOperator> logicalOp,
-    const std::vector<std::unique_ptr<planner::LogicalPlan>>& logicalPlans) {
-    auto& call = readingClause.constCast<binder::BoundTableFunctionCall>();
-    binder::expression_vector predicatesToPull;
-    binder::expression_vector predicatesToPush;
-    planner::Planner::splitPredicates(call.getBindData()->columns, call.getConjunctivePredicates(),
-        predicatesToPull, predicatesToPush);
-    for (auto& plan : logicalPlans) {
-        planner->planReadOp(logicalOp, predicatesToPush, *plan);
-    }
-    if (!predicatesToPull.empty()) {
-        for (auto& plan : logicalPlans) {
-            planner->appendFilters(predicatesToPull, *plan);
-        }
+    const binder::BoundReadingClause& boundReadingClause, binder::expression_vector predicates,
+    std::vector<std::unique_ptr<planner::LogicalPlan>>& plans) {
+    for (auto& plan : plans) {
+        auto op = planner->getTableFunctionCall(boundReadingClause);
+        planner->planReadOp(op, predicates, *plan);
     }
 }
 
@@ -121,12 +112,12 @@ std::unique_ptr<processor::PhysicalOperator> TableFunction::getPhysicalPlan(
         }
     }
     auto printInfo =
-        std::make_unique<processor::TableFunctionCallPrintInfo>(call.getTableFunc().name);
+        std::make_unique<processor::TableFunctionCallPrintInfo>(call.getTableFunc().name, call.getBindData()->columns);
     return std::make_unique<processor::TableFunctionCall>(std::move(info), sharedState,
         planMapper->getOperatorID(), std::move(printInfo));
 }
 
-common::offset_t TableFunction::emptyTableFunc(const TableFuncInput&, TableFuncOutput&) {
+offset_t TableFunction::emptyTableFunc(const TableFuncInput&, TableFuncOutput&) {
     // DO NOTHING.
     return 0;
 }

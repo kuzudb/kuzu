@@ -140,8 +140,8 @@ using table_func_finalize_t =
 using table_func_rewrite_t =
     std::function<std::string(main::ClientContext&, const TableFuncBindData& bindData)>;
 using table_func_get_logical_plan_t = std::function<void(planner::Planner*,
-    const binder::BoundReadingClause&, std::shared_ptr<planner::LogicalOperator>,
-    const std::vector<std::unique_ptr<planner::LogicalPlan>>&)>;
+    const binder::BoundReadingClause&, std::vector<std::shared_ptr<binder::Expression>>,
+    std::vector<std::unique_ptr<planner::LogicalPlan>>&)>;
 using table_func_get_physical_plan_t = std::function<std::unique_ptr<processor::PhysicalOperator>(
     processor::PlanMapper*, const planner::LogicalOperator*)>;
 using table_func_infer_input_types =
@@ -189,9 +189,8 @@ struct KUZU_API TableFunction final : Function {
         const std::vector<parser::YieldVariable>& yieldVariables);
     // Get logical plan func
     static void getLogicalPlan(planner::Planner* planner,
-        const binder::BoundReadingClause& readingClause,
-        std::shared_ptr<planner::LogicalOperator> logicalOp,
-        const std::vector<std::unique_ptr<planner::LogicalPlan>>& logicalPlans);
+        const binder::BoundReadingClause& boundReadingClause, binder::expression_vector predicates,
+        std::vector<std::unique_ptr<planner::LogicalPlan>>& plans);
     // Get physical plan func
     static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
         processor::PlanMapper* planMapper, const planner::LogicalOperator* logicalOp);

@@ -81,8 +81,6 @@ struct QueryHNSWIndexBindData final : TableFuncBindData {
         BoundQueryHNSWIndexInput boundInput, storage::QueryHNSWConfig config,
         std::shared_ptr<binder::NodeExpression> outputNode);
 
-    std::shared_ptr<binder::Expression> getNodeOutput() const override { return outputNode; }
-
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<QueryHNSWIndexBindData>(context, columns, boundInput, config,
             outputNode);
