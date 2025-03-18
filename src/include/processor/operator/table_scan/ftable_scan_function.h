@@ -1,7 +1,7 @@
 #pragma once
 
-#include "function/table/table_function.h"
 #include "function/table/bind_data.h"
+#include "function/table/table_function.h"
 #include "processor/result/factorized_table.h"
 
 namespace kuzu {

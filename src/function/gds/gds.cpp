@@ -116,7 +116,8 @@ std::unique_ptr<PhysicalOperator> GDSFunction::getPhysicalPlan(PlanMapper* planM
     auto initInput =
         TableFuncInitSharedStateInput(info.bindData.get(), planMapper->executionContext);
     auto sharedState = info.function.initSharedStateFunc(initInput);
-    auto printInfo = std::make_unique<TableFunctionCallPrintInfo>(info.function.name, info.bindData->columns);
+    auto printInfo =
+        std::make_unique<TableFunctionCallPrintInfo>(info.function.name, info.bindData->columns);
     auto call = std::make_unique<TableFunctionCall>(std::move(info), sharedState,
         planMapper->getOperatorID(), std::move(printInfo));
     if (!logicalCall->getNodeMaskRoots().empty()) {

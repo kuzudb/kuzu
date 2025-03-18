@@ -27,8 +27,8 @@ namespace kuzu {
 namespace function {
 
 QueryHNSWIndexBindData::QueryHNSWIndexBindData(main::ClientContext* context,
-    expression_vector columns, BoundQueryHNSWIndexInput boundInput,
-    storage::QueryHNSWConfig config, std::shared_ptr<NodeExpression> outputNode)
+    expression_vector columns, BoundQueryHNSWIndexInput boundInput, storage::QueryHNSWConfig config,
+    std::shared_ptr<NodeExpression> outputNode)
     : TableFuncBindData{std::move(columns), 1 /*maxOffset*/}, context{context},
       boundInput{std::move(boundInput)}, config{config}, outputNode{std::move(outputNode)} {
     const auto indexEntry = this->boundInput.indexEntry;
@@ -50,8 +50,7 @@ static std::vector<LogicalType> inferInputTypes(const expression_vector& params)
     inputTypes.push_back(LogicalType::STRING());
     if (inputQueryExpression->expressionType == ExpressionType::LITERAL) {
         auto val = inputQueryExpression->constCast<LiteralExpression>().getValue();
-        inputTypes.push_back(
-            LogicalType::ARRAY(LogicalType::FLOAT(), val.getChildrenSize()));
+        inputTypes.push_back(LogicalType::ARRAY(LogicalType::FLOAT(), val.getChildrenSize()));
     } else {
         inputTypes.push_back(LogicalType::ANY());
     }
@@ -85,8 +84,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         storage::IndexUtils::validateIndexExistence(*context, nodeTableEntry, indexName,
             storage::IndexOperation::QUERY);
     } else {
-        throw BinderException{stringFormat(
-            "Cannot find table or projected graph named as {}.", tableOrGraphName)};
+        throw BinderException{
+            stringFormat("Cannot find table or projected graph named as {}.", tableOrGraphName)};
     }
     const auto indexEntry = context->getCatalog()->getIndex(context->getTransaction(),
         nodeTableEntry->getTableID(), indexName);
@@ -130,8 +129,7 @@ static std::vector<float> getQueryVector(main::ClientContext* context,
     auto expr = binder.getExpressionBinder()->implicitCastIfNecessary(literalExpression,
         LogicalType::ARRAY(LogicalType::FLOAT(), dimension));
     auto value = evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(expr, context);
-    KU_ASSERT(
-        NestedVal::getChildVal(&value, 0)->getDataType() == LogicalType::FLOAT());
+    KU_ASSERT(NestedVal::getChildVal(&value, 0)->getDataType() == LogicalType::FLOAT());
     return convertQueryVector(value);
 }
 
@@ -155,8 +153,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
             auxInfo.config.copy());
         index->setDefaultUpperEntryPoint(auxInfo.upperEntryPoint);
         index->setDefaultLowerEntryPoint(auxInfo.lowerEntryPoint);
-        const auto dimension =
-            ArrayType::getNumElements(getIndexColumnType(bindData->boundInput));
+        const auto dimension = ArrayType::getNumElements(getIndexColumnType(bindData->boundInput));
         auto queryVector = getQueryVector(input.context->clientContext,
             bindData->boundInput.queryExpression, dimension);
         localState->result = index->search(input.context->clientContext->getTransaction(),
@@ -166,8 +163,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
     if (localState->numRowsOutput >= localState->result->size()) {
         return 0;
     }
-    const auto numToOutput = std::min(localState->result->size() - localState->numRowsOutput,
-        DEFAULT_VECTOR_CAPACITY);
+    const auto numToOutput =
+        std::min(localState->result->size() - localState->numRowsOutput, DEFAULT_VECTOR_CAPACITY);
     for (auto i = 0u; i < numToOutput; i++) {
         const auto& [nodeOffset, distance] =
             localState->result.value()[i + localState->numRowsOutput];
@@ -239,7 +236,6 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
                 op->setNodeMaskRoots(std::move(nodeMaskRoots));
                 op->addChild(filterPlan.getLastOperator());
             }
-
         }
         op->computeFactorizedSchema();
         planner->planReadOp(op, predicates, *plan);
@@ -261,8 +257,8 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
 
 function_set QueryHNSWIndexFunction::getFunctionSet() {
     function_set functionSet;
-    std::vector inputTypes{LogicalTypeID::STRING, LogicalTypeID::STRING,
-        LogicalTypeID::ARRAY, LogicalTypeID::INT64};
+    std::vector inputTypes{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::ARRAY,
+        LogicalTypeID::INT64};
     auto tableFunction = std::make_unique<TableFunction>("query_hnsw_index", inputTypes);
     tableFunction->tableFunc = tableFunc;
     tableFunction->bindFunc = bindFunc;

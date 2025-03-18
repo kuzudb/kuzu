@@ -96,7 +96,7 @@ public:
     }
 
 private:
-     bool hasExternalDependency(const std::shared_ptr<Expression>& expression) {
+    bool hasExternalDependency(const std::shared_ptr<Expression>& expression) {
         auto collector = DependentVarNameCollector();
         collector.visit(expression);
         for (auto& name : collector.getVarNames()) {
@@ -106,7 +106,6 @@ private:
         }
         return false;
     }
-
 
 public:
     expression_vector predicatesDependsOnlyOnOutputColumns;
@@ -122,7 +121,8 @@ void Planner::planTableFunctionCall(const BoundReadingClause& readingClause,
     auto analyzer = PredicatesDependencyAnalyzer(boundCall.getBindData()->columns);
     analyzer.analyze(boundCall.getConjunctivePredicates());
     KU_ASSERT(boundCall.getTableFunc().getLogicalPlanFunc);
-    boundCall.getTableFunc().getLogicalPlanFunc(this, readingClause, analyzer.predicatesDependsOnlyOnOutputColumns, plans);
+    boundCall.getTableFunc().getLogicalPlanFunc(this, readingClause,
+        analyzer.predicatesDependsOnlyOnOutputColumns, plans);
     if (!analyzer.predicatesWithOtherDependencies.empty()) {
         for (auto& plan : plans) {
             appendFilters(analyzer.predicatesWithOtherDependencies, *plan);

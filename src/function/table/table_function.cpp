@@ -1,6 +1,5 @@
 #include "function/table/table_function.h"
 
-
 #include "common/exception/binder.h"
 #include "parser/query/reading_clause/yield_variable.h"
 #include "planner/operator/logical_table_function_call.h"
@@ -63,7 +62,7 @@ std::vector<std::string> TableFunction::extractYieldVariables(const std::vector<
         }
         if (yieldVariables.size() > names.size()) {
             throw BinderException{"The number of variables in the yield clause exceeds the "
-                                          "number of output variables of the table function."};
+                                  "number of output variables of the table function."};
         }
         for (auto i = 0u; i < names.size(); i++) {
             if (names[i] != yieldVariables[i].name) {
@@ -111,8 +110,8 @@ std::unique_ptr<processor::PhysicalOperator> TableFunction::getPhysicalPlan(
             logicalSemiMasker->addTarget(logicalOp);
         }
     }
-    auto printInfo =
-        std::make_unique<processor::TableFunctionCallPrintInfo>(call.getTableFunc().name, call.getBindData()->columns);
+    auto printInfo = std::make_unique<processor::TableFunctionCallPrintInfo>(
+        call.getTableFunc().name, call.getBindData()->columns);
     return std::make_unique<processor::TableFunctionCall>(std::move(info), sharedState,
         planMapper->getOperatorID(), std::move(printInfo));
 }

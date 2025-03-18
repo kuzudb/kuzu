@@ -23,8 +23,8 @@ std::shared_ptr<LogicalOperator> Planner::getTableFunctionCall(const BoundTableS
 std::shared_ptr<LogicalOperator> Planner::getTableFunctionCall(
     const BoundReadingClause& readingClause) {
     auto& call = readingClause.constCast<BoundTableFunctionCall>();
-    auto op = std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(),
-        call.getBindData()->copy());
+    auto op =
+        std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(), call.getBindData()->copy());
     op->computeFactorizedSchema();
     return op;
 }

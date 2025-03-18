@@ -33,8 +33,7 @@ struct TableFunctionCallPrintInfo final : OPPrintInfo {
     std::string toString() const override;
 
     std::unique_ptr<OPPrintInfo> copy() const override {
-        return std::unique_ptr<TableFunctionCallPrintInfo>(
-            new TableFunctionCallPrintInfo(*this));
+        return std::unique_ptr<TableFunctionCallPrintInfo>(new TableFunctionCallPrintInfo(*this));
     }
 
 private:
