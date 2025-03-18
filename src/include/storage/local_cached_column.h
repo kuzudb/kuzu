@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace storage {
 
-class KUZU_API CachedColumn final : public transaction::LocalCacheObject {
+class KUZU_API CachedColumn : public transaction::LocalCacheObject {
 public:
     static std::string getKey(common::table_id_t tableID, common::property_id_t propertyID) {
         return common::stringFormat("{}-{}", tableID, propertyID);

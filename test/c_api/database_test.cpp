@@ -298,12 +298,3 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWildcardNoRemoval) {
     // Cleanup
     std::filesystem::remove_all("/tmp/dbHome_wildcard");
 }
-
-TEST_F(CApiDatabaseTest, dasd) {
-    createDBAndConn();
-    printf("%s", conn->query("load extension "
-                             "'/Users/z473chen/Desktop/code/kuzu/extension/vector/build/"
-                             "libvector.kuzu_extension'")
-                     ->toString()
-                     .c_str());
-}

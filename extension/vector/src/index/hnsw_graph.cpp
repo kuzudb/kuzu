@@ -6,8 +6,10 @@
 #include "storage/store/rel_table.h"
 #include "transaction/transaction.h"
 
+using namespace kuzu::storage;
+
 namespace kuzu {
-namespace storage {
+namespace vector_extension {
 
 InMemEmbeddings::InMemEmbeddings(transaction::Transaction* transaction, EmbeddingTypeInfo typeInfo,
     common::table_id_t tableID, common::column_id_t columnID)
@@ -143,5 +145,5 @@ void InMemHNSWGraph::resetCSRLengthAndDstNodes() {
     }
 }
 
-} // namespace storage
+} // namespace vector_extension
 } // namespace kuzu

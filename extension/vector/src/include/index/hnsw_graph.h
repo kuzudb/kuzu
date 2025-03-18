@@ -7,6 +7,9 @@
 
 namespace kuzu {
 namespace storage {
+struct NodeTableScanState;
+}
+namespace vector_extension {
 
 struct EmbeddingTypeInfo {
     common::LogicalType elementType;
@@ -34,28 +37,27 @@ public:
     bool isNull(common::offset_t offset) const;
 
 private:
-    CachedColumn* data;
+    storage::CachedColumn* data;
 };
 
-struct NodeTableScanState;
 struct OnDiskEmbeddingScanState {
     common::DataChunk scanChunk;
-    std::unique_ptr<NodeTableScanState> scanState;
+    std::unique_ptr<storage::NodeTableScanState> scanState;
 
-    OnDiskEmbeddingScanState(const transaction::Transaction* transaction, MemoryManager* mm,
-        NodeTable& nodeTable, common::column_id_t columnID);
+    OnDiskEmbeddingScanState(const transaction::Transaction* transaction,
+        storage::MemoryManager* mm, storage::NodeTable& nodeTable, common::column_id_t columnID);
 };
 
 class OnDiskEmbeddings final : public EmbeddingColumn {
 public:
-    OnDiskEmbeddings(EmbeddingTypeInfo typeInfo, NodeTable& nodeTable,
+    OnDiskEmbeddings(EmbeddingTypeInfo typeInfo, storage::NodeTable& nodeTable,
         common::column_id_t columnID);
 
-    float* getEmbedding(transaction::Transaction* transaction, NodeTableScanState& scanState,
-        common::offset_t offset) const;
+    float* getEmbedding(transaction::Transaction* transaction,
+        storage::NodeTableScanState& scanState, common::offset_t offset) const;
 
 private:
-    NodeTable& nodeTable;
+    storage::NodeTable& nodeTable;
     common::column_id_t columnID;
 };
 
@@ -81,7 +83,8 @@ public:
     using shrink_func_t =
         std::function<void(transaction::Transaction*, common::offset_t, common::length_t)>;
 
-    InMemHNSWGraph(MemoryManager* mm, common::offset_t numNodes, common::length_t maxDegree)
+    InMemHNSWGraph(storage::MemoryManager* mm, common::offset_t numNodes,
+        common::length_t maxDegree)
         : numNodes{numNodes}, maxDegree{maxDegree} {
         csrLengthBuffer = mm->allocateBuffer(true, numNodes * sizeof(std::atomic<uint16_t>));
         csrLengths = reinterpret_cast<std::atomic<uint16_t>*>(csrLengthBuffer->getData());
@@ -114,15 +117,15 @@ public:
         dstNodes[csrOffset].store(dstNode, std::memory_order_relaxed);
     }
 
-    void finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
+    void finalize(storage::MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
         const processor::PartitionerSharedState& partitionerSharedState);
 
 private:
     void resetCSRLengthAndDstNodes();
 
-    void finalizeNodeGroup(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
+    void finalizeNodeGroup(storage::MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
         uint64_t numRels, common::table_id_t srcNodeTableID, common::table_id_t dstNodeTableID,
-        common::table_id_t relTableID, InMemChunkedNodeGroupCollection& partition) const;
+        common::table_id_t relTableID, storage::InMemChunkedNodeGroupCollection& partition) const;
 
     common::offset_t getDstNode(common::offset_t csrOffset) const {
         return dstNodes[csrOffset].load(std::memory_order_relaxed);
@@ -130,13 +133,13 @@ private:
 
 private:
     common::offset_t numNodes;
-    std::unique_ptr<MemoryBuffer> csrLengthBuffer;
-    std::unique_ptr<MemoryBuffer> dstNodesBuffer;
+    std::unique_ptr<storage::MemoryBuffer> csrLengthBuffer;
+    std::unique_ptr<storage::MemoryBuffer> dstNodesBuffer;
     std::atomic<uint16_t>* csrLengths;
     std::atomic<common::offset_t>* dstNodes;
     // Max allowed degree of a node in the graph before shrinking.
     common::length_t maxDegree;
 };
 
-} // namespace storage
+} // namespace vector_extension
 } // namespace kuzu

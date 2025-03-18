@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace catalog {
 
-class KUZU_API FunctionCatalogEntry final : public CatalogEntry {
+class KUZU_API FunctionCatalogEntry : public CatalogEntry {
 public:
     //===--------------------------------------------------------------------===//
     // constructors

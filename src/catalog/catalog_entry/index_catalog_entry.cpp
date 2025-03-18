@@ -49,9 +49,6 @@ std::unique_ptr<IndexCatalogEntry> IndexCatalogEntry::deserialize(
     indexEntry->auxBuffer = std::make_unique<uint8_t[]>(auxBufferSize);
     indexEntry->auxBufferSize = auxBufferSize;
     deserializer.read(indexEntry->auxBuffer.get(), auxBufferSize);
-    // if (type == HNSWIndexCatalogEntry::TYPE_NAME) {
-    // indexEntry->setAuxInfo(HNSWIndexAuxInfo::deserialize(indexEntry->getAuxBufferReader()));
-    // }
     return indexEntry;
 }
 

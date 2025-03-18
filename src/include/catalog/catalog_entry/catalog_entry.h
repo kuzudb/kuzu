@@ -15,7 +15,7 @@ class ClientContext;
 
 namespace catalog {
 
-struct ToCypherInfo {
+struct KUZU_API ToCypherInfo {
     virtual ~ToCypherInfo() = default;
 
     template<class TARGET>

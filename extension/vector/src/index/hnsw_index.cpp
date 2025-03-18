@@ -7,8 +7,10 @@
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 
+using namespace kuzu::storage;
+
 namespace kuzu {
-namespace storage {
+namespace vector_extension {
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
 void HNSWIndexPartitionerSharedState::setTables(NodeTable* nodeTable, RelTable* relTable) {
@@ -594,5 +596,5 @@ bool OnDiskHNSWIndex::searchOverSecondHopNbrs(transaction::Transaction* transact
     return true;
 }
 
-} // namespace storage
+} // namespace vector_extension
 } // namespace kuzu

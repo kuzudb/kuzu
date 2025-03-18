@@ -377,7 +377,7 @@ private:
     TypeCategory category = TypeCategory::INTERNAL;
 };
 
-class ExtraTypeInfo {
+class KUZU_API ExtraTypeInfo {
 public:
     virtual ~ExtraTypeInfo() = default;
 

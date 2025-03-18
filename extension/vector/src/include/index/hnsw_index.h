@@ -13,9 +13,12 @@ struct QueryHNSWLocalState;
 } // namespace function
 namespace processor {
 struct PartitionerSharedState;
-}
+} // namespace processor
 namespace storage {
 class NodeTable;
+} // namespace storage
+
+namespace vector_extension {
 
 struct MinNodePriorityQueueComparator {
     bool operator()(const NodeWithDistance& l, const NodeWithDistance& r) const {
@@ -37,11 +40,11 @@ struct HNSWIndexPartitionerSharedState {
     std::shared_ptr<processor::PartitionerSharedState> lowerPartitionerSharedState;
     std::shared_ptr<processor::PartitionerSharedState> upperPartitionerSharedState;
 
-    explicit HNSWIndexPartitionerSharedState(MemoryManager& mm)
+    explicit HNSWIndexPartitionerSharedState(storage::MemoryManager& mm)
         : lowerPartitionerSharedState{std::make_shared<processor::PartitionerSharedState>(mm)},
           upperPartitionerSharedState{std::make_shared<processor::PartitionerSharedState>(mm)} {}
 
-    void setTables(NodeTable* nodeTable, RelTable* relTable);
+    void setTables(storage::NodeTable* nodeTable, storage::RelTable* relTable);
 
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
     void initialize(const common::logical_type_vec_t& columnTypes,
@@ -104,7 +107,7 @@ struct InMemHNSWLayerInfo {
 
 class InMemHNSWLayer {
 public:
-    explicit InMemHNSWLayer(MemoryManager* mm, InMemHNSWLayerInfo info);
+    explicit InMemHNSWLayer(storage::MemoryManager* mm, InMemHNSWLayerInfo info);
     common::offset_t compareAndSwapEntryPoint(common::offset_t offset) {
         common::offset_t oldOffset = common::INVALID_OFFSET;
         entryPoint.compare_exchange_strong(oldOffset, offset);
@@ -114,7 +117,7 @@ public:
 
     void insert(common::offset_t offset, common::offset_t entryPoint_, VisitedState& visited);
     common::offset_t searchNN(common::offset_t node, common::offset_t entryNode) const;
-    void finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
+    void finalize(storage::MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
         const processor::PartitionerSharedState& partitionerSharedState) const;
 
 private:
@@ -133,7 +136,7 @@ private:
 
 class InMemHNSWIndex final : public HNSWIndex {
 public:
-    InMemHNSWIndex(const main::ClientContext* context, NodeTable& table,
+    InMemHNSWIndex(const main::ClientContext* context, storage::NodeTable& table,
         common::column_id_t columnID, HNSWIndexConfig config);
 
     common::offset_t getUpperEntryPoint() const override { return upperLayer->getEntryPoint(); }
@@ -141,7 +144,7 @@ public:
 
     // Note that the input is only `offset`, as we assume embeddings are already cached in memory.
     bool insert(common::offset_t offset, VisitedState& upperVisited, VisitedState& lowerVisited);
-    void finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
+    void finalize(storage::MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
         const HNSWIndexPartitionerSharedState& partitionerSharedState);
 
     void resetEmbeddings() { embeddings.reset(); }
@@ -175,9 +178,9 @@ struct HNSWSearchState {
     std::unique_ptr<graph::NbrScanState> nbrScanState;
     std::unique_ptr<graph::NbrScanState> secondHopNbrScanState;
 
-    HNSWSearchState(const transaction::Transaction* transaction, MemoryManager* mm,
-        NodeTable& nodeTable, common::column_id_t columnID, common::offset_t numNodes, uint64_t k,
-        QueryHNSWConfig config)
+    HNSWSearchState(const transaction::Transaction* transaction, storage::MemoryManager* mm,
+        storage::NodeTable& nodeTable, common::column_id_t columnID, common::offset_t numNodes,
+        uint64_t k, QueryHNSWConfig config)
         : visited{numNodes}, embeddingScanState{transaction, mm, nodeTable, columnID}, k{k},
           config{config}, semiMask{nullptr}, searchType{SearchType::UNFILTERED},
           nbrScanState{nullptr}, secondHopNbrScanState{nullptr} {
@@ -209,7 +212,7 @@ public:
         const std::vector<float>& queryVector, HNSWSearchState& searchState) const;
 
     common::offset_t searchNNInUpperLayer(transaction::Transaction* transaction,
-        const float* queryVector, NodeTableScanState& embeddingScanState) const;
+        const float* queryVector, storage::NodeTableScanState& embeddingScanState) const;
     std::vector<NodeWithDistance> searchKNNInLowerLayer(transaction::Transaction* transaction,
         const float* queryVector, common::offset_t entryNode, HNSWSearchState& searchState) const;
 
@@ -272,5 +275,5 @@ private:
     std::unique_ptr<OnDiskEmbeddings> embeddings;
 };
 
-} // namespace storage
+} // namespace vector_extension
 } // namespace kuzu

@@ -6,33 +6,30 @@
 #include "main/database.h"
 
 namespace kuzu {
-namespace hnsw_extension {
+namespace vector_extension {
 
 static void initHNSWEntries(const transaction::Transaction* transaction,
     catalog::Catalog& catalog) {
     for (auto& indexEntry : catalog.getIndexEntries(transaction)) {
-        if (indexEntry->getIndexType() == catalog::HNSWIndexCatalogEntry::TYPE_NAME) {
-            indexEntry->setAuxInfo(
-                catalog::HNSWIndexAuxInfo::deserialize(indexEntry->getAuxBufferReader()));
+        if (indexEntry->getIndexType() == HNSWIndexCatalogEntry::TYPE_NAME) {
+            indexEntry->setAuxInfo(HNSWIndexAuxInfo::deserialize(indexEntry->getAuxBufferReader()));
         }
     }
 }
 
 void VectorExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
-    extension::ExtensionUtils::addTableFunc<function::QueryHNSWIndexFunction>(db);
-    extension::ExtensionUtils::addInternalStandaloneTableFunc<
-        function::InternalCreateHNSWIndexFunction>(db);
-    extension::ExtensionUtils::addInternalStandaloneTableFunc<
-        function::InternalFinalizeHNSWIndexFunction>(db);
-    extension::ExtensionUtils::addStandaloneTableFunc<function::CreateHNSWIndexFunction>(db);
-    extension::ExtensionUtils::addInternalStandaloneTableFunc<
-        function::InternalDropHNSWIndexFunction>(db);
-    extension::ExtensionUtils::addStandaloneTableFunc<function::DropHNSWIndexFunction>(db);
+    extension::ExtensionUtils::addTableFunc<QueryHNSWIndexFunction>(db);
+    extension::ExtensionUtils::addInternalStandaloneTableFunc<InternalCreateHNSWIndexFunction>(db);
+    extension::ExtensionUtils::addInternalStandaloneTableFunc<InternalFinalizeHNSWIndexFunction>(
+        db);
+    extension::ExtensionUtils::addStandaloneTableFunc<CreateHNSWIndexFunction>(db);
+    extension::ExtensionUtils::addInternalStandaloneTableFunc<InternalDropHNSWIndexFunction>(db);
+    extension::ExtensionUtils::addStandaloneTableFunc<DropHNSWIndexFunction>(db);
     initHNSWEntries(context->getTransaction(), *db.getCatalog());
 }
 
-} // namespace hnsw_extension
+} // namespace vector_extension
 } // namespace kuzu
 
 extern "C" {
@@ -44,10 +41,10 @@ extern "C" {
 #define INIT_EXPORT __attribute__((visibility("default")))
 #endif
 INIT_EXPORT void init(kuzu::main::ClientContext* context) {
-    kuzu::hnsw_extension::VectorExtension::load(context);
+    kuzu::vector_extension::VectorExtension::load(context);
 }
 
 INIT_EXPORT const char* name() {
-    return kuzu::hnsw_extension::VectorExtension::EXTENSION_NAME;
+    return kuzu::vector_extension::VectorExtension::EXTENSION_NAME;
 }
 }

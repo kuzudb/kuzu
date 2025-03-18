@@ -30,7 +30,7 @@ struct NbrTableInfo {
 
 class KUZU_API NbrScanState {
 public:
-    struct KUZU_API Chunk {
+    struct Chunk {
         friend class NbrScanState;
 
         // Any neighbour for which the given function returns false

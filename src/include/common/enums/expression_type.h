@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-#include <common/api.h>
+#include "common/api.h"
 
 namespace kuzu {
 namespace common {

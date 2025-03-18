@@ -4,7 +4,7 @@
 #include "function/table/bind_input.h"
 
 namespace kuzu {
-namespace storage {
+namespace vector_extension {
 
 enum class DistFuncType : uint8_t { Cosine = 0, L2 = 1, L2_SQUARE = 2, DotProduct = 3 };
 
@@ -103,5 +103,5 @@ struct QueryHNSWConfig {
     explicit QueryHNSWConfig(const function::optional_params_t& optionalParams);
 };
 
-} // namespace storage
+} // namespace vector_extension
 } // namespace kuzu

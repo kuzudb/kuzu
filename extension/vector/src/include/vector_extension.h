@@ -3,7 +3,7 @@
 #include "extension/extension.h"
 
 namespace kuzu {
-namespace hnsw_extension {
+namespace vector_extension {
 
 class VectorExtension final : public extension::Extension {
 public:
@@ -12,5 +12,5 @@ public:
 public:
     static void load(main::ClientContext* context);
 };
-} // namespace hnsw_extension
+} // namespace vector_extension
 } // namespace kuzu

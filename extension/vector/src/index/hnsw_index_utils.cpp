@@ -9,7 +9,7 @@
 #include "simsimd.h"
 
 namespace kuzu {
-namespace storage {
+namespace vector_extension {
 
 void HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
     const catalog::TableCatalogEntry* tableEntry, const std::string& indexName,
@@ -98,5 +98,5 @@ void HNSWIndexUtils::validateColumnType(const common::LogicalType& type) {
     }
 }
 
-} // namespace storage
+} // namespace vector_extension
 } // namespace kuzu

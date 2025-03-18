@@ -13,7 +13,7 @@ namespace main {
 class ClientContext;
 }
 
-namespace storage {
+namespace vector_extension {
 
 struct HNSWIndexUtils {
     enum class KUZU_API IndexOperation { CREATE, QUERY, DROP };
@@ -42,9 +42,9 @@ struct HNSWIndexUtils {
     }
 
     template<typename T>
-    static T* getEmbedding(const ColumnChunkData& embeddings, common::offset_t offset,
+    static T* getEmbedding(const storage::ColumnChunkData& embeddings, common::offset_t offset,
         common::length_t dimension) {
-        auto& listChunk = embeddings.cast<ListChunkData>();
+        auto& listChunk = embeddings.cast<storage::ListChunkData>();
         return &listChunk.getDataColumnChunk()->getData<T>()[offset * dimension];
     }
 
@@ -52,5 +52,5 @@ private:
     static void validateColumnType(const common::LogicalType& type);
 };
 
-} // namespace storage
+} // namespace vector_extension
 } // namespace kuzu

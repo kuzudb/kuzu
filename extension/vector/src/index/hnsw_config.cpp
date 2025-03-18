@@ -8,7 +8,7 @@
 #include "function/hnsw_index_functions.h"
 
 namespace kuzu {
-namespace storage {
+namespace vector_extension {
 
 void Mu::validate(int64_t value) {
     if (value < 1 || value > 100) {
@@ -83,9 +83,8 @@ HNSWIndexConfig::HNSWIndexConfig(const function::optional_params_t& optionalPara
             efc = value.getValue<int64_t>();
             Efc::validate(efc);
         } else {
-            throw common::BinderException{
-                common::stringFormat("Unrecognized optional parameter {} in {}.", name,
-                    function::CreateHNSWIndexFunction::name)};
+            throw common::BinderException{common::stringFormat(
+                "Unrecognized optional parameter {} in {}.", name, CreateHNSWIndexFunction::name)};
         }
     }
 }
@@ -167,12 +166,11 @@ QueryHNSWConfig::QueryHNSWConfig(const function::optional_params_t& optionalPara
             efs = value.getValue<int64_t>();
             Efs::validate(efs);
         } else {
-            throw common::BinderException{
-                common::stringFormat("Unrecognized optional parameter {} in {}.", name,
-                    function::QueryHNSWIndexFunction::name)};
+            throw common::BinderException{common::stringFormat(
+                "Unrecognized optional parameter {} in {}.", name, QueryHNSWIndexFunction::name)};
         }
     }
 }
 
-} // namespace storage
+} // namespace vector_extension
 } // namespace kuzu

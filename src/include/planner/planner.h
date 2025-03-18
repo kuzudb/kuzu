@@ -117,7 +117,7 @@ public:
     void planTableFunctionCall(const binder::BoundReadingClause& readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
 
-    KUZU_API void planReadOp(std::shared_ptr<LogicalOperator> op,
+    void planReadOp(std::shared_ptr<LogicalOperator> op,
         const binder::expression_vector& predicates, LogicalPlan& plan);
     void planLoadFrom(const binder::BoundReadingClause& readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
@@ -227,7 +227,8 @@ public:
     void appendSetProperty(const std::vector<binder::BoundSetPropertyInfo>& infos,
         LogicalPlan& plan);
     void appendDelete(const std::vector<binder::BoundDeleteInfo>& infos, LogicalPlan& plan);
-    std::unique_ptr<LogicalInsertInfo> createLogicalInsertInfo(const binder::BoundInsertInfo* info);
+    std::unique_ptr<LogicalInsertInfo> createLogicalInsertInfo(
+        const binder::BoundInsertInfo* info) const;
 
     // Append projection operators
     void appendProjection(const binder::expression_vector& expressionsToProject, LogicalPlan& plan);

@@ -20,18 +20,19 @@
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
+using namespace kuzu::function;
 using namespace kuzu::planner;
 
 namespace kuzu {
-namespace function {
+namespace vector_extension {
 
 QueryHNSWIndexBindData::QueryHNSWIndexBindData(main::ClientContext* context,
-    expression_vector columns, BoundQueryHNSWIndexInput boundInput, storage::QueryHNSWConfig config,
+    expression_vector columns, BoundQueryHNSWIndexInput boundInput, QueryHNSWConfig config,
     std::shared_ptr<NodeExpression> outputNode)
     : TableFuncBindData{std::move(columns), 1 /*maxOffset*/}, context{context},
       boundInput{std::move(boundInput)}, config{config}, outputNode{std::move(outputNode)} {
     const auto indexEntry = this->boundInput.indexEntry;
-    auto& indexAuxInfo = indexEntry->getAuxInfo().cast<catalog::HNSWIndexAuxInfo>();
+    auto& indexAuxInfo = indexEntry->getAuxInfo().cast<HNSWIndexAuxInfo>();
     indexColumnID = this->boundInput.nodeTableEntry->getColumnID(indexEntry->getPropertyIDs()[0]);
     const auto catalog = context->getCatalog();
     upperHNSWRelTableEntry =
@@ -43,12 +44,12 @@ QueryHNSWIndexBindData::QueryHNSWIndexBindData(main::ClientContext* context,
 }
 
 static std::vector<LogicalType> inferInputTypes(const expression_vector& params) {
-    auto inputQueryExpression = params[2];
+    const auto inputQueryExpression = params[2];
     std::vector<LogicalType> inputTypes;
     inputTypes.push_back(LogicalType::STRING());
     inputTypes.push_back(LogicalType::STRING());
     if (inputQueryExpression->expressionType == ExpressionType::LITERAL) {
-        auto val = inputQueryExpression->constCast<LiteralExpression>().getValue();
+        const auto val = inputQueryExpression->constCast<LiteralExpression>().getValue();
         inputTypes.push_back(LogicalType::ARRAY(LogicalType::FLOAT(), val.getChildrenSize()));
     } else {
         inputTypes.push_back(LogicalType::ANY());
@@ -68,8 +69,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     catalog::NodeTableCatalogEntry* nodeTableEntry = nullptr;
     const graph::GraphEntry* graphEntry = nullptr;
     if (context->getCatalog()->containsTable(context->getTransaction(), tableOrGraphName)) {
-        nodeTableEntry = storage::HNSWIndexUtils::bindNodeTable(*context, tableOrGraphName,
-            indexName, storage::HNSWIndexUtils::IndexOperation::QUERY);
+        nodeTableEntry = HNSWIndexUtils::bindNodeTable(*context, tableOrGraphName, indexName,
+            HNSWIndexUtils::IndexOperation::QUERY);
     } else if (context->getGraphEntrySetUnsafe().hasGraph(tableOrGraphName)) {
         graphEntry = &context->getGraphEntrySetUnsafe().getEntry(tableOrGraphName);
         if (graphEntry->nodeInfos.size() > 1 || !graphEntry->relInfos.empty()) {
@@ -80,15 +81,15 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
                 tableOrGraphName)};
         }
         nodeTableEntry = graphEntry->nodeInfos[0].entry->ptrCast<catalog::NodeTableCatalogEntry>();
-        storage::HNSWIndexUtils::validateIndexExistence(*context, nodeTableEntry, indexName,
-            storage::HNSWIndexUtils::IndexOperation::QUERY);
+        HNSWIndexUtils::validateIndexExistence(*context, nodeTableEntry, indexName,
+            HNSWIndexUtils::IndexOperation::QUERY);
     } else {
         throw BinderException{
             stringFormat("Cannot find table or projected graph named as {}.", tableOrGraphName)};
     }
     const auto indexEntry = context->getCatalog()->getIndex(context->getTransaction(),
         nodeTableEntry->getTableID(), indexName);
-    const auto& auxInfo = indexEntry->getAuxInfo().cast<catalog::HNSWIndexAuxInfo>();
+    const auto& auxInfo = indexEntry->getAuxInfo().cast<HNSWIndexAuxInfo>();
     KU_ASSERT(
         nodeTableEntry->getProperty(indexEntry->getPropertyIDs()[0]).getType().getLogicalTypeID() ==
         LogicalTypeID::ARRAY);
@@ -101,14 +102,14 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     columns.push_back(input->binder->createVariable("_distance", LogicalType::DOUBLE()));
     auto boundInput = BoundQueryHNSWIndexInput{nodeTableEntry, graphEntry, indexEntry,
         std::move(inputQueryExpression), static_cast<uint64_t>(k)};
-    auto config = storage::QueryHNSWConfig{input->optionalParams};
+    auto config = QueryHNSWConfig{input->optionalParams};
     return std::make_unique<QueryHNSWIndexBindData>(context, std::move(columns), boundInput, config,
         outputNode);
 }
 
 static std::vector<float> convertQueryVector(const Value& value) {
     std::vector<float> queryVector;
-    auto numElements = value.getChildrenSize();
+    const auto numElements = value.getChildrenSize();
     queryVector.reserve(numElements);
     for (auto i = 0u; i < numElements; i++) {
         queryVector[i] = NestedVal::getChildVal(&value, i)->getValue<float>();
@@ -125,9 +126,10 @@ static std::vector<float> getQueryVector(main::ClientContext* context,
             queryExpression->getUniqueName());
     }
     Binder binder{context};
-    auto expr = binder.getExpressionBinder()->implicitCastIfNecessary(literalExpression,
+    const auto expr = binder.getExpressionBinder()->implicitCastIfNecessary(literalExpression,
         LogicalType::ARRAY(LogicalType::FLOAT(), dimension));
-    auto value = evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(expr, context);
+    const auto value =
+        evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(expr, context);
     KU_ASSERT(NestedVal::getChildVal(&value, 0)->getDataType() == LogicalType::FLOAT());
     return convertQueryVector(value);
 }
@@ -145,8 +147,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
     if (!localState->hasResultToOutput()) {
         // We start searching when there is no query result to output.
         const auto& auxInfo =
-            bindData->boundInput.indexEntry->getAuxInfo().cast<catalog::HNSWIndexAuxInfo>();
-        const auto index = std::make_unique<storage::OnDiskHNSWIndex>(input.context->clientContext,
+            bindData->boundInput.indexEntry->getAuxInfo().cast<HNSWIndexAuxInfo>();
+        const auto index = std::make_unique<OnDiskHNSWIndex>(input.context->clientContext,
             bindData->boundInput.nodeTableEntry, bindData->indexColumnID,
             bindData->upperHNSWRelTableEntry, bindData->lowerHNSWRelTableEntry,
             auxInfo.config.copy());
@@ -202,7 +204,7 @@ std::unique_ptr<TableFuncLocalState> initQueryHNSWLocalState(
     const auto hnswBindData = input.bindData.constPtrCast<QueryHNSWIndexBindData>();
     const auto hnswSharedState = input.sharedState.ptrCast<QueryHNSWIndexSharedState>();
     auto context = input.clientContext;
-    storage::HNSWSearchState searchState{context->getTransaction(), context->getMemoryManager(),
+    HNSWSearchState searchState{context->getTransaction(), context->getMemoryManager(),
         *hnswSharedState->nodeTable, hnswBindData->indexColumnID, hnswSharedState->numNodes,
         hnswBindData->boundInput.k, hnswBindData->config};
     const auto tableID = hnswBindData->boundInput.nodeTableEntry->getTableID();
@@ -270,5 +272,5 @@ function_set QueryHNSWIndexFunction::getFunctionSet() {
     return functionSet;
 }
 
-} // namespace function
+} // namespace vector_extension
 } // namespace kuzu
