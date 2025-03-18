@@ -9,23 +9,23 @@
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'dotproduct');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'dotproduct');
 ---- ok
 -STATEMENT CALL create_projected_graph('emb-graph', {'embeddings': {'filter': 'n.id < 100'}}, []);
 ---- ok
--STATEMENT CALL QUERY_HNSW_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
 ---- 3
 58
 93
 28
--STATEMENT CALL QUERY_HNSW_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3, directed_search_up_sel := 0.8) RETURN nn.id ORDER BY _distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3, directed_search_up_sel := 0.8) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
 ---- 3
 58
 93
 28
--STATEMENT CALL QUERY_HNSW_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3, blind_search_up_sel := 0.8, directed_search_up_sel := 0.9) RETURN nn.id ORDER BY _distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3, blind_search_up_sel := 0.8, directed_search_up_sel := 0.9) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
 ---- 3
 58
@@ -45,11 +45,11 @@
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'dotproduct');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'dotproduct');
 ---- ok
 -STATEMENT CALL create_projected_graph('emb-graph', {'embeddings': {'filter': 'n.id < 50'}}, []);
 ---- ok
--STATEMENT CALL QUERY_HNSW_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
 ---- 3
 28
@@ -69,11 +69,11 @@
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'dotproduct');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'dotproduct');
 ---- ok
 -STATEMENT CALL create_projected_graph('emb-graph', {'embeddings': {'filter': 'n.id < 600'}}, []);
 ---- ok
--STATEMENT CALL QUERY_HNSW_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
 ---- 3
 499
@@ -93,11 +93,11 @@
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
 ---- ok
 -STATEMENT CALL create_projected_graph('emb-graph', {'embeddings': {'filter': 'n.id < 100'}}, []);
 ---- ok
--STATEMENT CALL QUERY_HNSW_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
 ---- 3
 37
@@ -117,11 +117,11 @@
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
 ---- ok
 -STATEMENT CALL create_projected_graph('emb-graph', {'embeddings': {'filter': 'n.id < 50'}}, []);
 ---- ok
--STATEMENT CALL QUERY_HNSW_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
 ---- 3
 37
@@ -141,11 +141,11 @@
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
 ---- ok
 -STATEMENT CALL create_projected_graph('emb-graph', {'embeddings': {'filter': 'n.id < 600'}}, []);
 ---- ok
--STATEMENT CALL QUERY_HNSW_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
 ---- 3
 333
@@ -165,11 +165,11 @@
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec');
 ---- ok
 -STATEMENT CALL create_projected_graph('emb-graph', {'embeddings': {'filter': 'n.id < 100'}}, []);
 ---- ok
--STATEMENT CALL QUERY_HNSW_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
 ---- 3
 37
@@ -189,11 +189,11 @@
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec');
 ---- ok
 -STATEMENT CALL create_projected_graph('emb-graph', {'embeddings': {'filter': 'n.id < 50'}}, []);
 ---- ok
--STATEMENT CALL QUERY_HNSW_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
 ---- 3
 37
@@ -213,11 +213,11 @@
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec');
 ---- ok
 -STATEMENT CALL create_projected_graph('emb-graph', {'embeddings': {'filter': 'n.id < 600'}}, []);
 ---- ok
--STATEMENT CALL QUERY_HNSW_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
 ---- 3
 333

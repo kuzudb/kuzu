@@ -97,8 +97,9 @@ HNSWIndexConfig::HNSWIndexConfig(const function::optional_params_t& optionalPara
             efc = value.getValue<int64_t>();
             Efc::validate(efc);
         } else {
-            throw common::BinderException{common::stringFormat(
-                "Unrecognized optional parameter {} in {}.", name, CreateHNSWIndexFunction::name)};
+            throw common::BinderException{
+                common::stringFormat("Unrecognized optional parameter {} in {}.", name,
+                    CreateVectorIndexFunction::name)};
         }
     }
 }
@@ -189,7 +190,7 @@ QueryHNSWConfig::QueryHNSWConfig(const function::optional_params_t& optionalPara
             DirectedSearchUpSelThreshold::validate(directedSearchUpSelThreshold);
         } else {
             throw common::BinderException{common::stringFormat(
-                "Unrecognized optional parameter {} in {}.", name, QueryHNSWIndexFunction::name)};
+                "Unrecognized optional parameter {} in {}.", name, QueryVectorIndexFunction::name)};
         }
     }
     if (blindSearchUpSelThreshold >= directedSearchUpSelThreshold) {

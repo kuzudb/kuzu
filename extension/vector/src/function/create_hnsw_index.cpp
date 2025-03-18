@@ -286,7 +286,7 @@ function_set InternalFinalizeHNSWIndexFunction::getFunctionSet() {
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
-    HNSWIndexUtils::validateAutoTransaction(*context, CreateHNSWIndexFunction::name);
+    HNSWIndexUtils::validateAutoTransaction(*context, CreateVectorIndexFunction::name);
     return createInMemHNSWBindFunc(context, input);
 }
 
@@ -318,7 +318,7 @@ static std::string rewriteCreateHNSWQuery(main::ClientContext& context,
     return query;
 }
 
-function_set CreateHNSWIndexFunction::getFunctionSet() {
+function_set CreateVectorIndexFunction::getFunctionSet() {
     function_set functionSet;
     std::vector inputTypes = {LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::STRING};
     auto func = std::make_unique<TableFunction>(name, inputTypes);

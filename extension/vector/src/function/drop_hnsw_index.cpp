@@ -72,7 +72,7 @@ function_set InternalDropHNSWIndexFunction::getFunctionSet() {
     return functionSet;
 }
 
-function_set DropHNSWIndexFunction::getFunctionSet() {
+function_set DropVectorIndexFunction::getFunctionSet() {
     function_set functionSet;
     std::vector inputTypes = {common::LogicalTypeID::STRING, common::LogicalTypeID::STRING};
     auto func = std::make_unique<TableFunction>(name, inputTypes);

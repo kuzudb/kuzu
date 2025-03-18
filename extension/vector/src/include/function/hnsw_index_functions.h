@@ -118,26 +118,26 @@ struct InternalFinalizeHNSWIndexFunction final {
     static function::function_set getFunctionSet();
 };
 
-struct CreateHNSWIndexFunction final {
-    static constexpr const char* name = "CREATE_HNSW_INDEX";
-
-    static function::function_set getFunctionSet();
-};
-
 struct InternalDropHNSWIndexFunction final {
     static constexpr const char* name = "_DROP_HNSW_INDEX";
 
     static function::function_set getFunctionSet();
 };
 
-struct DropHNSWIndexFunction final {
-    static constexpr const char* name = "DROP_HNSW_INDEX";
+struct CreateVectorIndexFunction final {
+    static constexpr const char* name = "CREATE_VECTOR_INDEX";
 
     static function::function_set getFunctionSet();
 };
 
-struct QueryHNSWIndexFunction final {
-    static constexpr const char* name = "QUERY_HNSW_INDEX";
+struct DropVectorIndexFunction final {
+    static constexpr const char* name = "DROP_VECTOR_INDEX";
+
+    static function::function_set getFunctionSet();
+};
+
+struct QueryVectorIndexFunction final {
+    static constexpr const char* name = "QUERY_VECTOR_INDEX";
 
     static function::function_set getFunctionSet();
 };

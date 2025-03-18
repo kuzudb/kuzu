@@ -76,7 +76,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         if (graphEntry->nodeInfos.size() > 1 || !graphEntry->relInfos.empty()) {
             throw BinderException{stringFormat(
                 "Projected graph {} either contains relationship tables or "
-                "multiple node tables. Projected graphs passed to QUERY_HNSW_INDEX function must "
+                "multiple node tables. Projected graphs passed to QUERY_VECTOR_INDEX function must "
                 "contain only nodes from a single node table and no relationship tables.",
                 tableOrGraphName)};
         }
@@ -256,11 +256,11 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
     }
 }
 
-function_set QueryHNSWIndexFunction::getFunctionSet() {
+function_set QueryVectorIndexFunction::getFunctionSet() {
     function_set functionSet;
     std::vector inputTypes{LogicalTypeID::STRING, LogicalTypeID::STRING, LogicalTypeID::ARRAY,
         LogicalTypeID::INT64};
-    auto tableFunction = std::make_unique<TableFunction>("query_hnsw_index", inputTypes);
+    auto tableFunction = std::make_unique<TableFunction>(name, inputTypes);
     tableFunction->tableFunc = tableFunc;
     tableFunction->bindFunc = bindFunc;
     tableFunction->initSharedStateFunc = initQueryHNSWSharedState;
