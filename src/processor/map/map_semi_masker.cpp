@@ -54,6 +54,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(
                 auto funcSharedState = sharedState->ptrCast<function::GDSFuncSharedState>();
                 initMask(masksPerTable, funcSharedState->getGraphNodeMaskMap()->getMasks());
             } break;
+            case SemiMaskTargetType::SCAN_NODE: {
+                auto tableFunc = physicalOp->ptrCast<TableFunctionCall>();
+                initMask(masksPerTable, tableFunc->getSharedState()->getSemiMasks());
+            } break;
             default:
                 KU_UNREACHABLE;
             }

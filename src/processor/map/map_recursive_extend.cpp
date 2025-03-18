@@ -26,8 +26,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(
     if (extend.hasNbrTableIDSet()) {
         sharedState->setNbrTableIDSet(extend.getNbrTableIDSet());
     }
-    sharedState->setInputNodeMask(getNodeOffsetMaskMap(*bindData.nodeInput));
-    sharedState->setOutputNodeMask(getNodeOffsetMaskMap(*bindData.nodeOutput));
+    sharedState->setInputNodeMask(createNodeOffsetMaskMap(*bindData.nodeInput));
+    sharedState->setOutputNodeMask(createNodeOffsetMaskMap(*bindData.nodeOutput));
     auto printInfo =
         std::make_unique<RecursiveExtendPrintInfo>(extend.getFunction().getFunctionName());
     auto descriptor = std::make_unique<ResultSetDescriptor>();
@@ -45,7 +45,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(
         auto logicalSemiMasker = child->ptrCast<LogicalSemiMasker>();
         logicalSemiMasker->addTarget(logicalOperator);
         for (auto tableID : logicalSemiMasker->getNodeTableIDs()) {
-            maskMap->addMask(tableID, getSemiMask(tableID));
+            maskMap->addMask(tableID, createSemiMask(tableID));
         }
         auto root = mapOperator(logicalRoot.get());
         recursiveExtend->addChild(std::move(root));

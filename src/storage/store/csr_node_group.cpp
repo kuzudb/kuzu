@@ -105,9 +105,9 @@ void CSRNodeGroup::initScanForCommittedPersistent(const Transaction* transaction
         auto offsetInGroup = nodeOffset % StorageConfig::NODE_GROUP_SIZE;
         auto offsetToScanFrom = offsetInGroup == 0 ? 0 : offsetInGroup - 1;
         csrHeader.offset->scanCommitted<ResidencyState::ON_DISK>(transaction, offsetState,
-            *nodeGroupScanState.header->offset, offsetToScanFrom, offsetInGroup + 1);
+            *nodeGroupScanState.header->offset, offsetToScanFrom, 1);
         csrHeader.length->scanCommitted<ResidencyState::ON_DISK>(transaction, lengthState,
-            *nodeGroupScanState.header->length, offsetInGroup, offsetInGroup + 1);
+            *nodeGroupScanState.header->length, offsetInGroup, 1);
     } else {
         auto numBoundNodes = csrHeader.offset->getNumValues();
         csrHeader.offset->scanCommitted<ResidencyState::ON_DISK>(transaction, offsetState,

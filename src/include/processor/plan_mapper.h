@@ -11,6 +11,7 @@ namespace common {
 enum class RelDataDirection : uint8_t;
 class SemiMask;
 class NodeOffsetMaskMap;
+class SemiMask;
 } // namespace common
 namespace main {
 class ClientContext;
@@ -231,10 +232,12 @@ public:
 
     static std::vector<DataPos> getDataPos(const binder::expression_vector& expressions,
         const planner::Schema& schema);
+    static planner::LogicalSemiMasker* findSemiMaskerInPlan(
+        planner::LogicalOperator* logicalOperator);
     static FactorizedTableSchema createFlatFTableSchema(
         const binder::expression_vector& expressions, const planner::Schema& schema);
-    std::unique_ptr<common::SemiMask> getSemiMask(common::table_id_t tableID) const;
-    std::unique_ptr<common::NodeOffsetMaskMap> getNodeOffsetMaskMap(
+    std::unique_ptr<common::SemiMask> createSemiMask(common::table_id_t tableID) const;
+    std::unique_ptr<common::NodeOffsetMaskMap> createNodeOffsetMaskMap(
         const binder::Expression& expr) const;
 
 public:

@@ -13,7 +13,6 @@
 #include "optimizer/remove_unnecessary_join_optimizer.h"
 #include "optimizer/schema_populator.h"
 #include "optimizer/top_k_optimizer.h"
-#include "planner/join_order/cardinality_estimator.h"
 #include "planner/operator/logical_explain.h"
 
 namespace kuzu {

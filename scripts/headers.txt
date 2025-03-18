@@ -21,6 +21,7 @@ src/include/common/exception/catalog.h
 src/include/common/exception/exception.h
 src/include/common/exception/internal.h
 src/include/common/in_mem_overflow_buffer.h
+src/include/common/mask.h
 src/include/common/null_mask.h
 src/include/common/string_format.h
 src/include/common/timer.h

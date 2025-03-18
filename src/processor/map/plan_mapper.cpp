@@ -1,7 +1,7 @@
 #include "processor/plan_mapper.h"
 
 #include "binder/expression/node_expression.h"
-#include "common/mask.h"
+#include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/profile.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
@@ -22,7 +22,7 @@ static void setPhysicalPlanIfProfile(const LogicalPlan* logicalPlan, PhysicalPla
 }
 
 std::unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(const LogicalPlan* logicalPlan,
-    const binder::expression_vector& expressionsToCollect) {
+    const expression_vector& expressionsToCollect) {
     auto lastOperator = mapOperator(logicalPlan->getLastOperator().get());
     lastOperator = createResultCollector(AccumulateType::REGULAR, expressionsToCollect,
         logicalPlan->getSchema(), std::move(lastOperator));
@@ -208,19 +208,32 @@ FactorizedTableSchema PlanMapper::createFlatFTableSchema(const expression_vector
     return tableSchema;
 }
 
-std::unique_ptr<SemiMask> PlanMapper::getSemiMask(table_id_t tableID) const {
+std::unique_ptr<SemiMask> PlanMapper::createSemiMask(table_id_t tableID) const {
     auto table = clientContext->getStorageManager()->getTable(tableID)->ptrCast<NodeTable>();
     return SemiMaskUtil::createMask(table->getNumTotalRows(clientContext->getTransaction()));
 }
 
-std::unique_ptr<NodeOffsetMaskMap> PlanMapper::getNodeOffsetMaskMap(
-    const binder::Expression& expr) const {
+std::unique_ptr<NodeOffsetMaskMap> PlanMapper::createNodeOffsetMaskMap(
+    const Expression& expr) const {
     auto& node = expr.constCast<NodeExpression>();
     auto maskMap = std::make_unique<NodeOffsetMaskMap>();
     for (auto tableID : node.getTableIDs()) {
-        maskMap->addMask(tableID, getSemiMask(tableID));
+        maskMap->addMask(tableID, createSemiMask(tableID));
     }
     return maskMap;
+}
+
+LogicalSemiMasker* PlanMapper::findSemiMaskerInPlan(LogicalOperator* logicalOperator) {
+    if (logicalOperator->getOperatorType() == LogicalOperatorType::SEMI_MASKER) {
+        return logicalOperator->ptrCast<LogicalSemiMasker>();
+    }
+    for (auto& child : logicalOperator->getChildren()) {
+        const auto semiMasker = findSemiMaskerInPlan(child.get());
+        if (semiMasker) {
+            return semiMasker;
+        }
+    }
+    return nullptr;
 }
 
 } // namespace processor
