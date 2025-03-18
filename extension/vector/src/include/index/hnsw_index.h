@@ -88,7 +88,7 @@ protected:
 struct InMemHNSWLayerInfo {
     common::offset_t numNodes;
     InMemEmbeddings* embeddings;
-    DistFuncType distFunc;
+    MetricType metric;
     // The degree threshold of a node that will start to trigger shrinking during insertions. Thus,
     // it is also the max degree of a node in the graph before shrinking.
     int64_t degreeThresholdToShrink;
@@ -97,10 +97,9 @@ struct InMemHNSWLayerInfo {
     double alpha;
     int64_t efc;
 
-    InMemHNSWLayerInfo(common::offset_t numNodes, InMemEmbeddings* embeddings,
-        DistFuncType distFunc, int64_t degreeThresholdToShrink, int64_t maxDegree, double alpha,
-        int64_t efc)
-        : numNodes{numNodes}, embeddings{embeddings}, distFunc{distFunc},
+    InMemHNSWLayerInfo(common::offset_t numNodes, InMemEmbeddings* embeddings, MetricType metric,
+        int64_t degreeThresholdToShrink, int64_t maxDegree, double alpha, int64_t efc)
+        : numNodes{numNodes}, embeddings{embeddings}, metric{metric},
           degreeThresholdToShrink{degreeThresholdToShrink}, maxDegree{maxDegree}, alpha{alpha},
           efc{efc} {}
 };
@@ -257,8 +256,6 @@ public:
         max_node_priority_queue_t& results) const;
 
 private:
-    static constexpr double BLIND_SEARCH_UP_SEL_THRESHOLD = 0.08;
-    static constexpr double DIRECTED_SEARCH_UP_SEL_THRESHOLD = 0.4;
     static constexpr uint64_t FILTERED_SEARCH_INITIAL_CANDIDATES = 10;
 
     common::table_id_t nodeTableID;

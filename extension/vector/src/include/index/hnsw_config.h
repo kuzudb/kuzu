@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace vector_extension {
 
-enum class DistFuncType : uint8_t { Cosine = 0, L2 = 1, L2_SQUARE = 2, DotProduct = 3 };
+enum class MetricType : uint8_t { Cosine = 0, L2 = 1, L2_SQUARE = 2, DotProduct = 3 };
 
 // Max degree of the upper graph.
 struct Mu {
@@ -35,12 +35,12 @@ struct Pu {
     static void validate(double value);
 };
 
-struct DistFunc {
-    static constexpr const char* NAME = "distfunc";
+struct Metric {
+    static constexpr const char* NAME = "metric";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::STRING;
-    static constexpr DistFuncType DEFAULT_VALUE = DistFuncType::Cosine;
+    static constexpr MetricType DEFAULT_VALUE = MetricType::Cosine;
 
-    static void validate(const std::string& distFuncName);
+    static void validate(const std::string& metric);
 };
 
 struct Alpha {
@@ -67,11 +67,27 @@ struct Efs {
     static void validate(int64_t value);
 };
 
+struct BlindSearchUpSelThreshold {
+    static constexpr const char* NAME = "blind_search_up_sel";
+    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::DOUBLE;
+    static constexpr double DEFAULT_VALUE = 0.08;
+
+    static void validate(double value);
+};
+
+struct DirectedSearchUpSelThreshold {
+    static constexpr const char* NAME = "directed_search_up_sel";
+    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::DOUBLE;
+    static constexpr double DEFAULT_VALUE = 0.4;
+
+    static void validate(double value);
+};
+
 struct HNSWIndexConfig {
     int64_t mu = Mu::DEFAULT_VALUE;
     int64_t ml = Ml::DEFAULT_VALUE;
     double pu = Pu::DEFAULT_VALUE;
-    DistFuncType distFunc = DistFunc::DEFAULT_VALUE;
+    MetricType metric = Metric::DEFAULT_VALUE;
     double alpha = Alpha::DEFAULT_VALUE;
     int64_t efc = Efc::DEFAULT_VALUE;
 
@@ -85,18 +101,20 @@ struct HNSWIndexConfig {
 
     static HNSWIndexConfig deserialize(common::Deserializer& deSer);
 
-    static std::string distFuncToString(DistFuncType distFunc);
+    static std::string metricToString(MetricType metric);
 
 private:
     HNSWIndexConfig(const HNSWIndexConfig& other)
-        : mu{other.mu}, ml{other.ml}, pu{other.pu}, distFunc{other.distFunc}, alpha{other.alpha},
+        : mu{other.mu}, ml{other.ml}, pu{other.pu}, metric{other.metric}, alpha{other.alpha},
           efc{other.efc} {}
 
-    static DistFuncType getDistFuncType(const std::string& funcName);
+    static MetricType getMetricType(const std::string& metricName);
 };
 
 struct QueryHNSWConfig {
     int64_t efs = Efs::DEFAULT_VALUE;
+    double blindSearchUpSelThreshold = BlindSearchUpSelThreshold::DEFAULT_VALUE;
+    double directedSearchUpSelThreshold = DirectedSearchUpSelThreshold::DEFAULT_VALUE;
 
     QueryHNSWConfig() = default;
 

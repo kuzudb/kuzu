@@ -25,8 +25,8 @@ namespace vector_extension {
 CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : SimpleTableFuncSharedState{bindData.numRows}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-                    ->getTable(bindData.tableEntry->getTableID())
-                    ->cast<storage::NodeTable>()},
+              ->getTable(bindData.tableEntry->getTableID())
+              ->cast<storage::NodeTable>()},
       numNodes{bindData.numRows}, bindData{&bindData} {
     hnswIndex = std::make_shared<InMemHNSWIndex>(bindData.context, nodeTable,
         bindData.tableEntry->getColumnID(bindData.propertyID), bindData.config.copy());
@@ -122,9 +122,11 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
     auto sharedState = info.function.initSharedStateFunc(initInput);
     auto finalizeFuncSharedState = sharedState->ptrCast<FinalizeHNSWSharedState>();
     finalizeFuncSharedState->hnswIndex = createFuncSharedState->hnswIndex;
-    finalizeFuncSharedState->numRows =
-        (logicalCallBoundData->numRows + StorageConfig::NODE_GROUP_SIZE - 1) /
-        StorageConfig::NODE_GROUP_SIZE;
+    auto numNodeGroups =
+        logicalCallBoundData->numRows == 0 ?
+            0 :
+            storage::StorageUtils::getNodeGroupIdx(logicalCallBoundData->numRows) + 1;
+    finalizeFuncSharedState->numRows = numNodeGroups;
     finalizeFuncSharedState->maxMorselSize = 1;
     finalizeFuncSharedState->bindData = logicalCallBoundData->copy();
     auto finalizeCallOp = std::make_unique<processor::TableFunctionCall>(std::move(info),
@@ -304,8 +306,7 @@ static std::string rewriteCreateHNSWQuery(main::ClientContext& context,
     params += stringFormat("mu := {}, ", config.mu);
     params += stringFormat("ml := {}, ", config.ml);
     params += stringFormat("efc := {}, ", config.efc);
-    params +=
-        stringFormat("distFunc := '{}', ", HNSWIndexConfig::distFuncToString(config.distFunc));
+    params += stringFormat("metric := '{}', ", HNSWIndexConfig::metricToString(config.metric));
     params += stringFormat("alpha := {}, ", config.alpha);
     params += stringFormat("pu := {}", config.pu);
     auto columnName = hnswBindData->tableEntry->getProperty(hnswBindData->propertyID).getName();

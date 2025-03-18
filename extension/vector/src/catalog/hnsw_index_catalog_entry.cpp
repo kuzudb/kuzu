@@ -50,11 +50,11 @@ std::string HNSWIndexAuxInfo::toCypher(const IndexCatalogEntry& indexEntry,
         catalog->getTableCatalogEntry(context->getTransaction(), indexEntry.getTableID());
     auto tableName = tableEntry->getName();
     auto propertyName = tableEntry->getProperty(indexEntry.getPropertyIDs()[0]).getName();
-    auto distFuncName = HNSWIndexConfig::distFuncToString(config.distFunc);
+    auto metricName = HNSWIndexConfig::metricToString(config.metric);
     cypher += common::stringFormat("CALL CREATE_HNSW_INDEX('{}', '{}', '{}', mu := {}, ml := {}, "
-                                   "pu := {}, distFunc := '{}', alpha := {}, efc := {});",
+                                   "pu := {}, metric := '{}', alpha := {}, efc := {});",
         tableName, indexEntry.getIndexName(), propertyName, config.mu, config.ml, config.pu,
-        distFuncName, config.alpha, config.efc);
+        metricName, config.alpha, config.efc);
     return cypher;
 }
 

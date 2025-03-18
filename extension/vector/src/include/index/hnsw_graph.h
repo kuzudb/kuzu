@@ -72,9 +72,9 @@ struct NodeWithDistance {
 struct HNSWGraphInfo {
     common::offset_t numNodes;
     EmbeddingColumn* embeddings;
-    DistFuncType distFunc;
+    MetricType distFunc;
 
-    HNSWGraphInfo(common::offset_t numNodes, EmbeddingColumn* embeddings, DistFuncType distFunc)
+    HNSWGraphInfo(common::offset_t numNodes, EmbeddingColumn* embeddings, MetricType distFunc)
         : numNodes{numNodes}, embeddings{embeddings}, distFunc{distFunc} {}
 };
 
