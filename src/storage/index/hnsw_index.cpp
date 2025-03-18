@@ -460,6 +460,17 @@ void OnDiskHNSWIndex::directedTwoHopFilteredSearch(transaction::Transaction* tra
     const float* queryVector, graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
     min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const {
     int64_t numVisitedNbrs = 0;
+    auto candidatesForSecHop = collectFirstHopNbrsDirected(transaction, queryVector, nbrItr,
+        searchState, candidates, results, numVisitedNbrs);
+    processSecondHopCandidates(transaction, queryVector, searchState, numVisitedNbrs, candidates,
+        results, candidatesForSecHop);
+}
+
+min_node_priority_queue_t OnDiskHNSWIndex::collectFirstHopNbrsDirected(
+    transaction::Transaction* transaction, const float* queryVector,
+    graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
+    min_node_priority_queue_t& candidates, max_node_priority_queue_t& results,
+    int64_t& numVisitedNbrs) const {
     min_node_priority_queue_t candidatesForSecHop;
     for (const auto& neighborChunk : nbrItr) {
         neighborChunk.forEach([&](auto neighbor, auto) {
@@ -484,20 +495,24 @@ void OnDiskHNSWIndex::directedTwoHopFilteredSearch(transaction::Transaction* tra
             }
         });
     }
-    while (!candidatesForSecHop.empty()) {
-        auto [candidate, candidateDist] = candidatesForSecHop.top();
-        candidatesForSecHop.pop();
-        if (!searchOverSecondHopNbrs(transaction, queryVector, searchState.ef, searchState,
-                candidate, numVisitedNbrs, candidates, results)) {
-            return;
-        }
-    }
+    return candidatesForSecHop;
 }
 
 void OnDiskHNSWIndex::blindTwoHopFilteredSearch(transaction::Transaction* transaction,
     const float* queryVector, graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
     min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const {
     int64_t numVisitedNbrs = 0;
+    const auto secondHopCandidates = collectFirstHopNbrsBlind(transaction, queryVector, nbrItr,
+        searchState, candidates, results, numVisitedNbrs);
+    processSecondHopCandidates(transaction, queryVector, searchState, numVisitedNbrs, candidates,
+        results, secondHopCandidates);
+}
+
+common::offset_vec_t OnDiskHNSWIndex::collectFirstHopNbrsBlind(
+    transaction::Transaction* transaction, const float* queryVector,
+    graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
+    min_node_priority_queue_t& candidates, max_node_priority_queue_t& results,
+    int64_t& numVisitedNbrs) const {
     common::offset_vec_t secondHopCandidates;
     secondHopCandidates.reserve(config.ml);
     for (const auto& neighborChunk : nbrItr) {
@@ -515,9 +530,30 @@ void OnDiskHNSWIndex::blindTwoHopFilteredSearch(transaction::Transaction* transa
             }
         });
     }
-    for (const auto cand : secondHopCandidates) {
+    return secondHopCandidates;
+}
+
+void OnDiskHNSWIndex::processSecondHopCandidates(transaction::Transaction* transaction,
+    const float* queryVector, HNSWSearchState& searchState, int64_t& numVisitedNbrs,
+    min_node_priority_queue_t& candidates, max_node_priority_queue_t& results,
+    const std::vector<common::offset_t>& candidateOffsets) const {
+    for (const auto cand : candidateOffsets) {
         if (!searchOverSecondHopNbrs(transaction, queryVector, searchState.ef, searchState, cand,
                 numVisitedNbrs, candidates, results)) {
+            return;
+        }
+    }
+}
+
+void OnDiskHNSWIndex::processSecondHopCandidates(transaction::Transaction* transaction,
+    const float* queryVector, HNSWSearchState& searchState, int64_t& numVisitedNbrs,
+    min_node_priority_queue_t& candidates, max_node_priority_queue_t& results,
+    min_node_priority_queue_t& candidatesQueue) const {
+    while (!candidatesQueue.empty()) {
+        auto [candidate, candidateDist] = candidatesQueue.top();
+        candidatesQueue.pop();
+        if (!searchOverSecondHopNbrs(transaction, queryVector, searchState.ef, searchState,
+                candidate, numVisitedNbrs, candidates, results)) {
             return;
         }
     }

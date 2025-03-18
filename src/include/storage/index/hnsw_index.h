@@ -225,6 +225,23 @@ public:
         graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
 
+    void processSecondHopCandidates(transaction::Transaction* transaction, const float* queryVector,
+        HNSWSearchState& searchState, int64_t& numVisitedNbrs,
+        min_node_priority_queue_t& candidates, max_node_priority_queue_t& results,
+        const std::vector<common::offset_t>& candidateOffsets) const;
+    void processSecondHopCandidates(transaction::Transaction* transaction, const float* queryVector,
+        HNSWSearchState& searchState, int64_t& numVisitedNbrs,
+        min_node_priority_queue_t& candidates, max_node_priority_queue_t& results,
+        min_node_priority_queue_t& candidatesQueue) const;
+
+    min_node_priority_queue_t collectFirstHopNbrsDirected(transaction::Transaction* transaction,
+        const float* queryVector, graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
+        min_node_priority_queue_t& candidates, max_node_priority_queue_t& results,
+        int64_t& numVisitedNbrs) const;
+    common::offset_vec_t collectFirstHopNbrsBlind(transaction::Transaction* transaction,
+        const float* queryVector, graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
+        min_node_priority_queue_t& candidates, max_node_priority_queue_t& results,
+        int64_t& numVisitedNbrs) const;
     // Return false if we've hit Ml limit.
     bool searchOverSecondHopNbrs(transaction::Transaction* transaction, const float* queryVector,
         uint64_t ef, HNSWSearchState& searchState, common::offset_t cand, int64_t& numVisitedNbrs,
