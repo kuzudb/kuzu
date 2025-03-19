@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/offset_iterator.h"
 #include "processor/operator/partitioner.h"
 #include "storage/index/hnsw_config.h"
 #include "storage/local_cached_column.h"
@@ -76,24 +77,40 @@ struct HNSWGraphInfo {
         : numNodes{numNodes}, embeddings{embeddings}, distFunc{distFunc} {}
 };
 
+struct CompressedDstNodesBuffer;
+
+struct CompressedNbrNodesView {
+    virtual ~CompressedNbrNodesView() = default;
+
+    virtual common::offset_t getNodeIDAtomic(common::offset_t csrOffset) const = 0;
+    virtual void setNodeIDAtomic(common::offset_t csrOffset, common::offset_t nodeID) = 0;
+    common::offset_t at(common::offset_t offset) const { return getNodeIDAtomic(offset); };
+    virtual common::offset_t getInvalidOffset() const = 0;
+};
+
+using CompressedNbrNodes = common::OffsetRange<common::offset_t, CompressedNbrNodesView>;
+
+struct CompressedDstNodesBuffer {
+    CompressedDstNodesBuffer(MemoryManager* mm, common::offset_t numNodes,
+        common::length_t maxDegree);
+
+    CompressedNbrNodes getNeighbors(common::offset_t nodeOffset, common::offset_t maxDegree,
+        common::offset_t numNbrs) const;
+
+    std::unique_ptr<MemoryBuffer> dstNodesBuffer;
+    std::unique_ptr<CompressedNbrNodesView> view;
+};
+
 class InMemHNSWGraph {
 public:
     using shrink_func_t =
         std::function<void(transaction::Transaction*, common::offset_t, common::length_t)>;
 
-    InMemHNSWGraph(MemoryManager* mm, common::offset_t numNodes, common::length_t maxDegree)
-        : numNodes{numNodes}, maxDegree{maxDegree} {
-        csrLengthBuffer = mm->allocateBuffer(true, numNodes * sizeof(std::atomic<uint16_t>));
-        csrLengths = reinterpret_cast<std::atomic<uint16_t>*>(csrLengthBuffer->getData());
-        dstNodesBuffer =
-            mm->allocateBuffer(false, numNodes * maxDegree * sizeof(std::atomic<common::offset_t>));
-        dstNodes = reinterpret_cast<std::atomic<common::offset_t>*>(dstNodesBuffer->getData());
-        resetCSRLengthAndDstNodes();
-    }
+    InMemHNSWGraph(MemoryManager* mm, common::offset_t numNodes, common::length_t maxDegree);
 
-    std::span<std::atomic<common::offset_t>> getNeighbors(common::offset_t nodeOffset) const {
+    CompressedNbrNodes getNeighbors(common::offset_t nodeOffset) const {
         const auto numNbrs = getCSRLength(nodeOffset);
-        return {&dstNodes[nodeOffset * maxDegree], numNbrs};
+        return dstNodes.getNeighbors(nodeOffset, maxDegree, numNbrs);
     }
 
     common::length_t getMaxDegree() const { return maxDegree; }
@@ -111,11 +128,15 @@ public:
     }
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
     void setDstNode(common::offset_t csrOffset, common::offset_t dstNode) {
-        dstNodes[csrOffset].store(dstNode, std::memory_order_relaxed);
+        dstNodes.view->setNodeIDAtomic(csrOffset, dstNode);
     }
 
     void finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
         const processor::PartitionerSharedState& partitionerSharedState);
+
+    // In the current implementation race conditions can result in dstNode entries being skipped
+    // during insertion. Skipped entries will be marked with this value
+    common::offset_t getInvalidOffset() const { return invalidOffset; }
 
 private:
     void resetCSRLengthAndDstNodes();
@@ -125,17 +146,17 @@ private:
         common::table_id_t relTableID, InMemChunkedNodeGroupCollection& partition) const;
 
     common::offset_t getDstNode(common::offset_t csrOffset) const {
-        return dstNodes[csrOffset].load(std::memory_order_relaxed);
+        return dstNodes.view->getNodeIDAtomic(csrOffset);
     }
 
 private:
     common::offset_t numNodes;
     std::unique_ptr<MemoryBuffer> csrLengthBuffer;
-    std::unique_ptr<MemoryBuffer> dstNodesBuffer;
+    CompressedDstNodesBuffer dstNodes;
     std::atomic<uint16_t>* csrLengths;
-    std::atomic<common::offset_t>* dstNodes;
     // Max allowed degree of a node in the graph before shrinking.
     common::length_t maxDegree;
+    common::offset_t invalidOffset;
 };
 
 } // namespace storage
