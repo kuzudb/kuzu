@@ -1,7 +1,6 @@
 #include "function/gds/gds_utils.h"
 
 #include "binder/expression/property_expression.h"
-#include "catalog/catalog.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/task_system/task_scheduler.h"
 #include "function/gds/gds_task.h"

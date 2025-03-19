@@ -10,11 +10,6 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace graph {
 
-void GraphEntryTableInfo::setPredicate(std::shared_ptr<Expression> predicate_) {
-    KU_ASSERT(predicate == nullptr);
-    predicate = std::move(predicate_);
-}
-
 GraphEntry::GraphEntry(std::vector<TableCatalogEntry*> nodeEntries,
     std::vector<TableCatalogEntry*> relEntries) {
     for (auto& entry : nodeEntries) {
@@ -57,7 +52,7 @@ std::vector<TableCatalogEntry*> GraphEntry::getRelEntries() const {
     return result;
 }
 
-const GraphEntryTableInfo& GraphEntry::getRelInfo(table_id_t tableID) const {
+const BoundGraphEntryTableInfo& GraphEntry::getRelInfo(table_id_t tableID) const {
     for (auto& info : relInfos) {
         if (info.entry->getTableID() == tableID) {
             return info;
@@ -70,7 +65,8 @@ const GraphEntryTableInfo& GraphEntry::getRelInfo(table_id_t tableID) const {
 
 void GraphEntry::setRelPredicate(std::shared_ptr<Expression> predicate) {
     for (auto& info : relInfos) {
-        info.setPredicate(predicate);
+        KU_ASSERT(info.predicate == nullptr);
+        info.predicate = predicate;
     }
 }
 

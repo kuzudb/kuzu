@@ -59,6 +59,8 @@ public:
     // Check if table entry exists.
     bool containsTable(const transaction::Transaction* transaction, const std::string& tableName,
         bool useInternal = true) const;
+    bool containsTable(const transaction::Transaction* transaction,
+        common::table_id_t tableID) const;
     // Get table entry with name.
     TableCatalogEntry* getTableCatalogEntry(const transaction::Transaction* transaction,
         const std::string& tableName, bool useInternal = true) const;

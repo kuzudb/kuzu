@@ -5,12 +5,14 @@
 #include "common/exception/binder.h"
 #include "graph/on_disk_graph.h"
 #include "main/client_context.h"
+#include "parser/parser.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "planner/planner.h"
 #include "processor/operator/table_function_call.h"
 #include "processor/plan_mapper.h"
 
+using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::binder;
 using namespace kuzu::main;
@@ -22,17 +24,94 @@ namespace kuzu {
 namespace function {
 
 void GDSFuncSharedState::setGraphNodeMask(std::unique_ptr<NodeOffsetMaskMap> maskMap) {
-    auto onDiskGraph = ku_dynamic_cast<graph::OnDiskGraph*>(graph.get());
+    auto onDiskGraph = ku_dynamic_cast<OnDiskGraph*>(graph.get());
     onDiskGraph->setNodeOffsetMask(maskMap.get());
     graphNodeMask = std::move(maskMap);
 }
 
-graph::GraphEntry GDSFunction::bindGraphEntry(main::ClientContext& context,
-    const std::string& name) {
+static void validateEntryType(const TableCatalogEntry& entry, CatalogEntryType type) {
+    if (entry.getType() != type) {
+        throw BinderException(stringFormat("Expect catalog entry type {} but got {}.",
+            CatalogEntryTypeUtils::toString(type),
+            CatalogEntryTypeUtils::toString(entry.getType())));
+    }
+}
+
+static expression_vector getResultColumns(const std::string& cypher, ClientContext* context) {
+    auto parsedStatements = parser::Parser::parseQuery(cypher);
+    KU_ASSERT(parsedStatements.size() == 1);
+    auto binder = Binder(context);
+    auto boundStatement = binder.bind(*parsedStatements[0]);
+    return boundStatement->getStatementResult()->getColumns();
+}
+
+static void validateNodeProjected(table_id_t tableID, const table_id_set_t& projectedNodeIDSet,
+    const std::string& relName, Catalog* catalog, transaction::Transaction* transaction) {
+    if (projectedNodeIDSet.contains(tableID)) {
+        return;
+    }
+    auto entryName = catalog->getTableCatalogEntry(transaction, tableID)->getName();
+    throw BinderException(
+        stringFormat("{} is connected to {} but not projected.", entryName, relName));
+}
+
+static void validateRelSrcDstNodeAreProjected(const TableCatalogEntry& entry,
+    const table_id_set_t& projectedNodeIDSet, Catalog* catalog,
+    transaction::Transaction* transaction) {
+    auto& relEntry = entry.constCast<RelTableCatalogEntry>();
+    validateNodeProjected(relEntry.getSrcTableID(), projectedNodeIDSet, entry.getName(), catalog,
+        transaction);
+    validateNodeProjected(relEntry.getDstTableID(), projectedNodeIDSet, entry.getName(), catalog,
+        transaction);
+}
+
+GraphEntry GDSFunction::bindGraphEntry(ClientContext& context, const std::string& name) {
     if (!context.getGraphEntrySetUnsafe().hasGraph(name)) {
         throw BinderException(stringFormat("Cannot find graph {}.", name));
     }
-    return context.getGraphEntrySetUnsafe().getEntry(name).copy();
+    return bindGraphEntry(context, context.getGraphEntrySetUnsafe().getEntry(name));
+}
+
+GraphEntry GDSFunction::bindGraphEntry(ClientContext& context, const ParsedGraphEntry& entry) {
+    auto catalog = context.getCatalog();
+    auto transaction = context.getTransaction();
+    auto result = GraphEntry();
+    table_id_set_t projectedNodeTableIDSet;
+    for (auto& nodeInfo : entry.nodeInfos) {
+        auto nodeEntry = catalog->getTableCatalogEntry(transaction, nodeInfo.tableName);
+        validateEntryType(*nodeEntry, CatalogEntryType::NODE_TABLE_ENTRY);
+        projectedNodeTableIDSet.insert(nodeEntry->getTableID());
+        if (!nodeInfo.predicate.empty()) {
+            auto cypher =
+                stringFormat("MATCH (n:`{}`) RETURN n, {}", nodeEntry->getName(), nodeInfo.predicate);
+            auto columns = getResultColumns(cypher, &context);
+            KU_ASSERT(columns.size() == 2);
+            result.nodeInfos.emplace_back(nodeEntry, columns[0], columns[1]);
+        } else {
+            auto cypher = stringFormat("MATCH (n:`{}`) RETURN n", nodeEntry->getName());
+            auto columns = getResultColumns(cypher, &context);
+            KU_ASSERT(columns.size() == 1);
+            result.nodeInfos.emplace_back(nodeEntry, columns[0], nullptr /* empty predicate */);
+        }
+    }
+    for (auto& relInfo : entry.relInfos) {
+        auto relEntry = catalog->getTableCatalogEntry(transaction, relInfo.tableName);
+        validateEntryType(*relEntry, CatalogEntryType::REL_TABLE_ENTRY);
+        validateRelSrcDstNodeAreProjected(*relEntry, projectedNodeTableIDSet, catalog, transaction);
+        if (!relInfo.predicate.empty()) {
+            auto cypher = stringFormat("MATCH ()-[r:`{}`]->() RETURN r, {}", relEntry->getName(),
+                relInfo.predicate);
+            auto columns = getResultColumns(cypher, &context);
+            KU_ASSERT(columns.size() == 2);
+            result.relInfos.emplace_back(relEntry, columns[0], columns[1]);
+        } else {
+            auto cypher = stringFormat("MATCH ()-[r:`{}`]->() RETURN r", relEntry->getName());
+            auto columns = getResultColumns(cypher, &context);
+            KU_ASSERT(columns.size() == 1);
+            result.relInfos.emplace_back(relEntry, columns[0], nullptr /* empty predicate */);
+        }
+    }
+    return result;
 }
 
 std::shared_ptr<Expression> GDSFunction::bindNodeOutput(const TableFuncBindInput& bindInput,
@@ -52,7 +131,10 @@ std::string GDSFunction::bindColumnName(const parser::YieldVariable& yieldVariab
         throw common::BinderException{
             common::stringFormat("Unknown variable name: {}.", yieldVariable.name)};
     }
-    return yieldVariable.hasAlias() ? yieldVariable.alias : expressionName;
+    if (yieldVariable.hasAlias()) {
+        return yieldVariable.alias;
+    }
+    return expressionName;
 }
 
 std::unique_ptr<TableFuncSharedState> GDSFunction::initSharedState(
@@ -121,7 +203,7 @@ std::unique_ptr<PhysicalOperator> GDSFunction::getPhysicalPlan(PlanMapper* planM
     auto call = std::make_unique<TableFunctionCall>(std::move(info), sharedState,
         planMapper->getOperatorID(), std::move(printInfo));
     if (!logicalCall->getNodeMaskRoots().empty()) {
-        auto funcSharedState = sharedState->ptrCast<GDSFuncSharedState>();
+        const auto funcSharedState = sharedState->ptrCast<GDSFuncSharedState>();
         funcSharedState->setGraphNodeMask(std::make_unique<NodeOffsetMaskMap>());
         auto maskMap = funcSharedState->getGraphNodeMaskMap();
         planMapper->logicalOpToPhysicalOpMap.insert({logicalOp, call.get()});

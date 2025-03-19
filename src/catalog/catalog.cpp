@@ -75,6 +75,10 @@ bool Catalog::containsTable(const Transaction* transaction, const std::string& t
     return false;
 }
 
+bool Catalog::containsTable(const Transaction* transaction, table_id_t tableID) const {
+    return tables->getEntryOfOID(transaction, tableID) != nullptr;
+}
+
 TableCatalogEntry* Catalog::getTableCatalogEntry(const Transaction* transaction,
     table_id_t tableID) const {
     auto result = tables->getEntryOfOID(transaction, tableID);
