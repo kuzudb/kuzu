@@ -464,6 +464,7 @@ void ColumnChunkData::resize(uint64_t newCapacity) {
         auto bufferSize = getBufferSize();
         auto resizedBufferData = resizedBuffer->getBuffer().data();
         memcpy(resizedBufferData, buffer->getBuffer().data(), bufferSize);
+        memset(resizedBufferData + bufferSize, 0, numBytesAfterResize - bufferSize);
         buffer = std::move(resizedBuffer);
     }
     if (nullData) {
