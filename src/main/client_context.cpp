@@ -420,7 +420,7 @@ std::vector<std::shared_ptr<Statement>> ClientContext::parseQuery(std::string_vi
     auto parsedStatements = Parser::parseQuery(query);
     parserTimer.stop();
     const auto avgParsingTime = parserTimer.getElapsedTimeMS() / parsedStatements.size() / 1.0;
-    StandaloneCallRewriter standaloneCallAnalyzer{this};
+    StandaloneCallRewriter standaloneCallAnalyzer{this, parsedStatements.size() == 1};
     for (auto i = 0u; i < parsedStatements.size(); i++) {
         auto rewriteQuery = standaloneCallAnalyzer.getRewriteQuery(*parsedStatements[i]);
         if (rewriteQuery.empty()) {

@@ -179,3 +179,13 @@ Catalog exception: function QUERY_FTS_INDEX is not defined. This function exists
 -STATEMENT CALL DROP_FTS_INDEX('STUDENT', 'sIdx')
 ---- error
 Catalog exception: function DROP_FTS_INDEX is not defined. This function exists in the FTS extension. You can install and load the extension by running 'INSTALL FTS; LOAD EXTENSION FTS;'.
+
+-CASE CreateFTSSingleStatement
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension";CALL CREATE_FTS_INDEX('person', 'personIdx', ['fName']);
+---- error
+Parser exception: CREATE_FTS_INDEX must be called in a query which doesn't have other statements.
+
+-CASE CreateFTSSingleStatement
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension";CALL DROP_FTS_INDEX('STUDENT', 'sIdx');
+---- error
+Parser exception: DROP_FTS_INDEX must be called in a query which doesn't have other statements.
