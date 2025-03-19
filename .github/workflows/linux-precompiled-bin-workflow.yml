@@ -57,7 +57,7 @@ jobs:
           path: kuzu_cli-linux-x86_64.tar.gz
 
   build-precompiled-bin-aarch64:
-    if: ${{ github.event.inputs.x86_64Only != 'true' }}
+    if: ${{ github.event.inputs.x86_64Only != true }}
     runs-on: kuzu-self-hosted-linux-building-aarch64
     steps:
       - uses: actions/checkout@v4
@@ -97,7 +97,7 @@ jobs:
           path: kuzu_cli-linux-aarch64.tar.gz
 
   build-precompiled-bin-android-armv8a:
-    if: ${{ github.event.inputs.x86_64Only != 'true' }}
+    if: ${{ github.event.inputs.x86_64Only != true }}
     runs-on: kuzu-self-hosted-testing
     steps:
       - uses: actions/checkout@v4

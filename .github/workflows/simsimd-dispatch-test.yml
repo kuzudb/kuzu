@@ -11,7 +11,6 @@ on:
 
 jobs:
   build-precompiled-bin-linux:
-    if: ${{ github.event_name == 'schedule' || github.event.inputs.skipBinaries != 'true' }}
     uses: ./.github/workflows/linux-precompiled-bin-workflow.yml
     with:
       isNightly: true
