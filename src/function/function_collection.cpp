@@ -11,6 +11,7 @@
 #include "function/export/export_function.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/hash/vector_hash_functions.h"
+#include "function/internal_id/vector_internal_id_functions.h"
 #include "function/interval/vector_interval_functions.h"
 #include "function/list/vector_list_functions.h"
 #include "function/map/vector_map_functions.h"
@@ -95,6 +96,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
         SCALAR_FUNCTION(RegexpSplitToArrayFunction), SCALAR_FUNCTION(InitCapFunction),
         SCALAR_FUNCTION(StringSplitFunction), SCALAR_FUNCTION_ALIAS(StrSplitFunction),
         SCALAR_FUNCTION_ALIAS(StringToArrayFunction), SCALAR_FUNCTION(SplitPartFunction),
+        SCALAR_FUNCTION(InternalIDCreationFunction),
 
         // Array Functions
         SCALAR_FUNCTION(ArrayValueFunction), SCALAR_FUNCTION(ArrayCrossProductFunction),

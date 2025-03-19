@@ -2,6 +2,7 @@
 
 #include "common/exception/overflow.h"
 #include "common/exception/runtime.h"
+#include "common/type_utils.h"
 #include "common/types/date_t.h"
 #include "common/types/int128_t.h"
 #include "common/types/interval_t.h"
@@ -49,94 +50,13 @@ struct DecimalFunction {
 };
 
 template<typename FUNC>
-static void getUnaryExecFunc(LogicalTypeID operandTypeID, scalar_func_exec_t& func) {
-    switch (operandTypeID) {
-    case LogicalTypeID::SERIAL:
-    case LogicalTypeID::INT64: {
-        func = ScalarFunction::UnaryExecFunction<int64_t, int64_t, FUNC>;
-    } break;
-    case LogicalTypeID::INT32: {
-        func = ScalarFunction::UnaryExecFunction<int32_t, int32_t, FUNC>;
-    } break;
-    case LogicalTypeID::INT16: {
-        func = ScalarFunction::UnaryExecFunction<int16_t, int16_t, FUNC>;
-    } break;
-    case LogicalTypeID::INT8: {
-        func = ScalarFunction::UnaryExecFunction<int8_t, int8_t, FUNC>;
-    } break;
-    case LogicalTypeID::UINT64: {
-        func = ScalarFunction::UnaryExecFunction<uint64_t, uint64_t, FUNC>;
-    } break;
-    case LogicalTypeID::UINT32: {
-        func = ScalarFunction::UnaryExecFunction<uint32_t, uint32_t, FUNC>;
-    } break;
-    case LogicalTypeID::UINT16: {
-        func = ScalarFunction::UnaryExecFunction<uint16_t, uint16_t, FUNC>;
-    } break;
-    case LogicalTypeID::UINT8: {
-        func = ScalarFunction::UnaryExecFunction<uint8_t, uint8_t, FUNC>;
-    } break;
-    case LogicalTypeID::INT128: {
-        func = ScalarFunction::UnaryExecFunction<int128_t, int128_t, FUNC>;
-    } break;
-    case LogicalTypeID::DOUBLE: {
-        func = ScalarFunction::UnaryExecFunction<double, double, FUNC>;
-    } break;
-    case LogicalTypeID::FLOAT: {
-        func = ScalarFunction::UnaryExecFunction<float, float, FUNC>;
-    } break;
-    default:
-        KU_UNREACHABLE;
-    }
-}
-
-template<typename FUNC>
-static void getBinaryExecFunc(LogicalTypeID operandTypeID, scalar_func_exec_t& func) {
-    switch (operandTypeID) {
-    case LogicalTypeID::SERIAL:
-    case LogicalTypeID::INT64: {
-        func = ScalarFunction::BinaryExecFunction<int64_t, int64_t, int64_t, FUNC>;
-    } break;
-    case LogicalTypeID::INT32: {
-        func = ScalarFunction::BinaryExecFunction<int32_t, int32_t, int32_t, FUNC>;
-    } break;
-    case LogicalTypeID::INT16: {
-        func = ScalarFunction::BinaryExecFunction<int16_t, int16_t, int16_t, FUNC>;
-    } break;
-    case LogicalTypeID::INT8: {
-        func = ScalarFunction::BinaryExecFunction<int8_t, int8_t, int8_t, FUNC>;
-    } break;
-    case LogicalTypeID::UINT64: {
-        func = ScalarFunction::BinaryExecFunction<uint64_t, uint64_t, uint64_t, FUNC>;
-    } break;
-    case LogicalTypeID::UINT32: {
-        func = ScalarFunction::BinaryExecFunction<uint32_t, uint32_t, uint32_t, FUNC>;
-    } break;
-    case LogicalTypeID::UINT16: {
-        func = ScalarFunction::BinaryExecFunction<uint16_t, uint16_t, uint16_t, FUNC>;
-    } break;
-    case LogicalTypeID::UINT8: {
-        func = ScalarFunction::BinaryExecFunction<uint8_t, uint8_t, uint8_t, FUNC>;
-    } break;
-    case LogicalTypeID::INT128: {
-        func = ScalarFunction::BinaryExecFunction<int128_t, int128_t, int128_t, FUNC>;
-    } break;
-    case LogicalTypeID::DOUBLE: {
-        func = ScalarFunction::BinaryExecFunction<double, double, double, FUNC>;
-    } break;
-    case LogicalTypeID::FLOAT: {
-        func = ScalarFunction::BinaryExecFunction<float, float, float, FUNC>;
-    } break;
-    default:
-        KU_UNREACHABLE;
-    }
-}
-
-template<typename FUNC>
 static std::unique_ptr<ScalarFunction> getUnaryFunction(std::string name,
     LogicalTypeID operandTypeID) {
     function::scalar_func_exec_t execFunc;
-    getUnaryExecFunc<FUNC>(operandTypeID, execFunc);
+    common::TypeUtils::visit(
+        LogicalType(operandTypeID),
+        [&]<NumericTypes T>(T) { execFunc = ScalarFunction::UnaryExecFunction<T, T, FUNC>; },
+        [](auto) { KU_UNREACHABLE; });
     return std::make_unique<ScalarFunction>(std::move(name),
         std::vector<LogicalTypeID>{operandTypeID}, operandTypeID, execFunc);
 }
@@ -150,16 +70,20 @@ static std::unique_ptr<ScalarFunction> getUnaryFunction(std::string name,
 }
 
 template<typename FUNC>
-static inline std::unique_ptr<ScalarFunction> getBinaryFunction(std::string name,
-    LogicalTypeID operandTypeID) {
+static std::unique_ptr<ScalarFunction> getBinaryFunction(std::string name,
+    common::LogicalTypeID operandTypeID) {
     function::scalar_func_exec_t execFunc;
-    getBinaryExecFunc<FUNC>(operandTypeID, execFunc);
+    common::TypeUtils::visit(
+        common::LogicalType(operandTypeID),
+        [&]<common::NumericTypes T>(
+            T) { execFunc = ScalarFunction::BinaryExecFunction<T, T, T, FUNC>; },
+        [](auto) { KU_UNREACHABLE; });
     return std::make_unique<ScalarFunction>(std::move(name),
-        std::vector<LogicalTypeID>{operandTypeID, operandTypeID}, operandTypeID, execFunc);
+        std::vector<common::LogicalTypeID>{operandTypeID, operandTypeID}, operandTypeID, execFunc);
 }
 
 template<typename FUNC, typename OPERAND_TYPE, typename RETURN_TYPE = OPERAND_TYPE>
-static inline std::unique_ptr<ScalarFunction> getBinaryFunction(std::string name,
+static std::unique_ptr<ScalarFunction> getBinaryFunction(std::string name,
     LogicalTypeID operandTypeID, LogicalTypeID resultTypeID) {
     return std::make_unique<ScalarFunction>(std::move(name),
         std::vector<LogicalTypeID>{operandTypeID, operandTypeID}, resultTypeID,
@@ -814,47 +738,20 @@ static std::unique_ptr<FunctionBindData> genericBinaryArithmeticFunc(
     auto argumentBType =
         FUNC::matchToOutputLogicalType ? resultingType.copy() : argBDataType.copy();
     if constexpr (FUNC::matchToOutputLogicalType) {
-        switch (resultingType.getPhysicalType()) {
-        case PhysicalTypeID::INT16:
-            asScalar->execFunc =
-                ScalarFunction::BinaryStringExecFunction<int16_t, int16_t, int16_t, FUNC>;
-            break;
-        case PhysicalTypeID::INT32:
-            asScalar->execFunc =
-                ScalarFunction::BinaryStringExecFunction<int32_t, int32_t, int32_t, FUNC>;
-            break;
-        case PhysicalTypeID::INT64:
-            asScalar->execFunc =
-                ScalarFunction::BinaryStringExecFunction<int64_t, int64_t, int64_t, FUNC>;
-            break;
-        case PhysicalTypeID::INT128:
-            asScalar->execFunc =
-                ScalarFunction::BinaryStringExecFunction<int128_t, int128_t, int128_t, FUNC>;
-            break;
-        default:
-            KU_UNREACHABLE;
-        }
+        common::TypeUtils::visit(
+            resultingType.getPhysicalType(),
+            [&]<IntegerTypes T>(T) {
+                asScalar->execFunc = ScalarFunction::BinaryStringExecFunction<T, T, T, FUNC>;
+            },
+            [](auto) { KU_UNREACHABLE; });
     } else {
-        switch (argumentAType.getPhysicalType()) {
-        case PhysicalTypeID::INT16:
-            getBinaryExecutionHelperA<FUNC, int16_t>(argumentBType, resultingType,
-                asScalar->execFunc);
-            break;
-        case PhysicalTypeID::INT32:
-            getBinaryExecutionHelperA<FUNC, int32_t>(argumentBType, resultingType,
-                asScalar->execFunc);
-            break;
-        case PhysicalTypeID::INT64:
-            getBinaryExecutionHelperA<FUNC, int64_t>(argumentBType, resultingType,
-                asScalar->execFunc);
-            break;
-        case PhysicalTypeID::INT128:
-            getBinaryExecutionHelperA<FUNC, int128_t>(argumentBType, resultingType,
-                asScalar->execFunc);
-            break;
-        default:
-            KU_UNREACHABLE;
-        }
+        common::TypeUtils::visit(
+            argumentAType.getPhysicalType(),
+            [&]<IntegerTypes T>(T) {
+                getBinaryExecutionHelperA<FUNC, T>(argumentBType, resultingType,
+                    asScalar->execFunc);
+            },
+            [](auto) { KU_UNREACHABLE; });
     }
     std::vector<LogicalType> resVec;
     resVec.push_back(std::move(argumentAType));

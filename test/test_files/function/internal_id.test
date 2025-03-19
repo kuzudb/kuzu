@@ -1,0 +1,33 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE InternalIDCreation
+
+-LOG CreateInteralIDVal
+-STATEMENT RETURN internal_id(2,3)
+---- 1
+2:3
+
+-LOG InternalIDFilter
+-STATEMENT MATCH (s) WHERE ID(s) = internal_id(0,5) RETURN label(s), s.ID
+---- 1
+person|8
+
+-STATEMENT MATCH (s) WHERE ID(s) > internal_id(0,5) RETURN label(s), s.ID
+---- 8
+movies|
+movies|
+movies|
+organisation|1
+organisation|4
+organisation|6
+person|10
+person|9
+
+-STATEMENT MATCH (s) WHERE ID(s) < internal_id(0,4) RETURN label(s)
+---- 4
+person
+person
+person
+person
