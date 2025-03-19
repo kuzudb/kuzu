@@ -237,7 +237,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto computeColors = std::make_unique<SccComputeColors>(computationState);
     auto auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
     auto computeState = GDSComputeState(std::move(frontierPair), std::move(computeColors),
-        std::move(auxiliaryState), nullptr);
+        std::move(auxiliaryState));
     auto initializeFrontiers =
         std::make_unique<SccInitializeFrontiers>(*computeState.frontierPair, computationState);
 
@@ -248,15 +248,13 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         computeState.frontierPair->initState();
         computeState.frontierPair->initGDS();
         GDSUtils::runVertexCompute(input.context, graph, *initializeFrontiers);
-        GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph,
-            ExtendDirection::FWD, MAX_ITERATION);
+        GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph, ExtendDirection::FWD, MAX_ITERATION);
 
         // Bwd colors.
         computeState.frontierPair->initState();
         computeState.frontierPair->initGDS();
         GDSUtils::runVertexCompute(input.context, graph, *initializeFrontiers);
-        GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph,
-            ExtendDirection::BWD, MAX_ITERATION);
+        GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph, ExtendDirection::BWD, MAX_ITERATION);
 
         // Find new SCC IDs and exit if all IDs have been found.
         computationState.reset();

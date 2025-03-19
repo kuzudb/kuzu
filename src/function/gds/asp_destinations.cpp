@@ -183,7 +183,7 @@ public:
 
 private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID, const RJBindData&,
-        processor::RecursiveExtendSharedState* sharedState) override {
+        RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
         auto graph = sharedState->graph.get();
         auto frontier = PathLengths::getUnvisitedFrontier(context, graph);
@@ -197,7 +197,7 @@ private:
             std::make_unique<ASPDestinationsEdgeCompute>(frontierPair.get(), multiplicities);
         auto auxiliaryState = std::make_unique<ASPDestinationsAuxiliaryState>(multiplicities);
         auto gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
-            std::move(edgeCompute), std::move(auxiliaryState), sharedState->getOutputNodeMaskMap());
+            std::move(edgeCompute), std::move(auxiliaryState));
         return RJCompState(std::move(gdsState), std::move(outputWriter));
     }
 };

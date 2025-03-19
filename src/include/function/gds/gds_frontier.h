@@ -135,14 +135,14 @@ public:
         return nodeMaxOffsetMap;
     }
 
-    uint16_t getMaskValueFromCurFrontier(common::offset_t offset) {
+    uint16_t getMaskValueFromCurFrontier(common::offset_t offset) const {
         return curFrontier[offset].load(std::memory_order_relaxed);
     }
-    uint16_t getMaskValueFromNextFrontier(common::offset_t offset) {
+    uint16_t getMaskValueFromNextFrontier(common::offset_t offset) const {
         return nextFrontier[offset].load(std::memory_order_relaxed);
     }
 
-    bool isActive(common::offset_t offset) { return curFrontier[offset] == curIter - 1; }
+    bool isActive(common::offset_t offset) const { return curFrontier[offset] == curIter - 1; }
 
     void setActive(std::span<const common::nodeID_t> nodeIDs) {
         for (const auto nodeID : nodeIDs) {
@@ -164,6 +164,7 @@ public:
     void pinCurFrontierTableID(common::table_id_t tableID) { curFrontier = getMaskData(tableID); }
     void pinNextFrontierTableID(common::table_id_t tableID) { nextFrontier = getMaskData(tableID); }
 
+    static std::shared_ptr<PathLengths> getUninitializedFrontier();
     // Init frontier to UNVISITED
     static std::shared_ptr<PathLengths> getUnvisitedFrontier(processor::ExecutionContext* context,
         graph::Graph* graph);
@@ -218,7 +219,6 @@ class KUZU_API FrontierPair {
 public:
     FrontierPair(std::shared_ptr<PathLengths> curFrontier,
         std::shared_ptr<PathLengths> nextFrontier);
-
     virtual ~FrontierPair() = default;
 
     void setActiveNodesForNextIter() { hasActiveNodesForNextIter_.store(true); }

@@ -282,7 +282,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         ExtendDirection::FWD);
     auto frontierPair =
         std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
-    auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr, nullptr);
+    auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr);
     auto pNextUpdateConstant = (1 - config.dampingFactor) * ((double)1 / numNodes);
     while (currentIter < config.maxIterations) {
         computeState.frontierPair->initState();
@@ -291,8 +291,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             std::make_unique<PNextUpdateEdgeCompute>(degrees, *pCurrent, *pNext);
         computeState.auxiliaryState =
             std::make_unique<PageRankAuxiliaryState>(degrees, *pCurrent, *pNext);
-        GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph,
-            ExtendDirection::BWD, 1);
+        GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph, ExtendDirection::BWD, 1);
         auto pNextUpdateVC = PNextUpdateVertexCompute(config.dampingFactor, pNextUpdateConstant,
             *pNext, sharedState->getGraphNodeMaskMap());
         GDSUtils::runVertexCompute(input.context, graph, pNextUpdateVC);

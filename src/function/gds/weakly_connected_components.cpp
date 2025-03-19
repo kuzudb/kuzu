@@ -165,10 +165,9 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto edgeCompute = std::make_unique<WCCEdgeCompute>(*auxiliaryState);
     auto vertexCompute = std::make_unique<WCCVertexCompute>(clientContext->getMemoryManager(),
         sharedState, componentIDs);
-    auto computeState = GDSComputeState(std::move(frontierPair), std::move(edgeCompute),
-        std::move(auxiliaryState), nullptr);
-    GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph,
-        ExtendDirection::BOTH, MAX_ITERATION);
+    auto computeState =
+        GDSComputeState(std::move(frontierPair), std::move(edgeCompute), std::move(auxiliaryState));
+    GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph, ExtendDirection::BOTH, MAX_ITERATION);
     GDSUtils::runVertexCompute(input.context, graph, *vertexCompute);
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;
