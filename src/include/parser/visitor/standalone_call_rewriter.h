@@ -7,8 +7,8 @@ namespace parser {
 
 class StandaloneCallRewriter final : public StatementVisitor {
 public:
-    explicit StandaloneCallRewriter(main::ClientContext* context)
-        : StatementVisitor{}, rewriteQuery{}, context{context} {}
+    explicit StandaloneCallRewriter(main::ClientContext* context, bool allowRewrite)
+        : StatementVisitor{}, rewriteQuery{}, context{context}, allowRewrite{allowRewrite} {}
 
     std::string getRewriteQuery(const Statement& statement);
 
@@ -18,6 +18,7 @@ private:
 private:
     std::string rewriteQuery;
     main::ClientContext* context;
+    bool allowRewrite;
 };
 
 } // namespace parser

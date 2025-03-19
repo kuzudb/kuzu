@@ -2,7 +2,9 @@
 
 #include "binder/binder.h"
 #include "binder/bound_standalone_call_function.h"
+#include "common/exception/parser.h"
 #include "main/client_context.h"
+#include "parser/expression/parsed_function_expression.h"
 #include "parser/standalone_call_function.h"
 
 namespace kuzu {
@@ -15,6 +17,13 @@ std::string StandaloneCallRewriter::getRewriteQuery(const Statement& statement) 
 
 void StandaloneCallRewriter::visitStandaloneCallFunction(const Statement& statement) {
     auto& standaloneCallFunc = statement.constCast<StandaloneCallFunction>();
+    if (!allowRewrite) {
+        throw common::ParserException{
+            standaloneCallFunc.getFunctionExpression()
+                ->constPtrCast<parser::ParsedFunctionExpression>()
+                ->getFunctionName() +
+            " must be called in a query which doesn't have other statements."};
+    }
     main::ClientContext::TransactionHelper::runFuncInTransaction(
         *context->getTransactionContext(),
         [&]() -> void {
