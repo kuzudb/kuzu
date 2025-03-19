@@ -4,6 +4,7 @@
 #include "function/aggregate/count_star.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/array/vector_array_functions.h"
+#include "function/internal_id/vector_internal_id_functions.h"
 #include "function/blob/vector_blob_functions.h"
 #include "function/cast/vector_cast_functions.h"
 #include "function/comparison/vector_comparison_functions.h"
@@ -95,6 +96,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
         SCALAR_FUNCTION(RegexpSplitToArrayFunction), SCALAR_FUNCTION(InitCapFunction),
         SCALAR_FUNCTION(StringSplitFunction), SCALAR_FUNCTION_ALIAS(StrSplitFunction),
         SCALAR_FUNCTION_ALIAS(StringToArrayFunction), SCALAR_FUNCTION(SplitPartFunction),
+        SCALAR_FUNCTION(InternalIDCreationFunction),
 
         // Array Functions
         SCALAR_FUNCTION(ArrayValueFunction), SCALAR_FUNCTION(ArrayCrossProductFunction),

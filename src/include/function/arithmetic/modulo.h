@@ -9,8 +9,13 @@ namespace function {
 
 struct Modulo {
     template<class A, class B, class R>
-    static inline void operation(A& left, B& right, R& result) {
-        result = fmod(left, right);
+    static void operation(A& left, B& right, R& result) {
+        // TODO(Ziyi): support mod on int128_t natively.
+        if constexpr (std::is_same<A, common::int128_t>::value) {
+            result = (R)fmod((int64_t)left, (int64_t)right);
+        } else {
+            result = (R)fmod(left, right);
+        }
     }
 };
 

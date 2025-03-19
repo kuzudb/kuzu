@@ -1,6 +1,7 @@
 #pragma once
 
 #include "binary_function_executor.h"
+#include "common/type_utils.h"
 #include "const_function_executor.h"
 #include "function.h"
 #include "pointer_function_executor.h"

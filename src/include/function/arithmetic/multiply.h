@@ -8,7 +8,7 @@ namespace function {
 struct Multiply {
     template<class A, class B, class R>
     static inline void operation(A& left, B& right, R& result) {
-        result = left * right;
+        result = (R)(left * right);
     }
 };
 
