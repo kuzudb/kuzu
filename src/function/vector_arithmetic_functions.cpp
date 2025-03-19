@@ -2,6 +2,7 @@
 
 #include "common/exception/overflow.h"
 #include "common/exception/runtime.h"
+#include "common/type_utils.h"
 #include "common/types/date_t.h"
 #include "common/types/int128_t.h"
 #include "common/types/interval_t.h"
@@ -745,7 +746,7 @@ static std::unique_ptr<FunctionBindData> genericBinaryArithmeticFunc(
             [](auto) { KU_UNREACHABLE; });
     } else {
         common::TypeUtils::visit(
-            resultingType.getPhysicalType(),
+            argumentAType.getPhysicalType(),
             [&]<IntegerTypes T>(T) {
                 getBinaryExecutionHelperA<FUNC, T>(argumentBType, resultingType,
                     asScalar->execFunc);

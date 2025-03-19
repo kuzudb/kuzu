@@ -1,3 +1,4 @@
+#include "common/type_utils.h"
 #include "common/types/types.h"
 #include "function/internal_id/vector_internal_id_functions.h"
 #include "function/scalar_function.h"

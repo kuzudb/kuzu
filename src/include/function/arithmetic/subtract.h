@@ -8,7 +8,7 @@ namespace function {
 struct Subtract {
     template<class A, class B, class R>
     static inline void operation(A& left, B& right, R& result) {
-        result = (R)(left - right);
+        result = left - right;
     }
 };
 
