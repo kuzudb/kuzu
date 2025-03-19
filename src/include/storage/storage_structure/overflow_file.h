@@ -9,7 +9,6 @@
 #include "common/types/types.h"
 #include "storage//file_handle.h"
 #include "storage/index/hash_index_utils.h"
-#include "storage/storage_structure/in_mem_page.h"
 #include "storage/storage_utils.h"
 #include "storage/wal/shadow_file.h"
 #include "storage/wal/wal.h"
@@ -61,7 +60,7 @@ private:
     PageCursor& nextPosToWriteTo;
     OverflowFile& overflowFile;
     // Cached pages which have been written in the current transaction
-    std::unordered_map<common::page_idx_t, std::unique_ptr<InMemPage>> pageWriteCache;
+    std::unordered_map<common::page_idx_t, std::unique_ptr<MemoryBuffer>> pageWriteCache;
 };
 
 // Stores the current state of the overflow file
@@ -82,7 +81,7 @@ class OverflowFile {
 
 public:
     // For reading an existing overflow file
-    OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager* bufferManager,
+    OverflowFile(const DBFileIDAndName& dbFileIdAndName, MemoryManager& memoryManager,
         ShadowFile* shadowFile, bool readOnly, common::VirtualFileSystem* vfs,
         main::ClientContext* context);
 
@@ -112,7 +111,7 @@ public:
     }
 
 protected:
-    explicit OverflowFile(const DBFileIDAndName& dbFileIdAndName);
+    explicit OverflowFile(const DBFileIDAndName& dbFileIdAndName, MemoryManager& memoryManager);
 
     common::page_idx_t getNewPageIdx() {
         // If this isn't the first call reserving the page header, then the header flag must be set
@@ -137,14 +136,15 @@ protected:
     DBFileID dbFileID;
     FileHandle* fileHandle;
     ShadowFile* shadowFile;
+    MemoryManager& memoryManager;
     std::atomic<common::page_idx_t> pageCounter;
     std::atomic<bool> headerChanged;
 };
 
 class InMemOverflowFile final : public OverflowFile {
 public:
-    explicit InMemOverflowFile(const DBFileIDAndName& dbFileIDAndName)
-        : OverflowFile{dbFileIDAndName} {}
+    explicit InMemOverflowFile(const DBFileIDAndName& dbFileIDAndName, MemoryManager& memoryManager)
+        : OverflowFile{dbFileIDAndName, memoryManager} {}
 };
 
 } // namespace storage
