@@ -17,6 +17,7 @@ class KUZU_API VersionInfo {
 public:
     VersionInfo();
     ~VersionInfo();
+    DELETE_BOTH_COPY(VersionInfo);
 
     void append(common::transaction_t transactionID, common::row_idx_t startRow,
         common::row_idx_t numRows);
