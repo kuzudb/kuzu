@@ -15,6 +15,7 @@ jobs:
     uses: ./.github/workflows/linux-precompiled-bin-workflow.yml
     with:
       isNightly: true
+      x86_64Only: true
     secrets: inherit
 
   simsimd-dispatch-test:
