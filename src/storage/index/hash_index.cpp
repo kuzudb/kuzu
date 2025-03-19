@@ -462,10 +462,10 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
 
     if (keyDataTypeID == PhysicalTypeID::STRING) {
         if (inMemMode) {
-            overflowFile = std::make_unique<InMemOverflowFile>(dbFileIDAndName);
+            overflowFile = std::make_unique<InMemOverflowFile>(dbFileIDAndName, memoryManager);
         } else {
-            overflowFile = std::make_unique<OverflowFile>(dbFileIDAndName,
-                memoryManager.getBufferManager(), shadowFile, readOnly, vfs, context);
+            overflowFile = std::make_unique<OverflowFile>(dbFileIDAndName, memoryManager,
+                shadowFile, readOnly, vfs, context);
         }
     }
     if (newIndex) {

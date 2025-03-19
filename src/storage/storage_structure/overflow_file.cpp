@@ -7,7 +7,6 @@
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/file_handle.h"
 #include "storage/shadow_utils.h"
-#include "storage/storage_structure/in_mem_page.h"
 #include "storage/storage_utils.h"
 #include "transaction/transaction.h"
 
@@ -73,13 +72,14 @@ bool OverflowFileHandle::equals(TransactionType trxType, std::string_view keyToL
 uint8_t* OverflowFileHandle::addANewPage() {
     page_idx_t newPageIdx = overflowFile.getNewPageIdx();
     if (pageWriteCache.size() > 0) {
-        pageWriteCache[nextPosToWriteTo.pageIdx]->write(END_OF_PAGE,
+        memcpy(pageWriteCache[nextPosToWriteTo.pageIdx]->getData() + END_OF_PAGE,
             reinterpret_cast<uint8_t*>(&newPageIdx), sizeof(page_idx_t));
     }
-    pageWriteCache.emplace(newPageIdx, std::make_unique<InMemPage>());
+    pageWriteCache.emplace(newPageIdx,
+        overflowFile.memoryManager.mallocBuffer(true /*initializeToZero*/, KUZU_PAGE_SIZE));
     nextPosToWriteTo.elemPosInPage = 0;
     nextPosToWriteTo.pageIdx = newPageIdx;
-    return pageWriteCache[newPageIdx]->data;
+    return pageWriteCache[newPageIdx]->getData();
 }
 
 void OverflowFileHandle::setStringOverflow(const char* srcRawString, uint64_t len,
@@ -94,13 +94,14 @@ void OverflowFileHandle::setStringOverflow(const char* srcRawString, uint64_t le
     } else {
         auto cached = pageWriteCache.find(nextPosToWriteTo.pageIdx);
         if (cached != pageWriteCache.end()) {
-            pageToWrite = cached->second->data;
+            pageToWrite = cached->second->getData();
         } else {
             overflowFile.readFromDisk(TransactionType::CHECKPOINT, nextPosToWriteTo.pageIdx,
                 [&](auto* frame) {
-                    auto page = std::make_unique<InMemPage>();
-                    memcpy(page->data, frame, KUZU_PAGE_SIZE);
-                    pageToWrite = page->data;
+                    auto page = overflowFile.memoryManager.mallocBuffer(false /*initializeToZero*/,
+                        KUZU_PAGE_SIZE);
+                    memcpy(page->getData(), frame, KUZU_PAGE_SIZE);
+                    pageToWrite = page->getData();
                     pageWriteCache.emplace(nextPosToWriteTo.pageIdx, std::move(page));
                 });
         }
@@ -128,13 +129,13 @@ ku_string_t OverflowFileHandle::writeString(std::string_view rawString) {
     auto shortStrLen = ku_string_t::SHORT_STR_LENGTH;
     auto inlineLen = std::min(shortStrLen, (uint64_t)result.len);
     memcpy(result.prefix, rawString.data(), inlineLen);
-    setStringOverflow(rawString.data(), result.len, result);
+    setStringOverflow(rawString.data(), rawString.length(), result);
     return result;
 }
 
 void OverflowFileHandle::checkpoint() {
     for (auto& [pageIndex, page] : pageWriteCache) {
-        overflowFile.writePageToDisk(pageIndex, page->data);
+        overflowFile.writePageToDisk(pageIndex, page->getData());
     }
 }
 
@@ -142,7 +143,7 @@ void OverflowFileHandle::read(TransactionType trxType, page_idx_t pageIdx,
     const std::function<void(uint8_t*)>& func) const {
     auto cachedPage = pageWriteCache.find(pageIdx);
     if (cachedPage != pageWriteCache.end()) {
-        return func(cachedPage->second->data);
+        return func(cachedPage->second->getData());
     }
     overflowFile.readFromDisk(trxType, pageIdx, func);
 }
@@ -155,13 +156,13 @@ static DBFileIDAndName constructDBFileIDAndName(
     return copy;
 }
 
-OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager* bufferManager,
+OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, MemoryManager& memoryManager,
     ShadowFile* shadowFile, bool readOnly, VirtualFileSystem* vfs, main::ClientContext* context)
-    : shadowFile{shadowFile}, headerChanged{false} {
+    : shadowFile{shadowFile}, memoryManager{memoryManager}, headerChanged{false} {
     const auto overflowFileIDAndName = constructDBFileIDAndName(dbFileIdAndName);
     dbFileID = overflowFileIDAndName.dbFileID;
-    KU_ASSERT(vfs && bufferManager && context && shadowFile);
-    fileHandle = bufferManager->getFileHandle(overflowFileIDAndName.fName,
+    KU_ASSERT(vfs && context && shadowFile);
+    fileHandle = memoryManager.getBufferManager()->getFileHandle(overflowFileIDAndName.fName,
         readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
         vfs, context);
@@ -176,8 +177,9 @@ OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager
     }
 }
 
-OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName)
-    : numPagesOnDisk{0}, fileHandle{nullptr}, shadowFile{nullptr}, headerChanged{false} {
+OverflowFile::OverflowFile(const DBFileIDAndName& dbFileIdAndName, MemoryManager& memoryManager)
+    : numPagesOnDisk{0}, fileHandle{nullptr}, shadowFile{nullptr}, memoryManager{memoryManager},
+      headerChanged{false} {
     const auto overflowFileIDAndName = constructDBFileIDAndName(dbFileIdAndName);
     dbFileID = overflowFileIDAndName.dbFileID;
     // Reserve a page for the header
