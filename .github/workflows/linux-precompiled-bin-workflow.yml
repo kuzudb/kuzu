@@ -71,7 +71,6 @@ jobs:
 
       - name: Build precompiled binaries
         run: |
-          echo ${{ inputs.x86_64Only }}
           make NUM_THREADS=$(nproc)
           make install
 
