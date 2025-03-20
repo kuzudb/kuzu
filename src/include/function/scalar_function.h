@@ -27,7 +27,6 @@ struct KUZU_API ScalarFunction : public ScalarOrAggregateFunction {
     scalar_func_exec_t execFunc = nullptr;
     scalar_func_select_t selectFunc = nullptr;
     scalar_func_compile_exec_t compileFunc = nullptr;
-    scalar_func_init_local_state_t initLocalStateFunc = initEmptyLocalState;
 
     ScalarFunction() = default;
     ScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
