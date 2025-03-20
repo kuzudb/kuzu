@@ -61,8 +61,8 @@ private:
 };
 
 class TopKBuffer {
-    using vector_select_comparison_func =
-        std::function<bool(common::ValueVector&, common::ValueVector&, common::SelectionVector&)>;
+    using vector_select_comparison_func = std::function<bool(common::ValueVector&,
+        common::ValueVector&, common::SelectionVector&, void* dataPtr)>;
 
 public:
     explicit TopKBuffer(const OrderByDataInfo& orderByDataInfo)

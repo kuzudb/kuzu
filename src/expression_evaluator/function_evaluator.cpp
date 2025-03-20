@@ -19,6 +19,7 @@ FunctionExpressionEvaluator::FunctionExpressionEvaluator(std::shared_ptr<Express
     auto& functionExpr = this->expression->constCast<ScalarFunctionExpression>();
     function = functionExpr.getFunction().copy();
     bindData = functionExpr.getBindData()->copy();
+    functionLocalState = function->initLocalStateFunc({});
 }
 
 void FunctionExpressionEvaluator::evaluate() {
@@ -54,7 +55,7 @@ bool FunctionExpressionEvaluator::selectInternal(SelectionVector& selVector) {
         runExecFunc();
         return updateSelectedPos(selVector);
     }
-    return function->selectFunc(parameters, selVector);
+    return function->selectFunc(parameters, selVector, bindData.get());
 }
 
 void FunctionExpressionEvaluator::runExecFunc(void* dataPtr) {

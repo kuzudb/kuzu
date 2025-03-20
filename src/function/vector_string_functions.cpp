@@ -2,6 +2,7 @@
 
 #include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
+#include "expression_evaluator/expression_evaluator_utils.h"
 #include "function/string/functions/array_extract_function.h"
 #include "function/string/functions/contains_function.h"
 #include "function/string/functions/ends_with_function.h"
@@ -9,7 +10,6 @@
 #include "function/string/functions/lpad_function.h"
 #include "function/string/functions/regexp_extract_all_function.h"
 #include "function/string/functions/regexp_extract_function.h"
-#include "function/string/functions/regexp_full_match_function.h"
 #include "function/string/functions/regexp_matches_function.h"
 #include "function/string/functions/regexp_replace_function.h"
 #include "function/string/functions/regexp_split_to_array_function.h"
@@ -233,16 +233,6 @@ function_set SubStrFunction::getFunctionSet() {
         LogicalTypeID::STRING,
         ScalarFunction::TernaryStringExecFunction<ku_string_t, int64_t, int64_t, ku_string_t,
             SubStr>));
-    return functionSet;
-}
-
-function_set RegexpFullMatchFunction::getFunctionSet() {
-    function_set functionSet;
-    functionSet.emplace_back(make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
-        LogicalTypeID::BOOL,
-        ScalarFunction::BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, RegexpFullMatch>,
-        ScalarFunction::BinarySelectFunction<ku_string_t, ku_string_t, RegexpFullMatch>));
     return functionSet;
 }
 

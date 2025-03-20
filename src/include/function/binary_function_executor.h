@@ -75,6 +75,16 @@ struct BinaryUDFFunctionWrapper {
     }
 };
 
+struct BinarySelectWithBindDataWrapper {
+    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename OP>
+    static void operation(LEFT_TYPE& left, RIGHT_TYPE& right, uint8_t& result,
+        common::ValueVector* leftValueVector, common::ValueVector* rightValueVector,
+        void* dataPtr) {
+        OP::operation(left, right, result, *leftValueVector, *rightValueVector, *leftValueVector,
+            dataPtr);
+    }
+};
+
 struct BinaryFunctionExecutor {
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
@@ -158,7 +168,8 @@ struct BinaryFunctionExecutor {
     struct BinarySelectWrapper {
         template<typename LEFT_TYPE, typename RIGHT_TYPE, typename OP>
         static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, uint8_t& result,
-            common::ValueVector* /*leftValueVector*/, common::ValueVector* /*rightValueVector*/) {
+            common::ValueVector* /*leftValueVector*/, common::ValueVector* /*rightValueVector*/,
+            void* /*dataPtr*/) {
             OP::operation(left, right, result);
         }
     };
@@ -166,7 +177,8 @@ struct BinaryFunctionExecutor {
     struct BinaryComparisonSelectWrapper {
         template<typename LEFT_TYPE, typename RIGHT_TYPE, typename OP>
         static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, uint8_t& result,
-            common::ValueVector* leftValueVector, common::ValueVector* rightValueVector) {
+            common::ValueVector* leftValueVector, common::ValueVector* rightValueVector,
+            void* /*dataPtr*/) {
             OP::operation(left, right, result, leftValueVector, rightValueVector);
         }
     };
@@ -174,31 +186,32 @@ struct BinaryFunctionExecutor {
     template<class LEFT_TYPE, class RIGHT_TYPE, class FUNC, typename SELECT_WRAPPER>
     static void selectOnValue(common::ValueVector& left, common::ValueVector& right, uint64_t lPos,
         uint64_t rPos, uint64_t resPos, uint64_t& numSelectedValues,
-        std::span<common::sel_t> selectedPositionsBuffer) {
+        std::span<common::sel_t> selectedPositionsBuffer, void* dataPtr) {
         uint8_t resultValue = 0;
         SELECT_WRAPPER::template operation<LEFT_TYPE, RIGHT_TYPE, FUNC>(
             ((LEFT_TYPE*)left.getData())[lPos], ((RIGHT_TYPE*)right.getData())[rPos], resultValue,
-            &left, &right);
+            &left, &right, dataPtr);
         selectedPositionsBuffer[numSelectedValues] = resPos;
         numSelectedValues += (resultValue == true);
     }
 
     template<class LEFT_TYPE, class RIGHT_TYPE, class FUNC, typename SELECT_WRAPPER>
-    static uint64_t selectBothFlat(common::ValueVector& left, common::ValueVector& right) {
+    static uint64_t selectBothFlat(common::ValueVector& left, common::ValueVector& right,
+        void* dataPtr) {
         auto lPos = left.state->getSelVector()[0];
         auto rPos = right.state->getSelVector()[0];
         uint8_t resultValue = 0;
         if (!left.isNull(lPos) && !right.isNull(rPos)) {
             SELECT_WRAPPER::template operation<LEFT_TYPE, RIGHT_TYPE, FUNC>(
                 ((LEFT_TYPE*)left.getData())[lPos], ((RIGHT_TYPE*)right.getData())[rPos],
-                resultValue, &left, &right);
+                resultValue, &left, &right, dataPtr);
         }
         return resultValue == true;
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename FUNC, typename SELECT_WRAPPER>
     static bool selectFlatUnFlat(common::ValueVector& left, common::ValueVector& right,
-        common::SelectionVector& selVector) {
+        common::SelectionVector& selVector, void* dataPtr) {
         auto lPos = left.state->getSelVector()[0];
         uint64_t numSelectedValues = 0;
         auto selectedPositionsBuffer = selVector.getMutableBuffer();
@@ -208,13 +221,13 @@ struct BinaryFunctionExecutor {
         } else if (right.hasNoNullsGuarantee()) {
             rightSelVector.forEach([&](auto i) {
                 selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right, lPos, i, i,
-                    numSelectedValues, selectedPositionsBuffer);
+                    numSelectedValues, selectedPositionsBuffer, dataPtr);
             });
         } else {
             rightSelVector.forEach([&](auto i) {
                 if (!right.isNull(i)) {
                     selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right, lPos, i,
-                        i, numSelectedValues, selectedPositionsBuffer);
+                        i, numSelectedValues, selectedPositionsBuffer, dataPtr);
                 }
             });
         }
@@ -224,7 +237,7 @@ struct BinaryFunctionExecutor {
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename FUNC, typename SELECT_WRAPPER>
     static bool selectUnFlatFlat(common::ValueVector& left, common::ValueVector& right,
-        common::SelectionVector& selVector) {
+        common::SelectionVector& selVector, void* dataPtr) {
         auto rPos = right.state->getSelVector()[0];
         uint64_t numSelectedValues = 0;
         auto selectedPositionsBuffer = selVector.getMutableBuffer();
@@ -234,13 +247,13 @@ struct BinaryFunctionExecutor {
         } else if (left.hasNoNullsGuarantee()) {
             leftSelVector.forEach([&](auto i) {
                 selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right, i, rPos, i,
-                    numSelectedValues, selectedPositionsBuffer);
+                    numSelectedValues, selectedPositionsBuffer, dataPtr);
             });
         } else {
             leftSelVector.forEach([&](auto i) {
                 if (!left.isNull(i)) {
                     selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right, i, rPos,
-                        i, numSelectedValues, selectedPositionsBuffer);
+                        i, numSelectedValues, selectedPositionsBuffer, dataPtr);
                 }
             });
         }
@@ -251,21 +264,21 @@ struct BinaryFunctionExecutor {
     // Right, left, and result vectors share the same selectedPositions.
     template<class LEFT_TYPE, class RIGHT_TYPE, class FUNC, typename SELECT_WRAPPER>
     static bool selectBothUnFlat(common::ValueVector& left, common::ValueVector& right,
-        common::SelectionVector& selVector) {
+        common::SelectionVector& selVector, void* dataPtr) {
         uint64_t numSelectedValues = 0;
         auto selectedPositionsBuffer = selVector.getMutableBuffer();
         auto& leftSelVector = left.state->getSelVector();
         if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
             leftSelVector.forEach([&](auto i) {
                 selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right, i, i, i,
-                    numSelectedValues, selectedPositionsBuffer);
+                    numSelectedValues, selectedPositionsBuffer, dataPtr);
             });
         } else {
             leftSelVector.forEach([&](auto i) {
                 auto isNull = left.isNull(i) || right.isNull(i);
                 if (!isNull) {
                     selectOnValue<LEFT_TYPE, RIGHT_TYPE, FUNC, SELECT_WRAPPER>(left, right, i, i, i,
-                        numSelectedValues, selectedPositionsBuffer);
+                        numSelectedValues, selectedPositionsBuffer, dataPtr);
                 }
             });
         }
@@ -274,39 +287,40 @@ struct BinaryFunctionExecutor {
     }
 
     // BOOLEAN (AND, OR, XOR)
-    template<class LEFT_TYPE, class RIGHT_TYPE, class FUNC>
+    template<class LEFT_TYPE, class RIGHT_TYPE, class FUNC,
+        typename OP_WRAPPER = BinarySelectWrapper>
     static bool select(common::ValueVector& left, common::ValueVector& right,
-        common::SelectionVector& selVector) {
+        common::SelectionVector& selVector, void* dataPtr) {
         if (left.state->isFlat() && right.state->isFlat()) {
-            return selectBothFlat<LEFT_TYPE, RIGHT_TYPE, FUNC, BinarySelectWrapper>(left, right);
+            return selectBothFlat<LEFT_TYPE, RIGHT_TYPE, FUNC, OP_WRAPPER>(left, right, dataPtr);
         } else if (left.state->isFlat() && !right.state->isFlat()) {
-            return selectFlatUnFlat<LEFT_TYPE, RIGHT_TYPE, FUNC, BinarySelectWrapper>(left, right,
-                selVector);
+            return selectFlatUnFlat<LEFT_TYPE, RIGHT_TYPE, FUNC, OP_WRAPPER>(left, right, selVector,
+                dataPtr);
         } else if (!left.state->isFlat() && right.state->isFlat()) {
-            return selectUnFlatFlat<LEFT_TYPE, RIGHT_TYPE, FUNC, BinarySelectWrapper>(left, right,
-                selVector);
+            return selectUnFlatFlat<LEFT_TYPE, RIGHT_TYPE, FUNC, OP_WRAPPER>(left, right, selVector,
+                dataPtr);
         } else {
-            return selectBothUnFlat<LEFT_TYPE, RIGHT_TYPE, FUNC, BinarySelectWrapper>(left, right,
-                selVector);
+            return selectBothUnFlat<LEFT_TYPE, RIGHT_TYPE, FUNC, OP_WRAPPER>(left, right, selVector,
+                dataPtr);
         }
     }
 
     // COMPARISON (GT, GTE, LT, LTE, EQ, NEQ)
     template<class LEFT_TYPE, class RIGHT_TYPE, class FUNC>
     static bool selectComparison(common::ValueVector& left, common::ValueVector& right,
-        common::SelectionVector& selVector) {
+        common::SelectionVector& selVector, void* dataPtr) {
         if (left.state->isFlat() && right.state->isFlat()) {
             return selectBothFlat<LEFT_TYPE, RIGHT_TYPE, FUNC, BinaryComparisonSelectWrapper>(left,
-                right);
+                right, dataPtr);
         } else if (left.state->isFlat() && !right.state->isFlat()) {
             return selectFlatUnFlat<LEFT_TYPE, RIGHT_TYPE, FUNC, BinaryComparisonSelectWrapper>(
-                left, right, selVector);
+                left, right, selVector, dataPtr);
         } else if (!left.state->isFlat() && right.state->isFlat()) {
             return selectUnFlatFlat<LEFT_TYPE, RIGHT_TYPE, FUNC, BinaryComparisonSelectWrapper>(
-                left, right, selVector);
+                left, right, selVector, dataPtr);
         } else {
             return selectBothUnFlat<LEFT_TYPE, RIGHT_TYPE, FUNC, BinaryComparisonSelectWrapper>(
-                left, right, selVector);
+                left, right, selVector, dataPtr);
         }
     }
 };

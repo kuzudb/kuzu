@@ -27,9 +27,9 @@ private:
     template<typename FUNC>
     static bool UnaryNullSelectFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::SelectionVector& selVector) {
+        common::SelectionVector& selVector, void* dataPtr) {
         KU_ASSERT(params.size() == 1);
-        return NullOperationExecutor::select<FUNC>(*params[0], selVector);
+        return NullOperationExecutor::select<FUNC>(*params[0], selVector, dataPtr);
     }
 };
 

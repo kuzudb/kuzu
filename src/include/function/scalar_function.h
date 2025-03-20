@@ -19,14 +19,29 @@ using scalar_func_exec_t =
     std::function<void(const std::vector<std::shared_ptr<common::ValueVector>>&,
         const std::vector<common::SelectionVector*>&, common::ValueVector&,
         common::SelectionVector*, void*)>;
+
+struct FunctionLocalState {
+    virtual ~FunctionLocalState() = default;
+};
+
+struct ScalarFunctionInitInput {};
+
+// Init local state function
+using scalar_func_init_local_state_t =
+    std::function<std::unique_ptr<FunctionLocalState>(ScalarFunctionInitInput)>;
 // Execute boolean function and write result to selection vector. Fast path for filter.
 using scalar_func_select_t = std::function<bool(
-    const std::vector<std::shared_ptr<common::ValueVector>>&, common::SelectionVector&)>;
+    const std::vector<std::shared_ptr<common::ValueVector>>&, common::SelectionVector&, void*)>;
+
+static std::unique_ptr<FunctionLocalState> initEmptyLocalState(ScalarFunctionInitInput /*input*/) {
+    return std::make_unique<FunctionLocalState>();
+};
 
 struct KUZU_API ScalarFunction : public ScalarOrAggregateFunction {
     scalar_func_exec_t execFunc = nullptr;
     scalar_func_select_t selectFunc = nullptr;
     scalar_func_compile_exec_t compileFunc = nullptr;
+    scalar_func_init_local_state_t initLocalStateFunc = initEmptyLocalState;
 
     ScalarFunction() = default;
     ScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
@@ -116,7 +131,7 @@ struct KUZU_API ScalarFunction : public ScalarOrAggregateFunction {
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void BinaryExecMapCreationFunction(
+    static void BinaryExecWithBindData(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         const std::vector<common::SelectionVector*>& paramSelVectors, common::ValueVector& result,
         common::SelectionVector* resultSelVector, void* dataPtr) {
@@ -129,10 +144,19 @@ struct KUZU_API ScalarFunction : public ScalarOrAggregateFunction {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename FUNC>
     static bool BinarySelectFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::SelectionVector& selVector) {
+        common::SelectionVector& selVector, void* dataPtr) {
         KU_ASSERT(params.size() == 2);
         return BinaryFunctionExecutor::select<LEFT_TYPE, RIGHT_TYPE, FUNC>(*params[0], *params[1],
-            selVector);
+            selVector, dataPtr);
+    }
+
+    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename FUNC>
+    static bool BinarySelectWithBindData(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::SelectionVector& selVector, void* dataPtr) {
+        KU_ASSERT(params.size() == 2);
+        return BinaryFunctionExecutor::select<LEFT_TYPE, RIGHT_TYPE, FUNC,
+            BinarySelectWithBindDataWrapper>(*params[0], *params[1], selVector, dataPtr);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC,

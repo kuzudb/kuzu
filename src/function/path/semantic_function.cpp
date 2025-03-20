@@ -20,7 +20,7 @@ static void IsTrailExecFunc(const std::vector<std::shared_ptr<common::ValueVecto
 }
 
 static bool IsTrailSelectFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    SelectionVector& selectionVector) {
+    SelectionVector& selectionVector, void* /* dataPtr */) {
     return UnaryPathExecutor::selectRelIDs(*parameters[0], selectionVector);
 }
 
@@ -41,7 +41,7 @@ static void IsACyclicExecFunc(const std::vector<std::shared_ptr<common::ValueVec
 }
 
 static bool IsACyclicSelectFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
-    SelectionVector& selectionVector) {
+    SelectionVector& selectionVector, void* /* dataPtr */) {
     return UnaryPathExecutor::selectNodeIDs(*parameters[0], selectionVector);
 }
 
