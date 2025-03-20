@@ -28,7 +28,7 @@ struct HNSWIndexUtils {
     static void validateAutoTransaction(const main::ClientContext& context,
         const std::string& funcName);
 
-    static double computeDistance(DistFuncType funcType, const float* left, const float* right,
+    static double computeDistance(MetricType funcType, const float* left, const float* right,
         uint32_t dimension);
 
     static void validateColumnType(const catalog::TableCatalogEntry& tableEntry,

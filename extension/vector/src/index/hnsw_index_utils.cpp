@@ -61,22 +61,22 @@ void HNSWIndexUtils::validateColumnType(const catalog::TableCatalogEntry& tableE
     validateColumnType(type);
 }
 
-double HNSWIndexUtils::computeDistance(DistFuncType funcType, const float* left, const float* right,
+double HNSWIndexUtils::computeDistance(MetricType funcType, const float* left, const float* right,
     uint32_t dimension) {
     double distance = 0.0;
     switch (funcType) {
-    case DistFuncType::Cosine: {
+    case MetricType::Cosine: {
         simsimd_cos_f32(left, right, dimension, &distance);
     } break;
-    case DistFuncType::DotProduct: {
+    case MetricType::DotProduct: {
         simsimd_dot_f32(left, right, dimension, &distance);
     } break;
-    case DistFuncType::L2: {
+    case MetricType::L2: {
         // L2 distance is the square root of the sum of the squared differences between the two
         // vectors. Also known as the Euclidean distance.
         simsimd_l2_f32(left, right, dimension, &distance);
     } break;
-    case DistFuncType::L2_SQUARE: {
+    case MetricType::L2_SQUARE: {
         // L2 square distance is the sum of the squared differences between the two vectors.
         // Also known as the squared Euclidean distance.
         simsimd_l2sq_f32(left, right, dimension, &distance);

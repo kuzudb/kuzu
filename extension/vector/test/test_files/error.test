@@ -57,9 +57,9 @@ Binder exception: Pu must be a double between 0 and 1.
 -STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', alpha := 0.5);
 ---- error
 Binder exception: Alpha must be a double greater than or equal to 1.
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', distFunc := 'invalid');
+-STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'invalid');
 ---- error
-Binder exception: DistFunc must be one of COSINE, L2, L2SQ or DOTPRODUCT.
+Binder exception: Metric must be one of COSINE, L2, L2SQ or DOTPRODUCT.
 -STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec');
 ---- ok
 -STATEMENT CALL QUERY_HNSW_INDEX('embeddings', 'e_hnsw_index', CAST([0.0459,0.0439,0.0251,0.1,0.2,0.3,0.4,0.4], 'FLOAT[8]'), 10, unknown_param := 1) RETURN *;
@@ -76,7 +76,7 @@ Binder exception: Efs must be a positive integer.
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', distFunc := 'l2');
+-STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
 ---- ok
 -STATEMENT CALL QUERY_HNSW_INDEX('embeddings', 'e_hnsw_index', ['abc','def','ddd','awe','alice','bob','de','pwd'], 3) RETURN nn.id ORDER BY _distance;
 ---- error
@@ -112,3 +112,22 @@ Binder exception: Projected graph emb-graph2 either contains relationship tables
 -STATEMENT CALL QUERY_HNSW_INDEX('emb-graph3', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
 ---- error
 Binder exception: Cannot find table or projected graph named as emb-graph3.
+
+-CASE InCorrectSearchThreshold
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
+---- ok
+-STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
+---- ok
+-STATEMENT CALL QUERY_HNSW_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 3, blind_search_up_sel := 1.1) RETURN nn.id ORDER BY _distance;
+---- error
+Binder exception: Blind search upper selectivity threshold must be a double between 0 and 1.
+-STATEMENT CALL QUERY_HNSW_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 3, directed_search_up_sel := -0.1) RETURN nn.id ORDER BY _distance;
+---- error
+Binder exception: Directed search upper selectivity threshold must be a double between 0 and 1.
+-STATEMENT CALL QUERY_HNSW_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 3, directed_search_up_sel := 0.1, blind_search_up_sel := 0.8) RETURN nn.id ORDER BY _distance;
+---- error
+Binder exception: Blind search upper selectivity threshold is set to 0.800000, but the directed search upper selectivity threshold is set to 0.100000. The blind search upper selectivity threshold must be less than the directed search upper selectivity threshold.
