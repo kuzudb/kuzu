@@ -1,5 +1,8 @@
 name: SimSIMD Dispatch Test
 on:
+  pull_request:
+    branches:
+      - master
   schedule:
     - cron: "0 5 * * *"
 
@@ -11,6 +14,12 @@ jobs:
     with:
       isNightly: true
       x86_64Only: true
+    secrets: inherit
+
+  build-extensions-linux:
+    uses: ./.github/workflows/build-extensions.yml
+    with:
+      x86_64LinuxOnly: true
     secrets: inherit
 
   simsimd-dispatch-test:
@@ -30,7 +39,12 @@ jobs:
         with:
           name: kuzu_cli-linux-x86_64
 
-      - name: Extract kuzu shell
+      - name: Download extensions
+        uses: actions/download-artifact@v4
+        with:
+          name: kuzu-extensions_linux-x86_64
+
+      - name: Extract artifacts
         run: |
           tar xf kuzu_cli-linux-x86_64.tar.gz
 
