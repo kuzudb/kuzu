@@ -95,7 +95,7 @@ allconfig:
 	$(call config-cmake-release, \
 		-DBUILD_BENCHMARK=TRUE \
 		-DBUILD_EXAMPLES=TRUE \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog;vector" \
 		-DBUILD_JAVA=TRUE \
 		-DBUILD_NODEJS=TRUE \
 		-DBUILD_PYTHON=TRUE \
@@ -110,7 +110,7 @@ alldebug:
 	$(call run-cmake-debug, \
 		-DBUILD_BENCHMARK=TRUE \
 		-DBUILD_EXAMPLES=TRUE \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog;vector" \
 		-DBUILD_JAVA=TRUE \
 		-DBUILD_NODEJS=TRUE \
 		-DBUILD_PYTHON=TRUE \
@@ -199,7 +199,7 @@ example:
 
 extension-test-build:
 	$(call run-cmake-relwithdebinfo, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog;vector" \
 		-DBUILD_EXTENSION_TESTS=TRUE \
 		-DBUILD_TESTS=TRUE \
 	)
@@ -211,6 +211,7 @@ extension-json-test-build:
 		-DENABLE_ADDRESS_SANITIZER=TRUE \
 	)
 
+# This should be removed and be replaced with something more flexible with any given extension names.
 extension-test: extension-test-build
 ifeq ($(OS),Windows_NT)
 	set "E2E_TEST_FILES_DIRECTORY=extension" && ctest --test-dir build/relwithdebinfo/test/runner --output-on-failure -j ${TEST_JOBS} --exclude-regex "${EXTENSION_TEST_EXCLUDE_FILTER}"
@@ -225,13 +226,13 @@ extension-json-test: extension-json-test-build
 
 extension-debug:
 	$(call run-cmake-debug, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog;vector" \
 		-DBUILD_KUZU=FALSE \
 	)
 
 extension-release:
 	$(call run-cmake-release, \
-		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog" \
+		-DBUILD_EXTENSIONS="httpfs;duckdb;json;postgres;sqlite;fts;delta;iceberg;unity_catalog;vector" \
 		-DBUILD_KUZU=FALSE \
 	)
 
@@ -275,6 +276,7 @@ clean-extension:
 	cmake -E rm -rf extension/delta/build
 	cmake -E rm -rf extension/iceberg/build
 	cmake -E rm -rf extension/unity_catalog/build
+	cmake -E rm -rf extension/vector/build
 
 clean-python-api:
 	cmake -E rm -rf tools/python_api/build

@@ -20,7 +20,6 @@
 #include "function/sequence/sequence_functions.h"
 #include "function/string/vector_string_functions.h"
 #include "function/struct/vector_struct_functions.h"
-#include "function/table/hnsw/hnsw_index_functions.h"
 #include "function/table/simple_table_function.h"
 #include "function/table/standalone_call_function.h"
 #include "function/timestamp/vector_timestamp_functions.h"
@@ -221,8 +220,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
         TABLE_FUNCTION(ShowConnectionFunction), TABLE_FUNCTION(StatsInfoFunction),
         TABLE_FUNCTION(StorageInfoFunction), TABLE_FUNCTION(ShowAttachedDatabasesFunction),
         TABLE_FUNCTION(ShowSequencesFunction), TABLE_FUNCTION(ShowFunctionsFunction),
-        TABLE_FUNCTION(BMInfoFunction), TABLE_FUNCTION(QueryHNSWIndexFunction),
-        TABLE_FUNCTION(ShowLoadedExtensionsFunction),
+        TABLE_FUNCTION(BMInfoFunction), TABLE_FUNCTION(ShowLoadedExtensionsFunction),
         TABLE_FUNCTION(ShowOfficialExtensionsFunction), TABLE_FUNCTION(ShowIndexesFunction),
 
         // Standalone Table functions
@@ -230,13 +228,6 @@ FunctionCollection* FunctionCollection::getFunctions() {
         STANDALONE_TABLE_FUNCTION(ClearWarningsFunction),
         STANDALONE_TABLE_FUNCTION(CreateProjectedGraphFunction),
         STANDALONE_TABLE_FUNCTION(DropProjectedGraphFunction),
-        // TODO(Guodong): Move this from builtin to extension and also move _CreateHNSWIndexFunction
-        // and _DropHNSWIndexFunction to private functions.
-        STANDALONE_TABLE_FUNCTION(InternalCreateHNSWIndexFunction),
-        STANDALONE_TABLE_FUNCTION(InternalFinalizeHNSWIndexFunction),
-        STANDALONE_TABLE_FUNCTION(CreateHNSWIndexFunction),
-        STANDALONE_TABLE_FUNCTION(InternalDropHNSWIndexFunction),
-        STANDALONE_TABLE_FUNCTION(DropHNSWIndexFunction),
 
         // Scan functions
         TABLE_FUNCTION(ParquetScanFunction), TABLE_FUNCTION(NpyScanFunction),

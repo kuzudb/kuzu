@@ -8,7 +8,8 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-std::unique_ptr<LogicalInsertInfo> Planner::createLogicalInsertInfo(const BoundInsertInfo* info) {
+std::unique_ptr<LogicalInsertInfo> Planner::createLogicalInsertInfo(
+    const BoundInsertInfo* info) const {
     auto insertInfo = std::make_unique<LogicalInsertInfo>(info->tableType, info->pattern,
         info->columnExprs, info->columnDataExprs, info->conflictAction);
     binder::expression_set propertyExprSet;

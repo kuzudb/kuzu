@@ -61,7 +61,7 @@ private:
     std::unordered_map<std::string, binder::expression_vector> patternNameToProperties;
 };
 
-class Planner {
+class KUZU_API Planner {
 public:
     explicit Planner(main::ClientContext* clientContext);
     DELETE_COPY_AND_MOVE(Planner);
@@ -227,7 +227,8 @@ public:
     void appendSetProperty(const std::vector<binder::BoundSetPropertyInfo>& infos,
         LogicalPlan& plan);
     void appendDelete(const std::vector<binder::BoundDeleteInfo>& infos, LogicalPlan& plan);
-    std::unique_ptr<LogicalInsertInfo> createLogicalInsertInfo(const binder::BoundInsertInfo* info);
+    std::unique_ptr<LogicalInsertInfo> createLogicalInsertInfo(
+        const binder::BoundInsertInfo* info) const;
 
     // Append projection operators
     void appendProjection(const binder::expression_vector& expressionsToProject, LogicalPlan& plan);
@@ -340,7 +341,7 @@ public:
 
     static std::vector<std::unique_ptr<LogicalPlan>> getInitialEmptyPlans();
 
-    binder::expression_vector getProperties(const binder::Expression& pattern);
+    binder::expression_vector getProperties(const binder::Expression& pattern) const;
 
     JoinOrderEnumeratorContext enterNewContext();
     void exitContext(JoinOrderEnumeratorContext prevContext);

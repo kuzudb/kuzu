@@ -70,7 +70,7 @@ struct LogicalOperatorUtils {
     static bool isAccHashJoin(const LogicalOperator& op);
 };
 
-class LogicalOperator {
+class KUZU_API LogicalOperator {
 public:
     explicit LogicalOperator(LogicalOperatorType operatorType)
         : operatorType{operatorType}, cardinality{1} {}

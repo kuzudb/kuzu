@@ -35,7 +35,7 @@ private:
 };
 
 struct SemiMaskUtil {
-    static std::unique_ptr<SemiMask> createMask(offset_t maxOffset);
+    KUZU_API static std::unique_ptr<SemiMask> createMask(offset_t maxOffset);
 };
 
 class NodeOffsetMaskMap {

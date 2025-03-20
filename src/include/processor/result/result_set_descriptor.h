@@ -23,7 +23,7 @@ struct DataChunkDescriptor {
     }
 };
 
-struct ResultSetDescriptor {
+struct KUZU_API ResultSetDescriptor {
     std::vector<std::unique_ptr<DataChunkDescriptor>> dataChunkDescriptors;
 
     ResultSetDescriptor() = default;
@@ -31,6 +31,7 @@ struct ResultSetDescriptor {
         std::vector<std::unique_ptr<DataChunkDescriptor>> dataChunkDescriptors)
         : dataChunkDescriptors{std::move(dataChunkDescriptors)} {}
     explicit ResultSetDescriptor(planner::Schema* schema);
+    DELETE_BOTH_COPY(ResultSetDescriptor);
 
     std::unique_ptr<ResultSetDescriptor> copy() const;
 };

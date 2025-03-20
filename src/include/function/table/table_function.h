@@ -93,8 +93,7 @@ struct TableFuncOutput {
     void setOutputSize(common::offset_t size) const;
 };
 
-// Init shared state
-struct TableFuncInitSharedStateInput {
+struct KUZU_API TableFuncInitSharedStateInput final {
     TableFuncBindData* bindData;
     processor::ExecutionContext* context;
 

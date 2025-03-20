@@ -15,7 +15,7 @@ class BufferedSerializer;
 namespace kuzu {
 namespace catalog {
 
-struct IndexToCypherInfo : public ToCypherInfo {
+struct KUZU_API IndexToCypherInfo : ToCypherInfo {
     const main::ClientContext* context;
     const common::FileScanInfo& exportFileInfo;
 

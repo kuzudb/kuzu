@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace binder {
 
-class BoundReadingClause {
+class KUZU_API BoundReadingClause {
 public:
     explicit BoundReadingClause(common::ClauseType clauseType) : clauseType{clauseType} {}
     DELETE_COPY_DEFAULT_MOVE(BoundReadingClause);

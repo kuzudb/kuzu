@@ -8,8 +8,8 @@ namespace kuzu {
 namespace evaluator {
 
 struct ExpressionEvaluatorUtils {
-    static common::Value evaluateConstantExpression(std::shared_ptr<binder::Expression> expression,
-        main::ClientContext* clientContext);
+    static KUZU_API common::Value evaluateConstantExpression(
+        std::shared_ptr<binder::Expression> expression, main::ClientContext* clientContext);
 };
 
 } // namespace evaluator

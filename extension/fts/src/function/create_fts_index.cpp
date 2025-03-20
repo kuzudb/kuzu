@@ -7,6 +7,7 @@
 #include "fts_extension.h"
 #include "function/fts_bind_data.h"
 #include "function/fts_config.h"
+#include "function/fts_index_utils.h"
 #include "function/fts_utils.h"
 #include "function/gds/gds_task.h"
 #include "function/gds/gds_utils.h"
@@ -16,7 +17,6 @@
 #include "graph/graph_entry.h"
 #include "graph/on_disk_graph.h"
 #include "processor/execution_context.h"
-#include "storage/index/index_utils.h"
 
 namespace kuzu {
 namespace fts_extension {
@@ -83,10 +83,10 @@ static void validateInternalTablesNotExist(table_id_t tableID, const std::string
 
 static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
     const TableFuncBindInput* input) {
-    storage::IndexUtils::validateAutoTransaction(*context, CreateFTSFunction::name);
+    FTSIndexUtils::validateAutoTransaction(*context, CreateFTSFunction::name);
     auto indexName = input->getLiteralVal<std::string>(1);
-    auto nodeTableEntry = storage::IndexUtils::bindNodeTable(*context,
-        input->getLiteralVal<std::string>(0), indexName, storage::IndexOperation::CREATE);
+    auto nodeTableEntry = FTSIndexUtils::bindNodeTable(*context,
+        input->getLiteralVal<std::string>(0), indexName, FTSIndexUtils::IndexOperation::CREATE);
     auto propertyIDs = bindProperties(*nodeTableEntry, input->getParam(2));
     auto createFTSConfig =
         CreateFTSConfig{*context, nodeTableEntry->getTableID(), indexName, input->optionalParams};

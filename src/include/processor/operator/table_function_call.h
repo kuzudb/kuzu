@@ -41,7 +41,7 @@ private:
         : OPPrintInfo(other), funcName(other.funcName), exprs(other.exprs) {}
 };
 
-class TableFunctionCall final : public PhysicalOperator {
+class KUZU_API TableFunctionCall final : public PhysicalOperator {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::TABLE_FUNCTION_CALL;
 
 public:

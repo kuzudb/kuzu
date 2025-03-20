@@ -1,14 +1,16 @@
-#include "storage/index/hnsw_index.h"
+#include "index/hnsw_index.h"
 
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "index/hnsw_index_utils.h"
 #include "main/client_context.h"
-#include "storage/index/hnsw_index_utils.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 
+using namespace kuzu::storage;
+
 namespace kuzu {
-namespace storage {
+namespace vector_extension {
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
 void HNSWIndexPartitionerSharedState::setTables(NodeTable* nodeTable, RelTable* relTable) {
@@ -594,5 +596,5 @@ bool OnDiskHNSWIndex::searchOverSecondHopNbrs(transaction::Transaction* transact
     return true;
 }
 
-} // namespace storage
+} // namespace vector_extension
 } // namespace kuzu

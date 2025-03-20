@@ -1,25 +1,25 @@
 #pragma once
 
 #include "catalog/catalog_entry/index_catalog_entry.h"
-#include "storage/index/hnsw_config.h"
+#include "index/hnsw_config.h"
 
 namespace kuzu::common {
 struct BufferReader;
-}
-namespace kuzu {
-namespace catalog {
+} // namespace kuzu::common
 
-struct HNSWIndexAuxInfo final : IndexAuxInfo {
+namespace kuzu {
+namespace vector_extension {
+
+struct HNSWIndexAuxInfo final : catalog::IndexAuxInfo {
 
     common::table_id_t upperRelTableID = common::INVALID_TABLE_ID;
     common::table_id_t lowerRelTableID = common::INVALID_TABLE_ID;
     common::offset_t upperEntryPoint = common::INVALID_OFFSET;
     common::offset_t lowerEntryPoint = common::INVALID_OFFSET;
-    storage::HNSWIndexConfig config;
+    HNSWIndexConfig config;
 
     HNSWIndexAuxInfo(common::table_id_t upperRelTableID, common::table_id_t lowerRelTableID,
-        common::offset_t upperEntryPoint, common::offset_t lowerEntryPoint,
-        storage::HNSWIndexConfig config)
+        common::offset_t upperEntryPoint, common::offset_t lowerEntryPoint, HNSWIndexConfig config)
         : upperRelTableID{upperRelTableID}, lowerRelTableID{lowerRelTableID},
           upperEntryPoint{upperEntryPoint}, lowerEntryPoint{lowerEntryPoint},
           config{std::move(config)} {}
@@ -37,16 +37,16 @@ struct HNSWIndexAuxInfo final : IndexAuxInfo {
         return std::make_unique<HNSWIndexAuxInfo>(*this);
     }
 
-    std::string toCypher(const IndexCatalogEntry& indexEntry,
-        const ToCypherInfo& info) const override;
+    std::string toCypher(const catalog::IndexCatalogEntry& indexEntry,
+        const catalog::ToCypherInfo& info) const override;
 };
 
 struct HNSWIndexCatalogEntry {
     static constexpr char TYPE_NAME[] = "HNSW";
 
-    static std::string toCypher(const IndexCatalogEntry& indexEntry, main::ClientContext* context,
-        const common::FileScanInfo& exportFileInfo);
+    static std::string toCypher(const catalog::IndexCatalogEntry& indexEntry,
+        main::ClientContext* context, const common::FileScanInfo& exportFileInfo);
 };
 
-} // namespace catalog
+} // namespace vector_extension
 } // namespace kuzu

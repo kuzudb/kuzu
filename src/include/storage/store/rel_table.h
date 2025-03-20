@@ -132,7 +132,7 @@ struct RelTableDeleteState final : TableDeleteState {
           relIDVector{relIDVector} {}
 };
 
-class RelTable final : public Table {
+class KUZU_API RelTable final : public Table {
 public:
     using rel_multiplicity_constraint_throw_func_t =
         std::function<void(const std::string&, common::offset_t, common::RelDataDirection)>;

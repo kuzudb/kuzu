@@ -8,7 +8,7 @@
 namespace kuzu {
 namespace processor {
 
-class Sink : public PhysicalOperator {
+class KUZU_API Sink : public PhysicalOperator {
 public:
     Sink(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         PhysicalOperatorType operatorType, uint32_t id, std::unique_ptr<OPPrintInfo> printInfo)
@@ -45,7 +45,7 @@ protected:
     std::unique_ptr<ResultSetDescriptor> resultSetDescriptor;
 };
 
-class DummySink final : public Sink {
+class KUZU_API DummySink final : public Sink {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::DUMMY_SINK;
 
 public:

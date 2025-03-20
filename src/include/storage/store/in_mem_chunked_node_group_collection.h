@@ -9,10 +9,11 @@ class Transaction;
 
 namespace storage {
 
-class InMemChunkedNodeGroupCollection {
+class KUZU_API InMemChunkedNodeGroupCollection {
 public:
     explicit InMemChunkedNodeGroupCollection(std::vector<common::LogicalType> types)
         : types{std::move(types)} {}
+    DELETE_BOTH_COPY(InMemChunkedNodeGroupCollection);
 
     static std::pair<uint64_t, common::offset_t> getChunkIdxAndOffsetInChunk(
         common::row_idx_t rowIdx) {

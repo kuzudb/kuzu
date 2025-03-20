@@ -65,3 +65,7 @@ endif ()
 if ("unity_catalog" IN_LIST BUILD_EXTENSIONS)
     add_subdirectory(unity_catalog)
 endif ()
+
+if ("vector" IN_LIST BUILD_EXTENSIONS)
+    add_subdirectory(vector)
+endif()

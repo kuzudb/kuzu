@@ -83,7 +83,7 @@ struct ChunkState {
 class FileHandle;
 class Spiller;
 // Base data segment covers all fixed-sized data types.
-class ColumnChunkData {
+class KUZU_API ColumnChunkData {
 public:
     friend struct ColumnChunkFactory;
     // For spilling to disk we need access to the underlying buffer
@@ -394,7 +394,7 @@ public:
     common::NullMask getNullMask() const;
 };
 
-class InternalIDChunkData final : public ColumnChunkData {
+class KUZU_API InternalIDChunkData final : public ColumnChunkData {
 public:
     // TODO(Guodong): Should make InternalIDChunkData has no NULL.
     // Physically, we only materialize offset of INTERNAL_ID, which is same as UINT64,

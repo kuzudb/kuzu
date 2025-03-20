@@ -1,9 +1,11 @@
 #include "binder/copy/bound_copy_from.h"
-#include "catalog/catalog_entry/hnsw_index_catalog_entry.h"
+#include "catalog/catalog_entry/function_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "catalog/hnsw_index_catalog_entry.h"
 #include "function/built_in_function_utils.h"
+#include "function/hnsw_index_functions.h"
 #include "function/table/bind_data.h"
-#include "function/table/hnsw/hnsw_index_functions.h"
+#include "index/hnsw_index_utils.h"
 #include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "processor/execution_context.h"
@@ -11,15 +13,14 @@
 #include "processor/operator/table_function_call.h"
 #include "processor/plan_mapper.h"
 #include "processor/result/factorized_table_util.h"
-#include "storage/index/hnsw_index_utils.h"
-#include "storage/index/index_utils.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
 
 using namespace kuzu::common;
+using namespace kuzu::function;
 
 namespace kuzu {
-namespace function {
+namespace vector_extension {
 
 CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : SimpleTableFuncSharedState{bindData.numRows}, name{bindData.indexName},
@@ -27,7 +28,7 @@ CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBind
                     ->getTable(bindData.tableEntry->getTableID())
                     ->cast<storage::NodeTable>()},
       numNodes{bindData.numRows}, bindData{&bindData} {
-    hnswIndex = std::make_shared<storage::InMemHNSWIndex>(bindData.context, nodeTable,
+    hnswIndex = std::make_shared<InMemHNSWIndex>(bindData.context, nodeTable,
         bindData.tableEntry->getColumnID(bindData.propertyID), bindData.config.copy());
 }
 
@@ -36,13 +37,13 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
     const auto tableName = input->getLiteralVal<std::string>(0);
     const auto indexName = input->getLiteralVal<std::string>(1);
     const auto columnName = input->getLiteralVal<std::string>(2);
-    auto tableEntry = storage::IndexUtils::bindNodeTable(*context, tableName, indexName,
-        storage::IndexOperation::CREATE);
+    auto tableEntry = HNSWIndexUtils::bindNodeTable(*context, tableName, indexName,
+        HNSWIndexUtils::IndexOperation::CREATE);
     const auto tableID = tableEntry->getTableID();
-    storage::HNSWIndexUtils::validateColumnType(*tableEntry, columnName);
+    HNSWIndexUtils::validateColumnType(*tableEntry, columnName);
     const auto& table = context->getStorageManager()->getTable(tableID)->cast<storage::NodeTable>();
     auto propertyID = tableEntry->getPropertyID(columnName);
-    auto config = storage::HNSWIndexConfig{input->optionalParams};
+    auto config = HNSWIndexConfig{input->optionalParams};
     auto numNodes = table.getStats(context->getTransaction()).getTableCard();
     return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, propertyID,
         numNodes, std::move(config));
@@ -108,13 +109,13 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
         std::move(createHNSWCallOp), planMapper->getOperatorID(), std::make_unique<OPPrintInfo>());
     // Append _FinalizeHNSWIndex table function.
     auto clientContext = planMapper->clientContext;
-    auto finalizeFuncEntry = clientContext->getCatalog()->getFunctionEntry(
-        clientContext->getTransaction(), InternalFinalizeHNSWIndexFunction::name);
+    auto finalizeFuncEntry =
+        clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(),
+            InternalFinalizeHNSWIndexFunction::name, true /* useInternal */);
     auto func = BuiltInFunctionsUtils::matchFunction(InternalFinalizeHNSWIndexFunction::name,
-        finalizeFuncEntry->ptrCast<catalog::FunctionCatalogEntry>())
-                    ->constPtrCast<TableFunction>();
+        finalizeFuncEntry->ptrCast<catalog::FunctionCatalogEntry>());
     auto info = processor::TableFunctionCallInfo();
-    info.function = *func;
+    info.function = *func->constPtrCast<TableFunction>();
     info.bindData = std::make_unique<TableFuncBindData>();
     auto initInput =
         TableFuncInitSharedStateInput(info.bindData.get(), planMapper->executionContext);
@@ -138,14 +139,12 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
     const auto storageManager = clientContext->getStorageManager();
     auto nodeTable = storageManager->getTable(logicalCallBoundData->tableEntry->getTableID())
                          ->ptrCast<storage::NodeTable>();
-    auto upperRelTableEntry =
-        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(),
-            storage::HNSWIndexUtils::getUpperGraphTableName(indexName));
+    auto upperRelTableEntry = clientContext->getCatalog()->getTableCatalogEntry(
+        clientContext->getTransaction(), HNSWIndexUtils::getUpperGraphTableName(indexName));
     auto upperRelTable =
         storageManager->getTable(upperRelTableEntry->getTableID())->ptrCast<storage::RelTable>();
-    auto lowerRelTableEntry =
-        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(),
-            storage::HNSWIndexUtils::getLowerGraphTableName(indexName));
+    auto lowerRelTableEntry = clientContext->getCatalog()->getTableCatalogEntry(
+        clientContext->getTransaction(), HNSWIndexUtils::getLowerGraphTableName(indexName));
     auto lowerRelTable =
         storageManager->getTable(lowerRelTableEntry->getTableID())->ptrCast<storage::RelTable>();
     // Initialize partitioner shared state.
@@ -243,21 +242,16 @@ static void finalizeHNSWTableFinalizeFunc(const processor::ExecutionContext* con
     const auto index = hnswSharedState->hnswIndex.get();
     const auto bindData = hnswSharedState->bindData->constPtrCast<CreateHNSWIndexBindData>();
     const auto catalog = clientContext->getCatalog();
-    auto upperRelTableID =
-        catalog
-            ->getTableCatalogEntry(transaction,
-                storage::HNSWIndexUtils::getUpperGraphTableName(bindData->indexName))
-            ->getTableID();
-    auto lowerRelTableID =
-        catalog
-            ->getTableCatalogEntry(transaction,
-                storage::HNSWIndexUtils::getLowerGraphTableName(bindData->indexName))
-            ->getTableID();
-    auto auxInfo = std::make_unique<catalog::HNSWIndexAuxInfo>(upperRelTableID, lowerRelTableID,
-        index->getUpperEntryPoint(), index->getLowerEntryPoint(), bindData->config.copy());
-    auto indexEntry = std::make_unique<catalog::IndexCatalogEntry>(
-        catalog::HNSWIndexCatalogEntry::TYPE_NAME, bindData->tableEntry->getTableID(),
-        bindData->indexName, std::vector{bindData->propertyID}, std::move(auxInfo));
+    const auto upperTable = catalog->getTableCatalogEntry(transaction,
+        HNSWIndexUtils::getUpperGraphTableName(bindData->indexName));
+    const auto lowerTable = catalog->getTableCatalogEntry(transaction,
+        HNSWIndexUtils::getLowerGraphTableName(bindData->indexName));
+    auto auxInfo =
+        std::make_unique<HNSWIndexAuxInfo>(upperTable->getTableID(), lowerTable->getTableID(),
+            index->getUpperEntryPoint(), index->getLowerEntryPoint(), bindData->config.copy());
+    auto indexEntry = std::make_unique<catalog::IndexCatalogEntry>(HNSWIndexCatalogEntry::TYPE_NAME,
+        bindData->tableEntry->getTableID(), bindData->indexName, std::vector{bindData->propertyID},
+        std::move(auxInfo));
     catalog->createIndex(transaction, std::move(indexEntry));
 }
 
@@ -290,7 +284,7 @@ function_set InternalFinalizeHNSWIndexFunction::getFunctionSet() {
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
-    storage::IndexUtils::validateAutoTransaction(*context, CreateHNSWIndexFunction::name);
+    HNSWIndexUtils::validateAutoTransaction(*context, CreateHNSWIndexFunction::name);
     return createInMemHNSWBindFunc(context, input);
 }
 
@@ -302,16 +296,16 @@ static std::string rewriteCreateHNSWQuery(main::ClientContext& context,
     auto indexName = hnswBindData->indexName;
     auto tableName = hnswBindData->tableEntry->getName();
     query += stringFormat("CREATE REL TABLE {} (FROM {} TO {});",
-        storage::HNSWIndexUtils::getUpperGraphTableName(indexName), tableName, tableName);
+        HNSWIndexUtils::getUpperGraphTableName(indexName), tableName, tableName);
     query += stringFormat("CREATE REL TABLE {} (FROM {} TO {});",
-        storage::HNSWIndexUtils::getLowerGraphTableName(indexName), tableName, tableName);
+        HNSWIndexUtils::getLowerGraphTableName(indexName), tableName, tableName);
     std::string params;
     auto& config = hnswBindData->config;
     params += stringFormat("mu := {}, ", config.mu);
     params += stringFormat("ml := {}, ", config.ml);
     params += stringFormat("efc := {}, ", config.efc);
-    params += stringFormat("distFunc := '{}', ",
-        storage::HNSWIndexConfig::distFuncToString(config.distFunc));
+    params +=
+        stringFormat("distFunc := '{}', ", HNSWIndexConfig::distFuncToString(config.distFunc));
     params += stringFormat("alpha := {}, ", config.alpha);
     params += stringFormat("pu := {}", config.pu);
     auto columnName = hnswBindData->tableEntry->getProperty(hnswBindData->propertyID).getName();
@@ -336,5 +330,5 @@ function_set CreateHNSWIndexFunction::getFunctionSet() {
     return functionSet;
 }
 
-} // namespace function
+} // namespace vector_extension
 } // namespace kuzu

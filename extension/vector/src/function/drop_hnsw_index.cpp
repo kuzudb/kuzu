@@ -1,12 +1,13 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "function/hnsw_index_functions.h"
 #include "function/table/bind_data.h"
-#include "function/table/hnsw/hnsw_index_functions.h"
+#include "index/hnsw_index_utils.h"
 #include "processor/execution_context.h"
-#include "storage/index/hnsw_index_utils.h"
-#include "storage/index/index_utils.h"
+
+using namespace kuzu::function;
 
 namespace kuzu {
-namespace function {
+namespace vector_extension {
 
 struct DropHNSWIndexBindData final : TableFuncBindData {
     catalog::NodeTableCatalogEntry* tableEntry;
@@ -24,8 +25,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
     const auto tableName = input->getLiteralVal<std::string>(0);
     const auto indexName = input->getLiteralVal<std::string>(1);
-    const auto tableEntry = storage::IndexUtils::bindNodeTable(*context, tableName, indexName,
-        storage::IndexOperation::DROP);
+    const auto tableEntry = HNSWIndexUtils::bindNodeTable(*context, tableName, indexName,
+        HNSWIndexUtils::IndexOperation::DROP);
     return std::make_unique<DropHNSWIndexBindData>(tableEntry, indexName);
 }
 
@@ -42,16 +43,16 @@ static std::string dropHNSWIndexTables(main::ClientContext& context,
     const auto dropHNSWIndexBindData = bindData.constPtrCast<DropHNSWIndexBindData>();
     context.setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     std::string query = "";
-    auto requireNewTransaction = !context.getTransactionContext()->hasActiveTransaction();
+    const auto requireNewTransaction = !context.getTransactionContext()->hasActiveTransaction();
     if (requireNewTransaction) {
         query += "BEGIN TRANSACTION;";
     }
     query += common::stringFormat("CALL _DROP_HNSW_INDEX('{}', '{}');",
         dropHNSWIndexBindData->tableEntry->getName(), dropHNSWIndexBindData->indexName);
     query += common::stringFormat("DROP TABLE {};",
-        storage::HNSWIndexUtils::getUpperGraphTableName(dropHNSWIndexBindData->indexName));
+        HNSWIndexUtils::getUpperGraphTableName(dropHNSWIndexBindData->indexName));
     query += common::stringFormat("DROP TABLE {};",
-        storage::HNSWIndexUtils::getLowerGraphTableName(dropHNSWIndexBindData->indexName));
+        HNSWIndexUtils::getLowerGraphTableName(dropHNSWIndexBindData->indexName));
     if (requireNewTransaction) {
         query += "COMMIT;";
     }
@@ -85,5 +86,5 @@ function_set DropHNSWIndexFunction::getFunctionSet() {
     return functionSet;
 }
 
-} // namespace function
+} // namespace vector_extension
 } // namespace kuzu

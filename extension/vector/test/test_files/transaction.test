@@ -2,6 +2,9 @@
 --
 
 -CASE CreateHNSWAutoCommit
+-SKIP_IN_MEM
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -15,6 +18,8 @@
 444
 133
 -RELOADDB
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CALL QUERY_HNSW_INDEX('embeddings', 'e_hnsw_index',CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
 ---- 3
@@ -23,6 +28,8 @@
 133
 
 -CASE CreateHNSWComit
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
@@ -42,6 +49,8 @@ Binder exception: CREATE_HNSW_INDEX is only supported in auto transaction mode.
 # ---- ok
 
 -CASE DropHNSWComit
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -58,6 +67,8 @@ Binder exception: CREATE_HNSW_INDEX is only supported in auto transaction mode.
 ---- 0
 
 -CASE CreateHNSWComitRecovery
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
@@ -84,6 +95,9 @@ Binder exception: CREATE_HNSW_INDEX is only supported in auto transaction mode.
 # 133
 
 -CASE DropHNSWComitRecovery
+-SKIP_IN_MEM
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -103,6 +117,8 @@ Binder exception: CREATE_HNSW_INDEX is only supported in auto transaction mode.
 ---- 0
 
 -CASE CreateHNSWRollback
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
@@ -124,6 +140,8 @@ Binder exception: CREATE_HNSW_INDEX is only supported in auto transaction mode.
 # ---- 0
 
 -CASE DropHNSWRollback
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -141,6 +159,9 @@ Binder exception: CREATE_HNSW_INDEX is only supported in auto transaction mode.
 embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', mu := 30, ml := 60, pu := 0.050000, distFunc := 'l2', alpha := 1.100000, efc := 200);
 
 -CASE CreateHNSWRollbackRecovery
+-SKIP_IN_MEM
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
@@ -165,6 +186,9 @@ Binder exception: CREATE_HNSW_INDEX is only supported in auto transaction mode.
 # ---- 0
 
 -CASE DropHNSWRollbackRecovery
+-SKIP_IN_MEM
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
@@ -181,6 +205,8 @@ Binder exception: CREATE_HNSW_INDEX is only supported in auto transaction mode.
 ---- 1
 embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', mu := 30, ml := 60, pu := 0.050000, distFunc := 'l2', alpha := 1.100000, efc := 200);
 -RELOADDB
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+---- ok
 -STATEMENT CALL show_indexes() RETURN *;
 ---- 1
 embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', mu := 30, ml := 60, pu := 0.050000, distFunc := 'l2', alpha := 1.100000, efc := 200);

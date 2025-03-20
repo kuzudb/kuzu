@@ -28,7 +28,7 @@ struct NbrTableInfo {
         : nodeEntry{nodeEntry}, relEntry{relEntry} {}
 };
 
-class NbrScanState {
+class KUZU_API NbrScanState {
 public:
     struct Chunk {
         friend class NbrScanState;

@@ -1,15 +1,15 @@
-#include "storage/index/index_utils.h"
+#include "function/fts_index_utils.h"
 
+#include "binder/binder.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "main/client_context.h"
-#include <binder/binder.h>
 
 namespace kuzu {
-namespace storage {
+namespace fts_extension {
 
-void IndexUtils::validateIndexExistence(const main::ClientContext& context,
+void FTSIndexUtils::validateIndexExistence(const main::ClientContext& context,
     const catalog::TableCatalogEntry* tableEntry, const std::string& indexName,
     IndexOperation indexOperation) {
     switch (indexOperation) {
@@ -34,7 +34,7 @@ void IndexUtils::validateIndexExistence(const main::ClientContext& context,
     }
 }
 
-catalog::NodeTableCatalogEntry* IndexUtils::bindNodeTable(const main::ClientContext& context,
+catalog::NodeTableCatalogEntry* FTSIndexUtils::bindNodeTable(const main::ClientContext& context,
     const std::string& tableName, const std::string& indexName, IndexOperation indexOperation) {
     binder::Binder::validateTableExistence(context, tableName);
     const auto tableEntry =
@@ -44,7 +44,7 @@ catalog::NodeTableCatalogEntry* IndexUtils::bindNodeTable(const main::ClientCont
     return tableEntry->ptrCast<catalog::NodeTableCatalogEntry>();
 }
 
-void IndexUtils::validateAutoTransaction(const main::ClientContext& context,
+void FTSIndexUtils::validateAutoTransaction(const main::ClientContext& context,
     const std::string& funcName) {
     if (!context.getTransactionContext()->isAutoTransaction()) {
         throw common::BinderException{
@@ -52,5 +52,5 @@ void IndexUtils::validateAutoTransaction(const main::ClientContext& context,
     }
 }
 
-} // namespace storage
+} // namespace fts_extension
 } // namespace kuzu
