@@ -13,9 +13,15 @@ jobs:
       x86_64Only: true
     secrets: inherit
 
+  build-extensions-linux:
+    uses: ./.github/workflows/build-extensions.yml
+    with:
+      x86_64LinuxOnly: true
+    secrets: inherit
+
   simsimd-dispatch-test:
     name: simsimd-dispatch-test
-    needs: build-precompiled-bin-linux
+    needs: [build-precompiled-bin-linux, build-extensions-linux]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
@@ -23,12 +29,19 @@ jobs:
       CC: gcc
       CXX: g++
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download nightly build
         uses: actions/download-artifact@v4
         with:
           name: kuzu_cli-linux-x86_64
 
-      - name: Extract kuzu shell
+      - name: Download extensions
+        uses: actions/download-artifact@v4
+        with:
+          name: kuzu-extensions_linux-x86_64
+
+      - name: Extract artifacts
         run: |
           tar xf kuzu_cli-linux-x86_64.tar.gz
 

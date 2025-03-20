@@ -1,9 +1,14 @@
 name: Build Extensions
 
-on: 
+on:
   workflow_dispatch:
 
   workflow_call:
+    inputs:
+      x86_64LinuxOnly:
+          type: boolean
+          required: false
+          default: false
 
 jobs:
   build-linux-extensions-x86_64:
@@ -24,6 +29,7 @@ jobs:
           path: extension-artifacts
 
   build-linux-extensions-aarch64:
+    if: ${{ inputs.x86_64LinuxOnly != true }}
     runs-on: kuzu-self-hosted-linux-building-aarch64
 
     steps:
@@ -42,6 +48,7 @@ jobs:
           path: extension-artifacts
 
   build-mac-extensions-arm64:
+    if: ${{ inputs.x86_64LinuxOnly != true }}
     runs-on: self-hosted-mac-arm64
     steps:
       - uses: actions/checkout@v4
@@ -62,6 +69,7 @@ jobs:
           path: extension-artifacts
 
   build-mac-extensions-x86_64:
+    if: ${{ inputs.x86_64LinuxOnly != true }}
     runs-on: self-hosted-mac-x64
     steps:
       - uses: actions/checkout@v4
@@ -82,6 +90,7 @@ jobs:
           path: extension-artifacts
 
   build-windows-extensions-x86_64:
+    if: ${{ inputs.x86_64LinuxOnly != true }}
     runs-on: self-hosted-windows
     env:
       NUM_THREADS: 18
