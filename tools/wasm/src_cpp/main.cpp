@@ -77,7 +77,7 @@ Value valueFromEmscriptenValue(const val& value) {
         return Value(std::move(dataType), std::move(children));
     }
     if (type == "object") {
-        if (value.instanceof(JsDate)) {
+        if (value.instanceof (JsDate)) {
             auto milliseconds = value.call<val>("getTime").as<int64_t>();
             timestamp_t timestampVal = Timestamp::fromEpochMilliSeconds(milliseconds);
             return Value(timestampVal);
