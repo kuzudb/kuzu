@@ -1,4 +1,4 @@
-LOAD EXTENSION 'extension/vector/build/libvector.kuzu_extension'
+LOAD EXTENSION 'extension/vector/build/libvector.kuzu_extension';
 CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 COPY embeddings FROM "dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', distFunc := 'l2');
