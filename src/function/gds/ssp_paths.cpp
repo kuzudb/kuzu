@@ -67,7 +67,7 @@ public:
 
 private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID,
-        const RJBindData& bindData, processor::RecursiveExtendSharedState* sharedState) override {
+        const RJBindData& bindData, RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
         auto frontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
         auto bfsGraph = getBFSGraph(context, sharedState->graph.get());
@@ -80,7 +80,7 @@ private:
             std::make_unique<SSPPathsEdgeCompute>(frontierPair.get(), bfsGraph.get());
         auto auxiliaryState = std::make_unique<PathAuxiliaryState>(std::move(bfsGraph));
         auto gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
-            std::move(edgeCompute), std::move(auxiliaryState), sharedState->getOutputNodeMaskMap());
+            std::move(edgeCompute), std::move(auxiliaryState));
         return RJCompState(std::move(gdsState), std::move(outputWriter));
     }
 };

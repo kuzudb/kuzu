@@ -10,8 +10,13 @@ namespace function {
 class KUZU_API GDSUtils {
 public:
     static void runFrontiersUntilConvergence(processor::ExecutionContext* context,
-        GDSComputeState& rjCompState, graph::Graph* graph, common::ExtendDirection extendDirection,
-        uint64_t maxIteration, const std::string& propertyToScan = "");
+        GDSComputeState& compState, graph::Graph* graph, common::ExtendDirection extendDirection,
+        uint64_t maxIteration);
+    // Run edge compute with output node mask for early termination
+    static void runFrontiersUntilConvergence(processor::ExecutionContext* context,
+        GDSComputeState& compState, graph::Graph* graph, common::ExtendDirection extendDirection,
+        uint64_t maxIteration, common::NodeOffsetMaskMap* outputNodeMask,
+        const std::string& propertyToScan = "");
     // Run vertex compute without property scan
     static void runVertexCompute(processor::ExecutionContext* context, graph::Graph* graph,
         VertexCompute& vc);

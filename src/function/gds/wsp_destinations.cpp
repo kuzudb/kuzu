@@ -7,6 +7,7 @@
 using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::storage;
+using namespace kuzu::processor;
 
 namespace kuzu {
 namespace function {
@@ -147,8 +148,8 @@ public:
     }
 
 private:
-    RJCompState getRJCompState(processor::ExecutionContext* context, nodeID_t sourceNodeID,
-        const RJBindData& bindData, processor::RecursiveExtendSharedState* sharedState) override {
+    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID,
+        const RJBindData& bindData, RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
         auto graph = sharedState->graph.get();
         auto curFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
@@ -164,9 +165,8 @@ private:
         std::unique_ptr<GDSComputeState> gdsState;
         visit(bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
             auto edgeCompute = std::make_unique<WSPDestinationsEdgeCompute<T>>(costs);
-            gdsState =
-                std::make_unique<GDSComputeState>(std::move(frontierPair), std::move(edgeCompute),
-                    std::move(auxiliaryState), sharedState->getOutputNodeMaskMap());
+            gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
+                std::move(edgeCompute), std::move(auxiliaryState));
         });
         return RJCompState(std::move(gdsState), std::move(outputWriter));
     }

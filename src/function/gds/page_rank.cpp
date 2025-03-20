@@ -282,7 +282,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         ExtendDirection::FWD);
     auto frontierPair =
         std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
-    auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr, nullptr);
+    auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr);
     auto pNextUpdateConstant = (1 - config.dampingFactor) * ((double)1 / numNodes);
     while (currentIter < config.maxIterations) {
         computeState.frontierPair->initState();

@@ -7,18 +7,14 @@ namespace kuzu {
 namespace function {
 
 struct GDSComputeState {
-    std::unique_ptr<function::FrontierPair> frontierPair = nullptr;
-    std::unique_ptr<function::EdgeCompute> edgeCompute = nullptr;
-    std::unique_ptr<function::GDSAuxiliaryState> auxiliaryState = nullptr;
+    std::unique_ptr<FrontierPair> frontierPair = nullptr;
+    std::unique_ptr<EdgeCompute> edgeCompute = nullptr;
+    std::unique_ptr<GDSAuxiliaryState> auxiliaryState = nullptr;
 
-    common::NodeOffsetMaskMap* outputNodeMask = nullptr;
-
-    GDSComputeState(std::unique_ptr<function::FrontierPair> frontierPair,
-        std::unique_ptr<function::EdgeCompute> edgeCompute,
-        std::unique_ptr<function::GDSAuxiliaryState> auxiliaryState,
-        common::NodeOffsetMaskMap* outputNodeMask)
+    GDSComputeState(std::unique_ptr<FrontierPair> frontierPair,
+        std::unique_ptr<EdgeCompute> edgeCompute, std::unique_ptr<GDSAuxiliaryState> auxiliaryState)
         : frontierPair{std::move(frontierPair)}, edgeCompute{std::move(edgeCompute)},
-          auxiliaryState{std::move(auxiliaryState)}, outputNodeMask{outputNodeMask} {}
+          auxiliaryState{std::move(auxiliaryState)} {}
 
     void initSource(common::nodeID_t sourceNodeID) const;
     // When performing computations on multi-label graphs, it is beneficial to fix a single

@@ -176,7 +176,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     // Compute Core values
     auto removeVertexEdgeCompute = std::make_unique<RemoveVertexEdgeCompute>(degrees);
     auto computeState = GDSComputeState(std::move(frontierPair), std::move(removeVertexEdgeCompute),
-        std::move(auxiliaryState), nullptr);
+        std::move(auxiliaryState));
     auto coreValue = 0u;
     auto numNodes = graph->getNumNodes(clientContext->getTransaction());
     auto numNodesComputed = 0u;

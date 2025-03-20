@@ -97,7 +97,8 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
                     bindData.weightPropertyExpr->ptrCast<PropertyExpression>()->getPropertyName();
             }
             GDSUtils::runFrontiersUntilConvergence(context, *gdsComputeState, graph,
-                bindData.extendDirection, bindData.upperBound, propertyName);
+                bindData.extendDirection, bindData.upperBound, sharedState->getOutputNodeMaskMap(),
+                propertyName);
             auto vertexCompute =
                 std::make_unique<RJVertexCompute>(clientContext->getMemoryManager(),
                     sharedState.get(), rjCompState.outputWriter->copy());

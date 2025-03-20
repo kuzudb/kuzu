@@ -237,7 +237,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto computeColors = std::make_unique<SccComputeColors>(computationState);
     auto auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
     auto computeState = GDSComputeState(std::move(frontierPair), std::move(computeColors),
-        std::move(auxiliaryState), nullptr);
+        std::move(auxiliaryState));
     auto initializeFrontiers =
         std::make_unique<SccInitializeFrontiers>(*computeState.frontierPair, computationState);
 
