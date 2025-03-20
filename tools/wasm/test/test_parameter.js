@@ -290,3 +290,61 @@ describe("UUID", function () {
     assert.equal(result[0]["UUID"], "123e4567-e89b-12d3-a456-426614174000");
   });
 });
+
+describe("LIST", function () {
+  it("should transform array as LIST parameter", async function () {
+    const preparedStatement = await conn.prepare(
+      "RETURN $1 AS l"
+    );
+    const queryResult = await conn.execute(preparedStatement, {
+      1: ["Alice", "Bob"],
+    });
+    const result = await queryResult.getAllObjects();
+    assert.deepEqual(result[0]["l"],
+      ["Alice", "Bob"]
+    );
+  });
+
+  it("should transform nested array as LIST parameter", async function () {
+    const preparedStatement = await conn.prepare(
+      "RETURN $1 AS l"
+    );
+    const queryResult = await conn.execute(preparedStatement, {
+      1: [[1, 2], [3, 4], [5, 6]],
+    });
+    const result = await queryResult.getAllObjects();
+    assert.equal(result[0]["l"][0][0], 1);
+    assert.equal(result[0]["l"][0][1], 2);
+    assert.equal(result[0]["l"][1][0], 3);
+    assert.equal(result[0]["l"][1][1], 4);
+    assert.equal(result[0]["l"][2][0], 5);
+    assert.equal(result[0]["l"][2][1], 6);
+  });
+});
+
+describe("STRUCT", function () {
+  it("should transform object as STRUCT parameter", async function () {
+    const preparedStatement = await conn.prepare(
+      "RETURN $1 AS s"
+    );
+    const queryResult = await conn.execute(preparedStatement, {
+      1: { name: "Alice", age: 30 },
+    });
+    const result = await queryResult.getAllObjects();
+    assert.equal(result[0]["s"].name, "Alice");
+    assert.equal(result[0]["s"].age, 30);
+  });
+
+  it("should transform nested object as STRUCT parameter", async function () {
+    const preparedStatement = await conn.prepare(
+      "RETURN $1 AS s"
+    );
+    const queryResult = await conn.execute(preparedStatement, {
+      1: { name: "Alice", address: { city: "New York", country: "USA" } },
+    });
+    const result = await queryResult.getAllObjects();
+    assert.equal(result[0]["s"].name, "Alice");
+    assert.equal(result[0]["s"].address.city, "New York");
+    assert.equal(result[0]["s"].address.country, "USA");
+  });
+});
