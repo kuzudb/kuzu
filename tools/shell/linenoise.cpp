@@ -1511,7 +1511,12 @@ std::vector<highlightToken> getParseTokens(char* buf, size_t len) {
     for (auto& token : lexerTokens.getTokens()) {
         highlightToken new_token;
         new_token.type = convertToken(token);
-        new_token.start = token->getStartIndex();
+        if (tokens.empty()) {
+            new_token.start = 0;
+        } else {
+            new_token.start = tokens.back().start + tokens.back().length;
+        }
+        new_token.length = token->getText().length();
         tokens.push_back(new_token);
     }
 
@@ -1536,7 +1541,7 @@ std::vector<highlightToken> highlightingTokenize(char* buf, size_t len, bool is_
         // SQL query - use parser to obtain tokens
         tokens = getParseTokens(buf, len);
     } else {
-        // . command
+        // : command
         tokens = getShellCommandTokens(buf, len);
     }
     return tokens;
@@ -2377,7 +2382,6 @@ static void refreshMultiLine(struct linenoiseState* l) {
     }
 
     /* Now for every row clear it, go up. */
-    // printf("\noldrows: %d\n", old_rows);
     for (int j = 0; j < old_rows - 1; j++) {
         lndebug("clear+up");
         append_buffer.abAppend("\r\x1b[0K\x1b[1A");
@@ -2605,7 +2609,6 @@ static void refreshSearchMultiLine(struct linenoiseState* l, const char* searchP
         }
 
         /* Now for every row clear it, go up. */
-        // printf("\noldrows: %d\n", old_rows);
         for (int j = 0; j < multi_old_rows - 1; j++) {
             lndebug("clear+up");
             append_buffer.abAppend("\r\x1b[0K\x1b[1A");

@@ -77,6 +77,7 @@ enum class HighlightingType {
 struct highlightToken {
     tokenType type{};
     size_t start = 0;
+    size_t length = 0;
 };
 
 typedef void(linenoiseCompletionCallback)(const char*, linenoiseCompletions*);
