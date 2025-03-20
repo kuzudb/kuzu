@@ -96,11 +96,14 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         LogicalTypeID::ARRAY);
     KU_UNUSED(auxInfo);
 
-    auto outputNode = input->binder->createQueryNode("nn", {nodeTableEntry});
+    auto returnColumnNames = std::vector<std::string>{"nn", "_distance"};
+    returnColumnNames =
+        TableFunction::extractYieldVariables(returnColumnNames, input->yieldVariables);
+    auto outputNode = input->binder->createQueryNode(returnColumnNames[0], {nodeTableEntry});
     input->binder->addToScope(outputNode->toString(), outputNode);
     expression_vector columns;
     columns.push_back(outputNode->getInternalID());
-    columns.push_back(input->binder->createVariable("_distance", LogicalType::DOUBLE()));
+    columns.push_back(input->binder->createVariable(returnColumnNames[1], LogicalType::DOUBLE()));
     auto boundInput = BoundQueryHNSWIndexInput{nodeTableEntry, graphEntry.copy(), indexEntry,
         std::move(inputQueryExpression), static_cast<uint64_t>(k)};
     auto config = QueryHNSWConfig{input->optionalParams};
