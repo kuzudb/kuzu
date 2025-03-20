@@ -87,12 +87,12 @@ public:
     }
 
     void beginWritingOutputsInternal(common::table_id_t tableID) override {
-        pathLengths->pinCurFrontierTableID(tableID);
+        pathLengths->pinTableID(tableID);
         multiplicities->pinTargetTable(tableID);
     }
 
     void write(FactorizedTable& fTable, nodeID_t dstNodeID, LimitCounter* counter) override {
-        auto length = pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset);
+        auto length = pathLengths->getIteration(dstNodeID.offset);
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
         lengthVector->setValue<uint16_t>(0, length);
         auto multiplicity = multiplicities->getTargetMultiplicity(dstNodeID.offset);
@@ -111,8 +111,7 @@ public:
 
 private:
     bool skipInternal(nodeID_t dstNodeID) const override {
-        return dstNodeID == sourceNodeID ||
-               pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset) == PathLengths::UNVISITED;
+        return dstNodeID == sourceNodeID || pathLengths->isUnvisited(dstNodeID.offset);
     }
 
 private:
@@ -131,8 +130,7 @@ public:
         bool) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNodeID, auto /*edgeID*/) {
-            auto nbrVal =
-                frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNodeID.offset);
+            auto nbrVal = frontierPair->getNextFrontierValue(nbrNodeID.offset);
             // We should update the nbrID's multiplicity in 2 cases: 1) if nbrID is being visited
             // for the first time, i.e., when its value in the pathLengths frontier is
             // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this

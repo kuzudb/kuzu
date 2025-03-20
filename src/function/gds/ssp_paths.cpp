@@ -22,8 +22,7 @@ public:
         bool isFwd) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNodeID, auto edgeID) {
-            if (frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNodeID.offset) ==
-                PathLengths::UNVISITED) {
+            if (frontierPair->getNextFrontierValue(nbrNodeID.offset) == PathLengths::UNVISITED) {
                 if (!block->hasSpace()) {
                     block = bfsGraph->addNewBlock();
                 }

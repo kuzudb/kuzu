@@ -20,11 +20,11 @@ public:
     }
 
     void beginWritingOutputsInternal(common::table_id_t tableID) override {
-        pathLengths->pinCurFrontierTableID(tableID);
+        pathLengths->pinTableID(tableID);
     }
 
     void write(FactorizedTable& fTable, nodeID_t dstNodeID, LimitCounter* counter) override {
-        auto length = pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset);
+        auto length = pathLengths->getIteration(dstNodeID.offset);
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
         lengthVector->setValue<uint16_t>(0, length);
         fTable.append(vectors);
@@ -40,8 +40,7 @@ public:
 
 private:
     bool skipInternal(nodeID_t dstNodeID) const override {
-        return dstNodeID == sourceNodeID ||
-               pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset) == PathLengths::UNVISITED;
+        return dstNodeID == sourceNodeID || pathLengths->isUnvisited(dstNodeID.offset);
     }
 
 private:
@@ -58,8 +57,7 @@ public:
         bool) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNode, auto) {
-            if (frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNode.offset) ==
-                PathLengths::UNVISITED) {
+            if (frontierPair->getNextFrontierValue(nbrNode.offset) == PathLengths::UNVISITED) {
                 activeNodes.push_back(nbrNode);
             }
         });
