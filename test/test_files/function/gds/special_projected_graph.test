@@ -64,3 +64,10 @@ Binder exception: Cannot find property dummy for r.
 -STATEMENT CALL create_projected_graph('err', ['person'], {'knows': {'filter': 'r.comments > date("1999-01-01")'}});
 ---- error
 Binder exception: Type Mismatch: Cannot compare types STRING[] and DATE
+-STATEMENT CALL create_projected_graph('G', ['person'], ['knows']);
+---- ok
+-STATEMENT DROP TABLE knows;
+---- ok
+-STATEMENT CALL weakly_connected_component('G') RETURN node.ID, group_id;
+---- error
+Catalog exception: knows does not exist in catalog.

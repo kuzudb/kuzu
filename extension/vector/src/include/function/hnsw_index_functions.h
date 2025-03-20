@@ -62,10 +62,19 @@ struct FinalizeHNSWSharedState final : function::SimpleTableFuncSharedState {
 
 struct BoundQueryHNSWIndexInput {
     catalog::NodeTableCatalogEntry* nodeTableEntry;
-    const graph::GraphEntry* graphEntry;
+    graph::GraphEntry graphEntry;
     catalog::IndexCatalogEntry* indexEntry;
     std::shared_ptr<binder::Expression> queryExpression;
     uint64_t k;
+
+    BoundQueryHNSWIndexInput(catalog::NodeTableCatalogEntry* nodeTableEntry,
+        graph::GraphEntry graphEntry, catalog::IndexCatalogEntry* indexEntry,
+        std::shared_ptr<binder::Expression> queryExpression, uint64_t k)
+        : nodeTableEntry{nodeTableEntry}, graphEntry{std::move(graphEntry)}, indexEntry{indexEntry},
+          queryExpression{std::move(queryExpression)}, k{k} {}
+    BoundQueryHNSWIndexInput(const BoundQueryHNSWIndexInput& rhs)
+        : nodeTableEntry{rhs.nodeTableEntry}, graphEntry{rhs.graphEntry.copy()},
+          indexEntry{rhs.indexEntry}, queryExpression{rhs.queryExpression}, k{rhs.k} {}
 };
 
 struct QueryHNSWIndexBindData final : function::TableFuncBindData {
@@ -79,7 +88,7 @@ struct QueryHNSWIndexBindData final : function::TableFuncBindData {
     std::shared_ptr<binder::NodeExpression> outputNode;
 
     QueryHNSWIndexBindData(main::ClientContext* context, binder::expression_vector columns,
-        BoundQueryHNSWIndexInput boundInput, QueryHNSWConfig config,
+        const BoundQueryHNSWIndexInput& boundInput, QueryHNSWConfig config,
         std::shared_ptr<binder::NodeExpression> outputNode);
 
     std::unique_ptr<TableFuncBindData> copy() const override {

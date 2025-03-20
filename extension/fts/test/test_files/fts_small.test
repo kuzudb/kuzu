@@ -277,7 +277,7 @@ Binder exception: Table 0_docIdx_docs does not exist.
 Catalog exception: 0_docIdx_docs does not exist in catalog.
 -STATEMENT CALL create_projected_graph('PK1', ['0_docIdx_docs'], [])
 ---- error
-Catalog exception: 0_docIdx_docs does not exist in catalog.
+Binder exception: Table 0_docIdx_docs does not exist.
 -STATEMENT RETURN nextval('0_docIdx_appears_info_ID_serial');
 ---- error
 Catalog exception: 0_docIdx_appears_info_ID_serial does not exist in catalog.

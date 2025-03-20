@@ -62,6 +62,8 @@ class KUZU_API GDSFunction {
 
 public:
     static graph::GraphEntry bindGraphEntry(main::ClientContext& context, const std::string& name);
+    static graph::GraphEntry bindGraphEntry(main::ClientContext& context,
+        const graph::ParsedGraphEntry& parsedGraphEntry);
     static std::shared_ptr<binder::Expression> bindNodeOutput(const TableFuncBindInput& bindInput,
         const std::vector<catalog::TableCatalogEntry*>& nodeEntries);
     static std::string bindColumnName(const parser::YieldVariable& yieldVariable,

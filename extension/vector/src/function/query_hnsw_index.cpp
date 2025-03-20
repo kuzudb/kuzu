@@ -17,6 +17,7 @@
 #include "planner/planner.h"
 #include "processor/execution_context.h"
 #include "storage/storage_manager.h"
+#include <function/gds/gds.h>
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -27,10 +28,10 @@ namespace kuzu {
 namespace vector_extension {
 
 QueryHNSWIndexBindData::QueryHNSWIndexBindData(main::ClientContext* context,
-    expression_vector columns, BoundQueryHNSWIndexInput boundInput, QueryHNSWConfig config,
+    expression_vector columns, const BoundQueryHNSWIndexInput& boundInput, QueryHNSWConfig config,
     std::shared_ptr<NodeExpression> outputNode)
     : TableFuncBindData{std::move(columns), 1 /*maxOffset*/}, context{context},
-      boundInput{std::move(boundInput)}, config{config}, outputNode{std::move(outputNode)} {
+      boundInput{boundInput}, config{config}, outputNode{std::move(outputNode)} {
     const auto indexEntry = this->boundInput.indexEntry;
     auto& indexAuxInfo = indexEntry->getAuxInfo().cast<HNSWIndexAuxInfo>();
     indexColumnID = this->boundInput.nodeTableEntry->getColumnID(indexEntry->getPropertyIDs()[0]);
@@ -67,20 +68,20 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const auto k = input->getLiteralVal<int64_t>(3);
 
     catalog::NodeTableCatalogEntry* nodeTableEntry = nullptr;
-    const graph::GraphEntry* graphEntry = nullptr;
+    graph::GraphEntry graphEntry;
     if (context->getCatalog()->containsTable(context->getTransaction(), tableOrGraphName)) {
         nodeTableEntry = HNSWIndexUtils::bindNodeTable(*context, tableOrGraphName, indexName,
             HNSWIndexUtils::IndexOperation::QUERY);
     } else if (context->getGraphEntrySetUnsafe().hasGraph(tableOrGraphName)) {
-        graphEntry = &context->getGraphEntrySetUnsafe().getEntry(tableOrGraphName);
-        if (graphEntry->nodeInfos.size() > 1 || !graphEntry->relInfos.empty()) {
+        graphEntry = GDSFunction::bindGraphEntry(*context, tableOrGraphName);
+        if (graphEntry.nodeInfos.size() > 1 || !graphEntry.relInfos.empty()) {
             throw BinderException{stringFormat(
                 "Projected graph {} either contains relationship tables or "
                 "multiple node tables. Projected graphs passed to QUERY_HNSW_INDEX function must "
                 "contain only nodes from a single node table and no relationship tables.",
                 tableOrGraphName)};
         }
-        nodeTableEntry = graphEntry->nodeInfos[0].entry->ptrCast<catalog::NodeTableCatalogEntry>();
+        nodeTableEntry = graphEntry.nodeInfos[0].entry->ptrCast<catalog::NodeTableCatalogEntry>();
         HNSWIndexUtils::validateIndexExistence(*context, nodeTableEntry, indexName,
             HNSWIndexUtils::IndexOperation::QUERY);
     } else {
@@ -100,7 +101,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     expression_vector columns;
     columns.push_back(outputNode->getInternalID());
     columns.push_back(input->binder->createVariable("_distance", LogicalType::DOUBLE()));
-    auto boundInput = BoundQueryHNSWIndexInput{nodeTableEntry, graphEntry, indexEntry,
+    auto boundInput = BoundQueryHNSWIndexInput{nodeTableEntry, graphEntry.copy(), indexEntry,
         std::move(inputQueryExpression), static_cast<uint64_t>(k)};
     auto config = QueryHNSWConfig{input->optionalParams};
     return std::make_unique<QueryHNSWIndexBindData>(context, std::move(columns), boundInput, config,
@@ -184,9 +185,9 @@ QueryHNSWIndexSharedState::QueryHNSWIndexSharedState(const QueryHNSWIndexBindDat
     nodeTable = storageManager->getTable(bindData.boundInput.nodeTableEntry->getTableID())
                     ->ptrCast<storage::NodeTable>();
     numNodes = nodeTable->getStats(bindData.context->getTransaction()).getTableCard();
-    if (bindData.boundInput.graphEntry) {
-        KU_ASSERT(!bindData.boundInput.graphEntry->nodeInfos.empty());
-        if (bindData.boundInput.graphEntry->nodeInfos[0].predicate) {
+    if (!bindData.boundInput.graphEntry.isEmpty()) {
+        KU_ASSERT(bindData.boundInput.graphEntry.nodeInfos.size() == 1);
+        if (bindData.boundInput.graphEntry.nodeInfos[0].predicate) {
             semiMasks.addMask(bindData.boundInput.nodeTableEntry->getTableID(),
                 SemiMaskUtil::createMask(numNodes));
         }
@@ -224,9 +225,9 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
         auto op = std::make_shared<LogicalTableFunctionCall>(call.getTableFunc(), bindData->copy());
         // Check if there is filter predicate on the base node table. If so, we need to plan the
         // filtered search.
-        if (bindData->boundInput.graphEntry) {
-            KU_ASSERT(bindData->boundInput.graphEntry->nodeInfos.size() == 1);
-            auto& nodeInfo = bindData->boundInput.graphEntry->nodeInfos[0];
+        if (!bindData->boundInput.graphEntry.isEmpty()) {
+            KU_ASSERT(bindData->boundInput.graphEntry.nodeInfos.size() == 1);
+            auto& nodeInfo = bindData->boundInput.graphEntry.nodeInfos[0];
             if (nodeInfo.predicate) {
                 // We have filter predicate on the base node table. Should add a semi mask subplan
                 // and pass the semi mask to QueryHNSWIndexFunction to perform filtered search.
