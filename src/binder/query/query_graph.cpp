@@ -213,6 +213,9 @@ void QueryGraph::merge(const QueryGraph& other) {
     for (auto& otherRel : other.queryRels) {
         addQueryRel(otherRel);
     }
+    for (auto& otherSemantic : other.semanticExpressions) {
+        semanticExpressions.push_back(otherSemantic);
+    }
 }
 
 bool QueryGraph::canProjectExpression(const std::shared_ptr<Expression>& expression) const {
@@ -229,6 +232,15 @@ bool QueryGraph::canProjectExpression(const std::shared_ptr<Expression>& express
 bool QueryGraph::isConnected(const QueryGraph& other) const {
     for (auto& queryNode : queryNodes) {
         if (other.containsQueryNode(queryNode->getUniqueName())) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool QueryGraph::hasRecursiveRel() {
+    for (auto& rel : queryRels) {
+        if (rel->isRecursive()) {
             return true;
         }
     }

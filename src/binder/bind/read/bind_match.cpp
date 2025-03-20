@@ -1,8 +1,13 @@
 #include "binder/binder.h"
+#include "binder/expression/scalar_function_expression.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
+#include "catalog/catalog.h"
 #include "common/exception/binder.h"
+#include "function/built_in_function_utils.h"
+#include "function/scalar_function.h"
+#include "function/schema/vector_node_rel_functions.h"
+#include "main/client_context.h"
 #include "parser/query/reading_clause/match_clause.h"
-
 using namespace kuzu::common;
 using namespace kuzu::parser;
 
@@ -37,8 +42,27 @@ static void validateHintCompleteness(const BoundJoinHintNode& root, const QueryG
 std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause& readingClause) {
     auto& matchClause = readingClause.constCast<MatchClause>();
     auto boundGraphPattern = bindGraphPattern(matchClause.getPatternElementsRef());
-    if (matchClause.hasWherePredicate()) {
+    std::shared_ptr<Expression> semanticExpression;
+    auto queryGraphsNum = boundGraphPattern.queryGraphCollection.getNumQueryGraphs();
+    for (uint32_t i = 0; i < queryGraphsNum; ++i){
+        for(auto & expr: boundGraphPattern.queryGraphCollection.getQueryGraph(i)->getSemanticExpressions()) {
+            if(!semanticExpression){
+                semanticExpression = expr;
+            } else {
+                semanticExpression = expressionBinder.bindBooleanExpression(kuzu::common::ExpressionType::AND,
+                    binder::expression_vector{semanticExpression, expr});
+            }
+        }
+    }
+    if (matchClause.hasWherePredicate() && semanticExpression) {
+        boundGraphPattern.where =
+            expressionBinder.bindBooleanExpression(kuzu::common::ExpressionType::AND,
+                binder::expression_vector{semanticExpression,
+                    bindWhereExpression(*matchClause.getWherePredicate())});
+    } else if (matchClause.hasWherePredicate()) {
         boundGraphPattern.where = bindWhereExpression(*matchClause.getWherePredicate());
+    } else if (semanticExpression) {
+        boundGraphPattern.where = semanticExpression;
     }
     rewriteMatchPattern(boundGraphPattern);
     auto boundMatch = std::make_unique<BoundMatchClause>(
