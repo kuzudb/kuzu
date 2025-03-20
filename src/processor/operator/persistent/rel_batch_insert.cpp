@@ -174,16 +174,15 @@ void RelBatchInsert::populateCSRHeaderAndRowIdx(InMemChunkedNodeGroupCollection&
     populateCSRLengths(csrHeader, numNodes, partition, relInfo.boundNodeOffsetColumnID);
     checkRelMultiplicityConstraint(csrHeader, startNodeOffset, relInfo);
     const auto rightCSROffsetOfRegions = csrHeader.populateStartCSROffsetsFromLength(leaveGaps);
-    // Resize csr data column chunks.
-    const auto csrChunkCapacity = rightCSROffsetOfRegions.back() + 1;
-    localState.chunkedGroup->resizeChunks(csrChunkCapacity);
-    localState.chunkedGroup->resetToAllNull();
     for (auto& chunkedGroup : partition.getChunkedGroups()) {
         auto& offsetChunk = chunkedGroup->getColumnChunk(relInfo.boundNodeOffsetColumnID);
         // We reuse bound node offset column to store row idx for each rel in the node group.
         setRowIdxFromCSROffsets(offsetChunk.getData(), csrHeader.offset->getData());
     }
     csrHeader.finalizeCSRRegionEndOffsets(rightCSROffsetOfRegions);
+    // Resize csr data column chunks.
+    localState.chunkedGroup->resizeChunks(csrHeader.getEndCSROffset(numNodes - 1));
+    localState.chunkedGroup->resetToAllNull();
     KU_ASSERT(csrHeader.sanityCheck());
 }
 
