@@ -17,8 +17,9 @@ namespace function {
 template<typename T>
 class AWSPPathsEdgeCompute : public EdgeCompute {
 public:
-    explicit AWSPPathsEdgeCompute(BFSGraph& bfsGraph) : bfsGraph{bfsGraph} {
-        block = bfsGraph.addNewBlock();
+    explicit AWSPPathsEdgeCompute(BFSGraphManager* bfsGraphManager)
+        : bfsGraphManager{bfsGraphManager} {
+        block = bfsGraphManager->getCurrentGraph()->addNewBlock();
     }
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
@@ -26,10 +27,10 @@ public:
         std::vector<nodeID_t> result;
         chunk.forEach<T>([&](auto nbrNodeID, auto edgeID, auto weight) {
             if (!block->hasSpace()) {
-                block = bfsGraph.addNewBlock();
+                block = bfsGraphManager->getCurrentGraph()->addNewBlock();
             }
-            if (bfsGraph.tryAddParentWithWeight(boundNodeID, edgeID, nbrNodeID, fwdEdge,
-                    (double)weight, block)) {
+            if (bfsGraphManager->getCurrentGraph()->tryAddParentWithWeight(boundNodeID, edgeID,
+                    nbrNodeID, fwdEdge, (double)weight, block)) {
                 result.push_back(nbrNodeID);
             }
         });
@@ -37,27 +38,35 @@ public:
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
-        return std::make_unique<AWSPPathsEdgeCompute<T>>(bfsGraph);
+        return std::make_unique<AWSPPathsEdgeCompute<T>>(bfsGraphManager);
     }
 
 private:
-    BFSGraph& bfsGraph;
+    BFSGraphManager* bfsGraphManager;
     ObjectBlock<ParentList>* block = nullptr;
 };
 
 class AWSPPathsOutputWriter : public PathsOutputWriter {
 public:
-    AWSPPathsOutputWriter(main::ClientContext* context, common::NodeOffsetMaskMap* outputNodeMask,
-        common::nodeID_t sourceNodeID, PathsOutputWriterInfo info, BFSGraph& bfsGraph)
+    AWSPPathsOutputWriter(main::ClientContext* context, NodeOffsetMaskMap* outputNodeMask,
+        nodeID_t sourceNodeID, PathsOutputWriterInfo info, BaseBFSGraph& bfsGraph)
         : PathsOutputWriter{context, outputNodeMask, sourceNodeID, info, bfsGraph} {
         costVector = createVector(LogicalType::DOUBLE());
     }
 
-    void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
+    void writeInternal(FactorizedTable& fTable, nodeID_t dstNodeID,
         LimitCounter* counter) override {
-        dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
+        if (dstNodeID == sourceNodeID_) { // Skip writing
+            return;
+        }
         auto firstParent = bfsGraph.getParentListHead(dstNodeID.offset);
-        KU_ASSERT(firstParent != nullptr);
+        if (firstParent == nullptr) { // Skip if dst is not visited.
+            return;
+        }
+        if (firstParent->getCost() == std::numeric_limits<double>::max()) {
+            // Skip if dst is not visited.
+            return;
+        }
         costVector->setValue<double>(0, firstParent->getCost());
         std::vector<ParentList*> curPath;
         curPath.push_back(firstParent);
@@ -67,7 +76,7 @@ public:
                 throw InterruptException{};
             }
             if (curPath[curPath.size() - 1]->getCost() == 0) { // Find source. Start writing path.
-                curPath.pop_back();                            // avoid writing source node.
+                curPath.pop_back();
                 writePath(curPath);
                 fTable.append(vectors);
                 if (updateCounterAndTerminate(counter)) {
@@ -95,23 +104,15 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<AWSPPathsOutputWriter>(context, outputNodeMask, sourceNodeID, info,
+        return std::make_unique<AWSPPathsOutputWriter>(context, outputNodeMask, sourceNodeID_, info,
             bfsGraph);
-    }
-
-private:
-    bool skipInternal(nodeID_t dstNodeID) const override {
-        if (dstNodeID == sourceNodeID) {
-            return true;
-        }
-        auto parent = bfsGraph.getParentListHead(dstNodeID.offset);
-        return parent == nullptr || parent->getCost() == std::numeric_limits<double>::max();
     }
 
 private:
     std::unique_ptr<ValueVector> costVector;
 };
 
+// All weighted shortest path algorithm. Paths are returned.
 class AllWeightedSPPathsAlgorithm : public RJAlgorithm {
 public:
     std::string getFunctionName() const override { return AllWeightedSPPathsFunction::name; }
@@ -136,26 +137,36 @@ public:
     }
 
 private:
-    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID,
+    std::unique_ptr<GDSComputeState> getComputeState(ExecutionContext* context,
         const RJBindData& bindData, RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
         auto graph = sharedState->graph.get();
-        auto curFrontier = PathLengths::getUnvisitedFrontier(context, graph);
-        auto nextFrontier = PathLengths::getUnvisitedFrontier(context, graph);
+        auto curDenseFrontier = DenseFrontier::getUninitializedFrontier(context, graph);
+        auto nextDenseFrontier = DenseFrontier::getUninitializedFrontier(context, graph);
         auto frontierPair =
-            std::make_unique<DoublePathLengthsFrontierPair>(curFrontier, nextFrontier);
-        auto bfsGraph = getBFSGraph(context, graph);
-        auto writerInfo = bindData.getPathWriterInfo();
-        auto outputWriter = std::make_unique<AWSPPathsOutputWriter>(clientContext,
-            sharedState->getOutputNodeMaskMap(), sourceNodeID, writerInfo, *bfsGraph);
+            std::make_unique<DenseSparseDynamicFrontierPair>(curDenseFrontier, nextDenseFrontier);
+        auto bfsGraph = std::make_unique<BFSGraphManager>(
+            sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()),
+            clientContext->getMemoryManager());
         std::unique_ptr<GDSComputeState> gdsState;
         visit(bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
-            auto edgeCompute = std::make_unique<AWSPPathsEdgeCompute<T>>(*bfsGraph);
+            auto edgeCompute = std::make_unique<AWSPPathsEdgeCompute<T>>(bfsGraph.get());
             auto auxiliaryState = std::make_unique<WSPPathsAuxiliaryState>(std::move(bfsGraph));
             gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
                 std::move(edgeCompute), std::move(auxiliaryState));
         });
-        return RJCompState(std::move(gdsState), std::move(outputWriter));
+        return gdsState;
+    }
+
+    std::unique_ptr<RJOutputWriter> getOutputWriter(ExecutionContext* context,
+        const RJBindData& bindData, GDSComputeState& computeState, nodeID_t sourceNodeID,
+        RecursiveExtendSharedState* sharedState) override {
+        auto bfsGraph = computeState.auxiliaryState->ptrCast<WSPPathsAuxiliaryState>()
+                            ->getBFSGraphManager()
+                            ->getCurrentGraph();
+        auto writerInfo = bindData.getPathWriterInfo();
+        return std::make_unique<AWSPPathsOutputWriter>(context->clientContext,
+            sharedState->getOutputNodeMaskMap(), sourceNodeID, writerInfo, *bfsGraph);
     }
 };
 

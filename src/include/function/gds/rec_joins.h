@@ -41,30 +41,20 @@ struct RJBindData {
     PathsOutputWriterInfo getPathWriterInfo() const;
 };
 
-struct RJCompState {
-    std::unique_ptr<GDSComputeState> gdsComputeState;
-    std::unique_ptr<RJOutputWriter> outputWriter;
-
-    RJCompState(std::unique_ptr<GDSComputeState> gdsComputeState,
-        std::unique_ptr<RJOutputWriter> writer)
-        : gdsComputeState{std::move(gdsComputeState)}, outputWriter{std::move(writer)} {}
-};
-
 class RJAlgorithm {
 public:
     virtual ~RJAlgorithm() = default;
 
     virtual std::string getFunctionName() const = 0;
     virtual binder::expression_vector getResultColumns(const RJBindData& bindData) const = 0;
-    virtual RJCompState getRJCompState(processor::ExecutionContext* context,
-        common::nodeID_t sourceNodeID, const RJBindData& bindData,
+
+    virtual std::unique_ptr<GDSComputeState> getComputeState(processor::ExecutionContext* context,
+        const RJBindData& bindData, processor::RecursiveExtendSharedState* sharedState) = 0;
+    virtual std::unique_ptr<RJOutputWriter> getOutputWriter(processor::ExecutionContext* context,
+        const RJBindData& bindData, GDSComputeState& computeState, common::nodeID_t sourceNodeID,
         processor::RecursiveExtendSharedState* sharedState) = 0;
 
     virtual std::unique_ptr<RJAlgorithm> copy() const = 0;
-
-protected:
-    std::unique_ptr<BFSGraph> getBFSGraph(processor::ExecutionContext* context,
-        graph::Graph* graph);
 };
 
 } // namespace function

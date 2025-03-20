@@ -50,6 +50,9 @@ public:
     // the function on each node in a graph.
     virtual void vertexCompute(const graph::VertexScanState::Chunk&) {}
     virtual void vertexCompute(common::offset_t, common::offset_t, common::table_id_t) {}
+    // This function assumes the number of nodes is small (sparse) and morsel driven parallelism
+    // is not necessary. It should not be used in parallel computations.
+    virtual void vertexCompute(common::table_id_t) {}
 
     virtual std::unique_ptr<VertexCompute> copy() = 0;
 };

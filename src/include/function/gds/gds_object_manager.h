@@ -97,15 +97,13 @@ private:
 
 // ObjectArraysMap represents a pre-allocated amount of object per tableID.
 template<typename T>
-class ObjectArraysMap {
+class GDSDenseObjectManager {
 public:
     void allocate(common::table_id_t tableID, common::offset_t maxOffset,
         storage::MemoryManager* mm) {
         auto buffer = mm->allocateBuffer(false, maxOffset * sizeof(T));
         bufferPerTable.insert({tableID, std::move(buffer)});
     }
-
-    bool contains(common::table_id_t tableID) const { return bufferPerTable.contains(tableID); }
 
     T* getData(common::table_id_t tableID) const {
         KU_ASSERT(bufferPerTable.contains(tableID));
@@ -114,6 +112,50 @@ public:
 
 private:
     common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> bufferPerTable;
+};
+
+template<typename T>
+class GDSSpareObjectManager {
+public:
+    explicit GDSSpareObjectManager(
+        const common::table_id_map_t<common::offset_t>& nodeMaxOffsetMap) {
+        for (auto& [tableID, _] : nodeMaxOffsetMap) {
+            allocate(tableID);
+        }
+    }
+
+    void allocate(common::table_id_t tableID) {
+        KU_ASSERT(!mapPerTable.contains(tableID));
+        mapPerTable.insert({tableID, {}});
+    }
+
+    const common::table_id_map_t<std::unordered_map<common::offset_t, T>>& getData() {
+        return mapPerTable;
+    }
+
+    std::unordered_map<common::offset_t, T>* getMap(common::table_id_t tableID) {
+        KU_ASSERT(mapPerTable.contains(tableID));
+        return &mapPerTable.at(tableID);
+    }
+
+    std::unordered_map<common::offset_t, T>* getData(common::table_id_t tableID) {
+        if (!mapPerTable.contains(tableID)) {
+            mapPerTable.insert({tableID, {}});
+        }
+        KU_ASSERT(mapPerTable.contains(tableID));
+        return &mapPerTable.at(tableID);
+    }
+
+    uint64_t size() const {
+        uint64_t result = 0;
+        for (auto [_, map] : mapPerTable) {
+            result += map.size();
+        }
+        return result;
+    }
+
+private:
+    common::table_id_map_t<std::unordered_map<common::offset_t, T>> mapPerTable;
 };
 
 } // namespace function

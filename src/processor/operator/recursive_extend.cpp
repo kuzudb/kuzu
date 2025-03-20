@@ -4,7 +4,6 @@
 #include "binder/expression/property_expression.h"
 #include "common/exception/interrupt.h"
 #include "common/task_system/progress_bar.h"
-#include "function/gds/compute.h"
 #include "function/gds/gds_utils.h"
 #include "processor/execution_context.h"
 
@@ -33,7 +32,7 @@ public:
         if (!nbrTableIDSet.contains(tableID)) {
             return false;
         }
-        writer->beginWritingOutputs(tableID);
+        writer->beginWriting(tableID);
         return true;
     }
 
@@ -43,11 +42,12 @@ public:
                 return;
             }
             auto nodeID = nodeID_t{i, tableID};
-            if (writer->skip(nodeID)) {
-                continue;
-            }
             writer->write(*localFT, nodeID, sharedState->counter.get());
         }
+    }
+
+    void vertexCompute(table_id_t tableID) override {
+        writer->write(*localFT, tableID, sharedState->counter.get());
     }
 
     std::unique_ptr<VertexCompute> copy() override {
@@ -82,6 +82,11 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
             totalNumNodes += graph->getMaxOffset(clientContext->getTransaction(), tableID);
         }
     }
+    std::string propertyName;
+    if (bindData.weightPropertyExpr != nullptr) {
+        propertyName =
+            bindData.weightPropertyExpr->ptrCast<PropertyExpression>()->getPropertyName();
+    }
     offset_t completedNumNodes = 0;
     auto inputNodeTableIDSet = bindData.nodeInput->constCast<NodeExpression>().getTableIDsSet();
     for (auto& tableID : graph->getNodeTableIDs()) {
@@ -92,34 +97,30 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
         if (!inputNodeTableIDSet.contains(tableID)) {
             continue;
         }
-        auto calcFunc = [tableID, graph, context, clientContext, this](offset_t offset) {
+        auto calcFunc = [tableID, propertyName, graph, context, this](offset_t offset) {
+            auto clientContext = context->clientContext;
             if (clientContext->interrupted()) {
                 throw InterruptException{};
             }
+            auto computeState = function->getComputeState(context, bindData, sharedState.get());
             auto sourceNodeID = nodeID_t{offset, tableID};
-            auto rjCompState =
-                function->getRJCompState(context, sourceNodeID, bindData, sharedState.get());
-            auto gdsComputeState = rjCompState.gdsComputeState.get();
-            gdsComputeState->initSource(sourceNodeID);
-            std::string propertyName;
-            if (bindData.weightPropertyExpr != nullptr) {
-                propertyName =
-                    bindData.weightPropertyExpr->ptrCast<PropertyExpression>()->getPropertyName();
-            }
-            GDSUtils::runFrontiersUntilConvergence(context, *gdsComputeState, graph,
+            computeState->initSource(sourceNodeID);
+            GDSUtils::runRecursiveJoinEdgeCompute(context, *computeState, graph,
                 bindData.extendDirection, bindData.upperBound, sharedState->getOutputNodeMaskMap(),
                 propertyName);
-            auto vertexCompute =
-                std::make_unique<RJVertexCompute>(clientContext->getMemoryManager(),
-                    sharedState.get(), rjCompState.outputWriter->copy(),
-                    bindData.nodeOutput->constCast<NodeExpression>().getTableIDsSet());
-            auto frontierPair = gdsComputeState->frontierPair.get();
-            auto& candidates = frontierPair->getVertexComputeCandidates();
-            candidates.mergeSparseFrontier(frontierPair->getNextSparseFrontier());
-            if (candidates.enabled()) {
-                GDSUtils::runVertexComputeSparse(candidates, graph, *vertexCompute);
-            } else {
+            auto writer = function->getOutputWriter(context, bindData, *computeState, sourceNodeID,
+                sharedState.get());
+            auto vertexCompute = std::make_unique<RJVertexCompute>(
+                clientContext->getMemoryManager(), sharedState.get(), writer->copy(), bindData.nodeOutput->constCast<NodeExpression>().getTableIDsSet());
+            switch (computeState->frontierPair->getState()) {
+            case GDSDensityState::DENSE: {
                 GDSUtils::runVertexCompute(context, graph, *vertexCompute);
+            } break;
+            case GDSDensityState::SPARSE: {
+                GDSUtils::runVertexComputeSparse(graph, *vertexCompute);
+            } break;
+            default:
+                KU_UNREACHABLE;
             }
         };
         auto maxOffset = graph->getMaxOffset(clientContext->getTransaction(), tableID);

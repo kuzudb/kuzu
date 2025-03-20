@@ -43,7 +43,7 @@ public:
 
 private:
     std::atomic<degree_t>* degreeValues = nullptr;
-    ObjectArraysMap<std::atomic<degree_t>> degreeValuesMap;
+    GDSDenseObjectManager<std::atomic<degree_t>> degreeValuesMap;
 };
 
 struct DegreeEdgeCompute : public EdgeCompute {
@@ -66,9 +66,11 @@ class DegreesGDSAuxiliaryState : public GDSAuxiliaryState {
 public:
     explicit DegreesGDSAuxiliaryState(Degrees* degrees) : degrees{degrees} {};
 
-    void beginFrontierCompute(common::table_id_t curTableID, common::table_id_t) override {
+    void beginFrontierCompute(table_id_t curTableID, table_id_t) override {
         degrees->pinTable(curTableID);
     }
+
+    void switchToDense(processor::ExecutionContext*, graph::Graph*) override {}
 
 private:
     Degrees* degrees;
@@ -77,16 +79,15 @@ private:
 struct DegreesUtils {
     static void computeDegree(processor::ExecutionContext* context, graph::Graph* graph,
         common::NodeOffsetMaskMap* nodeOffsetMaskMap, Degrees* degrees, ExtendDirection direction) {
-        auto currentFrontier = PathLengths::getUnvisitedFrontier(context, graph);
-        auto nextFrontier = PathLengths::getVisitedFrontier(context, graph, nodeOffsetMaskMap);
-        auto frontierPair =
-            std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
-        frontierPair->initGDS();
+        auto currentFrontier = DenseFrontier::getUnvisitedFrontier(context, graph);
+        auto nextFrontier = DenseFrontier::getVisitedFrontier(context, graph, nodeOffsetMaskMap);
+        auto frontierPair = std::make_unique<DenseFrontierPair>(currentFrontier, nextFrontier);
+        frontierPair->setActiveNodesForNextIter();
         auto ec = std::make_unique<DegreeEdgeCompute>(degrees);
         auto auxiliaryState = std::make_unique<DegreesGDSAuxiliaryState>(degrees);
         auto computeState =
             GDSComputeState(std::move(frontierPair), std::move(ec), std::move(auxiliaryState));
-        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, direction,
+        GDSUtils::runAlgorithmEdgeCompute(context, computeState, graph, direction,
             1 /* maxIters */);
     }
 };

@@ -38,10 +38,11 @@ static void scheduleFrontierTask(TableCatalogEntry* fromEntry, TableCatalogEntry
     auto clientContext = context->clientContext;
     auto task = getFrontierTask(fromEntry, toEntry, relEntry, graph, extendDirection, computeState,
         clientContext, propertyToScan);
-    if (computeState.frontierPair->isCurFrontierSparse()) {
+    if (computeState.frontierPair->getState() == GDSDensityState::SPARSE) {
         task->runSparse();
         return;
     }
+
     // GDSUtils::runFrontiersUntilConvergence is called from a GDSCall operator, which is
     // already executed by a worker thread Tm of the task scheduler. So this function is
     // executed by Tm. Because this function will monitor the task and wait for it to
@@ -54,8 +55,9 @@ static void scheduleFrontierTask(TableCatalogEntry* fromEntry, TableCatalogEntry
         true /* launchNewWorkerThread */);
 }
 
-static void runOnGraph(ExecutionContext* context, Graph* graph, ExtendDirection extendDirection,
-    GDSComputeState& compState, const std::string& propertyToScan) {
+static void runOneIteration(ExecutionContext* context, Graph* graph,
+    ExtendDirection extendDirection, GDSComputeState& compState,
+    const std::string& propertyToScan) {
     for (auto info : graph->getGraphEntry()->nodeInfos) {
         auto fromEntry = info.entry;
         for (auto& nbrInfo : graph->getForwardNbrTableInfos(fromEntry->getTableID())) {
@@ -83,18 +85,24 @@ static void runOnGraph(ExecutionContext* context, Graph* graph, ExtendDirection 
     }
 }
 
-void GDSUtils::runFrontiersUntilConvergence(ExecutionContext* context, GDSComputeState& compState,
+void GDSUtils::runAlgorithmEdgeCompute(ExecutionContext* context, GDSComputeState& compState,
     Graph* graph, ExtendDirection extendDirection, uint64_t maxIteration) {
     auto frontierPair = compState.frontierPair.get();
     while (frontierPair->continueNextIter(maxIteration)) {
         frontierPair->beginNewIteration();
-        runOnGraph(context, graph, extendDirection, compState, "" /* empty */);
+        runOneIteration(context, graph, extendDirection, compState, "" /* empty */);
     }
 }
 
-void GDSUtils::runFrontiersUntilConvergence(ExecutionContext* context, GDSComputeState& compState,
+void GDSUtils::runFTSEdgeCompute(ExecutionContext* context, GDSComputeState& compState,
+    Graph* graph, common::ExtendDirection extendDirection, const std::string& propertyToScan) {
+    compState.frontierPair->beginNewIteration();
+    runOneIteration(context, graph, extendDirection, compState, propertyToScan);
+}
+
+void GDSUtils::runRecursiveJoinEdgeCompute(ExecutionContext* context, GDSComputeState& compState,
     Graph* graph, ExtendDirection extendDirection, uint64_t maxIteration,
-    common::NodeOffsetMaskMap* outputNodeMask, const std::string& propertyToScan) {
+    NodeOffsetMaskMap* outputNodeMask, const std::string& propertyToScan) {
     auto frontierPair = compState.frontierPair.get();
     compState.edgeCompute->resetSingleThreadState();
     while (frontierPair->continueNextIter(maxIteration)) {
@@ -102,12 +110,15 @@ void GDSUtils::runFrontiersUntilConvergence(ExecutionContext* context, GDSComput
         if (outputNodeMask != nullptr && compState.edgeCompute->terminate(*outputNodeMask)) {
             break;
         }
-        runOnGraph(context, graph, extendDirection, compState, propertyToScan);
+        runOneIteration(context, graph, extendDirection, compState, propertyToScan);
+        if (frontierPair->needSwitchToDense()) {
+            compState.switchToDense(context, graph);
+        }
     }
 }
 
-static void runVertexComputeInternal(catalog::TableCatalogEntry* currentEntry, graph::Graph* graph,
-    std::shared_ptr<VertexComputeTask> task, processor::ExecutionContext* context) {
+static void runVertexComputeInternal(TableCatalogEntry* currentEntry, graph::Graph* graph,
+    std::shared_ptr<VertexComputeTask> task, ExecutionContext* context) {
     auto maxOffset =
         graph->getMaxOffset(context->clientContext->getTransaction(), currentEntry->getTableID());
     auto sharedState = task->getSharedState();
@@ -116,8 +127,8 @@ static void runVertexComputeInternal(catalog::TableCatalogEntry* currentEntry, g
         true /* launchNewWorkerThread */);
 }
 
-void GDSUtils::runVertexCompute(processor::ExecutionContext* context, graph::Graph* graph,
-    VertexCompute& vc, std::vector<std::string> propertiesToScan) {
+void GDSUtils::runVertexCompute(ExecutionContext* context, Graph* graph, VertexCompute& vc,
+    std::vector<std::string> propertiesToScan) {
     auto maxThreads = context->clientContext->getMaxNumThreadForExec();
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
     for (auto& nodeInfo : graph->getGraphEntry()->nodeInfos) {
@@ -136,7 +147,7 @@ void GDSUtils::runVertexCompute(ExecutionContext* context, Graph* graph, VertexC
 }
 
 void GDSUtils::runVertexCompute(ExecutionContext* context, Graph* graph, VertexCompute& vc,
-    catalog::TableCatalogEntry* entry, std::vector<std::string> propertiesToScan) {
+    TableCatalogEntry* entry, std::vector<std::string> propertiesToScan) {
     auto maxThreads = context->clientContext->getMaxNumThreadForExec();
     auto info = VertexComputeTaskInfo(vc, graph, entry, propertiesToScan);
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
@@ -147,17 +158,13 @@ void GDSUtils::runVertexCompute(ExecutionContext* context, Graph* graph, VertexC
     runVertexComputeInternal(entry, graph, task, context);
 }
 
-void GDSUtils::runVertexComputeSparse(SparseFrontier& sparseFrontier, graph::Graph* graph,
-    VertexCompute& vc) {
+void GDSUtils::runVertexComputeSparse(Graph* graph, VertexCompute& vc) {
     for (auto& tableID : graph->getNodeTableIDs()) {
         if (!vc.beginOnTable(tableID)) {
             continue;
         }
-        sparseFrontier.pinTableID(tableID);
         auto localVc = vc.copy();
-        for (auto& offset : sparseFrontier.getOffsetSet()) {
-            localVc->vertexCompute(offset, offset + 1, tableID);
-        }
+        localVc->vertexCompute(tableID);
     }
 }
 

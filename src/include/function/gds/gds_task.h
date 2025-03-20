@@ -4,6 +4,7 @@
 
 #include "common/enums/extend_direction.h"
 #include "common/task_system/task.h"
+#include "frontier_morsel.h"
 #include "function/gds/gds_frontier.h"
 #include "graph/graph.h"
 

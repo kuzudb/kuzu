@@ -51,7 +51,7 @@ public:
     void pinToTable(table_id_t tableID) { toComponentIDs = componentIDsMap.getData(tableID); }
     void pinTable(table_id_t tableID) { toComponentIDs = componentIDsMap.getData(tableID); }
 
-    bool update(common::offset_t boundOffset, common::offset_t nbrOffset) {
+    bool update(offset_t boundOffset, offset_t nbrOffset) {
         auto boundValue = fromComponentIDs[boundOffset].load(std::memory_order_relaxed);
         auto tmp = toComponentIDs[nbrOffset].load(std::memory_order_relaxed);
         while (tmp > boundValue) {
@@ -62,29 +62,30 @@ public:
         return false;
     }
 
-    common::offset_t getComponentID(offset_t offset) {
+    offset_t getComponentID(offset_t offset) {
         return toComponentIDs[offset].load(std::memory_order_relaxed);
     }
 
 private:
-    std::atomic<common::offset_t>* fromComponentIDs = nullptr;
-    std::atomic<common::offset_t>* toComponentIDs = nullptr;
-    ObjectArraysMap<std::atomic<common::offset_t>> componentIDsMap;
+    std::atomic<offset_t>* fromComponentIDs = nullptr;
+    std::atomic<offset_t>* toComponentIDs = nullptr;
+    GDSDenseObjectManager<std::atomic<offset_t>> componentIDsMap;
 };
 
 class WCCAuxiliaryState : public GDSAuxiliaryState {
 public:
     explicit WCCAuxiliaryState(ComponentIDs& componentIDs) : componentIDs{componentIDs} {}
 
-    void beginFrontierCompute(common::table_id_t fromTableID,
-        common::table_id_t toTableID) override {
+    void beginFrontierCompute(table_id_t fromTableID, table_id_t toTableID) override {
         componentIDs.pinFromTable(fromTableID);
         componentIDs.pinToTable(toTableID);
     }
 
-    bool update(common::offset_t boundOffset, common::offset_t nbrOffset) {
+    bool update(offset_t boundOffset, offset_t nbrOffset) {
         return componentIDs.update(boundOffset, nbrOffset);
     }
+
+    void switchToDense(ExecutionContext*, Graph*) override {}
 
 private:
     ComponentIDs& componentIDs;
@@ -122,8 +123,7 @@ public:
 
     void beginOnTableInternal(table_id_t tableID) override { componentIDs.pinTable(tableID); }
 
-    void vertexCompute(common::offset_t startOffset, common::offset_t endOffset,
-        common::table_id_t tableID) override {
+    void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t tableID) override {
         for (auto i = startOffset; i < endOffset; ++i) {
             if (skip(i)) {
                 continue;
@@ -147,16 +147,15 @@ private:
 
 static constexpr uint8_t MAX_ITERATION = 100;
 
-static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
+static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto clientContext = input.context->clientContext;
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
     auto graph = sharedState->graph.get();
-    auto currentFrontier = PathLengths::getUnvisitedFrontier(input.context, graph);
+    auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
     auto nextFrontier =
-        PathLengths::getVisitedFrontier(input.context, graph, sharedState->getGraphNodeMaskMap());
-    auto frontierPair =
-        std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
-    frontierPair->initGDS();
+        DenseFrontier::getVisitedFrontier(input.context, graph, sharedState->getGraphNodeMaskMap());
+    auto frontierPair = std::make_unique<DenseFrontierPair>(currentFrontier, nextFrontier);
+    frontierPair->setActiveNodesForNextIter();
     auto maxOffsetMap = graph->getMaxOffsetMap(clientContext->getTransaction());
     auto offsetManager = OffsetManager(maxOffsetMap);
     auto componentIDs =
@@ -167,8 +166,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         sharedState, componentIDs);
     auto computeState =
         GDSComputeState(std::move(frontierPair), std::move(edgeCompute), std::move(auxiliaryState));
-    GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph,
-        ExtendDirection::BOTH, MAX_ITERATION);
+    GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, ExtendDirection::BOTH,
+        MAX_ITERATION);
     GDSUtils::runVertexCompute(input.context, graph, *vertexCompute);
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;

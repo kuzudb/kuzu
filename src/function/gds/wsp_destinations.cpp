@@ -51,7 +51,7 @@ private:
 
 private:
     std::atomic<double>* costs = nullptr;
-    ObjectArraysMap<std::atomic<double>> costsMap;
+    GDSDenseObjectManager<std::atomic<double>> costsMap;
 };
 
 template<typename T>
@@ -78,10 +78,12 @@ private:
     std::shared_ptr<Costs> costs;
 };
 
-struct WSPDestinationsAuxiliaryState : public GDSAuxiliaryState {
+class WSPDestinationsAuxiliaryState : public GDSAuxiliaryState {
 public:
     explicit WSPDestinationsAuxiliaryState(std::shared_ptr<Costs> costs)
         : costs{std::move(costs)} {}
+
+    Costs* getCosts() { return costs.get(); }
 
     void initSource(nodeID_t sourceNodeID) override { costs->setCost(sourceNodeID.offset, 0); }
 
@@ -89,23 +91,41 @@ public:
         costs->pinTable(toTableID);
     }
 
+    void switchToDense(ExecutionContext*, graph::Graph*) override {}
+
 private:
     std::shared_ptr<Costs> costs;
 };
 
 class WSPDestinationsOutputWriter : public RJOutputWriter {
 public:
-    WSPDestinationsOutputWriter(main::ClientContext* context,
-        common::NodeOffsetMaskMap* outputNodeMask, common::nodeID_t sourceNodeID,
-        std::shared_ptr<Costs> costs)
-        : RJOutputWriter{context, outputNodeMask, sourceNodeID}, costs{std::move(costs)} {
+    WSPDestinationsOutputWriter(main::ClientContext* context, NodeOffsetMaskMap* outputNodeMask,
+        nodeID_t sourceNodeID, Costs* costs, const table_id_map_t<offset_t>& maxOffsetMap)
+        : RJOutputWriter{context, outputNodeMask, sourceNodeID}, costs{costs},
+          maxOffsetMap{maxOffsetMap} {
         costVector = createVector(LogicalType::DOUBLE());
     }
 
-    void write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
-        LimitCounter* counter) override {
+    void beginWritingInternal(table_id_t tableID) override { costs->pinTable(tableID); }
+
+    void write(FactorizedTable& fTable, table_id_t tableID, LimitCounter* counter) override {
+        for (auto i = 0u; i < maxOffsetMap.at(tableID); ++i) {
+            write(fTable, {i, tableID}, counter);
+        }
+    }
+
+    void write(FactorizedTable& fTable, nodeID_t dstNodeID, LimitCounter* counter) override {
+        if (!inOutputNodeMask(dstNodeID.offset)) { // Skip dst if it not is in scope.
+            return;
+        }
+        if (dstNodeID == sourceNodeID_) { // Skip writing source node.
+            return;
+        }
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
         auto cost = costs->getCost(dstNodeID.offset);
+        if (cost == std::numeric_limits<double>::max()) { // Skip if dst is not visited.
+            return;
+        }
         costVector->setValue<double>(0, cost);
         fTable.append(vectors);
         if (counter != nullptr) {
@@ -114,20 +134,14 @@ public:
     }
 
     std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<WSPDestinationsOutputWriter>(context, outputNodeMask, sourceNodeID,
-            costs);
+        return std::make_unique<WSPDestinationsOutputWriter>(context, outputNodeMask, sourceNodeID_,
+            costs, maxOffsetMap);
     }
 
 private:
-    void beginWritingOutputsInternal(table_id_t tableID) override { costs->pinTable(tableID); }
-    bool skipInternal(nodeID_t dstNodeID) const override {
-        return dstNodeID == sourceNodeID ||
-               costs->getCost(dstNodeID.offset) == std::numeric_limits<double>::max();
-    }
-
-private:
-    std::shared_ptr<Costs> costs;
+    Costs* costs;
     std::unique_ptr<ValueVector> costVector;
+    table_id_map_t<offset_t> maxOffsetMap;
 };
 
 class WeightedSPDestinationsAlgorithm : public RJAlgorithm {
@@ -148,27 +162,36 @@ public:
     }
 
 private:
-    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID,
+    std::unique_ptr<GDSComputeState> getComputeState(ExecutionContext* context,
         const RJBindData& bindData, RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
         auto graph = sharedState->graph.get();
-        auto curFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
-        auto nextFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
+        auto curDenseFrontier = DenseFrontier::getUninitializedFrontier(context, graph);
+        auto nextDenseFrontier = DenseFrontier::getUninitializedFrontier(context, graph);
         auto frontierPair =
-            std::make_unique<DoublePathLengthsFrontierPair>(curFrontier, nextFrontier);
+            std::make_unique<DenseSparseDynamicFrontierPair>(curDenseFrontier, nextDenseFrontier);
         auto costs =
             std::make_shared<Costs>(graph->getMaxOffsetMap(clientContext->getTransaction()),
                 clientContext->getMemoryManager());
         auto auxiliaryState = std::make_unique<WSPDestinationsAuxiliaryState>(costs);
-        auto outputWriter = std::make_unique<WSPDestinationsOutputWriter>(clientContext,
-            sharedState->getOutputNodeMaskMap(), sourceNodeID, costs);
         std::unique_ptr<GDSComputeState> gdsState;
         visit(bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
             auto edgeCompute = std::make_unique<WSPDestinationsEdgeCompute<T>>(costs);
             gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
                 std::move(edgeCompute), std::move(auxiliaryState));
         });
-        return RJCompState(std::move(gdsState), std::move(outputWriter));
+        return gdsState;
+    }
+
+    std::unique_ptr<RJOutputWriter> getOutputWriter(ExecutionContext* context, const RJBindData&,
+        GDSComputeState& computeState, nodeID_t sourceNodeID,
+        RecursiveExtendSharedState* sharedState) override {
+        auto costs =
+            computeState.auxiliaryState->ptrCast<WSPDestinationsAuxiliaryState>()->getCosts();
+        auto clientContext = context->clientContext;
+        return std::make_unique<WSPDestinationsOutputWriter>(clientContext,
+            sharedState->getOutputNodeMaskMap(), sourceNodeID, costs,
+            sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()));
     }
 };
 

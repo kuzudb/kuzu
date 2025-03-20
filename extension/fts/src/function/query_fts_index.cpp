@@ -63,23 +63,6 @@ struct QFTSEdgeCompute final : EdgeCompute {
     }
 };
 
-static void initDenseFrontier(PathLengths& frontier, table_id_t termsTableID,
-    const std::unordered_map<offset_t, uint64_t>& dfs) {
-    frontier.pinNextFrontierTableID(termsTableID);
-    for (auto& [offset, _] : dfs) {
-        frontier.setActive(offset);
-    }
-}
-
-static void initSparseFrontier(SparseFrontier& frontier, table_id_t termsTableID,
-    const std::unordered_map<offset_t, uint64_t>& dfs) {
-    frontier.pinTableID(termsTableID);
-    for (auto& [offset, _] : dfs) {
-        frontier.addNode(offset);
-        frontier.checkSampleSize();
-    }
-}
-
 class QFTSOutputWriter {
 public:
     QFTSOutputWriter(const node_id_map_t<ScoreInfo>& scores, MemoryManager* mm,
@@ -236,6 +219,14 @@ static uint64_t getSparseFrontierSize(uint64_t numRows) {
     return size;
 }
 
+static void initFrontier(FrontierPair& frontierPair, table_id_t termsTableID,
+    const std::unordered_map<offset_t, uint64_t>& dfs) {
+    frontierPair.pinNextFrontier(termsTableID);
+    for (auto& [offset, _] : dfs) {
+        frontierPair.addNodeToNextFrontier(offset);
+    }
+}
+
 static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto clientContext = input.context->clientContext;
     auto transaction = clientContext->getTransaction();
@@ -250,18 +241,13 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     // for each term-doc pair. The reason why we store the term frequency and document frequency
     // is that: we need the `len` property from the docs table which is only available during the
     // vertex compute.
-    auto currentFrontier = PathLengths::getUnvisitedFrontier(input.context, graph);
-    auto nextFrontier = PathLengths::getUnvisitedFrontier(input.context, graph);
+    auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
+    auto nextFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
     auto frontierPair =
-        std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
+        std::make_unique<DenseSparseDynamicFrontierPair>(currentFrontier, nextFrontier);
     auto termsTableID = termsEntry.getTableID();
-    frontierPair->pinNextFrontier(termsTableID);
-    initDenseFrontier(*nextFrontier, termsTableID, dfs);
+    initFrontier(*frontierPair, termsTableID, dfs);
     auto storageManager = clientContext->getStorageManager();
-    auto totalNumTerms = storageManager->getTable(termsTableID)->getNumTotalRows(transaction);
-    auto sparseFrontier = SparseFrontier(getSparseFrontierSize(totalNumTerms));
-    initSparseFrontier(sparseFrontier, termsTableID, dfs);
-    frontierPair->mergeLocalFrontier(sparseFrontier);
     frontierPair->setActiveNodesForNextIter();
 
     node_id_map_t<ScoreInfo> scores;
@@ -269,8 +255,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
     auto compState =
         GDSComputeState(std::move(frontierPair), std::move(edgeCompute), std::move(auxiliaryState));
-    GDSUtils::runFrontiersUntilConvergence(input.context, compState, graph, ExtendDirection::FWD,
-        1 /* maxIters */, nullptr /* outputNodeMask */, TERM_FREQUENCY_PROP_NAME);
+    GDSUtils::runFTSEdgeCompute(input.context, compState, graph, ExtendDirection::FWD,
+        TERM_FREQUENCY_PROP_NAME);
 
     // Do vertex compute to calculate the score for doc with the length property.
     auto mm = clientContext->getMemoryManager();
