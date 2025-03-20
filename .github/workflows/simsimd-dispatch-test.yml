@@ -24,7 +24,7 @@ jobs:
 
   simsimd-dispatch-test:
     name: simsimd-dispatch-test
-    needs: build-precompiled-bin-linux
+    needs: [build-precompiled-bin-linux, build-extensions-linux]
     runs-on: kuzu-self-hosted-testing
     env:
       NUM_THREADS: 32
