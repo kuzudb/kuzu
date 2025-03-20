@@ -17,7 +17,7 @@ FrontierMorselDispatcher::FrontierMorselDispatcher(uint64_t maxThreads)
     nextOffset.store(INVALID_OFFSET);
 }
 
-void FrontierMorselDispatcher::init(common::offset_t _maxOffset) {
+void FrontierMorselDispatcher::init(offset_t _maxOffset) {
     maxOffset = _maxOffset;
     nextOffset.store(0u);
     // Frontier size calculation: The ideal scenario is to have k^2 many morsels where k
@@ -38,20 +38,20 @@ bool FrontierMorselDispatcher::getNextRangeMorsel(FrontierMorsel& frontierMorsel
     return true;
 }
 
-void SparseFrontier::pinTableID(common::table_id_t tableID) {
+void SparseFrontier::pinTableID(table_id_t tableID) {
     curTableID = tableID;
     if (!tableIDToOffsetMap.contains(tableID)) {
-        tableIDToOffsetMap.insert({tableID, std::unordered_set<common::offset_t>{}});
+        tableIDToOffsetMap.insert({tableID, std::unordered_set<offset_t>{}});
     }
     curOffsetSet = &tableIDToOffsetMap.at(tableID);
 }
 
-void SparseFrontier::addNode(common::offset_t offset) {
+void SparseFrontier::addNode(offset_t offset) {
     std::unique_lock<std::mutex> lck{mtx};
     curOffsetSet->insert(offset);
 }
 
-void SparseFrontier::addNodes(const std::vector<common::nodeID_t> nodeIDs) {
+void SparseFrontier::addNodes(const std::vector<nodeID_t> nodeIDs) {
     if (!enabled_) {
         return;
     }
@@ -91,11 +91,11 @@ void SparseFrontier::mergeSparseFrontier(const SparseFrontier& other) {
     }
 }
 
-PathLengths::PathLengths(const common::table_id_map_t<common::offset_t>& nodeMaxOffsetMap,
+PathLengths::PathLengths(const table_id_map_t<offset_t>& nodeMaxOffsetMap,
     storage::MemoryManager* mm)
-    : nodeMaxOffsetMap{nodeMaxOffsetMap}, curIter{0} {
+    : nodeMaxOffsetMap{nodeMaxOffsetMap} {
     for (const auto& [tableID, maxOffset] : nodeMaxOffsetMap) {
-        auto memBuffer = mm->allocateBuffer(false, maxOffset * sizeof(frontier_entry_t));
+        auto memBuffer = mm->allocateBuffer(false, maxOffset * sizeof(std::atomic<iteration_t>));
         masks.insert({tableID, std::move(memBuffer)});
     }
 }
@@ -123,7 +123,7 @@ std::shared_ptr<PathLengths> PathLengths::getVisitedFrontier(processor::Executio
 }
 
 std::shared_ptr<PathLengths> PathLengths::getVisitedFrontier(processor::ExecutionContext* context,
-    graph::Graph* graph, common::NodeOffsetMaskMap* maskMap) {
+    graph::Graph* graph, NodeOffsetMaskMap* maskMap) {
     if (maskMap == nullptr) {
         return getVisitedFrontier(context, graph);
     }
@@ -137,13 +137,13 @@ std::shared_ptr<PathLengths> PathLengths::getVisitedFrontier(processor::Executio
         frontier->pinTableID(tableID);
         if (!maskMap->containsTableID(tableID)) {
             for (auto i = 0u; i < numNodes; ++i) {
-                frontier->setCurFrontierValue(i, INITIAL_VISITED);
+                frontier->setIteration(i, INITIAL_VISITED);
             }
         } else {
             auto mask = maskMap->getOffsetMask(tableID);
             for (auto i = 0u; i < numNodes; ++i) {
                 if (mask->isMasked(i)) {
-                    frontier->setCurFrontierValue(i, INITIAL_VISITED);
+                    frontier->setIteration(i, INITIAL_VISITED);
                 }
             }
         }
@@ -151,27 +151,21 @@ std::shared_ptr<PathLengths> PathLengths::getVisitedFrontier(processor::Executio
     return frontier;
 }
 
-PathLengths::frontier_entry_t* PathLengths::getMaskData(common::table_id_t tableID) {
+std::atomic<iteration_t>* PathLengths::getMaskData(table_id_t tableID) {
     KU_ASSERT(masks.contains(tableID));
-    return reinterpret_cast<frontier_entry_t*>(masks.at(tableID)->getData());
+    return reinterpret_cast<std::atomic<iteration_t>*>(masks.at(tableID)->getData());
 }
 
-bool PathLengthsInitVertexCompute::beginOnTable(common::table_id_t tableID) {
+bool PathLengthsInitVertexCompute::beginOnTable(table_id_t tableID) {
     pathLengths.pinTableID(tableID);
     return true;
 }
 
-void PathLengthsInitVertexCompute::vertexCompute(common::offset_t startOffset,
-    common::offset_t endOffset, common::table_id_t) {
+void PathLengthsInitVertexCompute::vertexCompute(offset_t startOffset,
+    offset_t endOffset, table_id_t) {
     for (auto i = startOffset; i < endOffset; ++i) {
-        pathLengths.setCurFrontierValue(i, val);
+        pathLengths.setIteration(i, val);
     }
-}
-
-FrontierPair::FrontierPair(std::shared_ptr<PathLengths> curFrontier,
-    std::shared_ptr<PathLengths> nextFrontier)
-    : curDenseFrontier{std::move(curFrontier)}, nextDenseFrontier{std::move(nextFrontier)} {
-    initState();
 }
 
 void FrontierPair::beginNewIteration() {
@@ -198,26 +192,6 @@ void FrontierPair::initState() {
     vertexComputeCandidates = std::make_shared<SparseFrontier>();
     hasActiveNodesForNextIter_.store(false);
     curIter.store(0u);
-    getCurDenseFrontier().resetCurIter();
-    getNextDenseFrontier().resetCurIter();
-}
-
-void FrontierPair::beginFrontierComputeBetweenTables(common::table_id_t curTableID,
-    common::table_id_t nextTableID) {
-    pinCurrFrontier(curTableID);
-    pinNextFrontier(nextTableID);
-}
-
-bool FrontierPair::continueNextIter(uint16_t maxIter) {
-    return hasActiveNodesForNextIter_.load(std::memory_order_relaxed) && getCurrentIter() < maxIter;
-}
-
-void FrontierPair::addNodeToNextDenseFrontier(common::nodeID_t nodeID) {
-    nextDenseFrontier->setActive(nodeID);
-}
-
-void FrontierPair::addNodesToNextDenseFrontier(const std::vector<common::nodeID_t>& nodeIDs) {
-    nextDenseFrontier->setActive(nodeIDs);
 }
 
 void FrontierPair::mergeLocalFrontier(const SparseFrontier& localFrontier) {
@@ -236,42 +210,131 @@ bool FrontierPair::isCurFrontierSparse() {
     return curSparseFrontier->enabled();
 }
 
-void FrontierPair::initSource(common::nodeID_t source) {
-    nextDenseFrontier->pinNextFrontierTableID(source.tableID);
-    nextDenseFrontier->setActive(source);
+void SinglePathLengthsFrontierPair::initSource(nodeID_t source) {
+    pathLengths->pinTableID(source.tableID);
+    pathLengths->setIteration(source.offset, getCurrentIter());
     nextSparseFrontier->pinTableID(source.tableID);
     nextSparseFrontier->addNode(source.offset);
     hasActiveNodesForNextIter_.store(true);
 }
 
+void SinglePathLengthsFrontierPair::pinCurrentFrontier(table_id_t tableID) {
+    curSparseFrontier->pinTableID(tableID);
+    curDenseFrontier = pathLengths->getMaskData(tableID);
+}
+
+void SinglePathLengthsFrontierPair::pinNextFrontier(table_id_t tableID) {
+    nextSparseFrontier->pinTableID(tableID);
+    nextDenseFrontier = pathLengths->getMaskData(tableID);
+}
+
+void SinglePathLengthsFrontierPair::beginNewIterationInternalNoLock() {
+    // Do nothing
+}
+
+void SinglePathLengthsFrontierPair::addNodeToNextDenseFrontier(nodeID_t nodeID) {
+    KU_ASSERT(nextDenseFrontier);
+    nextDenseFrontier[nodeID.offset].store(getCurrentIter(), std::memory_order_relaxed);
+}
+
+void SinglePathLengthsFrontierPair::addNodesToNextDenseFrontier(
+    const std::vector<nodeID_t>& nodeIDs) {
+    KU_ASSERT(nextDenseFrontier);
+    for (auto& nodeID : nodeIDs) {
+        nextDenseFrontier[nodeID.offset].store(getCurrentIter(), std::memory_order_relaxed);
+    }
+}
+
+iteration_t SinglePathLengthsFrontierPair::getNextFrontierValue(offset_t offset) {
+    KU_ASSERT(nextDenseFrontier);
+    return nextDenseFrontier[offset].load(std::memory_order_relaxed);
+}
+
+offset_t SinglePathLengthsFrontierPair::getNumActiveNodesInCurrentFrontier(
+    NodeOffsetMaskMap& mask) {
+    auto result = 0u;
+    for (auto& [tableID, maxNumNodes] : pathLengths->getNodeMaxOffsetMap()) {
+        pinCurrentFrontier(tableID);
+        if (!mask.containsTableID(tableID)) {
+            continue;
+        }
+        auto offsetMask = mask.getOffsetMask(tableID);
+        for (auto offset = 0u; offset < maxNumNodes; ++offset) {
+            if (isActive(offset)) {
+                result += offsetMask->isMasked(offset);
+            }
+        }
+    }
+    return result;
+}
+
+bool SinglePathLengthsFrontierPair::isActive(offset_t offset) {
+    KU_ASSERT(curDenseFrontier);
+    return curDenseFrontier[offset].load(std::memory_order_relaxed) == getCurrentIter() - 1;
+}
+
+void DoublePathLengthsFrontierPair::initSource(nodeID_t source) {
+    nextDenseFrontier->pinTableID(source.tableID);
+    nextDenseFrontier->setIteration(source.offset, getCurrentIter());
+    nextSparseFrontier->pinTableID(source.tableID);
+    nextSparseFrontier->addNode(source.offset);
+    hasActiveNodesForNextIter_.store(true);
+}
+
+void DoublePathLengthsFrontierPair::pinCurrentFrontier(table_id_t tableID) {
+    curSparseFrontier->pinTableID(tableID);
+    curDenseFrontier->pinTableID(tableID);
+}
+
+void DoublePathLengthsFrontierPair::pinNextFrontier(table_id_t tableID) {
+    nextSparseFrontier->pinTableID(tableID);
+    nextDenseFrontier->pinTableID(tableID);
+}
+
 void DoublePathLengthsFrontierPair::beginNewIterationInternalNoLock() {
     std::swap(curDenseFrontier, nextDenseFrontier);
-    curDenseFrontier->incrementCurIter();
-    nextDenseFrontier->incrementCurIter();
+}
+
+void DoublePathLengthsFrontierPair::addNodeToNextDenseFrontier(nodeID_t nodeID) {
+    nextDenseFrontier->setIteration(nodeID.offset, getCurrentIter());
+}
+
+void DoublePathLengthsFrontierPair::addNodesToNextDenseFrontier(
+    const std::vector<nodeID_t>& nodeIDs) {
+    for (auto& nodeID : nodeIDs) {
+        nextDenseFrontier->setIteration(nodeID.offset, getCurrentIter());
+    }
+}
+
+void DoublePathLengthsFrontierPair::setCurFrontierValue(offset_t offset,
+    iteration_t value) {
+    curDenseFrontier->setIteration(offset, value);
+}
+
+void DoublePathLengthsFrontierPair::setNextFrontierValue(offset_t offset,
+    iteration_t value) {
+    nextDenseFrontier->setIteration(offset, value);
+}
+
+// TODO
+offset_t DoublePathLengthsFrontierPair::getNumActiveNodesInCurrentFrontier(
+    NodeOffsetMaskMap& mask) {
+    throw RuntimeException("This should not be called.");
+}
+
+bool DoublePathLengthsFrontierPair::isActive(offset_t offset) {
+    return curDenseFrontier->getIteration(offset) == getCurrentIter() - 1;
 }
 
 static constexpr uint64_t EARLY_TERM_NUM_NODES_THRESHOLD = 100;
 
-bool SPEdgeCompute::terminate(common::NodeOffsetMaskMap& maskMap) {
+bool SPEdgeCompute::terminate(NodeOffsetMaskMap& maskMap) {
     auto targetNumNodes = maskMap.getNumMaskedNode();
     if (targetNumNodes > EARLY_TERM_NUM_NODES_THRESHOLD) {
         // Skip checking if it's unlikely to early terminate.
         return false;
     }
-
-    auto& frontier = frontierPair->getCurDenseFrontier();
-    for (auto& [tableID, maxNumNodes] : frontier.getNodeMaxOffsetMap()) {
-        frontier.pinTableID(tableID);
-        if (!maskMap.containsTableID(tableID)) {
-            continue;
-        }
-        auto offsetMask = maskMap.getOffsetMask(tableID);
-        for (auto offset = 0u; offset < maxNumNodes; ++offset) {
-            if (frontier.isActive(offset)) {
-                numNodesReached += offsetMask->isMasked(offset);
-            }
-        }
-    }
+    numNodesReached += frontierPair->getNumActiveNodesInCurrentFrontier(maskMap);
     return numNodesReached == targetNumNodes;
 }
 

@@ -119,7 +119,7 @@ private:
 // been computed.
 class SccInitializeFrontiers : public VertexCompute {
 public:
-    SccInitializeFrontiers(FrontierPair& frontierPair, SccComputationState& computationState)
+    SccInitializeFrontiers(DoublePathLengthsFrontierPair& frontierPair, SccComputationState& computationState)
         : frontierPair{frontierPair}, computationState{computationState} {}
 
     bool beginOnTable(table_id_t) override { return true; }
@@ -129,9 +129,8 @@ public:
             // If the SCC ID has already been computed, the node should not be activated.
             auto initialState = computationState.isSccIdSet(i) ? PathLengths::INITIAL_VISITED :
                                                                  PathLengths::UNVISITED;
-            frontierPair.getCurDenseFrontier().setCurFrontierValue(i, initialState);
-            frontierPair.getNextDenseFrontier().setCurFrontierValue(i,
-                PathLengths::INITIAL_VISITED);
+            frontierPair.setCurFrontierValue(i, initialState);
+            frontierPair.setNextFrontierValue(i, PathLengths::INITIAL_VISITED);
         }
     }
 
@@ -140,7 +139,7 @@ public:
     }
 
 private:
-    FrontierPair& frontierPair;
+    DoublePathLengthsFrontierPair& frontierPair;
     SccComputationState& computationState;
 };
 
@@ -227,20 +226,18 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto currentFrontier = std::make_shared<PathLengths>(getMaxOffsetMap, mm);
     auto nextFrontier = std::make_shared<PathLengths>(getMaxOffsetMap, mm);
     // TODO(sdht): refactor when a better FrontierPair API is available.
-    currentFrontier->pinCurFrontierTableID(tableId);
-    nextFrontier->pinCurFrontierTableID(tableId);
+    currentFrontier->pinTableID(tableId);
+    nextFrontier->pinTableID(tableId);
     auto frontierPair =
         std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
-
+    auto initializeFrontiers =
+           std::make_unique<SccInitializeFrontiers>(*frontierPair, computationState);
     auto setNewSccIds = std::make_unique<SccFindNewSccIds>(computationState);
     auto setInitialColors = std::make_unique<SccSetInitialColors>(computationState);
     auto computeColors = std::make_unique<SccComputeColors>(computationState);
     auto auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
     auto computeState = GDSComputeState(std::move(frontierPair), std::move(computeColors),
         std::move(auxiliaryState));
-    auto initializeFrontiers =
-        std::make_unique<SccInitializeFrontiers>(*computeState.frontierPair, computationState);
-
     for (auto i = 0; i < MAX_ITERATION; i++) {
         GDSUtils::runVertexCompute(input.context, graph, *setInitialColors);
 

@@ -25,12 +25,12 @@ void FrontierTask::run() {
     auto localEc = info.edgeCompute.copy();
     SparseFrontier localFrontier;
     localFrontier.pinTableID(info.nbrEntry->getTableID());
-    auto& curFrontier = sharedState->frontierPair.getCurDenseFrontier();
+    // auto& curFrontier = sharedState->frontierPair.getCurDenseFrontier();
     switch (info.direction) {
     case ExtendDirection::FWD: {
         while (sharedState->morselDispatcher.getNextRangeMorsel(morsel)) {
             for (auto offset = morsel.getBeginOffset(); offset < morsel.getEndOffset(); ++offset) {
-                if (!curFrontier.isActive(offset)) {
+                if (!sharedState->frontierPair.isActive(offset)) {
                     continue;
                 }
                 nodeID_t nodeID = {offset, info.boundEntry->getTableID()};
@@ -44,7 +44,7 @@ void FrontierTask::run() {
     case ExtendDirection::BWD: {
         while (sharedState->morselDispatcher.getNextRangeMorsel(morsel)) {
             for (auto offset = morsel.getBeginOffset(); offset < morsel.getEndOffset(); ++offset) {
-                if (!curFrontier.isActive(offset)) {
+                if (!sharedState->frontierPair.isActive(offset)) {
                     continue;
                 }
                 nodeID_t nodeID = {offset, info.boundEntry->getTableID()};

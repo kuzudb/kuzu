@@ -22,8 +22,7 @@ public:
         bool fwdEdge) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNodeID, auto edgeID) {
-            auto nbrLen =
-                frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNodeID.offset);
+            auto nbrLen = frontierPair->getNextFrontierValue(nbrNodeID.offset);
             // We should update in 2 cases: 1) if nbrID is being visited
             // for the first time, i.e., when its value in the pathLengths frontier is
             // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this
