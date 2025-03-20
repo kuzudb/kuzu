@@ -6,8 +6,6 @@
 namespace kuzu {
 namespace evaluator {
 
-
-
 class FunctionExpressionEvaluator : public ExpressionEvaluator {
     static constexpr EvaluatorType type_ = EvaluatorType::FUNCTION;
 
@@ -34,7 +32,6 @@ private:
     std::vector<std::shared_ptr<common::ValueVector>> parameters;
     std::unique_ptr<function::ScalarFunction> function;
     std::unique_ptr<function::FunctionBindData> bindData;
-    std::unique_ptr<function::FunctionLocalState> functionLocalState;
 };
 
 } // namespace evaluator

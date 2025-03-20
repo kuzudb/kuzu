@@ -19,7 +19,6 @@ FunctionExpressionEvaluator::FunctionExpressionEvaluator(std::shared_ptr<Express
     auto& functionExpr = this->expression->constCast<ScalarFunctionExpression>();
     function = functionExpr.getFunction().copy();
     bindData = functionExpr.getBindData()->copy();
-    functionLocalState = function->initLocalStateFunc({});
 }
 
 void FunctionExpressionEvaluator::evaluate() {
