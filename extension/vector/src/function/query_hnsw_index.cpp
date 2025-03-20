@@ -83,7 +83,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         }
         nodeTableEntry = graphEntry.nodeInfos[0].entry->ptrCast<catalog::NodeTableCatalogEntry>();
         HNSWIndexUtils::validateIndexExistence(*context, nodeTableEntry, indexName,
-             HNSWIndexUtils::IndexOperation::QUERY);
+            HNSWIndexUtils::IndexOperation::QUERY);
     } else {
         throw BinderException{
             stringFormat("Cannot find table or projected graph named as {}.", tableOrGraphName)};

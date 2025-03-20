@@ -82,8 +82,8 @@ GraphEntry GDSFunction::bindGraphEntry(ClientContext& context, const ParsedGraph
         validateEntryType(*nodeEntry, CatalogEntryType::NODE_TABLE_ENTRY);
         projectedNodeTableIDSet.insert(nodeEntry->getTableID());
         if (!nodeInfo.predicate.empty()) {
-            auto cypher =
-                stringFormat("MATCH (n:`{}`) RETURN n, {}", nodeEntry->getName(), nodeInfo.predicate);
+            auto cypher = stringFormat("MATCH (n:`{}`) RETURN n, {}", nodeEntry->getName(),
+                nodeInfo.predicate);
             auto columns = getResultColumns(cypher, &context);
             KU_ASSERT(columns.size() == 2);
             result.nodeInfos.emplace_back(nodeEntry, columns[0], columns[1]);
