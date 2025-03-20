@@ -167,7 +167,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         sharedState, componentIDs);
     auto computeState =
         GDSComputeState(std::move(frontierPair), std::move(edgeCompute), std::move(auxiliaryState));
-    GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph, ExtendDirection::BOTH, MAX_ITERATION);
+    GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph,
+        ExtendDirection::BOTH, MAX_ITERATION);
     GDSUtils::runVertexCompute(input.context, graph, *vertexCompute);
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;

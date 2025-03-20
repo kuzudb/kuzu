@@ -84,17 +84,17 @@ static void runOnGraph(ExecutionContext* context, Graph* graph, ExtendDirection 
     }
 }
 
-void GDSUtils::runFrontiersUntilConvergence(ExecutionContext* context, GDSComputeState& compState, Graph* graph,
-    ExtendDirection extendDirection, uint64_t maxIteration) {
+void GDSUtils::runFrontiersUntilConvergence(ExecutionContext* context, GDSComputeState& compState,
+    Graph* graph, ExtendDirection extendDirection, uint64_t maxIteration) {
     auto frontierPair = compState.frontierPair.get();
     while (frontierPair->continueNextIter(maxIteration)) {
         frontierPair->beginNewIteration();
         runOnGraph(context, graph, extendDirection, compState, "" /* empty */);
     }
 }
-    
-void GDSUtils::runFrontiersUntilConvergence(ExecutionContext* context, GDSComputeState& compState, Graph* graph,
-    ExtendDirection extendDirection, uint64_t maxIteration,
+
+void GDSUtils::runFrontiersUntilConvergence(ExecutionContext* context, GDSComputeState& compState,
+    Graph* graph, ExtendDirection extendDirection, uint64_t maxIteration,
     common::NodeOffsetMaskMap* outputNodeMask, const std::string& propertyToScan) {
     auto frontierPair = compState.frontierPair.get();
     compState.edgeCompute->resetSingleThreadState();

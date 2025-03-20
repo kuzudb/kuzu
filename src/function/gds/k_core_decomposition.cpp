@@ -196,7 +196,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             }
             // Remove found nodes by decreasing their nbrs degree by one.
             computeState.frontierPair->initGDS();
-            GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph, ExtendDirection::BOTH,
+            GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph,
+                ExtendDirection::BOTH,
                 computeState.frontierPair->getCurrentIter() + 1 /* maxIters */);
             // Repeat until all remaining nodes has degree greater than current core.
         }

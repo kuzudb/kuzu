@@ -248,13 +248,15 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         computeState.frontierPair->initState();
         computeState.frontierPair->initGDS();
         GDSUtils::runVertexCompute(input.context, graph, *initializeFrontiers);
-        GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph, ExtendDirection::FWD, MAX_ITERATION);
+        GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph,
+            ExtendDirection::FWD, MAX_ITERATION);
 
         // Bwd colors.
         computeState.frontierPair->initState();
         computeState.frontierPair->initGDS();
         GDSUtils::runVertexCompute(input.context, graph, *initializeFrontiers);
-        GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph, ExtendDirection::BWD, MAX_ITERATION);
+        GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph,
+            ExtendDirection::BWD, MAX_ITERATION);
 
         // Find new SCC IDs and exit if all IDs have been found.
         computationState.reset();

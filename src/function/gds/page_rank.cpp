@@ -291,7 +291,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             std::make_unique<PNextUpdateEdgeCompute>(degrees, *pCurrent, *pNext);
         computeState.auxiliaryState =
             std::make_unique<PageRankAuxiliaryState>(degrees, *pCurrent, *pNext);
-        GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph, ExtendDirection::BWD, 1);
+        GDSUtils::runFrontiersUntilConvergence(input.context, computeState, graph,
+            ExtendDirection::BWD, 1);
         auto pNextUpdateVC = PNextUpdateVertexCompute(config.dampingFactor, pNextUpdateConstant,
             *pNext, sharedState->getGraphNodeMaskMap());
         GDSUtils::runVertexCompute(input.context, graph, pNextUpdateVC);
