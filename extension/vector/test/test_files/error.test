@@ -7,28 +7,28 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE test(id int64 primary key, vec double[90]);
 ---- ok
--STATEMENT CALL CREATE_HNSW_INDEX('test2', 'e_hnsw_index', 'vec');
+-STATEMENT CALL CREATE_VECTOR_INDEX('test2', 'e_hnsw_index', 'vec');
 ---- error
 Binder exception: Table test2 does not exist.
--STATEMENT CALL CREATE_HNSW_INDEX('test', 'e_hnsw_index', 'vec2');
+-STATEMENT CALL CREATE_VECTOR_INDEX('test', 'e_hnsw_index', 'vec2');
 ---- error
 Binder exception: Column vec2 does not exist in table test.
--STATEMENT CALL CREATE_HNSW_INDEX('test', 'e_hnsw_index', 'vec');
+-STATEMENT CALL CREATE_VECTOR_INDEX('test', 'e_hnsw_index', 'vec');
 ---- error
-Binder exception: HNSW_INDEX only supports FLOAT ARRAY columns.
+Binder exception: VECTOR_INDEX only supports FLOAT ARRAY columns.
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[960], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-960-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec');
 ---- ok
--STATEMENT CALL QUERY_HNSW_INDEX('embeddings', 'e_hnsw_index', CAST([0.0459,0.0439,0.0251], 'FLOAT[3]'), 10) RETURN *;
+-STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', CAST([0.0459,0.0439,0.0251], 'FLOAT[3]'), 10) RETURN *;
 ---- error
 Binder exception: Cannot change literal expression data type from FLOAT[3] to FLOAT[960].
--STATEMENT CALL DROP_HNSW_INDEX('embeddings', 'e_hnsw_index2');
+-STATEMENT CALL DROP_VECTOR_INDEX('embeddings', 'e_hnsw_index2');
 ---- error
 Binder exception: Table embeddings doesn't have an index with name e_hnsw_index2.
--STATEMENT CALL DROP_HNSW_INDEX('embeddingssss', 'e_hnsw_indexxxx');
+-STATEMENT CALL DROP_VECTOR_INDEX('embeddingssss', 'e_hnsw_indexxxx');
 ---- error
 Binder exception: Table embeddingssss does not exist.
 
@@ -39,33 +39,33 @@ Binder exception: Table embeddingssss does not exist.
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', unknown_param := 1);
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', unknown_param := 1);
 ---- error
-Binder exception: Unrecognized optional parameter unknown_param in CREATE_HNSW_INDEX.
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', efc := 0);
+Binder exception: Unrecognized optional parameter unknown_param in CREATE_VECTOR_INDEX.
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', efc := 0);
 ---- error
 Binder exception: Efc must be a positive integer.
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', mu := 0);
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', mu := 0);
 ---- error
 Binder exception: Mu must be a positive integer between 1 and 100.
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', ml := -1);
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', ml := -1);
 ---- error
 Binder exception: Ml must be a positive integer between 1 and 200.
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', pu := 1.5);
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', pu := 1.5);
 ---- error
 Binder exception: Pu must be a double between 0 and 1.
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', alpha := 0.5);
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', alpha := 0.5);
 ---- error
 Binder exception: Alpha must be a double greater than or equal to 1.
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'invalid');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'invalid');
 ---- error
 Binder exception: Metric must be one of COSINE, L2, L2SQ or DOTPRODUCT.
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec');
 ---- ok
--STATEMENT CALL QUERY_HNSW_INDEX('embeddings', 'e_hnsw_index', CAST([0.0459,0.0439,0.0251,0.1,0.2,0.3,0.4,0.4], 'FLOAT[8]'), 10, unknown_param := 1) RETURN *;
+-STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', CAST([0.0459,0.0439,0.0251,0.1,0.2,0.3,0.4,0.4], 'FLOAT[8]'), 10, unknown_param := 1) RETURN *;
 ---- error
-Binder exception: Unrecognized optional parameter unknown_param in QUERY_HNSW_INDEX.
--STATEMENT CALL QUERY_HNSW_INDEX('embeddings', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3, efs := -1) RETURN nn.id, _distance ORDER BY _distance;
+Binder exception: Unrecognized optional parameter unknown_param in QUERY_VECTOR_INDEX.
+-STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3, efs := -1) RETURN nn.id, _distance ORDER BY _distance;
 ---- error
 Binder exception: Efs must be a positive integer.
 
@@ -76,14 +76,14 @@ Binder exception: Efs must be a positive integer.
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
 ---- ok
--STATEMENT CALL QUERY_HNSW_INDEX('embeddings', 'e_hnsw_index', ['abc','def','ddd','awe','alice','bob','de','pwd'], 3) RETURN nn.id ORDER BY _distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', ['abc','def','ddd','awe','alice','bob','de','pwd'], 3) RETURN nn.id ORDER BY _distance;
 ---- error
 Binder exception: Expression LIST_CREATION(abc,def,ddd,awe,alice,bob,de,pwd) has data type STRING[] but expected FLOAT[8]. Implicit cast is not supported.
--STATEMENT CALL QUERY_HNSW_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 'abc') RETURN nn.id ORDER BY _distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 'abc') RETURN nn.id ORDER BY _distance;
 ---- error
-Binder exception: Cannot match a built-in function for given function QUERY_HNSW_INDEX(STRING,STRING,DOUBLE[],STRING). Supported inputs are
+Binder exception: Cannot match a built-in function for given function QUERY_VECTOR_INDEX(STRING,STRING,DOUBLE[],STRING). Supported inputs are
 (STRING,STRING,ARRAY,INT64)
 
 -CASE ProjectedGraphError
@@ -93,23 +93,23 @@ Binder exception: Cannot match a built-in function for given function QUERY_HNSW
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index', 'vec');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec');
 ---- ok
 -STATEMENT CREATE NODE TABLE test(id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
 -STATEMENT CALL create_projected_graph('emb-graph', ['embeddings', 'test'], []);
 ---- ok
--STATEMENT CALL QUERY_HNSW_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
 ---- error
-Binder exception: Projected graph emb-graph either contains relationship tables or multiple node tables. Projected graphs passed to QUERY_HNSW_INDEX function must contain only nodes from a single node table and no relationship tables.
+Binder exception: Projected graph emb-graph either contains relationship tables or multiple node tables. Projected graphs passed to QUERY_VECTOR_INDEX function must contain only nodes from a single node table and no relationship tables.
 -STATEMENT CREATE REL TABLE rel(FROM embeddings TO embeddings);
 ---- ok
 -STATEMENT CALL create_projected_graph('emb-graph2', ['embeddings'], ['rel']);
 ---- ok
--STATEMENT CALL QUERY_HNSW_INDEX('emb-graph2', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph2', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
 ---- error
-Binder exception: Projected graph emb-graph2 either contains relationship tables or multiple node tables. Projected graphs passed to QUERY_HNSW_INDEX function must contain only nodes from a single node table and no relationship tables.
--STATEMENT CALL QUERY_HNSW_INDEX('emb-graph3', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
+Binder exception: Projected graph emb-graph2 either contains relationship tables or multiple node tables. Projected graphs passed to QUERY_VECTOR_INDEX function must contain only nodes from a single node table and no relationship tables.
+-STATEMENT CALL QUERY_VECTOR_INDEX('emb-graph3', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3) RETURN nn.id ORDER BY _distance;
 ---- error
 Binder exception: Cannot find table or projected graph named as emb-graph3.
 
@@ -120,14 +120,14 @@ Binder exception: Cannot find table or projected graph named as emb-graph3.
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_HNSW_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
 ---- ok
--STATEMENT CALL QUERY_HNSW_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 3, blind_search_up_sel := 1.1) RETURN nn.id ORDER BY _distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 3, blind_search_up_sel := 1.1) RETURN nn.id ORDER BY _distance;
 ---- error
 Binder exception: Blind search upper selectivity threshold must be a double between 0 and 1.
--STATEMENT CALL QUERY_HNSW_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 3, directed_search_up_sel := -0.1) RETURN nn.id ORDER BY _distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 3, directed_search_up_sel := -0.1) RETURN nn.id ORDER BY _distance;
 ---- error
 Binder exception: Directed search upper selectivity threshold must be a double between 0 and 1.
--STATEMENT CALL QUERY_HNSW_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 3, directed_search_up_sel := 0.1, blind_search_up_sel := 0.8) RETURN nn.id ORDER BY _distance;
+-STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 3, directed_search_up_sel := 0.1, blind_search_up_sel := 0.8) RETURN nn.id ORDER BY _distance;
 ---- error
 Binder exception: Blind search upper selectivity threshold is set to 0.800000, but the directed search upper selectivity threshold is set to 0.100000. The blind search upper selectivity threshold must be less than the directed search upper selectivity threshold.

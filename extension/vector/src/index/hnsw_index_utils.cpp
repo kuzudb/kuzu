@@ -94,7 +94,7 @@ void HNSWIndexUtils::validateColumnType(const common::LogicalType& type) {
                 ->constPtrCast<common::ArrayTypeInfo>()
                 ->getChildType()
                 .getLogicalTypeID() != common::LogicalTypeID::FLOAT) {
-        throw common::BinderException("HNSW_INDEX only supports FLOAT ARRAY columns.");
+        throw common::BinderException("VECTOR_INDEX only supports FLOAT ARRAY columns.");
     }
 }
 
