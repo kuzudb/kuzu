@@ -15,18 +15,15 @@ public:
         common::nodeID_t sourceNodeID);
     virtual ~RJOutputWriter() = default;
 
-    void beginWritingOutputs(common::table_id_t tableID);
-
-    bool skip(common::nodeID_t dstNodeID) const;
-
+    virtual void beginWriting(common::table_id_t tableID);
     virtual void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
         common::LimitCounter* counter) = 0;
 
     virtual std::unique_ptr<RJOutputWriter> copy() = 0;
 
-protected:
-    virtual void beginWritingOutputsInternal(common::table_id_t tableID) = 0;
-    virtual bool skipInternal(common::nodeID_t dstNodeID) const = 0;
+    void pinOutputNodeMask(common::table_id_t tableID);
+    bool inOutputNodeMask(common::offset_t offset);
+
     std::unique_ptr<common::ValueVector> createVector(const common::LogicalType& type);
 
 protected:
@@ -57,9 +54,9 @@ struct PathsOutputWriterInfo {
 class PathsOutputWriter : public RJOutputWriter {
 public:
     PathsOutputWriter(main::ClientContext* context, common::NodeOffsetMaskMap* outputNodeMask,
-        common::nodeID_t sourceNodeID, PathsOutputWriterInfo info, BFSGraph& bfsGraph);
+        common::nodeID_t sourceNodeID, PathsOutputWriterInfo info, BaseBFSGraph& bfsGraph);
 
-    void beginWritingOutputsInternal(common::table_id_t tableID) override {
+    void beginWriting(common::table_id_t tableID) override {
         bfsGraph.pinTableID(tableID);
     }
 
@@ -98,31 +95,12 @@ protected:
 
 protected:
     PathsOutputWriterInfo info;
-    BFSGraph& bfsGraph;
+    BaseBFSGraph& bfsGraph;
 
     std::unique_ptr<common::ValueVector> directionVector = nullptr;
     std::unique_ptr<common::ValueVector> lengthVector = nullptr;
     std::unique_ptr<common::ValueVector> pathNodeIDsVector = nullptr;
     std::unique_ptr<common::ValueVector> pathEdgeIDsVector = nullptr;
-};
-
-class SPPathsOutputWriter : public PathsOutputWriter {
-public:
-    SPPathsOutputWriter(main::ClientContext* context, common::NodeOffsetMaskMap* outputNodeMask,
-        common::nodeID_t sourceNodeID, PathsOutputWriterInfo info, BFSGraph& bfsGraph)
-        : PathsOutputWriter{context, outputNodeMask, sourceNodeID, info, bfsGraph} {}
-
-    std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<SPPathsOutputWriter>(context, outputNodeMask, sourceNodeID, info,
-            bfsGraph);
-    }
-
-protected:
-    bool skipInternal(common::nodeID_t dstNodeID) const override {
-        // For single/all shortest path computations, we do not output any results from source to
-        // source. We also do not output any results if a destination node has not been reached.
-        return dstNodeID == sourceNodeID || nullptr == bfsGraph.getParentListHead(dstNodeID.offset);
-    }
 };
 
 } // namespace function

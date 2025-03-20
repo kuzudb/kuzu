@@ -4,7 +4,9 @@ namespace kuzu {
 namespace function {
 
 void GDSComputeState::initSource(common::nodeID_t sourceNodeID) const {
-    frontierPair->initSource(sourceNodeID);
+    frontierPair->pinNextFrontier(sourceNodeID.tableID);
+    frontierPair->addNodeToNextFrontier(sourceNodeID);
+    frontierPair->setActiveNodesForNextIter();
     auxiliaryState->initSource(sourceNodeID);
 }
 

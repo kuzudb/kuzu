@@ -8,30 +8,42 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace function {
 
-RJOutputWriter::RJOutputWriter(main::ClientContext* context,
-    common::NodeOffsetMaskMap* outputNodeMask, nodeID_t sourceNodeID)
-    : context{context}, outputNodeMask{outputNodeMask}, sourceNodeID{sourceNodeID} {
+RJOutputWriter::RJOutputWriter(main::ClientContext* context, NodeOffsetMaskMap* outputNodeMask, nodeID_t sourceNodeID)
+    : context{context}, outputNodeMask{outputNodeMask} {
     srcNodeIDVector = createVector(LogicalType::INTERNAL_ID());
     dstNodeIDVector = createVector(LogicalType::INTERNAL_ID());
     srcNodeIDVector->setValue<nodeID_t>(0, sourceNodeID);
 }
 
-void RJOutputWriter::beginWritingOutputs(table_id_t tableID) {
+void RJOutputWriter::pinOutputNodeMask(table_id_t tableID) {
     if (outputNodeMask != nullptr) {
         outputNodeMask->pin(tableID);
     }
-    beginWritingOutputsInternal(tableID);
 }
 
-bool RJOutputWriter::skip(nodeID_t dstNodeID) const {
-    if (outputNodeMask != nullptr && outputNodeMask->hasPinnedMask()) {
-        auto mask = outputNodeMask->getPinnedMask();
-        if (mask->isEnabled() && !mask->isMasked(dstNodeID.offset)) {
-            return true;
-        }
+bool RJOutputWriter::inOutputNodeMask(common::offset_t offset) {
+    if (outputNodeMask == nullptr) { // No mask
+        return true;
     }
-    return skipInternal(dstNodeID);
+    auto mask = outputNodeMask->getPinnedMask();
+    if (mask->isEnabled() && !mask->isMasked(offset)) {
+        return true;
+    }
 }
+
+// void RJOutputWriter::beginWritingOutputs(table_id_t tableID) {
+//     beginWritingOutputsInternal(tableID);
+// }
+
+// bool RJOutputWriter::skip(nodeID_t dstNodeID) const {
+//     if (outputNodeMask != nullptr && outputNodeMask->hasPinnedMask()) {
+//         auto mask = outputNodeMask->getPinnedMask();
+//         if (mask->isEnabled() && !mask->isMasked(dstNodeID.offset)) {
+//             return true;
+//         }
+//     }
+//     return skipInternal(dstNodeID);
+// }
 
 std::unique_ptr<ValueVector> RJOutputWriter::createVector(const LogicalType& type) {
     auto vector = std::make_unique<ValueVector>(type.copy(), context->getMemoryManager());
@@ -41,8 +53,8 @@ std::unique_ptr<ValueVector> RJOutputWriter::createVector(const LogicalType& typ
 }
 
 PathsOutputWriter::PathsOutputWriter(main::ClientContext* context,
-    common::NodeOffsetMaskMap* outputNodeMask, nodeID_t sourceNodeID, PathsOutputWriterInfo info,
-    BFSGraph& bfsGraph)
+    NodeOffsetMaskMap* outputNodeMask, nodeID_t sourceNodeID, PathsOutputWriterInfo info,
+    BaseBFSGraph& bfsGraph)
     : RJOutputWriter{context, outputNodeMask, sourceNodeID}, info{info}, bfsGraph{bfsGraph} {
     lengthVector = createVector(LogicalType::UINT16());
     if (info.writeEdgeDirection) {
@@ -65,8 +77,7 @@ static ParentList* getTop(const std::vector<ParentList*>& path) {
     return path[path.size() - 1];
 }
 
-void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
-    LimitCounter* counter) {
+void PathsOutputWriter::write(FactorizedTable& fTable, nodeID_t dstNodeID, LimitCounter* counter) {
     dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
     auto firstParent = findFirstParent(dstNodeID.offset);
     if (firstParent == nullptr) {
@@ -87,8 +98,7 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
     dfsSlow(firstParent, fTable, counter);
 }
 
-void PathsOutputWriter::dfsFast(ParentList* firstParent, FactorizedTable& fTable,
-    LimitCounter* counter) {
+void PathsOutputWriter::dfsFast(ParentList* firstParent, FactorizedTable& fTable, LimitCounter* counter) {
     std::vector<ParentList*> curPath;
     curPath.push_back(firstParent);
     auto backtracking = false;

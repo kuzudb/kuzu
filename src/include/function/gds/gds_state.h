@@ -11,6 +11,8 @@ struct GDSComputeState {
     std::unique_ptr<EdgeCompute> edgeCompute = nullptr;
     std::unique_ptr<GDSAuxiliaryState> auxiliaryState = nullptr;
 
+    SparseFrontier visitedSparseFrontier;
+
     GDSComputeState(std::unique_ptr<FrontierPair> frontierPair,
         std::unique_ptr<EdgeCompute> edgeCompute, std::unique_ptr<GDSAuxiliaryState> auxiliaryState)
         : frontierPair{std::move(frontierPair)}, edgeCompute{std::move(edgeCompute)},
@@ -28,6 +30,8 @@ struct GDSComputeState {
     // RJOutputs, to possibly avoid them doing lookups of S and T-related data structures,
     // e.g., maps, internally.
     void beginFrontierCompute(common::table_id_t currTableID, common::table_id_t nextTableID) const;
+
+    void switchToDense();
 };
 
 } // namespace function

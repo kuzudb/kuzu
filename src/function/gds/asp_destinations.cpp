@@ -12,49 +12,179 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
+using multiplicity_t = uint64_t;
+
 class Multiplicities {
 public:
-    Multiplicities(const std::unordered_map<table_id_t, uint64_t>& maxOffsetMap,
-        storage::MemoryManager* mm) {
-        for (auto& [tableID, maxOffset] : maxOffsetMap) {
-            multiplicityArray.allocate(tableID, maxOffset, mm);
-            // Question to Trevor: Do I need to use atomics? If so, why?
-            auto data = multiplicityArray.getData(tableID);
-            for (uint64_t i = 0; i < maxOffset; ++i) {
-                data[i].store(0);
-            }
+    virtual ~Multiplicities() = default;
+
+    virtual void pinTableID(table_id_t tableID) = 0;
+
+    virtual void increaseMultiplicity(offset_t offset, multiplicity_t multiplicity) = 0;
+
+    virtual multiplicity_t getMultiplicity(offset_t offset) = 0;
+};
+
+class SparseMultiplicitiesReference : public Multiplicities {
+public:
+    SparseMultiplicitiesReference(GDSSpareObjectManager<multiplicity_t>& spareObjects)
+        : spareObjects{spareObjects} {}
+
+    void pinTableID(table_id_t tableID) override {
+        curData = spareObjects.getData(tableID);
+    }
+
+    void increaseMultiplicity(offset_t offset, multiplicity_t multiplicity) override {
+        KU_ASSERT(curData);
+        if (curData->contains(offset)) {
+            curData->at(offset) += multiplicity;
+        } else {
+            curData->insert({offset, multiplicity});
         }
     }
 
-    void incrementTargetMultiplicity(offset_t offset, uint64_t multiplicity) {
-        curTargetMultiplicities[offset].fetch_add(multiplicity);
-    }
-
-    uint64_t getBoundMultiplicity(offset_t nodeOffset) {
-        return curBoundMultiplicities[nodeOffset].load(std::memory_order_relaxed);
-    }
-
-    uint64_t getTargetMultiplicity(offset_t nodeOffset) {
-        return curTargetMultiplicities[nodeOffset].load(std::memory_order_relaxed);
-    }
-
-    void pinBoundTable(table_id_t tableID) {
-        curBoundMultiplicities = multiplicityArray.getData(tableID);
-    }
-
-    void pinTargetTable(table_id_t tableID) {
-        curTargetMultiplicities = multiplicityArray.getData(tableID);
+    multiplicity_t getMultiplicity(offset_t offset) override {
+        KU_ASSERT(curData);
+        if (!curData->contains(offset)) {
+            return curData->at(offset);
+        }
+        return 0;
     }
 
 private:
-    ObjectArraysMap<std::atomic<uint64_t>> multiplicityArray;
-    // curTargetMultiplicities is the multiplicities of the current table that will be updated in a
-    // particular rel table extension.
-    std::atomic<uint64_t>* curTargetMultiplicities = nullptr;
-    // curBoundMultiplicities is the multiplicities of the table "from which" an extension is
-    // being made.
-    std::atomic<uint64_t>* curBoundMultiplicities = nullptr;
+    GDSSpareObjectManager<multiplicity_t>& spareObjects;
+    std::unordered_map<offset_t, multiplicity_t>* curData = nullptr;
 };
+
+class DenseMultiplicitiesReference : public Multiplicities {
+public:
+    DenseMultiplicitiesReference(GDSDenseObjectManager<std::atomic<multiplicity_t>>& denseObjects)
+        : denseObjects(denseObjects) {}
+
+    // void init(ExecutionContext* context, Graph* graph) {
+    //     for (auto& [tableID, maxOffset] : maxOffsetMap) {
+    //         denseObjects.allocate(tableID, maxOffset, context->clientContext->getMemoryManager());
+    //         pinTableID(tableID);
+    //         for (auto i = 0; i < maxOffset; i++) {
+    //             curData[i].store(0);
+    //         }
+    //     }
+    // }
+
+    void pinTableID(table_id_t tableID) override {
+        curData = denseObjects.getData(tableID);
+    }
+
+    void increaseMultiplicity(offset_t offset, multiplicity_t multiplicity) override {
+        KU_ASSERT(curData);
+        curData[offset].fetch_add(multiplicity);
+    }
+
+    multiplicity_t getMultiplicity(offset_t offset) override {
+        KU_ASSERT(curData);
+        return curData[offset].load(std::memory_order_relaxed);
+    }
+
+private:
+    GDSDenseObjectManager<std::atomic<multiplicity_t>>& denseObjects;
+    std::atomic<multiplicity_t>* curData = nullptr;
+};
+
+class MultiplicitiesPair {
+public:
+    MultiplicitiesPair() : densityState{GDSDensityState::SPARSE} {
+        spareObjects = GDSSpareObjectManager<multiplicity_t>();
+        curSparseMultiplicities = std::make_unique<SparseMultiplicitiesReference>(spareObjects);
+        nextSparseMultiplicities = std::make_unique<SparseMultiplicitiesReference>(spareObjects);
+        denseObjects = GDSDenseObjectManager<std::atomic<multiplicity_t>>();
+        curDenseMultiplicities = std::make_unique<DenseMultiplicitiesReference>(denseObjects);
+        nextDenseMultiplicities = std::make_unique<DenseMultiplicitiesReference>(denseObjects);
+    }
+
+    void pinCurTableID(table_id_t tableID) {
+        switch (densityState) {
+        case GDSDensityState::SPARSE: {
+            curSparseMultiplicities->pinTableID(fromTableID);
+            // nextSparseMultiplicities->pinTableID(toTableID);
+            curMultiplicities = curSparseMultiplicities.get();
+            // nextMultiplicities = nextSparseMultiplicities.get();
+        } break;
+        case GDSDensityState::DENSE: {
+
+        } break;
+        default:
+            KU_UNREACHABLE;
+        }
+    }
+
+    void pinNextTableID(table_id_t tableID) {
+
+    }
+
+    void beginFrontierCompute(table_id_t fromTableID, table_id_t toTableID) {
+        switch (densityState) {
+        case GDSDensityState::SPARSE: {
+            curSparseMultiplicities->pinTableID(fromTableID);
+            nextSparseMultiplicities->pinTableID(toTableID);
+            curMultiplicities = curSparseMultiplicities.get();
+            nextMultiplicities = nextSparseMultiplicities.get();
+        } break;
+        case GDSDensityState::DENSE: {
+
+        } break;
+        default:
+            KU_UNREACHABLE;
+        }
+    }
+
+    void swithToDense() {
+        // TODO: implement me
+    }
+
+private:
+    GDSDensityState densityState;
+    GDSSpareObjectManager<multiplicity_t> spareObjects;
+    std::unique_ptr<SparseMultiplicitiesReference> curSparseMultiplicities;
+    std::unique_ptr<SparseMultiplicitiesReference> nextSparseMultiplicities;
+    GDSDenseObjectManager<std::atomic<multiplicity_t>> denseObjects;
+    std::unique_ptr<DenseMultiplicitiesReference> curDenseMultiplicities;
+    std::unique_ptr<DenseMultiplicitiesReference> nextDenseMultiplicities;
+
+    Multiplicities* curMultiplicities = nullptr;
+    Multiplicities* nextMultiplicities = nullptr;
+};
+
+// class DenseMultiplicities {
+// public:
+//     void incrementTargetMultiplicity(offset_t offset, uint64_t multiplicity) {
+//         curTargetMultiplicities[offset].fetch_add(multiplicity);
+//     }
+//
+//     uint64_t getBoundMultiplicity(offset_t nodeOffset) {
+//         return curBoundMultiplicities[nodeOffset].load(std::memory_order_relaxed);
+//     }
+//
+//     uint64_t getTargetMultiplicity(offset_t nodeOffset) {
+//         return curTargetMultiplicities[nodeOffset].load(std::memory_order_relaxed);
+//     }
+//
+//     void pinBoundTable(table_id_t tableID) {
+//         curBoundMultiplicities = multiplicityArray.getData(tableID);
+//     }
+//
+//     void pinTargetTable(table_id_t tableID) {
+//         curTargetMultiplicities = multiplicityArray.getData(tableID);
+//     }
+//
+// private:
+//     ObjectArraysMap<std::atomic<uint64_t>> multiplicityArray;
+//     // curTargetMultiplicities is the multiplicities of the current table that will be updated in a
+//     // particular rel table extension.
+//     std::atomic<uint64_t>* curTargetMultiplicities = nullptr;
+//     // curBoundMultiplicities is the multiplicities of the table "from which" an extension is
+//     // being made.
+//     std::atomic<uint64_t>* curBoundMultiplicities = nullptr;
+// };
 
 class ASPDestinationsAuxiliaryState : public GDSAuxiliaryState {
 public:
@@ -73,7 +203,7 @@ public:
     }
 
 private:
-    std::shared_ptr<Multiplicities> multiplicities;
+    std::unique_ptr<MultiplicitiesPair> multiplicitiesPair;
 };
 
 class ASPDestinationsOutputWriter : public RJOutputWriter {
@@ -86,13 +216,17 @@ public:
         lengthVector = createVector(LogicalType::UINT16());
     }
 
+    void beginWriting(common::table_id_t tableID) override {
+
+    }
+
     void beginWritingOutputsInternal(common::table_id_t tableID) override {
-        pathLengths->pinCurFrontierTableID(tableID);
+        pathLengths->pinTableID(tableID);
         multiplicities->pinTargetTable(tableID);
     }
 
     void write(FactorizedTable& fTable, nodeID_t dstNodeID, LimitCounter* counter) override {
-        auto length = pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset);
+        auto length = pathLengths->getIteration(dstNodeID.offset);
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
         lengthVector->setValue<uint16_t>(0, length);
         auto multiplicity = multiplicities->getTargetMultiplicity(dstNodeID.offset);
@@ -111,8 +245,7 @@ public:
 
 private:
     bool skipInternal(nodeID_t dstNodeID) const override {
-        return dstNodeID == sourceNodeID ||
-               pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset) == PathLengths::UNVISITED;
+        return dstNodeID == sourceNodeID || pathLengths->isUnvisited(dstNodeID.offset);
     }
 
 private:
@@ -123,7 +256,7 @@ private:
 
 class ASPDestinationsEdgeCompute : public SPEdgeCompute {
 public:
-    ASPDestinationsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair,
+    ASPDestinationsEdgeCompute(SPFrontierPair* frontierPair,
         std::shared_ptr<Multiplicities> multiplicities)
         : SPEdgeCompute{frontierPair}, multiplicities{std::move(multiplicities)} {};
 
@@ -131,21 +264,20 @@ public:
         bool) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNodeID, auto /*edgeID*/) {
-            auto nbrVal =
-                frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNodeID.offset);
+            auto nbrVal = frontierPair->getNextFrontierValue(nbrNodeID.offset);
             // We should update the nbrID's multiplicity in 2 cases: 1) if nbrID is being visited
             // for the first time, i.e., when its value in the pathLengths frontier is
-            // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this
+            // FRONTIER_UNVISITED. Or 2) if nbrID has already been visited but in this
             // iteration, so it's value is curIter + 1.
             auto shouldUpdate =
-                nbrVal == PathLengths::UNVISITED || nbrVal == frontierPair->getCurrentIter();
+                nbrVal == FRONTIER_UNVISITED || nbrVal == frontierPair->getCurrentIter();
             if (shouldUpdate) {
                 // Note: This is safe because curNodeID is in the current frontier, so its
                 // shortest paths multiplicity is guaranteed to not change in the current iteration.
                 multiplicities->incrementTargetMultiplicity(nbrNodeID.offset,
                     multiplicities->getBoundMultiplicity(boundNodeID.offset));
             }
-            if (nbrVal == PathLengths::UNVISITED) {
+            if (nbrVal == FRONTIER_UNVISITED) {
                 activeNodes.push_back(nbrNodeID);
             }
         });
@@ -192,7 +324,7 @@ private:
             graph->getMaxOffsetMap(clientContext->getTransaction()), mm);
         auto outputWriter = std::make_unique<ASPDestinationsOutputWriter>(clientContext,
             sharedState->getOutputNodeMaskMap(), sourceNodeID, frontier, multiplicities);
-        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(frontier);
+        auto frontierPair = std::make_unique<SPFrontierPair>(frontier);
         auto edgeCompute =
             std::make_unique<ASPDestinationsEdgeCompute>(frontierPair.get(), multiplicities);
         auto auxiliaryState = std::make_unique<ASPDestinationsAuxiliaryState>(multiplicities);

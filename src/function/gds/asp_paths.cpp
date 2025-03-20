@@ -13,7 +13,7 @@ namespace function {
 
 class ASPPathsEdgeCompute : public SPEdgeCompute {
 public:
-    ASPPathsEdgeCompute(SinglePathLengthsFrontierPair* frontiersPair, BFSGraph* bfsGraph)
+    ASPPathsEdgeCompute(SPFrontierPair* frontiersPair, BFSGraph* bfsGraph)
         : SPEdgeCompute{frontiersPair}, bfsGraph{bfsGraph} {
         block = bfsGraph->addNewBlock();
     }
@@ -22,8 +22,7 @@ public:
         bool fwdEdge) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNodeID, auto edgeID) {
-            auto nbrLen =
-                frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNodeID.offset);
+            auto nbrLen = frontierPair->getNextFrontierValue(nbrNodeID.offset);
             // We should update in 2 cases: 1) if nbrID is being visited
             // for the first time, i.e., when its value in the pathLengths frontier is
             // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this
@@ -84,7 +83,7 @@ private:
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
         auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext,
             sharedState->getOutputNodeMaskMap(), sourceNodeID, writerInfo, *bfsGraph);
-        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(frontier);
+        auto frontierPair = std::make_unique<SPFrontierPair>(frontier);
         auto edgeCompute =
             std::make_unique<ASPPathsEdgeCompute>(frontierPair.get(), bfsGraph.get());
         auto auxiliaryState = std::make_unique<PathAuxiliaryState>(std::move(bfsGraph));

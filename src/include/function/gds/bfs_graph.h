@@ -1,11 +1,15 @@
 #pragma once
 
 #include "compute.h"
+#include "density_state.h"
 #include "gds_object_manager.h"
 
 namespace kuzu {
 namespace storage {
 class MemoryManager;
+}
+namespace processor {
+struct  ExecutionContext;
 }
 namespace function {
 
@@ -41,60 +45,97 @@ private:
     std::atomic<ParentList*> next;
 };
 
-class BFSGraph {
-    friend class BFSGraphInitVertexCompute;
-    // Data type that is allocated to max num nodes per node table.
-    using parent_entry_t = std::atomic<ParentList*>;
+// TODO: change me
+using bfs_graph_parent_entry_t = std::atomic<ParentList*>;
 
+class BaseBFSGraph {
+    friend class BFSGraphManager;
 public:
-    BFSGraph(common::table_id_map_t<common::offset_t> maxOffsetMap, storage::MemoryManager* mm)
-        : mm{mm} {
-        for (auto& [tableID, maxOffset] : maxOffsetMap) {
-            parentArray.allocate(tableID, maxOffset, mm);
-        }
-    }
+    BaseBFSGraph(storage::MemoryManager* mm) : mm{mm} {}
+    virtual ~BaseBFSGraph() = default;
 
-    // This function is thread safe and should be called by a worker thread Ti to grab a block
-    // of memory that Ti owns and writes to.
+    // This function should be called by a worker thread Ti to grab a block of memory that
+    // Ti owns and writes to.
     ObjectBlock<ParentList>* addNewBlock();
 
-    ParentList* getParentListHead(common::nodeID_t nodeID) {
-        return parentArray.getData(nodeID.tableID)[nodeID.offset].load(std::memory_order_relaxed);
-    }
-    ParentList* getParentListHead(common::offset_t offset) {
-        return currParentPtrs[offset].load(std::memory_order_relaxed);
-    }
-    void setParentList(common::nodeID_t nodeID, ParentList* parentList) {
-        parentArray.getData(nodeID.tableID)[nodeID.offset].store(parentList);
-    }
+    virtual void pinTableID(common::table_id_t tableID) = 0;
 
     // Used to track path for all shortest path & variable length path.
-    void addParent(uint16_t iter, common::nodeID_t boundNodeID, common::relID_t edgeID,
-        common::nodeID_t nbrNodeID, bool fwdEdge, ObjectBlock<ParentList>* block);
+    virtual void addParent(uint16_t iter, common::nodeID_t boundNodeID, common::relID_t edgeID,
+        common::nodeID_t nbrNodeID, bool fwdEdge, ObjectBlock<ParentList>* block) = 0;
     // Used to track path for single shortest path. Assume each offset has at most one parent.
-    void addSingleParent(uint16_t iter, common::nodeID_t boundNodeID, common::relID_t edgeID,
-        common::nodeID_t nbrNodeID, bool fwdEdge, ObjectBlock<ParentList>* block);
-    // Used to track path for single weighted shortest path. Assume each offset has at most one
-    // parent.
-    bool tryAddSingleParentWithWeight(common::nodeID_t boundNodeID, common::relID_t edgeID,
-        common::nodeID_t nbrNodeID, bool fwdEdge, double weight, ObjectBlock<ParentList>* block);
+    virtual void addSingleParent(uint16_t iter, common::nodeID_t boundNodeID, common::relID_t edgeID,
+        common::nodeID_t nbrNodeID, bool fwdEdge, ObjectBlock<ParentList>* block) = 0;
     // Used to track path for all weighted shortest path.
-    bool tryAddParentWithWeight(common::nodeID_t boundNodeID, common::relID_t edgeID,
-        common::nodeID_t nbrNodeID, bool fwdEdge, double weight, ObjectBlock<ParentList>* block);
+    virtual bool tryAddParentWithWeight(common::nodeID_t boundNodeID, common::relID_t edgeID,
+        common::nodeID_t nbrNodeID, bool fwdEdge, double weight, ObjectBlock<ParentList>* block) = 0;
+    // Used to track path for single weighted shortest path. Assume each offset has at most one parent.
+    virtual bool tryAddSingleParentWithWeight(common::nodeID_t boundNodeID, common::relID_t edgeID,
+        common::nodeID_t nbrNodeID, bool fwdEdge, double weight, ObjectBlock<ParentList>* block) = 0;
 
-    void pinTableID(common::table_id_t tableID) { currParentPtrs = parentArray.getData(tableID); }
+    virtual ParentList* getParentListHead(common::offset_t offset) = 0;
+    virtual ParentList* getParentListHead(common::nodeID_t nodeID) = 0;
 
-private:
+    virtual void setParentList(common::offset_t offset, ParentList* parentList) = 0;
+
+protected:
     std::mutex mtx;
     storage::MemoryManager* mm;
-    ObjectArraysMap<parent_entry_t> parentArray;
-    parent_entry_t* currParentPtrs = nullptr;
     std::vector<std::unique_ptr<ObjectBlock<ParentList>>> blocks;
+};
+
+class DenseBFSGraph : public BaseBFSGraph {
+    friend class BFSGraphManager;
+    friend class BFSGraphInitVertexCompute;
+
+public:
+    DenseBFSGraph(storage::MemoryManager* mm, common::table_id_map_t<common::offset_t> maxOffsetMap) : BaseBFSGraph{mm}, maxOffsetMap{std::move(maxOffsetMap)} {}
+
+    void init(processor::ExecutionContext* context, graph::Graph* graph);
+
+    void pinTableID(common::table_id_t tableID) override;
+
+    void addParent(uint16_t iter, common::nodeID_t boundNodeID, common::relID_t edgeID, common::nodeID_t nbrNodeID, bool fwdEdge, ObjectBlock<ParentList> *block) override;
+    void addSingleParent(uint16_t iter, common::nodeID_t boundNodeID, common::relID_t edgeID, common::nodeID_t nbrNodeID, bool fwdEdge, ObjectBlock<ParentList> *block) override;
+    bool tryAddParentWithWeight(common::nodeID_t boundNodeID, common::relID_t edgeID, common::nodeID_t nbrNodeID, bool fwdEdge, double weight, ObjectBlock<ParentList> *block) override;
+    bool tryAddSingleParentWithWeight(common::nodeID_t boundNodeID, common::relID_t edgeID, common::nodeID_t nbrNodeID, bool fwdEdge, double weight, ObjectBlock<ParentList> *block) override;
+
+    ParentList *getParentListHead(common::offset_t offset) override;
+    ParentList *getParentListHead(common::nodeID_t nodeID) override;
+
+    void setParentList(common::offset_t offset, ParentList *parentList) override;
+
+private:
+    common::table_id_map_t<common::offset_t> maxOffsetMap;
+    GDSDenseObjectManager<bfs_graph_parent_entry_t> denseObjects;
+    bfs_graph_parent_entry_t* curData = nullptr;
+};
+
+class SparseBFSGraph : public BaseBFSGraph {
+    friend class BFSGraphManager;
+public:
+    explicit SparseBFSGraph(storage::MemoryManager* mm) : BaseBFSGraph{mm} {}
+
+    void pinTableID(common::table_id_t tableID) override;
+
+    void addParent(uint16_t iter, common::nodeID_t boundNodeID, common::relID_t edgeID, common::nodeID_t nbrNodeID, bool fwdEdge, ObjectBlock<ParentList> *block) override;
+    void addSingleParent(uint16_t iter, common::nodeID_t boundNodeID, common::relID_t edgeID, common::nodeID_t nbrNodeID, bool fwdEdge, ObjectBlock<ParentList> *block) override;
+    bool tryAddParentWithWeight(common::nodeID_t boundNodeID, common::relID_t edgeID, common::nodeID_t nbrNodeID, bool fwdEdge, double weight, ObjectBlock<ParentList> *block) override;
+    bool tryAddSingleParentWithWeight(common::nodeID_t boundNodeID, common::relID_t edgeID, common::nodeID_t nbrNodeID, bool fwdEdge, double weight, ObjectBlock<ParentList> *block) override;
+
+    ParentList *getParentListHead(common::offset_t offset) override;
+    ParentList *getParentListHead(common::nodeID_t nodeID) override;
+
+    void setParentList(common::offset_t offset, ParentList *parentList) override;
+
+private:
+    GDSSpareObjectManager<bfs_graph_parent_entry_t> sparseObjects;
+    std::unordered_map<common::offset_t, bfs_graph_parent_entry_t>* curData = nullptr;
 };
 
 class BFSGraphInitVertexCompute : public VertexCompute {
 public:
-    explicit BFSGraphInitVertexCompute(BFSGraph& bfsGraph) : bfsGraph{bfsGraph} {}
+    explicit BFSGraphInitVertexCompute(DenseBFSGraph& bfsGraph) : bfsGraph{bfsGraph} {}
 
     bool beginOnTable(common::table_id_t tableID) override {
         bfsGraph.pinTableID(tableID);
@@ -104,7 +145,7 @@ public:
     void vertexCompute(common::offset_t startOffset, common::offset_t endOffset,
         common::table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
-            bfsGraph.currParentPtrs[i].store(nullptr);
+            bfsGraph.curData[i].store(nullptr);
         }
     }
 
@@ -113,7 +154,25 @@ public:
     }
 
 private:
-    BFSGraph& bfsGraph;
+    DenseBFSGraph& bfsGraph;
+};
+
+class BFSGraphManager {
+public:
+    BFSGraphManager(common::table_id_map_t<common::offset_t> maxOffsetMap, storage::MemoryManager* mm);
+
+    BaseBFSGraph* getCurrentGraph() {
+        KU_ASSERT(curGraph);
+        return curGraph;
+    }
+
+    void switchToDense(processor::ExecutionContext *context, graph::Graph *graph);
+
+private:
+    GDSDensityState state = GDSDensityState::SPARSE;
+    std::unique_ptr<DenseBFSGraph> denseBFSGraph;
+    std::unique_ptr<SparseBFSGraph> sparseBFSGraph;
+    BaseBFSGraph* curGraph = nullptr;
 };
 
 } // namespace function

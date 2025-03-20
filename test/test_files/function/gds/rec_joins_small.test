@@ -10,7 +10,6 @@
 --
 
 -CASE GDSSmall
-
 -LOG RJLimitPushDown
 -STATEMENT MATCH p = (a:person1)-[e:knows11*2..2]->(b:person1) HINT (a JOIN e) JOIN b WITH b LIMIT 1 RETURN COUNT(*);
 ---- 1

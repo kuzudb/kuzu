@@ -38,10 +38,11 @@ static void scheduleFrontierTask(TableCatalogEntry* fromEntry, TableCatalogEntry
     auto clientContext = context->clientContext;
     auto task = getFrontierTask(fromEntry, toEntry, relEntry, graph, extendDirection, computeState,
         clientContext, propertyToScan);
-    if (computeState.frontierPair->isCurFrontierSparse()) {
+    if (computeState.frontierPair->isSparse()) {
         task->runSparse();
         return;
     }
+
     // GDSUtils::runFrontiersUntilConvergence is called from a GDSCall operator, which is
     // already executed by a worker thread Tm of the task scheduler. So this function is
     // executed by Tm. Because this function will monitor the task and wait for it to
@@ -54,7 +55,7 @@ static void scheduleFrontierTask(TableCatalogEntry* fromEntry, TableCatalogEntry
         true /* launchNewWorkerThread */);
 }
 
-static void runOnGraph(ExecutionContext* context, Graph* graph, ExtendDirection extendDirection,
+static void runOneIteration(ExecutionContext* context, Graph* graph, ExtendDirection extendDirection,
     GDSComputeState& compState, const std::string& propertyToScan) {
     for (auto info : graph->getGraphEntry()->nodeInfos) {
         auto fromEntry = info.entry;
@@ -83,19 +84,31 @@ static void runOnGraph(ExecutionContext* context, Graph* graph, ExtendDirection 
     }
 }
 
-void GDSUtils::runFrontiersUntilConvergence(ExecutionContext* context, GDSComputeState& compState,
+void GDSUtils::runAlgorithmEdgeCompute(ExecutionContext* context, GDSComputeState& compState,
     Graph* graph, ExtendDirection extendDirection, uint64_t maxIteration) {
     auto frontierPair = compState.frontierPair.get();
     while (frontierPair->continueNextIter(maxIteration)) {
         frontierPair->beginNewIteration();
-        runOnGraph(context, graph, extendDirection, compState, "" /* empty */);
+        runOneIteration(context, graph, extendDirection, compState, "" /* empty */);
     }
 }
 
-void GDSUtils::runFrontiersUntilConvergence(ExecutionContext* context, GDSComputeState& compState,
+void GDSUtils::runFTSEdgeCompute(ExecutionContext* context, GDSComputeState& compState,
+    Graph* graph, common::ExtendDirection extendDirection,
+    const std::string& propertyToScan) {
+    compState.frontierPair->beginNewIteration();
+    runOneIteration(context, graph, extendDirection, compState, "" /* empty */);
+}
+
+static void mergeVisitedSparseFrontier() {
+
+}
+
+SparseFrontier GDSUtils::runRecursiveJoinEdgeCompute(ExecutionContext* context, GDSComputeState& compState,
     Graph* graph, ExtendDirection extendDirection, uint64_t maxIteration,
-    common::NodeOffsetMaskMap* outputNodeMask, const std::string& propertyToScan) {
+    NodeOffsetMaskMap* outputNodeMask, const std::string& propertyToScan) {
     auto frontierPair = compState.frontierPair.get();
+    // TODO: we may not need this
     compState.edgeCompute->resetSingleThreadState();
     while (frontierPair->continueNextIter(maxIteration)) {
         frontierPair->beginNewIteration();
@@ -103,12 +116,18 @@ void GDSUtils::runFrontiersUntilConvergence(ExecutionContext* context, GDSComput
             compState.edgeCompute->terminate(*outputNodeMask)) {
             break;
         }
-        runOnGraph(context, graph, extendDirection, compState, propertyToScan);
+        runOneIteration(context, graph, extendDirection, compState, propertyToScan);
+        if (frontierPair->needSwitchToDense()) {
+            compState.switchToDense();
+        } else {
+            // merge visited frontier
+            // compState.visitedSparseFrontier
+        }
     }
 }
 
-static void runVertexComputeInternal(catalog::TableCatalogEntry* currentEntry, graph::Graph* graph,
-    std::shared_ptr<VertexComputeTask> task, processor::ExecutionContext* context) {
+static void runVertexComputeInternal(TableCatalogEntry* currentEntry, graph::Graph* graph,
+    std::shared_ptr<VertexComputeTask> task, ExecutionContext* context) {
     auto maxOffset =
         graph->getMaxOffset(context->clientContext->getTransaction(), currentEntry->getTableID());
     auto sharedState = task->getSharedState();

@@ -4,194 +4,113 @@
 #include <mutex>
 
 #include "compute.h"
+#include "density_state.h"
+#include "gds_object_manager.h"
 #include <span>
 
 namespace kuzu {
-namespace storage {
-class MemoryManager;
-}
-
 namespace processor {
 struct ExecutionContext;
 }
-
 namespace function {
 
-class FrontierMorsel {
+using iteration_t = uint16_t;
+static constexpr iteration_t FRONTIER_UNVISITED = UINT16_MAX;
+static constexpr iteration_t FRONTIER_INITIAL_VISITED = 0;
+
+class Frontier {
 public:
-    FrontierMorsel() = default;
+    virtual ~Frontier() =  default;
 
-    common::offset_t getBeginOffset() const { return beginOffset; }
-    common::offset_t getEndOffset() const { return endOffset; }
+    virtual void pinTableID(common::table_id_t tableID) = 0;
 
-    void init(common::offset_t beginOffset_, common::offset_t endOffset_) {
-        beginOffset = beginOffset_;
-        endOffset = endOffset_;
-    }
+    virtual void addNode(common::nodeID_t nodeID, iteration_t iter) = 0;
+    virtual void addNodes(const std::vector<common::nodeID_t>& nodeIDs, iteration_t iter) = 0;
 
-private:
-    common::offset_t beginOffset = common::INVALID_OFFSET;
-    common::offset_t endOffset = common::INVALID_OFFSET;
+    virtual iteration_t getIteration(common::offset_t offset) const;
 };
 
-class KUZU_API FrontierMorselDispatcher {
-    static constexpr uint64_t MIN_FRONTIER_MORSEL_SIZE = 512;
-    // Note: MIN_NUMBER_OF_FRONTIER_MORSELS is the minimum number of morsels we aim to have but we
-    // can have fewer than this. See the beginFrontierComputeBetweenTables to see the actual
-    // morselSize computation for details.
-    static constexpr uint64_t MIN_NUMBER_OF_FRONTIER_MORSELS = 128;
+class KUZU_API SparseFrontier : public Frontier {
+    friend class SPFrontierPair;
+    friend class VarLengthFrontierPair;
 
 public:
-    explicit FrontierMorselDispatcher(uint64_t maxThreads);
+    void pinTableID(common::table_id_t tableID) override;
 
-    void init(common::offset_t _maxOffset);
+    void addNode(common::nodeID_t nodeID, iteration_t iter) override;
+    void addNodes(const std::vector<common::nodeID_t>& nodeIDs, iteration_t iter) override;
 
-    bool getNextRangeMorsel(FrontierMorsel& frontierMorsel);
+    iteration_t getIteration(common::offset_t offset) const override;
+
+    uint64_t size() const { return sparseObjects.size(); }
 
 private:
-    common::offset_t maxOffset;
-    std::atomic<common::offset_t> nextOffset;
-    uint64_t maxThreads;
-    uint64_t morselSize;
+    GDSSpareObjectManager<iteration_t> sparseObjects;
+    std::unordered_map<common::offset_t, iteration_t>* curData = nullptr;
 };
 
-/*
- * Sparse frontier keeps a small frontier.
- * If enabled, this frontier represents a complete frontier.
- * Otherwise, complete frontier is larger than this sparse frontier.
- * */
-class KUZU_API SparseFrontier {
-public:
-    SparseFrontier() : SparseFrontier{DEFAULT_SAMPLE_SIZE} {}
-    explicit SparseFrontier(uint64_t sampleSize)
-        : sampleSize{sampleSize}, enabled_{true}, curTableID{common::INVALID_TABLE_ID},
-          curOffsetSet{nullptr} {}
-
-    void disable() { enabled_ = false; }
-    void resetState() {
-        enabled_ = true;
-        curOffsetSet = nullptr;
-        tableIDToOffsetMap.clear();
-    }
-    bool enabled() const { return enabled_; }
-
-    void pinTableID(common::table_id_t tableID);
-
-    common::table_id_t getTableID() const { return curTableID; }
-    const std::unordered_set<common::offset_t>& getOffsetSet() const { return *curOffsetSet; }
-
-    void addNode(common::offset_t offset);
-    void addNodes(const std::vector<common::nodeID_t> nodeIDs);
-    void checkSampleSize();
-
-    void mergeLocalFrontier(const SparseFrontier& localFrontier);
-    void mergeSparseFrontier(const SparseFrontier& other);
-
-private:
-    static constexpr uint16_t DEFAULT_SAMPLE_SIZE = 20;
-    uint64_t sampleSize;
-
-    std::mutex mtx;
-    bool enabled_;
-    std::unordered_map<common::table_id_t, std::unordered_set<common::offset_t>> tableIDToOffsetMap;
-    common::table_id_t curTableID;
-    std::unordered_set<common::offset_t>* curOffsetSet;
-};
-
-/**
- * A GDSFrontier implementation that keeps the lengths of the paths from a source node to
- * destination nodes. This is a light-weight implementation that can keep lengths up to and
- * including UINT16_MAX - 1. The length stored for the source node is 0. Length UINT16_MAX is
- * reserved for marking nodes that are not visited. The lengths stored per node are effectively the
- * iteration numbers that a node is visited. For example, if the running computation is shortest
- * path, then the length stored is the shortest path length.
- *
- * Note: This class can be used to represent both the current and next frontierPair for shortest
- * paths computations, which have the guarantee that a vertex is part of only one frontier level.
- * Specifically, at iteration i of the shortest path algorithm (iterations start from 0), nodes with
- * mask values i are in the current frontier. Nodes with any other values are not in the frontier.
- * Similarly at iteration i setting a node u active sets its mask value to i+1. To enable this
- * usage, this class contains functions to expose two frontierPair to users, e.g.,
- * getMaskValueFromCur/NextFrontierFixedMask. In the case of shortest path computations, using this
- * class to represent two frontierPair should be faster or take less space than keeping two separate
- * frontierPair.
- *
- * However, this is not necessary and the caller can also use this to represent a single frontier.
- */
-class KUZU_API PathLengths {
-    using frontier_entry_t = std::atomic<uint16_t>;
+class KUZU_API DenseFrontier : public Frontier {
+    friend class DenseFrontierReference;
+    friend class SPFrontierPair;
+    friend class VarLengthFrontierPair;
+    friend class PathLengthsInitVertexCompute;
 
 public:
-    static constexpr uint16_t UNVISITED = UINT16_MAX;
-    static constexpr uint16_t INITIAL_VISITED = 0;
+    explicit DenseFrontier(const common::table_id_map_t<common::offset_t>& nodeMaxOffsetMap)
+        : nodeMaxOffsetMap{nodeMaxOffsetMap} {}
+    DenseFrontier(const DenseFrontier& other) = delete;
+    DenseFrontier(const DenseFrontier&& other) = delete;
 
-    PathLengths(const common::table_id_map_t<common::offset_t>& nodeMaxOffsetMap,
-        storage::MemoryManager* mm);
-    PathLengths(const PathLengths& other) = delete;
-    PathLengths(const PathLengths&& other) = delete;
-    ~PathLengths();
+    // Allocate memory and initialize.
+    void init(processor::ExecutionContext* context, graph::Graph* graph, iteration_t val);
 
-    const common::table_id_map_t<common::offset_t>& getNodeMaxOffsetMap() const {
-        return nodeMaxOffsetMap;
-    }
+    void pinTableID(common::table_id_t tableID) override;
 
-    uint16_t getMaskValueFromCurFrontier(common::offset_t offset) const {
-        return curFrontier[offset].load(std::memory_order_relaxed);
-    }
-    uint16_t getMaskValueFromNextFrontier(common::offset_t offset) const {
-        return nextFrontier[offset].load(std::memory_order_relaxed);
-    }
+    void addNode(common::nodeID_t nodeID, iteration_t iter) override;
+    void addNodes(const std::vector<common::nodeID_t>& nodeIDs, iteration_t iter) override;
 
-    bool isActive(common::offset_t offset) const { return curFrontier[offset] == curIter - 1; }
+    iteration_t getIteration(common::offset_t offset) const override;
 
-    void setActive(std::span<const common::nodeID_t> nodeIDs) {
-        for (const auto nodeID : nodeIDs) {
-            setActive(nodeID.offset);
-        }
-    }
-    void setActive(common::nodeID_t nodeID) { setActive(nodeID.offset); }
-    void setActive(common::offset_t offset) {
-        nextFrontier[offset].store(curIter, std::memory_order_relaxed);
-    }
-    void setCurFrontierValue(common::offset_t offset, uint16_t val) {
-        curFrontier[offset].store(val, std::memory_order_relaxed);
-    }
-
-    void incrementCurIter() { curIter++; }
-    void resetCurIter() { curIter = 0; }
-
-    void pinTableID(common::table_id_t tableID) { pinCurFrontierTableID(tableID); }
-    void pinCurFrontierTableID(common::table_id_t tableID) { curFrontier = getMaskData(tableID); }
-    void pinNextFrontierTableID(common::table_id_t tableID) { nextFrontier = getMaskData(tableID); }
-
-    static std::shared_ptr<PathLengths> getUninitializedFrontier();
-    // Init frontier to UNVISITED
-    static std::shared_ptr<PathLengths> getUnvisitedFrontier(processor::ExecutionContext* context,
+    // Get frontier without initialization.
+    static std::shared_ptr<DenseFrontier> getUninitializedFrontier(processor::ExecutionContext* context,
         graph::Graph* graph);
-    // Init frontier to 0 (first iteration)
-    static std::shared_ptr<PathLengths> getVisitedFrontier(processor::ExecutionContext* context,
+    // Get frontier initialized to UNVISITED.
+    static std::shared_ptr<DenseFrontier> getUnvisitedFrontier(processor::ExecutionContext* context,
+        graph::Graph* graph);
+    // Get frontier initialized to INITIAL_VISITED.
+    static std::shared_ptr<DenseFrontier> getVisitedFrontier(processor::ExecutionContext* context,
         graph::Graph* graph);
     // Init frontier to 0 according to mask
-    static std::shared_ptr<PathLengths> getVisitedFrontier(processor::ExecutionContext* context,
+    static std::shared_ptr<DenseFrontier> getVisitedFrontier(processor::ExecutionContext* context,
         graph::Graph* graph, common::NodeOffsetMaskMap* maskMap);
 
 private:
-    frontier_entry_t* getMaskData(common::table_id_t tableID);
+    common::table_id_map_t<common::offset_t> nodeMaxOffsetMap;
+    GDSDenseObjectManager<std::atomic<iteration_t>> denseObjects;
+    std::atomic<iteration_t>* curData = nullptr;
+};
+
+class DenseFrontierReference : public Frontier {
+    friend class SPFrontierPair;
+public:
+    DenseFrontierReference(const DenseFrontier& denseFrontier) : denseObjects{denseFrontier.denseObjects} {}
+
+    void pinTableID(common::table_id_t tableID) override;
+
+    void addNode(common::nodeID_t nodeID, iteration_t iter) override;
+    void addNodes(const std::vector<common::nodeID_t> &nodeIDs, iteration_t iter) override;
+
+    iteration_t getIteration(common::offset_t offset) const override;
 
 private:
-    common::table_id_map_t<common::offset_t> nodeMaxOffsetMap;
-    common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> masks;
-    // See FrontierPair::curIter. We keep a copy of curIter here because PathLengths stores
-    // iteration numbers for vertices and uses them to identify which vertex is in the frontier.
-    uint16_t curIter = 0;
-    frontier_entry_t* curFrontier = nullptr;
-    frontier_entry_t* nextFrontier = nullptr;
+    const GDSDenseObjectManager<std::atomic<iteration_t>>& denseObjects;
+    std::atomic<iteration_t>* curData = nullptr;
 };
 
 class PathLengthsInitVertexCompute : public VertexCompute {
 public:
-    PathLengthsInitVertexCompute(PathLengths& pathLengths, uint16_t val)
-        : pathLengths{pathLengths}, val{val} {}
+    PathLengthsInitVertexCompute(DenseFrontier& frontier, iteration_t val)
+        : frontier{frontier}, val{val} {}
 
     bool beginOnTable(common::table_id_t tableID) override;
 
@@ -199,66 +118,49 @@ public:
         common::table_id_t) override;
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<PathLengthsInitVertexCompute>(pathLengths, val);
+        return std::make_unique<PathLengthsInitVertexCompute>(frontier, val);
     }
 
 private:
-    PathLengths& pathLengths;
-    uint16_t val;
+    DenseFrontier& frontier;
+    iteration_t val;
 };
 
-/**
- * Base class for maintaining a current and a next GDSFrontier of nodes for GDS algorithms. At any
- * point in time, maintains the current iteration curIter the algorithm is in and the number of
- * active nodes that have been set for the next iteration. This information can be used
- * to determine if the algorithm has converged or not.
- *
- * All functions supported in this base interface are thread-safe.
- */
 class KUZU_API FrontierPair {
 public:
-    FrontierPair(std::shared_ptr<PathLengths> curFrontier,
-        std::shared_ptr<PathLengths> nextFrontier);
+    FrontierPair() { initState(); }
     virtual ~FrontierPair() = default;
+
+    iteration_t getCurrentIter() { return curIter; }
 
     void setActiveNodesForNextIter() { hasActiveNodesForNextIter_.store(true); }
 
+    bool continueNextIter(uint16_t maxIter) {
+        return hasActiveNodesForNextIter_.load(std::memory_order_relaxed) && getCurrentIter() < maxIter;
+    }
+
+    // TODO: remove me
+    void initState() {
+        hasActiveNodesForNextIter_.store(false);
+        curIter = 0;
+    }
+
     void beginNewIteration();
-
-    // Initialize for recursive computation which always starts from a single source.
-    virtual void initSource(common::nodeID_t source);
-    // Initialize for gds computation which usually starts from a large number of nodes;
-    void initGDS();
-    void initState();
-
-    virtual void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
+    void pinCurrentFrontier(common::table_id_t tableID);
+    void pinNextFrontier(common::table_id_t tableID);
+    void beginFrontierComputeBetweenTables(common::table_id_t curTableID,
         common::table_id_t nextTableID);
 
-    void pinCurrFrontier(common::table_id_t tableID) {
-        curSparseFrontier->pinTableID(tableID);
-        curDenseFrontier->pinCurFrontierTableID(tableID);
-    }
-    void pinNextFrontier(common::table_id_t tableID) {
-        nextSparseFrontier->pinTableID(tableID);
-        nextDenseFrontier->pinNextFrontierTableID(tableID);
-    }
+    void addNodeToNextFrontier(common::nodeID_t nodeID);
+    void addNodesToNextFrontier(const std::vector<common::nodeID_t>& nodeIDs);
 
-    uint16_t getCurrentIter() { return curIter.load(std::memory_order_relaxed); }
+    iteration_t getNextFrontierValue(common::offset_t offset);
 
-    PathLengths& getCurDenseFrontier() const { return *curDenseFrontier; }
-    SparseFrontier& getCurSparseFrontier() const { return *curSparseFrontier; }
-    PathLengths& getNextDenseFrontier() const { return *nextDenseFrontier; }
-    SparseFrontier& getNextSparseFrontier() const { return *nextSparseFrontier; }
-    SparseFrontier& getVertexComputeCandidates() const { return *vertexComputeCandidates; }
+    bool isActiveOnCurrentFrontier(common::offset_t offset);
 
-    bool continueNextIter(uint16_t maxIter);
-
-    void addNodeToNextDenseFrontier(common::nodeID_t nodeID);
-    void addNodesToNextDenseFrontier(const std::vector<common::nodeID_t>& nodeIDs);
-
-    void mergeLocalFrontier(const SparseFrontier& localFrontier);
-
-    bool isCurFrontierSparse();
+    virtual GDSDensityState getState() const = 0;
+    virtual bool needSwitchToDense() const = 0;
+    virtual void switchToDense(processor::ExecutionContext* context, graph::Graph* graph) = 0;
 
     template<class TARGET>
     TARGET* ptrCast() {
@@ -271,44 +173,88 @@ protected:
 protected:
     std::mutex mtx;
     // curIter is the iteration number of the algorithm and starts from 0.
-    std::atomic<uint16_t> curIter;
+    iteration_t curIter;
     std::atomic<bool> hasActiveNodesForNextIter_;
-
-    // Dense frontiers are always updated.
-    std::shared_ptr<PathLengths> curDenseFrontier;
-    std::shared_ptr<PathLengths> nextDenseFrontier;
-    // Sparse frontiers
-    std::shared_ptr<SparseFrontier> curSparseFrontier;
-    std::shared_ptr<SparseFrontier> nextSparseFrontier;
-    std::shared_ptr<SparseFrontier> vertexComputeCandidates;
+    Frontier* currentFrontier = nullptr;
+    Frontier* nextFrontier = nullptr;
 };
 
-class SinglePathLengthsFrontierPair : public FrontierPair {
+class SPFrontierPair : public FrontierPair {
 public:
-    explicit SinglePathLengthsFrontierPair(std::shared_ptr<PathLengths> pathLengths)
-        : FrontierPair(pathLengths /* curFrontier */, pathLengths /* nextFrontier */),
-          pathLengths{std::move(pathLengths)} {}
+    explicit SPFrontierPair(std::shared_ptr<DenseFrontier> denseFrontier)
+        : state{GDSDensityState::SPARSE}, denseFrontier {std::move(denseFrontier)} {
+        curSparseFrontier = std::make_unique<SparseFrontier>();
+        nextSparseFrontier = std::make_unique<SparseFrontier>();
+        curDenseFrontier = std::make_unique<DenseFrontierReference>(*this->denseFrontier);
+    }
 
-    PathLengths* getPathLengths() const { return pathLengths.get(); }
-
-    void beginNewIterationInternalNoLock() override { pathLengths->incrementCurIter(); }
-
-private:
-    std::shared_ptr<PathLengths> pathLengths;
-};
-
-class KUZU_API DoublePathLengthsFrontierPair : public FrontierPair {
-public:
-    DoublePathLengthsFrontierPair(std::shared_ptr<PathLengths> curFrontier,
-        std::shared_ptr<PathLengths> nextFrontier)
-        : FrontierPair{curFrontier, nextFrontier} {}
+    DenseFrontier& getDenseFrontier() const { return *denseFrontier; }
 
     void beginNewIterationInternalNoLock() override;
+
+    common::offset_t getNumActiveNodesInCurrentFrontier(common::NodeOffsetMaskMap &mask);
+
+    GDSDensityState getState() const override { return state; }
+    bool needSwitchToDense() const override {
+        return state == GDSDensityState::SPARSE && nextSparseFrontier->size() > 1000;
+    }
+    void switchToDense(processor::ExecutionContext* context, graph::Graph* graph) override;
+
+private:
+    GDSDensityState state;
+    std::shared_ptr<DenseFrontier> denseFrontier;
+    std::unique_ptr<DenseFrontierReference> curDenseFrontier = nullptr;
+    std::unique_ptr<DenseFrontierReference> nextDenseFrontier = nullptr;
+    std::unique_ptr<SparseFrontier> curSparseFrontier = nullptr;
+    std::unique_ptr<SparseFrontier> nextSparseFrontier = nullptr;
+};
+
+class VarLengthFrontierPair : public FrontierPair {
+public:
+    VarLengthFrontierPair(std::shared_ptr<DenseFrontier> curDenseFrontier, std::shared_ptr<DenseFrontier> nextDenseFrontier)
+        : state{GDSDensityState::SPARSE}, curDenseFrontier{std::move(curDenseFrontier)}, nextDenseFrontier{std::move(nextDenseFrontier)} {
+        curSparseFrontier = std::make_unique<SparseFrontier>();
+        nextSparseFrontier = std::make_unique<SparseFrontier>();
+    }
+
+    void beginNewIterationInternalNoLock() override;
+
+    GDSDensityState getState() const override { return state; }
+    bool needSwitchToDense() const override {
+        return state == GDSDensityState::SPARSE && nextSparseFrontier->size() > 1000;
+    }
+    void switchToDense(processor::ExecutionContext *context, graph::Graph *graph) override;
+
+private:
+    GDSDensityState state;
+    std::shared_ptr<DenseFrontier> curDenseFrontier;
+    std::shared_ptr<DenseFrontier> nextDenseFrontier;
+    std::unique_ptr<SparseFrontier> curSparseFrontier = nullptr;
+    std::unique_ptr<SparseFrontier> nextSparseFrontier = nullptr;
+};
+
+class KUZU_API DenseFrontierPair : public FrontierPair {
+public:
+    DenseFrontierPair(std::shared_ptr<DenseFrontier> curDenseFrontier,
+        std::shared_ptr<DenseFrontier> nextDenseFrontier)
+        : curDenseFrontier{std::move(curDenseFrontier)}, nextDenseFrontier {std::move(nextDenseFrontier)} {}
+
+    void beginNewIterationInternalNoLock() override;
+
+    GDSDensityState getState() const override { return GDSDensityState::DENSE; }
+    bool needSwitchToDense() const override { return false; }
+    void switchToDense(processor::ExecutionContext *context, graph::Graph *graph) override {
+        // Do nothing.
+    }
+
+private:
+    std::shared_ptr<DenseFrontier> curDenseFrontier;
+    std::shared_ptr<DenseFrontier> nextDenseFrontier;
 };
 
 class SPEdgeCompute : public EdgeCompute {
 public:
-    explicit SPEdgeCompute(SinglePathLengthsFrontierPair* frontierPair)
+    explicit SPEdgeCompute(SPFrontierPair* frontierPair)
         : frontierPair{frontierPair}, numNodesReached{0} {}
 
     void resetSingleThreadState() override { numNodesReached = 0; }
@@ -316,7 +262,7 @@ public:
     bool terminate(common::NodeOffsetMaskMap& maskMap) override;
 
 protected:
-    SinglePathLengthsFrontierPair* frontierPair;
+    SPFrontierPair* frontierPair;
     // States that should be only modified with single thread
     common::offset_t numNodesReached;
 };

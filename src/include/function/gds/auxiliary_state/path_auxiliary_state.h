@@ -8,15 +8,19 @@ namespace function {
 
 class PathAuxiliaryState : public GDSAuxiliaryState {
 public:
-    explicit PathAuxiliaryState(std::unique_ptr<BFSGraph> bfsGraph)
-        : bfsGraph{std::move(bfsGraph)} {}
+    explicit PathAuxiliaryState(std::unique_ptr<BFSGraphManager> bfsGraphManager)
+        : bfsGraphManager{std::move(bfsGraphManager)} {}
+
+    BFSGraphManager* getBFSGraphManager() {
+        return bfsGraphManager.get();
+    }
 
     void beginFrontierCompute(common::table_id_t, common::table_id_t toTableID) override {
-        bfsGraph->pinTableID(toTableID);
+        bfsGraphManager->getCurrentGraph()->pinTableID(toTableID);
     }
 
 private:
-    std::unique_ptr<BFSGraph> bfsGraph;
+    std::unique_ptr<BFSGraphManager> bfsGraphManager;
 };
 
 struct WSPPathsAuxiliaryState : public GDSAuxiliaryState {

@@ -19,6 +19,8 @@ public:
     virtual void beginFrontierCompute(common::table_id_t fromTableID,
         common::table_id_t toTableID) = 0;
 
+    virtual void swithToDense() = 0;
+
     template<class TARGET>
     TARGET* ptrCast() {
         return common::ku_dynamic_cast<TARGET*>(this);

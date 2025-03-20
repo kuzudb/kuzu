@@ -1,3 +1,5 @@
+#include <unistd.h>
+
 #include "binder/expression/node_expression.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
@@ -6,25 +8,37 @@
 using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::processor;
+using namespace kuzu::graph;
+using namespace kuzu::main;
 
 namespace kuzu {
 namespace function {
 
 class SSPDestinationsOutputWriter : public RJOutputWriter {
 public:
-    SSPDestinationsOutputWriter(main::ClientContext* context, NodeOffsetMaskMap* outputNodeMask,
-        nodeID_t sourceNodeID, std::shared_ptr<PathLengths> pathLengths)
-        : RJOutputWriter{context, outputNodeMask, sourceNodeID},
-          pathLengths{std::move(pathLengths)} {
+    SSPDestinationsOutputWriter(ClientContext* context, NodeOffsetMaskMap* outputNodeMask,
+        nodeID_t sourceNodeID, Frontier* frontier) : RJOutputWriter{context, outputNodeMask, sourceNodeID}, frontier{frontier} {
         lengthVector = createVector(LogicalType::UINT16());
     }
 
-    void beginWritingOutputsInternal(common::table_id_t tableID) override {
-        pathLengths->pinCurFrontierTableID(tableID);
+    void beginWriting(table_id_t tableID) override {
+        frontier->pinTableID(tableID);
     }
 
     void write(FactorizedTable& fTable, nodeID_t dstNodeID, LimitCounter* counter) override {
-        auto length = pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset);
+        auto iter = frontier->getIteration(dstNodeID.offset);
+        if (iter == FRONTIER_UNVISITED) {
+            return;
+        }
+        writeInternal(iter, fTable, dstNodeID, counter);
+    }
+
+    std::unique_ptr<RJOutputWriter> copy() override {
+        return std::make_unique<SSPDestinationsOutputWriter>(context, outputNodeMask, sourceNodeID, frontier);
+    }
+
+private:
+    void writeInternal(iteration_t length, FactorizedTable& fTable, nodeID_t dstNodeID, LimitCounter* counter) {
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
         lengthVector->setValue<uint16_t>(0, length);
         fTable.append(vectors);
@@ -33,33 +47,22 @@ public:
         }
     }
 
-    std::unique_ptr<RJOutputWriter> copy() override {
-        return std::make_unique<SSPDestinationsOutputWriter>(context, outputNodeMask, sourceNodeID,
-            pathLengths);
-    }
-
 private:
-    bool skipInternal(nodeID_t dstNodeID) const override {
-        return dstNodeID == sourceNodeID ||
-               pathLengths->getMaskValueFromCurFrontier(dstNodeID.offset) == PathLengths::UNVISITED;
-    }
-
-private:
+    Frontier* frontier;
     std::unique_ptr<ValueVector> lengthVector;
-    std::shared_ptr<PathLengths> pathLengths;
 };
 
 class SSPDestinationsEdgeCompute : public SPEdgeCompute {
 public:
-    explicit SSPDestinationsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair)
+    explicit SSPDestinationsEdgeCompute(SPFrontierPair* frontierPair)
         : SPEdgeCompute{frontierPair} {};
 
-    std::vector<nodeID_t> edgeCompute(nodeID_t, graph::NbrScanState::Chunk& resultChunk,
+    std::vector<nodeID_t> edgeCompute(nodeID_t, NbrScanState::Chunk& resultChunk,
         bool) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNode, auto) {
-            if (frontierPair->getPathLengths()->getMaskValueFromNextFrontier(nbrNode.offset) ==
-                PathLengths::UNVISITED) {
+            auto iter = frontierPair->getNextFrontierValue(nbrNode.offset);
+            if (iter == FRONTIER_UNVISITED) {
                 activeNodes.push_back(nbrNode);
             }
         });
@@ -94,18 +97,28 @@ public:
     }
 
 private:
-    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID, const RJBindData&,
-        RecursiveExtendSharedState* sharedState) override {
-        auto clientContext = context->clientContext;
-        auto frontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
-        auto outputWriter = std::make_unique<SSPDestinationsOutputWriter>(clientContext,
-            sharedState->getOutputNodeMaskMap(), sourceNodeID, frontier);
-        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(frontier);
+    std::unique_ptr<GDSComputeState> getComputeState(ExecutionContext* context, const RJBindData& bindData, RecursiveExtendSharedState* sharedState) override {
+        auto denseFrontier = DenseFrontier::getUninitializedFrontier(context, sharedState->graph.get());
+        auto frontierPair = std::make_unique<SPFrontierPair>(denseFrontier);
         auto edgeCompute = std::make_unique<SSPDestinationsEdgeCompute>(frontierPair.get());
         auto auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
-        auto gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
+        return std::make_unique<GDSComputeState>(std::move(frontierPair),
             std::move(edgeCompute), std::move(auxiliaryState));
-        return RJCompState(std::move(gdsState), std::move(outputWriter));
+    }
+
+    std::unique_ptr<RJOutputWriter> getOutputWriter(ExecutionContext* context, const RJBindData&, GDSComputeState& computeState, nodeID_t sourceNodeID, RecursiveExtendSharedState* sharedState) override {
+        Frontier* frontier = nullptr;
+        switch (computeState.frontierPair->getState()) {
+        case GDSDensityState::DENSE: {
+            frontier = &computeState.frontierPair->ptrCast<SPFrontierPair>()->getDenseFrontier();
+        } break;
+        case GDSDensityState::SPARSE: {
+            frontier = &computeState.visitedSparseFrontier;
+        } break;
+        default:
+            KU_UNREACHABLE;
+        }
+        return std::make_unique<SSPDestinationsOutputWriter>(context->clientContext, sharedState->getOutputNodeMaskMap(), sourceNodeID, frontier);
     }
 };
 
