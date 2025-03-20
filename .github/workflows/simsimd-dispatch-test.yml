@@ -23,6 +23,8 @@ jobs:
       CC: gcc
       CXX: g++
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download nightly build
         uses: actions/download-artifact@v4
         with:
