@@ -39,7 +39,7 @@ static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& pa
 }
 
 static bool selectFunc(const std::vector<std::shared_ptr<ValueVector>>& params,
-    SelectionVector& selVector) {
+    SelectionVector& selVector, void* /* dataPtr */) {
     KU_ASSERT(params.size() == 2);
     auto unFlatVectorIdx = 0u;
     for (auto i = 0u; i < params.size(); ++i) {

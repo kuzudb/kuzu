@@ -3,7 +3,8 @@ add_library(kuzu_string_function
         string_split_function.cpp
         init_cap_function.cpp
         levenshtein_function.cpp
-        split_part.cpp)
+        split_part.cpp
+        regex_full_match_function.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_string_function>

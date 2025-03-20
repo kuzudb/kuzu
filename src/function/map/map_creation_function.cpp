@@ -16,8 +16,8 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
 }
 
 function_set MapCreationFunctions::getFunctionSet() {
-    auto execFunc = ScalarFunction::BinaryExecMapCreationFunction<list_entry_t, list_entry_t,
-        list_entry_t, MapCreation>;
+    auto execFunc = ScalarFunction::BinaryExecWithBindData<list_entry_t, list_entry_t, list_entry_t,
+        MapCreation>;
     function_set functionSet;
     auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::LIST}, LogicalTypeID::MAP,

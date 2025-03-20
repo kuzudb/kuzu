@@ -35,10 +35,10 @@ private:
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename FUNC>
     static bool BinaryComparisonSelectFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::SelectionVector& selVector) {
+        common::SelectionVector& selVector, void* dataPtr = nullptr) {
         KU_ASSERT(params.size() == 2);
         return BinaryFunctionExecutor::selectComparison<LEFT_TYPE, RIGHT_TYPE, FUNC>(*params[0],
-            *params[1], selVector);
+            *params[1], selVector, dataPtr);
     }
 
     template<typename FUNC>

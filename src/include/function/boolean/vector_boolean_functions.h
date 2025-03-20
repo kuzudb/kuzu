@@ -28,7 +28,7 @@ private:
     template<typename FUNC>
     static bool BinaryBooleanSelectFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::SelectionVector& selVector) {
+        common::SelectionVector& selVector, void* /*dataPtr*/) {
         KU_ASSERT(params.size() == 2);
         return BinaryBooleanFunctionExecutor::select<FUNC>(*params[0], *params[1], selVector);
     }
@@ -46,7 +46,7 @@ private:
     template<typename FUNC>
     static bool UnaryBooleanSelectFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::SelectionVector& selVector) {
+        common::SelectionVector& selVector, void* /*dataPtr*/) {
         KU_ASSERT(params.size() == 1);
         return UnaryBooleanOperationExecutor::select<FUNC>(*params[0], selVector);
     }

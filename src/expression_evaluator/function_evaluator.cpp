@@ -54,7 +54,7 @@ bool FunctionExpressionEvaluator::selectInternal(SelectionVector& selVector) {
         runExecFunc();
         return updateSelectedPos(selVector);
     }
-    return function->selectFunc(parameters, selVector);
+    return function->selectFunc(parameters, selVector, bindData.get());
 }
 
 void FunctionExpressionEvaluator::runExecFunc(void* dataPtr) {

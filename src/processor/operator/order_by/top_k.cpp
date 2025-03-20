@@ -206,11 +206,11 @@ bool TopKBuffer::compareFlatKeys(idx_t vectorIdxToCompare, std::vector<ValueVect
 
     if (vectorIdxToCompare < keyVectors.size() - 1 &&
         equalsFuncs[vectorIdxToCompare](*keyVectors[vectorIdxToCompare],
-            *boundaryVecs[vectorIdxToCompare], *selVector)) {
+            *boundaryVecs[vectorIdxToCompare], *selVector, nullptr /* dataPtr */)) {
         return compareFlatKeys(vectorIdxToCompare + 1, std::move(keyVectors));
     } else {
         return compareFuncs[vectorIdxToCompare](*keyVectors[vectorIdxToCompare],
-            *boundaryVecs[vectorIdxToCompare], *selVector);
+            *boundaryVecs[vectorIdxToCompare], *selVector, nullptr /* dataPtr */);
     }
 }
 
@@ -219,13 +219,13 @@ void TopKBuffer::compareUnflatKeys(idx_t vectorIdxToCompare, std::vector<ValueVe
         std::make_shared<common::SelectionVector>(common::DEFAULT_VECTOR_CAPACITY);
     compareSelVector->setToFiltered();
     compareFuncs[vectorIdxToCompare](*keyVectors[vectorIdxToCompare],
-        *boundaryVecs[vectorIdxToCompare], *compareSelVector);
+        *boundaryVecs[vectorIdxToCompare], *compareSelVector, nullptr /* dataPtr */);
     if (vectorIdxToCompare != keyVectors.size() - 1) {
         auto equalsSelVector =
             std::make_shared<common::SelectionVector>(common::DEFAULT_VECTOR_CAPACITY);
         equalsSelVector->setToFiltered();
         if (equalsFuncs[vectorIdxToCompare](*keyVectors[vectorIdxToCompare],
-                *boundaryVecs[vectorIdxToCompare], *equalsSelVector)) {
+                *boundaryVecs[vectorIdxToCompare], *equalsSelVector, nullptr /* dataPtr */)) {
             keyVectors[vectorIdxToCompare]->state->setSelVector(equalsSelVector);
             compareUnflatKeys(vectorIdxToCompare + 1, keyVectors);
             appendSelState(compareSelVector.get(), equalsSelVector.get());

@@ -34,7 +34,8 @@ struct NullOperationExecutor {
     }
 
     template<typename FUNC>
-    static bool select(common::ValueVector& operand, common::SelectionVector& selVector) {
+    static bool select(common::ValueVector& operand, common::SelectionVector& selVector,
+        void* /*dataPtr*/) {
         auto& operandSelVector = operand.state->getSelVector();
         if (operand.state->isFlat()) {
             auto pos = operandSelVector[0];
