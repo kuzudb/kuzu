@@ -1,0 +1,11 @@
+#pragma once
+
+@INCLUDES@
+
+namespace kuzu {
+namespace extension {
+
+void loadLinkedExtensions(main::ClientContext* context);
+
+} // namespace extension
+} // namespace kuzu

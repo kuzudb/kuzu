@@ -5,7 +5,7 @@
 #include "common/exception/not_implemented.h"
 
 namespace kuzu {
-namespace httpfs {
+namespace httpfs_extension {
 
 using namespace kuzu::common;
 

@@ -4,7 +4,7 @@
 #include "catalog/fts_index_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/types/value/nested.h"
-#include "fts_extension.h"
+#include "main/fts_extension.h"
 #include "function/fts_bind_data.h"
 #include "function/fts_config.h"
 #include "function/fts_index_utils.h"
@@ -106,9 +106,9 @@ static std::string createStopWordsTable(const ClientContext& context,
         }
         query +=
             stringFormat("CREATE NODE TABLE `{}` (sw STRING, PRIMARY KEY(sw));", info.tableName);
-        for (auto i = 0u; i < FTSExtension::NUM_STOP_WORDS; i++) {
+        for (auto i = 0u; i < FtsExtension::NUM_STOP_WORDS; i++) {
             query += stringFormat("CREATE (s:`{}` {sw: \"{}\"});", info.tableName,
-                FTSExtension::EN_STOP_WORDS[i]);
+                FtsExtension::EN_STOP_WORDS[i]);
         }
     } break;
     case StopWordsSource::TABLE: {

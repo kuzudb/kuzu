@@ -4,7 +4,7 @@
 #include "main/db_config.h"
 
 namespace kuzu {
-namespace httpfs {
+namespace httpfs_extension {
 
 HTTPConfig::HTTPConfig(main::ClientContext* context) {
     KU_ASSERT(context != nullptr);

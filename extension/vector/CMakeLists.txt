@@ -4,7 +4,10 @@ include_directories(
         src/include
         ${PROJECT_SOURCE_DIR}/third_party/simsimd/include)
 
-add_subdirectory(src)
+add_subdirectory(src/catalog)
+add_subdirectory(src/function)
+add_subdirectory(src/index)
+add_subdirectory(src/main)
 
 add_library(vector_extension
         SHARED

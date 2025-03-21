@@ -1,6 +1,7 @@
 add_library(kuzu_delta_extension
         OBJECT
         delta_extension.cpp
+        ${PROJECT_SOURCE_DIR}/extension/duckdb/src/main/duckdb_options.cpp
         ${PROJECT_SOURCE_DIR}/extension/httpfs/src/s3fs_config.cpp)
 
 set(DELTA_EXTENSION_OBJECT_FILES

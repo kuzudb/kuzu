@@ -365,6 +365,10 @@ include_directories(
     ${CMAKE_BINARY_DIR}/src/include
 )
 
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extension/CMakeLists.txt")
+    add_subdirectory(extension)
+endif ()
+
 add_subdirectory(src)
 if (${BUILD_TESTS} OR ${BUILD_EXTENSION_TESTS})
     add_subdirectory(test)
@@ -373,9 +377,11 @@ elseif (${BUILD_BENCHMARK})
 endif ()
 add_subdirectory(tools)
 endif ()
-if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extension/CMakeLists.txt")
-    add_subdirectory(extension)
-endif ()
+
+# Link extensions which require static linking.
+foreach(ext IN LISTS STATICALLY_LINKED_EXTENSIONS)
+    target_link_libraries(kuzu PUBLIC "${ext}_extension")
+endforeach()
 
 if (${BUILD_EXAMPLES})
     add_subdirectory(examples/c)

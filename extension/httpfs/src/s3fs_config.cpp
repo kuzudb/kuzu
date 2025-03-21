@@ -5,7 +5,7 @@
 #include "main/database.h"
 
 namespace kuzu {
-namespace httpfs {
+namespace httpfs_extension {
 
 using namespace common;
 

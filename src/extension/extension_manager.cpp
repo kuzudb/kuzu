@@ -3,6 +3,7 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
 #include "extension/extension.h"
+#include "generated_extension_loader.h"
 
 namespace kuzu {
 namespace extension {
@@ -75,6 +76,13 @@ std::vector<storage::StorageExtension*> ExtensionManager::getStorageExtensions()
         storageExtensionsToReturn.push_back(storageExtension.get());
     }
     return storageExtensionsToReturn;
+}
+
+void ExtensionManager::autoLoadLinkedExtensions(main::ClientContext* context) {
+    main::ClientContext::TransactionHelper::runFuncInTransaction(
+        *context->getTransactionContext(), [&]() -> void { loadLinkedExtensions(context); },
+        false /*readOnlyStatement*/, false /*isTransactionStatement*/,
+        main::ClientContext::TransactionHelper::TransactionCommitAction::COMMIT_IF_NEW);
 }
 
 } // namespace extension

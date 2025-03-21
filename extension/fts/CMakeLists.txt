@@ -4,7 +4,9 @@ include_directories(
         src/include
         third_party/snowball/libstemmer)
 
-add_subdirectory(src)
+add_subdirectory(src/catalog)
+add_subdirectory(src/function)
+add_subdirectory(src/main)
 add_subdirectory(test)
 
 add_library(fts_extension

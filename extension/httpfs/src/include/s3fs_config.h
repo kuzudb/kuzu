@@ -14,7 +14,7 @@ class Database;
 class ClientContext;
 } // namespace main
 
-namespace httpfs {
+namespace httpfs_extension {
 
 struct S3AuthParams {
     std::string accessKeyID;

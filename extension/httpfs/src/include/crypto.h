@@ -3,7 +3,7 @@
 #include <string>
 
 namespace kuzu {
-namespace httpfs {
+namespace httpfs_extension {
 
 typedef unsigned char hash_bytes[32];
 typedef unsigned char hash_str[64];

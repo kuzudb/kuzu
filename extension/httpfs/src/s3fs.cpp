@@ -8,7 +8,7 @@
 #include "main/client_context.h"
 
 namespace kuzu {
-namespace httpfs {
+namespace httpfs_extension {
 
 using namespace kuzu::common;
 
@@ -651,7 +651,7 @@ std::unique_ptr<HTTPResponse> S3FileSystem::getRangeRequest(common::FileInfo* fi
 }
 
 std::unique_ptr<HTTPResponse> S3FileSystem::postRequest(common::FileInfo* fileInfo,
-    const std::string& url, kuzu::httpfs::HeaderMap /*headerMap*/,
+    const std::string& url, kuzu::httpfs_extension::HeaderMap /*headerMap*/,
     std::unique_ptr<uint8_t[]>& outputBuffer, uint64_t& outputBufferLen, const uint8_t* inputBuffer,
     uint64_t inputBufferLen, std::string httpParams) const {
     auto& authParams = fileInfo->ptrCast<S3FileInfo>()->authParams;
@@ -665,7 +665,7 @@ std::unique_ptr<HTTPResponse> S3FileSystem::postRequest(common::FileInfo* fileIn
 }
 
 std::unique_ptr<HTTPResponse> S3FileSystem::putRequest(common::FileInfo* fileInfo,
-    const std::string& url, kuzu::httpfs::HeaderMap /*headerMap*/, const uint8_t* inputBuffer,
+    const std::string& url, kuzu::httpfs_extension::HeaderMap /*headerMap*/, const uint8_t* inputBuffer,
     uint64_t inputBufferLen, std::string httpParams) const {
     auto& authParams = fileInfo->ptrCast<S3FileInfo>()->authParams;
     auto parsedS3URL = parseS3URL(url, authParams);

@@ -74,6 +74,7 @@ class KUZU_API ClientContext {
     friend class parser::StandaloneCallRewriter;
     friend struct SpillToDiskSetting;
     friend class main::EmbeddedShell;
+    friend class extension::ExtensionManager;
 
 public:
     explicit ClientContext(Database* database);

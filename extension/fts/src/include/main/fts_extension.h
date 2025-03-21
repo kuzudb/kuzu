@@ -1,11 +1,12 @@
 #pragma once
 
+#include "common/api.h"
 #include "extension/extension.h"
 
 namespace kuzu {
 namespace fts_extension {
 
-class FTSExtension final : public extension::Extension {
+class FtsExtension final : public extension::Extension {
 public:
     static constexpr char EXTENSION_NAME[] = "FTS";
 

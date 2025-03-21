@@ -3,7 +3,7 @@
 #include "main/client_context.h"
 
 namespace kuzu {
-namespace httpfs {
+namespace httpfs_extension {
 
 struct HTTPConfig {
     explicit HTTPConfig(main::ClientContext* context);

@@ -1,4 +1,4 @@
-#include "fts_extension.h"
+#include "main/fts_extension.h"
 
 #include "catalog/catalog.h"
 #include "catalog/fts_index_catalog_entry.h"
@@ -7,7 +7,6 @@
 #include "function/query_fts_index.h"
 #include "function/stem.h"
 #include "main/client_context.h"
-#include "main/database.h"
 
 namespace kuzu {
 namespace fts_extension {
@@ -22,7 +21,7 @@ static void initFTSEntries(const transaction::Transaction* transaction, catalog:
     }
 }
 
-void FTSExtension::load(main::ClientContext* context) {
+void FtsExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
     ExtensionUtils::addScalarFunc<StemFunction>(db);
     ExtensionUtils::addTableFunc<QueryFTSFunction>(db);
@@ -45,10 +44,10 @@ extern "C" {
 #define INIT_EXPORT __attribute__((visibility("default")))
 #endif
 INIT_EXPORT void init(kuzu::main::ClientContext* context) {
-    kuzu::fts_extension::FTSExtension::load(context);
+    kuzu::fts_extension::FtsExtension::load(context);
 }
 
 INIT_EXPORT const char* name() {
-    return kuzu::fts_extension::FTSExtension::EXTENSION_NAME;
+    return kuzu::fts_extension::FtsExtension::EXTENSION_NAME;
 }
 }

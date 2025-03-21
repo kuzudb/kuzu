@@ -4,7 +4,7 @@
 #include "s3fs_config.h"
 
 namespace kuzu {
-namespace httpfs {
+namespace httpfs_extension {
 
 struct S3UploadParams {
     uint64_t maxFileSize = 0;

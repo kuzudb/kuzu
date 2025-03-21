@@ -10,7 +10,7 @@
 #include "common/string_utils.h"
 #include "function/table/bind_data.h"
 #include "function/table/scan_file_function.h"
-#include "json_extension.h"
+#include "main/json_extension.h"
 #include "json_utils.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/file_error_handler.h"

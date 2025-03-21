@@ -1,4 +1,4 @@
-#include "httpfs_extension.h"
+#include "main/httpfs_extension.h"
 
 #include "common/types/types.h"
 #include "common/types/value/value.h"
@@ -8,10 +8,10 @@
 #include "s3fs_config.h"
 
 namespace kuzu {
-namespace httpfs {
+namespace httpfs_extension {
 
 static void registerExtensionOptions(main::Database* db) {
-    for (auto& fsConfig : httpfs::S3FileSystemConfig::getAvailableConfigs()) {
+    for (auto& fsConfig : httpfs_extension::S3FileSystemConfig::getAvailableConfigs()) {
         fsConfig.registerExtensionOptions(db);
     }
     db->addExtensionOption("s3_uploader_max_num_parts_per_file", common::LogicalTypeID::INT64,
@@ -26,7 +26,7 @@ static void registerExtensionOptions(main::Database* db) {
 
 static void registerFileSystem(main::Database* db) {
     db->registerFileSystem(std::make_unique<HTTPFileSystem>());
-    for (auto& fsConfig : httpfs::S3FileSystemConfig::getAvailableConfigs()) {
+    for (auto& fsConfig : httpfs_extension::S3FileSystemConfig::getAvailableConfigs()) {
         db->registerFileSystem(std::make_unique<S3FileSystem>(fsConfig));
     }
 }
@@ -35,7 +35,7 @@ void HttpfsExtension::load(main::ClientContext* context) {
     auto db = context->getDatabase();
     registerFileSystem(db);
     registerExtensionOptions(db);
-    for (auto& fsConfig : httpfs::S3FileSystemConfig::getAvailableConfigs()) {
+    for (auto& fsConfig : httpfs_extension::S3FileSystemConfig::getAvailableConfigs()) {
         fsConfig.setEnvValue(context);
     }
     HTTPConfigEnvProvider::setOptionValue(context);
@@ -53,10 +53,10 @@ extern "C" {
 #define INIT_EXPORT __attribute__((visibility("default")))
 #endif
 INIT_EXPORT void init(kuzu::main::ClientContext* context) {
-    kuzu::httpfs::HttpfsExtension::load(context);
+    kuzu::httpfs_extension::HttpfsExtension::load(context);
 }
 
 INIT_EXPORT const char* name() {
-    return kuzu::httpfs::HttpfsExtension::EXTENSION_NAME;
+    return kuzu::httpfs_extension::HttpfsExtension::EXTENSION_NAME;
 }
 }

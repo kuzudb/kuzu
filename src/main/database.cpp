@@ -112,6 +112,7 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
     StorageManager::recover(clientContext);
     databaseManager = std::make_unique<DatabaseManager>();
     extensionManager = std::make_unique<extension::ExtensionManager>();
+    extensionManager->autoLoadLinkedExtensions(&clientContext);
 }
 
 Database::~Database() {

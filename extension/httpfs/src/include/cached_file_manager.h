@@ -7,7 +7,7 @@
 #include "common/types/types.h"
 
 namespace kuzu {
-namespace httpfs {
+namespace httpfs_extension {
 
 struct HTTPFileInfo;
 
