@@ -83,7 +83,7 @@ static void runOnGraph(ExecutionContext* context, Graph* graph, ExtendDirection 
     }
 }
 
-void GDSUtils::runFrontiersUntilConvergence(ExecutionContext* context, GDSComputeState& compState,
+void GDSUtils::runAlgorithmEdgeCompute(ExecutionContext* context, GDSComputeState& compState,
     Graph* graph, ExtendDirection extendDirection, uint64_t maxIteration) {
     auto frontierPair = compState.frontierPair.get();
     while (frontierPair->continueNextIter(maxIteration)) {
@@ -92,23 +92,32 @@ void GDSUtils::runFrontiersUntilConvergence(ExecutionContext* context, GDSComput
     }
 }
 
-void GDSUtils::runFrontiersUntilConvergence(ExecutionContext* context, GDSComputeState& compState,
+void GDSUtils::runFTSEdgeCompute(ExecutionContext* context, GDSComputeState& compState,
+    Graph* graph, common::ExtendDirection extendDirection,
+    const std::string& propertyToScan) {
+    compState.frontierPair->beginNewIteration();
+    runOnGraph(context, graph, extendDirection, compState, "" /* empty */);
+}
+
+void GDSUtils::runRecursiveJoinEdgeCompute(ExecutionContext* context, GDSComputeState& compState,
     Graph* graph, ExtendDirection extendDirection, uint64_t maxIteration,
-    common::NodeOffsetMaskMap* outputNodeMask, const std::string& propertyToScan) {
+    NodeOffsetMaskMap* outputNodeMask, const std::string& propertyToScan) {
     auto frontierPair = compState.frontierPair.get();
     compState.edgeCompute->resetSingleThreadState();
+    SparseFrontier currentSparseFrontier;
+    SparseFrontier nextSparseFrontier;
     while (frontierPair->continueNextIter(maxIteration)) {
         frontierPair->beginNewIteration();
         if (outputNodeMask != nullptr && outputNodeMask->enabled() &&
             compState.edgeCompute->terminate(*outputNodeMask)) {
             break;
         }
-        runOnGraph(context, graph, extendDirection, compState, propertyToScan);
+        runOnGraph(context, graph, extendDirection, compState, "");
     }
 }
 
-static void runVertexComputeInternal(catalog::TableCatalogEntry* currentEntry, graph::Graph* graph,
-    std::shared_ptr<VertexComputeTask> task, processor::ExecutionContext* context) {
+static void runVertexComputeInternal(TableCatalogEntry* currentEntry, graph::Graph* graph,
+    std::shared_ptr<VertexComputeTask> task, ExecutionContext* context) {
     auto maxOffset =
         graph->getMaxOffset(context->clientContext->getTransaction(), currentEntry->getTableID());
     auto sharedState = task->getSharedState();

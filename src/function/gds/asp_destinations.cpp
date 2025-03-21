@@ -122,7 +122,7 @@ private:
 
 class ASPDestinationsEdgeCompute : public SPEdgeCompute {
 public:
-    ASPDestinationsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair,
+    ASPDestinationsEdgeCompute(SPFrontierPair* frontierPair,
         std::shared_ptr<Multiplicities> multiplicities)
         : SPEdgeCompute{frontierPair}, multiplicities{std::move(multiplicities)} {};
 
@@ -190,7 +190,7 @@ private:
             graph->getMaxOffsetMap(clientContext->getTransaction()), mm);
         auto outputWriter = std::make_unique<ASPDestinationsOutputWriter>(clientContext,
             sharedState->getOutputNodeMaskMap(), sourceNodeID, frontier, multiplicities);
-        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(frontier);
+        auto frontierPair = std::make_unique<SPFrontierPair>(frontier);
         auto edgeCompute =
             std::make_unique<ASPDestinationsEdgeCompute>(frontierPair.get(), multiplicities);
         auto auxiliaryState = std::make_unique<ASPDestinationsAuxiliaryState>(multiplicities);

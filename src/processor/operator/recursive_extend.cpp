@@ -96,7 +96,7 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
                 propertyName =
                     bindData.weightPropertyExpr->ptrCast<PropertyExpression>()->getPropertyName();
             }
-            GDSUtils::runFrontiersUntilConvergence(context, *gdsComputeState, graph,
+            GDSUtils::runRecursiveJoinEdgeCompute(context, *gdsComputeState, graph,
                 bindData.extendDirection, bindData.upperBound, sharedState->getOutputNodeMaskMap(),
                 propertyName);
             auto vertexCompute =

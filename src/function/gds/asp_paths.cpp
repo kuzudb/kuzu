@@ -13,7 +13,7 @@ namespace function {
 
 class ASPPathsEdgeCompute : public SPEdgeCompute {
 public:
-    ASPPathsEdgeCompute(SinglePathLengthsFrontierPair* frontiersPair, BFSGraph* bfsGraph)
+    ASPPathsEdgeCompute(SPFrontierPair* frontiersPair, BFSGraph* bfsGraph)
         : SPEdgeCompute{frontiersPair}, bfsGraph{bfsGraph} {
         block = bfsGraph->addNewBlock();
     }
@@ -83,7 +83,7 @@ private:
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
         auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext,
             sharedState->getOutputNodeMaskMap(), sourceNodeID, writerInfo, *bfsGraph);
-        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(frontier);
+        auto frontierPair = std::make_unique<SPFrontierPair>(frontier);
         auto edgeCompute =
             std::make_unique<ASPPathsEdgeCompute>(frontierPair.get(), bfsGraph.get());
         auto auxiliaryState = std::make_unique<PathAuxiliaryState>(std::move(bfsGraph));

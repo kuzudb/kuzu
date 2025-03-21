@@ -9,14 +9,19 @@ namespace function {
 
 class KUZU_API GDSUtils {
 public:
-    static void runFrontiersUntilConvergence(processor::ExecutionContext* context,
+    static void runAlgorithmEdgeCompute(processor::ExecutionContext* context,
         GDSComputeState& compState, graph::Graph* graph, common::ExtendDirection extendDirection,
         uint64_t maxIteration);
-    // Run edge compute with output node mask for early termination
-    static void runFrontiersUntilConvergence(processor::ExecutionContext* context,
+
+    static void runFTSEdgeCompute(processor::ExecutionContext* context,
         GDSComputeState& compState, graph::Graph* graph, common::ExtendDirection extendDirection,
-        uint64_t maxIteration, common::NodeOffsetMaskMap* outputNodeMask,
-        const std::string& propertyToScan = "");
+        const std::string& propertyToScan);
+
+    // Run edge compute for recursive join. TODO continue comment
+    static void runRecursiveJoinEdgeCompute(processor::ExecutionContext* context,
+        GDSComputeState& compState, graph::Graph* graph, common::ExtendDirection extendDirection,
+        uint64_t maxIteration, common::NodeOffsetMaskMap* outputNodeMask, const std::string& propertyToScan = 0);
+
     // Run vertex compute without property scan
     static void runVertexCompute(processor::ExecutionContext* context, graph::Graph* graph,
         VertexCompute& vc);

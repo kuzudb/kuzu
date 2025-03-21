@@ -50,7 +50,7 @@ private:
 
 class SSPDestinationsEdgeCompute : public SPEdgeCompute {
 public:
-    explicit SSPDestinationsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair)
+    explicit SSPDestinationsEdgeCompute(SPFrontierPair* frontierPair)
         : SPEdgeCompute{frontierPair} {};
 
     std::vector<nodeID_t> edgeCompute(nodeID_t, graph::NbrScanState::Chunk& resultChunk,
@@ -98,7 +98,7 @@ private:
         auto frontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
         auto outputWriter = std::make_unique<SSPDestinationsOutputWriter>(clientContext,
             sharedState->getOutputNodeMaskMap(), sourceNodeID, frontier);
-        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(frontier);
+        auto frontierPair = std::make_unique<SPFrontierPair>(frontier);
         auto edgeCompute = std::make_unique<SSPDestinationsEdgeCompute>(frontierPair.get());
         auto auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
         auto gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
