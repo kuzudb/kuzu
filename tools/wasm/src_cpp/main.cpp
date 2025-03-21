@@ -22,6 +22,7 @@ val JsDate = val::global("Date");
 val JsNumber = val::global("Number");
 val JsBigInt = val::global("BigInt");
 val JsArray = val::global("Array");
+val JsObject = val::global("Object");
 
 /**
  * Helper functions
@@ -63,11 +64,39 @@ Value valueFromEmscriptenValue(const val& value) {
     if (type == "string") {
         return Value(value.as<std::string>());
     }
+    if (JsArray["isArray"](value).as<bool>()) {
+        auto size = value["length"].as<unsigned>();
+        if (size == 0) {
+            return Value::createNullValue();
+        }
+        std::vector<std::unique_ptr<Value>> children;
+        for (size_t i = 0; i < size; ++i) {
+            children.push_back(std::make_unique<Value>(valueFromEmscriptenValue(value[i])));
+        }
+        auto dataType = LogicalType::LIST(children[0]->getDataType().copy());
+        return Value(std::move(dataType), std::move(children));
+    }
     if (type == "object") {
         if (value.instanceof (JsDate)) {
             auto milliseconds = value.call<val>("getTime").as<int64_t>();
             timestamp_t timestampVal = Timestamp::fromEpochMilliSeconds(milliseconds);
             return Value(timestampVal);
+        } else {
+            auto keys = JsObject["keys"](value);
+            auto size = keys["length"].as<unsigned>();
+            if (size == 0) {
+                return Value::createNullValue();
+            }
+            auto struct_fields = std::vector<StructField>{};
+            std::vector<std::unique_ptr<Value>> children;
+            for (size_t i = 0; i < size; ++i) {
+                auto key = keys[i].as<std::string>();
+                auto val = valueFromEmscriptenValue(value[key]);
+                struct_fields.emplace_back(key, val.getDataType().copy());
+                children.push_back(std::make_unique<Value>(val));
+            }
+            auto dataType = LogicalType::STRUCT(std::move(struct_fields));
+            return Value(std::move(dataType), std::move(children));
         }
     }
     throw Exception("Unsupported type");

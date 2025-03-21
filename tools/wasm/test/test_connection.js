@@ -107,26 +107,6 @@ describe("Execute", function () {
       assert.equal(e.message, "params must be a plain object.");
     }
   });
-
-  it("should throw error if a parameter is not valid", async function () {
-    let preparedStatement;
-    try {
-      preparedStatement = await conn.prepare(
-        "MATCH (a:person) WHERE a.ID = $1 RETURN COUNT(*)"
-      );
-      assert.exists(preparedStatement);
-      assert.isTrue(preparedStatement.isSuccess());
-      await conn.execute(preparedStatement, { 1: [] });
-      assert.fail("No error thrown when a parameter is not valid.");
-    } catch (e) {
-      assert.equal(
-        e.message,
-        "Unsupported type"
-      );
-    } finally {
-      await preparedStatement.close();
-    }
-  });
 });
 
 describe("Query", function () {
