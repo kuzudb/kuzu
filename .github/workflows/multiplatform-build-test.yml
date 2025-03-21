@@ -154,7 +154,7 @@ jobs:
   windows-build-test:
     strategy:
       matrix:
-        runner: [windows-2019, windows-2022]
+        runner: [windows-2019, windows-2022, windows-2025]
       fail-fast: false
     name: ${{ matrix.runner }}
     needs: [generate-binary-demo]
