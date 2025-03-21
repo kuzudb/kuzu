@@ -1,5 +1,6 @@
 #pragma once
 
+#include "main/client_context.h"
 @INCLUDES@
 
 namespace kuzu {
