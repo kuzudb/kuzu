@@ -381,6 +381,7 @@ endif ()
 # Link extensions which require static linking.
 foreach(ext IN LISTS STATICALLY_LINKED_EXTENSIONS)
     target_link_libraries(kuzu PUBLIC "${ext}_extension")
+    target_link_libraries(kuzu_shared PUBLIC "${ext}_extension")
 endforeach()
 
 if (${BUILD_EXAMPLES})
