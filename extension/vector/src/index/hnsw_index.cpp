@@ -183,9 +183,10 @@ void InMemHNSWLayer::shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGrap
             }
         }
         if (keepNbr) {
-            graph->setDstNode(newSize++, nbrs[i].nodeOffset);
+            const auto startCSROffset = nodeOffset * info.degreeThresholdToShrink;
+            graph->setDstNode(startCSROffset + newSize++, nbrs[i].nodeOffset);
         }
-        if (newSize == info.maxDegree) {
+        if (newSize >= info.maxDegree) {
             break;
         }
     }
