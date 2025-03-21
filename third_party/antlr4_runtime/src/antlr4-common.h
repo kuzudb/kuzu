@@ -32,6 +32,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <chrono>
 
 // Defines for the Guid class and other platform dependent stuff.
 #ifdef _WIN32
