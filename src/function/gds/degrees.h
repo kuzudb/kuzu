@@ -81,12 +81,12 @@ struct DegreesUtils {
         auto nextFrontier = PathLengths::getVisitedFrontier(context, graph, nodeOffsetMaskMap);
         auto frontierPair =
             std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
-        frontierPair->initGDS();
+        frontierPair->setActiveNodesForNextIter();
         auto ec = std::make_unique<DegreeEdgeCompute>(degrees);
         auto auxiliaryState = std::make_unique<DegreesGDSAuxiliaryState>(degrees);
         auto computeState =
             GDSComputeState(std::move(frontierPair), std::move(ec), std::move(auxiliaryState));
-        GDSUtils::runFrontiersUntilConvergence(context, computeState, graph, direction,
+        GDSUtils::runAlgorithmEdgeCompute(context, computeState, graph, direction,
             1 /* maxIters */);
     }
 };

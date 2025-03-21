@@ -96,15 +96,16 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
                 propertyName =
                     bindData.weightPropertyExpr->ptrCast<PropertyExpression>()->getPropertyName();
             }
-            GDSUtils::runFrontiersUntilConvergence(context, *gdsComputeState, graph,
+            GDSUtils::runRecursiveJoinEdgeCompute(context, *gdsComputeState, graph,
                 bindData.extendDirection, bindData.upperBound, sharedState->getOutputNodeMaskMap(),
                 propertyName);
             auto vertexCompute =
                 std::make_unique<RJVertexCompute>(clientContext->getMemoryManager(),
                     sharedState.get(), rjCompState.outputWriter->copy());
             auto frontierPair = gdsComputeState->frontierPair.get();
+            // frontierPair->beginNewIteration();
+
             auto& candidates = frontierPair->getVertexComputeCandidates();
-            candidates.mergeSparseFrontier(frontierPair->getNextSparseFrontier());
             if (candidates.enabled()) {
                 GDSUtils::runVertexComputeSparse(candidates, graph, *vertexCompute);
             } else {

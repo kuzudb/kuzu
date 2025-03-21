@@ -23,6 +23,9 @@ public:
     // **do not** call setActive. Helper functions in GDSUtils will do that work.
     virtual std::vector<common::nodeID_t> edgeCompute(common::nodeID_t boundNodeID,
         graph::NbrScanState::Chunk& results, bool fwdEdge) = 0;
+    //
+    virtual std::vector<common::nodeID_t> edgeComputeSparse(common::nodeID_t boundNodeID,
+        graph::NbrScanState::Chunk& results, bool fwdEdge) { return {}; }
 
     virtual void resetSingleThreadState() {}
 

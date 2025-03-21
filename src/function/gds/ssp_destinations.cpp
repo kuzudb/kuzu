@@ -6,6 +6,7 @@
 using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::processor;
+using namespace kuzu::graph;
 
 namespace kuzu {
 namespace function {
@@ -50,14 +51,24 @@ private:
 
 class SSPDestinationsEdgeCompute : public SPEdgeCompute {
 public:
-    explicit SSPDestinationsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair)
+    explicit SSPDestinationsEdgeCompute(SPFrontierPair* frontierPair)
         : SPEdgeCompute{frontierPair} {};
 
-    std::vector<nodeID_t> edgeCompute(nodeID_t, graph::NbrScanState::Chunk& resultChunk,
+    std::vector<nodeID_t> edgeCompute(nodeID_t, NbrScanState::Chunk& resultChunk,
         bool) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNode, auto) {
-            if (frontierPair->getNextFrontierValue(nbrNode.offset) == PathLengths::UNVISITED) {
+            if (frontierPair->getNextDenseFrontierValue(nbrNode.offset) == PathLengths::UNVISITED) {
+                activeNodes.push_back(nbrNode);
+            }
+        });
+        return activeNodes;
+    }
+
+    std::vector<nodeID_t> edgeComputeSparse(common::nodeID_t boundNodeID, :NbrScanState::Chunk& resultChunk, bool fwdEdge) override {
+        std::vector<nodeID_t> activeNodes;
+        resultChunk.forEach([&](auto nbrNode, auto) {
+            if (frontierPair->getNextDenseFrontierValue(nbrNode.offset) == PathLengths::UNVISITED) {
                 activeNodes.push_back(nbrNode);
             }
         });
@@ -98,7 +109,7 @@ private:
         auto frontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
         auto outputWriter = std::make_unique<SSPDestinationsOutputWriter>(clientContext,
             sharedState->getOutputNodeMaskMap(), sourceNodeID, frontier);
-        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(frontier);
+        auto frontierPair = std::make_unique<SPFrontierPair>(frontier);
         auto edgeCompute = std::make_unique<SSPDestinationsEdgeCompute>(frontierPair.get());
         auto auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
         auto gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),

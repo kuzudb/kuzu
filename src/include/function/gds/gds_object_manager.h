@@ -97,7 +97,7 @@ private:
 
 // ObjectArraysMap represents a pre-allocated amount of object per tableID.
 template<typename T>
-class ObjectArraysMap {
+class GDSDenseObjectManager {
 public:
     void allocate(common::table_id_t tableID, common::offset_t maxOffset,
         storage::MemoryManager* mm) {
@@ -114,6 +114,18 @@ public:
 
 private:
     common::table_id_map_t<std::unique_ptr<storage::MemoryBuffer>> bufferPerTable;
+};
+
+template<typename T>
+class GDSSpareObjectManager {
+public:
+    std::unordered_map<common::offset_t, T>* getMap(common::table_id_t tableID) {
+        KU_ASSERT(mapPerTable.contains(tableID));
+        return &mapPerTable.at(tableID);
+    }
+
+private:
+    common::table_id_map_t<std::unordered_map<common::offset_t, T>> mapPerTable;
 };
 
 } // namespace function

@@ -61,10 +61,6 @@ public:
         processor::RecursiveExtendSharedState* sharedState) = 0;
 
     virtual std::unique_ptr<RJAlgorithm> copy() const = 0;
-
-protected:
-    std::unique_ptr<BFSGraph> getBFSGraph(processor::ExecutionContext* context,
-        graph::Graph* graph);
 };
 
 } // namespace function

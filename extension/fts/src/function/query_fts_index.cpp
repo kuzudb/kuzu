@@ -269,8 +269,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto auxiliaryState = std::make_unique<EmptyGDSAuxiliaryState>();
     auto compState =
         GDSComputeState(std::move(frontierPair), std::move(edgeCompute), std::move(auxiliaryState));
-    GDSUtils::runFrontiersUntilConvergence(input.context, compState, graph, ExtendDirection::FWD,
-        1 /* maxIters */, nullptr /* outputNodeMask */, TERM_FREQUENCY_PROP_NAME);
+    GDSUtils::runFTSEdgeCompute(input.context, compState, graph, ExtendDirection::FWD, TERM_FREQUENCY_PROP_NAME);
 
     // Do vertex compute to calculate the score for doc with the length property.
     auto mm = clientContext->getMemoryManager();

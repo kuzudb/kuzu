@@ -37,15 +37,15 @@ PathsOutputWriterInfo RJBindData::getPathWriterInfo() const {
     return info;
 }
 
-std::unique_ptr<BFSGraph> RJAlgorithm::getBFSGraph(processor::ExecutionContext* context,
-    graph::Graph* graph) {
-    auto tx = context->clientContext->getTransaction();
-    auto mm = context->clientContext->getMemoryManager();
-    auto bfsGraph = std::make_unique<BFSGraph>(graph->getMaxOffsetMap(tx), mm);
-    auto vc = std::make_unique<BFSGraphInitVertexCompute>(*bfsGraph);
-    GDSUtils::runVertexCompute(context, graph, *vc);
-    return bfsGraph;
-}
+// std::unique_ptr<BFSGraph> RJAlgorithm::getBFSGraph(processor::ExecutionContext* context,
+//     graph::Graph* graph) {
+//     auto tx = context->clientContext->getTransaction();
+//     auto mm = context->clientContext->getMemoryManager();
+//     auto bfsGraph = std::make_unique<BFSGraph>(graph->getMaxOffsetMap(tx), mm);
+//     auto vc = std::make_unique<BFSGraphInitVertexCompute>(*bfsGraph);
+//     GDSUtils::runVertexCompute(context, graph, *vc);
+//     return bfsGraph;
+// }
 
 } // namespace function
 } // namespace kuzu

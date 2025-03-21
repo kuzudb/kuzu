@@ -12,6 +12,10 @@ using namespace kuzu::graph;
 namespace kuzu {
 namespace function {
 
+class SparseMultiplicity {
+
+};
+
 class Multiplicities {
 public:
     Multiplicities(const std::unordered_map<table_id_t, uint64_t>& maxOffsetMap,
@@ -122,7 +126,7 @@ private:
 
 class ASPDestinationsEdgeCompute : public SPEdgeCompute {
 public:
-    ASPDestinationsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair,
+    ASPDestinationsEdgeCompute(SPFrontierPair* frontierPair,
         std::shared_ptr<Multiplicities> multiplicities)
         : SPEdgeCompute{frontierPair}, multiplicities{std::move(multiplicities)} {};
 
@@ -130,7 +134,7 @@ public:
         bool) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNodeID, auto /*edgeID*/) {
-            auto nbrVal = frontierPair->getNextFrontierValue(nbrNodeID.offset);
+            auto nbrVal = frontierPair->getNextDenseFrontierValue(nbrNodeID.offset);
             // We should update the nbrID's multiplicity in 2 cases: 1) if nbrID is being visited
             // for the first time, i.e., when its value in the pathLengths frontier is
             // PathLengths::UNVISITED. Or 2) if nbrID has already been visited but in this
@@ -190,7 +194,7 @@ private:
             graph->getMaxOffsetMap(clientContext->getTransaction()), mm);
         auto outputWriter = std::make_unique<ASPDestinationsOutputWriter>(clientContext,
             sharedState->getOutputNodeMaskMap(), sourceNodeID, frontier, multiplicities);
-        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(frontier);
+        auto frontierPair = std::make_unique<SPFrontierPair>(frontier);
         auto edgeCompute =
             std::make_unique<ASPDestinationsEdgeCompute>(frontierPair.get(), multiplicities);
         auto auxiliaryState = std::make_unique<ASPDestinationsAuxiliaryState>(multiplicities);

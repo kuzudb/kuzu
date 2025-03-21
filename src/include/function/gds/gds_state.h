@@ -28,6 +28,8 @@ struct GDSComputeState {
     // RJOutputs, to possibly avoid them doing lookups of S and T-related data structures,
     // e.g., maps, internally.
     void beginFrontierCompute(common::table_id_t currTableID, common::table_id_t nextTableID) const;
+
+    void switchToDense();
 };
 
 } // namespace function

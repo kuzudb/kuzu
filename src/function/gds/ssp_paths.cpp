@@ -13,7 +13,7 @@ namespace function {
 
 class SSPPathsEdgeCompute : public SPEdgeCompute {
 public:
-    SSPPathsEdgeCompute(SinglePathLengthsFrontierPair* frontierPair, BFSGraph* bfsGraph)
+    SSPPathsEdgeCompute(SPFrontierPair* frontierPair, BFSGraph* bfsGraph)
         : SPEdgeCompute{frontierPair}, bfsGraph{bfsGraph} {
         block = bfsGraph->addNewBlock();
     }
@@ -32,6 +32,10 @@ public:
             }
         });
         return activeNodes;
+    }
+
+    std::vector<nodeID_t> edgeComputeSerial(nodeID_t boundNodeID, graph::NbrScanState::Chunk& results, bool fwdEdge) override {
+
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
@@ -68,13 +72,13 @@ private:
     RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID,
         const RJBindData& bindData, RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
-        auto frontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
+        auto frontier = PathLengths::getUninitializedFrontier(context, sharedState->graph.get());
         auto bfsGraph = getBFSGraph(context, sharedState->graph.get());
         auto writerInfo = bindData.getPathWriterInfo();
         writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
         auto outputWriter = std::make_unique<SPPathsOutputWriter>(clientContext,
             sharedState->getOutputNodeMaskMap(), sourceNodeID, writerInfo, *bfsGraph);
-        auto frontierPair = std::make_unique<SinglePathLengthsFrontierPair>(frontier);
+        auto frontierPair = std::make_unique<SPFrontierPair>(frontier);
         auto edgeCompute =
             std::make_unique<SSPPathsEdgeCompute>(frontierPair.get(), bfsGraph.get());
         auto auxiliaryState = std::make_unique<PathAuxiliaryState>(std::move(bfsGraph));
