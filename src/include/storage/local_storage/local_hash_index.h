@@ -2,6 +2,7 @@
 
 #include "common/string_utils.h"
 #include "common/type_utils.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/index/in_mem_hash_index.h"
 
 namespace kuzu {
@@ -24,8 +25,8 @@ enum class HashIndexLocalLookupState : uint8_t { KEY_FOUND, KEY_DELETED, KEY_NOT
 template<typename T>
 class HashIndexLocalStorage final : public BaseHashIndexLocalStorage {
 public:
-    explicit HashIndexLocalStorage(OverflowFileHandle* handle)
-        : localDeletions{}, localInsertions{handle} {}
+    explicit HashIndexLocalStorage(MemoryManager& memoryManager, OverflowFileHandle* handle)
+        : localDeletions{}, localInsertions{memoryManager, handle} {}
     using OwnedKeyType = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string, T>;
     using Key = std::conditional_t<std::same_as<T, common::ku_string_t>, std::string_view, T>;
     HashIndexLocalLookupState lookup(Key key, common::offset_t& result, visible_func isVisible) {
@@ -104,17 +105,18 @@ private:
 
 class LocalHashIndex {
 public:
-    explicit LocalHashIndex(common::PhysicalTypeID keyDataTypeID,
+    explicit LocalHashIndex(MemoryManager& memoryManager, common::PhysicalTypeID keyDataTypeID,
         OverflowFileHandle* overflowFileHandle)
         : keyDataTypeID{keyDataTypeID} {
         common::TypeUtils::visit(
             keyDataTypeID,
             [&](common::ku_string_t) {
                 localIndex = std::make_unique<HashIndexLocalStorage<common::ku_string_t>>(
-                    overflowFileHandle);
+                    memoryManager, overflowFileHandle);
             },
-            [&]<common::HashablePrimitive T>(
-                T) { localIndex = std::make_unique<HashIndexLocalStorage<T>>(nullptr); },
+            [&]<common::HashablePrimitive T>(T) {
+                localIndex = std::make_unique<HashIndexLocalStorage<T>>(memoryManager, nullptr);
+            },
             [&](auto) { KU_UNREACHABLE; });
     }
 

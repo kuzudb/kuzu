@@ -345,7 +345,8 @@ bool BufferManager::reserve(uint64_t sizeToReserve) {
         // space for what we're trying to reserve, then we can continue even if the current total is
         // higher than the buffer pool size as we should never actually exceed the buffer pool size.
         return sizeToReserve > totalClaimedMemory &&
-               (usedMemory - totalClaimedMemory) > bufferPoolSize.load();
+               // usedMemory - totalClaimedMemory could underflow
+               usedMemory > bufferPoolSize.load() - totalClaimedMemory;
     };
     // Evict pages if necessary until we have enough memory.
     while (needMoreMemory()) {
