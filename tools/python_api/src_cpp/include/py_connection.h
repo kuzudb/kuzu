@@ -21,6 +21,7 @@ public:
     ~PyConnection() = default;
 
     void setQueryTimeout(uint64_t timeoutInMS);
+    void interrupt();
 
     std::unique_ptr<PyQueryResult> execute(PyPreparedStatement* preparedStatement,
         const py::dict& params);
