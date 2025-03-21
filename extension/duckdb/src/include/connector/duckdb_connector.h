@@ -41,7 +41,7 @@ public:
     std::unique_ptr<duckdb::MaterializedQueryResult> executeQuery(std::string query) const;
 
     void initRemoteFSSecrets(main::ClientContext* context) const {
-        for (auto& fsConfig : httpfs::S3FileSystemConfig::getAvailableConfigs()) {
+        for (auto& fsConfig : httpfs_extension::S3FileSystemConfig::getAvailableConfigs()) {
             executeQuery(DuckDBSecretManager::getRemoteFSSecret(context, fsConfig));
         }
     }

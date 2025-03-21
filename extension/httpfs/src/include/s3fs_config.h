@@ -14,7 +14,7 @@ class Database;
 class ClientContext;
 } // namespace main
 
-namespace httpfs {
+namespace httpfs_extension {
 
 struct S3AuthParams {
     std::string accessKeyID;
@@ -46,5 +46,5 @@ struct S3FileSystemConfig {
     static std::span<const S3FileSystemConfig> getAvailableConfigs();
 };
 
-} // namespace httpfs
+} // namespace httpfs_extension
 } // namespace kuzu

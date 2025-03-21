@@ -1,7 +1,3 @@
-add_subdirectory(catalog)
-add_subdirectory(function)
-add_subdirectory(index)
-
 add_library(vector_extension_main
         OBJECT
         vector_extension.cpp)

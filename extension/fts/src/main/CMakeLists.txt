@@ -1,6 +1,3 @@
-add_subdirectory(function)
-add_subdirectory(catalog)
-
 add_library(fts_extension_main
         OBJECT
         fts_extension.cpp)

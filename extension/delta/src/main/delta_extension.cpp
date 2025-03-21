@@ -4,7 +4,6 @@
 #include "main/client_context.h"
 #include "main/database.h"
 #include "main/duckdb_extension.h"
-#include "s3fs_config.h"
 
 namespace kuzu {
 namespace delta_extension {
@@ -12,7 +11,7 @@ namespace delta_extension {
 void DeltaExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
     extension::ExtensionUtils::addTableFunc<DeltaScanFunction>(db);
-    duckdb_extension::DuckDBExtension::loadRemoteFSOptions(context);
+    duckdb_extension::DuckdbExtension::loadRemoteFSOptions(context);
 }
 
 } // namespace delta_extension

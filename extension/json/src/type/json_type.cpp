@@ -1,7 +1,7 @@
 #include "json_type.h"
 
 #include "common/exception/binder.h"
-#include "json_extension.h"
+#include "main/json_extension.h"
 
 namespace kuzu {
 namespace json_extension {

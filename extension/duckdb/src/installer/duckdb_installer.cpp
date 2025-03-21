@@ -13,7 +13,7 @@ void DuckDBInstaller::install() {
         extension::ExtensionUtils::getLocalPathForExtensionLoader(&context, info.name);
     tryDownloadExtensionFile(loaderFileRepoInfo, localLoaderFilePath);
 
-    for (auto& dependencyLib : DuckDBExtension::DEPENDENCY_LIB_FILES) {
+    for (auto& dependencyLib : DuckdbExtension::DEPENDENCY_LIB_FILES) {
         auto dependencyLibWithSuffix = extension::ExtensionUtils::appendLibSuffix(dependencyLib);
         auto localDependencyLibPath =
             extension::ExtensionUtils::getLocalPathForSharedLib(&context, dependencyLibWithSuffix);

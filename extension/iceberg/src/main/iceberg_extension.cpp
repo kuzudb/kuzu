@@ -1,4 +1,4 @@
-#include "iceberg_extension.h"
+#include "main/iceberg_extension.h"
 
 #include "function/iceberg_functions.h"
 #include "main/client_context.h"
@@ -16,7 +16,7 @@ void IcebergExtension::load(main::ClientContext* context) {
     extension::ExtensionUtils::addTableFunc<IcebergScanFunction>(db);
     extension::ExtensionUtils::addTableFunc<IcebergMetadataFunction>(db);
     extension::ExtensionUtils::addTableFunc<IcebergSnapshotsFunction>(db);
-    duckdb_extension::DuckDBExtension::loadRemoteFSOptions(context);
+    duckdb_extension::DuckdbExtension::loadRemoteFSOptions(context);
 }
 
 } // namespace iceberg_extension

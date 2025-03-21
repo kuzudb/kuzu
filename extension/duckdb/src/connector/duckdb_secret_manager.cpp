@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace duckdb_extension {
 
-static std::string getDuckDBExtensionOptions(httpfs::S3AuthParams kuzuOptions) {
+static std::string getDuckDBExtensionOptions(httpfs_extension::S3AuthParams kuzuOptions) {
     std::string options = "";
     options.append(common::stringFormat("KEY_ID '{}',", kuzuOptions.accessKeyID));
     options.append(common::stringFormat("SECRET '{}',", kuzuOptions.secretAccessKey));
@@ -16,7 +16,7 @@ static std::string getDuckDBExtensionOptions(httpfs::S3AuthParams kuzuOptions) {
 }
 
 std::string DuckDBSecretManager::getRemoteFSSecret(main::ClientContext* context,
-    const httpfs::S3FileSystemConfig& config) {
+    const httpfs_extension::S3FileSystemConfig& config) {
     KU_ASSERT(config.fsName == "S3" || config.fsName == "GCS");
     std::string templateQuery = R"(CREATE SECRET {}_secret (
         {}

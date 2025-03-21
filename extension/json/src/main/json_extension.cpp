@@ -1,4 +1,4 @@
-#include "json_extension.h"
+#include "main/json_extension.h"
 
 #include "json_cast_functions.h"
 #include "json_creation_functions.h"

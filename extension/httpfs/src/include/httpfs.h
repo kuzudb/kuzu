@@ -11,7 +11,7 @@
 #endif
 
 namespace kuzu {
-namespace httpfs {
+namespace httpfs_extension {
 
 using HeaderMap = common::case_insensitive_map_t<std::string>;
 
@@ -124,5 +124,5 @@ private:
     std::mutex cachedFileManagerMtx;
 };
 
-} // namespace httpfs
+} // namespace httpfs_extension
 } // namespace kuzu

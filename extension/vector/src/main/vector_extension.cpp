@@ -1,4 +1,4 @@
-#include "vector_extension.h"
+#include "main/vector_extension.h"
 
 #include "catalog/hnsw_index_catalog_entry.h"
 #include "function/hnsw_index_functions.h"

@@ -5,7 +5,7 @@
 #include "common/exception/not_implemented.h"
 
 namespace kuzu {
-namespace httpfs {
+namespace httpfs_extension {
 
 using namespace kuzu::common;
 
@@ -502,5 +502,5 @@ void HTTPFileSystem::initCachedFileManager(main::ClientContext* context) {
     }
 }
 
-} // namespace httpfs
+} // namespace httpfs_extension
 } // namespace kuzu
