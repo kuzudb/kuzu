@@ -106,7 +106,14 @@ DWORD oldOutputCP;
 void EmbeddedShell::updateTableNames() {
     nodeTableNames.clear();
     relTableNames.clear();
-    for (auto& tableEntry : database->catalog->getTableEntries(&transaction::DUMMY_TRANSACTION,
+    auto clientContext = conn->getClientContext();
+    bool transactionStarted = false;
+    if (clientContext->getTransaction() == NULL) {
+        clientContext->getTransactionContext()
+            ->beginReadTransaction(); // start transaction to get current table names
+        transactionStarted = true;
+    }
+    for (auto& tableEntry : database->catalog->getTableEntries(clientContext->getTransaction(),
              false /*useInternal*/)) {
         if (tableEntry->getType() == catalog::CatalogEntryType::NODE_TABLE_ENTRY) {
             nodeTableNames.push_back(tableEntry->getName());
@@ -120,6 +127,9 @@ void EmbeddedShell::updateTableNames() {
             columnNames.push_back(column.getName());
         }
         tableColumnNames[tableEntry->getName()] = columnNames;
+    }
+    if (transactionStarted) {
+        clientContext->getTransactionContext()->commit();
     }
 }
 
@@ -424,6 +434,7 @@ EmbeddedShell::EmbeddedShell(std::shared_ptr<Database> database, std::shared_ptr
     maxPrintWidth = shellConfig.maxPrintWidth;
     printer = std::move(shellConfig.printer);
     stats = shellConfig.stats;
+    catalogVersion = database->catalog->getVersion();
     updateTableNames();
     updateFunctionAndTypeNames();
     auto sigResult = std::signal(SIGINT, interruptHandler);
@@ -548,7 +559,10 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
         continueLine = true;
         currLine += input + "\n";
     }
-    updateTableNames();
+    if (catalogVersion != database->catalog->getVersion()) {
+        updateTableNames();
+        catalogVersion = database->catalog->getVersion();
+    }
     historyLine = input;
     return queryResults;
 }
