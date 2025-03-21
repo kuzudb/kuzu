@@ -13,5 +13,5 @@ public:
     static void load(main::ClientContext* context);
 };
 
-} // namespace httpfs
+} // namespace httpfs_extension
 } // namespace kuzu

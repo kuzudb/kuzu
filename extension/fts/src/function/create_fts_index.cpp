@@ -4,7 +4,6 @@
 #include "catalog/fts_index_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/types/value/nested.h"
-#include "main/fts_extension.h"
 #include "function/fts_bind_data.h"
 #include "function/fts_config.h"
 #include "function/fts_index_utils.h"
@@ -16,6 +15,7 @@
 #include "function/table/simple_table_function.h"
 #include "graph/graph_entry.h"
 #include "graph/on_disk_graph.h"
+#include "main/fts_extension.h"
 #include "processor/execution_context.h"
 
 namespace kuzu {

@@ -50,5 +50,5 @@ void hex256(hash_bytes& in, hash_str& out) {
     }
 }
 
-} // namespace httpfs
+} // namespace httpfs_extension
 } // namespace kuzu

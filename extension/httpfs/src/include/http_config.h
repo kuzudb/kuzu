@@ -21,5 +21,5 @@ struct HTTPConfigEnvProvider {
     static void setOptionValue(main::ClientContext* context);
 };
 
-} // namespace httpfs
+} // namespace httpfs_extension
 } // namespace kuzu

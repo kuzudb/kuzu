@@ -47,5 +47,5 @@ private:
     std::unique_ptr<uint8_t[]> downloadBuffer;
 };
 
-} // namespace httpfs
+} // namespace httpfs_extension
 } // namespace kuzu

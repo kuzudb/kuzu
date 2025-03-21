@@ -665,8 +665,8 @@ std::unique_ptr<HTTPResponse> S3FileSystem::postRequest(common::FileInfo* fileIn
 }
 
 std::unique_ptr<HTTPResponse> S3FileSystem::putRequest(common::FileInfo* fileInfo,
-    const std::string& url, kuzu::httpfs_extension::HeaderMap /*headerMap*/, const uint8_t* inputBuffer,
-    uint64_t inputBufferLen, std::string httpParams) const {
+    const std::string& url, kuzu::httpfs_extension::HeaderMap /*headerMap*/,
+    const uint8_t* inputBuffer, uint64_t inputBufferLen, std::string httpParams) const {
     auto& authParams = fileInfo->ptrCast<S3FileInfo>()->authParams;
     auto parsedS3URL = parseS3URL(url, authParams);
     auto httpURL = parsedS3URL.getHTTPURL(httpParams);
@@ -890,5 +890,5 @@ std::vector<std::string> AWSListObjectV2::parseCommonPrefix(std::string& awsResp
     return s3Prefixes;
 }
 
-} // namespace httpfs
+} // namespace httpfs_extension
 } // namespace kuzu

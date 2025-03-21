@@ -41,7 +41,7 @@ void HttpfsExtension::load(main::ClientContext* context) {
     HTTPConfigEnvProvider::setOptionValue(context);
 }
 
-} // namespace httpfs
+} // namespace httpfs_extension
 } // namespace kuzu
 
 extern "C" {

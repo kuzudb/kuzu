@@ -93,5 +93,5 @@ void S3FileSystemConfig::setEnvValue(main::ClientContext* context) const {
     }
 }
 
-} // namespace httpfs
+} // namespace httpfs_extension
 } // namespace kuzu

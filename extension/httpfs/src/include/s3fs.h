@@ -175,5 +175,5 @@ struct AWSListObjectV2 {
     static std::string parseContinuationToken(std::string& awsResponse);
 };
 
-} // namespace httpfs
+} // namespace httpfs_extension
 } // namespace kuzu

@@ -124,5 +124,5 @@ private:
     std::mutex cachedFileManagerMtx;
 };
 
-} // namespace httpfs
+} // namespace httpfs_extension
 } // namespace kuzu

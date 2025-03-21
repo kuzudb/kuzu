@@ -46,5 +46,5 @@ struct S3FileSystemConfig {
     static std::span<const S3FileSystemConfig> getAvailableConfigs();
 };
 
-} // namespace httpfs
+} // namespace httpfs_extension
 } // namespace kuzu
