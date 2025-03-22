@@ -40,15 +40,11 @@ protected:
 
     uint64_t getSlotIdxForHash(common::hash_t hash) const { return hash & bitmask; }
     void setMaxNumHashSlots(uint64_t newSize);
-    void computeAndCombineVecHash(std::span<const common::ValueVector*> unFlatKeyVectors,
-        uint32_t startVecIdx);
 
-    void computeVectorHashes(const std::vector<common::ValueVector*>& flatKeyVectors,
-        const std::vector<common::ValueVector*>& unFlatKeyVectors) {
-        computeVectorHashes(constSpan(flatKeyVectors), constSpan(unFlatKeyVectors));
+    void computeVectorHashes(const std::vector<common::ValueVector*>& flatKeyVectors) {
+        computeVectorHashes(constSpan(flatKeyVectors));
     }
-    void computeVectorHashes(std::span<const common::ValueVector*> flatKeyVectors,
-        std::span<const common::ValueVector*> unFlatKeyVectors);
+    void computeVectorHashes(std::span<const common::ValueVector*> flatKeyVectors);
     void initSlotConstant(uint64_t numSlotsPerBlock);
     bool matchFlatVecWithEntry(const std::vector<common::ValueVector*>& keyVectors,
         const uint8_t* entry);

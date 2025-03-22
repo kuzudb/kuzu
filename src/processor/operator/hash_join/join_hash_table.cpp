@@ -201,8 +201,7 @@ uint8_t* JoinHashTable::insertEntry(uint8_t* tuple) const {
 }
 
 void JoinHashTable::computeVectorHashes(std::vector<common::ValueVector*> keyVectors) {
-    std::vector<ValueVector*> dummyUnFlatKeyVectors;
-    BaseHashTable::computeVectorHashes(keyVectors, dummyUnFlatKeyVectors);
+    BaseHashTable::computeVectorHashes(keyVectors);
 }
 
 offset_t JoinHashTable::getHashValueColOffset() const {

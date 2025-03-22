@@ -207,10 +207,10 @@ void SimpleAggregate::executeInternal(ExecutionContext* context) {
         for (auto i = 0u; i < aggregateFunctions.size(); i++) {
             auto aggregateFunction = &aggregateFunctions[i];
             if (aggregateFunction->isFunctionDistinct()) {
-                // Just add distinct value to the hash table. We'll calculate the final hash table
-                // once it's been merged into the global state
-                distinctHashTables[i].get()->insertAggregateValueIfDistinctForGroupByKeys(
-                    std::vector<ValueVector*>{}, aggInputs[i].aggregateVector);
+                // Just add distinct value to the hash table. We'll calculate the aggregate state
+                // once it's been merged into the shared state
+                distinctHashTables[i]->appendDistinct(std::vector<ValueVector*>{},
+                    aggInputs[i].aggregateVector, aggInputs[i].aggregateVector->state.get());
             } else {
                 computeAggregate(aggregateFunction, &aggInputs[i], localAggregateStates[i].get(),
                     memoryManager);

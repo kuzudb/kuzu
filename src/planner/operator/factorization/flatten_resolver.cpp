@@ -7,6 +7,7 @@
 #include "binder/expression/scalar_function_expression.h"
 #include "binder/expression/subquery_expression.h"
 #include "common/exception/not_implemented.h"
+#include "planner/operator/schema.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -14,8 +15,8 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-f_group_pos_set FlattenAllButOne::getGroupsPosToFlatten(const expression_vector& exprs,
-    const Schema& schema) {
+std::pair<f_group_pos, f_group_pos_set> FlattenAllButOne::getGroupsPosToFlatten(
+    const expression_vector& exprs, const Schema& schema) {
     f_group_pos_set result;
     f_group_pos_set dependentGroups;
     for (auto expr : exprs) {
@@ -37,7 +38,11 @@ f_group_pos_set FlattenAllButOne::getGroupsPosToFlatten(const expression_vector&
     for (auto i = 1u; i < candidates.size(); ++i) {
         result.insert(candidates[i]);
     }
-    return result;
+    if (candidates.empty()) {
+        return std::make_pair(INVALID_F_GROUP_POS, result);
+    } else {
+        return std::make_pair(candidates[0], result);
+    }
 }
 
 f_group_pos_set FlattenAllButOne::getGroupsPosToFlatten(std::shared_ptr<Expression> expr,

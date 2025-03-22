@@ -40,8 +40,7 @@ public:
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    f_group_pos_set getGroupsPosToFlattenForGroupBy();
-    f_group_pos_set getGroupsPosToFlattenForAggregate();
+    f_group_pos_set getGroupsPosToFlatten();
 
     std::string getExpressionsForPrinting() const override;
 
@@ -66,7 +65,6 @@ public:
     }
 
 private:
-    bool hasDistinctAggregate();
     void insertAllExpressionsToGroupAndScope(f_group_pos groupPos);
 
 private:
