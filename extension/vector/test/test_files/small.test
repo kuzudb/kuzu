@@ -9,6 +9,8 @@
 ---- ok
 -STATEMENT CREATE (e:embeddings{id: 0})
 ---- ok
+-STATEMENT CALL threads=1;
+---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',', skip=995);
 ---- ok
 -STATEMENT CREATE (e:embeddings{id: 1000})
@@ -29,6 +31,8 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
+-STATEMENT CALL threads=1;
+---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
 -STATEMENT MATCH (e:embeddings) WHERE e.id < 995 DELETE e
@@ -48,6 +52,8 @@
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT CALL threads=1;
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
@@ -73,6 +79,8 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
+-STATEMENT CALL threads=1;
+---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
@@ -88,6 +96,8 @@
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT CALL threads=1;
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
@@ -106,6 +116,8 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
+-STATEMENT CALL threads=1;
+---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'dotproduct');
@@ -121,6 +133,8 @@
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[960], PRIMARY KEY (id));
+---- ok
+-STATEMENT CALL threads=1;
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-960-1k.csv" (deLim=',');
 ---- ok
@@ -154,6 +168,8 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
+-STATEMENT CALL threads=1;
+---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
@@ -182,6 +198,8 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
+-STATEMENT CALL threads=1;
+---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-tiny.csv" (deLim=',');
 ---- ok
 -STATEMENT MATCH (n:embeddings) RETURN COUNT(n);
@@ -199,6 +217,8 @@
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT CALL threads=1;
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-tiny.csv" (deLim=',');
 ---- ok
@@ -224,6 +244,8 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
+-STATEMENT CALL threads=1;
+---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'dotproduct');
@@ -247,6 +269,8 @@
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT CALL threads=1;
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
@@ -276,6 +300,8 @@ Binder exception: _e_hnsw_index_LOWER already exists in catalog.
 -STATEMENT EXPORT DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_hnsw/small'
 ---- ok
 -IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_hnsw/small"
+-STATEMENT CALL threads=1;
+---- ok
 -STATEMENT IMPORT DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_hnsw/small';
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], cast(3 as int32)) RETURN nn.id ORDER BY _distance;
@@ -323,6 +349,8 @@ Extension: vector has been installed from repo: http://localhost/extension/repo/
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
+-STATEMENT CALL threads=1;
+---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
@@ -338,6 +366,8 @@ Extension: vector has been installed from repo: http://localhost/extension/repo/
 -STATEMENT LOAD '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT CALL threads=1;
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
