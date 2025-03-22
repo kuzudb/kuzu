@@ -194,10 +194,6 @@ def test_comments(temp_db) -> None:
 
 
 def test_shell_auto_completion(temp_db) -> None:
-    # table auto completion only works if table exists on startup currently and
-    # due to how the shell handles tab characters, in this test we need to send 
-    # tabs without characters directly after them to avoid being processed as
-    # pasted input
     test = ShellTest().add_argument(temp_db)
     test.start()
     test.send_statement("CREATE NODE TABLE coolTable(i STRING, longPropertyName STRING, autoCompleteUINT8 UIN\t")
@@ -206,14 +202,7 @@ def test_shell_auto_completion(temp_db) -> None:
     test.send_statement("\t")
     test.send_statement(", PRIMARY KEY(i));\n")
     assert test.shell_process.expect_exact(["\u2502 Table coolTable has been created. \u2502", pexpect.EOF]) == 0
-
-    # insures the previous shell test propely closed before next test
-    test = ShellTest().add_argument(temp_db)
-    test.run()
-
-    # reopen shell to load new table name
-    test = ShellTest().add_argument(temp_db)
-    test.start()
+    
     test.send_statement("ma\t")
     test.send_statement("\t")
     test.send_statement("\t")

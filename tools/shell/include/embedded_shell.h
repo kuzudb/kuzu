@@ -82,6 +82,7 @@ private:
     uint32_t maxPrintWidth;
     std::unique_ptr<Printer> printer;
     bool stats;
+    uint64_t catalogVersion;
 };
 
 } // namespace main
