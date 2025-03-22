@@ -27,7 +27,9 @@ struct NodeGroupScanState {
     // State of each chunk in the checkpointed chunked group.
     std::vector<ChunkState> chunkStates;
 
+    explicit NodeGroupScanState() {}
     explicit NodeGroupScanState(common::idx_t numChunks) { chunkStates.resize(numChunks); }
+
     virtual ~NodeGroupScanState() = default;
     DELETE_COPY_DEFAULT_MOVE(NodeGroupScanState);
 
@@ -35,9 +37,9 @@ struct NodeGroupScanState {
     TARGET& cast() {
         return common::ku_dynamic_cast<TARGET&>(*this);
     }
-    template<class TARGETT>
-    const TARGETT& constCast() {
-        return common::ku_dynamic_cast<const TARGETT&>(*this);
+    template<class TARGET>
+    const TARGET& constCast() {
+        return common::ku_dynamic_cast<const TARGET&>(*this);
     }
 };
 

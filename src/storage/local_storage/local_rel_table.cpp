@@ -236,10 +236,11 @@ bool LocalRelTable::scan(const Transaction* transaction, TableScanState& state) 
 
 static std::unique_ptr<RelTableScanState> setupLocalTableScanState(DataChunk& scanChunk,
     std::span<row_idx_t> intersectRows) {
-    std::vector columnIDs{LOCAL_REL_ID_COLUMN_ID};
+    const std::vector columnIDs{LOCAL_REL_ID_COLUMN_ID};
     auto scanState = std::make_unique<RelTableScanState>(nullptr,
         std::vector{&scanChunk.getValueVectorMutable(0)}, scanChunk.state);
     scanState->columnIDs = columnIDs;
+    scanState->nodeGroupScanState->chunkStates.resize(columnIDs.size());
     scanChunk.state->getSelVectorUnsafe().setSelSize(intersectRows.size());
     for (uint64_t i = 0; i < intersectRows.size(); i++) {
         scanState->rowIdxVector->setValue<row_idx_t>(i, intersectRows[i]);

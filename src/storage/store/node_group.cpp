@@ -40,7 +40,7 @@ row_idx_t NodeGroup::append(const Transaction* transaction,
     if (chunkedGroups.isEmpty(lock)) {
         chunkedGroups.appendGroup(lock,
             std::make_unique<ChunkedNodeGroup>(mm, dataTypes, enableCompression,
-                common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY, 0, ResidencyState::IN_MEMORY));
+                StorageConfig::CHUNKED_NODE_GROUP_CAPACITY, 0, ResidencyState::IN_MEMORY));
     }
     row_idx_t numRowsAppended = 0u;
     while (numRowsAppended < numRowsToAppend) {
@@ -48,14 +48,13 @@ row_idx_t NodeGroup::append(const Transaction* transaction,
         if (!lastChunkedGroup || lastChunkedGroup->isFullOrOnDisk()) {
             chunkedGroups.appendGroup(lock,
                 std::make_unique<ChunkedNodeGroup>(mm, dataTypes, enableCompression,
-                    common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY,
+                    StorageConfig::CHUNKED_NODE_GROUP_CAPACITY,
                     numRowsBeforeAppend + numRowsAppended, ResidencyState::IN_MEMORY));
         }
         lastChunkedGroup = chunkedGroups.getLastGroup(lock);
-        KU_ASSERT(
-            common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY >= lastChunkedGroup->getNumRows());
+        KU_ASSERT(StorageConfig::CHUNKED_NODE_GROUP_CAPACITY >= lastChunkedGroup->getNumRows());
         auto numToCopyIntoChunk =
-            common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY - lastChunkedGroup->getNumRows();
+            StorageConfig::CHUNKED_NODE_GROUP_CAPACITY - lastChunkedGroup->getNumRows();
         const auto numToAppendInChunk =
             std::min(numRowsToAppend - numRowsAppended, numToCopyIntoChunk);
         lastChunkedGroup->append(transaction, columnIDs, chunkedGroup,
@@ -74,7 +73,7 @@ void NodeGroup::append(const Transaction* transaction, const std::vector<ValueVe
     if (chunkedGroups.isEmpty(lock)) {
         chunkedGroups.appendGroup(lock,
             std::make_unique<ChunkedNodeGroup>(mm, dataTypes, enableCompression,
-                common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY, 0 /*startOffset*/,
+                StorageConfig::CHUNKED_NODE_GROUP_CAPACITY, 0 /*startOffset*/,
                 ResidencyState::IN_MEMORY));
     }
     row_idx_t numRowsAppended = 0;
@@ -83,12 +82,12 @@ void NodeGroup::append(const Transaction* transaction, const std::vector<ValueVe
         if (!lastChunkedGroup || lastChunkedGroup->isFullOrOnDisk()) {
             chunkedGroups.appendGroup(lock,
                 std::make_unique<ChunkedNodeGroup>(mm, dataTypes, enableCompression,
-                    common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY,
+                    StorageConfig::CHUNKED_NODE_GROUP_CAPACITY,
                     numRowsBeforeAppend + numRowsAppended, ResidencyState::IN_MEMORY));
         }
         lastChunkedGroup = chunkedGroups.getLastGroup(lock);
         const auto numRowsToAppendInGroup = std::min(numRowsToAppend - numRowsAppended,
-            common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY - lastChunkedGroup->getNumRows());
+            StorageConfig::CHUNKED_NODE_GROUP_CAPACITY - lastChunkedGroup->getNumRows());
         lastChunkedGroup->append(&DUMMY_TRANSACTION, vectors, startRowIdx + numRowsAppended,
             numRowsToAppendInGroup);
         numRowsAppended += numRowsToAppendInGroup;
@@ -513,7 +512,7 @@ void NodeGroup::serialize(Serializer& serializer) {
 }
 
 std::unique_ptr<NodeGroup> NodeGroup::deserialize(MemoryManager& memoryManager, Deserializer& deSer,
-    const std::vector<common::LogicalType>& columnTypes) {
+    const std::vector<LogicalType>& columnTypes) {
     std::string key;
     node_group_idx_t nodeGroupIdx = INVALID_NODE_GROUP_IDX;
     bool enableCompression = false;
@@ -567,8 +566,8 @@ std::pair<idx_t, row_idx_t> NodeGroup::findChunkedGroupIdxFromRowIdxNoLock(row_i
         return {0, rowIdx};
     }
     rowIdx -= numRowsInFirstGroup;
-    const auto chunkedGroupIdx = rowIdx / common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY + 1;
-    const auto rowIdxInChunk = rowIdx % common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY;
+    const auto chunkedGroupIdx = rowIdx / StorageConfig::CHUNKED_NODE_GROUP_CAPACITY + 1;
+    const auto rowIdxInChunk = rowIdx % StorageConfig::CHUNKED_NODE_GROUP_CAPACITY;
     if (chunkedGroupIdx >= chunkedGroups.getNumGroupsNoLock()) {
         return {INVALID_CHUNKED_GROUP_IDX, INVALID_START_ROW_IDX};
     }
