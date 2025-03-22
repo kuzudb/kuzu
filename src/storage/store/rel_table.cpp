@@ -40,8 +40,7 @@ void RelTableScanState::setToTable(const Transaction* transaction, Table* table_
     if (const auto localRelTable = transaction->getLocalStorage()->getLocalTable(
             table->getTableID(), LocalStorage::NotExistAction::RETURN_NULL)) {
         auto localTableColumnIDs = LocalRelTable::rewriteLocalColumnIDs(direction, columnIDs);
-        localTableScanState = std::make_unique<LocalRelTableScanState>(
-            *transaction->getClientContext()->getMemoryManager(), *this,
+        localTableScanState = std::make_unique<LocalRelTableScanState>(*this,
             localRelTable->ptrCast<LocalRelTable>(), localTableColumnIDs);
     }
 }
@@ -54,7 +53,7 @@ void RelTableScanState::initState(Transaction* transaction, NodeGroup* nodeGroup
     }
     if (this->nodeGroup) {
         initStateForCommitted(transaction);
-    } else if (hasUnComittedData()) {
+    } else if (hasUnCommittedData()) {
         initStateForUncommitted();
     } else {
         source = TableScanSource::NONE;
@@ -73,7 +72,7 @@ void RelTableScanState::initCachedBoundNodeIDSelVector() {
     cachedBoundNodeSelVector.setSelSize(nodeIDVector->state->getSelVector().getSelSize());
 }
 
-bool RelTableScanState::hasUnComittedData() const {
+bool RelTableScanState::hasUnCommittedData() const {
     return localTableScanState && localTableScanState->localRelTable;
 }
 
@@ -96,7 +95,7 @@ bool RelTableScanState::scanNext(Transaction* transaction) {
         case TableScanSource::COMMITTED: {
             const auto scanResult = nodeGroup->scan(transaction, *this);
             if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
-                if (hasUnComittedData()) {
+                if (hasUnCommittedData()) {
                     initStateForUncommitted();
                 } else {
                     source = TableScanSource::NONE;

@@ -343,6 +343,7 @@ bool ChunkedNodeGroup::lookup(const Transaction* transaction, const TableScanSta
                 continue;
             }
             KU_ASSERT(columnID < chunks.size());
+            KU_ASSERT(i < nodeGroupScanState.chunkStates.size());
             chunks[columnID]->lookup(transaction, nodeGroupScanState.chunkStates[i], rowIdxInChunk,
                 *state.outputVectors[i],
                 state.outputVectors[i]->state->getSelVector()[posInOutput]);

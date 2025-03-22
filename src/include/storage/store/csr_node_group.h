@@ -127,11 +127,14 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
     CSRNodeGroupScanSource source;
 
     // This is for local scan state where we don't need `header`.
+    explicit CSRNodeGroupScanState()
+        : header{nullptr}, numTotalRows{0}, numCachedRows{0}, nextCachedRowToScan{0},
+          source{CSRNodeGroupScanSource::COMMITTED_PERSISTENT} {}
     explicit CSRNodeGroupScanState(common::idx_t numChunks)
         : NodeGroupScanState{numChunks}, header{nullptr}, numTotalRows{0}, numCachedRows{0},
           nextCachedRowToScan{0}, source{CSRNodeGroupScanSource::COMMITTED_PERSISTENT} {}
-    CSRNodeGroupScanState(MemoryManager& mm, common::idx_t numChunks)
-        : NodeGroupScanState{numChunks}, numTotalRows{0}, numCachedRows{0}, nextCachedRowToScan{0},
+    explicit CSRNodeGroupScanState(MemoryManager& mm)
+        : numTotalRows{0}, numCachedRows{0}, nextCachedRowToScan{0},
           source{CSRNodeGroupScanSource::COMMITTED_PERSISTENT} {
         header = std::make_unique<ChunkedCSRHeader>(mm, false,
             common::StorageConfig::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);

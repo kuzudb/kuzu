@@ -32,7 +32,7 @@ struct RelTableScanState : TableScanState {
         : TableScanState{nodeIDVector, std::move(outputVectors), std::move(outChunkState)},
           direction{common::RelDataDirection::INVALID}, currBoundNodeIdx{0},
           csrOffsetColumn{nullptr}, csrLengthColumn{nullptr}, localTableScanState{nullptr} {
-        nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(mm, columnIDs.size());
+        nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(mm);
     }
 
     // This is for local table scan state.
@@ -42,7 +42,7 @@ struct RelTableScanState : TableScanState {
         : TableScanState{nodeIDVector, std::move(outputVectors), std::move(outChunkState)},
           direction{common::RelDataDirection::INVALID}, currBoundNodeIdx{0},
           csrOffsetColumn{nullptr}, csrLengthColumn{nullptr}, localTableScanState{nullptr} {
-        nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>(columnIDs.size());
+        nodeGroupScanState = std::make_unique<CSRNodeGroupScanState>();
     }
 
     void setToTable(const transaction::Transaction* transaction, Table* table_,
@@ -58,7 +58,7 @@ struct RelTableScanState : TableScanState {
     void setNodeIDVectorToFlat(common::sel_t selPos) const;
 
 private:
-    bool hasUnComittedData() const;
+    bool hasUnCommittedData() const;
 
     void initCachedBoundNodeIDSelVector();
     void initStateForCommitted(const transaction::Transaction* transaction);
@@ -74,9 +74,9 @@ struct LocalRelTableScanState final : RelTableScanState {
     row_idx_vec_t rowIndices;
     common::row_idx_t nextRowToScan = 0;
 
-    LocalRelTableScanState(MemoryManager& mm, const RelTableScanState& baseScanState,
-        LocalRelTable* localRelTable, std::vector<common::column_id_t> columnIDs)
-        : RelTableScanState{mm, baseScanState.nodeIDVector, baseScanState.outputVectors,
+    LocalRelTableScanState(const RelTableScanState& baseScanState, LocalRelTable* localRelTable,
+        std::vector<common::column_id_t> columnIDs)
+        : RelTableScanState{baseScanState.nodeIDVector, baseScanState.outputVectors,
               baseScanState.outState},
           localRelTable{localRelTable} {
         this->columnIDs = std::move(columnIDs);
@@ -84,6 +84,7 @@ struct LocalRelTableScanState final : RelTableScanState {
         // Setting source to UNCOMMITTED is not necessary but just to keep it semantically
         // consistent.
         this->source = TableScanSource::UNCOMMITTED;
+        this->nodeGroupScanState->chunkStates.resize(this->columnIDs.size());
     }
 };
 
