@@ -319,7 +319,7 @@ embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_VECTOR_INDEX('embeddings', '
 -STATEMENT INSTALL vector FROM 'http://localhost/extension/repo/'
 ---- 1
 Extension: vector has been installed from repo: http://localhost/extension/repo/.
--STATEMENT LOAD EXTENSION vector
+-STATEMENT LOAD vector
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
@@ -335,7 +335,7 @@ Extension: vector has been installed from repo: http://localhost/extension/repo/
 133
 
 -CASE Yield
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
+-STATEMENT LOAD '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok

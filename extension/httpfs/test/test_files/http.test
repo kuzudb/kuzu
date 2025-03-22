@@ -5,7 +5,7 @@
 -CASE ScanFromHTTPCSV
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
 ---- ok
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+-STATEMENT load "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
 ---- ok
 -STATEMENT load from "http://localhost/dataset/tinysnb/vPerson.csv" return * limit 5;
 ---- 5
@@ -40,7 +40,7 @@ Zhang|50
 Noura|25
 
 -CASE ScanFromHTTPS
--STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+-STATEMENT load "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
 ---- ok
 -STATEMENT load from "https://extension.kuzudb.com/dataset/test/city.csv" return *;
 ---- 3

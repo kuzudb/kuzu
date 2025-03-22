@@ -275,7 +275,7 @@ twelve
 
 -CASE DuplicateEntries
 
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
+-STATEMENT LOAD '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
 ---- ok
 -STATEMENT CREATE NODE TABLE Documents (ID SERIAL, title STRING, text STRING, quantity INT64, PRIMARY KEY (ID));
 ---- ok
@@ -313,7 +313,7 @@ title3
 -STATEMENT INSTALL fts FROM 'http://localhost/extension/repo/'
 ---- 1
 Extension: fts has been installed from repo: http://localhost/extension/repo/.
--STATEMENT load extension fts
+-STATEMENT load fts
 ---- ok
 -STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
 ---- ok
