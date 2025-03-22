@@ -1,4 +1,5 @@
 import asyncio
+import time
 
 import kuzu
 import pytest
@@ -121,3 +122,15 @@ def test_acquire_connection(async_connection_readonly):
     async_connection_readonly.release_connection(conn)
     for i in async_connection_readonly.connections_counter:
         assert i == 0
+
+
+@pytest.mark.asyncio()
+async def test_async_connection_interrupt(async_connection_readonly) -> None:
+    query = "UNWIND RANGE(1,1000000) AS x UNWIND RANGE(1, 1000000) AS y RETURN COUNT(x + y);"
+    async_connection_readonly.set_query_timeout(100 * 1000)
+    prepared = await async_connection_readonly.prepare(query)
+    task = asyncio.create_task(async_connection_readonly.execute(prepared))
+    time.sleep(5)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task

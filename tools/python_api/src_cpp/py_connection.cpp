@@ -31,6 +31,7 @@ void PyConnection::initialize(py::handle& m) {
             py::arg("num_threads"))
         .def("prepare", &PyConnection::prepare, py::arg("query"))
         .def("set_query_timeout", &PyConnection::setQueryTimeout, py::arg("timeout_in_ms"))
+        .def("interrupt", &PyConnection::interrupt)
         .def("get_num_nodes", &PyConnection::getNumNodes, py::arg("node_name"))
         .def("get_num_rels", &PyConnection::getNumRels, py::arg("rel_name"))
         .def("get_all_edges_for_torch_geometric", &PyConnection::getAllEdgesForTorchGeometric,
@@ -144,6 +145,10 @@ void PyConnection::close() {
 
 void PyConnection::setQueryTimeout(uint64_t timeoutInMS) {
     conn->setQueryTimeOut(timeoutInMS);
+}
+
+void PyConnection::interrupt() {
+    conn->interrupt();
 }
 
 static std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameters(

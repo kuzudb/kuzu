@@ -126,7 +126,7 @@ class Connection:
             msg = f"Parameters must be a dict; found {type(parameters)}."
             raise RuntimeError(msg)  # noqa: TRY004
 
-        if len(parameters) == 0:
+        if len(parameters) == 0 and isinstance(query, str):
             _query_result = self._connection.query(query)
         else:
             prepared_statement = self.prepare(query) if isinstance(query, str) else query
@@ -228,6 +228,14 @@ class Connection:
         """
         self.init_connection()
         self._connection.set_query_timeout(timeout_in_ms)
+
+    def interrupt(self) -> None:
+        """
+        Interrupts execution of the current query.
+
+        If there is no currently executing query, this function does nothing.
+        """
+        self._connection.interrupt()
 
     def create_function(
         self,
