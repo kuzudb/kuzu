@@ -1179,9 +1179,9 @@ public:
     antlr4::tree::TerminalNode *LOAD();
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
-    antlr4::tree::TerminalNode *EXTENSION();
     antlr4::tree::TerminalNode *StringLiteral();
     OC_VariableContext *oC_Variable();
+    antlr4::tree::TerminalNode *EXTENSION();
 
    
   };
