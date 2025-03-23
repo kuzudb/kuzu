@@ -12,7 +12,6 @@
 --
 
 -CASE GDSLarge
-
 -STATEMENT CALL create_projected_graph('PK1', ['person1'], ['knows11'])
 ---- ok
 -STATEMENT CALL create_projected_graph('PK2', ['person1', 'person2'], ['knows12', 'knows21'])

@@ -15,10 +15,13 @@ void Planner::planProjectionBody(const BoundProjectionBody* projectionBody,
 }
 
 void Planner::planProjectionBody(const BoundProjectionBody* projectionBody, LogicalPlan& plan) {
+    auto expressionsToProject = projectionBody->getProjectionExpressions();
+    if (expressionsToProject.empty()) {
+        return;
+    }
     if (plan.isEmpty()) { // e.g. RETURN 1, COUNT(2)
         appendDummyScan(plan);
     }
-    auto expressionsToProject = projectionBody->getProjectionExpressions();
     auto expressionsToAggregate = projectionBody->getAggregateExpressions();
     auto expressionsToGroupBy = projectionBody->getGroupByExpressions();
     if (!expressionsToAggregate.empty()) {

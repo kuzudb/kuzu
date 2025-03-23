@@ -5,6 +5,7 @@
 #include "binder/expression/property_expression.h"
 #include "binder/expression/rel_expression.h"
 #include "binder/visitor/property_collector.h"
+#include "binder/expression_visitor.h"
 
 using namespace kuzu::common;
 
@@ -64,6 +65,8 @@ void WithClauseProjectionRewriter::visitSingleQueryUnsafe(NormalizedSingleQuery&
         }
         varNameToProperties.at(property.getVariableName()).push_back(expr);
     }
+    // Rewrite WITH clause node, relationship pattern projection as node.* & rel.*
+    // Because we want to delay the evaluation of node and rel as a struct.
     for (auto i = 0u; i < singleQuery.getNumQueryParts() - 1; ++i) {
         auto queryPart = singleQuery.getQueryPartUnsafe(i);
         auto projectionBody = queryPart->getProjectionBodyUnsafe();
@@ -73,6 +76,24 @@ void WithClauseProjectionRewriter::visitSingleQueryUnsafe(NormalizedSingleQuery&
         auto newGroupByExprs =
             rewrite(projectionBody->getGroupByExpressions(), varNameToProperties);
         projectionBody->setGroupByExpressions(std::move(newGroupByExprs));
+    }
+    // Remove constant expressions from WITH clause projection list.
+    for (auto i = 0u; i < singleQuery.getNumQueryParts() - 1; ++i) {
+        auto queryPart = singleQuery.getQueryPartUnsafe(i);
+        auto projectionBody = queryPart->getProjectionBodyUnsafe();
+        // Avoid rewrite in the case of ORDER BY 1 or aggregate by constant. Because operator
+        // implementation replies on expressions to be projected first.
+        if (projectionBody->hasOrderByExpressions() || projectionBody->hasAggregateExpressions()) {
+            continue;
+        }
+        expression_vector nonConstantProjectionExprs;
+        for (auto& expr : projectionBody->getProjectionExpressions()) {
+            if (ConstantExpressionVisitor::isConstant(*expr)) {
+                continue;
+            }
+            nonConstantProjectionExprs.push_back(expr);
+        }
+        projectionBody->setProjectionExpressions(nonConstantProjectionExprs);
     }
 }
 

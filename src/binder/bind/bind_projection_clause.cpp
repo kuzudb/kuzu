@@ -13,6 +13,7 @@ using namespace kuzu::parser;
 
 namespace kuzu {
 namespace binder {
+
 void validateColumnNamesAreUnique(const std::vector<std::string>& columnNames) {
     auto existColumnNames = std::unordered_set<std::string>();
     for (auto& name : columnNames) {
