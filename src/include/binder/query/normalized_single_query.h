@@ -18,9 +18,7 @@ public:
     NormalizedQueryPart* getQueryPartUnsafe(common::idx_t idx) { return &queryParts[idx]; }
     const NormalizedQueryPart* getQueryPart(common::idx_t idx) const { return &queryParts[idx]; }
 
-    void setStatementResult(BoundStatementResult result) {
-        statementResult = std::move(result);
-    }
+    void setStatementResult(BoundStatementResult result) { statementResult = std::move(result); }
     const BoundStatementResult* getStatementResult() const { return &statementResult; }
 
 private:

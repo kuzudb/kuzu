@@ -4,8 +4,8 @@
 #include "binder/expression/node_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression/rel_expression.h"
-#include "binder/visitor/property_collector.h"
 #include "binder/expression_visitor.h"
+#include "binder/visitor/property_collector.h"
 
 using namespace kuzu::common;
 
