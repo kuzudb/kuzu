@@ -8,6 +8,7 @@ add_library(kuzu_table_function
         clear_warnings.cpp
         create_project_graph.cpp
         current_setting.cpp
+        db_stats.cpp
         db_version.cpp
         drop_project_graph.cpp
         show_attached_databases.cpp
