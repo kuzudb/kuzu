@@ -13,7 +13,7 @@
 ---- ok
 -STATEMENT CREATE (e:embeddings{id: 1000})
 ---- ok
--STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2', mu := 16, ml := 32);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 6) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
@@ -33,7 +33,7 @@
 ---- ok
 -STATEMENT MATCH (e:embeddings) WHERE e.id < 995 DELETE e
 ---- ok
--STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2', mu := 16, ml := 32);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 6) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
@@ -57,7 +57,7 @@
 ---- ok
 -STATEMENT CREATE (e:embeddings{id: 1000})
 ---- ok
--STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2', mu := 16, ml := 32);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 6) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
@@ -75,7 +75,7 @@
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2', mu := 16, ml := 32);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 3) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
@@ -91,7 +91,7 @@
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', mu := 16, ml := 32);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 3) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
@@ -108,7 +108,7 @@
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'dotproduct');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'dotproduct', mu := 16, ml := 32);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 3) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
@@ -124,7 +124,7 @@
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-960-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2', mu := 16, ml := 32);
 ---- ok
 -STATEMENT CALL show_tables() return *;
 ---- 1
@@ -156,7 +156,7 @@
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2', mu := 16, ml := 32);
 ---- ok
 -STATEMENT CALL show_tables() return *;
 ---- 1
@@ -172,7 +172,7 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
--STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2', mu := 16, ml := 32);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 3) RETURN nn.id ORDER BY _distance;
 ---- 0
@@ -187,7 +187,7 @@
 -STATEMENT MATCH (n:embeddings) RETURN COUNT(n);
 ---- 1
 2
--STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', mu := 16, ml := 32);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 3) RETURN nn.id ORDER BY _distance;
 ---- 2
@@ -205,7 +205,7 @@
 -STATEMENT MATCH (n:embeddings) RETURN COUNT(n);
 ---- 1
 2
--STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', mu := 16, ml := 32);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 3) RETURN nn.id ORDER BY _distance;
 ---- 2
@@ -226,9 +226,9 @@
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'dotproduct');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'dotproduct', mu := 15, ml := 30);
 ---- ok
--STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index2','vec', metric := 'dot_product');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index2','vec', metric := 'dot_product', mu := 15, ml := 30);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], cast(3 as uint32)) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
@@ -250,7 +250,7 @@
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'dotproduct');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'dotproduct', mu := 16, ml := 32);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], cast(3 as uint32)) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
@@ -292,7 +292,7 @@ Binder exception: _e_hnsw_index_LOWER already exists in catalog.
 93
 -STATEMENT CALL SHOW_INDEXES() RETURN *
 ---- 1
-embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', mu := 30, ml := 60, pu := 0.050000, metric := 'dotproduct', alpha := 1.100000, efc := 200);
+embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', mu := 16, ml := 32, pu := 0.050000, metric := 'dotproduct', alpha := 1.100000, efc := 200);
 
 -CASE ShowIndexes
 -SKIP_IN_MEM
@@ -300,11 +300,11 @@ embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_VECTOR_INDEX('embeddings', '
 ---- ok
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
 ---- ok
--STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', metric := 'l2', mu := 16, ml := 32);
 ---- ok
 -STATEMENT CALL SHOW_INDEXES() RETURN *
 ---- 1
-embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', mu := 30, ml := 60, pu := 0.050000, metric := 'l2', alpha := 1.100000, efc := 200);
+embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', mu := 16, ml := 32, pu := 0.050000, metric := 'l2', alpha := 1.100000, efc := 200);
 -RELOADDB
 -STATEMENT CALL SHOW_INDEXES() RETURN *
 ---- 1
@@ -313,7 +313,7 @@ embeddings|e_hnsw_index|HNSW|[vec]|False|
 ---- ok
 -STATEMENT CALL SHOW_INDEXES() RETURN *
 ---- 1
-embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', mu := 30, ml := 60, pu := 0.050000, metric := 'l2', alpha := 1.100000, efc := 200);
+embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', mu := 16, ml := 32, pu := 0.050000, metric := 'l2', alpha := 1.100000, efc := 200);
 
 -CASE InstallOfficialExtension
 -STATEMENT INSTALL vector FROM 'http://localhost/extension/repo/'
@@ -325,7 +325,7 @@ Extension: vector has been installed from repo: http://localhost/extension/repo/
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2', mu := 16, ml := 32);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 3) RETURN nn.id ORDER BY _distance;
 -CHECK_ORDER
@@ -341,7 +341,7 @@ Extension: vector has been installed from repo: http://localhost/extension/repo/
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-8-1k.csv" (deLim=',');
 ---- ok
--STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2', mu := 16, ml := 32);
 ---- ok
 -STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', [0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557], 3) YIELD nn AS node, _distance AS dist RETURN node.id ORDER BY dist;
 -CHECK_ORDER

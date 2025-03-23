@@ -37,9 +37,15 @@ void InMemHNSWLayer::insert(common::offset_t offset, common::offset_t entryPoint
         }
         entryPoint_ = entryPointInCurrentLayer;
     }
-    const auto closest = searchKNN(info.embeddings->getEmbedding(offset), entryPoint_,
-        info.maxDegree, info.efc, visited);
+    auto closest = searchKNN(info.embeddings->getEmbedding(offset), entryPoint_, info.maxDegree,
+        info.efc, visited);
+    if (closest.size() > info.degreeThresholdToShrink) {
+        closest = shrinkNeighbours(closest);
+    }
     for (const auto& n : closest) {
+        if (n.nodeOffset == offset) {
+            continue;
+        }
         insertRel(offset, n.nodeOffset);
         insertRel(n.nodeOffset, offset);
     }
@@ -145,12 +151,20 @@ std::vector<NodeWithDistance> InMemHNSWLayer::searchKNN(const float* queryVector
             }
         }
     }
-    return HNSWIndex::popTopK(result, k);
+    std::vector<NodeWithDistance> resultVecToShrink;
+    resultVecToShrink.reserve(result.size());
+    while (!result.empty()) {
+        resultVecToShrink.push_back(result.top());
+        result.pop();
+    }
+    std::ranges::reverse(resultVecToShrink);
+    return resultVecToShrink;
+    // return HNSWIndex::popTopK(result, k);
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
 void InMemHNSWLayer::shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGraph* graph,
-    common::offset_t nodeOffset, common::length_t numNbrs) {
+    common::offset_t nodeOffset, common::length_t numNbrs) const {
     std::vector<NodeWithDistance> nbrs;
     const auto vector = info.embeddings->getEmbedding(nodeOffset);
     const auto neighbors = graph->getNeighbors(nodeOffset);
@@ -169,6 +183,18 @@ void InMemHNSWLayer::shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGrap
     std::ranges::sort(nbrs, [](const NodeWithDistance& l, const NodeWithDistance& r) {
         return l.distance < r.distance;
     });
+    const auto shrinkedNbrs = shrinkNeighbours(nbrs);
+    const auto startCSROffset = nodeOffset * info.degreeThresholdToShrink;
+    for (auto i = 0u; i < shrinkedNbrs.size(); i++) {
+        graph->setDstNode(startCSROffset + i, shrinkedNbrs[i].nodeOffset);
+    }
+    graph->setCSRLength(nodeOffset, shrinkedNbrs.size());
+}
+
+std::vector<NodeWithDistance> InMemHNSWLayer::shrinkNeighbours(
+    const std::vector<NodeWithDistance>& nbrs) const {
+    std::vector<NodeWithDistance> shrinkedNbrs;
+    shrinkedNbrs.reserve(info.maxDegree);
     uint16_t newSize = 0;
     for (auto i = 1u; i < nbrs.size(); i++) {
         bool keepNbr = true;
@@ -183,14 +209,14 @@ void InMemHNSWLayer::shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGrap
             }
         }
         if (keepNbr) {
-            const auto startCSROffset = nodeOffset * info.degreeThresholdToShrink;
-            graph->setDstNode(startCSROffset + newSize++, nbrs[i].nodeOffset);
-        }
-        if (newSize >= info.maxDegree) {
-            break;
+            shrinkedNbrs.emplace_back(nbrs[i]);
+            newSize++;
+            if (newSize >= info.maxDegree) {
+                break;
+            }
         }
     }
-    graph->setCSRLength(nodeOffset, newSize);
+    return shrinkedNbrs;
 }
 
 void InMemHNSWLayer::finalize(MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,

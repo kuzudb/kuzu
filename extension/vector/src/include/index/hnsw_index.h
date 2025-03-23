@@ -122,8 +122,9 @@ public:
 private:
     std::vector<NodeWithDistance> searchKNN(const float* queryVector, common::offset_t entryNode,
         common::length_t k, uint64_t configuredEf, VisitedState& visited) const;
-    static void shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGraph* graph,
-        common::offset_t nodeOffset, common::length_t numNbrs);
+    void shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGraph* graph,
+        common::offset_t nodeOffset, common::length_t numNbrs) const;
+    std::vector<NodeWithDistance> shrinkNeighbours(const std::vector<NodeWithDistance>& nbrs) const;
 
     void insertRel(common::offset_t srcNode, common::offset_t dstNode);
 
