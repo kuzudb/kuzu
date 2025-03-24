@@ -188,6 +188,13 @@ abfsuni
 cswork
 deswork
 
+-LOG ToLowerStr
+-STATEMENT MATCH (o:organisation) RETURN toLower(o.name)
+---- 3
+abfsuni
+cswork
+deswork
+
 -LOG LowerUTF8String
 -STATEMENT MATCH (m:movies) RETURN lower(m.name)
 ---- 3
@@ -197,6 +204,13 @@ roma
 
 -LOG UpperStr
 -STATEMENT MATCH (o:organisation) RETURN upper(o.name)
+---- 3
+ABFSUNI
+CSWORK
+DESWORK
+
+-LOG ToUpperStr
+-STATEMENT MATCH (o:organisation) RETURN toUpper(o.name)
 ---- 3
 ABFSUNI
 CSWORK

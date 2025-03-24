@@ -1,0 +1,30 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE FunctionLabel
+
+-STATEMENT MATCH (a) RETURN DISTINCT label(a);
+---- 3
+movies
+organisation
+person
+-STATEMENT MATCH (a) RETURN DISTINCT labels(a);
+---- 3
+movies
+organisation
+person
+-STATEMENT MATCH (a)-[e]->(b) RETURN DISTINCT label(e);
+---- 5
+knows
+marries
+meets
+studyAt
+workAt
+-STATEMENT MATCH (a)-[e]->(b) RETURN DISTINCT labels(e);
+---- 5
+knows
+marries
+meets
+studyAt
+workAt
