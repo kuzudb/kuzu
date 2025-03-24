@@ -160,7 +160,7 @@ struct JSONScanLocalState : public TableFuncLocalState {
     bool readNextBufferInternal(uint64_t& bufferIdx, bool& fileDone);
     bool readNextBufferSeek(uint64_t& bufferIdx, bool& fileDone);
     void skipOverArrayStart();
-    void parseNextChunk(const std::optional<std::vector<ValueVector*>>& warningDataVectors);
+    bool parseNextChunk(const std::optional<std::vector<ValueVector*>>& warningDataVectors);
     bool parseJson(uint8_t* jsonStart, uint64_t jsonSize, uint64_t remaining, idx_t numLinesInJson,
         const std::optional<std::vector<ValueVector*>>& warningDataVectors = {});
     bool reconstructFirstObject();
@@ -434,7 +434,7 @@ static uint8_t* nextNewLine(uint8_t* ptr, idx_t size) {
     return reinterpret_cast<uint8_t*>(memchr(ptr, '\n', size));
 }
 
-void JSONScanLocalState::parseNextChunk(
+bool JSONScanLocalState::parseNextChunk(
     const std::optional<std::vector<ValueVector*>>& warningDataVectors) {
     auto format = currentReader->getFormat();
     while (numValuesToOutput < DEFAULT_VECTOR_CAPACITY) {
@@ -463,6 +463,13 @@ void JSONScanLocalState::parseNextChunk(
         auto jsonSize = jsonEnd - jsonStart;
         bool parseSuccess =
             parseJson(jsonStart, jsonSize, remaining, lineCountInJson, warningDataVectors);
+
+        // if there are any pending errors to throw, stop the parsing
+        // the actual error will be thrown during finalize
+        if (!parseSuccess && !errorHandler->getIgnoreErrorsOption()) {
+            return false;
+        }
+
         bufferOffset += jsonSize;
         lineCountInBuffer += lineCountInJson;
 
@@ -483,6 +490,7 @@ void JSONScanLocalState::parseNextChunk(
 
         numValuesToOutput += parseSuccess;
     }
+    return true;
 }
 
 static JsonScanFormat autoDetectFormat(uint8_t* buffer_ptr, uint64_t buffer_size) {
@@ -673,8 +681,11 @@ uint64_t JSONScanLocalState::readNext(
                 }
             }
         }
-        parseNextChunk(warningDataVectors);
-    }
+        bool parseSuccess = parseNextChunk(warningDataVectors);
+        if (!parseSuccess) {
+            break;
+        }
+    };
     return numValuesToOutput;
 }
 
