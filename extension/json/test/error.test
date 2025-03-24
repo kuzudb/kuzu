@@ -26,6 +26,9 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/json-error/structur
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/json-error/newline_delimited_invalid_value.json' RETURN *;
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/json-error/newline_delimited_invalid_value.json on line 2: Malformed JSON: unexpected character, expected a comma or a closing brace. Line/record containing the error: '{"b": 2a...'
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/json-error/newline_delimited_invalid_format.json' RETURN *;
+---- error
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/json-error/newline_delimited_invalid_format.json on line 1: Malformed JSON: unexpected character, expected a valid root value. Line/record containing the error: ',...'
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/json-error/unstructured.json'(format='unstructured') RETURN *;
 ---- error(regex)
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/json-error/unstructured.json on line 5: Malformed JSON: unexpected character, expected a valid JSON value. Line/record containing the error: '\{\s*"c":3,\s*"d":,...'
