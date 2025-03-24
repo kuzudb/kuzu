@@ -86,7 +86,6 @@ public:
     std::mutex lock;
 
 private:
-    main::ClientContext& context;
     std::unique_ptr<JsonFileHandle> fileHandle;
     std::string fileName;
     BufferedJSONReaderOptions options;

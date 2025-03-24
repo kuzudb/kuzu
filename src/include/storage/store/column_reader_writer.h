@@ -38,14 +38,12 @@ using filter_func_t = std::function<bool(common::offset_t, common::offset_t)>;
 
 struct ColumnReadWriterFactory {
     static std::unique_ptr<ColumnReadWriter> createColumnReadWriter(common::PhysicalTypeID dataType,
-        DBFileID dbFileID, FileHandle* dataFH, BufferManager* bufferManager,
-        ShadowFile* shadowFile);
+        DBFileID dbFileID, FileHandle* dataFH, ShadowFile* shadowFile);
 };
 
 class ColumnReadWriter {
 public:
-    ColumnReadWriter(DBFileID dbFileID, FileHandle* dataFH, BufferManager* bufferManager,
-        ShadowFile* shadowFile);
+    ColumnReadWriter(DBFileID dbFileID, FileHandle* dataFH, ShadowFile* shadowFile);
 
     virtual ~ColumnReadWriter() = default;
 
@@ -94,7 +92,6 @@ protected:
 private:
     DBFileID dbFileID;
     FileHandle* dataFH;
-    BufferManager* bufferManager;
     ShadowFile* shadowFile;
 };
 

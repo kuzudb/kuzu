@@ -52,9 +52,8 @@ OnDiskEmbeddingScanState::OnDiskEmbeddingScanState(const transaction::Transactio
     scanState->setToTable(transaction, &nodeTable, std::move(columnIDs));
 }
 
-OnDiskEmbeddings::OnDiskEmbeddings(EmbeddingTypeInfo typeInfo, NodeTable& nodeTable,
-    common::column_id_t columnID)
-    : EmbeddingColumn{std::move(typeInfo)}, nodeTable{nodeTable}, columnID{columnID} {}
+OnDiskEmbeddings::OnDiskEmbeddings(EmbeddingTypeInfo typeInfo, NodeTable& nodeTable)
+    : EmbeddingColumn{std::move(typeInfo)}, nodeTable{nodeTable} {}
 
 float* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
     NodeTableScanState& scanState, common::offset_t offset) const {

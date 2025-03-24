@@ -50,15 +50,13 @@ struct OnDiskEmbeddingScanState {
 
 class OnDiskEmbeddings final : public EmbeddingColumn {
 public:
-    OnDiskEmbeddings(EmbeddingTypeInfo typeInfo, storage::NodeTable& nodeTable,
-        common::column_id_t columnID);
+    OnDiskEmbeddings(EmbeddingTypeInfo typeInfo, storage::NodeTable& nodeTable);
 
     float* getEmbedding(transaction::Transaction* transaction,
         storage::NodeTableScanState& scanState, common::offset_t offset) const;
 
 private:
     storage::NodeTable& nodeTable;
-    common::column_id_t columnID;
 };
 
 struct NodeWithDistance {

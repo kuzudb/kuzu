@@ -285,8 +285,7 @@ OnDiskHNSWIndex::OnDiskHNSWIndex(main::ClientContext* context,
         indexColumnType.getExtraTypeInfo()->constPtrCast<common::ArrayTypeInfo>();
     EmbeddingTypeInfo indexColumnTypeInfo{extraTypeInfo->getChildType().copy(),
         extraTypeInfo->getNumElements()};
-    embeddings =
-        std::make_unique<OnDiskEmbeddings>(std::move(indexColumnTypeInfo), nodeTable, columnID);
+    embeddings = std::make_unique<OnDiskEmbeddings>(std::move(indexColumnTypeInfo), nodeTable);
     graph::GraphEntry lowerGraphEntry{{nodeTableEntry}, {lowerRelTableEntry}};
     lowerGraph = std::make_unique<graph::OnDiskGraph>(context, std::move(lowerGraphEntry));
     graph::GraphEntry upperGraphEntry{{nodeTableEntry}, {upperRelTableEntry}};

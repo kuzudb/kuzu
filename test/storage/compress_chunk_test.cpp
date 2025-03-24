@@ -129,7 +129,6 @@ template<std::floating_point T>
 void CompressChunkTest::testCompressChunk(const std::vector<T>& bufferToCompress,
     check_func_t checkFunc) {
     auto* mm = getMemoryManager(*database);
-    auto* bm = getBufferManager(*database);
     auto* storageManager = getStorageManager(*database);
     auto* dataFH = storageManager->getDataFH();
 
@@ -141,7 +140,7 @@ void CompressChunkTest::testCompressChunk(const std::vector<T>& bufferToCompress
         compressBuffer(bufferToCompress, alg, preScanMetadata.get(), dataFH, dataType);
 
     auto columnReader = ColumnReadWriterFactory::createColumnReadWriter(dataType.getPhysicalType(),
-        DBFileID::newDataFileID(), dataFH, bm, &storageManager->getShadowFile());
+        DBFileID::newDataFileID(), dataFH, &storageManager->getShadowFile());
 
     auto* clientContext = getClientContext(*conn);
     clientContext->getTransactionContext()->beginWriteTransaction();

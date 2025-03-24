@@ -15,7 +15,7 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace main {
 
-StorageDriver::StorageDriver(Database* database) : database{database} {
+StorageDriver::StorageDriver(Database* database) {
     clientContext = std::make_unique<ClientContext>(database);
 }
 

@@ -28,7 +28,6 @@ private:
         const common::offset_t* offsets, size_t size, uint8_t* result) const;
 
 private:
-    Database* database;
     std::unique_ptr<ClientContext> clientContext;
 };
 
