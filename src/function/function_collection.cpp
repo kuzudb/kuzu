@@ -40,7 +40,7 @@ namespace function {
     { _PARAM::getFunctionSet, _NAME, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
 #define SCALAR_FUNCTION(_PARAM) SCALAR_FUNCTION_BASE(_PARAM, _PARAM::name)
 #define SCALAR_FUNCTION_ALIAS(_PARAM) SCALAR_FUNCTION_BASE(_PARAM::alias, _PARAM::name)
-#define REWRITE_FUNCTION_BASE(_PARAM, _NAME)                                                              \
+#define REWRITE_FUNCTION_BASE(_PARAM, _NAME)                                                       \
     { _PARAM::getFunctionSet, _NAME, CatalogEntryType::REWRITE_FUNCTION_ENTRY }
 #define REWRITE_FUNCTION(_PARAM) REWRITE_FUNCTION_BASE(_PARAM, _PARAM::name)
 #define REWRITE_FUNCTION_ALIAS(_PARAM) REWRITE_FUNCTION_BASE(_PARAM::alias, _PARAM::name)
@@ -82,17 +82,16 @@ FunctionCollection* FunctionCollection::getFunctions() {
         // String Functions
         SCALAR_FUNCTION(ArrayExtractFunction), SCALAR_FUNCTION(ConcatFunction),
         SCALAR_FUNCTION(ContainsFunction), SCALAR_FUNCTION(LowerFunction),
-        SCALAR_FUNCTION_ALIAS(ToLowerFunction),
-        SCALAR_FUNCTION_ALIAS(LcaseFunction), SCALAR_FUNCTION(LeftFunction),
-        SCALAR_FUNCTION(LpadFunction), SCALAR_FUNCTION(LtrimFunction),
-        SCALAR_FUNCTION(StartsWithFunction), SCALAR_FUNCTION_ALIAS(PrefixFunction),
-        SCALAR_FUNCTION(RepeatFunction), SCALAR_FUNCTION(ReverseFunction),
-        SCALAR_FUNCTION(RightFunction), SCALAR_FUNCTION(RpadFunction),
-        SCALAR_FUNCTION(RtrimFunction), SCALAR_FUNCTION(SubStrFunction),
-        SCALAR_FUNCTION_ALIAS(SubstringFunction), SCALAR_FUNCTION(EndsWithFunction),
-        SCALAR_FUNCTION_ALIAS(SuffixFunction), SCALAR_FUNCTION(TrimFunction),
-        SCALAR_FUNCTION(UpperFunction), SCALAR_FUNCTION_ALIAS(UCaseFunction),
-        SCALAR_FUNCTION_ALIAS(ToUpperFunction),
+        SCALAR_FUNCTION_ALIAS(ToLowerFunction), SCALAR_FUNCTION_ALIAS(LcaseFunction),
+        SCALAR_FUNCTION(LeftFunction), SCALAR_FUNCTION(LpadFunction),
+        SCALAR_FUNCTION(LtrimFunction), SCALAR_FUNCTION(StartsWithFunction),
+        SCALAR_FUNCTION_ALIAS(PrefixFunction), SCALAR_FUNCTION(RepeatFunction),
+        SCALAR_FUNCTION(ReverseFunction), SCALAR_FUNCTION(RightFunction),
+        SCALAR_FUNCTION(RpadFunction), SCALAR_FUNCTION(RtrimFunction),
+        SCALAR_FUNCTION(SubStrFunction), SCALAR_FUNCTION_ALIAS(SubstringFunction),
+        SCALAR_FUNCTION(EndsWithFunction), SCALAR_FUNCTION_ALIAS(SuffixFunction),
+        SCALAR_FUNCTION(TrimFunction), SCALAR_FUNCTION(UpperFunction),
+        SCALAR_FUNCTION_ALIAS(UCaseFunction), SCALAR_FUNCTION_ALIAS(ToUpperFunction),
         SCALAR_FUNCTION(RegexpFullMatchFunction), SCALAR_FUNCTION(RegexpMatchesFunction),
         SCALAR_FUNCTION(RegexpReplaceFunction), SCALAR_FUNCTION(RegexpExtractFunction),
         SCALAR_FUNCTION(RegexpExtractAllFunction), SCALAR_FUNCTION(LevenshteinFunction),
