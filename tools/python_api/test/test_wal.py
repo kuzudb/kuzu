@@ -32,6 +32,7 @@ def test_replay_after_kill(tmp_path: Path, build_dir: Path) -> None:
     proc.kill()
     proc.wait(5)
     with kuzu.Database(tmp_path) as db, kuzu.Connection(db) as conn:
+        # previously committed queries should be valid after replaying WAL
         result = conn.execute("CALL show_tables() RETURN *")
         assert result.has_next()
         assert result.get_next()[1] == "tab"
