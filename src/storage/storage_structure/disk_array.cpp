@@ -382,6 +382,7 @@ uint8_t* BlockVectorInternal::operator[](uint64_t idx) const {
 
 void BlockVectorInternal::resize(uint64_t newNumElements, std::span<std::byte> defaultVal) {
     auto oldNumElements = numElements;
+    KU_ASSERT(newNumElements >= oldNumElements);
     uint64_t oldNumArrayPages = inMemArrayPages.size();
     uint64_t newNumArrayPages = getNumArrayPagesNeededForElements(newNumElements);
     for (auto i = oldNumArrayPages; i < newNumArrayPages; ++i) {

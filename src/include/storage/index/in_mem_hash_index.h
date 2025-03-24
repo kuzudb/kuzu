@@ -129,6 +129,8 @@ public:
     struct SlotIterator {
         explicit SlotIterator(slot_id_t newSlotId, const InMemHashIndex* builder)
             : slotInfo{newSlotId, SlotType::PRIMARY}, slot(builder->getSlot(slotInfo)) {}
+        explicit SlotIterator(SlotInfo slotInfo, const InMemHashIndex* builder)
+            : slotInfo{slotInfo}, slot(builder->getSlot(slotInfo)) {}
         SlotInfo slotInfo;
         Slot<T>* slot;
     };
@@ -238,9 +240,13 @@ private:
      * Values are then rehashed using a hash index which is one bit wider than before,
      * meaning they either stay in the existing slot, or move into the new one.
      */
-    void splitSlot(HashIndexHeader& header);
+    void splitSlot();
     // Reclaims empty overflow slots to be re-used, starting from the given slot iterator
     void reclaimOverflowSlots(SlotIterator iter);
+    void addFreeOverflowSlot(Slot<T>& overflowSlot, SlotInfo slotInfo);
+    uint64_t countSlots(SlotIterator iter) const;
+    // Make sure that the free overflow slot chain is at least as long as the totalSlotsRequired
+    void reserveOverflowSlots(uint64_t totalSlotsRequired);
 
     bool equals(Key keyToLookup, const T& keyInEntry) const {
         if constexpr (std::same_as<T, common::ku_string_t>) {
@@ -320,6 +326,7 @@ private:
     std::unique_ptr<BlockVector<Slot<T>>> oSlots;
     HashIndexHeader indexHeader;
     MemoryManager& memoryManager;
+    uint64_t numFreeSlots;
 };
 
 } // namespace storage

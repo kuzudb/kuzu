@@ -1,5 +1,6 @@
 #include "storage/index/in_mem_hash_index.h"
 
+#include <cstdint>
 #include <cstring>
 
 #include "common/types/ku_string.h"
@@ -22,7 +23,7 @@ InMemHashIndex<T>::InMemHashIndex(MemoryManager& memoryManager,
     : overflowFileHandle(overflowFileHandle),
       pSlots{std::make_unique<BlockVector<Slot<T>>>(memoryManager)},
       oSlots{std::make_unique<BlockVector<Slot<T>>>(memoryManager)}, indexHeader{},
-      memoryManager{memoryManager} {
+      memoryManager{memoryManager}, numFreeSlots{0} {
     // Match HashIndex in allocating at least one page of slots so that we don't split within the
     // same page
     allocateSlots(KUZU_PAGE_SIZE / pSlots->getAlignedElementSize());
@@ -38,6 +39,11 @@ void InMemHashIndex<T>::clear() {
 
 template<typename T>
 void InMemHashIndex<T>::allocateSlots(uint32_t newNumSlots) {
+    // Allocate memory before updating the header in case the memory allocation fails
+    auto existingSlots = pSlots->size();
+    if (newNumSlots > existingSlots) {
+        allocatePSlots(newNumSlots - existingSlots);
+    }
     auto numSlotsOfCurrentLevel = 1u << this->indexHeader.currentLevel;
     while ((numSlotsOfCurrentLevel << 1) <= newNumSlots) {
         this->indexHeader.incrementLevel();
@@ -45,10 +51,6 @@ void InMemHashIndex<T>::allocateSlots(uint32_t newNumSlots) {
     }
     if (newNumSlots >= numSlotsOfCurrentLevel) {
         this->indexHeader.nextSplitSlotId = newNumSlots - numSlotsOfCurrentLevel;
-    }
-    auto existingSlots = pSlots->size();
-    if (newNumSlots > existingSlots) {
-        allocatePSlots(newNumSlots - existingSlots);
     }
 }
 
@@ -63,21 +65,57 @@ void InMemHashIndex<T>::reserve(uint32_t numEntries_) {
         allocateSlots(numRequiredSlots);
     } else {
         while (pSlots->size() < numRequiredSlots) {
-            splitSlot(indexHeader);
+            splitSlot();
         }
     }
 }
 
 template<typename T>
-void InMemHashIndex<T>::splitSlot(HashIndexHeader& header) {
+uint64_t InMemHashIndex<T>::countSlots(SlotIterator iter) const {
+    if (iter.slotInfo.slotType == SlotType::OVF &&
+        iter.slotInfo.slotId == SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
+        return 0;
+    }
+    uint64_t count = 1;
+    while (nextChainedSlot(iter)) {
+        count++;
+    }
+    return count;
+}
+
+template<typename T>
+void InMemHashIndex<T>::reserveOverflowSlots(uint64_t totalSlotsRequired) {
+    // Make sure we have enough free slots to do the split without having to allocate more
+    // Any unused ones will just stay in the free slot chain and will be reused later
+    SlotInfo newSlot{oSlots->size(), SlotType::OVF};
+    if (totalSlotsRequired > numFreeSlots) {
+        oSlots->resize(oSlots->size() + totalSlotsRequired - numFreeSlots);
+        for (uint64_t i = 0; i < totalSlotsRequired - numFreeSlots; i++) {
+            auto slot = getSlot(newSlot);
+            addFreeOverflowSlot(*slot, newSlot);
+            newSlot.slotId++;
+        }
+    }
+}
+
+template<typename T>
+void InMemHashIndex<T>::splitSlot() {
     // Add new slot
     allocatePSlots(1);
 
     // Rehash the entries in the slot to split
-    SlotIterator originalSlot(header.nextSplitSlotId, this);
-    // Use a separate iterator to track the first empty position so that the gapless entries can be
-    // maintained
-    SlotIterator originalSlotForInsert(header.nextSplitSlotId, this);
+    SlotIterator originalSlot(indexHeader.nextSplitSlotId, this);
+    // Reserve enough overflow slots to be able to finish splitting without allocating any new
+    // memory Otherwise we run the risk of leaving the hash index in an invalid state if we fail to
+    // allocate a new overflow slot
+    // TODO(bmwinger): If we split slots backwards instead of forwards we would need to reserve just
+    // one slot Since we could then reclaim slots that have been emptied. That would require making
+    // the slots doubly-linked
+    reserveOverflowSlots(countSlots(originalSlot));
+
+    // Use a separate iterator to track the first empty position so that the gapless entries can
+    // be maintained
+    SlotIterator originalSlotForInsert(indexHeader.nextSplitSlotId, this);
     auto entryPosToInsert = 0u;
     SlotIterator newSlot(pSlots->size() - 1, this);
     entry_pos_t newSlotPos = 0;
@@ -91,21 +129,19 @@ void InMemHashIndex<T>::splitSlot(HashIndexHeader& header) {
                 // There should be no gaps, so when we encounter an invalid entry we can return
                 // early
                 reclaimOverflowSlots(originalSlotForInsert);
-                header.incrementNextSplitSlotId();
+                indexHeader.incrementNextSplitSlotId();
                 return;
             }
             const auto& entry = originalSlot.slot->entries[entryPos];
             const auto& hash = this->hashStored(originalSlot.slot->entries[entryPos].key);
             const auto fingerprint = HashIndexUtils::getFingerprintForHash(hash);
-            const auto newSlotId = hash & header.higherLevelHashMask;
-            if (newSlotId != header.nextSplitSlotId) {
+            const auto newSlotId = hash & indexHeader.higherLevelHashMask;
+            if (newSlotId != indexHeader.nextSplitSlotId) {
                 if (newSlotPos >= getSlotCapacity<T>()) {
                     auto newOvfSlotId = allocateAOSlot();
                     newSlot.slot->header.nextOvfSlotId = newOvfSlotId;
-                    if (newSlot.slot->header.nextOvfSlotId !=
-                        SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
-                        nextChainedSlot(newSlot);
-                    }
+                    [[maybe_unused]] bool hadNextSlot = nextChainedSlot(newSlot);
+                    KU_ASSERT(hadNextSlot);
                     newSlotPos = 0;
                 }
                 newSlot.slot->entries[newSlotPos] = entry;
@@ -120,10 +156,10 @@ void InMemHashIndex<T>::splitSlot(HashIndexHeader& header) {
                     entryPosToInsert++;
                     if (entryPosToInsert >= getSlotCapacity<T>()) {
                         entryPosToInsert = 0;
-                        if (originalSlotForInsert.slot->header.nextOvfSlotId !=
-                            SlotHeader::INVALID_OVERFLOW_SLOT_ID) {
-                            nextChainedSlot(originalSlotForInsert);
-                        }
+                        // There should always be another slot since we can't split more entries
+                        // than there were to begin with
+                        [[maybe_unused]] bool hadNextSlot = nextChainedSlot(originalSlotForInsert);
+                        KU_ASSERT(hadNextSlot);
                     }
                 }
                 originalSlotForInsert.slot->entries[entryPosToInsert] = entry;
@@ -136,7 +172,19 @@ void InMemHashIndex<T>::splitSlot(HashIndexHeader& header) {
     } while (nextChainedSlot(originalSlot));
 
     reclaimOverflowSlots(originalSlotForInsert);
-    header.incrementNextSplitSlotId();
+    indexHeader.incrementNextSplitSlotId();
+}
+
+template<typename T>
+void InMemHashIndex<T>::addFreeOverflowSlot(Slot<T>& overflowSlot, SlotInfo slotInfo) {
+    // This function should only be called on slots that can be directly inserted into the free slot
+    // list
+    KU_ASSERT(slotInfo.slotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID);
+    KU_ASSERT(overflowSlot.header.nextOvfSlotId == SlotHeader::INVALID_OVERFLOW_SLOT_ID);
+    KU_ASSERT(slotInfo.slotType == SlotType::OVF);
+    overflowSlot.header.nextOvfSlotId = indexHeader.firstFreeOverflowSlotId;
+    indexHeader.firstFreeOverflowSlotId = slotInfo.slotId;
+    numFreeSlots++;
 }
 
 template<typename T>
@@ -162,9 +210,7 @@ void InMemHashIndex<T>::reclaimOverflowSlots(SlotIterator iter) {
             auto slot = clearNextOverflowAndAdvanceIter(iter);
             if (slotInfo.slotType == SlotType::OVF) {
                 // Insert empty slot into free slot chain
-                KU_ASSERT(slotInfo.slotId != SlotHeader::INVALID_OVERFLOW_SLOT_ID);
-                slot->header.nextOvfSlotId = indexHeader.firstFreeOverflowSlotId;
-                indexHeader.firstFreeOverflowSlotId = slotInfo.slotId;
+                addFreeOverflowSlot(*slot, slotInfo);
             }
         }
     }
@@ -204,6 +250,8 @@ uint32_t InMemHashIndex<T>::allocateAOSlot() {
         indexHeader.firstFreeOverflowSlotId = slot.header.nextOvfSlotId;
         KU_ASSERT(slot.header.numEntries() == 0);
         slot.header.nextOvfSlotId = SlotHeader::INVALID_OVERFLOW_SLOT_ID;
+        KU_ASSERT(numFreeSlots > 0);
+        numFreeSlots--;
         return freeOSlotId;
     }
 }
