@@ -50,7 +50,7 @@ bool LocalRelTable::insert(Transaction* transaction, TableInsertState& state) {
         rowIndicesToInsertTo.push_back(&directedIndex.index[nodeOffset]);
     }
 
-    const auto numRowsInLocalTable = localNodeGroup->getNumRows();
+    const auto numRowsInLocalTable = localNodeGroup->getNumTotalRows();
     const auto relOffset = StorageConstants::MAX_NUM_ROWS_IN_TABLE + numRowsInLocalTable;
     const auto relIDVector = insertState.propertyVectors[0];
     KU_ASSERT(relIDVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);

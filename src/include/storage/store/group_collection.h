@@ -126,7 +126,7 @@ public:
         const auto& groupsVector = getAllGroups(lock);
         return common::safeIntegerConversion<common::idx_t>(
             std::find_if(groupsVector.rbegin(), groupsVector.rend(),
-                [](const auto& group) { return (group->getNumRows() != 0); }) -
+                [](const auto& group) { return (group->getNumTotalRows() != 0); }) -
             groupsVector.rbegin());
     }
 

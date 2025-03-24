@@ -94,7 +94,7 @@ bool RelTableScanState::scanNext(Transaction* transaction) {
         switch (source) {
         case TableScanSource::COMMITTED: {
             const auto scanResult = nodeGroup->scan(transaction, *this);
-            if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+            if (scanResult == NODE_GROUP_SCAN_EMPTY_RESULT) {
                 if (hasUnCommittedData()) {
                     initStateForUncommitted();
                 } else {
@@ -154,6 +154,22 @@ std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog
         storageManager, memoryManager, &deSer);
     relTable->nextRelOffset = nextRelOffset;
     return relTable;
+}
+
+row_idx_t RelTable::getNumRows(const Transaction* transaction) {
+    auto numLocalRows = 0u;
+    if (transaction->getLocalStorage()->getLocalTable(tableID,
+            LocalStorage::NotExistAction::RETURN_NULL)) {
+        numLocalRows = transaction->getLocalStorage()
+                           ->getLocalTable(tableID, LocalStorage::NotExistAction::RETURN_NULL)
+                           ->getNumRows(transaction);
+    }
+    const auto numRows = directedRelData[0]->getNumRows(transaction);
+    for (size_t i = 1; i < directedRelData.size(); ++i) {
+        [[maybe_unused]] const auto numRels = directedRelData[i]->getNumRows(transaction);
+        KU_ASSERT(numRows == numRels);
+    }
+    return numLocalRows + numRows;
 }
 
 void RelTable::initScanState(Transaction* transaction, TableScanState& scanState,
@@ -455,7 +471,7 @@ void RelTable::commit(Transaction* transaction, TableCatalogEntry* tableEntry,
 
 void RelTable::updateRelOffsets(const LocalRelTable& localRelTable) {
     auto& localNodeGroup = localRelTable.getLocalNodeGroup();
-    const offset_t maxCommittedOffset = reserveRelOffsets(localNodeGroup.getNumRows());
+    const offset_t maxCommittedOffset = reserveRelOffsets(localNodeGroup.getNumTotalRows());
     RUNTIME_CHECK(uint64_t totalNumRows = 0);
     for (auto i = 0u; i < localNodeGroup.getNumChunkedGroups(); i++) {
         const auto chunkedGroup = localNodeGroup.getChunkedNodeGroup(i);
@@ -471,7 +487,7 @@ void RelTable::updateRelOffsets(const LocalRelTable& localRelTable) {
             internalIDData.setTableID(tableID);
         }
     }
-    KU_ASSERT(totalNumRows == localNodeGroup.getNumRows());
+    KU_ASSERT(totalNumRows == localNodeGroup.getNumTotalRows());
 }
 
 offset_t RelTable::getCommittedOffset(offset_t uncommittedOffset, offset_t maxCommittedOffset) {

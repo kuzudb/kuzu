@@ -33,6 +33,9 @@ public:
 
     void clear() override;
 
+    common::row_idx_t getNumRows(const transaction::Transaction* transaction) override {
+        return nodeGroups.getNumRows(transaction);
+    }
     common::row_idx_t getNumTotalRows() override { return nodeGroups.getNumTotalRows(); }
     common::node_group_idx_t getNumNodeGroups() const { return nodeGroups.getNumNodeGroups(); }
 

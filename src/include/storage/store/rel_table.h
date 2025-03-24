@@ -148,6 +148,8 @@ public:
     common::table_id_t getFromNodeTableID() const { return fromNodeTableID; }
     common::table_id_t getToNodeTableID() const { return toNodeTableID; }
 
+    common::row_idx_t getNumRows(const transaction::Transaction* transaction) override;
+
     void initScanState(transaction::Transaction* transaction, TableScanState& scanState,
         bool resetCachedBoundNodeSelVec = true) const override;
 
@@ -175,8 +177,7 @@ public:
     }
     common::column_id_t getNumColumns() const {
         KU_ASSERT(directedRelData.size() >= 1);
-        RUNTIME_CHECK(for (const auto& relData
-                           : directedRelData) {
+        RUNTIME_CHECK(for (const auto& relData : directedRelData) {
             KU_ASSERT(relData->getNumColumns() == directedRelData[0]->getNumColumns());
         });
         return directedRelData[0]->getNumColumns();

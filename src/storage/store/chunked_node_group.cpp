@@ -21,10 +21,10 @@ ChunkedNodeGroup::ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chu
     : format{format}, startRowIdx{startRowIdx}, chunks{std::move(chunks)}, dataInUse{true} {
     KU_ASSERT(!this->chunks.empty());
     residencyState = this->chunks[0]->getResidencyState();
-    numRows = this->chunks[0]->getNumValues();
-    capacity = numRows;
+    numTotalRows = this->chunks[0]->getNumValues();
+    capacity = numTotalRows;
     for (auto columnID = 1u; columnID < this->chunks.size(); columnID++) {
-        KU_ASSERT(this->chunks[columnID]->getNumValues() == numRows);
+        KU_ASSERT(this->chunks[columnID]->getNumValues() == numTotalRows);
         KU_ASSERT(this->chunks[columnID]->getResidencyState() == residencyState);
     }
 }
@@ -32,7 +32,7 @@ ChunkedNodeGroup::ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chu
 ChunkedNodeGroup::ChunkedNodeGroup(ChunkedNodeGroup& base,
     const std::vector<column_id_t>& selectedColumns)
     : format{base.format}, residencyState{base.residencyState}, startRowIdx{base.startRowIdx},
-      capacity{base.capacity}, numRows{base.numRows.load()}, dataInUse{true} {
+      capacity{base.capacity}, numTotalRows{base.numTotalRows.load()}, dataInUse{true} {
     chunks.resize(selectedColumns.size());
     for (auto i = 0u; i < selectedColumns.size(); i++) {
         auto columnID = selectedColumns[i];
@@ -45,7 +45,7 @@ ChunkedNodeGroup::ChunkedNodeGroup(MemoryManager& mm, const std::vector<LogicalT
     bool enableCompression, uint64_t capacity, row_idx_t startRowIdx, ResidencyState residencyState,
     NodeGroupDataFormat format)
     : format{format}, residencyState{residencyState}, startRowIdx{startRowIdx}, capacity{capacity},
-      numRows{0}, dataInUse{true} {
+      numTotalRows{0}, dataInUse{true} {
     chunks.reserve(columnTypes.size());
     for (auto& type : columnTypes) {
         chunks.push_back(std::make_unique<ColumnChunk>(mm, type.copy(), capacity, enableCompression,
@@ -56,7 +56,7 @@ ChunkedNodeGroup::ChunkedNodeGroup(MemoryManager& mm, const std::vector<LogicalT
 ChunkedNodeGroup::ChunkedNodeGroup(MemoryManager& mm, ChunkedNodeGroup& base,
     std::span<const LogicalType> columnTypes, std::span<const column_id_t> baseColumnIDs)
     : format{base.format}, residencyState{base.residencyState}, startRowIdx{base.startRowIdx},
-      capacity{base.capacity}, numRows{base.numRows.load()},
+      capacity{base.capacity}, numTotalRows{base.numTotalRows.load()},
       versionInfo(std::move(base.versionInfo)), dataInUse{true} {
     bool enableCompression = false;
     KU_ASSERT(!baseColumnIDs.empty());
@@ -81,6 +81,14 @@ ChunkedNodeGroup::ChunkedNodeGroup(MemoryManager& mm, ChunkedNodeGroup& base,
     }
 }
 
+row_idx_t ChunkedNodeGroup::getNumRows(const Transaction* transaction) const {
+    if (!versionInfo) {
+        return numTotalRows;
+    }
+    const auto numDeletions = versionInfo->getNumDeletions(transaction, 0, numTotalRows);
+    return numTotalRows - numDeletions;
+}
+
 void ChunkedNodeGroup::merge(ChunkedNodeGroup& base,
     const std::vector<column_id_t>& columnsToMergeInto) {
     KU_ASSERT(base.getNumColumns() == columnsToMergeInto.size());
@@ -92,7 +100,7 @@ void ChunkedNodeGroup::merge(ChunkedNodeGroup& base,
 
 void ChunkedNodeGroup::resetToEmpty() {
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
-    numRows = 0;
+    numTotalRows = 0;
     for (const auto& chunk : chunks) {
         chunk->resetToEmpty();
     }
@@ -109,10 +117,10 @@ void ChunkedNodeGroup::resetToAllNull() const {
 void ChunkedNodeGroup::resetNumRowsFromChunks() {
     KU_ASSERT(residencyState == ResidencyState::ON_DISK);
     KU_ASSERT(!chunks.empty());
-    numRows = getColumnChunk(0).getNumValues();
-    capacity = numRows;
+    numTotalRows = getColumnChunk(0).getNumValues();
+    capacity = numTotalRows;
     for (auto i = 1u; i < getNumColumns(); i++) {
-        KU_ASSERT(numRows == getColumnChunk(i).getNumValues());
+        KU_ASSERT(numTotalRows == getColumnChunk(i).getNumValues());
     }
 }
 
@@ -140,7 +148,7 @@ void ChunkedNodeGroup::setNumRows(const offset_t numRows_) {
     for (const auto& chunk : chunks) {
         chunk->setNumValues(numRows_);
     }
-    numRows = numRows_;
+    numTotalRows = numRows_;
 }
 
 uint64_t ChunkedNodeGroup::append(const Transaction* transaction,
@@ -148,7 +156,7 @@ uint64_t ChunkedNodeGroup::append(const Transaction* transaction,
     uint64_t numValuesToAppend) {
     KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     KU_ASSERT(columnVectors.size() == chunks.size());
-    const auto numRowsToAppendInChunk = std::min(numValuesToAppend, capacity - numRows);
+    const auto numRowsToAppendInChunk = std::min(numValuesToAppend, capacity - numTotalRows);
     for (auto i = 0u; i < columnVectors.size(); i++) {
         const auto columnVector = columnVectors[i];
         chunks[i]->getData().append(columnVector,
@@ -158,9 +166,9 @@ uint64_t ChunkedNodeGroup::append(const Transaction* transaction,
         if (!versionInfo) {
             versionInfo = std::make_unique<VersionInfo>();
         }
-        versionInfo->append(transaction->getID(), numRows, numRowsToAppendInChunk);
+        versionInfo->append(transaction->getID(), numTotalRows, numRowsToAppendInChunk);
     }
-    numRows += numRowsToAppendInChunk;
+    numTotalRows += numRowsToAppendInChunk;
     return numRowsToAppendInChunk;
 }
 
@@ -190,7 +198,7 @@ offset_t ChunkedNodeGroup::append(const Transaction* transaction,
     offset_t offsetInOtherNodeGroup, offset_t numRowsToAppend) {
     KU_ASSERT(residencyState == ResidencyState::IN_MEMORY);
     KU_ASSERT(other.size() == columnIDs.size());
-    const auto numToAppendInChunkedGroup = std::min(numRowsToAppend, capacity - numRows);
+    const auto numToAppendInChunkedGroup = std::min(numRowsToAppend, capacity - numTotalRows);
     for (auto i = 0u; i < columnIDs.size(); i++) {
         auto columnID = columnIDs[i];
         KU_ASSERT(columnID < chunks.size());
@@ -201,9 +209,9 @@ offset_t ChunkedNodeGroup::append(const Transaction* transaction,
         if (!versionInfo) {
             versionInfo = std::make_unique<VersionInfo>();
         }
-        versionInfo->append(transaction->getID(), numRows, numToAppendInChunkedGroup);
+        versionInfo->append(transaction->getID(), numTotalRows, numToAppendInChunkedGroup);
     }
-    numRows += numToAppendInChunkedGroup;
+    numTotalRows += numToAppendInChunkedGroup;
     return numToAppendInChunkedGroup;
 }
 
@@ -222,9 +230,9 @@ void ChunkedNodeGroup::write(const ChunkedNodeGroup& data, column_id_t offsetCol
         chunkIdx++;
         columnID++;
     }
-    numRows = chunks[0]->getNumValues();
+    numTotalRows = chunks[0]->getNumValues();
     for (auto i = 1u; i < chunks.size(); i++) {
-        KU_ASSERT(numRows == chunks[i]->getNumValues());
+        KU_ASSERT(numTotalRows == chunks[i]->getNumValues());
     }
 }
 
@@ -251,7 +259,7 @@ static ZoneMapCheckResult getZoneMapResult(const Transaction* transaction,
 void ChunkedNodeGroup::scan(const Transaction* transaction, const TableScanState& scanState,
     const NodeGroupScanState& nodeGroupScanState, offset_t rowIdxInGroup,
     length_t numRowsToScan) const {
-    KU_ASSERT(rowIdxInGroup + numRowsToScan <= numRows);
+    KU_ASSERT(rowIdxInGroup + numRowsToScan <= numTotalRows);
     auto& anchorSelVector = scanState.outState->getSelVectorUnsafe();
     if (getZoneMapResult(transaction, scanState, chunks) == ZoneMapCheckResult::SKIP_SCAN) {
         anchorSelVector.setToFiltered(0);
@@ -320,7 +328,7 @@ std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> ChunkedNod
 
 bool ChunkedNodeGroup::lookup(const Transaction* transaction, const TableScanState& state,
     const NodeGroupScanState& nodeGroupScanState, offset_t rowIdxInChunk, sel_t posInOutput) const {
-    KU_ASSERT(rowIdxInChunk + 1 <= numRows);
+    KU_ASSERT(rowIdxInChunk + 1 <= numTotalRows);
     std::unique_ptr<SelectionVector> selVector = nullptr;
     bool hasValuesToScan = true;
     if (versionInfo) {
@@ -372,7 +380,7 @@ void ChunkedNodeGroup::addColumn(const Transaction* transaction,
         std::make_unique<ColumnChunk>(*transaction->getClientContext()->getMemoryManager(),
             dataType, capacity, enableCompression, ResidencyState::IN_MEMORY));
     auto& chunkData = chunks.back()->getData();
-    auto numExistingRows = getNumRows();
+    auto numExistingRows = getNumTotalRows();
     chunkData.populateWithDefaultVal(addColumnState.defaultEvaluator, numExistingRows,
         newColumnStats);
     if (residencyState == ResidencyState::ON_DISK) {
@@ -390,7 +398,7 @@ bool ChunkedNodeGroup::isDeleted(const Transaction* transaction, row_idx_t rowIn
 
 bool ChunkedNodeGroup::isInserted(const Transaction* transaction, row_idx_t rowInChunk) const {
     if (!versionInfo) {
-        return rowInChunk < getNumRows();
+        return rowInChunk < getNumTotalRows();
     }
     return versionInfo->isInserted(transaction, rowInChunk);
 }
@@ -424,8 +432,8 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flushAsNewChunkedNodeGroup(
     auto flushedChunkedGroup =
         std::make_unique<ChunkedNodeGroup>(std::move(flushedChunks), 0 /*startRowIdx*/);
     flushedChunkedGroup->versionInfo = std::make_unique<VersionInfo>();
-    KU_ASSERT(flushedChunkedGroup->getNumRows() == numRows);
-    flushedChunkedGroup->versionInfo->append(transaction->getID(), 0, numRows);
+    KU_ASSERT(flushedChunkedGroup->getNumTotalRows() == numTotalRows);
+    flushedChunkedGroup->versionInfo->append(transaction->getID(), 0, numTotalRows);
     return flushedChunkedGroup;
 }
 
@@ -470,12 +478,12 @@ void ChunkedNodeGroup::rollbackInsert(row_idx_t startRow, row_idx_t numRows_, tr
         versionInfo.reset();
         return;
     }
-    if (startRow >= numRows) {
+    if (startRow >= numTotalRows) {
         // Nothing to rollback.
         return;
     }
     versionInfo->rollbackInsert(startRow, numRows_);
-    numRows = startRow;
+    numTotalRows = startRow;
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.

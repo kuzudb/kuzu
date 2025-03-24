@@ -118,6 +118,7 @@ public:
         const catalog::NodeTableCatalogEntry* nodeTableEntry, bool readOnly,
         common::VirtualFileSystem* vfs, main::ClientContext* context);
 
+    common::row_idx_t getNumRows(const transaction::Transaction* transaction) override;
     common::row_idx_t getNumTotalRows(const transaction::Transaction* transaction) override;
 
     void initScanState(transaction::Transaction* transaction, TableScanState& scanState,
@@ -183,7 +184,7 @@ public:
 
     common::node_group_idx_t getNumNodeGroups() const { return nodeGroups->getNumNodeGroups(); }
     common::offset_t getNumTuplesInNodeGroup(common::node_group_idx_t nodeGroupIdx) const {
-        return nodeGroups->getNodeGroup(nodeGroupIdx)->getNumRows();
+        return nodeGroups->getNodeGroup(nodeGroupIdx)->getNumTotalRows();
     }
     NodeGroup* getNodeGroup(common::node_group_idx_t nodeGroupIdx) const {
         return nodeGroups->getNodeGroup(nodeGroupIdx);

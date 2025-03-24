@@ -45,7 +45,8 @@ public:
 
     common::idx_t getNumColumns() const { return chunks.size(); }
     common::row_idx_t getStartRowIdx() const { return startRowIdx; }
-    common::row_idx_t getNumRows() const { return numRows; }
+    common::row_idx_t getNumRows(const transaction::Transaction* transaction) const;
+    common::row_idx_t getNumTotalRows() const { return numTotalRows; }
     common::row_idx_t getCapacity() const { return capacity; }
     const ColumnChunk& getColumnChunk(const common::column_id_t columnID) const {
         KU_ASSERT(columnID < chunks.size());
@@ -60,7 +61,7 @@ public:
         return std::move(chunks[columnID]);
     }
     bool isFullOrOnDisk() const {
-        return numRows == capacity || residencyState == ResidencyState::ON_DISK;
+        return numTotalRows == capacity || residencyState == ResidencyState::ON_DISK;
     }
     ResidencyState getResidencyState() const { return residencyState; }
     NodeGroupDataFormat getFormat() const { return format; }
@@ -181,7 +182,7 @@ protected:
     ResidencyState residencyState;
     common::row_idx_t startRowIdx;
     uint64_t capacity;
-    std::atomic<common::row_idx_t> numRows;
+    std::atomic<common::row_idx_t> numTotalRows;
     std::vector<std::unique_ptr<ColumnChunk>> chunks;
     std::unique_ptr<VersionInfo> versionInfo;
     std::mutex spillToDiskMutex;

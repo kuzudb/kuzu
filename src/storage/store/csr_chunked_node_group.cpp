@@ -41,13 +41,13 @@ CSRRegion CSRRegion::upgradeLevel(const std::vector<CSRRegion>& leafRegions,
     const idx_t leftLeafRegionIdx = newRegion.getLeftLeafRegionIdx();
     const idx_t rightLeafRegionIdx = newRegion.getRightLeafRegionIdx();
     for (auto leafRegionIdx = leftLeafRegionIdx; leafRegionIdx <= rightLeafRegionIdx;
-         leafRegionIdx++) {
+        leafRegionIdx++) {
         KU_ASSERT(leafRegionIdx < leafRegions.size());
         newRegion.sizeChange += leafRegions[leafRegionIdx].sizeChange;
         newRegion.hasPersistentDeletions |= leafRegions[leafRegionIdx].hasPersistentDeletions;
         newRegion.hasInsertions |= leafRegions[leafRegionIdx].hasInsertions;
         for (auto columnID = 0u; columnID < leafRegions[leafRegionIdx].hasUpdates.size();
-             columnID++) {
+            columnID++) {
             newRegion.hasUpdates[columnID] =
                 static_cast<bool>(newRegion.hasUpdates[columnID]) ||
                 static_cast<bool>(leafRegions[leafRegionIdx].hasUpdates[columnID]);
@@ -252,8 +252,8 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedCSRNodeGroup::flushAsNewChunkedNodeGrou
     auto flushedChunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(std::move(newCSRHeader),
         std::move(flushedChunks), 0 /*startRowIdx*/);
     flushedChunkedGroup->versionInfo = std::make_unique<VersionInfo>();
-    KU_ASSERT(numRows == flushedChunkedGroup->getNumRows());
-    flushedChunkedGroup->versionInfo->append(transaction->getID(), 0, numRows);
+    KU_ASSERT(numTotalRows == flushedChunkedGroup->getNumTotalRows());
+    flushedChunkedGroup->versionInfo->append(transaction->getID(), 0, numTotalRows);
     return flushedChunkedGroup;
 }
 

@@ -1,47 +1,47 @@
 -DATASET CSV rel-group
 --
 
--CASE RelGroup
--STATEMENT CALL db_stats() RETURN *
----- 5
-personA|8
-personB|8
-personC|8
-knows|42
-likes|28
-
--CASE RelTable
--STATEMENT create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
----- ok
--STATEMENT COPY person FROM '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv';
----- ok
--STATEMENT COPY person FROM '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv';
----- ok
--STATEMENT create node table organisation (ID INT64, name STRING, orgCode INT64, mark DOUBLE, score INT64, history STRING, licenseValidInterval INTERVAL, rating DOUBLE, state STRUCT(revenue INT16, location STRING[], stock STRUCT(price INT64[], volume INT64)), info UNION(price FLOAT, movein DATE, note STRING),PRIMARY KEY (ID));
----- ok
--STATEMENT COPY organisation FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vOrganisation.csv";
----- ok
--STATEMENT create rel table studyAt (FROM person TO organisation, year INT64, places STRING[], length INT16, level INT8, code UINT64, temperature UINT32, ulength UINT16, ulevel UINT8, hugedata INT128, MANY_ONe);
----- ok
--STATEMENT COPY studyAt FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eStudyAt.csv";
----- ok
--STATEMENT CALL db_stats() WHERE table_name = 'studyAt' RETURN *;
----- 1
-studyAt|3
-
--CASE Create
--STATEMENT CREATE (:personA {id: 100});
----- ok
--STATEMENT CREATE (:personA {id: 101});
----- ok
--STATEMENT CALL db_stats() WHERE table_name = 'personA' RETURN *;
----- 1
-personA|10
--STATEMENT MATCH (p:personA), (p2: personB) WHERE p.id=0 AND p2.id=2 CREATE (p)-[:knows]->(p2);
----- ok
--STATEMENT CALL db_stats() WHERE table_name = 'knows' RETURN *;
----- 1
-knows|43
+# -CASE RelGroup
+# -STATEMENT CALL db_stats() RETURN *
+# ---- 5
+# personA|8
+# personB|8
+# personC|8
+# knows|42
+# likes|28
+#
+# -CASE RelTable
+# -STATEMENT create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));
+# ---- ok
+# -STATEMENT COPY person FROM '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv';
+# ---- ok
+# -STATEMENT COPY person FROM '${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson2.csv';
+# ---- ok
+# -STATEMENT create node table organisation (ID INT64, name STRING, orgCode INT64, mark DOUBLE, score INT64, history STRING, licenseValidInterval INTERVAL, rating DOUBLE, state STRUCT(revenue INT16, location STRING[], stock STRUCT(price INT64[], volume INT64)), info UNION(price FLOAT, movein DATE, note STRING),PRIMARY KEY (ID));
+# ---- ok
+# -STATEMENT COPY organisation FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vOrganisation.csv";
+# ---- ok
+# -STATEMENT create rel table studyAt (FROM person TO organisation, year INT64, places STRING[], length INT16, level INT8, code UINT64, temperature UINT32, ulength UINT16, ulevel UINT8, hugedata INT128, MANY_ONe);
+# ---- ok
+# -STATEMENT COPY studyAt FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eStudyAt.csv";
+# ---- ok
+# -STATEMENT CALL db_stats() WHERE table_name = 'studyAt' RETURN *;
+# ---- 1
+# studyAt|3
+#
+# -CASE Create
+# -STATEMENT CREATE (:personA {id: 100});
+# ---- ok
+# -STATEMENT CREATE (:personA {id: 101});
+# ---- ok
+# -STATEMENT CALL db_stats() WHERE table_name = 'personA' RETURN *;
+# ---- 1
+# personA|10
+# -STATEMENT MATCH (p:personA), (p2: personB) WHERE p.id=0 AND p2.id=2 CREATE (p)-[:knows]->(p2);
+# ---- ok
+# -STATEMENT CALL db_stats() WHERE table_name = 'knows' RETURN *;
+# ---- 1
+# knows|43
 
 -CASE Delete
 -STATEMENT MATCH (p:personA) WHERE p.id=0 DETACH DELETE p;

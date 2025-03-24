@@ -89,7 +89,8 @@ static void appendNewChunkedGroup(MemoryManager& mm, transaction::Transaction* t
     // since each thread operates on distinct node groups
     // We don't need a lock here (to ensure the insert info and append agree on the number of rows
     // in the node group)
-    relTable.pushInsertInfo(transaction, direction, nodeGroup, chunkedGroup.getNumRows(), source);
+    relTable.pushInsertInfo(transaction, direction, nodeGroup, chunkedGroup.getNumTotalRows(),
+        source);
     if (isNewNodeGroup) {
         auto flushedChunkedGroup =
             chunkedGroup.flushAsNewChunkedNodeGroup(transaction, *relTable.getDataFH());
@@ -131,11 +132,11 @@ void RelBatchInsert::appendNodeGroup(MemoryManager& mm, transaction::Transaction
     const auto& csrHeader = localState.chunkedGroup->cast<ChunkedCSRNodeGroup>().getCSRHeader();
     const auto maxSize = csrHeader.getEndCSROffset(numNodes - 1);
     for (auto& chunkedGroup : partitioningBuffer->getChunkedGroups()) {
-        sharedState.incrementNumRows(chunkedGroup->getNumRows());
+        sharedState.incrementNumRows(chunkedGroup->getNumTotalRows());
         localState.chunkedGroup->write(*chunkedGroup, relInfo.boundNodeOffsetColumnID);
     }
     // Reset num of rows in the chunked group to fill gaps at the end of the node group.
-    auto numGapsAtEnd = maxSize - localState.chunkedGroup->getNumRows();
+    auto numGapsAtEnd = maxSize - localState.chunkedGroup->getNumTotalRows();
     KU_ASSERT(localState.chunkedGroup->getCapacity() >= maxSize);
     while (numGapsAtEnd > 0) {
         const auto numGapsToFill = std::min(numGapsAtEnd, DEFAULT_VECTOR_CAPACITY);
@@ -149,7 +150,7 @@ void RelBatchInsert::appendNodeGroup(MemoryManager& mm, transaction::Transaction
         KU_ASSERT(numGapsFilled == numGapsToFill);
         numGapsAtEnd -= numGapsFilled;
     }
-    KU_ASSERT(localState.chunkedGroup->getNumRows() == maxSize);
+    KU_ASSERT(localState.chunkedGroup->getNumTotalRows() == maxSize);
     localState.chunkedGroup->finalize();
 
     auto* relTable = sharedState.table->ptrCast<RelTable>();

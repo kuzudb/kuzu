@@ -51,7 +51,7 @@ void InMemoryVersionRecordHandler::rollbackInsert(const Transaction* transaction
     node_group_idx_t nodeGroupIdx, row_idx_t startRow, row_idx_t numRows) const {
     VersionRecordHandler::rollbackInsert(transaction, nodeGroupIdx, startRow, numRows);
     auto* nodeGroup = relTableData->getNodeGroupNoLock(nodeGroupIdx);
-    const auto numRowsToRollback = std::min(numRows, nodeGroup->getNumRows() - startRow);
+    const auto numRowsToRollback = std::min(numRows, nodeGroup->getNumTotalRows() - startRow);
     nodeGroup->rollbackInsert(startRow);
     relTableData->rollbackGroupCollectionInsert(numRowsToRollback, false);
 }
@@ -180,7 +180,7 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
     const auto scannedIDVector = scanState->outputVectors[0];
     while (true) {
         const auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
-        if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+        if (scanResult == NODE_GROUP_SCAN_EMPTY_RESULT) {
             break;
         }
         for (auto i = 0u; i < scanState->outState->getSelVector().getSelSize(); i++) {
@@ -221,7 +221,7 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction,
     scanState->initState(transaction, getNodeGroup(nodeGroupIdx));
     while (true) {
         const auto scanResult = scanState->nodeGroup->scan(transaction, *scanState);
-        if (scanResult == NODE_GROUP_SCAN_EMMPTY_RESULT) {
+        if (scanResult == NODE_GROUP_SCAN_EMPTY_RESULT) {
             break;
         }
         if (scanState->outState->getSelVector().getSelSize() > 0) {
@@ -231,6 +231,10 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction,
     return false;
 }
 
+row_idx_t RelTableData::getNumRows(const Transaction* transaction) const {
+    return nodeGroups->getNumRows(transaction);
+}
+
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
 void RelTableData::pushInsertInfo(const Transaction* transaction, const CSRNodeGroup& nodeGroup,
     row_idx_t numRows_, CSRNodeGroupScanSource source) {
@@ -238,12 +242,12 @@ void RelTableData::pushInsertInfo(const Transaction* transaction, const CSRNodeG
     // unless we are performing batch insert and the persistent chunked group is empty
     KU_ASSERT(source != CSRNodeGroupScanSource::COMMITTED_PERSISTENT ||
               !nodeGroup.getPersistentChunkedGroup() ||
-              nodeGroup.getPersistentChunkedGroup()->getNumRows() == 0);
+              nodeGroup.getPersistentChunkedGroup()->getNumTotalRows() == 0);
 
     const auto [startRow, shouldIncrementNumRows] =
         (source == CSRNodeGroupScanSource::COMMITTED_PERSISTENT) ?
             std::make_pair(static_cast<row_idx_t>(0), false) :
-            std::make_pair(nodeGroup.getNumRows(), true);
+            std::make_pair(nodeGroup.getNumTotalRows(), true);
 
     nodeGroups->pushInsertInfo(transaction, nodeGroup.getNodeGroupIdx(), startRow, numRows_,
         getVersionRecordHandler(source), shouldIncrementNumRows);

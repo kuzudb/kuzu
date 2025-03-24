@@ -92,6 +92,8 @@ public:
 
     common::RelMultiplicity getMultiplicity() const { return multiplicity; }
 
+    common::row_idx_t getNumRows(const transaction::Transaction* transaction) const;
+
     TableStats getStats() const { return nodeGroups->getStats(); }
 
     void checkpoint(const std::vector<common::column_id_t>& columnIDs);

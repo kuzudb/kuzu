@@ -21,10 +21,10 @@ void InMemChunkedNodeGroupCollection::append(MemoryManager& memoryManager,
     while (numRowsAppended < numRowsToAppend) {
         auto& lastChunkedGroup = chunkedGroups.back();
         auto numRowsToAppendInGroup = std::min(numRowsToAppend - numRowsAppended,
-            common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY - lastChunkedGroup->getNumRows());
+            common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY - lastChunkedGroup->getNumTotalRows());
         lastChunkedGroup->append(&DUMMY_TRANSACTION, vectors, startRowInVectors,
             numRowsToAppendInGroup);
-        if (lastChunkedGroup->getNumRows() == common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY) {
+        if (lastChunkedGroup->getNumTotalRows() == common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY) {
             lastChunkedGroup->setUnused(memoryManager);
             chunkedGroups.push_back(std::make_unique<ChunkedNodeGroup>(memoryManager, types,
                 false /*enableCompression*/, common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY,

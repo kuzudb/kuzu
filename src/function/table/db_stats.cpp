@@ -65,6 +65,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
 
 static offset_t tableFunc(const TableFuncMorsel& morsel, const TableFuncInput& input,
     DataChunk& output) {
+    auto transaction = input.context->clientContext->getTransaction();
     auto storageManager = input.context->clientContext->getStorageManager();
     auto bindData = input.bindData->constPtrCast<DBStatsBindData>();
     auto numTablesToOutput = morsel.endOffset - morsel.startOffset;
@@ -74,8 +75,7 @@ static offset_t tableFunc(const TableFuncMorsel& morsel, const TableFuncInput& i
             const auto table = bindData->tables[tableIdx];
             output.getValueVectorMutable(0).setValue(i, table->getName());
             const auto numRows =
-                storageManager->getTable(table->getTableID())
-                    ->getNumTotalRows(input.context->clientContext->getTransaction());
+                storageManager->getTable(table->getTableID())->getNumRows(transaction);
             output.getValueVectorMutable(1).setValue<uint64_t>(i, numRows);
         } else {
             const auto relGroupIdx = tableIdx - bindData->tables.size();
@@ -84,7 +84,7 @@ static offset_t tableFunc(const TableFuncMorsel& morsel, const TableFuncInput& i
             auto numRows = 0u;
             for (auto& relTableID : relGroup->getRelTableIDs()) {
                 const auto table = storageManager->getTable(relTableID);
-                numRows += table->getNumTotalRows(input.context->clientContext->getTransaction());
+                numRows += table->getNumRows(transaction);
             }
             output.getValueVectorMutable(1).setValue<uint64_t>(i, numRows);
         }

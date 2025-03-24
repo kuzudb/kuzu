@@ -57,15 +57,17 @@ public:
     }
     bool isEmpty() const {
         KU_ASSERT(directedIndices.size() >= 1);
-        RUNTIME_CHECK(for (const auto& index
-                           : directedIndices) {
+        RUNTIME_CHECK(for (const auto& index : directedIndices) {
             KU_ASSERT(index.index.empty() == directedIndices[0].index.empty());
         });
         return directedIndices[0].isEmpty();
     }
 
     common::column_id_t getNumColumns() const { return localNodeGroup->getDataTypes().size(); }
-    common::row_idx_t getNumTotalRows() override { return localNodeGroup->getNumRows(); }
+    common::row_idx_t getNumRows(const transaction::Transaction* transaction) override {
+        return localNodeGroup->getNumRows(transaction);
+    }
+    common::row_idx_t getNumTotalRows() override { return localNodeGroup->getNumTotalRows(); }
 
     DirectedCSRIndex::index_t& getCSRIndex(common::RelDataDirection direction) {
         const auto directionIdx = common::RelDirectionUtils::relDirectionToKeyIdx(direction);

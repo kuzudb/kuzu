@@ -209,6 +209,7 @@ public:
 
     void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state) override;
 
+    common::row_idx_t getNumRows(const transaction::Transaction* transaction) const override;
     bool isEmpty() const override { return !persistentChunkGroup && NodeGroup::isEmpty(); }
 
     ChunkedNodeGroup* getPersistentChunkedGroup() const { return persistentChunkGroup.get(); }
@@ -233,7 +234,7 @@ private:
     NodeGroupScanResult scanCommittedPersistentWithCache(
         const transaction::Transaction* transaction, RelTableScanState& tableState,
         CSRNodeGroupScanState& nodeGroupScanState) const;
-    NodeGroupScanResult scanCommittedPersistentWtihoutCache(
+    NodeGroupScanResult scanCommittedPersistentWithoutCache(
         const transaction::Transaction* transaction, RelTableScanState& tableState,
         CSRNodeGroupScanState& nodeGroupScanState) const;
 

@@ -79,7 +79,7 @@ struct NodeGroupScanResult {
     }
 };
 
-static auto NODE_GROUP_SCAN_EMMPTY_RESULT = NodeGroupScanResult{};
+static auto NODE_GROUP_SCAN_EMPTY_RESULT = NodeGroupScanResult{};
 
 struct TableScanState;
 class NodeGroup {
@@ -89,13 +89,15 @@ public:
         common::row_idx_t capacity = common::StorageConfig::NODE_GROUP_SIZE,
         NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR)
         : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
-          numRows{0}, nextRowToAppend{0}, capacity{capacity}, dataTypes{std::move(dataTypes)} {}
+          numTotalRows{0}, nextRowToAppend{0}, capacity{capacity}, dataTypes{std::move(dataTypes)} {
+    }
     NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
         std::unique_ptr<ChunkedNodeGroup> chunkedNodeGroup,
         common::row_idx_t capacity = common::StorageConfig::NODE_GROUP_SIZE,
         NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR)
         : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
-          numRows{chunkedNodeGroup->getNumRows()}, nextRowToAppend{numRows}, capacity{capacity} {
+          numTotalRows{chunkedNodeGroup->getNumTotalRows()}, nextRowToAppend{numTotalRows},
+          capacity{capacity} {
         for (auto i = 0u; i < chunkedNodeGroup->getNumColumns(); i++) {
             dataTypes.push_back(chunkedNodeGroup->getColumnChunk(i).getDataType().copy());
         }
@@ -105,16 +107,17 @@ public:
     NodeGroup(const common::node_group_idx_t nodeGroupIdx, const bool enableCompression,
         common::row_idx_t capacity, NodeGroupDataFormat format)
         : nodeGroupIdx{nodeGroupIdx}, format{format}, enableCompression{enableCompression},
-          numRows{0}, nextRowToAppend{0}, capacity{capacity} {}
+          numTotalRows{0}, nextRowToAppend{0}, capacity{capacity} {}
     virtual ~NodeGroup() = default;
 
-    virtual bool isEmpty() const { return numRows.load() == 0; }
-    virtual common::row_idx_t getNumRows() const { return numRows.load(); }
+    virtual bool isEmpty() const { return numTotalRows.load() == 0; }
+    virtual common::row_idx_t getNumRows(const transaction::Transaction* transaction) const;
+    common::row_idx_t getNumTotalRows() const { return numTotalRows.load(); }
     void moveNextRowToAppend(common::row_idx_t numRowsToAppend) {
         nextRowToAppend += numRowsToAppend;
     }
     common::row_idx_t getNumRowsLeftToAppend() const { return capacity - nextRowToAppend; }
-    bool isFull() const { return numRows.load() == capacity; }
+    bool isFull() const { return numTotalRows.load() == capacity; }
     const std::vector<common::LogicalType>& getDataTypes() const { return dataTypes; }
     NodeGroupDataFormat getFormat() const { return format; }
     common::row_idx_t append(const transaction::Transaction* transaction,
@@ -180,9 +183,9 @@ public:
     TARGET& cast() {
         return common::ku_dynamic_cast<TARGET&>(*this);
     }
-    template<class TARGETT>
-    const TARGETT& cast() const {
-        return common::ku_dynamic_cast<const TARGETT&>(*this);
+    template<class TARGET>
+    const TARGET& cast() const {
+        return common::ku_dynamic_cast<const TARGET&>(*this);
     }
 
     bool isVisible(const transaction::Transaction* transaction,
@@ -232,9 +235,9 @@ protected:
     common::node_group_idx_t nodeGroupIdx;
     NodeGroupDataFormat format;
     bool enableCompression;
-    std::atomic<common::row_idx_t> numRows;
+    std::atomic<common::row_idx_t> numTotalRows;
     // `nextRowToAppend` is a cursor to allow us to pre-reserve a set of rows to append before
-    // acutally appending data. This is an optimization to reduce lock-contention when appending in
+    // actually appending data. This is an optimization to reduce lock-contention when appending in
     // parallel.
     // TODO(Guodong): Remove this field.
     common::row_idx_t nextRowToAppend;

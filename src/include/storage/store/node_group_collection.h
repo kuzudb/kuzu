@@ -33,6 +33,7 @@ public:
         MemoryManager& mm, transaction::Transaction* transaction,
         const std::vector<common::column_id_t>& columnIDs, ChunkedNodeGroup& chunkedGroup);
 
+    common::row_idx_t getNumRows(const transaction::Transaction* transaction) const;
     common::row_idx_t getNumTotalRows() const;
     common::node_group_idx_t getNumNodeGroups() const {
         const auto lock = nodeGroups.lock();

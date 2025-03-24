@@ -21,7 +21,7 @@ NodeGroupCollection::NodeGroupCollection(MemoryManager& memoryManager,
     }
     const auto lock = nodeGroups.lock();
     for (auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
-        numTotalRows += nodeGroup->getNumRows();
+        numTotalRows += nodeGroup->getNumTotalRows();
     }
 }
 
@@ -80,7 +80,7 @@ void NodeGroupCollection::append(const Transaction* transaction,
     node_group_idx_t numChunkedGroupsAppended = 0;
     while (numChunkedGroupsAppended < numChunkedGroupsToAppend) {
         const auto chunkedGroupToAppend = nodeGroup.getChunkedNodeGroup(numChunkedGroupsAppended);
-        const auto numRowsToAppendInChunkedGroup = chunkedGroupToAppend->getNumRows();
+        const auto numRowsToAppendInChunkedGroup = chunkedGroupToAppend->getNumTotalRows();
         row_idx_t numRowsAppendedInChunkedGroup = 0;
         while (numRowsAppendedInChunkedGroup < numRowsToAppendInChunkedGroup) {
             auto lastNodeGroup = nodeGroups.getLastGroup(lock);
@@ -126,11 +126,11 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
             lastNodeGroup = nodeGroups.getLastGroup(lock);
             numRowsLeftInLastNodeGroup = lastNodeGroup->getNumRowsLeftToAppend();
         }
-        numToAppend = std::min(chunkedGroup.getNumRows(), numRowsLeftInLastNodeGroup);
+        numToAppend = std::min(chunkedGroup.getNumTotalRows(), numRowsLeftInLastNodeGroup);
         lastNodeGroup->moveNextRowToAppend(numToAppend);
         // If the node group is empty now and the chunked group is full, we can directly flush it.
         directFlushWhenAppend =
-            numToAppend == numRowsLeftInLastNodeGroup && lastNodeGroup->getNumRows() == 0;
+            numToAppend == numRowsLeftInLastNodeGroup && lastNodeGroup->getNumTotalRows() == 0;
         pushInsertInfo(transaction, lastNodeGroup, numToAppend);
         numTotalRows += numToAppend;
         if (!directFlushWhenAppend) {
@@ -153,6 +153,15 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         lastNodeGroup->merge(transaction, std::move(groupToMerge));
     }
     return {startOffset, numToAppend};
+}
+
+row_idx_t NodeGroupCollection::getNumRows(const Transaction* transaction) const {
+    const auto lock = nodeGroups.lock();
+    auto numRows = 0u;
+    for (auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
+        numRows += nodeGroup->getNumRows(transaction);
+    }
+    return numRows;
 }
 
 row_idx_t NodeGroupCollection::getNumTotalRows() const {
@@ -226,7 +235,7 @@ void NodeGroupCollection::rollbackInsert(row_idx_t numRows_, bool updateNumRows)
 
 void NodeGroupCollection::pushInsertInfo(const Transaction* transaction, const NodeGroup* nodeGroup,
     row_idx_t numRows) {
-    pushInsertInfo(transaction, nodeGroup->getNodeGroupIdx(), nodeGroup->getNumRows(), numRows,
+    pushInsertInfo(transaction, nodeGroup->getNodeGroupIdx(), nodeGroup->getNumTotalRows(), numRows,
         versionRecordHandler, false);
 };
 
