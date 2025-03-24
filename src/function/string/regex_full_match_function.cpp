@@ -10,16 +10,15 @@ namespace function {
 using namespace common;
 
 struct RegexFullMatchBindData : public FunctionBindData {
-    explicit RegexFullMatchBindData(common::logical_type_vec_t paramTypes,
-        std::shared_ptr<regex::RE2> pattern)
+    regex::RE2 pattern;
+
+    explicit RegexFullMatchBindData(common::logical_type_vec_t paramTypes, std::string patternInStr)
         : FunctionBindData{std::move(paramTypes), common::LogicalType::BOOL()},
-          pattern{std::move(pattern)} {}
+          pattern{patternInStr} {}
 
     std::unique_ptr<FunctionBindData> copy() const override {
-        return std::make_unique<RegexFullMatchBindData>(copyVector(paramTypes), pattern);
+        return std::make_unique<RegexFullMatchBindData>(copyVector(paramTypes), pattern.pattern());
     }
-
-    std::shared_ptr<regex::RE2> pattern;
 };
 
 struct RegexpFullMatch {
@@ -35,7 +34,7 @@ struct RegexpFullMatchStaticPattern : BaseRegexpOperation {
         common::ValueVector& /*rightValueVector*/, common::ValueVector& /*resultValueVector*/,
         void* dataPtr) {
         auto regexFullMatchBindData = reinterpret_cast<RegexFullMatchBindData*>(dataPtr);
-        result = RE2::FullMatch(left.getAsString(), *regexFullMatchBindData->pattern);
+        result = RE2::FullMatch(left.getAsString(), regexFullMatchBindData->pattern);
     }
 };
 
@@ -52,7 +51,7 @@ static std::unique_ptr<FunctionBindData> regexFullMatchBindFunc(const ScalarBind
         auto patternInStr = value.getValue<std::string>();
         return std::make_unique<RegexFullMatchBindData>(
             binder::ExpressionUtil::getDataTypes(input.arguments),
-            std::make_shared<regex::RE2>(BaseRegexpOperation::parseCypherPattern(patternInStr)));
+            BaseRegexpOperation::parseCypherPattern(patternInStr));
     } else {
         return FunctionBindData::getSimpleBindData(input.arguments, LogicalType::BOOL());
     }
