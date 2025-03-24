@@ -1,6 +1,5 @@
 #pragma once
 
-#include "storage/buffer_manager/buffer_manager.h"
 #include "storage/compression/float_compression.h"
 #include "storage/db_file_id.h"
 
@@ -10,6 +9,7 @@ class Transaction;
 }
 namespace storage {
 
+class FileHandle;
 class ColumnReadWriter;
 class ShadowFile;
 struct ColumnChunkMetadata;
