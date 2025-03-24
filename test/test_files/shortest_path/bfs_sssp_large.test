@@ -10,6 +10,12 @@
 
 -CASE BfsLarge
 
+# Make sure plan always start from a
+-LOG SingleSrcAllDstQueryLargePlanning
+-STATEMENT WITH 'Alice11' AS name MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = name RETURN COUNT(*)
+---- 1
+300
+
 -LOG SingleSrcAllDstQueryLarge
 -STATEMENT MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice11' RETURN a.fName, b.fName, length(r)
 ---- 300
