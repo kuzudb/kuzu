@@ -19,13 +19,13 @@ add_subdirectory(src/function)
 add_subdirectory(src/installer)
 add_subdirectory(src/main)
 
-add_library(delta_extension
+add_library(kuzu_delta_extension
         SHARED
         ${DELTA_EXTENSION_OBJECT_FILES})
 
-set_extension_properties(delta_extension delta delta)
+set_extension_properties(kuzu_delta_extension delta delta)
 
-target_link_libraries(delta_extension
+target_link_libraries(kuzu_delta_extension
         PRIVATE
         ${DuckDB_LIBRARIES})
 
@@ -38,10 +38,10 @@ endif ()
 
 if (WIN32)
     # See comments in extension/httpfs/CMakeLists.txt.
-    target_link_libraries(delta_extension PRIVATE kuzu)
+    target_link_libraries(kuzu_delta_extension PRIVATE kuzu)
 endif ()
 
 if (APPLE)
-    set_apple_dynamic_lookup(delta_extension)
+    set_apple_dynamic_lookup(kuzu_delta_extension)
     set_apple_dynamic_lookup(delta_loader)
 endif ()

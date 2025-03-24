@@ -19,13 +19,13 @@ add_subdirectory(src/connector)
 add_subdirectory(src/storage)
 add_subdirectory(src/options)
 
-add_library(unity_catalog_extension
+add_library(kuzu_unity_catalog_extension
         SHARED
         ${UNITY_CATALOG_EXTENSION_OBJECT_FILES})
 
-set_extension_properties(unity_catalog_extension unity_catalog unity_catalog)
+set_extension_properties(kuzu_unity_catalog_extension unity_catalog unity_catalog)
 
-target_link_libraries(unity_catalog_extension
+target_link_libraries(kuzu_unity_catalog_extension
         PRIVATE
         ${DuckDB_LIBRARIES})
 
@@ -38,10 +38,10 @@ endif ()
 
 if (WIN32)
     # See comments in extension/httpfs/CMakeLists.txt.
-    target_link_libraries(unity_catalog_extension PRIVATE kuzu)
+    target_link_libraries(kuzu_unity_catalog_extension PRIVATE kuzu)
 endif ()
 
 if (APPLE)
-    set_apple_dynamic_lookup(unity_catalog_extension)
+    set_apple_dynamic_lookup(kuzu_unity_catalog_extension)
     set_apple_dynamic_lookup(unity_catalog_loader)
 endif ()

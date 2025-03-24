@@ -18,7 +18,7 @@ include_directories(
         ${PROJECT_SOURCE_DIR}/third_party/httplib
         src/include)
 
-add_library(httpfs_extension
+add_library(kuzu_httpfs_extension
         SHARED
         src/httpfs.cpp
         src/httpfs_extension.cpp
@@ -28,20 +28,20 @@ add_library(httpfs_extension
         src/cached_file_manager.cpp
         src/s3fs_config.cpp)
 
-set_extension_properties(httpfs_extension httpfs httpfs)
+set_extension_properties(kuzu_httpfs_extension httpfs httpfs)
 
-target_link_libraries(httpfs_extension
+target_link_libraries(kuzu_httpfs_extension
         PRIVATE
         mbedtls
         ${OPENSSL_LIBRARIES})
 
 if (WIN32)
     # See comments in extension/httpfs/CMakeLists.txt.
-    target_link_libraries(httpfs_extension PRIVATE kuzu)
+    target_link_libraries(kuzu_httpfs_extension PRIVATE kuzu)
 endif ()
 
 if (APPLE)
-    set_apple_dynamic_lookup(httpfs_extension)
+    set_apple_dynamic_lookup(kuzu_httpfs_extension)
 endif ()
 
 if (${BUILD_EXTENSION_TESTS})

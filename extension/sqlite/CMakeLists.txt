@@ -19,13 +19,13 @@ add_subdirectory(src/main)
 add_subdirectory(src/installer)
 add_subdirectory(src/function)
 
-add_library(sqlite_extension
+add_library(kuzu_sqlite_extension
         SHARED
         ${SQLITE_EXTENSION_OBJECT_FILES})
 
-set_extension_properties(sqlite_extension sqlite sqlite)
+set_extension_properties(kuzu_sqlite_extension sqlite sqlite)
 
-target_link_libraries(sqlite_extension
+target_link_libraries(kuzu_sqlite_extension
         PRIVATE
         ${DuckDB_LIBRARIES})
 
@@ -38,10 +38,10 @@ endif ()
 
 if (WIN32)
     # See comments in extension/httpfs/CMakeLists.txt.
-    target_link_libraries(sqlite_extension PRIVATE kuzu)
+    target_link_libraries(kuzu_sqlite_extension PRIVATE kuzu)
 endif ()
 
 if (APPLE)
-    set_apple_dynamic_lookup(sqlite_extension)
+    set_apple_dynamic_lookup(kuzu_sqlite_extension)
     set_apple_dynamic_lookup(sqlite_loader)
 endif ()

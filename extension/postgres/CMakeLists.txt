@@ -20,13 +20,13 @@ add_subdirectory(src/main)
 add_subdirectory(src/installer)
 add_subdirectory(src/function)
 
-add_library(postgres_extension
+add_library(kuzu_postgres_extension
         SHARED
         ${POSTGRES_EXTENSION_OBJECT_FILES})
 
-set_extension_properties(postgres_extension postgres postgres)
+set_extension_properties(kuzu_postgres_extension postgres postgres)
 
-target_link_libraries(postgres_extension
+target_link_libraries(kuzu_postgres_extension
         PRIVATE
         ${DuckDB_LIBRARIES})
 
@@ -39,10 +39,10 @@ endif ()
 
 if (WIN32)
     # See comments in extension/httpfs/CMakeLists.txt.
-    target_link_libraries(postgres_extension PRIVATE kuzu)
+    target_link_libraries(kuzu_postgres_extension PRIVATE kuzu)
 endif ()
 
 if (APPLE)
-    set_apple_dynamic_lookup(postgres_extension)
+    set_apple_dynamic_lookup(kuzu_postgres_extension)
     set_apple_dynamic_lookup(postgres_loader)
 endif ()

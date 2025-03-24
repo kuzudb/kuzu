@@ -19,7 +19,7 @@ add_subdirectory(src/function)
 add_subdirectory(src/connector)
 add_subdirectory(src/installer)
 add_subdirectory(src/main)
-add_library(iceberg_extension
+add_library(kuzu_iceberg_extension
         SHARED
         ${ICEBERG_OBJECT_FILES}
 )
@@ -38,9 +38,9 @@ target_include_directories(delta_connector PRIVATE
     ${PROJECT_SOURCE_DIR}/extension/httpfs/src/include
 )
 
-set_extension_properties(iceberg_extension iceberg iceberg)
+set_extension_properties(kuzu_iceberg_extension iceberg iceberg)
 
-target_link_libraries(iceberg_extension
+target_link_libraries(kuzu_iceberg_extension
         PRIVATE
         ${DuckDB_LIBRARIES}
         delta_connector)
@@ -54,10 +54,10 @@ endif ()
 
 if (WIN32)
     # See comments in extension/httpfs/CMakeLists.txt.
-    target_link_libraries(iceberg_extension PRIVATE kuzu)
+    target_link_libraries(kuzu_iceberg_extension PRIVATE kuzu)
 endif ()
 
 if (APPLE)
-    set_apple_dynamic_lookup(iceberg_extension)
+    set_apple_dynamic_lookup(kuzu_iceberg_extension)
     set_apple_dynamic_lookup(iceberg_loader)
 endif ()

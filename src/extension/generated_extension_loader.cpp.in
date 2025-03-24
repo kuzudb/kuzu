@@ -1,5 +1,8 @@
 #include "generated_extension_loader.h"
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-variable"
+
 namespace kuzu {
 namespace extension {
 
@@ -9,3 +12,5 @@ void loadLinkedExtensions(main::ClientContext* context) {
 
 } // namespace extension
 } // namespace kuzu
+
+#pragma clang diagnostic pop
