@@ -4,7 +4,7 @@ namespace kuzu {
 namespace extension {
 
 void loadLinkedExtensions([[maybe_unused]] main::ClientContext* context) {
-    @LOAD_LINKED_EXTENSION @
+    @LOAD_LINKED_EXTENSION@
 }
 
 } // namespace extension
