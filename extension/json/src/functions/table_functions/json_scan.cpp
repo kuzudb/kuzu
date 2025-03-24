@@ -484,14 +484,14 @@ bool JSONScanLocalState::parseNextChunk(
                 err.msg = "unexpected character";
                 err.pos = jsonSize;
                 handleParseError(err);
-                parseResult = {};
+                parseResult = std::nullopt;
             }
         }
         skipWhitespace(bufferPtr, bufferOffset, bufferSize, &lineCountInBuffer);
 
         numValuesToOutput += parseResult.has_value() ? *parseResult : 0;
 
-        // if there are any pending errors to throw, stop the parsing
+        // if we hit an error, stop the parsing
         // the actual error will be thrown during finalize
         if (!parseResult.has_value() && !errorHandler->getIgnoreErrorsOption()) {
             return false;
@@ -690,7 +690,7 @@ uint64_t JSONScanLocalState::readNext(
         }
         bool parseSuccess = parseNextChunk(warningDataVectors);
         if (!parseSuccess) {
-            break;
+            return numValuesToOutput;
         }
     };
     return numValuesToOutput;
@@ -859,6 +859,7 @@ static decltype(auto) getWarningDataVectors(const DataChunk& chunk, column_id_t 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto localState = input.localState->ptrCast<JSONScanLocalState>();
     auto bindData = input.bindData->constPtrCast<JsonScanBindData>();
+    auto sharedState = input.sharedState->ptrCast<JSONScanSharedState>();
     auto projectionSkips = bindData->getColumnSkips();
     for (auto& valueVector : output.dataChunk.valueVectors) {
         valueVector->setAllNull();
@@ -867,6 +868,13 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
     const auto warningDataVectors =
         getWarningDataVectors(output.dataChunk, bindData->numWarningDataColumns);
     auto count = localState->readNext(warningDataVectors);
+
+    // if we hit an error, stop the parsing for this thread
+    if (!localState->errorHandler->getIgnoreErrorsOption() &&
+        sharedState->sharedErrorHandler.getNumCachedErrors() > 0) {
+        count = 0;
+    }
+
     yyjson_doc** docs = localState->docs;
     yyjson_val *key = nullptr, *ele = nullptr;
     for (auto i = 0u; i < count; i++) {
