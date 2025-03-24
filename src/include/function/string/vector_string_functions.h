@@ -67,7 +67,13 @@ struct LeftFunction : public VectorStringFunction {
 struct LowerFunction : public VectorStringFunction {
     static constexpr const char* name = "LOWER";
 
-    static inline function_set getFunctionSet() { return getUnaryStrFunction<Lower>(name); }
+    static function_set getFunctionSet() { return getUnaryStrFunction<Lower>(name); }
+};
+
+struct ToLowerFunction : public VectorStringFunction {
+    using alias = LowerFunction;
+
+    static constexpr const char* name = "TOLOWER";
 };
 
 struct LcaseFunction {
@@ -145,13 +151,19 @@ struct SubstringFunction {
 struct TrimFunction : public VectorStringFunction {
     static constexpr const char* name = "TRIM";
 
-    static inline function_set getFunctionSet() { return getUnaryStrFunction<Trim>(name); }
+    static function_set getFunctionSet() { return getUnaryStrFunction<Trim>(name); }
 };
 
 struct UpperFunction : public VectorStringFunction {
     static constexpr const char* name = "UPPER";
 
-    static inline function_set getFunctionSet() { return getUnaryStrFunction<Upper>(name); }
+    static function_set getFunctionSet() { return getUnaryStrFunction<Upper>(name); }
+};
+
+struct ToUpperFunction : public VectorStringFunction {
+    using alias = UpperFunction;
+
+    static constexpr const char* name = "TOUPPER";
 };
 
 struct UCaseFunction {

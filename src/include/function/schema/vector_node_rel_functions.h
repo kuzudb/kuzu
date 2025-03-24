@@ -38,5 +38,11 @@ struct LabelFunction {
     static std::shared_ptr<binder::Expression> rewriteFunc(const RewriteFunctionBindInput& input);
 };
 
+struct LabelsFunction {
+    using alias = LabelFunction;
+
+    static constexpr const char* name = "LABELS";
+};
+
 } // namespace function
 } // namespace kuzu
