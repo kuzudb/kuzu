@@ -4,6 +4,7 @@
 #include "common/utils.h"
 #include "common/vector/value_vector.h"
 #include "storage/compression/float_compression.h"
+#include "storage/file_handle.h"
 #include "storage/shadow_utils.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk_data.h"

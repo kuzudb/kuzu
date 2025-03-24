@@ -1,5 +1,6 @@
 #include "storage/store/dictionary_chunk.h"
 
+#include "common/constants.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "storage/buffer_manager/memory_manager.h"
