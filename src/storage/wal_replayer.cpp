@@ -62,8 +62,6 @@ void WALReplayer::replay() const {
             // under this case.
             clientContext.getTransactionContext()->rollback();
         }
-        throw RuntimeException(
-            stringFormat("Failed to replay wal record from WAL file. Error: {}", e.what()));
     }
 }
 

@@ -15,7 +15,6 @@ def run_query_in_new_process(tmp_path: Path, build_dir: Path):
 
         import kuzu
         db = kuzu.Database(r"{tmp_path!s}")
-        print(r"{tmp_path!s}")
 
         conn = kuzu.Connection(db)
         conn.execute("CREATE NODE TABLE tab (id INT64, PRIMARY KEY (id));")
@@ -32,5 +31,9 @@ def test_replay_after_kill(tmp_path: Path, build_dir: Path) -> None:
     time.sleep(5)
     proc.kill()
     proc.wait(5)
-    with kuzu.Database(tmp_path) as db:
-        pass
+    with kuzu.Database(tmp_path) as db, kuzu.Connection(db) as conn:
+        result = conn.execute("CALL show_tables() RETURN *")
+        assert result.has_next()
+        assert result.get_next()[1] == "tab"
+        assert not result.has_next()
+        result.close()
