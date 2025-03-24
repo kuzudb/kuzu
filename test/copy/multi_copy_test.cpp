@@ -8,6 +8,7 @@
 #include "common/string_format.h"
 #include "common/system_config.h"
 #include "graph_test/graph_test.h"
+#include "test_helper/test_helper.h"
 
 namespace kuzu {
 namespace testing {
@@ -18,7 +19,7 @@ public:
         EmptyDBTest::SetUp();
         // TODO(bmwinger): Set back to default when the hash index is able to reduce its memory
         // usage
-        systemConfig->bufferPoolSize = 256 * 1024 * 1024;
+        systemConfig->bufferPoolSize = 256 * 1024 * 1024 + TestHelper::HASH_INDEX_MEM;
         createDBAndConn();
         auto result = conn->query("CREATE NODE TABLE Test(id int32, primary key(id))");
         ASSERT_TRUE(result->isSuccess()) << result->toString();

@@ -5,6 +5,7 @@
 #include "common/exception/runtime.h"
 #include "common/string_format.h"
 #include "spdlog/spdlog.h"
+#include "test_helper/test_helper.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;

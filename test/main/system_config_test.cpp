@@ -102,6 +102,6 @@ TEST_F(SystemConfigTest, testBufferPoolSize) {
             "Buffer manager exception: The given buffer pool size should be at least " +
                 std::to_string(KUZU_PAGE_SIZE) + " bytes.");
     }
-    systemConfig->bufferPoolSize = BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING;
+    systemConfig->bufferPoolSize = TestHelper::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING;
     EXPECT_NO_THROW(auto db = std::make_unique<Database>(databasePath, *systemConfig));
 }

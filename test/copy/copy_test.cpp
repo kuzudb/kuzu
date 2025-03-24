@@ -143,7 +143,7 @@ void CopyTest::BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg) {
         failureFrequency = UINT64_MAX;
     } else {
         // Reopen the DB so no spurious errors occur during the query
-        resetDB(common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
+        resetDB(TestHelper::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
     }
     {
         // Test that the table copied as expected after the query
@@ -344,7 +344,7 @@ TEST_F(CopyTest, OutOfMemoryRecovery) {
         GTEST_SKIP();
     }
     // Needs to be small enough that we cannot successfully complete the rel table copy
-    resetDB(64 * 1024 * 1024);
+    resetDB(64 * 1024 * 1024 + TestHelper::HASH_INDEX_MEM / 5);
     conn->query("CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID))");
     conn->query("CREATE REL TABLE follows(FROM account TO account);");
     {
@@ -361,9 +361,9 @@ TEST_F(CopyTest, OutOfMemoryRecovery) {
             "memory could be freed!");
     }
     // Try opening then closing the database
-    resetDB(256 * 1024 * 1024);
+    resetDB(256 * 1024 * 1024 + TestHelper::HASH_INDEX_MEM);
     // Try again with a larger buffer pool size
-    resetDB(256 * 1024 * 1024);
+    resetDB(256 * 1024 * 1024 + TestHelper::HASH_INDEX_MEM);
     {
         auto result = conn->query(common::stringFormat(
             "COPY follows FROM '{}/dataset/snap/twitter/csv/twitter-edges.csv' (DELIM=' ')",
@@ -383,7 +383,7 @@ TEST_F(CopyTest, OutOfMemoryRecoveryDropTable) {
         GTEST_SKIP();
     }
     // Needs to be small enough that we cannot successfully complete the rel table copy
-    resetDB(64 * 1024 * 1024);
+    resetDB(64 * 1024 * 1024 + TestHelper::HASH_INDEX_MEM / 5);
     conn->query("CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID))");
     conn->query("CREATE REL TABLE follows(FROM account TO account);");
     {
@@ -400,7 +400,7 @@ TEST_F(CopyTest, OutOfMemoryRecoveryDropTable) {
             "memory could be freed!");
     }
     // Try dropping the table before trying again with a larger buffer pool size
-    resetDB(256 * 1024 * 1024);
+    resetDB(256 * 1024 * 1024 + TestHelper::HASH_INDEX_MEM);
     {
         auto result = conn->query("DROP TABLE follows;");
         ASSERT_TRUE(result->isSuccess()) << result->toString();

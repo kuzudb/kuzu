@@ -4,6 +4,7 @@
 
 #include "common/file_system/file_system.h"
 #include "common/string_utils.h"
+#include "common/system_config.h"
 #include "main/kuzu.h"
 
 namespace kuzu {
@@ -27,6 +28,14 @@ public:
     static constexpr char TEST_ANSWERS_PATH[] = "test/answers";
     static constexpr char TEST_STATEMENTS_PATH[] = "test/statements";
     static constexpr char DEFAULT_CONN_NAME[] = "conn_default";
+
+    // At the moment the 6 constant is mostly just to get tests to pass when using the larger page
+    // size configs (including tests which have high peak hash index memory usage) It should be
+    // tweaked to a more accurate value when the hash index is capable of reducing its memory usage
+    static constexpr uint64_t HASH_INDEX_MEM =
+        common::HashIndexConstants::NUM_HASH_INDEXES * common::KUZU_PAGE_SIZE * 8;
+    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING =
+        (1ull << 26) /* (64MB) */ + HASH_INDEX_MEM;
 
     static void setE2ETestFilesDirectory(const std::string& directory) {
         E2E_TEST_FILES_DIRECTORY = directory;
@@ -58,10 +67,9 @@ public:
         auto maxNumThreadsEnv = getSystemEnv("MAX_NUM_THREADS");
         auto enableCompressionEnv = getSystemEnv("ENABLE_COMPRESSION");
         auto checkpointThresholdEnv = getSystemEnv("CHECKPOINT_THRESHOLD");
-        systemConfig->bufferPoolSize =
-            bufferPoolSizeEnv.empty() ?
-                common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING :
-                std::stoull(bufferPoolSizeEnv);
+        systemConfig->bufferPoolSize = bufferPoolSizeEnv.empty() ?
+                                           DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING :
+                                           std::stoull(bufferPoolSizeEnv);
         systemConfig->maxNumThreads = maxNumThreadsEnv.empty() ? 2 : std::stoull(maxNumThreadsEnv);
         if (!enableCompressionEnv.empty()) {
             systemConfig->enableCompression = enableCompressionEnv == "true";

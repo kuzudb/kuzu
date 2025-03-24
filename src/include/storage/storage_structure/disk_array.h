@@ -44,6 +44,7 @@ struct PageStorageInfo {
     uint64_t numElementsPerPage;
 };
 
+// TODO(bmwinger): this should use the memoryManager
 struct PIP {
     PIP() : nextPipPageIdx{ShadowUtils::NULL_PAGE_IDX}, pageIdxs{} {}
 
