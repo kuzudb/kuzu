@@ -29,7 +29,7 @@ void FtsExtension::load(main::ClientContext* context) {
     ExtensionUtils::addInternalStandaloneTableFunc<InternalCreateFTSFunction>(db);
     ExtensionUtils::addStandaloneTableFunc<DropFTSFunction>(db);
     ExtensionUtils::addInternalStandaloneTableFunc<InternalDropFTSFunction>(db);
-    initFTSEntries(context->getTransaction(), *db.getCatalog());
+    initFTSEntries(&transaction::DUMMY_TRANSACTION, *db.getCatalog());
 }
 
 } // namespace fts_extension

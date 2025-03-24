@@ -26,7 +26,7 @@ void VectorExtension::load(main::ClientContext* context) {
     extension::ExtensionUtils::addStandaloneTableFunc<CreateVectorIndexFunction>(db);
     extension::ExtensionUtils::addInternalStandaloneTableFunc<InternalDropHNSWIndexFunction>(db);
     extension::ExtensionUtils::addStandaloneTableFunc<DropVectorIndexFunction>(db);
-    initHNSWEntries(context->getTransaction(), *db.getCatalog());
+    initHNSWEntries(&transaction::DUMMY_TRANSACTION, *db.getCatalog());
 }
 
 } // namespace vector_extension
