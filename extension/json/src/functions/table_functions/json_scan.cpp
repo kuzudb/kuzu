@@ -160,9 +160,15 @@ struct JSONScanLocalState : public TableFuncLocalState {
     bool readNextBufferInternal(uint64_t& bufferIdx, bool& fileDone);
     bool readNextBufferSeek(uint64_t& bufferIdx, bool& fileDone);
     void skipOverArrayStart();
-    void parseNextChunk(const std::optional<std::vector<ValueVector*>>& warningDataVectors);
-    bool parseJson(uint8_t* jsonStart, uint64_t jsonSize, uint64_t remaining, idx_t numLinesInJson,
+    bool parseNextChunk(const std::optional<std::vector<ValueVector*>>& warningDataVectors);
+
+    // Parses a single json record
+    // Returns number of records parsed if parsing succeeds (this will be 0 or 1).
+    // If parsing fails returns std::nullopt
+    std::optional<uint64_t> parseJson(uint8_t* jsonStart, uint64_t jsonSize, uint64_t remaining,
+        idx_t numLinesInJson,
         const std::optional<std::vector<ValueVector*>>& warningDataVectors = {});
+
     bool reconstructFirstObject();
 
     void replaceDoc(idx_t idx, yyjson_doc* newDoc);
@@ -369,14 +375,15 @@ void JSONScanLocalState::handleParseError(yyjson_read_err& err, bool completedPa
         errorHandler.get(), extra);
 }
 
-bool JSONScanLocalState::parseJson(uint8_t* jsonStart, uint64_t size, uint64_t remaining,
-    idx_t numLinesInJson, const std::optional<std::vector<ValueVector*>>& warningDataVectors) {
+std::optional<uint64_t> JSONScanLocalState::parseJson(uint8_t* jsonStart, uint64_t size,
+    uint64_t remaining, idx_t numLinesInJson,
+    const std::optional<std::vector<ValueVector*>>& warningDataVectors) {
     yyjson_doc* doc = nullptr;
     yyjson_read_err err;
     doc = JSONCommon::readDocumentUnsafe(jsonStart, remaining, JSONCommon::READ_INSITU_FLAG, &err);
     if (err.code != YYJSON_READ_SUCCESS) {
         handleParseError(err, false);
-        return false;
+        return std::nullopt;
     }
 
     idx_t numBytesRead = yyjson_doc_get_read_size(doc);
@@ -395,7 +402,7 @@ bool JSONScanLocalState::parseJson(uint8_t* jsonStart, uint64_t size, uint64_t r
         err.msg = "unexpected end of data";
         err.pos = size;
         handleParseError(err, "Try auto-detecting the JSON format");
-        return false;
+        return std::nullopt;
     } else if (numBytesRead < size) {
         auto off = numBytesRead;
         auto rem = size;
@@ -405,16 +412,16 @@ bool JSONScanLocalState::parseJson(uint8_t* jsonStart, uint64_t size, uint64_t r
             err.msg = "unexpected content after document";
             err.pos = numBytesRead;
             handleParseError(err, "Try auto-detecting the JSON format");
-            return false;
+            return std::nullopt;
         }
     }
 
     if (!doc) {
         replaceDoc(numValuesToOutput, nullptr);
-        return false;
+        return 0;
     }
     replaceDoc(numValuesToOutput, doc);
-    return true;
+    return 1;
 }
 
 void JSONScanLocalState::addValuesToWarningDataVectors(processor::WarningSourceData warningData,
@@ -434,7 +441,7 @@ static uint8_t* nextNewLine(uint8_t* ptr, idx_t size) {
     return reinterpret_cast<uint8_t*>(memchr(ptr, '\n', size));
 }
 
-void JSONScanLocalState::parseNextChunk(
+bool JSONScanLocalState::parseNextChunk(
     const std::optional<std::vector<ValueVector*>>& warningDataVectors) {
     auto format = currentReader->getFormat();
     while (numValuesToOutput < DEFAULT_VECTOR_CAPACITY) {
@@ -461,8 +468,9 @@ void JSONScanLocalState::parseNextChunk(
             jsonEnd = jsonStart + remaining;
         }
         auto jsonSize = jsonEnd - jsonStart;
-        bool parseSuccess =
+        auto parseResult =
             parseJson(jsonStart, jsonSize, remaining, lineCountInJson, warningDataVectors);
+
         bufferOffset += jsonSize;
         lineCountInBuffer += lineCountInJson;
 
@@ -476,13 +484,20 @@ void JSONScanLocalState::parseNextChunk(
                 err.msg = "unexpected character";
                 err.pos = jsonSize;
                 handleParseError(err);
-                parseSuccess = false;
+                parseResult = std::nullopt;
             }
         }
         skipWhitespace(bufferPtr, bufferOffset, bufferSize, &lineCountInBuffer);
 
-        numValuesToOutput += parseSuccess;
+        numValuesToOutput += parseResult.has_value() ? *parseResult : 0;
+
+        // if we hit an error, stop the parsing
+        // the actual error will be thrown during finalize
+        if (!parseResult.has_value() && !errorHandler->getIgnoreErrorsOption()) {
+            return false;
+        }
     }
+    return true;
 }
 
 static JsonScanFormat autoDetectFormat(uint8_t* buffer_ptr, uint64_t buffer_size) {
@@ -653,9 +668,9 @@ bool JSONScanLocalState::reconstructFirstObject() {
         bufferOffset += secondPartSize;
     }
 
-    bool parseSuccess = parseJson(reconstructBufferPtr, lineSize, lineSize, linesInJson);
+    auto parseResult = parseJson(reconstructBufferPtr, lineSize, lineSize, linesInJson);
     lineCountInBuffer += linesInJson;
-    return parseSuccess;
+    return parseResult.has_value() && *parseResult > 0;
 }
 
 uint64_t JSONScanLocalState::readNext(
@@ -673,8 +688,11 @@ uint64_t JSONScanLocalState::readNext(
                 }
             }
         }
-        parseNextChunk(warningDataVectors);
-    }
+        bool parseSuccess = parseNextChunk(warningDataVectors);
+        if (!parseSuccess) {
+            return numValuesToOutput;
+        }
+    };
     return numValuesToOutput;
 }
 
@@ -841,6 +859,7 @@ static decltype(auto) getWarningDataVectors(const DataChunk& chunk, column_id_t 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
     auto localState = input.localState->ptrCast<JSONScanLocalState>();
     auto bindData = input.bindData->constPtrCast<JsonScanBindData>();
+    auto sharedState = input.sharedState->ptrCast<JSONScanSharedState>();
     auto projectionSkips = bindData->getColumnSkips();
     for (auto& valueVector : output.dataChunk.valueVectors) {
         valueVector->setAllNull();
@@ -849,6 +868,13 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
     const auto warningDataVectors =
         getWarningDataVectors(output.dataChunk, bindData->numWarningDataColumns);
     auto count = localState->readNext(warningDataVectors);
+
+    // if we hit an error, stop the parsing for this thread
+    if (!localState->errorHandler->getIgnoreErrorsOption() &&
+        sharedState->sharedErrorHandler.getNumCachedErrors() > 0) {
+        count = 0;
+    }
+
     yyjson_doc** docs = localState->docs;
     yyjson_val *key = nullptr, *ele = nullptr;
     for (auto i = 0u; i < count; i++) {

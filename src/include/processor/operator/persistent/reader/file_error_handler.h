@@ -70,6 +70,7 @@ public:
     void reportFinishedBlock(uint64_t blockIdx, uint64_t numRowsRead);
     void setHeaderNumRows(uint64_t numRows);
     void finalize(bool canThrowCachedError = true);
+    bool getIgnoreErrorsOption() const { return ignoreErrors; }
 
 private:
     static constexpr uint64_t LOCAL_WARNING_LIMIT = 256;
