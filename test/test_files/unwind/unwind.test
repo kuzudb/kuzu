@@ -63,7 +63,7 @@ Elizabeth|3:13|1905-12-12|[peweeeeeeeeeeeeeeeee,kowje9w0eweeeeeeeee]
 2|Bob
 3|Carol
 5|Dan
--STATEMENT MATCH p = (a:person)-[e:knows*1..2]->(b:person) WHERE a.ID = 0 AND b.ID = 2 UNWIND rels(p) AS er RETURN er._ID, er.date
+-STATEMENT MATCH p = (a:person)-[e:knows*1..2]->(b:person) WHERE a.ID = 0 AND b.ID = 2 UNWIND relationships(p) AS er RETURN er._ID, er.date
 ---- 5
 3:0|2021-06-30
 3:10|1950-05-14

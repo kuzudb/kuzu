@@ -51,6 +51,13 @@ struct IntervalFunctionAlias {
     static constexpr const char* name = "INTERVAL";
 };
 
+struct DurationFunction {
+    using alias = CastToIntervalFunction;
+
+    static constexpr const char* name = "DURATION";
+};
+
+
 struct CastToStringFunction {
     static constexpr const char* name = "TO_STRING";
 

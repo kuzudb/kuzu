@@ -37,23 +37,22 @@ namespace kuzu {
 namespace function {
 
 #define SCALAR_FUNCTION_BASE(_PARAM, _NAME)                                                        \
-    { _PARAM::getFunctionSet, _NAME, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _NAME, CatalogEntryType::SCALAR_FUNCTION_ENTRY}
 #define SCALAR_FUNCTION(_PARAM) SCALAR_FUNCTION_BASE(_PARAM, _PARAM::name)
 #define SCALAR_FUNCTION_ALIAS(_PARAM) SCALAR_FUNCTION_BASE(_PARAM::alias, _PARAM::name)
 #define REWRITE_FUNCTION_BASE(_PARAM, _NAME)                                                       \
-    { _PARAM::getFunctionSet, _NAME, CatalogEntryType::REWRITE_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _NAME, CatalogEntryType::REWRITE_FUNCTION_ENTRY}
 #define REWRITE_FUNCTION(_PARAM) REWRITE_FUNCTION_BASE(_PARAM, _PARAM::name)
 #define REWRITE_FUNCTION_ALIAS(_PARAM) REWRITE_FUNCTION_BASE(_PARAM::alias, _PARAM::name)
 #define AGGREGATE_FUNCTION(_PARAM)                                                                 \
-    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::AGGREGATE_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::AGGREGATE_FUNCTION_ENTRY}
 #define EXPORT_FUNCTION(_PARAM)                                                                    \
-    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::COPY_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::COPY_FUNCTION_ENTRY}
 #define TABLE_FUNCTION(_PARAM)                                                                     \
-    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::TABLE_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::TABLE_FUNCTION_ENTRY}
 #define STANDALONE_TABLE_FUNCTION(_PARAM)                                                          \
-    { _PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY }
-#define FINAL_FUNCTION                                                                             \
-    { nullptr, nullptr, CatalogEntryType::SCALAR_FUNCTION_ENTRY }
+    {_PARAM::getFunctionSet, _PARAM::name, CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY}
+#define FINAL_FUNCTION {nullptr, nullptr, CatalogEntryType::SCALAR_FUNCTION_ENTRY}
 
 FunctionCollection* FunctionCollection::getFunctions() {
     static FunctionCollection functions[] = {
@@ -132,17 +131,17 @@ FunctionCollection* FunctionCollection::getFunctions() {
         // Cast functions
         SCALAR_FUNCTION(CastToDateFunction), SCALAR_FUNCTION_ALIAS(DateFunction),
         SCALAR_FUNCTION(CastToTimestampFunction), SCALAR_FUNCTION(CastToIntervalFunction),
-        SCALAR_FUNCTION_ALIAS(IntervalFunctionAlias), SCALAR_FUNCTION(CastToStringFunction),
-        SCALAR_FUNCTION_ALIAS(StringFunction), SCALAR_FUNCTION(CastToBlobFunction),
-        SCALAR_FUNCTION_ALIAS(BlobFunction), SCALAR_FUNCTION(CastToUUIDFunction),
-        SCALAR_FUNCTION_ALIAS(UUIDFunction), SCALAR_FUNCTION(CastToDoubleFunction),
-        SCALAR_FUNCTION(CastToFloatFunction), SCALAR_FUNCTION(CastToSerialFunction),
-        SCALAR_FUNCTION(CastToInt64Function), SCALAR_FUNCTION(CastToInt32Function),
-        SCALAR_FUNCTION(CastToInt16Function), SCALAR_FUNCTION(CastToInt8Function),
-        SCALAR_FUNCTION(CastToUInt64Function), SCALAR_FUNCTION(CastToUInt32Function),
-        SCALAR_FUNCTION(CastToUInt16Function), SCALAR_FUNCTION(CastToUInt8Function),
-        SCALAR_FUNCTION(CastToInt128Function), SCALAR_FUNCTION(CastToBoolFunction),
-        SCALAR_FUNCTION(CastAnyFunction),
+        SCALAR_FUNCTION_ALIAS(IntervalFunctionAlias), SCALAR_FUNCTION_ALIAS(DurationFunction),
+        SCALAR_FUNCTION(CastToStringFunction), SCALAR_FUNCTION_ALIAS(StringFunction),
+        SCALAR_FUNCTION(CastToBlobFunction), SCALAR_FUNCTION_ALIAS(BlobFunction),
+        SCALAR_FUNCTION(CastToUUIDFunction), SCALAR_FUNCTION_ALIAS(UUIDFunction),
+        SCALAR_FUNCTION(CastToDoubleFunction), SCALAR_FUNCTION(CastToFloatFunction),
+        SCALAR_FUNCTION(CastToSerialFunction), SCALAR_FUNCTION(CastToInt64Function),
+        SCALAR_FUNCTION(CastToInt32Function), SCALAR_FUNCTION(CastToInt16Function),
+        SCALAR_FUNCTION(CastToInt8Function), SCALAR_FUNCTION(CastToUInt64Function),
+        SCALAR_FUNCTION(CastToUInt32Function), SCALAR_FUNCTION(CastToUInt16Function),
+        SCALAR_FUNCTION(CastToUInt8Function), SCALAR_FUNCTION(CastToInt128Function),
+        SCALAR_FUNCTION(CastToBoolFunction), SCALAR_FUNCTION(CastAnyFunction),
 
         // Comparison functions
         SCALAR_FUNCTION(EqualsFunction), SCALAR_FUNCTION(NotEqualsFunction),
@@ -194,8 +193,9 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Path functions
         SCALAR_FUNCTION(NodesFunction), SCALAR_FUNCTION(RelsFunction),
-        SCALAR_FUNCTION(PropertiesFunction), SCALAR_FUNCTION(IsTrailFunction),
-        SCALAR_FUNCTION(IsACyclicFunction), REWRITE_FUNCTION(LengthFunction),
+        SCALAR_FUNCTION_ALIAS(RelationshipsFunction), SCALAR_FUNCTION(PropertiesFunction),
+        SCALAR_FUNCTION(IsTrailFunction), SCALAR_FUNCTION(IsACyclicFunction),
+        REWRITE_FUNCTION(LengthFunction),
 
         // Hash functions
         SCALAR_FUNCTION(MD5Function), SCALAR_FUNCTION(SHA256Function),

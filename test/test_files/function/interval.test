@@ -422,3 +422,8 @@ The license is valid until 82:00:00.1 test
 -STATEMENT MATCH (a:A) RETURN a.intv;
 ---- 1
 1 year 2 days
+
+-LOG DurationAlias
+-STATEMENT RETURN DURATION('3 HOURS 22 MINUTES 66 seconds')
+---- 1
+03:23:06
