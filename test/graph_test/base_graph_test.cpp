@@ -2,9 +2,9 @@
 
 #include <fstream>
 
+#include "common/exception/runtime.h"
 #include "common/string_format.h"
 #include "spdlog/spdlog.h"
-#include "common/exception/runtime.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;
@@ -73,7 +73,8 @@ void BaseGraphTest::createConns(const std::set<std::string>& connNames) {
     } else {
         for (auto connName : connNames) {
             if (connMap.contains(connName)) {
-                throw RuntimeException(stringFormat("Cannot create connection with name {} because it already exists.", connName));
+                throw RuntimeException(stringFormat(
+                    "Cannot create connection with name {} because it already exists.", connName));
             }
             connMap[connName] = std::make_unique<Connection>(database.get());
         }
