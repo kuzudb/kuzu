@@ -19,29 +19,19 @@ add_subdirectory(src/connector)
 add_subdirectory(src/storage)
 add_subdirectory(src/options)
 
-add_library(kuzu_unity_catalog_extension
-        SHARED
-        ${UNITY_CATALOG_EXTENSION_OBJECT_FILES})
+build_extension_lib(${BUILD_STATIC_EXTENSION} "unity_catalog")
 
-set_extension_properties(kuzu_unity_catalog_extension unity_catalog unity_catalog)
-
-target_link_libraries(kuzu_unity_catalog_extension
+target_link_libraries(kuzu_${EXTENSION_LIB_NAME}_extension
         PRIVATE
         ${DuckDB_LIBRARIES})
 
-if (NOT WIN32)
+if (NOT WIN32 AND NOT BUILD_STATIC_EXTENSION)
     add_library(unity_catalog_loader
             SHARED
             ${PROJECT_SOURCE_DIR}/extension/duckdb/src/loader/duckdb_loader.cpp)
     set_extension_properties(unity_catalog_loader unity_catalog_loader unity_catalog)
 endif ()
 
-if (WIN32)
-    # See comments in extension/httpfs/CMakeLists.txt.
-    target_link_libraries(kuzu_unity_catalog_extension PRIVATE kuzu)
-endif ()
-
-if (APPLE)
-    set_apple_dynamic_lookup(kuzu_unity_catalog_extension)
+if (APPLE AND NOT BUILD_STATIC_EXTENSION)
     set_apple_dynamic_lookup(unity_catalog_loader)
 endif ()

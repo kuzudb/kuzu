@@ -27,8 +27,41 @@ function(set_apple_dynamic_lookup target_name)
     set_target_properties(${target_name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
 endfunction()
 
-if (${BUILD_EXTENSION_TESTS})
+function(build_extension_lib build_static ext_name)
+    string(TOUPPER "${ext_name}" ext_name_upper_case)
+    if (build_static)
+        add_library(kuzu_${ext_name}_static_extension
+                STATIC
+                ${${ext_name_upper_case}_EXTENSION_OBJECT_FILES})
+        SET(EXTENSION_LIB_NAME "${ext_name}_static" PARENT_SCOPE)
+        SET(EXTENSION_LIB_NAME "${ext_name}_static")
+    else ()
+        add_library(kuzu_${ext_name}_extension
+                SHARED
+                ${${ext_name_upper_case}_EXTENSION_OBJECT_FILES})
+        SET(EXTENSION_LIB_NAME "${ext_name}" PARENT_SCOPE)
+        SET(EXTENSION_LIB_NAME "${ext_name}")
+    endif ()
+    set_extension_properties(kuzu_${EXTENSION_LIB_NAME}_extension ${EXTENSION_LIB_NAME} ${ext_name})
+    if (WIN32 OR build_static)
+        # See comments in extension/httpfs/CMakeLists.txt.
+        target_link_libraries(kuzu_${EXTENSION_LIB_NAME}_extension PRIVATE kuzu)
+    endif ()
+    if (APPLE AND NOT build_static)
+        set_apple_dynamic_lookup(kuzu_${EXTENSION_LIB_NAME}_extension)
+    endif ()
+endfunction()
+
+if (BUILD_EXTENSION_TESTS)
     enable_testing()
+endif ()
+
+list(LENGTH STATICALLY_LINKED_EXTENSIONS LIST_SIZE)
+if (NOT LIST_SIZE EQUAL 0)
+    SET(BUILD_STATIC_EXTENSION ON)
+else ()
+    SET(BUILD_STATIC_EXTENSION OFF)
+    ADD_COMPILE_DEFINITIONS(BUILD_DYNAMIC_LOAD)
 endif ()
 
 if ("httpfs" IN_LIST BUILD_EXTENSIONS OR "httpfs" IN_LIST STATICALLY_LINKED_EXTENSIONS)

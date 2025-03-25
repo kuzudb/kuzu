@@ -9,24 +9,11 @@ add_subdirectory(src/function)
 add_subdirectory(src/main)
 add_subdirectory(test)
 
-add_library(kuzu_fts_extension
-        SHARED
-        ${FTS_OBJECT_FILES})
-
 add_subdirectory(third_party/snowball)
 
-target_link_libraries(kuzu_fts_extension
+build_extension_lib(${BUILD_STATIC_EXTENSION} "fts")
+
+target_link_libraries(kuzu_${EXTENSION_LIB_NAME}_extension
         PRIVATE
         snowball
         re2)
-
-set_extension_properties(kuzu_fts_extension fts fts)
-
-if (WIN32)
-    # See comment in extension/httpfs/CMakeLists.txt
-    target_link_libraries(kuzu_fts_extension PRIVATE kuzu)
-endif ()
-
-if (APPLE)
-    set_apple_dynamic_lookup(kuzu_fts_extension)
-endif ()

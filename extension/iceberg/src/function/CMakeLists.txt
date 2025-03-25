@@ -10,6 +10,6 @@ add_library(kuzu_iceberg_functions
         ${PROJECT_SOURCE_DIR}/extension/iceberg/src/connector/iceberg_connector.cpp
 )
 
-set(ICEBERG_OBJECT_FILES
-        ${ICEBERG_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_iceberg_functions>
+set(ICEBERG_EXTENSION_OBJECT_FILES
+        ${ICEBERG_EXTENSION_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_iceberg_functions>
         PARENT_SCOPE)

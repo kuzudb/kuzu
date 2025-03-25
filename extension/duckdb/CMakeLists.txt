@@ -20,21 +20,8 @@ add_subdirectory(src/storage)
 add_subdirectory(src/installer)
 add_subdirectory(src/loader)
 
-add_library(kuzu_duckdb_extension
-        SHARED
-        ${DUCKDB_EXTENSION_OBJECT_FILES})
+build_extension_lib(${BUILD_STATIC_EXTENSION} "duckdb")
 
-target_link_libraries(kuzu_duckdb_extension
+target_link_libraries(kuzu_${EXTENSION_LIB_NAME}_extension
         PRIVATE
         ${DuckDB_LIBRARIES})
-
-set_extension_properties(kuzu_duckdb_extension duckdb duckdb)
-
-if (WIN32)
-    # See comments in extension/httpfs/CMakeLists.txt.
-    target_link_libraries(kuzu_duckdb_extension PRIVATE kuzu)
-endif ()
-
-if (APPLE)
-    set_apple_dynamic_lookup(kuzu_duckdb_extension)
-endif ()

@@ -5,8 +5,8 @@ add_library(kuzu_json_creation_functions
         json_object.cpp
         to_json.cpp)
 
-set(JSON_OBJECT_FILES
-        ${JSON_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_json_creation_functions>
+set(JSON_EXTENSION_OBJECT_FILES
+        ${JSON_EXTENSION_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_json_creation_functions>
         PARENT_SCOPE)
 
 

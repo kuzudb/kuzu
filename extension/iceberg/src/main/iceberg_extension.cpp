@@ -22,6 +22,7 @@ void IcebergExtension::load(main::ClientContext* context) {
 } // namespace iceberg_extension
 } // namespace kuzu
 
+#if defined(BUILD_DYNAMIC_LOAD)
 extern "C" {
 // Because we link against the static library on windows, we implicitly inherit KUZU_STATIC_DEFINE,
 // which cancels out any exporting, so we can't use KUZU_API.
@@ -38,3 +39,4 @@ INIT_EXPORT const char* name() {
     return kuzu::iceberg_extension::IcebergExtension::EXTENSION_NAME;
 }
 }
+#endif

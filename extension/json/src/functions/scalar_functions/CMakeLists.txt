@@ -7,6 +7,6 @@ add_library(kuzu_json_scalar_functions
         json_valid.cpp
         json_minify.cpp)
 
-set(JSON_OBJECT_FILES
-        ${JSON_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_json_scalar_functions>
+set(JSON_EXTENSION_OBJECT_FILES
+        ${JSON_EXTENSION_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_json_scalar_functions>
         PARENT_SCOPE)

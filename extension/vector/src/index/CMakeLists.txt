@@ -5,6 +5,6 @@ add_library(kuzu_hnsw_index
         hnsw_index_utils.cpp
         hnsw_graph.cpp)
 
-set(VECTOR_OBJECT_FILES
-        ${VECTOR_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_hnsw_index>
+set(VECTOR_EXTENSION_OBJECT_FILES
+        ${VECTOR_EXTENSION_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_hnsw_index>
         PARENT_SCOPE)
