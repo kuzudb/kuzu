@@ -47,6 +47,10 @@ void LambdaParamEvaluatorCollector::visit(ExpressionEvaluator* evaluator) {
             children.push_back(alternativeEvaluator.thenEvaluator.get());
         }
     } break;
+    case EvaluatorType::LAMBDA_PARAM: {
+        evaluators.push_back(evaluator);
+        return;
+    }
     default: {
         for (auto& child : evaluator->getChildren()) {
             children.push_back(child.get());

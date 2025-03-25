@@ -111,3 +111,20 @@ Binder exception: The second argument of LIST_TRANSFORM should be a lambda expre
 -STATEMENT unwind range(1, 5000) as t with collect(t) as lst return list_filter(list_transform(lst, x->x+1), x->x<3);
 ---- 1
 [2]
+-STATEMENT RETURN LIST_TRANSFORM(['KUZU', 'DUCKDB', 'NEO4J'], x->x)
+---- 1
+[KUZU,DUCKDB,NEO4J]
+-STATEMENT MATCH p = (a:person)-[:knows*1..2]->(b) WHERE a.ID = 0 RETURN size(list_transform(nodes(p), x->x));
+---- 12
+2
+2
+2
+3
+3
+3
+3
+3
+3
+3
+3
+3
