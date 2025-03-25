@@ -60,7 +60,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
         const auto type = FunctionEntryTypeUtils::toString(entry->getType());
         for (auto& function : functionSet) {
             auto signature = function->signatureToString();
-            FunctionInfos.emplace_back(function->name, type, signature);
+            FunctionInfos.emplace_back(entry->getName(), type, signature);
         }
     }
     columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
