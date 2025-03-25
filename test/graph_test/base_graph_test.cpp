@@ -4,6 +4,7 @@
 
 #include "common/string_format.h"
 #include "spdlog/spdlog.h"
+#include "common/exception/runtime.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;
@@ -66,21 +67,13 @@ void TestHelper::executeScript(const std::string& cypherScript, Connection& conn
     }
 }
 
-void BaseGraphTest::createDB() {
-    if (database != nullptr) {
-        database.reset();
-    }
-    database = std::make_unique<Database>(databasePath, *systemConfig);
-    spdlog::set_level(spdlog::level::info);
-}
-
 void BaseGraphTest::createConns(const std::set<std::string>& connNames) {
     if (connNames.size() == 0) { // impart a default connName
         conn = std::make_unique<Connection>(database.get());
     } else {
         for (auto connName : connNames) {
-            if (connMap[connName] != nullptr) {
-                connMap[connName].reset();
+            if (connMap.contains(connName)) {
+                throw RuntimeException(stringFormat("Cannot create connection with name {} because it already exists.", connName));
             }
             connMap[connName] = std::make_unique<Connection>(database.get());
         }

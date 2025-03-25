@@ -45,9 +45,7 @@ public:
 
     void createDBAndConn();
 
-    // multiple conns test
-    void createDB();
-    virtual void createConns(const std::set<std::string>& connNames);
+    void createConns(const std::set<std::string>& connNames);
 
     void initGraph() { initGraph(getInputDir()); }
     void initGraph(const std::string& datasetDir) const;
