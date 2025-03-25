@@ -31,7 +31,7 @@ def run_query_then_kill(tmp_path: Path, build_dir: Path, queries: str):
 
 
 # Kill the database while it's in the middle of executing a long persistent query
-# When we reload the database it should
+# When we reload the database we will replay from the WAL (which will be incomplete)
 def test_replay_after_kill(tmp_path: Path, build_dir: Path) -> None:
     queries = dedent("""
     conn = kuzu.Connection(db)
