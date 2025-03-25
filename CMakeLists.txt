@@ -355,19 +355,20 @@ include_directories(SYSTEM third_party/simsimd/include)
 
 add_subdirectory(third_party)
 
-if(${BUILD_KUZU})
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
 add_definitions(-DKUZU_EXTENSION_VERSION="0.8.0")
+
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extension/CMakeLists.txt")
+    add_subdirectory(extension)
+endif ()
+
+if(BUILD_KUZU)
 
 include_directories(
     src/include
     ${CMAKE_BINARY_DIR}/src/include
 )
-
-if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extension/CMakeLists.txt")
-    add_subdirectory(extension)
-endif ()
 
 add_subdirectory(src)
 if (${BUILD_TESTS} OR ${BUILD_EXTENSION_TESTS})
