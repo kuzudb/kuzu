@@ -64,54 +64,28 @@ else ()
     ADD_COMPILE_DEFINITIONS(BUILD_DYNAMIC_LOAD)
 endif ()
 
-if ("httpfs" IN_LIST BUILD_EXTENSIONS OR "httpfs" IN_LIST STATICALLY_LINKED_EXTENSIONS)
-    add_subdirectory(httpfs)
-endif ()
+function(add_extension_if_enabled extension)
+    if ("${extension}" IN_LIST BUILD_EXTENSIONS OR
+            "${extension}" IN_LIST STATICALLY_LINKED_EXTENSIONS)
+        add_subdirectory(${extension})
+    endif()
+endfunction()
 
-if ("duckdb" IN_LIST BUILD_EXTENSIONS OR "duckdb" IN_LIST STATICALLY_LINKED_EXTENSIONS)
-    if (NOT __32BIT__)
-        # DuckDB does not officially support 32-bit builds, so we disable the
-        # extension for 32-bit builds
-        add_subdirectory(duckdb)
-    endif ()
-endif ()
+function(add_extension_if_enabled_and_skip_32bit extension)
+    if (NOT __32BIT__ AND
+        ("${extension}" IN_LIST BUILD_EXTENSIONS OR
+            "${extension}" IN_LIST STATICALLY_LINKED_EXTENSIONS))
+        add_subdirectory(${extension})
+    endif()
+endfunction()
 
-if ("json" IN_LIST BUILD_EXTENSIONS OR "json" IN_LIST STATICALLY_LINKED_EXTENSIONS)
-    add_subdirectory(json)
-endif ()
-
-if ("postgres" IN_LIST BUILD_EXTENSIONS OR "postgres" IN_LIST STATICALLY_LINKED_EXTENSIONS)
-    if (NOT __32BIT__)
-        # DuckDB does not officially support 32-bit builds, so we disable the
-        # extension for 32-bit builds
-        add_subdirectory(postgres)
-    endif ()
-endif ()
-
-if ("sqlite" IN_LIST BUILD_EXTENSIONS OR "sqlite" IN_LIST STATICALLY_LINKED_EXTENSIONS)
-    if (NOT __32BIT__)
-        # DuckDB does not officially support 32-bit builds, so we disable the
-        # extension for 32-bit builds
-        add_subdirectory(sqlite)
-    endif ()
-endif ()
-
-if ("fts" IN_LIST BUILD_EXTENSIONS OR "fts" IN_LIST STATICALLY_LINKED_EXTENSIONS)
-    add_subdirectory(fts)
-endif ()
-
-if ("delta" IN_LIST BUILD_EXTENSIONS OR "delta" IN_LIST STATICALLY_LINKED_EXTENSIONS)
-    add_subdirectory(delta)
-endif ()
-
-if ("iceberg" IN_LIST BUILD_EXTENSIONS OR "iceberg" IN_LIST STATICALLY_LINKED_EXTENSIONS)
-    add_subdirectory(iceberg)
-endif ()
-
-if ("unity_catalog" IN_LIST BUILD_EXTENSIONS OR "unity_catalog" IN_LIST STATICALLY_LINKED_EXTENSIONS)
-    add_subdirectory(unity_catalog)
-endif ()
-
-if ("vector" IN_LIST BUILD_EXTENSIONS OR "vector" IN_LIST STATICALLY_LINKED_EXTENSIONS)
-    add_subdirectory(vector)
-endif()
+add_extension_if_enabled_and_skip_32bit("duckdb")
+add_extension_if_enabled_and_skip_32bit("postgres")
+add_extension_if_enabled_and_skip_32bit("sqlite")
+add_extension_if_enabled_and_skip_32bit("delta")
+add_extension_if_enabled_and_skip_32bit("iceberg")
+add_extension_if_enabled_and_skip_32bit("unity_catalog")
+add_extension_if_enabled("json")
+add_extension_if_enabled("fts")
+add_extension_if_enabled("vector")
+add_extension_if_enabled("httpfs")
