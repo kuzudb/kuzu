@@ -37,9 +37,20 @@ configure_file(
 set(GENERATED_CPP_FILE
         ${CMAKE_CURRENT_BINARY_DIR}/codegen/generated_extension_loader.cpp)
 
-include_directories("${CMAKE_CURRENT_BINARY_DIR}/codegen/include/")
+include_directories(
+        "${CMAKE_CURRENT_BINARY_DIR}/codegen/include/"
+        ${PROJECT_SOURCE_DIR}/third_party/httplib
+)
 
 add_library(kuzu_generated_extension_loader OBJECT ${GENERATED_CPP_FILE})
+
+# Both the kuzu source and httpfs extension includes the httplib which is a header
+# only library. Httpfs requires the openssl function to be enabled in httplib, so
+# we also have to enable httplib there if httpfs is static linked.
+if(DEFINED OPENSSL_INCLUDE_DIR)
+    add_compile_definitions(CPPHTTPLIB_OPENSSL_SUPPORT)
+    include_directories(${OPENSSL_INCLUDE_DIR})
+endif ()
 
 add_library(kuzu_extension
         OBJECT

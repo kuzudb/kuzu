@@ -1,7 +1,3 @@
-# TODO(Ziyi): This is a temporary workaround otherwise we have to explicitly export symbols in extensions.
-set(CMAKE_CXX_VISIBILITY_PRESET default)
-set(CMAKE_C_VISIBILITY_PRESET default)
-
 SET(STATICALLY_LINKED_EXTENSIONS "" PARENT_SCOPE)
 function(add_static_link_extension extension_name)
     list(APPEND STATICALLY_LINKED_EXTENSIONS ${extension_name})
@@ -61,7 +57,7 @@ if (NOT LIST_SIZE EQUAL 0)
     SET(BUILD_STATIC_EXTENSION ON)
 else ()
     SET(BUILD_STATIC_EXTENSION OFF)
-    ADD_COMPILE_DEFINITIONS(BUILD_DYNAMIC_LOAD)
+    add_compile_definitions(BUILD_DYNAMIC_LOAD)
 endif ()
 
 function(add_extension_if_enabled extension)
@@ -89,3 +85,4 @@ add_extension_if_enabled("json")
 add_extension_if_enabled("fts")
 add_extension_if_enabled("vector")
 add_extension_if_enabled("httpfs")
+
