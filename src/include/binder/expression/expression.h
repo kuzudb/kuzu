@@ -4,6 +4,7 @@
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 #include "common/assert.h"
 #include "common/cast.h"
