@@ -143,12 +143,14 @@ void WALReplayer::replayCreateCatalogEntryRecord(const WALRecord& walRecord) con
         auto& entry = record.ownedCatalogEntry->constCast<RelGroupCatalogEntry>();
         std::vector<table_id_t> childrenTableIDs;
         for (auto& ownedChildEntry : record.ownedChildrenEntries) {
-            auto info = ownedChildEntry->ptrCast<TableCatalogEntry>()->getBoundCreateTableInfo(transaction, record.isInternal);
+            auto info = ownedChildEntry->ptrCast<TableCatalogEntry>()->getBoundCreateTableInfo(
+                transaction, record.isInternal);
             KU_ASSERT(info.hasParent == true && info.type == CatalogEntryType::REL_TABLE_ENTRY);
             auto childEntry = catalog->createTableEntry(transaction, info);
             childrenTableIDs.push_back(childEntry->ptrCast<TableCatalogEntry>()->getTableID());
         }
-        auto newEntry = catalog->createRelGroupEntry(transaction, entry.getName(), std::move(childrenTableIDs));
+        auto newEntry =
+            catalog->createRelGroupEntry(transaction, entry.getName(), std::move(childrenTableIDs));
         storageManager->createTable(newEntry, &clientContext);
     } break;
     case CatalogEntryType::SCALAR_MACRO_ENTRY: {

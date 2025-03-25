@@ -122,7 +122,8 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
             auto& entry = newCatalogEntry->constCast<RelGroupCatalogEntry>();
             std::vector<CatalogEntry*> children;
             for (auto tableID : entry.getRelTableIDs()) {
-                children.push_back(clientContext->getCatalog()->getTableCatalogEntry(this, tableID));
+                children.push_back(
+                    clientContext->getCatalog()->getTableCatalogEntry(this, tableID));
             }
             wal->logCreateCatalogEntryRecord(newCatalogEntry, children, isInternal);
         }

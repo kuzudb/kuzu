@@ -238,13 +238,12 @@ CatalogEntry* Catalog::createRelGroupEntry(Transaction* transaction,
     return createRelGroupEntry(transaction, info.tableName, std::move(childrenTableIDs));
 }
 
-CatalogEntry* Catalog::createRelGroupEntry(Transaction* transaction,
-    const std::string& entryName, std::vector<table_id_t> childrenTableIDs) {
+CatalogEntry* Catalog::createRelGroupEntry(Transaction* transaction, const std::string& entryName,
+    std::vector<table_id_t> childrenTableIDs) {
     auto entry = std::make_unique<RelGroupCatalogEntry>(entryName, std::move(childrenTableIDs));
     relGroups->createEntry(transaction, std::move(entry));
     return relGroups->getEntry(transaction, entryName);
 }
-
 
 bool Catalog::containsSequence(const Transaction* transaction, const std::string& name) const {
     return sequences->containsEntry(transaction, name);
