@@ -4,7 +4,6 @@
 #include "main/client_context.h"
 #include "main/database.h"
 #include "main/duckdb_extension.h"
-#include "s3fs_config.h"
 
 namespace kuzu {
 namespace delta_extension {
@@ -12,12 +11,13 @@ namespace delta_extension {
 void DeltaExtension::load(main::ClientContext* context) {
     auto& db = *context->getDatabase();
     extension::ExtensionUtils::addTableFunc<DeltaScanFunction>(db);
-    duckdb_extension::DuckDBExtension::loadRemoteFSOptions(context);
+    duckdb_extension::DuckdbExtension::loadRemoteFSOptions(context);
 }
 
 } // namespace delta_extension
 } // namespace kuzu
 
+#if defined(BUILD_DYNAMIC_LOAD)
 extern "C" {
 // Because we link against the static library on windows, we implicitly inherit KUZU_STATIC_DEFINE,
 // which cancels out any exporting, so we can't use KUZU_API.
@@ -34,3 +34,4 @@ INIT_EXPORT const char* name() {
     return kuzu::delta_extension::DeltaExtension::EXTENSION_NAME;
 }
 }
+#endif

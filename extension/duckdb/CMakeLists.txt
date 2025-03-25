@@ -1,4 +1,4 @@
-if (WIN32)
+if (WIN32 OR BUILD_STATIC_EXTENSION)
     set(DuckDB_USE_STATIC_LIBS ON)
 else ()
     set(DuckDB_USE_STATIC_LIBS OFF)
@@ -20,22 +20,8 @@ add_subdirectory(src/storage)
 add_subdirectory(src/installer)
 add_subdirectory(src/loader)
 
-add_library(duckdb_extension
-        SHARED
-        ${DUCKDB_EXTENSION_OBJECT_FILES}
-        ${PROJECT_SOURCE_DIR}/extension/httpfs/src/s3fs_config.cpp)
+build_extension_lib(${BUILD_STATIC_EXTENSION} "duckdb")
 
-target_link_libraries(duckdb_extension
+target_link_libraries(kuzu_${EXTENSION_LIB_NAME}_extension
         PRIVATE
         ${DuckDB_LIBRARIES})
-
-set_extension_properties(duckdb_extension duckdb duckdb)
-
-if (WIN32)
-    # See comments in extension/httpfs/CMakeLists.txt.
-    target_link_libraries(duckdb_extension PRIVATE kuzu)
-endif ()
-
-if (APPLE)
-    set_apple_dynamic_lookup(duckdb_extension)
-endif ()

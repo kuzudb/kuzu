@@ -37,6 +37,8 @@ public:
         std::string_view functionName);
     static std::optional<ExtensionEntry> lookupExtensionsByTypeName(std::string_view typeName);
 
+    void autoLoadLinkedExtensions(main::ClientContext* context);
+
 private:
     std::vector<LoadedExtension> loadedExtensions;
     std::unordered_map<std::string, main::ExtensionOption> extensionOptions;

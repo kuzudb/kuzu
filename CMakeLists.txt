@@ -355,10 +355,15 @@ include_directories(SYSTEM third_party/simsimd/include)
 
 add_subdirectory(third_party)
 
-if(${BUILD_KUZU})
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
 add_definitions(-DKUZU_EXTENSION_VERSION="0.8.0")
+
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extension/CMakeLists.txt")
+    add_subdirectory(extension)
+endif ()
+
+if(BUILD_KUZU)
 
 include_directories(
     src/include
@@ -373,9 +378,12 @@ elseif (${BUILD_BENCHMARK})
 endif ()
 add_subdirectory(tools)
 endif ()
-if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extension/CMakeLists.txt")
-    add_subdirectory(extension)
-endif ()
+
+# Link extensions which require static linking.
+foreach(ext IN LISTS STATICALLY_LINKED_EXTENSIONS)
+    target_link_libraries(kuzu PRIVATE "kuzu_${ext}_static_extension")
+    target_link_libraries(kuzu_shared PRIVATE "kuzu_${ext}_static_extension")
+endforeach()
 
 if (${BUILD_EXAMPLES})
     add_subdirectory(examples/c)

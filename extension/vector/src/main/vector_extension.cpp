@@ -1,4 +1,4 @@
-#include "vector_extension.h"
+#include "main/vector_extension.h"
 
 #include "catalog/hnsw_index_catalog_entry.h"
 #include "function/hnsw_index_functions.h"
@@ -26,12 +26,13 @@ void VectorExtension::load(main::ClientContext* context) {
     extension::ExtensionUtils::addStandaloneTableFunc<CreateVectorIndexFunction>(db);
     extension::ExtensionUtils::addInternalStandaloneTableFunc<InternalDropHNSWIndexFunction>(db);
     extension::ExtensionUtils::addStandaloneTableFunc<DropVectorIndexFunction>(db);
-    initHNSWEntries(context->getTransaction(), *db.getCatalog());
+    initHNSWEntries(&transaction::DUMMY_TRANSACTION, *db.getCatalog());
 }
 
 } // namespace vector_extension
 } // namespace kuzu
 
+#if defined(BUILD_DYNAMIC_LOAD)
 extern "C" {
 // Because we link against the static library on windows, we implicitly inherit KUZU_STATIC_DEFINE,
 // which cancels out any exporting, so we can't use KUZU_API.
@@ -48,3 +49,4 @@ INIT_EXPORT const char* name() {
     return kuzu::vector_extension::VectorExtension::EXTENSION_NAME;
 }
 }
+#endif

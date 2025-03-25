@@ -1,4 +1,4 @@
-if (WIN32)
+if (WIN32 OR BUILD_STATIC_EXTENSION)
     set(DuckDB_USE_STATIC_LIBS ON)
 else ()
     set(DuckDB_USE_STATIC_LIBS OFF)
@@ -19,29 +19,19 @@ add_subdirectory(src/main)
 add_subdirectory(src/installer)
 add_subdirectory(src/function)
 
-add_library(sqlite_extension
-        SHARED
-        ${SQLITE_EXTENSION_OBJECT_FILES})
+build_extension_lib(${BUILD_STATIC_EXTENSION} "sqlite")
 
-set_extension_properties(sqlite_extension sqlite sqlite)
-
-target_link_libraries(sqlite_extension
+target_link_libraries(kuzu_${EXTENSION_LIB_NAME}_extension
         PRIVATE
         ${DuckDB_LIBRARIES})
 
-if (NOT WIN32)
+if (NOT WIN32 AND NOT BUILD_STATIC_EXTENSION)
     add_library(sqlite_loader
             SHARED
             ${PROJECT_SOURCE_DIR}/extension/duckdb/src/loader/duckdb_loader.cpp)
     set_extension_properties(sqlite_loader sqlite_loader sqlite)
 endif ()
 
-if (WIN32)
-    # See comments in extension/httpfs/CMakeLists.txt.
-    target_link_libraries(sqlite_extension PRIVATE kuzu)
-endif ()
-
-if (APPLE)
-    set_apple_dynamic_lookup(sqlite_extension)
+if (APPLE AND NOT BUILD_STATIC_EXTENSION)
     set_apple_dynamic_lookup(sqlite_loader)
 endif ()

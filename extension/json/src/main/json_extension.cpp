@@ -1,4 +1,4 @@
-#include "json_extension.h"
+#include "main/json_extension.h"
 
 #include "json_cast_functions.h"
 #include "json_creation_functions.h"
@@ -53,6 +53,7 @@ void JsonExtension::load(main::ClientContext* context) {
 } // namespace json_extension
 } // namespace kuzu
 
+#if defined(BUILD_DYNAMIC_LOAD)
 extern "C" {
 // Because we link against the static library on windows, we implicitly inherit KUZU_STATIC_DEFINE,
 // which cancels out any exporting, so we can't use KUZU_API.
@@ -69,3 +70,4 @@ INIT_EXPORT const char* name() {
     return kuzu::json_extension::JsonExtension::EXTENSION_NAME;
 }
 }
+#endif

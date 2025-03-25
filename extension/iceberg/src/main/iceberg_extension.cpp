@@ -1,4 +1,4 @@
-#include "iceberg_extension.h"
+#include "main/iceberg_extension.h"
 
 #include "function/iceberg_functions.h"
 #include "main/client_context.h"
@@ -16,12 +16,13 @@ void IcebergExtension::load(main::ClientContext* context) {
     extension::ExtensionUtils::addTableFunc<IcebergScanFunction>(db);
     extension::ExtensionUtils::addTableFunc<IcebergMetadataFunction>(db);
     extension::ExtensionUtils::addTableFunc<IcebergSnapshotsFunction>(db);
-    duckdb_extension::DuckDBExtension::loadRemoteFSOptions(context);
+    duckdb_extension::DuckdbExtension::loadRemoteFSOptions(context);
 }
 
 } // namespace iceberg_extension
 } // namespace kuzu
 
+#if defined(BUILD_DYNAMIC_LOAD)
 extern "C" {
 // Because we link against the static library on windows, we implicitly inherit KUZU_STATIC_DEFINE,
 // which cancels out any exporting, so we can't use KUZU_API.
@@ -38,3 +39,4 @@ INIT_EXPORT const char* name() {
     return kuzu::iceberg_extension::IcebergExtension::EXTENSION_NAME;
 }
 }
+#endif

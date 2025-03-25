@@ -6,7 +6,7 @@ namespace kuzu {
 namespace duckdb_extension {
 
 void DuckDBLoader::loadDependency(main::ClientContext* context) {
-    for (auto& dependencyLib : DuckDBExtension::DEPENDENCY_LIB_FILES) {
+    for (auto& dependencyLib : DuckdbExtension::DEPENDENCY_LIB_FILES) {
         auto dependencyLibWithSuffix = extension::ExtensionUtils::appendLibSuffix(dependencyLib);
         auto dependencyLibPath =
             extension::ExtensionUtils::getLocalPathForSharedLib(context, dependencyLibWithSuffix);

@@ -1,4 +1,4 @@
-if (WIN32)
+if (WIN32 OR BUILD_STATIC_EXTENSION)
     set(DuckDB_USE_STATIC_LIBS ON)
 else ()
     set(DuckDB_USE_STATIC_LIBS OFF)
@@ -18,12 +18,9 @@ include_directories(
 add_subdirectory(src/function)
 add_subdirectory(src/connector)
 add_subdirectory(src/installer)
+add_subdirectory(src/main)
 
-add_library(iceberg_extension
-        SHARED
-        ${ICEBERG_OBJECT_FILES}
-        src/iceberg_extension.cpp
-)
+build_extension_lib(${BUILD_STATIC_EXTENSION} "iceberg")
 
 add_library(delta_connector
     ${PROJECT_SOURCE_DIR}/extension/delta/src/connector/delta_connector.cpp
@@ -39,26 +36,18 @@ target_include_directories(delta_connector PRIVATE
     ${PROJECT_SOURCE_DIR}/extension/httpfs/src/include
 )
 
-set_extension_properties(iceberg_extension iceberg iceberg)
-
-target_link_libraries(iceberg_extension
+target_link_libraries(kuzu_${EXTENSION_LIB_NAME}_extension
         PRIVATE
         ${DuckDB_LIBRARIES}
         delta_connector)
 
-if (NOT WIN32)
+if (NOT WIN32 AND NOT BUILD_STATIC_EXTENSION)
     add_library(iceberg_loader
             SHARED
             ../duckdb/src/loader/duckdb_loader.cpp)
     set_extension_properties(iceberg_loader iceberg_loader iceberg)
 endif ()
 
-if (WIN32)
-    # See comments in extension/httpfs/CMakeLists.txt.
-    target_link_libraries(iceberg_extension PRIVATE kuzu)
-endif ()
-
-if (APPLE)
-    set_apple_dynamic_lookup(iceberg_extension)
+if (APPLE AND NOT BUILD_STATIC_EXTENSION)
     set_apple_dynamic_lookup(iceberg_loader)
 endif ()

@@ -5,7 +5,7 @@
 #include "mbedtls/sha256.h"
 
 namespace kuzu {
-namespace httpfs {
+namespace httpfs_extension {
 
 void sha256(const char* in, size_t inLen, hash_bytes& out) {
     mbedtls_sha256_context shaContext;
@@ -50,5 +50,5 @@ void hex256(hash_bytes& in, hash_str& out) {
     }
 }
 
-} // namespace httpfs
+} // namespace httpfs_extension
 } // namespace kuzu

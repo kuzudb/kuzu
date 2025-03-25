@@ -1,3 +1,12 @@
+SET(STATICALLY_LINKED_EXTENSIONS "" PARENT_SCOPE)
+function(add_static_link_extension extension_name)
+    list(APPEND STATICALLY_LINKED_EXTENSIONS ${extension_name})
+    set(STATICALLY_LINKED_EXTENSIONS "${STATICALLY_LINKED_EXTENSIONS}" PARENT_SCOPE)
+endfunction()
+
+include(extension_config.cmake)
+set(STATICALLY_LINKED_EXTENSIONS "${STATICALLY_LINKED_EXTENSIONS}" PARENT_SCOPE)
+
 function(set_extension_properties target_name output_name extension_name)
     set_target_properties(${target_name}
             PROPERTIES
@@ -14,58 +23,66 @@ function(set_apple_dynamic_lookup target_name)
     set_target_properties(${target_name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
 endfunction()
 
-if (${BUILD_EXTENSION_TESTS})
+function(build_extension_lib build_static ext_name)
+    string(TOUPPER "${ext_name}" ext_name_upper_case)
+    if (build_static)
+        add_library(kuzu_${ext_name}_static_extension
+                STATIC
+                ${${ext_name_upper_case}_EXTENSION_OBJECT_FILES})
+        SET(EXTENSION_LIB_NAME "${ext_name}_static" PARENT_SCOPE)
+        SET(EXTENSION_LIB_NAME "${ext_name}_static")
+    else ()
+        add_library(kuzu_${ext_name}_extension
+                SHARED
+                ${${ext_name_upper_case}_EXTENSION_OBJECT_FILES})
+        SET(EXTENSION_LIB_NAME "${ext_name}" PARENT_SCOPE)
+        SET(EXTENSION_LIB_NAME "${ext_name}")
+    endif ()
+    set_extension_properties(kuzu_${EXTENSION_LIB_NAME}_extension ${EXTENSION_LIB_NAME} ${ext_name})
+    if (WIN32 OR build_static)
+        # See comments in extension/httpfs/CMakeLists.txt.
+        target_link_libraries(kuzu_${EXTENSION_LIB_NAME}_extension PRIVATE kuzu)
+    endif ()
+    if (APPLE AND NOT build_static)
+        set_apple_dynamic_lookup(kuzu_${EXTENSION_LIB_NAME}_extension)
+    endif ()
+endfunction()
+
+if (BUILD_EXTENSION_TESTS)
     enable_testing()
 endif ()
 
-if ("httpfs" IN_LIST BUILD_EXTENSIONS)
-    add_subdirectory(httpfs)
+list(LENGTH STATICALLY_LINKED_EXTENSIONS LIST_SIZE)
+if (NOT LIST_SIZE EQUAL 0)
+    SET(BUILD_STATIC_EXTENSION ON)
+else ()
+    SET(BUILD_STATIC_EXTENSION OFF)
+    add_compile_definitions(BUILD_DYNAMIC_LOAD)
 endif ()
 
-if ("duckdb" IN_LIST BUILD_EXTENSIONS)
-    if (NOT __32BIT__)
-        # DuckDB does not officially support 32-bit builds, so we disable the
-        # extension for 32-bit builds
-        add_subdirectory(duckdb)
-    endif ()
-endif ()
+function(add_extension_if_enabled extension)
+    if ("${extension}" IN_LIST BUILD_EXTENSIONS OR
+            "${extension}" IN_LIST STATICALLY_LINKED_EXTENSIONS)
+        add_subdirectory(${extension})
+    endif()
+endfunction()
 
-if ("json" IN_LIST BUILD_EXTENSIONS)
-    add_subdirectory(json)
-endif ()
+function(add_extension_if_enabled_and_skip_32bit extension)
+    if (NOT __32BIT__ AND
+        ("${extension}" IN_LIST BUILD_EXTENSIONS OR
+            "${extension}" IN_LIST STATICALLY_LINKED_EXTENSIONS))
+        add_subdirectory(${extension})
+    endif()
+endfunction()
 
-if ("postgres" IN_LIST BUILD_EXTENSIONS)
-    if (NOT __32BIT__)
-        # DuckDB does not officially support 32-bit builds, so we disable the
-        # extension for 32-bit builds
-        add_subdirectory(postgres)
-    endif ()
-endif ()
+add_extension_if_enabled_and_skip_32bit("duckdb")
+add_extension_if_enabled_and_skip_32bit("postgres")
+add_extension_if_enabled_and_skip_32bit("sqlite")
+add_extension_if_enabled_and_skip_32bit("delta")
+add_extension_if_enabled_and_skip_32bit("iceberg")
+add_extension_if_enabled_and_skip_32bit("unity_catalog")
+add_extension_if_enabled("json")
+add_extension_if_enabled("fts")
+add_extension_if_enabled("vector")
+add_extension_if_enabled("httpfs")
 
-if ("sqlite" IN_LIST BUILD_EXTENSIONS)
-    if (NOT __32BIT__)
-        # DuckDB does not officially support 32-bit builds, so we disable the
-        # extension for 32-bit builds
-        add_subdirectory(sqlite)
-    endif ()
-endif ()
-
-if ("fts" IN_LIST BUILD_EXTENSIONS)
-    add_subdirectory(fts)
-endif ()
-
-if ("delta" IN_LIST BUILD_EXTENSIONS)
-    add_subdirectory(delta)
-endif ()
-
-if ("iceberg" IN_LIST BUILD_EXTENSIONS)
-    add_subdirectory(iceberg)
-endif ()
-
-if ("unity_catalog" IN_LIST BUILD_EXTENSIONS)
-    add_subdirectory(unity_catalog)
-endif ()
-
-if ("vector" IN_LIST BUILD_EXTENSIONS)
-    add_subdirectory(vector)
-endif()

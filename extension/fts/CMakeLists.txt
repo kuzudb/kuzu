@@ -4,27 +4,16 @@ include_directories(
         src/include
         third_party/snowball/libstemmer)
 
-add_subdirectory(src)
+add_subdirectory(src/catalog)
+add_subdirectory(src/function)
+add_subdirectory(src/main)
 add_subdirectory(test)
-
-add_library(fts_extension
-        SHARED
-        ${FTS_OBJECT_FILES})
 
 add_subdirectory(third_party/snowball)
 
-target_link_libraries(fts_extension
+build_extension_lib(${BUILD_STATIC_EXTENSION} "fts")
+
+target_link_libraries(kuzu_${EXTENSION_LIB_NAME}_extension
         PRIVATE
         snowball
         re2)
-
-set_extension_properties(fts_extension fts fts)
-
-if (WIN32)
-    # See comment in extension/httpfs/CMakeLists.txt
-    target_link_libraries(fts_extension PRIVATE kuzu)
-endif ()
-
-if (APPLE)
-    set_apple_dynamic_lookup(fts_extension)
-endif ()

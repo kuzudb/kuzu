@@ -3,7 +3,7 @@
 #include "httpfs.h"
 
 namespace kuzu {
-namespace httpfs {
+namespace httpfs_extension {
 
 using namespace common;
 
@@ -59,5 +59,5 @@ void CachedFileManager::downloadFile(HTTPFileInfo* fileToDownload, FileInfo* cac
     cacheFileInfo->syncFile();
 }
 
-} // namespace httpfs
+} // namespace httpfs_extension
 } // namespace kuzu

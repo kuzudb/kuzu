@@ -5,7 +5,7 @@
 #include "main/database.h"
 
 namespace kuzu {
-namespace httpfs {
+namespace httpfs_extension {
 
 using namespace common;
 
@@ -93,5 +93,5 @@ void S3FileSystemConfig::setEnvValue(main::ClientContext* context) const {
     }
 }
 
-} // namespace httpfs
+} // namespace httpfs_extension
 } // namespace kuzu

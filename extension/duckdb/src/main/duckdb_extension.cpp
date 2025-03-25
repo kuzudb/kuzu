@@ -9,15 +9,16 @@
 namespace kuzu {
 namespace duckdb_extension {
 
-void DuckDBExtension::load(main::ClientContext* context) {
+void DuckdbExtension::load(main::ClientContext* context) {
     auto db = context->getDatabase();
     db->registerStorageExtension(EXTENSION_NAME, std::make_unique<DuckDBStorageExtension>(db));
-    DuckDBExtension::loadRemoteFSOptions(context);
+    loadRemoteFSOptions(context);
 }
 
 } // namespace duckdb_extension
 } // namespace kuzu
 
+#if defined(BUILD_DYNAMIC_LOAD)
 extern "C" {
 // Because we link against the static library on windows, we implicitly inherit KUZU_STATIC_DEFINE,
 // which cancels out any exporting, so we can't use KUZU_API.
@@ -27,10 +28,11 @@ extern "C" {
 #define INIT_EXPORT __attribute__((visibility("default")))
 #endif
 INIT_EXPORT void init(kuzu::main::ClientContext* context) {
-    kuzu::duckdb_extension::DuckDBExtension::load(context);
+    kuzu::duckdb_extension::DuckdbExtension::load(context);
 }
 
 INIT_EXPORT const char* name() {
-    return kuzu::duckdb_extension::DuckDBExtension::EXTENSION_NAME;
+    return kuzu::duckdb_extension::DuckdbExtension::EXTENSION_NAME;
 }
 }
+#endif
