@@ -19,7 +19,7 @@ public:
         EmptyDBTest::SetUp();
         // TODO(bmwinger): Set back to default when the hash index is able to reduce its memory
         // usage
-        systemConfig->bufferPoolSize = 256 * 1024 * 1024 + TestHelper::HASH_INDEX_MEM;
+        systemConfig->bufferPoolSize = 512 * 1024 * 1024 + TestHelper::HASH_INDEX_MEM;
         createDBAndConn();
         auto result = conn->query("CREATE NODE TABLE Test(id int32, primary key(id))");
         ASSERT_TRUE(result->isSuccess()) << result->toString();
