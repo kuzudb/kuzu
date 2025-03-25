@@ -10,7 +10,7 @@ public:
     static constexpr char EXTENSION_NAME[] = "UNITY_CATALOG";
 
 public:
-    KUZU_API static void load(main::ClientContext* context);
+    static void load(main::ClientContext* context);
 };
 
 } // namespace unity_catalog_extension

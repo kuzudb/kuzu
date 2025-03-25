@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/api.h"
 #include "extension/extension.h"
 
 namespace kuzu {
