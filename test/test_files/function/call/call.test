@@ -411,3 +411,14 @@ Binder exception: Column i does not exist in table testArray.
 Binder exception: Column id is not of the expected type ARRAY.
 -STATEMENT CALL _CACHE_ARRAY_COLUMN_LOCALLY('testArray', 'arr');
 ---- ok
+
+-CASE ShowFunctionsWithAlias
+-STATEMENT CALL SHOW_FUNCTIONS() WHERE name = 'TOLOWER' RETURN *;
+---- 1
+TOLOWER|SCALAR FUNCTION|(STRING) -> STRING
+-STATEMENT CALL SHOW_FUNCTIONS() WHERE name = 'LOWER' RETURN *;
+---- 1
+LOWER|SCALAR FUNCTION|(STRING) -> STRING
+-STATEMENT CALL SHOW_FUNCTIONS() WHERE name = 'INTERVAL' RETURN *;
+---- 1
+INTERVAL|SCALAR FUNCTION|(STRING) -> INTERVAL
