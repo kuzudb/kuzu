@@ -56,6 +56,7 @@ def test_replay_with_exception(tmp_path: Path, build_dir: Path) -> None:
     for i in range(10):
         try:
             conn.execute(f"CREATE (:tab {{id: {i // 2}}})")
+            assert i % 2 == 0
         except:
             assert i % 2 == 1
     conn.execute("UNWIND RANGE(1,100000) AS x UNWIND RANGE(1, 100000) AS y CREATE (:tab {id: x * 100000 + y});")
