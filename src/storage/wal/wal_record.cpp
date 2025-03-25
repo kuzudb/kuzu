@@ -128,7 +128,7 @@ std::unique_ptr<CreateCatalogEntryRecord> CreateCatalogEntryRecord::deserialize(
     Deserializer& deserializer) {
     auto retVal = std::make_unique<CreateCatalogEntryRecord>();
     retVal->ownedCatalogEntry = catalog::CatalogEntry::deserialize(deserializer);
-    idx_t vectorSize;
+    idx_t vectorSize = 0;
     deserializer.deserializeValue(vectorSize);
     for (auto i = 0u; i < vectorSize; ++i) {
         retVal->ownedChildrenEntries.push_back(catalog::CatalogEntry::deserialize(deserializer));

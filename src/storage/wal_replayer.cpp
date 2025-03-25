@@ -45,9 +45,20 @@ void WALReplayer::replay() const {
     }
     try {
         Deserializer deserializer(std::make_unique<BufferedFileReader>(std::move(fileInfo)));
+        RUNTIME_CHECK(bool nextRecordShouldBeRollback = false);
         while (!deserializer.finished()) {
+            // If an exception occurs while deserializing we will stop replaying
             auto walRecord = WALRecord::deserialize(deserializer, clientContext);
-            replayWALRecord(*walRecord);
+            KU_ASSERT(
+                !nextRecordShouldBeRollback || walRecord->type == WALRecordType::ROLLBACK_RECORD);
+            try {
+                replayWALRecord(*walRecord);
+                RUNTIME_CHECK(nextRecordShouldBeRollback = false);
+            } catch (const Exception& e) {
+                // exception while replaying a WAL record
+                // stop executing the current query, the next record should be a rollback record
+                RUNTIME_CHECK(nextRecordShouldBeRollback = true);
+            }
         }
         if (clientContext.getTransactionContext()->hasActiveTransaction()) {
             // Handle the case that either the last transaction is not committed or the wal file is
@@ -62,8 +73,6 @@ void WALReplayer::replay() const {
             // under this case.
             clientContext.getTransactionContext()->rollback();
         }
-        throw RuntimeException(
-            stringFormat("Failed to replay wal record from WAL file. Error: {}", e.what()));
     }
 }
 
