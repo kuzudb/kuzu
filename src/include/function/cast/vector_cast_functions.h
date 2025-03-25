@@ -57,7 +57,6 @@ struct DurationFunction {
     static constexpr const char* name = "DURATION";
 };
 
-
 struct CastToStringFunction {
     static constexpr const char* name = "TO_STRING";
 
