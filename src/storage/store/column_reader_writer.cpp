@@ -4,6 +4,7 @@
 #include "common/utils.h"
 #include "common/vector/value_vector.h"
 #include "storage/compression/float_compression.h"
+#include "storage/file_handle.h"
 #include "storage/shadow_utils.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk_data.h"
@@ -75,9 +76,8 @@ class FloatColumnReadWriter;
 
 class DefaultColumnReadWriter : public ColumnReadWriter {
 public:
-    DefaultColumnReadWriter(DBFileID dbFileID, FileHandle* dataFH, BufferManager* bufferManager,
-        ShadowFile* shadowFile)
-        : ColumnReadWriter(dbFileID, dataFH, bufferManager, shadowFile) {}
+    DefaultColumnReadWriter(DBFileID dbFileID, FileHandle* dataFH, ShadowFile* shadowFile)
+        : ColumnReadWriter(dbFileID, dataFH, shadowFile) {}
 
     void readCompressedValueToPage(const transaction::Transaction* transaction,
         const ChunkState& state, common::offset_t nodeOffset, uint8_t* result,
@@ -205,11 +205,9 @@ public:
 template<std::floating_point T>
 class FloatColumnReadWriter : public ColumnReadWriter {
 public:
-    FloatColumnReadWriter(DBFileID dbFileID, FileHandle* dataFH, BufferManager* bufferManager,
-        ShadowFile* shadowFile)
-        : ColumnReadWriter(dbFileID, dataFH, bufferManager, shadowFile),
-          defaultReader(std::make_unique<DefaultColumnReadWriter>(dbFileID, dataFH, bufferManager,
-              shadowFile)) {}
+    FloatColumnReadWriter(DBFileID dbFileID, FileHandle* dataFH, ShadowFile* shadowFile)
+        : ColumnReadWriter(dbFileID, dataFH, shadowFile),
+          defaultReader(std::make_unique<DefaultColumnReadWriter>(dbFileID, dataFH, shadowFile)) {}
 
     void readCompressedValueToPage(const transaction::Transaction* transaction,
         const ChunkState& state, common::offset_t nodeOffset, uint8_t* result,
@@ -413,23 +411,19 @@ private:
 
 std::unique_ptr<ColumnReadWriter> ColumnReadWriterFactory::createColumnReadWriter(
     common::PhysicalTypeID dataType, DBFileID dbFileID, FileHandle* dataFH,
-    BufferManager* bufferManager, ShadowFile* shadowFile) {
+    ShadowFile* shadowFile) {
     switch (dataType) {
     case common::PhysicalTypeID::FLOAT:
-        return std::make_unique<FloatColumnReadWriter<float>>(dbFileID, dataFH, bufferManager,
-            shadowFile);
+        return std::make_unique<FloatColumnReadWriter<float>>(dbFileID, dataFH, shadowFile);
     case common::PhysicalTypeID::DOUBLE:
-        return std::make_unique<FloatColumnReadWriter<double>>(dbFileID, dataFH, bufferManager,
-            shadowFile);
+        return std::make_unique<FloatColumnReadWriter<double>>(dbFileID, dataFH, shadowFile);
     default:
-        return std::make_unique<DefaultColumnReadWriter>(dbFileID, dataFH, bufferManager,
-            shadowFile);
+        return std::make_unique<DefaultColumnReadWriter>(dbFileID, dataFH, shadowFile);
     }
 }
 
-ColumnReadWriter::ColumnReadWriter(DBFileID dbFileID, FileHandle* dataFH,
-    BufferManager* bufferManager, ShadowFile* shadowFile)
-    : dbFileID(dbFileID), dataFH(dataFH), bufferManager(bufferManager), shadowFile(shadowFile) {}
+ColumnReadWriter::ColumnReadWriter(DBFileID dbFileID, FileHandle* dataFH, ShadowFile* shadowFile)
+    : dbFileID(dbFileID), dataFH(dataFH), shadowFile(shadowFile) {}
 
 void ColumnReadWriter::readFromPage(const Transaction* transaction, page_idx_t pageIdx,
     const std::function<void(uint8_t*)>& readFunc) {

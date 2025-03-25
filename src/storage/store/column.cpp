@@ -105,9 +105,8 @@ Column::Column(std::string name, LogicalType dataType, FileHandle* dataFH, Memor
     ShadowFile* shadowFile, bool enableCompression, bool requireNullColumn)
     : name{std::move(name)}, dbFileID{DBFileID::newDataFileID()}, dataType{std::move(dataType)},
       dataFH{dataFH}, mm{mm}, shadowFile{shadowFile}, enableCompression{enableCompression},
-      columnReadWriter(
-          ColumnReadWriterFactory::createColumnReadWriter(this->dataType.getPhysicalType(),
-              dbFileID, this->dataFH, this->mm->getBufferManager(), this->shadowFile)) {
+      columnReadWriter(ColumnReadWriterFactory::createColumnReadWriter(
+          this->dataType.getPhysicalType(), dbFileID, this->dataFH, this->shadowFile)) {
     readToVectorFunc = getReadValuesToVectorFunc(this->dataType);
     readToPageFunc = ReadCompressedValuesFromPage(this->dataType);
     writeFunc = getWriteValuesFunc(this->dataType);

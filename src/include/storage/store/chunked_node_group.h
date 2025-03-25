@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <mutex>
 
 #include "common/enums/rel_multiplicity.h"
 #include "storage/enums/residency_state.h"

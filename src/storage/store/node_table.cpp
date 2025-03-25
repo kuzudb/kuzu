@@ -7,6 +7,7 @@
 #include "common/types/types.h"
 #include "main/client_context.h"
 #include "main/db_config.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/local_storage/local_table.h"

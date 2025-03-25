@@ -10,6 +10,7 @@ class Transaction;
 namespace storage {
 
 class Column;
+class MemoryManager;
 class ColumnReadWriter;
 struct ColumnChunkMetadata;
 struct ChunkState;

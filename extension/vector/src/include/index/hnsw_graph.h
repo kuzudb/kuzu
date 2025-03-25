@@ -1,7 +1,10 @@
 #pragma once
 
+#include <cmath>
+
 #include "index/hnsw_config.h"
 #include "processor/operator/partitioner.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/local_cached_column.h"
 #include "storage/store/column_chunk_data.h"
 
@@ -50,15 +53,13 @@ struct OnDiskEmbeddingScanState {
 
 class OnDiskEmbeddings final : public EmbeddingColumn {
 public:
-    OnDiskEmbeddings(EmbeddingTypeInfo typeInfo, storage::NodeTable& nodeTable,
-        common::column_id_t columnID);
+    OnDiskEmbeddings(EmbeddingTypeInfo typeInfo, storage::NodeTable& nodeTable);
 
     float* getEmbedding(transaction::Transaction* transaction,
         storage::NodeTableScanState& scanState, common::offset_t offset) const;
 
 private:
     storage::NodeTable& nodeTable;
-    common::column_id_t columnID;
 };
 
 struct NodeWithDistance {

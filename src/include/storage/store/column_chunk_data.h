@@ -7,6 +7,7 @@
 #include "common/data_chunk/sel_vector.h"
 #include "common/enums/rel_multiplicity.h"
 #include "common/null_mask.h"
+#include "common/system_config.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/compression/compression.h"

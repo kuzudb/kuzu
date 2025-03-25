@@ -3,6 +3,8 @@
 #include <array>
 #include <bitset>
 
+#include "common/constants.h"
+#include "common/system_config.h"
 #include "storage/enums/csr_node_group_scan_source.h"
 #include "storage/store/csr_chunked_node_group.h"
 #include "storage/store/node_group.h"
