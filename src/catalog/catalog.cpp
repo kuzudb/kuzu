@@ -229,17 +229,20 @@ void Catalog::dropRelGroupEntry(Transaction* transaction, const RelGroupCatalogE
 CatalogEntry* Catalog::createRelGroupEntry(Transaction* transaction,
     const BoundCreateTableInfo& info) {
     const auto extraInfo = info.extraInfo->ptrCast<BoundExtraCreateRelTableGroupInfo>();
-    std::vector<table_id_t> relTableIDs;
-    relTableIDs.reserve(extraInfo->infos.size());
+    std::vector<table_id_t> childrenTableIDs;
     for (auto& childInfo : extraInfo->infos) {
         KU_ASSERT(childInfo.hasParent);
-        relTableIDs.push_back(createRelTableEntry(transaction, childInfo)
-                                  ->ptrCast<TableCatalogEntry>()
-                                  ->getTableID());
+        auto childEntry = createRelTableEntry(transaction, childInfo);
+        childrenTableIDs.push_back(childEntry->ptrCast<TableCatalogEntry>()->getTableID());
     }
-    auto entry = std::make_unique<RelGroupCatalogEntry>(info.tableName, std::move(relTableIDs));
+    return createRelGroupEntry(transaction, info.tableName, std::move(childrenTableIDs));
+}
+
+CatalogEntry* Catalog::createRelGroupEntry(Transaction* transaction, const std::string& entryName,
+    std::vector<table_id_t> childrenTableIDs) {
+    auto entry = std::make_unique<RelGroupCatalogEntry>(entryName, std::move(childrenTableIDs));
     relGroups->createEntry(transaction, std::move(entry));
-    return relGroups->getEntry(transaction, info.tableName);
+    return relGroups->getEntry(transaction, entryName);
 }
 
 bool Catalog::containsSequence(const Transaction* transaction, const std::string& name) const {

@@ -105,9 +105,12 @@ public:
     std::vector<RelGroupCatalogEntry*> getRelGroupEntries(
         const transaction::Transaction* transaction) const;
 
-    // Create rel group entry.
+    // Create rel group entry and its children rel entries.
     CatalogEntry* createRelGroupEntry(transaction::Transaction* transaction,
         const binder::BoundCreateTableInfo& info);
+    // Create rel group entry
+    CatalogEntry* createRelGroupEntry(transaction::Transaction* transaction,
+        const std::string& entryName, std::vector<common::table_id_t> childrenTableIDs);
     // Drop rel group entry.
     void dropRelGroupEntry(transaction::Transaction* transaction, common::oid_t id);
     // Drop rel group entry.

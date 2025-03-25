@@ -119,7 +119,13 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
     case CatalogEntryType::REL_GROUP_ENTRY: {
         if (catalogEntry.getType() == CatalogEntryType::DUMMY_ENTRY) {
             KU_ASSERT(catalogEntry.isDeleted());
-            wal->logCreateCatalogEntryRecord(newCatalogEntry, isInternal);
+            auto& entry = newCatalogEntry->constCast<RelGroupCatalogEntry>();
+            std::vector<CatalogEntry*> children;
+            for (auto tableID : entry.getRelTableIDs()) {
+                children.push_back(
+                    clientContext->getCatalog()->getTableCatalogEntry(this, tableID));
+            }
+            wal->logCreateCatalogEntryRecord(newCatalogEntry, children, isInternal);
         }
         // Otherwise must be ALTER. We don't do anything in this case since the only operation
         // we need on rel groups is RENAME which only requires create/drop

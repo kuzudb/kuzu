@@ -1,6 +1,24 @@
 -DATASET CSV empty
 --
 
+-CASE ReplayRelGroup
+-STATEMENT CALL force_checkpoint_on_close=false;
+---- ok
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
+-STATEMENT CREATE NODE TABLE N1 (id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE NODE TABLE N2 (id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE R (FROM N1 to N1, FROM N2 to N2);
+---- ok
+-RELOADDB
+-STATEMENT CALL show_tables() RETURN *;
+---- 3
+0|N1|NODE|local(kuzu)|
+0|R|REL|local(kuzu)|
+1|N2|NODE|local(kuzu)|
+
 -CASE CreateDropNodeTableRecovery
 -STATEMENT BEGIN TRANSACTION;
 ---- ok

@@ -116,14 +116,23 @@ std::unique_ptr<CheckpointRecord> CheckpointRecord::deserialize(Deserializer&) {
 void CreateCatalogEntryRecord::serialize(Serializer& serializer) const {
     WALRecord::serialize(serializer);
     catalogEntry->serialize(serializer);
+    idx_t vectorSize = childrenEntries.size();
+    serializer.serializeValue(vectorSize);
+    for (auto& entry : childrenEntries) {
+        entry->serialize(serializer);
+    }
     serializer.serializeValue(isInternal);
 }
 
 std::unique_ptr<CreateCatalogEntryRecord> CreateCatalogEntryRecord::deserialize(
     Deserializer& deserializer) {
-    auto catalogEntry = catalog::CatalogEntry::deserialize(deserializer);
     auto retVal = std::make_unique<CreateCatalogEntryRecord>();
-    retVal->ownedCatalogEntry = std::move(catalogEntry);
+    retVal->ownedCatalogEntry = catalog::CatalogEntry::deserialize(deserializer);
+    idx_t vectorSize;
+    deserializer.deserializeValue(vectorSize);
+    for (auto i = 0u; i < vectorSize; ++i) {
+        retVal->ownedChildrenEntries.push_back(catalog::CatalogEntry::deserialize(deserializer));
+    }
     bool isInternal = false;
     deserializer.deserializeValue(isInternal);
     retVal->isInternal = isInternal;
