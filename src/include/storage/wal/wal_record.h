@@ -85,7 +85,9 @@ struct CheckpointRecord final : WALRecord {
 
 struct CreateCatalogEntryRecord final : WALRecord {
     catalog::CatalogEntry* catalogEntry;
+    std::vector<catalog::CatalogEntry*> childrenEntries;
     std::unique_ptr<catalog::CatalogEntry> ownedCatalogEntry;
+    std::vector<std::unique_ptr<catalog::CatalogEntry>> ownedChildrenEntries;
     bool isInternal = false;
 
     CreateCatalogEntryRecord()

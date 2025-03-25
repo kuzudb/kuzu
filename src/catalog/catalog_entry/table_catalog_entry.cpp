@@ -153,7 +153,7 @@ BoundCreateTableInfo TableCatalogEntry::getBoundCreateTableInfo(
     transaction::Transaction* transaction, bool isInternal) const {
     auto extraInfo = getBoundExtraCreateInfo(transaction);
     return BoundCreateTableInfo(type, name, ConflictAction::ON_CONFLICT_THROW, std::move(extraInfo),
-        isInternal);
+        isInternal, hasParent_);
 }
 
 } // namespace catalog
