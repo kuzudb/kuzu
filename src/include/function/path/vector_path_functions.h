@@ -17,6 +17,12 @@ struct RelsFunction {
     static function_set getFunctionSet();
 };
 
+struct RelationshipsFunction {
+    using alias = RelsFunction;
+
+    static constexpr const char* name = "RELATIONSHIPS";
+};
+
 struct PropertiesBindData : public FunctionBindData {
     common::idx_t childIdx;
 

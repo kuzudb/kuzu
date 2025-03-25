@@ -132,17 +132,17 @@ FunctionCollection* FunctionCollection::getFunctions() {
         // Cast functions
         SCALAR_FUNCTION(CastToDateFunction), SCALAR_FUNCTION_ALIAS(DateFunction),
         SCALAR_FUNCTION(CastToTimestampFunction), SCALAR_FUNCTION(CastToIntervalFunction),
-        SCALAR_FUNCTION_ALIAS(IntervalFunctionAlias), SCALAR_FUNCTION(CastToStringFunction),
-        SCALAR_FUNCTION_ALIAS(StringFunction), SCALAR_FUNCTION(CastToBlobFunction),
-        SCALAR_FUNCTION_ALIAS(BlobFunction), SCALAR_FUNCTION(CastToUUIDFunction),
-        SCALAR_FUNCTION_ALIAS(UUIDFunction), SCALAR_FUNCTION(CastToDoubleFunction),
-        SCALAR_FUNCTION(CastToFloatFunction), SCALAR_FUNCTION(CastToSerialFunction),
-        SCALAR_FUNCTION(CastToInt64Function), SCALAR_FUNCTION(CastToInt32Function),
-        SCALAR_FUNCTION(CastToInt16Function), SCALAR_FUNCTION(CastToInt8Function),
-        SCALAR_FUNCTION(CastToUInt64Function), SCALAR_FUNCTION(CastToUInt32Function),
-        SCALAR_FUNCTION(CastToUInt16Function), SCALAR_FUNCTION(CastToUInt8Function),
-        SCALAR_FUNCTION(CastToInt128Function), SCALAR_FUNCTION(CastToBoolFunction),
-        SCALAR_FUNCTION(CastAnyFunction),
+        SCALAR_FUNCTION_ALIAS(IntervalFunctionAlias), SCALAR_FUNCTION_ALIAS(DurationFunction),
+        SCALAR_FUNCTION(CastToStringFunction), SCALAR_FUNCTION_ALIAS(StringFunction),
+        SCALAR_FUNCTION(CastToBlobFunction), SCALAR_FUNCTION_ALIAS(BlobFunction),
+        SCALAR_FUNCTION(CastToUUIDFunction), SCALAR_FUNCTION_ALIAS(UUIDFunction),
+        SCALAR_FUNCTION(CastToDoubleFunction), SCALAR_FUNCTION(CastToFloatFunction),
+        SCALAR_FUNCTION(CastToSerialFunction), SCALAR_FUNCTION(CastToInt64Function),
+        SCALAR_FUNCTION(CastToInt32Function), SCALAR_FUNCTION(CastToInt16Function),
+        SCALAR_FUNCTION(CastToInt8Function), SCALAR_FUNCTION(CastToUInt64Function),
+        SCALAR_FUNCTION(CastToUInt32Function), SCALAR_FUNCTION(CastToUInt16Function),
+        SCALAR_FUNCTION(CastToUInt8Function), SCALAR_FUNCTION(CastToInt128Function),
+        SCALAR_FUNCTION(CastToBoolFunction), SCALAR_FUNCTION(CastAnyFunction),
 
         // Comparison functions
         SCALAR_FUNCTION(EqualsFunction), SCALAR_FUNCTION(NotEqualsFunction),
@@ -194,8 +194,9 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Path functions
         SCALAR_FUNCTION(NodesFunction), SCALAR_FUNCTION(RelsFunction),
-        SCALAR_FUNCTION(PropertiesFunction), SCALAR_FUNCTION(IsTrailFunction),
-        SCALAR_FUNCTION(IsACyclicFunction), REWRITE_FUNCTION(LengthFunction),
+        SCALAR_FUNCTION_ALIAS(RelationshipsFunction), SCALAR_FUNCTION(PropertiesFunction),
+        SCALAR_FUNCTION(IsTrailFunction), SCALAR_FUNCTION(IsACyclicFunction),
+        REWRITE_FUNCTION(LengthFunction),
 
         // Hash functions
         SCALAR_FUNCTION(MD5Function), SCALAR_FUNCTION(SHA256Function),
