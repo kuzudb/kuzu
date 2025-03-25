@@ -60,6 +60,11 @@ void DBTest::runTest(const std::vector<std::unique_ptr<TestStatement>>& statemen
         if (statement->reloadDBFlag) {
             // For in-mem mode, we skip reload.
             if (!inMemMode) {
+                for (auto& name : connNames) {
+                    if (connMap.contains(name)) {
+                        connMap.erase(name);
+                    }
+                }
                 createDB(checkpointWaitTimeout);
                 createConns(connNames);
             }
