@@ -21,8 +21,6 @@ class PreparedStatement {
     friend class ClientContext;
     friend class testing::TestHelper;
     friend class testing::TestRunner;
-    friend class testing::TinySnbDDLTest;
-    friend class testing::TinySnbCopyCSVTransactionTest;
 
 public:
     bool isTransactionStatement() const;

@@ -57,6 +57,9 @@ void LambdaParamEvaluatorCollector::visit(ExpressionEvaluator* evaluator) {
         visit(child);
         visitSwitch(child);
     }
+    if (evaluator->getEvaluatorType() == EvaluatorType::LAMBDA_PARAM) {
+        evaluators.push_back(evaluator);
+    }
 }
 
 } // namespace evaluator
