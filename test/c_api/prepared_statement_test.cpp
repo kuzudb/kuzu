@@ -71,6 +71,17 @@ TEST_F(CApiPreparedStatementTest, BindBool) {
     auto value = tuple->getValue(0)->getValue<int64_t>();
     ASSERT_EQ(value, 3);
     kuzu_query_result_destroy(&result);
+    // Bind a different parameter
+    ASSERT_EQ(kuzu_prepared_statement_bind_bool(&preparedStatement, "1", false), KuzuSuccess);
+    state = kuzu_connection_execute(connection, &preparedStatement, &result);
+    ASSERT_EQ(state, KuzuSuccess);
+    ASSERT_TRUE(kuzu_query_result_is_success(&result));
+    ASSERT_TRUE(kuzu_query_result_has_next(&result));
+    resultCpp = static_cast<QueryResult*>(result._query_result);
+    tuple = resultCpp->getNext();
+    value = tuple->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(value, 5);
+    kuzu_query_result_destroy(&result);
     kuzu_prepared_statement_destroy(&preparedStatement);
 }
 

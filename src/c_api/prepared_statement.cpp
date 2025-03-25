@@ -11,6 +11,7 @@ void kuzu_prepared_statement_bind_cpp_value(kuzu_prepared_statement* prepared_st
     const char* param_name, std::unique_ptr<Value> value) {
     auto* bound_values = static_cast<std::unordered_map<std::string, std::unique_ptr<Value>>*>(
         prepared_statement->_bound_values);
+    bound_values->erase(param_name);
     bound_values->insert({param_name, std::move(value)});
 }
 
