@@ -5,21 +5,23 @@
 namespace kuzu {
 namespace sqlite_extension {
 
-std::string SqliteScanBindData::getQuery(const main::ClientContext& context) const {
+using namespace duckdb_extension;
+
+std::string SQLiteTableScanInfo::getTemplateQuery(const main::ClientContext& context) const {
     auto setStringQueryResult = common::stringFormat("set sqlite_all_varchar={};",
         context.getCurrentSetting("sqlite_all_varchar").getValue<bool>());
-    return setStringQueryResult + query;
+    return setStringQueryResult + DuckDBTableScanInfo::getTemplateQuery(context);
 }
 
-std::vector<common::LogicalType> SqliteScanBindData::getColumnTypes(
+std::vector<common::LogicalType> SQLiteTableScanInfo::getColumnTypes(
     const main::ClientContext& context) const {
-    auto result = copyVector(columnTypes);
+    auto columnTypes = DuckDBTableScanInfo::getColumnTypes(context);
     if (context.getCurrentSetting("sqlite_all_varchar").getValue<bool>()) {
         for (auto i = 0u; i < columnTypes.size(); i++) {
-            result[i] = common::LogicalType::STRING();
+            columnTypes[i] = common::LogicalType::STRING();
         }
     }
-    return result;
+    return columnTypes;
 }
 
 } // namespace sqlite_extension

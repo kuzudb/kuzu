@@ -7,6 +7,8 @@
 namespace kuzu {
 namespace sqlite_extension {
 
+using namespace duckdb_extension;
+
 void SqliteConnector::connect(const std::string& dbPath, const std::string& catalogName,
     const std::string& /*schemaName*/, main::ClientContext* /*context*/) {
     // Creates an in-memory duckdb instance, then install httpfs and attach SQLITE.
@@ -18,10 +20,11 @@ void SqliteConnector::connect(const std::string& dbPath, const std::string& cata
         common::stringFormat("attach '{}' as {} (TYPE sqlite, read_only)", dbPath, catalogName));
 }
 
-std::shared_ptr<duckdb_extension::DuckDBScanBindData> SqliteConnector::getScanBindData(
-    std::string query, const std::vector<common::LogicalType>& columnTypes,
-    const std::vector<std::string>& columnNames) const {
-    return std::make_shared<SqliteScanBindData>(std::move(query), columnTypes, columnNames, *this);
+std::shared_ptr<duckdb_extension::DuckDBTableScanInfo> SqliteConnector::getTableScanInfo(
+    std::string query, std::vector<common::LogicalType> columnTypes,
+    std::vector<std::string> columnNames) const {
+    return std::make_shared<SQLiteTableScanInfo>(std::move(query), std::move(columnTypes),
+        std::move(columnNames), *this);
 }
 
 } // namespace sqlite_extension

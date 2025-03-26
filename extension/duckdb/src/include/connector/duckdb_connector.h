@@ -31,11 +31,10 @@ public:
     virtual void connect(const std::string& dbPath, const std::string& catalogName,
         const std::string& schemaName, main::ClientContext* context) = 0;
 
-    virtual std::shared_ptr<DuckDBScanBindData> getScanBindData(std::string query,
-        const std::vector<common::LogicalType>& columnTypes,
-        const std::vector<std::string>& columnNames) const {
-        return std::make_shared<DuckDBScanBindData>(std::move(query), columnTypes, columnNames,
-            *this);
+    virtual std::shared_ptr<DuckDBTableScanInfo> getTableScanInfo(std::string query,
+        std::vector<common::LogicalType> columnTypes, std::vector<std::string> columnNames) const {
+        return std::make_shared<DuckDBTableScanInfo>(std::move(query), std::move(columnTypes),
+            std::move(columnNames), *this);
     }
 
     std::unique_ptr<duckdb::MaterializedQueryResult> executeQuery(std::string query) const;

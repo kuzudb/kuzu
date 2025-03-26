@@ -87,9 +87,10 @@ void DuckDBCatalog::createForeignTable(const std::string& tableName) {
         columnNames.push_back(definition.getName());
         columnTypes.push_back(definition.getType().copy());
     }
-    auto bindData = connector.getScanBindData(getQuery(*info), columnTypes, columnNames);
+    auto duckdbTableInfo =
+        connector.getTableScanInfo(getQuery(*info), std::move(columnTypes), columnNames);
     auto tableEntry = std::make_unique<catalog::DuckDBTableCatalogEntry>(info->tableName,
-        getScanFunction(bindData));
+        getScanFunction(duckdbTableInfo));
     for (auto& definition : extraInfo->propertyDefinitions) {
         tableEntry->addProperty(definition);
     }
