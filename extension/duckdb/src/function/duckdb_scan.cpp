@@ -16,7 +16,7 @@ namespace duckdb_extension {
 DuckDBScanBindData::DuckDBScanBindData(std::string query,
     const std::vector<LogicalType>& columnTypes, std::vector<std::string> columnNames,
     const DuckDBConnector& connector)
-    : query{std::move(query)}, columnTypes{LogicalType::copy(columnTypes)},
+    : function::TableFuncBindData{},query{std::move(query)}, columnTypes{LogicalType::copy(columnTypes)},
       columnNames{std::move(columnNames)}, converter{columnTypes}, connector{connector} {}
 
 DuckDBScanSharedState::DuckDBScanSharedState(

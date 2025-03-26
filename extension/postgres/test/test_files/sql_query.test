@@ -36,6 +36,20 @@
 ABFsUni
 CsWork
 DEsWork
+-LOG FilterPushDownTest
+-STATEMENT CALL SQL_QUERY('tinysnb', 'select * from organisation') RETURN name, orgcode
+---- 3
+ABFsUni|325
+CsWork|934
+DEsWork|824
+-STATEMENT CALL SQL_QUERY('tinysnb', 'select name,history,score,mark from organisation') yield name as uname,history as len,score,mark return uname, mark
+---- 3
+ABFsUni|3.700000
+CsWork|4.100000
+DEsWork|4.100000
+-STATEMENT CALL SQL_QUERY('tinysnb', 'select score,mark from organisation') where score > 4 yield score,mark as math return score, math
+---- 1
+7|4.100000
 -STATEMENT CALL SQL_QUERY('tinysnb', 'select organisation.name, person.fname from organisation INNER JOIN person ON organisation.id = person.id + 1') RETURN *
 ---- 3
 ABFsUni|Alice

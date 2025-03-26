@@ -5,6 +5,7 @@
 #include "common/exception/binder.h"
 #include "connector/duckdb_type_converter.h"
 #include "main/database_manager.h"
+#include "processor/execution_context.h"
 #include "storage/attached_postgres_database.h"
 #include "storage/postgres_storage.h"
 
@@ -16,13 +17,17 @@ namespace kuzu {
 namespace postgres_extension {
 
 struct SqlQueryBindData final : function::TableFuncBindData {
-    std::shared_ptr<duckdb::MaterializedQueryResult> queryResult;
+    std::string queryTemplate;
     duckdb_extension::DuckDBResultConverter converter;
+    const duckdb_extension::DuckDBConnector& connector;
+    std::vector<std::string> columnNamesInPG; // Column names in PG used for projection push down.
 
-    SqlQueryBindData(std::shared_ptr<duckdb::MaterializedQueryResult> queryResult,
-        duckdb_extension::DuckDBResultConverter converter, binder::expression_vector columns)
+    SqlQueryBindData(std::string queryTemplate, duckdb_extension::DuckDBResultConverter converter,
+        const duckdb_extension::DuckDBConnector& connector,
+        std::vector<std::string> columnNamesInPG, binder::expression_vector columns)
         : TableFuncBindData{std::move(columns), 1 /* maxOffset */},
-          queryResult{std::move(queryResult)}, converter{std::move(converter)} {}
+          queryTemplate{std::move(queryTemplate)}, converter{std::move(converter)},
+          connector{connector}, columnNamesInPG{std::move(columnNamesInPG)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<SqlQueryBindData>(*this);
@@ -37,28 +42,49 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     if (attachedDB->getDBType() != PostgresStorageExtension::DB_TYPE) {
         throw common::BinderException{"sql queries can only be executed in attached postgres."};
     }
-    auto queryToExecuteInDuckDB = common::stringFormat("select * from postgres_query({}, '{}');",
-        attachedDB->constCast<AttachedPostgresDatabase>().getAttachedCatalogNameInDuckDB(), query);
+    auto queryTemplate =
+        "select {} " +
+        common::stringFormat("from postgres_query({}, '{}')",
+            attachedDB->constCast<AttachedPostgresDatabase>().getAttachedCatalogNameInDuckDB(),
+            query);
+    // Query to sniff the column names and types.
+    auto queryToExecuteInDuckDB = common::stringFormat(queryTemplate, "*") + " limit 1";
     auto& attachedPostgresDB = attachedDB->constCast<AttachedPostgresDatabase>();
     auto queryResult = attachedPostgresDB.executeQuery(queryToExecuteInDuckDB);
     std::vector<common::LogicalType> returnTypes;
-    std::vector<std::string> returnColumnNames;
+    std::vector<std::string> columnNamesInPG;
     for (auto i = 0u; i < queryResult->names.size(); i++) {
-        returnColumnNames.push_back(queryResult->ColumnName(i));
+        columnNamesInPG.push_back(queryResult->ColumnName(i));
         returnTypes.push_back(duckdb_extension::DuckDBTypeConverter::convertDuckDBType(
             queryResult->types[i].ToString()));
     }
     duckdb_extension::DuckDBResultConverter duckdbResultConverter{returnTypes};
-    returnColumnNames =
-        TableFunction::extractYieldVariables(returnColumnNames, input->yieldVariables);
+    auto returnColumnNames =
+        TableFunction::extractYieldVariables(columnNamesInPG, input->yieldVariables);
     auto columns = input->binder->createVariables(returnColumnNames, returnTypes);
-    return std::make_unique<SqlQueryBindData>(std::move(queryResult),
-        std::move(duckdbResultConverter), columns);
+    return std::make_unique<SqlQueryBindData>(queryTemplate, std::move(duckdbResultConverter),
+        attachedPostgresDB.getConnector(), std::move(columnNamesInPG), columns);
 }
 
 std::unique_ptr<TableFuncSharedState> initSharedState(const TableFuncInitSharedStateInput& input) {
     auto scanBindData = input.bindData->constPtrCast<SqlQueryBindData>();
-    return std::make_unique<duckdb_extension::DuckDBScanSharedState>(scanBindData->queryResult);
+    std::string columnNames = "";
+    auto columnSkips = scanBindData->getColumnSkips();
+    auto numSkippedColumns =
+        std::count_if(columnSkips.begin(), columnSkips.end(), [](auto item) { return item; });
+    if (scanBindData->getNumColumns() == numSkippedColumns) {
+        columnNames = scanBindData->columnNamesInPG[0];
+    }
+    for (auto i = 0u; i < scanBindData->getNumColumns(); i++) {
+        if (columnSkips[i]) {
+            continue;
+        }
+        columnNames += scanBindData->columnNamesInPG[i];
+        columnNames += (i == scanBindData->getNumColumns() - 1) ? "" : ",";
+    }
+    auto finalQuery = stringFormat(scanBindData->queryTemplate, columnNames);
+    auto result = scanBindData->connector.executeQuery(finalQuery);
+    return std::make_unique<duckdb_extension::DuckDBScanSharedState>(std::move(result));
 }
 
 offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
