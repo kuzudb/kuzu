@@ -1,9 +1,9 @@
 #pragma once
 
+#include <cmath>
+
 #include "common/types/types.h"
 #include "function/table/bind_input.h"
-
-#include <cmath>
 
 namespace kuzu {
 namespace vector_extension {
