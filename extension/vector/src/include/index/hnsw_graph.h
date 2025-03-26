@@ -97,24 +97,40 @@ public:
 
     std::span<std::atomic<common::offset_t>> getNeighbors(common::offset_t nodeOffset) const {
         const auto numNbrs = getCSRLength(nodeOffset);
+        KU_ASSERT(numNbrs <= maxDegree);
+        KU_ASSERT(nodeOffset < numNodes);
         return {&dstNodes[nodeOffset * maxDegree], numNbrs};
     }
 
     common::length_t getMaxDegree() const { return maxDegree; }
 
     uint16_t getCSRLength(common::offset_t nodeOffset) const {
-        return csrLengths[nodeOffset].load(std::memory_order_relaxed);
+        KU_ASSERT(nodeOffset < numNodes);
+        const auto val = csrLengths[nodeOffset].load();
+        KU_ASSERT(val <= maxDegree);
+        return val;
     }
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
     void setCSRLength(common::offset_t nodeOffset, uint16_t length) {
-        csrLengths[nodeOffset].store(length, std::memory_order_relaxed);
+        KU_ASSERT(nodeOffset < numNodes);
+        KU_ASSERT(length <= maxDegree);
+        csrLengths[nodeOffset].store(length);
     }
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
     uint16_t incrementCSRLength(common::offset_t nodeOffset) {
-        return csrLengths[nodeOffset].fetch_add(1, std::memory_order_relaxed);
+        KU_ASSERT(nodeOffset < numNodes);
+        while (true) {
+            auto val = csrLengths[nodeOffset].load();
+            if (val < maxDegree && csrLengths[nodeOffset].compare_exchange_strong(val, val + 1)) {
+                if (val < maxDegree) {
+                    return val;
+                }
+            }
+        }
     }
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
     void setDstNode(common::offset_t csrOffset, common::offset_t dstNode) {
+        KU_ASSERT(csrOffset < numNodes * maxDegree);
         dstNodes[csrOffset].store(dstNode, std::memory_order_relaxed);
     }
 
