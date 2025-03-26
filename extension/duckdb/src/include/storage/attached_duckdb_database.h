@@ -14,6 +14,8 @@ public:
         : main::AttachedDatabase{std::move(dbName), std::move(dbType), std::move(catalog)},
           connector{std::move(connector)} {}
 
+    const DuckDBConnector& getConnector() const { return *connector; }
+
 protected:
     std::unique_ptr<DuckDBConnector> connector;
 };

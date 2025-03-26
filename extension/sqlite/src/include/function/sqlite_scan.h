@@ -5,23 +5,19 @@
 namespace kuzu {
 namespace sqlite_extension {
 
-struct SqliteScanBindData : public duckdb_extension::DuckDBScanBindData {
-    SqliteScanBindData(std::string query, const std::vector<common::LogicalType>& columnTypes,
+class SQLiteTableScanInfo : public duckdb_extension::DuckDBTableScanInfo {
+public:
+    SQLiteTableScanInfo(std::string templateQuery, std::vector<common::LogicalType> columnTypes,
         std::vector<std::string> columnNames, const duckdb_extension::DuckDBConnector& connector)
-        : duckdb_extension::DuckDBScanBindData{std::move(query), columnTypes, columnNames,
-              connector} {}
+        : DuckDBTableScanInfo{std::move(templateQuery), std::move(columnTypes),
+              std::move(columnNames), connector} {}
 
-    SqliteScanBindData(const SqliteScanBindData& other)
-        : duckdb_extension::DuckDBScanBindData{other} {}
+    SQLiteTableScanInfo(const SQLiteTableScanInfo& other) = default;
 
-    std::string getQuery(const main::ClientContext& context) const override;
+    std::string getTemplateQuery(const main::ClientContext& context) const override;
 
     std::vector<common::LogicalType> getColumnTypes(
         const main::ClientContext& context) const override;
-
-    std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<SqliteScanBindData>(*this);
-    }
 };
 
 } // namespace sqlite_extension

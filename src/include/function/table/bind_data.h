@@ -53,7 +53,7 @@ struct KUZU_API TableFuncBindData {
         return *common::ku_dynamic_cast<TARGET*>(this);
     }
 
-private:
+protected:
     std::vector<bool> columnSkips;
     std::vector<storage::ColumnPredicateSet> columnPredicates;
 };

@@ -4,30 +4,19 @@
 #include "catalog/duckdb_catalog.h"
 #include "common/exception/binder.h"
 #include "connector/duckdb_type_converter.h"
+#include "function/duckdb_scan.h"
 #include "main/database_manager.h"
+#include "processor/execution_context.h"
 #include "storage/attached_postgres_database.h"
 #include "storage/postgres_storage.h"
 
 using namespace kuzu::function;
 using namespace kuzu::main;
 using namespace kuzu::common;
+using namespace kuzu::duckdb_extension;
 
 namespace kuzu {
 namespace postgres_extension {
-
-struct SqlQueryBindData final : function::TableFuncBindData {
-    std::shared_ptr<duckdb::MaterializedQueryResult> queryResult;
-    duckdb_extension::DuckDBResultConverter converter;
-
-    SqlQueryBindData(std::shared_ptr<duckdb::MaterializedQueryResult> queryResult,
-        duckdb_extension::DuckDBResultConverter converter, binder::expression_vector columns)
-        : TableFuncBindData{std::move(columns), 1 /* maxOffset */},
-          queryResult{std::move(queryResult)}, converter{std::move(converter)} {}
-
-    std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<SqlQueryBindData>(*this);
-    }
-};
 
 static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     const TableFuncBindInput* input) {
@@ -37,33 +26,39 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     if (attachedDB->getDBType() != PostgresStorageExtension::DB_TYPE) {
         throw common::BinderException{"sql queries can only be executed in attached postgres."};
     }
-    auto queryToExecuteInDuckDB = common::stringFormat("select * from postgres_query({}, '{}');",
-        attachedDB->constCast<AttachedPostgresDatabase>().getAttachedCatalogNameInDuckDB(), query);
+    auto queryTemplate =
+        "select {} " +
+        common::stringFormat("from postgres_query({}, '{}')",
+            attachedDB->constCast<AttachedPostgresDatabase>().getAttachedCatalogNameInDuckDB(),
+            query);
+    // Query to sniff the column names and types.
+    auto queryToExecuteInDuckDB = common::stringFormat(queryTemplate, "*") + " limit 1";
     auto& attachedPostgresDB = attachedDB->constCast<AttachedPostgresDatabase>();
     auto queryResult = attachedPostgresDB.executeQuery(queryToExecuteInDuckDB);
     std::vector<common::LogicalType> returnTypes;
-    std::vector<std::string> returnColumnNames;
+    std::vector<std::string> columnNamesInPG;
     for (auto i = 0u; i < queryResult->names.size(); i++) {
-        returnColumnNames.push_back(queryResult->ColumnName(i));
-        returnTypes.push_back(duckdb_extension::DuckDBTypeConverter::convertDuckDBType(
-            queryResult->types[i].ToString()));
+        columnNamesInPG.push_back(queryResult->ColumnName(i));
+        returnTypes.push_back(
+            DuckDBTypeConverter::convertDuckDBType(queryResult->types[i].ToString()));
     }
-    duckdb_extension::DuckDBResultConverter duckdbResultConverter{returnTypes};
-    returnColumnNames =
-        TableFunction::extractYieldVariables(returnColumnNames, input->yieldVariables);
+    auto returnColumnNames =
+        TableFunction::extractYieldVariables(columnNamesInPG, input->yieldVariables);
     auto columns = input->binder->createVariables(returnColumnNames, returnTypes);
-    return std::make_unique<SqlQueryBindData>(std::move(queryResult),
-        std::move(duckdbResultConverter), columns);
+    return std::make_unique<DuckDBScanBindData>(queryTemplate, std::move(columnNamesInPG),
+        attachedPostgresDB.getConnector(), columns);
 }
 
 std::unique_ptr<TableFuncSharedState> initSharedState(const TableFuncInitSharedStateInput& input) {
-    auto scanBindData = input.bindData->constPtrCast<SqlQueryBindData>();
-    return std::make_unique<duckdb_extension::DuckDBScanSharedState>(scanBindData->queryResult);
+    auto scanBindData = input.bindData->constPtrCast<DuckDBScanBindData>();
+    auto finalQuery = stringFormat(scanBindData->query, scanBindData->getColumnsToSelect());
+    auto result = scanBindData->connector.executeQuery(finalQuery);
+    return std::make_unique<DuckDBScanSharedState>(std::move(result));
 }
 
 offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) {
-    auto sharedState = input.sharedState->ptrCast<duckdb_extension::DuckDBScanSharedState>();
-    auto bindData = input.bindData->constPtrCast<SqlQueryBindData>();
+    auto sharedState = input.sharedState->ptrCast<DuckDBScanSharedState>();
+    auto bindData = input.bindData->constPtrCast<DuckDBScanBindData>();
     std::unique_ptr<duckdb::DataChunk> result;
     try {
         // Duckdb queryResult.fetch() is not thread safe, we have to acquire a lock there.
