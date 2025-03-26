@@ -736,6 +736,7 @@ kU_NonReservedKeywords
         | WRITE
         | FROM
         | TO
+        | YIELD
         ;
 
 UnescapedSymbolicName

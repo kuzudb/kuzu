@@ -226,6 +226,8 @@ XOR : ( 'X' | 'x' ) ( 'O' | 'o' ) ( 'R' | 'r' ) ;
 
 SINGLE : ( 'S' | 's' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ( 'G' | 'g' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
 
+YIELD : ( 'Y' | 'y' ) ( 'I' | 'i' ) ( 'E' | 'e' ) ( 'L' | 'l' ) ( 'D' | 'd' ) ;
+
 
 
 ku_Statements
@@ -965,6 +967,7 @@ kU_NonReservedKeywords
         | WRITE
         | FROM
         | TO
+        | YIELD
         ;
 
 UnescapedSymbolicName

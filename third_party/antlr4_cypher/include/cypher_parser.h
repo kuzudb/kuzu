@@ -2817,6 +2817,7 @@ public:
     antlr4::tree::TerminalNode *WRITE();
     antlr4::tree::TerminalNode *FROM();
     antlr4::tree::TerminalNode *TO();
+    antlr4::tree::TerminalNode *YIELD();
 
    
   };
