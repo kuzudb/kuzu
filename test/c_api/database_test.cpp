@@ -298,9 +298,3 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWildcardNoRemoval) {
     // Cleanup
     std::filesystem::remove_all("/tmp/dbHome_wildcard");
 }
-
-TEST_F(CApiDatabaseTest, dasdas) {
-    createDBAndConn();
-    conn->query("ATTACH 'dbname=pgscan user=ci host=localhost' as tinysnb (dbtype POSTGRES);");
-    printf("%s", conn->query("CALL SQL_QUERY('tinysnb', 'select * from person') RETURN fname")->toString().c_str());
-}
