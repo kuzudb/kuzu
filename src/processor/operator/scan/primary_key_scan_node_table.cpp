@@ -16,9 +16,10 @@ std::string PrimaryKeyScanPrintInfo::toString() const {
         result += ",Alias: ";
         result += alias;
     }
-    result += ", Expressions: ";
-    result += binder::ExpressionUtil::toString(expressions);
-
+    if (!expressions.empty()) {
+        result += ", Expressions: ";
+        result += binder::ExpressionUtil::toString(expressions);
+    }
     return result;
 }
 
@@ -36,8 +37,18 @@ void PrimaryKeyScanNodeTable::initLocalStateInternal(ResultSet* resultSet,
     for (auto& pos : info.outVectorsPos) {
         outVectors.push_back(resultSet->getValueVector(pos).get());
     }
-    scanState = std::make_unique<NodeTableScanState>(
-        resultSet->getValueVector(info.nodeIDPos).get(), outVectors, outVectors[0]->state);
+    if (outVectors.empty()) {
+
+        scanState =
+            std::make_unique<NodeTableScanState>(resultSet->getValueVector(info.nodeIDPos).get(),
+                outVectors, DataChunkState::getSingleValueDataChunkState());
+
+        ;
+    } else {
+
+        scanState = std::make_unique<NodeTableScanState>(
+            resultSet->getValueVector(info.nodeIDPos).get(), outVectors, outVectors[0]->state);
+    }
     indexEvaluator->init(*resultSet, context->clientContext);
 }
 
