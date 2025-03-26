@@ -11,14 +11,16 @@ namespace kuzu {
 namespace vector_extension {
 
 void Mu::validate(int64_t value) {
-    if (value < 1 || value > 100) {
-        throw common::BinderException{"Mu must be a positive integer between 1 and 100."};
+    if (value < 1 || value > MAX_DEGREE) {
+        throw common::BinderException{
+            common::stringFormat("Mu must be a positive integer between 1 and {}.", MAX_DEGREE)};
     }
 }
 
 void Ml::validate(int64_t value) {
-    if (value < 1 || value > 200) {
-        throw common::BinderException{"Ml must be a positive integer between 1 and 200."};
+    if (value < 1 || value > MAX_DEGREE) {
+        throw common::BinderException{
+            common::stringFormat("Ml must be a positive integer between 1 and {}.", MAX_DEGREE)};
     }
 }
 

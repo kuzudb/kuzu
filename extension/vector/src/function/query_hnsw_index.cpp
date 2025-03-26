@@ -59,6 +59,12 @@ static std::vector<LogicalType> inferInputTypes(const expression_vector& params)
     return inputTypes;
 }
 
+static void validateK(int64_t val) {
+    if (val <= 0) {
+        throw BinderException{"The value of k must be greater than 0."};
+    }
+}
+
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
     context->setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
@@ -66,6 +72,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const auto indexName = input->getLiteralVal<std::string>(1);
     auto inputQueryExpression = input->params[2];
     const auto k = input->getLiteralVal<int64_t>(3);
+    validateK(k);
 
     catalog::NodeTableCatalogEntry* nodeTableEntry = nullptr;
     graph::GraphEntry graphEntry;
