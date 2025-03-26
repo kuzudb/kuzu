@@ -64,6 +64,9 @@ Binder exception: Cannot find property dummy for r.
 -STATEMENT CALL create_projected_graph('err', ['person'], {'knows': {'filter': 'r.comments > date("1999-01-01")'}});
 ---- error
 Binder exception: Type Mismatch: Cannot compare types STRING[] and DATE
+-STATEMENT CALL create_projected_graph('err', [{'person':{'filter': 'n.ID>0'}}, {'organisation':{'filter': 'n.ID>0'}}], []);
+---- error
+Binder exception: {organisation: {filter: n.ID>0}} has data type STRUCT(organisation STRUCT(filter STRING)) but STRING was expected.
 -STATEMENT CALL create_projected_graph('G', ['person'], ['knows']);
 ---- ok
 -STATEMENT DROP TABLE knows;

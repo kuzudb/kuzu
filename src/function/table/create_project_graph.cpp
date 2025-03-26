@@ -53,7 +53,9 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
 static std::vector<std::string> getAsStringVector(const Value& value) {
     std::vector<std::string> result;
     for (auto i = 0u; i < NestedVal::getChildrenSize(&value); ++i) {
-        result.push_back(NestedVal::getChildVal(&value, i)->getValue<std::string>());
+        auto childVal = NestedVal::getChildVal(&value, i);
+        childVal->validateType(LogicalTypeID::STRING);
+        result.push_back(childVal->getValue<std::string>());
     }
     return result;
 }
