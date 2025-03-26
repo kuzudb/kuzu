@@ -22,11 +22,12 @@ class FlakyBufferManager : public storage::BufferManager {
 public:
     FlakyBufferManager(const std::string& databasePath, const std::string& spillToDiskPath,
         uint64_t bufferPoolSize, uint64_t maxDBSize, common::VirtualFileSystem* vfs, bool readOnly,
-        uint64_t& failureFrequency, bool canFailDuringExecute, bool canFailDuringCheckpoint)
+        uint64_t& failureFrequency, bool canFailDuringExecute, bool canFailDuringCheckpoint,
+        bool canFailDuringCommit)
         : storage::BufferManager(databasePath, spillToDiskPath, bufferPoolSize, maxDBSize, vfs,
               readOnly),
           failureFrequency(failureFrequency), canFailDuringCheckpoint(canFailDuringCheckpoint),
-          canFailDuringExecute(canFailDuringExecute) {}
+          canFailDuringExecute(canFailDuringExecute), canFailDuringCommit(canFailDuringCommit) {}
 
     bool reserve(uint64_t sizeToReserve) override {
         // we currently can't handle exceptions thrown during rollback
@@ -40,8 +41,9 @@ public:
                               ctx->getTransaction()->getCommitTS() != common::INVALID_TRANSACTION;
         const bool inExecute = (!inCommit && !inCheckpoint);
         reserveCount = (reserveCount + 1) % failureFrequency;
-        if (!inRollback && !inDBInit && (canFailDuringCheckpoint || !inCheckpoint) &&
-            (canFailDuringExecute || !inExecute) && reserveCount == 0) {
+        if (!inRollback && !inDBInit && (canFailDuringCommit || !inCommit) &&
+            (canFailDuringCheckpoint || !inCheckpoint) && (canFailDuringExecute || !inExecute) &&
+            reserveCount == 0) {
             failureFrequency *= 2;
             return false;
         }
@@ -54,12 +56,14 @@ public:
     main::ClientContext* ctx{nullptr};
     bool canFailDuringCheckpoint;
     bool canFailDuringExecute;
+    bool canFailDuringCommit;
     uint64_t reserveCount = 0;
 };
 
 struct BMExceptionRecoveryTestConfig {
     bool canFailDuringExecute;
     bool canFailDuringCheckpoint;
+    bool canFailDuringCommit;
     std::function<void(main::Connection*)> initFunc;
     std::function<std::unique_ptr<main::QueryResult>(main::Connection*, int)> executeFunc;
     std::function<bool(main::QueryResult*)> earlyExitOnFailureFunc;
@@ -80,7 +84,8 @@ public:
         conn.reset();
         createDBAndConn();
     }
-    void resetDBFlaky(bool canFailDuringExecute = true, bool canFailDuringCheckpoint = true) {
+    void resetDBFlaky(bool canFailDuringExecute = true, bool canFailDuringCheckpoint = true,
+        bool canFailDuringCommit = true) {
         database.reset();
         conn.reset();
         systemConfig->bufferPoolSize = main::SystemConfig{}.bufferPoolSize;
@@ -88,7 +93,8 @@ public:
             auto bm = std::unique_ptr<FlakyBufferManager>(new FlakyBufferManager(databasePath,
                 getFileSystem(db)->joinPath(databasePath, "copy.tmp"), systemConfig->bufferPoolSize,
                 systemConfig->maxDBSize, getFileSystem(db), systemConfig->readOnly,
-                failureFrequency, canFailDuringExecute, canFailDuringCheckpoint));
+                failureFrequency, canFailDuringExecute, canFailDuringCheckpoint,
+                canFailDuringCommit));
             currentBM = bm.get();
             return bm;
         };
@@ -105,7 +111,8 @@ public:
 void CopyTest::BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg) {
     if (inMemMode) {
         failureFrequency = UINT64_MAX;
-        resetDBFlaky(cfg.canFailDuringExecute, cfg.canFailDuringCheckpoint);
+        resetDBFlaky(cfg.canFailDuringExecute, cfg.canFailDuringCheckpoint,
+            cfg.canFailDuringCommit);
     } else {
         createDBAndConn();
     }
@@ -113,7 +120,8 @@ void CopyTest::BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg) {
     cfg.initFunc(conn.get());
 
     if (!inMemMode) {
-        resetDBFlaky(cfg.canFailDuringExecute, cfg.canFailDuringCheckpoint);
+        resetDBFlaky(cfg.canFailDuringExecute, cfg.canFailDuringCheckpoint,
+            cfg.canFailDuringCommit);
     }
 
     for (int i = 0;; i++) {
@@ -135,7 +143,7 @@ void CopyTest::BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg) {
         failureFrequency = UINT64_MAX;
     } else {
         // Reopen the DB so no spurious errors occur during the query
-        resetDB(common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
+        resetDB(TestHelper::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
     }
     {
         // Test that the table copied as expected after the query
@@ -152,6 +160,7 @@ TEST_F(CopyTest, NodeCopyBMExceptionRecoverySameConnection) {
     }
     BMExceptionRecoveryTestConfig cfg{.canFailDuringExecute = true,
         .canFailDuringCheckpoint = false,
+        .canFailDuringCommit = false,
         .initFunc =
             [](main::Connection* conn) {
                 conn->query("CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID))");
@@ -178,6 +187,7 @@ TEST_F(CopyTest, RelCopyBMExceptionRecoverySameConnection) {
     }
     BMExceptionRecoveryTestConfig cfg{.canFailDuringExecute = true,
         .canFailDuringCheckpoint = false,
+        .canFailDuringCommit = false,
         .initFunc =
             [](main::Connection* conn) {
                 conn->query("CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID))");
@@ -217,6 +227,7 @@ TEST_F(CopyTest, NodeInsertBMExceptionDuringCommitRecovery) {
     static constexpr uint64_t numValues = 200000;
     BMExceptionRecoveryTestConfig cfg{.canFailDuringExecute = false,
         .canFailDuringCheckpoint = false,
+        .canFailDuringCommit = false,
         .initFunc =
             [this](main::Connection* conn) {
                 conn->query("CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID))");
@@ -239,6 +250,7 @@ TEST_F(CopyTest, RelInsertBMExceptionDuringCommitRecovery) {
     static constexpr auto numNodes = 10000;
     BMExceptionRecoveryTestConfig cfg{.canFailDuringExecute = false,
         .canFailDuringCheckpoint = false,
+        .canFailDuringCommit = true,
         .initFunc =
             [this](main::Connection* conn) {
                 conn->query("CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID))");
@@ -272,6 +284,7 @@ TEST_F(CopyTest, NodeCopyBMExceptionDuringCheckpointRecovery) {
     static constexpr bool canFailDuringCheckpoint = true;
     BMExceptionRecoveryTestConfig cfg{.canFailDuringExecute = canFailDuringExecute,
         .canFailDuringCheckpoint = canFailDuringCheckpoint,
+        .canFailDuringCommit = false,
         .initFunc =
             [this](main::Connection* conn) {
                 conn->query("CREATE NODE TABLE account(ID STRING, PRIMARY KEY(ID))");
@@ -307,6 +320,7 @@ TEST_F(CopyTest, NodeInsertBMExceptionDuringCheckpointRecovery) {
     static constexpr bool canFailDuringCheckpoint = true;
     BMExceptionRecoveryTestConfig cfg{.canFailDuringExecute = canFailDuringExecute,
         .canFailDuringCheckpoint = canFailDuringCheckpoint,
+        .canFailDuringCommit = false,
         .initFunc =
             [this](main::Connection* conn) {
                 failureFrequency = 512;
@@ -330,7 +344,7 @@ TEST_F(CopyTest, OutOfMemoryRecovery) {
         GTEST_SKIP();
     }
     // Needs to be small enough that we cannot successfully complete the rel table copy
-    resetDB(64 * 1024 * 1024);
+    resetDB(64 * 1024 * 1024 + TestHelper::HASH_INDEX_MEM / 5);
     conn->query("CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID))");
     conn->query("CREATE REL TABLE follows(FROM account TO account);");
     {
@@ -347,9 +361,9 @@ TEST_F(CopyTest, OutOfMemoryRecovery) {
             "memory could be freed!");
     }
     // Try opening then closing the database
-    resetDB(256 * 1024 * 1024);
+    resetDB(256 * 1024 * 1024 + TestHelper::HASH_INDEX_MEM);
     // Try again with a larger buffer pool size
-    resetDB(256 * 1024 * 1024);
+    resetDB(256 * 1024 * 1024 + TestHelper::HASH_INDEX_MEM);
     {
         auto result = conn->query(common::stringFormat(
             "COPY follows FROM '{}/dataset/snap/twitter/csv/twitter-edges.csv' (DELIM=' ')",
@@ -369,7 +383,7 @@ TEST_F(CopyTest, OutOfMemoryRecoveryDropTable) {
         GTEST_SKIP();
     }
     // Needs to be small enough that we cannot successfully complete the rel table copy
-    resetDB(64 * 1024 * 1024);
+    resetDB(64 * 1024 * 1024 + TestHelper::HASH_INDEX_MEM / 5);
     conn->query("CREATE NODE TABLE account(ID INT64, PRIMARY KEY(ID))");
     conn->query("CREATE REL TABLE follows(FROM account TO account);");
     {
@@ -386,7 +400,7 @@ TEST_F(CopyTest, OutOfMemoryRecoveryDropTable) {
             "memory could be freed!");
     }
     // Try dropping the table before trying again with a larger buffer pool size
-    resetDB(256 * 1024 * 1024);
+    resetDB(256 * 1024 * 1024 + TestHelper::HASH_INDEX_MEM);
     {
         auto result = conn->query("DROP TABLE follows;");
         ASSERT_TRUE(result->isSuccess()) << result->toString();

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <cstdint>
 
 #include "common/constants.h"
 #include "common/system_config.h"
@@ -12,8 +13,8 @@
 namespace kuzu {
 namespace storage {
 
-constexpr uint64_t NUM_HASH_INDEXES_LOG2 = 8;
-constexpr uint64_t NUM_HASH_INDEXES = 1 << NUM_HASH_INDEXES_LOG2;
+static constexpr uint64_t NUM_HASH_INDEXES = common::HashIndexConstants::NUM_HASH_INDEXES;
+static constexpr uint64_t NUM_HASH_INDEXES_LOG2 = common::HashIndexConstants::NUM_HASH_INDEXES_LOG2;
 
 static constexpr common::page_idx_t INDEX_HEADER_PAGES = 2;
 static constexpr uint64_t INDEX_HEADERS_PER_PAGE =

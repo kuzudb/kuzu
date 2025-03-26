@@ -377,15 +377,17 @@ page_idx_t DiskArrayInternal::getAPIdx(uint64_t idx) const {
 uint8_t* BlockVectorInternal::operator[](uint64_t idx) const {
     auto apCursor = getAPIdxAndOffsetInAP(storageInfo, idx);
     KU_ASSERT(apCursor.pageIdx < inMemArrayPages.size());
-    return inMemArrayPages[apCursor.pageIdx].get() + apCursor.elemPosInPage;
+    return inMemArrayPages[apCursor.pageIdx]->getData() + apCursor.elemPosInPage;
 }
 
 void BlockVectorInternal::resize(uint64_t newNumElements, std::span<std::byte> defaultVal) {
     auto oldNumElements = numElements;
+    KU_ASSERT(newNumElements >= oldNumElements);
     uint64_t oldNumArrayPages = inMemArrayPages.size();
     uint64_t newNumArrayPages = getNumArrayPagesNeededForElements(newNumElements);
     for (auto i = oldNumArrayPages; i < newNumArrayPages; ++i) {
-        this->addInMemoryArrayPage(true /*setToZero*/);
+        inMemArrayPages.emplace_back(
+            memoryManager.mallocBuffer(true /*initializeToZero*/, common::KUZU_PAGE_SIZE));
     }
     for (uint64_t i = 0; i < newNumElements - oldNumElements; i++) {
         memcpy(operator[](oldNumElements + i), defaultVal.data(), defaultVal.size());

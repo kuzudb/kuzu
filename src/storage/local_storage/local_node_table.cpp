@@ -32,9 +32,10 @@ LocalNodeTable::LocalNodeTable(const catalog::TableCatalogEntry* tableEntry, Tab
 void LocalNodeTable::initLocalHashIndex() {
     auto& nodeTable = ku_dynamic_cast<const NodeTable&>(table);
     DBFileIDAndName dbFileIDAndName{DBFileID{}, "in-mem-overflow"};
-    overflowFile = std::make_unique<InMemOverflowFile>(dbFileIDAndName);
+    overflowFile =
+        std::make_unique<InMemOverflowFile>(dbFileIDAndName, nodeTable.getMemoryManager());
     overflowFileHandle = std::make_unique<OverflowFileHandle>(*overflowFile, overflowCursor);
-    hashIndex = std::make_unique<LocalHashIndex>(
+    hashIndex = std::make_unique<LocalHashIndex>(table.getMemoryManager(),
         nodeTable.getColumn(nodeTable.getPKColumnID()).getDataType().getPhysicalType(),
         overflowFileHandle.get());
 }
@@ -118,7 +119,7 @@ uint64_t LocalNodeTable::getEstimatedMemUsage() {
 
 void LocalNodeTable::clear() {
     auto& nodeTable = ku_dynamic_cast<const NodeTable&>(table);
-    hashIndex = std::make_unique<LocalHashIndex>(
+    hashIndex = std::make_unique<LocalHashIndex>(table.getMemoryManager(),
         nodeTable.getColumn(nodeTable.getPKColumnID()).getDataType().getPhysicalType(),
         overflowFileHandle.get());
     nodeGroups.clear();

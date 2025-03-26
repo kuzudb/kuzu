@@ -8,6 +8,7 @@
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/buffer_manager.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/file_handle.h"
 #include "storage/index/hash_index_header.h"
 #include "storage/index/hash_index_slot.h"
@@ -28,14 +29,15 @@ namespace kuzu {
 namespace storage {
 
 template<typename T>
-HashIndex<T>::HashIndex(DBFileIDAndName dbFileIDAndName, FileHandle* fileHandle,
-    OverflowFileHandle* overflowFileHandle, DiskArrayCollection& diskArrays, uint64_t indexPos,
-    ShadowFile* shadowFile, const HashIndexHeader& headerForReadTrx,
+HashIndex<T>::HashIndex(MemoryManager& memoryManager, DBFileIDAndName dbFileIDAndName,
+    FileHandle* fileHandle, OverflowFileHandle* overflowFileHandle, DiskArrayCollection& diskArrays,
+    uint64_t indexPos, ShadowFile* shadowFile, const HashIndexHeader& headerForReadTrx,
     HashIndexHeader& headerForWriteTrx)
     : dbFileIDAndName{std::move(dbFileIDAndName)}, shadowFile{shadowFile}, headerPageIdx(0),
       fileHandle(fileHandle), overflowFileHandle(overflowFileHandle),
-      localStorage{std::make_unique<HashIndexLocalStorage<T>>(overflowFileHandle)},
-      indexHeaderForReadTrx{headerForReadTrx}, indexHeaderForWriteTrx{headerForWriteTrx} {
+      localStorage{std::make_unique<HashIndexLocalStorage<T>>(memoryManager, overflowFileHandle)},
+      indexHeaderForReadTrx{headerForReadTrx}, indexHeaderForWriteTrx{headerForWriteTrx},
+      memoryManager{memoryManager} {
     pSlots = diskArrays.getDiskArray<Slot<T>>(indexPos);
     oSlots = diskArrays.getDiskArray<Slot<T>>(NUM_HASH_INDEXES + indexPos);
 }
@@ -421,13 +423,14 @@ template class HashIndex<int128_t>;
 template class HashIndex<ku_string_t>;
 
 PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly,
-    bool inMemMode, PhysicalTypeID keyDataType, BufferManager& bufferManager,
+    bool inMemMode, PhysicalTypeID keyDataType, MemoryManager& memoryManager,
     ShadowFile* shadowFile, VirtualFileSystem* vfs, main::ClientContext* context)
-    : keyDataTypeID(keyDataType), fileHandle{bufferManager.getFileHandle(dbFileIDAndName.fName,
-                                      inMemMode ? FileHandle::O_PERSISTENT_FILE_IN_MEM :
-                                      readOnly  ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
-                                                  FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-                                      vfs, context)},
+    : keyDataTypeID(keyDataType),
+      fileHandle{memoryManager.getBufferManager()->getFileHandle(dbFileIDAndName.fName,
+          inMemMode ? FileHandle::O_PERSISTENT_FILE_IN_MEM :
+          readOnly  ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
+                      FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
+          vfs, context)},
       dbFileIDAndName{dbFileIDAndName}, shadowFile{*shadowFile} {
     KU_ASSERT(!(inMemMode && readOnly));
     bool newIndex = fileHandle->getNumPages() == 0;
@@ -459,9 +462,9 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
 
     if (keyDataTypeID == PhysicalTypeID::STRING) {
         if (inMemMode) {
-            overflowFile = std::make_unique<InMemOverflowFile>(dbFileIDAndName);
+            overflowFile = std::make_unique<InMemOverflowFile>(dbFileIDAndName, memoryManager);
         } else {
-            overflowFile = std::make_unique<OverflowFile>(dbFileIDAndName, &bufferManager,
+            overflowFile = std::make_unique<OverflowFile>(dbFileIDAndName, memoryManager,
                 shadowFile, readOnly, vfs, context);
         }
     }
@@ -477,16 +480,16 @@ PrimaryKeyIndex::PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool re
         keyDataTypeID,
         [&](ku_string_t) {
             for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-                hashIndices.push_back(std::make_unique<HashIndex<ku_string_t>>(dbFileIDAndName,
-                    fileHandle, overflowFile->addHandle(), *hashIndexDiskArrays, i, shadowFile,
-                    hashIndexHeadersForReadTrx[i], hashIndexHeadersForWriteTrx[i]));
+                hashIndices.push_back(std::make_unique<HashIndex<ku_string_t>>(memoryManager,
+                    dbFileIDAndName, fileHandle, overflowFile->addHandle(), *hashIndexDiskArrays, i,
+                    shadowFile, hashIndexHeadersForReadTrx[i], hashIndexHeadersForWriteTrx[i]));
             }
         },
         [&]<HashablePrimitive T>(T) {
             for (auto i = 0u; i < NUM_HASH_INDEXES; i++) {
-                hashIndices.push_back(std::make_unique<HashIndex<T>>(dbFileIDAndName, fileHandle,
-                    nullptr, *hashIndexDiskArrays, i, shadowFile, hashIndexHeadersForReadTrx[i],
-                    hashIndexHeadersForWriteTrx[i]));
+                hashIndices.push_back(std::make_unique<HashIndex<T>>(memoryManager, dbFileIDAndName,
+                    fileHandle, nullptr, *hashIndexDiskArrays, i, shadowFile,
+                    hashIndexHeadersForReadTrx[i], hashIndexHeadersForWriteTrx[i]));
             }
         },
         [&](auto) { KU_UNREACHABLE; });

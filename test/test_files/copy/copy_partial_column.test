@@ -1,7 +1,7 @@
 -DATASET CSV empty
 # This test can run out of memory with larger node group sizes
 -SKIP_NODE_GROUP_SIZE_TESTS
--BUFFER_POOL_SIZE 134217728
+-BUFFER_POOL_SIZE 2147483648
 
 --
 

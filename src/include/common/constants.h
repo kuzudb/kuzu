@@ -61,7 +61,6 @@ struct BufferPoolConstants {
 #else
     static constexpr uint64_t DEFAULT_VM_REGION_MAX_SIZE = static_cast<uint64_t>(1) << 43; // (8TB)
 #endif
-    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING = 1ull << 26; // (64MB)
 };
 
 struct StorageConstants {
@@ -97,6 +96,8 @@ struct TableOptionConstants {
 // Hash Index Configurations
 struct HashIndexConstants {
     static constexpr uint16_t SLOT_CAPACITY_BYTES = 256;
+    static constexpr uint64_t NUM_HASH_INDEXES_LOG2 = 8;
+    static constexpr uint64_t NUM_HASH_INDEXES = 1 << NUM_HASH_INDEXES_LOG2;
 };
 
 struct CopyConstants {

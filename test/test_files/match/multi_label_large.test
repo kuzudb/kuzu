@@ -3,6 +3,7 @@
 # Which can cause the BM to run out of memory
 # Since we need to store metadata for each node group
 -SKIP_IN_MEM
+-BUFFER_POOL_SIZE 1073741824
 --
 
 -CASE LargeMultiLabelScanWithFilter
