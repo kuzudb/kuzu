@@ -117,14 +117,14 @@ public:
         csrLengths[nodeOffset].store(length);
     }
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
+    // Note: when the incremented csr length hits maxDegree, this function will block until there is
+    // a shrink happening.
     uint16_t incrementCSRLength(common::offset_t nodeOffset) {
         KU_ASSERT(nodeOffset < numNodes);
         while (true) {
             auto val = csrLengths[nodeOffset].load();
             if (val < maxDegree && csrLengths[nodeOffset].compare_exchange_strong(val, val + 1)) {
-                if (val < maxDegree) {
-                    return val;
-                }
+                return val;
             }
         }
     }
