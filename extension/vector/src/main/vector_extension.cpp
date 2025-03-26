@@ -11,7 +11,8 @@ namespace vector_extension {
 static void initHNSWEntries(const transaction::Transaction* transaction,
     catalog::Catalog& catalog) {
     for (auto& indexEntry : catalog.getIndexEntries(transaction)) {
-        if (indexEntry->getIndexType() == HNSWIndexCatalogEntry::TYPE_NAME) {
+        if (indexEntry->getIndexType() == HNSWIndexCatalogEntry::TYPE_NAME &&
+            !indexEntry->isLoaded()) {
             indexEntry->setAuxInfo(HNSWIndexAuxInfo::deserialize(indexEntry->getAuxBufferReader()));
         }
     }
