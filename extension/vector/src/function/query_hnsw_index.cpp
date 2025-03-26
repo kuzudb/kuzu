@@ -96,7 +96,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         LogicalTypeID::ARRAY);
     KU_UNUSED(auxInfo);
 
-    auto returnColumnNames = std::vector<std::string>{"nn", "distance"};
+    auto returnColumnNames = std::vector<std::string>{QueryVectorIndexFunction::nnColumnName,
+        QueryVectorIndexFunction::distanceColumnName};
     returnColumnNames =
         TableFunction::extractYieldVariables(returnColumnNames, input->yieldVariables);
     auto outputNode = input->binder->createQueryNode(returnColumnNames[0], {nodeTableEntry});
