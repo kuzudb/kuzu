@@ -3,6 +3,8 @@
 #include "common/types/types.h"
 #include "function/table/bind_input.h"
 
+#include <cmath>
+
 namespace kuzu {
 namespace vector_extension {
 
@@ -11,9 +13,6 @@ enum class MetricType : uint8_t { Cosine = 0, L2 = 1, L2_SQUARE = 2, DotProduct 
 // We use this ratio to calculate the max degree of the upper/lower graph based on the user provided
 // max degree value for the upper/lower graph, respectively.
 static constexpr double DEFAULT_DEGREE_THRESHOLD_RATIO = 1.25;
-// The maximum allowed degree to be defined by users.
-static int64_t MAX_DEGREE =
-    std::floor(std::numeric_limits<int16_t>::max() / DEFAULT_DEGREE_THRESHOLD_RATIO);
 
 // Max degree of the upper graph.
 struct Mu {
