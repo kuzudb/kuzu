@@ -108,60 +108,38 @@ Roma
 
 
 -CASE DropTableWithIndexes
-
 -STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension"
 ---- ok
 -STATEMENT CREATE NODE TABLE STUDENT (ID INT64, name string, age INT64, note string, PRIMARY KEY(ID))
 ---- ok
-
 -STATEMENT CALL CREATE_FTS_INDEX('STUDENT', 'sIdx1', ['name'])
 ---- ok
-
 -STATEMENT CALL CREATE_FTS_INDEX('STUDENT', 'sIdx2', ['name', 'note'])
 ---- ok
-
 -STATEMENT CALL QUERY_FTS_INDEX('STUDENT', 'sIdx1', 'test') RETURN *
 ---- 0
-
 -STATEMENT CALL QUERY_FTS_INDEX('STUDENT', 'sIdx2', 'test') RETURN *
 ---- 0
-
 -STATEMENT ALTER TABLE STUDENT DROP name;
 ---- error
 Binder exception: Cannot drop property name in table STUDENT because it is used in one or more indexes. Please remove the associated indexes before attempting to drop this property.
-
 -STATEMENT CALL DROP_FTS_INDEX('STUDENT', 'sIdx1')
 ---- ok
-
 -STATEMENT ALTER TABLE STUDENT DROP note;
 ---- error
 Binder exception: Cannot drop property note in table STUDENT because it is used in one or more indexes. Please remove the associated indexes before attempting to drop this property.
-
 -STATEMENT ALTER TABLE STUDENT ADD length int64;
 ---- ok
-
 -STATEMENT ALTER TABLE STUDENT DROP age;
 ---- ok
-
 -STATEMENT DROP TABLE STUDENT
----- ok
-
--STATEMENT CALL QUERY_FTS_INDEX('STUDENT', 'sIdx1', 'test') RETURN *
 ---- error
-Binder exception: Table STUDENT does not exist.
-
--STATEMENT CREATE NODE TABLE STUDENT (ID INT64, name string, age INT64, note string, PRIMARY KEY(ID))
----- ok
-
+Binder exception: Cannot delete node table STUDENT because it is referenced by index sIdx2.
 -STATEMENT CALL QUERY_FTS_INDEX('STUDENT', 'sIdx1', 'test') RETURN *
 ---- error
 Binder exception: Table STUDENT doesn't have an index with name sIdx1.
-
 -STATEMENT CALL QUERY_FTS_INDEX('STUDENT', 'sIdx2', 'test') RETURN *
----- error
-Binder exception: Table STUDENT doesn't have an index with name sIdx2.
-
-
+---- ok
 
 -CASE ExtensionNotLoaded
 
