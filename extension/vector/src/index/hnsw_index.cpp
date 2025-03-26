@@ -79,12 +79,11 @@ common::offset_t InMemHNSWLayer::searchNN(common::offset_t node, common::offset_
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
 void InMemHNSWLayer::insertRel(common::offset_t srcNode, common::offset_t dstNode) {
-    const auto currentLen = graph->incrementCSRLength(srcNode);
-    if (currentLen >= info.degreeThresholdToShrink) {
+    auto currentLen = graph->incrementCSRLength(srcNode);
+    KU_ASSERT(srcNode < info.numNodes);
+    graph->setDstNode(srcNode * info.degreeThresholdToShrink + currentLen, dstNode);
+    if (currentLen == info.degreeThresholdToShrink - 1) {
         shrinkForNode(info, graph.get(), srcNode, currentLen);
-    } else {
-        KU_ASSERT(srcNode < info.numNodes);
-        graph->setDstNode(srcNode * info.degreeThresholdToShrink + currentLen, dstNode);
     }
 }
 
@@ -186,7 +185,7 @@ void InMemHNSWLayer::shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGrap
             const auto startCSROffset = nodeOffset * info.degreeThresholdToShrink;
             graph->setDstNode(startCSROffset + newSize++, nbrs[i].nodeOffset);
         }
-        if (newSize >= info.maxDegree) {
+        if (newSize == info.maxDegree) {
             break;
         }
     }
