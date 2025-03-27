@@ -27,6 +27,14 @@ function_set SizeFunction::getFunctionSet() {
         ScalarFunction::UnaryExecFunction<list_entry_t, int64_t, ListLen>);
     listFunc->bindFunc = sizeBindFunc;
     result.push_back(std::move(listFunc));
+    // size(array)
+    auto arrayFunc = std::make_unique<ScalarFunction>(name,
+        std::vector<LogicalTypeID>{
+            LogicalTypeID::ARRAY,
+        },
+        LogicalTypeID::INT64, ScalarFunction::UnaryExecFunction<list_entry_t, int64_t, ListLen>);
+    arrayFunc->bindFunc = sizeBindFunc;
+    result.push_back(std::move(arrayFunc));
     // size(map)
     auto mapFunc = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::MAP}, LogicalTypeID::INT64,

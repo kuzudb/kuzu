@@ -148,3 +148,8 @@ Binder exception: ARRAY_COSINE_SIMILARITY requires argument type to be FLOAT[] o
 31.220000
 38.160000
 51.230000
+
+-LOG ArraySize
+-STATEMENT RETURN SIZE(CAST([3,5,6] AS INT64[3]))
+---- 1
+3
