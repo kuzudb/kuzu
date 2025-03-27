@@ -14,11 +14,11 @@ namespace function {
 
 class VarLenPathsOutputWriter final : public PathsOutputWriter {
 public:
-    VarLenPathsOutputWriter(main::ClientContext* context, common::NodeOffsetMaskMap* outputNodeMask,
-        common::nodeID_t sourceNodeID, PathsOutputWriterInfo info, BFSGraph& bfsGraph)
+    VarLenPathsOutputWriter(main::ClientContext* context, NodeOffsetMaskMap* outputNodeMask,
+        nodeID_t sourceNodeID, PathsOutputWriterInfo info, BFSGraph& bfsGraph)
         : PathsOutputWriter{context, outputNodeMask, sourceNodeID, info, bfsGraph} {}
 
-    bool skipInternal(common::nodeID_t dstNodeID) const override {
+    bool skipInternal(nodeID_t dstNodeID) const override {
         auto head = bfsGraph.getParentListHead(dstNodeID.offset);
         // For variable lengths joins, we skip a destination node d in the following conditions:
         //    (i) if no path has reached d from the source, except when the lower bound is 0.

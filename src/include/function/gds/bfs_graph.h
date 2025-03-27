@@ -1,7 +1,5 @@
 #pragma once
 
-#include <sys/stat.h>
-
 #include "compute.h"
 #include "density_state.h"
 #include "gds_object_manager.h"
@@ -59,10 +57,11 @@ public:
     // Pin data structure to given tableID
     void pinTableID(common::table_id_t tableID);
 
-    ParentList* getParentListHead(common::nodeID_t nodeID) {
+    ParentList* getParentListHeadDense(common::nodeID_t nodeID) {
+        KU_ASSERT(state == GDSDensityState::DENSE && curDenseData);
         return denseObjects.getData(nodeID.tableID)[nodeID.offset].load(std::memory_order_relaxed);
     }
-    ParentList* getParentListHead(common::offset_t offset) {
+    ParentList* getParentListHeadDense(common::offset_t offset) {
         KU_ASSERT(state == GDSDensityState::DENSE && curDenseData);
         return curDenseData[offset].load(std::memory_order_relaxed);
     }

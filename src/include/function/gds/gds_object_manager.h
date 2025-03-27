@@ -105,7 +105,7 @@ public:
         bufferPerTable.insert({tableID, std::move(buffer)});
     }
 
-    bool contains(common::table_id_t tableID) const { return bufferPerTable.contains(tableID); }
+    // bool contains(common::table_id_t tableID) const { return bufferPerTable.contains(tableID); }
 
     T* getData(common::table_id_t tableID) const {
         KU_ASSERT(bufferPerTable.contains(tableID));
@@ -122,6 +122,19 @@ public:
     std::unordered_map<common::offset_t, T>* getMap(common::table_id_t tableID) {
         KU_ASSERT(mapPerTable.contains(tableID));
         return &mapPerTable.at(tableID);
+    }
+
+    std::unordered_map<common::offset_t, T>* getData(common::table_id_t tableID) {
+        KU_ASSERT(mapPerTable.contains(tableID));
+        return &mapPerTable.at(tableID);
+    }
+
+    uint64_t size() const {
+        uint64_t result = 0;
+        for (auto [_, map] : mapPerTable) {
+
+        }
+        return result;
     }
 
 private:

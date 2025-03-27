@@ -65,7 +65,7 @@ static ParentList* getTop(const std::vector<ParentList*>& path) {
     return path[path.size() - 1];
 }
 
-void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
+void PathsOutputWriter::writeDense(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
     LimitCounter* counter) {
     dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
     auto firstParent = findFirstParent(dstNodeID.offset);
@@ -86,6 +86,13 @@ void PathsOutputWriter::write(processor::FactorizedTable& fTable, nodeID_t dstNo
     }
     dfsSlow(firstParent, fTable, counter);
 }
+
+void PathsOutputWriter::writeSparse(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
+    common::LimitCounter* counter) {
+
+
+}
+
 
 void PathsOutputWriter::dfsFast(ParentList* firstParent, FactorizedTable& fTable,
     LimitCounter* counter) {

@@ -12,78 +12,59 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace function {
 
-FrontierMorselDispatcher::FrontierMorselDispatcher(uint64_t maxThreads)
-    : maxOffset{INVALID_OFFSET}, maxThreads{maxThreads}, morselSize(UINT64_MAX) {
-    nextOffset.store(INVALID_OFFSET);
-}
-
-void FrontierMorselDispatcher::init(offset_t _maxOffset) {
-    maxOffset = _maxOffset;
-    nextOffset.store(0u);
-    // Frontier size calculation: The ideal scenario is to have k^2 many morsels where k
-    // the number of maximum threads that could be working on this frontier. However, if
-    // that is too small then we default to MIN_FRONTIER_MORSEL_SIZE.
-    auto idealMorselSize =
-        maxOffset / std::max(MIN_NUMBER_OF_FRONTIER_MORSELS, maxThreads * maxThreads);
-    morselSize = std::max(MIN_FRONTIER_MORSEL_SIZE, idealMorselSize);
-}
-
-bool FrontierMorselDispatcher::getNextRangeMorsel(FrontierMorsel& frontierMorsel) {
-    auto beginOffset = nextOffset.fetch_add(morselSize, std::memory_order_acq_rel);
-    if (beginOffset >= maxOffset) {
-        return false;
-    }
-    auto endOffset = beginOffset + morselSize > maxOffset ? maxOffset : beginOffset + morselSize;
-    frontierMorsel.init(beginOffset, endOffset);
-    return true;
-}
-
 void SparseFrontier::pinTableID(table_id_t tableID) {
-    if (!tableIDToOffsetMap.contains(tableID)) {
-        tableIDToOffsetMap.insert({tableID, std::unordered_set<offset_t>{}});
-    }
-    pinnedTableID = tableID;
-    curOffsetSet = &tableIDToOffsetMap.at(tableID);
+    curData = sparseObjects.getData(tableID);
 }
 
-void PathLengths::init(ExecutionContext* context, Graph* graph, iteration_t val) {
+void SparseFrontier::addNode(nodeID_t nodeID, iteration_t val) {
+    KU_ASSERT(curData);
+    curData->insert({nodeID.offset, val});
+}
+
+void SparseFrontier::addNodes(const std::vector<nodeID_t>& nodeIDs, iteration_t val) {
+    KU_ASSERT(curData);
+    for (auto nodeID : nodeIDs) {
+        curData->insert({nodeID.offset, val});
+    }
+}
+
+void DenseFrontier::init(ExecutionContext* context, Graph* graph, iteration_t val) {
     for (const auto& [tableID, maxOffset] : nodeMaxOffsetMap) {
-        auto memBuffer = context->clientContext->getMemoryManager()->allocateBuffer(false, maxOffset * sizeof(std::atomic<iteration_t>));
-        buffer.insert({tableID, std::move(memBuffer)});
+        denseObjects.allocate(tableID, maxOffset, context->clientContext->getMemoryManager());
     }
     auto vc = std::make_unique<PathLengthsInitVertexCompute>(*this, UNVISITED);
     GDSUtils::runVertexCompute(context, graph, *vc);
 }
 
-std::shared_ptr<PathLengths> PathLengths::getUninitializedFrontier(
+std::shared_ptr<DenseFrontier> DenseFrontier::getUninitializedFrontier(
     ExecutionContext* context, Graph* graph) {
     auto transaction = context->clientContext->getTransaction();
-    return std::make_shared<PathLengths>(graph->getMaxOffsetMap(transaction));
+    return std::make_shared<DenseFrontier>(graph->getMaxOffsetMap(transaction));
 }
 
-std::shared_ptr<PathLengths> PathLengths::getUnvisitedFrontier(ExecutionContext* context,
+std::shared_ptr<DenseFrontier> DenseFrontier::getUnvisitedFrontier(ExecutionContext* context,
     Graph* graph) {
     auto transaction = context->clientContext->getTransaction();
-    auto frontier = std::make_shared<PathLengths>(graph->getMaxOffsetMap(transaction));
+    auto frontier = std::make_shared<DenseFrontier>(graph->getMaxOffsetMap(transaction));
     frontier->init(context, graph, UNVISITED);
     return frontier;
 }
 
-std::shared_ptr<PathLengths> PathLengths::getVisitedFrontier(ExecutionContext* context,
+std::shared_ptr<DenseFrontier> DenseFrontier::getVisitedFrontier(ExecutionContext* context,
     Graph* graph) {
     auto transaction = context->clientContext->getTransaction();
-    auto frontier = std::make_shared<PathLengths>(graph->getMaxOffsetMap(transaction));
+    auto frontier = std::make_shared<DenseFrontier>(graph->getMaxOffsetMap(transaction));
     frontier->init(context, graph, INITIAL_VISITED);
     return frontier;
 }
 
-std::shared_ptr<PathLengths> PathLengths::getVisitedFrontier(ExecutionContext* context,
+std::shared_ptr<DenseFrontier> DenseFrontier::getVisitedFrontier(ExecutionContext* context,
     Graph* graph, NodeOffsetMaskMap* maskMap) {
     if (maskMap == nullptr) {
         return getVisitedFrontier(context, graph);
     }
     auto tx = context->clientContext->getTransaction();
-    auto frontier = std::make_shared<PathLengths>(graph->getMaxOffsetMap(tx));
+    auto frontier = std::make_shared<DenseFrontier>(graph->getMaxOffsetMap(tx));
     frontier->init(context, graph, UNVISITED);
     // TODO(Xiyang): we should use a vertex compute to do the following.
     for (auto [tableID, numNodes] : graph->getMaxOffsetMap(tx)) {
@@ -104,10 +85,10 @@ std::shared_ptr<PathLengths> PathLengths::getVisitedFrontier(ExecutionContext* c
     return frontier;
 }
 
-std::atomic<iteration_t>* PathLengths::getMaskData(table_id_t tableID) {
-    KU_ASSERT(buffer.contains(tableID));
-    return reinterpret_cast<std::atomic<iteration_t>*>(buffer.at(tableID)->getData());
-}
+// std::atomic<iteration_t>* PathLengths::getMaskData(table_id_t tableID) {
+//     KU_ASSERT(buffer.contains(tableID));
+//     return reinterpret_cast<std::atomic<iteration_t>*>(buffer.at(tableID)->getData());
+// }
 
 bool PathLengthsInitVertexCompute::beginOnTable(table_id_t tableID) {
     pathLengths.pinTableID(tableID);
@@ -135,11 +116,11 @@ void FrontierPair::initState() {
 
 void SPFrontierPair::pinCurrentFrontier(table_id_t tableID) {
     switch (state) {
-    case FrontierState::SPARSE: {
+    case GDSDensityState::SPARSE: {
         curSparseFrontier->pinTableID(tableID);
     } break;
-    case FrontierState::DENSE: {
-        curDenseFrontier = pathLengths->getMaskData(tableID);
+    case GDSDensityState::DENSE: {
+        curDenseFrontier = denseFrontier->denseObjects.getData(tableID);
     } break;
     default:
         KU_UNREACHABLE;
@@ -148,11 +129,11 @@ void SPFrontierPair::pinCurrentFrontier(table_id_t tableID) {
 
 void SPFrontierPair::pinNextFrontier(table_id_t tableID) {
     switch (state) {
-    case FrontierState::SPARSE: {
+    case GDSDensityState::SPARSE: {
         nextSparseFrontier->pinTableID(tableID);
     } break;
-    case FrontierState::DENSE: {
-        nextDenseFrontier = pathLengths->getMaskData(tableID);
+    case GDSDensityState::DENSE: {
+        nextDenseFrontier = denseFrontier->denseObjects.getData(tableID);
     } break;
     default:
         KU_UNREACHABLE;

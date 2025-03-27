@@ -19,7 +19,9 @@ public:
 
     bool skip(common::nodeID_t dstNodeID) const;
 
-    virtual void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
+    virtual void writeDense(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
+        common::LimitCounter* counter) = 0;
+    virtual void writeSparse(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
         common::LimitCounter* counter) = 0;
 
     virtual std::unique_ptr<RJOutputWriter> copy() = 0;
@@ -63,8 +65,9 @@ public:
         bfsGraph.pinTableID(tableID);
     }
 
-    void write(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
+    void writeDense(processor::FactorizedTable& fTable, common::nodeID_t dstNodeID,
         common::LimitCounter* counter) override;
+    void writeSparse(processor::FactorizedTable &fTable, common::nodeID_t dstNodeID, common::LimitCounter *counter) override;
 
 protected:
     // Fast path when there is no node predicate or semantic check

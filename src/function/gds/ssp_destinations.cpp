@@ -58,17 +58,17 @@ public:
         bool) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNode, auto) {
-            if (frontierPair->getNextDenseFrontierValue(nbrNode.offset) == PathLengths::UNVISITED) {
+            if (frontierPair->getNextDenseFrontierValue(nbrNode.offset) == DenseFrontier::UNVISITED) {
                 activeNodes.push_back(nbrNode);
             }
         });
         return activeNodes;
     }
 
-    std::vector<nodeID_t> edgeComputeSparse(common::nodeID_t boundNodeID, :NbrScanState::Chunk& resultChunk, bool fwdEdge) override {
+    std::vector<nodeID_t> edgeComputeSparse(common::nodeID_t boundNodeID, NbrScanState::Chunk& resultChunk, bool fwdEdge) override {
         std::vector<nodeID_t> activeNodes;
         resultChunk.forEach([&](auto nbrNode, auto) {
-            if (frontierPair->getNextDenseFrontierValue(nbrNode.offset) == PathLengths::UNVISITED) {
+            if (frontierPair->getNextDenseFrontierValue(nbrNode.offset) == DenseFrontier::UNVISITED) {
                 activeNodes.push_back(nbrNode);
             }
         });
