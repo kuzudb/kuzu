@@ -61,17 +61,19 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     auto columns = input->binder->createVariables(returnColumnNames, returnTypes);
     std::vector<ProjectedGraphData> projectedGraphData;
     for (auto& [name, parsedGraphEntry] : context->getGraphEntrySet()) {
-        std::string nodeInfo, relInfo;
+        std::string nodeInfo = "{", relInfo = "{";
         for (auto i = 0u; i < parsedGraphEntry.nodeInfos.size() - 1; i++) {
             nodeInfo += parsedGraphEntry.nodeInfos[i].toString();
-            nodeInfo += ", ";
+            nodeInfo += ",";
         }
         nodeInfo += parsedGraphEntry.nodeInfos[parsedGraphEntry.nodeInfos.size() - 1].toString();
+        nodeInfo += "}";
         for (auto i = 0u; i < parsedGraphEntry.relInfos.size() - 1; i++) {
             relInfo += parsedGraphEntry.relInfos[i].toString();
-            relInfo += ", ";
+            relInfo += ",";
         }
         relInfo += parsedGraphEntry.relInfos[parsedGraphEntry.relInfos.size() - 1].toString();
+        relInfo += "}";
         projectedGraphData.emplace_back(name, std::move(nodeInfo), std::move(relInfo));
     }
     return std::make_unique<ShowProjectedGraphBindData>(std::move(projectedGraphData),
