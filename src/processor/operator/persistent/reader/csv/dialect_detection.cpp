@@ -19,6 +19,7 @@ std::vector<DialectOption> generateDialectOptions(const common::CSVOption& optio
     if (option.setQuote) {
         quoteChars += option.quoteChar;
     } else {
+        quoteChars.resize(common::CopyConstants::DEFAULT_CSV_QUOTE_SEARCH_SPACE.size());
         quoteChars.assign(common::CopyConstants::DEFAULT_CSV_QUOTE_SEARCH_SPACE.begin(),
             common::CopyConstants::DEFAULT_CSV_QUOTE_SEARCH_SPACE.end());
     }
