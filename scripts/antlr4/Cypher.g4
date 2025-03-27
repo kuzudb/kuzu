@@ -490,8 +490,6 @@ kU_LoadFrom
     :  LOAD ( SP WITH SP HEADERS SP? '(' SP? kU_ColumnDefinitions SP? ')' )? SP FROM SP kU_ScanSource (SP? '(' SP? kU_Options SP? ')')? (SP? oC_Where)? ;
 
 
-YIELD: ( 'Y' | 'y' ) ( 'I' | 'i' ) ( 'E' | 'e' ) ( 'L' | 'l' ) ( 'D' | 'd' ) ;
-
 oC_YieldItem
          :  ( oC_Variable SP AS SP )? oC_Variable ;
 

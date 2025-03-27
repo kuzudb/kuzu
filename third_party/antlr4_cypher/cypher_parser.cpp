@@ -130,8 +130,8 @@ void cypherParserInitialize() {
       "READ", "REL", "RENAME", "RETURN", "ROLLBACK", "ROLLBACK_SKIP_CHECKPOINT", 
       "SEQUENCE", "SET", "SHORTEST", "START", "STARTS", "TABLE", "THEN", 
       "TO", "TRAIL", "TRANSACTION", "TRUE", "TYPE", "UNION", "UNWIND", "USE", 
-      "WHEN", "WHERE", "WITH", "WRITE", "WSHORTEST", "XOR", "SINGLE", "DECIMAL", 
-      "YIELD", "STAR", "L_SKIP", "INVALID_NOT_EQUAL", "MINUS", "FACTORIAL", 
+      "WHEN", "WHERE", "WITH", "WRITE", "WSHORTEST", "XOR", "SINGLE", "YIELD", 
+      "DECIMAL", "STAR", "L_SKIP", "INVALID_NOT_EQUAL", "MINUS", "FACTORIAL", 
       "COLON", "StringLiteral", "EscapedChar", "DecimalInteger", "HexLetter", 
       "HexDigit", "Digit", "NonZeroDigit", "NonZeroOctDigit", "ZeroDigit", 
       "ExponentDecimalReal", "RegularDecimalReal", "UnescapedSymbolicName", 
@@ -683,7 +683,7 @@ void cypherParserInitialize() {
   	1,0,0,0,1145,1147,5,4,0,0,1146,1148,5,175,0,0,1147,1146,1,0,0,0,1147,
   	1148,1,0,0,0,1148,1149,1,0,0,0,1149,1151,3,96,48,0,1150,1152,5,175,0,
   	0,1151,1150,1,0,0,0,1151,1152,1,0,0,0,1152,1153,1,0,0,0,1153,1154,5,3,
-  	0,0,1154,1178,1,0,0,0,1155,1157,5,152,0,0,1156,1158,5,175,0,0,1157,1156,
+  	0,0,1154,1178,1,0,0,0,1155,1157,5,153,0,0,1156,1158,5,175,0,0,1157,1156,
   	1,0,0,0,1157,1158,1,0,0,0,1158,1159,1,0,0,0,1159,1161,5,2,0,0,1160,1162,
   	5,175,0,0,1161,1160,1,0,0,0,1161,1162,1,0,0,0,1162,1163,1,0,0,0,1163,
   	1165,3,322,161,0,1164,1166,5,175,0,0,1165,1164,1,0,0,0,1165,1166,1,0,
@@ -780,7 +780,7 @@ void cypherParserInitialize() {
   	1441,1443,5,175,0,0,1442,1441,1,0,0,0,1442,1443,1,0,0,0,1443,1444,1,0,
   	0,0,1444,1446,3,180,90,0,1445,1442,1,0,0,0,1445,1446,1,0,0,0,1446,1453,
   	1,0,0,0,1447,1449,5,175,0,0,1448,1447,1,0,0,0,1448,1449,1,0,0,0,1449,
-  	1450,1,0,0,0,1450,1451,5,153,0,0,1451,1452,5,175,0,0,1452,1454,3,138,
+  	1450,1,0,0,0,1450,1451,5,152,0,0,1451,1452,5,175,0,0,1452,1454,3,138,
   	69,0,1453,1448,1,0,0,0,1453,1454,1,0,0,0,1454,141,1,0,0,0,1455,1456,5,
   	118,0,0,1456,1458,5,175,0,0,1457,1455,1,0,0,0,1457,1458,1,0,0,0,1458,
   	1459,1,0,0,0,1459,1461,5,106,0,0,1460,1462,5,175,0,0,1461,1460,1,0,0,
@@ -7170,8 +7170,8 @@ CypherParser::KU_LoadExtensionContext* CypherParser::kU_LoadExtension() {
       case CypherParser::TYPE:
       case CypherParser::USE:
       case CypherParser::WRITE:
-      case CypherParser::DECIMAL:
       case CypherParser::YIELD:
+      case CypherParser::DECIMAL:
       case CypherParser::L_SKIP:
       case CypherParser::HexLetter:
       case CypherParser::UnescapedSymbolicName:
@@ -8947,8 +8947,8 @@ CypherParser::KU_JoinNodeContext* CypherParser::kU_JoinNode(int precedence) {
       case CypherParser::TYPE:
       case CypherParser::USE:
       case CypherParser::WRITE:
-      case CypherParser::DECIMAL:
       case CypherParser::YIELD:
+      case CypherParser::DECIMAL:
       case CypherParser::L_SKIP:
       case CypherParser::HexLetter:
       case CypherParser::UnescapedSymbolicName:
@@ -10067,8 +10067,8 @@ CypherParser::OC_ProjectionItemsContext* CypherParser::oC_ProjectionItems() {
       case CypherParser::USE:
       case CypherParser::WRITE:
       case CypherParser::SINGLE:
-      case CypherParser::DECIMAL:
       case CypherParser::YIELD:
+      case CypherParser::DECIMAL:
       case CypherParser::L_SKIP:
       case CypherParser::MINUS:
       case CypherParser::StringLiteral:
@@ -10737,8 +10737,8 @@ CypherParser::OC_PatternPartContext* CypherParser::oC_PatternPart() {
       case CypherParser::TYPE:
       case CypherParser::USE:
       case CypherParser::WRITE:
-      case CypherParser::DECIMAL:
       case CypherParser::YIELD:
+      case CypherParser::DECIMAL:
       case CypherParser::L_SKIP:
       case CypherParser::HexLetter:
       case CypherParser::UnescapedSymbolicName:
@@ -15732,8 +15732,8 @@ CypherParser::KU_StructFieldContext* CypherParser::kU_StructField() {
       case CypherParser::TYPE:
       case CypherParser::USE:
       case CypherParser::WRITE:
-      case CypherParser::DECIMAL:
       case CypherParser::YIELD:
+      case CypherParser::DECIMAL:
       case CypherParser::L_SKIP:
       case CypherParser::HexLetter:
       case CypherParser::UnescapedSymbolicName:
@@ -16494,8 +16494,8 @@ CypherParser::KU_LambdaVarsContext* CypherParser::kU_LambdaVars() {
       case CypherParser::TYPE:
       case CypherParser::USE:
       case CypherParser::WRITE:
-      case CypherParser::DECIMAL:
       case CypherParser::YIELD:
+      case CypherParser::DECIMAL:
       case CypherParser::L_SKIP:
       case CypherParser::HexLetter:
       case CypherParser::UnescapedSymbolicName:
@@ -16925,8 +16925,8 @@ CypherParser::OC_PropertyLookupContext* CypherParser::oC_PropertyLookup() {
       case CypherParser::TYPE:
       case CypherParser::USE:
       case CypherParser::WRITE:
-      case CypherParser::DECIMAL:
       case CypherParser::YIELD:
+      case CypherParser::DECIMAL:
       case CypherParser::L_SKIP:
       case CypherParser::HexLetter:
       case CypherParser::UnescapedSymbolicName:
@@ -17439,8 +17439,8 @@ CypherParser::OC_ParameterContext* CypherParser::oC_Parameter() {
       case CypherParser::TYPE:
       case CypherParser::USE:
       case CypherParser::WRITE:
-      case CypherParser::DECIMAL:
       case CypherParser::YIELD:
+      case CypherParser::DECIMAL:
       case CypherParser::L_SKIP:
       case CypherParser::HexLetter:
       case CypherParser::UnescapedSymbolicName:
@@ -17829,8 +17829,8 @@ CypherParser::OC_SymbolicNameContext* CypherParser::oC_SymbolicName() {
       case CypherParser::TYPE:
       case CypherParser::USE:
       case CypherParser::WRITE:
-      case CypherParser::DECIMAL:
       case CypherParser::YIELD:
+      case CypherParser::DECIMAL:
       case CypherParser::L_SKIP: {
         enterOuterAlt(_localctx, 4);
         setState(2769);
