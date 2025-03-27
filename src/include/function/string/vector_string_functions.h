@@ -259,5 +259,11 @@ struct SplitPartFunction {
     static function_set getFunctionSet();
 };
 
+struct GetEmbeddingFunction {
+    static constexpr const char* name = "GET_EMBEDDING";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu
