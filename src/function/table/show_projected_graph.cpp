@@ -46,6 +46,22 @@ static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFunc
     return numTablesToOutput;
 }
 
+static std::string getNodeOrRelInfo(const std::vector<graph::GraphEntryTableInfo>& tableInfo) {
+    if (tableInfo.empty()) {
+        return "";
+    }
+    std::string info = "{";
+    for (auto i = 0u; i < tableInfo.size(); i++) {
+        info += tableInfo[i].toString();
+        if (i == tableInfo.size() - 1) {
+            info += "}";
+        } else {
+            info += ",";
+        }
+    }
+    return info;
+}
+
 static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     const TableFuncBindInput* input) {
     std::vector<std::string> returnColumnNames;
@@ -61,20 +77,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     auto columns = input->binder->createVariables(returnColumnNames, returnTypes);
     std::vector<ProjectedGraphData> projectedGraphData;
     for (auto& [name, parsedGraphEntry] : context->getGraphEntrySet()) {
-        std::string nodeInfo = "{", relInfo = "{";
-        for (auto i = 0u; i < parsedGraphEntry.nodeInfos.size() - 1; i++) {
-            nodeInfo += parsedGraphEntry.nodeInfos[i].toString();
-            nodeInfo += ",";
-        }
-        nodeInfo += parsedGraphEntry.nodeInfos[parsedGraphEntry.nodeInfos.size() - 1].toString();
-        nodeInfo += "}";
-        for (auto i = 0u; i < parsedGraphEntry.relInfos.size() - 1; i++) {
-            relInfo += parsedGraphEntry.relInfos[i].toString();
-            relInfo += ",";
-        }
-        relInfo += parsedGraphEntry.relInfos[parsedGraphEntry.relInfos.size() - 1].toString();
-        relInfo += "}";
-        projectedGraphData.emplace_back(name, std::move(nodeInfo), std::move(relInfo));
+        projectedGraphData.emplace_back(name, getNodeOrRelInfo(parsedGraphEntry.nodeInfos),
+            getNodeOrRelInfo(parsedGraphEntry.relInfos));
     }
     return std::make_unique<ShowProjectedGraphBindData>(std::move(projectedGraphData),
         std::move(columns));

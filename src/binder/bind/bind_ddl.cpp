@@ -57,6 +57,10 @@ std::vector<PropertyDefinition> Binder::bindPropertyDefinitions(
         auto type = LogicalType::convertFromString(def.getType(), clientContext);
         auto defaultExpr =
             resolvePropertyDefault(def.defaultExpr.get(), type, tableName, def.getName());
+        auto boundExpr = expressionBinder.bindExpression(*defaultExpr);
+        if (boundExpr->dataType != type) {
+            expressionBinder.implicitCast(boundExpr, type);
+        }
         auto columnDefinition = ColumnDefinition(def.getName(), std::move(type));
         definitions.emplace_back(std::move(columnDefinition), std::move(defaultExpr));
     }
@@ -397,7 +401,7 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     auto defaultExpr =
         resolvePropertyDefault(extraInfo->defaultValue.get(), type, tableName, propertyName);
     auto boundDefault = expressionBinder.bindExpression(*defaultExpr);
-    boundDefault = expressionBinder.implicitCastIfNecessary(boundDefault, type);
+    boundDefault = expressionBinder.implicitCast(boundDefault, type);
     if (ConstantExpressionVisitor::needFold(*boundDefault)) {
         boundDefault = expressionBinder.foldExpression(boundDefault);
     }
