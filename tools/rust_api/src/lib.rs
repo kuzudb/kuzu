@@ -30,6 +30,21 @@
 //! - `KUZU_SHARED`: If set, link dynamically instead of statically
 //! - `KUZU_INCLUDE_DIR`: Directory of kuzu's headers
 //! - `KUZU_LIBRARY_DIR`: Directory containing kuzu's pre-built libraries.
+//!
+//! ## Using Extensions
+//! By default, binaries created using this library will not work with kuzu's
+//! [extensions](https://docs.kuzudb.com/extensions/) (except on Windows/MSVC, where the linker works differently).
+//!
+//! If you want to use extensions in binaries (binary crates or tests) using this
+//! library, you will need to add the following (or a similar command; see
+//! [build-scripts](https://doc.rust-lang.org/cargo/reference/build-scripts.html#rustc-link-arg))
+//! to your build.rs (or create one) so that the binary
+//! produced acts like a library that the extension can link with. Not doing this will produce
+//! undefined symbol errors when the extension is loaded:
+//!
+//! ```ignore
+//! println!("cargo:rustc-link-arg=-rdynamic");
+//! ```
 
 pub use connection::{Connection, PreparedStatement};
 pub use database::{Database, SystemConfig};

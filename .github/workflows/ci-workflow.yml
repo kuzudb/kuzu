@@ -365,11 +365,15 @@ jobs:
       CMAKE_BUILD_PARALLEL_LEVEL: 32
       CC: gcc
       CXX: g++
+      KUZU_LOCAL_EXTENSIONS: ${{ github.workspace }}/extension
     steps:
       - uses: actions/checkout@v4
 
       - name: Rust test
-        run: make rusttest
+        run: |
+          make extension-release
+          cd tools/rust_api
+          cargo test --profile=relwithdebinfo --locked --all-features -- --test-threads=12
 
       - name: Rust example
         working-directory: examples/rust
@@ -699,9 +703,13 @@ jobs:
 
       - name: Rust test
         shell: cmd
+        env:
+          KUZU_LOCAL_EXTENSIONS: ${{ github.workspace }}/extension
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-          make rusttest
+          make extension-release
+          cd tools/rust_api
+          cargo test --profile=relwithdebinfo --locked --all-features -- --test-threads=12
 
       - name: Rust test with pre-built library
         env:
@@ -951,10 +959,15 @@ jobs:
           make javatest
 
       - name: Rust test
+        env:
+          KUZU_LOCAL_EXTENSIONS: ${{ github.workspace }}/extension
         run: |
           ulimit -n 10240
           source /Users/runner/.cargo/env
-          make rusttest
+          cmake -B build/release -DBUILD_EXAMPLES=OFF
+          make extension-release
+          cd tools/rust_api
+          cargo test --profile=relwithdebinfo --locked --all-features -- --test-threads=12
 
       - name: Rust example
         working-directory: examples/rust

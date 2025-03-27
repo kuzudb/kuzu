@@ -182,7 +182,7 @@ else
 	# since they are all run in the same process and most tests create a database
 	# (requiring mmapping 8TB of virtual memory). This quickly exhausts the process' virtual memory.
 endif
-	cd tools/rust_api && cargo test --profile=relwithdebinfo --locked --all-features -- --test-threads=12
+	cd tools/rust_api && cargo test --profile=relwithdebinfo --locked --features arrow -- --test-threads=12
 
 wasmtest:
 	mkdir -p build/wasm && cd build/wasm &&\
