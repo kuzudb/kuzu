@@ -226,7 +226,7 @@ std::vector<NodeWithDistance> HNSWIndex::popTopK(max_node_priority_queue_t& resu
 }
 
 static int64_t getDegreeThresholdToShrink(int64_t degree) {
-    return std::ceil(degree * 1.25);
+    return std::ceil(degree * DEFAULT_DEGREE_THRESHOLD_RATIO);
 }
 
 InMemHNSWIndex::InMemHNSWIndex(const main::ClientContext* context, NodeTable& table,

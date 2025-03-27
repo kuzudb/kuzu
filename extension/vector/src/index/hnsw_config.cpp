@@ -10,15 +10,21 @@
 namespace kuzu {
 namespace vector_extension {
 
+// The maximum allowed degree to be defined by users.
+static constexpr int64_t MAX_DEGREE =
+    static_cast<int64_t>(std::numeric_limits<int16_t>::max() / DEFAULT_DEGREE_THRESHOLD_RATIO);
+
 void Mu::validate(int64_t value) {
-    if (value < 1 || value > 100) {
-        throw common::BinderException{"Mu must be a positive integer between 1 and 100."};
+    if (value < 1 || value > MAX_DEGREE) {
+        throw common::BinderException{
+            common::stringFormat("Mu must be a positive integer between 1 and {}.", MAX_DEGREE)};
     }
 }
 
 void Ml::validate(int64_t value) {
-    if (value < 1 || value > 200) {
-        throw common::BinderException{"Ml must be a positive integer between 1 and 200."};
+    if (value < 1 || value > MAX_DEGREE) {
+        throw common::BinderException{
+            common::stringFormat("Ml must be a positive integer between 1 and {}.", MAX_DEGREE)};
     }
 }
 
