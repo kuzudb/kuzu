@@ -19,20 +19,20 @@ Alice|12
 Bob|12
 Carol|12
 Dan|12
--STATEMENT CALL SHOW_PROJECTED_GRAPH() RETURN *;
+-STATEMENT CALL SHOW_PROJECTED_GRAPHS() RETURN *;
 ---- 2
 PKWO|{{'table': 'person'},{'table': 'organisation'}}|{{'table': 'knows'},{'table': 'workAt'}}
 PK|{{'table': 'person'}}|{{'table': 'knows'}}
 -STATEMENT CALL create_projected_graph('withFilter', {'person': {'filter': 'n.age > 35'}}, {'knows': {'filter': 'size(r.comments) > 5'}})
 ---- ok
--STATEMENT CALL SHOW_PROJECTED_GRAPH() RETURN *;
+-STATEMENT CALL SHOW_PROJECTED_GRAPHS() RETURN *;
 ---- 3
 PKWO|{{'table': 'person'},{'table': 'organisation'}}|{{'table': 'knows'},{'table': 'workAt'}}
 PK|{{'table': 'person'}}|{{'table': 'knows'}}
 withFilter|{{'table': 'person','predicate': 'n.age > 35'}}|{{'table': 'knows','predicate': 'size(r.comments) > 5'}}
 -STATEMENT CALL create_projected_graph('multipleTableWithFilter', {'person': {'filter': 'n.age > 35'}, 'organisation': {'filter': 'n.ID > 2'}}, {'knows': {'filter': 'size(r.comments) > 5'}})
 ---- ok
--STATEMENT CALL SHOW_PROJECTED_GRAPH() RETURN *;
+-STATEMENT CALL SHOW_PROJECTED_GRAPHS() RETURN *;
 ---- 4
 PKWO|{{'table': 'person'},{'table': 'organisation'}}|{{'table': 'knows'},{'table': 'workAt'}}
 PK|{{'table': 'person'}}|{{'table': 'knows'}}
@@ -40,7 +40,7 @@ multipleTableWithFilter|{{'table': 'person','predicate': 'n.age > 35'},{'table':
 withFilter|{{'table': 'person','predicate': 'n.age > 35'}}|{{'table': 'knows','predicate': 'size(r.comments) > 5'}}
 -STATEMENT CALL create_projected_graph('emptygraph', [], [])
 ---- ok
--STATEMENT CALL SHOW_PROJECTED_GRAPH() RETURN *;
+-STATEMENT CALL SHOW_PROJECTED_GRAPHS() RETURN *;
 ---- 5
 PKWO|{{'table': 'person'},{'table': 'organisation'}}|{{'table': 'knows'},{'table': 'workAt'}}
 PK|{{'table': 'person'}}|{{'table': 'knows'}}
