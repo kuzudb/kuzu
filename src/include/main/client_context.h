@@ -148,6 +148,8 @@ public:
 
     graph::GraphEntrySet& getGraphEntrySetUnsafe();
 
+    const graph::GraphEntrySet& getGraphEntrySet() const;
+
     void cleanUp();
 
     // Query.

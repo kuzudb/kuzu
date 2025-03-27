@@ -10,6 +10,15 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace graph {
 
+std::string GraphEntryTableInfo::toString() const {
+    auto result = common::stringFormat("{'table': '{}'", tableName);
+    if (predicate != "") {
+        result += common::stringFormat(",'predicate': '{}'", predicate);
+    }
+    result += "}";
+    return result;
+}
+
 GraphEntry::GraphEntry(std::vector<TableCatalogEntry*> nodeEntries,
     std::vector<TableCatalogEntry*> relEntries) {
     for (auto& entry : nodeEntries) {

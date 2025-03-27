@@ -285,6 +285,10 @@ graph::GraphEntrySet& ClientContext::getGraphEntrySetUnsafe() {
     return *graphEntrySet;
 }
 
+const graph::GraphEntrySet& ClientContext::getGraphEntrySet() const {
+    return *graphEntrySet;
+}
+
 void ClientContext::cleanUp() {
     getVFSUnsafe()->cleanUP(this);
 }
