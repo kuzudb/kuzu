@@ -226,6 +226,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
         TABLE_FUNCTION(ShowSequencesFunction), TABLE_FUNCTION(ShowFunctionsFunction),
         TABLE_FUNCTION(BMInfoFunction), TABLE_FUNCTION(ShowLoadedExtensionsFunction),
         TABLE_FUNCTION(ShowOfficialExtensionsFunction), TABLE_FUNCTION(ShowIndexesFunction),
+        TABLE_FUNCTION(ShowProjectedGraphFunction),
 
         // Standalone Table functions
         STANDALONE_TABLE_FUNCTION(LocalCacheArrayColumnFunction),

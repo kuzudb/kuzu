@@ -19,6 +19,25 @@ Alice|12
 Bob|12
 Carol|12
 Dan|12
+-STATEMENT CALL SHOW_PROJECTED_GRAPH() RETURN *;
+---- 2
+PKWO|table: person, table: organisation|table: knows, table: workAt
+PK|table: person|table: knows
+-STATEMENT CALL create_projected_graph('withFilter', {'person': {'filter': 'n.age > 35'}}, {'knows': {'filter': 'size(r.comments) > 5'}})
+---- ok
+-STATEMENT CALL SHOW_PROJECTED_GRAPH() RETURN *;
+---- 3
+PKWO|table: person, table: organisation|table: knows, table: workAt
+PK|table: person|table: knows
+withFilter|table: person predicate: n.age > 35|table: knows predicate: size(r.comments) > 5
+-STATEMENT CALL create_projected_graph('multipleTableWithFilter', {'person': {'filter': 'n.age > 35'}, 'organisation': {'filter': 'n.ID > 2'}}, {'knows': {'filter': 'size(r.comments) > 5'}})
+---- ok
+-STATEMENT CALL SHOW_PROJECTED_GRAPH() RETURN *;
+---- 4
+PKWO|table: person, table: organisation|table: knows, table: workAt
+PK|table: person|table: knows
+withFilter|table: person predicate: n.age > 35|table: knows predicate: size(r.comments) > 5
+multipleTableWithFilter|table: person predicate: n.age > 35, table: organisation predicate: n.ID > 2|table: knows predicate: size(r.comments) > 5
 -STATEMENT CALL drop_projected_graph('dummy')
 ---- error
 Runtime exception: Project graph dummy does not exists.

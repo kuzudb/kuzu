@@ -20,6 +20,8 @@ struct GraphEntryTableInfo {
 
     GraphEntryTableInfo(std::string tableName, std::string predicate)
         : tableName{std::move(tableName)}, predicate{std::move(predicate)} {}
+
+    std::string toString() const;
 };
 
 struct ParsedGraphEntry {
@@ -77,6 +79,16 @@ public:
         nameToEntry.insert({name, entry});
     }
     void dropGraph(const std::string& name) { nameToEntry.erase(name); }
+
+    using iterator = std::unordered_map<std::string, ParsedGraphEntry>::iterator;
+    using const_iterator = std::unordered_map<std::string, ParsedGraphEntry>::const_iterator;
+
+    iterator begin() { return nameToEntry.begin(); }
+    iterator end() { return nameToEntry.end(); }
+    const_iterator begin() const { return nameToEntry.begin(); }
+    const_iterator end() const { return nameToEntry.end(); }
+    const_iterator cbegin() const { return nameToEntry.cbegin(); }
+    const_iterator cend() const { return nameToEntry.cend(); }
 
 private:
     std::unordered_map<std::string, ParsedGraphEntry> nameToEntry;
