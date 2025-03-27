@@ -1,0 +1,12 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE GetEmbedding
+-STATEMENT RETURN get_embedding("University of Waterloo");
+---- 1
+
+-STATEMENT MATCH (a:person) RETURN get_embedding(a.ID);
+---- 1
+-STATEMENT MATCH (a:person) RETURN get_embedding(a.fName);
+---- 1
