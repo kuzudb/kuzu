@@ -15,7 +15,8 @@ using namespace extension;
 
 static void initFTSEntries(const transaction::Transaction* transaction, catalog::Catalog& catalog) {
     for (auto& indexEntry : catalog.getIndexEntries(transaction)) {
-        if (indexEntry->getIndexType() == FTSIndexCatalogEntry::TYPE_NAME) {
+        if (indexEntry->getIndexType() == FTSIndexCatalogEntry::TYPE_NAME &&
+            !indexEntry->isLoaded()) {
             indexEntry->setAuxInfo(FTSIndexAuxInfo::deserialize(indexEntry->getAuxBufferReader()));
         }
     }
