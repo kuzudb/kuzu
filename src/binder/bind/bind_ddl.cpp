@@ -401,7 +401,7 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     auto defaultExpr =
         resolvePropertyDefault(extraInfo->defaultValue.get(), type, tableName, propertyName);
     auto boundDefault = expressionBinder.bindExpression(*defaultExpr);
-    boundDefault = expressionBinder.implicitCast(boundDefault, type);
+    boundDefault = expressionBinder.implicitCastIfNecessary(boundDefault, type);
     if (ConstantExpressionVisitor::needFold(*boundDefault)) {
         boundDefault = expressionBinder.foldExpression(boundDefault);
     }
