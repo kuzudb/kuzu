@@ -291,17 +291,14 @@ twelve
 ---- ok
 -STATEMENT CREATE (b:Documents {title: 'title4', text: 'test drive', quantity: 6});
 ---- ok
-
 -STATEMENT CALL CREATE_FTS_INDEX('Documents', 'documents_index', ['text'], stemmer := 'english');
 ---- ok
-
 -STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'test-case', conjunctive := true) RETURN node.title;
 ---- 4
 title1
 title1
 title2
 title3
-
 -STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'test-case', conjunctive := true) RETURN node.quantity;
 ---- 4
 1
@@ -321,3 +318,36 @@ Extension: fts has been installed from repo: http://localhost/extension/repo/.
 ---- 2
 The Quantum World
 Learning Machines
+
+-CASE DropTableWithIndex
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension';
+---- ok
+-STATEMENT CREATE NODE TABLE Documents (ID SERIAL, title STRING, text STRING, quantity INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT CREATE (b:Documents {title: 'title1', text: 'test.case', quantity: 1});
+---- ok
+-STATEMENT CREATE (b:Documents {title: 'title1', text: 'test.case', quantity: 2});
+---- ok
+-STATEMENT CREATE (b:Documents {title: 'title2', text: 'test-drive', quantity: 3});
+---- ok
+-STATEMENT CREATE (b:Documents {title: 'title2', text: 'test case', quantity: 4});
+---- ok
+-STATEMENT CREATE (b:Documents {title: 'title3', text: 'test.case', quantity: 5});
+---- ok
+-STATEMENT CREATE (b:Documents {title: 'title4', text: 'test drive', quantity: 6});
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('Documents', 'documents_index', ['text'], stemmer := 'english');
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Documents', 'documents_index', 'test-case', conjunctive := true) RETURN node.title;
+---- 4
+title1
+title1
+title2
+title3
+-STATEMENT DROP TABLE Documents;
+---- error
+Binder exception: Cannot delete node table Documents because it is referenced by index documents_index.
+-STATEMENT CALL DROP_FTS_INDEX('Documents', 'documents_index');
+---- ok
+-STATEMENT DROP TABLE Documents;
+---- ok

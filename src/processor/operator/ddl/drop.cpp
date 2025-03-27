@@ -6,6 +6,7 @@
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "processor/execution_context.h"
+#include <catalog/catalog_entry/index_catalog_entry.h>
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -73,6 +74,13 @@ void Drop::dropTable(const main::ClientContext* context) {
     auto entry = catalog->getTableCatalogEntry(transaction, dropInfo.name);
     switch (entry->getType()) {
     case CatalogEntryType::NODE_TABLE_ENTRY: {
+        for (auto& indexEntry : catalog->getIndexEntries(transaction)) {
+            if (indexEntry->getTableID() == entry->getTableID()) {
+                throw BinderException(stringFormat(
+                    "Cannot delete node table {} because it is referenced by index {}.",
+                    entry->getName(), indexEntry->getIndexName()));
+            }
+        }
         for (auto& relEntry : catalog->getRelTableEntries(transaction)) {
             if (relEntry->isParent(entry->getTableID())) {
                 throw BinderException(stringFormat("Cannot delete node table {} because it is "
