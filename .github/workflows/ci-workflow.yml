@@ -274,6 +274,7 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     needs: [ sanity-checks, python-lint-check, generate-binary-datasets ]
     env:
+      NUM_THREADS: 32
       TEST_JOBS: 16
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
