@@ -242,7 +242,8 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Algorithm functions
         TABLE_FUNCTION(WeaklyConnectedComponentsFunction), TABLE_FUNCTION(SCCKosarajuFunction),
-        TABLE_FUNCTION(SCCFunction), TABLE_FUNCTION(KCoreDecompositionFunction),
+        TABLE_FUNCTION(SCCFunction), TABLE_FUNCTION(LouvainFunction),
+        TABLE_FUNCTION(KCoreDecompositionFunction),
         TABLE_FUNCTION(PageRankFunction),
 
         // Export functions
