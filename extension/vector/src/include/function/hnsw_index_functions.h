@@ -148,7 +148,7 @@ struct DropVectorIndexFunction final {
 struct QueryVectorIndexFunction final {
     static constexpr const char* name = "QUERY_VECTOR_INDEX";
 
-    static constexpr const char* nnColumnName = "nn";
+    static constexpr const char* nnColumnName = "node";
     static constexpr const char* distanceColumnName = "distance";
 
     static function::function_set getFunctionSet();
