@@ -32,7 +32,7 @@ class Column;
 class NullChunkData;
 class ColumnStats;
 class BlockManager;
-class BlockEntry;
+struct BlockEntry;
 
 // TODO(bmwinger): Hide access to variables.
 struct ChunkState {
@@ -234,6 +234,8 @@ public:
     MergedColumnChunkStats getMergedColumnChunkStats() const;
 
     void updateStats(const common::ValueVector* vector, const common::SelectionView& selVector);
+
+    void reclaimAllocatedPages(BlockManager& blockManager);
 
 protected:
     // Initializes the data buffer and functions. They are (and should be) only called in
