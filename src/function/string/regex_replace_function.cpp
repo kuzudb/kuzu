@@ -110,10 +110,9 @@ std::unique_ptr<FunctionBindData> bindFunc(ScalarBindFuncInput input) {
         definition->execFunc = getExecFunc<RegexpReplaceStaticPattern>(input.arguments);
         auto value = evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(
             input.arguments[1], input.context);
-        auto staticPattern = value.getValue<std::string>();
         return std::make_unique<RegexReplaceBindDataStaticPattern>(
             binder::ExpressionUtil::getDataTypes(input.arguments), std::move(replaceFunc),
-            BaseRegexpOperation::parseCypherPattern(staticPattern));
+            BaseRegexpOperation::parseCypherPattern(value.getValue<std::string>()));
     } else {
         definition->execFunc = getExecFunc<RegexpReplace>(input.arguments);
         return std::make_unique<RegexReplaceBindData>(
