@@ -1,4 +1,4 @@
--DATASET parquet mnist
+-DATASET PARQUET mnist
 -BUFFER_POOL_SIZE 1342177280
 --
 
