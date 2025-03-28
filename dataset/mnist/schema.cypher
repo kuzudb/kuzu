@@ -1,0 +1,1 @@
+CREATE NODE TABLE tbl (id int64 PRIMARY KEY, vec FLOAT[784]);
