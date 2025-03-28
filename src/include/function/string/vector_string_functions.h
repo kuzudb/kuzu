@@ -187,22 +187,8 @@ struct RegexpMatchesFunction : public VectorStringFunction {
 struct RegexpReplaceFunction : public VectorStringFunction {
     static constexpr const char* name = "REGEXP_REPLACE";
     static constexpr const char* GLOBAL_REPLACE_OPTION = "g";
-    enum class RegexReplaceOption : uint8_t { GLOBAL = 0, FIRST_OCCUR = 1 };
 
     static function_set getFunctionSet();
-};
-
-struct RegexReplaceBindData : public FunctionBindData {
-    RegexpReplaceFunction::RegexReplaceOption option;
-
-    RegexReplaceBindData(std::vector<common::LogicalType> paramTypes,
-        common::LogicalType resultType, RegexpReplaceFunction::RegexReplaceOption option)
-        : FunctionBindData{std::move(paramTypes), std::move(resultType)}, option{option} {}
-
-    std::unique_ptr<FunctionBindData> copy() const override {
-        return std::make_unique<RegexReplaceBindData>(copyVector(paramTypes), resultType.copy(),
-            option);
-    }
 };
 
 struct RegexpExtractFunction : public VectorStringFunction {
