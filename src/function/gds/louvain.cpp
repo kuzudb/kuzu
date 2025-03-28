@@ -357,7 +357,7 @@ public:
                                           2 * degree * (ay - ax) * constantForSecondTerm;
                                 printf(" ay eiy currGain = %lf %lf %lf\n", ay, eiy, curGain);
                                 if (curGain > maxGain || (curGain == maxGain && curGain != 0 &&
-                                (nbrCommId < maxIndex))) {
+                                                             (nbrCommId < maxIndex))) {
                                     printf("  maxGain: %lf -> %lf\n", maxGain, curGain);
                                     printf("  maxIndex: %lu -> %lu\n", maxIndex, nbrCommId);
                                     maxGain = curGain;
@@ -365,7 +365,8 @@ public:
                                 }
                             }
                         }
-                        if(state.commInfos[maxIndex].size == 1 && state.commInfos[sc].size ==1 && maxIndex > sc) { //Swap protection
+                        if (state.commInfos[maxIndex].size == 1 && state.commInfos[sc].size == 1 &&
+                            maxIndex > sc) { // Swap protection
                             printf("  maxIndex: %lu -> %lu\n", maxIndex, sc);
                             maxIndex = sc;
                         }
@@ -425,7 +426,7 @@ public:
             sumTotal += state.commInfos[nodeId].degree * state.commInfos[nodeId].degree;
         }
         auto newMod = sumIntra * constantForSecondTerm -
-               (sumTotal * constantForSecondTerm * constantForSecondTerm);
+                      (sumTotal * constantForSecondTerm * constantForSecondTerm);
         printf("%lu \t %g \t %g \t %lf\n", iter, sumIntra, sumTotal, newMod);
         return newMod;
     }
