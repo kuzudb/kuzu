@@ -271,19 +271,13 @@ jobs:
 
   code-coverage:
     name: code coverage
-    runs-on: ubuntu-24.04
-    container:
-      image: debian:bookworm-slim
+    runs-on: kuzu-self-hosted-testing
     needs: [ sanity-checks, python-lint-check, generate-binary-datasets ]
     env:
-      TEST_JOBS: 10
+      NUM_THREADS: 32
+      TEST_JOBS: 16
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
-      - name: Install dependencies
-        run: |
-          apt-get update
-          apt-get install -y lcov build-essential cmake curl git lcov ninja-build nodejs openjdk-17-jdk python-is-python3 python3-dev python3-pip python3-venv unzip wget
-
       - uses: actions/checkout@v4
 
       - name: Download binary-demo
@@ -293,12 +287,14 @@ jobs:
           path: dataset/binary-demo
 
       - name: Test with coverage
-        run: make lcov NUM_THREADS=$(nproc)
+        run: |
+          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
+          make lcov
 
       - name: Test with coverage in mem
         env:
           IN_MEM_MODE: true
-        run: make lcov NUM_THREADS=$(nproc)
+        run: make lcov
 
       - name: Generate coverage report
         run: |
