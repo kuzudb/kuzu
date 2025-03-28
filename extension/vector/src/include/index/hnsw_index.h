@@ -4,6 +4,7 @@
 
 #include "common/random_engine.h"
 #include "graph/on_disk_graph.h"
+#include "index/hnsw_config.h"
 #include "index/hnsw_graph.h"
 
 namespace kuzu {
