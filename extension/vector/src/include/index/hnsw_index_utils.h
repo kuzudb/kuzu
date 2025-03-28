@@ -34,11 +34,13 @@ struct HNSWIndexUtils {
     static void validateColumnType(const catalog::TableCatalogEntry& tableEntry,
         const std::string& columnName);
 
-    static std::string getUpperGraphTableName(const std::string& indexName) {
-        return "_" + indexName + "_UPPER";
+    static std::string getUpperGraphTableName(common::table_id_t tableID,
+        const std::string& indexName) {
+        return "_" + std::to_string(tableID) + "_" + indexName + "_UPPER";
     }
-    static std::string getLowerGraphTableName(const std::string& indexName) {
-        return "_" + indexName + "_LOWER";
+    static std::string getLowerGraphTableName(common::table_id_t tableID,
+        const std::string& indexName) {
+        return "_" + std::to_string(tableID) + "_" + indexName + "_LOWER";
     }
 
     template<typename T>

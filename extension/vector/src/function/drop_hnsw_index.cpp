@@ -47,12 +47,13 @@ static std::string dropHNSWIndexTables(main::ClientContext& context,
     if (requireNewTransaction) {
         query += "BEGIN TRANSACTION;";
     }
+    auto nodeTableID = dropHNSWIndexBindData->tableEntry->getTableID();
     query += common::stringFormat("CALL _DROP_HNSW_INDEX('{}', '{}');",
         dropHNSWIndexBindData->tableEntry->getName(), dropHNSWIndexBindData->indexName);
     query += common::stringFormat("DROP TABLE {};",
-        HNSWIndexUtils::getUpperGraphTableName(dropHNSWIndexBindData->indexName));
+        HNSWIndexUtils::getUpperGraphTableName(nodeTableID, dropHNSWIndexBindData->indexName));
     query += common::stringFormat("DROP TABLE {};",
-        HNSWIndexUtils::getLowerGraphTableName(dropHNSWIndexBindData->indexName));
+        HNSWIndexUtils::getLowerGraphTableName(nodeTableID, dropHNSWIndexBindData->indexName));
     if (requireNewTransaction) {
         query += "COMMIT;";
     }
