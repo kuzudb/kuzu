@@ -10,7 +10,6 @@
 #include "function/string/functions/regexp_extract_all_function.h"
 #include "function/string/functions/regexp_extract_function.h"
 #include "function/string/functions/regexp_matches_function.h"
-#include "function/string/functions/regexp_replace_function.h"
 #include "function/string/functions/regexp_split_to_array_function.h"
 #include "function/string/functions/repeat_function.h"
 #include "function/string/functions/right_function.h"
