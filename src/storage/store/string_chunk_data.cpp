@@ -250,10 +250,10 @@ void StringChunkData::finalize() {
     dictionaryChunk = std::move(newDictionaryChunk);
 }
 
-void StringChunkData::flush(FileHandle& dataFH) {
-    ColumnChunkData::flush(dataFH);
-    indexColumnChunk->flush(dataFH);
-    dictionaryChunk->flush(dataFH);
+void StringChunkData::flush(BlockManager& blockManager) {
+    ColumnChunkData::flush(blockManager);
+    indexColumnChunk->flush(blockManager);
+    dictionaryChunk->flush(blockManager);
 }
 
 uint64_t StringChunkData::getEstimatedMemoryUsage() const {

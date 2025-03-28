@@ -14,6 +14,7 @@ class MemoryManager;
 class ColumnReadWriter;
 struct ColumnChunkMetadata;
 struct ChunkState;
+class BlockManager;
 
 // In memory representation of ALP exception chunk
 // NOTE: read and write operations on this chunk cannot both be performed on this
@@ -23,7 +24,7 @@ template<std::floating_point T>
 class KUZU_API InMemoryExceptionChunk {
 public:
     InMemoryExceptionChunk(transaction::Transaction* transaction, const ChunkState& state,
-        FileHandle* dataFH, MemoryManager* memoryManager, ShadowFile* shadowFile);
+        BlockManager& blockManager, MemoryManager* memoryManager);
     ~InMemoryExceptionChunk();
 
     void finalizeAndFlushToDisk(ChunkState& state);

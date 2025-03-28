@@ -226,12 +226,12 @@ NodeTable::NodeTable(const StorageManager* storageManager,
         const auto columnName =
             StorageUtils::getColumnName(property.getName(), StorageUtils::ColumnType::DEFAULT, "");
         columns[columnID] = ColumnFactory::createColumn(columnName, property.getType().copy(),
-            dataFH, memoryManager, shadowFile, enableCompression);
+            blockManager, memoryManager, enableCompression);
     }
 
     nodeGroups = std::make_unique<NodeGroupCollection>(*memoryManager,
         LocalNodeTable::getNodeTableColumnTypes(*nodeTableEntry), enableCompression,
-        storageManager->getDataFH(), deSer, &versionRecordHandler);
+        &storageManager->getBlockManager(), deSer, &versionRecordHandler);
     initializePKIndex(storageManager->getDatabasePath(), nodeTableEntry,
         storageManager->isReadOnly(), vfs, context);
 }
@@ -465,7 +465,7 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
 void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
     auto& definition = addColumnState.propertyDefinition;
     columns.push_back(ColumnFactory::createColumn(definition.getName(), definition.getType().copy(),
-        dataFH, memoryManager, shadowFile, enableCompression));
+        blockManager, memoryManager, enableCompression));
     LocalTable* localTable = nullptr;
     if (transaction->getLocalStorage()) {
         localTable = transaction->getLocalStorage()->getLocalTable(tableID,
@@ -568,7 +568,7 @@ void NodeTable::checkpoint(Serializer& ser, TableCatalogEntry* tableEntry) {
             checkpointColumnPtrs.push_back(column.get());
         }
 
-        NodeGroupCheckpointState state{columnIDs, std::move(checkpointColumnPtrs), *dataFH,
+        NodeGroupCheckpointState state{columnIDs, std::move(checkpointColumnPtrs), blockManager,
             memoryManager};
         nodeGroups->checkpoint(*memoryManager, state);
         pkIndex->checkpoint();

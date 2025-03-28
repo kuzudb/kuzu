@@ -130,8 +130,8 @@ RelTable::RelTable(RelTableCatalogEntry* relTableEntry, const StorageManager* st
       fromNodeTableID{relTableEntry->getSrcTableID()},
       toNodeTableID{relTableEntry->getDstTableID()}, nextRelOffset{0} {
     for (auto direction : relTableEntry->getRelDataDirections()) {
-        directedRelData.emplace_back(std::make_unique<RelTableData>(dataFH, memoryManager,
-            shadowFile, relTableEntry, direction, enableCompression, deSer));
+        directedRelData.emplace_back(std::make_unique<RelTableData>(blockManager, memoryManager,
+            relTableEntry, direction, enableCompression, deSer));
     }
 }
 

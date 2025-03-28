@@ -13,12 +13,12 @@
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "expression_evaluator/expression_evaluator.h"
+#include "storage/block_manager.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/buffer_manager/spiller.h"
 #include "storage/compression/compression.h"
 #include "storage/compression/float_compression.h"
-#include "storage/file_handle.h"
 #include "storage/stats/column_stats.h"
 #include "storage/store/column.h"
 #include "storage/store/column_chunk_metadata.h"
@@ -290,13 +290,13 @@ void ColumnChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
     updateInMemoryStats(inMemoryStats, other, startPosInOtherChunk, numValuesToAppend);
 }
 
-void ColumnChunkData::flush(FileHandle& dataFH) {
+void ColumnChunkData::flush(BlockManager& blockManager) {
     const auto preScanMetadata = getMetadataToFlush();
-    const auto startPageIdx = dataFH.addNewPages(preScanMetadata.numPages);
-    const auto flushedMetadata = flushBuffer(&dataFH, startPageIdx, preScanMetadata);
+    auto allocatedBlock = blockManager.allocateBlock(preScanMetadata.numPages);
+    const auto flushedMetadata = flushBuffer(allocatedBlock, preScanMetadata);
     setToOnDisk(flushedMetadata);
     if (nullData) {
-        nullData->flush(dataFH);
+        nullData->flush(blockManager);
     }
 }
 
@@ -311,11 +311,11 @@ void ColumnChunkData::setToOnDisk(const ColumnChunkMetadata& otherMetadata) {
     resetInMemoryStats();
 }
 
-ColumnChunkMetadata ColumnChunkData::flushBuffer(FileHandle* dataFH, page_idx_t startPageIdx,
+ColumnChunkMetadata ColumnChunkData::flushBuffer(BlockEntry& allocatedBlock,
     const ColumnChunkMetadata& otherMetadata) const {
     if (!otherMetadata.compMeta.isConstant() && getBufferSize() != 0) {
         KU_ASSERT(getBufferSize() == getBufferSize(capacity));
-        return flushBufferFunction(buffer->getBuffer(), dataFH, startPageIdx, otherMetadata);
+        return flushBufferFunction(buffer->getBuffer(), allocatedBlock, otherMetadata);
     }
     return otherMetadata;
 }

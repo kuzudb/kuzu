@@ -5,6 +5,7 @@
 #include "common/file_system/virtual_file_system.h"
 #include "main/client_context.h"
 #include "main/database.h"
+#include "storage/block_manager.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/store/node_table.h"
@@ -30,6 +31,7 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
     dataFH = initFileHandle(StorageUtils::getDataFName(vfs, databasePath), vfs, context);
     metadataFH = initFileHandle(
         StorageUtils::getMetadataFName(vfs, databasePath, FileVersionType::ORIGINAL), vfs, context);
+    blockManager = std::make_unique<BlockManager>(dataFH, shadowFile.get());
     loadTables(catalog, vfs, context);
 }
 

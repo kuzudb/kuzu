@@ -365,7 +365,7 @@ bool ChunkedNodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxI
 }
 
 void ChunkedNodeGroup::addColumn(const Transaction* transaction,
-    const TableAddColumnState& addColumnState, bool enableCompression, FileHandle* dataFH,
+    const TableAddColumnState& addColumnState, bool enableCompression, BlockManager* blockManager,
     ColumnStats* newColumnStats) {
     auto& dataType = addColumnState.propertyDefinition.getType();
     chunks.push_back(
@@ -376,8 +376,8 @@ void ChunkedNodeGroup::addColumn(const Transaction* transaction,
     chunkData.populateWithDefaultVal(addColumnState.defaultEvaluator, numExistingRows,
         newColumnStats);
     if (residencyState == ResidencyState::ON_DISK) {
-        KU_ASSERT(dataFH);
-        chunkData.flush(*dataFH);
+        KU_ASSERT(blockManager);
+        chunkData.flush(*blockManager);
     }
 }
 
@@ -415,11 +415,11 @@ void ChunkedNodeGroup::finalize() const {
 }
 
 std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flushAsNewChunkedNodeGroup(
-    Transaction* transaction, FileHandle& dataFH) const {
+    Transaction* transaction, BlockManager& blockManager) const {
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
     for (auto i = 0u; i < getNumColumns(); i++) {
         flushedChunks[i] = std::make_unique<ColumnChunk>(getColumnChunk(i).isCompressionEnabled(),
-            Column::flushChunkData(getColumnChunk(i).getData(), dataFH));
+            Column::flushChunkData(getColumnChunk(i).getData(), blockManager));
     }
     auto flushedChunkedGroup =
         std::make_unique<ChunkedNodeGroup>(std::move(flushedChunks), 0 /*startRowIdx*/);
@@ -429,9 +429,9 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flushAsNewChunkedNodeGroup(
     return flushedChunkedGroup;
 }
 
-void ChunkedNodeGroup::flush(FileHandle& dataFH) {
+void ChunkedNodeGroup::flush(BlockManager& blockManager) {
     for (auto i = 0u; i < getNumColumns(); i++) {
-        getColumnChunk(i).getData().flush(dataFH);
+        getColumnChunk(i).getData().flush(blockManager);
     }
     // Reset residencyState and numRows after flushing.
     residencyState = ResidencyState::ON_DISK;

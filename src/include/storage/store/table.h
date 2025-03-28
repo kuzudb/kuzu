@@ -155,7 +155,7 @@ public:
     common::TableType getTableType() const { return tableType; }
     common::table_id_t getTableID() const { return tableID; }
     std::string getTableName() const { return tableName; }
-    FileHandle* getDataFH() const { return dataFH; }
+    BlockManager& getBlockManager() const { return blockManager; }
 
     // Note that `resetCachedBoundNodeIDs` is only applicable to RelTable for now.
     virtual void initScanState(transaction::Transaction* transaction, TableScanState& readState,
@@ -207,7 +207,7 @@ protected:
     common::table_id_t tableID;
     std::string tableName;
     bool enableCompression;
-    FileHandle* dataFH;
+    BlockManager& blockManager;
     MemoryManager* memoryManager;
     ShadowFile* shadowFile;
     bool hasChanges;

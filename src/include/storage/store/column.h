@@ -23,7 +23,6 @@ class NullColumn;
 class StructColumn;
 class RelTableData;
 struct ColumnCheckpointState;
-class ShadowFile;
 class BufferManager;
 class Column {
     friend class StringColumn;
@@ -34,20 +33,20 @@ class Column {
 public:
     // TODO(Guodong): Remove transaction from interface of Column. There is no need to be aware
     // of transaction when reading/writing from/to disk pages.
-    Column(std::string name, common::LogicalType dataType, FileHandle* dataFH, MemoryManager* mm,
-        ShadowFile* shadowFile, bool enableCompression, bool requireNullColumn = true);
-    Column(std::string name, common::PhysicalTypeID physicalType, FileHandle* dataFH,
-        MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression,
-        bool requireNullColumn = true);
+    Column(std::string name, common::LogicalType dataType, BlockManager& blockManager,
+        MemoryManager* mm, bool enableCompression, bool requireNullColumn = true);
+    Column(std::string name, common::PhysicalTypeID physicalType, BlockManager& blockManager,
+        MemoryManager* mm, bool enableCompression, bool requireNullColumn = true);
     virtual ~Column();
 
     void populateExtraChunkState(ChunkState& state) const;
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
-        FileHandle& dataFH);
+        BlockManager& blockManager);
     static std::unique_ptr<ColumnChunkData> flushNonNestedChunkData(
-        const ColumnChunkData& chunkData, FileHandle& dataFH);
-    static ColumnChunkMetadata flushData(const ColumnChunkData& chunkData, FileHandle& dataFH);
+        const ColumnChunkData& chunkData, BlockManager& blockManager);
+    static ColumnChunkMetadata flushData(const ColumnChunkData& chunkData,
+        BlockManager& blockManager);
 
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
@@ -103,8 +102,8 @@ protected:
         const ChunkState& state, common::offset_t nodeOffset, common::ValueVector* resultVector,
         uint32_t posInVector) const;
 
-    void writeValues(ChunkState& state, common::offset_t dstOffset, const uint8_t* data,
-        const common::NullMask* nullChunkData, common::offset_t srcOffset = 0,
+    common::page_idx_t writeValues(ChunkState& state, common::offset_t dstOffset,
+        const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t srcOffset = 0,
         common::offset_t numValues = 1);
 
     // Produces a page cursor for the offset relative to the given node group
@@ -139,9 +138,8 @@ protected:
     std::string name;
     DBFileID dbFileID;
     common::LogicalType dataType;
-    FileHandle* dataFH;
+    BlockManager& blockManager;
     MemoryManager* mm;
-    ShadowFile* shadowFile;
     std::unique_ptr<NullColumn> nullColumn;
     read_values_to_vector_func_t readToVectorFunc;
     write_values_func_t writeFunc;
@@ -153,8 +151,8 @@ protected:
 
 class InternalIDColumn final : public Column {
 public:
-    InternalIDColumn(std::string name, FileHandle* dataFH, MemoryManager* mm,
-        ShadowFile* shadowFile, bool enableCompression);
+    InternalIDColumn(std::string name, BlockManager& blockManager, MemoryManager* mm,
+        bool enableCompression);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
@@ -191,10 +189,10 @@ private:
 
 struct ColumnFactory {
     static std::unique_ptr<Column> createColumn(std::string name, common::LogicalType dataType,
-        FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression);
+        BlockManager& blockManager, MemoryManager* mm, bool enableCompression);
     static std::unique_ptr<Column> createColumn(std::string name,
-        common::PhysicalTypeID physicalType, FileHandle* dataFH, MemoryManager* mm,
-        ShadowFile* shadowFile, bool enableCompression);
+        common::PhysicalTypeID physicalType, BlockManager& blockManager, MemoryManager* mm,
+        bool enableCompression);
 };
 
 } // namespace storage
