@@ -25,8 +25,8 @@ namespace vector_extension {
 CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : SimpleTableFuncSharedState{bindData.numRows}, name{bindData.indexName},
       nodeTable{bindData.context->getStorageManager()
-              ->getTable(bindData.tableEntry->getTableID())
-              ->cast<storage::NodeTable>()},
+                    ->getTable(bindData.tableEntry->getTableID())
+                    ->cast<storage::NodeTable>()},
       numNodes{bindData.numRows}, bindData{&bindData} {
     hnswIndex = std::make_shared<InMemHNSWIndex>(bindData.context, nodeTable,
         bindData.tableEntry->getColumnID(bindData.propertyID), bindData.config.copy());
