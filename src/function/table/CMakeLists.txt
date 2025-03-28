@@ -16,10 +16,10 @@ add_library(kuzu_table_function
         show_indexes.cpp
         show_loaded_extensions.cpp
         show_official_extensions.cpp
+        show_projected_graphs.cpp
         show_sequences.cpp
         show_tables.cpp
         show_warnings.cpp
-        show_projected_graph.cpp
         stats_info.cpp
         storage_info.cpp
         simple_table_function.cpp

@@ -146,8 +146,8 @@ struct ShowIndexesFunction final {
     static function_set getFunctionSet();
 };
 
-struct ShowProjectedGraphFunction final {
-    static constexpr const char* name = "SHOW_PROJECTED_GRAPH";
+struct ShowProjectedGraphsFunction final {
+    static constexpr const char* name = "SHOW_PROJECTED_GRAPHS";
 
     static function_set getFunctionSet();
 };

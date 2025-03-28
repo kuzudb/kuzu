@@ -84,7 +84,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
         std::move(columns));
 }
 
-function_set ShowProjectedGraphFunction::getFunctionSet() {
+function_set ShowProjectedGraphsFunction::getFunctionSet() {
     function_set functionSet;
     auto function = std::make_unique<TableFunction>(name, std::vector<LogicalTypeID>{});
     function->tableFunc = SimpleTableFunc::getTableFunc(internalTableFunc);
