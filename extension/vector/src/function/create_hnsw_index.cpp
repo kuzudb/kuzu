@@ -141,12 +141,15 @@ static std::unique_ptr<processor::PhysicalOperator> getPhysicalPlan(
     const auto storageManager = clientContext->getStorageManager();
     auto nodeTable = storageManager->getTable(logicalCallBoundData->tableEntry->getTableID())
                          ->ptrCast<storage::NodeTable>();
-    auto upperRelTableEntry = clientContext->getCatalog()->getTableCatalogEntry(
-        clientContext->getTransaction(), HNSWIndexUtils::getUpperGraphTableName(indexName));
+    auto nodeTableID = nodeTable->getTableID();
+    auto upperRelTableEntry =
+        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(),
+            HNSWIndexUtils::getUpperGraphTableName(nodeTableID, indexName));
     auto upperRelTable =
         storageManager->getTable(upperRelTableEntry->getTableID())->ptrCast<storage::RelTable>();
-    auto lowerRelTableEntry = clientContext->getCatalog()->getTableCatalogEntry(
-        clientContext->getTransaction(), HNSWIndexUtils::getLowerGraphTableName(indexName));
+    auto lowerRelTableEntry =
+        clientContext->getCatalog()->getTableCatalogEntry(clientContext->getTransaction(),
+            HNSWIndexUtils::getLowerGraphTableName(nodeTableID, indexName));
     auto lowerRelTable =
         storageManager->getTable(lowerRelTableEntry->getTableID())->ptrCast<storage::RelTable>();
     // Initialize partitioner shared state.
@@ -244,10 +247,11 @@ static void finalizeHNSWTableFinalizeFunc(const processor::ExecutionContext* con
     const auto index = hnswSharedState->hnswIndex.get();
     const auto bindData = hnswSharedState->bindData->constPtrCast<CreateHNSWIndexBindData>();
     const auto catalog = clientContext->getCatalog();
+    auto nodeTableID = bindData->tableEntry->getTableID();
     const auto upperTable = catalog->getTableCatalogEntry(transaction,
-        HNSWIndexUtils::getUpperGraphTableName(bindData->indexName));
+        HNSWIndexUtils::getUpperGraphTableName(nodeTableID, bindData->indexName));
     const auto lowerTable = catalog->getTableCatalogEntry(transaction,
-        HNSWIndexUtils::getLowerGraphTableName(bindData->indexName));
+        HNSWIndexUtils::getLowerGraphTableName(nodeTableID, bindData->indexName));
     auto auxInfo =
         std::make_unique<HNSWIndexAuxInfo>(upperTable->getTableID(), lowerTable->getTableID(),
             index->getUpperEntryPoint(), index->getLowerEntryPoint(), bindData->config.copy());
@@ -297,10 +301,11 @@ static std::string rewriteCreateHNSWQuery(main::ClientContext& context,
     std::string query = "BEGIN TRANSACTION;";
     auto indexName = hnswBindData->indexName;
     auto tableName = hnswBindData->tableEntry->getName();
+    auto tableID = hnswBindData->tableEntry->getTableID();
     query += stringFormat("CREATE REL TABLE {} (FROM {} TO {});",
-        HNSWIndexUtils::getUpperGraphTableName(indexName), tableName, tableName);
+        HNSWIndexUtils::getUpperGraphTableName(tableID, indexName), tableName, tableName);
     query += stringFormat("CREATE REL TABLE {} (FROM {} TO {});",
-        HNSWIndexUtils::getLowerGraphTableName(indexName), tableName, tableName);
+        HNSWIndexUtils::getLowerGraphTableName(tableID, indexName), tableName, tableName);
     std::string params;
     auto& config = hnswBindData->config;
     params += stringFormat("mu := {}, ", config.mu);
