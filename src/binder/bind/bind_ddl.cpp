@@ -57,6 +57,10 @@ std::vector<PropertyDefinition> Binder::bindPropertyDefinitions(
         auto type = LogicalType::convertFromString(def.getType(), clientContext);
         auto defaultExpr =
             resolvePropertyDefault(def.defaultExpr.get(), type, tableName, def.getName());
+        auto boundExpr = expressionBinder.bindExpression(*defaultExpr);
+        if (boundExpr->dataType != type) {
+            expressionBinder.implicitCast(boundExpr, type);
+        }
         auto columnDefinition = ColumnDefinition(def.getName(), std::move(type));
         definitions.emplace_back(std::move(columnDefinition), std::move(defaultExpr));
     }

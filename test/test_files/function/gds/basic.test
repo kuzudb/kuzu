@@ -38,6 +38,15 @@ PKWO|{{'table': 'person'},{'table': 'organisation'}}|{{'table': 'knows'},{'table
 PK|{{'table': 'person'}}|{{'table': 'knows'}}
 multipleTableWithFilter|{{'table': 'person','predicate': 'n.age > 35'},{'table': 'organisation','predicate': 'n.ID > 2'}}|{{'table': 'knows','predicate': 'size(r.comments) > 5'}}
 withFilter|{{'table': 'person','predicate': 'n.age > 35'}}|{{'table': 'knows','predicate': 'size(r.comments) > 5'}}
+-STATEMENT CALL create_projected_graph('emptygraph', [], [])
+---- ok
+-STATEMENT CALL SHOW_PROJECTED_GRAPH() RETURN *;
+---- 5
+PKWO|{{'table': 'person'},{'table': 'organisation'}}|{{'table': 'knows'},{'table': 'workAt'}}
+PK|{{'table': 'person'}}|{{'table': 'knows'}}
+multipleTableWithFilter|{{'table': 'person','predicate': 'n.age > 35'},{'table': 'organisation','predicate': 'n.ID > 2'}}|{{'table': 'knows','predicate': 'size(r.comments) > 5'}}
+withFilter|{{'table': 'person','predicate': 'n.age > 35'}}|{{'table': 'knows','predicate': 'size(r.comments) > 5'}}
+emptygraph||
 -STATEMENT CALL drop_projected_graph('dummy')
 ---- error
 Runtime exception: Project graph dummy does not exists.

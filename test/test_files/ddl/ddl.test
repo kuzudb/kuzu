@@ -1,3 +1,4 @@
+
 -DATASET CSV tinysnb
 --
 
@@ -556,3 +557,13 @@ Table A altered.
 
 -STATEMENT CREATE NODE TABLE TEST_KEYWORD(YIELD STRING, PRIMARY KEY(YIELD))
 ---- ok
+
+-STATEMENT CREATE NODE TABLE default_val_type(val INT64 default 'wrong type', PRIMARY KEY(val))
+---- error
+Binder exception: Expression wrong type has data type STRING but expected INT64. Implicit cast is not supported.
+-STATEMENT CREATE NODE TABLE default_val_type(val INT64 default upper('abc'), PRIMARY KEY(val))
+---- error
+Binder exception: Expression UPPER(abc) has data type STRING but expected INT64. Implicit cast is not supported.
+-STATEMENT CREATE NODE TABLE default_val_type(val INT64, val1 INT64[3] default 'ABC', PRIMARY KEY(val))
+---- error
+Binder exception: Expression ABC has data type STRING but expected INT64[3]. Implicit cast is not supported.
