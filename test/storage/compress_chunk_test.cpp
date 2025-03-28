@@ -5,6 +5,7 @@
 #include "gmock/gmock-matchers.h"
 #include "graph_test/graph_test.h"
 #include "gtest/gtest.h"
+#include "storage/block_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_manager.h"
 #include "storage/store/column_chunk_data.h"
@@ -36,8 +37,8 @@ public:
     }
 
     template<std::floating_point T>
-    void commitUpdate(transaction::Transaction* transaction, ChunkState& state, FileHandle* dataFH,
-        MemoryManager* memoryManager, ShadowFile* shadowFile);
+    void commitUpdate(transaction::Transaction* transaction, ChunkState& state,
+        BlockManager& blockManager, MemoryManager* memoryManager);
 
     template<std::floating_point T>
     void testCompressChunk(const std::vector<T>& bufferToCompress, check_func_t checkFunc);
@@ -95,24 +96,24 @@ std::unique_ptr<CompressionMetadata> getFloatMetadata(const std::vector<T>& buff
 template<std::floating_point T>
 ColumnChunkMetadata compressBuffer(const std::vector<T>& bufferToCompress,
     const std::shared_ptr<FloatCompression<T>>& alg, const CompressionMetadata* metadata,
-    FileHandle* dataFH, const LogicalType& dataType) {
+    BlockManager& blockManager, const LogicalType& dataType) {
 
     auto preScanMetadata =
         GetFloatCompressionMetadata<T>{alg, dataType}.operator()(byteSpan(bufferToCompress),
             bufferToCompress.size(), bufferToCompress.size(), metadata->min, metadata->max);
-    auto startPageIdx = dataFH->addNewPages(preScanMetadata.numPages);
 
     if (preScanMetadata.compMeta.compression == CompressionType::CONSTANT) {
         return preScanMetadata;
     }
 
+    auto allocatedBlock = blockManager.allocateBlock(preScanMetadata.numPages);
     return CompressedFloatFlushBuffer<T>{alg, dataType}.operator()(byteSpan(bufferToCompress),
-        dataFH, startPageIdx, preScanMetadata);
+        allocatedBlock, preScanMetadata);
 }
 
 template<std::floating_point T>
 void CompressChunkTest::commitUpdate(transaction::Transaction* transaction, ChunkState& state,
-    FileHandle* dataFH, MemoryManager* memoryManager, ShadowFile* shadowFile) {
+    BlockManager& blockManager, MemoryManager* memoryManager) {
     if (state.metadata.compMeta.compression == storage::CompressionType::ALP) {
         state.getExceptionChunk<T>()->finalizeAndFlushToDisk(state);
     }
@@ -121,7 +122,7 @@ void CompressChunkTest::commitUpdate(transaction::Transaction* transaction, Chun
     clientContext->getTransactionManagerUnsafe()->checkpoint(*clientContext);
     if (state.metadata.compMeta.compression == storage::CompressionType::ALP) {
         state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<T>>(transaction, state,
-            dataFH, memoryManager, shadowFile);
+            blockManager, memoryManager);
     }
 }
 
@@ -130,17 +131,17 @@ void CompressChunkTest::testCompressChunk(const std::vector<T>& bufferToCompress
     check_func_t checkFunc) {
     auto* mm = getMemoryManager(*database);
     auto* storageManager = getStorageManager(*database);
-    auto* dataFH = storageManager->getDataFH();
+    auto& blockManager = storageManager->getBlockManager();
 
     const auto dataType = std::is_same_v<float, T> ? LogicalType::FLOAT() : LogicalType::DOUBLE();
     const auto alg = std::make_shared<FloatCompression<T>>();
 
     const auto preScanMetadata = getFloatMetadata(bufferToCompress, alg);
     auto chunkMetadata =
-        compressBuffer(bufferToCompress, alg, preScanMetadata.get(), dataFH, dataType);
+        compressBuffer(bufferToCompress, alg, preScanMetadata.get(), blockManager, dataType);
 
     auto columnReader = ColumnReadWriterFactory::createColumnReadWriter(dataType.getPhysicalType(),
-        DBFileID::newDataFileID(), dataFH, &storageManager->getShadowFile());
+        DBFileID::newDataFileID(), blockManager);
 
     auto* clientContext = getClientContext(*conn);
     clientContext->getTransactionContext()->beginWriteTransaction();
@@ -150,7 +151,7 @@ void CompressChunkTest::testCompressChunk(const std::vector<T>& bufferToCompress
     state.numValuesPerPage = state.metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType);
     if (chunkMetadata.compMeta.compression == CompressionType::ALP) {
         state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<T>>(
-            clientContext->getTransaction(), state, dataFH, mm, &storageManager->getShadowFile());
+            clientContext->getTransaction(), state, blockManager, mm);
     }
 
     checkFunc(columnReader.get(), clientContext->getTransaction(), state, dataType);
@@ -165,11 +166,11 @@ void CompressChunkTest::testUpdateChunk(std::vector<T>& bufferToCompress, check_
                 const LogicalType& dataType) {
                 auto* mm = getMemoryManager(*database);
                 auto* storageManager = getStorageManager(*database);
-                auto* dataFH = storageManager->getDataFH();
+                auto& blockManager = storageManager->getBlockManager();
 
                 updateFunc(reader, transaction, state, dataType);
 
-                commitUpdate<T>(transaction, state, dataFH, mm, &storageManager->getShadowFile());
+                commitUpdate<T>(transaction, state, blockManager, mm);
 
                 std::vector<T> out(bufferToCompress.size());
                 reader->readCompressedValuesToPage(transaction, state, (uint8_t*)out.data(), 0, 0,
@@ -590,7 +591,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPageNullMask
                                    const LogicalType& dataType) {
             auto* mm = getMemoryManager(*database);
             auto* storageManager = getStorageManager(*database);
-            auto* dataFH = storageManager->getDataFH();
+            auto& blockManager = storageManager->getBlockManager();
 
             static constexpr size_t numValuesToSet = 50;
             const size_t cpyOffset = 2100;
@@ -608,7 +609,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPageNullMask
             reader->writeValuesToPageFromBuffer(state, 0, (uint8_t*)src.data(), &nullMask.value(),
                 0, cpyOffset + numValuesToSet, WriteCompressedValuesToPage(dataType));
 
-            commitUpdate<double>(transaction, state, dataFH, mm, &storageManager->getShadowFile());
+            commitUpdate<double>(transaction, state, blockManager, mm);
 
             // our compression algorithms don't actually respect the null mask but we can check if
             // the non-null values match

@@ -60,7 +60,7 @@ public:
 
     void finalize() override;
 
-    void flush(FileHandle& dataFH) override;
+    void flush(BlockManager& blockManager) override;
 
     uint64_t getNumValues() const override { return nullData->getNumValues(); }
     void resetNumValuesFromMetadata() override;

@@ -3,8 +3,8 @@
 #include "alp/encode.hpp"
 #include "common/utils.h"
 #include "common/vector/value_vector.h"
+#include "storage/block_manager.h"
 #include "storage/compression/float_compression.h"
-#include "storage/file_handle.h"
 #include "storage/shadow_utils.h"
 #include "storage/storage_utils.h"
 #include "storage/store/column_chunk_data.h"
@@ -76,8 +76,8 @@ class FloatColumnReadWriter;
 
 class DefaultColumnReadWriter : public ColumnReadWriter {
 public:
-    DefaultColumnReadWriter(DBFileID dbFileID, FileHandle* dataFH, ShadowFile* shadowFile)
-        : ColumnReadWriter(dbFileID, dataFH, shadowFile) {}
+    DefaultColumnReadWriter(DBFileID dbFileID, BlockManager& blockManager)
+        : ColumnReadWriter(dbFileID, blockManager) {}
 
     void readCompressedValueToPage(const transaction::Transaction* transaction,
         const ChunkState& state, common::offset_t nodeOffset, uint8_t* result,
@@ -121,35 +121,39 @@ public:
             writeFromVectorFunc, &vectorToWriteFrom->getNullMask());
     }
 
-    void writeValuesToPageFromBuffer(ChunkState& state, common::offset_t dstOffset,
+    page_idx_t writeValuesToPageFromBuffer(ChunkState& state, common::offset_t dstOffset,
         const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t srcOffset,
         common::offset_t numValues, const write_values_func_t& writeFunc) override {
-        writeValuesToPage(state, dstOffset, data, srcOffset, numValues, writeFunc, nullChunkData);
+        return writeValuesToPage(state, dstOffset, data, srcOffset, numValues, writeFunc,
+            nullChunkData);
     }
 
     template<typename InputType, typename... AdditionalArgs>
-    void writeValuesToPage(ChunkState& state, common::offset_t dstOffset, InputType data,
+    page_idx_t writeValuesToPage(ChunkState& state, common::offset_t dstOffset, InputType data,
         common::offset_t srcOffset, common::offset_t numValues,
         const write_values_to_page_func_t<InputType, AdditionalArgs...>& writeFunc,
         const NullMask* nullMask) {
         auto numValuesWritten = 0u;
         auto cursor = getPageCursorForOffsetInGroup(dstOffset, state.metadata.pageIdx,
             state.numValuesPerPage);
+        page_idx_t numPagesAppended = 0;
         while (numValuesWritten < numValues) {
             auto numValuesToWriteInPage = std::min(numValues - numValuesWritten,
                 state.numValuesPerPage - cursor.elemPosInPage);
-            updatePageWithCursor(cursor, [&](auto frame, auto offsetInPage) {
-                if constexpr (std::is_same_v<InputType, ValueVector*>) {
-                    writeFunc(frame, offsetInPage, data, srcOffset + numValuesWritten,
-                        numValuesToWriteInPage, state.metadata.compMeta);
-                } else {
-                    writeFunc(frame, offsetInPage, data, srcOffset + numValuesWritten,
-                        numValuesToWriteInPage, state.metadata.compMeta, nullMask);
-                }
-            });
+            numPagesAppended += blockManager.updateShadowedPageWithCursor(cursor, dbFileID,
+                [&](auto frame, auto offsetInPage) {
+                    if constexpr (std::is_same_v<InputType, ValueVector*>) {
+                        writeFunc(frame, offsetInPage, data, srcOffset + numValuesWritten,
+                            numValuesToWriteInPage, state.metadata.compMeta);
+                    } else {
+                        writeFunc(frame, offsetInPage, data, srcOffset + numValuesWritten,
+                            numValuesToWriteInPage, state.metadata.compMeta, nullMask);
+                    }
+                });
             numValuesWritten += numValuesToWriteInPage;
             cursor.nextPage();
         }
+        return numPagesAppended;
     }
 
     template<typename OutputType>
@@ -205,9 +209,9 @@ public:
 template<std::floating_point T>
 class FloatColumnReadWriter : public ColumnReadWriter {
 public:
-    FloatColumnReadWriter(DBFileID dbFileID, FileHandle* dataFH, ShadowFile* shadowFile)
-        : ColumnReadWriter(dbFileID, dataFH, shadowFile),
-          defaultReader(std::make_unique<DefaultColumnReadWriter>(dbFileID, dataFH, shadowFile)) {}
+    FloatColumnReadWriter(DBFileID dbFileID, BlockManager& blockManager)
+        : ColumnReadWriter(dbFileID, blockManager),
+          defaultReader(std::make_unique<DefaultColumnReadWriter>(dbFileID, blockManager)) {}
 
     void readCompressedValueToPage(const transaction::Transaction* transaction,
         const ChunkState& state, common::offset_t nodeOffset, uint8_t* result,
@@ -256,7 +260,7 @@ public:
             writeFromVectorFunc, &vectorToWriteFrom->getNullMask());
     }
 
-    void writeValuesToPageFromBuffer(ChunkState& state, common::offset_t dstOffset,
+    page_idx_t writeValuesToPageFromBuffer(ChunkState& state, common::offset_t dstOffset,
         const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t srcOffset,
         common::offset_t numValues, const write_values_func_t& writeFunc) override {
         if (state.metadata.compMeta.compression != CompressionType::ALP) {
@@ -264,7 +268,8 @@ public:
                 srcOffset, numValues, writeFunc);
         }
 
-        writeValuesToPage(state, dstOffset, data, srcOffset, numValues, writeFunc, nullChunkData);
+        return writeValuesToPage(state, dstOffset, data, srcOffset, numValues, writeFunc,
+            nullChunkData);
     }
 
 private:
@@ -336,7 +341,7 @@ private:
     }
 
     template<typename InputType, typename... AdditionalArgs>
-    void writeValuesToPage(ChunkState& state, common::offset_t offsetInChunk, InputType data,
+    page_idx_t writeValuesToPage(ChunkState& state, common::offset_t offsetInChunk, InputType data,
         uint32_t srcOffset, size_t numValues,
         const write_values_to_page_func_t<InputType, AdditionalArgs...>& writeFunc,
         const NullMask* nullMask) {
@@ -400,8 +405,8 @@ private:
             }
         }
 
-        defaultReader->writeValuesToPage(state, offsetInChunk, writeToPageBufferHelper.getData(), 0,
-            numValues, writeFunc, nullMask);
+        return defaultReader->writeValuesToPage(state, offsetInChunk,
+            writeToPageBufferHelper.getData(), 0, numValues, writeFunc, nullMask);
     }
 
     std::unique_ptr<DefaultColumnReadWriter> defaultReader;
@@ -410,20 +415,19 @@ private:
 } // namespace
 
 std::unique_ptr<ColumnReadWriter> ColumnReadWriterFactory::createColumnReadWriter(
-    common::PhysicalTypeID dataType, DBFileID dbFileID, FileHandle* dataFH,
-    ShadowFile* shadowFile) {
+    common::PhysicalTypeID dataType, DBFileID dbFileID, BlockManager& blockManager) {
     switch (dataType) {
     case common::PhysicalTypeID::FLOAT:
-        return std::make_unique<FloatColumnReadWriter<float>>(dbFileID, dataFH, shadowFile);
+        return std::make_unique<FloatColumnReadWriter<float>>(dbFileID, blockManager);
     case common::PhysicalTypeID::DOUBLE:
-        return std::make_unique<FloatColumnReadWriter<double>>(dbFileID, dataFH, shadowFile);
+        return std::make_unique<FloatColumnReadWriter<double>>(dbFileID, blockManager);
     default:
-        return std::make_unique<DefaultColumnReadWriter>(dbFileID, dataFH, shadowFile);
+        return std::make_unique<DefaultColumnReadWriter>(dbFileID, blockManager);
     }
 }
 
-ColumnReadWriter::ColumnReadWriter(DBFileID dbFileID, FileHandle* dataFH, ShadowFile* shadowFile)
-    : dbFileID(dbFileID), dataFH(dataFH), shadowFile(shadowFile) {}
+ColumnReadWriter::ColumnReadWriter(DBFileID dbFileID, BlockManager& blockManager)
+    : dbFileID(dbFileID), blockManager(blockManager) {}
 
 void ColumnReadWriter::readFromPage(const Transaction* transaction, page_idx_t pageIdx,
     const std::function<void(uint8_t*)>& readFunc) {
@@ -432,24 +436,9 @@ void ColumnReadWriter::readFromPage(const Transaction* transaction, page_idx_t p
     if (pageIdx == INVALID_PAGE_IDX) {
         return readFunc(nullptr);
     }
-    auto [fileHandleToPin, pageIdxToPin] = ShadowUtils::getFileHandleAndPhysicalPageIdxToPin(
-        *dataFH, pageIdx, *shadowFile, transaction->getType());
+    auto [fileHandleToPin, pageIdxToPin] =
+        blockManager.getShadowedFileHandleAndPhysicalPageIdxToPin(pageIdx, transaction->getType());
     fileHandleToPin->optimisticReadPage(pageIdxToPin, readFunc);
-}
-
-void ColumnReadWriter::updatePageWithCursor(PageCursor cursor,
-    const std::function<void(uint8_t*, common::offset_t)>& writeOp) const {
-    bool insertingNewPage = false;
-    if (cursor.pageIdx == INVALID_PAGE_IDX) {
-        return writeOp(nullptr, cursor.elemPosInPage);
-    }
-    if (cursor.pageIdx >= dataFH->getNumPages()) {
-        KU_ASSERT(cursor.pageIdx == dataFH->getNumPages());
-        ShadowUtils::insertNewPage(*dataFH, dbFileID, *shadowFile);
-        insertingNewPage = true;
-    }
-    ShadowUtils::updatePage(*dataFH, dbFileID, cursor.pageIdx, insertingNewPage, *shadowFile,
-        [&](auto frame) { writeOp(frame, cursor.elemPosInPage); });
 }
 
 PageCursor ColumnReadWriter::getPageCursorForOffsetInGroup(offset_t offsetInChunk,

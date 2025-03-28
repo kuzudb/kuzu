@@ -4,8 +4,9 @@
 #include <set>
 
 #include "common/types/types.h"
-#include "storage/block_manager.h"
 namespace kuzu::storage {
+
+class BlockEntry;
 
 enum class FreeEntryLevel : uint8_t {
     FREE_ENTRY_LEVEL_1 = 0,

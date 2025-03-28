@@ -49,7 +49,7 @@ public:
         childChunks[childIdx] = std::move(childChunk);
     }
 
-    void flush(FileHandle& dataFH) override;
+    void flush(BlockManager& blockManager) override;
 
 protected:
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,

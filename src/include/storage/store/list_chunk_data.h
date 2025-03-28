@@ -108,7 +108,7 @@ public:
     void serialize(common::Serializer& serializer) const override;
     static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);
 
-    void flush(FileHandle& dataFH) override;
+    void flush(BlockManager& blockManager) override;
 
 protected:
     void copyListValues(const common::list_entry_t& entry, common::ValueVector* dataVector);

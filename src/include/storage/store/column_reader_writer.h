@@ -9,7 +9,7 @@ class Transaction;
 }
 namespace storage {
 
-class FileHandle;
+class BlockManager;
 class ColumnReadWriter;
 class ShadowFile;
 struct ColumnChunkMetadata;
@@ -38,12 +38,12 @@ using filter_func_t = std::function<bool(common::offset_t, common::offset_t)>;
 
 struct ColumnReadWriterFactory {
     static std::unique_ptr<ColumnReadWriter> createColumnReadWriter(common::PhysicalTypeID dataType,
-        DBFileID dbFileID, FileHandle* dataFH, ShadowFile* shadowFile);
+        DBFileID dbFileID, BlockManager& blockManager);
 };
 
 class ColumnReadWriter {
 public:
-    ColumnReadWriter(DBFileID dbFileID, FileHandle* dataFH, ShadowFile* shadowFile);
+    ColumnReadWriter(DBFileID dbFileID, BlockManager& blockManager);
 
     virtual ~ColumnReadWriter() = default;
 
@@ -72,15 +72,13 @@ public:
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom,
         const write_values_from_vector_func_t& writeFromVectorFunc) = 0;
 
-    virtual void writeValuesToPageFromBuffer(ChunkState& state, common::offset_t dstOffset,
-        const uint8_t* data, const common::NullMask* nullChunkData, common::offset_t srcOffset,
-        common::offset_t numValues, const write_values_func_t& writeFunc) = 0;
+    virtual common::page_idx_t writeValuesToPageFromBuffer(ChunkState& state,
+        common::offset_t dstOffset, const uint8_t* data, const common::NullMask* nullChunkData,
+        common::offset_t srcOffset, common::offset_t numValues,
+        const write_values_func_t& writeFunc) = 0;
 
     void readFromPage(const transaction::Transaction* transaction, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& readFunc);
-
-    void updatePageWithCursor(PageCursor cursor,
-        const std::function<void(uint8_t*, common::offset_t)>& writeOp) const;
 
     PageCursor getPageCursorForOffsetInGroup(common::offset_t offsetInChunk,
         common::page_idx_t groupPageIdx, uint64_t numValuesPerPage) const;
@@ -89,10 +87,9 @@ protected:
     std::pair<common::offset_t, PageCursor> getOffsetAndCursor(common::offset_t nodeOffset,
         const ChunkState& state) const;
 
-private:
+protected:
     DBFileID dbFileID;
-    FileHandle* dataFH;
-    ShadowFile* shadowFile;
+    BlockManager& blockManager;
 };
 
 } // namespace storage
