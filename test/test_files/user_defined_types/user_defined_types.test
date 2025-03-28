@@ -178,6 +178,7 @@ abc|{l: 5, h: 32}
 {age: 5, name: alice}
 
 -CASE UDTInvalidCast
+-SKIP_WASM
 -STATEMENT RETURN CAST(['abc', 'def', 'ghi'] AS JSON[])
 ---- error
 Catalog exception: JSON is neither an internal type nor a user defined type. This type exists in the JSON extension. You can install and load the extension by running 'INSTALL JSON; LOAD EXTENSION JSON;'.

@@ -405,7 +405,9 @@ jobs:
         working-directory: tools/nodejs_api
 
       - name: Test with ASAN
-        run: make test ASAN=1
+        run: |
+          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
+          make test ASAN=1
         env:
           ASAN_OPTIONS: "detect_leaks=1"
 
