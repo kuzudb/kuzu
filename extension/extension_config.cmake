@@ -8,3 +8,15 @@
 #add_static_link_extension(sqlite)
 #add_static_link_extension(unity_catalog)
 #add_static_link_extension(vector)
+
+if(${BUILD_WASM})
+    add_static_link_extension(fts)
+    add_static_link_extension(json)
+    add_static_link_extension(vector)
+endif()
+
+if(CMAKE_ANDROID_NDK_VERSION)
+    add_static_link_extension(fts)
+    add_static_link_extension(json)
+    add_static_link_extension(vector)
+endif()
