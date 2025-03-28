@@ -1,0 +1,8 @@
+-DATASET parquet mnist
+-BUFFER_POOL_SIZE 1342177280
+--
+
+-CASE Test
+-STATEMENT MATCH (t:tbl) RETURN COUNT(*);
+---- 1
+60000
