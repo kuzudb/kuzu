@@ -1,7 +1,5 @@
 #include "function/string/vector_string_functions.h"
 
-#include "binder/expression/expression_util.h"
-#include "common/exception/binder.h"
 #include "function/string/functions/array_extract_function.h"
 #include "function/string/functions/contains_function.h"
 #include "function/string/functions/ends_with_function.h"
