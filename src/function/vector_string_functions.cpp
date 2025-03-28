@@ -245,51 +245,6 @@ function_set RegexpMatchesFunction::getFunctionSet() {
     return functionSet;
 }
 
-std::unique_ptr<FunctionBindData> regexReplaceBindFunc(ScalarBindFuncInput input) {
-    RegexpReplaceFunction::RegexReplaceOption replaceOption =
-        RegexpReplaceFunction::RegexReplaceOption::FIRST_OCCUR;
-    if (input.arguments.size() == 4) {
-        auto option = input.arguments[3];
-        binder::ExpressionUtil::validateExpressionType(*option, ExpressionType::LITERAL);
-        binder::ExpressionUtil::validateDataType(*option, LogicalType::STRING());
-        auto optionVal = binder::ExpressionUtil::getLiteralValue<std::string>(*option);
-        if (optionVal == RegexpReplaceFunction::GLOBAL_REPLACE_OPTION) {
-            replaceOption = RegexpReplaceFunction::RegexReplaceOption::GLOBAL;
-        } else {
-            throw common::BinderException{
-                "regex_replace can only support global replace option: g."};
-        }
-    }
-    KU_ASSERT(input.arguments.size() == 3 || input.arguments.size() == 4);
-    return std::make_unique<RegexReplaceBindData>(
-        binder::ExpressionUtil::getDataTypes(input.arguments), LogicalType::STRING(),
-        replaceOption);
-}
-
-function_set RegexpReplaceFunction::getFunctionSet() {
-    function_set functionSet;
-    // Todo: Implement a function with modifiers
-    //  regexp_replace(string, regex, replacement, modifiers)
-    std::unique_ptr<ScalarFunction> func;
-    func = std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
-            LogicalTypeID::STRING, LogicalTypeID::STRING},
-        LogicalTypeID::STRING,
-        ScalarFunction::TernaryRegexExecFunction<ku_string_t, ku_string_t, ku_string_t, ku_string_t,
-            RegexpReplace>);
-    func->bindFunc = regexReplaceBindFunc;
-    functionSet.emplace_back(std::move(func));
-    func = std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING,
-            LogicalTypeID::STRING},
-        LogicalTypeID::STRING,
-        ScalarFunction::TernaryRegexExecFunction<ku_string_t, ku_string_t, ku_string_t, ku_string_t,
-            RegexpReplace>);
-    func->bindFunc = regexReplaceBindFunc;
-    functionSet.emplace_back(std::move(func));
-    return functionSet;
-}
-
 function_set RegexpExtractFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.emplace_back(make_unique<ScalarFunction>(name,
