@@ -993,6 +993,13 @@ uint64_t ColumnChunkData::spillToDisk() {
     return spilledBytes;
 }
 
+void ColumnChunkData::reclaimAllocatedPages(BlockManager& blockManager) {
+    KU_ASSERT(residencyState == ResidencyState::ON_DISK);
+    if (metadata.pageIdx != INVALID_PAGE_IDX) {
+        blockManager.freeBlock(BlockEntry(metadata.pageIdx, metadata.numPages, blockManager));
+    }
+}
+
 ColumnChunkData::~ColumnChunkData() = default;
 
 } // namespace storage

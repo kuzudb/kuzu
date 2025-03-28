@@ -403,6 +403,7 @@ void Column::checkpointNullData(const ColumnCheckpointState& checkpointState) co
 void Column::checkpointColumnChunkOutOfPlace(const ChunkState& state,
     const ColumnCheckpointState& checkpointState) {
     const auto numRows = std::max(checkpointState.maxRowIdxToWrite + 1, state.metadata.numValues);
+    checkpointState.persistentData.reclaimAllocatedPages(blockManager);
     checkpointState.persistentData.setToInMemory();
     checkpointState.persistentData.resize(numRows);
     scan(&DUMMY_CHECKPOINT_TRANSACTION, state, &checkpointState.persistentData);

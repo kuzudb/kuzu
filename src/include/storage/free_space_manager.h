@@ -6,7 +6,7 @@
 #include "common/types/types.h"
 namespace kuzu::storage {
 
-class BlockEntry;
+struct BlockEntry;
 
 enum class FreeEntryLevel : uint8_t {
     FREE_ENTRY_LEVEL_1 = 0,

@@ -4,7 +4,7 @@
 #include "storage/store/column_chunk_metadata.h"
 
 namespace kuzu::storage {
-class BlockEntry;
+struct BlockEntry;
 
 class CompressedFlushBuffer {
     std::shared_ptr<CompressionAlg> alg;
