@@ -405,7 +405,7 @@ jobs:
         working-directory: tools/nodejs_api
 
       - name: Test with ASAN
-        run: 
+        run: |
           ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test ASAN=1
         env:
