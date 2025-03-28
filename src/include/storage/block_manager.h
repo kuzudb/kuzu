@@ -11,31 +11,27 @@ namespace storage {
 struct PageCursor;
 struct DBFileID;
 
-class BlockEntry {
-public:
-    BlockEntry(FileHandle* handle, common::page_idx_t startPageIdx, common::page_idx_t numPages)
-        : startPageIdx(startPageIdx), numPages(numPages), handle(handle) {
-        KU_ASSERT(handle->getNumPages() >= startPageIdx + numPages);
-    }
+class BlockManager;
+
+struct BlockEntry {
+    BlockEntry(common::page_idx_t startPageIdx, common::page_idx_t numPages,
+        BlockManager& blockManager)
+        : startPageIdx(startPageIdx), numPages(numPages), blockManager(blockManager) {}
     BlockEntry(const BlockEntry& o, common::page_idx_t startPageInOther)
-        : BlockEntry(o.handle, o.startPageIdx + startPageInOther, o.numPages - startPageInOther) {
+        : BlockEntry(o.startPageIdx + startPageInOther, o.numPages - startPageInOther,
+              o.blockManager) {
         KU_ASSERT(startPageInOther <= o.numPages);
     }
     common::page_idx_t getNumPages() const { return numPages; }
     common::page_idx_t getStartPageIdx() const { return startPageIdx; }
-    void writePagesToFile(const uint8_t* buffer, uint64_t bufferSize) {
-        handle->writePagesToFile(buffer, bufferSize, startPageIdx);
-    }
-    void writePageToFile(const uint8_t* pageBuffer, common::page_idx_t pageOffset) {
-        KU_ASSERT(pageOffset < numPages);
-        handle->writePageToFile(pageBuffer, startPageIdx + pageOffset);
-    }
-    bool isInMemoryMode() const { return handle->isInMemoryMode(); }
 
-private:
+    void writePagesToFile(const uint8_t* buffer, uint64_t bufferSize);
+    void writePageToFile(const uint8_t* pageBuffer, common::page_idx_t pageOffset);
+    bool isInMemoryMode() const;
+
     common::page_idx_t startPageIdx;
     common::page_idx_t numPages;
-    FileHandle* handle;
+    BlockManager& blockManager;
 };
 
 class BlockManager {
@@ -53,6 +49,8 @@ public:
         common::page_idx_t pageIdx, transaction::TransactionType trxType) const;
 
 private:
+    friend BlockEntry;
+
     std::unique_ptr<FreeSpaceManager> freeSpaceManager;
     FileHandle* dataFH;
     ShadowFile* shadowFile;

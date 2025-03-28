@@ -6,7 +6,8 @@
 namespace kuzu::storage {
 BlockEntry BlockManager::allocateBlock(common::page_idx_t numPages) {
     auto startPageIdx = dataFH->addNewPages(numPages);
-    return BlockEntry(dataFH, startPageIdx, numPages);
+    KU_ASSERT(dataFH->getNumPages() >= startPageIdx + numPages);
+    return BlockEntry(startPageIdx, numPages, *this);
 }
 
 void freeBlock(BlockEntry) {}
@@ -33,5 +34,16 @@ BlockManager::getShadowedFileHandleAndPhysicalPageIdxToPin(common::page_idx_t pa
     transaction::TransactionType trxType) const {
     return ShadowUtils::getFileHandleAndPhysicalPageIdxToPin(*dataFH, pageIdx, *shadowFile,
         trxType);
+}
+
+void BlockEntry::writePagesToFile(const uint8_t* buffer, uint64_t bufferSize) {
+    blockManager.dataFH->writePagesToFile(buffer, bufferSize, startPageIdx);
+}
+void BlockEntry::writePageToFile(const uint8_t* pageBuffer, common::page_idx_t pageOffset) {
+    KU_ASSERT(pageOffset < numPages);
+    blockManager.dataFH->writePageToFile(pageBuffer, startPageIdx + pageOffset);
+}
+bool BlockEntry::isInMemoryMode() const {
+    return blockManager.dataFH->isInMemoryMode();
 }
 } // namespace kuzu::storage
