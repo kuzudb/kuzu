@@ -14,8 +14,8 @@ public:
     // without the possibility of memory errors from reading/writing off the end of a page.
     static_assert(PageUtils::getNumElementsInAPage(1, false /*requireNullColumn*/) % 8 == 0);
 
-    NullColumn(const std::string& name, FileHandle* dataFH, MemoryManager* mm,
-        ShadowFile* shadowFile, bool enableCompression);
+    NullColumn(const std::string& name, BlockManager& blockManager, MemoryManager* mm,
+        bool enableCompression);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,

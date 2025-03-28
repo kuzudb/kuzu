@@ -53,7 +53,7 @@ private:
 
 class RelTableData {
 public:
-    RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
+    RelTableData(BlockManager& blockManager, MemoryManager* mm,
         const catalog::TableCatalogEntry* tableEntry, common::RelDataDirection direction,
         bool enableCompression, common::Deserializer* deSer);
 
@@ -140,11 +140,10 @@ private:
     const VersionRecordHandler* getVersionRecordHandler(CSRNodeGroupScanSource source) const;
 
 private:
-    FileHandle* dataFH;
+    BlockManager& blockManager;
     common::table_id_t tableID;
     std::string tableName;
     MemoryManager* memoryManager;
-    ShadowFile* shadowFile;
     bool enableCompression;
     PackedCSRInfo packedCSRInfo;
     common::RelDataDirection direction;

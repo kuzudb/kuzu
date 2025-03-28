@@ -10,6 +10,7 @@ add_subdirectory(wal)
 
 add_library(kuzu_storage
         OBJECT
+        block_manager.cpp
         db_file_id.cpp
         file_handle.cpp
         shadow_utils.cpp
