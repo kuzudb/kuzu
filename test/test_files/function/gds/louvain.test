@@ -1,0 +1,40 @@
+-DATASET CSV empty
+
+--
+
+-CASE LOUVAIN
+-STATEMENT CREATE NODE TABLE Node(id INT64 PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE Edge(FROM Node to Node);
+---- ok
+-STATEMENT CREATE (u0:Node {id: 0}),
+            (u1:Node {id: 1}),
+            (u2:Node {id: 2}),
+            (u3:Node {id: 3}),
+            (u4:Node {id: 4}),
+            (u5:Node {id: 5}),
+            (u6:Node {id: 6}),
+            (u7:Node {id: 7}),
+            (u8:Node {id: 8}),
+            (u9:Node {id: 9}),
+            (u0)-[:Edge]->(u1),
+            (u0)-[:Edge]->(u2),
+            (u1)-[:Edge]->(u2),
+            (u2)-[:Edge]->(u3),
+            (u3)-[:Edge]->(u4),
+            (u5)-[:Edge]->(u6),
+            (u5)-[:Edge]->(u7),
+            (u6)-[:Edge]->(u7),
+            (u7)-[:Edge]->(u8),
+            (u8)-[:Edge]->(u9),
+            (u2)-[:Edge]->(u5),
+            (u4)-[:Edge]->(u9);
+---- ok
+-STATEMENT CALL create_projected_graph('Graph', ['Node'], ['Edge'])
+---- ok
+-STATEMENT CALL LOUVAIN('Graph') WITH group_id, min(node.id) as sccId, count(*) as nodeCount, list_sort(collect(node.id)) as nodeIds RETURN sccId, nodeCount, nodeIds ORDER BY sccId;
+---- 4
+0|3|[0,1,2]
+3|2|[3,4]
+5|3|[5,6,7]
+8|2|[8,9]
