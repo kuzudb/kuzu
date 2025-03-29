@@ -360,4 +360,30 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
         temp_dir.close()?;
         Ok(())
     }
+
+    macro_rules! extension_tests {
+        ($($name:ident,)*) => {
+        $(
+            #[test]
+            #[cfg(feature = "extension_tests")]
+            fn $name() -> Result<()> {
+                let temp_dir = tempfile::tempdir()?;
+                let db = Database::new(temp_dir.path(), SystemConfig::default())?;
+                let conn = Connection::new(&db)?;
+                let directory: String = if cfg!(windows) {
+                    std::env::var("KUZU_LOCAL_EXTENSIONS")?.replace("\\", "/")
+                } else {
+                    std::env::var("KUZU_LOCAL_EXTENSIONS")?
+                };
+                let name = stringify!($name);
+                conn.query(&format!("LOAD EXTENSION '{directory}/{name}/build/lib{name}.kuzu_extension'"))?;
+                Ok(())
+            }
+        )*
+        }
+    }
+
+    extension_tests! {
+        fts, duckdb, httpfs, postgres, sqlite, json, delta, iceberg, vector,
+    }
 }

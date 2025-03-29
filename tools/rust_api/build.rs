@@ -14,6 +14,10 @@ fn get_target() -> String {
 }
 
 fn link_libraries() {
+    // This also needs to be set by any crates using it if they want to use extensions
+    if !cfg!(windows) && link_mode() == "static" {
+        println!("cargo:rustc-link-arg=-rdynamic");
+    }
     if cfg!(windows) && link_mode() == "dylib" {
         println!("cargo:rustc-link-lib=dylib=kuzu_shared");
     } else if link_mode() == "dylib" {
