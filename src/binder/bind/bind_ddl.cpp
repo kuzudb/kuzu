@@ -154,9 +154,6 @@ BoundCreateTableInfo Binder::bindCreateTableInfo(const CreateTableInfo* info) {
     case CatalogEntryType::NODE_TABLE_ENTRY: {
         return bindCreateNodeTableInfo(info);
     }
-    case CatalogEntryType::REL_TABLE_ENTRY: {
-        return bindCreateRelTableInfo(info);
-    }
     case CatalogEntryType::REL_GROUP_ENTRY: {
         return bindCreateRelTableGroupInfo(info);
     }
@@ -256,8 +253,12 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
     relCreateInfo->propertyDefinitions = copyVector(info->propertyDefinitions);
     validateUniqueFromToPairs(extraInfo.srcDstTablePairs);
     for (auto& [srcTableName, dstTableName] : extraInfo.srcDstTablePairs) {
-        relCreateInfo->tableName =
-            RelGroupCatalogEntry::getChildTableName(relGroupName, srcTableName, dstTableName);
+        // If there is one from-to pair, we make rel table has the same name as rel group
+        if (extraInfo.srcDstTablePairs.size() == 1) {
+            relCreateInfo->tableName = relGroupName;
+        } else {
+            relCreateInfo->tableName = RelGroupCatalogEntry::getChildTableName(relGroupName, srcTableName, dstTableName);
+        }
         relCreateInfo->extraInfo = std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity,
             srcTableName, dstTableName, options_t{});
         auto boundInfo = bindCreateRelTableInfo(relCreateInfo.get(), extraInfo.options);
