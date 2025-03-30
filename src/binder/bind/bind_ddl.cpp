@@ -257,7 +257,8 @@ BoundCreateTableInfo Binder::bindCreateRelTableGroupInfo(const CreateTableInfo* 
         if (extraInfo.srcDstTablePairs.size() == 1) {
             relCreateInfo->tableName = relGroupName;
         } else {
-            relCreateInfo->tableName = RelGroupCatalogEntry::getChildTableName(relGroupName, srcTableName, dstTableName);
+            relCreateInfo->tableName =
+                RelGroupCatalogEntry::getChildTableName(relGroupName, srcTableName, dstTableName);
         }
         relCreateInfo->extraInfo = std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity,
             srcTableName, dstTableName, options_t{});

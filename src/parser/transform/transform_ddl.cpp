@@ -94,7 +94,8 @@ std::unique_ptr<Statement> Transformer::transformCreateRelTable(
     auto extraInfo = std::make_unique<ExtraCreateRelTableGroupInfo>(relMultiplicity,
         std::move(fromToPairs), std::move(options));
     auto conflictAction = getConflictAction(ctx.kU_IfNotExists());
-    auto createTableInfo = CreateTableInfo(CatalogEntryType::REL_GROUP_ENTRY, tableName, conflictAction);
+    auto createTableInfo =
+        CreateTableInfo(CatalogEntryType::REL_GROUP_ENTRY, tableName, conflictAction);
     if (ctx.kU_PropertyDefinitions()) {
         createTableInfo.propertyDefinitions =
             transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
