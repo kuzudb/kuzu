@@ -77,8 +77,9 @@ float* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
 namespace {
 template<std::integral CompressedType>
 struct TypedCompressedView final : CompressedOffsetsView {
-    explicit TypedCompressedView(uint8_t* data, common::offset_t numEntries)
-        : dstNodes(reinterpret_cast<std::atomic<CompressedType>*>(data), numEntries),
+    explicit TypedCompressedView(const uint8_t* data, common::offset_t numEntries)
+        : dstNodes(reinterpret_cast<std::atomic<CompressedType>*>(const_cast<uint8_t*>(data)),
+              numEntries),
           invalidOffset{std::numeric_limits<CompressedType>::max()} {}
 
     common::offset_t getNodeOffsetAtomic(common::offset_t idx) const override {
