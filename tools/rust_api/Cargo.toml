@@ -47,6 +47,7 @@ rust_decimal_macros = "1.35"
 [features]
 default = []
 arrow = ["dep:arrow"]
+extension_tests = []
 
 [package.metadata.docs.rs]
 all-features = true
