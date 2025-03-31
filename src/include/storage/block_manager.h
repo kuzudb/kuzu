@@ -36,8 +36,10 @@ struct BlockEntry {
 
 class BlockManager {
 public:
+    BlockManager(FileHandle* dataFH, ShadowFile* shadowFile, std::unique_ptr<FreeSpaceManager> fsm)
+        : freeSpaceManager(std::move(fsm)), dataFH(dataFH), shadowFile(shadowFile) {}
     BlockManager(FileHandle* dataFH, ShadowFile* shadowFile)
-        : dataFH(dataFH), shadowFile(shadowFile) {}
+        : BlockManager(dataFH, shadowFile, std::make_unique<FreeSpaceManager>()) {}
 
     BlockEntry allocateBlock(common::page_idx_t numPages);
     void freeBlock(BlockEntry block);
@@ -47,6 +49,10 @@ public:
         const std::function<void(uint8_t*, common::offset_t)>& writeOp) const;
     std::pair<FileHandle*, common::page_idx_t> getShadowedFileHandleAndPhysicalPageIdxToPin(
         common::page_idx_t pageIdx, transaction::TransactionType trxType) const;
+
+    void serialize(common::Serializer& serializer);
+    static std::unique_ptr<BlockManager> deserialize(common::Deserializer& deSer,
+        FileHandle* dataFH, ShadowFile* shadowFile);
 
 private:
     friend BlockEntry;
