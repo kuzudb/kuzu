@@ -53,7 +53,7 @@ TEST_F(EmptyBufferManagerTest, TestSpillToDiskMemoryUsage) {
     auto mm = getMemoryManager(*database);
     auto initialUsedMemory = bm->getUsedMemory();
     {
-        auto buffer = mm->mallocBuffer(false, 1024);
+        auto buffer = mm->allocateBuffer(false, 1024);
         ASSERT_EQ(initialUsedMemory + 1024, bm->getUsedMemory());
         ASSERT_NE(buffer->getBuffer().data(), nullptr);
     }

@@ -36,7 +36,7 @@ void MemoryBuffer::setSpilledToDisk(uint64_t filePosition) {
 
 void MemoryBuffer::prepareLoadFromDisk() {
     KU_ASSERT(buffer.data() == nullptr && evicted);
-    buffer = mm->mallocBufferInternal(false, buffer.size());
+    buffer = mm->mallocBuffer(false, buffer.size());
     evicted = false;
 }
 
@@ -46,7 +46,7 @@ MemoryManager::MemoryManager(BufferManager* bm, VirtualFileSystem* vfs) : bm{bm}
         PageSizeClass::TEMP_PAGE);
 }
 
-std::span<uint8_t> MemoryManager::mallocBufferInternal(bool initializeToZero, uint64_t size) {
+std::span<uint8_t> MemoryManager::mallocBuffer(bool initializeToZero, uint64_t size) {
     if (!bm->reserve(size)) {
         throw BufferManagerException(
             "Unable to allocate memory! The buffer pool is full and no memory could be freed!");
@@ -61,14 +61,10 @@ std::span<uint8_t> MemoryManager::mallocBufferInternal(bool initializeToZero, ui
     return std::span<uint8_t>(static_cast<uint8_t*>(buffer), size);
 }
 
-std::unique_ptr<MemoryBuffer> MemoryManager::mallocBuffer(bool initializeToZero, uint64_t size) {
-    auto buffer = mallocBufferInternal(initializeToZero, size);
-    return std::make_unique<MemoryBuffer>(this, INVALID_PAGE_IDX, buffer.data(), size);
-}
-
 std::unique_ptr<MemoryBuffer> MemoryManager::allocateBuffer(bool initializeToZero, uint64_t size) {
-    if (size > TEMP_PAGE_SIZE) [[unlikely]] {
-        return mallocBuffer(initializeToZero, size);
+    if (size != TEMP_PAGE_SIZE) [[unlikely]] {
+        auto buffer = mallocBuffer(initializeToZero, size);
+        return std::make_unique<MemoryBuffer>(this, INVALID_PAGE_IDX, buffer.data(), size);
     }
     page_idx_t pageIdx = INVALID_PAGE_IDX;
     {

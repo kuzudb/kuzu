@@ -152,7 +152,7 @@ uint8_t* UndoBuffer::createUndoRecord(const uint64_t size) {
             capacity *= 2;
         }
         // We need to allocate a new memory buffer.
-        memoryBuffers.emplace_back(mm->mallocBuffer(false, capacity), capacity);
+        memoryBuffers.emplace_back(mm->allocateBuffer(false, capacity), capacity);
     }
     const auto res =
         memoryBuffers.back().getDataUnsafe() + memoryBuffers.back().getCurrentPosition();
