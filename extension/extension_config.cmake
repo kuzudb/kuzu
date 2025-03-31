@@ -10,12 +10,14 @@
 #add_static_link_extension(vector)
 
 if(${BUILD_WASM})
+    message(STATUS "Building for WASM, extension static linking is enabled by default")
     add_static_link_extension(fts)
     add_static_link_extension(json)
     add_static_link_extension(vector)
 endif()
 
-if(CMAKE_ANDROID_NDK_VERSION)
+if(__ANDROID__)
+    message(STATUS "Building for Android, extension static linking is enabled by default")
     add_static_link_extension(fts)
     add_static_link_extension(json)
     add_static_link_extension(vector)

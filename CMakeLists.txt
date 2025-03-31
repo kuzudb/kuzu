@@ -210,6 +210,7 @@ endif()
 if(CMAKE_ANDROID_NDK_VERSION)
     message(STATUS "Android NDK version: ${CMAKE_ANDROID_NDK_VERSION}")
     add_compile_definitions(__ANDROID__)
+    set(__ANDROID__ TRUE)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
