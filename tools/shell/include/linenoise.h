@@ -45,7 +45,7 @@ extern "C" {
 
 #include <stddef.h>
 
-#define LINENOISE_MAX_LINE 16384
+#define LINENOISE_MAX_LINE 65536
 
 typedef struct linenoiseCompletions {
     size_t len;
