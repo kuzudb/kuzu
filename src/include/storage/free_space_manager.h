@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <optional>
 #include <set>
 
 #include "common/types/types.h"
@@ -27,10 +28,14 @@ class FreeSpaceManager {
 public:
     FreeSpaceManager();
 
-    void addFreeChunk(common::page_idx_t startPageIdx, common::page_idx_t numPages);
+    void addFreeChunk(BlockEntry entry);
+    // void addUncheckpointedFreeChunk(BlockEntry entry);
 
     // This also removes the chunk from the free space manager
-    BlockEntry getFreeChunk(common::page_idx_t numPages);
+    std::optional<BlockEntry> getFreeChunk(common::page_idx_t numPages);
+
+    void serialize(common::Serializer& serializer);
+    static std::unique_ptr<FreeSpaceManager> deserialize(common::Deserializer& deSer);
 
 private:
     std::array<std::set<BlockEntry>, numFreeEntryLevels> freeLists;

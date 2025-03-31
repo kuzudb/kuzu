@@ -5,12 +5,18 @@
 
 namespace kuzu::storage {
 BlockEntry BlockManager::allocateBlock(common::page_idx_t numPages) {
+    auto allocatedFreeChunk = freeSpaceManager->getFreeChunk(numPages);
+    if (allocatedFreeChunk.has_value()) {
+        return *allocatedFreeChunk;
+    }
     auto startPageIdx = dataFH->addNewPages(numPages);
     KU_ASSERT(dataFH->getNumPages() >= startPageIdx + numPages);
     return BlockEntry(startPageIdx, numPages, *this);
 }
 
-void BlockManager::freeBlock(BlockEntry) {}
+void BlockManager::freeBlock(BlockEntry entry) {
+    freeSpaceManager->addFreeChunk(entry);
+}
 
 bool BlockManager::updateShadowedPageWithCursor(PageCursor cursor, DBFileID dbFileID,
     const std::function<void(uint8_t*, common::offset_t)>& writeOp) const {
@@ -39,11 +45,22 @@ BlockManager::getShadowedFileHandleAndPhysicalPageIdxToPin(common::page_idx_t pa
 void BlockEntry::writePagesToFile(const uint8_t* buffer, uint64_t bufferSize) {
     blockManager.dataFH->writePagesToFile(buffer, bufferSize, startPageIdx);
 }
+
 void BlockEntry::writePageToFile(const uint8_t* pageBuffer, common::page_idx_t pageOffset) {
     KU_ASSERT(pageOffset < numPages);
     blockManager.dataFH->writePageToFile(pageBuffer, startPageIdx + pageOffset);
 }
+
 bool BlockEntry::isInMemoryMode() const {
     return blockManager.dataFH->isInMemoryMode();
+}
+
+void BlockManager::serialize(common::Serializer& serializer) {
+    freeSpaceManager->serialize(serializer);
+}
+
+std::unique_ptr<BlockManager> BlockManager::deserialize(common::Deserializer& deSer,
+    FileHandle* dataFH, ShadowFile* shadowFile) {
+    return std::make_unique<BlockManager>(dataFH, shadowFile, FreeSpaceManager::deserialize(deSer));
 }
 } // namespace kuzu::storage
