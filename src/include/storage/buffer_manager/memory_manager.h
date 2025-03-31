@@ -77,7 +77,6 @@ public:
 
     ~MemoryManager() = default;
 
-    std::unique_ptr<MemoryBuffer> mallocBuffer(bool initializeToZero, uint64_t size);
     std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero = false,
         uint64_t size = common::TEMP_PAGE_SIZE);
     common::page_offset_t getPageSize() const { return pageSize; }
@@ -86,7 +85,7 @@ public:
 
 private:
     void freeBlock(common::page_idx_t pageIdx, std::span<uint8_t> buffer);
-    std::span<uint8_t> mallocBufferInternal(bool initializeToZero, uint64_t size);
+    std::span<uint8_t> mallocBuffer(bool initializeToZero, uint64_t size);
 
 private:
     FileHandle* fh;

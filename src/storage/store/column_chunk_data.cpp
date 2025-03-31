@@ -117,7 +117,7 @@ void ColumnChunkData::initializeBuffer(common::PhysicalTypeID physicalType, Memo
 
     // Some columnChunks are much smaller than the 256KB minimum size used by allocateBuffer
     // Which would lead to excessive memory use, particularly in the partitioner
-    buffer = mm.mallocBuffer(initializeToZero, getBufferSize(capacity));
+    buffer = mm.allocateBuffer(initializeToZero, getBufferSize(capacity));
 }
 
 void ColumnChunkData::initializeFunction() {
@@ -305,7 +305,7 @@ void ColumnChunkData::setToOnDisk(const ColumnChunkMetadata& otherMetadata) {
     residencyState = ResidencyState::ON_DISK;
     capacity = 0;
     // Note: We don't need to set the buffer to nullptr, as it allows ColumnChunkData to be resized.
-    buffer = buffer->getMemoryManager()->mallocBuffer(true, 0 /*size*/);
+    buffer = buffer->getMemoryManager()->allocateBuffer(true, 0 /*size*/);
     this->metadata = otherMetadata;
     this->numValues = otherMetadata.numValues;
     resetInMemoryStats();
@@ -461,7 +461,7 @@ void ColumnChunkData::resize(uint64_t newCapacity) {
     }
     const auto numBytesAfterResize = getBufferSize(newCapacity);
     if (numBytesAfterResize > getBufferSize()) {
-        auto resizedBuffer = buffer->getMemoryManager()->mallocBuffer(false, numBytesAfterResize);
+        auto resizedBuffer = buffer->getMemoryManager()->allocateBuffer(false, numBytesAfterResize);
         auto bufferSize = getBufferSize();
         auto resizedBufferData = resizedBuffer->getBuffer().data();
         memcpy(resizedBufferData, buffer->getBuffer().data(), bufferSize);
@@ -479,7 +479,7 @@ void ColumnChunkData::resizeWithoutPreserve(uint64_t newCapacity) {
     }
     const auto numBytesAfterResize = getBufferSize(newCapacity);
     if (numBytesAfterResize > getBufferSize()) {
-        auto resizedBuffer = buffer->getMemoryManager()->mallocBuffer(false, numBytesAfterResize);
+        auto resizedBuffer = buffer->getMemoryManager()->allocateBuffer(false, numBytesAfterResize);
         buffer = std::move(resizedBuffer);
     }
     if (nullData) {
