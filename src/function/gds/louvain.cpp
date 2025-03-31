@@ -8,6 +8,7 @@
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
 #include "gds_vertex_compute.h"
+#include "graph/graph_mem.h"
 #include "processor/execution_context.h"
 
 using namespace std;
@@ -22,46 +23,8 @@ namespace function {
 
 constexpr uint32_t MAX_LEVELS = 10;
 constexpr uint32_t MAX_ITERATIONS = 10;
-constexpr double WEIGHT = 1.0;
 constexpr double THRESHOLD = 1e-6;
 static constexpr offset_t OMAX = numeric_limits<offset_t>::max();
-
-struct Neighbor {
-    offset_t to;
-    double weight;
-};
-
-struct InMemoryGraph {
-    vector<offset_t> nodes;
-    vector<Neighbor> neighbors;
-    offset_t numNodes;
-    offset_t numEdges = 0;
-
-    explicit InMemoryGraph(const offset_t numNodes) : numNodes{numNodes} { init(numNodes); }
-    // Delete copy constructors
-    InMemoryGraph(const InMemoryGraph&) = delete;
-    InMemoryGraph& operator=(const InMemoryGraph&) = delete;
-
-    void init(const offset_t numNodes) {
-        nodes.reserve(numNodes);
-        nodes.clear();
-        neighbors.clear();
-        this->numNodes = numNodes;
-        numEdges = 0;
-    }
-
-    void newNode() {
-        // cout << std::format("new: {} -> {}\n", nodes.size(), neighbors.size());
-        nodes.push_back(neighbors.size());
-    }
-
-    void addEdge(const offset_t to, const double weight = WEIGHT) {
-        Neighbor neighbor{to, weight};
-        neighbors.push_back(neighbor);
-        numEdges++;
-        // cout << std::format(" nbrs: {} -> {}\n", to, weight);
-    }
-};
 
 struct CommInfo {
     long size;
@@ -81,13 +44,15 @@ struct PhaseState {
     vector<double> clusterWeightInternal;
     double totalWeight = 0.0;
 
-    explicit PhaseState(const offset_t numNodes) : graph{InMemoryGraph(numNodes)} { init(numNodes); }
+    explicit PhaseState(const offset_t numNodes) : graph{InMemoryGraph(numNodes)} {
+        reset(numNodes);
+    }
     // Delete copy constructors
     PhaseState(const PhaseState&) = delete;
     PhaseState& operator=(const PhaseState&) = delete;
 
-    void init(const offset_t numNodes) {
-        graph.init(numNodes);
+    void reset(const offset_t numNodes) {
+        graph.reset(numNodes);
         nodeWeightedDegrees.assign(numNodes, 0.0);
         commInfos.assign(numNodes, CommInfo());
         pastCommunities.assign(numNodes, OMAX);
@@ -101,23 +66,23 @@ struct PhaseState {
         commInfosNext.assign(graph.numNodes, CommInfo());
     }
 
-    void newNode(const offset_t nodeId) {
-        graph.newNode();
+    void insertNewNode(const offset_t nodeId) {
+        graph.insertNewNode();
         commInfos[nodeId].size = 1;
         commInfos[nodeId].degree = 0.0;
         pastCommunities[nodeId] = nodeId;
         currCommunities[nodeId] = nodeId;
     }
 
-    void addEdge(const offset_t from, const offset_t to, const double weight = WEIGHT) {
-        graph.addEdge(to, weight);
+    void insertEdge(const offset_t from, const offset_t to, const double weight = DEFAULT_WEIGHT) {
+        graph.insertEdge(to, weight);
         nodeWeightedDegrees[from] += weight;
         commInfos[from].degree += weight;
         totalWeight += weight;
     }
 
     void finalize() {
-        graph.newNode();
+        graph.insertNewNode();
         // for (auto nodeId = 0u; nodeId < graph.numNodes; ++nodeId) {
         //     const auto from = graph.nodes[nodeId];
         //     const auto to = graph.nodes[nodeId + 1];
@@ -146,19 +111,19 @@ public:
         auto scanState = graph->prepareRelScan(nbrInfo.relEntry, nbrInfo.nodeEntry, "");
 
         for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
-            state.newNode(nodeId);
+            state.insertNewNode(nodeId);
             auto nextNodeId = nodeID_t{nodeId, tableId};
             for (auto chunk : graph->scanFwd(nextNodeId, *scanState.get())) {
                 chunk.forEach([&](auto nbrNodeId, auto) {
                     auto nbrId = nbrNodeId.offset;
-                    state.addEdge(nodeId, nbrId);
+                    state.insertEdge(nodeId, nbrId);
                 });
             }
             for (auto chunk : graph->scanBwd(nextNodeId, *scanState.get())) {
                 chunk.forEach([&](auto nbrNodeId, auto) {
                     auto nbrId = nbrNodeId.offset;
                     if (nbrId != nodeId) {
-                        state.addEdge(nodeId, nbrId);
+                        state.insertEdge(nodeId, nbrId);
                     }
                 });
             }
@@ -179,7 +144,7 @@ public:
                 auto to = state.graph.nodes[nodeId + 1];
                 for (auto offset = from; offset < to; offset++) {
                     printf(" %ld-[%lf]->%ld\n", nodeId, state.graph.neighbors[offset].weight,
-                        state.graph.neighbors[offset].to);
+                        state.graph.neighbors[offset].neighbor);
                 }
             }
 
@@ -241,10 +206,10 @@ public:
                         offset_t numUniqueClusters = 1;
                         for (auto offset = from; offset < to; offset++) {
                             auto nbr = state.graph.neighbors[offset];
-                            if (nbr.to == nodeId) {
+                            if (nbr.neighbor == nodeId) {
                                 lselfLoop += nbr.weight;
                             }
-                            auto nbrCommId = state.currCommunities[nbr.to];
+                            auto nbrCommId = state.currCommunities[nbr.neighbor];
                             if (!clusterLocalMap.contains(nbrCommId)) {
                                 clusterLocalMap[nbrCommId] = numUniqueClusters;
                                 numUniqueClusters++;
@@ -279,8 +244,9 @@ public:
                                     "      degree ax ay constantForSecondTerm = %lf %lf %lf %lf\n",
                                     degree, ax, ay, constantForSecondTerm);
                                 printf("      eix eiy currGain = %lf %lf %lf\n", eix, eiy, curGain);
-                                if (curGain > maxGain || ((maxGain - curGain) < THRESHOLD && curGain != 0 &&
-                                                             (nbrCommId < maxIndex))) {
+                                if (curGain > maxGain ||
+                                    ((maxGain - curGain) < THRESHOLD && curGain != 0 &&
+                                        (nbrCommId < maxIndex))) {
                                     printf("        maxGain: %lf -> %lf\n", maxGain, curGain);
                                     printf("        maxIndex: %lu -> %lu\n", maxIndex, nbrCommId);
                                     maxGain = curGain;
@@ -288,7 +254,8 @@ public:
                                 }
                             }
                         }
-                        printf("    swap check: %lu %lu %lu %lu\n", state.commInfos[maxIndex].size, state.commInfos[sc].size, maxIndex, sc);
+                        printf("    swap check: %lu %lu %lu %lu\n", state.commInfos[maxIndex].size,
+                            state.commInfos[sc].size, maxIndex, sc);
                         if (state.commInfos[maxIndex].size == 1 && state.commInfos[sc].size == 1 &&
                             maxIndex > sc) { // Swap protection
                             printf("      maxIndex: %lu -> %lu\n", maxIndex, sc);
@@ -370,7 +337,7 @@ public:
             auto commId = state.pastCommunities[nodeId];
             for (auto offset = from; offset < to; ++offset) {
                 auto nbr = state.graph.neighbors[offset];
-                auto nbrCommId = state.pastCommunities[nbr.to];
+                auto nbrCommId = state.pastCommunities[nbr.neighbor];
                 if (commId >= nbrCommId) {
                     commWeights[commId][nbrCommId] += nbr.weight;
                     if (commId != nbrCommId) {
@@ -379,11 +346,11 @@ public:
                 }
             }
         }
-        state.init(newCommCount);
+        state.reset(newCommCount);
         for (auto nodeId = 0u; nodeId < newCommCount; nodeId++) {
-            state.newNode(nodeId);
+            state.insertNewNode(nodeId);
             for (auto [nbrId, weight] : commWeights[nodeId]) {
-                state.addEdge(nodeId, nbrId, weight);
+                state.insertEdge(nodeId, nbrId, weight);
             }
         }
         state.finalize();
