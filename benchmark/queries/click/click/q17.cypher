@@ -1,0 +1,1 @@
+MATCH (h:hits) RETURN h.UserID, h.SearchPhrase, COUNT(*) ORDER BY COUNT(*) DESC LIMIT 10;

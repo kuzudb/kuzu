@@ -1,0 +1,1 @@
+MATCH (h:hits) WHERE h.SearchPhrase <> '' RETURN h.SearchEngineID, h.SearchPhrase, COUNT(*) AS c ORDER BY c DESC LIMIT 10;

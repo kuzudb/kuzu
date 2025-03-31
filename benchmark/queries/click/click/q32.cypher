@@ -1,0 +1,1 @@
+MATCH (h:hits) WHERE h.SearchPhrase <> '' RETURN h.WatchID, h.ClientIP, COUNT(*) as c, SUM(h.IsRefresh), AVG(h.ResolutionWidth) order by c DESC LIMIT 10;

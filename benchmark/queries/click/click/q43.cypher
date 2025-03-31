@@ -1,0 +1,1 @@
+MATCH (h:hits) WHERE h.CounterID = 62 AND h.EventDate >= '2013-07-14' AND h.EventDate <= '2013-07-15' AND h.IsRefresh = 0 AND h.DontCountHits = 0 RETURN DATE_TRUNC('minute', h.EventTime) AS M, COUNT(*) AS PageViews ORDER BY M SKIP 1000 LIMIT 10;

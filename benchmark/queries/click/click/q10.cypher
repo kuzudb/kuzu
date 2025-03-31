@@ -1,0 +1,1 @@
+MATCH (h:hits) RETURN h.RegionID, SUM(h.AdvEngineID), COUNT(*) AS c, AVG(h.ResolutionWidth), COUNT(DISTINCT h.UserID) ORDER BY c DESC LIMIT 10;

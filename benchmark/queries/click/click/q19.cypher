@@ -1,0 +1,1 @@
+MATCH (h:hits) RETURN h.UserID, date_part("minute", h.EventTime) AS m, h.SearchPhrase, COUNT(*) ORDER BY COUNT(*) DESC LIMIT 10;

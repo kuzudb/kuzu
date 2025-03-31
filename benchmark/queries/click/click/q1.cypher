@@ -1,0 +1,1 @@
+MATCH (:hits) RETURN COUNT(*);

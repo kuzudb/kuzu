@@ -1,0 +1,1 @@
+MATCH (h:hits) WHERE h.URL =~ '.*google.*' AND h.SearchPhrase <> '' RETURN h.SearchPhrase, MIN(h.URL), MIN(h.Title), COUNT(*) as c ORDER BY c DESC LIMIT 10;

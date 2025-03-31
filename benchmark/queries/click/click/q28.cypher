@@ -1,0 +1,1 @@
+MATCH (h:hits) WHERE h.URL <> '' WITH h.CounterID as id, AVG(SIZE(h.URL)) as l, COUNT(*) as c WHERE c > 100000 RETURN id, l, c ORDER BY l DESC LIMIT 25;

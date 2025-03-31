@@ -1,0 +1,1 @@
+MATCH (h:hits) WHERE h.CounterID = 62 AND h.EventDate >= '2013-07-01' AND h.EventDate <= '2013-07-31' AND h.IsRefresh = 0 RETURN h.TraficSourceID, h.SearchEngineID, h.AdvEngineID, CASE WHEN (h.SearchEngineID = 0 AND h.AdvEngineID = 0) THEN h.Referer ELSE '' END AS Src, h.URL AS Dst, COUNT(*) AS PageViews ORDER BY PageViews DESC SKIP 1000 LIMIT 10;

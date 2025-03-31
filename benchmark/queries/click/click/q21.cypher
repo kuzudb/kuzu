@@ -1,0 +1,1 @@
+MATCH (h:hits) WHERE h.URL =~ '.*google.*' RETURN COUNT(*);

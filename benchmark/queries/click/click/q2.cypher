@@ -1,0 +1,1 @@
+MATCH (h:hits) WHERE h.AdvEngineID <> 0 RETURN COUNT(*);
