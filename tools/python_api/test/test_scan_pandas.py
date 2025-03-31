@@ -555,6 +555,6 @@ def test_copy_from_pandas_multi_pairs(tmp_path: Path) -> None:
     })
     conn.execute("COPY knows from df (from = 'person', to = 'person');")
     result = conn.execute("match (:person)-[e:knows]->(:person) return e.*")
-    assert result.has_next() == True
+    assert result.has_next()
     assert result.get_next()[0] == 252
-    assert result.has_next() == False
+    assert not result.has_next()

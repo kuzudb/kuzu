@@ -85,6 +85,6 @@ def test_copy_from_polars_multi_pairs(conn_db_readwrite: ConnDB) -> None:
     })
     conn.execute("COPY teaches from df (from = 'prof', to = 'prof');")
     result = conn.execute("match (:prof)-[e:teaches]->(:prof) return e.*")
-    assert result.has_next() == True
+    assert result.has_next()
     assert result.get_next()[0] == 252
-    assert result.has_next() == False
+    assert not result.has_next()
