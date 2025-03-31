@@ -298,11 +298,3 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWildcardNoRemoval) {
     // Cleanup
     std::filesystem::remove_all("/tmp/dbHome_wildcard");
 }
-
-TEST_F(CApiDatabaseTest, dasd) {
-    createDBAndConn();
-    conn->query("create node table person (id int64, primary key(id))");
-    conn->query("create node table person1 (id int64, primary key(id))");
-    conn->query("create rel table knows (from person to person, from person to person1)");
-    conn->query("copy knows from '/tmp/test.csv' (from = 'person', to = 'person');");
-}
