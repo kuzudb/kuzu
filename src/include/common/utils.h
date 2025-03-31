@@ -60,6 +60,12 @@ bool containsValue(const Container& container, const T& value) {
     return std::find(container.begin(), container.end(), value) != container.end();
 }
 
+template<std::integral T>
+T countBits(T) {
+    static constexpr T bitsPerByte = 8;
+    return sizeof(T) * bitsPerByte;
+}
+
 template<class T>
 struct CountZeros {};
 

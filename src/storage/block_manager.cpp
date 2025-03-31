@@ -5,6 +5,9 @@
 
 namespace kuzu::storage {
 BlockEntry BlockManager::allocateBlock(common::page_idx_t numPages) {
+    // TODO(Royi) check if this is still needed
+    numPages = std::bit_ceil(numPages);
+
     auto allocatedFreeChunk = freeSpaceManager->getFreeChunk(numPages);
     if (allocatedFreeChunk.has_value()) {
         return *allocatedFreeChunk;
