@@ -71,7 +71,7 @@ struct NodeWithDistance {
 
 template<typename T, typename ReferenceType>
 concept OffsetRangeLookup = requires(T t, common::offset_t offset) {
-    { t.at(offset) } -> std::same_as<ReferenceType>;
+    { t.at(offset) } -> std::convertible_to<ReferenceType>;
 };
 
 /**
@@ -110,7 +110,7 @@ struct CompressedOffsetsView {
     virtual common::offset_t getInvalidOffset() const = 0;
 };
 
-using compressed_offsets_t = CompressedOffsetSpan<common::offset_t, CompressedOffsetsView>;
+using compressed_offsets_t = CompressedOffsetSpan<common::offset_t, const CompressedOffsetsView&>;
 class CompressedNodeOffsetBuffer {
 public:
     CompressedNodeOffsetBuffer(storage::MemoryManager* mm, common::offset_t numNodes,
