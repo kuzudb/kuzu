@@ -37,11 +37,10 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     }
     paramTypes.push_back(listType.copy());
     paramTypes.push_back(childType.copy());
-    TypeUtils::visit(childType.getPhysicalType(),
-        [&scalarFunction]<typename T>(T) {
-            scalarFunction->execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, T,
-                uint8_t, ListContains>;
-        });
+    TypeUtils::visit(childType.getPhysicalType(), [&scalarFunction]<typename T>(T) {
+        scalarFunction->execFunc =
+            ScalarFunction::BinaryExecListStructFunction<list_entry_t, T, uint8_t, ListContains>;
+    });
     return std::make_unique<FunctionBindData>(std::move(paramTypes), LogicalType::BOOL());
 }
 
