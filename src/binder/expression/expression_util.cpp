@@ -178,10 +178,17 @@ bool ExpressionUtil::isFalseLiteral(const Expression& expression) {
 }
 
 bool ExpressionUtil::isEmptyList(const Expression& expression) {
-    if (expression.expressionType != ExpressionType::LITERAL) {
+    auto val = Value::createNullValue();
+    switch (expression.expressionType) {
+    case ExpressionType::LITERAL: {
+        val = expression.constCast<LiteralExpression>().getValue();
+    } break;
+    case ExpressionType::PARAMETER: {
+        val = expression.constCast<ParameterExpression>().getValue();
+    } break;
+    default:
         return false;
     }
-    auto val = expression.constCast<LiteralExpression>().getValue();
     if (val.getDataType().getLogicalTypeID() != LogicalTypeID::LIST) {
         return false;
     }
@@ -453,7 +460,7 @@ T ExpressionUtil::evaluateLiteral(const Expression& expression, const common::Lo
         }
         throw common::RuntimeException{errMsg};
     }
-    auto value = binder::ExpressionUtil::evaluateAsLiteralValue(expression);
+    auto value = evaluateAsLiteralValue(expression);
     if (value.getDataType() != type) {
         throw RuntimeException{common::stringFormat("Parameter: {} must be a {} literal.",
             expression.getAlias(), type.toString())};

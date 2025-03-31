@@ -141,6 +141,13 @@ def test_int64_list_param(conn_db_readonly: ConnDB) -> None:
     assert not result.has_next()
     result.close()
 
+def test_empty_list_param(conn_db_readonly: ConnDB) -> None:
+    conn, db = conn_db_readonly
+    result = conn.execute("RETURN list_contains($list, $item)", {"list": [], "item": 5})
+    assert result.has_next()
+    assert result.get_next() == [False]
+    assert not result.has_next()
+    result.close()
 
 def test_int64_list_list_param(conn_db_readonly: ConnDB) -> None:
     conn, db = conn_db_readonly
