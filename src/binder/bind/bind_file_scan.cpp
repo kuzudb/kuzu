@@ -105,16 +105,6 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(const BaseScanSource
     }
 }
 
-static void removeNonScanOptions(case_insensitive_map_t<Value>& options) {
-    auto nonScanOptions = std::vector<std::string>{FileScanInfo::FILE_FORMAT_OPTION_NAME,
-        CopyConstants::FROM_OPTION_NAME, CopyConstants::TO_OPTION_NAME};
-    for (auto option : nonScanOptions) {
-        if (options.contains(option)) {
-            options.erase(option);
-        }
-    }
-}
-
 std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSource& scanSource,
     const options_t& options, const std::vector<std::string>& columnNames,
     const std::vector<LogicalType>& columnTypes) {
@@ -137,7 +127,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
             }
         }
     }
-    removeNonScanOptions(boundOptions);
+    boundOptions.erase(FileScanInfo::FILE_FORMAT_OPTION_NAME);
     // Bind file configuration
     auto fileScanInfo = std::make_unique<FileScanInfo>(std::move(fileTypeInfo), filePaths);
     fileScanInfo->options = std::move(boundOptions);

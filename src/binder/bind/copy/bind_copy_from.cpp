@@ -125,6 +125,19 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
+static options_t getScanSourceOptions(const CopyFrom& copyFrom) {
+    options_t options;
+    static case_insensitve_set_t copyFromPairsOptions = {CopyConstants::FROM_OPTION_NAME,
+        CopyConstants::TO_OPTION_NAME};
+    for (auto& option : copyFrom.getParsingOptions()) {
+        if (copyFromPairsOptions.contains(option.first)) {
+            continue;
+        }
+        options.emplace(option.first, option.second->copy());
+    }
+    return options;
+}
+
 std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& statement,
     RelTableCatalogEntry* relTableEntry) {
     auto& copyStatement = statement.constCast<CopyFrom>();
@@ -137,8 +150,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& stateme
     std::vector<LogicalType> expectedColumnTypes;
     bindExpectedRelColumns(relTableEntry, copyStatement.getColumnNames(), expectedColumnNames,
         expectedColumnTypes, clientContext);
-    auto boundSource = bindScanSource(copyStatement.getSource(), copyStatement.getParsingOptions(),
-        expectedColumnNames, expectedColumnTypes);
+    auto boundSource = bindScanSource(copyStatement.getSource(),
+        getScanSourceOptions(copyStatement), expectedColumnNames, expectedColumnTypes);
     expression_vector warningDataExprs = boundSource->getWarningColumns();
     auto columns = boundSource->getColumns();
     auto offset =
