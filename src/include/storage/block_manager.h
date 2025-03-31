@@ -22,8 +22,6 @@ struct BlockEntry {
               o.blockManager) {
         KU_ASSERT(startPageInOther <= o.numPages);
     }
-    common::page_idx_t getNumPages() const { return numPages; }
-    common::page_idx_t getStartPageIdx() const { return startPageIdx; }
 
     void writePagesToFile(const uint8_t* buffer, uint64_t bufferSize);
     void writePageToFile(const uint8_t* pageBuffer, common::page_idx_t pageOffset);
