@@ -23,24 +23,25 @@ struct ListContains {
 
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
-    TypeUtils::visit(ListType::getChildType(input.arguments[0]->getDataType()).getPhysicalType(),
-        [&scalarFunction]<typename T>(T) {
-            scalarFunction->execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, T,
-                uint8_t, ListContains>;
-        });
     // for list_contains(list, input), we expect input and list child have the same type, if list
     // is empty, we use in the input type. Otherwise, we use list child type because casting list
     // is more expensive.
     std::vector<LogicalType> paramTypes;
+    LogicalType listType, childType;
     if (ExpressionUtil::isEmptyList(*input.arguments[0])) {
-        auto& inputType = input.arguments[1]->getDataType();
-        paramTypes.push_back(LogicalType::LIST(inputType.copy()));
-        paramTypes.push_back(inputType.copy());
+        childType = input.arguments[1]->getDataType().copy();
+        listType = LogicalType::LIST(childType.copy());
     } else {
-        auto& listType = input.arguments[0]->getDataType();
-        paramTypes.push_back(listType.copy());
-        paramTypes.push_back(ListType::getChildType(listType).copy());
+        listType = input.arguments[0]->getDataType().copy();
+        childType = ListType::getChildType(listType).copy();
     }
+    paramTypes.push_back(listType.copy());
+    paramTypes.push_back(childType.copy());
+    TypeUtils::visit(childType.getPhysicalType(),
+        [&scalarFunction]<typename T>(T) {
+            scalarFunction->execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, T,
+                uint8_t, ListContains>;
+        });
     return std::make_unique<FunctionBindData>(std::move(paramTypes), LogicalType::BOOL());
 }
 
