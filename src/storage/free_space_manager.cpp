@@ -8,7 +8,8 @@ FreeSpaceManager::FreeSpaceManager() : freeLists{}, numFreePages(0) {};
 
 void FreeSpaceManager::addFreeChunk(BlockEntry entry) {
     KU_ASSERT(std::has_single_bit(entry.numPages));
-    freeLists[std::countr_zero(entry.numPages)].insert(entry);
+    freeLists[std::countr_zero(entry.numPages)].push_back(entry);
+    numFreePages += entry.numPages;
 }
 
 // This also removes the chunk from the free space manager
@@ -18,7 +19,9 @@ std::optional<BlockEntry> FreeSpaceManager::getFreeChunk(common::page_idx_t numP
     for (; levelToSearch < freeLists.size(); ++levelToSearch) {
         auto& curList = freeLists[levelToSearch];
         if (!curList.empty()) {
-            auto entry = curList.extract(curList.begin()).value();
+            auto entry = curList.back();
+            curList.pop_back();
+            numFreePages -= numPages;
             return breakUpChunk(entry, numPages);
         }
     }
@@ -33,7 +36,7 @@ BlockEntry FreeSpaceManager::breakUpChunk(BlockEntry chunk, common::page_idx_t n
         const common::page_idx_t curChunkLevel = std::countr_zero(numRemainingPages);
         const common::page_idx_t numPagesInLevel = static_cast<common::page_idx_t>(1)
                                                    << curChunkLevel;
-        freeLists[curChunkLevel].insert(
+        freeLists[curChunkLevel].push_back(
             BlockEntry{remainingStartPage, numPagesInLevel, chunk.blockManager});
         remainingStartPage += numPagesInLevel;
         numRemainingPages -= numPagesInLevel;

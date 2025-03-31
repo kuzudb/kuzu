@@ -39,7 +39,7 @@ public:
 private:
     BlockEntry breakUpChunk(BlockEntry chunk, common::page_idx_t numRequiredPages);
 
-    std::array<std::set<BlockEntry>, numFreeEntryLevels> freeLists;
+    std::array<std::vector<BlockEntry>, numFreeEntryLevels> freeLists;
     common::page_idx_t numFreePages;
 };
 

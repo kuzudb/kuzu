@@ -10,8 +10,8 @@ using namespace transaction;
 ColumnChunkMetadata uncompressedFlushBuffer(std::span<const uint8_t> buffer,
     BlockEntry& allocatedBlock, const ColumnChunkMetadata& metadata) {
     allocatedBlock.writePagesToFile(buffer.data(), buffer.size());
-    return ColumnChunkMetadata(allocatedBlock.getStartPageIdx(), metadata.numPages,
-        metadata.numValues, metadata.compMeta);
+    return ColumnChunkMetadata(allocatedBlock.startPageIdx, metadata.numPages, metadata.numValues,
+        metadata.compMeta);
 }
 
 ColumnChunkMetadata CompressedFlushBuffer::operator()(std::span<const uint8_t> buffer,
@@ -44,8 +44,8 @@ ColumnChunkMetadata CompressedFlushBuffer::operator()(std::span<const uint8_t> b
         memset(compressedBuffer.get(), 0, KUZU_PAGE_SIZE);
         allocatedBlock.writePageToFile(compressedBuffer.get(), metadata.numPages - 1);
     }
-    return ColumnChunkMetadata(allocatedBlock.getStartPageIdx(), metadata.numPages,
-        metadata.numValues, metadata.compMeta);
+    return ColumnChunkMetadata(allocatedBlock.startPageIdx, metadata.numPages, metadata.numValues,
+        metadata.compMeta);
 }
 
 namespace {
@@ -149,8 +149,8 @@ ColumnChunkMetadata CompressedFloatFlushBuffer<T>::operator()(std::span<const ui
     flushALPExceptions<T>(std::span<const uint8_t>(exceptionBuffer.get(), exceptionBufferSize),
         allocatedBlock, metadata);
 
-    return ColumnChunkMetadata(allocatedBlock.getStartPageIdx(), metadata.numPages,
-        metadata.numValues, metadata.compMeta);
+    return ColumnChunkMetadata(allocatedBlock.startPageIdx, metadata.numPages, metadata.numValues,
+        metadata.compMeta);
 }
 
 template class CompressedFloatFlushBuffer<float>;
