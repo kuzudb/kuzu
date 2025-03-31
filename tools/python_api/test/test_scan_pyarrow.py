@@ -123,4 +123,3 @@ def test_copy_from_pyarrow_multi_pairs(conn_db_readwrite: ConnDB) -> None:
     assert result.has_next() == True
     assert result.get_next()[0] == 252
     assert result.has_next() == False
-    

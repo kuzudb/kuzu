@@ -558,6 +558,3 @@ def test_copy_from_pandas_multi_pairs(tmp_path: Path) -> None:
     assert result.has_next() == True
     assert result.get_next()[0] == 252
     assert result.has_next() == False
-
-
-
