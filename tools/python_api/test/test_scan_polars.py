@@ -69,3 +69,22 @@ def test_polars_scan_ignore_errors(conn_db_readwrite: ConnDB) -> None:
     warnings = conn.execute("CALL show_warnings() RETURN *")
     assert warnings.get_next()[1].startswith("Found duplicated primary key value 1")
     assert not warnings.has_next()
+
+def test_copy_from_polars_multi_pairs(conn_db_readwrite: ConnDB) -> None:
+    conn, db = conn_db_readwrite
+    conn.execute("CREATE NODE TABLE prof(id INT64, PRIMARY KEY(id))")
+    conn.execute("CREATE (p:prof {id: 3});")
+    conn.execute("CREATE (p:prof {id: 4});")
+    conn.execute("CREATE NODE TABLE student(id INT64, PRIMARY KEY(id))")
+    conn.execute("CREATE (p:student {id: 2});")
+    conn.execute("CREATE REL TABLE teaches(from prof to prof, from prof to student, length int64)")
+    df = pl.DataFrame({
+        "from": [3],
+        "to": [4],
+        "length": [252]
+    })
+    conn.execute("COPY teaches from df (from = 'prof', to = 'prof');")
+    result = conn.execute("match (:prof)-[e:teaches]->(:prof) return e.*")
+    assert result.has_next()
+    assert result.get_next()[0] == 252
+    assert not result.has_next()

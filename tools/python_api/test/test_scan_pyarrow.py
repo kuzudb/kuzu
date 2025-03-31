@@ -101,3 +101,25 @@ def test_pyarrow_scan_invalid_option(conn_db_readwrite: ConnDB) -> None:
     error_message = "INVALID_OPTION Option not recognized by pyArrow scanner."
     with pytest.raises(RuntimeError, match=error_message):
         conn.execute("COPY ids FROM tab(INVALID_OPTION=1)")
+
+def test_copy_from_pyarrow_multi_pairs(conn_db_readwrite: ConnDB) -> None:
+    conn, db = conn_db_readwrite
+    conn.execute("CREATE NODE TABLE prof(id INT64, PRIMARY KEY(id))")
+    conn.execute("CREATE (p:prof {id: 3});")
+    conn.execute("CREATE (p:prof {id: 4});")
+    conn.execute("CREATE NODE TABLE student(id INT64, PRIMARY KEY(id))")
+    conn.execute("CREATE (p:student {id: 2});")
+    conn.execute("CREATE REL TABLE teaches(from prof to prof, from prof to student, length int64)")
+    df = pa.Table.from_arrays(
+        [
+            pa.array([3], type=pa.int64()),
+            pa.array([4], type=pa.int64()),
+            pa.array([252], type=pa.int64()),
+        ],
+        names=["from", "to", "length"],
+    )
+    conn.execute("COPY teaches from df (from = 'prof', to = 'prof');")
+    result = conn.execute("match (:prof)-[e:teaches]->(:prof) return e.*")
+    assert result.has_next()
+    assert result.get_next()[0] == 252
+    assert not result.has_next()

@@ -538,3 +538,23 @@ def test_pandas_scan_ignore_errors(tmp_path: Path) -> None:
     warnings = conn.execute("CALL show_warnings() RETURN *")
     assert warnings.get_next()[1].startswith("Found duplicated primary key value 1")
     assert not warnings.has_next()
+
+def test_copy_from_pandas_multi_pairs(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    conn.execute("CREATE NODE TABLE person(id INT64, PRIMARY KEY(id))")
+    conn.execute("CREATE (p:person {id: 3});")
+    conn.execute("CREATE (p:person {id: 4});")
+    conn.execute("CREATE NODE TABLE student(id INT64, PRIMARY KEY(id))")
+    conn.execute("CREATE (p:student {id: 2});")
+    conn.execute("CREATE REL TABLE knows(from person to person, from person to student, length int64)")
+    df = pd.DataFrame({
+        "from": [3],
+        "to": [4],
+        "length": [252]
+    })
+    conn.execute("COPY knows from df (from = 'person', to = 'person');")
+    result = conn.execute("match (:person)-[e:knows]->(:person) return e.*")
+    assert result.has_next()
+    assert result.get_next()[0] == 252
+    assert not result.has_next()
