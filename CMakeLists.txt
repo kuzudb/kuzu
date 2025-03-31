@@ -207,7 +207,7 @@ if(${BUILD_WASM})
     add_compile_definitions(__WASM__)
 endif()
 
-if(${ANDROID_ABI})
+if(ANDROID_ABI)
     message(STATUS "Android ABI detected: ${ANDROID_ABI}")
     add_compile_definitions(__ANDROID__)
     set(__ANDROID__ TRUE)

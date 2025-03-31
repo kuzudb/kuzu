@@ -16,7 +16,7 @@ if(${BUILD_WASM})
     add_static_link_extension(vector)
 endif()
 
-if(${ANDROID_ABI})
+if(ANDROID_ABI)
     message(STATUS "Building for Android, extension static linking is enabled by default")
     add_static_link_extension(fts)
     add_static_link_extension(json)
