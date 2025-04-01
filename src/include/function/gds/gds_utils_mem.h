@@ -32,7 +32,8 @@ private:
 
 class GDSUtilsInMemory {
 public:
-    static void runVertexCompute(InMemVertexCompute& vc, graph::InMemoryGraph& graph, processor::ExecutionContext* context);
+    static void runVertexCompute(InMemVertexCompute& vc, graph::InMemoryGraph& graph,
+        processor::ExecutionContext* context);
 };
 
 } // namespace function
