@@ -67,7 +67,7 @@ if jwt_token is None and not is_dry_run:
 datasets_path = {
     'ldbc-sf10-ku': os.path.join(csv_base_dir, 'ldbc-10', 'csv'),
     'ldbc-sf100-ku': os.path.join(csv_base_dir, 'ldbc-100', 'csv'),
-    'click-ku': os.path.join(csv_base_dir, 'hits', 'parquet')
+    'click-ku': os.path.join(csv_base_dir, 'click', 'hits')
 }
 
 serialized_graphs_path = {
