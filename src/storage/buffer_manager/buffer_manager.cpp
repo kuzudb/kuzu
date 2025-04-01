@@ -272,17 +272,19 @@ uint64_t BufferManager::evictPages() {
     constexpr size_t BATCH_SIZE = 64;
     std::array<std::atomic<EvictionCandidate>*, BATCH_SIZE> evictionCandidates{};
     size_t evictablePages = 0;
-    size_t pagesTried = 0;
     uint64_t claimedMemory = 0;
 
     // Try each page at least twice.
     // E.g. if the vast majority of pages are unmarked and unlocked,
     // the first pass will mark them and the second pass, if insufficient marked pages
     // are found, will evict the first batch.
+    // Using the eviction queue's cursor means that we fail after the same number of total attempts,
+    // regardless of how many threads are trying to evict.
+    auto startCursor = evictionQueue.getEvictionCursor();
     auto failureLimit = evictionQueue.getSize() * 2;
-    while (evictablePages < BATCH_SIZE && pagesTried < failureLimit) {
+    while (evictablePages < BATCH_SIZE &&
+           evictionQueue.getEvictionCursor() - startCursor < failureLimit) {
         evictionCandidates[evictablePages] = evictionQueue.next();
-        pagesTried++;
         auto evictionCandidate = evictionCandidates[evictablePages]->load();
         if (evictionCandidate == EvictionQueue::EMPTY) {
             continue;

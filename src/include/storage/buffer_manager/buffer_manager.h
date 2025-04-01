@@ -75,6 +75,7 @@ public:
     void clear(std::atomic<EvictionCandidate>& candidate);
 
     uint64_t getSize() const { return size; }
+    uint64_t getEvictionCursor() const { return evictionCursor; }
     uint64_t getCapacity() const { return capacity; }
 
 private:
