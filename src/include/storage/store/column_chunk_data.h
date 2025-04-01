@@ -235,8 +235,6 @@ public:
 
     void updateStats(const common::ValueVector* vector, const common::SelectionView& selVector);
 
-    void reclaimAllocatedPages(BlockManager& blockManager);
-
 protected:
     // Initializes the data buffer and functions. They are (and should be) only called in
     // constructor.

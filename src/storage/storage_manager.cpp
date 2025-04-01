@@ -31,8 +31,10 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
     dataFH = initFileHandle(StorageUtils::getDataFName(vfs, databasePath), vfs, context);
     metadataFH = initFileHandle(
         StorageUtils::getMetadataFName(vfs, databasePath, FileVersionType::ORIGINAL), vfs, context);
-    blockManager = std::make_unique<BlockManager>(dataFH, shadowFile.get());
     loadTables(catalog, vfs, context);
+    if (!blockManager) {
+        blockManager = std::make_unique<BlockManager>(dataFH, shadowFile.get());
+    }
 }
 
 StorageManager::~StorageManager() = default;
@@ -62,14 +64,14 @@ void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
             Deserializer deSer(std::make_unique<BufferedFileReader>(std::move(metadataFileInfo)));
             std::string key;
             uint64_t numTables = 0;
+            deSer.validateDebuggingInfo(key, "block_manager");
+            blockManager = BlockManager::deserialize(deSer, dataFH, shadowFile.get());
             deSer.validateDebuggingInfo(key, "num_tables");
             deSer.deserializeValue<uint64_t>(numTables);
             for (auto i = 0u; i < numTables; i++) {
                 auto table = Table::loadTable(deSer, catalog, this, &memoryManager, vfs, context);
                 tables[table->getTableID()] = std::move(table);
             }
-            deSer.validateDebuggingInfo(key, "block_manager");
-            blockManager = BlockManager::deserialize(deSer, dataFH, shadowFile.get());
         }
     }
 }
@@ -153,6 +155,10 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
         FileFlags::READ_ONLY | FileFlags::WRITE | FileFlags::CREATE_IF_NOT_EXISTS, &clientContext);
     const auto writer = std::make_shared<BufferedFileWriter>(*metadataFileInfo);
     Serializer ser(writer);
+
+    ser.writeDebuggingInfo("block_manager");
+    blockManager->serialize(ser);
+
     const auto nodeTableEntries =
         clientContext.getCatalog()->getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
     const auto relTableEntries =
@@ -176,8 +182,6 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
         }
         tables.at(tableEntry->getTableID())->checkpoint(ser, tableEntry);
     }
-    ser.writeDebuggingInfo("block_manager");
-    blockManager->serialize(ser);
     writer->flush();
     writer->sync();
     shadowFile->flushAll();

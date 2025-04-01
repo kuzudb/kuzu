@@ -56,6 +56,7 @@ private:
     friend BlockEntry;
 
     std::unique_ptr<FreeSpaceManager> freeSpaceManager;
+    std::mutex mtx;
     FileHandle* dataFH;
     ShadowFile* shadowFile;
 };
