@@ -41,6 +41,7 @@ public:
 
     BlockEntry allocateBlock(common::page_idx_t numPages);
     void freeBlock(BlockEntry block);
+    void addUncheckpointedFreeBlock(BlockEntry block);
 
     // returns true if a new page was appended to the shadow file
     bool updateShadowedPageWithCursor(PageCursor cursor, DBFileID dbFileID,
@@ -51,6 +52,7 @@ public:
     void serialize(common::Serializer& serializer);
     static std::unique_ptr<BlockManager> deserialize(common::Deserializer& deSer,
         FileHandle* dataFH, ShadowFile* shadowFile);
+    void checkpoint();
 
 private:
     friend BlockEntry;

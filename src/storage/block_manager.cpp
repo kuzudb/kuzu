@@ -21,12 +21,17 @@ BlockEntry BlockManager::allocateBlock(common::page_idx_t numPages) {
 
 void BlockManager::freeBlock(BlockEntry entry) {
     common::UniqLock lck{mtx};
+    addUncheckpointedFreeBlock(entry);
     // freeSpaceManager->addFreeChunk(entry);
-    std::array<uint8_t, common::KUZU_PAGE_SIZE> zeros{};
-    std::fill(zeros.begin(), zeros.end(), 0xff);
-    for (common::page_idx_t i = 0; i < entry.numPages; ++i) {
-        dataFH->writePageToFile(zeros.data(), entry.startPageIdx + i);
-    }
+    // std::array<uint8_t, common::KUZU_PAGE_SIZE> zeros{};
+    // std::fill(zeros.begin(), zeros.end(), 0xff);
+    // for (common::page_idx_t i = 0; i < entry.numPages; ++i) {
+    //     dataFH->writePageToFile(zeros.data(), entry.startPageIdx + i);
+    // }
+}
+
+void BlockManager::addUncheckpointedFreeBlock(BlockEntry entry) {
+    freeSpaceManager->addUncheckpointedFreeChunk(entry);
 }
 
 bool BlockManager::updateShadowedPageWithCursor(PageCursor cursor, DBFileID dbFileID,
@@ -73,5 +78,9 @@ void BlockManager::serialize(common::Serializer& serializer) {
 std::unique_ptr<BlockManager> BlockManager::deserialize(common::Deserializer& deSer,
     FileHandle* dataFH, ShadowFile* shadowFile) {
     return std::make_unique<BlockManager>(dataFH, shadowFile, FreeSpaceManager::deserialize(deSer));
+}
+
+void BlockManager::checkpoint() {
+    freeSpaceManager->checkpoint();
 }
 } // namespace kuzu::storage

@@ -29,17 +29,20 @@ public:
     FreeSpaceManager();
 
     void addFreeChunk(BlockEntry entry);
+    void addUncheckpointedFreeChunk(BlockEntry entry);
 
     // This also removes the chunk from the free space manager
     std::optional<BlockEntry> getFreeChunk(common::page_idx_t numPages);
 
     void serialize(common::Serializer& serializer);
     static std::unique_ptr<FreeSpaceManager> deserialize(common::Deserializer& deSer);
+    void checkpoint();
 
 private:
     BlockEntry breakUpChunk(BlockEntry chunk, common::page_idx_t numRequiredPages);
 
     std::array<std::vector<BlockEntry>, numFreeEntryLevels> freeLists;
+    std::vector<BlockEntry> uncheckpointedFreeChunks;
     common::page_idx_t numFreePages;
 };
 

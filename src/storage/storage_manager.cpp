@@ -185,6 +185,7 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
     writer->flush();
     writer->sync();
     shadowFile->flushAll();
+    blockManager->checkpoint();
 }
 
 void StorageManager::rollbackCheckpoint(main::ClientContext& clientContext) {
