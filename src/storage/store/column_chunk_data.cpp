@@ -317,7 +317,10 @@ ColumnChunkMetadata ColumnChunkData::flushBuffer(BlockEntry& allocatedBlock,
         KU_ASSERT(getBufferSize() == getBufferSize(capacity));
         return flushBufferFunction(buffer->getBuffer(), allocatedBlock, otherMetadata);
     }
-    return otherMetadata;
+    // TODO(Royi) revert tmp hack
+    auto ret = otherMetadata;
+    ret.numPages = allocatedBlock.numPages;
+    return ret;
 }
 
 uint64_t ColumnChunkData::getBufferSize(uint64_t capacity_) const {
@@ -991,13 +994,6 @@ uint64_t ColumnChunkData::spillToDisk() {
     buffer->getMemoryManager()->getBufferManager()->getSpillerOrSkip(
         [&](auto& spiller) { spilledBytes = spiller.spillToDisk(*this); });
     return spilledBytes;
-}
-
-void ColumnChunkData::reclaimAllocatedPages(BlockManager& blockManager) {
-    KU_ASSERT(residencyState == ResidencyState::ON_DISK);
-    if (metadata.pageIdx != INVALID_PAGE_IDX) {
-        blockManager.freeBlock(BlockEntry(metadata.pageIdx, metadata.numPages, blockManager));
-    }
 }
 
 ColumnChunkData::~ColumnChunkData() = default;

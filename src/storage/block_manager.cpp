@@ -1,12 +1,14 @@
 #include "storage/block_manager.h"
 
+#include "common/uniq_lock.h"
 #include "storage/shadow_utils.h"
 #include "storage/storage_utils.h"
 
 namespace kuzu::storage {
 BlockEntry BlockManager::allocateBlock(common::page_idx_t numPages) {
+    common::UniqLock lck{mtx};
     // TODO(Royi) check if this is still needed
-    numPages = std::bit_ceil(numPages);
+    // numPages = numPages == 0 ? 0 : std::bit_ceil(numPages);
 
     auto allocatedFreeChunk = freeSpaceManager->getFreeChunk(numPages);
     if (allocatedFreeChunk.has_value()) {
@@ -18,7 +20,13 @@ BlockEntry BlockManager::allocateBlock(common::page_idx_t numPages) {
 }
 
 void BlockManager::freeBlock(BlockEntry entry) {
-    freeSpaceManager->addFreeChunk(entry);
+    common::UniqLock lck{mtx};
+    // freeSpaceManager->addFreeChunk(entry);
+    std::array<uint8_t, common::KUZU_PAGE_SIZE> zeros{};
+    std::fill(zeros.begin(), zeros.end(), 0xff);
+    for (common::page_idx_t i = 0; i < entry.numPages; ++i) {
+        dataFH->writePageToFile(zeros.data(), entry.startPageIdx + i);
+    }
 }
 
 bool BlockManager::updateShadowedPageWithCursor(PageCursor cursor, DBFileID dbFileID,

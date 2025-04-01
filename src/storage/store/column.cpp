@@ -352,6 +352,7 @@ offset_t Column::appendValues(ColumnChunkData& persistentChunk, ChunkState& stat
     const auto startOffset = metadata.numValues;
     const auto numNewPages =
         writeValues(state, metadata.numValues, data, nullChunkData, 0 /*dataOffset*/, numValues);
+    KU_ASSERT(numNewPages == 0);
     metadata.numPages += numNewPages;
 
     auto [minWritten, maxWritten] = getMinMaxStorageValue(data, 0 /*offset*/, numValues,
@@ -400,10 +401,16 @@ void Column::checkpointNullData(const ColumnCheckpointState& checkpointState) co
     nullColumn->checkpointColumnChunk(nullColumnCheckpointState);
 }
 
+void Column::reclaimAllocatedPages(BlockManager& blockManager,
+    const ColumnChunkMetadata& metadata) {
+    if (metadata.pageIdx != INVALID_PAGE_IDX) {
+        blockManager.freeBlock(BlockEntry(metadata.pageIdx, metadata.numPages, blockManager));
+    }
+}
+
 void Column::checkpointColumnChunkOutOfPlace(const ChunkState& state,
     const ColumnCheckpointState& checkpointState) {
     const auto numRows = std::max(checkpointState.maxRowIdxToWrite + 1, state.metadata.numValues);
-    checkpointState.persistentData.reclaimAllocatedPages(blockManager);
     checkpointState.persistentData.setToInMemory();
     checkpointState.persistentData.resize(numRows);
     scan(&DUMMY_CHECKPOINT_TRANSACTION, state, &checkpointState.persistentData);
@@ -413,6 +420,7 @@ void Column::checkpointColumnChunkOutOfPlace(const ChunkState& state,
     }
     checkpointState.persistentData.finalize();
     checkpointState.persistentData.flush(blockManager);
+    reclaimAllocatedPages(blockManager, state.metadata);
 }
 
 bool Column::canCheckpointInPlace(const ChunkState& state,
