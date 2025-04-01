@@ -20,6 +20,10 @@ void FreeSpaceManager::addFreeChunk(BlockEntry entry) {
     numFreePages += entry.numPages;
 }
 
+void FreeSpaceManager::addUncheckpointedFreeChunk(BlockEntry entry) {
+    uncheckpointedFreeChunks.push_back(entry);
+}
+
 // This also removes the chunk from the free space manager
 std::optional<BlockEntry> FreeSpaceManager::getFreeChunk(common::page_idx_t numPages) {
     if (numPages > 0) {
@@ -61,5 +65,12 @@ void FreeSpaceManager::serialize(common::Serializer&) {}
 
 std::unique_ptr<FreeSpaceManager> FreeSpaceManager::deserialize(common::Deserializer&) {
     return std::make_unique<FreeSpaceManager>();
+}
+
+void FreeSpaceManager::checkpoint() {
+    for (auto uncheckpointedEntry : uncheckpointedFreeChunks) {
+        addFreeChunk(uncheckpointedEntry);
+    }
+    uncheckpointedFreeChunks.clear();
 }
 } // namespace kuzu::storage
