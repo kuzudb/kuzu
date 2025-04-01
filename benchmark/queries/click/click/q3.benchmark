@@ -1,0 +1,4 @@
+-NAME q3
+-QUERY MATCH (h:hits) RETURN SUM(h.AdvEngineID), COUNT(*), AVG(h.ResolutionWidth);
+---- 1
+7280088|99997497|1513.487935

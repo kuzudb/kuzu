@@ -1,0 +1,13 @@
+-NAME q38
+-QUERY MATCH (h:hits) WHERE h.CounterID = 62 AND h.EventDate >= '2013-07-01' AND h.EventDate <= '2013-07-31' AND h.DontCountHits = 0 AND h.IsRefresh = 0 AND h.Title <> '' RETURN h.Title, COUNT(*) AS PageViews ORDER BY PageViews DESC LIMIT 10;
+---- 10
+AUTO.ria.ua ™ - Аппер|14053
+Dave and Hotpoint sport – самые вещие|14329
+OWAProfessign), продать|10919
+Брюки New Era H (Асус) 258 общая выплаток, горшечными|39098
+Приморск (Россия) - Яндекс.Видео|13912
+Приморск - IRR.ru|80958
+Теплоску на|23123
+Тест (Россия) - Яндекс|122407
+Труси - Шоубиз|10157
+Шарарай), Выбрать! - обсуждаются на голд: Шоубиз - Свободная историс|82935

@@ -1,1 +1,0 @@
-MATCH (h:hits) WHERE h.CounterID = 62 AND h.EventDate >= '2013-07-01' AND h.EventDate <= '2013-07-31' AND h.IsRefresh = 0 AND h.IsLink <> 0 AND h.IsDownload = 0 RETURN h.URL, COUNT(*) AS PageViews ORDER BY PageViews DESC SKIP 1000 LIMIT 10;

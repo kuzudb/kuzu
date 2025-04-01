@@ -1,0 +1,4 @@
+-NAME q7
+-QUERY MATCH (h:hits) RETURN MIN(h.EventDate), MAX(h.EventDate);
+---- 1
+2013-07-02|2013-07-31

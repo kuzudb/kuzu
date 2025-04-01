@@ -1,1 +1,0 @@
-MATCH (h:hits) RETURN h.ClientIP, h.ClientIP - 1, h.ClientIP - 2, h.ClientIP - 3, COUNT(*) as c ORDER BY c DESC LIMIT 10;

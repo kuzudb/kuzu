@@ -1,1 +1,0 @@
-MATCH (h:hits) WHERE h.AdvEngineID <> 0 return h.AdvEngineID, COUNT(*) ORDER BY COUNT(*) DESC;

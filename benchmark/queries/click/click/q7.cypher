@@ -1,1 +1,0 @@
-MATCH (h:hits) RETURN MIN(h.EventDate), MAX(h.EventDate);

@@ -1,1 +1,0 @@
-MATCH (h:hits) WHERE h.SearchPhrase <> '' RETURN h.SearchPhrase, COUNT(DISTINCT h.UserID) AS u ORDER BY u DESC LIMIT 10;

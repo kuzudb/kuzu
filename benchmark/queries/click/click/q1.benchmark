@@ -1,0 +1,4 @@
+-NAME q1
+-QUERY MATCH (:hits) RETURN COUNT(*);
+---- 1
+99997497

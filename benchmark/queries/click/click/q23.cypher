@@ -1,1 +1,0 @@
-MATCH (h:hits) WHERE h.Title =~ '.*Google.*' AND NOT h.URL =~ '.*\.google\..*' AND h.SearchPhrase <> '' RETURN h.SearchPhrase, MIN(h.URL), MIN(h.Title), COUNT(*) AS c, COUNT(DISTINCT h.UserID) ORDER BY c DESC LIMIT 10;

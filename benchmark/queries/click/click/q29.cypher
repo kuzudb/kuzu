@@ -1,1 +1,0 @@
-MATCH (h:hits) WHERE h.Referer <> '' WITH REGEXP_REPLACE(h.Referer, '^https?://(?www\.)?([^/]+)/.*$', '\\1') as k, AVG(SIZE(h.Referer)) as l, COUNT(*) as c, MIN(h.Referer) as r WHERE c > 100000 RETURN k, l, c, r ORDER BY l DESC LIMIT 25;

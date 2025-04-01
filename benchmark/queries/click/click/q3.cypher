@@ -1,1 +1,0 @@
-MATCH (h:hits) RETURN SUM(h.AdvEngineID), COUNT(*), AVG(h.ResolutionWidth);

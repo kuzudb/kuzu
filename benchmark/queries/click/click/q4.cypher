@@ -1,1 +1,0 @@
-MATCH (h:hits) RETURN AVG(h.UserID);

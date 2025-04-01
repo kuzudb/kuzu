@@ -1,1 +1,0 @@
-MATCH (h:hits) RETURN h.WatchID, h.ClientIP, COUNT(*) as c, SUM(h.IsRefresh), AVG(h.ResolutionWidth) ORDER BY c DESC LIMIT 10;

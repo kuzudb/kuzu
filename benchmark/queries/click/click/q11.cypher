@@ -1,1 +1,0 @@
-MATCH (h:hits) WHERE h.MobilePhoneModel <> '' RETURN h.MobilePhoneModel, COUNT(DISTINCT h.UserID) AS u ORDER BY u DESC LIMIT 10;

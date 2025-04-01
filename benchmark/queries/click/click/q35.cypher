@@ -1,1 +1,0 @@
-MATCH (h:hits) RETURN 1, h.URL, COUNT(*) as c ORDER BY c DESC LIMIT 10;

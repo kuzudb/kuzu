@@ -1,0 +1,13 @@
+-NAME q12
+-QUERY MATCH (h:hits) WHERE h.MobilePhoneModel <> '' RETURN h.MobilePhone, h.MobilePhoneModel, COUNT(DISTINCT h.UserID) AS u ORDER BY u DESC LIMIT 10;
+---- 10
+10|iPad|11433
+118|A500|16005
+13|iPad|9417
+1|iPad|931038
+26|iPhone|13566
+32|iPad|9503
+5|iPad|48385
+6|iPad|29710
+6|iPhone|14516
+7|iPad|28391

@@ -1,1 +1,0 @@
-MATCH (h:hits) WHERE h.SearchPhrase <> '' RETURN h.SearchPhrase ORDER BY h.EventTime, h.SearchPhrase LIMIT 10;
