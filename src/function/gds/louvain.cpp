@@ -10,6 +10,7 @@
 #include "gds_vertex_compute.h"
 #include "graph/graph_mem.h"
 #include "processor/execution_context.h"
+#include <function/gds/gds_utils_mem.h>
 
 using namespace std;
 using namespace kuzu::binder;
@@ -100,8 +101,41 @@ struct LouvainState {
     explicit LouvainState(const offset_t numNodes) { finalCommunities.resize(numNodes); }
 };
 
-class LouvainCompute {
+class SetFinalComms : public InMemVertexCompute {
 public:
+    explicit SetFinalComms(offset_t phase, LouvainState& lState, PhaseState& state)
+        : phase{phase}, lState{lState}, state{state} {}
+
+    void vertexCompute(offset_t startOffset, offset_t endOffset) override {
+        if (phase == 0) {
+            for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
+                lState.finalCommunities[nodeId] = state.pastCommunities[nodeId];
+            }
+        } else {
+            for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
+                auto prevCommunity = lState.finalCommunities[nodeId];
+                // Every previous community becomes a node in the current phase.
+                auto newCommunity = state.pastCommunities[prevCommunity];
+                lState.finalCommunities[nodeId] = newCommunity;
+            }
+        }
+    }
+
+    std::unique_ptr<InMemVertexCompute> copy() override {
+        return std::make_unique<SetFinalComms>(phase, lState, state);
+    }
+
+private:
+    offset_t phase;
+    LouvainState& lState;
+    PhaseState& state;
+};
+
+struct LouvainCompute {
+    PhaseState state;
+    LouvainState& louvainState;
+    offset_t origNumNodes;
+
     LouvainCompute(const table_id_t tableId, const offset_t numNodes, Graph* graph,
         LouvainState& louvainState)
         : state{PhaseState(numNodes)}, louvainState{louvainState}, origNumNodes{numNodes} {
@@ -133,53 +167,6 @@ public:
     // Delete copy constructors
     LouvainCompute(const LouvainCompute&) = delete;
     LouvainCompute& operator=(const LouvainCompute&) = delete;
-
-    void compute() {
-        for (auto phase = 0u; phase < MAX_LEVELS; ++phase) {
-            auto oldCommCount = state.graph.numNodes;
-
-            printf("Edges %ld\n", state.graph.numEdges);
-            for (offset_t nodeId = 0u; nodeId < state.graph.numNodes; nodeId++) {
-                auto from = state.graph.nodes[nodeId];
-                auto to = state.graph.nodes[nodeId + 1];
-                for (auto offset = from; offset < to; offset++) {
-                    printf(" %ld-[%lf]->%ld\n", nodeId, state.graph.neighbors[offset].weight,
-                        state.graph.neighbors[offset].neighbor);
-                }
-            }
-
-            runPhase();
-            auto newCommCount = renumberCommunities();
-
-            if (phase == 0) {
-                // TODO: parallel NV
-                for (auto nodeId = 0u; nodeId < origNumNodes; ++nodeId) {
-                    louvainState.finalCommunities[nodeId] = state.pastCommunities[nodeId];
-                }
-            } else {
-                // TODO: parallel NV
-                for (auto nodeId = 0u; nodeId < origNumNodes; ++nodeId) {
-                    auto prevCommunity = louvainState.finalCommunities[nodeId];
-                    // Every previous community becomes a node in the current phase.
-                    auto newCommunity = state.pastCommunities[prevCommunity];
-                    louvainState.finalCommunities[nodeId] = newCommunity;
-                }
-            }
-
-            if (oldCommCount == newCommCount) {
-                break;
-            }
-            // cout << "Communities\n";
-            // for (auto communityId = 0u; communityId < state.communities.size(); ++communityId) {
-            //     string s;
-            //     for (const auto nodeId : state.communities[communityId]) {
-            //         s += std::format("{},", nodeId);
-            //     }
-            //     cout << std::format(" {} = [{}]\n", communityId, s);
-            // }
-            aggregateCommunities(newCommCount);
-        }
-    }
 
     void runPhase() {
         double oldMod = -1;
@@ -355,11 +342,6 @@ public:
         }
         state.finalize();
     }
-
-private:
-    PhaseState state;
-    LouvainState& louvainState;
-    offset_t origNumNodes;
 };
 
 class SCCVertexCompute : public GDSResultVertexCompute {
@@ -404,8 +386,55 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableID);
 
     auto louvainState = LouvainState(numNodes);
-    auto edgeCompute = make_unique<LouvainCompute>(tableID, numNodes, graph, louvainState);
-    edgeCompute->compute();
+    LouvainCompute lc(tableID, numNodes, graph, louvainState);
+
+    for (auto phase = 0u; phase < MAX_LEVELS; ++phase) {
+        auto oldCommCount = lc.state.graph.numNodes;
+
+        printf("Edges %ld\n", lc.state.graph.numEdges);
+        for (offset_t nodeId = 0u; nodeId < lc.state.graph.numNodes; nodeId++) {
+            auto from = lc.state.graph.nodes[nodeId];
+            auto to = lc.state.graph.nodes[nodeId + 1];
+            for (auto offset = from; offset < to; offset++) {
+                printf(" %ld-[%lf]->%ld\n", nodeId, lc.state.graph.neighbors[offset].weight,
+                    lc.state.graph.neighbors[offset].neighbor);
+            }
+        }
+
+        lc.runPhase();
+        auto newCommCount = lc.renumberCommunities();
+
+        // SetFinalComms setFinalComms(phase, louvainState, lc.state);
+        // GDSUtilsInMemory::runVertexCompute(setFinalComms, lc.state.graph, input.context);
+
+        if (phase == 0) {
+            // TODO: parallel NV
+            for (auto nodeId = 0u; nodeId < lc.origNumNodes; ++nodeId) {
+                louvainState.finalCommunities[nodeId] = lc.state.pastCommunities[nodeId];
+            }
+        } else {
+            // TODO: parallel NV
+            for (auto nodeId = 0u; nodeId < lc.origNumNodes; ++nodeId) {
+                auto prevCommunity = louvainState.finalCommunities[nodeId];
+                // Every previous community becomes a node in the current phase.
+                auto newCommunity = lc.state.pastCommunities[prevCommunity];
+                louvainState.finalCommunities[nodeId] = newCommunity;
+            }
+        }
+
+        if (oldCommCount == newCommCount) {
+            break;
+        }
+        // cout << "Communities\n";
+        // for (auto communityId = 0u; communityId < state.communities.size(); ++communityId) {
+        //     string s;
+        //     for (const auto nodeId : state.communities[communityId]) {
+        //         s += std::format("{},", nodeId);
+        //     }
+        //     cout << std::format(" {} = [{}]\n", communityId, s);
+        // }
+        lc.aggregateCommunities(newCommCount);
+    }
 
     auto vertexCompute = make_unique<SCCVertexCompute>(mm, sharedState, louvainState);
     GDSUtils::runVertexCompute(input.context, graph, *vertexCompute);

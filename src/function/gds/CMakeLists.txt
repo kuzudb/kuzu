@@ -9,6 +9,7 @@ add_library(kuzu_function_algorithm
         gds_state.cpp
         gds_task.cpp
         gds_utils.cpp
+        gds_utils_mem.cpp
         k_core_decomposition.cpp
         output_writer.cpp
         page_rank.cpp
