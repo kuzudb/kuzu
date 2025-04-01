@@ -1,14 +1,7 @@
 #pragma once
 
-#include <cstdint>
-#include <iterator>
-#include <memory>
-
 #include "common/copy_constructors.h"
 #include "common/types/types.h"
-#include "common/vector/value_vector.h"
-#include "transaction/transaction.h"
-#include <span>
 
 using namespace std;
 using namespace kuzu::common;
