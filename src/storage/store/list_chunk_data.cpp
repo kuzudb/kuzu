@@ -439,5 +439,16 @@ void ListChunkData::flush(BlockManager& blockManager) {
     offsetColumnChunk->flush(blockManager);
 }
 
+void ListChunkData::reclaimAllocatedPages(BlockManager& blockManager,
+    const ChunkState& state) const {
+    ColumnChunkData::reclaimAllocatedPages(blockManager, state);
+    sizeColumnChunk->reclaimAllocatedPages(blockManager,
+        state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX]);
+    dataColumnChunk->reclaimAllocatedPages(blockManager,
+        state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
+    offsetColumnChunk->reclaimAllocatedPages(blockManager,
+        state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
+}
+
 } // namespace storage
 } // namespace kuzu

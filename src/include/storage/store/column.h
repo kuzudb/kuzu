@@ -134,8 +134,6 @@ protected:
         return val >= start && val < end;
     }
 
-    void reclaimAllocatedPages(BlockManager& blockManager, const ColumnChunkMetadata& metadata);
-
 protected:
     std::string name;
     DBFileID dbFileID;

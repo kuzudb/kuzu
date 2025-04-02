@@ -12,6 +12,9 @@ void FreeSpaceManager::addFreeChunk(BlockEntry entry) {
     auto startPageIdx = entry.startPageIdx;
     while (numPages > 0) {
         const auto curLevel = common::CountZeros<decltype(numPages)>::Trailing(numPages);
+        if (curLevel >= freeLists.size()) {
+            freeLists.resize(curLevel + 1);
+        }
         const auto pagesInLevel = static_cast<decltype(numPages)>(1) << curLevel;
         freeLists[curLevel].push_back(BlockEntry{startPageIdx, pagesInLevel, entry.blockManager});
         numPages -= pagesInLevel;

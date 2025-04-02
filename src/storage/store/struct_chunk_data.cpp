@@ -87,6 +87,15 @@ void StructChunkData::flush(BlockManager& blockManager) {
     }
 }
 
+void StructChunkData::reclaimAllocatedPages(BlockManager& blockManager,
+    const ChunkState& state) const {
+    ColumnChunkData::reclaimAllocatedPages(blockManager, state);
+    KU_ASSERT(childChunks.size() == state.childrenStates.size());
+    for (idx_t i = 0; i < childChunks.size(); ++i) {
+        childChunks[i]->reclaimAllocatedPages(blockManager, state.childrenStates[i]);
+    }
+}
+
 void StructChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     KU_ASSERT(other->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);

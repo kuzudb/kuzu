@@ -51,6 +51,8 @@ public:
 
     void flush(BlockManager& blockManager) override;
 
+    void reclaimAllocatedPages(BlockManager& blockManager, const ChunkState& state) const override;
+
 protected:
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;

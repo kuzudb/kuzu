@@ -21,6 +21,7 @@ BlockEntry BlockManager::allocateBlock(common::page_idx_t numPages) {
 
 void BlockManager::freeBlock(BlockEntry entry) {
     common::UniqLock lck{mtx};
+    // TODO(Royi) check if this is the correct way of evicting
     for (uint64_t i = 0; i < entry.numPages; ++i) {
         const auto pageIdx = entry.startPageIdx + i;
         dataFH->removePageFromFrameIfNecessary(pageIdx);

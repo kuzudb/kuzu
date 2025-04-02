@@ -74,6 +74,8 @@ public:
     void resizeWithoutPreserve(uint64_t newCapacity) override;
     uint64_t getEstimatedMemoryUsage() const override;
 
+    void reclaimAllocatedPages(BlockManager& blockManager, const ChunkState& state) const override;
+
     void serialize(common::Serializer& serializer) const override;
     static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);
 
