@@ -26,6 +26,7 @@ impl<'a> StringView<'a> {
 }
 
 #[allow(clippy::module_inception)]
+#[allow(clippy::needless_lifetimes)]
 #[cxx::bridge]
 pub(crate) mod ffi {
     unsafe extern "C++" {

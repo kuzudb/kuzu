@@ -16,14 +16,16 @@ pub enum Error {
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Error::*;
+        use Error::{CxxException, FailedPreparedStatement, FailedQuery, ReadOnlyType};
+        #[cfg(feature = "arrow")]
+        use Error::ArrowError;
         match self {
             CxxException(cxx) => write!(f, "{cxx}"),
             FailedQuery(message) => write!(f, "Query execution failed: {message}"),
             FailedPreparedStatement(message) => write!(f, "Query execution failed: {message}"),
-            ReadOnlyType(typ) => write!(f, "Attempted to pass read only type {:?} over ffi!", typ),
+            ReadOnlyType(typ) => write!(f, "Attempted to pass read only type {typ:?} over ffi!"),
             #[cfg(feature = "arrow")]
-            ArrowError(err) => write!(f, "{}", err),
+            ArrowError(err) => write!(f, "{err}"),
         }
     }
 }
@@ -36,7 +38,7 @@ impl std::fmt::Debug for Error {
 
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        use Error::*;
+        use Error::CxxException;
         match self {
             CxxException(cxx) => Some(cxx),
             _ => None,
