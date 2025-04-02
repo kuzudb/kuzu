@@ -20,6 +20,20 @@ protected:
     options_t parsingOptions;
 };
 
+struct CopyFromColumnInfo {
+    bool partialColumnCopy = false;
+    std::vector<std::string> columnNames;
+
+    CopyFromColumnInfo() = default;
+    CopyFromColumnInfo(bool partialColumnCopy, std::vector<std::string> columnNames)
+        : partialColumnCopy{partialColumnCopy}, columnNames{std::move(columnNames)} {}
+    bool isPartialColumnCopy() const { return partialColumnCopy; }
+    const std::vector<std::string>& getColumnsToCopyRef() const {
+        KU_ASSERT(partialColumnCopy);
+        return columnNames;
+    }
+};
+
 class CopyFrom : public Copy {
 public:
     CopyFrom(std::unique_ptr<BaseScanSource> source, std::string tableName)
@@ -33,14 +47,14 @@ public:
 
     std::string getTableName() const { return tableName; }
 
-    void setColumnNames(std::vector<std::string> names) { columnNames = std::move(names); }
-    std::vector<std::string> getColumnNames() const { return columnNames; }
+    void setColumnInfo(CopyFromColumnInfo columnInfo_) { columnInfo = std::move(columnInfo_); }
+    CopyFromColumnInfo getCopyColumnInfo() const { return columnInfo; }
 
 private:
     bool byColumn_;
     std::unique_ptr<BaseScanSource> source;
     std::string tableName;
-    std::vector<std::string> columnNames;
+    CopyFromColumnInfo columnInfo;
 };
 
 class CopyTo : public Copy {
