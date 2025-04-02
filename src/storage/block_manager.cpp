@@ -8,7 +8,7 @@ namespace kuzu::storage {
 BlockEntry BlockManager::allocateBlock(common::page_idx_t numPages) {
     common::UniqLock lck{mtx};
     // TODO(Royi) check if this is still needed
-    // numPages = numPages == 0 ? 0 : std::bit_ceil(numPages);
+    numPages = numPages == 0 ? 0 : std::bit_ceil(numPages);
 
     auto allocatedFreeChunk = freeSpaceManager->getFreeChunk(numPages);
     if (allocatedFreeChunk.has_value()) {
@@ -27,11 +27,6 @@ void BlockManager::freeBlock(BlockEntry entry) {
         dataFH->removePageFromFrameIfNecessary(pageIdx);
     }
     addUncheckpointedFreeBlock(entry);
-    // std::array<uint8_t, common::KUZU_PAGE_SIZE> zeros{};
-    // std::fill(zeros.begin(), zeros.end(), 0xfa);
-    // for (common::page_idx_t i = 0; i < entry.numPages; ++i) {
-    //     dataFH->writePageToFile(zeros.data(), entry.startPageIdx + i);
-    // }
 }
 
 void BlockManager::addUncheckpointedFreeBlock(BlockEntry entry) {
