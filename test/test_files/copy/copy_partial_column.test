@@ -14,6 +14,13 @@
 ---- ok
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv";
 ---- ok
+-STATEMENT CREATE REL TABLE sees(FROM person to person);
+---- ok
+-STATEMENT COPY sees() FROM (LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv" RETURN column0, column1);
+---- ok
+-STATEMENT MATCH ()-[e:sees]->() RETURN count(e)
+---- 1
+6
 -STATEMENT CREATE REL TABLE knows1 (FROM person TO person, nullDouble DOUBLE, date DATE, meetTime TIMESTAMP,
      validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[],
     transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), someMap MAP(STRING, STRING), MANY_MANY);
