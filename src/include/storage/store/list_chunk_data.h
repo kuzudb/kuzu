@@ -110,6 +110,8 @@ public:
 
     void flush(BlockManager& blockManager) override;
 
+    void reclaimAllocatedPages(BlockManager& blockManager, const ChunkState& state) const override;
+
 protected:
     void copyListValues(const common::list_entry_t& entry, common::ValueVector* dataVector);
 

@@ -256,6 +256,17 @@ void StringChunkData::flush(BlockManager& blockManager) {
     dictionaryChunk->flush(blockManager);
 }
 
+void StringChunkData::reclaimAllocatedPages(BlockManager& blockManager,
+    const ChunkState& state) const {
+    ColumnChunkData::reclaimAllocatedPages(blockManager, state);
+    indexColumnChunk->reclaimAllocatedPages(blockManager,
+        state.childrenStates[INDEX_COLUMN_CHILD_READ_STATE_IDX]);
+    dictionaryChunk->getOffsetChunk()->reclaimAllocatedPages(blockManager,
+        state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
+    dictionaryChunk->getStringDataChunk()->reclaimAllocatedPages(blockManager,
+        state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
+}
+
 uint64_t StringChunkData::getEstimatedMemoryUsage() const {
     return ColumnChunkData::getEstimatedMemoryUsage() + dictionaryChunk->getEstimatedMemoryUsage();
 }

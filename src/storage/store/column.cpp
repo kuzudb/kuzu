@@ -401,13 +401,6 @@ void Column::checkpointNullData(const ColumnCheckpointState& checkpointState) co
     nullColumn->checkpointColumnChunk(nullColumnCheckpointState);
 }
 
-void Column::reclaimAllocatedPages(BlockManager& blockManager,
-    const ColumnChunkMetadata& metadata) {
-    if (metadata.pageIdx != INVALID_PAGE_IDX) {
-        blockManager.freeBlock(BlockEntry(metadata.pageIdx, metadata.numPages, blockManager));
-    }
-}
-
 void Column::checkpointColumnChunkOutOfPlace(const ChunkState& state,
     const ColumnCheckpointState& checkpointState) {
     const auto numRows = std::max(checkpointState.maxRowIdxToWrite + 1, state.metadata.numValues);
@@ -420,7 +413,7 @@ void Column::checkpointColumnChunkOutOfPlace(const ChunkState& state,
     }
     checkpointState.persistentData.finalize();
     checkpointState.persistentData.flush(blockManager);
-    reclaimAllocatedPages(blockManager, state.metadata);
+    checkpointState.persistentData.reclaimAllocatedPages(blockManager, state);
 }
 
 bool Column::canCheckpointInPlace(const ChunkState& state,

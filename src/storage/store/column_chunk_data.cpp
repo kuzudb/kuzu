@@ -998,5 +998,17 @@ uint64_t ColumnChunkData::spillToDisk() {
 
 ColumnChunkData::~ColumnChunkData() = default;
 
+void ColumnChunkData::reclaimAllocatedPages(BlockManager& blockManager,
+    const ChunkState& state) const {
+    const auto& metadata = state.metadata;
+    if (metadata.pageIdx != INVALID_PAGE_IDX) {
+        blockManager.freeBlock(BlockEntry(metadata.pageIdx, metadata.numPages, blockManager));
+    }
+    if (nullData) {
+        KU_ASSERT(state.nullState);
+        nullData->reclaimAllocatedPages(blockManager, *state.nullState);
+    }
+}
+
 } // namespace storage
 } // namespace kuzu
