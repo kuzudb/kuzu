@@ -11,8 +11,6 @@ void IcebergConnector::connect(const std::string& /*dbPath*/, const std::string&
     // Install the Desired Extension on DuckDB
     executeQuery("install iceberg;");
     executeQuery("load iceberg;");
-    executeQuery("install httpfs;");
-    executeQuery("load httpfs;");
     initRemoteFSSecrets(context);
 }
 
