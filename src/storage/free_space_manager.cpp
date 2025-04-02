@@ -27,6 +27,8 @@ void FreeSpaceManager::addUncheckpointedFreeChunk(BlockEntry entry) {
 // This also removes the chunk from the free space manager
 std::optional<BlockEntry> FreeSpaceManager::getFreeChunk(common::page_idx_t numPages) {
     if (numPages > 0) {
+        // 0b10 -> start at level 1
+        // 0b11 -> start at level 2
         auto levelToSearch = common::countBits(numPages) -
                              common::CountZeros<decltype(numPages)>::Leading(numPages - 1);
         for (; levelToSearch < freeLists.size(); ++levelToSearch) {
