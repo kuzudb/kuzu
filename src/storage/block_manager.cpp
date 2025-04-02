@@ -21,10 +21,13 @@ BlockEntry BlockManager::allocateBlock(common::page_idx_t numPages) {
 
 void BlockManager::freeBlock(BlockEntry entry) {
     common::UniqLock lck{mtx};
+    for (uint64_t i = 0; i < entry.numPages; ++i) {
+        const auto pageIdx = entry.startPageIdx + i;
+        dataFH->removePageFromFrameIfNecessary(pageIdx);
+    }
     addUncheckpointedFreeBlock(entry);
-    // freeSpaceManager->addFreeChunk(entry);
     // std::array<uint8_t, common::KUZU_PAGE_SIZE> zeros{};
-    // std::fill(zeros.begin(), zeros.end(), 0xff);
+    // std::fill(zeros.begin(), zeros.end(), 0xfa);
     // for (common::page_idx_t i = 0; i < entry.numPages; ++i) {
     //     dataFH->writePageToFile(zeros.data(), entry.startPageIdx + i);
     // }
