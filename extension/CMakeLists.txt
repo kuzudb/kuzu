@@ -85,4 +85,4 @@ add_extension_if_enabled("json")
 add_extension_if_enabled("fts")
 add_extension_if_enabled("vector")
 add_extension_if_enabled("httpfs")
-
+add_extension_if_enabled("neo4j_migration")

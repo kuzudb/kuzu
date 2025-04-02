@@ -298,3 +298,16 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWildcardNoRemoval) {
     // Cleanup
     std::filesystem::remove_all("/tmp/dbHome_wildcard");
 }
+
+TEST_F(CApiDatabaseTest, dsad) {
+    systemConfig->bufferPoolSize = 1024 * 1024 * 1024;
+    createDBAndConn();
+    printf("%s",
+        conn->query(
+                R"(call NEO4J_MIGRATE("localhost", "neo4j", "czy990424", ["person", "student"], ["knows"]);)")
+            ->toString()
+            .c_str());
+    printf("%s", conn->query(R"(match (p:person) return p.*;)")->toString().c_str());
+    printf("%s",
+        conn->query(R"(match (a:person)-[e:knows]->(b:person) return a,e,b;)")->toString().c_str());
+}
