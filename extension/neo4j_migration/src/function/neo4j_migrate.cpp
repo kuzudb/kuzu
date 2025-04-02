@@ -34,19 +34,30 @@ struct Neo4jMigrateBindData final : TableFuncBindData {
     }
 };
 
-static void validateConnectionString(httplib::Client& cli) {
-    // Dummy query to validate neo4j server connection.
-    std::string request_body = R"({"statements":[{"statement":"RETURN 1"}]})";
+nlohmann::json executeNeo4jQuery(httplib::Client& cli, std::string neo4jQuery) {
+    std::string requestBody = R"({"statements":[{"statement":"{}"}]})";
+    requestBody = common::stringFormat(requestBody, neo4jQuery);
     httplib::Request req;
     req.method = "POST";
     req.path = "/db/neo4j/tx/commit";
     req.headers = {{"Accept", "application/json"}, {"Content-Type", "application/json"}};
-    req.body.assign(reinterpret_cast<const char*>(request_body.c_str()), request_body.length());
+    req.body.assign(reinterpret_cast<const char*>(requestBody.c_str()), requestBody.length());
     auto res = cli.send(req);
+    auto jsonifyResult = nlohmann::json::parse(res->body);
+    if (!jsonifyResult["errors"].empty()) {
+        throw common::RuntimeException{
+            common::stringFormat("Failed to execute query: {} in neo4j. Error: {}.", neo4jQuery,
+                jsonifyResult["errors"].dump())};
+    }
     if (!res || res->status != 200) {
         throw common::RuntimeException{common::stringFormat(
             "Failed to connect to neo4j. Status: {}, Response: {}.", res->status, res->body)};
     }
+    return nlohmann::json::parse(res->body);
+}
+
+static void validateConnectionString(httplib::Client& cli) {
+    executeNeo4jQuery(cli, "RETURN 1");
 }
 
 static std::vector<std::string> bindNodeOrRels(
@@ -74,7 +85,6 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
 }
 
 void exportNeo4jNodeToJson(std::string nodeName, httplib::Client& cli) {
-    std::string request_body = R"({"statements":[{"statement":"{}"}]})";
     auto query =
         common::stringFormat("MATCH (p:{}) "
                              "with collect(p) as n "
@@ -84,22 +94,11 @@ void exportNeo4jNodeToJson(std::string nodeName, httplib::Client& cli) {
                              "RETURN file, source, format, nodes, relationships, "
                              "properties, time, rows, batchSize, batches, done, data",
             nodeName, nodeName);
-    request_body = common::stringFormat(request_body, query);
-    httplib::Request req;
-    req.method = "POST";
-    req.path = "/db/neo4j/tx/commit";
-    req.headers = {{"Accept", "application/json"}, {"Content-Type", "application/json"}};
-    req.body.assign(reinterpret_cast<const char*>(request_body.c_str()), request_body.length());
-    auto res = cli.send(req);
-    if (!res || res->status != 200) {
-        throw common::RuntimeException{common::stringFormat(
-            "Failed to connect to neo4j. Status: {}, Response: {}.", res->status, res->body)};
-    }
+    executeNeo4jQuery(cli, query);
 }
 
 void exportNeo4jRelToJson(std::string relName, std::pair<std::string, std::string> nodePairs,
     httplib::Client& cli) {
-    std::string request_body = R"({"statements":[{"statement":"{}"}]})";
     auto query = common::stringFormat(
         "MATCH (:{})-[e:{}]->(:{}) "
         "with collect(e) as rels "
@@ -109,17 +108,7 @@ void exportNeo4jRelToJson(std::string relName, std::pair<std::string, std::strin
         "RETURN file, source, format, nodes, relationships, "
         "properties, time, rows, batchSize, batches, done, data",
         nodePairs.first, relName, nodePairs.second, nodePairs.first, relName, nodePairs.second);
-    request_body = common::stringFormat(request_body, query);
-    httplib::Request req;
-    req.method = "POST";
-    req.path = "/db/neo4j/tx/commit";
-    req.headers = {{"Accept", "application/json"}, {"Content-Type", "application/json"}};
-    req.body.assign(reinterpret_cast<const char*>(request_body.c_str()), request_body.length());
-    auto res = cli.send(req);
-    if (!res || res->status != 200) {
-        throw common::RuntimeException{common::stringFormat(
-            "Failed to connect to neo4j. Status: {}, Response: {}.", res->status, res->body)};
-    }
+    executeNeo4jQuery(cli, query);
 }
 
 LogicalType convertFromNeo4jTypeStr(const std::string& neo4jTypeStr) {
@@ -138,19 +127,7 @@ std::pair<std::string, std::string> getCreateNodeTableQuery(httplib::Client& cli
         "call db.schema.nodeTypeProperties() yield nodeType, propertyName,propertyTypes where "
         "nodeType = ':`{}`' return propertyName,propertyTypes",
         nodeName);
-    std::string requestBody = R"({"statements":[{"statement":"{}"}]})";
-    requestBody = common::stringFormat(requestBody, neo4jQuery);
-    httplib::Request req;
-    req.method = "POST";
-    req.path = "/db/neo4j/tx/commit";
-    req.headers = {{"Accept", "application/json"}, {"Content-Type", "application/json"}};
-    req.body.assign(reinterpret_cast<const char*>(requestBody.c_str()), requestBody.length());
-    auto res = cli.send(req);
-    if (!res || res->status != 200) {
-        throw common::RuntimeException{common::stringFormat(
-            "Failed to connect to neo4j. Status: {}, Response: {}.", res->status, res->body)};
-    }
-    auto data = nlohmann::json::parse(res->body);
+    auto data = executeNeo4jQuery(cli, neo4jQuery);
     std::string properties = "";
     std::string propertiesToCopy = "";
     for (const auto& result : data["results"]) {
@@ -177,29 +154,17 @@ std::pair<std::string, std::string> getCreateNodeTableQuery(httplib::Client& cli
             nodeName, propertiesToCopy.substr(0, propertiesToCopy.length() - 1))};
 }
 
-nlohmann::json executeNeo4jQuery(httplib::Client& cli, std::string neo4jQuery) {
-    std::string requestBody = R"({"statements":[{"statement":"{}"}]})";
-    requestBody = common::stringFormat(requestBody, neo4jQuery);
-    httplib::Request req;
-    req.method = "POST";
-    req.path = "/db/neo4j/tx/commit";
-    req.headers = {{"Accept", "application/json"}, {"Content-Type", "application/json"}};
-    req.body.assign(reinterpret_cast<const char*>(requestBody.c_str()), requestBody.length());
-    auto res = cli.send(req);
-    if (!res || res->status != 200) {
-        throw common::RuntimeException{common::stringFormat(
-            "Failed to connect to neo4j. Status: {}, Response: {}.", res->status, res->body)};
-    }
-    return nlohmann::json::parse(res->body);
-}
-
-bool hasRelProperty(httplib::Client& cli, std::string srcLabel, std::string dstLabel,
-    std::string relLabel) {
-    auto neo4jQuery = common::stringFormat(
-        "MATCH (:{})-[e:{}]->(:{}) UNWIND keys(e) AS key return count(distinct key)", srcLabel,
-        relLabel, dstLabel);
+std::vector<std::string> getRelProperties(httplib::Client& cli, std::string srcLabel,
+    std::string dstLabel, std::string relLabel) {
+    auto neo4jQuery =
+        common::stringFormat("MATCH (:{})-[e:{}]->(:{}) UNWIND keys(e) AS key return distinct key",
+            srcLabel, relLabel, dstLabel);
     auto data = executeNeo4jQuery(cli, neo4jQuery);
-    return data["results"][0]["data"][0]["row"][0] != 0;
+    std::vector<std::string> relProperties;
+    for (auto& row : data["results"][0]["data"][0]["row"]) {
+        relProperties.push_back(row.get<std::string>());
+    }
+    return relProperties;
 }
 
 std::string getCreateRelTableQuery(httplib::Client& cli, const std::string& relName) {
@@ -209,7 +174,7 @@ std::string getCreateRelTableQuery(httplib::Client& cli, const std::string& relN
         relName);
     auto data = executeNeo4jQuery(cli, neo4jQuery);
     std::string properties = "";
-    std::string propertiesToCopy = "";
+    std::unordered_map<std::string, LogicalType> propertyTypes;
     for (const auto& result : data["results"]) {
         for (const auto& item : result["data"]) {
             if (!item["row"].empty()) {
@@ -221,9 +186,8 @@ std::string getCreateRelTableQuery(httplib::Client& cli, const std::string& relN
                     kuType = LogicalTypeUtils::combineTypes(
                         convertFromNeo4jTypeStr(types[i].get<std::string>()), kuType);
                 }
-                propertiesToCopy += common::stringFormat(
-                    "cast(struct_extract(`properties`, '{}') as {}),", property, kuType.toString());
                 properties += (" " + kuType.toString() + ",");
+                propertyTypes.emplace(property)
             }
         }
     }
@@ -245,20 +209,24 @@ std::string getCreateRelTableQuery(httplib::Client& cli, const std::string& relN
             nodePairs.emplace_back(srcLabel, dstLabel);
             nodePairsString += common::stringFormat("FROM {} TO {},", srcLabel, dstLabel);
             exportNeo4jRelToJson(relName, {srcLabel, dstLabel}, cli);
-            if (hasRelProperty(cli, srcLabel, dstLabel, relName)) {
-                copyQuery += common::stringFormat(
-                    "COPY {} FROM (LOAD FROM '/tmp/{}_{}_{}.json' RETURN "
-                    "cast(struct_extract(`start`, 'id') as int64), "
-                    "cast(struct_extract(`end`, 'id') as int64), {}) (from = \"{}\", to = \"{}\");",
-                    relName, srcLabel, relName, dstLabel,
-                    propertiesToCopy.substr(0, propertiesToCopy.length() - 1), srcLabel, dstLabel);
-            } else {
-                copyQuery += common::stringFormat(
-                    "COPY {}(from,to) FROM (LOAD FROM '/tmp/{}_{}_{}.json' RETURN "
-                    "cast(struct_extract(`start`, 'id') as int64), "
-                    "cast(struct_extract(`end`, 'id') as int64)) (from = \"{}\", to = \"{}\");",
-                    relName, srcLabel, relName, dstLabel, srcLabel, dstLabel);
+            auto relProperties = getRelProperties(cli, srcLabel, dstLabel, relName);
+
+            std::string propertiesToCopy = "";
+            std::string propertiesToExtract = "";
+            for (auto i = 0u; i < relProperties.size(); i++) {
+                propertiesToCopy += relProperties[i];
+                propertiesToExtract += common::stringFormat("cast(struct_extract() as {})", );
+                if (i != relProperties.size() - 1) {
+                    propertiesToCopy += ",";
+                    propertiesToExtract += ",";
+                }
             }
+            copyQuery += common::stringFormat(
+                "COPY {}({}) FROM (LOAD FROM '/tmp/{}_{}_{}.json' RETURN "
+                "cast(struct_extract(`start`, 'id') as int64), "
+                "cast(struct_extract(`end`, 'id') as int64), {}) (from = \"{}\", to = \"{}\");",
+                relName, propertiesToCopy, srcLabel, relName, dstLabel, propertiesToExtract,
+                srcLabel, dstLabel);
         }
     }
     return common::stringFormat("CREATE REL TABLE {} ({} {});", relName, nodePairsString,
