@@ -21,7 +21,7 @@ ColumnChunkMetadata CompressedFlushBuffer::operator()(std::span<const uint8_t> b
     const auto compressedBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
     auto numPages = 0u;
     const auto numValuesPerPage = metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType);
-    KU_ASSERT(numValuesPerPage * metadata.numPages >= metadata.numValues);
+    KU_ASSERT(numValuesPerPage * allocatedBlock.numPages >= metadata.numValues);
     while (valuesRemaining > 0) {
         const auto compressedSize = alg->compressNextPage(bufferStart, valuesRemaining,
             compressedBuffer.get(), KUZU_PAGE_SIZE, metadata.compMeta);
@@ -35,14 +35,17 @@ ColumnChunkMetadata CompressedFlushBuffer::operator()(std::span<const uint8_t> b
         if (compressedSize < KUZU_PAGE_SIZE) {
             memset(compressedBuffer.get() + compressedSize, 0, KUZU_PAGE_SIZE - compressedSize);
         }
-        KU_ASSERT(numPages < metadata.numPages);
+        KU_ASSERT(numPages < allocatedBlock.numPages);
         allocatedBlock.writePageToFile(compressedBuffer.get(), numPages);
         numPages++;
     }
     // Make sure that the on-disk file is the right length
-    if (!allocatedBlock.isInMemoryMode() && numPages < metadata.numPages) {
+    if (!allocatedBlock.isInMemoryMode() && numPages < allocatedBlock.numPages) {
         memset(compressedBuffer.get(), 0, KUZU_PAGE_SIZE);
-        allocatedBlock.writePageToFile(compressedBuffer.get(), metadata.numPages - 1);
+        while (numPages < allocatedBlock.numPages) {
+            allocatedBlock.writePageToFile(compressedBuffer.get(), numPages);
+            ++numPages;
+        }
     }
     return ColumnChunkMetadata(allocatedBlock.startPageIdx, allocatedBlock.numPages,
         metadata.numValues, metadata.compMeta);
@@ -94,7 +97,7 @@ std::pair<std::unique_ptr<uint8_t[]>, uint64_t> flushCompressedFloats(const Comp
         } else {
             valuesRemaining -= numValuesPerPage;
         }
-        KU_ASSERT(numPages < metadata.numPages);
+        KU_ASSERT(numPages < allocatedBlock.numPages);
         allocatedBlock.writePageToFile(compressedBuffer.get(), numPages);
         numPages++;
     }
@@ -112,7 +115,7 @@ void flushALPExceptions(std::span<const uint8_t> exceptionBuffer, BlockEntry& al
         uncompressedGetMetadata(exceptionBuffer, exceptionBuffer.size(),
             metadata.compMeta.floatMetadata()->exceptionCapacity, StorageValue{0}, StorageValue{0});
 
-    const auto exceptionStartPageIdx = metadata.numPages - preExceptionMetadata.numPages;
+    const auto exceptionStartPageIdx = allocatedBlock.numPages - preExceptionMetadata.numPages;
     BlockEntry exceptionBlock{allocatedBlock, exceptionStartPageIdx};
 
     const auto encodedType = std::is_same_v<T, float> ? PhysicalTypeID::ALP_EXCEPTION_FLOAT :
