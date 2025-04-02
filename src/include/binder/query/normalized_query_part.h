@@ -10,6 +10,8 @@ namespace kuzu {
 namespace binder {
 
 class NormalizedQueryPart {
+    friend class NormalizedQueryPartMatchRewriter;
+
 public:
     NormalizedQueryPart() = default;
     DELETE_COPY_DEFAULT_MOVE(NormalizedQueryPart);
