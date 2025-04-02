@@ -1,9 +1,11 @@
 #include "storage/buffer_manager/buffer_manager.h"
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <thread>
 
 #include "common/assert.h"
 #include "common/constants.h"
@@ -272,17 +274,19 @@ uint64_t BufferManager::evictPages() {
     constexpr size_t BATCH_SIZE = 64;
     std::array<std::atomic<EvictionCandidate>*, BATCH_SIZE> evictionCandidates{};
     size_t evictablePages = 0;
-    size_t pagesTried = 0;
     uint64_t claimedMemory = 0;
 
     // Try each page at least twice.
     // E.g. if the vast majority of pages are unmarked and unlocked,
     // the first pass will mark them and the second pass, if insufficient marked pages
     // are found, will evict the first batch.
+    // Using the eviction queue's cursor means that we fail after the same number of total attempts,
+    // regardless of how many threads are trying to evict.
+    auto startCursor = evictionQueue.getEvictionCursor();
     auto failureLimit = evictionQueue.getSize() * 2;
-    while (evictablePages < BATCH_SIZE && pagesTried < failureLimit) {
+    while (evictablePages < BATCH_SIZE &&
+           evictionQueue.getEvictionCursor() - startCursor < failureLimit) {
         evictionCandidates[evictablePages] = evictionQueue.next();
-        pagesTried++;
         auto evictionCandidate = evictionCandidates[evictablePages]->load();
         if (evictionCandidate == EvictionQueue::EMPTY) {
             continue;
@@ -348,6 +352,7 @@ bool BufferManager::reserve(uint64_t sizeToReserve) {
                // usedMemory - totalClaimedMemory could underflow
                usedMemory > bufferPoolSize.load() - totalClaimedMemory;
     };
+    uint8_t failedCount = 0;
     // Evict pages if necessary until we have enough memory.
     while (needMoreMemory()) {
         uint64_t memoryClaimed = 0;
@@ -364,10 +369,17 @@ bool BufferManager::reserve(uint64_t sizeToReserve) {
             }
         }
         if (memoryClaimed == 0 && needMoreMemory()) {
-            // Cannot find more pages to be evicted. Free the memory we reserved and return false.
-            freeUsedMemory(sizeToReserve + totalClaimedMemory);
-            nonEvictableMemory -= nonEvictableClaimedMemory;
-            return false;
+            if (failedCount++ < 2) {
+                // If we failed to find any memory to free, try waiting briefly for other threads to
+                // stop using memory
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            } else {
+                // Cannot find more pages to be evicted. Free the memory we reserved and return
+                // false.
+                freeUsedMemory(sizeToReserve + totalClaimedMemory);
+                nonEvictableMemory -= nonEvictableClaimedMemory;
+                return false;
+            }
         }
         totalClaimedMemory += memoryClaimed;
     }
