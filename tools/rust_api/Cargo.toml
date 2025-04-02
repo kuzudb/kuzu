@@ -24,7 +24,7 @@ include = [
 
 # Note: 1.72 required for testing due to latest dependencies of the arrow feature
 rust-version = "1.67"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 cxx = "1.0"
