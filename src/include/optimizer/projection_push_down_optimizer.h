@@ -46,6 +46,7 @@ private:
     void visitMerge(planner::LogicalOperator* op) override;
     void visitCopyFrom(planner::LogicalOperator* op) override;
     void visitTableFunctionCall(planner::LogicalOperator*) override;
+    void visitScanNodeTable(planner::LogicalOperator*) override;
 
     void visitSetInfo(const binder::BoundSetPropertyInfo& info);
     void visitInsertInfo(const planner::LogicalInsertInfo& info);
@@ -56,6 +57,8 @@ private:
 
     void preAppendProjection(planner::LogicalOperator* op, common::idx_t childIdx,
         binder::expression_vector expressions);
+
+    bool clearScanNodeTableProperties(planner::LogicalOperator* op) const;
 
 private:
     binder::expression_set propertiesInUse;
