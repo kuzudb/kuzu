@@ -24,7 +24,9 @@ impl std::fmt::Display for ConversionError {
 
 impl std::fmt::Debug for ConversionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use ConversionError::*;
+        use ConversionError::{
+            Date, Timestamp, TimestampMs, TimestampNs, TimestampSec, TimestampTz,
+        };
         match self {
             Date(days) => write!(f, "Could not convert Kuzu date offset of UNIX_EPOCH + {days} days to time::Date"),
             Timestamp(us) => write!(f, "Could not convert Kuzu timestamp offset of UNIX_EPOCH + {us} microseconds to time::OffsetDateTime"),
@@ -85,7 +87,7 @@ impl NodeVal {
 fn properties_display(f: &mut fmt::Formatter<'_>, properties: &[(String, Value)]) -> fmt::Result {
     write!(f, "{{")?;
     for (index, (name, value)) in properties.iter().enumerate() {
-        write!(f, "{}:{}", name, value)?;
+        write!(f, "{name}:{value}")?;
         if index < properties.len() - 1 {
             write!(f, ",")?;
         }
@@ -269,7 +271,7 @@ pub enum Value {
 fn display_list<T: std::fmt::Display>(f: &mut fmt::Formatter<'_>, list: &[T]) -> fmt::Result {
     write!(f, "[")?;
     for (i, value) in list.iter().enumerate() {
-        write!(f, "{}", value)?;
+        write!(f, "{value}")?;
         if i != list.len() - 1 {
             write!(f, ",")?;
         }
@@ -298,17 +300,17 @@ impl std::fmt::Display for Value {
             Value::List(_, x) | Value::Array(_, x) => display_list(f, x),
             // Note: These don't match kuzu's toString, but we probably don't want them to
             Value::Interval(x) => write!(f, "{x}"),
-            Value::Timestamp(x) => write!(f, "{x}"),
-            Value::TimestampTz(x) => write!(f, "{x}"),
-            Value::TimestampNs(x) => write!(f, "{x}"),
-            Value::TimestampMs(x) => write!(f, "{x}"),
-            Value::TimestampSec(x) => write!(f, "{x}"),
+            Value::Timestamp(x)
+            | Value::TimestampTz(x)
+            | Value::TimestampNs(x)
+            | Value::TimestampMs(x)
+            | Value::TimestampSec(x) => write!(f, "{x}"),
             Value::Float(x) => write!(f, "{x}"),
             Value::Double(x) => write!(f, "{x}"),
             Value::Struct(x) => {
                 write!(f, "{{")?;
                 for (i, (name, value)) in x.iter().enumerate() {
-                    write!(f, "{}: {}", name, value)?;
+                    write!(f, "{name}: {value}")?;
                     if i != x.len() - 1 {
                         write!(f, ", ")?;
                     }
@@ -318,7 +320,7 @@ impl std::fmt::Display for Value {
             Value::Map(_, x) => {
                 write!(f, "{{")?;
                 for (i, (name, value)) in x.iter().enumerate() {
-                    write!(f, "{}={}", name, value)?;
+                    write!(f, "{name}={value}")?;
                     if i != x.len() - 1 {
                         write!(f, ", ")?;
                     }
@@ -421,16 +423,16 @@ impl TryFrom<&ffi::Value> for Value {
     type Error = ConversionError;
 
     fn try_from(value: &ffi::Value) -> Result<Self, Self::Error> {
-        use ffi::LogicalTypeID;
-        if value.isNull() {
-            return Ok(Value::Null(value.into()));
-        }
-
         fn get_i128(value: &ffi::Value) -> i128 {
             let int128_val = ffi::value_get_int128_t(value);
             let low = int128_val[1];
             let high = int128_val[0] as i64;
             (low as i128) + ((high as i128) << 64)
+        }
+
+        use ffi::LogicalTypeID;
+        if value.isNull() {
+            return Ok(Value::Null(value.into()));
         }
 
         match ffi::value_get_data_type_id(value) {
@@ -639,12 +641,9 @@ impl TryFrom<&ffi::Value> for Value {
                 })
             }
             LogicalTypeID::UNION => {
-                let types =
-                    if let LogicalType::Union { types } = ffi::value_get_data_type(value).into() {
-                        types
-                    } else {
-                        unreachable!()
-                    };
+                let LogicalType::Union { types } = ffi::value_get_data_type(value).into() else {
+                    unreachable!()
+                };
                 debug_assert!(ffi::value_get_children_size(value) == 1);
                 let value: Value = ffi::value_get_child(value, 0).try_into()?;
                 Ok(Value::Union {
@@ -751,10 +750,10 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
                 value.unix_timestamp_nanos() as i64,
             )),
             Value::TimestampMs(value) => Ok(ffi::create_value_timestamp_ms(
-                (value.unix_timestamp_nanos() / 1000000) as i64,
+                (value.unix_timestamp_nanos() / 1_000_000) as i64,
             )),
             Value::TimestampSec(value) => Ok(ffi::create_value_timestamp_sec(
-                (value.unix_timestamp_nanos() / 1000000000) as i64,
+                (value.unix_timestamp_nanos() / 1_000_000_000) as i64,
             )),
             Value::Date(value) => Ok(ffi::create_value_date(date_to_kuzu_date_t(value))),
             Value::Interval(value) => {
@@ -1391,7 +1390,7 @@ mod tests {
             "COPY demo from '{}/demo.csv';",
             // Use forward-slashes instead of backslashes on windows, as thmay not be supported by
             // the query parser
-            temp_dir.path().display().to_string().replace("\\", "/")
+            temp_dir.path().display().to_string().replace('\\', "/")
         ))?;
         let result = conn.query("MATCH (d:demo) RETURN d.b;")?;
         let types = vec![

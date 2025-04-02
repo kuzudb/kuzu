@@ -136,12 +136,12 @@ impl<'a> Connection<'a> {
     pub fn query(&self, query: &str) -> Result<QueryResult<'a>, Error> {
         let conn = unsafe { (*self.conn.get()).pin_mut() };
         let result = ffi::connection_query(conn, ffi::StringView::new(query))?;
-        if !result.isSuccess() {
+        if result.isSuccess() {
+            Ok(QueryResult { result })
+        } else {
             Err(Error::FailedQuery(ffi::query_result_get_error_message(
                 &result,
             )))
-        } else {
-            Ok(QueryResult { result })
         }
     }
 
@@ -184,12 +184,12 @@ impl<'a> Connection<'a> {
         let conn = unsafe { (*self.conn.get()).pin_mut() };
         let result =
             ffi::connection_execute(conn, prepared_statement.statement.pin_mut(), cxx_params)?;
-        if !result.isSuccess() {
+        if result.isSuccess() {
+            Ok(QueryResult { result })
+        } else {
             Err(Error::FailedQuery(ffi::query_result_get_error_message(
                 &result,
             )))
-        } else {
-            Ok(QueryResult { result })
         }
     }
 
