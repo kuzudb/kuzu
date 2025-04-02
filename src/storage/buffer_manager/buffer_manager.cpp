@@ -1,9 +1,11 @@
 #include "storage/buffer_manager/buffer_manager.h"
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <thread>
 
 #include "common/assert.h"
 #include "common/constants.h"
@@ -350,6 +352,7 @@ bool BufferManager::reserve(uint64_t sizeToReserve) {
                // usedMemory - totalClaimedMemory could underflow
                usedMemory > bufferPoolSize.load() - totalClaimedMemory;
     };
+    uint8_t failedCount = 0;
     // Evict pages if necessary until we have enough memory.
     while (needMoreMemory()) {
         uint64_t memoryClaimed = 0;
@@ -366,10 +369,17 @@ bool BufferManager::reserve(uint64_t sizeToReserve) {
             }
         }
         if (memoryClaimed == 0 && needMoreMemory()) {
-            // Cannot find more pages to be evicted. Free the memory we reserved and return false.
-            freeUsedMemory(sizeToReserve + totalClaimedMemory);
-            nonEvictableMemory -= nonEvictableClaimedMemory;
-            return false;
+            if (failedCount++ < 2) {
+                // If we failed to find any memory to free, try waiting briefly for other threads to
+                // stop using memory
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            } else {
+                // Cannot find more pages to be evicted. Free the memory we reserved and return
+                // false.
+                freeUsedMemory(sizeToReserve + totalClaimedMemory);
+                nonEvictableMemory -= nonEvictableClaimedMemory;
+                return false;
+            }
         }
         totalClaimedMemory += memoryClaimed;
     }
