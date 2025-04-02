@@ -110,6 +110,12 @@ struct StatsInfoFunction final {
     static function_set getFunctionSet();
 };
 
+struct FreeSpaceInfoFunction final {
+    static constexpr const char* name = "FREE_SPACE_INFO";
+
+    static function_set getFunctionSet();
+};
+
 struct BMInfoFunction final {
     static constexpr const char* name = "BM_INFO";
 

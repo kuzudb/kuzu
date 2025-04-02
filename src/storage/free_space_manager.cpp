@@ -78,4 +78,41 @@ void FreeSpaceManager::checkpoint() {
     }
     uncheckpointedFreeChunks.clear();
 }
+
+common::row_idx_t FreeSpaceManager::getNumEntries() const {
+    common::row_idx_t ret = 0;
+    for (const auto& freeList : freeLists) {
+        ret += freeList.size();
+    }
+    return ret;
+}
+
+static std::pair<common::idx_t, common::row_idx_t> getStartFreeEntry(common::row_idx_t startOffset,
+    const std::vector<FreeSpaceManager::free_list_t>& freeLists) {
+    size_t freeListIdx = 0;
+    common::row_idx_t curOffset = 0;
+    while (startOffset - curOffset >= freeLists[freeListIdx].size()) {
+        KU_ASSERT(freeListIdx < freeLists.size());
+        curOffset += freeLists[freeListIdx].size();
+        ++freeListIdx;
+    }
+    return {freeListIdx, startOffset - curOffset};
+}
+
+std::vector<BlockEntry> FreeSpaceManager::getEntries(common::row_idx_t startOffset,
+    common::row_idx_t endOffset) const {
+    std::vector<BlockEntry> ret;
+    auto [freeListIdx, idxInList] = getStartFreeEntry(startOffset, freeLists);
+    for (common::row_idx_t i = startOffset; i < endOffset; ++i) {
+        KU_ASSERT(freeListIdx < freeLists.size());
+        ret.push_back(freeLists[freeListIdx][idxInList]);
+        ++idxInList;
+        if (idxInList >= freeLists[freeListIdx].size()) {
+            ++freeListIdx;
+            idxInList = 0;
+        }
+    }
+    return ret;
+}
+
 } // namespace kuzu::storage

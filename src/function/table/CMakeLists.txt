@@ -10,6 +10,7 @@ add_library(kuzu_table_function
         current_setting.cpp
         db_version.cpp
         drop_project_graph.cpp
+        free_space_info.cpp
         show_attached_databases.cpp
         show_connection.cpp
         show_functions.cpp
