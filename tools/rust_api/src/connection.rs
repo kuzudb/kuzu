@@ -172,7 +172,7 @@ impl<'a> Connection<'a> {
         &self,
         prepared_statement: &mut PreparedStatement,
         params: Vec<(&str, Value)>,
-    ) -> Result<QueryResult, Error> {
+    ) -> Result<QueryResult<'a>, Error> {
         // Passing and converting Values in a collection across the ffi boundary is difficult
         // (std::vector cannot be constructed from rust, Vec cannot contain opaque C++ types)
         // So we create an opaque parameter pack and copy the parameters into it one by one
