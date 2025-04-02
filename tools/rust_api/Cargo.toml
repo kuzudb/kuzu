@@ -22,8 +22,7 @@ include = [
     "/kuzu-src/tools/CMakeLists.txt",
 ]
 
-# Note: 1.72 required for testing due to latest dependencies of the arrow feature
-rust-version = "1.67"
+rust-version = "1.74"
 edition = "2021"
 
 [dependencies]
