@@ -2,7 +2,6 @@
 
 #include <cmath>
 
-#include "index/hnsw_config.h"
 #include "processor/operator/partitioner.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/local_cached_column.h"
@@ -70,36 +69,80 @@ struct NodeWithDistance {
         : nodeOffset{nodeOffset}, distance{distance} {}
 };
 
-struct HNSWGraphInfo {
-    common::offset_t numNodes;
-    EmbeddingColumn* embeddings;
-    MetricType distFunc;
+template<typename T, typename ReferenceType>
+concept OffsetRangeLookup = requires(T t, common::offset_t offset) {
+    { t.at(offset) } -> std::convertible_to<ReferenceType>;
+};
 
-    HNSWGraphInfo(common::offset_t numNodes, EmbeddingColumn* embeddings, MetricType distFunc)
-        : numNodes{numNodes}, embeddings{embeddings}, distFunc{distFunc} {}
+/**
+ * @brief Utility class that allows iteration using range-based for loops. Instantiations of this
+ * class just need to provide a class that performs the lookup based on the current offset
+ *
+ * @tparam ReferenceType the return type of the lookup
+ * @tparam Lookup the class that contains the lookup operation at(offset)
+ */
+template<typename ReferenceType, OffsetRangeLookup<ReferenceType> Lookup>
+struct CompressedOffsetSpan {
+    struct Iterator {
+        bool operator==(const Iterator& o) const { return !(*this != o); }
+        bool operator!=(const Iterator& o) const { return offset != o.offset; }
+        ReferenceType operator*() const { return lookup.at(offset); }
+        void operator++() { ++offset; }
+
+        const Lookup& lookup;
+        common::offset_t offset;
+    };
+
+    Iterator begin() const { return Iterator{lookup, startOffset}; }
+    Iterator end() const { return Iterator{lookup, endOffset}; }
+
+    const Lookup& lookup;
+    common::offset_t startOffset;
+    common::offset_t endOffset;
+};
+
+struct CompressedOffsetsView {
+    virtual ~CompressedOffsetsView() = default;
+
+    virtual common::offset_t getNodeOffsetAtomic(common::offset_t csrOffset) const = 0;
+    virtual void setNodeOffsetAtomic(common::offset_t csrOffset, common::offset_t nodeID) = 0;
+    common::offset_t at(common::offset_t offset) const { return getNodeOffsetAtomic(offset); };
+    virtual common::offset_t getInvalidOffset() const = 0;
+};
+
+using compressed_offsets_t = CompressedOffsetSpan<common::offset_t, const CompressedOffsetsView&>;
+class CompressedNodeOffsetBuffer {
+public:
+    CompressedNodeOffsetBuffer(storage::MemoryManager* mm, common::offset_t numNodes,
+        common::length_t maxDegree);
+
+    compressed_offsets_t getNeighbors(common::offset_t nodeOffset, common::offset_t maxDegree,
+        common::offset_t numNbrs) const;
+
+    void setNodeOffset(common::offset_t csrOffset, common::offset_t nodeOffset) {
+        view->setNodeOffsetAtomic(csrOffset, nodeOffset);
+    }
+    common::offset_t getNodeOffset(common::offset_t csrOffset) const {
+        return view->getNodeOffsetAtomic(csrOffset);
+    }
+
+    common::offset_t getInvalidOffset() const { return view->getInvalidOffset(); }
+
+private:
+    std::unique_ptr<storage::MemoryBuffer> buffer;
+    std::unique_ptr<CompressedOffsetsView> view;
 };
 
 class InMemHNSWGraph {
 public:
-    using shrink_func_t =
-        std::function<void(transaction::Transaction*, common::offset_t, common::length_t)>;
-
     InMemHNSWGraph(storage::MemoryManager* mm, common::offset_t numNodes,
-        common::length_t maxDegree)
-        : numNodes{numNodes}, maxDegree{maxDegree} {
-        csrLengthBuffer = mm->allocateBuffer(true, numNodes * sizeof(std::atomic<uint16_t>));
-        csrLengths = reinterpret_cast<std::atomic<uint16_t>*>(csrLengthBuffer->getData());
-        dstNodesBuffer =
-            mm->allocateBuffer(false, numNodes * maxDegree * sizeof(std::atomic<common::offset_t>));
-        dstNodes = reinterpret_cast<std::atomic<common::offset_t>*>(dstNodesBuffer->getData());
-        resetCSRLengthAndDstNodes();
-    }
+        common::length_t maxDegree);
 
-    std::span<std::atomic<common::offset_t>> getNeighbors(common::offset_t nodeOffset) const {
+    compressed_offsets_t getNeighbors(common::offset_t nodeOffset) const {
         const auto numNbrs = getCSRLength(nodeOffset);
         KU_ASSERT(numNbrs <= maxDegree);
         KU_ASSERT(nodeOffset < numNodes);
-        return {&dstNodes[nodeOffset * maxDegree], numNbrs};
+        return dstNodes.getNeighbors(nodeOffset, maxDegree, numNbrs);
     }
 
     common::length_t getMaxDegree() const { return maxDegree; }
@@ -131,11 +174,15 @@ public:
     // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
     void setDstNode(common::offset_t csrOffset, common::offset_t dstNode) {
         KU_ASSERT(csrOffset < numNodes * maxDegree);
-        dstNodes[csrOffset].store(dstNode, std::memory_order_relaxed);
+        dstNodes.setNodeOffset(csrOffset, dstNode);
     }
 
     void finalize(storage::MemoryManager& mm, common::node_group_idx_t nodeGroupIdx,
         const processor::PartitionerSharedState& partitionerSharedState);
+
+    // In the current implementation race conditions can result in dstNode entries being skipped
+    // during insertion. Skipped entries will be marked with this value
+    common::offset_t getInvalidOffset() const { return invalidOffset; }
 
 private:
     void resetCSRLengthAndDstNodes();
@@ -145,17 +192,17 @@ private:
         common::table_id_t relTableID, storage::InMemChunkedNodeGroupCollection& partition) const;
 
     common::offset_t getDstNode(common::offset_t csrOffset) const {
-        return dstNodes[csrOffset].load(std::memory_order_relaxed);
+        return dstNodes.getNodeOffset(csrOffset);
     }
 
 private:
     common::offset_t numNodes;
     std::unique_ptr<storage::MemoryBuffer> csrLengthBuffer;
-    std::unique_ptr<storage::MemoryBuffer> dstNodesBuffer;
     std::atomic<uint16_t>* csrLengths;
-    std::atomic<common::offset_t>* dstNodes;
+    CompressedNodeOffsetBuffer dstNodes;
     // Max allowed degree of a node in the graph before shrinking.
     common::length_t maxDegree;
+    common::offset_t invalidOffset;
 };
 
 } // namespace vector_extension
