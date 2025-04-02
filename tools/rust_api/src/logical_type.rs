@@ -195,7 +195,7 @@ impl From<&ffi::LogicalType> for LogicalType {
             }
             // Should be unreachable, as cxx will check that the LogicalTypeID enum matches the one
             // on the C++ side.
-            x => panic!("Unsupported type {:?}", x),
+            x => panic!("Unsupported type {x:?}"),
         }
     }
 }

@@ -621,7 +621,7 @@ impl TryFrom<&ffi::Value> for Value {
                         }
                     })
                 } else {
-                    panic!("Unexpected value in RecursiveRel's rels: {}", rels)
+                    panic!("Unexpected value in RecursiveRel's rels: {rels}")
                 };
                 let rels = if let Value::List(LogicalType::Rel, rels) = rels {
                     rels.into_iter().map(|x| {
@@ -632,7 +632,7 @@ impl TryFrom<&ffi::Value> for Value {
                         }
                     })
                 } else {
-                    panic!("Unexpected value in RecursiveRel's rels: {}", rels)
+                    panic!("Unexpected value in RecursiveRel's rels: {rels}")
                 };
 
                 Ok(Value::RecursiveRel {
@@ -675,7 +675,7 @@ impl TryFrom<&ffi::Value> for Value {
                 }
             }
             // TODO(bmwinger): Better error message for types which are unsupported
-            x => panic!("Unsupported type {:?}", x),
+            x => panic!("Unsupported type {x:?}"),
         }
     }
 }
