@@ -54,6 +54,12 @@ public:
         FileHandle* dataFH, ShadowFile* shadowFile);
     void checkpoint();
 
+    common::row_idx_t getNumFreeEntries() const { return freeSpaceManager->getNumEntries(); }
+    std::vector<BlockEntry> getFreeEntries(common::row_idx_t startOffset,
+        common::row_idx_t endOffset) const {
+        return freeSpaceManager->getEntries(startOffset, endOffset);
+    }
+
 private:
     friend BlockEntry;
 

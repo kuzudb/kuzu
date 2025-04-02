@@ -25,6 +25,10 @@ public:
     static std::unique_ptr<FreeSpaceManager> deserialize(common::Deserializer& deSer);
     void checkpoint();
 
+    common::row_idx_t getNumEntries() const;
+    std::vector<BlockEntry> getEntries(common::row_idx_t startOffset,
+        common::row_idx_t endOffset) const;
+
 private:
     BlockEntry breakUpChunk(BlockEntry chunk, common::page_idx_t numRequiredPages);
 
