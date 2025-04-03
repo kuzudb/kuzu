@@ -1,0 +1,62 @@
+-DATASET CSV empty
+-BUFFER_POOL_SIZE 1024000000
+
+--
+
+-DEFINE_STATEMENT_BLOCK CLEAN_DB [
+-STATEMENT DROP TABLE IF EXISTS knows
+---- ok
+-STATEMENT DROP TABLE IF EXISTS person
+---- ok
+-STATEMENT DROP TABLE IF EXISTS student
+---- ok
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 0
+]
+
+-CASE MigrateFromNeo4jBaseCase
+
+-STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424", ["person", "student"], ["knows"]);
+---- ok
+-STATEMENT match (p:person) return p.*;
+---- 6
+0|alice|7
+1|abc|56
+2|2|156
+3||5
+4||2
+5||7
+-STATEMENT match (s:student) return s.*;
+---- 1
+6|52
+-STATEMENT match (a)-[e]->(b) return a._id_,e.*,b._id_;
+---- 3
+2|5|0
+2|5|5
+6||3
+-INSERT_STATEMENT_BLOCK CLEAN_DB
+-STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424", ["student"], []);
+---- ok
+-STATEMENT match (s:student) return s.*;
+---- 1
+6|52
+-INSERT_STATEMENT_BLOCK CLEAN_DB
+-STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424", ["person"], []);
+---- ok
+-STATEMENT match (s:person) return s.*;
+---- 6
+0|alice|7
+1|abc|56
+2|2|156
+3||5
+4||2
+5||7
+
+-CASE MigrateFromEmptyNeo4j
+
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 0
+-STATEMENT CALL NEO4J_MIGRATE("localhost", "neo4j", "czy990424", [], []);
+---- ok
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 0

@@ -364,8 +364,8 @@ public:
     OC_SchemaNameContext *oC_SchemaName();
     antlr4::tree::TerminalNode *FROM();
     KU_ScanSourceContext *kU_ScanSource();
-    KU_OptionsContext *kU_Options();
     KU_ColumnNamesContext *kU_ColumnNames();
+    KU_OptionsContext *kU_Options();
 
    
   };
@@ -376,10 +376,10 @@ public:
   public:
     KU_ColumnNamesContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    std::vector<OC_SchemaNameContext *> oC_SchemaName();
-    OC_SchemaNameContext* oC_SchemaName(size_t i);
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
+    std::vector<OC_SchemaNameContext *> oC_SchemaName();
+    OC_SchemaNameContext* oC_SchemaName(size_t i);
 
    
   };

@@ -37,7 +37,7 @@ static std::string getQueryFromFile(VirtualFileSystem* vfs, const std::string& b
 static std::string getColumnNamesToCopy(const CopyFrom& copyFrom) {
     std::string columns = "";
     std::string delimiter = "";
-    for (auto& column : copyFrom.getColumnNames()) {
+    for (auto& column : copyFrom.getCopyColumnInfo().columnNames) {
         columns += delimiter;
         columns += column;
         if (delimiter == "") {

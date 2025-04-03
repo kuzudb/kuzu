@@ -309,5 +309,21 @@ TEST_F(CApiDatabaseTest, dsad) {
             .c_str());
     printf("%s", conn->query(R"(match (p:person) return p.*;)")->toString().c_str());
     printf("%s",
-        conn->query(R"(match (a:person)-[e:knows]->(b:person) return a,e,b;)")->toString().c_str());
+        conn->query(R"(match (a)-[e:knows]->(b) return a,e,b;)")->toString().c_str());
+}
+
+TEST_F(CApiDatabaseTest, dsad123) {
+    createDBAndConn();
+    conn->query(
+        "create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, "
+        "isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, "
+        "lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm "
+        "INT64[][], grades INT64[4], height float, u UUID, PRIMARY KEY (ID));");
+    conn->query("copy person from '/Users/z473chen/Desktop/code/kuzu/dataset/tinysnb/vPerson.csv'");
+    conn->query("create rel table knows(from person to person, length int64);");
+    printf("%s", conn->query("copy knows() from (load from "
+                             "'/Users/z473chen/Desktop/code/kuzu/dataset/tinysnb/eKnows.csv' "
+                             "return column0, column1);")
+                     ->toString()
+                     .c_str());
 }
