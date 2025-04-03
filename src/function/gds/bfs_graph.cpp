@@ -228,6 +228,7 @@ void SparseBFSGraph::setParentList(offset_t offset, ParentList* parentList) {
 BFSGraphManager::BFSGraphManager(table_id_map_t<offset_t> maxOffsetMap, storage::MemoryManager* mm) {
     denseBFSGraph = std::make_unique<DenseBFSGraph>(mm, maxOffsetMap);
     sparseBFSGraph = std::make_unique<SparseBFSGraph>(mm);
+    curGraph = sparseBFSGraph.get();
 }
 
 void BFSGraphManager::switchToDense(ExecutionContext *context, Graph *graph) {

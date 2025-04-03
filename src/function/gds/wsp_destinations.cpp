@@ -51,7 +51,7 @@ private:
 
 private:
     std::atomic<double>* costs = nullptr;
-    ObjectArraysMap<std::atomic<double>> costsMap;
+    GDSDenseObjectManager<std::atomic<double>> costsMap;
 };
 
 template<typename T>
@@ -78,7 +78,7 @@ private:
     std::shared_ptr<Costs> costs;
 };
 
-struct WSPDestinationsAuxiliaryState : public GDSAuxiliaryState {
+class WSPDestinationsAuxiliaryState : public GDSAuxiliaryState {
 public:
     explicit WSPDestinationsAuxiliaryState(std::shared_ptr<Costs> costs)
         : costs{std::move(costs)} {}
@@ -95,15 +95,16 @@ private:
 
 class WSPDestinationsOutputWriter : public RJOutputWriter {
 public:
-    WSPDestinationsOutputWriter(main::ClientContext* context,
-        common::NodeOffsetMaskMap* outputNodeMask, common::nodeID_t sourceNodeID,
-        std::shared_ptr<Costs> costs)
+    WSPDestinationsOutputWriter(main::ClientContext* context, NodeOffsetMaskMap* outputNodeMask,
+        nodeID_t sourceNodeID, std::shared_ptr<Costs> costs)
         : RJOutputWriter{context, outputNodeMask, sourceNodeID}, costs{std::move(costs)} {
         costVector = createVector(LogicalType::DOUBLE());
     }
 
-    void write(processor::FactorizedTable& fTable, nodeID_t dstNodeID,
-        LimitCounter* counter) override {
+    void beginWriting(table_id_t tableID) override {
+        costs->pinTable(tableID);
+    }
+    void write(FactorizedTable& fTable, nodeID_t dstNodeID, LimitCounter* counter) override {
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
         auto cost = costs->getCost(dstNodeID.offset);
         costVector->setValue<double>(0, cost);
@@ -119,11 +120,10 @@ public:
     }
 
 private:
-    void beginWritingOutputsInternal(table_id_t tableID) override { costs->pinTable(tableID); }
-    bool skipInternal(nodeID_t dstNodeID) const override {
-        return dstNodeID == sourceNodeID ||
-               costs->getCost(dstNodeID.offset) == std::numeric_limits<double>::max();
-    }
+    // bool skipInternal(nodeID_t dstNodeID) const override {
+    //     return dstNodeID == sourceNodeID ||
+    //            costs->getCost(dstNodeID.offset) == std::numeric_limits<double>::max();
+    // }
 
 private:
     std::shared_ptr<Costs> costs;

@@ -15,22 +15,23 @@ namespace function {
 class VarLenPathsOutputWriter final : public PathsOutputWriter {
 public:
     VarLenPathsOutputWriter(main::ClientContext* context, NodeOffsetMaskMap* outputNodeMask,
-        nodeID_t sourceNodeID, PathsOutputWriterInfo info, BFSGraph& bfsGraph)
+        nodeID_t sourceNodeID, PathsOutputWriterInfo info, BaseBFSGraph& bfsGraph)
         : PathsOutputWriter{context, outputNodeMask, sourceNodeID, info, bfsGraph} {}
 
-    bool skipInternal(nodeID_t dstNodeID) const override {
-        auto head = bfsGraph.getParentListHead(dstNodeID.offset);
-        // For variable lengths joins, we skip a destination node d in the following conditions:
-        //    (i) if no path has reached d from the source, except when the lower bound is 0.
-        //    (ii) the longest path that has reached d, which is stored in the iter value of the
-        //    firstParent is smaller than the lower bound.
-        // We also do not output any results if a destination node has not been reached.
-        if (nullptr == head) {
-            return info.lowerBound > 0;
-        } else {
-            return head->getIter() < info.lowerBound;
-        }
-    }
+    // TODO: revisit
+    // bool skipInternal(nodeID_t dstNodeID) const override {
+    //     auto head = bfsGraph.getParentListHead(dstNodeID.offset);
+    //     // For variable lengths joins, we skip a destination node d in the following conditions:
+    //     //    (i) if no path has reached d from the source, except when the lower bound is 0.
+    //     //    (ii) the longest path that has reached d, which is stored in the iter value of the
+    //     //    firstParent is smaller than the lower bound.
+    //     // We also do not output any results if a destination node has not been reached.
+    //     if (nullptr == head) {
+    //         return info.lowerBound > 0;
+    //     } else {
+    //         return head->getIter() < info.lowerBound;
+    //     }
+    // }
 
     std::unique_ptr<RJOutputWriter> copy() override {
         return std::make_unique<VarLenPathsOutputWriter>(context, outputNodeMask, sourceNodeID,
@@ -38,14 +39,11 @@ public:
     }
 };
 
-struct VarLenJoinsEdgeCompute : public EdgeCompute {
-    DoublePathLengthsFrontierPair* frontierPair;
-    BFSGraph* bfsGraph;
-    ObjectBlock<ParentList>* block = nullptr;
-
-    VarLenJoinsEdgeCompute(DoublePathLengthsFrontierPair* frontierPair, BFSGraph* bfsGraph)
-        : frontierPair{frontierPair}, bfsGraph{bfsGraph} {
-        block = bfsGraph->addNewBlock();
+class VarLenJoinsEdgeCompute : public EdgeCompute {
+public:
+    VarLenJoinsEdgeCompute(VarLengthFrontierPair* frontierPair, BFSGraphManager* bfsGraphManager)
+        : frontierPair{frontierPair}, bfsGraphManager{bfsGraphManager} {
+        block = bfsGraphManager->getCurrentGraph()->addNewBlock();
     };
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
@@ -54,9 +52,9 @@ struct VarLenJoinsEdgeCompute : public EdgeCompute {
         chunk.forEach([&](auto nbrNodeID, auto edgeID) {
             // We should always update the nbrID in variable length joins
             if (!block->hasSpace()) {
-                block = bfsGraph->addNewBlock();
+                block = bfsGraphManager->getCurrentGraph()->addNewBlock();
             }
-            bfsGraph->addParent(frontierPair->getCurrentIter(), boundNodeID, edgeID, nbrNodeID,
+            bfsGraphManager->getCurrentGraph()->addParent(frontierPair->getCurrentIter(), boundNodeID, edgeID, nbrNodeID,
                 fwdEdge, block);
             activeNodes.push_back(nbrNodeID);
         });
@@ -64,8 +62,13 @@ struct VarLenJoinsEdgeCompute : public EdgeCompute {
     }
 
     std::unique_ptr<EdgeCompute> copy() override {
-        return std::make_unique<VarLenJoinsEdgeCompute>(frontierPair, bfsGraph);
+        return std::make_unique<VarLenJoinsEdgeCompute>(frontierPair, bfsGraphManager);
     }
+
+private:
+    VarLengthFrontierPair* frontierPair;
+    BFSGraphManager* bfsGraphManager;
+    ObjectBlock<ParentList>* block = nullptr;
 };
 
 /**
@@ -78,7 +81,7 @@ public:
     std::string getFunctionName() const override { return VarLenJoinsFunction::name; }
 
     // return srcNodeID, dstNodeID, length, [direction, pathNodeIDs, pathEdgeIDs] (if track path)
-    binder::expression_vector getResultColumns(const RJBindData& bindData) const override {
+    expression_vector getResultColumns(const RJBindData& bindData) const override {
         expression_vector columns;
         columns.push_back(bindData.nodeInput->constCast<NodeExpression>().getInternalID());
         columns.push_back(bindData.nodeOutput->constCast<NodeExpression>().getInternalID());
@@ -98,25 +101,26 @@ public:
     }
 
 private:
-    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID,
-        const RJBindData& bindData, processor::RecursiveExtendSharedState* sharedState) override {
+    std::unique_ptr<GDSComputeState> getComputeState(ExecutionContext* context, const RJBindData& bindData, RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
-        auto frontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
-        auto bfsGraph = getBFSGraph(context, sharedState->graph.get());
-        auto writerInfo = bindData.getPathWriterInfo();
-        writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
-        auto outputWriter = std::make_unique<VarLenPathsOutputWriter>(clientContext,
-            sharedState->getOutputNodeMaskMap(), sourceNodeID, writerInfo, *bfsGraph);
-        auto currentFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
-        auto nextFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
+        auto bfsGraph = std::make_unique<BFSGraphManager>(sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()), clientContext->getMemoryManager());
+        auto currentFrontier = DenseFrontier::getUnvisitedFrontier(context, sharedState->graph.get());
+        auto nextFrontier = DenseFrontier::getUnvisitedFrontier(context, sharedState->graph.get());
         auto frontierPair =
-            std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
+            std::make_unique<VarLengthFrontierPair>(currentFrontier, nextFrontier);
         auto edgeCompute =
             std::make_unique<VarLenJoinsEdgeCompute>(frontierPair.get(), bfsGraph.get());
         auto auxiliaryState = std::make_unique<PathAuxiliaryState>(std::move(bfsGraph));
-        auto gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
+        return std::make_unique<GDSComputeState>(std::move(frontierPair),
             std::move(edgeCompute), std::move(auxiliaryState));
-        return RJCompState(std::move(gdsState), std::move(outputWriter));
+    }
+
+    std::unique_ptr<RJOutputWriter> getOutputWriter(ExecutionContext* context, const RJBindData& bindData, GDSComputeState& computeState, common::nodeID_t sourceNodeID, processor::RecursiveExtendSharedState* sharedState) override {
+        auto bfsGraph = computeState.auxiliaryState->ptrCast<PathAuxiliaryState>()->getBFSGraphManager()->getCurrentGraph();
+        auto writerInfo = bindData.getPathWriterInfo();
+        writerInfo.pathNodeMask = sharedState->getPathNodeMaskMap();
+        return std::make_unique<VarLenPathsOutputWriter>(context->clientContext,
+            sharedState->getOutputNodeMaskMap(), sourceNodeID, writerInfo, *bfsGraph);
     }
 };
 
