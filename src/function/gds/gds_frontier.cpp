@@ -230,7 +230,7 @@ void SPFrontierPair::switchToDense(ExecutionContext* context, graph::Graph* grap
     }
 }
 
-void VarLengthFrontierPair::beginNewIterationInternalNoLock() {
+void DenseSparseDynamicFrontierPair::beginNewIterationInternalNoLock() {
     switch (state) {
     case GDSDensityState::SPARSE: {
         std::swap(curSparseFrontier, nextSparseFrontier);
@@ -247,7 +247,7 @@ void VarLengthFrontierPair::beginNewIterationInternalNoLock() {
     }
 }
 
-void VarLengthFrontierPair::switchToDense(ExecutionContext* context, Graph* graph) {
+void DenseSparseDynamicFrontierPair::switchToDense(ExecutionContext* context, Graph* graph) {
     KU_ASSERT(state == GDSDensityState::SPARSE);
     state = GDSDensityState::DENSE;
     for (auto& [tableID, map] : nextSparseFrontier->sparseObjects) {

@@ -41,14 +41,14 @@ public:
     }
 
 private:
-    BFSGraph& bfsGraph;
+    BFSGraphManager* bfsGraphManager;
     ObjectBlock<ParentList>* block = nullptr;
 };
 
 class WSPPathsOutputWriter : public PathsOutputWriter {
 public:
-    WSPPathsOutputWriter(main::ClientContext* context, common::NodeOffsetMaskMap* outputNodeMask,
-        common::nodeID_t sourceNodeID, PathsOutputWriterInfo info, BFSGraph& bfsGraph)
+    WSPPathsOutputWriter(main::ClientContext* context, NodeOffsetMaskMap* outputNodeMask,
+        nodeID_t sourceNodeID, PathsOutputWriterInfo info, BFSGraph& bfsGraph)
         : PathsOutputWriter{context, outputNodeMask, sourceNodeID, info, bfsGraph} {
         costVector = createVector(LogicalType::DOUBLE());
     }

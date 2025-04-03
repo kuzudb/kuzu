@@ -83,6 +83,8 @@ public:
     explicit WSPDestinationsAuxiliaryState(std::shared_ptr<Costs> costs)
         : costs{std::move(costs)} {}
 
+    Costs* getCosts() { return costs.get(); }
+
     void initSource(nodeID_t sourceNodeID) override { costs->setCost(sourceNodeID.offset, 0); }
 
     void beginFrontierCompute(table_id_t, table_id_t toTableID) override {
@@ -96,14 +98,15 @@ private:
 class WSPDestinationsOutputWriter : public RJOutputWriter {
 public:
     WSPDestinationsOutputWriter(main::ClientContext* context, NodeOffsetMaskMap* outputNodeMask,
-        nodeID_t sourceNodeID, std::shared_ptr<Costs> costs)
-        : RJOutputWriter{context, outputNodeMask, sourceNodeID}, costs{std::move(costs)} {
+        nodeID_t sourceNodeID, Costs* costs)
+        : RJOutputWriter{context, outputNodeMask, sourceNodeID}, costs{costs} {
         costVector = createVector(LogicalType::DOUBLE());
     }
 
     void beginWriting(table_id_t tableID) override {
         costs->pinTable(tableID);
     }
+
     void write(FactorizedTable& fTable, nodeID_t dstNodeID, LimitCounter* counter) override {
         dstNodeIDVector->setValue<nodeID_t>(0, dstNodeID);
         auto cost = costs->getCost(dstNodeID.offset);
@@ -126,7 +129,7 @@ private:
     // }
 
 private:
-    std::shared_ptr<Costs> costs;
+    Costs* costs;
     std::unique_ptr<ValueVector> costVector;
 };
 
@@ -148,27 +151,30 @@ public:
     }
 
 private:
-    RJCompState getRJCompState(ExecutionContext* context, nodeID_t sourceNodeID,
-        const RJBindData& bindData, RecursiveExtendSharedState* sharedState) override {
+    std::unique_ptr<GDSComputeState> getComputeState(ExecutionContext* context, const RJBindData& bindData, RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
         auto graph = sharedState->graph.get();
-        auto curFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
-        auto nextFrontier = PathLengths::getUnvisitedFrontier(context, sharedState->graph.get());
+        auto curDenseFrontier = DenseFrontier::getUnvisitedFrontier(context, graph);
+        auto nextDenseFrontier = DenseFrontier::getUnvisitedFrontier(context, graph);
         auto frontierPair =
-            std::make_unique<DoublePathLengthsFrontierPair>(curFrontier, nextFrontier);
+            std::make_unique<DenseSparseDynamicFrontierPair>(curDenseFrontier, nextDenseFrontier);
         auto costs =
             std::make_shared<Costs>(graph->getMaxOffsetMap(clientContext->getTransaction()),
                 clientContext->getMemoryManager());
         auto auxiliaryState = std::make_unique<WSPDestinationsAuxiliaryState>(costs);
-        auto outputWriter = std::make_unique<WSPDestinationsOutputWriter>(clientContext,
-            sharedState->getOutputNodeMaskMap(), sourceNodeID, costs);
         std::unique_ptr<GDSComputeState> gdsState;
         visit(bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
             auto edgeCompute = std::make_unique<WSPDestinationsEdgeCompute<T>>(costs);
             gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
                 std::move(edgeCompute), std::move(auxiliaryState));
         });
-        return RJCompState(std::move(gdsState), std::move(outputWriter));
+        return gdsState;
+    }
+
+    std::unique_ptr<RJOutputWriter> getOutputWriter(ExecutionContext* context, const RJBindData& bindData, GDSComputeState& computeState, nodeID_t sourceNodeID, RecursiveExtendSharedState* sharedState) override {
+        auto costs = computeState.auxiliaryState->ptrCast<WSPDestinationsAuxiliaryState>()->getCosts();
+        return std::make_unique<WSPDestinationsOutputWriter>(context->clientContext,
+            sharedState->getOutputNodeMaskMap(), sourceNodeID, costs);
     }
 };
 

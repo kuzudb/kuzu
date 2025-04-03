@@ -32,7 +32,7 @@ public:
 
 class KUZU_API SparseFrontier : public Frontier {
     friend class SPFrontierPair;
-    friend class VarLengthFrontierPair;
+    friend class DenseSparseDynamicFrontierPair;
 
 public:
     void pinTableID(common::table_id_t tableID) override;
@@ -52,7 +52,7 @@ private:
 class KUZU_API DenseFrontier : public Frontier {
     friend class DenseFrontierReference;
     friend class SPFrontierPair;
-    friend class VarLengthFrontierPair;
+    friend class DenseSparseDynamicFrontierPair;
     friend class PathLengthsInitVertexCompute;
 
 public:
@@ -209,9 +209,9 @@ private:
     std::unique_ptr<SparseFrontier> nextSparseFrontier = nullptr;
 };
 
-class VarLengthFrontierPair : public FrontierPair {
+class DenseSparseDynamicFrontierPair : public FrontierPair {
 public:
-    VarLengthFrontierPair(std::shared_ptr<DenseFrontier> curDenseFrontier, std::shared_ptr<DenseFrontier> nextDenseFrontier)
+    DenseSparseDynamicFrontierPair(std::shared_ptr<DenseFrontier> curDenseFrontier, std::shared_ptr<DenseFrontier> nextDenseFrontier)
         : state{GDSDensityState::SPARSE}, curDenseFrontier{std::move(curDenseFrontier)}, nextDenseFrontier{std::move(nextDenseFrontier)} {
         curSparseFrontier = std::make_unique<SparseFrontier>();
         nextSparseFrontier = std::make_unique<SparseFrontier>();
