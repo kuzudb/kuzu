@@ -23,5 +23,11 @@ struct ToTimestampFunction {
     static function_set getFunctionSet();
 };
 
+struct ToEpochMsFunction {
+    static constexpr const char* name = "TO_EPOCH_MS";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu

@@ -738,3 +738,17 @@ Conversion exception: Could not convert epoch seconds to TIMESTAMP
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime > e1.meetTime  RETURN COUNT(*)
 ---- 1
 7
+
+-LOG TimestampToEpoch
+-STATEMENT return to_epoch_ms(timestamp('2015-12-11'));
+---- 1
+1449792000000
+-STATEMENT return to_epoch_ms(date('2024-11-13'));
+---- 1
+1731456000000
+-STATEMENT return epoch_ms(to_epoch_ms(date('2015-05-01')));
+---- 1
+2015-05-01 00:00:00
+-STATEMENT return epoch_ms(to_epoch_ms(timestamp('2010-03-09 13:02:11')));
+---- 1
+2010-03-09 13:02:11

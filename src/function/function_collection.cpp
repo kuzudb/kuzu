@@ -160,6 +160,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
         // Timestamp functions
         SCALAR_FUNCTION(CenturyFunction), SCALAR_FUNCTION(EpochMsFunction),
         SCALAR_FUNCTION(ToTimestampFunction), SCALAR_FUNCTION(CurrentTimestampFunction),
+        SCALAR_FUNCTION(ToEpochMsFunction),
 
         // Interval functions
         SCALAR_FUNCTION(ToYearsFunction), SCALAR_FUNCTION(ToMonthsFunction),
