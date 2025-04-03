@@ -16,9 +16,9 @@ pub enum Error {
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Error::{CxxException, FailedPreparedStatement, FailedQuery, ReadOnlyType};
         #[cfg(feature = "arrow")]
         use Error::ArrowError;
+        use Error::{CxxException, FailedPreparedStatement, FailedQuery, ReadOnlyType};
         match self {
             CxxException(cxx) => write!(f, "{cxx}"),
             FailedQuery(message) => write!(f, "Query execution failed: {message}"),
