@@ -138,7 +138,7 @@ private:
     void resetToZeroPagesAndPageCapacity();
     void flushPageIfDirtyWithoutLock(common::page_idx_t pageIdx);
 
-private:
+public:
     // Intended to be used to coordinate calls to functions that change in the internal data
     // structures of the file handle.
     std::shared_mutex fhSharedMutex;

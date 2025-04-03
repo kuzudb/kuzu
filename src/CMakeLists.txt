@@ -45,7 +45,7 @@ unset(KUZU_LIBRARIES)
 set(KUZU_INCLUDES $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}> ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/include/c_api)
 target_include_directories(kuzu PUBLIC ${KUZU_INCLUDES})
 target_include_directories(kuzu_shared PUBLIC ${KUZU_INCLUDES})
-unset(KUZU_INCLUDES)
+set(KUZU_INCLUDES ${KUZU_INCLUDES} PARENT_SCOPE)
 
 if(WIN32)
         # Anything linking against the static library must not use dllimport.

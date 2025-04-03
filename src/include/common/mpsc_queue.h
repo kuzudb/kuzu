@@ -22,7 +22,7 @@ class ConcurrentStack {
     };
 
 public:
-    ConcurrentStack() : head(nullptr), _size(0) {}
+    ConcurrentStack() noexcept : head(nullptr), _size(0) {}
     DELETE_BOTH_COPY(ConcurrentStack);
     ConcurrentStack(ConcurrentStack&& other) : head(other.head), _size(other._size.load()) {
         other.head = nullptr;

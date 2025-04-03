@@ -355,6 +355,7 @@ include_directories(third_party/roaring_bitmap)
 include_directories(SYSTEM third_party/simsimd/include)
 
 add_subdirectory(third_party)
+add_subdirectory(microbench)
 
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
