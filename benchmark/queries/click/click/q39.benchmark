@@ -1,0 +1,13 @@
+-NAME q39
+-QUERY MATCH (h:hits) WHERE h.CounterID = 62 AND h.EventDate >= '2013-07-01' AND h.EventDate <= '2013-07-31' AND h.IsRefresh = 0 AND h.IsLink <> 0 AND h.IsDownload = 0 RETURN h.URL, COUNT(*) AS PageViews ORDER BY PageViews DESC SKIP 1000 LIMIT 10;
+---- 10
+http://autos&marka=19&filmId=LhwOe0x2ExI&where=all&files.html?1=1&city=0&how=rlv&query|2
+http://bibina-odiezhda-pulovoy|2
+http://board=11.ua.150.html%3Fhtml|2
+http://irr.htm?from]=&int[852][to]=&int|2
+http://irr.ru/Registered/main/Turkey/alaptop_10_191149431018528546595|2
+http://kemerovolochart/67095&op_category/768707&op_seo_entry-c-11_287&pid=0&expand|2
+http://pogoda.yandex.ru&xdm_e=http://name=Балетки+10|2
+http://stalker-pub-20087898675494,960948/#page_type%3D0%26pz%3D0%26rleurl%3D%26custom%3D%26CompPath%3D2788885%26bn%3D1216629%26sob%3D158197%26width%3D2788885%26bn%3D1216/000000479#photo/464393681461396636697/detail|2
+http://video.yandex.ru/build_in_two_checked|2
+https://moy-rebenok.ru/exp?sid=3205&bt=7&bn=1|2

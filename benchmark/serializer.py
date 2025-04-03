@@ -1,10 +1,10 @@
-import os
-import logging
-import shutil
-import sys
-import subprocess
-import re
 import argparse
+import logging
+import os
+import re
+import shutil
+import subprocess
+import sys
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -17,7 +17,8 @@ def _get_kuzu_version():
                 return line.split(' ')[2].strip()
 
 
-def serialize(kuzu_exec_path, dataset_name, dataset_path, serialized_graph_path, benchmark_copy_log_dir, single_thread: bool = False):
+def serialize(kuzu_exec_path, dataset_name, dataset_path, serialized_graph_path, benchmark_copy_log_dir,
+              single_thread: bool = False):
     bin_version = _get_kuzu_version()
 
     if not os.path.exists(serialized_graph_path):
@@ -66,7 +67,7 @@ def serialize(kuzu_exec_path, dataset_name, dataset_path, serialized_graph_path,
         # created for each query to avoid memory leaks.
         stdout = sys.stdout if create_match or not benchmark_copy_log_dir else subprocess.PIPE
         process = subprocess.Popen([kuzu_exec_path, serialized_graph_path],
-            stdin=subprocess.PIPE, stdout=stdout, encoding="utf-8")
+                                   stdin=subprocess.PIPE, stdout=stdout, encoding="utf-8")
         process.stdin.write(s)
         process.stdin.close()
         if create_match:
@@ -97,21 +98,27 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Serializes dataset to a kuzu database')
     parser.add_argument("dataset_name", help="Name of the dataset for dispay purposes")
     parser.add_argument("dataset_path", help="Input path of the dataset to serialize")
-    parser.add_argument("serialized_graph_path", help="Output path of the database. Will be created if it does not exist already")
+    parser.add_argument("serialized_graph_path",
+                        help="Output path of the database. Will be created if it does not exist already")
     parser.add_argument("benchmark_copy_log_dir", help="Optional directory to store copy logs", nargs="?")
-    parser.add_argument("--single-thread", help="If true, copy single threaded, which makes the results more reproduceable", action="store_true")
+    parser.add_argument("--single-thread",
+                        help="If true, copy single threaded, which makes the results more reproducible",
+                        action="store_true")
     if sys.platform == "win32":
         default_kuzu_exec_path = os.path.join(
             base_dir, '..', 'build', 'release', 'tools', 'shell', 'kuzu_shell')
     else:
         default_kuzu_exec_path = os.path.join(
             base_dir, '..', 'build', 'release', 'tools', 'shell', 'kuzu')
-    parser.add_argument("--kuzu-shell", help="Path of the kuzu shell executable. Defaults to the path as built in the default release build directory", default=default_kuzu_exec_path)
+    parser.add_argument("--kuzu-shell",
+                        help="Path of the kuzu shell executable. Defaults to the path as built in the default release build directory",
+                        default=default_kuzu_exec_path)
     args = parser.parse_args()
     args = parser.parse_args()
 
     try:
-        serialize(args.kuzu_shell, args.dataset_name, args.dataset_path, args.serialized_graph_path, args.benchmark_copy_log_dir, args.single_thread)
+        serialize(args.kuzu_shell, args.dataset_name, args.dataset_path, args.serialized_graph_path,
+                  args.benchmark_copy_log_dir, args.single_thread)
     except Exception as e:
         logging.error(f'Error serializing dataset {args.dataset_name}')
         raise e

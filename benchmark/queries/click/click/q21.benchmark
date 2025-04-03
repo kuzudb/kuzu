@@ -1,0 +1,4 @@
+-NAME q21
+-QUERY MATCH (h:hits) WHERE h.URL =~ '.*google.*' RETURN COUNT(*);
+---- 1
+15908

@@ -1,15 +1,16 @@
+import argparse
+import datetime
+import logging
+import multiprocessing
+import os
+import psutil
+import re
 import requests
 import shutil
 import subprocess
-import logging
-import datetime
-import os
-import argparse
 import sys
-import psutil
+
 from serializer import _get_kuzu_version
-import multiprocessing
-import re
 
 # Get the number of CPUs, try to use sched_getaffinity if available to account
 # for Docker CPU limits
@@ -36,7 +37,7 @@ bm_size = int((max_memory / 1024 ** 2) * .9)
 base_dir = os.path.dirname(os.path.realpath(__file__))
 
 # dataset registration
-datasets = {'ldbc-sf10', 'ldbc-sf100'}
+datasets = {'ldbc-sf10', 'ldbc-sf100', 'click'}
 
 csv_base_dir = os.getenv('CSV_DIR')
 serialized_base_dir = os.getenv('SERIALIZED_DIR')
@@ -65,12 +66,14 @@ if jwt_token is None and not is_dry_run:
 
 datasets_path = {
     'ldbc-sf10-ku': os.path.join(csv_base_dir, 'ldbc-10', 'csv'),
-    'ldbc-sf100-ku': os.path.join(csv_base_dir, 'ldbc-100', 'csv')
+    'ldbc-sf100-ku': os.path.join(csv_base_dir, 'ldbc-100', 'csv'),
+    'click-ku': os.path.join(csv_base_dir, 'click', 'hits')
 }
 
 serialized_graphs_path = {
     'ldbc-sf10-ku': os.path.join(serialized_base_dir, 'ldbc-sf10-serialized'),
-    'ldbc-sf100-ku': os.path.join(serialized_base_dir, 'ldbc-sf100-serialized')
+    'ldbc-sf100-ku': os.path.join(serialized_base_dir, 'ldbc-sf100-serialized'),
+    'click-ku': os.path.join(serialized_base_dir, 'click-serialized')
 }
 
 benchmark_copy_log_dir = os.path.join("/tmp", 'benchmark_copy_logs')
@@ -80,7 +83,6 @@ os.mkdir(benchmark_copy_log_dir)
 benchmark_log_dir = os.path.join("/tmp", 'benchmark_logs')
 shutil.rmtree(benchmark_log_dir, ignore_errors=True)
 os.mkdir(benchmark_log_dir)
-
 
 # benchmark configuration
 num_warmup = 1
@@ -220,7 +222,7 @@ def serialize_dataset(dataset_name):
     serializer_script = os.path.join(base_dir, "serializer.py")
     try:
         subprocess.run([sys.executable, serializer_script, dataset_name,
-                       dataset_path, serialized_graph_path, benchmark_copy_log_dir], check=True)
+                        dataset_path, serialized_graph_path, benchmark_copy_log_dir], check=True)
     except subprocess.CalledProcessError as e:
         logging.error("Failed to serialize dataset: %s", e)
         sys.exit(1)
@@ -267,6 +269,7 @@ def parse_args():
         '--note', default='automated benchmark run', help='note about this run')
     return parser.parse_args()
 
+
 def _get_master_commit_hash():
     try:
         return subprocess.check_output(['git', 'rev-parse', 'origin/master']).decode("utf-8").strip()
@@ -280,11 +283,13 @@ def _get_git_revision_hash():
     except:
         return None
 
+
 def _get_commit_message():
     try:
         return subprocess.check_output(['git', 'log', '-1', '--pretty=%B']).decode("utf-8").strip()
     except:
         return None
+
 
 def _get_commit_author():
     try:
@@ -292,11 +297,13 @@ def _get_commit_author():
     except:
         return None
 
+
 def _get_commit_email():
     try:
         return subprocess.check_output(['git', 'log', '-1', "--pretty=%ae"]).decode("utf-8").strip()
     except:
         return None
+
 
 def get_run_info():
     commit = {
@@ -311,6 +318,7 @@ def get_run_info():
         'note': args.note,
         'dataset': args.dataset
     }
+
 
 def get_total_files_size(path):
     total_size = 0
@@ -355,6 +363,7 @@ def upload_benchmark_result(database_size=None):
         sys.exit(1)
     return response
 
+
 def get_compare_result(report_id):
     master_commit_hash = _get_master_commit_hash()
     params = {
@@ -373,7 +382,7 @@ def get_compare_result(report_id):
         return None
     else:
         return response.text
-        
+
 
 if __name__ == '__main__':
     args = parse_args()

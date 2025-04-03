@@ -1,0 +1,13 @@
+-NAME q37
+-QUERY MATCH (h:hits) WHERE h.CounterID = 62 AND h.EventDate >= '2013-07-01' AND h.EventDate <= '2013-07-31' AND h.DontCountHits = 0 AND h.IsRefresh = 0 AND h.URL <> '' RETURN h.URL, COUNT(*) as PageViews ORDER BY PageViews DESC LIMIT 10;
+---- 10
+http://irr.ru/index.php?showalbum/login-kapusta-advert2668]=0&order_by=0|18315
+http://irr.ru/index.php?showalbum/login-kapusta-advert27256.html_params|4058
+http://irr.ru/index.php?showalbum/login-kapustic/product_name|16461
+http://irr.ru/index.php?showalbum/login-kupalnik|4369
+http://irr.ru/index.php?showalbum/login-leniya7777294,938303130|102341
+http://irr.ru/index.php?showalbum/login|10880
+http://irr.ru/index.php|12577
+http://komme%2F27.0.1453.116 Safari%2F5.0 (compatible; MSIE 9.0;|7627
+http://komme%2F27.0.1453.116 Safari|3021
+http://komme%2F27.0.1453.116|51218

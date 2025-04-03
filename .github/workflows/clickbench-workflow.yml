@@ -4,12 +4,12 @@ on:
   workflow_call:
 
 jobs:
-  ldbc_benchmark:
-    name: ldbc benchmark
+  click_benchmark:
+    name: click benchmark
     env:
       NUM_THREADS: 30
       GEN: Ninja
-    runs-on: kuzu-self-hosted-benchmarking
+    runs-on: kuzu-self-hosted-benchmarking-xl
     steps:
       - uses: actions/checkout@v4
 
@@ -20,7 +20,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
-          python3 benchmark/benchmark_runner.py --dataset ldbc-sf100 --thread 10
+          python3 benchmark/benchmark_runner.py --dataset click --thread 10
           echo $? > benchmark/exit_code
 
       - name: Upload comparison results

@@ -1,0 +1,3 @@
+-NAME q41
+-QUERY MATCH (h:hits) WHERE h.CounterID = 62 AND h.EventDate >= '2013-07-01' AND h.EventDate <= '2013-07-31' AND h.IsRefresh = 0 AND (h.TraficSourceID = -1 OR h.TraficSourceID = 6) AND h.RefererHash = 3594120000172545465 RETURN h.URLHash, h.EventDate, COUNT(*) AS PageViews ORDER BY PageViews DESC SKIP 100 LIMIT 10;
+---- 0

@@ -1,0 +1,13 @@
+-NAME q22
+-QUERY MATCH (h:hits) WHERE h.URL =~ '.*google.*' AND h.SearchPhrase <> '' RETURN h.SearchPhrase, MIN(h.URL), MIN(h.Title), COUNT(*) as c ORDER BY c DESC LIMIT 10;
+---- 10
+вспомню о названы монстэр|http://tienskaia-moda-zhienskaia-obl.irr.ru/ch/google-c-38208|Glavnaya ploshchad' stolitsi zwy 114 сотрудный рецепты по низкий интернет-магазин модной край - Яндекс|7
+испанч боб новости дейская|http://smeshariki.ru/recipes/show/6840872&trafkey=6d0fc12c54059/loukhaAUXI&where=all&filter/Mitsubishi/google|одной недвижимости - Яндекс.Словарики в интим участь|21
+камедицинск автомобильних условодки на в крем|http://video.yandex.php?com=google.ru/arts/searchAutoSearch|Отдых высокойной области. Фото и видео днях - Футболки стильная Пресса лет про коттельная Пресса - ежедневники: серфи) - Яндекс.Погода|9
+купить трудовані резюме мертный дина кабинский лежит заднее устан|http://video.yandex.php?com=google.ru/arts/searchAutoSearch|Отдых высокойной области. Фото и видео днях - Футболки стильная Пресса лет про коттельная Пресса - ежедневники: серфи) - Яндекс.Погода|7
+прокур гипоаллеры|http://smeshariki.ru/googleTBR%26ad|Модель для сумки - регеш (Россия)|11
+прокур горбуши|http://smeshariki.ru/googleTBR%26ad|Модель для сумки - регеш (Россия)|60
+прокур готовки видеоэндоменя|http://smeshariki.ru/googleTBR%26ad|Модель для сумки - регеш (Россия)|14
+римском качественны for cry|http:%2F%2Fwwww.googlead&aktional|Смешарики - кулина (Каприменте - Свободная сценка - Гофриновательство — Афиша|24
+стоит похуден|http://smeshariki.ru/index.ua/doc/22229/googlead%26aktion=2&input_bdsmpeople.ru/real-estate=0&state=2013070519381|Volvo XC 90 L U N A ChiddeoStudio::GPS vers (2) - Яндекс|23
+универ 11.6/1366x768/4096mb ddressary of thing|http://smeshariki.ru/index.ua/syllanet.ru/business/hotels.turizm.ru/igooglead%26ar_sliceid%3D1216629/0/&&puid2=15&lo=http|дтп бабки. Холодильные чернозёрске | FERRO, NICK-NUTHINGLY* - 770255 - svpressa.ru – Интернет|8

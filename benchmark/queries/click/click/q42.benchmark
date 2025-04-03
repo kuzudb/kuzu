@@ -1,0 +1,3 @@
+-NAME q42
+-QUERY MATCH (h:hits) WHERE h.CounterID = 62 AND h.EventDate >= '2013-07-01' AND h.EventDate <= '2013-07-31' AND h.IsRefresh = 0 AND h.DontCountHits = 0 AND h.URLHash = 2868770270353813622 RETURN h.WindowClientWidth, h.WindowClientHeight, COUNT(*) AS PageViews ORDER BY PageViews DESC SKIP 10000 LIMIT 10;
+---- 0
