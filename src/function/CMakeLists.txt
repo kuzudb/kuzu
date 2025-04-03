@@ -16,6 +16,7 @@ add_subdirectory(utility)
 add_subdirectory(string)
 add_subdirectory(export)
 add_subdirectory(internal_id)
+add_subdirectory(timestamp)
 
 add_library(kuzu_function
         OBJECT
