@@ -1,8 +1,6 @@
 #pragma once
 
-#include <array>
 #include <optional>
-#include <set>
 
 #include "common/types/types.h"
 namespace kuzu::storage {
@@ -23,7 +21,7 @@ public:
 
     void serialize(common::Serializer& serializer);
     static std::unique_ptr<FreeSpaceManager> deserialize(common::Deserializer& deSer);
-    void checkpoint();
+    void finalizeCheckpoint();
 
     common::row_idx_t getNumEntries() const;
     std::vector<BlockEntry> getEntries(common::row_idx_t startOffset,
@@ -31,10 +29,10 @@ public:
 
 private:
     BlockEntry breakUpChunk(BlockEntry chunk, common::page_idx_t numRequiredPages);
+    void combineAdjacentChunks();
 
     std::vector<free_list_t> freeLists;
     free_list_t uncheckpointedFreeChunks;
-    common::page_idx_t numFreePages;
 };
 
 } // namespace kuzu::storage

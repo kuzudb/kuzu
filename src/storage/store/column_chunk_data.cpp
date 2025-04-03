@@ -292,8 +292,8 @@ void ColumnChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
 
 void ColumnChunkData::flush(BlockManager& blockManager) {
     const auto preScanMetadata = getMetadataToFlush();
-    auto allocatedBlock = blockManager.allocateBlock(preScanMetadata.numPages);
-    const auto flushedMetadata = flushBuffer(allocatedBlock, preScanMetadata);
+    auto allocatedEntry = blockManager.allocateBlock(preScanMetadata.numPages);
+    const auto flushedMetadata = flushBuffer(allocatedEntry, preScanMetadata);
     setToOnDisk(flushedMetadata);
     if (nullData) {
         nullData->flush(blockManager);
@@ -311,16 +311,14 @@ void ColumnChunkData::setToOnDisk(const ColumnChunkMetadata& otherMetadata) {
     resetInMemoryStats();
 }
 
-ColumnChunkMetadata ColumnChunkData::flushBuffer(BlockEntry& allocatedBlock,
+ColumnChunkMetadata ColumnChunkData::flushBuffer(AllocatedBlockEntry& entry,
     const ColumnChunkMetadata& otherMetadata) const {
     if (!otherMetadata.compMeta.isConstant() && getBufferSize() != 0) {
         KU_ASSERT(getBufferSize() == getBufferSize(capacity));
-        return flushBufferFunction(buffer->getBuffer(), allocatedBlock, otherMetadata);
+        return flushBufferFunction(buffer->getBuffer(), entry, otherMetadata);
     }
-    // TODO(Royi) revert tmp hack
-    auto ret = otherMetadata;
-    ret.numPages = allocatedBlock.numPages;
-    return ret;
+    KU_ASSERT(otherMetadata.numPages == 0);
+    return otherMetadata;
 }
 
 uint64_t ColumnChunkData::getBufferSize(uint64_t capacity_) const {
@@ -1002,7 +1000,7 @@ void ColumnChunkData::reclaimAllocatedPages(BlockManager& blockManager,
     const ChunkState& state) const {
     const auto& metadata = state.metadata;
     if (metadata.pageIdx != INVALID_PAGE_IDX) {
-        blockManager.freeBlock(BlockEntry(metadata.pageIdx, metadata.numPages, blockManager));
+        blockManager.freeBlock(BlockEntry(metadata.pageIdx, metadata.numPages));
     }
     if (nullData) {
         KU_ASSERT(state.nullState);
