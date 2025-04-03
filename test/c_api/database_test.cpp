@@ -308,8 +308,7 @@ TEST_F(CApiDatabaseTest, dsad) {
             ->toString()
             .c_str());
     printf("%s", conn->query(R"(match (p:person) return p.*;)")->toString().c_str());
-    printf("%s",
-        conn->query(R"(match (a)-[e:knows]->(b) return a,e,b;)")->toString().c_str());
+    printf("%s", conn->query(R"(match (a)-[e:knows]->(b) return a,e,b;)")->toString().c_str());
 }
 
 TEST_F(CApiDatabaseTest, dsad123) {
