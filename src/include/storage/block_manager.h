@@ -14,22 +14,34 @@ struct DBFileID;
 class BlockManager;
 
 struct BlockEntry {
-    BlockEntry(common::page_idx_t startPageIdx, common::page_idx_t numPages,
-        BlockManager& blockManager)
-        : startPageIdx(startPageIdx), numPages(numPages), blockManager(blockManager) {}
+    BlockEntry(common::page_idx_t startPageIdx, common::page_idx_t numPages)
+        : startPageIdx(startPageIdx), numPages(numPages) {}
     BlockEntry(const BlockEntry& o, common::page_idx_t startPageInOther)
-        : BlockEntry(o.startPageIdx + startPageInOther, o.numPages - startPageInOther,
-              o.blockManager) {
+        : BlockEntry(o.startPageIdx + startPageInOther, o.numPages - startPageInOther) {
         KU_ASSERT(startPageInOther <= o.numPages);
     }
+
+    common::page_idx_t startPageIdx;
+    common::page_idx_t numPages;
+};
+
+struct AllocatedBlockEntry {
+    AllocatedBlockEntry(common::page_idx_t startPageIdx, common::page_idx_t numPages,
+        BlockManager& blockManager)
+        : entry(startPageIdx, numPages), blockManager(blockManager) {}
+    AllocatedBlockEntry(const BlockEntry& entry, BlockManager& blockManager)
+        : entry(entry), blockManager(blockManager) {}
+    AllocatedBlockEntry(const AllocatedBlockEntry& entry, common::page_idx_t startPageInEntry)
+        : entry(entry.entry, startPageInEntry), blockManager(entry.blockManager) {}
+    BlockEntry entry;
+    BlockManager& blockManager;
+
+    common::page_idx_t getStartPageIdx() const { return entry.startPageIdx; }
+    common::page_idx_t getNumPages() const { return entry.numPages; }
 
     void writePagesToFile(const uint8_t* buffer, uint64_t bufferSize);
     void writePageToFile(const uint8_t* pageBuffer, common::page_idx_t pageOffset);
     bool isInMemoryMode() const;
-
-    common::page_idx_t startPageIdx;
-    common::page_idx_t numPages;
-    BlockManager& blockManager;
 };
 
 class BlockManager {
@@ -39,7 +51,7 @@ public:
     BlockManager(FileHandle* dataFH, ShadowFile* shadowFile)
         : BlockManager(dataFH, shadowFile, std::make_unique<FreeSpaceManager>()) {}
 
-    BlockEntry allocateBlock(common::page_idx_t numPages);
+    AllocatedBlockEntry allocateBlock(common::page_idx_t numPages);
     void freeBlock(BlockEntry block);
     void addUncheckpointedFreeBlock(BlockEntry block);
 
@@ -52,7 +64,7 @@ public:
     void serialize(common::Serializer& serializer);
     static std::unique_ptr<BlockManager> deserialize(common::Deserializer& deSer,
         FileHandle* dataFH, ShadowFile* shadowFile);
-    void checkpoint();
+    void finalizeCheckpoint();
 
     common::row_idx_t getNumFreeEntries() const { return freeSpaceManager->getNumEntries(); }
     std::vector<BlockEntry> getFreeEntries(common::row_idx_t startOffset,
@@ -61,7 +73,7 @@ public:
     }
 
 private:
-    friend BlockEntry;
+    friend AllocatedBlockEntry;
 
     std::unique_ptr<FreeSpaceManager> freeSpaceManager;
     std::mutex mtx;

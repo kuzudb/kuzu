@@ -208,13 +208,13 @@ bool StringColumn::canCheckpointInPlace(const ChunkState& state,
     if (!dictionary.canCommitInPlace(state, numStrings, strLenToAdd)) {
         return false;
     }
-    return canIndexCommitInPlace(state, numStrings, checkpointState.maxRowIdxToWrite);
+    return canIndexCommitInPlace(state, numStrings, checkpointState.endRowIdxToWrite);
 }
 
 bool StringColumn::canIndexCommitInPlace(const ChunkState& state, uint64_t numStrings,
     offset_t maxOffset) const {
     const ChunkState& indexState = getChildState(state, ChildStateIndex::INDEX);
-    if (indexColumn->isMaxOffsetOutOfPagesCapacity(indexState.metadata, maxOffset)) {
+    if (indexColumn->isEndOffsetOutOfPagesCapacity(indexState.metadata, maxOffset)) {
         return false;
     }
     if (indexState.metadata.compMeta.canAlwaysUpdateInPlace()) {

@@ -361,11 +361,11 @@ offset_t Column::appendValues(ColumnChunkData& persistentChunk, ChunkState& stat
     return startOffset;
 }
 
-bool Column::isMaxOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
-    offset_t maxOffset) const {
+bool Column::isEndOffsetOutOfPagesCapacity(const ColumnChunkMetadata& metadata,
+    offset_t endOffset) const {
     if (metadata.compMeta.compression != CompressionType::CONSTANT &&
         (metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType) *
-            metadata.getNumDataPages(dataType.getPhysicalType())) <= (maxOffset + 1)) {
+            metadata.getNumDataPages(dataType.getPhysicalType())) <= endOffset) {
         // Note that for constant compression, `metadata.numPages` will be equal to 0.
         // Thus, this function will always return true.
         return true;
@@ -403,23 +403,23 @@ void Column::checkpointNullData(const ColumnCheckpointState& checkpointState) co
 
 void Column::checkpointColumnChunkOutOfPlace(const ChunkState& state,
     const ColumnCheckpointState& checkpointState) {
-    const auto numRows = std::max(checkpointState.maxRowIdxToWrite + 1, state.metadata.numValues);
+    const auto numRows = std::max(checkpointState.endRowIdxToWrite, state.metadata.numValues);
     checkpointState.persistentData.setToInMemory();
     checkpointState.persistentData.resize(numRows);
     scan(&DUMMY_CHECKPOINT_TRANSACTION, state, &checkpointState.persistentData);
+    checkpointState.persistentData.reclaimAllocatedPages(blockManager, state);
     for (auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
         checkpointState.persistentData.write(chunkCheckpointState.chunkData.get(), 0 /*srcOffset*/,
             chunkCheckpointState.startRow, chunkCheckpointState.numRows);
     }
     checkpointState.persistentData.finalize();
     checkpointState.persistentData.flush(blockManager);
-    checkpointState.persistentData.reclaimAllocatedPages(blockManager, state);
 }
 
 bool Column::canCheckpointInPlace(const ChunkState& state,
     const ColumnCheckpointState& checkpointState) {
-    if (isMaxOffsetOutOfPagesCapacity(checkpointState.persistentData.getMetadata(),
-            checkpointState.maxRowIdxToWrite)) {
+    if (isEndOffsetOutOfPagesCapacity(checkpointState.persistentData.getMetadata(),
+            checkpointState.endRowIdxToWrite)) {
         return false;
     }
     if (checkpointState.persistentData.getMetadata().compMeta.canAlwaysUpdateInPlace()) {

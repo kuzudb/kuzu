@@ -32,7 +32,7 @@ class Column;
 class NullChunkData;
 class ColumnStats;
 class BlockManager;
-struct BlockEntry;
+struct AllocatedBlockEntry;
 
 // TODO(bmwinger): Hide access to variables.
 struct ChunkState {
@@ -157,7 +157,7 @@ public:
 
     virtual void flush(BlockManager& blockManager);
 
-    ColumnChunkMetadata flushBuffer(BlockEntry& allocatedBlock,
+    ColumnChunkMetadata flushBuffer(AllocatedBlockEntry& entry,
         const ColumnChunkMetadata& metadata) const;
 
     static common::page_idx_t getNumPagesForBytes(uint64_t numBytes) {
@@ -254,7 +254,7 @@ protected:
 
 private:
     using flush_buffer_func_t = std::function<ColumnChunkMetadata(const std::span<uint8_t>,
-        BlockEntry&, const ColumnChunkMetadata&)>;
+        AllocatedBlockEntry&, const ColumnChunkMetadata&)>;
     flush_buffer_func_t initializeFlushBufferFunction(
         std::shared_ptr<CompressionAlg> compression) const;
     uint64_t getBufferSize(uint64_t capacity_) const;
