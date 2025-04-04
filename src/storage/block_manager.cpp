@@ -4,15 +4,19 @@
 #include "storage/shadow_utils.h"
 #include "storage/storage_utils.h"
 
+static constexpr bool ENABLE_FSM = true;
+
 namespace kuzu::storage {
 AllocatedBlockEntry BlockManager::allocateBlock(common::page_idx_t numPages) {
-    common::UniqLock lck{mtx};
-    // TODO(Royi) check if this is still needed
-    numPages = numPages == 0 ? 0 : std::bit_ceil(numPages);
+    if constexpr (ENABLE_FSM) {
+        common::UniqLock lck{mtx};
+        // TODO(Royi) check if this is still needed
+        numPages = numPages == 0 ? 0 : std::bit_ceil(numPages);
 
-    auto allocatedFreeChunk = freeSpaceManager->getFreeChunk(numPages);
-    if (allocatedFreeChunk.has_value()) {
-        return AllocatedBlockEntry{*allocatedFreeChunk, *this};
+        auto allocatedFreeChunk = freeSpaceManager->getFreeChunk(numPages);
+        if (allocatedFreeChunk.has_value()) {
+            return AllocatedBlockEntry{*allocatedFreeChunk, *this};
+        }
     }
     auto startPageIdx = dataFH->addNewPages(numPages);
     KU_ASSERT(dataFH->getNumPages() >= startPageIdx + numPages);
