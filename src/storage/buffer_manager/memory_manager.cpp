@@ -72,12 +72,8 @@ std::unique_ptr<MemoryBuffer> MemoryManager::allocateBuffer(bool initializeToZer
     }
     page_idx_t pageIdx = INVALID_PAGE_IDX;
     {
-        std::scoped_lock<std::mutex> lock(allocatorLock);
-        if (freePages.empty()) {
+        if (!freePages.pop(pageIdx)) {
             pageIdx = fh->addNewPage();
-        } else {
-            pageIdx = freePages.top();
-            freePages.pop();
         }
     }
     auto buffer = bm->pin(*fh, pageIdx, PageReadPolicy::DONT_READ_PAGE);
@@ -95,7 +91,6 @@ void MemoryManager::freeBlock(page_idx_t pageIdx, std::span<uint8_t> buffer) {
         bm->nonEvictableMemory -= buffer.size();
     } else {
         bm->unpin(*fh, pageIdx);
-        std::unique_lock<std::mutex> lock(allocatorLock);
         freePages.push(pageIdx);
     }
 }

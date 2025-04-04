@@ -13,6 +13,79 @@ namespace common {
 
 // Producers are completely wait-free.
 template<typename T>
+class ConcurrentStack {
+    struct Node {
+        T data;
+        std::atomic<Node*> next;
+
+        explicit Node(T data) : data(std::move(data)), next(nullptr) {}
+    };
+
+public:
+    ConcurrentStack() : head(nullptr), _size(0) {}
+    DELETE_BOTH_COPY(ConcurrentStack);
+    ConcurrentStack(ConcurrentStack&& other) : head(other.head), _size(other._size.load()) {
+        other.head = nullptr;
+    }
+    // If this method existed, it wouldn't be atomic, and so would be rather error-prone. Maybe
+    // there's a valid future use case.
+    DELETE_MOVE_ASSN(ConcurrentStack);
+
+    void push(T elem) {
+        Node* node = new Node(std::move(elem));
+        auto next = head.load();
+        node->next = next;
+        while (!head.compare_exchange_weak(next, node)) {
+            node->next = next;
+        }
+        _size.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    bool pop(T& elem) {
+        _size.fetch_sub(1, std::memory_order_relaxed);
+        Node* toPop = head.load();
+        if (toPop == nullptr) {
+            return false;
+        }
+        Node* next = toPop->next.load(std::memory_order_acquire);
+        while (!head.compare_exchange_weak(toPop, next)) {
+            if (toPop == nullptr) {
+                return false;
+            }
+            next = toPop->next.load();
+        }
+        if (toPop == nullptr) {
+            return false;
+        }
+        elem = std::move(toPop->data);
+        delete toPop;
+        return true;
+    }
+
+    // Size is optimistic. The true size might be larger if elements are being added or removed, but
+    // it always contains at least this many elements
+    size_t size() const { return _size; }
+
+    // Drain the queue. All operations on the queue MUST have finished. I.e., there must be NO
+    // push() or pop() operations in progress of any kind.
+    ~ConcurrentStack() {
+        // If we were moved out of, return.
+        if (!head) {
+            return;
+        }
+
+        T dummy;
+        while (pop(dummy)) {}
+        delete head;
+    }
+
+private:
+    std::atomic<Node*> head;
+    std::atomic<size_t> _size;
+};
+
+// Producers are completely wait-free.
+template<typename T>
 class MPSCQueue {
     struct Node {
         T data;

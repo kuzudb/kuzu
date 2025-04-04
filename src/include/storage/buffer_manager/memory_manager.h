@@ -5,6 +5,7 @@
 #include <mutex>
 #include <stack>
 
+#include "common/mpsc_queue.h"
 #include "common/system_config.h"
 #include "common/types/types.h"
 #include <span>
@@ -92,8 +93,7 @@ private:
     FileHandle* fh;
     BufferManager* bm;
     common::page_offset_t pageSize;
-    std::stack<common::page_idx_t> freePages;
-    std::mutex allocatorLock;
+    common::ConcurrentStack<common::page_idx_t> freePages;
 };
 
 } // namespace storage
