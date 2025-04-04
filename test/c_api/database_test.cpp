@@ -298,14 +298,3 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWildcardNoRemoval) {
     // Cleanup
     std::filesystem::remove_all("/tmp/dbHome_wildcard");
 }
-
-TEST_F(CApiDatabaseTest, NHBNHN) {
-    createDBAndConn();
-    // printf(conn->query("CREATE NODE TABLE PERSON (ID INT64, PRIMARY KEY(ID));")->toString().c_str());
-    // printf(conn->query("CREATE (p:PERSON {ID: 5})")->toString().c_str());
-    // printf(conn->query("CREATE (p:PERSON {ID: 20})")->toString().c_str());
-    // printf(conn->query("CREATE (p:PERSON {ID: 15})")->toString().c_str());
-    // printf(conn->query("export database 'C:\\\\Users\\\\z473chen\\\\CLionProjects\\\\kuzu\\\\test552'")->toString().c_str());
-    printf(conn->query("import database 'C:\\\\Users\\\\z473chen\\\\CLionProjects\\\\kuzu\\\\test552'")->toString().c_str());
-    printf(conn->query("match (p:PERSON) RETURN p")->toString().c_str());
-}
