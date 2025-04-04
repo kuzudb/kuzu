@@ -11,7 +11,7 @@ AllocatedBlockEntry BlockManager::allocateBlock(common::page_idx_t numPages) {
     if constexpr (ENABLE_FSM) {
         common::UniqLock lck{mtx};
         // TODO(Royi) check if this is still needed
-        numPages = numPages == 0 ? 0 : std::bit_ceil(numPages);
+        // numPages = numPages == 0 ? 0 : std::bit_ceil(numPages);
 
         auto allocatedFreeChunk = freeSpaceManager->getFreeChunk(numPages);
         if (allocatedFreeChunk.has_value()) {
@@ -24,12 +24,14 @@ AllocatedBlockEntry BlockManager::allocateBlock(common::page_idx_t numPages) {
 }
 
 void BlockManager::freeBlock(BlockEntry entry) {
-    common::UniqLock lck{mtx};
-    for (uint64_t i = 0; i < entry.numPages; ++i) {
-        const auto pageIdx = entry.startPageIdx + i;
-        dataFH->removePageFromFrameIfNecessary(pageIdx);
+    if constexpr (ENABLE_FSM) {
+        common::UniqLock lck{mtx};
+        for (uint64_t i = 0; i < entry.numPages; ++i) {
+            const auto pageIdx = entry.startPageIdx + i;
+            dataFH->removePageFromFrameIfNecessary(pageIdx);
+        }
+        freeSpaceManager->addFreeChunk(entry);
     }
-    freeSpaceManager->addFreeChunk(entry);
 }
 
 void BlockManager::addUncheckpointedFreeBlock(BlockEntry entry) {
