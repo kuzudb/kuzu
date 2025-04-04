@@ -1,5 +1,7 @@
 #include "function/neo4j_migrate.h"
 
+#include <chrono>
+
 #include "binder/expression/literal_expression.h"
 #include "common/enums/table_type.h"
 #include "common/exception/runtime.h"
@@ -127,6 +129,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* /*context*/,
     auto password = input->getLiteralVal<std::string>(2);
     auto cli = std::make_shared<httplib::Client>(url, 7474);
     cli->set_basic_auth(userName, password);
+    cli->set_connection_timeout(std::chrono::seconds(1000));
+    cli->set_read_timeout(std::chrono::seconds(1000));
     validateConnectionString(*cli);
     auto nodes = getNodeOrRels(*cli, TableType::NODE, input->getParam(3));
     auto rels = getNodeOrRels(*cli, TableType::REL, input->getParam(4));
@@ -166,8 +170,15 @@ LogicalType convertFromNeo4jTypeStr(const std::string& neo4jTypeStr) {
         return LogicalType{LogicalTypeID::INT64};
     } else if (neo4jTypeStr == "String") {
         return LogicalType{LogicalTypeID::STRING};
+    } else if (neo4jTypeStr == "Date") {
+        return LogicalType{LogicalTypeID::DATE};
+    } else if (neo4jTypeStr == "Boolean") {
+        return LogicalType{LogicalTypeID::BOOL};
+    } else if (neo4jTypeStr == "Double") {
+        return LogicalType{LogicalTypeID::DOUBLE};
     } else {
-        KU_UNREACHABLE;
+        throw common::RuntimeException{
+            "Neo4j type: {} " + neo4jTypeStr + " is not supported right now."};
     }
 }
 
@@ -217,11 +228,13 @@ std::string getCreateRelTableQuery(httplib::Client& cli, const std::string& relN
     const std::vector<std::string>& nodeLabelsToImport) {
     auto neo4jQuery = common::stringFormat(
         "call db.schema.relTypeProperties() yield relType, propertyName,propertyTypes where "
-        "relType = ':`{}`' return propertyName,propertyTypes",
+        "relType = ':`{}`' and propertyName is not null and  propertyTypes is not null return "
+        "propertyName,propertyTypes",
         relName);
     auto data = executeNeo4jQuery(cli, neo4jQuery);
-    std::string properties = "";
+    std::string properties = ",";
     std::unordered_map<std::string, std::string> propertyTypes;
+    auto res = data.dump();
     for (const auto& item : data) {
         auto property = item["row"][0].get<std::string>();
         properties += property;
@@ -261,7 +274,7 @@ std::string getCreateRelTableQuery(httplib::Client& cli, const std::string& relN
                 relName)};
         }
         nodePairs.emplace_back(srcLabel, dstLabel);
-        nodePairsString += common::stringFormat("FROM {} TO {},", srcLabel, dstLabel);
+        nodePairsString += common::stringFormat("FROM {} TO {}", srcLabel, dstLabel);
         exportNeo4jRelToJson(relName, {srcLabel, dstLabel}, cli);
         auto relProperties = getRelProperties(cli, srcLabel, dstLabel, relName);
 

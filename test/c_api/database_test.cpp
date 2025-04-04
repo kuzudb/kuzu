@@ -326,3 +326,20 @@ TEST_F(CApiDatabaseTest, dsad123) {
                      ->toString()
                      .c_str());
 }
+
+TEST_F(CApiDatabaseTest, dasd) {
+    systemConfig->bufferPoolSize = 1024 * 1024 * 1024;
+    createDBAndConn();
+    printf("%s",
+        conn->query("CALL NEO4J_MIGRATE(\n"
+                    "    \"127.0.0.1\",\n"
+                    "    \"neo4j\",\n"
+                    "    \"czy990424\",\n"
+                    "    [\"Person\", \"Country\", \"City\", \"State\", \"Interest\"],\n"
+                    "    [\"FOLLOWS\", \"LIVES_IN\", \"CITY_IN\", \"STATE_IN\", \"HAS_INTEREST\"]\n"
+                    ");")
+            ->toString()
+            .c_str());
+    printf("%s", conn->query("MATCH (p:person) return p.*")->toString().c_str());
+    printf("%s", conn->query("MATCH ()-[e:FOLLOWS]->() return e")->toString().c_str());
+}
