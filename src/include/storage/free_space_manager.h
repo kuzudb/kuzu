@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <set>
 
 #include "common/types/types.h"
 namespace kuzu::storage {
@@ -9,7 +10,10 @@ struct BlockEntry;
 
 class FreeSpaceManager {
 public:
+    static bool entryCmp(const BlockEntry& a, const BlockEntry& b);
+
     using free_list_t = std::vector<BlockEntry>;
+    using sorted_free_list_t = std::set<BlockEntry, decltype(&entryCmp)>;
 
     FreeSpaceManager();
 
@@ -31,7 +35,8 @@ private:
     BlockEntry breakUpChunk(BlockEntry chunk, common::page_idx_t numRequiredPages);
     void combineAdjacentChunks();
 
-    std::vector<free_list_t> freeLists;
+    std::vector<sorted_free_list_t> freeLists;
+    // std::vector<free_list_t> freeLists;
     free_list_t uncheckpointedFreeChunks;
 };
 
