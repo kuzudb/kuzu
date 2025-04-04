@@ -9,6 +9,7 @@ add_library(kuzu_function_algorithm
         gds_state.cpp
         gds_task.cpp
         gds_utils.cpp
+        gds_utils_mem.cpp
         k_core_decomposition.cpp
         output_writer.cpp
         page_rank.cpp
@@ -19,6 +20,7 @@ add_library(kuzu_function_algorithm
         weakly_connected_components.cpp
         strongly_connected_components_kosaraju.cpp
         strongly_connected_components.cpp
+        louvain.cpp
         wsp_destinations.cpp
         wsp_paths.cpp
         )
