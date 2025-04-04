@@ -1,7 +1,7 @@
 #include "binder/rewriter/normalized_query_part_match_rewriter.h"
 
-#include "binder/query/reading_clause/bound_match_clause.h"
 #include "binder/binder.h"
+#include "binder/query/reading_clause/bound_match_clause.h"
 
 using namespace kuzu::common;
 
@@ -9,7 +9,8 @@ namespace kuzu {
 namespace binder {
 
 static bool canRewrite(const BoundMatchClause& matchClause) {
-    return !matchClause.hasHint() && matchClause.getMatchClauseType() != MatchClauseType::OPTIONAL_MATCH;
+    return !matchClause.hasHint() &&
+           matchClause.getMatchClauseType() != MatchClauseType::OPTIONAL_MATCH;
 }
 
 void NormalizedQueryPartMatchRewriter::visitQueryPartUnsafe(NormalizedQueryPart& queryPart) {
@@ -33,13 +34,15 @@ void NormalizedQueryPartMatchRewriter::visitQueryPartUnsafe(NormalizedQueryPart&
     auto expressionBinder = binder.getExpressionBinder();
     for (auto idx = 1u; idx < queryPart.getNumReadingClause(); idx++) {
         auto& otherMatchClause = queryPart.readingClauses[idx]->constCast<BoundMatchClause>();
-        leadingMatchClause.getQueryGraphCollectionUnsafe()->merge(*otherMatchClause.getQueryGraphCollection());
-        auto predicate = expressionBinder->combineBooleanExpressions(ExpressionType::AND, leadingMatchClause.getPredicate(), otherMatchClause.getPredicate());
+        leadingMatchClause.getQueryGraphCollectionUnsafe()->merge(
+            *otherMatchClause.getQueryGraphCollection());
+        auto predicate = expressionBinder->combineBooleanExpressions(ExpressionType::AND,
+            leadingMatchClause.getPredicate(), otherMatchClause.getPredicate());
         leadingMatchClause.setPredicate(std::move(predicate));
     }
     // Move remaining reading clause
     queryPart.readingClauses = std::move(newReadingClauses);
 }
 
-}
-}
+} // namespace binder
+} // namespace kuzu

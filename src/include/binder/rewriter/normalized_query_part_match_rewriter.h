@@ -17,15 +17,15 @@ namespace binder {
 // This rewrite does not apply to MATCH with HINT or OPTIONAL MATCH
 class NormalizedQueryPartMatchRewriter final : public BoundStatementVisitor {
 public:
-   explicit NormalizedQueryPartMatchRewriter(main::ClientContext *clientContext)
-      : clientContext{clientContext} {}
+    explicit NormalizedQueryPartMatchRewriter(main::ClientContext* clientContext)
+        : clientContext{clientContext} {}
 
 private:
-   void visitQueryPartUnsafe(NormalizedQueryPart& queryPart) override;
+    void visitQueryPartUnsafe(NormalizedQueryPart& queryPart) override;
 
 private:
-   main::ClientContext* clientContext;
+    main::ClientContext* clientContext;
 };
 
-}
-}
+} // namespace binder
+} // namespace kuzu
