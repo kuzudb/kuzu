@@ -18,34 +18,50 @@ using iteration_t = uint16_t;
 static constexpr iteration_t FRONTIER_UNVISITED = UINT16_MAX;
 static constexpr iteration_t FRONTIER_INITIAL_VISITED = 0;
 
-class Frontier {
+class KUZU_API Frontier {
 public:
     virtual ~Frontier() =  default;
 
     virtual void pinTableID(common::table_id_t tableID) = 0;
 
     virtual void addNode(common::nodeID_t nodeID, iteration_t iter) = 0;
+    virtual void addNode(common::offset_t offset, iteration_t iter) = 0;
     virtual void addNodes(const std::vector<common::nodeID_t>& nodeIDs, iteration_t iter) = 0;
 
     virtual iteration_t getIteration(common::offset_t offset) const;
 };
 
 class KUZU_API SparseFrontier : public Frontier {
+    friend class SparseFrontierReference;
     friend class SPFrontierPair;
     friend class DenseSparseDynamicFrontierPair;
 
 public:
     void pinTableID(common::table_id_t tableID) override;
 
+    const std::unordered_map<common::offset_t, iteration_t>& getCurData() const { return *curData;}
+
     void addNode(common::nodeID_t nodeID, iteration_t iter) override;
+    void addNode(common::offset_t offset, iteration_t iter) override;
     void addNodes(const std::vector<common::nodeID_t>& nodeIDs, iteration_t iter) override;
 
     iteration_t getIteration(common::offset_t offset) const override;
 
     uint64_t size() const { return sparseObjects.size(); }
 
+    void merge(const SparseFrontier& other);
+
 private:
     GDSSpareObjectManager<iteration_t> sparseObjects;
+    std::unordered_map<common::offset_t, iteration_t>* curData = nullptr;
+};
+
+class SparseFrontierReference : public Frontier {
+public:
+    SparseFrontierReference(const SparseFrontier& frontier) : sparseObjects{frontier.sparseObjects} {}
+
+private:
+    const GDSSpareObjectManager<iteration_t>& sparseObjects;
     std::unordered_map<common::offset_t, iteration_t>* curData = nullptr;
 };
 
@@ -67,7 +83,9 @@ public:
     void pinTableID(common::table_id_t tableID) override;
 
     void addNode(common::nodeID_t nodeID, iteration_t iter) override;
+    void addNode(common::offset_t offset, iteration_t iter) override;
     void addNodes(const std::vector<common::nodeID_t>& nodeIDs, iteration_t iter) override;
+    void setIter(common::offset_t offset, iteration_t iter);
 
     iteration_t getIteration(common::offset_t offset) const override;
 
@@ -152,6 +170,7 @@ public:
         common::table_id_t nextTableID);
 
     void addNodeToNextFrontier(common::nodeID_t nodeID);
+    void addNodeToNextFrontier(common::offset_t offset);
     void addNodesToNextFrontier(const std::vector<common::nodeID_t>& nodeIDs);
 
     iteration_t getNextFrontierValue(common::offset_t offset);
@@ -240,6 +259,13 @@ public:
         : curDenseFrontier{std::move(curDenseFrontier)}, nextDenseFrontier {std::move(nextDenseFrontier)} {}
 
     void beginNewIterationInternalNoLock() override;
+
+    void setValueToCurFrontier(common::offset_t offset, iteration_t iter) {
+        curDenseFrontier->setIter(offset, iter);
+    }
+    void setValueToNextFrontier(common::offset_t offset, iteration_t iter) {
+        nextDenseFrontier->setIter(offset, iter);
+    }
 
     GDSDensityState getState() const override { return GDSDensityState::DENSE; }
     bool needSwitchToDense() const override { return false; }

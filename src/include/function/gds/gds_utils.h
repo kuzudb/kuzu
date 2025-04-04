@@ -18,7 +18,7 @@ public:
         const std::string& propertyToScan);
 
     // Run edge compute for recursive join. TODO continue comment
-    static SparseFrontier runRecursiveJoinEdgeCompute(processor::ExecutionContext* context,
+    static void runRecursiveJoinEdgeCompute(processor::ExecutionContext* context,
         GDSComputeState& compState, graph::Graph* graph, common::ExtendDirection extendDirection,
         uint64_t maxIteration, common::NodeOffsetMaskMap* outputNodeMask, const std::string& propertyToScan = 0);
 

@@ -38,7 +38,7 @@ static void scheduleFrontierTask(TableCatalogEntry* fromEntry, TableCatalogEntry
     auto clientContext = context->clientContext;
     auto task = getFrontierTask(fromEntry, toEntry, relEntry, graph, extendDirection, computeState,
         clientContext, propertyToScan);
-    if (computeState.frontierPair->isSparse()) {
+    if (computeState.frontierPair->getState() == GDSDensityState::SPARSE) {
         task->runSparse();
         return;
     }
@@ -97,14 +97,10 @@ void GDSUtils::runFTSEdgeCompute(ExecutionContext* context, GDSComputeState& com
     Graph* graph, common::ExtendDirection extendDirection,
     const std::string& propertyToScan) {
     compState.frontierPair->beginNewIteration();
-    runOneIteration(context, graph, extendDirection, compState, "" /* empty */);
+    runOneIteration(context, graph, extendDirection, compState, propertyToScan);
 }
 
-static void mergeVisitedSparseFrontier() {
-
-}
-
-SparseFrontier GDSUtils::runRecursiveJoinEdgeCompute(ExecutionContext* context, GDSComputeState& compState,
+void GDSUtils::runRecursiveJoinEdgeCompute(ExecutionContext* context, GDSComputeState& compState,
     Graph* graph, ExtendDirection extendDirection, uint64_t maxIteration,
     NodeOffsetMaskMap* outputNodeMask, const std::string& propertyToScan) {
     auto frontierPair = compState.frontierPair.get();
@@ -118,8 +114,9 @@ SparseFrontier GDSUtils::runRecursiveJoinEdgeCompute(ExecutionContext* context, 
         }
         runOneIteration(context, graph, extendDirection, compState, propertyToScan);
         if (frontierPair->needSwitchToDense()) {
-            compState.switchToDense();
+            compState.switchToDense(context, graph);
         } else {
+
             // merge visited frontier
             // compState.visitedSparseFrontier
         }

@@ -16,5 +16,11 @@ void GDSComputeState::beginFrontierCompute(common::table_id_t currTableID,
     auxiliaryState->beginFrontierCompute(currTableID, nextTableID);
 }
 
+void GDSComputeState::switchToDense(processor::ExecutionContext* context, graph::Graph* graph) {
+    frontierPair->switchToDense(context, graph);
+    auxiliaryState->switchToDense(context, graph);
+}
+
+
 } // namespace function
 } // namespace kuzu

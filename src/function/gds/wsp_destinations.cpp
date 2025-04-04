@@ -91,6 +91,8 @@ public:
         costs->pinTable(toTableID);
     }
 
+    void switchToDense(processor::ExecutionContext* context, graph::Graph* graph) override {}
+
 private:
     std::shared_ptr<Costs> costs;
 };
@@ -154,8 +156,8 @@ private:
     std::unique_ptr<GDSComputeState> getComputeState(ExecutionContext* context, const RJBindData& bindData, RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
         auto graph = sharedState->graph.get();
-        auto curDenseFrontier = DenseFrontier::getUnvisitedFrontier(context, graph);
-        auto nextDenseFrontier = DenseFrontier::getUnvisitedFrontier(context, graph);
+        auto curDenseFrontier = DenseFrontier::getUninitializedFrontier(context, graph);
+        auto nextDenseFrontier = DenseFrontier::getUninitializedFrontier(context, graph);
         auto frontierPair =
             std::make_unique<DenseSparseDynamicFrontierPair>(curDenseFrontier, nextDenseFrontier);
         auto costs =

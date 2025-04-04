@@ -19,13 +19,13 @@ void FrontierTask::run() {
     case ExtendDirection::FWD: {
         while (sharedState->morselDispatcher.getNextRangeMorsel(morsel)) {
             for (auto offset = morsel.getBeginOffset(); offset < morsel.getEndOffset(); ++offset) {
-                if (!sharedState->frontierPair.isActive(offset)) {
+                if (!sharedState->frontierPair.isActiveOnCurrentFrontier(offset)) {
                     continue;
                 }
                 nodeID_t nodeID = {offset, info.boundEntry->getTableID()};
                 for (auto chunk : graph->scanFwd(nodeID, *scanState)) {
                     auto activeNodes = ec->edgeCompute(nodeID, chunk, true);
-                    sharedState->frontierPair.addNodesToNextDenseFrontier(activeNodes);
+                    sharedState->frontierPair.addNodesToNextFrontier(activeNodes);
                     numActiveNodes += activeNodes.size();
                 }
             }
@@ -34,13 +34,13 @@ void FrontierTask::run() {
     case ExtendDirection::BWD: {
         while (sharedState->morselDispatcher.getNextRangeMorsel(morsel)) {
             for (auto offset = morsel.getBeginOffset(); offset < morsel.getEndOffset(); ++offset) {
-                if (!sharedState->frontierPair.isActive(offset)) {
+                if (!sharedState->frontierPair.isActiveOnCurrentFrontier(offset)) {
                     continue;
                 }
                 nodeID_t nodeID = {offset, info.boundEntry->getTableID()};
                 for (auto chunk : graph->scanBwd(nodeID, *scanState)) {
                     auto activeNodes = ec->edgeCompute(nodeID, chunk, false);
-                    sharedState->frontierPair.addNodesToNextDenseFrontier(activeNodes);
+                    sharedState->frontierPair.addNodesToNextFrontier(activeNodes);
                     numActiveNodes += activeNodes.size();
                 }
             }
@@ -64,8 +64,8 @@ void FrontierTask::runSparse() {
         for (const auto offset : sharedState->frontierPair.getActiveNodes()) {
             auto nodeID = nodeID_t{offset, info.boundEntry->getTableID()};
             for (auto chunk : graph->scanFwd(nodeID, *scanState)) {
-                auto activeNodes = ec->edgeComputeSparse(nodeID, chunk, true);
-                sharedState->frontierPair.addNodesToNextSpareFrontier(activeNodes);
+                auto activeNodes = ec->edgeCompute(nodeID, chunk, true);
+                sharedState->frontierPair.addNodesToNextFrontier(activeNodes);
                 numActiveNodes += activeNodes.size();
             }
         }
@@ -74,8 +74,8 @@ void FrontierTask::runSparse() {
         for (auto& offset : sharedState->frontierPair.getActiveNodes()) {
             auto nodeID = nodeID_t{offset, info.boundEntry->getTableID()};
             for (auto chunk : graph->scanBwd(nodeID, *scanState)) {
-                auto activeNodes = ec->edgeComputeSparse(nodeID, chunk, false);
-                sharedState->frontierPair.addNodesToNextSpareFrontier(activeNodes);
+                auto activeNodes = ec->edgeCompute(nodeID, chunk, false);
+                sharedState->frontierPair.addNodesToNextFrontier(activeNodes);
                 numActiveNodes += activeNodes.size();
             }
         }

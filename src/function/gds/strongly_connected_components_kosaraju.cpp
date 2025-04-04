@@ -49,7 +49,7 @@ public:
 
 private:
     offset_t* componentIDs = nullptr;
-    ObjectArraysMap<offset_t> componentIDsMap;
+    GDSDenseObjectManager<offset_t> componentIDsMap;
 };
 
 class SCCCompute {

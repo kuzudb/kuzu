@@ -21,6 +21,11 @@ void SparseFrontier::addNode(nodeID_t nodeID, iteration_t iter) {
     curData->insert({nodeID.offset, iter});
 }
 
+void SparseFrontier::addNode(offset_t offset, iteration_t iter) {
+    KU_ASSERT(curData);
+    curData->insert({offset, iter});
+}
+
 void SparseFrontier::addNodes(const std::vector<nodeID_t>& nodeIDs, iteration_t iter) {
     KU_ASSERT(curData);
     for (auto nodeID : nodeIDs) {
@@ -35,6 +40,14 @@ iteration_t SparseFrontier::getIteration(offset_t offset) const {
     }
     return curData->at(offset);
 }
+
+void SparseFrontier::merge(const SparseFrontier& other) {
+    for (auto [tableID, map] : other.sparseObjects) {
+        pinTableID(tableID);
+        for (auto [])
+    }
+}
+
 
 void DenseFrontier::init(ExecutionContext* context, Graph* graph, iteration_t val) {
     for (const auto& [tableID, maxOffset] : nodeMaxOffsetMap) {
@@ -53,11 +66,21 @@ void DenseFrontier::addNode(nodeID_t nodeID, iteration_t iter) {
     curData[nodeID.offset].store(iter, std::memory_order_relaxed);
 }
 
+void DenseFrontier::addNode(offset_t offset, iteration_t iter) {
+    KU_ASSERT(curData);
+    curData[offset].store(iter, std::memory_order_relaxed);
+}
+
 void DenseFrontier::addNodes(const std::vector<nodeID_t>& nodeIDs, iteration_t iter) {
     KU_ASSERT(curData);
     for (auto nodeID : nodeIDs) {
         curData[nodeID.offset].store(iter, std::memory_order_relaxed);
     }
+}
+
+void DenseFrontier::setIter(offset_t offset, iteration_t iter) {
+    KU_ASSERT(curData);
+    curData[offset].store(iter, std::memory_order_relaxed);
 }
 
 iteration_t DenseFrontier::getIteration(offset_t offset) const {
@@ -171,6 +194,10 @@ void FrontierPair::pinNextFrontier(table_id_t tableID) {
 
 void FrontierPair::addNodeToNextFrontier(nodeID_t nodeID) {
     nextFrontier->addNode(nodeID, curIter);
+}
+
+void FrontierPair::addNodeToNextFrontier(offset_t offset) {
+    nextFrontier->addNode(offset, curIter);
 }
 
 void FrontierPair::addNodesToNextFrontier(const std::vector<nodeID_t>& nodeIDs) {

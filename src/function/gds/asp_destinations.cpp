@@ -181,6 +181,10 @@ public:
         multiplicitiesPair->pinNextTableID(nextTableID);
     }
 
+    void switchToDense(ExecutionContext* context, Graph* graph) override {
+        multiplicitiesPair->switchToDense(context);
+    }
+
 private:
     std::unique_ptr<MultiplicitiesPair> multiplicitiesPair;
 };

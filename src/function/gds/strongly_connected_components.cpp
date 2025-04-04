@@ -36,7 +36,11 @@ struct SccComputationState : GDSAuxiliaryState {
     // all threads see the initial value of `allSccIdsSet`.
     void reset() { allSccIdsSet.store(true, std::memory_order_seq_cst); }
 
-    void beginFrontierCompute(common::table_id_t, common::table_id_t) override {}
+    void beginFrontierCompute(table_id_t, table_id_t) override {}
+
+    void swithToDense() override {
+        // Do nothing.
+    }
 };
 
 // Initializes `sccIDs` to `SCC_UNSET`.
@@ -119,7 +123,7 @@ private:
 // been computed.
 class SccInitializeFrontiers : public VertexCompute {
 public:
-    SccInitializeFrontiers(DoublePathLengthsFrontierPair& frontierPair, SccComputationState& computationState)
+    SccInitializeFrontiers(DenseFrontierPair& frontierPair, SccComputationState& computationState)
         : frontierPair{frontierPair}, computationState{computationState} {}
 
     bool beginOnTable(table_id_t) override { return true; }
@@ -127,10 +131,10 @@ public:
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
             // If the SCC ID has already been computed, the node should not be activated.
-            auto initialState = computationState.isSccIdSet(i) ? PathLengths::INITIAL_VISITED :
-                                                                 PathLengths::UNVISITED;
-            frontierPair.setCurFrontierValue(i, initialState);
-            frontierPair.setNextFrontierValue(i, PathLengths::INITIAL_VISITED);
+            auto initialState = computationState.isSccIdSet(i) ? FRONTIER_INITIAL_VISITED :
+                                                                 FRONTIER_UNVISITED;
+            frontierPair.setValueToCurFrontier(i, initialState);
+            frontierPair.setValueToNextFrontier(i, FRONTIER_INITIAL_VISITED);
         }
     }
 
@@ -139,7 +143,7 @@ public:
     }
 
 private:
-    DoublePathLengthsFrontierPair& frontierPair;
+    DenseFrontierPair& frontierPair;
     SccComputationState& computationState;
 };
 
@@ -223,13 +227,13 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     GDSUtils::runVertexCompute(input.context, graph, *setInitialSccIds);
 
     // The frontiers will be initialized inside the loop.
-    auto currentFrontier = std::make_shared<PathLengths>(getMaxOffsetMap, mm);
-    auto nextFrontier = std::make_shared<PathLengths>(getMaxOffsetMap, mm);
+    auto currentFrontier = std::make_shared<DenseFrontier>(getMaxOffsetMap);
+    auto nextFrontier = std::make_shared<DenseFrontier>(getMaxOffsetMap);
     // TODO(sdht): refactor when a better FrontierPair API is available.
     currentFrontier->pinTableID(tableId);
     nextFrontier->pinTableID(tableId);
     auto frontierPair =
-        std::make_unique<DoublePathLengthsFrontierPair>(currentFrontier, nextFrontier);
+        std::make_unique<DenseFrontierPair>(currentFrontier, nextFrontier);
     auto initializeFrontiers =
            std::make_unique<SccInitializeFrontiers>(*frontierPair, computationState);
     auto setNewSccIds = std::make_unique<SccFindNewSccIds>(computationState);
