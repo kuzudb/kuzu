@@ -59,7 +59,7 @@ static std::string getCopyFilePath(const std::string& boundFilePath, const std::
         // csv files to copy.cypher files.
         return filePath;
     }
-    
+
     auto path = boundFilePath + "/" + filePath;
 #if defined(_WIN32)
     size_t pos = 0;
