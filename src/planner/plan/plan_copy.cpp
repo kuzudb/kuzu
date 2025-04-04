@@ -100,12 +100,13 @@ std::unique_ptr<LogicalPlan> Planner::planCopyRelFrom(const BoundCopyFromInfo* i
     case ScanSourceType::QUERY: {
         auto& querySource = info->source->constCast<BoundQueryScanSource>();
         plan = getBestPlan(planQuery(*querySource.statement));
-        if (plan->getSchema()->getNumGroups() > 1) {
-            // Copy operator assumes all input are in the same data chunk. If this is not the case,
-            // we first materialize input in flat form into a factorized table.
-            appendAccumulate(AccumulateType::REGULAR, plan->getSchema()->getExpressionsInScope(),
-                nullptr /* mark */, *plan);
+        if (plan->getSchema()->getNumGroups() == 1 && !plan->getSchema()->getGroup(0)->isFlat()) {
+            break;
         }
+        // Copy operator assumes all input are in the same data chunk. If this is not the case,
+        // we first materialize input in flat form into a factorized table.
+        appendAccumulate(AccumulateType::REGULAR, plan->getSchema()->getExpressionsInScope(),
+            nullptr /* mark */, *plan);
     } break;
     default:
         KU_UNREACHABLE;

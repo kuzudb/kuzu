@@ -238,11 +238,11 @@ def test_replace_failure(tmp_path: Path) -> None:
         conn.execute("LOAD FROM x RETURN *;")
 
     with pytest.raises(
-        RuntimeError,
-        match=re.escape(
-            "Binder exception: Cannot match a built-in function for given function "
-            "READ_PANDAS(STRING). Supported inputs are\n(POINTER)\n"
-        ),
+            RuntimeError,
+            match=re.escape(
+                "Binder exception: Cannot match a built-in function for given function "
+                "READ_PANDAS(STRING). Supported inputs are\n(POINTER)\n"
+            ),
     ):
         conn.execute("CALL READ_PANDAS('df213') WHERE id > 20 RETURN id + 5, weight")
 
@@ -250,13 +250,13 @@ def test_replace_failure(tmp_path: Path) -> None:
 def test_int64_overflow(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
-    overflowpd = pd.DataFrame({"id": [4, 2**125]})
+    overflowpd = pd.DataFrame({"id": [4, 2 ** 125]})
     with pytest.raises(
-        RuntimeError,
-        match=re.escape(
-            "Conversion exception: Failed to cast value: "
-            "Python value '42535295865117307932921825928971026432' to INT64"
-        ),
+            RuntimeError,
+            match=re.escape(
+                "Conversion exception: Failed to cast value: "
+                "Python value '42535295865117307932921825928971026432' to INT64"
+            ),
     ):
         conn.execute("LOAD FROM overflowpd RETURN *;")
 
@@ -539,6 +539,7 @@ def test_pandas_scan_ignore_errors(tmp_path: Path) -> None:
     assert warnings.get_next()[1].startswith("Found duplicated primary key value 1")
     assert not warnings.has_next()
 
+
 def test_copy_from_pandas_multi_pairs(tmp_path: Path) -> None:
     db = kuzu.Database(tmp_path)
     conn = kuzu.Connection(db)
@@ -558,3 +559,30 @@ def test_copy_from_pandas_multi_pairs(tmp_path: Path) -> None:
     assert result.has_next()
     assert result.get_next()[0] == 252
     assert not result.has_next()
+
+
+def test_scan_pandas_with_exists(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    conn.execute("CREATE NODE TABLE person(id INT64, PRIMARY KEY(id))")
+    conn.execute("CREATE (p:person {id: 1})")
+    conn.execute("CREATE (p:person {id: 2})")
+    conn.execute("CREATE (p:person {id: 3})")
+    conn.execute("CREATE REL TABLE knows(from person to person)")
+    df = pd.DataFrame({
+        "from": [1, 2, 3],
+        "to": [3, 2, 1],
+    })
+    conn.execute(
+        "COPY knows from (load from df where not exists {MATCH (p:person)-[:knows]->(p1:person) WHERE p.id = from AND p1.id = to} return from + 1 - 1, to)")
+    res = conn.execute("MATCH (p:person)-[:knows]->(p1:person) return p.id, p1.id")
+    assert res.has_next()
+    tp = res.get_next()
+    assert tp[0] == 1
+    assert tp[1] == 3
+    tp = res.get_next()
+    assert tp[0] == 2
+    assert tp[1] == 2
+    tp = res.get_next()
+    assert tp[0] == 3
+    assert tp[1] == 1
