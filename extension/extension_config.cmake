@@ -8,6 +8,7 @@
 #add_static_link_extension(sqlite)
 #add_static_link_extension(unity_catalog)
 #add_static_link_extension(vector)
+#add_static_link_extension(neo4j_migration)
 
 if(${BUILD_WASM})
     message(STATUS "Building for WASM, extension static linking is enabled by default")
