@@ -575,7 +575,7 @@ def test_scan_pandas_with_exists(tmp_path: Path) -> None:
     })
     conn.execute(
         "COPY knows from (load from df where not exists {MATCH (p:person)-[:knows]->(p1:person) WHERE p.id = from AND p1.id = to} return from + 1 - 1, to)")
-    res = conn.execute("MATCH (p:person)-[:knows]->(p1:person) return p.id, p1.id")
+    res = conn.execute("MATCH (p:person)-[:knows]->(p1:person) return p.id, p1.id order by p.id, p1.id")
     assert res.has_next()
     tp = res.get_next()
     assert tp[0] == 1
