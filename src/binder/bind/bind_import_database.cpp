@@ -59,7 +59,15 @@ static std::string getCopyFilePath(const std::string& boundFilePath, const std::
         // csv files to copy.cypher files.
         return filePath;
     }
-    return boundFilePath + "/" + filePath;
+    
+    auto path = boundFilePath + "/" + filePath;
+#if defined(_WIN32)
+    size_t pos = 0;
+    while ((pos = path.find("\\")) != std::string::npos) {
+        path.replace(pos, 1, "/");
+    }
+#endif
+    return path;
 }
 
 std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement& statement) {
