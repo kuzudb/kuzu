@@ -54,6 +54,7 @@ impl CSVOptions {
     }
 }
 
+#[allow(clippy::needless_lifetimes)]
 impl<'db> QueryResult<'db> {
     /// Returns the time spent compiling the query in milliseconds
     pub fn get_compiling_time(&self) -> f64 {
