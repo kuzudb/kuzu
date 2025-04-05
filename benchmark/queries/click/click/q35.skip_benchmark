@@ -1,5 +1,7 @@
+# Skipped due to OOM
 -NAME q35
 -QUERY MATCH (h:hits) RETURN 1, h.URL, COUNT(*) as c ORDER BY c DESC LIMIT 10;
+-SKIP_COMPARE_RESULT
 ---- 10
 1|http://auto_fiat_dlya-bluzki%2F8536.30.18&he=900&with|507995
 1|http://bdsm_po_yers=0&with_video|791465

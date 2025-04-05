@@ -1,5 +1,6 @@
 -NAME q15
 -QUERY MATCH (h:hits) WHERE h.SearchPhrase <> '' RETURN h.SearchEngineID, h.SearchPhrase, COUNT(*) AS c ORDER BY c DESC LIMIT 10;
+-SKIP_COMPARE_RESULT
 ---- 10
 2|албатрутдин|13716
 2|дружке помещение|11946

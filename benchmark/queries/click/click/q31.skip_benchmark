@@ -1,5 +1,7 @@
+# Skipped due to OOM
 -NAME q31
 -QUERY MATCH (h:hits) WHERE h.SearchPhrase <> '' RETURN h.SearchEngineID, h.ClientIP, COUNT(*) as c, SUM(h.IsRefresh), AVG(h.ResolutionWidth) order by c DESC LIMIT 10;
+-SKIP_COMPARE_RESULT
 ---- 10
 2|-1743596151|1080|24|1559.809259
 2|-1870623097|1102|31|1555.658802

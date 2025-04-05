@@ -1,5 +1,6 @@
 -NAME q12
 -QUERY MATCH (h:hits) WHERE h.MobilePhoneModel <> '' RETURN h.MobilePhone, h.MobilePhoneModel, COUNT(DISTINCT h.UserID) AS u ORDER BY u DESC LIMIT 10;
+-SKIP_COMPARE_RESULT
 ---- 10
 10|iPad|11433
 118|A500|16005

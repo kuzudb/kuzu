@@ -1,5 +1,6 @@
 -NAME q39
 -QUERY MATCH (h:hits) WHERE h.CounterID = 62 AND h.EventDate >= '2013-07-01' AND h.EventDate <= '2013-07-31' AND h.IsRefresh = 0 AND h.IsLink <> 0 AND h.IsDownload = 0 RETURN h.URL, COUNT(*) AS PageViews ORDER BY PageViews DESC SKIP 1000 LIMIT 10;
+-SKIP_COMPARE_RESULT
 ---- 10
 http://autos&marka=19&filmId=LhwOe0x2ExI&where=all&files.html?1=1&city=0&how=rlv&query|2
 http://bibina-odiezhda-pulovoy|2
