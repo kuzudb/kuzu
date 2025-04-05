@@ -17,6 +17,7 @@
 #include "storage/buffer_manager/spiller.h"
 #include "storage/file_handle.h"
 #include "storage/store/column_chunk_data.h"
+#include <span>
 
 #if defined(_WIN32)
 #include <exception>
@@ -48,14 +49,9 @@ bool EvictionQueue::insert(uint32_t fileIndex, page_idx_t pageIndex) {
     return false;
 }
 
-std::atomic<EvictionCandidate>* EvictionQueue::next() {
-    std::atomic<EvictionCandidate>* candidate = nullptr;
-    do {
-        // Since the buffer pool size is a power of two (as is the page size), (UINT64_MAX + 1) %
-        // size == 0, which means no entries will be skipped when the cursor overflows
-        candidate = &data[evictionCursor.fetch_add(1, std::memory_order_relaxed) % capacity];
-    } while (candidate->load() == EMPTY && size > 0);
-    return candidate;
+std::span<std::atomic<EvictionCandidate>, EvictionQueue::BATCH_SIZE> EvictionQueue::next() {
+    return std::span<std::atomic<EvictionCandidate>, BATCH_SIZE>(
+        data.get() + ((evictionCursor += BATCH_SIZE) % capacity), BATCH_SIZE);
 }
 
 void EvictionQueue::removeCandidatesForFile(uint32_t fileIndex) {
@@ -271,8 +267,7 @@ void BufferManager::unpin(FileHandle& fileHandle, page_idx_t pageIdx) {
 
 // evicts up to 64 pages and returns the space reclaimed
 uint64_t BufferManager::evictPages() {
-    constexpr size_t BATCH_SIZE = 64;
-    std::array<std::atomic<EvictionCandidate>*, BATCH_SIZE> evictionCandidates{};
+    std::array<std::atomic<EvictionCandidate>*, EvictionQueue::BATCH_SIZE> evictionCandidates{};
     size_t evictablePages = 0;
     uint64_t claimedMemory = 0;
 
@@ -284,23 +279,24 @@ uint64_t BufferManager::evictPages() {
     // regardless of how many threads are trying to evict.
     auto startCursor = evictionQueue.getEvictionCursor();
     auto failureLimit = evictionQueue.getSize() * 2;
-    while (evictablePages < BATCH_SIZE &&
-           evictionQueue.getEvictionCursor() - startCursor < failureLimit) {
-        evictionCandidates[evictablePages] = evictionQueue.next();
-        auto evictionCandidate = evictionCandidates[evictablePages]->load();
-        if (evictionCandidate == EvictionQueue::EMPTY) {
-            continue;
-        }
-        auto* pageState =
-            fileHandles[evictionCandidate.fileIdx]->getPageState(evictionCandidate.pageIdx);
-        auto pageStateAndVersion = pageState->getStateAndVersion();
-        if (!evictionCandidate.isEvictable(pageStateAndVersion)) {
-            if (evictionCandidate.isSecondChanceEvictable(pageStateAndVersion)) {
-                pageState->tryMark(pageStateAndVersion);
+    while (evictablePages == 0 && evictionQueue.getEvictionCursor() - startCursor < failureLimit) {
+        for (auto& candidate : evictionQueue.next()) {
+            auto evictionCandidate = candidate.load();
+            if (evictionCandidate == EvictionQueue::EMPTY) {
+                continue;
             }
-            continue;
+            KU_ASSERT(evictionCandidate.fileIdx < fileHandles.size());
+            auto* pageState =
+                fileHandles[evictionCandidate.fileIdx]->getPageState(evictionCandidate.pageIdx);
+            auto pageStateAndVersion = pageState->getStateAndVersion();
+            if (!evictionCandidate.isEvictable(pageStateAndVersion)) {
+                if (evictionCandidate.isSecondChanceEvictable(pageStateAndVersion)) {
+                    pageState->tryMark(pageStateAndVersion);
+                }
+                continue;
+            }
+            evictionCandidates[evictablePages++] = &candidate;
         }
-        evictablePages++;
     }
 
     for (size_t i = 0; i < evictablePages; i++) {
