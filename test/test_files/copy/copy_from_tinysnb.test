@@ -9,9 +9,6 @@
 -STATEMENT COPY A FROM  (MATCH (a:person) RETURN a.ID, a.fName);
 ---- error
 Binder exception: Query returns 2 columns but 1 columns were expected.
--STATEMENT COPY A FROM  (MATCH (a:person) RETURN a.ID);
----- error
-Binder exception: a.ID has data type INT64 but STRING was expected.
 -STATEMENT COPY A FROM x;
 ---- error
 Binder exception: Variable x is not in scope.
@@ -85,3 +82,17 @@ Elizabeth|Greg|1905-12-12|2020-03-01 12:11:41.6552|00:47:58|[peweeeeeeeeeeeeeeee
 -STATEMENT LOAD FROM (MATCH (a) RETURN a.ID) RETURN *;
 ---- error
 Binder exception: LOAD FROM subquery is not supported.
+-STATEMENT CREATE NODE TABLE X(name STRING, PRIMARY KEY (name));
+---- ok
+-STATEMENT COPY X FROM (MATCH (a:Person) RETURN a.ID);
+---- ok
+-STATEMENT MATCH (a:X) RETURN a.name + 'h'
+---- 8
+0h
+2h
+3h
+5h
+7h
+8h
+9h
+10h

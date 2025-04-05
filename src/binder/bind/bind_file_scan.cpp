@@ -1,6 +1,5 @@
 #include "binder/binder.h"
 #include "binder/bound_scan_source.h"
-#include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "common/exception/binder.h"
 #include "common/exception/copy.h"
@@ -149,7 +148,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
 
 std::unique_ptr<BoundBaseScanSource> Binder::bindQueryScanSource(const BaseScanSource& scanSource,
     const options_t& options, const std::vector<std::string>& columnNames,
-    const std::vector<LogicalType>& columnTypes) {
+    const std::vector<LogicalType>&) {
     auto querySource = scanSource.constPtrCast<QueryScanSource>();
     auto boundStatement = bind(*querySource->statement);
     auto columns = boundStatement->getStatementResult()->getColumns();
@@ -158,7 +157,6 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindQueryScanSource(const BaseScanS
             columns.size(), columnNames.size()));
     }
     for (auto i = 0u; i < columns.size(); ++i) {
-        ExpressionUtil::validateDataType(*columns[i], columnTypes[i]);
         columns[i]->setAlias(columnNames[i]);
     }
     auto scanInfo = BoundQueryScanSourceInfo(bindParsingOptions(options));
