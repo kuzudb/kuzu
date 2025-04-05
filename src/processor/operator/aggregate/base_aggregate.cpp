@@ -61,6 +61,7 @@ void BaseAggregateSharedState::HashTableQueue::appendTuple(std::span<uint8_t> tu
             block->numTuplesWritten++;
             return;
         } else {
+            // TODO: use a LockedPtr here instead of optimistically allocating the new block
             // No more space in the block, allocate and replace it
             auto* newBlock = new TupleBlock(block->table.getMemoryManager(),
                 block->table.getTableSchema()->copy());

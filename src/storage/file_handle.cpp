@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "common/file_system/virtual_file_system.h"
+#include "common/types/types.h"
 #include "storage/buffer_manager/buffer_manager.h"
 
 using namespace kuzu::common;
@@ -57,34 +58,19 @@ page_idx_t FileHandle::addNewPage() {
 }
 
 page_idx_t FileHandle::addNewPages(page_idx_t numNewPages) {
-    // TODO: It may be possible to remove this lock
-    // Do an atomic fetch_add on numPages to get the page range, then resize the groups to match the
-    // new size (which should now be safe)
-    while (!fhSharedMutex.try_lock()) {}
-    const auto numPagesBeforeChange = numPages;
-    for (auto i = 0u; i < numNewPages; i++) {
-        addNewPageWithoutLock();
+    const auto numPagesBeforeChange = numPages.fetch_add(numNewPages);
+    while (numPagesBeforeChange + numNewPages > pageCapacity) {
+        pageCapacity += StorageConstants::PAGE_GROUP_SIZE;
+        pageStates.resize(pageCapacity);
+        frameGroupIdxes.push_back(bm->addNewFrameGroup(pageSizeClass));
     }
-    fhSharedMutex.unlock();
-    return numPagesBeforeChange;
-}
-
-page_idx_t FileHandle::addNewPageWithoutLock() {
-    if (numPages == pageCapacity) {
-        addNewPageGroupWithoutLock();
-    }
-    pageStates[numPages].resetToEvicted();
-    const auto pageIdx = numPages++;
     if (isInMemoryMode()) {
-        bm->pin(*this, pageIdx, PageReadPolicy::DONT_READ_PAGE);
+        for (page_idx_t pageIdx = numPagesBeforeChange;
+             pageIdx < numPagesBeforeChange + numNewPages; pageIdx++) {
+            bm->pin(*this, pageIdx, PageReadPolicy::DONT_READ_PAGE);
+        }
     }
-    return pageIdx;
-}
-
-void FileHandle::addNewPageGroupWithoutLock() {
-    pageCapacity += StorageConstants::PAGE_GROUP_SIZE;
-    pageStates.resize(pageCapacity);
-    frameGroupIdxes.push_back(bm->addNewFrameGroup(pageSizeClass));
+    return numPagesBeforeChange;
 }
 
 uint8_t* FileHandle::pinPage(page_idx_t pageIdx, PageReadPolicy readPolicy) {
@@ -111,8 +97,12 @@ void FileHandle::unpinPage(page_idx_t pageIdx) {
     bm->unpin(*this, pageIdx);
 }
 
+// Not thread-safe
 void FileHandle::resetToZeroPagesAndPageCapacity() {
-    removePageIdxAndTruncateIfNecessary(0 /* pageIdx */);
+    if (numPages == 0) {
+        return;
+    }
+    numPages = pageCapacity = 0;
     if (isInMemoryMode()) {
         for (auto i = 0u; i < numPages; i++) {
             bm->unpin(*this, i);
@@ -128,9 +118,9 @@ uint8_t* FileHandle::getFrame(page_idx_t pageIdx) {
 }
 
 void FileHandle::removePageIdxAndTruncateIfNecessary(page_idx_t pageIdx) {
-    std::unique_lock xLck{fhSharedMutex};
-    if (numPages <= pageIdx) {
-        return;
+    return;
+    /* FIXME(bmwinger): Not sure if this is really needed at the moment, but it's not thread-safe
+    any more std::unique_lock xLck{fhSharedMutex}; if (numPages <= pageIdx) { return;
     }
     numPages = pageIdx;
     pageStates.resize(numPages);
@@ -141,6 +131,7 @@ void FileHandle::removePageIdxAndTruncateIfNecessary(page_idx_t pageIdx) {
     KU_ASSERT(numPageGroups < frameGroupIdxes.size());
     frameGroupIdxes.resize(numPageGroups);
     pageCapacity = numPageGroups * StorageConstants::PAGE_GROUP_SIZE;
+    */
 }
 
 void FileHandle::removePageFromFrameIfNecessary(page_idx_t pageIdx) {
