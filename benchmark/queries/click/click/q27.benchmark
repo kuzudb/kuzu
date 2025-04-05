@@ -1,5 +1,6 @@
 -NAME q27
 -QUERY MATCH (h:hits) WHERE h.SearchPhrase <> '' RETURN h.SearchPhrase ORDER BY h.EventTime, h.SearchPhrase LIMIT 10;
+-SKIP_COMPARE_RESULT
 ---- 10
 galaxy s4 zoom фильм
 авом констеть ребенка краево

@@ -1,4 +1,4 @@
-name: Benchmark
+name: ClickBench
 on:
   workflow_dispatch:
   workflow_call:
