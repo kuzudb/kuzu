@@ -147,6 +147,7 @@ public:
     QueryGraphCollection() = default;
     DELETE_COPY_DEFAULT_MOVE(QueryGraphCollection);
 
+    void merge(const QueryGraphCollection& other);
     void addAndMergeQueryGraphIfConnected(QueryGraph queryGraphToAdd);
     void finalize();
 

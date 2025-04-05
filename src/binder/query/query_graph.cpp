@@ -235,6 +235,13 @@ bool QueryGraph::isConnected(const QueryGraph& other) const {
     return false;
 }
 
+void QueryGraphCollection::merge(const QueryGraphCollection& other) {
+    for (auto& queryGraph : other.queryGraphs) {
+        addAndMergeQueryGraphIfConnected(queryGraph);
+    }
+    finalize();
+}
+
 void QueryGraphCollection::addAndMergeQueryGraphIfConnected(QueryGraph queryGraphToAdd) {
     auto newQueryGraphSet = std::vector<QueryGraph>();
     for (auto i = 0u; i < queryGraphs.size(); i++) {

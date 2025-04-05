@@ -132,6 +132,12 @@ TEST_F(OptimizerTest, RemoveUnnecessaryJoinTest) {
     ASSERT_STREQ(getEncodedPlan(q1).c_str(), "E(b)S(a)");
 }
 
+TEST_F(OptimizerTest, MergeConsecutiveMatch) {
+    auto q1 = "MATCH (a:person) MATCH (b:person) WHERE b.ID=0 MATCH (a)-[]->(b) "
+              "RETURN COUNT(*);";
+    ASSERT_STREQ(getEncodedPlan(q1).c_str(), "E(a)IndexScan(b)");
+}
+
 TEST_F(OptimizerTest, PkScanTest) {
     auto q1 = "MATCH (a:person {ID:24189255811663})-[f]->(b) RETURN b;";
     auto ans = getEncodedPlan(q1);

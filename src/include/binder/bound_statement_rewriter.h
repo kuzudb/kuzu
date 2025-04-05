@@ -9,7 +9,7 @@ namespace binder {
 // Perform semantic rewrite over bound statement.
 class BoundStatementRewriter {
 public:
-    static void rewrite(BoundStatement& boundStatement, const main::ClientContext& clientContext);
+    static void rewrite(BoundStatement& boundStatement, main::ClientContext& clientContext);
 };
 
 } // namespace binder
