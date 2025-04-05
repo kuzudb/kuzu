@@ -46,6 +46,7 @@ void Planner::planInsertClause(const BoundUpdatingClause* updatingClause, Logica
     if (plan.isEmpty()) { // E.g. CREATE (a:Person {age:20})
         appendDummyScan(plan);
     } else {
+        // TODO(Guodong): Instead plan as COPY FROM subquery.
         appendAccumulate(plan);
     }
     if (insertClause.hasNodeInfo()) {

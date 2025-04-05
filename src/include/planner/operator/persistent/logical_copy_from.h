@@ -40,6 +40,8 @@ public:
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
+    f_group_pos_set getGroupsPosToFlatten() const;
+
     const binder::BoundCopyFromInfo* getInfo() const { return &info; }
     binder::BoundCopyFromInfo* getInfo() { return &info; }
     binder::expression_vector getOutExprs() const { return outExprs; }

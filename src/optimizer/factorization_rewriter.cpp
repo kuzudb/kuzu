@@ -19,6 +19,7 @@
 #include "planner/operator/persistent/logical_insert.h"
 #include "planner/operator/persistent/logical_merge.h"
 #include "planner/operator/persistent/logical_set.h"
+#include <planner/operator/persistent/logical_copy_from.h>
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -164,6 +165,12 @@ void FactorizationRewriter::visitCopyTo(planner::LogicalOperator* op) {
     auto& copyTo = op->cast<LogicalCopyTo>();
     auto groupsPosToFlatten = copyTo.getGroupsPosToFlatten();
     copyTo.setChild(0, appendFlattens(copyTo.getChild(0), groupsPosToFlatten));
+}
+
+void FactorizationRewriter::visitCopyFrom(planner::LogicalOperator* op) {
+    auto& copyFrom = op->cast<LogicalCopyFrom>();
+    auto groupsPosToFlatten = copyFrom.getGroupsPosToFlatten();
+    copyFrom.setChild(0, appendFlattens(copyFrom.getChild(0), groupsPosToFlatten));
 }
 
 std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattens(

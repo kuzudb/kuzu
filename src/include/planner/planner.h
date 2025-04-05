@@ -326,6 +326,9 @@ public:
 
     void appendDistinct(const binder::expression_vector& keys, LogicalPlan& plan);
 
+    void appendCopyFrom(const binder::BoundCopyFromInfo& info, binder::expression_vector outExprs,
+        LogicalPlan& plan);
+
     const CardinalityEstimator& getCardinalityEstimator() const { return cardinalityEstimator; }
     CardinalityEstimator& getCardinalityEstimator() { return cardinalityEstimator; }
 

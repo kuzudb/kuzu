@@ -37,10 +37,12 @@ static void appendPartitioner(const BoundCopyFromInfo& copyFromInfo, LogicalPlan
     plan.setLastOperator(std::move(partitioner));
 }
 
-static void appendCopyFrom(const BoundCopyFromInfo& info, expression_vector outExprs,
+void Planner::appendCopyFrom(const BoundCopyFromInfo& info, expression_vector outExprs,
     LogicalPlan& plan) {
     auto op =
         make_shared<LogicalCopyFrom>(info.copy(), std::move(outExprs), plan.getLastOperator());
+    appendFlattens(op->getGroupsPosToFlatten(), plan);
+    op->setChild(0, plan.getLastOperator());
     op->computeFactorizedSchema();
     plan.setLastOperator(std::move(op));
 }
@@ -77,8 +79,8 @@ std::unique_ptr<LogicalPlan> Planner::planCopyNodeFrom(const BoundCopyFromInfo* 
         if (plan->getSchema()->getNumGroups() > 1) {
             // Copy operator assumes all input are in the same data chunk. If this is not the case,
             // we first materialize input in flat form into a factorized table.
-            appendAccumulate(AccumulateType::REGULAR, plan->getSchema()->getExpressionsInScope(),
-                nullptr /* mark */, *plan);
+            // appendAccumulate(AccumulateType::REGULAR, plan->getSchema()->getExpressionsInScope(),
+            // nullptr /* mark */, *plan);
         }
     } break;
     default:
