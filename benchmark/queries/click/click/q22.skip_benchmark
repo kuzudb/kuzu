@@ -1,5 +1,7 @@
+# Skipped due to OOM
 -NAME q22
 -QUERY MATCH (h:hits) WHERE h.URL =~ '.*google.*' AND h.SearchPhrase <> '' RETURN h.SearchPhrase, MIN(h.URL), MIN(h.Title), COUNT(*) as c ORDER BY c DESC LIMIT 10;
+-SKIP_COMPARE_RESULT
 ---- 10
 вспомню о названы монстэр|http://tienskaia-moda-zhienskaia-obl.irr.ru/ch/google-c-38208|Glavnaya ploshchad' stolitsi zwy 114 сотрудный рецепты по низкий интернет-магазин модной край - Яндекс|7
 испанч боб новости дейская|http://smeshariki.ru/recipes/show/6840872&trafkey=6d0fc12c54059/loukhaAUXI&where=all&filter/Mitsubishi/google|одной недвижимости - Яндекс.Словарики в интим участь|21

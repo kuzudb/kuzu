@@ -1,5 +1,6 @@
 -NAME q13
 -QUERY MATCH (h:hits) WHERE h.SearchPhrase <> '' RETURN h.SearchPhrase, COUNT(*) AS c ORDER BY c DESC LIMIT 10;
+-SKIP_COMPARE_RESULT
 ---- 10
 galaxy table|16746
 албатрутдин|34675

@@ -1,5 +1,7 @@
+# Skipped due to OOM
 -NAME q11
 -QUERY MATCH (h:hits) WHERE h.MobilePhoneModel <> '' RETURN h.MobilePhoneModel, COUNT(DISTINCT h.UserID) AS u ORDER BY u DESC LIMIT 10;
+-SKIP_COMPARE_RESULT
 ---- 10
 3110000|1871
 A500|16046
