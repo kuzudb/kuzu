@@ -82,15 +82,14 @@ class ScanRelTable final : public ScanTable {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SCAN_REL_TABLE;
 
 public:
-    ScanRelTable(ScanTableInfo info, std::vector<ScanRelTableInfo> nodeInfos,
+    ScanRelTable(ScanTableInfo info, std::vector<ScanRelTableInfo> relInfos,
         std::vector<std::shared_ptr<ScanRelTableSharedState>> sharedStates, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo,
         std::shared_ptr<ScanRelTableProgressSharedState> progressSharedState)
         : ScanTable{type_, std::move(info), id, std::move(printInfo)}, currentTableIdx{0},
-          scanState{nullptr}, nodeInfos{std::move(nodeInfos)},
-          sharedStates{std::move(sharedStates)},
+          scanState{nullptr}, relInfos{std::move(relInfos)}, sharedStates{std::move(sharedStates)},
           progressSharedState{std::move(progressSharedState)} {
-        KU_ASSERT(this->nodeInfos.size() == this->sharedStates.size());
+        KU_ASSERT(this->relInfos.size() == this->sharedStates.size());
     }
 
     common::table_id_map_t<common::SemiMask*> getSemiMasks() const;
@@ -107,7 +106,7 @@ public:
     }
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<ScanRelTable>(info.copy(), copyVector(nodeInfos), sharedStates, id,
+        return std::make_unique<ScanRelTable>(info.copy(), copyVector(relInfos), sharedStates, id,
             printInfo->copy(), progressSharedState);
     }
 
@@ -119,7 +118,7 @@ private:
 private:
     common::idx_t currentTableIdx;
     std::unique_ptr<storage::RelTableScanState> scanState;
-    std::vector<ScanRelTableInfo> nodeInfos;
+    std::vector<ScanRelTableInfo> relInfos;
     std::vector<std::shared_ptr<ScanRelTableSharedState>> sharedStates;
     std::shared_ptr<ScanRelTableProgressSharedState> progressSharedState;
 };

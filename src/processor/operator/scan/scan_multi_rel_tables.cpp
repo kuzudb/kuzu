@@ -21,7 +21,7 @@ bool DirectionInfo::needFlip(RelDataDirection relDataDirection) const {
     return false;
 }
 
-bool RelTableCollectionScanner::scan(Transaction* transaction, RelTableScanState& scanState) {
+bool RelTableCollectionScanner::scan(Transaction* transaction, ExtendScanState& scanState) {
     while (true) {
         const auto& relInfo = relInfos[currentTableIdx];
         if (relInfo.table->scan(transaction, scanState)) {
@@ -57,7 +57,7 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
     for (auto& pos : info.outVectorsPos) {
         outVectors.push_back(resultSet->getValueVector(pos).get());
     }
-    scanState = std::make_unique<RelTableScanState>(*context->clientContext->getMemoryManager(),
+    scanState = std::make_unique<ExtendScanState>(*context->clientContext->getMemoryManager(),
         boundNodeIDVector, outVectors, outState);
     for (auto& [_, scanner] : scanners) {
         for (auto& relInfo : scanner.relInfos) {

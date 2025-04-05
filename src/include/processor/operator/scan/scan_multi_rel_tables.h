@@ -34,7 +34,7 @@ public:
         nextTableIdx = 0;
     }
 
-    bool scan(transaction::Transaction* transaction, storage::RelTableScanState& scanState);
+    bool scan(transaction::Transaction* transaction, storage::ExtendScanState& scanState);
 
 private:
     RelTableCollectionScanner(const RelTableCollectionScanner& other)
@@ -75,7 +75,7 @@ private:
 
 private:
     DirectionInfo directionInfo;
-    std::unique_ptr<storage::RelTableScanState> scanState;
+    std::unique_ptr<storage::ExtendScanState> scanState;
 
     common::ValueVector* boundNodeIDVector;
     common::table_id_map_t<RelTableCollectionScanner> scanners;

@@ -33,7 +33,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanRelTable(
         auto tableEntry = catalog->getTableCatalogEntry(transaction, tableID);
         std::vector<column_id_t> columnIDs;
         for (auto& expr : scan.getProperties()) {
-            columnIDs.push_back(expr->constCast<PropertyExpression>().getColumnID(*tableEntry));
+            auto columnID = expr->constCast<PropertyExpression>().getColumnID(*tableEntry) - 2;
+            columnIDs.push_back(columnID);
         }
         auto table = storageManager->getTable(tableID)->ptrCast<storage::RelTable>();
         tableInfos.emplace_back(table, std::move(columnIDs),

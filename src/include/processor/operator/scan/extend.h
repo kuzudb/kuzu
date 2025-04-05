@@ -81,7 +81,7 @@ public:
 
 protected:
     ExtendInfo relInfo;
-    std::unique_ptr<storage::RelTableScanState> scanState;
+    std::unique_ptr<storage::ExtendScanState> scanState;
 };
 
 } // namespace processor

@@ -110,7 +110,7 @@ struct PackedCSRInfo {
 };
 
 class CSRNodeGroup;
-struct RelTableScanState;
+struct ExtendScanState;
 struct CSRNodeGroupScanState final : NodeGroupScanState {
     // Cached offsets and lengths for a sequence of CSR lists within the current vector of
     // boundNodes.
@@ -142,7 +142,7 @@ struct CSRNodeGroupScanState final : NodeGroupScanState {
             common::StorageConfig::NODE_GROUP_SIZE, ResidencyState::IN_MEMORY);
     }
 
-    bool tryScanCachedTuples(RelTableScanState& tableScanState);
+    bool tryScanCachedTuples(ExtendScanState& tableScanState);
 };
 
 struct CSRNodeGroupCheckpointState final : NodeGroupCheckpointState {
@@ -169,7 +169,7 @@ static constexpr common::column_id_t REL_ID_COLUMN_ID = 1;
 // Transient data are organized similar to normal node groups. Tuples are always appended to the end
 // of `chunkedGroups`. We keep an extra csrIndex to track the vector of row indices for each bound
 // node.
-struct RelTableScanState;
+struct ExtendScanState;
 class CSRNodeGroup final : public NodeGroup {
 public:
     static constexpr PackedCSRInfo DEFAULT_PACKED_CSR_INFO{};
@@ -223,28 +223,28 @@ public:
 
 private:
     void initScanForCommittedPersistent(const transaction::Transaction* transaction,
-        RelTableScanState& relScanState, CSRNodeGroupScanState& nodeGroupScanState) const;
-    static void initScanForCommittedInMem(RelTableScanState& relScanState,
+        ExtendScanState& relScanState, CSRNodeGroupScanState& nodeGroupScanState) const;
+    static void initScanForCommittedInMem(ExtendScanState& relScanState,
         CSRNodeGroupScanState& nodeGroupScanState);
 
     void updateCSRIndex(common::offset_t boundNodeOffsetInGroup, common::row_idx_t startRow,
         common::length_t length) const;
 
     NodeGroupScanResult scanCommittedPersistent(const transaction::Transaction* transaction,
-        RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
+        ExtendScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
     NodeGroupScanResult scanCommittedPersistentWithCache(
-        const transaction::Transaction* transaction, RelTableScanState& tableState,
+        const transaction::Transaction* transaction, ExtendScanState& tableState,
         CSRNodeGroupScanState& nodeGroupScanState) const;
     NodeGroupScanResult scanCommittedPersistentWtihoutCache(
-        const transaction::Transaction* transaction, RelTableScanState& tableState,
+        const transaction::Transaction* transaction, ExtendScanState& tableState,
         CSRNodeGroupScanState& nodeGroupScanState) const;
 
     NodeGroupScanResult scanCommittedInMem(const transaction::Transaction* transaction,
-        RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
+        ExtendScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
     NodeGroupScanResult scanCommittedInMemSequential(const transaction::Transaction* transaction,
-        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
+        const ExtendScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
     NodeGroupScanResult scanCommittedInMemRandom(const transaction::Transaction* transaction,
-        const RelTableScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
+        const ExtendScanState& tableState, CSRNodeGroupScanState& nodeGroupScanState) const;
 
     void checkpointInMemOnly(const common::UniqLock& lock, NodeGroupCheckpointState& state);
     void checkpointInMemAndOnDisk(const common::UniqLock& lock, NodeGroupCheckpointState& state);

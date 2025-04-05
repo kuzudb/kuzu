@@ -167,7 +167,7 @@ std::pair<CSRNodeGroupScanSource, row_idx_t> RelTableData::findMatchingRow(Trans
     std::vector columnIDs = {REL_ID_COLUMN_ID, ROW_IDX_COLUMN_ID};
     std::vector<const Column*> columns{getColumn(REL_ID_COLUMN_ID), nullptr};
     auto scanState =
-        std::make_unique<RelTableScanState>(*transaction->getClientContext()->getMemoryManager(),
+        std::make_unique<ExtendScanState>(*transaction->getClientContext()->getMemoryManager(),
             &boundNodeIDVector, std::vector{&scanChunk.getValueVectorMutable(0)}, scanChunk.state);
     auto table = transaction->getClientContext()->getStorageManager()->getTable(tableID);
     scanState->setToTable(transaction, table, columnIDs, {}, direction);
@@ -211,7 +211,7 @@ bool RelTableData::checkIfNodeHasRels(Transaction* transaction,
     std::vector columnIDs = {REL_ID_COLUMN_ID};
     std::vector<const Column*> columns{getColumn(REL_ID_COLUMN_ID)};
     auto scanState =
-        std::make_unique<RelTableScanState>(*transaction->getClientContext()->getMemoryManager(),
+        std::make_unique<ExtendScanState>(*transaction->getClientContext()->getMemoryManager(),
             srcNodeIDVector, std::vector{&scanChunk.getValueVectorMutable(0)}, scanChunk.state);
     auto table = transaction->getClientContext()->getStorageManager()->getTable(tableID);
     scanState->setToTable(transaction, table, columnIDs, {}, direction);

@@ -65,9 +65,9 @@ void ScanRelTableSharedState::nextMorsel(RelTableScanState& scanState,
 
 table_id_map_t<SemiMask*> ScanRelTable::getSemiMasks() const {
     table_id_map_t<SemiMask*> result;
-    KU_ASSERT(nodeInfos.size() == sharedStates.size());
+    KU_ASSERT(relInfos.size() == sharedStates.size());
     for (auto i = 0u; i < sharedStates.size(); ++i) {
-        result.insert({nodeInfos[i].table->getTableID(), sharedStates[i]->getSemiMask()});
+        result.insert({relInfos[i].table->getTableID(), sharedStates[i]->getSemiMask()});
     }
     return result;
 }
@@ -80,25 +80,25 @@ void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext
     auto nodeIDVector = resultSet->getValueVector(info.nodeIDPos);
     scanState =
         std::make_unique<RelTableScanState>(nodeIDVector.get(), outVectors, nodeIDVector->state);
-    KU_ASSERT(nodeInfos.size() >= 1 && sharedStates.size() >= 1);
-    auto& firstNodeInfo = nodeInfos[0];
-    // scanState->setToTable(context->clientContext->getTransaction(), firstNodeInfo.table,
-    // firstNodeInfo.columnIDs, copyVector(firstNodeInfo.columnPredicates));
+    KU_ASSERT(relInfos.size() >= 1 && sharedStates.size() >= 1);
+    auto& firstNodeInfo = relInfos[0];
+    scanState->setToTable(context->clientContext->getTransaction(), firstNodeInfo.table,
+        firstNodeInfo.columnIDs, copyVector(firstNodeInfo.columnPredicates));
     scanState->semiMask = sharedStates[0]->getSemiMask();
 }
 
 void ScanRelTable::initGlobalStateInternal(ExecutionContext* context) {
-    KU_ASSERT(sharedStates.size() == nodeInfos.size());
-    for (auto i = 0u; i < nodeInfos.size(); i++) {
+    KU_ASSERT(sharedStates.size() == relInfos.size());
+    for (auto i = 0u; i < relInfos.size(); i++) {
         sharedStates[i]->initialize(context->clientContext->getTransaction(),
-            nodeInfos[i].table->ptrCast<RelTable>(), *progressSharedState);
+            relInfos[i].table->ptrCast<RelTable>(), *progressSharedState);
     }
 }
 
 bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
     const auto transaction = context->clientContext->getTransaction();
-    while (currentTableIdx < nodeInfos.size()) {
-        const auto& info = nodeInfos[currentTableIdx];
+    while (currentTableIdx < relInfos.size()) {
+        const auto& info = relInfos[currentTableIdx];
         while (info.table->scan(transaction, *scanState)) {
             const auto outputSize = scanState->outState->getSelVector().getSelSize();
             if (outputSize > 0) {
@@ -110,21 +110,21 @@ bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
         sharedStates[currentTableIdx]->nextMorsel(*scanState, *progressSharedState);
         if (scanState->source == TableScanSource::NONE) {
             currentTableIdx++;
-            if (currentTableIdx < nodeInfos.size()) {
-                auto& currentInfo = nodeInfos[currentTableIdx];
-                // scanState->setToTable(transaction, currentInfo.table, currentInfo.columnIDs,
-                // copyVector(currentInfo.columnPredicates));
+            if (currentTableIdx < relInfos.size()) {
+                auto& currentInfo = relInfos[currentTableIdx];
+                scanState->setToTable(transaction, currentInfo.table, currentInfo.columnIDs,
+                    copyVector(currentInfo.columnPredicates));
                 scanState->semiMask = sharedStates[currentTableIdx]->getSemiMask();
             }
         } else {
-            info.table->initScanState(transaction, *scanState);
+            info.table->initScanPropertiesState(transaction, *scanState);
         }
     }
     return false;
 }
 
 double ScanRelTable::getProgress(ExecutionContext* /*context*/) const {
-    if (currentTableIdx >= nodeInfos.size()) {
+    if (currentTableIdx >= relInfos.size()) {
         return 1.0;
     }
     if (progressSharedState->numGroups == 0) {

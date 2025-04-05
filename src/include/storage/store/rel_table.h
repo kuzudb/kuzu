@@ -30,8 +30,8 @@ private:
     RelTable* table;
 };
 
-struct LocalRelTableScanState;
-struct RelTableScanState : TableScanState {
+struct LocalExtendScanState;
+struct ExtendScanState : TableScanState {
     common::RelDataDirection direction;
     common::sel_t currBoundNodeIdx;
     Column* csrOffsetColumn;
@@ -40,9 +40,9 @@ struct RelTableScanState : TableScanState {
     // This is a reference of the original selVector of the input boundNodeIDVector.
     common::SelectionVector cachedBoundNodeSelVector;
 
-    std::unique_ptr<LocalRelTableScanState> localTableScanState;
+    std::unique_ptr<LocalExtendScanState> localTableScanState;
 
-    RelTableScanState(MemoryManager& mm, common::ValueVector* nodeIDVector,
+    ExtendScanState(MemoryManager& mm, common::ValueVector* nodeIDVector,
         std::vector<common::ValueVector*> outputVectors,
         std::shared_ptr<common::DataChunkState> outChunkState)
         : TableScanState{nodeIDVector, std::move(outputVectors), std::move(outChunkState)},
@@ -52,7 +52,7 @@ struct RelTableScanState : TableScanState {
     }
 
     // This is for local table scan state.
-    RelTableScanState(common::ValueVector* nodeIDVector,
+    ExtendScanState(common::ValueVector* nodeIDVector,
         std::vector<common::ValueVector*> outputVectors,
         std::shared_ptr<common::DataChunkState> outChunkState)
         : TableScanState{nodeIDVector, std::move(outputVectors), std::move(outChunkState)},
@@ -81,8 +81,24 @@ private:
     void initStateForUncommitted();
 };
 
+struct RelTableScanState final : TableScanState {
+    RelTableScanState(common::ValueVector* relIDVector,
+        std::vector<common::ValueVector*> outputVectors,
+        std::shared_ptr<common::DataChunkState> outChunkState)
+        : TableScanState{relIDVector, std::move(outputVectors), std::move(outChunkState)} {
+        nodeGroupScanState = std::make_unique<NodeGroupScanState>(this->columnIDs.size());
+    }
+
+    void setToTable(const transaction::Transaction* transaction, Table* table_,
+        std::vector<common::column_id_t> columnIDs_,
+        std::vector<ColumnPredicateSet> columnPredicateSets_ = {},
+        common::RelDataDirection direction = common::RelDataDirection::INVALID) override;
+
+    bool scanNext(transaction::Transaction* transaction) override;
+};
+
 class LocalRelTable;
-struct LocalRelTableScanState final : RelTableScanState {
+struct LocalExtendScanState final : ExtendScanState {
     LocalRelTable* localRelTable;
     // TODO(Guodong): Copy of rowIndices here is only to simplify the implementation. We can always
     // go to the fwdIndex/bwdIndex inside LocalRelTable to find the row indices. We can revisit this
@@ -90,9 +106,9 @@ struct LocalRelTableScanState final : RelTableScanState {
     row_idx_vec_t rowIndices;
     common::row_idx_t nextRowToScan = 0;
 
-    LocalRelTableScanState(const RelTableScanState& baseScanState, LocalRelTable* localRelTable,
+    LocalExtendScanState(const ExtendScanState& baseScanState, LocalRelTable* localRelTable,
         std::vector<common::column_id_t> columnIDs)
-        : RelTableScanState{baseScanState.nodeIDVector, baseScanState.outputVectors,
+        : ExtendScanState{baseScanState.nodeIDVector, baseScanState.outputVectors,
               baseScanState.outState},
           localRelTable{localRelTable} {
         this->columnIDs = std::move(columnIDs);
@@ -166,6 +182,8 @@ public:
 
     void initScanState(transaction::Transaction* transaction, TableScanState& scanState,
         bool resetCachedBoundNodeSelVec = true) const override;
+    void initScanPropertiesState(transaction::Transaction* transaction,
+        TableScanState& scanState) const;
 
     bool scanInternal(transaction::Transaction* transaction, TableScanState& scanState) override;
 
@@ -199,8 +217,12 @@ public:
         });
         return directedRelData[0]->getNumColumns();
     }
-    Column* getColumn(common::column_id_t columnID, common::RelDataDirection direction) const {
+    Column* getCSRColumn(common::column_id_t columnID, common::RelDataDirection direction) const {
         return getDirectedTableData(direction)->getColumn(columnID);
+    }
+    Column* getPropertyColumn(common::column_id_t columnID) const {
+        KU_ASSERT(columnID < columns.size());
+        return columns[columnID].get();
     }
 
     NodeGroup* getOrCreateNodeGroup(const transaction::Transaction* transaction,
@@ -244,7 +266,7 @@ private:
         common::offset_t maxCommittedOffset);
 
     void detachDeleteForCSRRels(transaction::Transaction* transaction, RelTableData* tableData,
-        RelTableData* reverseTableData, RelTableScanState* relDataReadState,
+        RelTableData* reverseTableData, ExtendScanState* relDataReadState,
         RelTableDeleteState* deleteState);
 
     void checkRelMultiplicityConstraint(transaction::Transaction* transaction,

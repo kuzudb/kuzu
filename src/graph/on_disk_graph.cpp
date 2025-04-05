@@ -120,7 +120,7 @@ OnDiskGraphNbrScanState::OnDiskGraphNbrScanState(ClientContext* context,
         if (edgePropertyID) {
             outVectors.push_back(propertyVector.get());
         }
-        auto scanState = std::make_unique<RelTableScanState>(*context->getMemoryManager(),
+        auto scanState = std::make_unique<ExtendScanState>(*context->getMemoryManager(),
             srcNodeIDVector.get(), outVectors, dstNodeIDVector->state);
         scanState->randomLookup = randomLookup;
         scanState->setToTable(context->getTransaction(), table, columnIDs, {}, dataDirection);
@@ -263,7 +263,7 @@ bool OnDiskGraphNbrScanState::InnerIterator::next(evaluator::ExpressionEvaluator
 }
 
 OnDiskGraphNbrScanState::InnerIterator::InnerIterator(const ClientContext* context,
-    RelTable* relTable, std::unique_ptr<RelTableScanState> tableScanState)
+    RelTable* relTable, std::unique_ptr<ExtendScanState> tableScanState)
     : context{context}, relTable{relTable}, tableScanState{std::move(tableScanState)} {}
 
 void OnDiskGraphNbrScanState::InnerIterator::initScan() const {

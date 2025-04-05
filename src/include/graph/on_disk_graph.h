@@ -44,7 +44,7 @@ public:
     class InnerIterator : public processor::SelVectorOverWriter {
     public:
         InnerIterator(const main::ClientContext* context, storage::RelTable* relTable,
-            std::unique_ptr<storage::RelTableScanState> tableScanState);
+            std::unique_ptr<storage::ExtendScanState> tableScanState);
 
         DELETE_COPY_DEFAULT_MOVE(InnerIterator);
 
@@ -84,7 +84,7 @@ public:
 
         const main::ClientContext* context;
         storage::RelTable* relTable;
-        std::unique_ptr<storage::RelTableScanState> tableScanState;
+        std::unique_ptr<storage::ExtendScanState> tableScanState;
     };
 
 private:

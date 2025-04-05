@@ -166,7 +166,7 @@ bool LocalRelTable::checkIfNodeHasRels(ValueVector* srcNodeIDVector,
 }
 
 void LocalRelTable::initializeScan(TableScanState& state) {
-    auto& relScanState = state.cast<RelTableScanState>();
+    auto& relScanState = state.cast<ExtendScanState>();
     KU_ASSERT(relScanState.source == TableScanSource::UNCOMMITTED);
     KU_ASSERT(relScanState.localTableScanState);
     auto& localScanState = *relScanState.localTableScanState;
@@ -193,7 +193,7 @@ column_id_t LocalRelTable::rewriteLocalColumnID(RelDataDirection direction, colu
 }
 
 bool LocalRelTable::scan(const Transaction* transaction, TableScanState& state) const {
-    auto& relScanState = state.cast<RelTableScanState>();
+    auto& relScanState = state.cast<ExtendScanState>();
     KU_ASSERT(relScanState.localTableScanState);
     auto& localScanState = *relScanState.localTableScanState;
     while (true) {
@@ -234,10 +234,10 @@ bool LocalRelTable::scan(const Transaction* transaction, TableScanState& state) 
     }
 }
 
-static std::unique_ptr<RelTableScanState> setupLocalTableScanState(DataChunk& scanChunk,
+static std::unique_ptr<ExtendScanState> setupLocalTableScanState(DataChunk& scanChunk,
     std::span<row_idx_t> intersectRows) {
     const std::vector columnIDs{LOCAL_REL_ID_COLUMN_ID};
-    auto scanState = std::make_unique<RelTableScanState>(nullptr,
+    auto scanState = std::make_unique<ExtendScanState>(nullptr,
         std::vector{&scanChunk.getValueVectorMutable(0)}, scanChunk.state);
     scanState->columnIDs = columnIDs;
     scanState->nodeGroupScanState->chunkStates.resize(columnIDs.size());

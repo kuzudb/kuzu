@@ -60,7 +60,7 @@ void Extend::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
     for (auto& pos : info.outVectorsPos) {
         outVectors.push_back(resultSet->getValueVector(pos).get());
     }
-    scanState = std::make_unique<RelTableScanState>(*context->clientContext->getMemoryManager(),
+    scanState = std::make_unique<ExtendScanState>(*context->clientContext->getMemoryManager(),
         resultSet->getValueVector(info.nodeIDPos).get(), outVectors, outVectors[0]->state);
     scanState->setToTable(context->clientContext->getTransaction(), relInfo.table,
         relInfo.columnIDs, copyVector(relInfo.columnPredicates), relInfo.direction);
