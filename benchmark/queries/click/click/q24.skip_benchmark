@@ -1,3 +1,4 @@
+# Skipped due to OOM
 -NAME q24
 -QUERY MATCH (h:hits) WHERE h.URL =~ '.*google.*' RETURN * ORDER BY h.EventTime LIMIT 10;
 -SKIP_COMPARE_RESULT

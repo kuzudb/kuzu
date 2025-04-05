@@ -1,3 +1,4 @@
+# Skipped due to OOM
 -NAME q35
 -QUERY MATCH (h:hits) RETURN 1, h.URL, COUNT(*) as c ORDER BY c DESC LIMIT 10;
 -SKIP_COMPARE_RESULT
