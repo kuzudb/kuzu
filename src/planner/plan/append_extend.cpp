@@ -12,6 +12,9 @@
 #include "planner/operator/logical_node_label_filter.h"
 #include "planner/operator/logical_path_property_probe.h"
 #include "planner/planner.h"
+#include "planner/operator/logical_hash_join.h"
+#include "planner/operator/scan/logical_scan_node_table.h"
+#include "planner/operator/scan/logical_scan_rel_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -94,8 +97,24 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
     if (nbrNodeTableIDSet.size() > nbrNode->getNumEntries()) {
         appendNodeLabelFilter(nbrNode->getInternalID(), nbrNode->getTableIDsSet(), plan);
     }
-    // TODO(Rui): Add a new logical operator: LogicalOffsetScan. and append the new operator into
-    // the logical plan. It should be the last operator in the plan inside this function.
+    if (properties.size() > 0) {
+        // Append scan rel table and hash join sub-plan.
+        std::vector<table_id_t> relTableIDs;
+        for (auto entry : rel->getEntries()) {
+            auto& relTableEntry = entry->constCast<RelTableCatalogEntry>();
+            relTableIDs.push_back(relTableEntry.getTableID());
+        }
+        auto scanRelTable = std::make_shared<LogicalScanRelTable>(rel->getInternalIDProperty(),
+            relTableIDs, properties);
+        scanRelTable->computeFactorizedSchema();
+        auto probePlan = LogicalPlan();
+        probePlan.setLastOperator(std::move(scanRelTable));
+        // Join with extend output
+        auto joinConditions = expression_vector{rel->getInternalIDProperty()};
+        appendHashJoin(joinConditions, JoinType::INNER, probePlan, plan, plan);
+        plan.getLastOperator()->cast<LogicalHashJoin>().getSIPInfoUnsafe().direction =
+            SIPDirection::FORCE_BUILD_TO_PROBE;
+    }
 }
 
 void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& boundNode,

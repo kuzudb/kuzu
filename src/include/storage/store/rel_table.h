@@ -176,10 +176,6 @@ public:
     void update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
 
-    void lookup(transaction::Transaction* transaction, common::ValueVector* IDs,
-        std::vector<common::column_id_t>& columnIDs,
-        std::vector<common::ValueVector*>& outputVectors) const;
-
     void detachDelete(transaction::Transaction* transaction, common::RelDataDirection direction,
         RelTableDeleteState* deleteState);
     bool checkIfNodeHasRels(transaction::Transaction* transaction,
@@ -233,6 +229,8 @@ public:
         common::row_idx_t numRows_, CSRNodeGroupScanSource source) const;
 
     std::vector<common::RelDataDirection> getStorageDirections() const;
+
+    uint64_t getNumCommittedNodeGroups() const;
 
 private:
     static void prepareCommitForNodeGroup(const transaction::Transaction* transaction,

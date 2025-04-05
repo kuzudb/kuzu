@@ -271,14 +271,6 @@ void Planner::planNodeIDScan(uint32_t nodePos, const QueryGraphPlanningInfo& inf
     context.addPlan(newSubgraph, std::move(plan));
 }
 
-static std::pair<std::shared_ptr<NodeExpression>, std::shared_ptr<NodeExpression>>
-getBoundAndNbrNodes(const RelExpression& rel, ExtendDirection direction) {
-    KU_ASSERT(direction != ExtendDirection::BOTH);
-    auto boundNode = direction == ExtendDirection::FWD ? rel.getSrcNode() : rel.getDstNode();
-    auto dstNode = direction == ExtendDirection::FWD ? rel.getDstNode() : rel.getSrcNode();
-    return make_pair(boundNode, dstNode);
-}
-
 static ExtendDirection getExtendDirection(const binder::RelExpression& relExpression,
     const binder::NodeExpression& boundNode) {
     if (relExpression.getDirectionType() == binder::RelDirectionType::BOTH) {
@@ -292,27 +284,29 @@ static ExtendDirection getExtendDirection(const binder::RelExpression& relExpres
     }
 }
 
+static std::pair<std::shared_ptr<NodeExpression>, std::shared_ptr<NodeExpression>>
+getBoundAndNbrNodes(const RelExpression& rel, ExtendDirection direction) {
+    KU_ASSERT(direction != ExtendDirection::BOTH);
+    auto boundNode = direction == ExtendDirection::FWD ? rel.getSrcNode() : rel.getDstNode();
+    auto dstNode = direction == ExtendDirection::FWD ? rel.getDstNode() : rel.getSrcNode();
+    return make_pair(boundNode, dstNode);
+}
+
 void Planner::planRelScan(uint32_t relPos) {
     const auto rel = context.queryGraph->getQueryRel(relPos);
     auto newSubgraph = context.getEmptySubqueryGraph();
     newSubgraph.addQueryRel(relPos);
     const auto predicates = getNewlyMatchedExprs(context.getEmptySubqueryGraph(), newSubgraph,
         context.getWhereExpressions());
-    auto properties = getProperties(*rel);
-    auto plan = std::make_unique<LogicalPlan>();
-    appendScanNodeTable(rel->getInternalIDProperty(), rel->getTableIDs(), properties, *plan);
-    appendFilters(predicates, *plan);
-    context.addPlan(newSubgraph, std::move(plan));
-
-    // for (const auto direction : rel->getExtendDirections()) {
-    // auto plan = std::make_unique<LogicalPlan>();
-    // auto [boundNode, nbrNode] = getBoundAndNbrNodes(*rel, direction);
-    // const auto extendDirection = getExtendDirection(*rel, *boundNode);
-    // appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(), {}, *plan);
-    // appendExtend(boundNode, nbrNode, rel, extendDirection, getProperties(*rel), *plan);
-    // appendFilters(predicates, *plan);
-    // context.addPlan(newSubgraph, std::move(plan));
-    // }
+    for (const auto direction : rel->getExtendDirections()) {
+        auto plan = std::make_unique<LogicalPlan>();
+        auto [boundNode, nbrNode] = getBoundAndNbrNodes(*rel, direction);
+        const auto extendDirection = getExtendDirection(*rel, *boundNode);
+        appendScanNodeTable(boundNode->getInternalID(), boundNode->getTableIDs(), {}, *plan);
+        appendExtend(boundNode, nbrNode, rel, extendDirection, getProperties(*rel), *plan);
+        appendFilters(predicates, *plan);
+        context.addPlan(newSubgraph, std::move(plan));
+    }
 }
 
 void Planner::appendExtend(std::shared_ptr<NodeExpression> boundNode,

@@ -247,13 +247,6 @@ std::pair<offset_t, offset_t> RelTable::appendToLastNodeGroup(const Transaction*
     return nodeGroups->append(transaction, vectors);
 }
 
-void RelTable::lookup(transaction::Transaction* transaction, common::ValueVector* IDs,
-    std::vector<common::column_id_t>& columnIDs,
-    std::vector<common::ValueVector*>& outputVectors) const {
-    // TODO(Rui): Implement lookup here. Refer NodeTable::lookup please.
-    // You can change this function's interface to mimick NodeTable:lookup if you want.
-}
-
 void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
     checkRelMultiplicityConstraint(transaction, insertState);
 
@@ -535,6 +528,11 @@ void RelTable::updateRelOffsets(const LocalRelTable& localRelTable) {
 offset_t RelTable::getCommittedOffset(offset_t uncommittedOffset, offset_t maxCommittedOffset) {
     return uncommittedOffset - StorageConstants::MAX_NUM_ROWS_IN_TABLE + maxCommittedOffset;
 }
+
+uint64_t RelTable::getNumCommittedNodeGroups() const {
+    return nodeGroups->getNumNodeGroups();
+}
+
 
 void RelTable::prepareCommitForNodeGroup(const Transaction* transaction,
     const std::vector<column_id_t>& columnIDs, const NodeGroup& localNodeGroup,

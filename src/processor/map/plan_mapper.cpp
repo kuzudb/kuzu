@@ -154,6 +154,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(const LogicalOperator*
     case LogicalOperatorType::SCAN_NODE_TABLE: {
         physicalOperator = mapScanNodeTable(logicalOperator);
     } break;
+    case LogicalOperatorType::SCAN_REL_TABLE: {
+        physicalOperator = mapScanRelTable(logicalOperator);
+    } break;
     case LogicalOperatorType::SEMI_MASKER: {
         physicalOperator = mapSemiMasker(logicalOperator);
     } break;

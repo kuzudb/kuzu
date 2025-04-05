@@ -1,8 +1,8 @@
 #include "binder/expression/property_expression.h"
 #include "common/enums/extend_direction_util.h"
 #include "planner/operator/extend/logical_extend.h"
+#include "processor/operator/scan/extend.h"
 #include "processor/operator/scan/scan_multi_rel_tables.h"
-#include "processor/operator/scan/scan_rel_table.h"
 #include "processor/plan_mapper.h"
 #include "storage/storage_manager.h"
 
@@ -15,7 +15,7 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace processor {
 
-static ScanRelTableInfo getRelTableScanInfo(const TableCatalogEntry& tableCatalogEntry,
+static ExtendInfo getRelTableScanInfo(const TableCatalogEntry& tableCatalogEntry,
     RelDataDirection direction, RelTable* relTable, bool shouldScanNbrID,
     const expression_vector& properties, const std::vector<ColumnPredicateSet>& columnPredicates) {
     auto relTableID = tableCatalogEntry.getTableID();
@@ -36,8 +36,7 @@ static ScanRelTableInfo getRelTableScanInfo(const TableCatalogEntry& tableCatalo
             columnIDs.push_back(INVALID_COLUMN_ID);
         }
     }
-    return ScanRelTableInfo(relTable, direction, std::move(columnIDs),
-        std::move(columnPredicateSets));
+    return ExtendInfo(relTable, direction, std::move(columnIDs), std::move(columnPredicateSets));
 }
 
 static RelTableCollectionScanner populateRelTableCollectionScanner(table_id_t boundNodeTableID,
@@ -45,7 +44,7 @@ static RelTableCollectionScanner populateRelTableCollectionScanner(table_id_t bo
     bool shouldScanNbrID, const expression_vector& properties,
     const std::vector<ColumnPredicateSet>& columnPredicates,
     const main::ClientContext& clientContext) {
-    std::vector<ScanRelTableInfo> scanInfos;
+    std::vector<ExtendInfo> scanInfos;
     const auto storageManager = clientContext.getStorageManager();
     for (auto entry : rel.getEntries()) {
         auto& relTableEntry = entry->constCast<RelTableCatalogEntry>();
@@ -113,7 +112,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(const LogicalOperator* l
         auto relTable = storageManager->getTable(entry->getTableID())->ptrCast<RelTable>();
         tableNames.push_back(relTable->getTableName());
     }
-    auto printInfo = std::make_unique<ScanRelTablePrintInfo>(tableNames, extend->getProperties(),
+    auto printInfo = std::make_unique<ExtendPrintInfo>(tableNames, extend->getProperties(),
         boundNode, rel, nbrNode, extendDirection, rel->getVariableName());
     if (scanSingleRelTable(*rel, *boundNode, extendDirection)) {
         auto entry = rel->getSingleEntry();
@@ -121,7 +120,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(const LogicalOperator* l
         auto relTable = storageManager->getTable(entry->getTableID())->ptrCast<RelTable>();
         auto scanRelInfo = getRelTableScanInfo(*entry, relDataDirection, relTable,
             extend->shouldScanNbrID(), extend->getProperties(), {});
-        return std::make_unique<ScanRelTable>(std::move(scanInfo), std::move(scanRelInfo),
+        return std::make_unique<Extend>(std::move(scanInfo), std::move(scanRelInfo),
             std::move(prevOperator), getOperatorID(), printInfo->copy());
     }
     // map to generic extend

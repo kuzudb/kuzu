@@ -51,6 +51,7 @@ enum class LogicalOperatorType : uint8_t {
     PROJECTION,
     RECURSIVE_EXTEND,
     SCAN_NODE_TABLE,
+    SCAN_REL_TABLE,
     SEMI_MASKER,
     SET_PROPERTY,
     STANDALONE_CALL,

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "processor/operator/scan/scan_rel_table.h"
+#include "processor/operator/scan/extend.h"
 
 namespace kuzu {
 namespace processor {
@@ -23,7 +23,7 @@ class RelTableCollectionScanner {
     friend class ScanMultiRelTable;
 
 public:
-    explicit RelTableCollectionScanner(std::vector<ScanRelTableInfo> relInfos)
+    explicit RelTableCollectionScanner(std::vector<ExtendInfo> relInfos)
         : relInfos{std::move(relInfos)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(RelTableCollectionScanner);
 
@@ -41,7 +41,7 @@ private:
         : relInfos{copyVector(other.relInfos)} {}
 
 private:
-    std::vector<ScanRelTableInfo> relInfos;
+    std::vector<ExtendInfo> relInfos;
     std::vector<bool> directionValues;
     common::ValueVector* directionVector = nullptr;
     common::idx_t currentTableIdx = common::INVALID_IDX;
@@ -49,7 +49,7 @@ private:
 };
 
 class ScanMultiRelTable final : public ScanTable {
-    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SCAN_REL_TABLE;
+    static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::EXTEND;
 
 public:
     ScanMultiRelTable(ScanTableInfo info, DirectionInfo directionInfo,

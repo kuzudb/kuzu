@@ -1,52 +1,70 @@
 #pragma once
 
-#include "binder/expression/rel_expression.h"
-#include "common/enums/extend_direction.h"
 #include "processor/operator/scan/scan_table.h"
 #include "storage/predicate/column_predicate.h"
 #include "storage/store/rel_table.h"
 
 namespace kuzu {
-namespace storage {
-class MemoryManager;
-}
 namespace processor {
+
+struct ScanRelTableProgressSharedState {
+    common::node_group_idx_t numGroupsScanned;
+    common::node_group_idx_t numGroups;
+
+    ScanRelTableProgressSharedState() : numGroupsScanned{0}, numGroups{0} {};
+};
+
+class ScanRelTableSharedState {
+public:
+    explicit ScanRelTableSharedState(std::unique_ptr<common::SemiMask> semiMask)
+        : table{nullptr}, currentCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX},
+          currentUnCommittedGroupIdx{common::INVALID_NODE_GROUP_IDX}, numCommittedNodeGroups{0},
+          numUnCommittedNodeGroups{0}, semiMask{std::move(semiMask)} {};
+
+    void initialize(const transaction::Transaction* transaction, storage::RelTable* table,
+        ScanRelTableProgressSharedState& progressSharedState);
+
+    void nextMorsel(storage::RelTableScanState& scanState,
+        ScanRelTableProgressSharedState& progressSharedState);
+
+    common::SemiMask* getSemiMask() const { return semiMask.get(); }
+
+private:
+    std::mutex mtx;
+    storage::RelTable* table;
+    common::node_group_idx_t currentCommittedGroupIdx;
+    common::node_group_idx_t currentUnCommittedGroupIdx;
+    common::node_group_idx_t numCommittedNodeGroups;
+    common::node_group_idx_t numUnCommittedNodeGroups;
+    std::unique_ptr<common::SemiMask> semiMask;
+};
 
 struct ScanRelTableInfo {
     storage::RelTable* table;
-    common::RelDataDirection direction;
     std::vector<common::column_id_t> columnIDs;
     std::vector<storage::ColumnPredicateSet> columnPredicates;
 
-    ScanRelTableInfo(storage::RelTable* table, common::RelDataDirection direction,
-        std::vector<common::column_id_t> columnIDs,
+    ScanRelTableInfo(storage::RelTable* table, std::vector<common::column_id_t> columnIDs,
         std::vector<storage::ColumnPredicateSet> columnPredicates)
-        : table{table}, direction{direction}, columnIDs{std::move(columnIDs)},
+        : table{table}, columnIDs{std::move(columnIDs)},
           columnPredicates{std::move(columnPredicates)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(ScanRelTableInfo);
 
 private:
     ScanRelTableInfo(const ScanRelTableInfo& other)
-        : table{other.table}, direction{other.direction}, columnIDs{other.columnIDs},
+        : table{other.table}, columnIDs{other.columnIDs},
           columnPredicates{copyVector(other.columnPredicates)} {}
 };
 
 struct ScanRelTablePrintInfo final : OPPrintInfo {
     std::vector<std::string> tableNames;
-    binder::expression_vector properties;
-    std::shared_ptr<binder::NodeExpression> boundNode;
-    std::shared_ptr<binder::RelExpression> rel;
-    std::shared_ptr<binder::NodeExpression> nbrNode;
-    common::ExtendDirection direction;
     std::string alias;
+    binder::expression_vector properties;
 
-    ScanRelTablePrintInfo(std::vector<std::string> tableNames, binder::expression_vector properties,
-        std::shared_ptr<binder::NodeExpression> boundNode,
-        std::shared_ptr<binder::RelExpression> rel, std::shared_ptr<binder::NodeExpression> nbrNode,
-        common::ExtendDirection direction, std::string alias)
-        : tableNames{std::move(tableNames)}, properties{std::move(properties)},
-          boundNode{std::move(boundNode)}, rel{std::move(rel)}, nbrNode{std::move(nbrNode)},
-          direction{direction}, alias{std::move(alias)} {}
+    ScanRelTablePrintInfo(std::vector<std::string> tableNames, std::string alias,
+        binder::expression_vector properties)
+        : tableNames{std::move(tableNames)}, alias{std::move(alias)},
+          properties{std::move(properties)} {}
 
     std::string toString() const override;
 
@@ -56,33 +74,54 @@ struct ScanRelTablePrintInfo final : OPPrintInfo {
 
 private:
     ScanRelTablePrintInfo(const ScanRelTablePrintInfo& other)
-        : OPPrintInfo{other}, tableNames{other.tableNames}, properties{other.properties},
-          boundNode{other.boundNode}, rel{other.rel}, nbrNode{other.nbrNode},
-          direction{other.direction}, alias{other.alias} {}
+        : OPPrintInfo{other}, tableNames{other.tableNames}, alias{other.alias},
+          properties{other.properties} {}
 };
 
 class ScanRelTable final : public ScanTable {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::SCAN_REL_TABLE;
 
 public:
-    ScanRelTable(ScanTableInfo info, ScanRelTableInfo relInfo,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        std::unique_ptr<OPPrintInfo> printInfo)
-        : ScanTable{type_, std::move(info), std::move(child), id, std::move(printInfo)},
-          relInfo{std::move(relInfo)} {}
+    ScanRelTable(ScanTableInfo info, std::vector<ScanRelTableInfo> nodeInfos,
+        std::vector<std::shared_ptr<ScanRelTableSharedState>> sharedStates, uint32_t id,
+        std::unique_ptr<OPPrintInfo> printInfo,
+        std::shared_ptr<ScanRelTableProgressSharedState> progressSharedState)
+        : ScanTable{type_, std::move(info), id, std::move(printInfo)}, currentTableIdx{0},
+          scanState{nullptr}, nodeInfos{std::move(nodeInfos)},
+          sharedStates{std::move(sharedStates)},
+          progressSharedState{std::move(progressSharedState)} {
+        KU_ASSERT(this->nodeInfos.size() == this->sharedStates.size());
+    }
+
+    common::table_id_map_t<common::SemiMask*> getSemiMasks() const;
+
+    bool isSource() const override { return true; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<ScanRelTable>(info.copy(), relInfo.copy(), children[0]->copy(), id,
-            printInfo->copy());
+    const ScanRelTableSharedState& getSharedState(common::idx_t idx) const {
+        KU_ASSERT(idx < sharedStates.size());
+        return *sharedStates[idx];
     }
 
-protected:
-    ScanRelTableInfo relInfo;
+    std::unique_ptr<PhysicalOperator> copy() override {
+        return std::make_unique<ScanRelTable>(info.copy(), copyVector(nodeInfos), sharedStates, id,
+            printInfo->copy(), progressSharedState);
+    }
+
+    double getProgress(ExecutionContext* context) const override;
+
+private:
+    void initGlobalStateInternal(ExecutionContext* context) override;
+
+private:
+    common::idx_t currentTableIdx;
     std::unique_ptr<storage::RelTableScanState> scanState;
+    std::vector<ScanRelTableInfo> nodeInfos;
+    std::vector<std::shared_ptr<ScanRelTableSharedState>> sharedStates;
+    std::shared_ptr<ScanRelTableProgressSharedState> progressSharedState;
 };
 
 } // namespace processor

@@ -48,6 +48,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "EMPTY_RESULT";
     case PhysicalOperatorType::EXPORT_DATABASE:
         return "EXPORT_DATABASE";
+    case PhysicalOperatorType::EXTEND:
+        return "EXTEND";
     case PhysicalOperatorType::FILTER:
         return "FILTER";
     case PhysicalOperatorType::FLATTEN:
@@ -128,7 +130,7 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
 }
 
 std::string PhysicalOperatorUtils::operatorToString(const PhysicalOperator* physicalOp) {
-    return PhysicalOperatorUtils::operatorTypeToString(physicalOp->getOperatorType()) + "[" +
+    return operatorTypeToString(physicalOp->getOperatorType()) + "[" +
            std::to_string(physicalOp->getOperatorID()) + "]";
 }
 // LCOV_EXCL_STOP

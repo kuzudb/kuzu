@@ -222,11 +222,6 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitExtendReplace(
         !context->getClientConfig()->enableZoneMap) {
         return visitChildren(op);
     }
-    auto& extend = op->cast<LogicalExtend>();
-    // Apply column predicates.
-    auto columnPredicates =
-        getColumnPredicateSets(extend.getProperties(), predicateSet.getAllPredicates());
-    // extend.setPropertyPredicates(std::move(columnPredicates));
     return visitChildren(op);
 }
 
