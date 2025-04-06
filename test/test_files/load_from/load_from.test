@@ -168,7 +168,6 @@ Binder exception: Cannot load from file type tsv. If this file type is part of a
 1|1
 2|2
 
--CASE LoadFromErrorTest
 -LOG LoadFromIncorrectPath
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset' (file_format='csv') RETURN *;
 ---- error
@@ -189,10 +188,14 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_doub
 ---- error
 Binder exception: Cannot load from file type npyd. If this file type is part of a kuzu extension please load the extension then try again.
 
--CASE LoadFromMultipleFiles
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson*.csv" RETURN id;
 ---- error(regex)
 Binder exception: Number of columns mismatch. Expected .+
 -STATEMENT LOAD FROM ["${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv", "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows_2.csv"] RETURN COUNT(*);
 ---- 1
 14
+
+-LOG CaseInsensitiveColumnName
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-1/csv/comment_0_0.csv" RETURN MIN(Length);
+---- 1
+2
