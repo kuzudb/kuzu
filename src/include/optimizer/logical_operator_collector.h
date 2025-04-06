@@ -33,6 +33,11 @@ protected:
     void visitScanNodeTable(planner::LogicalOperator* op) override { ops.push_back(op); }
 };
 
+class LogicalScanRelTableCollector final : public LogicalOperatorCollector {
+protected:
+    void visitScanRelTable(planner::LogicalOperator* op) override { ops.push_back(op); }
+};
+
 // TODO(Xiyang): Rename me.
 class LogicalIndexScanNodeCollector final : public LogicalOperatorCollector {
 protected:

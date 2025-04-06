@@ -2,6 +2,7 @@
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/recursive_extend.h"
 #include "processor/operator/scan/scan_node_table.h"
+#include "processor/operator/scan/scan_rel_table.h"
 #include "processor/operator/semi_masker.h"
 #include "processor/operator/table_function_call.h"
 #include "processor/plan_mapper.h"
@@ -47,6 +48,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(
             auto scan = physicalOp->ptrCast<ScanNodeTable>();
             initMask(masksPerTable, scan->getSemiMasks());
         } break;
+        case PhysicalOperatorType::SCAN_REL_TABLE: {
+            KU_ASSERT(semiMasker.getTargetType() == SemiMaskTargetType::SCAN_REL);
+            auto scan = physicalOp->ptrCast<ScanRelTable>();
+            initMask(masksPerTable, scan->getSemiMasks());
+        }
         case PhysicalOperatorType::TABLE_FUNCTION_CALL: {
             auto sharedState = physicalOp->ptrCast<TableFunctionCall>()->getSharedState();
             switch (semiMasker.getTargetType()) {

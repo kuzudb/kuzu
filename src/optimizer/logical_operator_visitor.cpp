@@ -73,6 +73,9 @@ void LogicalOperatorVisitor::visitOperatorSwitch(LogicalOperator* op) {
     case LogicalOperatorType::SCAN_NODE_TABLE: {
         visitScanNodeTable(op);
     } break;
+    case LogicalOperatorType::SCAN_REL_TABLE: {
+        visitScanRelTable(op);
+    } break;
     case LogicalOperatorType::SET_PROPERTY: {
         visitSetProperty(op);
     } break;

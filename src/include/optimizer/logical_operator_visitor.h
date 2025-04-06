@@ -147,6 +147,12 @@ protected:
         return op;
     }
 
+    virtual void visitScanRelTable(planner::LogicalOperator* /*op*/) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitScanRelTableReplace(
+        std::shared_ptr<planner::LogicalOperator> op) {
+        return op;
+    }
+
     virtual void visitSetProperty(planner::LogicalOperator*) {}
     virtual std::shared_ptr<planner::LogicalOperator> visitSetPropertyReplace(
         std::shared_ptr<planner::LogicalOperator> op) {

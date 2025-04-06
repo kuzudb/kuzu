@@ -9,6 +9,7 @@
 #include "planner/operator/logical_path_property_probe.h"
 #include "planner/operator/scan/logical_scan_node_table.h"
 #include "planner/operator/sip/logical_semi_masker.h"
+#include <planner/operator/scan/logical_scan_rel_table.h>
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -38,6 +39,9 @@ static std::vector<table_id_t> getTableIDs(const LogicalOperator* op,
     switch (op->getOperatorType()) {
     case LogicalOperatorType::SCAN_NODE_TABLE: {
         return op->constCast<LogicalScanNodeTable>().getTableIDs();
+    }
+    case LogicalOperatorType::SCAN_REL_TABLE: {
+        return op->constCast<LogicalScanRelTable>().getTableIDs();
     }
     case LogicalOperatorType::RECURSIVE_EXTEND: {
         auto& bindData = op->constCast<LogicalRecursiveExtend>().getBindData();
@@ -170,6 +174,20 @@ static std::vector<const LogicalOperator*> getScanNodeCandidates(const Expressio
     return result;
 }
 
+static std::vector<const LogicalOperator*> getScanRelCandidates(const Expression& nodeID,
+    LogicalOperator* root) {
+    std::vector<const LogicalOperator*> result;
+    auto collector = LogicalScanRelTableCollector();
+    collector.collect(root);
+    for (auto& op : collector.getOperators()) {
+        auto& scan = op->constCast<LogicalScanRelTable>();
+        if (nodeID.getUniqueName() == scan.getNodeID()->getUniqueName()) {
+            result.push_back(op);
+        }
+    }
+    return result;
+}
+
 static std::vector<const LogicalOperator*> getRecursiveExtendInputNodeCandidates(
     const Expression& nodeID, LogicalOperator* root) {
     std::vector<const LogicalOperator*> result;
@@ -223,6 +241,11 @@ static std::shared_ptr<LogicalOperator> tryApplySemiMask(std::shared_ptr<Express
     if (!scanNodeCandidates.empty()) {
         return appendSemiMasker(SemiMaskKeyType::NODE, SemiMaskTargetType::SCAN_NODE,
             std::move(nodeID), scanNodeCandidates, std::move(fromRoot));
+    }
+    auto scanRelCandidates = getScanRelCandidates(*nodeID, toRoot);
+    if (!scanRelCandidates.empty()) {
+        return appendSemiMasker(SemiMaskKeyType::NODE, SemiMaskTargetType::SCAN_REL,
+            std::move(nodeID), scanRelCandidates, std::move(fromRoot));
     }
     return nullptr;
 }
