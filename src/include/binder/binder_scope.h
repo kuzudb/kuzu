@@ -2,6 +2,7 @@
 
 #include "binder/expression/expression.h"
 #include "binder/expression/node_expression.h"
+#include "common/case_insensitive_map.h"
 
 namespace kuzu {
 namespace binder {
@@ -55,15 +56,15 @@ private:
 private:
     // Expressions in scope. Order should be preserved.
     expression_vector expressions;
-    std::unordered_map<std::string, common::idx_t> nameToExprIdx;
+    common::case_insensitive_map_t<common::idx_t> nameToExprIdx;
     // A node might be popped out of scope. But we may need to retain its table ID information.
     // E.g. MATCH (a:person) WITH collect(a) AS list_a UNWIND list_a AS new_a MATCH (new_a)-[]->()
     // It will be more performant if we can retain the information that new_a has label person.
-    std::unordered_map<std::string, std::vector<catalog::TableCatalogEntry*>>
+    common::case_insensitive_map_t<std::vector<catalog::TableCatalogEntry*>>
         memorizedNodeNameToEntries;
     // A node pattern may not always be bound as a node expression, e.g. in the above query,
     // (new_a) is bound as a variable rather than node expression.
-    std::unordered_map<std::string, std::shared_ptr<NodeExpression>> nodeReplacement;
+    common::case_insensitive_map_t<std::shared_ptr<NodeExpression>> nodeReplacement;
 };
 
 } // namespace binder
