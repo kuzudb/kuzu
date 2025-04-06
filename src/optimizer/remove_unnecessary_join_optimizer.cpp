@@ -37,6 +37,17 @@ std::shared_ptr<LogicalOperator> RemoveUnnecessaryJoinOptimizer::visitHashJoinRe
         break;
     }
     // TODO(Xiyang): Double check on these changes here.
+    if (op->getChild(1)->getOperatorType() == LogicalOperatorType::EXTEND &&
+        op->getChild(0)->getOperatorType() == LogicalOperatorType::SCAN_REL_TABLE) {
+        if (op->getChild(1)->getChild(0)->getOperatorType() ==
+            LogicalOperatorType::SCAN_NODE_TABLE) {
+            auto scanNode =
+                ku_dynamic_cast<LogicalScanNodeTable*>(op->getChild(1)->getChild(0).get());
+            if (scanNode->getProperties().empty()) {
+                return op->getChild(0);
+            }
+        }
+    }
     if (op->getChild(1)->getOperatorType() == LogicalOperatorType::SCAN_NODE_TABLE) {
         const auto scanNode = ku_dynamic_cast<LogicalScanNodeTable*>(op->getChild(1).get());
         if (scanNode->getProperties().empty()) {

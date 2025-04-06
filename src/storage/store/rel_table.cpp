@@ -189,10 +189,6 @@ RelTable::RelTable(RelTableCatalogEntry* relTableEntry, const StorageManager* st
     : Table{relTableEntry, storageManager, memoryManager},
       fromNodeTableID{relTableEntry->getSrcTableID()},
       toNodeTableID{relTableEntry->getDstTableID()}, nextRelOffset{0}, versionRecordHandler{this} {
-    for (auto direction : relTableEntry->getRelDataDirections()) {
-        directedRelData.emplace_back(std::make_unique<RelTableData>(dataFH, memoryManager,
-            shadowFile, relTableEntry, direction, enableCompression, deSer));
-    }
     const auto numPropertyColumns = relTableEntry->getNumProperties() - 1;
     std::vector<LogicalType> propertyTypes(numPropertyColumns);
     columns.resize(numPropertyColumns);
@@ -207,6 +203,10 @@ RelTable::RelTable(RelTableCatalogEntry* relTableEntry, const StorageManager* st
     }
     nodeGroups = std::make_unique<NodeGroupCollection>(*memoryManager, std::move(propertyTypes),
         enableCompression, storageManager->getDataFH(), deSer, &versionRecordHandler);
+    for (auto direction : relTableEntry->getRelDataDirections()) {
+        directedRelData.emplace_back(std::make_unique<RelTableData>(dataFH, memoryManager,
+            shadowFile, relTableEntry, direction, enableCompression, deSer));
+    }
 }
 
 std::unique_ptr<RelTable> RelTable::loadTable(Deserializer& deSer, const Catalog& catalog,
