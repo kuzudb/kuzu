@@ -1,0 +1,15 @@
+{
+  "accountContacts": [
+    {
+      "objectType": "contact",
+      "schemaVersion": null,
+      "contactIdentifier": "320864",
+      "contactNamespace": "56127",
+      "contactDetail": {
+        "fullname": "Renee Luke",
+        "email": "renee.luke@datapath.com",
+        "phone": "(678) 252-4828 - Direct"
+      }
+    }
+  ]
+}
