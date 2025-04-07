@@ -292,6 +292,24 @@ uint64_t BufferManager::evictPages() {
             if (!evictionCandidate.isEvictable(pageStateAndVersion)) {
                 if (evictionCandidate.isSecondChanceEvictable(pageStateAndVersion)) {
                     pageState->tryMark(pageStateAndVersion);
+                } else if (evictionCandidate.isEvicted(pageStateAndVersion)) {
+                    // Remove evicted candidate from queue
+                    // Potential data races: Other threads could both remove this candidate from the
+                    // queue and even re-add the page (non-evicted) in the same position, in which
+                    // case we don't want to remove the candidate. To avoid data races against the
+                    // other threads, we need to lock the page state before removing it.
+                    //
+                    // If the same page gets re-added to the eviction queue in a different spot
+                    // during this time (causing the pageStateAndVersion to change and the tryLock
+                    // to fail), We cannot clear this candidate since we cannot distinguish this
+                    // circumstance from the case where it has been re-added to this same position.
+                    // Once evicted the duplicate candidates will be removed
+                    if (pageState->tryLock(pageStateAndVersion)) {
+                        // Since it's locked we don't need to use a compare_exchange; no other part
+                        // of the code should modify an evicted candidate in the queue
+                        candidate = EvictionQueue::EMPTY;
+                        pageState->unlock();
+                    }
                 }
                 continue;
             }

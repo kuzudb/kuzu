@@ -42,7 +42,8 @@ public:
     }
     void spinLock(uint64_t oldStateAndVersion) {
         while (true) {
-            if (tryLock(oldStateAndVersion)) {
+            if (stateAndVersion.compare_exchange_strong(oldStateAndVersion,
+                    updateStateWithSameVersion(oldStateAndVersion, LOCKED))) {
                 return;
             }
         }

@@ -43,6 +43,10 @@ struct EvictionCandidate {
         return PageState::getState(currPageStateAndVersion) == PageState::UNLOCKED;
     }
 
+    static bool isEvicted(uint64_t currPageStateAndVersion) {
+        return PageState::getState(currPageStateAndVersion) == PageState::EVICTED;
+    }
+
     bool operator==(const EvictionCandidate& other) const {
         return fileIdx == other.fileIdx && pageIdx == other.pageIdx;
     }
