@@ -54,10 +54,13 @@ struct FreeEntryIterator {
         : FreeEntryIterator(freeLists, 0) {}
 
     FreeEntryIterator(const std::vector<FreeSpaceManager::sorted_free_list_t>& freeLists,
-        common::idx_t freeListIdx)
-        : freeLists(freeLists), freeListIdx(freeListIdx) {
-        if (freeListIdx < freeLists.size()) {
-            freeListIt = freeLists[freeListIdx].begin();
+        common::idx_t freeListIdx_)
+        : freeLists(freeLists), freeListIdx(freeListIdx_) {
+        for (; freeListIdx < freeLists.size(); ++freeListIdx) {
+            if (!freeLists[freeListIdx].empty()) {
+                freeListIt = freeLists[freeListIdx].begin();
+                break;
+            }
         }
     }
 
