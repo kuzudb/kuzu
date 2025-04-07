@@ -778,7 +778,7 @@ static JsonScanFormat autoDetect(main::ClientContext* context, const std::string
     }
 
     for (auto& type : types) {
-        LogicalTypeUtils::purgeAny(type, LogicalType::STRING());
+        type = LogicalTypeUtils::purgeAny(type, LogicalType::STRING());
     }
     return sharedState.jsonReader->getFormat();
 }
