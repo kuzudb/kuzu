@@ -186,6 +186,11 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
     writer->sync();
     shadowFile->flushAll();
     pageChunkManager->finalizeCheckpoint();
+    // When a page is freed by the FSM it evicts it from the BM. However if the page is freed then
+    // reused over and over it can be appended to the eviction queue multiple times. To prevent
+    // multiple entries of the same page from existing in the eviction queue, at the end of each
+    // checkpoint we remove any already-evicted pages.
+    memoryManager.getBufferManager()->removeEvictedCandidates();
 }
 
 void StorageManager::rollbackCheckpoint(main::ClientContext& clientContext) {

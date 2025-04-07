@@ -305,6 +305,25 @@ uint64_t BufferManager::evictPages() {
     return claimedMemory;
 }
 
+void BufferManager::removeEvictedCandidates() {
+    auto startCursor = evictionQueue.getEvictionCursor();
+    while (evictionQueue.getEvictionCursor() - startCursor < evictionQueue.getCapacity()) {
+        for (auto& candidate : evictionQueue.next()) {
+            auto evictionCandidate = candidate.load();
+            if (evictionCandidate == EvictionQueue::EMPTY) {
+                continue;
+            }
+            KU_ASSERT(evictionCandidate.fileIdx < fileHandles.size());
+            auto* pageState =
+                fileHandles[evictionCandidate.fileIdx]->getPageState(evictionCandidate.pageIdx);
+            auto pageStateAndVersion = pageState->getStateAndVersion();
+            if (PageState::getState(pageStateAndVersion) == PageState::EVICTED) {
+                evictionQueue.clear(candidate);
+            }
+        }
+    }
+}
+
 // This function tries to load the given page into a frame. Due to our design of mmap, each page is
 // uniquely mapped to a frame. Thus, claiming a frame is equivalent to ensuring enough physical
 // memory is available.

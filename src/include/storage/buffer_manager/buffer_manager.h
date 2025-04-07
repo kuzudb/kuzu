@@ -220,6 +220,11 @@ public:
 
     void resetSpiller(std::string spillPath);
 
+    // This function only works when run in a single-threaded context
+    // Iterates through the eviction queue and removes any elements that have already been evicted
+    // (due to some external intervention)
+    void removeEvictedCandidates();
+
 protected:
     // Reclaims used memory until the given size to reserve is available
     // The specified amount of memory will be recorded as being used
