@@ -182,7 +182,7 @@ ColumnChunkMetadata Column::flushData(const ColumnChunkData& chunkData,
     // TODO(Guodong/Ben): We can optimize the flush to write back to same set of pages if new
     // flushed data are not out of the capacity.
     const auto preScanMetadata = chunkData.getMetadataToFlush();
-    auto allocatedBlock = pageChunkManager.allocateBlock(preScanMetadata.numPages);
+    auto allocatedBlock = pageChunkManager.allocateBlock(preScanMetadata.getNumPages());
     return chunkData.flushBuffer(allocatedBlock, preScanMetadata);
 }
 
@@ -354,7 +354,7 @@ offset_t Column::appendValues(ColumnChunkData& persistentChunk, ChunkState& stat
     const auto numNewPages =
         writeValues(state, metadata.numValues, data, nullChunkData, 0 /*dataOffset*/, numValues);
     KU_ASSERT(numNewPages == 0);
-    metadata.numPages += numNewPages;
+    metadata.pageChunk.numPages += numNewPages;
 
     auto [minWritten, maxWritten] = getMinMaxStorageValue(data, 0 /*offset*/, numValues,
         dataType.getPhysicalType(), nullChunkData);

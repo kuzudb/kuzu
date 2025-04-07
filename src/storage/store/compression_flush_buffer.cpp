@@ -115,7 +115,8 @@ void flushALPExceptions(std::span<const uint8_t> exceptionBuffer,
         uncompressedGetMetadata(exceptionBuffer, exceptionBuffer.size(),
             metadata.compMeta.floatMetadata()->exceptionCapacity, StorageValue{0}, StorageValue{0});
 
-    const auto exceptionStartPageIdx = allocatedBlock.getNumPages() - preExceptionMetadata.numPages;
+    const auto exceptionStartPageIdx =
+        allocatedBlock.getNumPages() - preExceptionMetadata.getNumPages();
     AllocatedBlockEntry exceptionBlock{allocatedBlock, exceptionStartPageIdx};
 
     const auto encodedType = std::is_same_v<T, float> ? PhysicalTypeID::ALP_EXCEPTION_FLOAT :

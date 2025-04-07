@@ -132,8 +132,8 @@ static void appendStorageInfoForChunkData(StorageInfoLocalState* localState, Dat
     outputChunk.getValueVectorMutable(4).setValue(vectorPos,
         outputData.columns[outputData.columnIdx++]->getName());
     outputChunk.getValueVectorMutable(5).setValue(vectorPos, columnType.toString());
-    outputChunk.getValueVectorMutable(6).setValue<uint64_t>(vectorPos, metadata.pageIdx);
-    outputChunk.getValueVectorMutable(7).setValue<uint64_t>(vectorPos, metadata.numPages);
+    outputChunk.getValueVectorMutable(6).setValue<uint64_t>(vectorPos, metadata.getStartPageIdx());
+    outputChunk.getValueVectorMutable(7).setValue<uint64_t>(vectorPos, metadata.getNumPages());
     outputChunk.getValueVectorMutable(8).setValue<uint64_t>(vectorPos, metadata.numValues);
 
     auto customToString = [&]<typename T>(T) {

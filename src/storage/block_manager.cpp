@@ -7,7 +7,7 @@
 static constexpr bool ENABLE_FSM = true;
 
 namespace kuzu::storage {
-AllocatedBlockEntry pageChunkManager::allocateBlock(common::page_idx_t numPages) {
+AllocatedBlockEntry PageChunkManager::allocateBlock(common::page_idx_t numPages) {
     if constexpr (ENABLE_FSM) {
         common::UniqLock lck{mtx};
         // TODO(Royi) check if this is still needed
@@ -23,7 +23,7 @@ AllocatedBlockEntry pageChunkManager::allocateBlock(common::page_idx_t numPages)
     return AllocatedBlockEntry(startPageIdx, numPages, *this);
 }
 
-void pageChunkManager::freeBlock(PageChunkEntry entry) {
+void PageChunkManager::freeBlock(PageChunkEntry entry) {
     if constexpr (ENABLE_FSM) {
         common::UniqLock lck{mtx};
         for (uint64_t i = 0; i < entry.numPages; ++i) {
@@ -34,11 +34,11 @@ void pageChunkManager::freeBlock(PageChunkEntry entry) {
     }
 }
 
-void pageChunkManager::addUncheckpointedFreeBlock(PageChunkEntry entry) {
+void PageChunkManager::addUncheckpointedFreeBlock(PageChunkEntry entry) {
     freeSpaceManager->addUncheckpointedFreeChunk(entry);
 }
 
-bool pageChunkManager::updateShadowedPageWithCursor(PageCursor cursor, DBFileID dbFileID,
+bool PageChunkManager::updateShadowedPageWithCursor(PageCursor cursor, DBFileID dbFileID,
     const std::function<void(uint8_t*, common::offset_t)>& writeOp) const {
     bool insertingNewPage = false;
     if (cursor.pageIdx == common::INVALID_PAGE_IDX) {
@@ -56,7 +56,7 @@ bool pageChunkManager::updateShadowedPageWithCursor(PageCursor cursor, DBFileID 
 }
 
 std::pair<FileHandle*, common::page_idx_t>
-pageChunkManager::getShadowedFileHandleAndPhysicalPageIdxToPin(common::page_idx_t pageIdx,
+PageChunkManager::getShadowedFileHandleAndPhysicalPageIdxToPin(common::page_idx_t pageIdx,
     transaction::TransactionType trxType) const {
     return ShadowUtils::getFileHandleAndPhysicalPageIdxToPin(*dataFH, pageIdx, *shadowFile,
         trxType);
@@ -76,17 +76,17 @@ bool AllocatedBlockEntry::isInMemoryMode() const {
     return pageChunkManager.dataFH->isInMemoryMode();
 }
 
-void pageChunkManager::serialize(common::Serializer& serializer) {
+void PageChunkManager::serialize(common::Serializer& serializer) {
     freeSpaceManager->serialize(serializer);
 }
 
-std::unique_ptr<pageChunkManager> pageChunkManager::deserialize(common::Deserializer& deSer,
+std::unique_ptr<PageChunkManager> PageChunkManager::deserialize(common::Deserializer& deSer,
     FileHandle* dataFH, ShadowFile* shadowFile) {
-    return std::make_unique<pageChunkManager>(dataFH, shadowFile,
+    return std::make_unique<PageChunkManager>(dataFH, shadowFile,
         FreeSpaceManager::deserialize(deSer));
 }
 
-void pageChunkManager::finalizeCheckpoint() {
+void PageChunkManager::finalizeCheckpoint() {
     freeSpaceManager->finalizeCheckpoint();
 }
 } // namespace kuzu::storage

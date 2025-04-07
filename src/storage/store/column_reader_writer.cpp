@@ -19,7 +19,8 @@ using namespace transaction;
 
 namespace {
 [[maybe_unused]] bool isPageIdxValid(page_idx_t pageIdx, const ColumnChunkMetadata& metadata) {
-    return (metadata.pageIdx <= pageIdx && pageIdx < metadata.pageIdx + metadata.numPages) ||
+    return (metadata.getStartPageIdx() <= pageIdx &&
+               pageIdx < metadata.getStartPageIdx() + metadata.getNumPages()) ||
            (pageIdx == INVALID_PAGE_IDX && metadata.compMeta.isConstant());
 }
 
@@ -134,7 +135,7 @@ public:
         const write_values_to_page_func_t<InputType, AdditionalArgs...>& writeFunc,
         const NullMask* nullMask) {
         auto numValuesWritten = 0u;
-        auto cursor = getPageCursorForOffsetInGroup(dstOffset, state.metadata.pageIdx,
+        auto cursor = getPageCursorForOffsetInGroup(dstOffset, state.metadata.getStartPageIdx(),
             state.numValuesPerPage);
         page_idx_t numPagesAppended = 0;
         while (numValuesWritten < numValues) {
@@ -179,8 +180,8 @@ public:
             return 0;
         }
 
-        auto pageCursor = getPageCursorForOffsetInGroup(startNodeOffset, chunkMeta.pageIdx,
-            state.numValuesPerPage);
+        auto pageCursor = getPageCursorForOffsetInGroup(startNodeOffset,
+            chunkMeta.getStartPageIdx(), state.numValuesPerPage);
         KU_ASSERT(isPageIdxValid(pageCursor.pageIdx, chunkMeta));
 
         uint64_t numValuesScanned = 0;
@@ -452,7 +453,7 @@ PageCursor ColumnReadWriter::getPageCursorForOffsetInGroup(offset_t offsetInChun
 std::pair<common::offset_t, PageCursor> ColumnReadWriter::getOffsetAndCursor(
     common::offset_t nodeOffset, const ChunkState& state) const {
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
-    auto cursor = getPageCursorForOffsetInGroup(offsetInChunk, state.metadata.pageIdx,
+    auto cursor = getPageCursorForOffsetInGroup(offsetInChunk, state.metadata.getStartPageIdx(),
         state.numValuesPerPage);
     KU_ASSERT(isPageIdxValid(cursor.pageIdx, state.metadata));
 

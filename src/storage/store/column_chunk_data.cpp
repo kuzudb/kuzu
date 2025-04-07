@@ -292,7 +292,7 @@ void ColumnChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
 
 void ColumnChunkData::flush(PageChunkManager& pageChunkManager) {
     const auto preScanMetadata = getMetadataToFlush();
-    auto allocatedEntry = pageChunkManager.allocateBlock(preScanMetadata.numPages);
+    auto allocatedEntry = pageChunkManager.allocateBlock(preScanMetadata.getNumPages());
     const auto flushedMetadata = flushBuffer(allocatedEntry, preScanMetadata);
     setToOnDisk(flushedMetadata);
     if (nullData) {
@@ -317,7 +317,7 @@ ColumnChunkMetadata ColumnChunkData::flushBuffer(AllocatedBlockEntry& entry,
         KU_ASSERT(getBufferSize() == getBufferSize(capacity));
         return flushBufferFunction(buffer->getBuffer(), entry, otherMetadata);
     }
-    KU_ASSERT(otherMetadata.numPages == 0);
+    KU_ASSERT(otherMetadata.getNumPages() == 0);
     return otherMetadata;
 }
 
@@ -998,9 +998,9 @@ ColumnChunkData::~ColumnChunkData() = default;
 
 void ColumnChunkData::reclaimAllocatedPages(PageChunkManager& pageChunkManager,
     const ChunkState& state) const {
-    const auto& metadata = state.metadata;
-    if (metadata.pageIdx != INVALID_PAGE_IDX) {
-        pageChunkManager.freeBlock(PageChunkEntry(metadata.pageIdx, metadata.numPages));
+    const auto& entry = state.metadata.pageChunk;
+    if (entry.startPageIdx != INVALID_PAGE_IDX) {
+        pageChunkManager.freeBlock(entry);
     }
     if (nullData) {
         KU_ASSERT(state.nullState);
