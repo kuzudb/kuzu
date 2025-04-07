@@ -47,13 +47,13 @@ class MemoryManager;
 struct NodeGroupCheckpointState {
     std::vector<common::column_id_t> columnIDs;
     std::vector<Column*> columns;
-    BlockManager& blockManager;
+    PageChunkManager& pageChunkManager;
     MemoryManager* mm;
 
     NodeGroupCheckpointState(std::vector<common::column_id_t> columnIDs,
-        std::vector<Column*> columns, BlockManager& blockManager, MemoryManager* mm)
-        : columnIDs{std::move(columnIDs)}, columns{std::move(columns)}, blockManager{blockManager},
-          mm{mm} {}
+        std::vector<Column*> columns, PageChunkManager& pageChunkManager, MemoryManager* mm)
+        : columnIDs{std::move(columnIDs)}, columns{std::move(columns)},
+          pageChunkManager{pageChunkManager}, mm{mm} {}
     virtual ~NodeGroupCheckpointState() = default;
 
     template<typename T>
@@ -152,10 +152,10 @@ public:
 
     bool hasDeletions(const transaction::Transaction* transaction) const;
     virtual void addColumn(transaction::Transaction* transaction,
-        TableAddColumnState& addColumnState, BlockManager* blockManager,
+        TableAddColumnState& addColumnState, PageChunkManager* pageChunkManager,
         ColumnStats* newColumnStats);
 
-    void flush(const transaction::Transaction* transaction, BlockManager& blockManager);
+    void flush(const transaction::Transaction* transaction, PageChunkManager& pageChunkManager);
 
     void applyFuncToChunkedGroups(version_record_handler_op_t func, common::row_idx_t startRow,
         common::row_idx_t numRows, common::transaction_t commitTS) const;

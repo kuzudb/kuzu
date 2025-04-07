@@ -11,13 +11,13 @@ namespace storage {
 struct PageCursor;
 struct DBFileID;
 
-class BlockManager;
+class PageChunkManager;
 
-struct BlockEntry {
-    BlockEntry(common::page_idx_t startPageIdx, common::page_idx_t numPages)
+struct PageChunkEntry {
+    PageChunkEntry(common::page_idx_t startPageIdx, common::page_idx_t numPages)
         : startPageIdx(startPageIdx), numPages(numPages) {}
-    BlockEntry(const BlockEntry& o, common::page_idx_t startPageInOther)
-        : BlockEntry(o.startPageIdx + startPageInOther, o.numPages - startPageInOther) {
+    PageChunkEntry(const PageChunkEntry& o, common::page_idx_t startPageInOther)
+        : PageChunkEntry(o.startPageIdx + startPageInOther, o.numPages - startPageInOther) {
         KU_ASSERT(startPageInOther <= o.numPages);
     }
 
@@ -27,14 +27,14 @@ struct BlockEntry {
 
 struct AllocatedBlockEntry {
     AllocatedBlockEntry(common::page_idx_t startPageIdx, common::page_idx_t numPages,
-        BlockManager& blockManager)
-        : entry(startPageIdx, numPages), blockManager(blockManager) {}
-    AllocatedBlockEntry(const BlockEntry& entry, BlockManager& blockManager)
-        : entry(entry), blockManager(blockManager) {}
+        PageChunkManager& pageChunkManager)
+        : entry(startPageIdx, numPages), pageChunkManager(pageChunkManager) {}
+    AllocatedBlockEntry(const PageChunkEntry& entry, PageChunkManager& pageChunkManager)
+        : entry(entry), pageChunkManager(pageChunkManager) {}
     AllocatedBlockEntry(const AllocatedBlockEntry& entry, common::page_idx_t startPageInEntry)
-        : entry(entry.entry, startPageInEntry), blockManager(entry.blockManager) {}
-    BlockEntry entry;
-    BlockManager& blockManager;
+        : entry(entry.entry, startPageInEntry), pageChunkManager(entry.pageChunkManager) {}
+    PageChunkEntry entry;
+    PageChunkManager& pageChunkManager;
 
     common::page_idx_t getStartPageIdx() const { return entry.startPageIdx; }
     common::page_idx_t getNumPages() const { return entry.numPages; }
@@ -44,16 +44,17 @@ struct AllocatedBlockEntry {
     bool isInMemoryMode() const;
 };
 
-class BlockManager {
+class PageChunkManager {
 public:
-    BlockManager(FileHandle* dataFH, ShadowFile* shadowFile, std::unique_ptr<FreeSpaceManager> fsm)
+    PageChunkManager(FileHandle* dataFH, ShadowFile* shadowFile,
+        std::unique_ptr<FreeSpaceManager> fsm)
         : freeSpaceManager(std::move(fsm)), dataFH(dataFH), shadowFile(shadowFile) {}
-    BlockManager(FileHandle* dataFH, ShadowFile* shadowFile)
-        : BlockManager(dataFH, shadowFile, std::make_unique<FreeSpaceManager>()) {}
+    PageChunkManager(FileHandle* dataFH, ShadowFile* shadowFile)
+        : PageChunkManager(dataFH, shadowFile, std::make_unique<FreeSpaceManager>()) {}
 
     AllocatedBlockEntry allocateBlock(common::page_idx_t numPages);
-    void freeBlock(BlockEntry block);
-    void addUncheckpointedFreeBlock(BlockEntry block);
+    void freeBlock(PageChunkEntry block);
+    void addUncheckpointedFreeBlock(PageChunkEntry block);
 
     // returns true if a new page was appended to the shadow file
     bool updateShadowedPageWithCursor(PageCursor cursor, DBFileID dbFileID,
@@ -62,12 +63,12 @@ public:
         common::page_idx_t pageIdx, transaction::TransactionType trxType) const;
 
     void serialize(common::Serializer& serializer);
-    static std::unique_ptr<BlockManager> deserialize(common::Deserializer& deSer,
+    static std::unique_ptr<PageChunkManager> deserialize(common::Deserializer& deSer,
         FileHandle* dataFH, ShadowFile* shadowFile);
     void finalizeCheckpoint();
 
     common::row_idx_t getNumFreeEntries() const { return freeSpaceManager->getNumEntries(); }
-    std::vector<BlockEntry> getFreeEntries(common::row_idx_t startOffset,
+    std::vector<PageChunkEntry> getFreeEntries(common::row_idx_t startOffset,
         common::row_idx_t endOffset) const {
         return freeSpaceManager->getEntries(startOffset, endOffset);
     }

@@ -120,7 +120,7 @@ public:
 
     void addColumn(const transaction::Transaction* transaction,
         const TableAddColumnState& addColumnState, bool enableCompression,
-        BlockManager* blockManager, ColumnStats* newColumnStats);
+        PageChunkManager* pageChunkManager, ColumnStats* newColumnStats);
 
     bool isDeleted(const transaction::Transaction* transaction, common::row_idx_t rowInChunk) const;
     bool isInserted(const transaction::Transaction* transaction,
@@ -141,8 +141,8 @@ public:
     }
 
     virtual std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
-        transaction::Transaction* transaction, BlockManager& blockManager) const;
-    virtual void flush(BlockManager& blockManager);
+        transaction::Transaction* transaction, PageChunkManager& pageChunkManager) const;
+    virtual void flush(PageChunkManager& pageChunkManager);
 
     void commitInsert(common::row_idx_t startRow, common::row_idx_t numRowsToCommit,
         common::transaction_t commitTS);

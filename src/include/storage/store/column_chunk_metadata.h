@@ -5,7 +5,7 @@
 
 namespace kuzu::storage {
 struct ColumnChunkMetadata {
-    // TODO(Royi) consolidate pageIdx and numPages into BlockEntry
+    // TODO(Royi) consolidate pageIdx and numPages into PageChunkEntry
     common::page_idx_t pageIdx;
     common::page_idx_t numPages;
     uint64_t numValues;

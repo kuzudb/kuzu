@@ -127,9 +127,9 @@ public:
     void scanCSRHeader(MemoryManager& memoryManager, CSRNodeGroupCheckpointState& csrState) const;
 
     std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
-        transaction::Transaction* transaction, BlockManager& blockManager) const override;
+        transaction::Transaction* transaction, PageChunkManager& pageChunkManager) const override;
 
-    void flush(BlockManager& blockManager) override;
+    void flush(PageChunkManager& pageChunkManager) override;
 
     // this does not override ChunkedNodeGroup::merge() since clang-tidy analyzer
     // seems to struggle with detecting the std::move of the header unless this is inlined

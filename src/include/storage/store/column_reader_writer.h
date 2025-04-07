@@ -9,7 +9,7 @@ class Transaction;
 }
 namespace storage {
 
-class BlockManager;
+class PageChunkManager;
 class ColumnReadWriter;
 class ShadowFile;
 struct ColumnChunkMetadata;
@@ -38,12 +38,12 @@ using filter_func_t = std::function<bool(common::offset_t, common::offset_t)>;
 
 struct ColumnReadWriterFactory {
     static std::unique_ptr<ColumnReadWriter> createColumnReadWriter(common::PhysicalTypeID dataType,
-        DBFileID dbFileID, BlockManager& blockManager);
+        DBFileID dbFileID, PageChunkManager& pageChunkManager);
 };
 
 class ColumnReadWriter {
 public:
-    ColumnReadWriter(DBFileID dbFileID, BlockManager& blockManager);
+    ColumnReadWriter(DBFileID dbFileID, PageChunkManager& pageChunkManager);
 
     virtual ~ColumnReadWriter() = default;
 
@@ -89,7 +89,7 @@ protected:
 
 protected:
     DBFileID dbFileID;
-    BlockManager& blockManager;
+    PageChunkManager& pageChunkManager;
 };
 
 } // namespace storage

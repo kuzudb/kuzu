@@ -7,7 +7,7 @@
 static constexpr bool ENABLE_FSM = true;
 
 namespace kuzu::storage {
-AllocatedBlockEntry BlockManager::allocateBlock(common::page_idx_t numPages) {
+AllocatedBlockEntry pageChunkManager::allocateBlock(common::page_idx_t numPages) {
     if constexpr (ENABLE_FSM) {
         common::UniqLock lck{mtx};
         // TODO(Royi) check if this is still needed
@@ -23,7 +23,7 @@ AllocatedBlockEntry BlockManager::allocateBlock(common::page_idx_t numPages) {
     return AllocatedBlockEntry(startPageIdx, numPages, *this);
 }
 
-void BlockManager::freeBlock(BlockEntry entry) {
+void pageChunkManager::freeBlock(PageChunkEntry entry) {
     if constexpr (ENABLE_FSM) {
         common::UniqLock lck{mtx};
         for (uint64_t i = 0; i < entry.numPages; ++i) {
@@ -34,11 +34,11 @@ void BlockManager::freeBlock(BlockEntry entry) {
     }
 }
 
-void BlockManager::addUncheckpointedFreeBlock(BlockEntry entry) {
+void pageChunkManager::addUncheckpointedFreeBlock(PageChunkEntry entry) {
     freeSpaceManager->addUncheckpointedFreeChunk(entry);
 }
 
-bool BlockManager::updateShadowedPageWithCursor(PageCursor cursor, DBFileID dbFileID,
+bool pageChunkManager::updateShadowedPageWithCursor(PageCursor cursor, DBFileID dbFileID,
     const std::function<void(uint8_t*, common::offset_t)>& writeOp) const {
     bool insertingNewPage = false;
     if (cursor.pageIdx == common::INVALID_PAGE_IDX) {
@@ -56,36 +56,37 @@ bool BlockManager::updateShadowedPageWithCursor(PageCursor cursor, DBFileID dbFi
 }
 
 std::pair<FileHandle*, common::page_idx_t>
-BlockManager::getShadowedFileHandleAndPhysicalPageIdxToPin(common::page_idx_t pageIdx,
+pageChunkManager::getShadowedFileHandleAndPhysicalPageIdxToPin(common::page_idx_t pageIdx,
     transaction::TransactionType trxType) const {
     return ShadowUtils::getFileHandleAndPhysicalPageIdxToPin(*dataFH, pageIdx, *shadowFile,
         trxType);
 }
 
 void AllocatedBlockEntry::writePagesToFile(const uint8_t* buffer, uint64_t bufferSize) {
-    blockManager.dataFH->writePagesToFile(buffer, bufferSize, entry.startPageIdx);
+    pageChunkManager.dataFH->writePagesToFile(buffer, bufferSize, entry.startPageIdx);
 }
 
 void AllocatedBlockEntry::writePageToFile(const uint8_t* pageBuffer,
     common::page_idx_t pageOffset) {
     KU_ASSERT(pageOffset < entry.numPages);
-    blockManager.dataFH->writePageToFile(pageBuffer, entry.startPageIdx + pageOffset);
+    pageChunkManager.dataFH->writePageToFile(pageBuffer, entry.startPageIdx + pageOffset);
 }
 
 bool AllocatedBlockEntry::isInMemoryMode() const {
-    return blockManager.dataFH->isInMemoryMode();
+    return pageChunkManager.dataFH->isInMemoryMode();
 }
 
-void BlockManager::serialize(common::Serializer& serializer) {
+void pageChunkManager::serialize(common::Serializer& serializer) {
     freeSpaceManager->serialize(serializer);
 }
 
-std::unique_ptr<BlockManager> BlockManager::deserialize(common::Deserializer& deSer,
+std::unique_ptr<pageChunkManager> pageChunkManager::deserialize(common::Deserializer& deSer,
     FileHandle* dataFH, ShadowFile* shadowFile) {
-    return std::make_unique<BlockManager>(dataFH, shadowFile, FreeSpaceManager::deserialize(deSer));
+    return std::make_unique<pageChunkManager>(dataFH, shadowFile,
+        FreeSpaceManager::deserialize(deSer));
 }
 
-void BlockManager::finalizeCheckpoint() {
+void pageChunkManager::finalizeCheckpoint() {
     freeSpaceManager->finalizeCheckpoint();
 }
 } // namespace kuzu::storage

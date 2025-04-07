@@ -1,6 +1,7 @@
+#include "storage/free_space_manager.h"
+
 #include "common/utils.h"
 #include "storage/block_manager.h"
-#include "storage/free_space_manager.h"
 
 namespace kuzu::storage {
 static FreeSpaceManager::sorted_free_list_t& getFreeList(
@@ -14,22 +15,22 @@ static FreeSpaceManager::sorted_free_list_t& getFreeList(
 
 FreeSpaceManager::FreeSpaceManager() : freeLists{} {};
 
-bool FreeSpaceManager::entryCmp(const BlockEntry& a, const BlockEntry& b) {
+bool FreeSpaceManager::entryCmp(const PageChunkEntry& a, const PageChunkEntry& b) {
     return a.numPages == b.numPages ? a.startPageIdx < b.startPageIdx : a.numPages < b.numPages;
 }
 
-void FreeSpaceManager::addFreeChunk(BlockEntry entry) {
+void FreeSpaceManager::addFreeChunk(PageChunkEntry entry) {
     const auto curLevel = common::countBits(entry.numPages) -
                           common::CountZeros<decltype(entry.numPages)>::Leading(entry.numPages) - 1;
     getFreeList(freeLists, curLevel).insert(entry);
 }
 
-void FreeSpaceManager::addUncheckpointedFreeChunk(BlockEntry entry) {
+void FreeSpaceManager::addUncheckpointedFreeChunk(PageChunkEntry entry) {
     uncheckpointedFreeChunks.push_back(entry);
 }
 
 // This also removes the chunk from the free space manager
-std::optional<BlockEntry> FreeSpaceManager::getFreeChunk(common::page_idx_t numPages) {
+std::optional<PageChunkEntry> FreeSpaceManager::getFreeChunk(common::page_idx_t numPages) {
     if (numPages > 0) {
         // 0b10 -> start at level 1
         // 0b11 -> start at level 1
@@ -37,7 +38,7 @@ std::optional<BlockEntry> FreeSpaceManager::getFreeChunk(common::page_idx_t numP
                              common::CountZeros<decltype(numPages)>::Leading(numPages) - 1;
         for (; levelToSearch < freeLists.size(); ++levelToSearch) {
             auto& curList = freeLists[levelToSearch];
-            auto entryIt = curList.lower_bound(BlockEntry{0, numPages});
+            auto entryIt = curList.lower_bound(PageChunkEntry{0, numPages});
             if (entryIt != curList.end()) {
                 auto entry = *entryIt;
                 curList.erase(entry);
@@ -48,11 +49,12 @@ std::optional<BlockEntry> FreeSpaceManager::getFreeChunk(common::page_idx_t numP
     return std::nullopt;
 }
 
-BlockEntry FreeSpaceManager::breakUpChunk(BlockEntry chunk, common::page_idx_t numRequiredPages) {
+PageChunkEntry FreeSpaceManager::breakUpChunk(PageChunkEntry chunk,
+    common::page_idx_t numRequiredPages) {
     KU_ASSERT(chunk.numPages >= numRequiredPages);
-    BlockEntry ret{chunk.startPageIdx, numRequiredPages};
+    PageChunkEntry ret{chunk.startPageIdx, numRequiredPages};
     if (numRequiredPages < chunk.numPages) {
-        BlockEntry remainingEntry{chunk.startPageIdx + numRequiredPages,
+        PageChunkEntry remainingEntry{chunk.startPageIdx + numRequiredPages,
             chunk.numPages - numRequiredPages};
         addFreeChunk(remainingEntry);
     }
@@ -75,7 +77,7 @@ void FreeSpaceManager::finalizeCheckpoint() {
 }
 
 void FreeSpaceManager::combineAdjacentChunks() {
-    std::vector<BlockEntry> allEntries;
+    std::vector<PageChunkEntry> allEntries;
     for (const auto& freeList : freeLists) {
         allEntries.insert(allEntries.end(), freeList.begin(), freeList.end());
     }
@@ -88,7 +90,7 @@ void FreeSpaceManager::combineAdjacentChunks() {
         return entryA.startPageIdx < entryB.startPageIdx;
     });
 
-    BlockEntry prevEntry = allEntries[0];
+    PageChunkEntry prevEntry = allEntries[0];
     for (common::row_idx_t i = 1; i < allEntries.size(); ++i) {
         const auto& entry = allEntries[i];
         if (prevEntry.startPageIdx + prevEntry.numPages == entry.startPageIdx) {
@@ -121,10 +123,10 @@ static std::pair<common::idx_t, common::row_idx_t> getStartFreeEntry(common::row
     return {freeListIdx, startOffset - curOffset};
 }
 
-std::vector<BlockEntry> FreeSpaceManager::getEntries(common::row_idx_t startOffset,
+std::vector<PageChunkEntry> FreeSpaceManager::getEntries(common::row_idx_t startOffset,
     common::row_idx_t endOffset) const {
     KU_ASSERT(endOffset >= startOffset);
-    std::vector<BlockEntry> ret;
+    std::vector<PageChunkEntry> ret;
     auto [freeListIdx, idxInList] = getStartFreeEntry(startOffset, freeLists);
     for (; freeListIdx < freeLists.size(); ++freeListIdx) {
         auto it = freeLists[freeListIdx].begin();

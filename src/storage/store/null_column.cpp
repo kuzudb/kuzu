@@ -30,9 +30,9 @@ struct NullColumnFunc {
     }
 };
 
-NullColumn::NullColumn(const std::string& name, BlockManager& blockManager, MemoryManager* mm,
-    bool enableCompression)
-    : Column{name, LogicalType::BOOL(), blockManager, mm, enableCompression,
+NullColumn::NullColumn(const std::string& name, PageChunkManager& pageChunkManager,
+    MemoryManager* mm, bool enableCompression)
+    : Column{name, LogicalType::BOOL(), pageChunkManager, mm, enableCompression,
           false /*requireNullColumn*/} {
     readToVectorFunc = NullColumnFunc::readValuesFromPageToVector;
 }

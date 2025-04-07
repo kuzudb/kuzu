@@ -13,9 +13,9 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-StructColumn::StructColumn(std::string name, LogicalType dataType, BlockManager& blockManager,
-    MemoryManager* mm, bool enableCompression)
-    : Column{std::move(name), std::move(dataType), blockManager, mm, enableCompression,
+StructColumn::StructColumn(std::string name, LogicalType dataType,
+    PageChunkManager& pageChunkManager, MemoryManager* mm, bool enableCompression)
+    : Column{std::move(name), std::move(dataType), pageChunkManager, mm, enableCompression,
           true /* requireNullColumn */} {
     const auto fieldTypes = StructType::getFieldTypes(this->dataType);
     childColumns.resize(fieldTypes.size());
@@ -23,17 +23,17 @@ StructColumn::StructColumn(std::string name, LogicalType dataType, BlockManager&
         const auto childColName = StorageUtils::getColumnName(this->name,
             StorageUtils::ColumnType::STRUCT_CHILD, std::to_string(i));
         childColumns[i] = ColumnFactory::createColumn(childColName, fieldTypes[i]->copy(),
-            blockManager, mm, enableCompression);
+            pageChunkManager, mm, enableCompression);
     }
 }
 
 std::unique_ptr<ColumnChunkData> StructColumn::flushChunkData(const ColumnChunkData& chunk,
-    BlockManager& blockManager) {
-    auto flushedChunk = flushNonNestedChunkData(chunk, blockManager);
+    PageChunkManager& pageChunkManager) {
+    auto flushedChunk = flushNonNestedChunkData(chunk, pageChunkManager);
     auto& structChunk = chunk.cast<StructChunkData>();
     auto& flushedStructChunk = flushedChunk->cast<StructChunkData>();
     for (auto i = 0u; i < structChunk.getNumChildren(); i++) {
-        auto flushedChildChunk = Column::flushChunkData(structChunk.getChild(i), blockManager);
+        auto flushedChildChunk = Column::flushChunkData(structChunk.getChild(i), pageChunkManager);
         flushedStructChunk.setChild(i, std::move(flushedChildChunk));
     }
     return flushedChunk;

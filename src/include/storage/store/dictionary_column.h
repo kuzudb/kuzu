@@ -8,7 +8,7 @@ namespace storage {
 
 class DictionaryColumn {
 public:
-    DictionaryColumn(const std::string& name, BlockManager& blockManager, MemoryManager* mm,
+    DictionaryColumn(const std::string& name, PageChunkManager& pageChunkManager, MemoryManager* mm,
         bool enableCompression);
 
     void scan(const transaction::Transaction* transaction, const ChunkState& state,

@@ -6,33 +6,33 @@
 #include "common/types/types.h"
 namespace kuzu::storage {
 
-struct BlockEntry;
+struct PageChunkEntry;
 
 class FreeSpaceManager {
 public:
-    static bool entryCmp(const BlockEntry& a, const BlockEntry& b);
+    static bool entryCmp(const PageChunkEntry& a, const PageChunkEntry& b);
 
-    using free_list_t = std::vector<BlockEntry>;
-    using sorted_free_list_t = std::set<BlockEntry, decltype(&entryCmp)>;
+    using free_list_t = std::vector<PageChunkEntry>;
+    using sorted_free_list_t = std::set<PageChunkEntry, decltype(&entryCmp)>;
 
     FreeSpaceManager();
 
-    void addFreeChunk(BlockEntry entry);
-    void addUncheckpointedFreeChunk(BlockEntry entry);
+    void addFreeChunk(PageChunkEntry entry);
+    void addUncheckpointedFreeChunk(PageChunkEntry entry);
 
     // This also removes the chunk from the free space manager
-    std::optional<BlockEntry> getFreeChunk(common::page_idx_t numPages);
+    std::optional<PageChunkEntry> getFreeChunk(common::page_idx_t numPages);
 
     void serialize(common::Serializer& serializer);
     static std::unique_ptr<FreeSpaceManager> deserialize(common::Deserializer& deSer);
     void finalizeCheckpoint();
 
     common::row_idx_t getNumEntries() const;
-    std::vector<BlockEntry> getEntries(common::row_idx_t startOffset,
+    std::vector<PageChunkEntry> getEntries(common::row_idx_t startOffset,
         common::row_idx_t endOffset) const;
 
 private:
-    BlockEntry breakUpChunk(BlockEntry chunk, common::page_idx_t numRequiredPages);
+    PageChunkEntry breakUpChunk(PageChunkEntry chunk, common::page_idx_t numRequiredPages);
     void combineAdjacentChunks();
 
     std::vector<sorted_free_list_t> freeLists;

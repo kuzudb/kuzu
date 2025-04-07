@@ -11,11 +11,11 @@ public:
     enum class ChildStateIndex : common::idx_t { DATA = 0, OFFSET = 1, INDEX = 2 };
     static constexpr size_t CHILD_STATE_COUNT = 3;
 
-    StringColumn(std::string name, common::LogicalType dataType, BlockManager& blockManager,
+    StringColumn(std::string name, common::LogicalType dataType, PageChunkManager& pageChunkManager,
         MemoryManager* mm, bool enableCompression);
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
-        BlockManager& blockManager);
+        PageChunkManager& pageChunkManager);
 
     void scan(const transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,

@@ -32,8 +32,8 @@ StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
     metadataFH = initFileHandle(
         StorageUtils::getMetadataFName(vfs, databasePath, FileVersionType::ORIGINAL), vfs, context);
     loadTables(catalog, vfs, context);
-    if (!blockManager) {
-        blockManager = std::make_unique<BlockManager>(dataFH, shadowFile.get());
+    if (!pageChunkManager) {
+        pageChunkManager = std::make_unique<PageChunkManager>(dataFH, shadowFile.get());
     }
 }
 
@@ -65,7 +65,7 @@ void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
             std::string key;
             uint64_t numTables = 0;
             deSer.validateDebuggingInfo(key, "block_manager");
-            blockManager = BlockManager::deserialize(deSer, dataFH, shadowFile.get());
+            pageChunkManager = PageChunkManager::deserialize(deSer, dataFH, shadowFile.get());
             deSer.validateDebuggingInfo(key, "num_tables");
             deSer.deserializeValue<uint64_t>(numTables);
             for (auto i = 0u; i < numTables; i++) {
@@ -157,7 +157,7 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
     Serializer ser(writer);
 
     ser.writeDebuggingInfo("block_manager");
-    blockManager->serialize(ser);
+    pageChunkManager->serialize(ser);
 
     const auto nodeTableEntries =
         clientContext.getCatalog()->getNodeTableEntries(&DUMMY_CHECKPOINT_TRANSACTION);
@@ -185,7 +185,7 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
     writer->flush();
     writer->sync();
     shadowFile->flushAll();
-    blockManager->finalizeCheckpoint();
+    pageChunkManager->finalizeCheckpoint();
 }
 
 void StorageManager::rollbackCheckpoint(main::ClientContext& clientContext) {

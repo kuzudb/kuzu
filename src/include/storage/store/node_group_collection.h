@@ -14,7 +14,7 @@ class MemoryManager;
 class NodeGroupCollection {
 public:
     NodeGroupCollection(MemoryManager& memoryManager, const std::vector<common::LogicalType>& types,
-        bool enableCompression, BlockManager* blockManager = nullptr,
+        bool enableCompression, PageChunkManager* pageChunkManager = nullptr,
         common::Deserializer* deSer = nullptr,
         const VersionRecordHandler* versionRecordHandler = nullptr);
 
@@ -114,7 +114,7 @@ private:
     common::row_idx_t numTotalRows;
     std::vector<common::LogicalType> types;
     GroupCollection<NodeGroup> nodeGroups;
-    BlockManager* blockManager;
+    PageChunkManager* pageChunkManager;
     TableStats stats;
     const VersionRecordHandler* versionRecordHandler;
 };

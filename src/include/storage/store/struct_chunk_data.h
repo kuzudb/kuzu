@@ -49,9 +49,10 @@ public:
         childChunks[childIdx] = std::move(childChunk);
     }
 
-    void flush(BlockManager& blockManager) override;
+    void flush(PageChunkManager& pageChunkManager) override;
 
-    void reclaimAllocatedPages(BlockManager& blockManager, const ChunkState& state) const override;
+    void reclaimAllocatedPages(PageChunkManager& pageChunkManager,
+        const ChunkState& state) const override;
 
 protected:
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,

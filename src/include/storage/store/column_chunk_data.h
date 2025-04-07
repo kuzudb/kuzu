@@ -31,7 +31,7 @@ namespace storage {
 class Column;
 class NullChunkData;
 class ColumnStats;
-class BlockManager;
+class PageChunkManager;
 struct AllocatedBlockEntry;
 
 // TODO(bmwinger): Hide access to variables.
@@ -155,7 +155,7 @@ public:
     virtual void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend);
 
-    virtual void flush(BlockManager& blockManager);
+    virtual void flush(PageChunkManager& pageChunkManager);
 
     ColumnChunkMetadata flushBuffer(AllocatedBlockEntry& entry,
         const ColumnChunkMetadata& metadata) const;
@@ -235,7 +235,8 @@ public:
 
     void updateStats(const common::ValueVector* vector, const common::SelectionView& selVector);
 
-    virtual void reclaimAllocatedPages(BlockManager& blockManager, const ChunkState& state) const;
+    virtual void reclaimAllocatedPages(PageChunkManager& pageChunkManager,
+        const ChunkState& state) const;
 
 protected:
     // Initializes the data buffer and functions. They are (and should be) only called in

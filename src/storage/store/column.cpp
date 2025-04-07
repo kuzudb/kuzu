@@ -86,9 +86,9 @@ static write_values_func_t getWriteValuesFunc(const LogicalType& logicalType) {
     }
 }
 
-InternalIDColumn::InternalIDColumn(std::string name, BlockManager& blockManager, MemoryManager* mm,
-    bool enableCompression)
-    : Column{std::move(name), LogicalType::INTERNAL_ID(), blockManager, mm, enableCompression,
+InternalIDColumn::InternalIDColumn(std::string name, PageChunkManager& pageChunkManager,
+    MemoryManager* mm, bool enableCompression)
+    : Column{std::move(name), LogicalType::INTERNAL_ID(), pageChunkManager, mm, enableCompression,
           false /*requireNullColumn*/},
       commonTableID{INVALID_TABLE_ID} {}
 
@@ -101,25 +101,26 @@ void InternalIDColumn::populateCommonTableID(const ValueVector* resultVector) co
     }
 }
 
-Column::Column(std::string name, LogicalType dataType, BlockManager& blockManager,
+Column::Column(std::string name, LogicalType dataType, PageChunkManager& pageChunkManager,
     MemoryManager* mm, bool enableCompression, bool requireNullColumn)
     : name{std::move(name)}, dbFileID{DBFileID::newDataFileID()}, dataType{std::move(dataType)},
-      blockManager{blockManager}, mm{mm}, enableCompression{enableCompression},
+      pageChunkManager{pageChunkManager}, mm{mm}, enableCompression{enableCompression},
       columnReadWriter(ColumnReadWriterFactory::createColumnReadWriter(
-          this->dataType.getPhysicalType(), dbFileID, this->blockManager)) {
+          this->dataType.getPhysicalType(), dbFileID, this->pageChunkManager)) {
     readToVectorFunc = getReadValuesToVectorFunc(this->dataType);
     readToPageFunc = ReadCompressedValuesFromPage(this->dataType);
     writeFunc = getWriteValuesFunc(this->dataType);
     if (requireNullColumn) {
         auto columnName =
             StorageUtils::getColumnName(this->name, StorageUtils::ColumnType::NULL_MASK, "");
-        nullColumn = std::make_unique<NullColumn>(columnName, blockManager, mm, enableCompression);
+        nullColumn =
+            std::make_unique<NullColumn>(columnName, pageChunkManager, mm, enableCompression);
     }
 }
 
-Column::Column(std::string name, PhysicalTypeID physicalType, BlockManager& blockManager,
+Column::Column(std::string name, PhysicalTypeID physicalType, PageChunkManager& pageChunkManager,
     MemoryManager* mm, bool enableCompression, bool requireNullColumn)
-    : Column(name, LogicalType::ANY(physicalType), blockManager, mm, enableCompression,
+    : Column(name, LogicalType::ANY(physicalType), pageChunkManager, mm, enableCompression,
           requireNullColumn) {}
 
 Column::~Column() = default;
@@ -133,41 +134,41 @@ void Column::populateExtraChunkState(ChunkState& state) const {
         Transaction& transaction = DUMMY_CHECKPOINT_TRANSACTION;
         if (dataType.getPhysicalType() == common::PhysicalTypeID::DOUBLE) {
             state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<double>>(&transaction,
-                state, blockManager, mm);
+                state, pageChunkManager, mm);
         } else if (dataType.getPhysicalType() == common::PhysicalTypeID::FLOAT) {
             state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<float>>(&transaction,
-                state, blockManager, mm);
+                state, pageChunkManager, mm);
         }
     }
 }
 
 std::unique_ptr<ColumnChunkData> Column::flushChunkData(const ColumnChunkData& chunkData,
-    BlockManager& blockManager) {
+    PageChunkManager& pageChunkManager) {
     switch (chunkData.getDataType().getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
-        return StructColumn::flushChunkData(chunkData, blockManager);
+        return StructColumn::flushChunkData(chunkData, pageChunkManager);
     }
     case PhysicalTypeID::STRING: {
-        return StringColumn::flushChunkData(chunkData, blockManager);
+        return StringColumn::flushChunkData(chunkData, pageChunkManager);
     }
     case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
-        return ListColumn::flushChunkData(chunkData, blockManager);
+        return ListColumn::flushChunkData(chunkData, pageChunkManager);
     }
     default: {
-        return flushNonNestedChunkData(chunkData, blockManager);
+        return flushNonNestedChunkData(chunkData, pageChunkManager);
     }
     }
 }
 
 std::unique_ptr<ColumnChunkData> Column::flushNonNestedChunkData(const ColumnChunkData& chunkData,
-    BlockManager& blockManager) {
-    auto chunkMeta = flushData(chunkData, blockManager);
+    PageChunkManager& pageChunkManager) {
+    auto chunkMeta = flushData(chunkData, pageChunkManager);
     auto flushedChunk = ColumnChunkFactory::createColumnChunkData(chunkData.getMemoryManager(),
         chunkData.getDataType().copy(), chunkData.isCompressionEnabled(), chunkMeta,
         chunkData.hasNullData(), true);
     if (chunkData.hasNullData()) {
-        auto nullChunkMeta = flushData(chunkData.getNullData(), blockManager);
+        auto nullChunkMeta = flushData(chunkData.getNullData(), pageChunkManager);
         auto nullData = std::make_unique<NullChunkData>(chunkData.getMemoryManager(),
             chunkData.isCompressionEnabled(), nullChunkMeta);
         flushedChunk->setNullData(std::move(nullData));
@@ -176,12 +177,12 @@ std::unique_ptr<ColumnChunkData> Column::flushNonNestedChunkData(const ColumnChu
 }
 
 ColumnChunkMetadata Column::flushData(const ColumnChunkData& chunkData,
-    BlockManager& blockManager) {
+    PageChunkManager& pageChunkManager) {
     KU_ASSERT(chunkData.sanityCheck());
     // TODO(Guodong/Ben): We can optimize the flush to write back to same set of pages if new
     // flushed data are not out of the capacity.
     const auto preScanMetadata = chunkData.getMetadataToFlush();
-    auto allocatedBlock = blockManager.allocateBlock(preScanMetadata.numPages);
+    auto allocatedBlock = pageChunkManager.allocateBlock(preScanMetadata.numPages);
     return chunkData.flushBuffer(allocatedBlock, preScanMetadata);
 }
 
@@ -407,13 +408,13 @@ void Column::checkpointColumnChunkOutOfPlace(const ChunkState& state,
     checkpointState.persistentData.setToInMemory();
     checkpointState.persistentData.resize(numRows);
     scan(&DUMMY_CHECKPOINT_TRANSACTION, state, &checkpointState.persistentData);
-    checkpointState.persistentData.reclaimAllocatedPages(blockManager, state);
+    checkpointState.persistentData.reclaimAllocatedPages(pageChunkManager, state);
     for (auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
         checkpointState.persistentData.write(chunkCheckpointState.chunkData.get(), 0 /*srcOffset*/,
             chunkCheckpointState.startRow, chunkCheckpointState.numRows);
     }
     checkpointState.persistentData.finalize();
-    checkpointState.persistentData.flush(blockManager);
+    checkpointState.persistentData.flush(pageChunkManager);
 }
 
 bool Column::canCheckpointInPlace(const ChunkState& state,
@@ -463,13 +464,13 @@ void Column::checkpointColumnChunk(ColumnCheckpointState& checkpointState) {
 }
 
 std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, PhysicalTypeID physicalType,
-    BlockManager& blockManager, MemoryManager* memoryManager, bool enableCompression) {
-    return std::make_unique<Column>(name, LogicalType::ANY(physicalType), blockManager,
+    PageChunkManager& pageChunkManager, MemoryManager* memoryManager, bool enableCompression) {
+    return std::make_unique<Column>(name, LogicalType::ANY(physicalType), pageChunkManager,
         memoryManager, enableCompression);
 }
 
 std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalType dataType,
-    BlockManager& blockManager, MemoryManager* mm, bool enableCompression) {
+    PageChunkManager& pageChunkManager, MemoryManager* mm, bool enableCompression) {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL:
     case PhysicalTypeID::INT64:
@@ -484,23 +485,23 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::string name, LogicalTyp
     case PhysicalTypeID::DOUBLE:
     case PhysicalTypeID::FLOAT:
     case PhysicalTypeID::INTERVAL: {
-        return std::make_unique<Column>(name, std::move(dataType), blockManager, mm,
+        return std::make_unique<Column>(name, std::move(dataType), pageChunkManager, mm,
             enableCompression);
     }
     case PhysicalTypeID::INTERNAL_ID: {
-        return std::make_unique<InternalIDColumn>(name, blockManager, mm, enableCompression);
+        return std::make_unique<InternalIDColumn>(name, pageChunkManager, mm, enableCompression);
     }
     case PhysicalTypeID::STRING: {
-        return std::make_unique<StringColumn>(name, std::move(dataType), blockManager, mm,
+        return std::make_unique<StringColumn>(name, std::move(dataType), pageChunkManager, mm,
             enableCompression);
     }
     case PhysicalTypeID::ARRAY:
     case PhysicalTypeID::LIST: {
-        return std::make_unique<ListColumn>(name, std::move(dataType), blockManager, mm,
+        return std::make_unique<ListColumn>(name, std::move(dataType), pageChunkManager, mm,
             enableCompression);
     }
     case PhysicalTypeID::STRUCT: {
-        return std::make_unique<StructColumn>(name, std::move(dataType), blockManager, mm,
+        return std::make_unique<StructColumn>(name, std::move(dataType), pageChunkManager, mm,
             enableCompression);
     }
     default: {

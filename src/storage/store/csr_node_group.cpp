@@ -435,12 +435,12 @@ bool CSRNodeGroup::delete_(const Transaction* transaction, CSRNodeGroupScanSourc
 }
 
 void CSRNodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
-    BlockManager* blockManager, ColumnStats* newColumnStats) {
+    PageChunkManager* pageChunkManager, ColumnStats* newColumnStats) {
     if (persistentChunkGroup) {
         persistentChunkGroup->addColumn(transaction, addColumnState, enableCompression,
-            blockManager, newColumnStats);
+            pageChunkManager, newColumnStats);
     }
-    NodeGroup::addColumn(transaction, addColumnState, blockManager, newColumnStats);
+    NodeGroup::addColumn(transaction, addColumnState, pageChunkManager, newColumnStats);
 }
 
 void CSRNodeGroup::serialize(Serializer& serializer) {
@@ -859,10 +859,10 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
 
     // Flush data chunks to disk.
     for (const auto& chunk : dataChunksToFlush) {
-        chunk->getData().flush(csrState.blockManager);
+        chunk->getData().flush(csrState.pageChunkManager);
     }
-    csrState.newHeader->offset->getData().flush(csrState.blockManager);
-    csrState.newHeader->length->getData().flush(csrState.blockManager);
+    csrState.newHeader->offset->getData().flush(csrState.pageChunkManager);
+    csrState.newHeader->length->getData().flush(csrState.pageChunkManager);
     persistentChunkGroup = std::make_unique<ChunkedCSRNodeGroup>(std::move(*csrState.newHeader),
         std::move(dataChunksToFlush), 0);
     // TODO(Guodong): Use `finalizeCheckpoint`.

@@ -33,20 +33,21 @@ class Column {
 public:
     // TODO(Guodong): Remove transaction from interface of Column. There is no need to be aware
     // of transaction when reading/writing from/to disk pages.
-    Column(std::string name, common::LogicalType dataType, BlockManager& blockManager,
+    Column(std::string name, common::LogicalType dataType, PageChunkManager& pageChunkManager,
         MemoryManager* mm, bool enableCompression, bool requireNullColumn = true);
-    Column(std::string name, common::PhysicalTypeID physicalType, BlockManager& blockManager,
-        MemoryManager* mm, bool enableCompression, bool requireNullColumn = true);
+    Column(std::string name, common::PhysicalTypeID physicalType,
+        PageChunkManager& pageChunkManager, MemoryManager* mm, bool enableCompression,
+        bool requireNullColumn = true);
     virtual ~Column();
 
     void populateExtraChunkState(ChunkState& state) const;
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
-        BlockManager& blockManager);
+        PageChunkManager& pageChunkManager);
     static std::unique_ptr<ColumnChunkData> flushNonNestedChunkData(
-        const ColumnChunkData& chunkData, BlockManager& blockManager);
+        const ColumnChunkData& chunkData, PageChunkManager& pageChunkManager);
     static ColumnChunkMetadata flushData(const ColumnChunkData& chunkData,
-        BlockManager& blockManager);
+        PageChunkManager& pageChunkManager);
 
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
@@ -138,7 +139,7 @@ protected:
     std::string name;
     DBFileID dbFileID;
     common::LogicalType dataType;
-    BlockManager& blockManager;
+    PageChunkManager& pageChunkManager;
     MemoryManager* mm;
     std::unique_ptr<NullColumn> nullColumn;
     read_values_to_vector_func_t readToVectorFunc;
@@ -151,7 +152,7 @@ protected:
 
 class InternalIDColumn final : public Column {
 public:
-    InternalIDColumn(std::string name, BlockManager& blockManager, MemoryManager* mm,
+    InternalIDColumn(std::string name, PageChunkManager& pageChunkManager, MemoryManager* mm,
         bool enableCompression);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
@@ -189,9 +190,9 @@ private:
 
 struct ColumnFactory {
     static std::unique_ptr<Column> createColumn(std::string name, common::LogicalType dataType,
-        BlockManager& blockManager, MemoryManager* mm, bool enableCompression);
+        PageChunkManager& pageChunkManager, MemoryManager* mm, bool enableCompression);
     static std::unique_ptr<Column> createColumn(std::string name,
-        common::PhysicalTypeID physicalType, BlockManager& blockManager, MemoryManager* mm,
+        common::PhysicalTypeID physicalType, PageChunkManager& pageChunkManager, MemoryManager* mm,
         bool enableCompression);
 };
 

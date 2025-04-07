@@ -38,7 +38,7 @@ public:
 
     template<std::floating_point T>
     void commitUpdate(transaction::Transaction* transaction, ChunkState& state,
-        BlockManager& blockManager, MemoryManager* memoryManager);
+        PageChunkManager& pageChunkManager, MemoryManager* memoryManager);
 
     template<std::floating_point T>
     void testCompressChunk(const std::vector<T>& bufferToCompress, check_func_t checkFunc);
@@ -96,7 +96,7 @@ std::unique_ptr<CompressionMetadata> getFloatMetadata(const std::vector<T>& buff
 template<std::floating_point T>
 ColumnChunkMetadata compressBuffer(const std::vector<T>& bufferToCompress,
     const std::shared_ptr<FloatCompression<T>>& alg, const CompressionMetadata* metadata,
-    BlockManager& blockManager, const LogicalType& dataType) {
+    PageChunkManager& pageChunkManager, const LogicalType& dataType) {
 
     auto preScanMetadata =
         GetFloatCompressionMetadata<T>{alg, dataType}.operator()(byteSpan(bufferToCompress),
@@ -106,14 +106,14 @@ ColumnChunkMetadata compressBuffer(const std::vector<T>& bufferToCompress,
         return preScanMetadata;
     }
 
-    auto allocatedBlock = blockManager.allocateBlock(preScanMetadata.numPages);
+    auto allocatedBlock = pageChunkManager.allocateBlock(preScanMetadata.numPages);
     return CompressedFloatFlushBuffer<T>{alg, dataType}.operator()(byteSpan(bufferToCompress),
         allocatedBlock, preScanMetadata);
 }
 
 template<std::floating_point T>
 void CompressChunkTest::commitUpdate(transaction::Transaction* transaction, ChunkState& state,
-    BlockManager& blockManager, MemoryManager* memoryManager) {
+    PageChunkManager& pageChunkManager, MemoryManager* memoryManager) {
     if (state.metadata.compMeta.compression == storage::CompressionType::ALP) {
         state.getExceptionChunk<T>()->finalizeAndFlushToDisk(state);
     }
@@ -122,7 +122,7 @@ void CompressChunkTest::commitUpdate(transaction::Transaction* transaction, Chun
     clientContext->getTransactionManagerUnsafe()->checkpoint(*clientContext);
     if (state.metadata.compMeta.compression == storage::CompressionType::ALP) {
         state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<T>>(transaction, state,
-            blockManager, memoryManager);
+            pageChunkManager, memoryManager);
     }
 }
 
@@ -131,17 +131,17 @@ void CompressChunkTest::testCompressChunk(const std::vector<T>& bufferToCompress
     check_func_t checkFunc) {
     auto* mm = getMemoryManager(*database);
     auto* storageManager = getStorageManager(*database);
-    auto& blockManager = storageManager->getBlockManager();
+    auto& pageChunkManager = storageManager->getBlockManager();
 
     const auto dataType = std::is_same_v<float, T> ? LogicalType::FLOAT() : LogicalType::DOUBLE();
     const auto alg = std::make_shared<FloatCompression<T>>();
 
     const auto preScanMetadata = getFloatMetadata(bufferToCompress, alg);
     auto chunkMetadata =
-        compressBuffer(bufferToCompress, alg, preScanMetadata.get(), blockManager, dataType);
+        compressBuffer(bufferToCompress, alg, preScanMetadata.get(), pageChunkManager, dataType);
 
     auto columnReader = ColumnReadWriterFactory::createColumnReadWriter(dataType.getPhysicalType(),
-        DBFileID::newDataFileID(), blockManager);
+        DBFileID::newDataFileID(), pageChunkManager);
 
     auto* clientContext = getClientContext(*conn);
     clientContext->getTransactionContext()->beginWriteTransaction();
@@ -151,7 +151,7 @@ void CompressChunkTest::testCompressChunk(const std::vector<T>& bufferToCompress
     state.numValuesPerPage = state.metadata.compMeta.numValues(KUZU_PAGE_SIZE, dataType);
     if (chunkMetadata.compMeta.compression == CompressionType::ALP) {
         state.alpExceptionChunk = std::make_unique<InMemoryExceptionChunk<T>>(
-            clientContext->getTransaction(), state, blockManager, mm);
+            clientContext->getTransaction(), state, pageChunkManager, mm);
     }
 
     checkFunc(columnReader.get(), clientContext->getTransaction(), state, dataType);
@@ -166,11 +166,11 @@ void CompressChunkTest::testUpdateChunk(std::vector<T>& bufferToCompress, check_
                 const LogicalType& dataType) {
                 auto* mm = getMemoryManager(*database);
                 auto* storageManager = getStorageManager(*database);
-                auto& blockManager = storageManager->getBlockManager();
+                auto& pageChunkManager = storageManager->getBlockManager();
 
                 updateFunc(reader, transaction, state, dataType);
 
-                commitUpdate<T>(transaction, state, blockManager, mm);
+                commitUpdate<T>(transaction, state, pageChunkManager, mm);
 
                 std::vector<T> out(bufferToCompress.size());
                 reader->readCompressedValuesToPage(transaction, state, (uint8_t*)out.data(), 0, 0,
@@ -591,7 +591,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPageNullMask
                                    const LogicalType& dataType) {
             auto* mm = getMemoryManager(*database);
             auto* storageManager = getStorageManager(*database);
-            auto& blockManager = storageManager->getBlockManager();
+            auto& pageChunkManager = storageManager->getBlockManager();
 
             static constexpr size_t numValuesToSet = 50;
             const size_t cpyOffset = 2100;
@@ -609,7 +609,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPageNullMask
             reader->writeValuesToPageFromBuffer(state, 0, (uint8_t*)src.data(), &nullMask.value(),
                 0, cpyOffset + numValuesToSet, WriteCompressedValuesToPage(dataType));
 
-            commitUpdate<double>(transaction, state, blockManager, mm);
+            commitUpdate<double>(transaction, state, pageChunkManager, mm);
 
             // our compression algorithms don't actually respect the null mask but we can check if
             // the non-null values match

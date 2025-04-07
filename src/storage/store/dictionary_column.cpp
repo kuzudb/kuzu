@@ -18,14 +18,14 @@ namespace storage {
 using string_index_t = DictionaryChunk::string_index_t;
 using string_offset_t = DictionaryChunk::string_offset_t;
 
-DictionaryColumn::DictionaryColumn(const std::string& name, BlockManager& blockManager,
+DictionaryColumn::DictionaryColumn(const std::string& name, PageChunkManager& pageChunkManager,
     MemoryManager* mm, bool enableCompression) {
     auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
-    dataColumn = std::make_unique<Column>(dataColName, LogicalType::UINT8(), blockManager, mm,
+    dataColumn = std::make_unique<Column>(dataColName, LogicalType::UINT8(), pageChunkManager, mm,
         false /*enableCompression*/, false /*requireNullColumn*/);
     auto offsetColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "");
-    offsetColumn = std::make_unique<Column>(offsetColName, LogicalType::UINT64(), blockManager, mm,
-        enableCompression, false /*requireNullColumn*/);
+    offsetColumn = std::make_unique<Column>(offsetColName, LogicalType::UINT64(), pageChunkManager,
+        mm, enableCompression, false /*requireNullColumn*/);
 }
 
 void DictionaryColumn::scan(const Transaction* transaction, const ChunkState& state,

@@ -330,20 +330,20 @@ bool NodeGroup::hasDeletions(const Transaction* transaction) const {
 }
 
 void NodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
-    BlockManager* blockManager, ColumnStats* newColumnStats) {
+    PageChunkManager* pageChunkManager, ColumnStats* newColumnStats) {
     dataTypes.push_back(addColumnState.propertyDefinition.getType().copy());
     const auto lock = chunkedGroups.lock();
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-        chunkedGroup->addColumn(transaction, addColumnState, enableCompression, blockManager,
+        chunkedGroup->addColumn(transaction, addColumnState, enableCompression, pageChunkManager,
             newColumnStats);
     }
 }
 
-void NodeGroup::flush(const Transaction* transaction, BlockManager& blockManager) {
+void NodeGroup::flush(const Transaction* transaction, PageChunkManager& pageChunkManager) {
     const auto lock = chunkedGroups.lock();
     if (chunkedGroups.getNumGroups(lock) == 1) {
         const auto chunkedGroupToFlush = chunkedGroups.getFirstGroup(lock);
-        chunkedGroupToFlush->flush(blockManager);
+        chunkedGroupToFlush->flush(pageChunkManager);
     } else {
         // Merge all chunkedGroups into a single one first. Then flush it to disk.
         auto mergedChunkedGroup = std::make_unique<ChunkedNodeGroup>(
@@ -357,7 +357,7 @@ void NodeGroup::flush(const Transaction* transaction, BlockManager& blockManager
             mergedChunkedGroup->append(transaction, dummyColumnIDs, *chunkedGroup, 0,
                 chunkedGroup->getNumRows());
         }
-        mergedChunkedGroup->flush(blockManager);
+        mergedChunkedGroup->flush(pageChunkManager);
         chunkedGroups.replaceGroup(lock, 0, std::move(mergedChunkedGroup));
     }
     // Clear all chunkedGroups except the first one, which is persistent.
@@ -461,7 +461,7 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemOnly(MemoryManager& 
     }
     auto insertChunkedGroup = scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(memoryManager,
         lock, state.columnIDs, columnPtrs);
-    insertChunkedGroup->flush(state.blockManager);
+    insertChunkedGroup->flush(state.pageChunkManager);
     return insertChunkedGroup;
 }
 

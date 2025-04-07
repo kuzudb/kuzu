@@ -21,12 +21,12 @@ using ExceptionInBuffer = std::array<std::byte, EncodeException<T>::sizeInBytes(
 
 template<std::floating_point T>
 InMemoryExceptionChunk<T>::InMemoryExceptionChunk(Transaction* transaction, const ChunkState& state,
-    BlockManager& blockManager, MemoryManager* memoryManager)
+    PageChunkManager& pageChunkManager, MemoryManager* memoryManager)
     : exceptionCount(state.metadata.compMeta.floatMetadata()->exceptionCount),
       finalizedExceptionCount(exceptionCount),
       exceptionCapacity(state.metadata.compMeta.floatMetadata()->exceptionCapacity),
       emptyMask(exceptionCapacity), column(ColumnFactory::createColumn("ALPExceptionChunk",
-                                        physicalType, blockManager, memoryManager, false)) {
+                                        physicalType, pageChunkManager, memoryManager, false)) {
     const auto exceptionBaseCursor =
         getExceptionPageCursor(state.metadata, PageCursor{state.metadata.pageIdx, 0},
             state.metadata.compMeta.floatMetadata()->exceptionCapacity);

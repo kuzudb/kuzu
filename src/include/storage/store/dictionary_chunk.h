@@ -48,7 +48,7 @@ public:
     static std::unique_ptr<DictionaryChunk> deserialize(MemoryManager& memoryManager,
         common::Deserializer& deSer);
 
-    void flush(BlockManager& blockManager);
+    void flush(PageChunkManager& pageChunkManager);
 
 private:
     bool enableCompression;
