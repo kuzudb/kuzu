@@ -1,30 +1,27 @@
-#include "storage/free_space_manager.h"
-
 #include "common/utils.h"
 #include "storage/block_manager.h"
+#include "storage/free_space_manager.h"
 
 namespace kuzu::storage {
-static FreeSpaceManager::free_list_t& getFreeList(
-    std::vector<FreeSpaceManager::free_list_t>& freeLists, common::idx_t level) {
+static FreeSpaceManager::sorted_free_list_t& getFreeList(
+    std::vector<FreeSpaceManager::sorted_free_list_t>& freeLists, common::idx_t level) {
     if (level >= freeLists.size()) {
-        freeLists.resize(level + 1);
+        freeLists.resize(level + 1,
+            FreeSpaceManager::sorted_free_list_t{&FreeSpaceManager::entryCmp});
     }
     return freeLists[level];
 }
 
 FreeSpaceManager::FreeSpaceManager() : freeLists{} {};
 
+bool FreeSpaceManager::entryCmp(const BlockEntry& a, const BlockEntry& b) {
+    return a.numPages == b.numPages ? a.startPageIdx < b.startPageIdx : a.numPages < b.numPages;
+}
+
 void FreeSpaceManager::addFreeChunk(BlockEntry entry) {
-    // KU_ASSERT(std::has_single_bit(entry.numPages));
-    auto numPages = entry.numPages;
-    auto startPageIdx = entry.startPageIdx;
-    while (numPages > 0) {
-        const auto curLevel = common::CountZeros<decltype(numPages)>::Trailing(numPages);
-        const auto pagesInLevel = static_cast<decltype(numPages)>(1) << curLevel;
-        getFreeList(freeLists, curLevel).push_back(BlockEntry{startPageIdx, pagesInLevel});
-        numPages -= pagesInLevel;
-        startPageIdx += pagesInLevel;
-    }
+    const auto curLevel = common::countBits(entry.numPages) -
+                          common::CountZeros<decltype(entry.numPages)>::Leading(entry.numPages) - 1;
+    getFreeList(freeLists, curLevel).insert(entry);
 }
 
 void FreeSpaceManager::addUncheckpointedFreeChunk(BlockEntry entry) {
@@ -35,14 +32,15 @@ void FreeSpaceManager::addUncheckpointedFreeChunk(BlockEntry entry) {
 std::optional<BlockEntry> FreeSpaceManager::getFreeChunk(common::page_idx_t numPages) {
     if (numPages > 0) {
         // 0b10 -> start at level 1
-        // 0b11 -> start at level 2
+        // 0b11 -> start at level 1
         auto levelToSearch = common::countBits(numPages) -
-                             common::CountZeros<decltype(numPages)>::Leading(numPages - 1);
+                             common::CountZeros<decltype(numPages)>::Leading(numPages) - 1;
         for (; levelToSearch < freeLists.size(); ++levelToSearch) {
             auto& curList = freeLists[levelToSearch];
-            if (!curList.empty()) {
-                auto entry = curList.back();
-                curList.pop_back();
+            auto entryIt = curList.lower_bound(BlockEntry{0, numPages});
+            if (entryIt != curList.end()) {
+                auto entry = *entryIt;
+                curList.erase(entry);
                 return breakUpChunk(entry, numPages);
             }
         }
@@ -53,18 +51,10 @@ std::optional<BlockEntry> FreeSpaceManager::getFreeChunk(common::page_idx_t numP
 BlockEntry FreeSpaceManager::breakUpChunk(BlockEntry chunk, common::page_idx_t numRequiredPages) {
     KU_ASSERT(chunk.numPages >= numRequiredPages);
     BlockEntry ret{chunk.startPageIdx, numRequiredPages};
-
-    common::page_idx_t remainingStartPage = chunk.startPageIdx + numRequiredPages;
-    common::page_idx_t numRemainingPages = chunk.numPages - numRequiredPages;
-    while (numRemainingPages > 0) {
-        const common::page_idx_t curChunkLevel =
-            common::CountZeros<decltype(numRemainingPages)>::Trailing(numRemainingPages);
-        const common::page_idx_t numPagesInLevel = static_cast<common::page_idx_t>(1)
-                                                   << curChunkLevel;
-        KU_ASSERT(curChunkLevel < freeLists.size());
-        freeLists[curChunkLevel].push_back(BlockEntry{remainingStartPage, numPagesInLevel});
-        remainingStartPage += numPagesInLevel;
-        numRemainingPages -= numPagesInLevel;
+    if (numRequiredPages < chunk.numPages) {
+        BlockEntry remainingEntry{chunk.startPageIdx + numRequiredPages,
+            chunk.numPages - numRequiredPages};
+        addFreeChunk(remainingEntry);
     }
     return ret;
 }
@@ -120,7 +110,7 @@ common::row_idx_t FreeSpaceManager::getNumEntries() const {
 }
 
 static std::pair<common::idx_t, common::row_idx_t> getStartFreeEntry(common::row_idx_t startOffset,
-    const std::vector<FreeSpaceManager::free_list_t>& freeLists) {
+    const std::vector<FreeSpaceManager::sorted_free_list_t>& freeLists) {
     size_t freeListIdx = 0;
     common::row_idx_t curOffset = 0;
     while (startOffset - curOffset >= freeLists[freeListIdx].size()) {
@@ -137,11 +127,14 @@ std::vector<BlockEntry> FreeSpaceManager::getEntries(common::row_idx_t startOffs
     std::vector<BlockEntry> ret;
     auto [freeListIdx, idxInList] = getStartFreeEntry(startOffset, freeLists);
     for (; freeListIdx < freeLists.size(); ++freeListIdx) {
-        for (; idxInList < freeLists[freeListIdx].size(); ++idxInList) {
+        auto it = freeLists[freeListIdx].begin();
+        // TODO(Royi) optimize this
+        std::advance(it, idxInList);
+        for (; it != freeLists[freeListIdx].end(); ++it) {
             if (ret.size() >= endOffset - startOffset) {
                 return ret;
             }
-            ret.push_back(freeLists[freeListIdx][idxInList]);
+            ret.push_back(*it);
         }
         idxInList = 0;
     }
