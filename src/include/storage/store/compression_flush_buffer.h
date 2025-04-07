@@ -4,7 +4,7 @@
 #include "storage/store/column_chunk_metadata.h"
 
 namespace kuzu::storage {
-struct AllocatedBlockEntry;
+struct AllocatedPageChunkEntry;
 
 class CompressedFlushBuffer {
     std::shared_ptr<CompressionAlg> alg;
@@ -19,7 +19,7 @@ public:
     CompressedFlushBuffer(const CompressedFlushBuffer& other) = default;
 
     ColumnChunkMetadata operator()(std::span<const uint8_t> buffer,
-        AllocatedBlockEntry& allocatedBlock, const ColumnChunkMetadata& metadata) const;
+        AllocatedPageChunkEntry& allocatedBlock, const ColumnChunkMetadata& metadata) const;
 };
 
 template<std::floating_point T>
@@ -36,10 +36,10 @@ public:
     CompressedFloatFlushBuffer(const CompressedFloatFlushBuffer& other) = default;
 
     ColumnChunkMetadata operator()(std::span<const uint8_t> buffer,
-        AllocatedBlockEntry& allocatedBlock, const ColumnChunkMetadata& metadata) const;
+        AllocatedPageChunkEntry& allocatedBlock, const ColumnChunkMetadata& metadata) const;
 };
 
 ColumnChunkMetadata uncompressedFlushBuffer(std::span<const uint8_t> buffer,
-    AllocatedBlockEntry& allocatedBlock, const ColumnChunkMetadata& metadata);
+    AllocatedPageChunkEntry& allocatedBlock, const ColumnChunkMetadata& metadata);
 
 } // namespace kuzu::storage

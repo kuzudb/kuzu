@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/types/types.h"
-#include "storage/block_manager.h"
 #include "storage/compression/compression.h"
+#include "storage/page_chunk_entry.h"
 
 namespace kuzu::storage {
 struct ColumnChunkMetadata {

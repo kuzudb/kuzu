@@ -1,7 +1,7 @@
 #include "binder/binder.h"
 #include "function/table/bind_data.h"
 #include "function/table/simple_table_function.h"
-#include "storage/block_manager.h"
+#include "storage/page_chunk_manager.h"
 #include "storage/storage_manager.h"
 #include "storage/store/node_table.h"
 

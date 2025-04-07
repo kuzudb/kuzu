@@ -1,4 +1,4 @@
-#include "storage/block_manager.h"
+#include "storage/page_chunk_manager.h"
 
 #include "common/uniq_lock.h"
 #include "storage/shadow_utils.h"
@@ -7,7 +7,7 @@
 static constexpr bool ENABLE_FSM = true;
 
 namespace kuzu::storage {
-AllocatedBlockEntry PageChunkManager::allocateBlock(common::page_idx_t numPages) {
+AllocatedPageChunkEntry PageChunkManager::allocateBlock(common::page_idx_t numPages) {
     if constexpr (ENABLE_FSM) {
         common::UniqLock lck{mtx};
         // TODO(Royi) check if this is still needed
@@ -15,12 +15,12 @@ AllocatedBlockEntry PageChunkManager::allocateBlock(common::page_idx_t numPages)
 
         auto allocatedFreeChunk = freeSpaceManager->getFreeChunk(numPages);
         if (allocatedFreeChunk.has_value()) {
-            return AllocatedBlockEntry{*allocatedFreeChunk, *this};
+            return AllocatedPageChunkEntry{*allocatedFreeChunk, *this};
         }
     }
     auto startPageIdx = dataFH->addNewPages(numPages);
     KU_ASSERT(dataFH->getNumPages() >= startPageIdx + numPages);
-    return AllocatedBlockEntry(startPageIdx, numPages, *this);
+    return AllocatedPageChunkEntry(startPageIdx, numPages, *this);
 }
 
 void PageChunkManager::freeBlock(PageChunkEntry entry) {
@@ -62,17 +62,17 @@ PageChunkManager::getShadowedFileHandleAndPhysicalPageIdxToPin(common::page_idx_
         trxType);
 }
 
-void AllocatedBlockEntry::writePagesToFile(const uint8_t* buffer, uint64_t bufferSize) {
+void AllocatedPageChunkEntry::writePagesToFile(const uint8_t* buffer, uint64_t bufferSize) {
     pageChunkManager.dataFH->writePagesToFile(buffer, bufferSize, entry.startPageIdx);
 }
 
-void AllocatedBlockEntry::writePageToFile(const uint8_t* pageBuffer,
+void AllocatedPageChunkEntry::writePageToFile(const uint8_t* pageBuffer,
     common::page_idx_t pageOffset) {
     KU_ASSERT(pageOffset < entry.numPages);
     pageChunkManager.dataFH->writePageToFile(pageBuffer, entry.startPageIdx + pageOffset);
 }
 
-bool AllocatedBlockEntry::isInMemoryMode() const {
+bool AllocatedPageChunkEntry::isInMemoryMode() const {
     return pageChunkManager.dataFH->isInMemoryMode();
 }
 

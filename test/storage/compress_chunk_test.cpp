@@ -5,8 +5,8 @@
 #include "gmock/gmock-matchers.h"
 #include "graph_test/graph_test.h"
 #include "gtest/gtest.h"
-#include "storage/block_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "storage/page_chunk_manager.h"
 #include "storage/storage_manager.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/column_chunk_metadata.h"
@@ -106,7 +106,7 @@ ColumnChunkMetadata compressBuffer(const std::vector<T>& bufferToCompress,
         return preScanMetadata;
     }
 
-    auto allocatedBlock = pageChunkManager.allocateBlock(preScanMetadata.numPages);
+    auto allocatedBlock = pageChunkManager.allocateBlock(preScanMetadata.getNumPages());
     return CompressedFloatFlushBuffer<T>{alg, dataType}.operator()(byteSpan(bufferToCompress),
         allocatedBlock, preScanMetadata);
 }

@@ -111,7 +111,7 @@ struct StatsInfoFunction final {
 };
 
 struct FreeSpaceInfoFunction final {
-    static constexpr const char* name = "FREE_SPACE_INFO";
+    static constexpr const char* name = "FSM_INFO";
 
     static function_set getFunctionSet();
 };

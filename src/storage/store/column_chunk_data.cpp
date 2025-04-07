@@ -13,12 +13,12 @@
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "expression_evaluator/expression_evaluator.h"
-#include "storage/block_manager.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/buffer_manager/spiller.h"
 #include "storage/compression/compression.h"
 #include "storage/compression/float_compression.h"
+#include "storage/page_chunk_manager.h"
 #include "storage/stats/column_stats.h"
 #include "storage/store/column.h"
 #include "storage/store/column_chunk_metadata.h"
@@ -311,7 +311,7 @@ void ColumnChunkData::setToOnDisk(const ColumnChunkMetadata& otherMetadata) {
     resetInMemoryStats();
 }
 
-ColumnChunkMetadata ColumnChunkData::flushBuffer(AllocatedBlockEntry& entry,
+ColumnChunkMetadata ColumnChunkData::flushBuffer(AllocatedPageChunkEntry& entry,
     const ColumnChunkMetadata& otherMetadata) const {
     if (!otherMetadata.compMeta.isConstant() && getBufferSize() != 0) {
         KU_ASSERT(getBufferSize() == getBufferSize(capacity));

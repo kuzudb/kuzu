@@ -1,7 +1,9 @@
 #include "storage/free_space_manager.h"
 
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 #include "common/utils.h"
-#include "storage/block_manager.h"
+#include "storage/page_chunk_manager.h"
 
 namespace kuzu::storage {
 static FreeSpaceManager::sorted_free_list_t& getFreeList(
@@ -13,7 +15,7 @@ static FreeSpaceManager::sorted_free_list_t& getFreeList(
     return freeLists[level];
 }
 
-FreeSpaceManager::FreeSpaceManager() : freeLists{} {};
+FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0) {};
 
 bool FreeSpaceManager::entryCmp(const PageChunkEntry& a, const PageChunkEntry& b) {
     return a.numPages == b.numPages ? a.startPageIdx < b.startPageIdx : a.numPages < b.numPages;
@@ -23,6 +25,7 @@ void FreeSpaceManager::addFreeChunk(PageChunkEntry entry) {
     const auto curLevel = common::countBits(entry.numPages) -
                           common::CountZeros<decltype(entry.numPages)>::Leading(entry.numPages) - 1;
     getFreeList(freeLists, curLevel).insert(entry);
+    ++numEntries;
 }
 
 void FreeSpaceManager::addUncheckpointedFreeChunk(PageChunkEntry entry) {
@@ -42,6 +45,7 @@ std::optional<PageChunkEntry> FreeSpaceManager::getFreeChunk(common::page_idx_t 
             if (entryIt != curList.end()) {
                 auto entry = *entryIt;
                 curList.erase(entry);
+                --numEntries;
                 return breakUpChunk(entry, numPages);
             }
         }
@@ -61,10 +65,33 @@ PageChunkEntry FreeSpaceManager::breakUpChunk(PageChunkEntry chunk,
     return ret;
 }
 
-void FreeSpaceManager::serialize(common::Serializer&) {}
+void FreeSpaceManager::serialize(common::Serializer& ser) const {
+    const auto numEntries = getNumEntries();
+    ser.writeDebuggingInfo("numEntries");
+    ser.write(numEntries);
+    ser.writeDebuggingInfo("entries");
+    for (const auto& entry : *this) {
+        ser.write(entry.startPageIdx);
+        ser.write(entry.numPages);
+    }
+}
 
-std::unique_ptr<FreeSpaceManager> FreeSpaceManager::deserialize(common::Deserializer&) {
-    return std::make_unique<FreeSpaceManager>();
+std::unique_ptr<FreeSpaceManager> FreeSpaceManager::deserialize(common::Deserializer& deSer) {
+    auto ret = std::make_unique<FreeSpaceManager>();
+    RUNTIME_CHECK(std::string key);
+
+    deSer.validateDebuggingInfo(key, "numEntries");
+    common::row_idx_t numEntries{};
+    deSer.deserializeValue<common::row_idx_t>(numEntries);
+
+    deSer.validateDebuggingInfo(key, "entries");
+    for (common::row_idx_t i = 0; i < numEntries; ++i) {
+        PageChunkEntry entry{};
+        deSer.deserializeValue<common::page_idx_t>(entry.startPageIdx);
+        deSer.deserializeValue<common::page_idx_t>(entry.numPages);
+        ret->addFreeChunk(entry);
+    }
+    return ret;
 }
 
 void FreeSpaceManager::finalizeCheckpoint() {
@@ -76,6 +103,11 @@ void FreeSpaceManager::finalizeCheckpoint() {
     combineAdjacentChunks();
 }
 
+void FreeSpaceManager::reset() {
+    freeLists.clear();
+    numEntries = 0;
+}
+
 void FreeSpaceManager::combineAdjacentChunks() {
     std::vector<PageChunkEntry> allEntries;
     for (const auto& freeList : freeLists) {
@@ -85,7 +117,7 @@ void FreeSpaceManager::combineAdjacentChunks() {
         return;
     }
 
-    freeLists.clear();
+    reset();
     std::sort(allEntries.begin(), allEntries.end(), [](const auto& entryA, const auto& entryB) {
         return entryA.startPageIdx < entryB.startPageIdx;
     });
@@ -104,43 +136,69 @@ void FreeSpaceManager::combineAdjacentChunks() {
 }
 
 common::row_idx_t FreeSpaceManager::getNumEntries() const {
-    common::row_idx_t ret = 0;
-    for (const auto& freeList : freeLists) {
-        ret += freeList.size();
-    }
-    return ret;
-}
-
-static std::pair<common::idx_t, common::row_idx_t> getStartFreeEntry(common::row_idx_t startOffset,
-    const std::vector<FreeSpaceManager::sorted_free_list_t>& freeLists) {
-    size_t freeListIdx = 0;
-    common::row_idx_t curOffset = 0;
-    while (startOffset - curOffset >= freeLists[freeListIdx].size()) {
-        KU_ASSERT(freeListIdx < freeLists.size());
-        curOffset += freeLists[freeListIdx].size();
-        ++freeListIdx;
-    }
-    return {freeListIdx, startOffset - curOffset};
+    return numEntries;
 }
 
 std::vector<PageChunkEntry> FreeSpaceManager::getEntries(common::row_idx_t startOffset,
     common::row_idx_t endOffset) const {
     KU_ASSERT(endOffset >= startOffset);
     std::vector<PageChunkEntry> ret;
-    auto [freeListIdx, idxInList] = getStartFreeEntry(startOffset, freeLists);
-    for (; freeListIdx < freeLists.size(); ++freeListIdx) {
-        auto it = freeLists[freeListIdx].begin();
-        // TODO(Royi) optimize this
-        std::advance(it, idxInList);
-        for (; it != freeLists[freeListIdx].end(); ++it) {
-            if (ret.size() >= endOffset - startOffset) {
-                return ret;
-            }
-            ret.push_back(*it);
-        }
-        idxInList = 0;
+    FreeEntryIterator it = begin();
+    it.advance(startOffset);
+    while (ret.size() < endOffset - startOffset) {
+        KU_ASSERT(it != end());
+        ret.push_back(*it);
+        ++it;
     }
     return ret;
+}
+
+FreeEntryIterator FreeSpaceManager::begin() const {
+    return FreeEntryIterator{freeLists};
+}
+
+FreeEntryIterator FreeSpaceManager::end() const {
+    return FreeEntryIterator{freeLists, static_cast<common::idx_t>(freeLists.size())};
+}
+
+void FreeEntryIterator::advance(common::row_idx_t numEntries) {
+    common::row_idx_t numEntriesRemaining = numEntries;
+    while (numEntriesRemaining > 0) {
+        // skip whole lists
+        while (freeLists[freeListIdx].begin() == freeListIt &&
+               numEntriesRemaining >= freeLists[freeListIdx].size()) {
+            numEntriesRemaining -= freeLists[freeListIdx].size();
+            ++freeListIdx;
+            if (freeListIdx >= freeLists.size()) {
+                KU_ASSERT(numEntriesRemaining == 0);
+                return;
+            }
+            freeListIt = freeLists[freeListIdx].begin();
+        }
+
+        // skip entries in single list
+        while (freeListIt != freeLists[freeListIdx].end()) {
+            ++freeListIt;
+            --numEntriesRemaining;
+        }
+        ++freeListIdx;
+    }
+}
+
+void FreeEntryIterator::operator++() {
+    advance(1);
+}
+
+bool FreeEntryIterator::operator!=(const FreeEntryIterator& o) const {
+    if (freeListIdx < freeLists.size()) {
+        return freeListIdx != o.freeListIdx || freeListIt != o.freeListIt;
+    }
+    return freeListIdx != o.freeListIdx;
+}
+
+PageChunkEntry FreeEntryIterator::operator*() const {
+    KU_ASSERT(freeListIdx < freeLists.size());
+    return *freeListIt;
 }
 
 } // namespace kuzu::storage

@@ -3,6 +3,8 @@
 #include "common/types/types.h"
 #include "storage/file_handle.h"
 #include "storage/free_space_manager.h"
+#include "storage/page_chunk_entry.h"
+
 namespace kuzu {
 namespace transaction {
 enum class TransactionType : uint8_t;
@@ -11,27 +13,14 @@ namespace storage {
 struct PageCursor;
 struct DBFileID;
 
-class PageChunkManager;
-
-struct PageChunkEntry {
-    PageChunkEntry(common::page_idx_t startPageIdx, common::page_idx_t numPages)
-        : startPageIdx(startPageIdx), numPages(numPages) {}
-    PageChunkEntry(const PageChunkEntry& o, common::page_idx_t startPageInOther)
-        : PageChunkEntry(o.startPageIdx + startPageInOther, o.numPages - startPageInOther) {
-        KU_ASSERT(startPageInOther <= o.numPages);
-    }
-
-    common::page_idx_t startPageIdx;
-    common::page_idx_t numPages;
-};
-
-struct AllocatedBlockEntry {
-    AllocatedBlockEntry(common::page_idx_t startPageIdx, common::page_idx_t numPages,
+struct AllocatedPageChunkEntry {
+    AllocatedPageChunkEntry(common::page_idx_t startPageIdx, common::page_idx_t numPages,
         PageChunkManager& pageChunkManager)
         : entry(startPageIdx, numPages), pageChunkManager(pageChunkManager) {}
-    AllocatedBlockEntry(const PageChunkEntry& entry, PageChunkManager& pageChunkManager)
+    AllocatedPageChunkEntry(const PageChunkEntry& entry, PageChunkManager& pageChunkManager)
         : entry(entry), pageChunkManager(pageChunkManager) {}
-    AllocatedBlockEntry(const AllocatedBlockEntry& entry, common::page_idx_t startPageInEntry)
+    AllocatedPageChunkEntry(const AllocatedPageChunkEntry& entry,
+        common::page_idx_t startPageInEntry)
         : entry(entry.entry, startPageInEntry), pageChunkManager(entry.pageChunkManager) {}
     PageChunkEntry entry;
     PageChunkManager& pageChunkManager;
@@ -52,7 +41,7 @@ public:
     PageChunkManager(FileHandle* dataFH, ShadowFile* shadowFile)
         : PageChunkManager(dataFH, shadowFile, std::make_unique<FreeSpaceManager>()) {}
 
-    AllocatedBlockEntry allocateBlock(common::page_idx_t numPages);
+    AllocatedPageChunkEntry allocateBlock(common::page_idx_t numPages);
     void freeBlock(PageChunkEntry block);
     void addUncheckpointedFreeBlock(PageChunkEntry block);
 
@@ -74,7 +63,7 @@ public:
     }
 
 private:
-    friend AllocatedBlockEntry;
+    friend AllocatedPageChunkEntry;
 
     std::unique_ptr<FreeSpaceManager> freeSpaceManager;
     std::mutex mtx;

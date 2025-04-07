@@ -5,9 +5,9 @@
 #include "common/file_system/virtual_file_system.h"
 #include "main/client_context.h"
 #include "main/database.h"
-#include "storage/block_manager.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "storage/page_chunk_manager.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 #include "storage/wal_replayer.h"
@@ -64,7 +64,7 @@ void StorageManager::loadTables(const Catalog& catalog, VirtualFileSystem* vfs,
             Deserializer deSer(std::make_unique<BufferedFileReader>(std::move(metadataFileInfo)));
             std::string key;
             uint64_t numTables = 0;
-            deSer.validateDebuggingInfo(key, "block_manager");
+            deSer.validateDebuggingInfo(key, "page_chunk_manager");
             pageChunkManager = PageChunkManager::deserialize(deSer, dataFH, shadowFile.get());
             deSer.validateDebuggingInfo(key, "num_tables");
             deSer.deserializeValue<uint64_t>(numTables);
@@ -156,7 +156,7 @@ void StorageManager::checkpoint(main::ClientContext& clientContext) {
     const auto writer = std::make_shared<BufferedFileWriter>(*metadataFileInfo);
     Serializer ser(writer);
 
-    ser.writeDebuggingInfo("block_manager");
+    ser.writeDebuggingInfo("page_chunk_manager");
     pageChunkManager->serialize(ser);
 
     const auto nodeTableEntries =

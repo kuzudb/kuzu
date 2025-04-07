@@ -42,8 +42,8 @@ bool operator==(const CompressionMetadata& a, const CompressionMetadata& b) {
 }
 
 bool operator==(const ColumnChunkMetadata& a, const ColumnChunkMetadata& b) {
-    return (a.compMeta == b.compMeta) && (a.numPages == b.numPages) &&
-           (a.numValues == b.numValues) && (a.pageIdx == b.pageIdx);
+    return (a.compMeta == b.compMeta) && (a.getNumPages() == b.getNumPages()) &&
+           (a.numValues == b.numValues) && (a.getStartPageIdx() == b.getStartPageIdx());
 }
 
 struct BufferReader : Reader {
