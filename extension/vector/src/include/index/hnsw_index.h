@@ -56,39 +56,20 @@ struct HNSWIndexPartitionerSharedState {
     }
 };
 
-struct Bitset {
-    static constexpr uint64_t BITSET_SIZE = 64;
-    static constexpr uint64_t BITSET_MASK = BITSET_SIZE - 1;
-    explicit Bitset(uint64_t capacity) : capacity{capacity} {
-        const auto numSlots = (capacity + BITSET_SIZE - 1) / BITSET_SIZE;
-        data.resize(numSlots);
-        memset(data.data(), 0, sizeof(uint64_t) * numSlots);
-    }
-
-    void set(uint64_t idx) {
-        uint64_t& slot = data[idx / BITSET_SIZE];
-        const uint64_t mask = 1ull << (idx & BITSET_MASK);
-        slot |= mask;
-    }
-    bool get(uint64_t idx) const { return data[idx / BITSET_SIZE] & (1ull << (idx & BITSET_MASK)); }
-    void clear() {
-        const auto numSlots = data.size();
-        memset(data.data(), 0, sizeof(uint64_t) * numSlots);
-    }
-
-    uint64_t capacity;
-    std::vector<uint64_t> data;
-};
-
 struct VisitedState {
     common::offset_t size;
-    Bitset visited;
+    std::unique_ptr<uint8_t[]> visited;
 
-    explicit VisitedState(common::offset_t size) : size{size}, visited{size} {}
+    explicit VisitedState(common::offset_t size) : size{size} {
+        visited = std::make_unique<uint8_t[]>(size);
+        memset(visited.get(), 0, size);
+    }
 
-    void reset() { visited.clear(); }
-    void add(common::offset_t offset) { visited.set(offset); }
-    bool contains(common::offset_t offset) const { return visited.get(offset); }
+    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
+    void reset() { memset(visited.get(), 0, size); }
+    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
+    void add(common::offset_t offset) { visited[offset] = 1; }
+    bool contains(common::offset_t offset) const { return visited[offset]; }
 };
 
 class HNSWIndex {
