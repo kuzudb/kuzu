@@ -48,7 +48,7 @@ def test_fsm_decrease_bitwidths(tmp_path: Path) -> None:
         conn.execute("call auto_checkpoint=false")
 
         # create data
-        num_tuples = 2**17
+        num_tuples = 200000
         vals = [0 if i % 2 == 0 else 2**16 - 1 for i in range(num_tuples)]
         prep = conn.prepare("unwind $vals as i create(:values{value: i})")
         conn.execute(prep, {"vals": vals})
@@ -57,14 +57,14 @@ def test_fsm_decrease_bitwidths(tmp_path: Path) -> None:
         _, _, start_num_pages = get_total_num_pages(conn)
 
         # update vals
-        num_updates = 10
-        update_batch_size = 10
-        prep = conn.prepare("match (p:values) where p.id = $id set p.value = $val")
-        for _ in range(num_updates):
-            for i in range(update_batch_size):
-                id = random.randint(0, num_tuples - 1)
-                new_val = 0 if i % 2 == 0 else 2**8 - 1
-                conn.execute(prep, {"id": id, "val": new_val})
+        num_updates = 20
+        update_batch_size = 10000
+        prep = conn.prepare("match (p:values) where p.id >= $a and p.id < $b set p.value = $val")
+        for i in range(num_updates):
+            conn.execute(
+                prep,
+                {"a": i * update_batch_size, "b": (i + 1) * update_batch_size, "val": i},
+            )
             conn.execute("checkpoint")
 
         _, _, end_num_pages = get_total_num_pages(conn)
