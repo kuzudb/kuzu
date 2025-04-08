@@ -22,7 +22,7 @@ struct FreeSpaceInfoBindData final : TableFuncBindData {
 static common::offset_t internalTableFunc(const TableFuncMorsel& morsel,
     const TableFuncInput& input, common::DataChunk& output) {
     const auto bindData = input.bindData->constPtrCast<FreeSpaceInfoBindData>();
-    const auto entries = bindData->ctx->getStorageManager()->getBlockManager().getFreeEntries(
+    const auto entries = bindData->ctx->getStorageManager()->getPageChunkManager().getFreeEntries(
         morsel.startOffset, morsel.endOffset);
     for (common::row_idx_t i = 0; i < entries.size(); ++i) {
         const auto& freeEntry = entries[i];
@@ -40,7 +40,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     columnTypes.push_back(common::LogicalType::UINT64());
     auto columns = input->binder->createVariables(columnNames, columnTypes);
     return std::make_unique<FreeSpaceInfoBindData>(columns,
-        context->getStorageManager()->getBlockManager().getNumFreeEntries(), context);
+        context->getStorageManager()->getPageChunkManager().getNumFreeEntries(), context);
 }
 
 function_set FreeSpaceInfoFunction::getFunctionSet() {

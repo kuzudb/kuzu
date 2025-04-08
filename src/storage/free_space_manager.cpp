@@ -15,36 +15,34 @@ static FreeSpaceManager::sorted_free_list_t& getFreeList(
     return freeLists[level];
 }
 
-FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0){};
+FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0) {};
+
+common::idx_t FreeSpaceManager::getLevel(common::page_idx_t numPages) {
+    // level is exponent of largest power of 2 that is <= numPages
+    // e.g. 2 -> level 1, 5 -> level 2
+    return common::countBits(numPages) - common::CountZeros<common::page_idx_t>::Leading(numPages) -
+           1;
+}
 
 bool FreeSpaceManager::entryCmp(const PageChunkEntry& a, const PageChunkEntry& b) {
     return a.numPages == b.numPages ? a.startPageIdx < b.startPageIdx : a.numPages < b.numPages;
 }
 
 void FreeSpaceManager::addFreeChunk(PageChunkEntry entry) {
-    const auto curLevel = common::countBits(entry.numPages) -
-                          common::CountZeros<decltype(entry.numPages)>::Leading(entry.numPages) - 1;
-    getFreeList(freeLists, curLevel).insert(entry);
+    getFreeList(freeLists, getLevel(entry.numPages)).insert(entry);
     ++numEntries;
 }
 
-void FreeSpaceManager::addUncheckpointedFreeChunk(PageChunkEntry entry) {
-    uncheckpointedFreeChunks.push_back(entry);
-}
-
 // This also removes the chunk from the free space manager
-std::optional<PageChunkEntry> FreeSpaceManager::getFreeChunk(common::page_idx_t numPages) {
+std::optional<PageChunkEntry> FreeSpaceManager::popFreeChunk(common::page_idx_t numPages) {
     if (numPages > 0) {
-        // 0b10 -> start at level 1
-        // 0b11 -> start at level 1
-        auto levelToSearch = common::countBits(numPages) -
-                             common::CountZeros<decltype(numPages)>::Leading(numPages) - 1;
+        auto levelToSearch = getLevel(numPages);
         for (; levelToSearch < freeLists.size(); ++levelToSearch) {
             auto& curList = freeLists[levelToSearch];
             auto entryIt = curList.lower_bound(PageChunkEntry{0, numPages});
             if (entryIt != curList.end()) {
                 auto entry = *entryIt;
-                curList.erase(entry);
+                curList.erase(entryIt);
                 --numEntries;
                 return breakUpChunk(entry, numPages);
             }
@@ -101,11 +99,6 @@ std::unique_ptr<FreeSpaceManager> FreeSpaceManager::deserialize(common::Deserial
 }
 
 void FreeSpaceManager::finalizeCheckpoint() {
-    for (auto uncheckpointedEntry : uncheckpointedFreeChunks) {
-        addFreeChunk(uncheckpointedEntry);
-    }
-    uncheckpointedFreeChunks.clear();
-
     combineAdjacentChunks();
 }
 
@@ -188,7 +181,7 @@ void FreeEntryIterator::advanceFreeListIdx() {
 }
 
 PageChunkEntry FreeEntryIterator::operator*() const {
-    KU_ASSERT(freeListIdx < freeLists.size());
+    KU_ASSERT(freeListIdx < freeLists.size() && freeListIt != freeLists[freeListIdx].end());
     return *freeListIt;
 }
 

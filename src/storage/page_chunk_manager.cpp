@@ -4,23 +4,20 @@
 #include "storage/shadow_utils.h"
 #include "storage/storage_utils.h"
 
+namespace kuzu::storage {
 static constexpr bool ENABLE_FSM = true;
 
-namespace kuzu::storage {
 AllocatedPageChunkEntry PageChunkManager::allocateBlock(common::page_idx_t numPages) {
     if constexpr (ENABLE_FSM) {
         common::UniqLock lck{mtx};
-        // TODO(Royi) check if this is still needed
-        // numPages = numPages == 0 ? 0 : std::bit_ceil(numPages);
-
-        auto allocatedFreeChunk = freeSpaceManager->getFreeChunk(numPages);
+        auto allocatedFreeChunk = freeSpaceManager->popFreeChunk(numPages);
         if (allocatedFreeChunk.has_value()) {
-            return AllocatedPageChunkEntry{*allocatedFreeChunk, *this};
+            return AllocatedPageChunkEntry{*allocatedFreeChunk, fileHandle};
         }
     }
-    auto startPageIdx = dataFH->addNewPages(numPages);
-    KU_ASSERT(dataFH->getNumPages() >= startPageIdx + numPages);
-    return AllocatedPageChunkEntry(startPageIdx, numPages, *this);
+    auto startPageIdx = fileHandle->addNewPages(numPages);
+    KU_ASSERT(fileHandle->getNumPages() >= startPageIdx + numPages);
+    return AllocatedPageChunkEntry(startPageIdx, numPages, fileHandle);
 }
 
 void PageChunkManager::freeBlock(PageChunkEntry entry) {
@@ -28,14 +25,10 @@ void PageChunkManager::freeBlock(PageChunkEntry entry) {
         common::UniqLock lck{mtx};
         for (uint64_t i = 0; i < entry.numPages; ++i) {
             const auto pageIdx = entry.startPageIdx + i;
-            dataFH->removePageFromFrameIfNecessary(pageIdx);
+            fileHandle->removePageFromFrameIfNecessary(pageIdx);
         }
         freeSpaceManager->addFreeChunk(entry);
     }
-}
-
-void PageChunkManager::addUncheckpointedFreeBlock(PageChunkEntry entry) {
-    freeSpaceManager->addUncheckpointedFreeChunk(entry);
 }
 
 bool PageChunkManager::updateShadowedPageWithCursor(PageCursor cursor, DBFileID dbFileID,
@@ -45,12 +38,12 @@ bool PageChunkManager::updateShadowedPageWithCursor(PageCursor cursor, DBFileID 
         writeOp(nullptr, cursor.elemPosInPage);
         return 0;
     }
-    if (cursor.pageIdx >= dataFH->getNumPages()) {
-        KU_ASSERT(cursor.pageIdx == dataFH->getNumPages());
-        ShadowUtils::insertNewPage(*dataFH, dbFileID, *shadowFile);
+    if (cursor.pageIdx >= fileHandle->getNumPages()) {
+        KU_ASSERT(cursor.pageIdx == fileHandle->getNumPages());
+        ShadowUtils::insertNewPage(*fileHandle, dbFileID, *shadowFile);
         insertingNewPage = true;
     }
-    ShadowUtils::updatePage(*dataFH, dbFileID, cursor.pageIdx, insertingNewPage, *shadowFile,
+    ShadowUtils::updatePage(*fileHandle, dbFileID, cursor.pageIdx, insertingNewPage, *shadowFile,
         [&](auto frame) { writeOp(frame, cursor.elemPosInPage); });
     return insertingNewPage;
 }
@@ -58,22 +51,22 @@ bool PageChunkManager::updateShadowedPageWithCursor(PageCursor cursor, DBFileID 
 std::pair<FileHandle*, common::page_idx_t>
 PageChunkManager::getShadowedFileHandleAndPhysicalPageIdxToPin(common::page_idx_t pageIdx,
     transaction::TransactionType trxType) const {
-    return ShadowUtils::getFileHandleAndPhysicalPageIdxToPin(*dataFH, pageIdx, *shadowFile,
+    return ShadowUtils::getFileHandleAndPhysicalPageIdxToPin(*fileHandle, pageIdx, *shadowFile,
         trxType);
 }
 
-void AllocatedPageChunkEntry::writePagesToFile(const uint8_t* buffer, uint64_t bufferSize) {
-    pageChunkManager.dataFH->writePagesToFile(buffer, bufferSize, entry.startPageIdx);
+void AllocatedPageChunkEntry::writePagesToFile(const uint8_t* buffer, uint64_t bufferSize) const {
+    fileHandle->writePagesToFile(buffer, bufferSize, entry.startPageIdx);
 }
 
 void AllocatedPageChunkEntry::writePageToFile(const uint8_t* pageBuffer,
-    common::page_idx_t pageOffset) {
+    common::page_idx_t pageOffset) const {
     KU_ASSERT(pageOffset < entry.numPages);
-    pageChunkManager.dataFH->writePageToFile(pageBuffer, entry.startPageIdx + pageOffset);
+    fileHandle->writePageToFile(pageBuffer, entry.startPageIdx + pageOffset);
 }
 
 bool AllocatedPageChunkEntry::isInMemoryMode() const {
-    return pageChunkManager.dataFH->isInMemoryMode();
+    return fileHandle->isInMemoryMode();
 }
 
 void PageChunkManager::serialize(common::Serializer& serializer) {
@@ -81,8 +74,8 @@ void PageChunkManager::serialize(common::Serializer& serializer) {
 }
 
 std::unique_ptr<PageChunkManager> PageChunkManager::deserialize(common::Deserializer& deSer,
-    FileHandle* dataFH, ShadowFile* shadowFile) {
-    return std::make_unique<PageChunkManager>(dataFH, shadowFile,
+    FileHandle* fileHandle, ShadowFile* shadowFile) {
+    return std::make_unique<PageChunkManager>(fileHandle, shadowFile,
         FreeSpaceManager::deserialize(deSer));
 }
 

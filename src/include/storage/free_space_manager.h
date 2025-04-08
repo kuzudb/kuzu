@@ -12,17 +12,12 @@ struct FreeEntryIterator;
 class FreeSpaceManager {
 public:
     static bool entryCmp(const PageChunkEntry& a, const PageChunkEntry& b);
-
-    using free_list_t = std::vector<PageChunkEntry>;
     using sorted_free_list_t = std::set<PageChunkEntry, decltype(&entryCmp)>;
 
     FreeSpaceManager();
 
     void addFreeChunk(PageChunkEntry entry);
-    void addUncheckpointedFreeChunk(PageChunkEntry entry);
-
-    // This also removes the chunk from the free space manager
-    std::optional<PageChunkEntry> getFreeChunk(common::page_idx_t numPages);
+    std::optional<PageChunkEntry> popFreeChunk(common::page_idx_t numPages);
 
     void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<FreeSpaceManager> deserialize(common::Deserializer& deSer);
@@ -36,9 +31,9 @@ private:
     PageChunkEntry breakUpChunk(PageChunkEntry chunk, common::page_idx_t numRequiredPages);
     void combineAdjacentChunks();
     void reset();
+    static common::idx_t getLevel(common::page_idx_t numPages) ;
 
     std::vector<sorted_free_list_t> freeLists;
-    free_list_t uncheckpointedFreeChunks;
     common::row_idx_t numEntries;
 };
 

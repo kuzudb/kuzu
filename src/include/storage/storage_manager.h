@@ -43,7 +43,7 @@ public:
 
     WAL& getWAL() const;
     ShadowFile& getShadowFile() const;
-    PageChunkManager& getBlockManager() const { return *pageChunkManager; }
+    PageChunkManager& getPageChunkManager() const { return *pageChunkManager; }
     std::string getDatabasePath() const { return databasePath; }
     bool isReadOnly() const { return readOnly; }
     bool compressionEnabled() const { return enableCompression; }

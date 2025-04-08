@@ -131,7 +131,7 @@ void CompressChunkTest::testCompressChunk(const std::vector<T>& bufferToCompress
     check_func_t checkFunc) {
     auto* mm = getMemoryManager(*database);
     auto* storageManager = getStorageManager(*database);
-    auto& pageChunkManager = storageManager->getBlockManager();
+    auto& pageChunkManager = storageManager->getPageChunkManager();
 
     const auto dataType = std::is_same_v<float, T> ? LogicalType::FLOAT() : LogicalType::DOUBLE();
     const auto alg = std::make_shared<FloatCompression<T>>();
@@ -166,7 +166,7 @@ void CompressChunkTest::testUpdateChunk(std::vector<T>& bufferToCompress, check_
                 const LogicalType& dataType) {
                 auto* mm = getMemoryManager(*database);
                 auto* storageManager = getStorageManager(*database);
-                auto& pageChunkManager = storageManager->getBlockManager();
+                auto& pageChunkManager = storageManager->getPageChunkManager();
 
                 updateFunc(reader, transaction, state, dataType);
 
@@ -591,7 +591,7 @@ TEST_F(CompressChunkTest, TestDoubleInPlaceUpdateWithExceptionsMultiPageNullMask
                                    const LogicalType& dataType) {
             auto* mm = getMemoryManager(*database);
             auto* storageManager = getStorageManager(*database);
-            auto& pageChunkManager = storageManager->getBlockManager();
+            auto& pageChunkManager = storageManager->getPageChunkManager();
 
             static constexpr size_t numValuesToSet = 50;
             const size_t cpyOffset = 2100;

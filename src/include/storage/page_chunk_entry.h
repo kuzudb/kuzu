@@ -2,7 +2,6 @@
 
 #include "common/types/types.h"
 namespace kuzu::storage {
-class PageChunkManager;
 
 struct PageChunkEntry {
     PageChunkEntry() = default;
