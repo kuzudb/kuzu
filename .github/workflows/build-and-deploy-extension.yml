@@ -21,14 +21,14 @@ jobs:
   build-extensions:
     uses: ./.github/workflows/build-extensions.yml
 
-  get-dockerhub-extensions:
-    uses: ./.github/workflows/get-extensions-from-dockerhub.yml
+  get-ghcr-extensions:
+    uses: ./.github/workflows/get-extensions-from-ghcr.yml
 
   package-built-extensions:
     runs-on: ubuntu-22.04
     needs:
       - build-extensions
-      - get-dockerhub-extensions
+      - get-ghcr-extensions
     steps:
       - name: Free disk space on Ubuntu runner
         uses: kfir4444/free-disk-space@main
@@ -58,7 +58,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: dockerhub-extensions
+          name: ghcr-extensions
 
       - name: Clear old artifacts
         run: rm -rf releases/$RELEASE_VERSION/

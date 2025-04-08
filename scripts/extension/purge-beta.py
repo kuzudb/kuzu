@@ -20,7 +20,7 @@ releases_to_purge = ['v' + r for r in releases_to_purge]
 
 if len(releases_to_purge) == 0:
     print('No releases to purge.')
-    exit(1)
+    exit(0)
 
 print('Releases to purge:')
 for r in releases_to_purge:
