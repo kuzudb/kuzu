@@ -179,6 +179,8 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|2544|the movie is very ve
 -CASE ScanFromHttpfsJson
 -STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/json/build/libjson.kuzu_extension";
 ---- ok
+-STATEMENT LOAD EXTENSION "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
 -STATEMENT LOAD FROM "http://localhost/dataset/json-misc/prim-test.json" return *;
 ---- 2
 1|True|5.000000
