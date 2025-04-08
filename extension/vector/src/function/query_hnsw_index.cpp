@@ -119,7 +119,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         outputNode);
 }
 
-template<typename T>
+template<VectorElementType T>
 static std::vector<T> convertQueryVector(const Value& value) {
     std::vector<T> queryVector;
     const auto numElements = value.getChildrenSize();
@@ -170,16 +170,15 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
         index->setDefaultLowerEntryPoint(auxInfo.lowerEntryPoint);
         const auto dimension = ArrayType::getNumElements(getIndexColumnType(bindData->boundInput));
         auto indexType = index->getElementType();
-        TypeUtils::visit(indexType, [&]<typename T>(T) {
-            if constexpr (std::is_floating_point_v<T>) {
+        TypeUtils::visit(
+            indexType,
+            [&]<VectorElementType T>(T) {
                 auto queryVector = getQueryVector<T>(input.context->clientContext,
                     bindData->boundInput.queryExpression, index->getElementType(), dimension);
                 localState->result = index->search(input.context->clientContext->getTransaction(),
                     queryVector.data(), localState->searchState);
-            } else {
-                KU_UNREACHABLE;
-            }
-        });
+            },
+            [&](auto) { KU_UNREACHABLE; });
     }
     KU_ASSERT(localState->result.has_value());
     if (localState->numRowsOutput >= localState->result->size()) {

@@ -61,67 +61,42 @@ void HNSWIndexUtils::validateColumnType(const catalog::TableCatalogEntry& tableE
     validateColumnType(type);
 }
 
-template<auto Func, typename T>
+template<auto Func, VectorElementType T>
 static double computeDistance(const void* left, const void* right, uint32_t dimension) {
     double distance = 0.0;
     Func(static_cast<const T*>(left), static_cast<const T*>(right), dimension, &distance);
     return distance;
 }
 
+template<auto FUNC_F32, auto FUNC_F64>
+static metric_func_t computeDistanceFuncDispatch(const common::LogicalType& type) {
+    switch (type.getLogicalTypeID()) {
+    case common::LogicalTypeID::FLOAT: {
+        return computeDistance<FUNC_F32, float>;
+    }
+    case common::LogicalTypeID::DOUBLE: {
+        return computeDistance<FUNC_F64, double>;
+    }
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+}
+
 metric_func_t HNSWIndexUtils::getMetricsFunction(MetricType metric,
     const common::LogicalType& type) {
     switch (metric) {
     case MetricType::Cosine: {
-        switch (type.getLogicalTypeID()) {
-        case common::LogicalTypeID::FLOAT: {
-            return computeDistance<simsimd_cos_f32, float>;
-        }
-        case common::LogicalTypeID::DOUBLE: {
-            return computeDistance<simsimd_cos_f64, double>;
-        }
-        default: {
-            KU_UNREACHABLE;
-        }
-        }
+        return computeDistanceFuncDispatch<simsimd_cos_f32, simsimd_cos_f64>(type);
     }
     case MetricType::DotProduct: {
-        switch (type.getLogicalTypeID()) {
-        case common::LogicalTypeID::FLOAT: {
-            return computeDistance<simsimd_dot_f32, float>;
-        }
-        case common::LogicalTypeID::DOUBLE: {
-            return computeDistance<simsimd_dot_f64, double>;
-        }
-        default: {
-            KU_UNREACHABLE;
-        }
-        }
+        return computeDistanceFuncDispatch<simsimd_dot_f32, simsimd_dot_f64>(type);
     }
     case MetricType::L2: {
-        switch (type.getLogicalTypeID()) {
-        case common::LogicalTypeID::FLOAT: {
-            return computeDistance<simsimd_l2_f32, float>;
-        }
-        case common::LogicalTypeID::DOUBLE: {
-            return computeDistance<simsimd_l2_f64, double>;
-        }
-        default: {
-            KU_UNREACHABLE;
-        }
-        }
+        return computeDistanceFuncDispatch<simsimd_l2_f32, simsimd_l2_f64>(type);
     }
     case MetricType::L2_SQUARE: {
-        switch (type.getLogicalTypeID()) {
-        case common::LogicalTypeID::FLOAT: {
-            return computeDistance<simsimd_l2sq_f32, float>;
-        }
-        case common::LogicalTypeID::DOUBLE: {
-            return computeDistance<simsimd_l2sq_f64, double>;
-        }
-        default: {
-            KU_UNREACHABLE;
-        }
-        }
+        return computeDistanceFuncDispatch<simsimd_l2sq_f32, simsimd_l2sq_f64>(type);
     }
     default: {
         KU_UNREACHABLE;

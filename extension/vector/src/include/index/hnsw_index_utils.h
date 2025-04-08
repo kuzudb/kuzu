@@ -14,7 +14,8 @@ class ClientContext;
 }
 
 namespace vector_extension {
-
+template<typename T>
+concept VectorElementType = std::is_floating_point_v<T>;
 using metric_func_t = std::function<double(const void*, const void*, uint32_t)>;
 
 struct HNSWIndexUtils {

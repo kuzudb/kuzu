@@ -1,5 +1,6 @@
 #include "index/hnsw_graph.h"
 
+#include "index/hnsw_index_utils.h"
 #include "storage/local_cached_column.h"
 #include "storage/store/list_chunk_data.h"
 #include "storage/store/node_table.h"
@@ -24,11 +25,11 @@ InMemEmbeddings::InMemEmbeddings(transaction::Transaction* transaction,
 }
 
 void* InMemEmbeddings::getEmbedding(common::offset_t offset) const {
-    auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
-    KU_ASSERT(nodeGroupIdx < data->columnChunks.size());
-    const auto& listChunk = data->columnChunks[nodeGroupIdx]->cast<ListChunkData>();
     void* val = nullptr;
-    common::TypeUtils::visit(typeInfo.getChildType(), [&, offsetInGroup]<typename T>(T) {
+    common::TypeUtils::visit(typeInfo.getChildType(), [&]<typename T>(T) {
+        auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
+        KU_ASSERT(nodeGroupIdx < data->columnChunks.size());
+        const auto& listChunk = data->columnChunks[nodeGroupIdx]->cast<ListChunkData>();
         val = &listChunk.getDataColumnChunk()
                    ->getData<T>()[listChunk.getListStartOffset(offsetInGroup)];
     });
@@ -74,8 +75,11 @@ void* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
     KU_UNUSED(value);
     const auto dataVector = common::ListVector::getDataVector(scanState.outputVectors[0]);
     void* val = nullptr;
-    common::TypeUtils::visit(typeInfo.getChildType(),
-        [&]<typename T>(T) { val = reinterpret_cast<T*>(dataVector->getData()) + value.offset; });
+    common::TypeUtils::visit(
+        typeInfo.getChildType(),
+        [&]<VectorElementType T>(
+            T) { val = reinterpret_cast<T*>(dataVector->getData()) + value.offset; },
+        [&](auto) { KU_UNREACHABLE; });
     KU_ASSERT(val != nullptr);
     return val;
 }

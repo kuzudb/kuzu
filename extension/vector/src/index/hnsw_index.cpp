@@ -276,8 +276,8 @@ OnDiskHNSWIndex::OnDiskHNSWIndex(main::ClientContext* context,
       lowerRelTableEntry{lowerRelTableEntry} {
     auto& nodeTable =
         context->getStorageManager()->getTable(nodeTableEntry->getTableID())->cast<NodeTable>();
-    const auto& indexColumnType = nodeTable.getColumn(columnID).getDataType();
-    KU_ASSERT(indexColumnType.getLogicalTypeID() == common::LogicalTypeID::ARRAY);
+    KU_ASSERT(nodeTable.getColumn(columnID).getDataType().getLogicalTypeID() ==
+              common::LogicalTypeID::ARRAY);
     embeddings = std::make_unique<OnDiskEmbeddings>(
         common::ArrayTypeInfo{typeInfo.getChildType().copy(), typeInfo.getNumElements()},
         nodeTable);
