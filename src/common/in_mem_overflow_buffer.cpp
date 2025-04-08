@@ -37,10 +37,11 @@ uint8_t* InMemOverflowBuffer::allocateSpace(uint64_t size) {
 
 void InMemOverflowBuffer::resetBuffer() {
     if (!blocks.empty()) {
-        auto firstBlock = std::move(blocks[0]);
+        // Last block is usually the largest
+        auto lastBlock = std::move(blocks.back());
         blocks.clear();
-        firstBlock->resetCurrentOffset();
-        blocks.push_back(std::move(firstBlock));
+        lastBlock->resetCurrentOffset();
+        blocks.push_back(std::move(lastBlock));
         currentBlock = blocks[0].get();
     }
 }
