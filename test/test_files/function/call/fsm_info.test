@@ -1,5 +1,5 @@
 -DATASET CSV empty
-
+-SKIP_IN_MEM
 --
 
 -CASE FSMInfoRecovery
