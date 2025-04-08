@@ -504,7 +504,7 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(const std::strin
         std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()}, LogicalTypeID::STRING, func);
 }
 
-template<typename DST_TYPE, typename EXECUTOR>
+template<IntegerTypes DST_TYPE, typename EXECUTOR>
 static std::unique_ptr<ScalarFunction> bindCastToDecimalFunction(const std::string& functionName,
     const LogicalType& sourceType, const LogicalType& targetType) {
     scalar_func_exec_t func;
