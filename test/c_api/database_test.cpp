@@ -298,14 +298,3 @@ TEST_F(CApiDatabaseTest, VirtualFileSystemDeleteFilesWildcardNoRemoval) {
     // Cleanup
     std::filesystem::remove_all("/tmp/dbHome_wildcard");
 }
-
-TEST_F(CApiDatabaseTest, dsads) {
-    systemConfig->bufferPoolSize = 1024 * 1024 * 1024;
-    createDBAndConn();
-    printf("%s",
-        conn->query("LOAD FROM "
-                    "\"https://lux.collections.yale.edu/data/person/"
-                    "c225d5e4-8767-4a25-802b-af054d5e8f52\" (file_format=\"json\") RETURN *;")
-            ->toString()
-            .c_str());
-}

@@ -182,4 +182,4 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|2544|the movie is very ve
 -STATEMENT LOAD FROM "http://localhost/dataset/json-misc/prim-test.json" return *;
 ---- 2
 1|True|5.000000
-2|False|0.100000
+it 2|False|0.100000
