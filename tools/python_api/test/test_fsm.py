@@ -72,6 +72,7 @@ def test_fsm_decrease_bitwidths(tmp_path: Path) -> None:
 
 
 def test_fsm_incremental_copy(tmp_path: Path):
+    num_free_pages = 0
     with kuzu.Database(tmp_path) as db, kuzu.Connection(db) as conn:
         create_schema(conn)
         conn.execute("call auto_checkpoint=false")
@@ -86,5 +87,10 @@ def test_fsm_incremental_copy(tmp_path: Path):
                 {"vals": vals[i : i + batch_size]},
             )
 
-        num_used_pages, _, num_total_pages = get_total_num_pages(conn)
+        num_used_pages, num_free_pages, num_total_pages = get_total_num_pages(conn)
         assert num_used_pages / num_total_pages >= 0.33
+
+    # test serialize + deserialize
+    with kuzu.Database(tmp_path) as db, kuzu.Connection(db) as conn:
+        _, new_num_free_pages, _ = get_total_num_pages(conn)
+        assert num_free_pages == new_num_free_pages

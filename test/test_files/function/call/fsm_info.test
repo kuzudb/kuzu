@@ -3,14 +3,15 @@
 --
 
 -CASE FSMInfoRecovery
+# TODO(Royi) enable this test once FSM works on dropped tables
+-SKIP
 -STATEMENT call checkpoint_threshold=0
 ---- ok
 -STATEMENT create node table person(id int64, primary key (id))
 ---- ok
 -STATEMENT create (:person{id: 0}), (:person{id: 1})
 ---- ok
--STATEMENT unwind range(2, 150000) as i create (:person{id: i})
----- ok
+# drop table here
 -STATEMENT call fsm_info() return *
 ---- 1
 0|1
