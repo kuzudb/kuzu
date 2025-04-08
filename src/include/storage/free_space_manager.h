@@ -31,7 +31,7 @@ private:
     PageChunkEntry breakUpChunk(PageChunkEntry chunk, common::page_idx_t numRequiredPages);
     void combineAdjacentChunks();
     void reset();
-    static common::idx_t getLevel(common::page_idx_t numPages) ;
+    static common::idx_t getLevel(common::page_idx_t numPages);
 
     std::vector<sorted_free_list_t> freeLists;
     common::row_idx_t numEntries;
