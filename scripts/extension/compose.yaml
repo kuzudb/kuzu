@@ -1,7 +1,7 @@
 version: '3'
 services:
   file-server:
-    image: kuzudb/extension-repo
+    image: ghcr.io/kuzudb/extension-repo
     pull_policy: always
     ports:
       - "8081:80"

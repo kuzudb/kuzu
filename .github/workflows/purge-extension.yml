@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  get-dockerhub-extensions:
-    uses: ./.github/workflows/get-extensions-from-dockerhub.yml
+  get-ghcr-extensions:
+    uses: ./.github/workflows/get-extensions-from-ghcr.yml
     
   purge-extensions:
-    needs: get-dockerhub-extensions
+    needs: get-ghcr-extensions
     runs-on: ubuntu-22.04
     steps:
       - name: Free disk space on Ubuntu runner
@@ -31,7 +31,7 @@ jobs:
       
       - uses: actions/download-artifact@v4
         with:
-          name: dockerhub-extensions
+          name: ghcr-extensions
       
       - name: Purge extensions
         run: python3 purge-beta.py
