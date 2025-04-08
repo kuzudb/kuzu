@@ -15,7 +15,7 @@ static FreeSpaceManager::sorted_free_list_t& getFreeList(
     return freeLists[level];
 }
 
-FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0) {};
+FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0){};
 
 bool FreeSpaceManager::entryCmp(const PageChunkEntry& a, const PageChunkEntry& b) {
     return a.numPages == b.numPages ? a.startPageIdx < b.startPageIdx : a.numPages < b.numPages;
