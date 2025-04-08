@@ -167,12 +167,9 @@ void FreeEntryIterator::advance(common::row_idx_t numEntries) {
 
 void FreeEntryIterator::operator++() {
     KU_ASSERT(freeListIdx < freeLists.size());
-    if (freeListIt != freeLists[freeListIdx].end()) {
-        ++freeListIt;
-    } else {
-        do {
-            ++freeListIdx;
-        } while (freeListIdx < freeLists.size() && freeLists[freeListIdx].empty());
+    ++freeListIt;
+    if (freeListIt == freeLists[freeListIdx].end()) {
+        ++freeListIdx;
         advanceFreeListIdx();
     }
 }
