@@ -61,41 +61,84 @@ void HNSWIndexUtils::validateColumnType(const catalog::TableCatalogEntry& tableE
     validateColumnType(type);
 }
 
-double HNSWIndexUtils::computeDistance(MetricType funcType, const float* left, const float* right,
-    uint32_t dimension) {
+template<auto Func, typename T>
+static double computeDistance(const void* left, const void* right, uint32_t dimension) {
     double distance = 0.0;
-    switch (funcType) {
+    Func(static_cast<const T*>(left), static_cast<const T*>(right), dimension, &distance);
+    return distance;
+}
+
+metric_func_t HNSWIndexUtils::getMetricsFunction(MetricType metric,
+    const common::LogicalType& type) {
+    switch (metric) {
     case MetricType::Cosine: {
-        simsimd_cos_f32(left, right, dimension, &distance);
-    } break;
+        switch (type.getLogicalTypeID()) {
+        case common::LogicalTypeID::FLOAT: {
+            return computeDistance<simsimd_cos_f32, float>;
+        }
+        case common::LogicalTypeID::DOUBLE: {
+            return computeDistance<simsimd_cos_f64, double>;
+        }
+        default: {
+            KU_UNREACHABLE;
+        }
+        }
+    }
     case MetricType::DotProduct: {
-        simsimd_dot_f32(left, right, dimension, &distance);
-    } break;
+        switch (type.getLogicalTypeID()) {
+        case common::LogicalTypeID::FLOAT: {
+            return computeDistance<simsimd_dot_f32, float>;
+        }
+        case common::LogicalTypeID::DOUBLE: {
+            return computeDistance<simsimd_dot_f64, double>;
+        }
+        default: {
+            KU_UNREACHABLE;
+        }
+        }
+    }
     case MetricType::L2: {
-        // L2 distance is the square root of the sum of the squared differences between the two
-        // vectors. Also known as the Euclidean distance.
-        simsimd_l2_f32(left, right, dimension, &distance);
-    } break;
+        switch (type.getLogicalTypeID()) {
+        case common::LogicalTypeID::FLOAT: {
+            return computeDistance<simsimd_l2_f32, float>;
+        }
+        case common::LogicalTypeID::DOUBLE: {
+            return computeDistance<simsimd_l2_f64, double>;
+        }
+        default: {
+            KU_UNREACHABLE;
+        }
+        }
+    }
     case MetricType::L2_SQUARE: {
-        // L2 square distance is the sum of the squared differences between the two vectors.
-        // Also known as the squared Euclidean distance.
-        simsimd_l2sq_f32(left, right, dimension, &distance);
-    } break;
+        switch (type.getLogicalTypeID()) {
+        case common::LogicalTypeID::FLOAT: {
+            return computeDistance<simsimd_l2sq_f32, float>;
+        }
+        case common::LogicalTypeID::DOUBLE: {
+            return computeDistance<simsimd_l2sq_f64, double>;
+        }
+        default: {
+            KU_UNREACHABLE;
+        }
+        }
+    }
     default: {
         KU_UNREACHABLE;
     }
     }
-    return distance;
 }
 
 void HNSWIndexUtils::validateColumnType(const common::LogicalType& type) {
-    if (type.getLogicalTypeID() != common::LogicalTypeID::ARRAY ||
-        type.getExtraTypeInfo()
-                ->constPtrCast<common::ArrayTypeInfo>()
-                ->getChildType()
-                .getLogicalTypeID() != common::LogicalTypeID::FLOAT) {
-        throw common::BinderException("VECTOR_INDEX only supports FLOAT ARRAY columns.");
+    if (type.getLogicalTypeID() == common::LogicalTypeID::ARRAY) {
+        auto& childType =
+            type.getExtraTypeInfo()->constPtrCast<common::ArrayTypeInfo>()->getChildType();
+        if (childType.getLogicalTypeID() == common::LogicalTypeID::FLOAT ||
+            childType.getLogicalTypeID() == common::LogicalTypeID::DOUBLE) {
+            return;
+        }
     }
+    throw common::BinderException("VECTOR_INDEX only supports FLOAT/DOUBLE ARRAY columns.");
 }
 
 } // namespace vector_extension

@@ -13,29 +13,23 @@ struct NodeTableScanState;
 }
 namespace vector_extension {
 
-struct EmbeddingTypeInfo {
-    common::LogicalType elementType;
-    common::length_t dimension;
-};
-
 class EmbeddingColumn {
 public:
-    explicit EmbeddingColumn(EmbeddingTypeInfo typeInfo) : typeInfo{std::move(typeInfo)} {}
+    explicit EmbeddingColumn(common::ArrayTypeInfo typeInfo) : typeInfo{std::move(typeInfo)} {}
     virtual ~EmbeddingColumn() = default;
 
-    const EmbeddingTypeInfo& getTypeInfo() const { return typeInfo; }
-    common::length_t getDimension() const { return typeInfo.dimension; }
+    common::length_t getDimension() const { return typeInfo.getNumElements(); }
 
 protected:
-    EmbeddingTypeInfo typeInfo;
+    common::ArrayTypeInfo typeInfo;
 };
 
 class InMemEmbeddings final : public EmbeddingColumn {
 public:
-    InMemEmbeddings(transaction::Transaction* transaction, EmbeddingTypeInfo typeInfo,
+    InMemEmbeddings(transaction::Transaction* transaction, common::ArrayTypeInfo typeInfo,
         common::table_id_t tableID, common::column_id_t columnID);
 
-    float* getEmbedding(common::offset_t offset) const;
+    void* getEmbedding(common::offset_t offset) const;
     bool isNull(common::offset_t offset) const;
 
 private:
@@ -52,9 +46,10 @@ struct OnDiskEmbeddingScanState {
 
 class OnDiskEmbeddings final : public EmbeddingColumn {
 public:
-    OnDiskEmbeddings(EmbeddingTypeInfo typeInfo, storage::NodeTable& nodeTable);
+    OnDiskEmbeddings(common::ArrayTypeInfo typeInfo, storage::NodeTable& nodeTable)
+        : EmbeddingColumn{std::move(typeInfo)}, nodeTable{nodeTable} {}
 
-    float* getEmbedding(transaction::Transaction* transaction,
+    void* getEmbedding(transaction::Transaction* transaction,
         storage::NodeTableScanState& scanState, common::offset_t offset) const;
 
 private:

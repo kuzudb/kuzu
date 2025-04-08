@@ -11,8 +11,8 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace vector_extension {
 
-InMemEmbeddings::InMemEmbeddings(transaction::Transaction* transaction, EmbeddingTypeInfo typeInfo,
-    common::table_id_t tableID, common::column_id_t columnID)
+InMemEmbeddings::InMemEmbeddings(transaction::Transaction* transaction,
+    common::ArrayTypeInfo typeInfo, common::table_id_t tableID, common::column_id_t columnID)
     : EmbeddingColumn{std::move(typeInfo)} {
     auto& cacheManager = transaction->getLocalCacheManager();
     auto key = CachedColumn::getKey(tableID, columnID);
@@ -23,12 +23,17 @@ InMemEmbeddings::InMemEmbeddings(transaction::Transaction* transaction, Embeddin
     }
 }
 
-float* InMemEmbeddings::getEmbedding(common::offset_t offset) const {
+void* InMemEmbeddings::getEmbedding(common::offset_t offset) const {
     auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
     KU_ASSERT(nodeGroupIdx < data->columnChunks.size());
     const auto& listChunk = data->columnChunks[nodeGroupIdx]->cast<ListChunkData>();
-    return &listChunk.getDataColumnChunk()
-                ->getData<float>()[listChunk.getListStartOffset(offsetInGroup)];
+    void* val = nullptr;
+    common::TypeUtils::visit(typeInfo.getChildType(), [&]<typename T>(T) {
+        val = &listChunk.getDataColumnChunk()
+                   ->getData<T>()[listChunk.getListStartOffset(offsetInGroup)];
+    });
+    KU_ASSERT(val != nullptr);
+    return val;
 }
 
 bool InMemEmbeddings::isNull(common::offset_t offset) const {
@@ -52,10 +57,7 @@ OnDiskEmbeddingScanState::OnDiskEmbeddingScanState(const transaction::Transactio
     scanState->setToTable(transaction, &nodeTable, std::move(columnIDs));
 }
 
-OnDiskEmbeddings::OnDiskEmbeddings(EmbeddingTypeInfo typeInfo, NodeTable& nodeTable)
-    : EmbeddingColumn{std::move(typeInfo)}, nodeTable{nodeTable} {}
-
-float* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
+void* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
     NodeTableScanState& scanState, common::offset_t offset) const {
     scanState.nodeIDVector->setValue(0, common::internalID_t{offset, nodeTable.getTableID()});
     scanState.nodeIDVector->state->getSelVectorUnsafe().setToUnfiltered(1);
@@ -68,10 +70,14 @@ float* OnDiskEmbeddings::getEmbedding(transaction::Transaction* transaction,
     KU_ASSERT(scanState.outputVectors.size() == 1 &&
               scanState.outputVectors[0]->state->getSelVector()[0] == 0);
     const auto value = scanState.outputVectors[0]->getValue<common::list_entry_t>(0);
-    KU_ASSERT(value.size == typeInfo.dimension);
+    KU_ASSERT(value.size == typeInfo.getNumElements());
     KU_UNUSED(value);
     const auto dataVector = common::ListVector::getDataVector(scanState.outputVectors[0]);
-    return reinterpret_cast<float*>(dataVector->getData()) + value.offset;
+    void* val = nullptr;
+    common::TypeUtils::visit(typeInfo.getChildType(),
+        [&]<typename T>(T) { val = reinterpret_cast<T*>(dataVector->getData()) + value.offset; });
+    KU_ASSERT(val != nullptr);
+    return val;
 }
 
 namespace {
