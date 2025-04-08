@@ -37,9 +37,6 @@ private:
     void combineAdjacentChunks();
     void reset();
 
-    FreeEntryIterator begin() const;
-    FreeEntryIterator end() const;
-
     std::vector<sorted_free_list_t> freeLists;
     free_list_t uncheckpointedFreeChunks;
     common::row_idx_t numEntries;
@@ -56,20 +53,15 @@ struct FreeEntryIterator {
     FreeEntryIterator(const std::vector<FreeSpaceManager::sorted_free_list_t>& freeLists,
         common::idx_t freeListIdx_)
         : freeLists(freeLists), freeListIdx(freeListIdx_) {
-        for (; freeListIdx < freeLists.size(); ++freeListIdx) {
-            if (!freeLists[freeListIdx].empty()) {
-                freeListIt = freeLists[freeListIdx].begin();
-                break;
-            }
-        }
+        advanceFreeListIdx();
     }
 
     void advance(common::row_idx_t numEntries);
     void operator++();
-
-    bool operator!=(const FreeEntryIterator& o) const;
-
     PageChunkEntry operator*() const;
+    bool done() const;
+
+    void advanceFreeListIdx();
 
     const std::vector<FreeSpaceManager::sorted_free_list_t>& freeLists;
     common::idx_t freeListIdx;

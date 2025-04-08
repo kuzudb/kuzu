@@ -3,7 +3,7 @@
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/utils.h"
-#include "storage/page_chunk_manager.h"
+#include "storage/page_chunk_entry.h"
 
 namespace kuzu::storage {
 static FreeSpaceManager::sorted_free_list_t& getFreeList(
@@ -15,7 +15,7 @@ static FreeSpaceManager::sorted_free_list_t& getFreeList(
     return freeLists[level];
 }
 
-FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0){};
+FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0) {};
 
 bool FreeSpaceManager::entryCmp(const PageChunkEntry& a, const PageChunkEntry& b) {
     return a.numPages == b.numPages ? a.startPageIdx < b.startPageIdx : a.numPages < b.numPages;
@@ -70,15 +70,21 @@ void FreeSpaceManager::serialize(common::Serializer& ser) const {
     ser.writeDebuggingInfo("numEntries");
     ser.write(numEntries);
     ser.writeDebuggingInfo("entries");
-    for (const auto& entry : *this) {
+    auto entryIt = FreeEntryIterator{freeLists};
+    RUNTIME_CHECK(common::row_idx_t numWrittenEntries = 0);
+    while (!entryIt.done()) {
+        const auto entry = *entryIt;
         ser.write(entry.startPageIdx);
         ser.write(entry.numPages);
+        ++entryIt;
+        RUNTIME_CHECK(++numWrittenEntries);
     }
+    KU_ASSERT(numWrittenEntries == numEntries);
 }
 
 std::unique_ptr<FreeSpaceManager> FreeSpaceManager::deserialize(common::Deserializer& deSer) {
     auto ret = std::make_unique<FreeSpaceManager>();
-    RUNTIME_CHECK(std::string key);
+    std::string key;
 
     deSer.validateDebuggingInfo(key, "numEntries");
     common::row_idx_t numEntries{};
@@ -143,57 +149,45 @@ std::vector<PageChunkEntry> FreeSpaceManager::getEntries(common::row_idx_t start
     common::row_idx_t endOffset) const {
     KU_ASSERT(endOffset >= startOffset);
     std::vector<PageChunkEntry> ret;
-    FreeEntryIterator it = begin();
+    FreeEntryIterator it{freeLists};
     it.advance(startOffset);
     while (ret.size() < endOffset - startOffset) {
-        KU_ASSERT(it != end());
+        KU_ASSERT(!it.done());
         ret.push_back(*it);
         ++it;
     }
     return ret;
 }
 
-FreeEntryIterator FreeSpaceManager::begin() const {
-    return FreeEntryIterator{freeLists};
-}
-
-FreeEntryIterator FreeSpaceManager::end() const {
-    return FreeEntryIterator{freeLists, static_cast<common::idx_t>(freeLists.size())};
-}
-
 void FreeEntryIterator::advance(common::row_idx_t numEntries) {
-    common::row_idx_t numEntriesRemaining = numEntries;
-    while (numEntriesRemaining > 0) {
-        // skip whole lists
-        while (freeLists[freeListIdx].begin() == freeListIt &&
-               numEntriesRemaining >= freeLists[freeListIdx].size()) {
-            numEntriesRemaining -= freeLists[freeListIdx].size();
-            ++freeListIdx;
-            if (freeListIdx >= freeLists.size()) {
-                KU_ASSERT(numEntriesRemaining == 0);
-                return;
-            }
-            freeListIt = freeLists[freeListIdx].begin();
-        }
-
-        // skip entries in single list
-        while (freeListIt != freeLists[freeListIdx].end()) {
-            ++freeListIt;
-            --numEntriesRemaining;
-        }
-        ++freeListIdx;
+    for (common::row_idx_t i = 0; i < numEntries; ++i) {
+        ++(*this);
     }
 }
 
 void FreeEntryIterator::operator++() {
-    advance(1);
+    KU_ASSERT(freeListIdx < freeLists.size());
+    if (freeListIt != freeLists[freeListIdx].end()) {
+        ++freeListIt;
+    } else {
+        do {
+            ++freeListIdx;
+        } while (freeListIdx < freeLists.size() && freeLists[freeListIdx].empty());
+        advanceFreeListIdx();
+    }
 }
 
-bool FreeEntryIterator::operator!=(const FreeEntryIterator& o) const {
-    if (freeListIdx < freeLists.size()) {
-        return freeListIdx != o.freeListIdx || freeListIt != o.freeListIt;
+bool FreeEntryIterator::done() const {
+    return freeListIdx >= freeLists.size();
+}
+
+void FreeEntryIterator::advanceFreeListIdx() {
+    for (; freeListIdx < freeLists.size(); ++freeListIdx) {
+        if (!freeLists[freeListIdx].empty()) {
+            freeListIt = freeLists[freeListIdx].begin();
+            break;
+        }
     }
-    return freeListIdx != o.freeListIdx;
 }
 
 PageChunkEntry FreeEntryIterator::operator*() const {
