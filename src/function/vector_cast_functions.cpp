@@ -504,23 +504,88 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(const std::strin
         std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()}, LogicalTypeID::STRING, func);
 }
 
-template<IntegerTypes DST_TYPE, typename EXECUTOR>
+template<typename DST_TYPE, typename EXECUTOR>
 static std::unique_ptr<ScalarFunction> bindCastToDecimalFunction(const std::string& functionName,
     const LogicalType& sourceType, const LogicalType& targetType) {
     scalar_func_exec_t func;
     if (sourceType.getLogicalTypeID() == LogicalTypeID::DECIMAL) {
         TypeUtils::visit(
             sourceType,
-            [&]<SignedIntegerTypes T>(T) {
-                func = ScalarFunction::UnaryCastExecFunction<T, DST_TYPE, CastBetweenDecimal,
+            [&]<int128_t>() {
+                func = ScalarFunction::UnaryCastExecFunction<int128_t, DST_TYPE, CastBetweenDecimal,
+                    EXECUTOR>;
+            },
+            [&]<int64_t>() {
+                func = ScalarFunction::UnaryCastExecFunction<int64_t, DST_TYPE, CastBetweenDecimal,
+                    EXECUTOR>;
+            },
+            [&]<int32_t>() {
+                func = ScalarFunction::UnaryCastExecFunction<int32_t, DST_TYPE, CastBetweenDecimal,
+                    EXECUTOR>;
+            },
+            [&]<int16_t>() {
+                func = ScalarFunction::UnaryCastExecFunction<int16_t, DST_TYPE, CastBetweenDecimal,
+                    EXECUTOR>;
+            },
+            [&]<int8_t>() {
+                func = ScalarFunction::UnaryCastExecFunction<int8_t, DST_TYPE, CastBetweenDecimal,
+                    EXECUTOR>;
+            },
+            [&]<uint64_t>() {
+                func = ScalarFunction::UnaryCastExecFunction<uint64_t, DST_TYPE, CastBetweenDecimal,
+                    EXECUTOR>;
+            },
+            [&]<uint32_t>() {
+                func = ScalarFunction::UnaryCastExecFunction<uint32_t, DST_TYPE, CastBetweenDecimal,
+                    EXECUTOR>;
+            },
+            [&]<uint16_t>() {
+                func = ScalarFunction::UnaryCastExecFunction<uint16_t, DST_TYPE, CastBetweenDecimal,
+                    EXECUTOR>;
+            },
+            [&]<uint8_t>() {
+                func = ScalarFunction::UnaryCastExecFunction<uint8_t, DST_TYPE, CastBetweenDecimal,
                     EXECUTOR>;
             },
             [&](auto) { KU_UNREACHABLE; });
     } else {
         TypeUtils::visit(
             sourceType,
-            [&]<NumericTypes T>(T) {
-                func = ScalarFunction::UnaryCastExecFunction<T, DST_TYPE, CastToDecimal, EXECUTOR>;
+            [&]<int128_t>() {
+                func = ScalarFunction::UnaryCastExecFunction<int128_t, DST_TYPE, CastToDecimal,
+                    EXECUTOR>;
+            },
+            [&]<int64_t>() {
+                func = ScalarFunction::UnaryCastExecFunction<int64_t, DST_TYPE, CastToDecimal,
+                    EXECUTOR>;
+            },
+            [&]<int32_t>() {
+                func = ScalarFunction::UnaryCastExecFunction<int32_t, DST_TYPE, CastToDecimal,
+                    EXECUTOR>;
+            },
+            [&]<int16_t>() {
+                func = ScalarFunction::UnaryCastExecFunction<int16_t, DST_TYPE, CastToDecimal,
+                    EXECUTOR>;
+            },
+            [&]<int8_t>() {
+                func = ScalarFunction::UnaryCastExecFunction<int8_t, DST_TYPE, CastToDecimal,
+                    EXECUTOR>;
+            },
+            [&]<uint64_t>() {
+                func = ScalarFunction::UnaryCastExecFunction<uint64_t, DST_TYPE, CastToDecimal,
+                    EXECUTOR>;
+            },
+            [&]<uint32_t>() {
+                func = ScalarFunction::UnaryCastExecFunction<uint32_t, DST_TYPE, CastToDecimal,
+                    EXECUTOR>;
+            },
+            [&]<uint16_t>() {
+                func = ScalarFunction::UnaryCastExecFunction<uint16_t, DST_TYPE, CastToDecimal,
+                    EXECUTOR>;
+            },
+            [&]<uint8_t>() {
+                func = ScalarFunction::UnaryCastExecFunction<uint8_t, DST_TYPE, CastToDecimal,
+                    EXECUTOR>;
             },
             [&](auto) { KU_UNREACHABLE; });
     }
