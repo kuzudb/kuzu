@@ -28,7 +28,7 @@ void* InMemEmbeddings::getEmbedding(common::offset_t offset) const {
     KU_ASSERT(nodeGroupIdx < data->columnChunks.size());
     const auto& listChunk = data->columnChunks[nodeGroupIdx]->cast<ListChunkData>();
     void* val = nullptr;
-    common::TypeUtils::visit(typeInfo.getChildType(), [&]<typename T>(T) {
+    common::TypeUtils::visit(typeInfo.getChildType(), [&, offsetInGroup]<typename T>(T) {
         val = &listChunk.getDataColumnChunk()
                    ->getData<T>()[listChunk.getListStartOffset(offsetInGroup)];
     });

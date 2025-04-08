@@ -96,7 +96,7 @@ public:
     explicit HNSWIndex(HNSWIndexConfig config, common::ArrayTypeInfo typeInfo)
         : config{std::move(config)}, typeInfo{std::move(typeInfo)} {
         metricFunc =
-            HNSWIndexUtils::getMetricsFunction(config.metric, this->typeInfo.getChildType());
+            HNSWIndexUtils::getMetricsFunction(this->config.metric, this->typeInfo.getChildType());
     }
     virtual ~HNSWIndex() = default;
 
