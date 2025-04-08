@@ -1,0 +1,80 @@
+-NAME q29
+-QUERY MATCH (h:hits) WHERE h.Referer <> '' WITH REGEXP_REPLACE(h.Referer, '^https?://(?:www\\.)?([^/]+)/.*$', '\\1') as k, AVG(SIZE(h.Referer)) as l, COUNT(*) as c, MIN(h.Referer) as r WHERE c > 100000 RETURN k, l, c, r ORDER BY l DESC;
+---- 77
+3dnews.ru|49.566526|416786|http://3dnews.ru/
+afisha.yandex.ru|64.292440|305841|http://afisha.yandex.ru/
+animals|67.794284|102199|http://animals/1586228&lr=46&lr=1638253155&text=Причек   клундайзер
+auto.ria.ua|65.465851|1111546|http://auto.ria.ua/
+autodoc.ru|58.630585|171203|http://autodoc.ru/
+bdsmpeople.ru|50.343828|1889752|http://bdsmpeople.ru/
+bibika.ru|62.576735|120310|http://bibika.ru/
+bonprix.ru|99.779640|1125057|http://bonprix.ru/
+cmlt.ru|27.294227|202558|http://cmlt.ru/&q=артир
+cn.ru|84.851557|124674|http://cn.ru/GameMain.aspx#catalog/100523&tails.xml?market_pc.html?pid=9403&lr=47&msgid=36305f39386
+diary.ru|64.766735|468802|http://diary.ru/1.4077
+domics|198.508728|326080|http://domics/825179.11931861234499792
+e.mail.ru|46.606657|103772|http://e.mail.ru/
+e96.ru|196.107497|1018998|http://e96.ru/%3Ffrom]=&input_act[count_num=0&dff=arian-carrina1201517&cad=rjt&fu=0&input_state/apartments-sale/list.htm?size=30&input_with_photo-takovo-zuevo-shpilki.ru/real.nn.ru/yandex.ua/searchAuto=on&input_who1=2&input_online.ru/clck/51cbd&ll=&top=http://loveplane=42621/page9
+gadgets.irr.ru|126.332088|349675|https://gadgets.irr.ru/2jmj7l5rSw0yVb
+geomethiettai.ru|91.854020|115906|https://geomethiettai.ru/GameMain.aspx?group=houses/list=266559j7077&num=7&prune_day=lastdiscussd59394303&price_ot=&priceup&page3/sankt-petushhiblock
+go.mail.ru|72.255643|121380|http://go.mail.ru/
+go.mail|104.578500|8227493|http://go.mail/04/detskaia-moda-zhiensmed
+google.com|32.315505|3250317|http://google.com/
+google.ru|104.022192|2158346|http://google.ru/
+gorod|78.131403|110728|http://gorod/%3Fauto.ria.ua%2Fjob
+gotovim-doma.ru|72.802621|101961|http://gotovim-doma.ru//zoom.php?f=338&x-emain
+gotovka|29.000000|142841|https://gotovka/hotels.turizm
+holodilnik.ru|49.897163|571614|http://holodilnik.ru/
+http:%2F%2FviewType|19.000000|148907|http:%2F%2FviewType
+http:%2F%2Fviewtopic|20.000000|391115|http:%2F%2Fviewtopic
+http:%2F%2Fwwww.regnancies/search&evL8gE&where=all&filmId=bEmYZc_WTDE|69.000000|207347|http:%2F%2Fwwww.regnancies/search&evL8gE&where=all&filmId=bEmYZc_WTDE
+http:%2F%2Fwwww.ukr|19.000000|655178|http:%2F%2Fwwww.ukr
+http://holodilnik.ru|20.000000|133893|http://holodilnik.ru
+http://loveche.html?ctid|24.000000|144901|http://loveche.html?ctid
+http://rukodeliveresult|23.000000|226135|http://rukodeliveresult
+http://smeshariki.ru|20.000000|210736|http://smeshariki.ru
+http://state=2008|17.000000|139630|http://state=2008
+http://новострашная|19.000000|731499|http://новострашная
+irr.ru|52.897803|2405395|http://irr.ru/%3Ff%3Dwindows-1251%26action[propfilter=Sol
+kinopoisk.ru|64.220033|703649|http://kinopoisk.ru/
+kino|86.907379|120135|http://kino/6/21/2/women.asp?whichpage4/#oversion=unreadm&uid
+kirov.irr.ru|38.939929|955724|http://kirov.irr.ru/1.1373335f31336571
+kirov.ria.ua|35.132935|609839|http://kirov.ria.ua/&q=(063)&vendor_filmId
+kirov.ru|72.991173|462211|http://kirov.ru/?newwindow=1&text=фина
+kurortmag.ru|73.153739|155263|http://kurortmag.ru/
+laces|58.038167|161447|http://laces/17-101&lr=213&text=зачародным качестве
+love.ru|70.092551|200095|http://love.ru/#/showall=от 8 сезон
+loveplanet.ru|99.864269|461134|http://loveplanet.ru/%3Faw_opel/page=2013
+m.mylove.ru|65.859592|104125|http://m.mylove.ru/
+m.myloveplanet.ru|86.156021|151544|http://m.myloveplanet.ru/
+mkap.ru|70.768909|165679|http://mkap.ru/199/0/&AdRiver
+msouz.ru|103.071065|301765|http://msouz.ru/?ffshop
+msuzie-showforumdisplay|245.210454|183636|http://msuzie-showforumdisplay/63/~2/?name=&cost_neu%3D400%26retpath=default777TWCWkI9lalUwTXpJMU1q
+myloveche.ru|51.187420|107630|http://myloveche.ru/2013/007/m_act[from]
+myloveplanet.ru|77.491237|110582|http://myloveplanet.ru/#associety/auto
+mysw.info|86.225672|984546|http://mysw.info/
+novjob.ru|87.790919|133049|http://novjob.ru/
+povarenok.ru|80.402635|144811|http://povarenok.ru/
+rashbox.ru|47.053095|926449|http://rashbox.ru/2-0-0-1000807060435448
+rihanner.ferio.ru|39.336321|161346|http://rihanner.ferio.ru/a-shop.spb.pulscen.ru
+rmnt.ru|60.557044|214421|http://rmnt.ru/-Fon-Toksn68Gz1UZvQLbPX4rjk
+romandirov.ru|54.895463|363125|http://romandirov.ru/GameMain.aspx?group_cod
+saint-peters-total=меньше 80|223.215974|200501|http://saint-peters-total=меньше 80/cash/station=search&input_age1=&int[2274/trashbox.ru/details&cad=rjt&fu=0&input_who1=2&input_who1=2&input_city-4400047.html?1=1&price_ot=&price_ot=&price=мень&clid=143431512&s_yers=0&model&desc=&name=1&markett.ru%2Frenazheltyj-95692465&text=поздравстраницу&clid=4405404/menu_29.html&ei=UIX1UZTFNJTI0ci8guSn3tW.pl?cmd=showthreadreplies=978-4121-469171&history47/11/?from=&district
+slon.ru|43.185484|121035|http://slon.ru/
+smeshariki.ru|68.106871|6782282|http://smeshariki.ru/
+state=19945206|102.141490|512409|http://state=19945206/foto-4/login%20NoTs3M&where=all&filmId=u8aGGqtWs3M&where=all&server=sc.cheloveplanet.ru/forum.little&categoriya/muzhskaya_istory.com/demii-malchik_148_4055074241537][to]=&input_activalry: A Love&where=all&text=купить florer&aktion/loansert перевозобности&site_id=197&text=добавь   лазерногорский  тайская полупая автомобильника&v=1414-resp_desyachnyeprague
+state|73.331045|191521|http://state/1721038250%26ie%3D31634&lr=2055b71ce92d72e9800039
+svpress.ru|54.753593|459443|http://svpress.ru/?clid=19855481325f31633234%26geozone.ru/check.xml?action/vacancies/newsru.com.ua/kinopoisk.ru/advert273984/childWItMTM5NTU0OTcyODgsMTYwMy9pLzgxMjEyM$9uNHAvM$8%2Fboards/search?lr=112
+svpressa.ru|283.728381|242465|http://svpressa.ru/
+tambov.irr.ru|75.079764|315318|http://tambov.irr.ru/0/c1/tgFtaeLDK0yb01A7xvQF08sjCFqQxn51
+video.yandex.ru|69.652992|3783979|http://video.yandex.ru/
+video.yandsearch|34.290263|294981|http://video.yandsearch/
+vk.com.ua|43.200925|137011|http://vk.com.ua/
+vk.com|45.394771|446439|http://vk.com/#catalog/15/15/women
+wildberries.ru|67.487565|595301|http://wildberries.ru/
+yandex.ru|69.003146|4853429|http://www.yandex.ru/a-folder/novosib
+yandex.ua|65.518969|181028|http://yandex.ua/
+yandsearch|67.482036|245934|http://www.yandsearch/rooms=1/page2
+yaroslavens.ru|88.581540|124595|http://yaroslavens.ru/main.aspx#catalog%2F1004-1100000147-otvet/actions/dislocal
+yurgid=64602|51.184030|482856|http://yurgid=64602/41475][from
+незащита|20.000000|247459|http://незащита/page
