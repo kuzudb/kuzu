@@ -432,21 +432,20 @@ void ListChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkData)
         ColumnChunkData::deserialize(chunkData.getMemoryManager(), deSer);
 }
 
-void ListChunkData::flush(PageChunkManager& pageChunkManager) {
-    ColumnChunkData::flush(pageChunkManager);
-    sizeColumnChunk->flush(pageChunkManager);
-    dataColumnChunk->flush(pageChunkManager);
-    offsetColumnChunk->flush(pageChunkManager);
+void ListChunkData::flush(FileHandle& dataFH) {
+    ColumnChunkData::flush(dataFH);
+    sizeColumnChunk->flush(dataFH);
+    dataColumnChunk->flush(dataFH);
+    offsetColumnChunk->flush(dataFH);
 }
 
-void ListChunkData::reclaimAllocatedPages(PageChunkManager& pageChunkManager,
-    const ChunkState& state) const {
-    ColumnChunkData::reclaimAllocatedPages(pageChunkManager, state);
-    sizeColumnChunk->reclaimAllocatedPages(pageChunkManager,
+void ListChunkData::reclaimAllocatedPages(FileHandle& dataFH, const ChunkState& state) const {
+    ColumnChunkData::reclaimAllocatedPages(dataFH, state);
+    sizeColumnChunk->reclaimAllocatedPages(dataFH,
         state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX]);
-    dataColumnChunk->reclaimAllocatedPages(pageChunkManager,
+    dataColumnChunk->reclaimAllocatedPages(dataFH,
         state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
-    offsetColumnChunk->reclaimAllocatedPages(pageChunkManager,
+    offsetColumnChunk->reclaimAllocatedPages(dataFH,
         state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
 }
 

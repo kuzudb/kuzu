@@ -47,13 +47,12 @@ class MemoryManager;
 struct NodeGroupCheckpointState {
     std::vector<common::column_id_t> columnIDs;
     std::vector<Column*> columns;
-    PageChunkManager& pageChunkManager;
+    FileHandle& dataFH;
     MemoryManager* mm;
 
     NodeGroupCheckpointState(std::vector<common::column_id_t> columnIDs,
-        std::vector<Column*> columns, PageChunkManager& pageChunkManager, MemoryManager* mm)
-        : columnIDs{std::move(columnIDs)}, columns{std::move(columns)},
-          pageChunkManager{pageChunkManager}, mm{mm} {}
+        std::vector<Column*> columns, FileHandle& dataFH, MemoryManager* mm)
+        : columnIDs{std::move(columnIDs)}, columns{std::move(columns)}, dataFH{dataFH}, mm{mm} {}
     virtual ~NodeGroupCheckpointState() = default;
 
     template<typename T>
@@ -152,10 +151,9 @@ public:
 
     bool hasDeletions(const transaction::Transaction* transaction) const;
     virtual void addColumn(transaction::Transaction* transaction,
-        TableAddColumnState& addColumnState, PageChunkManager* pageChunkManager,
-        ColumnStats* newColumnStats);
+        TableAddColumnState& addColumnState, FileHandle* dataFH, ColumnStats* newColumnStats);
 
-    void flush(const transaction::Transaction* transaction, PageChunkManager& pageChunkManager);
+    void flush(const transaction::Transaction* transaction, FileHandle& dataFH);
 
     void applyFuncToChunkedGroups(version_record_handler_op_t func, common::row_idx_t startRow,
         common::row_idx_t numRows, common::transaction_t commitTS) const;

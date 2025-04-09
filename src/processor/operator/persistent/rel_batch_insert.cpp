@@ -92,7 +92,7 @@ static void appendNewChunkedGroup(MemoryManager& mm, transaction::Transaction* t
     relTable.pushInsertInfo(transaction, direction, nodeGroup, chunkedGroup.getNumRows(), source);
     if (isNewNodeGroup) {
         auto flushedChunkedGroup =
-            chunkedGroup.flushAsNewChunkedNodeGroup(transaction, relTable.getBlockManager());
+            chunkedGroup.flushAsNewChunkedNodeGroup(transaction, *relTable.getDataFH());
 
         // If there are deleted columns that haven't been vaccumed yet
         // we need to add extra columns to the chunked group

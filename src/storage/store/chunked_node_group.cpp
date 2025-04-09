@@ -365,8 +365,8 @@ bool ChunkedNodeGroup::delete_(const Transaction* transaction, row_idx_t rowIdxI
 }
 
 void ChunkedNodeGroup::addColumn(const Transaction* transaction,
-    const TableAddColumnState& addColumnState, bool enableCompression,
-    PageChunkManager* pageChunkManager, ColumnStats* newColumnStats) {
+    const TableAddColumnState& addColumnState, bool enableCompression, FileHandle* dataFH,
+    ColumnStats* newColumnStats) {
     auto& dataType = addColumnState.propertyDefinition.getType();
     chunks.push_back(
         std::make_unique<ColumnChunk>(*transaction->getClientContext()->getMemoryManager(),
@@ -376,8 +376,8 @@ void ChunkedNodeGroup::addColumn(const Transaction* transaction,
     chunkData.populateWithDefaultVal(addColumnState.defaultEvaluator, numExistingRows,
         newColumnStats);
     if (residencyState == ResidencyState::ON_DISK) {
-        KU_ASSERT(pageChunkManager);
-        chunkData.flush(*pageChunkManager);
+        KU_ASSERT(dataFH);
+        chunkData.flush(*dataFH);
     }
 }
 
@@ -415,11 +415,11 @@ void ChunkedNodeGroup::finalize() const {
 }
 
 std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flushAsNewChunkedNodeGroup(
-    Transaction* transaction, PageChunkManager& pageChunkManager) const {
+    Transaction* transaction, FileHandle& dataFH) const {
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
     for (auto i = 0u; i < getNumColumns(); i++) {
         flushedChunks[i] = std::make_unique<ColumnChunk>(getColumnChunk(i).isCompressionEnabled(),
-            Column::flushChunkData(getColumnChunk(i).getData(), pageChunkManager));
+            Column::flushChunkData(getColumnChunk(i).getData(), dataFH));
     }
     auto flushedChunkedGroup =
         std::make_unique<ChunkedNodeGroup>(std::move(flushedChunks), 0 /*startRowIdx*/);
@@ -429,9 +429,9 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flushAsNewChunkedNodeGroup(
     return flushedChunkedGroup;
 }
 
-void ChunkedNodeGroup::flush(PageChunkManager& pageChunkManager) {
+void ChunkedNodeGroup::flush(FileHandle& dataFH) {
     for (auto i = 0u; i < getNumColumns(); i++) {
-        getColumnChunk(i).getData().flush(pageChunkManager);
+        getColumnChunk(i).getData().flush(dataFH);
     }
     // Reset residencyState and numRows after flushing.
     residencyState = ResidencyState::ON_DISK;

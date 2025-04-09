@@ -14,8 +14,7 @@ class MemoryManager;
 class NodeGroupCollection {
 public:
     NodeGroupCollection(MemoryManager& memoryManager, const std::vector<common::LogicalType>& types,
-        bool enableCompression, PageChunkManager* pageChunkManager = nullptr,
-        common::Deserializer* deSer = nullptr,
+        bool enableCompression, FileHandle* dataFH = nullptr, common::Deserializer* deSer = nullptr,
         const VersionRecordHandler* versionRecordHandler = nullptr);
 
     void append(const transaction::Transaction* transaction,
@@ -114,7 +113,7 @@ private:
     common::row_idx_t numTotalRows;
     std::vector<common::LogicalType> types;
     GroupCollection<NodeGroup> nodeGroups;
-    PageChunkManager* pageChunkManager;
+    FileHandle* dataFH;
     TableStats stats;
     const VersionRecordHandler* versionRecordHandler;
 };

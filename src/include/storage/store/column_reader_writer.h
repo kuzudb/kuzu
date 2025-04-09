@@ -9,11 +9,12 @@ class Transaction;
 }
 namespace storage {
 
-class PageChunkManager;
+class PageManager;
 class ColumnReadWriter;
 class ShadowFile;
 struct ColumnChunkMetadata;
 struct ChunkState;
+class FileHandle;
 
 template<typename OutputType>
 using read_value_from_page_func_t = std::function<void(uint8_t*, PageCursor&, OutputType, uint32_t,
@@ -38,12 +39,12 @@ using filter_func_t = std::function<bool(common::offset_t, common::offset_t)>;
 
 struct ColumnReadWriterFactory {
     static std::unique_ptr<ColumnReadWriter> createColumnReadWriter(common::PhysicalTypeID dataType,
-        DBFileID dbFileID, PageChunkManager& pageChunkManager);
+        DBFileID dbFileID, FileHandle* dataFH, ShadowFile* shadowFile);
 };
 
 class ColumnReadWriter {
 public:
-    ColumnReadWriter(DBFileID dbFileID, PageChunkManager& pageChunkManager);
+    ColumnReadWriter(DBFileID dbFileID, FileHandle* dataFH, ShadowFile* shadowFile);
 
     virtual ~ColumnReadWriter() = default;
 
@@ -80,6 +81,10 @@ public:
     void readFromPage(const transaction::Transaction* transaction, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& readFunc);
 
+    // returns true if a new page was appended to the shadow file
+    common::page_idx_t updatePageWithCursor(PageCursor cursor,
+        const std::function<void(uint8_t*, common::offset_t)>& writeOp) const;
+
     PageCursor getPageCursorForOffsetInGroup(common::offset_t offsetInChunk,
         common::page_idx_t groupPageIdx, uint64_t numValuesPerPage) const;
 
@@ -89,7 +94,8 @@ protected:
 
 protected:
     DBFileID dbFileID;
-    PageChunkManager& pageChunkManager;
+    FileHandle* dataFH;
+    ShadowFile* shadowFile;
 };
 
 } // namespace storage

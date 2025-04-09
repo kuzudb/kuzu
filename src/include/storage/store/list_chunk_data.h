@@ -108,10 +108,9 @@ public:
     void serialize(common::Serializer& serializer) const override;
     static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);
 
-    void flush(PageChunkManager& pageChunkManager) override;
+    void flush(FileHandle& dataFH) override;
 
-    void reclaimAllocatedPages(PageChunkManager& pageChunkManager,
-        const ChunkState& state) const override;
+    void reclaimAllocatedPages(FileHandle& dataFH, const ChunkState& state) const override;
 
 protected:
     void copyListValues(const common::list_entry_t& entry, common::ValueVector* dataVector);

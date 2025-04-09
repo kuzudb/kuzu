@@ -80,19 +80,18 @@ void StructChunkData::deserialize(Deserializer& deSer, ColumnChunkData& chunkDat
         });
 }
 
-void StructChunkData::flush(PageChunkManager& pageChunkManager) {
-    ColumnChunkData::flush(pageChunkManager);
+void StructChunkData::flush(FileHandle& dataFH) {
+    ColumnChunkData::flush(dataFH);
     for (const auto& childChunk : childChunks) {
-        childChunk->flush(pageChunkManager);
+        childChunk->flush(dataFH);
     }
 }
 
-void StructChunkData::reclaimAllocatedPages(PageChunkManager& pageChunkManager,
-    const ChunkState& state) const {
-    ColumnChunkData::reclaimAllocatedPages(pageChunkManager, state);
+void StructChunkData::reclaimAllocatedPages(FileHandle& dataFH, const ChunkState& state) const {
+    ColumnChunkData::reclaimAllocatedPages(dataFH, state);
     KU_ASSERT(childChunks.size() == state.childrenStates.size());
     for (idx_t i = 0; i < childChunks.size(); ++i) {
-        childChunks[i]->reclaimAllocatedPages(pageChunkManager, state.childrenStates[i]);
+        childChunks[i]->reclaimAllocatedPages(dataFH, state.childrenStates[i]);
     }
 }
 

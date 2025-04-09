@@ -27,6 +27,7 @@ struct TableScanState;
 struct TableAddColumnState;
 struct NodeGroupScanState;
 class ColumnStats;
+class FileHandle;
 
 enum class NodeGroupDataFormat : uint8_t { REGULAR = 0, CSR = 1 };
 
@@ -119,8 +120,8 @@ public:
     bool delete_(const transaction::Transaction* transaction, common::row_idx_t rowIdxInChunk);
 
     void addColumn(const transaction::Transaction* transaction,
-        const TableAddColumnState& addColumnState, bool enableCompression,
-        PageChunkManager* pageChunkManager, ColumnStats* newColumnStats);
+        const TableAddColumnState& addColumnState, bool enableCompression, FileHandle* dataFH,
+        ColumnStats* newColumnStats);
 
     bool isDeleted(const transaction::Transaction* transaction, common::row_idx_t rowInChunk) const;
     bool isInserted(const transaction::Transaction* transaction,
@@ -141,8 +142,8 @@ public:
     }
 
     virtual std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
-        transaction::Transaction* transaction, PageChunkManager& pageChunkManager) const;
-    virtual void flush(PageChunkManager& pageChunkManager);
+        transaction::Transaction* transaction, FileHandle& dataFH) const;
+    virtual void flush(FileHandle& dataFH);
 
     void commitInsert(common::row_idx_t startRow, common::row_idx_t numRowsToCommit,
         common::transaction_t commitTS);

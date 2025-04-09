@@ -250,20 +250,19 @@ void StringChunkData::finalize() {
     dictionaryChunk = std::move(newDictionaryChunk);
 }
 
-void StringChunkData::flush(PageChunkManager& pageChunkManager) {
-    ColumnChunkData::flush(pageChunkManager);
-    indexColumnChunk->flush(pageChunkManager);
-    dictionaryChunk->flush(pageChunkManager);
+void StringChunkData::flush(FileHandle& dataFH) {
+    ColumnChunkData::flush(dataFH);
+    indexColumnChunk->flush(dataFH);
+    dictionaryChunk->flush(dataFH);
 }
 
-void StringChunkData::reclaimAllocatedPages(PageChunkManager& pageChunkManager,
-    const ChunkState& state) const {
-    ColumnChunkData::reclaimAllocatedPages(pageChunkManager, state);
-    indexColumnChunk->reclaimAllocatedPages(pageChunkManager,
+void StringChunkData::reclaimAllocatedPages(FileHandle& dataFH, const ChunkState& state) const {
+    ColumnChunkData::reclaimAllocatedPages(dataFH, state);
+    indexColumnChunk->reclaimAllocatedPages(dataFH,
         state.childrenStates[INDEX_COLUMN_CHILD_READ_STATE_IDX]);
-    dictionaryChunk->getOffsetChunk()->reclaimAllocatedPages(pageChunkManager,
+    dictionaryChunk->getOffsetChunk()->reclaimAllocatedPages(dataFH,
         state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
-    dictionaryChunk->getStringDataChunk()->reclaimAllocatedPages(pageChunkManager,
+    dictionaryChunk->getStringDataChunk()->reclaimAllocatedPages(dataFH,
         state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
 }
 

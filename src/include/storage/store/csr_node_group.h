@@ -153,9 +153,9 @@ struct CSRNodeGroupCheckpointState final : NodeGroupCheckpointState {
     std::unique_ptr<ChunkedCSRHeader> newHeader;
 
     CSRNodeGroupCheckpointState(std::vector<common::column_id_t> columnIDs,
-        std::vector<Column*> columns, PageChunkManager& pageChunkManager, MemoryManager* mm,
-        Column* csrOffsetCol, Column* csrLengthCol)
-        : NodeGroupCheckpointState{std::move(columnIDs), std::move(columns), pageChunkManager, mm},
+        std::vector<Column*> columns, FileHandle& dataFH, MemoryManager* mm, Column* csrOffsetCol,
+        Column* csrLengthCol)
+        : NodeGroupCheckpointState{std::move(columnIDs), std::move(columns), dataFH, mm},
           csrOffsetColumn{csrOffsetCol}, csrLengthColumn{csrLengthCol} {}
 };
 
@@ -207,7 +207,7 @@ public:
         common::row_idx_t rowIdxInGroup);
 
     void addColumn(transaction::Transaction* transaction, TableAddColumnState& addColumnState,
-        PageChunkManager* pageChunkManager, ColumnStats* newColumnStats) override;
+        FileHandle* dataFH, ColumnStats* newColumnStats) override;
 
     void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state) override;
 

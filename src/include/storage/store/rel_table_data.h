@@ -53,7 +53,7 @@ private:
 
 class RelTableData {
 public:
-    RelTableData(PageChunkManager& pageChunkManager, MemoryManager* mm,
+    RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
         const catalog::TableCatalogEntry* tableEntry, common::RelDataDirection direction,
         bool enableCompression, common::Deserializer* deSer);
 
@@ -140,10 +140,11 @@ private:
     const VersionRecordHandler* getVersionRecordHandler(CSRNodeGroupScanSource source) const;
 
 private:
-    PageChunkManager& pageChunkManager;
+    FileHandle* dataFH;
     common::table_id_t tableID;
     std::string tableName;
     MemoryManager* memoryManager;
+    ShadowFile* shadowFile;
     bool enableCompression;
     PackedCSRInfo packedCSRInfo;
     common::RelDataDirection direction;

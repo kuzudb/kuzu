@@ -4,7 +4,7 @@
 #include "storage/store/column_chunk_metadata.h"
 
 namespace kuzu::storage {
-struct AllocatedPageChunkEntry;
+class FileHandle;
 
 class CompressedFlushBuffer {
     std::shared_ptr<CompressionAlg> alg;
@@ -18,8 +18,8 @@ public:
 
     CompressedFlushBuffer(const CompressedFlushBuffer& other) = default;
 
-    ColumnChunkMetadata operator()(std::span<const uint8_t> buffer,
-        AllocatedPageChunkEntry& allocatedBlock, const ColumnChunkMetadata& metadata) const;
+    ColumnChunkMetadata operator()(std::span<const uint8_t> buffer, FileHandle* dataFH,
+        const PageChunkEntry& entry, const ColumnChunkMetadata& metadata) const;
 };
 
 template<std::floating_point T>
@@ -35,11 +35,11 @@ public:
 
     CompressedFloatFlushBuffer(const CompressedFloatFlushBuffer& other) = default;
 
-    ColumnChunkMetadata operator()(std::span<const uint8_t> buffer,
-        AllocatedPageChunkEntry& allocatedBlock, const ColumnChunkMetadata& metadata) const;
+    ColumnChunkMetadata operator()(std::span<const uint8_t> buffer, FileHandle* dataFH,
+        const PageChunkEntry& entry, const ColumnChunkMetadata& metadata) const;
 };
 
-ColumnChunkMetadata uncompressedFlushBuffer(std::span<const uint8_t> buffer,
-    AllocatedPageChunkEntry& allocatedBlock, const ColumnChunkMetadata& metadata);
+ColumnChunkMetadata uncompressedFlushBuffer(std::span<const uint8_t> buffer, FileHandle* dataFH,
+    const PageChunkEntry& entry, const ColumnChunkMetadata& metadata);
 
 } // namespace kuzu::storage

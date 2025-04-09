@@ -56,11 +56,11 @@ void InMemoryVersionRecordHandler::rollbackInsert(const Transaction* transaction
     relTableData->rollbackGroupCollectionInsert(numRowsToRollback, false);
 }
 
-RelTableData::RelTableData(PageChunkManager& pageChunkManager, MemoryManager* mm,
+RelTableData::RelTableData(FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile,
     const TableCatalogEntry* tableEntry, RelDataDirection direction, bool enableCompression,
     Deserializer* deSer)
-    : pageChunkManager{pageChunkManager}, tableID{tableEntry->getTableID()},
-      tableName{tableEntry->getName()}, memoryManager{mm}, enableCompression{enableCompression},
+    : dataFH{dataFH}, tableID{tableEntry->getTableID()}, tableName{tableEntry->getName()},
+      memoryManager{mm}, shadowFile{shadowFile}, enableCompression{enableCompression},
       direction{direction}, persistentVersionRecordHandler(this),
       inMemoryVersionRecordHandler(this) {
     multiplicity = tableEntry->constCast<RelTableCatalogEntry>().getMultiplicity(direction);
@@ -71,7 +71,7 @@ RelTableData::RelTableData(PageChunkManager& pageChunkManager, MemoryManager* mm
     // if we want to use the in-memory handler we will explicitly pass it into
     // nodeGroups.pushInsertInfo()
     nodeGroups = std::make_unique<NodeGroupCollection>(*mm, getColumnTypes(), enableCompression,
-        &pageChunkManager, deSer, &persistentVersionRecordHandler);
+        dataFH, deSer, &persistentVersionRecordHandler);
 }
 
 void RelTableData::initCSRHeaderColumns() {
@@ -79,11 +79,11 @@ void RelTableData::initCSRHeaderColumns() {
     auto csrOffsetColumnName = StorageUtils::getColumnName("", StorageUtils::ColumnType::CSR_OFFSET,
         RelDirectionUtils::relDirectionToString(direction));
     csrHeaderColumns.offset = std::make_unique<Column>(csrOffsetColumnName, LogicalType::UINT64(),
-        pageChunkManager, memoryManager, enableCompression, false /* requireNUllColumn */);
+        dataFH, memoryManager, shadowFile, enableCompression, false /* requireNUllColumn */);
     auto csrLengthColumnName = StorageUtils::getColumnName("", StorageUtils::ColumnType::CSR_LENGTH,
         RelDirectionUtils::relDirectionToString(direction));
     csrHeaderColumns.length = std::make_unique<Column>(csrLengthColumnName, LogicalType::UINT64(),
-        pageChunkManager, memoryManager, enableCompression, false /* requireNUllColumn */);
+        dataFH, memoryManager, shadowFile, enableCompression, false /* requireNUllColumn */);
 }
 
 void RelTableData::initPropertyColumns(const TableCatalogEntry* tableEntry) {
@@ -91,15 +91,15 @@ void RelTableData::initPropertyColumns(const TableCatalogEntry* tableEntry) {
     columns.resize(maxColumnID + 1);
     auto nbrIDColName = StorageUtils::getColumnName("NBR_ID", StorageUtils::ColumnType::DEFAULT,
         RelDirectionUtils::relDirectionToString(direction));
-    auto nbrIDColumn = std::make_unique<InternalIDColumn>(nbrIDColName, pageChunkManager,
-        memoryManager, enableCompression);
+    auto nbrIDColumn = std::make_unique<InternalIDColumn>(nbrIDColName, dataFH, memoryManager,
+        shadowFile, enableCompression);
     columns[NBR_ID_COLUMN_ID] = std::move(nbrIDColumn);
     for (auto& property : tableEntry->getProperties()) {
         const auto columnID = tableEntry->getColumnID(property.getName());
         const auto colName = StorageUtils::getColumnName(property.getName(),
             StorageUtils::ColumnType::DEFAULT, RelDirectionUtils::relDirectionToString(direction));
-        columns[columnID] = ColumnFactory::createColumn(colName, property.getType().copy(),
-            pageChunkManager, memoryManager, enableCompression);
+        columns[columnID] = ColumnFactory::createColumn(colName, property.getType().copy(), dataFH,
+            memoryManager, shadowFile, enableCompression);
     }
     // Set common tableID for nbrIDColumn and relIDColumn.
     const auto nbrTableID = tableEntry->constCast<RelTableCatalogEntry>().getNbrTableID(direction);
@@ -150,7 +150,7 @@ bool RelTableData::delete_(Transaction* transaction, ValueVector& boundNodeIDVec
 void RelTableData::addColumn(Transaction* transaction, TableAddColumnState& addColumnState) {
     auto& definition = addColumnState.propertyDefinition;
     columns.push_back(ColumnFactory::createColumn(definition.getName(), definition.getType().copy(),
-        pageChunkManager, memoryManager, enableCompression));
+        dataFH, memoryManager, shadowFile, enableCompression));
     nodeGroups->addColumn(transaction, addColumnState);
 }
 
@@ -262,7 +262,7 @@ void RelTableData::checkpoint(const std::vector<column_id_t>& columnIDs) {
         checkpointColumnPtrs.push_back(column.get());
     }
 
-    CSRNodeGroupCheckpointState state{columnIDs, std::move(checkpointColumnPtrs), pageChunkManager,
+    CSRNodeGroupCheckpointState state{columnIDs, std::move(checkpointColumnPtrs), *dataFH,
         memoryManager, csrHeaderColumns.offset.get(), csrHeaderColumns.length.get()};
     nodeGroups->checkpoint(*memoryManager, state);
 }

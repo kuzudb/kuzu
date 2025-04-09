@@ -13,27 +13,27 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-StructColumn::StructColumn(std::string name, LogicalType dataType,
-    PageChunkManager& pageChunkManager, MemoryManager* mm, bool enableCompression)
-    : Column{std::move(name), std::move(dataType), pageChunkManager, mm, enableCompression,
+StructColumn::StructColumn(std::string name, LogicalType dataType, FileHandle* dataFH,
+    MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression)
+    : Column{std::move(name), std::move(dataType), dataFH, mm, shadowFile, enableCompression,
           true /* requireNullColumn */} {
     const auto fieldTypes = StructType::getFieldTypes(this->dataType);
     childColumns.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
         const auto childColName = StorageUtils::getColumnName(this->name,
             StorageUtils::ColumnType::STRUCT_CHILD, std::to_string(i));
-        childColumns[i] = ColumnFactory::createColumn(childColName, fieldTypes[i]->copy(),
-            pageChunkManager, mm, enableCompression);
+        childColumns[i] = ColumnFactory::createColumn(childColName, fieldTypes[i]->copy(), dataFH,
+            mm, shadowFile, enableCompression);
     }
 }
 
 std::unique_ptr<ColumnChunkData> StructColumn::flushChunkData(const ColumnChunkData& chunk,
-    PageChunkManager& pageChunkManager) {
-    auto flushedChunk = flushNonNestedChunkData(chunk, pageChunkManager);
+    FileHandle& dataFH) {
+    auto flushedChunk = flushNonNestedChunkData(chunk, dataFH);
     auto& structChunk = chunk.cast<StructChunkData>();
     auto& flushedStructChunk = flushedChunk->cast<StructChunkData>();
     for (auto i = 0u; i < structChunk.getNumChildren(); i++) {
-        auto flushedChildChunk = Column::flushChunkData(structChunk.getChild(i), pageChunkManager);
+        auto flushedChildChunk = Column::flushChunkData(structChunk.getChild(i), dataFH);
         flushedStructChunk.setChild(i, std::move(flushedChildChunk));
     }
     return flushedChunk;

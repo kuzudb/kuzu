@@ -330,20 +330,20 @@ bool NodeGroup::hasDeletions(const Transaction* transaction) const {
 }
 
 void NodeGroup::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
-    PageChunkManager* pageChunkManager, ColumnStats* newColumnStats) {
+    FileHandle* dataFH, ColumnStats* newColumnStats) {
     dataTypes.push_back(addColumnState.propertyDefinition.getType().copy());
     const auto lock = chunkedGroups.lock();
     for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-        chunkedGroup->addColumn(transaction, addColumnState, enableCompression, pageChunkManager,
+        chunkedGroup->addColumn(transaction, addColumnState, enableCompression, dataFH,
             newColumnStats);
     }
 }
 
-void NodeGroup::flush(const Transaction* transaction, PageChunkManager& pageChunkManager) {
+void NodeGroup::flush(const Transaction* transaction, FileHandle& dataFH) {
     const auto lock = chunkedGroups.lock();
     if (chunkedGroups.getNumGroups(lock) == 1) {
         const auto chunkedGroupToFlush = chunkedGroups.getFirstGroup(lock);
-        chunkedGroupToFlush->flush(pageChunkManager);
+        chunkedGroupToFlush->flush(dataFH);
     } else {
         // Merge all chunkedGroups into a single one first. Then flush it to disk.
         auto mergedChunkedGroup = std::make_unique<ChunkedNodeGroup>(
@@ -357,7 +357,7 @@ void NodeGroup::flush(const Transaction* transaction, PageChunkManager& pageChun
             mergedChunkedGroup->append(transaction, dummyColumnIDs, *chunkedGroup, 0,
                 chunkedGroup->getNumRows());
         }
-        mergedChunkedGroup->flush(pageChunkManager);
+        mergedChunkedGroup->flush(dataFH);
         chunkedGroups.replaceGroup(lock, 0, std::move(mergedChunkedGroup));
     }
     // Clear all chunkedGroups except the first one, which is persistent.
@@ -461,7 +461,7 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemOnly(MemoryManager& 
     }
     auto insertChunkedGroup = scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(memoryManager,
         lock, state.columnIDs, columnPtrs);
-    insertChunkedGroup->flush(state.pageChunkManager);
+    insertChunkedGroup->flush(state.dataFH);
     return insertChunkedGroup;
 }
 

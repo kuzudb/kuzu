@@ -33,21 +33,21 @@ class Column {
 public:
     // TODO(Guodong): Remove transaction from interface of Column. There is no need to be aware
     // of transaction when reading/writing from/to disk pages.
-    Column(std::string name, common::LogicalType dataType, PageChunkManager& pageChunkManager,
-        MemoryManager* mm, bool enableCompression, bool requireNullColumn = true);
-    Column(std::string name, common::PhysicalTypeID physicalType,
-        PageChunkManager& pageChunkManager, MemoryManager* mm, bool enableCompression,
+    Column(std::string name, common::LogicalType dataType, FileHandle* dataFH, MemoryManager* mm,
+        ShadowFile* shadowFile, bool enableCompression, bool requireNullColumn = true);
+    Column(std::string name, common::PhysicalTypeID physicalType, FileHandle* dataFH,
+        MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression,
         bool requireNullColumn = true);
+
     virtual ~Column();
 
     void populateExtraChunkState(ChunkState& state) const;
 
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
-        PageChunkManager& pageChunkManager);
+        FileHandle& dataFH);
     static std::unique_ptr<ColumnChunkData> flushNonNestedChunkData(
-        const ColumnChunkData& chunkData, PageChunkManager& pageChunkManager);
-    static ColumnChunkMetadata flushData(const ColumnChunkData& chunkData,
-        PageChunkManager& pageChunkManager);
+        const ColumnChunkData& chunkData, FileHandle& dataFH);
+    static ColumnChunkMetadata flushData(const ColumnChunkData& chunkData, FileHandle& dataFH);
 
     virtual void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
@@ -139,8 +139,9 @@ protected:
     std::string name;
     DBFileID dbFileID;
     common::LogicalType dataType;
-    PageChunkManager& pageChunkManager;
+    FileHandle* dataFH;
     MemoryManager* mm;
+    ShadowFile* shadowFile;
     std::unique_ptr<NullColumn> nullColumn;
     read_values_to_vector_func_t readToVectorFunc;
     write_values_func_t writeFunc;
@@ -152,8 +153,8 @@ protected:
 
 class InternalIDColumn final : public Column {
 public:
-    InternalIDColumn(std::string name, PageChunkManager& pageChunkManager, MemoryManager* mm,
-        bool enableCompression);
+    InternalIDColumn(std::string name, FileHandle* dataFH, MemoryManager* mm,
+        ShadowFile* shadowFile, bool enableCompression);
 
     void scan(transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t startOffsetInChunk, common::row_idx_t numValuesToScan,
@@ -190,10 +191,10 @@ private:
 
 struct ColumnFactory {
     static std::unique_ptr<Column> createColumn(std::string name, common::LogicalType dataType,
-        PageChunkManager& pageChunkManager, MemoryManager* mm, bool enableCompression);
+        FileHandle* dataFH, MemoryManager* mm, ShadowFile* shadowFile, bool enableCompression);
     static std::unique_ptr<Column> createColumn(std::string name,
-        common::PhysicalTypeID physicalType, PageChunkManager& pageChunkManager, MemoryManager* mm,
-        bool enableCompression);
+        common::PhysicalTypeID physicalType, FileHandle* dataFH, MemoryManager* mm,
+        ShadowFile* shadowFile, bool enableCompression);
 };
 
 } // namespace storage

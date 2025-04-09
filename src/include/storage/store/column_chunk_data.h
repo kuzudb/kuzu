@@ -31,8 +31,7 @@ namespace storage {
 class Column;
 class NullChunkData;
 class ColumnStats;
-class PageChunkManager;
-struct AllocatedPageChunkEntry;
+class FileHandle;
 
 // TODO(bmwinger): Hide access to variables.
 struct ChunkState {
@@ -155,9 +154,9 @@ public:
     virtual void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend);
 
-    virtual void flush(PageChunkManager& pageChunkManager);
+    virtual void flush(FileHandle& dataFH);
 
-    ColumnChunkMetadata flushBuffer(AllocatedPageChunkEntry& entry,
+    ColumnChunkMetadata flushBuffer(FileHandle* dataFH, const PageChunkEntry& entry,
         const ColumnChunkMetadata& metadata) const;
 
     static common::page_idx_t getNumPagesForBytes(uint64_t numBytes) {
@@ -235,8 +234,7 @@ public:
 
     void updateStats(const common::ValueVector* vector, const common::SelectionView& selVector);
 
-    virtual void reclaimAllocatedPages(PageChunkManager& pageChunkManager,
-        const ChunkState& state) const;
+    virtual void reclaimAllocatedPages(FileHandle& dataFH, const ChunkState& state) const;
 
 protected:
     // Initializes the data buffer and functions. They are (and should be) only called in
@@ -255,7 +253,7 @@ protected:
 
 private:
     using flush_buffer_func_t = std::function<ColumnChunkMetadata(const std::span<uint8_t>,
-        AllocatedPageChunkEntry&, const ColumnChunkMetadata&)>;
+        FileHandle*, const PageChunkEntry&, const ColumnChunkMetadata&)>;
     flush_buffer_func_t initializeFlushBufferFunction(
         std::shared_ptr<CompressionAlg> compression) const;
     uint64_t getBufferSize(uint64_t capacity_) const;

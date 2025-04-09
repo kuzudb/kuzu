@@ -60,7 +60,7 @@ public:
 
     void finalize() override;
 
-    void flush(PageChunkManager& pageChunkManager) override;
+    void flush(FileHandle& dataFH) override;
 
     uint64_t getNumValues() const override { return nullData->getNumValues(); }
     void resetNumValuesFromMetadata() override;
@@ -74,8 +74,7 @@ public:
     void resizeWithoutPreserve(uint64_t newCapacity) override;
     uint64_t getEstimatedMemoryUsage() const override;
 
-    void reclaimAllocatedPages(PageChunkManager& pageChunkManager,
-        const ChunkState& state) const override;
+    void reclaimAllocatedPages(FileHandle& dataFH, const ChunkState& state) const override;
 
     void serialize(common::Serializer& serializer) const override;
     static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);

@@ -16,6 +16,7 @@
 #include "storage/buffer_manager/page_state.h"
 #include "storage/buffer_manager/vm_region.h"
 #include "storage/enums/page_read_policy.h"
+#include "storage/page_manager.h"
 
 namespace kuzu {
 namespace main {
@@ -110,6 +111,13 @@ public:
         return isLargePaged() ? common::TEMP_PAGE_SIZE : common::KUZU_PAGE_SIZE;
     }
 
+    PageManager* getPageManager() { return pageManager.get(); }
+    void serializePageManager(common::Serializer& ser) const;
+    void deserializePageManager(common::Deserializer& deSer);
+    void finalizeInit();
+
+    void finalizeCheckpoint();
+
 private:
     bool isLargePaged() const { return flags & isLargePagedMask; }
     bool isNewTmpFile() const { return flags & isNewInMemoryTmpFileMask; }
@@ -163,6 +171,8 @@ private:
     // and left at the default which won't increase access cost for the frame groups until 16TB of
     // data has been written
     common::ConcurrentVector<common::page_group_idx_t> frameGroupIdxes;
+
+    std::unique_ptr<PageManager> pageManager;
 };
 
 } // namespace storage

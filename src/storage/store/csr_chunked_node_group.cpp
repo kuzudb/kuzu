@@ -41,13 +41,13 @@ CSRRegion CSRRegion::upgradeLevel(const std::vector<CSRRegion>& leafRegions,
     const idx_t leftLeafRegionIdx = newRegion.getLeftLeafRegionIdx();
     const idx_t rightLeafRegionIdx = newRegion.getRightLeafRegionIdx();
     for (auto leafRegionIdx = leftLeafRegionIdx; leafRegionIdx <= rightLeafRegionIdx;
-         leafRegionIdx++) {
+        leafRegionIdx++) {
         KU_ASSERT(leafRegionIdx < leafRegions.size());
         newRegion.sizeChange += leafRegions[leafRegionIdx].sizeChange;
         newRegion.hasPersistentDeletions |= leafRegions[leafRegionIdx].hasPersistentDeletions;
         newRegion.hasInsertions |= leafRegions[leafRegionIdx].hasInsertions;
         for (auto columnID = 0u; columnID < leafRegions[leafRegionIdx].hasUpdates.size();
-             columnID++) {
+            columnID++) {
             newRegion.hasUpdates[columnID] =
                 static_cast<bool>(newRegion.hasUpdates[columnID]) ||
                 static_cast<bool>(leafRegions[leafRegionIdx].hasUpdates[columnID]);
@@ -238,15 +238,15 @@ length_t ChunkedCSRHeader::computeGapFromLength(length_t length) {
 }
 
 std::unique_ptr<ChunkedNodeGroup> ChunkedCSRNodeGroup::flushAsNewChunkedNodeGroup(
-    transaction::Transaction* transaction, PageChunkManager& pageChunkManager) const {
+    transaction::Transaction* transaction, FileHandle& dataFH) const {
     auto csrOffset = std::make_unique<ColumnChunk>(csrHeader.offset->isCompressionEnabled(),
-        Column::flushChunkData(csrHeader.offset->getData(), pageChunkManager));
+        Column::flushChunkData(csrHeader.offset->getData(), dataFH));
     auto csrLength = std::make_unique<ColumnChunk>(csrHeader.length->isCompressionEnabled(),
-        Column::flushChunkData(csrHeader.length->getData(), pageChunkManager));
+        Column::flushChunkData(csrHeader.length->getData(), dataFH));
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
     for (auto i = 0u; i < getNumColumns(); i++) {
         flushedChunks[i] = std::make_unique<ColumnChunk>(getColumnChunk(i).isCompressionEnabled(),
-            Column::flushChunkData(getColumnChunk(i).getData(), pageChunkManager));
+            Column::flushChunkData(getColumnChunk(i).getData(), dataFH));
     }
     ChunkedCSRHeader newCSRHeader{std::move(csrOffset), std::move(csrLength)};
     auto flushedChunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(std::move(newCSRHeader),
@@ -257,11 +257,11 @@ std::unique_ptr<ChunkedNodeGroup> ChunkedCSRNodeGroup::flushAsNewChunkedNodeGrou
     return flushedChunkedGroup;
 }
 
-void ChunkedCSRNodeGroup::flush(PageChunkManager& pageChunkManager) {
-    csrHeader.offset->getData().flush(pageChunkManager);
-    csrHeader.length->getData().flush(pageChunkManager);
+void ChunkedCSRNodeGroup::flush(FileHandle& dataFH) {
+    csrHeader.offset->getData().flush(dataFH);
+    csrHeader.length->getData().flush(dataFH);
     for (auto i = 0u; i < getNumColumns(); i++) {
-        getColumnChunk(i).getData().flush(pageChunkManager);
+        getColumnChunk(i).getData().flush(dataFH);
     }
 }
 

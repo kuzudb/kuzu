@@ -18,7 +18,7 @@
 #include "storage/buffer_manager/spiller.h"
 #include "storage/compression/compression.h"
 #include "storage/compression/float_compression.h"
-#include "storage/page_chunk_manager.h"
+#include "storage/page_manager.h"
 #include "storage/stats/column_stats.h"
 #include "storage/store/column.h"
 #include "storage/store/column_chunk_metadata.h"
@@ -290,13 +290,13 @@ void ColumnChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
     updateInMemoryStats(inMemoryStats, other, startPosInOtherChunk, numValuesToAppend);
 }
 
-void ColumnChunkData::flush(PageChunkManager& pageChunkManager) {
+void ColumnChunkData::flush(FileHandle& dataFH) {
     const auto preScanMetadata = getMetadataToFlush();
-    auto allocatedEntry = pageChunkManager.allocateBlock(preScanMetadata.getNumPages());
-    const auto flushedMetadata = flushBuffer(allocatedEntry, preScanMetadata);
+    auto allocatedEntry = dataFH.getPageManager()->allocateBlock(preScanMetadata.getNumPages());
+    const auto flushedMetadata = flushBuffer(&dataFH, allocatedEntry, preScanMetadata);
     setToOnDisk(flushedMetadata);
     if (nullData) {
-        nullData->flush(pageChunkManager);
+        nullData->flush(dataFH);
     }
 }
 
@@ -311,11 +311,11 @@ void ColumnChunkData::setToOnDisk(const ColumnChunkMetadata& otherMetadata) {
     resetInMemoryStats();
 }
 
-ColumnChunkMetadata ColumnChunkData::flushBuffer(AllocatedPageChunkEntry& entry,
+ColumnChunkMetadata ColumnChunkData::flushBuffer(FileHandle* dataFH, const PageChunkEntry& entry,
     const ColumnChunkMetadata& otherMetadata) const {
     if (!otherMetadata.compMeta.isConstant() && getBufferSize() != 0) {
         KU_ASSERT(getBufferSize() == getBufferSize(capacity));
-        return flushBufferFunction(buffer->getBuffer(), entry, otherMetadata);
+        return flushBufferFunction(buffer->getBuffer(), dataFH, entry, otherMetadata);
     }
     KU_ASSERT(otherMetadata.getNumPages() == 0);
     return otherMetadata;
@@ -996,15 +996,14 @@ uint64_t ColumnChunkData::spillToDisk() {
 
 ColumnChunkData::~ColumnChunkData() = default;
 
-void ColumnChunkData::reclaimAllocatedPages(PageChunkManager& pageChunkManager,
-    const ChunkState& state) const {
+void ColumnChunkData::reclaimAllocatedPages(FileHandle& dataFH, const ChunkState& state) const {
     const auto& entry = state.metadata.pageChunk;
     if (entry.startPageIdx != INVALID_PAGE_IDX) {
-        pageChunkManager.freeBlock(entry);
+        dataFH.getPageManager()->freeBlock(entry);
     }
     if (nullData) {
         KU_ASSERT(state.nullState);
-        nullData->reclaimAllocatedPages(pageChunkManager, *state.nullState);
+        nullData->reclaimAllocatedPages(dataFH, *state.nullState);
     }
 }
 

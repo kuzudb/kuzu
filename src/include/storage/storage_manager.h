@@ -19,7 +19,6 @@ class CatalogEntry;
 namespace storage {
 class Table;
 class DiskArrayCollection;
-class PageChunkManager;
 
 class KUZU_API StorageManager {
 public:
@@ -43,7 +42,7 @@ public:
 
     WAL& getWAL() const;
     ShadowFile& getShadowFile() const;
-    PageChunkManager& getPageChunkManager() const { return *pageChunkManager; }
+    FileHandle* getDataFH() const { return dataFH; }
     std::string getDatabasePath() const { return databasePath; }
     bool isReadOnly() const { return readOnly; }
     bool compressionEnabled() const { return enableCompression; }
@@ -68,7 +67,6 @@ private:
     MemoryManager& memoryManager;
     std::unique_ptr<WAL> wal;
     std::unique_ptr<ShadowFile> shadowFile;
-    std::unique_ptr<PageChunkManager> pageChunkManager;
     bool enableCompression;
 };
 
