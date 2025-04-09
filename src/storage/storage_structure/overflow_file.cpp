@@ -76,7 +76,7 @@ uint8_t* OverflowFileHandle::addANewPage() {
             reinterpret_cast<uint8_t*>(&newPageIdx), sizeof(page_idx_t));
     }
     pageWriteCache.emplace(newPageIdx,
-        overflowFile.memoryManager.mallocBuffer(true /*initializeToZero*/, KUZU_PAGE_SIZE));
+        overflowFile.memoryManager.allocateBuffer(true /*initializeToZero*/, KUZU_PAGE_SIZE));
     nextPosToWriteTo.elemPosInPage = 0;
     nextPosToWriteTo.pageIdx = newPageIdx;
     return pageWriteCache[newPageIdx]->getData();
@@ -98,8 +98,8 @@ void OverflowFileHandle::setStringOverflow(const char* srcRawString, uint64_t le
         } else {
             overflowFile.readFromDisk(TransactionType::CHECKPOINT, nextPosToWriteTo.pageIdx,
                 [&](auto* frame) {
-                    auto page = overflowFile.memoryManager.mallocBuffer(false /*initializeToZero*/,
-                        KUZU_PAGE_SIZE);
+                    auto page = overflowFile.memoryManager.allocateBuffer(
+                        false /*initializeToZero*/, KUZU_PAGE_SIZE);
                     memcpy(page->getData(), frame, KUZU_PAGE_SIZE);
                     pageToWrite = page->getData();
                     pageWriteCache.emplace(nextPosToWriteTo.pageIdx, std::move(page));
