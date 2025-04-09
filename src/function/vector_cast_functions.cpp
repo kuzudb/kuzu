@@ -504,10 +504,6 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(const std::strin
         std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()}, LogicalTypeID::STRING, func);
 }
 
-template<typename T>
-concept CastExecutor =
-    std::is_same_v<T, UnaryFunctionExecutor> || std::is_same_v<T, CastChildFunctionExecutor>;
-
 template<typename DST_TYPE, CastExecutor EXECUTOR>
 static std::unique_ptr<ScalarFunction> bindCastToDecimalFunction(const std::string& functionName,
     const LogicalType& sourceType, const LogicalType& targetType) {
@@ -600,7 +596,6 @@ static std::unique_ptr<ScalarFunction> bindCastToNumericFunction(const std::stri
         func);
 }
 
-template<typename EXECUTOR = UnaryFunctionExecutor>
 static std::unique_ptr<ScalarFunction> bindCastBetweenNested(const std::string& functionName,
     const LogicalType& sourceType, const LogicalType& targetType) {
     switch (sourceType.getLogicalTypeID()) {
@@ -710,7 +705,7 @@ static std::unique_ptr<ScalarFunction> bindCastBetweenDecimalFunction(
         std::vector<LogicalTypeID>{LogicalTypeID::DECIMAL}, LogicalTypeID::DECIMAL, func);
 }
 
-template<typename EXECUTOR>
+template<CastExecutor EXECUTOR>
 std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(const std::string& functionName,
     const LogicalType& sourceType, const LogicalType& targetType) {
     auto sourceTypeID = sourceType.getLogicalTypeID();
@@ -806,7 +801,7 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(const std::string
     case LogicalTypeID::MAP:
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::UNION: {
-        return bindCastBetweenNested<EXECUTOR>(functionName, sourceType, targetType);
+        return bindCastBetweenNested(functionName, sourceType, targetType);
     }
     default: {
         throw ConversionException(stringFormat("Unsupported casting function from {} to {}.",
