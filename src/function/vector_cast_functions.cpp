@@ -504,7 +504,11 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(const std::strin
         std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()}, LogicalTypeID::STRING, func);
 }
 
-template<typename DST_TYPE>
+template<typename T>
+concept CastExecutor =
+    std::is_same_v<T, UnaryFunctionExecutor> || std::is_same_v<T, CastChildFunctionExecutor>;
+
+template<typename DST_TYPE, CastExecutor EXECUTOR>
 static std::unique_ptr<ScalarFunction> bindCastToDecimalFunction(const std::string& functionName,
     const LogicalType& sourceType, const LogicalType& targetType) {
     scalar_func_exec_t func;
@@ -513,15 +517,14 @@ static std::unique_ptr<ScalarFunction> bindCastToDecimalFunction(const std::stri
             sourceType,
             [&]<SignedIntegerTypes T>(T) {
                 func = ScalarFunction::UnaryCastExecFunction<T, DST_TYPE, CastBetweenDecimal,
-                    UnaryFunctionExecutor>;
+                    EXECUTOR>;
             },
             [&](auto) { KU_UNREACHABLE; });
     } else {
         TypeUtils::visit(
             sourceType,
             [&]<NumericTypes T>(T) {
-                func = ScalarFunction::UnaryCastExecFunction<T, DST_TYPE, CastToDecimal,
-                    UnaryFunctionExecutor>;
+                func = ScalarFunction::UnaryCastExecFunction<T, DST_TYPE, CastToDecimal, EXECUTOR>;
             },
             [&](auto) { KU_UNREACHABLE; });
     }
@@ -732,7 +735,8 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(const std::string
         TypeUtils::visit(
             targetType.getPhysicalType(),
             [&]<IntegerTypes T>(T) {
-                scalarFunc = bindCastToDecimalFunction<T>(functionName, sourceType, targetType);
+                scalarFunc =
+                    bindCastToDecimalFunction<T, EXECUTOR>(functionName, sourceType, targetType);
             },
             [](auto) { KU_UNREACHABLE; });
         return scalarFunc;
