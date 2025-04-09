@@ -24,10 +24,6 @@ public:
     PageChunkEntry allocateBlock(common::page_idx_t numPages);
     void freeBlock(PageChunkEntry block);
 
-    // In cases like committing a dropped column chunk we don't want to reclaim pages right away
-    // This way we can undo if the commit is rolled back
-    void addUncheckpointedFreeBlock();
-
     void serialize(common::Serializer& serializer);
     static std::unique_ptr<PageManager> deserialize(common::Deserializer& deSer,
         FileHandle* fileHandle);

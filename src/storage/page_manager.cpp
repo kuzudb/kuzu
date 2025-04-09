@@ -8,7 +8,6 @@ namespace kuzu::storage {
 static constexpr bool ENABLE_FSM = true;
 
 PageChunkEntry PageManager::allocateBlock(common::page_idx_t numPages) {
-    // numPages = std::bit_ceil(numPages);
     if constexpr (ENABLE_FSM) {
         common::UniqLock lck{mtx};
         auto allocatedFreeChunk = freeSpaceManager->popFreeChunk(numPages);

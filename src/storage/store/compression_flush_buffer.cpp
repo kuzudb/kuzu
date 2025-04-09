@@ -10,6 +10,7 @@ using namespace transaction;
 
 ColumnChunkMetadata uncompressedFlushBuffer(std::span<const uint8_t> buffer, FileHandle* dataFH,
     const PageChunkEntry& entry, const ColumnChunkMetadata& metadata) {
+    KU_ASSERT(dataFH->getNumPages() >= entry.startPageIdx + entry.numPages);
     dataFH->writePagesToFile(buffer.data(), buffer.size(), entry.startPageIdx);
     return ColumnChunkMetadata(entry.startPageIdx, entry.numPages, metadata.numValues,
         metadata.compMeta);
@@ -37,6 +38,7 @@ ColumnChunkMetadata CompressedFlushBuffer::operator()(std::span<const uint8_t> b
             memset(compressedBuffer.get() + compressedSize, 0, KUZU_PAGE_SIZE - compressedSize);
         }
         KU_ASSERT(numPages < entry.numPages);
+        KU_ASSERT(dataFH->getNumPages() >= entry.startPageIdx + numPages);
         dataFH->writePageToFile(compressedBuffer.get(), entry.startPageIdx + numPages);
         numPages++;
     }
@@ -99,6 +101,7 @@ std::pair<std::unique_ptr<uint8_t[]>, uint64_t> flushCompressedFloats(const Comp
             valuesRemaining -= numValuesPerPage;
         }
         KU_ASSERT(numPages < entry.numPages);
+        KU_ASSERT(dataFH->getNumPages() >= entry.startPageIdx + numPages);
         dataFH->writePageToFile(compressedBuffer.get(), entry.startPageIdx + numPages);
         numPages++;
     }
@@ -116,7 +119,9 @@ void flushALPExceptions(std::span<const uint8_t> exceptionBuffer, FileHandle* da
         uncompressedGetMetadata(exceptionBuffer, exceptionBuffer.size(),
             metadata.compMeta.floatMetadata()->exceptionCapacity, StorageValue{0}, StorageValue{0});
 
-    const auto exceptionStartPageIdx = entry.numPages - preExceptionMetadata.getNumPages();
+    const auto exceptionStartPageIdx =
+        entry.startPageIdx + entry.numPages - preExceptionMetadata.getNumPages();
+    KU_ASSERT(exceptionStartPageIdx + preExceptionMetadata.getNumPages() <= dataFH->getNumPages());
     PageChunkEntry exceptionBlock{exceptionStartPageIdx, preExceptionMetadata.getNumPages()};
 
     const auto encodedType = std::is_same_v<T, float> ? PhysicalTypeID::ALP_EXCEPTION_FLOAT :
