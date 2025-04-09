@@ -1,7 +1,6 @@
 #pragma once
 
 #include "gds_task.h"
-#include "graph/graph_mem.h"
 
 namespace kuzu {
 namespace function {
@@ -19,7 +18,7 @@ class InMemVertexComputeTask : public common::Task {
 public:
     InMemVertexComputeTask(uint64_t maxNumThreads, InMemVertexCompute& vc,
         std::shared_ptr<VertexComputeTaskSharedState> sharedState)
-        : common::Task{maxNumThreads}, vc{vc}, sharedState{std::move(sharedState)} {};
+        : Task{maxNumThreads}, vc{vc}, sharedState{std::move(sharedState)} {};
 
     VertexComputeTaskSharedState* getSharedState() const { return sharedState.get(); }
 
@@ -32,7 +31,8 @@ private:
 
 class GDSUtilsInMemory {
 public:
-    static void runVertexCompute(InMemVertexCompute& vc, graph::InMemoryGraph& graph, processor::ExecutionContext* context);
+    static void runVertexCompute(InMemVertexCompute& vc, common::offset_t maxOffset,
+        processor::ExecutionContext* context);
 };
 
 } // namespace function

@@ -17,9 +17,8 @@ void InMemVertexComputeTask::run() {
     }
 }
 
-void GDSUtilsInMemory::runVertexCompute(InMemVertexCompute& vc, InMemoryGraph& graph,
+void GDSUtilsInMemory::runVertexCompute(InMemVertexCompute& vc, common::offset_t maxOffset,
     ExecutionContext* context) {
-    auto maxOffset = graph.numNodes;
     auto maxThreads = context->clientContext->getMaxNumThreadForExec();
     auto sharedState = std::make_shared<VertexComputeTaskSharedState>(maxThreads);
     auto task = std::make_shared<InMemVertexComputeTask>(maxThreads, vc, sharedState);

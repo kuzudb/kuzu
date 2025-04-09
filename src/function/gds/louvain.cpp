@@ -34,11 +34,36 @@ struct CommInfo {
     CommInfo() : size(0), degree(0.0) {}
 };
 
+class CommInfoAtomic {
+public:
+    CommInfoAtomic() : size{0}, degree(0.0) {}
+    CommInfoAtomic(const CommInfoAtomic& other) {
+        size.store(other.getSize());
+        degree.store(other.getDegree());
+    }
+    CommInfoAtomic& operator=(const CommInfoAtomic& other) {
+        if (this != &other) {
+            size.store(other.getSize());
+            degree.store(other.getDegree());
+        }
+        return *this;
+    }
+
+    void addSize(long add) { size.fetch_add(add, memory_order_relaxed); }
+    offset_t getSize() const { return size.load(memory_order_relaxed); }
+    double getDegree() const { return degree.load(memory_order_relaxed); }
+    void addDegree(double add) { degree.fetch_add(add, memory_order_relaxed); }
+
+private:
+    std::atomic<offset_t> size;
+    std::atomic<double> degree;
+};
+
 struct PhaseState {
     InMemoryGraph graph;
     vector<double> nodeWeightedDegrees;
     vector<CommInfo> commInfos;
-    vector<CommInfo> commInfosNext;
+    vector<CommInfoAtomic> commInfosNext;
     vector<offset_t> pastCommunities;
     vector<offset_t> currCommunities;
     vector<offset_t> targetCommunities;
@@ -48,9 +73,7 @@ struct PhaseState {
     explicit PhaseState(const offset_t numNodes) : graph{InMemoryGraph(numNodes)} {
         reset(numNodes);
     }
-    // Delete copy constructors
-    PhaseState(const PhaseState&) = delete;
-    PhaseState& operator=(const PhaseState&) = delete;
+    DELETE_BOTH_COPY(PhaseState);
 
     void reset(const offset_t numNodes) {
         graph.reset(numNodes);
@@ -62,9 +85,9 @@ struct PhaseState {
         totalWeight = 0.0;
     }
 
-    void reset() {
+    void startNewIter() {
         clusterWeightInternal.assign(graph.numNodes, 0.0);
-        commInfosNext.assign(graph.numNodes, CommInfo());
+        commInfosNext.assign(graph.numNodes, CommInfoAtomic());
     }
 
     void insertNewNode(const offset_t nodeId) {
@@ -82,17 +105,7 @@ struct PhaseState {
         totalWeight += weight;
     }
 
-    void finalize() {
-        graph.insertNewNode();
-        // for (auto nodeId = 0u; nodeId < graph.numNodes; ++nodeId) {
-        //     const auto from = graph.nodes[nodeId];
-        //     const auto to = graph.nodes[nodeId + 1];
-        //     cout << std::format("{}: {} {}\n", nodeId, from, to);
-        //     for (auto offset = from; offset < to; ++offset) {
-        //         cout << std::format(" {} {}\n", graph.neighbors[offset], graph.weights[offset]);
-        //     }
-        // }
-    }
+    void finalize() { graph.insertNewNode(); }
 };
 
 struct LouvainState {
@@ -131,6 +144,146 @@ private:
     PhaseState& state;
 };
 
+class RunIteration : public InMemVertexCompute {
+public:
+    explicit RunIteration(PhaseState& state) : state{state} {}
+
+    void vertexCompute(offset_t startOffset, offset_t endOffset) override {
+        double constantForSecondTerm = 1.0 / state.totalWeight;
+        for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
+            auto from = state.graph.nodes[nodeId];
+            auto to = state.graph.nodes[nodeId + 1];
+            double selfLoop = 0.0;
+            unordered_map<offset_t, offset_t> clusterLocalMap;
+            vector<double> counter;
+            if (from != to) {
+                clusterLocalMap[state.currCommunities[nodeId]] = 0;
+                counter.push_back(0);
+                {
+                    double lselfLoop = 0.0;
+                    offset_t numUniqueClusters = 1;
+                    for (auto offset = from; offset < to; offset++) {
+                        auto nbr = state.graph.neighbors[offset];
+                        if (nbr.neighbor == nodeId) {
+                            lselfLoop += nbr.weight;
+                        }
+                        auto nbrCommId = state.currCommunities[nbr.neighbor];
+                        if (!clusterLocalMap.contains(nbrCommId)) {
+                            clusterLocalMap[nbrCommId] = numUniqueClusters;
+                            numUniqueClusters++;
+                            counter.push_back(nbr.weight);
+                        } else {
+                            counter[clusterLocalMap[nbrCommId]] += nbr.weight;
+                        }
+                    }
+                    selfLoop = lselfLoop;
+                }
+                state.clusterWeightInternal[nodeId] += counter[0];
+                offset_t max = 0;
+                {
+                    offset_t sc = state.currCommunities[nodeId];
+                    double degree = state.nodeWeightedDegrees[nodeId];
+                    offset_t maxIndex = sc; // Assign the initial value as self community
+                    double curGain = 0;
+                    double maxGain = 0;
+                    double eix = counter[0] - selfLoop;
+                    double ax = state.commInfos[sc].degree - degree;
+                    double eiy = 0;
+                    double ay = 0;
+                    for (auto [nbrCommId, weight] : clusterLocalMap) {
+                        if (sc != nbrCommId) {
+                            ay = state.commInfos[nbrCommId].degree;
+                            eiy = counter[weight];
+                            curGain =
+                                2 * (eiy - eix) - 2 * degree * (ay - ax) * constantForSecondTerm;
+                            if (curGain > maxGain || ((maxGain - curGain) < THRESHOLD &&
+                                                         curGain != 0 && (nbrCommId < maxIndex))) {
+                                maxGain = curGain;
+                                maxIndex = nbrCommId;
+                            }
+                        }
+                    }
+                    if (state.commInfos[maxIndex].size == 1 && state.commInfos[sc].size == 1 &&
+                        maxIndex > sc) { // Swap protection
+                        maxIndex = sc;
+                    }
+                    max = maxIndex;
+                }
+                state.targetCommunities[nodeId] = max;
+            } else {
+                state.targetCommunities[nodeId] = OMAX;
+            }
+
+            auto currCommId = state.currCommunities[nodeId];
+            auto targetCommId = state.targetCommunities[nodeId];
+            if (targetCommId != currCommId && targetCommId != OMAX) {
+                state.commInfosNext[targetCommId].addDegree(state.nodeWeightedDegrees[nodeId]);
+                state.commInfosNext[targetCommId].addSize(1);
+                state.commInfosNext[currCommId].addDegree(-state.nodeWeightedDegrees[nodeId]);
+                state.commInfosNext[currCommId].addSize(-1);
+            }
+            clusterLocalMap.clear();
+            counter.clear();
+        }
+    }
+
+    std::unique_ptr<InMemVertexCompute> copy() override {
+        return std::make_unique<RunIteration>(state);
+    }
+
+private:
+    PhaseState& state;
+};
+
+class NewModularityVC : public InMemVertexCompute {
+public:
+    static std::atomic<double> sumIntra;
+    static std::atomic<double> sumTotal;
+
+    explicit NewModularityVC(PhaseState& state) : state{state} {}
+
+    void vertexCompute(offset_t startOffset, offset_t endOffset) override {
+        double sumIntraLocal = 0.0;
+        double sumTotalLocal = 0.0;
+        for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
+            sumIntraLocal += state.clusterWeightInternal[nodeId];
+            sumTotalLocal += state.commInfos[nodeId].degree * state.commInfos[nodeId].degree;
+        }
+        sumIntra.fetch_add(sumIntraLocal);
+        sumTotal.fetch_add(sumTotalLocal);
+    }
+
+    std::unique_ptr<InMemVertexCompute> copy() override {
+        return std::make_unique<NewModularityVC>(state);
+    }
+
+private:
+    PhaseState& state;
+};
+std::atomic<double> NewModularityVC::sumIntra{0.0};
+std::atomic<double> NewModularityVC::sumTotal{0.0};
+
+class UpdateCommInfosVC : public InMemVertexCompute {
+public:
+    static std::atomic<double> sumIntra;
+    static std::atomic<double> sumTotal;
+
+    explicit UpdateCommInfosVC(PhaseState& state) : state{state} {}
+
+    void vertexCompute(offset_t startOffset, offset_t endOffset) override {
+        for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
+            state.commInfos[nodeId].size += state.commInfosNext[nodeId].getSize();
+            state.commInfos[nodeId].degree += state.commInfosNext[nodeId].getDegree();
+        }
+    }
+
+    std::unique_ptr<InMemVertexCompute> copy() override {
+        return std::make_unique<UpdateCommInfosVC>(state);
+    }
+
+private:
+    PhaseState& state;
+};
 struct LouvainCompute {
     PhaseState state;
     LouvainState& louvainState;
@@ -164,128 +317,7 @@ struct LouvainCompute {
         }
         state.finalize();
     }
-    // Delete copy constructors
-    LouvainCompute(const LouvainCompute&) = delete;
-    LouvainCompute& operator=(const LouvainCompute&) = delete;
-
-    void runPhase() {
-        double oldMod = -1;
-        double newMod = -1;
-        double constantForSecondTerm = 1.0 / state.totalWeight;
-
-        printf("====================================================\n");
-        printf("Itr      E_xx            A_x2           Curr-Mod\n");
-        printf("====================================================\n");
-
-        for (auto iter = 0u; iter < MAX_ITERATIONS; ++iter) {
-            state.reset();
-            for (auto nodeId = 0u; nodeId < state.graph.numNodes; nodeId++) {
-                auto from = state.graph.nodes[nodeId];
-                auto to = state.graph.nodes[nodeId + 1];
-                double selfLoop = 0.0;
-                unordered_map<offset_t, offset_t> clusterLocalMap;
-                vector<double> counter;
-                if (from != to) {
-                    clusterLocalMap[state.currCommunities[nodeId]] = 0;
-                    counter.push_back(0);
-                    {
-                        double lselfLoop = 0.0;
-                        offset_t numUniqueClusters = 1;
-                        for (auto offset = from; offset < to; offset++) {
-                            auto nbr = state.graph.neighbors[offset];
-                            if (nbr.neighbor == nodeId) {
-                                lselfLoop += nbr.weight;
-                            }
-                            auto nbrCommId = state.currCommunities[nbr.neighbor];
-                            if (!clusterLocalMap.contains(nbrCommId)) {
-                                clusterLocalMap[nbrCommId] = numUniqueClusters;
-                                numUniqueClusters++;
-                                counter.push_back(nbr.weight);
-                            } else {
-                                counter[clusterLocalMap[nbrCommId]] += nbr.weight;
-                            }
-                        }
-                        selfLoop = lselfLoop;
-                    }
-                    printf("  selfLoop = %u %lf\n", nodeId, selfLoop);
-                    state.clusterWeightInternal[nodeId] += counter[0];
-                    offset_t max = 0;
-                    {
-                        offset_t sc = state.currCommunities[nodeId];
-                        double degree = state.nodeWeightedDegrees[nodeId];
-                        offset_t maxIndex = sc; // Assign the initial value as self community
-                        double curGain = 0;
-                        double maxGain = 0;
-                        double eix = counter[0] - selfLoop;
-                        double ax = state.commInfos[sc].degree - degree;
-                        double eiy = 0;
-                        double ay = 0;
-                        for (auto [nbrCommId, weight] : clusterLocalMap) {
-                            printf("    sc ? storedAlready: %lu %lu\n", sc, nbrCommId);
-                            if (sc != nbrCommId) {
-                                ay = state.commInfos[nbrCommId].degree;
-                                eiy = counter[weight];
-                                curGain = 2 * (eiy - eix) -
-                                          2 * degree * (ay - ax) * constantForSecondTerm;
-                                printf(
-                                    "      degree ax ay constantForSecondTerm = %lf %lf %lf %lf\n",
-                                    degree, ax, ay, constantForSecondTerm);
-                                printf("      eix eiy currGain = %lf %lf %lf\n", eix, eiy, curGain);
-                                if (curGain > maxGain ||
-                                    ((maxGain - curGain) < THRESHOLD && curGain != 0 &&
-                                        (nbrCommId < maxIndex))) {
-                                    printf("        maxGain: %lf -> %lf\n", maxGain, curGain);
-                                    printf("        maxIndex: %lu -> %lu\n", maxIndex, nbrCommId);
-                                    maxGain = curGain;
-                                    maxIndex = nbrCommId;
-                                }
-                            }
-                        }
-                        printf("    swap check: %lu %lu %lu %lu\n", state.commInfos[maxIndex].size,
-                            state.commInfos[sc].size, maxIndex, sc);
-                        if (state.commInfos[maxIndex].size == 1 && state.commInfos[sc].size == 1 &&
-                            maxIndex > sc) { // Swap protection
-                            printf("      maxIndex: %lu -> %lu\n", maxIndex, sc);
-                            maxIndex = sc;
-                        }
-                        max = maxIndex;
-                        printf("  = targetCommAss[%u] = %ld\n", nodeId, max);
-                    }
-                    state.targetCommunities[nodeId] = max;
-                } else {
-                    state.targetCommunities[nodeId] = OMAX;
-                }
-
-                auto currCommId = state.currCommunities[nodeId];
-                auto targetCommId = state.targetCommunities[nodeId];
-                if (targetCommId != currCommId && targetCommId != OMAX) {
-                    state.commInfosNext[targetCommId].degree += state.nodeWeightedDegrees[nodeId];
-                    state.commInfosNext[targetCommId].size += 1;
-                    printf("  : cUpdate[%lu] = %lf %lf %ld\n", targetCommId,
-                        state.nodeWeightedDegrees[nodeId], state.commInfosNext[targetCommId].degree,
-                        state.commInfosNext[targetCommId].size);
-                    state.commInfosNext[currCommId].degree -= state.nodeWeightedDegrees[nodeId];
-                    state.commInfosNext[currCommId].size -= 1;
-                    printf("  : cUpdate[%lu] = %lf %ld\n", currCommId,
-                        state.commInfosNext[currCommId].degree,
-                        state.commInfosNext[currCommId].size);
-                }
-                clusterLocalMap.clear();
-                counter.clear();
-            }
-            newMod = calculateModularity(iter);
-            if (newMod - oldMod < THRESHOLD) {
-                break;
-            }
-            oldMod = newMod;
-            for (auto nodeId = 0u; nodeId < state.graph.numNodes; ++nodeId) {
-                state.commInfos[nodeId].size += state.commInfosNext[nodeId].size;
-                state.commInfos[nodeId].degree += state.commInfosNext[nodeId].degree;
-            }
-            std::swap(state.pastCommunities, state.currCommunities);
-            std::swap(state.currCommunities, state.targetCommunities);
-        }
-    }
+    DELETE_BOTH_COPY(LouvainCompute);
 
     offset_t renumberCommunities() {
         unordered_map<offset_t, offset_t> map;
@@ -299,20 +331,6 @@ struct LouvainCompute {
             state.pastCommunities[i] = map.at(commId);
         }
         return nextCommId;
-    }
-
-    double calculateModularity(offset_t iter) {
-        double sumIntra = 0.0;
-        double sumTotal = 0.0;
-        double constantForSecondTerm = 1.0 / state.totalWeight;
-        for (auto nodeId = 0u; nodeId < state.graph.numNodes; ++nodeId) {
-            sumIntra += state.clusterWeightInternal[nodeId];
-            sumTotal += state.commInfos[nodeId].degree * state.commInfos[nodeId].degree;
-        }
-        auto newMod = sumIntra * constantForSecondTerm -
-                      (sumTotal * constantForSecondTerm * constantForSecondTerm);
-        printf("%lu \t %g \t %g \t %lf\n", iter, sumIntra, sumTotal, newMod);
-        return newMod;
     }
 
     void aggregateCommunities(offset_t newCommCount) {
@@ -391,48 +409,44 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     for (auto phase = 0u; phase < MAX_LEVELS; ++phase) {
         auto oldCommCount = lc.state.graph.numNodes;
 
-        printf("Edges %ld\n", lc.state.graph.numEdges);
-        for (offset_t nodeId = 0u; nodeId < lc.state.graph.numNodes; nodeId++) {
-            auto from = lc.state.graph.nodes[nodeId];
-            auto to = lc.state.graph.nodes[nodeId + 1];
-            for (auto offset = from; offset < to; offset++) {
-                printf(" %ld-[%lf]->%ld\n", nodeId, lc.state.graph.neighbors[offset].weight,
-                    lc.state.graph.neighbors[offset].neighbor);
-            }
-        }
+        double oldMod = -1;
+        double newMod = -1;
 
-        lc.runPhase();
+        for (auto iter = 0u; iter < MAX_ITERATIONS; ++iter) {
+            lc.state.startNewIter();
+
+            RunIteration runIteration(lc.state);
+            GDSUtilsInMemory::runVertexCompute(runIteration, lc.state.graph.numNodes,
+                input.context);
+
+            NewModularityVC newModularityVC(lc.state);
+            GDSUtilsInMemory::runVertexCompute(newModularityVC, lc.state.graph.numNodes,
+                input.context);
+            double constantForSecondTerm = 1.0 / lc.state.totalWeight;
+            newMod =
+                newModularityVC.sumIntra.load() * constantForSecondTerm -
+                (newModularityVC.sumTotal.load() * constantForSecondTerm * constantForSecondTerm);
+
+            if (newMod - oldMod < THRESHOLD) {
+                break;
+            }
+            oldMod = newMod;
+
+            UpdateCommInfosVC updateCommInfosVC(lc.state);
+            GDSUtilsInMemory::runVertexCompute(updateCommInfosVC, lc.state.graph.numNodes,
+                input.context);
+
+            std::swap(lc.state.pastCommunities, lc.state.currCommunities);
+            std::swap(lc.state.currCommunities, lc.state.targetCommunities);
+        }
         auto newCommCount = lc.renumberCommunities();
 
-        // SetFinalComms setFinalComms(phase, louvainState, lc.state);
-        // GDSUtilsInMemory::runVertexCompute(setFinalComms, lc.state.graph, input.context);
-
-        if (phase == 0) {
-            // TODO: parallel NV
-            for (auto nodeId = 0u; nodeId < lc.origNumNodes; ++nodeId) {
-                louvainState.finalCommunities[nodeId] = lc.state.pastCommunities[nodeId];
-            }
-        } else {
-            // TODO: parallel NV
-            for (auto nodeId = 0u; nodeId < lc.origNumNodes; ++nodeId) {
-                auto prevCommunity = louvainState.finalCommunities[nodeId];
-                // Every previous community becomes a node in the current phase.
-                auto newCommunity = lc.state.pastCommunities[prevCommunity];
-                louvainState.finalCommunities[nodeId] = newCommunity;
-            }
-        }
+        SetFinalComms setFinalComms(phase, louvainState, lc.state);
+        GDSUtilsInMemory::runVertexCompute(setFinalComms, lc.origNumNodes, input.context);
 
         if (oldCommCount == newCommCount) {
             break;
         }
-        // cout << "Communities\n";
-        // for (auto communityId = 0u; communityId < state.communities.size(); ++communityId) {
-        //     string s;
-        //     for (const auto nodeId : state.communities[communityId]) {
-        //         s += std::format("{},", nodeId);
-        //     }
-        //     cout << std::format(" {} = [{}]\n", communityId, s);
-        // }
         lc.aggregateCommunities(newCommCount);
     }
 
@@ -450,10 +464,10 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto graphName = input->getLiteralVal<std::string>(0);
     auto graphEntry = GDSFunction::bindGraphEntry(*context, graphName);
     if (graphEntry.nodeInfos.size() != 1) {
-        throw RuntimeException("Kosaraju's SCC only supports operations on one node table.");
+        throw RuntimeException("Louvain only supports operations on one node table.");
     }
     if (graphEntry.relInfos.size() != 1) {
-        throw RuntimeException("Kosaraju's SCC only supports operations on one edge table.");
+        throw RuntimeException("Louvain only supports operations on one edge table.");
     }
     expression_vector columns;
     auto nodeOutput = GDSFunction::bindNodeOutput(*input, graphEntry.getNodeEntries());
