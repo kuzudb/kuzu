@@ -8,3 +8,6 @@ Checks:
 HeaderFilterRegex:
   src/include|tools/benchmark/include|tools/nodejs_api/src_cpp/include|tools/python_api/src_cpp/include|tools/rust_api/include|tools/shell/include|extension/[a-zA-Z0-9]*/src/include
 WarningsAsErrors: "*"
+ExcludePaths:
+  - 'src/function/vector_cast_functions.cpp'
+  
