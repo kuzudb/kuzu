@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "common/types/types.h"
 #include "storage/free_space_manager.h"
 #include "storage/page_chunk_entry.h"
