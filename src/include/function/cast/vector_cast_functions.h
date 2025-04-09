@@ -10,13 +10,20 @@ namespace function {
  *  Explicit casts are performed from user function calls, e.g. date(), string().
  *  Implicit casts are added internally.
  */
+
+struct CastChildFunctionExecutor;
+
+template<typename T>
+concept CastExecutor =
+    std::is_same_v<T, UnaryFunctionExecutor> || std::is_same_v<T, CastChildFunctionExecutor>;
+
 struct CastFunction {
     // This function is only used by expression binder when implicit cast is needed.
     // The expression binder should consider reusing the existing matchFunction() API.
     static bool hasImplicitCast(const common::LogicalType& srcType,
         const common::LogicalType& dstType);
 
-    template<typename EXECUTOR = UnaryFunctionExecutor>
+    template<CastExecutor EXECUTOR = UnaryFunctionExecutor>
     static std::unique_ptr<ScalarFunction> bindCastFunction(const std::string& functionName,
         const common::LogicalType& sourceType, const common::LogicalType& targetType);
 };
