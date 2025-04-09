@@ -108,8 +108,8 @@ void StorageManager::createRelTableGroup(catalog::RelGroupCatalogEntry* entry,
     main::ClientContext* context) {
     for (const auto id : entry->getRelTableIDs()) {
         createRelTable(context->getCatalog()
-                ->getTableCatalogEntry(context->getTransaction(), id)
-                ->ptrCast<RelTableCatalogEntry>());
+                           ->getTableCatalogEntry(context->getTransaction(), id)
+                           ->ptrCast<RelTableCatalogEntry>());
     }
 }
 
