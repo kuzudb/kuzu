@@ -4,13 +4,12 @@
 
 #include "binder/binder.h"
 #include "common/exception/runtime.h"
-#include "degrees.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
+#include "function/gds/gds_utils_mem.h"
 #include "gds_vertex_compute.h"
 #include "graph/graph_mem.h"
 #include "processor/execution_context.h"
-#include <function/gds/gds_utils_mem.h>
 
 using namespace std;
 using namespace kuzu::binder;
@@ -25,7 +24,7 @@ namespace function {
 constexpr uint32_t MAX_LEVELS = 10;
 constexpr uint32_t MAX_ITERATIONS = 10;
 constexpr double THRESHOLD = 1e-6;
-static constexpr offset_t OMAX = numeric_limits<offset_t>::max();
+static constexpr offset_t UNASSIGNED_COMM = numeric_limits<offset_t>::max();
 
 struct CommInfo {
     long size;
@@ -76,12 +75,13 @@ struct PhaseState {
     DELETE_BOTH_COPY(PhaseState);
 
     void reset(const offset_t numNodes) {
+        // Reuses allocations because `numNodes` monotonically decreases over phases.
         graph.reset(numNodes);
         nodeWeightedDegrees.assign(numNodes, 0.0);
         commInfos.assign(numNodes, CommInfo());
-        pastCommunities.assign(numNodes, OMAX);
-        currCommunities.assign(numNodes, OMAX);
-        targetCommunities.assign(numNodes, OMAX);
+        pastCommunities.assign(numNodes, UNASSIGNED_COMM);
+        currCommunities.assign(numNodes, UNASSIGNED_COMM);
+        targetCommunities.assign(numNodes, UNASSIGNED_COMM);
         totalWeight = 0.0;
     }
 
@@ -108,45 +108,45 @@ struct PhaseState {
     void finalize() { graph.insertNewNode(); }
 };
 
-struct LouvainState {
-    vector<offset_t> finalCommunities;
+struct FinalResults {
+    vector<offset_t> communities;
 
-    explicit LouvainState(const offset_t numNodes) { finalCommunities.resize(numNodes); }
+    explicit FinalResults(const offset_t numNodes) { communities.resize(numNodes); }
 };
 
-class SetFinalComms : public InMemVertexCompute {
+class SaveCommAssignments : public InMemVertexCompute {
 public:
-    explicit SetFinalComms(offset_t phase, LouvainState& lState, PhaseState& state)
-        : phase{phase}, lState{lState}, state{state} {}
+    explicit SaveCommAssignments(offset_t phaseId, FinalResults& finalResults, PhaseState& state)
+        : phaseId{phaseId}, finalResults{finalResults}, state{state} {}
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
-        if (phase == 0) {
+        if (phaseId == 0) {
             for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
-                lState.finalCommunities[nodeId] = state.pastCommunities[nodeId];
+                finalResults.communities[nodeId] = state.pastCommunities[nodeId];
             }
         } else {
             for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
-                auto prevCommunity = lState.finalCommunities[nodeId];
+                auto prevCommunity = finalResults.communities[nodeId];
                 // Every previous community becomes a node in the current phase.
                 auto newCommunity = state.pastCommunities[prevCommunity];
-                lState.finalCommunities[nodeId] = newCommunity;
+                finalResults.communities[nodeId] = newCommunity;
             }
         }
     }
 
     std::unique_ptr<InMemVertexCompute> copy() override {
-        return std::make_unique<SetFinalComms>(phase, lState, state);
+        return std::make_unique<SaveCommAssignments>(phaseId, finalResults, state);
     }
 
 private:
-    offset_t phase;
-    LouvainState& lState;
+    offset_t phaseId;
+    FinalResults& finalResults;
     PhaseState& state;
 };
 
-class RunIteration : public InMemVertexCompute {
+class RunIterationVC : public InMemVertexCompute {
 public:
-    explicit RunIteration(PhaseState& state) : state{state} {}
+    explicit RunIterationVC(PhaseState& state) : state{state} {}
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
         double constantForSecondTerm = 1.0 / state.totalWeight;
@@ -211,12 +211,12 @@ public:
                 }
                 state.targetCommunities[nodeId] = max;
             } else {
-                state.targetCommunities[nodeId] = OMAX;
+                state.targetCommunities[nodeId] = UNASSIGNED_COMM;
             }
 
             auto currCommId = state.currCommunities[nodeId];
             auto targetCommId = state.targetCommunities[nodeId];
-            if (targetCommId != currCommId && targetCommId != OMAX) {
+            if (targetCommId != currCommId && targetCommId != UNASSIGNED_COMM) {
                 state.commInfosNext[targetCommId].addDegree(state.nodeWeightedDegrees[nodeId]);
                 state.commInfosNext[targetCommId].addSize(1);
                 state.commInfosNext[currCommId].addDegree(-state.nodeWeightedDegrees[nodeId]);
@@ -228,7 +228,7 @@ public:
     }
 
     std::unique_ptr<InMemVertexCompute> copy() override {
-        return std::make_unique<RunIteration>(state);
+        return std::make_unique<RunIterationVC>(state);
     }
 
 private:
@@ -284,88 +284,11 @@ public:
 private:
     PhaseState& state;
 };
-struct LouvainCompute {
-    PhaseState state;
-    LouvainState& louvainState;
-    offset_t origNumNodes;
 
-    LouvainCompute(const table_id_t tableId, const offset_t numNodes, Graph* graph,
-        LouvainState& louvainState)
-        : state{PhaseState(numNodes)}, louvainState{louvainState}, origNumNodes{numNodes} {
-
-        auto nbrTables = graph->getForwardNbrTableInfos(tableId);
-        auto nbrInfo = nbrTables[0];
-        auto scanState = graph->prepareRelScan(nbrInfo.relEntry, nbrInfo.nodeEntry, "");
-
-        for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
-            state.insertNewNode(nodeId);
-            auto nextNodeId = nodeID_t{nodeId, tableId};
-            for (auto chunk : graph->scanFwd(nextNodeId, *scanState.get())) {
-                chunk.forEach([&](auto nbrNodeId, auto) {
-                    auto nbrId = nbrNodeId.offset;
-                    state.insertEdge(nodeId, nbrId);
-                });
-            }
-            for (auto chunk : graph->scanBwd(nextNodeId, *scanState.get())) {
-                chunk.forEach([&](auto nbrNodeId, auto) {
-                    auto nbrId = nbrNodeId.offset;
-                    if (nbrId != nodeId) {
-                        state.insertEdge(nodeId, nbrId);
-                    }
-                });
-            }
-        }
-        state.finalize();
-    }
-    DELETE_BOTH_COPY(LouvainCompute);
-
-    offset_t renumberCommunities() {
-        unordered_map<offset_t, offset_t> map;
-        offset_t nextCommId = 0;
-        for (auto i = 0u; i < state.pastCommunities.size(); ++i) {
-            auto commId = state.pastCommunities[i];
-            if (!map.contains(commId)) {
-                map.insert(make_pair(commId, nextCommId));
-                nextCommId++;
-            }
-            state.pastCommunities[i] = map.at(commId);
-        }
-        return nextCommId;
-    }
-
-    void aggregateCommunities(offset_t newCommCount) {
-        vector<unordered_map<offset_t, double>> commWeights;
-        commWeights.resize(newCommCount);
-        for (auto nodeId = 0u; nodeId < state.graph.numNodes; nodeId++) {
-            auto from = state.graph.nodes[nodeId];
-            auto to = state.graph.nodes[nodeId + 1];
-            auto commId = state.pastCommunities[nodeId];
-            for (auto offset = from; offset < to; ++offset) {
-                auto nbr = state.graph.neighbors[offset];
-                auto nbrCommId = state.pastCommunities[nbr.neighbor];
-                if (commId >= nbrCommId) {
-                    commWeights[commId][nbrCommId] += nbr.weight;
-                    if (commId != nbrCommId) {
-                        commWeights[nbrCommId][commId] += nbr.weight;
-                    }
-                }
-            }
-        }
-        state.reset(newCommCount);
-        for (auto nodeId = 0u; nodeId < newCommCount; nodeId++) {
-            state.insertNewNode(nodeId);
-            for (auto [nbrId, weight] : commWeights[nodeId]) {
-                state.insertEdge(nodeId, nbrId, weight);
-            }
-        }
-        state.finalize();
-    }
-};
-
-class SCCVertexCompute : public GDSResultVertexCompute {
+class WriteResultsVC : public GDSResultVertexCompute {
 public:
-    SCCVertexCompute(MemoryManager* mm, GDSFuncSharedState* sharedState, LouvainState& louvainState)
-        : GDSResultVertexCompute{mm, sharedState}, louvainState{louvainState} {
+    WriteResultsVC(MemoryManager* mm, GDSFuncSharedState* sharedState, FinalResults& louvainState)
+        : GDSResultVertexCompute{mm, sharedState}, finalResults{louvainState} {
         nodeIDVector = createVector(LogicalType::INTERNAL_ID());
         componentIDVector = createVector(LogicalType::UINT64());
     }
@@ -377,20 +300,89 @@ public:
         for (auto i = startOffset; i < endOffset; ++i) {
             auto nodeID = nodeID_t{i, tableID};
             nodeIDVector->setValue<nodeID_t>(0, nodeID);
-            componentIDVector->setValue<uint64_t>(0, louvainState.finalCommunities[i]);
+            componentIDVector->setValue<uint64_t>(0, finalResults.communities[i]);
             localFT->append(vectors);
         }
     }
 
     unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<SCCVertexCompute>(mm, sharedState, louvainState);
+        return std::make_unique<WriteResultsVC>(mm, sharedState, finalResults);
     }
 
 private:
-    LouvainState& louvainState;
+    FinalResults& finalResults;
     unique_ptr<ValueVector> nodeIDVector;
     unique_ptr<ValueVector> componentIDVector;
 };
+
+void initInMemoryGraph(const table_id_t tableId, const offset_t numNodes, Graph* graph,
+    PhaseState& state) {
+    auto nbrTables = graph->getForwardNbrTableInfos(tableId);
+    auto nbrInfo = nbrTables[0];
+    auto scanState = graph->prepareRelScan(nbrInfo.relEntry, nbrInfo.nodeEntry, "");
+
+    for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
+        state.insertNewNode(nodeId);
+        auto nextNodeId = nodeID_t{nodeId, tableId};
+        for (auto chunk : graph->scanFwd(nextNodeId, *scanState.get())) {
+            chunk.forEach([&](auto nbrNodeId, auto) {
+                auto nbrId = nbrNodeId.offset;
+                state.insertEdge(nodeId, nbrId);
+            });
+        }
+        for (auto chunk : graph->scanBwd(nextNodeId, *scanState.get())) {
+            chunk.forEach([&](auto nbrNodeId, auto) {
+                auto nbrId = nbrNodeId.offset;
+                if (nbrId != nodeId) {
+                    state.insertEdge(nodeId, nbrId);
+                }
+            });
+        }
+    }
+    state.finalize();
+}
+
+offset_t renumberCommunities(PhaseState& state) {
+    unordered_map<offset_t, offset_t> map;
+    offset_t nextCommId = 0;
+    for (auto i = 0u; i < state.pastCommunities.size(); ++i) {
+        auto commId = state.pastCommunities[i];
+        if (!map.contains(commId)) {
+            map.insert(make_pair(commId, nextCommId));
+            nextCommId++;
+        }
+        state.pastCommunities[i] = map.at(commId);
+    }
+    return nextCommId;
+}
+
+void aggregateCommunities(offset_t newCommCount, PhaseState& state) {
+    vector<unordered_map<offset_t, double>> commWeights;
+    commWeights.resize(newCommCount);
+    for (auto nodeId = 0u; nodeId < state.graph.numNodes; nodeId++) {
+        auto from = state.graph.nodes[nodeId];
+        auto to = state.graph.nodes[nodeId + 1];
+        auto commId = state.pastCommunities[nodeId];
+        for (auto offset = from; offset < to; ++offset) {
+            auto nbr = state.graph.neighbors[offset];
+            auto nbrCommId = state.pastCommunities[nbr.neighbor];
+            if (commId >= nbrCommId) {
+                commWeights[commId][nbrCommId] += nbr.weight;
+                if (commId != nbrCommId) {
+                    commWeights[nbrCommId][commId] += nbr.weight;
+                }
+            }
+        }
+    }
+    state.reset(newCommCount);
+    for (auto nodeId = 0u; nodeId < newCommCount; nodeId++) {
+        state.insertNewNode(nodeId);
+        for (auto [nbrId, weight] : commWeights[nodeId]) {
+            state.insertEdge(nodeId, nbrId, weight);
+        }
+    }
+    state.finalize();
+}
 
 static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto clientContext = input.context->clientContext;
@@ -401,29 +393,26 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto maxOffsetMap = graph->getMaxOffsetMap(transaction);
     KU_ASSERT(graph->getNodeTableIDs().size() == 1);
     auto tableID = graph->getNodeTableIDs()[0];
-    auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableID);
+    auto origNumNodes = graph->getMaxOffset(clientContext->getTransaction(), tableID);
 
-    auto louvainState = LouvainState(numNodes);
-    LouvainCompute lc(tableID, numNodes, graph, louvainState);
+    FinalResults finalResults(origNumNodes);
+    PhaseState state(origNumNodes);
+    initInMemoryGraph(tableID, origNumNodes, graph, state);
 
     for (auto phase = 0u; phase < MAX_LEVELS; ++phase) {
-        auto oldCommCount = lc.state.graph.numNodes;
-
         double oldMod = -1;
-        double newMod = -1;
 
         for (auto iter = 0u; iter < MAX_ITERATIONS; ++iter) {
-            lc.state.startNewIter();
+            state.startNewIter();
 
-            RunIteration runIteration(lc.state);
-            GDSUtilsInMemory::runVertexCompute(runIteration, lc.state.graph.numNodes,
-                input.context);
+            RunIterationVC runIteration(state);
+            GDSUtilsInMemory::runVertexCompute(runIteration, state.graph.numNodes, input.context);
 
-            NewModularityVC newModularityVC(lc.state);
-            GDSUtilsInMemory::runVertexCompute(newModularityVC, lc.state.graph.numNodes,
+            NewModularityVC newModularityVC(state);
+            GDSUtilsInMemory::runVertexCompute(newModularityVC, state.graph.numNodes,
                 input.context);
-            double constantForSecondTerm = 1.0 / lc.state.totalWeight;
-            newMod =
+            double constantForSecondTerm = 1.0 / state.totalWeight;
+            double newMod =
                 newModularityVC.sumIntra.load() * constantForSecondTerm -
                 (newModularityVC.sumTotal.load() * constantForSecondTerm * constantForSecondTerm);
 
@@ -432,25 +421,26 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             }
             oldMod = newMod;
 
-            UpdateCommInfosVC updateCommInfosVC(lc.state);
-            GDSUtilsInMemory::runVertexCompute(updateCommInfosVC, lc.state.graph.numNodes,
+            UpdateCommInfosVC updateCommInfosVC(state);
+            GDSUtilsInMemory::runVertexCompute(updateCommInfosVC, state.graph.numNodes,
                 input.context);
 
-            std::swap(lc.state.pastCommunities, lc.state.currCommunities);
-            std::swap(lc.state.currCommunities, lc.state.targetCommunities);
+            std::swap(state.pastCommunities, state.currCommunities);
+            std::swap(state.currCommunities, state.targetCommunities);
         }
-        auto newCommCount = lc.renumberCommunities();
+        auto oldCommCount = state.graph.numNodes;
+        auto newCommCount = renumberCommunities(state);
 
-        SetFinalComms setFinalComms(phase, louvainState, lc.state);
-        GDSUtilsInMemory::runVertexCompute(setFinalComms, lc.origNumNodes, input.context);
+        SaveCommAssignments setFinalComms(phase, finalResults, state);
+        GDSUtilsInMemory::runVertexCompute(setFinalComms, origNumNodes, input.context);
 
         if (oldCommCount == newCommCount) {
             break;
         }
-        lc.aggregateCommunities(newCommCount);
+        aggregateCommunities(newCommCount, state);
     }
 
-    auto vertexCompute = make_unique<SCCVertexCompute>(mm, sharedState, louvainState);
+    auto vertexCompute = make_unique<WriteResultsVC>(mm, sharedState, finalResults);
     GDSUtils::runVertexCompute(input.context, graph, *vertexCompute);
 
     sharedState->factorizedTablePool.mergeLocalTables();
