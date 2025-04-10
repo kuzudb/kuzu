@@ -6,7 +6,7 @@
 
 namespace kuzu::storage {
 struct ColumnChunkMetadata {
-    PageChunkEntry pageChunk;
+    PageRange pageChunk;
     uint64_t numValues;
     CompressionMetadata compMeta;
 

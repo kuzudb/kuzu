@@ -3,12 +3,12 @@
 #include "common/types/types.h"
 namespace kuzu::storage {
 
-struct PageChunkEntry {
-    PageChunkEntry() = default;
-    PageChunkEntry(common::page_idx_t startPageIdx, common::page_idx_t numPages)
+struct PageRange {
+    PageRange() = default;
+    PageRange(common::page_idx_t startPageIdx, common::page_idx_t numPages)
         : startPageIdx(startPageIdx), numPages(numPages) {}
-    PageChunkEntry(const PageChunkEntry& o, common::page_idx_t startPageInOther)
-        : PageChunkEntry(o.startPageIdx + startPageInOther, o.numPages - startPageInOther) {
+    PageRange(const PageRange& o, common::page_idx_t startPageInOther)
+        : PageRange(o.startPageIdx + startPageInOther, o.numPages - startPageInOther) {
         KU_ASSERT(startPageInOther <= o.numPages);
     }
 

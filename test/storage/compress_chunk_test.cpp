@@ -100,7 +100,8 @@ ColumnChunkMetadata compressBuffer(const std::vector<T>& bufferToCompress,
     auto preScanMetadata =
         GetFloatCompressionMetadata<T>{alg, dataType}.operator()(byteSpan(bufferToCompress),
             bufferToCompress.size(), bufferToCompress.size(), metadata->min, metadata->max);
-    auto allocatedBlock = dataFH->getPageManager()->allocateBlock(preScanMetadata.getNumPages());
+    auto allocatedBlock =
+        dataFH->getPageManager()->allocatePageRange(preScanMetadata.getNumPages());
 
     if (preScanMetadata.compMeta.compression == CompressionType::CONSTANT) {
         return preScanMetadata;

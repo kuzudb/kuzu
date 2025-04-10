@@ -439,15 +439,5 @@ void ListChunkData::flush(FileHandle& dataFH) {
     offsetColumnChunk->flush(dataFH);
 }
 
-void ListChunkData::reclaimAllocatedPages(FileHandle& dataFH, const ChunkState& state) const {
-    ColumnChunkData::reclaimAllocatedPages(dataFH, state);
-    sizeColumnChunk->reclaimAllocatedPages(dataFH,
-        state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX]);
-    dataColumnChunk->reclaimAllocatedPages(dataFH,
-        state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX]);
-    offsetColumnChunk->reclaimAllocatedPages(dataFH,
-        state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX]);
-}
-
 } // namespace storage
 } // namespace kuzu

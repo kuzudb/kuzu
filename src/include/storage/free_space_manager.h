@@ -6,30 +6,30 @@
 #include "common/types/types.h"
 namespace kuzu::storage {
 
-struct PageChunkEntry;
+struct PageRange;
 struct FreeEntryIterator;
 
 class FreeSpaceManager {
 public:
-    static bool entryCmp(const PageChunkEntry& a, const PageChunkEntry& b);
-    using sorted_free_list_t = std::set<PageChunkEntry, decltype(&entryCmp)>;
+    static bool entryCmp(const PageRange& a, const PageRange& b);
+    using sorted_free_list_t = std::set<PageRange, decltype(&entryCmp)>;
 
     FreeSpaceManager();
 
-    void addFreeChunk(PageChunkEntry entry);
-    std::optional<PageChunkEntry> popFreeChunk(common::page_idx_t numPages);
+    void addFreePages(PageRange entry);
+    std::optional<PageRange> popFreePages(common::page_idx_t numPages);
 
     void serialize(common::Serializer& serializer) const;
-    static std::unique_ptr<FreeSpaceManager> deserialize(common::Deserializer& deSer);
+    void deserialize(common::Deserializer& deSer);
     void finalizeCheckpoint();
 
     common::row_idx_t getNumEntries() const;
-    std::vector<PageChunkEntry> getEntries(common::row_idx_t startOffset,
+    std::vector<PageRange> getEntries(common::row_idx_t startOffset,
         common::row_idx_t endOffset) const;
 
 private:
-    PageChunkEntry breakUpChunk(PageChunkEntry chunk, common::page_idx_t numRequiredPages);
-    void combineAdjacentChunks();
+    PageRange splitPageRange(PageRange chunk, common::page_idx_t numRequiredPages);
+    void mergePageRanges();
     void reset();
     static common::idx_t getLevel(common::page_idx_t numPages);
 
@@ -53,7 +53,7 @@ struct FreeEntryIterator {
 
     void advance(common::row_idx_t numEntries);
     void operator++();
-    PageChunkEntry operator*() const;
+    PageRange operator*() const;
     bool done() const;
 
     void advanceFreeListIdx();

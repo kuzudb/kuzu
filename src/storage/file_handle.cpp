@@ -16,7 +16,8 @@ FileHandle::FileHandle(const std::string& path, uint8_t flags, BufferManager* bm
     uint32_t fileIndex, PageSizeClass pageSizeClass, VirtualFileSystem* vfs,
     main::ClientContext* context)
     : flags{flags}, fileIndex{fileIndex}, numPages{0}, pageCapacity{0}, bm{bm},
-      pageSizeClass{pageSizeClass}, pageStates{0, 0}, frameGroupIdxes{0, 0} {
+      pageSizeClass{pageSizeClass}, pageStates{0, 0}, frameGroupIdxes{0, 0},
+      pageManager(std::make_unique<PageManager>(this)) {
     if (!isNewTmpFile()) {
         constructExistingFileHandle(path, vfs, context);
     } else {
@@ -157,27 +158,6 @@ void FileHandle::flushPageIfDirtyWithoutLock(page_idx_t pageIdx) {
     if (!isInMemoryMode() && pageState->isDirty()) {
         fileInfo->writeFile(getFrame(pageIdx), getPageSize(), pageIdx * getPageSize());
         pageState->clearDirtyWithoutLock();
-    }
-}
-
-void FileHandle::serializePageManager(common::Serializer& ser) const {
-    ser.writeDebuggingInfo("page_manager");
-    pageManager->serialize(ser);
-}
-
-void FileHandle::deserializePageManager(common::Deserializer& deSer) {
-    std::string key;
-    deSer.validateDebuggingInfo(key, "page_manager");
-    pageManager = PageManager::deserialize(deSer, this);
-}
-
-void FileHandle::finalizeCheckpoint() {
-    pageManager->finalizeCheckpoint();
-}
-
-void FileHandle::finalizeInit() {
-    if (!pageManager) {
-        pageManager = std::make_unique<PageManager>(this);
     }
 }
 

@@ -112,11 +112,6 @@ public:
     }
 
     PageManager* getPageManager() { return pageManager.get(); }
-    void serializePageManager(common::Serializer& ser) const;
-    void deserializePageManager(common::Deserializer& deSer);
-    void finalizeInit();
-
-    void finalizeCheckpoint();
 
 private:
     bool isLargePaged() const { return flags & isLargePagedMask; }

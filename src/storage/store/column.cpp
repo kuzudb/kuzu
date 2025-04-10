@@ -179,10 +179,8 @@ std::unique_ptr<ColumnChunkData> Column::flushNonNestedChunkData(const ColumnChu
 
 ColumnChunkMetadata Column::flushData(const ColumnChunkData& chunkData, FileHandle& dataFH) {
     KU_ASSERT(chunkData.sanityCheck());
-    // TODO(Guodong/Ben): We can optimize the flush to write back to same set of pages if new
-    // flushed data are not out of the capacity.
     const auto preScanMetadata = chunkData.getMetadataToFlush();
-    auto allocatedBlock = dataFH.getPageManager()->allocateBlock(preScanMetadata.getNumPages());
+    auto allocatedBlock = dataFH.getPageManager()->allocatePageRange(preScanMetadata.getNumPages());
     return chunkData.flushBuffer(&dataFH, allocatedBlock, preScanMetadata);
 }
 
@@ -408,7 +406,7 @@ void Column::checkpointColumnChunkOutOfPlace(const ChunkState& state,
     checkpointState.persistentData.setToInMemory();
     checkpointState.persistentData.resize(numRows);
     scan(&DUMMY_CHECKPOINT_TRANSACTION, state, &checkpointState.persistentData);
-    checkpointState.persistentData.reclaimAllocatedPages(*dataFH, state);
+    state.reclaimAllocatedPages(*dataFH);
     for (auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
         checkpointState.persistentData.write(chunkCheckpointState.chunkData.get(), 0 /*srcOffset*/,
             chunkCheckpointState.startRow, chunkCheckpointState.numRows);

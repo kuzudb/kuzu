@@ -34,6 +34,19 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
+void ChunkState::reclaimAllocatedPages(FileHandle& dataFH) const {
+    const auto& entry = metadata.pageChunk;
+    if (entry.startPageIdx != INVALID_PAGE_IDX) {
+        dataFH.getPageManager()->freePageRange(entry);
+    }
+    if (nullState) {
+        nullState->reclaimAllocatedPages(dataFH);
+    }
+    for (const auto& child : childrenStates) {
+        child.reclaimAllocatedPages(dataFH);
+    }
+}
+
 static std::shared_ptr<CompressionAlg> getCompression(const LogicalType& dataType,
     bool enableCompression) {
     if (!enableCompression) {
@@ -292,7 +305,7 @@ void ColumnChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChu
 
 void ColumnChunkData::flush(FileHandle& dataFH) {
     const auto preScanMetadata = getMetadataToFlush();
-    auto allocatedEntry = dataFH.getPageManager()->allocateBlock(preScanMetadata.getNumPages());
+    auto allocatedEntry = dataFH.getPageManager()->allocatePageRange(preScanMetadata.getNumPages());
     const auto flushedMetadata = flushBuffer(&dataFH, allocatedEntry, preScanMetadata);
     setToOnDisk(flushedMetadata);
     if (nullData) {
@@ -311,7 +324,7 @@ void ColumnChunkData::setToOnDisk(const ColumnChunkMetadata& otherMetadata) {
     resetInMemoryStats();
 }
 
-ColumnChunkMetadata ColumnChunkData::flushBuffer(FileHandle* dataFH, const PageChunkEntry& entry,
+ColumnChunkMetadata ColumnChunkData::flushBuffer(FileHandle* dataFH, const PageRange& entry,
     const ColumnChunkMetadata& otherMetadata) const {
     if (!otherMetadata.compMeta.isConstant() && getBufferSize() != 0) {
         KU_ASSERT(getBufferSize() == getBufferSize(capacity));
@@ -995,17 +1008,6 @@ uint64_t ColumnChunkData::spillToDisk() {
 }
 
 ColumnChunkData::~ColumnChunkData() = default;
-
-void ColumnChunkData::reclaimAllocatedPages(FileHandle& dataFH, const ChunkState& state) const {
-    const auto& entry = state.metadata.pageChunk;
-    if (entry.startPageIdx != INVALID_PAGE_IDX) {
-        dataFH.getPageManager()->freeBlock(entry);
-    }
-    if (nullData) {
-        KU_ASSERT(state.nullState);
-        nullData->reclaimAllocatedPages(dataFH, *state.nullState);
-    }
-}
 
 } // namespace storage
 } // namespace kuzu

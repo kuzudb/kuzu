@@ -51,8 +51,6 @@ public:
 
     void flush(FileHandle& dataFH) override;
 
-    void reclaimAllocatedPages(FileHandle& dataFH, const ChunkState& state) const override;
-
 protected:
     void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;

@@ -442,7 +442,7 @@ void ColumnReadWriter::readFromPage(const Transaction* transaction, page_idx_t p
     fileHandleToPin->optimisticReadPage(pageIdxToPin, readFunc);
 }
 
-page_idx_t ColumnReadWriter::updatePageWithCursor(PageCursor cursor,
+bool ColumnReadWriter::updatePageWithCursor(PageCursor cursor,
     const std::function<void(uint8_t*, common::offset_t)>& writeOp) const {
     bool insertingNewPage = false;
     if (cursor.pageIdx == INVALID_PAGE_IDX) {

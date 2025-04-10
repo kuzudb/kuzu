@@ -87,14 +87,6 @@ void StructChunkData::flush(FileHandle& dataFH) {
     }
 }
 
-void StructChunkData::reclaimAllocatedPages(FileHandle& dataFH, const ChunkState& state) const {
-    ColumnChunkData::reclaimAllocatedPages(dataFH, state);
-    KU_ASSERT(childChunks.size() == state.childrenStates.size());
-    for (idx_t i = 0; i < childChunks.size(); ++i) {
-        childChunks[i]->reclaimAllocatedPages(dataFH, state.childrenStates[i]);
-    }
-}
-
 void StructChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     KU_ASSERT(other->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);

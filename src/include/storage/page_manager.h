@@ -18,21 +18,18 @@ class FileHandle;
 
 class PageManager {
 public:
-    PageManager(FileHandle* fileHandle, std::unique_ptr<FreeSpaceManager> fsm)
-        : freeSpaceManager(std::move(fsm)), fileHandle(fileHandle) {}
     explicit PageManager(FileHandle* fileHandle)
-        : PageManager(fileHandle, std::make_unique<FreeSpaceManager>()) {}
+        : freeSpaceManager(std::make_unique<FreeSpaceManager>()), fileHandle(fileHandle) {}
 
-    PageChunkEntry allocateBlock(common::page_idx_t numPages);
-    void freeBlock(PageChunkEntry block);
+    PageRange allocatePageRange(common::page_idx_t numPages);
+    void freePageRange(PageRange block);
 
     void serialize(common::Serializer& serializer);
-    static std::unique_ptr<PageManager> deserialize(common::Deserializer& deSer,
-        FileHandle* fileHandle);
+    void deserialize(common::Deserializer& deSer);
     void finalizeCheckpoint();
 
     common::row_idx_t getNumFreeEntries() const { return freeSpaceManager->getNumEntries(); }
-    std::vector<PageChunkEntry> getFreeEntries(common::row_idx_t startOffset,
+    std::vector<PageRange> getFreeEntries(common::row_idx_t startOffset,
         common::row_idx_t endOffset) const {
         return freeSpaceManager->getEntries(startOffset, endOffset);
     }

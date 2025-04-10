@@ -110,8 +110,6 @@ public:
 
     void flush(FileHandle& dataFH) override;
 
-    void reclaimAllocatedPages(FileHandle& dataFH, const ChunkState& state) const override;
-
 protected:
     void copyListValues(const common::list_entry_t& entry, common::ValueVector* dataVector);
 
