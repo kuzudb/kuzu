@@ -10,7 +10,7 @@
 Runtime exception: Project graph PK already exists.
 -STATEMENT CALL create_projected_graph('dummy', ['knows'], [])
 ---- error
-Binder exception: Expect catalog entry type NODE_TABLE_ENTRY but got REL_TABLE_ENTRY.
+Binder exception: knows is not a NODE table.
 -STATEMENT CALL create_projected_graph('PKWO', ['person', 'organisation'], ['knows', 'workAt'])
 ---- ok
 -STATEMENT MATCH (a:person)-[:knows*1..2]->(b:person) WHERE a.ID < 6 RETURN a.fName, COUNT(*);

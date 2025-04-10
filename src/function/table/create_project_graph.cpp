@@ -72,10 +72,9 @@ static std::string getPredicateStr(Value& val) {
             const auto childVal = NestedVal::getChildVal(&val, i);
             childVal->validateType(LogicalTypeID::STRING);
             return childVal->getValue<std::string>();
-        } else {
-            throw BinderException(stringFormat(
-                "Unrecognized configuration {}. Supported configuration is 'filter'.", fieldName));
         }
+        throw BinderException(stringFormat(
+            "Unrecognized configuration {}. Supported configuration is 'filter'.", fieldName));
     }
     return {};
 }
