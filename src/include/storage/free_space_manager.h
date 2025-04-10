@@ -13,11 +13,15 @@ class FreeSpaceManager {
 public:
     static bool entryCmp(const PageRange& a, const PageRange& b);
     using sorted_free_list_t = std::set<PageRange, decltype(&entryCmp)>;
+    using free_list_t = std::vector<PageRange>;
 
     FreeSpaceManager();
 
     void addFreePages(PageRange entry);
     std::optional<PageRange> popFreePages(common::page_idx_t numPages);
+
+    // These pages are not reusuable until the end of the next checkpoint
+    void addUncheckpointedFreePages(PageRange entry);
 
     void serialize(common::Serializer& serializer) const;
     void deserialize(common::Deserializer& deSer);
@@ -29,11 +33,12 @@ public:
 
 private:
     PageRange splitPageRange(PageRange chunk, common::page_idx_t numRequiredPages);
-    void mergePageRanges();
-    void reset();
+    void mergePageRanges(free_list_t newInitialEntries);
+    void resetFreeLists();
     static common::idx_t getLevel(common::page_idx_t numPages);
 
     std::vector<sorted_free_list_t> freeLists;
+    free_list_t uncheckpointedFreePageRanges;
     common::row_idx_t numEntries;
 };
 

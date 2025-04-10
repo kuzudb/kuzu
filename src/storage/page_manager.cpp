@@ -27,7 +27,9 @@ void PageManager::freePageRange(PageRange entry) {
             const auto pageIdx = entry.startPageIdx + i;
             fileHandle->removePageFromFrameIfNecessary(pageIdx);
         }
-        freeSpaceManager->addFreePages(entry);
+        // Freed pages cannot be immediately reused to ensure checkpoint recovery works
+        // Instead they are reusable after the end of the next checkpoint
+        freeSpaceManager->addUncheckpointedFreePages(entry);
     }
 }
 

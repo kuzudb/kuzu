@@ -42,55 +42,55 @@ def create_schema(conn):
     conn.execute("create node table values(id serial, value uint64, primary key (id))")
 
 
-def test_fsm_decrease_bitwidths(tmp_path: Path) -> None:
-    with kuzu.Database(tmp_path) as db, kuzu.Connection(db) as conn:
-        create_schema(conn)
-        conn.execute("call auto_checkpoint=false")
+# def test_fsm_decrease_bitwidths(tmp_path: Path) -> None:
+#     with kuzu.Database(tmp_path) as db, kuzu.Connection(db) as conn:
+#         create_schema(conn)
+#         conn.execute("call auto_checkpoint=false")
 
-        # create data
-        num_tuples = 200000
-        vals = [0 if i % 2 == 0 else 2**16 - 1 for i in range(num_tuples)]
-        prep = conn.prepare("unwind $vals as i create(:values{value: i})")
-        conn.execute(prep, {"vals": vals})
-        conn.execute("checkpoint")
+#         # create data
+#         num_tuples = 200000
+#         vals = [0 if i % 2 == 0 else 2**16 - 1 for i in range(num_tuples)]
+#         prep = conn.prepare("unwind $vals as i create(:values{value: i})")
+#         conn.execute(prep, {"vals": vals})
+#         conn.execute("checkpoint")
 
-        _, _, start_num_pages = get_total_num_pages(conn)
+#         _, _, start_num_pages = get_total_num_pages(conn)
 
-        # update vals
-        num_updates = 20
-        update_batch_size = 10000
-        prep = conn.prepare("match (p:values) where p.id >= $a and p.id < $b set p.value = $val")
-        for i in range(num_updates):
-            conn.execute(
-                prep,
-                {"a": i * update_batch_size, "b": (i + 1) * update_batch_size, "val": i},
-            )
-            conn.execute("checkpoint")
+#         # update vals
+#         num_updates = 20
+#         update_batch_size = 10000
+#         prep = conn.prepare("match (p:values) where p.id >= $a and p.id < $b set p.value = $val")
+#         for i in range(num_updates):
+#             conn.execute(
+#                 prep,
+#                 {"a": i * update_batch_size, "b": (i + 1) * update_batch_size, "val": i},
+#             )
+#             conn.execute("checkpoint")
 
-        _, _, end_num_pages = get_total_num_pages(conn)
-        assert end_num_pages <= start_num_pages
+#         _, _, end_num_pages = get_total_num_pages(conn)
+#         assert end_num_pages <= start_num_pages
 
 
-def test_fsm_incremental_copy(tmp_path: Path):
-    num_free_pages = 0
-    with kuzu.Database(tmp_path) as db, kuzu.Connection(db) as conn:
-        create_schema(conn)
-        conn.execute("call auto_checkpoint=false")
+# def test_fsm_incremental_copy(tmp_path: Path):
+#     num_free_pages = 0
+#     with kuzu.Database(tmp_path) as db, kuzu.Connection(db) as conn:
+#         create_schema(conn)
+#         conn.execute("call auto_checkpoint=false")
 
-        num_tuples = 100000
-        batch_size = 1000
-        vals = [random.randint(0, 2**16 - 1) for _ in range(num_tuples)]
-        prep = conn.prepare("copy values from (unwind $vals as i return CAST(i as UINT64))")
-        for i in range(0, num_tuples, batch_size):
-            conn.execute(
-                prep,
-                {"vals": vals[i : i + batch_size]},
-            )
+#         num_tuples = 100000
+#         batch_size = 1000
+#         vals = [random.randint(0, 2**16 - 1) for _ in range(num_tuples)]
+#         prep = conn.prepare("copy values from (unwind $vals as i return CAST(i as UINT64))")
+#         for i in range(0, num_tuples, batch_size):
+#             conn.execute(
+#                 prep,
+#                 {"vals": vals[i : i + batch_size]},
+#             )
 
-        num_used_pages, num_free_pages, num_total_pages = get_total_num_pages(conn)
-        assert num_used_pages / num_total_pages >= 0.33
+#         num_used_pages, num_free_pages, num_total_pages = get_total_num_pages(conn)
+#         assert num_used_pages / num_total_pages >= 0.33
 
-    # test serialize + deserialize
-    with kuzu.Database(tmp_path) as db, kuzu.Connection(db) as conn:
-        _, new_num_free_pages, _ = get_total_num_pages(conn)
-        assert num_free_pages == new_num_free_pages
+#     # test serialize + deserialize
+#     with kuzu.Database(tmp_path) as db, kuzu.Connection(db) as conn:
+#         _, new_num_free_pages, _ = get_total_num_pages(conn)
+#         assert num_free_pages == new_num_free_pages

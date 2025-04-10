@@ -15,7 +15,7 @@ static FreeSpaceManager::sorted_free_list_t& getFreeList(
     return freeLists[level];
 }
 
-FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0){};
+FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0) {};
 
 common::idx_t FreeSpaceManager::getLevel(common::page_idx_t numPages) {
     // level is exponent of largest power of 2 that is <= numPages
@@ -31,6 +31,10 @@ bool FreeSpaceManager::entryCmp(const PageRange& a, const PageRange& b) {
 void FreeSpaceManager::addFreePages(PageRange entry) {
     getFreeList(freeLists, getLevel(entry.numPages)).insert(entry);
     ++numEntries;
+}
+
+void FreeSpaceManager::addUncheckpointedFreePages(PageRange entry) {
+    uncheckpointedFreePageRanges.push_back(entry);
 }
 
 // This also removes the chunk from the free space manager
@@ -96,16 +100,17 @@ void FreeSpaceManager::deserialize(common::Deserializer& deSer) {
 }
 
 void FreeSpaceManager::finalizeCheckpoint() {
-    mergePageRanges();
+    mergePageRanges(std::move(uncheckpointedFreePageRanges));
+    uncheckpointedFreePageRanges.clear();
 }
 
-void FreeSpaceManager::reset() {
+void FreeSpaceManager::resetFreeLists() {
     freeLists.clear();
     numEntries = 0;
 }
 
-void FreeSpaceManager::mergePageRanges() {
-    std::vector<PageRange> allEntries;
+void FreeSpaceManager::mergePageRanges(free_list_t newInitialEntries) {
+    std::vector<PageRange> allEntries = std::move(newInitialEntries);
     for (const auto& freeList : freeLists) {
         allEntries.insert(allEntries.end(), freeList.begin(), freeList.end());
     }
@@ -113,7 +118,7 @@ void FreeSpaceManager::mergePageRanges() {
         return;
     }
 
-    reset();
+    resetFreeLists();
     std::sort(allEntries.begin(), allEntries.end(), [](const auto& entryA, const auto& entryB) {
         return entryA.startPageIdx < entryB.startPageIdx;
     });
