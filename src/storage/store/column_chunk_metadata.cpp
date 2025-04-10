@@ -73,16 +73,16 @@ ColumnChunkMetadata booleanGetMetadata(std::span<const uint8_t> buffer, uint64_t
 }
 
 void ColumnChunkMetadata::serialize(common::Serializer& serializer) const {
-    serializer.write(pageChunk.startPageIdx);
-    serializer.write(pageChunk.numPages);
+    serializer.write(pageRange.startPageIdx);
+    serializer.write(pageRange.numPages);
     serializer.write(numValues);
     compMeta.serialize(serializer);
 }
 
 ColumnChunkMetadata ColumnChunkMetadata::deserialize(common::Deserializer& deserializer) {
     ColumnChunkMetadata ret;
-    deserializer.deserializeValue(ret.pageChunk.startPageIdx);
-    deserializer.deserializeValue(ret.pageChunk.numPages);
+    deserializer.deserializeValue(ret.pageRange.startPageIdx);
+    deserializer.deserializeValue(ret.pageRange.numPages);
     deserializer.deserializeValue(ret.numValues);
     ret.compMeta = decltype(ret.compMeta)::deserialize(deserializer);
 

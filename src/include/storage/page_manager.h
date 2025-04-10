@@ -4,7 +4,7 @@
 
 #include "common/types/types.h"
 #include "storage/free_space_manager.h"
-#include "storage/page_chunk_entry.h"
+#include "storage/page_range.h"
 
 namespace kuzu {
 namespace transaction {

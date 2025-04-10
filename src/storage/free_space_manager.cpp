@@ -3,7 +3,7 @@
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/utils.h"
-#include "storage/page_chunk_entry.h"
+#include "storage/page_range.h"
 
 namespace kuzu::storage {
 static FreeSpaceManager::sorted_free_list_t& getFreeList(

@@ -1,3 +1,9 @@
+/**
+ * We would like to thank Mingkun Ni and Mayank Jasoria for doing the initial research and
+ * prototyping for the FreeSpaceManager in their CS 848 course project:
+ * https://github.com/ericpolo/kuzu_cs848
+ */
+
 #pragma once
 
 #include <optional>

@@ -352,7 +352,7 @@ offset_t Column::appendValues(ColumnChunkData& persistentChunk, ChunkState& stat
     const auto numNewPages =
         writeValues(state, metadata.numValues, data, nullChunkData, 0 /*dataOffset*/, numValues);
     KU_ASSERT(numNewPages == 0);
-    metadata.pageChunk.numPages += numNewPages;
+    metadata.pageRange.numPages += numNewPages;
 
     auto [minWritten, maxWritten] = getMinMaxStorageValue(data, 0 /*offset*/, numValues,
         dataType.getPhysicalType(), nullChunkData);

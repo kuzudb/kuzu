@@ -35,7 +35,7 @@ namespace kuzu {
 namespace storage {
 
 void ChunkState::reclaimAllocatedPages(FileHandle& dataFH) const {
-    const auto& entry = metadata.pageChunk;
+    const auto& entry = metadata.pageRange;
     if (entry.startPageIdx != INVALID_PAGE_IDX) {
         dataFH.getPageManager()->freePageRange(entry);
     }

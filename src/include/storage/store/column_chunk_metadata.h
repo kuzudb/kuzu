@@ -2,16 +2,16 @@
 
 #include "common/types/types.h"
 #include "storage/compression/compression.h"
-#include "storage/page_chunk_entry.h"
+#include "storage/page_range.h"
 
 namespace kuzu::storage {
 struct ColumnChunkMetadata {
-    PageRange pageChunk;
+    PageRange pageRange;
     uint64_t numValues;
     CompressionMetadata compMeta;
 
-    common::page_idx_t getStartPageIdx() const { return pageChunk.startPageIdx; }
-    common::page_idx_t getNumPages() const { return pageChunk.numPages; }
+    common::page_idx_t getStartPageIdx() const { return pageRange.startPageIdx; }
+    common::page_idx_t getNumPages() const { return pageRange.numPages; }
 
     // Returns the number of pages used to store data
     // In the case of ALP compression, this does not include the number of pages used to store
@@ -23,11 +23,11 @@ struct ColumnChunkMetadata {
 
     // TODO(Guodong): Delete copy constructor.
     ColumnChunkMetadata()
-        : pageChunk(common::INVALID_PAGE_IDX, 0), numValues{0},
+        : pageRange(common::INVALID_PAGE_IDX, 0), numValues{0},
           compMeta(StorageValue(), StorageValue(), CompressionType::CONSTANT) {}
     ColumnChunkMetadata(common::page_idx_t pageIdx, common::page_idx_t numPages, uint64_t numValues,
         const CompressionMetadata& compMeta)
-        : pageChunk(pageIdx, numPages), numValues(numValues), compMeta(compMeta) {}
+        : pageRange(pageIdx, numPages), numValues(numValues), compMeta(compMeta) {}
 };
 
 class GetCompressionMetadata {
