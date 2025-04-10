@@ -1,0 +1,42 @@
+-DATASET CSV empty
+
+--
+# Tests that buffer manager exceptions during aggregation do not leak memory (meant to be run with the leak sanitizer)
+-CASE LargeAggregateLeakTest
+-STATEMENT CREATE NODE TABLE vertex(ID STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND range(1, 100000) AS i CREATE (a:vertex {ID: i});
+---- ok
+-STATEMENT MATCH (a:vertex) RETURN a.ID, MIN("very loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong string");
+---- error
+Buffer manager exception: Unable to allocate memory! The buffer pool is full and no memory could be freed!
+-STATEMENT MATCH (a:vertex) RETURN a.ID, MIN("very loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong string");
+---- error
+Buffer manager exception: Unable to allocate memory! The buffer pool is full and no memory could be freed!
+-STATEMENT MATCH (a:vertex) RETURN a.ID, MIN("very loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong string");
+---- error
+Buffer manager exception: Unable to allocate memory! The buffer pool is full and no memory could be freed!
+-STATEMENT MATCH (a:vertex) RETURN a.ID, MIN("very loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong string");
+---- error
+Buffer manager exception: Unable to allocate memory! The buffer pool is full and no memory could be freed!
+-STATEMENT MATCH (a:vertex) RETURN a.ID, MIN("very loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong string");
+---- error
+Buffer manager exception: Unable to allocate memory! The buffer pool is full and no memory could be freed!
+-STATEMENT MATCH (a:vertex) RETURN a.ID, MIN("very loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong string");
+---- error
+Buffer manager exception: Unable to allocate memory! The buffer pool is full and no memory could be freed!
+-STATEMENT MATCH (a:vertex) RETURN a.ID, MIN("very loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong string");
+---- error
+Buffer manager exception: Unable to allocate memory! The buffer pool is full and no memory could be freed!
+-STATEMENT MATCH (a:vertex) RETURN a.ID, MIN("very loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong string");
+---- error
+Buffer manager exception: Unable to allocate memory! The buffer pool is full and no memory could be freed!
+-STATEMENT MATCH (a:vertex) RETURN a.ID, MIN("very loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong string");
+---- error
+Buffer manager exception: Unable to allocate memory! The buffer pool is full and no memory could be freed!
+-STATEMENT MATCH (a:vertex) RETURN a.ID, MIN("very loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong string");
+---- error
+Buffer manager exception: Unable to allocate memory! The buffer pool is full and no memory could be freed!
+-STATEMENT MATCH (a:vertex) RETURN MIN(a.ID);
+---- 1
+1

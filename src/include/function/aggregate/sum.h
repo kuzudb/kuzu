@@ -40,9 +40,9 @@ struct SumFunction {
         uint32_t pos, uint64_t multiplicity) {
         INPUT_TYPE val = input->getValue<INPUT_TYPE>(pos);
         for (auto j = 0u; j < multiplicity; ++j) {
-            if (state->isNull) {
+            if (!state->isValid) {
                 state->sum = val;
-                state->isNull = false;
+                state->isValid = true;
             } else {
                 Add::operation(state->sum, val, state->sum);
             }
@@ -52,13 +52,13 @@ struct SumFunction {
     static void combine(uint8_t* state_, uint8_t* otherState_,
         storage::MemoryManager* /*memoryManager*/) {
         auto* otherState = reinterpret_cast<SumState<RESULT_TYPE>*>(otherState_);
-        if (otherState->isNull) {
+        if (!otherState->isValid) {
             return;
         }
         auto* state = reinterpret_cast<SumState<RESULT_TYPE>*>(state_);
-        if (state->isNull) {
+        if (!state->isValid) {
             state->sum = otherState->sum;
-            state->isNull = false;
+            state->isValid = true;
         } else {
             Add::operation(state->sum, otherState->sum, state->sum);
         }

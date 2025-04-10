@@ -4,6 +4,7 @@
 
 #include "binder/expression/expression_util.h"
 #include "common/assert.h"
+#include "common/cast.h"
 #include "common/types/types.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
@@ -65,36 +66,27 @@ HashAggregateSharedState::HashAggregateSharedState(main::ClientContext* context,
     }
 
     auto& partition = globalPartitions[0];
-    partition.queue = std::make_unique<HashTableQueue>(context->getMemoryManager(),
-        this->aggInfo.tableSchema.copy());
 
     // Always create a hash table for the first partition. Any other partitions which are non-empty
     // when finalizing will create an empty copy of this table
     partition.hashTable = std::make_unique<AggregateHashTable>(*context->getMemoryManager(),
         std::move(keyTypes), std::move(payloadTypes), aggregateFunctions, distinctAggregateKeyTypes,
         0, this->aggInfo.tableSchema.copy());
+
+    partition.queue = std::make_unique<HashTableQueue>(
+        ku_dynamic_cast<const AggregateFactorizedTable*>(partition.hashTable->getFactorizedTable())
+            ->createEmptyCopy());
+
     for (size_t functionIdx = 0; functionIdx < aggregateFunctions.size(); functionIdx++) {
         auto& function = aggregateFunctions[functionIdx];
         if (function.isFunctionDistinct()) {
             // Create table schema for distinct hash table
-            auto distinctTableSchema = FactorizedTableSchema();
-            // Group by key columns
-            for (size_t i = 0;
-                 i < this->aggInfo.flatKeysPos.size() + this->aggInfo.unFlatKeysPos.size(); i++) {
-                distinctTableSchema.appendColumn(this->aggInfo.tableSchema.getColumn(i)->copy());
-                distinctTableSchema.setMayContainsNullsToTrue(i);
-            }
-            // Distinct key column
-            distinctTableSchema.appendColumn(ColumnSchema(false /*isUnFlat*/, 0 /*groupID*/,
-                LogicalTypeUtils::getRowLayoutSize(
-                    aggregateInfos[functionIdx].distinctAggKeyType)));
-            distinctTableSchema.setMayContainsNullsToTrue(distinctTableSchema.getNumColumns() - 1);
-            // Hash column
-            distinctTableSchema.appendColumn(
-                ColumnSchema(false /* isUnFlat */, 0 /* groupID */, sizeof(hash_t)));
+            auto factorizedTable = ku_dynamic_cast<const AggregateFactorizedTable*>(
+                partition.hashTable->getDistinctHashTable(functionIdx)->getFactorizedTable())
+                                       ->createEmptyCopy();
 
-            partition.distinctTableQueues.emplace_back(std::make_unique<HashTableQueue>(
-                context->getMemoryManager(), std::move(distinctTableSchema)));
+            partition.distinctTableQueues.emplace_back(
+                std::make_unique<HashTableQueue>(std::move(factorizedTable)));
         } else {
             // dummy entry so that indices line up with the aggregateFunctions
             partition.distinctTableQueues.emplace_back();
@@ -103,8 +95,10 @@ HashAggregateSharedState::HashAggregateSharedState(main::ClientContext* context,
     // Each partition is the same, so we create the list of distinct queues for the first partition
     // and copy it to the other partitions
     for (size_t i = 1; i < globalPartitions.size(); i++) {
-        globalPartitions[i].queue = std::make_unique<HashTableQueue>(context->getMemoryManager(),
-            this->aggInfo.tableSchema.copy());
+        globalPartitions[i].queue =
+            std::make_unique<HashTableQueue>(ku_dynamic_cast<const AggregateFactorizedTable*>(
+                partition.hashTable->getFactorizedTable())
+                                                 ->createEmptyCopy());
         globalPartitions[i].distinctTableQueues.resize(partition.distinctTableQueues.size());
         std::transform(partition.distinctTableQueues.begin(), partition.distinctTableQueues.end(),
             globalPartitions[i].distinctTableQueues.begin(), [&](auto& q) {

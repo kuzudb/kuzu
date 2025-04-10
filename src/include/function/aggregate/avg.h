@@ -17,7 +17,7 @@ struct AvgState : public AggregateState {
     void finalize()
         requires common::IntegerTypes<T>
     {
-        if (!isNull) {
+        if (isValid) {
             avg = common::Int128_t::Cast<long double>(sum) /
                   common::Int128_t::Cast<long double>(count);
         }
@@ -26,7 +26,7 @@ struct AvgState : public AggregateState {
     void finalize()
         requires common::FloatingPointTypes<T>
     {
-        if (!isNull) {
+        if (isValid) {
             avg = sum / count;
         }
     }
@@ -61,9 +61,9 @@ struct AvgFunction {
         uint32_t pos, uint64_t multiplicity) {
         INPUT_TYPE val = input->getValue<INPUT_TYPE>(pos);
         for (auto i = 0u; i < multiplicity; ++i) {
-            if (state->isNull) {
+            if (!state->isValid) {
                 state->sum = (RESULT_TYPE)val;
-                state->isNull = false;
+                state->isValid = true;
             } else {
                 Add::operation(state->sum, val, state->sum);
             }
@@ -74,13 +74,13 @@ struct AvgFunction {
     static void combine(uint8_t* state_, uint8_t* otherState_,
         storage::MemoryManager* /*memoryManager*/) {
         auto* otherState = reinterpret_cast<AvgState<RESULT_TYPE>*>(otherState_);
-        if (otherState->isNull) {
+        if (!otherState->isValid) {
             return;
         }
         auto* state = reinterpret_cast<AvgState<RESULT_TYPE>*>(state_);
-        if (state->isNull) {
+        if (!state->isValid) {
             state->sum = otherState->sum;
-            state->isNull = false;
+            state->isValid = true;
         } else {
             Add::operation(state->sum, otherState->sum, state->sum);
         }

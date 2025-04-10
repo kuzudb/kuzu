@@ -14,7 +14,8 @@ struct AggregateState {
     virtual void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) = 0;
     virtual ~AggregateState() = default;
 
-    bool isNull = true;
+    // Default to false so that zeroed memory will not be considered valid
+    bool isValid = false;
 };
 
 using param_rewrite_function_t = std::function<void(binder::expression_vector&)>;

@@ -69,8 +69,8 @@ public:
         FactorizedTableSchema tableSchema);
 
     //! merge aggregate hash table by combining aggregate states under the same key
-    void merge(FactorizedTable&& other);
-    void merge(AggregateHashTable&& other) { merge(std::move(*other.factorizedTable)); }
+    void merge(std::unique_ptr<FactorizedTable> other);
+    void merge(AggregateHashTable&& other) { merge(std::move(other.factorizedTable)); }
     // Must be called after merging hash tables with distinct functions, but only when the
     // merged distinct tuples match the merged non-distinct tuples
     void mergeDistinctAggregateInfo();
@@ -284,8 +284,10 @@ struct AggregateHashTableUtils {
 class AggregatePartitioningData {
 public:
     virtual ~AggregatePartitioningData() = default;
-    virtual void appendTuples(const FactorizedTable& table, ft_col_offset_t hashOffset) = 0;
-    virtual void appendDistinctTuple(size_t /*distinctFuncIndex*/, std::span<uint8_t> /*tuple*/,
+    // Destructively moves tuples (to mimic moving the AggregateState and prevent it from being
+    // double-freed)
+    virtual void moveTuples(const FactorizedTable& table, ft_col_offset_t hashOffset) = 0;
+    virtual void moveDistinctTuple(size_t /*distinctFuncIndex*/, std::span<uint8_t> /*tuple*/,
         common::hash_t /*hash*/) = 0;
     virtual void appendOverflow(common::InMemOverflowBuffer&& overflowBuffer) = 0;
 };
