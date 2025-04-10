@@ -61,18 +61,11 @@ class LogicalSemiMasker final : public LogicalOperator {
     static constexpr LogicalOperatorType type_ = LogicalOperatorType::SEMI_MASKER;
 
 public:
-    // Constructor that does not specify operators accepting semi masks. Later stage there must be
-    // logics filling "targetOps" field.
     LogicalSemiMasker(SemiMaskKeyType keyType, SemiMaskTargetType targetType,
         std::shared_ptr<binder::Expression> key, std::vector<common::table_id_t> nodeTableIDs,
-        std::shared_ptr<LogicalOperator> child)
-        : LogicalSemiMasker{keyType, targetType, std::move(key), std::move(nodeTableIDs),
-              std::vector<const LogicalOperator*>{}, std::move(child)} {}
-    LogicalSemiMasker(SemiMaskKeyType keyType, SemiMaskTargetType targetType,
-        std::shared_ptr<binder::Expression> key, std::vector<common::table_id_t> nodeTableIDs,
-        std::vector<const LogicalOperator*> ops, std::shared_ptr<LogicalOperator> child)
+         std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{type_, std::move(child)}, keyType{keyType}, targetType{targetType},
-          key{std::move(key)}, nodeTableIDs{std::move(nodeTableIDs)}, targetOps{std::move(ops)} {}
+          key{std::move(key)}, nodeTableIDs{std::move(nodeTableIDs)}  {}
 
     void computeFactorizedSchema() override { copyChildSchema(0); }
     void computeFlatSchema() override { copyChildSchema(0); }

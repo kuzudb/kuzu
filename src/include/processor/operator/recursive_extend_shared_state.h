@@ -23,14 +23,16 @@ struct RecursiveExtendSharedState {
     void setInputNodeMask(std::unique_ptr<common::NodeOffsetMaskMap> maskMap) {
         inputNodeMask = std::move(maskMap);
     }
-    void enableInputNodeMask() { inputNodeMask->enable(); }
-    common::NodeOffsetMaskMap* getInputNodeMaskMap() const { return inputNodeMask.get(); }
+    common::NodeOffsetMaskMap* getInputNodeMaskMap() const {
+        return inputNodeMask.get();
+    }
 
     void setOutputNodeMask(std::unique_ptr<common::NodeOffsetMaskMap> maskMap) {
         outputNodeMask = std::move(maskMap);
     }
-    void enableOutputNodeMask() { outputNodeMask->enable(); }
-    common::NodeOffsetMaskMap* getOutputNodeMaskMap() const { return outputNodeMask.get(); }
+    common::NodeOffsetMaskMap* getOutputNodeMaskMap() const {
+        return outputNodeMask.get();
+    }
 
     void setPathNodeMask(std::unique_ptr<common::NodeOffsetMaskMap> maskMap) {
         pathNodeMask = std::move(maskMap);
@@ -39,14 +41,6 @@ struct RecursiveExtendSharedState {
 
     bool exceedLimit() const { return !(counter == nullptr) && counter->exceedLimit(); }
 
-    void setNbrTableIDSet(common::table_id_set_t set) { nbrTableIDSet = std::move(set); }
-    bool inNbrTableIDs(common::table_id_t tableID) const {
-        if (nbrTableIDSet.empty()) {
-            return true;
-        }
-        return nbrTableIDSet.contains(tableID);
-    }
-
 public:
     FactorizedTablePool factorizedTablePool;
 
@@ -54,7 +48,6 @@ private:
     std::unique_ptr<common::NodeOffsetMaskMap> inputNodeMask = nullptr;
     std::unique_ptr<common::NodeOffsetMaskMap> outputNodeMask = nullptr;
     std::unique_ptr<common::NodeOffsetMaskMap> pathNodeMask = nullptr;
-    common::table_id_set_t nbrTableIDSet;
 };
 
 } // namespace processor

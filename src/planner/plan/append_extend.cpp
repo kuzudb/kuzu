@@ -118,24 +118,9 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
             *recursiveInfo->node, recursiveInfo->nodePredicate);
         nodeMaskRoot = p.getLastOperator();
     }
-    // E.g. Given schema person-knows->person & person-knows->animal
-    // And query MATCH (a:person:animal)-[e*]->(b:person)
-    // The destination node b after GDS will contain both person & animal label. We need to prune
-    // the animal out.
-    common::table_id_set_t nbrTableIDSet;
-    auto targetNbrTableIDSet = nbrNode->getTableIDsSet();
-    auto recursiveNbrTableIDSet = recursiveInfo->node->getTableIDsSet();
-    for (auto& tableID : recursiveNbrTableIDSet) {
-        if (targetNbrTableIDSet.contains(tableID)) {
-            nbrTableIDSet.insert(tableID);
-        }
-    }
-    if (nbrTableIDSet.size() >= recursiveNbrTableIDSet.size()) {
-        nbrTableIDSet.clear(); // No need to prune nbr table id.
-    }
     auto probePlan = LogicalPlan();
     auto recursiveExtend = std::make_shared<LogicalRecursiveExtend>(recursiveInfo->function->copy(),
-        *recursiveInfo->bindData, resultColumns, nbrTableIDSet);
+        *recursiveInfo->bindData, resultColumns);
     if (nodeMaskRoot != nullptr) {
         recursiveExtend->addChild(nodeMaskRoot);
     }

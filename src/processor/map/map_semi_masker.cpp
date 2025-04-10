@@ -64,21 +64,22 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(
         } break;
         case PhysicalOperatorType::RECURSIVE_EXTEND: {
             auto sharedState = physicalOp->ptrCast<RecursiveExtend>()->getSharedState();
+            NodeOffsetMaskMap* maskMap = nullptr;
             switch (semiMasker.getTargetType()) {
             case SemiMaskTargetType::RECURSIVE_EXTEND_INPUT_NODE: {
-                initMask(masksPerTable, sharedState->getInputNodeMaskMap()->getMasks());
-                sharedState->enableInputNodeMask();
+                maskMap = sharedState->getInputNodeMaskMap();
             } break;
             case SemiMaskTargetType::RECURSIVE_EXTEND_OUTPUT_NODE: {
-                initMask(masksPerTable, sharedState->getOutputNodeMaskMap()->getMasks());
-                sharedState->enableOutputNodeMask();
+                maskMap = sharedState->getOutputNodeMaskMap();
             } break;
             case SemiMaskTargetType::RECURSIVE_EXTEND_PATH_NODE: {
-                initMask(masksPerTable, sharedState->getPathNodeMaskMap()->getMasks());
+                maskMap = sharedState->getPathNodeMaskMap();
             } break;
             default:
                 KU_UNREACHABLE;
             }
+            KU_ASSERT(maskMap != nullptr);
+            initMask(masksPerTable, maskMap->getMasks());
         } break;
         default:
             KU_UNREACHABLE;

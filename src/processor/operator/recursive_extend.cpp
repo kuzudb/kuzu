@@ -6,6 +6,7 @@
 #include "function/gds/compute.h"
 #include "function/gds/gds_utils.h"
 #include "processor/execution_context.h"
+#include <binder/expression/node_expression.h>
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -19,14 +20,16 @@ namespace processor {
 class RJVertexCompute : public VertexCompute {
 public:
     RJVertexCompute(storage::MemoryManager* mm, RecursiveExtendSharedState* sharedState,
-        std::unique_ptr<RJOutputWriter> writer)
-        : mm{mm}, sharedState{sharedState}, writer{std::move(writer)} {
+        std::unique_ptr<RJOutputWriter> writer, table_id_set_t nbrTableIDSet)
+        : mm{mm}, sharedState{sharedState}, writer{std::move(writer)}, nbrTableIDSet{std::move(nbrTableIDSet)} {
         localFT = sharedState->factorizedTablePool.claimLocalTable(mm);
     }
     ~RJVertexCompute() override { sharedState->factorizedTablePool.returnLocalTable(localFT); }
 
     bool beginOnTable(table_id_t tableID) override {
-        if (!sharedState->inNbrTableIDs(tableID)) {
+        // Nbr node table IDs might be different from graph node table IDs
+        // See comment below in RecursiveExtend::executeInternal.
+        if (!nbrTableIDSet.contains(tableID)) {
             return false;
         }
         writer->beginWritingOutputs(tableID);
@@ -47,7 +50,7 @@ public:
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<RJVertexCompute>(mm, sharedState, writer->copy());
+        return std::make_unique<RJVertexCompute>(mm, sharedState, writer->copy(), nbrTableIDSet);
     }
 
 private:
@@ -56,6 +59,7 @@ private:
     RecursiveExtendSharedState* sharedState;
     FactorizedTable* localFT;
     std::unique_ptr<RJOutputWriter> writer;
+    table_id_set_t nbrTableIDSet;
 };
 
 static double getRJProgress(offset_t totalNumNodes, offset_t completedNumNodes) {
@@ -70,7 +74,7 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
     auto graph = sharedState->graph.get();
     auto inputNodeMaskMap = sharedState->getInputNodeMaskMap();
     offset_t totalNumNodes = 0;
-    if (inputNodeMaskMap->enabled()) {
+    if (inputNodeMaskMap != nullptr) {
         totalNumNodes = inputNodeMaskMap->getNumMaskedNode();
     } else {
         for (auto& tableID : graph->getNodeTableIDs()) {
@@ -78,8 +82,13 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
         }
     }
     offset_t completedNumNodes = 0;
+    auto inputNodeTableIDSet =  bindData.nodeInput->constCast<NodeExpression>().getTableIDsSet();
     for (auto& tableID : graph->getNodeTableIDs()) {
-        if (!inputNodeMaskMap->containsTableID(tableID)) {
+        // Input node table IDs could be different from graph node table IDs, e.g.
+        // Given schema, student-knows->student, teacher-knows->teacher
+        // MATCH (a:student)-[e*knows]->(b:student)
+        // the graph node table IDs will include both student and teacher.
+        if (!inputNodeTableIDSet.contains(tableID)) {
             continue;
         }
         auto calcFunc = [tableID, graph, context, clientContext, this](offset_t offset) {
@@ -101,7 +110,7 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
                 propertyName);
             auto vertexCompute =
                 std::make_unique<RJVertexCompute>(clientContext->getMemoryManager(),
-                    sharedState.get(), rjCompState.outputWriter->copy());
+                    sharedState.get(), rjCompState.outputWriter->copy(), bindData.nodeOutput->constCast<NodeExpression>().getTableIDsSet());
             auto frontierPair = gdsComputeState->frontierPair.get();
             auto& candidates = frontierPair->getVertexComputeCandidates();
             candidates.mergeSparseFrontier(frontierPair->getNextSparseFrontier());
@@ -112,9 +121,8 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
             }
         };
         auto maxOffset = graph->getMaxOffset(clientContext->getTransaction(), tableID);
-        auto mask = inputNodeMaskMap->getOffsetMask(tableID);
-        if (mask->isEnabled()) {
-            for (const auto& offset : mask->range(0, maxOffset)) {
+        if (inputNodeMaskMap && inputNodeMaskMap->getOffsetMask(tableID)->isEnabled()) {
+            for (const auto& offset : inputNodeMaskMap->getOffsetMask(tableID)->range(0, maxOffset)) {
                 calcFunc(offset);
                 clientContext->getProgressBar()->updateProgress(context->queryID,
                     getRJProgress(totalNumNodes, completedNumNodes++));

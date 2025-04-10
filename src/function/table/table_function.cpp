@@ -36,7 +36,7 @@ std::unique_ptr<TableFuncLocalState> TableFunction::initEmptyLocalState(
 }
 
 std::unique_ptr<TableFuncSharedState> TableFunction::initEmptySharedState(
-    const kuzu::function::TableFuncInitSharedStateInput& /*input*/) {
+    const TableFuncInitSharedStateInput& /*input*/) {
     return std::make_unique<TableFuncSharedState>();
 }
 
@@ -88,15 +88,15 @@ void TableFunction::getLogicalPlan(planner::Planner* planner,
     }
 }
 
-std::unique_ptr<processor::PhysicalOperator> TableFunction::getPhysicalPlan(
-    processor::PlanMapper* planMapper, const planner::LogicalOperator* logicalOp) {
-    std::vector<processor::DataPos> outPosV;
-    auto& call = logicalOp->constCast<planner::LogicalTableFunctionCall>();
+std::unique_ptr<PhysicalOperator> TableFunction::getPhysicalPlan(
+    PlanMapper* planMapper, const LogicalOperator* logicalOp) {
+    std::vector<DataPos> outPosV;
+    auto& call = logicalOp->constCast<LogicalTableFunctionCall>();
     auto outSchema = call.getSchema();
     for (auto& expr : call.getBindData()->columns) {
         outPosV.emplace_back(planMapper->getDataPos(*expr, *outSchema));
     }
-    auto info = processor::TableFunctionCallInfo();
+    auto info = TableFunctionCallInfo();
     info.function = call.getTableFunc();
     info.bindData = call.getBindData()->copy();
     info.outPosV = outPosV;
@@ -110,9 +110,9 @@ std::unique_ptr<processor::PhysicalOperator> TableFunction::getPhysicalPlan(
             logicalSemiMasker->addTarget(logicalOp);
         }
     }
-    auto printInfo = std::make_unique<processor::TableFunctionCallPrintInfo>(
+    auto printInfo = std::make_unique<TableFunctionCallPrintInfo>(
         call.getTableFunc().name, call.getBindData()->columns);
-    return std::make_unique<processor::TableFunctionCall>(std::move(info), sharedState,
+    return std::make_unique<TableFunctionCall>(std::move(info), sharedState,
         planMapper->getOperatorID(), std::move(printInfo));
 }
 

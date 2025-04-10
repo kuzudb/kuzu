@@ -1,6 +1,6 @@
 #include "processor/plan_mapper.h"
 
-#include "binder/expression/node_expression.h"
+
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/profile.h"
 #include "storage/storage_manager.h"
@@ -211,16 +211,6 @@ FactorizedTableSchema PlanMapper::createFlatFTableSchema(const expression_vector
 std::unique_ptr<SemiMask> PlanMapper::createSemiMask(table_id_t tableID) const {
     auto table = clientContext->getStorageManager()->getTable(tableID)->ptrCast<NodeTable>();
     return SemiMaskUtil::createMask(table->getNumTotalRows(clientContext->getTransaction()));
-}
-
-std::unique_ptr<NodeOffsetMaskMap> PlanMapper::createNodeOffsetMaskMap(
-    const Expression& expr) const {
-    auto& node = expr.constCast<NodeExpression>();
-    auto maskMap = std::make_unique<NodeOffsetMaskMap>();
-    for (auto tableID : node.getTableIDs()) {
-        maskMap->addMask(tableID, createSemiMask(tableID));
-    }
-    return maskMap;
 }
 
 LogicalSemiMasker* PlanMapper::findSemiMaskerInPlan(LogicalOperator* logicalOperator) {
