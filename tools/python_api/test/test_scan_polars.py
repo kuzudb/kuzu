@@ -3,7 +3,6 @@ from datetime import datetime
 import polars as pl
 import pytest
 from type_aliases import ConnDB
-import polars as pl
 
 
 def test_polars_basic(conn_db_readwrite: ConnDB) -> None:
