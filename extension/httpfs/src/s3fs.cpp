@@ -593,6 +593,9 @@ HeaderMap S3FileSystem::createS3Header(std::string url, std::string query, std::
     auto datetimeHeader = getDateTimeHeader(timestamp);
     res["x-amz-date"] = datetimeHeader;
     res["x-amz-content-sha256"] = payloadHash;
+    if (!authParams.sessionToken.empty()) {
+        res["x-amz-security-token"] = authParams.sessionToken;
+    }
     std::string signedHeaders = "";
     hash_bytes canonicalRequestHash;
     hash_str canonicalRequestHashStr;
@@ -600,12 +603,18 @@ HeaderMap S3FileSystem::createS3Header(std::string url, std::string query, std::
         signedHeaders += "content-type;";
     }
     signedHeaders += "host;x-amz-content-sha256;x-amz-date";
+    if (!authParams.sessionToken.empty()) {
+        signedHeaders += ";x-amz-security-token";
+    }
     auto canonicalRequest = method + "\n" + S3FileSystem::encodeURL(url) + "\n" + query;
     if (!contentType.empty()) {
         canonicalRequest += "\ncontent-type:" + contentType;
     }
     canonicalRequest += "\nhost:" + host + "\nx-amz-content-sha256:" + payloadHash +
                         "\nx-amz-date:" + datetimeHeader;
+    if (!authParams.sessionToken.empty()) {
+        canonicalRequest += "\nx-amz-security-token:" + authParams.sessionToken;
+    }
     canonicalRequest += "\n\n" + signedHeaders + "\n" + payloadHash;
     sha256(canonicalRequest.c_str(), canonicalRequest.length(), canonicalRequestHash);
     hex256(canonicalRequestHash, canonicalRequestHashStr);
@@ -626,7 +635,6 @@ HeaderMap S3FileSystem::createS3Header(std::string url, std::string query, std::
                            dateHeader + "/" + authParams.region + "/" + service +
                            "/aws4_request, SignedHeaders=" + signedHeaders +
                            ", Signature=" + std::string((char*)signatureStr, sizeof(hash_str));
-
     return res;
 }
 

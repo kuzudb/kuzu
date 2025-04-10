@@ -1,0 +1,50 @@
+-DATASET CSV empty
+
+--
+
+-DEFINE_STATEMENT_BLOCK AWS_S3_TEST [
+-STATEMENT load from 's3://kuzu-dataset-us/user.csv' return *;
+---- 4
+Adam|30
+Karissa|40
+Noura|25
+Zhang|50
+-STATEMENT CALL s3_region='eu-central-1'
+---- ok
+-STATEMENT CALL s3_url_style='vhost'
+---- ok
+-STATEMENT CREATE NODE TABLE City(name STRING, population INT64, PRIMARY KEY (name))
+---- ok
+-STATEMENT copy City from 's3://kuzu-dataset-eu/city.csv';
+---- ok
+-STATEMENT match (c:City) return c.name, c.population;
+---- 3
+Guelph|22
+Kitchener|200000
+Waterloo|150000
+]
+
+-CASE S3SessionTokenExplicitSet
+-SKIP
+# Note: S3 session token is only valid for a maximum of 60 minutes, so we can't test in CI run.
+# Command to generate a token: `aws sts get-session-token --duration-seconds 3600`
+# In-memory mode doesn't support file cache.
+-SKIP_IN_MEM
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-STATEMENT CALL s3_access_key_id=''
+---- ok
+-STATEMENT CALL s3_secret_access_key=''
+---- ok
+-STATEMENT CALL s3_session_token=''
+---- ok
+-INSERT_STATEMENT_BLOCK AWS_S3_TEST
+
+-CASE S3SessionTokenEnv
+-SKIP
+# Note: S3 session token is only valid for a maximum of 60 minutes, so we can't test in CI run.
+# In-memory mode doesn't support file cache.
+-SKIP_IN_MEM
+-STATEMENT load extension "${KUZU_ROOT_DIRECTORY}/extension/httpfs/build/libhttpfs.kuzu_extension"
+---- ok
+-INSERT_STATEMENT_BLOCK AWS_S3_TEST

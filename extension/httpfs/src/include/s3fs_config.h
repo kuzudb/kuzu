@@ -19,6 +19,7 @@ namespace httpfs_extension {
 struct S3AuthParams {
     std::string accessKeyID;
     std::string secretAccessKey;
+    std::string sessionToken;
     std::string endpoint;
     std::string urlStyle;
     std::string region;
@@ -35,6 +36,7 @@ struct S3FileSystemConfig {
     std::string_view fsName;
     S3AuthOption accessKeyIDOption;
     S3AuthOption secretAccessKeyOption;
+    S3AuthOption sessionTokenOption;
     S3AuthOption endpointOption;
     S3AuthOption urlStyleOption;
     S3AuthOption regionOption;
