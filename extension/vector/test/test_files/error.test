@@ -5,7 +5,7 @@
 -CASE Error
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/vector/build/libvector.kuzu_extension';
 ---- ok
--STATEMENT CREATE NODE TABLE test(id int64 primary key, vec double[90]);
+-STATEMENT CREATE NODE TABLE test(id int64 primary key, vec int64[90]);
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('test2', 'e_hnsw_index', 'vec');
 ---- error
@@ -15,7 +15,7 @@ Binder exception: Table test2 does not exist.
 Binder exception: Column vec2 does not exist in table test.
 -STATEMENT CALL CREATE_VECTOR_INDEX('test', 'e_hnsw_index', 'vec');
 ---- error
-Binder exception: VECTOR_INDEX only supports FLOAT ARRAY columns.
+Binder exception: VECTOR_INDEX only supports FLOAT/DOUBLE ARRAY columns.
 -STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[960], PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY embeddings FROM "${KUZU_ROOT_DIRECTORY}/dataset/embeddings/embeddings-960-1k.csv" (deLim=',');

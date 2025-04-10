@@ -6,6 +6,7 @@
 #include "graph/on_disk_graph.h"
 #include "index/hnsw_config.h"
 #include "index/hnsw_graph.h"
+#include "index/hnsw_index_utils.h"
 
 namespace kuzu {
 namespace function {
@@ -73,23 +74,31 @@ struct VisitedState {
 
 class HNSWIndex {
 public:
-    explicit HNSWIndex(HNSWIndexConfig config) : config{std::move(config)} {}
+    explicit HNSWIndex(HNSWIndexConfig config, common::ArrayTypeInfo typeInfo)
+        : config{std::move(config)}, typeInfo{std::move(typeInfo)} {
+        metricFunc =
+            HNSWIndexUtils::getMetricsFunction(this->config.metric, this->typeInfo.getChildType());
+    }
     virtual ~HNSWIndex() = default;
 
     virtual common::offset_t getUpperEntryPoint() const = 0;
     virtual common::offset_t getLowerEntryPoint() const = 0;
+
+    common::LogicalType getElementType() const { return typeInfo.getChildType().copy(); }
 
     static std::vector<NodeWithDistance> popTopK(max_node_priority_queue_t& result,
         common::length_t k);
 
 protected:
     HNSWIndexConfig config;
+    common::ArrayTypeInfo typeInfo;
+    metric_func_t metricFunc;
 };
 
 struct InMemHNSWLayerInfo {
     common::offset_t numNodes;
     InMemEmbeddings* embeddings;
-    MetricType metric;
+    metric_func_t metricFunc;
     // The degree threshold of a node that will start to trigger shrinking during insertions. Thus,
     // it is also the max degree of a node in the graph before shrinking.
     int64_t degreeThresholdToShrink;
@@ -98,11 +107,14 @@ struct InMemHNSWLayerInfo {
     double alpha;
     int64_t efc;
 
-    InMemHNSWLayerInfo(common::offset_t numNodes, InMemEmbeddings* embeddings, MetricType metric,
-        int64_t degreeThresholdToShrink, int64_t maxDegree, double alpha, int64_t efc)
-        : numNodes{numNodes}, embeddings{embeddings}, metric{metric},
+    InMemHNSWLayerInfo(common::offset_t numNodes, InMemEmbeddings* embeddings,
+        metric_func_t metricFunc, int64_t degreeThresholdToShrink, int64_t maxDegree, double alpha,
+        int64_t efc)
+        : numNodes{numNodes}, embeddings{embeddings}, metricFunc{std::move(metricFunc)},
           degreeThresholdToShrink{degreeThresholdToShrink}, maxDegree{maxDegree}, alpha{alpha},
           efc{efc} {}
+
+    uint64_t getDimension() const { return embeddings->getDimension(); }
 };
 
 class InMemHNSWLayer {
@@ -121,7 +133,7 @@ public:
         const processor::PartitionerSharedState& partitionerSharedState) const;
 
 private:
-    std::vector<NodeWithDistance> searchKNN(const float* queryVector, common::offset_t entryNode,
+    std::vector<NodeWithDistance> searchKNN(const void* queryVector, common::offset_t entryNode,
         common::length_t k, uint64_t configuredEf, VisitedState& visited) const;
     static void shrinkForNode(const InMemHNSWLayerInfo& info, InMemHNSWGraph* graph,
         common::offset_t nodeOffset, common::length_t numNbrs);
@@ -209,50 +221,51 @@ public:
     common::offset_t getLowerEntryPoint() const override { return defaultLowerEntryPoint.load(); }
 
     std::vector<NodeWithDistance> search(transaction::Transaction* transaction,
-        const std::vector<float>& queryVector, HNSWSearchState& searchState) const;
+        const void* queryVector, HNSWSearchState& searchState) const;
 
+private:
     common::offset_t searchNNInUpperLayer(transaction::Transaction* transaction,
-        const float* queryVector, storage::NodeTableScanState& embeddingScanState) const;
+        const void* queryVector, storage::NodeTableScanState& embeddingScanState) const;
     std::vector<NodeWithDistance> searchKNNInLowerLayer(transaction::Transaction* transaction,
-        const float* queryVector, common::offset_t entryNode, HNSWSearchState& searchState) const;
+        const void* queryVector, common::offset_t entryNode, HNSWSearchState& searchState) const;
 
     void initLowerLayerSearchState(transaction::Transaction* transaction,
         HNSWSearchState& searchState) const;
-    void oneHopSearch(transaction::Transaction* transaction, const float* queryVector,
+    void oneHopSearch(transaction::Transaction* transaction, const void* queryVector,
         graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
     void directedTwoHopFilteredSearch(transaction::Transaction* transaction,
-        const float* queryVector, graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
+        const void* queryVector, graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
-    void blindTwoHopFilteredSearch(transaction::Transaction* transaction, const float* queryVector,
+    void blindTwoHopFilteredSearch(transaction::Transaction* transaction, const void* queryVector,
         graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
 
-    void processSecondHopCandidates(transaction::Transaction* transaction, const float* queryVector,
+    void processSecondHopCandidates(transaction::Transaction* transaction, const void* queryVector,
         HNSWSearchState& searchState, int64_t& numVisitedNbrs,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results,
         const std::vector<common::offset_t>& candidateOffsets) const;
-    void processSecondHopCandidates(transaction::Transaction* transaction, const float* queryVector,
+    void processSecondHopCandidates(transaction::Transaction* transaction, const void* queryVector,
         HNSWSearchState& searchState, int64_t& numVisitedNbrs,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results,
         min_node_priority_queue_t& candidatesQueue) const;
 
     min_node_priority_queue_t collectFirstHopNbrsDirected(transaction::Transaction* transaction,
-        const float* queryVector, graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
+        const void* queryVector, graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results,
         int64_t& numVisitedNbrs) const;
     common::offset_vec_t collectFirstHopNbrsBlind(transaction::Transaction* transaction,
-        const float* queryVector, graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
+        const void* queryVector, graph::Graph::EdgeIterator& nbrItr, HNSWSearchState& searchState,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results,
         int64_t& numVisitedNbrs) const;
     // Return false if we've hit Ml limit.
-    bool searchOverSecondHopNbrs(transaction::Transaction* transaction, const float* queryVector,
+    bool searchOverSecondHopNbrs(transaction::Transaction* transaction, const void* queryVector,
         uint64_t ef, HNSWSearchState& searchState, common::offset_t cand, int64_t& numVisitedNbrs,
         min_node_priority_queue_t& candidates, max_node_priority_queue_t& results) const;
 
     SearchType getFilteredSearchType(transaction::Transaction* transaction,
         const HNSWSearchState& searchState) const;
-    void initSearchCandidates(transaction::Transaction* transaction, const float* queryVector,
+    void initSearchCandidates(transaction::Transaction* transaction, const void* queryVector,
         HNSWSearchState& searchState, min_node_priority_queue_t& candidates,
         max_node_priority_queue_t& results) const;
 

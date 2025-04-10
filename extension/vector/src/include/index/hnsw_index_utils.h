@@ -14,6 +14,9 @@ class ClientContext;
 }
 
 namespace vector_extension {
+template<typename T>
+concept VectorElementType = std::is_floating_point_v<T>;
+using metric_func_t = std::function<double(const void*, const void*, uint32_t)>;
 
 struct HNSWIndexUtils {
     enum class KUZU_API IndexOperation { CREATE, QUERY, DROP };
@@ -28,8 +31,7 @@ struct HNSWIndexUtils {
     static void validateAutoTransaction(const main::ClientContext& context,
         const std::string& funcName);
 
-    static double computeDistance(MetricType funcType, const float* left, const float* right,
-        uint32_t dimension);
+    static metric_func_t getMetricsFunction(MetricType metric, const common::LogicalType& type);
 
     static void validateColumnType(const catalog::TableCatalogEntry& tableEntry,
         const std::string& columnName);

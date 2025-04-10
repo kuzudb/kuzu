@@ -119,18 +119,20 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
         outputNode);
 }
 
-static std::vector<float> convertQueryVector(const Value& value) {
-    std::vector<float> queryVector;
+template<VectorElementType T>
+static std::vector<T> convertQueryVector(const Value& value) {
+    std::vector<T> queryVector;
     const auto numElements = value.getChildrenSize();
-    queryVector.reserve(numElements);
+    queryVector.resize(numElements);
     for (auto i = 0u; i < numElements; i++) {
-        queryVector[i] = NestedVal::getChildVal(&value, i)->getValue<float>();
+        queryVector[i] = NestedVal::getChildVal(&value, i)->getValue<T>();
     }
     return queryVector;
 }
 
-static std::vector<float> getQueryVector(main::ClientContext* context,
-    std::shared_ptr<Expression> queryExpression, uint64_t dimension) {
+template<typename T>
+static std::vector<T> getQueryVector(main::ClientContext* context,
+    std::shared_ptr<Expression> queryExpression, const LogicalType& indexType, uint64_t dimension) {
     std::shared_ptr<Expression> literalExpression = queryExpression;
     if (queryExpression->expressionType == ExpressionType::PARAMETER) {
         literalExpression = std::make_shared<LiteralExpression>(
@@ -139,11 +141,11 @@ static std::vector<float> getQueryVector(main::ClientContext* context,
     }
     Binder binder{context};
     const auto expr = binder.getExpressionBinder()->implicitCastIfNecessary(literalExpression,
-        LogicalType::ARRAY(LogicalType::FLOAT(), dimension));
+        LogicalType::ARRAY(indexType.copy(), dimension));
     const auto value =
         evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(expr, context);
-    KU_ASSERT(NestedVal::getChildVal(&value, 0)->getDataType() == LogicalType::FLOAT());
-    return convertQueryVector(value);
+    KU_ASSERT(NestedVal::getChildVal(&value, 0)->getDataType() == indexType);
+    return convertQueryVector<T>(value);
 }
 
 static const LogicalType& getIndexColumnType(const BoundQueryHNSWIndexInput& boundInput) {
@@ -167,10 +169,16 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
         index->setDefaultUpperEntryPoint(auxInfo.upperEntryPoint);
         index->setDefaultLowerEntryPoint(auxInfo.lowerEntryPoint);
         const auto dimension = ArrayType::getNumElements(getIndexColumnType(bindData->boundInput));
-        auto queryVector = getQueryVector(input.context->clientContext,
-            bindData->boundInput.queryExpression, dimension);
-        localState->result = index->search(input.context->clientContext->getTransaction(),
-            queryVector, localState->searchState);
+        auto indexType = index->getElementType();
+        TypeUtils::visit(
+            indexType,
+            [&]<VectorElementType T>(T) {
+                auto queryVector = getQueryVector<T>(input.context->clientContext,
+                    bindData->boundInput.queryExpression, index->getElementType(), dimension);
+                localState->result = index->search(input.context->clientContext->getTransaction(),
+                    queryVector.data(), localState->searchState);
+            },
+            [&](auto) { KU_UNREACHABLE; });
     }
     KU_ASSERT(localState->result.has_value());
     if (localState->numRowsOutput >= localState->result->size()) {
