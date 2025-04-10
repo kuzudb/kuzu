@@ -83,3 +83,9 @@ True
 -STATEMENT RETURN json_extract(json_object("foo", "true"), "foo") = to_json("true");
 ---- 1
 True
+
+-STATEMENT UNWIND ['{"name": "pop", "age": 32}', '{"name": "alice"}', null] as t RETURN json_extract(t, 'name') = '"alice"'
+---- 3
+
+True
+False
