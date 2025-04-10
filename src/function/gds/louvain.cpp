@@ -1,5 +1,4 @@
 #include <cmath>
-#include <set>
 
 #include "binder/binder.h"
 #include "common/exception/runtime.h"
@@ -113,9 +112,9 @@ struct FinalResults {
     explicit FinalResults(const offset_t numNodes) { communities.resize(numNodes); }
 };
 
-class SaveCommAssignments : public InMemVertexCompute {
+class SaveCommAssignmentsVC : public InMemVertexCompute {
 public:
-    explicit SaveCommAssignments(offset_t phaseId, FinalResults& finalResults, PhaseState& state)
+    explicit SaveCommAssignmentsVC(offset_t phaseId, FinalResults& finalResults, PhaseState& state)
         : phaseId{phaseId}, finalResults{finalResults}, state{state} {}
 
     void vertexCompute(offset_t startOffset, offset_t endOffset) override {
@@ -134,7 +133,7 @@ public:
     }
 
     std::unique_ptr<InMemVertexCompute> copy() override {
-        return std::make_unique<SaveCommAssignments>(phaseId, finalResults, state);
+        return std::make_unique<SaveCommAssignmentsVC>(phaseId, finalResults, state);
     }
 
 private:
@@ -430,7 +429,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         auto oldCommCount = state.graph.numNodes;
         auto newCommCount = renumberCommunities(state);
 
-        SaveCommAssignments setFinalComms(phase, finalResults, state);
+        SaveCommAssignmentsVC setFinalComms(phase, finalResults, state);
         GDSUtilsInMemory::runVertexCompute(setFinalComms, origNumNodes, input.context);
 
         if (oldCommCount == newCommCount) {
