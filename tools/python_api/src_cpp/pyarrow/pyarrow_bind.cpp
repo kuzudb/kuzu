@@ -17,7 +17,8 @@ std::shared_ptr<ArrowSchemaWrapper> Pyarrow::bind(py::handle tableToBind,
     for (int64_t i = 0; i < schema->n_children; i++) {
         ArrowSchema* child = schema->children[i];
         names.emplace_back(child->name);
-        returnTypes.push_back(common::ArrowConverter::fromArrowSchema(child));
+        returnTypes.push_back(common::LogicalTypeUtils::purgeAny(
+            common::ArrowConverter::fromArrowSchema(child), common::LogicalType::STRING()));
     }
 
     return schema;

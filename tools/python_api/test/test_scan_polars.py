@@ -88,3 +88,15 @@ def test_copy_from_polars_multi_pairs(conn_db_readwrite: ConnDB) -> None:
     assert result.has_next()
     assert result.get_next()[0] == 252
     assert not result.has_next()
+
+def test_scan_from_empty_lst(conn_db_readwrite: ConnDB) -> None:
+    conn, db = conn_db_readwrite
+    df = pl.DataFrame({
+        "prop1": [3],
+        "prop2": [[]]
+    })
+    result = conn.execute("LOAD FROM df RETURN *")
+    assert result.has_next()
+    tp = result.get_next()
+    assert tp[0] == 3
+    assert tp[1] == []

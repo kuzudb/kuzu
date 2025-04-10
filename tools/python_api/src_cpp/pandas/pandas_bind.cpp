@@ -82,7 +82,7 @@ static common::LogicalType bindColumn(PandasBindColumn& bindColumn,
             columnType = analyzer.getAnalyzedType().copy();
         }
     }
-    return columnType;
+    return LogicalTypeUtils::purgeAny(columnType, LogicalType::STRING());
 }
 
 void Pandas::bind(py::handle dfToBind,
