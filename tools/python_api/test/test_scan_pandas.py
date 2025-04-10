@@ -586,3 +586,16 @@ def test_scan_pandas_with_exists(tmp_path: Path) -> None:
     tp = res.get_next()
     assert tp[0] == 3
     assert tp[1] == 1
+
+def test_scan_empty_list(tmp_path: Path) -> None:
+    db = kuzu.Database(tmp_path)
+    conn = kuzu.Connection(db)
+    df = pd.DataFrame({
+        "id": ["1"],
+        "lstcol": [[]]
+    })
+    res = conn.execute("load from df return *")
+    assert res.has_next()
+    tp = res.get_next()
+    assert tp[0] == "1"
+    assert tp[1] == []

@@ -3,7 +3,7 @@
 #add_static_link_extension(fts)
 #add_static_link_extension(httpfs)
 #add_static_link_extension(iceberg)
-#add_static_link_extension(json)
+add_static_link_extension(json)
 #add_static_link_extension(postgres)
 #add_static_link_extension(sqlite)
 #add_static_link_extension(unity_catalog)
