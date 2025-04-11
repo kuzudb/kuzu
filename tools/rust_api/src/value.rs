@@ -1,6 +1,7 @@
 use crate::ffi::ffi;
 use crate::ffi::ffi::PhysicalTypeID;
 use crate::logical_type::LogicalType;
+use rust_decimal::prelude::ToPrimitive;
 use std::cmp::Ordering;
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
@@ -44,7 +45,7 @@ impl std::error::Error for ConversionError {
     }
 }
 
-/// NodeVal represents a node in the graph and stores the nodeID, label and properties of that
+/// `NodeVal` represents a node in the graph and stores the nodeID, label and properties of that
 /// node.
 #[derive(Clone, Debug, PartialEq)]
 pub struct NodeVal {
@@ -70,7 +71,7 @@ impl NodeVal {
         &self.label
     }
 
-    /// Adds a property with the given key/value pair to the NodeVal
+    /// Adds a property with the given key/value pair to the `NodeVal`
     /// # Arguments
     /// * `key`: The name of the property
     /// * `value`: The value of the property
@@ -78,7 +79,7 @@ impl NodeVal {
         self.properties.push((key.into(), value.into()));
     }
 
-    /// Returns all properties of the NodeVal
+    /// Returns all properties of the `NodeVal`
     pub fn get_properties(&self) -> &Vec<(String, Value)> {
         &self.properties
     }
@@ -103,7 +104,7 @@ impl std::fmt::Display for NodeVal {
     }
 }
 
-/// RelVal represents a relationship in the graph and stores the relID, src/dst nodes and properties of that
+/// `RelVal` represents a relationship in the graph and stores the relID, src/dst nodes and properties of that
 /// rel
 #[derive(Clone, Debug, PartialEq)]
 pub struct RelVal {
@@ -134,7 +135,7 @@ impl RelVal {
         &self.label
     }
 
-    /// Adds a property with the given key/value pair to the NodeVal
+    /// Adds a property with the given key/value pair to the `NodeVal`
     /// # Arguments
     /// * `key`: The name of the property
     /// * `value`: The value of the property
@@ -142,7 +143,7 @@ impl RelVal {
         self.properties.push((key, value));
     }
 
-    /// Returns all properties of the RelVal
+    /// Returns all properties of the `RelVal`
     pub fn get_properties(&self) -> &Vec<(String, Value)> {
         &self.properties
     }
@@ -156,7 +157,7 @@ impl std::fmt::Display for RelVal {
     }
 }
 
-/// Stores the table_id and offset of a node/rel.
+/// Stores the `table_id` and `offset` of a node/rel.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct InternalID {
     pub offset: u64,
@@ -213,19 +214,19 @@ pub enum Value {
     Double(f64),
     Float(f32),
     /// Stored internally as the number of days since 1970-01-01 as a 32-bit signed integer, which
-    /// allows for a wider range of dates to be stored than can be represented by time::Date
+    /// allows for a wider range of dates to be stored than can be represented by `time::Date`
     ///
     /// <https://kuzudb.com/docusaurus/cypher/data-types/date.html>
     Date(time::Date),
     /// May be signed or unsigned.
     ///
-    /// Nanosecond precision of time::Duration (if available) will not be preserved when passed to
+    /// Nanosecond precision of `time::Duration` (if available) will not be preserved when passed to
     /// queries, and results will always have at most microsecond precision.
     ///
     /// <https://kuzudb.com/docusaurus/cypher/data-types/interval.html>
     Interval(time::Duration),
     /// Stored internally as the number of microseconds since 1970-01-01
-    /// Nanosecond precision of SystemTime (if available) will not be preserved when used.
+    /// Nanosecond precision of `SystemTime` (if available) will not be preserved when used.
     ///
     /// <https://kuzudb.com/docusaurus/cypher/data-types/timestamp.html>
     Timestamp(time::OffsetDateTime),
@@ -254,7 +255,7 @@ pub enum Value {
         ///
         /// Does not include the starting or ending Node.
         nodes: Vec<NodeVal>,
-        /// Sequence of Rels which make up the RecursiveRel
+        /// Sequence of Rels which make up the `RecursiveRel`
         rels: Vec<RelVal>,
     },
     /// <https://kuzudb.com/docusaurus/cypher/data-types/map>
@@ -409,7 +410,7 @@ impl From<&Value> for LogicalType {
 fn get_date_from_unix_days(days: i32) -> Result<time::Date, ConversionError> {
     time::Date::from_calendar_date(1970, time::Month::January, 1)
         .unwrap()
-        .checked_add(time::Duration::days(days as i64))
+        .checked_add(time::Duration::days(i64::from(days)))
         .ok_or(ConversionError::Date(days))
 }
 
@@ -427,8 +428,8 @@ impl TryFrom<&ffi::Value> for Value {
         fn get_i128(value: &ffi::Value) -> i128 {
             let int128_val = ffi::value_get_int128_t(value);
             let low = int128_val[1];
-            let high = int128_val[0] as i64;
-            (low as i128) + ((high as i128) << 64)
+            let high = int128_val[0].to_i64().expect("u64->i64 overflow");
+            (i128::from(low)) + ((i128::from(high)) << 64)
         }
 
         if value.isNull() {
@@ -450,7 +451,7 @@ impl TryFrom<&ffi::Value> for Value {
             LogicalTypeID::UUID => Ok(Value::UUID(uuid::Uuid::from_u128(
                 // values are stored as i128 and the first bit flipped so that they order as if
                 // they are u128
-                get_i128(value) as u128 ^ (1 << 127),
+                get_i128(value).to_u128().expect("UUID i128->u128 overflow") ^ (1 << 127),
             ))),
             LogicalTypeID::FLOAT => Ok(Value::Float(value.get_value_float())),
             LogicalTypeID::DOUBLE => Ok(Value::Double(value.get_value_double())),
@@ -660,10 +661,10 @@ impl TryFrom<&ffi::Value> for Value {
                 {
                     let decimal_value: i128 = match ffi::value_get_physical_type(value) {
                         PhysicalTypeID::INT128 => get_i128(value),
-                        PhysicalTypeID::INT64 => value.get_value_i64() as i128,
-                        PhysicalTypeID::INT32 => value.get_value_i32() as i128,
-                        PhysicalTypeID::INT16 => value.get_value_i16() as i128,
-                        PhysicalTypeID::INT8 => value.get_value_i8() as i128,
+                        PhysicalTypeID::INT64 => i128::from(value.get_value_i64()),
+                        PhysicalTypeID::INT32 => i128::from(value.get_value_i32()),
+                        PhysicalTypeID::INT16 => i128::from(value.get_value_i16()),
+                        PhysicalTypeID::INT8 => i128::from(value.get_value_i8()),
                         _ => unreachable!(),
                     };
                     Ok(Value::Decimal(rust_decimal::Decimal::from_i128_with_scale(
@@ -686,18 +687,24 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
     type Error = crate::error::Error;
 
     fn try_into(self) -> Result<cxx::UniquePtr<ffi::Value>, Self::Error> {
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
         fn get_high_low(value: i128) -> (i64, u64) {
             ((value >> 64) as i64, value as u64)
         }
 
         fn date_to_kuzu_date_t(value: time::Date) -> i32 {
             // Convert to days since 1970-01-01
-            (value - time::Date::from_ordinal_date(1970, 1).unwrap()).whole_days() as i32
+            (value - time::Date::from_ordinal_date(1970, 1).unwrap())
+                .whole_days()
+                .to_i32()
+                .expect("kuzu_date i64->i32 overflow")
         }
 
         fn datetime_to_timestamp_t(value: time::OffsetDateTime) -> i64 {
             // Convert to microseconds since 1970-01-01
-            (value.unix_timestamp_nanos() / 1000) as i64
+            (value.unix_timestamp_nanos() / 1000)
+                .to_i64()
+                .expect("timestamp i128->i64 overflow")
         }
 
         fn get_interval_t(value: time::Duration) -> (i32, i32, i64) {
@@ -707,8 +714,13 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
             interval -= Duration::days(months * 30);
             let days = interval.whole_days();
             interval -= Duration::days(days);
-            let micros = interval.whole_microseconds() as i64;
-            (months as i32, days as i32, micros)
+            let months = months.to_i32().expect("months i64->i32 overflow");
+            let days = days.to_i32().expect("days i64->i32 overflow");
+            let micros = interval
+                .whole_microseconds()
+                .to_i64()
+                .expect("micros i128->i64 overflow");
+            (months, days, micros)
         }
 
         match self {
@@ -729,7 +741,8 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
             Value::UUID(value) => {
                 // values are stored as i128 and the first bit flipped so that they order as if
                 // they are u128
-                let (high, low) = get_high_low(value.as_u128() as i128 ^ (1 << 127));
+                let value = value.as_u128().to_i128().expect("UUID u128->i128 overflow");
+                let (high, low) = get_high_low(value ^ (1 << 127));
                 Ok(ffi::create_value_uuid_t(high, low))
             }
             Value::Float(value) => Ok(ffi::create_value_float(value)),
@@ -744,16 +757,25 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
             }
             Value::TimestampTz(value) => Ok(ffi::create_value_timestamp_tz(
                 // Convert to microseconds since 1970-01-01
-                (value.unix_timestamp_nanos() / 1000) as i64,
+                (value.unix_timestamp_nanos() / 1000)
+                    .to_i64()
+                    .expect("TimestampTz i128->i64 overflow"),
             )),
             Value::TimestampNs(value) => Ok(ffi::create_value_timestamp_ns(
-                value.unix_timestamp_nanos() as i64,
+                value
+                    .unix_timestamp_nanos()
+                    .to_i64()
+                    .expect("TimestampMs i128->i64 overflow"),
             )),
             Value::TimestampMs(value) => Ok(ffi::create_value_timestamp_ms(
-                (value.unix_timestamp_nanos() / 1_000_000) as i64,
+                (value.unix_timestamp_nanos() / 1_000_000)
+                    .to_i64()
+                    .expect("TimestampMs i128->i64 overflow"),
             )),
             Value::TimestampSec(value) => Ok(ffi::create_value_timestamp_sec(
-                (value.unix_timestamp_nanos() / 1_000_000_000) as i64,
+                (value.unix_timestamp_nanos() / 1_000_000_000)
+                    .to_i64()
+                    .expect("TimestampSec i128->i64 overflow"),
             )),
             Value::Date(value) => Ok(ffi::create_value_date(date_to_kuzu_date_t(value))),
             Value::Interval(value) => {
@@ -951,7 +973,7 @@ mod tests {
         ($($name:ident: $value:expr,)*) => {
         $(
             #[test]
-            /// Tests that the values are correctly converted into kuzu::common::Value and back
+            /// Tests that the values are correctly converted into `kuzu::common::Value` and back
             fn $name() -> Result<()> {
                 let rust_type: LogicalType = $value;
                 let typ: cxx::UniquePtr<ffi::LogicalType> = (&rust_type).try_into()?;
@@ -967,7 +989,7 @@ mod tests {
         ($($name:ident: $value:expr,)*) => {
         $(
             #[test]
-            /// Tests that the values are correctly converted into kuzu::common::Value and back
+            /// Tests that the values are correctly converted into `kuzu::common::Value` and back
             fn $name() -> Result<()> {
                 let rust_value: Value = $value;
                 let value: cxx::UniquePtr<ffi::Value> = rust_value.clone().try_into()?;

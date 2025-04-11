@@ -21,7 +21,7 @@ pub struct PreparedStatement {
 /// instance in a multithreaded environment.
 ///
 /// Note that since connections require a reference to the Database, creating or using connections
-/// in multiple threads cannot be done from a regular std::thread since the threads (and
+/// in multiple threads cannot be done from a regular `std::thread` since the threads (and
 /// connections) could outlive the database. This can be worked around by using a
 /// [scoped thread](std::thread::scope) (Note: Introduced in rust 1.63. For compatibility with
 /// older versions of rust, [crosssbeam_utils::thread::scope](https://docs.rs/crossbeam-utils/latest/crossbeam_utils/thread/index.html) can be used instead).

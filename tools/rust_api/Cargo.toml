@@ -68,12 +68,6 @@ too_many_arguments = "allow"
 type_complexity = "allow"
 
 pedantic = { level = "warn", priority = -1 }
-cast_lossless = "allow"
-cast_possible_truncation = "allow"
-cast_possible_wrap = "allow"
-cast_precision_loss = "allow"
-cast_sign_loss = "allow"
-doc_markdown = "allow"
 inline_always = "allow"
 missing_errors_doc = "allow"
 missing_panics_doc = "allow"

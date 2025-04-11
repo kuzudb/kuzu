@@ -63,7 +63,7 @@ mod logical_type;
 mod query_result;
 mod value;
 
-/// The version of the Kuzu crate as reported by Cargo's CARGO_PKG_VERSION environment variable
+/// The version of the Kuzu crate as reported by Cargo's `CARGO_PKG_VERSION` environment variable
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Returns the storage version of the Kuzu library
 pub fn get_storage_version() -> u64 {

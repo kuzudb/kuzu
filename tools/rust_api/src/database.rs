@@ -6,7 +6,7 @@ use std::path::Path;
 use crate::error::Error;
 use crate::ffi::ffi;
 
-/// The Database class is the main class of KuzuDB. It manages all database components.
+/// The Database class is the main class of `KuzuDB`. It manages all database components.
 pub struct Database {
     pub(crate) db: UnsafeCell<UniquePtr<ffi::Database>>,
 }
@@ -62,7 +62,7 @@ impl Default for SystemConfig {
             enable_compression: true,
             read_only: false,
             // This is a little weird, but it's a temporary interface
-            max_db_size: u32::MAX as u64,
+            max_db_size: u64::from(u32::MAX),
             auto_checkpoint: true,
             checkpoint_threshold: -1_i64,
         }
