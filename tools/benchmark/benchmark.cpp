@@ -74,20 +74,32 @@ void Benchmark::log(uint32_t runNum, QueryResult& queryResult) const {
 }
 
 void Benchmark::verify(const std::vector<std::string>& actualOutput) const {
-    bool matched = expectedNumTuples == actualOutput.size();
-    if (matched && compareResult) {
-        matched = actualOutput == expectedOutput;
-    }
-    if (!matched) {
-        spdlog::error("Query: {}", query);
-        spdlog::error("Result tuples are not matched");
-        spdlog::error("RESULT:");
-        for (auto& tuple : actualOutput) {
-            spdlog::error(tuple);
+    if (actualOutput.size() == expectedNumTuples) {
+        if (actualOutput != expectedOutput && compareResult) {
+            spdlog::info("Output:");
+            for (auto& tuple : actualOutput) {
+                spdlog::info(tuple);
+            }
+            for (auto i = 0u; i < actualOutput.size(); i++) {
+                if (actualOutput[i] != expectedOutput[i]) {
+                    spdlog::error("Result tuple at index {} did not match the expected value", i);
+                    spdlog::error("Actual  :", actualOutput[i]);
+                    spdlog::error("Expected:", expectedOutput[i]);
+                }
+            }
         }
-        spdlog::error("EXPECTED:");
-        for (auto& tuple : expectedOutput) {
-            spdlog::error(tuple);
+    } else {
+        spdlog::error("Expected {} tuples but found {} tuples", expectedNumTuples,
+            actualOutput.size());
+        if (compareResult && actualOutput != expectedOutput) {
+            spdlog::error("RESULT:");
+            for (auto& tuple : actualOutput) {
+                spdlog::error(tuple);
+            }
+            spdlog::error("EXPECTED:");
+            for (auto& tuple : expectedOutput) {
+                spdlog::error(tuple);
+            }
         }
     }
 }
