@@ -211,6 +211,13 @@ void NodeGroupCollection::checkpoint(MemoryManager& memoryManager,
     types = std::move(typesAfterCheckpoint);
 }
 
+void NodeGroupCollection::commitDrop(FileHandle& dataFH) {
+    const auto lock = nodeGroups.lock();
+    for (auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
+        nodeGroup->commitDrop(dataFH);
+    }
+}
+
 void NodeGroupCollection::rollbackInsert(row_idx_t numRows_, bool updateNumRows) {
     const auto lock = nodeGroups.lock();
 

@@ -31,7 +31,8 @@ Transaction::Transaction(main::ClientContext& clientContext, TransactionType tra
       commitTS{common::INVALID_TRANSACTION}, forceCheckpoint{false}, hasCatalogChanges{false} {
     this->clientContext = &clientContext;
     localStorage = std::make_unique<storage::LocalStorage>(clientContext);
-    undoBuffer = std::make_unique<storage::UndoBuffer>(clientContext.getMemoryManager());
+    undoBuffer =
+        std::make_unique<storage::UndoBuffer>(clientContext.getMemoryManager(), &clientContext);
     currentTS = common::Timestamp::getCurrentTimestamp().value;
     // Note that the use of `this` should be safe here as there is no inheritance.
     for (auto entry : clientContext.getCatalog()->getNodeTableEntries(this)) {

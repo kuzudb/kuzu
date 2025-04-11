@@ -236,6 +236,8 @@ public:
 
     void updateStats(const common::ValueVector* vector, const common::SelectionView& selVector);
 
+    void commitDrop(FileHandle& dataFH);
+
 protected:
     // Initializes the data buffer and functions. They are (and should be) only called in
     // constructor.

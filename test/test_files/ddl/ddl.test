@@ -108,15 +108,29 @@ Binder exception: Found duplicate FROM-TO person-person pairs.
 ---- 0
 
 -CASE DropNodeTableCommitNormalExecution
+-STATEMENT call fsm_info() return *
+---- 0
 -STATEMENT DROP TABLE movies
 ---- ok
+-STATEMENT checkpoint
+---- ok
+-STATEMENT call fsm_info() return sum(num_pages) > 0
+---- 1
+True
 -STATEMENT MATCH (m:movies) RETURN count(*)
 ---- error
 Binder exception: Table movies does not exist.
 
 -CASE DropRelTableCommitNormalExecution
+-STATEMENT call fsm_info() return *
+---- 0
 -STATEMENT DROP TABLE knows
 ---- ok
+-STATEMENT checkpoint
+---- ok
+-STATEMENT call fsm_info() return sum(num_pages) > 0
+---- 1
+True
 -STATEMENT MATCH ()-[k:knows]->() RETURN count(*)
 ---- error
 Binder exception: Table knows does not exist.

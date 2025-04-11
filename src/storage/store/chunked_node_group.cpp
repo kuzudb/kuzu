@@ -489,6 +489,12 @@ void ChunkedNodeGroup::rollbackDelete(row_idx_t startRow, row_idx_t numRows_, tr
     versionInfo->rollbackDelete(startRow, numRows_);
 }
 
+void ChunkedNodeGroup::commitDrop(FileHandle& dataFH) {
+    for (auto& columnChunk : chunks) {
+        columnChunk->commitDrop(dataFH);
+    }
+}
+
 void ChunkedNodeGroup::serialize(Serializer& serializer) const {
     KU_ASSERT(residencyState == ResidencyState::ON_DISK);
     serializer.writeDebuggingInfo("chunks");
