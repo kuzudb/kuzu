@@ -425,6 +425,7 @@ impl TryFrom<&ffi::Value> for Value {
 
     fn try_from(value: &ffi::Value) -> Result<Self, Self::Error> {
         use ffi::LogicalTypeID;
+        #[allow(clippy::cast_possible_wrap)]
         fn get_i128(value: &ffi::Value) -> i128 {
             let int128_val = ffi::value_get_int128_t(value);
             let low = int128_val[1];
@@ -448,6 +449,7 @@ impl TryFrom<&ffi::Value> for Value {
             LogicalTypeID::UINT32 => Ok(Value::UInt32(value.get_value_u32())),
             LogicalTypeID::UINT64 => Ok(Value::UInt64(value.get_value_u64())),
             LogicalTypeID::INT128 => Ok(Value::Int128(get_i128(value))),
+            #[allow(clippy::cast_sign_loss)]
             LogicalTypeID::UUID => Ok(Value::UUID(uuid::Uuid::from_u128(
                 // values are stored as i128 and the first bit flipped so that they order as if
                 // they are u128
@@ -738,6 +740,7 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
                 let (high, low) = get_high_low(value);
                 Ok(ffi::create_value_int128_t(high, low))
             }
+            #[allow(clippy::cast_possible_wrap)]
             Value::UUID(value) => {
                 // values are stored as i128 and the first bit flipped so that they order as if
                 // they are u128
