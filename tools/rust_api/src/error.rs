@@ -16,16 +16,17 @@ pub enum Error {
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "arrow")]
-        use Error::ArrowError;
-        use Error::{CxxException, FailedPreparedStatement, FailedQuery, ReadOnlyType};
         match self {
-            CxxException(cxx) => write!(f, "{cxx}"),
-            FailedQuery(message) => write!(f, "Query execution failed: {message}"),
-            FailedPreparedStatement(message) => write!(f, "Query execution failed: {message}"),
-            ReadOnlyType(typ) => write!(f, "Attempted to pass read only type {typ:?} over ffi!"),
+            Error::CxxException(cxx) => write!(f, "{cxx}"),
+            Error::FailedQuery(message) => write!(f, "Query execution failed: {message}"),
+            Error::FailedPreparedStatement(message) => {
+                write!(f, "Query execution failed: {message}")
+            }
+            Error::ReadOnlyType(typ) => {
+                write!(f, "Attempted to pass read only type {typ:?} over ffi!")
+            }
             #[cfg(feature = "arrow")]
-            ArrowError(err) => write!(f, "{err}"),
+            Error::ArrowError(err) => write!(f, "{err}"),
         }
     }
 }
@@ -38,9 +39,8 @@ impl std::fmt::Debug for Error {
 
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        use Error::CxxException;
         match self {
-            CxxException(cxx) => Some(cxx),
+            Error::CxxException(cxx) => Some(cxx),
             _ => None,
         }
     }

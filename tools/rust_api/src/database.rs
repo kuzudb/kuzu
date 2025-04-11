@@ -107,8 +107,7 @@ impl Database {
     ///
     /// # Arguments:
     /// * `path`: Path of the database. If the database does not already exist, it will be created.
-    ///           If the path is empty, or equal to `:memory:`, the database will be created
-    ///           in-memory.
+    ///   If the path is empty, or equal to `:memory:`, the database will be created in-memory.
     /// * `config`: Database configuration to use
     pub fn new<P: AsRef<Path>>(path: P, config: SystemConfig) -> Result<Self, Error> {
         Ok(Database {

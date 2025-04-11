@@ -423,6 +423,7 @@ impl TryFrom<&ffi::Value> for Value {
     type Error = ConversionError;
 
     fn try_from(value: &ffi::Value) -> Result<Self, Self::Error> {
+        use ffi::LogicalTypeID;
         fn get_i128(value: &ffi::Value) -> i128 {
             let int128_val = ffi::value_get_int128_t(value);
             let low = int128_val[1];
@@ -430,7 +431,6 @@ impl TryFrom<&ffi::Value> for Value {
             (low as i128) + ((high as i128) << 64)
         }
 
-        use ffi::LogicalTypeID;
         if value.isNull() {
             return Ok(Value::Null(value.into()));
         }
