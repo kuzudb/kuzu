@@ -9,7 +9,7 @@
 ---- ok
 -STATEMENT call checkpoint_threshold=0
 ---- ok
--STATEMENT COPY person FROM (unwind range(1, 600000) as i return 1000000000 * i)
+-STATEMENT COPY person FROM (unwind range(1, 600010) as i return 1000000000 * i)
 ---- ok
 # fill up the last node group, make sure to trigger recompression
 -STATEMENT copy person from (
@@ -27,7 +27,7 @@ True
 ---- 1
 0
 # append two values, check that the new node group uses the free page
--STATEMENT create (:person{value: 1000000000 * 600001 + 1}), (:person{value: 1000000000 * 600001})
+-STATEMENT create (:person{value: 1000000000 * 600011 + 1}), (:person{value: 1000000000 * 600011})
 ---- ok
 -STATEMENT call storage_info('person') where data_type = 'UINT64' with max(start_page_idx) as max_start_page_idx
            call storage_info('person') where data_type = 'UINT64' with max_start_page_idx, start_page_idx as last_start_page_idx order by node_group_id desc limit 1
