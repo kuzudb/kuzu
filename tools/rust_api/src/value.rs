@@ -428,7 +428,7 @@ impl TryFrom<&ffi::Value> for Value {
         fn get_i128(value: &ffi::Value) -> i128 {
             let int128_val = ffi::value_get_int128_t(value);
             let low = int128_val[1];
-            let high = int128_val[0].to_i64().expect("u64->i64 overflow");
+            let high = int128_val[0] as i64;
             (i128::from(low)) + ((i128::from(high)) << 64)
         }
 
@@ -451,7 +451,7 @@ impl TryFrom<&ffi::Value> for Value {
             LogicalTypeID::UUID => Ok(Value::UUID(uuid::Uuid::from_u128(
                 // values are stored as i128 and the first bit flipped so that they order as if
                 // they are u128
-                get_i128(value).to_u128().expect("UUID i128->u128 overflow") ^ (1 << 127),
+                get_i128(value) as u128 ^ (1 << 127),
             ))),
             LogicalTypeID::FLOAT => Ok(Value::Float(value.get_value_float())),
             LogicalTypeID::DOUBLE => Ok(Value::Double(value.get_value_double())),
@@ -741,7 +741,7 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
             Value::UUID(value) => {
                 // values are stored as i128 and the first bit flipped so that they order as if
                 // they are u128
-                let value = value.as_u128().to_i128().expect("UUID u128->i128 overflow");
+                let value = value.as_u128() as i128;
                 let (high, low) = get_high_low(value ^ (1 << 127));
                 Ok(ffi::create_value_uuid_t(high, low))
             }
