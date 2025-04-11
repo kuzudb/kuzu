@@ -21,7 +21,8 @@ class RJVertexCompute : public VertexCompute {
 public:
     RJVertexCompute(storage::MemoryManager* mm, RecursiveExtendSharedState* sharedState,
         std::unique_ptr<RJOutputWriter> writer, table_id_set_t nbrTableIDSet)
-        : mm{mm}, sharedState{sharedState}, writer{std::move(writer)}, nbrTableIDSet{std::move(nbrTableIDSet)} {
+        : mm{mm}, sharedState{sharedState}, writer{std::move(writer)},
+          nbrTableIDSet{std::move(nbrTableIDSet)} {
         localFT = sharedState->factorizedTablePool.claimLocalTable(mm);
     }
     ~RJVertexCompute() override { sharedState->factorizedTablePool.returnLocalTable(localFT); }
@@ -82,7 +83,7 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
         }
     }
     offset_t completedNumNodes = 0;
-    auto inputNodeTableIDSet =  bindData.nodeInput->constCast<NodeExpression>().getTableIDsSet();
+    auto inputNodeTableIDSet = bindData.nodeInput->constCast<NodeExpression>().getTableIDsSet();
     for (auto& tableID : graph->getNodeTableIDs()) {
         // Input node table IDs could be different from graph node table IDs, e.g.
         // Given schema, student-knows->student, teacher-knows->teacher
@@ -110,7 +111,8 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
                 propertyName);
             auto vertexCompute =
                 std::make_unique<RJVertexCompute>(clientContext->getMemoryManager(),
-                    sharedState.get(), rjCompState.outputWriter->copy(), bindData.nodeOutput->constCast<NodeExpression>().getTableIDsSet());
+                    sharedState.get(), rjCompState.outputWriter->copy(),
+                    bindData.nodeOutput->constCast<NodeExpression>().getTableIDsSet());
             auto frontierPair = gdsComputeState->frontierPair.get();
             auto& candidates = frontierPair->getVertexComputeCandidates();
             candidates.mergeSparseFrontier(frontierPair->getNextSparseFrontier());
@@ -122,7 +124,8 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
         };
         auto maxOffset = graph->getMaxOffset(clientContext->getTransaction(), tableID);
         if (inputNodeMaskMap && inputNodeMaskMap->getOffsetMask(tableID)->isEnabled()) {
-            for (const auto& offset : inputNodeMaskMap->getOffsetMask(tableID)->range(0, maxOffset)) {
+            for (const auto& offset :
+                inputNodeMaskMap->getOffsetMask(tableID)->range(0, maxOffset)) {
                 calcFunc(offset);
                 clientContext->getProgressBar()->updateProgress(context->queryID,
                     getRJProgress(totalNumNodes, completedNumNodes++));

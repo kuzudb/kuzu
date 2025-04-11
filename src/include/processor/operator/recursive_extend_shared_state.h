@@ -23,16 +23,12 @@ struct RecursiveExtendSharedState {
     void setInputNodeMask(std::unique_ptr<common::NodeOffsetMaskMap> maskMap) {
         inputNodeMask = std::move(maskMap);
     }
-    common::NodeOffsetMaskMap* getInputNodeMaskMap() const {
-        return inputNodeMask.get();
-    }
+    common::NodeOffsetMaskMap* getInputNodeMaskMap() const { return inputNodeMask.get(); }
 
     void setOutputNodeMask(std::unique_ptr<common::NodeOffsetMaskMap> maskMap) {
         outputNodeMask = std::move(maskMap);
     }
-    common::NodeOffsetMaskMap* getOutputNodeMaskMap() const {
-        return outputNodeMask.get();
-    }
+    common::NodeOffsetMaskMap* getOutputNodeMaskMap() const { return outputNodeMask.get(); }
 
     void setPathNodeMask(std::unique_ptr<common::NodeOffsetMaskMap> maskMap) {
         pathNodeMask = std::move(maskMap);

@@ -1,6 +1,5 @@
 #include "processor/plan_mapper.h"
 
-
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/profile.h"
 #include "storage/storage_manager.h"

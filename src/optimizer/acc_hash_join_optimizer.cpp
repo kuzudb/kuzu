@@ -173,8 +173,8 @@ static std::vector<LogicalOperator*> getScanNodeCandidates(const Expression& nod
     return result;
 }
 
-static std::vector<LogicalOperator*> getRecursiveExtendInputNodeCandidates(
-    const Expression& nodeID, LogicalOperator* root) {
+static std::vector<LogicalOperator*> getRecursiveExtendInputNodeCandidates(const Expression& nodeID,
+    LogicalOperator* root) {
     std::vector<LogicalOperator*> result;
     auto collector = LogicalRecursiveExtendCollector();
     collector.collect(root);

@@ -1,9 +1,9 @@
+#include "binder/expression/node_expression.h"
 #include "graph/on_disk_graph.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/recursive_extend.h"
 #include "processor/plan_mapper.h"
-#include "binder/expression/node_expression.h"
 
 using namespace kuzu::planner;
 using namespace kuzu::graph;
@@ -13,7 +13,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<NodeOffsetMaskMap> createNodeOffsetMaskMap(const Expression& expr, PlanMapper* mapper) {
+std::unique_ptr<NodeOffsetMaskMap> createNodeOffsetMaskMap(const Expression& expr,
+    PlanMapper* mapper) {
     auto& node = expr.constCast<NodeExpression>();
     auto maskMap = std::make_unique<NodeOffsetMaskMap>();
     for (auto tableID : node.getTableIDs()) {

@@ -47,7 +47,8 @@ public:
     std::string getExpressionsForPrinting() const override { return function->getFunctionName(); }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        auto result = std::make_unique<LogicalRecursiveExtend>(function->copy(), bindData, resultColumns);
+        auto result =
+            std::make_unique<LogicalRecursiveExtend>(function->copy(), bindData, resultColumns);
         result->limitNum = limitNum;
         result->hasInputNodeMask_ = hasInputNodeMask_;
         result->hasOutputNodeMask_ = hasOutputNodeMask_;

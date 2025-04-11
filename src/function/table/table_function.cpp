@@ -88,8 +88,8 @@ void TableFunction::getLogicalPlan(planner::Planner* planner,
     }
 }
 
-std::unique_ptr<PhysicalOperator> TableFunction::getPhysicalPlan(
-    PlanMapper* planMapper, const LogicalOperator* logicalOp) {
+std::unique_ptr<PhysicalOperator> TableFunction::getPhysicalPlan(PlanMapper* planMapper,
+    const LogicalOperator* logicalOp) {
     std::vector<DataPos> outPosV;
     auto& call = logicalOp->constCast<LogicalTableFunctionCall>();
     auto outSchema = call.getSchema();
@@ -110,8 +110,8 @@ std::unique_ptr<PhysicalOperator> TableFunction::getPhysicalPlan(
             logicalSemiMasker->addTarget(logicalOp);
         }
     }
-    auto printInfo = std::make_unique<TableFunctionCallPrintInfo>(
-        call.getTableFunc().name, call.getBindData()->columns);
+    auto printInfo = std::make_unique<TableFunctionCallPrintInfo>(call.getTableFunc().name,
+        call.getBindData()->columns);
     return std::make_unique<TableFunctionCall>(std::move(info), sharedState,
         planMapper->getOperatorID(), std::move(printInfo));
 }
