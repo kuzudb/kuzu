@@ -14,8 +14,8 @@
 # fill up the last node group, make sure to trigger recompression
 -STATEMENT copy person from (
     call storage_info('person') where node_group_id = 0 with num_values as node_group_capacity limit 1
-    call storage_info('person') where data_type = 'UINT64' with node_group_capacity, cast(max as uint64) as max_val, num_values as last_node_group_size order by node_group_id desc limit 1
-    unwind range(1, node_group_capacity - last_node_group_size) as i return max_val + i
+    call storage_info('person') where data_type = 'UINT64' with node_group_capacity, cast(min as uint64) as min_val, num_values as last_node_group_size order by node_group_id desc limit 1
+    unwind range(1, node_group_capacity - last_node_group_size) as i return min_val - i
 )
 ---- ok
 -STATEMENT call fsm_info() return sum(num_pages) > 0
