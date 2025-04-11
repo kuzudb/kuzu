@@ -154,6 +154,7 @@ public:
     void rollbackDelete(common::row_idx_t startRow, common::row_idx_t numRows_,
         common::transaction_t commitTS);
     virtual void commitDrop(FileHandle& dataFH);
+    void commitDropColumn(FileHandle& dataFH, common::column_id_t columnID);
 
     uint64_t getEstimatedMemoryUsage() const;
 

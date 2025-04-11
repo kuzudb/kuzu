@@ -106,7 +106,7 @@ void FreeSpaceManager::deserialize(common::Deserializer& deSer) {
 }
 
 void FreeSpaceManager::finalizeCheckpoint(FileHandle* fileHandle) {
-    // evict all pages that aren't already part of the free list
+    // evict pages before they're added to the free list
     for (const auto& entry : uncheckpointedFreePageRanges) {
         for (uint64_t i = 0; i < entry.numPages; ++i) {
             const auto pageIdx = entry.startPageIdx + i;

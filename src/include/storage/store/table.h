@@ -175,6 +175,7 @@ public:
     virtual void checkpoint(common::Serializer& ser, catalog::TableCatalogEntry* tableEntry) = 0;
     virtual void rollbackCheckpoint() = 0;
     virtual void commitDrop(FileHandle& dataFH) = 0;
+    virtual void commitDropColumn(FileHandle& dataFH, common::column_id_t columnID) = 0;
 
     virtual common::row_idx_t getNumTotalRows(const transaction::Transaction* transaction) = 0;
 

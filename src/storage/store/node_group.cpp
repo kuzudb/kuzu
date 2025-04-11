@@ -378,6 +378,13 @@ void NodeGroup::commitDrop(FileHandle& dataFH) {
     }
 }
 
+void NodeGroup::commitDropColumn(FileHandle& dataFH, column_id_t columnID) {
+    const auto lock = chunkedGroups.lock();
+    for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
+        chunkedGroup->commitDropColumn(dataFH, columnID);
+    }
+}
+
 void NodeGroup::checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state) {
     // We don't need to consider deletions here, as they are flushed separately as metadata.
     // TODO(Guodong): A special case can be all rows are deleted or rollbacked, then we can skip

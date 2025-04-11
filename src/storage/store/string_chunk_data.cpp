@@ -6,6 +6,7 @@
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "storage/file_handle.h"
 #include "storage/store/column_chunk_data.h"
 #include "storage/store/dictionary_chunk.h"
 #include "storage/store/string_column.h"
@@ -254,6 +255,13 @@ void StringChunkData::flush(FileHandle& dataFH) {
     ColumnChunkData::flush(dataFH);
     indexColumnChunk->flush(dataFH);
     dictionaryChunk->flush(dataFH);
+}
+
+void StringChunkData::commitDrop(FileHandle& dataFH) {
+    ColumnChunkData::commitDrop(dataFH);
+    indexColumnChunk->commitDrop(dataFH);
+    dictionaryChunk->getOffsetChunk()->commitDrop(dataFH);
+    dictionaryChunk->getStringDataChunk()->commitDrop(dataFH);
 }
 
 uint64_t StringChunkData::getEstimatedMemoryUsage() const {

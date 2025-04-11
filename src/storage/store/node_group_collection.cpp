@@ -218,6 +218,13 @@ void NodeGroupCollection::commitDrop(FileHandle& dataFH) {
     }
 }
 
+void NodeGroupCollection::commitDropColumn(FileHandle& dataFH, common::column_id_t columnID) {
+    const auto lock = nodeGroups.lock();
+    for (auto& nodeGroup : nodeGroups.getAllGroups(lock)) {
+        nodeGroup->commitDropColumn(dataFH, columnID);
+    }
+}
+
 void NodeGroupCollection::rollbackInsert(row_idx_t numRows_, bool updateNumRows) {
     const auto lock = nodeGroups.lock();
 

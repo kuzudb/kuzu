@@ -159,6 +159,7 @@ public:
         common::row_idx_t numRows, common::transaction_t commitTS) const;
     void rollbackInsert(common::row_idx_t startRow);
     virtual void commitDrop(FileHandle& dataFH);
+    virtual void commitDropColumn(FileHandle& dataFH, common::column_id_t columnID);
 
     virtual void checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointState& state);
 
