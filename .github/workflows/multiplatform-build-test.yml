@@ -130,7 +130,7 @@ jobs:
         working-directory: tools/rust_api
         run: |
           set +e
-          cargo test --release --features arrow -- --test-threads=12
+          cargo test --release --features arrow
           echo "Rust test,$?" >> ../../status.txt
 
       - name: Rust example
@@ -267,7 +267,7 @@ jobs:
           set OPENSSL_DIR=C:\Program Files\OpenSSL-Win64
           set CXXFLAGS=/std:c++20
           set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
-          cargo test --release --features arrow -- --test-threads=12
+          cargo test --release --features arrow
           echo Rust test,%ERRORLEVEL% >> status.txt
 
       - name: Rust example
@@ -414,7 +414,7 @@ jobs:
         working-directory: tools/rust_api
         run: |
           set +e
-          cargo test --release --features arrow -- --test-threads=12
+          cargo test --release --features arrow
           echo "Rust test,$?" >> ../../status.txt
 
       - name: Rust example
@@ -575,7 +575,7 @@ jobs:
         working-directory: tools/rust_api
         run: |
           set +e
-          cargo test --release --features arrow -- --test-threads=12
+          cargo test --release --features arrow
           echo "Rust test,$?" >> ../../status.txt
 
       - name: Rust example
@@ -704,7 +704,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
-          cargo test --release --features arrow -- --test-threads=12
+          cargo test --release --features arrow
           echo "Rust test,$?" >> ../../status.txt
 
       - name: Rust example
